@@ -6,7 +6,7 @@ asset (with a low return), and saving in a risky asset (with higher average retu
 import numpy as np
 from scipy.optimize import minimize_scalar
 from copy import deepcopy
-from HARK import HARKobject, NullFunc, AgentType  # Basic HARK features
+from HARK import MetricObject, NullFunc, AgentType  # Basic HARK features
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
     ValueFunc,  # For representing 1D value function
@@ -35,7 +35,7 @@ from HARK.interpolation import (
 
 
 # Define a class to represent the single period solution of the portfolio choice problem
-class PortfolioSolution(HARKobject):
+class PortfolioSolution(MetricObject):
     """
     A class for representing the single period solution of the portfolio choice model.
 

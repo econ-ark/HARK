@@ -121,21 +121,19 @@ class ConsMarkovSolver(ConsIndShockSolver):
         """
         # Set basic attributes of the problem
 
-        self.assignParameters(
-            solution_next=solution_next,
-            IncomeDstn_list=IncomeDstn_list,
-            LivPrb=LivPrb,
-            DiscFac=DiscFac,
-            CRRA=CRRA,
-            BoroCnstArt=BoroCnstArt,
-            aXtraGrid=aXtraGrid,
-            vFuncBool=vFuncBool,
-            CubicBool=CubicBool,
-            Rfree_list=Rfree_list,
-            PermGroFac_list=PermGroFac_list,
-            MrkvArray=MrkvArray,
-            StateCount=MrkvArray.shape[0],
-        )
+        self.solution_next = solution_next
+        self.IncomeDstn_list = IncomeDstn_list
+        self.LivPrb = LivPrb
+        self.DiscFac = DiscFac
+        self.CRRA = CRRA
+        self.BoroCnstArt = BoroCnstArt
+        self.aXtraGrid = aXtraGrid
+        self.vFuncBool = vFuncBool
+        self.CubicBool = CubicBool
+        self.Rfree_list=Rfree_list
+        self.PermGroFac_list=PermGroFac_list
+        self.MrkvArray=MrkvArray
+        self.StateCount=MrkvArray.shape[0]
         self.defUtilityFuncs()
 
     def solve(self):

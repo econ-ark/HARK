@@ -10,7 +10,7 @@ from builtins import str
 from builtins import range
 from copy import deepcopy
 import numpy as np
-from HARK import AgentType, HARKobject, makeOnePeriodOOSolver
+from HARK import AgentType, MetricObject, makeOnePeriodOOSolver
 from HARK.distribution import DiscreteDistribution
 from HARK.interpolation import (
     LowerEnvelope2D,
@@ -61,7 +61,7 @@ utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
 
 
-class ValueFunc2D(HARKobject):
+class ValueFunc2D(MetricObject):
     """
     A class for representing a value function in a model where persistent income
     is explicitly included as a state variable.  The underlying interpolation is
@@ -111,7 +111,7 @@ class ValueFunc2D(HARKobject):
         return utility(self.func(m, p), gam=self.CRRA)
 
 
-class MargValueFunc2D(HARKobject):
+class MargValueFunc2D(MetricObject):
     """
     A class for representing a marginal value function in models where the
     standard envelope condition of v'(m,p) = u'(c(m,p)) holds (with CRRA utility).
@@ -189,7 +189,7 @@ class MargValueFunc2D(HARKobject):
         return MPC * utilityPP(c, gam=self.CRRA)
 
 
-class MargMargValueFunc2D(HARKobject):
+class MargMargValueFunc2D(MetricObject):
     """
     A class for representing a marginal marginal value function in models where the
     standard envelope condition of v'(m,p) = u'(c(m,p)) holds (with CRRA utility).
@@ -242,7 +242,7 @@ class MargMargValueFunc2D(HARKobject):
         return MPC * utilityPP(c, gam=self.CRRA)
 
 
-class pLvlFuncAR1(HARKobject):
+class pLvlFuncAR1(MetricObject):
     """
     A class for representing AR1-style persistent income growth functions.
     """
@@ -302,6 +302,40 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     (after controlling for growth).  Instead, they have  a function that translates
     current persistent income into expected next period persistent income (subject
     to shocks).
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to next period's one period problem.
+    IncomeDstn : [np.array]
+        A list containing three arrays of floats, representing a discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next). Order: event
+        probabilities, persistent shocks, transitory shocks.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    pLvlNextFunc : float
+        Expected persistent income next period as a function of current pLvl.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period (normalized) asset values-- assets
+        above the absolute minimum acceptable level.
+    pLvlGrid: np.array
+        Array of persistent income levels at which to solve the problem.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear interpolation.
     """
 
     def __init__(
@@ -323,60 +357,21 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         Constructor for a new solver for a one period problem with idiosyncratic
         shocks to persistent and transitory income, with persistent income tracked
         as a state variable rather than normalized out.
-
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, persistent shocks, transitory shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rfree : float
-            Risk free interest factor on end-of-period assets.
-        pLvlNextFunc : float
-            Expected persistent income next period as a function of current pLvl.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period (normalized) asset values-- assets
-            above the absolute minimum acceptable level.
-        pLvlGrid: np.array
-            Array of persistent income levels at which to solve the problem.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear interpolation.
-
-        Returns
-        -------
-        None
         """
-        self.assignParameters(
-            solution_next=solution_next,
-            IncomeDstn=IncomeDstn,
-            LivPrb=LivPrb,
-            DiscFac=DiscFac,
-            CRRA=CRRA,
-            Rfree=Rfree,
-            pLvlNextFunc=pLvlNextFunc,
-            BoroCnstArt=BoroCnstArt,
-            aXtraGrid=aXtraGrid,
-            pLvlGrid=pLvlGrid,
-            vFuncBool=vFuncBool,
-            CubicBool=CubicBool,
-            PermGroFac=0.0,
-        )  # dummy 0.0 variable why PermGroFac?
+        self.solution_next = solution_next
+        self.IncomeDstn = IncomeDstn
+        self.LivPrb = LivPrb
+        self.DiscFac = DiscFac
+        self.CRRA = CRRA
+        self.Rfree = Rfree
+        self.pLvlNextFunc = pLvlNextFunc
+        self.BoroCnstArt = BoroCnstArt
+        self.aXtraGrid = aXtraGrid
+        self.pLvlGrid = pLvlGrid
+        self.vFuncBool = vFuncBool
+        self.CubicBool = CubicBool
+        self.PermGroFac = 0.0
+
         self.defUtilityFuncs()
 
     def setAndUpdateValues(self, solution_next, IncomeDstn, LivPrb, DiscFac):

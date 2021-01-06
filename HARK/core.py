@@ -78,7 +78,7 @@ def distanceMetric(thing_A, thing_B):
     return distance
 
 
-class HARKobject(object):
+class MetricObject(object):
     """
     A superclass for object classes in HARK.  Comes with two useful methods:
     a generic/universal distance method and an attribute assignment method.
@@ -115,6 +115,10 @@ class HARKobject(object):
                 )  # if either object lacks attribute, they are not the same
         return max(distance_list)
 
+class ParameterizedObject(object):
+    """
+    A class with special handling of parameters assignment.
+    """
     def assignParameters(self, **kwds):
         """
         Assign an arbitrary number of attributes to this agent.
@@ -140,28 +144,8 @@ class HARKobject(object):
         """
         self.assignParameters(**kwds)
 
-    def getAvg(self, varname, **kwds):
-        """
-        Calculates the average of an attribute of this instance.  Returns NaN if no such attribute.
 
-        Parameters
-        ----------
-        varname : string
-            The name of the attribute whose average is to be calculated.  This attribute must be an
-            np.array or other class compatible with np.mean.
-
-        Returns
-        -------
-        avg : float or np.array
-            The average of this attribute.  Might be an array if the axis keyword is passed.
-        """
-        if hasattr(self, varname):
-            return np.mean(getattr(self, varname), **kwds)
-        else:
-            return np.nan
-
-
-class AgentType(HARKobject):
+class AgentType(ParameterizedObject):
     """
     A superclass for economic agents in the HARK framework. Each model should
     specify its own subclass of AgentType, inheriting its methods and overwriting
@@ -1012,7 +996,7 @@ def makeOnePeriodOOSolver(solver_class):
 # ========================================================================
 
 
-class Market(HARKobject):
+class Market(ParameterizedObject):
     """
     A superclass to represent a central clearinghouse of information.  Used for
     dynamic general equilibrium models to solve the "macroeconomic" model as a

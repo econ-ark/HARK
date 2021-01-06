@@ -7,7 +7,7 @@ from builtins import str
 from builtins import range
 import numpy as np
 from scipy.optimize import brentq
-from HARK import  AgentType, HARKobject, makeOnePeriodOOSolver
+from HARK import  AgentType, MetricObject, makeOnePeriodOOSolver
 from HARK.distribution import addDiscreteOutcomeConstantMean, Lognormal
 from HARK.utilities import (
     CRRAutilityP_inv,
@@ -56,7 +56,7 @@ utility_invP = CRRAutility_invP
 utilityPP = CRRAutilityPP
 
 
-class MedShockPolicyFunc(HARKobject):
+class MedShockPolicyFunc(MetricObject):
     """
     Class for representing the policy function in the medical shocks model: opt-
     imal consumption and medical care for given market resources, permanent income,
@@ -280,7 +280,7 @@ class MedShockPolicyFunc(HARKobject):
         return dcdShk, dMeddShk
 
 
-class cThruXfunc(HARKobject):
+class cThruXfunc(MetricObject):
     """
     Class for representing consumption function derived from total expenditure
     and consumption.
@@ -413,7 +413,7 @@ class cThruXfunc(HARKobject):
         return dcdShk
 
 
-class MedThruXfunc(HARKobject):
+class MedThruXfunc(MetricObject):
     """
     Class for representing medical care function derived from total expenditure
     and consumption.
@@ -908,6 +908,49 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
     Class for solving the one period problem for the "medical shocks" model, in
     which consumers receive shocks to permanent and transitory income as well as
     shocks to "medical need"-- multiplicative utility shocks for a second good.
+
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to next period's one period problem.
+    IncomeDstn : [np.array]
+        A list containing three arrays of floats, representing a discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next). Order: event
+        probabilities, permanent shocks, transitory shocks.
+    MedShkDstn : [np.array]
+        Discrete distribution of the multiplicative utility shifter for med-
+        ical care. Order: probabilities, preference shocks.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion for composite consumption.
+    CRRAmed : float
+        Coefficient of relative risk aversion for medical care.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    MedPrice : float
+        Price of unit of medical care relative to unit of consumption.
+    pLvlNextFunc : float
+        Expected permanent income next period as a function of current pLvl.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period (normalized) asset values-- assets
+        above the absolute minimum acceptable level.
+    pLvlGrid: np.array
+        Array of permanent income levels at which to solve the problem.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear inter-
+        polation.
     """
 
     def __init__(
@@ -931,71 +974,24 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         """
         Constructor for a new solver for a one period problem with idiosyncratic
         shocks to permanent and transitory income and shocks to medical need.
-
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
-        MedShkDstn : [np.array]
-            Discrete distribution of the multiplicative utility shifter for med-
-            ical care. Order: probabilities, preference shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion for composite consumption.
-        CRRAmed : float
-            Coefficient of relative risk aversion for medical care.
-        Rfree : float
-            Risk free interest factor on end-of-period assets.
-        MedPrice : float
-            Price of unit of medical care relative to unit of consumption.
-        pLvlNextFunc : float
-            Expected permanent income next period as a function of current pLvl.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period (normalized) asset values-- assets
-            above the absolute minimum acceptable level.
-        pLvlGrid: np.array
-            Array of permanent income levels at which to solve the problem.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear inter-
-            polation.
-
-        Returns
-        -------
-        None
         """
-        self.assignParameters(
-            solution_next=solution_next,
-            IncomeDstn=IncomeDstn,
-            MedShkDstn=MedShkDstn,
-            LivPrb=LivPrb,
-            DiscFac=DiscFac,
-            CRRA=CRRA,
-            CRRAmed=CRRAmed,
-            Rfree=Rfree,
-            MedPrice=MedPrice,
-            pLvlNextFunc=pLvlNextFunc,
-            BoroCnstArt=BoroCnstArt,
-            aXtraGrid=aXtraGrid,
-            pLvlGrid=pLvlGrid,
-            vFuncBool=vFuncBool,
-            CubicBool=CubicBool,
-            PermGroFac=0.0,
-        )  # dummy value required?
+        self.solution_next = solution_next
+        self.IncomeDstn = IncomeDstn
+        self.MedShkDstn = MedShkDstn
+        self.LivPrb = LivPrb
+        self.DiscFac = DiscFac
+        self.CRRA = CRRA
+        self.CRRAmed = CRRAmed
+        self.Rfree = Rfree
+        self.MedPrice = MedPrice
+        self.pLvlNextFunc = pLvlNextFunc
+        self.BoroCnstArt = BoroCnstArt
+        self.aXtraGrid = aXtraGrid
+        self.pLvlGrid = pLvlGrid
+        self.vFuncBool = vFuncBool
+        self.CubicBool = CubicBool
+        self.PermGroFac = 0.0
+
         self.defUtilityFuncs()
 
     def setAndUpdateValues(self, solution_next, IncomeDstn, LivPrb, DiscFac):

@@ -4,13 +4,13 @@ It also includes wrapper classes to enforce standard methods across classes.
 Each interpolation class must have a distance() method that compares itself to
 another instance; this is used in HARK.core's solve() method to check for solution
 convergence.  The interpolator classes currently in this module inherit their
-distance method from HARKobject.
+distance method from MetricObject.
 """
 from __future__ import division, print_function
 from __future__ import absolute_import
 from builtins import range
 import numpy as np
-from .core import HARKobject
+from .core import MetricObject
 from copy import deepcopy
 import warnings
 
@@ -58,7 +58,7 @@ def _check_flatten(dimension, *args):
             return True
 
 
-class HARKinterpolator1D(HARKobject):
+class HARKinterpolator1D(MetricObject):
     """
     A wrapper class for 1D interpolation methods in HARK.
     """
@@ -142,7 +142,7 @@ class HARKinterpolator1D(HARKobject):
         raise NotImplementedError()
 
 
-class HARKinterpolator2D(HARKobject):
+class HARKinterpolator2D(MetricObject):
     """
     A wrapper class for 2D interpolation methods in HARK.
     """
@@ -236,7 +236,7 @@ class HARKinterpolator2D(HARKobject):
         raise NotImplementedError()
 
 
-class HARKinterpolator3D(HARKobject):
+class HARKinterpolator3D(MetricObject):
     """
     A wrapper class for 3D interpolation methods in HARK.
     """
@@ -377,7 +377,7 @@ class HARKinterpolator3D(HARKobject):
         raise NotImplementedError()
 
 
-class HARKinterpolator4D(HARKobject):
+class HARKinterpolator4D(MetricObject):
     """
     A wrapper class for 4D interpolation methods in HARK.
     """
@@ -579,7 +579,7 @@ class HARKinterpolator4D(HARKobject):
         raise NotImplementedError()
 
 
-class IdentityFunction(HARKobject):
+class IdentityFunction(MetricObject):
     """
     A fairly trivial interpolator that simply returns one of its arguments.  Useful for avoiding
     numeric error in extreme cases.
@@ -679,7 +679,7 @@ class IdentityFunction(HARKobject):
             return np.zeros_like(*args[0])
 
 
-class ConstantFunction(HARKobject):
+class ConstantFunction(MetricObject):
     """
     A class for representing trivial functions that return the same real output for any input.  This
     is convenient for models where an object might be a (non-trivial) function, but in some variations
@@ -2367,7 +2367,7 @@ class LowerEnvelope3D(HARKinterpolator3D):
         return dfdz
 
 
-class VariableLowerBoundFunc2D(HARKobject):
+class VariableLowerBoundFunc2D(MetricObject):
     """
     A class for representing a function with two real inputs whose lower bound
     in the first input depends on the second input.  Useful for managing curved
@@ -2463,7 +2463,7 @@ class VariableLowerBoundFunc2D(HARKobject):
         return dfdy_out
 
 
-class VariableLowerBoundFunc3D(HARKobject):
+class VariableLowerBoundFunc3D(MetricObject):
     """
     A class for representing a function with three real inputs whose lower bound
     in the first input depends on the second input.  Useful for managing curved

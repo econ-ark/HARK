@@ -1,20 +1,20 @@
 """
 This file implements unit tests for interpolation methods
 """
-from HARK.core import HARKobject, distanceMetric, AgentType
+from HARK.core import ParameterizedObject, MetricObject, distanceMetric, AgentType
 
 import numpy as np
 import unittest
 
 
-class testdistanceMetric(unittest.TestCase):
+class test_distanceMetric(unittest.TestCase):
     def setUp(self):
         self.list_a = [1.0, 2.1, 3]
         self.list_b = [3.1, 4, -1.4]
         self.list_c = [8.6, 9]
-        self.obj_a = HARKobject()
-        self.obj_b = HARKobject()
-        self.obj_c = HARKobject()
+        self.obj_a = MetricObject()
+        self.obj_b = MetricObject()
+        self.obj_c = MetricObject()
 
     def test_list(self):
         # same length
@@ -55,12 +55,12 @@ class testdistanceMetric(unittest.TestCase):
         self.assertEqual(distanceMetric(self.obj_a, self.obj_a), 0.0)
 
 
-class testHARKobject(unittest.TestCase):
+class test_MetricObject(unittest.TestCase):
     def setUp(self):
         # similar test to distanceMetric
-        self.obj_a = HARKobject()
-        self.obj_b = HARKobject()
-        self.obj_c = HARKobject()
+        self.obj_a = MetricObject()
+        self.obj_b = MetricObject()
+        self.obj_c = MetricObject()
 
     def test_distance(self):
         self.obj_a.distance_criteria = ["var_1", "var_2", "var_3"]
@@ -76,7 +76,7 @@ class testHARKobject(unittest.TestCase):
         self.assertEqual(self.obj_b.distance(self.obj_b), 0.0)
 
 
-class testAgentType(unittest.TestCase):
+class test_AgentType(unittest.TestCase):
     def setUp(self):
         self.agent = AgentType()
 
@@ -87,7 +87,7 @@ class testAgentType(unittest.TestCase):
         self.agent.inv_1 = 1.05
         # to test the superclass we create a dummy solveOnePeriod function
         # for our agent, which doesn't do anything, instead of using a NullFunc
-        self.agent.solveOnePeriod = lambda vary_1: HARKobject()
+        self.agent.solveOnePeriod = lambda vary_1: MetricObject()
         self.agent.solve()
         self.assertEqual(len(self.agent.solution), 4)
-        self.assertTrue(isinstance(self.agent.solution[0], HARKobject))
+        self.assertTrue(isinstance(self.agent.solution[0], MetricObject))
