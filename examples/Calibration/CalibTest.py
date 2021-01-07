@@ -93,5 +93,6 @@ plt.plot(AgeMeans.Age, AgeMeans.Cons,
          label = 'Consumption')
 plt.legend()
 plt.xlabel('Age')
+plt.ylabel('Thousands of 1992 USD')
 plt.title('Variable Means Conditional on Survival')
 plt.grid()

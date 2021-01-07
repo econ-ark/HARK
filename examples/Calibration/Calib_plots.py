@@ -33,6 +33,8 @@ for spec in CGM_income.items():
     plt.plot(ages, MeanY, label = label)
 
 plt.title('CGM')
+plt.xlabel('Age')
+plt.ylabel('Mean permanent income (1992 USD)')
 plt.legend()
 plt.show()
 
@@ -54,6 +56,9 @@ for spec in Cagetti_income.items():
     plt.plot(ages, MeanY, label = label)
 
 plt.title('Cagetti')
+plt.xlabel('Age')
+
+plt.ylabel('Mean permanent income (1992 USD)')
 plt.legend()
 plt.show()
 
@@ -71,5 +76,7 @@ for s in ['male', 'female']:
                                   min_age = min_age, max_age = max_age)
     
     plt.plot(ages, LivPrb, label = s)
-    
+
+plt.title('SSA Survival Probabilities')
+plt.xlabel('Age')
 plt.legend()
