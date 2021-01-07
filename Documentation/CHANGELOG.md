@@ -19,9 +19,11 @@ Release Data: TBD
 * calcExpectations method for taking the expectation of a distribution over a function (#884)[https://github.com/econ-ark/HARK/pull/884/]
 * Centralizes the definition of value, marginal value, and marginal marginal value functions that use inverse-space
 interpolation for problems with CRRA utility. See [#888](https://github.com/econ-ark/HARK/pull/888).
+* MarkovProcess class (#902)[https://github.com/econ-ark/HARK/pull/902]
 
 #### Minor Changes
 
+* Move AgentType constructor parameters docs to class docstring so it is rendered by Sphinx.
 * Remove uses of deprecated time.clock [#887](https://github.com/econ-ark/HARK/pull/887)
 
 ### 0.10.8
