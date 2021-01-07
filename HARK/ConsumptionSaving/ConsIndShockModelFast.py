@@ -23,15 +23,19 @@ from quantecon.optimize import newton_secant
 from HARK import makeOnePeriodOOSolver, HARKobject
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
-    ValueFunc,
-    MargValueFunc,
-    MargMargValueFunc,
     ConsPerfForesightSolver,
     ConsIndShockSolverBasic,
     PerfForesightConsumerType,
     IndShockConsumerType,
 )
-from HARK.interpolation import LinearInterp, LowerEnvelope, CubicInterp
+from HARK.interpolation import (
+    LinearInterp,
+    LowerEnvelope,
+    CubicInterp,
+    ValueFuncCRRA,
+    MargValueFuncCRRA,
+    MargMargValueFuncCRRA
+)
 from HARK.numba import (
     CRRAutility,
     CRRAutilityP,
@@ -1106,9 +1110,9 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
 
         self.solution_terminal_cs = ConsumerSolution(
             cFunc=self.cFunc_terminal_,
-            vFunc=ValueFunc(self.cFunc_terminal_, self.CRRA),
-            vPfunc=MargValueFunc(self.cFunc_terminal_, self.CRRA),
-            vPPfunc=MargMargValueFunc(self.cFunc_terminal_, self.CRRA),
+            vFunc=ValueFuncCRRA(self.cFunc_terminal_, self.CRRA),
+            vPfunc=MargValueFuncCRRA(self.cFunc_terminal_, self.CRRA),
+            vPPfunc=MargMargValueFuncCRRA(self.cFunc_terminal_, self.CRRA),
             mNrmMin=0.0,
             hNrm=0.0,
             MPCmin=1.0,
@@ -1148,8 +1152,8 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
                 np.array([solution.mNrmMin, solution.mNrmMin + 1.0]),
                 np.array([0.0, solution.vFuncNvrsSlope]),
             )
-            vFunc = ValueFunc(vFuncNvrs, self.CRRA)
-            vPfunc = MargValueFunc(cFunc, self.CRRA)
+            vFunc = ValueFuncCRRA(vFuncNvrs, self.CRRA)
+            vPfunc = MargValueFuncCRRA(cFunc, self.CRRA)
 
             consumer_solution = ConsumerSolution(
                 cFunc=cFunc,
@@ -1250,7 +1254,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                 cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst)
 
                 # Make the marginal value function and the marginal marginal value function
-                vPfuncNow = MargValueFunc(cFuncNow, self.CRRA)
+                vPfuncNow = MargValueFuncCRRA(cFuncNow, self.CRRA)
 
                 # Pack up the solution and return it
                 consumer_solution = ConsumerSolution(
@@ -1270,7 +1274,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                         solution.MPCminNvrs * solution.hNrm,
                         solution.MPCminNvrs,
                     )
-                    vFuncNow = ValueFunc(vNvrsFuncNow, self.CRRA)
+                    vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA)
 
                     consumer_solution.vFunc = vFuncNow
 

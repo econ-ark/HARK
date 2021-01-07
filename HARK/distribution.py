@@ -1051,3 +1051,54 @@ def calcExpectation(dstn,func=lambda x : x,*args):
         f_exp = f_exp.flat[0]
 
     return f_exp
+
+
+class MarkovProcess(Distribution):
+    """
+    A representation of a discrete Markov process.
+
+    Parameters
+    ----------
+    transition_matrix : np.array
+        An array of floats representing a probability mass for
+        each state transition.
+    seed : int
+        Seed for random number generator.
+
+    """
+
+    transition_matrix = None
+
+    def __init__(self, transition_matrix, seed=0):
+        """
+        Initialize a discrete distribution.
+
+        """
+        self.transition_matrix = transition_matrix
+
+        # Set up the RNG
+        super().__init__(seed)
+
+    def draw(self, state):
+        """
+        Draw new states fromt the transition matrix.
+
+        Parameters
+        ----------
+        state : int or nd.array
+            The state or states (1-D array) from which to draw new states.
+
+        Returns
+        -------
+        new_state : int or nd.array
+            New states.
+        """
+        def sample(s):
+            return self.RNG.choice(
+                self.transition_matrix.shape[1],
+                p = self.transition_matrix[s,:]
+            )
+
+        array_sample = np.frompyfunc(sample, 1, 1)
+
+        return array_sample(state)
