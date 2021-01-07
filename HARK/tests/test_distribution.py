@@ -6,7 +6,7 @@ import HARK.distribution as distribution
 
 class DiscreteDistributionTests(unittest.TestCase):
     """
-    Tests for simulation.py sampling distributions
+    Tests for distribution.py sampling distributions
     with default seed.
     """
 
@@ -21,7 +21,7 @@ class DiscreteDistributionTests(unittest.TestCase):
 
 class DistributionClassTests(unittest.TestCase):
     """
-    Tests for simulation.py sampling distributions
+    Tests for distribution.py sampling distributions
     with default seed.
     """
 
@@ -64,3 +64,25 @@ class DistributionClassTests(unittest.TestCase):
 
     def test_Bernoulli(self):
         self.assertEqual(distribution.Bernoulli().draw(1)[0], False)
+
+
+class MarkovProcessTests(unittest.TestCase):
+    """
+    Tests for MarkovProcess class.
+    """
+
+    def test_draw(self):
+
+        mrkv_array = np.array(
+            [[.75, .25],[0.1, 0.9]]
+        )
+
+        mp = distribution.MarkovProcess(mrkv_array)
+
+        new_state = mp.draw(np.zeros(100).astype(int))
+
+        self.assertEqual(new_state.sum(), 20)
+
+        new_state = mp.draw(new_state)
+
+        self.assertEqual(new_state.sum(), 39)
