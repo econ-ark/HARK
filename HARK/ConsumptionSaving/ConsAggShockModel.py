@@ -19,6 +19,7 @@ from HARK.interpolation import (
     BilinearInterp,
     LowerEnvelope2D,
     UpperEnvelope,
+    MargValueFuncCRRA
 )
 from HARK.utilities import (
     CRRAutility,
@@ -46,7 +47,6 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 
 __all__ = [
-    "MargValueFunc2D",
     "AggShockConsumerType",
     "AggShockMarkovConsumerType",
     "CobbDouglasEconomy",
@@ -67,41 +67,6 @@ utilityPP = CRRAutilityPP
 utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
-
-
-class MargValueFunc2D(HARKobject):
-    """
-    A class for representing a marginal value function in models where the
-    standard envelope condition of dvdm(m,M) = u'(c(m,M)) holds (with CRRA utility).
-    """
-
-    distance_criteria = ["cFunc", "CRRA"]
-
-    def __init__(self, cFunc, CRRA):
-        """
-        Constructor for a new marginal value function object.
-
-        Parameters
-        ----------
-        cFunc : function
-            A real function representing the marginal value function composed
-            with the inverse marginal utility function, defined on normalized individual market
-            resources and aggregate market resources-to-labor ratio: uP_inv(vPfunc(m,M)).
-            Called cFunc because when standard envelope condition applies,
-            uP_inv(vPfunc(m,M)) = cFunc(m,M).
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        new instance of MargValueFunc
-        """
-        self.cFunc = deepcopy(cFunc)
-        self.CRRA = CRRA
-
-    def __call__(self, m, M):
-        return utilityP(self.cFunc(m, M), gam=self.CRRA)
-
 
 ###############################################################################
 
@@ -193,7 +158,7 @@ class AggShockConsumerType(IndShockConsumerType):
             np.array([0.0, 1.0]),
             np.array([0.0, 1.0]),
         )
-        vPfunc_terminal = MargValueFunc2D(cFunc_terminal, self.CRRA)
+        vPfunc_terminal = MargValueFuncCRRA(cFunc_terminal, self.CRRA)
         mNrmMin_terminal = ConstantFunction(0)
         self.solution_terminal = ConsumerSolution(
             cFunc=cFunc_terminal, vPfunc=vPfunc_terminal, mNrmMin=mNrmMin_terminal
@@ -773,7 +738,7 @@ class KrusellSmithType(AgentType):
         """
         cFunc_terminal = 4 * [IdentityFunction(n_dims=2)]
         vPfunc_terminal = [
-            MargValueFunc2D(cFunc_terminal[j], self.CRRA) for j in range(4)
+            MargValueFuncCRRA(cFunc_terminal[j], self.CRRA) for j in range(4)
         ]
         self.solution_terminal = ConsumerSolution(
             cFunc=cFunc_terminal, vPfunc=vPfunc_terminal
@@ -1252,7 +1217,7 @@ def solveConsAggShock(
     mNrmMinNow = UpperEnvelope(BoroCnstNat, ConstantFunction(BoroCnstArt))
 
     # Construct the marginal value function using the envelope condition
-    vPfuncNow = MargValueFunc2D(cFuncNow, CRRA)
+    vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)
 
     # Pack up and return the solution
     solution_now = ConsumerSolution(
@@ -1601,7 +1566,7 @@ def solveConsAggMarkov(
         EndOfPrdvPnvrsFunc = VariableLowerBoundFunc2D(
             EndOfPrdvPnvrsFunc_base, BoroCnstNat
         )
-        EndOfPrdvPfunc_cond.append(MargValueFunc2D(EndOfPrdvPnvrsFunc, CRRA))
+        EndOfPrdvPfunc_cond.append(MargValueFuncCRRA(EndOfPrdvPnvrsFunc, CRRA))
         BoroCnstNat_cond.append(BoroCnstNat)
 
     # Prepare some objects that are the same across all current states
@@ -1666,7 +1631,7 @@ def solveConsAggMarkov(
         mNrmMinNow.append(UpperEnvelope(BoroCnstNat, ConstantFunction(BoroCnstArt)))
 
         # Construct the marginal value function using the envelope condition
-        vPfuncNow.append(MargValueFunc2D(cFuncNow[-1], CRRA))
+        vPfuncNow.append(MargValueFuncCRRA(cFuncNow[-1], CRRA))
 
     # Pack up and return the solution
     solution_now = ConsumerSolution(
@@ -1757,7 +1722,7 @@ def solveKrusellSmith(
     for j in range(4):
         cFunc_by_M = [LinearInterp(mNow[:, k, j], cNow[:, k, j]) for k in range(Mcount)]
         cFunc_j = LinearInterpOnInterp1D(cFunc_by_M, Mgrid)
-        vPfunc_j = MargValueFunc2D(cFunc_j, CRRA)
+        vPfunc_j = MargValueFuncCRRA(cFunc_j, CRRA)
         cFunc_by_state.append(cFunc_j)
         vPfunc_by_state.append(vPfunc_j)
 

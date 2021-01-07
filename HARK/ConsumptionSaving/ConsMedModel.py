@@ -29,13 +29,13 @@ from HARK.interpolation import (
     UpperEnvelope,
     LinearInterpOnInterp1D,
     VariableLowerBoundFunc3D,
+    ValueFuncCRRA,
+    MargValueFuncCRRA,
+    MargMargValueFuncCRRA
 )
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     ConsGenIncProcessSolver,
     PersistentShockConsumerType,
-    ValueFunc2D,
-    MargValueFunc2D,
-    MargMargValueFunc2D,
     VariableLowerBoundFunc2D,
     init_persistent_shocks,
 )
@@ -743,8 +743,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
             mLvlGrid,
             trivial_grid,
         )
-        vPfunc_terminal = MargValueFunc2D(vPnvrsFunc, self.CRRA)
-        vPPfunc_terminal = MargMargValueFunc2D(vPnvrsFunc, self.CRRA)
+        vPfunc_terminal = MargValueFuncCRRA(vPnvrsFunc, self.CRRA)
+        vPPfunc_terminal = MargMargValueFuncCRRA(vPnvrsFunc, self.CRRA)
 
         # Integrate value across shocks to get expected value
         vGrid = utility(cLvlGrid, gam=self.CRRA) + MedShkGrid_tiled * utility(
@@ -765,7 +765,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         vNvrsP[0] = 0.0
         tempFunc = CubicInterp(mLvlGrid, vNvrs, vNvrsP)
         vNvrsFunc = LinearInterpOnInterp1D([tempFunc, tempFunc], trivial_grid)
-        vFunc_terminal = ValueFunc2D(vNvrsFunc, self.CRRA)
+        vFunc_terminal = ValueFuncCRRA(vNvrsFunc, self.CRRA)
 
         # Make the terminal period solution
         self.solution_terminal.cFunc = cFunc_terminal
@@ -1339,9 +1339,9 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             )  # adjust for the lower bound of mLvl
 
         # "Re-curve" the (marginal) value function
-        vPfunc = MargValueFunc2D(vPnvrsFunc, self.CRRA)
+        vPfunc = MargValueFuncCRRA(vPnvrsFunc, self.CRRA)
         if self.vFuncBool:
-            vFunc = ValueFunc2D(vNvrsFunc, self.CRRA)
+            vFunc = ValueFuncCRRA(vNvrsFunc, self.CRRA)
         else:
             vFunc = NullFunc()
 
@@ -1518,7 +1518,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             The same solution passed as input, but with the marginal marginal
             value function for this period added as the attribute vPPfunc.
         """
-        vPPfuncNow = MargMargValueFunc2D(solution.vPfunc.cFunc, self.CRRA)
+        vPPfuncNow = MargMargValueFuncCRRA(solution.vPfunc.cFunc, self.CRRA)
         solution.vPPfunc = vPPfuncNow
         return solution
 

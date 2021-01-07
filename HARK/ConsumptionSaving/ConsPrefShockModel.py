@@ -17,8 +17,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     ConsumerSolution,
     ConsIndShockSolver,
-    ValueFunc,
-    MargValueFunc,
     KinkedRconsumerType,
     ConsKinkedRsolver,
     init_idiosyncratic_shocks,
@@ -29,6 +27,8 @@ from HARK.interpolation import (
     LinearInterp,
     CubicInterp,
     LowerEnvelope,
+    ValueFuncCRRA,
+    MargValueFuncCRRA
 )
 
 
@@ -471,7 +471,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
                 * self.PrefShkVals[j]
             )
         vPnvrs_vec = self.uPinv(vP_vec)
-        vPfuncNow = MargValueFunc(LinearInterp(m_grid, vPnvrs_vec), self.CRRA)
+        vPfuncNow = MargValueFuncCRRA(LinearInterp(m_grid, vPnvrs_vec), self.CRRA)
 
         # Store the results in a solution object and return it
         solution_now = ConsumerSolution(
@@ -491,7 +491,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
 
         Returns
         -------
-        vFuncNow : ValueFunc
+        vFuncNow : ValueFuncCRRA
             A representation of the value function for this period, defined over
             normalized market resources m: v = vFuncNow(m).
         """
@@ -523,7 +523,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         vNvrsFuncNow = CubicInterp(
             mNrm_temp, vNvrs, vNvrsP, MPCminNvrs * self.hNrmNow, MPCminNvrs
         )
-        vFuncNow = ValueFunc(vNvrsFuncNow, self.CRRA)
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA)
         return vFuncNow
 
 

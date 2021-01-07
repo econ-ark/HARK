@@ -21,7 +21,14 @@ import numpy as np
 from scipy.optimize import newton
 from HARK import AgentType, NullFunc, HARKobject, makeOnePeriodOOSolver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
-from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
+from HARK.interpolation import (
+    CubicInterp,
+    LowerEnvelope,
+    LinearInterp,
+    ValueFuncCRRA,
+    MargValueFuncCRRA,
+    MargMargValueFuncCRRA
+)
 from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
 from HARK.distribution import (
     DiscreteDistribution,
@@ -44,9 +51,6 @@ from HARK import set_verbosity_level
 
 __all__ = [
     "ConsumerSolution",
-    "ValueFunc",
-    "MargValueFunc",
-    "MargMargValueFunc",
     "ConsPerfForesightSolver",
     "ConsIndShockSetup",
     "ConsIndShockSolverBasic",
@@ -181,170 +185,6 @@ class ConsumerSolution(HARKobject):
             self.mNrmMin.append(new_solution.mNrmMin)
 
 
-class ValueFunc(HARKobject):
-    """
-    A class for representing a value function.  The underlying interpolation is
-    in the space of (m,u_inv(v)); this class "re-curves" to the value function.
-    """
-
-    distance_criteria = ["func", "CRRA"]
-
-    def __init__(self, vFuncNvrs, CRRA):
-        """
-        Constructor for a new value function object.
-
-        Parameters
-        ----------
-        vFuncNvrs : function
-            A real function representing the value function composed with the
-            inverse utility function, defined on market resources: u_inv(vFunc(m))
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        None
-        """
-        self.func = deepcopy(vFuncNvrs)
-        self.CRRA = CRRA
-
-    def __call__(self, m):
-        """
-        Evaluate the value function at given levels of market resources m.
-
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources (normalized by permanent income) whose value is to
-            be found.
-
-        Returns
-        -------
-        v : float or np.array
-            Lifetime value of beginning this period with market resources m; has
-            same size as input m.
-        """
-        return utility(self.func(m), gam=self.CRRA)
-
-
-class MargValueFunc(HARKobject):
-    """
-    A class for representing a marginal value function in models where the
-    standard envelope condition of v'(m) = u'(c(m)) holds (with CRRA utility).
-    """
-
-    distance_criteria = ["cFunc", "CRRA"]
-
-    def __init__(self, cFunc, CRRA):
-        """
-        Constructor for a new marginal value function object.
-
-        Parameters
-        ----------
-        cFunc : function
-            A real function representing the marginal value function composed
-            with the inverse marginal utility function, defined on market
-            resources: uP_inv(vPfunc(m)).  Called cFunc because when standard
-            envelope condition applies, uP_inv(vPfunc(m)) = cFunc(m).
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        None
-        """
-        self.cFunc = deepcopy(cFunc)
-        self.CRRA = CRRA
-
-    def __call__(self, m):
-        """
-        Evaluate the marginal value function at given levels of market resources m.
-
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources (normalized by permanent income) whose marginal
-            value is to be found.
-
-        Returns
-        -------
-        vP : float or np.array
-            Marginal lifetime value of beginning this period with market
-            resources m; has same size as input m.
-        """
-        return utilityP(self.cFunc(m), gam=self.CRRA)
-
-    def derivative(self, m):
-        """
-        Evaluate the derivative of the marginal value function at given levels
-        of market resources m; this is the marginal marginal value function.
-
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources (normalized by permanent income) whose marginal
-            marginal value is to be found.
-
-        Returns
-        -------
-        vPP : float or np.array
-            Marginal marginal lifetime value of beginning this period with market
-            resources m; has same size as input m.
-        """
-        c, MPC = self.cFunc.eval_with_derivative(m)
-        return MPC * utilityPP(c, gam=self.CRRA)
-
-
-class MargMargValueFunc(HARKobject):
-    """
-    A class for representing a marginal marginal value function in models where
-    the standard envelope condition of v'(m) = u'(c(m)) holds (with CRRA utility).
-    """
-
-    distance_criteria = ["cFunc", "CRRA"]
-
-    def __init__(self, cFunc, CRRA):
-        """
-        Constructor for a new marginal marginal value function object.
-
-        Parameters
-        ----------
-        cFunc : function
-            A real function representing the marginal value function composed
-            with the inverse marginal utility function, defined on market
-            resources: uP_inv(vPfunc(m)).  Called cFunc because when standard
-            envelope condition applies, uP_inv(vPfunc(m)) = cFunc(m).
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        None
-        """
-        self.cFunc = deepcopy(cFunc)
-        self.CRRA = CRRA
-
-    def __call__(self, m):
-        """
-        Evaluate the marginal marginal value function at given levels of market
-        resources m.
-
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources (normalized by permanent income) whose marginal
-            marginal value is to be found.
-
-        Returns
-        -------
-        vPP : float or np.array
-            Marginal marginal lifetime value of beginning this period with market
-            resources m; has same size as input m.
-        """
-        c, MPC = self.cFunc.eval_with_derivative(m)
-        return MPC * utilityPP(c, gam=self.CRRA)
-
-
 # =====================================================================
 # === Classes and functions that solve consumption-saving models ===
 # =====================================================================
@@ -464,8 +304,8 @@ class ConsPerfForesightSolver(HARKobject):
             np.array([self.mNrmMinNow, self.mNrmMinNow + 1.0]),
             np.array([0.0, vFuncNvrsSlope]),
         )
-        self.vFunc = ValueFunc(vFuncNvrs, self.CRRA)
-        self.vPfunc = MargValueFunc(self.cFunc, self.CRRA)
+        self.vFunc = ValueFuncCRRA(vFuncNvrs, self.CRRA)
+        self.vPfunc = MargValueFuncCRRA(self.cFunc, self.CRRA)
 
     def makePFcFunc(self):
         """
@@ -1006,7 +846,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         cFuncNow = LowerEnvelope(cFuncNowUnc, self.cFuncNowCnst, nan_bool=False)
 
         # Make the marginal value function and the marginal marginal value function
-        vPfuncNow = MargValueFunc(cFuncNow, self.CRRA)
+        vPfuncNow = MargValueFuncCRRA(cFuncNow, self.CRRA)
 
         # Pack up the solution and return it
         solution_now = ConsumerSolution(
@@ -1180,7 +1020,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         )  # This is a very good approximation, vNvrsPP = 0 at the asset minimum
         aNrm_temp = np.insert(self.aNrmNow, 0, self.BoroCnstNat)
         EndOfPrdvNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
-        self.EndOfPrdvFunc = ValueFunc(EndOfPrdvNvrsFunc, self.CRRA)
+        self.EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
 
     def addvFunc(self, solution, EndOfPrdvP):
         """
@@ -1218,7 +1058,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
 
         Returns
         -------
-        vFuncNow : ValueFunc
+        vFuncNow : ValueFuncCRRA
             A representation of the value function for this period, defined over
             normalized market resources m: v = vFuncNow(m).
         """
@@ -1241,7 +1081,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         vNvrsFuncNow = CubicInterp(
             mNrm_temp, vNvrs, vNvrsP, MPCminNvrs * self.hNrmNow, MPCminNvrs
         )
-        vFuncNow = ValueFunc(vNvrsFuncNow, self.CRRA)
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA)
         return vFuncNow
 
     def addvPPfunc(self, solution):
@@ -1261,7 +1101,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             The same solution passed as input, but with the marginal marginal
             value function for this period added as the attribute vPPfunc.
         """
-        vPPfuncNow = MargMargValueFunc(solution.cFunc, self.CRRA)
+        vPPfuncNow = MargMargValueFuncCRRA(solution.cFunc, self.CRRA)
         solution.vPPfunc = vPPfuncNow
         return solution
 
@@ -1651,9 +1491,9 @@ class PerfForesightConsumerType(AgentType):
         -------
         none
         """
-        self.solution_terminal.vFunc = ValueFunc(self.cFunc_terminal_, self.CRRA)
-        self.solution_terminal.vPfunc = MargValueFunc(self.cFunc_terminal_, self.CRRA)
-        self.solution_terminal.vPPfunc = MargMargValueFunc(
+        self.solution_terminal.vFunc = ValueFuncCRRA(self.cFunc_terminal_, self.CRRA)
+        self.solution_terminal.vPfunc = MargValueFuncCRRA(self.cFunc_terminal_, self.CRRA)
+        self.solution_terminal.vPPfunc = MargMargValueFuncCRRA(
             self.cFunc_terminal_, self.CRRA
         )
 
