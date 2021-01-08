@@ -776,10 +776,10 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             A 1D array of end-of-period marginal value of assets
         """
 
-        def vp_next(a_nrm, perm_shk, trans_shk):
-            return perm_shk ** self.CRRA \
+        def vp_next(shocks, a_nrm):
+            return shocks[0] ** self.CRRA \
                 * self.vPfuncNext(
-                    self.Rfree / (self.PermGroFac * perm_shk) * a_nrm + trans_shk
+                    self.Rfree / (self.PermGroFac * shocks[0]) * a_nrm + shocks[1]
                 )
 
         EndOfPrdvP = (
@@ -792,7 +792,11 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
                 self.aNrmNow
             )
         )
-        return EndOfPrdvP
+
+        if EndOfPrdvP.shape[0] == EndOfPrdvP.size:
+            EndOfPrdvP = EndOfPrdvP.flatten()
+
+        return EndOfPrdvP 
 
     def getPointsForInterpolation(self, EndOfPrdvP, aNrmNow):
         """
