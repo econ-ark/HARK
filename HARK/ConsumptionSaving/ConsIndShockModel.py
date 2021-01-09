@@ -793,9 +793,6 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             )
         )
 
-        if EndOfPrdvP.shape[0] == EndOfPrdvP.size:
-            EndOfPrdvP = EndOfPrdvP.flatten()
-
         return EndOfPrdvP 
 
     def getPointsForInterpolation(self, EndOfPrdvP, aNrmNow):

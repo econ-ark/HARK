@@ -1011,7 +1011,7 @@ def calcExpectation(dstn,func=lambda x : x,*args):
         The N-valued distribution over which the function is to be evaluated.
     func : function
         The function to be evaluated.
-        This function should take a 1D array of size N.
+        This function should take an array of size N x M.
         It may also take other arguments *args
         Please see numpy.apply_along_axis() for guidance on
         design of func.
@@ -1049,6 +1049,8 @@ def calcExpectation(dstn,func=lambda x : x,*args):
     # a hack.
     if f_exp.size == 1:
         f_exp = f_exp.flat[0]
+    elif f_exp.shape[0] == f_exp.size:
+        f_exp = f_exp.flatten()
 
     return f_exp
 
