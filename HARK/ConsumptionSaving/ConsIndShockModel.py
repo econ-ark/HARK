@@ -777,7 +777,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
 
         def vp_next(shocks, a_nrm):
-            return shocks[0] ** self.CRRA \
+            return shocks[0] ** (-self.CRRA) \
                 * self.vPfuncNext(
                     self.Rfree / (self.PermGroFac * shocks[0]) * a_nrm + shocks[1]
                 )
