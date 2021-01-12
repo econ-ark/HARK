@@ -78,7 +78,7 @@ class test_MetricObject(unittest.TestCase):
 
 class test_AgentType(unittest.TestCase):
     def setUp(self):
-        self.agent = AgentType()
+        self.agent = AgentType(cycles = 1)
 
     def test_solve(self):
         self.agent.time_vary = ["vary_1"]
@@ -94,3 +94,10 @@ class test_AgentType(unittest.TestCase):
 
     def test___repr__(self):
         self.assertTrue('Parameters' in self.agent.__repr__())
+
+    def test___eq__(self):
+        agent2 = AgentType(cycles = 1)
+        agent3 = AgentType(cycels = 2)
+
+        self.assertEqual(self.agent, agent2)
+        self.assertNotEqual(self.agent, agent3)

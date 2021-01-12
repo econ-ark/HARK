@@ -180,6 +180,12 @@ class Model(object):
         """
         self.assignParameters(**kwds)
 
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self.parameters == other.parameters
+
+        return notImplemented
+
     def __str__(self):
 
         type_ = type(self)
