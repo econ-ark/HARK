@@ -12,6 +12,41 @@ import os
 
 ssa_tables_dir = os.path.dirname(os.path.abspath(__file__))
 
+def get_ssa_life_tables():
+    """
+    Reads all the SSA life tables and combines them, adding columns indicating
+    where each row came from (male or female, historical or projected).
+
+    Returns
+    -------
+    Pandas DataFrame
+        A DataFrame containing the information in SSA life-tables for both
+        sexes and all the available years. It returns all the columns in the
+        original tables.
+        
+    """
+    # Read the four tables and add columns identifying them
+    dsets = []
+    for sex in ['M','F']:
+        for method in ['Historical', 'Projected']:
+            
+            # Construct file name
+            infix = 'Hist' if method == 'Historical' else 'Alt2'
+            filename = os.path.join(ssa_tables_dir,
+                                    'PerLifeTables_'+sex+'_'+infix+'_TR2020.csv')
+            
+            # Read csv
+            table = pd.read_csv(filename, sep = ',', skiprows=4)
+            
+            # Add identifying info
+            table['Sex'] = sex
+            table['Method'] = method
+            
+            dsets.append(table)
+    
+    # Concatenate tables by row and return them
+    return pd.concat(dsets)
+    
 def parse_ssa_life_table(min_age, max_age, female = True,
                          cohort = None, cross_sec = False, year = None):
     """

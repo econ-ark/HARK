@@ -1,7 +1,15 @@
-from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
+from HARK.datasets.life_tables.us_ssa.SSATools import (
+    parse_ssa_life_table,
+    get_ssa_life_tables
+)
 
 import numpy as np
 import matplotlib.pyplot as plt
+
+# %% Inspect lifetables
+
+tables = get_ssa_life_tables()
+print(tables.head)
 
 # %% Survival probabilities from the SSA
 
