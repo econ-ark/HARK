@@ -12,15 +12,19 @@ import numpy as np
 from HARK import AgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolver,
-    ValueFunc,
-    MargValueFunc,
     ConsumerSolution,
     IndShockConsumerType,
     PerfForesightConsumerType,
 )
 
 from HARK.distribution import DiscreteDistribution, Uniform
-from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
+from HARK.interpolation import (
+    CubicInterp,
+    LowerEnvelope,
+    LinearInterp,
+    ValueFuncCRRA,MargValueFuncCRRA
+)
+
 from HARK.utilities import (
     CRRAutility,
     CRRAutilityP,
@@ -342,7 +346,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
 
         Returns
         -------
-        EndofPrdvFunc_cond : ValueFunc
+        EndofPrdvFunc_cond : ValueFuncCRRA
             The end-of-period value function conditional on a particular state
             occuring in the next period.
         """
@@ -359,7 +363,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         EndOfPrdvNvrsFunc_cond = CubicInterp(
             aNrm_temp, EndOfPrdvNvrs_cond, EndOfPrdvNvrsP_cond
         )
-        EndofPrdvFunc_cond = ValueFunc(EndOfPrdvNvrsFunc_cond, self.CRRA)
+        EndofPrdvFunc_cond = ValueFuncCRRA(EndOfPrdvNvrsFunc_cond, self.CRRA)
         return EndofPrdvFunc_cond
 
     def calcEndOfPrdvPcond(self):
@@ -390,7 +394,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
 
         Returns
         -------
-        EndofPrdvPfunc_cond : MargValueFunc
+        EndofPrdvPfunc_cond : MargValueFuncCRRA
             The end-of-period marginal value function conditional on a particular
             state occuring in the succeeding period.
         """
@@ -418,7 +422,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             EndOfPrdvPnvrsFunc_cond = LinearInterp(
                 self.aNrm_cond, EndOfPrdvPnvrs_cond, lower_extrap=True
             )
-        EndofPrdvPfunc_cond = MargValueFunc(
+        EndofPrdvPfunc_cond = MargValueFuncCRRA(
             EndOfPrdvPnvrsFunc_cond, self.CRRA
         )  # "recurve" the interpolated marginal value function
         return EndofPrdvPfunc_cond
@@ -465,7 +469,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
                     if (
                         self.CubicBool
                     ):  # Add conditional end-of-period (marginal) marginal value to the arrays
-                        EndOfPrdvPP_all[j, :] = self.EndOfPrdvPfunc_list[j].derivative(
+                        EndOfPrdvPP_all[j, :] = self.EndOfPrdvPfunc_list[j].derivativeX(
                             aGrid
                         )
             # Weight conditional marginal (marginal) values by transition probs
@@ -594,7 +598,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             cFuncNow = LowerEnvelope(cFuncNowUnc, self.cFuncNowCnst)
 
             # Make the marginal value function and pack up the current-state-conditional solution
-            vPfuncNow = MargValueFunc(cFuncNow, self.CRRA)
+            vPfuncNow = MargValueFuncCRRA(cFuncNow, self.CRRA)
             solution_cond = ConsumerSolution(
                 cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow
             )
@@ -678,7 +682,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
 
         Returns
         -------
-        vFuncNow : [ValueFunc]
+        vFuncNow : [ValueFuncCRRA]
             A list of value functions (defined over normalized market resources
             m) for each current period Markov state.
         """
@@ -716,7 +720,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             )
 
             # "Recurve" the decurved value function and add it to the list
-            vFunc_i = ValueFunc(vNvrsFunc_i, self.CRRA)
+            vFunc_i = ValueFuncCRRA(vNvrsFunc_i, self.CRRA)
             vFuncNow.append(vFunc_i)
         return vFuncNow
 

@@ -12,6 +12,7 @@ from builtins import range
 import numpy as np
 from .core import MetricObject
 from copy import deepcopy
+from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP
 import warnings
 
 
@@ -4437,6 +4438,209 @@ def calcLogSum(Vals, sigma):
     LogSumV = maxV + sigma * LogSumV
     return LogSumV
 
+###############################################################################
+# Tools for value and marginal-value functions in models where                #
+# - dvdm = u'(c).                                                             #
+# - u is of the CRRA family.                                                  #
+###############################################################################
+
+class ValueFuncCRRA(HARKobject):
+    """
+    A class for representing a value function.  The underlying interpolation is
+    in the space of (state,u_inv(v)); this class "re-curves" to the value function.
+    """
+
+    distance_criteria = ["func", "CRRA"]
+
+    def __init__(self, vFuncNvrs, CRRA):
+        """
+        Constructor for a new value function object.
+
+        Parameters
+        ----------
+        vFuncNvrs : function
+            A real function representing the value function composed with the
+            inverse utility function, defined on the state: u_inv(vFunc(state))
+        CRRA : float
+            Coefficient of relative risk aversion.
+
+        Returns
+        -------
+        None
+        """
+        self.func = deepcopy(vFuncNvrs)
+        self.CRRA = CRRA
+
+    def __call__(self, *vFuncArgs):
+        """
+        Evaluate the value function at given levels of market resources m.
+
+        Parameters
+        ----------
+        vFuncArgs : floats or np.arrays, all of the same dimensions.
+            Values for the state variables. These usually start with 'm',
+            market resources normalized by the level of permanent income.
+            
+        Returns
+        -------
+        v : float or np.array
+            Lifetime value of beginning this period with the given states; has
+            same size as the state inputs.
+        """
+        return CRRAutility(self.func(*vFuncArgs), gam=self.CRRA)
+
+
+class MargValueFuncCRRA(HARKobject):
+    """
+    A class for representing a marginal value function in models where the
+    standard envelope condition of dvdm(state) = u'(c(state)) holds (with CRRA utility).
+    """
+
+    distance_criteria = ["cFunc", "CRRA"]
+
+    def __init__(self, cFunc, CRRA):
+        """
+        Constructor for a new marginal value function object.
+
+        Parameters
+        ----------
+        cFunc : function.
+            Its first argument must be normalized market resources m.
+            A real function representing the marginal value function composed
+            with the inverse marginal utility function, defined on the state
+            variables: uP_inv(dvdmFunc(state)).  Called cFunc because when standard
+            envelope condition applies, uP_inv(dvdm(state)) = cFunc(state).
+        CRRA : float
+            Coefficient of relative risk aversion.
+
+        Returns
+        -------
+        None
+        """
+        self.cFunc = deepcopy(cFunc)
+        self.CRRA = CRRA
+
+    def __call__(self, *cFuncArgs):
+        """
+        Evaluate the marginal value function at given levels of market resources m.
+
+        Parameters
+        ----------
+        cFuncArgs : floats or np.arrays
+            Values of the state variables at which to evaluate the marginal
+            value function.
+
+        Returns
+        -------
+        vP : float or np.array
+            Marginal lifetime value of beginning this period with state
+            cFuncArgs
+        """
+        return CRRAutilityP(self.cFunc(*cFuncArgs), gam=self.CRRA)
+    
+    def derivativeX(self, *cFuncArgs):
+        """
+        Evaluate the derivative of the marginal value function with respect to
+        market resources at given state; this is the marginal marginal value
+        function.
+
+        Parameters
+        ----------
+        cFuncArgs : floats or np.arrays
+            State variables.
+
+        Returns
+        -------
+        vPP : float or np.array
+            Marginal marginal lifetime value of beginning this period with
+            state cFuncArgs; has same size as inputs.
+
+        """
+        
+        # The derivative method depends on the dimension of the function
+        if isinstance(self.cFunc, (HARKinterpolator1D)):
+            c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
+
+        elif hasattr(self.cFunc, 'derivativeX'):
+            c = self.cFunc(*cFuncArgs)
+            MPC = self.cFunc.derivativeX(*cFuncArgs)
+
+        else:
+            raise Exception(
+                "cFunc does not have a 'derivativeX' attribute. Can't compute"
+                + "marginal marginal value."
+            )
+            
+        return MPC * CRRAutilityPP(c, gam=self.CRRA)
+
+
+class MargMargValueFuncCRRA(HARKobject):
+    """
+    A class for representing a marginal marginal value function in models where
+    the standard envelope condition of dvdm = u'(c(state)) holds (with CRRA utility).
+    """
+
+    distance_criteria = ["cFunc", "CRRA"]
+
+    def __init__(self, cFunc, CRRA):
+        """
+        Constructor for a new marginal marginal value function object.
+
+        Parameters
+        ----------
+        cFunc : function.
+            Its first argument must be normalized market resources m.
+            A real function representing the marginal value function composed
+            with the inverse marginal utility function, defined on the state
+            variables: uP_inv(dvdmFunc(state)).  Called cFunc because when standard
+            envelope condition applies, uP_inv(dvdm(state)) = cFunc(state).
+        CRRA : float
+            Coefficient of relative risk aversion.
+
+        Returns
+        -------
+        None
+        """
+        self.cFunc = deepcopy(cFunc)
+        self.CRRA = CRRA
+
+    def __call__(self, *cFuncArgs):
+        """
+        Evaluate the marginal marginal value function at given levels of market
+        resources m.
+
+        Parameters
+        ----------
+        m : float or np.array
+            Market resources (normalized by permanent income) whose marginal
+            marginal value is to be found.
+
+        Returns
+        -------
+        vPP : float or np.array
+            Marginal marginal lifetime value of beginning this period with market
+            resources m; has same size as input m.
+        """
+        
+        # The derivative method depends on the dimension of the function
+        if isinstance(self.cFunc, (HARKinterpolator1D)):
+            c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
+
+        elif hasattr(self.cFunc, 'derivativeX'):
+            c = self.cFunc(*cFuncArgs)
+            MPC = self.cFunc.derivativeX(*cFuncArgs)
+
+        else:
+            raise Exception(
+                "cFunc does not have a 'derivativeX' attribute. Can't compute"
+                + "marginal marginal value."
+            )
+            
+        return MPC * CRRAutilityPP(c, gam=self.CRRA)
+
+##############################################################################
+# Examples and tests
+##############################################################################
 
 def main():
     print("Sorry, HARK.interpolation doesn't actually do much on its own.")

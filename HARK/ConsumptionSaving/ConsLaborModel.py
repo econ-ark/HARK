@@ -20,13 +20,13 @@ from HARK.interpolation import (
     VariableLowerBoundFunc2D,
     BilinearInterp,
     ConstantFunction,
+    ValueFuncCRRA, MargValueFuncCRRA
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
-    MargValueFunc,
     init_idiosyncratic_shocks,
 )
-from HARK.ConsumptionSaving.ConsGenIncProcessModel import ValueFunc2D, MargValueFunc2D
+
 import matplotlib.pyplot as plt
 
 
@@ -206,7 +206,7 @@ def solveConsLaborIntMarg(
     )
 
     # "Recurve" the intermediate marginal value function through the marginal utility function
-    vPbarFuncNext = MargValueFunc(vPbarNvrsFuncNext, CRRA)
+    vPbarFuncNext = MargValueFuncCRRA(vPbarNvrsFuncNext, CRRA)
 
     # Get next period's bank balances at each permanent shock from each end-of-period asset values
     # Replicated grid of a_t values for each permanent (productivity) shock
@@ -337,7 +337,7 @@ def solveConsLaborIntMarg(
     vPnvrsFuncNow = VariableLowerBoundFunc2D(vPnvrsFuncNowBase, bNrmMinNow)
 
     # Construct the marginal value function by "recurving" its pseudo-inverse
-    vPfuncNow = MargValueFunc2D(vPnvrsFuncNow, CRRA)
+    vPfuncNow = MargValueFuncCRRA(vPnvrsFuncNow, CRRA)
 
     # Make a solution object for this period and return it
     solution = ConsumerLaborSolution(
@@ -622,7 +622,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         # Compute the effective consumption value using consumption value and labor value at the terminal solution
         xEffTerm = LsrTerm ** LbrCost * cNrmTerm
         vNvrsFunc_terminal = BilinearInterp(xEffTerm, bNrmGrid, TranShkGrid)
-        vFunc_terminal = ValueFunc2D(vNvrsFunc_terminal, self.CRRA)
+        vFunc_terminal = ValueFuncCRRA(vNvrsFunc_terminal, self.CRRA)
 
         # Using the envelope condition at the terminal solution to estimate the marginal value function
         vPterm = LsrTerm ** LbrCost * CRRAutilityP(xEffTerm, gam=self.CRRA)
@@ -631,7 +631,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         )  # Evaluate the inverse of the CRRA marginal utility function at a given marginal value, vP
 
         vPnvrsFunc_terminal = BilinearInterp(vPnvrsTerm, bNrmGrid, TranShkGrid)
-        vPfunc_terminal = MargValueFunc2D(
+        vPfunc_terminal = MargValueFuncCRRA(
             vPnvrsFunc_terminal, self.CRRA
         )  # Get the Marginal Value function
 
