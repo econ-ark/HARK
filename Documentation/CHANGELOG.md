@@ -20,7 +20,7 @@ Release Data: TBD
 * Centralizes the definition of value, marginal value, and marginal marginal value functions that use inverse-space
 interpolation for problems with CRRA utility. See [#888](https://github.com/econ-ark/HARK/pull/888).
 * MarkovProcess class (#902)[https://github.com/econ-ark/HARK/pull/902]
-* replace HARKobject base class with MetricObject and ParameterizedObject classes ()[]
+* replace HARKobject base class with MetricObject and Model classes (#903)[https://github.com/econ-ark/HARK/pull/903/]
 
 #### Minor Changes
 

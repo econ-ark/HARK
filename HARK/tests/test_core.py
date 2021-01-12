@@ -1,7 +1,7 @@
 """
 This file implements unit tests for interpolation methods
 """
-from HARK.core import ParameterizedObject, MetricObject, distanceMetric, AgentType
+from HARK.core import Model, MetricObject, distanceMetric, AgentType
 
 import numpy as np
 import unittest

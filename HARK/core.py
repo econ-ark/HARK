@@ -151,7 +151,7 @@ class MetricObject(object):
                 )  # if either object lacks attribute, they are not the same
         return max(distance_list)
 
-class ParameterizedObject(object):
+class Model(object):
     """
     A class with special handling of parameters assignment.
     """
@@ -181,7 +181,7 @@ class ParameterizedObject(object):
         self.assignParameters(**kwds)
 
 
-class AgentType(ParameterizedObject):
+class AgentType(Model):
     """
     A superclass for economic agents in the HARK framework. Each model should
     specify its own subclass of AgentType, inheriting its methods and overwriting
@@ -1029,7 +1029,7 @@ def makeOnePeriodOOSolver(solver_class):
 # ========================================================================
 
 
-class Market(ParameterizedObject):
+class Market(Model):
     """
     A superclass to represent a central clearinghouse of information.  Used for
     dynamic general equilibrium models to solve the "macroeconomic" model as a
