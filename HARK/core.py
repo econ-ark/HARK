@@ -59,16 +59,16 @@ def distanceMetric(thing_A, thing_B):
             distance = float(abs(lenA - lenB))
     # If both inputs are dictionaries, call distance on the list of its elements
     elif typeA is dict and typeB is dict:
-        
+
         lenA = len(thing_A)
         lenB = len(thing_B)
-        
+
         if lenA == lenB:
-            
+
             # Create versions sorted by key
             sortedA = dict(sorted(thing_A.items()))
             sortedB = dict(sorted(thing_B.items()))
-            
+
             # If keys don't match, print a warning.
             if list(sortedA.keys()) != list(sortedB.keys()):
                 warn(
@@ -78,7 +78,7 @@ def distanceMetric(thing_A, thing_B):
 
             distance = distanceMetric(list(sortedA.values()),
                                       list(sortedB.values()))
-            
+
         else:
             # If they have different lengths, log a warning and return the
             # difference in lengths.
@@ -87,7 +87,7 @@ def distanceMetric(thing_A, thing_B):
                 'Returning difference in lengths.'
                 )
             distance = float(abs(lenA - lenB))
-        
+
     # If both inputs are numbers, return their difference
     elif isinstance(thing_A, (int, float)) and isinstance(thing_B, (int, float)):
         distance = float(abs(thing_A - thing_B))
