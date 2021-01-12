@@ -21,6 +21,7 @@ Release Data: TBD
 interpolation for problems with CRRA utility. See [#888](https://github.com/econ-ark/HARK/pull/888).
 * MarkovProcess class (#902)[https://github.com/econ-ark/HARK/pull/902]
 * replace HARKobject base class with MetricObject and Model classes (#903)[https://github.com/econ-ark/HARK/pull/903/]
+* Add __repr__ and __eq__ methods to Model class (#903)[https://github.com/econ-ark/HARK/pull/903/]
 
 #### Minor Changes
 
