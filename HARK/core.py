@@ -180,6 +180,24 @@ class Model(object):
         """
         self.assignParameters(**kwds)
 
+    def __str__(self):
+
+        type_ = type(self)
+        module = type_.__module__
+        qualname = type_.__qualname__
+
+        s = f"<{module}.{qualname} object at {hex(id(self))}.\n"
+        s += "Parameters:"
+
+        for p in self.parameters:
+            s += f"\n{p}: {self.parameters[p]}"
+
+        s += ">"
+        return s
+
+    def __repr__(self):
+        return self.__str__()
+
 
 class AgentType(Model):
     """

@@ -91,3 +91,6 @@ class test_AgentType(unittest.TestCase):
         self.agent.solve()
         self.assertEqual(len(self.agent.solution), 4)
         self.assertTrue(isinstance(self.agent.solution[0], MetricObject))
+
+    def test___repr__(self):
+        self.assertTrue('Parameters' in self.agent.__repr__())
