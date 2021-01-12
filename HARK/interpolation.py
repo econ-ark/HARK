@@ -4444,7 +4444,7 @@ def calcLogSum(Vals, sigma):
 # - u is of the CRRA family.                                                  #
 ###############################################################################
 
-class ValueFuncCRRA(HARKobject):
+class ValueFuncCRRA(MetricObject):
     """
     A class for representing a value function.  The underlying interpolation is
     in the space of (state,u_inv(v)); this class "re-curves" to the value function.
@@ -4480,7 +4480,7 @@ class ValueFuncCRRA(HARKobject):
         vFuncArgs : floats or np.arrays, all of the same dimensions.
             Values for the state variables. These usually start with 'm',
             market resources normalized by the level of permanent income.
-            
+
         Returns
         -------
         v : float or np.array
@@ -4490,7 +4490,7 @@ class ValueFuncCRRA(HARKobject):
         return CRRAutility(self.func(*vFuncArgs), gam=self.CRRA)
 
 
-class MargValueFuncCRRA(HARKobject):
+class MargValueFuncCRRA(MetricObject):
     """
     A class for representing a marginal value function in models where the
     standard envelope condition of dvdm(state) = u'(c(state)) holds (with CRRA utility).
@@ -4570,11 +4570,11 @@ class MargValueFuncCRRA(HARKobject):
                 "cFunc does not have a 'derivativeX' attribute. Can't compute"
                 + "marginal marginal value."
             )
-            
+
         return MPC * CRRAutilityPP(c, gam=self.CRRA)
 
 
-class MargMargValueFuncCRRA(HARKobject):
+class MargMargValueFuncCRRA(MetricObject):
     """
     A class for representing a marginal marginal value function in models where
     the standard envelope condition of dvdm = u'(c(state)) holds (with CRRA utility).
@@ -4621,7 +4621,7 @@ class MargMargValueFuncCRRA(HARKobject):
             Marginal marginal lifetime value of beginning this period with market
             resources m; has same size as input m.
         """
-        
+
         # The derivative method depends on the dimension of the function
         if isinstance(self.cFunc, (HARKinterpolator1D)):
             c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
@@ -4635,7 +4635,7 @@ class MargMargValueFuncCRRA(HARKobject):
                 "cFunc does not have a 'derivativeX' attribute. Can't compute"
                 + "marginal marginal value."
             )
-            
+
         return MPC * CRRAutilityPP(c, gam=self.CRRA)
 
 ##############################################################################
