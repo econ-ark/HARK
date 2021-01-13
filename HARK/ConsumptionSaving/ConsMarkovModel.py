@@ -17,7 +17,11 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     PerfForesightConsumerType,
 )
 
-from HARK.distribution import DiscreteDistribution, Uniform
+from HARK.distribution import (
+    DiscreteDistribution,
+    Uniform,
+    calcExpectation
+)
 from HARK.interpolation import (
     CubicInterp,
     LowerEnvelope,
@@ -321,16 +325,19 @@ class ConsMarkovSolver(ConsIndShockSolver):
             End-of-period marginal marginal value of assets at each value in
             the grid of assets.
         """
+        def vpp_next(shocks, a_nrm):
+            return shocks[0] ** (- self.CRRA - 1.0) \
+                * self.vPPfuncNext(self.m_nrm_next(shocks, a_nrm))
+
         EndOfPrdvPP = (
             self.DiscFacEff
             * self.Rfree
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA - 1.0)
-            * np.sum(
-                self.PermShkVals_temp ** (-self.CRRA - 1.0)
-                * self.vPPfuncNext(self.mNrmNext)
-                * self.ShkPrbs_temp,
-                axis=0,
+            * calcExpectation(
+                self.IncomeDstn,
+                vpp_next,
+                self.aNrmNow
             )
         )
         return EndOfPrdvPP
