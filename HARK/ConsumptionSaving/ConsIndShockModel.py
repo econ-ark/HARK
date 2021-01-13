@@ -752,6 +752,12 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             + TranShkVals_temp
         )  # CDC 20191205: This should be divided by LivPrb[0] for Blanchard insurance
 
+        # use this to replace mNrmNext, which is too big...
+        def m_nrm_next(shocks, a_nrm):
+            return self.Rfree / (self.PermGroFac * shocks[0]) \
+                * a_nrm + shocks[1]
+        self.m_nrm_next = m_nrm_next
+
         # Store and report the results
         self.PermShkVals_temp = PermShkVals_temp
         self.ShkPrbs_temp = ShkPrbs_temp
@@ -778,9 +784,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         def vp_next(shocks, a_nrm):
             return shocks[0] ** (-self.CRRA) \
-                * self.vPfuncNext(
-                    self.Rfree / (self.PermGroFac * shocks[0]) * a_nrm + shocks[1]
-                )
+                * self.vPfuncNext(self.m_nrm_next(shocks, a_nrm))
 
         EndOfPrdvP = (
             self.DiscFacEff
@@ -979,7 +983,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         """
         def vpp_next(shocks, a_nrm):
             return shocks[0] ** (- self.CRRA - 1.0) \
-                * self.vPPfuncNext(self.Rfree / (self.PermGroFac * shocks[0]) * a_nrm + shocks[1])
+                * self.vPPfuncNext(self.m_nrm_next(shocks, a_nrm))
 
         EndOfPrdvPP = (
             self.DiscFacEff
