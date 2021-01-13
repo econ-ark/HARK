@@ -752,12 +752,6 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             + TranShkVals_temp
         )  # CDC 20191205: This should be divided by LivPrb[0] for Blanchard insurance
 
-        # use this to replace mNrmNext, which is too big...
-        def m_nrm_next(shocks, a_nrm):
-            return self.Rfree / (self.PermGroFac * shocks[0]) \
-                * a_nrm + shocks[1]
-        self.m_nrm_next = m_nrm_next
-
         # Store and report the results
         self.PermShkVals_temp = PermShkVals_temp
         self.ShkPrbs_temp = ShkPrbs_temp
@@ -765,6 +759,13 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         self.aNrmNow = aNrmNow
         return aNrmNow
 
+    def m_nrm_next(self, shocks, a_nrm):
+        """
+        Computes normalized market resources of the next period
+        from income shocks and current normalized market resources.
+        """
+        return self.Rfree / (self.PermGroFac * shocks[0]) \
+            * a_nrm + shocks[1]
 
     def calcEndOfPrdvP(self):
         """
