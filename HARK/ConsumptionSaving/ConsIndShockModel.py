@@ -646,7 +646,39 @@ class ConsPerfForesightSolver(HARKobject):
 
         solution.mNrmSS    = mNrmSS
         return solution
+    
+    def addStablePoints(self, solution):
+        """
+        Checks necessary conditions for the existence of the individual steady
+        state and target levels of market resources (see above).
+        If the conditions are satisfied, computes and adds the stable points
+        to the solution.
 
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            Solution to this period's problem, which must have attribute cFunc.
+        Returns
+        -------
+        solution : ConsumerSolution
+            Same solution that was passed, but now with attributes mNrmSS and
+            mNrmTrg, if they exist.
+
+        """
+        
+        # 0. There is no non-degenerate steady state for unconstrained PF model.
+        # 1. There is a non-degenerate SS for constrained PF model if GIC holds.
+        # Therefore
+        # Check if  (GIC and BoroCnstArt) and compute them both (they are the same)
+        # only if this is the case.
+        thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
+        GIC = 1 > thorn/self.PermGroFac
+        if self.BoroCnstArt and GIC:
+            solution = self.addSSmNrm(solution)
+            solution = self.addmNrmTrg(solution)
+    
+        return solution
+    
     def solve(self):
         """
         Solves the one period perfect foresight consumption-saving problem.
@@ -673,18 +705,9 @@ class ConsPerfForesightSolver(HARKobject):
             MPCmin=self.MPCmin,
             MPCmax=self.MPCmax,
         )
+        
+        solution = self.addStablePoints(solution)
 
-        # 0. There is no non-degenerate steady state for unconstrained PF model.
-        # 1. There is a non-degenerate SS for constrained PF model if GIC holds.
-        # Therefore
-        # Check if  (GIC and BoroCnstArt) and compute them both (they are the same)
-        # only if this is the case.
-        thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
-        GIC = 1 > thorn/self.PermGroFac
-        if self.BoroCnstArt and GIC:
-            solution = self.addSSmNrm(solution)
-            solution = self.addmNrmTrg(solution)
-            
         return solution
 
 
@@ -1325,6 +1348,39 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         solution.vPPfunc = vPPfuncNow
         return solution
 
+    def addStablePoints(self, solution):
+        """
+        Checks necessary conditions for the existence of the individual steady
+        state and target levels of market resources (see above).
+        If the conditions are satisfied, computes and adds the stable points
+        to the solution.
+
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            Solution to this period's problem, which must have attribute cFunc.
+        Returns
+        -------
+        solution : ConsumerSolution
+            Same solution that was passed, but now with attributes mNrmSS and
+            mNrmTrg, if they exist.
+
+        """
+        
+        # 0. Check if the regular GIC holds. If so, then mNrmSS will exist. So, compute it.
+        # 1. Check if GICnrm holds. If so, then mNrmTrg will exist. So, compute it.
+
+        thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
+        GPF_nrm = thorn / self.PermGroFac / np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
+        GIC     = 1 > thorn/self.PermGroFac
+        GIC_nrm = 1 > GPF_nrm
+        
+        if GIC:
+            solution = self.addSSmNrm(solution)  # find steady state m, if it exists
+        if GIC_nrm:
+            solution = self.addmNrmTrg(solution) # find target m, if it exists
+
+        return solution
 
     def solve(self):
         """
@@ -1358,18 +1414,8 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
                 EndOfPrdvP, aNrm, interpolator=self.makeLinearcFunc
             )
         solution = self.addMPCandHumanWealth(solution)  # add a few things
-
-        # 0. Check if the regular GIC holds. If so, then mNrmSS will exist. So, compute it.
-        # 1. Check if GICnrm holds. If so, then mNrmTrg will exist. So, compute it.
-        thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
-        GPF_nrm = thorn / self.PermGroFac / np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
-        GIC     = 1 > thorn/self.PermGroFac
-        GIC_nrm = 1 > GPF_nrm
         
-        if GIC:
-            solution = self.addSSmNrm(solution)  # find steady state m, if it exists
-        if GIC_nrm:
-            solution = self.addmNrmTrg(solution) # find target m, if it exists
+        solution = self.addStablePoints(solution)
         
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used (to prepare for next period)
@@ -1510,7 +1556,33 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         ]
 
         return cFuncNowUncKink
-
+    
+    def addStablePoints(self, solution):
+        """
+        TODO:
+        Placeholder method for a possible future implementation of stable
+        points in the kinked R model. For now it simply serves to override
+        ConsIndShock's method, which does not apply here given the multiple
+        interest rates.
+        
+        Discusson:
+        - The target and steady state should exist under the same conditions
+          as in ConsIndShock.
+        - The ConsIndShock code as it stands can not be directly applied
+          because it assumes that R is a constant, and in this model R depends
+          on the level of wealth.
+        - After allowing for wealth-depending interest rates, the existing
+         code might work without modification to add the stable points. If not,
+         it should be possible to find these values by checking within three
+         distinct intervals:
+             - From h_min to the lower kink.
+             - From the lower kink to the upper kink
+             - From the upper kink to infinity.
+        the stable points must be in one of these regions.
+        
+        """
+        return solution
+    
     def prepareToCalcEndOfPrdvP(self):
         """
         Prepare to calculate end-of-period marginal value by creating an array
