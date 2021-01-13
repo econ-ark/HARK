@@ -14,12 +14,13 @@ Release Data: TBD
 
 #### Major Changes
 
-* Adds a constructor for LogNormal distributions from mean and standard deviation (#891)[https://github.com/econ-ark/HARK/pull/891/]
-* Uses new LogNormal constructor in ConsPortfolioModel (#891)[https://github.com/econ-ark/HARK/pull/891/]
-* calcExpectations method for taking the expectation of a distribution over a function (#884)[https://github.com/econ-ark/HARK/pull/884/] (#897)[https://github.com/econ-ark/HARK/pull/897/]
+* Adds a constructor for LogNormal distributions from mean and standard deviation [#891](https://github.com/econ-ark/HARK/pull/891/)
+* Uses new LogNormal constructor in ConsPortfolioModel [#891](https://github.com/econ-ark/HARK/pull/891/)
+* calcExpectations method for taking the expectation of a distribution over a function [#884](https://github.com/econ-ark/HARK/pull/884/) [#897](https://github.com/econ-ark/HARK/pull/897/)
+* uses calcExpectations to simplify the solution code [#896](https://github.com/econ-ark/HARK/pull/884/] (#897)[https://github.com/econ-ark/HARK/pull/897/)
 * Centralizes the definition of value, marginal value, and marginal marginal value functions that use inverse-space
 interpolation for problems with CRRA utility. See [#888](https://github.com/econ-ark/HARK/pull/888).
-* MarkovProcess class (#902)[https://github.com/econ-ark/HARK/pull/902]
+* MarkovProcess class [#902](https://github.com/econ-ark/HARK/pull/902)
 
 #### Minor Changes
 
