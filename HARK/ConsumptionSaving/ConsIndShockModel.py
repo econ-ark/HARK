@@ -977,16 +977,19 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         cFuncUnc : CubicInterp
             The unconstrained consumption function for this period.
         """
+        def vpp_next(shocks, a_nrm):
+            return shocks[0] ** (- self.CRRA - 1.0) \
+                * self.vPPfuncNext(self.Rfree / (self.PermGroFac * shocks[0]) * a_nrm + shocks[1])
+
         EndOfPrdvPP = (
             self.DiscFacEff
             * self.Rfree
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA - 1.0)
-            * np.sum(
-                self.PermShkVals_temp ** (-self.CRRA - 1.0)
-                * self.vPPfuncNext(self.mNrmNext)
-                * self.ShkPrbs_temp,
-                axis=0,
+            * calcExpectation(
+                self.IncomeDstn,
+                vpp_next,
+                self.aNrmNow
             )
         )
         dcda = EndOfPrdvPP / self.uPP(np.array(cNrm[1:]))
