@@ -736,33 +736,25 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # function as the lower envelope of the (by the artificial borrowing con-
         # straint) uconstrained consumption function, and the artificially con-
         # strained consumption function.
-        aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
-        ShkCount = self.TranShkValsNext.size
-        aNrm_temp = np.tile(aNrmNow, (ShkCount, 1))
+        self.aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
 
-        # Tile arrays of the income shocks and put them into useful shapes
-        aNrmCount = aNrmNow.shape[0]
-        PermShkVals_temp = (np.tile(self.PermShkValsNext, (aNrmCount, 1))).transpose()
-        TranShkVals_temp = (np.tile(self.TranShkValsNext, (aNrmCount, 1))).transpose()
-        ShkPrbs_temp = (np.tile(self.ShkPrbsNext, (aNrmCount, 1))).transpose()
-
-        # Get cash on hand next period
-        mNrmNext = (
-            self.Rfree / (self.PermGroFac * PermShkVals_temp) * aNrm_temp
-            + TranShkVals_temp
-        )  # CDC 20191205: This should be divided by LivPrb[0] for Blanchard insurance
-
-        # Store and report the results
-        self.PermShkVals_temp = PermShkVals_temp
-        self.ShkPrbs_temp = ShkPrbs_temp
-        self.mNrmNext = mNrmNext
-        self.aNrmNow = aNrmNow
-        return aNrmNow
+        return self.aNrmNow
 
     def m_nrm_next(self, shocks, a_nrm):
         """
         Computes normalized market resources of the next period
         from income shocks and current normalized market resources.
+
+        Parameters
+        ----------
+        shocks: [float]
+            Permanent and transitory income shock levels.       a_nrm: float
+            Normalized market assets this period
+
+        Returns
+        -------
+        float
+           normalized market resources in the next period
         """
         return self.Rfree / (self.PermGroFac * shocks[0]) \
             * a_nrm + shocks[1]
@@ -947,7 +939,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution : ConsumerSolution
             The solution to the one period problem.
         """
-        aNrm = self.prepareToCalcEndOfPrdvP()
+        self.aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
+        aNrm = self.aNrmNow
         EndOfPrdvP = self.calcEndOfPrdvP()
         solution = self.makeBasicSolution(EndOfPrdvP, aNrm, self.makeLinearcFunc)
         solution = self.addMPCandHumanWealth(solution)
