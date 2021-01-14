@@ -20,6 +20,7 @@ Release Data: TBD
 * Centralizes the definition of value, marginal value, and marginal marginal value functions that use inverse-space
 interpolation for problems with CRRA utility. See [#888](https://github.com/econ-ark/HARK/pull/888).
 * MarkovProcess class (#902)[https://github.com/econ-ark/HARK/pull/902]
+* Adds a SSA life tables and methods to exctract survival probabilities from them [#986](https://github.com/econ-ark/HARK/pull/906).
 
 #### Minor Changes
 
