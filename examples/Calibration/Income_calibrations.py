@@ -56,20 +56,3 @@ for spec in Cagetti_income.items():
 plt.title('Cagetti')
 plt.legend()
 plt.show()
-
-# %% Life probabilities
-
-min_age = 21
-max_age = 100
-ages = np.arange(min_age, max_age)
-
-plt.figure()
-for s in ['male', 'female']:
-    
-    LivPrb = parse_ssa_life_table(filename = 'LifeTables/SSA_LifeTable2017.csv',
-                                  sep = ',', sex = s,
-                                  min_age = min_age, max_age = max_age)
-    
-    plt.plot(ages, LivPrb, label = s)
-    
-plt.legend()
