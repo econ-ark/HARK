@@ -20,6 +20,7 @@ Release Data: TBD
 * Centralizes the definition of value, marginal value, and marginal marginal value functions that use inverse-space
 interpolation for problems with CRRA utility. See [#888](https://github.com/econ-ark/HARK/pull/888).
 * MarkovProcess class (#902)[https://github.com/econ-ark/HARK/pull/902]
+* Fix the return fields of `dcegm/calcCrossPoints`[#909](https://github.com/econ-ark/HARK/pull/909).
 
 #### Minor Changes
 
