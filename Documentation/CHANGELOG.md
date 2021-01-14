@@ -21,6 +21,7 @@ Release Data: TBD
 interpolation for problems with CRRA utility. See [#888](https://github.com/econ-ark/HARK/pull/888).
 * MarkovProcess class (#902)[https://github.com/econ-ark/HARK/pull/902]
 * Fix the return fields of `dcegm/calcCrossPoints`[#909](https://github.com/econ-ark/HARK/pull/909).
+* Corrects location of constructor documentation to class string for Sphinx rendering (#908)[https://github.com/econ-ark/HARK/pull/908]
 
 #### Minor Changes
 
