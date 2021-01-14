@@ -36,5 +36,5 @@ life-cycle models require.
 
 The main function is `parse_ssa_life_table`, which produces survival
 probabilities for a given sex, age-range, and year of birth. See the function's
-documentation for details. `examples/Calibration/Calib_plots.py` contains
+documentation for details. `examples/Calibration/US_SSA_life_tables.py` contains
 examples of its use.
