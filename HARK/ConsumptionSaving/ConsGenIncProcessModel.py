@@ -20,6 +20,9 @@ from HARK.interpolation import (
     LinearInterp,
     CubicInterp,
     UpperEnvelope,
+    ValueFuncCRRA,
+    MargValueFuncCRRA,
+    MargMargValueFuncCRRA
 )
 from HARK.utilities import (
     CRRAutility,
@@ -40,9 +43,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 
 __all__ = [
-    "ValueFunc2D",
-    "MargValueFunc2D",
-    "MargMargValueFunc2D",
     "pLvlFuncAR1",
     "ConsGenIncProcessSolver",
     "GenIncProcessConsumerType",
@@ -61,209 +61,21 @@ utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
 
 
-class ValueFunc2D(HARKobject):
-    """
-    A class for representing a value function in a model where persistent income
-    is explicitly included as a state variable.  The underlying interpolation is
-    in the space of (m,p) --> u_inv(v); this class "re-curves" to the value function.
-    """
-
-    distance_criteria = ["func", "CRRA"]
-
-    def __init__(self, vFuncNvrs, CRRA):
-        """
-        Constructor for a new value function object.
-
-        Parameters
-        ----------
-        vFuncNvrs : function
-            A real function representing the value function composed with the
-            inverse utility function, defined on market resources and persistent
-            income: u_inv(vFunc(m,p))
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        None
-        """
-        self.func = deepcopy(vFuncNvrs)
-        self.CRRA = CRRA
-
-    def __call__(self, m, p):
-        """
-        Evaluate the value function at given levels of market resources m and
-        persistent income p.
-
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources whose value is to be calcuated.
-        p : float or np.array
-            Persistent income levels whose value is to be calculated.
-
-        Returns
-        -------
-        v : float or np.array
-            Lifetime value of beginning this period with market resources m and
-            persistent income p; has same size as inputs m and p.
-        """
-        return utility(self.func(m, p), gam=self.CRRA)
-
-
-class MargValueFunc2D(HARKobject):
-    """
-    A class for representing a marginal value function in models where the
-    standard envelope condition of v'(m,p) = u'(c(m,p)) holds (with CRRA utility).
-    This is copied from ConsAggShockModel, with the second state variable re-
-    labeled as persistent income p.
-    """
-
-    distance_criteria = ["cFunc", "CRRA"]
-
-    def __init__(self, cFunc, CRRA):
-        """
-        Constructor for a new marginal value function object.
-
-        Parameters
-        ----------
-        cFunc : function
-            A real function representing the marginal value function composed
-            with the inverse marginal utility function, defined on market
-            resources and the level of persistent income: uP_inv(vPfunc(m,p)).
-            Called cFunc because when standard envelope condition applies,
-            uP_inv(vPfunc(m,p)) = cFunc(m,p).
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        None
-        """
-        self.cFunc = deepcopy(cFunc)
-        self.CRRA = CRRA
-
-    def __call__(self, m, p):
-        """
-        Evaluate the marginal value function at given levels of market resources
-        m and persistent income p.
-
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources whose value is to be calcuated.
-        p : float or np.array
-            Persistent income levels whose value is to be calculated.
-
-        Returns
-        -------
-        vP : float or np.array
-            Marginal value of market resources when beginning this period with
-            market resources m and persistent income p; has same size as inputs
-            m and p.
-        """
-        return utilityP(self.cFunc(m, p), gam=self.CRRA)
-
-    def derivativeX(self, m, p):
-        """
-        Evaluate the first derivative with respect to market resources of the
-        marginal value function at given levels of market resources m and per-
-        manent income p.
-
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources whose value is to be calcuated.
-        p : float or np.array
-            Persistent income levels whose value is to be calculated.
-
-        Returns
-        -------
-        vPP : float or np.array
-            Marginal marginal value of market resources when beginning this period
-            with market resources m and persistent income p; has same size as inputs
-            m and p.
-        """
-        c = self.cFunc(m, p)
-        MPC = self.cFunc.derivativeX(m, p)
-        return MPC * utilityPP(c, gam=self.CRRA)
-
-
-class MargMargValueFunc2D(HARKobject):
-    """
-    A class for representing a marginal marginal value function in models where the
-    standard envelope condition of v'(m,p) = u'(c(m,p)) holds (with CRRA utility).
-    """
-
-    distance_criteria = ["cFunc", "CRRA"]
-
-    def __init__(self, cFunc, CRRA):
-        """
-        Constructor for a new marginal marginal value function object.
-
-        Parameters
-        ----------
-        cFunc : function
-            A real function representing the marginal value function composed
-            with the inverse marginal utility function, defined on market
-            resources and the level of persistent income: uP_inv(vPfunc(m,p)).
-            Called cFunc because when standard envelope condition applies,
-            uP_inv(vPfunc(M,p)) = cFunc(m,p).
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        None
-        """
-        self.cFunc = deepcopy(cFunc)
-        self.CRRA = CRRA
-
-    def __call__(self, m, p):
-        """
-        Evaluate the marginal marginal value function at given levels of market
-        resources m and persistent income p.
-
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources whose marginal marginal value is to be calculated.
-        p : float or np.array
-            Persistent income levels whose marginal marginal value is to be calculated.
-
-        Returns
-        -------
-        vPP : float or np.array
-            Marginal marginal value of beginning this period with market
-            resources m and persistent income p; has same size as inputs.
-        """
-        c = self.cFunc(m, p)
-        MPC = self.cFunc.derivativeX(m, p)
-        return MPC * utilityPP(c, gam=self.CRRA)
-
-
 class pLvlFuncAR1(HARKobject):
     """
     A class for representing AR1-style persistent income growth functions.
+
+    Parameters
+    ----------
+    pLogMean : float
+        Log persistent income level toward which we are drawn.
+    PermGroFac : float
+        Autonomous (e.g. life cycle) pLvl growth (does not AR1 decay).
+    Corr : float
+        Correlation coefficient on log income.
     """
 
     def __init__(self, pLogMean, PermGroFac, Corr):
-        """
-        Make a new pLvlFuncAR1 instance.
-
-        Parameters
-        ----------
-        pLogMean : float
-            Log persistent income level toward which we are drawn.
-        PermGroFac : float
-            Autonomous (e.g. life cycle) pLvl growth (does not AR1 decay).
-        Corr : float
-            Correlation coefficient on log income.
-
-        Returns
-        -------
-        None
-        """
         self.pLogMean = pLogMean
         self.LogGroFac = np.log(PermGroFac)
         self.Corr = Corr
@@ -302,6 +114,40 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     (after controlling for growth).  Instead, they have  a function that translates
     current persistent income into expected next period persistent income (subject
     to shocks).
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to next period's one period problem.
+    IncomeDstn : [np.array]
+        A list containing three arrays of floats, representing a discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next). Order: event
+        probabilities, persistent shocks, transitory shocks.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    pLvlNextFunc : float
+        Expected persistent income next period as a function of current pLvl.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period (normalized) asset values-- assets
+        above the absolute minimum acceptable level.
+    pLvlGrid: np.array
+        Array of persistent income levels at which to solve the problem.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear interpolation.
     """
 
     def __init__(
@@ -319,49 +165,6 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         vFuncBool,
         CubicBool,
     ):
-        """
-        Constructor for a new solver for a one period problem with idiosyncratic
-        shocks to persistent and transitory income, with persistent income tracked
-        as a state variable rather than normalized out.
-
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, persistent shocks, transitory shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rfree : float
-            Risk free interest factor on end-of-period assets.
-        pLvlNextFunc : float
-            Expected persistent income next period as a function of current pLvl.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period (normalized) asset values-- assets
-            above the absolute minimum acceptable level.
-        pLvlGrid: np.array
-            Array of persistent income levels at which to solve the problem.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear interpolation.
-
-        Returns
-        -------
-        None
-        """
         self.assignParameters(
             solution_next=solution_next,
             IncomeDstn=IncomeDstn,
@@ -647,7 +450,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         EndOfPrdvNvrsFunc = VariableLowerBoundFunc2D(
             EndOfPrdvNvrsFuncBase, self.BoroCnstNat
         )
-        self.EndOfPrdvFunc = ValueFunc2D(EndOfPrdvNvrsFunc, self.CRRA)
+        self.EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
 
     def getPointsForInterpolation(self, EndOfPrdvP, aLvlNow):
         """
@@ -744,7 +547,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         vPfunc : function
             Marginal value (of market resources) function for this period.
         """
-        vPfunc = MargValueFunc2D(cFunc, self.CRRA)
+        vPfunc = MargValueFuncCRRA(cFunc, self.CRRA)
         return vPfunc
 
     def makevFunc(self, solution):
@@ -761,7 +564,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
 
         Returns
         -------
-        vFuncNow : ValueFunc
+        vFuncNow : ValueFuncCRRA
             A representation of the value function for this period, defined over
             market resources m and persistent income p: v = vFuncNow(m,p).
         """
@@ -818,7 +621,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         vNvrsFuncNow = VariableLowerBoundFunc2D(vNvrsFuncBase, self.mLvlMinNow)
 
         # "Re-curve" the pseudo-inverse value function into the value function
-        vFuncNow = ValueFunc2D(vNvrsFuncNow, self.CRRA)
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA)
         return vFuncNow
 
     def makeBasicSolution(self, EndOfPrdvP, aLvl, pLvl, interpolator):
@@ -1009,7 +812,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             The same solution passed as input, but with the marginal marginal
             value function for this period added as the attribute vPPfunc.
         """
-        vPPfuncNow = MargMargValueFunc2D(solution.cFunc, self.CRRA)
+        vPPfuncNow = MargMargValueFuncCRRA(solution.cFunc, self.CRRA)
         solution.vPPfunc = vPPfuncNow
         return solution
 
@@ -1080,6 +883,14 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     abilities, and persistent income growth functions, as well as time invariant
     values for risk aversion, discount factor, the interest rate, the grid of
     end-of-period assets, and an artificial borrowing constraint.
+
+    See init_explicit_perm_inc for a dictionary of the
+    keywords that should be passed to the constructor.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     cFunc_terminal_ = BilinearInterp(
@@ -1092,20 +903,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     state_vars = ["pLvlNow","mLvlNow","aLvlNow"]
 
     def __init__(self, cycles=0, **kwds):
-        """
-        Instantiate a new ConsumerType with given data.
-        See ConsumerParameters.init_explicit_perm_inc for a dictionary of the
-        keywords that should be passed to the constructor.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
         params = init_explicit_perm_inc.copy()
         params.update(kwds)
 
@@ -1155,9 +952,9 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.solution_terminal.vFunc = ValueFunc2D(self.cFunc_terminal_, self.CRRA)
-        self.solution_terminal.vPfunc = MargValueFunc2D(self.cFunc_terminal_, self.CRRA)
-        self.solution_terminal.vPPfunc = MargMargValueFunc2D(
+        self.solution_terminal.vFunc = ValueFuncCRRA(self.cFunc_terminal_, self.CRRA)
+        self.solution_terminal.vPfunc = MargValueFuncCRRA(self.cFunc_terminal_, self.CRRA)
+        self.solution_terminal.vPPfunc = MargMargValueFuncCRRA(
             self.cFunc_terminal_, self.CRRA
         )
         self.solution_terminal.hNrm = 0.0  # Don't track normalized human wealth
@@ -1448,21 +1245,14 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
     for risk aversion, discount factor, the interest rate, the grid of end-of-
     period assets, an artificial borrowing constraint, and the AR1 correlation
     coefficient for (log) persistent income.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     def __init__(self, cycles=0, **kwds):
-        """
-        Instantiate a new ConsumerType with given data.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
         params = init_persistent_shocks.copy()
         params.update(kwds)
 

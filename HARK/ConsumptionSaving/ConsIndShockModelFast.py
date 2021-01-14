@@ -23,15 +23,19 @@ from quantecon.optimize import newton_secant
 from HARK import makeOnePeriodOOSolver, HARKobject
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
-    ValueFunc,
-    MargValueFunc,
-    MargMargValueFunc,
     ConsPerfForesightSolver,
     ConsIndShockSolverBasic,
     PerfForesightConsumerType,
     IndShockConsumerType,
 )
-from HARK.interpolation import LinearInterp, LowerEnvelope, CubicInterp
+from HARK.interpolation import (
+    LinearInterp,
+    LowerEnvelope,
+    CubicInterp,
+    ValueFuncCRRA,
+    MargValueFuncCRRA,
+    MargMargValueFuncCRRA
+)
 from HARK.numba import (
     CRRAutility,
     CRRAutilityP,
@@ -74,6 +78,27 @@ class PerfForesightSolution(HARKobject):
 
     Here and elsewhere in the code, Nrm indicates that variables are normalized
     by permanent income.
+
+    Parameters
+    ----------
+    mNrm: np.array
+        (Normalized) corresponding market resource points for interpolation.
+    cNrm : np.array
+        (Normalized) consumption points for interpolation.
+    vFuncNvrsSlope: float
+        Constant slope of inverse value vFuncNvrs
+    mNrmMin : float
+        The minimum allowable market resources for this period; the consump-
+        tion function (etc) are undefined for m < mNrmMin.
+    hNrm : float
+        Human wealth after receiving income this period: PDV of all future
+        income, ignoring mortality.
+    MPCmin : float
+        Infimum of the marginal propensity to consume this period.
+        MPC --> MPCmin as m --> infinity.
+    MPCmax : float
+        Supremum of the marginal propensity to consume this period.
+        MPC --> MPCmax as m --> mNrmMin.
     """
 
     distance_criteria = ["cNrm", "mNrm"]
@@ -88,34 +113,6 @@ class PerfForesightSolution(HARKobject):
         MPCmin=1.0,
         MPCmax=1.0,
     ):
-        """
-        The constructor for a new PerfForesightSolution object.
-
-        Parameters
-        ----------
-        mNrm: np.array
-            (Normalized) corresponding market resource points for interpolation.
-        cNrm : np.array
-            (Normalized) consumption points for interpolation.
-        vFuncNvrsSlope: float
-            Constant slope of inverse value vFuncNvrs
-        mNrmMin : float
-            The minimum allowable market resources for this period; the consump-
-            tion function (etc) are undefined for m < mNrmMin.
-        hNrm : float
-            Human wealth after receiving income this period: PDV of all future
-            income, ignoring mortality.
-        MPCmin : float
-            Infimum of the marginal propensity to consume this period.
-            MPC --> MPCmin as m --> infinity.
-        MPCmax : float
-            Supremum of the marginal propensity to consume this period.
-            MPC --> MPCmax as m --> mNrmMin.
-
-        Returns
-        -------
-        None
-        """
         self.mNrm = mNrm
         self.cNrm = cNrm
         self.vFuncNvrsSlope = vFuncNvrsSlope
@@ -129,6 +126,27 @@ class IndShockSolution(HARKobject):
     """
     A class representing the solution of a single period of a consumption-saving
     idiosyncratic shocks to permanent and transitory income problem.
+
+    Parameters
+    ----------
+    mNrm: np.array
+        (Normalized) corresponding market resource points for interpolation.
+    cNrm : np.array
+        (Normalized) consumption points for interpolation.
+    vFuncNvrsSlope: float
+        Constant slope of inverse value vFuncNvrs
+    mNrmMin : float
+        The minimum allowable market resources for this period; the consump-
+        tion function (etc) are undefined for m < mNrmMin.
+    hNrm : float
+        Human wealth after receiving income this period: PDV of all future
+        income, ignoring mortality.
+    MPCmin : float
+        Infimum of the marginal propensity to consume this period.
+        MPC --> MPCmin as m --> infinity.
+    MPCmax : float
+        Supremum of the marginal propensity to consume this period.
+        MPC --> MPCmax as m --> mNrmMin.
     """
 
     distance_criteria = ["cNrm", "mNrm", "mNrmMin"]
@@ -150,34 +168,6 @@ class IndShockSolution(HARKobject):
         vNvrsP=None,
         MPCminNvrs=None,
     ):
-        """
-        The constructor for a new ConsumerSolution object.
-
-        Parameters
-        ----------
-        mNrm: np.array
-            (Normalized) corresponding market resource points for interpolation.
-        cNrm : np.array
-            (Normalized) consumption points for interpolation.
-        vFuncNvrsSlope: float
-            Constant slope of inverse value vFuncNvrs
-        mNrmMin : float
-            The minimum allowable market resources for this period; the consump-
-            tion function (etc) are undefined for m < mNrmMin.
-        hNrm : float
-            Human wealth after receiving income this period: PDV of all future
-            income, ignoring mortality.
-        MPCmin : float
-            Infimum of the marginal propensity to consume this period.
-            MPC --> MPCmin as m --> infinity.
-        MPCmax : float
-            Supremum of the marginal propensity to consume this period.
-            MPC --> MPCmax as m --> mNrmMin.
-
-        Returns
-        -------
-        None
-        """
         self.mNrm = mNrm
         self.cNrm = cNrm
         self.cFuncLimitIntercept = cFuncLimitIntercept
@@ -1106,9 +1096,9 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
 
         self.solution_terminal_cs = ConsumerSolution(
             cFunc=self.cFunc_terminal_,
-            vFunc=ValueFunc(self.cFunc_terminal_, self.CRRA),
-            vPfunc=MargValueFunc(self.cFunc_terminal_, self.CRRA),
-            vPPfunc=MargMargValueFunc(self.cFunc_terminal_, self.CRRA),
+            vFunc=ValueFuncCRRA(self.cFunc_terminal_, self.CRRA),
+            vPfunc=MargValueFuncCRRA(self.cFunc_terminal_, self.CRRA),
+            vPPfunc=MargMargValueFuncCRRA(self.cFunc_terminal_, self.CRRA),
             mNrmMin=0.0,
             hNrm=0.0,
             MPCmin=1.0,
@@ -1148,8 +1138,8 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
                 np.array([solution.mNrmMin, solution.mNrmMin + 1.0]),
                 np.array([0.0, solution.vFuncNvrsSlope]),
             )
-            vFunc = ValueFunc(vFuncNvrs, self.CRRA)
-            vPfunc = MargValueFunc(cFunc, self.CRRA)
+            vFunc = ValueFuncCRRA(vFuncNvrs, self.CRRA)
+            vPfunc = MargValueFuncCRRA(cFunc, self.CRRA)
 
             consumer_solution = ConsumerSolution(
                 cFunc=cFunc,
@@ -1250,7 +1240,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                 cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst)
 
                 # Make the marginal value function and the marginal marginal value function
-                vPfuncNow = MargValueFunc(cFuncNow, self.CRRA)
+                vPfuncNow = MargValueFuncCRRA(cFuncNow, self.CRRA)
 
                 # Pack up the solution and return it
                 consumer_solution = ConsumerSolution(
@@ -1270,7 +1260,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                         solution.MPCminNvrs * solution.hNrm,
                         solution.MPCminNvrs,
                     )
-                    vFuncNow = ValueFunc(vNvrsFuncNow, self.CRRA)
+                    vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA)
 
                     consumer_solution.vFunc = vFuncNow
 

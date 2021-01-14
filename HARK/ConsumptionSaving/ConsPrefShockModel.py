@@ -17,8 +17,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     ConsumerSolution,
     ConsIndShockSolver,
-    ValueFunc,
-    MargValueFunc,
     KinkedRconsumerType,
     ConsKinkedRsolver,
     init_idiosyncratic_shocks,
@@ -29,6 +27,8 @@ from HARK.interpolation import (
     LinearInterp,
     CubicInterp,
     LowerEnvelope,
+    ValueFuncCRRA,
+    MargValueFuncCRRA
 )
 
 
@@ -69,26 +69,19 @@ class PrefShockConsumerType(IndShockConsumerType):
     """
     A class for representing consumers who experience multiplicative shocks to
     utility each period, specified as iid lognormal.
+
+    See ConsumerParameters.init_pref_shock for a dictionary of
+    the keywords that should be passed to the constructor.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["PrefShkNow"]
 
     def __init__(self, cycles=1, **kwds):
-        """
-        Instantiate a new ConsumerType with given data, and construct objects
-        to be used during solution (income distribution, assets grid, etc).
-        See ConsumerParameters.init_pref_shock for a dictionary of
-        the keywords that should be passed to the constructor.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None>>>>>>> master
-        """
         params = init_preference_shocks.copy()
         params.update(kwds)
 
@@ -263,24 +256,17 @@ class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
     A class for representing consumers who experience multiplicative shocks to
     utility each period, specified as iid lognormal and different interest rates
     on borrowing vs saving.
+
+    See init_kinky_pref for a dictionary of the keywords
+    that should be passed to the constructor.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     def __init__(self, cycles=1, **kwds):
-        """
-        Instantiate a new ConsumerType with given data, and construct objects
-        to be used during solution (income distribution, assets grid, etc).
-        See init_kinky_pref for a dictionary of the keywords
-        that should be passed to the constructor.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
         params = init_kinky_pref.copy()
         params.update(kwds)
         kwds = params
@@ -304,6 +290,45 @@ class ConsPrefShockSolver(ConsIndShockSolver):
     A class for solving the one period consumption-saving problem with risky
     income (permanent and transitory shocks) and multiplicative shocks to utility
     each period.
+
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to the succeeding one period problem.
+    IncomeDstn : [np.array]
+        A list containing three arrays of floats, representing a discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next). Order: event
+        probabilities, permanent shocks, transitory shocks.
+    PrefShkDstn : [np.array]
+        Discrete distribution of the multiplicative utility shifter.  Order:
+        probabilities, preference shocks.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    PermGroGac : float
+        Expected permanent income growth factor at the end of this period.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.  If it is less than the natural borrowing constraint,
+        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+        rowing constraint.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear inter-
+        polation.
     """
 
     def __init__(
@@ -325,43 +350,6 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         Constructor for a new solver for problems with risky income, a different
         interest rate on borrowing and saving, and multiplicative shocks to utility.
 
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to the succeeding one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
-        PrefShkDstn : [np.array]
-            Discrete distribution of the multiplicative utility shifter.  Order:
-            probabilities, preference shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rfree : float
-            Risk free interest factor on end-of-period assets.
-        PermGroGac : float
-            Expected permanent income growth factor at the end of this period.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.  If it is less than the natural borrowing constraint,
-            then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-            rowing constraint.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period asset values-- assets above the
-            absolute minimum acceptable level.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear inter-
-            polation.
 
         Returns
         -------
@@ -471,7 +459,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
                 * self.PrefShkVals[j]
             )
         vPnvrs_vec = self.uPinv(vP_vec)
-        vPfuncNow = MargValueFunc(LinearInterp(m_grid, vPnvrs_vec), self.CRRA)
+        vPfuncNow = MargValueFuncCRRA(LinearInterp(m_grid, vPnvrs_vec), self.CRRA)
 
         # Store the results in a solution object and return it
         solution_now = ConsumerSolution(
@@ -491,7 +479,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
 
         Returns
         -------
-        vFuncNow : ValueFunc
+        vFuncNow : ValueFuncCRRA
             A representation of the value function for this period, defined over
             normalized market resources m: v = vFuncNow(m).
         """
@@ -523,7 +511,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         vNvrsFuncNow = CubicInterp(
             mNrm_temp, vNvrs, vNvrsP, MPCminNvrs * self.hNrmNow, MPCminNvrs
         )
-        vFuncNow = ValueFunc(vNvrsFuncNow, self.CRRA)
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA)
         return vFuncNow
 
 
@@ -622,6 +610,48 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver, ConsKinkedRsolver):
     A class for solving the one period consumption-saving problem with risky
     income (permanent and transitory shocks), multiplicative shocks to utility
     each period, and a different interest rate on saving vs borrowing.
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to the succeeding one period problem.
+    IncomeDstn : [np.array]
+        A list containing three arrays of floats, representing a discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next). Order: event
+        probabilities, permanent shocks, transitory shocks.
+    PrefShkDstn : [np.array]
+        Discrete distribution of the multiplicative utility shifter.  Order:
+        probabilities, preference shocks.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rboro: float
+        Interest factor on assets between this period and the succeeding
+        period when assets are negative.
+    Rsave: float
+        Interest factor on assets between this period and the succeeding
+        period when assets are positive.
+    PermGroGac : float
+        Expected permanent income growth factor at the end of this period.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.  If it is less than the natural borrowing constraint,
+        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+        rowing constraint.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear inter-
+        polation.
     """
 
     def __init__(
@@ -640,56 +670,6 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver, ConsKinkedRsolver):
         vFuncBool,
         CubicBool,
     ):
-        """
-        Constructor for a new solver for problems with risky income, a different
-        interest rate on borrowing and saving, and multiplicative shocks to utility.
-
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to the succeeding one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
-        PrefShkDstn : [np.array]
-            Discrete distribution of the multiplicative utility shifter.  Order:
-            probabilities, preference shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rboro: float
-            Interest factor on assets between this period and the succeeding
-            period when assets are negative.
-        Rsave: float
-            Interest factor on assets between this period and the succeeding
-            period when assets are positive.
-        PermGroGac : float
-            Expected permanent income growth factor at the end of this period.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.  If it is less than the natural borrowing constraint,
-            then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-            rowing constraint.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period asset values-- assets above the
-            absolute minimum acceptable level.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear inter-
-            polation.
-
-        Returns
-        -------
-        None
-        """
         ConsKinkedRsolver.__init__(
             self,
             solution_next,
