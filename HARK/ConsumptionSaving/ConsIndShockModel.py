@@ -572,6 +572,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         None
         """
         self.DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
+        self.IncomeDstn = IncomeDstn
         self.ShkPrbsNext = IncomeDstn.pmf
         self.PermShkValsNext = IncomeDstn.X[0]
         self.TranShkValsNext = IncomeDstn.X[1]
@@ -709,29 +710,28 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # function as the lower envelope of the (by the artificial borrowing con-
         # straint) uconstrained consumption function, and the artificially con-
         # strained consumption function.
-        aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
-        ShkCount = self.TranShkValsNext.size
-        aNrm_temp = np.tile(aNrmNow, (ShkCount, 1))
+        self.aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
 
-        # Tile arrays of the income shocks and put them into useful shapes
-        aNrmCount = aNrmNow.shape[0]
-        PermShkVals_temp = (np.tile(self.PermShkValsNext, (aNrmCount, 1))).transpose()
-        TranShkVals_temp = (np.tile(self.TranShkValsNext, (aNrmCount, 1))).transpose()
-        ShkPrbs_temp = (np.tile(self.ShkPrbsNext, (aNrmCount, 1))).transpose()
+        return self.aNrmNow
 
-        # Get cash on hand next period
-        mNrmNext = (
-            self.Rfree / (self.PermGroFac * PermShkVals_temp) * aNrm_temp
-            + TranShkVals_temp
-        )  # CDC 20191205: This should be divided by LivPrb[0] for Blanchard insurance
+    def m_nrm_next(self, shocks, a_nrm):
+        """
+        Computes normalized market resources of the next period
+        from income shocks and current normalized market resources.
 
-        # Store and report the results
-        self.PermShkVals_temp = PermShkVals_temp
-        self.ShkPrbs_temp = ShkPrbs_temp
-        self.mNrmNext = mNrmNext
-        self.aNrmNow = aNrmNow
-        return aNrmNow
+        Parameters
+        ----------
+        shocks: [float]
+            Permanent and transitory income shock levels.       a_nrm: float
+            Normalized market assets this period
 
+        Returns
+        -------
+        float
+           normalized market resources in the next period
+        """
+        return self.Rfree / (self.PermGroFac * shocks[0]) \
+            * a_nrm + shocks[1]
 
     def calcEndOfPrdvP(self):
         """
@@ -749,18 +749,22 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             A 1D array of end-of-period marginal value of assets
         """
 
+        def vp_next(shocks, a_nrm):
+            return shocks[0] ** (-self.CRRA) \
+                * self.vPfuncNext(self.m_nrm_next(shocks, a_nrm))
+
         EndOfPrdvP = (
             self.DiscFacEff
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA)
-            * np.sum(
-                self.PermShkVals_temp ** (-self.CRRA)
-                * self.vPfuncNext(self.mNrmNext)
-                * self.ShkPrbs_temp,
-                axis=0,
+            * calcExpectation(
+                self.IncomeDstn,
+                vp_next,
+                self.aNrmNow
             )
         )
-        return EndOfPrdvP
+
+        return EndOfPrdvP 
 
     def getPointsForInterpolation(self, EndOfPrdvP, aNrmNow):
         """
@@ -909,7 +913,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution : ConsumerSolution
             The solution to the one period problem.
         """
-        aNrm = self.prepareToCalcEndOfPrdvP()
+        self.aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
+        aNrm = self.aNrmNow
         EndOfPrdvP = self.calcEndOfPrdvP()
         solution = self.makeBasicSolution(EndOfPrdvP, aNrm, self.makeLinearcFunc)
         solution = self.addMPCandHumanWealth(solution)
@@ -944,16 +949,19 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         cFuncUnc : CubicInterp
             The unconstrained consumption function for this period.
         """
+        def vpp_next(shocks, a_nrm):
+            return shocks[0] ** (- self.CRRA - 1.0) \
+                * self.vPPfuncNext(self.m_nrm_next(shocks, a_nrm))
+
         EndOfPrdvPP = (
             self.DiscFacEff
             * self.Rfree
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA - 1.0)
-            * np.sum(
-                self.PermShkVals_temp ** (-self.CRRA - 1.0)
-                * self.vPPfuncNext(self.mNrmNext)
-                * self.ShkPrbs_temp,
-                axis=0,
+            * calcExpectation(
+                self.IncomeDstn,
+                vpp_next,
+                self.aNrmNow
             )
         )
         dcda = EndOfPrdvPP / self.uPP(np.array(cNrm[1:]))
@@ -980,11 +988,14 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         -------
         none
         """
-        VLvlNext = (
-            self.PermShkVals_temp ** (1.0 - self.CRRA)
+        def v_lvl_next(shocks, a_nrm):
+            return (
+            shocks[0] ** (1.0 - self.CRRA)
             * self.PermGroFac ** (1.0 - self.CRRA)
-        ) * self.vFuncNext(self.mNrmNext)
-        EndOfPrdv = self.DiscFacEff * np.sum(VLvlNext * self.ShkPrbs_temp, axis=0)
+            ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm))
+        EndOfPrdv = self.DiscFacEff * calcExpectation(
+            self.IncomeDstn, v_lvl_next, self.aNrmNow
+        )
         EndOfPrdvNvrs = self.uinv(
             EndOfPrdv
         )  # value transformed through inverse utility
