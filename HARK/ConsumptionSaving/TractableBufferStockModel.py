@@ -66,6 +66,20 @@ class TractableConsumerSolution(MetricObject):
     cNrm_list, a list of MPCs MPC_list, a perfect foresight consumption function
     while employed, and a perfect foresight consumption function while unemployed.
     The solution includes a consumption function constructed from the lists.
+
+    Parameters
+    ----------
+    mNrm_list : [float]
+        List of normalized market resources points on the stable arm.
+    cNrm_list : [float]
+        List of normalized consumption points on the stable arm.
+    MPC_list : [float]
+        List of marginal propensities to consume on the stable arm, corres-
+        ponding to the (mNrm,cNrm) points.
+    cFunc_U : function
+        The (linear) consumption function when permanently unemployed.
+    cFunc : function
+        The consumption function when employed.
     """
 
     def __init__(
@@ -76,27 +90,6 @@ class TractableConsumerSolution(MetricObject):
         cFunc_U=NullFunc,
         cFunc=NullFunc,
     ):
-        """
-        The constructor for a new TractableConsumerSolution object.
-
-        Parameters
-        ----------
-        mNrm_list : [float]
-            List of normalized market resources points on the stable arm.
-        cNrm_list : [float]
-            List of normalized consumption points on the stable arm.
-        MPC_list : [float]
-            List of marginal propensities to consume on the stable arm, corres-
-            ponding to the (mNrm,cNrm) points.
-        cFunc_U : function
-            The (linear) consumption function when permanently unemployed.
-        cFunc : function
-            The consumption function when employed.
-
-        Returns
-        -------
-        new instance of TractableConsumerSolution
-        """
         self.mNrm_list = mNrm_list if mNrm_list is not None else list()
         self.cNrm_list = cNrm_list if cNrm_list is not None else list()
         self.MPC_list = MPC_list if MPC_list is not None else list()
@@ -304,22 +297,16 @@ def addToStableArmPoints(
 
 
 class TractableConsumerType(AgentType):
+    """
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
+    """
 
     state_vars = ['bLvlNow', 'mLvlNow', "aLvlNow"]
 
     def __init__(self, cycles=0, **kwds):
-        """
-        Instantiate a new TractableConsumerType with given data.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns:
-        -----------
-        New instance of TractableConsumerType.
-        """
         params = init_tractable.copy()
         params.update(kwds)
         # Initialize a basic AgentType

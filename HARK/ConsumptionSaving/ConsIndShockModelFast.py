@@ -78,6 +78,27 @@ class PerfForesightSolution(MetricObject):
 
     Here and elsewhere in the code, Nrm indicates that variables are normalized
     by permanent income.
+
+    Parameters
+    ----------
+    mNrm: np.array
+        (Normalized) corresponding market resource points for interpolation.
+    cNrm : np.array
+        (Normalized) consumption points for interpolation.
+    vFuncNvrsSlope: float
+        Constant slope of inverse value vFuncNvrs
+    mNrmMin : float
+        The minimum allowable market resources for this period; the consump-
+        tion function (etc) are undefined for m < mNrmMin.
+    hNrm : float
+        Human wealth after receiving income this period: PDV of all future
+        income, ignoring mortality.
+    MPCmin : float
+        Infimum of the marginal propensity to consume this period.
+        MPC --> MPCmin as m --> infinity.
+    MPCmax : float
+        Supremum of the marginal propensity to consume this period.
+        MPC --> MPCmax as m --> mNrmMin.
     """
 
     distance_criteria = ["cNrm", "mNrm"]
@@ -92,34 +113,6 @@ class PerfForesightSolution(MetricObject):
         MPCmin=1.0,
         MPCmax=1.0,
     ):
-        """
-        The constructor for a new PerfForesightSolution object.
-
-        Parameters
-        ----------
-        mNrm: np.array
-            (Normalized) corresponding market resource points for interpolation.
-        cNrm : np.array
-            (Normalized) consumption points for interpolation.
-        vFuncNvrsSlope: float
-            Constant slope of inverse value vFuncNvrs
-        mNrmMin : float
-            The minimum allowable market resources for this period; the consump-
-            tion function (etc) are undefined for m < mNrmMin.
-        hNrm : float
-            Human wealth after receiving income this period: PDV of all future
-            income, ignoring mortality.
-        MPCmin : float
-            Infimum of the marginal propensity to consume this period.
-            MPC --> MPCmin as m --> infinity.
-        MPCmax : float
-            Supremum of the marginal propensity to consume this period.
-            MPC --> MPCmax as m --> mNrmMin.
-
-        Returns
-        -------
-        None
-        """
         self.mNrm = mNrm
         self.cNrm = cNrm
         self.vFuncNvrsSlope = vFuncNvrsSlope
@@ -133,6 +126,27 @@ class IndShockSolution(MetricObject):
     """
     A class representing the solution of a single period of a consumption-saving
     idiosyncratic shocks to permanent and transitory income problem.
+
+    Parameters
+    ----------
+    mNrm: np.array
+        (Normalized) corresponding market resource points for interpolation.
+    cNrm : np.array
+        (Normalized) consumption points for interpolation.
+    vFuncNvrsSlope: float
+        Constant slope of inverse value vFuncNvrs
+    mNrmMin : float
+        The minimum allowable market resources for this period; the consump-
+        tion function (etc) are undefined for m < mNrmMin.
+    hNrm : float
+        Human wealth after receiving income this period: PDV of all future
+        income, ignoring mortality.
+    MPCmin : float
+        Infimum of the marginal propensity to consume this period.
+        MPC --> MPCmin as m --> infinity.
+    MPCmax : float
+        Supremum of the marginal propensity to consume this period.
+        MPC --> MPCmax as m --> mNrmMin.
     """
 
     distance_criteria = ["cNrm", "mNrm", "mNrmMin"]
@@ -154,34 +168,6 @@ class IndShockSolution(MetricObject):
         vNvrsP=None,
         MPCminNvrs=None,
     ):
-        """
-        The constructor for a new ConsumerSolution object.
-
-        Parameters
-        ----------
-        mNrm: np.array
-            (Normalized) corresponding market resource points for interpolation.
-        cNrm : np.array
-            (Normalized) consumption points for interpolation.
-        vFuncNvrsSlope: float
-            Constant slope of inverse value vFuncNvrs
-        mNrmMin : float
-            The minimum allowable market resources for this period; the consump-
-            tion function (etc) are undefined for m < mNrmMin.
-        hNrm : float
-            Human wealth after receiving income this period: PDV of all future
-            income, ignoring mortality.
-        MPCmin : float
-            Infimum of the marginal propensity to consume this period.
-            MPC --> MPCmin as m --> infinity.
-        MPCmax : float
-            Supremum of the marginal propensity to consume this period.
-            MPC --> MPCmax as m --> mNrmMin.
-
-        Returns
-        -------
-        None
-        """
         self.mNrm = mNrm
         self.cNrm = cNrm
         self.cFuncLimitIntercept = cFuncLimitIntercept

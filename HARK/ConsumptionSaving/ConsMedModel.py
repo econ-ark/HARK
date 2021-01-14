@@ -61,6 +61,28 @@ class MedShockPolicyFunc(MetricObject):
     Class for representing the policy function in the medical shocks model: opt-
     imal consumption and medical care for given market resources, permanent income,
     and medical need shock.  Always obeys Con + MedPrice*Med = optimal spending.
+
+    Parameters
+    ----------
+    xFunc : function
+        Optimal total spending as a function of market resources, permanent
+        income, and the medical need shock.
+    xLvlGrid : np.array
+        1D array of total expenditure levels.
+    MedShkGrid : np.array
+        1D array of medical shocks.
+    MedPrice : float
+        Relative price of a unit of medical care.
+    CRRAcon : float
+        Coefficient of relative risk aversion for consumption.
+    CRRAmed : float
+        Coefficient of relative risk aversion for medical care.
+    xLvlCubicBool : boolean
+        Indicator for whether cubic spline interpolation (rather than linear)
+        should be used in the xLvl dimension.
+    MedShkCubicBool : boolean
+        Indicator for whether bicubic interpolation should be used; only
+        operative when xLvlCubicBool=True.
     """
 
     distance_criteria = ["xFunc", "cFunc", "MedPrice"]
@@ -76,35 +98,6 @@ class MedShockPolicyFunc(MetricObject):
         xLvlCubicBool=False,
         MedShkCubicBool=False,
     ):
-        """
-        Make a new MedShockPolicyFunc.
-
-        Parameters
-        ----------
-        xFunc : function
-            Optimal total spending as a function of market resources, permanent
-            income, and the medical need shock.
-        xLvlGrid : np.array
-            1D array of total expenditure levels.
-        MedShkGrid : np.array
-            1D array of medical shocks.
-        MedPrice : float
-            Relative price of a unit of medical care.
-        CRRAcon : float
-            Coefficient of relative risk aversion for consumption.
-        CRRAmed : float
-            Coefficient of relative risk aversion for medical care.
-        xLvlCubicBool : boolean
-            Indicator for whether cubic spline interpolation (rather than linear)
-            should be used in the xLvl dimension.
-        MedShkCubicBool : boolean
-            Indicator for whether bicubic interpolation should be used; only
-            operative when xLvlCubicBool=True.
-
-        Returns
-        -------
-        None
-        """
         # Store some of the inputs in self
         self.MedPrice = MedPrice
         self.xFunc = xFunc
@@ -284,27 +277,20 @@ class cThruXfunc(MetricObject):
     """
     Class for representing consumption function derived from total expenditure
     and consumption.
+
+    Parameters
+    ----------
+    xFunc : function
+        Optimal total spending as a function of market resources, permanent
+        income, and the medical need shock.
+    cFunc : function
+        Optimal consumption as a function of total spending and the medical
+        need shock.
     """
 
     distance_criteria = ["xFunc", "cFunc"]
 
     def __init__(self, xFunc, cFunc):
-        """
-        Make a new instance of MedFromXfunc.
-
-        Parameters
-        ----------
-        xFunc : function
-            Optimal total spending as a function of market resources, permanent
-            income, and the medical need shock.
-        cFunc : function
-            Optimal consumption as a function of total spending and the medical
-            need shock.
-
-        Returns
-        -------
-        None
-        """
         self.xFunc = xFunc
         self.cFunc = cFunc
 
@@ -417,29 +403,22 @@ class MedThruXfunc(MetricObject):
     """
     Class for representing medical care function derived from total expenditure
     and consumption.
+
+    Parameters
+    ----------
+    xFunc : function
+        Optimal total spending as a function of market resources, permanent
+        income, and the medical need shock.
+    cFunc : function
+        Optimal consumption as a function of total spending and the medical
+        need shock.
+    MedPrice : float
+        Relative price of a unit of medical care.
     """
 
     distance_criteria = ["xFunc", "cFunc", "MedPrice"]
 
     def __init__(self, xFunc, cFunc, MedPrice):
-        """
-        Make a new instance of MedFromXfunc.
-
-        Parameters
-        ----------
-        xFunc : function
-            Optimal total spending as a function of market resources, permanent
-            income, and the medical need shock.
-        cFunc : function
-            Optimal consumption as a function of total spending and the medical
-            need shock.
-        MedPrice : float
-            Relative price of a unit of medical care.
-
-        Returns
-        -------
-        None
-        """
         self.xFunc = xFunc
         self.cFunc = cFunc
         self.MedPrice = MedPrice
@@ -583,27 +562,20 @@ class MedShockConsumerType(PersistentShockConsumerType):
     and medical care; both goods yield CRRAutility, and the coefficients on the
     goods might be different.  Agents expect to receive shocks to permanent and
     transitory income as well as multiplicative shocks to utility from medical care.
+
+    See init_med_shock for a dictionary of the keywords
+    that should be passed to the constructor.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShkNow"]
     state_vars = PersistentShockConsumerType.state_vars + ['mLvlNow']
 
     def __init__(self, cycles=0, **kwds):
-        """
-        Instantiate a new ConsumerType with given data, and construct objects
-        to be used during solution (income distribution, assets grid, etc).
-        See ConsumerParameters.init_med_shock for a dictionary of the keywords
-        that should be passed to the constructor.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
         params = init_medical_shocks.copy()
         params.update(kwds)
 
@@ -908,7 +880,6 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
     Class for solving the one period problem for the "medical shocks" model, in
     which consumers receive shocks to permanent and transitory income as well as
     shocks to "medical need"-- multiplicative utility shocks for a second good.
-
 
     Parameters
     ----------

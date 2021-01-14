@@ -64,25 +64,18 @@ utilityP_invP = CRRAutilityP_invP
 class pLvlFuncAR1(MetricObject):
     """
     A class for representing AR1-style persistent income growth functions.
+
+    Parameters
+    ----------
+    pLogMean : float
+        Log persistent income level toward which we are drawn.
+    PermGroFac : float
+        Autonomous (e.g. life cycle) pLvl growth (does not AR1 decay).
+    Corr : float
+        Correlation coefficient on log income.
     """
 
     def __init__(self, pLogMean, PermGroFac, Corr):
-        """
-        Make a new pLvlFuncAR1 instance.
-
-        Parameters
-        ----------
-        pLogMean : float
-            Log persistent income level toward which we are drawn.
-        PermGroFac : float
-            Autonomous (e.g. life cycle) pLvl growth (does not AR1 decay).
-        Corr : float
-            Correlation coefficient on log income.
-
-        Returns
-        -------
-        None
-        """
         self.pLogMean = pLogMean
         self.LogGroFac = np.log(PermGroFac)
         self.Corr = Corr
@@ -894,6 +887,14 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     abilities, and persistent income growth functions, as well as time invariant
     values for risk aversion, discount factor, the interest rate, the grid of
     end-of-period assets, and an artificial borrowing constraint.
+
+    See init_explicit_perm_inc for a dictionary of the
+    keywords that should be passed to the constructor.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     cFunc_terminal_ = BilinearInterp(
@@ -906,20 +907,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     state_vars = ["pLvlNow","mLvlNow","aLvlNow"]
 
     def __init__(self, cycles=0, **kwds):
-        """
-        Instantiate a new ConsumerType with given data.
-        See ConsumerParameters.init_explicit_perm_inc for a dictionary of the
-        keywords that should be passed to the constructor.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
         params = init_explicit_perm_inc.copy()
         params.update(kwds)
 
@@ -1262,21 +1249,14 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
     for risk aversion, discount factor, the interest rate, the grid of end-of-
     period assets, an artificial borrowing constraint, and the AR1 correlation
     coefficient for (log) persistent income.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     def __init__(self, cycles=0, **kwds):
-        """
-        Instantiate a new ConsumerType with given data.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
         params = init_persistent_shocks.copy()
         params.update(kwds)
 

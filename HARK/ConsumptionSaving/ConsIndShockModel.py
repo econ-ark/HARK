@@ -88,6 +88,34 @@ class ConsumerSolution(MetricObject):
 
     Here and elsewhere in the code, Nrm indicates that variables are normalized
     by permanent income.
+
+    Parameters
+    ----------
+    cFunc : function
+        The consumption function for this period, defined over market
+        resources: c = cFunc(m).
+    vFunc : function
+        The beginning-of-period value function for this period, defined over
+        market resources: v = vFunc(m).
+    vPfunc : function
+        The beginning-of-period marginal value function for this period,
+        defined over market resources: vP = vPfunc(m).
+    vPPfunc : function
+        The beginning-of-period marginal marginal value function for this
+        period, defined over market resources: vPP = vPPfunc(m).
+    mNrmMin : float
+        The minimum allowable market resources for this period; the consump-
+        tion function (etc) are undefined for m < mNrmMin.
+    hNrm : float
+        Human wealth after receiving income this period: PDV of all future
+        income, ignoring mortality.
+    MPCmin : float
+        Infimum of the marginal propensity to consume this period.
+        MPC --> MPCmin as m --> infinity.
+    MPCmax : float
+        Supremum of the marginal propensity to consume this period.
+        MPC --> MPCmax as m --> mNrmMin.
+
     """
 
     distance_criteria = ["vPfunc"]
@@ -103,40 +131,6 @@ class ConsumerSolution(MetricObject):
         MPCmin=None,
         MPCmax=None,
     ):
-        """
-        The constructor for a new ConsumerSolution object.
-
-        Parameters
-        ----------
-        cFunc : function
-            The consumption function for this period, defined over market
-            resources: c = cFunc(m).
-        vFunc : function
-            The beginning-of-period value function for this period, defined over
-            market resources: v = vFunc(m).
-        vPfunc : function
-            The beginning-of-period marginal value function for this period,
-            defined over market resources: vP = vPfunc(m).
-        vPPfunc : function
-            The beginning-of-period marginal marginal value function for this
-            period, defined over market resources: vPP = vPPfunc(m).
-        mNrmMin : float
-            The minimum allowable market resources for this period; the consump-
-            tion function (etc) are undefined for m < mNrmMin.
-        hNrm : float
-            Human wealth after receiving income this period: PDV of all future
-            income, ignoring mortality.
-        MPCmin : float
-            Infimum of the marginal propensity to consume this period.
-            MPC --> MPCmin as m --> infinity.
-        MPCmax : float
-            Supremum of the marginal propensity to consume this period.
-            MPC --> MPCmax as m --> mNrmMin.
-
-        Returns
-        -------
-        None
-        """
         # Change any missing function inputs to NullFunc
         self.cFunc = cFunc if cFunc is not None else NullFunc()
         self.vFunc = vFunc if vFunc is not None else NullFunc()
@@ -233,7 +227,6 @@ class ConsPerfForesightSolver(MetricObject):
         BoroCnstArt,
         MaxKinks,
     ):
-
         self.solution_next = solution_next
         self.DiscFac = DiscFac
         self.LivPrb = LivPrb
@@ -1143,6 +1136,45 @@ class ConsKinkedRsolver(ConsIndShockSolver):
     erence is that Rfree is replaced by Rsave (a>0) and Rboro (a<0).  The solver
     can handle Rboro == Rsave, which makes it identical to ConsIndShocksolver, but
     it terminates immediately if Rboro < Rsave, as this has a different solution.
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to next period's one period problem.
+    IncomeDstn : [np.array]
+        A list containing three arrays of floats, representing a discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next). Order: event
+        probabilities, permanent shocks, transitory shocks.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rboro: float
+        Interest factor on assets between this period and the succeeding
+        period when assets are negative.
+    Rsave: float
+        Interest factor on assets between this period and the succeeding
+        period when assets are positive.
+    PermGroFac : float
+        Expected permanent income growth factor at the end of this period.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.  If it is less than the natural borrowing constraint,
+        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+        rowing constraint.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear inter-
+        polation.
     """
 
     def __init__(
@@ -1160,53 +1192,6 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         vFuncBool,
         CubicBool,
     ):
-        """
-        Constructor for a new solver for problems with risky income and a different
-        interest rate on borrowing and saving.
-
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rboro: float
-            Interest factor on assets between this period and the succeeding
-            period when assets are negative.
-        Rsave: float
-            Interest factor on assets between this period and the succeeding
-            period when assets are positive.
-        PermGroFac : float
-            Expected permanent income growth factor at the end of this period.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.  If it is less than the natural borrowing constraint,
-            then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-            rowing constraint.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period asset values-- assets above the
-            absolute minimum acceptable level.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear inter-
-            polation.
-
-        Returns
-        -------
-        None
-        """
         assert (
             Rboro >= Rsave
         ), "Interest factor on debt less than interest factor on savings!"
@@ -1376,6 +1361,11 @@ class PerfForesightConsumerType(AgentType):
     His problem is defined by a coefficient of relative risk aversion, intertemporal
     discount factor, interest factor, an artificial borrowing constraint (maybe)
     and time sequences of the permanent income growth rate and survival probability.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     # Define some universal values for all consumer types
@@ -1395,21 +1385,6 @@ class PerfForesightConsumerType(AgentType):
     shock_vars_ = []
 
     def __init__(self, cycles=1, verbose=1, quiet=False, **kwds):
-        """
-        Instantiate a new consumer type with given data.
-        See init_perfect_foresight for a dictionary of
-        the keywords that should be passed to the constructor.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
-
         params = init_perfect_foresight.copy()
         params.update(kwds)
         kwds = params
@@ -1864,6 +1839,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
     abilities, and permanent income growth rates, as well as time invariant values
     for risk aversion, discount factor, the interest rate, the grid of end-of-
     period assets, and an artificial borrowing constraint.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     time_inv_ = PerfForesightConsumerType.time_inv_ + [
@@ -1877,21 +1857,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
     shock_vars_ = ["PermShkNow", "TranShkNow"]
 
     def __init__(self, cycles=1, verbose=1, quiet=False, **kwds):
-        """
-        Instantiate a new ConsumerType with given data.
-        See ConsumerParameters.init_idiosyncratic_shocks for a dictionary of
-        the keywords that should be passed to the constructor.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
-
         params = init_idiosyncratic_shocks.copy()
         params.update(kwds)
 
@@ -2589,6 +2554,11 @@ class KinkedRconsumerType(IndShockConsumerType):
     interest factor on saving vs borrowing.  Extends IndShockConsumerType, with
     very small changes.  Solver for this class is currently only compatible with
     linear spline interpolation.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)
@@ -2596,20 +2566,6 @@ class KinkedRconsumerType(IndShockConsumerType):
     time_inv_ += ["Rboro", "Rsave"]
 
     def __init__(self, cycles=1, **kwds):
-        """
-        Instantiate a new ConsumerType with given data.
-        See ConsumerParameters.init_kinked_R for a dictionary of
-        the keywords that should be passed to the constructor.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
         params = init_kinked_R.copy()
         params.update(kwds)
 

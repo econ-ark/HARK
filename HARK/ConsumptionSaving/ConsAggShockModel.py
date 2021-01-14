@@ -1825,28 +1825,20 @@ class CobbDouglasEconomy(Market):
 
     Note: The current implementation assumes a constant labor supply, but
     this will be generalized in the future.
+
+    Parameters
+    ----------
+    agents : [ConsumerType]
+        List of types of consumers that live in this economy.
+    tolerance: float
+        Minimum acceptable distance between "dynamic rules" to consider the
+        solution process converged.  Distance depends on intercept and slope
+        of the log-linear "next capital ratio" function.
+    act_T : int
+        Number of periods to simulate when making a history of of the market.
     """
 
     def __init__(self, agents=None, tolerance=0.0001, act_T=1200, **kwds):
-        """
-        Make a new instance of CobbDouglasEconomy by filling in attributes
-        specific to this kind of market.
-
-        Parameters
-        ----------
-        agents : [ConsumerType]
-            List of types of consumers that live in this economy.
-        tolerance: float
-            Minimum acceptable distance between "dynamic rules" to consider the
-            solution process converged.  Distance depends on intercept and slope
-            of the log-linear "next capital ratio" function.
-        act_T : int
-            Number of periods to simulate when making a history of of the market.
-
-        Returns
-        -------
-        None
-        """
         agents = agents if agents is not None else list()
         params = init_cobb_douglas.copy()
         params["sow_vars"] = [
@@ -2154,27 +2146,20 @@ class SmallOpenEconomy(Market):
     A class for representing a small open economy, where the wage rate and interest rate are
     exogenously determined by some "global" rate.  However, the economy is still subject to
     aggregate productivity shocks.
+
+    Parameters
+    ----------
+    agents : [ConsumerType]
+        List of types of consumers that live in this economy.
+    tolerance: float
+        Minimum acceptable distance between "dynamic rules" to consider the
+        solution process converged.  Distance depends on intercept and slope
+        of the log-linear "next capital ratio" function.
+    act_T : int
+        Number of periods to simulate when making a history of of the market.
     """
 
     def __init__(self, agents=None, tolerance=0.0001, act_T=1000, **kwds):
-        """
-        Make a new instance of SmallOpenEconomy by filling in attributes specific to this kind of market.
-
-        Parameters
-        ----------
-        agents : [ConsumerType]
-            List of types of consumers that live in this economy.
-        tolerance: float
-            Minimum acceptable distance between "dynamic rules" to consider the
-            solution process converged.  Distance depends on intercept and slope
-            of the log-linear "next capital ratio" function.
-        act_T : int
-            Number of periods to simulate when making a history of of the market.
-
-        Returns
-        -------
-        None
-        """
         agents = agents if agents is not None else list()
         Market.__init__(
             self,
@@ -2377,6 +2362,16 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
     state for the "macroeconomy", so that the shock distribution and aggregate
     productivity growth factor can vary over time.
 
+    Parameters
+    ----------
+    agents : [ConsumerType]
+        List of types of consumers that live in this economy.
+    tolerance: float
+        Minimum acceptable distance between "dynamic rules" to consider the
+        solution process converged.  Distance depends on intercept and slope
+        of the log-linear "next capital ratio" function.
+    act_T : int
+        Number of periods to simulate when making a history of of the market.
     """
 
     def __init__(
@@ -2396,25 +2391,6 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         ],
         **kwds
     ):
-        """
-        Make a new instance of CobbDouglasMarkovEconomy by filling in attributes
-        specific to this kind of market.
-
-        Parameters
-        ----------
-        agents : [ConsumerType]
-            List of types of consumers that live in this economy.
-        tolerance: float
-            Minimum acceptable distance between "dynamic rules" to consider the
-            solution process converged.  Distance depends on intercept and slope
-            of the log-linear "next capital ratio" function.
-        act_T : int
-            Number of periods to simulate when making a history of of the market.
-
-        Returns
-        -------
-        None
-        """
         agents = agents if agents is not None else list()
         params = init_mrkv_cobb_douglas.copy()
         params.update(kwds)
@@ -2823,28 +2799,20 @@ class KrusellSmithEconomy(Market):
     This model replicates the one presented in the JPE article "Income and Wealth
     Heterogeneity in the Macroeconomy", with its default parameters set to match
     those in the paper.
+
+    Parameters
+    ----------
+    agents : [ConsumerType]
+        List of types of consumers that live in this economy.
+    tolerance: float
+        Minimum acceptable distance between "dynamic rules" to consider the
+        solution process converged.  Distance depends on intercept and slope
+        of the log-linear "next capital ratio" function.
+    act_T : int
+        Number of periods to simulate when making a history of of the market.
     """
 
     def __init__(self, agents=None, tolerance=0.0001, **kwds):
-        """
-        Make a new instance of KrusellSmithEconomy by filling in attributes
-        specific to this kind of market.
-
-        Parameters
-        ----------
-        agents : [ConsumerType]
-            List of types of consumers that live in this economy.
-        tolerance: float
-            Minimum acceptable distance between "dynamic rules" to consider the
-            solution process converged.  Distance depends on intercept and slope
-            of the log-linear "next capital ratio" function.
-        act_T : int
-            Number of periods to simulate when making a history of of the market.
-
-        Returns
-        -------
-        None
-        """
         agents = agents if agents is not None else list()
         params = deepcopy(init_KS_economy)
         params.update(kwds)
@@ -3140,23 +3108,16 @@ class AggregateSavingRule(MetricObject):
     """
     A class to represent agent beliefs about aggregate saving at the end of this period (AaggNow) as
     a function of (normalized) aggregate market resources at the beginning of the period (MaggNow).
+
+    Parameters
+    ----------
+    intercept : float
+        Intercept of the log-linear capital evolution rule.
+    slope : float
+        Slope of the log-linear capital evolution rule.
     """
 
     def __init__(self, intercept, slope):
-        """
-        Make a new instance of CapitalEvoRule.
-
-        Parameters
-        ----------
-        intercept : float
-            Intercept of the log-linear capital evolution rule.
-        slope : float
-            Slope of the log-linear capital evolution rule.
-
-        Returns
-        -------
-        new instance of CapitalEvoRule
-        """
         self.intercept = intercept
         self.slope = slope
         self.distance_criteria = ["slope", "intercept"]
@@ -3181,20 +3142,13 @@ class AggregateSavingRule(MetricObject):
 class AggShocksDynamicRule(MetricObject):
     """
     Just a container class for passing the dynamic rule in the aggregate shocks model to agents.
+
+    Parameters
+    ----------
+    AFunc : CapitalEvoRule
+        Aggregate savings as a function of aggregate market resources.
     """
 
     def __init__(self, AFunc):
-        """
-        Make a new instance of CapDynamicRule.
-
-        Parameters
-        ----------
-        AFunc : CapitalEvoRule
-            Aggregate savings as a function of aggregate market resources.
-
-        Returns
-        -------
-        None
-        """
         self.AFunc = AFunc
         self.distance_criteria = ["AFunc"]

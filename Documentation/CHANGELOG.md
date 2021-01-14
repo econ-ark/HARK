@@ -22,6 +22,7 @@ interpolation for problems with CRRA utility. See [#888](https://github.com/econ
 * MarkovProcess class (#902)[https://github.com/econ-ark/HARK/pull/902]
 * replace HARKobject base class with MetricObject and Model classes (#903)[https://github.com/econ-ark/HARK/pull/903/]
 * Add __repr__ and __eq__ methods to Model class (#903)[https://github.com/econ-ark/HARK/pull/903/]
+* Corrects location of constructor documentation to class string for Sphinx rendering (#908)[https://github.com/econ-ark/HARK/pull/908]
 
 #### Minor Changes
 
