@@ -6,15 +6,14 @@ import scipy.stats as stats
 
 
 class Distribution:
+    """
+    Parameters
+    ----------
+    seed : int
+        Seed for random number generator.
+    """
     def __init__(self, seed=0):
-        """
-        Initialize the distribution.
-
-        Parameters
-        ----------
-        seed : int
-            Seed for random number generator.
-        """
+       
         self.RNG = np.random.RandomState(seed)
         self.seed = seed
 
@@ -34,26 +33,23 @@ class Distribution:
 class Lognormal(Distribution):
     """
     A Lognormal distribution
+
+    Parameters
+    ----------
+    mu : float or [float]
+        One or more means.  Number of elements T in mu determines number
+        of rows of output.
+    sigma : float or [float]
+        One or more standard deviations. Number of elements T in sigma
+        determines number of rows of output.
+    seed : int
+        Seed for random number generator.
     """
 
     mu = None
     sigma = None
 
     def __init__(self, mu=0.0, sigma=1.0, seed=0):
-        """
-        Initialize the distribution.
-
-        Parameters
-        ----------
-         mu : float or [float]
-            One or more means.  Number of elements T in mu determines number
-            of rows of output.
-        sigma : float or [float]
-            One or more standard deviations. Number of elements T in sigma
-            determines number of rows of output.
-        seed : int
-            Seed for random number generator.
-        """
         self.mu = mu
         self.sigma = sigma
         # Set up the RNG
@@ -255,26 +251,23 @@ class MeanOneLogNormal(Lognormal):
 class Normal(Distribution):
     """
     A Normal distribution.
+
+    Parameters
+    ----------
+    mu : float or [float]
+        One or more means.  Number of elements T in mu determines number
+        of rows of output.
+    sigma : float or [float]
+        One or more standard deviations. Number of elements T in sigma
+        determines number of rows of output.
+    seed : int
+        Seed for random number generator.
     """
 
     mu = None
     sigma = None
 
     def __init__(self, mu=0.0, sigma=1.0, seed=0):
-        """
-        Initialize the distribution.
-
-        Parameters
-        ----------
-         mu : float or [float]
-            One or more means.  Number of elements T in mu determines number
-            of rows of output.
-        sigma : float or [float]
-            One or more standard deviations. Number of elements T in sigma
-            determines number of rows of output.
-        seed : int
-            Seed for random number generator.
-        """
         self.mu = mu
         self.sigma = sigma
         super().__init__(seed)
@@ -323,28 +316,25 @@ class Normal(Distribution):
 
 class Weibull(Distribution):
     """
-    A Weibull distribution
+    A Weibull distribution.
+
+    Parameters
+    ----------
+    scale : float or [float]
+        One or more scales.  Number of elements T in scale
+        determines number of
+        rows of output.
+    shape : float or [float]
+        One or more shape parameters. Number of elements T in scale
+        determines number of rows of output.
+    seed : int
+        Seed for random number generator.
     """
 
     scale = None
     shape = None
 
     def __init__(self, scale=1.0, shape=1.0, seed=0):
-        """
-        Initialize the distribution.
-
-        Parameters
-        ----------
-        scale : float or [float]
-            One or more scales.  Number of elements T in scale
-            determines number of
-            rows of output.
-        shape : float or [float]
-            One or more shape parameters. Number of elements T in scale
-            determines number of rows of output.
-        seed : int
-            Seed for random number generator.
-        """
         self.scale = scale
         self.shape = shape
         # Set up the RNG
@@ -390,28 +380,25 @@ class Weibull(Distribution):
 class Uniform(Distribution):
     """
     A Uniform distribution.
+
+    Parameters
+    ----------
+    bot : float or [float]
+        One or more bottom values.
+        Number of elements T in mu determines number
+        of rows of output.
+    top : float or [float]
+        One or more top values.
+        Number of elements T in top determines number of
+        rows of output.
+    seed : int
+        Seed for random number generator.
     """
 
     bot = None
     top = None
 
     def __init__(self, bot=0.0, top=1.0, seed=0):
-        """
-        Initialize the distribution.
-
-        Parameters
-        ----------
-        bot : float or [float]
-            One or more bottom values.
-            Number of elements T in mu determines number
-            of rows of output.
-        top : float or [float]
-            One or more top values.
-            Number of elements T in top determines number of
-            rows of output.
-        seed : int
-            Seed for random number generator.
-        """
         self.bot = bot
         self.top = top
         # Set up the RNG
@@ -479,22 +466,19 @@ class Uniform(Distribution):
 class Bernoulli(Distribution):
     """
     A Bernoulli distribution.
+
+    Parameters
+    ----------
+    p : float or [float]
+        Probability or probabilities of the event occurring (True).
+
+    seed : int
+        Seed for random number generator.
     """
 
     p = None
 
     def __init__(self, p=0.5, seed=0):
-        """
-        Initialize the distribution.
-
-        Parameters
-        ----------
-        p : float or [float]
-            Probability or probabilities of the event occurring (True).
-
-        seed : int
-            Seed for random number generator.
-        """
         self.p = p
         # Set up the RNG
         super().__init__(seed)
@@ -530,25 +514,21 @@ class DiscreteDistribution(Distribution):
     """
     A representation of a discrete probability distribution.
 
+    Parameters
+    ----------
+    pmf : np.array
+        An array of floats representing a probability mass function.
+    X : np.array or [np.array]
+        Discrete point values for each probability mass.
+        May be multivariate (list of arrays).
+    seed : int
+        Seed for random number generator.
     """
 
     pmf = None
     X = None
 
     def __init__(self, pmf, X, seed=0):
-        """
-        Initialize a discrete distribution.
-
-        Parameters
-        ----------
-        pmf : np.array
-            An array of floats representing a probability mass function.
-        X : np.array or [np.array]
-            Discrete point values for each probability mass.
-            May be multivariate (list of arrays).
-        seed : int
-            Seed for random number generator.
-        """
         self.pmf = pmf
         self.X = X
         # Set up the RNG

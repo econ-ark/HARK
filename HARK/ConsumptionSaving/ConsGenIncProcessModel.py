@@ -64,25 +64,18 @@ utilityP_invP = CRRAutilityP_invP
 class pLvlFuncAR1(HARKobject):
     """
     A class for representing AR1-style persistent income growth functions.
+
+    Parameters
+    ----------
+    pLogMean : float
+        Log persistent income level toward which we are drawn.
+    PermGroFac : float
+        Autonomous (e.g. life cycle) pLvl growth (does not AR1 decay).
+    Corr : float
+        Correlation coefficient on log income.
     """
 
     def __init__(self, pLogMean, PermGroFac, Corr):
-        """
-        Make a new pLvlFuncAR1 instance.
-
-        Parameters
-        ----------
-        pLogMean : float
-            Log persistent income level toward which we are drawn.
-        PermGroFac : float
-            Autonomous (e.g. life cycle) pLvl growth (does not AR1 decay).
-        Corr : float
-            Correlation coefficient on log income.
-
-        Returns
-        -------
-        None
-        """
         self.pLogMean = pLogMean
         self.LogGroFac = np.log(PermGroFac)
         self.Corr = Corr
@@ -121,6 +114,40 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     (after controlling for growth).  Instead, they have  a function that translates
     current persistent income into expected next period persistent income (subject
     to shocks).
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to next period's one period problem.
+    IncomeDstn : [np.array]
+        A list containing three arrays of floats, representing a discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next). Order: event
+        probabilities, persistent shocks, transitory shocks.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    pLvlNextFunc : float
+        Expected persistent income next period as a function of current pLvl.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period (normalized) asset values-- assets
+        above the absolute minimum acceptable level.
+    pLvlGrid: np.array
+        Array of persistent income levels at which to solve the problem.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear interpolation.
     """
 
     def __init__(
@@ -138,49 +165,6 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         vFuncBool,
         CubicBool,
     ):
-        """
-        Constructor for a new solver for a one period problem with idiosyncratic
-        shocks to persistent and transitory income, with persistent income tracked
-        as a state variable rather than normalized out.
-
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, persistent shocks, transitory shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rfree : float
-            Risk free interest factor on end-of-period assets.
-        pLvlNextFunc : float
-            Expected persistent income next period as a function of current pLvl.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period (normalized) asset values-- assets
-            above the absolute minimum acceptable level.
-        pLvlGrid: np.array
-            Array of persistent income levels at which to solve the problem.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear interpolation.
-
-        Returns
-        -------
-        None
-        """
         self.assignParameters(
             solution_next=solution_next,
             IncomeDstn=IncomeDstn,
@@ -899,6 +883,14 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     abilities, and persistent income growth functions, as well as time invariant
     values for risk aversion, discount factor, the interest rate, the grid of
     end-of-period assets, and an artificial borrowing constraint.
+
+    See init_explicit_perm_inc for a dictionary of the
+    keywords that should be passed to the constructor.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     cFunc_terminal_ = BilinearInterp(
@@ -911,20 +903,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     state_vars = ["pLvlNow","mLvlNow","aLvlNow"]
 
     def __init__(self, cycles=0, **kwds):
-        """
-        Instantiate a new ConsumerType with given data.
-        See ConsumerParameters.init_explicit_perm_inc for a dictionary of the
-        keywords that should be passed to the constructor.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
         params = init_explicit_perm_inc.copy()
         params.update(kwds)
 
@@ -1267,21 +1245,14 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
     for risk aversion, discount factor, the interest rate, the grid of end-of-
     period assets, an artificial borrowing constraint, and the AR1 correlation
     coefficient for (log) persistent income.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     def __init__(self, cycles=0, **kwds):
-        """
-        Instantiate a new ConsumerType with given data.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
         params = init_persistent_shocks.copy()
         params.update(kwds)
 

@@ -229,21 +229,17 @@ def solveConsRepAgentMarkov(
 class RepAgentConsumerType(IndShockConsumerType):
     """
     A class for representing representative agents with inelastic labor supply.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
+
     """
 
     time_inv_ = IndShockConsumerType.time_inv_ + ["CapShare", "DeprFac"]
 
     def __init__(self, **kwds):
-        """
-        Make a new instance of a representative agent.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        None
-        """
         params = init_rep_agent.copy()
         params.update(kwds)
 
@@ -300,21 +296,14 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
     """
     A class for representing representative agents with inelastic labor supply
     and a discrete MarkovState
+
+    Parameters
+    ----------
     """
 
     time_inv_ = RepAgentConsumerType.time_inv_ + ["MrkvArray"]
 
     def __init__(self, **kwds):
-        """
-        Make a new instance of a representative agent with Markov state.
-
-        Parameters
-        ----------
- 
-        Returns
-        -------
-        None
-        """
         params = init_markov_rep_agent.copy()
         params.update(kwds)
 
