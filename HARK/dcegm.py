@@ -43,7 +43,7 @@ def calcCrossPoints(mGrid, condVs, optIdx):
 
     # If no crossings, return an empty list
     if len(idx_change) == 0:
-        return []
+        return [], np.empty(0)
     else:
 
         # To find the crossing points we need the extremes of the intervals in
