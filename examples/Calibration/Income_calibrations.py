@@ -61,22 +61,3 @@ plt.xlabel('Age')
 plt.ylabel('Mean permanent income (1992 USD)')
 plt.legend()
 plt.show()
-
-# %% Life probabilities
-
-min_age = 21
-max_age = 100
-ages = np.arange(min_age, max_age)
-
-plt.figure()
-for s in ['male', 'female']:
-    
-    LivPrb = parse_ssa_life_table(filename = 'LifeTables/SSA_LifeTable2017.csv',
-                                  sep = ',', sex = s,
-                                  min_age = min_age, max_age = max_age)
-    
-    plt.plot(ages, LivPrb, label = s)
-
-plt.title('SSA Survival Probabilities')
-plt.xlabel('Age')
-plt.legend()

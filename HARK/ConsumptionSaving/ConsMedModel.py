@@ -29,13 +29,13 @@ from HARK.interpolation import (
     UpperEnvelope,
     LinearInterpOnInterp1D,
     VariableLowerBoundFunc3D,
+    ValueFuncCRRA,
+    MargValueFuncCRRA,
+    MargMargValueFuncCRRA
 )
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     ConsGenIncProcessSolver,
     PersistentShockConsumerType,
-    ValueFunc2D,
-    MargValueFunc2D,
-    MargMargValueFunc2D,
     VariableLowerBoundFunc2D,
     init_persistent_shocks,
 )
@@ -61,6 +61,28 @@ class MedShockPolicyFunc(HARKobject):
     Class for representing the policy function in the medical shocks model: opt-
     imal consumption and medical care for given market resources, permanent income,
     and medical need shock.  Always obeys Con + MedPrice*Med = optimal spending.
+
+    Parameters
+    ----------
+    xFunc : function
+        Optimal total spending as a function of market resources, permanent
+        income, and the medical need shock.
+    xLvlGrid : np.array
+        1D array of total expenditure levels.
+    MedShkGrid : np.array
+        1D array of medical shocks.
+    MedPrice : float
+        Relative price of a unit of medical care.
+    CRRAcon : float
+        Coefficient of relative risk aversion for consumption.
+    CRRAmed : float
+        Coefficient of relative risk aversion for medical care.
+    xLvlCubicBool : boolean
+        Indicator for whether cubic spline interpolation (rather than linear)
+        should be used in the xLvl dimension.
+    MedShkCubicBool : boolean
+        Indicator for whether bicubic interpolation should be used; only
+        operative when xLvlCubicBool=True.
     """
 
     distance_criteria = ["xFunc", "cFunc", "MedPrice"]
@@ -76,35 +98,6 @@ class MedShockPolicyFunc(HARKobject):
         xLvlCubicBool=False,
         MedShkCubicBool=False,
     ):
-        """
-        Make a new MedShockPolicyFunc.
-
-        Parameters
-        ----------
-        xFunc : function
-            Optimal total spending as a function of market resources, permanent
-            income, and the medical need shock.
-        xLvlGrid : np.array
-            1D array of total expenditure levels.
-        MedShkGrid : np.array
-            1D array of medical shocks.
-        MedPrice : float
-            Relative price of a unit of medical care.
-        CRRAcon : float
-            Coefficient of relative risk aversion for consumption.
-        CRRAmed : float
-            Coefficient of relative risk aversion for medical care.
-        xLvlCubicBool : boolean
-            Indicator for whether cubic spline interpolation (rather than linear)
-            should be used in the xLvl dimension.
-        MedShkCubicBool : boolean
-            Indicator for whether bicubic interpolation should be used; only
-            operative when xLvlCubicBool=True.
-
-        Returns
-        -------
-        None
-        """
         # Store some of the inputs in self
         self.MedPrice = MedPrice
         self.xFunc = xFunc
@@ -284,27 +277,20 @@ class cThruXfunc(HARKobject):
     """
     Class for representing consumption function derived from total expenditure
     and consumption.
+
+    Parameters
+    ----------
+    xFunc : function
+        Optimal total spending as a function of market resources, permanent
+        income, and the medical need shock.
+    cFunc : function
+        Optimal consumption as a function of total spending and the medical
+        need shock.
     """
 
     distance_criteria = ["xFunc", "cFunc"]
 
     def __init__(self, xFunc, cFunc):
-        """
-        Make a new instance of MedFromXfunc.
-
-        Parameters
-        ----------
-        xFunc : function
-            Optimal total spending as a function of market resources, permanent
-            income, and the medical need shock.
-        cFunc : function
-            Optimal consumption as a function of total spending and the medical
-            need shock.
-
-        Returns
-        -------
-        None
-        """
         self.xFunc = xFunc
         self.cFunc = cFunc
 
@@ -417,29 +403,22 @@ class MedThruXfunc(HARKobject):
     """
     Class for representing medical care function derived from total expenditure
     and consumption.
+
+    Parameters
+    ----------
+    xFunc : function
+        Optimal total spending as a function of market resources, permanent
+        income, and the medical need shock.
+    cFunc : function
+        Optimal consumption as a function of total spending and the medical
+        need shock.
+    MedPrice : float
+        Relative price of a unit of medical care.
     """
 
     distance_criteria = ["xFunc", "cFunc", "MedPrice"]
 
     def __init__(self, xFunc, cFunc, MedPrice):
-        """
-        Make a new instance of MedFromXfunc.
-
-        Parameters
-        ----------
-        xFunc : function
-            Optimal total spending as a function of market resources, permanent
-            income, and the medical need shock.
-        cFunc : function
-            Optimal consumption as a function of total spending and the medical
-            need shock.
-        MedPrice : float
-            Relative price of a unit of medical care.
-
-        Returns
-        -------
-        None
-        """
         self.xFunc = xFunc
         self.cFunc = cFunc
         self.MedPrice = MedPrice
@@ -583,27 +562,20 @@ class MedShockConsumerType(PersistentShockConsumerType):
     and medical care; both goods yield CRRAutility, and the coefficients on the
     goods might be different.  Agents expect to receive shocks to permanent and
     transitory income as well as multiplicative shocks to utility from medical care.
+
+    See init_med_shock for a dictionary of the keywords
+    that should be passed to the constructor.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShkNow"]
     state_vars = PersistentShockConsumerType.state_vars + ['mLvlNow']
 
     def __init__(self, cycles=0, **kwds):
-        """
-        Instantiate a new ConsumerType with given data, and construct objects
-        to be used during solution (income distribution, assets grid, etc).
-        See ConsumerParameters.init_med_shock for a dictionary of the keywords
-        that should be passed to the constructor.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
         params = init_medical_shocks.copy()
         params.update(kwds)
 
@@ -743,8 +715,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
             mLvlGrid,
             trivial_grid,
         )
-        vPfunc_terminal = MargValueFunc2D(vPnvrsFunc, self.CRRA)
-        vPPfunc_terminal = MargMargValueFunc2D(vPnvrsFunc, self.CRRA)
+        vPfunc_terminal = MargValueFuncCRRA(vPnvrsFunc, self.CRRA)
+        vPPfunc_terminal = MargMargValueFuncCRRA(vPnvrsFunc, self.CRRA)
 
         # Integrate value across shocks to get expected value
         vGrid = utility(cLvlGrid, gam=self.CRRA) + MedShkGrid_tiled * utility(
@@ -765,7 +737,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         vNvrsP[0] = 0.0
         tempFunc = CubicInterp(mLvlGrid, vNvrs, vNvrsP)
         vNvrsFunc = LinearInterpOnInterp1D([tempFunc, tempFunc], trivial_grid)
-        vFunc_terminal = ValueFunc2D(vNvrsFunc, self.CRRA)
+        vFunc_terminal = ValueFuncCRRA(vNvrsFunc, self.CRRA)
 
         # Make the terminal period solution
         self.solution_terminal.cFunc = cFunc_terminal
@@ -908,6 +880,48 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
     Class for solving the one period problem for the "medical shocks" model, in
     which consumers receive shocks to permanent and transitory income as well as
     shocks to "medical need"-- multiplicative utility shocks for a second good.
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to next period's one period problem.
+    IncomeDstn : [np.array]
+        A list containing three arrays of floats, representing a discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next). Order: event
+        probabilities, permanent shocks, transitory shocks.
+    MedShkDstn : [np.array]
+        Discrete distribution of the multiplicative utility shifter for med-
+        ical care. Order: probabilities, preference shocks.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion for composite consumption.
+    CRRAmed : float
+        Coefficient of relative risk aversion for medical care.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    MedPrice : float
+        Price of unit of medical care relative to unit of consumption.
+    pLvlNextFunc : float
+        Expected permanent income next period as a function of current pLvl.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period (normalized) asset values-- assets
+        above the absolute minimum acceptable level.
+    pLvlGrid: np.array
+        Array of permanent income levels at which to solve the problem.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear inter-
+        polation.
     """
 
     def __init__(
@@ -928,56 +942,6 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         vFuncBool,
         CubicBool,
     ):
-        """
-        Constructor for a new solver for a one period problem with idiosyncratic
-        shocks to permanent and transitory income and shocks to medical need.
-
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
-        MedShkDstn : [np.array]
-            Discrete distribution of the multiplicative utility shifter for med-
-            ical care. Order: probabilities, preference shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion for composite consumption.
-        CRRAmed : float
-            Coefficient of relative risk aversion for medical care.
-        Rfree : float
-            Risk free interest factor on end-of-period assets.
-        MedPrice : float
-            Price of unit of medical care relative to unit of consumption.
-        pLvlNextFunc : float
-            Expected permanent income next period as a function of current pLvl.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period (normalized) asset values-- assets
-            above the absolute minimum acceptable level.
-        pLvlGrid: np.array
-            Array of permanent income levels at which to solve the problem.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear inter-
-            polation.
-
-        Returns
-        -------
-        None
-        """
         self.assignParameters(
             solution_next=solution_next,
             IncomeDstn=IncomeDstn,
@@ -1339,9 +1303,9 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             )  # adjust for the lower bound of mLvl
 
         # "Re-curve" the (marginal) value function
-        vPfunc = MargValueFunc2D(vPnvrsFunc, self.CRRA)
+        vPfunc = MargValueFuncCRRA(vPnvrsFunc, self.CRRA)
         if self.vFuncBool:
-            vFunc = ValueFunc2D(vNvrsFunc, self.CRRA)
+            vFunc = ValueFuncCRRA(vNvrsFunc, self.CRRA)
         else:
             vFunc = NullFunc()
 
@@ -1518,7 +1482,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             The same solution passed as input, but with the marginal marginal
             value function for this period added as the attribute vPPfunc.
         """
-        vPPfuncNow = MargMargValueFunc2D(solution.vPfunc.cFunc, self.CRRA)
+        vPPfuncNow = MargMargValueFuncCRRA(solution.vPfunc.cFunc, self.CRRA)
         solution.vPPfunc = vPPfuncNow
         return solution
 
