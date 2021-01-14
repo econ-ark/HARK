@@ -8,7 +8,6 @@ Created on Sun Jan  3 10:50:02 2021
 from HARK.Calibration.Calibration import (
     ParseIncomeSpec,
     findProfile,
-    parse_ssa_life_table,
     Cagetti_income,
     CGM_income
 )

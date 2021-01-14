@@ -22,10 +22,11 @@ init_lifecycle
 from HARK.Calibration.Calibration import (
     ParseIncomeSpec,
     ParseTimeParams,
-    parse_ssa_life_table,
     CGM_income,
     Cagetti_income
 )
+
+from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -36,11 +37,12 @@ birth_age = 21
 death_age = 90
 
 income_params = ParseIncomeSpec(age_min = birth_age, age_max = death_age,
-                                **CGM_income['NoHS'])
+                                **Cagetti_income['NoHS'])
 
-liv_prb = parse_ssa_life_table(filename = 'LifeTables/SSA_LifeTable2017.csv',
-                               sep = ',', sex = 'male',
-                               min_age = birth_age, max_age = death_age)
+# We need survival probabilities only up to death_age-1, because survival
+# probability at death_age is 1.
+liv_prb = parse_ssa_life_table(female = True, cross_sec = True, year = 2004,
+                               min_age = birth_age, max_age = death_age - 1)
 
 time_params = ParseTimeParams(age_birth = birth_age, age_death = death_age)
 
