@@ -94,7 +94,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         )
 
         self.assertAlmostEqual(
-            ce9[3][0],
+            ce9[3],
             9.518015322143837
         )
 
