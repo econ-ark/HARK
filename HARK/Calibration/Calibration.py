@@ -214,29 +214,6 @@ Cagetti_income = {
                  'BaseYear': 1992}
 }
 
-# %% Tools for survival probabilities
-
-def parse_ssa_life_table(filename, sep, sex, min_age, max_age):
-    
-    lt = pd.read_csv(filename, sep = sep, header=[0,1,2])
-    
-    # Death probability column depends on sex
-    if sex == 'female':
-        death_col = 4
-    else:
-        death_col = 1
-    
-    # Keep only age and death probability
-    lt = pd.DataFrame({'Age': lt.iloc[:,0], 'DProb': lt.iloc[:,death_col]})
-    # And relevant years
-    lt = lt[lt['Age'] >= min_age]
-    lt = lt[lt['Age'] < max_age].sort_values(by = ['Age'])
-    
-    # Compute survival probability
-    LivPrb = 1 - lt['DProb'].to_numpy()
-    
-    return(list(LivPrb))
-
 # %% Tools for setting time-related parameters
 
 def ParseTimeParams(age_birth, age_death):
