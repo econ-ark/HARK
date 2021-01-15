@@ -7,7 +7,7 @@ Created on Thu Jan 14 16:44:09 2021
 
 import numpy as np
 import matplotlib.pyplot as plt
-from HARK.Calibration.Income.sabelhaus_song.SabelhausSongProfiles import sabelhaus_song_var_profile
+from HARK.Calibration.Income.SabelhausSongProfiles import sabelhaus_song_var_profile
 
 age_min = 27
 age_max = 54
