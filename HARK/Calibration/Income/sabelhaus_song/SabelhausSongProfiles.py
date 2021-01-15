@@ -50,6 +50,12 @@ def sabelhaus_song_var_profile(cohort, age_min = 27, age_max = 54):
         warn('Sabelhaus and Song (2010) provide variance profiles for ages '+
              '27 to 54. Extrapolating variances.')
     
+    if cohort < 1926 or cohort > 1980:
+        warn('Sabelhaus and Song (2010) use data from birth cohorts ' +
+             '[1926,1980]. Extrapolating variances.')
+        
+        cohort = max(min(cohort, 1980), 1926)
+    
     # Construct variances
     # They use 1926 as the base year for cohort effects.
     ages = np.arange(age_min, age_max + 1)
