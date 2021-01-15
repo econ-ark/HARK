@@ -12,9 +12,11 @@ from HARK.Calibration.Income.sabelhaus_song.SabelhausSongProfiles import sabelha
 age_min = 27
 age_max = 54
 ages = np.arange(age_min, age_max + 1)
-years = [1940, 1965]
+years = [1940, 1965, None]
 
-variances = [sabelhaus_song_var_profile(y, age_min = age_min, age_max = age_max) for y in years]
+variances = [sabelhaus_song_var_profile(age_min = age_min,
+                                        age_max = age_max, cohort = y)
+             for y in years]
 
 # Plot transitory variances
 plt.figure()
