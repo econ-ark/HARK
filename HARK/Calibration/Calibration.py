@@ -6,14 +6,13 @@ Created on Sat Dec 19 15:08:54 2020
 """
 
 import numpy as np
-import pandas as pd
+from HARK.Calibration.Income.sabelhaus_song.SabelhausSongProfiles import sabelhaus_song_var_profile
 
 __all__ = [
     "Cagetti_income",
     "CGM_income",
     "ParseIncomeSpec",
-    "findProfile",
-    "parse_ssa_life_table"
+    "findProfile"
 ]
 
 def AgeLogPolyToGrowthRates(coefs, age_min, age_max):
@@ -96,6 +95,7 @@ def ParseIncomeSpec(age_min, age_max,
                     PolyCoefs = None, ReplRate = None,
                     PolyRetir = None,
                     PermShkStd = None, TranShkStd = None,
+                    SabelhausSong = False,
                     **unused):
     
     # There is no income distribution for the last period, as the distributions
@@ -139,20 +139,38 @@ def ParseIncomeSpec(age_min, age_max,
     
     
     # Volatilities
-    if isinstance(PermShkStd, float) and isinstance(TranShkStd, float):
-        
+    if SabelhausSong:
+    
         if age_ret is None:
             
-            PermShkStd = [PermShkStd] * N_periods
-            TranShkStd = [TranShkStd] * N_periods
-    
+            IncShkStds = sabelhaus_song_var_profile(cohort = 1950,
+                                                    age_min = age_min, age_max= age_max)
+            PermShkStd = IncShkStds['PermShkStd']
+            TranShkStd = IncShkStds['TranShkStd']
+        
         else:
             
-            PermShkStd = [PermShkStd] * N_work_periods + [0.0] * N_ret_periods
-            TranShkStd = [TranShkStd] * N_work_periods + [0.0] * N_ret_periods
-            
+            IncShkStds = sabelhaus_song_var_profile(cohort = 1950,
+                                                    age_min = age_min, age_max= age_ret)
+            PermShkStd = IncShkStds['PermShkStd'] + [0.0] * N_ret_periods
+            TranShkStd = IncShkStds['TranShkStd'] + [0.0] * N_ret_periods
+    
     else:
-        pass
+        
+        if isinstance(PermShkStd, float) and isinstance(TranShkStd, float):
+            
+            if age_ret is None:
+                
+                PermShkStd = [PermShkStd] * N_periods
+                TranShkStd = [TranShkStd] * N_periods
+        
+            else:
+                
+                PermShkStd = [PermShkStd] * N_work_periods + [0.0] * N_ret_periods
+                TranShkStd = [TranShkStd] * N_work_periods + [0.0] * N_ret_periods
+                
+        else:
+            pass
     
     return {'PermGroFac': PermGroFac, 'P0': P0, 'pLvlInitMean': np.log(P0),
             'PermShkStd': PermShkStd, 'TranShkStd': TranShkStd}
