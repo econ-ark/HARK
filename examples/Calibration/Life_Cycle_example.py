@@ -37,7 +37,7 @@ birth_age = 21
 death_age = 90
 
 income_params = ParseIncomeSpec(age_min = birth_age, age_max = death_age,
-                                **Cagetti_income['NoHS'])
+                                **Cagetti_income['College'], SabelhausSong=True)
 
 # We need survival probabilities only up to death_age-1, because survival
 # probability at death_age is 1.
