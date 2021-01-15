@@ -6,14 +6,13 @@ Created on Sat Dec 19 15:08:54 2020
 """
 
 import numpy as np
-import pandas as pd
+from HARK.Calibration.Income.sabelhaus_song.SabelhausSongProfiles import sabelhaus_song_var_profile
 
 __all__ = [
     "Cagetti_income",
     "CGM_income",
     "ParseIncomeSpec",
-    "findProfile",
-    "parse_ssa_life_table"
+    "findProfile"
 ]
 
 def AgeLogPolyToGrowthRates(coefs, age_min, age_max):
@@ -96,6 +95,7 @@ def ParseIncomeSpec(age_min, age_max,
                     PolyCoefs = None, ReplRate = None,
                     PolyRetir = None,
                     PermShkStd = None, TranShkStd = None,
+                    SabelhausSong = False,
                     **unused):
     
     # There is no income distribution for the last period, as the distributions
@@ -139,20 +139,38 @@ def ParseIncomeSpec(age_min, age_max,
     
     
     # Volatilities
-    if isinstance(PermShkStd, float) and isinstance(TranShkStd, float):
-        
+    if SabelhausSong:
+    
         if age_ret is None:
             
-            PermShkStd = [PermShkStd] * N_periods
-            TranShkStd = [TranShkStd] * N_periods
-    
+            IncShkStds = sabelhaus_song_var_profile(cohort = 1950,
+                                                    age_min = age_min, age_max= age_max)
+            PermShkStd = IncShkStds['PermShkStd']
+            TranShkStd = IncShkStds['TranShkStd']
+        
         else:
             
-            PermShkStd = [PermShkStd] * N_work_periods + [0.0] * N_ret_periods
-            TranShkStd = [TranShkStd] * N_work_periods + [0.0] * N_ret_periods
-            
+            IncShkStds = sabelhaus_song_var_profile(cohort = 1950,
+                                                    age_min = age_min, age_max= age_ret)
+            PermShkStd = IncShkStds['PermShkStd'] + [0.0] * N_ret_periods
+            TranShkStd = IncShkStds['TranShkStd'] + [0.0] * N_ret_periods
+    
     else:
-        pass
+        
+        if isinstance(PermShkStd, float) and isinstance(TranShkStd, float):
+            
+            if age_ret is None:
+                
+                PermShkStd = [PermShkStd] * N_periods
+                TranShkStd = [TranShkStd] * N_periods
+        
+            else:
+                
+                PermShkStd = [PermShkStd] * N_work_periods + [0.0] * N_ret_periods
+                TranShkStd = [TranShkStd] * N_work_periods + [0.0] * N_ret_periods
+                
+        else:
+            pass
     
     return {'PermGroFac': PermGroFac, 'P0': P0, 'pLvlInitMean': np.log(P0),
             'PermShkStd': PermShkStd, 'TranShkStd': TranShkStd}
@@ -213,29 +231,6 @@ Cagetti_income = {
                  'TranShkStd': np.sqrt(0.0385), # Take College degree from CS
                  'BaseYear': 1992}
 }
-
-# %% Tools for survival probabilities
-
-def parse_ssa_life_table(filename, sep, sex, min_age, max_age):
-    
-    lt = pd.read_csv(filename, sep = sep, header=[0,1,2])
-    
-    # Death probability column depends on sex
-    if sex == 'female':
-        death_col = 4
-    else:
-        death_col = 1
-    
-    # Keep only age and death probability
-    lt = pd.DataFrame({'Age': lt.iloc[:,0], 'DProb': lt.iloc[:,death_col]})
-    # And relevant years
-    lt = lt[lt['Age'] >= min_age]
-    lt = lt[lt['Age'] < max_age].sort_values(by = ['Age'])
-    
-    # Compute survival probability
-    LivPrb = 1 - lt['DProb'].to_numpy()
-    
-    return(list(LivPrb))
 
 # %% Tools for setting time-related parameters
 
