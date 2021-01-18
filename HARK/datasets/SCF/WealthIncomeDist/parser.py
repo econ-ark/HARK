@@ -83,5 +83,19 @@ def parse_scf_distr_stats(
     
     return row.to_dict()
 
+def income_wealth_dists_from_scf(age = None, education = None, year = None):
+
+    stats = parse_scf_distr_stats(age, education, year)
+    
+    param_dict = {
+        'aNrmInitMean' : stats['lnNrmWealth.mean'], # Mean of log initial assets (only matters for simulation)
+        'aNrmInitStd'  : stats['lnNrmWealth.sd'],   # Standard deviation of log initial assets (only for simulation)
+        'pLvlInitMean' : stats['lnPermIncome.mean'],# Mean of log initial permanent income (only matters for simulation)
+        'pLvlInitStd'  : stats['lnPermIncome.sd'],  # Standard deviation of log initial permanent income (only matters for simulation)
+    }
+    
+    return param_dict
+
 table = get_scf_distr_stats()
 hm = parse_scf_distr_stats(age = 28, education = 'College', year = 1995)
+params = income_wealth_dists_from_scf(age = 28, education = 'College', year = 1995)
