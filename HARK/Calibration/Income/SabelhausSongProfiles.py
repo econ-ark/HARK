@@ -3,16 +3,33 @@
 Created on Thu Jan 14 15:49:43 2021
 
 @author: Mateo
+
+This scripts contains representations of the results in:
+
+[1] Sabelhaus, J., & Song, J. (2010). The great moderation in micro labor
+    earnings. Journal of Monetary Economics, 57(4), 391-403.
+
+It provides functions to produce life-cycle profiles of the variances of 
+income shocks from the raw results from the paper.
+
+The raw estimates were generously shared by John Sabelhaus.
+
 """
 
 import numpy as np
 from warnings import warn
-import os
 from HARK.interpolation import LinearInterp
 
-sabelhaus_song_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                   'variance_est.csv')
 
+# The raw results shared by John Sabelhaus contain the following two
+# sets of estimates (with and without cohor trends), which we will
+# use for constructing the age profiles.
+
+# The first specification contains a cohort trend. The variance of
+# (transitory or permanent) shocks to income of a person born in year
+# "cohort" and who is now age "age" is
+# age_dummy(age) + beta * (cohort - 1926)
+# Where we have dummies for ages 27 to 54
 Sabelhaus_Song_cohort_trend = {
     'AgeDummiesPrm': np.array([0.0837941, 0.0706855, 0.0638561, 0.0603879,
                                0.0554693, 0.0532388, 0.0515262, 0.0486079,
@@ -35,6 +52,11 @@ Sabelhaus_Song_cohort_trend = {
     'CohortCoefTrn': -0.0017764/2
 }
 
+# The second specification contains no cohort trend. The variance of
+# (transitory or permanent) shocks to income of a person born in year
+# "cohort" and who is now age "age" is: age_dummy(age)
+# Where we have dummies for ages 27 to 54. We use this "aggregate"
+# specification if no cohort is provided.
 Sabelhaus_Song_all_years = {
     
     'AgeDummiesPrm': np.array([0.0599296, 0.0474176, 0.0411848, 0.0383132,
@@ -60,9 +82,43 @@ Sabelhaus_Song_all_years = {
 }
 
 def sabelhaus_song_var_profile(age_min = 27, age_max = 54, cohort = None):
+    """
+    This is a function to find the life-cycle profiles of the volatilities
+    of transitory and permanent shocks to income using the estimates in 
+    [1] Sabelhaus and Song (2010).
+
+    Parameters
+    ----------
+    age_min : int, optional
+        Minimum age at which to construct volatilities. The default is 27.
+    age_max : int, optional
+        Maximum age at which to construct volatilities. The default is 54.
+    cohort : int, optional
+        Birth year of the hypothetical person for which the volatilities will
+        be constructed. The default is None, and in this case the we will
+        use the specification that does not have cohort trends.
+
+    Returns
+    -------
+    profiles : dict
+        Dictionary with entries:
+            - Age: list of ages for which we found income volatilities in
+                ascending order.
+            - TranShkStd: list of standard deviations of transitory income
+                shocks. Position n corresponds to Age[n].
+            - PermShkStd: list of standard deviations of permanent income
+                shocks. Position n corresponds to Age[n].
+        
+        Note that TransShkStd[n] and PermShkStd[n] are the volatilities of
+        shocks _experienced_ at age Age[n], (not those expected at Age[n+1]
+        from the perspective of Age[n]).
+    """
     
-    assert age_max >= age_min, "The maximum age can not be lower than the minimum age."
+    assert age_max >= age_min, ("The maximum age can not be lower than the " +
+                                "minimum age.")
     
+    # Determine which set of estimates to use based on wether a cohort is
+    # provided or not.
     if cohort is None:
         
         spec = Sabelhaus_Song_all_years
@@ -98,7 +154,7 @@ def sabelhaus_song_var_profile(age_min = 27, age_max = 54, cohort = None):
     
     if age_min < 27 or age_max > 54:
         warn('Sabelhaus and Song (2010) provide variance profiles for ages '+
-             '27 to 54. Extrapolating variances.')
+             '27 to 54. Extrapolating variances using the extreme points.')
     
     if cohort < 1926 or cohort > 1980:
         warn('Sabelhaus and Song (2010) use data from birth cohorts ' +
@@ -112,7 +168,8 @@ def sabelhaus_song_var_profile(age_min = 27, age_max = 54, cohort = None):
     tran_std = tran_dummy_interp(ages) + (cohort-1926) * beta_eps
     perm_std = perm_dummy_interp(ages) + (cohort-1926) * beta_eta
     
-    variances = {'TranShkStd': list(tran_std),
-                 'PermShkStd': list(perm_std)}
+    profiles = {'Age': list(ages),
+                'TranShkStd': list(tran_std),
+                'PermShkStd': list(perm_std)}
     
-    return(variances)
+    return profiles
