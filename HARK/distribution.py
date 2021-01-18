@@ -557,7 +557,7 @@ class DiscreteDistribution(Distribution):
 
         return indices
 
-    def drawDiscrete(self, N, X=None, exact_match=False):
+    def draw(self, N, X=None, exact_match=False):
         """
         Simulates N draws from a discrete distribution with probabilities P and outcomes X.
 

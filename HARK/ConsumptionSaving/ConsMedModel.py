@@ -821,7 +821,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
             these = t == self.t_cycle
             N = np.sum(these)
             if N > 0:
-                MedShkNow[these] = self.MedShkDstn[t].drawDiscrete(N)
+                MedShkNow[these] = self.MedShkDstn[t].draw(N)
                 MedPriceNow[these] = self.MedPrice[t]
         self.shocks["MedShkNow"] = MedShkNow
         self.shocks["MedPriceNow"] = MedPriceNow
