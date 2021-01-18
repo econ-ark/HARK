@@ -27,7 +27,7 @@ from HARK.Calibration.Calibration import (
 )
 
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
-
+from HARK.datasets.SCF.WealthIncomeDist.parser import income_wealth_dists_from_scf
 import matplotlib.pyplot as plt
 import pandas as pd
 from copy import copy
@@ -35,9 +35,15 @@ from copy import copy
 # %% Alter calibration
 birth_age = 21
 death_age = 90
+education = 'HS'
 
+# Income specification
 income_params = ParseIncomeSpec(age_min = birth_age, age_max = death_age,
-                                **Cagetti_income['College'], SabelhausSong=True)
+                                **CGM_income[education], SabelhausSong=True)
+
+# Initial distribution of wealth and permanent income
+dist_params = income_wealth_dists_from_scf(age = birth_age,
+                                          education = education)
 
 # We need survival probabilities only up to death_age-1, because survival
 # probability at death_age is 1.
@@ -49,7 +55,8 @@ time_params = ParseTimeParams(age_birth = birth_age, age_death = death_age)
 params = copy(init_lifecycle)
 params.update(time_params)
 params.update(income_params)
-params.update({'LivPrb': liv_prb, 'aNrmInitMean': -100})
+params.update(dist_params)
+params.update({'LivPrb': liv_prb})
 
 # %% Create and solve agent
 Agent = IndShockConsumerType(**params)
@@ -60,7 +67,7 @@ Agent.solve()
 # Setup
 
 # Number of agents and periods in the simulation.
-Agent.AgentCount = 50
+Agent.AgentCount = 500
 Agent.T_sim      = 200
 
 # Set up the variables we want to keep track of.
