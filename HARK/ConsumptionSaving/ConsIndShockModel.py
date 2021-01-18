@@ -2241,9 +2241,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Finite Value of Autarky Condition
         Hyperlink to paper: [url]/#Autarky-Value
         """
-        EpShkuInv = np.dot(
-            self.PermShkDstn[0].pmf, self.PermShkDstn[0].X ** (1 - self.CRRA)
+        EpShkuInv = calcExpectation(
+            self.PermShkDstn[0],
+            lambda x: x ** (1 - self.CRRA)
         )
+
         if self.CRRA != 1.0:
             uInvEpShkuInv = EpShkuInv ** (
                 1 / (1 - self.CRRA)
@@ -2303,12 +2305,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # would be referenced below as:
         # [url]/#Uncertainty-Modified-Conditions
 
-        self.InvPermShkDstn = deepcopy(self.PermShkDstn)
+        self.EPermShkInv = calcExpectation(
+            self.PermShkDstn[0], lambda x : 1 / x
+        )
+        # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
 
-        self.InvPermShkDstn[0].X = 1 / self.PermShkDstn[0].X
-        self.EPermShkInv = np.dot(
-            self.InvPermShkDstn[0].pmf, 1 / self.PermShkDstn[0].X
-        )  # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
         # [url]/#Pat, adjusted to include mortality
 
         self.InvEPermShkInv = (
