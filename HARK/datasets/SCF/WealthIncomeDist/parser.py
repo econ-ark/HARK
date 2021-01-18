@@ -95,7 +95,3 @@ def income_wealth_dists_from_scf(age = None, education = None, year = None):
     }
     
     return param_dict
-
-table = get_scf_distr_stats()
-hm = parse_scf_distr_stats(age = 28, education = 'College', year = 1995)
-params = income_wealth_dists_from_scf(age = 28, education = 'College', year = 1995)
