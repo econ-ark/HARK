@@ -210,7 +210,7 @@ class AggShockConsumerType(IndShockConsumerType):
 
     def addAggShkDstn(self, AggShkDstn):
         """
-        Updates attribute IncomeDstn by combining idiosyncratic shocks with aggregate shocks.
+        Updates attribute IncShkDstn by combining idiosyncratic shocks with aggregate shocks.
 
         Parameters
         ----------
@@ -223,12 +223,12 @@ class AggShockConsumerType(IndShockConsumerType):
         -------
         None
         """
-        if len(self.IncomeDstn[0].X) > 2:
-            self.IncomeDstn = self.IncomeDstnWithoutAggShocks
+        if len(self.IncShkDstn[0].X) > 2:
+            self.IncShkDstn = self.IncShkDstnWithoutAggShocks
         else:
-            self.IncomeDstnWithoutAggShocks = self.IncomeDstn
-        self.IncomeDstn = [
-            combineIndepDstns(self.IncomeDstn[t], AggShkDstn)
+            self.IncShkDstnWithoutAggShocks = self.IncShkDstn
+        self.IncShkDstn = [
+            combineIndepDstns(self.IncShkDstn[t], AggShkDstn)
             for t in range(self.T_cycle)
         ]
 
@@ -400,7 +400,7 @@ class AggShockConsumerType(IndShockConsumerType):
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
         Stores result in attribute eulerErrorFunc as an interpolated function.
-        Has option to use approximate income distribution stored in self.IncomeDstn
+        Has option to use approximate income distribution stored in self.IncShkDstn
         or to use a (temporary) very dense approximation.
 
         NOT YET IMPLEMENTED FOR THIS CLASS
@@ -411,9 +411,9 @@ class AggShockConsumerType(IndShockConsumerType):
             Maximum normalized market resources for the Euler error function.
         approx_inc_dstn : Boolean
             Indicator for whether to use the approximate discrete income distri-
-            bution stored in self.IncomeDstn[0], or to use a very accurate
+            bution stored in self.IncShkDstn[0], or to use a very accurate
             discrete approximation instead.  When True, uses approximation in
-            IncomeDstn; when False, makes and uses a very dense approximation.
+            IncShkDstn; when False, makes and uses a very dense approximation.
 
         Returns
         -------
@@ -461,21 +461,21 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         state. AggShkDstn is a list of aggregate productivity shock distributions
         for each Markov state.
         """
-        if len(self.IncomeDstn[0][0].X) > 2:
-            self.IncomeDstn = self.IncomeDstnWithoutAggShocks
+        if len(self.IncShkDstn[0][0].X) > 2:
+            self.IncShkDstn = self.IncShkDstnWithoutAggShocks
         else:
-            self.IncomeDstnWithoutAggShocks = self.IncomeDstn
+            self.IncShkDstnWithoutAggShocks = self.IncShkDstn
 
-        IncomeDstnOut = []
+        IncShkDstnOut = []
         N = self.MrkvArray.shape[0]
         for t in range(self.T_cycle):
-            IncomeDstnOut.append(
+            IncShkDstnOut.append(
                 [
-                    combineIndepDstns(self.IncomeDstn[t][n], AggShkDstn[n])
+                    combineIndepDstns(self.IncShkDstn[t][n], AggShkDstn[n])
                     for n in range(N)
                 ]
             )
-        self.IncomeDstn = IncomeDstnOut
+        self.IncShkDstn = IncShkDstnOut
 
     def updateSolutionTerminal(self):
         """
@@ -503,7 +503,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
 
     def getShocks(self):
         """
-        Gets permanent and transitory income shocks for this period.  Samples from IncomeDstn for
+        Gets permanent and transitory income shocks for this period.  Samples from IncShkDstn for
         each period in the cycle.  This is a copy-paste from IndShockConsumerType, with the
         addition of the Markov macroeconomic state.  Unfortunately, the getShocks method for
         MarkovConsumerType cannot be used, as that method assumes that MrkvNow is a vector
@@ -524,13 +524,13 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             these = t == self.t_cycle
             N = np.sum(these)
             if N > 0:
-                IncomeDstnNow = self.IncomeDstn[t - 1][
+                IncShkDstnNow = self.IncShkDstn[t - 1][
                     self.MrkvNow
                 ]  # set current income distribution
                 PermGroFacNow = self.PermGroFac[t - 1]  # and permanent growth factor
 
                 # Get random draws of income shocks from the discrete distribution
-                ShockDraws = IncomeDstnNow.drawDiscrete(N, exact_match=True)
+                ShockDraws = IncShkDstnNow.drawDiscrete(N, exact_match=True)
                 # Permanent "shock" includes expected growth
                 PermShkNow[these] = ShockDraws[0] * PermGroFacNow
                 TranShkNow[these] = ShockDraws[1]
@@ -540,13 +540,13 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         N = np.sum(newborn)
         if N > 0:
             these = newborn
-            IncomeDstnNow = self.IncomeDstn[0][
+            IncShkDstnNow = self.IncShkDstn[0][
                 self.MrkvNow
             ]  # set current income distribution
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
             # Get random draws of income shocks from the discrete distribution
-            ShockDraws = IncomeDstnNow.drawDiscrete(N, exact_match=True)
+            ShockDraws = IncShkDstnNow.drawDiscrete(N, exact_match=True)
             # Permanent "shock" includes expected growth
             PermShkNow[these] = ShockDraws[0] * PermGroFacNow
             TranShkNow[these] = ShockDraws[1]
@@ -1026,7 +1026,7 @@ class KrusellSmithType(AgentType):
 
 def solveConsAggShock(
     solution_next,
-    IncomeDstn,
+    IncShkDstn,
     LivPrb,
     DiscFac,
     CRRA,
@@ -1048,7 +1048,7 @@ def solveConsAggShock(
     ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
-    IncomeDstn : [np.array]
+    IncShkDstn : [np.array]
         A list containing five arrays of floats, representing a discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
@@ -1094,11 +1094,11 @@ def solveConsAggShock(
     mNrmMinNext = solution_next.mNrmMin
 
     # Unpack the income shocks
-    ShkPrbsNext = IncomeDstn.pmf
-    PermShkValsNext = IncomeDstn.X[0]
-    TranShkValsNext = IncomeDstn.X[1]
-    PermShkAggValsNext = IncomeDstn.X[2]
-    TranShkAggValsNext = IncomeDstn.X[3]
+    ShkPrbsNext = IncShkDstn.pmf
+    PermShkValsNext = IncShkDstn.X[0]
+    TranShkValsNext = IncShkDstn.X[1]
+    PermShkAggValsNext = IncShkDstn.X[2]
+    TranShkAggValsNext = IncShkDstn.X[3]
     ShkCount = ShkPrbsNext.size
 
     # Make the grid of end-of-period asset values, and a tiled version
@@ -1226,7 +1226,7 @@ def solveConsAggShock(
     return solution_now
 
 
-def solveConsAggShockNEW(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, PermGroFac,
+def solveConsAggShockNEW(solution_next, IncShkDstn, LivPrb, DiscFac, CRRA, PermGroFac,
                       PermGroFacAgg, aXtraGrid, BoroCnstArt, Mgrid, AFunc, Rfunc, wFunc, DeprFac):
     '''
     Solve one period of a consumption-saving problem with idiosyncratic and
@@ -1238,7 +1238,7 @@ def solveConsAggShockNEW(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, PermG
     ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
-    IncomeDstn : [np.array]
+    IncShkDstn : [np.array]
         A list containing five arrays of floats, representing a discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
@@ -1280,10 +1280,10 @@ def solveConsAggShockNEW(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, PermG
         tions) and marginal value function vPfunc.
     '''
     # Unpack the income shocks and get grid sizes
-    PermShkValsNext = IncomeDstn.X[0]
-    TranShkValsNext = IncomeDstn.X[1]
-    PermShkAggValsNext = IncomeDstn.X[2]
-    TranShkAggValsNext = IncomeDstn.X[3]
+    PermShkValsNext = IncShkDstn.X[0]
+    TranShkValsNext = IncShkDstn.X[1]
+    PermShkAggValsNext = IncShkDstn.X[2]
+    TranShkAggValsNext = IncShkDstn.X[3]
     aCount = aXtraGrid.size
     Mcount = Mgrid.size
     
@@ -1320,7 +1320,7 @@ def solveConsAggShockNEW(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, PermG
     
     # Compute end-of-period marginal value of assets
     MaggNow = np.tile(np.reshape(Mgrid,(1,Mcount)),(aCount,1)) # Tiled Mgrid
-    EndOfPrdvP = DiscFac*LivPrb*calcExpectation(IncomeDstn,vPnextFunc,[aNrmNow,MaggNow])
+    EndOfPrdvP = DiscFac*LivPrb*calcExpectation(IncShkDstn,vPnextFunc,[aNrmNow,MaggNow])
 
     # Calculate optimal consumption from each asset gridpoint and endogenous m_t gridpoint
     cNrmNow = EndOfPrdvP**(-1.0/CRRA)
@@ -1359,7 +1359,7 @@ def solveConsAggShockNEW(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, PermG
 
 def solveConsAggMarkov(
     solution_next,
-    IncomeDstn,
+    IncShkDstn,
     LivPrb,
     DiscFac,
     CRRA,
@@ -1384,7 +1384,7 @@ def solveConsAggMarkov(
     ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
-    IncomeDstn : [[np.array]]
+    IncShkDstn : [[np.array]]
         A list of lists, each containing five arrays of floats, representing a
         discrete approximation to the income process between the period being
         solved and the one immediately following (in solution_next). Order: event
@@ -1446,11 +1446,11 @@ def solveConsAggMarkov(
         mNrmMinNext = solution_next.mNrmMin[j]
 
         # Unpack the income shocks
-        ShkPrbsNext = IncomeDstn[j].pmf
-        PermShkValsNext = IncomeDstn[j].X[0]
-        TranShkValsNext = IncomeDstn[j].X[1]
-        PermShkAggValsNext = IncomeDstn[j].X[2]
-        TranShkAggValsNext = IncomeDstn[j].X[3]
+        ShkPrbsNext = IncShkDstn[j].pmf
+        PermShkValsNext = IncShkDstn[j].X[0]
+        TranShkValsNext = IncShkDstn[j].X[1]
+        PermShkAggValsNext = IncShkDstn[j].X[2]
+        TranShkAggValsNext = IncShkDstn[j].X[3]
         ShkCount = ShkPrbsNext.size
         aXtra_tiled = np.tile(
             np.reshape(aXtraGrid, (1, aCount, 1)), (Mcount, 1, ShkCount)
