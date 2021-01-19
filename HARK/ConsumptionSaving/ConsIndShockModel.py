@@ -1143,6 +1143,40 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution.MPCmax = self.MPCmaxEff
         return solution
 
+    def addStablePoints(self, solution):
+        """
+        Checks necessary conditions for the existence of the individual steady
+        state and target levels of market resources (see above).
+        If the conditions are satisfied, computes and adds the stable points
+        to the solution.
+
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            Solution to this period's problem, which must have attribute cFunc.
+        Returns
+        -------
+        solution : ConsumerSolution
+            Same solution that was passed, but now with attributes mNrmSS and
+            mNrmTrg, if they exist.
+
+        """
+        
+        # 0. Check if the regular GIC holds. If so, then mNrmSS will exist. So, compute it.
+        # 1. Check if GICnrm holds. If so, then mNrmTrg will exist. So, compute it.
+
+        thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
+        GPF_nrm = thorn / self.PermGroFac / np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
+        GIC     = 1 > thorn/self.PermGroFac
+        GIC_nrm = 1 > GPF_nrm
+        
+        if GIC:
+            solution = self.addSSmNrm(solution)  # find steady state m, if it exists
+        if GIC_nrm:
+            solution = self.addmNrmTrg(solution) # find target m, if it exists
+
+        return solution
+
     def makeLinearcFunc(self, mNrm, cNrm):
         """
         Makes a linear interpolation to represent the (unconstrained) consumption function.
@@ -1181,6 +1215,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         EndOfPrdvP = self.calcEndOfPrdvP()
         solution = self.makeBasicSolution(EndOfPrdvP, aNrm, self.makeLinearcFunc)
         solution = self.addMPCandHumanWealth(solution)
+        solution = self.addStablePoints(solution)
         return solution
 
 
@@ -1346,40 +1381,6 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         """
         vPPfuncNow = MargMargValueFunc(solution.cFunc, self.CRRA)
         solution.vPPfunc = vPPfuncNow
-        return solution
-
-    def addStablePoints(self, solution):
-        """
-        Checks necessary conditions for the existence of the individual steady
-        state and target levels of market resources (see above).
-        If the conditions are satisfied, computes and adds the stable points
-        to the solution.
-
-        Parameters
-        ----------
-        solution : ConsumerSolution
-            Solution to this period's problem, which must have attribute cFunc.
-        Returns
-        -------
-        solution : ConsumerSolution
-            Same solution that was passed, but now with attributes mNrmSS and
-            mNrmTrg, if they exist.
-
-        """
-        
-        # 0. Check if the regular GIC holds. If so, then mNrmSS will exist. So, compute it.
-        # 1. Check if GICnrm holds. If so, then mNrmTrg will exist. So, compute it.
-
-        thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
-        GPF_nrm = thorn / self.PermGroFac / np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
-        GIC     = 1 > thorn/self.PermGroFac
-        GIC_nrm = 1 > GPF_nrm
-        
-        if GIC:
-            solution = self.addSSmNrm(solution)  # find steady state m, if it exists
-        if GIC_nrm:
-            solution = self.addmNrmTrg(solution) # find target m, if it exists
-
         return solution
 
     def solve(self):
