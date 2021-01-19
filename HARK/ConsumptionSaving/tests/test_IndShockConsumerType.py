@@ -391,6 +391,6 @@ class testStablePoints(unittest.TestCase):
         mNrmSS = baseAgent_Inf.solution[0].mNrmSS
         mNrmTrg = baseAgent_Inf.solution[0].mNrmTrg
         
-        # Checka against pre-computed values
+        # Check against pre-computed values
         self.assertAlmostEqual(mNrmSS , 1.3773113386500273)
         self.assertAlmostEqual(mNrmTrg, 1.3910165380594735)
