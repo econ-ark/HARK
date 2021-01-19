@@ -673,7 +673,7 @@ class ConsPerfForesightSolver(HARKobject):
         # only if this is the case.
         thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
         GIC = 1 > thorn/self.PermGroFac
-        if self.BoroCnstArt and GIC:
+        if self.BoroCnstArt is not None and GIC:
             solution = self.addSSmNrm(solution)
             solution = self.addmNrmTrg(solution)
     
