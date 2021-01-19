@@ -7,7 +7,6 @@ class testPerfForesightConsumerType(unittest.TestCase):
     def setUp(self):
         self.agent = PerfForesightConsumerType()
         self.agent_infinite = PerfForesightConsumerType(cycles=0)
-        self.agent_constrained = PerfForesightConsumerType(cycles = 0, BoroCnstArt = 0.0)
         
         PF_dictionary = {
             "CRRA": 2.5,
@@ -106,10 +105,12 @@ class testPerfForesightConsumerType(unittest.TestCase):
         
         # Solve the constrained agent. Stable points exists only with a
         # borrowing constraint.
-        self.agent_constrained.solve()
+        constrained_agent = PerfForesightConsumerType(cycles = 0, BoroCnstArt = 0.0)
+        
+        constrained_agent.solve()
         
         # Check against pre-computed values.
-        self.assertEqual(self.agent_constrained.solution[0].mNrmSS , 1.0)
+        self.assertEqual(constrained_agent.solution[0].mNrmSS , 1.0)
         # Check that they are both the same, since the problem is deterministic
-        self.assertEqual(self.agent_constrained.solution[0].mNrmSS,
-                         self.agent_constrained.solution[0].mNrmTrg)
+        self.assertEqual(constrained_agent.solution[0].mNrmSS,
+                         constrained_agent.solution[0].mNrmTrg)
