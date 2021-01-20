@@ -17,7 +17,7 @@ Release Data: TBD
 * Adds a constructor for LogNormal distributions from mean and standard deviation (#891)[https://github.com/econ-ark/HARK/pull/891/]
 * Uses new LogNormal constructor in ConsPortfolioModel (#891)[https://github.com/econ-ark/HARK/pull/891/]
 * calcExpectations method for taking the expectation of a distribution over a function (#884)[https://github.com/econ-ark/HARK/pull/884/]
-* MarkovProcess class (#902)[https://github.com/econ-ark/HARK/pull/902]
+* MarkovProcess class used in ConsMarkovModel, ConsRepAgentModel, ConsAggShockModel (#902)[https://github.com/econ-ark/HARK/pull/902]
 
 #### Minor Changes
 

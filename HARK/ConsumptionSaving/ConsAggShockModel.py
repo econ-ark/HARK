@@ -30,6 +30,7 @@ from HARK.utilities import (
     makeGridExpMult,
 )
 from HARK.distribution import (
+    MarkovProcess,
     MeanOneLogNormal,
     Uniform,
     combineIndepDstns,
@@ -2599,7 +2600,6 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
 
         # Initialize the Markov history and set up transitions
         MrkvNow_hist = np.zeros(self.act_T_orig, dtype=int)
-        cutoffs = np.cumsum(self.MrkvArray, axis=1)
         loops = 0
         go = True
         MrkvNow = self.sow_init["MrkvNow"]
@@ -2609,9 +2609,10 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         # Add histories until each state has been visited at least state_T_min times
         while go:
             draws = Uniform(seed=loops).draw(N=self.act_T_orig)
-            for s in range(draws.size):  # Add act_T_orig more periods
+            markov_process = MarkovProcess(self.MrkvArray,seed=loops)
+            for s in range(self.act_T_orig):  # Add act_T_orig more periods
                 MrkvNow_hist[t] = MrkvNow
-                MrkvNow = np.searchsorted(cutoffs[MrkvNow, :], draws[s])
+                MrkvNow = markov_process.draw(MrkvNow)
                 t += 1
 
             # Calculate the empirical distribution
@@ -2965,15 +2966,16 @@ class KrusellSmithEconomy(Market):
         """
         # Initialize the Markov history and set up transitions
         MrkvNow_hist = np.zeros(self.act_T, dtype=int)
-        cutoffs = np.cumsum(self.MrkvArray, axis=1)
         MrkvNow = self.MrkvNow_init
         t = 0
 
         # Add histories until each state has been visited at least state_T_min times
         draws = Uniform(seed=0).draw(N=self.act_T)
-        for s in range(draws.size):  # Add act_T_orig more periods
+
+        markov_process = MarkovProcess(self.MrkvArray, seed= 0)
+        for s in range(self.act_T):  # Add act_T_orig more periods
             MrkvNow_hist[t] = MrkvNow
-            MrkvNow = np.searchsorted(cutoffs[MrkvNow, :], draws[s])
+            MrkvNow = markov_process.draw(MrkvNow)
             t += 1
 
         # Store the result as attribute of self
