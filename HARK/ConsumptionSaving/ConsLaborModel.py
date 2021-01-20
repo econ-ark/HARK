@@ -20,49 +20,42 @@ from HARK.interpolation import (
     VariableLowerBoundFunc2D,
     BilinearInterp,
     ConstantFunction,
+    ValueFuncCRRA, MargValueFuncCRRA
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
-    MargValueFunc,
     init_idiosyncratic_shocks,
 )
-from HARK.ConsumptionSaving.ConsGenIncProcessModel import ValueFunc2D, MargValueFunc2D
+
 import matplotlib.pyplot as plt
 
 
 class ConsumerLaborSolution(HARKobject):
     """
     A class for representing one period of the solution to a Consumer Labor problem.
+
+    Parameters
+    ----------
+    cFunc : function
+        The consumption function for this period, defined over normalized
+        bank balances and the transitory productivity shock: cNrm = cFunc(bNrm,TranShk).
+    LbrFunc : function
+        The labor supply function for this period, defined over normalized
+        bank balances 0.751784276198: Lbr = LbrFunc(bNrm,TranShk).
+    vFunc : function
+        The beginning-of-period value function for this period, defined over
+        normalized bank balances 0.751784276198: v = vFunc(bNrm,TranShk).
+    vPfunc : function
+        The beginning-of-period marginal value (of bank balances) function for
+        this period, defined over normalized bank balances 0.751784276198: vP = vPfunc(bNrm,TranShk).
+    bNrmMin: float
+        The minimum allowable bank balances for this period, as a function of
+        the transitory shock. cFunc, LbrFunc, etc are undefined for bNrm < bNrmMin(TranShk).
     """
 
     distance_criteria = ["cFunc", "LbrFunc"]
 
     def __init__(self, cFunc=None, LbrFunc=None, vFunc=None, vPfunc=None, bNrmMin=None):
-        """
-        The constructor for a new ConsumerSolution object.
-
-        Parameters
-        ----------
-        cFunc : function
-            The consumption function for this period, defined over normalized
-            bank balances and the transitory productivity shock: cNrm = cFunc(bNrm,TranShk).
-        LbrFunc : function
-            The labor supply function for this period, defined over normalized
-            bank balances 0.751784276198: Lbr = LbrFunc(bNrm,TranShk).
-        vFunc : function
-            The beginning-of-period value function for this period, defined over
-            normalized bank balances 0.751784276198: v = vFunc(bNrm,TranShk).
-        vPfunc : function
-            The beginning-of-period marginal value (of bank balances) function for
-            this period, defined over normalized bank balances 0.751784276198: vP = vPfunc(bNrm,TranShk).
-        bNrmMin: float
-            The minimum allowable bank balances for this period, as a function of
-            the transitory shock. cFunc, LbrFunc, etc are undefined for bNrm < bNrmMin(TranShk).
-
-        Returns
-        -------
-        None
-        """
         if cFunc is not None:
             self.cFunc = cFunc
         if LbrFunc is not None:
@@ -206,7 +199,7 @@ def solveConsLaborIntMarg(
     )
 
     # "Recurve" the intermediate marginal value function through the marginal utility function
-    vPbarFuncNext = MargValueFunc(vPbarNvrsFuncNext, CRRA)
+    vPbarFuncNext = MargValueFuncCRRA(vPbarNvrsFuncNext, CRRA)
 
     # Get next period's bank balances at each permanent shock from each end-of-period asset values
     # Replicated grid of a_t values for each permanent (productivity) shock
@@ -337,7 +330,7 @@ def solveConsLaborIntMarg(
     vPnvrsFuncNow = VariableLowerBoundFunc2D(vPnvrsFuncNowBase, bNrmMinNow)
 
     # Construct the marginal value function by "recurving" its pseudo-inverse
-    vPfuncNow = MargValueFunc2D(vPnvrsFuncNow, CRRA)
+    vPfuncNow = MargValueFuncCRRA(vPnvrsFuncNow, CRRA)
 
     # Make a solution object for this period and return it
     solution = ConsumerLaborSolution(
@@ -353,6 +346,14 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     to consume vs save and how much labor to supply (as a fraction of their time).
     They get CRRA utility from a composite good x_t = c_t*z_t^alpha, and discount
     future utility flows at a constant factor.
+
+    See init_labor_intensive for a dictionary of
+    the keywords that should be passed to the constructor.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     time_vary_ = copy(IndShockConsumerType.time_vary_)
@@ -360,20 +361,6 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     time_inv_ = copy(IndShockConsumerType.time_inv_)
 
     def __init__(self, cycles=1, **kwds):
-        """
-        Instantiate a new consumer type with given data.
-        See init_labor_intensive for a dictionary of
-        the keywords that should be passed to the constructor.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
         params = init_labor_intensive.copy()
         params.update(kwds)
 
@@ -622,7 +609,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         # Compute the effective consumption value using consumption value and labor value at the terminal solution
         xEffTerm = LsrTerm ** LbrCost * cNrmTerm
         vNvrsFunc_terminal = BilinearInterp(xEffTerm, bNrmGrid, TranShkGrid)
-        vFunc_terminal = ValueFunc2D(vNvrsFunc_terminal, self.CRRA)
+        vFunc_terminal = ValueFuncCRRA(vNvrsFunc_terminal, self.CRRA)
 
         # Using the envelope condition at the terminal solution to estimate the marginal value function
         vPterm = LsrTerm ** LbrCost * CRRAutilityP(xEffTerm, gam=self.CRRA)
@@ -631,7 +618,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         )  # Evaluate the inverse of the CRRA marginal utility function at a given marginal value, vP
 
         vPnvrsFunc_terminal = BilinearInterp(vPnvrsTerm, bNrmGrid, TranShkGrid)
-        vPfunc_terminal = MargValueFunc2D(
+        vPfunc_terminal = MargValueFuncCRRA(
             vPnvrsFunc_terminal, self.CRRA
         )  # Get the Marginal Value function
 

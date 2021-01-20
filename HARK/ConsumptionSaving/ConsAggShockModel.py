@@ -19,6 +19,7 @@ from HARK.interpolation import (
     BilinearInterp,
     LowerEnvelope2D,
     UpperEnvelope,
+    MargValueFuncCRRA
 )
 from HARK.utilities import (
     CRRAutility,
@@ -47,7 +48,6 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 
 __all__ = [
-    "MargValueFunc2D",
     "AggShockConsumerType",
     "AggShockMarkovConsumerType",
     "CobbDouglasEconomy",
@@ -68,41 +68,6 @@ utilityPP = CRRAutilityPP
 utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
-
-
-class MargValueFunc2D(HARKobject):
-    """
-    A class for representing a marginal value function in models where the
-    standard envelope condition of dvdm(m,M) = u'(c(m,M)) holds (with CRRA utility).
-    """
-
-    distance_criteria = ["cFunc", "CRRA"]
-
-    def __init__(self, cFunc, CRRA):
-        """
-        Constructor for a new marginal value function object.
-
-        Parameters
-        ----------
-        cFunc : function
-            A real function representing the marginal value function composed
-            with the inverse marginal utility function, defined on normalized individual market
-            resources and aggregate market resources-to-labor ratio: uP_inv(vPfunc(m,M)).
-            Called cFunc because when standard envelope condition applies,
-            uP_inv(vPfunc(m,M)) = cFunc(m,M).
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        new instance of MargValueFunc
-        """
-        self.cFunc = deepcopy(cFunc)
-        self.CRRA = CRRA
-
-    def __call__(self, m, M):
-        return utilityP(self.cFunc(m, M), gam=self.CRRA)
-
 
 ###############################################################################
 
@@ -194,7 +159,7 @@ class AggShockConsumerType(IndShockConsumerType):
             np.array([0.0, 1.0]),
             np.array([0.0, 1.0]),
         )
-        vPfunc_terminal = MargValueFunc2D(cFunc_terminal, self.CRRA)
+        vPfunc_terminal = MargValueFuncCRRA(cFunc_terminal, self.CRRA)
         mNrmMin_terminal = ConstantFunction(0)
         self.solution_terminal = ConsumerSolution(
             cFunc=cFunc_terminal, vPfunc=vPfunc_terminal, mNrmMin=mNrmMin_terminal
@@ -774,7 +739,7 @@ class KrusellSmithType(AgentType):
         """
         cFunc_terminal = 4 * [IdentityFunction(n_dims=2)]
         vPfunc_terminal = [
-            MargValueFunc2D(cFunc_terminal[j], self.CRRA) for j in range(4)
+            MargValueFuncCRRA(cFunc_terminal[j], self.CRRA) for j in range(4)
         ]
         self.solution_terminal = ConsumerSolution(
             cFunc=cFunc_terminal, vPfunc=vPfunc_terminal
@@ -1253,7 +1218,7 @@ def solveConsAggShock(
     mNrmMinNow = UpperEnvelope(BoroCnstNat, ConstantFunction(BoroCnstArt))
 
     # Construct the marginal value function using the envelope condition
-    vPfuncNow = MargValueFunc2D(cFuncNow, CRRA)
+    vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)
 
     # Pack up and return the solution
     solution_now = ConsumerSolution(
@@ -1602,7 +1567,7 @@ def solveConsAggMarkov(
         EndOfPrdvPnvrsFunc = VariableLowerBoundFunc2D(
             EndOfPrdvPnvrsFunc_base, BoroCnstNat
         )
-        EndOfPrdvPfunc_cond.append(MargValueFunc2D(EndOfPrdvPnvrsFunc, CRRA))
+        EndOfPrdvPfunc_cond.append(MargValueFuncCRRA(EndOfPrdvPnvrsFunc, CRRA))
         BoroCnstNat_cond.append(BoroCnstNat)
 
     # Prepare some objects that are the same across all current states
@@ -1667,7 +1632,7 @@ def solveConsAggMarkov(
         mNrmMinNow.append(UpperEnvelope(BoroCnstNat, ConstantFunction(BoroCnstArt)))
 
         # Construct the marginal value function using the envelope condition
-        vPfuncNow.append(MargValueFunc2D(cFuncNow[-1], CRRA))
+        vPfuncNow.append(MargValueFuncCRRA(cFuncNow[-1], CRRA))
 
     # Pack up and return the solution
     solution_now = ConsumerSolution(
@@ -1758,7 +1723,7 @@ def solveKrusellSmith(
     for j in range(4):
         cFunc_by_M = [LinearInterp(mNow[:, k, j], cNow[:, k, j]) for k in range(Mcount)]
         cFunc_j = LinearInterpOnInterp1D(cFunc_by_M, Mgrid)
-        vPfunc_j = MargValueFunc2D(cFunc_j, CRRA)
+        vPfunc_j = MargValueFuncCRRA(cFunc_j, CRRA)
         cFunc_by_state.append(cFunc_j)
         vPfunc_by_state.append(vPfunc_j)
 
@@ -1827,28 +1792,20 @@ class CobbDouglasEconomy(Market):
 
     Note: The current implementation assumes a constant labor supply, but
     this will be generalized in the future.
+
+    Parameters
+    ----------
+    agents : [ConsumerType]
+        List of types of consumers that live in this economy.
+    tolerance: float
+        Minimum acceptable distance between "dynamic rules" to consider the
+        solution process converged.  Distance depends on intercept and slope
+        of the log-linear "next capital ratio" function.
+    act_T : int
+        Number of periods to simulate when making a history of of the market.
     """
 
     def __init__(self, agents=None, tolerance=0.0001, act_T=1200, **kwds):
-        """
-        Make a new instance of CobbDouglasEconomy by filling in attributes
-        specific to this kind of market.
-
-        Parameters
-        ----------
-        agents : [ConsumerType]
-            List of types of consumers that live in this economy.
-        tolerance: float
-            Minimum acceptable distance between "dynamic rules" to consider the
-            solution process converged.  Distance depends on intercept and slope
-            of the log-linear "next capital ratio" function.
-        act_T : int
-            Number of periods to simulate when making a history of of the market.
-
-        Returns
-        -------
-        None
-        """
         agents = agents if agents is not None else list()
         params = init_cobb_douglas.copy()
         params["sow_vars"] = [
@@ -2156,27 +2113,20 @@ class SmallOpenEconomy(Market):
     A class for representing a small open economy, where the wage rate and interest rate are
     exogenously determined by some "global" rate.  However, the economy is still subject to
     aggregate productivity shocks.
+
+    Parameters
+    ----------
+    agents : [ConsumerType]
+        List of types of consumers that live in this economy.
+    tolerance: float
+        Minimum acceptable distance between "dynamic rules" to consider the
+        solution process converged.  Distance depends on intercept and slope
+        of the log-linear "next capital ratio" function.
+    act_T : int
+        Number of periods to simulate when making a history of of the market.
     """
 
     def __init__(self, agents=None, tolerance=0.0001, act_T=1000, **kwds):
-        """
-        Make a new instance of SmallOpenEconomy by filling in attributes specific to this kind of market.
-
-        Parameters
-        ----------
-        agents : [ConsumerType]
-            List of types of consumers that live in this economy.
-        tolerance: float
-            Minimum acceptable distance between "dynamic rules" to consider the
-            solution process converged.  Distance depends on intercept and slope
-            of the log-linear "next capital ratio" function.
-        act_T : int
-            Number of periods to simulate when making a history of of the market.
-
-        Returns
-        -------
-        None
-        """
         agents = agents if agents is not None else list()
         Market.__init__(
             self,
@@ -2379,6 +2329,16 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
     state for the "macroeconomy", so that the shock distribution and aggregate
     productivity growth factor can vary over time.
 
+    Parameters
+    ----------
+    agents : [ConsumerType]
+        List of types of consumers that live in this economy.
+    tolerance: float
+        Minimum acceptable distance between "dynamic rules" to consider the
+        solution process converged.  Distance depends on intercept and slope
+        of the log-linear "next capital ratio" function.
+    act_T : int
+        Number of periods to simulate when making a history of of the market.
     """
 
     def __init__(
@@ -2398,25 +2358,6 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         ],
         **kwds
     ):
-        """
-        Make a new instance of CobbDouglasMarkovEconomy by filling in attributes
-        specific to this kind of market.
-
-        Parameters
-        ----------
-        agents : [ConsumerType]
-            List of types of consumers that live in this economy.
-        tolerance: float
-            Minimum acceptable distance between "dynamic rules" to consider the
-            solution process converged.  Distance depends on intercept and slope
-            of the log-linear "next capital ratio" function.
-        act_T : int
-            Number of periods to simulate when making a history of of the market.
-
-        Returns
-        -------
-        None
-        """
         agents = agents if agents is not None else list()
         params = init_mrkv_cobb_douglas.copy()
         params.update(kwds)
@@ -2825,28 +2766,20 @@ class KrusellSmithEconomy(Market):
     This model replicates the one presented in the JPE article "Income and Wealth
     Heterogeneity in the Macroeconomy", with its default parameters set to match
     those in the paper.
+
+    Parameters
+    ----------
+    agents : [ConsumerType]
+        List of types of consumers that live in this economy.
+    tolerance: float
+        Minimum acceptable distance between "dynamic rules" to consider the
+        solution process converged.  Distance depends on intercept and slope
+        of the log-linear "next capital ratio" function.
+    act_T : int
+        Number of periods to simulate when making a history of of the market.
     """
 
     def __init__(self, agents=None, tolerance=0.0001, **kwds):
-        """
-        Make a new instance of KrusellSmithEconomy by filling in attributes
-        specific to this kind of market.
-
-        Parameters
-        ----------
-        agents : [ConsumerType]
-            List of types of consumers that live in this economy.
-        tolerance: float
-            Minimum acceptable distance between "dynamic rules" to consider the
-            solution process converged.  Distance depends on intercept and slope
-            of the log-linear "next capital ratio" function.
-        act_T : int
-            Number of periods to simulate when making a history of of the market.
-
-        Returns
-        -------
-        None
-        """
         agents = agents if agents is not None else list()
         params = deepcopy(init_KS_economy)
         params.update(kwds)
@@ -3143,23 +3076,16 @@ class AggregateSavingRule(HARKobject):
     """
     A class to represent agent beliefs about aggregate saving at the end of this period (AaggNow) as
     a function of (normalized) aggregate market resources at the beginning of the period (MaggNow).
+
+    Parameters
+    ----------
+    intercept : float
+        Intercept of the log-linear capital evolution rule.
+    slope : float
+        Slope of the log-linear capital evolution rule.
     """
 
     def __init__(self, intercept, slope):
-        """
-        Make a new instance of CapitalEvoRule.
-
-        Parameters
-        ----------
-        intercept : float
-            Intercept of the log-linear capital evolution rule.
-        slope : float
-            Slope of the log-linear capital evolution rule.
-
-        Returns
-        -------
-        new instance of CapitalEvoRule
-        """
         self.intercept = intercept
         self.slope = slope
         self.distance_criteria = ["slope", "intercept"]
@@ -3184,20 +3110,13 @@ class AggregateSavingRule(HARKobject):
 class AggShocksDynamicRule(HARKobject):
     """
     Just a container class for passing the dynamic rule in the aggregate shocks model to agents.
+
+    Parameters
+    ----------
+    AFunc : CapitalEvoRule
+        Aggregate savings as a function of aggregate market resources.
     """
 
     def __init__(self, AFunc):
-        """
-        Make a new instance of CapDynamicRule.
-
-        Parameters
-        ----------
-        AFunc : CapitalEvoRule
-            Aggregate savings as a function of aggregate market resources.
-
-        Returns
-        -------
-        None
-        """
         self.AFunc = AFunc
         self.distance_criteria = ["AFunc"]

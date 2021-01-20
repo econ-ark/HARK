@@ -9,12 +9,11 @@ from __future__ import absolute_import
 from builtins import str
 from builtins import range
 import numpy as np
-from HARK.interpolation import LinearInterp
+from HARK.interpolation import LinearInterp, MargValueFuncCRRA
 from HARK.distribution import (MarkovProcess, Uniform)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     ConsumerSolution,
-    MargValueFunc,
     init_idiosyncratic_shocks,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
@@ -104,7 +103,7 @@ def solveConsRepAgent(
 
     # Construct the consumption function and the marginal value function
     cFuncNow = LinearInterp(np.insert(mNrmNow, 0, 0.0), np.insert(cNrmNow, 0, 0.0))
-    vPfuncNow = MargValueFunc(cFuncNow, CRRA)
+    vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)
 
     # Construct and return the solution for this period
     solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow)
@@ -220,7 +219,7 @@ def solveConsRepAgentMarkov(
         cFuncNow_list.append(
             LinearInterp(np.insert(mNrmNow, 0, 0.0), np.insert(cNrmNow, 0, 0.0))
         )
-        vPfuncNow_list.append(MargValueFunc(cFuncNow_list[-1], CRRA))
+        vPfuncNow_list.append(MargValueFuncCRRA(cFuncNow_list[-1], CRRA))
 
     # Construct and return the solution for this period
     solution_now = ConsumerSolution(cFunc=cFuncNow_list, vPfunc=vPfuncNow_list)
@@ -230,21 +229,17 @@ def solveConsRepAgentMarkov(
 class RepAgentConsumerType(IndShockConsumerType):
     """
     A class for representing representative agents with inelastic labor supply.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
+
     """
 
     time_inv_ = IndShockConsumerType.time_inv_ + ["CapShare", "DeprFac"]
 
     def __init__(self, **kwds):
-        """
-        Make a new instance of a representative agent.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        None
-        """
         params = init_rep_agent.copy()
         params.update(kwds)
 
@@ -301,21 +296,14 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
     """
     A class for representing representative agents with inelastic labor supply
     and a discrete MarkovState
+
+    Parameters
+    ----------
     """
 
     time_inv_ = RepAgentConsumerType.time_inv_ + ["MrkvArray"]
 
     def __init__(self, **kwds):
-        """
-        Make a new instance of a representative agent with Markov state.
-
-        Parameters
-        ----------
- 
-        Returns
-        -------
-        None
-        """
         params = init_markov_rep_agent.copy()
         params.update(kwds)
 
