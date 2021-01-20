@@ -20,6 +20,7 @@ from copy import copy, deepcopy
 import numpy as np
 from time import time
 from .parallel import multiThreadCommands, multiThreadCommandsFake
+from warnings import warn
 
 
 def distanceMetric(thing_A, thing_B):
@@ -51,7 +52,42 @@ def distanceMetric(thing_A, thing_B):
                 distance_temp.append(distanceMetric(thing_A[n], thing_B[n]))
             distance = max(distance_temp)
         else:
+            warn(
+                'Objects of different lengths are being compared. ' +
+                'Returning difference in lengths.'
+                )
             distance = float(abs(lenA - lenB))
+    # If both inputs are dictionaries, call distance on the list of its elements
+    elif typeA is dict and typeB is dict:
+        
+        lenA = len(thing_A)
+        lenB = len(thing_B)
+        
+        if lenA == lenB:
+            
+            # Create versions sorted by key
+            sortedA = dict(sorted(thing_A.items()))
+            sortedB = dict(sorted(thing_B.items()))
+            
+            # If keys don't match, print a warning.
+            if list(sortedA.keys()) != list(sortedB.keys()):
+                warn(
+                    'Dictionaries with keys that do not match are being ' + 
+                    'compared.'
+                )
+
+            distance = distanceMetric(list(sortedA.values()),
+                                      list(sortedB.values()))
+            
+        else:
+            # If they have different lengths, log a warning and return the
+            # difference in lengths.
+            warn(
+                'Objects of different lengths are being compared. ' + 
+                'Returning difference in lengths.'
+                )
+            distance = float(abs(lenA - lenB))
+        
     # If both inputs are numbers, return their difference
     elif isinstance(thing_A, (int, float)) and isinstance(thing_B, (int, float)):
         distance = float(abs(thing_A - thing_B))
@@ -171,8 +207,37 @@ class AgentType(HARKobject):
     that varies over time in the model.  Each element of time_inv is the name of
     a field in AgentSubType that is constant over time in the model.
 
+    Parameters
+    ----------
+    solution_terminal : Solution
+        A representation of the solution to the terminal period problem of
+        this AgentType instance, or an initial guess of the solution if this
+        is an infinite horizon problem.
+    cycles : int
+        The number of times the sequence of periods is experienced by this
+        AgentType in their "lifetime".  cycles=1 corresponds to a lifecycle
+        model, with a certain sequence of one period problems experienced
+        once before terminating.  cycles=0 corresponds to an infinite horizon
+        model, with a sequence of one period problems repeating indefinitely.
+    pseudo_terminal : boolean
+        Indicates whether solution_terminal isn't actually part of the
+        solution to the problem (as a known solution to the terminal period
+        problem), but instead represents a "scrap value"-style termination.
+        When True, solution_terminal is not included in the solution; when
+        false, solution_terminal is the last element of the solution.
+    tolerance : float
+        Maximum acceptable "distance" between successive solutions to the
+        one period problem in an infinite horizon (cycles=0) model in order
+        for the solution to be considered as having "converged".  Inoperative
+        when cycles>0.
+    seed : int
+        A seed for this instance's random number generator.
+
     Attributes
     ----------
+    AgentCount : int
+        The number of agents of this type to use in simulation.
+
     state_vars : list of string
         The string labels for this AgentType's model state variables.
     """
@@ -188,39 +253,6 @@ class AgentType(HARKobject):
         seed=0,
         **kwds
     ):
-        """
-        Initialize an instance of AgentType by setting attributes.
-
-        Parameters
-        ----------
-        solution_terminal : Solution
-            A representation of the solution to the terminal period problem of
-            this AgentType instance, or an initial guess of the solution if this
-            is an infinite horizon problem.
-        cycles : int
-            The number of times the sequence of periods is experienced by this
-            AgentType in their "lifetime".  cycles=1 corresponds to a lifecycle
-            model, with a certain sequence of one period problems experienced
-            once before terminating.  cycles=0 corresponds to an infinite horizon
-            model, with a sequence of one period problems repeating indefinitely.
-        pseudo_terminal : boolean
-            Indicates whether solution_terminal isn't actually part of the
-            solution to the problem (as a known solution to the terminal period
-            problem), but instead represents a "scrap value"-style termination.
-            When True, solution_terminal is not included in the solution; when
-            false, solution_terminal is the last element of the solution.
-        tolerance : float
-            Maximum acceptable "distance" between successive solutions to the
-            one period problem in an infinite horizon (cycles=0) model in order
-            for the solution to be considered as having "converged".  Inoperative
-            when cycles>0.
-        seed : int
-            A seed for this instance's random number generator.
-
-        Returns
-        -------
-        None
-        """
         if solution_terminal is None:
             solution_terminal = NullFunc()
 
@@ -1017,6 +1049,42 @@ class Market(HARKobject):
     A superclass to represent a central clearinghouse of information.  Used for
     dynamic general equilibrium models to solve the "macroeconomic" model as a
     layer on top of the "microeconomic" models of one or more AgentTypes.
+
+    Parameters
+    ----------
+    agents : [AgentType]
+        A list of all the AgentTypes in this market.
+    sow_vars : [string]
+        Names of variables generated by the "aggregate market process" that should
+        be "sown" to the agents in the market.  Aggregate state, etc.
+    reap_vars : [string]
+        Names of variables to be collected ("reaped") from agents in the market
+        to be used in the "aggregate market process".
+    const_vars : [string]
+        Names of attributes of the Market instance that are used in the "aggregate
+        market process" but do not come from agents-- they are constant or simply
+        parameters inherent to the process.
+    track_vars : [string]
+        Names of variables generated by the "aggregate market process" that should
+        be tracked as a "history" so that a new dynamic rule can be calculated.
+        This is often a subset of sow_vars.
+    dyn_vars : [string]
+        Names of variables that constitute a "dynamic rule".
+    millRule : function
+        A function that takes inputs named in reap_vars and returns a tuple the same size and order as sow_vars.  The "aggregate market process" that
+        transforms individual agent actions/states/data into aggregate data to
+        be sent back to agents.
+    calcDynamics : function
+        A function that takes inputs named in track_vars and returns an object
+        with attributes named in dyn_vars.  Looks at histories of aggregate
+        variables and generates a new "dynamic rule" for agents to believe and
+        act on.
+    act_T : int
+        The number of times that the "aggregate market process" should be run
+        in order to generate a history of aggregate variables.
+    tolerance: float
+        Minimum acceptable distance between "dynamic rules" to consider the
+        Market solution process converged.  Distance is a user-defined metric.
     """
 
     def __init__(
@@ -1033,49 +1101,6 @@ class Market(HARKobject):
         tolerance=0.000001,
         **kwds
     ):
-        """
-        Make a new instance of the Market class.
-
-        Parameters
-        ----------
-        agents : [AgentType]
-            A list of all the AgentTypes in this market.
-        sow_vars : [string]
-            Names of variables generated by the "aggregate market process" that should
-            be "sown" to the agents in the market.  Aggregate state, etc.
-        reap_vars : [string]
-            Names of variables to be collected ("reaped") from agents in the market
-            to be used in the "aggregate market process".
-        const_vars : [string]
-            Names of attributes of the Market instance that are used in the "aggregate
-            market process" but do not come from agents-- they are constant or simply
-            parameters inherent to the process.
-        track_vars : [string]
-            Names of variables generated by the "aggregate market process" that should
-            be tracked as a "history" so that a new dynamic rule can be calculated.
-            This is often a subset of sow_vars.
-        dyn_vars : [string]
-            Names of variables that constitute a "dynamic rule".
-        millRule : function
-            A function that takes inputs named in reap_vars and returns a tuple the same size and order as sow_vars.  The "aggregate market process" that
-            transforms individual agent actions/states/data into aggregate data to
-            be sent back to agents.
-        calcDynamics : function
-            A function that takes inputs named in track_vars and returns an object
-            with attributes named in dyn_vars.  Looks at histories of aggregate
-            variables and generates a new "dynamic rule" for agents to believe and
-            act on.
-        act_T : int
-            The number of times that the "aggregate market process" should be run
-            in order to generate a history of aggregate variables.
-        tolerance: float
-            Minimum acceptable distance between "dynamic rules" to consider the
-            Market solution process converged.  Distance is a user-defined metric.
-
-        Returns
-        -------
-        None
-    """
         self.agents = agents if agents is not None else list()  # NOQA
 
         reap_vars = reap_vars if reap_vars is not None else list()  # NOQA

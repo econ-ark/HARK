@@ -1,4 +1,4 @@
-# Release Notes  
+# Release Notes
 
 ## Introduction
 
@@ -7,6 +7,27 @@ This document contains the release notes of HARK. HARK aims to produce an open s
 For more information on HARK, see [our Github organization](https://github.com/econ-ark).
 
 ## Changes
+
+### 0.10.9
+
+Release Data: TBD
+
+#### Major Changes
+
+* Adds a constructor for LogNormal distributions from mean and standard deviation [#891](https://github.com/econ-ark/HARK/pull/891/)
+* Uses new LogNormal constructor in ConsPortfolioModel [#891](https://github.com/econ-ark/HARK/pull/891/)
+* calcExpectations method for taking the expectation of a distribution over a function [#884](https://github.com/econ-ark/HARK/pull/884/] (#897)[https://github.com/econ-ark/HARK/pull/897/)
+* Centralizes the definition of value, marginal value, and marginal marginal value functions that use inverse-space
+interpolation for problems with CRRA utility. See [#888](https://github.com/econ-ark/HARK/pull/888).
+* MarkovProcess class [#902](https://github.com/econ-ark/HARK/pull/902)
+* Adds a SSA life tables and methods to extract survival probabilities from them [#986](https://github.com/econ-ark/HARK/pull/906).
+* Fix the return fields of `dcegm/calcCrossPoints`[#909](https://github.com/econ-ark/HARK/pull/909).
+* Corrects location of constructor documentation to class string for Sphinx rendering [#908](https://github.com/econ-ark/HARK/pull/908)
+
+#### Minor Changes
+
+* Move AgentType constructor parameters docs to class docstring so it is rendered by Sphinx.
+* Remove uses of deprecated time.clock [#887](https://github.com/econ-ark/HARK/pull/887)
 
 ### 0.10.8
 

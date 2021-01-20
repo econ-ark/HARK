@@ -9,19 +9,14 @@ from copy import deepcopy
 from HARK import HARKobject, NullFunc, AgentType  # Basic HARK features
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
-    ValueFunc,  # For representing 1D value function
-    MargValueFunc,  # For representing 1D marginal value function
     utility,  # CRRA utility function
     utility_inv,  # Inverse CRRA utility function
     utilityP,  # CRRA marginal utility function
     utility_invP,  # Derivative of inverse CRRA utility function
     utilityP_inv,  # Inverse CRRA marginal utility function
-    init_idiosyncratic_shocks,  # Baseline dictionary to build on
+    init_idiosyncratic_shocks  # Baseline dictionary to build on
 )
-from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
-    ValueFunc2D,  # For representing 2D value function
-    MargValueFunc2D,  # For representing 2D marginal value function
-)
+
 from HARK.distribution import combineIndepDstns
 from HARK.distribution import Lognormal, Bernoulli  # Random draws for simulating agents
 from HARK.interpolation import (
@@ -31,6 +26,8 @@ from HARK.interpolation import (
     BilinearInterp,  # 2D interpolator
     ConstantFunction,  # Interpolator-like class that returns constant value
     IdentityFunction,  # Interpolator-like class that returns one of its arguments
+    ValueFuncCRRA,
+    MargValueFuncCRRA
 )
 
 
@@ -47,10 +44,10 @@ class PortfolioSolution(HARKobject):
     ShareFuncAdj : Interp1D
         Risky share function over normalized market resources when the agent is able
         to adjust their portfolio shares.
-    vFuncAdj : ValueFunc
+    vFuncAdj : ValueFuncCRRA
         Value function over normalized market resources when the agent is able to
         adjust their portfolio shares.
-    vPfuncAdj : MargValueFunc
+    vPfuncAdj : MargValueFuncCRRA
         Marginal value function over normalized market resources when the agent is able
         to adjust their portfolio shares.
     cFuncFxd : Interp2D
@@ -60,14 +57,14 @@ class PortfolioSolution(HARKobject):
         Risky share function over normalized market resources and risky portfolio share
         when the agent is NOT able to adjust their portfolio shares, so they are fixed.
         This should always be an IdentityFunc, by definition.
-    vFuncFxd : ValueFunc2D
+    vFuncFxd : ValueFuncCRRA
         Value function over normalized market resources and risky portfolio share when
         the agent is NOT able to adjust their portfolio shares, so they are fixed.
-    dvdmFuncFxd : MargValueFunc2D
+    dvdmFuncFxd : MargValueFuncCRRA
         Marginal value of mNrm function over normalized market resources and risky
         portfolio share when the agent is NOT able to adjust their portfolio shares,
         so they are fixed.
-    dvdsFuncFxd : MargValueFunc2D
+    dvdsFuncFxd : MargValueFuncCRRA
         Marginal value of Share function over normalized market resources and risky
         portfolio share when the agent is NOT able to adjust their portfolio shares,
         so they are fixed.
@@ -186,12 +183,12 @@ class PortfolioConsumerType(IndShockConsumerType):
         ShareFuncFxd_terminal = IdentityFunction(i_dim=1, n_dims=2)
 
         # Value function is simply utility from consuming market resources
-        vFuncAdj_terminal = ValueFunc(cFuncAdj_terminal, self.CRRA)
-        vFuncFxd_terminal = ValueFunc2D(cFuncFxd_terminal, self.CRRA)
+        vFuncAdj_terminal = ValueFuncCRRA(cFuncAdj_terminal, self.CRRA)
+        vFuncFxd_terminal = ValueFuncCRRA(cFuncFxd_terminal, self.CRRA)
 
         # Marginal value of market resources is marg utility at the consumption function
-        vPfuncAdj_terminal = MargValueFunc(cFuncAdj_terminal, self.CRRA)
-        dvdmFuncFxd_terminal = MargValueFunc2D(cFuncFxd_terminal, self.CRRA)
+        vPfuncAdj_terminal = MargValueFuncCRRA(cFuncAdj_terminal, self.CRRA)
+        dvdmFuncFxd_terminal = MargValueFuncCRRA(cFuncFxd_terminal, self.CRRA)
         dvdsFuncFxd_terminal = ConstantFunction(
             0.0
         )  # No future, no marg value of Share
@@ -241,24 +238,23 @@ class PortfolioConsumerType(IndShockConsumerType):
         # Generate a discrete approximation to the risky return distribution if the
         # agent has age-varying beliefs about the risky asset
         if "RiskyAvg" in self.time_vary:
-            RiskyDstn = []
+            self.RiskyDstn = []
             for t in range(self.T_cycle):
-                RiskyAvgSqrd = self.RiskyAvg[t] ** 2
-                RiskyVar = self.RiskyStd[t] ** 2
-                mu = np.log(self.RiskyAvg[t] / (np.sqrt(1.0 + RiskyVar / RiskyAvgSqrd)))
-                sigma = np.sqrt(np.log(1.0 + RiskyVar / RiskyAvgSqrd))
-                RiskyDstn.append(Lognormal(mu=mu, sigma=sigma).approx(self.RiskyCount))
-            self.RiskyDstn = RiskyDstn
+                self.RiskyDstn.append(
+                    Lognormal.from_mean_std(
+                        self.RiskyAvg[t],
+                        self.RiskyStd[t]
+                    ).approx(self.RiskyCount)
+                )
             self.addToTimeVary("RiskyDstn")
 
         # Generate a discrete approximation to the risky return distribution if the
         # agent does *not* have age-varying beliefs about the risky asset (base case)
         else:
-            RiskyAvgSqrd = self.RiskyAvg ** 2
-            RiskyVar = self.RiskyStd ** 2
-            mu = np.log(self.RiskyAvg / (np.sqrt(1.0 + RiskyVar / RiskyAvgSqrd)))
-            sigma = np.sqrt(np.log(1.0 + RiskyVar / RiskyAvgSqrd))
-            self.RiskyDstn = Lognormal(mu=mu, sigma=sigma).approx(self.RiskyCount)
+            self.RiskyDstn = Lognormal.from_mean_std(
+                self.RiskyAvg,
+                self.RiskyStd,
+            ).approx(self.RiskyCount)
             self.addToTimeInv("RiskyDstn")
 
     def updateShockDstn(self):
@@ -444,10 +440,8 @@ class PortfolioConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.simBirth(self, which_agents)
-        # Checking for control variable attribute here
-        # because we have not namespaced controls yet
-        if hasattr(self, 'ShareNow'):
-            self.ShareNow[which_agents] = 0
+
+        self.controls['ShareNow'][which_agents] = 0
         # here a shock is being used as a 'post state'
         self.shocks['AdjustNow'][which_agents] = False
 
@@ -711,7 +705,7 @@ def solveConsPortfolio(
         dvdb_intermed = np.sum(IncPrbs_tiled * temp_fac_A * dvdm_next, axis=2)
         dvdbNvrs_intermed = uPinv(dvdb_intermed)
         dvdbNvrsFunc_intermed = BilinearInterp(dvdbNvrs_intermed, bNrmGrid, ShareGrid)
-        dvdbFunc_intermed = MargValueFunc2D(dvdbNvrsFunc_intermed, CRRA)
+        dvdbFunc_intermed = MargValueFuncCRRA(dvdbNvrsFunc_intermed, CRRA)
 
         # Calculate intermediate value by taking expectations over income shocks
         temp_fac_B = (PermShks_tiled * PermGroFac) ** (
@@ -721,7 +715,7 @@ def solveConsPortfolio(
             v_intermed = np.sum(IncPrbs_tiled * temp_fac_B * v_next, axis=2)
             vNvrs_intermed = n(v_intermed)
             vNvrsFunc_intermed = BilinearInterp(vNvrs_intermed, bNrmGrid, ShareGrid)
-            vFunc_intermed = ValueFunc2D(vNvrsFunc_intermed, CRRA)
+            vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, CRRA)
 
         # Calculate intermediate marginal value of risky portfolio share by taking expectations
         dvds_intermed = np.sum(IncPrbs_tiled * temp_fac_B * dvds_next, axis=2)
@@ -965,7 +959,7 @@ def solveConsPortfolio(
     cFuncAdj_now = LinearInterp(np.insert(mNrmAdj_now, 0, 0.0), cNrmAdj_now)
 
     # Construct the marginal value (of mNrm) function when the agent can adjust
-    vPfuncAdj_now = MargValueFunc(cFuncAdj_now, CRRA)
+    vPfuncAdj_now = MargValueFuncCRRA(cFuncAdj_now, CRRA)
 
     # Construct the consumption function when the agent *can't* adjust the risky share, as well
     # as the marginal value of Share function
@@ -992,13 +986,13 @@ def solveConsPortfolio(
     ShareFuncFxd_now = IdentityFunction(i_dim=1, n_dims=2)
 
     # Construct the marginal value of mNrm function when the agent can't adjust his share
-    dvdmFuncFxd_now = MargValueFunc2D(cFuncFxd_now, CRRA)
+    dvdmFuncFxd_now = MargValueFuncCRRA(cFuncFxd_now, CRRA)
 
     # If the value function has been requested, construct it now
     if vFuncBool:
         # First, make an end-of-period value function over aNrm and Share
         EndOfPrdvNvrsFunc = BilinearInterp(EndOfPrdvNvrs, aNrmGrid, ShareGrid)
-        EndOfPrdvFunc = ValueFunc2D(EndOfPrdvNvrsFunc, CRRA)
+        EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, CRRA)
 
         # Construct the value function when the agent can adjust his portfolio
         mNrm_temp = aXtraGrid  # Just use aXtraGrid as our grid of mNrm values
@@ -1013,7 +1007,7 @@ def solveConsPortfolio(
             np.insert(vNvrs_temp, 0, 0.0),  # f_list
             np.insert(vNvrsP_temp, 0, vNvrsP_temp[0]),
         )  # dfdx_list
-        vFuncAdj_now = ValueFunc(
+        vFuncAdj_now = ValueFuncCRRA(
             vNvrsFuncAdj, CRRA
         )  # Re-curve the pseudo-inverse value function
 
@@ -1035,7 +1029,7 @@ def solveConsPortfolio(
                 )
             )  # dfdx_list
         vNvrsFuncFxd = LinearInterpOnInterp1D(vNvrsFuncFxd_by_Share, ShareGrid)
-        vFuncFxd_now = ValueFunc2D(vNvrsFuncFxd, CRRA)
+        vFuncFxd_now = ValueFuncCRRA(vNvrsFuncFxd, CRRA)
 
     else:  # If vFuncBool is False, fill in dummy values
         vFuncAdj_now = None

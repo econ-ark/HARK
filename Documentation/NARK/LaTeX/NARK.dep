@@ -1,0 +1,126 @@
+\RequireVersions{
+  *{application}{TeX}     {1990/03/25 v3.x}
+  *{format} {LaTeX2e}     {2020-02-02 v2.e}
+  *{file}   {NARK.tex}    {0000/00/00 v0.0}
+  *{file}   {./econtexRoot.tex}{0000/00/00 v0.0}
+  *{file}   {./Resources/econtexPaths.tex}{0000/00/00 v0.0}
+  *{class}  {./Resources/texmf-local/tex/latex/econtex}{0000/00/00 v0.0}
+  *{package}{snapshot}    {2002/03/05 v1.14}
+  *{package}{ifthen}      {2014/09/29 v1.1c}
+  *{package}{changepage}  {2009/10/20 v1.0c}
+  *{package}{setspace}    {2011/12/19 v6.7a}
+  *{class}  {scrartcl}    {2020/01/24 v3.29}
+  *{package}{scrkbase}    {2020/01/24 v3.29}
+  *{package}{scrbase}     {2020/01/24 v3.29}
+  *{package}{keyval}      {2014/10/28 v1.15}
+  *{package}{scrlfile}    {2020/01/24 v3.29}
+  *{package}{tocbasic}    {2020/01/24 v3.29}
+  *{file}   {scrsize12pt.clo}{2020/01/24 v3.29}
+  *{package}{typearea}    {2020/01/24 v3.29}
+  *{package}{fontenc}     {0000/00/00 v0.0}
+  *{package}{babel}       {2020/03/22 v3.42}
+  *{file}   {english.ldf} {2017/06/06 v3.3r}
+  *{package}{calc}        {2017/05/25 v4.3}
+  *{package}{cancel}      {2013/04/12 v2.2}
+  *{package}{verbatim}    {2019/11/10 v1.5r}
+  *{package}{amsmath}     {2020/01/20 v2.17e}
+  *{package}{amstext}     {2000/06/29 v2.01}
+  *{package}{amsgen}      {1999/11/30 v2.0}
+  *{package}{amsbsy}      {1999/11/29 v1.2d}
+  *{package}{amsopn}      {2016/03/08 v2.02}
+  *{package}{amssymb}     {2013/01/14 v3.01}
+  *{package}{amsfonts}    {2013/01/14 v3.01}
+  *{package}{amsthm}      {2017/10/31 v2.20.4}
+  *{package}{xpatch}      {2020/03/25 v0.3a}
+  *{package}{expl3}       {2020-03-06 v3}
+  *{file}   {l3backend-pdfmode.def}{2020-03-12 v3}
+  *{package}{xparse}      {2020-03-06 v3}
+  *{package}{etoolbox}    {2019/09/21 v2.5h}
+  *{package}{threeparttable}{2003/06/13 v3.0}
+  *{package}{dcolumn}     {2014/10/28 v1.06}
+  *{package}{array}       {2019/08/31 v2.4l}
+  *{package}{multicol}    {2019/12/09 v1.8y}
+  *{package}{multirow}    {2019/05/31 v2.5}
+  *{package}{booktabs}    {2020/01/12 v1.61803398}
+  *{package}{latexsym}    {1998/08/17 v2.2e}
+  *{package}{afterpage}   {2014/10/28 v1.08}
+  *{package}{enotez}      {2020/01/16 v0.10b}
+  *{package}{l3keys2e}    {2020-03-06 v2e}
+  *{package}{xtemplate}   {2020-03-06 v3}
+  *{package}{translations}{2018/02/28 v1.8}
+  *{package}{pdftexcmds}  {2019/11/24 v0.31}
+  *{package}{infwarerr}   {2019/12/03 v1.5}
+  *{package}{iftex}       {2020/03/06 v1.0d}
+  *{package}{ltxcmds}     {2019/12/15 v1.24}
+  *{package}{moreverb}    {2008/06/03 v2.3a}
+  *{package}{hhline}      {2020/01/04 v2.04}
+  *{package}{tipa}        {2002/08/08 v1.1}
+  *{package}{fontenc}     {0000/00/00 v0.0}
+  *{file}   {t3enc.def}   {2001/12/31 v3}
+  *{file}   {t1cmss.fd}   {2019/12/16 v2.5j}
+  *{package}{xcolor}      {2016/05/11 v2.12}
+  *{file}   {color.cfg}   {2016/01/02 v1.6}
+  *{file}   {pdftex.def}  {2018/01/08 v1.0l}
+  *{package}{accents}     {2006/05/12 v1.4}
+  *{package}{appendix}    {2020/02/08 v1.2c}
+  *{package}{eucal}       {2009/06/22 v3.00}
+  *{package}{ulem}        {2019/11/18 v0.0}
+  *{package}{bm}          {2019/07/24 v1.2d}
+  *{package}{bbm}         {1999/03/15 v1.2}
+  *{package}{url}         {2013/09/16 v3.4}
+  *{package}{optional}    {2005/01/26 v2.2b;}
+  *{package}{natbib}      {2010/09/13 v8.31b}
+  *{package}{footmisc}    {2011/06/06 v5.5b}
+  *{package}{manyfoot}    {2019/08/03 v1.11}
+  *{package}{nccfoots}    {2005/02/03 v1.2}
+  *{package}{perpage}     {2014/10/25 v2.0}
+  *{package}{./Resources/texmf-local/tex/latex/econtexSetup}{0000/00/00 v0.0}
+  *{package}{wasysym}     {2020/01/19 v2.4}
+  *{package}{psibycus}    {2004/10/18 v4.5}
+  *{file}   {ibycus4.map} {0000/00/00 v0.0}
+  *{file}   {Uibycus.fd}  {2004/10/18 v4.5}
+  *{file}   {iby4extr.tex}{0000/00/00 v0.0}
+  *{package}{ushort}      {2001/06/13 v2.2}
+  *{package}{graphicx}    {2019/11/30 v1.2a}
+  *{package}{graphics}    {2019/11/30 v1.4a}
+  *{package}{trig}        {2016/01/03 v1.10}
+  *{file}   {graphics.cfg}{2016/06/04 v1.11}
+  *{package}{hyperref}    {2020/01/14 v7.00d}
+  *{package}{kvsetkeys}   {2019/12/15 v1.18}
+  *{package}{kvdefinekeys}{2019-12-19 v1.6}
+  *{package}{pdfescape}   {2019/12/09 v1.15}
+  *{package}{hycolor}     {2020-01-27 v1.10}
+  *{package}{letltxmacro} {2019/12/03 v1.6}
+  *{package}{auxhook}     {2019-12-17 v1.6}
+  *{package}{kvoptions}   {2019/11/29 v3.13}
+  *{file}   {pd1enc.def}  {2020/01/14 v7.00d}
+  *{package}{intcalc}     {2019/12/15 v1.3}
+  *{package}{etexcmds}    {2019/12/15 v1.7}
+  *{package}{bitset}      {2019/12/09 v1.3}
+  *{package}{bigintcalc}  {2019/12/15 v1.5}
+  *{package}{atbegshi}    {2019/12/05 v1.19}
+  *{file}   {hpdftex.def} {2020/01/14 v7.00d}
+  *{package}{atveryend}   {2019-12-11 v1.11}
+  *{package}{rerunfilecheck}{2019/12/05 v1.9}
+  *{package}{uniquecounter}{2019/12/15 v1.4}
+  *{package}{./Resources/texmf-local/tex/latex/econtexShortcuts}{0000/00/00 v0.0}
+  *{file}   {t3cmr.fd}    {2001/12/31 v0.0}
+  *{file}   {translations-basic-dictionary-english.trsl}{(english v0.0}
+  *{file}   {supp-pdf.mkii}{0000/00/00 v0.0}
+  *{package}{epstopdf-base}{2020-01-24 v2.11}
+  *{file}   {epstopdf-sys.cfg}{2010/07/13 v1.3}
+  *{package}{nameref}     {2019/09/16 v2.46}
+  *{package}{refcount}    {2019/12/15 v3.6}
+  *{package}{gettitlestring}{2019/12/15 v1.6}
+  *{file}   {NARK.out}    {0000/00/00 v0.0}
+  *{file}   {NARK.out}    {0000/00/00 v0.0}
+  *{package}{bookmark}    {2019/12/03 v1.28}
+  *{file}   {bkm-pdftex.def}{2019/12/03 v1.28}
+  *{file}   {t1cmtt.fd}   {2019/12/16 v2.5j}
+  *{file}   {umsa.fd}     {2013/01/14 v3.01}
+  *{file}   {umsb.fd}     {2013/01/14 v3.01}
+  *{file}   {ulasy.fd}    {1998/08/17 v2.2e}
+  *{file}   {uwasy.fd}    {2020/01/19 v2.4}
+  *{file}   {ubbmss.fd}   {1999/03/15 v1.2}
+  *{file}   {NARK.bbl}    {0000/00/00 v0.0}
+}
