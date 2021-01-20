@@ -14,10 +14,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import(
     utilityP_inv,               # Inverse CRRA marginal utility function
     init_idiosyncratic_shocks   # Baseline dictionary to build on
 )
-from HARK.ConsumptionSaving.ConsGenIncProcessModel import(
-    ValueFunc2D,                # For representing 2D value function
-    MargValueFunc2D             # For representing 2D marginal value function
-)
+
 from HARK.distribution import combineIndepDstns 
 from HARK.distribution import Lognormal, Bernoulli # Random draws for simulating agents
 from HARK.interpolation import(
@@ -25,7 +22,9 @@ from HARK.interpolation import(
         BilinearInterp,         # 2D interpolator
         TrilinearInterp,        # 3D interpolator
         ConstantFunction,       # Interpolator-like class that returns constant value
-        IdentityFunction        # Interpolator-like class that returns one of its arguments
+        IdentityFunction,        # Interpolator-like class that returns one of its arguments
+        ValueFuncCRRA,
+        MargValueFuncCRRA
 )
 
 from HARK.utilities import makeGridExpMult
@@ -51,104 +50,6 @@ class DiscreteInterp2D(HARKobject):
         
         # Get values from grid
         return(self.DiscreteVals[inds])
-    
-class ValueFunc3D(HARKobject):
-    '''
-    A class for representing a value function in a model with three state
-    variables. The underlying interpolation is in the space of
-    (m,n,s) --> u_inv(v); this class "re-curves" to the value function.
-    '''
-    
-    distance_criteria = ['func', 'CRRA']
-
-    def __init__(self, vFuncNvrs, CRRA):
-        '''
-        Constructor for a new value function object.
-        Parameters
-        ----------
-        vFuncNvrs : function
-            A real function representing the value function composed with the
-            inverse utility function, defined over three state variables: 
-            u_inv(vFunc(x,y,z))
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Returns
-        -------
-        None
-        '''
-        self.func = deepcopy(vFuncNvrs)
-        self.CRRA = CRRA
-
-    def __call__(self, m, n, s):
-        '''
-        Evaluate the value function at given levels of the three state variables
-        (m,n,s)
-        
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources whose value is to be calcuated.
-        n : float or np.array
-            Iliquid resources whose value is to be calculated.
-        s : float or np.array
-            Income contribution shares whose value is to be calculated.
-        Returns
-        -------
-        v : float or np.array
-            Lifetime value of beginning this period with market resources m and
-            persistent income p; has same size as inputs m and p.
-        '''
-        return utility(self.func(m, n, s), gam=self.CRRA)
-
-
-
-class MargValueFunc3D(HARKobject):
-    '''
-    A class for representing a marginal value function in models where the
-    standard envelope condition of v'(m,n,s) = u'(c(m,n,s)) holds (with CRRA utility).
-    '''
-    distance_criteria = ['dvdxNvrsFunc', 'CRRA']
-
-    def __init__(self, dvdxNvrsFunc, CRRA):
-        '''
-        Constructor for a new marginal value function object.
-        Parameters
-        ----------
-        cFunc : function
-            A real function representing the marginal value function composed
-            with the inverse marginal utility function, defined on three state
-            variables: uP_inv(vPfunc(m,n,s)).
-            Called cFunc because when standard envelope condition applies,
-            uP_inv(vPfunc(m,n,s)) = cFunc(m,n,s).
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Returns
-        -------
-        None
-        '''
-        self.dvdxNvrsFunc = deepcopy(dvdxNvrsFunc)
-        self.CRRA = CRRA
-
-    def __call__(self, m, n, s):
-        '''
-        Evaluate the marginal value function at given levels of state variables
-        
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources whose marginal value is to be calcuated.
-        n : float or np.array
-            Iliquid resources whose marginal value is to be calculated.
-        s : float or np.array
-            Income contribution shares whose marginal value is to be calculated.
-        Returns
-        -------
-        vP : float or np.array
-            Marginal value of the given assets when beginning this period with
-            market resources m, iliquid assets n, and contribution share s;
-            has same size as inputs m, n, and s.
-        '''
-        return utilityP(self.dvdxNvrsFunc(m, n, s), gam=self.CRRA)
 
 
 class RiskyAssetConsumerType(IndShockConsumerType):
@@ -752,9 +653,9 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         
         # Start with the consumption stage. All liquid resources are consumed.
         cFunc_term = IdentityFunction(i_dim = 0, n_dims = 3)
-        vFuncCns_term = ValueFunc3D(cFunc_term, CRRA = self.CRRA)
+        vFuncCns_term = ValueFuncCRRA(cFunc_term, CRRA = self.CRRA)
         # Marginal values
-        dvdmFuncCns_term = MargValueFunc3D(cFunc_term, CRRA = self.CRRA)
+        dvdmFuncCns_term = MargValueFuncCRRA(cFunc_term, CRRA = self.CRRA)
         dvdnFuncCns_term = ConstantFunction(0.0)
         dvdsFuncCns_term = ConstantFunction(0.0)
         
@@ -773,9 +674,9 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         c2d = IdentityFunction(i_dim = 0, n_dims = 2)
         ShaStageSol = RiskyContribShaSolution(
             # Adjust
-            vFuncShaAdj = ValueFunc3D(c2d, CRRA = self.CRRA),
+            vFuncShaAdj = ValueFuncCRRA(c2d, CRRA = self.CRRA),
             ShareFuncAdj = ConstantFunction(0.0),
-            dvdmFuncShaAdj = MargValueFunc2D(c2d, CRRA = self.CRRA),
+            dvdmFuncShaAdj = MargValueFuncCRRA(c2d, CRRA = self.CRRA),
             dvdnFuncShaAdj = ConstantFunction(0.0),
             
             # Fixed
@@ -799,8 +700,8 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             tau = self.tau
         
         # Value and marginal value function of the adjusting agent
-        vFuncRebAdj_term = ValueFunc2D(lambda m,n: m + n/(1+tau), self.CRRA)
-        dvdmFuncRebAdj_term = MargValueFunc2D(lambda m,n: m + n/(1+tau), self.CRRA)
+        vFuncRebAdj_term = ValueFuncCRRA(lambda m,n: m + n/(1+tau), self.CRRA)
+        dvdmFuncRebAdj_term = MargValueFuncCRRA(lambda m,n: m + n/(1+tau), self.CRRA)
         # A marginal unit of n will be withdrawn and put into m. Then consumed.
         dvdnFuncRebAdj_term = lambda m,n: dvdmFuncRebAdj_term(m,n)/(1+tau)
         
@@ -1423,7 +1324,7 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         EndOfPrdvNvrs = uInv(EndOfPrdv)
         
         # Construct an interpolator for EndOfPrdV. It will be used later.
-        EndOfPrdvFunc = ValueFunc3D(TrilinearInterp(EndOfPrdvNvrs, aNrmGrid,
+        EndOfPrdvFunc = ValueFuncCRRA(TrilinearInterp(EndOfPrdvNvrs, aNrmGrid,
                                                     nNrmGrid, ShareGrid),
                                     CRRA)
     
@@ -1531,10 +1432,10 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # Consumption interpolator
     cFunc = TrilinearInterp(c_vals, mNrmGrid, nNrmGrid, ShareGrid)
     # dvdmCns interpolator
-    dvdmFuncCns = MargValueFunc3D(cFunc, CRRA)
+    dvdmFuncCns = MargValueFuncCRRA(cFunc, CRRA)
     # dvdnCns interpolator
     dvdnNvrsFunc = TrilinearInterp(dvdnNvrs_vals, mNrmGrid, nNrmGrid, ShareGrid)
-    dvdnFuncCns = MargValueFunc3D(dvdnNvrsFunc, CRRA)
+    dvdnFuncCns = MargValueFuncCRRA(dvdnNvrsFunc, CRRA)
     # dvdsCns interpolator
     # TODO: dvds might be NaN. Check and fix?
     dvdsFuncCns = TrilinearInterp(dvds_vals, mNrmGrid, nNrmGrid, ShareGrid)
@@ -1546,7 +1447,7 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         vCns = u(c_vals) + EndOfPrdvFunc(aNrm_reg, nNrm_tiled, Share_tiled) 
         vNvrsCns = uInv(vCns)
         vNvrsFuncCns = TrilinearInterp(vNvrsCns, mNrmGrid, nNrmGrid, ShareGrid)
-        vFuncCns     = ValueFunc3D(vNvrsFuncCns, CRRA)
+        vFuncCns     = ValueFuncCRRA(vNvrsFuncCns, CRRA)
     else:
         vFuncCns = NullFunc()
         
@@ -1670,7 +1571,7 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
     # Value function if needed
     if vFuncBool:
         vNvrsFuncSha    = BilinearInterp(vNvrsSha, mNrmGrid, nNrmGrid)
-        vFuncSha        = ValueFunc2D(vNvrsFuncSha, CRRA)
+        vFuncSha        = ValueFuncCRRA(vNvrsFuncSha, CRRA)
     else:
         vFuncSha = NullFunc()
         
@@ -1682,9 +1583,9 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
         ShareFunc       = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
         
     dvdmNvrsFuncSha = BilinearInterp(dvdmNvrsSha, mNrmGrid, nNrmGrid)
-    dvdmFuncSha     = MargValueFunc2D(dvdmNvrsFuncSha, CRRA)
+    dvdmFuncSha     = MargValueFuncCRRA(dvdmNvrsFuncSha, CRRA)
     dvdnNvrsFuncSha = BilinearInterp(dvdnNvrsSha, mNrmGrid, nNrmGrid)
-    dvdnFuncSha     = MargValueFunc2D(dvdnNvrsFuncSha, CRRA)
+    dvdnFuncSha     = MargValueFuncCRRA(dvdnNvrsFuncSha, CRRA)
     
     solution = RiskyContribShaSolution(
         vFuncShaAdj = vFuncSha,
@@ -1815,13 +1716,13 @@ def solveRiskyContribRebStage(solution_next,
     if vFuncBool:
         vNvrsAdj = vFuncAdj_next.func(mtil_opt, ntil_opt)
         vNvrsFuncAdj = BilinearInterp(vNvrsAdj, mNrmGrid, nNrmGrid)
-        vFuncAdj     = ValueFunc2D(vNvrsFuncAdj, CRRA)
+        vFuncAdj     = ValueFuncCRRA(vNvrsFuncAdj, CRRA)
     else:
         vFuncAdj = NullFunc()
         
     # Marginals
-    dvdmFuncAdj = MargValueFunc2D(BilinearInterp(dvdmNvrsAdj, mNrmGrid, nNrmGrid), CRRA)
-    dvdnFuncAdj = MargValueFunc2D(BilinearInterp(dvdnNvrsAdj, mNrmGrid, nNrmGrid), CRRA)
+    dvdmFuncAdj = MargValueFuncCRRA(BilinearInterp(dvdmNvrsAdj, mNrmGrid, nNrmGrid), CRRA)
+    dvdnFuncAdj = MargValueFuncCRRA(BilinearInterp(dvdnNvrsAdj, mNrmGrid, nNrmGrid), CRRA)
     
     # Decison
     DFuncAdj = BilinearInterp(dOpt, mNrmGrid, nNrmGrid)
