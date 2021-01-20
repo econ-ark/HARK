@@ -1031,7 +1031,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
             # Calculate distribution of persistent income in each period of lifecycle
             for t in range(len(self.PermShkStd)):
                 if t > 0:
-                    PermShkNow = self.PermShkDstn[t - 1].drawDiscrete(N=self.AgentCount)
+                    PermShkNow = self.PermShkDstn[t - 1].draw(N=self.AgentCount)
                     pLvlNow = self.pLvlNextFunc[t - 1](pLvlNow) * PermShkNow
                 pLvlGrid.append(getPercentiles(pLvlNow, percentiles=self.pLvlPctiles))
 
@@ -1055,7 +1055,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
                 for j in range(self.T_cycle):  # Update persistent income
                     these = t_cycle == j
-                    PermShkTemp = self.PermShkDstn[j].drawDiscrete(N=np.sum(these))
+                    PermShkTemp = self.PermShkDstn[j].draw(N=np.sum(these))
                     pLvlNow[these] = self.pLvlNextFunc[j](pLvlNow[these]) * PermShkTemp
                 t_cycle = t_cycle + 1
                 t_cycle[t_cycle == self.T_cycle] = 0

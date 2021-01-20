@@ -1992,7 +1992,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 ]  # set current income distribution
                 PermGroFacNow = self.PermGroFac[t - 1]  # and permanent growth factor
                 # Get random draws of income shocks from the discrete distribution
-                IncShks = IncomeDstnNow.drawDiscrete(N)
+                IncShks = IncomeDstnNow.draw(N)
                 PermShkNow[these] = (
                     IncShks[0, :] * PermGroFacNow
                 )  # permanent "shock" includes expected growth
