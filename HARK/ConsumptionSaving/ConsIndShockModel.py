@@ -2096,6 +2096,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Returns
         -------
         None
+
+        Notes
+        -----
+        This method is not used by any other code in the library. Rather, it is here
+        for expository and benchmarking purposes.
         """
         # Get the income distribution (or make a very dense one)
         if approx_inc_dstn:
@@ -2676,6 +2681,11 @@ class KinkedRconsumerType(IndShockConsumerType):
         Returns
         -------
         None
+
+        Notes
+        -----
+        This method is not used by any other code in the library. Rather, it is here
+        for expository and benchmarking purposes.
         """
         raise NotImplementedError()
 
