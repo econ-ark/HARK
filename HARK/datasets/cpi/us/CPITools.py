@@ -4,10 +4,16 @@ Created on Wed Jan 20 18:07:41 2021
 
 @author: Mateo
 """
+
+import os
 import urllib.request
 import pandas as pd
 import warnings
 import numpy as np
+
+__all__ = ["get_cpi_series", "cpi_deflator"]
+
+us_cpi_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def download_cpi_series():
@@ -42,7 +48,10 @@ def get_cpi_series():
 
     """
     cpi = pd.read_excel(
-        "r-cpi-u-rs-allitems.xlsx", skiprows=5, usecols="A:N", index_col=0
+        os.path.join(us_cpi_dir, "r-cpi-u-rs-allitems.xlsx"),
+        skiprows=5,
+        usecols="A:N",
+        index_col=0,
     )
 
     return cpi
