@@ -885,7 +885,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
     ----------
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
-    IncomeDstn : [np.array]
+    IncShkDstn : [np.array]
         A list containing three arrays of floats, representing a discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
@@ -927,7 +927,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
     def __init__(
         self,
         solution_next,
-        IncomeDstn,
+        IncShkDstn,
         MedShkDstn,
         LivPrb,
         DiscFac,
@@ -944,7 +944,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
     ):
         self.assignParameters(
             solution_next=solution_next,
-            IncomeDstn=IncomeDstn,
+            IncShkDstn=IncShkDstn,
             MedShkDstn=MedShkDstn,
             LivPrb=LivPrb,
             DiscFac=DiscFac,
@@ -962,7 +962,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         )  # dummy value required?
         self.defUtilityFuncs()
 
-    def setAndUpdateValues(self, solution_next, IncomeDstn, LivPrb, DiscFac):
+    def setAndUpdateValues(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.  These include:
@@ -975,7 +975,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncomeDstn : [np.array]
+        IncShkDstn : [np.array]
             A list containing three arrays of floats, representing a discrete
             approximation to the income process between the period being solved
             and the one immediately following (in solution_next). Order: event
@@ -992,7 +992,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         """
         # Run basic version of this method
         ConsGenIncProcessSolver.setAndUpdateValues(
-            self, self.solution_next, self.IncomeDstn, self.LivPrb, self.DiscFac
+            self, self.solution_next, self.IncShkDstn, self.LivPrb, self.DiscFac
         )
 
         # Also unpack the medical shock distribution

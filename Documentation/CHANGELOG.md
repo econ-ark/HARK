@@ -19,7 +19,7 @@ Release Data: TBD
 * calcExpectations method for taking the expectation of a distribution over a function [#884](https://github.com/econ-ark/HARK/pull/884/] (#897)[https://github.com/econ-ark/HARK/pull/897/)
 * Centralizes the definition of value, marginal value, and marginal marginal value functions that use inverse-space
 interpolation for problems with CRRA utility. See [#888](https://github.com/econ-ark/HARK/pull/888).
-* MarkovProcess class [#902](https://github.com/econ-ark/HARK/pull/902)
+* MarkovProcess class used in ConsMarkovModel, ConsRepAgentModel, ConsAggShockModel [#902](https://github.com/econ-ark/HARK/pull/902) [#929](https://github.com/econ-ark/HARK/pull/929)
 * Adds SSA life tables and methods to extract survival probabilities from them [#986](https://github.com/econ-ark/HARK/pull/906).
 * Adds the U.S. CPI research series and tools to extract inflation adjustments from it [#930](https://github.com/econ-ark/HARK/pull/930).
 * Fix the return fields of `dcegm/calcCrossPoints`[#909](https://github.com/econ-ark/HARK/pull/909).
@@ -29,9 +29,10 @@ interpolation for problems with CRRA utility. See [#888](https://github.com/econ
 
 * Move AgentType constructor parameters docs to class docstring so it is rendered by Sphinx.
 * Remove uses of deprecated time.clock [#887](https://github.com/econ-ark/HARK/pull/887)
+* Change internal representation of parameters to Distributions to ndarray type
+* Rename IncomeDstn to IncShkDstn
 * AgentType simulate() method now returns history. [#916](https://github.com/econ-ark/HARK/pull/916)
 * Rename DiscreteDistribution.drawDiscrete() to draw()
-
 
 ### 0.10.8
 

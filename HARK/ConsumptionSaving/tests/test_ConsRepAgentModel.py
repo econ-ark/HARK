@@ -27,7 +27,7 @@ class testRepAgentConsumerType(unittest.TestCase):
 class testRepAgentMarkovConsumerType(unittest.TestCase):
     def setUp(self):
         self.agent = RepAgentMarkovConsumerType()
-        self.agent.IncomeDstn[0] = 2 * [self.agent.IncomeDstn[0]]
+        self.agent.IncShkDstn[0] = 2 * [self.agent.IncShkDstn[0]]
         self.agent.solve()
 
     def test_solution(self):

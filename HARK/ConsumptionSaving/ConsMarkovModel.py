@@ -19,6 +19,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 
 from HARK.distribution import (
     DiscreteDistribution,
+    MarkovProcess,
     Uniform,
     calcExpectation
 )
@@ -57,14 +58,14 @@ class ConsMarkovSolver(ConsIndShockSolver):
     Extends ConsIndShockSolver, with identical inputs but for a discrete
     Markov state, whose transition rule is summarized in MrkvArray.  Markov
     states can differ in their interest factor, permanent growth factor, live probability, and
-    income distribution, so the inputs Rfree, PermGroFac, IncomeDstn, and LivPrb are
+    income distribution, so the inputs Rfree, PermGroFac, IncShkDstn, and LivPrb are
     now arrays or lists specifying those values in each (succeeding) Markov state.
     """
 
     def __init__(
         self,
         solution_next,
-        IncomeDstn_list,
+        IncShkDstn_list,
         LivPrb,
         DiscFac,
         CRRA,
@@ -85,7 +86,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncomeDstn_list : [[np.array]]
+        IncShkDstn_list : [[np.array]]
             A length N list of income distributions in each succeeding Markov
             state.  Each income distribution contains three arrays of floats,
             representing a discrete approximation to the income process at the
@@ -131,7 +132,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
 
         self.assignParameters(
             solution_next=solution_next,
-            IncomeDstn_list=IncomeDstn_list,
+            IncShkDstn_list=IncShkDstn_list,
             LivPrb=LivPrb,
             DiscFac=DiscFac,
             CRRA=CRRA,
@@ -241,8 +242,8 @@ class ConsMarkovSolver(ConsIndShockSolver):
         self.BoroCnstNatAll = np.zeros(self.StateCount) + np.nan
         # Find the natural borrowing constraint conditional on next period's state
         for j in range(self.StateCount):
-            PermShkMinNext = np.min(self.IncomeDstn_list[j].X[0])
-            TranShkMinNext = np.min(self.IncomeDstn_list[j].X[1])
+            PermShkMinNext = np.min(self.IncShkDstn_list[j].X[0])
+            TranShkMinNext = np.min(self.IncShkDstn_list[j].X[1])
             self.BoroCnstNatAll[j] = (
                 (self.solution_next.mNrmMin[j] - TranShkMinNext)
                 * (self.PermGroFac_list[j] * PermShkMinNext)
@@ -289,14 +290,14 @@ class ConsMarkovSolver(ConsIndShockSolver):
         none
         """
         # Set future-state-conditional values as attributes of self
-        self.IncomeDstn = self.IncomeDstn_list[state_index]
+        self.IncShkDstn = self.IncShkDstn_list[state_index]
         self.Rfree = self.Rfree_list[state_index]
         self.PermGroFac = self.PermGroFac_list[state_index]
         self.vPfuncNext = self.solution_next.vPfunc[state_index]
         self.mNrmMinNow = self.mNrmMin_list[state_index]
         self.BoroCnstNat = self.BoroCnstNatAll[state_index]
         self.setAndUpdateValues(
-            self.solution_next, self.IncomeDstn, self.LivPrb, self.DiscFac
+            self.solution_next, self.IncShkDstn, self.LivPrb, self.DiscFac
         )
         self.DiscFacEff = (
             self.DiscFac
@@ -335,7 +336,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA - 1.0)
             * calcExpectation(
-                self.IncomeDstn,
+                self.IncShkDstn,
                 vpp_next,
                 self.aNrmNow
             )
@@ -736,7 +737,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
 
 def _solveConsMarkov(
     solution_next,
-    IncomeDstn,
+    IncShkDstn,
     LivPrb,
     DiscFac,
     CRRA,
@@ -754,14 +755,14 @@ def _solveConsMarkov(
     identical inputs as solveConsIndShock, except for a discrete
     Markov transitionrule MrkvArray.  Markov states can differ in their interest
     factor, permanent growth factor, and income distribution, so the inputs Rfree,
-    PermGroFac, and IncomeDstn are arrays or lists specifying those values in each
+    PermGroFac, and IncShkDstn are arrays or lists specifying those values in each
     (succeeding) Markov state.
 
     Parameters
     ----------
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
-    IncomeDstn_list : [[np.array]]
+    IncShkDstn_list : [[np.array]]
         A length N list of income distributions in each succeeding Markov
         state.  Each income distribution contains three arrays of floats,
         representing a discrete approximation to the income process at the
@@ -814,7 +815,7 @@ def _solveConsMarkov(
     """
     solver = ConsMarkovSolver(
         solution_next,
-        IncomeDstn,
+        IncShkDstn,
         LivPrb,
         DiscFac,
         CRRA,
@@ -899,16 +900,16 @@ class MarkovConsumerType(IndShockConsumerType):
                 )
 
         # Now check the income distribution.
-        # Note IncomeDstn is (potentially) time-varying, so it is in time_vary.
+        # Note IncShkDstn is (potentially) time-varying, so it is in time_vary.
         # Therefore it is a list, and each element of that list responds to the income distribution
         # at a particular point in time.  Each income distribution at a point in time should itself
         # be a list, with each element corresponding to the income distribution
         # conditional on a particular Markov state.
         # TODO: should this be a numpy array too?
-        for IncomeDstn_t in self.IncomeDstn:
-            if not isinstance(IncomeDstn_t, list) or len(IncomeDstn_t) != StateCount:
+        for IncShkDstn_t in self.IncShkDstn:
+            if not isinstance(IncShkDstn_t, list) or len(IncShkDstn_t) != StateCount:
                 raise ValueError(
-                    "List in IncomeDstn is not the right length, it should be length equal to number of states"
+                    "List in IncShkDstn is not the right length, it should be length equal to number of states"
                 )
 
     def preSolve(self):
@@ -982,11 +983,11 @@ class MarkovConsumerType(IndShockConsumerType):
         """
         PerfForesightConsumerType.resetRNG(self)
 
-        # Reset IncomeDstn if it exists (it might not because resetRNG is called at init)
-        if hasattr(self, "IncomeDstn"):
-            T = len(self.IncomeDstn)
+        # Reset IncShkDstn if it exists (it might not because resetRNG is called at init)
+        if hasattr(self, "IncShkDstn"):
+            T = len(self.IncShkDstn)
             for t in range(T):
-                for dstn in self.IncomeDstn[t]:
+                for dstn in self.IncShkDstn[t]:
                     dstn.reset()
 
     def simDeath(self):
@@ -1057,15 +1058,6 @@ class MarkovConsumerType(IndShockConsumerType):
         -------
         None
         """
-        # Draw random numbers that will be used to determine the next Markov state
-        if self.global_markov:
-            base_draws = np.ones(self.AgentCount) * Uniform(
-                seed=self.RNG.randint(0, 2 ** 31 - 1)
-            ).draw(1)
-        else:
-            base_draws = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(
-                self.AgentCount
-            )
         dont_change = (
             self.t_age == 0
         )  # Don't change Markov state for those who were just born (unless global_markov)
@@ -1076,20 +1068,15 @@ class MarkovConsumerType(IndShockConsumerType):
         J = self.MrkvArray[0].shape[0]
         MrkvPrev = self.shocks["MrkvNow"]
         MrkvNow = np.zeros(self.AgentCount, dtype=int)
-        MrkvBoolArray = np.zeros((J, self.AgentCount))
-
-        for j in range(J):
-            MrkvBoolArray[j, :] = MrkvPrev == j
 
         # Draw new Markov states for each agent
         for t in range(self.T_cycle):
-            Cutoffs = np.cumsum(self.MrkvArray[t], axis=1)
+            markov_process = MarkovProcess(
+                self.MrkvArray[t],
+                seed=self.RNG.randint(0, 2 ** 31 - 1)
+                )
             right_age = self.t_cycle == t
-            for j in range(J):
-                these = np.logical_and(right_age, MrkvBoolArray[j, :])
-                MrkvNow[these] = np.searchsorted(
-                    Cutoffs[j, :], base_draws[these]
-                ).astype(int)
+            MrkvNow[right_age] = markov_process.draw(MrkvPrev[right_age])
         if not self.global_markov:
             MrkvNow[dont_change] = MrkvPrev[dont_change]
 
@@ -1098,7 +1085,7 @@ class MarkovConsumerType(IndShockConsumerType):
     def getShocks(self):
         """
         Gets new Markov states and permanent and transitory income shocks for this period.  Samples
-        from IncomeDstn for each period-state in the cycle.
+        from IncShkDstn for each period-state in the cycle.
 
         Parameters
         ----------
@@ -1119,7 +1106,7 @@ class MarkovConsumerType(IndShockConsumerType):
                 these = np.logical_and(t == self.t_cycle, j == MrkvNow)
                 N = np.sum(these)
                 if N > 0:
-                    IncomeDstnNow = self.IncomeDstn[t - 1][
+                    IncShkDstnNow = self.IncShkDstn[t - 1][
                         j
                     ]  # set current income distribution
                     PermGroFacNow = self.PermGroFac[t - 1][
@@ -1127,11 +1114,11 @@ class MarkovConsumerType(IndShockConsumerType):
                     ]  # and permanent growth factor
 
                     # Get random draws of income shocks from the discrete distribution
-                    EventDraws = IncomeDstnNow.draw_events(N)
+                    EventDraws = IncShkDstnNow.draw_events(N)
                     PermShkNow[these] = (
-                        IncomeDstnNow.X[0][EventDraws] * PermGroFacNow
+                        IncShkDstnNow.X[0][EventDraws] * PermGroFacNow
                     )  # permanent "shock" includes expected growth
-                    TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
+                    TranShkNow[these] = IncShkDstnNow.X[1][EventDraws]
         newborn = self.t_age == 0
         PermShkNow[newborn] = 1.0
         TranShkNow[newborn] = 1.0
@@ -1226,7 +1213,7 @@ class MarkovConsumerType(IndShockConsumerType):
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
         Stores result in attribute eulerErrorFunc as an interpolated function.
-        Has option to use approximate income distribution stored in self.IncomeDstn
+        Has option to use approximate income distribution stored in self.IncShkDstn
         or to use a (temporary) very dense approximation.
 
         NOT YET IMPLEMENTED FOR THIS CLASS
@@ -1237,9 +1224,9 @@ class MarkovConsumerType(IndShockConsumerType):
             Maximum normalized market resources for the Euler error function.
         approx_inc_dstn : Boolean
             Indicator for whether to use the approximate discrete income distri-
-            bution stored in self.IncomeDstn[0], or to use a very accurate
+            bution stored in self.IncShkDstn[0], or to use a very accurate
             discrete approximation instead.  When True, uses approximation in
-            IncomeDstn; when False, makes and uses a very dense approximation.
+            IncShkDstn; when False, makes and uses a very dense approximation.
 
         Returns
         -------
