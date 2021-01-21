@@ -22,7 +22,7 @@ __all__ = ["RepAgentConsumerType", "RepAgentMarkovConsumerType"]
 
 
 def solveConsRepAgent(
-    solution_next, DiscFac, CRRA, IncomeDstn, CapShare, DeprFac, PermGroFac, aXtraGrid
+    solution_next, DiscFac, CRRA, IncShkDstn, CapShare, DeprFac, PermGroFac, aXtraGrid
 ):
     """
     Solve one period of the simple representative agent consumption-saving model.
@@ -35,7 +35,7 @@ def solveConsRepAgent(
         Intertemporal discount factor for future utility.
     CRRA : float
         Coefficient of relative risk aversion.
-    IncomeDstn : [np.array]
+    IncShkDstn : [np.array]
         A list containing three arrays of floats, representing a discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
@@ -58,9 +58,9 @@ def solveConsRepAgent(
     """
     # Unpack next period's solution and the income distribution
     vPfuncNext = solution_next.vPfunc
-    ShkPrbsNext = IncomeDstn.pmf
-    PermShkValsNext = IncomeDstn.X[0]
-    TranShkValsNext = IncomeDstn.X[1]
+    ShkPrbsNext = IncShkDstn.pmf
+    PermShkValsNext = IncShkDstn.X[0]
+    TranShkValsNext = IncShkDstn.X[1]
 
     # Make tiled versions of end-of-period assets, shocks, and probabilities
     aNrmNow = aXtraGrid
@@ -115,7 +115,7 @@ def solveConsRepAgentMarkov(
     MrkvArray,
     DiscFac,
     CRRA,
-    IncomeDstn,
+    IncShkDstn,
     CapShare,
     DeprFac,
     PermGroFac,
@@ -135,7 +135,7 @@ def solveConsRepAgentMarkov(
         Intertemporal discount factor for future utility.
     CRRA : float
         Coefficient of relative risk aversion.
-    IncomeDstn : [[np.array]]
+    IncShkDstn : [[np.array]]
         A list of lists containing three arrays of floats, representing a discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
@@ -167,9 +167,9 @@ def solveConsRepAgentMarkov(
     for j in range(StateCount):
         # Define next-period-state conditional objects
         vPfuncNext = solution_next.vPfunc[j]
-        ShkPrbsNext = IncomeDstn[j].pmf
-        PermShkValsNext = IncomeDstn[j].X[0]
-        TranShkValsNext = IncomeDstn[j].X[1]
+        ShkPrbsNext = IncShkDstn[j].pmf
+        PermShkValsNext = IncShkDstn[j].X[0]
+        TranShkValsNext = IncShkDstn[j].X[1]
 
         # Make tiled versions of end-of-period assets, shocks, and probabilities
         ShkCount = ShkPrbsNext.size
@@ -355,14 +355,14 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
 
         t = self.t_cycle[0]
         i = self.MrkvNow[0]
-        IncomeDstnNow = self.IncomeDstn[t - 1][i]  # set current income distribution
+        IncShkDstnNow = self.IncShkDstn[t - 1][i]  # set current income distribution
         PermGroFacNow = self.PermGroFac[t - 1][i]  # and permanent growth factor
         # Get random draws of income shocks from the discrete distribution
-        EventDraw = IncomeDstnNow.draw_events(1)
+        EventDraw = IncShkDstnNow.draw_events(1)
         PermShkNow = (
-            IncomeDstnNow.X[0][EventDraw] * PermGroFacNow
+            IncShkDstnNow.X[0][EventDraw] * PermGroFacNow
         )  # permanent "shock" includes expected growth
-        TranShkNow = IncomeDstnNow.X[1][EventDraw]
+        TranShkNow = IncShkDstnNow.X[1][EventDraw]
         self.shocks["PermShkNow"] = np.array(PermShkNow)
         self.shocks["TranShkNow"] = np.array(TranShkNow)
 

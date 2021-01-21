@@ -437,7 +437,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
         Stores result in attribute eulerErrorFunc as an interpolated function.
-        Has option to use approximate income distribution stored in self.IncomeDstn
+        Has option to use approximate income distribution stored in self.IncShkDstn
         or to use a (temporary) very dense approximation.
 
         NOT YET IMPLEMENTED FOR THIS CLASS
@@ -448,9 +448,9 @@ class LaborIntMargConsumerType(IndShockConsumerType):
             Maximum normalized market resources for the Euler error function.
         approx_inc_dstn : Boolean
             Indicator for whether to use the approximate discrete income distri-
-            bution stored in self.IncomeDstn[0], or to use a very accurate
+            bution stored in self.IncShkDstn[0], or to use a very accurate
             discrete approximation instead.  When True, uses approximation in
-            IncomeDstn; when False, makes and uses a very dense approximation.
+            IncShkDstn; when False, makes and uses a very dense approximation.
 
         Returns
         -------

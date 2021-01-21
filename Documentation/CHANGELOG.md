@@ -29,6 +29,7 @@ interpolation for problems with CRRA utility. See [#888](https://github.com/econ
 * Move AgentType constructor parameters docs to class docstring so it is rendered by Sphinx.
 * Remove uses of deprecated time.clock [#887](https://github.com/econ-ark/HARK/pull/887)
 * Change internal representation of parameters to Distributions to ndarray type
+* Rename IncomeDstn to IncShkDstn
 * AgentType simulate() method now returns history. [#916](https://github.com/econ-ark/HARK/pull/916)
 * Rename DiscreteDistribution.drawDiscrete() to draw()
 

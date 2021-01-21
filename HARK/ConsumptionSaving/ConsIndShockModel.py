@@ -468,7 +468,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     ----------
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
-    IncomeDstn : [np.array]
+    IncShkDstn : [np.array]
         A list containing three arrays of floats, representing a discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
@@ -503,7 +503,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     def __init__(
         self,
         solution_next,
-        IncomeDstn,
+        IncShkDstn,
         LivPrb,
         DiscFac,
         CRRA,
@@ -516,7 +516,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     ):
         self.assignParameters(
             solution_next=solution_next,
-            IncomeDstn=IncomeDstn,
+            IncShkDstn=IncShkDstn,
             LivPrb=LivPrb,
             DiscFac=DiscFac,
             CRRA=CRRA,
@@ -550,7 +550,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         if self.vFuncBool:
             self.uinv = lambda u: utility_inv(u, gam=self.CRRA)
 
-    def setAndUpdateValues(self, solution_next, IncomeDstn, LivPrb, DiscFac):
+    def setAndUpdateValues(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.  These include:
@@ -562,7 +562,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncomeDstn : distribution.DiscreteDistribution
+        IncShkDstn : distribution.DiscreteDistribution
             A DiscreteDistribution with a pmf
             and two point value arrays in X, order:
             permanent shocks, transitory shocks.
@@ -577,10 +577,10 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         None
         """
         self.DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
-        self.IncomeDstn = IncomeDstn
-        self.ShkPrbsNext = IncomeDstn.pmf
-        self.PermShkValsNext = IncomeDstn.X[0]
-        self.TranShkValsNext = IncomeDstn.X[1]
+        self.IncShkDstn = IncShkDstn
+        self.ShkPrbsNext = IncShkDstn.pmf
+        self.PermShkValsNext = IncShkDstn.X[0]
+        self.TranShkValsNext = IncShkDstn.X[1]
         self.PermShkMinNext = np.min(self.PermShkValsNext)
         self.TranShkMinNext = np.min(self.TranShkValsNext)
         self.vPfuncNext = solution_next.vPfunc
@@ -672,7 +672,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         none
         """
         self.setAndUpdateValues(
-            self.solution_next, self.IncomeDstn, self.LivPrb, self.DiscFac
+            self.solution_next, self.IncShkDstn, self.LivPrb, self.DiscFac
         )
         self.defBoroCnst(self.BoroCnstArt)
 
@@ -763,7 +763,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA)
             * calcExpectation(
-                self.IncomeDstn,
+                self.IncShkDstn,
                 vp_next,
                 self.aNrmNow
             )
@@ -964,7 +964,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA - 1.0)
             * calcExpectation(
-                self.IncomeDstn,
+                self.IncShkDstn,
                 vpp_next,
                 self.aNrmNow
             )
@@ -999,7 +999,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             * self.PermGroFac ** (1.0 - self.CRRA)
             ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm))
         EndOfPrdv = self.DiscFacEff * calcExpectation(
-            self.IncomeDstn, v_lvl_next, self.aNrmNow
+            self.IncShkDstn, v_lvl_next, self.aNrmNow
         )
         EndOfPrdvNvrs = self.uinv(
             EndOfPrdv
@@ -1157,7 +1157,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
     ----------
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
-    IncomeDstn : [np.array]
+    IncShkDstn : [np.array]
         A list containing three arrays of floats, representing a discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
@@ -1196,7 +1196,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
     def __init__(
         self,
         solution_next,
-        IncomeDstn,
+        IncShkDstn,
         LivPrb,
         DiscFac,
         CRRA,
@@ -1217,7 +1217,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         ConsIndShockSolver.__init__(
             self,
             solution_next,
-            IncomeDstn,
+            IncShkDstn,
             LivPrb,
             DiscFac,
             CRRA,
@@ -1903,14 +1903,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
         none
         """
         (
-            IncomeDstn,
+            IncShkDstn,
             PermShkDstn,
             TranShkDstn,
         ) = self.constructLognormalIncomeProcessUnemployment()
-        self.IncomeDstn = IncomeDstn
+        self.IncShkDstn = IncShkDstn
         self.PermShkDstn = PermShkDstn
         self.TranShkDstn = TranShkDstn
-        self.addToTimeVary("IncomeDstn", "PermShkDstn", "TranShkDstn")
+        self.addToTimeVary("IncShkDstn", "PermShkDstn", "TranShkDstn")
 
     def updateAssetsGrid(self):
         """
@@ -1950,7 +1950,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Reset the RNG behavior of this type.  This method is called automatically
         by initializeSim(), ensuring that each simulation run uses the same sequence
         of random shocks; this is necessary for structural estimation to work.
-        This method extends AgentType.resetRNG() to also reset elements of IncomeDstn.
+        This method extends AgentType.resetRNG() to also reset elements of IncShkDstn.
 
         Parameters
         ----------
@@ -1962,14 +1962,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
         PerfForesightConsumerType.resetRNG(self)
 
-        # Reset IncomeDstn if it exists (it might not because resetRNG is called at init)
-        if hasattr(self, "IncomeDstn"):
-            for dstn in self.IncomeDstn:
+        # Reset IncShkDstn if it exists (it might not because resetRNG is called at init)
+        if hasattr(self, "IncShkDstn"):
+            for dstn in self.IncShkDstn:
                 dstn.reset()
 
     def getShocks(self):
         """
-        Gets permanent and transitory income shocks for this period.  Samples from IncomeDstn for
+        Gets permanent and transitory income shocks for this period.  Samples from IncShkDstn for
         each period in the cycle.
 
         Parameters
@@ -1987,12 +1987,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
             these = t == self.t_cycle
             N = np.sum(these)
             if N > 0:
-                IncomeDstnNow = self.IncomeDstn[
+                IncShkDstnNow = self.IncShkDstn[
                     t - 1
                 ]  # set current income distribution
                 PermGroFacNow = self.PermGroFac[t - 1]  # and permanent growth factor
                 # Get random draws of income shocks from the discrete distribution
-                IncShks = IncomeDstnNow.draw(N)
+                IncShks = IncShkDstnNow.draw(N)
+
                 PermShkNow[these] = (
                     IncShks[0, :] * PermGroFacNow
                 )  # permanent "shock" includes expected growth
@@ -2003,15 +2004,15 @@ class IndShockConsumerType(PerfForesightConsumerType):
         N = np.sum(newborn)
         if N > 0:
             these = newborn
-            IncomeDstnNow = self.IncomeDstn[0]  # set current income distribution
+            IncShkDstnNow = self.IncShkDstn[0]  # set current income distribution
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
             # Get random draws of income shocks from the discrete distribution
-            EventDraws = IncomeDstnNow.draw_events(N)
+            EventDraws = IncShkDstnNow.draw_events(N)
             PermShkNow[these] = (
-                IncomeDstnNow.X[0][EventDraws] * PermGroFacNow
+                IncShkDstnNow.X[0][EventDraws] * PermGroFacNow
             )  # permanent "shock" includes expected growth
-            TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
+            TranShkNow[these] = IncShkDstnNow.X[1][EventDraws]
         #        PermShkNow[newborn] = 1.0
         TranShkNow[newborn] = 1.0
 
@@ -2040,9 +2041,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         None
         """
         # Unpack the income distribution and get average and worst outcomes
-        PermShkValsNext = self.IncomeDstn[0][1]
-        TranShkValsNext = self.IncomeDstn[0][2]
-        ShkPrbsNext = self.IncomeDstn[0][0]
+        PermShkValsNext = self.IncShkDstn[0][1]
+        TranShkValsNext = self.IncShkDstn[0][2]
+        ShkPrbsNext = self.IncShkDstn[0][0]
         ExIncNext = np.dot(ShkPrbsNext, PermShkValsNext * TranShkValsNext)
         PermShkMinNext = np.min(PermShkValsNext)
         TranShkMinNext = np.min(TranShkValsNext)
@@ -2077,7 +2078,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
         Stores result in attribute eulerErrorFunc as an interpolated function.
-        Has option to use approximate income distribution stored in self.IncomeDstn
+        Has option to use approximate income distribution stored in self.IncShkDstn
         or to use a (temporary) very dense approximation.
 
         Only works on (one period) infinite horizon models at this time, will
@@ -2089,9 +2090,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
             Maximum normalized market resources for the Euler error function.
         approx_inc_dstn : Boolean
             Indicator for whether to use the approximate discrete income distri-
-            bution stored in self.IncomeDstn[0], or to use a very accurate
+            bution stored in self.IncShkDstn[0], or to use a very accurate
             discrete approximation instead.  When True, uses approximation in
-            IncomeDstn; when False, makes and uses a very dense approximation.
+            IncShkDstn; when False, makes and uses a very dense approximation.
 
         Returns
         -------
@@ -2104,7 +2105,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
         # Get the income distribution (or make a very dense one)
         if approx_inc_dstn:
-            IncomeDstn = self.IncomeDstn[0]
+            IncShkDstn = self.IncShkDstn[0]
         else:
             TranShkDstn = MeanOneLogNormal(sigma=self.TranShkStd[0]).approx(
                 N=200, tail_N=50, tail_order=1.3, tail_bound=[0.05, 0.95]
@@ -2115,7 +2116,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             PermShkDstn = MeanOneLogNormal(sigma=self.PermShkStd[0]).approx(
                 N=200, tail_N=50, tail_order=1.3, tail_bound=[0.05, 0.95]
             )
-            IncomeDstn = combineIndepDstns(PermShkDstn, TranShkDstn)
+            IncShkDstn = combineIndepDstns(PermShkDstn, TranShkDstn)
 
         # Make a grid of market resources
         mNowMin = self.solution[0].mNrmMin + 10 ** (
@@ -2134,12 +2135,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         aNowGrid = mNowGrid - cNowGrid
 
         # Tile the grids for fast computation
-        ShkCount = IncomeDstn[0].size
+        ShkCount = IncShkDstn[0].size
         aCount = aNowGrid.size
         aNowGrid_tiled = np.tile(aNowGrid, (ShkCount, 1))
-        PermShkVals_tiled = (np.tile(IncomeDstn[1], (aCount, 1))).transpose()
-        TranShkVals_tiled = (np.tile(IncomeDstn[2], (aCount, 1))).transpose()
-        ShkPrbs_tiled = (np.tile(IncomeDstn[0], (aCount, 1))).transpose()
+        PermShkVals_tiled = (np.tile(IncShkDstn[1], (aCount, 1))).transpose()
+        TranShkVals_tiled = (np.tile(IncShkDstn[2], (aCount, 1))).transpose()
+        ShkPrbs_tiled = (np.tile(IncShkDstn[0], (aCount, 1))).transpose()
 
         # Calculate marginal value next period for each gridpoint and each shock
         mNextArray = (
@@ -2471,7 +2472,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         Returns
         -------
-        IncomeDstn :  [[np.array]]
+        IncShkDstn :  [[np.array]]
             A list with T_cycle elements, each of which is a list of three arrays
             representing a discrete approximation to the income process in a period.
             Order: probabilities, permanent shocks, transitory shocks.
@@ -2494,7 +2495,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         UnempPrbRet = self.UnempPrbRet
         IncUnempRet = self.IncUnempRet
 
-        IncomeDstn = []  # Discrete approximations to income process in each period
+        IncShkDstn = []  # Discrete approximations to income process in each period
         PermShkDstn = []  # Discrete approximations to permanent income shocks
         TranShkDstn = []  # Discrete approximations to transitory income shocks
 
@@ -2516,18 +2517,18 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 PermShkValsRet = np.array([1.0])
                 TranShkValsRet = np.array([1.0])
                 ShkPrbsRet = np.array([1.0])
-            IncomeDstnRet = DiscreteDistribution(
+            IncShkDstnRet = DiscreteDistribution(
                 ShkPrbsRet,
                 [PermShkValsRet, TranShkValsRet],
                 seed=self.RNG.randint(0, 2 ** 31 - 1),
             )
 
-        # Loop to fill in the list of IncomeDstn random variables.
+        # Loop to fill in the list of IncShkDstn random variables.
         for t in range(T_cycle):  # Iterate over all periods, counting forward
 
             if T_retire > 0 and t >= T_retire:
                 # Then we are in the "retirement period" and add a retirement income object.
-                IncomeDstn.append(deepcopy(IncomeDstnRet))
+                IncShkDstn.append(deepcopy(IncShkDstnRet))
                 PermShkDstn.append([np.array([1.0]), np.array([1.0])])
                 TranShkDstn.append([ShkPrbsRet, TranShkValsRet])
             else:
@@ -2544,7 +2545,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 )
                 ### REPLACE
                 ###REPLACE
-                IncomeDstn.append(
+                IncShkDstn.append(
                     combineIndepDstns(
                         PermShkDstn_t,
                         TranShkDstn_t,
@@ -2553,7 +2554,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 )  # mix the independent distributions
                 PermShkDstn.append(PermShkDstn_t)
                 TranShkDstn.append(TranShkDstn_t)
-        return IncomeDstn, PermShkDstn, TranShkDstn
+        return IncShkDstn, PermShkDstn, TranShkDstn
 
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
@@ -2621,11 +2622,11 @@ class KinkedRconsumerType(IndShockConsumerType):
         None
         """
         # Unpack the income distribution and get average and worst outcomes
-        PermShkValsNext = self.IncomeDstn[0][1]
-        TranShkValsNext = self.IncomeDstn[0][2]
-        ShkPrbsNext = self.IncomeDstn[0][0]
+        PermShkValsNext = self.IncShkDstn[0][1]
+        TranShkValsNext = self.IncShkDstn[0][2]
+        ShkPrbsNext = self.IncShkDstn[0][0]
         ExIncNext = calcExpectation(
-            IncomeDstn,
+            IncShkDstn,
             lambda trans, perm : trans * perm
         )
         PermShkMinNext = np.min(PermShkValsNext)
@@ -2664,7 +2665,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
         Stores result in attribute eulerErrorFunc as an interpolated function.
-        Has option to use approximate income distribution stored in self.IncomeDstn
+        Has option to use approximate income distribution stored in self.IncShkDstn
         or to use a (temporary) very dense approximation.
 
         SHOULD BE INHERITED FROM ConsIndShockModel
@@ -2675,9 +2676,9 @@ class KinkedRconsumerType(IndShockConsumerType):
             Maximum normalized market resources for the Euler error function.
         approx_inc_dstn : Boolean
             Indicator for whether to use the approximate discrete income distri-
-            bution stored in self.IncomeDstn[0], or to use a very accurate
+            bution stored in self.IncShkDstn[0], or to use a very accurate
             discrete approximation instead.  When True, uses approximation in
-            IncomeDstn; when False, makes and uses a very dense approximation.
+            IncShkDstn; when False, makes and uses a very dense approximation.
 
         Returns
         -------
@@ -2728,7 +2729,7 @@ class KinkedRconsumerType(IndShockConsumerType):
 
 
 def applyFlatIncomeTax(
-    IncomeDstn, tax_rate, T_retire, unemployed_indices=None, transitory_index=2
+    IncShkDstn, tax_rate, T_retire, unemployed_indices=None, transitory_index=2
 ):
     """
     Applies a flat income tax rate to all employed income states during the working
@@ -2736,7 +2737,7 @@ def applyFlatIncomeTax(
 
     Parameters
     ----------
-    IncomeDstn : [income distributions]
+    IncShkDstn : [income distributions]
         The discrete approximation to the income distribution in each time period.
     tax_rate : float
         A flat income tax rate to be applied to all employed income.
@@ -2745,24 +2746,24 @@ def applyFlatIncomeTax(
     unemployed_indices : [int]
         Indices of transitory shocks that represent unemployment states (no tax).
     transitory_index : int
-        The index of each element of IncomeDstn representing transitory shocks.
+        The index of each element of IncShkDstn representing transitory shocks.
 
     Returns
     -------
-    IncomeDstn_new : [income distributions]
+    IncShkDstn_new : [income distributions]
         The updated income distributions, after applying the tax.
     """
     unemployed_indices = (
         unemployed_indices if unemployed_indices is not None else list()
     )
-    IncomeDstn_new = deepcopy(IncomeDstn)
+    IncShkDstn_new = deepcopy(IncShkDstn)
     i = transitory_index
-    for t in range(len(IncomeDstn)):
+    for t in range(len(IncShkDstn)):
         if t < T_retire:
-            for j in range((IncomeDstn[t][i]).size):
+            for j in range((IncShkDstn[t][i]).size):
                 if j not in unemployed_indices:
-                    IncomeDstn_new[t][i][j] = IncomeDstn[t][i][j] * (1 - tax_rate)
-    return IncomeDstn_new
+                    IncShkDstn_new[t][i][j] = IncShkDstn[t][i][j] * (1 - tax_rate)
+    return IncShkDstn_new
 
 
 # =======================================================

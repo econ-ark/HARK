@@ -119,7 +119,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     ----------
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
-    IncomeDstn : [np.array]
+    IncShkDstn : [np.array]
         A list containing three arrays of floats, representing a discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
@@ -153,7 +153,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     def __init__(
         self,
         solution_next,
-        IncomeDstn,
+        IncShkDstn,
         LivPrb,
         DiscFac,
         CRRA,
@@ -167,7 +167,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     ):
         self.assignParameters(
             solution_next=solution_next,
-            IncomeDstn=IncomeDstn,
+            IncShkDstn=IncShkDstn,
             LivPrb=LivPrb,
             DiscFac=DiscFac,
             CRRA=CRRA,
@@ -182,7 +182,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         )  # dummy 0.0 variable why PermGroFac?
         self.defUtilityFuncs()
 
-    def setAndUpdateValues(self, solution_next, IncomeDstn, LivPrb, DiscFac):
+    def setAndUpdateValues(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.  These include:
@@ -195,7 +195,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncomeDstn : [np.array]
+        IncShkDstn : [np.array]
             A list containing three arrays of floats, representing a discrete
             approximation to the income process between the period being solved
             and the one immediately following (in solution_next). Order: event
@@ -212,7 +212,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         """
         # Run basic version of this method
         ConsIndShockSetup.setAndUpdateValues(
-            self, solution_next, IncomeDstn, LivPrb, DiscFac
+            self, solution_next, IncShkDstn, LivPrb, DiscFac
         )
         self.mLvlMinNext = solution_next.mLvlMin
 
