@@ -161,7 +161,7 @@ class Compare_TBS_and_Markov(unittest.TestCase):
         unemployed_income_dist = DiscreteDistribution(
             np.ones(1), [np.ones(1), np.zeros(1)]
         )
-        MarkovType.IncomeDstn = [[employed_income_dist, unemployed_income_dist]]
+        MarkovType.IncShkDstn = [[employed_income_dist, unemployed_income_dist]]
 
         MarkovType.solve()
         MarkovType.unpack("cFunc")

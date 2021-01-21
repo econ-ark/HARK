@@ -775,7 +775,8 @@ class AgentType(HARKobject):
 
         Returns
         -------
-        None
+        history : dict
+            The history tracked during the simulation.
         """
         if not hasattr(self, "t_sim"):
             raise Exception(
@@ -821,6 +822,8 @@ class AgentType(HARKobject):
                     else:
                         self.history[var_name][self.t_sim, :] = getattr(self, var_name)
                 self.t_sim += 1
+
+            return self.history
 
     def clearHistory(self):
         """
