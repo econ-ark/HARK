@@ -179,7 +179,7 @@ class PrefShockConsumerType(IndShockConsumerType):
             these = t == self.t_cycle
             N = np.sum(these)
             if N > 0:
-                PrefShkNow[these] = self.PrefShkDstn[t].drawDiscrete(N)
+                PrefShkNow[these] = self.PrefShkDstn[t].draw(N)
         self.shocks["PrefShkNow"] = PrefShkNow
 
     def getControls(self):
@@ -247,6 +247,11 @@ class PrefShockConsumerType(IndShockConsumerType):
         Returns
         -------
         None
+
+        Notes
+        -----
+        This method is not used by any other code in the library. Rather, it is here
+        for expository and benchmarking purposes.
         """
         raise NotImplementedError()
 

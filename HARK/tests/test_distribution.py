@@ -22,11 +22,11 @@ class DiscreteDistributionTests(unittest.TestCase):
     with default seed.
     """
 
-    def test_drawDiscrete(self):
+    def test_draw(self):
         self.assertEqual(
             DiscreteDistribution(
                 np.ones(1),
-                np.zeros(1)).drawDiscrete(1)[
+                np.zeros(1)).draw(1)[
                 0
             ],
             0,
