@@ -4,14 +4,14 @@ This folder contains tools for transforming nominal U.S. dollar quantities to di
 
 ## Data
 
-The dataset is stored in file `./r-cpi-u-rs-allitems.xlsx`, which comes directly from the [U.S. Bureau of Labor Statistics](https://www.bls.gov/cpi/research-series/r-cpi-u-rs-home.htm).
-As of January 21, 2021 the direct link to the file was [https://www.bls.gov/cpi/research-series/r-cpi-u-rs-allitems.xlsx](https://www.bls.gov/cpi/research-series/r-cpi-u-rs-allitems.xlsx).
+The dataset is stored in file `./r-cpi-u-rs-allitems.csv`, which comes from the [U.S. Bureau of Labor Statistics](https://www.bls.gov/cpi/research-series/r-cpi-u-rs-home.htm).
+As of January 21, 2021 the direct link to the file was [https://www.bls.gov/cpi/research-series/r-cpi-u-rs-allitems.xlsx](https://www.bls.gov/cpi/research-series/r-cpi-u-rs-allitems.xlsx). The BLS originally distributes the series as a `.xlsx` file. The file found here is a copy of the original, converted to `.csv`.
 
 The file contains the monthly research series (retroactive, using current methods) of the consumer price index (all items) starting in 1977.
 
 ### Format
 
-The Excel file is formatted so that each row represents a year, with CPI measurements for each month stored in columns in ascending order. There is an
+The file is formatted so that each row represents a year, with CPI measurements for each month stored in columns in ascending order. There is an
 additional column labeled `AVG` which corresponds to the average of CPI measurements across months.
 
 ## Tools
