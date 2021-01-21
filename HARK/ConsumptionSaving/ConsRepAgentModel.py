@@ -10,7 +10,7 @@ from builtins import str
 from builtins import range
 import numpy as np
 from HARK.interpolation import LinearInterp, MargValueFuncCRRA
-from HARK.distribution import Uniform
+from HARK.distribution import (MarkovProcess, Uniform)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     ConsumerSolution,
@@ -349,12 +349,13 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         -------
         None
         """
-        cutoffs = np.cumsum(self.MrkvArray[self.MrkvNow, :])
-        MrkvDraw = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(N=1)
-        self.MrkvNow = np.searchsorted(cutoffs, MrkvDraw)
+        self.MrkvNow = MarkovProcess(
+            self.MrkvArray,
+            seed=self.RNG.randint(0, 2 ** 31 - 1)
+            ).draw(self.MrkvNow)
 
         t = self.t_cycle[0]
-        i = self.MrkvNow[0]
+        i = self.MrkvNow
         IncShkDstnNow = self.IncShkDstn[t - 1][i]  # set current income distribution
         PermGroFacNow = self.PermGroFac[t - 1][i]  # and permanent growth factor
         # Get random draws of income shocks from the discrete distribution
@@ -379,7 +380,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         None
         """
         t = self.t_cycle[0]
-        i = self.MrkvNow[0]
+        i = self.MrkvNow
         self.controls["cNrmNow"] = self.solution[t].cFunc[i](self.mNrmNow)
 
 

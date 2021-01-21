@@ -19,6 +19,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 
 from HARK.distribution import (
     DiscreteDistribution,
+    MarkovProcess,
     Uniform,
     calcExpectation
 )
@@ -1057,15 +1058,6 @@ class MarkovConsumerType(IndShockConsumerType):
         -------
         None
         """
-        # Draw random numbers that will be used to determine the next Markov state
-        if self.global_markov:
-            base_draws = np.ones(self.AgentCount) * Uniform(
-                seed=self.RNG.randint(0, 2 ** 31 - 1)
-            ).draw(1)
-        else:
-            base_draws = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(
-                self.AgentCount
-            )
         dont_change = (
             self.t_age == 0
         )  # Don't change Markov state for those who were just born (unless global_markov)
@@ -1076,20 +1068,15 @@ class MarkovConsumerType(IndShockConsumerType):
         J = self.MrkvArray[0].shape[0]
         MrkvPrev = self.shocks["MrkvNow"]
         MrkvNow = np.zeros(self.AgentCount, dtype=int)
-        MrkvBoolArray = np.zeros((J, self.AgentCount))
-
-        for j in range(J):
-            MrkvBoolArray[j, :] = MrkvPrev == j
 
         # Draw new Markov states for each agent
         for t in range(self.T_cycle):
-            Cutoffs = np.cumsum(self.MrkvArray[t], axis=1)
+            markov_process = MarkovProcess(
+                self.MrkvArray[t],
+                seed=self.RNG.randint(0, 2 ** 31 - 1)
+                )
             right_age = self.t_cycle == t
-            for j in range(J):
-                these = np.logical_and(right_age, MrkvBoolArray[j, :])
-                MrkvNow[these] = np.searchsorted(
-                    Cutoffs[j, :], base_draws[these]
-                ).astype(int)
+            MrkvNow[right_age] = markov_process.draw(MrkvPrev[right_age])
         if not self.global_markov:
             MrkvNow[dont_change] = MrkvPrev[dont_change]
 
