@@ -119,7 +119,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     ----------
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
-    IncomeDstn : [np.array]
+    IncShkDstn : [np.array]
         A list containing three arrays of floats, representing a discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
@@ -153,7 +153,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     def __init__(
         self,
         solution_next,
-        IncomeDstn,
+        IncShkDstn,
         LivPrb,
         DiscFac,
         CRRA,
@@ -167,7 +167,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     ):
         self.assignParameters(
             solution_next=solution_next,
-            IncomeDstn=IncomeDstn,
+            IncShkDstn=IncShkDstn,
             LivPrb=LivPrb,
             DiscFac=DiscFac,
             CRRA=CRRA,
@@ -182,7 +182,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         )  # dummy 0.0 variable why PermGroFac?
         self.defUtilityFuncs()
 
-    def setAndUpdateValues(self, solution_next, IncomeDstn, LivPrb, DiscFac):
+    def setAndUpdateValues(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.  These include:
@@ -195,7 +195,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncomeDstn : [np.array]
+        IncShkDstn : [np.array]
             A list containing three arrays of floats, representing a discrete
             approximation to the income process between the period being solved
             and the one immediately following (in solution_next). Order: event
@@ -212,7 +212,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         """
         # Run basic version of this method
         ConsIndShockSetup.setAndUpdateValues(
-            self, solution_next, IncomeDstn, LivPrb, DiscFac
+            self, solution_next, IncShkDstn, LivPrb, DiscFac
         )
         self.mLvlMinNext = solution_next.mLvlMin
 
@@ -1031,7 +1031,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
             # Calculate distribution of persistent income in each period of lifecycle
             for t in range(len(self.PermShkStd)):
                 if t > 0:
-                    PermShkNow = self.PermShkDstn[t - 1].drawDiscrete(N=self.AgentCount)
+                    PermShkNow = self.PermShkDstn[t - 1].draw(N=self.AgentCount)
                     pLvlNow = self.pLvlNextFunc[t - 1](pLvlNow) * PermShkNow
                 pLvlGrid.append(getPercentiles(pLvlNow, percentiles=self.pLvlPctiles))
 
@@ -1055,7 +1055,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
                 for j in range(self.T_cycle):  # Update persistent income
                     these = t_cycle == j
-                    PermShkTemp = self.PermShkDstn[j].drawDiscrete(N=np.sum(these))
+                    PermShkTemp = self.PermShkDstn[j].draw(N=np.sum(these))
                     pLvlNow[these] = self.pLvlNextFunc[j](pLvlNow[these]) * PermShkTemp
                 t_cycle = t_cycle + 1
                 t_cycle[t_cycle == self.T_cycle] = 0

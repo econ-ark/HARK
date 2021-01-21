@@ -65,7 +65,7 @@ class test_ConsMarkovSolver(unittest.TestCase):
         unemployed_income_dist = DiscreteDistribution(
             np.ones(1), [np.ones(1), np.zeros(1)]
         )  # Definitely don't
-        self.model.IncomeDstn = [
+        self.model.IncShkDstn = [
             [
                 employed_income_dist,
                 unemployed_income_dist,

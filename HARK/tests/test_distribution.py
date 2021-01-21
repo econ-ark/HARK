@@ -22,11 +22,11 @@ class DiscreteDistributionTests(unittest.TestCase):
     with default seed.
     """
 
-    def test_drawDiscrete(self):
+    def test_draw(self):
         self.assertEqual(
             DiscreteDistribution(
                 np.ones(1),
-                np.zeros(1)).drawDiscrete(1)[
+                np.zeros(1)).draw(1)[
                 0
             ],
             0,
@@ -77,17 +77,17 @@ class DiscreteDistributionTests(unittest.TestCase):
 
         PermShkDstn = MeanOneLogNormal().approx(200)
         TranShkDstn = MeanOneLogNormal().approx(200)
-        IncomeDstn = combineIndepDstns(PermShkDstn, TranShkDstn)
+        IncShkDstn = combineIndepDstns(PermShkDstn, TranShkDstn)
 
         ce8 = calcExpectation(
-            IncomeDstn,
+            IncShkDstn,
             lambda X: X[0] + X[1]
         )
 
         self.assertAlmostEqual(ce8, 2.0)
 
         ce9 = calcExpectation(
-            IncomeDstn,
+            IncShkDstn,
             lambda X, a, r: r / X[0] * a + X[1],
             np.array([0,1,2,3,4,5]), # an aNrmNow grid?
             1.05 # an interest rate?
