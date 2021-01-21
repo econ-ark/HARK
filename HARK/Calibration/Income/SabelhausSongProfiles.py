@@ -31,6 +31,7 @@ from HARK.interpolation import LinearInterp
 # age_dummy(age) + beta * (cohort - 1926)
 # Where we have dummies for ages 27 to 54
 Sabelhaus_Song_cohort_trend = {
+    "Ages": np.arange(27, 55),
     "AgeDummiesPrm": np.array(
         [
             0.0837941,
@@ -105,6 +106,7 @@ Sabelhaus_Song_cohort_trend = {
 # Where we have dummies for ages 27 to 54. We use this "aggregate"
 # specification if no cohort is provided.
 Sabelhaus_Song_all_years = {
+    "Ages": np.arange(27, 55),
     "AgeDummiesPrm": np.array(
         [
             0.0599296,
@@ -174,7 +176,8 @@ Sabelhaus_Song_all_years = {
 }
 
 
-def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None):
+def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None,
+                               smooth = True):
     """
     This is a function to find the life-cycle profiles of the volatilities
     of transitory and permanent shocks to income using the estimates in 
@@ -190,17 +193,21 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None):
         Birth year of the hypothetical person for which the volatilities will
         be constructed. The default is None, and in this case the we will
         use the specification that does not have cohort trends.
-
+    smooth: bool, optional
+        Boolean indicating whether to smooth the variance profile estimates
+        using third degree polynomials for the age dummies estimated by
+        Sabelhaus and Song. If False, the original dummies are used.
+        
     Returns
     -------
     profiles : dict
         Dictionary with entries:
-            - Age: list of ages for which we found income volatilities in
-                ascending order.
-            - TranShkStd: list of standard deviations of transitory income
-                shocks. Position n corresponds to Age[n].
-            - PermShkStd: list of standard deviations of permanent income
-                shocks. Position n corresponds to Age[n].
+            - Ages: array of ages for which we found income volatilities in
+                ascending order
+            - TranShkStd: array of standard deviations of transitory income
+                shocks. Position n corresponds to Ages[n].
+            - PermShkStd: array of standard deviations of permanent income
+                shocks. Position n corresponds to Ages[n].
         
         Note that TransShkStd[n] and PermShkStd[n] are the volatilities of
         shocks _experienced_ at age Age[n], (not those expected at Age[n+1]
@@ -229,13 +236,26 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None):
     tran_age_dummies = spec["AgeDummiesTrn"]
     perm_age_dummies = spec["AgeDummiesPrm"]
 
+    # Smooth out dummies using a 3rd degree polynomial if requested
+    if smooth:
+        
+        # Fit polynomials
+        tran_poly = np.poly1d(np.polyfit(spec['Ages'],
+                                         tran_age_dummies, deg = 3))
+        perm_poly = np.poly1d(np.polyfit(spec['Ages'],
+                                         perm_age_dummies, deg = 3))
+        
+        # Replace dummies
+        tran_age_dummies = tran_poly(spec['Ages'])
+        perm_age_dummies = perm_poly(spec['Ages'])
+        
     # Make interpolators for transitory and permanent dummies. Alter to use
     # flat extrapolation.
 
     # We use Sabelhaus and Song (2010) dummies for ages 27-54 and extrapolate
     # outside of that just using the endpoints.
     tran_dummy_interp = LinearInterp(
-        np.arange(26, 56),
+        np.arange(min(spec['Ages'])-1, max(spec['Ages'])+2),
         np.concatenate(
             [[tran_age_dummies[0]], tran_age_dummies, [tran_age_dummies[-1]]]
         ),
@@ -243,7 +263,7 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None):
     )
 
     perm_dummy_interp = LinearInterp(
-        np.arange(26, 56),
+        np.arange(min(spec['Ages'])-1, max(spec['Ages'])+2),
         np.concatenate(
             [[perm_age_dummies[0]], perm_age_dummies, [perm_age_dummies[-1]]]
         ),
