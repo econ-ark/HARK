@@ -212,6 +212,10 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None,
         Note that TransShkStd[n] and PermShkStd[n] are the volatilities of
         shocks _experienced_ at age Age[n], (not those expected at Age[n+1]
         from the perspective of Age[n]).
+        
+        Note that Sabelhaus and Song work in discrete time and with periods
+        that represent one year. Therefore, the outputs must be interpreted
+        at the yearly frequency.
     """
 
     assert age_max >= age_min, (
