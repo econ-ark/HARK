@@ -19,8 +19,9 @@ us_cpi_dir = os.path.dirname(os.path.abspath(__file__))
 def download_cpi_series():
     """
     A method that downloads the cpi research series file directly from the
-    bls site onto the working directory. This is the file that the rest of
-    the functions in this script use and is placed in HARK/datasets/cpi/us.
+    bls site onto the working directory.
+    After being converted to a .csv, this is the file that the rest of
+    the functions in this script use and must be placed in HARK/datasets/cpi/us.
     This function is not for users but for whenever mantainers want to update
     the cpi series as new data comes out.
 
@@ -47,13 +48,12 @@ def get_cpi_series():
         Bureau of Labor Statistics.
 
     """
-    cpi = pd.read_excel(
-        os.path.join(us_cpi_dir, "r-cpi-u-rs-allitems.xlsx"),
+    
+    cpi = pd.read_csv(
+        os.path.join(us_cpi_dir, "r-cpi-u-rs-allitems.csv"),
         skiprows=5,
-        usecols="A:N",
         index_col=0,
     )
-
     return cpi
 
 
