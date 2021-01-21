@@ -10,18 +10,65 @@ import warnings
 import numpy as np
 
 def download_cpi_series():
-    
+    """
+    A method that downloads the cpi research series file directly from the
+    bls site onto the working directory. This is the file that the rest of
+    the functions in this script use and is placed in HARK/datasets/cpi/us.
+    This function is not for users but for whenever mantainers want to update
+    the cpi series as new data comes out.
+
+    Returns
+    -------
+    None.
+
+    """
     urllib.request.urlretrieve("https://www.bls.gov/cpi/research-series/r-cpi-u-rs-allitems.xlsx",
                                "r-cpi-u-rs-allitems.xlsx")
 
 def get_cpi_series():
-    
+    """
+    This function reads the cpi series currently in the toolbox and returns it
+    as a pandas dataframe.
+
+    Returns
+    -------
+    cpi : Pandas DataFrame
+        DataFrame representation of the CPI research series file from the
+        Bureau of Labor Statistics.
+
+    """
     cpi = pd.read_excel("r-cpi-u-rs-allitems.xlsx", skiprows = 5,
                         usecols = "A:N", index_col=0)
     
     return cpi
     
 def cpi_deflator(from_year, to_year, base_month = None):
+    """
+    Finds cpi deflator to transform quantities measured in "from_year" U.S.
+    dollars to "to_year" U.S. dollars.
+    The deflators are computed using the "r-cpi-u-rs" series from the BLS.
+
+    Parameters
+    ----------
+    from_year : int
+        Base year in which the nominal quantities are currently expressed.
+    to_year : int
+        Target year in which you wish to express the quantities.
+    base_month : str, optional
+        Month at which to take the CPI measurements to calculate the deflator.
+        The default is None, and in this case annual averages of the CPI are
+        used.
+
+    Returns
+    -------
+    deflator : numpy array
+        A length-1 numpy array with the deflator that, when multiplied by the
+        original nominal quantities, rebases them to "to_year" U.S. dollars.
+
+    """
+    
+    # Check years are conforming
+    assert type(from_year) is int and type(to_year) is int, "Years must be integers."
     
     # Check month is conforming
     if base_month is not None:
@@ -55,6 +102,3 @@ def cpi_deflator(from_year, to_year, base_month = None):
         raise Exception(message).with_traceback(e.__traceback__)
     
     return deflator
-
-#cpi_deflator(1989,2007, 'OCT')
-#cpi_deflator(1980,2010)
