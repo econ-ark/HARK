@@ -418,6 +418,12 @@ class AggShockConsumerType(IndShockConsumerType):
         Returns
         -------
         None
+
+        Notes
+        -----
+        This method is not used by any other code in the library. Rather, it is here
+        for expository and benchmarking purposes.
+
         """
         raise NotImplementedError()
 
@@ -530,7 +536,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
                 PermGroFacNow = self.PermGroFac[t - 1]  # and permanent growth factor
 
                 # Get random draws of income shocks from the discrete distribution
-                ShockDraws = IncomeDstnNow.drawDiscrete(N, exact_match=True)
+                ShockDraws = IncomeDstnNow.draw(N, exact_match=True)
                 # Permanent "shock" includes expected growth
                 PermShkNow[these] = ShockDraws[0] * PermGroFacNow
                 TranShkNow[these] = ShockDraws[1]
@@ -546,7 +552,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
             # Get random draws of income shocks from the discrete distribution
-            ShockDraws = IncomeDstnNow.drawDiscrete(N, exact_match=True)
+            ShockDraws = IncomeDstnNow.draw(N, exact_match=True)
             # Permanent "shock" includes expected growth
             PermShkNow[these] = ShockDraws[0] * PermGroFacNow
             TranShkNow[these] = ShockDraws[1]
@@ -1975,7 +1981,7 @@ class CobbDouglasEconomy(Market):
         """
         sim_periods = self.act_T
         Events = np.arange(self.AggShkDstn.pmf.size)  # just a list of integers
-        EventDraws = self.AggShkDstn.drawDiscrete(N=sim_periods, X=Events)
+        EventDraws = self.AggShkDstn.draw(N=sim_periods, X=Events)
         PermShkAggHist = self.AggShkDstn.X[0][EventDraws]
         TranShkAggHist = self.AggShkDstn.X[1][EventDraws]
 
@@ -2246,7 +2252,7 @@ class SmallOpenEconomy(Market):
         """
         sim_periods = self.act_T
         Events = np.arange(self.AggShkDstn.pmf.size)  # just a list of integers
-        EventDraws = self.AggShkDstn.drawDiscrete(N=sim_periods, X=Events)
+        EventDraws = self.AggShkDstn.draw(N=sim_periods, X=Events)
         PermShkAggHist = self.AggShkDstn.X[0][EventDraws]
         TranShkAggHist = self.AggShkDstn.X[1][EventDraws]
 
@@ -2480,7 +2486,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         PermShkAggHistAll = np.zeros((StateCount, sim_periods))
         TranShkAggHistAll = np.zeros((StateCount, sim_periods))
         for i in range(StateCount):
-            AggShockDraws = self.AggShkDstn[i].drawDiscrete(N=sim_periods)
+            AggShockDraws = self.AggShkDstn[i].draw(N=sim_periods)
             PermShkAggHistAll[i, :] = AggShockDraws[0, :]
             TranShkAggHistAll[i, :] = AggShockDraws[1, :]
 
