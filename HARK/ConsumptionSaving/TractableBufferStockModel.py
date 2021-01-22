@@ -26,7 +26,7 @@ from builtins import str
 import numpy as np
 
 # Import the HARK library.
-from HARK import AgentType, NullFunc, HARKobject
+from HARK import AgentType, NullFunc, MetricObject
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.utilities import (
     CRRAutility,
@@ -59,7 +59,7 @@ utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
 
 
-class TractableConsumerSolution(HARKobject):
+class TractableConsumerSolution(MetricObject):
     """
     A class representing the solution to a tractable buffer saving problem.
     Attributes include a list of money points mNrm_list, a list of consumption points

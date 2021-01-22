@@ -43,7 +43,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-from HARK import HARKobject, Market, AgentType
+from HARK import MetricObject, Market, AgentType
 from copy import deepcopy
 import matplotlib.pyplot as plt
 
@@ -68,6 +68,40 @@ utilityPP = CRRAutilityPP
 utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
+
+class MargValueFunc2D(MetricObject):
+    """
+    A class for representing a marginal value function in models where the
+    standard envelope condition of dvdm(m,M) = u'(c(m,M)) holds (with CRRA utility).
+    """
+
+    distance_criteria = ["cFunc", "CRRA"]
+
+    def __init__(self, cFunc, CRRA):
+        """
+        Constructor for a new marginal value function object.
+
+        Parameters
+        ----------
+        cFunc : function
+            A real function representing the marginal value function composed
+            with the inverse marginal utility function, defined on normalized individual market
+            resources and aggregate market resources-to-labor ratio: uP_inv(vPfunc(m,M)).
+            Called cFunc because when standard envelope condition applies,
+            uP_inv(vPfunc(m,M)) = cFunc(m,M).
+        CRRA : float
+            Coefficient of relative risk aversion.
+
+        Returns
+        -------
+        new instance of MargValueFunc
+        """
+        self.cFunc = deepcopy(cFunc)
+        self.CRRA = CRRA
+
+    def __call__(self, m, M):
+        return utilityP(self.cFunc(m, M), gam=self.CRRA)
+
 
 ###############################################################################
 
@@ -2219,7 +2253,7 @@ class SmallOpenEconomy(Market):
         Calculates a new dynamic rule for the economy, which is just an empty object.
         There is no "dynamic rule" for a small open economy, because K/L does not generate w and R.
         """
-        return HARKobject()
+        return MetricObject()
 
     def reset(self):
         """
@@ -2735,7 +2769,7 @@ class SmallOpenMarkovEconomy(CobbDouglasMarkovEconomy, SmallOpenEconomy):
         return temp
 
     def calcDynamics(self, KtoLnow):
-        return HARKobject()
+        return MetricObject()
 
     def makeAggShkHist(self):
         CobbDouglasMarkovEconomy.makeAggShkHist(self)
@@ -3079,7 +3113,7 @@ class KrusellSmithEconomy(Market):
         return AggShocksDynamicRule(AFunc_list)
 
 
-class AggregateSavingRule(HARKobject):
+class AggregateSavingRule(MetricObject):
     """
     A class to represent agent beliefs about aggregate saving at the end of this period (AaggNow) as
     a function of (normalized) aggregate market resources at the beginning of the period (MaggNow).
@@ -3114,7 +3148,7 @@ class AggregateSavingRule(HARKobject):
         return Aagg
 
 
-class AggShocksDynamicRule(HARKobject):
+class AggShocksDynamicRule(MetricObject):
     """
     Just a container class for passing the dynamic rule in the aggregate shocks model to agents.
 

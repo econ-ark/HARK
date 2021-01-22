@@ -19,7 +19,7 @@ from builtins import object
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
-from HARK import AgentType, NullFunc, HARKobject, makeOnePeriodOOSolver
+from HARK import AgentType, NullFunc, MetricObject, makeOnePeriodOOSolver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import (
     CubicInterp,
@@ -80,7 +80,7 @@ utilityP_invP = CRRAutilityP_invP
 # =====================================================================
 
 
-class ConsumerSolution(HARKobject):
+class ConsumerSolution(MetricObject):
     """
     A class representing the solution of a single period of a consumption-saving
     problem.  The solution must include a consumption function and marginal
@@ -185,10 +185,12 @@ class ConsumerSolution(HARKobject):
 # =====================================================================
 
 
-class ConsPerfForesightSolver(HARKobject):
+class ConsPerfForesightSolver(MetricObject):
     """
-    A class for solving a one period perfect foresight consumption-saving problem.
-    An instance of this class is created by the function solvePerfForesight in each period.
+    A class for solving a one period perfect foresight
+    consumption-saving problem.
+    An instance of this class is created by the function solvePerfForesight
+    in each period.
 
     Parameters
     ----------
@@ -225,24 +227,14 @@ class ConsPerfForesightSolver(HARKobject):
         BoroCnstArt,
         MaxKinks,
     ):
-        # We ask that HARK users define single-letter variables they use in a dictionary
-        # attribute called notation. Do that first.
-
-        self.notation = {
-            "a": "assets after all actions",
-            "m": "market resources at decision time",
-            "c": "consumption",
-        }
-        self.assignParameters(
-            solution_next=solution_next,
-            DiscFac=DiscFac,
-            LivPrb=LivPrb,
-            CRRA=CRRA,
-            Rfree=Rfree,
-            PermGroFac=PermGroFac,
-            BoroCnstArt=BoroCnstArt,
-            MaxKinks=MaxKinks,
-        )
+        self.solution_next = solution_next
+        self.DiscFac = DiscFac
+        self.LivPrb = LivPrb
+        self.CRRA = CRRA
+        self.Rfree = Rfree
+        self.PermGroFac = PermGroFac
+        self.BoroCnstArt = BoroCnstArt
+        self.MaxKinks = MaxKinks
 
     def defUtilityFuncs(self):
         """
@@ -514,19 +506,22 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         vFuncBool,
         CubicBool,
     ):
-        self.assignParameters(
-            solution_next=solution_next,
-            IncShkDstn=IncShkDstn,
-            LivPrb=LivPrb,
-            DiscFac=DiscFac,
-            CRRA=CRRA,
-            Rfree=Rfree,
-            PermGroFac=PermGroFac,
-            BoroCnstArt=BoroCnstArt,
-            aXtraGrid=aXtraGrid,
-            vFuncBool=vFuncBool,
-            CubicBool=CubicBool,
-        )
+        """
+        Constructor for a new solver-setup for problems with income subject to
+        permanent and transitory shocks.
+        """
+        self.solution_next = solution_next
+        self.IncShkDstn = IncShkDstn
+        self.LivPrb = LivPrb
+        self.DiscFac = DiscFac
+        self.CRRA = CRRA
+        self.Rfree = Rfree
+        self.PermGroFac = PermGroFac
+        self.BoroCnstArt = BoroCnstArt
+        self.aXtraGrid = aXtraGrid
+        self.vFuncBool = vFuncBool
+        self.CubicBool = CubicBool
+
         self.defUtilityFuncs()
 
     def defUtilityFuncs(self):

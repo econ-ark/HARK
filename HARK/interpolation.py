@@ -4,13 +4,13 @@ It also includes wrapper classes to enforce standard methods across classes.
 Each interpolation class must have a distance() method that compares itself to
 another instance; this is used in HARK.core's solve() method to check for solution
 convergence.  The interpolator classes currently in this module inherit their
-distance method from HARKobject.
+distance method from MetricObject.
 """
 from __future__ import division, print_function
 from __future__ import absolute_import
 from builtins import range
 import numpy as np
-from .core import HARKobject
+from .core import MetricObject
 from copy import deepcopy
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP
 import warnings
@@ -59,7 +59,7 @@ def _check_flatten(dimension, *args):
             return True
 
 
-class HARKinterpolator1D(HARKobject):
+class HARKinterpolator1D(MetricObject):
     """
     A wrapper class for 1D interpolation methods in HARK.
     """
@@ -143,7 +143,7 @@ class HARKinterpolator1D(HARKobject):
         raise NotImplementedError()
 
 
-class HARKinterpolator2D(HARKobject):
+class HARKinterpolator2D(MetricObject):
     """
     A wrapper class for 2D interpolation methods in HARK.
     """
@@ -237,7 +237,7 @@ class HARKinterpolator2D(HARKobject):
         raise NotImplementedError()
 
 
-class HARKinterpolator3D(HARKobject):
+class HARKinterpolator3D(MetricObject):
     """
     A wrapper class for 3D interpolation methods in HARK.
     """
@@ -378,7 +378,7 @@ class HARKinterpolator3D(HARKobject):
         raise NotImplementedError()
 
 
-class HARKinterpolator4D(HARKobject):
+class HARKinterpolator4D(MetricObject):
     """
     A wrapper class for 4D interpolation methods in HARK.
     """
@@ -580,7 +580,7 @@ class HARKinterpolator4D(HARKobject):
         raise NotImplementedError()
 
 
-class IdentityFunction(HARKobject):
+class IdentityFunction(MetricObject):
     """
     A fairly trivial interpolator that simply returns one of its arguments.  Useful for avoiding
     numeric error in extreme cases.
@@ -673,7 +673,7 @@ class IdentityFunction(HARKobject):
             return np.zeros_like(*args[0])
 
 
-class ConstantFunction(HARKobject):
+class ConstantFunction(MetricObject):
     """
     A class for representing trivial functions that return the same real output for any input.  This
     is convenient for models where an object might be a (non-trivial) function, but in some variations
@@ -2295,7 +2295,7 @@ class LowerEnvelope3D(HARKinterpolator3D):
         return dfdz
 
 
-class VariableLowerBoundFunc2D(HARKobject):
+class VariableLowerBoundFunc2D(MetricObject):
     """
     A class for representing a function with two real inputs whose lower bound
     in the first input depends on the second input.  Useful for managing curved
@@ -2384,7 +2384,7 @@ class VariableLowerBoundFunc2D(HARKobject):
         return dfdy_out
 
 
-class VariableLowerBoundFunc3D(HARKobject):
+class VariableLowerBoundFunc3D(MetricObject):
     """
     A class for representing a function with three real inputs whose lower bound
     in the first input depends on the second input.  Useful for managing curved
@@ -4321,7 +4321,7 @@ def calcLogSum(Vals, sigma):
 # - u is of the CRRA family.                                                  #
 ###############################################################################
 
-class ValueFuncCRRA(HARKobject):
+class ValueFuncCRRA(MetricObject):
     """
     A class for representing a value function.  The underlying interpolation is
     in the space of (state,u_inv(v)); this class "re-curves" to the value function.
@@ -4350,7 +4350,7 @@ class ValueFuncCRRA(HARKobject):
         vFuncArgs : floats or np.arrays, all of the same dimensions.
             Values for the state variables. These usually start with 'm',
             market resources normalized by the level of permanent income.
-            
+
         Returns
         -------
         v : float or np.array
@@ -4360,7 +4360,7 @@ class ValueFuncCRRA(HARKobject):
         return CRRAutility(self.func(*vFuncArgs), gam=self.CRRA)
 
 
-class MargValueFuncCRRA(HARKobject):
+class MargValueFuncCRRA(MetricObject):
     """
     A class for representing a marginal value function in models where the
     standard envelope condition of dvdm(state) = u'(c(state)) holds (with CRRA utility).
@@ -4433,11 +4433,11 @@ class MargValueFuncCRRA(HARKobject):
                 "cFunc does not have a 'derivativeX' attribute. Can't compute"
                 + "marginal marginal value."
             )
-            
+
         return MPC * CRRAutilityPP(c, gam=self.CRRA)
 
 
-class MargMargValueFuncCRRA(HARKobject):
+class MargMargValueFuncCRRA(MetricObject):
     """
     A class for representing a marginal marginal value function in models where
     the standard envelope condition of dvdm = u'(c(state)) holds (with CRRA utility).
@@ -4477,7 +4477,7 @@ class MargMargValueFuncCRRA(HARKobject):
             Marginal marginal lifetime value of beginning this period with market
             resources m; has same size as input m.
         """
-        
+
         # The derivative method depends on the dimension of the function
         if isinstance(self.cFunc, (HARKinterpolator1D)):
             c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
@@ -4491,7 +4491,7 @@ class MargMargValueFuncCRRA(HARKobject):
                 "cFunc does not have a 'derivativeX' attribute. Can't compute"
                 + "marginal marginal value."
             )
-            
+
         return MPC * CRRAutilityPP(c, gam=self.CRRA)
 
 ##############################################################################
