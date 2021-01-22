@@ -33,17 +33,17 @@ import pandas as pd
 from copy import copy
 
 # %% Alter calibration
-birth_age = 21
+birth_age = 25
 death_age = 90
-education = 'HS'
+education = 'College'
 
 # Income specification
 income_params = ParseIncomeSpec(age_min = birth_age, age_max = death_age,
                                 **CGM_income[education], SabelhausSong=True)
 
 # Initial distribution of wealth and permanent income
-dist_params = income_wealth_dists_from_scf(age = birth_age,
-                                          education = education)
+dist_params = income_wealth_dists_from_scf(base_year=1992, age = birth_age,
+                                           education = education, wave = 1995)
 
 # We need survival probabilities only up to death_age-1, because survival
 # probability at death_age is 1.
