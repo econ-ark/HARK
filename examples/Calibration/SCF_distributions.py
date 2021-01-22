@@ -15,12 +15,14 @@ educ_lvls = ['NoHS', 'HS', 'College']
 years = list(range(1995,2022,3))
 
 age = 25
+base_year = 1992
 
 # %% Get the distribution of aNrm and pLvl at each year x education
-params = list(product([age],educ_lvls, years))
-age, education, year = list(zip(*params))
+params = list(product([base_year],[age],educ_lvls, years))
+base_year, age, education, year = list(zip(*params))
 
-frame = pd.DataFrame({'age': age, 'education': education, 'year': year})
+frame = pd.DataFrame({'base_year': base_year,'age': age,
+                      'education': education, 'wave': year})
 
 results = list(starmap(income_wealth_dists_from_scf, params))
 frame = pd.concat([frame, pd.DataFrame(results)], axis = 1)
@@ -28,12 +30,12 @@ frame = pd.concat([frame, pd.DataFrame(results)], axis = 1)
 # %% Plot time trends at different education levels.
 
 # Formatting
-frame = frame.melt(id_vars = ['age', 'education','year'])
+frame = frame.melt(id_vars = ['base_year','age', 'education','wave'])
 aux = frame["variable"].str.split("(Mean|Std)", n = 1, expand = True) 
 frame["variable"] = aux[0]
 frame["stat"] = aux[1]
 
 # Plot
 g = sns.FacetGrid(frame, col="stat", row = "variable", hue="education", sharey = True)
-g.map(sns.scatterplot, "year", "value", alpha=.7)
+g.map(sns.scatterplot, "wave", "value", alpha=.7)
 g.add_legend()

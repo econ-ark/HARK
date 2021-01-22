@@ -13,7 +13,7 @@ class Distribution:
         Seed for random number generator.
     """
     def __init__(self, seed=0):
-       
+
         self.RNG = np.random.RandomState(seed)
         self.seed = seed
 
@@ -50,22 +50,15 @@ class Lognormal(Distribution):
     sigma = None
 
     def __init__(self, mu=0.0, sigma=1.0, seed=0):
-        self.mu = mu
-        self.sigma = sigma
+        self.mu = np.array(mu)
+        self.sigma = np.array(sigma)
         # Set up the RNG
         super().__init__(seed)
 
-        if isinstance(self.mu, list) != isinstance(self.sigma, list):
-            raise Exception(
-                "mu and sigma must be of same types. They are %s, %s"
-                % (type(self.mu), type(self.sigma))
-            )
-
-        if isinstance(self.mu, list):
-            if len(list(self.mu)) != len(list(self.sigma)):
+        if self.mu.size != self.sigma.size:
                 raise Exception(
-                    "mu and sigma must be of same length, are %d, %d"
-                    % (len(list(self.mu)), len(list(self.sigma)))
+                    "mu and sigma must be of same size, are %s, %s"
+                    % ((self.mu.size), (self.sigma.size))
                 )
 
     def draw(self, N):
@@ -90,21 +83,17 @@ class Lognormal(Distribution):
             a single array of size N (if sigma is a scalar).
         """
 
-        if isinstance(self.sigma, float):  # Return a single array of length N
-            if self.sigma == 0:
-                draws = np.exp(self.mu) * np.ones(N)
-            else:
-                draws = self.RNG.lognormal(mean=self.mu, sigma=self.sigma, size=N)
-        else:  # Set up empty list to populate, then loop and populate list with draws
-            draws = []
-            for j in range(len(self.sigma)):
-                if self.sigma[j] == 0:
-                    draws.append(np.exp(self.mu[j]) * np.ones(N))
-                else:
-                    draws.append(
-                        self.RNG.lognormal(mean=self.mu[j], sigma=self.sigma[j], size=N)
-                    )
-        return draws
+        draws = []
+        for j in range(self.mu.size):
+            draws.append(
+                self.RNG.lognormal(
+                    mean=self.mu.item(j),
+                    sigma=self.sigma.item(j),
+                    size=N
+                )
+            )
+        # TODO: change return type to np.array?
+        return draws[0] if len(draws) == 1 else draws
 
     def approx(self, N, tail_N=0, tail_bound=None, tail_order=np.e):
         """
@@ -268,8 +257,8 @@ class Normal(Distribution):
     sigma = None
 
     def __init__(self, mu=0.0, sigma=1.0, seed=0):
-        self.mu = mu
-        self.sigma = sigma
+        self.mu = np.array(mu)
+        self.sigma = np.array(sigma)
         super().__init__(seed)
 
     def draw(self, N):
@@ -291,12 +280,9 @@ class Normal(Distribution):
             T-length list of arrays of normal draws each of size N, or a single array
             of size N (if sigma is a scalar).
         """
-        if isinstance(self.sigma, float):  # Return a single array of length N
-            draws = self.sigma * self.RNG.randn(N) + self.mu
-        else:  # Set up empty list to populate, then loop and populate list with draws
-            draws = []
-            for t in range(len(self.sigma)):
-                draws.append(self.sigma[t] * self.RNG.randn(N) + self.mu[t])
+        draws = []
+        for t in range(self.sigma.size):
+            draws.append(self.sigma.item(t) * self.RNG.randn(N) + self.mu.item(t))
 
         return draws
 
@@ -335,8 +321,8 @@ class Weibull(Distribution):
     shape = None
 
     def __init__(self, scale=1.0, shape=1.0, seed=0):
-        self.scale = scale
-        self.shape = shape
+        self.scale = np.array(scale)
+        self.shape = np.array(shape)
         # Set up the RNG
         super().__init__(seed)
 
@@ -363,18 +349,13 @@ class Weibull(Distribution):
             T-length list of arrays of Weibull draws each of size N, or a single
             array of size N (if sigma is a scalar).
         """
-        if self.scale == 1:
-            scale = float(self.scale)
-        if isinstance(self.scale, float):  # Return a single array of length N
-            draws = self.scale * (-np.log(1.0 - self.RNG.rand(N))) ** (1.0 / self.shape)
-        else:  # Set up empty list to populate, then loop and populate list with draws
-            draws = []
-            for t in range(len(self.scale)):
-                draws.append(
-                    self.scale[t]
-                    * (-np.log(1.0 - self.RNG.rand(N))) ** (1.0 / self.shape[t])
-                )
-        return draws
+        draws = []
+        for j in range(self.scale.size):
+            draws.append(
+                self.scale.item(j)
+                * (-np.log(1.0 - self.RNG.rand(N))) ** (1.0 / self.shape.item(j))
+            )
+        return draws[0] if len(draws) == 1 else draws
 
 
 class Uniform(Distribution):
@@ -399,8 +380,8 @@ class Uniform(Distribution):
     top = None
 
     def __init__(self, bot=0.0, top=1.0, seed=0):
-        self.bot = bot
-        self.top = top
+        self.bot = np.array(bot)
+        self.top = np.array(top)
         # Set up the RNG
         self.RNG = np.random.RandomState(seed)
 
@@ -423,17 +404,13 @@ class Uniform(Distribution):
             T-length list of arrays of uniform draws each of size N, or a single
             array of size N (if sigma is a scalar).
         """
-        if isinstance(self.bot, float) or isinstance(
-            self.bot, int
-        ):  # Return a single array of size N
-            draws = self.bot + (self.top - self.bot) * self.RNG.rand(N)
-        else:  # Set up empty list to populate, then loop and populate list with draws
-            draws = []
-            for t in range(len(bot)):
-                draws.append(
-                    self.bot[t] + (self.top[t] - self.bot[t]) * self.RNG.rand(N)
-                )
-        return draws
+        draws = []
+        for j in range(self.bot.size):
+            draws.append(
+                self.bot.item(j) + (self.top.item(j) - self.bot.item(j))
+                * self.RNG.rand(N)
+            )
+        return draws[0] if len(draws) == 1 else draws
 
     def approx(self, N):
         """
@@ -479,7 +456,7 @@ class Bernoulli(Distribution):
     p = None
 
     def __init__(self, p=0.5, seed=0):
-        self.p = p
+        self.p = np.array(p)
         # Set up the RNG
         super().__init__(seed)
 
@@ -501,13 +478,10 @@ class Bernoulli(Distribution):
             T-length list of arrays of Bernoulli draws each of size N, or a single
         array of size N (if sigma is a scalar).
         """
-        if isinstance(self.p, float):  # Return a single array of size N
-            draws = self.RNG.uniform(size=N) < self.p
-        else:  # Set up empty list to populate, then loop and populate list with draws:
-            draws = []
-            for t in range(len(self.p)):
-                draws.append(self.RNG.uniform(size=N) < self.p[t])
-        return draws
+        draws = []
+        for j in range(self.p.size):
+            draws.append(self.RNG.uniform(size=N) < self.p.item(j))
+        return draws[0] if len(draws) == 1 else draws
 
 
 class DiscreteDistribution(Distribution):
@@ -557,7 +531,7 @@ class DiscreteDistribution(Distribution):
 
         return indices
 
-    def drawDiscrete(self, N, X=None, exact_match=False):
+    def draw(self, N, X=None, exact_match=False):
         """
         Simulates N draws from a discrete distribution with probabilities P and outcomes X.
 
@@ -597,7 +571,7 @@ class DiscreteDistribution(Distribution):
                 int
             )  # cutoff points between discrete outcomes
             top = 0
-           
+
             # Make a list of event indices that closely matches the discrete distribution
             event_list = []
             for j in range(events.size):
