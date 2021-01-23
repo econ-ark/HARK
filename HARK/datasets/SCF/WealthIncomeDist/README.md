@@ -4,6 +4,8 @@ The summary statistics in `WealthIncomeStats.csv` are computed using the
 Survey of Consumer Finances. The file can be replicated directly from the
 unprocessed SCF summary files using the repository [SCF-IncWealthDist](https://github.com/Mv77/SCF-IncWealthDist), created by [Mateo Velasquez-Giraldo](https://mv77.github.io/).
 
+**NOTE:** wealth and permanent income levels in `WealthIncomeStats.csv` are expressed in thousands of dollars before taking logarithms.
+
 # `WealthIncomeStats.csv`
 
 Both the file and this description come from the repository
