@@ -13,7 +13,6 @@ import os
 
 scf_sumstats_dir = os.path.dirname(os.path.abspath(__file__))
 
-
 def get_scf_distr_stats():
     """
     A function to read the full table of SCF summary statistics as a Pandas
