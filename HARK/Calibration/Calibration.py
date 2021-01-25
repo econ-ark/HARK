@@ -6,7 +6,7 @@ Created on Sat Dec 19 15:08:54 2020
 """
 
 import numpy as np
-from HARK.Calibration.Income.sabelhaus_song.SabelhausSongProfiles import sabelhaus_song_var_profile
+from HARK.Calibration.Income.SabelhausSongProfiles import sabelhaus_song_var_profile
 
 __all__ = [
     "Cagetti_income",
@@ -98,12 +98,13 @@ def ParseIncomeSpec(age_min, age_max,
                     SabelhausSong = False,
                     **unused):
     
-    # There is no income distribution for the last period, as the distributions
-    # are forward-looking and the last period is terminal.
+    # How many non-terminal periods are there.
     N_periods = age_max - age_min
     
     if age_ret is not None:
+        # How many non terminal periods are spent working
         N_work_periods = age_ret - age_min + 1
+        # How many non terminal periods are spent in retirement
         N_ret_periods  = age_max - age_ret - 1
     
     # Growth factors
@@ -136,24 +137,29 @@ def ParseIncomeSpec(age_min, age_max,
         
     else:
         pass
-    
-    
+
     # Volatilities
+    # In this section, it is important to keep in mind that IncomeDstn[t]
+    # is the income distribution from period t to t+1, as perceived in period
+    # t.
+    # Therefore (assuming an annual model with agents entering at age 0),
+    # IncomeDstn[3] would contain the distribution of income shocks that occur
+    # at the start of age 4.
     if SabelhausSong:
     
         if age_ret is None:
             
             IncShkStds = sabelhaus_song_var_profile(cohort = 1950,
-                                                    age_min = age_min, age_max= age_max)
+                                                    age_min = age_min + 1, age_max= age_max)
             PermShkStd = IncShkStds['PermShkStd']
             TranShkStd = IncShkStds['TranShkStd']
         
         else:
             
             IncShkStds = sabelhaus_song_var_profile(cohort = 1950,
-                                                    age_min = age_min, age_max= age_ret)
-            PermShkStd = IncShkStds['PermShkStd'] + [0.0] * N_ret_periods
-            TranShkStd = IncShkStds['TranShkStd'] + [0.0] * N_ret_periods
+                                                    age_min = age_min + 1, age_max= age_ret)
+            PermShkStd = IncShkStds['PermShkStd'] + [0.0] * (N_ret_periods + 1)
+            TranShkStd = IncShkStds['TranShkStd'] + [0.0] * (N_ret_periods + 1)
     
     else:
         
@@ -166,8 +172,8 @@ def ParseIncomeSpec(age_min, age_max,
         
             else:
                 
-                PermShkStd = [PermShkStd] * N_work_periods + [0.0] * N_ret_periods
-                TranShkStd = [TranShkStd] * N_work_periods + [0.0] * N_ret_periods
+                PermShkStd = [PermShkStd] * (N_work_periods - 1) + [0.0] * (N_ret_periods + 1)
+                TranShkStd = [TranShkStd] * (N_work_periods - 1) + [0.0] * (N_ret_periods + 1)
                 
         else:
             pass
