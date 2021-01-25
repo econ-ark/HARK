@@ -10,7 +10,7 @@ from builtins import str
 from builtins import range
 from copy import deepcopy
 import numpy as np
-from HARK import AgentType, HARKobject, makeOnePeriodOOSolver
+from HARK import AgentType, MetricObject, makeOnePeriodOOSolver
 from HARK.distribution import DiscreteDistribution
 from HARK.interpolation import (
     LowerEnvelope2D,
@@ -61,7 +61,7 @@ utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
 
 
-class pLvlFuncAR1(HARKobject):
+class pLvlFuncAR1(MetricObject):
     """
     A class for representing AR1-style persistent income growth functions.
 
@@ -165,21 +165,25 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         vFuncBool,
         CubicBool,
     ):
-        self.assignParameters(
-            solution_next=solution_next,
-            IncShkDstn=IncShkDstn,
-            LivPrb=LivPrb,
-            DiscFac=DiscFac,
-            CRRA=CRRA,
-            Rfree=Rfree,
-            pLvlNextFunc=pLvlNextFunc,
-            BoroCnstArt=BoroCnstArt,
-            aXtraGrid=aXtraGrid,
-            pLvlGrid=pLvlGrid,
-            vFuncBool=vFuncBool,
-            CubicBool=CubicBool,
-            PermGroFac=0.0,
-        )  # dummy 0.0 variable why PermGroFac?
+        """
+        Constructor for a new solver for a one period problem with idiosyncratic
+        shocks to persistent and transitory income, with persistent income tracked
+        as a state variable rather than normalized out.
+        """
+        self.solution_next = solution_next
+        self.IncShkDstn = IncShkDstn
+        self.LivPrb = LivPrb
+        self.DiscFac = DiscFac
+        self.CRRA = CRRA
+        self.Rfree = Rfree
+        self.pLvlNextFunc = pLvlNextFunc
+        self.BoroCnstArt = BoroCnstArt
+        self.aXtraGrid = aXtraGrid
+        self.pLvlGrid = pLvlGrid
+        self.vFuncBool = vFuncBool
+        self.CubicBool = CubicBool
+        self.PermGroFac = 0.0
+
         self.defUtilityFuncs()
 
     def setAndUpdateValues(self, solution_next, IncShkDstn, LivPrb, DiscFac):

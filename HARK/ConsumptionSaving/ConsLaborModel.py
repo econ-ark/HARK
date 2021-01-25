@@ -12,7 +12,7 @@ import sys
 
 from copy import copy
 import numpy as np
-from HARK.core import HARKobject
+from HARK.core import MetricObject
 from HARK.utilities import CRRAutilityP, CRRAutilityP_inv
 from HARK.interpolation import (
     LinearInterp,
@@ -30,7 +30,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 import matplotlib.pyplot as plt
 
 
-class ConsumerLaborSolution(HARKobject):
+class ConsumerLaborSolution(MetricObject):
     """
     A class for representing one period of the solution to a Consumer Labor problem.
 
