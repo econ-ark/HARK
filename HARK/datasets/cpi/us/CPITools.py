@@ -121,7 +121,7 @@ def cpi_deflator(from_year, to_year, base_month=None):
     try:
 
         deflator = np.divide(
-            cpi_series.loc[from_year].to_numpy(), cpi_series.loc[to_year].to_numpy()
+            cpi_series.loc[to_year].to_numpy(), cpi_series.loc[from_year].to_numpy()
         )
 
     except KeyError as e:
