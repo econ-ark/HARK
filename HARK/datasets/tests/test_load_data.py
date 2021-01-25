@@ -49,7 +49,7 @@ class test_SCF_dists(unittest.TestCase):
         )
         self.assertAlmostEqual(NoHS["aNrmInitMean"], -1.0611984728537684)
         self.assertAlmostEqual(NoHS["aNrmInitStd"], 1.475816500147777)
-        self.assertAlmostEqual(NoHS["pLvlInitMean"], 3.7032072819437323)
+        self.assertAlmostEqual(NoHS["pLvlInitMean"], 2.5413398571226233)
         self.assertAlmostEqual(NoHS["pLvlInitStd"], 0.7264931123240703)
 
         HS = income_wealth_dists_from_scf(
@@ -57,7 +57,7 @@ class test_SCF_dists(unittest.TestCase):
         )
         self.assertAlmostEqual(HS["aNrmInitMean"], -1.0812342937817578)
         self.assertAlmostEqual(HS["aNrmInitStd"], 1.7526704743231725)
-        self.assertAlmostEqual(HS["pLvlInitMean"], 3.968472693577544)
+        self.assertAlmostEqual(HS["pLvlInitMean"], 2.806605268756435)
         self.assertAlmostEqual(HS["pLvlInitStd"], 0.6736467457859727)
 
         Coll = income_wealth_dists_from_scf(
@@ -65,7 +65,7 @@ class test_SCF_dists(unittest.TestCase):
         )
         self.assertAlmostEqual(Coll["aNrmInitMean"], -0.6837248150760165)
         self.assertAlmostEqual(Coll["aNrmInitStd"], 0.8813676761170798)
-        self.assertAlmostEqual(Coll["pLvlInitMean"], 4.440951283550222)
+        self.assertAlmostEqual(Coll["pLvlInitMean"], 3.2790838587291127)
         self.assertAlmostEqual(Coll["pLvlInitStd"], 0.746362502979793)
 
     def test_at_60(self):
@@ -76,7 +76,7 @@ class test_SCF_dists(unittest.TestCase):
         )
         self.assertAlmostEqual(NoHS["aNrmInitMean"], 0.1931578281432479)
         self.assertAlmostEqual(NoHS["aNrmInitStd"], 1.6593916577375334)
-        self.assertAlmostEqual(NoHS["pLvlInitMean"], 4.538262764120979)
+        self.assertAlmostEqual(NoHS["pLvlInitMean"], 3.3763953392998705)
         self.assertAlmostEqual(NoHS["pLvlInitStd"], 0.61810580085094993)
 
         HS = income_wealth_dists_from_scf(
@@ -84,7 +84,7 @@ class test_SCF_dists(unittest.TestCase):
         )
         self.assertAlmostEqual(HS["aNrmInitMean"], 0.6300862955841334)
         self.assertAlmostEqual(HS["aNrmInitStd"], 1.7253736778036055)
-        self.assertAlmostEqual(HS["pLvlInitMean"], 4.624658106220008)
+        self.assertAlmostEqual(HS["pLvlInitMean"], 3.462790681398899)
         self.assertAlmostEqual(HS["pLvlInitStd"], 0.8179188962937205)
 
         Coll = income_wealth_dists_from_scf(
@@ -92,5 +92,5 @@ class test_SCF_dists(unittest.TestCase):
         )
         self.assertAlmostEqual(Coll["aNrmInitMean"], 1.643936802283761)
         self.assertAlmostEqual(Coll["aNrmInitStd"], 1.2685135110865389)
-        self.assertAlmostEqual(Coll["pLvlInitMean"], 5.440773103639857)
+        self.assertAlmostEqual(Coll["pLvlInitMean"], 4.278905678818748)
         self.assertAlmostEqual(Coll["pLvlInitStd"], 1.0776403992280614)
