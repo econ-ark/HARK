@@ -16,7 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # %% CGM calibration
-target_year = 1992
+target_year = 2018
 
 age_min = 21
 age_max = 100
@@ -50,7 +50,8 @@ for spec in Cagetti_income.items():
     
     label = spec[0]
     
-    params = ParseIncomeSpec(age_min = age_min, age_max = age_max, **spec[1])
+    params = ParseIncomeSpec(age_min = age_min, age_max = age_max,
+                             TargetYear = target_year, **spec[1])
     MeanY = findProfile(params['PermGroFac'], params['P0'])
     
     plt.plot(ages, MeanY, label = label)
