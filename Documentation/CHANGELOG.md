@@ -26,7 +26,7 @@ interpolation for problems with CRRA utility. See [#888](https://github.com/econ
 * Adds the U.S. CPI research series and tools to extract inflation adjustments from it [#930](https://github.com/econ-ark/HARK/pull/930).
 * Fix the return fields of `dcegm/calcCrossPoints`[#909](https://github.com/econ-ark/HARK/pull/909).
 * Corrects location of constructor documentation to class string for Sphinx rendering [#908](https://github.com/econ-ark/HARK/pull/908)
-
+* Adds a module for producing life-cycle profiles of income shock variances from [Sabelhaus and Song (2010)](https://www.sciencedirect.com/science/article/abs/pii/S0304393210000358) [#921](https://github.com/econ-ark/HARK/pull/921).
 #### Minor Changes
 
 * Move AgentType constructor parameters docs to class docstring so it is rendered by Sphinx.
