@@ -179,7 +179,7 @@ class PrefShockConsumerType(IndShockConsumerType):
             these = t == self.t_cycle
             N = np.sum(these)
             if N > 0:
-                PrefShkNow[these] = self.PrefShkDstn[t].drawDiscrete(N)
+                PrefShkNow[these] = self.PrefShkDstn[t].draw(N)
         self.shocks["PrefShkNow"] = PrefShkNow
 
     def getControls(self):
@@ -229,7 +229,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
         Stores result in attribute eulerErrorFunc as an interpolated function.
-        Has option to use approximate income distribution stored in self.IncomeDstn
+        Has option to use approximate income distribution stored in self.IncShkDstn
         or to use a (temporary) very dense approximation.
 
         NOT YET IMPLEMENTED FOR THIS CLASS
@@ -240,13 +240,18 @@ class PrefShockConsumerType(IndShockConsumerType):
             Maximum normalized market resources for the Euler error function.
         approx_inc_dstn : Boolean
             Indicator for whether to use the approximate discrete income distri-
-            bution stored in self.IncomeDstn[0], or to use a very accurate
+            bution stored in self.IncShkDstn[0], or to use a very accurate
             discrete approximation instead.  When True, uses approximation in
-            IncomeDstn; when False, makes and uses a very dense approximation.
+            IncShkDstn; when False, makes and uses a very dense approximation.
 
         Returns
         -------
         None
+
+        Notes
+        -----
+        This method is not used by any other code in the library. Rather, it is here
+        for expository and benchmarking purposes.
         """
         raise NotImplementedError()
 
@@ -296,7 +301,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
     ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
-    IncomeDstn : [np.array]
+    IncShkDstn : [np.array]
         A list containing three arrays of floats, representing a discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
@@ -334,7 +339,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
     def __init__(
         self,
         solution_next,
-        IncomeDstn,
+        IncShkDstn,
         PrefShkDstn,
         LivPrb,
         DiscFac,
@@ -358,7 +363,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         ConsIndShockSolver.__init__(
             self,
             solution_next,
-            IncomeDstn,
+            IncShkDstn,
             LivPrb,
             DiscFac,
             CRRA,
@@ -517,7 +522,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
 
 def solveConsPrefShock(
     solution_next,
-    IncomeDstn,
+    IncShkDstn,
     PrefShkDstn,
     LivPrb,
     DiscFac,
@@ -537,7 +542,7 @@ def solveConsPrefShock(
     ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
-    IncomeDstn : [np.array]
+    IncShkDstn : [np.array]
         A list containing three arrays of floats, representing a discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
@@ -585,7 +590,7 @@ def solveConsPrefShock(
     """
     solver = (
         solution_next,
-        IncomeDstn,
+        IncShkDstn,
         PrefShkDstn,
         LivPrb,
         DiscFac,
@@ -615,7 +620,7 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver, ConsKinkedRsolver):
     ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
-    IncomeDstn : [np.array]
+    IncShkDstn : [np.array]
         A list containing three arrays of floats, representing a discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
@@ -657,7 +662,7 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver, ConsKinkedRsolver):
     def __init__(
         self,
         solution_next,
-        IncomeDstn,
+        IncShkDstn,
         PrefShkDstn,
         LivPrb,
         DiscFac,
@@ -673,7 +678,7 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver, ConsKinkedRsolver):
         ConsKinkedRsolver.__init__(
             self,
             solution_next,
-            IncomeDstn,
+            IncShkDstn,
             LivPrb,
             DiscFac,
             CRRA,

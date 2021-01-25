@@ -51,7 +51,7 @@ class testIndShockConsumerType(unittest.TestCase):
 
         solver = ConsIndShockSolverBasic(
             LifecycleExample.solution[1],
-            LifecycleExample.IncomeDstn[0],
+            LifecycleExample.IncShkDstn[0],
             LifecycleExample.LivPrb[0],
             LifecycleExample.DiscFac,
             LifecycleExample.CRRA,

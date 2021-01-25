@@ -10,7 +10,7 @@ from builtins import str
 from builtins import range
 from copy import deepcopy
 import numpy as np
-from HARK import AgentType, HARKobject, makeOnePeriodOOSolver
+from HARK import AgentType, MetricObject, makeOnePeriodOOSolver
 from HARK.distribution import DiscreteDistribution
 from HARK.interpolation import (
     LowerEnvelope2D,
@@ -61,7 +61,7 @@ utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
 
 
-class pLvlFuncAR1(HARKobject):
+class pLvlFuncAR1(MetricObject):
     """
     A class for representing AR1-style persistent income growth functions.
 
@@ -119,7 +119,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     ----------
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
-    IncomeDstn : [np.array]
+    IncShkDstn : [np.array]
         A list containing three arrays of floats, representing a discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
@@ -153,7 +153,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     def __init__(
         self,
         solution_next,
-        IncomeDstn,
+        IncShkDstn,
         LivPrb,
         DiscFac,
         CRRA,
@@ -165,24 +165,28 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         vFuncBool,
         CubicBool,
     ):
-        self.assignParameters(
-            solution_next=solution_next,
-            IncomeDstn=IncomeDstn,
-            LivPrb=LivPrb,
-            DiscFac=DiscFac,
-            CRRA=CRRA,
-            Rfree=Rfree,
-            pLvlNextFunc=pLvlNextFunc,
-            BoroCnstArt=BoroCnstArt,
-            aXtraGrid=aXtraGrid,
-            pLvlGrid=pLvlGrid,
-            vFuncBool=vFuncBool,
-            CubicBool=CubicBool,
-            PermGroFac=0.0,
-        )  # dummy 0.0 variable why PermGroFac?
+        """
+        Constructor for a new solver for a one period problem with idiosyncratic
+        shocks to persistent and transitory income, with persistent income tracked
+        as a state variable rather than normalized out.
+        """
+        self.solution_next = solution_next
+        self.IncShkDstn = IncShkDstn
+        self.LivPrb = LivPrb
+        self.DiscFac = DiscFac
+        self.CRRA = CRRA
+        self.Rfree = Rfree
+        self.pLvlNextFunc = pLvlNextFunc
+        self.BoroCnstArt = BoroCnstArt
+        self.aXtraGrid = aXtraGrid
+        self.pLvlGrid = pLvlGrid
+        self.vFuncBool = vFuncBool
+        self.CubicBool = CubicBool
+        self.PermGroFac = 0.0
+
         self.defUtilityFuncs()
 
-    def setAndUpdateValues(self, solution_next, IncomeDstn, LivPrb, DiscFac):
+    def setAndUpdateValues(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.  These include:
@@ -195,7 +199,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncomeDstn : [np.array]
+        IncShkDstn : [np.array]
             A list containing three arrays of floats, representing a discrete
             approximation to the income process between the period being solved
             and the one immediately following (in solution_next). Order: event
@@ -212,7 +216,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         """
         # Run basic version of this method
         ConsIndShockSetup.setAndUpdateValues(
-            self, solution_next, IncomeDstn, LivPrb, DiscFac
+            self, solution_next, IncShkDstn, LivPrb, DiscFac
         )
         self.mLvlMinNext = solution_next.mLvlMin
 
@@ -1031,7 +1035,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
             # Calculate distribution of persistent income in each period of lifecycle
             for t in range(len(self.PermShkStd)):
                 if t > 0:
-                    PermShkNow = self.PermShkDstn[t - 1].drawDiscrete(N=self.AgentCount)
+                    PermShkNow = self.PermShkDstn[t - 1].draw(N=self.AgentCount)
                     pLvlNow = self.pLvlNextFunc[t - 1](pLvlNow) * PermShkNow
                 pLvlGrid.append(getPercentiles(pLvlNow, percentiles=self.pLvlPctiles))
 
@@ -1055,7 +1059,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
                 for j in range(self.T_cycle):  # Update persistent income
                     these = t_cycle == j
-                    PermShkTemp = self.PermShkDstn[j].drawDiscrete(N=np.sum(these))
+                    PermShkTemp = self.PermShkDstn[j].draw(N=np.sum(these))
                     pLvlNow[these] = self.pLvlNextFunc[j](pLvlNow[these]) * PermShkTemp
                 t_cycle = t_cycle + 1
                 t_cycle[t_cycle == self.T_cycle] = 0

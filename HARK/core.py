@@ -59,16 +59,16 @@ def distanceMetric(thing_A, thing_B):
             distance = float(abs(lenA - lenB))
     # If both inputs are dictionaries, call distance on the list of its elements
     elif typeA is dict and typeB is dict:
-        
+
         lenA = len(thing_A)
         lenB = len(thing_B)
-        
+
         if lenA == lenB:
-            
+
             # Create versions sorted by key
             sortedA = dict(sorted(thing_A.items()))
             sortedB = dict(sorted(thing_B.items()))
-            
+
             # If keys don't match, print a warning.
             if list(sortedA.keys()) != list(sortedB.keys()):
                 warn(
@@ -78,7 +78,7 @@ def distanceMetric(thing_A, thing_B):
 
             distance = distanceMetric(list(sortedA.values()),
                                       list(sortedB.values()))
-            
+
         else:
             # If they have different lengths, log a warning and return the
             # difference in lengths.
@@ -87,7 +87,7 @@ def distanceMetric(thing_A, thing_B):
                 'Returning difference in lengths.'
                 )
             distance = float(abs(lenA - lenB))
-        
+
     # If both inputs are numbers, return their difference
     elif isinstance(thing_A, (int, float)) and isinstance(thing_B, (int, float)):
         distance = float(abs(thing_A - thing_B))
@@ -114,7 +114,7 @@ def distanceMetric(thing_A, thing_B):
     return distance
 
 
-class HARKobject(object):
+class MetricObject(object):
     """
     A superclass for object classes in HARK.  Comes with two useful methods:
     a generic/universal distance method and an attribute assignment method.
@@ -151,6 +151,10 @@ class HARKobject(object):
                 )  # if either object lacks attribute, they are not the same
         return max(distance_list)
 
+class Model(object):
+    """
+    A class with special handling of parameters assignment.
+    """
     def assignParameters(self, **kwds):
         """
         Assign an arbitrary number of attributes to this agent.
@@ -176,28 +180,32 @@ class HARKobject(object):
         """
         self.assignParameters(**kwds)
 
-    def getAvg(self, varname, **kwds):
-        """
-        Calculates the average of an attribute of this instance.  Returns NaN if no such attribute.
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self.parameters == other.parameters
 
-        Parameters
-        ----------
-        varname : string
-            The name of the attribute whose average is to be calculated.  This attribute must be an
-            np.array or other class compatible with np.mean.
+        return notImplemented
 
-        Returns
-        -------
-        avg : float or np.array
-            The average of this attribute.  Might be an array if the axis keyword is passed.
-        """
-        if hasattr(self, varname):
-            return np.mean(getattr(self, varname), **kwds)
-        else:
-            return np.nan
+    def __str__(self):
+
+        type_ = type(self)
+        module = type_.__module__
+        qualname = type_.__qualname__
+
+        s = f"<{module}.{qualname} object at {hex(id(self))}.\n"
+        s += "Parameters:"
+
+        for p in self.parameters:
+            s += f"\n{p}: {self.parameters[p]}"
+
+        s += ">"
+        return s
+
+    def __repr__(self):
+        return self.__str__()
 
 
-class AgentType(HARKobject):
+class AgentType(Model):
     """
     A superclass for economic agents in the HARK framework. Each model should
     specify its own subclass of AgentType, inheriting its methods and overwriting
@@ -775,7 +783,8 @@ class AgentType(HARKobject):
 
         Returns
         -------
-        None
+        history : dict
+            The history tracked during the simulation.
         """
         if not hasattr(self, "t_sim"):
             raise Exception(
@@ -821,6 +830,8 @@ class AgentType(HARKobject):
                     else:
                         self.history[var_name][self.t_sim, :] = getattr(self, var_name)
                 self.t_sim += 1
+
+            return self.history
 
     def clearHistory(self):
         """
@@ -1044,7 +1055,7 @@ def makeOnePeriodOOSolver(solver_class):
 # ========================================================================
 
 
-class Market(HARKobject):
+class Market(Model):
     """
     A superclass to represent a central clearinghouse of information.  Used for
     dynamic general equilibrium models to solve the "macroeconomic" model as a

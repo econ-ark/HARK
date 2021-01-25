@@ -7,7 +7,7 @@ from builtins import str
 from builtins import range
 import numpy as np
 from scipy.optimize import brentq
-from HARK import  AgentType, HARKobject, makeOnePeriodOOSolver
+from HARK import  AgentType, MetricObject, makeOnePeriodOOSolver
 from HARK.distribution import addDiscreteOutcomeConstantMean, Lognormal
 from HARK.utilities import (
     CRRAutilityP_inv,
@@ -56,7 +56,7 @@ utility_invP = CRRAutility_invP
 utilityPP = CRRAutilityPP
 
 
-class MedShockPolicyFunc(HARKobject):
+class MedShockPolicyFunc(MetricObject):
     """
     Class for representing the policy function in the medical shocks model: opt-
     imal consumption and medical care for given market resources, permanent income,
@@ -273,7 +273,7 @@ class MedShockPolicyFunc(HARKobject):
         return dcdShk, dMeddShk
 
 
-class cThruXfunc(HARKobject):
+class cThruXfunc(MetricObject):
     """
     Class for representing consumption function derived from total expenditure
     and consumption.
@@ -399,7 +399,7 @@ class cThruXfunc(HARKobject):
         return dcdShk
 
 
-class MedThruXfunc(HARKobject):
+class MedThruXfunc(MetricObject):
     """
     Class for representing medical care function derived from total expenditure
     and consumption.
@@ -821,7 +821,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
             these = t == self.t_cycle
             N = np.sum(these)
             if N > 0:
-                MedShkNow[these] = self.MedShkDstn[t].drawDiscrete(N)
+                MedShkNow[these] = self.MedShkDstn[t].draw(N)
                 MedPriceNow[these] = self.MedPrice[t]
         self.shocks["MedShkNow"] = MedShkNow
         self.shocks["MedPriceNow"] = MedPriceNow
@@ -885,7 +885,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
     ----------
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
-    IncomeDstn : [np.array]
+    IncShkDstn : [np.array]
         A list containing three arrays of floats, representing a discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
@@ -927,7 +927,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
     def __init__(
         self,
         solution_next,
-        IncomeDstn,
+        IncShkDstn,
         MedShkDstn,
         LivPrb,
         DiscFac,
@@ -942,27 +942,29 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         vFuncBool,
         CubicBool,
     ):
-        self.assignParameters(
-            solution_next=solution_next,
-            IncomeDstn=IncomeDstn,
-            MedShkDstn=MedShkDstn,
-            LivPrb=LivPrb,
-            DiscFac=DiscFac,
-            CRRA=CRRA,
-            CRRAmed=CRRAmed,
-            Rfree=Rfree,
-            MedPrice=MedPrice,
-            pLvlNextFunc=pLvlNextFunc,
-            BoroCnstArt=BoroCnstArt,
-            aXtraGrid=aXtraGrid,
-            pLvlGrid=pLvlGrid,
-            vFuncBool=vFuncBool,
-            CubicBool=CubicBool,
-            PermGroFac=0.0,
-        )  # dummy value required?
+        """
+        Constructor for a new solver for a one period problem with idiosyncratic
+        shocks to permanent and transitory income and shocks to medical need.
+        """
+        self.solution_next = solution_next
+        self.IncShkDstn = IncShkDstn
+        self.MedShkDstn = MedShkDstn
+        self.LivPrb = LivPrb
+        self.DiscFac = DiscFac
+        self.CRRA = CRRA
+        self.CRRAmed = CRRAmed
+        self.Rfree = Rfree
+        self.MedPrice = MedPrice
+        self.pLvlNextFunc = pLvlNextFunc
+        self.BoroCnstArt = BoroCnstArt
+        self.aXtraGrid = aXtraGrid
+        self.pLvlGrid = pLvlGrid
+        self.vFuncBool = vFuncBool
+        self.CubicBool = CubicBool
+        self.PermGroFac = 0.0
         self.defUtilityFuncs()
 
-    def setAndUpdateValues(self, solution_next, IncomeDstn, LivPrb, DiscFac):
+    def setAndUpdateValues(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.  These include:
@@ -975,7 +977,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncomeDstn : [np.array]
+        IncShkDstn : [np.array]
             A list containing three arrays of floats, representing a discrete
             approximation to the income process between the period being solved
             and the one immediately following (in solution_next). Order: event
@@ -992,7 +994,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         """
         # Run basic version of this method
         ConsGenIncProcessSolver.setAndUpdateValues(
-            self, self.solution_next, self.IncomeDstn, self.LivPrb, self.DiscFac
+            self, self.solution_next, self.IncShkDstn, self.LivPrb, self.DiscFac
         )
 
         # Also unpack the medical shock distribution
