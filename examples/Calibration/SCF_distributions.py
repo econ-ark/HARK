@@ -5,7 +5,7 @@ Created on Mon Jan 18 13:57:50 2021
 @author: Mateo
 """
 
-from HARK.datasets.SCF.WealthIncomeDist.parser import income_wealth_dists_from_scf
+from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 import seaborn as sns
 from itertools import product, starmap
 import pandas as pd
