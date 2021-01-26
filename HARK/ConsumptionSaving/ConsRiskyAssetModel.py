@@ -5,7 +5,7 @@ asset (with a low return), and saving in a risky asset (with higher average retu
 '''
 import numpy as np
 from copy import deepcopy
-from HARK import HARKobject, NullFunc, AgentType # Basic HARK features
+from HARK import MetricObject, NullFunc, AgentType # Basic HARK features
 from HARK.ConsumptionSaving.ConsIndShockModel import(
     IndShockConsumerType,       # PortfolioConsumerType inherits from it
     utility,                    # CRRA utility function
@@ -29,7 +29,7 @@ from HARK.interpolation import(
 
 from HARK.utilities import makeGridExpMult
 
-class DiscreteInterp2D(HARKobject):
+class DiscreteInterp2D(MetricObject):
     
     distance_criteria = ['IndexInterp']
     
@@ -165,9 +165,9 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         None
         '''
         if 'RiskyDstn' in self.time_vary:
-            self.ShockDstn = [combineIndepDstns(self.IncomeDstn[t], self.RiskyDstn[t]) for t in range(self.T_cycle)]
+            self.ShockDstn = [combineIndepDstns(self.IncShkDstn[t], self.RiskyDstn[t]) for t in range(self.T_cycle)]
         else:
-            self.ShockDstn = [combineIndepDstns(self.IncomeDstn[t], self.RiskyDstn) for t in range(self.T_cycle)]
+            self.ShockDstn = [combineIndepDstns(self.IncShkDstn[t], self.RiskyDstn) for t in range(self.T_cycle)]
         self.addToTimeVary('ShockDstn')
 
         # Mark whether the risky returns and income shocks are independent (they are)
@@ -333,7 +333,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
 
 
 # Class for the contribution share stage solution
-class RiskyContribShaSolution(HARKobject):
+class RiskyContribShaSolution(MetricObject):
     """
     A class for representing the solution to the contribution-share stage of
     the 'RiskyContrib' model.
@@ -427,7 +427,7 @@ class RiskyContribShaSolution(HARKobject):
         self.dvdsFuncShaFxd = dvdsFuncShaFxd
         
 # Class for asset adjustment stage solution
-class RiskyContribRebSolution(HARKobject):
+class RiskyContribRebSolution(MetricObject):
     """
     A class for representing the solution to the asset-rebalancing stage of
     the 'RiskyContrib' model.
@@ -519,7 +519,7 @@ class RiskyContribRebSolution(HARKobject):
         self.dvdsFuncRebFxd = dvdsFuncRebFxd
         
 # Class for the consumption stage solution
-class RiskyContribCnsSolution(HARKobject):
+class RiskyContribCnsSolution(MetricObject):
     """
     A class for representing the solution to the consumption stage of the
     'RiskyContrib' model.
@@ -573,7 +573,7 @@ class RiskyContribCnsSolution(HARKobject):
         self.dvdsFuncCns = dvdsFuncCns
 
 # Class for the solution of a whole period
-class RiskyContribSolution(HARKobject):
+class RiskyContribSolution(MetricObject):
     
     # Declare that the distance metric will be an object called 'ConvCriterion'
     # TODO: this should just be stageSols, but HARK's distance code can not
@@ -794,9 +794,9 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         None
         '''
         if 'RiskyDstn' in self.time_vary:
-            self.ShockDstn = [combineIndepDstns(self.IncomeDstn[t], self.RiskyDstn[t]) for t in range(self.T_cycle)]
+            self.ShockDstn = [combineIndepDstns(self.IncShkDstn[t], self.RiskyDstn[t]) for t in range(self.T_cycle)]
         else:
-            self.ShockDstn = [combineIndepDstns(self.IncomeDstn[t], self.RiskyDstn) for t in range(self.T_cycle)]
+            self.ShockDstn = [combineIndepDstns(self.IncShkDstn[t], self.RiskyDstn) for t in range(self.T_cycle)]
         self.addToTimeVary('ShockDstn')
         
         # Mark whether the risky returns and income shocks are independent (they are)
@@ -1184,7 +1184,7 @@ def rebalanceAssets(d,m,n,tau):
 
 
 # Consumption stage solver
-def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
+def solveRiskyContribCnsStage(solution_next,ShockDstn,IncShkDstn,RiskyDstn,
                               LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
                               BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
                               ShareGrid,vFuncBool,AdjustPrb,
@@ -1222,7 +1222,7 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # up if they are independent?
     if IndepDstnBool:
         
-        ShockDstn = combineIndepDstns(IncomeDstn, RiskyDstn)
+        ShockDstn = combineIndepDstns(IncShkDstn, RiskyDstn)
     
     # Unpack the shock distribution
     ShockPrbs_next = ShockDstn.pmf
@@ -1745,14 +1745,14 @@ def solveRiskyContribRebStage(solution_next,
     
     return solution
 
-def solveRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
+def solveRiskyContrib(solution_next,ShockDstn,IncShkDstn,RiskyDstn,
                       LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
                       BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
                       ShareGrid,dGrid,vFuncBool,AdjustPrb,
                       DiscreteShareBool,IndepDstnBool):
     
      # Pack parameters to be passed to stage-specific solvers
-     kws = {'ShockDstn': ShockDstn, 'IncomeDstn': IncomeDstn,
+     kws = {'ShockDstn': ShockDstn, 'IncShkDstn': IncShkDstn,
             'RiskyDstn': RiskyDstn, 'LivPrb': LivPrb, 'DiscFac': DiscFac,
             'CRRA': CRRA, 'Rfree': Rfree, 'PermGroFac': PermGroFac, 'tau': tau,
             'BoroCnstArt': BoroCnstArt, 'aXtraGrid': aXtraGrid,
