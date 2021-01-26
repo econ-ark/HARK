@@ -15,8 +15,12 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks,  # Baseline dictionary to build on
 )
 
-from HARK.distribution import combineIndepDstns
-from HARK.distribution import Lognormal, Bernoulli  # Random draws for simulating agents
+from HARK.distribution import (
+    combineIndepDstns,
+    Lognormal,
+    Bernoulli,
+    calcExpectation,
+)  # Random draws for simulating agents
 from HARK.interpolation import (
     LinearInterp,  # Piecewise linear interpolation
     BilinearInterp,  # 2D interpolator
@@ -1211,6 +1215,29 @@ def rebalanceAssets(d, m, n, tau):
     return (mTil, nTil)
 
 
+# Transition equations for the consumption stage
+def m_nrm_next(shocks, aNrm, Share, Rfree, PermGroFac):
+
+    # Extract shocks
+    perm_shk = shocks[0]
+    tran_shk = shocks[1]
+
+    m_nrm_tp1 = Rfree * aNrm / (perm_shk * PermGroFac) + (1.0 - Share) * tran_shk
+
+    return m_nrm_tp1
+
+
+def n_nrm_next(shocks, nNrm, Share, PermGroFac):
+
+    perm_shk = shocks[0]
+    tran_shk = shocks[1]
+    R_risky = shocks[2]
+
+    n_nrm_tp1 = R_risky * nNrm / (perm_shk * PermGroFac) + Share * tran_shk
+
+    return n_nrm_tp1
+
+
 # Consumption stage solver
 def solveRiskyContribCnsStage(
     solution_next,
@@ -1295,44 +1322,15 @@ def solveRiskyContribCnsStage(
         aNrmGrid = np.insert(aXtraGrid, 0, 0.0)
 
     # Create tiled arrays with conforming dimensions. These are used
-    # to compute expectations.
+    # to compute expectations at every grid combinations
     aNrm_N = aNrmGrid.size
     nNrm_N = nNrmGrid.size
     Share_N = ShareGrid.size
-    Shock_N = ShockPrbs_next.size
-    # Convention will be (a,n,s,Shocks)
-    aNrm_tiled = np.tile(
-        np.reshape(aNrmGrid, (aNrm_N, 1, 1, 1)), (1, nNrm_N, Share_N, Shock_N)
-    )
-    nNrm_tiled = np.tile(
-        np.reshape(nNrmGrid, (1, nNrm_N, 1, 1)), (aNrm_N, 1, Share_N, Shock_N)
-    )
-    Share_tiled = np.tile(
-        np.reshape(ShareGrid, (1, 1, Share_N, 1)), (aNrm_N, nNrm_N, 1, Shock_N)
-    )
-    ShockPrbs_tiled = np.tile(
-        np.reshape(ShockPrbs_next, (1, 1, 1, Shock_N)), (aNrm_N, nNrm_N, Share_N, 1)
-    )
-    PermShks_tiled = np.tile(
-        np.reshape(PermShks_next, (1, 1, 1, Shock_N)), (aNrm_N, nNrm_N, Share_N, 1)
-    )
-    TranShks_tiled = np.tile(
-        np.reshape(TranShks_next, (1, 1, 1, Shock_N)), (aNrm_N, nNrm_N, Share_N, 1)
-    )
-    Risky_tiled = np.tile(
-        np.reshape(Risky_next, (1, 1, 1, Shock_N)), (aNrm_N, nNrm_N, Share_N, 1)
-    )
 
-    # Calculate future states
-    mNrm_next = (
-        Rfree * aNrm_tiled / (PermShks_tiled * PermGroFac)
-        + (1.0 - Share_tiled) * TranShks_tiled
-    )
-    nNrm_next = (
-        Risky_tiled * nNrm_tiled / (PermShks_tiled * PermGroFac)
-        + Share_tiled * TranShks_tiled
-    )
-    Share_next = Share_tiled
+    # Convention will be (a,n,s)
+    aNrm_tiled = np.tile(np.reshape(aNrmGrid, (aNrm_N, 1, 1)), (1, nNrm_N, Share_N))
+    nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1, nNrm_N, 1)), (aNrm_N, 1, Share_N))
+    Share_tiled = np.tile(np.reshape(ShareGrid, (1, 1, Share_N)), (aNrm_N, nNrm_N, 1))
 
     # Evaluate realizations of the derivatives and levels of next period's
     # value function
@@ -1340,65 +1338,76 @@ def solveRiskyContribCnsStage(
     # The agent who can adjust starts at the "contrib" stage, the one who can't
     # starts at the Fxd stage.
 
-    # Always compute the adjusting version
-    if vFuncBool:
-        vAdj_next = vFuncRebAdj_next(mNrm_next, nNrm_next)
-    dvdmAdj_next = dvdmFuncRebAdj_next(mNrm_next, nNrm_next)
-    dvdnAdj_next = dvdnFuncRebAdj_next(mNrm_next, nNrm_next)
-    dvdsAdj_next = np.zeros_like(
-        mNrm_next
-    )  # No marginal value of Share if it's a free choice!
-
     # We are interested in marginal values before the realization of the
     # adjustment random variable. Compute those objects
     if AdjustPrb < 1.0:
 
-        # "Fixed" counterparts
-        dvdmFxd_next = dvdmFuncRebFxd_next(mNrm_next, nNrm_next, Share_next)
-        dvdnFxd_next = dvdnFuncRebFxd_next(mNrm_next, nNrm_next, Share_next)
-        dvdsFxd_next = dvdsFuncRebFxd_next(mNrm_next, nNrm_next, Share_next)
-
-        # Expected values with respect to adjustment r.v.
-        dvdm_next = AdjustPrb * dvdmAdj_next + (1.0 - AdjustPrb) * dvdmFxd_next
-        dvdn_next = AdjustPrb * dvdnAdj_next + (1.0 - AdjustPrb) * dvdnFxd_next
-        dvds_next = AdjustPrb * dvdsAdj_next + (1.0 - AdjustPrb) * dvdsFxd_next
+        dvdm_next = lambda m, n, s: AdjustPrb * dvdmFuncRebAdj_next(m, n) + (
+            1.0 - AdjustPrb
+        ) * dvdmFuncRebFxd_next(m, n, s)
+        dvdn_next = lambda m, n, s: AdjustPrb * dvdnFuncRebAdj_next(m, n) + (
+            1.0 - AdjustPrb
+        ) * dvdnFuncRebFxd_next(m, n, s)
+        dvds_next = lambda m, n, s: (1.0 - AdjustPrb) * dvdsFuncRebFxd_next(m, n, s)
 
         # Value function if needed
         if vFuncBool:
-            vFxd_next = vFuncRebFxd_next(mNrm_next, nNrm_next, Share_next)
-            v_next = AdjustPrb * vAdj_next + (1.0 - AdjustPrb) * vFxd_next
+
+            v_next = lambda m, n, s: AdjustPrb * vFuncRebAdj_next(m, n) + (
+                1.0 - AdjustPrb
+            ) * vFuncRebFxd_next(m, n, s)
 
     else:  # Don't evaluate if there's no chance that contribution share is fixed
 
-        dvdm_next = dvdmAdj_next
-        dvdn_next = dvdnAdj_next
-        dvds_next = dvdsAdj_next
+        dvdm_next = lambda m, n, s: dvdmFuncRebAdj_next(m, n)
+        dvdn_next = lambda m, n, s: dvdnFuncRebAdj_next(m, n)
+        dvds_next = ConstantFunction(0.0)
 
         if vFuncBool:
-            v_next = vAdj_next
+            v_next = lambda m, n, s: vFuncRebAdj_next(m, n)
 
-    # Calculate end-of-period marginal value of both assets by taking expectations
-    temp_fac_A = uP(PermShks_tiled * PermGroFac)  # Will use this in a couple places
-    EndOfPrddvda = (
+    temp_fac_A = lambda shocks: uP(shocks[0] * PermGroFac)
+    m_trans = lambda shocks, a, s: m_nrm_next(shocks, a, s, Rfree, PermGroFac)
+    n_trans = lambda shocks, n, s: n_nrm_next(shocks, n, s, PermGroFac)
+
+    end_of_prd_dvda_func = lambda shocks, a, n, s: (
         DiscFac
         * Rfree
         * LivPrb
-        * np.sum(ShockPrbs_tiled * temp_fac_A * dvdm_next, axis=3)
+        * temp_fac_A(shocks)
+        * dvdm_next(m_trans(shocks, a, s), n_trans(shocks, n, s), s)
     )
-    EndOfPrddvdn = (
+    EndOfPrddvda = calcExpectation(
+        ShockDstn, end_of_prd_dvda_func, aNrm_tiled, nNrm_tiled, Share_tiled
+    )[:,:,:,0]
+
+    end_of_prd_dvdn_func = lambda shocks, a, n, s: (
         DiscFac
+        * shocks[2]
         * LivPrb
-        * np.sum(ShockPrbs_tiled * temp_fac_A * Risky_tiled * dvdn_next, axis=3)
+        * temp_fac_A(shocks)
+        * dvdn_next(m_trans(shocks, a, s), n_trans(shocks, n, s), s)
     )
+    EndOfPrddvdn = calcExpectation(
+        ShockDstn, end_of_prd_dvdn_func, aNrm_tiled, nNrm_tiled, Share_tiled
+    )[:,:,:,0]
+
+    # TODO: why does calc expectations add a dimension at the end?
     EndOfPrddvdaNvrs = uPinv(EndOfPrddvda)
     EndOfPrddvdnNvrs = uPinv(EndOfPrddvdn)
 
     # Calculate end-of-period value if needed
-    temp_fac_B = (PermShks_tiled * PermGroFac) ** (1.0 - CRRA)  # Will use this below
+    temp_fac_B = lambda shocks: (shocks[0] * PermGroFac) ** (
+        1.0 - CRRA
+    )  # Will use this below
+
     if vFuncBool:
-        EndOfPrdv = (
-            DiscFac * LivPrb * np.sum(ShockPrbs_tiled * temp_fac_B * v_next, axis=3)
+        end_of_prd_v_func = lambda shocks, a, n, s: (
+            DiscFac * LivPrb * temp_fac_B(shocks) * v_next(m_trans(shocks, a, s), n_trans(shocks, n, s), s)
         )
+        EndOfPrdv = calcExpectation(
+            ShockDstn, end_of_prd_v_func, aNrm_tiled, nNrm_tiled, Share_tiled
+        )[:,:,:,0]
         EndOfPrdvNvrs = uInv(EndOfPrdv)
 
         # Construct an interpolator for EndOfPrdV. It will be used later.
@@ -1414,29 +1423,30 @@ def solveRiskyContribCnsStage(
     # - Since s can be fixed in the future there is also a marginal effect coming
     #   from the future.
 
-    # Find distribution effect. Initialize at 0.
-    distribEffect = np.zeros_like(TranShks_tiled)
-    # Find the effect where income is not 0
-    inds = TranShks_next > 0.0
-    distribEffect[:, :, :, inds] = TranShks_tiled[:, :, :, inds] * (
-        dvdn_next[:, :, :, inds] - dvdm_next[:, :, :, inds]
+    # Define the distributional effect and total effect
+    distrib_effect = (
+        lambda shocks, m, n, s: 0
+        if shocks[1] == 0
+        else shocks[1] * (dvdn_next(m, n, s) - dvdm_next(m, n, s))
+    )
+    total_effect = lambda shocks, m, n, s: distrib_effect(shocks, m, n, s) + dvds_next(
+        m, n, s
     )
 
-    # Add the two effects
-    EndOfPrddvds_cond_undisc = temp_fac_B * (distribEffect + dvds_next)
-    # Discount and integrate over shocks
-    EndOfPrddvds = (
-        DiscFac * LivPrb * np.sum(ShockPrbs_tiled * EndOfPrddvds_cond_undisc, axis=3)
+    end_of_prd_dvds_func = lambda shocks, a, n, s: (
+        DiscFac
+        * LivPrb
+        * temp_fac_B(shocks)
+        * total_effect(shocks, m_trans(shocks, a, s), n_trans(shocks, n, s), s)
     )
 
+    EndOfPrddvds = calcExpectation(
+        ShockDstn, end_of_prd_dvds_func, aNrm_tiled, nNrm_tiled, Share_tiled
+    )[:,:,:,0]
+    
     # STEP TWO:
     # Solve the consumption problem and create interpolators for c, vCns,
     # and its derivatives.
-
-    # Recast a, n, and s now that the shock dimension has been integrated over
-    aNrm_tiled = aNrm_tiled[:, :, :, 0]
-    nNrm_tiled = nNrm_tiled[:, :, :, 0]
-    Share_tiled = Share_tiled[:, :, :, 0]
 
     # Apply EGM over liquid resources at every (n,s) to find consumption.
     c_end = EndOfPrddvdaNvrs
