@@ -43,7 +43,8 @@ class DiscreteInterp2D(MetricObject):
         
         # Interpolate indices and round to integers
         inds = np.rint(self.IndexInterp(x, y)).astype(int)
-        
+        if type(inds) is not np.ndarray:
+            inds = np.array(inds)
         # Deal with out-of range indices
         inds[inds < 0]          = 0
         inds[inds >= self.nVals] = self.nVals - 1
