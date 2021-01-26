@@ -575,23 +575,13 @@ class RiskyContribCnsSolution(MetricObject):
 # Class for the solution of a whole period
 class RiskyContribSolution(MetricObject):
     
-    # Declare that the distance metric will be an object called 'ConvCriterion'
-    # TODO: this should just be stageSols, but HARK's distance code can not
-    # deal with dictionaries at the moment: only lists. This is therefore a
-    # workarround.
-    distance_criteria = ['ConvCriterion']
+    # Solutions are to be compared on the basis of their sub-period solutions
+    distance_criteria = ['stageSols']
 
     def __init__(self, Reb, Sha, Cns):
         
         # Dictionary of stage solutions
         self.stageSols = {'Reb': Reb, 'Sha': Sha, 'Cns': Cns}
-        
-        # And convergence criterion. This is the object that will be checked
-        # for convergence in the infinite horizon solution.
-        # We inted the 'distance' to be an aggregate of the distance of 
-        # each stage's distance.
-        self.ConvCriterion = list(self.stageSols.values())
-    
 
 class RiskyContribConsumerType(RiskyAssetConsumerType):
     """
