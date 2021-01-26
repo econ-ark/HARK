@@ -6,7 +6,7 @@ asset (with a low return), and saving in a risky asset (with higher average retu
 import numpy as np
 from scipy.optimize import minimize_scalar
 from copy import deepcopy
-from HARK import HARKobject, NullFunc, AgentType  # Basic HARK features
+from HARK import MetricObject, NullFunc, AgentType  # Basic HARK features
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
     utility,  # CRRA utility function
@@ -32,7 +32,7 @@ from HARK.interpolation import (
 
 
 # Define a class to represent the single period solution of the portfolio choice problem
-class PortfolioSolution(HARKobject):
+class PortfolioSolution(MetricObject):
     """
     A class for representing the single period solution of the portfolio choice model.
 
@@ -272,12 +272,12 @@ class PortfolioConsumerType(IndShockConsumerType):
         """
         if "RiskyDstn" in self.time_vary:
             self.ShockDstn = [
-                combineIndepDstns(self.IncomeDstn[t], self.RiskyDstn[t])
+                combineIndepDstns(self.IncShkDstn[t], self.RiskyDstn[t])
                 for t in range(self.T_cycle)
             ]
         else:
             self.ShockDstn = [
-                combineIndepDstns(self.IncomeDstn[t], self.RiskyDstn)
+                combineIndepDstns(self.IncShkDstn[t], self.RiskyDstn)
                 for t in range(self.T_cycle)
             ]
         self.addToTimeVary("ShockDstn")
@@ -508,7 +508,7 @@ class PortfolioConsumerType(IndShockConsumerType):
 def solveConsPortfolio(
     solution_next,
     ShockDstn,
-    IncomeDstn,
+    IncShkDstn,
     RiskyDstn,
     LivPrb,
     DiscFac,
@@ -536,7 +536,7 @@ def solveConsPortfolio(
         transitory income shocks, and risky returns.  This is only used if the
         input IndepDstnBool is False, indicating that income and return distributions
         can't be assumed to be independent.
-    IncomeDstn : [np.array]
+    IncShkDstn : [np.array]
         List with three arrays: discrete probabilities, permanent income shocks,
         and transitory income shocks.  This is only used if the input IndepDsntBool
         is True, indicating that income and return distributions are independent.
@@ -616,9 +616,9 @@ def solveConsPortfolio(
     # Major method fork: (in)dependent risky asset return and income distributions
     if IndepDstnBool:  # If the distributions ARE independent...
         # Unpack the shock distribution
-        IncPrbs_next = IncomeDstn.pmf
-        PermShks_next = IncomeDstn.X[0]
-        TranShks_next = IncomeDstn.X[1]
+        IncPrbs_next = IncShkDstn.pmf
+        PermShks_next = IncShkDstn.X[0]
+        TranShks_next = IncShkDstn.X[1]
         Rprbs_next = RiskyDstn.pmf
         Risky_next = RiskyDstn.X
         zero_bound = (
@@ -646,7 +646,7 @@ def solveConsPortfolio(
         Income_N = IncPrbs_next.size
         Risky_N = Rprbs_next.size
 
-        # Make tiled arrays to calculate future realizations of mNrm and Share when integrating over IncomeDstn
+        # Make tiled arrays to calculate future realizations of mNrm and Share when integrating over IncShkDstn
         bNrm_tiled = np.tile(
             np.reshape(bNrmGrid, (bNrm_N, 1, 1)), (1, Share_N, Income_N)
         )

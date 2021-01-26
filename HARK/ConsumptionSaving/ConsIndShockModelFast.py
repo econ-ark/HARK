@@ -20,7 +20,7 @@ from interpolation import interp
 from numba import njit
 from quantecon.optimize import newton_secant
 
-from HARK import makeOnePeriodOOSolver, HARKobject
+from HARK import makeOnePeriodOOSolver, MetricObject
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     ConsPerfForesightSolver,
@@ -71,7 +71,7 @@ utilityP_invP = CRRAutilityP_invP
 # =====================================================================
 
 
-class PerfForesightSolution(HARKobject):
+class PerfForesightSolution(MetricObject):
     """
     A class representing the solution of a single period of a consumption-saving
     perfect foresight problem.
@@ -122,7 +122,7 @@ class PerfForesightSolution(HARKobject):
         self.MPCmax = MPCmax
 
 
-class IndShockSolution(HARKobject):
+class IndShockSolution(MetricObject):
     """
     A class representing the solution of a single period of a consumption-saving
     idiosyncratic shocks to permanent and transitory income problem.
@@ -585,9 +585,9 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
         none
         """
 
-        self.ShkPrbsNext = self.IncomeDstn.pmf
-        self.PermShkValsNext = self.IncomeDstn.X[0]
-        self.TranShkValsNext = self.IncomeDstn.X[1]
+        self.ShkPrbsNext = self.IncShkDstn.pmf
+        self.PermShkValsNext = self.IncShkDstn.X[0]
+        self.TranShkValsNext = self.IncShkDstn.X[1]
 
         (
             self.DiscFacEff,
