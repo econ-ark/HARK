@@ -39,7 +39,7 @@ class test_(unittest.TestCase):
         self.par_finite['RiskyStd'] = 0.20*np.sqrt(15) # Standard deviation of (log) risky returns
         
     def test_finite_cont_share(self):
-        
+        # Finite horizon with continuous contribution share
         cont_params = copy(self.par_finite)
         cont_params['DiscreteShareBool'] = False
         cont_params['vFuncBool'] = False
@@ -55,4 +55,23 @@ class test_(unittest.TestCase):
         )
         self.assertAlmostEqual(
             fin_cont_agent.solution[0].stageSols['Cns'].cFunc(3,4,0.1), 2.46055802
+        )
+    
+    def test_finite_disc_share(self):
+        # Finite horizon with discrete contribution share
+        disc_params = copy(self.par_finite)
+        disc_params['DiscreteShareBool'] = True
+        disc_params['vFuncBool'] = True
+        
+        fin_disc_agent = RiskyContribConsumerType(**disc_params)
+        fin_disc_agent.solve()
+        
+        self.assertAlmostEqual(
+            fin_disc_agent.solution[0].stageSols['Reb'].DFuncAdj(3,4), -0.87755064
+        )
+        self.assertAlmostEqual(
+            fin_disc_agent.solution[0].stageSols['Sha'].ShareFuncAdj(5,0.1), 0.1
+        )
+        self.assertAlmostEqual(
+            fin_disc_agent.solution[0].stageSols['Cns'].cFunc(3,4,0.1), 2.46055803
         )
