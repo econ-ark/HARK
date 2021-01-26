@@ -170,12 +170,12 @@ par_infinite = init_riskyContrib.copy()
 # And make the problem infinite horizon
 par_infinite['cycles']   = 0
 # and sticky
-par_infinite['AdjustPrb'] = 0.5
+par_infinite['AdjustPrb'] = 1.0
 # and with a withdrawal tax
 par_infinite['tau'] = 0.1
 
-par_infinite['DiscreteShareBool'] = True
-par_infinite['vFuncBool'] = True
+par_infinite['DiscreteShareBool'] = False
+par_infinite['vFuncBool'] = False
 
 # Create agent and solve it.
 InfAgent = RiskyContribConsumerType(**par_infinite)
@@ -219,7 +219,7 @@ par_finite = init_riskyContrib.copy()
 par_finite['PermGroFac'] = [2.0, 1.0, 0.1, 1.0]
 par_finite['PermShkStd'] = [0.1, 0.1, 0.0, 0.0]
 par_finite['TranShkStd'] = [0.2, 0.2, 0.0, 0.0]
-par_finite['AdjustPrb']  = [0.5, 0.5, 0.95, 0.95]
+par_finite['AdjustPrb']  = [0.5, 0.5, 1.0, 1.0]
 par_finite['tau']        = [0.1, 0.1, 0.0, 0.0]
 par_finite['LivPrb']     = [1.0, 1.0, 1.0, 1.0]
 par_finite['T_cycle']    = 4
