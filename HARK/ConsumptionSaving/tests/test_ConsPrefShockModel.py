@@ -31,19 +31,19 @@ class testPrefShockConsumerType(unittest.TestCase):
 
     def test_simulation(self):
         self.agent.T_sim = 10
-        self.agent.track_vars = ["cNrmNow", "PrefShkNow"]
+        self.agent.track_vars = ['cNrm', "PrefShk"]
         self.agent.makeShockHistory()  # This is optional
         self.agent.initializeSim()
         self.agent.simulate()
 
-        self.assertAlmostEqual(self.agent.history["cNrmNow"][0][5], 0.7366020536567589)
+        self.assertAlmostEqual(self.agent.history['cNrm'][0][5], 0.7366020536567589)
 
         self.assertEqual(
-            self.agent.shock_history["PrefShkNow"][0][5],
-            self.agent.history["PrefShkNow"][0][5],
+            self.agent.shock_history["PrefShk"][0][5],
+            self.agent.history["PrefShk"][0][5],
         )
 
-        self.assertEqual(self.agent.history["PrefShkNow"][0][5], 0.4909415933881665)
+        self.assertEqual(self.agent.history["PrefShk"][0][5], 0.4909415933881665)
 
 
 class testKinkyPrefConsumerType(unittest.TestCase):
@@ -71,8 +71,8 @@ class testKinkyPrefConsumerType(unittest.TestCase):
 
     def test_simulation(self):
         self.agent.T_sim = 10
-        self.agent.track_vars = ["cNrmNow", "PrefShkNow"]
+        self.agent.track_vars = ['cNrm', "PrefShk"]
         self.agent.initializeSim()
         self.agent.simulate()
 
-        self.assertAlmostEqual(self.agent.history["cNrmNow"][0][5], 0.7717096928111515)
+        self.assertAlmostEqual(self.agent.history['cNrm'][0][5], 0.7717096928111515)

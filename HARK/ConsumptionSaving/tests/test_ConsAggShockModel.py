@@ -263,6 +263,6 @@ class KrusellSmithEconomyTestCase(KrusellSmithTestCase):
 
         self.assertAlmostEqual(self.economy.history["Aprev"][4], 11.009107526443584)
 
-        self.assertAlmostEqual(self.economy.history["MrkvNow"][40], 1)
+        self.assertAlmostEqual(self.economy.history['Mrkv'][40], 1)
 
         self.assertAlmostEqual(self.economy.history["Urate"][12], 0.040000000000000036)

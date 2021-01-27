@@ -266,30 +266,30 @@ class RepAgentConsumerType(IndShockConsumerType):
         -------
         None
         """
-        pLvlPrev = self.state_prev['pLvlNow']
-        aNrmPrev = self.state_prev['aNrmNow']
+        pLvlPrev = self.state_prev['pLvl']
+        aNrmPrev = self.state_prev['aNrm']
 
         # Calculate new states: normalized market resources and permanent income level
         self.pLvlNow = (
-            pLvlPrev * self.shocks["PermShkNow"]
+            pLvlPrev * self.shocks['PermShk']
         )  # Same as in IndShockConsType
-        self.kNrmNow = aNrmPrev / self.shocks["PermShkNow"]
-        self.yNrmNow = self.kNrmNow ** self.CapShare * self.shocks["TranShkNow"] ** (
+        self.kNrmNow = aNrmPrev / self.shocks['PermShk']
+        self.yNrmNow = self.kNrmNow ** self.CapShare * self.shocks['TranShk'] ** (
             1.0 - self.CapShare
         )
         self.Rfree = (
             1.0
             + self.CapShare
             * self.kNrmNow ** (self.CapShare - 1.0)
-            * self.shocks["TranShkNow"] ** (1.0 - self.CapShare)
+            * self.shocks['TranShk'] ** (1.0 - self.CapShare)
             - self.DeprFac
         )
         self.wRte = (
             (1.0 - self.CapShare)
             * self.kNrmNow ** self.CapShare
-            * self.shocks["TranShkNow"] ** (-self.CapShare)
+            * self.shocks['TranShk'] ** (-self.CapShare)
         )
-        self.mNrmNow = self.Rfree * self.kNrmNow + self.wRte * self.shocks["TranShkNow"]
+        self.mNrmNow = self.Rfree * self.kNrmNow + self.wRte * self.shocks['TranShk']
 
 
 class RepAgentMarkovConsumerType(RepAgentConsumerType):
@@ -312,6 +312,11 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
 
     def preSolve(self):
         self.updateSolutionTerminal()
+
+    def initializeSim(self):
+        #self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
+        RepAgentConsumerType.initializeSim(self)
+        self.shocks["Mrkv"] = self.Mrkv
 
     def updateSolutionTerminal(self):
         """
@@ -349,13 +354,13 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         -------
         None
         """
-        self.MrkvNow = MarkovProcess(
+        self.shocks["Mrkv"] = MarkovProcess(
             self.MrkvArray,
             seed=self.RNG.randint(0, 2 ** 31 - 1)
-            ).draw(self.MrkvNow)
+            ).draw(self.shocks["Mrkv"])
 
         t = self.t_cycle[0]
-        i = self.MrkvNow
+        i = self.shocks["Mrkv"]
         IncShkDstnNow = self.IncShkDstn[t - 1][i]  # set current income distribution
         PermGroFacNow = self.PermGroFac[t - 1][i]  # and permanent growth factor
         # Get random draws of income shocks from the discrete distribution
@@ -364,8 +369,8 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
             IncShkDstnNow.X[0][EventDraw] * PermGroFacNow
         )  # permanent "shock" includes expected growth
         TranShkNow = IncShkDstnNow.X[1][EventDraw]
-        self.shocks["PermShkNow"] = np.array(PermShkNow)
-        self.shocks["TranShkNow"] = np.array(TranShkNow)
+        self.shocks['PermShk'] = np.array(PermShkNow)
+        self.shocks['TranShk'] = np.array(TranShkNow)
 
     def getControls(self):
         """
@@ -380,8 +385,8 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         None
         """
         t = self.t_cycle[0]
-        i = self.MrkvNow
-        self.controls["cNrmNow"] = self.solution[t].cFunc[i](self.mNrmNow)
+        i = self.shocks["Mrkv"]
+        self.controls['cNrm'] = self.solution[t].cFunc[i](self.mNrmNow)
 
 
 # Define the default dictionary for a representative agent type
@@ -395,4 +400,4 @@ init_rep_agent["LivPrb"] = [1.0]
 init_markov_rep_agent = init_rep_agent.copy()
 init_markov_rep_agent["PermGroFac"] = [[0.97, 1.03]]
 init_markov_rep_agent["MrkvArray"] = np.array([[0.99, 0.01], [0.01, 0.99]])
-init_markov_rep_agent["MrkvNow"] = 0
+init_markov_rep_agent["Mrkv"] = 0
