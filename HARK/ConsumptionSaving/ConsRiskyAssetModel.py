@@ -1297,10 +1297,7 @@ def solveRiskyContribCnsStage(
         ShockDstn = combineIndepDstns(IncShkDstn, RiskyDstn)
 
     # Unpack the shock distribution
-    ShockPrbs_next = ShockDstn.pmf
-    PermShks_next = ShockDstn.X[0]
     TranShks_next = ShockDstn.X[1]
-    Risky_next = ShockDstn.X[2]
 
     # STEP ONE
     # Find end-of-period (continuation) value function and its derivatives.
@@ -1323,14 +1320,13 @@ def solveRiskyContribCnsStage(
 
     # Create tiled arrays with conforming dimensions. These are used
     # to compute expectations at every grid combinations
-    aNrm_N = aNrmGrid.size
     nNrm_N = nNrmGrid.size
     Share_N = ShareGrid.size
 
     # Convention will be (a,n,s)
-    aNrm_tiled = np.tile(np.reshape(aNrmGrid, (aNrm_N, 1, 1)), (1, nNrm_N, Share_N))
-    nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1, nNrm_N, 1)), (aNrm_N, 1, Share_N))
-    Share_tiled = np.tile(np.reshape(ShareGrid, (1, 1, Share_N)), (aNrm_N, nNrm_N, 1))
+    aNrm_tiled, nNrm_tiled, Share_tiled = np.meshgrid(
+        aNrmGrid, nNrmGrid, ShareGrid, indexing="ij"
+    )
 
     # Evaluate realizations of the derivatives and levels of next period's
     # value function
@@ -1379,7 +1375,7 @@ def solveRiskyContribCnsStage(
     )
     EndOfPrddvda = calcExpectation(
         ShockDstn, end_of_prd_dvda_func, aNrm_tiled, nNrm_tiled, Share_tiled
-    )[:,:,:,0]
+    )[:, :, :, 0]
 
     end_of_prd_dvdn_func = lambda shocks, a, n, s: (
         DiscFac
@@ -1390,7 +1386,7 @@ def solveRiskyContribCnsStage(
     )
     EndOfPrddvdn = calcExpectation(
         ShockDstn, end_of_prd_dvdn_func, aNrm_tiled, nNrm_tiled, Share_tiled
-    )[:,:,:,0]
+    )[:, :, :, 0]
 
     # TODO: why does calc expectations add a dimension at the end?
     EndOfPrddvdaNvrs = uPinv(EndOfPrddvda)
@@ -1403,11 +1399,14 @@ def solveRiskyContribCnsStage(
 
     if vFuncBool:
         end_of_prd_v_func = lambda shocks, a, n, s: (
-            DiscFac * LivPrb * temp_fac_B(shocks) * v_next(m_trans(shocks, a, s), n_trans(shocks, n, s), s)
+            DiscFac
+            * LivPrb
+            * temp_fac_B(shocks)
+            * v_next(m_trans(shocks, a, s), n_trans(shocks, n, s), s)
         )
         EndOfPrdv = calcExpectation(
             ShockDstn, end_of_prd_v_func, aNrm_tiled, nNrm_tiled, Share_tiled
-        )[:,:,:,0]
+        )[:, :, :, 0]
         EndOfPrdvNvrs = uInv(EndOfPrdv)
 
         # Construct an interpolator for EndOfPrdV. It will be used later.
@@ -1442,8 +1441,8 @@ def solveRiskyContribCnsStage(
 
     EndOfPrddvds = calcExpectation(
         ShockDstn, end_of_prd_dvds_func, aNrm_tiled, nNrm_tiled, Share_tiled
-    )[:,:,:,0]
-    
+    )[:, :, :, 0]
+
     # STEP TWO:
     # Solve the consumption problem and create interpolators for c, vCns,
     # and its derivatives.
@@ -1460,12 +1459,11 @@ def solveRiskyContribCnsStage(
 
     # Expand the regular m grid to contain 0.
     mNrmGrid = np.insert(mNrmGrid, 0, 0)
-    mNrm_N = len(mNrmGrid)
 
     # Dimensions might have changed, so re-create tiled arrays
-    mNrm_tiled = np.tile(np.reshape(mNrmGrid, (mNrm_N, 1, 1)), (1, nNrm_N, Share_N))
-    nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1, nNrm_N, 1)), (mNrm_N, 1, Share_N))
-    Share_tiled = np.tile(np.reshape(ShareGrid, (1, 1, Share_N)), (mNrm_N, nNrm_N, 1))
+    mNrm_tiled, nNrm_tiled, Share_tiled = np.meshgrid(
+        mNrmGrid, nNrmGrid, ShareGrid, indexing="ij"
+    )
 
     # Initialize arrays
     c_vals = np.zeros_like(mNrm_tiled)
@@ -1595,15 +1593,13 @@ def solveRiskyContribShaStage(
     nNrm_N = len(nNrmGrid)
     mNrmGrid = np.insert(mNrmGrid, 0, 0)
     mNrm_N = len(mNrmGrid)
-    Share_N = len(ShareGrid)
 
     if AdjustPrb == 1.0:
         # If the readjustment probability is 1, set the share to 0:
         # - If there is a withdrawal tax: better for the agent to observe
         #   income before rebalancing.
         # - If there is no tax: all shares should yield the same value.
-        mNrm_tiled = np.tile(np.reshape(mNrmGrid, (mNrm_N, 1)), (1, nNrm_N))
-        nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1, nNrm_N)), (mNrm_N, 1))
+        mNrm_tiled, nNrm_tiled = np.meshgrid(mNrmGrid, nNrmGrid, indexing="ij")
 
         optIdx = np.zeros_like(mNrm_tiled, dtype=int)
         optShare = ShareGrid[optIdx]
@@ -1615,13 +1611,12 @@ def solveRiskyContribShaStage(
 
         # Figure out optimal share by evaluating all alternatives at all
         # (m,n) combinations
-        m_idx_tiled = np.tile(np.reshape(np.arange(mNrm_N), (mNrm_N, 1)), (1, nNrm_N))
-        n_idx_tiled = np.tile(np.reshape(np.arange(nNrm_N), (1, nNrm_N)), (mNrm_N, 1))
+        m_idx_tiled, n_idx_tiled = np.meshgrid(
+            np.arange(mNrm_N), np.arange(nNrm_N), indexing="ij"
+        )
 
-        mNrm_tiled = np.tile(np.reshape(mNrmGrid, (mNrm_N, 1, 1)), (1, nNrm_N, Share_N))
-        nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1, nNrm_N, 1)), (mNrm_N, 1, Share_N))
-        Share_tiled = np.tile(
-            np.reshape(ShareGrid, (1, 1, Share_N)), (mNrm_N, nNrm_N, 1)
+        mNrm_tiled, nNrm_tiled, Share_tiled = np.meshgrid(
+            mNrmGrid, nNrmGrid, ShareGrid, indexing="ij"
         )
 
         if DiscreteShareBool:
@@ -1756,9 +1751,9 @@ def solveRiskyContribRebStage(
 
     # Create tiled arrays for every d,m,n option
     d_N2 = len(dGrid)
-    d_tiled = np.tile(np.reshape(dGrid, (d_N2, 1, 1)), (1, mNrm_N, nNrm_N))
-    mNrm_tiled = np.tile(np.reshape(mNrmGrid, (1, mNrm_N, 1)), (d_N2, 1, nNrm_N))
-    nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1, 1, nNrm_N)), (d_N2, mNrm_N, 1))
+    d_tiled, mNrm_tiled, nNrm_tiled = np.meshgrid(
+        dGrid, mNrmGrid, nNrmGrid, indexing="ij"
+    )
 
     # Get post-rebalancing assets the m_tilde, n_tilde.
     m_tilde, n_tilde = rebalanceAssets(d_tiled, mNrm_tiled, nNrm_tiled, tau)
@@ -1795,8 +1790,9 @@ def solveRiskyContribRebStage(
     crossings = np.logical_and(dvdDNvrs[:-1, :, :] <= 0.0, dvdDNvrs[1:, :, :] >= 0.0)
     idx = np.argmax(crossings, axis=0)
 
-    m_idx_tiled = np.tile(np.reshape(np.arange(mNrm_N), (mNrm_N, 1)), (1, nNrm_N))
-    n_idx_tiled = np.tile(np.reshape(np.arange(nNrm_N), (1, nNrm_N)), (mNrm_N, 1))
+    m_idx_tiled, n_idx_tiled = np.meshgrid(
+        np.arange(mNrm_N), np.arange(nNrm_N), indexing="ij"
+    )
 
     # Linearly interpolate the optimal withdrawal percentage d
     idx1 = idx + 1
