@@ -493,6 +493,9 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         params.update(kwds)
         kwds = params
         AggShockConsumerType.__init__(self, **kwds)
+
+        self.shocks['Mrkv'] = None
+
         self.addToTimeInv("MrkvArray")
         self.solveOnePeriod = solveConsAggMarkov
 
@@ -566,7 +569,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             N = np.sum(these)
             if N > 0:
                 IncShkDstnNow = self.IncShkDstn[t - 1][
-                    self.MrkvNow
+                    self.shocks['Mrkv']
                 ]  # set current income distribution
                 PermGroFacNow = self.PermGroFac[t - 1]  # and permanent growth factor
 
@@ -582,7 +585,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         if N > 0:
             these = newborn
             IncShkDstnNow = self.IncShkDstn[0][
-                self.MrkvNow
+                self.shocks['Mrkv']
             ]  # set current income distribution
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
@@ -642,7 +645,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         return None
 
     def getMrkvNow(self):  # This function exists to be overwritten in StickyE model
-        return self.MrkvNow * np.ones(self.AgentCount, dtype=int)
+        return self.shocks['Mrkv'] * np.ones(self.AgentCount, dtype=int)
 
 
 init_KS_agents = {
@@ -1067,7 +1070,7 @@ class KrusellSmithType(AgentType):
 
     def getPostStates(self):
         """
-        Gets each agent's retained assets after consumption and stores MrkvNow as MrkvPrev.
+        Gets each agent's retained assets after consumption.
         """
         self.state_now['aNow'] = self.state_now["mNow"] - self.controls["cNow"]
 
@@ -2404,7 +2407,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             "PermShkAggNow",
             "TranShkAggNow",
             "KtoLnow",
-            "MrkvNow",  # This one is new
+            "Mrkv",  # This one is new
         ],
         **kwds
     ):
@@ -2421,7 +2424,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             **params
         )
 
-        self.sow_init["MrkvNow"] = params["MrkvNow_init"]
+        self.sow_init["Mrkv"] = params["MrkvNow_init"]
 
     def update(self):
         """
@@ -2593,7 +2596,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         MrkvNow_hist = np.zeros(self.act_T_orig, dtype=int)
         loops = 0
         go = True
-        MrkvNow = self.sow_init["MrkvNow"]
+        MrkvNow = self.sow_init["Mrkv"]
         t = 0
         StateCount = self.MrkvArray.shape[0]
 
