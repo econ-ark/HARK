@@ -699,7 +699,9 @@ class KrusellSmithType(AgentType):
             "EmpNow" : None
         }
 
-        self.shock_vars = {}
+        self.shock_vars = {
+            "Mrkv" : None
+        }
 
         self.solveOnePeriod = solveKrusellSmith
         self.update()
@@ -733,7 +735,7 @@ class KrusellSmithType(AgentType):
         )  # Need to be able to track as many periods as economy runs
         self.kInit = Economy.KSS  # Initialize simulation assets to steady state
         self.MrkvInit = Economy.sow_init[
-            "MrkvNow"
+            "Mrkv"
         ]  # Starting Markov state for the macroeconomy
         self.Mgrid = (
             Economy.MSS * self.MgridBase
@@ -972,8 +974,7 @@ class KrusellSmithType(AgentType):
         self.simulate(1)
 
     def initializeSim(self):
-        self.MrkvNow = self.MrkvInit
-        self.MrkvPrev = self.MrkvInit
+        self.shocks['Mrkv'] = self.MrkvInit
         AgentType.initializeSim(self)
         self.state_now["EmpNow"] = self.state_now["EmpNow"].astype(bool)
         self.makeEmpIdxArrays()
@@ -990,10 +991,10 @@ class KrusellSmithType(AgentType):
         if N == 0:
             return
 
-        if self.MrkvNow == 0:
+        if self.shocks['Mrkv'] == 0:
             unemp_N = int(np.round(self.UrateB * N))
             emp_N = self.AgentCount - unemp_N
-        elif self.MrkvNow == 1:
+        elif self.shocks['Mrkv'] == 1:
             unemp_N = int(np.round(self.UrateG * N))
             emp_N = self.AgentCount - unemp_N
         else:
@@ -1001,6 +1002,7 @@ class KrusellSmithType(AgentType):
         EmpNew = np.concatenate(
             [np.zeros(unemp_N, dtype=bool), np.ones(emp_N, dtype=bool)]
         )
+
         self.state_now["EmpNow"][which] = self.RNG.permutation(EmpNew)
         self.state_now["aNow"][which] = self.kInit
 
@@ -1012,12 +1014,20 @@ class KrusellSmithType(AgentType):
         employed = self.state_prev["EmpNow"].copy().astype(bool)
         unemployed = np.logical_not(employed)
 
+        # derive from past employment rate rather than store previous value
+        mrkv_prev = int((unemployed.sum() / float(self.AgentCount)) != self.UrateB)
+
         # Transition some agents between unemployment and employment
-        emp_permute = self.emp_permute[self.MrkvPrev][self.MrkvNow]
-        unemp_permute = self.unemp_permute[self.MrkvPrev][self.MrkvNow]
+        emp_permute = self.emp_permute[mrkv_prev][self.shocks['Mrkv']]
+        unemp_permute = self.unemp_permute[mrkv_prev][self.shocks['Mrkv']]
         # TODO: replace poststate_vars functionality with shocks here
         EmpNow = self.state_now["EmpNow"]
 
+        if employed.sum() != emp_permute.size:
+            import pdb; pdb.set_trace()
+
+        # It's really this permutation that is the shock...
+        # This apparatus is trying to 'exact match' the 'internal' Markov process.
         EmpNow[employed] = self.RNG.permutation(emp_permute)
         EmpNow[unemployed] = self.RNG.permutation(unemp_permute)
 
@@ -1035,10 +1045,10 @@ class KrusellSmithType(AgentType):
         unemployed = np.logical_not(employed)
 
         # Get the discrete index for (un)employed agents
-        if self.MrkvNow == 0:  # Bad macroeconomic conditions
+        if self.shocks['Mrkv'] == 0:  # Bad macroeconomic conditions
             unemp_idx = 0
             emp_idx = 1
-        elif self.MrkvNow == 1:  # Good macroeconomic conditions
+        elif self.shocks['Mrkv'] == 1:  # Good macroeconomic conditions
             unemp_idx = 2
             emp_idx = 3
         else:
@@ -1060,7 +1070,6 @@ class KrusellSmithType(AgentType):
         Gets each agent's retained assets after consumption and stores MrkvNow as MrkvPrev.
         """
         self.state_now['aNow'] = self.state_now["mNow"] - self.controls["cNow"]
-        self.MrkvPrev = self.MrkvNow
 
 
 ###############################################################################
@@ -2829,9 +2838,9 @@ class KrusellSmithEconomy(Market):
             self,
             agents=agents,
             tolerance=tolerance,
-            sow_vars=["Mnow", "Aprev", "MrkvNow", "Rnow", "Wnow"],
+            sow_vars=["Mnow", "Aprev", "Mrkv", "Rnow", "Wnow"],
             reap_vars=["aNow", "EmpNow"],
-            track_vars=["MrkvNow", "Aprev", "Mnow", "Urate"],
+            track_vars=["Mrkv", "Aprev", "Mnow", "Urate"],
             dyn_vars=["AFunc"],
             **params
         )
@@ -2870,7 +2879,7 @@ class KrusellSmithEconomy(Market):
         self.sow_init["Wnow"] = self.WSS
         self.PermShkAggNow_init = 1.0
         self.TranShkAggNow_init = 1.0
-        self.sow_init["MrkvNow"] = 0
+        self.sow_init["Mrkv"] = 0
         self.makeMrkvArray()
 
     def reset(self):
@@ -2939,21 +2948,14 @@ class KrusellSmithEconomy(Market):
         MrkvNow_hist.  This variable is binary (0 bad, 1 good) in the KS model.
         """
         # Initialize the Markov history and set up transitions
-        MrkvNow_hist = np.zeros(self.act_T, dtype=int)
+        self.MrkvNow_hist = np.zeros(self.act_T, dtype=int)
         MrkvNow = self.MrkvNow_init
-        t = 0
-
-        # Add histories until each state has been visited at least state_T_min times
-        draws = Uniform(seed=0).draw(N=self.act_T)
 
         markov_process = MarkovProcess(self.MrkvArray, seed= 0)
         for s in range(self.act_T):  # Add act_T_orig more periods
-            MrkvNow_hist[t] = MrkvNow
+            self.MrkvNow_hist[s] = MrkvNow
             MrkvNow = markov_process.draw(MrkvNow)
-            t += 1
 
-        # Store the result as attribute of self
-        self.MrkvNow_hist = MrkvNow_hist
 
     def millRule(self, aNow, EmpNow):
         """
