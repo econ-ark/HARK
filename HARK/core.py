@@ -533,8 +533,12 @@ class AgentType(Model):
         # state_{t-1}
         for var in self.state_now:
             self.state_prev[var] = self.state_now[var]
-            # note: this is not type checked for aggregate variables.
-            self.state_now[var] = np.empty(self.AgentCount)
+
+            if isinstance(self.state_now[var], np.ndarray):
+                self.state_now[var] = np.empty(self.AgentCount)
+            else:
+                # Probably an aggregate variable. It may be getting set by the Market.
+                pass
 
         if self.read_shocks:  # If shock histories have been pre-specified, use those
             self.readShocks()
@@ -1251,6 +1255,8 @@ class Market(Model):
             for this_type in self.agents:
                 if sow_var in this_type.state_now:
                     this_type.state_now[sow_var] = self.sow_state[sow_var]
+                if sow_var in this_type.shocks:
+                    this_type.shocks[sow_var] = self.sow_state[sow_var]
                 else:
                     setattr(this_type, sow_var, self.sow_state[sow_var])
 
