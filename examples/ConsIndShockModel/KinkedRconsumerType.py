@@ -197,7 +197,7 @@ plotFuncsDer(KinkyExample.solution[0].cFunc, KinkyExample.solution[0].mNrmMin, 5
 # These example parameter values were already passed as part of the parameter dictionary that we used to create $\texttt{KinkyExample}$, so it is ready to simulate.  We need to set the $\texttt{track_vars}$ attribute to indicate the variables for which we want to record a *history*.
 
 # %%
-KinkyExample.track_vars = ["mNrmNow", "cNrmNow", "pLvlNow"]
+KinkyExample.track_vars = ['mNrm', 'cNrm', 'pLvl']
 KinkyExample.initializeSim()
 KinkyExample.simulate()
 
@@ -205,7 +205,7 @@ KinkyExample.simulate()
 # We can plot the average (normalized) market resources in each simulated period:
 
 # %%
-plt.plot(np.mean(KinkyExample.history["mNrmNow"], axis=1))
+plt.plot(np.mean(KinkyExample.history['mNrm'], axis=1))
 plt.xlabel("Time")
 plt.ylabel("Mean market resources")
 plt.show()

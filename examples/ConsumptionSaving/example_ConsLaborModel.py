@@ -129,7 +129,7 @@ plt.show()
 if do_simulation:
     t_start = process_time()
     LaborIntMargExample.T_sim = 120  # Set number of simulation periods
-    LaborIntMargExample.track_vars = ["bNrmNow", "cNrmNow"]
+    LaborIntMargExample.track_vars = ["bNrmNow", 'cNrm']
     LaborIntMargExample.initializeSim()
     LaborIntMargExample.simulate()
     t_end = process_time()
