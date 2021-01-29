@@ -7,6 +7,7 @@ Created on Sat Dec 19 15:08:54 2020
 
 import numpy as np
 from HARK.Calibration.Income.SabelhausSongProfiles import sabelhaus_song_var_profile
+from HARK.datasets.cpi.us.CPITools import cpi_deflator
 
 __all__ = [
     "Cagetti_income",
@@ -90,12 +91,12 @@ def findPermGroFacs(age_min, age_max, age_ret, PolyCoefs, ReplRate):
     return GroFacs, Y0
     
 
-def ParseIncomeSpec(age_min, age_max,
+def ParseIncomeSpec(BaseYear, age_min, age_max,
                     age_ret = None,
                     PolyCoefs = None, ReplRate = None,
                     PolyRetir = None,
                     PermShkStd = None, TranShkStd = None,
-                    SabelhausSong = False,
+                    SabelhausSong = False, TargetYear = None,
                     **unused):
     
     # How many non-terminal periods are there.
@@ -177,6 +178,20 @@ def ParseIncomeSpec(age_min, age_max,
                 
         else:
             pass
+    
+    # Apply inflation adjustment if requested
+    if TargetYear is not None:
+        
+        # Deflate using the CPI september measurement, which is what the SCF
+        # uses.
+        defl = cpi_deflator(from_year = BaseYear, to_year = TargetYear,
+                            base_month='SEP')[0]
+    
+    else:
+        
+        defl = 1
+    
+    P0 = P0 * defl
     
     return {'PermGroFac': PermGroFac, 'P0': P0, 'pLvlInitMean': np.log(P0),
             'PermShkStd': PermShkStd, 'TranShkStd': TranShkStd}
