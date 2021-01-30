@@ -32,7 +32,23 @@ from HARK.interpolation import (
 )
 
 from HARK.utilities import makeGridExpMult
+from interpolation.splines import eval_linear, UCGrid
 
+class LinearFast(MetricObject):
+    
+    def __init__(self, f_val, *grids):
+        
+        self.f_val = f_val
+        self.Grid = UCGrid(*grids)
+    
+    def __call__(self, *args):
+        
+        array_args = list(map(np.asarray, args))
+
+        f = eval_linear(self.Grid, self.f_val,
+                        np.column_stack([x.flatten() for x in array_args]))
+        
+        return( np.reshape(f, array_args[0].shape))
 
 class DiscreteInterp2D(MetricObject):
 
@@ -1411,7 +1427,7 @@ def solveRiskyContribCnsStage(
 
         # Construct an interpolator for EndOfPrdV. It will be used later.
         EndOfPrdvFunc = ValueFuncCRRA(
-            TrilinearInterp(EndOfPrdvNvrs, aNrmGrid, nNrmGrid, ShareGrid), CRRA
+            LinearFast(EndOfPrdvNvrs, aNrmGrid, nNrmGrid, ShareGrid), CRRA
         )
 
     # Find EndOfPrddvds.
@@ -1482,19 +1498,19 @@ def solveRiskyContribCnsStage(
                 # There's no need to insert points since we have m==0.0
 
                 # c
-                c_vals[:, nInd, sInd] = LinearInterp(m_ns, c_end[:, nInd, sInd])(
+                c_vals[:, nInd, sInd] = LinearFast(c_end[:, nInd, sInd], m_ns)(
                     mNrmGrid
                 )
 
                 # dvdnNvrs
-                dvdnNvrs_vals[:, nInd, sInd] = LinearInterp(
-                    m_ns, EndOfPrddvdnNvrs[:, nInd, sInd]
+                dvdnNvrs_vals[:, nInd, sInd] = LinearFast(
+                    EndOfPrddvdnNvrs[:, nInd, sInd], m_ns
                 )(mNrmGrid)
 
                 # dvds
                 # TODO: this might returns NaN when m=n=0. This might propagate.
-                dvds_vals[:, nInd, sInd] = LinearInterp(
-                    m_ns, EndOfPrddvds[:, nInd, sInd]
+                dvds_vals[:, nInd, sInd] = LinearFast(
+                    EndOfPrddvds[:, nInd, sInd], m_ns
                 )(mNrmGrid)
 
             else:
@@ -1506,40 +1522,41 @@ def solveRiskyContribCnsStage(
                 # -Same is true for dvdsFxd
 
                 # c
-                c_vals[:, nInd, sInd] = LinearInterp(
-                    np.insert(m_ns, 0, 0), np.insert(c_end[:, nInd, sInd], 0, 0)
+                c_vals[:, nInd, sInd] = LinearFast(
+                    np.insert(c_end[:, nInd, sInd], 0, 0),
+                    np.insert(m_ns, 0, 0)
                 )(mNrmGrid)
 
                 # dvdnNvrs
-                dvdnNvrs_vals[:, nInd, sInd] = LinearInterp(
-                    np.insert(m_ns, 0, 0),
+                dvdnNvrs_vals[:, nInd, sInd] = LinearFast(
                     np.insert(
                         EndOfPrddvdnNvrs[:, nInd, sInd],
                         0,
                         EndOfPrddvdnNvrs[0, nInd, sInd],
                     ),
+                    np.insert(m_ns, 0, 0)
                 )(mNrmGrid)
 
                 # dvds
-                dvds_vals[:, nInd, sInd] = LinearInterp(
-                    np.insert(m_ns, 0, 0),
+                dvds_vals[:, nInd, sInd] = LinearFast(
                     np.insert(
                         EndOfPrddvds[:, nInd, sInd], 0, EndOfPrddvds[0, nInd, sInd]
                     ),
+                    np.insert(m_ns, 0, 0),
                 )(mNrmGrid)
 
     # With the arrays filled, create 3D interpolators
 
     # Consumption interpolator
-    cFunc = TrilinearInterp(c_vals, mNrmGrid, nNrmGrid, ShareGrid)
+    cFunc = LinearFast(c_vals, mNrmGrid, nNrmGrid, ShareGrid)
     # dvdmCns interpolator
     dvdmFuncCns = MargValueFuncCRRA(cFunc, CRRA)
     # dvdnCns interpolator
-    dvdnNvrsFunc = TrilinearInterp(dvdnNvrs_vals, mNrmGrid, nNrmGrid, ShareGrid)
+    dvdnNvrsFunc = LinearFast(dvdnNvrs_vals, mNrmGrid, nNrmGrid, ShareGrid)
     dvdnFuncCns = MargValueFuncCRRA(dvdnNvrsFunc, CRRA)
     # dvdsCns interpolator
     # TODO: dvds might be NaN. Check and fix?
-    dvdsFuncCns = TrilinearInterp(dvds_vals, mNrmGrid, nNrmGrid, ShareGrid)
+    dvdsFuncCns = LinearFast(dvds_vals, mNrmGrid, nNrmGrid, ShareGrid)
 
     # Compute value function if needed
     if vFuncBool:
@@ -1547,7 +1564,7 @@ def solveRiskyContribCnsStage(
         aNrm_reg = mNrm_tiled - c_vals
         vCns = u(c_vals) + EndOfPrdvFunc(aNrm_reg, nNrm_tiled, Share_tiled)
         vNvrsCns = uInv(vCns)
-        vNvrsFuncCns = TrilinearInterp(vNvrsCns, mNrmGrid, nNrmGrid, ShareGrid)
+        vNvrsFuncCns = LinearFast(vNvrsCns, mNrmGrid, nNrmGrid, ShareGrid)
         vFuncCns = ValueFuncCRRA(vNvrsFuncCns, CRRA)
     else:
         vFuncCns = NullFunc()
@@ -1680,7 +1697,7 @@ def solveRiskyContribShaStage(
 
     # Value function if needed
     if vFuncBool:
-        vNvrsFuncSha = BilinearInterp(vNvrsSha, mNrmGrid, nNrmGrid)
+        vNvrsFuncSha = LinearFast(vNvrsSha, mNrmGrid, nNrmGrid)
         vFuncSha = ValueFuncCRRA(vNvrsFuncSha, CRRA)
     else:
         vFuncSha = NullFunc()
@@ -1688,14 +1705,14 @@ def solveRiskyContribShaStage(
     # Contribution share function
     if DiscreteShareBool:
         ShareFunc = DiscreteInterp2D(
-            BilinearInterp(optIdx, mNrmGrid, nNrmGrid), ShareGrid
+            LinearFast(optIdx, mNrmGrid, nNrmGrid), ShareGrid
         )
     else:
-        ShareFunc = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
+        ShareFunc = LinearFast(optShare, mNrmGrid, nNrmGrid)
 
-    dvdmNvrsFuncSha = BilinearInterp(dvdmNvrsSha, mNrmGrid, nNrmGrid)
+    dvdmNvrsFuncSha = LinearFast(dvdmNvrsSha, mNrmGrid, nNrmGrid)
     dvdmFuncSha = MargValueFuncCRRA(dvdmNvrsFuncSha, CRRA)
-    dvdnNvrsFuncSha = BilinearInterp(dvdnNvrsSha, mNrmGrid, nNrmGrid)
+    dvdnNvrsFuncSha = LinearFast(dvdnNvrsSha, mNrmGrid, nNrmGrid)
     dvdnFuncSha = MargValueFuncCRRA(dvdnNvrsFuncSha, CRRA)
 
     solution = RiskyContribShaSolution(
@@ -1832,21 +1849,21 @@ def solveRiskyContribRebStage(
     # Value
     if vFuncBool:
         vNvrsAdj = vFuncAdj_next.func(mtil_opt, ntil_opt)
-        vNvrsFuncAdj = BilinearInterp(vNvrsAdj, mNrmGrid, nNrmGrid)
+        vNvrsFuncAdj = LinearFast(vNvrsAdj, mNrmGrid, nNrmGrid)
         vFuncAdj = ValueFuncCRRA(vNvrsFuncAdj, CRRA)
     else:
         vFuncAdj = NullFunc()
 
     # Marginals
     dvdmFuncAdj = MargValueFuncCRRA(
-        BilinearInterp(dvdmNvrsAdj, mNrmGrid, nNrmGrid), CRRA
+        LinearFast(dvdmNvrsAdj, mNrmGrid, nNrmGrid), CRRA
     )
     dvdnFuncAdj = MargValueFuncCRRA(
-        BilinearInterp(dvdnNvrsAdj, mNrmGrid, nNrmGrid), CRRA
+        LinearFast(dvdnNvrsAdj, mNrmGrid, nNrmGrid), CRRA
     )
 
     # Decison
-    DFuncAdj = BilinearInterp(dOpt, mNrmGrid, nNrmGrid)
+    DFuncAdj = LinearFast(dOpt, mNrmGrid, nNrmGrid)
 
     solution = RiskyContribRebSolution(
         # Rebalancing stage adjusting
