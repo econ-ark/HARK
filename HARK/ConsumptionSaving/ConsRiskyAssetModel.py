@@ -36,6 +36,10 @@ from interpolation.splines import eval_linear, UCGrid
 
 
 class LinearFast(MetricObject):
+    
+    # Missing elegant solution for n-dimentional *grids
+    distance_criteria = ["f_val"]
+    
     def __init__(self, f_val, *grids):
 
         self.f_val = f_val
