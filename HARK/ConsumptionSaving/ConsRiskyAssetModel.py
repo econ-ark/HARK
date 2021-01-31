@@ -34,21 +34,23 @@ from HARK.interpolation import (
 from HARK.utilities import makeGridExpMult
 from interpolation.splines import eval_linear, UCGrid
 
+
 class LinearFast(MetricObject):
-    
     def __init__(self, f_val, *grids):
-        
+
         self.f_val = f_val
         self.Grid = UCGrid(*grids)
-    
+
     def __call__(self, *args):
-        
+
         array_args = list(map(np.asarray, args))
 
-        f = eval_linear(self.Grid, self.f_val,
-                        np.column_stack([x.flatten() for x in array_args]))
-        
-        return( np.reshape(f, array_args[0].shape))
+        f = eval_linear(
+            self.Grid, self.f_val, np.column_stack([x.flatten() for x in array_args])
+        )
+
+        return np.reshape(f, array_args[0].shape)
+
 
 class DiscreteInterp2D(MetricObject):
 
@@ -1254,6 +1256,47 @@ def n_nrm_next(shocks, nNrm, Share, PermGroFac):
     return n_nrm_tp1
 
 
+def end_of_period_derivs(
+    shocks,
+    a,
+    n,
+    s,
+    dvdm_next,
+    dvdn_next,
+    dvds_next,
+    CRRA,
+    PermGroFac,
+    Rfree,
+    DiscFac,
+    LivPrb,
+):
+
+    temp_fac_A = utilityP(shocks[0] * PermGroFac, CRRA)
+    temp_fac_B = (shocks[0] * PermGroFac) ** (1.0 - CRRA)
+
+    m_next = m_nrm_next(shocks, a, s, Rfree, PermGroFac)
+    n_next = n_nrm_next(shocks, n, s, PermGroFac)
+
+    # Interpolate derivatives
+    dvdm_tp1 = dvdm_next(m_next, n_next, s)
+    dvdn_tp1 = dvdn_next(m_next, n_next, s)
+    if shocks[1] == 0:
+        dvds_tp1 = dvds_next(m_next, n_next, s)
+    else:
+        dvds_tp1 = shocks[1] * (dvdn_tp1 - dvdm_tp1) + dvds_next(m_next, n_next, s)
+
+    # Discount
+
+    # Liquid resources
+    end_of_prd_dvda = DiscFac * Rfree * LivPrb * temp_fac_A * dvdm_tp1
+    # Iliquid resources
+    end_of_prd_dvdn = DiscFac * shocks[2] * LivPrb * temp_fac_A * dvdn_tp1
+    # Contribution share
+    end_of_prd_dvds = DiscFac * LivPrb * temp_fac_B * dvds_tp1
+
+    return np.stack([end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds])
+
+
 # Consumption stage solver
 def solveRiskyContribCnsStage(
     solution_next,
@@ -1378,35 +1421,8 @@ def solveRiskyContribCnsStage(
         if vFuncBool:
             v_next = lambda m, n, s: vFuncRebAdj_next(m, n)
 
-    temp_fac_A = lambda shocks: uP(shocks[0] * PermGroFac)
     m_trans = lambda shocks, a, s: m_nrm_next(shocks, a, s, Rfree, PermGroFac)
     n_trans = lambda shocks, n, s: n_nrm_next(shocks, n, s, PermGroFac)
-
-    end_of_prd_dvda_func = lambda shocks, a, n, s: (
-        DiscFac
-        * Rfree
-        * LivPrb
-        * temp_fac_A(shocks)
-        * dvdm_next(m_trans(shocks, a, s), n_trans(shocks, n, s), s)
-    )
-    EndOfPrddvda = calcExpectation(
-        ShockDstn, end_of_prd_dvda_func, aNrm_tiled, nNrm_tiled, Share_tiled
-    )[:, :, :, 0]
-
-    end_of_prd_dvdn_func = lambda shocks, a, n, s: (
-        DiscFac
-        * shocks[2]
-        * LivPrb
-        * temp_fac_A(shocks)
-        * dvdn_next(m_trans(shocks, a, s), n_trans(shocks, n, s), s)
-    )
-    EndOfPrddvdn = calcExpectation(
-        ShockDstn, end_of_prd_dvdn_func, aNrm_tiled, nNrm_tiled, Share_tiled
-    )[:, :, :, 0]
-
-    # TODO: why does calc expectations add a dimension at the end?
-    EndOfPrddvdaNvrs = uPinv(EndOfPrddvda)
-    EndOfPrddvdnNvrs = uPinv(EndOfPrddvdn)
 
     # Calculate end-of-period value if needed
     temp_fac_B = lambda shocks: (shocks[0] * PermGroFac) ** (
@@ -1430,35 +1446,26 @@ def solveRiskyContribCnsStage(
             LinearFast(EndOfPrdvNvrs, aNrmGrid, nNrmGrid, ShareGrid), CRRA
         )
 
-    # Find EndOfPrddvds.
-
-    # There are two parts to it:
-    # - If income > 0, it shifts resources from m to n. Call this 'distribution
-    #   effect'
-    # - Since s can be fixed in the future there is also a marginal effect coming
-    #   from the future.
-
-    # Define the distributional effect and total effect
-    distrib_effect = (
-        lambda shocks, m, n, s: 0
-        if shocks[1] == 0
-        else shocks[1] * (dvdn_next(m, n, s) - dvdm_next(m, n, s))
+    end_of_period_ds_func = lambda shocks, a, n, s: end_of_period_derivs(
+        shocks,
+        a,
+        n,
+        s,
+        dvdm_next,
+        dvdn_next,
+        dvds_next,
+        CRRA,
+        PermGroFac,
+        Rfree,
+        DiscFac,
+        LivPrb,
     )
-    total_effect = lambda shocks, m, n, s: distrib_effect(shocks, m, n, s) + dvds_next(
-        m, n, s
-    )
-
-    end_of_prd_dvds_func = lambda shocks, a, n, s: (
-        DiscFac
-        * LivPrb
-        * temp_fac_B(shocks)
-        * total_effect(shocks, m_trans(shocks, a, s), n_trans(shocks, n, s), s)
-    )
-
-    EndOfPrddvds = calcExpectation(
-        ShockDstn, end_of_prd_dvds_func, aNrm_tiled, nNrm_tiled, Share_tiled
-    )[:, :, :, 0]
-
+    
+    EndOfPrd_derivs = calcExpectation(ShockDstn, end_of_period_ds_func, aNrm_tiled, nNrm_tiled, Share_tiled)[:,:,:,:,0]
+    EndOfPrddvdaNvrs = uPinv(EndOfPrd_derivs[0])
+    EndOfPrddvdnNvrs = uPinv(EndOfPrd_derivs[1])
+    EndOfPrddvds = EndOfPrd_derivs[2]
+    
     # STEP TWO:
     # Solve the consumption problem and create interpolators for c, vCns,
     # and its derivatives.
@@ -1498,9 +1505,7 @@ def solveRiskyContribCnsStage(
                 # There's no need to insert points since we have m==0.0
 
                 # c
-                c_vals[:, nInd, sInd] = LinearFast(c_end[:, nInd, sInd], m_ns)(
-                    mNrmGrid
-                )
+                c_vals[:, nInd, sInd] = LinearFast(c_end[:, nInd, sInd], m_ns)(mNrmGrid)
 
                 # dvdnNvrs
                 dvdnNvrs_vals[:, nInd, sInd] = LinearFast(
@@ -1523,8 +1528,7 @@ def solveRiskyContribCnsStage(
 
                 # c
                 c_vals[:, nInd, sInd] = LinearFast(
-                    np.insert(c_end[:, nInd, sInd], 0, 0),
-                    np.insert(m_ns, 0, 0)
+                    np.insert(c_end[:, nInd, sInd], 0, 0), np.insert(m_ns, 0, 0)
                 )(mNrmGrid)
 
                 # dvdnNvrs
@@ -1534,7 +1538,7 @@ def solveRiskyContribCnsStage(
                         0,
                         EndOfPrddvdnNvrs[0, nInd, sInd],
                     ),
-                    np.insert(m_ns, 0, 0)
+                    np.insert(m_ns, 0, 0),
                 )(mNrmGrid)
 
                 # dvds
@@ -1704,9 +1708,7 @@ def solveRiskyContribShaStage(
 
     # Contribution share function
     if DiscreteShareBool:
-        ShareFunc = DiscreteInterp2D(
-            LinearFast(optIdx, mNrmGrid, nNrmGrid), ShareGrid
-        )
+        ShareFunc = DiscreteInterp2D(LinearFast(optIdx, mNrmGrid, nNrmGrid), ShareGrid)
     else:
         ShareFunc = LinearFast(optShare, mNrmGrid, nNrmGrid)
 
@@ -1855,12 +1857,8 @@ def solveRiskyContribRebStage(
         vFuncAdj = NullFunc()
 
     # Marginals
-    dvdmFuncAdj = MargValueFuncCRRA(
-        LinearFast(dvdmNvrsAdj, mNrmGrid, nNrmGrid), CRRA
-    )
-    dvdnFuncAdj = MargValueFuncCRRA(
-        LinearFast(dvdnNvrsAdj, mNrmGrid, nNrmGrid), CRRA
-    )
+    dvdmFuncAdj = MargValueFuncCRRA(LinearFast(dvdmNvrsAdj, mNrmGrid, nNrmGrid), CRRA)
+    dvdnFuncAdj = MargValueFuncCRRA(LinearFast(dvdnNvrsAdj, mNrmGrid, nNrmGrid), CRRA)
 
     # Decison
     DFuncAdj = LinearFast(dOpt, mNrmGrid, nNrmGrid)
