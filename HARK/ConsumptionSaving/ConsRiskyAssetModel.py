@@ -1363,7 +1363,7 @@ def solveRiskyContribCnsStage(
 
     # It's possible for the agent to end with 0 iliquid assets regardless of
     # future income and probability of adjustment.
-    nNrmGrid = np.insert(nNrmGrid, 0, 0.0)
+    nNrmGrid = np.concatenate([np.array([0.0]), nNrmGrid])
 
     # Now, under which parameters do we need to consider the possibility
     # of the agent ending with 0 liquid assets?:
@@ -1460,12 +1460,14 @@ def solveRiskyContribCnsStage(
         DiscFac,
         LivPrb,
     )
-    
-    EndOfPrd_derivs = calcExpectation(ShockDstn, end_of_period_ds_func, aNrm_tiled, nNrm_tiled, Share_tiled)[:,:,:,:,0]
+
+    EndOfPrd_derivs = calcExpectation(
+        ShockDstn, end_of_period_ds_func, aNrm_tiled, nNrm_tiled, Share_tiled
+    )[:, :, :, :, 0]
     EndOfPrddvdaNvrs = uPinv(EndOfPrd_derivs[0])
     EndOfPrddvdnNvrs = uPinv(EndOfPrd_derivs[1])
     EndOfPrddvds = EndOfPrd_derivs[2]
-    
+
     # STEP TWO:
     # Solve the consumption problem and create interpolators for c, vCns,
     # and its derivatives.
@@ -1526,27 +1528,33 @@ def solveRiskyContribCnsStage(
                 # -dvdnFxd at (m,n) for m < m0(n) is dvdnFxd(m0,n)
                 # -Same is true for dvdsFxd
 
+                m_ns = np.concatenate([np.array([0]),m_ns])
+
                 # c
                 c_vals[:, nInd, sInd] = LinearFast(
-                    np.insert(c_end[:, nInd, sInd], 0, 0), np.insert(m_ns, 0, 0)
+                    np.concatenate([np.array([0]), c_end[:, nInd, sInd]]), m_ns
                 )(mNrmGrid)
 
                 # dvdnNvrs
                 dvdnNvrs_vals[:, nInd, sInd] = LinearFast(
-                    np.insert(
-                        EndOfPrddvdnNvrs[:, nInd, sInd],
-                        0,
-                        EndOfPrddvdnNvrs[0, nInd, sInd],
+                    np.concatenate(
+                        [
+                            np.array([EndOfPrddvdnNvrs[0, nInd, sInd]]),
+                            EndOfPrddvdnNvrs[:, nInd, sInd],
+                        ]
                     ),
-                    np.insert(m_ns, 0, 0),
+                    m_ns,
                 )(mNrmGrid)
 
                 # dvds
                 dvds_vals[:, nInd, sInd] = LinearFast(
-                    np.insert(
-                        EndOfPrddvds[:, nInd, sInd], 0, EndOfPrddvds[0, nInd, sInd]
+                    np.concatenate(
+                       [
+                           np.array([EndOfPrddvds[0, nInd, sInd]]),
+                           EndOfPrddvds[:, nInd, sInd]
+                       ]
                     ),
-                    np.insert(m_ns, 0, 0),
+                    m_ns,
                 )(mNrmGrid)
 
     # With the arrays filled, create 3D interpolators
