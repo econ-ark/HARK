@@ -9,14 +9,14 @@ from HARK.Calibration.Calibration import (
     ParseIncomeSpec,
     findProfile,
     Cagetti_income,
-    CGM_income
+    CGM_income,
 )
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 # %% CGM calibration
-target_year = 2018
+adjust_infl_to = 1992
 
 age_min = 21
 age_max = 100
@@ -25,16 +25,17 @@ ages = np.arange(age_min, age_max + 1)
 
 plt.figure()
 for spec in CGM_income.items():
-    
-    label = spec[0]
-    
-    params = ParseIncomeSpec(age_min = age_min, age_max = age_max,
-                             TargetYear = target_year, **spec[1])
-    MeanY = findProfile(params['PermGroFac'], params['P0'])
-    
-    plt.plot(ages, MeanY, label = label)
 
-plt.title('CGM')
+    label = spec[0]
+
+    params = ParseIncomeSpec(
+        age_min=age_min, age_max=age_max, adjust_infl_to=adjust_infl_to, **spec[1]
+    )
+    MeanY = findProfile(params["PermGroFac"], params["P0"])
+
+    plt.plot(ages, MeanY, label=label)
+
+plt.title("CGM")
 plt.legend()
 plt.show()
 
@@ -42,20 +43,28 @@ plt.show()
 
 age_min = 25
 age_max = 91
+# Cagetti has a year trend in his specification, so we have to say on what
+# year agents enter the model.
+start_year = 1980
 
 ages = np.arange(age_min, age_max + 1)
 
 plt.figure()
 for spec in Cagetti_income.items():
-    
-    label = spec[0]
-    
-    params = ParseIncomeSpec(age_min = age_min, age_max = age_max,
-                             TargetYear = target_year, **spec[1])
-    MeanY = findProfile(params['PermGroFac'], params['P0'])
-    
-    plt.plot(ages, MeanY, label = label)
 
-plt.title('Cagetti')
+    label = spec[0]
+
+    params = ParseIncomeSpec(
+        age_min=age_min,
+        age_max=age_max,
+        adjust_infl_to=adjust_infl_to,
+        start_year=start_year,
+        **spec[1]
+    )
+    MeanY = findProfile(params["PermGroFac"], params["P0"])
+
+    plt.plot(ages, MeanY, label=label)
+
+plt.title("Cagetti")
 plt.legend()
 plt.show()
