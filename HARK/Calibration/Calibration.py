@@ -97,9 +97,9 @@ def findPermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
     Y0 : float
         Level of income at age_min
     """
-    
+
     if age_ret is None:
-        
+
         # If there is no retirement, the age polynomial applies for the whole
         # lifetime
         GroFacs, Y0 = AgeLogPolyToGrowthRates(AgePolyCoefs, age_min, age_max)
@@ -308,6 +308,8 @@ CGM_income = {
 }
 
 # Processes from Cagetti (2003).
+# - The author generously provided estimates from which the age polynomials
+#   and yearly trends were recovered.
 # - He uses volatilities from Carroll-Samwick (1997)
 # - He expresses income in dollars. It is more amicable to express it in
 #   thousands of dollars, also making it comparable to CGM. Thus, we substract
@@ -315,8 +317,14 @@ CGM_income = {
 #   by a thousand.
 Cagetti_income = {
     "NoHS": {
-        "AgePolyCoefs": [7.99641616 - 3.0*np.log(10), 1.06559456, -0.14449728, 0.00048128, 0.0004096],
-        "AgePolyRetir": [10.84636791- 3.0*np.log(10), -0.24562326],
+        "AgePolyCoefs": [
+            7.99641616 - 3.0 * np.log(10),
+            1.06559456,
+            -0.14449728,
+            0.00048128,
+            0.0004096,
+        ],
+        "AgePolyRetir": [10.84636791 - 3.0 * np.log(10), -0.24562326],
         "YearTrend": {"Coef": 0.016, "ZeroYear": 1980},
         "age_ret": 65,
         "PermShkStd": np.sqrt(0.0214),  # Take 9-12 from CS
@@ -325,13 +333,13 @@ Cagetti_income = {
     },
     "HS": {
         "AgePolyCoefs": [
-            10.01333075- 3.0*np.log(10),
+            10.01333075 - 3.0 * np.log(10),
             -0.563234304,
             0.348710528,
             -0.059442176,
             0.002947072,
         ],
-        "AgePolyRetir": [11.21721558- 3.0*np.log(10), -0.26820465],
+        "AgePolyRetir": [11.21721558 - 3.0 * np.log(10), -0.26820465],
         "YearTrend": {"Coef": 0.016, "ZeroYear": 1980},
         "age_ret": 65,
         "PermShkStd": np.sqrt(0.0277),  # Take HS diploma from CS
@@ -340,13 +348,13 @@ Cagetti_income = {
     },
     "College": {
         "AgePolyCoefs": [
-            9.916855488- 3.0*np.log(10),
+            9.916855488 - 3.0 * np.log(10),
             -0.057984416,
             0.146196992,
             -0.027623424,
             0.001282048,
         ],
-        "AgePolyRetir": [10.81011279- 3.0*np.log(10), -0.16610233],
+        "AgePolyRetir": [10.81011279 - 3.0 * np.log(10), -0.16610233],
         "YearTrend": {"Coef": 0.016, "ZeroYear": 1980},
         "age_ret": 65,
         "PermShkStd": np.sqrt(0.0146),  # Take College degree from CS
