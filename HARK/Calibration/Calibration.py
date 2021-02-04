@@ -15,8 +15,8 @@ __all__ = ["Cagetti_income", "CGM_income", "ParseIncomeSpec", "findProfile"]
 def AgeLogPolyToGrowthRates(coefs, age_min, age_max):
     """
     The deterministic component of permanent income is often expressed as a
-    log-polynomial of age. In HARK, this part of the income process is
-    expressed in a sequence of growth factors 'PermGroFac'.
+    log-polynomial of age. In multiple HARK models, this part of the income
+    process is expressed in a sequence of growth factors 'PermGroFac'.
     
     This function computes growth factors from the coefficients of a
     log-polynomial specification
@@ -40,8 +40,8 @@ def AgeLogPolyToGrowthRates(coefs, age_min, age_max):
     GrowthFac : [float] of length age_max - age_min + 1
         List of growth factors that replicate the polynomial.
     
-    Y0 : float
-        Initial level of income
+    P0 : float
+        Initial level of income implied my the polynomial
     """
     # Figure out the degree of the polynomial
     deg = len(coefs) - 1
@@ -54,20 +54,54 @@ def AgeLogPolyToGrowthRates(coefs, age_min, age_max):
     lnYDet = np.dot(age_mat, np.array(coefs))
 
     # Find the starting level
-    Y0 = np.exp(lnYDet[0])
+    P0 = np.exp(lnYDet[0])
 
     # Compute growth factors
     GrowthFac = np.exp(np.diff(lnYDet))
     # The last growth factor is nan: we do not know lnYDet(age_max+1)
     GrowthFac = np.append(GrowthFac, np.nan)
 
-    return GrowthFac.tolist(), Y0
+    return GrowthFac.tolist(), P0
 
 
 def findPermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
+    """
+    Finds initial income and sequence of growth factors from a polynomial
+    specification of log-income, an optional retirement age and a replacement
+    rate.
+    
+    Retirement income will be Income_{age_ret} * ReplRate.
+
+    Parameters
+    ----------
+    age_min : int
+        Initial age at which to compute the income specification.
+    age_max : int
+        Maximum age up to which the income process must be specified.
+    age_ret : int
+        Age of retirement. Note that retirement happens after labor income is
+        received. For example, age_ret = 65 then the agent will receive labor
+        income up to age 65 and retirement benefits starting at age 66.
+        If age_ret is None, there will be no retirement.
+    AgePolyCoefs : numpy array or list of floats
+        Coefficients of the income log-polynomial, in ascending degree order
+        (starting with the constant). Income follows the specification:
+        ln(P)_age = \sum_{i=1}^{len(AgePolyCoefs)} (age/10)^i * AgePolyCoefs[i]
+    ReplRate : float
+        Replacement rate for retirement income.
+
+    Returns
+    -------
+    GroFacs : list
+        List of income growth factors.
+    Y0 : float
+        Level of income at age_min
+    """
 
     if age_ret is None:
 
+        # If there is no retirement, the age polynomial applies for the whole
+        # lifetime
         GroFacs, Y0 = AgeLogPolyToGrowthRates(AgePolyCoefs, age_min, age_max)
 
     else:
@@ -157,7 +191,8 @@ def ParseIncomeSpec(
             income_params["PermGroFacAgg"] = YearGroFac
 
             # Adjust P0 with the year trend
-            P0 = P0 * np.power(YearGroFac, start_year - YearTrend["ZeroYear"])
+            if start_year is not None:
+                P0 = P0 * np.power(YearGroFac, start_year - YearTrend["ZeroYear"])
 
         income_params["PermGroFac"] = PermGroFac
 
@@ -237,7 +272,23 @@ def ParseIncomeSpec(
 
 
 def findProfile(GroFacs, Y0):
+    """
+    Generates a sequence {Y_{t}}_{t=0}^N from an initial Y_0 and a sequence
+    of growth factors GroFac[n] = Y_{n+1}/Y_n
 
+    Parameters
+    ----------
+    GroFacs : list or numpy array
+        Growth factors in chronological order.
+    Y0 : float
+        initial value of the series.
+
+    Returns
+    -------
+    Y : numpy array
+        Array with the values of the series.
+
+    """
     factors = np.array([Y0] + GroFacs)
     Y = np.cumprod(factors)
 
@@ -273,11 +324,23 @@ CGM_income = {
 }
 
 # Processes from Cagetti (2003).
+# - The author generously provided estimates from which the age polynomials
+#   and yearly trends were recovered.
 # - He uses volatilities from Carroll-Samwick (1997)
+# - He expresses income in dollars. It is more amicable to express it in
+#   thousands of dollars, also making it comparable to CGM. Thus, we substract
+#   ln(1e3) = 3*ln(10) from intercepts, which is equivalent to dividing income
+#   by a thousand.
 Cagetti_income = {
     "NoHS": {
-        "AgePolyCoefs": [7.99641616, 1.06559456, -0.14449728, 0.00048128, 0.0004096],
-        "AgePolyRetir": [10.84636791, -0.24562326],
+        "AgePolyCoefs": [
+            7.99641616 - 3.0 * np.log(10),
+            1.06559456,
+            -0.14449728,
+            0.00048128,
+            0.0004096,
+        ],
+        "AgePolyRetir": [10.84636791 - 3.0 * np.log(10), -0.24562326],
         "YearTrend": {"Coef": 0.016, "ZeroYear": 1980},
         "age_ret": 65,
         "PermShkStd": np.sqrt(0.0214),  # Take 9-12 from CS
@@ -286,13 +349,13 @@ Cagetti_income = {
     },
     "HS": {
         "AgePolyCoefs": [
-            10.01333075,
+            10.01333075 - 3.0 * np.log(10),
             -0.563234304,
             0.348710528,
             -0.059442176,
             0.002947072,
         ],
-        "AgePolyRetir": [11.21721558, -0.26820465],
+        "AgePolyRetir": [11.21721558 - 3.0 * np.log(10), -0.26820465],
         "YearTrend": {"Coef": 0.016, "ZeroYear": 1980},
         "age_ret": 65,
         "PermShkStd": np.sqrt(0.0277),  # Take HS diploma from CS
@@ -301,13 +364,13 @@ Cagetti_income = {
     },
     "College": {
         "AgePolyCoefs": [
-            9.916855488,
+            9.916855488 - 3.0 * np.log(10),
             -0.057984416,
             0.146196992,
             -0.027623424,
             0.001282048,
         ],
-        "AgePolyRetir": [10.81011279, -0.16610233],
+        "AgePolyRetir": [10.81011279 - 3.0 * np.log(10), -0.16610233],
         "YearTrend": {"Coef": 0.016, "ZeroYear": 1980},
         "age_ret": 65,
         "PermShkStd": np.sqrt(0.0146),  # Take College degree from CS
@@ -320,7 +383,25 @@ Cagetti_income = {
 
 
 def ParseTimeParams(age_birth, age_death):
+    """
+    Converts simple statements of the age at which an agent is born and the
+    age at which he dies with certaintiy into the parameters that HARK needs
+    for figuring out the timing of the model.
 
+    Parameters
+    ----------
+    age_birth : int
+        Age at which the agent enters the model, e.g., 21.
+    age_death : int
+        Age at which the agent dies with certainty, e.g., 100.
+
+    Returns
+    -------
+    dict
+        Dictionary with parameters "T_cycle" and "T_age" which HARK expects
+        and which map to the birth and death ages specified by the user.
+
+    """
     # T_cycle is the number of non-terminal periods in the agent's problem
     T_cycle = age_death - age_birth
     # T_age is the age at which the agents are killed with certainty in

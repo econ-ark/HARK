@@ -15,9 +15,11 @@ from HARK.Calibration.Calibration import (
 import numpy as np
 import matplotlib.pyplot as plt
 
-# %% CGM calibration
+# What year to use as the base monetary year?
+# (pick 1992 as it is used by both of the papers we are comparing)
 adjust_infl_to = 1992
 
+# %% Cocco, Gomes, Maenhout (2005) calibration
 age_min = 21
 age_max = 100
 
@@ -35,11 +37,18 @@ for spec in CGM_income.items():
 
     plt.plot(ages, MeanY, label=label)
 
-plt.title("CGM")
+plt.title(
+    "Mean paths of permanent income calibrations in\n"
+    + "Cocco, Gomes & Maenhout (2005)"
+)
+plt.xlabel("Age")
+plt.ylabel(
+    "Mean Permanent Income,\n" + "Thousands of {} U.S. dollars".format(adjust_infl_to)
+)
 plt.legend()
 plt.show()
 
-# %% Cagetti calibration
+# %% Cagetti (2003) calibration
 
 age_min = 25
 age_max = 91
@@ -65,6 +74,10 @@ for spec in Cagetti_income.items():
 
     plt.plot(ages, MeanY, label=label)
 
-plt.title("Cagetti")
+plt.title("Mean paths of permanent income calibrations in\n" + "Cagetti (2003)")
+plt.xlabel("Age")
+plt.ylabel(
+    "Mean Permanent Income,\n" + "Thousands of {} U.S. dollars".format(adjust_infl_to)
+)
 plt.legend()
 plt.show()
