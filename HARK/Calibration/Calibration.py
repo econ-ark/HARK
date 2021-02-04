@@ -272,7 +272,23 @@ def ParseIncomeSpec(
 
 
 def findProfile(GroFacs, Y0):
+    """
+    Generates a sequence {Y_{t}}_{t=0}^N from an initial Y_0 and a sequence
+    of growth factors GroFac[n] = Y_{n+1}/Y_n
 
+    Parameters
+    ----------
+    GroFacs : list or numpy array
+        Growth factors in chronological order.
+    Y0 : float
+        initial value of the series.
+
+    Returns
+    -------
+    Y : numpy array
+        Array with the values of the series.
+
+    """
     factors = np.array([Y0] + GroFacs)
     Y = np.cumprod(factors)
 
