@@ -35,11 +35,12 @@ from copy import copy
 # %% Alter calibration
 birth_age = 25
 death_age = 90
+income_calib = CGM_income
 education = 'College'
 
 # Income specification
 income_params = ParseIncomeSpec(age_min = birth_age, age_max = death_age,
-                                **CGM_income[education], SabelhausSong=True)
+                                **income_calib[education], SabelhausSong=True)
 
 # Initial distribution of wealth and permanent income
 dist_params = income_wealth_dists_from_scf(base_year=1992, age = birth_age,
@@ -54,8 +55,8 @@ time_params = ParseTimeParams(age_birth = birth_age, age_death = death_age)
 
 params = copy(init_lifecycle)
 params.update(time_params)
-params.update(income_params)
 params.update(dist_params)
+params.update(income_params)
 params.update({'LivPrb': liv_prb})
 
 # %% Create and solve agent
