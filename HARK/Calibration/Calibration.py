@@ -136,8 +136,79 @@ def ParseIncomeSpec(
     TranShkStd=None,
     SabelhausSong=False,
     adjust_infl_to=None,
-    **unused
 ):
+    """
+    A function that produces income growth rates and income shock volatilities
+
+    Parameters
+    ----------
+    base_monet_year : int
+        Base monetary year in which the income process is specified. Answer to
+        "In what year's U.S. dollars was income expressed in the process that
+        will be parsed?".
+    age_min : int
+        Age at which agents enter the model.
+    age_max : int
+        Age at whih agents die with certainty. E.g., if age_max = 100, the
+        agent dies at the end of his 100th year of life.
+    age_ret : int, optional
+        Age of retirement. The default is None.
+    AgePolyCoefs : numpy array or list of floats
+        Coefficients of the income log-polynomial, in ascending degree order
+        (starting with the constant). Permanent income follows the specification:
+        ln(P)_age = \sum_{i=1}^{len(AgePolyCoefs)} (age/10)^i * AgePolyCoefs[i].
+        The default is None.
+    ReplRate : float, optional
+        Replacement rate for retirement income. Retirement income will be
+        Income_{age_ret} * ReplRate. The default is None.
+    AgePolyRetir : numpy array or list of floats
+        Specifies a different age polynomial for income after retirement. It
+        follows the same convention as AgePolyCoefs. The default is None.
+    YearTrend : dict, optional
+        Dictionary with entries "Coef" (float) and "ZeroYear" (int). Allows
+        a time trend to be added to log-income. If provided, mean log-income at
+        age a and year t will be:
+        ln P = polynomial(a) + Coef * (t - ZeroYear)
+        The default is None.
+    start_year : int, optional
+        Year at which the agent enters the model. This is important only for
+        specifications with a time-trend for income profiles.
+        The default is None.
+    PermShkStd : float, optional
+        Standard deviation of log-permanent-income shocks, if it is constant.
+        The default is None.
+    TranShkStd : float, optional
+        Standard deviation of log-transitory-income shocks, if it is constant.
+        The default is None.
+    SabelhausSong : bool, optional
+        Indicates whether to use transitory and permanent income shock
+        volatilities from Sabelhaus & Song (2010) "The Great Moderation in
+        Micro Labor Earnings". The default is False.
+    adjust_infl_to : int, optional
+        Year at which nominal quantities should be expressed. Answers the
+        question "In what year's U.S. dollars should income be expressed".
+        The default is None. In such case, base_monet_year will be used.
+
+    Returns
+    -------
+    income_params : dict
+        Dictionary with entries:
+            - P0: initial level of permanent income.
+            - pLvlInitMean: mean of the distribution of log-permanent income.
+                np.log(P0) = pLvlInitMean
+            - PermGroFac : list of deterministic growth factors for permanent
+                income.
+            - PermShkStd: list of standard deviations of shocks to
+                log-permanent income.
+            - TranShkStd: list of standard deviations of transitory shocks
+                to income.
+            - PermGroFacAgg: if a yearly trend in income is provided, this will
+                be the aggregate level of growth in permanent incomes.
+                
+        This dictionary has the names and formats that various models in HARK
+        expect, so that it can be directly updated into other parameter
+        dictionaries.
+    """
 
     income_params = {}
     # How many non-terminal periods are there.
@@ -295,7 +366,15 @@ def findProfile(GroFacs, Y0):
     return Y
 
 
-# Processes from Cocco, Gomes, Maenhout (2005).
+# Processes from Cocco, Gomes, Maenhout (2005):
+# Cocco, J. F., Gomes, F. J., & Maenhout, P. J. (2005). Consumption and
+# portfolio choice over the life cycle. The Review of Financial Studies,
+# 18(2), 491-533.
+# - The profiles are provided as presented in the original paper.
+# - It seem to us that income peaks at very young ages.
+# - We suspect this might be due to the author's treatment of trends in income
+#   growth.
+# - This can be adressed using the YearTrend and pLvlGroFacAgg options.
 CGM_income = {
     "NoHS": {
         "AgePolyCoefs": [-2.1361 + 2.6275, 0.1684 * 10, -0.0353 * 10, 0.0023 * 10],
@@ -323,7 +402,9 @@ CGM_income = {
     },
 }
 
-# Processes from Cagetti (2003).
+# Processes from Cagetti (2003)
+# Cagetti, M. (2003). Wealth accumulation over the life cycle and precautionary
+# savings. Journal of Business & Economic Statistics, 21(3), 339-353.
 # - The author generously provided estimates from which the age polynomials
 #   and yearly trends were recovered.
 # - He uses volatilities from Carroll-Samwick (1997)
