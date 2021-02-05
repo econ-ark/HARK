@@ -671,7 +671,8 @@ def ParseIncomeSpec(
                 )
 
         else:
-
+            
+            # Placeholder for future ways of specifying volatilities
             raise NotImplementedError()
 
     income_params["PermShkStd"] = PermShkStd
