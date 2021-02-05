@@ -14,7 +14,7 @@ It does so by replicating the results from the original paper (Figure 6 in [1])
 """
 
 import matplotlib.pyplot as plt
-from HARK.Calibration.Income.SabelhausSongProfiles import sabelhaus_song_var_profile
+from HARK.Calibration.Income.IncomeTools import sabelhaus_song_var_profile
 
 # Set up ages and cohorts at which we will get the variances
 age_min = 27

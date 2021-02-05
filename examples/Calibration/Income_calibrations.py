@@ -5,7 +5,7 @@ Created on Sun Jan  3 10:50:02 2021
 @author: Mateo
 """
 
-from HARK.Calibration.Calibration import (
+from HARK.Calibration.Income.IncomeTools import (
     ParseIncomeSpec,
     findProfile,
     Cagetti_income,
