@@ -904,7 +904,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         cFunc=cFunc_terminal_, mNrmMin=0.0, hNrm=0.0, MPCmin=1.0, MPCmax=1.0
     )
 
-    state_vars = ["pLvlNow","mLvlNow","aLvlNow"]
+    state_vars = ['pLvl',"mLvl",'aLvl']
 
     def __init__(self, cycles=0, **kwds):
         params = init_explicit_perm_inc.copy()
@@ -915,12 +915,12 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         self.solveOnePeriod = makeOnePeriodOOSolver(ConsGenIncProcessSolver)
 
         # a poststate?
-        self.state_now["aLvlNow"] = None
-        self.state_prev["aLvlNow"] = None
+        self.state_now['aLvl'] = None
+        self.state_prev['aLvl'] = None
 
         # better way to do this...
-        self.state_now["mLvlNow"] = None
-        self.state_prev["mLvlNow"] = None
+        self.state_now["mLvl"] = None
+        self.state_prev["mLvl"] = None
 
     def preSolve(self):
         #        AgentType.preSolve()
@@ -1100,10 +1100,10 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         aNrmNow_new = Lognormal(
             self.aNrmInitMean, self.aNrmInitStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
-        self.state_now['pLvlNow'][which_agents] = Lognormal(
+        self.state_now['pLvl'][which_agents] = Lognormal(
             self.pLvlInitMean, self.pLvlInitStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
-        self.state_now['aLvlNow'][which_agents] = aNrmNow_new * self.state_now['pLvlNow'][which_agents]
+        self.state_now['aLvl'][which_agents] = aNrmNow_new * self.state_now['pLvl'][which_agents]
         self.t_age[which_agents] = 0  # How many periods since each agent was born
         self.t_cycle[
             which_agents
@@ -1124,7 +1124,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         pLvlNow
         mLvlNow
         """
-        aLvlPrev = self.state_prev['aLvlNow']
+        aLvlPrev = self.state_prev['aLvl']
         RfreeNow = self.getRfree()
 
         # Calculate new states: normalized market resources
@@ -1134,8 +1134,8 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             pLvlNow[these] = (
-                self.pLvlNextFunc[t - 1](self.state_prev['pLvlNow'][these])
-                * self.shocks["PermShkNow"][these]
+                self.pLvlNextFunc[t - 1](self.state_prev['pLvl'][these])
+                * self.shocks['PermShk'][these]
             )
 
         #state value
@@ -1143,7 +1143,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
         # Market resources after income - state value
         mLvlNow = bLvlNow + \
-                  self.shocks["TranShkNow"] * \
+                  self.shocks['TranShk'] * \
                   pLvlNow
 
         return (pLvlNow,
@@ -1168,12 +1168,12 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cLvlNow[these] = self.solution[t].cFunc(
-                self.state_now["mLvlNow"][these], self.state_now["pLvlNow"][these]
+                self.state_now["mLvl"][these], self.state_now['pLvl'][these]
             )
             MPCnow[these] = self.solution[t].cFunc.derivativeX(
-                self.state_now["mLvlNow"][these], self.state_now["pLvlNow"][these]
+                self.state_now["mLvl"][these], self.state_now['pLvl'][these]
             )
-        self.controls["cLvlNow"] = cLvlNow
+        self.controls["cLvl"] = cLvlNow
         self.MPCnow = MPCnow
 
     def getPostStates(self):
@@ -1189,7 +1189,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.state_now['aLvlNow'] = self.state_now["mLvlNow"] - self.controls["cLvlNow"]
+        self.state_now['aLvl'] = self.state_now["mLvl"] - self.controls["cLvl"]
         # moves now to prev
         AgentType.getPostStates(self)
 

@@ -35,7 +35,7 @@ plotFuncs(PFexample.cFunc[0], mMin, mMin + 10)
 
 if do_simulation:
     PFexample.T_sim = 120  # Set number of simulation periods
-    PFexample.track_vars = ["mNrmNow"]
+    PFexample.track_vars = ['mNrm']
     PFexample.initializeSim()
     PFexample.simulate()
 
@@ -80,7 +80,7 @@ if IndShockExample.vFuncBool:
 # Simulate some data; results stored in mNrmNow_hist, cNrmNow_hist, and pLvlNow_hist
 if do_simulation:
     IndShockExample.T_sim = 120
-    IndShockExample.track_vars = ["mNrmNow", "cNrmNow", "pLvlNow"]
+    IndShockExample.track_vars = ['mNrm', 'cNrm', 'pLvl']
     IndShockExample.makeShockHistory()  # This is optional, simulation will draw shocks on the fly if it isn't run.
     IndShockExample.initializeSim()
     IndShockExample.simulate()
@@ -111,7 +111,7 @@ plotFuncs(LifecycleExample.cFunc[LifecycleExample.T_retire :], 0, 5)
 # Simulate some data; results stored in mNrmNow_hist, cNrmNow_hist, pLvlNow_hist, and t_age_hist
 if do_simulation:
     LifecycleExample.T_sim = 120
-    LifecycleExample.track_vars = ["mNrmNow", "cNrmNow", "pLvlNow", "t_age"]
+    LifecycleExample.track_vars = ['mNrm', 'cNrm', 'pLvl', "t_age"]
     LifecycleExample.initializeSim()
     LifecycleExample.simulate()
 
@@ -134,7 +134,7 @@ plotFuncs(CyclicalExample.cFunc, mMin, 5)
 # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
 if do_simulation:
     CyclicalExample.T_sim = 480
-    CyclicalExample.track_vars = ["mNrmNow", "cNrmNow", "pLvlNow", "t_cycle"]
+    CyclicalExample.track_vars = ['mNrm', 'cNrm', 'pLvl', "t_cycle"]
     CyclicalExample.initializeSim()
     CyclicalExample.simulate()
 
@@ -152,6 +152,6 @@ plotFuncs(KinkyExample.cFunc[0], KinkyExample.solution[0].mNrmMin, 5)
 
 if do_simulation:
     KinkyExample.T_sim = 120
-    KinkyExample.track_vars = ["mNrmNow", "cNrmNow", "pLvlNow"]
+    KinkyExample.track_vars = ['mNrm', 'cNrm', 'pLvl']
     KinkyExample.initializeSim()
     KinkyExample.simulate()

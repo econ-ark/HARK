@@ -143,7 +143,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             self, cycles=cycles, verbose=verbose, quiet=quiet, **kwds
         )
 
-        shock_vars = ["PermShkNow", "TranShkNow","AdjustNow","RiskyNow"]
+        shock_vars = ['PermShk', 'TranShk','Adjust','Risky']
 
         # Set the solver for the portfolio model, and update various constructed attributes
         self.solveOnePeriod = solveConsPortfolio
@@ -362,7 +362,7 @@ class PortfolioConsumerType(IndShockConsumerType):
 
         mu = np.log(RiskyAvg / (np.sqrt(1.0 + RiskyVar / RiskyAvgSqrd)))
         sigma = np.sqrt(np.log(1.0 + RiskyVar / RiskyAvgSqrd))
-        self.shocks['RiskyNow'] = Lognormal(
+        self.shocks['Risky'] = Lognormal(
             mu, sigma, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(1)
 
@@ -380,7 +380,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.shocks['AdjustNow'] = Bernoulli(
+        self.shocks['Adjust'] = Bernoulli(
             self.AdjustPrb, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(self.AgentCount)
 
@@ -402,8 +402,8 @@ class PortfolioConsumerType(IndShockConsumerType):
             return factor.  Will be used by getStates() to calculate mNrmNow, where it
             will be mislabeled as "Rfree".
         """
-        Rport = self.controls["ShareNow"] * self.shocks['RiskyNow'] + (1.0 - self.controls["ShareNow"]) * self.Rfree
-        self.RportNow = Rport
+        Rport = self.controls["Share"] * self.shocks['Risky'] + (1.0 - self.controls["Share"]) * self.Rfree
+        self.Rport = Rport
         return Rport
 
     def initializeSim(self):
@@ -421,8 +421,8 @@ class PortfolioConsumerType(IndShockConsumerType):
         """
         # these need to be set because "post states",
         # but are a control variable and shock, respectively
-        self.controls["ShareNow"] = np.zeros(self.AgentCount)
-        self.shocks['AdjustNow'] = np.zeros(self.AgentCount, dtype=bool)
+        self.controls["Share"] = np.zeros(self.AgentCount)
+        self.shocks['Adjust'] = np.zeros(self.AgentCount, dtype=bool)
         IndShockConsumerType.initializeSim(self)
 
     def simBirth(self, which_agents):
@@ -441,9 +441,9 @@ class PortfolioConsumerType(IndShockConsumerType):
         """
         IndShockConsumerType.simBirth(self, which_agents)
 
-        self.controls['ShareNow'][which_agents] = 0
+        self.controls["Share"][which_agents] = 0
         # here a shock is being used as a 'post state'
-        self.shocks['AdjustNow'][which_agents] = False
+        self.shocks['Adjust'][which_agents] = False
 
     def getShocks(self):
         """
@@ -484,24 +484,24 @@ class PortfolioConsumerType(IndShockConsumerType):
             these = t == self.t_cycle
 
             # Get controls for agents who *can* adjust their portfolio share
-            those = np.logical_and(these, self.shocks['AdjustNow'])
-            cNrmNow[those] = self.solution[t].cFuncAdj(self.state_now['mNrmNow'][those])
-            ShareNow[those] = self.solution[t].ShareFuncAdj(self.state_now['mNrmNow'][those])
+            those = np.logical_and(these, self.shocks['Adjust'])
+            cNrmNow[those] = self.solution[t].cFuncAdj(self.state_now['mNrm'][those])
+            ShareNow[those] = self.solution[t].ShareFuncAdj(self.state_now['mNrm'][those])
 
             # Get Controls for agents who *can't* adjust their portfolio share
             those = np.logical_and(
                 these,
-                np.logical_not(self.shocks['AdjustNow']))
+                np.logical_not(self.shocks['Adjust']))
             cNrmNow[those] = self.solution[t].cFuncFxd(
-                self.state_now['mNrmNow'][those], ShareNow[those]
+                self.state_now['mNrm'][those], ShareNow[those]
             )
             ShareNow[those] = self.solution[t].ShareFuncFxd(
-                self.state_now['mNrmNow'][those], ShareNow[those]
+                self.state_now['mNrm'][those], ShareNow[those]
             )
 
         # Store controls as attributes of self
-        self.controls["cNrmNow"] = cNrmNow
-        self.controls["ShareNow"] = ShareNow
+        self.controls['cNrm'] = cNrmNow
+        self.controls["Share"] = ShareNow
 
 
 # Define a non-object-oriented one period solver

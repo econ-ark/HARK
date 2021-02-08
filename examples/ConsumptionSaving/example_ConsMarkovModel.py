@@ -163,7 +163,7 @@ if SerialUnemploymentExample.vFuncBool:
 if do_simulation:
     SerialUnemploymentExample.T_sim = 120
     SerialUnemploymentExample.MrkvPrbsInit = [0.25, 0.25, 0.25, 0.25]
-    SerialUnemploymentExample.track_vars = ["mNrmNow", "cNrmNow"]
+    SerialUnemploymentExample.track_vars = ['mNrm', 'cNrm']
     SerialUnemploymentExample.makeShockHistory()  # This is optional
     SerialUnemploymentExample.initializeSim()
     SerialUnemploymentExample.simulate()
