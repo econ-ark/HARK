@@ -49,6 +49,9 @@ from HARK.utilities import (
 from HARK import _log
 from HARK import set_verbosity_level
 
+from HARK.Calibration.Income.IncomeTools import ParseIncomeSpec, ParseTimeParams, Cagetti_income
+from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
+from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 
 __all__ = [
     "ConsumerSolution",
@@ -2825,27 +2828,46 @@ def constructAssetsGrid(parameters):
 
 
 # Make a dictionary to specify a lifecycle consumer with a finite horizon
+
+# Main calibration characteristics
+birth_age = 25
+death_age = 90
+adjust_infl_to = 1992
+# Use income estimates from Cagetti (2003) for High-school graduates
+education = "HS"
+income_calib = Cagetti_income[education]
+
+# Income specification
+income_params = ParseIncomeSpec(
+    age_min=birth_age,
+    age_max=death_age,
+    adjust_infl_to=adjust_infl_to,
+    **income_calib,
+    SabelhausSong=True
+)
+
+# Initial distribution of wealth and permanent income
+dist_params = income_wealth_dists_from_scf(
+    base_year=adjust_infl_to, age=birth_age, education=education, wave=1995
+)
+
+# We need survival probabilities only up to death_age-1, because survival
+# probability at death_age is 1.
+liv_prb = parse_ssa_life_table(
+    female=False, cross_sec=True, year=2004, min_age=birth_age, max_age=death_age - 1
+)
+
+# Parameters related to the number of periods implied by the calibration
+time_params = ParseTimeParams(age_birth=birth_age, age_death=death_age)
+
+# Update all the new parameters
 init_lifecycle = copy(init_idiosyncratic_shocks)
-init_lifecycle["PermGroFac"] = [
-    1.01,
-    1.01,
-    1.01,
-    1.01,
-    1.01,
-    1.02,
-    1.02,
-    1.02,
-    1.02,
-    1.02,
-]
-init_lifecycle["PermShkStd"] = [0.1, 0.2, 0.1, 0.2, 0.1, 0.2, 0.1, 0, 0, 0]
-init_lifecycle["TranShkStd"] = [0.3, 0.2, 0.1, 0.3, 0.2, 0.1, 0.3, 0, 0, 0]
-init_lifecycle["LivPrb"] = [0.99, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
-init_lifecycle["T_cycle"] = 10
-init_lifecycle["T_retire"] = 7
-init_lifecycle[
-    "T_age"
-] = 11  # Make sure that old people die at terminal age and don't turn into newborns!
+init_lifecycle.update(time_params)
+init_lifecycle.update(dist_params)
+# Note the income specification overrides the pLvlInitMean from the SCF.
+init_lifecycle.update(income_params)
+init_lifecycle.update({"LivPrb": liv_prb})
+
 
 # Make a dictionary to specify an infinite consumer with a four period cycle
 init_cyclical = copy(init_idiosyncratic_shocks)
