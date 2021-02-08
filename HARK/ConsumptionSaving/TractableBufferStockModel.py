@@ -304,7 +304,7 @@ class TractableConsumerType(AgentType):
         Number of times the sequence of periods should be solved.
     """
 
-    state_vars = ['bLvlNow', 'mLvlNow', "aLvlNow"]
+    state_vars = ['bLvl', 'mLvl', 'aLvl']
 
     def __init__(self, cycles=0, **kwds):
         params = init_tractable.copy()
@@ -327,7 +327,7 @@ class TractableConsumerType(AgentType):
             "mUpperBnd",
         ]
         self.shock_vars = ["eStateNow"]
-        self.poststate_vars = ["aLvlNow", "eStateNow"]  # For simulation
+        self.poststate_vars = ['aLvl', "eStateNow"]  # For simulation
         self.solveOnePeriod = addToStableArmPoints  # set correct solver
 
     def preSolve(self):
@@ -584,7 +584,7 @@ class TractableConsumerType(AgentType):
         """
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        self.state_now['aLvlNow'][which_agents] = Lognormal(
+        self.state_now['aLvl'][which_agents] = Lognormal(
             self.aLvlInitMean,
             sigma=self.aLvlInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1),
@@ -646,7 +646,7 @@ class TractableConsumerType(AgentType):
         -------
         None
         """
-        bLvlNow = self.Rfree * self.state_prev['aLvlNow']
+        bLvlNow = self.Rfree * self.state_prev['aLvl']
         mLvlNow = bLvlNow + self.shocks["eStateNow"]
 
         return bLvlNow, mLvlNow
@@ -666,8 +666,8 @@ class TractableConsumerType(AgentType):
         employed = self.shocks["eStateNow"] == 1.0
         unemployed = np.logical_not(employed)
         cLvlNow = np.zeros(self.AgentCount)
-        cLvlNow[employed] = self.solution[0].cFunc(self.state_now['mLvlNow'][employed])
-        cLvlNow[unemployed] = self.solution[0].cFunc_U(self.state_now['mLvlNow'][unemployed])
+        cLvlNow[employed] = self.solution[0].cFunc(self.state_now['mLvl'][employed])
+        cLvlNow[unemployed] = self.solution[0].cFunc_U(self.state_now['mLvl'][unemployed])
         self.controls["cLvlNow"] = cLvlNow
 
     def getPostStates(self):
@@ -682,7 +682,7 @@ class TractableConsumerType(AgentType):
         -------
         None
         """
-        self.state_now['aLvlNow'] = self.state_now['mLvlNow'] - self.controls["cLvlNow"]
+        self.state_now['aLvl'] = self.state_now['mLvl'] - self.controls["cLvlNow"]
         return None
 
 

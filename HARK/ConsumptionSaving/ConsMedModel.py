@@ -572,8 +572,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         Number of times the sequence of periods should be solved.
     """
 
-    shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShkNow"]
-    state_vars = PersistentShockConsumerType.state_vars + ['mLvlNow']
+    shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShk"]
+    state_vars = PersistentShockConsumerType.state_vars + ['mLvl']
 
     def __init__(self, cycles=0, **kwds):
         params = init_medical_shocks.copy()
@@ -823,8 +823,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
             if N > 0:
                 MedShkNow[these] = self.MedShkDstn[t].draw(N)
                 MedPriceNow[these] = self.MedPrice[t]
-        self.shocks["MedShkNow"] = MedShkNow
-        self.shocks["MedPriceNow"] = MedPriceNow
+        self.shocks["MedShk"] = MedShkNow
+        self.shocks["MedPrice"] = MedPriceNow
 
     def getControls(self):
         """
@@ -844,12 +844,12 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cLvlNow[these], MedNow[these] = self.solution[t].policyFunc(
-                self.state_now['mLvlNow'][these],
-                self.state_now['pLvlNow'][these],
-                self.shocks["MedShkNow"][these],
+                self.state_now['mLvl'][these],
+                self.state_now['pLvl'][these],
+                self.shocks["MedShk"][these],
             )
-        self.controls['cLvlNow'] = cLvlNow
-        self.controls['MedNow'] = MedNow
+        self.controls['cLvl'] = cLvlNow
+        self.controls['Med'] = MedNow
         return None
 
     def getPostStates(self):
@@ -864,7 +864,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        self.state_now['aLvlNow'] = self.state_now['mLvlNow'] - self.controls['cLvlNow'] - self.shocks["MedPriceNow"] * self.controls['MedNow']
+        self.state_now['aLvl'] = self.state_now['mLvl'] - self.controls['cLvl'] - self.shocks["MedPrice"] * self.controls['Med']
 
         # moves now to prev
         AgentType.getPostStates(self)

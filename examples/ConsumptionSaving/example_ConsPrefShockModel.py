@@ -112,7 +112,7 @@ if PrefShockExample.vFuncBool:
 # Test the simulator for the pref shock class
 if do_simulation:
     PrefShockExample.T_sim = 120
-    PrefShockExample.track_vars = ["cNrmNow"]
+    PrefShockExample.track_vars = ['cNrm']
     PrefShockExample.makeShockHistory()  # This is optional
     PrefShockExample.initializeSim()
     PrefShockExample.simulate()
@@ -180,6 +180,6 @@ if KinkyPrefExample.vFuncBool:
 # Test the simulator for the kinky preference class
 if do_simulation:
     KinkyPrefExample.T_sim = 120
-    KinkyPrefExample.track_vars = ["cNrmNow", "PrefShkNow"]
+    KinkyPrefExample.track_vars = ['cNrm', "PrefShkNow"]
     KinkyPrefExample.initializeSim()
     KinkyPrefExample.simulate()

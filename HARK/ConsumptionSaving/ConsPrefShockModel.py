@@ -79,7 +79,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         Number of times the sequence of periods should be solved.
     """
 
-    shock_vars_ = IndShockConsumerType.shock_vars_ + ["PrefShkNow"]
+    shock_vars_ = IndShockConsumerType.shock_vars_ + ["PrefShk"]
 
     def __init__(self, cycles=1, **kwds):
         params = init_preference_shocks.copy()
@@ -180,7 +180,7 @@ class PrefShockConsumerType(IndShockConsumerType):
             N = np.sum(these)
             if N > 0:
                 PrefShkNow[these] = self.PrefShkDstn[t].draw(N)
-        self.shocks["PrefShkNow"] = PrefShkNow
+        self.shocks["PrefShk"] = PrefShkNow
 
     def getControls(self):
         """
@@ -198,9 +198,9 @@ class PrefShockConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cNrmNow[these] = self.solution[t].cFunc(
-                self.state_now['mNrmNow'][these], self.shocks["PrefShkNow"][these]
+                self.state_now['mNrm'][these], self.shocks["PrefShk"][these]
             )
-        self.controls['cNrmNow'] = cNrmNow
+        self.controls['cNrm'] = cNrmNow
         return None
 
     def calcBoundingValues(self):

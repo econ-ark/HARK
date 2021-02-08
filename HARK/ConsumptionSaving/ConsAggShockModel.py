@@ -169,7 +169,7 @@ class AggShockConsumerType(IndShockConsumerType):
         """
         self.initializeSim()
         self.state_now['aLvlNow'] = self.kInit * np.ones(self.AgentCount)  # Start simulation near SS
-        self.state_now['aNrmNow'] = self.state_now['aLvlNow'] / self.state_now['pLvlNow'] # ???
+        self.state_now['aNrm'] = self.state_now['aLvlNow'] / self.state_now['pLvl'] # ???
 
     def preSolve(self):
         #        AgentType.preSolve()
@@ -283,12 +283,12 @@ class AggShockConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.simBirth(self, which_agents)
-        if "aLvlNow" in self.state_now and self.state_now["aLvlNow"] is not None:
-            self.state_now["aLvlNow"][which_agents] = (
-                self.state_now["aNrmNow"][which_agents] * self.state_now["pLvlNow"][which_agents]
+        if 'aLvl' in self.state_now and self.state_now['aLvl'] is not None:
+            self.state_now['aLvl'][which_agents] = (
+                self.state_now['aNrm'][which_agents] * self.state_now['pLvl'][which_agents]
             )
         else:
-            self.state_now["aLvlNow"] = self.state_now['aNrmNow'] * self.state_now['pLvlNow']
+            self.state_now['aLvl'] = self.state_now['aNrm'] * self.state_now['pLvl']
 
     def simDeath(self):
         """
@@ -323,11 +323,11 @@ class AggShockConsumerType(IndShockConsumerType):
 
         # Divide up the wealth of those who die, giving it to those who survive
         who_lives = np.logical_not(who_dies)
-        wealth_living = np.sum(self.state_now["aLvlNow"][who_lives])
-        wealth_dead = np.sum(self.state_now["aLvlNow"][who_dies])
+        wealth_living = np.sum(self.state_now['aLvl'][who_lives])
+        wealth_dead = np.sum(self.state_now['aLvl'][who_dies])
         Ractuarial = 1.0 + wealth_dead / wealth_living
-        self.state_now['aNrmNow'][who_lives] = self.state_now['aNrmNow'][who_lives] * Ractuarial
-        self.state_now["aLvlNow"][who_lives] = self.state_now["aLvlNow"][who_lives] * Ractuarial
+        self.state_now['aNrm'][who_lives] = self.state_now['aNrm'][who_lives] * Ractuarial
+        self.state_now['aLvl'][who_lives] = self.state_now['aLvl'][who_lives] * Ractuarial
         return who_dies
 
     def getRfree(self):
@@ -360,10 +360,10 @@ class AggShockConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.getShocks(self)  # Update idiosyncratic shocks
-        self.shocks["TranShkNow"] = (
-            self.shocks["TranShkNow"] * self.TranShkAggNow * self.wRteNow
+        self.shocks['TranShk'] = (
+            self.shocks['TranShk'] * self.TranShkAggNow * self.wRteNow
         )
-        self.shocks["PermShkNow"] = self.shocks["PermShkNow"] * self.PermShkAggNow
+        self.shocks['PermShk'] = self.shocks['PermShk'] * self.PermShkAggNow
 
     def getControls(self):
         """
@@ -382,12 +382,12 @@ class AggShockConsumerType(IndShockConsumerType):
         MaggNow = self.getMaggNow()
         for t in range(self.T_cycle):
             these = t == self.t_cycle
-            cNrmNow[these] = self.solution[t].cFunc(self.state_now["mNrmNow"][these], MaggNow[these])
+            cNrmNow[these] = self.solution[t].cFunc(self.state_now['mNrm'][these], MaggNow[these])
             MPCnow[these] = self.solution[t].cFunc.derivativeX(
-                self.state_now["mNrmNow"][these], MaggNow[these]
+                self.state_now['mNrm'][these], MaggNow[these]
             )  # Marginal propensity to consume
 
-        self.controls["cNrmNow"] = cNrmNow
+        self.controls['cNrm'] = cNrmNow
         self.MPCnow = MPCnow
         return None
 
@@ -493,6 +493,9 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         params.update(kwds)
         kwds = params
         AggShockConsumerType.__init__(self, **kwds)
+
+        self.shocks['Mrkv'] = None
+
         self.addToTimeInv("MrkvArray")
         self.solveOnePeriod = solveConsAggMarkov
 
@@ -566,7 +569,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             N = np.sum(these)
             if N > 0:
                 IncShkDstnNow = self.IncShkDstn[t - 1][
-                    self.MrkvNow
+                    self.shocks['Mrkv']
                 ]  # set current income distribution
                 PermGroFacNow = self.PermGroFac[t - 1]  # and permanent growth factor
 
@@ -582,7 +585,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         if N > 0:
             these = newborn
             IncShkDstnNow = self.IncShkDstn[0][
-                self.MrkvNow
+                self.shocks['Mrkv']
             ]  # set current income distribution
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
@@ -596,8 +599,8 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount, dtype=bool)
         self.EmpNow[TranShkNow == self.IncUnemp] = False
-        self.shocks["TranShkNow"] = TranShkNow * self.TranShkAggNow * self.wRteNow
-        self.shocks["PermShkNow"] = PermShkNow * self.PermShkAggNow
+        self.shocks['TranShk'] = TranShkNow * self.TranShkAggNow * self.wRteNow
+        self.shocks['PermShk'] = PermShkNow * self.PermShkAggNow
 
     def getControls(self):
         """
@@ -629,20 +632,20 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             for i in range(StateCount):
                 those = np.logical_and(these, MrkvBoolArray[i, :])
                 cNrmNow[those] = self.solution[t].cFunc[i](
-                    self.state_now["mNrmNow"][those], MaggNow[those]
+                    self.state_now['mNrm'][those], MaggNow[those]
                 )
                 # Marginal propensity to consume
                 MPCnow[those] = (
                     self.solution[t]
                     .cFunc[i]
-                    .derivativeX(self.state_now["mNrmNow"][those], MaggNow[those])
+                    .derivativeX(self.state_now['mNrm'][those], MaggNow[those])
                 )
-        self.controls["cNrmNow"] = cNrmNow
+        self.controls['cNrm'] = cNrmNow
         self.MPCnow = MPCnow
         return None
 
     def getMrkvNow(self):  # This function exists to be overwritten in StickyE model
-        return self.MrkvNow * np.ones(self.AgentCount, dtype=int)
+        return self.shocks['Mrkv'] * np.ones(self.AgentCount, dtype=int)
 
 
 init_KS_agents = {
@@ -699,7 +702,9 @@ class KrusellSmithType(AgentType):
             "EmpNow" : None
         }
 
-        self.shock_vars = {}
+        self.shock_vars = {
+            "Mrkv" : None
+        }
 
         self.solveOnePeriod = solveKrusellSmith
         self.update()
@@ -733,7 +738,7 @@ class KrusellSmithType(AgentType):
         )  # Need to be able to track as many periods as economy runs
         self.kInit = Economy.KSS  # Initialize simulation assets to steady state
         self.MrkvInit = Economy.sow_init[
-            "MrkvNow"
+            "Mrkv"
         ]  # Starting Markov state for the macroeconomy
         self.Mgrid = (
             Economy.MSS * self.MgridBase
@@ -972,8 +977,7 @@ class KrusellSmithType(AgentType):
         self.simulate(1)
 
     def initializeSim(self):
-        self.MrkvNow = self.MrkvInit
-        self.MrkvPrev = self.MrkvInit
+        self.shocks['Mrkv'] = self.MrkvInit
         AgentType.initializeSim(self)
         self.state_now["EmpNow"] = self.state_now["EmpNow"].astype(bool)
         self.makeEmpIdxArrays()
@@ -990,10 +994,10 @@ class KrusellSmithType(AgentType):
         if N == 0:
             return
 
-        if self.MrkvNow == 0:
+        if self.shocks['Mrkv'] == 0:
             unemp_N = int(np.round(self.UrateB * N))
             emp_N = self.AgentCount - unemp_N
-        elif self.MrkvNow == 1:
+        elif self.shocks['Mrkv'] == 1:
             unemp_N = int(np.round(self.UrateG * N))
             emp_N = self.AgentCount - unemp_N
         else:
@@ -1001,6 +1005,7 @@ class KrusellSmithType(AgentType):
         EmpNew = np.concatenate(
             [np.zeros(unemp_N, dtype=bool), np.ones(emp_N, dtype=bool)]
         )
+
         self.state_now["EmpNow"][which] = self.RNG.permutation(EmpNew)
         self.state_now["aNow"][which] = self.kInit
 
@@ -1012,12 +1017,20 @@ class KrusellSmithType(AgentType):
         employed = self.state_prev["EmpNow"].copy().astype(bool)
         unemployed = np.logical_not(employed)
 
+        # derive from past employment rate rather than store previous value
+        mrkv_prev = int((unemployed.sum() / float(self.AgentCount)) != self.UrateB)
+
         # Transition some agents between unemployment and employment
-        emp_permute = self.emp_permute[self.MrkvPrev][self.MrkvNow]
-        unemp_permute = self.unemp_permute[self.MrkvPrev][self.MrkvNow]
+        emp_permute = self.emp_permute[mrkv_prev][self.shocks['Mrkv']]
+        unemp_permute = self.unemp_permute[mrkv_prev][self.shocks['Mrkv']]
         # TODO: replace poststate_vars functionality with shocks here
         EmpNow = self.state_now["EmpNow"]
 
+        if employed.sum() != emp_permute.size:
+            import pdb; pdb.set_trace()
+
+        # It's really this permutation that is the shock...
+        # This apparatus is trying to 'exact match' the 'internal' Markov process.
         EmpNow[employed] = self.RNG.permutation(emp_permute)
         EmpNow[unemployed] = self.RNG.permutation(unemp_permute)
 
@@ -1035,10 +1048,10 @@ class KrusellSmithType(AgentType):
         unemployed = np.logical_not(employed)
 
         # Get the discrete index for (un)employed agents
-        if self.MrkvNow == 0:  # Bad macroeconomic conditions
+        if self.shocks['Mrkv'] == 0:  # Bad macroeconomic conditions
             unemp_idx = 0
             emp_idx = 1
-        elif self.MrkvNow == 1:  # Good macroeconomic conditions
+        elif self.shocks['Mrkv'] == 1:  # Good macroeconomic conditions
             unemp_idx = 2
             emp_idx = 3
         else:
@@ -1057,10 +1070,9 @@ class KrusellSmithType(AgentType):
 
     def getPostStates(self):
         """
-        Gets each agent's retained assets after consumption and stores MrkvNow as MrkvPrev.
+        Gets each agent's retained assets after consumption.
         """
         self.state_now['aNow'] = self.state_now["mNow"] - self.controls["cNow"]
-        self.MrkvPrev = self.MrkvNow
 
 
 ###############################################################################
@@ -1863,7 +1875,7 @@ class CobbDouglasEconomy(Market):
         Market.__init__(
             self,
             agents=agents,
-            reap_vars=["aLvlNow", "pLvlNow"],
+            reap_vars=['aLvl', 'pLvl'],
             track_vars=["MaggNow", "AaggNow"],
             dyn_vars=["AFunc"],
             tolerance=tolerance,
@@ -1884,14 +1896,14 @@ class CobbDouglasEconomy(Market):
         if not hasattr(self, "verbose"):
             self.verbose = True
 
-    def millRule(self, aLvlNow, pLvlNow):
+    def millRule(self, aLvl, pLvl):
         """
         Function to calculate the capital to labor ratio, interest factor, and
         wage rate based on each agent's current state.  Just calls calcRandW().
 
         See documentation for calcRandW for more information.
         """
-        return self.calcRandW(aLvlNow, pLvlNow)
+        return self.calcRandW(aLvl, pLvl)
 
     def calcDynamics(self, MaggNow, AaggNow):
         """
@@ -2395,7 +2407,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             "PermShkAggNow",
             "TranShkAggNow",
             "KtoLnow",
-            "MrkvNow",  # This one is new
+            "Mrkv",  # This one is new
         ],
         **kwds
     ):
@@ -2412,7 +2424,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             **params
         )
 
-        self.sow_init["MrkvNow"] = params["MrkvNow_init"]
+        self.sow_init["Mrkv"] = params["MrkvNow_init"]
 
     def update(self):
         """
@@ -2584,7 +2596,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         MrkvNow_hist = np.zeros(self.act_T_orig, dtype=int)
         loops = 0
         go = True
-        MrkvNow = self.sow_init["MrkvNow"]
+        MrkvNow = self.sow_init["Mrkv"]
         t = 0
         StateCount = self.MrkvArray.shape[0]
 
@@ -2639,13 +2651,18 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         self.MrkvNow_hist = MrkvNow_hist
         self.act_T = act_T
 
-    def millRule(self, aLvlNow, pLvlNow):
+    def millRule(self, aLvl, pLvl):
         """
         Function to calculate the capital to labor ratio, interest factor, and
         wage rate based on each agent's current state.  Just calls calcRandW()
         and adds the Markov state index.
 
         See documentation for calcRandW for more information.
+
+        Params
+        -------
+        aLvl : float
+        pLvl : float
 
         Returns
         -------
@@ -2663,7 +2680,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             Binary indicator for bad (0) or good (1) macroeconomic state.
         """
         MrkvNow = self.MrkvNow_hist[self.Shk_idx]
-        temp = self.calcRandW(aLvlNow, pLvlNow)
+        temp = self.calcRandW(aLvl, pLvl)
 
         return temp + (MrkvNow,)
 
@@ -2829,9 +2846,9 @@ class KrusellSmithEconomy(Market):
             self,
             agents=agents,
             tolerance=tolerance,
-            sow_vars=["Mnow", "Aprev", "MrkvNow", "Rnow", "Wnow"],
+            sow_vars=["Mnow", "Aprev", "Mrkv", "Rnow", "Wnow"],
             reap_vars=["aNow", "EmpNow"],
-            track_vars=["MrkvNow", "Aprev", "Mnow", "Urate"],
+            track_vars=["Mrkv", "Aprev", "Mnow", "Urate"],
             dyn_vars=["AFunc"],
             **params
         )
@@ -2870,7 +2887,7 @@ class KrusellSmithEconomy(Market):
         self.sow_init["Wnow"] = self.WSS
         self.PermShkAggNow_init = 1.0
         self.TranShkAggNow_init = 1.0
-        self.sow_init["MrkvNow"] = 0
+        self.sow_init["Mrkv"] = 0
         self.makeMrkvArray()
 
     def reset(self):
@@ -2939,21 +2956,14 @@ class KrusellSmithEconomy(Market):
         MrkvNow_hist.  This variable is binary (0 bad, 1 good) in the KS model.
         """
         # Initialize the Markov history and set up transitions
-        MrkvNow_hist = np.zeros(self.act_T, dtype=int)
+        self.MrkvNow_hist = np.zeros(self.act_T, dtype=int)
         MrkvNow = self.MrkvNow_init
-        t = 0
-
-        # Add histories until each state has been visited at least state_T_min times
-        draws = Uniform(seed=0).draw(N=self.act_T)
 
         markov_process = MarkovProcess(self.MrkvArray, seed= 0)
         for s in range(self.act_T):  # Add act_T_orig more periods
-            MrkvNow_hist[t] = MrkvNow
+            self.MrkvNow_hist[s] = MrkvNow
             MrkvNow = markov_process.draw(MrkvNow)
-            t += 1
 
-        # Store the result as attribute of self
-        self.MrkvNow_hist = MrkvNow_hist
 
     def millRule(self, aNow, EmpNow):
         """
