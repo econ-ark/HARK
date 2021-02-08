@@ -27,6 +27,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install git+git://github.com/econ-ark/hark@master
       - name: Run examples
         run: |
           python examples/Gentle-Intro/Gentle-Intro-To-HARK.py
