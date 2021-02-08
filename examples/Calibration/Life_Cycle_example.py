@@ -79,7 +79,7 @@ Agent.AgentCount = 500
 Agent.T_sim = 200
 
 # Set up the variables we want to keep track of.
-Agent.track_vars = ["aNrmNow", "cNrmNow", "pLvlNow", "t_age", "mNrmNow"]
+Agent.track_vars = ["aNrm", "cNrm", "pLvl", "t_age", "mNrm"]
 
 # Run the simulations
 Agent.initializeSim()
@@ -89,9 +89,9 @@ Agent.simulate()
 
 raw_data = {
     "Age": Agent.history["t_age"].flatten() + birth_age - 1,
-    "pIncome": Agent.history["pLvlNow"].flatten(),
-    "nrmM": Agent.history["mNrmNow"].flatten(),
-    "nrmC": Agent.history["cNrmNow"].flatten(),
+    "pIncome": Agent.history["pLvl"].flatten(),
+    "nrmM": Agent.history["mNrm"].flatten(),
+    "nrmC": Agent.history["cNrm"].flatten(),
 }
 
 Data = pd.DataFrame(raw_data)
