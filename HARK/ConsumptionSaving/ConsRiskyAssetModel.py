@@ -1282,6 +1282,7 @@ def end_of_period_derivs(
     Rfree,
     DiscFac,
     LivPrb,
+    v_next = None
 ):
 
     temp_fac_A = utilityP(shocks[0] * PermGroFac, CRRA)
@@ -1306,8 +1307,14 @@ def end_of_period_derivs(
     end_of_prd_dvdn = DiscFac * shocks[2] * LivPrb * temp_fac_A * dvdn_tp1
     # Contribution share
     end_of_prd_dvds = DiscFac * LivPrb * temp_fac_B * dvds_tp1
+    # End of period value function, if needed
+    if v_next is not None:
+        end_of_prd_v = DiscFac * LivPrb * temp_fac_B * v_next(m_next, n_next, s)
+        return np.stack([end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds, end_of_prd_v])
+    else:
+        return np.stack([end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds])
 
-    return np.stack([end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds])
+    
 
 
 # Consumption stage solver
@@ -1434,31 +1441,7 @@ def solveRiskyContribCnsStage(
         if vFuncBool:
             v_next = lambda m, n, s: vFuncRebAdj_next(m, n)
 
-    m_trans = lambda shocks, a, s: m_nrm_next(shocks, a, s, Rfree, PermGroFac)
-    n_trans = lambda shocks, n, s: n_nrm_next(shocks, n, s, PermGroFac)
-
-    # Calculate end-of-period value if needed
-    temp_fac_B = lambda shocks: (shocks[0] * PermGroFac) ** (
-        1.0 - CRRA
-    )  # Will use this below
-
-    if vFuncBool:
-        end_of_prd_v_func = lambda shocks, a, n, s: (
-            DiscFac
-            * LivPrb
-            * temp_fac_B(shocks)
-            * v_next(m_trans(shocks, a, s), n_trans(shocks, n, s), s)
-        )
-        EndOfPrdv = calcExpectation(
-            ShockDstn, end_of_prd_v_func, aNrm_tiled, nNrm_tiled, Share_tiled
-        )[:, :, :, 0]
-        EndOfPrdvNvrs = uInv(EndOfPrdv)
-
-        # Construct an interpolator for EndOfPrdV. It will be used later.
-        EndOfPrdvFunc = ValueFuncCRRA(
-            LinearFast(EndOfPrdvNvrs, aNrmGrid, nNrmGrid, ShareGrid), CRRA
-        )
-
+    
     end_of_period_ds_func = lambda shocks, a, n, s: end_of_period_derivs(
         shocks,
         a,
@@ -1472,15 +1455,27 @@ def solveRiskyContribCnsStage(
         Rfree,
         DiscFac,
         LivPrb,
+        v_next = v_next if vFuncBool else None
     )
 
+    # Find end of period derivatives and value as discounted expectations of
+    # next period's derivatives and value
     EndOfPrd_derivs = calcExpectation(
         ShockDstn, end_of_period_ds_func, aNrm_tiled, nNrm_tiled, Share_tiled
     )[:, :, :, :, 0]
+    
+    # Unpack results
     EndOfPrddvdaNvrs = uPinv(EndOfPrd_derivs[0])
     EndOfPrddvdnNvrs = uPinv(EndOfPrd_derivs[1])
     EndOfPrddvds = EndOfPrd_derivs[2]
+    if vFuncBool:
+        EndOfPrdvNvrs = uInv(EndOfPrd_derivs[3])
 
+        # Construct an interpolator for EndOfPrdV. It will be used later.
+        EndOfPrdvFunc = ValueFuncCRRA(
+            LinearFast(EndOfPrdvNvrs, aNrmGrid, nNrmGrid, ShareGrid), CRRA
+        )
+        
     # STEP TWO:
     # Solve the consumption problem and create interpolators for c, vCns,
     # and its derivatives.
