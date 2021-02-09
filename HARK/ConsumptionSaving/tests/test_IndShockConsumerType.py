@@ -23,9 +23,9 @@ class testIndShockConsumerType(unittest.TestCase):
 
         self.agent.getShocks()
 
-        self.assertEqual(self.agent.shocks["PermShkNow"][0], 1.0427376294215103)
-        self.assertEqual(self.agent.shocks["PermShkNow"][1], 0.9278094171517413)
-        self.assertEqual(self.agent.shocks["TranShkNow"][0], 0.881761797501595)
+        self.assertEqual(self.agent.shocks['PermShk'][0], 1.0427376294215103)
+        self.assertEqual(self.agent.shocks['PermShk'][1], 0.9278094171517413)
+        self.assertEqual(self.agent.shocks['TranShk'][0], 0.881761797501595)
 
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerType(**init_lifecycle)
@@ -89,7 +89,7 @@ class testIndShockConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(self.agent.MPCnow[1], 0.5711503906043797)
 
-        self.assertAlmostEqual(self.agent.state_now['aLvlNow'][1], 0.18438326264597635)
+        self.assertAlmostEqual(self.agent.state_now['aLvl'][1], 0.18438326264597635)
 
 
 class testBufferStock(unittest.TestCase):
@@ -237,12 +237,12 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
             IndShockExample.solution[0].cFunc.functions[0].x_list[0], -0.25017509
         )
 
-        IndShockExample.track_vars = ["aNrmNow", "mNrmNow", "cNrmNow", "pLvlNow"]
+        IndShockExample.track_vars = ['aNrm', "mNrm", "cNrm", 'pLvl']
         IndShockExample.initializeSim()
         IndShockExample.simulate()
 
         self.assertAlmostEqual(
-            IndShockExample.history["mNrmNow"][0][0], 1.0170176090252379
+            IndShockExample.history["mNrm"][0][0], 1.0170176090252379
         )
 
 

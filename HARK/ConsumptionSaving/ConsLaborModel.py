@@ -479,7 +479,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.getStates(self)
-        self.state_now['mNrmNow'][:] = np.nan  # Delete market resource calculation
+        self.state_now['mNrm'][:] = np.nan  # Delete market resource calculation
 
     def getControls(self):
         """
@@ -500,15 +500,15 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cNrmNow[these] = self.solution[t].cFunc(
-                self.state_now['bNrmNow'][these], self.shocks["TranShkNow"][these]
+                self.state_now['bNrm'][these], self.shocks['TranShk'][these]
             )  # Assign consumption values
             MPCnow[these] = self.solution[t].cFunc.derivativeX(
-                self.state_now['bNrmNow'][these], self.shocks["TranShkNow"][these]
+                self.state_now['bNrm'][these], self.shocks['TranShk'][these]
             )  # Assign marginal propensity to consume values (derivative)
             LbrNow[these] = self.solution[t].LbrFunc(
-                self.state_now['bNrmNow'][these], self.shocks["TranShkNow"][these]
+                self.state_now['bNrm'][these], self.shocks['TranShk'][these]
             )  # Assign labor supply
-        self.controls['cNrmNow'] = cNrmNow
+        self.controls['cNrm'] = cNrmNow
         self.MPCnow = MPCnow
         self.controls['LbrNow'] = LbrNow
 
@@ -529,12 +529,12 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             mNrmNow[these] = (
-                self.state_now['bNrmNow'][these]
-                + self.controls['LbrNow'][these] * self.shocks["TranShkNow"][these]
+                self.state_now['bNrm'][these]
+                + self.controls['LbrNow'][these] * self.shocks['TranShk'][these]
             )  # mNrm = bNrm + yNrm
-            aNrmNow[these] = mNrmNow[these] - self.controls['cNrmNow'][these]  # aNrm = mNrm - cNrm
-        self.state_now['mNrmNow'] = mNrmNow
-        self.state_now['aNrmNow'] = aNrmNow
+            aNrmNow[these] = mNrmNow[these] - self.controls['cNrm'][these]  # aNrm = mNrm - cNrm
+        self.state_now['mNrm'] = mNrmNow
+        self.state_now['aNrm'] = aNrmNow
 
         # moves now to prev
         super().getPostStates()
