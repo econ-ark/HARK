@@ -107,7 +107,7 @@ class test_ConsMarkovSolver(unittest.TestCase):
         self.model.solve()
         self.model.T_sim = 120
         self.model.MrkvPrbsInit = [0.25, 0.25, 0.25, 0.25]
-        self.model.track_vars = ["mNrmNow", "cNrmNow"]
+        self.model.track_vars = ["mNrm", 'cNrm']
         self.model.makeShockHistory()  # This is optional
         self.model.initializeSim()
         self.model.simulate()
