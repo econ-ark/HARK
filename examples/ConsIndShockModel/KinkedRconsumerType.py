@@ -9,9 +9,9 @@
 #       format_version: '1.2'
 #       jupytext_version: 1.2.4
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: econ-ark-3.8
 #     language: python
-#     name: python3
+#     name: econ-ark-3.8
 # ---
 
 # %% [markdown]
@@ -214,7 +214,7 @@ plt.show()
 # Now let's plot the distribution of (normalized) assets $a_t$ for the current population, after simulating for $500$ periods; this should be fairly close to the long run distribution:
 
 # %%
-plt.plot(np.sort(KinkyExample.state_now['aNrmNow']), np.linspace(0.0, 1.0, KinkyExample.AgentCount))
+plt.plot(np.sort(KinkyExample.state_now['aNrm']), np.linspace(0.0, 1.0, KinkyExample.AgentCount))
 plt.xlabel("End-of-period assets")
 plt.ylabel("Cumulative distribution")
 plt.ylim(-0.01, 1.01)

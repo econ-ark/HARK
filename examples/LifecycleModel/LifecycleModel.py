@@ -8,11 +8,11 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.2'
-#       jupytext_version: 1.2.3
+#       jupytext_version: 1.2.4
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: econ-ark-3.8
 #     language: python
-#     name: python3
+#     name: econ-ark-3.8
 #   language_info:
 #     codemirror_mode:
 #       name: ipython
@@ -22,7 +22,7 @@
 #     name: python
 #     nbconvert_exporter: python
 #     pygments_lexer: ipython3
-#     version: 3.7.6
+#     version: 3.8.7
 # ---
 
 # %% [markdown]
@@ -80,7 +80,7 @@ LifeCyclePop.solve()                            # Obtain consumption rules by ag
 LifeCyclePop.unpack('cFunc')                      # Expose the consumption rules
 
 # Which variables do we want to track
-LifeCyclePop.track_vars = ['aNrmNow','pLvl','mNrm','cNrm','TranShkNow']
+LifeCyclePop.track_vars = ['aNrm','pLvl','mNrm','cNrm','TranShk']
 
 LifeCyclePop.T_sim = 120                        # Nobody lives to be older than 145 years (=25+120)
 LifeCyclePop.initializeSim()                    # Construct the age-25 distribution of income and assets
@@ -130,7 +130,7 @@ warnings.filterwarnings("ignore") # Suppress some disturbing but harmless warnin
 
 for t in range(1,LifeCyclePop.T_cycle+1):
     #aLvlGro_hist[0] = 0 # set the first growth rate to 0, since there is no data for period 0
-    aLvlGroNow = np.log(LifeCyclePop.history['aNrmNow'][t]/LifeCyclePop.history['aNrmNow'][t-1]) # (10000,)
+    aLvlGroNow = np.log(LifeCyclePop.history['aNrm'][t]/LifeCyclePop.history['aNrm'][t-1]) # (10000,)
 
     # Call the saving rate function with test value for 
     SavingRate = savingRateFunc(LifeCyclePop, LifeCyclePop.history['mNrm'][t] )
@@ -140,10 +140,10 @@ for t in range(1,LifeCyclePop.T_cycle+1):
     # Create elements of matrix list
     matrix_list = [0 for number in range(7)]
     matrix_list[0] = t
-    matrix_list[1] = LifeCyclePop.history['aNrmNow'][t]
+    matrix_list[1] = LifeCyclePop.history['aNrm'][t]
     matrix_list[2] = LifeCyclePop.history['cNrm'][t]
-    matrix_list[3] = LifeCyclePop.history['TranShkNow'][t]
-    matrix_list[4] = LifeCyclePop.history['TranShkNow'][t-1]
+    matrix_list[3] = LifeCyclePop.history['TranShk'][t]
+    matrix_list[4] = LifeCyclePop.history['TranShk'][t-1]
     matrix_list[5] = aLvlGroNow
     matrix_list[6] = SavingRate
     
@@ -155,8 +155,8 @@ for t in range(1,LifeCyclePop.T_cycle+1):
 
 # %% {"code_folding": [0]}
 # Construct the level of assets A from a*p where a is the ratio to permanent income p
-LifeCyclePop.history['aLvlNow'] = LifeCyclePop.history['aNrmNow']*LifeCyclePop.history['pLvl']
-aGro41=LifeCyclePop.history['aLvlNow'][41]/LifeCyclePop.history['aLvlNow'][40]
+LifeCyclePop.history['aLvl'] = LifeCyclePop.history['aNrm']*LifeCyclePop.history['pLvl']
+aGro41=LifeCyclePop.history['aLvl'][41]/LifeCyclePop.history['aLvl'][40]
 aGro41NoU=aGro41[aGro41[:]>0.2] # Throw out extreme outliers
 
 
