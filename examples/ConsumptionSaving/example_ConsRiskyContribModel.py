@@ -264,9 +264,9 @@ plotSlices4D(cFuncFxd,0,mMax,y_slices = n_slices,w_slices = shares,
              ax_labs = ['m_til','c'])
 
 # %%  Simulate the finite horizon consumer
-ContribAgent.track_vars = ['pLvlNow','t_age','AdjustNow',
-                           'mNrmNow','nNrmNow','mNrmTildeNow','nNrmTildeNow','aNrmNow',
-                           'cNrmNow', 'ShareNow', 'DNrmNow']
+ContribAgent.track_vars = ['pLvl','t_age','Adjust',
+                           'mNrm','nNrm','mNrmTilde','nNrmTilde','aNrm',
+                           'cNrm', 'Share', 'DNrm']
 ContribAgent.T_sim = 4
 ContribAgent.AgentCount = 10
 ContribAgent.initializeSim()
