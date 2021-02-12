@@ -9,9 +9,9 @@
 #       format_version: '1.2'
 #       jupytext_version: 1.2.4
 #   kernelspec:
-#     display_name: Python 3.7 econ-ark
+#     display_name: econ-ark-3.8
 #     language: python
-#     name: econ-ark
+#     name: econ-ark-3.8
 # ---
 
 # %% [markdown]
@@ -285,10 +285,12 @@ plt.show()
 # %% pycharm= {"name": "#%%\n"}
 PFexample.initializeSim()
 PFexample.simulate(80)
-PFexample.state_prev['aNrmNow'] += -5.0  # Adjust all simulated consumers' assets downward by 5
+PFexample.state_prev['aNrm'] += -5.0  # Adjust all simulated consumers' assets downward by 5
 PFexample.simulate(40)
 
 plt.plot(np.mean(PFexample.history['mNrm'], axis=1))
 plt.xlabel("Time")
 plt.ylabel("Mean normalized market resources")
 plt.show()
+
+# %%
