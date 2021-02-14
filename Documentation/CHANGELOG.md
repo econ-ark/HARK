@@ -30,9 +30,13 @@ interpolation for problems with CRRA utility. See [#888](https://github.com/econ
 * Adds a module for producing life-cycle profiles of income shock variances from [Sabelhaus and Song (2010)](https://www.sciencedirect.com/science/article/abs/pii/S0304393210000358). See [#921](https://github.com/econ-ark/HARK/pull/921).
 <<<<<<< HEAD
 * Moves state MrkvNow to shocks['Mrkv'] in AggShockMarkov and KrusellSmith models [#935](https://github.com/econ-ark/HARK/pull/935)
+<<<<<<< HEAD
 =======
 * remove "Now" from model variable names [#936](https://github.com/econ-ark/HARK/pull/936)
 >>>>>>> c260d40... changelog for #920
+=======
+* remove Model.__call__; use Model init in Market and AgentType init to standardize on parameters dictionary [#947](https://github.com/econ-ark/HARK/issues/947)
+>>>>>>> f886478... changelog for issue #934
 
 #### Minor Changes
 
