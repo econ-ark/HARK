@@ -17,7 +17,7 @@
 # # How we solve a model defined by the `IndShockConsumerType` class
 # The IndShockConsumerType reprents the work-horse consumption savings model with temporary and permanent shocks to income, finite or infinite horizons, CRRA utility and more. In this DemARK we take you through the steps involved in solving one period of such a model. The inheritance chains can be a little long, so figuring out where all the parameters and methods come from can be a bit confusing. Hence this map! The intention is to make it easier to know how to inheret from IndShockConsumerType in the sense that you know where to look for specific solver logic, but also so you know can figure out which methods to overwrite or supplement in your own `AgentType` and solver!
 # ## The `solveConsIndShock` function
-# In HARK, a period's problem is always solved by the callable (function or callable object instance) stored in the field `solveOnePeriod`. In the case of `IndShockConsumerType`, this function is called `solveConsIndShock`. The function accepts a number of arguments, that it uses to construct an instance of either a `ConsIndShockSolverBasic` or a `ConsIndShockSolver`. These solvers both have the methods `prepareToSolve` and `solve`, that we will have a closer look at in this notebook. This means, that the logic of `solveConsIndShock` is basically:
+# In HARK, a period's problem is always solved by the callable (function or callable object instance) stored in the field `solve_one_period`. In the case of `IndShockConsumerType`, this function is called `solveConsIndShock`. The function accepts a number of arguments, that it uses to construct an instance of either a `ConsIndShockSolverBasic` or a `ConsIndShockSolver`. These solvers both have the methods `prepareToSolve` and `solve`, that we will have a closer look at in this notebook. This means, that the logic of `solveConsIndShock` is basically:
 #
 #  1. Check if cubic interpolation (`CubicBool`) or construction of the value function interpolant (`vFuncBool`) are requested. Construct an instance of `ConsIndShockSolverBasic` if neither are requested, else construct a `ConsIndShockSolver`. Call this `solver`.
 #  1. Call `solver.prepareToSolve()`
@@ -25,7 +25,7 @@
 
 # %% [markdown]
 # ### Two types of solvers
-# As mentioned above, `solveOnePeriod` will construct an instance of the class `ConsIndShockSolverBasic`or `ConsIndShockSolver`. The main difference is whether it uses cubic interpolation or if it explicitly constructs a value function approximation. The choice and construction of a solver instance is bullet 1) from above.
+# As mentioned above, `solve_one_period` will construct an instance of the class `ConsIndShockSolverBasic`or `ConsIndShockSolver`. The main difference is whether it uses cubic interpolation or if it explicitly constructs a value function approximation. The choice and construction of a solver instance is bullet 1) from above.
 #
 # #### What happens in upon construction
 # Neither of the two solvers have their own `__init__`. `ConsIndShockSolver` inherits from `ConsIndShockSolverBasic` that in turn inherits from `ConsIndShockSetup`. `ConsIndShockSetup` inherits from `ConsPerfForesightSolver`, which itself is just an `Object`, so we get the inheritance structure
@@ -34,11 +34,11 @@
 #
 # When one of the two classes in the end of the inheritance chain is called, it will call `ConsIndShockSetup.__init__(args...)`. This takes a whole list of fixed inputs that then gets assigned to the object through a
 # ```
-# ConsIndShockSetup.assignParameters(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+# ConsIndShockSetup.assign_parameters(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
 # ```
 # call, that then calls
 # ```
-# ConsPerfForesightSolver.assignParameters(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac)
+# ConsPerfForesightSolver.assign_parameters(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac)
 # ```
 # We're getting kind of detailed here, but it is simply to help us understand the inheritance structure. The methods are quite straight forward, and simply assign the list of variables to self. The ones that do not get assigned by the `ConsPerfForesightSolver` method gets assign by the `ConsIndShockSetup` method instead.
 #
@@ -54,7 +54,7 @@
 # ```
 # Again, we wish to emphasize the inheritance structure. The method in `ConsPerfForesightSolver` defines the most basic utility functions (utility, its marginal and its marginal marginal), and `ConsIndShockSolver` adds additional functions (marginal of inverse, inverse of marginal, marginal of inverse of marginal, and optionally inverse if `vFuncBool` is true).
 #
-# To sum up, the `__init__` method lives in `ConsIndShockSetup`, calls `assignParameters` and `defUtilityFuncs` from `ConsPerfForesightSolver` and defines its own methods with the same names that adds some methods used to solve the `IndShockConsumerType` using EGM. The main things controlled by the end-user are whether cubic interpolation should be used, `CubicBool`, and if the value function should be explicitly formed, `vFuncBool`.
+# To sum up, the `__init__` method lives in `ConsIndShockSetup`, calls `assign_parameters` and `defUtilityFuncs` from `ConsPerfForesightSolver` and defines its own methods with the same names that adds some methods used to solve the `IndShockConsumerType` using EGM. The main things controlled by the end-user are whether cubic interpolation should be used, `CubicBool`, and if the value function should be explicitly formed, `vFuncBool`.
 # ### Prepare to solve
 # We are now in bullet 2) from the list above. The `prepareToSolve` method is all about grabbing relevant information from next period's solution, calculating some limiting solutions. It comes from `ConsIndShockSetup` and calls two methods:
 #

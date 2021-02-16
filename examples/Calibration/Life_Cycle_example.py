@@ -82,7 +82,7 @@ Agent.T_sim = 200
 Agent.track_vars = ["aNrm", "cNrm", "pLvl", "t_age", "mNrm"]
 
 # Run the simulations
-Agent.initializeSim()
+Agent.initialize_sim()
 Agent.simulate()
 
 # %% Extract and format simulation results

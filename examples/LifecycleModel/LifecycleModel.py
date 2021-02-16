@@ -83,7 +83,7 @@ LifeCyclePop.unpack('cFunc')                      # Expose the consumption rules
 LifeCyclePop.track_vars = ['aNrm','pLvl','mNrm','cNrm','TranShk']
 
 LifeCyclePop.T_sim = 120                        # Nobody lives to be older than 145 years (=25+120)
-LifeCyclePop.initializeSim()                    # Construct the age-25 distribution of income and assets
+LifeCyclePop.initialize_sim()                    # Construct the age-25 distribution of income and assets
 LifeCyclePop.simulate()                         # Simulate a population behaving according to this model
 
 

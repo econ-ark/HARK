@@ -367,7 +367,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         IndShockConsumerType.__init__(self, cycles=cycles, **params)
 
         self.pseudo_terminal = False
-        self.solveOnePeriod = solveConsLaborIntMarg
+        self.solve_one_period = solveConsLaborIntMarg
         self.update()
 
     def update(self):
@@ -409,7 +409,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
             LbrCostBase += Coeffs[n] * age_vec ** n
         LbrCost = np.exp(LbrCostBase)
         self.LbrCost = LbrCost.tolist()
-        self.addToTimeVary("LbrCost")
+        self.add_to_time_vary("LbrCost")
 
     def calcBoundingValues(self):
         """
@@ -463,12 +463,12 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         """
         raise NotImplementedError()
 
-    def getStates(self):
+    def get_states(self):
         """
         Calculates updated values of normalized bank balances and permanent income
-        level for each agent.  Uses pLvlNow, aNrmNow, PermShkNow.  Calls the getStates
+        level for each agent.  Uses pLvlNow, aNrmNow, PermShkNow.  Calls the get_states
         method for the parent class, then erases mNrmNow, which cannot be calculated
-        until after getControls in this model.
+        until after get_controls in this model.
 
         Parameters
         ----------
@@ -478,10 +478,10 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.getStates(self)
+        IndShockConsumerType.get_states(self)
         self.state_now['mNrm'][:] = np.nan  # Delete market resource calculation
 
-    def getControls(self):
+    def get_controls(self):
         """
         Calculates consumption and labor supply for each consumer of this type
         using the consumption and labor functions in each period of the cycle.
@@ -512,7 +512,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         self.MPCnow = MPCnow
         self.controls['Lbr'] = LbrNow
 
-    def getPostStates(self):
+    def get_poststates(self):
         """
         Calculates end-of-period assets for each consumer of this type.
 
@@ -537,7 +537,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         self.state_now['aNrm'] = aNrmNow
 
         # moves now to prev
-        super().getPostStates()
+        super().get_poststates()
 
     def updateTranShkGrid(self):
         """
@@ -560,9 +560,9 @@ class LaborIntMargConsumerType(IndShockConsumerType):
                 self.TranShkDstn[t].X
             )  # Update/ Extend the list of TranShkGrid with the TranShkVals for each TranShkPrbs
         self.TranShkGrid = TranShkGrid  # Save that list in self (time-varying)
-        self.addToTimeVary(
+        self.add_to_time_vary(
             "TranShkGrid"
-        )  # Run the method addToTimeVary from AgentType to add TranShkGrid as one parameter of time_vary list
+        )  # Run the method add_to_time_vary from AgentType to add TranShkGrid as one parameter of time_vary list
 
     def updateSolutionTerminal(self):
         """

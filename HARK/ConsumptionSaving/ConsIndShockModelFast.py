@@ -20,7 +20,7 @@ from interpolation import interp
 from numba import njit
 from quantecon.optimize import newton_secant
 
-from HARK import makeOnePeriodOOSolver, MetricObject
+from HARK import make_one_period_oo_solver, MetricObject
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     ConsPerfForesightSolver,
@@ -1086,7 +1086,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
     def __init__(self, **kwargs):
         PerfForesightConsumerType.__init__(self, **kwargs)
 
-        self.solveOnePeriod = makeOnePeriodOOSolver(ConsPerfForesightSolverFast)
+        self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolverFast)
 
     def updateSolutionTerminal(self):
         """
@@ -1105,7 +1105,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
             MPCmax=1.0,
         )
 
-    def postSolve(self):
+    def post_solve(self):
         self.solution_fast = deepcopy(self.solution)
 
         if self.cycles == 0:
@@ -1179,7 +1179,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
         else:  # Use the "advanced" solver if either is requested
             solver = ConsIndShockSolverFast
 
-        self.solveOnePeriod = makeOnePeriodOOSolver(solver)
+        self.solve_one_period = make_one_period_oo_solver(solver)
 
     def updateSolutionTerminal(self):
         PerfForesightConsumerTypeFast.updateSolutionTerminal(self)
@@ -1192,7 +1192,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
             self.solution_terminal.vNvrsP = utilityP(np.linspace(0.0, 1.0), self.CRRA)
             self.solution_terminal.mNrmGrid = np.linspace(0.0, 1.0)
 
-    def postSolve(self):
+    def post_solve(self):
         self.solution_fast = deepcopy(self.solution)
 
         if self.cycles == 0:

@@ -7,7 +7,7 @@ from builtins import str
 from builtins import range
 import numpy as np
 from scipy.optimize import brentq
-from HARK import  AgentType, MetricObject, makeOnePeriodOOSolver
+from HARK import  AgentType, MetricObject, make_one_period_oo_solver
 from HARK.distribution import addDiscreteOutcomeConstantMean, Lognormal
 from HARK.utilities import (
     CRRAutilityP_inv,
@@ -580,11 +580,11 @@ class MedShockConsumerType(PersistentShockConsumerType):
         params.update(kwds)
 
         PersistentShockConsumerType.__init__(self, cycles=cycles, **params)
-        self.solveOnePeriod = makeOnePeriodOOSolver(ConsMedShockSolver)
-        self.addToTimeInv("CRRAmed")
-        self.addToTimeVary("MedPrice")
+        self.solve_one_period = make_one_period_oo_solver(ConsMedShockSolver)
+        self.add_to_time_inv("CRRAmed")
+        self.add_to_time_vary("MedPrice")
 
-    def preSolve(self):
+    def pre_solve(self):
         self.updateSolutionTerminal()
 
     def update(self):
@@ -635,7 +635,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
             )  # add point at zero with no probability
             MedShkDstn.append(MedShkDstnNow)
         self.MedShkDstn = MedShkDstn
-        self.addToTimeVary("MedShkDstn")
+        self.add_to_time_vary("MedShkDstn")
 
     def updateSolutionTerminal(self):
         """
@@ -776,12 +776,12 @@ class MedShockConsumerType(PersistentShockConsumerType):
             this_grid = self.pLvlGrid[j]
             self.pLvlGrid[j] = np.insert(this_grid, 0, 0.0001)
 
-    def resetRNG(self):
+    def reset_rng(self):
         """
         Reset the RNG behavior of this type.  This method is called automatically
-        by initializeSim(), ensuring that each simulation run uses the same sequence
+        by initialize_sim(), ensuring that each simulation run uses the same sequence
         of random shocks; this is necessary for structural estimation to work.
-        This method extends PersistentShockConsumerType.resetRNG() to also reset
+        This method extends PersistentShockConsumerType.reset_rng() to also reset
         elements of MedShkDstn.
 
         Parameters
@@ -792,14 +792,14 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        PersistentShockConsumerType.resetRNG(self)
+        PersistentShockConsumerType.reset_rng(self)
 
-        # Reset MedShkDstn if it exists (it might not because resetRNG is called at init)
+        # Reset MedShkDstn if it exists (it might not because reset_rng is called at init)
         if hasattr(self, "MedShkDstn"):
             for dstn in self.MedShkDstn:
                 dstn.reset()
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Gets permanent and transitory income shocks for this period as well as medical need shocks
         and the price of medical care.
@@ -812,7 +812,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        PersistentShockConsumerType.getShocks(
+        PersistentShockConsumerType.get_shocks(
             self
         )  # Get permanent and transitory income shocks
         MedShkNow = np.zeros(self.AgentCount)  # Initialize medical shock array
@@ -826,7 +826,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         self.shocks["MedShk"] = MedShkNow
         self.shocks["MedPrice"] = MedPriceNow
 
-    def getControls(self):
+    def get_controls(self):
         """
         Calculates consumption and medical care for each consumer of this type using the consumption
         and medical care functions.
@@ -852,7 +852,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         self.controls['Med'] = MedNow
         return None
 
-    def getPostStates(self):
+    def get_poststates(self):
         """
         Calculates end-of-period assets for each consumer of this type.
 
@@ -867,7 +867,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         self.state_now['aLvl'] = self.state_now['mLvl'] - self.controls['cLvl'] - self.shocks["MedPrice"] * self.controls['Med']
 
         # moves now to prev
-        AgentType.getPostStates(self)
+        AgentType.get_poststates(self)
 
         return None
 

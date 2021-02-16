@@ -143,8 +143,8 @@ def income_wealth_dists_from_scf(base_year, age=None, education=None, wave=None)
     Finds and formats parameters for the initial distributions of permanent
     income and normalized wealth from the SCF's summary statistics.
     
-    Many of HARK's models (e.g. PerfForesightConsumerType.simBirth(),
-    GenIncProcessConsumerType.simBirth()) assume the initial distribution
+    Many of HARK's models (e.g. PerfForesightConsumerType.sim_birth(),
+    GenIncProcessConsumerType.sim_birth()) assume the initial distribution
     of permanent income (pLvl) and normalized wealth (aNrm) are log-normal.
     They construct these distributions from their means and standard
     deviations, which are parameters to the models. This fuction assigns these

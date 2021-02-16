@@ -48,8 +48,8 @@ plotFuncs([ExampleType.solution[0].cFunc, ExampleType.solution[0].cFunc_U], 0, m
 if do_simulation:
     ExampleType(**simulation_values)  # Set attributes needed for simulation
     ExampleType.track_vars = ["mLvl"]
-    ExampleType.makeShockHistory()
-    ExampleType.initializeSim()
+    ExampleType.make_shock_history()
+    ExampleType.initialize_sim()
     ExampleType.simulate()
 
 

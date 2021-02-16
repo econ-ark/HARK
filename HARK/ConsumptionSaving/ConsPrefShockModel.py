@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from builtins import str
 from builtins import range
 import numpy as np
-from HARK import makeOnePeriodOOSolver
+from HARK import make_one_period_oo_solver
 from HARK.distribution import MeanOneLogNormal
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
@@ -86,9 +86,9 @@ class PrefShockConsumerType(IndShockConsumerType):
         params.update(kwds)
 
         IndShockConsumerType.__init__(self, cycles=cycles, **params)
-        self.solveOnePeriod = makeOnePeriodOOSolver(ConsPrefShockSolver)
+        self.solve_one_period = make_one_period_oo_solver(ConsPrefShockSolver)
 
-    def preSolve(self):
+    def pre_solve(self):
         self.updateSolutionTerminal()
 
     def update(self):
@@ -134,14 +134,14 @@ class PrefShockConsumerType(IndShockConsumerType):
 
         # Store the preference shocks in self (time-varying) and restore time flow
         self.PrefShkDstn = PrefShkDstn
-        self.addToTimeVary("PrefShkDstn")
+        self.add_to_time_vary("PrefShkDstn")
 
-    def resetRNG(self):
+    def reset_rng(self):
         """
         Reset the RNG behavior of this type.  This method is called automatically
-        by initializeSim(), ensuring that each simulation run uses the same sequence
+        by initialize_sim(), ensuring that each simulation run uses the same sequence
         of random shocks; this is necessary for structural estimation to work.
-        This method extends IndShockConsumerType.resetRNG() to also reset elements
+        This method extends IndShockConsumerType.reset_rng() to also reset elements
         of PrefShkDstn.
 
         Parameters
@@ -152,14 +152,14 @@ class PrefShockConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.resetRNG(self)
+        IndShockConsumerType.reset_rng(self)
 
-        # Reset PrefShkDstn if it exists (it might not because resetRNG is called at init)
+        # Reset PrefShkDstn if it exists (it might not because reset_rng is called at init)
         if hasattr(self, "PrefShkDstn"):
             for dstn in self.PrefShkDstn:
                 dstn.reset()
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Gets permanent and transitory income shocks for this period as well as preference shocks.
 
@@ -171,7 +171,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.getShocks(
+        IndShockConsumerType.get_shocks(
             self
         )  # Get permanent and transitory income shocks
         PrefShkNow = np.zeros(self.AgentCount)  # Initialize shock array
@@ -182,7 +182,7 @@ class PrefShockConsumerType(IndShockConsumerType):
                 PrefShkNow[these] = self.PrefShkDstn[t].draw(N)
         self.shocks["PrefShk"] = PrefShkNow
 
-    def getControls(self):
+    def get_controls(self):
         """
         Calculates consumption for each consumer of this type using the consumption functions.
 
@@ -276,11 +276,11 @@ class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
         params.update(kwds)
         kwds = params
         IndShockConsumerType.__init__(self, **kwds)
-        self.solveOnePeriod = makeOnePeriodOOSolver(ConsKinkyPrefSolver)
-        self.addToTimeInv("Rboro", "Rsave")
-        self.delFromTimeInv("Rfree")
+        self.solve_one_period = make_one_period_oo_solver(ConsKinkyPrefSolver)
+        self.add_to_time_inv("Rboro", "Rsave")
+        self.del_from_time_inv("Rfree")
 
-    def preSolve(self):
+    def pre_solve(self):
         self.updateSolutionTerminal()
 
     def getRfree(self):  # Specify which getRfree to use

@@ -244,7 +244,7 @@ plotFuncs(IndShockExample.solution[0].cFunc.functions,-0.25,5.)
 
 # %%
 IndShockExample.track_vars = ['aNrmNow','mNrm','cNrm','pLvl']
-IndShockExample.initializeSim()
+IndShockExample.initialize_sim()
 IndShockExample.simulate()
 
 # %% [markdown]
