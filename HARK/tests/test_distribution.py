@@ -118,6 +118,16 @@ class DistributionClassTests(unittest.TestCase):
 
         self.assertEqual(dist.draw(1)[0], 5.836039190663969)
 
+        self.assertEqual(
+            dist.approx(5).approx_args[0],
+            5
+        )
+
+        self.assertEqual(
+            dist.approx(10).parent.sigma,
+            1.0
+        )
+
     def test_Normal(self):
         dist = Normal()
 
@@ -139,6 +149,16 @@ class DistributionClassTests(unittest.TestCase):
         self.assertEqual(
             Uniform().draw(1)[0],
             0.5488135039273248)
+
+        self.assertEqual(
+            uni.approx(10).approx_args[0],
+            10
+        )
+
+        self.assertEqual(
+            uni.approx(10).parent.top,
+            1.0
+        )
 
         self.assertEqual(
             calcExpectation(uni.approx(10)),

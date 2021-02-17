@@ -26,11 +26,63 @@ class Distribution:
         """
         self.RNG = np.random.RandomState(self.seed)
 
-
 ### CONTINUOUS DISTRIBUTIONS
 
+class ContinuousDistribution(Distribution):
+    """
+    A continuous distribution.
 
-class Lognormal(Distribution):
+    Parameters
+    ----------
+    seed : int
+        Seed for random number generator.
+    """
+    def __init__(self, seed=0):
+        super().__init__(seed)
+
+    def pmf_X(self, n, **kwargs):
+        """
+        The point mass function and values for
+        the discretized version of this distribution.
+
+        This is a private method accessed by the public method
+        approx.
+
+        It should be overwritten for each subclass.
+
+        Parameters
+        ----------
+        n : int
+            Number of 
+
+        Returns
+        ----------
+        pmf : np.array
+            An array of floats representing a probability mass function.
+        X : np.array or [np.array]
+            Discrete point values for each probability mass.
+            May be multivariate (list of arrays). 
+        """
+        return None, None
+
+    def approx(self, n, **kwargs):
+        """
+        Returns a DiscreteDistribution that is an approximation
+        of this distribution.
+
+        n: int
+            Number of discrete points in the "main part" of the approximation.
+        """
+        pmf, X = self.pmf_X(n, **kwargs)
+        return DiscreteDistribution(
+            pmf,
+            X,
+            parent=self,
+            approx_args=(n, kwargs),
+            seed = self.RNG.randint(0, 2 ** 31 - 1, dtype="int32") # or 0? why is the seed 0 here?,
+        )
+
+class Lognormal(ContinuousDistribution):
     """
     A Lognormal distribution
 
@@ -95,7 +147,7 @@ class Lognormal(Distribution):
         # TODO: change return type to np.array?
         return draws[0] if len(draws) == 1 else draws
 
-    def approx(self, N, tail_N=0, tail_bound=None, tail_order=np.e):
+    def pmf_X(self, n, tail_N=0, tail_bound=None, tail_order=np.e):
         """
         Construct a discrete approximation to a lognormal distribution with underlying
         normal distribution N(mu,sigma).  Makes an equiprobable distribution by
@@ -104,7 +156,7 @@ class Lognormal(Distribution):
 
         Parameters
         ----------
-        N: int
+        n: int
             Number of discrete points in the "main part" of the approximation.
         tail_N: int
             Number of points in each "tail part" of the approximation; 0 = no tail.
@@ -118,9 +170,11 @@ class Lognormal(Distribution):
 
         Returns
         -------
-        d : DiscreteDistribution
-            Probability associated with each point in array of discrete
-            points for discrete probability mass function.
+        pmf : np.array
+            An array of floats representing a probability mass function.
+        X : np.array or [np.array]
+            Discrete point values for each probability mass.
+            May be multivariate (list of arrays).
         """
         tail_bound = tail_bound if tail_bound is not None else [0.02, 0.98]
         # Find the CDF boundaries of each segment
@@ -133,7 +187,7 @@ class Lognormal(Distribution):
                 hi_cut = 1.0
             inner_size = hi_cut - lo_cut
             inner_CDF_vals = [
-                lo_cut + x * N ** (-1.0) * inner_size for x in range(1, N)
+                lo_cut + x * n ** (-1.0) * inner_size for x in range(1, n)
             ]
             if inner_size < 1.0:
                 scale = 1.0 / tail_order
@@ -192,11 +246,10 @@ class Lognormal(Distribution):
                     )
 
         else:
-            pmf = np.ones(N) / N
-            X = np.exp(self.mu) * np.ones(N)
-        return DiscreteDistribution(
-            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
-        )
+            pmf = np.ones(n) / n
+            X = np.exp(self.mu) * np.ones(n)
+
+        return pmf, X
 
     @classmethod
     def from_mean_std(cls, mean, std, seed = 0):
@@ -237,7 +290,7 @@ class MeanOneLogNormal(Lognormal):
         mu = -0.5 * sigma ** 2
         super().__init__(mu=mu, sigma=sigma, seed=seed)
 
-class Normal(Distribution):
+class Normal(ContinuousDistribution):
     """
     A Normal distribution.
 
@@ -286,21 +339,27 @@ class Normal(Distribution):
 
         return draws
 
-    def approx(self, N):
+    def pmf_X(self, n, **kwargs):
         """
         Returns a discrete approximation of this distribution.
+
+        Returns
+        -------
+        pmf : np.array
+            An array of floats representing a probability mass function.
+        X : np.array or [np.array]
+            Discrete point values for each probability mass.
+            May be multivariate (list of arrays).
         """
-        x, w = np.polynomial.hermite.hermgauss(N)
+        x, w = np.polynomial.hermite.hermgauss(n)
         # normalize w
         pmf = w * np.pi ** -0.5
         # correct x
         X = math.sqrt(2.0) * self.sigma * x + self.mu
-        return DiscreteDistribution(
-            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
-        )
 
+        return pmf, X
 
-class Weibull(Distribution):
+class Weibull(ContinuousDistribution):
     """
     A Weibull distribution.
 
@@ -358,7 +417,7 @@ class Weibull(Distribution):
         return draws[0] if len(draws) == 1 else draws
 
 
-class Uniform(Distribution):
+class Uniform(ContinuousDistribution):
     """
     A Uniform distribution.
 
@@ -412,30 +471,30 @@ class Uniform(Distribution):
             )
         return draws[0] if len(draws) == 1 else draws
 
-    def approx(self, N):
+    def pmf_X(self, n, **kwargs):
         """
         Makes a discrete approximation to this uniform distribution.
 
         Parameters
         ----------
-        N : int
+        n : int
             The number of points in the discrete approximation
 
         Returns
         -------
-        d : DiscreteDistribution
-            Probability associated with each point in array of discrete
-            points for discrete probability mass function.
+        pmf : np.array
+            An array of floats representing a probability mass function.
+        X : np.array or [np.array]
+            Discrete point values for each probability mass.
+            May be multivariate (list of arrays).
         """
-        pmf = np.ones(N) / float(N)
+        pmf = np.ones(n) / float(n)
         center = (self.top + self.bot) / 2.0
         width = (self.top - self.bot) / 2.0
-        X = center + width * np.linspace(-(N - 1.0) / 2.0, (N - 1.0) / 2.0, N) / (
-            N / 2.0
+        X = center + width * np.linspace(-(n - 1.0) / 2.0, (n - 1.0) / 2.0, n) / (
+            n / 2.0
         )
-        return DiscreteDistribution(
-            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
-        )
+        return pmf, X
 
 ### DISCRETE DISTRIBUTIONS
 
@@ -501,10 +560,14 @@ class DiscreteDistribution(Distribution):
 
     pmf = None
     X = None
+    parent = None
+    approx_args = None
 
-    def __init__(self, pmf, X, seed=0):
+    def __init__(self, pmf, X, parent=None, approx_args=None,seed=0):
         self.pmf = pmf
         self.X = X
+        self.parent = parent
+        self.approx_args = approx_args
         # Set up the RNG
         super().__init__(seed)
 

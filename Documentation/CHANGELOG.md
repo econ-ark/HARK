@@ -31,6 +31,7 @@ interpolation for problems with CRRA utility. See [#888](https://github.com/econ
 * remove "Now" from model variable names [#936](https://github.com/econ-ark/HARK/pull/936)
 * Moves state MrkvNow to shocks['Mrkv'] in AggShockMarkov and KrusellSmith models [#935](https://github.com/econ-ark/HARK/pull/935)
 * Replaces `ConsIndShock`'s `init_lifecycle` with an actual life-cycle calibration [#951](https://github.com/econ-ark/HARK/pull/951).
+* New ContinuousDistribution class; DiscreteDistribution now tracks Continuous parent and approximation parameters [#954](https://github.com/econ-ark/HARK/pull/954)
 
 #### Minor Changes
 
