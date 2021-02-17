@@ -1428,7 +1428,7 @@ def distributeParams(agent, param_name, param_count, distribution):
         will be split between the agents of the returned
         list in proportion to the given distribution.
     """
-    param_dist = distribution.approx(N=param_count)
+    param_dist = distribution.approx(n=param_count)
 
     agent_set = [deepcopy(agent) for i in range(param_count)]
 

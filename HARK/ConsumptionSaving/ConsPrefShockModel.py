@@ -129,7 +129,7 @@ class PrefShockConsumerType(IndShockConsumerType):
             PrefShkStd = self.PrefShkStd[t]
             new_dstn = MeanOneLogNormal(
                 sigma=PrefShkStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
-            ).approx(N=self.PrefShkCount, tail_N=self.PrefShk_tail_N,)
+            ).approx(n=self.PrefShkCount, tail_N=self.PrefShk_tail_N,)
             PrefShkDstn.append(new_dstn)
 
         # Store the preference shocks in self (time-varying) and restore time flow

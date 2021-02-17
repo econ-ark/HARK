@@ -628,7 +628,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
             MedShkDstnNow = Lognormal(
                 mu=np.log(MedShkAvgNow) - 0.5 * MedShkStdNow ** 2, sigma=MedShkStdNow
             ).approx(
-                N=self.MedShkCount, tail_N=self.MedShkCountTail, tail_bound=[0, 0.9]
+                n=self.MedShkCount, tail_N=self.MedShkCountTail, tail_bound=[0, 0.9]
             )
             MedShkDstnNow = addDiscreteOutcomeConstantMean(
                 MedShkDstnNow, 0.0, 0.0, sort=True
