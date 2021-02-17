@@ -10,9 +10,9 @@
 #       format_version: '1.4'
 #       jupytext_version: 1.2.4
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: econ-ark-3.8
 #     language: python
-#     name: python3
+#     name: econ-ark-3.8
 #   language_info:
 #     codemirror_mode:
 #       name: ipython
@@ -22,7 +22,7 @@
 #     name: python
 #     nbconvert_exporter: python
 #     pygments_lexer: ipython3
-#     version: 3.6.9
+#     version: 3.8.7
 # ---
 
 from HARK.ConsumptionSaving.ConsLaborModel import (
@@ -129,7 +129,7 @@ plt.show()
 if do_simulation:
     t_start = process_time()
     LaborIntMargExample.T_sim = 120  # Set number of simulation periods
-    LaborIntMargExample.track_vars = ["bNrmNow", 'cNrm']
+    LaborIntMargExample.track_vars = ["bNrm", 'cNrm']
     LaborIntMargExample.initializeSim()
     LaborIntMargExample.simulate()
     t_end = process_time()
@@ -146,7 +146,7 @@ if do_simulation:
     N = LaborIntMargExample.AgentCount
     CDF = np.linspace(0.0, 1, N)
 
-    plt.plot(np.sort(LaborIntMargExample.cNrmNow), CDF)
+    plt.plot(np.sort(LaborIntMargExample.controls['cNrm']), CDF)
     plt.xlabel(
         "Consumption cNrm in " + str(LaborIntMargExample.T_sim) + "th simulated period"
     )
@@ -155,7 +155,7 @@ if do_simulation:
     plt.ylim(0.0, 1.0)
     plt.show()
 
-    plt.plot(np.sort(LaborIntMargExample.LbrNow), CDF)
+    plt.plot(np.sort(LaborIntMargExample.controls['Lbr']), CDF)
     plt.xlabel(
         "Labor supply Lbr in " + str(LaborIntMargExample.T_sim) + "th simulated period"
     )
@@ -164,7 +164,7 @@ if do_simulation:
     plt.ylim(0.0, 1.0)
     plt.show()
 
-    plt.plot(np.sort(LaborIntMargExample.state_now['aNrmNow']), CDF)
+    plt.plot(np.sort(LaborIntMargExample.state_now['aNrm']), CDF)
     plt.xlabel(
         "End-of-period assets aNrm in "
         + str(LaborIntMargExample.T_sim)

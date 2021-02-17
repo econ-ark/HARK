@@ -97,7 +97,7 @@ if solve_agg_shocks_market:
 if solve_markov_micro or solve_markov_market or solve_krusell_smith:
     # Make a Markov aggregate shocks consumer type
     AggShockMrkvExample = AggShockMarkovConsumerType()
-    AggShockMrkvExample.IncomeDstn[0] = 2 * [AggShockMrkvExample.IncomeDstn[0]]
+    AggShockMrkvExample.IncShkDstn[0] = 2 * [AggShockMrkvExample.IncShkDstn[0]]
     AggShockMrkvExample.cycles = 0
 
     # Make a Cobb-Douglas economy for the agents
@@ -167,7 +167,7 @@ if solve_krusell_smith:
     # Make a Krusell-Smith agent type
     # NOTE: These agents aren't exactly like KS, as they don't have serially correlated unemployment
     KSexampleType = deepcopy(AggShockMrkvExample)
-    KSexampleType.IncomeDstn[0] = [
+    KSexampleType.IncShkDstn[0] = [
         DiscreteDistribution(
             np.array([0.96, 0.04]),
             [ np.array([1.0, 1.0]), np.array([1.0 / 0.96, 0.0])]
@@ -228,7 +228,7 @@ if solve_poly_state:
     PolyStateExample = AggShockMarkovConsumerType()
     PolyStateExample.MrkvArray = PolyMrkvArray
     PolyStateExample.PermGroFacAgg = PermGroFacAgg
-    PolyStateExample.IncomeDstn[0] = StateCount * [PolyStateExample.IncomeDstn[0]]
+    PolyStateExample.IncShkDstn[0] = StateCount * [PolyStateExample.IncShkDstn[0]]
     PolyStateExample.cycles = 0
 
     # Make a Cobb-Douglas economy for the agents
@@ -263,3 +263,5 @@ if solve_poly_state:
         + str(t_end - t_start)
         + " seconds."
     )
+
+
