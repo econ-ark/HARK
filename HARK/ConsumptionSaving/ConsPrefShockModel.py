@@ -301,8 +301,8 @@ class ConsPrefShockSolver(ConsIndShockSolver):
     ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
-    IncShkDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
+    IncShkDstn : distribution.Distribution
+        A discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
         probabilities, permanent shocks, transitory shocks.
@@ -542,8 +542,8 @@ def solveConsPrefShock(
     ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
-    IncShkDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
+    IncShkDstn : distribution.Distribution
+        A discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
         probabilities, permanent shocks, transitory shocks.
@@ -620,8 +620,8 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver, ConsKinkedRsolver):
     ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
-    IncShkDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
+    IncShkDstn : distribution.Distribution
+        A discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
         probabilities, permanent shocks, transitory shocks.

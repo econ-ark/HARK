@@ -1102,11 +1102,11 @@ def solveConsAggShock(
     ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
-    IncShkDstn : [np.array]
-        A list containing five arrays of floats, representing a discrete
+    IncShkDstn : distribution.Distribution
+        A discrete
         approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, idisyncratic permanent shocks, idiosyncratic transitory
+        and the one immediately following (in solution_next). Order: 
+        idiosyncratic permanent shocks, idiosyncratic transitory
         shocks, aggregate permanent shocks, aggregate transitory shocks.
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
@@ -1292,11 +1292,11 @@ def solveConsAggShockNEW(solution_next, IncShkDstn, LivPrb, DiscFac, CRRA, PermG
     ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
-    IncShkDstn : [np.array]
-        A list containing five arrays of floats, representing a discrete
+    IncShkDstn : distribution.Distribution
+        A discrete
         approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, idisyncratic permanent shocks, idiosyncratic transitory
+        and the one immediately following (in solution_next). Order: 
+        idiosyncratic permanent shocks, idiosyncratic transitory
         shocks, aggregate permanent shocks, aggregate transitory shocks.
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
@@ -1438,11 +1438,11 @@ def solveConsAggMarkov(
     ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
-    IncShkDstn : [[np.array]]
-        A list of lists, each containing five arrays of floats, representing a
-        discrete approximation to the income process between the period being
-        solved and the one immediately following (in solution_next). Order: event
-        probabilities, idisyncratic permanent shocks, idiosyncratic transitory
+    IncShkDstn : [distribution.Distribution]
+        A list of 
+        discrete approximations to the income process between the period being
+        solved and the one immediately following (in solution_next). Order: 
+        idisyncratic permanent shocks, idiosyncratic transitory
         shocks, aggregate permanent shocks, aggregate transitory shocks.
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of

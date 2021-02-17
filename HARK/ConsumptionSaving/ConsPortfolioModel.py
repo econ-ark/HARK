@@ -536,8 +536,8 @@ def solveConsPortfolio(
         transitory income shocks, and risky returns.  This is only used if the
         input IndepDstnBool is False, indicating that income and return distributions
         can't be assumed to be independent.
-    IncShkDstn : [np.array]
-        List with three arrays: discrete probabilities, permanent income shocks,
+    IncShkDstn : distribution.Distribution
+        Discrete distribution of permanent income shocks
         and transitory income shocks.  This is only used if the input IndepDsntBool
         is True, indicating that income and return distributions are independent.
     RiskyDstn : [np.array]
