@@ -1019,6 +1019,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         """
         pLvlPrev = self.state_prev["pLvl"]
         aNrmPrev = self.state_prev["aNrm"]
+        SharePrev = self.state_prev["Share"]
         nNrmTildePrev = self.state_prev["nNrmTilde"]
         Rfree = self.Rfree
         Rrisk = self.shocks["Risky"]
@@ -1039,11 +1040,11 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
         # Liquid balances after labor income
         self.state_now["mNrm"] = bNrm + self.shocks["TranShk"] * (
-            1 - self.state_now["Share"]
+            1 - SharePrev
         )
         # Iliquid balances after labor income
         self.state_now["nNrm"] = (
-            gNrm + self.shocks["TranShk"] * self.state_now["Share"]
+            gNrm + self.shocks["TranShk"] * SharePrev
         )
 
         return None
@@ -1077,7 +1078,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                 .DFuncFxd(
                     self.state_now["mNrm"][those],
                     self.state_now["nNrm"][those],
-                    self.state_now["Share"][those],
+                    self.state_prev["Share"][those],
                 )
             )
 
@@ -1155,7 +1156,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                 .ShareFuncFxd(
                     self.state_now["mNrmTilde"][those],
                     self.state_now["nNrmTilde"][those],
-                    self.state_now["Share"][those],
+                    self.state_prev["Share"][those],
                 )
             )
 
