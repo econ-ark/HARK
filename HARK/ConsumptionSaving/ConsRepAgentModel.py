@@ -35,11 +35,11 @@ def solveConsRepAgent(
         Intertemporal discount factor for future utility.
     CRRA : float
         Coefficient of relative risk aversion.
-    IncShkDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
+    IncShkDstn : distribution.Distribution
+        A discrete
         approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
+        and the one immediately following (in solution_next). Order: 
+        permanent shocks, transitory shocks.
     CapShare : float
         Capital's share of income in Cobb-Douglas production function.
     DeprFac : float
@@ -135,9 +135,9 @@ def solveConsRepAgentMarkov(
         Intertemporal discount factor for future utility.
     CRRA : float
         Coefficient of relative risk aversion.
-    IncShkDstn : [[np.array]]
-        A list of lists containing three arrays of floats, representing a discrete
-        approximation to the income process between the period being solved
+    IncShkDstn : [distribution.Distribution]
+        A list of discrete
+        approximations to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
         probabilities, permanent shocks, transitory shocks.
     CapShare : float
