@@ -86,12 +86,11 @@ class ConsMarkovSolver(ConsIndShockSolver):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncShkDstn_list : [[np.array]]
+        IncShkDstn_list : [distribution.Distribution]
             A length N list of income distributions in each succeeding Markov
-            state.  Each income distribution contains three arrays of floats,
-            representing a discrete approximation to the income process at the
-            beginning of the succeeding period. Order: event probabilities,
-            permanent shocks, transitory shocks.
+            state.  Each income distribution is a
+            discrete approximation to the income process at the
+            beginning of the succeeding period.
         LivPrb : np.array
             Survival probability; likelihood of being alive at the beginning of
             the succeeding period for each Markov state.
@@ -761,12 +760,11 @@ def _solveConsMarkov(
     ----------
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
-    IncShkDstn_list : [[np.array]]
+    IncShkDstn_list : [distribution.Distribution]
         A length N list of income distributions in each succeeding Markov
-        state.  Each income distribution contains three arrays of floats,
-        representing a discrete approximation to the income process at the
-        beginning of the succeeding period. Order: event probabilities,
-        permanent shocks, transitory shocks.
+        state.  Each income distribution is
+        a discrete approximation to the income process at the
+        beginning of the succeeding period.
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -906,7 +904,13 @@ class MarkovConsumerType(IndShockConsumerType):
         # conditional on a particular Markov state.
         # TODO: should this be a numpy array too?
         for IncShkDstn_t in self.IncShkDstn:
-            if not isinstance(IncShkDstn_t, list) or len(IncShkDstn_t) != StateCount:
+            if not isinstance(IncShkDstn_t, list):
+                raise ValueError(
+                    "self.IncShkDstn is time varying and so must be a list"
+                    + "of lists of Distributions, one per Markov State. Found "
+                    + f"{self.IncShkDstn} instead"
+                )
+            elif len(IncShkDstn_t) != StateCount:
                 raise ValueError(
                     "List in IncShkDstn is not the right length, it should be length equal to number of states"
                 )

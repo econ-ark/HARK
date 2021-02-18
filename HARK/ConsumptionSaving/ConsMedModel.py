@@ -885,14 +885,13 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
     ----------
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
-    IncShkDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
-    MedShkDstn : [np.array]
+    IncShkDstn : distribution.Distribution
+        A discrete
+        approximations to the income process between the period being solved
+        and the one immediately following (in solution_next).
+    MedShkDstn : distribution.Distribution
         Discrete distribution of the multiplicative utility shifter for med-
-        ical care. Order: probabilities, preference shocks.
+        ical care. 
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -977,11 +976,10 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncShkDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
+        IncShkDstn : distribution.Distribution
+            A discrete
             approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
+            and the one immediately following (in solution_next).
         LivPrb : float
             Survival probability; likelihood of being alive at the beginning of
             the succeeding period.
