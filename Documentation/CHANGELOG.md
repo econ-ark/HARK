@@ -40,6 +40,7 @@ interpolation for problems with CRRA utility. See [#888](https://github.com/econ
 * Rename IncomeDstn to IncShkDstn
 * AgentType simulate() method now returns history. [#916](https://github.com/econ-ark/HARK/pull/916)
 * Rename DiscreteDistribution.drawDiscrete() to draw()
+* Update documentation and warnings around IncShkDstn [#955](https://github.com/econ-ark/HARK/pull/955)
 
 ### 0.10.8
 
