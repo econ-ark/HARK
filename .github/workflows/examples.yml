@@ -15,8 +15,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.7', '3.8']
+        os: [ubuntu-latest]
+        python-version: ['3.8']
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
@@ -31,4 +31,22 @@ jobs:
       - name: Run examples
         run: |
           python examples/Gentle-Intro/Gentle-Intro-To-HARK.py
+          python examples/Calibration/US_SSA_life_tables.py
+          python examples/ConsIndShockModel/IndShockConsumerType.py
+          python examples/ConsIndShockModel/KinkedRconsumerType.py
+          python examples/ConsIndShockModel/PerfForesightConsumerType.py
+          python examples/ConsumptionSaving/example_ConsMedModel.py
+          python examples/ConsumptionSaving/example_TractableBufferStockModel.py
+          python examples/ConsumptionSaving/example_ConsIndShock.py
+          python examples/ConsumptionSaving/example_ConsPortfolioModel.py
+          python examples/ConsumptionSaving/example_ConsLaborModel.py
+          python examples/ConsumptionSaving/example_ConsMarkovModel.py
+          python examples/ConsumptionSaving/example_ConsRepAgentModel.py
+          python examples/ConsumptionSaving/example_ConsGenIncProcessModel.py
+          python examples/ConsumptionSaving/example_ConsPrefShockModel.py
+          python examples/ConsumptionSaving/example_ConsAggShockModel.py
+          python examples/FashionVictim/FashionVictimModel.py
+          python examples/GenIncProcessModel/GenIncProcessModel.py
+          python examples/HowWeSolveIndShockConsumerType/HowWeSolveIndShockConsumerType.py
+          python examples/LifecycleModel/LifecycleModel.py
     
