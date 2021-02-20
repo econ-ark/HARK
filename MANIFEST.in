@@ -11,7 +11,7 @@ include MANIFEST.in
 include setup.cfg
 
 # include data files
-recursive-include HARK/datasets/data *.txt
+recursive-include HARK/datasets/data *.txt *.csv
 
 # except build files
 global-exclude *.pyc
