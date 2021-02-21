@@ -42,6 +42,7 @@ interpolation for problems with CRRA utility. See [#888](https://github.com/econ
 * AgentType simulate() method now returns history. [#916](https://github.com/econ-ark/HARK/pull/916)
 * Rename DiscreteDistribution.drawDiscrete() to draw()
 * Update documentation and warnings around IncShkDstn [#955](https://github.com/econ-ark/HARK/pull/955)
+* Adds csv files to `MANIFEST.in`. [957](https://github.com/econ-ark/HARK/pull/957)
 
 ### 0.10.8
 
