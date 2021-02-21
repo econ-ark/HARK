@@ -137,24 +137,23 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         # Generate a discrete approximation to the risky return distribution if the
         # agent has age-varying beliefs about the risky asset
         if "RiskyAvg" in self.time_vary:
-            RiskyDstn = []
+            self.RiskyDstn = []
             for t in range(self.T_cycle):
-                RiskyAvgSqrd = self.RiskyAvg[t] ** 2
-                RiskyVar = self.RiskyStd[t] ** 2
-                mu = np.log(self.RiskyAvg[t] / (np.sqrt(1.0 + RiskyVar / RiskyAvgSqrd)))
-                sigma = np.sqrt(np.log(1.0 + RiskyVar / RiskyAvgSqrd))
-                RiskyDstn.append(Lognormal(mu=mu, sigma=sigma).approx(self.RiskyCount))
-            self.RiskyDstn = RiskyDstn
+                self.RiskyDstn.append(
+                    Lognormal.from_mean_std(
+                        self.RiskyAvg[t],
+                        self.RiskyStd[t]
+                    ).approx(self.RiskyCount)
+                )
             self.addToTimeVary("RiskyDstn")
 
         # Generate a discrete approximation to the risky return distribution if the
         # agent does *not* have age-varying beliefs about the risky asset (base case)
         else:
-            RiskyAvgSqrd = self.RiskyAvg ** 2
-            RiskyVar = self.RiskyStd ** 2
-            mu = np.log(self.RiskyAvg / (np.sqrt(1.0 + RiskyVar / RiskyAvgSqrd)))
-            sigma = np.sqrt(np.log(1.0 + RiskyVar / RiskyAvgSqrd))
-            self.RiskyDstn = Lognormal(mu=mu, sigma=sigma).approx(self.RiskyCount)
+            self.RiskyDstn = Lognormal.from_mean_std(
+                self.RiskyAvg,
+                self.RiskyStd,
+            ).approx(self.RiskyCount)
             self.addToTimeInv("RiskyDstn")
 
     def updateShockDstn(self):
