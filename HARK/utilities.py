@@ -844,7 +844,7 @@ def determine_platform():
     """
     import platform
 
-    pform = platform.platform().lower()
+    pform = platform.system().lower()
     if "darwin" in pform:
         pf = "darwin"  # MacOS
     elif "debian" in pform:
