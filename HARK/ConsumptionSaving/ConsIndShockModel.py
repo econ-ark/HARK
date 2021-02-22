@@ -1684,8 +1684,10 @@ init_perfect_foresight = {
     'aNrmInitMean': 0.0,  # Mean of log initial assets (only matters for simulation)
     'aNrmInitStd': 1.0,  # Standard deviation of log initial assets (only for simulation)
     'pLvlInitMean': 0.0,  # Mean of log initial permanent income (only matters for simulation)
-    'pLvlInitStd' : 0.0,  # Standard deviation of log initial permanent income (only matters for simulation)
-    'PermGroFacAgg' : 1.0,# Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
+    # Standard deviation of log initial permanent income (only matters for simulation)
+    'pLvlInitStd': 0.0,
+    # Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
+    'PermGroFacAgg': 1.0,
     'T_age': None,       # Age after which simulated agents are automatically killed
     'T_cycle': 1         # Number of periods in the cycle for this agent type
 }
@@ -1933,13 +1935,14 @@ class PerfForesightConsumerType(AgentType):
 
         # Calculate new states: normalized market resources and permanent income level
         pLvlNow = pLvlPrev*self.shocks['PermShkNow']  # Updated permanent income level
-        PlvlAggNow = self.state_prev['PlvlAggNow']*self.PermShkAggNow # Updated aggregate permanent productivity level
-        ReffNow      = RfreeNow/self.shocks['PermShkNow'] # "Effective" interest factor on normalized assets
+        # Updated aggregate permanent productivity level
+        PlvlAggNow = self.state_prev['PlvlAggNow']*self.PermShkAggNow
+        # "Effective" interest factor on normalized assets
+        ReffNow = RfreeNow/self.shocks['PermShkNow']
         bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
         mNrmNow = bNrmNow + self.shocks['TranShkNow']  # Market resources after income
 
         return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
-
 
     def getControls(self):
         """
@@ -2682,7 +2685,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         #        self.checkGICPF(verbose)
         self.checkGICInd(verbose)
-        self.checkCIGAgg(verbose)
+        self.checkGICAgg(verbose)
         self.checkWRIC(verbose)
         self.checkFVAC(verbose)
 
@@ -2748,15 +2751,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         ## Rnorm    = Rfree/(PermGroFac[0]*PermShk)
         ## EPermShkInv    = E[PermShk**(-1)]
         ## InvEPermShkInv = 1/EPermShkInv
-        ## ExRnorm  = E[Rfree/(PermGroFac[0]*PermShk)] = Rfree EPermShkInv / PermGroFac[0]
+        # ExRnorm  = E[Rfree/(PermGroFac[0]*PermShk)] = Rfree EPermShkInv / PermGroFac[0]
         ## InvExRnorm = 1/ExRnorm
-        ## The "sustainable consumption" locus is given by
+        # The "sustainable consumption" locus is given by
         # cSust = InvExRnorm + m*(1-InvExRnorm)
 
         # The target level of m, mTarg, will be the value such that
         # cSust[m] = cFunc[m]
-
-
 
     # ========================================================
     # = Functions for generating discrete income processes and
@@ -2879,8 +2880,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 PermShkDstn_t = MeanOneLogNormal(sigma=PermShkStd[t]).approx(
                     PermShkCount, tail_N=0
                 )
-                ### REPLACE
-                ###REPLACE
+                # REPLACE
+                # REPLACE
                 IncomeDstn.append(
                     combineIndepDstns(
                         PermShkDstn_t,

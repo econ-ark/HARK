@@ -844,7 +844,7 @@ def determine_platform():
     """
     import platform
 
-    pform = platform.platform().lower()
+    pform = platform.system().lower()
     if "darwin" in pform:
         pf = "darwin"  # MacOS
     elif "debian" in pform:
@@ -944,7 +944,7 @@ def setup_latex_env_notebook(pf, latexExists):
         )
         # Latex expects paths to be separated by /. \ might result in pieces
         # being interpreted as commands.
-        latexdefs_path = os.getcwd().replace(os.path.sep,'/') + "/latexdefs.tex"
+        latexdefs_path = os.getcwd().replace(os.path.sep, '/') + "/latexdefs.tex"
         if os.path.isfile(latexdefs_path):
             latex_preamble = latex_preamble + r"\input{" + latexdefs_path + r"}"
         else:  # the required latex_envs package needs this file to exist even if it is empty
@@ -967,7 +967,7 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
               True if the figure should be displayed using plt.draw()
     target_dir: str, default = 'Figures/'
               Name of folder to save figures to in the current directory
-            
+
     """
     import matplotlib.pyplot as plt
 
