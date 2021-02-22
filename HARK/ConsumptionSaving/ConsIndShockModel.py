@@ -1,7 +1,7 @@
 """
-Classes to solve canonical consumption-savings models with idiosyncratic shocks
+Classes to solve canonical consumption-saving models with idiosyncratic shocks
 to income.  All models here assume CRRA utility with geometric discounting, no
-bequest motive, and income shocks are fully transitory or fully permanent.
+bequest motive, and income shocks that are fully transitory or fully permanent.
 
 It currently solves three types of models:
    1) A very basic "perfect foresight" consumption-savings model with no uncertainty.
@@ -531,8 +531,8 @@ class ConsPerfForesightSolver(HARKobject):
 
                 # Adjust the grids of mNrm and cNrm to account for the borrowing constraint.
                 cCrit = mCrit - BoroCnstArt
-                mNrmNow = np.concatenate(([BoroCnstArt, mCrit], mNrmNow[(idx + 1) :]))
-                cNrmNow = np.concatenate(([0.0, cCrit], cNrmNow[(idx + 1) :]))
+                mNrmNow = np.concatenate(([BoroCnstArt, mCrit], mNrmNow[(idx + 1):]))
+                cNrmNow = np.concatenate(([0.0, cCrit], cNrmNow[(idx + 1):]))
 
             else:
                 # If it *is* the very last index, then there are only three points
@@ -577,29 +577,29 @@ class ConsPerfForesightSolver(HARKobject):
         solution : ConsumerSolution
             Same solution that was passed, but now with the attribute mNrmSS.
         """
-        
+
         # First find
         # \bar{\mathcal{R}} = E_t[R/Gamma_{t+1}] = R/Gamma E_t[1/psi_{t+1}]
-        if type(self)==ConsPerfForesightSolver:
+        if type(self) == ConsPerfForesightSolver:
             ePsiInv = 1.0
         else:
             ePsiInv = np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
-            
+
         RcalBar = self.Rfree/self.PermGroFac*ePsiInv
-        
+
         # mNrmTrg solves Rcalbar*(m - c(m)) + E[inc_next] = m. Define a
         # rearranged version.
         mBalGrowthFunc = (
             lambda m: RcalBar * (m - solution.cFunc(m)) + self.ExIncNext - m
         )
-        
+
         # Minimum market resources plus next income is okay starting guess
         m_init_guess = self.mNrmMinNow + self.ExIncNext
         try:
             mNrmTrg = newton(mBalGrowthFunc, m_init_guess)
         except:
             mNrmTrg = None
-            
+
         # Add mNrmTrg to the solution and return it
         solution.mNrmTrg = mNrmTrg
         return solution
@@ -607,9 +607,9 @@ class ConsPerfForesightSolver(HARKobject):
     def addSSmNrm(self, solution):
         """
         Finds market resources ratio at which 'balanced growth' is expected.
-        This is the m such that the expected growth rate of M matches the
-        expected growth rate of permanent income. This value does not exist
-        if the Growth Impatience Condition does not hold.
+        This is the m ratio such that the expected growth rate of the M level
+        matches the expected growth rate of permanent income. This value does
+        not exist if the Growth Impatience Condition does not hold.
 
         https://econ-ark.github.io/BufferStockTheory#Unique-Stable-Points
 
@@ -626,7 +626,7 @@ class ConsPerfForesightSolver(HARKobject):
         # using checkConditions
         # All combinations of c and m that yield E[PermGroFac PermShkVal mNext] = mNow
         # https://econ-ark.github.io/BufferStockTheory/#The-Individual-Steady-State
-        # Would probably be quicker to search for MPC rather than mBal
+
         mZeroChangeFunc = (
             lambda m: (1.0 - self.PermGroFac / self.Rfree) * m
             + (self.PermGroFac / self.Rfree) * self.ExIncNext
@@ -634,19 +634,19 @@ class ConsPerfForesightSolver(HARKobject):
 
         # Find the steady state level of market resources
         # A zero of this is SS market resources
-        searchSSfunc = lambda m: solution.cFunc(m) - mZeroChangeFunc(m)
+        def searchSSfunc(m): return solution.cFunc(m) - mZeroChangeFunc(m)
 
         # Minimum market resources plus next income is okay starting guess
         m_init_guess = self.mNrmMinNow + self.ExIncNext
-        
+
         try:
-            mNrmSS = newton(searchSSfunc, m_init_guess)
+            mNrmSS = newton(searchSSfunc, m_init_guess)  # AggStE: E[M]/E[P] constant
         except:
             mNrmSS = None
 
-        solution.mNrmSS    = mNrmSS
+        solution.mNrmSS = mNrmSS
         return solution
-    
+
     def addStablePoints(self, solution):
         """
         Checks necessary conditions for the existence of the individual steady
@@ -661,11 +661,11 @@ class ConsPerfForesightSolver(HARKobject):
         Returns
         -------
         solution : ConsumerSolution
-            Same solution that was passed, but now with attributes mNrmSS and
+            Same solution that was provided, augmented with attributes mNrmSS and
             mNrmTrg, if they exist.
 
         """
-        
+
         # 0. There is no non-degenerate steady state for unconstrained PF model.
         # 1. There is a non-degenerate SS for constrained PF model if GIC holds.
         # Therefore
@@ -676,9 +676,9 @@ class ConsPerfForesightSolver(HARKobject):
         if self.BoroCnstArt is not None and GIC:
             solution = self.addSSmNrm(solution)
             solution = self.addmNrmTrg(solution)
-    
+
         return solution
-    
+
     def solve(self):
         """
         Solves the one period perfect foresight consumption-saving problem.
@@ -693,7 +693,7 @@ class ConsPerfForesightSolver(HARKobject):
             The solution to this period's problem.
         """
         self.defUtilityFuncs()
-        self.DiscFacEff = self.DiscFac * self.LivPrb
+        self.DiscFacEff = self.DiscFac * self.LivPrb  # Effective=pure x LivPrb
         self.makePFcFunc()
         self.defValueFuncs()
         solution = ConsumerSolution(
@@ -705,7 +705,7 @@ class ConsPerfForesightSolver(HARKobject):
             MPCmin=self.MPCmin,
             MPCmax=self.MPCmax,
         )
-        
+
         solution = self.addStablePoints(solution)
 
         return solution
@@ -1000,7 +1000,6 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         self.aNrmNow = aNrmNow
         return aNrmNow
 
-
     def calcEndOfPrdvP(self):
         """
         Calculate end-of-period marginal value of assets at each point in aNrmNow.
@@ -1161,19 +1160,19 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             mNrmTrg, if they exist.
 
         """
-        
+
         # 0. Check if the regular GIC holds. If so, then mNrmSS will exist. So, compute it.
         # 1. Check if GICnrm holds. If so, then mNrmTrg will exist. So, compute it.
 
         thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
         GPF_nrm = thorn / self.PermGroFac / np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
-        GIC     = 1 > thorn/self.PermGroFac
+        GIC = 1 > thorn/self.PermGroFac
         GIC_nrm = 1 > GPF_nrm
-        
+
         if GIC:
             solution = self.addSSmNrm(solution)  # find steady state m, if it exists
         if GIC_nrm:
-            solution = self.addmNrmTrg(solution) # find target m, if it exists
+            solution = self.addmNrmTrg(solution)  # find target m, if it exists
 
         return solution
 
@@ -1415,9 +1414,9 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
                 EndOfPrdvP, aNrm, interpolator=self.makeLinearcFunc
             )
         solution = self.addMPCandHumanWealth(solution)  # add a few things
-        
+
         solution = self.addStablePoints(solution)
-        
+
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used (to prepare for next period)
         if self.vFuncBool:
@@ -1557,7 +1556,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         ]
 
         return cFuncNowUncKink
-    
+
     def addStablePoints(self, solution):
         """
         TODO:
@@ -1565,7 +1564,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         points in the kinked R model. For now it simply serves to override
         ConsIndShock's method, which does not apply here given the multiple
         interest rates.
-        
+
         Discusson:
         - The target and steady state should exist under the same conditions
           as in ConsIndShock.
@@ -1580,10 +1579,10 @@ class ConsKinkedRsolver(ConsIndShockSolver):
              - From the lower kink to the upper kink
              - From the upper kink to infinity.
         the stable points must be in one of these regions.
-        
+
         """
         return solution
-    
+
     def prepareToCalcEndOfPrdvP(self):
         """
         Prepare to calculate end-of-period marginal value by creating an array
@@ -1631,7 +1630,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
             self.i_kink = (
                 np.sum(aNrmNow <= 0) - 1
             )  # Save the index of the kink point as an attribute
-            Rfree_vec[0 : self.i_kink] = self.Rboro
+            Rfree_vec[0: self.i_kink] = self.Rboro
         self.Rfree = Rfree_vec
         Rfree_temp = np.tile(Rfree_vec, (ShkCount, 1))
 
@@ -1678,17 +1677,17 @@ init_perfect_foresight = {
     'Rfree': 1.03,        # Interest factor on assets
     'DiscFac': 0.96,      # Intertemporal discount factor
     'LivPrb': [0.98],     # Survival probability
-    'PermGroFac': [1.01], # Permanent income growth factor
+    'PermGroFac': [1.01],  # Permanent income growth factor
     'BoroCnstArt': None,  # Artificial borrowing constraint
     'MaxKinks': 400,      # Maximum number of grid points to allow in cFunc (should be large)
     'AgentCount': 10000,  # Number of agents of this type (only matters for simulation)
-    'aNrmInitMean' : 0.0, # Mean of log initial assets (only matters for simulation)
-    'aNrmInitStd' : 1.0,  # Standard deviation of log initial assets (only for simulation)
-    'pLvlInitMean' : 0.0, # Mean of log initial permanent income (only matters for simulation)
+    'aNrmInitMean': 0.0,  # Mean of log initial assets (only matters for simulation)
+    'aNrmInitStd': 1.0,  # Standard deviation of log initial assets (only for simulation)
+    'pLvlInitMean': 0.0,  # Mean of log initial permanent income (only matters for simulation)
     'pLvlInitStd' : 0.0,  # Standard deviation of log initial permanent income (only matters for simulation)
     'PermGroFacAgg' : 1.0,# Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
-    'T_age' : None,       # Age after which simulated agents are automatically killed
-    'T_cycle' : 1         # Number of periods in the cycle for this agent type
+    'T_age': None,       # Age after which simulated agents are automatically killed
+    'T_cycle': 1         # Number of periods in the cycle for this agent type
 }
 
 
@@ -1933,11 +1932,11 @@ class PerfForesightConsumerType(AgentType):
         RfreeNow = self.getRfree()
 
         # Calculate new states: normalized market resources and permanent income level
-        pLvlNow = pLvlPrev*self.shocks['PermShkNow'] # Updated permanent income level
+        pLvlNow = pLvlPrev*self.shocks['PermShkNow']  # Updated permanent income level
         PlvlAggNow = self.state_prev['PlvlAggNow']*self.PermShkAggNow # Updated aggregate permanent productivity level
         ReffNow      = RfreeNow/self.shocks['PermShkNow'] # "Effective" interest factor on normalized assets
         bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
-        mNrmNow = bNrmNow + self.shocks['TranShkNow'] # Market resources after income
+        mNrmNow = bNrmNow + self.shocks['TranShkNow']  # Market resources after income
 
         return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
 
@@ -2022,7 +2021,7 @@ class PerfForesightConsumerType(AgentType):
         Evaluate and report on the Absolute Impatience Condition
         """
         name = "AIC"
-        test = lambda agent: agent.thorn < 1
+        def test(agent): return agent.thorn < 1
 
         messages = {
             True: "The value of the Absolute Patience Factor (APF) for the supplied parameter values satisfies the Absolute Impatience Condition.",
@@ -2043,7 +2042,7 @@ class PerfForesightConsumerType(AgentType):
 
         self.GPFPF = self.thorn / self.PermGroFac[0]
 
-        test = lambda agent: agent.GPFPF < 1
+        def test(agent): return agent.GPFPF < 1
 
         messages = {
             True: "The value of the Growth Patience Factor for the supplied parameter values satisfies the Perfect Foresight Growth Impatience Condition.",
@@ -2065,7 +2064,7 @@ class PerfForesightConsumerType(AgentType):
         self.RPF = self.thorn / self.Rfree
 
         name = "RIC"
-        test = lambda agent: self.RPF < 1
+        def test(agent): return self.RPF < 1
 
         messages = {
             True: "The value of the Return Patience Factor for the supplied parameter values satisfies the Return Impatience Condition.",
@@ -2088,7 +2087,7 @@ class PerfForesightConsumerType(AgentType):
         self.cNrmPDV = 1.0 / (1.0 - self.thorn / self.Rfree)
 
         name = "FHWC"
-        test = lambda agent: self.FHWF < 1
+        def test(agent): return self.FHWF < 1
 
         messages = {
             True: "The Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.",
@@ -2521,11 +2520,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         )  # [url]/#GICI
 
         name = "GIC"
-        test = lambda agent: agent.GPFInd <= 1
+        def test(agent): return agent.GPFInd <= 1
 
         messages = {
-            True: "\nThe value of the Individual Growth Patience Factor for the supplied parameter values satisfies the Individual Growth Impatience Condition; the value of the GPFInd is: {0.GPFInd}",
-            False: "\nThe given parameter values violate the Individual Growth Impatience Condition; the GPFInd is: {0.GPFInd}",
+            True: "\nThe value of the Individual Growth Patience Factor for the supplied parameter values satisfies the Growth Impatience Condition; the value of the GPFInd is: {0.GPFInd}",
+            False: "\nThe given parameter values violate the Growth Impatience Condition; the GPFInd is: {0.GPFInd}",
         }
 
         verbose_messages = {
@@ -2535,9 +2534,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         verbose = self.verbose if verbose is None else verbose
         self.checkCondition(name, test, messages, verbose, verbose_messages)
 
-    def checkCIGAgg(self, verbose=None):
+    def checkGICAgg(self, verbose=None):
         name = "GICAgg"
-        test = lambda agent: agent.GPFAgg <= 1
+        def test(agent): return agent.GPFAgg <= 1
 
         messages = {
             True: "\nThe value of the Aggregate Growth Patience Factor for the supplied parameter values satisfies the Aggregate Growth Impatience Condition; the value of the GPFAgg is: {0.GPFAgg}",
@@ -2545,8 +2544,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         }
 
         verbose_messages = {
-            True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.\n",  # (see {0.url}/#WRIC for more).',
-            False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.\n",  # (see {0.url}/#WRIC for more).'
+            # (see {0.url}/#WRIC for more).',
+            True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.\n",
+            # (see {0.url}/#WRIC for more).'
+            False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.\n",
         }
         verbose = self.verbose if verbose is None else verbose
         self.checkCondition(name, test, messages, verbose, verbose_messages)
@@ -2563,7 +2564,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         )
 
         name = "WRIC"
-        test = lambda agent: agent.WRPF <= 1
+        def test(agent): return agent.WRPF <= 1
 
         messages = {
             True: "\nThe Weak Return Patience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition; the WRPF is {0.WRPF}.",
@@ -2597,7 +2598,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.FVAF = self.LivPrb[0] * self.DiscFac * self.uInvEpShkuInv
 
         name = "FVAC"
-        test = lambda agent: agent.FVAF <= 1
+        def test(agent): return agent.FVAF <= 1
 
         messages = {
             True: "\nThe Finite Value of Autarky Factor (FVAV) for the supplied parameter values satisfies the Finite Value of Autarky Condition; the FVAF is {0.FVAF}",
@@ -2632,7 +2633,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
         self.conditions = {}
 
-        self.violated = False  # PerfForesightConsumerType.checkConditions(self, verbose=False, verbose_reference=False)
+        # PerfForesightConsumerType.checkConditions(self, verbose=False, verbose_reference=False)
+        self.violated = False
 
         if self.cycles != 0 or self.T_cycle > 1:
             return
@@ -3190,7 +3192,7 @@ init_lifecycle[
 # Make a dictionary to specify an infinite consumer with a four period cycle
 init_cyclical = copy(init_idiosyncratic_shocks)
 init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
-init_cyclical['PermShkStd'] = [0.1,0.1,0.1,0.1]
-init_cyclical['TranShkStd'] = [0.1,0.1,0.1,0.1]
-init_cyclical['LivPrb']     = 4*[0.98]
-init_cyclical['T_cycle']    = 4
+init_cyclical['PermShkStd'] = [0.1, 0.1, 0.1, 0.1]
+init_cyclical['TranShkStd'] = [0.1, 0.1, 0.1, 0.1]
+init_cyclical['LivPrb'] = 4*[0.98]
+init_cyclical['T_cycle'] = 4
