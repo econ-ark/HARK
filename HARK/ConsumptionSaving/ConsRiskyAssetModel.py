@@ -321,7 +321,6 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         """
         IndShockConsumerType.simBirth(self, which_agents)
         self.state_now["Share"][which_agents] = 0.0
-        self.Adjust[which_agents] = False
 
     def getShocks(self):
         """
@@ -808,25 +807,6 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         self.mNrmGrid = mNrmGrid
         self.addToTimeInv("mNrmGrid")
 
-    def initializeSim(self):
-        """
-        Initialize the state of simulation attributes.  Simply calls the same method
-        for IndShockConsumerType, then sets the type of Adjust to bool.
-        
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        # these need to be set because "post states",
-        # but are a control variable and shock, respectively
-        self.controls["Share"] = np.zeros(self.AgentCount)
-        self.shocks["Adjust"] = np.zeros(self.AgentCount, dtype=bool)
-        IndShockConsumerType.initializeSim(self)
-
     def simBirth(self, which_agents):
         """
         Create new agents to replace ones who have recently died; takes draws of
@@ -842,11 +822,8 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         None
         """
 
-        IndShockConsumerType.simBirth(self, which_agents)
+        RiskyAssetConsumerType.simBirth(self, which_agents)
         self.state_now["nNrmTilde"][which_agents] = 0.0
-        self.state_now["Share"][which_agents] = 0.0
-        # here a shock is being used as a 'post state'
-        self.shocks["Adjust"][which_agents] = False
 
     def getShocks(self):
         """
@@ -946,6 +923,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
         # Permanent income
         self.state_now["pLvl"] = pLvlPrev * self.shocks["PermShk"]
+        self.state_now["PlvlAgg"] = self.state_prev['PlvlAgg']*self.PermShkAggNow
 
         # Assets: mNrm and nNrm
 
