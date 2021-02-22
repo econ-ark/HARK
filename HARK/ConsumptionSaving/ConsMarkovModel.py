@@ -21,7 +21,7 @@ from HARK.distribution import (
     DiscreteDistribution,
     MarkovProcess,
     Uniform,
-    calcExpectation
+    calc_expectation
 )
 from HARK.interpolation import (
     CubicInterp,
@@ -333,7 +333,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             * self.Rfree
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA - 1.0)
-            * calcExpectation(
+            * calc_expectation(
                 self.IncShkDstn,
                 vpp_next,
                 self.aNrmNow

@@ -15,11 +15,11 @@ from builtins import object
 import sys
 import os
 from distutils.dir_util import copy_tree
-from .utilities import getArgNames, NullFunc
+from .utilities import get_arg_names, NullFunc
 from copy import copy, deepcopy
 import numpy as np
 from time import time
-from .parallel import multiThreadCommands, multiThreadCommandsFake
+from .parallel import multi_thread_commands, multi_thread_commands_fake
 from warnings import warn
 
 
@@ -1022,7 +1022,7 @@ def solve_one_cycle(agent, solution_last):
         if hasattr(solve_one_period, "solver_args"):
             these_args = solve_one_period.solver_args
         else:
-            these_args = getArgNames(solve_one_period)
+            these_args = get_arg_names(solve_one_period)
 
         # Update time-varying single period inputs
         for name in agent.time_vary:
@@ -1068,7 +1068,7 @@ def make_one_period_oo_solver(solver_class):
 
     one_period_solver.solver_class = solver_class
     # This can be revisited once it is possible to export parameters
-    one_period_solver.solver_args = getArgNames(solver_class.__init__)[1:]
+    one_period_solver.solver_args = get_arg_names(solver_class.__init__)[1:]
 
     return one_period_solver
 
@@ -1180,13 +1180,13 @@ class Market(Model):
         None
         """
         try:
-            multiThreadCommands(self.agents, ["solve()"])
+            multi_thread_commands(self.agents, ["solve()"])
         except Exception as err:
             if self.print_parallel_error_once:
                 # Set flag to False so this is only printed once.
                 self.print_parallel_error_once = False
                 print(
-                    "**** WARNING: could not execute multiThreadCommands in HARK.core.Market.solve_agents() ",
+                    "**** WARNING: could not execute multi_thread_commands in HARK.core.Market.solve_agents() ",
                     "so using the serial version instead. This will likely be slower. "
                     "The multiTreadCommands() functions failed with the following error:",
                     "\n",
@@ -1194,7 +1194,7 @@ class Market(Model):
                     ":",
                     err,
                 )  # sys.exc_info()[0])
-            multiThreadCommandsFake(self.agents, ["solve()"])
+            multi_thread_commands_fake(self.agents, ["solve()"])
 
     def solve(self):
         """
@@ -1412,7 +1412,7 @@ class Market(Model):
         """
         # Make a dictionary of inputs for the dynamics calculator
         history_vars_string = ""
-        arg_names = list(getArgNames(self.calc_dynamics))
+        arg_names = list(get_arg_names(self.calc_dynamics))
         if "self" in arg_names:
             arg_names.remove("self")
         update_dict = {name: self.history[name] for name in arg_names}

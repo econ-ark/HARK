@@ -28,14 +28,14 @@ from HARK.utilities import (
     CRRAutilityP_inv,
     CRRAutility_invP,
     CRRAutility_inv,
-    makeGridExpMult,
+    make_grid_exp_mult,
 )
 from HARK.distribution import (
     MarkovProcess,
     MeanOneLogNormal,
     Uniform,
-    combineIndepDstns,
-    calcExpectation
+    combine_indep_dstns,
+    calc_expectation
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
@@ -263,7 +263,7 @@ class AggShockConsumerType(IndShockConsumerType):
         else:
             self.IncShkDstnWithoutAggShocks = self.IncShkDstn
         self.IncShkDstn = [
-            combineIndepDstns(self.IncShkDstn[t], AggShkDstn)
+            combine_indep_dstns(self.IncShkDstn[t], AggShkDstn)
             for t in range(self.T_cycle)
         ]
 
@@ -515,7 +515,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         for t in range(self.T_cycle):
             IncShkDstnOut.append(
                 [
-                    combineIndepDstns(self.IncShkDstn[t][n], AggShkDstn[n])
+                    combine_indep_dstns(self.IncShkDstn[t][n], AggShkDstn[n])
                     for n in range(N)
                 ]
             )
@@ -776,7 +776,7 @@ class KrusellSmithType(AgentType):
         Construct the attribute aXtraGrid from the primitive attributes aMin,
         aMax, aCount, aNestFac.
         """
-        self.aGrid = makeGridExpMult(self.aMin, self.aMax, self.aCount, self.aNestFac)
+        self.aGrid = make_grid_exp_mult(self.aMin, self.aMax, self.aCount, self.aNestFac)
         self.add_to_time_inv("aGrid")
 
     def updateSolutionTerminal(self):
@@ -1286,7 +1286,7 @@ def solveConsAggShockNEW(solution_next, IncShkDstn, LivPrb, DiscFac, CRRA, PermG
     Solve one period of a consumption-saving problem with idiosyncratic and
     aggregate shocks (transitory and permanent).  This is a basic solver that
     can't handle cubic splines, nor can it calculate a value function. This
-    version uses calcExpectation to reduce code clutter.
+    version uses calc_expectation to reduce code clutter.
 
     Parameters
     ----------
@@ -1374,7 +1374,7 @@ def solveConsAggShockNEW(solution_next, IncShkDstn, LivPrb, DiscFac, CRRA, PermG
     
     # Compute end-of-period marginal value of assets
     MaggNow = np.tile(np.reshape(Mgrid,(1,Mcount)),(aCount,1)) # Tiled Mgrid
-    EndOfPrdvP = DiscFac*LivPrb*calcExpectation(IncShkDstn,vPnextFunc,[aNrmNow,MaggNow])
+    EndOfPrdvP = DiscFac*LivPrb*calc_expectation(IncShkDstn,vPnextFunc,[aNrmNow,MaggNow])
 
     # Calculate optimal consumption from each asset gridpoint and endogenous m_t gridpoint
     cNrmNow = EndOfPrdvP**(-1.0/CRRA)
@@ -1995,7 +1995,7 @@ class CobbDouglasEconomy(Market):
         self.PermShkAggDstn = MeanOneLogNormal(sigma=self.PermShkAggStd).approx(
             N=self.PermShkAggCount
         )
-        self.AggShkDstn = combineIndepDstns(self.PermShkAggDstn, self.TranShkAggDstn)
+        self.AggShkDstn = combine_indep_dstns(self.PermShkAggDstn, self.TranShkAggDstn)
 
     def reset(self):
         """
@@ -2249,7 +2249,7 @@ class SmallOpenEconomy(Market):
         self.PermShkAggDstn = MeanOneLogNormal(sigma=self.PermShkAggStd).approx(
             N=self.PermShkAggCount
         )
-        self.AggShkDstn = combineIndepDstns(self.PermShkAggDstn, self.TranShkAggDstn)
+        self.AggShkDstn = combine_indep_dstns(self.PermShkAggDstn, self.TranShkAggDstn)
 
     def mill_rule(self):
         """
@@ -2504,7 +2504,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
                     N=self.PermShkAggCount
                 )
             )
-            AggShkDstn.append(combineIndepDstns(PermShkAggDstn[-1], TranShkAggDstn[-1]))
+            AggShkDstn.append(combine_indep_dstns(PermShkAggDstn[-1], TranShkAggDstn[-1]))
 
         self.TranShkAggDstn = TranShkAggDstn
         self.PermShkAggDstn = PermShkAggDstn

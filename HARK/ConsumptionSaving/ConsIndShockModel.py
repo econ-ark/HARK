@@ -32,12 +32,12 @@ from HARK.interpolation import (
 from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
 from HARK.distribution import (
     DiscreteDistribution,
-    addDiscreteOutcomeConstantMean,
-    calcExpectation,
-    combineIndepDstns,
+    add_discrete_outcome_constant_mean,
+    calc_expectation,
+    combine_indep_dstns,
 )
 from HARK.utilities import (
-    makeGridExpMult,
+    make_grid_exp_mult,
     CRRAutility,
     CRRAutilityP,
     CRRAutilityPP,
@@ -759,7 +759,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             self.DiscFacEff
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA)
-            * calcExpectation(
+            * calc_expectation(
                 self.IncShkDstn,
                 vp_next,
                 self.aNrmNow
@@ -960,7 +960,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             * self.Rfree
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA - 1.0)
-            * calcExpectation(
+            * calc_expectation(
                 self.IncShkDstn,
                 vpp_next,
                 self.aNrmNow
@@ -995,7 +995,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             shocks[0] ** (1.0 - self.CRRA)
             * self.PermGroFac ** (1.0 - self.CRRA)
             ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm))
-        EndOfPrdv = self.DiscFacEff * calcExpectation(
+        EndOfPrdv = self.DiscFacEff * calc_expectation(
             self.IncShkDstn, v_lvl_next, self.aNrmNow
         )
         EndOfPrdvNvrs = self.uinv(
@@ -2106,13 +2106,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
             TranShkDstn = MeanOneLogNormal(sigma=self.TranShkStd[0]).approx(
                 N=200, tail_N=50, tail_order=1.3, tail_bound=[0.05, 0.95]
             )
-            TranShkDstn = addDiscreteOutcomeConstantMean(
+            TranShkDstn = add_discrete_outcome_constant_mean(
                 TranShkDstn, self.UnempPrb, self.IncUnemp
             )
             PermShkDstn = MeanOneLogNormal(sigma=self.PermShkStd[0]).approx(
                 N=200, tail_N=50, tail_order=1.3, tail_bound=[0.05, 0.95]
             )
-            IncShkDstn = combineIndepDstns(PermShkDstn, TranShkDstn)
+            IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
         # Make a grid of market resources
         mNowMin = self.solution[0].mNrmMin + 10 ** (
@@ -2243,7 +2243,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Finite Value of Autarky Condition
         Hyperlink to paper: [url]/#Autarky-Value
         """
-        EpShkuInv = calcExpectation(
+        EpShkuInv = calc_expectation(
             self.PermShkDstn[0],
             lambda x: x ** (1 - self.CRRA)
         )
@@ -2307,7 +2307,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # would be referenced below as:
         # [url]/#Uncertainty-Modified-Conditions
 
-        self.EPermShkInv = calcExpectation(
+        self.EPermShkInv = calc_expectation(
             self.PermShkDstn[0], lambda x : 1 / x
         )
         # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
@@ -2532,7 +2532,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     TranShkCount, tail_N=0
                 )
                 if UnempPrb > 0:
-                    TranShkDstn_t = addDiscreteOutcomeConstantMean(
+                    TranShkDstn_t = add_discrete_outcome_constant_mean(
                         TranShkDstn_t, p=UnempPrb, x=IncUnemp
                     )
                 PermShkDstn_t = MeanOneLogNormal(sigma=PermShkStd[t]).approx(
@@ -2541,7 +2541,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 ### REPLACE
                 ###REPLACE
                 IncShkDstn.append(
-                    combineIndepDstns(
+                    combine_indep_dstns(
                         PermShkDstn_t,
                         TranShkDstn_t,
                         seed=self.RNG.randint(0, 2 ** 31 - 1),
@@ -2620,7 +2620,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         PermShkValsNext = self.IncShkDstn[0][1]
         TranShkValsNext = self.IncShkDstn[0][2]
         ShkPrbsNext = self.IncShkDstn[0][0]
-        ExIncNext = calcExpectation(
+        ExIncNext = calc_expectation(
             IncShkDstn,
             lambda trans, perm : trans * perm
         )
@@ -2805,7 +2805,7 @@ def constructAssetsGrid(parameters):
     if grid_type == "linear":
         aXtraGrid = np.linspace(aXtraMin, aXtraMax, aXtraCount)
     elif grid_type == "exp_mult":
-        aXtraGrid = makeGridExpMult(
+        aXtraGrid = make_grid_exp_mult(
             ming=aXtraMin, maxg=aXtraMax, ng=aXtraCount, timestonest=exp_nest
         )
     else:

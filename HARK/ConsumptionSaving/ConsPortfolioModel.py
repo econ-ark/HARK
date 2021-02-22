@@ -17,7 +17,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks  # Baseline dictionary to build on
 )
 
-from HARK.distribution import combineIndepDstns
+from HARK.distribution import combine_indep_dstns
 from HARK.distribution import Lognormal, Bernoulli  # Random draws for simulating agents
 from HARK.interpolation import (
     LinearInterp,  # Piecewise linear interpolation
@@ -272,12 +272,12 @@ class PortfolioConsumerType(IndShockConsumerType):
         """
         if "RiskyDstn" in self.time_vary:
             self.ShockDstn = [
-                combineIndepDstns(self.IncShkDstn[t], self.RiskyDstn[t])
+                combine_indep_dstns(self.IncShkDstn[t], self.RiskyDstn[t])
                 for t in range(self.T_cycle)
             ]
         else:
             self.ShockDstn = [
-                combineIndepDstns(self.IncShkDstn[t], self.RiskyDstn)
+                combine_indep_dstns(self.IncShkDstn[t], self.RiskyDstn)
                 for t in range(self.T_cycle)
             ]
         self.add_to_time_vary("ShockDstn")

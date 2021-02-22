@@ -32,7 +32,7 @@ from HARK.utilities import (
     CRRAutility_invP,
     CRRAutility_inv,
     CRRAutilityP_invP,
-    getPercentiles,
+    get_percentiles,
 )
 from HARK.distribution import Lognormal, Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -1036,7 +1036,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
                 if t > 0:
                     PermShkNow = self.PermShkDstn[t - 1].draw(N=self.AgentCount)
                     pLvlNow = self.pLvlNextFunc[t - 1](pLvlNow) * PermShkNow
-                pLvlGrid.append(getPercentiles(pLvlNow, percentiles=self.pLvlPctiles))
+                pLvlGrid.append(get_percentiles(pLvlNow, percentiles=self.pLvlPctiles))
 
         # Calculate "stationary" distribution in infinite horizon (might vary across periods of cycle)
         elif self.cycles == 0:
@@ -1068,7 +1068,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
             for t in range(self.T_cycle):
                 these = t_cycle == t
                 pLvlGrid.append(
-                    getPercentiles(pLvlNow[these], percentiles=self.pLvlPctiles)
+                    get_percentiles(pLvlNow[these], percentiles=self.pLvlPctiles)
                 )
 
         # Throw an error if cycles>1
