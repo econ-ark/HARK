@@ -60,7 +60,7 @@ class testPerfForesightConsumerType(unittest.TestCase):
             "T_age": None,  # Age after which simulated agents are automatically killed
         }
 
-        self.agent_infinite(
+        self.agent_infinite.assignParameters(
             **SimulationParams
         )  # This implicitly uses the assign_parameters method of AgentType
 

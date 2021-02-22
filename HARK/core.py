@@ -169,22 +169,35 @@ class Model(object):
         -------
         none
         """
-        self.parameters = kwds
+        self.parameters.update(kwds)
         for key in kwds:
             setattr(self, key, kwds[key])
 
-    def __call__(self, **kwds):
+    def get_parameter(self, name):
         """
-        Assign an arbitrary number of attributes to this agent, as a convenience.
-        See assign_parameters.
+        Returns a parameter of this model
+
+        Parameters
+        ----------
+        name : string
+            The name of the parameter to get
+
+        Returns
+        -------
+        value :
+            The value of the parameter
         """
-        self.assign_parameters(**kwds)
+        return self.parameters[name]
 
     def __eq__(self, other):
         if isinstance(other, type(self)):
             return self.parameters == other.parameters
 
         return notImplemented
+
+    def __init__(self):
+        if not hasattr(self, 'parameters'):
+            self.parameters = {}
 
     def __str__(self):
 
@@ -261,6 +274,8 @@ class AgentType(Model):
         seed=0,
         **kwds
     ):
+        super().__init__()
+
         if solution_terminal is None:
             solution_terminal = NullFunc()
 
@@ -1119,6 +1134,7 @@ class Market(Model):
         tolerance=0.000001,
         **kwds
     ):
+        super().__init__()
         self.agents = agents if agents is not None else list()  # NOQA
 
         reap_vars = reap_vars if reap_vars is not None else list()  # NOQA

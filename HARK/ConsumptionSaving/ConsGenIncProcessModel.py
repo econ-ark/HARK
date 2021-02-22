@@ -119,8 +119,8 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     ----------
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
-    IncShkDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
+    IncShkDstn : distribution.Distribution
+        A discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
         probabilities, persistent shocks, transitory shocks.
@@ -199,11 +199,10 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncShkDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
+        IncShkDstn : distribution.Distribution
+            A discrete
             approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, persistent shocks, transitory shocks.
+            and the one immediately following (in solution_next).
         LivPrb : float
             Survival probability; likelihood of being alive at the beginning of
             the succeeding period.

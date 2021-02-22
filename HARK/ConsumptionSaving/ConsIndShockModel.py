@@ -463,11 +463,10 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     ----------
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
-    IncShkDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
+    IncShkDstn : distribution.Distribution
+        A discrete
         approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
+        and the one immediately following (in solution_next). 
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -1155,11 +1154,10 @@ class ConsKinkedRsolver(ConsIndShockSolver):
     ----------
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
-    IncShkDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
+    IncShkDstn : distribution.Distribution
+        A discrete
         approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
+        and the one immediately following (in solution_next). 
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -2470,16 +2468,15 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         Returns
         -------
-        IncShkDstn :  [[np.array]]
-            A list with T_cycle elements, each of which is a list of three arrays
-            representing a discrete approximation to the income process in a period.
-            Order: probabilities, permanent shocks, transitory shocks.
-        PermShkDstn : [[np.array]]
-            A list with T_cycle elements, each of which is a list of two arrays
-            representing a discrete approximation to the permanent income shocks.
-        TranShkDstn : [[np.array]]
-            A list with T_cycle elements, each of which is a list of two arrays
-            representing a discrete approximation to the transitory income shocks.
+        IncShkDstn :  [distribution.Distribution]
+            A list with T_cycle elements, each of which is a 
+            discrete approximation to the income process in a period.
+        PermShkDstn : [[distribution.Distributiony]]
+            A list with T_cycle elements, each of which
+            a discrete approximation to the permanent income shocks.
+        TranShkDstn : [[distribution.Distribution]]
+            A list with T_cycle elements, each of which 
+            a discrete approximation to the transitory income shocks.
         """
         # Unpack the parameters from the input
         PermShkStd = self.PermShkStd
@@ -2735,7 +2732,7 @@ def applyFlatIncomeTax(
 
     Parameters
     ----------
-    IncShkDstn : [income distributions]
+    IncShkDstn : [distribution.Distribution]
         The discrete approximation to the income distribution in each time period.
     tax_rate : float
         A flat income tax rate to be applied to all employed income.
@@ -2748,7 +2745,7 @@ def applyFlatIncomeTax(
 
     Returns
     -------
-    IncShkDstn_new : [income distributions]
+    IncShkDstn_new : [distribution.Distribution]
         The updated income distributions, after applying the tax.
     """
     unemployed_indices = (
