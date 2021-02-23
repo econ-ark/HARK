@@ -49,7 +49,7 @@ from HARK.utilities import (
 from HARK import _log
 from HARK import set_verbosity_level
 
-from HARK.Calibration.Income.IncomeTools import ParseIncomeSpec, ParseTimeParams, Cagetti_income
+from HARK.Calibration.Income.IncomeTools import parse_income_spec, parse_time_params, Cagetti_income
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 
@@ -2835,7 +2835,7 @@ education = "HS"
 income_calib = Cagetti_income[education]
 
 # Income specification
-income_params = ParseIncomeSpec(
+income_params = parse_income_spec(
     age_min=birth_age,
     age_max=death_age,
     adjust_infl_to=adjust_infl_to,
@@ -2855,7 +2855,7 @@ liv_prb = parse_ssa_life_table(
 )
 
 # Parameters related to the number of periods implied by the calibration
-time_params = ParseTimeParams(age_birth=birth_age, age_death=death_age)
+time_params = parse_time_params(age_birth=birth_age, age_death=death_age)
 
 # Update all the new parameters
 init_lifecycle = copy(init_idiosyncratic_shocks)
