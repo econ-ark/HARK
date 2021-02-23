@@ -37,8 +37,8 @@ class testPerfForesightConsumerType(unittest.TestCase):
             self.agent_alt.solution[0].cFunc(10).tolist(), 3.9750093524820787
         )
 
-    def test_checkConditions(self):
-        self.agent_infinite.checkConditions()
+    def test_check_conditions(self):
+        self.agent_infinite.check_conditions()
         self.assertTrue(self.agent_infinite.conditions["AIC"])
         self.assertTrue(self.agent_infinite.conditions["GICPF"])
         self.assertTrue(self.agent_infinite.conditions["RIC"])

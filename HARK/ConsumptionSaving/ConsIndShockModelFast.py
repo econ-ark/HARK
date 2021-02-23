@@ -202,7 +202,7 @@ def _searchSSfunc(m, Rfree, PermGroFac, mNrm, cNrm, ExIncNext):
 
 # @njit(cache=True) can't cache because of use of globals, perhaps newton_secant?
 @njit
-def _addSSmNrmNumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, ExIncNext, _searchSSfunc):
+def _add_SSmNrmNumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, ExIncNext, _searchSSfunc):
     """
     Finds steady state (normalized) market resources and adds it to the
     solution.  This is the level of market resources such that the expectation
@@ -315,7 +315,7 @@ def _solveConsPerfForesightNumba(
     MPCmax = (cNrmNow[1] - cNrmNow[0]) / (mNrmNow[1] - mNrmNow[0])
 
     # Add attributes to enable calculation of steady state market resources.
-    # Relabeling for compatibility with addSSmNrm
+    # Relabeling for compatibility with add_SSmNrm
     mNrmMinNow = mNrmNow[0]
 
     # See the PerfForesightConsumerType.ipynb documentation notebook for the derivations
@@ -403,7 +403,7 @@ def _np_insert(arr, obj, values, axis=-1):
 
 
 @njit(cache=True)
-def _prepareToSolveConsIndShockNumba(
+def _prepare_to_solveConsIndShockNumba(
     DiscFac,
     LivPrb,
     CRRA,
@@ -573,7 +573,7 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
     inherits.
     """
 
-    def prepareToSolve(self):
+    def prepare_to_solve(self):
         """
         Perform preparatory work before calculating the unconstrained consumption
         function.
@@ -604,7 +604,7 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
             self.PermShkVals_temp,
             self.ShkPrbs_temp,
             self.aNrmNow,
-        ) = _prepareToSolveConsIndShockNumba(
+        ) = _prepare_to_solveConsIndShockNumba(
             self.DiscFac,
             self.LivPrb,
             self.CRRA,
@@ -771,7 +771,7 @@ def _cFuncLinear(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCminNow, hNrmNow):
 
 
 @njit(cache=True)
-def _addvFuncNumba(
+def _add_vFuncNumba(
     mNrmNext,
     mNrmGridNext,
     vNvrsNext,
@@ -858,7 +858,7 @@ def _addvFuncNumba(
 
 
 @njit
-def _addSSmNrmIndNumba(
+def _add_SSmNrmIndNumba(
     PermGroFac, Rfree, ExIncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm, _searchfunc,
 ):
     """
@@ -1035,7 +1035,7 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
                     self.hNrmNow,
                 )
 
-            self.mNrmGrid, self.vNvrs, self.vNvrsP, self.MPCminNvrs = _addvFuncNumba(
+            self.mNrmGrid, self.vNvrs, self.vNvrsP, self.MPCminNvrs = _add_vFuncNumba(
                 self.mNrmNext,
                 self.solution_next.mNrmGrid,
                 self.solution_next.vNvrs,
@@ -1088,7 +1088,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
 
         self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolverFast)
 
-    def updateSolutionTerminal(self):
+    def update_solution_terminal(self):
         """
         Update the terminal period solution.  This method should be run when a
         new AgentType is created or when CRRA changes.
@@ -1154,7 +1154,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
             ExIncNext = 1.0  # Perfect foresight income of 1
 
             # Add mNrmSS to the solution and return it
-            consumer_solution.mNrmSS = _addSSmNrmNumba(
+            consumer_solution.mNrmSS = _add_SSmNrmNumba(
                 self.Rfree,
                 self.PermGroFac[i],
                 solution.mNrm,
@@ -1181,8 +1181,8 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
 
         self.solve_one_period = make_one_period_oo_solver(solver)
 
-    def updateSolutionTerminal(self):
-        PerfForesightConsumerTypeFast.updateSolutionTerminal(self)
+    def update_solution_terminal(self):
+        PerfForesightConsumerTypeFast.update_solution_terminal(self)
         with np.errstate(
             divide="ignore", over="ignore", under="ignore", invalid="ignore"
         ):
@@ -1269,7 +1269,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                         _searchSSfuncCubic if self.CubicBool else _searchSSfuncLinear
                     )
                     # Add mNrmSS to the solution and return it
-                    consumer_solution.mNrmSS = _addSSmNrmIndNumba(
+                    consumer_solution.mNrmSS = _add_SSmNrmIndNumba(
                         self.PermGroFac[j],
                         self.Rfree,
                         solution.ExIncNext,

@@ -32,11 +32,11 @@ class testSmallOpenEconomy(unittest.TestCase):
 
         small_economy.act_T = 400  # Short simulation history
         small_economy.max_loops = 3  # Give up quickly for the sake of time
-        small_economy.makeAggShkHist()  # Simulate a history of aggregate shocks
+        small_economy.make_AggShkHist()  # Simulate a history of aggregate shocks
         small_economy.verbose = False  # Turn off printed messages
 
         # Give data about the economy to all the agents in it
         for this_type in small_economy.agents:
-            this_type.getEconomyData(small_economy)
+            this_type.get_economy_data(small_economy)
 
         small_economy.solve()

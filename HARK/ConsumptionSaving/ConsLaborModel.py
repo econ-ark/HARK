@@ -68,7 +68,7 @@ class ConsumerLaborSolution(MetricObject):
             self.bNrmMin = bNrmMin
 
 
-def solveConsLaborIntMarg(
+def solve_ConsLaborIntMarg(
     solution_next,
     PermShkDstn,
     TranShkDstn,
@@ -367,7 +367,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         IndShockConsumerType.__init__(self, cycles=cycles, **params)
 
         self.pseudo_terminal = False
-        self.solve_one_period = solveConsLaborIntMarg
+        self.solve_one_period = solve_ConsLaborIntMarg
         self.update()
 
     def update(self):
@@ -382,12 +382,12 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.updateIncomeProcess()
-        self.updateAssetsGrid()
-        self.updateTranShkGrid()
-        self.updateLbrCost()
+        self.update_income_process()
+        self.update_assets_grid()
+        self.update_TranShkGrid()
+        self.update_LbrCost()
 
-    def updateLbrCost(self):
+    def update_LbrCost(self):
         """
         Construct the age-varying cost of working LbrCost using the attribute LbrCostCoeffs.
         This attribute should be a 1D array of arbitrary length, representing polynomial
@@ -411,7 +411,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         self.LbrCost = LbrCost.tolist()
         self.add_to_time_vary("LbrCost")
 
-    def calcBoundingValues(self):
+    def calc_bounding_values(self):
         """
         Calculate human wealth plus minimum and maximum MPC in an infinite
         horizon model with only one period repeated indefinitely.  Store results
@@ -432,7 +432,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         """
         raise NotImplementedError()
 
-    def makeEulerErrorFunc(self, mMax=100, approx_inc_dstn=True):
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
@@ -539,10 +539,10 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         # moves now to prev
         super().get_poststates()
 
-    def updateTranShkGrid(self):
+    def update_TranShkGrid(self):
         """
         Create a time-varying list of arrays for TranShkGrid using TranShkDstn,
-        which is created by the method updateIncomeProcess().  Simply takes the
+        which is created by the method update_income_process().  Simply takes the
         transitory shock values and uses them as a state grid; can be improved.
         Creates the attribute TranShkGrid.
 
@@ -564,7 +564,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
             "TranShkGrid"
         )  # Run the method add_to_time_vary from AgentType to add TranShkGrid as one parameter of time_vary list
 
-    def updateSolutionTerminal(self):
+    def update_solution_terminal(self):
         """
         Updates the terminal period solution and solves for optimal consumption
         and labor when there is no future.
@@ -639,7 +639,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
             bNrmMin=bNrmMin_terminal,
         )
 
-    def plotcFunc(self, t, bMin=None, bMax=None, ShkSet=None):
+    def plot_cFunc(self, t, bMin=None, bMax=None, ShkSet=None):
         """
         Plot the consumption function by bank balances at a given set of transitory shocks.
 
@@ -682,7 +682,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         plt.ylabel("Normalized consumption level")
         plt.show()
 
-    def plotLbrFunc(self, t, bMin=None, bMax=None, ShkSet=None):
+    def plot_LbrFunc(self, t, bMin=None, bMax=None, ShkSet=None):
         """
         Plot the labor supply function by bank balances at a given set of transitory shocks.
 

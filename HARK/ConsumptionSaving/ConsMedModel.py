@@ -585,7 +585,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         self.add_to_time_vary("MedPrice")
 
     def pre_solve(self):
-        self.updateSolutionTerminal()
+        self.update_solution_terminal()
 
     def update(self):
         """
@@ -600,14 +600,14 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        self.updateIncomeProcess()
-        self.updateAssetsGrid()
-        self.updatepLvlNextFunc()
-        self.updatepLvlGrid()
-        self.updateMedShockProcess()
-        self.updateSolutionTerminal()
+        self.update_income_process()
+        self.update_assets_grid()
+        self.update_pLvlNextFunc()
+        self.update_pLvlGrid()
+        self.update_med_shock_process()
+        self.update_solution_terminal()
 
-    def updateMedShockProcess(self):
+    def update_med_shock_process(self):
         """
         Constructs discrete distributions of medical preference shocks for each
         period in the cycle.  Distributions are saved as attribute MedShkDstn,
@@ -637,7 +637,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         self.MedShkDstn = MedShkDstn
         self.add_to_time_vary("MedShkDstn")
 
-    def updateSolutionTerminal(self):
+    def update_solution_terminal(self):
         """
         Update the terminal period solution for this type.  Similar to other models,
         optimal behavior involves spending all available market resources; however,
@@ -754,7 +754,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
             p
         )  # And minimum allowable market resources by perm inc
 
-    def updatepLvlGrid(self):
+    def update_pLvlGrid(self):
         """
         Update the grid of permanent income levels.  Currently only works for
         infinite horizon models (cycles=0) and lifecycle models (cycles=1).  Not
@@ -771,7 +771,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         None
         """
         # Run basic version of this method
-        PersistentShockConsumerType.updatepLvlGrid(self)
+        PersistentShockConsumerType.update_pLvlGrid(self)
         for j in range(len(self.pLvlGrid)):  # Then add 0 to the bottom of each pLvlGrid
             this_grid = self.pLvlGrid[j]
             self.pLvlGrid[j] = np.insert(this_grid, 0, 0.0001)
@@ -961,9 +961,9 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         self.vFuncBool = vFuncBool
         self.CubicBool = CubicBool
         self.PermGroFac = 0.0
-        self.defUtilityFuncs()
+        self.def_utility_funcs()
 
-    def setAndUpdateValues(self, solution_next, IncShkDstn, LivPrb, DiscFac):
+    def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.  These include:
@@ -991,7 +991,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         None
         """
         # Run basic version of this method
-        ConsGenIncProcessSolver.setAndUpdateValues(
+        ConsGenIncProcessSolver.set_and_update_values(
             self, self.solution_next, self.IncShkDstn, self.LivPrb, self.DiscFac
         )
 
@@ -999,7 +999,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         self.MedShkPrbs = self.MedShkDstn.pmf
         self.MedShkVals = self.MedShkDstn.X
 
-    def defUtilityFuncs(self):
+    def def_utility_funcs(self):
         """
         Defines CRRA utility function for this period (and its derivatives,
         and their inverses), saving them as attributes of self for other methods
@@ -1014,12 +1014,12 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         -------
         none
         """
-        ConsGenIncProcessSolver.defUtilityFuncs(self)  # Do basic version
+        ConsGenIncProcessSolver.def_utility_funcs(self)  # Do basic version
         self.uMedPinv = lambda Med: utilityP_inv(Med, gam=self.CRRAmed)
         self.uMed = lambda Med: utility(Med, gam=self.CRRAmed)
         self.uMedPP = lambda Med: utilityPP(Med, gam=self.CRRAmed)
 
-    def defBoroCnst(self, BoroCnstArt):
+    def def_BoroCnst(self, BoroCnstArt):
         """
         Defines the constrained portion of the consumption function as cFuncNowCnst,
         an attribute of self.  Uses the artificial and natural borrowing constraints.
@@ -1073,7 +1073,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             0.0  # Actually might vary by p, but no use formulating as a function
         )
 
-    def getPointsForInterpolation(self, EndOfPrdvP, aLvlNow):
+    def get_points_for_interpolation(self, EndOfPrdvP, aLvlNow):
         """
         Finds endogenous interpolation points (x,m) for the expenditure function.
 
@@ -1142,7 +1142,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
 
         return x_for_interpolation, m_for_interpolation, p_for_interpolation
 
-    def usePointsForInterpolation(self, xLvl, mLvl, pLvl, MedShk, interpolator):
+    def use_points_for_interpolation(self, xLvl, mLvl, pLvl, MedShk, interpolator):
         """
         Constructs a basic solution for this period, including the consumption
         function and marginal value function.
@@ -1189,7 +1189,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         MedFuncNow = MedThruXfunc(xFuncNow, policyFuncNow.cFunc, self.MedPrice)
 
         # Make the marginal value function (and the value function if vFuncBool=True)
-        vFuncNow, vPfuncNow = self.makevAndvPfuncs(policyFuncNow)
+        vFuncNow, vPfuncNow = self.make_v_and_vP_funcs(policyFuncNow)
 
         # Pack up the solution and return it
         solution_now = ConsumerSolution(
@@ -1199,7 +1199,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         solution_now.policyFunc = policyFuncNow
         return solution_now
 
-    def makevAndvPfuncs(self, policyFunc):
+    def make_v_and_vP_funcs(self, policyFunc):
         """
         Constructs the marginal value function for this period.
 
@@ -1311,7 +1311,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
 
         return vFunc, vPfunc
 
-    def makeLinearxFunc(self, mLvl, pLvl, MedShk, xLvl):
+    def make_linear_xFunc(self, mLvl, pLvl, MedShk, xLvl):
         """
         Constructs the (unconstrained) expenditure function for this period using
         bilinear interpolation (over permanent income and the medical shock) among
@@ -1359,7 +1359,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         xFuncUnc = VariableLowerBoundFunc3D(xFuncUncBase, self.BoroCnstNat)
         return xFuncUnc
 
-    def makeCubicxFunc(self, mLvl, pLvl, MedShk, xLvl):
+    def make_cubic_xFunc(self, mLvl, pLvl, MedShk, xLvl):
         """
         Constructs the (unconstrained) expenditure function for this period using
         bilinear interpolation (over permanent income and the medical shock) among
@@ -1434,7 +1434,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         xFuncUnc = VariableLowerBoundFunc3D(xFuncUncBase, self.BoroCnstNat)
         return xFuncUnc
 
-    def makeBasicSolution(self, EndOfPrdvP, aLvl, interpolator):
+    def make_basic_solution(self, EndOfPrdvP, aLvl, interpolator):
         """
         Given end of period assets and end of period marginal value, construct
         the basic solution for this period.
@@ -1455,17 +1455,17 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             The solution to this period's consumption-saving problem, with a
             consumption function, marginal value function, and minimum m.
         """
-        xLvl, mLvl, pLvl = self.getPointsForInterpolation(EndOfPrdvP, aLvl)
+        xLvl, mLvl, pLvl = self.get_points_for_interpolation(EndOfPrdvP, aLvl)
         MedShk_temp = np.tile(
             np.reshape(self.MedShkVals, (self.MedShkVals.size, 1, 1)),
             (1, mLvl.shape[1], mLvl.shape[2]),
         )
-        solution_now = self.usePointsForInterpolation(
+        solution_now = self.use_points_for_interpolation(
             xLvl, mLvl, pLvl, MedShk_temp, interpolator
         )
         return solution_now
 
-    def addvPPfunc(self, solution):
+    def add_vPPfunc(self, solution):
         """
         Adds the marginal marginal value function to an existing solution, so
         that the next solver can evaluate vPP and thus use cubic interpolation.
@@ -1504,16 +1504,16 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             tion (defined over market resources and permanent income), and human
             wealth as a function of permanent income.
         """
-        aLvl, trash = self.prepareToCalcEndOfPrdvP()
-        EndOfPrdvP = self.calcEndOfPrdvP()
+        aLvl, trash = self.prepare_to_calc_EndOfPrdvP()
+        EndOfPrdvP = self.calc_EndOfPrdvP()
         if self.vFuncBool:
-            self.makeEndOfPrdvFunc(EndOfPrdvP)
+            self.make_EndOfPrdvFunc(EndOfPrdvP)
         if self.CubicBool:
-            interpolator = self.makeCubicxFunc
+            interpolator = self.make_cubic_xFunc
         else:
-            interpolator = self.makeLinearxFunc
-        solution = self.makeBasicSolution(EndOfPrdvP, aLvl, interpolator)
-        solution = self.addMPCandHumanWealth(solution)
+            interpolator = self.make_linear_xFunc
+        solution = self.make_basic_solution(EndOfPrdvP, aLvl, interpolator)
+        solution = self.add_MPC_and_human_wealth(solution)
         if self.CubicBool:
-            solution = self.addvPPfunc(solution)
+            solution = self.add_vPPfunc(solution)
         return solution

@@ -21,7 +21,7 @@ from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 __all__ = ["RepAgentConsumerType", "RepAgentMarkovConsumerType"]
 
 
-def solveConsRepAgent(
+def solve_ConsRepAgent(
     solution_next, DiscFac, CRRA, IncShkDstn, CapShare, DeprFac, PermGroFac, aXtraGrid
 ):
     """
@@ -110,7 +110,7 @@ def solveConsRepAgent(
     return solution_now
 
 
-def solveConsRepAgentMarkov(
+def solve_ConsRepAgentMarkov(
     solution_next,
     MrkvArray,
     DiscFac,
@@ -245,11 +245,11 @@ class RepAgentConsumerType(IndShockConsumerType):
 
         IndShockConsumerType.__init__(self, cycles=0, **params)
         self.AgentCount = 1  # Hardcoded, because this is rep agent
-        self.solve_one_period = solveConsRepAgent
+        self.solve_one_period = solve_ConsRepAgent
         self.del_from_time_inv("Rfree", "BoroCnstArt", "vFuncBool", "CubicBool")
 
     def pre_solve(self):
-        self.updateSolutionTerminal()
+        self.update_solution_terminal()
 
     def get_states(self):
         """
@@ -308,17 +308,17 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         params.update(kwds)
 
         RepAgentConsumerType.__init__(self, **params)
-        self.solve_one_period = solveConsRepAgentMarkov
+        self.solve_one_period = solve_ConsRepAgentMarkov
 
     def pre_solve(self):
-        self.updateSolutionTerminal()
+        self.update_solution_terminal()
 
     def initialize_sim(self):
         #self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
         RepAgentConsumerType.initialize_sim(self)
         self.shocks["Mrkv"] = self.Mrkv
 
-    def updateSolutionTerminal(self):
+    def update_solution_terminal(self):
         """
         Update the terminal period solution.  This method should be run when a
         new AgentType is created or when CRRA changes.
@@ -331,7 +331,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         -------
         None
         """
-        RepAgentConsumerType.updateSolutionTerminal(self)
+        RepAgentConsumerType.update_solution_terminal(self)
 
         # Make replicated terminal period solution
         StateCount = self.MrkvArray.shape[0]
