@@ -20,8 +20,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 
 from HARK.Calibration.Income.IncomeTools import (
-    ParseIncomeSpec,
-    ParseTimeParams,
+    parse_income_spec,
+    parse_time_params,
     CGM_income,
 )
 
@@ -39,7 +39,7 @@ income_calib = CGM_income
 education = "College"
 
 # Income specification
-income_params = ParseIncomeSpec(
+income_params = parse_income_spec(
     age_min=birth_age,
     age_max=death_age,
     adjust_infl_to=adjust_infl_to,
@@ -59,7 +59,7 @@ liv_prb = parse_ssa_life_table(
 )
 
 # Parameters related to the number of periods implied by the calibration
-time_params = ParseTimeParams(age_birth=birth_age, age_death=death_age)
+time_params = parse_time_params(age_birth=birth_age, age_death=death_age)
 
 # Update all the new parameters
 params = copy(init_lifecycle)

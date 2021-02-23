@@ -10,8 +10,8 @@ import unittest
 import numpy as np
 from HARK.Calibration.Income.IncomeTools import (
     sabelhaus_song_var_profile,
-    ParseIncomeSpec,
-    findProfile,
+    parse_income_spec,
+    find_profile,
     CGM_income,
     Cagetti_income,
 )
@@ -185,10 +185,10 @@ class test_income_paths(unittest.TestCase):
         age_min = 21
         age_max = 100
         spec = CGM_income["HS"]
-        params = ParseIncomeSpec(
+        params = parse_income_spec(
             age_min=age_min, age_max=age_max, adjust_infl_to=adjust_infl_to, **spec
         )
-        MeanP = findProfile(params["PermGroFac"], params["P0"])
+        MeanP = find_profile(params["PermGroFac"], params["P0"])
 
         self.assertTrue(np.allclose(self.cgm_hs_mean_p, MeanP, atol=1e-03))
 
@@ -199,14 +199,14 @@ class test_income_paths(unittest.TestCase):
         age_max = 91
         start_year = 1980
         spec = Cagetti_income["College"]
-        params = ParseIncomeSpec(
+        params = parse_income_spec(
             age_min=age_min,
             age_max=age_max,
             adjust_infl_to=adjust_infl_to,
             start_year=start_year,
             **spec
         )
-        MeanP = findProfile(params["PermGroFac"], params["P0"])
+        MeanP = find_profile(params["PermGroFac"], params["P0"])
 
         self.assertTrue(np.allclose(self.cagetti_college_mean_p, MeanP, atol=1e-03))
 

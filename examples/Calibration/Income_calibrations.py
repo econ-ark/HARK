@@ -6,8 +6,8 @@ Created on Sun Jan  3 10:50:02 2021
 """
 
 from HARK.Calibration.Income.IncomeTools import (
-    ParseIncomeSpec,
-    findProfile,
+    parse_income_spec,
+    find_profile,
     Cagetti_income,
     CGM_income,
 )
@@ -30,10 +30,10 @@ for spec in CGM_income.items():
 
     label = spec[0]
 
-    params = ParseIncomeSpec(
+    params = parse_income_spec(
         age_min=age_min, age_max=age_max, adjust_infl_to=adjust_infl_to, **spec[1]
     )
-    MeanY = findProfile(params["PermGroFac"], params["P0"])
+    MeanY = find_profile(params["PermGroFac"], params["P0"])
 
     plt.plot(ages, MeanY, label=label)
 
@@ -63,14 +63,14 @@ for spec in Cagetti_income.items():
 
     label = spec[0]
 
-    params = ParseIncomeSpec(
+    params = parse_income_spec(
         age_min=age_min,
         age_max=age_max,
         adjust_infl_to=adjust_infl_to,
         start_year=start_year,
         **spec[1]
     )
-    MeanY = findProfile(params["PermGroFac"], params["P0"])
+    MeanY = find_profile(params["PermGroFac"], params["P0"])
 
     plt.plot(ages, MeanY, label=label)
 
