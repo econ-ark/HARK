@@ -29,7 +29,8 @@ simulation_values = {
 }  # Number of periods in the cycle
 
 # Make and solve a tractable consumer type
-ExampleType = TractableConsumerType(**base_primitives)
+ExampleType = TractableConsumerType()
+ExampleType.assignParameters(**base_primitives)
 t_start = process_time()
 ExampleType.solve()
 t_end = process_time()
