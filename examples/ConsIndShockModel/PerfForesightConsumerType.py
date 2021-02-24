@@ -1,13 +1,13 @@
 # ---
 # jupyter:
 #   jupytext:
-#     cell_metadata_filter: collapsed,code_folding,name,title
+#     cell_metadata_filter: collapsed,code_folding,name,title,incorrectly_encoded_metadata,pycharm
 #     formats: ipynb,py:percent
 #     text_representation:
 #       extension: .py
 #       format_name: percent
-#       format_version: '1.2'
-#       jupytext_version: 1.2.4
+#       format_version: '1.3'
+#       jupytext_version: 1.6.0
 #   kernelspec:
 #     display_name: econ-ark-3.8
 #     language: python
@@ -176,7 +176,7 @@ plotFuncs(PFexample.solution[0].vFunc, mMin + 0.1, mMin + 10.1)
 #
 # Without an artificial borrowing constraint, a perfect foresight consumer is free to borrow against the PDV of his entire future stream of labor income-- his "human wealth" $\texttt{hNrm}$-- and he will consume a constant proportion of his total wealth (market resources plus human wealth).  If we introduce an artificial borrowing constraint, both of these features vanish.  In the cell below, we define a parameter dictionary that prevents the consumer from borrowing *at all*, create and solve a new instance of $\texttt{PerfForesightConsumerType}$ with it, and then plot its consumption function.
 
-# %% pycharm= {"name": "#%%\n"}
+# %% pycharm={"name": "#%%\n"}
 LiqConstrDict = copy(PerfForesightDict)
 LiqConstrDict["BoroCnstArt"] = 0.0  # Set the artificial borrowing constraint to zero
 
@@ -218,7 +218,7 @@ plotFuncs(LiqConstrExample.solution[0].cFunc, 0.0, 10.0)
 #
 # The cell below puts these parameters into a dictionary, then gives them to $\texttt{PFexample}$.  Note that all of these parameters *could* have been passed as part of the original dictionary; we omitted them above for simplicity.
 
-# %% pycharm= {"name": "#%%\n"}
+# %% pycharm={"name": "#%%\n"}
 SimulationParams = {
     "AgentCount": 10000,  # Number of agents of this type
     "T_sim": 120,  # Number of periods to simulate
@@ -236,15 +236,15 @@ PFexample(**SimulationParams)
 # %% pycharm= [markdown] {"name": "#%% md\n"}
 # To generate simulated data, we need to specify which variables we want to track the "history" of for this instance.  To do so, we set the $\texttt{track_vars}$ attribute of our $\texttt{PerfForesightConsumerType}$ instance to be a list of strings with the simulation variables we want to track.
 #
-# In this model, valid elments of $\texttt{track_vars}$ include $\texttt{mNrmNow}$, $\texttt{cNrmNow}$, $\texttt{aNrmNow}$, and $\texttt{pLvlNow}$.  Because this model has no idiosyncratic shocks, our simulated data will be quite boring.
+# In this model, valid elments of $\texttt{track_vars}$ include $\texttt{mNrm}$, $\texttt{cNrm}$, $\texttt{aNrm}$, and $\texttt{pLvl}$.  Because this model has no idiosyncratic shocks, our simulated data will be quite boring.
 #
 # ### Generating simulated data
 #
-# Before simulating, the $\texttt{initializeSim}$ method must be invoked.  This resets our instance back to its initial state, drawing a set of initial $\texttt{aNrmNow}$ and $\texttt{pLvlNow}$ values from the specified distributions and storing them in the attributes $\texttt{aNrmNow_init}$ and $\texttt{pLvlNow_init}$.  It also resets this instance's internal random number generator, so that the same initial states will be set every time $\texttt{initializeSim}$ is called.  In models with non-trivial shocks, this also ensures that the same sequence of shocks will be generated on every simulation run.
+# Before simulating, the $\texttt{initializeSim}$ method must be invoked.  This resets our instance back to its initial state, drawing a set of initial $\texttt{aNrm}$ and $\texttt{pLvl}$ values from the specified distributions and storing them in the attributes $\texttt{aNrm_init}$ and $\texttt{pLvl_init}$.  It also resets this instance's internal random number generator, so that the same initial states will be set every time $\texttt{initializeSim}$ is called.  In models with non-trivial shocks, this also ensures that the same sequence of shocks will be generated on every simulation run.
 #
 # Finally, the $\texttt{simulate}$ method can be called.
 
-# %% pycharm= {"name": "#%%\n"}
+# %% pycharm={"name": "#%%\n"}
 PFexample.track_vars = ['mNrm']
 PFexample.initializeSim()
 PFexample.simulate()
@@ -252,7 +252,7 @@ PFexample.simulate()
 # %% pycharm= [markdown] {"name": "#%% md\n"}
 # Each simulation variable $\texttt{X}$ named in $\texttt{track_vars}$ will have the *history* of that variable for each agent stored in the attribute $\texttt{X_hist}$ as an array of shape $(\texttt{T_sim},\texttt{AgentCount})$.  To see that the simulation worked as intended, we can plot the mean of $m_t$ in each simulated period:
 
-# %% pycharm= {"name": "#%%\n"}
+# %% pycharm={"name": "#%%\n"}
 plt.plot(np.mean(PFexample.history['mNrm'], axis=1))
 plt.xlabel("Time")
 plt.ylabel("Mean normalized market resources")
@@ -263,7 +263,7 @@ plt.show()
 #
 # The slight wiggles in the plotted curve are due to consumers randomly dying and being replaced; their replacement will have an initial state drawn from the distributions specified by the user.  To see the current distribution of ages, we can look at the attribute $\texttt{t_age}$.
 
-# %% pycharm= {"name": "#%%\n"}
+# %% pycharm={"name": "#%%\n"}
 N = PFexample.AgentCount
 F = np.linspace(0.0, 1.0, N)
 plt.plot(np.sort(PFexample.t_age), F)
@@ -282,7 +282,7 @@ plt.show()
 #
 # The `state_prev` attribute of an AgenType stores the values of the model's state variables in the _previous_ period of the simulation.
 
-# %% pycharm= {"name": "#%%\n"}
+# %% pycharm={"name": "#%%\n"}
 PFexample.initializeSim()
 PFexample.simulate(80)
 PFexample.state_prev['aNrm'] += -5.0  # Adjust all simulated consumers' assets downward by 5

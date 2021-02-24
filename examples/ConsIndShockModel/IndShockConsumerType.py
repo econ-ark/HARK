@@ -2,12 +2,13 @@
 # jupyter:
 #   jupytext:
 #     cell_metadata_filter: collapsed,code_folding,heading_collapsed,hidden
+#     cell_metadata_json: true
 #     formats: ipynb,py:percent
 #     text_representation:
 #       extension: .py
 #       format_name: percent
-#       format_version: '1.2'
-#       jupytext_version: 1.2.4
+#       format_version: '1.3'
+#       jupytext_version: 1.6.0
 #   kernelspec:
 #     display_name: econ-ark-3.8
 #     language: python
@@ -243,7 +244,7 @@ plotFuncs(IndShockExample.solution[0].cFunc.functions,-0.25,5.)
 # These example parameter values were already passed as part of the parameter dictionary that we used to create $\texttt{IndShockExample}$, so it is ready to simulate.  We need to set the $\texttt{track_vars}$ attribute to indicate the variables for which we want to record a *history*.
 
 # %%
-IndShockExample.track_vars = ['aNrmNow','mNrm','cNrm','pLvl']
+IndShockExample.track_vars = ['aNrm','mNrm','cNrm','pLvl']
 IndShockExample.initializeSim()
 IndShockExample.simulate()
 
@@ -344,7 +345,7 @@ print('Solution has', len(LifecycleExample.solution),'elements.')
 # %%
 print('Consumption functions across the lifecycle:')
 mMin = np.min([LifecycleExample.solution[t].mNrmMin for t in range(LifecycleExample.T_cycle)])
-LifecycleExample.unpackcFunc() # This makes all of the cFuncs accessible in the attribute cFunc
+LifecycleExample.unpack('cFunc') # This makes all of the cFuncs accessible in the attribute cFunc
 plotFuncs(LifecycleExample.cFunc,mMin,5)
 
 # %% [markdown]
@@ -409,7 +410,7 @@ CyclicalExample = IndShockConsumerType(**CyclicalDict)
 CyclicalExample.cycles = 0 # Make this consumer type have an infinite horizon
 CyclicalExample.solve()
 
-CyclicalExample.unpackcFunc()
+CyclicalExample.unpack('cFunc')
 print('Quarterly consumption functions:')
 mMin = min([X.mNrmMin for X in CyclicalExample.solution])
 plotFuncs(CyclicalExample.cFunc,mMin,5)
