@@ -2,13 +2,14 @@
 # jupyter:
 #   jupytext:
 #     cell_metadata_filter: collapsed,code_folding
+#     cell_metadata_json: true
 #     formats: ipynb,py:percent
 #     notebook_metadata_filter: all
 #     text_representation:
 #       extension: .py
 #       format_name: percent
-#       format_version: '1.2'
-#       jupytext_version: 1.2.3
+#       format_version: '1.3'
+#       jupytext_version: 1.6.0
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -304,10 +305,10 @@ if ExplicitExample.vFuncBool:
 # %%
 # Simulate many periods to get to the stationary distribution
 ExplicitExample.T_sim = 500
-ExplicitExample.track_vars = ['mLvlNow','cLvlNow','pLvl']
+ExplicitExample.track_vars = ['mLvl','cLvl','pLvl']
 ExplicitExample.initializeSim()
 ExplicitExample.simulate()
-plt.plot(np.mean(ExplicitExample.history['mLvlNow'],axis=1))
+plt.plot(np.mean(ExplicitExample.history['mLvl'],axis=1))
 plt.xlabel('Simulated time period')
 plt.ylabel('Average market resources mLvl')
 plt.show()
@@ -390,10 +391,10 @@ if PersistentExample.vFuncBool:
 # %%
 # Simulate some data
 PersistentExample.T_sim = 500
-PersistentExample.track_vars = ['mLvlNow','cLvlNow','pLvl']
+PersistentExample.track_vars = ['mLvl','cLvl','pLvl']
 PersistentExample.initializeSim()
 PersistentExample.simulate()
-plt.plot(np.mean(PersistentExample.history['mLvlNow'],axis=1))
+plt.plot(np.mean(PersistentExample.history['mLvl'],axis=1))
 plt.xlabel('Simulated time period')
 plt.ylabel('Average market resources mLvl')
 plt.show()
