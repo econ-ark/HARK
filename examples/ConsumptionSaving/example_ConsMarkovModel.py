@@ -159,7 +159,7 @@ if SerialUnemploymentExample.vFuncBool:
     plotFuncs(SerialUnemploymentExample.solution[0].vFunc, 5, 50)
 
 # %%
-# Simulate some data; results stored in cHist, mNrmNow_hist, cNrmNow_hist, and MrkvNow_hist
+# Simulate some data; results stored in cHist, mNrm_hist, cNrm_hist, and Mrkv_hist
 if do_simulation:
     SerialUnemploymentExample.T_sim = 120
     SerialUnemploymentExample.MrkvPrbsInit = [0.25, 0.25, 0.25, 0.25]

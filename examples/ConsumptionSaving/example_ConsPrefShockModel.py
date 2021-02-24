@@ -180,6 +180,6 @@ if KinkyPrefExample.vFuncBool:
 # Test the simulator for the kinky preference class
 if do_simulation:
     KinkyPrefExample.T_sim = 120
-    KinkyPrefExample.track_vars = ['cNrm', "PrefShkNow"]
+    KinkyPrefExample.track_vars = ['cNrm', "PrefShk"]
     KinkyPrefExample.initializeSim()
     KinkyPrefExample.simulate()

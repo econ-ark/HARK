@@ -109,7 +109,7 @@ if MedicalExample.vFuncBool:
 if do_simulation:
     t_start = time()
     MedicalExample.T_sim = 100
-    MedicalExample.track_vars = ["mLvlNow", "cLvlNow", "MedNow"]
+    MedicalExample.track_vars = ["mLvl", "cLvl", "Med"]
     MedicalExample.makeShockHistory()
     MedicalExample.initializeSim()
     MedicalExample.simulate()

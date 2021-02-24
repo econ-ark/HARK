@@ -77,7 +77,7 @@ if IndShockExample.vFuncBool:
         10,
     )
 
-# Simulate some data; results stored in mNrmNow_hist, cNrmNow_hist, and pLvlNow_hist
+# Simulate some data; results stored in mNrm_hist, cNrm_hist, and pLvl_hist
 if do_simulation:
     IndShockExample.T_sim = 120
     IndShockExample.track_vars = ['mNrm', 'cNrm', 'pLvl']
@@ -108,7 +108,7 @@ plotFuncs(LifecycleExample.cFunc[: LifecycleExample.T_retire], mMin, 5)
 print("Consumption functions while retired:")
 plotFuncs(LifecycleExample.cFunc[LifecycleExample.T_retire :], 0, 5)
 
-# Simulate some data; results stored in mNrmNow_hist, cNrmNow_hist, pLvlNow_hist, and t_age_hist
+# Simulate some data; results stored in mNrm_hist, cNrm_hist, pLvl_hist, and t_age_hist
 if do_simulation:
     LifecycleExample.T_sim = 120
     LifecycleExample.track_vars = ['mNrm', 'cNrm', 'pLvl', "t_age"]

@@ -121,7 +121,7 @@ if ExplicitExample.vFuncBool:
 # Simulate some data
 if do_simulation:
     ExplicitExample.T_sim = 500
-    ExplicitExample.track_vars = ["mLvlNow", "cLvlNow", 'pLvl']
+    ExplicitExample.track_vars = ["mLvl", "cLvl", 'pLvl']
     ExplicitExample.makeShockHistory()  # This is optional
     ExplicitExample.initializeSim()
     ExplicitExample.simulate()
@@ -179,7 +179,7 @@ if PersistentExample.vFuncBool:
 # Simulate some data
 if do_simulation:
     PersistentExample.T_sim = 500
-    PersistentExample.track_vars = ["mLvlNow", "cLvlNow", 'pLvl']
+    PersistentExample.track_vars = ["mLvl", "cLvl", 'pLvl']
     PersistentExample.initializeSim()
     PersistentExample.simulate()
     plt.plot(np.mean(PersistentExample.mLvlNow_hist, axis=1))
