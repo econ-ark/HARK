@@ -47,7 +47,7 @@ conFunc_PF = lambda m: ExampleType.h * ExampleType.PFMPC + ExampleType.PFMPC * m
 plotFuncs([ExampleType.solution[0].cFunc, ExampleType.solution[0].cFunc_U], 0, m_upper)
 
 if do_simulation:
-    ExampleType(**simulation_values)  # Set attributes needed for simulation
+    ExampleType.assignParameters(**simulation_values)  # Set attributes needed for simulation
     ExampleType.track_vars = ["mLvl"]
     ExampleType.makeShockHistory()
     ExampleType.initializeSim()
