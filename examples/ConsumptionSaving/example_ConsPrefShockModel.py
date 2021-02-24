@@ -113,8 +113,8 @@ if PrefShockExample.vFuncBool:
 if do_simulation:
     PrefShockExample.T_sim = 120
     PrefShockExample.track_vars = ['cNrm']
-    PrefShockExample.makeShockHistory()  # This is optional
-    PrefShockExample.initializeSim()
+    PrefShockExample.make_shock_history()  # This is optional
+    PrefShockExample.initialize_sim()
     PrefShockExample.simulate()
 
 # %% [markdown]
@@ -181,5 +181,5 @@ if KinkyPrefExample.vFuncBool:
 if do_simulation:
     KinkyPrefExample.T_sim = 120
     KinkyPrefExample.track_vars = ['cNrm', "PrefShkNow"]
-    KinkyPrefExample.initializeSim()
+    KinkyPrefExample.initialize_sim()
     KinkyPrefExample.simulate()

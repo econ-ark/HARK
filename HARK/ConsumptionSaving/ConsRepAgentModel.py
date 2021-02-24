@@ -245,13 +245,13 @@ class RepAgentConsumerType(IndShockConsumerType):
 
         IndShockConsumerType.__init__(self, cycles=0, **params)
         self.AgentCount = 1  # Hardcoded, because this is rep agent
-        self.solveOnePeriod = solveConsRepAgent
-        self.delFromTimeInv("Rfree", "BoroCnstArt", "vFuncBool", "CubicBool")
+        self.solve_one_period = solveConsRepAgent
+        self.del_from_time_inv("Rfree", "BoroCnstArt", "vFuncBool", "CubicBool")
 
-    def preSolve(self):
+    def pre_solve(self):
         self.updateSolutionTerminal()
 
-    def getStates(self):
+    def get_states(self):
         """
         TODO: replace with call to transition
 
@@ -308,14 +308,14 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         params.update(kwds)
 
         RepAgentConsumerType.__init__(self, **params)
-        self.solveOnePeriod = solveConsRepAgentMarkov
+        self.solve_one_period = solveConsRepAgentMarkov
 
-    def preSolve(self):
+    def pre_solve(self):
         self.updateSolutionTerminal()
 
-    def initializeSim(self):
+    def initialize_sim(self):
         #self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
-        RepAgentConsumerType.initializeSim(self)
+        RepAgentConsumerType.initialize_sim(self)
         self.shocks["Mrkv"] = self.Mrkv
 
     def updateSolutionTerminal(self):
@@ -339,10 +339,10 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         self.solution_terminal.vPfunc = StateCount * [self.solution_terminal.vPfunc]
         self.solution_terminal.mNrmMin = StateCount * [self.solution_terminal.mNrmMin]
 
-    def resetRNG(self):
-        MarkovConsumerType.resetRNG(self)
+    def reset_rng(self):
+        MarkovConsumerType.reset_rng(self)
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Draws a new Markov state and income shocks for the representative agent.
 
@@ -372,7 +372,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         self.shocks['PermShk'] = np.array(PermShkNow)
         self.shocks['TranShk'] = np.array(TranShkNow)
 
-    def getControls(self):
+    def get_controls(self):
         """
         Calculates consumption for the representative agent using the consumption functions.
 

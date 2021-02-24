@@ -230,7 +230,7 @@ SimulationParams = {
     "T_age": None,  # Age after which simulated agents are automatically killed
 }
 
-# This implicitly uses the assignParameters method of AgentType
+# This implicitly uses the assign_parameters method of AgentType
 PFexample(**SimulationParams)
 
 # %% pycharm= [markdown] {"name": "#%% md\n"}
@@ -240,13 +240,13 @@ PFexample(**SimulationParams)
 #
 # ### Generating simulated data
 #
-# Before simulating, the $\texttt{initializeSim}$ method must be invoked.  This resets our instance back to its initial state, drawing a set of initial $\texttt{aNrmNow}$ and $\texttt{pLvlNow}$ values from the specified distributions and storing them in the attributes $\texttt{aNrmNow_init}$ and $\texttt{pLvlNow_init}$.  It also resets this instance's internal random number generator, so that the same initial states will be set every time $\texttt{initializeSim}$ is called.  In models with non-trivial shocks, this also ensures that the same sequence of shocks will be generated on every simulation run.
+# Before simulating, the $\texttt{initialize_sim}$ method must be invoked.  This resets our instance back to its initial state, drawing a set of initial $\texttt{aNrmNow}$ and $\texttt{pLvlNow}$ values from the specified distributions and storing them in the attributes $\texttt{aNrmNow_init}$ and $\texttt{pLvlNow_init}$.  It also resets this instance's internal random number generator, so that the same initial states will be set every time $\texttt{initialize_sim}$ is called.  In models with non-trivial shocks, this also ensures that the same sequence of shocks will be generated on every simulation run.
 #
 # Finally, the $\texttt{simulate}$ method can be called.
 
 # %% pycharm= {"name": "#%%\n"}
 PFexample.track_vars = ['mNrm']
-PFexample.initializeSim()
+PFexample.initialize_sim()
 PFexample.simulate()
 
 # %% pycharm= [markdown] {"name": "#%% md\n"}
@@ -274,7 +274,7 @@ plt.show()
 # %% pycharm= [markdown] {"name": "#%% md\n"}
 # The distribution is (discretely) exponential, with a point mass at 120 with consumers who have survived since the beginning of the simulation.
 #
-# One might wonder why HARK requires users to call $\texttt{initializeSim}$ before calling $\texttt{simulate}$: Why doesn't $\texttt{simulate}$ just call $\texttt{initializeSim}$ as its first step?  We have broken up these two steps so that users can simulate some number of periods, change something in the environment, and then resume the simulation.
+# One might wonder why HARK requires users to call $\texttt{initialize_sim}$ before calling $\texttt{simulate}$: Why doesn't $\texttt{simulate}$ just call $\texttt{initialize_sim}$ as its first step?  We have broken up these two steps so that users can simulate some number of periods, change something in the environment, and then resume the simulation.
 #
 # When called with no argument, $\texttt{simulate}$ will simulate the model for $\texttt{T_sim}$ periods.  The user can optionally pass an integer specifying the number of periods to simulate (which should not exceed $\texttt{T_sim}$).
 #
@@ -283,7 +283,7 @@ plt.show()
 # The `state_prev` attribute of an AgenType stores the values of the model's state variables in the _previous_ period of the simulation.
 
 # %% pycharm= {"name": "#%%\n"}
-PFexample.initializeSim()
+PFexample.initialize_sim()
 PFexample.simulate(80)
 PFexample.state_prev['aNrm'] += -5.0  # Adjust all simulated consumers' assets downward by 5
 PFexample.simulate(40)

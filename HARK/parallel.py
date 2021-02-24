@@ -3,14 +3,14 @@ from joblib import Parallel, delayed
 import multiprocessing
 
 
-def multiThreadCommandsFake(
+def multi_thread_commands_fake(
     agent_list: List, command_list: List, num_jobs=None
 ) -> None:
     """
     Executes the list of commands in command_list for each AgentType in agent_list
     in an ordinary, single-threaded loop.  Each command should be a method of
     that AgentType subclass.  This function exists so as to easily disable
-    multithreading, as it uses the same syntax as multithreadCommands.
+    multithreading, as it uses the same syntax as multi_thread_commands.
 
     Parameters
     ----------
@@ -19,7 +19,7 @@ def multiThreadCommandsFake(
     command_list : [string]
         A list of commands to run for each AgentType.
     num_jobs : None
-        Dummy input to match syntax of multiThreadCommands.  Does nothing.
+        Dummy input to match syntax of multi_thread_commands.  Does nothing.
 
     Returns
     -------
@@ -31,7 +31,7 @@ def multiThreadCommandsFake(
             getattr(agent, command[:-2])()
 
 
-def multiThreadCommands(agent_list: List, command_list: List, num_jobs=None) -> None:
+def multi_thread_commands(agent_list: List, command_list: List, num_jobs=None) -> None:
     """
     Executes the list of commands in command_list for each AgentType in agent_list
     using a multithreaded system. Each command should be a method of that AgentType subclass.
@@ -48,7 +48,7 @@ def multiThreadCommands(agent_list: List, command_list: List, num_jobs=None) -> 
     None
     """
     if len(agent_list) == 1:
-        multiThreadCommandsFake(agent_list, command_list)
+        multi_thread_commands_fake(agent_list, command_list)
         return None
 
     # Default number of parallel jobs is the smaller of number of AgentTypes in
@@ -58,7 +58,7 @@ def multiThreadCommands(agent_list: List, command_list: List, num_jobs=None) -> 
 
     # Send each command in command_list to each of the types in agent_list to be run
     agent_list_out = Parallel(n_jobs=num_jobs)(
-        delayed(runCommands)(*args)
+        delayed(run_commands)(*args)
         for args in zip(agent_list, len(agent_list) * [command_list])
     )
 
@@ -67,7 +67,7 @@ def multiThreadCommands(agent_list: List, command_list: List, num_jobs=None) -> 
         agent_list[j] = agent_list_out[j]
 
 
-def runCommands(agent: Any, command_list: List) -> Any:
+def run_commands(agent: Any, command_list: List) -> Any:
     """
     Executes each command in command_list on a given AgentType.  The commands
     should be methods of that AgentType's subclass.

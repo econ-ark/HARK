@@ -17,7 +17,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks  # Baseline dictionary to build on
 )
 
-from HARK.distribution import combineIndepDstns
+from HARK.distribution import combine_indep_dstns
 from HARK.distribution import Lognormal, Bernoulli  # Random draws for simulating agents
 from HARK.interpolation import (
     LinearInterp,  # Piecewise linear interpolation
@@ -146,11 +146,11 @@ class PortfolioConsumerType(IndShockConsumerType):
         shock_vars = ['PermShk', 'TranShk','Adjust','Risky']
 
         # Set the solver for the portfolio model, and update various constructed attributes
-        self.solveOnePeriod = solveConsPortfolio
+        self.solve_one_period = solveConsPortfolio
         self.update()
 
-    def preSolve(self):
-        AgentType.preSolve(self)
+    def pre_solve(self):
+        AgentType.pre_solve(self)
         self.updateSolutionTerminal()
 
     def update(self):
@@ -227,13 +227,13 @@ class PortfolioConsumerType(IndShockConsumerType):
             and (len(self.RiskyAvg) == len(self.RiskyStd))
             and (len(self.RiskyAvg) == self.T_cycle)
         ):
-            self.addToTimeVary("RiskyAvg", "RiskyStd")
+            self.add_to_time_vary("RiskyAvg", "RiskyStd")
         elif (type(self.RiskyStd) is list) or (type(self.RiskyAvg) is list):
             raise AttributeError(
                 "If RiskyAvg is time-varying, then RiskyStd must be as well, and they must both have length of T_cycle!"
             )
         else:
-            self.addToTimeInv("RiskyAvg", "RiskyStd")
+            self.add_to_time_inv("RiskyAvg", "RiskyStd")
 
         # Generate a discrete approximation to the risky return distribution if the
         # agent has age-varying beliefs about the risky asset
@@ -246,7 +246,7 @@ class PortfolioConsumerType(IndShockConsumerType):
                         self.RiskyStd[t]
                     ).approx(self.RiskyCount)
                 )
-            self.addToTimeVary("RiskyDstn")
+            self.add_to_time_vary("RiskyDstn")
 
         # Generate a discrete approximation to the risky return distribution if the
         # agent does *not* have age-varying beliefs about the risky asset (base case)
@@ -255,7 +255,7 @@ class PortfolioConsumerType(IndShockConsumerType):
                 self.RiskyAvg,
                 self.RiskyStd,
             ).approx(self.RiskyCount)
-            self.addToTimeInv("RiskyDstn")
+            self.add_to_time_inv("RiskyDstn")
 
     def updateShockDstn(self):
         """
@@ -272,19 +272,19 @@ class PortfolioConsumerType(IndShockConsumerType):
         """
         if "RiskyDstn" in self.time_vary:
             self.ShockDstn = [
-                combineIndepDstns(self.IncShkDstn[t], self.RiskyDstn[t])
+                combine_indep_dstns(self.IncShkDstn[t], self.RiskyDstn[t])
                 for t in range(self.T_cycle)
             ]
         else:
             self.ShockDstn = [
-                combineIndepDstns(self.IncShkDstn[t], self.RiskyDstn)
+                combine_indep_dstns(self.IncShkDstn[t], self.RiskyDstn)
                 for t in range(self.T_cycle)
             ]
-        self.addToTimeVary("ShockDstn")
+        self.add_to_time_vary("ShockDstn")
 
         # Mark whether the risky returns and income shocks are independent (they are)
         self.IndepDstnBool = True
-        self.addToTimeInv("IndepDstnBool")
+        self.add_to_time_inv("IndepDstnBool")
 
     def updateShareGrid(self):
         """
@@ -300,7 +300,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         None
         """
         self.ShareGrid = np.linspace(0.0, 1.0, self.ShareCount)
-        self.addToTimeInv("ShareGrid")
+        self.add_to_time_inv("ShareGrid")
 
     def updateShareLimit(self):
         """
@@ -325,7 +325,7 @@ class PortfolioConsumerType(IndShockConsumerType):
                 )
                 SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
                 self.ShareLimit.append(SharePF)
-            self.addToTimeVary("ShareLimit")
+            self.add_to_time_vary("ShareLimit")
 
         else:
             RiskyDstn = self.RiskyDstn
@@ -335,7 +335,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             )
             SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
             self.ShareLimit = SharePF
-            self.addToTimeInv("ShareLimit")
+            self.add_to_time_inv("ShareLimit")
 
     def getRisky(self):
         """
@@ -399,14 +399,14 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         Rport : np.array
             Array of size AgentCount with each simulated agent's realized portfolio
-            return factor.  Will be used by getStates() to calculate mNrmNow, where it
+            return factor.  Will be used by get_states() to calculate mNrmNow, where it
             will be mislabeled as "Rfree".
         """
         Rport = self.controls["Share"] * self.shocks['Risky'] + (1.0 - self.controls["Share"]) * self.Rfree
         self.Rport = Rport
         return Rport
 
-    def initializeSim(self):
+    def initialize_sim(self):
         """
         Initialize the state of simulation attributes.  Simply calls the same method
         for IndShockConsumerType, then sets the type of AdjustNow to bool.
@@ -423,9 +423,9 @@ class PortfolioConsumerType(IndShockConsumerType):
         # but are a control variable and shock, respectively
         self.controls["Share"] = np.zeros(self.AgentCount)
         self.shocks['Adjust'] = np.zeros(self.AgentCount, dtype=bool)
-        IndShockConsumerType.initializeSim(self)
+        IndShockConsumerType.initialize_sim(self)
 
-    def simBirth(self, which_agents):
+    def sim_birth(self, which_agents):
         """
         Create new agents to replace ones who have recently died; takes draws of
         initial aNrm and pLvl, as in ConsIndShockModel, then sets Share and Adjust
@@ -439,13 +439,13 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.simBirth(self, which_agents)
+        IndShockConsumerType.sim_birth(self, which_agents)
 
         self.controls["Share"][which_agents] = 0
         # here a shock is being used as a 'post state'
         self.shocks['Adjust'][which_agents] = False
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Draw idiosyncratic income shocks, just as for IndShockConsumerType, then draw
         a single common value for the risky asset return.  Also draws whether each
@@ -459,11 +459,11 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.getShocks(self)
+        IndShockConsumerType.get_shocks(self)
         self.getRisky()
         self.getAdjust()
 
-    def getControls(self):
+    def get_controls(self):
         """
         Calculates consumption cNrmNow and risky portfolio share ShareNow using
         the policy functions in the attribute solution.  These are stored as attributes.

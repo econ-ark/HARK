@@ -143,7 +143,7 @@ class FashionVictimType(AgentType):
         # Add class-specific features
         self.time_inv = ['DiscFac','conformUtilityFunc','punk_utility','jock_utility','switchcost_J2P','switchcost_P2J','pGrid','pEvolution','pref_shock_mag']
         self.time_vary = []
-        self.solveOnePeriod = solveFashion
+        self.solve_one_period = solveFashion
         self.update()
 
     def updateEvolution(self):
@@ -205,13 +205,13 @@ class FashionVictimType(AgentType):
         -------
         None
         '''
-        self.resetRNG()
+        self.reset_rng()
         sNow = np.zeros(self.pop_size)
         Shk  = self.RNG.rand(self.pop_size)
         sNow[Shk < self.p_init] = 1
         self.sNow = sNow
 
-    def preSolve(self):
+    def pre_solve(self):
         '''
         Updates the punk proportion evolution array by calling self.updateEvolution().
 
@@ -228,7 +228,7 @@ class FashionVictimType(AgentType):
         # the sufficient statistics describing it are sent back to agents.
         self.updateEvolution()
 
-    def postSolve(self):
+    def post_solve(self):
         '''
         Unpack the behavioral and value functions for more parsimonious access.
 
@@ -486,8 +486,8 @@ def main():
                         reap_vars     = ['sNow'],
                         track_vars    = ['pNow'],
                         dyn_vars      = ['pNextIntercept','pNextSlope','pNextWidth'],
-                        millRule      = calcPunkProp,
-                        calcDynamics  = calcFashionEvoFunc,
+                        mill_rule      = calcPunkProp,
+                        calc_dynamics  = calcFashionEvoFunc,
                         act_T         = 1000,
                         tolerance     = 0.01)
     TestMarket.pNow_init = 0.5

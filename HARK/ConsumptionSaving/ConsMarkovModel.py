@@ -21,7 +21,7 @@ from HARK.distribution import (
     DiscreteDistribution,
     MarkovProcess,
     Uniform,
-    calcExpectation
+    calc_expectation
 )
 from HARK.interpolation import (
     CubicInterp,
@@ -333,7 +333,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             * self.Rfree
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA - 1.0)
-            * calcExpectation(
+            * calc_expectation(
                 self.IncShkDstn,
                 vpp_next,
                 self.aNrmNow
@@ -848,7 +848,7 @@ class MarkovConsumerType(IndShockConsumerType):
 
     def __init__(self, cycles=1, **kwds):
         IndShockConsumerType.__init__(self, cycles=1, **kwds)
-        self.solveOnePeriod = _solveConsMarkov
+        self.solve_one_period = _solveConsMarkov
 
         if not hasattr(self, "global_markov"):
             self.global_markov = False
@@ -915,7 +915,7 @@ class MarkovConsumerType(IndShockConsumerType):
                     "List in IncShkDstn is not the right length, it should be length equal to number of states"
                 )
 
-    def preSolve(self):
+    def pre_solve(self):
         """
         Check to make sure that the inputs that are specific to MarkovConsumerType
         are of the right shape (if arrays) or length (if lists).
@@ -928,7 +928,7 @@ class MarkovConsumerType(IndShockConsumerType):
         -------
         None
         """
-        AgentType.preSolve(self)
+        AgentType.pre_solve(self)
         self.checkMarkovInputs()
 
     def updateSolutionTerminal(self):
@@ -957,9 +957,9 @@ class MarkovConsumerType(IndShockConsumerType):
         self.solution_terminal.MPCmax = np.ones(StateCount)
         self.solution_terminal.MPCmin = np.ones(StateCount)
 
-    def initializeSim(self):
+    def initialize_sim(self):
         self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
-        IndShockConsumerType.initializeSim(self)
+        IndShockConsumerType.initialize_sim(self)
         if (
             self.global_markov
         ):  # Need to initialize markov state to be the same for all agents
@@ -970,11 +970,11 @@ class MarkovConsumerType(IndShockConsumerType):
             ).astype(int)
         self.shocks["Mrkv"] = self.shocks["Mrkv"].astype(int)
 
-    def resetRNG(self):
+    def reset_rng(self):
         """
         Extended method that ensures random shocks are drawn from the same sequence
         on each simulation, which is important for structural estimation.  This
-        method is called automatically by initializeSim().
+        method is called automatically by initialize_sim().
 
         Parameters
         ----------
@@ -984,16 +984,16 @@ class MarkovConsumerType(IndShockConsumerType):
         -------
         None
         """
-        PerfForesightConsumerType.resetRNG(self)
+        PerfForesightConsumerType.reset_rng(self)
 
-        # Reset IncShkDstn if it exists (it might not because resetRNG is called at init)
+        # Reset IncShkDstn if it exists (it might not because reset_rng is called at init)
         if hasattr(self, "IncShkDstn"):
             T = len(self.IncShkDstn)
             for t in range(T):
                 for dstn in self.IncShkDstn[t]:
                     dstn.reset()
 
-    def simDeath(self):
+    def sim_death(self):
         """
         Determines which agents die this period and must be replaced.  Uses the sequence in LivPrb
         to determine survival probabilities for each agent.
@@ -1021,10 +1021,10 @@ class MarkovConsumerType(IndShockConsumerType):
             which_agents = np.logical_or(which_agents, too_old)
         return which_agents
 
-    def simBirth(self, which_agents):
+    def sim_birth(self, which_agents):
         """
         Makes new Markov consumer by drawing initial normalized assets, permanent income levels, and
-        discrete states. Calls IndShockConsumerType.simBirth, then draws from initial Markov distribution.
+        discrete states. Calls IndShockConsumerType.sim_birth, then draws from initial Markov distribution.
 
         Parameters
         ----------
@@ -1035,7 +1035,7 @@ class MarkovConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.simBirth(
+        IndShockConsumerType.sim_birth(
             self, which_agents
         )  # Get initial assets and permanent income
         if (
@@ -1085,7 +1085,7 @@ class MarkovConsumerType(IndShockConsumerType):
 
         self.shocks["Mrkv"] = MrkvNow.astype(int)
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Gets new Markov states and permanent and transitory income shocks for this period.  Samples
         from IncShkDstn for each period-state in the cycle.
@@ -1128,9 +1128,9 @@ class MarkovConsumerType(IndShockConsumerType):
         self.shocks['PermShk'] = PermShkNow
         self.shocks['TranShk'] = TranShkNow
 
-    def readShocks(self):
+    def read_shocks_from_history(self):
         """
-        A slight modification of AgentType.readShocks that makes sure that MrkvNow is int, not float.
+        A slight modification of AgentType.read_shocks that makes sure that MrkvNow is int, not float.
 
         Parameters
         ----------
@@ -1140,7 +1140,7 @@ class MarkovConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.readShocks(self)
+        IndShockConsumerType.read_shocks_from_history(self)
         self.shocks['Mrkv'] = self.shocks['Mrkv'].astype(int)
 
     def getRfree(self):
@@ -1159,7 +1159,7 @@ class MarkovConsumerType(IndShockConsumerType):
         RfreeNow = self.Rfree[self.shocks['Mrkv']]
         return RfreeNow
 
-    def getControls(self):
+    def get_controls(self):
         """
         Calculates consumption for each consumer of this type using the consumption functions.
 
