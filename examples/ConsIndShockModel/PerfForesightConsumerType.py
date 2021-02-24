@@ -231,7 +231,7 @@ SimulationParams = {
 }
 
 # This implicitly uses the assignParameters method of AgentType
-PFexample(**SimulationParams)
+PFexample.assignParameters(**SimulationParams)
 
 # %% pycharm= [markdown] {"name": "#%% md\n"}
 # To generate simulated data, we need to specify which variables we want to track the "history" of for this instance.  To do so, we set the $\texttt{track_vars}$ attribute of our $\texttt{PerfForesightConsumerType}$ instance to be a list of strings with the simulation variables we want to track.
