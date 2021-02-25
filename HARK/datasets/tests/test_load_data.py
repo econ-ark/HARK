@@ -22,9 +22,9 @@ class test_cpi_deflators(unittest.TestCase):
         self.assertEqual(defl_same_year[0], 1.0)
 
         # Different year test
-        defl_diff_year = cpi_deflator(1998, 2019, 'SEP')
+        defl_diff_year = cpi_deflator(1998, 2019, "SEP")
         self.assertAlmostEqual(defl_diff_year[0], 1.57279534)
-        
+
     def test_avg_deflators(self):
 
         # Same year test
