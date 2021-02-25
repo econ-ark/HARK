@@ -55,8 +55,8 @@ plotFuncs(RAexample.solution[0].cFunc, 0, 20)
 # %%
 # Simulate the representative agent model
 RAexample.T_sim = 2000
-RAexample.track_vars = ["cNrmNow", "mNrmNow", "Rfree", "wRte"]
-RAexample.initializeSim()
+RAexample.track_vars = ['cNrm', 'mNrm', "Rfree", "wRte"]
+RAexample.initialize_sim()
 t_start = time()
 RAexample.simulate()
 t_end = time()
@@ -89,8 +89,8 @@ plotFuncs(RAmarkovExample.solution[0].cFunc, 0, 10)
 # %%
 # Simulate the two state representative agent model
 RAmarkovExample.T_sim = 2000
-RAmarkovExample.track_vars = ["cNrmNow", "mNrmNow", "Rfree", "wRte", "MrkvNow"]
-RAmarkovExample.initializeSim()
+RAmarkovExample.track_vars = ['cNrm', 'mNrm', "Rfree", "wRte", "MrkvNow"]
+RAmarkovExample.initialize_sim()
 t_start = time()
 RAmarkovExample.simulate()
 t_end = time()

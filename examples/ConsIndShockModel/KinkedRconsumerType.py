@@ -9,9 +9,9 @@
 #       format_version: '1.2'
 #       jupytext_version: 1.2.4
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: econ-ark-3.8
 #     language: python
-#     name: python3
+#     name: econ-ark-3.8
 # ---
 
 # %% [markdown]
@@ -197,15 +197,15 @@ plotFuncsDer(KinkyExample.solution[0].cFunc, KinkyExample.solution[0].mNrmMin, 5
 # These example parameter values were already passed as part of the parameter dictionary that we used to create $\texttt{KinkyExample}$, so it is ready to simulate.  We need to set the $\texttt{track_vars}$ attribute to indicate the variables for which we want to record a *history*.
 
 # %%
-KinkyExample.track_vars = ["mNrmNow", "cNrmNow", "pLvlNow"]
-KinkyExample.initializeSim()
+KinkyExample.track_vars = ['mNrm', 'cNrm', 'pLvl']
+KinkyExample.initialize_sim()
 KinkyExample.simulate()
 
 # %% [markdown]
 # We can plot the average (normalized) market resources in each simulated period:
 
 # %%
-plt.plot(np.mean(KinkyExample.history["mNrmNow"], axis=1))
+plt.plot(np.mean(KinkyExample.history['mNrm'], axis=1))
 plt.xlabel("Time")
 plt.ylabel("Mean market resources")
 plt.show()
@@ -214,7 +214,7 @@ plt.show()
 # Now let's plot the distribution of (normalized) assets $a_t$ for the current population, after simulating for $500$ periods; this should be fairly close to the long run distribution:
 
 # %%
-plt.plot(np.sort(KinkyExample.state_now['aNrmNow']), np.linspace(0.0, 1.0, KinkyExample.AgentCount))
+plt.plot(np.sort(KinkyExample.state_now['aNrm']), np.linspace(0.0, 1.0, KinkyExample.AgentCount))
 plt.xlabel("End-of-period assets")
 plt.ylabel("Cumulative distribution")
 plt.ylim(-0.01, 1.01)

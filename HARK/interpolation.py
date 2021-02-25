@@ -4,14 +4,15 @@ It also includes wrapper classes to enforce standard methods across classes.
 Each interpolation class must have a distance() method that compares itself to
 another instance; this is used in HARK.core's solve() method to check for solution
 convergence.  The interpolator classes currently in this module inherit their
-distance method from HARKobject.
+distance method from MetricObject.
 """
 from __future__ import division, print_function
 from __future__ import absolute_import
 from builtins import range
 import numpy as np
-from .core import HARKobject
+from .core import MetricObject
 from copy import deepcopy
+from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP
 import warnings
 
 
@@ -58,7 +59,7 @@ def _check_flatten(dimension, *args):
             return True
 
 
-class HARKinterpolator1D(HARKobject):
+class HARKinterpolator1D(MetricObject):
     """
     A wrapper class for 1D interpolation methods in HARK.
     """
@@ -142,7 +143,7 @@ class HARKinterpolator1D(HARKobject):
         raise NotImplementedError()
 
 
-class HARKinterpolator2D(HARKobject):
+class HARKinterpolator2D(MetricObject):
     """
     A wrapper class for 2D interpolation methods in HARK.
     """
@@ -236,7 +237,7 @@ class HARKinterpolator2D(HARKobject):
         raise NotImplementedError()
 
 
-class HARKinterpolator3D(HARKobject):
+class HARKinterpolator3D(MetricObject):
     """
     A wrapper class for 3D interpolation methods in HARK.
     """
@@ -377,7 +378,7 @@ class HARKinterpolator3D(HARKobject):
         raise NotImplementedError()
 
 
-class HARKinterpolator4D(HARKobject):
+class HARKinterpolator4D(MetricObject):
     """
     A wrapper class for 4D interpolation methods in HARK.
     """
@@ -579,29 +580,22 @@ class HARKinterpolator4D(HARKobject):
         raise NotImplementedError()
 
 
-class IdentityFunction(HARKobject):
+class IdentityFunction(MetricObject):
     """
     A fairly trivial interpolator that simply returns one of its arguments.  Useful for avoiding
     numeric error in extreme cases.
+
+    Parameters
+    ----------
+    i_dim : int
+        Index of the dimension on which the identity is defined.  f(*x) = x[i]
+    n_dims : int
+        Total number of input dimensions for this function.
     """
 
     distance_criteria = ["i_dim"]
 
     def __init__(self, i_dim=0, n_dims=1):
-        """
-        Constructor for a new IdentityFunction.
-
-        Parameters
-        ----------
-        i_dim : int
-            Index of the dimension on which the identity is defined.  f(*x) = x[i]
-        n_dims : int
-            Total number of input dimensions for this function.
-
-        Returns
-        -------
-        None
-        """
         self.i_dim = i_dim
         self.n_dims = n_dims
 
@@ -679,7 +673,7 @@ class IdentityFunction(HARKobject):
             return np.zeros_like(*args[0])
 
 
-class ConstantFunction(HARKobject):
+class ConstantFunction(MetricObject):
     """
     A class for representing trivial functions that return the same real output for any input.  This
     is convenient for models where an object might be a (non-trivial) function, but in some variations
@@ -688,23 +682,16 @@ class ConstantFunction(HARKobject):
     allows the user to quickly make a constant/trivial function.  This comes up, e.g., in models
     with endogenous pricing of insurance contracts; a contract's premium might depend on some state
     variables of the individual, but in some variations the premium of a contract is just a number.
+
+    Parameters
+    ----------
+    value : float
+        The constant value that the function returns.
     """
 
     convergence_criteria = ["value"]
 
     def __init__(self, value):
-        """
-        Make a new ConstantFunction object.
-
-        Parameters
-        ----------
-        value : float
-            The constant value that the function returns.
-
-        Returns
-        -------
-        None
-        """
         self.value = float(value)
 
     def __call__(self, *args):
@@ -750,6 +737,23 @@ class LinearInterp(HARKinterpolator1D):
     """
     A "from scratch" 1D linear interpolation class.  Allows for linear or decay
     extrapolation (approaching a limiting linear function from below).
+
+    NOTE: When no input is given for the limiting linear function, linear
+    extrapolation is used above the highest gridpoint.
+
+    Parameters
+    ----------
+    x_list : np.array
+        List of x values composing the grid.
+    y_list : np.array
+        List of y values, representing f(x) at the points in x_list.
+    intercept_limit : float
+        Intercept of limiting linear function.
+    slope_limit : float
+        Slope of limiting linear function.
+    lower_extrap : boolean
+        Indicator for whether lower extrapolation is allowed.  False means
+        f(x) = NaN for x < min(x_list); True means linear extrapolation.
     """
 
     distance_criteria = ["x_list", "y_list"]
@@ -757,30 +761,6 @@ class LinearInterp(HARKinterpolator1D):
     def __init__(
         self, x_list, y_list, intercept_limit=None, slope_limit=None, lower_extrap=False
     ):
-        """
-        The interpolation constructor to make a new linear spline interpolation.
-
-        Parameters
-        ----------
-        x_list : np.array
-            List of x values composing the grid.
-        y_list : np.array
-            List of y values, representing f(x) at the points in x_list.
-        intercept_limit : float
-            Intercept of limiting linear function.
-        slope_limit : float
-            Slope of limiting linear function.
-        lower_extrap : boolean
-            Indicator for whether lower extrapolation is allowed.  False means
-            f(x) = NaN for x < min(x_list); True means linear extrapolation.
-
-        Returns
-        -------
-        new instance of LinearInterp
-
-        NOTE: When no input is given for the limiting linear function, linear
-        extrapolation is used above the highest gridpoint.
-        """
         # Make the basic linear spline interpolation
         self.x_list = (
             np.array(x_list)
@@ -908,6 +888,25 @@ class CubicInterp(HARKinterpolator1D):
     slope of 1D function at gridpoints, smoothly interpolating in between.
     Extrapolation above highest gridpoint approaches a limiting linear function
     if desired (linear extrapolation also enabled.)
+
+    NOTE: When no input is given for the limiting linear function, linear
+        extrapolation is used above the highest gridpoint.
+
+    Parameters
+    ----------
+    x_list : np.array
+        List of x values composing the grid.
+    y_list : np.array
+        List of y values, representing f(x) at the points in x_list.
+    dydx_list : np.array
+        List of dydx values, representing f'(x) at the points in x_list
+    intercept_limit : float
+        Intercept of limiting linear function.
+    slope_limit : float
+        Slope of limiting linear function.
+    lower_extrap : boolean
+        Indicator for whether lower extrapolation is allowed.  False means
+        f(x) = NaN for x < min(x_list); True means linear extrapolation.
     """
 
     distance_criteria = ["x_list", "y_list", "dydx_list"]
@@ -921,32 +920,6 @@ class CubicInterp(HARKinterpolator1D):
         slope_limit=None,
         lower_extrap=False,
     ):
-        """
-        The interpolation constructor to make a new cubic spline interpolation.
-
-        Parameters
-        ----------
-        x_list : np.array
-            List of x values composing the grid.
-        y_list : np.array
-            List of y values, representing f(x) at the points in x_list.
-        dydx_list : np.array
-            List of dydx values, representing f'(x) at the points in x_list
-        intercept_limit : float
-            Intercept of limiting linear function.
-        slope_limit : float
-            Slope of limiting linear function.
-        lower_extrap : boolean
-            Indicator for whether lower extrapolation is allowed.  False means
-            f(x) = NaN for x < min(x_list); True means linear extrapolation.
-
-        Returns
-        -------
-        new instance of CubicInterp
-
-        NOTE: When no input is given for the limiting linear function, linear
-        extrapolation is used above the highest gridpoint.
-        """
         self.x_list = (
             np.asarray(x_list)
             if _check_flatten(1, x_list)
@@ -1196,33 +1169,26 @@ class CubicInterp(HARKinterpolator1D):
 class BilinearInterp(HARKinterpolator2D):
     """
     Bilinear full (or tensor) grid interpolation of a function f(x,y).
+
+    Parameters
+    ----------
+    f_values : numpy.array
+        An array of size (x_n,y_n) such that f_values[i,j] = f(x_list[i],y_list[j])
+    x_list : numpy.array
+        An array of x values, with length designated x_n.
+    y_list : numpy.array
+        An array of y values, with length designated y_n.
+    xSearchFunc : function
+        An optional function that returns the reference location for x values:
+        indices = xSearchFunc(x_list,x).  Default is np.searchsorted
+    ySearchFunc : function
+        An optional function that returns the reference location for y values:
+        indices = ySearchFunc(y_list,y).  Default is np.searchsorted
     """
 
     distance_criteria = ["x_list", "y_list", "f_values"]
 
     def __init__(self, f_values, x_list, y_list, xSearchFunc=None, ySearchFunc=None):
-        """
-        Constructor to make a new bilinear interpolation.
-
-        Parameters
-        ----------
-        f_values : numpy.array
-            An array of size (x_n,y_n) such that f_values[i,j] = f(x_list[i],y_list[j])
-        x_list : numpy.array
-            An array of x values, with length designated x_n.
-        y_list : numpy.array
-            An array of y values, with length designated y_n.
-        xSearchFunc : function
-            An optional function that returns the reference location for x values:
-            indices = xSearchFunc(x_list,x).  Default is np.searchsorted
-        ySearchFunc : function
-            An optional function that returns the reference location for y values:
-            indices = ySearchFunc(y_list,y).  Default is np.searchsorted
-
-        Returns
-        -------
-        new instance of BilinearInterp
-        """
         self.f_values = f_values
         self.x_list = (
             np.array(x_list)
@@ -1337,6 +1303,27 @@ class BilinearInterp(HARKinterpolator2D):
 class TrilinearInterp(HARKinterpolator3D):
     """
     Trilinear full (or tensor) grid interpolation of a function f(x,y,z).
+
+    Parameters
+    ----------
+    f_values : numpy.array
+        An array of size (x_n,y_n,z_n) such that f_values[i,j,k] =
+        f(x_list[i],y_list[j],z_list[k])
+    x_list : numpy.array
+        An array of x values, with length designated x_n.
+    y_list : numpy.array
+        An array of y values, with length designated y_n.
+    z_list : numpy.array
+        An array of z values, with length designated z_n.
+    xSearchFunc : function
+        An optional function that returns the reference location for x values:
+        indices = xSearchFunc(x_list,x).  Default is np.searchsorted
+    ySearchFunc : function
+        An optional function that returns the reference location for y values:
+        indices = ySearchFunc(y_list,y).  Default is np.searchsorted
+    zSearchFunc : function
+        An optional function that returns the reference location for z values:
+        indices = zSearchFunc(z_list,z).  Default is np.searchsorted
     """
 
     distance_criteria = ["f_values", "x_list", "y_list", "z_list"]
@@ -1351,34 +1338,6 @@ class TrilinearInterp(HARKinterpolator3D):
         ySearchFunc=None,
         zSearchFunc=None,
     ):
-        """
-        Constructor to make a new trilinear interpolation.
-
-        Parameters
-        ----------
-        f_values : numpy.array
-            An array of size (x_n,y_n,z_n) such that f_values[i,j,k] =
-            f(x_list[i],y_list[j],z_list[k])
-        x_list : numpy.array
-            An array of x values, with length designated x_n.
-        y_list : numpy.array
-            An array of y values, with length designated y_n.
-        z_list : numpy.array
-            An array of z values, with length designated z_n.
-        xSearchFunc : function
-            An optional function that returns the reference location for x values:
-            indices = xSearchFunc(x_list,x).  Default is np.searchsorted
-        ySearchFunc : function
-            An optional function that returns the reference location for y values:
-            indices = ySearchFunc(y_list,y).  Default is np.searchsorted
-        zSearchFunc : function
-            An optional function that returns the reference location for z values:
-            indices = zSearchFunc(z_list,z).  Default is np.searchsorted
-
-        Returns
-        -------
-        new instance of TrilinearInterp
-        """
         self.f_values = f_values
         self.x_list = (
             np.array(x_list)
@@ -1594,6 +1553,32 @@ class TrilinearInterp(HARKinterpolator3D):
 class QuadlinearInterp(HARKinterpolator4D):
     """
     Quadlinear full (or tensor) grid interpolation of a function f(w,x,y,z).
+
+    Parameters
+    ----------
+    f_values : numpy.array
+        An array of size (w_n,x_n,y_n,z_n) such that f_values[i,j,k,l] =
+        f(w_list[i],x_list[j],y_list[k],z_list[l])
+    w_list : numpy.array
+        An array of x values, with length designated w_n.
+    x_list : numpy.array
+        An array of x values, with length designated x_n.
+    y_list : numpy.array
+        An array of y values, with length designated y_n.
+    z_list : numpy.array
+        An array of z values, with length designated z_n.
+    wSearchFunc : function
+        An optional function that returns the reference location for w values:
+        indices = wSearchFunc(w_list,w).  Default is np.searchsorted
+    xSearchFunc : function
+        An optional function that returns the reference location for x values:
+        indices = xSearchFunc(x_list,x).  Default is np.searchsorted
+    ySearchFunc : function
+        An optional function that returns the reference location for y values:
+        indices = ySearchFunc(y_list,y).  Default is np.searchsorted
+    zSearchFunc : function
+        An optional function that returns the reference location for z values:
+        indices = zSearchFunc(z_list,z).  Default is np.searchsorted
     """
 
     distance_criteria = ["f_values", "w_list", "x_list", "y_list", "z_list"]
@@ -1610,39 +1595,6 @@ class QuadlinearInterp(HARKinterpolator4D):
         ySearchFunc=None,
         zSearchFunc=None,
     ):
-        """
-        Constructor to make a new quadlinear interpolation.
-
-        Parameters
-        ----------
-        f_values : numpy.array
-            An array of size (w_n,x_n,y_n,z_n) such that f_values[i,j,k,l] =
-            f(w_list[i],x_list[j],y_list[k],z_list[l])
-        w_list : numpy.array
-            An array of x values, with length designated w_n.
-        x_list : numpy.array
-            An array of x values, with length designated x_n.
-        y_list : numpy.array
-            An array of y values, with length designated y_n.
-        z_list : numpy.array
-            An array of z values, with length designated z_n.
-        wSearchFunc : function
-            An optional function that returns the reference location for w values:
-            indices = wSearchFunc(w_list,w).  Default is np.searchsorted
-        xSearchFunc : function
-            An optional function that returns the reference location for x values:
-            indices = xSearchFunc(x_list,x).  Default is np.searchsorted
-        ySearchFunc : function
-            An optional function that returns the reference location for y values:
-            indices = ySearchFunc(y_list,y).  Default is np.searchsorted
-        zSearchFunc : function
-            An optional function that returns the reference location for z values:
-            indices = zSearchFunc(z_list,z).  Default is np.searchsorted
-
-        Returns
-        -------
-        new instance of QuadlinearInterp
-        """
         self.f_values = f_values
         self.w_list = (
             np.array(w_list)
@@ -2030,25 +1982,19 @@ class LowerEnvelope(HARKinterpolator1D):
     The lower envelope of a finite set of 1D functions, each of which can be of
     any class that has the methods __call__, derivative, and eval_with_derivative.
     Generally: it combines HARKinterpolator1Ds.
+
+    Parameters
+    ----------
+    *functions : function
+        Any number of real functions; often instances of HARKinterpolator1D
+    nan_bool : boolean
+        An indicator for whether the solver should exclude NA's when 
+        forming the lower envelope
     """
 
     distance_criteria = ["functions"]
 
     def __init__(self, *functions, nan_bool=True):
-        """
-        Constructor to make a new lower envelope iterpolation.
-
-        Parameters
-        ----------
-        *functions : function
-            Any number of real functions; often instances of HARKinterpolator1D
-        nan_bool : boolean
-            An indicator for whether the solver should exclude NA's when 
-            forming the lower envelope
-        Returns
-        -------
-        new instance of LowerEnvelope
-        """
 
         if nan_bool:
             self.compare = np.nanmin
@@ -2109,25 +2055,19 @@ class UpperEnvelope(HARKinterpolator1D):
     The upper envelope of a finite set of 1D functions, each of which can be of
     any class that has the methods __call__, derivative, and eval_with_derivative.
     Generally: it combines HARKinterpolator1Ds.
+
+    Parameters
+    ----------
+    *functions : function
+        Any number of real functions; often instances of HARKinterpolator1D
+    nan_bool : boolean	
+        An indicator for whether the solver should exclude NA's when forming	
+        the lower envelope.
     """
 
     distance_criteria = ["functions"]
 
     def __init__(self, *functions, nan_bool=True):
-        """
-        Constructor to make a new upper envelope iterpolation.
-
-        Parameters
-        ----------
-        *functions : function
-            Any number of real functions; often instances of HARKinterpolator1D
-        nan_bool : boolean	
-            An indicator for whether the solver should exclude NA's when forming	
-            the lower envelope.
-        Returns
-        -------
-        new instance of UpperEnvelope
-        """
         if nan_bool:
             self.compare = np.nanmax
             self.argcompare = np.nanargmax
@@ -2185,25 +2125,19 @@ class LowerEnvelope2D(HARKinterpolator2D):
     The lower envelope of a finite set of 2D functions, each of which can be of
     any class that has the methods __call__, derivativeX, and derivativeY.
     Generally: it combines HARKinterpolator2Ds.
+
+    Parameters
+    ----------
+    *functions : function
+        Any number of real functions; often instances of HARKinterpolator2D
+    nan_bool : boolean	
+        An indicator for whether the solver should exclude NA's when forming	
+        the lower envelope.
     """
 
     distance_criteria = ["functions"]
 
     def __init__(self, *functions, nan_bool=True):
-        """
-        Constructor to make a new lower envelope iterpolation.
-
-        Parameters
-        ----------
-        *functions : function
-            Any number of real functions; often instances of HARKinterpolator2D
-        nan_bool : boolean	
-            An indicator for whether the solver should exclude NA's when forming	
-            the lower envelope.
-        Returns
-        -------
-        new instance of LowerEnvelope2D
-        """
         if nan_bool:
             self.compare = np.nanmin
             self.argcompare = np.nanargmin
@@ -2270,25 +2204,19 @@ class LowerEnvelope3D(HARKinterpolator3D):
     The lower envelope of a finite set of 3D functions, each of which can be of
     any class that has the methods __call__, derivativeX, derivativeY, and
     derivativeZ. Generally: it combines HARKinterpolator2Ds.
+
+    Parameters
+    ----------
+    *functions : function
+        Any number of real functions; often instances of HARKinterpolator3D
+    nan_bool : boolean	
+        An indicator for whether the solver should exclude NA's when forming	
+        the lower envelope.
     """
 
     distance_criteria = ["functions"]
 
     def __init__(self, *functions, nan_bool=True):
-        """
-        Constructor to make a new lower envelope iterpolation.
-
-        Parameters
-        ----------
-        *functions : function
-            Any number of real functions; often instances of HARKinterpolator3D
-        nan_bool : boolean	
-            An indicator for whether the solver should exclude NA's when forming	
-            the lower envelope.
-        Returns
-        -------
-        None
-        """
         if nan_bool:
             self.compare = np.nanmin
             self.argcompare = np.nanargmin
@@ -2367,32 +2295,25 @@ class LowerEnvelope3D(HARKinterpolator3D):
         return dfdz
 
 
-class VariableLowerBoundFunc2D(HARKobject):
+class VariableLowerBoundFunc2D(MetricObject):
     """
     A class for representing a function with two real inputs whose lower bound
     in the first input depends on the second input.  Useful for managing curved
     natural borrowing constraints, as occurs in the persistent shocks model.
+
+    Parameters
+    ----------
+    func : function
+        A function f: (R_+ x R) --> R representing the function of interest
+        shifted by its lower bound in the first input.
+    lowerBound : function
+        The lower bound in the first input of the function of interest, as
+        a function of the second input.
     """
 
     distance_criteria = ["func", "lowerBound"]
 
     def __init__(self, func, lowerBound):
-        """
-        Make a new instance of VariableLowerBoundFunc2D.
-
-        Parameters
-        ----------
-        func : function
-            A function f: (R_+ x R) --> R representing the function of interest
-            shifted by its lower bound in the first input.
-        lowerBound : function
-            The lower bound in the first input of the function of interest, as
-            a function of the second input.
-
-        Returns
-        -------
-        None
-        """
         self.func = func
         self.lowerBound = lowerBound
 
@@ -2463,32 +2384,25 @@ class VariableLowerBoundFunc2D(HARKobject):
         return dfdy_out
 
 
-class VariableLowerBoundFunc3D(HARKobject):
+class VariableLowerBoundFunc3D(MetricObject):
     """
     A class for representing a function with three real inputs whose lower bound
     in the first input depends on the second input.  Useful for managing curved
     natural borrowing constraints.
+
+    Parameters
+    ----------
+    func : function
+        A function f: (R_+ x R^2) --> R representing the function of interest
+        shifted by its lower bound in the first input.
+    lowerBound : function
+        The lower bound in the first input of the function of interest, as
+        a function of the second input.
     """
 
     distance_criteria = ["func", "lowerBound"]
 
     def __init__(self, func, lowerBound):
-        """
-        Make a new instance of VariableLowerBoundFunc3D.
-
-        Parameters
-        ----------
-        func : function
-            A function f: (R_+ x R^2) --> R representing the function of interest
-            shifted by its lower bound in the first input.
-        lowerBound : function
-            The lower bound in the first input of the function of interest, as
-            a function of the second input.
-
-        Returns
-        -------
-        None
-        """
         self.func = func
         self.lowerBound = lowerBound
 
@@ -2592,28 +2506,19 @@ class VariableLowerBoundFunc3D(HARKobject):
 class LinearInterpOnInterp1D(HARKinterpolator2D):
     """
     A 2D interpolator that linearly interpolates among a list of 1D interpolators.
+
+    Parameters
+    ----------
+    xInterpolators : [HARKinterpolator1D]
+        A list of 1D interpolations over the x variable.  The nth element of
+        xInterpolators represents f(x,y_values[n]).
+    y_values: numpy.array
+        An array of y values equal in length to xInterpolators.
     """
 
     distance_criteria = ["xInterpolators", "y_list"]
 
     def __init__(self, xInterpolators, y_values):
-        """
-        Constructor for the class, generating an approximation to a function of
-        the form f(x,y) using interpolations over f(x,y_0) for a fixed grid of
-        y_0 values.
-
-        Parameters
-        ----------
-        xInterpolators : [HARKinterpolator1D]
-            A list of 1D interpolations over the x variable.  The nth element of
-            xInterpolators represents f(x,y_values[n]).
-        y_values: numpy.array
-            An array of y values equal in length to xInterpolators.
-
-        Returns
-        -------
-        new instance of LinearInterpOnInterp1D
-        """
         self.xInterpolators = xInterpolators
         self.y_list = y_values
         self.y_n = y_values.size
@@ -2711,30 +2616,25 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
     """
     A 3D interpolator that bilinearly interpolates among a list of lists of 1D
     interpolators.
+
+    Constructor for the class, generating an approximation to a function of
+    the form f(x,y,z) using interpolations over f(x,y_0,z_0) for a fixed grid
+    of y_0 and z_0 values.
+
+    Parameters
+    ----------
+    xInterpolators : [[HARKinterpolator1D]]
+        A list of lists of 1D interpolations over the x variable.  The i,j-th
+        element of xInterpolators represents f(x,y_values[i],z_values[j]).
+    y_values: numpy.array
+        An array of y values equal in length to xInterpolators.
+    z_values: numpy.array
+        An array of z values equal in length to xInterpolators[0].
     """
 
     distance_criteria = ["xInterpolators", "y_list", "z_list"]
 
     def __init__(self, xInterpolators, y_values, z_values):
-        """
-        Constructor for the class, generating an approximation to a function of
-        the form f(x,y,z) using interpolations over f(x,y_0,z_0) for a fixed grid
-        of y_0 and z_0 values.
-
-        Parameters
-        ----------
-        xInterpolators : [[HARKinterpolator1D]]
-            A list of lists of 1D interpolations over the x variable.  The i,j-th
-            element of xInterpolators represents f(x,y_values[i],z_values[j]).
-        y_values: numpy.array
-            An array of y values equal in length to xInterpolators.
-        z_values: numpy.array
-            An array of z values equal in length to xInterpolators[0].
-
-        Returns
-        -------
-        new instance of BilinearInterpOnInterp1D
-        """
         self.xInterpolators = xInterpolators
         self.y_list = y_values
         self.y_n = y_values.size
@@ -2947,32 +2847,27 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
 class TrilinearInterpOnInterp1D(HARKinterpolator4D):
     """
     A 4D interpolator that trilinearly interpolates among a list of lists of 1D interpolators.
+
+    Constructor for the class, generating an approximation to a function of
+    the form f(w,x,y,z) using interpolations over f(w,x_0,y_0,z_0) for a fixed
+    grid of y_0 and z_0 values.
+
+    Parameters
+    ----------
+    wInterpolators : [[[HARKinterpolator1D]]]
+        A list of lists of lists of 1D interpolations over the x variable.
+        The i,j,k-th element of wInterpolators represents f(w,x_values[i],y_values[j],z_values[k]).
+    x_values: numpy.array
+        An array of x values equal in length to wInterpolators.
+    y_values: numpy.array
+        An array of y values equal in length to wInterpolators[0].
+    z_values: numpy.array
+        An array of z values equal in length to wInterpolators[0][0]
     """
 
     distance_criteria = ["wInterpolators", "x_list", "y_list", "z_list"]
 
     def __init__(self, wInterpolators, x_values, y_values, z_values):
-        """
-        Constructor for the class, generating an approximation to a function of
-        the form f(w,x,y,z) using interpolations over f(w,x_0,y_0,z_0) for a fixed
-        grid of y_0 and z_0 values.
-
-        Parameters
-        ----------
-        wInterpolators : [[[HARKinterpolator1D]]]
-            A list of lists of lists of 1D interpolations over the x variable.
-            The i,j,k-th element of wInterpolators represents f(w,x_values[i],y_values[j],z_values[k]).
-        x_values: numpy.array
-            An array of x values equal in length to wInterpolators.
-        y_values: numpy.array
-            An array of y values equal in length to wInterpolators[0].
-        z_values: numpy.array
-            An array of z values equal in length to wInterpolators[0][0]
-
-        Returns
-        -------
-        new instance of TrilinearInterpOnInterp1D
-        """
         self.wInterpolators = wInterpolators
         self.x_list = x_values
         self.x_n = x_values.size
@@ -3501,28 +3396,23 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
     variables and one exogenous state variable when solving with the endogenous
     grid method.  NOTE: should not be used if an exogenous 3D grid is used, will
     be significantly slower than TrilinearInterp.
+
+    Constructor for the class, generating an approximation to a function of
+    the form f(x,y,z) using interpolations over f(x,y,z_0) for a fixed grid
+    of z_0 values.
+
+    Parameters
+    ----------
+    xyInterpolators : [HARKinterpolator2D]
+        A list of 2D interpolations over the x and y variables.  The nth
+        element of xyInterpolators represents f(x,y,z_values[n]).
+    z_values: numpy.array
+        An array of z values equal in length to xyInterpolators.
     """
 
     distance_criteria = ["xyInterpolators", "z_list"]
 
     def __init__(self, xyInterpolators, z_values):
-        """
-        Constructor for the class, generating an approximation to a function of
-        the form f(x,y,z) using interpolations over f(x,y,z_0) for a fixed grid
-        of z_0 values.
-
-        Parameters
-        ----------
-        xyInterpolators : [HARKinterpolator2D]
-            A list of 2D interpolations over the x and y variables.  The nth
-            element of xyInterpolators represents f(x,y,z_values[n]).
-        z_values: numpy.array
-            An array of z values equal in length to xyInterpolators.
-
-        Returns
-        -------
-        new instance of LinearInterpOnInterp2D
-        """
         self.xyInterpolators = xyInterpolators
         self.z_list = z_values
         self.z_n = z_values.size
@@ -3655,31 +3545,26 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
     variables and two exogenous state variables when solving with the endogenous
     grid method.  NOTE: should not be used if an exogenous 4D grid is used, will
     be significantly slower than QuadlinearInterp.
+
+    Constructor for the class, generating an approximation to a function of
+    the form f(w,x,y,z) using interpolations over f(w,x,y_0,z_0) for a fixed
+    grid of y_0 and z_0 values.
+
+    Parameters
+    ----------
+    wxInterpolators : [[HARKinterpolator2D]]
+        A list of lists of 2D interpolations over the w and x variables.
+        The i,j-th element of wxInterpolators represents
+        f(w,x,y_values[i],z_values[j]).
+    y_values: numpy.array
+        An array of y values equal in length to wxInterpolators.
+    z_values: numpy.array
+        An array of z values equal in length to wxInterpolators[0].
     """
 
     distance_criteria = ["wxInterpolators", "y_list", "z_list"]
 
     def __init__(self, wxInterpolators, y_values, z_values):
-        """
-        Constructor for the class, generating an approximation to a function of
-        the form f(w,x,y,z) using interpolations over f(w,x,y_0,z_0) for a fixed
-        grid of y_0 and z_0 values.
-
-        Parameters
-        ----------
-        wxInterpolators : [[HARKinterpolator2D]]
-            A list of lists of 2D interpolations over the w and x variables.
-            The i,j-th element of wxInterpolators represents
-            f(w,x,y_values[i],z_values[j]).
-        y_values: numpy.array
-            An array of y values equal in length to wxInterpolators.
-        z_values: numpy.array
-            An array of z values equal in length to wxInterpolators[0].
-
-        Returns
-        -------
-        new instance of BilinearInterpOnInterp2D
-        """
         self.wxInterpolators = wxInterpolators
         self.y_list = y_values
         self.y_n = y_values.size
@@ -3977,37 +3862,30 @@ class Curvilinear2DInterp(HARKinterpolator2D):
     A 2D interpolation method for curvilinear or "warped grid" interpolation, as
     in White (2015).  Used for models with two endogenous states that are solved
     with the endogenous grid method.
+
+    Parameters
+    ----------
+    f_values: numpy.array
+        A 2D array of function values such that f_values[i,j] =
+        f(x_values[i,j],y_values[i,j]).
+    x_values: numpy.array
+        A 2D array of x values of the same size as f_values.
+    y_values: numpy.array
+        A 2D array of y values of the same size as f_values.
     """
 
     distance_criteria = ["f_values", "x_values", "y_values"]
 
     def __init__(self, f_values, x_values, y_values):
-        """
-        Constructor for 2D curvilinear interpolation for a function f(x,y)
-
-        Parameters
-        ----------
-        f_values: numpy.array
-            A 2D array of function values such that f_values[i,j] =
-            f(x_values[i,j],y_values[i,j]).
-        x_values: numpy.array
-            A 2D array of x values of the same size as f_values.
-        y_values: numpy.array
-            A 2D array of y values of the same size as f_values.
-
-        Returns
-        -------
-        new instance of Curvilinear2DInterp
-        """
         self.f_values = f_values
         self.x_values = x_values
         self.y_values = y_values
         my_shape = f_values.shape
         self.x_n = my_shape[0]
         self.y_n = my_shape[1]
-        self.updatePolarity()
+        self.update_polarity()
 
-    def updatePolarity(self):
+    def update_polarity(self):
         """
         Fills in the polarity attribute of the interpolation, determining whether
         the "plus" (True) or "minus" (False) solution of the system of equations
@@ -4041,7 +3919,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
 
         # Set the polarity of all sectors to "plus", then test each sector
         self.polarity = np.ones((self.x_n - 1, self.y_n - 1), dtype=bool)
-        alpha, beta = self.findCoords(x_temp, y_temp, x_pos, y_pos)
+        alpha, beta = self.find_coords(x_temp, y_temp, x_pos, y_pos)
         polarity = np.logical_and(
             np.logical_and(alpha > 0, alpha < 1), np.logical_and(beta > 0, beta < 1)
         )
@@ -4050,7 +3928,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         # sector must use the "minus" solution instead
         self.polarity = np.reshape(polarity, (self.x_n - 1, self.y_n - 1))
 
-    def findSector(self, x, y):
+    def find_sector(self, x, y):
         """
         Finds the quadrilateral "sector" for each (x,y) point in the input.
         Only called as a subroutine of _evaluate().
@@ -4078,7 +3956,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         # boundary defined by (x_bound_1,y_bound_1) and (x_bound_2,y_bound_2),
         # where the latter is *COUNTER CLOCKWISE* from the former.  Returns
         # 1 if the point is outside the boundary and 0 otherwise.
-        violationCheck = (
+        violation_check = (
             lambda x_check, y_check, x_bound_1, y_bound_1, x_bound_2, y_bound_2: (
                 (y_bound_2 - y_bound_1) * x_check - (x_bound_2 - x_bound_1) * y_check
                 > x_bound_1 * y_bound_2 - y_bound_1 * x_bound_2
@@ -4111,16 +3989,16 @@ class Curvilinear2DInterp(HARKinterpolator2D):
 
             # Check which boundaries are violated (and thus where to look next)
             c = (move_down + move_right + move_up + move_left) == 0
-            move_down[c] = violationCheck(
+            move_down[c] = violation_check(
                 x_temp[c], y_temp[c], xA[c], yA[c], xB[c], yB[c]
             )
-            move_right[c] = violationCheck(
+            move_right[c] = violation_check(
                 x_temp[c], y_temp[c], xB[c], yB[c], xD[c], yD[c]
             )
-            move_up[c] = violationCheck(
+            move_up[c] = violation_check(
                 x_temp[c], y_temp[c], xD[c], yD[c], xC[c], yC[c]
             )
-            move_left[c] = violationCheck(
+            move_left[c] = violation_check(
                 x_temp[c], y_temp[c], xC[c], yC[c], xA[c], yA[c]
             )
 
@@ -4151,7 +4029,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         y_pos = y_pos_guess
         return x_pos, y_pos
 
-    def findCoords(self, x, y, x_pos, y_pos):
+    def find_coords(self, x, y, x_pos, y_pos):
         """
         Calculates the relative coordinates (alpha,beta) for each point (x,y),
         given the sectors (x_pos,y_pos) in which they reside.  Only called as
@@ -4233,8 +4111,8 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         Returns the level of the interpolated function at each value in x,y.
         Only called internally by HARKinterpolator2D.__call__ (etc).
         """
-        x_pos, y_pos = self.findSector(x, y)
-        alpha, beta = self.findCoords(x, y, x_pos, y_pos)
+        x_pos, y_pos = self.find_sector(x, y)
+        alpha, beta = self.find_coords(x, y, x_pos, y_pos)
 
         # Calculate the function at each point using bilinear interpolation
         f = (
@@ -4250,8 +4128,8 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         Returns the derivative with respect to x of the interpolated function
         at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
         """
-        x_pos, y_pos = self.findSector(x, y)
-        alpha, beta = self.findCoords(x, y, x_pos, y_pos)
+        x_pos, y_pos = self.find_sector(x, y)
+        alpha, beta = self.find_coords(x, y, x_pos, y_pos)
 
         # Get four corners data for each point
         xA = self.x_values[x_pos, y_pos]
@@ -4291,8 +4169,8 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         Returns the derivative with respect to y of the interpolated function
         at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
         """
-        x_pos, y_pos = self.findSector(x, y)
-        alpha, beta = self.findCoords(x, y, x_pos, y_pos)
+        x_pos, y_pos = self.find_sector(x, y)
+        alpha, beta = self.find_coords(x, y, x_pos, y_pos)
 
         # Get four corners data for each point
         xA = self.x_values[x_pos, y_pos]
@@ -4333,7 +4211,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
 ###############################################################################
 
 
-def calcLogSumChoiceProbs(Vals, sigma):
+def calc_log_sum_choice_probs(Vals, sigma):
     """
     Returns the final optimal value and choice probabilities given the choice
     specific value functions `Vals`. Probabilities are degenerate if sigma == 0.0.
@@ -4375,7 +4253,7 @@ def calcLogSumChoiceProbs(Vals, sigma):
     return LogSumV, Probs
 
 
-def calcChoiceProbs(Vals, sigma):
+def calc_choice_probs(Vals, sigma):
     """
     Returns the choice probabilities given the choice specific value functions
     `Vals`. Probabilities are degenerate if sigma == 0.0.
@@ -4407,7 +4285,7 @@ def calcChoiceProbs(Vals, sigma):
     return Probs
 
 
-def calcLogSum(Vals, sigma):
+def calc_log_sum(Vals, sigma):
     """
     Returns the optimal value given the choice specific value functions Vals.
     Parameters
@@ -4437,6 +4315,188 @@ def calcLogSum(Vals, sigma):
     LogSumV = maxV + sigma * LogSumV
     return LogSumV
 
+###############################################################################
+# Tools for value and marginal-value functions in models where                #
+# - dvdm = u'(c).                                                             #
+# - u is of the CRRA family.                                                  #
+###############################################################################
+
+class ValueFuncCRRA(MetricObject):
+    """
+    A class for representing a value function.  The underlying interpolation is
+    in the space of (state,u_inv(v)); this class "re-curves" to the value function.
+
+    Parameters
+    ----------
+    vFuncNvrs : function
+        A real function representing the value function composed with the
+        inverse utility function, defined on the state: u_inv(vFunc(state))
+    CRRA : float
+        Coefficient of relative risk aversion.
+    """
+
+    distance_criteria = ["func", "CRRA"]
+
+    def __init__(self, vFuncNvrs, CRRA):
+        self.func = deepcopy(vFuncNvrs)
+        self.CRRA = CRRA
+
+    def __call__(self, *vFuncArgs):
+        """
+        Evaluate the value function at given levels of market resources m.
+
+        Parameters
+        ----------
+        vFuncArgs : floats or np.arrays, all of the same dimensions.
+            Values for the state variables. These usually start with 'm',
+            market resources normalized by the level of permanent income.
+
+        Returns
+        -------
+        v : float or np.array
+            Lifetime value of beginning this period with the given states; has
+            same size as the state inputs.
+        """
+        return CRRAutility(self.func(*vFuncArgs), gam=self.CRRA)
+
+
+class MargValueFuncCRRA(MetricObject):
+    """
+    A class for representing a marginal value function in models where the
+    standard envelope condition of dvdm(state) = u'(c(state)) holds (with CRRA utility).
+
+    Parameters
+    ----------
+    cFunc : function.
+        Its first argument must be normalized market resources m.
+        A real function representing the marginal value function composed
+        with the inverse marginal utility function, defined on the state
+        variables: uP_inv(dvdmFunc(state)).  Called cFunc because when standard
+        envelope condition applies, uP_inv(dvdm(state)) = cFunc(state).
+    CRRA : float
+        Coefficient of relative risk aversion.
+    """
+
+    distance_criteria = ["cFunc", "CRRA"]
+
+    def __init__(self, cFunc, CRRA):
+        self.cFunc = deepcopy(cFunc)
+        self.CRRA = CRRA
+
+    def __call__(self, *cFuncArgs):
+        """
+        Evaluate the marginal value function at given levels of market resources m.
+
+        Parameters
+        ----------
+        cFuncArgs : floats or np.arrays
+            Values of the state variables at which to evaluate the marginal
+            value function.
+
+        Returns
+        -------
+        vP : float or np.array
+            Marginal lifetime value of beginning this period with state
+            cFuncArgs
+        """
+        return CRRAutilityP(self.cFunc(*cFuncArgs), gam=self.CRRA)
+    
+    def derivativeX(self, *cFuncArgs):
+        """
+        Evaluate the derivative of the marginal value function with respect to
+        market resources at given state; this is the marginal marginal value
+        function.
+
+        Parameters
+        ----------
+        cFuncArgs : floats or np.arrays
+            State variables.
+
+        Returns
+        -------
+        vPP : float or np.array
+            Marginal marginal lifetime value of beginning this period with
+            state cFuncArgs; has same size as inputs.
+
+        """
+        
+        # The derivative method depends on the dimension of the function
+        if isinstance(self.cFunc, (HARKinterpolator1D)):
+            c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
+
+        elif hasattr(self.cFunc, 'derivativeX'):
+            c = self.cFunc(*cFuncArgs)
+            MPC = self.cFunc.derivativeX(*cFuncArgs)
+
+        else:
+            raise Exception(
+                "cFunc does not have a 'derivativeX' attribute. Can't compute"
+                + "marginal marginal value."
+            )
+
+        return MPC * CRRAutilityPP(c, gam=self.CRRA)
+
+
+class MargMargValueFuncCRRA(MetricObject):
+    """
+    A class for representing a marginal marginal value function in models where
+    the standard envelope condition of dvdm = u'(c(state)) holds (with CRRA utility).
+
+    Parameters
+    ----------
+    cFunc : function.
+        Its first argument must be normalized market resources m.
+        A real function representing the marginal value function composed
+        with the inverse marginal utility function, defined on the state
+        variables: uP_inv(dvdmFunc(state)).  Called cFunc because when standard
+        envelope condition applies, uP_inv(dvdm(state)) = cFunc(state).
+    CRRA : float
+        Coefficient of relative risk aversion.
+    """
+
+    distance_criteria = ["cFunc", "CRRA"]
+
+    def __init__(self, cFunc, CRRA):
+        self.cFunc = deepcopy(cFunc)
+        self.CRRA = CRRA
+
+    def __call__(self, *cFuncArgs):
+        """
+        Evaluate the marginal marginal value function at given levels of market
+        resources m.
+
+        Parameters
+        ----------
+        m : float or np.array
+            Market resources (normalized by permanent income) whose marginal
+            marginal value is to be found.
+
+        Returns
+        -------
+        vPP : float or np.array
+            Marginal marginal lifetime value of beginning this period with market
+            resources m; has same size as input m.
+        """
+
+        # The derivative method depends on the dimension of the function
+        if isinstance(self.cFunc, (HARKinterpolator1D)):
+            c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
+
+        elif hasattr(self.cFunc, 'derivativeX'):
+            c = self.cFunc(*cFuncArgs)
+            MPC = self.cFunc.derivativeX(*cFuncArgs)
+
+        else:
+            raise Exception(
+                "cFunc does not have a 'derivativeX' attribute. Can't compute"
+                + "marginal marginal value."
+            )
+
+        return MPC * CRRAutilityPP(c, gam=self.CRRA)
+
+##############################################################################
+# Examples and tests
+##############################################################################
 
 def main():
     print("Sorry, HARK.interpolation doesn't actually do much on its own.")

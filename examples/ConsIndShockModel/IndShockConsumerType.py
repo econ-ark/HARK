@@ -243,20 +243,20 @@ plotFuncs(IndShockExample.solution[0].cFunc.functions,-0.25,5.)
 # These example parameter values were already passed as part of the parameter dictionary that we used to create $\texttt{IndShockExample}$, so it is ready to simulate.  We need to set the $\texttt{track_vars}$ attribute to indicate the variables for which we want to record a *history*.
 
 # %%
-IndShockExample.track_vars = ['aNrmNow','mNrmNow','cNrmNow','pLvlNow']
-IndShockExample.initializeSim()
+IndShockExample.track_vars = ['aNrmNow','mNrm','cNrm','pLvl']
+IndShockExample.initialize_sim()
 IndShockExample.simulate()
 
 # %% [markdown]
 # We can now look at the simulated data in aggregate or at the individual consumer level.  Like in the perfect foresight model, we can plot average (normalized) market resources over time, as well as average consumption:
 
 # %%
-plt.plot(np.mean(IndShockExample.history['mNrmNow'],axis=1))
+plt.plot(np.mean(IndShockExample.history['mNrm'],axis=1))
 plt.xlabel('Time')
 plt.ylabel('Mean market resources')
 plt.show()
 
-plt.plot(np.mean(IndShockExample.history['cNrmNow'],axis=1))
+plt.plot(np.mean(IndShockExample.history['cNrm'],axis=1))
 plt.xlabel('Time')
 plt.ylabel('Mean consumption')
 plt.show()
@@ -265,7 +265,7 @@ plt.show()
 # We could also plot individual consumption paths for some of the consumers-- say, the first five:
 
 # %%
-plt.plot(IndShockExample.history['cNrmNow'][:,0:5])
+plt.plot(IndShockExample.history['cNrm'][:,0:5])
 plt.xlabel('Time')
 plt.ylabel('Individual consumption paths')
 plt.show()

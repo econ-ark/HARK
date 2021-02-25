@@ -15,17 +15,17 @@ class testIndShockConsumerType(unittest.TestCase):
 
         self.agent.solve()
 
-    def test_getShocks(self):
-        self.agent.initializeSim()
-        self.agent.simBirth(np.array([True, False]))
-        self.agent.simOnePeriod()
-        self.agent.simBirth(np.array([False, True]))
+    def test_get_shocks(self):
+        self.agent.initialize_sim()
+        self.agent.sim_birth(np.array([True, False]))
+        self.agent.sim_one_period()
+        self.agent.sim_birth(np.array([False, True]))
 
-        self.agent.getShocks()
+        self.agent.get_shocks()
 
-        self.assertEqual(self.agent.shocks["PermShkNow"][0], 1.0427376294215103)
-        self.assertEqual(self.agent.shocks["PermShkNow"][1], 0.9278094171517413)
-        self.assertEqual(self.agent.shocks["TranShkNow"][0], 0.881761797501595)
+        self.assertEqual(self.agent.shocks['PermShk'][0], 1.0427376294215103)
+        self.assertEqual(self.agent.shocks['PermShk'][1], 0.9278094171517413)
+        self.assertEqual(self.agent.shocks['TranShk'][0], 0.881761797501595)
 
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerType(**init_lifecycle)
@@ -33,25 +33,25 @@ class testIndShockConsumerType(unittest.TestCase):
         LifecycleExample.solve()
 
         # test the solution_terminal
-        self.assertAlmostEqual(LifecycleExample.solution[10].cFunc(2).tolist(), 2)
+        self.assertAlmostEqual(LifecycleExample.solution[-1].cFunc(2).tolist(), 2)
 
-        self.assertAlmostEqual(LifecycleExample.solution[9].cFunc(1), 0.97769632)
-        self.assertAlmostEqual(LifecycleExample.solution[8].cFunc(1), 0.96624445)
-        self.assertAlmostEqual(LifecycleExample.solution[7].cFunc(1), 0.95691449)
+        self.assertAlmostEqual(LifecycleExample.solution[9].cFunc(1), 0.89066194)
+        self.assertAlmostEqual(LifecycleExample.solution[8].cFunc(1), 0.89144313)
+        self.assertAlmostEqual(LifecycleExample.solution[7].cFunc(1), 0.89210133)
 
         self.assertAlmostEqual(
-            LifecycleExample.solution[0].cFunc(1).tolist(), 0.87362789
+            LifecycleExample.solution[0].cFunc(1).tolist(), 0.8928547282397321
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[1].cFunc(1).tolist(), 0.9081621
+            LifecycleExample.solution[1].cFunc(1).tolist(), 0.8930303445748624
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[2].cFunc(1).tolist(), 0.9563899
+            LifecycleExample.solution[2].cFunc(1).tolist(), 0.8933075371183773
         )
 
         solver = ConsIndShockSolverBasic(
             LifecycleExample.solution[1],
-            LifecycleExample.IncomeDstn[0],
+            LifecycleExample.IncShkDstn[0],
             LifecycleExample.LivPrb[0],
             LifecycleExample.DiscFac,
             LifecycleExample.CRRA,
@@ -65,31 +65,31 @@ class testIndShockConsumerType(unittest.TestCase):
 
         solver.prepareToSolve()
 
-        self.assertAlmostEqual(solver.DiscFacEff, 0.9503999999999999)
-        self.assertAlmostEqual(solver.PermShkMinNext, 0.850430160026919)
+        self.assertAlmostEqual(solver.DiscFacEff, 0.9586233599999999)
+        self.assertAlmostEqual(solver.PermShkMinNext, 0.9037554719886154)
         self.assertAlmostEqual(solver.cFuncNowCnst(4).tolist(), 4.0)
-        self.assertAlmostEqual(solver.prepareToCalcEndOfPrdvP()[0], -0.2491750859108316)
-        self.assertAlmostEqual(solver.prepareToCalcEndOfPrdvP()[-1], 19.74982491408914)
+        self.assertAlmostEqual(solver.prepareToCalcEndOfPrdvP()[0], -0.2732742703949109)
+        self.assertAlmostEqual(solver.prepareToCalcEndOfPrdvP()[-1], 19.72572572960506)
 
         EndOfPrdvP = solver.calcEndOfPrdvP()
 
-        self.assertAlmostEqual(EndOfPrdvP[0], 6622.251864311334)
-        self.assertAlmostEqual(EndOfPrdvP[-1], 0.026301061207747087)
+        self.assertAlmostEqual(EndOfPrdvP[0], 6710.672670733023)
+        self.assertAlmostEqual(EndOfPrdvP[-1], 0.14122987153089447)
 
         solution = solver.makeBasicSolution(
             EndOfPrdvP, solver.aNrmNow, solver.makeLinearcFunc
         )
         solver.addMPCandHumanWealth(solution)
 
-        self.assertAlmostEqual(solution.cFunc(4).tolist(), 1.7391265696400773)
+        self.assertAlmostEqual(solution.cFunc(4).tolist(), 1.484118342351686)
 
     def test_simulated_values(self):
-        self.agent.initializeSim()
+        self.agent.initialize_sim()
         self.agent.simulate()
 
         self.assertAlmostEqual(self.agent.MPCnow[1], 0.5711503906043797)
 
-        self.assertAlmostEqual(self.agent.state_now['aLvlNow'][1], 0.18438326264597635)
+        self.assertAlmostEqual(self.agent.state_now['aLvl'][1], 0.18438326264597635)
 
 
 class testBufferStock(unittest.TestCase):
@@ -237,12 +237,12 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
             IndShockExample.solution[0].cFunc.functions[0].x_list[0], -0.25017509
         )
 
-        IndShockExample.track_vars = ["aNrmNow", "mNrmNow", "cNrmNow", "pLvlNow"]
-        IndShockExample.initializeSim()
+        IndShockExample.track_vars = ['aNrm', "mNrm", "cNrm", 'pLvl']
+        IndShockExample.initialize_sim()
         IndShockExample.simulate()
 
         self.assertAlmostEqual(
-            IndShockExample.history["mNrmNow"][0][0], 1.0170176090252379
+            IndShockExample.history["mNrm"][0][0], 1.0170176090252379
         )
 
 

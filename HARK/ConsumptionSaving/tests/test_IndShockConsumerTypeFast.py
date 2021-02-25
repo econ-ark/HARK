@@ -19,17 +19,17 @@ class testIndShockConsumerTypeFast(unittest.TestCase):
 
         self.agent.solve()
 
-    def test_getShocks(self):
-        self.agent.initializeSim()
-        self.agent.simBirth(np.array([True, False]))
-        self.agent.simOnePeriod()
-        self.agent.simBirth(np.array([False, True]))
+    def test_get_shocks(self):
+        self.agent.initialize_sim()
+        self.agent.sim_birth(np.array([True, False]))
+        self.agent.sim_one_period()
+        self.agent.sim_birth(np.array([False, True]))
 
-        self.agent.getShocks()
+        self.agent.get_shocks()
 
-        self.assertEqual(self.agent.shocks['PermShkNow'][0], 1.0427376294215103)
-        self.assertEqual(self.agent.shocks['PermShkNow'][1], 0.9278094171517413)
-        self.assertEqual(self.agent.shocks['TranShkNow'][0], 0.881761797501595)
+        self.assertEqual(self.agent.shocks['PermShk'][0], 1.0427376294215103)
+        self.assertEqual(self.agent.shocks['PermShk'][1], 0.9278094171517413)
+        self.assertEqual(self.agent.shocks['TranShk'][0], 0.881761797501595)
 
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerTypeFast(**init_lifecycle)
@@ -37,28 +37,28 @@ class testIndShockConsumerTypeFast(unittest.TestCase):
         LifecycleExample.solve()
 
         # test the solution_terminal
-        self.assertAlmostEqual(LifecycleExample.solution[10].cFunc(2).tolist(), 2)
+        self.assertAlmostEqual(LifecycleExample.solution[-1].cFunc(2).tolist(), 2)
 
-        self.assertAlmostEqual(LifecycleExample.solution[9].cFunc(1), 0.97769632)
-        self.assertAlmostEqual(LifecycleExample.solution[8].cFunc(1), 0.96624445)
-        self.assertAlmostEqual(LifecycleExample.solution[7].cFunc(1), 0.95691449)
+        self.assertAlmostEqual(LifecycleExample.solution[9].cFunc(1), 0.89066194)
+        self.assertAlmostEqual(LifecycleExample.solution[8].cFunc(1), 0.89144313)
+        self.assertAlmostEqual(LifecycleExample.solution[7].cFunc(1), 0.89210133)
 
         self.assertAlmostEqual(
-            LifecycleExample.solution[0].cFunc(1).tolist(), 0.87362789
+            LifecycleExample.solution[0].cFunc(1).tolist(), 0.8928547282397321
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[1].cFunc(1).tolist(), 0.9081621
+            LifecycleExample.solution[1].cFunc(1).tolist(), 0.8930303445748624
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[2].cFunc(1).tolist(), 0.9563899
+            LifecycleExample.solution[2].cFunc(1).tolist(), 0.8933075371183773
         )
 
     def test_simulated_values(self):
-        self.agent.initializeSim()
+        self.agent.initialize_sim()
         self.agent.simulate()
         self.assertAlmostEqual(self.agent.MPCnow[1], 0.5711503906043797)
 
-        self.assertAlmostEqual(self.agent.state_now['aLvlNow'][1], 0.18438326264597635)
+        self.assertAlmostEqual(self.agent.state_now['aLvl'][1], 0.18438326264597635)
 
 
 class testBufferStock(unittest.TestCase):
@@ -165,12 +165,12 @@ class testIndShockConsumerTypeFastExample(unittest.TestCase):
             IndShockExample.solution[0].cFunc.functions[0].x_list[0], -0.25017509
         )
 
-        IndShockExample.track_vars = ["aNrmNow", "mNrmNow", "cNrmNow", "pLvlNow"]
-        IndShockExample.initializeSim()
+        IndShockExample.track_vars = ['aNrm', "mNrm", 'cNrm', 'pLvl']
+        IndShockExample.initialize_sim()
         IndShockExample.simulate()
 
         self.assertAlmostEqual(
-            IndShockExample.history["mNrmNow"][0][0], 1.0170176090252379
+            IndShockExample.history["mNrm"][0][0], 1.0170176090252379
         )
 
 

@@ -304,8 +304,8 @@ if ExplicitExample.vFuncBool:
 # %%
 # Simulate many periods to get to the stationary distribution
 ExplicitExample.T_sim = 500
-ExplicitExample.track_vars = ['mLvlNow','cLvlNow','pLvlNow']
-ExplicitExample.initializeSim()
+ExplicitExample.track_vars = ['mLvlNow','cLvlNow','pLvl']
+ExplicitExample.initialize_sim()
 ExplicitExample.simulate()
 plt.plot(np.mean(ExplicitExample.history['mLvlNow'],axis=1))
 plt.xlabel('Simulated time period')
@@ -390,8 +390,8 @@ if PersistentExample.vFuncBool:
 # %%
 # Simulate some data
 PersistentExample.T_sim = 500
-PersistentExample.track_vars = ['mLvlNow','cLvlNow','pLvlNow']
-PersistentExample.initializeSim()
+PersistentExample.track_vars = ['mLvlNow','cLvlNow','pLvl']
+PersistentExample.initialize_sim()
 PersistentExample.simulate()
 plt.plot(np.mean(PersistentExample.history['mLvlNow'],axis=1))
 plt.xlabel('Simulated time period')

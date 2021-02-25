@@ -60,44 +60,44 @@ class testPerfForesightConsumerType(unittest.TestCase):
             "T_age": None,  # Age after which simulated agents are automatically killed
         }
 
-        self.agent_infinite(
+        self.agent_infinite.assign_parameters(
             **SimulationParams
-        )  # This implicitly uses the assignParameters method of AgentType
+        )  # This implicitly uses the assign_parameters method of AgentType
 
         # Create PFexample object
-        self.agent_infinite.track_vars = ["mNrmNow"]
-        self.agent_infinite.initializeSim()
+        self.agent_infinite.track_vars = ["mNrm"]
+        self.agent_infinite.initialize_sim()
         self.agent_infinite.simulate()
 
         self.assertAlmostEqual(
-            np.mean(self.agent_infinite.history["mNrmNow"], axis=1)[40],
+            np.mean(self.agent_infinite.history["mNrm"], axis=1)[40],
             -23.008063500363942,
         )
 
         self.assertAlmostEqual(
-            np.mean(self.agent_infinite.history["mNrmNow"], axis=1)[100],
+            np.mean(self.agent_infinite.history["mNrm"], axis=1)[100],
             -27.164608851546927,
         )
 
         ## Try now with the manipulation at time step 80
 
-        self.agent_infinite.initializeSim()
+        self.agent_infinite.initialize_sim()
         self.agent_infinite.simulate(80)
 
         # This actually does nothing because aNrmNow is
         # epiphenomenal. Probably should change mNrmNow instead
-        self.agent_infinite.state_now['aNrmNow'] += (
+        self.agent_infinite.state_now['aNrm'] += (
             -5.0
         )
         self.agent_infinite.simulate(40)
 
         self.assertAlmostEqual(
-            np.mean(self.agent_infinite.history["mNrmNow"], axis=1)[40],
+            np.mean(self.agent_infinite.history["mNrm"], axis=1)[40],
             -23.008063500363942,
         )
 
         self.assertAlmostEqual(
-            np.mean(self.agent_infinite.history["mNrmNow"], axis=1)[100],
+            np.mean(self.agent_infinite.history["mNrm"], axis=1)[100],
             -29.140261331951606,
         )
         

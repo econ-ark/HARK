@@ -20,18 +20,22 @@ from interpolation import interp
 from numba import njit
 from quantecon.optimize import newton_secant
 
-from HARK import makeOnePeriodOOSolver, HARKobject
+from HARK import make_one_period_oo_solver, MetricObject
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
-    ValueFunc,
-    MargValueFunc,
-    MargMargValueFunc,
     ConsPerfForesightSolver,
     ConsIndShockSolverBasic,
     PerfForesightConsumerType,
     IndShockConsumerType,
 )
-from HARK.interpolation import LinearInterp, LowerEnvelope, CubicInterp
+from HARK.interpolation import (
+    LinearInterp,
+    LowerEnvelope,
+    CubicInterp,
+    ValueFuncCRRA,
+    MargValueFuncCRRA,
+    MargMargValueFuncCRRA
+)
 from HARK.numba import (
     CRRAutility,
     CRRAutilityP,
@@ -41,7 +45,7 @@ from HARK.numba import (
     CRRAutility_inv,
     CRRAutilityP_invP,
 )
-from HARK.numba import LinearInterpFast, CubicInterpFast, LinearInterpDerivFast
+from HARK.numba import linear_interp_fast, cubic_interp_fast, linear_interp_deriv_fast
 
 __all__ = [
     "PerfForesightSolution",
@@ -67,13 +71,34 @@ utilityP_invP = CRRAutilityP_invP
 # =====================================================================
 
 
-class PerfForesightSolution(HARKobject):
+class PerfForesightSolution(MetricObject):
     """
     A class representing the solution of a single period of a consumption-saving
     perfect foresight problem.
 
     Here and elsewhere in the code, Nrm indicates that variables are normalized
     by permanent income.
+
+    Parameters
+    ----------
+    mNrm: np.array
+        (Normalized) corresponding market resource points for interpolation.
+    cNrm : np.array
+        (Normalized) consumption points for interpolation.
+    vFuncNvrsSlope: float
+        Constant slope of inverse value vFuncNvrs
+    mNrmMin : float
+        The minimum allowable market resources for this period; the consump-
+        tion function (etc) are undefined for m < mNrmMin.
+    hNrm : float
+        Human wealth after receiving income this period: PDV of all future
+        income, ignoring mortality.
+    MPCmin : float
+        Infimum of the marginal propensity to consume this period.
+        MPC --> MPCmin as m --> infinity.
+    MPCmax : float
+        Supremum of the marginal propensity to consume this period.
+        MPC --> MPCmax as m --> mNrmMin.
     """
 
     distance_criteria = ["cNrm", "mNrm"]
@@ -88,34 +113,6 @@ class PerfForesightSolution(HARKobject):
         MPCmin=1.0,
         MPCmax=1.0,
     ):
-        """
-        The constructor for a new PerfForesightSolution object.
-
-        Parameters
-        ----------
-        mNrm: np.array
-            (Normalized) corresponding market resource points for interpolation.
-        cNrm : np.array
-            (Normalized) consumption points for interpolation.
-        vFuncNvrsSlope: float
-            Constant slope of inverse value vFuncNvrs
-        mNrmMin : float
-            The minimum allowable market resources for this period; the consump-
-            tion function (etc) are undefined for m < mNrmMin.
-        hNrm : float
-            Human wealth after receiving income this period: PDV of all future
-            income, ignoring mortality.
-        MPCmin : float
-            Infimum of the marginal propensity to consume this period.
-            MPC --> MPCmin as m --> infinity.
-        MPCmax : float
-            Supremum of the marginal propensity to consume this period.
-            MPC --> MPCmax as m --> mNrmMin.
-
-        Returns
-        -------
-        None
-        """
         self.mNrm = mNrm
         self.cNrm = cNrm
         self.vFuncNvrsSlope = vFuncNvrsSlope
@@ -125,10 +122,31 @@ class PerfForesightSolution(HARKobject):
         self.MPCmax = MPCmax
 
 
-class IndShockSolution(HARKobject):
+class IndShockSolution(MetricObject):
     """
     A class representing the solution of a single period of a consumption-saving
     idiosyncratic shocks to permanent and transitory income problem.
+
+    Parameters
+    ----------
+    mNrm: np.array
+        (Normalized) corresponding market resource points for interpolation.
+    cNrm : np.array
+        (Normalized) consumption points for interpolation.
+    vFuncNvrsSlope: float
+        Constant slope of inverse value vFuncNvrs
+    mNrmMin : float
+        The minimum allowable market resources for this period; the consump-
+        tion function (etc) are undefined for m < mNrmMin.
+    hNrm : float
+        Human wealth after receiving income this period: PDV of all future
+        income, ignoring mortality.
+    MPCmin : float
+        Infimum of the marginal propensity to consume this period.
+        MPC --> MPCmin as m --> infinity.
+    MPCmax : float
+        Supremum of the marginal propensity to consume this period.
+        MPC --> MPCmax as m --> mNrmMin.
     """
 
     distance_criteria = ["cNrm", "mNrm", "mNrmMin"]
@@ -150,34 +168,6 @@ class IndShockSolution(HARKobject):
         vNvrsP=None,
         MPCminNvrs=None,
     ):
-        """
-        The constructor for a new ConsumerSolution object.
-
-        Parameters
-        ----------
-        mNrm: np.array
-            (Normalized) corresponding market resource points for interpolation.
-        cNrm : np.array
-            (Normalized) consumption points for interpolation.
-        vFuncNvrsSlope: float
-            Constant slope of inverse value vFuncNvrs
-        mNrmMin : float
-            The minimum allowable market resources for this period; the consump-
-            tion function (etc) are undefined for m < mNrmMin.
-        hNrm : float
-            Human wealth after receiving income this period: PDV of all future
-            income, ignoring mortality.
-        MPCmin : float
-            Infimum of the marginal propensity to consume this period.
-            MPC --> MPCmin as m --> infinity.
-        MPCmax : float
-            Supremum of the marginal propensity to consume this period.
-            MPC --> MPCmax as m --> mNrmMin.
-
-        Returns
-        -------
-        None
-        """
         self.mNrm = mNrm
         self.cNrm = cNrm
         self.cFuncLimitIntercept = cFuncLimitIntercept
@@ -545,8 +535,8 @@ def _solveConsIndShockLinearNumba(
 
     mNrmCnst = np.array([mNrmMinNext, mNrmMinNext + 1])
     cNrmCnst = np.array([0.0, 1.0])
-    cFuncNextCnst = LinearInterpFast(mNrmNext.flatten(), mNrmCnst, cNrmCnst)
-    cFuncNextUnc = LinearInterpFast(
+    cFuncNextCnst = linear_interp_fast(mNrmNext.flatten(), mNrmCnst, cNrmCnst)
+    cFuncNextUnc = linear_interp_fast(
         mNrmNext.flatten(), mNrmUnc, cNrmUnc, cFuncInterceptNext, cFuncSlopeNext
     )
     cFuncNext = np.minimum(cFuncNextCnst, cFuncNextUnc)
@@ -595,9 +585,9 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
         none
         """
 
-        self.ShkPrbsNext = self.IncomeDstn.pmf
-        self.PermShkValsNext = self.IncomeDstn.X[0]
-        self.TranShkValsNext = self.IncomeDstn.X[1]
+        self.ShkPrbsNext = self.IncShkDstn.pmf
+        self.PermShkValsNext = self.IncShkDstn.X[0]
+        self.TranShkValsNext = self.IncShkDstn.X[1]
 
         (
             self.DiscFacEff,
@@ -697,10 +687,10 @@ def _solveConsIndShockCubicNumba(
 ):
     mNrmCnst = np.array([mNrmMinNext, mNrmMinNext + 1])
     cNrmCnst = np.array([0.0, 1.0])
-    cFuncNextCnst, MPCNextCnst = LinearInterpDerivFast(
+    cFuncNextCnst, MPCNextCnst = linear_interp_deriv_fast(
         mNrmNext.flatten(), mNrmCnst, cNrmCnst
     )
-    cFuncNextUnc, MPCNextUnc = CubicInterpFast(
+    cFuncNextUnc, MPCNextUnc = cubic_interp_fast(
         mNrmNext.flatten(),
         mNrmUnc,
         cNrmUnc,
@@ -755,8 +745,8 @@ def _cFuncCubic(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCNow, MPCminNow, hNrm
     mNrmGrid = mNrmMinNow + aXtraGrid
     mNrmCnst = np.array([mNrmMinNow, mNrmMinNow + 1])
     cNrmCnst = np.array([0.0, 1.0])
-    cFuncNowCnst = LinearInterpFast(mNrmGrid.flatten(), mNrmCnst, cNrmCnst)
-    cFuncNowUnc, MPCNowUnc = CubicInterpFast(
+    cFuncNowCnst = linear_interp_fast(mNrmGrid.flatten(), mNrmCnst, cNrmCnst)
+    cFuncNowUnc, MPCNowUnc = cubic_interp_fast(
         mNrmGrid.flatten(), mNrmNow, cNrmNow, MPCNow, MPCminNow * hNrmNow, MPCminNow
     )
 
@@ -770,8 +760,8 @@ def _cFuncLinear(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCminNow, hNrmNow):
     mNrmGrid = mNrmMinNow + aXtraGrid
     mNrmCnst = np.array([mNrmMinNow, mNrmMinNow + 1])
     cNrmCnst = np.array([0.0, 1.0])
-    cFuncNowCnst = LinearInterpFast(mNrmGrid.flatten(), mNrmCnst, cNrmCnst)
-    cFuncNowUnc = LinearInterpFast(
+    cFuncNowCnst = linear_interp_fast(mNrmGrid.flatten(), mNrmCnst, cNrmCnst)
+    cFuncNowUnc = linear_interp_fast(
         mNrmGrid.flatten(), mNrmNow, cNrmNow, MPCminNow * hNrmNow, MPCminNow
     )
 
@@ -809,7 +799,7 @@ def _addvFuncNumba(
 
     # vFunc always cubic
 
-    vNvrsFuncNow, _ = CubicInterpFast(
+    vNvrsFuncNow, _ = cubic_interp_fast(
         mNrmNext.flatten(),
         mNrmGridNext,
         vNvrsNext,
@@ -843,7 +833,7 @@ def _addvFuncNumba(
 
     aNrmNow = mNrmGrid - cFuncNow
 
-    EndOfPrdvNvrsFunc, _ = CubicInterpFast(
+    EndOfPrdvNvrsFunc, _ = cubic_interp_fast(
         aNrmNow, aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP
     )
     EndOfPrdvFunc = utility(EndOfPrdvNvrsFunc, CRRA)
@@ -903,8 +893,8 @@ def _searchSSfuncLinear(
 
     mNrmCnst = np.array([mNrmMin, mNrmMin + 1])
     cNrmCnst = np.array([0.0, 1.0])
-    cFuncNowCnst = LinearInterpFast(np.array([m]), mNrmCnst, cNrmCnst)
-    cFuncNowUnc = LinearInterpFast(np.array([m]), mNrm, cNrm, MPCmin * hNrm, MPCmin)
+    cFuncNowCnst = linear_interp_fast(np.array([m]), mNrmCnst, cNrmCnst)
+    cFuncNowUnc = linear_interp_fast(np.array([m]), mNrm, cNrm, MPCmin * hNrm, MPCmin)
 
     cNrmNow = np.where(cFuncNowCnst <= cFuncNowUnc, cFuncNowCnst, cFuncNowUnc)
 
@@ -923,8 +913,8 @@ def _searchSSfuncCubic(
 
     mNrmCnst = np.array([mNrmMin, mNrmMin + 1])
     cNrmCnst = np.array([0.0, 1.0])
-    cFuncNowCnst = LinearInterpFast(np.array([m]), mNrmCnst, cNrmCnst)
-    cFuncNowUnc, MPCNowUnc = CubicInterpFast(
+    cFuncNowCnst = linear_interp_fast(np.array([m]), mNrmCnst, cNrmCnst)
+    cFuncNowUnc, MPCNowUnc = cubic_interp_fast(
         np.array([m]), mNrm, cNrm, MPC, MPCmin * hNrm, MPCmin
     )
 
@@ -1096,7 +1086,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
     def __init__(self, **kwargs):
         PerfForesightConsumerType.__init__(self, **kwargs)
 
-        self.solveOnePeriod = makeOnePeriodOOSolver(ConsPerfForesightSolverFast)
+        self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolverFast)
 
     def updateSolutionTerminal(self):
         """
@@ -1106,16 +1096,16 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
 
         self.solution_terminal_cs = ConsumerSolution(
             cFunc=self.cFunc_terminal_,
-            vFunc=ValueFunc(self.cFunc_terminal_, self.CRRA),
-            vPfunc=MargValueFunc(self.cFunc_terminal_, self.CRRA),
-            vPPfunc=MargMargValueFunc(self.cFunc_terminal_, self.CRRA),
+            vFunc=ValueFuncCRRA(self.cFunc_terminal_, self.CRRA),
+            vPfunc=MargValueFuncCRRA(self.cFunc_terminal_, self.CRRA),
+            vPPfunc=MargMargValueFuncCRRA(self.cFunc_terminal_, self.CRRA),
             mNrmMin=0.0,
             hNrm=0.0,
             MPCmin=1.0,
             MPCmax=1.0,
         )
 
-    def postSolve(self):
+    def post_solve(self):
         self.solution_fast = deepcopy(self.solution)
 
         if self.cycles == 0:
@@ -1148,8 +1138,8 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
                 np.array([solution.mNrmMin, solution.mNrmMin + 1.0]),
                 np.array([0.0, solution.vFuncNvrsSlope]),
             )
-            vFunc = ValueFunc(vFuncNvrs, self.CRRA)
-            vPfunc = MargValueFunc(cFunc, self.CRRA)
+            vFunc = ValueFuncCRRA(vFuncNvrs, self.CRRA)
+            vPfunc = MargValueFuncCRRA(cFunc, self.CRRA)
 
             consumer_solution = ConsumerSolution(
                 cFunc=cFunc,
@@ -1189,7 +1179,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
         else:  # Use the "advanced" solver if either is requested
             solver = ConsIndShockSolverFast
 
-        self.solveOnePeriod = makeOnePeriodOOSolver(solver)
+        self.solve_one_period = make_one_period_oo_solver(solver)
 
     def updateSolutionTerminal(self):
         PerfForesightConsumerTypeFast.updateSolutionTerminal(self)
@@ -1202,7 +1192,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
             self.solution_terminal.vNvrsP = utilityP(np.linspace(0.0, 1.0), self.CRRA)
             self.solution_terminal.mNrmGrid = np.linspace(0.0, 1.0)
 
-    def postSolve(self):
+    def post_solve(self):
         self.solution_fast = deepcopy(self.solution)
 
         if self.cycles == 0:
@@ -1250,7 +1240,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                 cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst)
 
                 # Make the marginal value function and the marginal marginal value function
-                vPfuncNow = MargValueFunc(cFuncNow, self.CRRA)
+                vPfuncNow = MargValueFuncCRRA(cFuncNow, self.CRRA)
 
                 # Pack up the solution and return it
                 consumer_solution = ConsumerSolution(
@@ -1270,7 +1260,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                         solution.MPCminNvrs * solution.hNrm,
                         solution.MPCminNvrs,
                     )
-                    vFuncNow = ValueFunc(vNvrsFuncNow, self.CRRA)
+                    vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA)
 
                     consumer_solution.vFunc = vFuncNow
 

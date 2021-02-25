@@ -6,23 +6,18 @@ asset (with a low return), and saving in a risky asset (with higher average retu
 import numpy as np
 from scipy.optimize import minimize_scalar
 from copy import deepcopy
-from HARK import HARKobject, NullFunc, AgentType  # Basic HARK features
+from HARK import MetricObject, NullFunc, AgentType  # Basic HARK features
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
-    ValueFunc,  # For representing 1D value function
-    MargValueFunc,  # For representing 1D marginal value function
     utility,  # CRRA utility function
     utility_inv,  # Inverse CRRA utility function
     utilityP,  # CRRA marginal utility function
     utility_invP,  # Derivative of inverse CRRA utility function
     utilityP_inv,  # Inverse CRRA marginal utility function
-    init_idiosyncratic_shocks,  # Baseline dictionary to build on
+    init_idiosyncratic_shocks  # Baseline dictionary to build on
 )
-from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
-    ValueFunc2D,  # For representing 2D value function
-    MargValueFunc2D,  # For representing 2D marginal value function
-)
-from HARK.distribution import combineIndepDstns
+
+from HARK.distribution import combine_indep_dstns
 from HARK.distribution import Lognormal, Bernoulli  # Random draws for simulating agents
 from HARK.interpolation import (
     LinearInterp,  # Piecewise linear interpolation
@@ -31,11 +26,13 @@ from HARK.interpolation import (
     BilinearInterp,  # 2D interpolator
     ConstantFunction,  # Interpolator-like class that returns constant value
     IdentityFunction,  # Interpolator-like class that returns one of its arguments
+    ValueFuncCRRA,
+    MargValueFuncCRRA
 )
 
 
 # Define a class to represent the single period solution of the portfolio choice problem
-class PortfolioSolution(HARKobject):
+class PortfolioSolution(MetricObject):
     """
     A class for representing the single period solution of the portfolio choice model.
 
@@ -47,10 +44,10 @@ class PortfolioSolution(HARKobject):
     ShareFuncAdj : Interp1D
         Risky share function over normalized market resources when the agent is able
         to adjust their portfolio shares.
-    vFuncAdj : ValueFunc
+    vFuncAdj : ValueFuncCRRA
         Value function over normalized market resources when the agent is able to
         adjust their portfolio shares.
-    vPfuncAdj : MargValueFunc
+    vPfuncAdj : MargValueFuncCRRA
         Marginal value function over normalized market resources when the agent is able
         to adjust their portfolio shares.
     cFuncFxd : Interp2D
@@ -60,14 +57,14 @@ class PortfolioSolution(HARKobject):
         Risky share function over normalized market resources and risky portfolio share
         when the agent is NOT able to adjust their portfolio shares, so they are fixed.
         This should always be an IdentityFunc, by definition.
-    vFuncFxd : ValueFunc2D
+    vFuncFxd : ValueFuncCRRA
         Value function over normalized market resources and risky portfolio share when
         the agent is NOT able to adjust their portfolio shares, so they are fixed.
-    dvdmFuncFxd : MargValueFunc2D
+    dvdmFuncFxd : MargValueFuncCRRA
         Marginal value of mNrm function over normalized market resources and risky
         portfolio share when the agent is NOT able to adjust their portfolio shares,
         so they are fixed.
-    dvdsFuncFxd : MargValueFunc2D
+    dvdsFuncFxd : MargValueFuncCRRA
         Marginal value of Share function over normalized market resources and risky
         portfolio share when the agent is NOT able to adjust their portfolio shares,
         so they are fixed.
@@ -146,14 +143,14 @@ class PortfolioConsumerType(IndShockConsumerType):
             self, cycles=cycles, verbose=verbose, quiet=quiet, **kwds
         )
 
-        shock_vars = ["PermShkNow", "TranShkNow","AdjustNow","RiskyNow"]
+        shock_vars = ['PermShk', 'TranShk','Adjust','Risky']
 
         # Set the solver for the portfolio model, and update various constructed attributes
-        self.solveOnePeriod = solveConsPortfolio
+        self.solve_one_period = solveConsPortfolio
         self.update()
 
-    def preSolve(self):
-        AgentType.preSolve(self)
+    def pre_solve(self):
+        AgentType.pre_solve(self)
         self.updateSolutionTerminal()
 
     def update(self):
@@ -186,12 +183,12 @@ class PortfolioConsumerType(IndShockConsumerType):
         ShareFuncFxd_terminal = IdentityFunction(i_dim=1, n_dims=2)
 
         # Value function is simply utility from consuming market resources
-        vFuncAdj_terminal = ValueFunc(cFuncAdj_terminal, self.CRRA)
-        vFuncFxd_terminal = ValueFunc2D(cFuncFxd_terminal, self.CRRA)
+        vFuncAdj_terminal = ValueFuncCRRA(cFuncAdj_terminal, self.CRRA)
+        vFuncFxd_terminal = ValueFuncCRRA(cFuncFxd_terminal, self.CRRA)
 
         # Marginal value of market resources is marg utility at the consumption function
-        vPfuncAdj_terminal = MargValueFunc(cFuncAdj_terminal, self.CRRA)
-        dvdmFuncFxd_terminal = MargValueFunc2D(cFuncFxd_terminal, self.CRRA)
+        vPfuncAdj_terminal = MargValueFuncCRRA(cFuncAdj_terminal, self.CRRA)
+        dvdmFuncFxd_terminal = MargValueFuncCRRA(cFuncFxd_terminal, self.CRRA)
         dvdsFuncFxd_terminal = ConstantFunction(
             0.0
         )  # No future, no marg value of Share
@@ -230,13 +227,13 @@ class PortfolioConsumerType(IndShockConsumerType):
             and (len(self.RiskyAvg) == len(self.RiskyStd))
             and (len(self.RiskyAvg) == self.T_cycle)
         ):
-            self.addToTimeVary("RiskyAvg", "RiskyStd")
+            self.add_to_time_vary("RiskyAvg", "RiskyStd")
         elif (type(self.RiskyStd) is list) or (type(self.RiskyAvg) is list):
             raise AttributeError(
                 "If RiskyAvg is time-varying, then RiskyStd must be as well, and they must both have length of T_cycle!"
             )
         else:
-            self.addToTimeInv("RiskyAvg", "RiskyStd")
+            self.add_to_time_inv("RiskyAvg", "RiskyStd")
 
         # Generate a discrete approximation to the risky return distribution if the
         # agent has age-varying beliefs about the risky asset
@@ -249,7 +246,7 @@ class PortfolioConsumerType(IndShockConsumerType):
                         self.RiskyStd[t]
                     ).approx(self.RiskyCount)
                 )
-            self.addToTimeVary("RiskyDstn")
+            self.add_to_time_vary("RiskyDstn")
 
         # Generate a discrete approximation to the risky return distribution if the
         # agent does *not* have age-varying beliefs about the risky asset (base case)
@@ -258,7 +255,7 @@ class PortfolioConsumerType(IndShockConsumerType):
                 self.RiskyAvg,
                 self.RiskyStd,
             ).approx(self.RiskyCount)
-            self.addToTimeInv("RiskyDstn")
+            self.add_to_time_inv("RiskyDstn")
 
     def updateShockDstn(self):
         """
@@ -275,19 +272,19 @@ class PortfolioConsumerType(IndShockConsumerType):
         """
         if "RiskyDstn" in self.time_vary:
             self.ShockDstn = [
-                combineIndepDstns(self.IncomeDstn[t], self.RiskyDstn[t])
+                combine_indep_dstns(self.IncShkDstn[t], self.RiskyDstn[t])
                 for t in range(self.T_cycle)
             ]
         else:
             self.ShockDstn = [
-                combineIndepDstns(self.IncomeDstn[t], self.RiskyDstn)
+                combine_indep_dstns(self.IncShkDstn[t], self.RiskyDstn)
                 for t in range(self.T_cycle)
             ]
-        self.addToTimeVary("ShockDstn")
+        self.add_to_time_vary("ShockDstn")
 
         # Mark whether the risky returns and income shocks are independent (they are)
         self.IndepDstnBool = True
-        self.addToTimeInv("IndepDstnBool")
+        self.add_to_time_inv("IndepDstnBool")
 
     def updateShareGrid(self):
         """
@@ -303,7 +300,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         None
         """
         self.ShareGrid = np.linspace(0.0, 1.0, self.ShareCount)
-        self.addToTimeInv("ShareGrid")
+        self.add_to_time_inv("ShareGrid")
 
     def updateShareLimit(self):
         """
@@ -328,7 +325,7 @@ class PortfolioConsumerType(IndShockConsumerType):
                 )
                 SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
                 self.ShareLimit.append(SharePF)
-            self.addToTimeVary("ShareLimit")
+            self.add_to_time_vary("ShareLimit")
 
         else:
             RiskyDstn = self.RiskyDstn
@@ -338,7 +335,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             )
             SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
             self.ShareLimit = SharePF
-            self.addToTimeInv("ShareLimit")
+            self.add_to_time_inv("ShareLimit")
 
     def getRisky(self):
         """
@@ -365,7 +362,7 @@ class PortfolioConsumerType(IndShockConsumerType):
 
         mu = np.log(RiskyAvg / (np.sqrt(1.0 + RiskyVar / RiskyAvgSqrd)))
         sigma = np.sqrt(np.log(1.0 + RiskyVar / RiskyAvgSqrd))
-        self.shocks['RiskyNow'] = Lognormal(
+        self.shocks['Risky'] = Lognormal(
             mu, sigma, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(1)
 
@@ -383,7 +380,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.shocks['AdjustNow'] = Bernoulli(
+        self.shocks['Adjust'] = Bernoulli(
             self.AdjustPrb, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(self.AgentCount)
 
@@ -402,14 +399,14 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         Rport : np.array
             Array of size AgentCount with each simulated agent's realized portfolio
-            return factor.  Will be used by getStates() to calculate mNrmNow, where it
+            return factor.  Will be used by get_states() to calculate mNrmNow, where it
             will be mislabeled as "Rfree".
         """
-        Rport = self.controls["ShareNow"] * self.shocks['RiskyNow'] + (1.0 - self.controls["ShareNow"]) * self.Rfree
-        self.RportNow = Rport
+        Rport = self.controls["Share"] * self.shocks['Risky'] + (1.0 - self.controls["Share"]) * self.Rfree
+        self.Rport = Rport
         return Rport
 
-    def initializeSim(self):
+    def initialize_sim(self):
         """
         Initialize the state of simulation attributes.  Simply calls the same method
         for IndShockConsumerType, then sets the type of AdjustNow to bool.
@@ -424,11 +421,11 @@ class PortfolioConsumerType(IndShockConsumerType):
         """
         # these need to be set because "post states",
         # but are a control variable and shock, respectively
-        self.controls["ShareNow"] = np.zeros(self.AgentCount)
-        self.shocks['AdjustNow'] = np.zeros(self.AgentCount, dtype=bool)
-        IndShockConsumerType.initializeSim(self)
+        self.controls["Share"] = np.zeros(self.AgentCount)
+        self.shocks['Adjust'] = np.zeros(self.AgentCount, dtype=bool)
+        IndShockConsumerType.initialize_sim(self)
 
-    def simBirth(self, which_agents):
+    def sim_birth(self, which_agents):
         """
         Create new agents to replace ones who have recently died; takes draws of
         initial aNrm and pLvl, as in ConsIndShockModel, then sets Share and Adjust
@@ -442,13 +439,13 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.simBirth(self, which_agents)
+        IndShockConsumerType.sim_birth(self, which_agents)
 
-        self.controls['ShareNow'][which_agents] = 0
+        self.controls["Share"][which_agents] = 0
         # here a shock is being used as a 'post state'
-        self.shocks['AdjustNow'][which_agents] = False
+        self.shocks['Adjust'][which_agents] = False
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Draw idiosyncratic income shocks, just as for IndShockConsumerType, then draw
         a single common value for the risky asset return.  Also draws whether each
@@ -462,11 +459,11 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.getShocks(self)
+        IndShockConsumerType.get_shocks(self)
         self.getRisky()
         self.getAdjust()
 
-    def getControls(self):
+    def get_controls(self):
         """
         Calculates consumption cNrmNow and risky portfolio share ShareNow using
         the policy functions in the attribute solution.  These are stored as attributes.
@@ -487,31 +484,31 @@ class PortfolioConsumerType(IndShockConsumerType):
             these = t == self.t_cycle
 
             # Get controls for agents who *can* adjust their portfolio share
-            those = np.logical_and(these, self.shocks['AdjustNow'])
-            cNrmNow[those] = self.solution[t].cFuncAdj(self.state_now['mNrmNow'][those])
-            ShareNow[those] = self.solution[t].ShareFuncAdj(self.state_now['mNrmNow'][those])
+            those = np.logical_and(these, self.shocks['Adjust'])
+            cNrmNow[those] = self.solution[t].cFuncAdj(self.state_now['mNrm'][those])
+            ShareNow[those] = self.solution[t].ShareFuncAdj(self.state_now['mNrm'][those])
 
             # Get Controls for agents who *can't* adjust their portfolio share
             those = np.logical_and(
                 these,
-                np.logical_not(self.shocks['AdjustNow']))
+                np.logical_not(self.shocks['Adjust']))
             cNrmNow[those] = self.solution[t].cFuncFxd(
-                self.state_now['mNrmNow'][those], ShareNow[those]
+                self.state_now['mNrm'][those], ShareNow[those]
             )
             ShareNow[those] = self.solution[t].ShareFuncFxd(
-                self.state_now['mNrmNow'][those], ShareNow[those]
+                self.state_now['mNrm'][those], ShareNow[those]
             )
 
         # Store controls as attributes of self
-        self.controls["cNrmNow"] = cNrmNow
-        self.controls["ShareNow"] = ShareNow
+        self.controls['cNrm'] = cNrmNow
+        self.controls["Share"] = ShareNow
 
 
 # Define a non-object-oriented one period solver
 def solveConsPortfolio(
     solution_next,
     ShockDstn,
-    IncomeDstn,
+    IncShkDstn,
     RiskyDstn,
     LivPrb,
     DiscFac,
@@ -539,8 +536,8 @@ def solveConsPortfolio(
         transitory income shocks, and risky returns.  This is only used if the
         input IndepDstnBool is False, indicating that income and return distributions
         can't be assumed to be independent.
-    IncomeDstn : [np.array]
-        List with three arrays: discrete probabilities, permanent income shocks,
+    IncShkDstn : distribution.Distribution
+        Discrete distribution of permanent income shocks
         and transitory income shocks.  This is only used if the input IndepDsntBool
         is True, indicating that income and return distributions are independent.
     RiskyDstn : [np.array]
@@ -619,9 +616,9 @@ def solveConsPortfolio(
     # Major method fork: (in)dependent risky asset return and income distributions
     if IndepDstnBool:  # If the distributions ARE independent...
         # Unpack the shock distribution
-        IncPrbs_next = IncomeDstn.pmf
-        PermShks_next = IncomeDstn.X[0]
-        TranShks_next = IncomeDstn.X[1]
+        IncPrbs_next = IncShkDstn.pmf
+        PermShks_next = IncShkDstn.X[0]
+        TranShks_next = IncShkDstn.X[1]
         Rprbs_next = RiskyDstn.pmf
         Risky_next = RiskyDstn.X
         zero_bound = (
@@ -649,7 +646,7 @@ def solveConsPortfolio(
         Income_N = IncPrbs_next.size
         Risky_N = Rprbs_next.size
 
-        # Make tiled arrays to calculate future realizations of mNrm and Share when integrating over IncomeDstn
+        # Make tiled arrays to calculate future realizations of mNrm and Share when integrating over IncShkDstn
         bNrm_tiled = np.tile(
             np.reshape(bNrmGrid, (bNrm_N, 1, 1)), (1, Share_N, Income_N)
         )
@@ -708,7 +705,7 @@ def solveConsPortfolio(
         dvdb_intermed = np.sum(IncPrbs_tiled * temp_fac_A * dvdm_next, axis=2)
         dvdbNvrs_intermed = uPinv(dvdb_intermed)
         dvdbNvrsFunc_intermed = BilinearInterp(dvdbNvrs_intermed, bNrmGrid, ShareGrid)
-        dvdbFunc_intermed = MargValueFunc2D(dvdbNvrsFunc_intermed, CRRA)
+        dvdbFunc_intermed = MargValueFuncCRRA(dvdbNvrsFunc_intermed, CRRA)
 
         # Calculate intermediate value by taking expectations over income shocks
         temp_fac_B = (PermShks_tiled * PermGroFac) ** (
@@ -718,7 +715,7 @@ def solveConsPortfolio(
             v_intermed = np.sum(IncPrbs_tiled * temp_fac_B * v_next, axis=2)
             vNvrs_intermed = n(v_intermed)
             vNvrsFunc_intermed = BilinearInterp(vNvrs_intermed, bNrmGrid, ShareGrid)
-            vFunc_intermed = ValueFunc2D(vNvrsFunc_intermed, CRRA)
+            vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, CRRA)
 
         # Calculate intermediate marginal value of risky portfolio share by taking expectations
         dvds_intermed = np.sum(IncPrbs_tiled * temp_fac_B * dvds_next, axis=2)
@@ -962,7 +959,7 @@ def solveConsPortfolio(
     cFuncAdj_now = LinearInterp(np.insert(mNrmAdj_now, 0, 0.0), cNrmAdj_now)
 
     # Construct the marginal value (of mNrm) function when the agent can adjust
-    vPfuncAdj_now = MargValueFunc(cFuncAdj_now, CRRA)
+    vPfuncAdj_now = MargValueFuncCRRA(cFuncAdj_now, CRRA)
 
     # Construct the consumption function when the agent *can't* adjust the risky share, as well
     # as the marginal value of Share function
@@ -989,13 +986,13 @@ def solveConsPortfolio(
     ShareFuncFxd_now = IdentityFunction(i_dim=1, n_dims=2)
 
     # Construct the marginal value of mNrm function when the agent can't adjust his share
-    dvdmFuncFxd_now = MargValueFunc2D(cFuncFxd_now, CRRA)
+    dvdmFuncFxd_now = MargValueFuncCRRA(cFuncFxd_now, CRRA)
 
     # If the value function has been requested, construct it now
     if vFuncBool:
         # First, make an end-of-period value function over aNrm and Share
         EndOfPrdvNvrsFunc = BilinearInterp(EndOfPrdvNvrs, aNrmGrid, ShareGrid)
-        EndOfPrdvFunc = ValueFunc2D(EndOfPrdvNvrsFunc, CRRA)
+        EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, CRRA)
 
         # Construct the value function when the agent can adjust his portfolio
         mNrm_temp = aXtraGrid  # Just use aXtraGrid as our grid of mNrm values
@@ -1010,7 +1007,7 @@ def solveConsPortfolio(
             np.insert(vNvrs_temp, 0, 0.0),  # f_list
             np.insert(vNvrsP_temp, 0, vNvrsP_temp[0]),
         )  # dfdx_list
-        vFuncAdj_now = ValueFunc(
+        vFuncAdj_now = ValueFuncCRRA(
             vNvrsFuncAdj, CRRA
         )  # Re-curve the pseudo-inverse value function
 
@@ -1032,7 +1029,7 @@ def solveConsPortfolio(
                 )
             )  # dfdx_list
         vNvrsFuncFxd = LinearInterpOnInterp1D(vNvrsFuncFxd_by_Share, ShareGrid)
-        vFuncFxd_now = ValueFunc2D(vNvrsFuncFxd, CRRA)
+        vFuncFxd_now = ValueFuncCRRA(vNvrsFuncFxd, CRRA)
 
     else:  # If vFuncBool is False, fill in dummy values
         vFuncAdj_now = None

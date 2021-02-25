@@ -47,9 +47,9 @@ plotFuncs([ExampleType.solution[0].cFunc, ExampleType.solution[0].cFunc_U], 0, m
 
 if do_simulation:
     ExampleType(**simulation_values)  # Set attributes needed for simulation
-    ExampleType.track_vars = ["mLvlNow"]
-    ExampleType.makeShockHistory()
-    ExampleType.initializeSim()
+    ExampleType.track_vars = ["mLvl"]
+    ExampleType.make_shock_history()
+    ExampleType.initialize_sim()
     ExampleType.simulate()
 
 
@@ -101,7 +101,7 @@ unemployed_income_dist = DiscreteDistribution(np.ones(1),
     [np.ones(1), np.zeros(1)]
     )  # Income distribution when permanently unemployed
 
-MarkovType.IncomeDstn = [
+MarkovType.IncShkDstn = [
     [employed_income_dist, unemployed_income_dist]
 ]  # set the income distribution in each state
 MarkovType.cycles = 0
@@ -120,3 +120,5 @@ plotFuncs(MarkovType.cFunc[0], 0, m_upper)
 diffFunc = lambda m: ExampleType.solution[0].cFunc(m) - MarkovType.cFunc[0][0](m)
 print("Difference between the (employed) consumption functions:")
 plotFuncs(diffFunc, 0, m_upper)
+
+
