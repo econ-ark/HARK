@@ -15,6 +15,6 @@ class testMedShockConsumerType(unittest.TestCase):
 
         self.agent.T_sim = 10
         self.agent.track_vars = ["mLvl", "cLvl", "Med"]
-        self.agent.makeShockHistory()
-        self.agent.initializeSim()
+        self.agent.make_shock_history()
+        self.agent.initialize_sim()
         self.agent.simulate()

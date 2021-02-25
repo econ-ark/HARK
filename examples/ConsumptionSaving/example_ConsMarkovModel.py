@@ -164,8 +164,8 @@ if do_simulation:
     SerialUnemploymentExample.T_sim = 120
     SerialUnemploymentExample.MrkvPrbsInit = [0.25, 0.25, 0.25, 0.25]
     SerialUnemploymentExample.track_vars = ['mNrm', 'cNrm']
-    SerialUnemploymentExample.makeShockHistory()  # This is optional
-    SerialUnemploymentExample.initializeSim()
+    SerialUnemploymentExample.make_shock_history()  # This is optional
+    SerialUnemploymentExample.initialize_sim()
     SerialUnemploymentExample.simulate()
 
 # %% [markdown]
@@ -218,7 +218,7 @@ for j in range(ImmunityT):
 init_unemployment_immunity = copy(init_idiosyncratic_shocks)
 init_unemployment_immunity["MrkvArray"] = [MrkvArray]
 ImmunityExample = MarkovConsumerType(**init_unemployment_immunity)
-ImmunityExample.assignParameters(
+ImmunityExample.assign_parameters(
     Rfree=np.array(np.array(StateCount * [1.03])),  # Interest factor same in all states
     PermGroFac=[
         np.array(StateCount * [1.01])
@@ -276,7 +276,7 @@ MrkvArray = Persistence * np.eye(StateCount) + (1.0 / StateCount) * (
 init_serial_growth = copy(init_idiosyncratic_shocks)
 init_serial_growth["MrkvArray"] = [MrkvArray]
 SerialGroExample = MarkovConsumerType(**init_serial_growth)
-SerialGroExample.assignParameters(
+SerialGroExample.assign_parameters(
     Rfree=np.array(
         np.array(StateCount * [1.03])
     ),  # Same interest factor in each Markov state
@@ -310,7 +310,7 @@ plotFuncs(SerialGroExample.solution[0].cFunc, 0, 10)
 # %%
 # Make a consumer with serially correlated interest factors
 SerialRExample = deepcopy(SerialGroExample)  # Same as the last problem...
-SerialRExample.assignParameters(
+SerialRExample.assign_parameters(
     PermGroFac=[
         np.array(StateCount * [1.01])
     ],  # ...but now the permanent growth factor is constant...

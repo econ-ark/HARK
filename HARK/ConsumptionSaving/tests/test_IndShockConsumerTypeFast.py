@@ -19,13 +19,13 @@ class testIndShockConsumerTypeFast(unittest.TestCase):
 
         self.agent.solve()
 
-    def test_getShocks(self):
-        self.agent.initializeSim()
-        self.agent.simBirth(np.array([True, False]))
-        self.agent.simOnePeriod()
-        self.agent.simBirth(np.array([False, True]))
+    def test_get_shocks(self):
+        self.agent.initialize_sim()
+        self.agent.sim_birth(np.array([True, False]))
+        self.agent.sim_one_period()
+        self.agent.sim_birth(np.array([False, True]))
 
-        self.agent.getShocks()
+        self.agent.get_shocks()
 
         self.assertEqual(self.agent.shocks['PermShk'][0], 1.0427376294215103)
         self.assertEqual(self.agent.shocks['PermShk'][1], 0.9278094171517413)
@@ -54,7 +54,7 @@ class testIndShockConsumerTypeFast(unittest.TestCase):
         )
 
     def test_simulated_values(self):
-        self.agent.initializeSim()
+        self.agent.initialize_sim()
         self.agent.simulate()
         self.assertAlmostEqual(self.agent.MPCnow[1], 0.5711503906043797)
 
@@ -166,7 +166,7 @@ class testIndShockConsumerTypeFastExample(unittest.TestCase):
         )
 
         IndShockExample.track_vars = ['aNrm', "mNrm", 'cNrm', 'pLvl']
-        IndShockExample.initializeSim()
+        IndShockExample.initialize_sim()
         IndShockExample.simulate()
 
         self.assertAlmostEqual(

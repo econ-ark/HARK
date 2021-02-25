@@ -17,5 +17,5 @@ class test_LaborIntMargConsumerType(unittest.TestCase):
 
         self.model.T_sim = 120
         self.model.track_vars = ["bNrm", 'cNrm']
-        self.model.initializeSim()
+        self.model.initialize_sim()
         self.model.simulate()

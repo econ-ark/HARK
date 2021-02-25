@@ -31,6 +31,6 @@ columns, described by groups:
 # SCFDistTools.py
 
 Contains functions to read the table and its columns, and convert them to
-parameters to be used by HARK's `AgentType` classes in their `simBirth()`
+parameters to be used by HARK's `AgentType` classes in their `sim_birth()`
 methods to produce realistically calibrated distributions of initial permanent
 income and wealth levels.
