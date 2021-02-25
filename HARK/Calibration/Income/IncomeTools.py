@@ -111,7 +111,7 @@ def age_log_poly_to_growth_rates(coefs, age_min, age_max):
     return GrowthFac.tolist(), P0
 
 
-def find_perm_GroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
+def find_PermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
     """
     Finds initial income and sequence of growth factors from a polynomial
     specification of log-income, an optional retirement age and a replacement
@@ -580,20 +580,20 @@ def parse_income_spec(
 
         if AgePolyRetir is None:
 
-            PermGroFac, P0 = find_perm_GroFacs(
+            PermGroFac, P0 = find_PermGroFacs(
                 age_min, age_max, age_ret, AgePolyCoefs, ReplRate
             )
 
         else:
 
             # Working period
-            PermGroWrk, P0 = find_perm_GroFacs(
+            PermGroWrk, P0 = find_PermGroFacs(
                 age_min, age_ret, None, AgePolyCoefs, ReplRate
             )
             PLast = find_profile(PermGroWrk[:-1], P0)[-1]
 
             # Retirement period
-            PermGroRet, R0 = find_perm_GroFacs(
+            PermGroRet, R0 = find_PermGroFacs(
                 age_ret + 1, age_max, None, AgePolyRetir, ReplRate
             )
 
