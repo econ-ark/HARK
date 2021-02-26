@@ -377,7 +377,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         self.PrefShkPrbs = PrefShkDstn.pmf
         self.PrefShkVals = PrefShkDstn.X
 
-    def getPointsForInterpolation(self, EndOfPrdvP, aNrmNow):
+    def get_points_for_interpolation(self, EndOfPrdvP, aNrmNow):
         """
         Find endogenous interpolation points for each asset point and each
         discrete preference shock.

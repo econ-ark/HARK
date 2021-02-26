@@ -132,7 +132,7 @@ class testBufferStock(unittest.TestCase):
         baseEx_inf.unpackcFunc()
 
         m1 = np.linspace(
-            1, baseEx_inf.solution[0].mNrmSS, 50
+            1, baseEx_inf.solution[0].mNrmStE, 50
         )  # m1 defines the plot range on the left of target m value (e.g. m <= target m)
         c_m1 = baseEx_inf.cFunc[0](m1)
 
@@ -160,7 +160,7 @@ class testIndShockConsumerTypeFastExample(unittest.TestCase):
         IndShockExample.cycles = 0  # Make this type have an infinite horizon
         IndShockExample.solve()
 
-        self.assertAlmostEqual(IndShockExample.solution[0].mNrmSS, 1.5488165705077026)
+        self.assertAlmostEqual(IndShockExample.solution[0].mNrmStE, 1.5488165705077026)
         self.assertAlmostEqual(
             IndShockExample.solution[0].cFunc.functions[0].x_list[0], -0.25017509
         )

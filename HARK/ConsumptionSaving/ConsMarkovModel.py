@@ -172,7 +172,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         # Initialize end-of-period (marginal) value functions
         self.EndOfPrdvFunc_list = []
         self.EndOfPrdvPfunc_list = []
-        self.ExIncNextAll = (
+        self.Ex_IncNextAll = (
             np.zeros(self.StateCount) + np.nan
         )  # expected income conditional on the next state
         self.WorstIncPrbAll = (
@@ -184,7 +184,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         for j in range(self.StateCount):
             # Condition values on next period's state (and record a couple for later use)
             self.conditionOnState(j)
-            self.ExIncNextAll[j] = np.dot(
+            self.Ex_IncNextAll[j] = np.dot(
                 self.ShkPrbsNext, self.PermShkValsNext * self.TranShkValsNext
             )
             self.WorstIncPrbAll[j] = self.WorstIncPrb
@@ -213,7 +213,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             np.asarray(self.aXtraGrid)[np.newaxis, :]
             + np.array(self.BoroCnstNat_list)[:, np.newaxis]
         )
-        self.getPointsForInterpolation(self.EndOfPrdvP, aNrm)
+        self.get_points_for_interpolation(self.EndOfPrdvP, aNrm)
         cNrm = np.hstack((np.zeros((self.StateCount, 1)), self.cNrmNow))
         mNrm = np.hstack(
             (np.reshape(self.mNrmMin_list, (self.StateCount, 1)), self.mNrmNow)
@@ -535,7 +535,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         self.MPCmaxEff = self.MPCmaxNow
         self.MPCmaxEff[self.BoroCnstNat_list < self.mNrmMin_list] = 1.0
         # State-conditional PDV of human wealth
-        hNrmPlusIncNext = self.ExIncNextAll + self.solution_next.hNrm
+        hNrmPlusIncNext = self.Ex_IncNextAll + self.solution_next.hNrm
         self.hNrmNow = np.dot(
             self.MrkvArray, (self.PermGroFac_list / self.Rfree_list) * hNrmPlusIncNext
         )

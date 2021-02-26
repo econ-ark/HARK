@@ -1073,7 +1073,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             0.0  # Actually might vary by p, but no use formulating as a function
         )
 
-    def getPointsForInterpolation(self, EndOfPrdvP, aLvlNow):
+    def get_points_for_interpolation(self, EndOfPrdvP, aLvlNow):
         """
         Finds endogenous interpolation points (x,m) for the expenditure function.
 
@@ -1455,7 +1455,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             The solution to this period's consumption-saving problem, with a
             consumption function, marginal value function, and minimum m.
         """
-        xLvl, mLvl, pLvl = self.getPointsForInterpolation(EndOfPrdvP, aLvl)
+        xLvl, mLvl, pLvl = self.get_points_for_interpolation(EndOfPrdvP, aLvl)
         MedShk_temp = np.tile(
             np.reshape(self.MedShkVals, (self.MedShkVals.size, 1, 1)),
             (1, mLvl.shape[1], mLvl.shape[2]),

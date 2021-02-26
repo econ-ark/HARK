@@ -37,10 +37,10 @@ class testPerfForesightConsumerType(unittest.TestCase):
             self.agent_alt.solution[0].cFunc(10).tolist(), 3.9750093524820787
         )
 
-    def test_checkConditions(self):
-        self.agent_infinite.checkConditions()
+    def test_check_conditions(self):
+        self.agent_infinite.check_conditions()
         self.assertTrue(self.agent_infinite.conditions["AIC"])
-        self.assertTrue(self.agent_infinite.conditions["GICPF"])
+        self.assertTrue(self.agent_infinite.conditions["GICRaw"])
         self.assertTrue(self.agent_infinite.conditions["RIC"])
         self.assertTrue(self.agent_infinite.conditions["FHWC"])
 
@@ -110,7 +110,7 @@ class testPerfForesightConsumerType(unittest.TestCase):
         constrained_agent.solve()
         
         # Check against pre-computed values.
-        self.assertEqual(constrained_agent.solution[0].mNrmSS , 1.0)
+        self.assertEqual(constrained_agent.solution[0].mNrmStE , 1.0)
         # Check that they are both the same, since the problem is deterministic
-        self.assertEqual(constrained_agent.solution[0].mNrmSS,
+        self.assertEqual(constrained_agent.solution[0].mNrmStE,
                          constrained_agent.solution[0].mNrmTrg)

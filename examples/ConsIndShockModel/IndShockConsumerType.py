@@ -191,7 +191,7 @@ print(vars(IndShockExample.solution[0]))
 # %% [markdown] {"hidden": true}
 # The single-period solution to an idiosyncratic shocks consumer's problem has all of the same attributes as in the perfect foresight model, with a couple additions.  The solution can include the marginal marginal value of market resources function $\texttt{vPPfunc}$, but this is only constructed if $\texttt{CubicBool}$ is $\texttt{True}$, so that the MPC can be accurately computed; when it is $\texttt{False}$, then $\texttt{vPPfunc}$ merely returns $\texttt{NaN}$ everywhere.
 #
-# The $\texttt{solveConsIndShock}$ function calculates steady state market resources and stores it in the attribute $\texttt{mNrmSS}$.  This represents the steady state level of $m_t$ if *this period* were to occur indefinitely, but with income shocks turned off.  This is relevant in a "one period infinite horizon" model like we've specified here, but is less useful in a lifecycle model.
+# The $\texttt{solveConsIndShock}$ function calculates steady state market resources and stores it in the attribute $\texttt{mNrmStE}$.  This represents the steady state level of $m_t$ if *this period* were to occur indefinitely, but with income shocks turned off.  This is relevant in a "one period infinite horizon" model like we've specified here, but is less useful in a lifecycle model.
 #
 # Let's take a look at the consumption function by plotting it, along with its derivative (the MPC):
 

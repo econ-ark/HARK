@@ -86,7 +86,7 @@
 # Find the marginal value of having  some level of end-of-period assets today. End-of-period assets as well as stochastics imply next-period resources at the beginning of the period, calculated above. Return the result as `EndOfPrdvP`.
 #
 # #### Second step of EGM `makeBasicSolution`
-# Apply inverse marginal utility function to nodes from about to find (m, c) pairs for the new consumption function in `getPointsForInterpolation` and create the interpolants in `usePointsForInterpolation`. The latter constructs the `ConsumerSolution` that contains the current consumption function `cFunc`, the current marginal value function `vPfunc`, and the smallest possible resource level `mNrmMinNow`.
+# Apply inverse marginal utility function to nodes from about to find (m, c) pairs for the new consumption function in `get_points_for_interpolation` and create the interpolants in `usePointsForInterpolation`. The latter constructs the `ConsumerSolution` that contains the current consumption function `cFunc`, the current marginal value function `vPfunc`, and the smallest possible resource level `mNrmMinNow`.
 #
 # #### Add MPC and human wealth `addMPCandHumanWealth`
 # Add values calculated in `defBoroCnst` now that we have a solution object to put them in.
