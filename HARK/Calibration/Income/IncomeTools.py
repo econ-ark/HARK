@@ -64,14 +64,14 @@ def AgeLogPolyToGrowthRates(coefs, age_min, age_max):
     The deterministic component of permanent income is often expressed as a
     log-polynomial of age. In multiple HARK models, this part of the income
     process is expressed in a sequence of growth factors 'PermGroFac'.
-    
+
     This function computes growth factors from the coefficients of a
     log-polynomial specification
-    
+
     The form of the polynomial is assumed to be
     alpha_0 + age/10 * alpha_1 + age^2/100 * alpha_2 + ... + (age/10)^n * alpha_n
     Be sure to adjust the coefficients accordingly.
-    
+
     Parameters
     ----------
     coefs : numpy array or list of floats
@@ -86,7 +86,7 @@ def AgeLogPolyToGrowthRates(coefs, age_min, age_max):
     -------
     GrowthFac : [float] of length age_max - age_min + 1
         List of growth factors that replicate the polynomial.
-    
+
     P0 : float
         Initial level of income implied my the polynomial
     """
@@ -116,7 +116,7 @@ def findPermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
     Finds initial income and sequence of growth factors from a polynomial
     specification of log-income, an optional retirement age and a replacement
     rate.
-    
+
     Retirement income will be Income_{age_ret} * ReplRate.
 
     Parameters
@@ -153,8 +153,8 @@ def findPermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
 
     else:
 
-        # First find expected growth-normalized returnworking age growth rates and starting income
-        WrkGroFacs, Y0 = AgeLogPolyToGrowthRates(AgePolyCoefs, age_min, age_ret)
+        # First find working age growth rates and starting income
+        WrkGroFacs, Y0 = age_log_poly_to_growth_rates(AgePolyCoefs, age_min, age_ret)
 
         # Replace the last item, which must be NaN, with the replacement rate
         WrkGroFacs[-1] = ReplRate
@@ -370,7 +370,7 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None, smooth=True)
         Boolean indicating whether to smooth the variance profile estimates
         using third degree polynomials for the age dummies estimated by
         Sabelhaus and Song. If False, the original dummies are used.
-        
+
     Returns
     -------
     profiles : dict
@@ -381,11 +381,11 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None, smooth=True)
                 shocks. Position n corresponds to Ages[n].
             - PermShkStd: array of standard deviations of permanent income
                 shocks. Position n corresponds to Ages[n].
-        
+
         Note that TransShkStd[n] and PermShkStd[n] are the volatilities of
         shocks _experienced_ at age Age[n], (not those expected at Age[n+1]
         from the perspective of Age[n]).
-        
+
         Note that Sabelhaus and Song work in discrete time and with periods
         that represent one year. Therefore, the outputs must be interpreted
         at the yearly frequency.
@@ -559,7 +559,7 @@ def ParseIncomeSpec(
                 to income.
             - PermGroFacAgg: if a yearly trend in income is provided, this will
                 be the aggregate level of growth in permanent incomes.
-                
+
         This dictionary has the names and formats that various models in HARK
         expect, so that it can be directly updated into other parameter
         dictionaries.
@@ -671,7 +671,7 @@ def ParseIncomeSpec(
                 )
 
         else:
-            
+
             # Placeholder for future ways of specifying volatilities
             raise NotImplementedError()
 
