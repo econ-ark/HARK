@@ -467,7 +467,7 @@ class ConsPerfForesightSolver(MetricObject):
         except:
             mNrmStE = None
 
-        solution.mNrmStE = mNrmSS
+        solution.mNrmStE = mNrmStE
         return solution
 
     def add_stable_points(self, solution):
@@ -1858,7 +1858,7 @@ class PerfForesightConsumerType(AgentType):
 
         messages = {
             True: "The value of the Growth Patience Factor for the supplied parameter values satisfies the Perfect Foresight Growth Impatience Condition.",
-            False: "The value of the Growth Patience Factor for the supplied parameter values fails the Perfect Foresight Growth Impatience Condition; the GPFRaw is: {0.GPFPF}",
+            False: "The value of the Growth Patience Factor for the supplied parameter values fails the Perfect Foresight Growth Impatience Condition; the GPFRaw is: {0.GPFRaw}",
         }
 
         verbose_messages = {
@@ -2504,7 +2504,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 + "/#Factors-Defined-And-Compared"
             )
 
-        _log.warning("GPFRaw            = %2.6f " % (self.GPFPF))
+        _log.warning("GPFRaw            = %2.6f " % (self.GPFRaw))
         _log.warning("GPFInd           = %2.6f " % (self.GPFInd))
         _log.warning("GPFAggMort           = %2.6f " % (self.GPFAgg))
         _log.warning("Thorn = APF      = %2.6f " % (self.thorn))
@@ -2556,7 +2556,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Defining:
         ## Rnorm    = Rfree/(PermGroFac[0]*PermShk)
         ## Ex_PermShkInv    = E[PermShk**(-1)]
-        ## InvEx_PermShkInv = 1/EPermShkInv
+        ## InvEx_PermShkInv = 1/Ex_PermShkInv
         # ExRnorm  = E[Rfree/(PermGroFac[0]*PermShk)] = Rfree Ex_PermShkInv / PermGroFac[0]
         ## InvExRnorm = 1/ExRnorm
         # The "sustainable consumption" locus is given by

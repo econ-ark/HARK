@@ -388,7 +388,7 @@ class testStablePoints(unittest.TestCase):
         baseAgent_Inf.solve()
         
         # Extract stable points
-        mNrmStE = baseAgent_Inf.solution[0].mNrmSS
+        mNrmStE = baseAgent_Inf.solution[0].mNrmStE
         mNrmTrg = baseAgent_Inf.solution[0].mNrmTrg
         
         # Check against pre-computed values

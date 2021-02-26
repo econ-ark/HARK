@@ -153,7 +153,7 @@ def findPermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
 
     else:
 
-        # First find working age growth rates and starting income
+        # First find expected growth-normalized returnworking age growth rates and starting income
         WrkGroFacs, Y0 = AgeLogPolyToGrowthRates(AgePolyCoefs, age_min, age_ret)
 
         # Replace the last item, which must be NaN, with the replacement rate

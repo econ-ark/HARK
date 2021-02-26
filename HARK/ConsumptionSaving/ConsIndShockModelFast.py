@@ -176,7 +176,7 @@ class IndShockSolution(MetricObject):
         self.hNrm = hNrm
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
-        self.Ex_IncNext = ExIncNext
+        self.Ex_IncNext = Ex_IncNext
         self.mNrmGrid = mNrmGrid
         self.vNvrs = vNvrs
         self.MPCminNvrs = MPCminNvrs
