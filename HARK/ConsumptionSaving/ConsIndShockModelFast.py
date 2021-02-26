@@ -190,7 +190,7 @@ class IndShockSolution(MetricObject):
 
 
 @njit(cache=True)
-def _searchSSfunc(m, Rfree, PermGroFac, mNrm, cNrm, Ex_IncNext):
+def _find_mNrmStE(m, Rfree, PermGroFac, mNrm, cNrm, Ex_IncNext):
     # Make a linear function of all combinations of c and m that yield mNext = mNow
     mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * Ex_IncNext
 
@@ -202,7 +202,7 @@ def _searchSSfunc(m, Rfree, PermGroFac, mNrm, cNrm, Ex_IncNext):
 
 # @njit(cache=True) can't cache because of use of globals, perhaps newton_secant?
 @njit
-def _addmNrmStENumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, Ex_IncNext, _searchSSfunc):
+def _add_mNrmStENumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, Ex_IncNext, _find_mNrmStE):
     """
     Finds steady state (normalized) market resources and adds it to the
     solution.  This is the level of market resources such that the expectation
@@ -214,7 +214,7 @@ def _addmNrmStENumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, Ex_IncNext, _search
     m_init_guess = mNrmMin + Ex_IncNext
 
     mNrmStE = newton_secant(
-        _searchSSfunc,
+        _find_mNrmStE,
         m_init_guess,
         args=(Rfree, PermGroFac, mNrm, cNrm, Ex_IncNext),
         disp=False,
@@ -315,7 +315,7 @@ def _solveConsPerfForesightNumba(
     MPCmax = (cNrmNow[1] - cNrmNow[0]) / (mNrmNow[1] - mNrmNow[0])
 
     # Add attributes to enable calculation of steady state market resources.
-    # Relabeling for compatibility with addmNrmStE
+    # Relabeling for compatibility with add_mNrmStE
     mNrmMinNow = mNrmNow[0]
 
     # See the PerfForesightConsumerType.ipynb documentation notebook for the derivations
@@ -858,7 +858,7 @@ def _addvFuncNumba(
 
 
 @njit
-def _addmNrmStEIndNumba(
+def _add_mNrmStEIndNumba(
     PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm, _searchfunc,
 ):
     """
@@ -885,7 +885,7 @@ def _addmNrmStEIndNumba(
 
 
 @njit(cache=True)
-def _searchSSfuncLinear(
+def _find_mNrmStELinear(
     m, PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
 ):
     # Make a linear function of all combinations of c and m that yield mNext = mNow
@@ -905,7 +905,7 @@ def _searchSSfuncLinear(
 
 
 @njit(cache=True)
-def _searchSSfuncCubic(
+def _find_mNrmStECubic(
     m, PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
 ):
     # Make a linear function of all combinations of c and m that yield mNext = mNow
@@ -1154,14 +1154,14 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
             Ex_IncNext = 1.0  # Perfect foresight income of 1
 
             # Add mNrmStE to the solution and return it
-            consumer_solution.mNrmStE = _addmNrmStENumba(
+            consumer_solution.mNrmStE = _add_mNrmStENumba(
                 self.Rfree,
                 self.PermGroFac[i],
                 solution.mNrm,
                 solution.cNrm,
                 solution.mNrmMin,
                 Ex_IncNext,
-                _searchSSfunc,
+                _find_mNrmStE,
             )
 
             self.solution[i] = consumer_solution
@@ -1266,10 +1266,10 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
 
                 if self.CubicBool or self.vFuncBool:
                     _searchFunc = (
-                        _searchSSfuncCubic if self.CubicBool else _searchSSfuncLinear
+                        _find_mNrmStECubic if self.CubicBool else _find_mNrmStELinear
                     )
                     # Add mNrmStE to the solution and return it
-                    consumer_solution.mNrmStE = _addmNrmStEIndNumba(
+                    consumer_solution.mNrmStE = _add_mNrmStEIndNumba(
                         self.PermGroFac[j],
                         self.Rfree,
                         solution.Ex_IncNext,

@@ -136,25 +136,25 @@ class testBufferStock(unittest.TestCase):
         self.assertAlmostEqual(c_t10[600], 1.6101476268581576)
         self.assertAlmostEqual(c_t10[700], 1.7196531041366991)
 
-    def test_GICFails(self):
-        GIC_fail_dictionary = dict(self.base_params)
-        GIC_fail_dictionary["Rfree"] = 1.08
-        GIC_fail_dictionary["PermGroFac"] = [1.00]
+    def test_GICRawFails(self):
+        GICRaw_fail_dictionary = dict(self.base_params)
+        GICRaw_fail_dictionary["Rfree"] = 1.08
+        GICRaw_fail_dictionary["PermGroFac"] = [1.00]
 
-        GICFailExample = IndShockConsumerType(
+        GICRawFailExample = IndShockConsumerType(
             cycles=0,  # cycles=0 makes this an infinite horizon consumer
-            **GIC_fail_dictionary
+            **GICRaw_fail_dictionary
         )
 
-        GICFailExample.solve()
-        GICFailExample.unpack("cFunc")
+        GICRawFailExample.solve()
+        GICRawFailExample.unpack("cFunc")
         m = np.linspace(0, 5, 1000)
-        c_m = GICFailExample.cFunc[0](m)
+        c_m = GICRawFailExample.cFunc[0](m)
 
         self.assertAlmostEqual(c_m[500], 0.7772637042393458)
         self.assertAlmostEqual(c_m[700], 0.8392649061916746)
 
-        self.assertFalse(GICFailExample.conditions["GIC"])
+        self.assertFalse(GICRawFailExample.conditions["GIC"])
 
     def test_infinite_horizon(self):
         baseEx_inf = IndShockConsumerType(cycles=0, **self.base_params)

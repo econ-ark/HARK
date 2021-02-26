@@ -381,7 +381,7 @@ class ConsPerfForesightSolver(MetricObject):
 
         # Add two attributes to enable calculation of steady state market resources.
         self.Ex_IncNext = 1.0  # Perfect foresight income of 1
-        self.mNrmMinNow = mNrmNow[0]  # Relabeling for compatibility with addmNrmStE
+        self.mNrmMinNow = mNrmNow[0]  # Relabeling for compatibility with add_mNrmStE
 
     def add_mNrmTrg(self, solution):
         """
@@ -445,27 +445,41 @@ class ConsPerfForesightSolver(MetricObject):
         solution : ConsumerSolution
             Same solution that was passed, but now with the attribute mNrmStE
         """
-        # Probably should test whether GIC holds and log error if it does not
+        # Probably should test whether GICRaw holds and log error if it does not
         # using check_conditions
         # All combinations of c and m that yield E[PermGroFac PermShkVal mNext] = mNow
         # https://econ-ark.github.io/BufferStockTheory/#The-Individual-Steady-State
 
-        Ex_MLevGroFac_eq_Ex_PermGroFac = (
-            lambda m: (1.0 - self.PermGroFac / self.Rfree) * m
-            + (self.PermGroFac / self.Rfree) * self.Ex_IncNext
-        )
+        # Ex_MLevGroFac_eq_Ex_PermGroFac = (
+        #     lambda m: (1.0 - self.PermGroFac / self.Rfree) * m
+        #     + (self.PermGroFac / self.Rfree) * self.Ex_IncNext
+        # )
 
-        # Find the steady state level of market resources
-        # A zero of this is SS market resources
-        def find_mNrmStE(m_t): return solution.cFunc(m_t) - Ex_MGroFac_eq_Ex_PermGroFac(m_t)
+        # # Find the steady state level of market resources
+        # # A zero of this is SS market resources
+        # def find_mNrmStE(m_t): return solution.cFunc(m_t) - Ex_MGroFac_eq_Ex_PermGroFac(m_t)
+
+        # # Minimum market resources plus next income is okay starting guess
+        # m_init_guess = self.mNrmMinNow + self.Ex_IncNext
+
+        # try:
+        #     mNrmStE = newton(find_mNrmStE, m_init_guess)  # AggStE: E[M]/E[P] constant
+        # except:
+        #     mNrmStE = None
+        RNrm = self.Rfree/self.PermGroFac
+
+        Ex_PermShk_tp1_times_m_tp1_minus_m_t = (
+            lambda mStE: RNrm * (mStE - solution.cFunc(mStE)) + self.Ex_IncNext - mStE
+        )
 
         # Minimum market resources plus next income is okay starting guess
         m_init_guess = self.mNrmMinNow + self.Ex_IncNext
-
         try:
-            mNrmStE = newton(searchSSfunc, m_init_guess)  # AggStE: E[M]/E[P] constant
+            mNrmStE = newton(Ex_PermShk_tp1_times_m_tp1_minus_m_t, m_init_guess)
         except:
             mNrmStE = None
+
+        # Add mNrmTrg to the solution and return it
 
         solution.mNrmStE = mNrmStE
         return solution
@@ -490,14 +504,14 @@ class ConsPerfForesightSolver(MetricObject):
         """
 
         # 0. There is no non-degenerate steady state for unconstrained PF model.
-        # 1. There is a non-degenerate SS for constrained PF model if GIC holds.
+        # 1. There is a non-degenerate SS for constrained PF model if GICRaw holds.
         # Therefore
-        # Check if  (GIC and BoroCnstArt) and compute them both (they are the same)
+        # Check if  (GICRaw and BoroCnstArt) and compute them both (they are the same)
         # only if this is the case.
         thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
-        GIC = 1 > thorn/self.PermGroFac
-        if self.BoroCnstArt is not None and GIC:
-            solution = self.addmNrmStE(solution)
+        GICRaw = 1 > thorn/self.PermGroFac
+        if self.BoroCnstArt is not None and GICRaw:
+            solution = self.add_mNrmStE(solution)
             solution = self.add_mNrmTrg(solution)
 
         return solution
@@ -849,7 +863,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             )
         )
 
-        return EndOfPrdvP 
+        return EndOfPrdvP
 
     def get_points_for_interpolation(self, EndOfPrdvP, aNrmNow):
         """
@@ -983,17 +997,17 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         """
 
-        # 0. Check if the regular GIC holds. If so, then mNrmStE will exist. So, compute it.
-        # 1. Check if GICnrm holds. If so, then mNrmTrg will exist. So, compute it.
+        # 0. Check if GICRaw holds. If so, then mNrmStE will exist. So, compute it.
+        # 1. Check if GICNrm holds. If so, then mNrmTrg will exist. So, compute it.
 
         thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
         GPFNrm = thorn / self.PermGroFac / np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
-        GIC = 1 > thorn/self.PermGroFac
-        GIC_nrm = 1 > GPFNrm
+        GICRaw = 1 > thorn/self.PermGroFac
+        GICNrm = 1 > GPFNrm
 
-        if GIC:
-            solution = self.addmNrmStE(solution)  # find steady state m, if it exists
-        if GIC_nrm:
+        if GICRaw:
+            solution = self.add_mNrmStE(solution)  # find steady state m, if it exists
+        if GICNrm:
             solution = self.add_mNrmTrg(solution)  # find target m, if it exists
 
         return solution
@@ -1038,6 +1052,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution = self.makeBasicSolution(EndOfPrdvP, aNrm, self.makeLinearcFunc)
         solution = self.addMPCandHumanWealth(solution)
         solution = self.add_stable_points(solution)
+        breakpoint()
         return solution
 
 
@@ -1110,8 +1125,8 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         """
         def v_lvl_next(shocks, a_nrm):
             return (
-            shocks[0] ** (1.0 - self.CRRA)
-            * self.PermGroFac ** (1.0 - self.CRRA)
+                shocks[0] ** (1.0 - self.CRRA)
+                * self.PermGroFac ** (1.0 - self.CRRA)
             ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm))
         EndOfPrdv = self.DiscFacEff * calc_expectation(
             self.IncShkDstn, v_lvl_next, self.aNrmNow
@@ -1744,14 +1759,15 @@ class PerfForesightConsumerType(AgentType):
         RfreeNow = self.getRfree()
 
         # Calculate new states: normalized market resources and permanent income level
-        pLvlNow = pLvlPrev*self.shocks['PermShk'] # Updated permanent income level
-        PlvlAggNow = self.state_prev['PlvlAgg']*self.PermShkAggNow # Updated aggregate permanent productivity level
-        ReffNow      = RfreeNow/self.shocks['PermShk'] # "Effective" interest factor on normalized assets
+        pLvlNow = pLvlPrev*self.shocks['PermShk']  # Updated permanent income level
+        # Updated aggregate permanent productivity level
+        PlvlAggNow = self.state_prev['PlvlAgg']*self.PermShkAggNow
+        # "Effective" interest factor on normalized assets
+        ReffNow = RfreeNow/self.shocks['PermShk']
         bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
-        mNrmNow = bNrmNow + self.shocks['TranShk'] # Market resources after income
+        mNrmNow = bNrmNow + self.shocks['TranShk']  # Market resources after income
 
         return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
-
 
     def get_controls(self):
         """
@@ -1846,7 +1862,7 @@ class PerfForesightConsumerType(AgentType):
         verbose = self.verbose if verbose is None else verbose
         self.check_condition(name, test, messages, verbose, verbose_messages)
 
-    def check_GIC(self, verbose=None):
+    def check_GICRaw(self, verbose=None):
         """
         Evaluate and report on the Growth Impatience Condition for the Perfect Foresight model
         """
@@ -1908,7 +1924,7 @@ class PerfForesightConsumerType(AgentType):
 
         verbose_messages = {
             True: "  Therefore, the limiting consumption function is not c(m)=Infinity\nand human wealth normalized by permanent income is {0.hNrm}\nand the PDV of future consumption growth is {0.cNrmPDV}",
-            False: "  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0.  (https://econ-ark.github.io/BufferStockTheory#PFGICHoldsFHWCFailsRICFailsDiscuss)",
+            False: "  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0.  (https://econ-ark.github.io/BufferStockTheory#PFGICRawHoldsFHWCFailsRICFailsDiscuss)",
         }
         verbose = self.verbose if verbose is None else verbose
         self.check_condition(name, test, messages, verbose)
@@ -1950,7 +1966,7 @@ class PerfForesightConsumerType(AgentType):
 
         verbose = self.verbose if verbose is None else verbose
         self.check_AIC(verbose)
-        self.check_GIC(verbose)
+        self.check_GICRaw(verbose)
         self.check_RIC(verbose)
         self.check_FHWC(verbose)
 
@@ -2319,20 +2335,20 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
 
-    def checkGICNrm(self, verbose=None):
+    def check_GICNrm(self, verbose=None):
         """
         Check Individual Growth Patience Factor.
         """
-        self.GPFInd = self.thorn / (
+        self.GPFNrm = self.thorn / (
             self.PermGroFac[0] * self.InvEx_PermShkInv
-        )  # [url]/#GICI
+        )  # [url]/#GICRawI
 
-        name = "GIC"
-        def test(agent): return agent.GPFInd <= 1
+        name = "GICRaw"
+        def test(agent): return agent.GPFNrm <= 1
 
         messages = {
-            True: "\nThe value of the Individual Growth Patience Factor for the supplied parameter values satisfies the Growth Impatience Condition; the value of the GPFInd is: {0.GPFInd}",
-            False: "\nThe given parameter values violate the Growth Impatience Condition; the GPFInd is: {0.GPFInd}",
+            True: "\nThe value of the Individual Growth Patience Factor for the supplied parameter values satisfies the Growth Impatience Condition; the value of the GPFNrm is: {0.GPFNrm}",
+            False: "\nThe given parameter values violate the Normalized Growth Impatience Condition; the GPFNrm is: {0.GPFNrm}",
         }
 
         verbose_messages = {
@@ -2342,13 +2358,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         verbose = self.verbose if verbose is None else verbose
         self.check_condition(name, test, messages, verbose, verbose_messages)
 
-    def checkGICAggMort(self, verbose=None):
-        name = "GICAggMort"
+    def check_GICRawAggMort(self, verbose=None):
+        name = "GICRawAggMort"
         def test(agent): return agent.GPFAggMort <= 1
 
         messages = {
-            True: "\nThe value of the Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values satisfies the Mortality Adjusted Aggregate Growth Imatience Condition; the value of the GPFAggMort is: {0.GPFAgg}",
-            False: "\nThe given parameter values violate the Mortality Adjusted Aggregate Growth Imatience Condition; the GPFAggMort is: {0.GPFAgg}",
+            True: "\nThe value of the Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values satisfies the Mortality Adjusted Aggregate Growth Imatience Condition; the value of the GPFAggMort is: {0.GPFAggMort}",
+            False: "\nThe given parameter values violate the Mortality Adjusted Aggregate Growth Imatience Condition; the GPFAggMort is: {0.GPFAggMort}",
         }
 
         verbose_messages = {
@@ -2386,7 +2402,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         verbose = self.verbose if verbose is None else verbose
         self.check_condition(name, test, messages, verbose, verbose_messages)
 
-    def checkFVAC(self, verbose=None):
+    def check_FVAC(self, verbose=None):
         """
         Evaluate and report on the Finite Value of Autarky Condition
         Hyperlink to paper: [url]/#Autarky-Value
@@ -2457,7 +2473,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # [url]/#Uncertainty-Modified-Conditions
 
         self.Ex_PermShkInv = calc_expectation(
-            self.PermShkDstn[0], lambda x : 1 / x
+            self.PermShkDstn[0], lambda x: 1 / x
         )
         # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
 
@@ -2479,7 +2495,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.DiscFacGPFRawMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
             self.Rfree
         )  # DiscFac at growth impatience knife edge
-        self.DiscFacGPFIndMax = (
+        self.DiscFacGPFNrmMax = (
             (self.PermGroFac[0] * self.InvEx_PermShkInv) ** (self.CRRA)
         ) / (
             self.Rfree
@@ -2489,11 +2505,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         )  # DiscFac at growth impatience knife edge
         verbose = self.verbose if verbose is None else verbose
 
-        #        self.check_GIC(verbose)
-        self.checkGICNrm(verbose)
-        self.checkGICAggMort(verbose)
+        #        self.check_GICRaw(verbose)
+        self.check_GICNrm(verbose)
+        self.check_GICRawAggMort(verbose)
         self.check_WRIC(verbose)
-        self.checkFVAC(verbose)
+        self.check_FVAC(verbose)
 
         self.violated = not self.conditions["WRIC"] or not self.conditions["FVAC"]
 
@@ -2504,16 +2520,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 + "/#Factors-Defined-And-Compared"
             )
 
-        _log.warning("GPFRaw            = %2.6f " % (self.GPFRaw))
-        _log.warning("GPFInd           = %2.6f " % (self.GPFInd))
-        _log.warning("GPFAggMort           = %2.6f " % (self.GPFAgg))
+        _log.warning("GPFRaw           = %2.6f " % (self.GPFRaw))
+        _log.warning("GPFNrm           = %2.6f " % (self.GPFNrm))
+        _log.warning("GPFAggMort       = %2.6f " % (self.GPFAggMort))
         _log.warning("Thorn = APF      = %2.6f " % (self.thorn))
         _log.warning("PermGroFacAdj    = %2.6f " % (self.PermGroFacAdj))
         _log.warning("uInvEpShkuInv    = %2.6f " % (self.uInvEpShkuInv))
         _log.warning("FVAF             = %2.6f " % (self.FVAF))
         _log.warning("WRPF             = %2.6f " % (self.WRPF))
-        _log.warning("DiscFacGPFIndMax = %2.6f " % (self.DiscFacGPFIndMax))
-        _log.warning("DiscFacGPFAggMortMax = %2.6f " % (self.DiscFacGPFAggMax))
+        _log.warning("DiscFacGPFNrmMax = %2.6f " % (self.DiscFacGPFNrmMax))
+        _log.warning("DiscFacGPFAggMortMax = %2.6f " % (self.DiscFacGPFAggMortMax))
 
     def Ex_Mtp1_over_Ex_Ptp1(self, mNrm):
         cNrm = self.solution[-1].cFunc(mNrm)
@@ -2685,9 +2701,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 PermShkDstn_t = MeanOneLogNormal(sigma=PermShkStd[t]).approx(
                     PermShkCount, tail_N=0
                 )
-                
-                ### REPLACE
-                ###REPLACE
+
+                # REPLACE
+                # REPLACE
                 IncShkDstn.append(
                     combine_indep_dstns(
                         PermShkDstn_t,
@@ -2770,7 +2786,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         ShkPrbsNext = self.IncShkDstn[0][0]
         Ex_IncNext = calc_expectation(
             IncShkDstn,
-            lambda trans, perm : trans * perm
+            lambda trans, perm: trans * perm
         )
         PermShkMinNext = np.min(PermShkValsNext)
         TranShkMinNext = np.min(TranShkValsNext)
@@ -2855,7 +2871,7 @@ class KinkedRconsumerType(IndShockConsumerType):
     def check_conditions(self):
         """
         This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC),
-        the Return Impatience Condition (RIC), the Growth Impatience Condition (GIC), the Weak Return
+        the Return Impatience Condition (RIC), the Growth Impatience Condition (GICRaw), the Normalized Growth Impatience Condition (GIC-Nrm), the Weak Return
         Impatience Condition (WRIC), the Finite Human Wealth Condition (FHWC) and the Finite Value of
         Autarky Condition (FVAC). To check which conditions are relevant to the model at hand, a
         reference to the relevant theoretical literature is made.
