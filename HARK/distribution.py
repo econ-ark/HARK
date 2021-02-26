@@ -299,6 +299,22 @@ class Normal(Distribution):
         return DiscreteDistribution(
             pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
         )
+    
+    def approx_equiprobable(self, N):
+
+        CDF = np.linspace(0,1,N+1)
+        lims = stats.norm.ppf(CDF)
+        scores = (lims - self.mu)/self.sigma
+        pdf = stats.norm.pdf(scores)
+        
+        # Find conditional means using Mills's ratio
+        pmf = np.diff(CDF)
+        X = self.mu - np.diff(pdf)/pmf
+
+        return DiscreteDistribution(
+            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+        )
+
 
 class MVNormal(Distribution):
     """
@@ -367,7 +383,7 @@ class MVNormal(Distribution):
         A = np.matmul(Q,sqrtV) 
         
         # Now find a discretization for a univariate standard normal.
-        z_approx = Normal().approx(N)
+        z_approx = Normal().approx_equiprobable(N)
         
         # Now create the multivariate grid and pmf
         Z = np.array(list(product(*[z_approx.X]*self.M)))
