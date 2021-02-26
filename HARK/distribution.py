@@ -360,7 +360,7 @@ class MVNormal(Distribution):
         
         return draws
 
-    def approx(self, N):
+    def approx(self, N, equiprobable = False):
         """
         Returns a discrete approximation of this distribution.
         
@@ -381,10 +381,13 @@ class MVNormal(Distribution):
         v, Q = np.linalg.eig(self.Sigma)
         sqrtV = np.diag(np.sqrt(v))
         A = np.matmul(Q,sqrtV) 
-        
+
         # Now find a discretization for a univariate standard normal.
-        z_approx = Normal().approx_equiprobable(N)
-        
+        if equiprobable:
+            z_approx = Normal().approx_equiprobable(N)
+        else:
+            z_approx = Normal().approx(N)
+
         # Now create the multivariate grid and pmf
         Z = np.array(list(product(*[z_approx.X]*self.M)))
         pmf = np.prod(np.array(list(product(*[z_approx.pmf]*self.M))),axis = 1)
