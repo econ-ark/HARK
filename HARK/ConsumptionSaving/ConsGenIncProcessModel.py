@@ -455,7 +455,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         )
         self.EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
 
-    def getPointsForInterpolation(self, EndOfPrdvP, aLvlNow):
+    def get_points_for_interpolation(self, EndOfPrdvP, aLvlNow):
         """
         Finds endogenous interpolation points (c,m) for the consumption function.
 
@@ -651,7 +651,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             The solution to this period's consumption-saving problem, with a
             consumption function, marginal value function, and minimum m.
         """
-        cLvl, mLvl = self.getPointsForInterpolation(EndOfPrdvP, aLvl)
+        cLvl, mLvl = self.get_points_for_interpolation(EndOfPrdvP, aLvl)
         pLvl_temp = np.concatenate(
             (np.reshape(self.pLvlGrid, (self.pLvlGrid.size, 1)), pLvl), axis=-1
         )
