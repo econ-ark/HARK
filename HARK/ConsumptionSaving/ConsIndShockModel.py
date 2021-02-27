@@ -450,26 +450,10 @@ class ConsPerfForesightSolver(MetricObject):
         # All combinations of c and m that yield E[PermGroFac PermShkVal mNext] = mNow
         # https://econ-ark.github.io/BufferStockTheory/#The-Individual-Steady-State
 
-        # Ex_MLevGroFac_eq_Ex_PermGroFac = (
-        #     lambda m: (1.0 - self.PermGroFac / self.Rfree) * m
-        #     + (self.PermGroFac / self.Rfree) * self.Ex_IncNext
-        # )
-
-        # # Find the steady state level of market resources
-        # # A zero of this is SS market resources
-        # def find_mNrmStE(m_t): return solution.cFunc(m_t) - Ex_MGroFac_eq_Ex_PermGroFac(m_t)
-
-        # # Minimum market resources plus next income is okay starting guess
-        # m_init_guess = self.mNrmMinNow + self.Ex_IncNext
-
-        # try:
-        #     mNrmStE = newton(find_mNrmStE, m_init_guess)  # AggStE: E[M]/E[P] constant
-        # except:
-        #     mNrmStE = None
-        RNrm = self.Rfree/self.PermGroFac
+        PF_RNrm = self.Rfree/self.PermGroFac
 
         Ex_PermShk_tp1_times_m_tp1_minus_m_t = (
-            lambda mStE: RNrm * (mStE - solution.cFunc(mStE)) + self.Ex_IncNext - mStE
+            lambda mStE: PF_RNrm * (mStE - solution.cFunc(mStE)) + self.Ex_IncNext - mStE
         )
 
         # Minimum market resources plus next income is okay starting guess
@@ -503,17 +487,15 @@ class ConsPerfForesightSolver(MetricObject):
 
         """
 
-        # 0. There is no non-degenerate steady state for unconstrained PF model.
+        # 0. There is no non-degenerate steady state for any unconstrained PF model.
         # 1. There is a non-degenerate SS for constrained PF model if GICRaw holds.
         # Therefore
-        # Check if  (GICRaw and BoroCnstArt) and compute them both (they are the same)
-        # only if this is the case.
+        # Check if  (GICRaw and BoroCnstArt) and if so compute them both
         thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
         GICRaw = 1 > thorn/self.PermGroFac
         if self.BoroCnstArt is not None and GICRaw:
             solution = self.add_mNrmStE(solution)
             solution = self.add_mNrmTrg(solution)
-
         return solution
 
     def solve(self):
@@ -1052,7 +1034,6 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution = self.makeBasicSolution(EndOfPrdvP, aNrm, self.makeLinearcFunc)
         solution = self.addMPCandHumanWealth(solution)
         solution = self.add_stable_points(solution)
-        breakpoint()
         return solution
 
 
@@ -1934,9 +1915,9 @@ class PerfForesightConsumerType(AgentType):
         This method checks whether the instance's type satisfies the
         Absolute Impatience Condition (AIC),
         the Return Impatience Condition (RIC),
-        the Finite Human Wealth Condition (FHWC) and the perfect foresight
-        model's version of the Finite Value of the Growth Impatience Condition (GICRaw) and
-        Autarky Condition (FVACPF). Depending on the configuration of parameter values, some
+        the Finite Human Wealth Condition (FHWC), the perfect foresight
+        model's Growth Impatience Condition (GICRaw) and
+        Perfect Foresight Finite Value of Autarky Condition (FVACPF). Depending on the configuration of parameter values, some
         combination of these conditions must be satisfied in order for the problem to have
         a nondegenerate solution. To check which conditions are required, in the verbose mode
         a reference to the relevant theoretical literature is made.
@@ -2421,14 +2402,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         self.uInvEpShkuInv = uInvEpShkuInv
 
-        self.FVAF = self.LivPrb[0] * self.DiscFac * self.uInvEpShkuInv
+        self.VAF = self.LivPrb[0] * self.DiscFac * self.uInvEpShkuInv
 
         name = "FVAC"
-        def test(agent): return agent.FVAF <= 1
+        def test(agent): return agent.VAF <= 1
 
         messages = {
-            True: "\nThe Finite Value of Autarky Factor (FVAV) for the supplied parameter values satisfies the Finite Value of Autarky Condition; the FVAF is {0.FVAF}",
-            False: "\nThe Finite Value of Autarky Factor (FVAV) for the supplied parameter values fails     the Finite Value of Autarky Condition; the FVAF is {0.FVAF}",
+            True: "\nThe Value of Autarky Factor (VAF) for the supplied parameter values satisfies the Finite Value of Autarky Condition; the VAF is {0.VAF}",
+            False: "\nThe Value of Autarky Factor (VAF) for the supplied parameter values fails     the Finite Value of Autarky Condition; the VAF is {0.VAF}",
         }
 
         verbose_messages = {
@@ -2486,7 +2467,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         self.thorn = ((self.Rfree * self.DiscFac)) ** (1 / self.CRRA)
 
-        # self.RNrm           = self.Rfree*Ex_PermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
+        # self.Ex_RNrm           = self.Rfree*Ex_PermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
         self.GPFRaw = self.thorn / (self.PermGroFac[0])  # [url]/#GPF
         # Lower bound of aggregate wealth growth if all inheritances squandered
 
@@ -2526,7 +2507,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         _log.warning("Thorn = APF      = %2.6f " % (self.thorn))
         _log.warning("PermGroFacAdj    = %2.6f " % (self.PermGroFacAdj))
         _log.warning("uInvEpShkuInv    = %2.6f " % (self.uInvEpShkuInv))
-        _log.warning("FVAF             = %2.6f " % (self.FVAF))
+        _log.warning("VAF             = %2.6f " % (self.VAF))
         _log.warning("WRPF             = %2.6f " % (self.WRPF))
         _log.warning("DiscFacGPFNrmMax = %2.6f " % (self.DiscFacGPFNrmMax))
         _log.warning("DiscFacGPFAggMortMax = %2.6f " % (self.DiscFacGPFAggMortMax))
@@ -2568,20 +2549,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
             )
             return
 
-        # To be written.
-        # Defining:
-        ## RNrm    = Rfree/(PermGroFac[0]*PermShk)
-        ## Ex_PermShkInv    = E[PermShk**(-1)]
-        ## InvEx_PermShkInv = 1/Ex_PermShkInv
-        # Ex_RNrm  = E[Rfree/(PermGroFac[0]*PermShk)] = Rfree Ex_PermShkInv / PermGroFac[0]
-        ## InvEx_RNrm = 1/Ex_RNrm
-        # The "sustainable consumption" locus is given by
-        # cSust = InvEx_RNrm + m*(1-InvEx_RNrm)
-
-        # The target level of m, mTarg, will be the value such that
-        # cSust[m] = cFunc[m]
-
-    # ========================================================
     # = Functions for generating discrete income processes and
     #   simulated income shocks =
     # ========================================================
@@ -2702,8 +2669,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     PermShkCount, tail_N=0
                 )
 
-                # REPLACE
-                # REPLACE
                 IncShkDstn.append(
                     combine_indep_dstns(
                         PermShkDstn_t,
