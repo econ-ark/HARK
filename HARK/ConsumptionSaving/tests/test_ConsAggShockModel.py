@@ -1,4 +1,4 @@
-from HARK import distributeParams
+from HARK import distribute_params
 from HARK.ConsumptionSaving.ConsAggShockModel import (
     AggShockConsumerType,
     CobbDouglasEconomy,
@@ -19,14 +19,14 @@ class testAggShockConsumerType(unittest.TestCase):
         agent.cycles = 0
 
         # Make agents heterogeneous in their discount factor
-        self.agents = distributeParams(
+        self.agents = distribute_params(
             agent, "DiscFac", 3, Uniform(bot=0.90, top=0.94)  # Impatient agents
         )
 
         # Make an economy with those agents living in it
         self.economy = CobbDouglasEconomy(agents=self.agents)
 
-    def test_distributeParams(self):
+    def test_distribute_params(self):
         self.assertEqual(self.agents[1].AgentCount, 300)
 
     def test_agent(self):
@@ -166,7 +166,7 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
             0.3426040963137289
         )
 
-        self.economy.solveAgents()
+        self.economy.solve_agents()
 
         # testing preComputeArrays()
         self.assertAlmostEqual(
@@ -201,7 +201,7 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
             1.0
         )
 
-        self.economy.makeHistory()
+        self.economy.make_history()
 
         emp_totals = np.sum(self.agent.history['EmpNow'], axis = 0)
 
@@ -229,7 +229,7 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
             self.economy.history['Mnow'][10]
         )
 
-        new_dynamics = self.economy.updateDynamics()
+        new_dynamics = self.economy.update_dynamics()
 
         self.assertAlmostEqual(
             new_dynamics.AFunc[0].slope,

@@ -19,7 +19,7 @@ from builtins import object
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
-from HARK import AgentType, NullFunc, MetricObject, makeOnePeriodOOSolver
+from HARK import AgentType, NullFunc, MetricObject, make_one_period_oo_solver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import (
     CubicInterp,
@@ -32,12 +32,12 @@ from HARK.interpolation import (
 from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
 from HARK.distribution import (
     DiscreteDistribution,
-    addDiscreteOutcomeConstantMean,
-    calcExpectation,
-    combineIndepDstns,
+    add_discrete_outcome_constant_mean,
+    calc_expectation,
+    combine_indep_dstns,
 )
 from HARK.utilities import (
-    makeGridExpMult,
+    make_grid_exp_mult,
     CRRAutility,
     CRRAutilityP,
     CRRAutilityPP,
@@ -49,7 +49,7 @@ from HARK.utilities import (
 from HARK import _log
 from HARK import set_verbosity_level
 
-from HARK.Calibration.Income.IncomeTools import ParseIncomeSpec, ParseTimeParams, Cagetti_income
+from HARK.Calibration.Income.IncomeTools import parse_income_spec, parse_time_params, Cagetti_income
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 
@@ -759,7 +759,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             self.DiscFacEff
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA)
-            * calcExpectation(
+            * calc_expectation(
                 self.IncShkDstn,
                 vp_next,
                 self.aNrmNow
@@ -960,7 +960,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             * self.Rfree
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA - 1.0)
-            * calcExpectation(
+            * calc_expectation(
                 self.IncShkDstn,
                 vpp_next,
                 self.aNrmNow
@@ -995,7 +995,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             shocks[0] ** (1.0 - self.CRRA)
             * self.PermGroFac ** (1.0 - self.CRRA)
             ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm))
-        EndOfPrdv = self.DiscFacEff * calcExpectation(
+        EndOfPrdv = self.DiscFacEff * calc_expectation(
             self.IncShkDstn, v_lvl_next, self.aNrmNow
         )
         EndOfPrdvNvrs = self.uinv(
@@ -1417,10 +1417,10 @@ class PerfForesightConsumerType(AgentType):
         self.shock_vars = deepcopy(self.shock_vars_)
         self.verbose = verbose
         self.quiet = quiet
-        self.solveOnePeriod = makeOnePeriodOOSolver(ConsPerfForesightSolver)
+        self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolver)
         set_verbosity_level((4 - verbose) * 10)
 
-    def preSolve(self):
+    def pre_solve(self):
         self.updateSolutionTerminal()  # Solve the terminal period problem
 
         # Fill in BoroCnstArt and MaxKinks if they're not specified or are irrelevant.
@@ -1438,7 +1438,7 @@ class PerfForesightConsumerType(AgentType):
                     )
                 )
 
-    def checkRestrictions(self):
+    def check_restrictions(self):
         """
         A method to check that various restrictions are met for the model class.
         """
@@ -1486,12 +1486,12 @@ class PerfForesightConsumerType(AgentType):
         )
         self.unpack("cFunc")
 
-    def initializeSim(self):
+    def initialize_sim(self):
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
         self.state_now['PlvlAgg'] = 1.0
-        AgentType.initializeSim(self)
+        AgentType.initialize_sim(self)
 
-    def simBirth(self, which_agents):
+    def sim_birth(self, which_agents):
         """
         Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
         well as time variables t_age and t_cycle.  Normalized assets and permanent income levels
@@ -1528,7 +1528,7 @@ class PerfForesightConsumerType(AgentType):
         ] = 0  # Which period of the cycle each agent is currently in
         return None
 
-    def simDeath(self):
+    def sim_death(self):
         """
         Determines which agents die this period and must be replaced.  Uses the sequence in LivPrb
         to determine survival probabilities for each agent.
@@ -1556,7 +1556,7 @@ class PerfForesightConsumerType(AgentType):
             which_agents = np.logical_or(which_agents, too_old)
         return which_agents
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Finds permanent and transitory income "shocks" for each agent this period.  As this is a
         perfect foresight model, there are no stochastic shocks: PermShkNow = PermGroFac for each
@@ -1607,7 +1607,7 @@ class PerfForesightConsumerType(AgentType):
         return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
 
 
-    def getControls(self):
+    def get_controls(self):
         """
         Calculates consumption for each consumer of this type using the consumption functions.
 
@@ -1632,7 +1632,7 @@ class PerfForesightConsumerType(AgentType):
         self.MPCnow = MPCnow
         return None
 
-    def getPostStates(self):
+    def get_poststates(self):
         """
         Calculates end-of-period assets for each consumer of this type.
 
@@ -1650,7 +1650,7 @@ class PerfForesightConsumerType(AgentType):
         self.state_now['aLvl'] = self.state_now['aNrm'] * self.state_now['pLvl']
 
         # moves now to prev
-        super().getPostStates()
+        super().get_poststates()
 
         return None
 
@@ -1882,7 +1882,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             solver = ConsIndShockSolverBasic
         else:  # Use the "advanced" solver if either is requested
             solver = ConsIndShockSolver
-        self.solveOnePeriod = makeOnePeriodOOSolver(solver)
+        self.solve_one_period = make_one_period_oo_solver(solver)
 
         self.update()  # Make assets grid, income process, terminal solution
 
@@ -1906,7 +1906,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.IncShkDstn = IncShkDstn
         self.PermShkDstn = PermShkDstn
         self.TranShkDstn = TranShkDstn
-        self.addToTimeVary("IncShkDstn", "PermShkDstn", "TranShkDstn")
+        self.add_to_time_vary("IncShkDstn", "PermShkDstn", "TranShkDstn")
 
     def updateAssetsGrid(self):
         """
@@ -1923,7 +1923,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
         aXtraGrid = constructAssetsGrid(self)
         self.aXtraGrid = aXtraGrid
-        self.addToTimeInv("aXtraGrid")
+        self.add_to_time_inv("aXtraGrid")
 
     def update(self):
         """
@@ -1941,12 +1941,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.updateAssetsGrid()
         self.updateSolutionTerminal()
 
-    def resetRNG(self):
+    def reset_rng(self):
         """
         Reset the RNG behavior of this type.  This method is called automatically
-        by initializeSim(), ensuring that each simulation run uses the same sequence
+        by initialize_sim(), ensuring that each simulation run uses the same sequence
         of random shocks; this is necessary for structural estimation to work.
-        This method extends AgentType.resetRNG() to also reset elements of IncShkDstn.
+        This method extends AgentType.reset_rng() to also reset elements of IncShkDstn.
 
         Parameters
         ----------
@@ -1956,14 +1956,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
-        PerfForesightConsumerType.resetRNG(self)
+        PerfForesightConsumerType.reset_rng(self)
 
-        # Reset IncShkDstn if it exists (it might not because resetRNG is called at init)
+        # Reset IncShkDstn if it exists (it might not because reset_rng is called at init)
         if hasattr(self, "IncShkDstn"):
             for dstn in self.IncShkDstn:
                 dstn.reset()
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Gets permanent and transitory income shocks for this period.  Samples from IncShkDstn for
         each period in the cycle.
@@ -2106,13 +2106,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
             TranShkDstn = MeanOneLogNormal(sigma=self.TranShkStd[0]).approx(
                 N=200, tail_N=50, tail_order=1.3, tail_bound=[0.05, 0.95]
             )
-            TranShkDstn = addDiscreteOutcomeConstantMean(
+            TranShkDstn = add_discrete_outcome_constant_mean(
                 TranShkDstn, self.UnempPrb, self.IncUnemp
             )
             PermShkDstn = MeanOneLogNormal(sigma=self.PermShkStd[0]).approx(
                 N=200, tail_N=50, tail_order=1.3, tail_bound=[0.05, 0.95]
             )
-            IncShkDstn = combineIndepDstns(PermShkDstn, TranShkDstn)
+            IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
         # Make a grid of market resources
         mNowMin = self.solution[0].mNrmMin + 10 ** (
@@ -2164,8 +2164,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         eulerErrorFunc = LinearInterp(mNowGrid, EulerErrorNrmGrid)
         self.eulerErrorFunc = eulerErrorFunc
 
-    def preSolve(self):
-        #        AgentType.preSolve(self)
+    def pre_solve(self):
+        #        AgentType.pre_solve(self)
         # Update all income process variables to match any attributes that might
         # have been changed since `__init__` or `solve()` was last called.
         #        self.updateIncomeProcess()
@@ -2243,7 +2243,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Finite Value of Autarky Condition
         Hyperlink to paper: [url]/#Autarky-Value
         """
-        EpShkuInv = calcExpectation(
+        EpShkuInv = calc_expectation(
             self.PermShkDstn[0],
             lambda x: x ** (1 - self.CRRA)
         )
@@ -2307,7 +2307,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # would be referenced below as:
         # [url]/#Uncertainty-Modified-Conditions
 
-        self.EPermShkInv = calcExpectation(
+        self.EPermShkInv = calc_expectation(
             self.PermShkDstn[0], lambda x : 1 / x
         )
         # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
@@ -2532,7 +2532,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     TranShkCount, tail_N=0
                 )
                 if UnempPrb > 0:
-                    TranShkDstn_t = addDiscreteOutcomeConstantMean(
+                    TranShkDstn_t = add_discrete_outcome_constant_mean(
                         TranShkDstn_t, p=UnempPrb, x=IncUnemp
                     )
                 PermShkDstn_t = MeanOneLogNormal(sigma=PermShkStd[t]).approx(
@@ -2541,7 +2541,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 ### REPLACE
                 ###REPLACE
                 IncShkDstn.append(
-                    combineIndepDstns(
+                    combine_indep_dstns(
                         PermShkDstn_t,
                         TranShkDstn_t,
                         seed=self.RNG.randint(0, 2 ** 31 - 1),
@@ -2591,11 +2591,11 @@ class KinkedRconsumerType(IndShockConsumerType):
         PerfForesightConsumerType.__init__(self, cycles=cycles, **params)
 
         # Add consumer-type specific objects, copying to create independent versions
-        self.solveOnePeriod = makeOnePeriodOOSolver(ConsKinkedRsolver)
+        self.solve_one_period = make_one_period_oo_solver(ConsKinkedRsolver)
         self.update()  # Make assets grid, income process, terminal solution
 
-    def preSolve(self):
-        #        AgentType.preSolve(self)
+    def pre_solve(self):
+        #        AgentType.pre_solve(self)
         self.updateSolutionTerminal()
 
     def calcBoundingValues(self):
@@ -2620,7 +2620,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         PermShkValsNext = self.IncShkDstn[0][1]
         TranShkValsNext = self.IncShkDstn[0][2]
         ShkPrbsNext = self.IncShkDstn[0][0]
-        ExIncNext = calcExpectation(
+        ExIncNext = calc_expectation(
             IncShkDstn,
             lambda trans, perm : trans * perm
         )
@@ -2805,7 +2805,7 @@ def constructAssetsGrid(parameters):
     if grid_type == "linear":
         aXtraGrid = np.linspace(aXtraMin, aXtraMax, aXtraCount)
     elif grid_type == "exp_mult":
-        aXtraGrid = makeGridExpMult(
+        aXtraGrid = make_grid_exp_mult(
             ming=aXtraMin, maxg=aXtraMax, ng=aXtraCount, timestonest=exp_nest
         )
     else:
@@ -2835,7 +2835,7 @@ education = "HS"
 income_calib = Cagetti_income[education]
 
 # Income specification
-income_params = ParseIncomeSpec(
+income_params = parse_income_spec(
     age_min=birth_age,
     age_max=death_age,
     adjust_infl_to=adjust_infl_to,
@@ -2855,7 +2855,7 @@ liv_prb = parse_ssa_life_table(
 )
 
 # Parameters related to the number of periods implied by the calibration
-time_params = ParseTimeParams(age_birth=birth_age, age_death=death_age)
+time_params = parse_time_params(age_birth=birth_age, age_death=death_age)
 
 # Update all the new parameters
 init_lifecycle = copy(init_idiosyncratic_shocks)

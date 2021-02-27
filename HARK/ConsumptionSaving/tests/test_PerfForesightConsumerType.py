@@ -60,13 +60,13 @@ class testPerfForesightConsumerType(unittest.TestCase):
             "T_age": None,  # Age after which simulated agents are automatically killed
         }
 
-        self.agent_infinite.assignParameters(
+        self.agent_infinite.assign_parameters(
             **SimulationParams
-        )  # This implicitly uses the assignParameters method of AgentType
+        )  # This implicitly uses the assign_parameters method of AgentType
 
         # Create PFexample object
         self.agent_infinite.track_vars = ["mNrm"]
-        self.agent_infinite.initializeSim()
+        self.agent_infinite.initialize_sim()
         self.agent_infinite.simulate()
 
         self.assertAlmostEqual(
@@ -81,7 +81,7 @@ class testPerfForesightConsumerType(unittest.TestCase):
 
         ## Try now with the manipulation at time step 80
 
-        self.agent_infinite.initializeSim()
+        self.agent_infinite.initialize_sim()
         self.agent_infinite.simulate(80)
 
         # This actually does nothing because aNrmNow is

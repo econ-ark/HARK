@@ -66,7 +66,7 @@ def _interp_linear(x0, x_list, y_list, lower_extrap):
 
 
 @njit(cache=True, error_model="numpy")
-def LinearInterpFast(
+def linear_interp_fast(
     x0, x_list, y_list, intercept_limit=None, slope_limit=None, lower_extrap=False
 ):
     if intercept_limit is None and slope_limit is None:
@@ -131,7 +131,7 @@ def _interp_decay_deriv(x0, x_list, y_list, intercept_limit, slope_limit, lower_
 
 
 @njit(cache=True, error_model="numpy")
-def LinearInterpDerivFast(
+def linear_interp_deriv_fast(
     x0, x_list, y_list, intercept_limit=None, slope_limit=None, lower_extrap=False
 ):
     if intercept_limit is None and slope_limit is None:
@@ -228,7 +228,7 @@ def _spline_decay(
 
 
 @njit(cache=True, error_model="numpy")
-def CubicInterpFast(
+def cubic_interp_fast(
     x0,
     x_list,
     y_list,

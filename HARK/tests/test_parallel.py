@@ -1,6 +1,6 @@
 import unittest
 from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
-from HARK.parallel import multiThreadCommandsFake, multiThreadCommands, runCommands
+from HARK.parallel import multi_thread_commands_fake, multi_thread_commands, run_commands
 
 
 class testParallel(unittest.TestCase):
@@ -8,23 +8,23 @@ class testParallel(unittest.TestCase):
         self.agent = PerfForesightConsumerType()
         self.agents = 5 * [self.agent]
 
-    def test_multiThreadCommandsFake(self):
+    def test_multi_thread_commands_fake(self):
         # check None return if it passes
-        self.assertIsNone(multiThreadCommandsFake(self.agents, ["solve()"]))
+        self.assertIsNone(multi_thread_commands_fake(self.agents, ["solve()"]))
         # check if an undefined method of agent is called
         self.assertRaises(
-            AttributeError, multiThreadCommandsFake, self.agents, ["foobar"]
+            AttributeError, multi_thread_commands_fake, self.agents, ["foobar"]
         )
 
-    def test_multiThreadCommands(self):
+    def test_multi_thread_commands(self):
         # check None return if it passes
-        self.assertIsNone(multiThreadCommands(self.agents, ["solve()"]))
+        self.assertIsNone(multi_thread_commands(self.agents, ["solve()"]))
         # check if an undefined method of agent is called
         self.assertRaises(
-            AttributeError, multiThreadCommandsFake, self.agents, ["foobar"]
+            AttributeError, multi_thread_commands_fake, self.agents, ["foobar"]
         )
 
-    def test_runCommands(self):
-        self.assertEquals(runCommands(self.agent, ["solve()"]), self.agent)
+    def test_run_commands(self):
+        self.assertEquals(run_commands(self.agent, ["solve()"]), self.agent)
         # check if an undefined method of agent is called
-        self.assertRaises(AttributeError, runCommands, self.agent, ["foobar()"])
+        self.assertRaises(AttributeError, run_commands, self.agent, ["foobar()"])

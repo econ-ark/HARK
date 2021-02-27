@@ -198,7 +198,7 @@ plotFuncsDer(KinkyExample.solution[0].cFunc, KinkyExample.solution[0].mNrmMin, 5
 
 # %%
 KinkyExample.track_vars = ['mNrm', 'cNrm', 'pLvl']
-KinkyExample.initializeSim()
+KinkyExample.initialize_sim()
 KinkyExample.simulate()
 
 # %% [markdown]

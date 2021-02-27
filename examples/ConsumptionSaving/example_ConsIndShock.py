@@ -36,7 +36,7 @@ plotFuncs(PFexample.cFunc[0], mMin, mMin + 10)
 if do_simulation:
     PFexample.T_sim = 120  # Set number of simulation periods
     PFexample.track_vars = ['mNrm']
-    PFexample.initializeSim()
+    PFexample.initialize_sim()
     PFexample.simulate()
 
 # Make and solve an example consumer with idiosyncratic income shocks
@@ -81,8 +81,8 @@ if IndShockExample.vFuncBool:
 if do_simulation:
     IndShockExample.T_sim = 120
     IndShockExample.track_vars = ['mNrm', 'cNrm', 'pLvl']
-    IndShockExample.makeShockHistory()  # This is optional, simulation will draw shocks on the fly if it isn't run.
-    IndShockExample.initializeSim()
+    IndShockExample.make_shock_history()  # This is optional, simulation will draw shocks on the fly if it isn't run.
+    IndShockExample.initialize_sim()
     IndShockExample.simulate()
 
 # Make and solve an idiosyncratic shocks consumer with a finite lifecycle
@@ -112,7 +112,7 @@ plotFuncs(LifecycleExample.cFunc[LifecycleExample.T_retire :], 0, 5)
 if do_simulation:
     LifecycleExample.T_sim = 120
     LifecycleExample.track_vars = ['mNrm', 'cNrm', 'pLvl', "t_age"]
-    LifecycleExample.initializeSim()
+    LifecycleExample.initialize_sim()
     LifecycleExample.simulate()
 
 # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
@@ -135,7 +135,7 @@ plotFuncs(CyclicalExample.cFunc, mMin, 5)
 if do_simulation:
     CyclicalExample.T_sim = 480
     CyclicalExample.track_vars = ['mNrm', 'cNrm', 'pLvl', "t_cycle"]
-    CyclicalExample.initializeSim()
+    CyclicalExample.initialize_sim()
     CyclicalExample.simulate()
 
 # Make and solve an agent with a kinky interest rate
@@ -153,5 +153,5 @@ plotFuncs(KinkyExample.cFunc[0], KinkyExample.solution[0].mNrmMin, 5)
 if do_simulation:
     KinkyExample.T_sim = 120
     KinkyExample.track_vars = ['mNrm', 'cNrm', 'pLvl']
-    KinkyExample.initializeSim()
+    KinkyExample.initialize_sim()
     KinkyExample.simulate()

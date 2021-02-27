@@ -10,7 +10,7 @@ from builtins import str
 from builtins import range
 from copy import deepcopy
 import numpy as np
-from HARK import AgentType, MetricObject, makeOnePeriodOOSolver
+from HARK import AgentType, MetricObject, make_one_period_oo_solver
 from HARK.distribution import DiscreteDistribution
 from HARK.interpolation import (
     LowerEnvelope2D,
@@ -32,7 +32,7 @@ from HARK.utilities import (
     CRRAutility_invP,
     CRRAutility_inv,
     CRRAutilityP_invP,
-    getPercentiles,
+    get_percentiles,
 )
 from HARK.distribution import Lognormal, Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -911,7 +911,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
         # Initialize a basic ConsumerType
         IndShockConsumerType.__init__(self, cycles=cycles, **params)
-        self.solveOnePeriod = makeOnePeriodOOSolver(ConsGenIncProcessSolver)
+        self.solve_one_period = make_one_period_oo_solver(ConsGenIncProcessSolver)
 
         # a poststate?
         self.state_now['aLvl'] = None
@@ -921,8 +921,8 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         self.state_now["mLvl"] = None
         self.state_prev["mLvl"] = None
 
-    def preSolve(self):
-        #        AgentType.preSolve()
+    def pre_solve(self):
+        #        AgentType.pre_solve()
         self.updateSolutionTerminal()
 
     def update(self):
@@ -982,7 +982,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         """
         pLvlNextFuncBasic = LinearInterp(np.array([0.0, 1.0]), np.array([0.0, 1.0]))
         self.pLvlNextFunc = self.T_cycle * [pLvlNextFuncBasic]
-        self.addToTimeVary("pLvlNextFunc")
+        self.add_to_time_vary("pLvlNextFunc")
 
     def installRetirementFunc(self):
         """
@@ -1036,7 +1036,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
                 if t > 0:
                     PermShkNow = self.PermShkDstn[t - 1].draw(N=self.AgentCount)
                     pLvlNow = self.pLvlNextFunc[t - 1](pLvlNow) * PermShkNow
-                pLvlGrid.append(getPercentiles(pLvlNow, percentiles=self.pLvlPctiles))
+                pLvlGrid.append(get_percentiles(pLvlNow, percentiles=self.pLvlPctiles))
 
         # Calculate "stationary" distribution in infinite horizon (might vary across periods of cycle)
         elif self.cycles == 0:
@@ -1068,7 +1068,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
             for t in range(self.T_cycle):
                 these = t_cycle == t
                 pLvlGrid.append(
-                    getPercentiles(pLvlNow[these], percentiles=self.pLvlPctiles)
+                    get_percentiles(pLvlNow[these], percentiles=self.pLvlPctiles)
                 )
 
         # Throw an error if cycles>1
@@ -1077,9 +1077,9 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
         # Store the result and add attribute to time_vary
         self.pLvlGrid = pLvlGrid
-        self.addToTimeVary("pLvlGrid")
+        self.add_to_time_vary("pLvlGrid")
 
-    def simBirth(self, which_agents):
+    def sim_birth(self, which_agents):
         """
         Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
         well as time variables t_age and t_cycle.  Normalized assets and persistent income levels
@@ -1149,7 +1149,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
                 mLvlNow)
 
 
-    def getControls(self):
+    def get_controls(self):
         """
         Calculates consumption for each consumer of this type using the consumption functions.
 
@@ -1175,7 +1175,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         self.controls["cLvl"] = cLvlNow
         self.MPCnow = MPCnow
 
-    def getPostStates(self):
+    def get_poststates(self):
         """
         Calculates end-of-period assets for each consumer of this type.
         Identical to version in IndShockConsumerType but uses Lvl rather than Nrm variables.
@@ -1190,7 +1190,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         """
         self.state_now['aLvl'] = self.state_now["mLvl"] - self.controls["cLvl"]
         # moves now to prev
-        AgentType.getPostStates(self)
+        AgentType.get_poststates(self)
 
 
 ###############################################################################
@@ -1229,7 +1229,7 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
             )
 
         self.pLvlNextFunc = pLvlNextFunc
-        self.addToTimeVary("pLvlNextFunc")
+        self.add_to_time_vary("pLvlNextFunc")
 
 
 ###############################################################################
@@ -1287,4 +1287,4 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
             pLogMean += np.log(self.PermGroFac[t])
 
         self.pLvlNextFunc = pLvlNextFunc
-        self.addToTimeVary("pLvlNextFunc")
+        self.add_to_time_vary("pLvlNextFunc")
