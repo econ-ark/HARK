@@ -1,7 +1,7 @@
 from time import process_time
 import numpy as np
 import matplotlib.pyplot as plt
-from HARK.utilities import plotFuncs
+from HARK.utilities import plot_funcs
 from HARK.distribution import DiscreteDistribution
 from HARK.ConsumptionSaving.ConsAggShockModel import (
     AggShockConsumerType,
@@ -78,7 +78,7 @@ if solve_agg_shocks_market:
     )
 
     print("Aggregate savings as a function of aggregate market resources:")
-    plotFuncs(EconomyExample.AFunc, 0, 2 * EconomyExample.kSS)
+    plot_funcs(EconomyExample.AFunc, 0, 2 * EconomyExample.kSS)
     print(
         "Consumption function at each aggregate market resources gridpoint (in general equilibrium):"
     )

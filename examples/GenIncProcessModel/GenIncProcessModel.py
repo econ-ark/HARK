@@ -8,11 +8,11 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.2'
-#       jupytext_version: 1.2.3
+#       jupytext_version: 1.2.4
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: econ-ark-3.8
 #     language: python
-#     name: python3
+#     name: econ-ark-3.8
 #   language_info:
 #     codemirror_mode:
 #       name: ipython
@@ -22,7 +22,7 @@
 #     name: python
 #     nbconvert_exporter: python
 #     pygments_lexer: ipython3
-#     version: 3.7.6
+#     version: 3.8.7
 #   latex_envs:
 #     LaTeX_envs_menu_present: true
 #     autoclose: false
@@ -62,7 +62,7 @@
 import matplotlib.pyplot as plt
 
 from copy import copy
-from HARK.utilities import plotFuncs
+from HARK.utilities import plot_funcs
 import numpy as np
 
 # %%
@@ -110,7 +110,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 # \end{eqnarray*}
 
 # %% [markdown]
-# The one-period problem for this model is solved by the function $\texttt{solveConsGenIncProcess}$, which creates an instance of the class $\texttt{ConsGenIncProcessSolver}$. The class $\texttt{GenIncProcessConsumerType}$ extends $\texttt{IndShockConsumerType}$ to represent agents in this model. To construct an instance of this class, several  parameters must be passed to the constructor, as shown in the table below (parameters can be either "primitive" or "constructed" if they have already built-in capabilities from previous models).
+# The one-period problem for this model is solved by the function `solveConsGenIncProcess`, which creates an instance of the class `ConsGenIncProcessSolver`. The class `GenIncProcessConsumerType` extends `IndShockConsumerType` to represent agents in this model. To construct an instance of this class, several  parameters must be passed to the constructor, as shown in the table below (parameters can be either "primitive" or "constructed" if they have already built-in capabilities from previous models).
 #
 # ### Example parameter values to solve GenIncProcess model
 #
@@ -132,13 +132,13 @@ from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 # The "constructed" inputs above are using expected attributes and are drawn on various methods as explained below.
 #
 #
-# * The input $\texttt{IncomeDstn}$ is created by the method $\texttt{updateIncomeProcess}$ which inherits from $\texttt{IndShockConsumerType}$. (*hyperlink to that noteboook*)
+# * The input $\texttt{IncomeDstn}$ is created by the method `updateIncomeProcess` which inherits from `IndShockConsumerType`.
 #
-# * The input $\texttt{pLvlNextFunc}$ is created by the method $\texttt{updatepLvlNextFunc}$ which uses the initial sequence of $\texttt{pLvlNextFunc}$, the mean and standard deviation of the (log) initial permanent income, $\texttt{pLvlInitMean}$ and $\texttt{pLvlInitStd}$. 
+# * The input $\texttt{pLvlNextFunc}$ is created by the method `updatepLvlNextFunc` which uses the initial sequence of $\texttt{pLvlNextFunc}$, the mean and standard deviation of the (log) initial permanent income, $\texttt{pLvlInitMean}$ and $\texttt{pLvlInitStd}$. 
 # In this model, the method creates a trivial $\texttt{pLvlNextFunc}$ attribute with no persistent income dynamics.  But we can overwrite it by subclasses in order to make an AR1 income process for example. 
 #
 #
-# * The input $\texttt{pLvlGrid}$ is created by the method $\texttt{updatepLvlGrid}$ which updates the grid of persistent income levels for infinite horizon models (cycles=0) and lifecycle models (cycles=1). This method draws on the initial distribution of persistent income, the $\texttt{pLvlNextFuncs}$, $\texttt{pLvlInitMean}$, $\texttt{pLvlInitStd}$ and the attribute $\texttt{pLvlPctiles}$ (percentiles of the distribution of persistent income). It then uses a simulation approach to generate the $\texttt{pLvlGrid}$ at each period of the cycle.
+# * The input $\texttt{pLvlGrid}$ is created by the method `updatepLvlGrid` which updates the grid of persistent income levels for infinite horizon models (cycles=0) and lifecycle models (cycles=1). This method draws on the initial distribution of persistent income, the $\texttt{pLvlNextFuncs}$, $\texttt{pLvlInitMean}$, $\texttt{pLvlInitStd}$ and the attribute $\texttt{pLvlPctiles}$ (percentiles of the distribution of persistent income). It then uses a simulation approach to generate the $\texttt{pLvlGrid}$ at each period of the cycle.
 #
 #
 # * The input $\texttt{aXtraGrid}$ is created by $\texttt{updateAssetsGrid}$ which updates the agent's end-of-period assets grid by constructing a multi-exponentially spaced grid of aXtra values, based on $\texttt{aNrmInitMean}$ and $\texttt{aNrmInitStd}$. 
@@ -162,9 +162,9 @@ from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 # \end{eqnarray*}
 #
 #
-# This agent type is identical to an $\texttt{IndShockConsumerType}$ but for explicitly tracking $\texttt{pLvl}$ as a state variable during solution as shown in the mathematical representation of GenIncProcess model. 
+# This agent type is identical to an `IndShockConsumerType` but for explicitly tracking $\texttt{pLvl}$ as a state variable during solution as shown in the mathematical representation of GenIncProcess model. 
 #
-# To construct $\texttt{IndShockExplicitPermIncConsumerType}$ as an instance of $\texttt{GenIncProcessConsumerType}$, we need to pass additional parameters to the constructor as shown in the table below.
+# To construct `IndShockExplicitPermIncConsumerType` as an instance of `GenIncProcessConsumerType`, we need to pass additional parameters to the constructor as shown in the table below.
 #
 # ### Additional parameters to solve ExplicitPermInc model
 #
@@ -177,7 +177,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 #
 # ### Constructed inputs to solve ExplicitPermInc
 #
-# * In this "explicit permanent income" model, we overwrite the method $\texttt{updatepLvlNextFunc}$ to create $\texttt{pLvlNextFunc}$ as a sequence of linear functions, indicating constant expected permanent income growth across permanent income levels.  This method uses the attribute $\texttt{PermGroFac}$, and installs a special retirement function when it exists.
+# * In this "explicit permanent income" model, we overwrite the method `updatepLvlNextFunc` to create $\texttt{pLvlNextFunc}$ as a sequence of linear functions, indicating constant expected permanent income growth across permanent income levels.  This method uses the attribute $\texttt{PermGroFac}$, and installs a special retirement function when it exists.
 #
 #
 
@@ -279,7 +279,7 @@ plt.show()
 
 print('Consumption function for normalized problem (without explicit permanent income):')
 mNrmMin = NormalizedExample.solution[0].mNrmMin
-plotFuncs(NormalizedExample.solution[0].cFunc,mNrmMin,mNrmMin+20.)
+plot_funcs(NormalizedExample.solution[0].cFunc,mNrmMin,mNrmMin+20.)
 
 # %% [markdown]
 # The figures above show that the normalized consumption function for the "explicit permanent income" consumer is almost identical for every permanent income level (and the same as the normalized problem's $\texttt{cFunc}$), but is less accurate due to extrapolation outside the bounds of $\texttt{pLvlGrid}$. 
@@ -304,10 +304,10 @@ if ExplicitExample.vFuncBool:
 # %%
 # Simulate many periods to get to the stationary distribution
 ExplicitExample.T_sim = 500
-ExplicitExample.track_vars = ['mLvlNow','cLvlNow','pLvl']
+ExplicitExample.track_vars = ['mLvl','cLvl','pLvl']
 ExplicitExample.initialize_sim()
 ExplicitExample.simulate()
-plt.plot(np.mean(ExplicitExample.history['mLvlNow'],axis=1))
+plt.plot(np.mean(ExplicitExample.history['mLvl'],axis=1))
 plt.xlabel('Simulated time period')
 plt.ylabel('Average market resources mLvl')
 plt.show()
@@ -317,7 +317,7 @@ plt.show()
 # ## 2. Persistent income shock consumer
 #
 #
-# Class to solve consumption-saving models with idiosyncratic shocks to income in which shocks are persistent and transitory. This model extends $\texttt{ConsGenIndShockModel}$ by allowing (log) persistent income to follow an AR(1) process.
+# Class to solve consumption-saving models with idiosyncratic shocks to income in which shocks are persistent and transitory. This model extends `ConsGenIndShockModel` by allowing (log) persistent income to follow an AR(1) process.
 #
 # The agent's problem can be written in Bellman form as:
 #
@@ -352,7 +352,7 @@ persistent_shocks['PrstIncCorr'] = PrstIncCorr
 
 
 # %% [markdown]
-# The $\texttt{PersistentShockConsumerType}$ class solves the problem of a consumer facing idiosyncratic shocks to his persistent and transitory income, and for which the (log) persistent income follows an AR1 process rather than random walk.
+# The `PersistentShockConsumerType` class solves the problem of a consumer facing idiosyncratic shocks to his persistent and transitory income, and for which the (log) persistent income follows an AR1 process rather than random walk.
 
 # %%
 # Make and solve an example of "persistent idisyncratic shocks" consumer
@@ -390,10 +390,12 @@ if PersistentExample.vFuncBool:
 # %%
 # Simulate some data
 PersistentExample.T_sim = 500
-PersistentExample.track_vars = ['mLvlNow','cLvlNow','pLvl']
+PersistentExample.track_vars = ['mLvl','cLvl','pLvl']
 PersistentExample.initialize_sim()
 PersistentExample.simulate()
-plt.plot(np.mean(PersistentExample.history['mLvlNow'],axis=1))
+plt.plot(np.mean(PersistentExample.history['mLvl'],axis=1))
 plt.xlabel('Simulated time period')
 plt.ylabel('Average market resources mLvl')
 plt.show()
+
+# %%

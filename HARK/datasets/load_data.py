@@ -7,7 +7,7 @@ DATASETS = os.path.dirname(os.path.abspath(__file__)) + "/data/"
 
 
 def load_SCF_wealth_weights():
-    """ U.S. Survey of Consumer Finances data
+    """U.S. Survey of Consumer Finances data
 
     Returns
     -------
