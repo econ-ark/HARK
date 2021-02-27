@@ -1,6 +1,6 @@
 import numpy as np  # numeric Python
 from HARK.distribution import DiscreteDistribution
-from HARK.utilities import plotFuncs  # basic plotting tools
+from HARK.utilities import plot_funcs  # basic plotting tools
 from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
 )  # An alternative, much longer way to solve the TBS model
@@ -43,10 +43,10 @@ print(
 m_upper = 1.5 * ExampleType.mTarg
 conFunc_PF = lambda m: ExampleType.h * ExampleType.PFMPC + ExampleType.PFMPC * m
 # plotFuncs([ExampleType.solution[0].cFunc,ExampleType.mSSfunc,ExampleType.cSSfunc],0,m_upper)
-plotFuncs([ExampleType.solution[0].cFunc, ExampleType.solution[0].cFunc_U], 0, m_upper)
+plot_funcs([ExampleType.solution[0].cFunc, ExampleType.solution[0].cFunc_U], 0, m_upper)
 
 if do_simulation:
-    ExampleType(**simulation_values)  # Set attributes needed for simulation
+    ExampleType.assign_parameters(**simulation_values)  # Set attributes needed for simulation
     ExampleType.track_vars = ["mLvl"]
     ExampleType.make_shock_history()
     ExampleType.initialize_sim()
@@ -116,9 +116,11 @@ print(
     'Solving the same model "the long way" took ' + str(t_end - t_start) + " seconds."
 )
 # plotFuncs([ExampleType.solution[0].cFunc,ExampleType.solution[0].cFunc_U],0,m_upper)
-plotFuncs(MarkovType.cFunc[0], 0, m_upper)
+plot_funcs(MarkovType.cFunc[0], 0, m_upper)
 diffFunc = lambda m: ExampleType.solution[0].cFunc(m) - MarkovType.cFunc[0][0](m)
 print("Difference between the (employed) consumption functions:")
-plotFuncs(diffFunc, 0, m_upper)
+plot_funcs(diffFunc, 0, m_upper)
+
+
 
 

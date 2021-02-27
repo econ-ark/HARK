@@ -7,7 +7,7 @@ Created on Fri Jan  8 15:36:14 2021
 
 import numpy as np
 import pandas as pd
-from warnings import warn
+from HARK import _log
 import os
 
 ssa_tables_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +24,7 @@ def get_ssa_life_tables():
         A DataFrame containing the information in SSA life-tables for both
         sexes and all the available years. It returns all the columns in the
         original tables.
-        
+
     """
     # Read the four tables and add columns identifying them
     dsets = []
@@ -57,18 +57,18 @@ def parse_ssa_life_table(
     Reads (year,age)-specifc death probabilities form SSA life tables and
     transforms them to a list of survival probabilities in the format that
     HARK expects.
-    
+
     Two methods are supported:
         - Cross-sectional: finds the 1-year survival probabilities for
           individuals in the age range for a fixed year.
           In the output,
           SurvPrb(age) = 1 - DeathPrb(age, year)
-          
+
         - Longitudinal: finds the 1-year survival probabilities for individuals
-          of a fixed cohort at different ages (and years). 
+          of a fixed cohort at different ages (and years).
           In the output,
           SurvPrb(age) = 1 - DeathPrb(age, cohort + age)
-    
+
     Parameters
     ----------
     min_age : int
@@ -87,7 +87,7 @@ def parse_ssa_life_table(
     year : int, optional
         If cross-sectional probabilities are requestedm this is the year at
         which they will be taken. The default is None.
-        
+
     Returns
     -------
     LivPrb : [float]
@@ -96,7 +96,7 @@ def parse_ssa_life_table(
         'min_age' + n survives one year, in the year 'year' if the
         cross-sectional method is used or 'cohort' + ('min_age' + n) if the
         longitudinal method is used.
-        
+
     """
 
     # Infix for file name depending on sex
@@ -162,7 +162,7 @@ def parse_ssa_life_table(
     # Warn the user if projections are used.
     if max(years) > max_hist:
         message = "Survival probabilities beyond {} are projections.".format(max_hist)
-        warn(message)
+        _log.debug(message)
 
     # Concatenate them
     tab = pd.concat([hist_tab, fore_tab])
