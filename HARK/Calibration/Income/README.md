@@ -12,4 +12,4 @@ This is the only file for now. Its main components are:
 
 - `CGM_income`: a representation of the income specification used by [Cocco, Gomes, and Maenhout (2005)](https://academic.oup.com/rfs/article-abstract/18/2/491/1599892). The estimates used to reproduce these results come directly from the published version of the paper.
 
-- `ParseIncomeSpec`: a function that takes in calibrations in various formats that are common in the literature and produces the parameters that represent them in the format that HARK expects.
+- `parse_income_spec`: a function that takes in calibrations in various formats that are common in the literature and produces the parameters that represent them in the format that HARK expects.

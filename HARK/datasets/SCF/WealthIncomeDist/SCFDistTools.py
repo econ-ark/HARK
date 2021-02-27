@@ -7,9 +7,9 @@ Created on Fri Jan  8 15:36:14 2021
 
 import numpy as np
 import pandas as pd
-from warnings import warn
 from HARK.datasets.cpi.us.CPITools import cpi_deflator
 import os
+from HARK import _log
 
 scf_sumstats_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -76,7 +76,7 @@ def parse_scf_distr_stats(age=None, education=None, wave=None):
         l_bound = u_bound - 5
         age_bracket = "(" + str(l_bound) + "," + str(u_bound) + "]"
 
-        warn("Returning SCF summary statistics for ages " + age_bracket + ".")
+        _log.debug("Returning SCF summary statistics for ages " + age_bracket + ".")
 
     else:
 
@@ -125,7 +125,7 @@ def parse_scf_distr_stats(age=None, education=None, wave=None):
 
     # Check for NAs
     if any(row.isna()):
-        warn(
+        _log.debug(
             "There were not enough observations in the requested "
             + "Age/Wave/Education combination to compute all summary"
             + "statistics."
@@ -142,7 +142,7 @@ def income_wealth_dists_from_scf(base_year, age=None, education=None, wave=None)
     """
     Finds and formats parameters for the initial distributions of permanent
     income and normalized wealth from the SCF's summary statistics.
-    
+
     Many of HARK's models (e.g. PerfForesightConsumerType.sim_birth(),
     GenIncProcessConsumerType.sim_birth()) assume the initial distribution
     of permanent income (pLvl) and normalized wealth (aNrm) are log-normal.
