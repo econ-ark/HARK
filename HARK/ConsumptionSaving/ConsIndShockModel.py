@@ -2486,7 +2486,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         self.thorn = ((self.Rfree * self.DiscFac)) ** (1 / self.CRRA)
 
-        # self.Rnorm           = self.Rfree*Ex_PermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
+        # self.RNrm           = self.Rfree*Ex_PermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
         self.GPFRaw = self.thorn / (self.PermGroFac[0])  # [url]/#GPF
         # Lower bound of aggregate wealth growth if all inheritances squandered
 
@@ -2570,13 +2570,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # To be written.
         # Defining:
-        ## Rnorm    = Rfree/(PermGroFac[0]*PermShk)
+        ## RNrm    = Rfree/(PermGroFac[0]*PermShk)
         ## Ex_PermShkInv    = E[PermShk**(-1)]
         ## InvEx_PermShkInv = 1/Ex_PermShkInv
-        # ExRnorm  = E[Rfree/(PermGroFac[0]*PermShk)] = Rfree Ex_PermShkInv / PermGroFac[0]
-        ## InvExRnorm = 1/ExRnorm
+        # Ex_RNrm  = E[Rfree/(PermGroFac[0]*PermShk)] = Rfree Ex_PermShkInv / PermGroFac[0]
+        ## InvEx_RNrm = 1/Ex_RNrm
         # The "sustainable consumption" locus is given by
-        # cSust = InvExRnorm + m*(1-InvExRnorm)
+        # cSust = InvEx_RNrm + m*(1-InvEx_RNrm)
 
         # The target level of m, mTarg, will be the value such that
         # cSust[m] = cFunc[m]
