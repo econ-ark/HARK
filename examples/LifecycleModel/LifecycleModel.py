@@ -53,7 +53,7 @@
 
 import HARK.ConsumptionSaving.ConsIndShockModel as Model        # The consumption-saving micro model
 import EstimationParameters as Params    # Parameters for the consumer type and the estimation
-from HARK.utilities import plotFuncsDer, plotFuncs              # Some tools
+from HARK.utilities import plot_funcs_der, plot_funcs              # Some tools
 
 import numpy as np
 
@@ -92,7 +92,7 @@ LifeCyclePop.simulate()                         # Simulate a population behaving
 
 print('Consumption as a function of market resources while working:')
 mMin = min([LifeCyclePop.solution[t].mNrmMin for t in range(LifeCyclePop.T_cycle)])
-plotFuncs(LifeCyclePop.cFunc[:LifeCyclePop.T_retire],mMin,5)
+plot_funcs(LifeCyclePop.cFunc[:LifeCyclePop.T_retire],mMin,5)
 
 
 # %% {"code_folding": [0]}
@@ -165,3 +165,5 @@ aGro41NoU=aGro41[aGro41[:]>0.2] # Throw out extreme outliers
 from matplotlib import pyplot as plt
 n, bins, patches = plt.hist(aGro41NoU,50,density=True)
 
+
+# %%

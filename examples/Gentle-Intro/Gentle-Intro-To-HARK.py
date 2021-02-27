@@ -33,7 +33,7 @@ import numpy as np
 import HARK 
 from copy import deepcopy
 mystr = lambda number : "{:.4f}".format(number)
-from HARK.utilities import plotFuncs
+from HARK.utilities import plot_funcs
 
 # %% [markdown]
 # ## Your First HARK Model: Perfect Foresight
@@ -110,7 +110,7 @@ PFexample = PerfForesightConsumerType(**PF_dictionary)
 #
 # ## Solving an Agent's Problem
 #
-# To tell the agent actually to solve the problem, we call the agent's $\texttt{solve}$ **method**. (A *method** is essentially a function that an object runs that affects the object's own internal characteristics -- in this case, the method adds the consumption function to the contents of $\texttt{PFexample}$.)
+# To tell the agent actually to solve the problem, we call the agent's $\texttt{solve}$ **method**. (A method is essentially a function that an object runs that affects the object's own internal characteristics -- in this case, the method adds the consumption function to the contents of $\texttt{PFexample}$.)
 #
 # The cell below calls the $\texttt{solve}$ method for $\texttt{PFexample}$
 
@@ -132,7 +132,7 @@ PFexample.solution[0].cFunc
 
 # %%
 mPlotTop=10
-plotFuncs(PFexample.solution[0].cFunc,0.,mPlotTop)
+plot_funcs(PFexample.solution[0].cFunc,0.,mPlotTop)
 
 # %% [markdown]
 # The figure illustrates one of the surprising features of the perfect foresight model: A person with zero money should be spending at a rate more than double their income (that is, $\texttt{cFunc}(0.) \approx 2.08$ - the intersection on the vertical axis).  How can this be?
@@ -149,7 +149,7 @@ print("This agent's consumption function is defined (consumption is positive) do
 # Yikes! Let's take a look at the bottom of the consumption function.  In the cell below, the bounds of the $\texttt{plotFuncs}$ function are set to display down to the lowest defined value of the consumption function.
 
 # %%
-plotFuncs(PFexample.solution[0].cFunc,
+plot_funcs(PFexample.solution[0].cFunc,
           mMinimum,
           mPlotTop)
 
@@ -162,19 +162,19 @@ plotFuncs(PFexample.solution[0].cFunc,
 NewExample = deepcopy(PFexample)
 
 # %% [markdown]
-# In Python, you can set an **attribute** of an object just like any other variable.  For example, we could make the new agent less patient:
+# You can assign new parameters to an `AgentType` with the `assign_parameter` method. For example, we could make the new agent less patient:
 
 # %%
-NewExample.DiscFac = 0.90
+NewExample.assign_parameters(DiscFac = 0.90)
 NewExample.solve()
 mPlotBottom = mMinimum
-plotFuncs([PFexample.solution[0].cFunc,
+plot_funcs([PFexample.solution[0].cFunc,
            NewExample.solution[0].cFunc],
           mPlotBottom,
           mPlotTop)
 
 # %% [markdown]
-# (Note that you can pass a **list** of functions to $\texttt{plotFuncs}$ as the first argument rather than just a single function. Lists are written inside of [square brackets].)
+# (Note that you can pass a **list** of functions to `plot_funcs` as the first argument rather than just a single function. Lists are written inside of [square brackets].)
 #
 # Let's try to deal with the "problem" of massive human wealth by making another consumer who has essentially no future income.  We can virtually eliminate human wealth by making the permanent income growth factor $\textit{very}$ small.
 #
@@ -187,7 +187,7 @@ plotFuncs([PFexample.solution[0].cFunc,
 # print("your lines here")
 
 # Compare the old and new consumption functions
-plotFuncs([PFexample.solution[0].cFunc,NewExample.solution[0].cFunc],0.,10.)
+plot_funcs([PFexample.solution[0].cFunc,NewExample.solution[0].cFunc],0.,10.)
 
 # %% [markdown]
 # Now $\texttt{NewExample}$'s consumption function has the same slope (MPC) as $\texttt{PFexample}$, but it emanates from (almost) zero-- he has basically no future income to borrow against!
@@ -280,7 +280,7 @@ IndShockExample = IndShockConsumerType(**IndShockDictionary)
 
 # %%
 IndShockExample.solve()
-plotFuncs(IndShockExample.solution[0].cFunc,0.,10.)
+plot_funcs(IndShockExample.solution[0].cFunc,0.,10.)
 
 # %% [markdown]
 # ## Changing Constructed Attributes
@@ -293,7 +293,7 @@ plotFuncs(IndShockExample.solution[0].cFunc,0.,10.)
 
 # %%
 OtherExample = deepcopy(IndShockExample)  # Make a copy so we can compare consumption functions
-OtherExample.PermShkStd = [0.2]           # Double permanent income risk (note that it's a one element list)
+OtherExample.assign_parameters(PermShkStd = [0.2])           # Double permanent income risk (note that it's a one element list)
 OtherExample.updateIncomeProcess()        # Call the method to reconstruct the representation of F_t
 OtherExample.solve()
 
