@@ -8,26 +8,27 @@ Created on Sat Dec 19 15:08:54 2020
 # %% Preamble
 
 import numpy as np
-from warnings import warn
 from HARK.interpolation import LinearInterp
 from HARK.datasets.cpi.us.CPITools import cpi_deflator
 
+from HARK import _log
+
 __all__ = [
-    "ParseTimeParams",
+    "parse_time_params",
     "Sabelhaus_Song_cohort_trend",
     "Sabelhaus_Song_all_years",
     "sabelhaus_song_var_profile",
     "Cagetti_income",
     "CGM_income",
-    "ParseIncomeSpec",
-    "findProfile",
+    "parse_income_spec",
+    "find_profile",
 ]
 
 
 # %% Tools for setting time-related parameters
 
 
-def ParseTimeParams(age_birth, age_death):
+def parse_time_params(age_birth, age_death):
     """
     Converts simple statements of the age at which an agent is born and the
     age at which he dies with certaintiy into the parameters that HARK needs
@@ -59,7 +60,7 @@ def ParseTimeParams(age_birth, age_death):
 # %% Tools for finding the mean profiles of permanent income.
 
 
-def AgeLogPolyToGrowthRates(coefs, age_min, age_max):
+def age_log_poly_to_growth_rates(coefs, age_min, age_max):
     """
     The deterministic component of permanent income is often expressed as a
     log-polynomial of age. In multiple HARK models, this part of the income
@@ -111,7 +112,7 @@ def AgeLogPolyToGrowthRates(coefs, age_min, age_max):
     return GrowthFac.tolist(), P0
 
 
-def findPermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
+def find_PermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
     """
     Finds initial income and sequence of growth factors from a polynomial
     specification of log-income, an optional retirement age and a replacement
@@ -149,7 +150,7 @@ def findPermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
 
         # If there is no retirement, the age polynomial applies for the whole
         # lifetime
-        GroFacs, Y0 = AgeLogPolyToGrowthRates(AgePolyCoefs, age_min, age_max)
+        GroFacs, Y0 = age_log_poly_to_growth_rates(AgePolyCoefs, age_min, age_max)
 
     else:
 
@@ -169,7 +170,7 @@ def findPermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
     return GroFacs, Y0
 
 
-def findProfile(GroFacs, Y0):
+def find_profile(GroFacs, Y0):
     """
     Generates a sequence {Y_{t}}_{t=0}^N from an initial Y_0 and a sequence
     of growth factors GroFac[n] = Y_{n+1}/Y_n
@@ -353,7 +354,7 @@ Sabelhaus_Song_all_years = {
 def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None, smooth=True):
     """
     This is a function to find the life-cycle profiles of the volatilities
-    of transitory and permanent shocks to income using the estimates in 
+    of transitory and permanent shocks to income using the estimates in
     [1] Sabelhaus and Song (2010).
 
     Parameters
@@ -401,7 +402,7 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None, smooth=True)
 
         spec = Sabelhaus_Song_all_years
         cohort = 0
-        warn("No cohort was provided. Using aggregate specification.")
+        _log.debug("No cohort was provided. Using aggregate specification.")
 
     else:
 
@@ -446,13 +447,13 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None, smooth=True)
     )
 
     if age_min < 27 or age_max > 54:
-        warn(
+        _log.debug(
             "Sabelhaus and Song (2010) provide variance profiles for ages "
             + "27 to 54. Extrapolating variances using the extreme points."
         )
 
     if cohort < 1926 or cohort > 1980:
-        warn(
+        _log.debug(
             "Sabelhaus and Song (2010) use data from birth cohorts "
             + "[1926,1980]. Extrapolating variances."
         )
@@ -477,7 +478,7 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None, smooth=True)
 # %% Encompassing tool to parse full income specifications
 
 
-def ParseIncomeSpec(
+def parse_income_spec(
     base_monet_year,
     age_min,
     age_max,
@@ -580,20 +581,20 @@ def ParseIncomeSpec(
 
         if AgePolyRetir is None:
 
-            PermGroFac, P0 = findPermGroFacs(
+            PermGroFac, P0 = find_PermGroFacs(
                 age_min, age_max, age_ret, AgePolyCoefs, ReplRate
             )
 
         else:
 
             # Working period
-            PermGroWrk, P0 = findPermGroFacs(
+            PermGroWrk, P0 = find_PermGroFacs(
                 age_min, age_ret, None, AgePolyCoefs, ReplRate
             )
-            PLast = findProfile(PermGroWrk[:-1], P0)[-1]
+            PLast = find_profile(PermGroWrk[:-1], P0)[-1]
 
             # Retirement period
-            PermGroRet, R0 = findPermGroFacs(
+            PermGroRet, R0 = find_PermGroFacs(
                 age_ret + 1, age_max, None, AgePolyRetir, ReplRate
             )
 

@@ -8,9 +8,9 @@
 #       format_version: '1.2'
 #       jupytext_version: 1.2.4
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: econ-ark-3.8
 #     language: python
-#     name: python3
+#     name: econ-ark-3.8
 # ---
 
 # %% [markdown]
@@ -110,8 +110,8 @@ LifecycleExample.solve()
 # Let's have a look at the solution in time period second period. We should then be able to
 
 # %%
-from HARK.utilities import plotFuncs
-plotFuncs([LifecycleExample.solution[0].cFunc],LifecycleExample.solution[0].mNrmMin,10)
+from HARK.utilities import plot_funcs
+plot_funcs([LifecycleExample.solution[0].cFunc],LifecycleExample.solution[0].mNrmMin,10)
 
 # %% [markdown]
 # Let us then create a solver for the first period.
@@ -119,7 +119,7 @@ plotFuncs([LifecycleExample.solution[0].cFunc],LifecycleExample.solution[0].mNrm
 # %%
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolverBasic
 solver = ConsIndShockSolverBasic(LifecycleExample.solution[1],
-                                 LifecycleExample.IncomeDstn[0],
+                                 LifecycleExample.IncShkDstn[0],
                                  LifecycleExample.LivPrb[0],
                                  LifecycleExample.DiscFac,
                                  LifecycleExample.CRRA,
@@ -146,7 +146,7 @@ solver.PermShkMinNext
 # These values were calculated in `setAndUpdateValues`. In `defBoroCnst` that was also called, several things were calculated, for example the consumption function defined by the borrowing constraint.
 
 # %%
-plotFuncs([solver.cFuncNowCnst],solver.mNrmMinNow,10)
+plot_funcs([solver.cFuncNowCnst],solver.mNrmMinNow,10)
 
 # %% [markdown]
 # Then, we set up all the grids, grabs the discrete shock distributions, and state grids in `prepareToCalcEndOfPrdvP`.
@@ -176,7 +176,7 @@ solver.addMPCandHumanWealth(solution)
 # All that is left is to verify that the solution in `solution` is identical to `LifecycleExample.solution[0]`. We can plot the against each other:
 
 # %%
-plotFuncs([LifecycleExample.solution[0].cFunc, solution.cFunc],LifecycleExample.solution[0].mNrmMin,10)
+plot_funcs([LifecycleExample.solution[0].cFunc, solution.cFunc],LifecycleExample.solution[0].mNrmMin,10)
 
 # %% [markdown]
 # Although, it's probably even clearer if we just subtract the function values from each other at some grid.

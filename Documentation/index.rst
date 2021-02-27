@@ -22,7 +22,6 @@ you might want to look at the `DemARK
    contributing/CONTRIBUTING.md
    reference/index
    CHANGELOG
-   warnings-and-disclaimers
    license
 
 
