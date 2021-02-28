@@ -30,7 +30,7 @@ simulation_values = {
 
 # Make and solve a tractable consumer type
 ExampleType = TractableConsumerType()
-ExampleType.assignParameters(**base_primitives)
+ExampleType.assign_parameters(**base_primitives)
 t_start = process_time()
 ExampleType.solve()
 t_end = process_time()
