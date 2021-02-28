@@ -17,10 +17,10 @@
 # # How we solve a model defined by the `IndShockConsumerType` class
 # The IndShockConsumerType reprents the work-horse consumption savings model with temporary and permanent shocks to income, finite or infinite horizons, CRRA utility and more. In this DemARK we take you through the steps involved in solving one period of such a model. The inheritance chains can be a little long, so figuring out where all the parameters and methods come from can be a bit confusing. Hence this map! The intention is to make it easier to know how to inheret from IndShockConsumerType in the sense that you know where to look for specific solver logic, but also so you know can figure out which methods to overwrite or supplement in your own `AgentType` and solver!
 # ## The `solveConsIndShock` function
-# In HARK, a period's problem is always solved by the callable (function or callable object instance) stored in the field `solve_one_period`. In the case of `IndShockConsumerType`, this function is called `solveConsIndShock`. The function accepts a number of arguments, that it uses to construct an instance of either a `ConsIndShockSolverBasic` or a `ConsIndShockSolver`. These solvers both have the methods `prepareToSolve` and `solve`, that we will have a closer look at in this notebook. This means, that the logic of `solveConsIndShock` is basically:
+# In HARK, a period's problem is always solved by the callable (function or callable object instance) stored in the field `solve_one_period`. In the case of `IndShockConsumerType`, this function is called `solveConsIndShock`. The function accepts a number of arguments, that it uses to construct an instance of either a `ConsIndShockSolverBasic` or a `ConsIndShockSolver`. These solvers both have the methods `prepare_to_solve` and `solve`, that we will have a closer look at in this notebook. This means, that the logic of `solveConsIndShock` is basically:
 #
 #  1. Check if cubic interpolation (`CubicBool`) or construction of the value function interpolant (`vFuncBool`) are requested. Construct an instance of `ConsIndShockSolverBasic` if neither are requested, else construct a `ConsIndShockSolver`. Call this `solver`.
-#  1. Call `solver.prepareToSolve()`
+#  1. Call `solver.prepare_to_solve()`
 #  1. Call `solver.solve()` and return the output as the current solution.
 
 # %% [markdown]
@@ -56,23 +56,23 @@
 #
 # To sum up, the `__init__` method lives in `ConsIndShockSetup`, calls `assign_parameters` and `defUtilityFuncs` from `ConsPerfForesightSolver` and defines its own methods with the same names that adds some methods used to solve the `IndShockConsumerType` using EGM. The main things controlled by the end-user are whether cubic interpolation should be used, `CubicBool`, and if the value function should be explicitly formed, `vFuncBool`.
 # ### Prepare to solve
-# We are now in bullet 2) from the list above. The `prepareToSolve` method is all about grabbing relevant information from next period's solution, calculating some limiting solutions. It comes from `ConsIndShockSetup` and calls two methods:
+# We are now in bullet 2) from the list above. The `prepare_to_solve` method is all about grabbing relevant information from next period's solution, calculating some limiting solutions. It comes from `ConsIndShockSetup` and calls two methods:
 #
 # 1. `ConsIndShockSetup.setAndUpdateValues(self.solution_next,self.IncomeDstn,self.LivPrb,self.DiscFac)`
 # 2. `ConsIndShockSetup.defBoroCnst(self.BoroCnstArt)`
 #
 # First, we have `setAndUpdateValues`. The main purpose is to grab the relevant vectors that represent the shock distributions, the effective discount factor, and value function (marginal, level, marginal marginal depending on the options). It also calculates some limiting marginal propensities to consume and human wealth levels. Second, we have `defBoroCnst`. As the name indicates, it calculates the natural borrowing constraint, handles artificial borrowing constraints, and defines the consumption function where the constraint binds (`cFuncNowCnst`).
 #
-# To sum, `prepareToSolve` sets up the stochastic environment an borrowing constraints the consumer might face. It also grabs interpolants from "next period"'s solution.
+# To sum, `prepare_to_solve` sets up the stochastic environment an borrowing constraints the consumer might face. It also grabs interpolants from "next period"'s solution.
 #
 # ### Solve it!
 # The last method `solveConsIndShock` will call from the `solver` is `solve`. This method essentially has four steps:
-#  1. Pre-processing for EGM: solver.prepareToCalcEndOfPrdvP
-#  1. First step of EGM: solver.calcEndOfPrdvP
-#  1. Second step of EGM: solver.makeBasicSolution
-#  1. Add MPC and human wealth: solver.addMPCandHumanWealth
+#  1. Pre-processing for EGM: solver.prepare_to_calc_EndOfPrdvP
+#  1. First step of EGM: solver.calc_EndOfPrdvP
+#  1. Second step of EGM: solver.make_basic_solution
+#  1. Add MPC and human wealth: solver.add_MPC_and_human_wealth
 #
-# #### Pre-processing for EGM `prepareToCalcEndOfPrdvP`
+# #### Pre-processing for EGM `prepare_to_calc_EndOfPrdvP`
 # Find relevant values of end-of-period asset values (according to `aXtraGrid` and natural borrowing constraint) and next period values implied by current period end-of-period assets and stochastic elements. The method stores the following in `self`:
 #
 #  1. values of permanent shocks in `PermShkVals_temp`
@@ -82,13 +82,13 @@
 #
 # The method also returns `aNrmNow`. The definition is in `ConsIndShockSolverBasic` and is not overwritten in `ConsIndShockSolver`.
 #
-# #### First step of EGM `calcEndOfPrdvP`
+# #### First step of EGM `calc_EndOfPrdvP`
 # Find the marginal value of having  some level of end-of-period assets today. End-of-period assets as well as stochastics imply next-period resources at the beginning of the period, calculated above. Return the result as `EndOfPrdvP`.
 #
-# #### Second step of EGM `makeBasicSolution`
+# #### Second step of EGM `make_basic_solution`
 # Apply inverse marginal utility function to nodes from about to find (m, c) pairs for the new consumption function in `get_points_for_interpolation` and create the interpolants in `usePointsForInterpolation`. The latter constructs the `ConsumerSolution` that contains the current consumption function `cFunc`, the current marginal value function `vPfunc`, and the smallest possible resource level `mNrmMinNow`.
 #
-# #### Add MPC and human wealth `addMPCandHumanWealth`
+# #### Add MPC and human wealth `add_MPC_and_human_wealth`
 # Add values calculated in `defBoroCnst` now that we have a solution object to put them in.
 #
 # #### Special to the non-Basic solver
@@ -131,7 +131,7 @@ solver = ConsIndShockSolverBasic(LifecycleExample.solution[1],
                                  LifecycleExample.CubicBool)
 
 # %%
-solver.prepareToSolve()
+solver.prepare_to_solve()
 
 # %% [markdown]
 # Many important values are now calculated and stored in solver, such as the effective discount factor, the smallest permanent income shock, and more.
@@ -149,28 +149,28 @@ solver.PermShkMinNext
 plot_funcs([solver.cFuncNowCnst],solver.mNrmMinNow,10)
 
 # %% [markdown]
-# Then, we set up all the grids, grabs the discrete shock distributions, and state grids in `prepareToCalcEndOfPrdvP`.
+# Then, we set up all the grids, grabs the discrete shock distributions, and state grids in `prepare_to_calc_EndOfPrdvP`.
 
 # %%
-solver.prepareToCalcEndOfPrdvP()
+solver.prepare_to_calc_EndOfPrdvP()
 
 # %% [markdown]
 # Then we calculate the marginal utility of next period's resources given the stochastic environment and current grids.
 
 # %%
-EndOfPrdvP = solver.calcEndOfPrdvP()
+EndOfPrdvP = solver.calc_EndOfPrdvP()
 
 # %% [markdown]
-# Then, we essentially just have to construct the (resource, consumption) pairs by completing the EGM step, and constructing the interpolants by using the knowledge that the limiting solutions are those of the perfect foresight model. This is done with `makeBasicSolution` as discussed above.
+# Then, we essentially just have to construct the (resource, consumption) pairs by completing the EGM step, and constructing the interpolants by using the knowledge that the limiting solutions are those of the perfect foresight model. This is done with `make_basic_solution` as discussed above.
 
 # %%
-solution = solver.makeBasicSolution(EndOfPrdvP,solver.aNrmNow,solver.makeLinearcFunc)
+solution = solver.make_basic_solution(EndOfPrdvP,solver.aNrmNow,solver.make_linear_cFunc)
 
 # %% [markdown]
 # Lastly, we add the MPC and human wealth quantities we calculated in the method that prepared the solution of this period.
 
 # %%
-solver.addMPCandHumanWealth(solution)
+solver.add_MPC_and_human_wealth(solution)
 
 # %% [markdown]
 # All that is left is to verify that the solution in `solution` is identical to `LifecycleExample.solution[0]`. We can plot the against each other:

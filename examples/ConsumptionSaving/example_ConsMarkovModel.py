@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # %%
-from HARK.utilities import plotFuncs
+from HARK.utilities import plot_funcs
 from time import process_time
 from copy import deepcopy, copy
 import numpy as np
@@ -132,7 +132,7 @@ SerialUnemploymentExample.IncomeDstn = [
 ]
 
 # %% [markdown]
-# Note that $\texttt{MarkovConsumerType}$ currently has no method to automatically construct a valid IncomeDstn - $\texttt{IncomeDstn}$ is manually constructed in each case. Writing a method to supersede $\texttt{IndShockConsumerType.updateIncomeProcess}$ for the “Markov model” would be a welcome contribution!
+# Note that $\texttt{MarkovConsumerType}$ currently has no method to automatically construct a valid IncomeDstn - $\texttt{IncomeDstn}$ is manually constructed in each case. Writing a method to supersede $\texttt{IndShockConsumerType.update_income_process}$ for the “Markov model” would be a welcome contribution!
 
 # %%
 # Interest factor, permanent growth rates, and survival probabilities are constant arrays
@@ -153,10 +153,10 @@ print(
     + " seconds."
 )
 print("Consumption functions for each discrete state:")
-plotFuncs(SerialUnemploymentExample.solution[0].cFunc, 0, 50)
+plot_funcs(SerialUnemploymentExample.solution[0].cFunc, 0, 50)
 if SerialUnemploymentExample.vFuncBool:
     print("Value functions for each discrete state:")
-    plotFuncs(SerialUnemploymentExample.solution[0].vFunc, 5, 50)
+    plot_funcs(SerialUnemploymentExample.solution[0].vFunc, 5, 50)
 
 # %%
 # Simulate some data; results stored in cHist, mNrmNow_hist, cNrmNow_hist, and MrkvNow_hist
@@ -241,7 +241,7 @@ print(
 )
 print("Consumption functions for each discrete state:")
 mNrmMin = np.min([ImmunityExample.solution[0].mNrmMin[j] for j in range(StateCount)])
-plotFuncs(ImmunityExample.solution[0].cFunc, mNrmMin, 10)
+plot_funcs(ImmunityExample.solution[0].cFunc, mNrmMin, 10)
 
 # %% [markdown]
 # ### 3. Serial permanent income growth
@@ -305,7 +305,7 @@ print(
     + " seconds."
 )
 print("Consumption functions for each discrete state:")
-plotFuncs(SerialGroExample.solution[0].cFunc, 0, 10)
+plot_funcs(SerialGroExample.solution[0].cFunc, 0, 10)
 
 # %%
 # Make a consumer with serially correlated interest factors
@@ -328,4 +328,4 @@ print(
     + " seconds."
 )
 print("Consumption functions for each discrete state:")
-plotFuncs(SerialRExample.solution[0].cFunc, 0, 10)
+plot_funcs(SerialRExample.solution[0].cFunc, 0, 10)
