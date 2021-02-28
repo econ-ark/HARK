@@ -1,3 +1,4 @@
+# %%
 from time import process_time
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,6 +15,7 @@ def mystr(number):
     return "{:.4f}".format(number)
 
 
+# %%
 # Solve an AggShockConsumerType's microeconomic problem
 solve_agg_shocks_micro = False
 # Solve for the equilibrium aggregate saving rule in a CobbDouglasEconomy
@@ -27,8 +29,10 @@ solve_krusell_smith = True
 # Solve a CobbDouglasEconomy with many states, potentially utilizing the "state jumper"
 solve_poly_state = False
 
+# %% [markdown]
 # ### Example implementation of AggShockConsumerType
 
+# %%
 if solve_agg_shocks_micro or solve_agg_shocks_market:
     # Make an aggregate shocks consumer type
     AggShockExample = AggShockConsumerType()
@@ -41,6 +45,7 @@ if solve_agg_shocks_micro or solve_agg_shocks_market:
     # Have the consumers inherit relevant objects from the economy
     AggShockExample.get_economy_data(EconomyExample)
 
+# %%
 if solve_agg_shocks_micro:
     # Solve the microeconomic model for the aggregate shocks example type (and display results)
     t_start = process_time()
@@ -63,6 +68,7 @@ if solve_agg_shocks_micro:
     plt.ylim(0.0, None)
     plt.show()
 
+# %%
 if solve_agg_shocks_market:
     # Solve the "macroeconomic" model by searching for a "fixed point dynamic rule"
     t_start = process_time()
@@ -92,8 +98,10 @@ if solve_agg_shocks_market:
     plt.ylim(0.0, None)
     plt.show()
 
+# %% [markdown]
 # ### Example Implementations of AggShockMarkovConsumerType
 
+# %%
 if solve_markov_micro or solve_markov_market or solve_krusell_smith:
     # Make a Markov aggregate shocks consumer type
     AggShockMrkvExample = AggShockMarkovConsumerType()
@@ -108,6 +116,7 @@ if solve_markov_micro or solve_markov_market or solve_krusell_smith:
         MrkvEconomyExample
     )  # Have the consumers inherit relevant objects from the economy
 
+# %%
 if solve_markov_micro:
     # Solve the microeconomic model for the Markov aggregate shocks example type (and display results)
     t_start = process_time()
@@ -135,6 +144,7 @@ if solve_markov_micro:
         plt.ylim(0.0, None)
         plt.show()
 
+# %%
 if solve_markov_market:
     # Solve the "macroeconomic" model by searching for a "fixed point dynamic rule"
     t_start = process_time()
@@ -163,6 +173,7 @@ if solve_markov_market:
         plt.ylim(0.0, None)
         plt.show()
 
+# %%
 if solve_krusell_smith:
     # Make a Krusell-Smith agent type
     # NOTE: These agents aren't exactly like KS, as they don't have serially correlated unemployment
@@ -204,6 +215,7 @@ if solve_krusell_smith:
     t_end = process_time()
     print("Solving the Krusell-Smith model took " + str(t_end - t_start) + " seconds.")
 
+# %%
 if solve_poly_state:
     StateCount = 15  # Number of Markov states
     GrowthAvg = 1.01  # Average permanent income growth factor
@@ -264,4 +276,4 @@ if solve_poly_state:
         + " seconds."
     )
 
-
+# %%

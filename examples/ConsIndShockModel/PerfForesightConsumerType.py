@@ -6,8 +6,8 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.6.0
+#       format_version: '1.2'
+#       jupytext_version: 1.2.4
 #   kernelspec:
 #     display_name: econ-ark-3.8
 #     language: python
@@ -18,7 +18,7 @@
 # # PerfForesightConsumerType: Perfect foresight consumption-saving
 
 
-# %% code_folding=[0]
+# %% {"code_folding": [0]}
 # Initial imports and notebook setup, click arrow to show
 
 from copy import copy
@@ -118,7 +118,7 @@ mystr = lambda number: "{:.4f}".format(number)
 #
 # The cell below defines a dictionary that can be passed to the constructor method for `PerfForesightConsumerType`, with the values from the table here.
 
-# %% code_folding=[]
+# %% {"code_folding": []}
 PerfForesightDict = {
     # Parameters actually used in the solution method
     "CRRA": 2.0,  # Coefficient of relative risk aversion
@@ -176,7 +176,7 @@ plot_funcs(PFexample.solution[0].vFunc, mMin + 0.1, mMin + 10.1)
 #
 # Without an artificial borrowing constraint, a perfect foresight consumer is free to borrow against the PDV of his entire future stream of labor income-- his "human wealth" $\texttt{hNrm}$-- and he will consume a constant proportion of his total wealth (market resources plus human wealth).  If we introduce an artificial borrowing constraint, both of these features vanish.  In the cell below, we define a parameter dictionary that prevents the consumer from borrowing *at all*, create and solve a new instance of `PerfForesightConsumerType` with it, and then plot its consumption function.
 
-# %% pycharm={"name": "#%%\n"}
+# %% {"pycharm": {"name": "#%%\n"}}
 LiqConstrDict = copy(PerfForesightDict)
 LiqConstrDict["BoroCnstArt"] = 0.0  # Set the artificial borrowing constraint to zero
 
@@ -187,7 +187,7 @@ LiqConstrExample.solve()
 print("Liquidity constrained perfect foresight consumption function:")
 plot_funcs(LiqConstrExample.solution[0].cFunc, 0.0, 10.0)
 
-# %% pycharm= [markdown] {"name": "#%% md\n"}
+# %% {"incorrectly_encoded_metadata": "pycharm= [markdown] {\"name\": \"#%% md\\n\"}"}
 # At this time, the value function for a perfect foresight consumer with an artificial borrowing constraint is not computed nor included as part of its $\texttt{solution}$.
 
 # %% [markdown]
@@ -218,7 +218,7 @@ plot_funcs(LiqConstrExample.solution[0].cFunc, 0.0, 10.0)
 #
 # The cell below puts these parameters into a dictionary, then gives them to `PFexample`.  Note that all of these parameters *could* have been passed as part of the original dictionary; we omitted them above for simplicity.
 
-# %% pycharm={"name": "#%%\n"}
+# %% {"pycharm": {"name": "#%%\n"}}
 SimulationParams = {
     "AgentCount": 10000,  # Number of agents of this type
     "T_sim": 120,  # Number of periods to simulate
@@ -232,7 +232,7 @@ SimulationParams = {
 
 PFexample.assign_parameters(**SimulationParams)
 
-# %% pycharm= [markdown] {"name": "#%% md\n"}
+# %% [markdown] {"incorrectly_encoded_metadata": "pycharm= [markdown] {\"name\": \"#%% md\\n\"}"}
 # To generate simulated data, we need to specify which variables we want to track the "history" of for this instance.  To do so, we set the `track_vars` attribute of our `PerfForesightConsumerType` instance to be a list of strings with the simulation variables we want to track.
 #
 # In this model, valid arguments to `track_vars` include $\texttt{mNrm}$, $\texttt{cNrm}$, $\texttt{aNrm}$, and $\texttt{pLvl}$.  Because this model has no idiosyncratic shocks, our simulated data will be quite boring.
@@ -243,26 +243,26 @@ PFexample.assign_parameters(**SimulationParams)
 #
 # Finally, the `simulate` method can be called.
 
-# %% pycharm={"name": "#%%\n"}
+# %% {"pycharm": {"name": "#%%\n"}}
 PFexample.track_vars = ['mNrm']
 PFexample.initialize_sim()
 PFexample.simulate()
 
-# %% pycharm= [markdown] {"name": "#%% md\n"}
+# %% {"incorrectly_encoded_metadata": "pycharm= [markdown] {\"name\": \"#%% md\\n\"}"}
 # Each simulation variable $\texttt{X}$ named in $\texttt{track_vars}$ will have the *history* of that variable for each agent stored in the attribute $\texttt{X_hist}$ as an array of shape $(\texttt{T_sim},\texttt{AgentCount})$.  To see that the simulation worked as intended, we can plot the mean of $m_t$ in each simulated period:
 
-# %% pycharm={"name": "#%%\n"}
+# %% {"pycharm": {"name": "#%%\n"}}
 plt.plot(np.mean(PFexample.history['mNrm'], axis=1))
 plt.xlabel("Time")
 plt.ylabel("Mean normalized market resources")
 plt.show()
 
-# %% pycharm= [markdown] {"name": "#%% md\n"}
+# %% [markdown] {"incorrectly_encoded_metadata": "pycharm= [markdown] {\"name\": \"#%% md\\n\"}"}
 # A perfect foresight consumer can borrow against the PDV of his future income-- his human wealth-- and thus as time goes on, our simulated agents approach the (very negative) steady state level of $m_t$ while being steadily replaced with consumers with roughly $m_t=1$.
 #
 # The slight wiggles in the plotted curve are due to consumers randomly dying and being replaced; their replacement will have an initial state drawn from the distributions specified by the user.  To see the current distribution of ages, we can look at the attribute $\texttt{t_age}$.
 
-# %% pycharm={"name": "#%%\n"}
+# %% {"pycharm": {"name": "#%%\n"}}
 N = PFexample.AgentCount
 F = np.linspace(0.0, 1.0, N)
 plt.plot(np.sort(PFexample.t_age), F)
@@ -270,7 +270,7 @@ plt.xlabel("Current age of consumers")
 plt.ylabel("Cumulative distribution")
 plt.show()
 
-# %% pycharm= [markdown] {"name": "#%% md\n"}
+# %% [markdown] {"incorrectly_encoded_metadata": "pycharm= [markdown] {\"name\": \"#%% md\\n\"}"}
 # The distribution is (discretely) exponential, with a point mass at 120 with consumers who have survived since the beginning of the simulation.
 #
 # One might wonder why HARK requires users to call `initialize_sim` before calling `simulate`: Why doesn't `simulate` just call `initialize_sim` as its first step?  We have broken up these two steps so that users can simulate some number of periods, change something in the environment, and then resume the simulation.
@@ -281,7 +281,7 @@ plt.show()
 #
 # The `state_prev` attribute of an AgenType stores the values of the model's state variables in the _previous_ period of the simulation.
 
-# %% pycharm= {"name": "#%%\n"}
+# %% {"pycharm": {"name": "#%%\n"}}
 PFexample.initialize_sim()
 PFexample.simulate(80)
 PFexample.state_prev['aNrm'] += -5.0  # Adjust all simulated consumers' assets downward by 5

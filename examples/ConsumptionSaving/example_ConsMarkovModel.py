@@ -122,7 +122,7 @@ SerialUnemploymentExample.vFuncBool = False  # for easy toggling here
 # Replace the default (lognormal) income distribution with a custom one
 employed_income_dist = DiscreteDistribution(np.ones(1), [np.ones(1), np.ones(1)])  # Definitely get income
 unemployed_income_dist = DiscreteDistribution(np.ones(1), [np.ones(1), np.zeros(1)]) # Definitely don't
-SerialUnemploymentExample.IncomeDstn = [
+SerialUnemploymentExample.IncShkDstn = [
     [
         employed_income_dist,
         unemployed_income_dist,
@@ -136,7 +136,7 @@ SerialUnemploymentExample.IncomeDstn = [
 
 # %%
 # Interest factor, permanent growth rates, and survival probabilities are constant arrays
-SerialUnemploymentExample.Rfree = np.array(4 * [SerialUnemploymentExample.Rfree])
+SerialUnemploymentExample.assign_parameters(Rfree = np.array(4 * [SerialUnemploymentExample.Rfree]))
 SerialUnemploymentExample.PermGroFac = [
     np.array(4 * SerialUnemploymentExample.PermGroFac)
 ]
@@ -163,7 +163,7 @@ if SerialUnemploymentExample.vFuncBool:
 if do_simulation:
     SerialUnemploymentExample.T_sim = 120
     SerialUnemploymentExample.MrkvPrbsInit = [0.25, 0.25, 0.25, 0.25]
-    SerialUnemploymentExample.track_vars = ['mNrm', 'cNrm']
+    SerialUnemploymentExample.track_vars = ["mNrm", "cNrm"]
     SerialUnemploymentExample.make_shock_history()  # This is optional
     SerialUnemploymentExample.initialize_sim()
     SerialUnemploymentExample.simulate()
@@ -227,7 +227,7 @@ ImmunityExample.assign_parameters(
     BoroCnstArt=None,  # No artificial borrowing constraint
     cycles=0,
 )  # Infinite horizon
-ImmunityExample.IncomeDstn = [IncomeDstn]
+ImmunityExample.IncShkDstn = [IncomeDstn]
 
 # %%
 # Solve the unemployment immunity problem and display the consumption functions
@@ -286,7 +286,7 @@ SerialGroExample.assign_parameters(
     LivPrb=[np.array(StateCount * [0.98])],  # Same survival probability in all states
     cycles=0,
 )
-SerialGroExample.IncomeDstn = [IncomeDstn]
+SerialGroExample.IncShkDstn = [IncomeDstn]
 
 
 # %% [markdown]
@@ -329,3 +329,5 @@ print(
 )
 print("Consumption functions for each discrete state:")
 plot_funcs(SerialRExample.solution[0].cFunc, 0, 10)
+
+# %%

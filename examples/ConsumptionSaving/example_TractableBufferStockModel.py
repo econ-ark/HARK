@@ -1,3 +1,4 @@
+# %%
 import numpy as np  # numeric Python
 from HARK.distribution import DiscreteDistribution
 from HARK.utilities import plot_funcs  # basic plotting tools
@@ -10,6 +11,7 @@ from HARK.ConsumptionSaving.TractableBufferStockModel import TractableConsumerTy
 import numpy as np
 do_simulation = True
 
+# %%
 # Define the model primitives
 base_primitives = {
     "UnempPrb": 0.00625,  # Probability of becoming unemployed
@@ -19,6 +21,7 @@ base_primitives = {
     "CRRA": 1.0,
 }  # Coefficient of relative risk aversion
 
+# %%
 # Define a dictionary to be used in case of simulation
 simulation_values = {
     "aLvlInitMean": 0.0,  # Mean of log initial assets for new agents
@@ -28,6 +31,7 @@ simulation_values = {
     "T_cycle": 1,
 }  # Number of periods in the cycle
 
+# %%
 # Make and solve a tractable consumer type
 ExampleType = TractableConsumerType()
 ExampleType.assign_parameters(**base_primitives)
@@ -40,12 +44,14 @@ print(
     + " seconds."
 )
 
+# %%
 # Plot the consumption function and whatnot
 m_upper = 1.5 * ExampleType.mTarg
 conFunc_PF = lambda m: ExampleType.h * ExampleType.PFMPC + ExampleType.PFMPC * m
 # plot_funcs([ExampleType.solution[0].cFunc,ExampleType.mSSfunc,ExampleType.cSSfunc],0,m_upper)
 plot_funcs([ExampleType.solution[0].cFunc, ExampleType.solution[0].cFunc_U], 0, m_upper)
 
+# %%
 if do_simulation:
     ExampleType.assign_parameters(**simulation_values)  # Set attributes needed for simulation
     ExampleType.track_vars = ["mLvl"]
@@ -54,6 +60,7 @@ if do_simulation:
     ExampleType.simulate()
 
 
+# %%
 # Now solve the same model using backward induction rather than the analytic method of TBS.
 # The TBS model is equivalent to a Markov model with two states, one of them absorbing (permanent unemployment).
 MrkvArray = np.array(
@@ -95,6 +102,7 @@ init_consumer_objects = {
 }
 MarkovType = MarkovConsumerType(**init_consumer_objects)  # Make a basic consumer type
 
+# %%
 employed_income_dist = DiscreteDistribution(np.ones(1),
     [np.ones(1), np.ones(1)]
     )  # Income distribution when employed
@@ -102,17 +110,20 @@ unemployed_income_dist = DiscreteDistribution(np.ones(1),
     [np.ones(1), np.zeros(1)]
     )  # Income distribution when permanently unemployed
 
+# %%
 MarkovType.IncShkDstn = [
     [employed_income_dist, unemployed_income_dist]
 ]  # set the income distribution in each state
 MarkovType.cycles = 0
 
+# %%
 # Solve the "Markov TBS" model
 t_start = process_time()
 MarkovType.solve()
 t_end = process_time()
 MarkovType.unpack('cFunc')
 
+# %%
 print(
     'Solving the same model "the long way" took ' + str(t_end - t_start) + " seconds."
 )
@@ -122,6 +133,6 @@ diffFunc = lambda m: ExampleType.solution[0].cFunc(m) - MarkovType.cFunc[0][0](m
 print("Difference between the (employed) consumption functions:")
 plot_funcs(diffFunc, 0, m_upper)
 
+# %%
 
-
-
+# %%

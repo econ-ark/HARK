@@ -121,11 +121,11 @@ if ExplicitExample.vFuncBool:
 # Simulate some data
 if do_simulation:
     ExplicitExample.T_sim = 500
-    ExplicitExample.track_vars = ["mLvl", "cLvl", 'pLvl']
+    ExplicitExample.track_vars = ["mLvl", "cLvl", "pLvl"]
     ExplicitExample.make_shock_history()  # This is optional
     ExplicitExample.initialize_sim()
     ExplicitExample.simulate()
-    plt.plot(np.mean(ExplicitExample.mLvlNow_hist, axis=1))
+    plt.plot(np.mean(ExplicitExample.history['mLvl'], axis=1))
     plt.xlabel("Simulated time period")
     plt.ylabel("Average market resources mLvl")
     plt.show()
@@ -179,10 +179,12 @@ if PersistentExample.vFuncBool:
 # Simulate some data
 if do_simulation:
     PersistentExample.T_sim = 500
-    PersistentExample.track_vars = ["mLvl", "cLvl", 'pLvl']
+    PersistentExample.track_vars = ["mLvl", "cLvl", "pLvl"]
     PersistentExample.initialize_sim()
     PersistentExample.simulate()
-    plt.plot(np.mean(PersistentExample.mLvlNow_hist, axis=1))
+    plt.plot(np.mean(PersistentExample.history['mLvl'], axis=1))
     plt.xlabel("Simulated time period")
     plt.ylabel("Average market resources mLvl")
     plt.show()
+
+# %%
