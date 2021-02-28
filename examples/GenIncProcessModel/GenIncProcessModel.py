@@ -132,7 +132,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 # The "constructed" inputs above are using expected attributes and are drawn on various methods as explained below.
 #
 #
-# * The input $\texttt{IncomeDstn}$ is created by the method `updateIncomeProcess` which inherits from `IndShockConsumerType`.
+# * The input $\texttt{IncomeDstn}$ is created by the method `update_income_process` which inherits from `IndShockConsumerType`.
 #
 # * The input $\texttt{pLvlNextFunc}$ is created by the method `updatepLvlNextFunc` which uses the initial sequence of $\texttt{pLvlNextFunc}$, the mean and standard deviation of the (log) initial permanent income, $\texttt{pLvlInitMean}$ and $\texttt{pLvlInitStd}$. 
 # In this model, the method creates a trivial $\texttt{pLvlNextFunc}$ attribute with no persistent income dynamics.  But we can overwrite it by subclasses in order to make an AR1 income process for example. 

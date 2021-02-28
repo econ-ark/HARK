@@ -1,5 +1,5 @@
 # %%
-from HARK.utilities import plotFuncs
+from HARK.utilities import plot_funcs
 from time import process_time
 import matplotlib.pyplot as plt
 import numpy as np
@@ -95,7 +95,7 @@ print(
     "Consumption function for normalized problem (without explicit permanent income):"
 )
 mNrmMin = NormalizedExample.solution[0].mNrmMin
-plotFuncs(NormalizedExample.solution[0].cFunc, mNrmMin, mNrmMin + 20)
+plot_funcs(NormalizedExample.solution[0].cFunc, mNrmMin, mNrmMin + 20)
 
 # %% [markdown]
 # The "explicit permanent income" solution deviates from the solution to the normalized problem because

@@ -5,7 +5,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_lifecycle,
     init_cyclical
 )
-from HARK.utilities import plotFuncsDer, plotFuncs
+from HARK.utilities import plot_funcs_der, plot_funcs
 from time import time
 
 mystr = lambda number: "{:.4f}".format(number)
@@ -31,7 +31,7 @@ PFexample.unpack('cFunc')
 # Plot the perfect foresight consumption function
 print("Perfect foresight consumption function:")
 mMin = PFexample.solution[0].mNrmMin
-plotFuncs(PFexample.cFunc[0], mMin, mMin + 10)
+plot_funcs(PFexample.cFunc[0], mMin, mMin + 10)
 
 if do_simulation:
     PFexample.T_sim = 120  # Set number of simulation periods
@@ -55,14 +55,14 @@ IndShockExample.unpack('cFunc')
 
 # Plot the consumption function and MPC for the infinite horizon consumer
 print("Concave consumption function:")
-plotFuncs(IndShockExample.cFunc[0], IndShockExample.solution[0].mNrmMin, 5)
+plot_funcs(IndShockExample.cFunc[0], IndShockExample.solution[0].mNrmMin, 5)
 print("Marginal consumption function:")
-plotFuncsDer(IndShockExample.cFunc[0], IndShockExample.solution[0].mNrmMin, 5)
+plot_funcs_der(IndShockExample.cFunc[0], IndShockExample.solution[0].mNrmMin, 5)
 
 # Compare the consumption functions for the perfect foresight and idiosyncratic
 # shock types.  Risky income cFunc asymptotically approaches perfect foresight cFunc.
 print("Consumption functions for perfect foresight vs idiosyncratic shocks:")
-plotFuncs(
+plot_funcs(
     [PFexample.cFunc[0], IndShockExample.cFunc[0]],
     IndShockExample.solution[0].mNrmMin,
     100,
@@ -71,7 +71,7 @@ plotFuncs(
 # Compare the value functions for the two types
 if IndShockExample.vFuncBool:
     print("Value functions for perfect foresight vs idiosyncratic shocks:")
-    plotFuncs(
+    plot_funcs(
         [PFexample.solution[0].vFunc, IndShockExample.solution[0].vFunc],
         IndShockExample.solution[0].mNrmMin + 0.5,
         10,
@@ -102,11 +102,11 @@ print("Consumption functions while working:")
 mMin = min(
     [LifecycleExample.solution[t].mNrmMin for t in range(LifecycleExample.T_cycle)]
 )
-plotFuncs(LifecycleExample.cFunc[: LifecycleExample.T_retire], mMin, 5)
+plot_funcs(LifecycleExample.cFunc[: LifecycleExample.T_retire], mMin, 5)
 
 # Plot the consumption functions during retirement
 print("Consumption functions while retired:")
-plotFuncs(LifecycleExample.cFunc[LifecycleExample.T_retire :], 0, 5)
+plot_funcs(LifecycleExample.cFunc[LifecycleExample.T_retire :], 0, 5)
 
 # Simulate some data; results stored in mNrmNow_hist, cNrmNow_hist, pLvlNow_hist, and t_age_hist
 if do_simulation:
@@ -129,7 +129,7 @@ CyclicalExample.unpack('cFunc')
 # Plot the consumption functions for the cyclical consumer type
 print("Quarterly consumption functions:")
 mMin = min([X.mNrmMin for X in CyclicalExample.solution])
-plotFuncs(CyclicalExample.cFunc, mMin, 5)
+plot_funcs(CyclicalExample.cFunc, mMin, 5)
 
 # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
 if do_simulation:
@@ -148,7 +148,7 @@ end_time = time()
 print("Solving a kinky consumer took " + mystr(end_time - start_time) + " seconds.")
 KinkyExample.unpack('cFunc')
 print("Kinky consumption function:")
-plotFuncs(KinkyExample.cFunc[0], KinkyExample.solution[0].mNrmMin, 5)
+plot_funcs(KinkyExample.cFunc[0], KinkyExample.solution[0].mNrmMin, 5)
 
 if do_simulation:
     KinkyExample.T_sim = 120
