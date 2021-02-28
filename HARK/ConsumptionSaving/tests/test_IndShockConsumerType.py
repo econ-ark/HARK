@@ -15,13 +15,13 @@ class testIndShockConsumerType(unittest.TestCase):
 
         self.agent.solve()
 
-    def test_getShocks(self):
-        self.agent.initializeSim()
-        self.agent.simBirth(np.array([True, False]))
-        self.agent.simOnePeriod()
-        self.agent.simBirth(np.array([False, True]))
+    def test_get_shocks(self):
+        self.agent.initialize_sim()
+        self.agent.sim_birth(np.array([True, False]))
+        self.agent.sim_one_period()
+        self.agent.sim_birth(np.array([False, True]))
 
-        self.agent.getShocks()
+        self.agent.get_shocks()
 
         self.assertEqual(self.agent.shocks['PermShk'][0], 1.0427376294215103)
         self.assertEqual(self.agent.shocks['PermShk'][1], 0.9278094171517413)
@@ -63,28 +63,28 @@ class testIndShockConsumerType(unittest.TestCase):
             LifecycleExample.CubicBool,
         )
 
-        solver.prepareToSolve()
+        solver.prepare_to_solve()
 
         self.assertAlmostEqual(solver.DiscFacEff, 0.9586233599999999)
         self.assertAlmostEqual(solver.PermShkMinNext, 0.9037554719886154)
         self.assertAlmostEqual(solver.cFuncNowCnst(4).tolist(), 4.0)
-        self.assertAlmostEqual(solver.prepareToCalcEndOfPrdvP()[0], -0.2732742703949109)
-        self.assertAlmostEqual(solver.prepareToCalcEndOfPrdvP()[-1], 19.72572572960506)
+        self.assertAlmostEqual(solver.prepare_to_calc_EndOfPrdvP()[0], -0.2732742703949109)
+        self.assertAlmostEqual(solver.prepare_to_calc_EndOfPrdvP()[-1], 19.72572572960506)
 
-        EndOfPrdvP = solver.calcEndOfPrdvP()
+        EndOfPrdvP = solver.calc_EndOfPrdvP()
 
         self.assertAlmostEqual(EndOfPrdvP[0], 6710.672670733023)
         self.assertAlmostEqual(EndOfPrdvP[-1], 0.14122987153089447)
 
-        solution = solver.makeBasicSolution(
-            EndOfPrdvP, solver.aNrmNow, solver.makeLinearcFunc
+        solution = solver.make_basic_solution(
+            EndOfPrdvP, solver.aNrmNow, solver.make_linear_cFunc
         )
-        solver.addMPCandHumanWealth(solution)
+        solver.add_MPC_and_human_wealth(solution)
 
         self.assertAlmostEqual(solution.cFunc(4).tolist(), 1.484118342351686)
 
     def test_simulated_values(self):
-        self.agent.initializeSim()
+        self.agent.initialize_sim()
         self.agent.simulate()
 
         self.assertAlmostEqual(self.agent.MPCnow[1], 0.5711503906043797)
@@ -136,25 +136,25 @@ class testBufferStock(unittest.TestCase):
         self.assertAlmostEqual(c_t10[600], 1.6101476268581576)
         self.assertAlmostEqual(c_t10[700], 1.7196531041366991)
 
-    def test_GICFails(self):
-        GIC_fail_dictionary = dict(self.base_params)
-        GIC_fail_dictionary["Rfree"] = 1.08
-        GIC_fail_dictionary["PermGroFac"] = [1.00]
+    def test_GICRawFails(self):
+        GICRaw_fail_dictionary = dict(self.base_params)
+        GICRaw_fail_dictionary["Rfree"] = 1.08
+        GICRaw_fail_dictionary["PermGroFac"] = [1.00]
 
-        GICFailExample = IndShockConsumerType(
+        GICRawFailExample = IndShockConsumerType(
             cycles=0,  # cycles=0 makes this an infinite horizon consumer
-            **GIC_fail_dictionary
+            **GICRaw_fail_dictionary
         )
 
-        GICFailExample.solve()
-        GICFailExample.unpack("cFunc")
+        GICRawFailExample.solve()
+        GICRawFailExample.unpack("cFunc")
         m = np.linspace(0, 5, 1000)
-        c_m = GICFailExample.cFunc[0](m)
+        c_m = GICRawFailExample.cFunc[0](m)
 
         self.assertAlmostEqual(c_m[500], 0.7772637042393458)
         self.assertAlmostEqual(c_m[700], 0.8392649061916746)
 
-        self.assertFalse(GICFailExample.conditions["GIC"])
+        self.assertFalse(GICRawFailExample.conditions["GICRaw"])
 
     def test_infinite_horizon(self):
         baseEx_inf = IndShockConsumerType(cycles=0, **self.base_params)
@@ -163,7 +163,7 @@ class testBufferStock(unittest.TestCase):
         baseEx_inf.unpack("cFunc")
 
         m1 = np.linspace(
-            1, baseEx_inf.solution[0].mNrmSS, 50
+            1, baseEx_inf.solution[0].mNrmStE, 50
         )  # m1 defines the plot range on the left of target m value (e.g. m <= target m)
         c_m1 = baseEx_inf.cFunc[0](m1)
 
@@ -232,13 +232,13 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         IndShockExample.cycles = 0  # Make this type have an infinite horizon
         IndShockExample.solve()
 
-        self.assertAlmostEqual(IndShockExample.solution[0].mNrmSS, 1.5488165705077026)
+        self.assertAlmostEqual(IndShockExample.solution[0].mNrmStE, 1.5488165705077026)
         self.assertAlmostEqual(
             IndShockExample.solution[0].cFunc.functions[0].x_list[0], -0.25017509
         )
 
         IndShockExample.track_vars = ['aNrm', "mNrm", "cNrm", 'pLvl']
-        IndShockExample.initializeSim()
+        IndShockExample.initialize_sim()
         IndShockExample.simulate()
 
         self.assertAlmostEqual(
@@ -357,3 +357,40 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         self.assertAlmostEqual(
             CyclicalExample.solution[3].cFunc(3).tolist(), 1.5958390056965004
         )
+
+# %% Tests of 'stable points'
+
+# Create the base infinite horizon parametrization from the "Buffer Stock
+# Theory" paper.
+bst_params = copy(init_idiosyncratic_shocks)
+bst_params['PermGroFac']   = [1.03] # Permanent income growth factor
+bst_params['Rfree']        = 1.04  # Interest factor on assets
+bst_params['DiscFac']      = 0.96  # Time Preference Factor
+bst_params['CRRA']         = 2.00  # Coefficient of relative risk aversion
+bst_params['UnempPrb']     = 0.005 # Probability of unemployment (e.g. Probability of Zero Income in the paper)
+bst_params['IncUnemp']     = 0.0   # Induces natural borrowing constraint
+bst_params['PermShkStd']   = [0.1]   # Standard deviation of log permanent income shocks
+bst_params['TranShkStd']   = [0.1]   # Standard deviation of log transitory income shocks
+bst_params['LivPrb']       = [1.0]   # 100 percent probability of living to next period
+bst_params['CubicBool']    = True    # Use cubic spline interpolation
+bst_params['T_cycle']      = 1       # No 'seasonal' cycles
+bst_params['BoroCnstArt']  = None    # No artificial borrowing constraint
+
+class testStablePoints(unittest.TestCase):
+    
+    def test_IndShock_stable_points(self):
+        # Test for the target and individual steady state of the infinite
+        # horizon solution using the parametrization in the "Buffer Stock
+        # Theory" paper.
+        
+        # Create and solve the agent
+        baseAgent_Inf = IndShockConsumerType(cycles=0,verbose=0, **bst_params)
+        baseAgent_Inf.solve()
+        
+        # Extract stable points
+        mNrmStE = baseAgent_Inf.solution[0].mNrmStE
+        mNrmTrg = baseAgent_Inf.solution[0].mNrmTrg
+        
+        # Check against pre-computed values
+        self.assertAlmostEqual(mNrmStE , 1.3773113386500273)
+        self.assertAlmostEqual(mNrmTrg, 1.3910165380594735)

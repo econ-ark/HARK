@@ -1,7 +1,7 @@
 from time import process_time
 import numpy as np
 import matplotlib.pyplot as plt
-from HARK.utilities import plotFuncs
+from HARK.utilities import plot_funcs
 from HARK.distribution import DiscreteDistribution
 from HARK.ConsumptionSaving.ConsAggShockModel import (
     AggShockConsumerType,
@@ -36,10 +36,10 @@ if solve_agg_shocks_micro or solve_agg_shocks_market:
 
     # Make a Cobb-Douglas economy for the agents
     EconomyExample = CobbDouglasEconomy(agents=[AggShockExample])
-    EconomyExample.makeAggShkHist()  # Simulate a history of aggregate shocks
+    EconomyExample.make_AggShkHist()  # Simulate a history of aggregate shocks
 
     # Have the consumers inherit relevant objects from the economy
-    AggShockExample.getEconomyData(EconomyExample)
+    AggShockExample.get_economy_data(EconomyExample)
 
 if solve_agg_shocks_micro:
     # Solve the microeconomic model for the aggregate shocks example type (and display results)
@@ -78,7 +78,7 @@ if solve_agg_shocks_market:
     )
 
     print("Aggregate savings as a function of aggregate market resources:")
-    plotFuncs(EconomyExample.AFunc, 0, 2 * EconomyExample.kSS)
+    plot_funcs(EconomyExample.AFunc, 0, 2 * EconomyExample.kSS)
     print(
         "Consumption function at each aggregate market resources gridpoint (in general equilibrium):"
     )
@@ -103,8 +103,8 @@ if solve_markov_micro or solve_markov_market or solve_krusell_smith:
     # Make a Cobb-Douglas economy for the agents
     MrkvEconomyExample = CobbDouglasMarkovEconomy(agents=[AggShockMrkvExample])
     MrkvEconomyExample.DampingFac = 0.2  # Turn down damping
-    MrkvEconomyExample.makeAggShkHist()  # Simulate a history of aggregate shocks
-    AggShockMrkvExample.getEconomyData(
+    MrkvEconomyExample.make_AggShkHist()  # Simulate a history of aggregate shocks
+    AggShockMrkvExample.get_economy_data(
         MrkvEconomyExample
     )  # Have the consumers inherit relevant objects from the economy
 
@@ -192,8 +192,8 @@ if solve_krusell_smith:
         )
     ]
     KSeconomy.PermGroFacAgg = [1.0, 1.0]
-    KSexampleType.getEconomyData(KSeconomy)
-    KSeconomy.makeAggShkHist()
+    KSexampleType.get_economy_data(KSeconomy)
+    KSeconomy.make_AggShkHist()
 
     # Solve the K-S model
     t_start = process_time()
@@ -242,8 +242,8 @@ if solve_poly_state:
     PolyStateEconomy.intercept_prev = StateCount * [0.0]
     PolyStateEconomy.update()
     PolyStateEconomy.makeAggShkDstn()
-    PolyStateEconomy.makeAggShkHist()  # Simulate a history of aggregate shocks
-    PolyStateExample.getEconomyData(
+    PolyStateEconomy.make_AggShkHist()  # Simulate a history of aggregate shocks
+    PolyStateExample.get_economy_data(
         PolyStateEconomy
     )  # Have the consumers inherit relevant objects from the economy
 

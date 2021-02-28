@@ -1,5 +1,5 @@
 # %%
-from HARK.utilities import plotFuncs
+from HARK.utilities import plot_funcs
 from time import process_time
 import matplotlib.pyplot as plt
 import numpy as np
@@ -95,7 +95,7 @@ print(
     "Consumption function for normalized problem (without explicit permanent income):"
 )
 mNrmMin = NormalizedExample.solution[0].mNrmMin
-plotFuncs(NormalizedExample.solution[0].cFunc, mNrmMin, mNrmMin + 20)
+plot_funcs(NormalizedExample.solution[0].cFunc, mNrmMin, mNrmMin + 20)
 
 # %% [markdown]
 # The "explicit permanent income" solution deviates from the solution to the normalized problem because
@@ -122,8 +122,8 @@ if ExplicitExample.vFuncBool:
 if do_simulation:
     ExplicitExample.T_sim = 500
     ExplicitExample.track_vars = ["mLvl", "cLvl", 'pLvl']
-    ExplicitExample.makeShockHistory()  # This is optional
-    ExplicitExample.initializeSim()
+    ExplicitExample.make_shock_history()  # This is optional
+    ExplicitExample.initialize_sim()
     ExplicitExample.simulate()
     plt.plot(np.mean(ExplicitExample.mLvlNow_hist, axis=1))
     plt.xlabel("Simulated time period")
@@ -180,7 +180,7 @@ if PersistentExample.vFuncBool:
 if do_simulation:
     PersistentExample.T_sim = 500
     PersistentExample.track_vars = ["mLvl", "cLvl", 'pLvl']
-    PersistentExample.initializeSim()
+    PersistentExample.initialize_sim()
     PersistentExample.simulate()
     plt.plot(np.mean(PersistentExample.mLvlNow_hist, axis=1))
     plt.xlabel("Simulated time period")

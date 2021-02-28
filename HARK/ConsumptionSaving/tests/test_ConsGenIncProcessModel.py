@@ -98,7 +98,7 @@ class testPersistentShockConsumerType(unittest.TestCase):
         self.agent.track_vars = [
             'aLvl',"mLvl", "cLvl", 'pLvl'
         ]
-        self.agent.initializeSim()
+        self.agent.initialize_sim()
         self.agent.simulate()
 
         self.assertAlmostEqual(

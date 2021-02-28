@@ -8,8 +8,9 @@ Created on Wed Jan 20 18:07:41 2021
 import os
 import urllib.request
 import pandas as pd
-import warnings
 import numpy as np
+
+from HARK import _log
 
 __all__ = ["get_cpi_series", "cpi_deflator"]
 
@@ -48,7 +49,7 @@ def get_cpi_series():
         Bureau of Labor Statistics.
 
     """
-    
+
     cpi = pd.read_csv(
         os.path.join(us_cpi_dir, "r-cpi-u-rs-allitems.csv"),
         skiprows=5,
@@ -110,8 +111,7 @@ def cpi_deflator(from_year, to_year, base_month=None):
         column = base_month
 
     else:
-
-        warnings.warn("No base month was provided. Using annual CPI averages.")
+        _log.debug("No base month was provided. Using annual CPI averages.")
         column = "AVG"
 
     # Get cpi and subset the columns we need.

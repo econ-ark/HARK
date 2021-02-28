@@ -7,7 +7,7 @@ class testPerfForesightConsumerType(unittest.TestCase):
     def setUp(self):
         self.agent = PerfForesightConsumerType()
         self.agent_infinite = PerfForesightConsumerType(cycles=0)
-
+        
         PF_dictionary = {
             "CRRA": 2.5,
             "DiscFac": 0.96,
@@ -37,10 +37,10 @@ class testPerfForesightConsumerType(unittest.TestCase):
             self.agent_alt.solution[0].cFunc(10).tolist(), 3.9750093524820787
         )
 
-    def test_checkConditions(self):
-        self.agent_infinite.checkConditions()
+    def test_check_conditions(self):
+        self.agent_infinite.check_conditions()
         self.assertTrue(self.agent_infinite.conditions["AIC"])
-        self.assertTrue(self.agent_infinite.conditions["GICPF"])
+        self.assertTrue(self.agent_infinite.conditions["GICRaw"])
         self.assertTrue(self.agent_infinite.conditions["RIC"])
         self.assertTrue(self.agent_infinite.conditions["FHWC"])
 
@@ -60,13 +60,13 @@ class testPerfForesightConsumerType(unittest.TestCase):
             "T_age": None,  # Age after which simulated agents are automatically killed
         }
 
-        self.agent_infinite.assignParameters(
+        self.agent_infinite.assign_parameters(
             **SimulationParams
-        )  # This implicitly uses the assignParameters method of AgentType
+        )  # This implicitly uses the assign_parameters method of AgentType
 
         # Create PFexample object
         self.agent_infinite.track_vars = ["mNrm"]
-        self.agent_infinite.initializeSim()
+        self.agent_infinite.initialize_sim()
         self.agent_infinite.simulate()
 
         self.assertAlmostEqual(
@@ -81,7 +81,7 @@ class testPerfForesightConsumerType(unittest.TestCase):
 
         ## Try now with the manipulation at time step 80
 
-        self.agent_infinite.initializeSim()
+        self.agent_infinite.initialize_sim()
         self.agent_infinite.simulate(80)
 
         # This actually does nothing because aNrmNow is
@@ -100,3 +100,17 @@ class testPerfForesightConsumerType(unittest.TestCase):
             np.mean(self.agent_infinite.history["mNrm"], axis=1)[100],
             -29.140261331951606,
         )
+        
+    def test_stable_points(self):
+        
+        # Solve the constrained agent. Stable points exists only with a
+        # borrowing constraint.
+        constrained_agent = PerfForesightConsumerType(cycles = 0, BoroCnstArt = 0.0)
+        
+        constrained_agent.solve()
+        
+        # Check against pre-computed values.
+        self.assertEqual(constrained_agent.solution[0].mNrmStE , 1.0)
+        # Check that they are both the same, since the problem is deterministic
+        self.assertEqual(constrained_agent.solution[0].mNrmStE,
+                         constrained_agent.solution[0].mNrmTrg)

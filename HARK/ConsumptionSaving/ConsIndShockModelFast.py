@@ -20,7 +20,7 @@ from interpolation import interp
 from numba import njit
 from quantecon.optimize import newton_secant
 
-from HARK import makeOnePeriodOOSolver, MetricObject
+from HARK import make_one_period_oo_solver, MetricObject
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     ConsPerfForesightSolver,
@@ -45,7 +45,7 @@ from HARK.numba import (
     CRRAutility_inv,
     CRRAutilityP_invP,
 )
-from HARK.numba import LinearInterpFast, CubicInterpFast, LinearInterpDerivFast
+from HARK.numba import linear_interp_fast, cubic_interp_fast, linear_interp_deriv_fast
 
 __all__ = [
     "PerfForesightSolution",
@@ -161,7 +161,7 @@ class IndShockSolution(MetricObject):
         hNrm=0.0,
         MPCmin=1.0,
         MPCmax=1.0,
-        ExIncNext=0.0,
+        Ex_IncNext=0.0,
         MPC=None,
         mNrmGrid=None,
         vNvrs=None,
@@ -176,7 +176,7 @@ class IndShockSolution(MetricObject):
         self.hNrm = hNrm
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
-        self.ExIncNext = ExIncNext
+        self.Ex_IncNext = Ex_IncNext
         self.mNrmGrid = mNrmGrid
         self.vNvrs = vNvrs
         self.MPCminNvrs = MPCminNvrs
@@ -190,9 +190,9 @@ class IndShockSolution(MetricObject):
 
 
 @njit(cache=True)
-def _searchSSfunc(m, Rfree, PermGroFac, mNrm, cNrm, ExIncNext):
+def _find_mNrmStE(m, Rfree, PermGroFac, mNrm, cNrm, Ex_IncNext):
     # Make a linear function of all combinations of c and m that yield mNext = mNow
-    mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * ExIncNext
+    mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * Ex_IncNext
 
     # Find the steady state level of market resources
     res = interp(mNrm, cNrm, m) - mZeroChange
@@ -202,7 +202,7 @@ def _searchSSfunc(m, Rfree, PermGroFac, mNrm, cNrm, ExIncNext):
 
 # @njit(cache=True) can't cache because of use of globals, perhaps newton_secant?
 @njit
-def _addSSmNrmNumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, ExIncNext, _searchSSfunc):
+def _add_mNrmStENumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, Ex_IncNext, _find_mNrmStE):
     """
     Finds steady state (normalized) market resources and adds it to the
     solution.  This is the level of market resources such that the expectation
@@ -211,17 +211,17 @@ def _addSSmNrmNumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, ExIncNext, _searchSS
     """
 
     # Minimum market resources plus next income is okay starting guess
-    m_init_guess = mNrmMin + ExIncNext
+    m_init_guess = mNrmMin + Ex_IncNext
 
-    mNrmSS = newton_secant(
-        _searchSSfunc,
+    mNrmStE = newton_secant(
+        _find_mNrmStE,
         m_init_guess,
-        args=(Rfree, PermGroFac, mNrm, cNrm, ExIncNext),
+        args=(Rfree, PermGroFac, mNrm, cNrm, Ex_IncNext),
         disp=False,
     )
 
-    if mNrmSS.converged:
-        return mNrmSS.root
+    if mNrmStE.converged:
+        return mNrmStE.root
     else:
         return None
 
@@ -315,7 +315,7 @@ def _solveConsPerfForesightNumba(
     MPCmax = (cNrmNow[1] - cNrmNow[0]) / (mNrmNow[1] - mNrmNow[0])
 
     # Add attributes to enable calculation of steady state market resources.
-    # Relabeling for compatibility with addSSmNrm
+    # Relabeling for compatibility with add_mNrmStE
     mNrmMinNow = mNrmNow[0]
 
     # See the PerfForesightConsumerType.ipynb documentation notebook for the derivations
@@ -403,7 +403,7 @@ def _np_insert(arr, obj, values, axis=-1):
 
 
 @njit(cache=True)
-def _prepareToSolveConsIndShockNumba(
+def _prepare_to_solveConsIndShockNumba(
     DiscFac,
     LivPrb,
     CRRA,
@@ -443,8 +443,8 @@ def _prepareToSolveConsIndShockNumba(
     # Update the bounding MPCs and PDV of human wealth:
     PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
     MPCminNow = 1.0 / (1.0 + PatFac / MPCminNext)
-    ExIncNext = np.dot(ShkPrbsNext, TranShkValsNext * PermShkValsNext)
-    hNrmNow = PermGroFac / Rfree * (ExIncNext + hNrmNext)
+    Ex_IncNext = np.dot(ShkPrbsNext, TranShkValsNext * PermShkValsNext)
+    hNrmNow = PermGroFac / Rfree * (Ex_IncNext + hNrmNext)
     MPCmaxNow = 1.0 / (1.0 + (WorstIncPrb ** (1.0 / CRRA)) * PatFac / MPCmaxNext)
 
     cFuncLimitIntercept = MPCminNow * hNrmNow
@@ -502,7 +502,7 @@ def _prepareToSolveConsIndShockNumba(
         MPCminNow,
         MPCmaxNow,
         MPCmaxEff,
-        ExIncNext,
+        Ex_IncNext,
         mNrmNext,
         PermShkVals_temp,
         ShkPrbs_temp,
@@ -535,8 +535,8 @@ def _solveConsIndShockLinearNumba(
 
     mNrmCnst = np.array([mNrmMinNext, mNrmMinNext + 1])
     cNrmCnst = np.array([0.0, 1.0])
-    cFuncNextCnst = LinearInterpFast(mNrmNext.flatten(), mNrmCnst, cNrmCnst)
-    cFuncNextUnc = LinearInterpFast(
+    cFuncNextCnst = linear_interp_fast(mNrmNext.flatten(), mNrmCnst, cNrmCnst)
+    cFuncNextUnc = linear_interp_fast(
         mNrmNext.flatten(), mNrmUnc, cNrmUnc, cFuncInterceptNext, cFuncSlopeNext
     )
     cFuncNext = np.minimum(cFuncNextCnst, cFuncNextUnc)
@@ -573,7 +573,7 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
     inherits.
     """
 
-    def prepareToSolve(self):
+    def prepare_to_solve(self):
         """
         Perform preparatory work before calculating the unconstrained consumption
         function.
@@ -599,12 +599,12 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
             self.MPCminNow,
             self.MPCmaxNow,
             self.MPCmaxEff,
-            self.ExIncNext,
+            self.Ex_IncNext,
             self.mNrmNext,
             self.PermShkVals_temp,
             self.ShkPrbs_temp,
             self.aNrmNow,
-        ) = _prepareToSolveConsIndShockNumba(
+        ) = _prepare_to_solveConsIndShockNumba(
             self.DiscFac,
             self.LivPrb,
             self.CRRA,
@@ -660,7 +660,7 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
             self.hNrmNow,
             self.MPCminNow,
             self.MPCmaxEff,
-            self.ExIncNext,
+            self.Ex_IncNext,
         )
 
         return solution
@@ -687,10 +687,10 @@ def _solveConsIndShockCubicNumba(
 ):
     mNrmCnst = np.array([mNrmMinNext, mNrmMinNext + 1])
     cNrmCnst = np.array([0.0, 1.0])
-    cFuncNextCnst, MPCNextCnst = LinearInterpDerivFast(
+    cFuncNextCnst, MPCNextCnst = linear_interp_deriv_fast(
         mNrmNext.flatten(), mNrmCnst, cNrmCnst
     )
-    cFuncNextUnc, MPCNextUnc = CubicInterpFast(
+    cFuncNextUnc, MPCNextUnc = cubic_interp_fast(
         mNrmNext.flatten(),
         mNrmUnc,
         cNrmUnc,
@@ -745,8 +745,8 @@ def _cFuncCubic(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCNow, MPCminNow, hNrm
     mNrmGrid = mNrmMinNow + aXtraGrid
     mNrmCnst = np.array([mNrmMinNow, mNrmMinNow + 1])
     cNrmCnst = np.array([0.0, 1.0])
-    cFuncNowCnst = LinearInterpFast(mNrmGrid.flatten(), mNrmCnst, cNrmCnst)
-    cFuncNowUnc, MPCNowUnc = CubicInterpFast(
+    cFuncNowCnst = linear_interp_fast(mNrmGrid.flatten(), mNrmCnst, cNrmCnst)
+    cFuncNowUnc, MPCNowUnc = cubic_interp_fast(
         mNrmGrid.flatten(), mNrmNow, cNrmNow, MPCNow, MPCminNow * hNrmNow, MPCminNow
     )
 
@@ -760,8 +760,8 @@ def _cFuncLinear(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCminNow, hNrmNow):
     mNrmGrid = mNrmMinNow + aXtraGrid
     mNrmCnst = np.array([mNrmMinNow, mNrmMinNow + 1])
     cNrmCnst = np.array([0.0, 1.0])
-    cFuncNowCnst = LinearInterpFast(mNrmGrid.flatten(), mNrmCnst, cNrmCnst)
-    cFuncNowUnc = LinearInterpFast(
+    cFuncNowCnst = linear_interp_fast(mNrmGrid.flatten(), mNrmCnst, cNrmCnst)
+    cFuncNowUnc = linear_interp_fast(
         mNrmGrid.flatten(), mNrmNow, cNrmNow, MPCminNow * hNrmNow, MPCminNow
     )
 
@@ -771,7 +771,7 @@ def _cFuncLinear(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCminNow, hNrmNow):
 
 
 @njit(cache=True)
-def _addvFuncNumba(
+def _add_vFuncNumba(
     mNrmNext,
     mNrmGridNext,
     vNvrsNext,
@@ -799,7 +799,7 @@ def _addvFuncNumba(
 
     # vFunc always cubic
 
-    vNvrsFuncNow, _ = CubicInterpFast(
+    vNvrsFuncNow, _ = cubic_interp_fast(
         mNrmNext.flatten(),
         mNrmGridNext,
         vNvrsNext,
@@ -833,7 +833,7 @@ def _addvFuncNumba(
 
     aNrmNow = mNrmGrid - cFuncNow
 
-    EndOfPrdvNvrsFunc, _ = CubicInterpFast(
+    EndOfPrdvNvrsFunc, _ = cubic_interp_fast(
         aNrmNow, aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP
     )
     EndOfPrdvFunc = utility(EndOfPrdvNvrsFunc, CRRA)
@@ -858,8 +858,8 @@ def _addvFuncNumba(
 
 
 @njit
-def _addSSmNrmIndNumba(
-    PermGroFac, Rfree, ExIncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm, _searchfunc,
+def _add_mNrmStEIndNumba(
+    PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm, _searchfunc,
 ):
     """
     Finds steady state (normalized) market resources and adds it to the
@@ -869,32 +869,32 @@ def _addSSmNrmIndNumba(
     """
 
     # Minimum market resources plus next income is okay starting guess
-    m_init_guess = mNrmMin + ExIncNext
+    m_init_guess = mNrmMin + Ex_IncNext
 
-    mNrmSS = newton_secant(
+    mNrmStE = newton_secant(
         _searchfunc,
         m_init_guess,
-        args=(PermGroFac, Rfree, ExIncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm),
+        args=(PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm),
         disp=False,
     )
 
-    if mNrmSS.converged:
-        return mNrmSS.root
+    if mNrmStE.converged:
+        return mNrmStE.root
     else:
         return None
 
 
 @njit(cache=True)
-def _searchSSfuncLinear(
-    m, PermGroFac, Rfree, ExIncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
+def _find_mNrmStELinear(
+    m, PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
 ):
     # Make a linear function of all combinations of c and m that yield mNext = mNow
-    mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * ExIncNext
+    mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * Ex_IncNext
 
     mNrmCnst = np.array([mNrmMin, mNrmMin + 1])
     cNrmCnst = np.array([0.0, 1.0])
-    cFuncNowCnst = LinearInterpFast(np.array([m]), mNrmCnst, cNrmCnst)
-    cFuncNowUnc = LinearInterpFast(np.array([m]), mNrm, cNrm, MPCmin * hNrm, MPCmin)
+    cFuncNowCnst = linear_interp_fast(np.array([m]), mNrmCnst, cNrmCnst)
+    cFuncNowUnc = linear_interp_fast(np.array([m]), mNrm, cNrm, MPCmin * hNrm, MPCmin)
 
     cNrmNow = np.where(cFuncNowCnst <= cFuncNowUnc, cFuncNowCnst, cFuncNowUnc)
 
@@ -905,16 +905,16 @@ def _searchSSfuncLinear(
 
 
 @njit(cache=True)
-def _searchSSfuncCubic(
-    m, PermGroFac, Rfree, ExIncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
+def _find_mNrmStECubic(
+    m, PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
 ):
     # Make a linear function of all combinations of c and m that yield mNext = mNow
-    mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * ExIncNext
+    mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * Ex_IncNext
 
     mNrmCnst = np.array([mNrmMin, mNrmMin + 1])
     cNrmCnst = np.array([0.0, 1.0])
-    cFuncNowCnst = LinearInterpFast(np.array([m]), mNrmCnst, cNrmCnst)
-    cFuncNowUnc, MPCNowUnc = CubicInterpFast(
+    cFuncNowCnst = linear_interp_fast(np.array([m]), mNrmCnst, cNrmCnst)
+    cFuncNowUnc, MPCNowUnc = cubic_interp_fast(
         np.array([m]), mNrm, cNrm, MPC, MPCmin * hNrm, MPCmin
     )
 
@@ -979,7 +979,7 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
                 self.hNrmNow,
                 self.MPCminNow,
                 self.MPCmaxEff,
-                self.ExIncNext,
+                self.Ex_IncNext,
                 self.MPC,
             )
         else:
@@ -1010,7 +1010,7 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
                 self.hNrmNow,
                 self.MPCminNow,
                 self.MPCmaxEff,
-                self.ExIncNext,
+                self.Ex_IncNext,
             )
 
         if self.vFuncBool:
@@ -1035,7 +1035,7 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
                     self.hNrmNow,
                 )
 
-            self.mNrmGrid, self.vNvrs, self.vNvrsP, self.MPCminNvrs = _addvFuncNumba(
+            self.mNrmGrid, self.vNvrs, self.vNvrsP, self.MPCminNvrs = _add_vFuncNumba(
                 self.mNrmNext,
                 self.solution_next.mNrmGrid,
                 self.solution_next.vNvrs,
@@ -1086,9 +1086,9 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
     def __init__(self, **kwargs):
         PerfForesightConsumerType.__init__(self, **kwargs)
 
-        self.solveOnePeriod = makeOnePeriodOOSolver(ConsPerfForesightSolverFast)
+        self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolverFast)
 
-    def updateSolutionTerminal(self):
+    def update_solution_terminal(self):
         """
         Update the terminal period solution.  This method should be run when a
         new AgentType is created or when CRRA changes.
@@ -1105,7 +1105,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
             MPCmax=1.0,
         )
 
-    def postSolve(self):
+    def post_solve(self):
         self.solution_fast = deepcopy(self.solution)
 
         if self.cycles == 0:
@@ -1151,17 +1151,17 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
                 MPCmax=solution.MPCmax,
             )
 
-            ExIncNext = 1.0  # Perfect foresight income of 1
+            Ex_IncNext = 1.0  # Perfect foresight income of 1
 
-            # Add mNrmSS to the solution and return it
-            consumer_solution.mNrmSS = _addSSmNrmNumba(
+            # Add mNrmStE to the solution and return it
+            consumer_solution.mNrmStE = _add_mNrmStENumba(
                 self.Rfree,
                 self.PermGroFac[i],
                 solution.mNrm,
                 solution.cNrm,
                 solution.mNrmMin,
-                ExIncNext,
-                _searchSSfunc,
+                Ex_IncNext,
+                _find_mNrmStE,
             )
 
             self.solution[i] = consumer_solution
@@ -1179,10 +1179,10 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
         else:  # Use the "advanced" solver if either is requested
             solver = ConsIndShockSolverFast
 
-        self.solveOnePeriod = makeOnePeriodOOSolver(solver)
+        self.solve_one_period = make_one_period_oo_solver(solver)
 
-    def updateSolutionTerminal(self):
-        PerfForesightConsumerTypeFast.updateSolutionTerminal(self)
+    def update_solution_terminal(self):
+        PerfForesightConsumerTypeFast.update_solution_terminal(self)
         with np.errstate(
             divide="ignore", over="ignore", under="ignore", invalid="ignore"
         ):
@@ -1192,7 +1192,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
             self.solution_terminal.vNvrsP = utilityP(np.linspace(0.0, 1.0), self.CRRA)
             self.solution_terminal.mNrmGrid = np.linspace(0.0, 1.0)
 
-    def postSolve(self):
+    def post_solve(self):
         self.solution_fast = deepcopy(self.solution)
 
         if self.cycles == 0:
@@ -1266,13 +1266,13 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
 
                 if self.CubicBool or self.vFuncBool:
                     _searchFunc = (
-                        _searchSSfuncCubic if self.CubicBool else _searchSSfuncLinear
+                        _find_mNrmStECubic if self.CubicBool else _find_mNrmStELinear
                     )
-                    # Add mNrmSS to the solution and return it
-                    consumer_solution.mNrmSS = _addSSmNrmIndNumba(
+                    # Add mNrmStE to the solution and return it
+                    consumer_solution.mNrmStE = _add_mNrmStEIndNumba(
                         self.PermGroFac[j],
                         self.Rfree,
-                        solution.ExIncNext,
+                        solution.Ex_IncNext,
                         solution.mNrmMin,
                         solution.mNrm,
                         solution.cNrm,

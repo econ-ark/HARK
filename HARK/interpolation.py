@@ -1038,6 +1038,9 @@ class CubicInterp(HARKinterpolator1D):
                     + x[out_top] * self.coeffs[self.n, 1]
                     - self.coeffs[self.n, 2] * np.exp(alpha * self.coeffs[self.n, 3])
                 )
+
+                y[x == self.x_list.min()] = self.y_list.min()
+                
         return y
 
     def _der(self, x):
@@ -3883,9 +3886,9 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         my_shape = f_values.shape
         self.x_n = my_shape[0]
         self.y_n = my_shape[1]
-        self.updatePolarity()
+        self.update_polarity()
 
-    def updatePolarity(self):
+    def update_polarity(self):
         """
         Fills in the polarity attribute of the interpolation, determining whether
         the "plus" (True) or "minus" (False) solution of the system of equations
@@ -3919,7 +3922,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
 
         # Set the polarity of all sectors to "plus", then test each sector
         self.polarity = np.ones((self.x_n - 1, self.y_n - 1), dtype=bool)
-        alpha, beta = self.findCoords(x_temp, y_temp, x_pos, y_pos)
+        alpha, beta = self.find_coords(x_temp, y_temp, x_pos, y_pos)
         polarity = np.logical_and(
             np.logical_and(alpha > 0, alpha < 1), np.logical_and(beta > 0, beta < 1)
         )
@@ -3928,7 +3931,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         # sector must use the "minus" solution instead
         self.polarity = np.reshape(polarity, (self.x_n - 1, self.y_n - 1))
 
-    def findSector(self, x, y):
+    def find_sector(self, x, y):
         """
         Finds the quadrilateral "sector" for each (x,y) point in the input.
         Only called as a subroutine of _evaluate().
@@ -3956,7 +3959,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         # boundary defined by (x_bound_1,y_bound_1) and (x_bound_2,y_bound_2),
         # where the latter is *COUNTER CLOCKWISE* from the former.  Returns
         # 1 if the point is outside the boundary and 0 otherwise.
-        violationCheck = (
+        violation_check = (
             lambda x_check, y_check, x_bound_1, y_bound_1, x_bound_2, y_bound_2: (
                 (y_bound_2 - y_bound_1) * x_check - (x_bound_2 - x_bound_1) * y_check
                 > x_bound_1 * y_bound_2 - y_bound_1 * x_bound_2
@@ -3989,16 +3992,16 @@ class Curvilinear2DInterp(HARKinterpolator2D):
 
             # Check which boundaries are violated (and thus where to look next)
             c = (move_down + move_right + move_up + move_left) == 0
-            move_down[c] = violationCheck(
+            move_down[c] = violation_check(
                 x_temp[c], y_temp[c], xA[c], yA[c], xB[c], yB[c]
             )
-            move_right[c] = violationCheck(
+            move_right[c] = violation_check(
                 x_temp[c], y_temp[c], xB[c], yB[c], xD[c], yD[c]
             )
-            move_up[c] = violationCheck(
+            move_up[c] = violation_check(
                 x_temp[c], y_temp[c], xD[c], yD[c], xC[c], yC[c]
             )
-            move_left[c] = violationCheck(
+            move_left[c] = violation_check(
                 x_temp[c], y_temp[c], xC[c], yC[c], xA[c], yA[c]
             )
 
@@ -4029,7 +4032,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         y_pos = y_pos_guess
         return x_pos, y_pos
 
-    def findCoords(self, x, y, x_pos, y_pos):
+    def find_coords(self, x, y, x_pos, y_pos):
         """
         Calculates the relative coordinates (alpha,beta) for each point (x,y),
         given the sectors (x_pos,y_pos) in which they reside.  Only called as
@@ -4111,8 +4114,8 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         Returns the level of the interpolated function at each value in x,y.
         Only called internally by HARKinterpolator2D.__call__ (etc).
         """
-        x_pos, y_pos = self.findSector(x, y)
-        alpha, beta = self.findCoords(x, y, x_pos, y_pos)
+        x_pos, y_pos = self.find_sector(x, y)
+        alpha, beta = self.find_coords(x, y, x_pos, y_pos)
 
         # Calculate the function at each point using bilinear interpolation
         f = (
@@ -4128,8 +4131,8 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         Returns the derivative with respect to x of the interpolated function
         at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
         """
-        x_pos, y_pos = self.findSector(x, y)
-        alpha, beta = self.findCoords(x, y, x_pos, y_pos)
+        x_pos, y_pos = self.find_sector(x, y)
+        alpha, beta = self.find_coords(x, y, x_pos, y_pos)
 
         # Get four corners data for each point
         xA = self.x_values[x_pos, y_pos]
@@ -4169,8 +4172,8 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         Returns the derivative with respect to y of the interpolated function
         at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
         """
-        x_pos, y_pos = self.findSector(x, y)
-        alpha, beta = self.findCoords(x, y, x_pos, y_pos)
+        x_pos, y_pos = self.find_sector(x, y)
+        alpha, beta = self.find_coords(x, y, x_pos, y_pos)
 
         # Get four corners data for each point
         xA = self.x_values[x_pos, y_pos]
@@ -4211,7 +4214,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
 ###############################################################################
 
 
-def calcLogSumChoiceProbs(Vals, sigma):
+def calc_log_sum_choice_probs(Vals, sigma):
     """
     Returns the final optimal value and choice probabilities given the choice
     specific value functions `Vals`. Probabilities are degenerate if sigma == 0.0.
@@ -4253,7 +4256,7 @@ def calcLogSumChoiceProbs(Vals, sigma):
     return LogSumV, Probs
 
 
-def calcChoiceProbs(Vals, sigma):
+def calc_choice_probs(Vals, sigma):
     """
     Returns the choice probabilities given the choice specific value functions
     `Vals`. Probabilities are degenerate if sigma == 0.0.
@@ -4285,7 +4288,7 @@ def calcChoiceProbs(Vals, sigma):
     return Probs
 
 
-def calcLogSum(Vals, sigma):
+def calc_log_sum(Vals, sigma):
     """
     Returns the optimal value given the choice specific value functions Vals.
     Parameters

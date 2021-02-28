@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # %%
-from HARK.utilities import plotFuncs
+from HARK.utilities import plot_funcs
 from time import process_time
 from copy import deepcopy, copy
 import numpy as np
@@ -132,7 +132,7 @@ SerialUnemploymentExample.IncomeDstn = [
 ]
 
 # %% [markdown]
-# Note that $\texttt{MarkovConsumerType}$ currently has no method to automatically construct a valid IncomeDstn - $\texttt{IncomeDstn}$ is manually constructed in each case. Writing a method to supersede $\texttt{IndShockConsumerType.updateIncomeProcess}$ for the “Markov model” would be a welcome contribution!
+# Note that $\texttt{MarkovConsumerType}$ currently has no method to automatically construct a valid IncomeDstn - $\texttt{IncomeDstn}$ is manually constructed in each case. Writing a method to supersede $\texttt{IndShockConsumerType.update_income_process}$ for the “Markov model” would be a welcome contribution!
 
 # %%
 # Interest factor, permanent growth rates, and survival probabilities are constant arrays
@@ -153,10 +153,10 @@ print(
     + " seconds."
 )
 print("Consumption functions for each discrete state:")
-plotFuncs(SerialUnemploymentExample.solution[0].cFunc, 0, 50)
+plot_funcs(SerialUnemploymentExample.solution[0].cFunc, 0, 50)
 if SerialUnemploymentExample.vFuncBool:
     print("Value functions for each discrete state:")
-    plotFuncs(SerialUnemploymentExample.solution[0].vFunc, 5, 50)
+    plot_funcs(SerialUnemploymentExample.solution[0].vFunc, 5, 50)
 
 # %%
 # Simulate some data; results stored in cHist, mNrm_hist, cNrm_hist, and Mrkv_hist
@@ -164,8 +164,8 @@ if do_simulation:
     SerialUnemploymentExample.T_sim = 120
     SerialUnemploymentExample.MrkvPrbsInit = [0.25, 0.25, 0.25, 0.25]
     SerialUnemploymentExample.track_vars = ['mNrm', 'cNrm']
-    SerialUnemploymentExample.makeShockHistory()  # This is optional
-    SerialUnemploymentExample.initializeSim()
+    SerialUnemploymentExample.make_shock_history()  # This is optional
+    SerialUnemploymentExample.initialize_sim()
     SerialUnemploymentExample.simulate()
 
 # %% [markdown]
@@ -218,7 +218,7 @@ for j in range(ImmunityT):
 init_unemployment_immunity = copy(init_idiosyncratic_shocks)
 init_unemployment_immunity["MrkvArray"] = [MrkvArray]
 ImmunityExample = MarkovConsumerType(**init_unemployment_immunity)
-ImmunityExample.assignParameters(
+ImmunityExample.assign_parameters(
     Rfree=np.array(np.array(StateCount * [1.03])),  # Interest factor same in all states
     PermGroFac=[
         np.array(StateCount * [1.01])
@@ -241,7 +241,7 @@ print(
 )
 print("Consumption functions for each discrete state:")
 mNrmMin = np.min([ImmunityExample.solution[0].mNrmMin[j] for j in range(StateCount)])
-plotFuncs(ImmunityExample.solution[0].cFunc, mNrmMin, 10)
+plot_funcs(ImmunityExample.solution[0].cFunc, mNrmMin, 10)
 
 # %% [markdown]
 # ### 3. Serial permanent income growth
@@ -276,7 +276,7 @@ MrkvArray = Persistence * np.eye(StateCount) + (1.0 / StateCount) * (
 init_serial_growth = copy(init_idiosyncratic_shocks)
 init_serial_growth["MrkvArray"] = [MrkvArray]
 SerialGroExample = MarkovConsumerType(**init_serial_growth)
-SerialGroExample.assignParameters(
+SerialGroExample.assign_parameters(
     Rfree=np.array(
         np.array(StateCount * [1.03])
     ),  # Same interest factor in each Markov state
@@ -305,12 +305,12 @@ print(
     + " seconds."
 )
 print("Consumption functions for each discrete state:")
-plotFuncs(SerialGroExample.solution[0].cFunc, 0, 10)
+plot_funcs(SerialGroExample.solution[0].cFunc, 0, 10)
 
 # %%
 # Make a consumer with serially correlated interest factors
 SerialRExample = deepcopy(SerialGroExample)  # Same as the last problem...
-SerialRExample.assignParameters(
+SerialRExample.assign_parameters(
     PermGroFac=[
         np.array(StateCount * [1.01])
     ],  # ...but now the permanent growth factor is constant...
@@ -328,4 +328,4 @@ print(
     + " seconds."
 )
 print("Consumption functions for each discrete state:")
-plotFuncs(SerialRExample.solution[0].cFunc, 0, 10)
+plot_funcs(SerialRExample.solution[0].cFunc, 0, 10)

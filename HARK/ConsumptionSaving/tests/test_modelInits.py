@@ -14,7 +14,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_lifecycle,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-from HARK.utilities import plotFuncsDer, plotFuncs
+from HARK.utilities import plot_funcs_der, plot_funcs
 from copy import copy
 
 

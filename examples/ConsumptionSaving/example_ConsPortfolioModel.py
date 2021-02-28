@@ -43,7 +43,7 @@ plotFuncs([MyType.ShareFunc[0]
 # Now simulate this consumer type
 MyType.track_vars = ['cNrm', 'Share', 'aNrm', 't_age']
 MyType.T_sim = 100
-MyType.initializeSim()
+MyType.initialize_sim()
 MyType.simulate()
 
 # %%

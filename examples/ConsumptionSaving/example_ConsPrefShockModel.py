@@ -1,6 +1,6 @@
 # %%
 import matplotlib.pyplot as plt
-from HARK.utilities import plotFuncs
+from HARK.utilities import plot_funcs
 from time import process_time
 import numpy as np
 from HARK.ConsumptionSaving.ConsPrefShockModel import (
@@ -102,7 +102,7 @@ plt.show()
 # %%
 if PrefShockExample.vFuncBool:
     print("Value function (unconditional on shock):")
-    plotFuncs(
+    plot_funcs(
         PrefShockExample.solution[0].vFunc,
         PrefShockExample.solution[0].mNrmMin + 0.5,
         5,
@@ -113,8 +113,8 @@ if PrefShockExample.vFuncBool:
 if do_simulation:
     PrefShockExample.T_sim = 120
     PrefShockExample.track_vars = ['cNrm']
-    PrefShockExample.makeShockHistory()  # This is optional
-    PrefShockExample.initializeSim()
+    PrefShockExample.make_shock_history()  # This is optional
+    PrefShockExample.initialize_sim()
     PrefShockExample.simulate()
 
 # %% [markdown]
@@ -170,7 +170,7 @@ plt.show()
 # %%
 if KinkyPrefExample.vFuncBool:
     print("Value function (unconditional on shock):")
-    plotFuncs(
+    plot_funcs(
         KinkyPrefExample.solution[0].vFunc,
         KinkyPrefExample.solution[0].mNrmMin + 0.5,
         5,
@@ -181,5 +181,5 @@ if KinkyPrefExample.vFuncBool:
 if do_simulation:
     KinkyPrefExample.T_sim = 120
     KinkyPrefExample.track_vars = ['cNrm', "PrefShk"]
-    KinkyPrefExample.initializeSim()
+    KinkyPrefExample.initialize_sim()
     KinkyPrefExample.simulate()
