@@ -151,16 +151,16 @@ class PortfolioConsumerType(IndShockConsumerType):
 
     def pre_solve(self):
         AgentType.pre_solve(self)
-        self.updateSolutionTerminal()
+        self.update_solution_terminal()
 
     def update(self):
         IndShockConsumerType.update(self)
-        self.updateRiskyDstn()
-        self.updateShockDstn()
-        self.updateShareGrid()
-        self.updateShareLimit()
+        self.update_RiskyDstn()
+        self.update_ShockDstn()
+        self.update_ShareGrid()
+        self.update_ShareLimit()
 
-    def updateSolutionTerminal(self):
+    def update_solution_terminal(self):
         """
         Solves the terminal period of the portfolio choice problem.  The solution is
         trivial, as usual: consume all market resources, and put nothing in the risky
@@ -206,7 +206,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             dvdsFuncFxd=dvdsFuncFxd_terminal,
         )
 
-    def updateRiskyDstn(self):
+    def update_RiskyDstn(self):
         """
         Creates the attributes RiskyDstn from the primitive attributes RiskyAvg,
         RiskyStd, and RiskyCount, approximating the (perceived) distribution of
@@ -257,7 +257,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             ).approx(self.RiskyCount)
             self.add_to_time_inv("RiskyDstn")
 
-    def updateShockDstn(self):
+    def update_ShockDstn(self):
         """
         Combine the income shock distribution (over PermShk and TranShk) with the
         risky return distribution (RiskyDstn) to make a new attribute called ShockDstn.
@@ -286,7 +286,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         self.IndepDstnBool = True
         self.add_to_time_inv("IndepDstnBool")
 
-    def updateShareGrid(self):
+    def update_ShareGrid(self):
         """
         Creates the attribute ShareGrid as an evenly spaced grid on [0.,1.], using
         the primitive parameter ShareCount.
@@ -302,7 +302,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         self.ShareGrid = np.linspace(0.0, 1.0, self.ShareCount)
         self.add_to_time_inv("ShareGrid")
 
-    def updateShareLimit(self):
+    def update_ShareLimit(self):
         """
         Creates the attribute ShareLimit, representing the limiting lower bound of
         risky portfolio share as mNrm goes to infinity.
@@ -337,7 +337,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             self.ShareLimit = SharePF
             self.add_to_time_inv("ShareLimit")
 
-    def getRisky(self):
+    def get_Risky(self):
         """
         Sets the shock RiskyNow as a single draw from a lognormal distribution.
         Uses the attributes RiskyAvgTrue and RiskyStdTrue if RiskyAvg is time-varying,
@@ -366,7 +366,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             mu, sigma, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(1)
 
-    def getAdjust(self):
+    def get_Adjust(self):
         """
         Sets the attribute AdjustNow as a boolean array of size AgentCount, indicating
         whether each agent is able to adjust their risky portfolio share this period.
@@ -384,7 +384,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             self.AdjustPrb, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(self.AgentCount)
 
-    def getRfree(self):
+    def get_Rfree(self):
         """
         Calculates realized return factor for each agent, using the attributes Rfree,
         RiskyNow, and ShareNow.  This method is a bit of a misnomer, as the return
@@ -460,8 +460,8 @@ class PortfolioConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.get_shocks(self)
-        self.getRisky()
-        self.getAdjust()
+        self.get_Risky()
+        self.get_Adjust()
 
     def get_controls(self):
         """

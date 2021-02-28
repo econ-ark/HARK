@@ -403,7 +403,7 @@ def _np_insert(arr, obj, values, axis=-1):
 
 
 @njit(cache=True)
-def _prepareToSolveConsIndShockNumba(
+def _prepare_to_solveConsIndShockNumba(
     DiscFac,
     LivPrb,
     CRRA,
@@ -573,7 +573,7 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
     inherits.
     """
 
-    def prepareToSolve(self):
+    def prepare_to_solve(self):
         """
         Perform preparatory work before calculating the unconstrained consumption
         function.
@@ -604,7 +604,7 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
             self.PermShkVals_temp,
             self.ShkPrbs_temp,
             self.aNrmNow,
-        ) = _prepareToSolveConsIndShockNumba(
+        ) = _prepare_to_solveConsIndShockNumba(
             self.DiscFac,
             self.LivPrb,
             self.CRRA,
@@ -771,7 +771,7 @@ def _cFuncLinear(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCminNow, hNrmNow):
 
 
 @njit(cache=True)
-def _addvFuncNumba(
+def _add_vFuncNumba(
     mNrmNext,
     mNrmGridNext,
     vNvrsNext,
@@ -1035,7 +1035,7 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
                     self.hNrmNow,
                 )
 
-            self.mNrmGrid, self.vNvrs, self.vNvrsP, self.MPCminNvrs = _addvFuncNumba(
+            self.mNrmGrid, self.vNvrs, self.vNvrsP, self.MPCminNvrs = _add_vFuncNumba(
                 self.mNrmNext,
                 self.solution_next.mNrmGrid,
                 self.solution_next.vNvrs,
@@ -1088,7 +1088,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
 
         self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolverFast)
 
-    def updateSolutionTerminal(self):
+    def update_solution_terminal(self):
         """
         Update the terminal period solution.  This method should be run when a
         new AgentType is created or when CRRA changes.
@@ -1181,8 +1181,8 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
 
         self.solve_one_period = make_one_period_oo_solver(solver)
 
-    def updateSolutionTerminal(self):
-        PerfForesightConsumerTypeFast.updateSolutionTerminal(self)
+    def update_solution_terminal(self):
+        PerfForesightConsumerTypeFast.update_solution_terminal(self)
         with np.errstate(
             divide="ignore", over="ignore", under="ignore", invalid="ignore"
         ):

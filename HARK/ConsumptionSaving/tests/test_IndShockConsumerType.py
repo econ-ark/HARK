@@ -63,23 +63,23 @@ class testIndShockConsumerType(unittest.TestCase):
             LifecycleExample.CubicBool,
         )
 
-        solver.prepareToSolve()
+        solver.prepare_to_solve()
 
         self.assertAlmostEqual(solver.DiscFacEff, 0.9586233599999999)
         self.assertAlmostEqual(solver.PermShkMinNext, 0.9037554719886154)
         self.assertAlmostEqual(solver.cFuncNowCnst(4).tolist(), 4.0)
-        self.assertAlmostEqual(solver.prepareToCalcEndOfPrdvP()[0], -0.2732742703949109)
-        self.assertAlmostEqual(solver.prepareToCalcEndOfPrdvP()[-1], 19.72572572960506)
+        self.assertAlmostEqual(solver.prepare_to_calc_EndOfPrdvP()[0], -0.2732742703949109)
+        self.assertAlmostEqual(solver.prepare_to_calc_EndOfPrdvP()[-1], 19.72572572960506)
 
-        EndOfPrdvP = solver.calcEndOfPrdvP()
+        EndOfPrdvP = solver.calc_EndOfPrdvP()
 
         self.assertAlmostEqual(EndOfPrdvP[0], 6710.672670733023)
         self.assertAlmostEqual(EndOfPrdvP[-1], 0.14122987153089447)
 
-        solution = solver.makeBasicSolution(
-            EndOfPrdvP, solver.aNrmNow, solver.makeLinearcFunc
+        solution = solver.make_basic_solution(
+            EndOfPrdvP, solver.aNrmNow, solver.make_linear_cFunc
         )
-        solver.addMPCandHumanWealth(solution)
+        solver.add_MPC_and_human_wealth(solution)
 
         self.assertAlmostEqual(solution.cFunc(4).tolist(), 1.484118342351686)
 
