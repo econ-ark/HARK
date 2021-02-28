@@ -116,7 +116,7 @@ class testBufferStock(unittest.TestCase):
         )
 
         GICRawFailExample.solve()
-        GICRawFailExample.unpackcFunc()
+        GICRawFailExample.unpack_cFunc()
         m = np.linspace(0, 5, 1000)
         c_m = GICRawFailExample.cFunc[0](m)
 
