@@ -140,107 +140,111 @@ plot_funcs([StickyType.ShareFunc[0]
 
 # %%
 ""
+# TO FIX WITH NEW LIFECYCLE CALIBRATION
 # Make another example type, but this one has *age-varying* perceptions of risky asset returns.
 # Begin by making a lifecycle dictionary, but adjusted for the portfolio choice model.
-init_age_varying_risk_perceptions = copy(init_lifecycle)
-init_age_varying_risk_perceptions['RiskyCount']      = init_portfolio['RiskyCount']
-init_age_varying_risk_perceptions['ShareCount']      = init_portfolio['ShareCount']
-init_age_varying_risk_perceptions['aXtraMax']        = init_portfolio['aXtraMax']
-init_age_varying_risk_perceptions['aXtraCount']      = init_portfolio['aXtraCount']
-init_age_varying_risk_perceptions['aXtraNestFac']    = init_portfolio['aXtraNestFac']
-init_age_varying_risk_perceptions['BoroCnstArt']     = init_portfolio['BoroCnstArt']
-init_age_varying_risk_perceptions['CRRA']            = init_portfolio['CRRA']
-init_age_varying_risk_perceptions['DiscFac']         = init_portfolio['DiscFac']
+#init_age_varying_risk_perceptions = copy(init_lifecycle)
+#init_age_varying_risk_perceptions['RiskyCount']      = init_portfolio['RiskyCount']
+#init_age_varying_risk_perceptions['ShareCount']      = init_portfolio['ShareCount']
+#init_age_varying_risk_perceptions['aXtraMax']        = init_portfolio['aXtraMax']
+#init_age_varying_risk_perceptions['aXtraCount']      = init_portfolio['aXtraCount']
+#init_age_varying_risk_perceptions['aXtraNestFac']    = init_portfolio['aXtraNestFac']
+#init_age_varying_risk_perceptions['BoroCnstArt']     = init_portfolio['BoroCnstArt']
+#init_age_varying_risk_perceptions['CRRA']            = init_portfolio['CRRA']
+#init_age_varying_risk_perceptions['DiscFac']         = init_portfolio['DiscFac']
 
 # %%
-init_age_varying_risk_perceptions['RiskyAvg']        = 10*[1.08]
-init_age_varying_risk_perceptions['RiskyStd']        = [0.20,0.21,0.22,0.23,0.24,0.25,0.26,0.27,0.28,0.29]
-init_age_varying_risk_perceptions['RiskyAvgTrue']    = 1.08
-init_age_varying_risk_perceptions['RiskyStdTrue']    = 0.20
-AgeVaryingRiskPercType = PortfolioConsumerType(**init_age_varying_risk_perceptions)
-AgeVaryingRiskPercType.cycles = 1
+#init_age_varying_risk_perceptions['RiskyAvg']        = 10*[1.08]
+#init_age_varying_risk_perceptions['RiskyStd']        = [0.20,0.21,0.22,0.23,0.24,0.25,0.26,0.27,0.28,0.29]
+#init_age_varying_risk_perceptions['RiskyAvgTrue']    = 1.08
+#init_age_varying_risk_perceptions['RiskyStdTrue']    = 0.20
+#init_age_varying_risk_perceptions['T_cycle']         = 10
+
+#AgeVaryingRiskPercType = PortfolioConsumerType(**init_age_varying_risk_perceptions)
+#AgeVaryingRiskPercType.cycles = 1
 
 # %%
 # Solve the agent type with age-varying risk perceptions
-print('Now solving a portfolio choice problem with age-varying risk perceptions...')
-t0 = time()
-AgeVaryingRiskPercType.solve()
-AgeVaryingRiskPercType.cFunc = [AgeVaryingRiskPercType.solution[t].cFuncAdj for t in range(AgeVaryingRiskPercType.T_cycle)]
-AgeVaryingRiskPercType.ShareFunc = [AgeVaryingRiskPercType.solution[t].ShareFuncAdj for t in range(AgeVaryingRiskPercType.T_cycle)]
-t1 = time()
-print('Solving a ' + str(AgeVaryingRiskPercType.T_cycle) + ' period portfolio choice problem with age-varying risk perceptions took ' + str(t1-t0) + ' seconds.')
+#print('Now solving a portfolio choice problem with age-varying risk perceptions...')
+#t0 = time()
+#AgeVaryingRiskPercType.solve()
+#AgeVaryingRiskPercType.cFunc = [AgeVaryingRiskPercType.solution[t].cFuncAdj for t in range(AgeVaryingRiskPercType.T_cycle)]
+#AgeVaryingRiskPercType.ShareFunc = [AgeVaryingRiskPercType.solution[t].ShareFuncAdj for t in range(AgeVaryingRiskPercType.T_cycle)]
+#t1 = time()
+#print('Solving a ' + str(AgeVaryingRiskPercType.T_cycle) + ' period portfolio choice problem with age-varying risk perceptions took ' + str(t1-t0) + ' seconds.')
 
 # %%
 # Plot the consumption and risky-share functions
-print('Consumption function over market resources in each lifecycle period:')
-plot_funcs(AgeVaryingRiskPercType.cFunc, 0., 20.)
-print('Risky asset share function over market resources in each lifecycle period:')
-plot_funcs(AgeVaryingRiskPercType.ShareFunc, 0., 200.)
+#print('Consumption function over market resources in each lifecycle period:')
+#plot_funcs(AgeVaryingRiskPercType.cFunc, 0., 20.)
+#print('Risky asset share function over market resources in each lifecycle period:')
+#plot_funcs(AgeVaryingRiskPercType.ShareFunc, 0., 200.)
 
 # %% [markdown]
 # The code below tests the mathematical limits of the model.
 
+# %%
 # Create a grid of market resources for the plots    
-mMin = 0    # Minimum ratio of assets to income to plot
-mMax = 5*1e2 # Maximum ratio of assets to income to plot
-mPts = 1000 # Number of points to plot 
+#mMin = 0    # Minimum ratio of assets to income to plot
+#mMax = 5*1e2 # Maximum ratio of assets to income to plot
+#mPts = 1000 # Number of points to plot 
 
-eevalgrid = np.linspace(0,mMax,mPts) # range of values of assets for the plot
+#eevalgrid = np.linspace(0,mMax,mPts) # range of values of assets for the plot
 
 # Number of points that will be used to approximate the risky distribution
-risky_count_grid = [5,200]
-# Plot by ages (time periods) at which to plot. We will use the default
-# life-cycle calibration, which has 10 periods.
-ages = [2, 4, 6, 8]
+#risky_count_grid = [5,200]
+#Plot by ages (time periods) at which to plot. We will use the default
+#life-cycle calibration, which has 10 periods.
+#ages = [2, 4, 6, 8]
 
-# Create a function to compute the Merton-Samuelson limiting portfolio share.
-def RiskyShareMertSamLogNormal(RiskPrem,CRRA,RiskyVar):
-    return RiskPrem/(CRRA*RiskyVar)
+#Create a function to compute the Merton-Samuelson limiting portfolio share.
+#def RiskyShareMertSamLogNormal(RiskPrem,CRRA,RiskyVar):
+#    return RiskPrem/(CRRA*RiskyVar)
 
 # %% Calibration and solution
-for rcount in risky_count_grid:
+#for rcount in risky_count_grid:
     
     # Create a new dictionary and replace the number of points that
     # approximate the risky return distribution
     
     # Create new dictionary copying the default
-    merton_dict = init_lifecycle.copy()
-    merton_dict['RiskyCount'] = rcount
+#    merton_dict = init_lifecycle.copy()
+#    merton_dict['RiskyCount'] = rcount
 
     # Create and solve agent
-    agent = PortfolioConsumerType(**merton_dict)
-    agent.solve()
+#    agent = PortfolioConsumerType(**merton_dict)
+#    agent.solve()
 
     # Compute the analytical Merton-Samuelson limiting portfolio share
-    RiskyVar = agent.RiskyStd**2
-    RiskPrem = agent.RiskyAvg - agent.Rfree 
-    MS_limit = RiskyShareMertSamLogNormal(RiskPrem,
-                                          agent.CRRA,
-                                          RiskyVar)
+#    RiskyVar = agent.RiskyStd**2
+#    RiskPrem = agent.RiskyAvg - agent.Rfree 
+#    MS_limit = RiskyShareMertSamLogNormal(RiskPrem,
+#                                          agent.CRRA,
+#                                          RiskyVar)
     
     # Now compute the limiting share numerically, using the approximated
     # distribution
-    agent.updateShareLimit()
-    NU_limit = agent.ShareLimit
+#    agent.updateShareLimit()
+#    NU_limit = agent.ShareLimit
     
-    plt.figure()
-    for a in ages:
-        plt.plot(eevalgrid,
-                 agent.solution[a]\
-                 .ShareFuncAdj(eevalgrid),
-                 label = 't = %i' %(a))
+#    plt.figure()
+#    for a in ages:
+#        plt.plot(eevalgrid,
+#                 agent.solution[a]\
+#                 .ShareFuncAdj(eevalgrid),
+#                 label = 't = %i' %(a))
     
-    plt.axhline(NU_limit, c='k', ls='-.', label = 'Exact limit as $m\\rightarrow \\infty$.')
-    plt.axhline(MS_limit, c='k', ls='--', label = 'M&S Limit without returns discretization.')
+#    plt.axhline(NU_limit, c='k', ls='-.', label = 'Exact limit as $m\\rightarrow \\infty$.')
+#    plt.axhline(MS_limit, c='k', ls='--', label = 'M&S Limit without returns discretization.')
 
-    plt.ylim(0,1.05)
-    plt.xlim(eevalgrid[0],eevalgrid[-1])
-    plt.legend()
-    plt.title('Risky Portfolio Share by Age\n Risky distribution with {points} equiprobable points'.format(points = rcount))
-    plt.xlabel('Wealth (m)')
+#    plt.ylim(0,1.05)
+#    plt.xlim(eevalgrid[0],eevalgrid[-1])
+#    plt.legend()
+#    plt.title('Risky Portfolio Share by Age\n Risky distribution with {points} equiprobable points'.format(points = rcount))
+#    plt.xlabel('Wealth (m)')
 
-    plt.ioff()
-    plt.draw()
+#    plt.ioff()
+#    plt.draw()
 
 
 # %%
