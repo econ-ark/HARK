@@ -11,17 +11,17 @@ mystr = lambda number: "{:.4f}".format(number)
 do_simulation = True
 
 # %% [markdown]
-# This module defines consumption-saving models in which agents have CRRA utility over a unitary consumption good, geometric discounting, who face idiosyncratic shocks to income and to their utility or preferences. That is, this module contains models that extend $\texttt{ConsIndShockModel}$ with preference shocks.
+# This module defines consumption-saving models in which agents have CRRA utility over a unitary consumption good, geometric discounting, who face idiosyncratic shocks to income and to their utility or preferences. That is, this module contains models that extend `ConsIndShockModel` with preference shocks.
 #
-# $\texttt{ConsPrefShockModel}$ currently solves two types of models:
-# 1. An extension of $\texttt{ConsIndShock}$, but with an iid lognormal multiplicative shock each period.
+# `ConsPrefShockModel` currently solves two types of models:
+# 1. An extension of `ConsIndShock`, but with an iid lognormal multiplicative shock each period.
 # 2. A combination of (1) and $\texttt{ConsKinkedR}$, demonstrating how to construct a new model
 #    by inheriting from multiple classes.
 
 # %% [markdown]
 # ### Multiplicative Shocks to Utility
 #
-# In this model, an agent is very similar to the one in the "idiosyncratic shocks" model, except that in $\texttt{ConsPrefShockModel}$ an agent receives an iid multiplicative shock to his/her utility at the beginning of each period, before making the consumption decision. 
+# In this model, an agent is very similar to the one in the "idiosyncratic shocks" model, except that in `ConsPrefShockModel` an agent receives an iid multiplicative shock to his/her utility at the beginning of each period, before making the consumption decision. 
 #
 # The agent's problem can be written in (normalized) Bellman form as:
 #
@@ -36,7 +36,7 @@ do_simulation = True
 #
 
 # %% [markdown]
-# The one period problem for this model is solved by the function $\texttt{solveConsPrefShock}$, which creates an instance of the class $\texttt{ConsPrefShockSolver}$. The class $\texttt{PrefShockConsumerType}$ extends $\texttt{IndShockConsumerType}$ to represents agents in this model. 
+# The one period problem for this model is solved by the function `solveConsPrefShock`, which creates an instance of the class `ConsPrefShockSolver`. The class `PrefShockConsumerType` extends `IndShockConsumerType` to represents agents in this model. 
 #
 # To construct an instance of this class, 3 additional attributes must be passed to the constructor as shown in the table below (parameters can be either "primitive" if they are directly specified by the user or "constructed" if they are built by a class method using simple parameters specified by the user).
 
@@ -62,7 +62,7 @@ do_simulation = True
 # * The standard deviation of preference shocks might vary by period. Therefore, $\texttt{PerShkStd}$ should be input as a list.
 
 # %% [markdown]
-# Note that the $\texttt{solve}$ method of $\texttt{PerfShockConsumerType}$ populates the $\texttt{solution}$ with a list of $\texttt{ConsumerSolution}$ instances. These single-period-solution objects have the same attributes as the "idiosyncratic shocks" model, but the attribute $\texttt{cFunc}$ is defined over the space of ($m_{t}$, $\eta_{t}$) rather than just $m_{t}$.
+# Note that the `solve` method of `PerfShockConsumerType` populates the `solution` with a list of `ConsumerSolution` instances. These single-period-solution objects have the same attributes as the "idiosyncratic shocks" model, but the attribute $\texttt{cFunc}$ is defined over the space of ($m_{t}$, $\eta_{t}$) rather than just $m_{t}$.
 #
 # The value function $\texttt{vFunc}$ and marginal value $\texttt{vPfunc}$, however, are defined *only* over $m_{t}$, as they represent expected (marginal) value *just before* the preference shock $\eta_{t}$ is realized.
 
@@ -120,10 +120,10 @@ if do_simulation:
 # %% [markdown]
 # ### Utility Shocks and Different Interest Rates
 #
-# In this model, an agent face idiosyncratic shocks to permanent and transitory income and multiplicative shocks to utility *and* faces a different interst rate on borrowing vs saving. This agent's model is identical to that of the $\texttt{ConsPrefShockModel}$ with the addition of the interst rate rule from the $\texttt{kinkedRConsumerType}$ from $\texttt{ConsIndShock}$ model.
+# In this model, an agent face idiosyncratic shocks to permanent and transitory income and multiplicative shocks to utility *and* faces a different interst rate on borrowing vs saving. This agent's model is identical to that of the `ConsPrefShockModel` with the addition of the interst rate rule from the `kinkedRConsumerType` from `ConsIndShock` model.
 
 # %% [markdown]
-# The one period problem of this model is solved by the function $\texttt{solveConsKinkyPref}$, which creates an instance of $\texttt{ConsKinkyPrefSolver}$. The class $\texttt{KinkyPrefConsumerType}$ represents agents in this model. 
+# The one period problem of this model is solved by the function `solveConsKinkyPref`, which creates an instance of `ConsKinkyPrefSolver`. The class `KinkyPrefConsumerType` represents agents in this model. 
 #
 # Thanks to HARK's object-oriented approach to solution methods, it is trivial to combine two models to make a new one. In this current case, the solver and consumer classes each inherit from both $\texttt{KinkedR}$ and $\texttt{PrefShock}$ and only need a trivial constructor function to rectify the differences between the two.
 #
@@ -180,6 +180,10 @@ if KinkyPrefExample.vFuncBool:
 # Test the simulator for the kinky preference class
 if do_simulation:
     KinkyPrefExample.T_sim = 120
-    KinkyPrefExample.track_vars = ['cNrm', "PrefShk"]
+    KinkyPrefExample.track_vars = ["cNrm", "PrefShk"]
     KinkyPrefExample.initialize_sim()
     KinkyPrefExample.simulate()
+
+# %%
+
+# %%

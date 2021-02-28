@@ -75,7 +75,7 @@ RA_markov_params["PermGroFac"] = [[0.97, 1.03]]
 RA_markov_params["MrkvArray"] = np.array([[0.99, 0.01], [0.01, 0.99]])
 RA_markov_params["Mrkv"] = 0
 RAmarkovExample = RepAgentMarkovConsumerType(**RA_markov_params)
-RAmarkovExample.IncomeDstn[0] = 2 * [RAmarkovExample.IncomeDstn[0]]
+RAmarkovExample.IncShkDstn[0] = 2 * [RAmarkovExample.IncShkDstn[0]]
 t_start = time()
 RAmarkovExample.solve()
 t_end = time()
