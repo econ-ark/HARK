@@ -1038,6 +1038,9 @@ class CubicInterp(HARKinterpolator1D):
                     + x[out_top] * self.coeffs[self.n, 1]
                     - self.coeffs[self.n, 2] * np.exp(alpha * self.coeffs[self.n, 3])
                 )
+
+                y[x == self.x_list.min()] = self.y_list.min()
+                
         return y
 
     def _der(self, x):
