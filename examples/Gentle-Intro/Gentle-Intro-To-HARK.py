@@ -146,7 +146,7 @@ print("This agent's human wealth is " + str(humanWealth) + ' times his current i
 print("This agent's consumption function is defined (consumption is positive) down to m_t = " + str(mMinimum))
 
 # %% [markdown]
-# Yikes! Let's take a look at the bottom of the consumption function.  In the cell below, the bounds of the $\texttt{plotFuncs}$ function are set to display down to the lowest defined value of the consumption function.
+# Yikes! Let's take a look at the bottom of the consumption function.  In the cell below, the bounds of the `plot_funcs` function are set to display down to the lowest defined value of the consumption function.
 
 # %%
 plot_funcs(PFexample.solution[0].cFunc,

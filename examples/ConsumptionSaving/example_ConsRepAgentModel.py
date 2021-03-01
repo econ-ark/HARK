@@ -2,7 +2,7 @@
 from copy import deepcopy
 from time import time
 import numpy as np
-from HARK.utilities import plotFuncs
+from HARK.utilities import plot_funcs
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks
 )
@@ -50,7 +50,7 @@ t_end = time()
 print(
     "Solving a representative agent problem took " + str(t_end - t_start) + " seconds."
 )
-plotFuncs(RAexample.solution[0].cFunc, 0, 20)
+plot_funcs(RAexample.solution[0].cFunc, 0, 20)
 
 # %%
 # Simulate the representative agent model
@@ -84,7 +84,7 @@ print(
     + str(t_end - t_start)
     + " seconds."
 )
-plotFuncs(RAmarkovExample.solution[0].cFunc, 0, 10)
+plot_funcs(RAmarkovExample.solution[0].cFunc, 0, 10)
 
 # %%
 # Simulate the two state representative agent model
