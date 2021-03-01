@@ -269,8 +269,8 @@ class ConsPerfForesightSolver(MetricObject):
         mNrmMin.  See PerfForesightConsumerType.ipynb documentation notebook
         for a brief explanation and the links below for a fuller treatment.
 
-        https://econ.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/#vFuncAnalytical
-        https://econ.jhu.edu/people/ccarroll/SolvingMicroDSOPs/#vFuncPF
+        https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/#vFuncAnalytical
+        https://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/#vFuncPF
 
         Parameters
         ----------
@@ -401,6 +401,24 @@ class ConsPerfForesightSolver(MetricObject):
             Same solution that was passed, but now with the attribute mNrmStE.
         """
 
+        # If no uncertainty, return the degenerate targets for the PF model
+        if hasattr(self, "TranShkMinNext"):  # Then it has transitory shocks
+            # Handle the degenerate case where shocks are of size zero
+            if ((self.TranShkMinNext == 1.0) and (self.PermShkMinNext == 1.0)):
+                # but they are of zero size (and also permanent are zero)
+                if self.GICRaw:  # max of nat and art boro cnst
+                    if type(self.BoroCnstArt) == type(None):
+                        solution.mNrmStE = -self.hNrmNow
+                        solution.mNrmTrg = -self.hNrmNow
+                    else:
+                        bNrmNxt = -self.BoroCnstArt * self.Rfree/self.PermGroFac
+                        solution.mNrmStE = bNrmNxt + 1.0
+                        solution.mNrmTrg = bNrmNxt + 1.0
+                else:  # infinity
+                    solution.mNrmStE = float('inf')
+                    solution.mNrmTrg = float('inf')
+                return solution
+
         # First find
         # \bar{\mathcal{R}} = E_t[R/Gamma_{t+1}] = R/Gamma E_t[1/psi_{t+1}]
         if type(self) == ConsPerfForesightSolver:
@@ -408,7 +426,7 @@ class ConsPerfForesightSolver(MetricObject):
         else:
             Ex_PermShkInv = np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
 
-        Ex_RNrmFac = self.Rfree/self.PermGroFac*Ex_PermShkInv
+        Ex_RNrmFac = (self.Rfree/self.PermGroFac)*Ex_PermShkInv
 
         # mNrmTrg solves Rcalbar*(m - c(m)) + E[inc_next] = m. Define a
         # rearranged version.
@@ -451,9 +469,29 @@ class ConsPerfForesightSolver(MetricObject):
         # https://econ-ark.github.io/BufferStockTheory/#The-Individual-Steady-State
 
         PF_RNrm = self.Rfree/self.PermGroFac
+        # If we are working with a model that permits uncertainty but that
+        # uncertainty has been set to zero, return the correct answer
+        # by hand because in this degenerate case numerical search may
+        # have trouble
+        if hasattr(self, "TranShkMinNext"):  # Then it has transitory shocks
+            if ((self.TranShkMinNext == 1.0) and (self.PermShkMinNext == 1.0)):
+                # but they are of zero size (and permanent shocks also not there)
+                if self.GICRaw:  # max of nat and art boro cnst
+                    #                    breakpoint()
+                    if type(self.BoroCnstArt) == type(None):
+                        solution.mNrmStE = -self.hNrmNow
+                        solution.mNrmTrg = -self.hNrmNow
+                    else:
+                        bNrmNxt = -self.BoroCnstArt * self.Rfree/self.PermGroFac
+                        solution.mNrmStE = bNrmNxt + 1.0
+                        solution.mNrmTrg = bNrmNxt + 1.0
+                else:  # infinity
+                    solution.mNrmStE = float('inf')
+                    solution.mNrmTrg = float('inf')
+                return solution
 
         Ex_PermShk_tp1_times_m_tp1_minus_m_t = (
-            lambda mStE: PF_RNrm * (mStE - solution.cFunc(mStE)) + self.Ex_IncNext - mStE
+            lambda mStE: PF_RNrm * (mStE - solution.cFunc(mStE)) + 1.0 - mStE
         )
 
         # Minimum market resources plus next income is okay starting guess
@@ -462,8 +500,6 @@ class ConsPerfForesightSolver(MetricObject):
             mNrmStE = newton(Ex_PermShk_tp1_times_m_tp1_minus_m_t, m_init_guess)
         except:
             mNrmStE = None
-
-        # Add mNrmTrg to the solution and return it
 
         solution.mNrmStE = mNrmStE
         return solution
@@ -903,6 +939,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         cFuncNowUnc = interpolator(mNrm, cNrm)
 
         # Combine the constrained and unconstrained functions into the true consumption function
+        # breakpoint()  # LowerEnvelope should only be used when BoroCnstArt is true
         cFuncNow = LowerEnvelope(cFuncNowUnc, self.cFuncNowCnst, nan_bool=False)
 
         # Make the marginal value function and the marginal marginal value function
@@ -912,6 +949,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution_now = ConsumerSolution(
             cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow
         )
+
         return solution_now
 
     def makeBasicSolution(self, EndOfPrdvP, aNrm, interpolator):
@@ -938,6 +976,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
         cNrm, mNrm = self.get_points_for_interpolation(EndOfPrdvP, aNrm)
         solution_now = self.usePointsForInterpolation(cNrm, mNrm, interpolator)
+
         return solution_now
 
     def addMPCandHumanWealth(self, solution):
@@ -983,9 +1022,15 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # 1. Check if GICNrm holds. If so, then mNrmTrg will exist. So, compute it.
 
         thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
+
+        GPFRaw = thorn / self.PermGroFac
+        self.GPFRaw = GPFRaw
         GPFNrm = thorn / self.PermGroFac / np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
+        self.GPFNrm = GPFNrm
         GICRaw = 1 > thorn/self.PermGroFac
+        self.GICRaw = GICRaw
         GICNrm = 1 > GPFNrm
+        self.GICNrm = GICNrm
 
         if GICRaw:
             solution = self.add_mNrmStE(solution)  # find steady state m, if it exists
@@ -2339,13 +2384,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         verbose = self.verbose if verbose is None else verbose
         self.check_condition(name, test, messages, verbose, verbose_messages)
 
-    def check_GICRawAggMort(self, verbose=None):
-        name = "GICRawAggMort"
-        def test(agent): return agent.GPFAggMort <= 1
+    def check_GICAggLivPrb(self, verbose=None):
+        name = "GICAggLivPrb"
+        def test(agent): return agent.GPFAggLivPrb <= 1
 
         messages = {
-            True: "\nThe value of the Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values satisfies the Mortality Adjusted Aggregate Growth Imatience Condition; the value of the GPFAggMort is: {0.GPFAggMort}",
-            False: "\nThe given parameter values violate the Mortality Adjusted Aggregate Growth Imatience Condition; the GPFAggMort is: {0.GPFAggMort}",
+            True: "\nThe value of the Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values satisfies the Mortality Adjusted Aggregate Growth Imatience Condition; the value of the GPFAggLivPrb is: {0.GPFAggLivPrb}",
+            False: "\nThe given parameter values violate the Mortality Adjusted Aggregate Growth Imatience Condition; the GPFAggLivPrb is: {0.GPFAggLivPrb}",
         }
 
         verbose_messages = {
@@ -2449,7 +2494,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # For theory, see hyperlink targets to expressions in
         # url=https://econ-ark.github.io/BufferStockTheory
         # For example, the hyperlink to the relevant section of the paper
-        self.url = "https://llorracc.github.io/BufferStockTheory"
+        self.url = "https://econ-ark.github.io/BufferStockTheory"
         # would be referenced below as:
         # [url]/#Uncertainty-Modified-Conditions
 
@@ -2471,7 +2516,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.GPFRaw = self.thorn / (self.PermGroFac[0])  # [url]/#GPF
         # Lower bound of aggregate wealth growth if all inheritances squandered
 
-        self.GPFAggMort = self.thorn * self.LivPrb[0] / self.PermGroFac[0]
+        self.GPFAggLivPrb = self.thorn * self.LivPrb[0] / self.PermGroFac[0]
 
         self.DiscFacGPFRawMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
             self.Rfree
@@ -2481,14 +2526,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
         ) / (
             self.Rfree
         )  # DiscFac at growth impatience knife edge
-        self.DiscFacGPFAggMortMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
+        self.DiscFacGPFAggLivPrbMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
             self.Rfree * self.LivPrb[0]
         )  # DiscFac at growth impatience knife edge
         verbose = self.verbose if verbose is None else verbose
 
         #        self.check_GICRaw(verbose)
         self.check_GICNrm(verbose)
-        self.check_GICRawAggMort(verbose)
+        self.check_GICAggLivPrb(verbose)
         self.check_WRIC(verbose)
         self.check_FVAC(verbose)
 
@@ -2501,16 +2546,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 + "/#Factors-Defined-And-Compared"
             )
 
-        _log.warning("GPFRaw           = %2.6f " % (self.GPFRaw))
-        _log.warning("GPFNrm           = %2.6f " % (self.GPFNrm))
-        _log.warning("GPFAggMort       = %2.6f " % (self.GPFAggMort))
-        _log.warning("Thorn = APF      = %2.6f " % (self.thorn))
-        _log.warning("PermGroFacAdj    = %2.6f " % (self.PermGroFacAdj))
-        _log.warning("uInvEpShkuInv    = %2.6f " % (self.uInvEpShkuInv))
-        _log.warning("VAF             = %2.6f " % (self.VAF))
-        _log.warning("WRPF             = %2.6f " % (self.WRPF))
-        _log.warning("DiscFacGPFNrmMax = %2.6f " % (self.DiscFacGPFNrmMax))
-        _log.warning("DiscFacGPFAggMortMax = %2.6f " % (self.DiscFacGPFAggMortMax))
+        _log.warning("GPFRaw                 = %2.6f " % (self.GPFRaw))
+        _log.warning("GPFNrm                 = %2.6f " % (self.GPFNrm))
+        _log.warning("GPFAggLivPrb           = %2.6f " % (self.GPFAggLivPrb))
+        _log.warning("Thorn = APF            = %2.6f " % (self.thorn))
+        _log.warning("PermGroFacAdj          = %2.6f " % (self.PermGroFacAdj))
+        _log.warning("uInvEpShkuInv          = %2.6f " % (self.uInvEpShkuInv))
+        _log.warning("VAF                    = %2.6f " % (self.VAF))
+        _log.warning("WRPF                   = %2.6f " % (self.WRPF))
+        _log.warning("DiscFacGPFNrmMax       = %2.6f " % (self.DiscFacGPFNrmMax))
+        _log.warning("DiscFacGPFAggLivPrbMax = %2.6f " % (self.DiscFacGPFAggLivPrbMax))
 
     def Ex_Mtp1_over_Ex_Ptp1(self, mNrm):
         cNrm = self.solution[-1].cFunc(mNrm)
