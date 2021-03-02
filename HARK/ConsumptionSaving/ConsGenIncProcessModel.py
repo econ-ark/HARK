@@ -184,9 +184,9 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         self.CubicBool = CubicBool
         self.PermGroFac = 0.0
 
-        self.defUtilityFuncs()
+        self.def_utility_funcs()
 
-    def setAndUpdateValues(self, solution_next, IncShkDstn, LivPrb, DiscFac):
+    def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.  These include:
@@ -214,7 +214,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         None
         """
         # Run basic version of this method
-        ConsIndShockSetup.setAndUpdateValues(
+        ConsIndShockSetup.set_and_update_values(
             self, solution_next, IncShkDstn, LivPrb, DiscFac
         )
         self.mLvlMinNext = solution_next.mLvlMin
@@ -243,7 +243,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             np.insert(self.pLvlGrid, 0, 0.0), np.insert(hLvlGrid, 0, 0.0)
         )
 
-    def defBoroCnst(self, BoroCnstArt):
+    def def_BoroCnst(self, BoroCnstArt):
         """
         Defines the constrained portion of the consumption function as cFuncNowCnst,
         an attribute of self.
@@ -303,7 +303,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         )
         self.cFuncNowCnst = VariableLowerBoundFunc2D(cFuncNowCnstBase, self.mLvlMinNow)
 
-    def prepareToCalcEndOfPrdvP(self):
+    def prepare_to_calc_EndOfPrdvP(self):
         """
         Prepare to calculate end-of-period marginal value by creating an array
         of market resources that the agent could have next period, considering
@@ -358,7 +358,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         self.aLvlNow = aLvlNow
         return aLvlNow, pLvlNow
 
-    def calcEndOfPrdvP(self):
+    def calc_EndOfPrdvP(self):
         """
         Calculates end-of-period marginal value of assets at each state space
         point in aLvlNow x pLvlNow. Does so by taking a weighted sum of next
@@ -384,7 +384,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         )
         return EndOfPrdvP
 
-    def makeEndOfPrdvFunc(self, EndOfPrdvP):
+    def make_EndOfPrdvFunc(self, EndOfPrdvP):
         """
         Construct the end-of-period value function for this period, storing it
         as an attribute of self for use by other methods.
@@ -500,7 +500,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
 
         return c_for_interpolation, m_for_interpolation
 
-    def usePointsForInterpolation(self, cLvl, mLvl, pLvl, interpolator):
+    def use_points_for_interpolation(self, cLvl, mLvl, pLvl, interpolator):
         """
         Constructs a basic solution for this period, including the consumption
         function and marginal value function.
@@ -529,13 +529,13 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         cFuncNow = LowerEnvelope2D(cFuncNowUnc, self.cFuncNowCnst)
 
         # Make the marginal value function
-        vPfuncNow = self.makevPfunc(cFuncNow)
+        vPfuncNow = self.make_vPfunc(cFuncNow)
 
         # Pack up the solution and return it
         solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=0.0)
         return solution_now
 
-    def makevPfunc(self, cFunc):
+    def make_vPfunc(self, cFunc):
         """
         Constructs the marginal value function for this period.
 
@@ -553,7 +553,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         vPfunc = MargValueFuncCRRA(cFunc, self.CRRA)
         return vPfunc
 
-    def makevFunc(self, solution):
+    def make_vFunc(self, solution):
         """
         Creates the value function for this period, defined over market resources
         m and persistent income p.  self must have the attribute EndOfPrdvFunc in
@@ -627,7 +627,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA)
         return vFuncNow
 
-    def makeBasicSolution(self, EndOfPrdvP, aLvl, pLvl, interpolator):
+    def make_basic_solution(self, EndOfPrdvP, aLvl, pLvl, interpolator):
         """
         Given end of period assets and end of period marginal value, construct
         the basic solution for this period.
@@ -656,12 +656,12 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             (np.reshape(self.pLvlGrid, (self.pLvlGrid.size, 1)), pLvl), axis=-1
         )
         pLvl_temp = np.concatenate((np.zeros((1, mLvl.shape[1])), pLvl_temp))
-        solution_now = self.usePointsForInterpolation(
+        solution_now = self.use_points_for_interpolation(
             cLvl, mLvl, pLvl_temp, interpolator
         )
         return solution_now
 
-    def makeLinearcFunc(self, mLvl, pLvl, cLvl):
+    def make_linear_cFunc(self, mLvl, pLvl, cLvl):
         """
         Makes a quasi-bilinear interpolation to represent the (unconstrained)
         consumption function.
@@ -708,7 +708,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         )  # Re-adjust for natural borrowing constraint (as lower bound)
         return cFuncUnc
 
-    def makeCubiccFunc(self, mLvl, pLvl, cLvl):
+    def make_cubic_cFunc(self, mLvl, pLvl, cLvl):
         """
         Makes a quasi-cubic spline interpolation of the unconstrained consumption
         function for this period.  Function is cubic splines with respect to mLvl,
@@ -776,7 +776,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         # Re-adjust for lower bound of natural borrowing constraint
         return cFuncUnc
 
-    def addMPCandHumanWealth(self, solution):
+    def add_MPC_and_human_wealth(self, solution):
         """
         Take a solution and add human wealth and the bounding MPCs to it.
 
@@ -791,14 +791,14 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             The solution to this period's consumption-saving problem, but now
             with human wealth and the bounding MPCs.
         """
-        solution.hNrm = 0.0  # Can't have None or setAndUpdateValues breaks, should fix
+        solution.hNrm = 0.0  # Can't have None or set_and_update_values breaks, should fix
         solution.hLvl = self.hLvlNow
         solution.mLvlMin = self.mLvlMinNow
         solution.MPCmin = self.MPCminNow
         solution.MPCmax = 0.0  # MPCmax is actually a function in this model
         return solution
 
-    def addvPPfunc(self, solution):
+    def add_vPPfunc(self, solution):
         """
         Adds the marginal marginal value function to an existing solution, so
         that the next solver can evaluate vPP and thus use cubic interpolation.
@@ -837,20 +837,20 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             tion of persistent income.  Might also include a value function and
             marginal marginal value function, depending on options selected.
         """
-        aLvl, pLvl = self.prepareToCalcEndOfPrdvP()
-        EndOfPrdvP = self.calcEndOfPrdvP()
+        aLvl, pLvl = self.prepare_to_calc_EndOfPrdvP()
+        EndOfPrdvP = self.calc_EndOfPrdvP()
         if self.vFuncBool:
-            self.makeEndOfPrdvFunc(EndOfPrdvP)
+            self.make_EndOfPrdvFunc(EndOfPrdvP)
         if self.CubicBool:
-            interpolator = self.makeCubiccFunc
+            interpolator = self.make_cubic_cFunc
         else:
-            interpolator = self.makeLinearcFunc
-        solution = self.makeBasicSolution(EndOfPrdvP, aLvl, pLvl, interpolator)
-        solution = self.addMPCandHumanWealth(solution)
+            interpolator = self.make_linear_cFunc
+        solution = self.make_basic_solution(EndOfPrdvP, aLvl, pLvl, interpolator)
+        solution = self.add_MPC_and_human_wealth(solution)
         if self.vFuncBool:
-            solution.vFunc = self.makevFunc(solution)
+            solution.vFunc = self.make_vFunc(solution)
         if self.CubicBool:
-            solution = self.addvPPfunc(solution)
+            solution = self.add_vPPfunc(solution)
         return solution
 
 
@@ -923,7 +923,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
     def pre_solve(self):
         #        AgentType.pre_solve()
-        self.updateSolutionTerminal()
+        self.update_solution_terminal()
 
     def update(self):
         """
@@ -939,10 +939,10 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.update(self)
-        self.updatepLvlNextFunc()
-        self.updatepLvlGrid()
+        self.update_pLvlNextFunc()
+        self.update_pLvlGrid()
 
-    def updateSolutionTerminal(self):
+    def update_solution_terminal(self):
         """
         Update the terminal period solution.  This method should be run when a
         new AgentType is created or when CRRA changes.
@@ -966,7 +966,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         self.solution_terminal.mLvlMin = lambda p: np.zeros_like(p)
         # And minimum allowable market resources by perm inc
 
-    def updatepLvlNextFunc(self):
+    def update_pLvlNextFunc(self):
         """
         A dummy method that creates a trivial pLvlNextFunc attribute that has
         no persistent income dynamics.  This method should be overwritten by
@@ -984,13 +984,13 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         self.pLvlNextFunc = self.T_cycle * [pLvlNextFuncBasic]
         self.add_to_time_vary("pLvlNextFunc")
 
-    def installRetirementFunc(self):
+    def install_retirement_func(self):
         """
         Installs a special pLvlNextFunc representing retirement in the correct
         element of self.pLvlNextFunc.  Draws on the attributes T_retire and
         pLvlNextFuncRet.  If T_retire is zero or pLvlNextFuncRet does not
         exist, this method does nothing.  Should only be called from within the
-        method updatepLvlNextFunc, which ensures that time is flowing forward.
+        method update_pLvlNextFunc, which ensures that time is flowing forward.
 
         Parameters
         ----------
@@ -1005,7 +1005,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         t = self.T_retire
         self.pLvlNextFunc[t] = self.pLvlNextFuncRet
 
-    def updatepLvlGrid(self):
+    def update_pLvlGrid(self):
         """
         Update the grid of persistent income levels.  Currently only works for
         infinite horizon models (cycles=0) and lifecycle models (cycles=1).  Not
@@ -1124,7 +1124,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         mLvlNow
         """
         aLvlPrev = self.state_prev['aLvl']
-        RfreeNow = self.getRfree()
+        RfreeNow = self.get_Rfree()
 
         # Calculate new states: normalized market resources
         # and persistent income level
@@ -1207,7 +1207,7 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
     state variable during solution.  There is no real economic use for it.
     """
 
-    def updatepLvlNextFunc(self):
+    def update_pLvlNextFunc(self):
         """
         A method that creates the pLvlNextFunc attribute as a sequence of
         linear functions, indicating constant expected permanent income growth
@@ -1261,7 +1261,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
 
         GenIncProcessConsumerType.__init__(self, cycles=cycles, **params)
 
-    def updatepLvlNextFunc(self):
+    def update_pLvlNextFunc(self):
         """
         A method that creates the pLvlNextFunc attribute as a sequence of
         AR1-style functions.  Draws on the attributes PermGroFac and PrstIncCorr.

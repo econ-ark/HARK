@@ -1060,8 +1060,8 @@ def make_one_period_oo_solver(solver_class):
         solver = solver_class(**kwds)
 
         # not ideal; better if this is defined in all Solver classes
-        if hasattr(solver, "prepareToSolve"):
-            solver.prepareToSolve()
+        if hasattr(solver, "prepare_to_solve"):
+            solver.prepare_to_solve()
 
         solution_now = solver.solve()
         return solution_now
@@ -1304,9 +1304,9 @@ class Market(Model):
 
     def cultivate(self):
         """
-        Has each AgentType in agents perform their marketAction method, using
+        Has each AgentType in agents perform their market_action method, using
         variables sown from the market (and maybe also "private" variables).
-        The marketAction method should store new results in attributes named in
+        The market_action method should store new results in attributes named in
         reap_vars to be reaped later.
 
         Parameters
@@ -1318,7 +1318,7 @@ class Market(Model):
         none
         """
         for this_type in self.agents:
-            this_type.marketAction()
+            this_type.market_action()
 
     def reset(self):
         """

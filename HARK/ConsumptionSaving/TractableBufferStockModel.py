@@ -101,7 +101,7 @@ class TractableConsumerSolution(MetricObject):
         # that captures the notion that the process is over when no points are added.
 
 
-def findNextPoint(
+def find_next_point(
     DiscFac,
     Rfree,
     CRRA,
@@ -175,7 +175,7 @@ def findNextPoint(
     return mNow, cNow, MPCnow
 
 
-def addToStableArmPoints(
+def add_to_stable_arm_points(
     solution_next,
     DiscFac,
     Rfree,
@@ -242,7 +242,7 @@ def addToStableArmPoints(
         MPCNext = solution_next.MPC_list[-1]
 
         # Calculate employed levels of c, m, and MPC from next period's values
-        mNow, cNow, MPCnow = findNextPoint(
+        mNow, cNow, MPCnow = find_next_point(
             DiscFac,
             Rfree,
             CRRA,
@@ -269,7 +269,7 @@ def addToStableArmPoints(
         MPCNext = solution_next.MPC_list[0]
 
         # Calculate employed levels of c, m, and MPC from next period's values
-        mNow, cNow, MPCnow = findNextPoint(
+        mNow, cNow, MPCnow = find_next_point(
             DiscFac,
             Rfree,
             CRRA,
@@ -328,7 +328,7 @@ class TractableConsumerType(AgentType):
         ]
         self.shock_vars = ["eStateNow"]
         self.poststate_vars = ['aLvl', "eStateNow"]  # For simulation
-        self.solve_one_period = addToStableArmPoints  # set correct solver
+        self.solve_one_period = add_to_stable_arm_points  # set correct solver
 
     def pre_solve(self):
         """

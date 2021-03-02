@@ -145,7 +145,7 @@ class ConsumerSolution(MetricObject):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
 
-    def appendSolution(self, new_solution):
+    def append_solution(self, new_solution):
         """
         Appends one solution to another to create a ConsumerSolution whose
         attributes are lists.  Used in ConsMarkovModel, where we append solutions
@@ -167,7 +167,7 @@ class ConsumerSolution(MetricObject):
             # Begin by checking this is so.
             assert (
                 NullFunc().distance(self.cFunc) == 0
-            ), "appendSolution called incorrectly!"
+            ), "append_solution called incorrectly!"
 
             # We will need the attributes of the solution instance to be lists.  Do that here.
             self.cFunc = [new_solution.cFunc]
@@ -239,7 +239,7 @@ class ConsPerfForesightSolver(MetricObject):
         self.BoroCnstArt = BoroCnstArt
         self.MaxKinks = MaxKinks
 
-    def defUtilityFuncs(self):
+    def def_utility_funcs(self):
         """
         Defines CRRA utility function for this period (and its derivatives),
         saving them as attributes of self for other methods to use.
@@ -258,7 +258,7 @@ class ConsPerfForesightSolver(MetricObject):
             c, gam=self.CRRA
         )  # marginal marginal utility function
 
-    def defValueFuncs(self):
+    def def_value_funcs(self):
         """
         Defines the value and marginal value functions for this period.
         Uses the fact that for a perfect foresight CRRA utility problem,
@@ -386,7 +386,7 @@ class ConsPerfForesightSolver(MetricObject):
     def add_mNrmTrg(self, solution):
         """
         Finds value of (normalized) market resources m at which individual consumer
-        expects m not to change. 
+        expects m not to change.
         This will exist if the GICNrm holds.
 
         https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
@@ -547,10 +547,11 @@ class ConsPerfForesightSolver(MetricObject):
         solution : ConsumerSolution
             The solution to this period's problem.
         """
-        self.defUtilityFuncs()
+        self.def_utility_funcs()
         self.DiscFacEff = self.DiscFac * self.LivPrb  # Effective=pure x LivPrb
         self.make_cFunc_PF()
-        self.defValueFuncs()
+        self.def_value_funcs()
+
         solution = ConsumerSolution(
             cFunc=self.cFunc,
             vFunc=self.vFunc,
@@ -581,7 +582,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     IncShkDstn : distribution.Distribution
         A discrete
         approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). 
+        and the one immediately following (in solution_next).
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -639,9 +640,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         self.vFuncBool = vFuncBool
         self.CubicBool = CubicBool
 
-        self.defUtilityFuncs()
+        self.def_utility_funcs()
 
-    def defUtilityFuncs(self):
+    def def_utility_funcs(self):
         """
         Defines CRRA utility function for this period (and its derivatives,
         and their inverses), saving them as attributes of self for other methods
@@ -655,14 +656,14 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         -------
         none
         """
-        ConsPerfForesightSolver.defUtilityFuncs(self)
+        ConsPerfForesightSolver.def_utility_funcs(self)
         self.uPinv = lambda u: utilityP_inv(u, gam=self.CRRA)
         self.uPinvP = lambda u: utilityP_invP(u, gam=self.CRRA)
         self.uinvP = lambda u: utility_invP(u, gam=self.CRRA)
         if self.vFuncBool:
             self.uinv = lambda u: utility_inv(u, gam=self.CRRA)
 
-    def setAndUpdateValues(self, solution_next, IncShkDstn, LivPrb, DiscFac):
+    def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.  These include:
@@ -728,7 +729,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         self.cFuncLimitIntercept = self.MPCminNow * self.hNrmNow
         self.cFuncLimitSlope = self.MPCminNow
 
-    def defBoroCnst(self, BoroCnstArt):
+    def def_BoroCnst(self, BoroCnstArt):
         """
         Defines the constrained portion of the consumption function as cFuncNowCnst,
         an attribute of self.  Uses the artificial and natural borrowing constraints.
@@ -770,7 +771,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             np.array([self.mNrmMinNow, self.mNrmMinNow + 1]), np.array([0.0, 1.0])
         )
 
-    def prepareToSolve(self):
+    def prepare_to_solve(self):
         """
         Perform preparatory work before calculating the unconstrained consumption
         function.
@@ -783,10 +784,10 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         -------
         none
         """
-        self.setAndUpdateValues(
+        self.set_and_update_values(
             self.solution_next, self.IncShkDstn, self.LivPrb, self.DiscFac
         )
-        self.defBoroCnst(self.BoroCnstArt)
+        self.def_BoroCnst(self.BoroCnstArt)
 
 
 ####################################################################################################
@@ -805,7 +806,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
     inherits.
     """
 
-    def prepareToCalcEndOfPrdvP(self):
+    def prepare_to_calc_EndOfPrdvP(self):
         """
         Prepare to calculate end-of-period marginal value by creating an array
         of market resources that the agent could have next period, considering
@@ -850,7 +851,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         return self.Rfree / (self.PermGroFac * shocks[0]) \
             * a_nrm + shocks[1]
 
-    def calcEndOfPrdvP(self):
+    def calc_EndOfPrdvP(self):
         """
         Calculate end-of-period marginal value of assets at each point in aNrmNow.
         Does so by taking a weighted sum of next period marginal values across
@@ -915,7 +916,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         return c_for_interpolation, m_for_interpolation
 
-    def usePointsForInterpolation(self, cNrm, mNrm, interpolator):
+    def use_points_for_interpolation(self, cNrm, mNrm, interpolator):
         """
         Constructs a basic solution for this period, including the consumption
         function and marginal value function.
@@ -952,7 +953,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         return solution_now
 
-    def makeBasicSolution(self, EndOfPrdvP, aNrm, interpolator):
+    def make_basic_solution(self, EndOfPrdvP, aNrm, interpolator):
         """
         Given end of period assets and end of period marginal value, construct
         the basic solution for this period.
@@ -979,7 +980,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         return solution_now
 
-    def addMPCandHumanWealth(self, solution):
+    def add_MPC_and_human_wealth(self, solution):
         """
         Take a solution and add human wealth and the bounding MPCs to it.
 
@@ -1039,7 +1040,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         return solution
 
-    def makeLinearcFunc(self, mNrm, cNrm):
+    def make_linear_cFunc(self, mNrm, cNrm):
         """
         Makes a linear interpolation to represent the (unconstrained) consumption function.
 
@@ -1075,10 +1076,11 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
         self.aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
         aNrm = self.aNrmNow
-        EndOfPrdvP = self.calcEndOfPrdvP()
-        solution = self.makeBasicSolution(EndOfPrdvP, aNrm, self.makeLinearcFunc)
-        solution = self.addMPCandHumanWealth(solution)
+        EndOfPrdvP = self.calc_EndOfPrdvP()
+        solution = self.make_basic_solution(EndOfPrdvP, aNrm, self.make_linear_cFunc)
+        solution = self.add_MPC_and_human_wealth(solution)
         solution = self.add_stable_points(solution)
+
         return solution
 
 
@@ -1093,7 +1095,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
     interpolation and to calculate the value function.
     """
 
-    def makeCubiccFunc(self, mNrm, cNrm):
+    def make_cubic_cFunc(self, mNrm, cNrm):
         """
         Makes a cubic spline interpolation of the unconstrained consumption
         function for this period.
@@ -1134,7 +1136,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         )
         return cFuncNowUnc
 
-    def makeEndOfPrdvFunc(self, EndOfPrdvP):
+    def make_EndOfPrdvFunc(self, EndOfPrdvP):
         """
         Construct the end-of-period value function for this period, storing it
         as an attribute of self for use by other methods.
@@ -1169,7 +1171,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         EndOfPrdvNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
         self.EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
 
-    def addvFunc(self, solution, EndOfPrdvP):
+    def add_vFunc(self, solution, EndOfPrdvP):
         """
         Creates the value function for this period and adds it to the solution.
 
@@ -1188,11 +1190,11 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             The single period solution passed as an input, but now with the
             value function (defined over market resources m) as an attribute.
         """
-        self.makeEndOfPrdvFunc(EndOfPrdvP)
-        solution.vFunc = self.makevFunc(solution)
+        self.make_EndOfPrdvFunc(EndOfPrdvP)
+        solution.vFunc = self.make_vFunc(solution)
         return solution
 
-    def makevFunc(self, solution):
+    def make_vFunc(self, solution):
         """
         Creates the value function for this period, defined over market resources m.
         self must have the attribute EndOfPrdvFunc in order to execute.
@@ -1231,7 +1233,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA)
         return vFuncNow
 
-    def addvPPfunc(self, solution):
+    def add_vPPfunc(self, solution):
         """
         Adds the marginal marginal value function to an existing solution, so
         that the next solver can evaluate vPP and thus use cubic interpolation.
@@ -1271,28 +1273,28 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             The solution to the single period consumption-saving problem.
         """
         # Make arrays of end-of-period assets and end-of-period marginal value
-        aNrm = self.prepareToCalcEndOfPrdvP()
-        EndOfPrdvP = self.calcEndOfPrdvP()
+        aNrm = self.prepare_to_calc_EndOfPrdvP()
+        EndOfPrdvP = self.calc_EndOfPrdvP()
 
         # Construct a basic solution for this period
         if self.CubicBool:
-            solution = self.makeBasicSolution(
-                EndOfPrdvP, aNrm, interpolator=self.makeCubiccFunc
+            solution = self.make_basic_solution(
+                EndOfPrdvP, aNrm, interpolator=self.make_cubic_cFunc
             )
         else:
-            solution = self.makeBasicSolution(
-                EndOfPrdvP, aNrm, interpolator=self.makeLinearcFunc
+            solution = self.make_basic_solution(
+                EndOfPrdvP, aNrm, interpolator=self.make_linear_cFunc
             )
-        solution = self.addMPCandHumanWealth(solution)  # add a few things
 
+        solution = self.add_MPC_and_human_wealth(solution)  # add a few things
         solution = self.add_stable_points(solution)
 
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used (to prepare for next period)
         if self.vFuncBool:
-            solution = self.addvFunc(solution, EndOfPrdvP)
+            solution = self.add_vFunc(solution, EndOfPrdvP)
         if self.CubicBool:
-            solution = self.addvPPfunc(solution)
+            solution = self.add_vPPfunc(solution)
         return solution
 
 
@@ -1316,7 +1318,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
     IncShkDstn : distribution.Distribution
         A discrete
         approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). 
+        and the one immediately following (in solution_next).
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -1388,7 +1390,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         self.Rboro = Rboro
         self.Rsave = Rsave
 
-    def makeCubiccFunc(self, mNrm, cNrm):
+    def make_cubic_cFunc(self, mNrm, cNrm):
         """
         Makes a cubic spline interpolation that contains the kink of the unconstrained
         consumption function for this period.
@@ -1405,8 +1407,8 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         cFuncUnc : CubicInterp
             The unconstrained consumption function for this period.
         """
-        # Call the makeCubiccFunc from ConsIndShockSolver.
-        cFuncNowUncKink = super().makeCubiccFunc(mNrm, cNrm)
+        # Call the make_cubic_cFunc from ConsIndShockSolver.
+        cFuncNowUncKink = super().make_cubic_cFunc(mNrm, cNrm)
 
         # Change the coeffients at the kinked points.
         cFuncNowUncKink.coeffs[self.i_kink + 1] = [
@@ -1444,7 +1446,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         """
         return solution
 
-    def prepareToCalcEndOfPrdvP(self):
+    def prepare_to_calc_EndOfPrdvP(self):
         """
         Prepare to calculate end-of-period marginal value by creating an array
         of market resources that the agent could have next period, considering
@@ -1503,7 +1505,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         )
 
         # Recalculate the minimum MPC and human wealth using the interest factor on saving.
-        # This overwrites values from setAndUpdateValues, which were based on Rboro instead.
+        # This overwrites values from set_and_update_values, which were based on Rboro instead.
         if KinkBool:
             PatFacTop = (
                 (self.Rsave * self.DiscFacEff) ** (1.0 / self.CRRA)
@@ -1608,7 +1610,7 @@ class PerfForesightConsumerType(AgentType):
         set_verbosity_level((4 - verbose) * 10)
 
     def pre_solve(self):
-        self.updateSolutionTerminal()  # Solve the terminal period problem
+        self.update_solution_terminal()  # Solve the terminal period problem
 
         # Fill in BoroCnstArt and MaxKinks if they're not specified or are irrelevant.
         if not hasattr(self, "BoroCnstArt"):  # If no borrowing constraint specified...
@@ -1634,7 +1636,7 @@ class PerfForesightConsumerType(AgentType):
 
         return
 
-    def updateSolutionTerminal(self):
+    def update_solution_terminal(self):
         """
         Update the terminal period solution.  This method should be run when a
         new AgentType is created or when CRRA changes.
@@ -1653,7 +1655,7 @@ class PerfForesightConsumerType(AgentType):
             self.cFunc_terminal_, self.CRRA
         )
 
-    def unpackcFunc(self):
+    def unpack_cFunc(self):
         """ DEPRECATED: Use solution.unpack('cFunc') instead.
         "Unpacks" the consumption functions into their own field for easier access.
         After the model has been solved, the consumption functions reside in the
@@ -1668,7 +1670,7 @@ class PerfForesightConsumerType(AgentType):
         none
         """
         _log.critical(
-            "unpackcFunc is deprecated and it will soon be removed, "
+            "unpack_cFunc is deprecated and it will soon be removed, "
             "please use unpack('cFunc') instead."
         )
         self.unpack("cFunc")
@@ -1763,7 +1765,7 @@ class PerfForesightConsumerType(AgentType):
         ]  # cycle time has already been advanced
         self.shocks['TranShk'] = np.ones(self.AgentCount)
 
-    def getRfree(self):
+    def get_Rfree(self):
         """
         Returns an array of size self.AgentCount with self.Rfree in every entry.
 
@@ -1782,7 +1784,7 @@ class PerfForesightConsumerType(AgentType):
     def transition(self):
         pLvlPrev = self.state_prev['pLvl']
         aNrmPrev = self.state_prev['aNrm']
-        RfreeNow = self.getRfree()
+        RfreeNow = self.get_Rfree()
 
         # Calculate new states: normalized market resources and permanent income level
         pLvlNow = pLvlPrev*self.shocks['PermShk']  # Updated permanent income level
@@ -2074,7 +2076,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         self.update()  # Make assets grid, income process, terminal solution
 
-    def updateIncomeProcess(self):
+    def update_income_process(self):
         """
         Updates this agent's income process based on his own attributes.
 
@@ -2090,13 +2092,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
             IncShkDstn,
             PermShkDstn,
             TranShkDstn,
-        ) = self.constructLognormalIncomeProcessUnemployment()
+        ) = self.construct_lognormal_income_process_unemployment()
         self.IncShkDstn = IncShkDstn
         self.PermShkDstn = PermShkDstn
         self.TranShkDstn = TranShkDstn
         self.add_to_time_vary("IncShkDstn", "PermShkDstn", "TranShkDstn")
 
-    def updateAssetsGrid(self):
+    def update_assets_grid(self):
         """
         Updates this agent's end-of-period assets grid by constructing a multi-
         exponentially spaced grid of aXtra values.
@@ -2109,7 +2111,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         none
         """
-        aXtraGrid = constructAssetsGrid(self)
+        aXtraGrid = construct_assets_grid(self)
         self.aXtraGrid = aXtraGrid
         self.add_to_time_inv("aXtraGrid")
 
@@ -2125,9 +2127,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
-        self.updateIncomeProcess()
-        self.updateAssetsGrid()
-        self.updateSolutionTerminal()
+        self.update_income_process()
+        self.update_assets_grid()
+        self.update_solution_terminal()
 
     def reset_rng(self):
         """
@@ -2206,7 +2208,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.shocks['PermShk'] = PermShkNow
         self.shocks['TranShk'] = TranShkNow
 
-    def calcBoundingValues(self):
+    def calc_bounding_values(self):
         """
         Calculate human wealth plus minimum and maximum MPC in an infinite
         horizon model with only one period repeated indefinitely.  Store results
@@ -2257,7 +2259,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
 
-    def makeEulerErrorFunc(self, mMax=100, approx_inc_dstn=True):
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
@@ -2356,8 +2358,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         #        AgentType.pre_solve(self)
         # Update all income process variables to match any attributes that might
         # have been changed since `__init__` or `solve()` was last called.
-        #        self.updateIncomeProcess()
-        self.updateSolutionTerminal()
+        #        self.update_income_process()
+        self.update_solution_terminal()
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
 
@@ -2598,7 +2600,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
     #   simulated income shocks =
     # ========================================================
 
-    def constructLognormalIncomeProcessUnemployment(self):
+    def construct_lognormal_income_process_unemployment(self):
         """
         Generates a list of discrete approximations to the income process for each
         life period, from end of life to beginning of life.  Permanent shocks are mean
@@ -2644,13 +2646,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Returns
         -------
         IncShkDstn :  [distribution.Distribution]
-            A list with T_cycle elements, each of which is a 
+            A list with T_cycle elements, each of which is a
             discrete approximation to the income process in a period.
         PermShkDstn : [[distribution.Distributiony]]
             A list with T_cycle elements, each of which
             a discrete approximation to the permanent income shocks.
         TranShkDstn : [[distribution.Distribution]]
-            A list with T_cycle elements, each of which 
+            A list with T_cycle elements, each of which
             a discrete approximation to the transitory income shocks.
         """
         # Unpack the parameters from the input
@@ -2770,9 +2772,9 @@ class KinkedRconsumerType(IndShockConsumerType):
 
     def pre_solve(self):
         #        AgentType.pre_solve(self)
-        self.updateSolutionTerminal()
+        self.update_solution_terminal()
 
-    def calcBoundingValues(self):
+    def calc_bounding_values(self):
         """
         Calculate human wealth plus minimum and maximum MPC in an infinite
         horizon model with only one period repeated indefinitely.  Store results
@@ -2829,7 +2831,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
 
-    def makeEulerErrorFunc(self, mMax=100, approx_inc_dstn=True):
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
@@ -2860,7 +2862,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         """
         raise NotImplementedError()
 
-    def getRfree(self):
+    def get_Rfree(self):
         """
         Returns an array of size self.AgentCount with self.Rboro or self.Rsave in each entry, based
         on whether self.aNrmNow >< 0.
@@ -2897,7 +2899,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         raise NotImplementedError()
 
 
-def applyFlatIncomeTax(
+def apply_flat_income_tax(
     IncShkDstn, tax_rate, T_retire, unemployed_indices=None, transitory_index=2
 ):
     """
@@ -2940,7 +2942,7 @@ def applyFlatIncomeTax(
 # =======================================================
 
 
-def constructAssetsGrid(parameters):
+def construct_assets_grid(parameters):
     """
     Constructs the base grid of post-decision states, representing end-of-period
     assets above the absolute minimum.

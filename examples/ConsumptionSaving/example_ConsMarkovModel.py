@@ -132,7 +132,7 @@ SerialUnemploymentExample.IncomeDstn = [
 ]
 
 # %% [markdown]
-# Note that $\texttt{MarkovConsumerType}$ currently has no method to automatically construct a valid IncomeDstn - $\texttt{IncomeDstn}$ is manually constructed in each case. Writing a method to supersede $\texttt{IndShockConsumerType.updateIncomeProcess}$ for the “Markov model” would be a welcome contribution!
+# Note that $\texttt{MarkovConsumerType}$ currently has no method to automatically construct a valid IncomeDstn - $\texttt{IncomeDstn}$ is manually constructed in each case. Writing a method to supersede $\texttt{IndShockConsumerType.update_income_process}$ for the “Markov model” would be a welcome contribution!
 
 # %%
 # Interest factor, permanent growth rates, and survival probabilities are constant arrays
