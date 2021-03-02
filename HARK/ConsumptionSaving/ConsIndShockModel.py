@@ -976,7 +976,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             consumption function, marginal value function, and minimum m.
         """
         cNrm, mNrm = self.get_points_for_interpolation(EndOfPrdvP, aNrm)
-        solution_now = self.usePointsForInterpolation(cNrm, mNrm, interpolator)
+        solution_now = self.use_points_for_interpolation(cNrm, mNrm, interpolator)
 
         return solution_now
 
