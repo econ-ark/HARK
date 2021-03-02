@@ -14,5 +14,5 @@ nbsphinx
 seaborn
 recommonmark
 interpolation
-numba==0.53.0rc1.post1
+numba==0.53.0rc2
 quantecon
