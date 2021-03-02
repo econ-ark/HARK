@@ -35,18 +35,18 @@ class testIndShockConsumerType(unittest.TestCase):
         # test the solution_terminal
         self.assertAlmostEqual(LifecycleExample.solution[-1].cFunc(2).tolist(), 2)
 
-        self.assertAlmostEqual(LifecycleExample.solution[9].cFunc(1), 0.89066194)
-        self.assertAlmostEqual(LifecycleExample.solution[8].cFunc(1), 0.89144313)
-        self.assertAlmostEqual(LifecycleExample.solution[7].cFunc(1), 0.89210133)
+        self.assertAlmostEqual(LifecycleExample.solution[9].cFunc(1), 0.79429538)
+        self.assertAlmostEqual(LifecycleExample.solution[8].cFunc(1), 0.79391692)
+        self.assertAlmostEqual(LifecycleExample.solution[7].cFunc(1), 0.79253095)
 
         self.assertAlmostEqual(
-            LifecycleExample.solution[0].cFunc(1).tolist(), 0.8928547282397321
+            LifecycleExample.solution[0].cFunc(1).tolist(), 0.7506184692092213
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[1].cFunc(1).tolist(), 0.8930303445748624
+            LifecycleExample.solution[1].cFunc(1).tolist(), 0.7586358637239385
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[2].cFunc(1).tolist(), 0.8933075371183773
+            LifecycleExample.solution[2].cFunc(1).tolist(), 0.7681247572911291
         )
 
         solver = ConsIndShockSolverBasic(
@@ -66,22 +66,22 @@ class testIndShockConsumerType(unittest.TestCase):
         solver.prepare_to_solve()
 
         self.assertAlmostEqual(solver.DiscFacEff, 0.9586233599999999)
-        self.assertAlmostEqual(solver.PermShkMinNext, 0.9037554719886154)
+        self.assertAlmostEqual(solver.PermShkMinNext, 0.6554858756904397)
         self.assertAlmostEqual(solver.cFuncNowCnst(4).tolist(), 4.0)
-        self.assertAlmostEqual(solver.prepare_to_calc_EndOfPrdvP()[0], -0.2732742703949109)
-        self.assertAlmostEqual(solver.prepare_to_calc_EndOfPrdvP()[-1], 19.72572572960506)
+        self.assertAlmostEqual(solver.prepare_to_calc_EndOfPrdvP()[0], -0.19792871012285213)
+        self.assertAlmostEqual(solver.prepare_to_calc_EndOfPrdvP()[-1], 19.801071289877118)
 
         EndOfPrdvP = solver.calc_EndOfPrdvP()
 
-        self.assertAlmostEqual(EndOfPrdvP[0], 6710.672670733023)
-        self.assertAlmostEqual(EndOfPrdvP[-1], 0.14122987153089447)
+        self.assertAlmostEqual(EndOfPrdvP[0], 6657.839372100613)
+        self.assertAlmostEqual(EndOfPrdvP[-1], 0.2606075215645896)
 
         solution = solver.make_basic_solution(
             EndOfPrdvP, solver.aNrmNow, solver.make_linear_cFunc
         )
         solver.add_MPC_and_human_wealth(solution)
 
-        self.assertAlmostEqual(solution.cFunc(4).tolist(), 1.484118342351686)
+        self.assertAlmostEqual(solution.cFunc(4).tolist(), 1.0028005137373956)
 
     def test_simulated_values(self):
         self.agent.initialize_sim()
