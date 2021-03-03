@@ -360,37 +360,41 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
 
 # %% Tests of 'stable points'
 
+
 # Create the base infinite horizon parametrization from the "Buffer Stock
 # Theory" paper.
 bst_params = copy(init_idiosyncratic_shocks)
-bst_params['PermGroFac']   = [1.03] # Permanent income growth factor
-bst_params['Rfree']        = 1.04  # Interest factor on assets
-bst_params['DiscFac']      = 0.96  # Time Preference Factor
-bst_params['CRRA']         = 2.00  # Coefficient of relative risk aversion
-bst_params['UnempPrb']     = 0.005 # Probability of unemployment (e.g. Probability of Zero Income in the paper)
-bst_params['IncUnemp']     = 0.0   # Induces natural borrowing constraint
-bst_params['PermShkStd']   = [0.1]   # Standard deviation of log permanent income shocks
-bst_params['TranShkStd']   = [0.1]   # Standard deviation of log transitory income shocks
-bst_params['LivPrb']       = [1.0]   # 100 percent probability of living to next period
-bst_params['CubicBool']    = True    # Use cubic spline interpolation
-bst_params['T_cycle']      = 1       # No 'seasonal' cycles
-bst_params['BoroCnstArt']  = None    # No artificial borrowing constraint
+bst_params['PermGroFac'] = [1.03]  # Permanent income growth factor
+bst_params['Rfree'] = 1.04  # Interest factor on assets
+bst_params['DiscFac'] = 0.96  # Time Preference Factor
+bst_params['CRRA'] = 2.00  # Coefficient of relative risk aversion
+# Probability of unemployment (e.g. Probability of Zero Income in the paper)
+bst_params['UnempPrb'] = 0.005
+bst_params['IncUnemp'] = 0.0   # Induces natural borrowing constraint
+bst_params['PermShkStd'] = [0.1]   # Standard deviation of log permanent income shocks
+bst_params['TranShkStd'] = [0.1]   # Standard deviation of log transitory income shocks
+bst_params['LivPrb'] = [1.0]   # 100 percent probability of living to next period
+bst_params['CubicBool'] = True    # Use cubic spline interpolation
+bst_params['T_cycle'] = 1       # No 'seasonal' cycles
+bst_params['BoroCnstArt'] = None    # No artificial borrowing constraint
+
 
 class testStablePoints(unittest.TestCase):
-    
+
     def test_IndShock_stable_points(self):
         # Test for the target and individual steady state of the infinite
         # horizon solution using the parametrization in the "Buffer Stock
         # Theory" paper.
-        
+
         # Create and solve the agent
-        baseAgent_Inf = IndShockConsumerType(cycles=0,verbose=0, **bst_params)
+        baseAgent_Inf = IndShockConsumerType(cycles=0, verbose=0, **bst_params)
         baseAgent_Inf.solve()
-        
+
         # Extract stable points
         mNrmStE = baseAgent_Inf.solution[0].mNrmStE
         mNrmTrg = baseAgent_Inf.solution[0].mNrmTrg
-        
+
         # Check against pre-computed values
-        self.assertAlmostEqual(mNrmStE , 1.3773113386500273)
-        self.assertAlmostEqual(mNrmTrg, 1.3910165380594735)
+        decimalPlacesTo = 10
+        self.assertAlmostEqual(mNrmStE, 1.37731133865, decimalPlacesTo)
+        self.assertAlmostEqual(mNrmTrg, 1.39101653806, decimalPlacesTo)
