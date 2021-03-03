@@ -15,6 +15,7 @@ It does so by replicating the results from the original paper (Figure 6 in [1])
 
 import matplotlib.pyplot as plt
 from HARK.Calibration.Income.IncomeTools import sabelhaus_song_var_profile
+import numpy as np
 
 # Set up ages and cohorts at which we will get the variances
 age_min = 27
@@ -36,7 +37,7 @@ for i in range(len(cohorts)):
     coh_label = "aggregate" if cohorts[i] is None else cohorts[i]
     plt.plot(
         variances[i]["Age"],
-        variances[i]["TranShkStd"],
+        np.power(variances[i]["TranShkStd"],2),
         label="Tran. {} cohort".format(coh_label),
     )
 
@@ -49,7 +50,7 @@ for i in range(len(cohorts)):
     coh_label = "aggregate" if cohorts[i] is None else cohorts[i]
     plt.plot(
         variances[i]["Age"],
-        variances[i]["PermShkStd"],
+        np.power(variances[i]["PermShkStd"],2),
         label="Perm. {} cohort".format(coh_label),
     )
 

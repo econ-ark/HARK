@@ -463,13 +463,13 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None, smooth=True)
     # Construct variances
     # They use 1926 as the base year for cohort effects.
     ages = np.arange(age_min, age_max + 1)
-    tran_std = tran_dummy_interp(ages) + (cohort - 1926) * beta_eps
-    perm_std = perm_dummy_interp(ages) + (cohort - 1926) * beta_eta
+    tran_var = tran_dummy_interp(ages) + (cohort - 1926) * beta_eps
+    perm_var = perm_dummy_interp(ages) + (cohort - 1926) * beta_eta
 
     profiles = {
         "Age": list(ages),
-        "TranShkStd": list(tran_std),
-        "PermShkStd": list(perm_std),
+        "TranShkStd": list(np.sqrt(tran_var)),
+        "PermShkStd": list(np.sqrt(perm_var)),
     }
 
     return profiles

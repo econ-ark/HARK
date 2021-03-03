@@ -39,18 +39,18 @@ class testIndShockConsumerTypeFast(unittest.TestCase):
         # test the solution_terminal
         self.assertAlmostEqual(LifecycleExample.solution[-1].cFunc(2).tolist(), 2)
 
-        self.assertAlmostEqual(LifecycleExample.solution[9].cFunc(1), 0.89066194)
-        self.assertAlmostEqual(LifecycleExample.solution[8].cFunc(1), 0.89144313)
-        self.assertAlmostEqual(LifecycleExample.solution[7].cFunc(1), 0.89210133)
+        self.assertAlmostEqual(LifecycleExample.solution[9].cFunc(1), 0.79429538)
+        self.assertAlmostEqual(LifecycleExample.solution[8].cFunc(1), 0.79391692)
+        self.assertAlmostEqual(LifecycleExample.solution[7].cFunc(1), 0.79253095)
 
         self.assertAlmostEqual(
-            LifecycleExample.solution[0].cFunc(1).tolist(), 0.8928547282397321
+            LifecycleExample.solution[0].cFunc(1).tolist(), 0.7506184692092213
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[1].cFunc(1).tolist(), 0.8930303445748624
+            LifecycleExample.solution[1].cFunc(1).tolist(), 0.7586358637239385
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[2].cFunc(1).tolist(), 0.8933075371183773
+            LifecycleExample.solution[2].cFunc(1).tolist(), 0.7681247572911291
         )
 
     def test_simulated_values(self):
