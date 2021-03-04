@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from builtins import str
 from builtins import range
 import numpy as np
-from HARK import makeOnePeriodOOSolver
+from HARK import make_one_period_oo_solver
 from HARK.distribution import MeanOneLogNormal
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
@@ -86,10 +86,10 @@ class PrefShockConsumerType(IndShockConsumerType):
         params.update(kwds)
 
         IndShockConsumerType.__init__(self, cycles=cycles, **params)
-        self.solveOnePeriod = makeOnePeriodOOSolver(ConsPrefShockSolver)
+        self.solve_one_period = make_one_period_oo_solver(ConsPrefShockSolver)
 
-    def preSolve(self):
-        self.updateSolutionTerminal()
+    def pre_solve(self):
+        self.update_solution_terminal()
 
     def update(self):
         """
@@ -108,9 +108,9 @@ class PrefShockConsumerType(IndShockConsumerType):
         IndShockConsumerType.update(
             self
         )  # Update assets grid, income process, terminal solution
-        self.updatePrefShockProcess()  # Update the discrete preference shock process
+        self.update_pref_shock_process()  # Update the discrete preference shock process
 
-    def updatePrefShockProcess(self):
+    def update_pref_shock_process(self):
         """
         Make a discrete preference shock structure for each period in the cycle
         for this agent type, storing them as attributes of self for use in the
@@ -134,14 +134,14 @@ class PrefShockConsumerType(IndShockConsumerType):
 
         # Store the preference shocks in self (time-varying) and restore time flow
         self.PrefShkDstn = PrefShkDstn
-        self.addToTimeVary("PrefShkDstn")
+        self.add_to_time_vary("PrefShkDstn")
 
-    def resetRNG(self):
+    def reset_rng(self):
         """
         Reset the RNG behavior of this type.  This method is called automatically
-        by initializeSim(), ensuring that each simulation run uses the same sequence
+        by initialize_sim(), ensuring that each simulation run uses the same sequence
         of random shocks; this is necessary for structural estimation to work.
-        This method extends IndShockConsumerType.resetRNG() to also reset elements
+        This method extends IndShockConsumerType.reset_rng() to also reset elements
         of PrefShkDstn.
 
         Parameters
@@ -152,14 +152,14 @@ class PrefShockConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.resetRNG(self)
+        IndShockConsumerType.reset_rng(self)
 
-        # Reset PrefShkDstn if it exists (it might not because resetRNG is called at init)
+        # Reset PrefShkDstn if it exists (it might not because reset_rng is called at init)
         if hasattr(self, "PrefShkDstn"):
             for dstn in self.PrefShkDstn:
                 dstn.reset()
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Gets permanent and transitory income shocks for this period as well as preference shocks.
 
@@ -171,7 +171,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.getShocks(
+        IndShockConsumerType.get_shocks(
             self
         )  # Get permanent and transitory income shocks
         PrefShkNow = np.zeros(self.AgentCount)  # Initialize shock array
@@ -182,7 +182,7 @@ class PrefShockConsumerType(IndShockConsumerType):
                 PrefShkNow[these] = self.PrefShkDstn[t].draw(N)
         self.shocks["PrefShk"] = PrefShkNow
 
-    def getControls(self):
+    def get_controls(self):
         """
         Calculates consumption for each consumer of this type using the consumption functions.
 
@@ -203,7 +203,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         self.controls['cNrm'] = cNrmNow
         return None
 
-    def calcBoundingValues(self):
+    def calc_bounding_values(self):
         """
         Calculate human wealth plus minimum and maximum MPC in an infinite
         horizon model with only one period repeated indefinitely.  Store results
@@ -224,7 +224,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         """
         raise NotImplementedError()
 
-    def makeEulerErrorFunc(self, mMax=100, approx_inc_dstn=True):
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
@@ -276,15 +276,15 @@ class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
         params.update(kwds)
         kwds = params
         IndShockConsumerType.__init__(self, **kwds)
-        self.solveOnePeriod = makeOnePeriodOOSolver(ConsKinkyPrefSolver)
-        self.addToTimeInv("Rboro", "Rsave")
-        self.delFromTimeInv("Rfree")
+        self.solve_one_period = make_one_period_oo_solver(ConsKinkyPrefSolver)
+        self.add_to_time_inv("Rboro", "Rsave")
+        self.del_from_time_inv("Rfree")
 
-    def preSolve(self):
-        self.updateSolutionTerminal()
+    def pre_solve(self):
+        self.update_solution_terminal()
 
-    def getRfree(self):  # Specify which getRfree to use
-        return KinkedRconsumerType.getRfree(self)
+    def get_Rfree(self):  # Specify which get_Rfree to use
+        return KinkedRconsumerType.get_Rfree(self)
 
 
 ###############################################################################
@@ -301,8 +301,8 @@ class ConsPrefShockSolver(ConsIndShockSolver):
     ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
-    IncShkDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
+    IncShkDstn : distribution.Distribution
+        A discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
         probabilities, permanent shocks, transitory shocks.
@@ -377,7 +377,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         self.PrefShkPrbs = PrefShkDstn.pmf
         self.PrefShkVals = PrefShkDstn.X
 
-    def getPointsForInterpolation(self, EndOfPrdvP, aNrmNow):
+    def get_points_for_interpolation(self, EndOfPrdvP, aNrmNow):
         """
         Find endogenous interpolation points for each asset point and each
         discrete preference shock.
@@ -415,7 +415,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         )
         return c_for_interpolation, m_for_interpolation
 
-    def usePointsForInterpolation(self, cNrm, mNrm, interpolator):
+    def use_points_for_interpolation(self, cNrm, mNrm, interpolator):
         """
         Make a basic solution object with a consumption function and marginal
         value function (unconditional on the preference shock).
@@ -472,7 +472,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         )
         return solution_now
 
-    def makevFunc(self, solution):
+    def make_vFunc(self, solution):
         """
         Make the beginning-of-period value function (unconditional on the shock).
 
@@ -520,7 +520,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         return vFuncNow
 
 
-def solveConsPrefShock(
+def solve_ConsPrefShock(
     solution_next,
     IncShkDstn,
     PrefShkDstn,
@@ -542,8 +542,8 @@ def solveConsPrefShock(
     ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
-    IncShkDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
+    IncShkDstn : distribution.Distribution
+        A discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
         probabilities, permanent shocks, transitory shocks.
@@ -602,7 +602,7 @@ def solveConsPrefShock(
         vFuncBool,
         CubicBool,
     )
-    solver.prepareToSolve()
+    solver.prepare_to_solve()
     solution = solver.solve()
     return solution
 
@@ -620,8 +620,8 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver, ConsKinkedRsolver):
     ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
-    IncShkDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
+    IncShkDstn : distribution.Distribution
+        A discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
         probabilities, permanent shocks, transitory shocks.

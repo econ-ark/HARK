@@ -781,12 +781,17 @@ class LinearInterp(HARKinterpolator1D):
             slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
             level_diff = intercept_limit + slope_limit * x_list[-1] - y_list[-1]
             slope_diff = slope_limit - slope_at_top
-
-            self.decay_extrap_A = level_diff
-            self.decay_extrap_B = -slope_diff / level_diff
-            self.intercept_limit = intercept_limit
-            self.slope_limit = slope_limit
-            self.decay_extrap = True
+            # If the model that can handle uncertainty has been calibrated with
+            # with uncertainty set to zero, the 'extrapolation' will blow up
+            # Guard against that and nearby problems by testing slope equality
+            if not np.isclose(slope_limit, slope_at_top, atol=1e-15):
+                self.decay_extrap_A = level_diff
+                self.decay_extrap_B = -slope_diff / level_diff
+                self.intercept_limit = intercept_limit
+                self.slope_limit = slope_limit
+                self.decay_extrap = True
+            else:
+                self.decay_extrap = False
         else:
             self.decay_extrap = False
 
@@ -1038,6 +1043,9 @@ class CubicInterp(HARKinterpolator1D):
                     + x[out_top] * self.coeffs[self.n, 1]
                     - self.coeffs[self.n, 2] * np.exp(alpha * self.coeffs[self.n, 3])
                 )
+
+                y[x == self.x_list.min()] = self.y_list.min()
+                
         return y
 
     def _der(self, x):
@@ -3883,9 +3891,9 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         my_shape = f_values.shape
         self.x_n = my_shape[0]
         self.y_n = my_shape[1]
-        self.updatePolarity()
+        self.update_polarity()
 
-    def updatePolarity(self):
+    def update_polarity(self):
         """
         Fills in the polarity attribute of the interpolation, determining whether
         the "plus" (True) or "minus" (False) solution of the system of equations
@@ -3902,12 +3910,12 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         # Grab a point known to be inside each sector: the midway point between
         # the lower left and upper right vertex of each sector
         x_temp = 0.5 * (
-            self.x_values[0 : (self.x_n - 1), 0 : (self.y_n - 1)]
-            + self.x_values[1 : self.x_n, 1 : self.y_n]
+            self.x_values[0: (self.x_n - 1), 0: (self.y_n - 1)]
+            + self.x_values[1: self.x_n, 1: self.y_n]
         )
         y_temp = 0.5 * (
-            self.y_values[0 : (self.x_n - 1), 0 : (self.y_n - 1)]
-            + self.y_values[1 : self.x_n, 1 : self.y_n]
+            self.y_values[0: (self.x_n - 1), 0: (self.y_n - 1)]
+            + self.y_values[1: self.x_n, 1: self.y_n]
         )
         size = (self.x_n - 1) * (self.y_n - 1)
         x_temp = np.reshape(x_temp, size)
@@ -3919,7 +3927,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
 
         # Set the polarity of all sectors to "plus", then test each sector
         self.polarity = np.ones((self.x_n - 1, self.y_n - 1), dtype=bool)
-        alpha, beta = self.findCoords(x_temp, y_temp, x_pos, y_pos)
+        alpha, beta = self.find_coords(x_temp, y_temp, x_pos, y_pos)
         polarity = np.logical_and(
             np.logical_and(alpha > 0, alpha < 1), np.logical_and(beta > 0, beta < 1)
         )
@@ -3928,7 +3936,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         # sector must use the "minus" solution instead
         self.polarity = np.reshape(polarity, (self.x_n - 1, self.y_n - 1))
 
-    def findSector(self, x, y):
+    def find_sector(self, x, y):
         """
         Finds the quadrilateral "sector" for each (x,y) point in the input.
         Only called as a subroutine of _evaluate().
@@ -3956,7 +3964,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         # boundary defined by (x_bound_1,y_bound_1) and (x_bound_2,y_bound_2),
         # where the latter is *COUNTER CLOCKWISE* from the former.  Returns
         # 1 if the point is outside the boundary and 0 otherwise.
-        violationCheck = (
+        violation_check = (
             lambda x_check, y_check, x_bound_1, y_bound_1, x_bound_2, y_bound_2: (
                 (y_bound_2 - y_bound_1) * x_check - (x_bound_2 - x_bound_1) * y_check
                 > x_bound_1 * y_bound_2 - y_bound_1 * x_bound_2
@@ -3989,16 +3997,16 @@ class Curvilinear2DInterp(HARKinterpolator2D):
 
             # Check which boundaries are violated (and thus where to look next)
             c = (move_down + move_right + move_up + move_left) == 0
-            move_down[c] = violationCheck(
+            move_down[c] = violation_check(
                 x_temp[c], y_temp[c], xA[c], yA[c], xB[c], yB[c]
             )
-            move_right[c] = violationCheck(
+            move_right[c] = violation_check(
                 x_temp[c], y_temp[c], xB[c], yB[c], xD[c], yD[c]
             )
-            move_up[c] = violationCheck(
+            move_up[c] = violation_check(
                 x_temp[c], y_temp[c], xD[c], yD[c], xC[c], yC[c]
             )
-            move_left[c] = violationCheck(
+            move_left[c] = violation_check(
                 x_temp[c], y_temp[c], xC[c], yC[c], xA[c], yA[c]
             )
 
@@ -4029,7 +4037,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         y_pos = y_pos_guess
         return x_pos, y_pos
 
-    def findCoords(self, x, y, x_pos, y_pos):
+    def find_coords(self, x, y, x_pos, y_pos):
         """
         Calculates the relative coordinates (alpha,beta) for each point (x,y),
         given the sectors (x_pos,y_pos) in which they reside.  Only called as
@@ -4111,8 +4119,8 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         Returns the level of the interpolated function at each value in x,y.
         Only called internally by HARKinterpolator2D.__call__ (etc).
         """
-        x_pos, y_pos = self.findSector(x, y)
-        alpha, beta = self.findCoords(x, y, x_pos, y_pos)
+        x_pos, y_pos = self.find_sector(x, y)
+        alpha, beta = self.find_coords(x, y, x_pos, y_pos)
 
         # Calculate the function at each point using bilinear interpolation
         f = (
@@ -4128,8 +4136,8 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         Returns the derivative with respect to x of the interpolated function
         at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
         """
-        x_pos, y_pos = self.findSector(x, y)
-        alpha, beta = self.findCoords(x, y, x_pos, y_pos)
+        x_pos, y_pos = self.find_sector(x, y)
+        alpha, beta = self.find_coords(x, y, x_pos, y_pos)
 
         # Get four corners data for each point
         xA = self.x_values[x_pos, y_pos]
@@ -4169,8 +4177,8 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         Returns the derivative with respect to y of the interpolated function
         at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
         """
-        x_pos, y_pos = self.findSector(x, y)
-        alpha, beta = self.findCoords(x, y, x_pos, y_pos)
+        x_pos, y_pos = self.find_sector(x, y)
+        alpha, beta = self.find_coords(x, y, x_pos, y_pos)
 
         # Get four corners data for each point
         xA = self.x_values[x_pos, y_pos]
@@ -4211,7 +4219,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
 ###############################################################################
 
 
-def calcLogSumChoiceProbs(Vals, sigma):
+def calc_log_sum_choice_probs(Vals, sigma):
     """
     Returns the final optimal value and choice probabilities given the choice
     specific value functions `Vals`. Probabilities are degenerate if sigma == 0.0.
@@ -4253,7 +4261,7 @@ def calcLogSumChoiceProbs(Vals, sigma):
     return LogSumV, Probs
 
 
-def calcChoiceProbs(Vals, sigma):
+def calc_choice_probs(Vals, sigma):
     """
     Returns the choice probabilities given the choice specific value functions
     `Vals`. Probabilities are degenerate if sigma == 0.0.
@@ -4285,7 +4293,7 @@ def calcChoiceProbs(Vals, sigma):
     return Probs
 
 
-def calcLogSum(Vals, sigma):
+def calc_log_sum(Vals, sigma):
     """
     Returns the optimal value given the choice specific value functions Vals.
     Parameters
@@ -4320,6 +4328,7 @@ def calcLogSum(Vals, sigma):
 # - dvdm = u'(c).                                                             #
 # - u is of the CRRA family.                                                  #
 ###############################################################################
+
 
 class ValueFuncCRRA(MetricObject):
     """
@@ -4400,7 +4409,7 @@ class MargValueFuncCRRA(MetricObject):
             cFuncArgs
         """
         return CRRAutilityP(self.cFunc(*cFuncArgs), gam=self.CRRA)
-    
+
     def derivativeX(self, *cFuncArgs):
         """
         Evaluate the derivative of the marginal value function with respect to
@@ -4419,7 +4428,7 @@ class MargValueFuncCRRA(MetricObject):
             state cFuncArgs; has same size as inputs.
 
         """
-        
+
         # The derivative method depends on the dimension of the function
         if isinstance(self.cFunc, (HARKinterpolator1D)):
             c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
@@ -4498,6 +4507,7 @@ class MargMargValueFuncCRRA(MetricObject):
 # Examples and tests
 ##############################################################################
 
+
 def main():
     print("Sorry, HARK.interpolation doesn't actually do much on its own.")
     print("To see some examples of its interpolation methods in action, look at any")
@@ -4520,9 +4530,9 @@ def main():
         plt.show()
 
     if False:
-        f = lambda x, y: 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
-        dfdx = lambda x, y: 6.0 * x + y
-        dfdy = lambda x, y: x + 8.0 * y
+        def f(x, y): return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
+        def dfdx(x, y): return 6.0 * x + y
+        def dfdy(x, y): return x + 8.0 * y
 
         y_list = np.linspace(0, 5, 100, dtype=float)
         xInterpolators = []
@@ -4574,9 +4584,9 @@ def main():
             - 5 * z ** 2.0
             + 1.5 * x * z
         )
-        dfdx = lambda x, y, z: 6.0 * x + y + 1.5 * z
-        dfdy = lambda x, y, z: x + 8.0 * y
-        dfdz = lambda x, y, z: -10.0 * z + 1.5 * x
+        def dfdx(x, y, z): return 6.0 * x + y + 1.5 * z
+        def dfdy(x, y, z): return x + 8.0 * y
+        def dfdz(x, y, z): return -10.0 * z + 1.5 * x
 
         y_list = np.linspace(0, 5, 51, dtype=float)
         z_list = np.linspace(0, 5, 51, dtype=float)
@@ -4627,10 +4637,10 @@ def main():
             + 2.0 * y
             - 5.0 * w
         )
-        dfdw = lambda w, x, y, z: 4.0 * z - 2.5 * x + y - 5.0
-        dfdx = lambda w, x, y, z: -2.5 * w + 6.0 * y - 10.0 * z + 4.0
-        dfdy = lambda w, x, y, z: w + 6.0 * x + 3.0 * z + 2.0
-        dfdz = lambda w, x, y, z: 4.0 * w - 10.0 * x + 3.0 * y - 7
+        def dfdw(w, x, y, z): return 4.0 * z - 2.5 * x + y - 5.0
+        def dfdx(w, x, y, z): return -2.5 * w + 6.0 * y - 10.0 * z + 4.0
+        def dfdy(w, x, y, z): return w + 6.0 * x + 3.0 * z + 2.0
+        def dfdz(w, x, y, z): return 4.0 * w - 10.0 * x + 3.0 * y - 7
 
         x_list = np.linspace(0, 5, 16, dtype=float)
         y_list = np.linspace(0, 5, 16, dtype=float)
@@ -4688,9 +4698,9 @@ def main():
         print(t_end - t_start)
 
     if False:
-        f = lambda x, y: 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
-        dfdx = lambda x, y: 6.0 * x + y
-        dfdy = lambda x, y: x + 8.0 * y
+        def f(x, y): return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
+        def dfdx(x, y): return 6.0 * x + y
+        def dfdy(x, y): return x + 8.0 * y
 
         x_list = np.linspace(0, 5, 101, dtype=float)
         y_list = np.linspace(0, 5, 101, dtype=float)
@@ -4712,9 +4722,9 @@ def main():
             - 5 * z ** 2.0
             + 1.5 * x * z
         )
-        dfdx = lambda x, y, z: 6.0 * x + y + 1.5 * z
-        dfdy = lambda x, y, z: x + 8.0 * y
-        dfdz = lambda x, y, z: -10.0 * z + 1.5 * x
+        def dfdx(x, y, z): return 6.0 * x + y + 1.5 * z
+        def dfdy(x, y, z): return x + 8.0 * y
+        def dfdz(x, y, z): return -10.0 * z + 1.5 * x
 
         x_list = np.linspace(0, 5, 11, dtype=float)
         y_list = np.linspace(0, 5, 11, dtype=float)
@@ -4753,10 +4763,10 @@ def main():
             + 2.0 * y
             - 5.0 * w
         )
-        dfdw = lambda w, x, y, z: 4.0 * z - 2.5 * x + y - 5.0
-        dfdx = lambda w, x, y, z: -2.5 * w + 6.0 * y - 10.0 * z + 4.0
-        dfdy = lambda w, x, y, z: w + 6.0 * x + 3.0 * z + 2.0
-        dfdz = lambda w, x, y, z: 4.0 * w - 10.0 * x + 3.0 * y - 7
+        def dfdw(w, x, y, z): return 4.0 * z - 2.5 * x + y - 5.0
+        def dfdx(w, x, y, z): return -2.5 * w + 6.0 * y - 10.0 * z + 4.0
+        def dfdy(w, x, y, z): return w + 6.0 * x + 3.0 * z + 2.0
+        def dfdz(w, x, y, z): return 4.0 * w - 10.0 * x + 3.0 * y - 7
 
         w_list = np.linspace(0, 5, 16, dtype=float)
         x_list = np.linspace(0, 5, 16, dtype=float)
@@ -4765,7 +4775,7 @@ def main():
         w_temp, x_temp, y_temp, z_temp = np.meshgrid(
             w_list, x_list, y_list, z_list, indexing="ij"
         )
-        mySearch = lambda trash, x: np.floor(x / 5 * 32).astype(int)
+        def mySearch(trash, x): return np.floor(x / 5 * 32).astype(int)
         g = QuadlinearInterp(
             f(w_temp, x_temp, y_temp, z_temp), w_list, x_list, y_list, z_list
         )
@@ -4784,9 +4794,9 @@ def main():
         print(t_end - t_start)
 
     if False:
-        f = lambda x, y: 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
-        dfdx = lambda x, y: 6.0 * x + y
-        dfdy = lambda x, y: x + 8.0 * y
+        def f(x, y): return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
+        def dfdx(x, y): return 6.0 * x + y
+        def dfdy(x, y): return x + 8.0 * y
 
         warp_factor = 0.01
         x_list = np.linspace(0, 5, 71, dtype=float)
@@ -4821,9 +4831,9 @@ def main():
             - 5 * z ** 2.0
             + 1.5 * x * z
         )
-        dfdx = lambda x, y, z: 6.0 * x + y + 1.5 * z
-        dfdy = lambda x, y, z: x + 8.0 * y
-        dfdz = lambda x, y, z: -10.0 * z + 1.5 * x
+        def dfdx(x, y, z): return 6.0 * x + y + 1.5 * z
+        def dfdy(x, y, z): return x + 8.0 * y
+        def dfdz(x, y, z): return -10.0 * z + 1.5 * x
 
         warp_factor = 0.01
         x_list = np.linspace(0, 5, 11, dtype=float)
@@ -4865,10 +4875,10 @@ def main():
             + 2.0 * y
             - 5.0 * w
         )
-        dfdw = lambda w, x, y, z: 4.0 * z - 2.5 * x + y - 5.0
-        dfdx = lambda w, x, y, z: -2.5 * w + 6.0 * y - 10.0 * z + 4.0
-        dfdy = lambda w, x, y, z: w + 6.0 * x + 3.0 * z + 2.0
-        dfdz = lambda w, x, y, z: 4.0 * w - 10.0 * x + 3.0 * y - 7
+        def dfdw(w, x, y, z): return 4.0 * z - 2.5 * x + y - 5.0
+        def dfdx(w, x, y, z): return -2.5 * w + 6.0 * y - 10.0 * z + 4.0
+        def dfdy(w, x, y, z): return w + 6.0 * x + 3.0 * z + 2.0
+        def dfdz(w, x, y, z): return 4.0 * w - 10.0 * x + 3.0 * y - 7
 
         warp_factor = 0.1
         w_list = np.linspace(0, 5, 16, dtype=float)

@@ -17,7 +17,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks  # Baseline dictionary to build on
 )
 
-from HARK.distribution import combineIndepDstns
+from HARK.distribution import combine_indep_dstns
 from HARK.distribution import Lognormal, Bernoulli  # Random draws for simulating agents
 from HARK.interpolation import (
     LinearInterp,  # Piecewise linear interpolation
@@ -146,21 +146,21 @@ class PortfolioConsumerType(IndShockConsumerType):
         shock_vars = ['PermShk', 'TranShk','Adjust','Risky']
 
         # Set the solver for the portfolio model, and update various constructed attributes
-        self.solveOnePeriod = solveConsPortfolio
+        self.solve_one_period = solveConsPortfolio
         self.update()
 
-    def preSolve(self):
-        AgentType.preSolve(self)
-        self.updateSolutionTerminal()
+    def pre_solve(self):
+        AgentType.pre_solve(self)
+        self.update_solution_terminal()
 
     def update(self):
         IndShockConsumerType.update(self)
-        self.updateRiskyDstn()
-        self.updateShockDstn()
-        self.updateShareGrid()
-        self.updateShareLimit()
+        self.update_RiskyDstn()
+        self.update_ShockDstn()
+        self.update_ShareGrid()
+        self.update_ShareLimit()
 
-    def updateSolutionTerminal(self):
+    def update_solution_terminal(self):
         """
         Solves the terminal period of the portfolio choice problem.  The solution is
         trivial, as usual: consume all market resources, and put nothing in the risky
@@ -206,7 +206,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             dvdsFuncFxd=dvdsFuncFxd_terminal,
         )
 
-    def updateRiskyDstn(self):
+    def update_RiskyDstn(self):
         """
         Creates the attributes RiskyDstn from the primitive attributes RiskyAvg,
         RiskyStd, and RiskyCount, approximating the (perceived) distribution of
@@ -227,13 +227,13 @@ class PortfolioConsumerType(IndShockConsumerType):
             and (len(self.RiskyAvg) == len(self.RiskyStd))
             and (len(self.RiskyAvg) == self.T_cycle)
         ):
-            self.addToTimeVary("RiskyAvg", "RiskyStd")
+            self.add_to_time_vary("RiskyAvg", "RiskyStd")
         elif (type(self.RiskyStd) is list) or (type(self.RiskyAvg) is list):
             raise AttributeError(
                 "If RiskyAvg is time-varying, then RiskyStd must be as well, and they must both have length of T_cycle!"
             )
         else:
-            self.addToTimeInv("RiskyAvg", "RiskyStd")
+            self.add_to_time_inv("RiskyAvg", "RiskyStd")
 
         # Generate a discrete approximation to the risky return distribution if the
         # agent has age-varying beliefs about the risky asset
@@ -246,7 +246,7 @@ class PortfolioConsumerType(IndShockConsumerType):
                         self.RiskyStd[t]
                     ).approx(self.RiskyCount)
                 )
-            self.addToTimeVary("RiskyDstn")
+            self.add_to_time_vary("RiskyDstn")
 
         # Generate a discrete approximation to the risky return distribution if the
         # agent does *not* have age-varying beliefs about the risky asset (base case)
@@ -255,9 +255,9 @@ class PortfolioConsumerType(IndShockConsumerType):
                 self.RiskyAvg,
                 self.RiskyStd,
             ).approx(self.RiskyCount)
-            self.addToTimeInv("RiskyDstn")
+            self.add_to_time_inv("RiskyDstn")
 
-    def updateShockDstn(self):
+    def update_ShockDstn(self):
         """
         Combine the income shock distribution (over PermShk and TranShk) with the
         risky return distribution (RiskyDstn) to make a new attribute called ShockDstn.
@@ -272,21 +272,21 @@ class PortfolioConsumerType(IndShockConsumerType):
         """
         if "RiskyDstn" in self.time_vary:
             self.ShockDstn = [
-                combineIndepDstns(self.IncShkDstn[t], self.RiskyDstn[t])
+                combine_indep_dstns(self.IncShkDstn[t], self.RiskyDstn[t])
                 for t in range(self.T_cycle)
             ]
         else:
             self.ShockDstn = [
-                combineIndepDstns(self.IncShkDstn[t], self.RiskyDstn)
+                combine_indep_dstns(self.IncShkDstn[t], self.RiskyDstn)
                 for t in range(self.T_cycle)
             ]
-        self.addToTimeVary("ShockDstn")
+        self.add_to_time_vary("ShockDstn")
 
         # Mark whether the risky returns and income shocks are independent (they are)
         self.IndepDstnBool = True
-        self.addToTimeInv("IndepDstnBool")
+        self.add_to_time_inv("IndepDstnBool")
 
-    def updateShareGrid(self):
+    def update_ShareGrid(self):
         """
         Creates the attribute ShareGrid as an evenly spaced grid on [0.,1.], using
         the primitive parameter ShareCount.
@@ -300,9 +300,9 @@ class PortfolioConsumerType(IndShockConsumerType):
         None
         """
         self.ShareGrid = np.linspace(0.0, 1.0, self.ShareCount)
-        self.addToTimeInv("ShareGrid")
+        self.add_to_time_inv("ShareGrid")
 
-    def updateShareLimit(self):
+    def update_ShareLimit(self):
         """
         Creates the attribute ShareLimit, representing the limiting lower bound of
         risky portfolio share as mNrm goes to infinity.
@@ -325,7 +325,7 @@ class PortfolioConsumerType(IndShockConsumerType):
                 )
                 SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
                 self.ShareLimit.append(SharePF)
-            self.addToTimeVary("ShareLimit")
+            self.add_to_time_vary("ShareLimit")
 
         else:
             RiskyDstn = self.RiskyDstn
@@ -335,9 +335,9 @@ class PortfolioConsumerType(IndShockConsumerType):
             )
             SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
             self.ShareLimit = SharePF
-            self.addToTimeInv("ShareLimit")
+            self.add_to_time_inv("ShareLimit")
 
-    def getRisky(self):
+    def get_Risky(self):
         """
         Sets the shock RiskyNow as a single draw from a lognormal distribution.
         Uses the attributes RiskyAvgTrue and RiskyStdTrue if RiskyAvg is time-varying,
@@ -366,7 +366,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             mu, sigma, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(1)
 
-    def getAdjust(self):
+    def get_Adjust(self):
         """
         Sets the attribute AdjustNow as a boolean array of size AgentCount, indicating
         whether each agent is able to adjust their risky portfolio share this period.
@@ -384,7 +384,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             self.AdjustPrb, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(self.AgentCount)
 
-    def getRfree(self):
+    def get_Rfree(self):
         """
         Calculates realized return factor for each agent, using the attributes Rfree,
         RiskyNow, and ShareNow.  This method is a bit of a misnomer, as the return
@@ -399,14 +399,14 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         Rport : np.array
             Array of size AgentCount with each simulated agent's realized portfolio
-            return factor.  Will be used by getStates() to calculate mNrmNow, where it
+            return factor.  Will be used by get_states() to calculate mNrmNow, where it
             will be mislabeled as "Rfree".
         """
         Rport = self.controls["Share"] * self.shocks['Risky'] + (1.0 - self.controls["Share"]) * self.Rfree
         self.Rport = Rport
         return Rport
 
-    def initializeSim(self):
+    def initialize_sim(self):
         """
         Initialize the state of simulation attributes.  Simply calls the same method
         for IndShockConsumerType, then sets the type of AdjustNow to bool.
@@ -423,9 +423,9 @@ class PortfolioConsumerType(IndShockConsumerType):
         # but are a control variable and shock, respectively
         self.controls["Share"] = np.zeros(self.AgentCount)
         self.shocks['Adjust'] = np.zeros(self.AgentCount, dtype=bool)
-        IndShockConsumerType.initializeSim(self)
+        IndShockConsumerType.initialize_sim(self)
 
-    def simBirth(self, which_agents):
+    def sim_birth(self, which_agents):
         """
         Create new agents to replace ones who have recently died; takes draws of
         initial aNrm and pLvl, as in ConsIndShockModel, then sets Share and Adjust
@@ -439,13 +439,13 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.simBirth(self, which_agents)
+        IndShockConsumerType.sim_birth(self, which_agents)
 
         self.controls["Share"][which_agents] = 0
         # here a shock is being used as a 'post state'
         self.shocks['Adjust'][which_agents] = False
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Draw idiosyncratic income shocks, just as for IndShockConsumerType, then draw
         a single common value for the risky asset return.  Also draws whether each
@@ -459,11 +459,11 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.getShocks(self)
-        self.getRisky()
-        self.getAdjust()
+        IndShockConsumerType.get_shocks(self)
+        self.get_Risky()
+        self.get_Adjust()
 
-    def getControls(self):
+    def get_controls(self):
         """
         Calculates consumption cNrmNow and risky portfolio share ShareNow using
         the policy functions in the attribute solution.  These are stored as attributes.
@@ -536,8 +536,8 @@ def solveConsPortfolio(
         transitory income shocks, and risky returns.  This is only used if the
         input IndepDstnBool is False, indicating that income and return distributions
         can't be assumed to be independent.
-    IncShkDstn : [np.array]
-        List with three arrays: discrete probabilities, permanent income shocks,
+    IncShkDstn : distribution.Distribution
+        Discrete distribution of permanent income shocks
         and transitory income shocks.  This is only used if the input IndepDsntBool
         is True, indicating that income and return distributions are independent.
     RiskyDstn : [np.array]
