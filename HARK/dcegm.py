@@ -16,7 +16,7 @@ def calc_cross_points(mGrid, condVs, optIdx):
     actions at every grid point, and a vector indicating the optimal action
     at each grid point, this function computes the coordinates of the
     crossing points that happen when the optimal action changes
-    
+
     Parameters
     ----------
     mGrid : np.array
@@ -24,7 +24,7 @@ def calc_cross_points(mGrid, condVs, optIdx):
     condVs : np.array must have as many rows as possible discrete actions, and
              as many columns as m gridpoints there are.
         Conditional value functions
-        
+
     optIdx : np.array of indices
         Optimal decision at each grid point
     Returns
@@ -117,7 +117,7 @@ def calc_prim_kink(mGrid, vTGrids, choices):
     optChoice = np.empty(len(mGrid), dtype=int)
     optChoice[:] = np.nan
     for i in range(len(vTGrids)):
-        idx = Choices[i] == 1
+        idx = choices[i] == 1
         optChoice[idx] = i
 
     return calc_cross_points(mGrid, vTGrids.T, optChoice)

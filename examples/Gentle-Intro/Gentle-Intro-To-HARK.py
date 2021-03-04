@@ -30,7 +30,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-import HARK 
+import HARK
 from copy import deepcopy
 mystr = lambda number : "{:.4f}".format(number)
 from HARK.utilities import plot_funcs
@@ -38,7 +38,7 @@ from HARK.utilities import plot_funcs
 # %% [markdown]
 # ## Your First HARK Model: Perfect Foresight
 #
-# We start with almost the simplest possible consumption model: A consumer with CRRA utility 
+# We start with almost the simplest possible consumption model: A consumer with CRRA utility
 #
 # \begin{equation}
 # U(C) = \frac{C^{1-\rho}}{1-\rho}
@@ -66,7 +66,7 @@ from HARK.utilities import plot_funcs
 from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
 
 # %% [markdown]
-# The $\texttt{PerfForesightConsumerType}$ class contains within itself the python code that constructs the solution for the perfect foresight model we are studying here, as specifically articulated in [these lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/).  
+# The $\texttt{PerfForesightConsumerType}$ class contains within itself the python code that constructs the solution for the perfect foresight model we are studying here, as specifically articulated in [these lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/).
 #
 # To create an instance of $\texttt{PerfForesightConsumerType}$, we simply call the class as if it were a function, passing as arguments the specific parameter values we want it to have.  In the hidden cell below, we define a $\textbf{dictionary}$ named $\texttt{PF_dictionary}$ with these parameter values:
 #
@@ -102,11 +102,11 @@ PF_dictionary = {
 # Let's make an **object** named $\texttt{PFexample}$ which is an **instance** of the $\texttt{PerfForesightConsumerType}$ class. The object $\texttt{PFexample}$ will bundle together the abstract mathematical description of the solution embodied in $\texttt{PerfForesightConsumerType}$, and the specific set of parameter values defined in $\texttt{PF_dictionary}$.  Such a bundle is created passing $\texttt{PF_dictionary}$ to the class $\texttt{PerfForesightConsumerType}$:
 
 # %%
-PFexample = PerfForesightConsumerType(**PF_dictionary) 
+PFexample = PerfForesightConsumerType(**PF_dictionary)
 # the asterisks ** basically say "here come some arguments" to PerfForesightConsumerType
 
 # %% [markdown]
-# In $\texttt{PFexample}$, we now have _defined_ the problem of a particular infinite horizon perfect foresight consumer who knows how to solve this problem.  
+# In $\texttt{PFexample}$, we now have _defined_ the problem of a particular infinite horizon perfect foresight consumer who knows how to solve this problem.
 #
 # ## Solving an Agent's Problem
 #
@@ -118,7 +118,7 @@ PFexample = PerfForesightConsumerType(**PF_dictionary)
 PFexample.solve()
 
 # %% [markdown]
-# Running the $\texttt{solve}$ method creates the **attribute** of $\texttt{PFexample}$ named $\texttt{solution}$.  In fact, every subclass of $\texttt{AgentType}$ works the same way: The class definition contains the abstract algorithm that knows how to solve the model, but to obtain the particular solution for a specific instance (paramterization/configuration), that instance must be instructed to $\texttt{solve()}$ its problem.  
+# Running the $\texttt{solve}$ method creates the **attribute** of $\texttt{PFexample}$ named $\texttt{solution}$.  In fact, every subclass of $\texttt{AgentType}$ works the same way: The class definition contains the abstract algorithm that knows how to solve the model, but to obtain the particular solution for a specific instance (paramterization/configuration), that instance must be instructed to $\texttt{solve()}$ its problem.
 #
 # The $\texttt{solution}$ attribute is always a $\textit{list}$ of solutions to a single period of the problem. In the case of an infinite horizon model like the one here, there is just one element in that list -- the solution to all periods of the infinite horizon problem.  The consumption function stored as the first element (element 0) of the solution list can be retrieved by:
 
@@ -126,7 +126,7 @@ PFexample.solve()
 PFexample.solution[0].cFunc
 
 # %% [markdown]
-# One of the results proven in the associated [the lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/) is that, for the specific problem defined above, there is a solution in which the _ratio_ $c = C/P$ is a linear function of the _ratio_ of market resources to permanent income, $m = M/P$.  
+# One of the results proven in the associated [the lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/) is that, for the specific problem defined above, there is a solution in which the _ratio_ $c = C/P$ is a linear function of the _ratio_ of market resources to permanent income, $m = M/P$.
 #
 # This is why $\texttt{cFunc}$ can be represented by a linear interpolation.  It can be plotted between an $m$ ratio of 0 and 10 using the command below.
 
@@ -146,7 +146,7 @@ print("This agent's human wealth is " + str(humanWealth) + ' times his current i
 print("This agent's consumption function is defined (consumption is positive) down to m_t = " + str(mMinimum))
 
 # %% [markdown]
-# Yikes! Let's take a look at the bottom of the consumption function.  In the cell below, the bounds of the $\texttt{plot_funcs}$ function are set to display down to the lowest defined value of the consumption function.
+# Yikes! Let's take a look at the bottom of the consumption function.  In the cell below, the bounds of the `plot_funcs` function are set to display down to the lowest defined value of the consumption function.
 
 # %%
 plot_funcs(PFexample.solution[0].cFunc,
@@ -236,7 +236,7 @@ IndShockDictionary = {
     'DiscFac': 0.96,
     'LivPrb': [0.98],
     'PermGroFac': [1.01],
-    'PermShkStd': [0.1],  # ... and the new parameters for constructing the income process.    
+    'PermShkStd': [0.1],  # ... and the new parameters for constructing the income process.
     'PermShkCount': 7,
     'TranShkStd': [0.1],
     'TranShkCount': 7,
@@ -264,7 +264,7 @@ IndShockDictionary = {
     'AgentCount': 10000,
     'tax_rate':0.0,
 }
-        
+
 # Hey, there's a lot of parameters we didn't tell you about!  Yes, but you don't need to
 # think about them for now.
 
@@ -302,4 +302,3 @@ OtherExample.solve()
 
 # %%
 # Use the line(s) below to plot the consumptions functions against each other
-

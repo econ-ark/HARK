@@ -1130,8 +1130,8 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
             mNrmMin.  See PerfForesightConsumerType.ipynb documentation notebook
             for a brief explanation and the links below for a fuller treatment.
 
-            https://econ.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/#vFuncAnalytical
-            https://econ.jhu.edu/people/ccarroll/SolvingMicroDSOPs/#vFuncPF
+            https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/#vFuncAnalytical
+            https://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/#vFuncPF
             """
 
             vFuncNvrs = LinearInterp(

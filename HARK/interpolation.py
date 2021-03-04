@@ -781,12 +781,17 @@ class LinearInterp(HARKinterpolator1D):
             slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
             level_diff = intercept_limit + slope_limit * x_list[-1] - y_list[-1]
             slope_diff = slope_limit - slope_at_top
-
-            self.decay_extrap_A = level_diff
-            self.decay_extrap_B = -slope_diff / level_diff
-            self.intercept_limit = intercept_limit
-            self.slope_limit = slope_limit
-            self.decay_extrap = True
+            # If the model that can handle uncertainty has been calibrated with
+            # with uncertainty set to zero, the 'extrapolation' will blow up
+            # Guard against that and nearby problems by testing slope equality
+            if not np.isclose(slope_limit, slope_at_top, atol=1e-15):
+                self.decay_extrap_A = level_diff
+                self.decay_extrap_B = -slope_diff / level_diff
+                self.intercept_limit = intercept_limit
+                self.slope_limit = slope_limit
+                self.decay_extrap = True
+            else:
+                self.decay_extrap = False
         else:
             self.decay_extrap = False
 
@@ -3905,12 +3910,12 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         # Grab a point known to be inside each sector: the midway point between
         # the lower left and upper right vertex of each sector
         x_temp = 0.5 * (
-            self.x_values[0 : (self.x_n - 1), 0 : (self.y_n - 1)]
-            + self.x_values[1 : self.x_n, 1 : self.y_n]
+            self.x_values[0: (self.x_n - 1), 0: (self.y_n - 1)]
+            + self.x_values[1: self.x_n, 1: self.y_n]
         )
         y_temp = 0.5 * (
-            self.y_values[0 : (self.x_n - 1), 0 : (self.y_n - 1)]
-            + self.y_values[1 : self.x_n, 1 : self.y_n]
+            self.y_values[0: (self.x_n - 1), 0: (self.y_n - 1)]
+            + self.y_values[1: self.x_n, 1: self.y_n]
         )
         size = (self.x_n - 1) * (self.y_n - 1)
         x_temp = np.reshape(x_temp, size)
@@ -4324,6 +4329,7 @@ def calc_log_sum(Vals, sigma):
 # - u is of the CRRA family.                                                  #
 ###############################################################################
 
+
 class ValueFuncCRRA(MetricObject):
     """
     A class for representing a value function.  The underlying interpolation is
@@ -4403,7 +4409,7 @@ class MargValueFuncCRRA(MetricObject):
             cFuncArgs
         """
         return CRRAutilityP(self.cFunc(*cFuncArgs), gam=self.CRRA)
-    
+
     def derivativeX(self, *cFuncArgs):
         """
         Evaluate the derivative of the marginal value function with respect to
@@ -4422,7 +4428,7 @@ class MargValueFuncCRRA(MetricObject):
             state cFuncArgs; has same size as inputs.
 
         """
-        
+
         # The derivative method depends on the dimension of the function
         if isinstance(self.cFunc, (HARKinterpolator1D)):
             c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
@@ -4501,6 +4507,7 @@ class MargMargValueFuncCRRA(MetricObject):
 # Examples and tests
 ##############################################################################
 
+
 def main():
     print("Sorry, HARK.interpolation doesn't actually do much on its own.")
     print("To see some examples of its interpolation methods in action, look at any")
@@ -4523,9 +4530,9 @@ def main():
         plt.show()
 
     if False:
-        f = lambda x, y: 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
-        dfdx = lambda x, y: 6.0 * x + y
-        dfdy = lambda x, y: x + 8.0 * y
+        def f(x, y): return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
+        def dfdx(x, y): return 6.0 * x + y
+        def dfdy(x, y): return x + 8.0 * y
 
         y_list = np.linspace(0, 5, 100, dtype=float)
         xInterpolators = []
@@ -4577,9 +4584,9 @@ def main():
             - 5 * z ** 2.0
             + 1.5 * x * z
         )
-        dfdx = lambda x, y, z: 6.0 * x + y + 1.5 * z
-        dfdy = lambda x, y, z: x + 8.0 * y
-        dfdz = lambda x, y, z: -10.0 * z + 1.5 * x
+        def dfdx(x, y, z): return 6.0 * x + y + 1.5 * z
+        def dfdy(x, y, z): return x + 8.0 * y
+        def dfdz(x, y, z): return -10.0 * z + 1.5 * x
 
         y_list = np.linspace(0, 5, 51, dtype=float)
         z_list = np.linspace(0, 5, 51, dtype=float)
@@ -4630,10 +4637,10 @@ def main():
             + 2.0 * y
             - 5.0 * w
         )
-        dfdw = lambda w, x, y, z: 4.0 * z - 2.5 * x + y - 5.0
-        dfdx = lambda w, x, y, z: -2.5 * w + 6.0 * y - 10.0 * z + 4.0
-        dfdy = lambda w, x, y, z: w + 6.0 * x + 3.0 * z + 2.0
-        dfdz = lambda w, x, y, z: 4.0 * w - 10.0 * x + 3.0 * y - 7
+        def dfdw(w, x, y, z): return 4.0 * z - 2.5 * x + y - 5.0
+        def dfdx(w, x, y, z): return -2.5 * w + 6.0 * y - 10.0 * z + 4.0
+        def dfdy(w, x, y, z): return w + 6.0 * x + 3.0 * z + 2.0
+        def dfdz(w, x, y, z): return 4.0 * w - 10.0 * x + 3.0 * y - 7
 
         x_list = np.linspace(0, 5, 16, dtype=float)
         y_list = np.linspace(0, 5, 16, dtype=float)
@@ -4691,9 +4698,9 @@ def main():
         print(t_end - t_start)
 
     if False:
-        f = lambda x, y: 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
-        dfdx = lambda x, y: 6.0 * x + y
-        dfdy = lambda x, y: x + 8.0 * y
+        def f(x, y): return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
+        def dfdx(x, y): return 6.0 * x + y
+        def dfdy(x, y): return x + 8.0 * y
 
         x_list = np.linspace(0, 5, 101, dtype=float)
         y_list = np.linspace(0, 5, 101, dtype=float)
@@ -4715,9 +4722,9 @@ def main():
             - 5 * z ** 2.0
             + 1.5 * x * z
         )
-        dfdx = lambda x, y, z: 6.0 * x + y + 1.5 * z
-        dfdy = lambda x, y, z: x + 8.0 * y
-        dfdz = lambda x, y, z: -10.0 * z + 1.5 * x
+        def dfdx(x, y, z): return 6.0 * x + y + 1.5 * z
+        def dfdy(x, y, z): return x + 8.0 * y
+        def dfdz(x, y, z): return -10.0 * z + 1.5 * x
 
         x_list = np.linspace(0, 5, 11, dtype=float)
         y_list = np.linspace(0, 5, 11, dtype=float)
@@ -4756,10 +4763,10 @@ def main():
             + 2.0 * y
             - 5.0 * w
         )
-        dfdw = lambda w, x, y, z: 4.0 * z - 2.5 * x + y - 5.0
-        dfdx = lambda w, x, y, z: -2.5 * w + 6.0 * y - 10.0 * z + 4.0
-        dfdy = lambda w, x, y, z: w + 6.0 * x + 3.0 * z + 2.0
-        dfdz = lambda w, x, y, z: 4.0 * w - 10.0 * x + 3.0 * y - 7
+        def dfdw(w, x, y, z): return 4.0 * z - 2.5 * x + y - 5.0
+        def dfdx(w, x, y, z): return -2.5 * w + 6.0 * y - 10.0 * z + 4.0
+        def dfdy(w, x, y, z): return w + 6.0 * x + 3.0 * z + 2.0
+        def dfdz(w, x, y, z): return 4.0 * w - 10.0 * x + 3.0 * y - 7
 
         w_list = np.linspace(0, 5, 16, dtype=float)
         x_list = np.linspace(0, 5, 16, dtype=float)
@@ -4768,7 +4775,7 @@ def main():
         w_temp, x_temp, y_temp, z_temp = np.meshgrid(
             w_list, x_list, y_list, z_list, indexing="ij"
         )
-        mySearch = lambda trash, x: np.floor(x / 5 * 32).astype(int)
+        def mySearch(trash, x): return np.floor(x / 5 * 32).astype(int)
         g = QuadlinearInterp(
             f(w_temp, x_temp, y_temp, z_temp), w_list, x_list, y_list, z_list
         )
@@ -4787,9 +4794,9 @@ def main():
         print(t_end - t_start)
 
     if False:
-        f = lambda x, y: 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
-        dfdx = lambda x, y: 6.0 * x + y
-        dfdy = lambda x, y: x + 8.0 * y
+        def f(x, y): return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
+        def dfdx(x, y): return 6.0 * x + y
+        def dfdy(x, y): return x + 8.0 * y
 
         warp_factor = 0.01
         x_list = np.linspace(0, 5, 71, dtype=float)
@@ -4824,9 +4831,9 @@ def main():
             - 5 * z ** 2.0
             + 1.5 * x * z
         )
-        dfdx = lambda x, y, z: 6.0 * x + y + 1.5 * z
-        dfdy = lambda x, y, z: x + 8.0 * y
-        dfdz = lambda x, y, z: -10.0 * z + 1.5 * x
+        def dfdx(x, y, z): return 6.0 * x + y + 1.5 * z
+        def dfdy(x, y, z): return x + 8.0 * y
+        def dfdz(x, y, z): return -10.0 * z + 1.5 * x
 
         warp_factor = 0.01
         x_list = np.linspace(0, 5, 11, dtype=float)
@@ -4868,10 +4875,10 @@ def main():
             + 2.0 * y
             - 5.0 * w
         )
-        dfdw = lambda w, x, y, z: 4.0 * z - 2.5 * x + y - 5.0
-        dfdx = lambda w, x, y, z: -2.5 * w + 6.0 * y - 10.0 * z + 4.0
-        dfdy = lambda w, x, y, z: w + 6.0 * x + 3.0 * z + 2.0
-        dfdz = lambda w, x, y, z: 4.0 * w - 10.0 * x + 3.0 * y - 7
+        def dfdw(w, x, y, z): return 4.0 * z - 2.5 * x + y - 5.0
+        def dfdx(w, x, y, z): return -2.5 * w + 6.0 * y - 10.0 * z + 4.0
+        def dfdy(w, x, y, z): return w + 6.0 * x + 3.0 * z + 2.0
+        def dfdz(w, x, y, z): return 4.0 * w - 10.0 * x + 3.0 * y - 7
 
         warp_factor = 0.1
         w_list = np.linspace(0, 5, 16, dtype=float)
