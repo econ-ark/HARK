@@ -8,9 +8,9 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.10.9
+### 0.11.0
 
-Release Data: TBD
+Release Data: March 4, 2021
 
 #### Major Changes
 
