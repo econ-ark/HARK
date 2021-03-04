@@ -269,7 +269,7 @@ ContribAgent.track_vars = ['pLvl','t_age','Adjust',
                            'cNrm', 'Share', 'DNrm']
 ContribAgent.T_sim = 4
 ContribAgent.AgentCount = 10
-ContribAgent.initializeSim()
+ContribAgent.initialize_sim()
 ContribAgent.simulate()
 
 # %% Format simulation results

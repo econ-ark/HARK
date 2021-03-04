@@ -16,11 +16,12 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 
 from HARK.distribution import (
-    combineIndepDstns,
+    combine_indep_dstns,
     Lognormal,
     Bernoulli,
-    calcExpectation,
-)  # Random draws for simulating agents
+    calc_expectation,
+)
+
 from HARK.interpolation import (
     LinearInterp,  # Piecewise linear interpolation
     BilinearInterp,  # 2D interpolator
@@ -31,7 +32,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
 )
 
-from HARK.utilities import makeGridExpMult
+from HARK.utilities import make_grid_exp_mult
 
 
 class DiscreteInterp2D(MetricObject):
@@ -93,19 +94,19 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         # used.
         # self.update()
 
-    def preSolve(self):
-        AgentType.preSolve(self)
-        self.updateSolutionTerminal()
+    def pre_solve(self):
+        AgentType.pre_solve(self)
+        self.update_solution_terminal()
 
     def update(self):
-        self.updateShareGrid()
-        self.updateDGrid()
+        self.update_Share_grid()
+        self.update_d_grid()
         IndShockConsumerType.update(self)
-        self.updateAdjustPrb()
-        self.updateRiskyDstn()
-        self.updateShockDstn()
+        self.update_AdjustPrb()
+        self.update_RiskyDstn()
+        self.update_ShockDstn()
 
-    def updateRiskyDstn(self):
+    def update_RiskyDstn(self):
         """
         Creates the attributes RiskyDstn from the primitive attributes RiskyAvg,
         RiskyStd, and RiskyCount, approximating the (perceived) distribution of
@@ -126,13 +127,13 @@ class RiskyAssetConsumerType(IndShockConsumerType):
             and (len(self.RiskyAvg) == len(self.RiskyStd))
             and (len(self.RiskyAvg) == self.T_cycle)
         ):
-            self.addToTimeVary("RiskyAvg", "RiskyStd")
+            self.add_to_time_vary("RiskyAvg", "RiskyStd")
         elif (type(self.RiskyStd) is list) or (type(self.RiskyAvg) is list):
             raise AttributeError(
                 "If RiskyAvg is time-varying, then RiskyStd must be as well, and they must both have length of T_cycle!"
             )
         else:
-            self.addToTimeInv("RiskyAvg", "RiskyStd")
+            self.add_to_time_inv("RiskyAvg", "RiskyStd")
 
         # Generate a discrete approximation to the risky return distribution if the
         # agent has age-varying beliefs about the risky asset
@@ -140,23 +141,21 @@ class RiskyAssetConsumerType(IndShockConsumerType):
             self.RiskyDstn = []
             for t in range(self.T_cycle):
                 self.RiskyDstn.append(
-                    Lognormal.from_mean_std(
-                        self.RiskyAvg[t],
-                        self.RiskyStd[t]
-                    ).approx(self.RiskyCount)
+                    Lognormal.from_mean_std(self.RiskyAvg[t], self.RiskyStd[t]).approx(
+                        self.RiskyCount
+                    )
                 )
-            self.addToTimeVary("RiskyDstn")
+            self.add_to_time_vary("RiskyDstn")
 
         # Generate a discrete approximation to the risky return distribution if the
         # agent does *not* have age-varying beliefs about the risky asset (base case)
         else:
             self.RiskyDstn = Lognormal.from_mean_std(
-                self.RiskyAvg,
-                self.RiskyStd,
+                self.RiskyAvg, self.RiskyStd,
             ).approx(self.RiskyCount)
-            self.addToTimeInv("RiskyDstn")
+            self.add_to_time_inv("RiskyDstn")
 
-    def updateShockDstn(self):
+    def update_ShockDstn(self):
         """
         Combine the income shock distribution (over PermShk and TranShk) with the
         risky return distribution (RiskyDstn) to make a new attribute called ShockDstn.
@@ -171,21 +170,21 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         """
         if "RiskyDstn" in self.time_vary:
             self.ShockDstn = [
-                combineIndepDstns(self.IncShkDstn[t], self.RiskyDstn[t])
+                combine_indep_dstns(self.IncShkDstn[t], self.RiskyDstn[t])
                 for t in range(self.T_cycle)
             ]
         else:
             self.ShockDstn = [
-                combineIndepDstns(self.IncShkDstn[t], self.RiskyDstn)
+                combine_indep_dstns(self.IncShkDstn[t], self.RiskyDstn)
                 for t in range(self.T_cycle)
             ]
-        self.addToTimeVary("ShockDstn")
+        self.add_to_time_vary("ShockDstn")
 
         # Mark whether the risky returns and income shocks are independent (they are)
         self.IndepDstnBool = True
-        self.addToTimeInv("IndepDstnBool")
+        self.add_to_time_inv("IndepDstnBool")
 
-    def updateAdjustPrb(self):
+    def update_AdjustPrb(self):
         """
         Checks and updates the exogenous probability of the agent being allowed
         to rebalance his portfolio/contribution scheme. It can be time varying.
@@ -200,15 +199,15 @@ class RiskyAssetConsumerType(IndShockConsumerType):
 
         """
         if type(self.AdjustPrb) is list and (len(self.AdjustPrb) == self.T_cycle):
-            self.addToTimeVary("AdjustPrb")
+            self.add_to_time_vary("AdjustPrb")
         elif type(self.AdjustPrb) is list:
             raise AttributeError(
                 "If AdjustPrb is time-varying, it must have length of T_cycle!"
             )
         else:
-            self.addToTimeInv("AdjustPrb")
+            self.add_to_time_inv("AdjustPrb")
 
-    def updateShareGrid(self):
+    def update_Share_grid(self):
         """
         Creates the attribute ShareGrid as an evenly spaced grid on [0.,1.],
         using the primitive parameter ShareCount.
@@ -222,9 +221,9 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         None
         """
         self.ShareGrid = np.linspace(0.0, 1.0, self.ShareCount)
-        self.addToTimeInv("ShareGrid")
+        self.add_to_time_inv("ShareGrid")
 
-    def getRisky(self):
+    def get_Risky(self):
         """
         Sets the attribute Risky as a single draw from a lognormal distribution.
         Uses the attributes RiskyAvgTrue and RiskyStdTrue if RiskyAvg is time-varying,
@@ -253,7 +252,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
             mu, sigma, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(1)
 
-    def getAdjust(self):
+    def get_Adjust(self):
         """
         Sets the attribute Adjust as a boolean array of size AgentCount, indicating
         whether each agent is able to adjust their risky portfolio share this period.
@@ -287,7 +286,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
 
             self.shocks["Adjust"] = Adjust
 
-    def initializeSim(self):
+    def initialize_sim(self):
         """
         Initialize the state of simulation attributes.  Simply calls the same
         method for IndShockConsumerType, then initializes the new states/shocks
@@ -301,11 +300,11 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.initializeSim(self)
+        IndShockConsumerType.initialize_sim(self)
         self.state_now["Share"] = np.zeros(self.AgentCount)
         self.shocks["Adjust"] = np.zeros(self.AgentCount, dtype=bool)
 
-    def simBirth(self, which_agents):
+    def sim_birth(self, which_agents):
         """
         Create new agents to replace ones who have recently died; takes draws of
         initial aNrm and pLvl, as in ConsIndShockModel, then sets Share and Adjust
@@ -319,10 +318,10 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.simBirth(self, which_agents)
+        IndShockConsumerType.sim_birth(self, which_agents)
         self.state_now["Share"][which_agents] = 0.0
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Draw idiosyncratic income shocks, just as for IndShockConsumerType, then draw
         a single common value for the risky asset return.  Also draws whether each
@@ -336,9 +335,9 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.getShocks(self)
-        self.getRisky()
-        self.getAdjust()
+        IndShockConsumerType.get_shocks(self)
+        self.get_Risky()
+        self.get_Adjust()
 
 
 # Class for the contribution share stage solution
@@ -617,20 +616,20 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         )
 
         # Set the solver for the portfolio model, and update various constructed attributes
-        self.solveOnePeriod = solveRiskyContrib
+        self.solve_one_period = solveRiskyContrib
         self.update()
 
     def preSolve(self):
-        AgentType.preSolve(self)
-        self.updateSolutionTerminal()
+        AgentType.pre_solve(self)
+        self.update_solution_terminal()
 
     def update(self):
         RiskyAssetConsumerType.update(self)
-        self.updateNGrid()
-        self.updateMGrid()
-        self.updateTau()
+        self.update_N_grid()
+        self.update_M_grid()
+        self.update_Tau()
 
-    def updateSolutionTerminal(self):
+    def update_solution_terminal(self):
         """
         Solves the terminal period of the portfolio choice problem.  The solution is
         trivial, as usual: consume all market resources, and put nothing in the risky
@@ -722,18 +721,18 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             RebStageSol, ShaStageSol, CnsStageSol
         )
 
-    def updateTau(self):
+    def update_Tau(self):
 
         if type(self.tau) is list and (len(self.tau) == self.T_cycle):
-            self.addToTimeVary("tau")
+            self.add_to_time_vary("tau")
         elif type(self.tau) is list:
             raise AttributeError(
                 "If tau is time-varying, it must have length of T_cycle!"
             )
         else:
-            self.addToTimeInv("tau")
+            self.add_to_time_inv("tau")
 
-    def updateShareGrid(self):
+    def update_Share_grid(self):
         """
         Creates the attribute ShareGrid as an evenly spaced grid on [0.,1.], using
         the primitive parameter ShareCount.
@@ -747,15 +746,15 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         None
         """
         self.ShareGrid = np.linspace(0.0, self.ShareMax, self.ShareCount)
-        self.addToTimeInv("ShareGrid")
+        self.add_to_time_inv("ShareGrid")
 
-    def updateDGrid(self):
+    def update_d_grid(self):
         """
         """
         self.dGrid = np.linspace(0, 1, self.dCount)
-        self.addToTimeInv("dGrid")
+        self.add_to_time_inv("dGrid")
 
-    def updateNGrid(self):
+    def update_N_grid(self):
         """
         Updates the agent's iliquid assets grid by constructing a
         multi-exponentially spaced grid of nNrm values.
@@ -774,14 +773,14 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         nNrmCount = self.nNrmCount
         exp_nest = self.nNrmNestFac
         # Create grid
-        nNrmGrid = makeGridExpMult(
+        nNrmGrid = make_grid_exp_mult(
             ming=nNrmMin, maxg=nNrmMax, ng=nNrmCount, timestonest=exp_nest
         )
         # Assign and set it as time invariant
         self.nNrmGrid = nNrmGrid
-        self.addToTimeInv("nNrmGrid")
+        self.add_to_time_inv("nNrmGrid")
 
-    def updateMGrid(self):
+    def update_M_grid(self):
         """
         Updates the agent's liquid assets exogenous grid by constructing a
         multi-exponentially spaced grid of mNrm values.
@@ -800,14 +799,14 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         mNrmCount = self.mNrmCount
         exp_nest = self.mNrmNestFac
         # Create grid
-        mNrmGrid = makeGridExpMult(
+        mNrmGrid = make_grid_exp_mult(
             ming=mNrmMin, maxg=mNrmMax, ng=mNrmCount, timestonest=exp_nest
         )
         # Assign and set it as time invariant
         self.mNrmGrid = mNrmGrid
-        self.addToTimeInv("mNrmGrid")
+        self.add_to_time_inv("mNrmGrid")
 
-    def simBirth(self, which_agents):
+    def sim_birth(self, which_agents):
         """
         Create new agents to replace ones who have recently died; takes draws of
         initial aNrm and pLvl, as in ConsIndShockModel, then sets Share and Adjust
@@ -822,10 +821,10 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         None
         """
 
-        RiskyAssetConsumerType.simBirth(self, which_agents)
+        RiskyAssetConsumerType.sim_birth(self, which_agents)
         self.state_now["nNrmTilde"][which_agents] = 0.0
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Draw idiosyncratic income shocks, just as for IndShockConsumerType, then draw
         a single common value for the risky asset return.  Also draws whether each
@@ -839,11 +838,11 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         -------
         None
         """
-        IndShockConsumerType.getShocks(self)
-        self.getRisky()
-        self.getAdjust()
+        IndShockConsumerType.get_shocks(self)
+        self.get_Risky()
+        self.get_Adjust()
 
-    def simOnePeriod(self):
+    def sim_one_period(self):
         """
         Simulates one period for this type.  Calls the methods getMortality(), getShocks() or
         readShocks, getStates(), getControls(), and getPostStates().  These should be defined for
@@ -863,7 +862,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             )
 
         # Mortality adjusts the agent population
-        self.getMortality()  # Replace some agents with "newborns"
+        self.get_mortality()  # Replace some agents with "newborns"
 
         # Make state_now into state_prev, clearing state_now
         for var in self.state_now:
@@ -874,32 +873,32 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             else:
                 # Probably an aggregate variable. It may be getting set by the Market.
                 pass
-        
+
         if self.read_shocks:  # If shock histories have been pre-specified, use those
-            self.readShocks()
+            self.read_shocks_from_history()
         else:  # Otherwise, draw shocks as usual according to subclass-specific method
-            self.getShocks()
-        
+            self.get_shocks()
+
         # Stages in chronological order
         stages = ["Reb", "Sha", "Cns"]
 
-        setStates = {
-            "Reb": self.getStatesReb,
-            "Sha": self.getStatesSha,
-            "Cns": self.getStatesCns,
+        set_states = {
+            "Reb": self.get_states_Reb,
+            "Sha": self.get_states_Sha,
+            "Cns": self.get_states_Cns,
         }
 
-        setControls = {
-            "Reb": self.getControlsReb,
-            "Sha": self.getControlsSha,
-            "Cns": self.getControlsCns,
+        set_controls = {
+            "Reb": self.get_controls_Reb,
+            "Sha": self.get_controls_Sha,
+            "Cns": self.get_controls_Cns,
         }
 
         for s in stages:
-            setStates[s]()
-            setControls[s]()
-            
-        self.getPostStates()
+            set_states[s]()
+            set_controls[s]()
+
+        self.get_post_states()
 
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
@@ -908,7 +907,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             self.t_cycle == self.T_cycle
         ] = 0  # Resetting to zero for those who have reached the end
 
-    def getStatesReb(self):
+    def get_states_Reb(self):
         """
         Get states for the first stage: rebalancing.
         """
@@ -923,7 +922,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
         # Permanent income
         self.state_now["pLvl"] = pLvlPrev * self.shocks["PermShk"]
-        self.state_now["PlvlAgg"] = self.state_prev['PlvlAgg']*self.PermShkAggNow
+        self.state_now["PlvlAgg"] = self.state_prev["PlvlAgg"] * self.PermShkAggNow
 
         # Assets: mNrm and nNrm
 
@@ -935,17 +934,13 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         gNrm = RrEff * nNrmTildePrev  # Iliquid balances before labor income
 
         # Liquid balances after labor income
-        self.state_now["mNrm"] = bNrm + self.shocks["TranShk"] * (
-            1 - SharePrev
-        )
+        self.state_now["mNrm"] = bNrm + self.shocks["TranShk"] * (1 - SharePrev)
         # Iliquid balances after labor income
-        self.state_now["nNrm"] = (
-            gNrm + self.shocks["TranShk"] * SharePrev
-        )
+        self.state_now["nNrm"] = gNrm + self.shocks["TranShk"] * SharePrev
 
         return None
 
-    def getControlsReb(self):
+    def get_controls_Reb(self):
         """
         """
         DNrm = np.zeros(self.AgentCount) + np.nan
@@ -961,9 +956,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             DNrm[those] = (
                 self.solution[t]
                 .stageSols["Reb"]
-                .DFuncAdj(
-                    self.state_now["mNrm"][those], self.state_now["nNrm"][those]
-                )
+                .DFuncAdj(self.state_now["mNrm"][those], self.state_now["nNrm"][those])
             )
 
             # Get Controls for agents who *can't* adjust.
@@ -981,7 +974,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         # Store controls as attributes of self
         self.controls["DNrm"] = DNrm
 
-    def getStatesSha(self):
+    def get_states_Sha(self):
         """
         """
 
@@ -1011,7 +1004,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                 if np.sum(these) > 0:
                     tau = self.tau[t]
 
-                    mNrmTilde[these], nNrmTilde[these] = rebalanceAssets(
+                    mNrmTilde[these], nNrmTilde[these] = rebalance_assets(
                         self.controls["DNrm"][these],
                         self.state_now["mNrm"][these],
                         self.state_now["nNrm"][these],
@@ -1021,7 +1014,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         self.state_now["mNrmTilde"] = mNrmTilde
         self.state_now["nNrmTilde"] = nNrmTilde
 
-    def getControlsSha(self):
+    def get_controls_Sha(self):
         """
         """
 
@@ -1062,11 +1055,11 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         # TODO: Ask Seb how this is handled
         self.state_now["Share"] = Share
 
-    def getStatesCns(self):
+    def get_states_Cns(self):
         # No new states need to be computed in the consumption stage
         pass
 
-    def getControlsCns(self):
+    def get_controls_Cns(self):
         """
         """
 
@@ -1094,15 +1087,13 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         # sure consumption does not go over m because of some numerical error.
         self.controls["cNrm"] = np.minimum(cNrm, self.state_now["mNrmTilde"])
 
-    def getPostStates(self):
+    def get_post_states(self):
         """
         """
-        self.state_now["aNrm"] = (
-            self.state_now["mNrmTilde"] - self.controls["cNrm"]
-        )
+        self.state_now["aNrm"] = self.state_now["mNrmTilde"] - self.controls["cNrm"]
 
 
-def rebalanceAssets(d, m, n, tau):
+def rebalance_assets(d, m, n, tau):
 
     # Initialize
     mTil = np.zeros_like(m) + np.nan
@@ -1200,7 +1191,7 @@ def solveRiskyContribCnsStage(
     # up if they are independent?
     if IndepDstnBool:
 
-        ShockDstn = combineIndepDstns(IncShkDstn, RiskyDstn)
+        ShockDstn = combine_indep_dstns(IncShkDstn, RiskyDstn)
 
     # Unpack the shock distribution
     TranShks_next = ShockDstn.X[1]
@@ -1279,7 +1270,7 @@ def solveRiskyContribCnsStage(
         * temp_fac_A(shocks)
         * dvdm_next(m_trans(shocks, a, s), n_trans(shocks, n, s), s)
     )
-    EndOfPrddvda = calcExpectation(
+    EndOfPrddvda = calc_expectation(
         ShockDstn, end_of_prd_dvda_func, aNrm_tiled, nNrm_tiled, Share_tiled
     )[:, :, :, 0]
 
@@ -1290,7 +1281,7 @@ def solveRiskyContribCnsStage(
         * temp_fac_A(shocks)
         * dvdn_next(m_trans(shocks, a, s), n_trans(shocks, n, s), s)
     )
-    EndOfPrddvdn = calcExpectation(
+    EndOfPrddvdn = calc_expectation(
         ShockDstn, end_of_prd_dvdn_func, aNrm_tiled, nNrm_tiled, Share_tiled
     )[:, :, :, 0]
 
@@ -1310,7 +1301,7 @@ def solveRiskyContribCnsStage(
             * temp_fac_B(shocks)
             * v_next(m_trans(shocks, a, s), n_trans(shocks, n, s), s)
         )
-        EndOfPrdv = calcExpectation(
+        EndOfPrdv = calc_expectation(
             ShockDstn, end_of_prd_v_func, aNrm_tiled, nNrm_tiled, Share_tiled
         )[:, :, :, 0]
         EndOfPrdvNvrs = uInv(EndOfPrdv)
@@ -1345,7 +1336,7 @@ def solveRiskyContribCnsStage(
         * total_effect(shocks, m_trans(shocks, a, s), n_trans(shocks, n, s), s)
     )
 
-    EndOfPrddvds = calcExpectation(
+    EndOfPrddvds = calc_expectation(
         ShockDstn, end_of_prd_dvds_func, aNrm_tiled, nNrm_tiled, Share_tiled
     )[:, :, :, 0]
 
@@ -1662,7 +1653,7 @@ def solveRiskyContribRebStage(
     )
 
     # Get post-rebalancing assets the m_tilde, n_tilde.
-    m_tilde, n_tilde = rebalanceAssets(d_tiled, mNrm_tiled, nNrm_tiled, tau)
+    m_tilde, n_tilde = rebalance_assets(d_tiled, mNrm_tiled, nNrm_tiled, tau)
 
     # Now the marginals, in inverse space
     dvdmNvrs = dvdmFuncAdj_next.cFunc(m_tilde, n_tilde)
@@ -1713,7 +1704,7 @@ def solveRiskyContribRebStage(
     dOpt[constrained_top] = dGrid[-1]
 
     # Find m_tilde and n_tilde
-    mtil_opt, ntil_opt = rebalanceAssets(dOpt, mNrm_tiled[0], nNrm_tiled[0], tau)
+    mtil_opt, ntil_opt = rebalance_assets(dOpt, mNrm_tiled[0], nNrm_tiled[0], tau)
 
     # Now the derivatives. These are not straight forward because of corner
     # solutions with partial derivatives that change the limits. The idea then
