@@ -250,8 +250,8 @@ def _solveConsPerfForesightNumba(
     hNrmNow = (PermGroFac / Rfree) * (hNrmNext + 1.0)
 
     # Calculate the lower bound of the marginal propensity to consume
-    PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
-    MPCmin = 1.0 / (1.0 + PatFac / MPCminNext)
+    APF = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
+    MPCmin = 1.0 / (1.0 + APF / MPCminNext)
 
     # Extract the discrete kink points in next period's consumption function;
     # don't take the last one, as it only defines the extrapolation and is not a kink.
@@ -441,11 +441,11 @@ def _prepare_to_solveConsIndShockNumba(
     )
 
     # Update the bounding MPCs and PDV of human wealth:
-    PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
-    MPCminNow = 1.0 / (1.0 + PatFac / MPCminNext)
+    APF = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
+    MPCminNow = 1.0 / (1.0 + APF / MPCminNext)
     Ex_IncNext = np.dot(ShkPrbsNext, TranShkValsNext * PermShkValsNext)
     hNrmNow = PermGroFac / Rfree * (Ex_IncNext + hNrmNext)
-    MPCmaxNow = 1.0 / (1.0 + (WorstIncPrb ** (1.0 / CRRA)) * PatFac / MPCmaxNext)
+    MPCmaxNow = 1.0 / (1.0 + (WorstIncPrb ** (1.0 / CRRA)) * APF / MPCmaxNext)
 
     cFuncLimitIntercept = MPCminNow * hNrmNow
     cFuncLimitSlope = MPCminNow

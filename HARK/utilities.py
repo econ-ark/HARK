@@ -940,7 +940,19 @@ def setup_latex_env_notebook(pf, latexExists):
     plt.rc("text", usetex=latexExists)
     if latexExists:
         latex_preamble = (
-            r"\usepackage{amsmath}\usepackage{amsfonts}\usepackage[T1]{fontenc}"
+            r"\usepackage{amsmath}\usepackage{amsfonts}"
+            r"\usepackage[T1]{fontenc}"
+            r"\providecommand{\Ex}{\mathbb{E}}"
+            r"\providecommand{\StE}{\check}"
+            r"\providecommand{\Trg}{\hat}"
+            r"\providecommand{\PermGroFac}{\Gamma}"
+            r"\providecommand{\cLev}{\pmb{\mathrm{c}}}"
+            r"\providecommand{\mLev}{\pmb{\mathrm{m}}}"
+            r"\providecommand{\Rfree}{\mathsf{R}}"
+            r"\providecommand{\DiscFac}{\beta}"
+            r"\providecommand{\CRRA}{\rho}"
+            r"\providecommand{\MPC}{\kappa}"
+            r"\providecommand{\UnempPrb}{\wp}"
         )
         # Latex expects paths to be separated by /. \ might result in pieces
         # being interpreted as commands.

@@ -55,7 +55,7 @@ def distance_metric(thing_a, thing_b):
             warn(
                 'Objects of different lengths are being compared. ' +
                 'Returning difference in lengths.'
-                )
+            )
             distance = float(abs(len_a - len_b))
     # If both inputs are dictionaries, call distance on the list of its elements
     elif type_a is dict and type_b is dict:
@@ -72,20 +72,20 @@ def distance_metric(thing_a, thing_b):
             # If keys don't match, print a warning.
             if list(sorted_a.keys()) != list(sorted_b.keys()):
                 warn(
-                    'Dictionaries with keys that do not match are being ' + 
+                    'Dictionaries with keys that do not match are being ' +
                     'compared.'
                 )
 
             distance = distance_metric(list(sorted_a.values()),
-                                      list(sorted_b.values()))
+                                       list(sorted_b.values()))
 
         else:
             # If they have different lengths, log a warning and return the
             # difference in lengths.
             warn(
-                'Objects of different lengths are being compared. ' + 
+                'Objects of different lengths are being compared. ' +
                 'Returning difference in lengths.'
-                )
+            )
             distance = float(abs(len_a - len_b))
 
     # If both inputs are numbers, return their difference
@@ -151,10 +151,12 @@ class MetricObject(object):
                 )  # if either object lacks attribute, they are not the same
         return max(distance_list)
 
+
 class Model(object):
     """
     A class with special handling of parameters assignment.
     """
+
     def assign_parameters(self, **kwds):
         """
         Assign an arbitrary number of attributes to this agent.
@@ -261,6 +263,26 @@ class AgentType(Model):
 
     state_vars : list of string
         The string labels for this AgentType's model state variables.
+
+    Notes
+    -----
+    The code defines a number of optional elements that are used to
+    to enhance clarity or to allow future functionality.  These include:
+
+    input_kind : dictionary
+        Keeps track of the nature of the inputs to the model, specifically
+        whether they are 'primtve' parameters that would define the solution
+        with infinite computational power or 'nuisnce' parameters 
+        associated with a particular method of approximate solution
+
+    facts : dictionary
+        For storing information about particular objects in the model
+        as that information is created or computed.  Specific example:
+
+        facts[objectName]['latexexpr'] - Name of variable in LaTeX docs
+        facts[objectName]['urlhandle'] - url to further info on it
+        facts[objectName]['python_ex'] - python expr creating its value
+        facts[objectName]['value_now'] - latest value calculated for it
     """
 
     state_vars = []
@@ -286,7 +308,7 @@ class AgentType(Model):
         self.tolerance = tolerance  # NOQA
         self.seed = seed  # NOQA
         self.track_vars = []  # NOQA
-        self.state_now = {sv : None for sv in self.state_vars}
+        self.state_now = {sv: None for sv in self.state_vars}
         self.state_prev = self.state_now.copy()
         self.controls = {}
         self.shocks = {}
@@ -295,6 +317,12 @@ class AgentType(Model):
         self.history = {}
         self.assign_parameters(**kwds)  # NOQA
         self.reset_rng()  # NOQA
+        self.facts = dict()    # for storing meta and calculated info about model
+        self.about = dict()    # about the model itself
+        self.prmtv_par = dict()  # 'primitives' define true model
+        self.aprox_par = {'tolerance':self.tolerance,'seed':self.seed}  # 'approximation' pars
+        self.aprox_lim = {'tolerance':0.0,'seed':None}  # sol approaches truth as all aprox_par -> lim
+        self.auxiliary = dict()  # auxiliary choices (like, options)
 
     def add_to_time_vary(self, *params):
         """
@@ -509,7 +537,7 @@ class AgentType(Model):
             if self.state_now[var] is None:
                 self.state_now[var] = copy(blank_array)
 
-            #elif self.state_prev[var] is None:
+            # elif self.state_prev[var] is None:
             #    self.state_prev[var] = copy(blank_array)
         self.t_age = np.zeros(
             self.AgentCount, dtype=int
@@ -742,7 +770,7 @@ class AgentType(Model):
         Parameters
         ----------
         None
- 
+
         [Eventually, to match dolo spec:
         exogenous_prev, endogenous_prev, controls, exogenous, parameters]
 
@@ -898,10 +926,10 @@ def solve_agent(agent, verbose):
     # Check to see whether this is an (in)finite horizon problem
     cycles_left = agent.cycles  # NOQA
     infinite_horizon = cycles_left == 0  # NOQA
-    # Initialize the solution, which includes the terminal solution if it's not a pseudo-terminal period
+    # Initialize the solution, which includes the terminal solution
+    # if it's a pseudo-terminal period, it will be removed at the end
     solution = []
-    if not agent.pseudo_terminal:
-        solution.insert(0, deepcopy(agent.solution_terminal))
+    solution.insert(0, deepcopy(agent.solution_terminal))
 
     # Initialize the process, then loop over cycles
     solution_last = agent.solution_terminal  # NOQA
@@ -913,6 +941,7 @@ def solve_agent(agent, verbose):
     while go:
         # Solve a cycle of the model, recording it if horizon is finite
         solution_cycle = solve_one_cycle(agent, solution_last)
+        solution[-1].completed_cycles = completed_cycles
         if not infinite_horizon:
             solution = solution_cycle + solution
 
@@ -933,7 +962,7 @@ def solve_agent(agent, verbose):
                     and completed_cycles < max_cycles
                 )
             else:  # Assume solution does not converge after only one cycle
-                solution_distance = 100.0
+                solution_distance = float('inf')
                 go = True
         else:
             cycles_left += -1
@@ -944,25 +973,25 @@ def solve_agent(agent, verbose):
         completed_cycles += 1
 
         # Display progress if requested
-        if verbose:
+        if verbose > 1:
             t_now = time()
             if infinite_horizon:
                 print(
-                    "Finished cycle #"
-                    + str(completed_cycles)
+                    "Finished cycle # "
+                    + str(completed_cycles).zfill(6)
                     + " in "
-                    + str(t_now - t_last)
+                    + str("{:9.6f}".format(t_now - t_last))
                     + " seconds, solution distance = "
-                    + str(solution_distance)
+                    + str("{:.3e}".format(solution_distance))
                 )
             else:
                 print(
-                    "Finished cycle #"
-                    + str(completed_cycles)
+                    "Finished cycle # "
+                    + str(completed_cycles).zfill(len(agent.cycles))
                     + " of "
                     + str(agent.cycles)
                     + " in "
-                    + str(t_now - t_last)
+                    + str("{:9.6f}".format(t_now - t_last))
                     + " seconds."
                 )
             t_last = t_now
@@ -972,6 +1001,9 @@ def solve_agent(agent, verbose):
         solution = (
             solution_cycle  # PseudoTerminal=False impossible for infinite horizon
         )
+
+    if agent.pseudo_terminal:
+        solution = [solution[-1]] # Remove the last period
 
     return solution
 
