@@ -8,6 +8,16 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.12.0
+
+Release Data: TBD
+
+#### Major Changes
+
+#### Minor Changes
+
+* Fix bug in DCEGM's primary kink finder due to numpy no longer accepting NaN in integer arrays [#990](https://github.com/econ-ark/HARK/pull/990).
+
 ### 0.11.0
 
 Release Data: March 4, 2021

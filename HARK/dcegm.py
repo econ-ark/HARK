@@ -114,8 +114,7 @@ def calc_prim_kink(mGrid, vTGrids, choices):
     """
 
     # Construct a vector with the optimal choice at each m point
-    optChoice = np.empty(len(mGrid), dtype=int)
-    optChoice[:] = np.nan
+    optChoice = np.zeros_like(mGrid, dtype=int)
     for i in range(len(vTGrids)):
         idx = choices[i] == 1
         optChoice[idx] = i
