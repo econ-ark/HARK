@@ -1,9 +1,6 @@
 """
 This file implements unit tests to check discrete choice functions
 """
-from __future__ import print_function, division
-from __future__ import absolute_import
-
 from HARK import interpolation
 
 # Bring in modules we need
