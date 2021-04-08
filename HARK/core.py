@@ -6,12 +6,6 @@ of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
-from __future__ import print_function, division
-from __future__ import absolute_import
-
-from builtins import str
-from builtins import range
-from builtins import object
 import sys
 import os
 from distutils.dir_util import copy_tree
