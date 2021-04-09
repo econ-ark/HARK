@@ -30,8 +30,15 @@ from HARK.utilities import (
     CRRAutility_inv,
     CRRAutilityP_invP,
 )
-from HARK import _log
-from HARK import set_verbosity_level
+
+import types  # Needed to allow solver to attach methods to solution
+# _log and set_verbosity_level have been moved to core.py
+from HARK.core import _log
+from HARK.core import set_verbosity_level
+from HARK.core import core_check_condition
+
+from HARK.core import bind_method  # This lets solver add methods to a stage solution
+
 from HARK.Calibration.Income.IncomeTools import parse_income_spec, parse_time_params, Cagetti_income
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
@@ -53,7 +60,6 @@ See HARK documentation for mathematical descriptions of the models being solved.
 
 __all__ = [
     "ConsumerSolution",
-    "ConsumerSolutionWithEx",
     "ConsPerfForesightSolver",
     "ConsIndShockSetup",
     "ConsIndShockSolverBasic",
@@ -82,9 +88,33 @@ utilityP_invP = CRRAutilityP_invP
 # =====================================================================
 
 
+class DiscreteApproximationToContinuousDistribution(DiscreteDistribution):
+    """
+    A class that instantiates a discrete distribution which is constructed
+    as an approximation to a continuous distribution.
+
+    It takes exactly the same inputs as the DiscreteDistribution object, and
+    returns exactly the same outputs.  However, the user is expected to attach
+    to it the following kinds of extra information:
+
+    * The name of the continuous distribution of which it is an approximator
+    * A parameter dictionary containing the parameters defining the approximation
+    * A parameter dictionary indicating limting values of the parameters
+
+    The limiting values shoud be those such that the approximation becomes
+    arbitrarily close to what the user views as the model's 'true' distribution
+    as all parameters approach their limits.
+
+    In its present draft form, the class does not have its own initialization
+    method because we have not yet ironed out specs for how exactly to describe
+    the recomputation method.  The user is expected to attach the information
+    above in a way that should be transparent to others.
+    """
+
+
 class ConsumerSolution(MetricObject):
     """
-    A class representing the solution of a single period of a consumption-saving
+    A class representing the solution of a single period/stage of a consumption-saving
     problem.  The solution must include a consumption function and marginal
     value function.
 
@@ -117,9 +147,14 @@ class ConsumerSolution(MetricObject):
     MPCmaxNow : float
         Supremum of the marginal propensity to consume this period.
         MPC --> MPCmaxNow as m --> mNrmMin.
-
+    kind : dict
+        A dictionary including information about the type of this solution
+        {'epoch':'terminal'}: Terminal solution
+        {'epoch':'iterator'}: Solution during iteration
+        {'epoch':'finished'}: Solution that satisfied stopping requirements
     """
 #    distance_criteria = ["vPfunc"]
+#    distance_criteria = ["mNrmStE"]
     distance_criteria = ["cFunc"]
 
     def __init__(
@@ -132,6 +167,7 @@ class ConsumerSolution(MetricObject):
             hNrmNow=None,
             MPCminNow=None,
             MPCmaxNow=None,
+            kind=None,
     ):
         # Generate a url that will locate the documentation
         self.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q=" + \
@@ -147,6 +183,7 @@ class ConsumerSolution(MetricObject):
         self.MPCminNow = MPCminNow
         self.MPCmaxNow = MPCmaxNow
         self.completed_cycles = 0
+        self.kind = kind
 
     def append_solution(self, new_solution):
         """
@@ -218,77 +255,11 @@ class ConsumerSolution(MetricObject):
         return self.mNrmTrg
 
 
-# class ConsumerSolutionWithEx(ConsumerSolution):
-#     """
-#     ConsumerSolution enhanced with functions to calculate various objects that
-#     are interesting or useful for understanding the consumer's problem.
-
-#     Parameters
-#     ----------
-#     cFunc : function
-#         The consumption function for this period, defined over market
-#         resources: c = cFunc(m).
-#     vFunc : function
-#         The beginning-of-period value function for this period, defined over
-#         market resources: v = vFunc(m).
-#     vPfunc : function
-#         The beginning-of-period marginal value function for this period,
-#         defined over market resources: vP = vPfunc(m).
-#     vPPfunc : function
-#         The beginning-of-period marginal marginal value function for this
-#         period, defined over market resources: vPP = vPPfunc(m).
-#     mNrmMin : float
-#         The minimum allowable market resources for this period; the consump-
-#         tion and other functions are undefined for m < mNrmMin.
-#     hNrmNow : float
-#         Human wealth after receiving income this period: PDV of all future
-#         income, ignoring mortality.
-#     MPCminNow : float
-#         Infimum of the marginal propensity to consume this period.
-#         MPC --> MPCminNow as m --> infinity.
-#     MPCmaxNow : float
-#         Supremum of the marginal propensity to consume this period.
-#         MPC --> MPCmaxNow as m --> mNrmMin.
-#     """
-
-    # def mNrmTrg_finder(self):
-    #     """
-    #     Finds value of (normalized) market resources mNrm at which individual consumer
-    #     expects m not to change.
-
-    #     This will exist if the GICNrm holds.
-
-    #     https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
-
-    #     Parameters
-    #     ----------
-    #     solution : ConsumerSolution
-    #         Solution to this period's problem, which must have attribute cFunc.
-    #     Returns
-    #     -------
-    #         The target value mNrmTrg.
-    #     """
-
-    #     # Minimum market resources plus next income is okay starting guess
-    #     # Better would be to presere the last value (if it exists)
-    #     # and use that as a starting point
-
-    #     m_init_guess = self.mNrmMin + self.Ex_IncNextNrm
-    #     try:  # Find value where argument is zero
-    #         self.mNrmTrg = newton(
-    #             self.Ex_m_tp1_minus_m_t,
-    #             m_init_guess)
-    #     except:
-    #         self.mNrmTrg = None
-
-    #     return self.mNrmTrg
-
-
 # =====================================================================
 # === Classes and functions that solve consumption-saving models ===
 # =====================================================================
 
-# The PerfForesight class also incorporates and info that are useful for
+# The PerfForesight class also incorporates calcs and info that are useful for
 # models in which perfect foresight does not apply, because the contents
 # of the PF model are inherited by a variety of non-perfect-foresight models
 
@@ -332,24 +303,19 @@ class ConsPerfForesightSolver(MetricObject):
             BoroCnstArt,
             MaxKinks,
     ):
-        # Generate a url that will locate the documentation
-        self.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q=" + \
-            self.__class__.__name__+"&check_keywords=yes&area=default#"
-
-        # url for paper that contains various theoretical results
-        self.url_ref = "https://econ-ark.github.io/BufferStockTheory"
         self.solution_next = solution_next
-        self.DiscFac = DiscFac
-        self.LivPrb = LivPrb
-        self.CRRA = CRRA
-        self.Rfree = Rfree
-        self.PermGroFac = PermGroFac
-        self.BoroCnstArt = BoroCnstArt
-        self.MaxKinks = MaxKinks
-        self.results = {}
-        self.conditions = {}
+        self.soln_stge.DiscFacStg = DiscFac
+        self.soln_stge.LivPrbStg = LivPrb
+        self.soln_stge.CRRA = CRRA
+        self.soln_stge.Rfree = Rfree
+        self.soln_stge.PermGroFacStg = PermGroFac
+        self.soln_stge.BoroCnstArt = BoroCnstArt
+        self.soln_stge.MaxKinks = MaxKinks
 
-    def solution_add_further_info(self, solution):  # Perfect Foreight version
+        self.soln_stge = ConsumerSolution()  # create a blank template to fill in
+
+        # Perfect Foreight version
+    def soln_stge_add_further_info_ConsPerfForesightSolver(self, soln_stge):
         """
         Adds to the solution extensive information and references about
         all its elements.
@@ -362,47 +328,58 @@ class ConsPerfForesightSolver(MetricObject):
         Returns
         -------
         solution : ConsumerSolution
-            Same solution that was provided, augmented with facts and 
+            Same solution that was provided, augmented with facts and
             references
         """
 
-        # To make formulae shorter, make local copies of solution variables
-        urlroot = self.url_ref+'/#'  # used for references to derivations
-#        solution.parameters_model = parameters = self.parameters
-        BoroCnstArt = solution.BoroCnstArt = self.BoroCnstArt
-        CRRA = solution.CRRA = self.CRRA
-        DiscFac = solution.DiscFac = self.DiscFac
-        LivNum = solution.LivNum = self.LivPrb
-        PermGroNum = PermGroFac = solution.PermGroFac = self.PermGroFac
-        Rfree = solution.Rfree = self.Rfree
-        DiscFacEff = solution.DiscFacEff = DiscFac * LivNum
+        soln_stge.results = {}
 
-        solution.facts = {}
+        # Generate a url that will locate the documentation
+        soln_stge.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q=" + \
+            self.__class__.__name__+"&check_keywords=yes&area=default#"
+
+        # url for paper that contains various theoretical results
+        soln_stge.url_ref = "https://econ-ark.github.io/BufferStockTheory"
+
+        # To make formulae shorter, make local copies of solution variables
+        urlroot = self.soln_stge.url_ref+'/#'  # used for references to derivations
+        if hasattr(self.soln_stge, 'BoroCnstArt'):
+            BoroCnstArt = soln_stge.BoroCnstArt = self.soln_stge.BoroCnstArt
+        else:
+            BoroCnstArt = soln_stge.BoroCnstArt = None
+
+        CRRA = soln_stge.CRRA = self.soln_stge.CRRA
+        DiscFacStg = soln_stge.DiscFacStg = self.soln_stge.DiscFacStg
+        LivStg = soln_stge.LivStg = self.soln_stge.LivPrbStg
+        PermGroStg = PermGroFacStg = soln_stge.PermGroFacStg = self.soln_stge.PermGroFacStg
+        Rfree = soln_stge.Rfree = self.soln_stge.Rfree
+        DiscFacStgEff = soln_stge.DiscFacStgEff = DiscFacStg * LivStg
+
+        soln_stge.facts = {}
         # The code below is also used in the model with uncertainty
         # which explains why it contains a number of calculations that
         # are trivial or pointless in a perfect foresight model
 
         uInv_Ex_uInv_PermShk = 1.0
-        solution.conditions = {}
+        soln_stge.conditions = {}
 
         APF_facts = {
             'about': 'Absolute Patience Factor'}
-        solution.APF = APF = \
-            ((Rfree * DiscFacEff) ** (1.0 / CRRA))
+        soln_stge.APF = APF = ((Rfree * DiscFacStgEff) ** (1.0 / CRRA))
         APF_facts.update({'latexexpr': r'\APF'})
         APF_facts.update({'_unicode_': r'Þ'})
         APF_facts.update({'urlhandle': urlroot+'APF'})
         APF_facts.update({'py___code': '(Rfree*DiscFacEff)**(1/CRRA)'})
         APF_facts.update({'value_now': APF})
-        solution.facts.update({'APF': APF_facts})
-        solution.APF_facts = APF_facts
+        soln_stge.facts.update({'APF': APF_facts})
+        soln_stge.APF_facts = APF_facts
 
         AIC_facts = {'about': 'Absolute Impatience Condition'}
         AIC_facts.update({'latexexpr': r'\AIC'})
         AIC_facts.update({'urlhandle': urlroot+'AIC'})
         AIC_facts.update({'py___code': 'test: APF < 1'})
-        solution.facts.update({'AIC': AIC_facts})
-        solution.AIC_facts = AIC_facts
+        soln_stge.facts.update({'AIC': AIC_facts})
+        soln_stge.AIC_facts = AIC_facts
 
         RPF_facts = {
             'about': 'Return Patience Factor'}
@@ -412,93 +389,93 @@ class ConsPerfForesightSolver(MetricObject):
         RPF_facts.update({'urlhandle': urlroot+'RPF'})
         RPF_facts.update({'py___code': r'APF/Rfree'})
         RPF_facts.update({'value_now': RPF})
-        solution.facts.update({'RPF': RPF_facts})
-        solution.RPF_facts = RPF_facts
-        solution.RPF = RPF
+        soln_stge.facts.update({'RPF': RPF_facts})
+        soln_stge.RPF_facts = RPF_facts
+        soln_stge.RPF = RPF
 
         RIC_facts = {'about': 'Growth Impatience Condition'}
         RIC_facts.update({'latexexpr': r'\RIC'})
         RIC_facts.update({'urlhandle': urlroot+'RIC'})
         RIC_facts.update({'py___code': 'test: agent.RPF < 1'})
-        solution.facts.update({'RIC': RIC_facts})
-        solution.RIC_facts = RIC_facts
+        soln_stge.facts.update({'RIC': RIC_facts})
+        soln_stge.RIC_facts = RIC_facts
 
         GPFRaw_facts = {
             'about': 'Growth Patience Factor'}
-        GPFRaw = APF / PermGroNum
+        GPFRaw = APF / PermGroStg
         GPFRaw_facts.update({'latexexpr': '\GPFRaw'})
         GPFRaw_facts.update({'urlhandle': urlroot+'GPFRaw'})
         GPFRaw_facts.update({'_unicode_': r'Þ_Γ'})
         GPFRaw_facts.update({'value_now': GPFRaw})
-        solution.facts.update({'GPFRaw': GPFRaw_facts})
-        solution.GPFRaw_facts = GPFRaw_facts
-        solution.GPFRaw = GPFRaw
+        soln_stge.facts.update({'GPFRaw': GPFRaw_facts})
+        soln_stge.GPFRaw_facts = GPFRaw_facts
+        soln_stge.GPFRaw = GPFRaw
 
         GICRaw_facts = {'about': 'Growth Impatience Condition'}
         GICRaw_facts.update({'latexexpr': r'\GICRaw'})
         GICRaw_facts.update({'urlhandle': urlroot+'GICRaw'})
         GICRaw_facts.update({'py___code': 'test: agent.GPFRaw < 1'})
-        solution.facts.update({'GICRaw': GICRaw_facts})
-        solution.GICRaw_facts = GICRaw_facts
+        soln_stge.facts.update({'GICRaw': GICRaw_facts})
+        soln_stge.GICRaw_facts = GICRaw_facts
 
         GPFLiv_facts = {
             'about': 'Mortality-Risk-Adjusted Growth Patience Factor'}
-        GPFLiv = APF * LivNum / PermGroNum
+        GPFLiv = APF * LivStg / PermGroStg
         GPFLiv_facts.update({'latexexpr': '\GPFLiv'})
         GPFLiv_facts.update({'urlhandle': urlroot+'GPFLiv'})
-        GPFLiv_facts.update({'py___code': 'APF*Liv/PermGroNum'})
+        GPFLiv_facts.update({'py___code': 'APF*Liv/PermGroStg'})
         GPFLiv_facts.update({'value_now': GPFLiv})
-        solution.facts.update({'GPFLiv': GPFLiv_facts})
-        solution.GPFLiv_facts = GPFLiv_facts
-        solution.GPFLiv = GPFLiv
+        soln_stge.facts.update({'GPFLiv': GPFLiv_facts})
+        soln_stge.GPFLiv_facts = GPFLiv_facts
+        soln_stge.GPFLiv = GPFLiv
 
         GICLiv_facts = {'about': 'Growth Impatience Condition'}
         GICLiv_facts.update({'latexexpr': r'\GICLiv'})
         GICLiv_facts.update({'urlhandle': urlroot+'GICLiv'})
         GICLiv_facts.update({'py___code': 'test: GPFLiv < 1'})
-        solution.facts.update({'GICLiv': GICLiv_facts})
-        solution.GICLiv_facts = GICLiv_facts
+        soln_stge.facts.update({'GICLiv': GICLiv_facts})
+        soln_stge.GICLiv_facts = GICLiv_facts
 
         PF_RNrm_facts = {
             'about': 'Growth-Normalized Perfect Foresight Return Factor'}
-        PF_RNrm = Rfree/PermGroNum
+        PF_RNrm = Rfree/PermGroStg
         PF_RNrm_facts.update({'latexexpr': r'\PF_RNrm'})
         PF_RNrm_facts.update({'_unicode_': r'R/Γ'})
-        PF_RNrm_facts.update({'py___code': r'Rfree/PermGroNum'})
+        PF_RNrm_facts.update({'py___code': r'Rfree/PermGroStg'})
         PF_RNrm_facts.update({'value_now': PF_RNrm})
-        solution.facts.update({'PF_RNrm': PF_RNrm_facts})
-        solution.PF_RNrm_facts = PF_RNrm_facts
-        solution.PF_RNrm = PF_RNrm
+        soln_stge.facts.update({'PF_RNrm': PF_RNrm_facts})
+        soln_stge.PF_RNrm_facts = PF_RNrm_facts
+        soln_stge.PF_RNrm = PF_RNrm
 
         Inv_PF_RNrm_facts = {
             'about': 'Inverse of Growth-Normalized Perfect Foresight Return Factor'}
         Inv_PF_RNrm = 1/PF_RNrm
         Inv_PF_RNrm_facts.update({'latexexpr': r'\Inv_PF_RNrm'})
         Inv_PF_RNrm_facts.update({'_unicode_': r'Γ/R'})
-        Inv_PF_RNrm_facts.update({'py___code': r'PermGroNumInd/Rfree'})
+        Inv_PF_RNrm_facts.update({'py___code': r'PermGroStgInd/Rfree'})
         Inv_PF_RNrm_facts.update({'value_now': Inv_PF_RNrm})
-        solution.facts.update({'Inv_PF_RNrm': Inv_PF_RNrm_facts})
-        solution.Inv_PF_RNrm_facts = Inv_PF_RNrm_facts
-        solution.Inv_PF_RNrm = Inv_PF_RNrm
+        soln_stge.facts.update({'Inv_PF_RNrm': Inv_PF_RNrm_facts})
+        soln_stge.Inv_PF_RNrm_facts = Inv_PF_RNrm_facts
+        soln_stge.Inv_PF_RNrm = Inv_PF_RNrm
 
         FHWF_facts = {
             'about': 'Finite Human Wealth Factor'}
-        FHWF = PermGroNum/Rfree
+        FHWF = PermGroStg/Rfree
         FHWF_facts.update({'latexexpr': r'\FHWF'})
         FHWF_facts.update({'_unicode_': r'R/Γ'})
         FHWF_facts.update({'urlhandle': urlroot+'FHWF'})
-        FHWF_facts.update({'py___code': r'PermGroNumInf/Rfree'})
+        FHWF_facts.update({'py___code': r'PermGroStgInf/Rfree'})
         FHWF_facts.update({'value_now': FHWF})
-        solution.facts.update({'FHWF': FHWF_facts})
-        solution.FHWF_facts = FHWF_facts
-        solution.FHWF = FHWF
+        soln_stge.facts.update({'FHWF': FHWF_facts})
+        soln_stge.FHWF_facts = FHWF_facts
+        soln_stge.FHWF = FHWF
 
         FHWC_facts = {'about': 'Finite Human Wealth Condition'}
         FHWC_facts.update({'latexexpr': r'\FHWC'})
         FHWC_facts.update({'urlhandle': urlroot+'FHWC'})
         FHWC_facts.update({'py___code': 'test: agent.FHWF < 1'})
-        solution.facts.update({'FHWC': FHWC_facts})
-        solution.FHWC_facts = FHWC_facts
+        soln_stge.facts.update({'FHWC': FHWC_facts})
+        soln_stge.FHWC_facts = FHWC_facts
 
         hNrmNowInf_facts = {'about':
                             'Human wealth for infinite horizon consumer'}
@@ -506,67 +483,74 @@ class ConsPerfForesightSolver(MetricObject):
         if FHWF < 1:  # If it is finite, set it to its value
             hNrmNowInf = 1/(1-FHWF)
 
-        solution.hNrmNowInf = hNrmNowInf
+        soln_stge.hNrmNowInf = hNrmNowInf
         hNrmNowInf_facts = dict({'latexexpr': '1/(1-\FHWF)'})
         hNrmNowInf_facts.update({'value_now': hNrmNowInf})
         hNrmNowInf_facts.update({
             'py___code': '1/(1-FHWF)'})
-        solution.facts.update({'hNrmNowInf': hNrmNowInf_facts})
-        solution.hNrmNowInf_facts = hNrmNowInf_facts
-        # solution.hNrmNowInf = hNrmNowInf
+        soln_stge.facts.update({'hNrmNowInf': hNrmNowInf_facts})
+        soln_stge.hNrmNowInf_facts = hNrmNowInf_facts
+        # soln_stge.hNrmNowInf = hNrmNowInf
 
         DiscGPFRawCusp_facts = {
             'about': 'DiscFac s.t. GPFRaw = 1'}
-        solution.DiscGPFRawCusp = DiscGPFRawCusp = \
-            ((PermGroNum) ** (CRRA)) / (Rfree)
+        soln_stge.DiscGPFRawCusp = DiscGPFRawCusp = ((PermGroStg) ** (CRRA)) / (Rfree)
         DiscGPFRawCusp_facts.update({'latexexpr': ''})
         DiscGPFRawCusp_facts.update({'value_now': DiscGPFRawCusp})
         DiscGPFRawCusp_facts.update({
-            'py___code': '( PermGroNum                       ** CRRA)/(Rfree)'})
-        solution.facts.update({'DiscGPFRawCusp': DiscGPFRawCusp_facts})
-        solution.DiscGPFRawCusp_facts = DiscGPFRawCusp_facts
+            'py___code': '( PermGroStg                       ** CRRA)/(Rfree)'})
+        soln_stge.facts.update({'DiscGPFRawCusp': DiscGPFRawCusp_facts})
+        soln_stge.DiscGPFRawCusp_facts = DiscGPFRawCusp_facts
 
         DiscGPFLivCusp_facts = {
             'about': 'DiscFac s.t. GPFLiv = 1'}
-        solution.DiscGPFLivCusp = DiscGPFLivCusp = ((PermGroNum) ** (CRRA)) \
-            / (Rfree * LivNum)
+        soln_stge.DiscGPFLivCusp = DiscGPFLivCusp = ((PermGroStg) ** (CRRA)) \
+            / (Rfree * LivStg)
         DiscGPFLivCusp_facts.update({'latexexpr': ''})
         DiscGPFLivCusp_facts.update({'value_now': DiscGPFLivCusp})
         DiscGPFLivCusp_facts.update({
-            'py___code': '( PermGroNum                       ** CRRA)/(Rfree*LivNum)'})
-        solution.facts.update({'DiscGPFLivCusp': DiscGPFLivCusp_facts})
-        solution.DiscGPFLivCusp_facts = DiscGPFLivCusp_facts
+            'py___code': '( PermGroStg                       ** CRRA)/(Rfree*LivStg)'})
+        soln_stge.facts.update({'DiscGPFLivCusp': DiscGPFLivCusp_facts})
+        soln_stge.DiscGPFLivCusp_facts = DiscGPFLivCusp_facts
 
         FVAF_facts = {'about': 'Finite Value of Autarky Factor'}
-        solution.FVAF = FVAF = LivNum * DiscFacEff * uInv_Ex_uInv_PermShk
+        soln_stge.FVAF = FVAF = LivStg * DiscFacStgEff * uInv_Ex_uInv_PermShk
         FVAF_facts.update({'latexexpr': r'\FVAFPF'})
         FVAF_facts.update({'urlhandle': urlroot+'FVAFPF'})
-        solution.facts.update({'FVAF': FVAF_facts})
-        solution.FVAF_facts = FVAF_facts
+        soln_stge.facts.update({'FVAF': FVAF_facts})
+        soln_stge.FVAF_facts = FVAF_facts
 
         FVAC_facts = {'about': 'Finite Value of Autarky Condition - Perfect Foresight'}
         FVAC_facts.update({'latexexpr': r'\FVACPF'})
         FVAC_facts.update({'urlhandle': urlroot+'FVACPF'})
         FVAC_facts.update({'py___code': 'test: FVAFPF < 1'})
-        solution.facts.update({'FVAC': FVAC_facts})
-        solution.FVAC_facts = FVAC_facts
+        soln_stge.facts.update({'FVAC': FVAC_facts})
+        soln_stge.FVAC_facts = FVAC_facts
 
         # Calculate objects whose values are built up recursively from
         # prior period's values
 
         hNrmNow = (
-            (PermGroNum / Rfree) * (1.0 + self.solution_next.hNrmNow)
+            (PermGroStg / Rfree) * (1.0 + self.solution_next.hNrmNow)
         )
-        hNrmNow = PermGroNum/Rfree
+        hNrmNow = PermGroStg/Rfree
         hNrmNow_facts = {'about': 'Human Wealth Now'}
         hNrmNow_facts.update({'latexexpr': r'\hNrmNow'})
 #        hNrmNow_facts.update({'_unicode_': r'R/Γ'})
 #        hNrmNow_facts.update({'urlhandle': urlroot+'hNrmNow'})
-#        hNrmNow_facts.update({'py___code': r'PermGroNumInf/Rfree'})
+#        hNrmNow_facts.update({'py___code': r'PermGroStgInf/Rfree'})
 #        hNrmNow_facts.update({'value_now': hNrmNow})
-        solution.facts.update({'hNrmNow': hNrmNow_facts})
-        solution.hNrmNow_facts = hNrmNow_facts
-        self.hNrmNow = solution.hNrmNow = hNrmNow
+        soln_stge.facts.update({'hNrmNow': hNrmNow_facts})
+        soln_stge.hNrmNow_facts = hNrmNow_facts
+        self.soln_stge.hNrmNow = soln_stge.hNrmNow = hNrmNow
+
+        mNrmMin_facts = {
+            'about': 'Minimum mNrm'}
+        mNrmMin = -hNrmNow
+        mNrmMin_facts.update({'latexexpr': r'\mNrmMin'})
+        soln_stge.facts.update({'mNrmMin': mNrmMin_facts})
+        soln_stge.mNrmMin_facts = mNrmMin_facts
+        soln_stge.mNrmMin = mNrmMin
 
         MPCminNow = 1.0 / (1.0 + RPF / self.solution_next.MPCminNow)
         MPCminNow_facts = {
@@ -574,9 +558,9 @@ class ConsPerfForesightSolver(MetricObject):
         MPCminNow_facts.update({'latexexpr': r''})
         MPCminNow_facts.update({'urlhandle': urlroot+'MPCminNow'})
         MPCminNow_facts.update({'value_now': MPCminNow})
-        solution.facts.update({'MPCminNow': MPCminNow_facts})
-        solution.MPCminNow_facts = MPCminNow_facts
-        self.MPCminNow = solution.MPCminNow = MPCminNow
+        soln_stge.facts.update({'MPCminNow': MPCminNow_facts})
+        soln_stge.MPCminNow_facts = MPCminNow_facts
+        self.soln_stge.MPCminNow = soln_stge.MPCminNow = MPCminNow
 
         MPCmaxNow = 1.0 / (1.0 + (0.0 ** (1.0 / CRRA)) * RPF
                            / self.solution_next.MPCmaxNow)
@@ -585,9 +569,9 @@ class ConsPerfForesightSolver(MetricObject):
 #        MPCmaxNow_facts.update({'latexexpr': r''})
         MPCmaxNow_facts.update({'urlhandle': urlroot+'MPCmaxNow'})
         MPCmaxNow_facts.update({'value_now': MPCmaxNow})
-        solution.facts.update({'MPCmaxNow': MPCmaxNow_facts})
-        solution.MPCmaxNow_facts = MPCmaxNow_facts
-        solution.MPCmaxNow = MPCmaxNow
+        soln_stge.facts.update({'MPCmaxNow': MPCmaxNow_facts})
+        soln_stge.MPCmaxNow_facts = MPCmaxNow_facts
+        soln_stge.MPCmaxNow = MPCmaxNow
 
         # Lower bound of aggregate wealth growth if all inheritances squandered
         cFuncLimitIntercept = MPCminNow * hNrmNow
@@ -598,9 +582,9 @@ class ConsPerfForesightSolver(MetricObject):
         cFuncLimitIntercept_facts.update({'value_now': cFuncLimitIntercept})
         cFuncLimitIntercept_facts.update({
             'py___code': 'MPCminNow * hNrmNow'})
-        solution.facts.update({'cFuncLimitIntercept': cFuncLimitIntercept_facts})
-        solution.cFuncLimitIntercept_facts = cFuncLimitIntercept_facts
-        solution.cFuncLimitIntercept = cFuncLimitIntercept
+        soln_stge.facts.update({'cFuncLimitIntercept': cFuncLimitIntercept_facts})
+        soln_stge.cFuncLimitIntercept_facts = cFuncLimitIntercept_facts
+        soln_stge.cFuncLimitIntercept = cFuncLimitIntercept
 
         cFuncLimitSlope = MPCminNow
         cFuncLimitSlope_facts = {
@@ -610,9 +594,9 @@ class ConsPerfForesightSolver(MetricObject):
         cFuncLimitSlope_facts.update({'value_now': cFuncLimitSlope})
         cFuncLimitSlope_facts.update({
             'py___code': 'MPCminNow * hNrmNow'})
-        solution.facts.update({'cFuncLimitSlope': cFuncLimitSlope_facts})
-        solution.cFuncLimitSlope_facts = cFuncLimitSlope_facts
-        solution.cFuncLimitSlope = cFuncLimitSlope
+        soln_stge.facts.update({'cFuncLimitSlope': cFuncLimitSlope_facts})
+        soln_stge.cFuncLimitSlope_facts = cFuncLimitSlope_facts
+        soln_stge.cFuncLimitSlope = cFuncLimitSlope
 
         # We are in the perfect foresight model now so these are all 1.0
         Ex_Inv_PermShk = 1.0
@@ -629,42 +613,42 @@ class ConsPerfForesightSolver(MetricObject):
         # and inherited by the descendant model, which augments them with
         # the objects that require live calculation.
 
-        if solution.Inv_PF_RNrm < 1:        # Finite if Rfree > PermGroNumFac
-            solution.hNrmNowInf = 1/(1-solution.Inv_PF_RNrm)
+        if soln_stge.Inv_PF_RNrm < 1:        # Finite if Rfree > PermGroStg
+            soln_stge.hNrmNowInf = 1/(1-soln_stge.Inv_PF_RNrm)
 
-        # Given m, value of c where E[mLev_{t+1}/mLev_{t}]=PermGroNumFac
+        # Given m, value of c where E[mLev_{t+1}/mLev_{t}]=PermGroStgFac
         # Solves for c in equation at url/#balgrostable
 
-        solution.c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0 = (
+        soln_stge.c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0 = (
             lambda m_t:
-            m_t * (1 - solution.Inv_PF_RNrm) + solution.Inv_PF_RNrm
+            m_t * (1 - soln_stge.Inv_PF_RNrm) + soln_stge.Inv_PF_RNrm
         )
 
-        solution.Ex_cLev_tp1_Over_cLev_t_from_mt = (
+        soln_stge.Ex_cLev_tp1_Over_cLev_t_from_mt = (
             lambda m_t:
-            solution.Ex_cLev_tp1_Over_pLev_t_from_mt(solution,
-                                                     m_t - solution.cFunc(m_t))
-            / solution.cFunc(m_t)
+            soln_stge.Ex_cLev_tp1_Over_pLev_t_from_mt(soln_stge,
+                                                      m_t - soln_stge.cFunc(m_t))
+            / soln_stge.cFunc(m_t)
         )
 
 #        # E[m_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
-        solution.Ex_mLev_tp1_Over_pLev_t_from_at = (
+        soln_stge.Ex_mLev_tp1_Over_pLev_t_from_at = (
             lambda a_t:
-                solution.PermGroNumFac *
-            (solution.PF_RNrm * a_t + solution.Ex_IncNextNrm)
+                soln_stge.PermGroNum *
+            (soln_stge.PF_RNrm * a_t + soln_stge.Ex_IncNextNrm)
         )
 
         # E[m_{t+1} pLev_{t+1}/(m_{t}pLev_{t})] as a fn of m_{t}
-        solution.Ex_mLev_tp1_Over_mLev_t_from_at = (
+        soln_stge.Ex_mLev_tp1_Over_mLev_t_from_at = (
             lambda m_t:
-                solution.Ex_mLev_tp1_Over_pLev_t_from_at(solution,
-                                                         m_t-solution.cFunc(m_t)
-                                                         )/m_t
+                soln_stge.Ex_mLev_tp1_Over_pLev_t_from_at(soln_stge,
+                                                          m_t-soln_stge.cFunc(m_t)
+                                                          )/m_t
         )
 
-        return solution
+        return soln_stge
 
-    def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
+    def set_and_update_values(self, solution_next, IncShkDstnStg, LivPrbStg, DiscFacStg):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.  These include:
@@ -676,25 +660,25 @@ class ConsPerfForesightSolver(MetricObject):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncShkDstn : distribution.DiscreteDistribution
-            A DiscreteDistribution with a pmf
+        IncShkDstn : distribution.DiscreteApproximationToContinuousDistribution
+            A DiscreteApproximationToContinuousDistribution with a pmf
             and two point value arrays in X, order:
             permanent shocks, transitory shocks.
         LivPrb : float
             Survival probability; likelihood of being alive at the beginning of
             the succeeding period.
-        DiscFac : float
+        DiscFacStg : float
             Intertemporal discount factor for future utility.
 
         Returns
         -------
         None
         """
-        self.DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
-        self.IncShkDstn = IncShkDstn
-        self.ShkPrbsNext = IncShkDstn.pmf
-        self.PermShkValsNext = IncShkDstn.X[0]
-        self.TranShkValsNext = IncShkDstn.X[1]
+        self.soln_stge.DiscFacStgEff = DiscFacStg * LivPrb  # "effective" discount factor
+        self.soln_stge.IncShkDstn = IncShkDstnStg
+        self.soln_stge.ShkPrbsNext = IncShkDstnStg.pmf
+        self.PermShkValsNext = IncShkDstnStg.X[0]
+        self.TranShkValsNext = IncShkDstnStg.X[1]
         self.PermShkMinNext = np.min(self.PermShkValsNext)
         self.TranShkMinNext = np.min(self.TranShkValsNext)
         self.vPfuncNext = solution_next.vPfunc
@@ -712,13 +696,13 @@ class ConsPerfForesightSolver(MetricObject):
             self.vFuncNext = solution_next.vFunc
 
         # Update the bounding MPCs and PDV of human wealth:
-        self.RPF = ((self.Rfree * self.DiscFacEff) ** (1.0 / self.CRRA)) / self.Rfree
+        self.RPF = ((self.Rfree * self.DiscFacStgEff) ** (1.0 / self.CRRA)) / self.Rfree
         self.MPCminNow = 1.0 / (1.0 + self.RPF / solution_next.MPCminNow)
         self.Ex_IncNext = np.dot(
             self.ShkPrbsNext, self.TranShkValsNext * self.PermShkValsNext
         )
         self.hNrmNow = (
-            self.PermGroFac / self.Rfree * (self.Ex_IncNext + solution_next.hNrmNow)
+            self.PermGroFacStg / self.Rfree * (self.Ex_IncNext + solution_next.hNrmNow)
         )
         self.MPCmaxNow = 1.0 / (
             1.0
@@ -730,7 +714,7 @@ class ConsPerfForesightSolver(MetricObject):
         self.cFuncLimitIntercept = self.MPCminNow * self.hNrmNow
         self.cFuncLimitSlope = self.MPCminNow
 
-    def def_utility_funcs(self):
+    def def_utility_funcs(self, stge):
         """
         Defines CRRA utility function for this period (and its derivatives),
         saving them as attributes of self for other methods to use.
@@ -743,13 +727,14 @@ class ConsPerfForesightSolver(MetricObject):
         -------
         None
         """
-        self.u = lambda c: utility(c, gam=self.CRRA)  # utility function
-        self.uP = lambda c: utilityP(c, gam=self.CRRA)  # marginal utility function
-        self.uPP = lambda c: utilityPP(
-            c, gam=self.CRRA
+        stge.u = lambda c: utility(c, gam=stge.CRRA)  # utility function
+        stge.uP = lambda c: utilityP(c, gam=stge.CRRA)  # marginal utility function
+        stge.uPP = lambda c: utilityPP(
+            c, gam=stge.CRRA
         )  # marginal marginal utility function
+        return stge
 
-    def def_value_funcs(self):
+    def def_value_funcs(self, stge):
         """
         Defines the value and marginal value functions for this period.
         mNrmMin.  See PerfForesightConsumerType.ipynb
@@ -774,13 +759,15 @@ class ConsPerfForesightSolver(MetricObject):
         """
 
         # See PerfForesightConsumerType.ipynb docs for derivations
-        vFuncNvrsSlope = self.MPCminNow ** (-self.CRRA / (1.0 - self.CRRA))
+        vFuncNvrsSlope = stge.MPCminNow ** (-stge.CRRA / (1.0 - stge.CRRA))
         vFuncNvrs = LinearInterp(
-            np.array([self.mNrmMinNow, self.mNrmMinNow + 1.0]),
+            np.array([stge.mNrmMinNow, stge.mNrmMinNow + 1.0]),
             np.array([0.0, vFuncNvrsSlope]),
         )
-        self.vFunc = ValueFuncCRRA(vFuncNvrs, self.CRRA)
-        self.vPfunc = MargValueFuncCRRA(self.cFunc, self.CRRA)
+        stge.vFunc = ValueFuncCRRA(vFuncNvrs, stge.CRRA)
+        stge.vPfunc = MargValueFuncCRRA(stge.cFunc, stge.CRRA)
+
+        return stge
 
     def make_cFunc_PF(self):
         """
@@ -801,10 +788,10 @@ class ConsPerfForesightSolver(MetricObject):
             BoroCnstArt = self.BoroCnstArt
 
         # Calculate human wealth this period
-        self.hNrmNow = (self.PermGroFac / self.Rfree) * (self.solution_next.hNrmNow + 1.0)
+        self.hNrmNow = (self.PermGroFacStg / self.Rfree) * (self.solution_next.hNrmNow + 1.0)
 
         # Calculate the lower bound of the MPC
-        RPF = ((self.Rfree * self.DiscFacEff) ** (1.0 / self.CRRA)) / self.Rfree
+        RPF = ((self.Rfree * self.DiscFacStgEff) ** (1.0 / self.CRRA)) / self.Rfree
         self.MPCminNow = 1.0 / (1.0 + RPF / self.solution_next.MPCminNow)
 
         # Extract kink points in next period's consumption function;
@@ -815,9 +802,9 @@ class ConsPerfForesightSolver(MetricObject):
         # Calculate the end-of-period asset values that would reach those kink points
         # next period, then invert the first order condition to get consumption. Then
         # find the endogenous gridpoint (kink point) today that corresponds to each kink
-        aNrmNow = (self.PermGroFac / self.Rfree) * (mNrmNext - 1.0)
+        aNrmNow = (self.PermGroFacStg / self.Rfree) * (mNrmNext - 1.0)
         cNrmNow = (self.DiscFacEff * self.Rfree) ** (-1.0 / self.CRRA) * (
-            self.PermGroFac * cNrmNext
+            self.PermGroFacStg * cNrmNext
         )
         mNrmNow = aNrmNow + cNrmNow
 
@@ -868,12 +855,12 @@ class ConsPerfForesightSolver(MetricObject):
         self.Ex_IncNextNrm = 1.0  # Perfect foresight income of 1
         self.mNrmMinNow = mNrmNow[0]  # Relabeling for compatibility with add_mNrmStE
 
-    def add_stable_points(self, solution):
+    def add_stable_points(self, soln_stge):
         """
         Checks necessary conditions for the existence of the individual pseudo
         steady state StE and target Trg levels of market resources.
         If the conditions are satisfied, computes and adds the stable points
-        to the solution.
+        to the soln_stge.
 
         Parameters
         ----------
@@ -894,31 +881,31 @@ class ConsPerfForesightSolver(MetricObject):
         # Therefore
         # Check if  (GICRaw and BoroCnstArt) and if so compute them both
         APF = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
-        GICRaw = 1 > APF/self.PermGroFac
+        GICRaw = 1 > APF/self.PermGroFacStg
         if self.BoroCnstArt is not None and GICRaw:
             # Result of borrowing max allowed
-            bNrmNxt = -self.BoroCnstArt*self.Rfree/self.PermGroFac
-            solution.mNrmStE = self.Ex_IncNextNrm-bNrmNxt
-            solution.mNrmTrg = self.Ex_IncNextNrm-bNrmNxt
+            bNrmNxt = -self.BoroCnstArt*self.Rfree/self.PermGroFacStg
+            soln_stge.mNrmStE = self.Ex_IncNextNrm-bNrmNxt
+            soln_stge.mNrmTrg = self.Ex_IncNextNrm-bNrmNxt
         else:
             _log.warning("The unconstrained PF model solution is degenerate")
             if GICRaw:
-                if self.Rfree > self.PermGroFac:  # impatience drives wealth to minimum
-                    solution.mNrmStE = -(1/(1-self.PermGroFac/self.Rfree))
-                    solution.mNrmTrg = -(1/(1-self.PermGroFac/self.Rfree))
+                if self.Rfree > self.PermGroFacStg:  # impatience drives wealth to minimum
+                    soln_stge.mNrmStE = -(1/(1-self.PermGroFacStg/self.Rfree))
+                    soln_stge.mNrmTrg = -(1/(1-self.PermGroFacStg/self.Rfree))
                 else:  # patience drives wealth to infinity
                     _log.warning(
                         "Pathological patience plus infinite human wealth: solution undefined")
-                    solution.mNrmStE = float('NaN')
-                    solution.mNrmTrg = float('NaN')
+                    soln_stge.mNrmStE = float('NaN')
+                    soln_stge.mNrmTrg = float('NaN')
             else:
-                solution.mNrmStE = float('inf')
-                solution.mNrmTrg = float('inf')
-        return solution
+                soln_stge.mNrmStE = float('inf')
+                soln_stge.mNrmTrg = float('inf')
+        return soln_stge
 
     def solve(self):
         """
-        Solves the one period perfect foresight consumption-saving problem.
+        Solves the one-period/stage perfect foresight consumption-saving problem.
 
         Parameters
         ----------
@@ -927,14 +914,9 @@ class ConsPerfForesightSolver(MetricObject):
         Returns
         -------
         solution : ConsumerSolution
-            The solution to this period's problem.
+            The solution to this period/stage's problem.
         """
-        self.def_utility_funcs()
-        self.DiscFacEff = self.DiscFac * self.LivPrb  # Effective=pure x LivPrb
-        self.make_cFunc_PF()
-        self.def_value_funcs()
-
-        solution = ConsumerSolutionWithEx(
+        soln_stge = ConsumerSolution(
             cFunc=self.cFunc,
             vFunc=self.vFunc,
             vPfunc=self.vPfunc,
@@ -943,167 +925,121 @@ class ConsPerfForesightSolver(MetricObject):
             MPCminNow=self.MPCminNow,
             MPCmaxNow=self.MPCmaxNow,
         )
-        # Oddly, though the value and consumption functions were included in the solution,
-        # and the inverse utlity function and its derivatives, the baseline setup did not
-        # include the utility function itself.  This should be fixed more systematically,
-        # but for now what is done below will work
-        solution.u = self.u
-        solution.uP = self.uP
-        solution.uPP = self.uPP
+        self.soln_stge = self.def_utility_funcs(soln_stge)
+        self.soln_stge.DiscFacEff = self.soln_stge.DiscFac * \
+            self.soln_stge.LivPrbStg  # Effective=pure x LivPrbStg
+        self.soln_stge.make_cFunc_PF()
+        self.soln_stge = self.soln_stge.def_value_funcs(self.soln_stge)
 
-        return solution
+        # # Oddly, though the value and consumption functions were included in the solution,
+        # # and the inverse utlity function and its derivatives, the baseline setup did not
+        # # include the utility function itself.  This should be fixed more systematically,
+        # # but for now what is done below will work
+        # soln_stge.u = self.u
+        # soln_stge.uP = self.uP
+        # soln_stge.uPP = self.uPP
 
-    # @staticmethod
-    def solver_check_condition(self, name, test, messages, verbose, verbose_messages=None):
-        """
-        Checks one condition.
+        return soln_stge
 
-        Parameters
-        ----------
-        name : string
-             Name for the condition.
-
-        test : function(self -> boolean)
-             A function (of self) which tests the condition
-
-        messages : dict{boolean : string}
-            A dictiomary with boolean keys containing values
-            for messages to print if the condition is
-            true or false.
-
-        verbose_messages : dict{boolean : string}
-            (Optional) A dictiomary with boolean keys containing values
-            for messages to print if the condition is
-            true or false under verbose printing.
-        """
-        self.conditions[name] = test(self)
-        set_verbosity_level((4 - verbose) * 10)
-        _log.info(messages[self.conditions[name]].format(self))
-        if verbose_messages:
-            _log.debug(verbose_messages[self.conditions[name]].format(self))
-
-    # @staticmethod
-    def solver_check_condtnnew(self, name, test, messages, verbose, verbose_messages, fact):
-        """
-        Checks one condition.
-
-        Parameters
-        ----------
-        name : string
-             Name for the condition.
-
-        fact : string
-             Name of the factor whose value should be less than 1
-
-        test : function(self -> boolean)
-             A function (of self) which tests the condition
-
-        messages : dict{boolean : string}
-            A dictiomary with boolean keys containing values
-            for messages to print if the condition is
-            true or false.
-
-        verbose_messages : dict{boolean : string}
-            (Optional) A dictiomary with boolean keys containing values
-            for messages to print if the condition is
-            true or false under verbose printing.
-        """
-        self.solution_curr.conditions[name] = test(self)
-        set_verbosity_level((4 - verbose) * 10)
-        self.solution_curr.conditions[fact] = (
-            messages[self.solution_curr.conditions[name]] +
-            verbose_messages[self.solution_curr.conditions[name]]).format(self.solution_curr)
-        print(self.solution_curr.conditions[fact])
-        _log.info((
-            messages[self.solution_curr.conditions[name]] +
-            verbose_messages[self.solution_curr.conditions[name]]).format(self.solution_curr)
-        )
-
-    # @staticmethod
-    def solver_check_AIC(self, verbose=None):
+    def solver_check_AIC_20210404(self, stge, verbose=None):
         """
         Evaluate and report on the Absolute Impatience Condition
         """
         name = "AIC"
         fact = "APF"
 
-        def test(agent): return agent.solution_curr.APF < 1
+        def test(stge): return stge.APF < 1
 
         messages = {
-            True: "\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, satisfies the Absolute Impatience Condition (AIC), which requires APF < 1: "+self.solution_curr.AIC_facts['urlhandle'],
-            False: "\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, violates the Absolute Impatience Condition (AIC), which requires APF < 1: "+self.solution_curr.AIC_facts['urlhandle']
+            True: "\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, satisfies the Absolute Impatience Condition (AIC), which requires APF < 1: "+stge.AIC_facts['urlhandle'],
+            False: "\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, violates the Absolute Impatience Condition (AIC), which requires APF < 1: "+stge.AIC_facts['urlhandle']
         }
         verbose_messages = {
             True: "  Because the APF < 1,  the absolute amount of consumption is expected to fall over time.  \n",
             False: "  Because the APF > 1, the absolute amount of consumption is expected to grow over time.  \n",
         }
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condtnnew(name, test, messages, verbose, verbose_messages, fact)
+        if not hasattr(self, 'verbose'):
+            verbose = 0 if verbose is None else verbose
+        else:
+            verbose = self.verbose if verbose is None else verbose
 
-    # @staticmethod
-    def solver_check_FVAC(self, verbose=None):
+        core_check_condition(name, test, messages, verbose,
+                             verbose_messages, fact, stge)
+
+    def solver_check_FVAC_20210404(self, stge, verbose=None):
         """
         Evaluate and report on the Finite Value of Autarky Condition
         """
         name = "FVAC"
         fact = "FVAF"
 
-        def test(agent): return agent.solution_curr.FVAF < 1
+        def test(stge): return stge.FVAF < 1
 
         messages = {
-            True: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, satisfies the Finite Value of Autarky Condition, which requires FVAF < 1: "+self.solution_curr.FVAC_facts['urlhandle'],
-            False: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, violates the Finite Value of Autarky Condition, which requires FVAF: "+self.solution_curr.FVAC_facts['urlhandle']
+            True: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, satisfies the Finite Value of Autarky Condition, which requires FVAF < 1: "+stge.FVAC_facts['urlhandle'],
+            False: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, violates the Finite Value of Autarky Condition, which requires FVAF: "+stge.FVAC_facts['urlhandle']
         }
         verbose_messages = {
-            True: "  Therefore, a nondegenerate solution exists if the RIC also holds. ("+self.solution_curr.FVAC_facts['urlhandle']+")\n",
+            True: "  Therefore, a nondegenerate solution exists if the RIC also holds. ("+stge.FVAC_facts['urlhandle']+")\n",
             False: "  Therefore, a nondegenerate solution exits if the RIC holds.\n",
         }
 
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condtnnew(name, test, messages, verbose, verbose_messages, fact)
+        if not hasattr(self, 'verbose'):
+            verbose = 0 if verbose is None else verbose
+        else:
+            verbose = self.verbose if verbose is None else verbose
 
-    # @staticmethod
-    def solver_check_GICRaw(self, verbose=None):
+        core_check_condition(name, test, messages, verbose,
+                             verbose_messages, fact, stge)
+
+    def solver_check_GICRaw_20210404(self, stge, verbose=None):
         """
         Evaluate and report on the Growth Impatience Condition
         """
         name = "GICRaw"
         fact = "GPFRaw"
 
-        def test(agent): return agent.solution_curr.GPFRaw < 1
+        def test(stge): return stge.GPFRaw < 1
 
         messages = {
-            True: "\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, satisfies the Growth Impatience Condition (GIC), which requires GPF < 1: "+self.solution_curr.GICRaw_facts['urlhandle'],
-            False: "\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, violates the Growth Impatience Condition (GIC), which requires GPF < 1: "+self.solution_curr.GICRaw_facts['urlhandle'],
+            True: "\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, satisfies the Growth Impatience Condition (GIC), which requires GPF < 1: "+self.soln_stge.GICRaw_facts['urlhandle'],
+            False: "\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, violates the Growth Impatience Condition (GIC), which requires GPF < 1: "+self.soln_stge.GICRaw_facts['urlhandle'],
         }
         verbose_messages = {
             True: "  Therefore,  for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
             False: "  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to rise toward infinity. \n"
         }
+        if not hasattr(self, 'verbose'):
+            verbose = 0 if verbose is None else verbose
+        else:
+            verbose = self.verbose if verbose is None else verbose
 
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condtnnew(name, test, messages, verbose, verbose_messages, fact)
+        core_check_condition(name, test, messages, verbose,
+                             verbose_messages, fact, stge)
 
-    # @staticmethod
-    def solver_check_GICLiv(self, verbose=None):
+    def solver_check_GICLiv_20210404(self, stge, verbose=None):
         name = "GICLiv"
         fact = "GPFLiv"
 
-        def test(agent): return agent.solution_curr.GPFLiv < 1
+        def test(stge): return stge.GPFLiv < 1
 
         messages = {
-            True: "\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, satisfies the Mortality Adjusted Aggregate Growth Imatience Condition (GICLiv): "+self.solution_curr.GPFLiv_facts['urlhandle'],
-            False: "\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, violates the Mortality Adjusted Aggregate Growth Imatience Condition (GICLiv): "+self.solution_curr.GPFLiv_facts['urlhandle'],
+            True: "\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, satisfies the Mortality Adjusted Aggregate Growth Imatience Condition (GICLiv): "+self.soln_stge.GPFLiv_facts['urlhandle'],
+            False: "\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, violates the Mortality Adjusted Aggregate Growth Imatience Condition (GICLiv): "+self.soln_stge.GPFLiv_facts['urlhandle'],
         }
         verbose_messages = {
-            True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists ("+self.solution_curr.GPFLiv_facts['urlhandle']+")\n",
-            False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist ("+self.solution_curr.GPFLiv_facts['urlhandle']+")\n",
+            True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists ("+self.soln_stge.GPFLiv_facts['urlhandle']+")\n",
+            False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist ("+self.soln_stge.GPFLiv_facts['urlhandle']+")\n",
         }
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condtnnew(name, test, messages, verbose, verbose_messages, fact)
+        if not hasattr(self, 'verbose'):
+            verbose = 0 if verbose is None else verbose
+        else:
+            verbose = self.verbose if verbose is None else verbose
 
-    # @staticmethod
-    def solver_check_RIC(self, verbose=None):
+        core_check_condition(name, test, messages, verbose,
+                             verbose_messages, fact, stge)
+
+    def solver_check_RIC_20210404(self, stge, verbose=None):
         """
         Evaluate and report on the Return Impatience Condition
         """
@@ -1111,42 +1047,123 @@ class ConsPerfForesightSolver(MetricObject):
         name = "RIC"
         fact = "RPF"
 
-        def test(agent): return agent.solution_curr.RPF < 1
+        def test(stge): return stge.RPF < 1
 
         messages = {
-            True: "\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, satisfies the Return Impatience Condition (RIC), which requires RPF < 1: "+self.solution_curr.RPF_facts['urlhandle'],
-            False: "\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, violates the Return Impatience Condition (RIC), which requires RPF < 1: "+self.solution_curr.RPF_facts['urlhandle'],
+            True: "\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, satisfies the Return Impatience Condition (RIC), which requires RPF < 1: "+self.soln_stge.RPF_facts['urlhandle'],
+            False: "\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, violates the Return Impatience Condition (RIC), which requires RPF < 1: "+self.soln_stge.RPF_facts['urlhandle'],
         }
         verbose_messages = {
             True: "  Therefore, the limiting consumption function is not c(m)=0 for all m\n",
             False: "  Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.\n",
         }
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condtnnew(name, test, messages, verbose, verbose_messages, fact)
+        if not hasattr(self, 'verbose'):
+            verbose = 0 if verbose is None else verbose
+        else:
+            verbose = self.verbose if verbose is None else verbose
 
-    # @staticmethod
-    def solver_check_FHWC(self, verbose=None):
+        core_check_condition(name, test, messages, verbose,
+                             verbose_messages, fact, stge)
+
+    def solver_check_FHWC_20210404(self, stge, verbose=None):
         """
         Evaluate and report on the Finite Human Wealth Condition
         """
         name = "FHWC"
         fact = "FHWF"
 
-        def test(agent): return agent.solution_curr.FHWF < 1
+        def test(stge): return stge.FHWF < 1
 
         messages = {
-            True: "\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, satisfies the Finite Human Wealth Condition (FHWC), which requires FHWF < 1: "+self.solution_curr.FHWC_facts['urlhandle'],
-            False: "\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, violates the Finite Human Wealth Condition (FHWC), which requires FHWF < 1: "+self.solution_curr.FHWC_facts['urlhandle'],
+            True: "\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, satisfies the Finite Human Wealth Condition (FHWC), which requires FHWF < 1: "+self.soln_stge.FHWC_facts['urlhandle'],
+            False: "\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, violates the Finite Human Wealth Condition (FHWC), which requires FHWF < 1: "+self.soln_stge.FHWC_facts['urlhandle'],
         }
         verbose_messages = {
-            True: "  Therefore, the limiting consumption function is not c(m)=Infinity ("+self.solution_curr.FHWC_facts['urlhandle']+")\n  Human wealth normalized by permanent income is {0.hNrmNowInf}.\n",
-            False: "  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.\n  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0. ("+self.solution_curr.FHWC_facts['urlhandle']+")\n",
+            True: "  Therefore, the limiting consumption function is not c(m)=Infinity ("+self.soln_stge.FHWC_facts['urlhandle']+")\n  Human wealth normalized by permanent income is {0.hNrmNowInf}.\n",
+            False: "  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.\n  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0. ("+self.soln_stge.FHWC_facts['urlhandle']+")\n",
         }
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condtnnew(name, test, messages, verbose, verbose_messages, fact)
+        if not hasattr(self, 'verbose'):
+            verbose = 0 if verbose is None else verbose
+        else:
+            verbose = self.verbose if verbose is None else verbose
 
-    # @staticmethod
-    def solver_check_condtnsnew(self, verbose=None):
+        core_check_condition(name, test, messages, verbose,
+                             verbose_messages, fact, stge)
+
+    def solver_check_GICNrm_20210404(self, stge, verbose=None):
+        """
+        Check Individual Growth Patience Factor.
+        """
+        name = "GICNrm"
+        fact = "GPFNrm"
+
+        def test(stge): return stge.GPFNrm <= 1
+
+        messages = {
+            True: "\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, satisfies the Normalized Growth Impatience Condition (GICNrm), which requires GICNrm < 1: "+self.soln_stge.GPFNrm_facts['urlhandle']+"\n",
+            False: "\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, violates the Normalized Growth Impatience Condition (GICNrm), which requires GICNrm < 1: "+self.soln_stge.GPFNrm_facts['urlhandle']+"\n",
+        }
+        verbose_messages = {
+            True: " Therefore, a target level of the individual market resources ratio m exists ("+self.soln_stge.GICNrm_facts['urlhandle']+").\n",
+            False: " Therefore, a target ratio of individual market resources to individual permanent income does not exist.  ("+self.soln_stge.GICNrm_facts['urlhandle']+")\n",
+        }
+        if not hasattr(self, 'verbose'):
+            verbose = 0 if verbose is None else verbose
+        else:
+            verbose = self.verbose if verbose is None else verbose
+
+        core_check_condition(name, test, messages, verbose,
+                             verbose_messages, fact, stge)
+
+    def solver_check_WRIC_20210404(self, stge, verbose=None):
+        """
+        Evaluate and report on the Weak Return Impatience Condition
+        [url]/#WRPF modified to incorporate LivPrb
+        """
+        stge.WRPF = (
+            (stge.UnempPrb ** (1 / stge.CRRA))
+            * (stge.Rfree * stge.DiscFac * stge.LivStg) ** (1 / stge.CRRA)
+            / stge.Rfree
+        )
+
+        stge.WRIC = stge.WRPF < 1
+        name = "WRIC"
+        fact = "WRPF"
+
+        def test(stge): return stge.WRPF <= 1
+
+        WRIC_facts = {'about': 'Weak Return Impatience Condition'}
+        WRIC_facts.update({'latexexpr': r'\WRIC'})
+        WRIC_facts.update({'urlhandle': stge.urlroot+'WRIC'})
+        WRIC_facts.update({'py___code': 'test: agent.WRPF < 1'})
+        stge.WRIC_facts = WRIC_facts
+
+        WRPF_facts = {'about': 'Growth Patience Factor'}
+        WRPF_facts.update({'latexexpr': r'\WRPF'})
+        WRPF_facts.update({'_unicode_': r'℘ RPF'})
+        WRPF_facts.update({'urlhandle': stge.urlroot+'WRPF'})
+        WRPF_facts.update({'py___code': r'UnempPrb * RPF'})
+
+        messages = {
+            True: "\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, satisfies the Weak Return Impatience Condition, which requires WRIF < 1: "+stge.WRIC_facts['urlhandle'],
+            False: "\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, violates the Weak Return Impatience Condition, which requires WRIF < 1: "+stge.WRIC_facts['urlhandle'],
+        }
+
+        verbose_messages = {
+            True: "  Therefore, a nondegenerate solution exists if the FVAC is also satisfied. ("+stge.WRIC_facts['urlhandle']+")\n",
+            False: "  Therefore, a nondegenerate solution is not available ("+stge.WRIC_facts['urlhandle']+")\n",
+        }
+        if not hasattr(self, 'verbose'):
+            verbose = 0 if verbose is None else verbose
+        else:
+            verbose = self.verbose if verbose is None else verbose
+
+        core_check_condition(name, test, messages, verbose,
+                             verbose_messages, fact, stge)
+
+        stge.WRPF_facts = WRPF_facts
+
+    def solver_check_condtnsnew_20210404(self, soln_stge, verbose=None):
         """
         This method checks whether the instance's type satisfies the
         Absolute Impatience Condition (AIC),
@@ -1155,7 +1172,7 @@ class ConsPerfForesightSolver(MetricObject):
         model's Growth Impatience Condition (GICRaw) and
         Perfect Foresight Finite Value of Autarky Condition (FVACPF). Depending on the configuration of parameter values, some
         combination of these conditions must be satisfied in order for the problem to have
-        a nondegenerate solution. To check which conditions are required, in the verbose mode
+        a nondegenerate soln_stge. To check which conditions are required, in the verbose mode
         a reference to the relevant theoretical literature is made.
 
         Parameters
@@ -1169,28 +1186,33 @@ class ConsPerfForesightSolver(MetricObject):
         -------
         None
         """
-        self.solution_curr.conditions = {}
+        self.soln_stge.conditions = {}
 
-        self.solution_curr.violated = False
+        self.soln_stge.violated = False
 
         # This method only checks for the conditions for infinite horizon models
         # with a 1 period cycle. If these conditions are not met, we exit early.
-        if self.cycles != 0 or self.T_cycle > 1:
+        if self.parameters_model['cycles'] != 0 \
+           or self.parameters_model['T_cycle'] > 1:
             return
 
-        verbose = self.verbose if verbose is None else verbose
-        self.check_AIC(verbose)
-        self.check_FHWC(verbose)
-        self.check_RIC(verbose)
-        self.check_GICRaw(verbose)
-        self.check_GICLiv(verbose)
-        self.check_FVAC(verbose)
-
-        if hasattr(self, "BoroCnstArt") and self.solution_curr.BoroCnstArt is not None:
-            self.solution_curr.violated = not self.solution_curr.conditions["RIC"]
+        if not hasattr(self, 'verbose'):
+            verbose = 0 if verbose is None else verbose
         else:
-            self.solution_curr.violated = not self.solution_curr.conditions[
-                "RIC"] or not self.solution_curr.conditions["FHWC"]
+            verbose = self.verbose if verbose is None else verbose
+
+        self.solver_check_AIC_20210404(soln_stge, verbose)
+        self.solver_check_FHWC_20210404(soln_stge, verbose)
+        self.solver_check_RIC_20210404(soln_stge, verbose)
+        self.solver_check_GICRaw_20210404(soln_stge, verbose)
+        self.solver_check_GICLiv_20210404(soln_stge, verbose)
+        self.solver_check_FVAC_20210404(soln_stge, verbose)
+
+        if hasattr(self, "BoroCnstArt") and self.soln_stge.BoroCnstArt is not None:
+            self.soln_stge.violated = not self.soln_stge.conditions["RIC"]
+        else:
+            self.soln_stge.violated = not self.soln_stge.conditions[
+                "RIC"] or not self.soln_stge.conditions["FHWC"]
 
 
 ###############################################################################
@@ -1200,6 +1222,11 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     A superclass for solvers of one period consumption-saving problems with
     constant relative risk aversion utility and permanent and transitory shocks
     to income.  Has methods to set up but not solve the one period problem.
+    N.B.: Because this is a one stge solver, objects that in the full problem
+    are lists because they are allowed to vary at different stages, are scalars
+    here because the value that is appropriate for the current stage is the one
+    that will be passed.  To memorialize that, the "self" versions of such
+    variables will have "Stg" appended to signalize their status as scalars.
 
     Parameters
     ----------
@@ -1229,14 +1256,15 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         absolute minimum acceptable level.
     vFuncBool: boolean
         An indicator for whether the value function should be computed and
-        included in the reported solution.
+        included in the reported soln_stge.
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear inter-
         polation.
     """
 
-    def solution_add_further_info_ConsPerfForesightSolver(self, solution):
-        super().solution_add_further_info(solution)
+    # Get the "further info" method from the perfect foresight solver
+# def soln_stge_add_further_info_ConsPerfForesightSolver(self, soln_stge):
+    #        super().soln_stge_add_further_info(soln_stge)
 
     def __init__(
             self,
@@ -1251,28 +1279,36 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             aXtraGrid,
             vFuncBool,
             CubicBool,
+            PermShkDstn,
+            TranShkDstn,
     ):
         # Generate a url that will locate the documentation
-        self.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q=" + \
-            self.__class__.__name__+"&check_keywords=yes&area=default#"
+        self.soln_stge = ConsumerSolution()  # create a blank template to fill in
+        self.solution_next = solution_next
+
+        # All other inputs should reside on constructed solution
+        self.soln_stge.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q=" + \
+            self.soln_stge.__class__.__name__+"&check_keywords=yes&area=default#"
 
         # url for paper that contains various theoretical results
-        self.url_ref = "https://econ-ark.github.io/BufferStockTheory"
-        self.solution_next = solution_next
-        self.IncShkDstn = IncShkDstn
-        self.LivPrb = LivPrb
-        self.DiscFac = DiscFac
-        self.CRRA = CRRA
-        self.Rfree = Rfree
-        self.PermGroFac = PermGroFac
-        self.BoroCnstArt = BoroCnstArt
-        self.aXtraGrid = aXtraGrid
-        self.vFuncBool = vFuncBool
-        self.CubicBool = CubicBool
-        self.facts = {}
-        self.def_utility_funcs()
+        self.soln_stge.url_ref = "https://econ-ark.github.io/BufferStockTheory"
+        self.soln_stge.IncShkDstnStg = IncShkDstn
+        self.soln_stge.LivPrbStg = LivPrb
+        self.soln_stge.DiscFacStg = DiscFac
+        self.soln_stge.CRRA = CRRA
+        self.soln_stge.Rfree = Rfree
+        self.soln_stge.PermGroFacStg = PermGroFac
+        self.soln_stge.BoroCnstArt = BoroCnstArt
+        self.soln_stge.aXtraGrid = aXtraGrid
+        self.soln_stge.vFuncBool = vFuncBool
+        self.soln_stge.CubicBool = CubicBool
+        self.soln_stge.PermShkDstnStg = PermShkDstn
+        self.soln_stge.TranShkDstnStg = TranShkDstn
 
-    def def_utility_funcs(self):
+        self.soln_stge.facts = {}
+        self.soln_stge = self.def_utility_funcs(self.soln_stge)
+
+    def def_utility_funcs(self, stge):
         """
         Defines CRRA utility function for this period (and its derivatives,
         and their inverses), saving them as attributes of self for other methods
@@ -1286,15 +1322,21 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         -------
         none
         """
-        ConsPerfForesightSolver.def_utility_funcs(self)
-        self.uPinv = lambda u: utilityP_inv(u, gam=self.CRRA)
-        self.uPinvP = lambda u: utilityP_invP(u, gam=self.CRRA)
-        self.uinvP = lambda u: utility_invP(u, gam=self.CRRA)
+        self.stge.u = lambda c: utility(
+            c, gam=self.stge.CRRA)  # utility function
+        self.stge.uP = lambda c: utilityP(
+            c, gam=self.stge.CRRA)  # marginal utility function
+        self.stge.uPP = lambda c: utilityPP(
+            c, gam=self.stge.CRRA
+        )  # marginal marginal utility function
+        self.stge.uPinv = lambda u: utilityP_inv(u, gam=self.stge.CRRA)
+        self.stge.uPinvP = lambda u: utilityP_invP(u, gam=self.stge.CRRA)
+        self.stge.uinvP = lambda u: utility_invP(u, gam=self.stge.CRRA)
 
-        if self.vFuncBool:
-            self.uinv = lambda u: utility_inv(u, gam=self.CRRA)
+        if self.stge.vFuncBool:
+            self.stge.uinv = lambda u: utility_inv(u, gam=self.stge.CRRA)
 
-    def solution_add_further_info(self, solution):
+    def soln_stge_add_further_info(self, soln_stge):
         # self here is the solver, which knows info about the problem from the agent
         """
         For versions with uncertainty in transitory and/or permanent shocks,
@@ -1313,46 +1355,82 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             Same solution that was provided, augmented with the factors
 
         """
-        solution.urlroot = urlroot = self.url_ref+'/#'
+#        if hasattr(self, 'soln_stge_add_further_info_ConsPerfForesightSolver'):
+#            self.soln_stge_add_further_info_ConsPerfForesightSolver(soln_stge)
 
-#        solution.parameters_model = self.parameters
+        self.soln_stge_add_further_info_ConsPerfForesightSolver(soln_stge)
+#        soln_stge.parameters_model = self.parameters_model
 
-        if not hasattr(solution, 'facts'):
-            solution.facts = {}
+        soln_stge.urlroot = urlroot = self.soln_stge.url_ref+'/#'
+
+        if not hasattr(soln_stge, 'facts'):
+            soln_stge.facts = {}
+
+        soln_stge.PermShkVals = PermShkVals = self.soln_stge.PermShkDstnStg.X
+        soln_stge.TranShkVals = TranShkVals = self.soln_stge.TranShkDstnStg.X
+        PermShkMin = np.min(PermShkVals)
+        TranShkMin = np.min(TranShkVals)
 
         # The Xref versions are full rank, for direct multiplication by probs
-        PermShkValsXref = solution.PermShkValsXref = self.IncShkDstn.X[0]
-        TranShkValsXref = solution.TranShkValsXref = self.IncShkDstn.X[1]
-        ShkPrbsNext = solution.ShkPrbsNext = self.IncShkDstn.pmf
+        soln_stge.PermShkValsXref = PermShkValsXref = self.soln_stge.IncShkDstnStg.X[0]
+        soln_stge.TranShkValsXref = TranShkValsXref = self.soln_stge.IncShkDstnStg.X[1]
+        soln_stge.ShkPrbsNext = ShkPrbsNext = self.soln_stge.IncShkDstnStg.pmf
 
-        solution.Rfree = Rfree = self.Rfree
-        solution.DiscFac = DiscFac = self.DiscFac
-        PermGroNum = solution.PermGroNum = self.PermGroFac
-        solution.LivNum = LivNum = self.LivPrb
-        solution.DiscFacEff = DiscFacEff = DiscFac * LivNum
-        solution.CRRA = CRRA = self.CRRA
-        solution.UnempPrb = UnempPrb = self.IncShkDstn.params['UnempPrb']
-        solution.UnempPrbRet = UnempPrbRet = self.IncShkDstn.params['UnempPrbRet']
+        soln_stge.Rfree = Rfree = self.soln_stge.Rfree
+        soln_stge.DiscFacStg = DiscFacStg = self.soln_stge.DiscFacStg
+        soln_stge.PermGroStg = PermGroStg = self.soln_stge.PermGroFacStg
+        soln_stge.LivStg = LivStg = self.soln_stge.LivPrbStg
+        soln_stge.DiscFacStgEff = DiscFacStgEff = DiscFacStg * LivStg
+        soln_stge.CRRA = CRRA = self.soln_stge.CRRA
+        soln_stge.UnempPrb = UnempPrb = self.soln_stge.IncShkDstnStg.parameters['UnempPrb']
+        soln_stge.UnempPrbRet = UnempPrbRet = self.soln_stge.IncShkDstnStg.parameters[
+            'UnempPrbRet']
 
         # Facts that apply in the perfect foresight case should already have been added
         # Conveniently instantiate the income shocks
 
-        PermShkMinNext = np.min(PermShkValsXref)
-        TranShkMinNext = np.min(TranShkValsXref)
         WorstIncPrb = np.sum(
             ShkPrbsNext[
                 (PermShkValsXref * TranShkValsXref)
-                == (PermShkMinNext * TranShkMinNext)
+                == (PermShkMin * TranShkMin)
             ]
         )
+
+        if self.solution_next.mNrmMin == None:
+            breakpoint
+
+        # Calculate the minimum allowable value of money resources in this period
+        soln_stge.BoroCnstNat = (
+            (self.solution_next.mNrmMin - TranShkMin)
+            * (PermGroStg * PermShkMin)
+            / Rfree
+        )
+
+        if soln_stge.BoroCnstArt is None:
+            soln_stge.mNrmMinNow = soln_stge.BoroCnstNat
+        else:
+            soln_stge.mNrmMinNow = np.max([soln_stge.BoroCnstNat, BoroCnstArt])
+            # Liquidity constrained consumption function: c(mMin+x) = x
+            soln_stge.cFuncNowCnst = LinearInterp(
+                np.array([soln_stge.mNrmMinNow, soln_stge.mNrmMinNow + 1]
+                         ), np.array([0.0, 1.0])
+            )
 
         # Many other facts will have been inherited from the perfect foresight
         # model of which this model, as a descendant, has already inherited
         # Here we need compute only those objects whose value changes when
         # the shock distributions are nondegenerate.
+        IncShkDstn_facts = {
+            'about': 'Income Shock Distribution: .X[0] and .X[1] retrieve shocks, .pmf retrieves probabilities'}
+#       IncShkDstn_facts.update({'latexexpr': r'\IncShkDstn'})
+        IncShkDstn_facts.update(
+            {'py___code': r'construct_lognormal_income_process_unemployment'})
+        soln_stge.facts.update({'IncShkDstn': IncShkDstn_facts})
+        soln_stge.IncShkDstn_facts = IncShkDstn_facts
+
         Ex_IncNextNrm_facts = {
             'about': 'Expected income next period'}
-        solution.Ex_IncNextNrm = Ex_IncNextNrm = np.dot(
+        soln_stge.Ex_IncNextNrm = Ex_IncNextNrm = np.dot(
             ShkPrbsNext, TranShkValsXref * PermShkValsXref).item()
         Ex_IncNextNrm_facts.update({'latexexpr': r'\Ex_IncNextNrm'})
         Ex_IncNextNrm_facts.update({'_unicode_': r'R/Γ'})
@@ -1360,47 +1438,47 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Ex_IncNextNrm_facts.update(
             {'py___code': r'np.dot(ShkPrbsNext,TranShkValsXref*PermShkValsXref)'})
         Ex_IncNextNrm_facts.update({'value_now': Ex_IncNextNrm})
-        solution.facts.update({'Ex_IncNextNrm': Ex_IncNextNrm_facts})
-        solution.Ex_IncNextNrm_facts = Ex_IncNextNrm_facts
+        soln_stge.facts.update({'Ex_IncNextNrm': Ex_IncNextNrm_facts})
+        soln_stge.Ex_IncNextNrm_facts = Ex_IncNextNrm_facts
 
 
-#        Ex_Inv_PermShk = calc_expectation(            PermShkDstn[0], lambda x: 1 / x        )
+#        Ex_Inv_PermShk = calc_expectation(            PermShkDstnStg[0], lambda x: 1 / x        )
         Ex_Inv_PermShk_facts = {
             'about': 'Expectation of Inverse of Permanent Shock'}
-        solution.Ex_Inv_PermShk = Ex_Inv_PermShk = np.dot(1/PermShkValsXref, ShkPrbsNext)
+        soln_stge.Ex_Inv_PermShk = Ex_Inv_PermShk = np.dot(1/PermShkValsXref, ShkPrbsNext)
         Ex_Inv_PermShk_facts.update({'latexexpr': r'\Ex_Inv_PermShk'})
 #        Ex_Inv_PermShk_facts.update({'_unicode_': r'R/Γ'})
         Ex_Inv_PermShk_facts.update({'urlhandle': urlroot+'ExInvPermShk'})
         Ex_Inv_PermShk_facts.update({'py___code': r'Rfree/PermGroFacAdj'})
         Ex_Inv_PermShk_facts.update({'value_now': Ex_Inv_PermShk})
-        solution.facts.update({'Ex_Inv_PermShk': Ex_Inv_PermShk_facts})
-        solution.Ex_Inv_PermShk_facts = Ex_Inv_PermShk_facts
-        # solution.Ex_Inv_PermShk = Ex_Inv_PermShk
+        soln_stge.facts.update({'Ex_Inv_PermShk': Ex_Inv_PermShk_facts})
+        soln_stge.Ex_Inv_PermShk_facts = Ex_Inv_PermShk_facts
+        # soln_stge.Ex_Inv_PermShk = Ex_Inv_PermShk
 
         Inv_Ex_Inv_PermShk_facts = {
             'about': 'Inverse of Expectation of Inverse of Permanent Shock'}
-        solution.Inv_Ex_Inv_PermShk = Inv_Ex_Inv_PermShk = 1/Ex_Inv_PermShk
+        soln_stge.Inv_Ex_Inv_PermShk = Inv_Ex_Inv_PermShk = 1/Ex_Inv_PermShk
         Inv_Ex_Inv_PermShk_facts.update(
             {'latexexpr': '\InvExInvPermShk=\left(\Ex[\PermShk^{-1}]\right)^{-1}'})
 #        Inv_Ex_Inv_PermShk_facts.update({'_unicode_': r'R/Γ'})
         Inv_Ex_Inv_PermShk_facts.update({'urlhandle': urlroot+'InvExInvPermShk'})
         Inv_Ex_Inv_PermShk_facts.update({'py___code': r'1/Ex_Inv_PermShk'})
         Inv_Ex_Inv_PermShk_facts.update({'value_now': Inv_Ex_Inv_PermShk})
-        solution.facts.update({'Inv_Ex_Inv_PermShk': Inv_Ex_Inv_PermShk_facts})
-        solution.Inv_Ex_Inv_PermShk_facts = Inv_Ex_Inv_PermShk_facts
-        # solution.Inv_Ex_Inv_PermShk = Inv_Ex_Inv_PermShk
+        soln_stge.facts.update({'Inv_Ex_Inv_PermShk': Inv_Ex_Inv_PermShk_facts})
+        soln_stge.Inv_Ex_Inv_PermShk_facts = Inv_Ex_Inv_PermShk_facts
+        # soln_stge.Inv_Ex_Inv_PermShk = Inv_Ex_Inv_PermShk
 
         Ex_RNrm_facts = {
             'about': 'Expectation of Stochastic-Growth-Normalized Return'}
-        Ex_RNrm = np.dot(solution.PF_RNrm/PermShkValsXref, ShkPrbsNext)
+        Ex_RNrm = np.dot(soln_stge.PF_RNrm/PermShkValsXref, ShkPrbsNext)
         Ex_RNrm_facts.update({'latexexpr': r'\Ex_RNrm'})
 #        Ex_RNrm_facts.update({'_unicode_': r'R/Γ'})
         Ex_RNrm_facts.update({'urlhandle': urlroot+'ExRNrm'})
         Ex_RNrm_facts.update({'py___code': r'Rfree/PermGroFacAdj'})
         Ex_RNrm_facts.update({'value_now': Ex_RNrm})
-        solution.facts.update({'Ex_RNrm': Ex_RNrm_facts})
-        solution.Ex_RNrm_facts = Ex_RNrm_facts
-        solution.Ex_RNrm = Ex_RNrm
+        soln_stge.facts.update({'Ex_RNrm': Ex_RNrm_facts})
+        soln_stge.Ex_RNrm_facts = Ex_RNrm_facts
+        soln_stge.Ex_RNrm = Ex_RNrm
 
         Inv_Ex_RNrm_facts = {
             'about': 'Inverse of Expectation of Stochastic-Growth-Normalized Return'}
@@ -1411,9 +1489,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Inv_Ex_RNrm_facts.update({'urlhandle': urlroot+'InvExRNrm'})
         Inv_Ex_RNrm_facts.update({'py___code': r'1/Ex_RNrm'})
         Inv_Ex_RNrm_facts.update({'value_now': Inv_Ex_RNrm})
-        solution.facts.update({'Inv_Ex_RNrm': Inv_Ex_RNrm_facts})
-        solution.Inv_Ex_RNrm_facts = Inv_Ex_RNrm_facts
-        solution.Inv_Ex_RNrm = Inv_Ex_RNrm
+        soln_stge.facts.update({'Inv_Ex_RNrm': Inv_Ex_RNrm_facts})
+        soln_stge.Inv_Ex_RNrm_facts = Inv_Ex_RNrm_facts
+        soln_stge.Inv_Ex_RNrm = Inv_Ex_RNrm
 
         Ex_uInv_PermShk_facts = {
             'about': 'Expected Utility for Consuming Permanent Shock'}
@@ -1423,9 +1501,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Ex_uInv_PermShk_facts.update(
             {'py___code': r'np.dot(PermShkValsXref**(1-CRRA),ShkPrbsNext)'})
         Ex_uInv_PermShk_facts.update({'value_now': Ex_uInv_PermShk})
-        solution.facts.update({'Ex_uInv_PermShk': Ex_uInv_PermShk_facts})
-        solution.Ex_uInv_PermShk_facts = Ex_uInv_PermShk_facts
-        solution.Ex_uInv_PermShk = Ex_uInv_PermShk
+        soln_stge.facts.update({'Ex_uInv_PermShk': Ex_uInv_PermShk_facts})
+        soln_stge.Ex_uInv_PermShk_facts = Ex_uInv_PermShk_facts
+        soln_stge.Ex_uInv_PermShk = Ex_uInv_PermShk
 
         uInv_Ex_uInv_PermShk = Ex_uInv_PermShk ** (1 / (1 - CRRA))
         uInv_Ex_uInv_PermShk_facts = {
@@ -1434,122 +1512,123 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         uInv_Ex_uInv_PermShk_facts.update({'urlhandle': urlroot+'uInvExuInvPermShk'})
         uInv_Ex_uInv_PermShk_facts.update({'py___code': r'Ex_uInv_PermShk**(1/(1-CRRA))'})
         uInv_Ex_uInv_PermShk_facts.update({'value_now': uInv_Ex_uInv_PermShk})
-        solution.facts.update({'uInv_Ex_uInv_PermShk': uInv_Ex_uInv_PermShk_facts})
-        solution.uInv_Ex_uInv_PermShk_facts = uInv_Ex_uInv_PermShk_facts
-        solution.uInv_Ex_uInv_PermShk = uInv_Ex_uInv_PermShk
+        soln_stge.facts.update({'uInv_Ex_uInv_PermShk': uInv_Ex_uInv_PermShk_facts})
+        soln_stge.uInv_Ex_uInv_PermShk_facts = uInv_Ex_uInv_PermShk_facts
+        soln_stge.uInv_Ex_uInv_PermShk = uInv_Ex_uInv_PermShk
 
         PermGroFacAdj_facts = {
             'about': 'Uncertainty-Adjusted Permanent Income Growth Factor'}
-        PermGroFacAdj = PermGroNum * Inv_Ex_Inv_PermShk
+        PermGroFacAdj = PermGroStg * Inv_Ex_Inv_PermShk
         PermGroFacAdj_facts.update({'latexexpr': r'\mathcal{R}\underline{\permShk}'})
         PermGroFacAdj_facts.update({'urlhandle': urlroot+'PermGroFacAdj'})
         PermGroFacAdj_facts.update({'value_now': PermGroFacAdj})
-        solution.facts.update({'PermGroFacAdj': PermGroFacAdj_facts})
-        solution.PermGroFacAdj_facts = PermGroFacAdj_facts
-        solution.PermGroFacAdj = PermGroFacAdj
+        soln_stge.facts.update({'PermGroFacAdj': PermGroFacAdj_facts})
+        soln_stge.PermGroFacAdj_facts = PermGroFacAdj_facts
+        soln_stge.PermGroFacAdj = PermGroFacAdj
 
         GPFNrm_facts = {
             'about': 'Normalized Expected Growth Patience Factor'}
-        solution.GPFNrm = GPFNrm = solution.GPFRaw * Ex_Inv_PermShk
+        soln_stge.GPFNrm = GPFNrm = soln_stge.GPFRaw * Ex_Inv_PermShk
         GPFNrm_facts.update({'latexexpr': r'\GPFNrm'})
         GPFNrm_facts.update({'_unicode_': r'Þ_Γ'})
         GPFNrm_facts.update({'urlhandle': urlroot+'GPFNrm'})
         GPFNrm_facts.update({'py___code': 'test: GPFNrm < 1'})
-        solution.facts.update({'GPFNrm': GPFNrm_facts})
-        solution.GPFNrm_facts = GPFNrm_facts
+        soln_stge.facts.update({'GPFNrm': GPFNrm_facts})
+        soln_stge.GPFNrm_facts = GPFNrm_facts
 
         GICNrm_facts = {'about': 'Growth Impatience Condition'}
         GICNrm_facts.update({'latexexpr': r'\GICNrm'})
         GICNrm_facts.update({'urlhandle': urlroot+'GICNrm'})
         GICNrm_facts.update({'py___code': 'test: agent.GPFNrm < 1'})
-        solution.facts.update({'GICNrm': GICNrm_facts})
-        solution.GICNrm_facts = GICNrm_facts
+        soln_stge.facts.update({'GICNrm': GICNrm_facts})
+        soln_stge.GICNrm_facts = GICNrm_facts
 
         FVAF_facts = {'about': 'Finite Value of Autarky Factor'}
-        solution.FVAF = FVAF = LivNum * DiscFacEff * uInv_Ex_uInv_PermShk
+        soln_stge.FVAF = FVAF = LivStg * DiscFacStgEff * uInv_Ex_uInv_PermShk
         FVAF_facts.update({'latexexpr': r'\FVAF'})
         FVAF_facts.update({'urlhandle': urlroot+'FVAF'})
-        solution.facts.update({'FVAF': FVAF_facts})
-        solution.FVAF_facts = FVAF_facts
+        soln_stge.facts.update({'FVAF': FVAF_facts})
+        soln_stge.FVAF_facts = FVAF_facts
 
         FVAC_facts = {'about': 'Finite Value of Autarky Condition'}
         FVAC_facts.update({'latexexpr': r'\FVAC'})
         FVAC_facts.update({'urlhandle': urlroot+'FVAC'})
         FVAC_facts.update({'py___code': 'test: FVAF < 1'})
-        solution.facts.update({'FVAC': FVAC_facts})
-        solution.FVAC_facts = FVAC_facts
+        soln_stge.facts.update({'FVAC': FVAC_facts})
+        soln_stge.FVAC_facts = FVAC_facts
 
         DiscGPFNrmCusp_facts = {'about':
                                 'DiscFac s.t. GPFNrm = 1'}
-        solution.DiscGPFNrmCusp = DiscGPFNrmCusp = ((PermGroNum*Inv_Ex_Inv_PermShk)**(CRRA))/Rfree
+        soln_stge.DiscGPFNrmCusp = DiscGPFNrmCusp = (
+            (PermGroStg*Inv_Ex_Inv_PermShk)**(CRRA))/Rfree
         DiscGPFNrmCusp_facts.update({'latexexpr': ''})
         DiscGPFNrmCusp_facts.update({'value_now': DiscGPFNrmCusp})
         DiscGPFNrmCusp_facts.update({
             'py___code': '((PermGro * Inv_Ex_Inv_PermShk) ** CRRA)/(Rfree)'})
-        solution.facts.update({'DiscGPFNrmCusp': DiscGPFNrmCusp_facts})
-        solution.DiscGPFNrmCusp_facts = DiscGPFNrmCusp_facts
+        soln_stge.facts.update({'DiscGPFNrmCusp': DiscGPFNrmCusp_facts})
+        soln_stge.DiscGPFNrmCusp_facts = DiscGPFNrmCusp_facts
 
         DiscGPFRawCusp_facts = {
             'about': 'DiscFac s.t. GPFRaw = 1'}
-        solution.DiscGPFRawCusp = DiscGPFRawCusp = \
-            ((PermGroNum) ** (CRRA)) / (Rfree)
+        soln_stge.DiscGPFRawCusp = DiscGPFRawCusp = \
+            ((PermGroStg) ** (CRRA)) / (Rfree)
         DiscGPFRawCusp_facts.update({'latexexpr': ''})
         DiscGPFRawCusp_facts.update({'value_now': DiscGPFRawCusp})
         DiscGPFRawCusp_facts.update({
             'py___code': '( PermGro                       ** CRRA)/(Rfree)'})
-        solution.facts.update({'DiscGPFRawCusp': DiscGPFRawCusp_facts})
-        solution.DiscGPFRawCusp_facts = DiscGPFRawCusp_facts
+        soln_stge.facts.update({'DiscGPFRawCusp': DiscGPFRawCusp_facts})
+        soln_stge.DiscGPFRawCusp_facts = DiscGPFRawCusp_facts
 
         DiscGPFLivCusp_facts = {
             'about': 'DiscFac s.t. GPFLiv = 1'}
-        solution.DiscGPFLivCusp = DiscGPFLivCusp = ((PermGroNum) ** (CRRA)) \
-            / (Rfree * LivNum)
+        soln_stge.DiscGPFLivCusp = DiscGPFLivCusp = ((PermGroStg) ** (CRRA)) \
+            / (Rfree * LivStg)
         DiscGPFLivCusp_facts.update({'latexexpr': ''})
         DiscGPFLivCusp_facts.update({'value_now': DiscGPFLivCusp})
         DiscGPFLivCusp_facts.update({
-            'py___code': '( PermGroNum                       ** CRRA)/(Rfree*LivNum)'})
-        solution.facts.update({'DiscGPFLivCusp': DiscGPFLivCusp_facts})
-        solution.DiscGPFLivCusp_facts = DiscGPFLivCusp_facts
+            'py___code': '( PermGroStg                       ** CRRA)/(Rfree*LivStg)'})
+        soln_stge.facts.update({'DiscGPFLivCusp': DiscGPFLivCusp_facts})
+        soln_stge.DiscGPFLivCusp_facts = DiscGPFLivCusp_facts
 
         # Calculate objects whose values are built up recursively from
         # prior period's values
 
         Ex_IncNextNrm = np.dot(PermShkValsXref * TranShkValsXref, ShkPrbsNext)
         hNrmNow = (
-            (PermGroNum / Rfree) * (Ex_IncNextNrm + self.solution_next.hNrmNow)
+            (PermGroStg / Rfree) * (Ex_IncNextNrm + self.solution_next.hNrmNow)
         )
-        hNrmNow = PermGroNum/Rfree
+        hNrmNow = PermGroStg/Rfree
         hNrmNow_facts = {'about': 'Finite Human Wealth Factor'}
         hNrmNow_facts.update({'latexexpr': r'\hNrmNow'})
         hNrmNow_facts.update({'_unicode_': r'R/Γ'})
         hNrmNow_facts.update({'urlhandle': urlroot+'hNrmNow'})
-        hNrmNow_facts.update({'py___code': r'PermGroNumInf/Rfree'})
+        hNrmNow_facts.update({'py___code': r'PermGroFacInf/Rfree'})
         hNrmNow_facts.update({'value_now': hNrmNow})
-        solution.facts.update({'hNrmNow': hNrmNow_facts})
-        solution.hNrmNow_facts = hNrmNow_facts
-        self.hNrmNow = solution.hNrmNow = hNrmNow
+        soln_stge.facts.update({'hNrmNow': hNrmNow_facts})
+        soln_stge.hNrmNow_facts = hNrmNow_facts
+        self.soln_stge.hNrmNow = soln_stge.hNrmNow = hNrmNow
 
-        MPCminNow = 1.0 / (1.0 + solution.RPF / self.solution_next.MPCminNow)
+        MPCminNow = 1.0 / (1.0 + soln_stge.RPF / self.solution_next.MPCminNow)
         MPCminNow_facts = {
             'about': 'Minimal MPC as m -> infty'}
         MPCminNow_facts.update({'latexexpr': r''})
         MPCminNow_facts.update({'urlhandle': urlroot+'MPCminNow'})
         MPCminNow_facts.update({'value_now': MPCminNow})
-        solution.facts.update({'MPCminNow': MPCminNow_facts})
-        solution.MPCminNow_facts = MPCminNow_facts
-        self.MPCminNow = solution.MPCminNow = MPCminNow
+        soln_stge.facts.update({'MPCminNow': MPCminNow_facts})
+        soln_stge.MPCminNow_facts = MPCminNow_facts
+        self.soln_stge.MPCminNow = soln_stge.MPCminNow = MPCminNow
 
-        MPCmaxNow = 1.0 / (1.0 + (WorstIncPrb ** (1.0 / CRRA)) * solution.RPF
+        MPCmaxNow = 1.0 / (1.0 + (WorstIncPrb ** (1.0 / CRRA)) * soln_stge.RPF
                            / self.solution_next.MPCmaxNow)
         MPCmaxNow_facts = {
             'about': 'Maximal MPC in current period as m -> minimum'}
         MPCmaxNow_facts.update({'latexexpr': r''})
         MPCmaxNow_facts.update({'urlhandle': urlroot+'MPCmaxNow'})
         MPCmaxNow_facts.update({'value_now': MPCmaxNow})
-        solution.facts.update({'MPCmaxNow': MPCmaxNow_facts})
-        solution.MPCmaxNow_facts = MPCmaxNow_facts
-        solution.MPCmaxNow = MPCmaxNow
-#       print('MPCmaxNow matches: ' + str(solution.MPCmaxNow == self.solnew.MPCmaxNow))
+        soln_stge.facts.update({'MPCmaxNow': MPCmaxNow_facts})
+        soln_stge.MPCmaxNow_facts = MPCmaxNow_facts
+        soln_stge.MPCmaxNow = MPCmaxNow
+#       print('MPCmaxNow matches: ' + str(soln_stge.MPCmaxNow == self.solnew.MPCmaxNow))
 
         # Lower bound of aggregate wealth growth if all inheritances squandered
 
@@ -1561,9 +1640,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         cFuncLimitIntercept_facts.update({'value_now': cFuncLimitIntercept})
         cFuncLimitIntercept_facts.update({
             'py___code': 'MPCminNow * hNrmNow'})
-        solution.facts.update({'cFuncLimitIntercept': cFuncLimitIntercept_facts})
-        solution.cFuncLimitIntercept_facts = cFuncLimitIntercept_facts
-        solution.cFuncLimitIntercept = cFuncLimitIntercept
+        soln_stge.facts.update({'cFuncLimitIntercept': cFuncLimitIntercept_facts})
+        soln_stge.cFuncLimitIntercept_facts = cFuncLimitIntercept_facts
+        soln_stge.cFuncLimitIntercept = cFuncLimitIntercept
 
         cFuncLimitSlope = MPCminNow
         cFuncLimitSlope_facts = {
@@ -1573,13 +1652,13 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         cFuncLimitSlope_facts.update({'value_now': cFuncLimitSlope})
         cFuncLimitSlope_facts.update({
             'py___code': 'MPCminNow * hNrmNow'})
-        solution.facts.update({'cFuncLimitSlope': cFuncLimitSlope_facts})
-        solution.cFuncLimitSlope_facts = cFuncLimitSlope_facts
-        solution.cFuncLimitSlope = cFuncLimitSlope
+        soln_stge.facts.update({'cFuncLimitSlope': cFuncLimitSlope_facts})
+        soln_stge.cFuncLimitSlope_facts = cFuncLimitSlope_facts
+        soln_stge.cFuncLimitSlope = cFuncLimitSlope
 
         # # Merge all the parameters
         # # In python 3.9, the syntax is new_dict = dict_a | dict_b
-        # solution.params_all = {**self.params_cons_ind_shock_setup_init,
+        # soln_stge.params_all = {**self.params_cons_ind_shock_setup_init,
         #                    **params_cons_ind_shock_setup_set_and_update_values}
 
         # Now that the calculations are done, store results in self.
@@ -1594,69 +1673,72 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             1 / (1 - CRRA)
         )
 
-        if solution.Inv_PF_RNrm < 1:        # Finite if Rfree > PermGroNum
-            solution.hNrmNowInf = 1/(1-solution.Inv_PF_RNrm)
+        if soln_stge.Inv_PF_RNrm < 1:        # Finite if Rfree > PermGroStg
+            soln_stge.hNrmNowInf = 1/(1-soln_stge.Inv_PF_RNrm)
 
         # Given m, value of c where E[m_{t+1}]=m_{t}
         # url/#
-        solution.c_where_Ex_mtp1_minus_mt_eq_0 = (
+        soln_stge.c_where_Ex_mtp1_minus_mt_eq_0 = (
             lambda m_t:
-            m_t * (1 - solution.Inv_Ex_RNrm) + (solution.Inv_Ex_RNrm)
+            m_t * (1 - soln_stge.Inv_Ex_RNrm) + (soln_stge.Inv_Ex_RNrm)
         )
 
-        # Given m, value of c where E[mLev_{t+1}/mLev_{t}]=PermGroNum
+        # Given m, value of c where E[mLev_{t+1}/mLev_{t}]=PermGroStg
         # Solves for c in equation at url/#balgrostable
 
-        solution.c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0 = (
+        soln_stge.c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0 = (
             lambda m_t:
-            m_t * (1 - solution.Inv_PF_RNrm) + solution.Inv_PF_RNrm
+            m_t * (1 - soln_stge.Inv_PF_RNrm) + soln_stge.Inv_PF_RNrm
         )
 
         # E[c_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
-        solution.Ex_cLev_tp1_Over_pLev_t_from_at = (
+        soln_stge.Ex_cLev_tp1_Over_pLev_t_from_at = (
             lambda a_t:
-            np.dot(solution.PermGroNum *
-                   solution.PermShkValsXref *
-                   solution.cFunc(
-                       (solution.PF_RNrm/solution.PermShkValsXref) * a_t
-                       + solution.TranShkValsXref
+            np.dot(soln_stge.PermGroStg *
+                   soln_stge.PermShkValsXref *
+                   soln_stge.cFunc(
+                       (soln_stge.PF_RNrm/soln_stge.PermShkValsXref) * a_t
+                       + soln_stge.TranShkValsXref
                    ),
-                   solution.ShkPrbsNext)
+                   soln_stge.ShkPrbsNext)
         )
 
-        solution.c_where_Ex_mtp1_minus_mt_eq_0 = c_where_Ex_mtp1_minus_mt_eq_0 = (
+        soln_stge.c_where_Ex_mtp1_minus_mt_eq_0 = c_where_Ex_mtp1_minus_mt_eq_0 = (
             lambda m_t:
-            m_t * (1 - 1/solution.Ex_RNrm) + (1/solution.Ex_RNrm)
+            m_t * (1 - 1/soln_stge.Ex_RNrm) + (1/soln_stge.Ex_RNrm)
         )
 
         # Solve the equation at url/#balgrostable
-        solution.c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0 = \
+        soln_stge.c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0 = \
             c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0 = (
                 lambda m_t:
-                (m_t * (1 - 1/solution.PF_RNrm)) + (1/solution.PF_RNrm)
+                (m_t * (1 - 1/soln_stge.PF_RNrm)) + (1/soln_stge.PF_RNrm)
             )
 
         # mNrmTrg solves Ex_RNrm*(m - c(m)) + E[inc_next] - m = 0
         Ex_m_tp1_minus_m_t = (
             lambda m_t:
-            solution.Ex_RNrm * (m_t - solution.cFunc(m_t))+solution.Ex_IncNextNrm - m_t
+            soln_stge.Ex_RNrm * (m_t - soln_stge.cFunc(m_t)) +
+            soln_stge.Ex_IncNextNrm - m_t
         )
-        solution.Ex_m_tp1_minus_m_t = Ex_m_tp1_minus_m_t
+        soln_stge.Ex_m_tp1_minus_m_t = Ex_m_tp1_minus_m_t
 
-        solution.Ex_cLev_tp1_Over_pLev_t_from_at = Ex_cLev_tp1_Over_pLev_t_from_at = (
+        soln_stge.Ex_cLev_tp1_Over_pLev_t_from_at = Ex_cLev_tp1_Over_pLev_t_from_at = (
             lambda a_t:
             np.dot(
-                solution.PermShkValsXref * solution.PermGroNum * solution.cFunc(
-                    (solution.PF_RNrm/solution.PermShkValsXref) * a_t + solution.TranShkValsXref
+                soln_stge.PermShkValsXref * soln_stge.PermGroStg * soln_stge.cFunc(
+                    (soln_stge.PF_RNrm/soln_stge.PermShkValsXref) *
+                    a_t + soln_stge.TranShkValsXref
                 ),
-                solution.ShkPrbsNext)
+                soln_stge.ShkPrbsNext)
         )
 
-        solution.Ex_PermShk_tp1_times_m_tp1_minus_m_t = \
+        soln_stge.Ex_PermShk_tp1_times_m_tp1_minus_m_t = \
             Ex_PermShk_tp1_times_m_tp1_minus_m_t = (
-                lambda m_t: self.PF_RNrm * (m_t - solution.cFunc(m_t)) + 1.0 - m_t
+                lambda m_t: self.soln_stge.PF_RNrm *
+                (m_t - soln_stge.cFunc(m_t)) + 1.0 - m_t
             )
-        return solution
+        return soln_stge
 
     def def_BoroCnst(self, BoroCnstArt):
         """
@@ -1675,35 +1757,37 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         -------
         none
         """
+        PermShkVals = self.soln_stge.IncShkDstnStg.X[0]  # .X[1] gets corresponding TranShk
+        TempShkVals = self.soln_stge.IncShkDstnStg.X[1]  # .X[1] gets corresponding PermShk
+        TempShkMin = min(TempShkVals)
+        PermShkMin = min(PermShkVals)
         # Calculate the minimum allowable value of money resources in this period
-        self.BoroCnstNat = (
-            (self.solution_next.mNrmMin - self.TranShkMinNext)
-            * (self.PermGroFac * self.PermShkMinNext)
-            / self.Rfree
+        self.soln_stge.BoroCnstNat = (
+            (self.solution_next.mNrmMin - TempShkMin)
+            * (self.soln_stge.PermGroFacStg * PermShkMin)
+            / self.soln_stge.Rfree
         )
 
         if BoroCnstArt is None:
-            self.mNrmMinNow = self.BoroCnstNat
-#            self.solnew.mNrmMinNow = self.solnew.BoroCnstNat
+            self.soln_stge.mNrmMinNow = self.soln_stge.BoroCnstNat
         else:
-            self.mNrmMinNow = np.max([self.BoroCnstNat, BoroCnstArt])
-#            self.solnew.mNrmMinNow = np.max([self.solnew.BoroCnstNat, BoroCnstArt])
-        if self.BoroCnstNat < self.mNrmMinNow:
-            self.MPCmaxNowEff = 1.0  # If actually constrained, MPC near limit is 1
-#            self.solnew.MPCmaxNowEff = 1.0  # If actually constrained, MPC near limit is 1
-        else:
-            self.MPCmaxNowEff = self.MPCmaxNow
-#            self.solnew.MPCmaxNowEff = self.solnew.MPCmaxNow
+            self.soln_stge.mNrmMinNow = np.max([self.soln_stge.BoroCnstNat, BoroCnstArt])
+            # Liquidity constrained consumption function: c(mMin+x) = x
+            self.soln_stge.cFuncNowCnst = LinearInterp(
+                np.array([self.soln_stge.mNrmMinNow, self.soln_stge.mNrmMinNow + 1]
+                         ), np.array([0.0, 1.0])
+            )
+
+        # if self.soln_stge.BoroCnstNat < self.soln_stge.mNrmMinNow:
+        #     self.soln_stge.MPCmaxNowEff = 1.0  # If actually constrained, MPC at limit is 1
+        # else:
+        #     self.soln_stge.MPCmaxNowEff = self.soln_stge.MPCmaxNow
 
         # Define the borrowing constraint (limiting consumption function)
-        self.cFuncNowCnst = LinearInterp(
-            np.array([self.mNrmMinNow, self.mNrmMinNow + 1]), np.array([0.0, 1.0])
-        )
 
     def prepare_to_solve(self):
         """
-        Perform preparatory work before calculating this period's unconstrained consumption
-        function.
+        Perform preparatory work when the solver is first invoked.
 
         Parameters
         ----------
@@ -1713,11 +1797,15 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         -------
         none
         """
-        print('hi')
-        # self.set_and_update_values(
-        #     self.solution_next, self.IncShkDstn, self.LivPrb, self.DiscFac
-        # )
-        self.def_BoroCnst(self.BoroCnstArt)
+        self.soln_stge.solver_check_condtnsnew_20210404 = self.solver_check_condtnsnew_20210404
+        self.soln_stge.solver_check_AIC_20210404 = self.solver_check_AIC_20210404
+        self.soln_stge.solver_check_RIC_20210404 = self.solver_check_RIC_20210404
+        self.soln_stge.solver_check_FVAC_20210404 = self.solver_check_FVAC_20210404
+        self.soln_stge.solver_check_GICLiv_20210404 = self.solver_check_GICLiv_20210404
+        self.soln_stge.solver_check_GICRaw_20210404 = self.solver_check_GICRaw_20210404
+        self.soln_stge.solver_check_GICNrm_20210404 = self.solver_check_GICNrm_20210404
+        self.soln_stge.solver_check_FHWC_20210404 = self.solver_check_FHWC_20210404
+        self.soln_stge.solver_check_WRIC_20210404 = self.solver_check_WRIC_20210404
 
 
 ####################################################################################################
@@ -1739,8 +1827,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
     def prepare_to_calc_EndOfPrdvP(self):
         """
         Prepare to calculate end-of-period marginal value by creating an array
-        of market resources that the agent could have next period, given the 
-        current grid of end-of-period assets and the distribution of shocks 
+        of market resources that the agent could have next period, given the
+        current grid of end-of-period assets and the distribution of shocks
         they might experience next period.
 
         Parameters
@@ -1750,7 +1838,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         Returns
         -------
         aNrmNow : np.array
-            A 1D array of end-of-period assets; also stored as attribute of self.
+            A 1D array of end-of-period assets; also stored as attribute of self.soln_stge.
         """
 
         # We define aNrmNow all the way from BoroCnstNat up to max(self.aXtraGrid)
@@ -1758,9 +1846,10 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # function as the lower envelope of the (by the artificial borrowing con-
         # straint) unconstrained consumption function, and the artificially con-
         # strained consumption function.
-        self.aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
+        self.soln_stge.aNrmNow = np.asarray(
+            self.soln_stge.aXtraGrid) + self.soln_stge.BoroCnstNat
 
-        return self.aNrmNow
+        return self.soln_stge.aNrmNow
 
     def m_Nrm_tp1(self, shocks, a_Nrm_Val):
         """
@@ -1780,14 +1869,14 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         float
            normalized market resources in the next period
         """
-        return self.Rfree / (self.PermGroFac * shocks[0]) \
+        return self.soln_stge.Rfree / (self.soln_stge.PermGroFacStg * shocks[0]) \
             * a_Nrm_Val + shocks[1]
 
     def calc_EndOfPrdvP(self):
         """
         Calculate end-of-period marginal value of assets at each point in aNrmNow.
         Does so by taking a weighted sum of next period marginal values across
-        income shocks (in a preconstructed grid self.mNrmNext).
+        income shocks (in a preconstructed grid self.soln_stge.mNrmNext).
 
         Parameters
         ----------
@@ -1800,23 +1889,23 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
 
         def vp_next(shocks, a_Nrm_Val):
-            return shocks[0] ** (-self.CRRA) \
-                * self.vPfuncNext(self.m_Nrm_tp1(shocks, a_Nrm_Val))
+            return shocks[0] ** (-self.soln_stge.CRRA) \
+                * self.solution_next.vPfunc(self.m_Nrm_tp1(shocks, a_Nrm_Val))
 
         EndOfPrdvP = (
-            self.DiscFacEff
-            * self.Rfree
-            * self.PermGroFac ** (-self.CRRA)
+            self.soln_stge.DiscFacStg * self.soln_stge.LivPrbStg
+            * self.soln_stge.Rfree
+            * self.soln_stge.PermGroFacStg ** (-self.soln_stge.CRRA)
             * calc_expectation(
-                self.IncShkDstn,
+                self.soln_stge.IncShkDstnStg,
                 vp_next,
-                self.aNrmNow
+                self.soln_stge.aNrmNow
             )
         )
 
         return EndOfPrdvP
 
-    def get_interpolation_points_via_EGM(self, EndOfPrdvP, aNrmNow):
+    def get_source_points_via_EGM(self, EndOfPrdvP, aNrmNow):
         """
         Finds interpolation points (c,m) for the consumption function.
 
@@ -1835,16 +1924,16 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         m_for_interpolation : np.array
             Corresponding market resource points for interpolation.
         """
-        cNrmNow = self.uPinv(EndOfPrdvP)
+        cNrmNow = self.soln_stge.uPinv(EndOfPrdvP)
         mNrmNow = cNrmNow + aNrmNow
 
         # Limiting consumption is zero as m approaches mNrmMin
         c_for_interpolation = np.insert(cNrmNow, 0, 0.0, axis=-1)
-        m_for_interpolation = np.insert(mNrmNow, 0, self.BoroCnstNat, axis=-1)
+        m_for_interpolation = np.insert(mNrmNow, 0, self.soln_stge.BoroCnstNat, axis=-1)
 
         # Store these for calcvFunc
-        self.cNrmNow = cNrmNow
-        self.mNrmNow = mNrmNow
+        self.soln_stge.cNrmNow = cNrmNow
+        self.soln_stge.mNrmNow = mNrmNow
 
         return c_for_interpolation, m_for_interpolation
 
@@ -1864,28 +1953,37 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         Returns
         -------
-        solution_now : ConsumerSolution
+        solution_interpolating : ConsumerSolution
             The solution to this period's consumption-saving problem, with a
-            consumption function, marginal value function, and minimum m.
+            minimum m, a consumption function, and marginal value function.
         """
-        # Construct the unconstrained consumption function
+        # Use the given interpolator to construct the consumption function
         cFuncNowUnc = interpolator(mNrm, cNrm)
 
         # Combine the constrained and unconstrained functions into the true consumption function
-        # breakpoint()  # LowerEnvelope should only be used when BoroCnstArt is true
-        cFuncNow = LowerEnvelope(cFuncNowUnc, self.cFuncNowCnst, nan_bool=False)
+        # by choosing the lower of the constrained and unconstrained functions
+        # LowerEnvelope should only be used when BoroCnstArt is true
+        if self.soln_stge.BoroCnstArt is None:
+            cFuncNow = cFuncNowUnc
+        else:
+            self.soln_stge.cFuncNowCnst = LinearInterp(
+                np.array([self.soln_stge.mNrmMinNow, self.soln_stge.mNrmMinNow + 1]
+                         ), np.array([0.0, 1.0]))
+            cFuncNow = LowerEnvelope(cFuncNowUnc, self.soln_stge.cFuncNowCnst, nan_bool=False)
 
         # Make the marginal value function and the marginal marginal value function
-        vPfuncNow = MargValueFuncCRRA(cFuncNow, self.CRRA)
+        vPfuncNow = MargValueFuncCRRA(cFuncNow, self.soln_stge.CRRA)
 
         # Pack up the solution and return it
-        solution_now = ConsumerSolution(
-            cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow
+        solution_interpolating = ConsumerSolution(
+            cFunc=cFuncNow,
+            vPfunc=vPfuncNow,
+            mNrmMin=self.soln_stge.mNrmMinNow
         )
 
-        return solution_now
+        return solution_interpolating
 
-    def make_EGM_solution(self, EndOfPrdvP, aNrm, interpolator):
+    def interpolating_EGM_solution(self, EndOfPrdvP, aNrmGrid, interpolator):
         """
         Given end of period assets and end of period marginal value, construct
         the basic solution for this period.
@@ -1894,7 +1992,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         ----------
         EndOfPrdvP : np.array
             Array of end-of-period marginal values.
-        aNrm : np.array
+        aNrmGrid : np.array
             Array of end-of-period asset values that yield the marginal values
             in EndOfPrdvP.
 
@@ -1903,16 +2001,47 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         Returns
         -------
-        solution_now : ConsumerSolution
-            The solution to this period's consumption-saving problem, with a
+        sol_EGM : ConsumerSolution
+            The EGM solution to this period's consumption-saving problem, with a
             consumption function, marginal value function, and minimum m.
         """
-        cNrm, mNrm = self.get_interpolation_points_via_EGM(EndOfPrdvP, aNrm)
-        solution_now = self.use_points_for_interpolation(cNrm, mNrm, interpolator)
+        cNrm, mNrm = self.get_source_points_via_EGM(EndOfPrdvP, aNrmGrid)
+        sol_EGM = \
+            self.use_points_for_interpolation(cNrm, mNrm, interpolator)
 
-        return solution_now
+        return sol_EGM
 
-    def solution_add_MPC_bounds_and_human_wealth_PDV(self, solution):
+    def make_sol_using_EGM(self):  # Endogenous Gridpoints Method
+        """
+        Given a grid of end-of-period values of assets a, use the endogenous
+        gridpoints method to obtain the corresponding values of consumption,
+        and use the dynamic budget constraint to obtain the corresponding value
+        of market resources m.
+
+        Parameters
+        ----------
+        none (relies upon self.soln_stge.aNrmNow existing before invocation)
+
+        Returns
+        -------
+        solution : ConsumerSolution
+            The solution to the single period consumption-saving problem.
+        """
+        self.soln_stge.aNrmNow = self.prepare_to_calc_EndOfPrdvP()
+        self.soln_stge.EndOfPrdvP = self.calc_EndOfPrdvP()
+
+        # Construct a solution for this period
+        if self.soln_stge.CubicBool:
+            soln_stge = self.interpolating_EGM_solution(
+                self.soln_stge.EndOfPrdvP, self.soln_stge.aNrmNow, interpolator=self.make_cubic_cFunc
+            )
+        else:
+            soln_stge = self.interpolating_EGM_solution(
+                self.soln_stge.EndOfPrdvP, self.soln_stge.aNrmNow, interpolator=self.make_linear_cFunc
+            )
+        return soln_stge
+
+    def solution_add_MPC_bounds_and_human_wealth_PDV(self, soln_stge):
         """
         Take a solution and add human wealth and the bounding MPCs to it.
 
@@ -1927,14 +2056,14 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             The solution to this period's consumption-saving problem, but now
             with human wealth and the bounding MPCs.
         """
-        solution.hNrmNow = self.hNrmNow
-        solution.MPCminNow = self.MPCminNow
-        solution.MPCmaxNow = self.MPCmaxNowEff
+        soln_stge.hNrmNow = self.hNrmNow
+        soln_stge.MPCminNow = self.MPCminNow
+        soln_stge.MPCmaxNow = self.MPCmaxNowEff
 #        _log.warning(
 #            "add_MPC_bounds_and_human_wealth_PDV is deprecated; its functions have been absorbed by add_results")
-        return solution
+        return soln_stge
 
-    def add_mNrmTrg(self, solution):
+    def add_mNrmTrg(self, soln_stge):
         """
         Finds value of (normalized) market resources m at which individual consumer
         expects m not to change.
@@ -1960,90 +2089,93 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # If no uncertainty, return the degenerate targets for the PF model
         if hasattr(self, "TranShkMinNext"):  # Then it has transitory shocks
             # Handle the degenerate case where shocks are of size zero
-            if ((self.TranShkMinNext == 1.0) and (self.PermShkMinNext == 1.0)):
+            if ((self.soln_stge.TranShkMinNext == 1.0) and (self.soln_stge.PermShkMinNext == 1.0)):
                 # But they still might have unemployment risk
                 if hasattr(self, "UnempPrb"):
-                    if ((self.UnempPrb == 0.0) or (self.IncUnemp == 1.0)):
+                    if ((self.soln_stge.UnempPrb == 0.0) or (self.soln_stge.IncUnemp == 1.0)):
                         PerfFsgt = True  # No unemployment risk either
                     else:
                         PerfFsgt = False  # The only kind of uncertainty is unemployment
 
         if PerfFsgt:  # If growth impatient limit be to borrow max possible
-            if self.GICRaw:  # max of nat and art boro cnst
-                if type(self.BoroCnstArt) == type(None):
-                    solution.mNrmStE = -self.hNrmNow
-                    solution.mNrmTrg = -self.hNrmNow
+            if self.soln_stge.GICRaw:  # max of nat and art boro cnst
+                if type(self.soln_stge.BoroCnstArt) == type(None):
+                    soln_stge.mNrmStE = -self.soln_stge.hNrmNow
+                    soln_stge.mNrmTrg = -self.soln_stge.hNrmNow
                 else:
-                    bNrmNxt = -self.BoroCnstArt * self.PF_RNrm
-                    solution.mNrmStE = bNrmNxt + 1.0
-                    solution.mNrmTrg = bNrmNxt + 1.0
+                    bNrmNxt = -self.soln_stge.BoroCnstArt * self.soln_stge.PF_RNrm
+                    soln_stge.mNrmStE = bNrmNxt + 1.0
+                    soln_stge.mNrmTrg = bNrmNxt + 1.0
             else:  # infinity
-                solution.mNrmStE = float('inf')
-                solution.mNrmTrg = float('inf')
-            return solution
+                soln_stge.mNrmStE = float('inf')
+                soln_stge.mNrmTrg = float('inf')
+            return soln_stge
 
         # First find
         # \bar{\mathcal{R}} = E_t[R/Gamma_{t+1}] = (R/Gamma) E_t[1/psi_{t+1}]
         if type(self) == ConsPerfForesightSolver:
             Ex_PermShkInv = 1.0
         else:
-            Ex_PermShkInv = np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
+            Ex_PermShkInv = np.dot(1/self.soln_stge.PermShkValsNext,
+                                   self.soln_stge.ShkPrbsNext)
 
         c_where_Ex_mtp1_minus_mt_eq_0 = (
             lambda m_t:
-            m_t * (1 - 1/solution.Ex_RNrm) + (1/solution.Ex_RNrm)
+            m_t * (1 - 1/soln_stge.Ex_RNrm) + (1/soln_stge.Ex_RNrm)
         )
-        solution.c_where_Ex_mtp1_minus_mt_eq_0 = c_where_Ex_mtp1_minus_mt_eq_0
+        soln_stge.c_where_Ex_mtp1_minus_mt_eq_0 = c_where_Ex_mtp1_minus_mt_eq_0
 
         # Solve the equation at url/#balgrostable
         # for c
         c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0 = (
             lambda m_t:
-            (m_t * (1 - 1/solution.PF_RNrm)) + (1/solution.PF_RNrm)
+            (m_t * (1 - 1/soln_stge.PF_RNrm)) + (1/soln_stge.PF_RNrm)
         )
-        solution.c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0 = c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0
+        soln_stge.c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0 = c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0
 
         # mNrmTrg solves Ex_RNrm*(m - c(m)) + E[inc_next] - m = 0
         Ex_m_tp1_minus_m_t = (
             lambda m_t:
-            solution.Ex_RNrm * (m_t - solution.cFunc(m_t))+solution.Ex_IncNextNrm - m_t
+            soln_stge.Ex_RNrm * (m_t - soln_stge.cFunc(m_t)) +
+            soln_stge.Ex_IncNextNrm - m_t
         )
-        solution.Ex_m_tp1_minus_m_t = Ex_m_tp1_minus_m_t
+        soln_stge.Ex_m_tp1_minus_m_t = Ex_m_tp1_minus_m_t
 
         # def mNrmTrg_for_solution(self):solution_
         # # Minimum market resources plus next income is okay starting guess
-        #     m_init_guess=solution.mNrmMin + solution.Ex_IncNextNrm
+        #     m_init_guess=soln_stge.mNrmMin + soln_stge.Ex_IncNextNrm
         #     try:
         #         mNrmTrg=newton(
-        #             solution.Ex_m_tp1_minus_m_t,
+        #             soln_stge.Ex_m_tp1_minus_m_t,
         #             m_init_guess)
         #     except:
         #         mNrmTrg=None
 
-        #     return solution
+        #     return soln_stge
 
         # url/#
-        solution.Ex_cLev_tp1_Over_pLev_t_from_at = (
+        soln_stge.Ex_cLev_tp1_Over_pLev_t_from_at = (
             lambda a_t:
             np.dot(
-                solution.PermShkValsNext * solution.PermGroFac * solution.cFunc(
-                    (solution.PF_RNrm/solution.PermShkValsNext) * a_t + solution.TranShkValsNext
+                soln_stge.PermShkValsNext * soln_stge.PermGroFacStg * soln_stge.cFunc(
+                    (soln_stge.PF_RNrm/soln_stge.PermShkValsNext) *
+                    a_t + soln_stge.TranShkValsNext
                 ),
-                solution.ShkPrbsNext)
+                soln_stge.ShkPrbsNext)
         )
 
         # Minimum market resources plus next income is okay starting guess
-        m_init_guess = solution.mNrmMin + solution.Ex_IncNextNrm
+        m_init_guess = soln_stge.mNrmMin + soln_stge.Ex_IncNextNrm
         try:
             mNrmTrg = newton(Ex_m_tp1_minus_m_t, m_init_guess)
         except:
             mNrmTrg = None
 
         # Add mNrmTrg to the solution and return it
-        solution.mNrmTrg = mNrmTrg
-        return solution
+        soln_stge.mNrmTrg = mNrmTrg
+        return soln_stge
 
-    def add_mNrmTrg_new(self, solution):
+    def add_mNrmTrg_new(self, soln_stge):
         """
         Finds value of (normalized) market resources m at which individual consumer
         expects m not to change.
@@ -2063,21 +2195,21 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
 
         # Minimum market resources plus next income is okay starting guess
-        m_init_guess = solution.mNrmMin + solution.Ex_IncNextNrm
+        m_init_guess = soln_stge.mNrmMin + soln_stge.Ex_IncNextNrm
         try:
             mNrmTrg = newton(
-                solution.Ex_m_tp1_minus_m_t,
+                soln_stge.Ex_m_tp1_minus_m_t,
                 m_init_guess)
         except:
             mNrmTrg = None
 
         # Add mNrmTrg to the solution and return it
-#        solution.mNrmTrg_new = mNrmTrg
-        return solution
+#        soln_stge.mNrmTrg_new = mNrmTrg
+        return soln_stge
 
-    # Making this a # @staticmethod allows us to attach it to the solution
+    # Making this a # # @staticmethod allows us to attach it to the solution
     # @staticmethod
-    def mNrmTrg_find(solution):
+    def mNrmTrg_find(soln_stge):
         """
         Finds value of (normalized) market resources mNrm at which individual consumer
         expects m not to change.
@@ -2098,17 +2230,17 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # Minimum market resources plus next income is okay starting guess
         # Better would be to presere the last value (if it exists)
         # and use that as a starting point
-        m_init_guess = solution.mNrmMin + solution.Ex_IncNextNrm
+        m_init_guess = soln_stge.mNrmMin + soln_stge.Ex_IncNextNrm
         try:
             mNrmTrg = newton(  # Find value where argument is zero
-                solution.Ex_m_tp1_minus_m_t,
+                soln_stge.Ex_m_tp1_minus_m_t,
                 m_init_guess)
         except:
             mNrmTrg = None
 
         return mNrmTrg
 
-    def add_mNrmStE_new(self, solution):
+    def add_mNrmStE_new(self, soln_stge):
         """
         Finds market resources ratio at which 'balanced growth' is expected.
         This is the m ratio such that the expected growth rate of the M level
@@ -2128,29 +2260,29 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
 
         # If the necessary inputs have not yet been made, make them
-        if not hasattr(solution, "Ex_PermShk_tp1_times_m_tp1_minus_m_t"):
-            solution = self.add_MPC_bounds_and_human_wealth_PDV(solution)
+        if not hasattr(soln_stge, "Ex_PermShk_tp1_times_m_tp1_minus_m_t"):
+            soln_stge = self.add_MPC_bounds_and_human_wealth_PDV(soln_stge)
 
-        if not hasattr(solution, "Ex_IncNextNrm"):
-            solution = self.add_MPC_bounds_and_human_wealth_PDV(solution)
+        if not hasattr(soln_stge, "Ex_IncNextNrm"):
+            soln_stge = self.add_MPC_bounds_and_human_wealth_PDV(soln_stge)
 
         # Minimum market resources plus next income is starting guess
         m_init_guess = self.mNrmMinNow + 1.0
         # newton() finds the point where this is zero
         try:
             mNrmStE = newton(
-                solution.Ex_PermShk_tp1_times_m_tp1_minus_m_t,
+                soln_stge.Ex_PermShk_tp1_times_m_tp1_minus_m_t,
                 m_init_guess
             )
         except:
             mNrmStE = None
 
-        solution.mNrmStE_new = mNrmStE
-        return solution
+        soln_stge.mNrmStE_new = mNrmStE
+        return soln_stge
 
-    # Making this a # @staticmethod allows us to attach it to the solution
+    # Making this a # # @staticmethod allows us to attach it to the solution
     # @staticmethod
-    def mNrmStE_find(solution):
+    def mNrmStE_find(soln_stge):
         """
         Finds market resources ratio at which 'balanced growth' is expected.
         This is the m ratio such that the expected growth rate of the M level
@@ -2166,16 +2298,16 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         Returns
         -------
         mNrmStE : Value of mNrm for the given ConsumerSolution where
-            `Ex_mLev_tp1_over_mLev_t == PermGroFac`
+            `Ex_mLev_tp1_over_mLev_t == PermGroFacStg`
 
         """
         # Minimum market resources plus next income is starting guess
 
-        m_init_guess = solution.mNrmMin + 1.0
+        m_init_guess = soln_stge.mNrmMin + 1.0
         # newton() finds the point where this is zero
         try:
             mNrmStE = newton(  # Finds the point where argument is zero
-                solution.Ex_PermShk_tp1_times_m_tp1_minus_m_t,
+                soln_stge.Ex_PermShk_tp1_times_m_tp1_minus_m_t,
                 m_init_guess
             )
         except:
@@ -2184,7 +2316,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         return mNrmStE
 
-    def add_mNrmStE(self, solution):
+    def add_mNrmStE(self, soln_stge):
         """
         Finds market resources ratio at which 'balanced growth' is expected.
         This is the m ratio such that the expected growth rate of the M level
@@ -2204,41 +2336,41 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
         # Probably should test whether GICRaw holds and log error if it does not
         # using check_conditions
-        # All combinations of c and m that yield E[PermGroFac PermShkVal mNext] = mNow
+        # All combinations of c and m that yield E[PermGroFacStg PermShkVal mNext] = mNow
         # https://econ-ark.github.io/BufferStockTheory/#The-Individual-Steady-State
 
-        # PF_RNrm = self.PF_RNrm
+        # PF_RNrm = self.soln_stge.PF_RNrm
 
         # If we are working with a model that permits uncertainty but
         # uncertainty has been set to zero, calculate the correct answer
         # by hand because in this degenerate case numerical search will
         # have trouble
         if hasattr(self, "TranShkMinNext"):  # Then it has transitory shocks
-            if ((self.TranShkMinNext == 1.0) and (self.PermShkMinNext == 1.0)):
+            if ((self.soln_stge.TranShkMinNext == 1.0) and (self.soln_stge.PermShkMinNext == 1.0)):
                 # but of zero size (and permanent shocks also not there)
-                if self.GICRaw:  # max of nat and art boro cnst
+                if self.soln_stge.GICRaw:  # max of nat and art boro cnst
                     #                    breakpoint()
-                    if type(self.BoroCnstArt) == type(None):
-                        solution.mNrmStE = -self.hNrmNow
-                        solution.mNrmTrg = -self.hNrmNow
+                    if type(self.soln_stge.BoroCnstArt) == type(None):
+                        soln_stge.mNrmStE = -self.soln_stge.hNrmNow
+                        soln_stge.mNrmTrg = -self.soln_stge.hNrmNow
                     else:
-                        bNrmNxt = -self.BoroCnstArt * self.PF_RNrm
-                        solution.mNrmStE = bNrmNxt + 1.0
-                        solution.mNrmTrg = bNrmNxt + 1.0
+                        bNrmNxt = -self.soln_stge.BoroCnstArt * self.soln_stge.PF_RNrm
+                        soln_stge.mNrmStE = bNrmNxt + 1.0
+                        soln_stge.mNrmTrg = bNrmNxt + 1.0
                 else:  # infinity
-                    solution.mNrmStE = float('inf')
-                    solution.mNrmTrg = float('inf')
-                return solution
+                    soln_stge.mNrmStE = float('inf')
+                    soln_stge.mNrmTrg = float('inf')
+                return soln_stge
 
         Ex_PermShk_tp1_times_m_tp1_minus_m_t = (
-            lambda m_t: solution.PF_RNrm * (m_t - solution.cFunc(m_t)) + 1.0 - m_t
+            lambda m_t: soln_stge.PF_RNrm * (m_t - soln_stge.cFunc(m_t)) + 1.0 - m_t
         )
 
-        solution.Ex_PermShk_tp1_times_m_tp1_minus_m_t = \
+        soln_stge.Ex_PermShk_tp1_times_m_tp1_minus_m_t = \
             Ex_PermShk_tp1_times_m_tp1_minus_m_t
 
         # Minimum market resources plus next income is okay starting guess
-        m_init_guess = self.mNrmMinNow + 1.0
+        m_init_guess = self.soln_stge.mNrmMinNow + 1.0
         try:
             mNrmStE = newton(
                 Ex_PermShk_tp1_times_m_tp1_minus_m_t, m_init_guess
@@ -2246,15 +2378,15 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         except:
             mNrmStE = None
 
-        solution.mNrmStE = mNrmStE
-        return solution
+        soln_stge.mNrmStE = mNrmStE
+        return soln_stge
 
-    def add_stable_points(self, solution):
+    def add_stable_points(self, soln_stge):
         """
         Checks necessary conditions for the existence of the individual steady
         state and target levels of market resources (see above).
         If the conditions are satisfied, computes and adds the stable points
-        to the solution.
+        to the soln_stge.
 
         Parameters
         ----------
@@ -2270,7 +2402,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # Test for the edge case where the model that allows for uncertainty has been
         # called with values of all the uncertainty parameters equal to zero
 
-        solution = self.add_MPC_bounds_and_human_wealth_PDV(solution)
+        soln_stge = self.add_MPC_bounds_and_human_wealth_PDV(soln_stge)
 
         PerfFsgt = False
 
@@ -2280,50 +2412,51 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # If no uncertainty, return the degenerate targets for the PF model
         if hasattr(self, "TranShkMinNext"):  # Then it has transitory shocks
             # Handle the degenerate case where shocks are of size zero
-            if ((self.TranShkMinNext == 1.0) and (self.PermShkMinNext == 1.0)):
+            if ((self.soln_stge.TranShkMinNext == 1.0) and (self.soln_stge.PermShkMinNext == 1.0)):
                 # But they still might have unemployment risk
                 if hasattr(self, "UnempPrb"):
-                    if ((self.UnempPrb == 0.0) or (self.IncUnemp == 1.0)):
+                    if ((self.soln_stge.UnempPrb == 0.0) or (self.soln_stge.IncUnemp == 1.0)):
                         PerfFsgt = True  # No unemployment risk either
                     else:
                         PerfFsgt = False  # The only kind of uncertainty is unemployment
 
         if PerfFsgt:
-            if self.GICRaw:  # max of nat and art boro cnst
-                if type(self.BoroCnstArt) == type(None):
+            if self.soln_stge.GICRaw:  # max of nat and art boro cnst
+                if type(self.soln_stge.BoroCnstArt) == type(None):
                     # If growth impatient, limit is to borrow max possible
-                    if self.FHWC:  # Finite human wealth
-                        solution.mNrmStE_new = -self.hNrmNow
-                        solution.mNrmTrg = -self.hNrmNow
+                    if self.soln_stge.FHWC:  # Finite human wealth
+                        soln_stge.mNrmStE_new = -self.soln_stge.hNrmNow
+                        soln_stge.mNrmTrg = -self.soln_stge.hNrmNow
                     else:
                         _log.warning("Limiting solution is c(m) = infty")
-                        solution.mNrmStE_new = float('NaN')
-                        solution.mNrmTrg = float('NaN')
+                        soln_stge.mNrmStE_new = float('NaN')
+                        soln_stge.mNrmTrg = float('NaN')
                 else:  # Max they can borrow is up to extent of liq constr
-                    bNrmNxt = -self.BoroCnstArt * self.PF_RNrm
-                    solution.mNrmStE_new = bNrmNxt + 1.0
-                    solution.mNrmTrg = bNrmNxt + 1.0
+                    bNrmNxt = -self.soln_stge.BoroCnstArt * self.soln_stge.PF_RNrm
+                    soln_stge.mNrmStE_new = bNrmNxt + 1.0
+                    soln_stge.mNrmTrg = bNrmNxt + 1.0
             else:  # infinity
-                solution.mNrmStE_new = float('inf')
-                solution.mNrmTrg = float('inf')
-            return solution
+                soln_stge.mNrmStE_new = float('inf')
+                soln_stge.mNrmTrg = float('inf')
+            return soln_stge
 
         # 0. Check if GICRaw holds. If so, then mNrmStE will exist. So, compute it.
         # 1. Check if GICNrm holds. If so, then mNrmTrg will exist. So, compute it.
 
-        if self.GICRaw:
-            solution = self.add_mNrmStE_new(solution)  # pseudo steady state m, if it exists
-        if self.GICNrm:
-            solution = self.add_mNrmTrg_new(solution)  # find target m, if it exists
+        if self.soln_stge.GICRaw:
+            # pseudo steady state m, if it exists
+            soln_stge = self.add_mNrmStE_new(soln_stge)
+        if self.soln_stge.GICNrm:
+            soln_stge = self.add_mNrmTrg_new(soln_stge)  # find target m, if it exists
 
-        return solution
+        return soln_stge
 
     def add_stable_points_to_solution(self):
         """
         Checks necessary conditions for the existence of the individual steady
         state and target levels of market resources (see above).
         If the conditions are satisfied, computes and adds the stable points
-        to the solution.
+        to the soln_stge.
 
         Parameters
         ----------
@@ -2347,48 +2480,48 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # If no uncertainty, return the degenerate targets for the PF model
         if hasattr(self, "TranShkMinNext"):  # Then it has transitory shocks
             # Handle the degenerate case where shocks are of size zero
-            if ((self.TranShkMinNext == 1.0) and (self.PermShkMinNext == 1.0)):
+            if ((self.soln_stge.TranShkMinNext == 1.0) and (self.soln_stge.PermShkMinNext == 1.0)):
                 # But they still might have unemployment risk
                 if hasattr(self, "UnempPrb"):
-                    if ((self.UnempPrb == 0.0) or (self.IncUnemp == 1.0)):
+                    if ((self.soln_stge.UnempPrb == 0.0) or (self.soln_stge.IncUnemp == 1.0)):
                         PerfFsgt = True  # No unemployment risk either
                     else:
                         PerfFsgt = False  # The only kind of uncertainty is unemployment
 
         if PerfFsgt:
-            if self.GICRaw:  # max of nat and art boro cnst
-                if type(self.BoroCnstArt) == type(None):
+            if self.soln_stge.GICRaw:  # max of nat and art boro cnst
+                if type(self.soln_stge.BoroCnstArt) == type(None):
                     # If growth impatient, limit is to borrow max possible
-                    if self.FHWC:  # Finite human wealth
-                        self.mNrmStE_new = -self.hNrmNow
-                        self.mNrmTrg = -self.hNrmNow
+                    if self.soln_stge.FHWC:  # Finite human wealth
+                        self.soln_stge.mNrmStE_new = -self.soln_stge.hNrmNow
+                        self.soln_stge.mNrmTrg = -self.soln_stge.hNrmNow
                     else:
                         _log.warning("Limiting self is c(m) = infty")
-                        self.mNrmStE_new = float('NaN')
-                        self.mNrmTrg = float('NaN')
+                        self.soln_stge.mNrmStE_new = float('NaN')
+                        self.soln_stge.mNrmTrg = float('NaN')
                 else:  # Max they can borrow is up to extent of liq constr
-                    bNrmNxt = -self.BoroCnstArt * self.PF_RNrm
-                    self.mNrmStE_new = bNrmNxt + 1.0
-                    self.mNrmTrg = bNrmNxt + 1.0
+                    bNrmNxt = -self.soln_stge.BoroCnstArt * self.soln_stge.PF_RNrm
+                    self.soln_stge.mNrmStE_new = bNrmNxt + 1.0
+                    self.soln_stge.mNrmTrg = bNrmNxt + 1.0
             else:  # infinity
-                self.mNrmStE_new = float('inf')
-                self.mNrmTrg = float('inf')
+                self.soln_stge.mNrmStE_new = float('inf')
+                self.soln_stge.mNrmTrg = float('inf')
             return self
 
         # 0. Check if GICRaw holds. If so, then mNrmStE will exist. So, compute it.
         # 1. Check if GICNrm holds. If so, then mNrmTrg will exist. So, compute it.
 
-        if self.GICRaw:
+        if self.soln_stge.GICRaw:
             self = self.add_mNrmStE_new(self)  # pseudo steady state m, if it exists
-        if self.GICNrm:
+        if self.soln_stge.GICNrm:
             self = self.add_mNrmTrg_new(self)  # find target m, if it exists
 
-    def add_stable_points_old(self, solution):
+    def add_stable_points_old(self, soln_stge):
         """
         Checks necessary conditions for the existence of the individual steady
         state and target levels of market resources (see above).
         If the conditions are satisfied, computes and adds the stable points
-        to the solution.
+        to the soln_stge.
 
         Parameters
         ----------
@@ -2405,40 +2538,42 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # 0. Check if GICRaw holds. If so, then mNrmStE will exist. So, compute it.
         # 1. Check if GICNrm holds. If so, then mNrmTrg will exist. So, compute it.
 
-        APF = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
-        self.APF = APF
+        APF = (self.soln_stge.Rfree*self.soln_stge.DiscFacStgEff)**(1/self.soln_stge.CRRA)
+        self.soln_stge.APF = APF
 
-        Ex_Inv_PermShk = np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
+        Ex_Inv_PermShk = np.dot(1/self.PermShkValsNext, self.soln_stge.ShkPrbsNext)
         Inv_Ex_Inv_PermShk = 1 / Ex_Inv_PermShk
-        self.PermGroFacAdj = self.PermGroFac * Inv_Ex_Inv_PermShk
+        self.soln_stge.PermGroFacStgAdj = self.soln_stge.PermGroFacStg * Inv_Ex_Inv_PermShk
 
-        GPFRaw = APF / self.PermGroFac
-        self.GPFRaw = GPFRaw
+        GPFRaw = APF / self.soln_stge.PermGroFacStg
+        self.soln_stge.GPFRaw = GPFRaw
 
-        GPFNrm = APF / self.PermGroFacAdj
-        self.GPFNrm = GPFNrm
+        GPFNrm = APF / self.soln_stge.PermGroFacStgAdj
+        self.soln_stge.GPFNrm = GPFNrm
 
-        GICRaw = 1 > APF/self.PermGroFac
-        self.GICRaw = GICRaw
+        GICRaw = 1 > APF/self.soln_stge.PermGroFacStg
+        self.soln_stge.GICRaw = GICRaw
 
         GICNrm = 1 > GPFNrm
-        self.GICNrm = GICNrm
+        self.soln_stge.GICNrm = GICNrm
 
-        PF_RNrm = self.Rfree/self.PermGroFac
+        PF_RNrm = self.soln_stge.Rfree/self.soln_stge.PermGroFacStg
         Inv_PF_RNrm = 1 / PF_RNrm
 
-        self.PF_RNrm = PF_RNrm
-        self.Inv_PF_RNrm = Inv_PF_RNrm
+        self.soln_stge.PF_RNrm = PF_RNrm
+        self.soln_stge.Inv_PF_RNrm = Inv_PF_RNrm
 
-        self.Ex_RNrm = PF_RNrm * Ex_Inv_PermShk
-        self.Inv_Ex_PF_RNrm = Inv_Ex_Inv_PermShk
+        self.soln_stge.Ex_RNrm = PF_RNrm * Ex_Inv_PermShk
+        self.soln_stge.Inv_Ex_PF_RNrm = Inv_Ex_Inv_PermShk
 
-        if self.GICRaw:
-            solution = self.add_mNrmStE(solution)  # find steady state m, if it exists
-        if self.GICNrm:
-            solution = self.add_mNrmTrg(solution)  # find target m, if it exists
+        if self.soln_stge.GICRaw:
+            soln_stge = self.soln_stge.add_mNrmStE(
+                soln_stge)  # find steady state m, if it exists
+        if self.soln_stge.GICNrm:
+            soln_stge = self.soln_stge.add_mNrmTrg(
+                soln_stge)  # find target m, if it exists
 
-        return solution
+        return soln_stge
 
     def make_linear_cFunc(self, mNrm, cNrm):
         """
@@ -2457,44 +2592,14 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             The unconstrained consumption function for this period.
         """
         cFunc_unconstrained = LinearInterp(
-            mNrm, cNrm, self.cFuncLimitIntercept, self.cFuncLimitSlope
+            mNrm, cNrm, self.soln_stge.cFuncLimitIntercept, self.soln_stge.cFuncLimitSlope
         )
         return cFunc_unconstrained
 
-    def make_cFunc_using_EGM(self):  # Endogenous Gridpoints Method
+    def solve(self):  # From self.solution_next, create self.soln_stge
         """
-        Given a grid of end-of-period values of assets a, use the endogenous
-        gridpoints method to obtain the corresponding values of consumption,
-        and use the dynamic budget constraint to obtain the corresponding value
-        of market resources m.
-
-        Parameters
-        ----------
-        none (relies upon self.aNrmNow existing before invocation)
-
-        Returns
-        -------
-        solution : ConsumerSolution
-            The solution to the single period consumption-saving problem.
-        """
-        self.aNrmNow = self.prepare_to_calc_EndOfPrdvP()
-        EndOfPrdvP = self.calc_EndOfPrdvP()
-
-        # Construct a basic solution for this period
-        if self.CubicBool:
-            solution = self.make_EGM_solution(
-                EndOfPrdvP, self.aNrmNow, interpolator=self.make_cubic_cFunc
-            )
-        else:
-            solution = self.make_EGM_solution(
-                EndOfPrdvP, self.aNrmNow, interpolator=self.make_linear_cFunc
-            )
-        return solution
-
-    def solve(self):
-        """
-        Solves (one period of) the single period consumption-saving problem using the 
-        method of endogenous gridpoints.  Solution includes a consumption function 
+        Solves (one period/stage of) the single period consumption-saving problem using the
+        method of endogenous gridpoints.  Solution includes a consumption function
         cFunc (using cubic or linear splines), a marginal value function vPfunc, a min-
         imum acceptable level of normalized market resources mNrmMin, normalized
         human wealth hNrmNow, and bounding MPCs MPCminNow and MPCmaxNow.  It might also
@@ -2509,21 +2614,34 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution : ConsumerSolution
             The solution to the single period consumption-saving problem.
         """
+        if self.solution_next.kind['epoch'] == 'finished':
+            self.soln_stge.kind['epoch'] = 'finished'
+            _log.error("The model has already been solved.  Aborting.")
+            return self.soln_stge
 
-        solution = self.make_cFunc_using_EGM()
+        # If this is the first invocation of solve, do nothing more
+        if self.solution_next.kind['epoch'] == 'terminal':
+            self.soln_stge = self.solution_next
+            self.soln_stge.kind['epoch'] = 'iterator'
+            self.soln_stge_add_further_info(self.soln_stge)
+            return self.soln_stge
 
-        self.solution_add_further_info_ConsPerfForesightSolver(solution)
-#        solution = self.add_MPC_bounds_and_human_wealth_PDV(solution)
-        self.solution_add_further_info(solution)
+        self.soln_stge.kind = {'epoch': 'iterator'}
+        # Add a bunch of metadata
+        self.soln_stge_add_further_info(self.soln_stge)
+
+        sol_EGM = self.make_sol_using_EGM()
+        self.soln_stge.cFunc = sol_EGM.cFunc
+        self.soln_stge.vPfunc = sol_EGM.vPfunc
 
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used for interpolation
-        if self.vFuncBool:
-            solution = self.add_vFunc(solution, EndOfPrdvP)
-        if self.CubicBool:
-            solution = self.add_vPPfunc(solution)
+        if self.soln_stge.vFuncBool:
+            self.soln_stge = self.add_vFunc(self.soln_stge, self.EndOfPrdvP)
+        if self.soln_stge.CubicBool:
+            self.soln_stge = self.add_vPPfunc(self.soln_stge)
 
-        return solution
+        return self.soln_stge
 
 ###############################################################################
 ###############################################################################
@@ -2541,7 +2659,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         Makes a cubic spline interpolation of the unconstrained consumption
         function for this period.
 
-        Requires self.aNrmNow to have been computed already.
+        Requires self.soln_stge.aNrmNow to have been computed already.
 
         Parameters
         ----------
@@ -2556,26 +2674,27 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             The unconstrained consumption function for this period.
         """
         def vpp_next(shocks, a_Nrm_Val):
-            return shocks[0] ** (- self.CRRA - 1.0) \
-                * self.vPPfuncNext(self.m_Nrm_tp1(shocks, a_Nrm_Val))
+            return shocks[0] ** (- self.soln_stge.CRRA - 1.0) \
+                * self.solution_next.vPPfunc(self.m_Nrm_tp1(shocks, a_Nrm_Val))
 
         EndOfPrdvPP = (
-            self.DiscFacEff
-            * self.Rfree
-            * self.Rfree
-            * self.PermGroFac ** (-self.CRRA - 1.0)
+            self.soln_stge.DiscFacStg * self.soln_stge.LivPrbStg
+            * self.soln_stge.Rfree
+            * self.soln_stge.Rfree
+            * self.soln_stge.PermGroFacStg ** (-self.soln_stge.CRRA - 1.0)
             * calc_expectation(
-                self.IncShkDstn,
+                self.soln_stge.IncShkDstnStg,
                 vpp_next,
-                self.aNrmNow
+                self.soln_stge.aNrmNow
             )
         )
-        dcda = EndOfPrdvPP / self.uPP(np.array(cNrm_Vec[1:]))
+        dcda = EndOfPrdvPP / self.soln_stge.uPP(np.array(cNrm_Vec[1:]))
         MPC = dcda / (dcda + 1.0)
-        MPC = np.insert(MPC, 0, self.MPCmaxNow)
+        MPC = np.insert(MPC, 0, self.soln_stge.MPCmaxNow)
 
         cFuncNowUnc = CubicInterp(
-            mNrm_Vec, cNrm_Vec, MPC, self.MPCminNow * self.hNrmNow, self.MPCminNow
+            mNrm_Vec, cNrm_Vec, MPC, self.soln_stge.MPCminNow *
+            self.soln_stge.hNrmNow, self.soln_stge.MPCminNow
         )
         return cFuncNowUnc
 
@@ -2588,7 +2707,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         ----------
         EndOfPrdvP : np.array
             Array of end-of-period marginal value of assets corresponding to the
-            asset values in self.aNrmNow.
+            asset values in self.soln_stge.aNrmNow.
 
         Returns
         -------
@@ -2596,27 +2715,28 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         """
         def v_lvl_next(shocks, a_Nrm_Val):
             return (
-                shocks[0] ** (1.0 - self.CRRA)
-                * self.PermGroFac ** (1.0 - self.CRRA)
-            ) * self.vFuncNext(self.m_Nrm_tp1(shocks, a_Nrm_Val))
-        EndOfPrdv = self.DiscFacEff * calc_expectation(
-            self.IncShkDstn, v_lvl_next, self.aNrmNow
+                shocks[0] ** (1.0 - self.soln_stge.CRRA)
+                * self.soln_stge.PermGroFacStg ** (1.0 - self.soln_stge.CRRA)
+            ) * self.soln_stge.vFuncNext(self.soln_stge.m_Nrm_tp1(shocks, a_Nrm_Val))
+        EndOfPrdv = self.soln_stge.DiscFacStgEff * calc_expectation(
+            self.soln_stge.IncShkDstnStg, v_lvl_next, self.soln_stge.aNrmNow
         )
-        EndOfPrdvNvrs = self.uinv(
+        EndOfPrdvNvrs = self.soln_stge.uinv(
             EndOfPrdv
         )  # value transformed through inverse utility
-        EndOfPrdvNvrsP = EndOfPrdvP * self.uinvP(EndOfPrdv)
+        EndOfPrdvNvrsP = EndOfPrdvP * self.soln_stge.uinvP(EndOfPrdv)
         EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
         EndOfPrdvNvrsP = np.insert(
             EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0]
         )  # This is a very good approximation, vNvrsPP = 0 at the asset minimum
-        aNrm_temp = np.insert(self.aNrmNow, 0, self.BoroCnstNat)
+        aNrm_temp = np.insert(self.soln_stge.aNrmNow, 0, self.soln_stge.BoroCnstNat)
         EndOfPrdvNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
-        self.EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
+        self.soln_stge.EndOfPrdvFunc = ValueFuncCRRA(
+            EndOfPrdvNvrsFunc, self.soln_stge.CRRA)
 
-    def add_vFunc(self, solution, EndOfPrdvP):
+    def add_vFunc(self, soln_stge, EndOfPrdvP):
         """
-        Creates the value function for this period and adds it to the solution.
+        Creates the value function for this period and adds it to the soln_stge.
 
         Parameters
         ----------
@@ -2625,7 +2745,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             consumption function, marginal value function, etc.
         EndOfPrdvP : np.array
             Array of end-of-period marginal value of assets corresponding to the
-            asset values in self.aNrmNow.
+            asset values in self.soln_stge.aNrmNow.
 
         Returns
         -------
@@ -2634,10 +2754,10 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             value function (defined over market resources m) as an attribute.
         """
         self.make_EndOfPrdvFunc(EndOfPrdvP)
-        solution.vFunc = self.make_vFunc(solution)
-        return solution
+        soln_stge.vFunc = self.make_vFunc(soln_stge)
+        return soln_stge
 
-    def make_vFunc(self, solution):
+    def make_vFunc(self, soln_stge):
         """
         Creates the value function for this period, defined over market resources m.
         self must have the attribute EndOfPrdvFunc in order to execute.
@@ -2655,28 +2775,30 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             normalized market resources m: v = vFuncNow(m).
         """
         # Compute expected value and marginal value on a grid of market resources
-        mNrm_temp = self.mNrmMinNow + self.aXtraGrid
-        cNrmNow = solution.cFunc(mNrm_temp)
+        mNrm_temp = self.soln_stge.mNrmMinNow + self.soln_stge.aXtraGrid
+        cNrmNow = soln_stge.cFunc(mNrm_temp)
         aNrmNow = mNrm_temp - cNrmNow
-        vNrmNow = self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow)
+        vNrmNow = self.soln_stge.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow)
         vPnow = self.uP(cNrmNow)
 
         # Construct the beginning-of-period value function
-        vNvrs = self.uinv(vNrmNow)  # value transformed through inverse utility
-        vNvrsP = vPnow * self.uinvP(vNrmNow)
-        mNrm_temp = np.insert(mNrm_temp, 0, self.mNrmMinNow)
+        vNvrs = self.soln_stge.uinv(vNrmNow)  # value transformed through inverse utility
+        vNvrsP = vPnow * self.soln_stge.uinvP(vNrmNow)
+        mNrm_temp = np.insert(mNrm_temp, 0, self.soln_stge.mNrmMinNow)
         vNvrs = np.insert(vNvrs, 0, 0.0)
         vNvrsP = np.insert(
-            vNvrsP, 0, self.MPCmaxNowEff ** (-self.CRRA / (1.0 - self.CRRA))
+            vNvrsP, 0, self.soln_stge.MPCmaxNowEff ** (-self.soln_stge.CRRA /
+                                                       (1.0 - self.soln_stge.CRRA))
         )
-        MPCminNowNvrs = self.MPCminNow ** (-self.CRRA / (1.0 - self.CRRA))
+        MPCminNowNvrs = self.soln_stge.MPCminNow ** (-self.soln_stge.CRRA /
+                                                     (1.0 - self.soln_stge.CRRA))
         vNvrsFuncNow = CubicInterp(
-            mNrm_temp, vNvrs, vNvrsP, MPCminNowNvrs * self.hNrmNow, MPCminNowNvrs
+            mNrm_temp, vNvrs, vNvrsP, MPCminNowNvrs * self.soln_stge.hNrmNow, MPCminNowNvrs
         )
-        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA)
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.soln_stge.CRRA)
         return vFuncNow
 
-    def add_vPPfunc(self, solution):
+    def add_vPPfunc(self, soln_stge):
         """
         Adds the marginal marginal value function to an existing solution, so
         that the next solver can evaluate vPP and thus use cubic interpolation.
@@ -2693,15 +2815,13 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             The same solution passed as input, but with the marginal marginal
             value function for this period added as the attribute vPPfunc.
         """
-        vPPfuncNow = MargMargValueFuncCRRA(solution.cFunc, self.CRRA)
-        solution.vPPfunc = vPPfuncNow
-        return solution
+        vPPfuncNow = MargMargValueFuncCRRA(soln_stge.cFunc, soln_stge.CRRA)
+        soln_stge.vPPfunc = vPPfuncNow
+        return soln_stge
 
 
 ####################################################################################################
 ####################################################################################################
-
-
 class ConsKinkedRsolver(ConsIndShockSolver):
     """
     A class to solve a single period consumption-saving problem where the interest
@@ -2709,7 +2829,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
     ConsIndShockSolver, with nearly identical inputs and outputs.  The key diff-
     erence is that Rfree is replaced by Rsave (a>0) and Rboro (a<0).  The solver
     can handle Rboro == Rsave, which makes it identical to ConsIndShocksolver, but
-    it terminates immediately if Rboro < Rsave, as this has a different solution.
+    it terminates immediately if Rboro < Rsave, as this has a different soln_stge.
 
     Parameters
     ----------
@@ -2744,7 +2864,7 @@ p        Expected permanent income growth factor at the end of this period.
         absolute minimum acceptable level.
     vFuncBool: boolean
         An indicator for whether the value function should be computed and
-        included in the reported solution.
+        included in the reported soln_stge.
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear inter-
         polation.
@@ -2825,7 +2945,7 @@ p        Expected permanent income growth factor at the end of this period.
 
         return cFuncNowUncKink
 
-    def add_stable_points(self, solution):
+    def add_stable_points(self, soln_stge):
         """
         TODO:
         Placeholder method for a possible future implementation of stable
@@ -2849,7 +2969,7 @@ p        Expected permanent income growth factor at the end of this period.
         the stable points must be in one of these regions.
 
         """
-        return solution
+        return soln_stge
 
     def prepare_to_calc_EndOfPrdvP(self):
         """
@@ -2973,7 +3093,7 @@ init_perfect_foresight.update(
 # the approximation gets arbitrarily close to the 'true' model
 init_perfect_foresight.update(  # In principle, kinks exist all the way to infinity
     {'aprox_lim': {'MaxKinks': 'infinity'}})
-# The simulation stage of the problem requires additional parameterization
+# The simulation stge of the problem requires additional parameterization
 init_perfect_foresight.update(  # The 'primitives' for the simulation
     {'prmtv_sim': ['aNrmInitMean', 'aNrmInitStd', 'mcrlo_pLvlInitMean', 'mcrlo_pLvlInitStd']})
 init_perfect_foresight.update({  # Approximation parameters for monte carlo sims
@@ -3034,7 +3154,7 @@ init_perfect_foresight.update({'PermGroFac_facts': PermGroFac_facts})
 
 PermGroFacAgg_facts = {}
 PermGroFacAgg_facts.update({'about': 'Growth factor for aggregate permanent income'})
-#PermGroFacAgg_facts.update({'latexexpr': '\providecommand{\PermGroFacAgg}{\Gamma}\PermGroFacAgg'})
+# PermGroFacAgg_facts.update({'latexexpr': '\providecommand{\PermGroFacAgg}{\Gamma}\PermGroFacAgg'})
 # PermGroFacAgg_facts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
 PermGroFacAgg_facts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('PermGroFacAgg')
@@ -3054,8 +3174,8 @@ MaxKinks_facts = {}
 MaxKinks_facts.update(
     {'about': 'PF Constrained model solves to period T-MaxKinks,'
      ' where the solution has exactly this many kink points'})
-MaxKinks_facts.update({'prmtv_par': 'True'})
-init_perfect_foresight['prmtv_par'].append('MaxKinks')
+MaxKinks_facts.update({'prmtv_par': 'False'})
+# init_perfect_foresight['prmtv_par'].append('MaxKinks')
 init_perfect_foresight['facts'].update({'MaxKinks': MaxKinks_facts})
 init_perfect_foresight.update({'MaxKinks_facts': MaxKinks_facts})
 
@@ -3114,6 +3234,11 @@ T_cycle_facts = {
 init_perfect_foresight['facts'].update({'T_cycle': T_cycle_facts})
 init_perfect_foresight.update({'T_cycle_facts': T_cycle_facts})
 
+cycles_facts = {
+    'about': 'Number of times the sequence of periods/stages should be solved'}
+init_perfect_foresight['facts'].update({'cycle': cycles_facts})
+init_perfect_foresight.update({'cycle_facts': cycles_facts})
+
 
 class PerfForesightConsumerType(AgentType):
     """
@@ -3125,45 +3250,45 @@ class PerfForesightConsumerType(AgentType):
     Parameters
     ----------
     cycles : int
-        Number of times the sequence of periods should be solved.
+        Number of times the sequence of periods/stages should be solved.
     """
 
     # Define some universal options for all consumer types
-    # In the afterlife, value is zero, consumption and all MPC's are infinity
-    # This is useful chiefly because when the recursive formulae for backwards
-    # computation of various objects are applied to these choices, they generate
-    # the characteristics of the terminal value function betlow
-    cFunc_afterlife_ = float('inf')
-    vFunc_afterlife_ = 0.0
-    solution_afterlife_ = ConsumerSolution(
-        cFunc=cFunc_afterlife_,
-        vFunc=vFunc_afterlife_,
-        mNrmMin=0.0,
-        hNrmNow=0.0,
-        MPCminNow=float('inf'),
-        MPCmaxNow=float('inf')
-    )
+    # # In the afterlife, value is zero, consumption and all MPC's are infinity
+    # # This is useful chiefly because when the recursive formulae for backwards
+    # # computation of various objects are applied to these choices, they generate
+    # # the characteristics of the terminal value function betlow
+    # cFunc_afterlife_ = float('inf')
+    # vFunc_afterlife_ = 0.0
+    # solution_afterlife_ = ConsumerSolution(
+    #     cFunc=cFunc_afterlife_,
+    #     vFunc=vFunc_afterlife_,
+    #     mNrmMin=0.0,
+    #     hNrmNow=0.0,
+    #     MPCminNow=float('inf'),
+    #     MPCmaxNow=float('inf')
+    # )
 
-    cFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 1.0])  # c=m in terminal period
-    vFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 0.0])  # This is overwritten
-    solution_terminal_ = ConsumerSolution(  # Also overwritten; here to show structure
-        cFunc=cFunc_terminal_,
-        vFunc=vFunc_terminal_,
-        mNrmMin=0.0,
-    )
-    # This is a better name for the same thing, which should eventually replace cFunc_terminal_
-    cFunc_nobequest_ = LinearInterp([0.0, 1.0], [0.0, 1.0])  # c=m in terminal period
-    vFunc_nobequest_ = LinearInterp([0.0, 1.0], [0.0, 0.0])  # This is overwritten
-    solution_nobequest_ = ConsumerSolution(  # Also overwritten; here to show structure
-        cFunc=cFunc_nobequest_,
-        vFunc=vFunc_nobequest_,
+    # Use underscores _ to define useful defaults available to all inheritors
+
+    # Consumption function in last period in which everything is consumed
+    def cFunc_terminal_nobequest_(m): return m  # c=m in terminal period
+    def cFunc_terminal_(m): return m  # Default terminal cFunc
+
+    solution_nobequest_ = ConsumerSolution(  # Can't include vFunc b/c u not yet def
+        cFunc=cFunc_terminal_nobequest_,
         mNrmMin=0.0,
         hNrmNow=0.0,
         MPCminNow=1.0,
         MPCmaxNow=1.0,
+        kind={'epoch': 'terminal'}
     )
+    solution_nobequest = deepcopy(solution_nobequest_)  # Modifiable copy
 
-    time_vary_ = ["LivPrb",  # Age-varying death rates can match data
+    solution_terminal_ = solution_nobequest_         # Default terminal solution
+    solution_terminal = deepcopy(solution_terminal_)  # Modifiable copy
+
+    time_vary_ = ["LivPrb",  # Age-varying death rates can match mortality data
                   "PermGroFac"]  # Age-varying income growth can match data
     time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt"]
     state_vars = ['pLvl',  # Idiosyncratic permanent income
@@ -3173,46 +3298,89 @@ class PerfForesightConsumerType(AgentType):
                   "aNrm"]  # Assets after all actions (normed)
     shock_vars_ = []
 
-    def __init__(self, cycles=1, verbose=1, quiet=False, **kwds):
+    def __init__(self, cycles=1,  # Finite horizon
+                 verbose=1, quiet=False,
+                 solution_interim=None,  # Default is no interim solution
+                 **kwds):
         params = init_perfect_foresight.copy()
         params.update(kwds)
-        kwds = params
+        kwds_all = params
+        solution_terminal = deepcopy(self.solution_nobequest)
+        if solution_interim:  # If user chose other terminal point, use that
+            self.solution_interim = solution_interim
+            solution_terminal = self.solution_terminal = solution_interim
 
-        # Initialize a basic AgentType
         AgentType.__init__(
             self,
-            solution_terminal=deepcopy(self.solution_terminal_),
-            #            solution_afterlife=deepcopy(self.solution_afterlife_),
+            solution_terminal,
             cycles=cycles,
-            #            pseudo_terminal=True,
             pseudo_terminal=False,
-            ** kwds
+            ** kwds_all
         )
-        self.conditions = {}
-        # Extract the class name
-        self.model_type = self.__class__.__name__
 
-        # Generate a url that will locate the documentation
-        self.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q=" + \
-            self.model_type+"&check_keywords=yes&area=default#"
-
-        # url for reference paper that contains many results
-        self.url_ref = "https://econ-ark.github.io/BufferStockTheory"
-
-        # Add consumer-type specific objects, copying to create independent versions
+        # Add consumer-type-specific objects; deepcopy creates own versions
         self.time_vary = deepcopy(self.time_vary_)
         self.time_inv = deepcopy(self.time_inv_)
 
-        # Instantiate parameters that may have been passed
+        # Params may have been passed by models that BUILD on PerfForesight
         self.shock_vars = deepcopy(self.shock_vars_)
+
+        self.conditions = {}  # To track check_conditions
+
+        # Extract the class name
+        self.model_type = self.__class__.__name__
+
+        # url that will locate the documentation
+        self.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q=" + \
+            self.model_type+"&check_keywords=yes&area=default#"
+
+        # paper that contains many results
+        self.url_ref = "https://econ-ark.github.io/BufferStockTheory"
+
+        # Setup and squirrel away the values initially used
+        self.setup_solution_starting_point()
+
+        # Honor optional arguments (if any)
         self.verbose = verbose
         set_verbosity_level((4 - verbose) * 10)
         self.quiet = quiet
 
-        # Construct the solver
-        self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolver)
+        # Construct one-period(/stage) solver (fix needed with staging mod)
+        self.solve_one_period = \
+            make_one_period_oo_solver(ConsPerfForesightSolver)
 
-    def add_facts_to_PerfForesightConsumerType_solution(self, solution):
+        # Store initial model params; later used to test if anything changed
+        self.set_model_params(params['prmtv_par'], params['aprox_lim'])
+
+    def set_model_params(self, prmtv_par, aprox_lim):
+        # When anything cached here changes, solution SHOULD change
+        self.prmtv_par_vals = {}
+        for par in prmtv_par:
+            self.prmtv_par_vals[par] = getattr(self, par)
+
+        self.aprox_par_vals = {}
+        for key in aprox_lim:
+            self.aprox_par_vals[key] = getattr(self, key)
+
+        # Merge to get all aprox and prmtv params
+        self.solve_par_vals = \
+            {**self.prmtv_par_vals, **self.aprox_par_vals}
+
+        # Let solver know about all the  params of the modl
+        self.solve_one_period.parameters_model = self.parameters
+
+        # and about the ones which, if they change, require iterating
+        self.solve_one_period.solve_par_vals = self.solve_par_vals
+#        solver.solve_par_vals = self.solve_par_vals
+
+    def check_conditions(self, verbose=3):
+        if not hasattr(self, 'solution'):  # Need a solution to have been computed
+            _log.info('Solving penultimate period because solution needed to check conditions')
+            self.solve_penultimate_prd(verbose=0)
+
+        self.solution[-1].solver_check_condtnsnew_20210404(self.solution[-1], verbose=3)
+
+    def add_facts_to_PerfForesightConsumerType_solution(self, soln_stge):
         # self here is the agent, whose self must have attached to it
         # solution_now and solution_next objects.
         # solution_now will be updated.
@@ -3233,41 +3401,41 @@ class PerfForesightConsumerType(AgentType):
 
         """
         urlroot = self.url_ref+'/#'
-        solution.parameters_model = self.parameters
+        soln_stge.parameters_model = self.parameters
 
-        BoroCnstArt = solution.BoroCnstArt = self.BoroCnstArt
-        CRRA = solution.CRRA = self.CRRA
-        DiscFac = solution.DiscFac = self.DiscFac
-        LivNum = solution.LivNum = self.LivPrb[0]
-        PermGroNum = solution.PermGroNum = self.PermGroFac[0]
-        Rfree = solution.Rfree = self.Rfree
-        DiscFacEff = solution.DiscFacEff = DiscFac * LivNum
+        BoroCnstArt = soln_stge.BoroCnstArt = self.BoroCnstArt
+        CRRA = soln_stge.CRRA = self.CRRA
+        DiscFac = soln_stge.DiscFac = self.DiscFac
+        LivStg = soln_stge.LivStg = self.LivPrb[0]
+        PermGroStg = soln_stge.PermGroStg = self.PermGroFac[0]
+        Rfree = soln_stge.Rfree = self.Rfree
+        DiscFacEff = soln_stge.DiscFacEff = DiscFac * LivStg
 
-        solution.facts = {}
+        soln_stge.facts = {}
         # First calculate a bunch of things that do not required
         # info about the income shocks
 
         uInv_Ex_uInv_PermShk = 1.0
-        solution.conditions = {}
+        soln_stge.conditions = {}
 
         APF_facts = {
             'about': 'Absolute Patience Factor'}
-        solution.APF = APF = \
+        soln_stge.APF = APF = \
             ((Rfree * DiscFacEff) ** (1.0 / CRRA))
         APF_facts.update({'latexexpr': r'\APF'})
         APF_facts.update({'_unicode_': r'Þ'})
         APF_facts.update({'urlhandle': urlroot+'APF'})
         APF_facts.update({'py___code': '(Rfree*DiscFacEff)**(1/CRRA)'})
         APF_facts.update({'value_now': APF})
-        solution.facts.update({'APF': APF_facts})
-        solution.APF_facts = APF_facts
+        soln_stge.facts.update({'APF': APF_facts})
+        soln_stge.APF_facts = APF_facts
 
         AIC_facts = {'about': 'Absolute Impatience Condition'}
         AIC_facts.update({'latexexpr': r'\AIC'})
         AIC_facts.update({'urlhandle': urlroot+'AIC'})
         AIC_facts.update({'py___code': 'test: APF < 1'})
-        solution.facts.update({'AIC': AIC_facts})
-        solution.AIC_facts = AIC_facts
+        soln_stge.facts.update({'AIC': AIC_facts})
+        soln_stge.AIC_facts = AIC_facts
 
         RPF_facts = {
             'about': 'Return Patience Factor'}
@@ -3277,93 +3445,93 @@ class PerfForesightConsumerType(AgentType):
         RPF_facts.update({'urlhandle': urlroot+'RPF'})
         RPF_facts.update({'py___code': r'APF/Rfree'})
         RPF_facts.update({'value_now': RPF})
-        solution.facts.update({'RPF': RPF_facts})
-        solution.RPF_facts = RPF_facts
-        solution.RPF = RPF
+        soln_stge.facts.update({'RPF': RPF_facts})
+        soln_stge.RPF_facts = RPF_facts
+        soln_stge.RPF = RPF
 
         RIC_facts = {'about': 'Growth Impatience Condition'}
         RIC_facts.update({'latexexpr': r'\RIC'})
         RIC_facts.update({'urlhandle': urlroot+'RIC'})
         RIC_facts.update({'py___code': 'test: agent.RPF < 1'})
-        solution.facts.update({'RIC': RIC_facts})
-        solution.RIC_facts = RIC_facts
+        soln_stge.facts.update({'RIC': RIC_facts})
+        soln_stge.RIC_facts = RIC_facts
 
         GPFRaw_facts = {
             'about': 'Growth Patience Factor'}
-        GPFRaw = APF / PermGroNum
+        GPFRaw = APF / PermGroStg
         GPFRaw_facts.update({'latexexpr': '\GPFRaw'})
         GPFRaw_facts.update({'urlhandle': urlroot+'GPFRaw'})
         GPFRaw_facts.update({'_unicode_': r'Þ_Γ'})
         GPFRaw_facts.update({'value_now': GPFRaw})
-        solution.facts.update({'GPFRaw': GPFRaw_facts})
-        solution.GPFRaw_facts = GPFRaw_facts
-        solution.GPFRaw = GPFRaw
+        soln_stge.facts.update({'GPFRaw': GPFRaw_facts})
+        soln_stge.GPFRaw_facts = GPFRaw_facts
+        soln_stge.GPFRaw = GPFRaw
 
         GICRaw_facts = {'about': 'Growth Impatience Condition'}
         GICRaw_facts.update({'latexexpr': r'\GICRaw'})
         GICRaw_facts.update({'urlhandle': urlroot+'GICRaw'})
         GICRaw_facts.update({'py___code': 'test: agent.GPFRaw < 1'})
-        solution.facts.update({'GICRaw': GICRaw_facts})
-        solution.GICRaw_facts = GICRaw_facts
+        soln_stge.facts.update({'GICRaw': GICRaw_facts})
+        soln_stge.GICRaw_facts = GICRaw_facts
 
         GPFLiv_facts = {
             'about': 'Mortality-Risk-Adjusted Growth Patience Factor'}
-        GPFLiv = APF * LivNum / PermGroNum
+        GPFLiv = APF * LivStg / PermGroStg
         GPFLiv_facts.update({'latexexpr': '\GPFLiv'})
         GPFLiv_facts.update({'urlhandle': urlroot+'GPFLiv'})
-        GPFLiv_facts.update({'py___code': 'APF*Liv/PermGroNum'})
+        GPFLiv_facts.update({'py___code': 'APF*Liv/PermGroStg'})
         GPFLiv_facts.update({'value_now': GPFLiv})
-        solution.facts.update({'GPFLiv': GPFLiv_facts})
-        solution.GPFLiv_facts = GPFLiv_facts
-        solution.GPFLiv = GPFLiv
+        soln_stge.facts.update({'GPFLiv': GPFLiv_facts})
+        soln_stge.GPFLiv_facts = GPFLiv_facts
+        soln_stge.GPFLiv = GPFLiv
 
         GICLiv_facts = {'about': 'Growth Impatience Condition'}
         GICLiv_facts.update({'latexexpr': r'\GICLiv'})
         GICLiv_facts.update({'urlhandle': urlroot+'GICLiv'})
         GICLiv_facts.update({'py___code': 'test: GPFLiv < 1'})
-        solution.facts.update({'GICLiv': GICLiv_facts})
-        solution.GICLiv_facts = GICLiv_facts
+        soln_stge.facts.update({'GICLiv': GICLiv_facts})
+        soln_stge.GICLiv_facts = GICLiv_facts
 
         PF_RNrm_facts = {
             'about': 'Growth-Normalized Perfect Foresight Return Factor'}
-        PF_RNrm = Rfree/PermGroNum
+        PF_RNrm = Rfree/PermGroStg
         PF_RNrm_facts.update({'latexexpr': r'\PF_RNrm'})
         PF_RNrm_facts.update({'_unicode_': r'R/Γ'})
-        PF_RNrm_facts.update({'py___code': r'Rfree/PermGroNum'})
+        PF_RNrm_facts.update({'py___code': r'Rfree/PermGroStg'})
         PF_RNrm_facts.update({'value_now': PF_RNrm})
-        solution.facts.update({'PF_RNrm': PF_RNrm_facts})
-        solution.PF_RNrm_facts = PF_RNrm_facts
-        solution.PF_RNrm = PF_RNrm
+        soln_stge.facts.update({'PF_RNrm': PF_RNrm_facts})
+        soln_stge.PF_RNrm_facts = PF_RNrm_facts
+        soln_stge.PF_RNrm = PF_RNrm
 
         Inv_PF_RNrm_facts = {
             'about': 'Inverse of Growth-Normalized Perfect Foresight Return Factor'}
         Inv_PF_RNrm = 1/PF_RNrm
         Inv_PF_RNrm_facts.update({'latexexpr': r'\Inv_PF_RNrm'})
         Inv_PF_RNrm_facts.update({'_unicode_': r'Γ/R'})
-        Inv_PF_RNrm_facts.update({'py___code': r'PermGroNumInd/Rfree'})
+        Inv_PF_RNrm_facts.update({'py___code': r'PermGroStgInd/Rfree'})
         Inv_PF_RNrm_facts.update({'value_now': Inv_PF_RNrm})
-        solution.facts.update({'Inv_PF_RNrm': Inv_PF_RNrm_facts})
-        solution.Inv_PF_RNrm_facts = Inv_PF_RNrm_facts
-        solution.Inv_PF_RNrm = Inv_PF_RNrm
+        soln_stge.facts.update({'Inv_PF_RNrm': Inv_PF_RNrm_facts})
+        soln_stge.Inv_PF_RNrm_facts = Inv_PF_RNrm_facts
+        soln_stge.Inv_PF_RNrm = Inv_PF_RNrm
 
         FHWF_facts = {
             'about': 'Finite Human Wealth Factor'}
-        FHWF = PermGroNum/Rfree
+        FHWF = PermGroStg/Rfree
         FHWF_facts.update({'latexexpr': r'\FHWF'})
         FHWF_facts.update({'_unicode_': r'R/Γ'})
         FHWF_facts.update({'urlhandle': urlroot+'FHWF'})
-        FHWF_facts.update({'py___code': r'PermGroNumInf/Rfree'})
+        FHWF_facts.update({'py___code': r'PermGroStgInf/Rfree'})
         FHWF_facts.update({'value_now': FHWF})
-        solution.facts.update({'FHWF': FHWF_facts})
-        solution.FHWF_facts = FHWF_facts
-        solution.FHWF = FHWF
+        soln_stge.facts.update({'FHWF': FHWF_facts})
+        soln_stge.FHWF_facts = FHWF_facts
+        soln_stge.FHWF = FHWF
 
         FHWC_facts = {'about': 'Finite Human Wealth Condition'}
         FHWC_facts.update({'latexexpr': r'\FHWC'})
         FHWC_facts.update({'urlhandle': urlroot+'FHWC'})
         FHWC_facts.update({'py___code': 'test: agent.FHWF < 1'})
-        solution.facts.update({'FHWC': FHWC_facts})
-        solution.FHWC_facts = FHWC_facts
+        soln_stge.facts.update({'FHWC': FHWC_facts})
+        soln_stge.FHWC_facts = FHWC_facts
 
         hNrmNowInf_facts = {'about':
                             'Human wealth for infinite horizon consumer'}
@@ -3371,55 +3539,55 @@ class PerfForesightConsumerType(AgentType):
         if FHWF < 1:  # If it is finite, set it to its value
             hNrmNowInf = 1/(1-FHWF)
 
-        solution.hNrmNowInf = hNrmNowInf
+        soln_stge.hNrmNowInf = hNrmNowInf
         hNrmNowInf_facts = dict({'latexexpr': '1/(1-\FHWF)'})
         hNrmNowInf_facts.update({'value_now': hNrmNowInf})
         hNrmNowInf_facts.update({
             'py___code': '1/(1-FHWF)'})
-        solution.facts.update({'hNrmNowInf': hNrmNowInf_facts})
-        solution.hNrmNowInf_facts = hNrmNowInf_facts
-        # solution.hNrmNowInf = hNrmNowInf
+        soln_stge.facts.update({'hNrmNowInf': hNrmNowInf_facts})
+        soln_stge.hNrmNowInf_facts = hNrmNowInf_facts
+        # soln_stge.hNrmNowInf = hNrmNowInf
 
         DiscGPFRawCusp_facts = {
             'about': 'DiscFac s.t. GPFRaw = 1'}
-        solution.DiscGPFRawCusp = DiscGPFRawCusp = \
-            ((PermGroNum) ** (CRRA)) / (Rfree)
+        soln_stge.DiscGPFRawCusp = DiscGPFRawCusp = \
+            ((PermGroStg) ** (CRRA)) / (Rfree)
         DiscGPFRawCusp_facts.update({'latexexpr': ''})
         DiscGPFRawCusp_facts.update({'value_now': DiscGPFRawCusp})
         DiscGPFRawCusp_facts.update({
-            'py___code': '( PermGroNum                       ** CRRA)/(Rfree)'})
-        solution.facts.update({'DiscGPFRawCusp': DiscGPFRawCusp_facts})
-        solution.DiscGPFRawCusp_facts = DiscGPFRawCusp_facts
+            'py___code': '( PermGroStg                       ** CRRA)/(Rfree)'})
+        soln_stge.facts.update({'DiscGPFRawCusp': DiscGPFRawCusp_facts})
+        soln_stge.DiscGPFRawCusp_facts = DiscGPFRawCusp_facts
 
         DiscGPFLivCusp_facts = {
             'about': 'DiscFac s.t. GPFLiv = 1'}
-        solution.DiscGPFLivCusp = DiscGPFLivCusp = ((PermGroNum) ** (CRRA)) \
-            / (Rfree * LivNum)
+        soln_stge.DiscGPFLivCusp = DiscGPFLivCusp = ((PermGroStg) ** (CRRA)) \
+            / (Rfree * LivStg)
         DiscGPFLivCusp_facts.update({'latexexpr': ''})
         DiscGPFLivCusp_facts.update({'value_now': DiscGPFLivCusp})
         DiscGPFLivCusp_facts.update({
-            'py___code': '( PermGroNum                       ** CRRA)/(Rfree*LivNum)'})
-        solution.facts.update({'DiscGPFLivCusp': DiscGPFLivCusp_facts})
-        solution.DiscGPFLivCusp_facts = DiscGPFLivCusp_facts
+            'py___code': '( PermGroStg                       ** CRRA)/(Rfree*LivStg)'})
+        soln_stge.facts.update({'DiscGPFLivCusp': DiscGPFLivCusp_facts})
+        soln_stge.DiscGPFLivCusp_facts = DiscGPFLivCusp_facts
 
         FVAF_facts = {'about': 'Finite Value of Autarky Factor'}
-        solution.FVAF = FVAF = LivNum * DiscFacEff * uInv_Ex_uInv_PermShk
+        soln_stge.FVAF = FVAF = LivStg * DiscFacEff * uInv_Ex_uInv_PermShk
         FVAF_facts.update({'latexexpr': r'\FVAFPF'})
         FVAF_facts.update({'urlhandle': urlroot+'FVAFPF'})
-        solution.facts.update({'FVAF': FVAF_facts})
-        solution.FVAF_facts = FVAF_facts
+        soln_stge.facts.update({'FVAF': FVAF_facts})
+        soln_stge.FVAF_facts = FVAF_facts
 
         FVAC_facts = {'about': 'Finite Value of Autarky Condition - Perfect Foresight'}
         FVAC_facts.update({'latexexpr': r'\FVACPF'})
         FVAC_facts.update({'urlhandle': urlroot+'FVACPF'})
         FVAC_facts.update({'py___code': 'test: FVAFPF < 1'})
-        solution.facts.update({'FVAC': FVAC_facts})
-        solution.FVAC_facts = FVAC_facts
+        soln_stge.facts.update({'FVAC': FVAC_facts})
+        soln_stge.FVAC_facts = FVAC_facts
 
         # To reduce "self." clutter in formulae, retrieve local
         # values of useful variables
 
-        # PermGroNum and LivNum (and perhaps other time_vary items) originate
+        # PermGroStg and LivStg (and perhaps other time_vary items) originate
         # as lists but when we are in the one period solver they have becoome
         # scalars; to reduce confusion arising from a variable name being of a
         # different type depending on context, we make a local copy with a
@@ -3430,18 +3598,18 @@ class PerfForesightConsumerType(AgentType):
         # prior period's values
 
         hNrmNow = (
-            (PermGroNum / Rfree) * (1.0 + self.solution_next.hNrmNow)
+            (PermGroStg / Rfree) * (1.0 + self.solution_next.hNrmNow)
         )
-        hNrmNow = PermGroNum/Rfree
+        hNrmNow = PermGroStg/Rfree
         hNrmNow_facts = {'about': 'Human Wealth Now'}
         hNrmNow_facts.update({'latexexpr': r'\hNrmNow'})
 #        hNrmNow_facts.update({'_unicode_': r'R/Γ'})
 #        hNrmNow_facts.update({'urlhandle': urlroot+'hNrmNow'})
-#        hNrmNow_facts.update({'py___code': r'PermGroNumInf/Rfree'})
+#        hNrmNow_facts.update({'py___code': r'PermGroStgInf/Rfree'})
 #        hNrmNow_facts.update({'value_now': hNrmNow})
-        solution.facts.update({'hNrmNow': hNrmNow_facts})
-        solution.hNrmNow_facts = hNrmNow_facts
-        self.hNrmNow = solution.hNrmNow = hNrmNow
+        soln_stge.facts.update({'hNrmNow': hNrmNow_facts})
+        soln_stge.hNrmNow_facts = hNrmNow_facts
+        self.hNrmNow = soln_stge.hNrmNow = hNrmNow
 
         MPCminNow = 1.0 / (1.0 + RPF / self.solution_next.MPCminNow)
         MPCminNow_facts = {
@@ -3449,9 +3617,9 @@ class PerfForesightConsumerType(AgentType):
         MPCminNow_facts.update({'latexexpr': r''})
         MPCminNow_facts.update({'urlhandle': urlroot+'MPCminNow'})
         MPCminNow_facts.update({'value_now': MPCminNow})
-        solution.facts.update({'MPCminNow': MPCminNow_facts})
-        solution.MPCminNow_facts = MPCminNow_facts
-        self.MPCminNow = solution.MPCminNow = MPCminNow
+        soln_stge.facts.update({'MPCminNow': MPCminNow_facts})
+        soln_stge.MPCminNow_facts = MPCminNow_facts
+        self.MPCminNow = soln_stge.MPCminNow = MPCminNow
 
         MPCmaxNow = 1.0 / (1.0 + (0.0 ** (1.0 / CRRA)) * RPF
                            / self.solution_next.MPCmaxNow)
@@ -3460,9 +3628,9 @@ class PerfForesightConsumerType(AgentType):
         MPCmaxNow_facts.update({'latexexpr': r''})
         MPCmaxNow_facts.update({'urlhandle': urlroot+'MPCmaxNow'})
         MPCmaxNow_facts.update({'value_now': MPCmaxNow})
-        solution.facts.update({'MPCmaxNow': MPCmaxNow_facts})
-        solution.MPCmaxNow_facts = MPCmaxNow_facts
-        solution.MPCmaxNow = MPCmaxNow
+        soln_stge.facts.update({'MPCmaxNow': MPCmaxNow_facts})
+        soln_stge.MPCmaxNow_facts = MPCmaxNow_facts
+        soln_stge.MPCmaxNow = MPCmaxNow
 
         # Lower bound of aggregate wealth growth if all inheritances squandered
         cFuncLimitIntercept = MPCminNow * hNrmNow
@@ -3473,9 +3641,9 @@ class PerfForesightConsumerType(AgentType):
         cFuncLimitIntercept_facts.update({'value_now': cFuncLimitIntercept})
         cFuncLimitIntercept_facts.update({
             'py___code': 'MPCminNow * hNrmNow'})
-        solution.facts.update({'cFuncLimitIntercept': cFuncLimitIntercept_facts})
-        solution.cFuncLimitIntercept_facts = cFuncLimitIntercept_facts
-        solution.cFuncLimitIntercept = cFuncLimitIntercept
+        soln_stge.facts.update({'cFuncLimitIntercept': cFuncLimitIntercept_facts})
+        soln_stge.cFuncLimitIntercept_facts = cFuncLimitIntercept_facts
+        soln_stge.cFuncLimitIntercept = cFuncLimitIntercept
 
         cFuncLimitSlope = MPCminNow
         cFuncLimitSlope_facts = {
@@ -3485,9 +3653,9 @@ class PerfForesightConsumerType(AgentType):
         cFuncLimitSlope_facts.update({'value_now': cFuncLimitSlope})
         cFuncLimitSlope_facts.update({
             'py___code': 'MPCminNow * hNrmNow'})
-        solution.facts.update({'cFuncLimitSlope': cFuncLimitSlope_facts})
-        solution.cFuncLimitSlope_facts = cFuncLimitSlope_facts
-        solution.cFuncLimitSlope = cFuncLimitSlope
+        soln_stge.facts.update({'cFuncLimitSlope': cFuncLimitSlope_facts})
+        soln_stge.cFuncLimitSlope_facts = cFuncLimitSlope_facts
+        soln_stge.cFuncLimitSlope = cFuncLimitSlope
 
         # We are in the perfect foresight model now so these are all 1.0
         Ex_Inv_PermShk = 1.0
@@ -3504,40 +3672,40 @@ class PerfForesightConsumerType(AgentType):
         # and inherited by the descendant model, which augments them with
         # the objects that require live calculation.
 
-        if solution.Inv_PF_RNrm < 1:        # Finite if Rfree > PermGroNum
-            solution.hNrmNowInf = 1/(1-solution.Inv_PF_RNrm)
+        if soln_stge.Inv_PF_RNrm < 1:        # Finite if Rfree > PermGroStg
+            soln_stge.hNrmNowInf = 1/(1-soln_stge.Inv_PF_RNrm)
 
-        # Given m, value of c where E[mLev_{t+1}/mLev_{t}]=PermGroNum
+        # Given m, value of c where E[mLev_{t+1}/mLev_{t}]=PermGroStg
         # Solves for c in equation at url/#balgrostable
 
-        solution.c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0 = (
+        soln_stge.c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0 = (
             lambda m_t:
-            m_t * (1 - solution.Inv_PF_RNrm) + solution.Inv_PF_RNrm
+            m_t * (1 - soln_stge.Inv_PF_RNrm) + soln_stge.Inv_PF_RNrm
         )
 
-        solution.Ex_cLev_tp1_Over_cLev_t_from_mt = (
+        soln_stge.Ex_cLev_tp1_Over_cLev_t_from_mt = (
             lambda m_t:
-            solution.Ex_cLev_tp1_Over_pLev_t_from_mt(solution,
-                                                     m_t - solution.cFunc(m_t))
-            / solution.cFunc(m_t)
+            soln_stge.Ex_cLev_tp1_Over_pLev_t_from_mt(soln_stge,
+                                                      m_t - soln_stge.cFunc(m_t))
+            / soln_stge.cFunc(m_t)
         )
 
 #        # E[m_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
-        solution.Ex_mLev_tp1_Over_pLev_t_from_at = (
+        soln_stge.Ex_mLev_tp1_Over_pLev_t_from_at = (
             lambda a_t:
-                solution.PermGroNum *
-            (solution.PF_RNrm * a_t + solution.Ex_IncNextNrm)
+                soln_stge.PermGroStg *
+            (soln_stge.PF_RNrm * a_t + soln_stge.Ex_IncNextNrm)
         )
 
         # E[m_{t+1} pLev_{t+1}/(m_{t}pLev_{t})] as a fn of m_{t}
-        solution.Ex_mLev_tp1_Over_mLev_t_from_at = (
+        soln_stge.Ex_mLev_tp1_Over_mLev_t_from_at = (
             lambda m_t:
-                solution.Ex_mLev_tp1_Over_pLev_t_from_at(solution,
-                                                         m_t-solution.cFunc(m_t)
-                                                         )/m_t
+                soln_stge.Ex_mLev_tp1_Over_pLev_t_from_at(soln_stge,
+                                                          m_t-soln_stge.cFunc(m_t)
+                                                          )/m_t
         )
 
-        return solution
+        return soln_stge
 
     def add_mNrmStE():
         """
@@ -3559,7 +3727,7 @@ class PerfForesightConsumerType(AgentType):
         """
 
         # Minimum market resources plus next income is okay starting guess
-        m_init_guess = solution.mNrmMin + solution.Ex_IncNextNrm
+        m_init_guess = soln_stge.mNrmMin + soln_stge.Ex_IncNextNrm
         try:
             m_t = newton(
                 self.Ex_m_tp1_minus_m_t,
@@ -3626,8 +3794,9 @@ class PerfForesightConsumerType(AgentType):
 
     def update_solution_terminal(self):
         """
-        Update the terminal period solution.  This method is run when a
-        new AgentType is created or when CRRA changes.
+        Update the terminal period soln_stge.  This method is run when a
+        new AgentType is created or when primitive or approximating parameters
+        change (necessitating a new solution).  
 
         Parameters
         ----------
@@ -3637,22 +3806,31 @@ class PerfForesightConsumerType(AgentType):
         -------
         none
         """
-        # Value in last period is obtained by consuming everything
-        self.solution_terminal.cFunc = self.cFunc_nobequest_
-        self.solution_terminal.vFunc = ValueFuncCRRA(self.cFunc_nobequest_, self.CRRA)
-        self.solution_terminal.vPfunc = MargValueFuncCRRA(self.cFunc_nobequest_, self.CRRA)
-        self.solution_terminal.vPPfunc = MargMargValueFuncCRRA(
-            self.cFunc_nobequest_, self.CRRA)
-        self.solution_terminal.MPCminNow = 1.0
-        self.solution_terminal.MPCmaxNow = 1.0
-        self.solution_terminal.hNrmNow = 0.0
-        self.solution_terminal.mNrmMin = 0.0
+        self.solution_terminal.CRRA = self.CRRA
+        self.solution_terminal.DiscFacStg = self.DiscFac
+        self.solution_terminal.BoroCnstArt = self.BoroCnstArt
+        self.solution_terminal.Rfree = self.Rfree
+        self.solution_terminal.LivPrbStg = self.LivPrb[0]
+        self.solution_terminal.IncUnemp = self.IncUnemp
+        self.solution_terminal.IncUnempRet = self.IncUnempRet
+        self.solution_terminal.UnempPrb = self.UnempPrb
+        self.solution_terminal.UnempPrbRet = self.UnempPrbRet
+        self.solution_terminal.PermGroFacStg = self.PermGroFac[0]
+        self.solution_terminal.PermShkStd = self.PermShkStd[0]
+        self.solution_terminal.TranShkStd = self.TranShkStd[0]
+        self.solution_terminal.PermShkDstnStg = self.PermShkDstn[0]
+        self.solution_terminal.TranShkDstnStg = self.PermShkDstn[0]
+        self.solution_terminal.IncShkDstnStg = self.IncShkDstn[0]
+        self.solution_terminal.cFunc = lambda m: m
+
+
+#        print('Eliminated update_solution_terminal')
 
     def unpack_cFunc(self):
-        """ DEPRECATED: Use solution.unpack('cFunc') instead.
+        """ DEPRECATED: Use soln_stge.unpack('cFunc') instead.
         "Unpacks" the consumption functions into their own field for easier access.
         After the model has been solved, the consumption functions reside in the
-        attribute cFunc of each element of ConsumerType.solution.  This method
+        attribute cFunc of each element of ConsumerType.soln_stge.  This method
         creates a (time varying) attribute cFunc that contains a list of consumption
         functions.
         Parameters
@@ -3836,236 +4014,6 @@ class PerfForesightConsumerType(AgentType):
         super().get_poststates()
 
         return None
-
-    def check_condition(self, name, test, messages, verbose, verbose_messages=None):
-        """
-        Checks one condition.
-
-        Parameters
-        ----------
-        name : string
-             Name for the condition.
-
-        test : function(self -> boolean)
-             A function (of self) which tests the condition
-
-        messages : dict{boolean : string}
-            A dictiomary with boolean keys containing values
-            for messages to print if the condition is
-            true or false.
-
-        verbose_messages : dict{boolean : string}
-            (Optional) A dictiomary with boolean keys containing values
-            for messages to print if the condition is
-            true or false under verbose printing.
-        """
-        self.conditions[name] = test(self)
-        set_verbosity_level((4 - verbose) * 10)
-        _log.info(messages[self.conditions[name]].format(self))
-        if verbose_messages:
-            _log.debug(verbose_messages[self.conditions[name]].format(self))
-
-    def check_condtnnew(self, name, test, messages, verbose, verbose_messages, fact):
-        """
-        Checks one condition.
-
-        Parameters
-        ----------
-        name : string
-             Name for the condition.
-
-        fact : string
-             Name of the factor whose value should be less than 1
-
-        test : function(self -> boolean)
-             A function (of self) which tests the condition
-
-        messages : dict{boolean : string}
-            A dictiomary with boolean keys containing values
-            for messages to print if the condition is
-            true or false.
-
-        verbose_messages : dict{boolean : string}
-            (Optional) A dictiomary with boolean keys containing values
-            for messages to print if the condition is
-            true or false under verbose printing.
-        """
-        self.solution_curr.conditions[name] = test(self)
-        set_verbosity_level((4 - verbose) * 10)
-        self.solution_curr.conditions[fact] = (
-            messages[self.solution_curr.conditions[name]] +
-            verbose_messages[self.solution_curr.conditions[name]]).format(self.solution_curr)
-        print(self.solution_curr.conditions[fact])
-        _log.info((
-            messages[self.solution_curr.conditions[name]] +
-            verbose_messages[self.solution_curr.conditions[name]]).format(self.solution_curr)
-        )
-
-    def check_AIC(self, verbose=None):
-        """
-        Evaluate and report on the Absolute Impatience Condition
-        """
-        name = "AIC"
-        fact = "APF"
-
-        def test(agent): return agent.solution_curr.APF < 1
-
-        messages = {
-            True: "\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, satisfies the Absolute Impatience Condition (AIC), which requires APF < 1: "+self.solution_curr.AIC_facts['urlhandle'],
-            False: "\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, violates the Absolute Impatience Condition (AIC), which requires APF < 1: "+self.solution_curr.AIC_facts['urlhandle']
-        }
-        verbose_messages = {
-            True: "  Because the APF < 1,  the absolute amount of consumption is expected to fall over time.  \n",
-            False: "  Because the APF > 1, the absolute amount of consumption is expected to grow over time.  \n",
-        }
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condtnnew(name, test, messages, verbose, verbose_messages, fact)
-
-    def check_FVAC(self, verbose=None):
-        """
-        Evaluate and report on the Finite Value of Autarky Condition
-        """
-        name = "FVAC"
-        fact = "FVAF"
-
-        def test(agent): return agent.solution_curr.FVAF < 1
-
-        messages = {
-            True: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, satisfies the Finite Value of Autarky Condition, which requires FVAF < 1: "+self.solution_curr.FVAC_facts['urlhandle'],
-            False: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, violates the Finite Value of Autarky Condition, which requires FVAF: "+self.solution_curr.FVAC_facts['urlhandle']
-        }
-        verbose_messages = {
-            True: "  Therefore, a nondegenerate solution exists if the RIC also holds. ("+self.solution_curr.FVAC_facts['urlhandle']+")\n",
-            False: "  Therefore, a nondegenerate solution exits if the RIC holds.\n",
-        }
-
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condtnnew(name, test, messages, verbose, verbose_messages, fact)
-
-    def check_GICRaw(self, verbose=None):
-        """
-        Evaluate and report on the Growth Impatience Condition
-        """
-        name = "GICRaw"
-        fact = "GPFRaw"
-
-        def test(agent): return agent.solution_curr.GPFRaw < 1
-
-        messages = {
-            True: "\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, satisfies the Growth Impatience Condition (GIC), which requires GPF < 1: "+self.solution_curr.GICRaw_facts['urlhandle'],
-            False: "\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, violates the Growth Impatience Condition (GIC), which requires GPF < 1: "+self.solution_curr.GICRaw_facts['urlhandle'],
-        }
-        verbose_messages = {
-            True: "  Therefore,  for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
-            False: "  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to rise toward infinity. \n"
-        }
-
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condtnnew(name, test, messages, verbose, verbose_messages, fact)
-
-    def check_GICLiv(self, verbose=None):
-        name = "GICLiv"
-        fact = "GPFLiv"
-
-        def test(agent): return agent.solution_curr.GPFLiv < 1
-
-        messages = {
-            True: "\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, satisfies the Mortality Adjusted Aggregate Growth Imatience Condition (GICLiv): "+self.solution_curr.GPFLiv_facts['urlhandle'],
-            False: "\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, violates the Mortality Adjusted Aggregate Growth Imatience Condition (GICLiv): "+self.solution_curr.GPFLiv_facts['urlhandle'],
-        }
-        verbose_messages = {
-            True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists ("+self.solution_curr.GPFLiv_facts['urlhandle']+")\n",
-            False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist ("+self.solution_curr.GPFLiv_facts['urlhandle']+")\n",
-        }
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condtnnew(name, test, messages, verbose, verbose_messages, fact)
-
-    def check_RIC(self, verbose=None):
-        """
-        Evaluate and report on the Return Impatience Condition
-        """
-
-        name = "RIC"
-        fact = "RPF"
-
-        def test(agent): return agent.solution_curr.RPF < 1
-
-        messages = {
-            True: "\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, satisfies the Return Impatience Condition (RIC), which requires RPF < 1: "+self.solution_curr.RPF_facts['urlhandle'],
-            False: "\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, violates the Return Impatience Condition (RIC), which requires RPF < 1: "+self.solution_curr.RPF_facts['urlhandle'],
-        }
-        verbose_messages = {
-            True: "  Therefore, the limiting consumption function is not c(m)=0 for all m\n",
-            False: "  Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.\n",
-        }
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condtnnew(name, test, messages, verbose, verbose_messages, fact)
-
-    def check_FHWC(self, verbose=None):
-        """
-        Evaluate and report on the Finite Human Wealth Condition
-        """
-        name = "FHWC"
-        fact = "FHWF"
-
-        def test(agent): return agent.solution_curr.FHWF < 1
-
-        messages = {
-            True: "\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, satisfies the Finite Human Wealth Condition (FHWC), which requires FHWF < 1: "+self.solution_curr.FHWC_facts['urlhandle'],
-            False: "\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, violates the Finite Human Wealth Condition (FHWC), which requires FHWF < 1: "+self.solution_curr.FHWC_facts['urlhandle'],
-        }
-        verbose_messages = {
-            True: "  Therefore, the limiting consumption function is not c(m)=Infinity ("+self.solution_curr.FHWC_facts['urlhandle']+")\n  Human wealth normalized by permanent income is {0.hNrmNowInf}.\n",
-            False: "  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.\n  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0. ("+self.solution_curr.FHWC_facts['urlhandle']+")\n",
-        }
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condtnnew(name, test, messages, verbose, verbose_messages, fact)
-
-    def check_condtnsnew(self, verbose=None):
-        """
-        This method checks whether the instance's type satisfies the
-        Absolute Impatience Condition (AIC),
-        the Return Impatience Condition (RIC),
-        the Finite Human Wealth Condition (FHWC), the perfect foresight
-        model's Growth Impatience Condition (GICRaw) and
-        Perfect Foresight Finite Value of Autarky Condition (FVACPF). Depending on the configuration of parameter values, some
-        combination of these conditions must be satisfied in order for the problem to have
-        a nondegenerate solution. To check which conditions are required, in the verbose mode
-        a reference to the relevant theoretical literature is made.
-
-        Parameters
-        ----------
-        verbose : boolean
-            Specifies different levels of verbosity of feedback. When False, it only reports whether the
-            instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
-            the factor values for all conditions.
-
-        Returns
-        -------
-        None
-        """
-        self.solution_curr.conditions = {}
-
-        self.solution_curr.violated = False
-
-        # This method only checks for the conditions for infinite horizon models
-        # with a 1 period cycle. If these conditions are not met, we exit early.
-        if self.cycles != 0 or self.T_cycle > 1:
-            return
-
-        verbose = self.verbose if verbose is None else verbose
-        self.check_AIC(verbose)
-        self.check_FHWC(verbose)
-        self.check_RIC(verbose)
-        self.check_GICRaw(verbose)
-        self.check_GICLiv(verbose)
-        self.check_FVAC(verbose)
-
-        if hasattr(self, "BoroCnstArt") and self.solution_curr.BoroCnstArt is not None:
-            self.solution_curr.violated = not self.solution_curr.conditions["RIC"]
-        else:
-            self.solution_curr.violated = not self.solution_curr.conditions[
-                "RIC"] or not self.solution_curr.conditions["FHWC"]
 
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
@@ -4274,7 +4222,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         than the tolerance specified as a default parameter.
     """
 
-    # Time invariante parameters
+    # Time invariant parameters
     time_inv_ = PerfForesightConsumerType.time_inv_ + [
         "vFuncBool",
         "CubicBool",
@@ -4285,16 +4233,24 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     shock_vars_ = ['PermShk', 'TranShk']  # The unemployment shock is transitory
 
-    def __init__(self, cycles=1, verbose=1, quiet=False, **kwds):
+    def __init__(self,  quiet, cycles=1, verbose=1, solution_interim=None, **kwds):
         params = init_idiosyncratic_shocks.copy()
 
         # Update them with any customizations the user has chosen
         params.update(kwds)  # This gets all params, not just those in the dict
 
-        # Inherit characteristics of a perfect foresight model
+        # Inherit characteristics of a perfect foresight model initialized
+        # with the same parameters
         PerfForesightConsumerType.__init__(
-            self, cycles=cycles, verbose=verbose, quiet=quiet, **params
+            self, cycles=cycles, verbose=verbose, quiet=quiet,
+            solution_interim=solution_interim, **params
         )
+
+        # Add the few parameters that are not in the initialization
+        self.parameters.update({"cycles": self.cycles})
+#        self.parameters.update({"time_inv_": time_inv_})
+#        self.parameters.update({"time_vary_": time_vary_})
+#        self.parameters.update({"shock_vars_": shock_vars_})
 
         # Extract the class name so that we can ...
         self.model_type = self.__class__.__name__
@@ -4311,6 +4267,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.parameters.update({"url_doc_model_type": self.url_doc_model_type})
         self.parameters.update({"url_ref": self.url_ref})
 
+        self.update_solution_terminal()
         # Add consumer-type specific objects, copying to create independent versions
         # - Default interpolation method is piecewise linear
         # - Cubic is smoother, works well if problem has no constraints
@@ -4320,21 +4277,28 @@ class IndShockConsumerType(PerfForesightConsumerType):
         else:  # Use the "advanced" solver if either is requested
             solver = ConsIndShockSolver
 
-        # Attach the corresponding one period solver to the agent
+        # Construct the infrastructure needed to begin the solution process
+        self.setup_solution_starting_point()
+
+        # Attach the corresponding one-stage solver to the agent
         self.solve_one_period = make_one_period_oo_solver(solver)
 
-        # Let it know about all the parameters of the model
-        self.solve_one_period.parameters_model = self.parameters
+        # Store the initial model parameters
+        self.set_model_params(params['prmtv_par'], params['aprox_lim'])
 
         # Quiet mode: Define model without calculating anything
         # If not quiet, solve one period so we can check conditions
         if not quiet:
-            self.update()  # Otherwise, build last period soln with lots of info
-            self.tolerance_orig = self.tolerance  # preserve true tolerance
-            self.tolerance = float('inf')  # tolerance is infiniy ...
-            self.solve()  # ... means that "solve" will stop after one period
-            self.tolerance = self.tolerance_orig  # restore original tolerance
-            self.check_condtns()  # Check conditions for nature/existence of soln
+            self.solve_penultimate_prd(self)
+            self.check_conditions(verbose)  # Check conditions for nature/existence of soln
+
+    def solve_penultimate_prd(self, verbose):  # Build T-1 with lots of info
+        self.update()
+        self.tolerance_orig = deepcopy(self.tolerance)  # preserve true tolerance
+        self.tolerance = float('inf')  # tolerance is infiniy ...
+        self.solve(verbose)  # ... means that "solve" will stop after one period
+        # restore original tolerance        self.solver_check_condtnsnew_20210404()  # Check conditions for nature/existence of soln
+        self.tolerance = self.tolerance_orig
 
     def update_income_process(self):
         """
@@ -4348,15 +4312,15 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -----------
         none
         """
-        (
-            IncShkDstn,
+        (IncShkDstn,
             PermShkDstn,
             TranShkDstn,
-        ) = self.construct_lognormal_income_process_unemployment()
+         ) = self.construct_lognormal_income_process_unemployment()
         self.IncShkDstn = IncShkDstn
         self.PermShkDstn = PermShkDstn
         self.TranShkDstn = TranShkDstn
         self.add_to_time_vary("IncShkDstn", "PermShkDstn", "TranShkDstn")
+        self.parameters.update
 
     def update_assets_grid(self):
         """
@@ -4375,9 +4339,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.aXtraGrid = aXtraGrid
         self.add_to_time_inv("aXtraGrid")
 
-    def update(self):
+    def setup_solution_starting_point(self):
         """
-        Update the income process, the assets grid, and the terminal solution.
+        Construct the income process, the assets grid, and the terminal soln_stge.
 
         Parameters
         ----------
@@ -4391,6 +4355,34 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
+
+        self.update_income_process()
+        self.update_assets_grid()
+        self.update_solution_terminal()
+
+    def update(self):
+        """
+        Update the income process, the assets grid, and the terminal soln_stge.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        Notes
+        -------
+        None
+        """
+
+        solve_par_vals_now = {}
+        for par in self.solve_par_vals:
+            solve_par_vals_now[par] = getattr(self, par)
+
+        if not solve_par_vals_now == self.solve_par_vals:
+            setup_solution_starting_point(self)
 
         # Encourage the practice of sharing with the solver the agent's parameters
         try:
@@ -4409,10 +4401,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
             _log.info('')
             _log.info('from model_type '+self.solve_one_period.parameters_model['model_type'])
             _log.info('')
-
-        self.update_income_process()
-        self.update_assets_grid()
-        self.update_solution_terminal()
 
     def reset_rng(self):
         """
@@ -4583,167 +4571,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.eulerErrorFunc = eulerErrorFunc
 
     def pre_solve(self):
-        self.update_solution_terminal()
-        self.solution_next = self.solution_terminal
-
-    def check_GICNrm(self, verbose=None):
-        """
-        Check Individual Growth Patience Factor.
-        """
-        name = "GICNrm"
-        fact = "GPFNrm"
-
-        def test(agent): return agent.solution_curr.GPFNrm <= 1
-
-        messages = {
-            True: "\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, satisfies the Normalized Growth Impatience Condition (GICNrm), which requires GICNrm < 1: "+self.solution_curr.GPFNrm_facts['urlhandle']+"\n",
-            False: "\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, violates the Normalized Growth Impatience Condition (GICNrm), which requires GICNrm < 1: "+self.solution_curr.GPFNrm_facts['urlhandle']+"\n",
-        }
-        verbose_messages = {
-            True: " Therefore, a target level of the individual market resources ratio m exists ("+self.solution_curr.GICNrm_facts['urlhandle']+").\n",
-            False: " Therefore, a target ratio of individual market resources to individual permanent income does not exist.  ("+self.solution_curr.GICNrm_facts['urlhandle']+")\n",
-        }
-        verbose = self.verbose if verbose is None else verbose
-#        self.check_condition(name, test, messages, verbose, verbose_messages)
-        self.check_condtnnew(name, test, messages, verbose, verbose_messages, fact)
-
-    def check_WRIC(self, verbose=None):
-        """
-        Evaluate and report on the Weak Return Impatience Condition
-        [url]/#WRPF modified to incorporate LivPrb
-        """
-        self.solution_curr.WRPF = (
-            (self.solution_curr.UnempPrb ** (1 / self.solution_curr.CRRA))
-            * (self.solution_curr.Rfree * self.solution_curr.DiscFac * self.solution_curr.LivNum) ** (1 / self.solution_curr.CRRA)
-            / self.solution_curr.Rfree
-        )
-
-        self.solution_curr.WRIC = self.solution_curr.WRPF < 1
-        name = "WRIC"
-        fact = "WRPF"
-
-        def test(agent): return agent.solution_curr.WRPF <= 1
-
-        WRIC_facts = {'about': 'Weak Return Impatience Condition'}
-        WRIC_facts.update({'latexexpr': r'\WRIC'})
-        WRIC_facts.update({'urlhandle': self.solution_curr.urlroot+'WRIC'})
-        WRIC_facts.update({'py___code': 'test: agent.WRPF < 1'})
-        self.solution_curr.WRIC_facts = WRIC_facts
-
-        WRPF_facts = {'about': 'Growth Patience Factor'}
-        WRPF_facts.update({'latexexpr': r'\WRPF'})
-        WRPF_facts.update({'_unicode_': r'℘ RPF'})
-        WRPF_facts.update({'urlhandle': self.solution_curr.urlroot+'WRPF'})
-        WRPF_facts.update({'py___code': r'UnempPrb * RPF'})
-
-        messages = {
-            True: "\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, satisfies the Weak Return Impatience Condition, which requires WRIF < 1: "+self.solution_curr.WRIC_facts['urlhandle'],
-            False: "\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, violates the Weak Return Impatience Condition, which requires WRIF < 1: "+self.solution_curr.WRIC_facts['urlhandle'],
-        }
-
-        verbose_messages = {
-            True: "  Therefore, a nondegenerate solution exists if the FVAC is also satisfied. ("+self.solution_curr.WRIC_facts['urlhandle']+")\n",
-            False: "  Therefore, a nondegenerate solution is not available ("+self.solution_curr.WRIC_facts['urlhandle']+")\n",
-        }
-        verbose = self.verbose if verbose is None else verbose
-#        self.check_condition(name, test, messages, verbose, verbose_messages)
-        self.check_condtnnew(name, test, messages, verbose, verbose_messages, fact)
-
-        self.solution_curr.WRPF_facts = WRPF_facts
-
-    def check_FVAC(self, verbose=None):
-        """
-        Evaluate and report on the Finite Value of Autarky Condition
-        """
-        name = "FVAC"
-        fact = "FVAF"
-
-        def test(agent): return agent.solution_curr.FVAF < 1
-
-        messages = {
-            True: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, satisfies the Finite Value of Autarky Condition, which requires FVAF < 1: "+self.solution_curr.FVAC_facts['urlhandle'],
-            False: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, violates the Finite Value of Autarky Condition, which requires FVAF < 1: "+self.solution_curr.FVAC_facts['urlhandle']
-        }
-
-        verbose_messages = {
-            # ; see {0.url}/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping\n",
-            True: "  Therefore, a nondegenerate solution exists if the WRIC also holds. ("+self.solution_curr.FVAC_facts['urlhandle']+")\n",
-            # (see {0.url}/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping\n",
-            False: "  Therefore, a nondegenerate solution is not available ("+self.solution_curr.FVAC_facts['urlhandle']+")\n",
-        }
-        verbose = self.verbose if verbose is None else verbose
-#        self.check_condition(name, test, messages, verbose, verbose_messages)
-        self.check_condtnnew(name, test, messages, verbose, verbose_messages, fact)
-
-    def check_condtnsnew(self, verbose=None):
-        """
-        Checks whether the type satisfies the Absolute Impatience Condition (AIC), Weak Return
-        Impatience Condition (WRIC), Finite Human Wealth Condition (FHWC) and Finite Value of
-        Autarky Condition (FVAC).  When combinations of these conditions are satisfied, the
-        solution to the problem exhibits different characteristics.  (For an exposition of the
-        conditions, see https://econ-ark.github.io/BufferStockTheory/)
-
-        Parameters
-        ----------
-        verbose : boolean
-            Specifies different levels of verbosity of feedback. When False, it only reports whether the
-            instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
-            the factor values for all conditions.
-
-        Returns
-        -------
-        None
-        """
-        self.conditions = {}
-
-        self.violated = False
-
-        if self.cycles != 0 or self.T_cycle > 1:
-            if self.verbose == 3:
-                _log.warning("The conditions apply only to infinite horizon models")
-            return
-
-        self.check_AIC(verbose)
-        self.check_RIC(verbose)
-        self.check_FHWC(verbose)
-        self.check_GICNrm(verbose)
-        self.check_GICRaw(verbose)
-        self.check_GICLiv(verbose)
-        self.check_WRIC(verbose)
-        self.check_FVAC(verbose)
-
-        self.violated = not self.solution_curr.conditions["WRIC"] or not self.solution_curr.conditions["FVAC"]
-
-        if self.violated:
-            _log.warning('Under the provided parameter values, the solution is degenerate')
-            _log.warning(
-                '\n[!] For more information on the conditions, see Tables 3 and 4 in "Theoretical Foundations of Buffer Stock Saving" at '
-                + self.url_ref
-                + "/#Factors-Defined-And-Compared"
-            )
-
-        _log.warning("APF            = %2.6f " %
-                     (self.solution_curr.APF) + '  ' + str(self.solution_curr.APF_facts['urlhandle']))
-        _log.warning("RPF            = %2.6f " %
-                     (self.solution_curr.RPF) + '  ' + str(self.solution_curr.RPF_facts['urlhandle']))
-        _log.warning("FHWF           = %2.6f " %
-                     (self.solution_curr.FHWF) + '  ' + str(self.solution_curr.FHWF_facts['urlhandle']))
-        _log.warning("GPFNrm         = %2.6f " % (
-            self.solution_curr.GPFNrm) + '  ' + str(self.solution_curr.GPFNrm_facts['urlhandle']))
-        _log.warning("GPFRaw         = %2.6f " % (
-            self.solution_curr.GPFRaw) + '  ' + str(self.solution_curr.GPFRaw_facts['urlhandle']))
-        _log.warning("GPFLiv         = %2.6f " % (
-            self.solution_curr.GPFLiv) + '  ' + str(self.solution_curr.GPFLiv_facts['urlhandle']))
-        _log.warning("FVAF           = %2.6f " %
-                     (self.solution_curr.FVAF) + '  ' + str(self.solution_curr.FVAF_facts['urlhandle']))
-        _log.warning("WRPF           = %2.6f " %
-                     (self.solution_curr.WRPF) + '  ' + str(self.solution_curr.WRPF_facts['urlhandle']))
-        _log.warning("DiscGPFNrmCusp = %2.6f " % (self.solution_curr.DiscGPFNrmCusp) + '  code:' +
-                     self.solution_curr.DiscGPFNrmCusp_facts['py___code'])
-        _log.warning("DiscGPFRawCusp = %2.6f " % (self.solution_curr.DiscGPFRawCusp) + '  code:' +
-                     self.solution_curr.DiscGPFRawCusp_facts['py___code'])
-        _log.warning("DiscGPFLivCusp = %2.6f " % (self.solution_curr.DiscGPFLivCusp) + '  code:' +
-                     self.solution_curr.DiscGPFLivCusp_facts['py___code'])
+        self.update()
 
     def construct_lognormal_income_process_unemployment(self):
         """
@@ -4815,7 +4643,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # make a dictionary of the parameters
         # This is so that, later, we can determine whether any parameters have changed
-        params = {
+        parameters = {
             'PermShkStd':  self.PermShkStd,
             'PermShkCount':  self.PermShkCount,
             'TranShkStd':  self.TranShkStd,
@@ -4854,7 +4682,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 PermShkValsRet = np.array([1.0])
                 TranShkValsRet = np.array([1.0])
                 ShkPrbsRet = np.array([1.0])
-                IncShkDstnRet = DiscreteDistribution(
+                IncShkDstnRet = DiscreteApproximationToContinuousDistribution(
                     ShkPrbsRet,
                     [PermShkValsRet, TranShkValsRet],
                     seed=self.RNG.randint(0, 2 ** 31 - 1),
@@ -4889,7 +4717,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     PermShkDstn.append(PermShkDstn_t)
                     TranShkDstn.append(TranShkDstn_t)
 
-        IncShkDstn[-1].params = params
+        IncShkDstn[-1].parameters = parameters
         IncShkDstn[-1].constructed_by = constructed_by
 
         return IncShkDstn, PermShkDstn, TranShkDstn

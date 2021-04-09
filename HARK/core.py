@@ -8,6 +8,7 @@ problem by finding a general equilibrium dynamic rule.
 """
 from __future__ import print_function, division
 from __future__ import absolute_import
+import logging
 
 from builtins import str
 from builtins import range
@@ -21,6 +22,100 @@ import numpy as np
 from time import time
 from .parallel import multi_thread_commands, multi_thread_commands_fake
 from warnings import warn
+#from HARK_logger import *
+#from HARK_logger import _log
+#from HARK_logger import set_verbosity_level
+
+"""
+Logging tools for HARK.
+
+The logger will print logged statements to STDOUT by default.
+
+The logger wil use an informative value by default.
+The user can set it to "verbose" to get more information, 
+or "quiet" to suppress informative messages.
+"""
+
+
+logging.basicConfig(format="%(message)s")
+
+_log = logging.getLogger("HARK")
+
+_log.setLevel(logging.ERROR)
+
+
+def disable_logging():
+    _log.disabled = True
+
+
+def enable_logging():
+    _log.disabled = False
+
+
+def warnings():
+    _log.setLevel(logging.WARNING)
+
+
+def quiet():
+    _log.setLevel(logging.ERROR)
+
+
+def verbose():
+    _log.setLevel(logging.INFO)
+
+
+def set_verbosity_level(level):
+    _log.setLevel(level)
+
+# https://stackoverflow.com/questions/92/adding-a-method-to-an-existing-object-instance/2982#2982
+# Allows solver to attach methods to solution
+
+
+def bind_method(to_instance, method):
+    def binding_scope_fn(*args, **kwargs):
+        return method(to_instance, *args, **kwargs)
+    return binding_scope_fn
+
+
+def core_check_condition(name, test, messages, verbose, verbose_messages, fact, stage):
+    """
+    Checks whether parameter values of a model satisfy a condition
+
+    Parameters
+    ----------
+    name : string
+         Name for the condition.
+
+    test : function(self -> boolean)
+         A function (of self) which tests the condition
+
+    messages : dict{boolean : string}
+        A dictiomary with boolean keys containing values
+        for messages to print if the condition is
+        true or false.
+
+    verbose_messages : dict{boolean : string}
+        (Optional) A dictiomary with boolean keys containing values
+        for messages to print if the condition is
+        true or false under verbose printing.
+
+    fact : string
+         Name of the fact (for recording the results)
+
+    stage : instance containing condition to be tested
+        Must have dict 'conditions' [name]
+    """
+
+    stage.conditions[name] = test(stage)
+    set_verbosity_level((4 - verbose) * 10)
+    stage.conditions[fact] = (
+        messages[stage.conditions[name]] +
+        verbose_messages[stage.conditions[name]]).format(stage)
+#    print(stage.conditions[fact])
+    _log.info((
+        messages[stage.conditions[name]] +
+        verbose_messages[stage.conditions[name]]).format(stage)
+    )
 
 
 def distance_metric(thing_a, thing_b):
@@ -320,8 +415,9 @@ class AgentType(Model):
         self.facts = dict()    # for storing meta and calculated info about model
         self.about = dict()    # about the model itself
         self.prmtv_par = dict()  # 'primitives' define true model
-        self.aprox_par = {'tolerance':self.tolerance,'seed':self.seed}  # 'approximation' pars
-        self.aprox_lim = {'tolerance':0.0,'seed':None}  # sol approaches truth as all aprox_par -> lim
+        self.aprox_par = {'tolerance': self.tolerance, 'seed': self.seed}  # 'approximation' pars
+        # sol approaches truth as all aprox_par -> lim
+        self.aprox_lim = {'tolerance': 0.0, 'seed': None}
         self.auxiliary = dict()  # auxiliary choices (like, options)
 
     def add_to_time_vary(self, *params):
@@ -436,7 +532,7 @@ class AgentType(Model):
         with np.errstate(
             divide="ignore", over="ignore", under="ignore", invalid="ignore"
         ):
-            self.pre_solve()  # Do pre-solution stuff
+            self.pre_solve()  # Stuff to do before beginning to solve the model
             self.solution = solve_agent(
                 self, verbose
             )  # Solve the model by backward induction
@@ -859,9 +955,9 @@ class AgentType(Model):
         # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
         # tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
         # -np.inf, np.inf/np.inf is np.nan and so on.
-        with np.errstate(
-            divide="ignore", over="ignore", under="ignore", invalid="ignore"
-        ):
+#        with np.errstate(
+#            divide="ignore", over="ignore", under="ignore", invalid="ignore"
+#        ):
             if sim_periods is None:
                 sim_periods = self.T_sim
 
@@ -939,15 +1035,17 @@ def solve_agent(agent, verbose):
     if verbose:
         t_last = time()
     while go:
-        # Solve a cycle of the model, recording it if horizon is finite
+        # Solve a cycle of the model
         solution_cycle = solve_one_cycle(agent, solution_last)
+        # Tell the last solution how many cycles have been solved
         solution[-1].completed_cycles = completed_cycles
+        # If finite horizon model, add cycle to the growing list
         if not infinite_horizon:
             solution = solution_cycle + solution
 
-        # Check for termination: identical solutions across
+        # Check for termination: solutions identical (within tolerance) across
         # cycle iterations or run out of cycles
-        solution_now = solution_cycle[0]
+        solution_now = solution_cycle[0]  # element 0 corresponds to last(?)
         if infinite_horizon:
             if completed_cycles > 0:
                 solution_distance = solution_now.distance(solution_last)
@@ -968,7 +1066,7 @@ def solve_agent(agent, verbose):
             cycles_left += -1
             go = cycles_left > 0
 
-        # Update the "last period solution"
+        # Update the "last period solution" for next iteration
         solution_last = solution_now
         completed_cycles += 1
 
@@ -1003,16 +1101,22 @@ def solve_agent(agent, verbose):
         )
 
     if agent.pseudo_terminal:
-        solution = [solution[-1]] # Remove the last period
+        solution = [solution[-1]]  # Remove the last period
 
     return solution
+
+# As things stand (20210331) the solve_one_cycle code has begun the
+# transition from referring to successive problems within a "cycle" as being
+# "stages" rather than "periods". To minimize disruption to other code, the
+# changes have been restricted to variables that are strictly local to the
+# method, and to the comments and descriptions.
 
 
 def solve_one_cycle(agent, solution_last):
     """
     Solve one "cycle" of the dynamic model for one agent type.  This function
-    iterates over the periods within an agent's cycle, updating the time-varying
-    parameters and passing them to the single period solver(s).
+    iterates over the periods within an agent's cycle, updating the time-
+    varying parameters and passing them to the single period solver(s).
 
     Parameters
     ----------
@@ -1026,83 +1130,97 @@ def solve_one_cycle(agent, solution_last):
 
     Returns
     -------
-    solution_cycle : [Solution]
-        A list of one period solutions for one "cycle" of the AgentType's
-        microeconomic model.
+    full_cycle : [Solution]
+        An ordered list of one-period solutions ('stages') for one "cycle"
+        of the AgentType's microeconomic model, constructed by backward 
+        induction.  After construction, each solution is inserted at the
+        beginning of the full_cycle, with the result that in the completed
+        full_cycle element 0 is the solution to the problem at the beginning
+        of the cycle, and full_cycle[-1] is the solution to the last problem
+        in the stage.
     """
-    # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
+    # Calculate number of stages per cycle;
+    # defaults to 1 if all variables are stage invariant
     if len(agent.time_vary) > 0:
-        # name = agent.time_vary[0]
-        # T = len(eval('agent.' + name))
-        T = len(agent.__dict__[agent.time_vary[0]])
+        Stges = len(agent.__dict__[agent.time_vary[0]])
     else:
-        T = 1
+        Stges = 1
 
+    # Add to dict all the parameters in time_inv and time_vary
     solve_dict = {parameter: agent.__dict__[parameter] for parameter in agent.time_inv}
     solve_dict.update({parameter: None for parameter in agent.time_vary})
 
-    # Initialize the solution for this cycle, then iterate on periods
-    solution_cycle = []
-    solution_next = solution_last
-    for t in range(T):
-        # Update which single period solver to use (if it depends on time)
-        if hasattr(agent.solve_one_period, "__getitem__"):
-            solve_one_period = agent.solve_one_period[T - 1 - t]
+    # Initialize the solution for this cycle, then iterate through stages
+    full_cycle = []
+    solution_next = solution_last  # next because about to solve predecessor
+    for stge in range(Stges):  # e.g., for quarterly model, Stges = 4 quarters
+        # Update which single period solver to use (if it depends on stage)
+        if hasattr(agent.solve_one_period, "__getitem__"):  # -> solve_this_stge
+            solve_one_period = agent.solve_one_period[Stges - 1 - stge]
         else:
             solve_one_period = agent.solve_one_period
 
+        # The code below allows stage-varying arguments by constructing the
+        # arguments demanded by solve_one_period
         if hasattr(solve_one_period, "solver_args"):
             these_args = solve_one_period.solver_args
         else:
             these_args = get_arg_names(solve_one_period)
 
-        # Update time-varying single period inputs
+        # Update stage-varying single period inputs
+        # This obtains the value for the current step by indexing
+        # into the attribute's list at [Stges - 1 - stge]
         for name in agent.time_vary:
             if name in these_args:
-                # solve_dict[name] = eval('agent.' + name + '[t]')
-                solve_dict[name] = agent.__dict__[name][T - 1 - t]
-        solve_dict["solution_next"] = solution_next
+                solve_dict[name] = agent.__dict__[name][Stges - 1 - stge]
+        solve_dict["solution_next"] = solution_next  # solution_stage_next
 
         # Make a temporary dictionary for this period
         temp_dict = {name: solve_dict[name] for name in these_args}
 
-        # Solve one period, add it to the solution, and move to the next period
-        solution_t = solve_one_period(**temp_dict)
-        solution_cycle.insert(0, solution_t)
-        solution_next = solution_t
+        # Solve one stage, add it to the collection, and designate
+        # the just-solved solution as being in the future for the
+        # purposes of any remaining iteration(s)
+        solution_stge = solve_one_period(**temp_dict)  # -> solve_this_stage
+        full_cycle.insert(0, solution_stge)
+        solution_next = solution_stge
 
     # Return the list of per-period solutions
-    return solution_cycle
+    return full_cycle
 
 
 def make_one_period_oo_solver(solver_class):
+    # last step in PerfForesightConsumerType.__init__:
+    # """ self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolver)
     """
-    Returns a function that solves a single period consumption-saving
-    problem.
+    Returns a function that solves a single period problem.
     Parameters
     ----------
     solver_class : Solver
         A class of Solver to be used.
+
+    Returns
     -------
     solver_function : function
         A function for solving one period of a problem.
     """
 
-    def one_period_solver(**kwds):
-        solver = solver_class(**kwds)
-
-        # not ideal; better if this is defined in all Solver classes
+    def one_period_solver(**kwds):  # FIX: rename to, say, solve_stge
+        # last step in loop over Stges in solve_one_cycle is:
+        # """ solve_one_period(**temp_dict) [should become, say, solve_this_stge]
+        solver = solver_class(**kwds)  # defined extrnally
         if hasattr(solver, "prepare_to_solve"):
-            solver.prepare_to_solve()
+            # Steps, if any, to prep for sol of stge
+            solver.prepare_to_solve()  # Fix: rename to prepare_to_solve_stge
 
-        solution_now = solver.solve()
-        return solution_now
+        solution_stge = solver.solve()  # Fix: rename to solve_stge
+        return solution_stge
 
     one_period_solver.solver_class = solver_class
     # This can be revisited once it is possible to export parameters
     one_period_solver.solver_args = get_arg_names(solver_class.__init__)[1:]
 
-    return one_period_solver
+    return one_period_solver  # Fix: rename to this_stge_solver
 
 
 # ========================================================================
