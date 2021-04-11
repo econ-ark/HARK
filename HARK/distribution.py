@@ -5,6 +5,7 @@ from scipy.special import erf, erfc
 import scipy.stats as stats
 
 
+
 class Distribution:
     """
     Parameters
@@ -12,6 +13,7 @@ class Distribution:
     seed : int
         Seed for random number generator.
     """
+
     def __init__(self, seed=0):
 
         self.RNG = np.random.RandomState(seed)
@@ -27,7 +29,7 @@ class Distribution:
         self.RNG = np.random.RandomState(self.seed)
 
 
-### CONTINUOUS DISTRIBUTIONS
+# CONTINUOUS DISTRIBUTIONS
 
 
 class Lognormal(Distribution):
@@ -56,10 +58,10 @@ class Lognormal(Distribution):
         super().__init__(seed)
 
         if self.mu.size != self.sigma.size:
-                raise Exception(
-                    "mu and sigma must be of same size, are %s, %s"
-                    % ((self.mu.size), (self.sigma.size))
-                )
+            raise Exception(
+                "mu and sigma must be of same size, are %s, %s"
+                % ((self.mu.size), (self.sigma.size))
+            )
 
     def draw(self, N):
         """
@@ -160,7 +162,7 @@ class Lognormal(Distribution):
             CDF_vals = np.array(CDF_vals)
 
             K = CDF_vals.size - 1  # number of points in approximation
-            pmf = CDF_vals[1 : (K + 1)] - CDF_vals[0:K]
+            pmf = CDF_vals[1: (K + 1)] - CDF_vals[0:K]
             X = np.zeros(K)
             for i in range(K):
                 zBot = cutoffs[i]
@@ -199,7 +201,7 @@ class Lognormal(Distribution):
         )
 
     @classmethod
-    def from_mean_std(cls, mean, std, seed = 0):
+    def from_mean_std(cls, mean, std, seed= 0):
         """
         Construct a LogNormal distribution from its
         mean and standard deviation.
@@ -222,20 +224,21 @@ class Lognormal(Distribution):
         Returns
         ---------
         LogNormal
- 
+
         """
         mean_squared = mean ** 2
         variance = std ** 2
         mu = np.log(mean / (np.sqrt(1.0 + variance / mean_squared)))
         sigma = np.sqrt(np.log(1.0 + variance / mean_squared))
 
-        return cls(mu = mu, sigma = sigma, seed = seed)
+        return cls(mu= mu, sigma = sigma, seed = seed)
 
 
 class MeanOneLogNormal(Lognormal):
     def __init__(self, sigma=1.0, seed=0):
         mu = -0.5 * sigma ** 2
         super().__init__(mu=mu, sigma=sigma, seed=seed)
+
 
 class Normal(Distribution):
     """
@@ -437,7 +440,7 @@ class Uniform(Distribution):
             pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
         )
 
-### DISCRETE DISTRIBUTIONS
+# DISCRETE DISTRIBUTIONS
 
 
 class Bernoulli(Distribution):
@@ -923,7 +926,7 @@ def combine_indep_dstns(*distributions, seed=0):
         )
 
         # The tiling we want to do
-        dist_tiles = dist_lengths[:dd] + (1,) + dist_lengths[dd + 1 :]
+        dist_tiles = dist_lengths[:dd] + (1,) + dist_lengths[dd + 1:]
 
         # Now we are ready to tile.
         # We don't use the np.meshgrid commands, because they do not
@@ -955,7 +958,7 @@ def combine_indep_dstns(*distributions, seed=0):
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
     return DiscreteDistribution(P_out, X_out, seed=seed)
 
-def calc_expectation(dstn,func=lambda x : x,*args):
+def calc_expectation(dstn, func=lambda x : x,*args):
     '''
     Calculate the expectation of a stochastic function at an array of values.
 
@@ -1052,7 +1055,7 @@ class MarkovProcess(Distribution):
         def sample(s):
             return self.RNG.choice(
                 self.transition_matrix.shape[1],
-                p = self.transition_matrix[s,:]
+                p = self.transition_matrix[s, :]
             )
 
         array_sample = np.frompyfunc(sample, 1, 1)
