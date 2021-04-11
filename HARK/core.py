@@ -1189,6 +1189,29 @@ def solve_one_cycle(agent, solution_last):
     return full_cycle
 
 
+def get_solve_one_period_args(agent, solve_one_period, stge_which):
+    # Add to dict all the parameters in time_inv and time_vary
+    solve_dict = \
+        {parameter: agent.__dict__[parameter] for parameter in agent.time_inv}
+    solve_dict.update({parameter: None for parameter in agent.time_vary})
+
+    # The code below allows stage-varying arguments by constructing the
+    # arguments demanded by the given solve_one_period
+    if hasattr(solve_one_period, "solver_args"):
+        these_args = solve_one_period.solver_args
+    else:
+        these_args = get_arg_names(solve_one_period)
+
+    # Update stage-varying single period inputs
+    # This obtains the value for the current step by indexing
+    # into the attribute's list at [Stges - 1 - stge]
+    for name in agent.time_vary:
+        if name in these_args:
+            solve_dict[name] = agent.__dict__[name][stge_which]
+
+    return solve_dict
+
+
 def make_one_period_oo_solver(solver_class):
     # last step in PerfForesightConsumerType.__init__:
     # """ self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolver)
