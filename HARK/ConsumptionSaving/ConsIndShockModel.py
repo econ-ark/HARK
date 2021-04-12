@@ -21,7 +21,9 @@ bequest motive, and income shocks that are fully transitory or fully permanent.
 
 It currently solves three types of models:
    1) A very basic "perfect foresight" consumption-savings model with no uncertainty.
-   2) A consumption-saving model with transitory and permanent income shocks.
+      * Features of the model prepare it for convenient inheritance
+   2) A consumption-saving model with transitory and permanent income shocks
+      * Inherits from PF model
    3) The model described in (2), but with an interest rate for debt that differs
       from the interest rate for savings.
 
@@ -94,15 +96,16 @@ class ConsumerSolution(MetricObject):
     MPCmaxNow : float
         Supremum of the marginal propensity to consume this period.
         MPC --> MPCmaxNow as m --> mNrmMin.
-    kind : dict
-        A dictionary including information about the type of this solution
-        {'epoch':'terminal'}: Terminal solution
-        {'epoch':'iterator'}: Solution during iteration
-        {'epoch':'finished'}: Solution that satisfied stopping requirements
+    stge_kind : dict
+        Dictionary with info about the type of this stage
+        One built-in entry keeps track of the 
+        {'iter_status':'terminal'}: Terminal solution
+        {'iter_status':'iterator'}: Solution during iteration
+        {'iter_status':'finished'}: Solution that satisfied stopping requirements
     """
-#    distance_criteria = ["vPfunc"]
+    distance_criteria = ["vPfunc"]
 #    distance_criteria = ["mNrmStE"]
-    distance_criteria = ["cFunc"]
+#    distance_criteria = ["cFunc"]
 
     def __init__(
             self,
@@ -114,7 +117,7 @@ class ConsumerSolution(MetricObject):
             hNrmNow=None,
             MPCminNow=None,
             MPCmaxNow=None,
-            kind=None,
+            stge_kind=None,
     ):
         # Generate a url that will locate the documentation
         self.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q=" + \
@@ -129,7 +132,7 @@ class ConsumerSolution(MetricObject):
         self.MPCminNow = MPCminNow
         self.MPCmaxNow = MPCmaxNow
         self.completed_cycles = 0
-        self.kind = kind
+        self.stge_kind = stge_kind
 
     def append_solution(self, new_solution):
         """
@@ -250,20 +253,12 @@ class ConsPerfForesightSolver(MetricObject):
         self.soln_stge = ConsumerSolution()  # create a blank template to fill in
         self.soln_stge.MaxKinks = MaxKinks
 
-        self.soln_stge.LivPrb_0_ = self.soln_stge.LivPrb = LivPrb
-        self.soln_stge.DiscFac_0_ = self.soln_stge.DiscFac = DiscFac
-        self.soln_stge.CRRA = CRRA
+        self.soln_stge.LivPrbNxt = self.soln_stge.LivPrb = LivPrb
+        self.soln_stge.DiscFacNxt = self.soln_stge.DiscFac = DiscFac
+        self.soln_stge.CRRANxt = CRRA
         self.soln_stge.Rfree = Rfree
-        self.soln_stge.PermGroFac_0_ = self.soln_stge.PermGroFac = PermGroFac
+        self.soln_stge.PermGroFacNxt = self.soln_stge.PermGroFac = PermGroFac
         self.soln_stge.BoroCnstArt = BoroCnstArt
-        # Comment out things that are needed for versions with uncertainty
-
-#        self.soln_stge.IncShkDstn_0_ = self.soln_stge.IncShkDstn = IncShkDstn
-#        self.soln_stge.aXtraGrid = aXtraGrid
-#        self.soln_stge.vFuncBool = vFuncBool
-#        self.soln_stge.CubicBool = CubicBool
-#        self.soln_stge.PermShkDstn_0_ = self.soln_stge.PermShkDstn = PermShkDstn
-#        self.soln_stge.TranShkDstn_0_ = self.soln_stge.TranShkDstn = TranShkDstn
 
         self.soln_stge.facts = {}
         self.soln_stge = self.def_utility_funcs(self.soln_stge)
@@ -277,6 +272,8 @@ class ConsPerfForesightSolver(MetricObject):
         self.soln_stge.url_ref = "https://econ-ark.github.io/BufferStockTheory"
         self.soln_stge.urlroot = self.soln_stge.url_ref+'/#'  # used for references to derivations
 
+        # Constructing these allows the use of identical formulae for the perfect
+        # foresight model and models with transitory and permanent shocks
         self.soln_stge.Ex_Inv_PermShk = 1.0
         self.soln_stge.Ex_uInv_PermShk = 1.0
         self.soln_stge.uInv_Ex_uInv_PermShk = 1.0
@@ -298,182 +295,182 @@ class ConsPerfForesightSolver(MetricObject):
                 references
             """
         # Sometimes BoroCnstArt has not been set
-        # Define local variables so the formulae are not cumbersome
+        # Define local variables as nxt so the formulae are less cumbersome
         if hasattr(self.soln_stge, 'BoroCnstArt'):
             BoroCnstArt = self.soln_stge.BoroCnstArt
         else:
             BoroCnstArt = self.soln_stge.BoroCnstArt = None
         CRRA = self.soln_stge.CRRA
-        DiscFac_0_ = self.soln_stge.DiscFac
-        LivPrb_0_ = self.soln_stge.LivPrb
-        PermGroFac_0_ = self.soln_stge.PermGroFac_0_ = self.soln_stge.PermGroFac
+        DiscFacNxt = self.soln_stge.DiscFac
+        LivPrbNxt = self.soln_stge.LivPrb
+        PermGroFacNxt = self.soln_stge.PermGroFacNxt = self.soln_stge.PermGroFac
         Rfree = self.soln_stge.Rfree
-        DiscFac_0_Eff = DiscFac_0_ * LivPrb_0_
+        DiscFacNxtEff = DiscFacNxt * LivPrbNxt
         MPCminNow = self.soln_stge.MPCminNow
         MPCmaxNow = self.soln_stge.MPCmaxNow
         hNrmNow = self.soln_stge.hNrmNow
         urlroot = self.soln_stge.urlroot
         self.soln_stge.facts = {}
 
-        APF_facts = {'about': 'Absolute Patience Factor'}
-        self.soln_stge.APF = APF = ((Rfree * DiscFac_0_Eff) ** (1.0 / CRRA))
-        APF_facts.update({'latexexpr': r'\APF'})
-        APF_facts.update({'_unicode_': r'Þ'})
-        APF_facts.update({'urlhandle': urlroot+'APF'})
-        APF_facts.update({'py___code': '(Rfree*DiscFacEff)**(1/CRRA)'})
-        APF_facts.update({'value_now': APF})
-        soln_stge.facts.update({'APF': APF_facts})
-        soln_stge.APF_facts = APF_facts
+        APFfacts = {'about': 'Absolute Patience Factor'}
+        self.soln_stge.APF = APF = ((Rfree * DiscFacNxtEff) ** (1.0 / CRRA))
+        APFfacts.update({'latexexpr': r'\APF'})
+        APFfacts.update({'_unicode_': r'Þ'})
+        APFfacts.update({'urlhandle': urlroot+'APF'})
+        APFfacts.update({'py___code': '(Rfree*DiscFacEff)**(1/CRRA)'})
+        APFfacts.update({'value_now': APF})
+        soln_stge.facts.update({'APF': APFfacts})
+        soln_stge.APFfacts = APFfacts
 
-        AIC_facts = {'about': 'Absolute Impatience Condition'}
-        AIC_facts.update({'latexexpr': r'\AIC'})
-        AIC_facts.update({'urlhandle': urlroot+'AIC'})
-        AIC_facts.update({'py___code': 'test: APF < 1'})
-        soln_stge.facts.update({'AIC': AIC_facts})
-        soln_stge.AIC_facts = AIC_facts
+        AICfacts = {'about': 'Absolute Impatience Condition'}
+        AICfacts.update({'latexexpr': r'\AIC'})
+        AICfacts.update({'urlhandle': urlroot+'AIC'})
+        AICfacts.update({'py___code': 'test: APF < 1'})
+        soln_stge.facts.update({'AIC': AICfacts})
+        soln_stge.AICfacts = AICfacts
 
-        RPF_facts = {'about': 'Return Patience Factor'}
+        RPFfacts = {'about': 'Return Patience Factor'}
         soln_stge.RPF = RPF = APF / Rfree
-        RPF_facts.update({'latexexpr': r'\RPF'})
-        RPF_facts.update({'_unicode_': r'Þ_R'})
-        RPF_facts.update({'urlhandle': urlroot+'RPF'})
-        RPF_facts.update({'py___code': r'APF/Rfree'})
-        RPF_facts.update({'value_now': RPF})
-        soln_stge.facts.update({'RPF': RPF_facts})
-        soln_stge.RPF_facts = RPF_facts
+        RPFfacts.update({'latexexpr': r'\RPF'})
+        RPFfacts.update({'_unicode_': r'Þ_R'})
+        RPFfacts.update({'urlhandle': urlroot+'RPF'})
+        RPFfacts.update({'py___code': r'APF/Rfree'})
+        RPFfacts.update({'value_now': RPF})
+        soln_stge.facts.update({'RPF': RPFfacts})
+        soln_stge.RPFfacts = RPFfacts
         soln_stge.RPF = RPF
 
-        RIC_facts = {'about': 'Growth Impatience Condition'}
-        RIC_facts.update({'latexexpr': r'\RIC'})
-        RIC_facts.update({'urlhandle': urlroot+'RIC'})
-        RIC_facts.update({'py___code': 'test: agent.RPF < 1'})
-        soln_stge.facts.update({'RIC': RIC_facts})
-        soln_stge.RIC_facts = RIC_facts
+        RICfacts = {'about': 'Growth Impatience Condition'}
+        RICfacts.update({'latexexpr': r'\RIC'})
+        RICfacts.update({'urlhandle': urlroot+'RIC'})
+        RICfacts.update({'py___code': 'test: RPF < 1'})
+        soln_stge.facts.update({'RIC': RICfacts})
+        soln_stge.RICfacts = RICfacts
 
-        GPFRaw_facts = {
+        GPFRawfacts = {
             'about': 'Growth Patience Factor'}
-        GPFRaw = APF / PermGroFac_0_
-        GPFRaw_facts.update({'latexexpr': '\GPFRaw'})
-        GPFRaw_facts.update({'urlhandle': urlroot+'GPFRaw'})
-        GPFRaw_facts.update({'_unicode_': r'Þ_Γ'})
-        GPFRaw_facts.update({'value_now': GPFRaw})
-        soln_stge.facts.update({'GPFRaw': GPFRaw_facts})
-        soln_stge.GPFRaw_facts = GPFRaw_facts
+        GPFRaw = APF / PermGroFacNxt
+        GPFRawfacts.update({'latexexpr': '\GPFRaw'})
+        GPFRawfacts.update({'urlhandle': urlroot+'GPFRaw'})
+        GPFRawfacts.update({'_unicode_': r'Þ_Γ'})
+        GPFRawfacts.update({'value_now': GPFRaw})
+        soln_stge.facts.update({'GPFRaw': GPFRawfacts})
+        soln_stge.GPFRawfacts = GPFRawfacts
         soln_stge.GPFRaw = GPFRaw
 
-        GICRaw_facts = {'about': 'Growth Impatience Condition'}
-        GICRaw_facts.update({'latexexpr': r'\GICRaw'})
-        GICRaw_facts.update({'urlhandle': urlroot+'GICRaw'})
-        GICRaw_facts.update({'py___code': 'test: agent.GPFRaw < 1'})
-        soln_stge.facts.update({'GICRaw': GICRaw_facts})
-        soln_stge.GICRaw_facts = GICRaw_facts
+        GICRawfacts = {'about': 'Growth Impatience Condition'}
+        GICRawfacts.update({'latexexpr': r'\GICRaw'})
+        GICRawfacts.update({'urlhandle': urlroot+'GICRaw'})
+        GICRawfacts.update({'py___code': 'test: GPFRaw < 1'})
+        soln_stge.facts.update({'GICRaw': GICRawfacts})
+        soln_stge.GICRawfacts = GICRawfacts
 
-        GPFLiv_facts = {
+        GPFLivfacts = {
             'about': 'Mortality-Risk-Adjusted Growth Patience Factor'}
-        GPFLiv = APF * LivPrb_0_ / PermGroFac_0_
-        GPFLiv_facts.update({'latexexpr': '\GPFLiv'})
-        GPFLiv_facts.update({'urlhandle': urlroot+'GPFLiv'})
-        GPFLiv_facts.update({'py___code': 'APF*Liv/PermGroFac_0_'})
-        GPFLiv_facts.update({'value_now': GPFLiv})
-        soln_stge.facts.update({'GPFLiv': GPFLiv_facts})
-        soln_stge.GPFLiv_facts = GPFLiv_facts
+        GPFLiv = APF * LivPrbNxt / PermGroFacNxt
+        GPFLivfacts.update({'latexexpr': '\GPFLiv'})
+        GPFLivfacts.update({'urlhandle': urlroot+'GPFLiv'})
+        GPFLivfacts.update({'py___code': 'APF*Liv/PermGroFacNxt'})
+        GPFLivfacts.update({'value_now': GPFLiv})
+        soln_stge.facts.update({'GPFLiv': GPFLivfacts})
+        soln_stge.GPFLivfacts = GPFLivfacts
         soln_stge.GPFLiv = GPFLiv
 
-        GICLiv_facts = {'about': 'Growth Impatience Condition'}
-        GICLiv_facts.update({'latexexpr': r'\GICLiv'})
-        GICLiv_facts.update({'urlhandle': urlroot+'GICLiv'})
-        GICLiv_facts.update({'py___code': 'test: GPFLiv < 1'})
-        soln_stge.facts.update({'GICLiv': GICLiv_facts})
-        soln_stge.GICLiv_facts = GICLiv_facts
+        GICLivfacts = {'about': 'Growth Impatience Condition'}
+        GICLivfacts.update({'latexexpr': r'\GICLiv'})
+        GICLivfacts.update({'urlhandle': urlroot+'GICLiv'})
+        GICLivfacts.update({'py___code': 'test: GPFLiv < 1'})
+        soln_stge.facts.update({'GICLiv': GICLivfacts})
+        soln_stge.GICLivfacts = GICLivfacts
 
-        PF_RNrm_facts = {
+        PF_RNrmfacts = {
             'about': 'Growth-Normalized Perfect Foresight Return Factor'}
-        PF_RNrm = Rfree/PermGroFac_0_
-        PF_RNrm_facts.update({'latexexpr': r'\PF_RNrm'})
-        PF_RNrm_facts.update({'_unicode_': r'R/Γ'})
-        PF_RNrm_facts.update({'py___code': r'Rfree/PermGroFac_0_'})
-        PF_RNrm_facts.update({'value_now': PF_RNrm})
-        soln_stge.facts.update({'PF_RNrm': PF_RNrm_facts})
-        soln_stge.PF_RNrm_facts = PF_RNrm_facts
+        PF_RNrm = Rfree/PermGroFacNxt
+        PF_RNrmfacts.update({'latexexpr': r'\PF_RNrm'})
+        PF_RNrmfacts.update({'_unicode_': r'R/Γ'})
+        PF_RNrmfacts.update({'py___code': r'Rfree/PermGroFacNxt'})
+        PF_RNrmfacts.update({'value_now': PF_RNrm})
+        soln_stge.facts.update({'PF_RNrm': PF_RNrmfacts})
+        soln_stge.PF_RNrmfacts = PF_RNrmfacts
         soln_stge.PF_RNrm = PF_RNrm
 
-        Inv_PF_RNrm_facts = {
+        Inv_PF_RNrmfacts = {
             'about': 'Inverse of Growth-Normalized Perfect Foresight Return Factor'}
         Inv_PF_RNrm = 1/PF_RNrm
-        Inv_PF_RNrm_facts.update({'latexexpr': r'\Inv_PF_RNrm'})
-        Inv_PF_RNrm_facts.update({'_unicode_': r'Γ/R'})
-        Inv_PF_RNrm_facts.update({'py___code': r'PermGroFac_0_Ind/Rfree'})
-        Inv_PF_RNrm_facts.update({'value_now': Inv_PF_RNrm})
-        soln_stge.facts.update({'Inv_PF_RNrm': Inv_PF_RNrm_facts})
-        soln_stge.Inv_PF_RNrm_facts = Inv_PF_RNrm_facts
+        Inv_PF_RNrmfacts.update({'latexexpr': r'\Inv_PF_RNrm'})
+        Inv_PF_RNrmfacts.update({'_unicode_': r'Γ/R'})
+        Inv_PF_RNrmfacts.update({'py___code': r'PermGroFacNxtInd/Rfree'})
+        Inv_PF_RNrmfacts.update({'value_now': Inv_PF_RNrm})
+        soln_stge.facts.update({'Inv_PF_RNrm': Inv_PF_RNrmfacts})
+        soln_stge.Inv_PF_RNrmfacts = Inv_PF_RNrmfacts
         soln_stge.Inv_PF_RNrm = Inv_PF_RNrm
 
-        FHWF_facts = {
+        FHWFfacts = {
             'about': 'Finite Human Wealth Factor'}
-        FHWF = PermGroFac_0_/Rfree
-        FHWF_facts.update({'latexexpr': r'\FHWF'})
-        FHWF_facts.update({'_unicode_': r'R/Γ'})
-        FHWF_facts.update({'urlhandle': urlroot+'FHWF'})
-        FHWF_facts.update({'py___code': r'PermGroFac_0_Inf/Rfree'})
-        FHWF_facts.update({'value_now': FHWF})
-        soln_stge.facts.update({'FHWF': FHWF_facts})
-        soln_stge.FHWF_facts = FHWF_facts
+        FHWF = PermGroFacNxt/Rfree
+        FHWFfacts.update({'latexexpr': r'\FHWF'})
+        FHWFfacts.update({'_unicode_': r'R/Γ'})
+        FHWFfacts.update({'urlhandle': urlroot+'FHWF'})
+        FHWFfacts.update({'py___code': r'PermGroFacNxtInf/Rfree'})
+        FHWFfacts.update({'value_now': FHWF})
+        soln_stge.facts.update({'FHWF': FHWFfacts})
+        soln_stge.FHWFfacts = FHWFfacts
         soln_stge.FHWF = FHWF
 
-        FHWC_facts = {'about': 'Finite Human Wealth Condition'}
-        FHWC_facts.update({'latexexpr': r'\FHWC'})
-        FHWC_facts.update({'urlhandle': urlroot+'FHWC'})
-        FHWC_facts.update({'py___code': 'test: agent.FHWF < 1'})
-        soln_stge.facts.update({'FHWC': FHWC_facts})
-        soln_stge.FHWC_facts = FHWC_facts
+        FHWCfacts = {'about': 'Finite Human Wealth Condition'}
+        FHWCfacts.update({'latexexpr': r'\FHWC'})
+        FHWCfacts.update({'urlhandle': urlroot+'FHWC'})
+        FHWCfacts.update({'py___code': 'test: FHWF < 1'})
+        soln_stge.facts.update({'FHWC': FHWCfacts})
+        soln_stge.FHWCfacts = FHWCfacts
 
-        hNrmNowInf_facts = {'about': 'Human wealth for inf hor'}
+        hNrmNowInffacts = {'about': 'Human wealth for inf hor'}
         hNrmNowInf = float('inf')
         if FHWF < 1:  # If it is finite, set it to its value
             hNrmNowInf = 1/(1-FHWF)
         soln_stge.hNrmNowInf = hNrmNowInf
-        hNrmNowInf_facts = dict({'latexexpr': '1/(1-\FHWF)'})
-        hNrmNowInf_facts.update({'value_now': hNrmNowInf})
-        hNrmNowInf_facts.update({
+        hNrmNowInffacts = dict({'latexexpr': '1/(1-\FHWF)'})
+        hNrmNowInffacts.update({'value_now': hNrmNowInf})
+        hNrmNowInffacts.update({
             'py___code': '1/(1-FHWF)'})
-        soln_stge.facts.update({'hNrmNowInf': hNrmNowInf_facts})
-        soln_stge.hNrmNowInf_facts = hNrmNowInf_facts
+        soln_stge.facts.update({'hNrmNowInf': hNrmNowInffacts})
+        soln_stge.hNrmNowInffacts = hNrmNowInffacts
         # soln_stge.hNrmNowInf = hNrmNowInf
 
-        DiscGPFRawCusp_facts = {
+        DiscGPFRawCuspfacts = {
             'about': 'DiscFac s.t. GPFRaw = 1'}
-        soln_stge.DiscGPFRawCusp = DiscGPFRawCusp = ((PermGroFac_0_) ** (CRRA)) / (Rfree)
-        DiscGPFRawCusp_facts.update({'latexexpr': ''})
-        DiscGPFRawCusp_facts.update({'value_now': DiscGPFRawCusp})
-        DiscGPFRawCusp_facts.update({
-            'py___code': '( PermGroFac_0_                       ** CRRA)/(Rfree)'})
-        soln_stge.facts.update({'DiscGPFRawCusp': DiscGPFRawCusp_facts})
-        soln_stge.DiscGPFRawCusp_facts = DiscGPFRawCusp_facts
+        soln_stge.DiscGPFRawCusp = DiscGPFRawCusp = ((PermGroFacNxt) ** (CRRA)) / (Rfree)
+        DiscGPFRawCuspfacts.update({'latexexpr': ''})
+        DiscGPFRawCuspfacts.update({'value_now': DiscGPFRawCusp})
+        DiscGPFRawCuspfacts.update({
+            'py___code': '( PermGroFacNxt                       ** CRRA)/(Rfree)'})
+        soln_stge.facts.update({'DiscGPFRawCusp': DiscGPFRawCuspfacts})
+        soln_stge.DiscGPFRawCuspfacts = DiscGPFRawCuspfacts
 
-        DiscGPFLivCusp_facts = {
+        DiscGPFLivCuspfacts = {
             'about': 'DiscFac s.t. GPFLiv = 1'}
-        soln_stge.DiscGPFLivCusp = DiscGPFLivCusp = ((PermGroFac_0_) ** (CRRA)) \
-            / (Rfree * LivPrb_0_)
-        DiscGPFLivCusp_facts.update({'latexexpr': ''})
-        DiscGPFLivCusp_facts.update({'value_now': DiscGPFLivCusp})
-        DiscGPFLivCusp_facts.update({
-            'py___code': '( PermGroFac_0_                       ** CRRA)/(Rfree*LivPrb_0_)'})
-        soln_stge.facts.update({'DiscGPFLivCusp': DiscGPFLivCusp_facts})
-        soln_stge.DiscGPFLivCusp_facts = DiscGPFLivCusp_facts
+        soln_stge.DiscGPFLivCusp = DiscGPFLivCusp = ((PermGroFacNxt) ** (CRRA)) \
+            / (Rfree * LivPrbNxt)
+        DiscGPFLivCuspfacts.update({'latexexpr': ''})
+        DiscGPFLivCuspfacts.update({'value_now': DiscGPFLivCusp})
+        DiscGPFLivCuspfacts.update({
+            'py___code': '( PermGroFacNxt                       ** CRRA)/(Rfree*LivPrbNxt)'})
+        soln_stge.facts.update({'DiscGPFLivCusp': DiscGPFLivCuspfacts})
+        soln_stge.DiscGPFLivCuspfacts = DiscGPFLivCuspfacts
 
-        FVAF_facts = {'about': 'Finite Value of Autarky Factor'}
-        soln_stge.FVAF = FVAF = LivPrb_0_ * DiscFac_0_Eff * soln_stge.uInv_Ex_uInv_PermShk
-        FVAF_facts.update({'latexexpr': r'\FVAFPF'})
-        FVAF_facts.update({'urlhandle': urlroot+'FVAFPF'})
-        soln_stge.facts.update({'FVAF': FVAF_facts})
-        soln_stge.FVAF_facts = FVAF_facts
+        FVAFfacts = {'about': 'Finite Value of Autarky Factor'}
+        soln_stge.FVAF = FVAF = LivPrbNxt * DiscFacNxtEff * soln_stge.uInv_Ex_uInv_PermShk
+        FVAFfacts.update({'latexexpr': r'\FVAFPF'})
+        FVAFfacts.update({'urlhandle': urlroot+'FVAFPF'})
+        soln_stge.facts.update({'FVAF': FVAFfacts})
+        soln_stge.FVAFfacts = FVAFfacts
 
-        FVAC_facts = {'about': 'Finite Value of Autarky Condition - Perfect Foresight'}
-        FVAC_facts.update({'latexexpr': r'\FVACPF'})
-        FVAC_facts.update({'urlhandle': urlroot+'FVACPF'})
-        FVAC_facts.update({'py___code': 'test: FVAFPF < 1'})
-        soln_stge.facts.update({'FVAC': FVAC_facts})
-        soln_stge.FVAC_facts = FVAC_facts
+        FVACfacts = {'about': 'Finite Value of Autarky Condition - Perfect Foresight'}
+        FVACfacts.update({'latexexpr': r'\FVACPF'})
+        FVACfacts.update({'urlhandle': urlroot+'FVACPF'})
+        FVACfacts.update({'py___code': 'test: FVAFPF < 1'})
+        soln_stge.facts.update({'FVAC': FVACfacts})
+        soln_stge.FVACfacts = FVACfacts
 
         # Below formulae do not require "live" computation of expectations
         # from a distribution that is on hand.  So, having constructed
@@ -484,10 +481,10 @@ class ConsPerfForesightSolver(MetricObject):
         # and inherited by the descendant model(s), which augment(s) them with
         # the objects (if any) that require live calculation.
 
-        if soln_stge.Inv_PF_RNrm < 1:        # Finite if Rfree > PermGroFac_0_
+        if soln_stge.Inv_PF_RNrm < 1:        # Finite if Rfree > PermGroFacNxt
             soln_stge.hNrmNowInf = 1/(1-soln_stge.Inv_PF_RNrm)
 
-        # Given m, value of c where E[mLev_{t+1}/mLev_{t}]=PermGroFac_0_Fac
+        # Given m, value of c where E[mLev_{t+1}/mLev_{t}]=PermGroFacNxtFac
         # Solves for c in equation at url/#balgrostable
 
         self.soln_stge.c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0 = (
@@ -600,11 +597,11 @@ n        """
 
         CRRA = self.soln_stge.CRRA
         Rfree = self.solution_next.Rfree
-        PermGro = self.solution_next.PermGroFac_0_
+        PermGro = self.solution_next.PermGroFacNxt
 #        hNrmNow = self.soln_stge.hNrmNow
 #        RPF = self.soln_stge.RPF
         MPCminNow = self.soln_stge.MPCminNow
-        DiscFacEff = self.soln_stge.DiscFacEff_0_
+        DiscFacEff = self.soln_stge.DiscFacEffNxt
         MaxKinks = self.soln_stge.MaxKinks
 
         # Use local value of BoroCnstArt to prevent comparing None and float
@@ -617,7 +614,7 @@ n        """
         # self.hNrmNow = (PermGro / Rfree) * (self.solution_next.hNrmNow + 1.0)
 
         # # Calculate the lower bound of the MPC
-        # RPF = ((Rfree * self.DiscFac_0_Eff) ** (1.0 / self.soln_stge.CRRA)) / Rfree
+        # RPF = ((Rfree * self.DiscFacNxtEff) ** (1.0 / self.soln_stge.CRRA)) / Rfree
         # self.soln_stge.MPCminNow = 1.0 / (1.0 + self.soln_stge.RPF / self.solution_next.MPCminNow)
 
         # Extract kink points in next period's consumption function;
@@ -705,7 +702,7 @@ n        """
         )
         self.soln_stge = self.def_utility_funcs(soln_stge)
         self.soln_stge.DiscFacEff = self.soln_stge.DiscFac * \
-            self.soln_stge.LivPrb  # Effective=pure x LivPrb_0_
+            self.soln_stge.LivPrb  # Effective=pure x LivPrbNxt
         self.soln_stge.make_cFunc_PF()
         self.soln_stge = self.soln_stge.def_value_funcs(self.soln_stge)
 
@@ -729,8 +726,8 @@ n        """
         def test(stge): return stge.APF < 1
 
         messages = {
-            True: "\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, satisfies the Absolute Impatience Condition (AIC), which requires APF < 1: "+stge.AIC_facts['urlhandle'],
-            False: "\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, violates the Absolute Impatience Condition (AIC), which requires APF < 1: "+stge.AIC_facts['urlhandle']
+            True: "\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, satisfies the Absolute Impatience Condition (AIC), which requires APF < 1: "+stge.AICfacts['urlhandle'],
+            False: "\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, violates the Absolute Impatience Condition (AIC), which requires APF < 1: "+stge.AICfacts['urlhandle']
         }
         verbose_messages = {
             True: "  Because the APF < 1,  the absolute amount of consumption is expected to fall over time.  \n",
@@ -754,11 +751,11 @@ n        """
         def test(stge): return stge.FVAF < 1
 
         messages = {
-            True: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, satisfies the Finite Value of Autarky Condition, which requires FVAF < 1: "+stge.FVAC_facts['urlhandle'],
-            False: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, violates the Finite Value of Autarky Condition, which requires FVAF: "+stge.FVAC_facts['urlhandle']
+            True: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, satisfies the Finite Value of Autarky Condition, which requires FVAF < 1: "+stge.FVACfacts['urlhandle'],
+            False: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, violates the Finite Value of Autarky Condition, which requires FVAF: "+stge.FVACfacts['urlhandle']
         }
         verbose_messages = {
-            True: "  Therefore, a nondegenerate solution exists if the RIC also holds. ("+stge.FVAC_facts['urlhandle']+")\n",
+            True: "  Therefore, a nondegenerate solution exists if the RIC also holds. ("+stge.FVACfacts['urlhandle']+")\n",
             False: "  Therefore, a nondegenerate solution exits if the RIC holds.\n",
         }
 
@@ -780,8 +777,8 @@ n        """
         def test(stge): return stge.GPFRaw < 1
 
         messages = {
-            True: "\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, satisfies the Growth Impatience Condition (GIC), which requires GPF < 1: "+self.soln_stge.GICRaw_facts['urlhandle'],
-            False: "\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, violates the Growth Impatience Condition (GIC), which requires GPF < 1: "+self.soln_stge.GICRaw_facts['urlhandle'],
+            True: "\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, satisfies the Growth Impatience Condition (GIC), which requires GPF < 1: "+self.soln_stge.GICRawfacts['urlhandle'],
+            False: "\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, violates the Growth Impatience Condition (GIC), which requires GPF < 1: "+self.soln_stge.GICRawfacts['urlhandle'],
         }
         verbose_messages = {
             True: "  Therefore,  for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
@@ -802,12 +799,12 @@ n        """
         def test(stge): return stge.GPFLiv < 1
 
         messages = {
-            True: "\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, satisfies the Mortality Adjusted Aggregate Growth Imatience Condition (GICLiv): "+self.soln_stge.GPFLiv_facts['urlhandle'],
-            False: "\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, violates the Mortality Adjusted Aggregate Growth Imatience Condition (GICLiv): "+self.soln_stge.GPFLiv_facts['urlhandle'],
+            True: "\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, satisfies the Mortality Adjusted Aggregate Growth Imatience Condition (GICLiv): "+self.soln_stge.GPFLivfacts['urlhandle'],
+            False: "\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, violates the Mortality Adjusted Aggregate Growth Imatience Condition (GICLiv): "+self.soln_stge.GPFLivfacts['urlhandle'],
         }
         verbose_messages = {
-            True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists ("+self.soln_stge.GPFLiv_facts['urlhandle']+")\n",
-            False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist ("+self.soln_stge.GPFLiv_facts['urlhandle']+")\n",
+            True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists ("+self.soln_stge.GPFLivfacts['urlhandle']+")\n",
+            False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist ("+self.soln_stge.GPFLivfacts['urlhandle']+")\n",
         }
         if not hasattr(self, 'verbose'):
             verbose = 0 if verbose is None else verbose
@@ -828,8 +825,8 @@ n        """
         def test(stge): return stge.RPF < 1
 
         messages = {
-            True: "\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, satisfies the Return Impatience Condition (RIC), which requires RPF < 1: "+self.soln_stge.RPF_facts['urlhandle'],
-            False: "\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, violates the Return Impatience Condition (RIC), which requires RPF < 1: "+self.soln_stge.RPF_facts['urlhandle'],
+            True: "\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, satisfies the Return Impatience Condition (RIC), which requires RPF < 1: "+self.soln_stge.RPFfacts['urlhandle'],
+            False: "\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, violates the Return Impatience Condition (RIC), which requires RPF < 1: "+self.soln_stge.RPFfacts['urlhandle'],
         }
         verbose_messages = {
             True: "  Therefore, the limiting consumption function is not c(m)=0 for all m\n",
@@ -853,12 +850,12 @@ n        """
         def test(stge): return stge.FHWF < 1
 
         messages = {
-            True: "\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, satisfies the Finite Human Wealth Condition (FHWC), which requires FHWF < 1: "+self.soln_stge.FHWC_facts['urlhandle'],
-            False: "\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, violates the Finite Human Wealth Condition (FHWC), which requires FHWF < 1: "+self.soln_stge.FHWC_facts['urlhandle'],
+            True: "\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, satisfies the Finite Human Wealth Condition (FHWC), which requires FHWF < 1: "+self.soln_stge.FHWCfacts['urlhandle'],
+            False: "\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, violates the Finite Human Wealth Condition (FHWC), which requires FHWF < 1: "+self.soln_stge.FHWCfacts['urlhandle'],
         }
         verbose_messages = {
-            True: "  Therefore, the limiting consumption function is not c(m)=Infinity ("+self.soln_stge.FHWC_facts['urlhandle']+")\n  Human wealth normalized by permanent income is {0.hNrmNowInf}.\n",
-            False: "  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.\n  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0. ("+self.soln_stge.FHWC_facts['urlhandle']+")\n",
+            True: "  Therefore, the limiting consumption function is not c(m)=Infinity ("+self.soln_stge.FHWCfacts['urlhandle']+")\n  Human wealth normalized by permanent income is {0.hNrmNowInf}.\n",
+            False: "  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.\n  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0. ("+self.soln_stge.FHWCfacts['urlhandle']+")\n",
         }
         if not hasattr(self, 'verbose'):
             verbose = 0 if verbose is None else verbose
@@ -878,12 +875,12 @@ n        """
         def test(stge): return stge.GPFNrm <= 1
 
         messages = {
-            True: "\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, satisfies the Normalized Growth Impatience Condition (GICNrm), which requires GICNrm < 1: "+self.soln_stge.GPFNrm_facts['urlhandle']+"\n",
-            False: "\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, violates the Normalized Growth Impatience Condition (GICNrm), which requires GICNrm < 1: "+self.soln_stge.GPFNrm_facts['urlhandle']+"\n",
+            True: "\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, satisfies the Normalized Growth Impatience Condition (GICNrm), which requires GICNrm < 1: "+self.soln_stge.GPFNrmfacts['urlhandle']+"\n",
+            False: "\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, violates the Normalized Growth Impatience Condition (GICNrm), which requires GICNrm < 1: "+self.soln_stge.GPFNrmfacts['urlhandle']+"\n",
         }
         verbose_messages = {
-            True: " Therefore, a target level of the individual market resources ratio m exists ("+self.soln_stge.GICNrm_facts['urlhandle']+").\n",
-            False: " Therefore, a target ratio of individual market resources to individual permanent income does not exist.  ("+self.soln_stge.GICNrm_facts['urlhandle']+")\n",
+            True: " Therefore, a target level of the individual market resources ratio m exists ("+self.soln_stge.GICNrmfacts['urlhandle']+").\n",
+            False: " Therefore, a target ratio of individual market resources to individual permanent income does not exist.  ("+self.soln_stge.GICNrmfacts['urlhandle']+")\n",
         }
         if not hasattr(self, 'verbose'):
             verbose = 0 if verbose is None else verbose
@@ -900,7 +897,7 @@ n        """
         """
         stge.WRPF = (
             (stge.UnempPrb ** (1 / stge.CRRA))
-            * (stge.Rfree * stge.DiscFac * stge.LivPrb_0_) ** (1 / stge.CRRA)
+            * (stge.Rfree * stge.DiscFac * stge.LivPrbNxt) ** (1 / stge.CRRA)
             / stge.Rfree
         )
 
@@ -910,26 +907,26 @@ n        """
 
         def test(stge): return stge.WRPF <= 1
 
-        WRIC_facts = {'about': 'Weak Return Impatience Condition'}
-        WRIC_facts.update({'latexexpr': r'\WRIC'})
-        WRIC_facts.update({'urlhandle': stge.self.soln_stge.urlroot+'WRIC'})
-        WRIC_facts.update({'py___code': 'test: agent.WRPF < 1'})
-        stge.WRIC_facts = WRIC_facts
+        WRICfacts = {'about': 'Weak Return Impatience Condition'}
+        WRICfacts.update({'latexexpr': r'\WRIC'})
+        WRICfacts.update({'urlhandle': stge.self.soln_stge.urlroot+'WRIC'})
+        WRICfacts.update({'py___code': 'test: WRPF < 1'})
+        stge.WRICfacts = WRICfacts
 
-        WRPF_facts = {'about': 'Growth Patience Factor'}
-        WRPF_facts.update({'latexexpr': r'\WRPF'})
-        WRPF_facts.update({'_unicode_': r'℘ RPF'})
-        WRPF_facts.update({'urlhandle': stge.self.soln_stge.urlroot+'WRPF'})
-        WRPF_facts.update({'py___code': r'UnempPrb * RPF'})
+        WRPFfacts = {'about': 'Growth Patience Factor'}
+        WRPFfacts.update({'latexexpr': r'\WRPF'})
+        WRPFfacts.update({'_unicode_': r'℘ RPF'})
+        WRPFfacts.update({'urlhandle': stge.self.soln_stge.urlroot+'WRPF'})
+        WRPFfacts.update({'py___code': r'UnempPrb * RPF'})
 
         messages = {
-            True: "\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, satisfies the Weak Return Impatience Condition, which requires WRIF < 1: "+stge.WRIC_facts['urlhandle'],
-            False: "\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, violates the Weak Return Impatience Condition, which requires WRIF < 1: "+stge.WRIC_facts['urlhandle'],
+            True: "\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, satisfies the Weak Return Impatience Condition, which requires WRIF < 1: "+stge.WRICfacts['urlhandle'],
+            False: "\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, violates the Weak Return Impatience Condition, which requires WRIF < 1: "+stge.WRICfacts['urlhandle'],
         }
 
         verbose_messages = {
-            True: "  Therefore, a nondegenerate solution exists if the FVAC is also satisfied. ("+stge.WRIC_facts['urlhandle']+")\n",
-            False: "  Therefore, a nondegenerate solution is not available ("+stge.WRIC_facts['urlhandle']+")\n",
+            True: "  Therefore, a nondegenerate solution exists if the FVAC is also satisfied. ("+stge.WRICfacts['urlhandle']+")\n",
+            False: "  Therefore, a nondegenerate solution is not available ("+stge.WRICfacts['urlhandle']+")\n",
         }
         if not hasattr(self, 'verbose'):
             verbose = 0 if verbose is None else verbose
@@ -939,7 +936,7 @@ n        """
         core_check_condition(name, test, messages, verbose,
                              verbose_messages, fact, stge)
 
-        stge.WRPF_facts = WRPF_facts
+        stge.WRPFfacts = WRPFfacts
 
     def solver_check_condtnsnew_20210404(self, soln_stge, verbose=None):
         """
@@ -1004,7 +1001,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     are lists because they are allowed to vary at different stages, are scalars
     here because the value that is appropriate for the current stage is the one
     that will be passed.  To memorialize that, the "self" versions of such
-    variables will have "_0_" appended to signalize their status as scalars.
+    variables will have "Nxt" appended to signalize their status as scalars.
 
     Parameters
     ----------
@@ -1063,23 +1060,22 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # Create an empty solution in which to store the inputs
         self.soln_stge = ConsumerSolution()  # create a blank template to fill in
 
-        # Store them.  _0_ signfier is to remind that they are no longer lists
+        # Store them.  Nxt signfier is to remind that they are no longer lists
         self.solution_next = solution_next
-        self.soln_stge.IncShkDstn_0_ = IncShkDstn_0_ = IncShkDstn
-        self.soln_stge.LivPrb_0_ = self.soln_stge.LivPrb = LivPrb
-        self.soln_stge.DiscFac_0_ = self.soln_stge.DiscFac = DiscFac
+        self.soln_stge.IncShkDstnNxt = IncShkDstnNxt = IncShkDstn
+        self.soln_stge.LivPrbNxt = self.soln_stge.LivPrb = LivPrb
+        self.soln_stge.DiscFacNxt = self.soln_stge.DiscFac = DiscFac
         self.soln_stge.CRRA = CRRA
         self.soln_stge.Rfree = Rfree
-        self.soln_stge.PermGroFac_0_ = self.soln_stge.PermGroFac = PermGroFac
+        self.soln_stge.PermGroFacNxt = self.soln_stge.PermGroFac = PermGroFac
         self.soln_stge.BoroCnstArt = BoroCnstArt
         self.soln_stge.aXtraGrid = aXtraGrid
         self.soln_stge.vFuncBool = vFuncBool
         self.soln_stge.CubicBool = CubicBool
-        self.soln_stge.PermShkDstn_0_ = PermShkDstn_0_ = PermShkDstn
-        self.soln_stge.TranShkDstn_0_ = TranShkDstn_0_ = TranShkDstn
+        self.soln_stge.PermShkDstnNxt = PermShkDstnNxt = PermShkDstn
+        self.soln_stge.TranShkDstnNxt = TranShkDstnNxt = TranShkDstn
 
         self.soln_stge.facts = {}
-        self.soln_stge.results = {}
 
         self.soln_stge = self.def_utility_funcs(self.soln_stge)
 
@@ -1113,37 +1109,37 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         soln_stge = self.soln_stge
 
         soln_stge.Rfree = Rfree = stge_futr.Rfree
-        DiscFacNxt = DiscFac_0_ = stge_futr.DiscFac
-        PermGroFacNxt = PermGroFac_0_ = stge_futr.PermGroFac
-        LivPrbNxt = LivPrb_0_ = stge_futr.LivPrb
-        DiscFacNxtEff = DiscFac_0_Eff = DiscFac_0_ * LivPrb_0_
+        DiscFacNxt = DiscFacNxt = stge_futr.DiscFac
+        PermGroFacNxt = PermGroFacNxt = stge_futr.PermGroFac
+        LivPrbNxt = LivPrbNxt = stge_futr.LivPrb
+        DiscFacNxtEff = DiscFacNxtEff = DiscFacNxt * LivPrbNxt
         CRRANxt = CRRA = stge_futr.CRRA
         UnempPrbNxt = UnempPrb = \
-            stge_futr.IncShkDstn_0_.parameters['UnempPrb']
+            stge_futr.IncShkDstnNxt.parameters['UnempPrb']
         UnempPrbRetNxt = UnempPrbRet = \
-            stge_futr.IncShkDstn_0_.parameters['UnempPrbRet']
+            stge_futr.IncShkDstnNxt.parameters['UnempPrbRet']
 
-        self.soln_stge.PermShkValsNxtXref = PermShkValsNxtXref = stge_futr.IncShkDstn_0_.X[0]
-        self.soln_stge.TranShkValsNxtXref = TranShkValsNxtXref = stge_futr.IncShkDstn_0_.X[1]
+        self.soln_stge.PermShkValsNxtXref = PermShkValsNxtXref = stge_futr.IncShkDstnNxt.X[0]
+        self.soln_stge.TranShkValsNxtXref = TranShkValsNxtXref = stge_futr.IncShkDstnNxt.X[1]
         self.soln_stge.ShkPrbsNext = ShkPrbsNext = self.soln_stge.IncShkPrbsNxt \
-            = stge_futr.IncShkDstn_0_.pmf
+            = stge_futr.IncShkDstnNxt.pmf
 
-        self.soln_stge.IncShkValsNxt = stge_futr.IncShkDstn_0_.X
+        self.soln_stge.IncShkValsNxt = stge_futr.IncShkDstnNxt.X
 
-        self.soln_stge.PermShkPrbsNxt = PermShkPrbsNxt = stge_futr.PermShkDstn_0_.pmf
-        self.soln_stge.PermShkValsNxt = PermShkValsNxt = stge_futr.PermShkDstn_0_.X
+        self.soln_stge.PermShkPrbsNxt = PermShkPrbsNxt = stge_futr.PermShkDstnNxt.pmf
+        self.soln_stge.PermShkValsNxt = PermShkValsNxt = stge_futr.PermShkDstnNxt.X
 
-        self.soln_stge.TranShkPrbsNxt = TranShkPrbsNxt = stge_futr.TranShkDstn_0_.pmf
-        self.soln_stge.TranShkValsNxt = TranShkValsNxt = stge_futr.TranShkDstn_0_.X
+        self.soln_stge.TranShkPrbsNxt = TranShkPrbsNxt = stge_futr.TranShkDstnNxt.pmf
+        self.soln_stge.TranShkValsNxt = TranShkValsNxt = stge_futr.TranShkDstnNxt.X
 
-        self.soln_stge.PermShkNxtMin = PermShkNxtMin = np.min(PermShkValsNxt)
+        self.soln_stge.PermShkValsNxtMin = PermShkValsNxtMin = np.min(PermShkValsNxt)
         self.soln_stge.TranShkNxtMin = TranShkNxtMin = np.min(TranShkValsNxt)
 
         # First calc some things needed for formulae that are needed even in the PF model
         self.soln_stge.WorstIncPrbNxt = np.sum(
             ShkPrbsNext[
                 (PermShkValsNxtXref * TranShkValsNxtXref)
-                == (PermShkNxtMin * TranShkNxtMin)
+                == (PermShkValsNxtMin * TranShkNxtMin)
             ]
         )
 
@@ -1170,144 +1166,136 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # model of which this model, as a descendant, has already inherited
         # Here we need compute only those objects whose value changes when
         # the shock distributions are nondegenerate.
-        IncShkDstn_facts = {
-            'about': 'Income Shock Distribution: .X[0] and .X[1] retrieve shocks, .pmf retrieves probabilities'}
-#       IncShkDstn_facts.update({'latexexpr': r'\IncShkDstn'})
-        IncShkDstn_facts.update(
-            {'py___code': r'construct_lognormal_income_process_unemployment'})
-        soln_stge.facts.update({'IncShkDstn': IncShkDstn_facts})
-        soln_stge.IncShkDstn_facts = IncShkDstn_facts
-
-        Ex_IncNextNrm_facts = {
+        Ex_IncNextNrmfacts = {
             'about': 'Expected income next period'}
         soln_stge.Ex_IncNextNrm = Ex_IncNextNrm = np.dot(
             ShkPrbsNext, TranShkValsNxtXref * PermShkValsNxtXref).item()
-        Ex_IncNextNrm_facts.update({'latexexpr': r'\Ex_IncNextNrm'})
-        Ex_IncNextNrm_facts.update({'_unicode_': r'R/Γ'})
-        Ex_IncNextNrm_facts.update({'urlhandle': self.soln_stge.urlroot+'ExIncNextNrm'})
-        Ex_IncNextNrm_facts.update(
+        Ex_IncNextNrmfacts.update({'latexexpr': r'\Ex_IncNextNrm'})
+        Ex_IncNextNrmfacts.update({'_unicode_': r'R/Γ'})
+        Ex_IncNextNrmfacts.update({'urlhandle': self.soln_stge.urlroot+'ExIncNextNrm'})
+        Ex_IncNextNrmfacts.update(
             {'py___code': r'np.dot(ShkPrbsNext,TranShkValsNxtXref*PermShkValsNxtXref)'})
-        Ex_IncNextNrm_facts.update({'value_now': Ex_IncNextNrm})
-        soln_stge.facts.update({'Ex_IncNextNrm': Ex_IncNextNrm_facts})
-        soln_stge.Ex_IncNextNrm_facts = Ex_IncNextNrm_facts
+        Ex_IncNextNrmfacts.update({'value_now': Ex_IncNextNrm})
+        soln_stge.facts.update({'Ex_IncNextNrm': Ex_IncNextNrmfacts})
+        soln_stge.Ex_IncNextNrmfacts = Ex_IncNextNrmfacts
 
-#        Ex_Inv_PermShk = calc_expectation(            PermShkDstn_0_[0], lambda x: 1 / x        )
+#        Ex_Inv_PermShk = calc_expectation(            PermShkDstnNxt[0], lambda x: 1 / x        )
         soln_stge.Ex_Inv_PermShk = self.soln_stge.Ex_Inv_PermShk  # Precalc
-        Ex_Inv_PermShk_facts = {
+        Ex_Inv_PermShkfacts = {
             'about': 'Expectation of Inverse of Permanent Shock'}
-        Ex_Inv_PermShk_facts.update({'latexexpr': r'\Ex_Inv_PermShk'})
-#        Ex_Inv_PermShk_facts.update({'_unicode_': r'R/Γ'})
-        Ex_Inv_PermShk_facts.update({'urlhandle': self.soln_stge.urlroot+'ExInvPermShk'})
-        Ex_Inv_PermShk_facts.update({'py___code': r'Rfree/PermGroFacAdj'})
-        Ex_Inv_PermShk_facts.update({'value_now': Ex_Inv_PermShk})
-        soln_stge.facts.update({'Ex_Inv_PermShk': Ex_Inv_PermShk_facts})
-        soln_stge.Ex_Inv_PermShk_facts = Ex_Inv_PermShk_facts
+        Ex_Inv_PermShkfacts.update({'latexexpr': r'\Ex_Inv_PermShk'})
+#        Ex_Inv_PermShkfacts.update({'_unicode_': r'R/Γ'})
+        Ex_Inv_PermShkfacts.update({'urlhandle': self.soln_stge.urlroot+'ExInvPermShk'})
+        Ex_Inv_PermShkfacts.update({'py___code': r'Rfree/PermGroFacAdj'})
+        Ex_Inv_PermShkfacts.update({'value_now': Ex_Inv_PermShk})
+        soln_stge.facts.update({'Ex_Inv_PermShk': Ex_Inv_PermShkfacts})
+        soln_stge.Ex_Inv_PermShkfacts = Ex_Inv_PermShkfacts
         # soln_stge.Ex_Inv_PermShk = Ex_Inv_PermShk
 
-        Inv_Ex_Inv_PermShk_facts = {
+        Inv_Ex_Inv_PermShkfacts = {
             'about': 'Inverse of Expectation of Inverse of Permanent Shock'}
         soln_stge.Inv_Ex_Inv_PermShk = Inv_Ex_Inv_PermShk = 1/Ex_Inv_PermShk
-        Inv_Ex_Inv_PermShk_facts.update(
+        Inv_Ex_Inv_PermShkfacts.update(
             {'latexexpr': '\InvExInvPermShk=\left(\Ex[\PermShk^{-1}]\right)^{-1}'})
-#        Inv_Ex_Inv_PermShk_facts.update({'_unicode_': r'R/Γ'})
-        Inv_Ex_Inv_PermShk_facts.update({'urlhandle': self.soln_stge.urlroot+'InvExInvPermShk'})
-        Inv_Ex_Inv_PermShk_facts.update({'py___code': r'1/Ex_Inv_PermShk'})
-        Inv_Ex_Inv_PermShk_facts.update({'value_now': Inv_Ex_Inv_PermShk})
-        soln_stge.facts.update({'Inv_Ex_Inv_PermShk': Inv_Ex_Inv_PermShk_facts})
-        soln_stge.Inv_Ex_Inv_PermShk_facts = Inv_Ex_Inv_PermShk_facts
+#        Inv_Ex_Inv_PermShkfacts.update({'_unicode_': r'R/Γ'})
+        Inv_Ex_Inv_PermShkfacts.update({'urlhandle': self.soln_stge.urlroot+'InvExInvPermShk'})
+        Inv_Ex_Inv_PermShkfacts.update({'py___code': r'1/Ex_Inv_PermShk'})
+        Inv_Ex_Inv_PermShkfacts.update({'value_now': Inv_Ex_Inv_PermShk})
+        soln_stge.facts.update({'Inv_Ex_Inv_PermShk': Inv_Ex_Inv_PermShkfacts})
+        soln_stge.Inv_Ex_Inv_PermShkfacts = Inv_Ex_Inv_PermShkfacts
         # soln_stge.Inv_Ex_Inv_PermShk = Inv_Ex_Inv_PermShk
 
-        Ex_RNrm_facts = {
+        Ex_RNrmfacts = {
             'about': 'Expectation of Stochastic-Growth-Normalized Return'}
         Ex_RNrm = PF_RNrm * Ex_Inv_PermShk
-        Ex_RNrm_facts.update({'latexexpr': r'\Ex_RNrm'})
-#        Ex_RNrm_facts.update({'_unicode_': r'R/Γ'})
-        Ex_RNrm_facts.update({'urlhandle': self.soln_stge.urlroot+'ExRNrm'})
-        Ex_RNrm_facts.update({'py___code': r'Rfree/PermGroFacAdj'})
-        Ex_RNrm_facts.update({'value_now': Ex_RNrm})
-        soln_stge.facts.update({'Ex_RNrm': Ex_RNrm_facts})
-        soln_stge.Ex_RNrm_facts = Ex_RNrm_facts
+        Ex_RNrmfacts.update({'latexexpr': r'\Ex_RNrm'})
+#        Ex_RNrmfacts.update({'_unicode_': r'R/Γ'})
+        Ex_RNrmfacts.update({'urlhandle': self.soln_stge.urlroot+'ExRNrm'})
+        Ex_RNrmfacts.update({'py___code': r'Rfree/PermGroFacAdj'})
+        Ex_RNrmfacts.update({'value_now': Ex_RNrm})
+        soln_stge.facts.update({'Ex_RNrm': Ex_RNrmfacts})
+        soln_stge.Ex_RNrmfacts = Ex_RNrmfacts
         soln_stge.Ex_RNrm = Ex_RNrm
 
-        Inv_Ex_RNrm_facts = {
+        Inv_Ex_RNrmfacts = {
             'about': 'Inverse of Expectation of Stochastic-Growth-Normalized Return'}
         Inv_Ex_RNrm = 1/Ex_RNrm
-        Inv_Ex_RNrm_facts.update(
+        Inv_Ex_RNrmfacts.update(
             {'latexexpr': '\InvExInvPermShk=\left(\Ex[\PermShk^{-1}]\right)^{-1}'})
-#        Inv_Ex_RNrm_facts.update({'_unicode_': r'R/Γ'})
-        Inv_Ex_RNrm_facts.update({'urlhandle': self.soln_stge.urlroot+'InvExRNrm'})
-        Inv_Ex_RNrm_facts.update({'py___code': r'1/Ex_RNrm'})
-        Inv_Ex_RNrm_facts.update({'value_now': Inv_Ex_RNrm})
-        soln_stge.facts.update({'Inv_Ex_RNrm': Inv_Ex_RNrm_facts})
-        soln_stge.Inv_Ex_RNrm_facts = Inv_Ex_RNrm_facts
+#        Inv_Ex_RNrmfacts.update({'_unicode_': r'R/Γ'})
+        Inv_Ex_RNrmfacts.update({'urlhandle': self.soln_stge.urlroot+'InvExRNrm'})
+        Inv_Ex_RNrmfacts.update({'py___code': r'1/Ex_RNrm'})
+        Inv_Ex_RNrmfacts.update({'value_now': Inv_Ex_RNrm})
+        soln_stge.facts.update({'Inv_Ex_RNrm': Inv_Ex_RNrmfacts})
+        soln_stge.Inv_Ex_RNrmfacts = Inv_Ex_RNrmfacts
         soln_stge.Inv_Ex_RNrm = Inv_Ex_RNrm
 
-        Ex_uInv_PermShk_facts = {
+        Ex_uInv_PermShkfacts = {
             'about': 'Expected Utility for Consuming Permanent Shock'}
 
-        Ex_uInv_PermShk_facts.update({'latexexpr': r'\Ex_uInv_PermShk'})
-        Ex_uInv_PermShk_facts.update({'urlhandle': r'ExuInvPermShk'})
-        Ex_uInv_PermShk_facts.update(
+        Ex_uInv_PermShkfacts.update({'latexexpr': r'\Ex_uInv_PermShk'})
+        Ex_uInv_PermShkfacts.update({'urlhandle': r'ExuInvPermShk'})
+        Ex_uInv_PermShkfacts.update(
             {'py___code': r'np.dot(PermShkValsNxtXref**(1-CRRA),ShkPrbsNext)'})
-        Ex_uInv_PermShk_facts.update({'value_now': Ex_uInv_PermShk})
-        soln_stge.facts.update({'Ex_uInv_PermShk': Ex_uInv_PermShk_facts})
-        soln_stge.Ex_uInv_PermShk_facts = Ex_uInv_PermShk_facts
+        Ex_uInv_PermShkfacts.update({'value_now': Ex_uInv_PermShk})
+        soln_stge.facts.update({'Ex_uInv_PermShk': Ex_uInv_PermShkfacts})
+        soln_stge.Ex_uInv_PermShkfacts = Ex_uInv_PermShkfacts
         soln_stge.Ex_uInv_PermShk = Ex_uInv_PermShk = self.soln_stge.Ex_uInv_PermShk
 
         uInv_Ex_uInv_PermShk = Ex_uInv_PermShk ** (1 / (1 - CRRA))
-        uInv_Ex_uInv_PermShk_facts = {
+        uInv_Ex_uInv_PermShkfacts = {
             'about': 'Inverted Expected Utility for Consuming Permanent Shock'}
-        uInv_Ex_uInv_PermShk_facts.update({'latexexpr': r'\uInvExuInvPermShk'})
-        uInv_Ex_uInv_PermShk_facts.update({'urlhandle': self.soln_stge.urlroot+'uInvExuInvPermShk'})
-        uInv_Ex_uInv_PermShk_facts.update({'py___code': r'Ex_uInv_PermShk**(1/(1-CRRA))'})
-        uInv_Ex_uInv_PermShk_facts.update({'value_now': uInv_Ex_uInv_PermShk})
-        soln_stge.facts.update({'uInv_Ex_uInv_PermShk': uInv_Ex_uInv_PermShk_facts})
-        soln_stge.uInv_Ex_uInv_PermShk_facts = uInv_Ex_uInv_PermShk_facts
+        uInv_Ex_uInv_PermShkfacts.update({'latexexpr': r'\uInvExuInvPermShk'})
+        uInv_Ex_uInv_PermShkfacts.update({'urlhandle': self.soln_stge.urlroot+'uInvExuInvPermShk'})
+        uInv_Ex_uInv_PermShkfacts.update({'py___code': r'Ex_uInv_PermShk**(1/(1-CRRA))'})
+        uInv_Ex_uInv_PermShkfacts.update({'value_now': uInv_Ex_uInv_PermShk})
+        soln_stge.facts.update({'uInv_Ex_uInv_PermShk': uInv_Ex_uInv_PermShkfacts})
+        soln_stge.uInv_Ex_uInv_PermShkfacts = uInv_Ex_uInv_PermShkfacts
         self.soln_stge.uInv_Ex_uInv_PermShk = soln_stge.uInv_Ex_uInv_PermShk = uInv_Ex_uInv_PermShk
-        PermGroFacAdj_facts = {
+        PermGroFacAdjfacts = {
             'about': 'Uncertainty-Adjusted Permanent Income Growth Factor'}
-        PermGroFacAdj = PermGroFac_0_ * Inv_Ex_Inv_PermShk
-        PermGroFacAdj_facts.update({'latexexpr': r'\mathcal{R}\underline{\permShk}'})
-        PermGroFacAdj_facts.update({'urlhandle': self.soln_stge.urlroot+'PermGroFacAdj'})
-        PermGroFacAdj_facts.update({'value_now': PermGroFacAdj})
-        soln_stge.facts.update({'PermGroFacAdj': PermGroFacAdj_facts})
-        soln_stge.PermGroFacAdj_facts = PermGroFacAdj_facts
+        PermGroFacAdj = PermGroFacNxt * Inv_Ex_Inv_PermShk
+        PermGroFacAdjfacts.update({'latexexpr': r'\mathcal{R}\underline{\permShk}'})
+        PermGroFacAdjfacts.update({'urlhandle': self.soln_stge.urlroot+'PermGroFacAdj'})
+        PermGroFacAdjfacts.update({'value_now': PermGroFacAdj})
+        soln_stge.facts.update({'PermGroFacAdj': PermGroFacAdjfacts})
+        soln_stge.PermGroFacAdjfacts = PermGroFacAdjfacts
         soln_stge.PermGroFacAdj = PermGroFacAdj
 
-        GPFNrm_facts = {
+        GPFNrmfacts = {
             'about': 'Normalized Expected Growth Patience Factor'}
         soln_stge.GPFNrm = GPFNrm = soln_stge.GPFRaw * Ex_Inv_PermShk
-        GPFNrm_facts.update({'latexexpr': r'\GPFNrm'})
-        GPFNrm_facts.update({'_unicode_': r'Þ_Γ'})
-        GPFNrm_facts.update({'urlhandle': self.soln_stge.urlroot+'GPFNrm'})
-        GPFNrm_facts.update({'py___code': 'test: GPFNrm < 1'})
-        soln_stge.facts.update({'GPFNrm': GPFNrm_facts})
-        soln_stge.GPFNrm_facts = GPFNrm_facts
+        GPFNrmfacts.update({'latexexpr': r'\GPFNrm'})
+        GPFNrmfacts.update({'_unicode_': r'Þ_Γ'})
+        GPFNrmfacts.update({'urlhandle': self.soln_stge.urlroot+'GPFNrm'})
+        GPFNrmfacts.update({'py___code': 'test: GPFNrm < 1'})
+        soln_stge.facts.update({'GPFNrm': GPFNrmfacts})
+        soln_stge.GPFNrmfacts = GPFNrmfacts
 
-        GICNrm_facts = {'about': 'Growth Impatience Condition'}
-        GICNrm_facts.update({'latexexpr': r'\GICNrm'})
-        GICNrm_facts.update({'urlhandle': self.soln_stge.urlroot+'GICNrm'})
-        GICNrm_facts.update({'py___code': 'test: agent.GPFNrm < 1'})
-        soln_stge.facts.update({'GICNrm': GICNrm_facts})
-        soln_stge.GICNrm_facts = GICNrm_facts
+        GICNrmfacts = {'about': 'Growth Impatience Condition'}
+        GICNrmfacts.update({'latexexpr': r'\GICNrm'})
+        GICNrmfacts.update({'urlhandle': self.soln_stge.urlroot+'GICNrm'})
+        GICNrmfacts.update({'py___code': 'test: GPFNrm < 1'})
+        soln_stge.facts.update({'GICNrm': GICNrmfacts})
+        soln_stge.GICNrmfacts = GICNrmfacts
 
-        FVAC_facts = {'about': 'Finite Value of Autarky Condition'}
-        FVAC_facts.update({'latexexpr': r'\FVAC'})
-        FVAC_facts.update({'urlhandle': self.soln_stge.urlroot+'FVAC'})
-        FVAC_facts.update({'py___code': 'test: FVAF < 1'})
-        soln_stge.facts.update({'FVAC': FVAC_facts})
-        soln_stge.FVAC_facts = FVAC_facts
+        FVACfacts = {'about': 'Finite Value of Autarky Condition'}
+        FVACfacts.update({'latexexpr': r'\FVAC'})
+        FVACfacts.update({'urlhandle': self.soln_stge.urlroot+'FVAC'})
+        FVACfacts.update({'py___code': 'test: FVAF < 1'})
+        soln_stge.facts.update({'FVAC': FVACfacts})
+        soln_stge.FVACfacts = FVACfacts
 
-        DiscGPFNrmCusp_facts = {'about':
-                                'DiscFac s.t. GPFNrm = 1'}
+        DiscGPFNrmCuspfacts = {'about':
+                               'DiscFac s.t. GPFNrm = 1'}
         soln_stge.DiscGPFNrmCusp = DiscGPFNrmCusp = (
-            (PermGroFac_0_*Inv_Ex_Inv_PermShk)**(CRRA))/Rfree
-        DiscGPFNrmCusp_facts.update({'latexexpr': ''})
-        DiscGPFNrmCusp_facts.update({'value_now': DiscGPFNrmCusp})
-        DiscGPFNrmCusp_facts.update({
+            (PermGroFacNxt*Inv_Ex_Inv_PermShk)**(CRRA))/Rfree
+        DiscGPFNrmCuspfacts.update({'latexexpr': ''})
+        DiscGPFNrmCuspfacts.update({'value_now': DiscGPFNrmCusp})
+        DiscGPFNrmCuspfacts.update({
             'py___code': '((PermGro * Inv_Ex_Inv_PermShk) ** CRRA)/(Rfree)'})
-        soln_stge.facts.update({'DiscGPFNrmCusp': DiscGPFNrmCusp_facts})
-        soln_stge.DiscGPFNrmCusp_facts = DiscGPFNrmCusp_facts
+        soln_stge.facts.update({'DiscGPFNrmCusp': DiscGPFNrmCuspfacts})
+        soln_stge.DiscGPFNrmCuspfacts = DiscGPFNrmCuspfacts
 
         # # Merge all the parameters
         # # In python 3.9, the syntax is new_dict = dict_a | dict_b
@@ -1319,7 +1307,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # goal: agent,  solver, and solution should be standalone
         # this requires the solution to get some info from the solver
 
-        if soln_stge.Inv_PF_RNrm < 1:        # Finite if Rfree > PermGroFac_0_
+        if soln_stge.Inv_PF_RNrm < 1:        # Finite if Rfree > PermGroFacNxt
             soln_stge.hNrmNowInf = 1/(1-soln_stge.Inv_PF_RNrm)
 
         # Given m, value of c where E[m_{t+1}]=m_{t}
@@ -1329,7 +1317,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             m_t * (1 - soln_stge.Inv_Ex_RNrm) + (soln_stge.Inv_Ex_RNrm)
         )
 
-        # Given m, value of c where E[mLev_{t+1}/mLev_{t}]=PermGroFac_0_
+        # Given m, value of c where E[mLev_{t+1}/mLev_{t}]=PermGroFacNxt
         # Solves for c in equation at url/#balgrostable
 
         soln_stge.c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0 = (
@@ -1388,26 +1376,26 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         return soln_stge
 
     def add_Ex_values(self, stge_futr):
-        self.soln_stge.PermShkValsNxtXref = PermShkValsNxtXref = stge_futr.IncShkDstn_0_.X[0]
-        self.soln_stge.TranShkValsNxtXref = TranShkValsNxtXref = stge_futr.IncShkDstn_0_.X[1]
+        self.soln_stge.PermShkValsNxtXref = PermShkValsNxtXref = stge_futr.IncShkDstnNxt.X[0]
+        self.soln_stge.TranShkValsNxtXref = TranShkValsNxtXref = stge_futr.IncShkDstnNxt.X[1]
         self.soln_stge.ShkPrbsNext = ShkPrbsNext = self.soln_stge.IncShkPrbsNxt \
-            = stge_futr.IncShkDstn_0_.pmf
+            = stge_futr.IncShkDstnNxt.pmf
 
-        self.soln_stge.IncShkValsNxt = stge_futr.IncShkDstn_0_.X
+        self.soln_stge.IncShkValsNxt = stge_futr.IncShkDstnNxt.X
 
-        self.soln_stge.PermShkPrbsNxt = PermShkPrbsNxt = stge_futr.PermShkDstn_0_.pmf
-        self.soln_stge.PermShkValsNxt = PermShkValsNxt = stge_futr.PermShkDstn_0_.X
+        self.soln_stge.PermShkPrbsNxt = PermShkPrbsNxt = stge_futr.PermShkDstnNxt.pmf
+        self.soln_stge.PermShkValsNxt = PermShkValsNxt = stge_futr.PermShkDstnNxt.X
 
-        self.soln_stge.TranShkPrbsNxt = TranShkPrbsNxt = stge_futr.TranShkDstn_0_.pmf
-        self.soln_stge.TranShkValsNxt = TranShkValsNxt = stge_futr.TranShkDstn_0_.X
+        self.soln_stge.TranShkPrbsNxt = TranShkPrbsNxt = stge_futr.TranShkDstnNxt.pmf
+        self.soln_stge.TranShkValsNxt = TranShkValsNxt = stge_futr.TranShkDstnNxt.X
 
-        self.soln_stge.PermShkNxtMin = PermShkNxtMin = np.min(PermShkValsNxt)
+        self.soln_stge.PermShkValsNxtMin = PermShkValsNxtMin = np.min(PermShkValsNxt)
         self.soln_stge.TranShkNxtMin = TranShkNxtMin = np.min(TranShkValsNxt)
 
         self.soln_stge.WorstIncPrbNxt = np.sum(
             ShkPrbsNext[
                 (PermShkValsNxtXref * TranShkValsNxtXref)
-                == (PermShkNxtMin * TranShkNxtMin)
+                == (PermShkValsNxtMin * TranShkNxtMin)
             ]
         )
 
@@ -1435,16 +1423,15 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         -------
         none
         """
-        self.soln_stge.results = {}
-        self.soln_stge.solver_check_condtnsnew_20210404 = self.solver_check_condtnsnew_20210404
-        self.soln_stge.solver_check_AIC_20210404 = self.solver_check_AIC_20210404
-        self.soln_stge.solver_check_RIC_20210404 = self.solver_check_RIC_20210404
-        self.soln_stge.solver_check_FVAC_20210404 = self.solver_check_FVAC_20210404
-        self.soln_stge.solver_check_GICLiv_20210404 = self.solver_check_GICLiv_20210404
-        self.soln_stge.solver_check_GICRaw_20210404 = self.solver_check_GICRaw_20210404
-        self.soln_stge.solver_check_GICNrm_20210404 = self.solver_check_GICNrm_20210404
-        self.soln_stge.solver_check_FHWC_20210404 = self.solver_check_FHWC_20210404
-        self.soln_stge.solver_check_WRIC_20210404 = self.solver_check_WRIC_20210404
+        # self.soln_stge.solver_check_condtnsnew_20210404 = self.solver_check_condtnsnew_20210404
+        # self.soln_stge.solver_check_AIC_20210404 = self.solver_check_AIC_20210404
+        # self.soln_stge.solver_check_RIC_20210404 = self.solver_check_RIC_20210404
+        # self.soln_stge.solver_check_FVAC_20210404 = self.solver_check_FVAC_20210404
+        # self.soln_stge.solver_check_GICLiv_20210404 = self.solver_check_GICLiv_20210404
+        # self.soln_stge.solver_check_GICRaw_20210404 = self.solver_check_GICRaw_20210404
+        # self.soln_stge.solver_check_GICNrm_20210404 = self.solver_check_GICNrm_20210404
+        # self.soln_stge.solver_check_FHWC_20210404 = self.solver_check_FHWC_20210404
+        # self.soln_stge.solver_check_WRIC_20210404 = self.solver_check_WRIC_20210404
 
         # Define a few variables that permit the same formulae to be used for
         # versions with and without uncertainty
@@ -1531,7 +1518,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         float
            normalized market resources in the next period
         """
-        return self.soln_stge.Rfree / (self.soln_stge.PermGroFac_0_ * shocks[0]) \
+        return self.soln_stge.Rfree / (self.soln_stge.PermGroFacNxt * shocks[0]) \
             * a_Nrm_Val + shocks[1]
 
     def calc_EndOfPrdvP(self):
@@ -1555,11 +1542,11 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
                 * self.solution_next.vPfunc(self.m_Nrm_tp1(shocks, a_Nrm_Val))
 
         EndOfPrdvP = (
-            self.soln_stge.DiscFac_0_ * self.soln_stge.LivPrb_0_
+            self.soln_stge.DiscFacNxt * self.soln_stge.LivPrbNxt
             * self.soln_stge.Rfree
-            * self.soln_stge.PermGroFac_0_ ** (-self.soln_stge.CRRA)
+            * self.soln_stge.PermGroFacNxt ** (-self.soln_stge.CRRA)
             * calc_expectation(
-                self.soln_stge.IncShkDstn_0_,
+                self.soln_stge.IncShkDstnNxt,
                 vp_next,
                 self.soln_stge.aNrmNow
             )
@@ -1719,23 +1706,23 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             with human wealth and the bounding MPCs.
         """
         hNrmNow = (
-            (soln_stge.PermGroFac_0_ / soln_stge.Rfree) * (1.0 + self.solution_next.hNrmNow)
+            (soln_stge.PermGroFacNxt / soln_stge.Rfree) * (1.0 + self.solution_next.hNrmNow)
         )
-        hNrmNow_facts = {'about': 'Human Wealth Now'}
-        hNrmNow_facts.update({'latexexpr': r'\hNrmNow'})
-        hNrmNow_facts.update({'_unicode_': r'R/Γ'})
-        hNrmNow_facts.update({'urlhandle': self.soln_stge.urlroot+'hNrmNow'})
-        hNrmNow_facts.update({'py___code': r'PermGroFac_0_Inf/Rfree'})
-        hNrmNow_facts.update({'value_now': hNrmNow})
-        soln_stge.hNrmNow_facts = hNrmNow_facts
-        soln_stge.facts.update({'hNrmNow': hNrmNow_facts})
+        hNrmNowfacts = {'about': 'Human Wealth Now'}
+        hNrmNowfacts.update({'latexexpr': r'\hNrmNow'})
+        hNrmNowfacts.update({'_unicode_': r'R/Γ'})
+        hNrmNowfacts.update({'urlhandle': self.soln_stge.urlroot+'hNrmNow'})
+        hNrmNowfacts.update({'py___code': r'PermGroFacNxtInf/Rfree'})
+        hNrmNowfacts.update({'value_now': hNrmNow})
+        soln_stge.hNrmNowfacts = hNrmNowfacts
+        soln_stge.facts.update({'hNrmNow': hNrmNowfacts})
         self.hNrmNow = soln_stge.hNrmNow = hNrmNow
 
         # Calculate the minimum allowable value of money resources in this period
 
         soln_stge.BoroCnstNat = (
             (self.solution_next.mNrmMin - min(self.solution_next.TranShkValsNxt))
-            * (self.solution_next.PermGroFac_0_ * min(self.solution_next.PermShkValsNxt))
+            * (self.solution_next.PermGroFacNxt * min(self.solution_next.PermShkValsNxt))
             / self.solution_next.Rfree
         )
 
@@ -1750,66 +1737,66 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             )
 
         mNrmMin = soln_stge.mNrmMin
-        mNrmMin_facts = {'about': 'Minimum mNrm'}
-        mNrmMin_facts.update({'latexexpr': r'\mNrmMin'})
-        soln_stge.facts.update({'mNrmMin': mNrmMin_facts})
-        soln_stge.mNrmMin_facts = mNrmMin_facts
+        mNrmMinfacts = {'about': 'Minimum mNrm'}
+        mNrmMinfacts.update({'latexexpr': r'\mNrmMin'})
+        soln_stge.facts.update({'mNrmMin': mNrmMinfacts})
+        soln_stge.mNrmMinfacts = mNrmMinfacts
         soln_stge.mNrmMin = mNrmMin
 
         MPCminNow = 1.0 / (1.0 + soln_stge.RPF / self.solution_next.MPCminNow)
-        MPCminNow_facts = {
+        MPCminNowfacts = {
             'about': 'Minimal MPC as m -> infty'}
-        MPCminNow_facts.update({'latexexpr': r''})
-        MPCminNow_facts.update({'urlhandle': self.soln_stge.urlroot+'MPCminNow'})
-        MPCminNow_facts.update({'value_now': MPCminNow})
-        soln_stge.facts.update({'MPCminNow': MPCminNow_facts})
-        soln_stge.MPCminNow_facts = MPCminNow_facts
+        MPCminNowfacts.update({'latexexpr': r''})
+        MPCminNowfacts.update({'urlhandle': self.soln_stge.urlroot+'MPCminNow'})
+        MPCminNowfacts.update({'value_now': MPCminNow})
+        soln_stge.facts.update({'MPCminNow': MPCminNowfacts})
+        soln_stge.MPCminNowfacts = MPCminNowfacts
         soln_stge.MPCminNow = soln_stge.MPCminNow = MPCminNow
 
         MPCmaxNow = 1.0 / \
             (1.0 + (self.solution_next.WorstIncPrbNxt ** (1.0 / soln_stge.CRRA))
              * self.solution_next.RPF
              / self.solution_next.MPCmaxNow)
-        MPCmaxNow_facts = {
+        MPCmaxNowfacts = {
             'about': 'Maximal MPC in current period as m -> minimum'}
-        MPCmaxNow_facts.update({'latexexpr': r''})
-        MPCmaxNow_facts.update({'urlhandle': self.soln_stge.urlroot+'MPCmaxNow'})
-        MPCmaxNow_facts.update({'value_now': MPCmaxNow})
-        soln_stge.facts.update({'MPCmaxNow': MPCmaxNow_facts})
-        soln_stge.MPCmaxNow_facts = MPCmaxNow_facts
+        MPCmaxNowfacts.update({'latexexpr': r''})
+        MPCmaxNowfacts.update({'urlhandle': self.soln_stge.urlroot+'MPCmaxNow'})
+        MPCmaxNowfacts.update({'value_now': MPCmaxNow})
+        soln_stge.facts.update({'MPCmaxNow': MPCmaxNowfacts})
+        soln_stge.MPCmaxNowfacts = MPCmaxNowfacts
         soln_stge.MPCmaxNow = MPCmaxNow
 
         # Lower bound of aggregate wealth growth if all inheritances squandered
         cFuncLimitIntercept = MPCminNow * soln_stge.hNrmNow
-        cFuncLimitIntercept_facts = {
+        cFuncLimitInterceptfacts = {
             'about': 'Vertical intercept of perfect foresight consumption function'}
-        cFuncLimitIntercept_facts.update({'latexexpr': '\MPC '})
-        cFuncLimitIntercept_facts.update({'urlhandle': ''})
-        cFuncLimitIntercept_facts.update({'value_now': cFuncLimitIntercept})
-        cFuncLimitIntercept_facts.update({
+        cFuncLimitInterceptfacts.update({'latexexpr': '\MPC '})
+        cFuncLimitInterceptfacts.update({'urlhandle': ''})
+        cFuncLimitInterceptfacts.update({'value_now': cFuncLimitIntercept})
+        cFuncLimitInterceptfacts.update({
             'py___code': 'MPCminNow * hNrmNow'})
-        soln_stge.facts.update({'cFuncLimitIntercept': cFuncLimitIntercept_facts})
-        soln_stge.cFuncLimitIntercept_facts = cFuncLimitIntercept_facts
+        soln_stge.facts.update({'cFuncLimitIntercept': cFuncLimitInterceptfacts})
+        soln_stge.cFuncLimitInterceptfacts = cFuncLimitInterceptfacts
         soln_stge.cFuncLimitIntercept = cFuncLimitIntercept
 
         cFuncLimitSlope = MPCminNow
-        cFuncLimitSlope_facts = {
+        cFuncLimitSlopefacts = {
             'about': 'Slope of limiting consumption function'}
-        cFuncLimitSlope_facts = dict({'latexexpr': '\MPC \hNrmNow'})
-        cFuncLimitSlope_facts.update({'urlhandle': ''})
-        cFuncLimitSlope_facts.update({'value_now': cFuncLimitSlope})
-        cFuncLimitSlope_facts.update({
+        cFuncLimitSlopefacts = dict({'latexexpr': '\MPC \hNrmNow'})
+        cFuncLimitSlopefacts.update({'urlhandle': ''})
+        cFuncLimitSlopefacts.update({'value_now': cFuncLimitSlope})
+        cFuncLimitSlopefacts.update({
             'py___code': 'MPCminNow * hNrmNow'})
-        soln_stge.facts.update({'cFuncLimitSlope': cFuncLimitSlope_facts})
-        soln_stge.cFuncLimitSlope_facts = cFuncLimitSlope_facts
+        soln_stge.facts.update({'cFuncLimitSlope': cFuncLimitSlopefacts})
+        soln_stge.cFuncLimitSlopefacts = cFuncLimitSlopefacts
         soln_stge.cFuncLimitSlope = cFuncLimitSlope
 
         # Facts that apply in the perfect foresight case should already have been added
 
-        if soln_stge.Inv_PF_RNrm < 1:        # Finite if Rfree > PermGroFac_0_
+        if soln_stge.Inv_PF_RNrm < 1:        # Finite if Rfree > PermGroFacNxt
             soln_stge.hNrmNowInf = 1/(1-soln_stge.Inv_PF_RNrm)
 
-        # Given m, value of c where E[mLev_{t+1}/mLev_{t}]=PermGroFac_0_
+        # Given m, value of c where E[mLev_{t+1}/mLev_{t}]=PermGroFacNxt
         # Solves for c in equation at url/#balgrostable
 
         soln_stge.c_where_Ex_PermShk_times_mtp1_minus_mt_eq_0 = (
@@ -1827,7 +1814,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 #        # E[m_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
         soln_stge.Ex_mLev_tp1_Over_pLev_t_from_at = (
             lambda a_t:
-                soln_stge.PermGroFac_0_ *
+                soln_stge.PermGroFacNxt *
             (soln_stge.PF_RNrm * a_t + soln_stge.Ex_IncNextNrm)
         )
 
@@ -1880,16 +1867,16 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution : ConsumerSolution
             The solution to the single period consumption-saving problem.
         """
-        if self.solution_next.kind['epoch'] == 'finished':
-            self.soln_stge.kind['epoch'] = 'finished'
+        if self.solution_next.stge_kind['iter_status'] == 'finished':
+            self.soln_stge.stge_kind['iter_status'] = 'finished'
             _log.error("The model has already been solved.  Aborting.")
             return self.soln_stge
 
         # If this is the first invocation of solve, just flesh out the terminal
         # period solution so it is a proper starting point for iteration
-        if self.solution_next.kind['epoch'] == 'terminal':
+        if self.solution_next.stge_kind['iter_status'] == 'terminal':
             self.soln_stge = self.solution_next
-            self.soln_stge.kind['epoch'] = 'iterator'
+            self.soln_stge.stge_kind['iter_status'] = 'iterator'
             self.soln_stge = self.def_utility_funcs(self.soln_stge)
             self.soln_stge = self.def_value_funcs(self.soln_stge)
             self.soln_stge.vPfunc = MargValueFuncCRRA(self.soln_stge.cFunc, self.soln_stge.CRRA)
@@ -1899,12 +1886,12 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             self.soln_stge_add_further_info(self.solution_next)  # Do not iterate MPC and hMin
             return self.soln_stge  # Replaces original "terminal" solution; next solution_next
 
-        self.soln_stge.kind = {'epoch': 'iterator'}
+        self.soln_stge.stge_kind = {'iter_status': 'iterator'}
         # Add a bunch of metadata
 
         self.soln_stge_add_further_info(self.solution_next)
         self.soln_stge = self.solution_add_MPC_bounds_and_human_wealth_PDV_20210410(self.soln_stge)
-        sol_EGM = self.make_sol_using_EGM()  # Need to add test for finished, change kind if so
+        sol_EGM = self.make_sol_using_EGM()  # Need to add test for finished, change stge_kind if so
         self.soln_stge.cFunc = sol_EGM.cFunc
         self.soln_stge.vPfunc = sol_EGM.vPfunc
 
@@ -1952,12 +1939,12 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
                 * self.solution_next.vPPfunc(self.m_Nrm_tp1(shocks, a_Nrm_Val))
 
         EndOfPrdvPP = (
-            self.soln_stge.DiscFac_0_ * self.soln_stge.LivPrb
+            self.soln_stge.DiscFacNxt * self.soln_stge.LivPrb
             * self.soln_stge.Rfree
             * self.soln_stge.Rfree
-            * self.soln_stge.PermGroFac_0_ ** (-self.soln_stge.CRRA - 1.0)
+            * self.soln_stge.PermGroFacNxt ** (-self.soln_stge.CRRA - 1.0)
             * calc_expectation(
-                self.soln_stge.IncShkDstn_0_,
+                self.soln_stge.IncShkDstnNxt,
                 vpp_next,
                 self.soln_stge.aNrmNow
             )
@@ -1990,10 +1977,10 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         def v_lvl_next(shocks, a_Nrm_Val):
             return (
                 shocks[0] ** (1.0 - self.soln_stge.CRRA)
-                * self.soln_stge.PermGroFac_0_ ** (1.0 - self.soln_stge.CRRA)
+                * self.soln_stge.PermGroFacNxt ** (1.0 - self.soln_stge.CRRA)
             ) * self.soln_stge.vFuncNext(self.soln_stge.m_Nrm_tp1(shocks, a_Nrm_Val))
-        EndOfPrdv = self.soln_stge.DiscFac_0_Eff * calc_expectation(
-            self.soln_stge.IncShkDstn_0_, v_lvl_next, self.soln_stge.aNrmNow
+        EndOfPrdv = self.soln_stge.DiscFacNxtEff * calc_expectation(
+            self.soln_stge.IncShkDstnNxt, v_lvl_next, self.soln_stge.aNrmNow
         )
         EndOfPrdvNvrs = self.soln_stge.uinv(
             EndOfPrdv
@@ -2315,7 +2302,7 @@ init_perfect_foresight = {
     'LivPrb': [0.98],     # Survival probability
     'PermGroFac': [1.01],  # Permanent income growth factor
     'BoroCnstArt': None,  # Artificial borrowing constraint
-    'T_cycle': 1,         # Number of periods in the cycle for this agent type
+    'T_cycle': 1,         # Num of periods in a finite horizon cycle (like, a life cycle)
     'PermGroFacAgg': 1.0,  # Aggregate income growth factor (multiplies individual)
     'MaxKinks': 400,      # Maximum number of grid points to allow in cFunc (should be large)
     'mcrlo_AgentCount': 10000,  # Number of agents of this type (only matters for simulation)
@@ -2355,137 +2342,117 @@ init_perfect_foresight.update({  # Limiting values that define 'true' simulation
 })
 
 # Optional more detailed facts about various parameters
-CRRA_facts = {}
-CRRA_facts.update({'about': 'Coefficient of Relative Risk Aversion'})
-CRRA_facts.update({'latexexpr': '\providecommand{\CRRA}{\rho}\CRRA'})
-CRRA_facts.update({'_unicode_': 'ρ'})  # \rho is Greek r: relative risk aversion rrr
-CRRA_facts.update({'prmtv_par': 'True'})
+CRRAfacts = {'about': 'Coefficient of Relative Risk Aversion'}
+CRRAfacts.update({'latexexpr': '\providecommand{\CRRA}{\rho}\CRRA'})
+CRRAfacts.update({'_unicode_': 'ρ'})  # \rho is Greek r: relative risk aversion rrr
+CRRAfacts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('CRRA')
-init_perfect_foresight['facts'].update({'CRRA': CRRA_facts})
-init_perfect_foresight.update({'CRRA_facts': CRRA_facts})
+init_perfect_foresight['facts'].update({'CRRA': CRRAfacts})
+init_perfect_foresight.update({'CRRAfacts': CRRAfacts})
 
-DiscFac_facts = {}
-DiscFac_facts.update({'about': 'Pure time preference rate'})
-DiscFac_facts.update({'latexexpr': '\providecommand{\DiscFac}{\beta}\DiscFac'})
-DiscFac_facts.update({'_unicode_': 'β'})
-DiscFac_facts.update({'prmtv_par': 'True'})
+DiscFacfacts = {'about': 'Pure time preference rate'}
+DiscFacfacts.update({'latexexpr': '\providecommand{\DiscFac}{\beta}\DiscFac'})
+DiscFacfacts.update({'_unicode_': 'β'})
+DiscFacfacts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('DiscFac')
-init_perfect_foresight['facts'].update({'DiscFac': DiscFac_facts})
-init_perfect_foresight.update({'DiscFac_facts': DiscFac_facts})
+init_perfect_foresight['facts'].update({'DiscFac': DiscFacfacts})
+init_perfect_foresight.update({'DiscFacfacts': DiscFacfacts})
 
-LivPrb_facts = {}
-LivPrb_facts.update({'about': 'Probability of survival from this period to next'})
-LivPrb_facts.update({'latexexpr': '\providecommand{\LivPrb}{\Pi}\LivPrb'})
-LivPrb_facts.update({'_unicode_': 'Π'})  # \Pi mnemonic: 'Probability of surival'
-LivPrb_facts.update({'prmtv_par': 'True'})
+LivPrbfacts = {'about': 'Probability of survival from this period to next'}
+LivPrbfacts.update({'latexexpr': '\providecommand{\LivPrb}{\Pi}\LivPrb'})
+LivPrbfacts.update({'_unicode_': 'Π'})  # \Pi mnemonic: 'Probability of surival'
+LivPrbfacts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('LivPrb')
-init_perfect_foresight['facts'].update({'LivPrb': LivPrb_facts})
-init_perfect_foresight.update({'LivPrb_facts': LivPrb_facts})
+init_perfect_foresight['facts'].update({'LivPrb': LivPrbfacts})
+init_perfect_foresight.update({'LivPrbfacts': LivPrbfacts})
 
-Rfree_facts = {}
-Rfree_facts.update({'about': 'Risk free interest factor'})
-Rfree_facts.update({'latexexpr': '\providecommand{\Rfree}{\mathsf{R}}\Rfree'})
-Rfree_facts.update({'_unicode_': 'R'})
-Rfree_facts.update({'prmtv_par': 'True'})
+Rfreefacts = {'about': 'Risk free interest factor'}
+Rfreefacts.update({'latexexpr': '\providecommand{\Rfree}{\mathsf{R}}\Rfree'})
+Rfreefacts.update({'_unicode_': 'R'})
+Rfreefacts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('Rfree')
-init_perfect_foresight['facts'].update({'Rfree': Rfree_facts})
-init_perfect_foresight.update({'Rfree_facts': Rfree_facts})
+init_perfect_foresight['facts'].update({'Rfree': Rfreefacts})
+init_perfect_foresight.update({'Rfreefacts': Rfreefacts})
 
-PermGroFac_facts = {}
-PermGroFac_facts.update({'about': 'Growth factor for permanent income'})
-PermGroFac_facts.update({'latexexpr': '\providecommand{\PermGroFac}{\Gamma}\PermGroFac'})
-PermGroFac_facts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
-PermGroFac_facts.update({'prmtv_par': 'True'})
+PermGroFacfacts = {'about': 'Growth factor for permanent income'}
+PermGroFacfacts.update({'latexexpr': '\providecommand{\PermGroFac}{\Gamma}\PermGroFac'})
+PermGroFacfacts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
+PermGroFacfacts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('PermGroFac')
-init_perfect_foresight['facts'].update({'PermGroFac': PermGroFac_facts})
-init_perfect_foresight.update({'PermGroFac_facts': PermGroFac_facts})
+init_perfect_foresight['facts'].update({'PermGroFac': PermGroFacfacts})
+init_perfect_foresight.update({'PermGroFacfacts': PermGroFacfacts})
 
-PermGroFacAgg_facts = {}
-PermGroFacAgg_facts.update({'about': 'Growth factor for aggregate permanent income'})
-# PermGroFacAgg_facts.update({'latexexpr': '\providecommand{\PermGroFacAgg}{\Gamma}\PermGroFacAgg'})
-# PermGroFacAgg_facts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
-PermGroFacAgg_facts.update({'prmtv_par': 'True'})
+PermGroFacAggfacts = {'about': 'Growth factor for aggregate permanent income'}
+# PermGroFacAggfacts.update({'latexexpr': '\providecommand{\PermGroFacAgg}{\Gamma}\PermGroFacAgg'})
+# PermGroFacAggfacts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
+PermGroFacAggfacts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('PermGroFacAgg')
-init_perfect_foresight['facts'].update({'PermGroFacAgg': PermGroFacAgg_facts})
-init_perfect_foresight.update({'PermGroFacAgg_facts': PermGroFacAgg_facts})
+init_perfect_foresight['facts'].update({'PermGroFacAgg': PermGroFacAggfacts})
+init_perfect_foresight.update({'PermGroFacAggfacts': PermGroFacAggfacts})
 
-BoroCnstArt_facts = {}
-BoroCnstArt_facts.update(
-    {'about': 'If not None, maximum proportion of permanent income borrowable'})
-BoroCnstArt_facts.update({'latexexpr': r'\providecommand{\BoroCnstArt}{\underline{a}}\BoroCnstArt'})
-BoroCnstArt_facts.update({'prmtv_par': 'True'})
+BoroCnstArtfacts = {'about': 'If not None, maximum proportion of permanent income borrowable'}
+BoroCnstArtfacts.update({'latexexpr': r'\providecommand{\BoroCnstArt}{\underline{a}}\BoroCnstArt'})
+BoroCnstArtfacts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('BoroCnstArt')
-init_perfect_foresight['facts'].update({'BoroCnstArt': BoroCnstArt_facts})
-init_perfect_foresight.update({'BoroCnstArt_facts': BoroCnstArt_facts})
+init_perfect_foresight['facts'].update({'BoroCnstArt': BoroCnstArtfacts})
+init_perfect_foresight.update({'BoroCnstArtfacts': BoroCnstArtfacts})
 
-MaxKinks_facts = {}
-MaxKinks_facts.update(
-    {'about': 'PF Constrained model solves to period T-MaxKinks,'
-     ' where the solution has exactly this many kink points'})
-MaxKinks_facts.update({'prmtv_par': 'False'})
+MaxKinksfacts = {'about': 'PF Constrained model solves to period T-MaxKinks,'
+                 ' where the solution has exactly this many kink points'}
+MaxKinksfacts.update({'prmtv_par': 'False'})
 # init_perfect_foresight['prmtv_par'].append('MaxKinks')
-init_perfect_foresight['facts'].update({'MaxKinks': MaxKinks_facts})
-init_perfect_foresight.update({'MaxKinks_facts': MaxKinks_facts})
+init_perfect_foresight['facts'].update({'MaxKinks': MaxKinksfacts})
+init_perfect_foresight.update({'MaxKinksfacts': MaxKinksfacts})
 
-mcrlo_AgentCount_facts = {}
-mcrlo_AgentCount_facts.update(
-    {'about': 'Number of agents to use in baseline Monte Carlo simulation'})
-mcrlo_AgentCount_facts.update(
+mcrlo_AgentCountfacts = {'about': 'Number of agents to use in baseline Monte Carlo simulation'}
+mcrlo_AgentCountfacts.update(
     {'latexexpr': '\providecommand{\mcrlo_AgentCount}{N}\mcrlo_AgentCount'})
-mcrlo_AgentCount_facts.update({'mcrlo_sim': 'True'})
-mcrlo_AgentCount_facts.update({'mcrlo_lim': 'infinity'})
+mcrlo_AgentCountfacts.update({'mcrlo_sim': 'True'})
+mcrlo_AgentCountfacts.update({'mcrlo_lim': 'infinity'})
 # init_perfect_foresight['mcrlo_sim'].append('mcrlo_AgentCount')
-init_perfect_foresight['facts'].update({'mcrlo_AgentCount': mcrlo_AgentCount_facts})
-init_perfect_foresight.update({'mcrlo_AgentCount_facts': mcrlo_AgentCount_facts})
+init_perfect_foresight['facts'].update({'mcrlo_AgentCount': mcrlo_AgentCountfacts})
+init_perfect_foresight.update({'mcrlo_AgentCountfacts': mcrlo_AgentCountfacts})
 
-aNrmInitMean_facts = {}
-aNrmInitMean_facts.update(
-    {'about': 'Mean initial population value of aNrm'})
-aNrmInitMean_facts.update({'mcrlo_sim': 'True'})
-aNrmInitMean_facts.update({'mcrlo_lim': 'infinity'})
+aNrmInitMeanfacts = {'about': 'Mean initial population value of aNrm'}
+aNrmInitMeanfacts.update({'mcrlo_sim': 'True'})
+aNrmInitMeanfacts.update({'mcrlo_lim': 'infinity'})
 init_perfect_foresight['mcrlo_sim'].append('aNrmInitMean')
-init_perfect_foresight['facts'].update({'aNrmInitMean': aNrmInitMean_facts})
-init_perfect_foresight.update({'aNrmInitMean_facts': aNrmInitMean_facts})
+init_perfect_foresight['facts'].update({'aNrmInitMean': aNrmInitMeanfacts})
+init_perfect_foresight.update({'aNrmInitMeanfacts': aNrmInitMeanfacts})
 
-aNrmInitStd_facts = {}
-aNrmInitStd_facts.update(
-    {'about': 'Std dev of initial population value of aNrm'})
-aNrmInitStd_facts.update({'mcrlo_sim': 'True'})
+aNrmInitStdfacts = {'about': 'Std dev of initial population value of aNrm'}
+aNrmInitStdfacts.update({'mcrlo_sim': 'True'})
 init_perfect_foresight['mcrlo_sim'].append('aNrmInitStd')
-init_perfect_foresight['facts'].update({'aNrmInitStd': aNrmInitStd_facts})
-init_perfect_foresight.update({'aNrmInitStd_facts': aNrmInitStd_facts})
+init_perfect_foresight['facts'].update({'aNrmInitStd': aNrmInitStdfacts})
+init_perfect_foresight.update({'aNrmInitStdfacts': aNrmInitStdfacts})
 
-mcrlo_pLvlInitMean_facts = {}
-mcrlo_pLvlInitMean_facts.update(
-    {'about': 'Mean initial population value of log pLvl'})
-mcrlo_pLvlInitMean_facts.update({'mcrlo_sim': 'True'})
+mcrlo_pLvlInitMeanfacts = {'about': 'Mean initial population value of log pLvl'}
+mcrlo_pLvlInitMeanfacts.update({'mcrlo_sim': 'True'})
 init_perfect_foresight['mcrlo_sim'].append('mcrlo_pLvlInitMean')
-init_perfect_foresight['facts'].update({'mcrlo_pLvlInitMean': mcrlo_pLvlInitMean_facts})
-init_perfect_foresight.update({'mcrlo_pLvlInitMean_facts': mcrlo_pLvlInitMean_facts})
+init_perfect_foresight['facts'].update({'mcrlo_pLvlInitMean': mcrlo_pLvlInitMeanfacts})
+init_perfect_foresight.update({'mcrlo_pLvlInitMeanfacts': mcrlo_pLvlInitMeanfacts})
 
-mcrlo_pLvlInitStd_facts = {}
-mcrlo_pLvlInitStd_facts.update(
-    {'about': 'Mean initial std dev of log ppLvl'})
-mcrlo_pLvlInitStd_facts.update({'mcrlo_sim': 'True'})
+mcrlo_pLvlInitStdfacts = {'about': 'Mean initial std dev of log ppLvl'}
+mcrlo_pLvlInitStdfacts.update({'mcrlo_sim': 'True'})
 init_perfect_foresight['mcrlo_sim'].append('mcrlo_pLvlInitStd')
-init_perfect_foresight['facts'].update({'mcrlo_pLvlInitStd': mcrlo_pLvlInitStd_facts})
-init_perfect_foresight.update({'mcrlo_pLvlInitStd_facts': mcrlo_pLvlInitStd_facts})
+init_perfect_foresight['facts'].update({'mcrlo_pLvlInitStd': mcrlo_pLvlInitStdfacts})
+init_perfect_foresight.update({'mcrlo_pLvlInitStdfacts': mcrlo_pLvlInitStdfacts})
 
-T_age_facts = {
+T_agefacts = {
     'about': 'Age after which simulated agents are automatically killedl'}
-T_age_facts.update({'mcrlo_sim': 'False'})
-init_perfect_foresight['facts'].update({'T_age': T_age_facts})
-init_perfect_foresight.update({'T_age_facts': T_age_facts})
+T_agefacts.update({'mcrlo_sim': 'False'})
+init_perfect_foresight['facts'].update({'T_age': T_agefacts})
+init_perfect_foresight.update({'T_agefacts': T_agefacts})
 
-T_cycle_facts = {
-    'about': 'Number of periods in a "cycle" (like, year) for this agent type'}
-init_perfect_foresight['facts'].update({'T_cycle': T_cycle_facts})
-init_perfect_foresight.update({'T_cycle_facts': T_cycle_facts})
+T_cyclefacts = {
+    'about': 'Number of periods in a "cycle" (like, a lifetime) for this agent type'}
+init_perfect_foresight['facts'].update({'T_cycle': T_cyclefacts})
+init_perfect_foresight.update({'T_cyclefacts': T_cyclefacts})
 
-cycles_facts = {
+cyclesfacts = {
     'about': 'Number of times the sequence of periods/stages should be solved'}
-init_perfect_foresight['facts'].update({'cycle': cycles_facts})
-init_perfect_foresight.update({'cycle_facts': cycles_facts})
+init_perfect_foresight['facts'].update({'cycle': cyclesfacts})
+init_perfect_foresight.update({'cyclefacts': cyclesfacts})
 
 
 class PerfForesightConsumerType(AgentType):
@@ -2502,24 +2469,12 @@ class PerfForesightConsumerType(AgentType):
     """
 
     # Define some universal options for all consumer types
-    # # In the afterlife, value is zero, consumption and all MPC's are infinity
-    # # This is useful chiefly because when the recursive formulae for backwards
-    # # computation of various objects are applied to these choices, they generate
-    # # the characteristics of the terminal value function betlow
-    # cFunc_afterlife_ = float('inf')
-    # vFunc_afterlife_ = 0.0
-    # solution_afterlife_ = ConsumerSolution(
-    #     cFunc=cFunc_afterlife_,
-    #     vFunc=vFunc_afterlife_,
-    #     mNrmMin=0.0,
-    #     hNrmNow=0.0,
-    #     MPCminNow=float('inf'),
-    #     MPCmaxNow=float('inf')
-    # )
-
-    # Use underscores _ to define useful defaults available to all inheritors
+    # Use underscores (_) to define useful defaults available to all inheritors
+    # These should not be modified -- if used, a deepcopy should
+    # be made and that should be modified
 
     # Consumption function in last period in which everything is consumed
+    # Two names for the same thing
     # Define as LinearInterp object because it has derivatives
     cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0], [0.0, 1.0])
     cFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 1.0])
@@ -2530,7 +2485,7 @@ class PerfForesightConsumerType(AgentType):
         hNrmNow=0.0,
         MPCminNow=1.0,
         MPCmaxNow=1.0,
-        kind={'epoch': 'terminal'}
+        stge_kind={'iter_status': 'terminal'}
     )
     solution_nobequest = deepcopy(solution_nobequest_)  # Modifiable copy
 
@@ -2549,15 +2504,15 @@ class PerfForesightConsumerType(AgentType):
 
     def __init__(self, cycles=1,  # Finite horizon
                  verbose=1, quiet=False,
-                 solution_interim=None,  # Default is no interim solution
+                 solution_startfrom=None,  # Default is no interim solution
                  **kwds):
         params = init_perfect_foresight.copy()
         params.update(kwds)
         kwds_all = params
         solution_terminal = deepcopy(self.solution_nobequest)
-        if solution_interim:  # If user chose other terminal point, use that
-            self.solution_interim = solution_interim
-            solution_terminal = self.solution_terminal = solution_interim
+        if solution_startfrom:  # If user chose other terminal point, use that
+            self.solution_startfrom = solution_startfrom
+            solution_terminal = self.solution_terminal = solution_startfrom
 
         AgentType.__init__(
             self,
@@ -2587,7 +2542,7 @@ class PerfForesightConsumerType(AgentType):
         self.url_ref = "https://econ-ark.github.io/BufferStockTheory"
 
         # Setup and squirrel away the values initially used
-        self.setup_solution_starting_point()
+        self.store_pre_iteration_starting_point()
 
         # Honor optional arguments (if any)
         self.verbose = verbose
@@ -2629,37 +2584,6 @@ class PerfForesightConsumerType(AgentType):
 
 #        self.solution[-1].solver_check_condtnsnew_20210404(self.solution[-1], verbose=3)
         self.solution[-1].solver_check_condtnsnew_20210404(self, self.solution[-1], verbose=3)
-
-    def add_mNrmStE():
-        """
-        Finds value of (normalized) market resources m at which individual consumer
-        expects m not to change.
-
-        This will exist if the GICNrm holds.
-
-        https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
-
-        Parameters
-        ----------
-        self : ConsumerSolution
-            Solution to this period's problem, which must have attribute cFunc.
-        Returns
-        -------
-        self : ConsumerSolution
-            Same solution that was passed, but now with the attribute mNrmStE.
-        """
-
-        # Minimum market resources plus next income is okay starting guess
-        m_init_guess = self.soln_stge.mNrmMin + self.soln_stge.Ex_IncNextNrm
-        try:
-            m_t = newton(
-                Ex_m_tp1_minus_m_t,
-                m_init_guess)
-        except:
-            m_t = None
-
-        # Add mNrmTrg to the solution and return it
-        mNrmTrg = m_t
 
     def pre_solve(self):
         if not hasattr(self, "BoroCnstArt"):  # If BoroCnst specified...
@@ -2738,7 +2662,7 @@ class PerfForesightConsumerType(AgentType):
         solve_dict = get_solve_one_period_args(self, self.solve_one_period, stge_which=0)
         for key in solve_dict:
             setattr(self.solution_terminal, key, solve_dict[key])
-            setattr(self.solution_terminal, key+'_0_', solve_dict[key])
+            setattr(self.solution_terminal, key+'Nxt', solve_dict[key])
         self.solution_terminal.BoroCnstNat = self.solution_terminal.hNrmNow = 0.0
 
 #        print('Eliminated update_solution_terminal')
@@ -3005,122 +2929,99 @@ init_idiosyncratic_shocks['aprox_lim'].update({'aXtraNestFac': None})
 # init_idiosyncratic_shocks['aprox_par'].append('aXtraCount')
 init_idiosyncratic_shocks['aprox_lim'].update({'aXtraCount': None})
 
-# # Auxiliary parameters
-# init_idiosyncratic_shocks['auxiliary'].append('vFuncBool')
-# init_idiosyncratic_shocks['auxiliary'].append('CubicBool')
+IncShkDstnfacts = {
+    'about': 'Income Shock Distribution: .X[0] and .X[1] retrieve shocks, .pmf retrieves probabilities'}
+IncShkDstnfacts.update({'py___code': r'construct_lognormal_income_process_unemployment'})
+init_idiosyncratic_shocks['facts'].update({'IncShkDstn': IncShkDstnfacts})
+init_idiosyncratic_shocks.update({'IncShkDstnfacts:': IncShkDstnfacts})
 
-PermShkStd_facts = {}
-PermShkStd_facts.update({'about': 'Standard deviation for lognormal shock to permanent income'})
-PermShkStd_facts.update({'latexexpr': '\PermShkStd'})
-init_idiosyncratic_shocks['facts'].update({'PermShkStd': PermShkStd_facts})
-init_idiosyncratic_shocks.update({'PermShkStd_facts': PermShkStd_facts})
+PermShkStdfacts = {'about': 'Standard deviation for lognormal shock to permanent income'}
+PermShkStdfacts.update({'latexexpr': '\PermShkStd'})
+init_idiosyncratic_shocks['facts'].update({'PermShkStd': PermShkStdfacts})
+init_idiosyncratic_shocks.update({'PermShkStdfacts': PermShkStdfacts})
 
-TranShkStd_facts = {}
-TranShkStd_facts.update({'about': 'Standard deviation for lognormal shock to permanent income'})
-TranShkStd_facts.update({'latexexpr': '\TranShkStd'})
-init_idiosyncratic_shocks['facts'].update({'TranShkStd': TranShkStd_facts})
-init_idiosyncratic_shocks.update({'TranShkStd_facts': TranShkStd_facts})
+TranShkStdfacts = {'about': 'Standard deviation for lognormal shock to permanent income'}
+TranShkStdfacts.update({'latexexpr': '\TranShkStd'})
+init_idiosyncratic_shocks['facts'].update({'TranShkStd': TranShkStdfacts})
+init_idiosyncratic_shocks.update({'TranShkStdfacts': TranShkStdfacts})
 
-UnempPrb_facts = {}
-UnempPrb_facts.update({'about': 'Probability of unemployment while working'})
-UnempPrb_facts.update({'latexexpr': r'\UnempPrb'})
-UnempPrb_facts.update({'_unicode_': '℘'})
-init_idiosyncratic_shocks['facts'].update({'UnempPrb': UnempPrb_facts})
-init_idiosyncratic_shocks.update({'UnempPrb_facts': UnempPrb_facts})
+UnempPrbfacts = {'about': 'Probability of unemployment while working'}
+UnempPrbfacts.update({'latexexpr': r'\UnempPrb'})
+UnempPrbfacts.update({'_unicode_': '℘'})
+init_idiosyncratic_shocks['facts'].update({'UnempPrb': UnempPrbfacts})
+init_idiosyncratic_shocks.update({'UnempPrbfacts': UnempPrbfacts})
 
-UnempPrbRet_facts = {}
-UnempPrbRet_facts.update({'about': '"unemployment" in retirement = big medical shock'})
-UnempPrbRet_facts.update({'latexexpr': r'\UnempPrbRet'})
-init_idiosyncratic_shocks['facts'].update({'UnempPrbRet': UnempPrbRet_facts})
-init_idiosyncratic_shocks.update({'UnempPrbRet_facts': UnempPrbRet_facts})
+UnempPrbRetfacts = {'about': '"unemployment" in retirement = big medical shock'}
+UnempPrbRetfacts.update({'latexexpr': r'\UnempPrbRet'})
+init_idiosyncratic_shocks['facts'].update({'UnempPrbRet': UnempPrbRetfacts})
+init_idiosyncratic_shocks.update({'UnempPrbRetfacts': UnempPrbRetfacts})
 
-IncUnemp_facts = {}
-IncUnemp_facts.update({'about': 'Unemployment insurance replacement rate'})
-IncUnemp_facts.update({'latexexpr': '\IncUnemp'})
-IncUnemp_facts.update({'_unicode_': 'μ'})
-init_idiosyncratic_shocks['facts'].update({'IncUnemp': IncUnemp_facts})
-init_idiosyncratic_shocks.update({'IncUnemp_facts': IncUnemp_facts})
+IncUnempfacts = {'about': 'Unemployment insurance replacement rate'}
+IncUnempfacts.update({'latexexpr': '\IncUnemp'})
+IncUnempfacts.update({'_unicode_': 'μ'})
+init_idiosyncratic_shocks['facts'].update({'IncUnemp': IncUnempfacts})
+init_idiosyncratic_shocks.update({'IncUnempfacts': IncUnempfacts})
 
-IncUnempRet_facts = {}
-IncUnempRet_facts.update({'about': 'Size of medical shock (frac of perm inc)'})
-init_idiosyncratic_shocks['facts'].update({'IncUnempRet': IncUnempRet_facts})
-init_idiosyncratic_shocks.update({'IncUnempRet_facts': IncUnempRet_facts})
+IncUnempRetfacts = {'about': 'Size of medical shock (frac of perm inc)'}
+init_idiosyncratic_shocks['facts'].update({'IncUnempRet': IncUnempRetfacts})
+init_idiosyncratic_shocks.update({'IncUnempRetfacts': IncUnempRetfacts})
 
-tax_rate_facts = {}
-tax_rate_facts.update({'about': 'Flat income tax rate'})
-tax_rate_facts.update({'about': 'Size of medical shock (frac of perm inc)'})
-init_idiosyncratic_shocks['facts'].update({'tax_rate': tax_rate_facts})
-init_idiosyncratic_shocks.update({'tax_rate_facts': tax_rate_facts})
+tax_ratefacts = {'about': 'Flat income tax rate'}
+tax_ratefacts.update({'about': 'Size of medical shock (frac of perm inc)'})
+init_idiosyncratic_shocks['facts'].update({'tax_rate': tax_ratefacts})
+init_idiosyncratic_shocks.update({'tax_ratefacts': tax_ratefacts})
 
-T_retire_facts = {}
-T_retire_facts.update({'about': 'Period of retirement (0 --> no retirement)'})
-init_idiosyncratic_shocks['facts'].update({'T_retire': T_retire_facts})
-init_idiosyncratic_shocks.update({'T_retire_facts': T_retire_facts})
+T_retirefacts = {'about': 'Period of retirement (0 --> no retirement)'}
+init_idiosyncratic_shocks['facts'].update({'T_retire': T_retirefacts})
+init_idiosyncratic_shocks.update({'T_retirefacts': T_retirefacts})
 
-PermShkCount_facts = {}
-PermShkCount_facts.update({'about': 'Num of pts in discrete approx to permanent income shock dstn'})
-init_idiosyncratic_shocks['facts'].update({'PermShkCount': PermShkCount_facts})
-init_idiosyncratic_shocks.update({'PermShkCount_facts': PermShkCount_facts})
+PermShkCountfacts = {'about': 'Num of pts in discrete approx to permanent income shock dstn'}
+init_idiosyncratic_shocks['facts'].update({'PermShkCount': PermShkCountfacts})
+init_idiosyncratic_shocks.update({'PermShkCountfacts': PermShkCountfacts})
 
-TranShkCount_facts = {}
-TranShkCount_facts.update(
-    {'about': 'Num of pts in discrete approx to transitory income shock dstn'})
-init_idiosyncratic_shocks['facts'].update({'TranShkCount': TranShkCount_facts})
-init_idiosyncratic_shocks.update({'TranShkCount_facts': TranShkCount_facts})
+TranShkCountfacts = {'about': 'Num of pts in discrete approx to transitory income shock dstn'}
+init_idiosyncratic_shocks['facts'].update({'TranShkCount': TranShkCountfacts})
+init_idiosyncratic_shocks.update({'TranShkCountfacts': TranShkCountfacts})
 
-aXtraMin_facts = {}
-aXtraMin_facts.update(
-    {'about': 'Minimum end-of-period "assets above minimum" value'})
-init_idiosyncratic_shocks['facts'].update({'aXtraMin': aXtraMin_facts})
-init_idiosyncratic_shocks.update({'aXtraMin_facts': aXtraMin_facts})
+aXtraMinfacts = {'about': 'Minimum end-of-period "assets above minimum" value'}
+init_idiosyncratic_shocks['facts'].update({'aXtraMin': aXtraMinfacts})
+init_idiosyncratic_shocks.update({'aXtraMinfacts': aXtraMinfacts})
 
-aXtraMax_facts = {}
-aXtraMax_facts.update(
-    {'about': 'Maximum end-of-period "assets above minimum" value'})
-init_idiosyncratic_shocks['facts'].update({'aXtraMax': aXtraMax_facts})
-init_idiosyncratic_shocks.update({'aXtraMax_facts': aXtraMax_facts})
+aXtraMaxfacts = {'about': 'Maximum end-of-period "assets above minimum" value'}
+init_idiosyncratic_shocks['facts'].update({'aXtraMax': aXtraMaxfacts})
+init_idiosyncratic_shocks.update({'aXtraMaxfacts': aXtraMaxfacts})
 
-aXtraNestFac_facts = {}
-aXtraNestFac_facts.update(
-    {'about': 'Exponential nesting factor when constructing "assets above minimum" grid'})
-init_idiosyncratic_shocks['facts'].update({'aXtraMax': aXtraNestFac_facts})
-init_idiosyncratic_shocks.update({'aXtraMax_facts': aXtraNestFac_facts})
+aXtraNestFacfacts = {
+    'about': 'Exponential nesting factor when constructing "assets above minimum" grid'}
+init_idiosyncratic_shocks['facts'].update({'aXtraNestFac': aXtraNestFacfacts})
+init_idiosyncratic_shocks.update({'aXtraNestFacfacts': aXtraNestFacfacts})
 
-aXtraCount_facts = {}
-aXtraCount_facts.update(
-    {'about': 'Number of points in the grid of "assets above minimum"'})
-init_idiosyncratic_shocks['facts'].update({'aXtraMax': aXtraCount_facts})
-init_idiosyncratic_shocks.update({'aXtraMax_facts': aXtraCount_facts})
+aXtraCountfacts = {'about': 'Number of points in the grid of "assets above minimum"'}
+init_idiosyncratic_shocks['facts'].update({'aXtraMax': aXtraCountfacts})
+init_idiosyncratic_shocks.update({'aXtraMaxfacts': aXtraCountfacts})
 
-aXtraCount_facts = {}
-aXtraCount_facts.update(
-    {'about': 'Number of points to include in grid of assets above minimum possible'})
-init_idiosyncratic_shocks['facts'].update({'aXtraCount': aXtraCount_facts})
-init_idiosyncratic_shocks.update({'aXtraCount_facts': aXtraCount_facts})
+aXtraCountfacts = {'about': 'Number of points to include in grid of assets above minimum possible'}
+init_idiosyncratic_shocks['facts'].update({'aXtraCount': aXtraCountfacts})
+init_idiosyncratic_shocks.update({'aXtraCountfacts': aXtraCountfacts})
 
-aXtraExtra_facts = {}
-aXtraExtra_facts.update(
-    {'about': 'List of other values of "assets above minimum" to add to the grid (e.g., 10000)'})
-init_idiosyncratic_shocks['facts'].update({'aXtraExtra': aXtraExtra_facts})
-init_idiosyncratic_shocks.update({'aXtraExtra_facts': aXtraExtra_facts})
+aXtraExtrafacts = {
+    'about': 'List of other values of "assets above minimum" to add to the grid (e.g., 10000)'}
+init_idiosyncratic_shocks['facts'].update({'aXtraExtra': aXtraExtrafacts})
+init_idiosyncratic_shocks.update({'aXtraExtrafacts': aXtraExtrafacts})
 
-aXtraGrid_facts = {}
-aXtraGrid_facts.update(
-    {'about': 'Grid of values to add to minimum possible value to obtain actual end-of-period asset grid'})
-init_idiosyncratic_shocks['facts'].update({'aXtraGrid': aXtraGrid_facts})
-init_idiosyncratic_shocks.update({'aXtraGrid_facts': aXtraGrid_facts})
+aXtraGridfacts = {
+    'about': 'Grid of values to add to minimum possible value to obtain actual end-of-period asset grid'}
+init_idiosyncratic_shocks['facts'].update({'aXtraGrid': aXtraGridfacts})
+init_idiosyncratic_shocks.update({'aXtraGridfacts': aXtraGridfacts})
 
-vFuncBool_facts = {}
-vFuncBool_facts.update(
-    {'about': 'Whether to calculate the value function during solution'})
-init_idiosyncratic_shocks['facts'].update({'vFuncBool': vFuncBool_facts})
-init_idiosyncratic_shocks.update({'vFuncBool_facts': vFuncBool_facts})
+vFuncBoolfacts = {'about': 'Whether to calculate the value function during solution'}
+init_idiosyncratic_shocks['facts'].update({'vFuncBool': vFuncBoolfacts})
+init_idiosyncratic_shocks.update({'vFuncBoolfacts': vFuncBoolfacts})
 
-CubicBool_facts = {}
-CubicBool_facts.update(
-    {'about': 'Use cubic spline interpolation when True, linear interpolation when False'})
-init_idiosyncratic_shocks['facts'].update({'CubicBool': CubicBool_facts})
-init_idiosyncratic_shocks.update({'CubicBool_facts': CubicBool_facts})
+CubicBoolfacts = {
+    'about': 'Use cubic spline interpolation when True, linear interpolation when False'}
+init_idiosyncratic_shocks['facts'].update({'CubicBool': CubicBoolfacts})
+init_idiosyncratic_shocks.update({'CubicBoolfacts': CubicBoolfacts})
 
 
 class IndShockConsumerType(PerfForesightConsumerType):
@@ -3137,6 +3038,18 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Number of times the sequence of periods should be solved.  If zero,
         the solver will continue until successive policy functions are closer
         than the tolerance specified as a default parameter.
+
+    quiet : boolean, optional 
+        If True, creates the agent without setting up any solution apparatus
+        If False, creates a solution object populated by the solution for
+        the final period.
+
+    solution_startfrom : stge, optional 
+        A user-specified starting point for the iteration, to be used in place
+        of the hardwired solution_terminal.  For example, you
+        might set a loose tolerance to get a quick but rough solution, and
+        if that works, set the tolerance lower and restart the solution from
+        the interim solution.
     """
 
     # Time invariant parameters
@@ -3144,13 +3057,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         "vFuncBool",
         "CubicBool",
     ]
-    time_inv_.remove(  # Remove items inherited from PerfForesight but not IndShock
+    time_inv_.remove(  # Unwanted item(s) inherited from PerfForesight
         "MaxKinks"  # PF inf hor with MaxKinks is equiv to fin hor with hor=MaxKinks
     )
 
     shock_vars_ = ['PermShk', 'TranShk']  # The unemployment shock is transitory
 
-    def __init__(self, cycles=1, verbose=1,  quiet=True, solution_interim=None, **kwds):
+    def __init__(self, cycles=1, verbose=1,  quiet=True, solution_startfrom=None, **kwds):
         params = init_idiosyncratic_shocks.copy()
 
         # Update them with any customizations the user has chosen
@@ -3160,7 +3073,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # with the same parameters
         PerfForesightConsumerType.__init__(
             self, cycles=cycles, verbose=verbose, quiet=quiet,
-            solution_interim=solution_interim, **params
+            solution_startfrom=solution_startfrom, **params
         )
 
         # Add the few parameters that are not in the initialization
@@ -3194,7 +3107,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             solver = ConsIndShockSolver
 
         # Construct the infrastructure needed to begin the solution process
-        self.setup_solution_starting_point()
+        self.store_pre_iteration_starting_point()
 
         # Attach the corresponding one-stage solver to the agent
         self.solve_one_period = make_one_period_oo_solver(solver)
@@ -3260,7 +3173,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.aXtraGrid = aXtraGrid
         self.add_to_time_inv("aXtraGrid")
 
-    def setup_solution_starting_point(self):
+    def store_pre_iteration_starting_point(self):
         """
         Construct the income process, the assets grid, and the terminal soln_stge.
 
@@ -3302,7 +3215,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             solve_par_vals_now[par] = getattr(self, par)
 
         if not solve_par_vals_now == self.solve_par_vals:
-            self.setup_solution_starting_point()
+            self.store_pre_iteration_starting_point()
 
         # Encourage the practice of sharing with the solver the agent's parameters
         try:

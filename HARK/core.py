@@ -418,7 +418,8 @@ class AgentType(Model):
         self.aprox_par = {'tolerance': self.tolerance, 'seed': self.seed}  # 'approximation' pars
         # sol approaches truth as all aprox_par -> lim
         self.aprox_lim = {'tolerance': 0.0, 'seed': None}
-        self.auxiliary = dict()  # auxiliary choices (like, options)
+        # auxiliary choices (like, options) that might affect the solution
+        self.auxiliary = dict()  
 
     def add_to_time_vary(self, *params):
         """
