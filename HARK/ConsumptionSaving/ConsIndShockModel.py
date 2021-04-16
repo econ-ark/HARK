@@ -1,3 +1,14 @@
+# Dolo-related imports
+from dataclasses import dataclass
+from typing import Dict, List, Tuple
+from dolang.vectorize import standard_function
+from dolo.numeric.processes import Process, DiscretizedProcess
+from dolo.compiler.objects import Domain, CartesianDomain
+from dolo.numeric.grids import Grid, ProductGrid
+from dolo.compiler.misc import CalibrationDict, calibration_to_vector
+from numba import jit
+
+
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.Calibration.Income.IncomeTools import parse_income_spec, parse_time_params, Cagetti_income
@@ -21,27 +32,7 @@ class TrnsPars():
         self.about = {
             'TrnsPars': 'Parameters for transition from current to next stage'
         }
-
-
-class DolObj(MetricObject):
-    def __init__(
-            self,
-            dsymbls=None,
-            dsttes=None,
-            dcntrols=None,
-            dexpects=None,
-            dvlues=None,
-            dparms=None,
-            drwards=None,
-            ddefns=None,
-            deqns={'darbitrge': dict(), 'dtrnstn': dict(), 'dvlues': dict(), 'dfelicty': dict(), 'ddirct_rspnse': dict()
-                   },
-            dcalibrtn=dict({'dparms': dict(), 'dendog': dict()}),
-            dexog=dict(),
-            ddmain=dict(),
-            doptns=dict()
-    ):
-        self.about = {'DolObj': None}
+        self.betwn = betwn
 
 
 """
@@ -50,10 +41,14 @@ to income.  All models here assume CRRA utility with geometric discounting, no
 bequest motive, and income shocks that are fully transitory or fully permanent.
 
 It currently solves three types of models:
-   1) A very basic "perfect foresight" consumption-savings model with no uncertainty.
+   1) A basic "perfect foresight" consumption-saving model with no uncertainty.
+    
       * Features of the model prepare it for convenient inheritance
+      
    2) A consumption-saving model with transitory and permanent income shocks
+    
       * Inherits from PF model
+      
    3) The model described in (2), but with an interest rate for debt that differs
       from the interest rate for savings.
 
@@ -62,7 +57,6 @@ See HARK documentation for mathematical descriptions of the models being solved.
 """
 
 __all__ = [
-    "DolObj",
     "TrnsPars",
     "ConsumerSolution",
     "ConsPerfForesightSolver",
@@ -156,7 +150,7 @@ class ConsumerSolution(MetricObject):
             MPCmax=None,
             stge_kind=None,
     ):
-        self.url_doc = url_doc_for_this_class(self)
+        self.url_doc = self.url_doc_for_this_class()
         # Change any missing function inputs to NullFunc
         self.cFunc = cFunc if cFunc is not None else NullFunc()
         self.vFunc = vFunc if vFunc is not None else NullFunc()
@@ -168,22 +162,22 @@ class ConsumerSolution(MetricObject):
         self.MPCmax = MPCmax
         self.completed_cycles = 0
         self.stge_kind = stge_kind
-        self.dolo_defs(self)
+        self.dolo_defs()
 
     def url_doc_for_this_class(self):
         # Generate a url that will locate the documentation
-        self.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q="+\
+        self.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q=" +\
             self.__class__.__name__+"&check_keywords=yes&area=default#"
 
-    def dolo_defs(self): # CDC 20210415: Beginnings of Dolo integration
-        self.symbol_calibration = dict( # not used yet, just created
+    def dolo_defs(self):  # CDC 20210415: Beginnings of Dolo integration
+        self.symbol_calibration = dict(  # not used yet, just created
             states={"mNrm": 1.0},
             controls=["cNrm"],
             exogenous=["permShk", "tranShk"],
-            parameters=["DiscFac": 0.96, "LivPrb": 1.0, "CRRA":2.0,
-                        "Rfree":1.03, "PermGroFac":1.0,
-                        "BoroCnstArt":None]
-        ) # Things all ConsumerSolutions have in commont
+            parameters={"DiscFac": 0.96, "LivPrb": 1.0, "CRRA": 2.0,
+                        "Rfree": 1.03, "PermGroFac": 1.0,
+                        "BoroCnstArt": None}
+        )  # Things all ConsumerSolutions have in commont
 
     def append_solution(self, new_solution):
         """
@@ -306,25 +300,25 @@ class ConsPerfForesightSolver(MetricObject):
             BoroCnstArt=None,
             MaxKinks=None
     ):
-        # Create the place to store the current stage solution
-        self.stg_crt = ConsumerSolution()  # Blank template; solving = filling
-        # Rename input so that we know it is a next "stage"
+        # Give it a name that highlights that it's the next "stage"
         self.stg_Nxt = solution_next
+
+        # Create the place to store the current stage solution
+        self.stg_crt = solution_next  # Elements will all be replaced
+
         # .Nxt is to keep track of info about next period's problem that
         # we will need for solving
-        
+
         # keep track of nature of solver for current and future periods
         self.stg_crt.Nxt = TrnsPars(
-            betwn={'stg_fm': 'ConsPerfForesightSolver',
+            betwn={'stg_fm': self.__class__.__name__,
                    'stg_to':  self.stg_Nxt.stge_kind['slvr_type']
                    }
         )
 
         self.stg_crt.MaxKinks = MaxKinks
-#        self.stg_crt.Nxt.LivPrb = LivPrb
-#        self.stg_crt.Nxt.DiscFac = DiscFac
 
-        if not hasattr(self.stg_Nxt, 'MaxKinks'):  # Non PF models do not have kinks
+        if not hasattr(self.stg_Nxt, 'MaxKinks'):  # Non PF models have no kinks
             self.stg_Nxt.MaxKinks = MaxKinks  # should be "None"
 
         # CDC 20210415: As code is currently structured, putting CRRA in time_vary
@@ -336,7 +330,7 @@ class ConsPerfForesightSolver(MetricObject):
         # ways current code can confuse
         self.stg_crt.Nxt.CRRA = self.stg_crt.CRRA = CRRA  # Enforce they are same
         self.stg_crt.Nxt.Rfree = Rfree
-        self.stg_crt.Nxt.PermGro = PermGroFac
+        self.stg_crt.Nxt.PermGro = self.stg_crt.Nxt.PermGroFac = PermGroFac
         self.stg_crt.Nxt.BoroCnstArt = BoroCnstArt
 
         # CDC 20210415:
@@ -344,8 +338,8 @@ class ConsPerfForesightSolver(MetricObject):
         # For now, put them there so legacy code will work, but over time weed out
         # This is bad because these objects are really describing the transition
         # from this period to the next, and not this period itself
-        self.stg_crt.LivPrb = self.stg_crt.Nxt.LivPrb
-        self.stg_crt.DiscFac = self.stg_crt.Nxt.DiscFac
+        self.stg_crt.LivPrb = self.stg_crt.Nxt.LivPrb = LivPrb
+        self.stg_crt.DiscFac = self.stg_crt.Nxt.DiscFac = DiscFac
         self.stg_crt.CRRA = self.stg_crt.Nxt.CRRA
         self.stg_crt.Rfree = self.stg_crt.Nxt.Rfree
         self.stg_crt.PermGro = self.stg_crt.Nxt.PermGro
@@ -356,18 +350,12 @@ class ConsPerfForesightSolver(MetricObject):
 
         # Generate a url that will locate the documentation
         self.stg_crt.url_doc_model_type = \
-             "https://hark.readthedocs.io/en/latest/search.html?q=" + \
-            self.stg_crt.__class__.__name__+"&check_keywords=yes&area=default#"
+            "https://hark.readthedocs.io/en/latest/search.html?q=" + \
+            self.__class__.__name__+"&check_keywords=yes&area=default#"
 
         # url for paper that contains theoretical results
         self.stg_crt.url_ref = "https://econ-ark.github.io/BufferStockTheory"
         self.stg_crt.urlroot = self.stg_crt.url_ref+'/#'  # for links to derivations
-
-        # Constructing these allows the use of identical formulae for the perfect
-        # foresight model and models with shocks
-        self.stg_crt.Ex_Inv_PermShk = 1.0
-        self.stg_crt.Ex_uInv_PermShk = 1.0
-        self.stg_crt.uInv_Ex_uInv_PermShk = 1.0
 
     def add_fcts_to_soln_ConsPerfForesightSolver_20210410(self, stg_crt):
         """
@@ -385,7 +373,7 @@ class ConsPerfForesightSolver(MetricObject):
                 Same solution that was provided, augmented with _fcts and
                 references
             """
-        # Make formulae below more readable by using local variables
+        # Make formulae below readable by using local variables (avoid "self.[]")
         # These all apply to the future
         CRRA = self.stg_Nxt.CRRA
         DiscFac = self.stg_Nxt.DiscFac
@@ -393,18 +381,18 @@ class ConsPerfForesightSolver(MetricObject):
         PermGro = self.stg_Nxt.PermGroFac
         Rfree = self.stg_Nxt.Rfree
         DiscFacEff = self.stg_Nxt.DiscFacEff = DiscFac * self.stg_Nxt.LivPrb
-        
+
         # BoroCnstArt is about the end of the PRESENT period
         BoroCnstArt = stg_crt.BoroCnstArt  # Current because end-of-this-period
 
         if not hasattr(self.stg_Nxt, 'IncShkDstn'):  # PF model if no inc shks
-            # In which case income is for everything (min, max, mean, worst)
+            # In which case income=1 for everything (min, max, mean, worst)
             self.stg_Nxt.mNrmMin = mNrmMin = 1.0
             self.stg_Nxt.TranShkMin = TranShkMin = 1.0
             self.stg_Nxt.PermShkMin = PermShkMin = 1.0
             self.stg_Nxt.WorstIncPrb = 1.0
             self.stg_Nxt.WorstInc = 1.0
-        else:  # Model WITH shocks
+        else:  # Model WITH shocks begins by running PF init; accommodate that
             # Xref are "broadcasted" values: every possible combo
             PermShkValsXref = self.stg_Nxt.PermShkValsXref = self.stg_Nxt.IncShkDstn.X[0]
             TranShkValsXref = self.stg_Nxt.TranShkValsXref = self.stg_Nxt.IncShkDstn.X[1]
@@ -420,7 +408,6 @@ class ConsPerfForesightSolver(MetricObject):
             PermShkMin = self.stg_Nxt.PermShkMin = np.min(PermShkVals)
             TranShkMin = self.stg_Nxt.TranShkMin = np.min(TranShkVals)
 
-            # First calc some things needed for formulae that are needed even in the PF model
             self.stg_Nxt.WorstIncPrb = np.sum(
                 ShkPrbsNxt[
                     (PermShkValsXref * TranShkValsXref)
@@ -527,7 +514,7 @@ class ConsPerfForesightSolver(MetricObject):
 
         FHWF_fcts = {
             'about': 'Finite Human Wealth Factor'}
-        FHWF = PermGro/Rfree
+        FHWF = stg_crt.FHWF = PermGro/Rfree
         FHWF_fcts.update({'latexexpr': r'\FHWF'})
         FHWF_fcts.update({'_unicode_': r'R/Γ'})
         FHWF_fcts.update({'urlhandle': urlroot+'FHWF'})
@@ -535,7 +522,6 @@ class ConsPerfForesightSolver(MetricObject):
         FHWF_fcts.update({'value_now': FHWF})
         stg_crt.fcts.update({'FHWF': FHWF_fcts})
         stg_crt.FHWF_fcts = FHWF_fcts
-        stg_crt.FHWF = FHWF
 
         FHWC_fcts = {'about': 'Finite Human Wealth Condition'}
         FHWC_fcts.update({'latexexpr': r'\FHWC'})
@@ -555,7 +541,6 @@ class ConsPerfForesightSolver(MetricObject):
             'py___code': '1/(1-FHWF)'})
         stg_crt.fcts.update({'hNrmInf': hNrmInf_fcts})
         stg_crt.hNrmInf_fcts = hNrmInf_fcts
-        # stg_crt.hNrmInf = hNrmInf
 
         DiscGPFRawCusp_fcts = {
             'about': 'DiscFac s.t. GPFRaw = 1'}
@@ -593,17 +578,16 @@ class ConsPerfForesightSolver(MetricObject):
         stg_crt.FVAC_fcts = FVAC_fcts
 
         #  add required facts defining bounds
-        hNrm = ((PermGro / Rfree) * (1.0 + self.stg_Nxt.hNrm))
+        hNrm = stg_crt.hNrm = ((PermGro / Rfree) * (1.0 + self.stg_Nxt.hNrm))
         hNrm_fcts = {'about': 'Human Wealth '}
         hNrm_fcts.update({'latexexpr': r'\hNrm'})
         hNrm_fcts.update({'_unicode_': r'R/Γ'})
         hNrm_fcts.update({'urlhandle': urlroot+'hNrm'})
         hNrm_fcts.update({'py___code': r'PermGroInf/Rfree'})
         hNrm_fcts.update({'value_now': hNrm})
-        stg_crt.hNrm_fcts = hNrm_fcts
         stg_crt.fcts.update({'hNrm': hNrm_fcts})
-        stg_crt.hNrm = stg_crt.hNrm = hNrm
-        
+        stg_crt.hNrm_fcts = hNrm_fcts
+
         # That's the end of things that are identical for PF and non-PF models
 
         # Now start computing things that will be different
@@ -645,11 +629,11 @@ class ConsPerfForesightSolver(MetricObject):
         stg_crt.MPCmin_fcts = MPCmin_fcts
         stg_crt.MPCmin = stg_crt.MPCmin = MPCmin
 
-        MPCmax = 1.0 / \
-            (1.0 + (self.stg_Nxt.WorstIncPrb ** (1.0 / CRRA))
-             * RPF / self.stg_Nxt.MPCmax)
         MPCmax_fcts = {
             'about': 'Maximal MPC in current period as m -> minimum'}
+        MPCmax = stg_crt.MPCmax = 1.0 / \
+            (1.0 + (self.stg_Nxt.WorstIncPrb ** (1.0 / CRRA))
+             * RPF / self.stg_Nxt.MPCmax)
         MPCmax_fcts.update({'latexexpr': r''})
         MPCmin_fcts.update(
             {'py___code':
@@ -658,10 +642,9 @@ class ConsPerfForesightSolver(MetricObject):
         MPCmax_fcts.update({'value_now': MPCmax})
         stg_crt.fcts.update({'MPCmax': MPCmax_fcts})
         stg_crt.MPCmax_fcts = MPCmax_fcts
-        stg_crt.MPCmax = MPCmax
 
         # Lower bound of aggregate wealth growth if all inheritances squandered
-        cFuncLimitIntercept = MPCmin * hNrm
+        cFuncLimitIntercept = stg_crt.cFuncLimitIntercept = MPCmin * hNrm
         cFuncLimitIntercept_fcts = {
             'about': 'Vertical intercept of perfect foresight consumption function'}
         cFuncLimitIntercept_fcts.update({'latexexpr': '\MPC '})
@@ -671,19 +654,16 @@ class ConsPerfForesightSolver(MetricObject):
             'py___code': 'MPCmin * hNrm'})
         stg_crt.fcts.update({'cFuncLimitIntercept': cFuncLimitIntercept_fcts})
         stg_crt.cFuncLimitIntercept_fcts = cFuncLimitIntercept_fcts
-        stg_crt.cFuncLimitIntercept = cFuncLimitIntercept
 
-        cFuncLimitSlope = MPCmin
+        cFuncLimitSlope = stg_crt.cFuncLimitSlope = MPCmin
         cFuncLimitSlope_fcts = {
             'about': 'Slope of limiting consumption function'}
         cFuncLimitSlope_fcts = dict({'latexexpr': '\MPCmin'})
         cFuncLimitSlope_fcts.update({'urlhandle': ''})
         cFuncLimitSlope_fcts.update({'value_now': cFuncLimitSlope})
-        cFuncLimitSlope_fcts.update({
-            'py___code': 'MPCmin'})
+        cFuncLimitSlope_fcts.update({'py___code': 'MPCmin'})
         stg_crt.fcts.update({'cFuncLimitSlope': cFuncLimitSlope_fcts})
         stg_crt.cFuncLimitSlope_fcts = cFuncLimitSlope_fcts
-        stg_crt.cFuncLimitSlope = cFuncLimitSlope
 
         # _Fcts that apply in the perfect foresight case should already have been added
 
@@ -705,7 +685,7 @@ class ConsPerfForesightSolver(MetricObject):
             / stg_crt.cFunc(m_t)
         )
 
-#        # E[m_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
+        # E[m_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
         stg_crt.Ex_mLev_tp1_Over_pLev_t_from_at = (
             lambda a_t:
                 PermGro *
@@ -796,7 +776,7 @@ class ConsPerfForesightSolver(MetricObject):
         Returns
         -------
         None
-n        """
+        """
         # Reduce cluttered formulae with local copies
 
         CRRA = self.stg_crt.CRRA
@@ -895,30 +875,13 @@ n        """
         solution : ConsumerSolution
             The solution to this period/stage's problem.
         """
-        stg_crt = ConsumerSolution(
-            cFunc=self.cFunc,
-            vFunc=self.vFunc,
-            vPfunc=self.vPfunc,
-            mNrmMin=self.mNrmMin,
-            hNrm=self.hNrm,
-            MPCmin=self.MPCmin,
-            MPCmax=self.MPCmax,
-        )
-        self.stg_crt = self.def_utility_funcs(stg_crt)
-        self.stg_crt.DiscFacEff = self.stg_crt.DiscFac * \
-            self.stg_crt.Nxt.LivPrb  # Effective=pure x LivPrb
+#        self.stg_crt = self.def_utility_funcs(self.stg_crt)
+#        self.stg_crt.DiscFacEff = self.stg_crt.DiscFac * \
+#            self.stg_crt.Nxt.LivPrb  # Effective=pure x LivPrb
         self.stg_crt.make_cFunc_PF()
         self.stg_crt = self.stg_crt.def_value_funcs(self.stg_crt)
 
-        # # Oddly, though the value and consumption functions were included in the solution,
-        # # and the inverse utlity function and its derivatives, the baseline setup did not
-        # # include the utility function itself.  This should be fixed more systematically,
-        # # but for now what is done below will work
-        # stg_crt.u = self.u
-        # stg_crt.uP = self.uP
-        # stg_crt.uPP = self.uPP
-
-        return stg_crt
+        return self.stg_crt
 
     def solver_check_AIC_20210404(self, stge, verbose=None):
         """
@@ -942,6 +905,11 @@ n        """
         else:
             verbose = self.verbose if verbose is None else verbose
 
+        # if not hasattr(self, 'verbose'):
+        #     verbose = 0 if verbose is None else verbose
+        # else:
+        #     verbose = self.verbose if verbose is None else verbose
+
         core_check_condition(name, test, messages, verbose,
                              verbose_messages, fact, stge)
 
@@ -963,11 +931,10 @@ n        """
             False: "  Therefore, a nondegenerate solution exits if the RIC holds.\n",
         }
 
-        if not hasattr(self, 'verbose'):
-            verbose = 0 if verbose is None else verbose
-        else:
-            verbose = self.verbose if verbose is None else verbose
-
+        # if not hasattr(self, 'verbose'):
+        #     verbose = 0 if verbose is None else verbose
+        # else:
+        #     verbose = self.verbose if verbose is None else verbose
         core_check_condition(name, test, messages, verbose,
                              verbose_messages, fact, stge)
 
@@ -988,11 +955,10 @@ n        """
             True: "  Therefore,  for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
             False: "  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to rise toward infinity. \n"
         }
-        if not hasattr(self, 'verbose'):
-            verbose = 0 if verbose is None else verbose
-        else:
-            verbose = self.verbose if verbose is None else verbose
-
+        # if not hasattr(self, 'verbose'):
+        #     verbose = 0 if verbose is None else verbose
+        # else:
+        #     verbose = self.verbose if verbose is None else verbose
         core_check_condition(name, test, messages, verbose,
                              verbose_messages, fact, stge)
 
@@ -1010,11 +976,10 @@ n        """
             True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists ("+self.stg_crt.GPFLivfcts['urlhandle']+")\n",
             False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist ("+self.stg_crt.GPFLivfcts['urlhandle']+")\n",
         }
-        if not hasattr(self, 'verbose'):
-            verbose = 0 if verbose is None else verbose
-        else:
-            verbose = self.verbose if verbose is None else verbose
-
+        # if not hasattr(self, 'verbose'):
+        #     verbose = 0 if verbose is None else verbose
+        # else:
+        #     verbose = self.verbose if verbose is None else verbose
         core_check_condition(name, test, messages, verbose,
                              verbose_messages, fact, stge)
 
@@ -1036,11 +1001,10 @@ n        """
             True: "  Therefore, the limiting consumption function is not c(m)=0 for all m\n",
             False: "  Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.\n",
         }
-        if not hasattr(self, 'verbose'):
-            verbose = 0 if verbose is None else verbose
-        else:
-            verbose = self.verbose if verbose is None else verbose
-
+        # if not hasattr(self, 'verbose'):
+        #     verbose = 0 if verbose is None else verbose
+        # else:
+        #     verbose = self.verbose if verbose is None else verbose
         core_check_condition(name, test, messages, verbose,
                              verbose_messages, fact, stge)
 
@@ -1061,11 +1025,10 @@ n        """
             True: "  Therefore, the limiting consumption function is not c(m)=Infinity ("+self.stg_crt.FHWCfcts['urlhandle']+")\n  Human wealth normalized by permanent income is {0.hNrmInf}.\n",
             False: "  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.\n  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0. ("+self.stg_crt.FHWCfcts['urlhandle']+")\n",
         }
-        if not hasattr(self, 'verbose'):
-            verbose = 0 if verbose is None else verbose
-        else:
-            verbose = self.verbose if verbose is None else verbose
-
+        # if not hasattr(self, 'verbose'):
+        #     verbose = 0 if verbose is None else verbose
+        # else:
+        #     verbose = self.verbose if verbose is None else verbose
         core_check_condition(name, test, messages, verbose,
                              verbose_messages, fact, stge)
 
@@ -1086,11 +1049,10 @@ n        """
             True: " Therefore, a target level of the individual market resources ratio m exists ("+self.stg_crt.GICNrmfcts['urlhandle']+").\n",
             False: " Therefore, a target ratio of individual market resources to individual permanent income does not exist.  ("+self.stg_crt.GICNrmfcts['urlhandle']+")\n",
         }
-        if not hasattr(self, 'verbose'):
-            verbose = 0 if verbose is None else verbose
-        else:
-            verbose = self.verbose if verbose is None else verbose
-
+        # if not hasattr(self, 'verbose'):
+        #     verbose = 0 if verbose is None else verbose
+        # else:
+        #     verbose = self.verbose if verbose is None else verbose
         core_check_condition(name, test, messages, verbose,
                              verbose_messages, fact, stge)
 
@@ -1132,11 +1094,10 @@ n        """
             True: "  Therefore, a nondegenerate solution exists if the FVAC is also satisfied. ("+stge.WRICfcts['urlhandle']+")\n",
             False: "  Therefore, a nondegenerate solution is not available ("+stge.WRICfcts['urlhandle']+")\n",
         }
-        if not hasattr(self, 'verbose'):
-            verbose = 0 if verbose is None else verbose
-        else:
-            verbose = self.verbose if verbose is None else verbose
-
+        # if not hasattr(self, 'verbose'):
+        #     verbose = 0 if verbose is None else verbose
+        # else:
+        #     verbose = self.verbose if verbose is None else verbose
         core_check_condition(name, test, messages, verbose,
                              verbose_messages, fact, stge)
 
@@ -1144,15 +1105,20 @@ n        """
 
     def solver_check_condtnsnew_20210404(self, stg_crt, verbose=None):
         """
-        This method checks whether the instance's type satisfies the
-        Absolute Impatience Condition (AIC),
-        the Return Impatience Condition (RIC),
-        the Finite Human Wealth Condition (FHWC), the perfect foresight
-        model's Growth Impatience Condition (GICRaw) and
-        Perfect Foresight Finite Value of Autarky Condition (FVACPF). Depending on the configuration of parameter values, some
-        combination of these conditions must be satisfied in order for the problem to have
-        a nondegenerate stg_crt. To check which conditions are required, in the verbose mode
-        a reference to the relevant theoretical literature is made.
+        Checks whether the instance's type satisfies the:
+
+        * AIC: Absolute Impatience Condition
+        * RIC: Return Impatience Condition
+        * GIC: Growth Impatience Condition
+        * GICLiv: GIC adjusting for constant probability of mortality
+        * FHWC: Finite Human Wealth Condition
+        * FVAC: Finite Value of Autarky Condition
+
+        Depending on the configuration of parameter values, some combination of 
+        these conditions must be satisfied in order for the problem to have
+        a nondegenerate stg_crt. To check which conditions are required, 
+        in the verbose mode, a reference to the relevant theoretical literature 
+        is made.
 
         Parameters
         ----------
@@ -1165,18 +1131,17 @@ n        """
         -------
         None
         """
-        self.stg_crt.conditions = {}
+        self.stg_crt.conditions = {}  # Keep track of truth value of conditions
+        self.stg_crt.violated = False  # True means solution is degenerate
 
-        self.stg_crt.violated = False
+#        # This method only checks for the conditions for infinite horizon models
+#        # with a 1 period cycle. If these conditions are not met, we exit early.
+#        if self.parameters_model['cycles'] != 0 \
+#           or self.parameters_model['T_cycle'] > 1:
+#            return
 
-        # This method only checks for the conditions for infinite horizon models
-        # with a 1 period cycle. If these conditions are not met, we exit early.
-        if self.parameters_model['cycles'] != 0 \
-           or self.parameters_model['T_cycle'] > 1:
-            return
-
-        if not hasattr(self, 'verbose'):
-            verbose = 0 if verbose is None else verbose
+        if not hasattr(self, 'verbose'):  # If verbose not set yet
+            self.verbose = 0 if verbose is None else verbose
         else:
             verbose = self.verbose if verbose is None else verbose
 
@@ -1187,13 +1152,18 @@ n        """
         self.solver_check_GICLiv_20210404(stg_crt, verbose)
         self.solver_check_FVAC_20210404(stg_crt, verbose)
 
-        if hasattr(self.stg_crt.Nxt, "BoroCnstArt") and self.stg_crt.Nxt.BoroCnstArt is not None:
+        # violated flag is true if the model has no nondegenerate solution
+        if hasattr(self.stg_crt.Nxt, "BoroCnstArt") \
+                and self.stg_crt.Nxt.BoroCnstArt is not None:
             self.stg_crt.violated = not self.stg_crt.conditions["RIC"]
-        else:
-            self.stg_crt.violated = not self.stg_crt.conditions[
-                "RIC"] or not self.stg_crt.conditions["FHWC"]
+            # If BoroCnstArt exists but RIC fails, limiting soln is c(m)=0
+        else:  # If no constraint,
+            self.stg_crt.violated = \
+                not self.stg_crt.conditions["RIC"] or not self.stg_crt.conditions[
+                    "FHWC"]    # c(m)=0 or \infty
 
-            ###############################################################################
+
+###############################################################################
 ###############################################################################
 
 
@@ -1201,12 +1171,13 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     """
     A superclass for solvers of one period consumption-saving problems with
     constant relative risk aversion utility and permanent and transitory shocks
-    to income.  Has methods to set up but not solve the one period problem.
-    N.B.: Because this is a one stge solver, objects that in the full problem
+    to income, containing code shared among alternative specific solvers.  
+    Has methods to set up but not solve the one period problem.
+
+    N.B.: Because this is a one stge solver, objects that (in the full problem)
     are lists because they are allowed to vary at different stages, are scalars
     here because the value that is appropriate for the current stage is the one
-    that will be passed.  To memorialize that, the "self" versions of such
-    variables will have "Nxt" appended to signalize their status as scalars.
+    that will be passed.  
 
     Parameters
     ----------
@@ -1243,10 +1214,10 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     """
 
     # Get the "further info" method from the perfect foresight solver
-# def add_fcts_to_soln_ConsPerfForesightSolver(self, stg_crt):
-    #        super().add_fcts_to_soln(stg_crt)
+    def add_fcts_to_soln_ConsPerfForesightSolver(self, stg_crt):
+        super().add_fcts_to_soln(stg_crt)
 
-    def __init__(
+    def __init__(  # CDC 20210416: Params shared with PF are in different order. Fix
             self,
             solution_next,
             IncShkDstn,
@@ -1263,24 +1234,19 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             TranShkDstn,
     ):
         super().__init__(solution_next, DiscFac, LivPrb, CRRA, Rfree,
-                         PermGroFac, BoroCnstArt)  # First execute __init__ for PF solver
-        # Create an empty solution in which to store the inputs
-        self.stg_crt = ConsumerSolution()  # create a blank template to fill in
-        self.stg_crt.Nxt = TrnsPars(betwn={'fm': 'crt', 'to': 'Nxt'})
+                         PermGroFac, BoroCnstArt)  # First execute PF solver init
 
-        #  stg_Nxt already contains solution_next from PF init
-        self.stg_Nxt.stge_kind['slvr_type'] = 'ConsIndShockSolver'
-
-        # Variables used for evaluating expressions in "future" from here
+        # self.stg_crt will already contain vars inited by PF init
+        # Add vars not present in PF model:
         self.stg_crt.Nxt.IncShkDstn = IncShkDstn
         self.stg_crt.Nxt.PermShkDstn = PermShkDstn
         self.stg_crt.Nxt.TranShkDstn = TranShkDstn
-        self.stg_crt.Nxt.LivPrb = LivPrb
-        self.stg_crt.Nxt.DiscFac = DiscFac
-        self.stg_crt.Nxt.CRRA = CRRA
-        self.stg_crt.Nxt.Rfree = Rfree
-        self.stg_crt.Nxt.PermGroFac = PermGroFac
-        self.stg_crt.Nxt.BoroCnstArt = BoroCnstArt
+        # self.stg_crt.Nxt.LivPrb = LivPrb
+        # self.stg_crt.Nxt.DiscFac = DiscFac
+        # self.stg_crt.Nxt.CRRA = CRRA
+        # self.stg_crt.Nxt.Rfree = Rfree
+        # self.stg_crt.Nxt.PermGroFac = PermGroFac
+        # self.stg_crt.Nxt.BoroCnstArt = BoroCnstArt
 
         # Variables for objects used in the current step
         self.stg_crt.aXtraGrid = aXtraGrid
@@ -1294,21 +1260,10 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         self.stg_crt.DiscFac = self.stg_crt.Nxt.DiscFac
         self.stg_crt.CRRA = self.stg_crt.Nxt.CRRA
         self.stg_crt.Rfree = self.stg_crt.Nxt.Rfree
-        self.stg_crt.PermGroFac = self.stg_crt.Nxt.PermGroFac
+        self.stg_crt.PermGroFac = self.stg_crt.PermGroFac = self.stg_crt.Nxt.PermGro
         self.stg_crt.BoroCnstArt = self.stg_crt.Nxt.BoroCnstArt
         self.stg_crt.PermShkDstn = self.stg_crt.Nxt.PermShkDstn
         self.stg_crt.TranShkDstn = self.stg_crt.Nxt.TranShkDstn
-
-        self.stg_crt.fcts = {}
-        self.stg_crt = self.def_utility_funcs(self.stg_crt)
-
-        # Generate url that will locate the documentation
-        self.stg_crt.url_doc_model_type = "https://hark.readthedocs.io/en/latest/search.html?q=" + \
-            self.stg_crt.__class__.__name__+"&check_keywords=yes&area=default#"
-
-        # url for paper that contains various theoretical results
-        self.stg_crt.url_ref = "https://econ-ark.github.io/BufferStockTheory"
-        self.stg_crt.urlroot = self.stg_crt.url_ref+'/#'  # used for references to derivations
 
     def add_fcts_to_soln(self, stge_futr):   # Facts
         # self here is the solver, which knows info about the problem from the agent
@@ -1895,7 +1850,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         Returns
         -------
         solution : ConsumerSolution
-            The solution to the single period consumption-saving problem.
+            The solution to this period/stage's problem.
         """
         if self.stg_Nxt.stge_kind['iter_status'] == 'finished':
             self.stg_crt.stge_kind['iter_status'] = 'finished'
@@ -1915,9 +1870,10 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             # stores them in [solver].Nxt, replaces self.stg_crt.Nxt with
             # the ONLY input it should REALLY be getting self.stg_Nxt, then
             # retrieves the stashed init vars.  This is super ugly.
-            self.Nxt = self.stg_crt.Nxt  # Store parameter values
-            self.stg_crt = self.stg_Nxt  # Replace
-            self.stg_crt.Nxt = self.Nxt
+            #            self.Nxt = self.stg_crt.Nxt  # Store parameter values
+            #            self.stg_crt = self.stg_Nxt  # Replace
+            #            self.stg_crt.Nxt = self.Nxt
+            self.stg_crt.stge_kind = self.stg_Nxt.stge_kind
             self.stg_crt.stge_kind['iter_status'] = 'iterator'
             self.stg_crt = self.def_utility_funcs(self.stg_crt)
             self.stg_crt = self.def_value_funcs(self.stg_crt)
@@ -2653,6 +2609,10 @@ class PerfForesightConsumerType(AgentType):
             self.solve_penultimate_prd(verbose=0)
 
 #        self.solution[-1].solver_check_condtnsnew_20210404(self.solution[-1], verbose=3)
+        # if not hasattr(self, 'verbose'):
+        #     verbose = 0 if verbose is None else verbose
+        # else:
+        #     verbose = self.verbose if verbose is None else verbose
         self.solution[-1].solver_check_condtnsnew_20210404(self, self.solution[-1], verbose=3)
 
     def pre_solve(self):  # Do anything necessary to prepare agent to solve
