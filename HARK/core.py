@@ -286,12 +286,6 @@ class Model(object):
         """
         return self.parameters[name]
 
-    def __eq__(self, other):
-        if isinstance(other, type(self)):
-            return self.parameters == other.parameters
-
-        return notImplemented
-
     def __init__(self):
         if not hasattr(self, 'parameters'):
             self.parameters = {}
@@ -412,14 +406,11 @@ class AgentType(Model):
         self.history = {}
         self.assign_parameters(**kwds)  # NOQA
         self.reset_rng()  # NOQA
-        self.facts = dict()    # for storing meta and calculated info about model
-        self.about = dict()    # about the model itself
         self.prmtv_par = dict()  # 'primitives' define true model
         self.aprox_par = {'tolerance': self.tolerance, 'seed': self.seed}  # 'approximation' pars
         # sol approaches truth as all aprox_par -> lim
         self.aprox_lim = {'tolerance': 0.0, 'seed': None}
         # auxiliary choices (like, options) that might affect the solution
-        self.auxiliary = dict()  
 
     def add_to_time_vary(self, *params):
         """
@@ -646,7 +637,7 @@ class AgentType(Model):
         self.clear_history()
         return None
 
-    def sim_one_period(self):
+    def sim_one_period(self): # -> mcrlo_sim_one_prd
         """
         Simulates one period for this type.  Calls the methods get_mortality(), get_shocks() or
         read_shocks, get_states(), get_controls(), and get_poststates().  These should be defined for
@@ -668,7 +659,7 @@ class AgentType(Model):
             )
 
         # Mortality adjusts the agent population
-        self.get_mortality()  # Replace some agents with "newborns"
+        self.get_mortality()  # -> mcrlo_get_mrtlty Replace some with newborns
 
         # state_{t-1}
         for var in self.state_now:
@@ -695,7 +686,7 @@ class AgentType(Model):
             self.t_cycle == self.T_cycle
         ] = 0  # Resetting to zero for those who have reached the end
 
-    def make_shock_history(self):
+    def make_shock_history(self): # -> make_shock_hst
         """
         Makes a pre-specified history of shocks for the simulation.  Shock variables should be named
         in self.shock_vars, a list of strings that is subclass-specific.  This method runs a subset
@@ -742,7 +733,7 @@ class AgentType(Model):
         # Flag that shocks can be read rather than simulated
         self.read_shocks = True
 
-    def get_mortality(self):
+    def get_mortality(self): # -> mcrlo_get_mrtlty
         """
         Simulates mortality or agent turnover according to some model-specific rules named sim_death
         and sim_birth (methods of an AgentType subclass).  sim_death takes no arguments and returns
@@ -766,7 +757,7 @@ class AgentType(Model):
         self.who_dies = who_dies
         return None
 
-    def sim_death(self):
+    def sim_death(self): # -> mcrlo_sim_deth 
         """
         Determines which agents in the current population "die" or should be replaced.  Takes no
         inputs, returns a Boolean array of size self.AgentCount, which has True for agents who die
@@ -785,7 +776,7 @@ class AgentType(Model):
         who_dies = np.zeros(self.AgentCount, dtype=bool)
         return who_dies
 
-    def sim_birth(self, which_agents):
+    def sim_birth(self, which_agents): # -> mcrlo_sim_brth 
         """
         Makes new agents for the simulation.  Takes a boolean array as an input, indicating which
         agent indices are to be "born".  Does nothing by default, must be overwritten by a subclass.
@@ -802,7 +793,7 @@ class AgentType(Model):
         print("AgentType subclass must define method sim_birth!")
         return None
 
-    def get_shocks(self):
+    def get_shocks(self): # -> mcrlo_get_shks 
         """
         Gets values of shock variables for the current period.  Does nothing by default, but can
         be overwritten by subclasses of AgentType.
@@ -817,7 +808,7 @@ class AgentType(Model):
         """
         return None
 
-    def read_shocks_from_history(self):
+    def read_shocks_from_history(self): # -> mcrlo_hstry_shks_read 
         """
         Reads values of shock variables for the current period from history arrays.
         For each variable X named in self.shock_vars, this attribute of self is
@@ -838,7 +829,7 @@ class AgentType(Model):
         for var_name in self.shock_vars:
             self.shocks[var_name] = self.shock_history[var_name][self.t_sim, :]
 
-    def get_states(self):
+    def get_states(self): # -> mcrlo_ get_stts
         """
         Gets values of state variables for the current period.
         By default, calls transition function and assigns values
@@ -861,7 +852,7 @@ class AgentType(Model):
 
         return None
 
-    def transition(self):
+    def transition(self): # -> mcrlo_trnstn = inherit everything
         """
 
         Parameters
@@ -1060,10 +1051,18 @@ def solve_agent(agent, verbose):
                     solution_distance > agent.tolerance
                     and completed_cycles < max_cycles
                 )
+                if not go: # Finished; CDC 20210415: Mark solution as converged
+                    if not hasattr(solution[-1],'stge_kind'):
+                        solution[-1].stge_kind = {}
+                    solution[-1].stge_kind['iter_status']='finished'
+                    solution[-1].stge_kind['tolerance']=agent.tolerance
+                    
+            # CDC 20210415: Below, why assume no convergence after only 1 cycle?
+            # If user provides a solution_startfrom that is good, it might...
             else:  # Assume solution does not converge after only one cycle
                 solution_distance = float('inf')
                 go = True
-        else:
+        else: # Finite horizon
             cycles_left += -1
             go = cycles_left > 0
 
@@ -1103,6 +1102,8 @@ def solve_agent(agent, verbose):
 
     if agent.pseudo_terminal:
         solution = [solution[-1]]  # Remove the last period
+        
+    if hasattr(solution)
 
     return solution
 
@@ -1585,7 +1586,7 @@ class Market(Model):
             Should have attributes named in dyn_vars.
         """
         # Make a dictionary of inputs for the dynamics calculator
-        history_vars_string = ""
+#        history_vars_string = ""
         arg_names = list(get_arg_names(self.calc_dynamics))
         if "self" in arg_names:
             arg_names.remove("self")
