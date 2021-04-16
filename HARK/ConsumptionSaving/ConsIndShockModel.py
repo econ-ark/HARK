@@ -1,11 +1,10 @@
-import sys
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.Calibration.Income.IncomeTools import parse_income_spec, parse_time_params, Cagetti_income
 from HARK.core import (_log, set_verbosity_level, core_check_condition)
 from HARK.utilities import (make_grid_exp_mult, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,
                             CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP)
-from HARK.distribution import (DiscreteDistribution, add_discrete_outcome_constant_mean, calc_expectation,
+from HARK.distribution import (add_discrete_outcome_constant_mean, calc_expectation,
                                combine_indep_dstns, Lognormal, MeanOneLogNormal, Uniform)
 from HARK.interpolation import (CubicInterp, LowerEnvelope, LinearInterp, ValueFuncCRRA, MargValueFuncCRRA,
                                 MargMargValueFuncCRRA)
@@ -19,7 +18,9 @@ from builtins import (range, str)
 
 class TrnsPars():
     def __init__(self, betwn):
-        self.about = {'TrnsPars': 'Parameters for transition from current to next stage'}
+        self.about = {
+            'TrnsPars': 'Parameters for transition from current to next stage'
+        }
 
 
 class DolObj(MetricObject):
@@ -94,9 +95,10 @@ utilityP_invP = CRRAutilityP_invP
 
 class ConsumerSolution(MetricObject):
     """
-    Represents the solution of a single period/decision-stage of a consumption
-    problem.  The solution must include a consumption function and marginal
-    value function.  (period/stage will refer to the solution of the
+    Solution of single period/decision-stage of a consumption/saving problem
+    with one state:m.  The solution must include a consumption function and 
+    marginal value function.  (period/stage are two terms for the events  
+    encompassed in the "solver" that will generate the optimal solution to the
     consumer's Bellman problem; terminology will eventually become stage).
 
     Here and elsewhere in the code, Nrm indicates that variables are normalized
@@ -133,12 +135,14 @@ class ConsumerSolution(MetricObject):
         One built-in entry keeps track of the nature of the stage:
             {'iter_status':'terminal'}: Terminal (last period of existence)
             {'iter_status':'iterator'}: Solution during iteration
-            {'iter_status':'finished'}: Solution satisfied stopping requirements
+            {'iter_status':'finished'}: Stopping requirements are satisfied
+                If stopping requirements are satisfied, {'tolerance':tolerance}
+                should exist recording what convergence tolerance was satisfied
         Other uses include keeping track of the nature of the next stage
     """
     distance_criteria = ["vPfunc"]
-#    distance_criteria = ["mNrmStE"]
-#    distance_criteria = ["cFunc"]
+#    distance_criteria = ["mNrmStE"]-CDC 20210415: Not implemented yet
+#    distance_criteria = ["cFunc"] - this should be the default
 
     def __init__(
             self,
@@ -152,9 +156,7 @@ class ConsumerSolution(MetricObject):
             MPCmax=None,
             stge_kind=None,
     ):
-        # Generate a url that will locate the documentation
-        self.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q=" + \
-            self.__class__.__name__+"&check_keywords=yes&area=default#"
+        self.url_doc = url_doc_for_this_class(self)
         # Change any missing function inputs to NullFunc
         self.cFunc = cFunc if cFunc is not None else NullFunc()
         self.vFunc = vFunc if vFunc is not None else NullFunc()
@@ -166,6 +168,22 @@ class ConsumerSolution(MetricObject):
         self.MPCmax = MPCmax
         self.completed_cycles = 0
         self.stge_kind = stge_kind
+        self.dolo_defs(self)
+
+    def url_doc_for_this_class(self):
+        # Generate a url that will locate the documentation
+        self.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q="+\
+            self.__class__.__name__+"&check_keywords=yes&area=default#"
+
+    def dolo_defs(self): # CDC 20210415: Beginnings of Dolo integration
+        self.symbol_calibration = dict( # not used yet, just created
+            states={"mNrm": 1.0},
+            controls=["cNrm"],
+            exogenous=["permShk", "tranShk"],
+            parameters=["DiscFac": 0.96, "LivPrb": 1.0, "CRRA":2.0,
+                        "Rfree":1.03, "PermGroFac":1.0,
+                        "BoroCnstArt":None]
+        ) # Things all ConsumerSolutions have in commont
 
     def append_solution(self, new_solution):
         """
@@ -236,7 +254,7 @@ class ConsumerSolution(MetricObject):
 
         return self.mNrmTrg
 
-# The PerfForesight class also incorporates calcs and info that are useful for
+# The PerfForesight class also incorporates calcs and info useful for
 # models in which perfect foresight does not apply, because the contents
 # of the PF model are inherited by a variety of non-perfect-foresight models
 
@@ -264,17 +282,21 @@ class ConsPerfForesightSolver(MetricObject):
     BoroCnstArt : float or None
         Artificial borrowing constraint, as a multiple of permanent income.
         Can be None, indicating no artificial constraint.
-    MaxKinks : int
+    MaxKinks : int, optional
         Maximum number of kink points to allow in the consumption function;
         additional points will be thrown out.  Only relevant in infinite
         horizon model with artificial borrowing constraint.
     """
 
-    # CDC: Model variables are now interpreted as the Beg values for the stge
-    # TransPars are taken from the next stage's Beg values
-    # TransPars values are those used in computing this period's solution
+    # CDC 20210415: Model variables are now interpreted as Beg values for stge
+    # TransPars are taken from the _next_ stage's Beg values
+    # TransPars collects those those used in computing this period's solution
+    # Not good; future revisions should require only own pars, not fut stg pars
     def __init__(
             self,
+            # CDC 20210415: .core.solve_one_cycle provides this as solution_next
+            # Since it is a required positional argument, we could rename it here
+            # to "stg_Nxt" but we should do so at the same PR as for core.py
             solution_next,
             DiscFac=1.0,
             LivPrb=1.0,
@@ -284,10 +306,14 @@ class ConsPerfForesightSolver(MetricObject):
             BoroCnstArt=None,
             MaxKinks=None
     ):
+        # Create the place to store the current stage solution
+        self.stg_crt = ConsumerSolution()  # Blank template; solving = filling
+        # Rename input so that we know it is a next "stage"
         self.stg_Nxt = solution_next
-
-        self.stg_crt = ConsumerSolution()  # create a blank template to fill in
-
+        # .Nxt is to keep track of info about next period's problem that
+        # we will need for solving
+        
+        # keep track of nature of solver for current and future periods
         self.stg_crt.Nxt = TrnsPars(
             betwn={'stg_fm': 'ConsPerfForesightSolver',
                    'stg_to':  self.stg_Nxt.stge_kind['slvr_type']
@@ -295,81 +321,29 @@ class ConsPerfForesightSolver(MetricObject):
         )
 
         self.stg_crt.MaxKinks = MaxKinks
-        self.stg_crt.Nxt.LivPrb = LivPrb
-        self.stg_crt.Nxt.DiscFac = DiscFac
+#        self.stg_crt.Nxt.LivPrb = LivPrb
+#        self.stg_crt.Nxt.DiscFac = DiscFac
 
-        # # Error checking code below can be deleted once we are confident that
-        # # this problem does not occur
-        # if not self.stg_Nxt.LivPrb:
-        #     self.stg_Nxt.LivPrb = LivPrb
-        # else:
-        #     if not (self.stg_Nxt.LivPrb == LivPrb):
-        #         _log.error("Conflict: LivPrb passed directly to solver does not match")
-        #         _log.error("LivPrb attribute on next stage solution passed to solver")
-        #         sys.exit()
-
-        # if not self.stg_Nxt.DiscFac:
-        #     self.stg_Nxt.DiscFac = DiscFac
-        # else:
-        #     if not (self.stg_Nxt.DiscFac == DiscFac):
-        #         _log.error("Conflict: DiscFac passed directly to solver does not match")
-        #         _log.error("DiscFac attribute on next stage solution passed to solver")
-        #         sys.exit()
-
-        # if not self.stg_Nxt.CRRA:
-        #     self.stg_Nxt.CRRA = CRRA
-        # else:
-        #     if not (self.stg_Nxt.CRRA == CRRA):
-        #         _log.error("Conflict: CRRA passed directly to solver does not match")
-        #         _log.error("CRRA attribute on next stage solution passed to solver")
-        #         sys.exit()
-        # self.stg_crt.Nxt.CRRA = CRRA
-
-        # if not self.stg_Nxt.Rfree:
-        #     self.stg_Nxt.Rfree = Rfree
-        # else:
-        #     if not (self.stg_Nxt.Rfree == Rfree):
-        #         _log.error("Conflict: Rfree passed directly to solver does not match")
-        #         _log.error("Rfree attribute on next stage solution passed to solver")
-        #         sys.exit()
-        # self.stg_crt.Nxt.Rfree = Rfree
-
-        # if not self.stg_Nxt.PermGroFac:
-        #     self.stg_Nxt.PermGroFac = PermGroFac
-        # else:
-        #     if not (self.stg_Nxt.PermGroFac == PermGroFac):
-        #         _log.error("Conflict: PermGroFac passed directly to solver does not match")
-        #         _log.error("PermGroFac attribute on next stage solution passed to solver")
-        #         sys.exit()
-        # self.stg_crt.Nxt.PermGroFac = PermGroFac
-
-        # if not self.stg_Nxt.BoroCnstArt:
-        #     self.stg_Nxt.BoroCnstArt = BoroCnstArt
-        # else:
-        #     if not (self.stg_Nxt.BoroCnstArt == BoroCnstArt):
-        #         _log.error("Conflict: BoroCnstArt passed directly to solver does not match")
-        #         _log.error("BoroCnstArt attribute on next stage solution passed to solver")
-        #         sys.exit()
-        # self.stg_crt.Nxt.BoroCnstArt = BoroCnstArt
-
-        if not hasattr(self.stg_Nxt, 'MaxKinks'):  # Non PF models do not have
+        if not hasattr(self.stg_Nxt, 'MaxKinks'):  # Non PF models do not have kinks
             self.stg_Nxt.MaxKinks = MaxKinks  # should be "None"
-        if not (self.stg_Nxt.MaxKinks == MaxKinks):
-            _log.error("Conflict: MaxKinks passed directly to solver does not match")
-            _log.error("MaxKinks attribute on next stage solution passed to solver")
-            sys.exit()
 
-        # CDC: As code is currently structured, CRRA not allowed in time_vary
-        # because same u is used for EGM, current vFunc, and E[v_{t+1}]
-        # This violates the principle that each stage be allowed to have its
-        # own parameter values.
-        self.stg_crt.Nxt.CRRA = self.stg_crt.CRRA = CRRA
+        # CDC 20210415: As code is currently structured, putting CRRA in time_vary
+        # would generate nonsense solution (if CRRA really did vary by time)
+        # because same u is used for EGM on vPfunc to generate c and m,
+        # and E[u^{\prime}_{t+1}(cFunc_{t+1})]
+        # This violates the principle that each stage be allowed to have
+        # independent parameter values.  Not hard to fix, but illustrates
+        # ways current code can confuse
+        self.stg_crt.Nxt.CRRA = self.stg_crt.CRRA = CRRA  # Enforce they are same
         self.stg_crt.Nxt.Rfree = Rfree
         self.stg_crt.Nxt.PermGro = PermGroFac
         self.stg_crt.Nxt.BoroCnstArt = BoroCnstArt
 
+        # CDC 20210415:
         # Old external code may expect these things to live at root of self
-        # For now, put them there too, but over time weed out
+        # For now, put them there so legacy code will work, but over time weed out
+        # This is bad because these objects are really describing the transition
+        # from this period to the next, and not this period itself
         self.stg_crt.LivPrb = self.stg_crt.Nxt.LivPrb
         self.stg_crt.DiscFac = self.stg_crt.Nxt.DiscFac
         self.stg_crt.CRRA = self.stg_crt.Nxt.CRRA
@@ -377,19 +351,20 @@ class ConsPerfForesightSolver(MetricObject):
         self.stg_crt.PermGro = self.stg_crt.Nxt.PermGro
         self.stg_crt.BoroCnstArt = self.stg_crt.Nxt.BoroCnstArt
 
-        self.stg_crt.fcts = {}
+        self.stg_crt.fcts = {}  # Collect facts about the current stage
         self.stg_crt = self.def_utility_funcs(self.stg_crt)
 
         # Generate a url that will locate the documentation
-        self.stg_crt.url_doc_model_type = "https://hark.readthedocs.io/en/latest/search.html?q=" + \
+        self.stg_crt.url_doc_model_type = \
+             "https://hark.readthedocs.io/en/latest/search.html?q=" + \
             self.stg_crt.__class__.__name__+"&check_keywords=yes&area=default#"
 
-        # url for paper that contains various theoretical results
+        # url for paper that contains theoretical results
         self.stg_crt.url_ref = "https://econ-ark.github.io/BufferStockTheory"
-        self.stg_crt.urlroot = self.stg_crt.url_ref+'/#'  # used for references to derivations
+        self.stg_crt.urlroot = self.stg_crt.url_ref+'/#'  # for links to derivations
 
         # Constructing these allows the use of identical formulae for the perfect
-        # foresight model and models with transitory and permanent shocks
+        # foresight model and models with shocks
         self.stg_crt.Ex_Inv_PermShk = 1.0
         self.stg_crt.Ex_uInv_PermShk = 1.0
         self.stg_crt.uInv_Ex_uInv_PermShk = 1.0
@@ -411,22 +386,25 @@ class ConsPerfForesightSolver(MetricObject):
                 references
             """
         # Make formulae below more readable by using local variables
+        # These all apply to the future
         CRRA = self.stg_Nxt.CRRA
         DiscFac = self.stg_Nxt.DiscFac
         LivPrb = self.stg_Nxt.LivPrb
         PermGro = self.stg_Nxt.PermGroFac
         Rfree = self.stg_Nxt.Rfree
         DiscFacEff = self.stg_Nxt.DiscFacEff = DiscFac * self.stg_Nxt.LivPrb
+        
+        # BoroCnstArt is about the end of the PRESENT period
         BoroCnstArt = stg_crt.BoroCnstArt  # Current because end-of-this-period
 
-        if not hasattr(self.stg_Nxt, 'IncShkDstn'):  # PF model
+        if not hasattr(self.stg_Nxt, 'IncShkDstn'):  # PF model if no inc shks
+            # In which case income is for everything (min, max, mean, worst)
             self.stg_Nxt.mNrmMin = mNrmMin = 1.0
             self.stg_Nxt.TranShkMin = TranShkMin = 1.0
             self.stg_Nxt.PermShkMin = PermShkMin = 1.0
             self.stg_Nxt.WorstIncPrb = 1.0
             self.stg_Nxt.WorstInc = 1.0
-
-        else:  # Model with shocks
+        else:  # Model WITH shocks
             # Xref are "broadcasted" values: every possible combo
             PermShkValsXref = self.stg_Nxt.PermShkValsXref = self.stg_Nxt.IncShkDstn.X[0]
             TranShkValsXref = self.stg_Nxt.TranShkValsXref = self.stg_Nxt.IncShkDstn.X[1]
@@ -452,7 +430,7 @@ class ConsPerfForesightSolver(MetricObject):
             self.stg_Nxt.WorstIncVal = PermShkMin * TranShkMin
 
         urlroot = stg_crt.urlroot
-        stg_crt.fcts = {}
+        stg_crt.fcts = self.stg_crt.fcts
 
         APF_fcts = {'about': 'Absolute Patience Factor'}
         stg_crt.APF = APF = ((Rfree * DiscFacEff) ** (1.0 / CRRA))
@@ -625,12 +603,14 @@ class ConsPerfForesightSolver(MetricObject):
         stg_crt.hNrm_fcts = hNrm_fcts
         stg_crt.fcts.update({'hNrm': hNrm_fcts})
         stg_crt.hNrm = stg_crt.hNrm = hNrm
+        
         # That's the end of things that are identical for PF and non-PF models
 
+        # Now start computing things that will be different
         BoroCnstNat = stg_crt.BoroCnstNat = (
-            (self.stg_Nxt.mNrmMin - self.stg_Nxt.TranShkMin)  # m without min tran
+            (self.stg_Nxt.mNrmMin - self.stg_Nxt.TranShkMin)  # m pre min tran
             * (PermGro * self.stg_Nxt.PermShkMin)  # norm by perm inc
-            / Rfree  # Params are also Nxt
+            / Rfree  # Remember params are Nxt
         )
 
         if stg_crt.BoroCnstArt is None:
@@ -3135,15 +3115,17 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     quiet : boolean, optional
         If True, creates the agent without setting up any solution apparatus
-        If False, creates a solution object populated by the solution for
-        the final period.
+        If False, creates a solution object populated with a solution for
+        the final stage.
 
     solution_startfrom : stge, optional
-        A user-specified starting point for the iteration, to be used in place
-        of the hardwired solution_terminal.  For example, you
-        might set a loose tolerance to get a quick but rough solution, and
-        if that works, set the tolerance lower and restart the solution from
-        the interim solution.
+        A user-specified starting point (last stage solution) for the iteration,
+        to be used in place of the hardwired solution_terminal.  For example, you
+        might set a loose tolerance to get a quick `solution_rough,` and
+        then set the tolerance lower, or change some approximation parameter, 
+         and resume iteration using `solution_startfrom = solution_rough` until 
+        the new tolerance is met with the (presumably better but slower) 
+        approximation parameter.
     """
 
     # Time invariant parameters
