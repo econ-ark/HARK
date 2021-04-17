@@ -309,7 +309,7 @@ class ConsPerfForesightSolver(MetricObject):
         self.stg_crt.MaxKinks = MaxKinks  # Max num of constraints
 
         if not hasattr(self.stg_Nxt, 'MaxKinks'):  # Non PF models have no kinks
-            self.stg_Nxt.MaxKinks = MaxKinks  # should be "None"
+            self.stg_Nxt.MaxKinks = MaxKinks = None  # so this should be "None"
 
         # CDC 20210415: As code is currently structured, putting CRRA in time_vary
         # would generate nonsense solution (if CRRA really did vary by time)
@@ -339,13 +339,49 @@ class ConsPerfForesightSolver(MetricObject):
         self.stg_crt = self.def_utility_funcs(self.stg_crt)
 
         # Generate a url that will locate the documentation
-        self.stg_crt.url_doc_model_type = \
+        self.stg_crt.Nxt.url_doc_model_type = \
             "https://hark.readthedocs.io/en/latest/search.html?q=" + \
             self.__class__.__name__+"&check_keywords=yes&area=default#"
 
         # url for paper that contains theoretical results
-        self.stg_crt.url_ref = "https://econ-ark.github.io/BufferStockTheory"
-        self.stg_crt.urlroot = self.stg_crt.url_ref+'/#'  # for links to derivations
+        self.stg_crt.Nxt.url_ref = "https://econ-ark.github.io/BufferStockTheory"
+        self.stg_crt.Nxt.urlroot = self.stg_crt.url_ref+'/#'  # for links to derivations
+
+        if not hasattr(self.stg_Nxt, 'IncShkDstn'):  # PF model if no inc shks
+            # In which case income=1 for everything (min, max, mean, worst)
+            self.stg_crt.Nxt.mNrmMin = mNrmMin = 1.0
+            self.stg_crt.Nxt.TranShkMin = TranShkMin = 1.0
+            self.stg_crt.Nxt.PermShkMin = PermShkMin = 1.0
+            self.stg_crt.Nxt.WorstIncPrb = 1.0
+            self.stg_crt.Nxt.WorstInc = 1.0
+        else:  # Model WITH shocks begins by running PF init; accommodate that
+            # Bcst are "broadcasted" values: every possible combo
+            self.stg_crt.Nxt.PermShkValsBcst = self.stg_crt.Nxt.IncShkDstn.X[0]
+            self.stg_crt.Nxt.TranShkValsBcst = self.stg_crt.Nxt.IncShkDstn.X[1]
+            self.stg_crt.ShkPrbsNxt = self.stg_crt.Nxt.IncShkPrbs \
+                = self.stg_crt.Nxt.IncShkDstn.pmf
+
+            self.stg_crt.Nxt.PermShkPrbs = self.stg_crt.Nxt.PermShkDstn.pmf
+            self.stg_crt.Nxt.PermShkVals = self.stg_crt.Nxt.PermShkDstn.X
+
+            self.stg_crt.Nxt.TranShkPrbs = self.stg_crt.Nxt.TranShkDstn.pmf
+            self.stg_crt.Nxt.TranShkVals = self.stg_crt.Nxt.TranShkDstn.X
+
+            self.stg_crt.Nxt.PermShkMin = np.min(self.stg_crt.Nxt.PermShkVals)
+            self.stg_crt.Nxt.TranShkMin = np.min(self.stg_crt.Nxt.TranShkVals)
+
+            self.stg_crt.Nxt.WorstIncPrb = np.sum(
+                self.stg_crt.Nxt.ShkPrbsNxt[
+                    (self.stg_crt.Nxt.PermShkValsBcst *
+                     self.stg_crt.Nxt.TranShkValsBcst)
+                    == (self.stg_crt.Nxt.PermShkMin *
+                        self.stg_crt.Nxt.TranShkMin)
+                ]
+            )
+            self.stg_crt.Nxt.WorstIncVal = self.stg_crt.Nxt.PermShkMin *  \
+                self.stg_crt.Nxt.TranShkMin
+
+        self.stg_crt.Nxt = Nxt
 
     def add_fcts_to_soln_ConsPerfForesightSolver_20210410(self, stg_crt):
         """
@@ -365,56 +401,16 @@ class ConsPerfForesightSolver(MetricObject):
             """
         # Using local variables makes allows formulae below to be more readable
         # by avoiding "self.[]" clutter everywhere
-        CRRA = self.stg_Nxt.CRRA
-        DiscFac = self.stg_Nxt.DiscFac
-        LivPrb = self.stg_Nxt.LivPrb
-        PermGro = self.stg_Nxt.PermGroFac
-        Rfree = self.stg_Nxt.Rfree
-        DiscFacEff = self.stg_Nxt.DiscFacEff = DiscFac * self.stg_Nxt.LivPrb
+        locals().update(self.stg_crt.Nxt.__dict__)
 
-        # BoroCnstArt is about the end of the PRESENT period
-        BoroCnstArt = stg_crt.BoroCnstArt  # Current because end-of-this-period
-
-        if not hasattr(self.stg_Nxt, 'IncShkDstn'):  # PF model if no inc shks
-            # In which case income=1 for everything (min, max, mean, worst)
-            self.stg_Nxt.mNrmMin = mNrmMin = 1.0
-            self.stg_Nxt.TranShkMin = TranShkMin = 1.0
-            self.stg_Nxt.PermShkMin = PermShkMin = 1.0
-            self.stg_Nxt.WorstIncPrb = 1.0
-            self.stg_Nxt.WorstInc = 1.0
-        else:  # Model WITH shocks begins by running PF init; accommodate that
-            # Xref are "broadcasted" values: every possible combo
-            PermShkValsXref = self.stg_Nxt.PermShkValsXref = self.stg_Nxt.IncShkDstn.X[0]
-            TranShkValsXref = self.stg_Nxt.TranShkValsXref = self.stg_Nxt.IncShkDstn.X[1]
-            ShkPrbsNxt = self.stg_crt.ShkPrbsNxt = self.stg_Nxt.IncShkPrbs \
-                = self.stg_Nxt.IncShkDstn.pmf
-
-#            PermShkPrbs = self.stg_Nxt.PermShkPrbs = self.stg_Nxt.PermShkDstn.pmf
-            PermShkVals = self.stg_Nxt.PermShkVals = self.stg_Nxt.PermShkDstn.X
-
-#            TranShkPrbs = self.stg_Nxt.TranShkPrbs = self.stg_Nxt.TranShkDstn.pmf
-            TranShkVals = self.stg_Nxt.TranShkVals = self.stg_Nxt.TranShkDstn.X
-
-            PermShkMin = self.stg_Nxt.PermShkMin = np.min(PermShkVals)
-            TranShkMin = self.stg_Nxt.TranShkMin = np.min(TranShkVals)
-
-            self.stg_Nxt.WorstIncPrb = np.sum(
-                ShkPrbsNxt[
-                    (PermShkValsXref * TranShkValsXref)
-                    == (PermShkMin * TranShkMin)
-                ]
-            )
-            self.stg_Nxt.WorstIncVal = PermShkMin * TranShkMin
-
-        urlroot = stg_crt.urlroot
         stg_crt.fcts = self.stg_crt.fcts
 
         APF_fcts = {'about': 'Absolute Patience Factor'}
-        stg_crt.APF = APF = ((Rfree * DiscFacEff) ** (1.0 / CRRA))
+        stg_crt.APF = APF = ((Rfree * DiscFacLiv) ** (1.0 / CRRA))
         APF_fcts.update({'latexexpr': r'\APF'})
         APF_fcts.update({'_unicode_': r'Þ'})
         APF_fcts.update({'urlhandle': urlroot+'APF'})
-        APF_fcts.update({'py___code': '(Rfree*DiscFacEff)**(1/CRRA)'})
+        APF_fcts.update({'py___code': '(Rfree*DiscFacLiv)**(1/CRRA)'})
         APF_fcts.update({'value_now': APF})
         stg_crt.fcts.update({'APF': APF_fcts})
         stg_crt.APF_fcts = APF_fcts
@@ -554,7 +550,7 @@ class ConsPerfForesightSolver(MetricObject):
         stg_crt.DiscGPFLivCusp_fcts = DiscGPFLivCusp_fcts
 
         FVAF_fcts = {'about': 'Finite Value of Autarky Factor'}
-        stg_crt.FVAF = FVAF = LivPrb * DiscFacEff * stg_crt.uInv_Ex_uInv_PermShk
+        stg_crt.FVAF = FVAF = LivPrb * DiscFacLiv * stg_crt.uInv_Ex_uInv_PermShk
         FVAF_fcts.update({'latexexpr': r'\FVAFPF'})
         FVAF_fcts.update({'urlhandle': urlroot+'FVAFPF'})
         stg_crt.fcts.update({'FVAF': FVAF_fcts})
@@ -775,7 +771,7 @@ class ConsPerfForesightSolver(MetricObject):
 #        hNrm = self.stg_crt.hNrm
 #        RPF = self.stg_crt.RPF
         MPCmin = self.stg_crt.MPCmin
-        DiscFacEff = self.stg_crt.Nxt.DiscFacEff
+        DiscFacLiv = self.stg_crt.Nxt.DiscFacLiv
         MaxKinks = self.stg_crt.MaxKinks
 
         # Use local value of BoroCnstArtNxt to prevent comparing None and float
@@ -788,7 +784,7 @@ class ConsPerfForesightSolver(MetricObject):
         # self.hNrm = (PermGro / Rfree) * (self.stg_Nxt.hNrm + 1.0)
 
         # # Calculate the lower bound of the MPC
-        # RPF = ((Rfree * self.stg_crt.Nxt.DiscFacEff) ** (1.0 / self.stg_crt.CRRA)) / Rfree
+        # RPF = ((Rfree * self.stg_crt.Nxt.DiscFacLiv) ** (1.0 / self.stg_crt.CRRA)) / Rfree
         # self.stg_crt.MPCmin = 1.0 / (1.0 + self.stg_crt.RPF / self.stg_Nxt.MPCmin)
 
         # Extract kink points in next period's consumption function;
@@ -800,7 +796,7 @@ class ConsPerfForesightSolver(MetricObject):
         # next period, then invert the first order condition to get consumption. Then
         # find the endogenous gridpoint (kink point) today that corresponds to each kink
         aNrm = (PermGro / Rfree) * (mNrmNext - 1.0)
-        cNrm = (DiscFacEff * Rfree) ** (-1.0 / CRRA) * (
+        cNrm = (DiscFacLiv * Rfree) ** (-1.0 / CRRA) * (
             PermGro * cNrmNext
         )
         mNrm = aNrm + cNrm
@@ -866,7 +862,7 @@ class ConsPerfForesightSolver(MetricObject):
             The solution to this period/stage's problem.
         """
 #        self.stg_crt = self.def_utility_funcs(self.stg_crt)
-#        self.stg_crt.DiscFacEff = self.stg_crt.DiscFac * \
+#        self.stg_crt.DiscFacLiv = self.stg_crt.DiscFac * \
 #            self.stg_crt.Nxt.LivPrb  # Effective=pure x LivPrb
         self.stg_crt.make_cFunc_PF()
         self.stg_crt = self.stg_crt.def_value_funcs(self.stg_crt)
@@ -1263,16 +1259,16 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         DiscFac = stg_crt.Nxt.DiscFac
         PermGro = stg_crt.Nxt.PermGroFac
         LivPrb = stg_crt.Nxt.LivPrb
-        DiscFacEff = stg_crt.Nxt.DiscFacEff \
+        DiscFacLiv = stg_crt.Nxt.DiscFacLiv \
             = stg_crt.Nxt.DiscFac * stg_crt.Nxt.LivPrb
         CRRA = stg_crt.Nxt.CRRA
         UnempPrb = stg_crt.Nxt.IncShkDstn.parameters['UnempPrb']
         UnempPrbRet = stg_crt.Nxt.IncShkDstn.parameters['UnempPrbRet']
         urlroot = self.stg_crt.urlroot
 
-        # Xref are "broadcasted" values: every possible combo
-        PermShkValsXref = self.stg_crt.Nxt.PermShkValsXref = stg_crt.Nxt.IncShkDstn.X[0]
-        TranShkValsXref = self.stg_crt.Nxt.TranShkValsXref = stg_crt.Nxt.IncShkDstn.X[1]
+        # Bcst are "broadcasted" values: every possible combo
+        PermShkValsBcst = self.stg_crt.Nxt.PermShkValsBcst = stg_crt.Nxt.IncShkDstn.X[0]
+        TranShkValsBcst = self.stg_crt.Nxt.TranShkValsBcst = stg_crt.Nxt.IncShkDstn.X[1]
         ShkPrbsNxt = self.stg_crt.ShkPrbsNxt = self.stg_crt.Nxt.IncShkPrbs \
             = stg_crt.Nxt.IncShkDstn.pmf
 
@@ -1288,7 +1284,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # First calc some things needed for formulae that are needed even in the PF model
         self.stg_crt.Nxt.WorstIncPrb = np.sum(
             ShkPrbsNxt[
-                (PermShkValsXref * TranShkValsXref)
+                (PermShkValsBcst * TranShkValsBcst)
                 == (PermShkMin * TranShkMin)
             ]
         )
@@ -1320,12 +1316,12 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Ex_IncNextNrm_fcts = {
             'about': 'Expected income next period'}
         stg_crt.Ex_IncNextNrm = Ex_IncNextNrm = np.dot(
-            ShkPrbsNxt, TranShkValsXref * PermShkValsXref).item()
+            ShkPrbsNxt, TranShkValsBcst * PermShkValsBcst).item()
         Ex_IncNextNrm_fcts.update({'latexexpr': r'\Ex_IncNextNrm'})
         Ex_IncNextNrm_fcts.update({'_unicode_': r'R/Γ'})
         Ex_IncNextNrm_fcts.update({'urlhandle': urlroot+'ExIncNextNrm'})
         Ex_IncNextNrm_fcts.update(
-            {'py___code': r'np.dot(ShkPrbsNxt,TranShkValsXref*PermShkValsXref)'})
+            {'py___code': r'np.dot(ShkPrbsNxt,TranShkValsBcst*PermShkValsBcst)'})
         Ex_IncNextNrm_fcts.update({'value_now': Ex_IncNextNrm})
         stg_crt.fcts.update({'Ex_IncNextNrm': Ex_IncNextNrm_fcts})
         stg_crt.Ex_IncNextNrm_fcts = Ex_IncNextNrm_fcts
@@ -1381,13 +1377,13 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         stg_crt.Inv_Ex_RNrm_fcts = Inv_Ex_RNrm_fcts
         stg_crt.Inv_Ex_RNrm = Inv_Ex_RNrm
 
-        Ex_uInv_PermShk = np.dot(PermShkValsXref**(1-CRRA), ShkPrbsNxt)
+        Ex_uInv_PermShk = np.dot(PermShkValsBcst**(1-CRRA), ShkPrbsNxt)
         Ex_uInv_PermShk_fcts = {
             'about': 'Expected Utility for Consuming Permanent Shock'}
         Ex_uInv_PermShk_fcts.update({'latexexpr': r'\Ex_uInv_PermShk'})
         Ex_uInv_PermShk_fcts.update({'urlhandle': r'ExuInvPermShk'})
         Ex_uInv_PermShk_fcts.update(
-            {'py___code': r'np.dot(PermShkValsXref**(1-CRRA),ShkPrbsNxt)'})
+            {'py___code': r'np.dot(PermShkValsBcst**(1-CRRA),ShkPrbsNxt)'})
         Ex_uInv_PermShk_fcts.update({'value_now': Ex_uInv_PermShk})
         stg_crt.fcts.update({'Ex_uInv_PermShk': Ex_uInv_PermShk_fcts})
         stg_crt.Ex_uInv_PermShk_fcts = Ex_uInv_PermShk_fcts
@@ -1440,14 +1436,13 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         stg_crt.FVAC_fcts = FVAC_fcts
 
         WRPF_fcts = {'about': 'Weak Return Patience Factor'}
-        WRPF = (UnempPrb ** (1 / CRRA))* RPF
+        WRPF = (UnempPrb ** (1 / CRRA)) * RPF
         WRPF_fcts.update({'latexexpr': r'\WRPF'})
         WRPF_fcts.update({'_unicode_': r'℘ RPF'})
         WRPF_fcts.update({'urlhandle': urlroot+'WRPF'})
         WRPF_fcts.update({'py___code': r'UnempPrb * RPF'})
         stg_crt.fcts.update({'WRPF': WRPF_fcts})
         stg_crt.WRPF_fcts = WRPF_fcts
-
 
         WRIC_fcts = {'about': 'Weak Return Impatience Condition'}
         WRIC_fcts.update({'latexexpr': r'\WRIC'})
@@ -1499,10 +1494,10 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         stg_crt.Ex_cLev_tp1_Over_pLev_t_from_at = (
             lambda a_t:
             np.dot(stg_crt.Nxt.PermGro *
-                   stg_crt.Nxt.PermShkValsXref *
+                   stg_crt.Nxt.PermShkValsBcst *
                    stg_crt.cFunc(
-                       (stg_crt.PF_RNrm/stg_crt.Nxt.PermShkValsXref) * a_t
-                       + stg_crt.Nxt.TranShkValsXref
+                       (stg_crt.PF_RNrm/stg_crt.Nxt.PermShkValsBcst) * a_t
+                       + stg_crt.Nxt.TranShkValsBcst
                    ),
                    stg_crt.ShkPrbsNxt)
         )
@@ -1530,9 +1525,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         stg_crt.Ex_cLev_tp1_Over_pLev_t_from_at = Ex_cLev_tp1_Over_pLev_t_from_at = (
             lambda a_t:
             np.dot(
-                stg_crt.Nxt.PermShkValsXref * stg_crt.Nxt.PermGro * stg_crt.cFunc(
-                    (stg_crt.PF_RNrm/stg_crt.Nxt.PermShkValsXref) *
-                    a_t + stg_crt.Nxt.TranShkValsXref
+                stg_crt.Nxt.PermShkValsBcst * stg_crt.Nxt.PermGro * stg_crt.cFunc(
+                    (stg_crt.PF_RNrm/stg_crt.Nxt.PermShkValsBcst) *
+                    a_t + stg_crt.Nxt.TranShkValsBcst
                 ),
                 stg_crt.ShkPrbsNxt)
         )
@@ -1990,7 +1985,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
                 shocks[0] ** (1.0 - self.stg_crt.CRRA)
                 * self.stg_Nxt.PermGroFac ** (1.0 - self.stg_crt.CRRA)
             ) * self.stg_crt.vFuncNext(self.stg_crt.m_Nrm_tp1(shocks, a_Nrm_Val))
-        EndOfPrdv = self.stg_Nxt.DiscFacEff * calc_expectation(
+        EndOfPrdv = self.stg_Nxt.DiscFacLiv * calc_expectation(
             self.stg_Nxt.IncShkDstn, v_Lvl_next, self.stg_crt.aNrm
         )
         EndOfPrdvNvrs = self.stg_crt.uinv(
@@ -2283,7 +2278,7 @@ p        Expected permanent income growth factor at the end of this period.
         # This overwrites values from set_and_update_values, which were based on Rboro instead.
         if KinkBool:
             RPFTop = (
-                (self.Nxt.Rsave * self.DiscFacEff) ** (1.0 / self.CRRA)
+                (self.Nxt.Rsave * self.DiscFacLiv) ** (1.0 / self.CRRA)
             ) / self.Nxt.Rsave
             self.MPCmin = 1.0 / (1.0 + RPFTop / self.stg_Nxt.MPCmin)
             self.hNrm = (
