@@ -1,38 +1,22 @@
-# Dolo-related imports
-from dataclasses import dataclass
-from typing import Dict, List, Tuple
-from dolang.vectorize import standard_function
-from dolo.numeric.processes import Process, DiscretizedProcess
-from dolo.compiler.objects import Domain, CartesianDomain
-from dolo.numeric.grids import Grid, ProductGrid
-from dolo.compiler.misc import CalibrationDict, calibration_to_vector
-from numba import jit
-
-
-from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
-from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
-from HARK.Calibration.Income.IncomeTools import parse_income_spec, parse_time_params, Cagetti_income
-from HARK.core import (_log, set_verbosity_level, core_check_condition)
-from HARK.utilities import (make_grid_exp_mult, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,
-                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP)
-from HARK.distribution import (add_discrete_outcome_constant_mean, calc_expectation,
-                               combine_indep_dstns, Lognormal, MeanOneLogNormal, Uniform)
+from builtins import (range, str)
+from copy import copy, deepcopy
+import numpy as np
+from scipy.optimize import newton
+from HARK import AgentType, NullFunc, MetricObject, make_one_period_oo_solver
 from HARK.interpolation import (CubicInterp, LowerEnvelope, LinearInterp, ValueFuncCRRA, MargValueFuncCRRA,
                                 MargMargValueFuncCRRA)
-from HARK import AgentType, NullFunc, MetricObject, make_one_period_oo_solver
-from scipy.optimize import newton
-import numpy as np
-from copy import copy, deepcopy
-from builtins import (range, str)
-# import types  # Needed to allow solver to attach methods to solution
-
-
-class TrnsPars():
-    def __init__(self, betwn):
-        self.about = {
-            'TrnsPars': 'Parameters for transition from current to next stage'
-        }
-        self.betwn = betwn
+from HARK.distribution import (add_discrete_outcome_constant_mean, calc_expectation,
+                               combine_indep_dstns, Lognormal, MeanOneLogNormal, Uniform)
+from HARK.utilities import (make_grid_exp_mult, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,
+                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP)
+from HARK.core import (_log, set_verbosity_level, core_check_condition)
+from HARK.Calibration.Income.IncomeTools import parse_income_spec, parse_time_params, Cagetti_income
+from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
+from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
+from HARK.ConsumptionSaving.ConsModel import (
+    ConsumerSolutionGeneric,
+    TrnsPars,
+)
 
 
 """
@@ -41,23 +25,28 @@ to income.  All models here assume CRRA utility with geometric discounting, no
 bequest motive, and income shocks that are fully transitory or fully permanent.
 
 It currently solves three types of models:
-   1) A basic "perfect foresight" consumption-saving model with no uncertainty.
+   1) `PerfForesightConsumerType`
+
+      * A basic "perfect foresight" consumption-saving model with no uncertainty.
     
       * Features of the model prepare it for convenient inheritance
       
-   2) A consumption-saving model with transitory and permanent income shocks
+   2) `IndShockConsumerType`
+
+      * A consumption-saving model with transitory and permanent income shocks
     
       * Inherits from PF model
       
-   3) The model described in (2), but with an interest rate for debt that differs
-      from the interest rate for savings.
+   3) `KinkedRconsumerType`
 
-See NARK https://HARK.githhub.io/Documentation/NARK for information on variable naming conventions.
-See HARK documentation for mathematical descriptions of the models being solved.
+      * `IndShockConsumerType` model but with an interest rate paid on debt, `Rboro`
+        greater than the interest rate earned on savings, `Rboro > `Rsave`
+
+See NARK https://HARK.githhub.io/Documentation/NARK for variable naming conventions.
+See https://hark.readthedocs.io for mathematical descriptions of the models being solved.
 """
 
 __all__ = [
-    "TrnsPars",
     "ConsumerSolution",
     "ConsPerfForesightSolver",
     "ConsIndShockSetup",
@@ -87,13 +76,12 @@ utilityP_invP = CRRAutilityP_invP
 # =====================================================================
 
 
-class ConsumerSolution(MetricObject):
+class ConsumerSolution(ConsumerSolutionGeneric):
     """
-    Solution of single period/decision-stage of a consumption/saving problem
-    with one state:m.  The solution must include a consumption function and 
-    marginal value function.  (period/stage are two terms for the events  
-    encompassed in the "solver" that will generate the optimal solution to the
-    consumer's Bellman problem; terminology will eventually become stage).
+    Solution of single period/stage of a consumption/saving problem with 
+    one state at decision time: market resources `m`, which includes both
+    liquid assets and current income.  Defines a consumption function and 
+    marginal value function.
 
     Here and elsewhere in the code, Nrm indicates that variables are normalized
     by permanent income.
@@ -134,9 +122,6 @@ class ConsumerSolution(MetricObject):
                 should exist recording what convergence tolerance was satisfied
         Other uses include keeping track of the nature of the next stage
     """
-    distance_criteria = ["vPfunc"]
-#    distance_criteria = ["mNrmStE"]-CDC 20210415: Not implemented yet
-#    distance_criteria = ["cFunc"] - this should be the default
 
     def __init__(
             self,
@@ -150,9 +135,10 @@ class ConsumerSolution(MetricObject):
             MPCmax=None,
             stge_kind=None,
     ):
+        super().__init__(cFunc, stge_kind)  # First execute generic init
+
         self.url_doc = self.url_doc_for_this_class()
         # Change any missing function inputs to NullFunc
-        self.cFunc = cFunc if cFunc is not None else NullFunc()
         self.vFunc = vFunc if vFunc is not None else NullFunc()
         self.vPfunc = vPfunc if vPfunc is not None else NullFunc()
         self.vPPfunc = vPPfunc if vPPfunc is not None else NullFunc()
@@ -161,7 +147,6 @@ class ConsumerSolution(MetricObject):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
         self.completed_cycles = 0
-        self.stge_kind = stge_kind
         self.dolo_defs()
 
     def url_doc_for_this_class(self):
@@ -176,8 +161,11 @@ class ConsumerSolution(MetricObject):
             exogenous=["permShk", "tranShk"],
             parameters={"DiscFac": 0.96, "LivPrb": 1.0, "CRRA": 2.0,
                         "Rfree": 1.03, "PermGroFac": 1.0,
-                        "BoroCnstArt": None}
-        )  # Things all ConsumerSolutions have in commont
+                        "BoroCnstArt": None,
+                        "permShk": 0.1,
+                        "tranShk": 0.1,
+                        }
+        )  # Things all ConsumerSolutions have in common
 
     def append_solution(self, new_solution):
         """
@@ -248,7 +236,7 @@ class ConsumerSolution(MetricObject):
 
         return self.mNrmTrg
 
-# The PerfForesight class also incorporates calcs and info useful for
+# ConsPerfForesightSolver class incorporates calcs and info useful for
 # models in which perfect foresight does not apply, because the contents
 # of the PF model are inherited by a variety of non-perfect-foresight models
 
@@ -288,9 +276,10 @@ class ConsPerfForesightSolver(MetricObject):
     # Not good; future revisions should require only own pars, not fut stg pars
     def __init__(
             self,
-            # CDC 20210415: .core.solve_one_cycle provides this as solution_next
+            # CDC 20210415: .core.solve_one_cycle provides first arg as solution_next
             # Since it is a required positional argument, we could rename it here
-            # to "stg_Nxt" but we should do so at the same PR as for core.py
+            # to "stg_Nxt" but we should not do so until we rename similarly
+            # in core.py
             solution_next,
             DiscFac=1.0,
             LivPrb=1.0,
@@ -301,9 +290,10 @@ class ConsPerfForesightSolver(MetricObject):
             MaxKinks=None
     ):
         # Give it a name that highlights that it's the next "stage"
+        # if this is a multi-stage problem
         self.stg_Nxt = solution_next
 
-        # Create the place to store the current stage solution
+        # Create the place to store the solution to the current stage
         self.stg_crt = solution_next  # Elements will all be replaced
 
         # .Nxt is to keep track of info about next period's problem that
@@ -316,7 +306,7 @@ class ConsPerfForesightSolver(MetricObject):
                    }
         )
 
-        self.stg_crt.MaxKinks = MaxKinks
+        self.stg_crt.MaxKinks = MaxKinks  # Max num of constraints
 
         if not hasattr(self.stg_Nxt, 'MaxKinks'):  # Non PF models have no kinks
             self.stg_Nxt.MaxKinks = MaxKinks  # should be "None"
@@ -373,8 +363,8 @@ class ConsPerfForesightSolver(MetricObject):
                 Same solution that was provided, augmented with _fcts and
                 references
             """
-        # Make formulae below readable by using local variables (avoid "self.[]")
-        # These all apply to the future
+        # Using local variables makes allows formulae below to be more readable
+        # by avoiding "self.[]" clutter everywhere
         CRRA = self.stg_Nxt.CRRA
         DiscFac = self.stg_Nxt.DiscFac
         LivPrb = self.stg_Nxt.LivPrb
@@ -399,10 +389,10 @@ class ConsPerfForesightSolver(MetricObject):
             ShkPrbsNxt = self.stg_crt.ShkPrbsNxt = self.stg_Nxt.IncShkPrbs \
                 = self.stg_Nxt.IncShkDstn.pmf
 
-            PermShkPrbs = self.stg_Nxt.PermShkPrbs = self.stg_Nxt.PermShkDstn.pmf
+#            PermShkPrbs = self.stg_Nxt.PermShkPrbs = self.stg_Nxt.PermShkDstn.pmf
             PermShkVals = self.stg_Nxt.PermShkVals = self.stg_Nxt.PermShkDstn.X
 
-            TranShkPrbs = self.stg_Nxt.TranShkPrbs = self.stg_Nxt.TranShkDstn.pmf
+#            TranShkPrbs = self.stg_Nxt.TranShkPrbs = self.stg_Nxt.TranShkDstn.pmf
             TranShkVals = self.stg_Nxt.TranShkVals = self.stg_Nxt.TranShkDstn.X
 
             PermShkMin = self.stg_Nxt.PermShkMin = np.min(PermShkVals)
@@ -1059,31 +1049,13 @@ class ConsPerfForesightSolver(MetricObject):
     def solver_check_WRIC_20210404(self, stge, verbose=None):
         """
         Evaluate and report on the Weak Return Impatience Condition
-        [url]/#WRPF modified to incorporate LivPrb
+        [url]/#WRIC modified to incorporate LivPrb
         """
-        stge.WRPF = (
-            (stge.Nxt.UnempPrb ** (1 / stge.CRRA))
-            * (stge.Nxt.Rfree * stge.Nxt.DiscFac * stge.Nxt.LivPrb) ** (1 / stge.CRRA)
-            / stge.Nxt.Rfree
-        )
 
-        stge.WRIC = stge.WRPF < 1
         name = "WRIC"
         fact = "WRPF"
 
         def test(stge): return stge.WRPF <= 1
-
-        WRIC_fcts = {'about': 'Weak Return Impatience Condition'}
-        WRIC_fcts.update({'latexexpr': r'\WRIC'})
-        WRIC_fcts.update({'urlhandle': stge.self.stg_crt.urlroot+'WRIC'})
-        WRIC_fcts.update({'py___code': 'test: WRPF < 1'})
-        stge.WRIC_fcts = WRIC_fcts
-
-        WRPF_fcts = {'about': 'Growth Patience Factor'}
-        WRPF_fcts.update({'latexexpr': r'\WRPF'})
-        WRPF_fcts.update({'_unicode_': r'℘ RPF'})
-        WRPF_fcts.update({'urlhandle': stge.self.stg_crt.urlroot+'WRPF'})
-        WRPF_fcts.update({'py___code': r'UnempPrb * RPF'})
 
         messages = {
             True: "\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, satisfies the Weak Return Impatience Condition, which requires WRIF < 1: "+stge.WRICfcts['urlhandle'],
@@ -1111,6 +1083,7 @@ class ConsPerfForesightSolver(MetricObject):
         * RIC: Return Impatience Condition
         * GIC: Growth Impatience Condition
         * GICLiv: GIC adjusting for constant probability of mortality
+        * GICNrm: GIC adjusted for uncertainty in permanent income
         * FHWC: Finite Human Wealth Condition
         * FVAC: Finite Value of Autarky Condition
 
@@ -1465,6 +1438,23 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         FVAC_fcts.update({'py___code': 'test: FVAF < 1'})
         stg_crt.fcts.update({'FVAC': FVAC_fcts})
         stg_crt.FVAC_fcts = FVAC_fcts
+
+        WRPF_fcts = {'about': 'Weak Return Patience Factor'}
+        WRPF = (UnempPrb ** (1 / CRRA))* RPF
+        WRPF_fcts.update({'latexexpr': r'\WRPF'})
+        WRPF_fcts.update({'_unicode_': r'℘ RPF'})
+        WRPF_fcts.update({'urlhandle': urlroot+'WRPF'})
+        WRPF_fcts.update({'py___code': r'UnempPrb * RPF'})
+        stg_crt.fcts.update({'WRPF': WRPF_fcts})
+        stg_crt.WRPF_fcts = WRPF_fcts
+
+
+        WRIC_fcts = {'about': 'Weak Return Impatience Condition'}
+        WRIC_fcts.update({'latexexpr': r'\WRIC'})
+        WRIC_fcts.update({'urlhandle': urlroot+'WRIC'})
+        WRIC_fcts.update({'py___code': 'test: WRPF < 1'})
+        stg_crt.fcts.update({'WRIC': WRIC_fcts})
+        stg_crt.WRIC_fcts = WRIC_fcts
 
         DiscGPFNrmCusp_fcts = {'about':
                                'DiscFac s.t. GPFNrm = 1'}
