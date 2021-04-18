@@ -1,4 +1,4 @@
-from builtins import (range, str)
+from builtins import (range, str, breakpoint)
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
@@ -9,7 +9,7 @@ from HARK.distribution import (add_discrete_outcome_constant_mean, calc_expectat
                                combine_indep_dstns, Lognormal, MeanOneLogNormal, Uniform)
 from HARK.utilities import (make_grid_exp_mult, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,
                             CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP)
-from HARK.core import (_log, set_verbosity_level, core_check_condition)
+from HARK.core import (_log, set_verbosity_level, core_check_condition, get_solve_one_period_args)
 from HARK.Calibration.Income.IncomeTools import parse_income_spec, parse_time_params, Cagetti_income
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
@@ -17,7 +17,6 @@ from HARK.ConsumptionSaving.ConsModel import (
     ConsumerSolutionGeneric,
     TrnsPars,
 )
-
 
 """
 Classes to solve canonical consumption-saving models with idiosyncratic shocks
@@ -28,15 +27,15 @@ It currently solves three types of models:
    1) `PerfForesightConsumerType`
 
       * A basic "perfect foresight" consumption-saving model with no uncertainty.
-    
+
       * Features of the model prepare it for convenient inheritance
-      
+
    2) `IndShockConsumerType`
 
       * A consumption-saving model with transitory and permanent income shocks
-    
+
       * Inherits from PF model
-      
+
    3) `KinkedRconsumerType`
 
       * `IndShockConsumerType` model but with an interest rate paid on debt, `Rboro`
@@ -78,9 +77,9 @@ utilityP_invP = CRRAutilityP_invP
 
 class ConsumerSolution(ConsumerSolutionGeneric):
     """
-    Solution of single period/stage of a consumption/saving problem with 
+    Solution of single period/stage of a consumption/saving problem with
     one state at decision time: market resources `m`, which includes both
-    liquid assets and current income.  Defines a consumption function and 
+    liquid assets and current income.  Defines a consumption function and
     marginal value function.
 
     Here and elsewhere in the code, Nrm indicates that variables are normalized
@@ -149,10 +148,10 @@ class ConsumerSolution(ConsumerSolutionGeneric):
         self.completed_cycles = 0
         self.dolo_defs()
 
-    def url_doc_for_this_class(self):
-        # Generate a url that will locate the documentation
-        self.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q=" +\
-            self.__class__.__name__+"&check_keywords=yes&area=default#"
+    # def url_doc_for_this_class(self):
+    #     # Generate a url that will locate the documentation
+    #     self.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q=" +\
+    #         self.__class__.__name__+"&check_keywords=yes&area=default#"
 
     def dolo_defs(self):  # CDC 20210415: Beginnings of Dolo integration
         self.symbol_calibration = dict(  # not used yet, just created
@@ -300,13 +299,15 @@ class ConsPerfForesightSolver(MetricObject):
         # we will need for solving
 
         # keep track of nature of solver for current and future periods
-        self.stg_crt.Nxt = TrnsPars(
+        Nxt = TrnsPars(
             betwn={'stg_fm': self.__class__.__name__,
                    'stg_to':  self.stg_Nxt.stge_kind['slvr_type']
                    }
         )
 
         self.stg_crt.MaxKinks = MaxKinks  # Max num of constraints
+
+        self.url_doc_for_this_class()
 
         if not hasattr(self.stg_Nxt, 'MaxKinks'):  # Non PF models have no kinks
             self.stg_Nxt.MaxKinks = MaxKinks = None  # so this should be "None"
@@ -318,70 +319,69 @@ class ConsPerfForesightSolver(MetricObject):
         # This violates the principle that each stage be allowed to have
         # independent parameter values.  Not hard to fix, but illustrates
         # ways current code can confuse
-        self.stg_crt.Nxt.CRRA = self.stg_crt.CRRA = CRRA  # Enforce they are same
-        self.stg_crt.Nxt.Rfree = Rfree
-        self.stg_crt.Nxt.PermGro = self.stg_crt.Nxt.PermGroFac = PermGroFac
-        self.stg_crt.Nxt.BoroCnstArt = BoroCnstArt
+        Nxt.CRRA = self.stg_crt.CRRA = CRRA  # Enforce they are same
+        Nxt.Rfree = Rfree
+        Nxt.PermGro = Nxt.PermGroFac = PermGroFac
+        Nxt.BoroCnstArt = BoroCnstArt
+        Nxt.url_ref = self.url_ref
+        Nxt.url_doc_class_type = self.url_doc_class_type
+        Nxt.urlroot = Nxt.url_ref+'/#'  # for links to derivations
 
         # CDC 20210415:
         # Old external code may expect these things to live at root of self
         # For now, put them there so legacy code will work, but over time weed out
         # This is bad because these objects are really describing the transition
         # from this period to the next, and not this period itself
-        self.stg_crt.LivPrb = self.stg_crt.Nxt.LivPrb = LivPrb
-        self.stg_crt.DiscFac = self.stg_crt.Nxt.DiscFac = DiscFac
-        self.stg_crt.CRRA = self.stg_crt.Nxt.CRRA
-        self.stg_crt.Rfree = self.stg_crt.Nxt.Rfree
-        self.stg_crt.PermGro = self.stg_crt.Nxt.PermGro
-        self.stg_crt.BoroCnstArt = self.stg_crt.Nxt.BoroCnstArt
+        self.stg_crt.LivPrb = Nxt.LivPrb = LivPrb
+        self.stg_crt.DiscFac = Nxt.DiscFac = DiscFac
+        self.stg_crt.Rfree = Nxt.Rfree
+        self.stg_crt.PermGro = Nxt.PermGro
+        self.stg_crt.BoroCnstArt = Nxt.BoroCnstArt
 
         self.stg_crt.fcts = {}  # Collect facts about the current stage
         self.stg_crt = self.def_utility_funcs(self.stg_crt)
 
-        # Generate a url that will locate the documentation
-        self.stg_crt.Nxt.url_doc_model_type = \
-            "https://hark.readthedocs.io/en/latest/search.html?q=" + \
-            self.__class__.__name__+"&check_keywords=yes&area=default#"
-
-        # url for paper that contains theoretical results
-        self.stg_crt.Nxt.url_ref = "https://econ-ark.github.io/BufferStockTheory"
-        self.stg_crt.Nxt.urlroot = self.stg_crt.url_ref+'/#'  # for links to derivations
-
         if not hasattr(self.stg_Nxt, 'IncShkDstn'):  # PF model if no inc shks
             # In which case income=1 for everything (min, max, mean, worst)
-            self.stg_crt.Nxt.mNrmMin = mNrmMin = 1.0
-            self.stg_crt.Nxt.TranShkMin = TranShkMin = 1.0
-            self.stg_crt.Nxt.PermShkMin = PermShkMin = 1.0
-            self.stg_crt.Nxt.WorstIncPrb = 1.0
-            self.stg_crt.Nxt.WorstInc = 1.0
+            Nxt.mNrmMin = 1.0
+            Nxt.TranShkMin = 1.0
+            Nxt.PermShkMin = 1.0
+            Nxt.WorstIncPrb = 1.0
+            Nxt.WorstInc = 1.0
         else:  # Model WITH shocks begins by running PF init; accommodate that
             # Bcst are "broadcasted" values: every possible combo
-            self.stg_crt.Nxt.PermShkValsBcst = self.stg_crt.Nxt.IncShkDstn.X[0]
-            self.stg_crt.Nxt.TranShkValsBcst = self.stg_crt.Nxt.IncShkDstn.X[1]
-            self.stg_crt.ShkPrbsNxt = self.stg_crt.Nxt.IncShkPrbs \
-                = self.stg_crt.Nxt.IncShkDstn.pmf
+            Nxt.PermShkValsBcst = Nxt.IncShkDstn.X[0]
+            Nxt.TranShkValsBcst = Nxt.IncShkDstn.X[1]
+            self.stg_crt.ShkPrbsNxt = Nxt.IncShkPrbs \
+                = Nxt.IncShkDstn.pmf
 
-            self.stg_crt.Nxt.PermShkPrbs = self.stg_crt.Nxt.PermShkDstn.pmf
-            self.stg_crt.Nxt.PermShkVals = self.stg_crt.Nxt.PermShkDstn.X
+            Nxt.PermShkPrbs = Nxt.PermShkDstn.pmf
+            Nxt.PermShkVals = Nxt.PermShkDstn.X
 
-            self.stg_crt.Nxt.TranShkPrbs = self.stg_crt.Nxt.TranShkDstn.pmf
-            self.stg_crt.Nxt.TranShkVals = self.stg_crt.Nxt.TranShkDstn.X
+            Nxt.TranShkPrbs = Nxt.TranShkDstn.pmf
+            Nxt.TranShkVals = Nxt.TranShkDstn.X
 
-            self.stg_crt.Nxt.PermShkMin = np.min(self.stg_crt.Nxt.PermShkVals)
-            self.stg_crt.Nxt.TranShkMin = np.min(self.stg_crt.Nxt.TranShkVals)
+            Nxt.PermShkMin = np.min(Nxt.PermShkVals)
+            Nxt.TranShkMin = np.min(Nxt.TranShkVals)
 
-            self.stg_crt.Nxt.WorstIncPrb = np.sum(
-                self.stg_crt.Nxt.ShkPrbsNxt[
-                    (self.stg_crt.Nxt.PermShkValsBcst *
-                     self.stg_crt.Nxt.TranShkValsBcst)
-                    == (self.stg_crt.Nxt.PermShkMin *
-                        self.stg_crt.Nxt.TranShkMin)
+            Nxt.WorstIncPrb = np.sum(
+                Nxt.ShkPrbsNxt[
+                    (Nxt.PermShkValsBcst *
+                     Nxt.TranShkValsBcst)
+                    == (Nxt.PermShkMin *
+                        Nxt.TranShkMin)
                 ]
             )
-            self.stg_crt.Nxt.WorstIncVal = self.stg_crt.Nxt.PermShkMin *  \
-                self.stg_crt.Nxt.TranShkMin
+            Nxt.WorstIncVal = Nxt.PermShkMin * Nxt.TranShkMin
 
         self.stg_crt.Nxt = Nxt
+
+    def url_doc_for_this_class(self):
+        # Generate a url that will locate the documentation
+        self.class_name = self.__class__.__name__
+        self.url_ref = "https://econ-ark.github.io/BufferStockTheory"
+        self.url_doc_class_type = "https://hark.readthedocs.io/en/latest/search.html?q=" +\
+            self.class_name+"&check_keywords=yes&area=default#"
 
     def add_fcts_to_soln_ConsPerfForesightSolver_20210410(self, stg_crt):
         """
@@ -398,9 +398,12 @@ class ConsPerfForesightSolver(MetricObject):
             solution : ConsumerSolution
                 Same solution that was provided, augmented with _fcts and
                 references
-            """
+        """
         # Using local variables makes allows formulae below to be more readable
         # by avoiding "self.[]" clutter everywhere
+        # Giving them (false) values before true ones helps debuggers parse
+        Rfree = DiscFac = DiscFacLiv = CRRA = urlroot = GPFRaw = GPFLiv = \
+            LivPrb = APF = PermGro = PermGroFac = 0.0
         locals().update(self.stg_crt.Nxt.__dict__)
 
         stg_crt.fcts = self.stg_crt.fcts
@@ -1083,10 +1086,10 @@ class ConsPerfForesightSolver(MetricObject):
         * FHWC: Finite Human Wealth Condition
         * FVAC: Finite Value of Autarky Condition
 
-        Depending on the configuration of parameter values, some combination of 
+        Depending on the configuration of parameter values, some combination of
         these conditions must be satisfied in order for the problem to have
-        a nondegenerate stg_crt. To check which conditions are required, 
-        in the verbose mode, a reference to the relevant theoretical literature 
+        a nondegenerate stg_crt. To check which conditions are required,
+        in the verbose mode, a reference to the relevant theoretical literature
         is made.
 
         Parameters
@@ -1140,13 +1143,13 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     """
     A superclass for solvers of one period consumption-saving problems with
     constant relative risk aversion utility and permanent and transitory shocks
-    to income, containing code shared among alternative specific solvers.  
+    to income, containing code shared among alternative specific solvers.
     Has methods to set up but not solve the one period problem.
 
     N.B.: Because this is a one stge solver, objects that (in the full problem)
     are lists because they are allowed to vary at different stages, are scalars
     here because the value that is appropriate for the current stage is the one
-    that will be passed.  
+    that will be passed.
 
     Parameters
     ----------
@@ -1201,9 +1204,13 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             CubicBool,
             PermShkDstn,
             TranShkDstn,
+            **kwds
     ):
-        super().__init__(solution_next, DiscFac, LivPrb, CRRA, Rfree,
-                         PermGroFac, BoroCnstArt)  # First execute PF solver init
+
+        #        super().__init__(solution_next, DiscFac, LivPrb, CRRA, Rfree,
+        #                         PermGroFac, BoroCnstArt, **kwds)  # First execute PF solver init
+
+        #        super().__init__()  # First execute PF solver init
 
         # self.stg_crt will already contain vars inited by PF init
         # Add vars not present in PF model:
@@ -1233,6 +1240,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         self.stg_crt.BoroCnstArt = self.stg_crt.Nxt.BoroCnstArt
         self.stg_crt.PermShkDstn = self.stg_crt.Nxt.PermShkDstn
         self.stg_crt.TranShkDstn = self.stg_crt.Nxt.TranShkDstn
+
+        self.stg_crt = self.def_utility_funcs(self.stg_crt)
 
     def add_fcts_to_soln(self, stge_futr):   # Facts
         # self here is the solver, which knows info about the problem from the agent
@@ -1552,7 +1561,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         -------
         none
         """
-        # self.stg_crt.solver_check_condtnsnew_20210404 = self.solver_check_condtnsnew_20210404
+        self.stg_crt.solver_check_condtnsnew_20210404 = self.solver_check_condtnsnew_20210404
         # self.stg_crt.solver_check_AIC_20210404 = self.solver_check_AIC_20210404
         # self.stg_crt.solver_check_RIC_20210404 = self.solver_check_RIC_20210404
         # self.stg_crt.solver_check_FVAC_20210404 = self.solver_check_FVAC_20210404
@@ -2465,9 +2474,124 @@ init_perfect_foresight['fcts'].update({'cycle': cycles_fcts})
 init_perfect_foresight.update({'cycles_fcts': cycles_fcts})
 
 
+class OneStateConsumerEndpoint(AgentType):
+    """
+    Construct endpoint for solution of problem of a consumer with
+    one state variable, m:
+
+        * m combines assets from prior history with current income
+
+        * it is referred to as `market resources` throughout the docs
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods/stages should be solved.
+
+    solution_startfrom : ConsumerSolution, optional
+
+        A prespecified solution for the endpoint of the consumer
+    problem. If no value is supplied, the terminal solution defaults
+    to the case in which the consumer spends all available resources, 
+    obtaining no residual utility from any unspent m.
+
+
+    """
+
+    def __init__(
+            self,
+            solution_startfrom=None,
+            cycles=1,
+            pseudo_terminal=True,
+            **kwds
+    ):
+        #        super().__init__()
+        # This LinearInterp extrapolates the 45 degree line to infinity
+        cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0], [0.0, 1.0])
+        cFunc_terminal_ = cFunc_terminal_nobequest_
+
+        solution_nobequest_ = ConsumerSolution(  # Omits vFunc b/c u not yet def
+            cFunc=cFunc_terminal_nobequest_,
+            mNrmMin=0.0,
+            hNrm=0.0,
+            MPCmin=1.0,
+            MPCmax=1.0,
+            stge_kind={'iter_status': 'terminal',
+                       'slvr_type': 'handmade',
+                       'slvr_note': 'nobequest'}
+        )
+        # Define solution_terminal_ for legacy reasons
+        solution_terminal_ = solution_nobequest_
+        breakpoint()
+        # If user has not provided a terminal sol
+        if not solution_startfrom:  # Then use the default solution_terminal
+            solution_startfrom = deepcopy(solution_nobequest_)
+
+        AgentType.__init__(
+            self,
+            solution_startfrom,
+            cycles=cycles,
+            pseudo_terminal=False,
+            **kwds)
+
+
+# class OneStateConsumerEndpoint(AgentType):
+#     """
+#     Construct endpoint for solution of problem of a consumer with
+#     one state variable, m:
+
+#         * m combines assets from prior history with current income
+
+#         * it is referred to as `market resources` throughout the docs
+
+#     Parameters
+#     ----------
+#     cycles : int
+#         Number of times the sequence of periods/stages should be solved.
+
+#     solution_startfrom : ConsumerSolution, optional
+
+#         A prespecified solution for the endpoint of the consumer
+#     problem. If no value is supplied, the terminal solution defaults
+#     to the case in which the consumer spends all available resources,
+#     obtaining no residual utility from any unspent m.
+
+
+#     """
+
+#     state_vars = []
+
+#     def __init__(
+#             self,
+#             solution_terminal=None,
+#             cycles=1,
+#             pseudo_terminal=True,
+#             tolerance=0.000001,
+#             seed=0,
+#             **kwds
+#     ):
+
+        # def init(self,
+        #          cycles,  # Mandatory
+        #          solution_terminal=solution_nobequest_,  # optional
+        #          pseudo_terminal=False,  # optional
+        #          **kwds):
+        #     breakpoint()
+        #     print('In OneStateConsumerEndpoint')
+        #     AgentType.__init__(
+        #         self,
+        #         solution_terminal,  # mandatory
+        #         cycles=cycles,  # mandatory
+        #         pseudo_terminal=False,
+        #         ** kwds
+        #     )
+
+        # class PerfForesightConsumerType(OneStateConsumerEndpoint):
+
+
 class PerfForesightConsumerType(AgentType):
     """
-    A perfect foresight consumer type who has no uncertainty other than mortality.
+    A perfect foresight consumer who has no uncertainty other than mortality.
     The problem is defined by a coefficient of relative risk aversion, intertemporal
     discount factor, interest factor, an artificial borrowing constraint (maybe)
     and time sequences of the permanent income growth rate and survival probability.
@@ -2477,30 +2601,24 @@ class PerfForesightConsumerType(AgentType):
     cycles : int
         Number of times the sequence of periods/stages should be solved.
     """
+    # # This LinearInterp extrapolates the 45 degree line to infinity
+    # cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0], [0.0, 1.0])
+    # cFunc_terminal_ = cFunc_terminal_nobequest_
 
-    # Define some universal options for all consumer types
-    # Use underscores (_) to define useful defaults available to all inheritors
-    # These should not be modified -- if used, a deepcopy should
-    # be made and that should be modified
-
-    # Consumption function in last period in which everything is consumed
-    # Two names for the same thing
-    # Define as LinearInterp object because it has derivatives
-    cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0], [0.0, 1.0])
-    cFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 1.0])
-
-    solution_nobequest_ = ConsumerSolution(  # Can't include vFunc b/c u not yet def
-        cFunc=cFunc_terminal_nobequest_,
-        mNrmMin=0.0,
-        hNrm=0.0,
-        MPCmin=1.0,
-        MPCmax=1.0,
-        stge_kind={'iter_status': 'terminal', 'slvr_type': 'ConsPerfForesightSolver'}
-    )
-    solution_nobequest = deepcopy(solution_nobequest_)  # Modifiable copy
-
-    solution_terminal_ = solution_nobequest_         # Default terminal solution
-    solution_terminal = deepcopy(solution_terminal_)  # Modifiable copy
+    # solution_nobequest_ = ConsumerSolution(  # Omits vFunc b/c u not yet def
+    #     cFunc=cFunc_terminal_nobequest_,
+    #     mNrmMin=0.0,
+    #     hNrm=0.0,
+    #     MPCmin=1.0,
+    #     MPCmax=1.0,
+    #     stge_kind={'iter_status': 'terminal',
+    #                'slvr_type': 'handmade',
+    #                'slvr_note': 'nobequest'}
+    # )
+    # # Define solution_terminal_ for legacy reasons
+    # solution_terminal_ = solution_nobequest_
+    # solution_terminal = deepcopy(solution_terminal_)
+    # solution_nobequest = deepcopy(solution_nobequest_)
 
     time_vary_ = ["LivPrb",  # Age-varying death rates can match mortality data
                   "PermGroFac"]  # Age-varying income growth can match data
@@ -2512,26 +2630,44 @@ class PerfForesightConsumerType(AgentType):
                   "aNrm"]  # Assets after all actions (normed)
     shock_vars_ = []
 
-    def __init__(self, cycles=1,  # Finite horiz
-                 verbose=1, quiet=False,
+    def __init__(self,
+                 cycles=1,  # Finite horiz
+                 verbose=1,
+                 quiet=False,  # check conditions
                  solution_startfrom=None,  # Default is no interim solution
                  BoroCnstArt=None,
                  **kwds):
-        params = init_perfect_foresight.copy()
-        params.update(kwds)
-        kwds_all = params
-        solution_terminal = deepcopy(self.solution_nobequest)
-        if solution_startfrom:  # If user chose other terminal point, use that
-            self.solution_startfrom = solution_startfrom
-            solution_terminal = self.solution_terminal = solution_startfrom
-
-        AgentType.__init__(
+        params = init_perfect_foresight.copy()  # Defaults
+        params.update(kwds)  # Replace defaults with passed vals that differ
+        OneStateConsumerEndpoint.__init__(
             self,
-            solution_terminal,
+            solution_startfrom=None,  # defaults to nobequest
             cycles=cycles,
             pseudo_terminal=False,
-            ** kwds_all
+            ** params
         )
+        # if solution_startfrom:  # If user chose other terminal point, use that
+        #     self.solution_startfrom = solution_startfrom
+        #     solution_terminal = self.solution_terminal = solution_startfrom
+
+        # AgentType.__init__(
+        #     self,
+        #     solution_terminal,
+        #     cycles=cycles,
+        #     pseudo_terminal=False,
+        #     ** params
+        # )
+
+        # OneStateConsumerEndpoint.__init__(
+        #     self,
+        #     cycles=cycles, verbose=verbose, quiet=quiet,
+        #     solution_startfrom=solution_startfrom,
+        #     **params
+        # )
+        print('PFCT')
+        if solution_startfrom:  # If user chose other terminal point, use that
+            self.solution_startfrom = solution_startfrom
+            self.solution_terminal = solution_startfrom
 
         # Add consumer-type-specific objects; deepcopy creates own versions
         self.time_vary = deepcopy(self.time_vary_)
@@ -2540,17 +2676,10 @@ class PerfForesightConsumerType(AgentType):
         # Params may have been passed by models that BUILD on PerfForesight
         self.shock_vars = deepcopy(self.shock_vars_)
 
-        self.conditions = {}  # To track check_conditions
-
-        # Extract the class name
-        self.model_type = self.__class__.__name__
+#        self.conditions = {}  # To track check_conditions
 
         # url that will locate the documentation
-        self.url_doc_model_type = "https://hark.readthedocs.io/en/latest/search.html?q=" + \
-            self.model_type+"&check_keywords=yes&area=default#"
-
-        # paper that contains many results
-        self.url_ref = "https://econ-ark.github.io/BufferStockTheory"
+        self.url_doc_for_this_class()
 
         # Setup and squirrel away the values initially used
         self.store_pre_iteration_starting_point()
@@ -2566,6 +2695,14 @@ class PerfForesightConsumerType(AgentType):
 
         # Store initial model params; later used to test if anything changed
         self.store_model_params(params['prmtv_par'], params['aprox_lim'])
+
+    def url_doc_for_this_class(self):
+        # Generate a url that will locate the documentation
+        self.class_name = self.__class__.__name__
+        self.url_ref = "https://econ-ark.github.io/BufferStockTheory"
+        self.urlroot = self.url_ref+'/#'
+        self.url_doc_class_type = "https://hark.readthedocs.io/en/latest/search.html?q=" +\
+            self.class_name+"&check_keywords=yes&area=default#"
 
     def store_model_params(self, prmtv_par, aprox_lim):
         # When anything cached here changes, solution SHOULD change
@@ -2606,7 +2743,7 @@ class PerfForesightConsumerType(AgentType):
                 if self.MaxKinks:  # True if MaxKinks is anything other than None
                     raise(
                         AttributeError(
-                            "Kinks are caused by constraints.  Cannot specify MaxKinks without borrowing constraints!  Ignoring."
+                            "Kinks are caused by constraints.  Cannot specify MaxKinks without constraints!  Ignoring."
                         ))
                 self.MaxKinks = np.inf
             return
@@ -2652,8 +2789,8 @@ class PerfForesightConsumerType(AgentType):
         if self.IncUnempRet < 0:
             raise Exception("IncUnempRet is negative with value: " + str(self.IncUnempRet))
 
-        if self.CRRA < 1:
-            raise Exception("CRRA is less than 1 with value: " + str(self.CRRA))
+        if self.CRRA <= 1:
+            raise Exception("CRRA is <= 1 with value: " + str(self.CRRA))
 
         return
 
@@ -2672,11 +2809,12 @@ class PerfForesightConsumerType(AgentType):
         none
         """
 
-        # Default income process is perf fore with perm = tran = min = 1.0
-        setattr(self.solution_terminal, 'PermShkVals', np.array([1.0]))
-        setattr(self.solution_terminal, 'TranShkVals', np.array([1.0]))
-        setattr(self.solution_terminal, '', np.array([1.0]))        # Update with actual args
-        from HARK.core import get_solve_one_period_args
+        # # Default income process is perf fore with perm = tran = min = 1.0
+        # setattr(self.solution_terminal, 'PermShkVals', np.array([1.0]))
+        # setattr(self.solution_terminal, 'TranShkVals', np.array([1.0]))
+        # setattr(self.solution_terminal, '', np.array([1.0]))        # Update with actual args
+
+        # Put all arguments to the solver on the solution object
         solve_dict = get_solve_one_period_args(self, self.solve_one_period, stge_which=0)
         for key in solve_dict:
             setattr(self.solution_terminal, key, solve_dict[key])
@@ -3085,8 +3223,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
     shock_vars_ = ['PermShk', 'TranShk']  # The unemployment shock is transitory
 
     def __init__(self, cycles=1, verbose=1,  quiet=True, solution_startfrom=None, **kwds):
-        params = init_idiosyncratic_shocks.copy()
 
+        params = init_idiosyncratic_shocks.copy()  # Get default params
         # Update them with any customizations the user has chosen
         params.update(kwds)  # This gets all params, not just those in the dict
 
@@ -3097,25 +3235,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
             solution_startfrom=solution_startfrom, **params
         )
 
-        # Add the few parameters that are not in the initialization
+        # Add parameters that are not in the initialization
         self.parameters.update({"cycles": self.cycles})
-#        self.parameters.update({"time_inv_": time_inv_})
-#        self.parameters.update({"time_vary_": time_vary_})
-#        self.parameters.update({"shock_vars_": shock_vars_})
-
-        # Extract the class name so that we can ...
-        self.model_type = self.__class__.__name__
-
-        # ... generate a url that will locate the documentation:
-        self.url_doc_model_type = "https://hark.readthedocs.io/en/latest/search.html?q=" + \
-            self.model_type+"&check_keywords=yes&area=default#"
-
-        # Define a reference to a paper that contains the main results
-        self.url_ref = "https://econ-ark.github.io/BufferStockTheory"
 
         # Add model_type and doc url to auto-generated self.parameters
-        self.parameters.update({"model_type": self.model_type})
-        self.parameters.update({"url_doc_model_type": self.url_doc_model_type})
+        self.parameters.update({"model_type": self.class_name})
+        self.parameters.update({"url_doc_class_type": self.url_doc_class_type})
         self.parameters.update({"url_ref": self.url_ref})
 
         # Add consumer-type specific objects, copying to create independent versions
@@ -3133,11 +3258,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Attach the corresponding one-stage solver to the agent
         self.solve_one_period = make_one_period_oo_solver(solver)
 
-        self.solution_terminal.stge_kind['slvr_type'] = 'ConsIndShockSolver'
+        # Flesh out the terminal solution
         self.update_solution_terminal()
-        self.solution_terminal.url_ref = "https://econ-ark.github.io/BufferStockTheory"
-        self.solution_terminal.urlroot = self.solution_terminal.url_ref + \
-            '/#'  # used for references to derivations
+#        self.solution_terminal.stge_kind['slvr_type'] = 'ConsIndShockSolver'
+
+        self.solution_terminal.url_ref = self.url_ref
+        self.solution_terminal.urlroot = self.urlroot
 
         # Store the initial model parameters so we can check for changes
         self.store_model_params(params['prmtv_par'], params['aprox_lim'])
@@ -3673,10 +3799,6 @@ class KinkedRconsumerType(IndShockConsumerType):
 
         # Initialize a basic AgentType
         PerfForesightConsumerType.__init__(self, cycles=cycles, **params)
-
-        # Generate a url that will locate the documentation
-        self.url_doc_model_type = "https://hark.readthedocs.io/en/latest/search.html?q=" + \
-            self.__class__.__name__+"&check_keywords=yes&area=default#"
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solve_one_period = make_one_period_oo_solver(ConsKinkedRsolver)
