@@ -361,17 +361,17 @@ class AgentType(Model):
     input_kind : dictionary
         Keeps track of the nature of the inputs to the model, specifically
         whether they are 'primtve' parameters that would define the solution
-        with infinite computational power or 'nuisnce' parameters 
+        with infinite computational power or 'nuisance' parameters 
         associated with a particular method of approximate solution
 
-    facts : dictionary
+    fcts : dictionary
         For storing information about particular objects in the model
         as that information is created or computed.  Specific example:
 
-        facts[objectName]['latexexpr'] - Name of variable in LaTeX docs
-        facts[objectName]['urlhandle'] - url to further info on it
-        facts[objectName]['python_ex'] - python expr creating its value
-        facts[objectName]['value_now'] - latest value calculated for it
+        fcts[objectName]['latexexpr'] - Name of variable in LaTeX docs
+        fcts[objectName]['urlhandle'] - url to further info on it
+        fcts[objectName]['python_ex'] - python expr creating its value
+        fcts[objectName]['value_now'] - latest value calculated for it
     """
 
     state_vars = []
@@ -637,7 +637,7 @@ class AgentType(Model):
         self.clear_history()
         return None
 
-    def sim_one_period(self): # -> mcrlo_sim_one_prd
+    def sim_one_period(self):  # -> mcrlo_sim_one_prd
         """
         Simulates one period for this type.  Calls the methods get_mortality(), get_shocks() or
         read_shocks, get_states(), get_controls(), and get_poststates().  These should be defined for
@@ -686,7 +686,7 @@ class AgentType(Model):
             self.t_cycle == self.T_cycle
         ] = 0  # Resetting to zero for those who have reached the end
 
-    def make_shock_history(self): # -> make_shock_hst
+    def make_shock_history(self):  # -> make_shock_hst
         """
         Makes a pre-specified history of shocks for the simulation.  Shock variables should be named
         in self.shock_vars, a list of strings that is subclass-specific.  This method runs a subset
@@ -733,7 +733,7 @@ class AgentType(Model):
         # Flag that shocks can be read rather than simulated
         self.read_shocks = True
 
-    def get_mortality(self): # -> mcrlo_get_mrtlty
+    def get_mortality(self):  # -> mcrlo_get_mrtlty
         """
         Simulates mortality or agent turnover according to some model-specific rules named sim_death
         and sim_birth (methods of an AgentType subclass).  sim_death takes no arguments and returns
@@ -757,7 +757,7 @@ class AgentType(Model):
         self.who_dies = who_dies
         return None
 
-    def sim_death(self): # -> mcrlo_sim_deth 
+    def sim_death(self):  # -> mcrlo_sim_deth
         """
         Determines which agents in the current population "die" or should be replaced.  Takes no
         inputs, returns a Boolean array of size self.AgentCount, which has True for agents who die
@@ -776,7 +776,7 @@ class AgentType(Model):
         who_dies = np.zeros(self.AgentCount, dtype=bool)
         return who_dies
 
-    def sim_birth(self, which_agents): # -> mcrlo_sim_brth 
+    def sim_birth(self, which_agents):  # -> mcrlo_sim_brth
         """
         Makes new agents for the simulation.  Takes a boolean array as an input, indicating which
         agent indices are to be "born".  Does nothing by default, must be overwritten by a subclass.
@@ -793,7 +793,7 @@ class AgentType(Model):
         print("AgentType subclass must define method sim_birth!")
         return None
 
-    def get_shocks(self): # -> mcrlo_get_shks 
+    def get_shocks(self):  # -> mcrlo_get_shks
         """
         Gets values of shock variables for the current period.  Does nothing by default, but can
         be overwritten by subclasses of AgentType.
@@ -808,7 +808,7 @@ class AgentType(Model):
         """
         return None
 
-    def read_shocks_from_history(self): # -> mcrlo_hstry_shks_read 
+    def read_shocks_from_history(self):  # -> mcrlo_hstry_shks_read
         """
         Reads values of shock variables for the current period from history arrays.
         For each variable X named in self.shock_vars, this attribute of self is
@@ -829,7 +829,7 @@ class AgentType(Model):
         for var_name in self.shock_vars:
             self.shocks[var_name] = self.shock_history[var_name][self.t_sim, :]
 
-    def get_states(self): # -> mcrlo_ get_stts
+    def get_states(self):  # -> mcrlo_ get_stts
         """
         Gets values of state variables for the current period.
         By default, calls transition function and assigns values
@@ -852,7 +852,7 @@ class AgentType(Model):
 
         return None
 
-    def transition(self): # -> mcrlo_trnstn = inherit everything
+    def transition(self):  # -> mcrlo_trnstn = inherit everything
         """
 
         Parameters
@@ -1051,18 +1051,18 @@ def solve_agent(agent, verbose):
                     solution_distance > agent.tolerance
                     and completed_cycles < max_cycles
                 )
-                if not go: # Finished; CDC 20210415: Mark solution as converged
-                    if not hasattr(solution[-1],'stge_kind'):
+                if not go:  # Finished; CDC 20210415: Mark solution as converged
+                    if not hasattr(solution[-1], 'stge_kind'):
                         solution[-1].stge_kind = {}
-                    solution[-1].stge_kind['iter_status']='finished'
-                    solution[-1].stge_kind['tolerance']=agent.tolerance
-                    
+                    solution[-1].stge_kind['iter_status'] = 'finished'
+                    solution[-1].stge_kind['tolerance'] = agent.tolerance
+
             # CDC 20210415: Below, why assume no convergence after only 1 cycle?
             # If user provides a solution_startfrom that is good, it might...
             else:  # Assume solution does not converge after only one cycle
                 solution_distance = float('inf')
                 go = True
-        else: # Finite horizon
+        else:  # Finite horizon
             cycles_left += -1
             go = cycles_left > 0
 
@@ -1102,8 +1102,6 @@ def solve_agent(agent, verbose):
 
     if agent.pseudo_terminal:
         solution = [solution[-1]]  # Remove the last period
-        
-    if hasattr(solution)
 
     return solution
 
@@ -1215,8 +1213,6 @@ def get_solve_one_period_args(agent, solve_one_period, stge_which):
 
 
 def make_one_period_oo_solver(solver_class):
-    # last step in PerfForesightConsumerType.__init__:
-    # """ self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolver)
     """
     Returns a function that solves a single period problem.
     Parameters

@@ -5,7 +5,6 @@ from scipy.special import erf, erfc
 import scipy.stats as stats
 
 
-
 class Distribution:
     """
     Parameters
@@ -201,7 +200,7 @@ class Lognormal(Distribution):
         )
 
     @classmethod
-    def from_mean_std(cls, mean, std, seed= 0):
+    def from_mean_std(cls, mean, std, seed=0):
         """
         Construct a LogNormal distribution from its
         mean and standard deviation.
@@ -231,7 +230,7 @@ class Lognormal(Distribution):
         mu = np.log(mean / (np.sqrt(1.0 + variance / mean_squared)))
         sigma = np.sqrt(np.log(1.0 + variance / mean_squared))
 
-        return cls(mu= mu, sigma = sigma, seed = seed)
+        return cls(mu=mu, sigma=sigma, seed=seed)
 
 
 class MeanOneLogNormal(Lognormal):
@@ -958,7 +957,8 @@ def combine_indep_dstns(*distributions, seed=0):
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
     return DiscreteDistribution(P_out, X_out, seed=seed)
 
-def calc_expectation(dstn, func=lambda x : x,*args):
+
+def calc_expectation(dstn, func=lambda x: x, *args):
     '''
     Calculate the expectation of a stochastic function at an array of values.
 
@@ -1055,7 +1055,7 @@ class MarkovProcess(Distribution):
         def sample(s):
             return self.RNG.choice(
                 self.transition_matrix.shape[1],
-                p = self.transition_matrix[s, :]
+                p=self.transition_matrix[s, :]
             )
 
         array_sample = np.frompyfunc(sample, 1, 1)
