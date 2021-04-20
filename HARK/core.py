@@ -502,7 +502,7 @@ class AgentType(Model):
             self.__dict__[parameter].append(solution_t.__dict__[parameter])
         self.add_to_time_vary(parameter)
 
-    def solve(self, verbose=False):
+    def solve(self, verbose=0):  # CDC 20210419: everywhere else verbose is a number
         """
         Solve the model for this instance of an agent type by backward induction.
         Loops through the sequence of one period problems, passing the solution
@@ -1159,6 +1159,9 @@ def solve_one_cycle(agent, solution_last):
             solve_one_period = agent.solve_one_period[Stges - 1 - stge]
         else:
             solve_one_period = agent.solve_one_period
+
+        # Code below has been made standalone in get_solve_one_period_args
+        # which returns the solve_dict without the "solution_next" object
 
         # The code below allows stage-varying arguments by constructing the
         # arguments demanded by solve_one_period
