@@ -141,9 +141,9 @@ class ConsumerSolution(MetricObject):
             MPCmin=None,
             MPCmax=None,
             stge_kind=None,
-        #            modl_pars=None,
-        #            slvr_pars=None
-            **kwds,
+            modl_pars=None,
+            slvr_pars=None,
+            ** kwds,
     ):
         #        super().__init__(cFunc, stge_kind)  # First execute generic init
 
@@ -286,7 +286,14 @@ class ConsPerfForesightSolver(MetricObject):
         self.stg_Nxt = solution_next
 
         # Create receptacle for the solution to the current stage
-        self.stg_crt = stg_crt = ConsumerSolution()
+        stg_crt = ConsumerSolution()
+
+        # If what we've been fed is a terminal solution, stg_crt=stg_Nxt
+        breakpoint()
+        if self.stg_Nxt.stge_kind['iter_status'] == 'terminal':
+            stg_crt = self.stg_Nxt
+
+        self.stg_crt = stg_crt
 
         self.url_doc_for_solver_get()  # make link to docs
 
@@ -355,7 +362,7 @@ class ConsPerfForesightSolver(MetricObject):
 
         # Store metadata about solvers for present and future stage
         Nxt.betwn = {'stg_fm': self.__class__.__name__,
-                     #                     'stg_to':  self.stg_Nxt.stge_kind['slvr_type']
+                     'stg_to':  self.stg_Nxt.stge_kind['slvr_type']
                      }
 
         stg_crt.fcts = {}  # Collect facts about the current stage
@@ -591,120 +598,6 @@ class ConsPerfForesightSolver(MetricObject):
         stg_crt.BoroCnstArt_fcts = BoroCnstArt_fcts
         stg_crt.BoroCnstArt = BoroCnstArt
 
-        # if Nxt.BoroCnstArt is None:
-        #     mNrmMin = BoroCnstNat
-        # else:  # Artificial is only relevant if tighter than natural
-        #     mNrmMin = np.max([BoroCnstNat, Nxt.BoroCnstArt])
-        #     # Liquidity constrained consumption function: c(mMin+x) = x
-        #     stg_crt.cFuncCnst = LinearInterp(
-        #         np.array([stg_crt.mNrmMin, stg_crt.mNrmMin + 1]
-        #                  ), np.array([0.0, 1.0])
-        #     )
-
-        # Calculate the minimum allowable value of money resources in this period
-
-        mNrmMin_fcts = {'about': 'Minimum mNrm'}
-        py___code = 'BoroCnstNat if not BoroCnstArt else np.max([BoroCnstNat, BoroCnstArt])'
-        Nxt.mNrmMin = mNrmMin = eval(py___code, Nxt.__dict__)
-        mNrmMin_fcts.update({'latexexpr': r'\mNrmMin'})
-        mNrmMin_fcts.update({'py___code': py___code})
-        stg_crt.fcts.update({'mNrmMin': mNrmMin_fcts})
-        stg_crt.mNrmMin_fcts = mNrmMin_fcts
-        stg_crt.mNrmMin = mNrmMin
-
-        py___code = '1.0 / (1.0 + RPF / MPCmin_tp1)'
-        Nxt.MPCmin = MPCmin = eval(py___code, Nxt.__dict__)
-        MPCmin_fcts = {'about': 'Minimal MPC as m -> infty'}
-        MPCmin_fcts.update({'latexexpr': r''})
-        MPCmin_fcts.update({'urlhandle': urlroot+'MPCmin'})
-        MPCmin_fcts.update({'py___code': py___code})
-        MPCmin_fcts.update({'value_now': MPCmin})
-        stg_crt.fcts.update({'MPCmin': MPCmin_fcts})
-        stg_crt.MPCmin_fcts = MPCmin_fcts
-        stg_crt.MPCmin = MPCmin
-
-        MPCmax_fcts = {
-            'about': 'Maximal MPC in current period as m -> min'}
-#        py___code = '1/(1 + (WorstIncPrb**(1/CRRA))*(RPF/MPCmax_tp1))'
-        py___code = '1/(1 +                         (RPF/MPCmax_tp1))'
-        Nxt.MPCmax = MPCmax = eval(py___code, Nxt.__dict__)
-#        MPCmax = stg_crt.MPCmax = 1.0 / \
-#            (1.0 + (self.stg_Nxt.WorstIncPrb ** (1.0 / CRRA))
-#             * RPF / self.stg_Nxt.MPCmax)
-        MPCmax_fcts.update({'latexexpr': r''})
-        MPCmin_fcts.update({'py___code': py___code})
-        MPCmax_fcts.update({'urlhandle': urlroot+'MPCmax'})
-        MPCmax_fcts.update({'value_now': MPCmax})
-        stg_crt.fcts.update({'MPCmax': MPCmax_fcts})
-        stg_crt.MPCmax_fcts = MPCmax_fcts
-        stg_crt.MPCmax = MPCmax
-
-        # Lower bound of aggregate wealth growth if all inheritances squandered
-        cFuncLimitIntercept_fcts = {
-            'about': 'Vertical intercept of perfect foresight consumption function'}
-        py___code = 'MPCmin * hNrm'
-        Nxt.cFuncLimitIntercept = cFuncLimitIntercept = \
-            eval(py___code, Nxt.__dict__)
-        cFuncLimitIntercept_fcts.update({'latexexpr': '\MPC \hNrm'})
-        cFuncLimitIntercept_fcts.update({'urlhandle': ''})
-        cFuncLimitIntercept_fcts.update({'value_now': cFuncLimitIntercept})
-        cFuncLimitIntercept_fcts.update({'py___code': py___code})
-        stg_crt.fcts.update({'cFuncLimitIntercept': cFuncLimitIntercept_fcts})
-        stg_crt.cFuncLimitIntercept_fcts = cFuncLimitIntercept_fcts
-        stg_crt.cFuncLimitIntercept = cFuncLimitIntercept
-
-        cFuncLimitSlope_fcts = {'about': 'Slope of limiting consumption function'}
-        py___code = 'MPCmin'
-        cFuncLimitSlope = stg_crt.cFuncLimitSlope = \
-            eval(py___code, Nxt.__dict__)
-        cFuncLimitSlope_fcts = dict({'latexexpr': '\MPCmin'})
-        cFuncLimitSlope_fcts.update({'urlhandle': 'MPCMin'})
-        cFuncLimitSlope_fcts.update({'value_now': cFuncLimitSlope})
-        cFuncLimitSlope_fcts.update({'py___code': py___code})
-        stg_crt.fcts.update({'cFuncLimitSlope': cFuncLimitSlope_fcts})
-        stg_crt.cFuncLimitSlope_fcts = cFuncLimitSlope_fcts
-        stg_crt.cFuncLimitSlope = cFuncLimitSlope
-
-        # Define some useful/interesting tools
-
-        # Given m, value of c where E[mLev_{t+1}/mLev_{t}]=permGro
-        # Solves for c in equation at url/#balgrostable
-
-        #
-        stg_crt.c_where_Ex_permShk_times_mtp1_minus_mt_eq_0 = (
-            lambda m_t:
-            m_t * (1 - stg_crt.Inv_PF_RNrm) + stg_crt.Inv_PF_RNrm
-        )
-
-        #
-        stg_crt.Ex_cLev_tp1_Over_cLev_t_from_mt = (
-            lambda m_t:
-            stg_crt.Ex_cLev_tp1_Over_pLev_t_from_mt(stg_crt,
-                                                    m_t - stg_crt.cFunc(m_t))
-            / stg_crt.cFunc(m_t)
-        )
-
-        # E[m_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
-        stg_crt.Ex_mLev_tp1_Over_pLev_t_from_at = (
-            lambda a_t:
-                stg_crt.permGro *
-            (stg_crt.PF_RNrm * a_t + stg_crt.Ex_IncNrmNxt)
-        )
-
-        # E[m_{t+1} pLev_{t+1}/(m_{t}pLev_{t})] as a fn of m_{t}
-        stg_crt.Ex_mLev_tp1_Over_mLev_t_from_at = (
-            lambda m_t:
-                stg_crt.Ex_mLev_tp1_Over_pLev_t_from_at(stg_crt,
-                                                        m_t-stg_crt.cFunc(m_t)
-                                                        )/m_t
-        )
-
-        # # Store all the calcs above
-
-        # print('Check if stg_crt.Nxt stg_crt and ALREADY have everything because a pointer')
-
-        # stg_crt.Nxt = deepcopy(Nxt)
-
         return stg_crt
 
     def def_utility_funcs(self, stge):
@@ -866,7 +759,7 @@ class ConsPerfForesightSolver(MetricObject):
         self.stg_crt.Ex_IncNrmNxt = 1.0  # Perfect foresight income of 1
         self.stg_crt.mNrmMin = mNrm[0]  # Relabel for compat w add_mNrmStE
 
-    def solve(self):
+    def solve(self):  # in ConsPerfForesightSolver
         """
         Solves the one-period/stage perfect foresight consumption-saving problem.
 
@@ -1055,13 +948,17 @@ class ConsPerfForesightSolver(MetricObject):
         """
         Checks whether the instance's type satisfies the:
 
-        * AIC: Absolute Impatience Condition
-        * RIC: Return Impatience Condition
-        * GIC: Growth Impatience Condition
-        * GICLiv: GIC adjusting for constant probability of mortality
-        * GICNrm: GIC adjusted for uncertainty in permanent income
-        * FHWC: Finite Human Wealth Condition
-        * FVAC: Finite Value of Autarky Condition
+        ============= ===================================================
+        Acronym        Condition
+        ============= ===================================================
+        AIC           Absolute Impatience Condition
+        RIC           Return Impatience Condition
+        GIC           Growth Impatience Condition
+        GICLiv        GIC adjusting for constant probability of mortality
+        GICNrm        GIC adjusted for uncertainty in permanent income
+        FHWC          Finite Human Wealth Condition
+        FVAC          Finite Value of Autarky Condition
+        ============= ===================================================
 
         Depending on the configuration of parameter values, some combination of
         these conditions must be satisfied in order for the problem to have
@@ -1184,7 +1081,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             **kwds
     ):
         # Need to reorder params by hand in case someone tries positional solve
-        ConsPerfForesightSolver.__init__(self, solution_next,
+        ConsPerfForesightSolver.__init__(self,
+                                         solution_next,
                                          DiscFac=DiscFac,
                                          LivPrb=LivPrb,
                                          CRRA=CRRA,
@@ -1197,8 +1095,10 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
                                          **kwds
                                          )  # First execute PF solver init
 
+        stg_Nxt = solution_next
         stg_crt = self.stg_crt
 
+        # Nxt really refers to end-of-this-period items
         Nxt = stg_crt.Nxt
         # if not hasattr(self, 'solution'):
         #     if not hasattr(self, 'solution_next'):
@@ -1311,8 +1211,10 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         #     ]
         # )
 
+        breakpoint()
         self.add_fcts_to_soln_ConsPerfForesightSolver_20210410(stg_crt)
 
+        breakpoint()
         # Modify formulae also present in PF model
         py___code = '1/(1 + (WorstIncPrb**(1/CRRA))*(RPF/MPCmax_tp1))'
         Nxt.MPCmax = MPCmax = eval(py___code, Nxt.__dict__)
@@ -1846,6 +1748,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         )
         return cFunc_unconstrained
 
+    # ConsIndShockSolverBasic
     def solve(self):  # make self.stg_crt from self.stg_Nxt
         """
         Solves (one period/stage of) the single period consumption-saving problem with
@@ -1888,16 +1791,16 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             #            self.Nxt = stg_crt.Nxt  # Store parameter values
             #            stg_crt = futr  # Replace
             #            stg_crt.Nxt = self.Nxt
-            stg_crt.stge_kind = deepcopy(futr.stge_kind)
+            ##            stg_crt.stge_kind = deepcopy(futr.stge_kind)
             stg_crt.stge_kind['iter_status'] = 'iterator'
-            stg_crt.MPCmin = futr.MPCmin
-            stg_crt.mNrmMin = futr.mNrmMin
-            stg_crt.cFunc = futr.cFunc
-            stg_crt = self.def_utility_funcs(stg_crt)
-            stg_crt = self.def_value_funcs(stg_crt)
-            stg_crt.vPfunc = MargValueFuncCRRA(stg_crt.cFunc, stg_crt.CRRA)
-            stg_crt.vPPfunc = MargMargValueFuncCRRA(
-                stg_crt.cFunc, stg_crt.CRRA)
+##            stg_crt.MPCmin = futr.MPCmin
+##            stg_crt.mNrmMin = futr.mNrmMin
+##            stg_crt.cFunc = futr.cFunc
+##            stg_crt = self.def_utility_funcs(stg_crt)
+##            stg_crt = self.def_value_funcs(stg_crt)
+##            stg_crt.vPfunc = MargValueFuncCRRA(stg_crt.cFunc, stg_crt.CRRA)
+# stg_crt.vPPfunc = MargMargValueFuncCRRA(
+# stg_crt.cFunc, stg_crt.CRRA)
             self.add_fcts_to_soln(stg_crt)
             return stg_crt  # Replaces original "terminal" solution; next stg_Nxt
 
@@ -2626,8 +2529,11 @@ class PerfForesightConsumerType(AgentType):
             make_one_period_oo_solver(ConsPerfForesightSolver)
 
         # Add solver args to solution
+        breakpoint()
         stg_crt.slvr_pars = \
             get_solve_one_period_args(self, self.solve_one_period, stge_which=0)
+        for key in stg_crt.slvr_pars:
+            setattr(stg_crt, key, stg_crt.slvr_pars[key])
 
         # Store initial model params; later used to test if anything changed
         self.store_model_params(self.params['prmtv_par'], self.params['aprox_lim'])
@@ -2686,7 +2592,10 @@ class PerfForesightConsumerType(AgentType):
         stg_crt.vPfunc = MargValueFuncCRRA(stg_crt.cFunc, self.CRRA)
         stg_crt.vPPfunc = MargMargValueFuncCRRA(stg_crt.cFunc, self.CRRA)
 
-        stg_crt.stge_kind = {'iter_status': 'terminal'}
+        stg_crt.stge_kind = {'iter_status': 'terminal',
+                             'term_type': 'finished',
+                             'slvr_type': 'ConsIndShockSolver'
+                             }
 
     def url_doc_for_this_agent_type_get(self):
         # Generate a url that will locate the documentation
@@ -3241,6 +3150,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.tolerance_orig = deepcopy(self.tolerance)  # preserve true tolerance
         self.tolerance = float('inf')  # tolerance is infinity ...
         self.pseudo_terminal = True  # ... and pseudo_terminal = True
+        breakpoint()
         self.solve()  # ... means that "solve" will stop after one period
         self.pseudo_terminal = False
         self.tolerance = self.tolerance_orig
@@ -3532,7 +3442,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         eulerErrorFunc = LinearInterp(mGrid, EulerErrorNrmGrid)
         self.eulerErrorFunc = eulerErrorFunc
 
-    def pre_solve(self):
+    def pre_solve(self):  # Before beginning any solution steps
         self.update()
 
     def construct_lognormal_income_process_unemployment(self):

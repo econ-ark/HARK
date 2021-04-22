@@ -504,7 +504,7 @@ class AgentType(Model):
             self.__dict__[parameter].append(solution_t.__dict__[parameter])
         self.add_to_time_vary(parameter)
 
-    def solve(self, verbose=0):  # CDC 20210419: everywhere else verbose is a number
+    def solve(self, verbose=0):  # AgentType
         """
         Solve the model for this instance of an agent type by backward induction.
         Loops through the sequence of one period problems, passing the solution
