@@ -9,8 +9,7 @@ It currently solves three types of models:
    3) The model described in (2), with an interest rate for debt that differs
       from the interest rate for savings. #todo
 
-See NARK https://HARK.githhub.io/Documentation/NARK for information on variable naming conventions.
-See HARK documentation for mathematical descriptions of the models being solved.
+See `NARK <https://github.com/econ-ark/HARK/blob/master/Documentation/NARK/NARK.pdf>`_ for information on variable naming conventions.  See `hark.readthedocs.io <https://hark.readthedocs.io>`_ for mathematical descriptions of the models being solved.
 """
 
 from copy import deepcopy
@@ -104,14 +103,14 @@ class PerfForesightSolution(MetricObject):
     distance_criteria = ["cNrm", "mNrm"]
 
     def __init__(
-        self,
-        mNrm=np.array([0.0, 1.0]),
-        cNrm=np.array([0.0, 1.0]),
-        vFuncNvrsSlope=0.0,
-        mNrmMin=0.0,
-        hNrm=0.0,
-        MPCmin=1.0,
-        MPCmax=1.0,
+            self,
+            mNrm=np.array([0.0, 1.0]),
+            cNrm=np.array([0.0, 1.0]),
+            vFuncNvrsSlope=0.0,
+            mNrmMin=0.0,
+            hNrm=0.0,
+            MPCmin=1.0,
+            MPCmax=1.0,
     ):
         self.mNrm = mNrm
         self.cNrm = cNrm
@@ -134,7 +133,7 @@ class IndShockSolution(MetricObject):
     cNrm : np.array
         (Normalized) consumption points for interpolation.
     vFuncNvrsSlope: float
-        Constant slope of inverse value vFuncNvrs
+        Constant slope of inverse value ``vFuncNvrs``
     mNrmMin : float
         The minimum allowable market resources for this period; the consump-
         tion function (etc) are undefined for m < mNrmMin.
@@ -152,21 +151,21 @@ class IndShockSolution(MetricObject):
     distance_criteria = ["cNrm", "mNrm", "mNrmMin"]
 
     def __init__(
-        self,
-        mNrm=np.linspace(0, 1),
-        cNrm=np.linspace(0, 1),
-        cFuncLimitIntercept=None,
-        cFuncLimitSlope=None,
-        mNrmMin=0.0,
-        hNrm=0.0,
-        MPCmin=1.0,
-        MPCmax=1.0,
-        Ex_IncNext=0.0,
-        MPC=None,
-        mNrmGrid=None,
-        vNvrs=None,
-        vNvrsP=None,
-        MPCminNvrs=None,
+            self,
+            mNrm=np.linspace(0, 1),
+            cNrm=np.linspace(0, 1),
+            cFuncLimitIntercept=None,
+            cFuncLimitSlope=None,
+            mNrmMin=0.0,
+            hNrm=0.0,
+            MPCmin=1.0,
+            MPCmax=1.0,
+            Ex_IncNext=0.0,
+            MPC=None,
+            mNrmGrid=None,
+            vNvrs=None,
+            vNvrsP=None,
+            MPCminNvrs=None,
     ):
         self.mNrm = mNrm
         self.cNrm = cNrm
@@ -228,17 +227,17 @@ def _add_mNrmStENumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, Ex_IncNext, _find_
 
 @njit(cache=True)
 def _solveConsPerfForesightNumba(
-    DiscFac,
-    LivPrb,
-    CRRA,
-    Rfree,
-    PermGroFac,
-    BoroCnstArt,
-    MaxKinks,
-    mNrmNext,
-    cNrmNext,
-    hNrmNext,
-    MPCminNext,
+        DiscFac,
+        LivPrb,
+        CRRA,
+        Rfree,
+        PermGroFac,
+        BoroCnstArt,
+        MaxKinks,
+        mNrmNext,
+        cNrmNext,
+        hNrmNext,
+        MPCminNext,
 ):
     """
     Makes the (linear) consumption function for this period.
@@ -291,9 +290,9 @@ def _solveConsPerfForesightNumba(
             # Adjust the grids of mNrm and cNrm to account for the borrowing constraint.
             cCrit = mCrit - BoroCnstArt
             mNrmNow = np.concatenate(
-                (np.array([BoroCnstArt, mCrit]), mNrmNow[(idx + 1) :])
+                (np.array([BoroCnstArt, mCrit]), mNrmNow[(idx + 1):])
             )
-            cNrmNow = np.concatenate((np.array([0.0, cCrit]), cNrmNow[(idx + 1) :]))
+            cNrmNow = np.concatenate((np.array([0.0, cCrit]), cNrmNow[(idx + 1):]))
 
         else:
             # If it *is* the very last index, then there are only three points
@@ -404,20 +403,20 @@ def _np_insert(arr, obj, values, axis=-1):
 
 @njit(cache=True)
 def _prepare_to_solveConsIndShockNumba(
-    DiscFac,
-    LivPrb,
-    CRRA,
-    Rfree,
-    PermGroFac,
-    BoroCnstArt,
-    aXtraGrid,
-    hNrmNext,
-    mNrmMinNext,
-    MPCminNext,
-    MPCmaxNext,
-    PermShkValsNext,
-    TranShkValsNext,
-    ShkPrbsNext,
+        DiscFac,
+        LivPrb,
+        CRRA,
+        Rfree,
+        PermGroFac,
+        BoroCnstArt,
+        aXtraGrid,
+        hNrmNext,
+        mNrmMinNext,
+        MPCminNext,
+        MPCmaxNext,
+        PermShkValsNext,
+        TranShkValsNext,
+        ShkPrbsNext,
 ):
     """
     Unpacks some of the inputs (and calculates simple objects based on them),
@@ -512,20 +511,20 @@ def _prepare_to_solveConsIndShockNumba(
 
 @njit(cache=True)
 def _solveConsIndShockLinearNumba(
-    mNrmMinNext,
-    mNrmNext,
-    CRRA,
-    mNrmUnc,
-    cNrmUnc,
-    DiscFacEff,
-    Rfree,
-    PermGroFac,
-    PermShkVals_temp,
-    ShkPrbs_temp,
-    aNrmNow,
-    BoroCnstNat,
-    cFuncInterceptNext,
-    cFuncSlopeNext,
+        mNrmMinNext,
+        mNrmNext,
+        CRRA,
+        mNrmUnc,
+        cNrmUnc,
+        DiscFacEff,
+        Rfree,
+        PermGroFac,
+        PermShkVals_temp,
+        ShkPrbs_temp,
+        aNrmNow,
+        BoroCnstNat,
+        cFuncInterceptNext,
+        cFuncSlopeNext,
 ):
     """
     Calculate end-of-period marginal value of assets at each point in aNrmNow.
@@ -668,22 +667,22 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
 
 @njit(cache=True)
 def _solveConsIndShockCubicNumba(
-    mNrmMinNext,
-    mNrmNext,
-    mNrmUnc,
-    cNrmUnc,
-    MPCNext,
-    cFuncInterceptNext,
-    cFuncSlopeNext,
-    CRRA,
-    DiscFacEff,
-    Rfree,
-    PermGroFac,
-    PermShkVals_temp,
-    ShkPrbs_temp,
-    aNrmNow,
-    BoroCnstNat,
-    MPCmaxNow,
+        mNrmMinNext,
+        mNrmNext,
+        mNrmUnc,
+        cNrmUnc,
+        MPCNext,
+        cFuncInterceptNext,
+        cFuncSlopeNext,
+        CRRA,
+        DiscFacEff,
+        Rfree,
+        PermGroFac,
+        PermShkVals_temp,
+        ShkPrbs_temp,
+        aNrmNow,
+        BoroCnstNat,
+        MPCmaxNow,
 ):
     mNrmCnst = np.array([mNrmMinNext, mNrmMinNext + 1])
     cNrmCnst = np.array([0.0, 1.0])
@@ -772,25 +771,25 @@ def _cFuncLinear(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCminNow, hNrmNow):
 
 @njit(cache=True)
 def _add_vFuncNumba(
-    mNrmNext,
-    mNrmGridNext,
-    vNvrsNext,
-    vNvrsPNext,
-    MPCminNvrsNext,
-    hNrmNext,
-    CRRA,
-    PermShkVals_temp,
-    PermGroFac,
-    DiscFacEff,
-    ShkPrbs_temp,
-    EndOfPrdvP,
-    aNrmNow,
-    BoroCnstNat,
-    mNrmGrid,
-    cFuncNow,
-    mNrmMinNow,
-    MPCmaxEff,
-    MPCminNow,
+        mNrmNext,
+        mNrmGridNext,
+        vNvrsNext,
+        vNvrsPNext,
+        MPCminNvrsNext,
+        hNrmNext,
+        CRRA,
+        PermShkVals_temp,
+        PermGroFac,
+        DiscFacEff,
+        ShkPrbs_temp,
+        EndOfPrdvP,
+        aNrmNow,
+        BoroCnstNat,
+        mNrmGrid,
+        cFuncNow,
+        mNrmMinNow,
+        MPCmaxEff,
+        MPCminNow,
 ):
     """
     Construct the end-of-period value function for this period, storing it
@@ -859,7 +858,7 @@ def _add_vFuncNumba(
 
 @njit
 def _add_mNrmStEIndNumba(
-    PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm, _searchfunc,
+        PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm, _searchfunc,
 ):
     """
     Finds steady state (normalized) market resources and adds it to the
@@ -886,7 +885,7 @@ def _add_mNrmStEIndNumba(
 
 @njit(cache=True)
 def _find_mNrmStELinear(
-    m, PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
+        m, PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
 ):
     # Make a linear function of all combinations of c and m that yield mNext = mNow
     mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * Ex_IncNext
@@ -906,7 +905,7 @@ def _find_mNrmStELinear(
 
 @njit(cache=True)
 def _find_mNrmStECubic(
-    m, PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
+        m, PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
 ):
     # Make a linear function of all combinations of c and m that yield mNext = mNow
     mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * Ex_IncNext
@@ -1106,6 +1105,22 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
         )
 
     def post_solve(self):
+        """
+            Defines the value and marginal value functions for this period.
+            Uses the fact that for a perfect foresight CRRA utility problem,
+            if the MPC at :math:`t` is :math:`\\kappa_{t}`, and relative risk
+            aversion is :math:`\\rho`, then the inverse value function ``vFuncNvrs`` has a
+            constant slope of :math:`\\kappa_{t}^{-\\rho/(1-\\rho)}` and
+            ``vFuncNvrs`` has value of zero at the lower bound of market resources
+            `mNrmMin`.  See the `PerfForesightConsumerType <https://hark.readthedocs.io/en/latest/example_notebooks/PerfForesightConsumerType.html?highlight=PerfForesightConsumerType#Solution-method-for-PerfForesightConsumerType>`_ documentation notebook
+            for a brief explanation and the links below for a fuller treatment.
+
+            `PerfForesightCRRA/#vFuncAnalytical <https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/#vFuncAnalytical>`_
+
+            `SolvingMicroDSOPs/#vFuncPF <https://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/#vFuncPF>`_
+
+            """
+
         self.solution_fast = deepcopy(self.solution)
 
         if self.cycles == 0:
@@ -1119,20 +1134,6 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
 
             # Construct the consumption function as a linear interpolation.
             cFunc = LinearInterp(solution.mNrm, solution.cNrm)
-
-            """
-            Defines the value and marginal value functions for this period.
-            Uses the fact that for a perfect foresight CRRA utility problem,
-            if the MPC in period t is :math:`\kappa_{t}`, and relative risk
-            aversion :math:`\rho`, then the inverse value vFuncNvrs has a
-            constant slope of :math:`\kappa_{t}^{-\rho/(1-\rho)}` and
-            vFuncNvrs has value of zero at the lower bound of market resources
-            mNrmMin.  See PerfForesightConsumerType.ipynb documentation notebook
-            for a brief explanation and the links below for a fuller treatment.
-
-            https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/#vFuncAnalytical
-            https://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/#vFuncPF
-            """
 
             vFuncNvrs = LinearInterp(
                 np.array([solution.mNrmMin, solution.mNrmMin + 1.0]),
@@ -1184,7 +1185,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
     def update_solution_terminal(self):
         PerfForesightConsumerTypeFast.update_solution_terminal(self)
         with np.errstate(
-            divide="ignore", over="ignore", under="ignore", invalid="ignore"
+                divide="ignore", over="ignore", under="ignore", invalid="ignore"
         ):
             self.solution_terminal.MPC = np.array([1.0, 1.0])
             self.solution_terminal.MPCminNvrs = 0.0
