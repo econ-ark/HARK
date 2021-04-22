@@ -385,7 +385,9 @@ class AgentType(Model):
         seed=0,
         **kwds
     ):
-        super().__init__()
+        #        breakpoint()
+        #        super().__init__()
+        Model.__init__(self)
 
         if solution_terminal is None:
             solution_terminal = NullFunc()
@@ -1039,29 +1041,31 @@ def solve_agent(agent, verbose):
         # cycle iterations or run out of cycles
         solution_now = solution_cycle[0]  # element 0 corresponds to last(?)
         if infinite_horizon:
-            if completed_cycles > 0:
-                solution_distance = solution_now.distance(solution_last)
-                agent.solution_distance = (
-                    solution_distance  # Add these attributes so users can
-                )
-                agent.completed_cycles = (
-                    completed_cycles  # query them to see if solution is ready
-                )
-                go = (
-                    solution_distance > agent.tolerance
-                    and completed_cycles < max_cycles
-                )
-                if not go:  # Finished; CDC 20210415: Mark solution as converged
-                    if not hasattr(solution[-1], 'stge_kind'):
-                        solution[-1].stge_kind = {}
+            #            if completed_cycles > 0:
+            solution_distance = solution_now.distance(solution_last)
+            agent.solution_distance = (
+                solution_distance  # Add these attributes so users can
+            )
+            agent.completed_cycles = (
+                completed_cycles  # query them to see if solution is ready
+            )
+            go = (
+                solution_distance > agent.tolerance
+                and completed_cycles < max_cycles
+            )
+            if not go:  # Finished; CDC 20210415: Mark solution as converged
+                if not hasattr(solution[-1], 'stge_kind'):  # This shoud not happen
+                    solution[-1].stge_kind = {'iter_status': 'iterator'}
+                if not solution[-1].stge_kind['iter_status'] == 'terminal':
+                    # If it's a terminal period being processed, don't mark finished
                     solution[-1].stge_kind['iter_status'] = 'finished'
                     solution[-1].stge_kind['tolerance'] = agent.tolerance
 
             # CDC 20210415: Below, why assume no convergence after only 1 cycle?
             # If user provides a solution_startfrom that is good, it might...
-            else:  # Assume solution does not converge after only one cycle
-                solution_distance = float('inf')
-                go = True
+#            else:  # Assume solution does not converge after only one cycle
+#                solution_distance = float('inf')
+#                go = True
         else:  # Finite horizon
             cycles_left += -1
             go = cycles_left > 0
@@ -1102,6 +1106,7 @@ def solve_agent(agent, verbose):
 
     if agent.pseudo_terminal:
         solution = [solution[-1]]  # Remove the last period
+        completed_cycles -= 1
 
     return solution
 

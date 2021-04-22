@@ -11,12 +11,13 @@ __all__ = [
 
 
 class TrnsPars():
-    def __init__(self, betwn):
+    def __init__(self):
         self.about = {
             'TrnsPars': 'Parameters for transition from current to next stage'
         }
-        self.betwn = betwn
 
+    # built-in deepcopy includes builtins which causes recursion problems
+    # modify to exclude builtins
     def __deepcopy__(self, memo):
         cls = self.__class__
         result = cls.__new__(cls)
@@ -52,6 +53,7 @@ class ConsumerSolutionGeneric(MetricObject):
         Other uses include keeping track of the nature of the next stage
     """
 
+#    distance_criteria = ["cFunc"]
     distance_criteria = ["vPfunc"]
 
     def __init__(
