@@ -1,5 +1,6 @@
 from HARK import NullFunc, MetricObject
 from copy import deepcopy
+from types import SimpleNamespace as ns
 
 __all__ = [
     "ConsumerSolutionGeneric",
@@ -10,22 +11,22 @@ __all__ = [
 # using __builtins__ because __builtins__ cannot be pickled
 
 
-class TrnsPars():
+class TrnsPars(ns):
     def __init__(self):
         self.about = {
             'TrnsPars': 'Parameters for transition from current to next stage'
         }
 
-    # built-in deepcopy includes builtins which causes recursion problems
-    # modify to exclude builtins
-    def __deepcopy__(self, memo):
-        cls = self.__class__
-        result = cls.__new__(cls)
-        memo[id(self)] = result
-        for k, v in self.__dict__.items():
-            if not k == '__builtins__':
-                setattr(result, k, deepcopy(v, memo))
-        return result
+    # # built-in deepcopy includes builtins which causes recursion problems
+    # # modify to exclude builtins
+    # def __deepcopy__(self, memo):
+    #     cls = self.__class__
+    #     result = cls.__new__(cls)
+    #     memo[id(self)] = result
+    #     for k, v in self.__dict__.items():
+    #         if not k == '__builtins__':
+    #             setattr(result, k, deepcopy(v, memo))
+    #     return result
 
 
 class ConsumerSolutionGeneric(MetricObject):

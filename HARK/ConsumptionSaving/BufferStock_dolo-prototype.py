@@ -30,13 +30,13 @@ bequest motive, and income shocks that are fully transitory or fully permanent.
 
 It currently solves three types of models:
    1) A basic "perfect foresight" consumption-saving model with no uncertainty.
-    
+
       * Features of the model prepare it for convenient inheritance
-      
+
    2) A consumption-saving model with transitory and permanent income shocks
-    
+
       * Inherits from PF model
-      
+
    3) The model described in (2), but with an interest rate for debt that differs
       from the interest rate for savings.
 
@@ -78,8 +78,8 @@ utilityP_invP = CRRAutilityP_invP
 class ConsumerSolution(MetricObject):
     """
     Solution of single period/decision-stage of a consumption/saving problem
-    with one state:m.  The solution must include a consumption function and 
-    marginal value function.  (period/stage are two terms for the events  
+    with one state:m.  The solution must include a consumption function and
+    marginal value function.  (period/stage are two terms for the events
     encompassed in the "solver" that will generate the optimal solution to the
     consumer's Bellman problem; terminology will eventually become stage).
 
@@ -123,10 +123,12 @@ class ConsumerSolution(MetricObject):
         Other uses include keeping track of the nature of the next stage
     """
     distance_criteria = ["vPfunc"]
+
+
 #    distance_criteria = ["mNrmStE"]-CDC 20210415: Not implemented yet
 #    distance_criteria = ["cFunc"] - this should be the default
-
-    def __init__(
+p
+   def __init__(
             self,
             cFunc=None,
             vFunc=None,
@@ -618,7 +620,8 @@ class ConsPerfForesightSolver(MetricObject):
         stg_crt.MPCmin = stg_crt.MPCmin = MPCmin
 
         MPCmax_fcts = {
-            'about': 'Maximal MPC in current period as m -> minimum'}
+            'about': 'Maximal MPC in current period as m -> minimum'
+        }
         MPCmax = stg_crt.MPCmax = 1.0 / \
             (1.0 + (self.stg_Nxt.WorstIncPrb ** (1.0 / CRRA))
              * RPF / self.stg_Nxt.MPCmax)
