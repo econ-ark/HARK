@@ -22,9 +22,9 @@ import numpy as np
 from time import time
 from .parallel import multi_thread_commands, multi_thread_commands_fake
 from warnings import warn
-#from HARK_logger import *
-#from HARK_logger import _log
-#from HARK_logger import set_verbosity_level
+# from HARK_logger import *
+# from HARK_logger import _log
+# from HARK_logger import set_verbosity_level
 
 """
 Logging tools for HARK.
@@ -32,7 +32,7 @@ Logging tools for HARK.
 The logger will print logged statements to STDOUT by default.
 
 The logger wil use an informative value by default.
-The user can set it to "verbose" to get more information, 
+The user can set it to "verbose" to get more information,
 or "quiet" to suppress informative messages.
 """
 
@@ -77,7 +77,7 @@ def bind_method(to_instance, method):
     return binding_scope_fn
 
 
-def core_check_condition(name, test, messages, verbose, verbose_messages, fact, stage):
+def core_check_condition(name, test, messages, verbose, verbose_messages, fact, stge):
     """
     Checks whether parameter values of a model satisfy a condition
 
@@ -106,16 +106,19 @@ def core_check_condition(name, test, messages, verbose, verbose_messages, fact, 
         Must have dict 'conditions' [name]
     """
 
-    stage.conditions[name] = test(stage)
+    TF = test(stge)
+    stge.Ths.conditions[name] = TF
     set_verbosity_level((4 - verbose) * 10)
-    stage.conditions[fact] = (
-        messages[stage.conditions[name]] +
-        verbose_messages[stage.conditions[name]]).format(stage)
-#    print(stage.conditions[fact])
+    stge.Ths.conditions[fact] = (
+        messages[stge.Ths.conditions[name]] +
+        verbose_messages[stge.Ths.conditions[name]]).format(stge.Ths)
+#    print(stge.Ths.conditions[fact])
+#    breakpoint()
     _log.info((
-        messages[stage.conditions[name]] +
-        verbose_messages[stage.conditions[name]]).format(stage)
+        messages[stge.Ths.conditions[name]] +
+        verbose_messages[stge.Ths.conditions[name]]).format(stge.Ths)
     )
+    return TF
 
 
 def distance_metric(thing_a, thing_b):
@@ -234,6 +237,10 @@ class MetricObject(object):
             The distance between this object and another, using the "universal
             distance" metric.
         """
+        if self.distance_criteria == []:
+            _log.critical(
+                "distance_criteria not set so distance between "+str(self)+" and " + str(other) + " cannot be computed.")
+
         distance_list = [0.0]
         for attr_name in self.distance_criteria:
             try:
@@ -1016,16 +1023,27 @@ def solve_agent(agent, verbose):
     # Check to see whether this is an (in)finite horizon problem
     cycles_left = agent.cycles  # NOQA
     infinite_horizon = cycles_left == 0  # NOQA
-    # Initialize the solution, which includes the terminal solution
-    # if it's a pseudo-terminal period, it will be removed at the end
-    solution = []
-    solution.insert(0, deepcopy(agent.solution_terminal))
+    # If this is a first run, the solution object will not exist
+    # breakpoint()
+    if not hasattr(agent, 'solution'):
+        # Initialize the solution, which includes the terminal solution
+        solution = []
+        solution.insert(0, deepcopy(agent.solution_terminal))
+        completed_cycles = 0  # NOQA
+        max_cycles = 5000  # NOQA  - escape clause
+        solution_last = agent.solution_terminal  # NOQA
+        # if it's a pseudo-terminal period, it will be removed at the end
+    else:
+        solution = agent.solution
+        solution_last = agent.solution[-1]
+        completed_cycles = solution_last.completed_cycles
+        if hasattr(agent, 'max_cycles'):
+            max_cycles = agent.max_cycles
+        else:
+            max_cycles = 5000
 
     # Initialize the process, then loop over cycles
-    solution_last = agent.solution_terminal  # NOQA
     go = True  # NOQA
-    completed_cycles = 0  # NOQA
-    max_cycles = 5000  # NOQA  - escape clause
     if verbose:
         t_last = time()
     while go:
@@ -1057,8 +1075,9 @@ def solve_agent(agent, verbose):
                 if not hasattr(solution[-1], 'stge_kind'):  # This shoud not happen
                     solution[-1].stge_kind = {'iter_status': 'iterator'}
                 if not solution[-1].stge_kind['iter_status'] == 'terminal':
-                    # If it's a terminal period being processed, don't mark finished
+                    # If it's not a terminal stage, don't mark finished
                     solution[-1].stge_kind['iter_status'] = 'finished'
+                    # Record the tolerance that was satisfied
                     solution[-1].stge_kind['tolerance'] = agent.tolerance
 
             # CDC 20210415: Below, why assume no convergence after only 1 cycle?
@@ -1189,6 +1208,7 @@ def solve_one_cycle(agent, solution_last):
         # Solve one stage, add it to the collection, and designate
         # the just-solved solution as being in the future for the
         # purposes of any remaining iteration(s)
+#        breakpoint()
         solution_stge = solve_one_period(**temp_dict)  # -> solve_this_stage
         full_cycle.insert(0, solution_stge)
         solution_next = solution_stge
@@ -1238,10 +1258,13 @@ def make_one_period_oo_solver(solver_class):
         # last step in loop over Stges in solve_one_cycle is:
         # """ solve_one_period(**temp_dict) [should become, say, solve_this_stge]
         solver = solver_class(**kwds)  # defined extrnally
+
         if hasattr(solver, "prepare_to_solve"):
             # Steps, if any, to prep for sol of stge
+            #            breakpoint()
             solver.prepare_to_solve()  # Fix: rename to prepare_to_solve_stge
 
+#        breakpoint()
         solution_stge = solver.solve()  # Fix: rename to solve_stge
         return solution_stge
 
