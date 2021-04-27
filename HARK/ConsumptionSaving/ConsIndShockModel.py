@@ -21,10 +21,6 @@ from HARK.ConsumptionSaving.ConsModel import (
 )
 
 
-def checkcond(test):
-    print('Outside')
-
-
 """
 Classes to solve canonical consumption-saving models with idiosyncratic shocks
 to income.  All models here assume CRRA utility with geometric discounting, no
@@ -54,11 +50,13 @@ See https://hark.readthedocs.io for mathematical descriptions of the models bein
 
 __all__ = [
     "ConsumerSolution",
+    "ConsumerSolutionOneStateCRRA",
     "ConsPerfForesightSolver",
     "ConsIndShockSetup",
     "ConsIndShockSolverBasic",
     "ConsIndShockSolver",
     "ConsKinkedRsolver",
+    "OneStateConsumerType",
     "PerfForesightConsumerType",
     "IndShockConsumerType",
     "KinkedRconsumerType",
@@ -203,6 +201,236 @@ class ConsumerSolution(MetricObject):
             self.vPPfunc.append(new_solution.vPPfunc)
             self.mNrmMin.append(new_solution.mNrmMin)
 
+
+class ConsumerSolutionOneStateCRRA(ConsumerSolution):
+    """
+    A ConsumerSolution specialized to the case in which:
+
+        * The utility function is CRRA
+
+        * Discounting is geometric
+
+    These assumptions are necessary to apply a set of theoretical results
+    described in the paper:
+
+    `Theoretical Foundations of Buffer Stock Saving <https://econ-ark.github.io/BufferStockTheory>`_
+
+    """
+    __doc__ += ConsumerSolution.__doc__
+
+    def check_conditions(self, soln_crnt, verbose=None):
+        """
+        Checks whether the instance's type satisfies the:
+
+        ============= ===================================================
+        Acronym        Condition
+        ============= ===================================================
+        AIC           Absolute Impatience Condition
+        RIC           Return Impatience Condition
+        GIC           Growth Impatience Condition
+        GICLiv        GIC adjusting for constant probability of mortality
+        GICNrm        GIC adjusted for uncertainty in permanent income
+        FHWC          Finite Human Wealth Condition
+        FVAC          Finite Value of Autarky Condition
+        ============= ===================================================
+
+        Depending on the configuration of parameter values, some combination of
+        these conditions must be satisfied in order for the problem to have
+        a nondegenerate soln_crnt. To check which conditions are required,
+        in the verbose mode, a reference to the relevant theoretical literature
+        is made.
+
+        Parameters
+        ----------
+        verbose : boolean
+            Specifies different levels of verbosity of feedback. When False, it only reports whether the
+            instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
+            the factor values for all conditions.
+
+        Returns
+        -------
+        None
+        """
+        self.soln_crnt.mde.conditions = {}  # Keep track of truth value of conditions
+        self.soln_crnt.violated = False  # True means solution is degenerate
+
+        if not hasattr(self, 'verbose'):  # If verbose not set yet
+            self.verbose = 0 if verbose is None else verbose
+        else:
+            verbose = self.verbose if verbose is None else verbose
+
+        self.check_AIC(soln_crnt, verbose)
+        self.check_FHWC(soln_crnt, verbose)
+        self.check_RIC(soln_crnt, verbose)
+        self.check_GICRaw(soln_crnt, verbose)
+        self.check_GICLiv(soln_crnt, verbose)
+        self.check_FVAC(soln_crnt, verbose)
+
+        # violated flag is true if the model has no nondegenerate solution
+        if hasattr(self.soln_crnt.mde, "BoroCnstArt") \
+                and self.soln_crnt.mde.BoroCnstArt is not None:
+            self.soln_crnt.violated = not self.soln_crnt.mde.conditions["RIC"]
+            # If BoroCnstArt exists but RIC fails, limiting soln is c(m)=0
+        else:  # If no constraint,
+            self.soln_crnt.violated = \
+                not self.soln_crnt.mde.conditions["RIC"] or \
+                not self.soln_crnt.mde.conditions["FHWC"]    # c(m)=0 or \infty
+
+    def check_AIC(self, stge, verbose=None):
+        """
+        Evaluate and report on the Absolute Impatience Condition
+        """
+        name = "AIC"
+
+        def test(stge): return stge.mde.APF < 1
+
+        messages = {
+            True: "\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, satisfies the Absolute Impatience Condition (AIC), which requires APF < 1: "+stge.mde.AIC_fcts['urlhandle'],
+            False: "\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, violates the Absolute Impatience Condition (AIC), which requires APF < 1: "+stge.mde.AIC_fcts['urlhandle']
+        }
+        verbose_messages = {
+            True: "  Because the APF < 1,  the absolute amount of consumption is expected to fall over time.  \n",
+            False: "  Because the APF > 1, the absolute amount of consumption is expected to grow over time.  \n",
+        }
+
+        stge.mde.AIC = core_check_condition(name, test, messages, verbose,
+                                            verbose_messages, "APF", stge)
+
+    def check_FVAC(self, stge, verbose=None):
+        """
+        Evaluate and report on the Finite Value of Autarky Condition
+        """
+        name = "FVAC"
+
+        def test(stge): return stge.mde.FVAF < 1
+
+        messages = {
+            True: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, satisfies the Finite Value of Autarky Condition, which requires FVAF < 1: "+stge.mde.FVAC_fcts['urlhandle'],
+            False: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, violates the Finite Value of Autarky Condition, which requires FVAF: "+stge.mde.FVAC_fcts['urlhandle']
+        }
+        verbose_messages = {
+            True: "  Therefore, a nondegenerate solution exists if the RIC also holds. ("+stge.mde.FVAC_fcts['urlhandle']+")\n",
+            False: "  Therefore, a nondegenerate solution exits if the RIC holds.\n",
+        }
+
+        stge.mde.FVAC = core_check_condition(name, test, messages, verbose,
+                                             verbose_messages, "FVAC", stge)
+
+    def check_GICRaw(self, stge, verbose=None):
+        """
+        Evaluate and report on the Growth Impatience Condition
+        """
+        name = "GICRaw"
+
+        def test(stge): return stge.mde.GPFRaw < 1
+
+        messages = {
+            True: "\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, satisfies the Growth Impatience Condition (GIC), which requires GPF < 1: "+stge.mde.GICRaw_fcts['urlhandle'],
+            False: "\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, violates the Growth Impatience Condition (GIC), which requires GPF < 1: "+stge.mde.GICRaw_fcts['urlhandle'],
+        }
+        verbose_messages = {
+            True: "  Therefore,  for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
+            False: "  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to rise toward infinity. \n"
+        }
+        stge.mde.GICRaw = core_check_condition(name, test, messages, verbose,
+                                               verbose_messages, "GPFRaw", stge)
+
+    def check_GICLiv(self, stge, verbose=None):
+        name = "GICLiv"
+
+        def test(stge): return stge.mde.GPFLiv < 1
+
+        messages = {
+            True: "\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, satisfies the Mortality Adjusted Aggregate Growth Imatience Condition (GICLiv): "+stge.mde.GPFLiv_fcts['urlhandle'],
+            False: "\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, violates the Mortality Adjusted Aggregate Growth Imatience Condition (GICLiv): "+stge.mde.GPFLiv_fcts['urlhandle'],
+        }
+        verbose_messages = {
+            True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists ("+stge.mde.GPFLiv_fcts['urlhandle']+")\n",
+            False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist ("+stge.mde.GPFLiv_fcts['urlhandle']+")\n",
+        }
+        stge.mde.GICLiv = core_check_condition(name, test, messages, verbose,
+                                               verbose_messages, "GPFLiv", stge)
+
+    def check_RIC(self, stge, verbose=None):
+        """
+        Evaluate and report on the Return Impatience Condition
+        """
+
+        name = "RIC"
+
+        def test(stge): return stge.mde.RPF < 1
+
+        messages = {
+            True: "\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, satisfies the Return Impatience Condition (RIC), which requires RPF < 1: "+stge.mde.RPF_fcts['urlhandle'],
+            False: "\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, violates the Return Impatience Condition (RIC), which requires RPF < 1: "+stge.mde.RPF_fcts['urlhandle'],
+        }
+        verbose_messages = {
+            True: "  Therefore, the limiting consumption function is not c(m)=0 for all m\n",
+            False: "  Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.\n",
+        }
+        stge.mde.RIC = core_check_condition(name, test, messages, verbose,
+                                            verbose_messages, "RPF", stge)
+
+    def check_FHWC(self, stge, verbose=None):
+        """
+        Evaluate and report on the Finite Human Wealth Condition
+        """
+        name = "FHWC"
+
+        def test(stge): return stge.mde.FHWF < 1
+
+        messages = {
+            True: "\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, satisfies the Finite Human Wealth Condition (FHWC), which requires FHWF < 1: "+stge.mde.FHWC_fcts['urlhandle'],
+            False: "\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, violates the Finite Human Wealth Condition (FHWC), which requires FHWF < 1: "+stge.mde.FHWC_fcts['urlhandle'],
+        }
+        verbose_messages = {
+            True: "  Therefore, the limiting consumption function is not c(m)=Infinity ("+stge.mde.FHWC_fcts['urlhandle']+")\n  Human wealth normalized by permanent income is {0.hNrmInf}.\n",
+            False: "  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.\n  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0. ("+stge.mde.FHWC_fcts['urlhandle']+")\n",
+        }
+        stge.mde.FHWC = core_check_condition(name, test, messages, verbose,
+                                             verbose_messages, "FHWF", stge)
+
+    def check_GICNrm(self, stge, verbose=None):
+        """
+        Check Individual Growth Patience Factor.
+        """
+        name = "GICNrm"
+
+        def test(stge): return stge.mde.GPFNrm <= 1
+
+        messages = {
+            True: "\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, satisfies the Normalized Growth Impatience Condition (GICNrm), which requires GICNrm < 1: "+stge.mde.GPFNrm_fcts['urlhandle']+"\n",
+            False: "\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, violates the Normalized Growth Impatience Condition (GICNrm), which requires GICNrm < 1: "+stge.mde.GPFNrm_fcts['urlhandle']+"\n",
+        }
+        verbose_messages = {
+            True: " Therefore, a target level of the individual market resources ratio m exists ("+stge.mde.GICNrm_fcts['urlhandle']+").\n",
+            False: " Therefore, a target ratio of individual market resources to individual permanent income does not exist.  ("+stge.mde.GICNrm_fcts['urlhandle']+")\n",
+        }
+        stge.mde.GPFNrm = core_check_condition(name, test, messages, verbose,
+                                               verbose_messages, "GPFNrm", stge)
+
+    def check_WRIC(self, stge, verbose=None):
+        """
+        Evaluate and report on the Weak Return Impatience Condition
+        [url]/#WRIC modified to incorporate LivPrb
+        """
+
+        name = "WRIC"
+
+        def test(stge): return stge.mde.WRPF <= 1
+
+        messages = {
+            True: "\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, satisfies the Weak Return Impatience Condition, which requires WRIF < 1: "+stge.mde.WRIC_fcts['urlhandle'],
+            False: "\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, violates the Weak Return Impatience Condition, which requires WRIF < 1: "+stge.mde.WRIC_fcts['urlhandle'],
+        }
+
+        verbose_messages = {
+            True: "  Therefore, a nondegenerate solution exists if the FVAC is also satisfied. ("+stge.mde.WRIC_fcts['urlhandle']+")\n",
+            False: "  Therefore, a nondegenerate solution is not available ("+stge.mde.WRIC_fcts['urlhandle']+")\n",
+        }
+        stge.mde.WRIC = core_check_condition(name, test, messages, verbose,
+                                             verbose_messages, "WRPF", stge)
+
     def mNrmTrg_finder(self):
         """
         Finds value of (normalized) market resources mNrm at which individual consumer
@@ -234,6 +462,7 @@ class ConsumerSolution(MetricObject):
             self.mNrmTrg = None
 
         return self.mNrmTrg
+
 
 # ConsPerfForesightSolver class incorporates calcs and info useful for
 # models in which perfect foresight does not apply, because the contents
@@ -306,7 +535,7 @@ class ConsPerfForesightSolver(MetricObject):
             self.soln_crnt = deepcopy(soln_futr)
         # Otherwise create receptacle for construction of solution
         else:
-            self.soln_crnt = ConsumerSolution()
+            self.soln_crnt = ConsumerSolutionOneStateCRRA()
 
         # The solver, and its self, should be disposable; once the solution is
         # produced, there should never be any need for anything in it again
@@ -813,226 +1042,6 @@ class ConsPerfForesightSolver(MetricObject):
 
         return self.soln_crnt
 
-    def check_AIC(self, stge, verbose=None):
-        """
-        Evaluate and report on the Absolute Impatience Condition
-        """
-        name = "AIC"
-
-        def test(stge): return stge.mde.APF < 1
-
-        messages = {
-            True: "\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, satisfies the Absolute Impatience Condition (AIC), which requires APF < 1: "+stge.mde.AIC_fcts['urlhandle'],
-            False: "\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, violates the Absolute Impatience Condition (AIC), which requires APF < 1: "+stge.mde.AIC_fcts['urlhandle']
-        }
-        verbose_messages = {
-            True: "  Because the APF < 1,  the absolute amount of consumption is expected to fall over time.  \n",
-            False: "  Because the APF > 1, the absolute amount of consumption is expected to grow over time.  \n",
-        }
-
-        stge.mde.AIC = core_check_condition(name, test, messages, verbose,
-                                            verbose_messages, "APF", stge)
-
-    def check_FVAC(self, stge, verbose=None):
-        """
-        Evaluate and report on the Finite Value of Autarky Condition
-        """
-        name = "FVAC"
-
-        def test(stge): return stge.mde.FVAF < 1
-
-        messages = {
-            True: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, satisfies the Finite Value of Autarky Condition, which requires FVAF < 1: "+stge.mde.FVAC_fcts['urlhandle'],
-            False: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, violates the Finite Value of Autarky Condition, which requires FVAF: "+stge.mde.FVAC_fcts['urlhandle']
-        }
-        verbose_messages = {
-            True: "  Therefore, a nondegenerate solution exists if the RIC also holds. ("+stge.mde.FVAC_fcts['urlhandle']+")\n",
-            False: "  Therefore, a nondegenerate solution exits if the RIC holds.\n",
-        }
-
-        stge.mde.FVAC = core_check_condition(name, test, messages, verbose,
-                                             verbose_messages, "FVAC", stge)
-
-    def check_GICRaw(self, stge, verbose=None):
-        """
-        Evaluate and report on the Growth Impatience Condition
-        """
-        name = "GICRaw"
-
-        def test(stge): return stge.mde.GPFRaw < 1
-
-        messages = {
-            True: "\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, satisfies the Growth Impatience Condition (GIC), which requires GPF < 1: "+stge.mde.GICRaw_fcts['urlhandle'],
-            False: "\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, violates the Growth Impatience Condition (GIC), which requires GPF < 1: "+stge.mde.GICRaw_fcts['urlhandle'],
-        }
-        verbose_messages = {
-            True: "  Therefore,  for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
-            False: "  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to rise toward infinity. \n"
-        }
-        stge.mde.GICRaw = core_check_condition(name, test, messages, verbose,
-                                               verbose_messages, "GPFRaw", stge)
-
-    def check_GICLiv(self, stge, verbose=None):
-        name = "GICLiv"
-
-        def test(stge): return stge.mde.GPFLiv < 1
-
-        messages = {
-            True: "\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, satisfies the Mortality Adjusted Aggregate Growth Imatience Condition (GICLiv): "+stge.mde.GPFLiv_fcts['urlhandle'],
-            False: "\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, violates the Mortality Adjusted Aggregate Growth Imatience Condition (GICLiv): "+stge.mde.GPFLiv_fcts['urlhandle'],
-        }
-        verbose_messages = {
-            True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists ("+stge.mde.GPFLiv_fcts['urlhandle']+")\n",
-            False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist ("+stge.mde.GPFLiv_fcts['urlhandle']+")\n",
-        }
-        stge.mde.GICLiv = core_check_condition(name, test, messages, verbose,
-                                               verbose_messages, "GPFLiv", stge)
-
-    def check_RIC(self, stge, verbose=None):
-        """
-        Evaluate and report on the Return Impatience Condition
-        """
-
-        name = "RIC"
-
-        def test(stge): return stge.mde.RPF < 1
-
-        messages = {
-            True: "\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, satisfies the Return Impatience Condition (RIC), which requires RPF < 1: "+stge.mde.RPF_fcts['urlhandle'],
-            False: "\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, violates the Return Impatience Condition (RIC), which requires RPF < 1: "+stge.mde.RPF_fcts['urlhandle'],
-        }
-        verbose_messages = {
-            True: "  Therefore, the limiting consumption function is not c(m)=0 for all m\n",
-            False: "  Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.\n",
-        }
-        stge.mde.RIC = core_check_condition(name, test, messages, verbose,
-                                            verbose_messages, "RPF", stge)
-
-    def check_FHWC(self, stge, verbose=None):
-        """
-        Evaluate and report on the Finite Human Wealth Condition
-        """
-        name = "FHWC"
-
-        def test(stge): return stge.mde.FHWF < 1
-
-        messages = {
-            True: "\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, satisfies the Finite Human Wealth Condition (FHWC), which requires FHWF < 1: "+stge.mde.FHWC_fcts['urlhandle'],
-            False: "\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, violates the Finite Human Wealth Condition (FHWC), which requires FHWF < 1: "+stge.mde.FHWC_fcts['urlhandle'],
-        }
-        verbose_messages = {
-            True: "  Therefore, the limiting consumption function is not c(m)=Infinity ("+stge.mde.FHWC_fcts['urlhandle']+")\n  Human wealth normalized by permanent income is {0.hNrmInf}.\n",
-            False: "  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.\n  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0. ("+stge.mde.FHWC_fcts['urlhandle']+")\n",
-        }
-        stge.mde.FHWC = core_check_condition(name, test, messages, verbose,
-                                             verbose_messages, "FHWF", stge)
-
-    def check_GICNrm(self, stge, verbose=None):
-        """
-        Check Individual Growth Patience Factor.
-        """
-        name = "GICNrm"
-
-        def test(stge): return stge.mde.GPFNrm <= 1
-
-        messages = {
-            True: "\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, satisfies the Normalized Growth Impatience Condition (GICNrm), which requires GICNrm < 1: "+stge.mde.GPFNrm_fcts['urlhandle']+"\n",
-            False: "\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, violates the Normalized Growth Impatience Condition (GICNrm), which requires GICNrm < 1: "+stge.mde.GPFNrm_fcts['urlhandle']+"\n",
-        }
-        verbose_messages = {
-            True: " Therefore, a target level of the individual market resources ratio m exists ("+stge.mde.GICNrm_fcts['urlhandle']+").\n",
-            False: " Therefore, a target ratio of individual market resources to individual permanent income does not exist.  ("+stge.mde.GICNrm_fcts['urlhandle']+")\n",
-        }
-        stge.mde.GPFNrm = core_check_condition(name, test, messages, verbose,
-                                               verbose_messages, "GPFNrm", stge)
-
-    def check_WRIC(self, stge, verbose=None):
-        """
-        Evaluate and report on the Weak Return Impatience Condition
-        [url]/#WRIC modified to incorporate LivPrb
-        """
-
-        name = "WRIC"
-
-        def test(stge): return stge.mde.WRPF <= 1
-
-        messages = {
-            True: "\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, satisfies the Weak Return Impatience Condition, which requires WRIF < 1: "+stge.mde.WRIC_fcts['urlhandle'],
-            False: "\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, violates the Weak Return Impatience Condition, which requires WRIF < 1: "+stge.mde.WRIC_fcts['urlhandle'],
-        }
-
-        verbose_messages = {
-            True: "  Therefore, a nondegenerate solution exists if the FVAC is also satisfied. ("+stge.mde.WRIC_fcts['urlhandle']+")\n",
-            False: "  Therefore, a nondegenerate solution is not available ("+stge.mde.WRIC_fcts['urlhandle']+")\n",
-        }
-        stge.mde.WRIC = core_check_condition(name, test, messages, verbose,
-                                             verbose_messages, "WRPF", stge)
-
-    def check_conditions(self, soln_crnt, verbose=None):
-        """
-        Checks whether the instance's type satisfies the:
-
-        ============= ===================================================
-        Acronym        Condition
-        ============= ===================================================
-        AIC           Absolute Impatience Condition
-        RIC           Return Impatience Condition
-        GIC           Growth Impatience Condition
-        GICLiv        GIC adjusting for constant probability of mortality
-        GICNrm        GIC adjusted for uncertainty in permanent income
-        FHWC          Finite Human Wealth Condition
-        FVAC          Finite Value of Autarky Condition
-        ============= ===================================================
-
-        Depending on the configuration of parameter values, some combination of
-        these conditions must be satisfied in order for the problem to have
-        a nondegenerate soln_crnt. To check which conditions are required,
-        in the verbose mode, a reference to the relevant theoretical literature
-        is made.
-
-        Parameters
-        ----------
-        verbose : boolean
-            Specifies different levels of verbosity of feedback. When False, it only reports whether the
-            instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
-            the factor values for all conditions.
-
-        Returns
-        -------
-        None
-        """
-        self.soln_crnt.mde.conditions = {}  # Keep track of truth value of conditions
-        self.soln_crnt.violated = False  # True means solution is degenerate
-
-#        # This method only checks for the conditions for infinite horizon models
-#        # with a 1 period cycle. If these conditions are not met, we exit early.
-#        if self.parameters_model['cycles'] != 0 \
-#           or self.parameters_model['T_cycle'] > 1:
-#            return
-
-        if not hasattr(self, 'verbose'):  # If verbose not set yet
-            self.verbose = 0 if verbose is None else verbose
-        else:
-            verbose = self.verbose if verbose is None else verbose
-
-        self.check_AIC(soln_crnt, verbose)
-        self.check_FHWC(soln_crnt, verbose)
-        self.check_RIC(soln_crnt, verbose)
-        self.check_GICRaw(soln_crnt, verbose)
-        self.check_GICLiv(soln_crnt, verbose)
-        self.check_FVAC(soln_crnt, verbose)
-
-        # violated flag is true if the model has no nondegenerate solution
-        if hasattr(self.soln_crnt.mde, "BoroCnstArt") \
-                and self.soln_crnt.mde.BoroCnstArt is not None:
-            self.soln_crnt.violated = not self.soln_crnt.mde.conditions["RIC"]
-            # If BoroCnstArt exists but RIC fails, limiting soln is c(m)=0
-        else:  # If no constraint,
-            self.soln_crnt.violated = \
-                not self.soln_crnt.mde.conditions["RIC"] or not self.soln_crnt.mde.conditions[
-                    "FHWC"]    # c(m)=0 or \infty
-
-
 ###############################################################################
 ###############################################################################
 
@@ -1495,15 +1504,16 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         if hasattr(soln_futr, 'vPPfunc'):
             sp1.vPPfunc_tp1 = deepcopy(soln_futr.vPPfunc)
 
-        soln_crnt.check_conditions = self.check_conditions
-        soln_crnt.check_AIC = self.check_AIC
-        soln_crnt.check_RIC = self.check_RIC
-        soln_crnt.check_FVAC = self.check_FVAC
-        soln_crnt.check_GICLiv = self.check_GICLiv
-        soln_crnt.check_GICRaw = self.check_GICRaw
-        soln_crnt.check_GICNrm = self.check_GICNrm
-        soln_crnt.check_FHWC = self.check_FHWC
-        soln_crnt.check_WRIC = self.check_WRIC
+        # soln_crnt.check_conditions = self.check_conditions
+        # setattr(soln_crnt, 'check_conditions', self.check_conditions)
+        # soln_crnt.check_AIC = self.check_AIC
+        # soln_crnt.check_RIC = self.check_RIC
+        # soln_crnt.check_FVAC = self.check_FVAC
+        # soln_crnt.check_GICLiv = self.check_GICLiv
+        # soln_crnt.check_GICRaw = self.check_GICRaw
+        # soln_crnt.check_GICNrm = self.check_GICNrm
+        # soln_crnt.check_FHWC = self.check_FHWC
+        # soln_crnt.check_WRIC = self.check_WRIC
 
         # Define a few variables that permit the same formulae to be used for
         # versions with and without uncertainty
@@ -1677,7 +1687,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         vPfunc = MargValueFuncCRRA(cFunc, self.soln_crnt.mde.CRRA)
 
         # Pack up the solution and return it
-        solution_interpolating = ConsumerSolution(
+        solution_interpolating = ConsumerSolutionOneStateCRRA(
             cFunc=cFunc,
             vPfunc=vPfunc,
             mNrmMin=self.soln_crnt.mde.mNrmMin
@@ -2440,7 +2450,7 @@ class OneStateConsumerType(AgentType):
     ):
         cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0], [0.0, 1.0])
 
-        solution_afterlife_nobequest_ = ConsumerSolution(
+        solution_afterlife_nobequest_ = ConsumerSolutionOneStateCRRA(
             cFunc=lambda m: float('inf'),
             vFunc=lambda m: 0.0,
             vPfunc=lambda m: 0.0,
@@ -2457,7 +2467,7 @@ class OneStateConsumerType(AgentType):
 #        solution_afterlife_nobequest_.sp1 = nsp()
 #        solution_afterlife_nobequest_.mde = nsp()
 
-        solution_nobequest_ = ConsumerSolution(  # Omits vFunc b/c u not yet def
+        solution_nobequest_ = ConsumerSolutionOneStateCRRA(  # Omits vFunc b/c u not yet def
             cFunc=cFunc_terminal_nobequest_,
             mNrmMin=0.0,
             hNrm=0.0,
@@ -2478,7 +2488,7 @@ class OneStateConsumerType(AgentType):
         # Define solution_terminal_ for legacy/documentation reasons
         solution_terminal_ = solution_nobequest_
 
-        self.soln_crnt = ConsumerSolution()  # Mainly for storing functions, methods
+        self.soln_crnt = ConsumerSolutionOneStateCRRA()  # Mainly for storing functions, methods
 #        self.soln_crnt.sp1 = nsp()  # For storing variables
 #        self.soln_crnt.mde = nsp()
 
@@ -2579,6 +2589,51 @@ class PerfForesightConsumerType(AgentType):
         self.quiet = quiet
         self.dolo_defs()
 
+    def check_conditions(self, verbose=3):
+
+        if not hasattr(self, 'solution'):  # Need a solution to have been computed
+            _log.info('Solving penultimate period because solution needed to check conditions')
+            self.make_solution_for_final_period()
+
+#        self.solution[-1].check_conditions(self.solution[-1], verbose=3)
+        self.solution[-1].check_conditions(self.solution[-1], verbose)
+
+    def check_restrictions(self):  # url/#check-restrictions
+        """
+        A method to check that various restrictions are met for the model class.
+        """
+        if self.DiscFac <= 0:
+            raise Exception("DiscFac is zero or less with value: " + str(self.DiscFac))
+
+        if self.Rfree < 0:
+            raise Exception("Rfree is below zero with value: " + str(self.DiscFac))
+
+        if self.PermGroFac < 0:
+            raise Exception("PermGroFac is negative with value: " + str(self.PermGroFac))
+
+        if self.LivPrb < 0:
+            raise Exception("LivPrb is less than zero with value: " + str(self.LivPrb))
+
+        if self.LivPrb > 1:
+            raise Exception("LivPrb is greater than one with value: " + str(self.LivPrb))
+
+        if self.tranShkStd < 0:
+            raise Exception("tranShkStd is negative with value: " + str(self.tranShkStd))
+
+        if self.permShkStd < 0:
+            raise Exception("permShkStd is negative with value: " + str(self.permShkStd))
+
+        if self.IncUnemp < 0:
+            raise Exception("IncUnemp is negative with value: " + str(self.IncUnemp))
+
+        if self.IncUnempRet < 0:
+            raise Exception("IncUnempRet is negative with value: " + str(self.IncUnempRet))
+
+        if self.CRRA <= 1:
+            raise Exception("CRRA is <= 1 with value: " + str(self.CRRA))
+
+        return
+
     def dolo_defs(self):  # CDC 20210415: Beginnings of Dolo integration
         self.symbol_calibration = dict(  # not used yet, just created
             states={"mNrm": 2.0,
@@ -2674,32 +2729,23 @@ class PerfForesightConsumerType(AgentType):
 
     def store_model_params(self, prmtv_par, aprox_lim):
         # When anything cached here changes, solution SHOULD change
-        self.prmtv_par_vals={}
+        self.prmtv_par_vals = {}
         for par in prmtv_par:
-            self.prmtv_par_vals[par]=getattr(self, par)
+            self.prmtv_par_vals[par] = getattr(self, par)
 
-        self.aprox_par_vals={}
+        self.aprox_par_vals = {}
         for key in aprox_lim:
-            self.aprox_par_vals[key]=getattr(self, key)
+            self.aprox_par_vals[key] = getattr(self, key)
 
         # Merge to get all aprox and prmtv params
-        self.solve_par_vals={**self.prmtv_par_vals, **self.aprox_par_vals}
+        self.solve_par_vals = {**self.prmtv_par_vals, **self.aprox_par_vals}
 
         # Let solver know about all the  params of the modl
-        self.solve_one_period.parameters_model=self.parameters
+        self.solve_one_period.parameters_model = self.parameters
 
         # and about the ones which, if they change, require iterating
-        self.solve_one_period.solve_par_vals=self.solve_par_vals
+        self.solve_one_period.solve_par_vals = self.solve_par_vals
 #        solver.solve_par_vals = self.solve_par_vals
-
-    def check_conditions(self, verbose=3):
-
-        if not hasattr(self, 'solution'):  # Need a solution to have been computed
-            _log.info('Solving penultimate period because solution needed to check conditions')
-            self.make_solution_for_final_period()
-
-#        self.solution[-1].check_conditions(self.solution[-1], verbose=3)
-        self.solution[-1].check_conditions(self.solution[-1], verbose)
 
     def pre_solve(self):  # Do anything necessary to prepare agent to solve
 
@@ -2710,54 +2756,18 @@ class PerfForesightConsumerType(AgentType):
                         AttributeError(
                             "Kinks are caused by constraints.  Cannot specify MaxKinks without constraints!  Ignoring."
                         ))
-                self.MaxKinks=np.inf
+                self.MaxKinks = np.inf
             return
         # Then it has a borrowing constraint
         if hasattr(self, "MaxKinks"):
             if self.cycles > 0:  # If it's not an infinite horizon model...
-                self.MaxKinks=np.inf  # ...there's no need to set MaxKinks
+                self.MaxKinks = np.inf  # ...there's no need to set MaxKinks
             else:
                 raise (
                     AttributeError(
                         "PerfForesightConsumerType requires MaxKinks when BoroCnstArt is not None, cycles == 0."
                     )
                 )
-
-    def check_restrictions(self):  # url/#check-restrictions
-        """
-        A method to check that various restrictions are met for the model class.
-        """
-        if self.DiscFac <= 0:
-            raise Exception("DiscFac is zero or less with value: " + str(self.DiscFac))
-
-        if self.Rfree < 0:
-            raise Exception("Rfree is below zero with value: " + str(self.DiscFac))
-
-        if self.PermGroFac < 0:
-            raise Exception("PermGroFac is negative with value: " + str(self.PermGroFac))
-
-        if self.LivPrb < 0:
-            raise Exception("LivPrb is less than zero with value: " + str(self.LivPrb))
-
-        if self.LivPrb > 1:
-            raise Exception("LivPrb is greater than one with value: " + str(self.LivPrb))
-
-        if self.tranShkStd < 0:
-            raise Exception("tranShkStd is negative with value: " + str(self.tranShkStd))
-
-        if self.permShkStd < 0:
-            raise Exception("permShkStd is negative with value: " + str(self.permShkStd))
-
-        if self.IncUnemp < 0:
-            raise Exception("IncUnemp is negative with value: " + str(self.IncUnemp))
-
-        if self.IncUnempRet < 0:
-            raise Exception("IncUnempRet is negative with value: " + str(self.IncUnempRet))
-
-        if self.CRRA <= 1:
-            raise Exception("CRRA is <= 1 with value: " + str(self.CRRA))
-
-        return
 
     def unpack_cFunc(self):
         """ DEPRECATED: Use solution.unpack('cFunc') instead.
@@ -2780,8 +2790,8 @@ class PerfForesightConsumerType(AgentType):
         self.unpack("cFunc")
 
     def initialize_sim(self):
-        self.permShkAgg=self.PermGroFacAgg  # Never changes during sim
-        self.state_now['PlvlAgg']=1.0
+        self.permShkAgg = self.PermGroFacAgg  # Never changes during sim
+        self.state_now['PlvlAgg'] = 1.0
         AgentType.initialize_sim(self)
 
     def mcrlo_birth(self, which_agents):
@@ -2800,22 +2810,22 @@ class PerfForesightConsumerType(AgentType):
         None
         """
         # Get and store states for newly born agents
-        N=np.sum(which_agents)  # Number of new consumers to make
-        self.state_now['aNrm'][which_agents]=Lognormal(
+        N = np.sum(which_agents)  # Number of new consumers to make
+        self.state_now['aNrm'][which_agents] = Lognormal(
             mu=self.aNrmInitMean,
             sigma=self.aNrmInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1),
         ).draw(N)
         # why is a now variable set here? Because it's an aggregate.
-        mcrlo_pLvlInitMean=self.mcrlo_pLvlInitMean + np.log(
+        mcrlo_pLvlInitMean = self.mcrlo_pLvlInitMean + np.log(
             self.state_now['PlvlAgg']
         )  # Account for newer cohorts having higher permanent income
-        self.state_now['pLvl'][which_agents]=Lognormal(
+        self.state_now['pLvl'][which_agents] = Lognormal(
             mcrlo_pLvlInitMean,
             self.mcrlo_pLvlInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
-        self.t_age[which_agents]=0  # How many periods since each agent was born
+        self.t_age[which_agents] = 0  # How many periods since each agent was born
         self.t_cycle[
             which_agents
         ]=0  # Which period of the cycle each agent is currently in
