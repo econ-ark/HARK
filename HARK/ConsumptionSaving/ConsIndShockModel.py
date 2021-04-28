@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from types import SimpleNamespace
 from builtins import (range, str, breakpoint)
+from math import isclose
 from copy import copy, deepcopy
 import numpy as np
+from numpy.testing import assert_approx_equal as assert_approx_equal
 from numpy import dot as 𝔼_dot  # expectations (arg0 and arg1 are prb and val)
 from scipy.optimize import newton
 from HARK import AgentType, NullFunc, MetricObject, make_one_period_oo_solver
@@ -1166,9 +1168,11 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 
         mde.permShkPrbs = permShkPrbs = permShkDstn.pmf
         mde.permShkVals = permShkVals = permShkDstn.X
-
+        assert_approx_equal(𝔼_dot(permShkPrbs,permShkVals),1.0)
+        
         mde.tranShkPrbs = tranShkPrbs = tranShkDstn.pmf
         mde.tranShkVals = tranShkVals = tranShkDstn.X
+        assert_approx_equal(𝔼_dot(tranShkPrbs,tranShkVals),1.0)
 
         mde.permShkMin = permShkMin = np.min(permShkVals)
         mde.tranShkMin = tranShkMin = np.min(tranShkVals)
@@ -1451,17 +1455,13 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         )
 
         soln_crnt.c_where_Ex_mtp1_minus_mt_eq_0 = \
-            c_where_Ex_mtp1_minus_mt_eq_0 = (
-                lambda m_t:
+                lambda m_t: \
                 m_t * (1 - 1/soln_crnt.Ex_RNrm) + (1/soln_crnt.Ex_RNrm)
-            )
 
         # Solve the equation at url/#balgrostable
         soln_crnt.c_where_Ex_permShk_times_mtp1_minus_mt_eq_0 = \
-            c_where_Ex_permShk_times_mtp1_minus_mt_eq_0 = (
-                lambda m_t:
+                lambda m_t: \
                 (m_t * (1 - 1/soln_crnt.PF_RNrm)) + (1/soln_crnt.PF_RNrm)
-            )
 
         # mNrmTrg solves Ex_RNrm*(m - c(m)) + 𝔼[inc_next] - m = 0
         Ex_m_tp1_minus_m_t = (
@@ -1471,7 +1471,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         )
         soln_crnt.Ex_m_tp1_minus_m_t = Ex_m_tp1_minus_m_t
 
-        soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_at = Ex_cLev_tp1_Over_pLev_t_from_at = (
+        soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_at = (
             lambda a_t:
             𝔼_dot(
                 soln_crnt.mde.permShkValsBcst * soln_crnt.mde.PermGroFac * soln_crnt.cFunc(
@@ -1481,11 +1481,11 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
                 soln_crnt.ShkPrbs)
         )
 
-        soln_crnt.Ex_permShk_tp1_times_m_tp1_minus_m_t = \
-            Ex_permShk_tp1_times_m_tp1_minus_m_t = (
-                lambda m_t: self.soln_crnt.PF_RNrm *
+        soln_crnt.Ex_permShk_tp1_times_m_tp1_minus_m_t = (\
+                lambda m_t: 
+                    soln_crnt.PF_RNrm *
                 (m_t - soln_crnt.cFunc(m_t)) + 1.0 - m_t
-            )
+                )
 
         for key in soln_crnt.fcts:
             setattr(mde, key+'_fcts', soln_crnt.fcts[key])
@@ -1841,6 +1841,9 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used for interpolation
+        # CDC 20210428: We should just always make the value function.  The cost
+        # is trivial and not worth the maintainence time the option takes in the
+        # codebase
         if soln_crnt.mde.vFuncBool:
             soln_crnt.mde.vFunc = self.vFunc = self.add_vFunc(soln_crnt, self.EndOfPrdvP)
         if soln_crnt.mde.CubicBool:
@@ -2048,7 +2051,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
 
 
 ####################################################################################################
-# ###################################################################################################
+####################################################################################################
 class ConsKinkedRsolver(ConsIndShockSolver):
     """
     A class to solve a single period consumption-saving problem where the interest
@@ -2080,7 +2083,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         Interest factor on assets between this period and the succeeding
         period when assets are positive.
     PermGroFac : float
-p        Expected permanent income growth factor at the end of this period.
+        Expected permanent income growth factor at the end of this period.
     BoroCnstArt: float or None
         Borrowing constraint for the minimum allowable assets to end the
         period with.  If it is less than the natural borrowing constraint,
@@ -2434,7 +2437,82 @@ init_perfect_foresight['_fcts'].update({'cycle': cycles_fcts})
 init_perfect_foresight.update({'cycles_fcts': cycles_fcts})
 
 
-class OneStateConsumerType(AgentType):
+class AgentTypePlus(AgentType):
+    """
+    AgentType augmented with a few features that should be incorporated into
+    the base AgentType
+    """
+    __doc__ += AgentType.__doc__
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)  # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
+
+    def store_model_params(self, prmtv_par, aprox_lim):
+        # When anything cached here changes, solution SHOULD change
+        self.prmtv_par_vals = {}
+        for par in prmtv_par:
+            self.prmtv_par_vals[par] = getattr(self, par)
+
+        self.aprox_par_vals = {}
+        for key in aprox_lim:
+            self.aprox_par_vals[key] = getattr(self, key)
+
+        # Merge to get all aprox and prmtv params
+        self.solve_par_vals = {**self.prmtv_par_vals, **self.aprox_par_vals}
+
+    def update(self):
+        """
+        Update any characteristics of the solution environment that need to be recomputed
+        as a result of changes in parameters since the last time the solver was invoked.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        """
+
+        solve_par_vals_now = {}
+        for par in self.solve_par_vals:
+            solve_par_vals_now[par] = getattr(self, par)
+
+        if not solve_par_vals_now == self.solve_par_vals:
+            _log.info('Some model parameter has changed since last update.')
+            _log.info('Storing new parameters and updating shocks and grid.')
+            self.update_pre_solve()  # The AgentType must define its own
+
+        # # Encourage the practice of sharing with the solver the agent's parameters
+        # try:
+        #     self.solve_one_period.parameters_model
+        # except NameError:  # If solver doesn't have such a variable, mildly complain
+        #     _log.info('No parameters inherited.  Please add a line like:')
+        #     _log.info('')
+        #     _log.info('    self.solve_one_period.parameters  = self.parameters')
+        #     _log.info('')
+        #     _log.info('before invoking the self.update() method in the calling AgentType.')
+        # else:
+        #     if self.verbose == 3:
+        #         _log.info('')
+        #         _log.info('Solver inherited these parameters:')
+        #         _log.info('')
+        #         _log.info(self.solve_one_period.parameters_model.keys())
+        #         _log.info('')
+        #         _log.info('from model_type '+self.solve_one_period.parameters_model['model_type'])
+        #         _log.info('')
+
+        # Each AgentType must define its own update_pre_solve method if it has parameters
+        # that a user might change and that necessitate recomputation of solution objects
+        # For example, if the number of gridpoints in the discretization of the income
+        # shocks is increased, the DiscreteDistribution objects need to be recomputed
+        def update_pre_solve(self):
+            # There are no universally required pre_solve objects
+            pass
+
+
+class OneStateConsumerType(AgentTypePlus):
     """
     Construct endpoint for solution of problem of a consumer with
     one state variable, m:
@@ -2501,14 +2579,16 @@ class OneStateConsumerType(AgentType):
 
         # Define solution_terminal_ for legacy/documentation reasons
         solution_terminal_ = solution_nobequest_
+        assert(solution_terminal_ == solution_nobequest_)
+
 #        breakpoint()
         self.soln_crnt = ConsumerSolutionOneStateCRRA()  # Mainly for storing functions, methods
         if not hasattr(self, 'solution_startfrom'):
             solution_startfrom = deepcopy(solution_nobequest_)
 
         self.dolo_defs()  # Instantiate (partial) dolo description
-        AgentType.__init__(
-            self,  # position makes this solution_terminal in AgentType
+        AgentTypePlus.__init__(
+            self,  # position makes this solution_terminal in AgentTypePlus
             solution_terminal=solution_startfrom,  # whether handmade or default
             cycles=cycles,
             pseudo_terminal=False,
@@ -2522,7 +2602,7 @@ class OneStateConsumerType(AgentType):
         )  # Things all such models have in common
 
 
-class PerfForesightConsumerType(AgentType):
+class PerfForesightConsumerType(OneStateConsumerType):
 
     """
     A perfect foresight consumer who has no uncertainty other than mortality.
@@ -2685,11 +2765,10 @@ class PerfForesightConsumerType(AgentType):
     def check_conditions(self, verbose=3):
 
         if not hasattr(self, 'solution'):  # Need a solution to have been computed
-            _log.info('Solving penultimate period because solution needed to check conditions')
+            _log.info('Solving final period because conditions are computed on solver')
             self.make_solution_for_final_period()
 
-#        self.solution[-1].check_conditions(self.solution[-1], verbose=3)
-#        breakpoint()
+        breakpoint()
         soln_crnt = self.solution[-1]
         soln_crnt.check_conditions(soln_crnt, verbose)
 
@@ -2749,7 +2828,7 @@ class PerfForesightConsumerType(AgentType):
             soln_crnt.cFunc, self.CRRA)
 
         # CDC 20210423:
-        # utility u, marginail utility u' is uP, marginal marginal uPP
+        # utility u, marginal utility u' is uP, marginal marginal uPP
         soln_crnt.mde.u = soln_crnt.u = lambda c: utility(c, self.CRRA)
         soln_crnt.mde.uP = soln_crnt.uP = lambda c: utilityP(c, self.CRRA)
         soln_crnt.mde.uPP = soln_crnt.uPP = lambda c: utilityPP(c, self.CRRA)
@@ -2785,26 +2864,6 @@ class PerfForesightConsumerType(AgentType):
         self.urlroot = self.url_ref+'/#'
         self.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q=" +\
             self.class_name+"&check_keywords=yes&area=default#"
-
-    def store_model_params(self, prmtv_par, aprox_lim):
-        # When anything cached here changes, solution SHOULD change
-        self.prmtv_par_vals = {}
-        for par in prmtv_par:
-            self.prmtv_par_vals[par] = getattr(self, par)
-
-        self.aprox_par_vals = {}
-        for key in aprox_lim:
-            self.aprox_par_vals[key] = getattr(self, key)
-
-        # Merge to get all aprox and prmtv params
-        self.solve_par_vals = {**self.prmtv_par_vals, **self.aprox_par_vals}
-
-        # Let solver know about all the  params of the modl
-        self.solve_one_period.parameters_model = self.parameters
-
-        # and about the ones which, if they change, require iterating
-        self.solve_one_period.solve_par_vals = self.solve_par_vals
-#        solver.solve_par_vals = self.solve_par_vals
 
     def pre_solve(self):  # Do anything necessary to prepare agent to solve
 
@@ -3302,6 +3361,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Store setup parameters so we can check for changes
         self.store_model_params(params['prmtv_par'], params['aprox_lim'])
 
+        # Let solver know about all the params of the model
+        self.solve_one_period.parameters_model = self.parameters
+
+        # and about the ones which, if they change, require iterating
+        self.solve_one_period.solve_par_vals = self.solve_par_vals
+
         # Quiet mode: Define model without calculating anything
         # If not quiet, solve one period so we can check conditions
 
@@ -3318,6 +3383,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.solve()  # ... means that "solve" will stop after one period ...
         self.pseudo_terminal = False  # ... and replace terminal with updated
         self.tolerance = self.tolerance_orig  # which leaves us ready to solve
+
+    def update_pre_solve(self):
+        """
+        Updates any characteristics of the agent's problem that need to be built
+        from primitives (like, discretizations of a continuous distribution).
+        """
+        self.update_income_process()
+        self.update_asset_grid()
 
     def update_income_process(self):
         """
@@ -3363,52 +3436,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.add_to_time_inv("aXtraGrid")
         self.parameters.update({'aXtraGrid': self.aXtraGrid})
 
-    def update(self):
-        """
-        Update the characteristics of the problem if any parameters have changed
-        since the last update.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-
-        Notes
-        -------
-        None
-        """
-
-        solve_par_vals_now = {}
-        for par in self.solve_par_vals:
-            solve_par_vals_now[par] = getattr(self, par)
-
-        if not solve_par_vals_now == self.solve_par_vals:
-            _log.info('Some model parameter has changed since last update.')
-            _log.info('Storing new parameters and updating shocks and grid.')
-            self.finish_setup_default_term_by_putting_into_soln_crnt()
-
-        # Encourage the practice of sharing with the solver the agent's parameters
-        try:
-            self.solve_one_period.parameters_model
-        except NameError:  # If solver doesn't have such a variable, mildly complain
-            _log.info('No parameters inherited.  Please add a line like:')
-            _log.info('')
-            _log.info('    self.solve_one_period.parameters  = self.parameters')
-            _log.info('')
-            _log.info('before invoking the self.update() method in the calling AgentType.')
-        else:
-            if self.verbose == 3:
-                _log.info('')
-                _log.info('Solver inherited these parameters:')
-                _log.info('')
-                _log.info(self.solve_one_period.parameters_model.keys())
-                _log.info('')
-                _log.info('from model_type '+self.solve_one_period.parameters_model['model_type'])
-                _log.info('')
-
     def reset_rng(self):
         """
         Reset the RNG behavior of this type.  This method is called automatically
@@ -3432,7 +3459,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 dstn.reset()
 
     def pre_solve(self):  # Before beginning any solution steps
-        self.update()
+        self.update()  # Tests whether an update is needed, and performs it if so
 
     def construct_lognormal_income_process_unemployment(self):
         """
@@ -3530,9 +3557,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # in normal times; value 0.0 in "unemployment" times with small prob.
         if T_retire > 0:
             if UnempPrbRet > 0:
-                permShkValsNxtRet = np.array(
-                    [1.0, 1.0]
-                )  # Permanent income is deterministic in retirement (2 states for temp income shocks)
+#                permShkValsNxtRet = np.array([1.0, 1.0])  # Permanent income is deterministic in retirement (2 states for temp income shocks)
                 tranShkValsRet = np.array(
                     [
                         IncUnempRet,
@@ -3541,14 +3566,21 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 )
                 ShkPrbsRet = np.array([UnempPrbRet, 1.0 - UnempPrbRet])
             else:
-                permShkValsNxtRet = np.array([1.0])
-                tranShkValsRet = np.array([1.0])
-                ShkPrbsRet = np.array([1.0])
-                IncShkDstnRet = DiscreteApproximationToContinuousDistribution(
-                    ShkPrbsRet,
-                    [permShkValsNxtRet, tranShkValsRet],
-                    seed=self.RNG.randint(0, 2 ** 31 - 1),
-                )
+                (IncShkDstnRet,
+                 permShkDstnRet,
+                 tranShkDstnRet,
+                 ) = self.construct_lognormal_income_process_unemployment()
+                ShkPrbsRet = IncShkDstnRet.pmf
+#                permShkValsNxtRet = IncShkDstnRet.X[0]
+
+                # permShkValsNxtRet = np.array([1.0])
+                # tranShkValsRet = np.array([1.0])
+                # ShkPrbsRet = np.array([1.0])
+                # IncShkDstnRet = DiscreteApproximationToContinuousDistribution(
+                #     ShkPrbsRet,
+                #     [permShkValsNxtRet, tranShkValsRet],
+                #     seed=self.RNG.randint(0, 2 ** 31 - 1),
+                # )
 
         # Loop to fill in the list of IncShkDstn random variables.
         for t in range(T_cycle):  # Iterate over all periods, counting forward
