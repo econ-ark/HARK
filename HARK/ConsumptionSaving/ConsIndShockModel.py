@@ -199,6 +199,30 @@ class ConsumerSolution(MetricObject):
             self.vPPfunc.append(new_solution.vPPfunc)
             self.mNrmMin.append(new_solution.mNrmMin)
 
+
+class ConsumerSolutionOneStateCRRA(ConsumerSolution):
+    """ 
+    A subclass of ConsumerSolution that assumes that the problem has two
+    key additional characteristics:
+
+        * Constant Relative Risk Aversion (CRRA) utility
+
+        * Geometric Discounting of Time Separable Utility
+
+    along with a set of restrictions on the parameter values of the model 
+    (like, the time preference factor must be positive).  Under various 
+    combinations of these assumptions, various conditions imply various 
+    results.  The suite of restrictions is always evaluated.  The set of
+    conditions is evaluated using the `check_conditions` method.  Further
+    information about the conditions can be found in the documentation for 
+    that method.  For convenience, we repeat below the documentation for the 
+    parent ConsumerSolution of this class, all of which applies here.
+    """
+    __doc__ += ConsumerSolution.__doc__
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)  # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
+
     def check_conditions(self, soln_crnt, verbose=None):
         """
         Checks whether the instance's type satisfies the:
@@ -444,375 +468,6 @@ class ConsumerSolution(MetricObject):
 
         return self.mNrmTrg
 
-
-class ConsumerSolutionOneStateCRRA(MetricObject):
-    """
-    Solution of single period/stage of a consumption/saving problem with
-    one state at decision time: market resources `m`, which includes both
-    liquid assets and current income.  Defines a consumption function and
-    marginal value function.
-
-    Here and elsewhere in the code, Nrm indicates that variables are normalized
-    by permanent income.
-
-    Parameters
-    ----------
-    cFunc : function
-        The consumption function for this period/stage, defined over market
-        resources: c = cFunc(m).
-    vFunc : function
-        The beginning value function for this stage, defined over
-        market resources: v = vFunc(m).
-    vPfunc : function
-        The beginning marginal value function for this period,
-        defined over market resources: vP = vPfunc(m).
-    vPPfunc : function
-        The beginning marginal marginal value function for this
-        period, defined over market resources: vPP = vPPfunc(m).
-    mNrmMin : float
-        The minimum allowable market resources for this period; the consump-
-        tion and other functions are undefined for m < mNrmMin.
-    hNrm : float
-        Human wealth after receiving income this period: PDV of all future
-        income, ignoring mortality.
-    MPCmin : float
-        Infimum of the marginal propensity to consume this period.
-        MPC --> MPCmin as m --> infinity.
-    MPCmax : float
-        Supremum of the marginal propensity to consume this period.
-        MPC --> MPCmax as m --> mNrmMin.
-    stge_kind : dict
-        Dictionary with info about this stage
-        One built-in entry keeps track of the nature of the stage:
-            {'iter_status':'terminal'}: Terminal (last period of existence)
-            {'iter_status':'iterator'}: Solution during iteration
-            {'iter_status':'finished'}: Stopping requirements are satisfied
-                If stopping requirements are satisfied, {'tolerance':tolerance}
-                should exist recording what convergence tolerance was satisfied
-        Other uses include keeping track of the nature of the next stage
-    parameters_solver : dict
-        Stores the parameters with which the solver was called
-    """
-
-    # CDC 20210426: vPfunc is a bad choice; we should change it,
-    # but doing so will require recalibrating some of our tests
-    distance_criteria = ["vPfunc"]  # Bad because it goes to infinity; instead:
-#    distance_criteria = ["mNrmStE"]  # mNrmStE if the GIC holds (and it's not close)
-#    distance_criteria = ["cFunc"]  # cFunc if the GIC fails
-
-    def __init__(
-            self,
-            cFunc=None,
-            vFunc=None,
-            vPfunc=None,
-            vPPfunc=None,
-            mNrmMin=None,
-            hNrm=None,
-            MPCmin=None,
-            MPCmax=None,
-            stge_kind=None,
-            parameters_solver=None,
-            sp1=None,
-            mde=None,
-            ** kwds,
-    ):
-        # Change any missing function inputs to NullFunc
-        self.cFunc = cFunc if cFunc is not None else NullFunc()
-        self.vFunc = vFunc if vFunc is not None else NullFunc()
-        self.vPfunc = vPfunc if vPfunc is not None else NullFunc()
-        self.vPPfunc = vPPfunc if vPPfunc is not None else NullFunc()
-        self.mNrmMin = mNrmMin
-        self.hNrm = hNrm
-        self.MPCmin = MPCmin
-        self.MPCmax = MPCmax
-        self.completed_cycles = 0
-        self.sp1 = sp1 if sp1 is not None else SimpleNamespace()
-        self.mde = mde if mde is not None else SimpleNamespace()
-
-    def append_solution(self, new_solution):
-        """
-        Appends one solution to another to create a ConsumerSolution whose
-        attributes are lists.  Used in ConsMarkovModel, where we append solutions
-        *conditional* on a particular value of a Markov state to each other in
-        order to get the entire solution.
-
-        Parameters
-        ----------
-        new_solution : ConsumerSolution
-            The solution to a consumption-saving problem; each attribute is a
-            list representing state-conditional values or functions.
-
-        Returns
-        -------
-        None
-        """
-        if type(self.cFunc) != list:
-            # Then we assume that self is an empty initialized solution instance.
-            # Begin by checking this is so.
-            assert (
-                NullFunc().distance(self.cFunc) == 0
-            ), "append_solution called incorrectly!"
-
-            # We will need the attributes of the solution instance to be lists.  Do that here.
-            self.cFunc = [new_solution.cFunc]
-            self.vFunc = [new_solution.vFunc]
-            self.vPfunc = [new_solution.vPfunc]
-            self.vPPfunc = [new_solution.vPPfunc]
-            self.mNrmMin = [new_solution.mNrmMin]
-        else:
-            self.cFunc.append(new_solution.cFunc)
-            self.vFunc.append(new_solution.vFunc)
-            self.vPfunc.append(new_solution.vPfunc)
-            self.vPPfunc.append(new_solution.vPPfunc)
-            self.mNrmMin.append(new_solution.mNrmMin)
-
-
-class dummyout(MetricObject):
-    def check_conditions(self, soln_crnt, verbose=None):
-        """
-        Checks whether the instance's type satisfies the:
-
-        ============= ===================================================
-        Acronym        Condition
-        ============= ===================================================
-        AIC           Absolute Impatience Condition
-        RIC           Return Impatience Condition
-        GIC           Growth Impatience Condition
-        GICLiv        GIC adjusting for constant probability of mortality
-        GICNrm        GIC adjusted for uncertainty in permanent income
-        FHWC          Finite Human Wealth Condition
-        FVAC          Finite Value of Autarky Condition
-        ============= ===================================================
-
-        Depending on the configuration of parameter values, some combination of
-        these conditions must be satisfied in order for the problem to have
-        a nondegenerate soln_crnt. To check which conditions are required,
-        in the verbose mode, a reference to the relevant theoretical literature
-        is made.
-
-        Parameters
-        ----------
-        verbose : boolean
-            Specifies different levels of verbosity of feedback. When False, it only reports whether the
-            instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
-            the factor values for all conditions.
-
-        Returns
-        -------
-        None
-        """
-        self.soln_crnt.mde.conditions = {}  # Keep track of truth value of conditions
-        self.soln_crnt.violated = False  # True means solution is degenerate
-
-        if not hasattr(self, 'verbose'):  # If verbose not set yet
-            self.verbose = 0 if verbose is None else verbose
-        else:
-            verbose = self.verbose if verbose is None else verbose
-
-        self.check_AIC(soln_crnt, verbose)
-        self.check_FHWC(soln_crnt, verbose)
-        self.check_RIC(soln_crnt, verbose)
-        self.check_GICRaw(soln_crnt, verbose)
-        self.check_GICLiv(soln_crnt, verbose)
-        self.check_FVAC(soln_crnt, verbose)
-
-        # violated flag is true if the model has no nondegenerate solution
-        if hasattr(self.soln_crnt.mde, "BoroCnstArt") \
-                and self.soln_crnt.mde.BoroCnstArt is not None:
-            self.soln_crnt.violated = not self.soln_crnt.mde.conditions["RIC"]
-            # If BoroCnstArt exists but RIC fails, limiting soln is c(m)=0
-        else:  # If no constraint,
-            self.soln_crnt.violated = not self.soln_crnt.mde.conditions["RIC"] or \
-                not self.soln_crnt.mde.conditions["FHWC"]    # c(m)=0 or \infty
-
-    def check_AIC(self, stge, verbose=None):
-        """
-        Evaluate and report on the Absolute Impatience Condition
-        """
-        name = "AIC"
-
-        def test(stge): return stge.mde.APF < 1
-
-        messages = {
-            True: "\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, satisfies the Absolute Impatience Condition (AIC), which requires APF < 1: "+stge.mde.AIC_fcts['urlhandle'],
-            False: "\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, violates the Absolute Impatience Condition (AIC), which requires APF < 1: "+stge.mde.AIC_fcts['urlhandle']
-        }
-        verbose_messages = {
-            True: "  Because the APF < 1,  the absolute amount of consumption is expected to fall over time.  \n",
-            False: "  Because the APF > 1, the absolute amount of consumption is expected to grow over time.  \n",
-        }
-
-        stge.mde.AIC = core_check_condition(name, test, messages, verbose,
-                                            verbose_messages, "APF", stge)
-
-    def check_FVAC(self, stge, verbose=None):
-        """
-        Evaluate and report on the Finite Value of Autarky Condition
-        """
-        name = "FVAC"
-
-        def test(stge): return stge.mde.FVAF < 1
-
-        messages = {
-            True: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, satisfies the Finite Value of Autarky Condition, which requires FVAF < 1: "+stge.mde.FVAC_fcts['urlhandle'],
-            False: "\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, violates the Finite Value of Autarky Condition, which requires FVAF: "+stge.mde.FVAC_fcts['urlhandle']
-        }
-        verbose_messages = {
-            True: "  Therefore, a nondegenerate solution exists if the RIC also holds. ("+stge.mde.FVAC_fcts['urlhandle']+")\n",
-            False: "  Therefore, a nondegenerate solution exits if the RIC holds.\n",
-        }
-
-        stge.mde.FVAC = core_check_condition(name, test, messages, verbose,
-                                             verbose_messages, "FVAC", stge)
-
-    def check_GICRaw(self, stge, verbose=None):
-        """
-        Evaluate and report on the Growth Impatience Condition
-        """
-        name = "GICRaw"
-
-        def test(stge): return stge.mde.GPFRaw < 1
-
-        messages = {
-            True: "\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, satisfies the Growth Impatience Condition (GIC), which requires GPF < 1: "+stge.mde.GICRaw_fcts['urlhandle'],
-            False: "\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, violates the Growth Impatience Condition (GIC), which requires GPF < 1: "+stge.mde.GICRaw_fcts['urlhandle'],
-        }
-        verbose_messages = {
-            True: "  Therefore,  for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
-            False: "  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to rise toward infinity. \n"
-        }
-        stge.mde.GICRaw = core_check_condition(name, test, messages, verbose,
-                                               verbose_messages, "GPFRaw", stge)
-
-    def check_GICLiv(self, stge, verbose=None):
-        name = "GICLiv"
-
-        def test(stge): return stge.mde.GPFLiv < 1
-
-        messages = {
-            True: "\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, satisfies the Mortality Adjusted Aggregate Growth Imatience Condition (GICLiv): "+stge.mde.GPFLiv_fcts['urlhandle'],
-            False: "\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, violates the Mortality Adjusted Aggregate Growth Imatience Condition (GICLiv): "+stge.mde.GPFLiv_fcts['urlhandle'],
-        }
-        verbose_messages = {
-            True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists ("+stge.mde.GPFLiv_fcts['urlhandle']+")\n",
-            False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist ("+stge.mde.GPFLiv_fcts['urlhandle']+")\n",
-        }
-        stge.mde.GICLiv = core_check_condition(name, test, messages, verbose,
-                                               verbose_messages, "GPFLiv", stge)
-
-    def check_RIC(self, stge, verbose=None):
-        """
-        Evaluate and report on the Return Impatience Condition
-        """
-
-        name = "RIC"
-
-        def test(stge): return stge.mde.RPF < 1
-
-        messages = {
-            True: "\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, satisfies the Return Impatience Condition (RIC), which requires RPF < 1: "+stge.mde.RPF_fcts['urlhandle'],
-            False: "\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, violates the Return Impatience Condition (RIC), which requires RPF < 1: "+stge.mde.RPF_fcts['urlhandle'],
-        }
-        verbose_messages = {
-            True: "  Therefore, the limiting consumption function is not c(m)=0 for all m\n",
-            False: "  Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.\n",
-        }
-        stge.mde.RIC = core_check_condition(name, test, messages, verbose,
-                                            verbose_messages, "RPF", stge)
-
-    def check_FHWC(self, stge, verbose=None):
-        """
-        Evaluate and report on the Finite Human Wealth Condition
-        """
-        name = "FHWC"
-
-        def test(stge): return stge.mde.FHWF < 1
-
-        messages = {
-            True: "\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, satisfies the Finite Human Wealth Condition (FHWC), which requires FHWF < 1: "+stge.mde.FHWC_fcts['urlhandle'],
-            False: "\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, violates the Finite Human Wealth Condition (FHWC), which requires FHWF < 1: "+stge.mde.FHWC_fcts['urlhandle'],
-        }
-        verbose_messages = {
-            True: "  Therefore, the limiting consumption function is not c(m)=Infinity ("+stge.mde.FHWC_fcts['urlhandle']+")\n  Human wealth normalized by permanent income is {0.hNrmInf}.\n",
-            False: "  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.\n  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0. ("+stge.mde.FHWC_fcts['urlhandle']+")\n",
-        }
-        stge.mde.FHWC = core_check_condition(name, test, messages, verbose,
-                                             verbose_messages, "FHWF", stge)
-
-    def check_GICNrm(self, stge, verbose=None):
-        """
-        Check Individual Growth Patience Factor.
-        """
-        name = "GICNrm"
-
-        def test(stge): return stge.mde.GPFNrm <= 1
-
-        messages = {
-            True: "\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, satisfies the Normalized Growth Impatience Condition (GICNrm), which requires GICNrm < 1: "+stge.mde.GPFNrm_fcts['urlhandle']+"\n",
-            False: "\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, violates the Normalized Growth Impatience Condition (GICNrm), which requires GICNrm < 1: "+stge.mde.GPFNrm_fcts['urlhandle']+"\n",
-        }
-        verbose_messages = {
-            True: " Therefore, a target level of the individual market resources ratio m exists ("+stge.mde.GICNrm_fcts['urlhandle']+").\n",
-            False: " Therefore, a target ratio of individual market resources to individual permanent income does not exist.  ("+stge.mde.GICNrm_fcts['urlhandle']+")\n",
-        }
-        stge.mde.GPFNrm = core_check_condition(name, test, messages, verbose,
-                                               verbose_messages, "GPFNrm", stge)
-
-    def check_WRIC(self, stge, verbose=None):
-        """
-        Evaluate and report on the Weak Return Impatience Condition
-        [url]/#WRIC modified to incorporate LivPrb
-        """
-
-        name = "WRIC"
-
-        def test(stge): return stge.mde.WRPF <= 1
-
-        messages = {
-            True: "\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, satisfies the Weak Return Impatience Condition, which requires WRIF < 1: "+stge.mde.WRIC_fcts['urlhandle'],
-            False: "\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, violates the Weak Return Impatience Condition, which requires WRIF < 1: "+stge.mde.WRIC_fcts['urlhandle'],
-        }
-
-        verbose_messages = {
-            True: "  Therefore, a nondegenerate solution exists if the FVAC is also satisfied. ("+stge.mde.WRIC_fcts['urlhandle']+")\n",
-            False: "  Therefore, a nondegenerate solution is not available ("+stge.mde.WRIC_fcts['urlhandle']+")\n",
-        }
-        stge.mde.WRIC = core_check_condition(name, test, messages, verbose,
-                                             verbose_messages, "WRPF", stge)
-
-    def mNrmTrg_finder(self):
-        """
-        Finds value of (normalized) market resources mNrm at which individual consumer
-        expects m not to change.
-
-        This will exist if the GICNrm holds.
-
-        https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
-
-        Parameters
-        ----------
-        solution : ConsumerSolution
-            Solution to this period's problem, which must have attribute cFunc.
-        Returns
-        -------
-            The target value mNrmTrg.
-        """
-
-        # Minimum market resources plus next income is okay starting guess
-        # Better would be to presere the last value (if it exists)
-        # and use that as a starting point
-
-        m_init_guess = self.mNrmMin + self.Ex_IncNrmNxt
-        try:  # Find value where argument is zero
-            self.mNrmTrg = newton(
-                self.Ex_m_tp1_minus_m_t,
-                m_init_guess)
-        except:
-            self.mNrmTrg = None
-
-        return self.mNrmTrg
-
-
 # ConsPerfForesightSolver class incorporates calcs and info useful for
 # models in which perfect foresight does not apply, because the contents
 # of the PF model are inherited by a variety of non-perfect-foresight models
@@ -871,7 +526,7 @@ class ConsPerfForesightSolver(MetricObject):
         tmp = locals()  # There's got to be a better way to do this; lambda?
         parameters_solver = \
             {x: tmp[x] for x in locals() if x not in
-             {'self', 'kwds', 'solution_next'}}
+             {'self', 'kwds', 'solution_next', 'tmp'}}
         self.parameters_solver = parameters_solver.update(kwds)
         del tmp
 
@@ -884,7 +539,7 @@ class ConsPerfForesightSolver(MetricObject):
         # Otherwise create receptacle for construction of solution
         else:
             #            breakpoint()
-            self.soln_crnt = ConsumerSolution()
+            self.soln_crnt = ConsumerSolutionOneStateCRRA()
 
         # links for docs; urls are used when "fcts" are added
         self.url_doc_for_solver_get()
@@ -939,7 +594,7 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Absolute Patience Factor'
         }
         py___code = '((Rfree * DiscLiv) ** (1.0 / CRRA))'
-        mde.APF = APF = eval(py___code, mde.__dict__, sp1.__dict__)
+        mde.APF = APF = eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         APF_fcts.update({'latexexpr': r'\APF'})
         APF_fcts.update({'_unicode_': r'Þ'})
         APF_fcts.update({'urlhandle': urlroot+'APF'})
@@ -961,7 +616,8 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Return Patience Factor'
         }
         py___code = 'APF / Rfree'
-        mde.RPF = RPF = eval(py___code, mde.__dict__, sp1.__dict__)
+        mde.RPF = RPF = \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         RPF_fcts.update({'latexexpr': r'\RPF'})
         RPF_fcts.update({'_unicode_': r'Þ_R'})
         RPF_fcts.update({'urlhandle': urlroot+'RPF'})
@@ -983,7 +639,8 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Growth Patience Factor'
         }
         py___code = 'APF / PermGroFac'
-        mde.GPFRaw = GPFRaw = eval(py___code, mde.__dict__, sp1.__dict__)
+        mde.GPFRaw = GPFRaw = \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         GPFRaw_fcts.update({'latexexpr': '\GPFRaw'})
         GPFRaw_fcts.update({'_unicode_': r'Þ_Γ'})
         GPFRaw_fcts.update({'urlhandle': urlroot+'GPFRaw'})
@@ -1006,7 +663,8 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Mortality-Adjusted Growth Patience Factor'
         }
         py___code = 'APF * LivPrb / PermGroFac'
-        mde.GPFLiv = GPFLiv = eval(py___code, mde.__dict__, sp1.__dict__)
+        mde.GPFLiv = GPFLiv = \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         GPFLiv_fcts.update({'latexexpr': '\GPFLiv'})
         GPFLiv_fcts.update({'urlhandle': urlroot+'GPFLiv'})
         GPFLiv_fcts.update({'py___code': py___code})
@@ -1028,7 +686,8 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Growth-Normalized PF Return Factor'
         }
         py___code = 'Rfree/PermGroFac'
-        mde.PF_RNrm = PF_RNrm = eval(py___code, mde.__dict__, sp1.__dict__)
+        mde.PF_RNrm = PF_RNrm = \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         PF_RNrm_fcts.update({'latexexpr': r'\PFRNrm'})
         PF_RNrm_fcts.update({'_unicode_': r'R/Γ'})
         PF_RNrm_fcts.update({'py___code': py___code})
@@ -1041,7 +700,8 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Inv of Growth-Normalized PF Return Factor'
         }
         py___code = '1 / PF_RNrm'
-        mde.Inv_PF_RNrm = Inv_PF_RNrm = eval(py___code, mde.__dict__, sp1.__dict__)
+        mde.Inv_PF_RNrm = Inv_PF_RNrm = \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         Inv_PF_RNrm_fcts.update({'latexexpr': r'\InvPFRNrm'})
         Inv_PF_RNrm_fcts.update({'_unicode_': r'Γ/R'})
         Inv_PF_RNrm_fcts.update({'py___code': py___code})
@@ -1054,7 +714,8 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Finite Human Wealth Factor'
         }
         py___code = 'PermGroFac / Rfree'
-        mde.FHWF = FHWF = eval(py___code, mde.__dict__, sp1.__dict__)
+        mde.FHWF = FHWF = \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         FHWF_fcts.update({'latexexpr': r'\FHWF'})
         FHWF_fcts.update({'_unicode_': r'R/Γ'})
         FHWF_fcts.update({'urlhandle': urlroot+'FHWF'})
@@ -1077,7 +738,8 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Human wealth for inf hor'
         }
         py___code = '1/(1-FHWF) if (FHWF < 1) else np.inf'
-        mde.hNrmInf = hNrmInf = eval(py___code, mde.__dict__, sp1.__dict__)
+        mde.hNrmInf = hNrmInf = \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         hNrmInf_fcts = dict({'latexexpr': '1/(1-\FHWF)'})
         hNrmInf_fcts.update({'value_now': hNrmInf})
         hNrmInf_fcts.update({'py___code': py___code})
@@ -1089,7 +751,8 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'DiscFac s.t. GPFRaw = 1'
         }
         py___code = '( PermGroFac                       ** CRRA)/(Rfree)'
-        mde.DiscGPFRawCusp = DiscGPFRawCusp = eval(py___code, mde.__dict__, sp1.__dict__)
+        mde.DiscGPFRawCusp = DiscGPFRawCusp = \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         DiscGPFRawCusp_fcts.update({'latexexpr': '\PermGroFac^{\CRRA}/\Rfree'})
         DiscGPFRawCusp_fcts.update({'value_now': DiscGPFRawCusp})
         DiscGPFRawCusp_fcts.update({'py___code': py___code})
@@ -1101,7 +764,8 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'DiscFac s.t. GPFLiv = 1'
         }
         py___code = '( PermGroFac                       ** CRRA)/(Rfree*LivPrb)'
-        mde.DiscGPFLivCusp = DiscGPFLivCusp = eval(py___code, mde.__dict__, sp1.__dict__)
+        mde.DiscGPFLivCusp = DiscGPFLivCusp = \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         DiscGPFLivCusp_fcts.update({'latexexpr': '\PermGroFac^{\CRRA}/(\Rfree\LivPrb)'})
         DiscGPFLivCusp_fcts.update({'value_now': DiscGPFLivCusp})
         DiscGPFLivCusp_fcts.update({'py___code': py___code})
@@ -1113,7 +777,8 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Finite Value of Autarky Factor'
         }
         py___code = 'LivPrb * DiscLiv'
-        mde.FVAF = FVAF = eval(py___code, mde.__dict__, sp1.__dict__)
+        mde.FVAF = FVAF = \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         FVAF_fcts.update({'latexexpr': r'\FVAFPF'})
         FVAF_fcts.update({'urlhandle': urlroot+'FVAFPF'})
         FVAF_fcts.update({'py___code': py___code})
@@ -1136,7 +801,8 @@ class ConsPerfForesightSolver(MetricObject):
         py___code = '((PermGroFac / Rfree) * (1.0 + hNrm_tp1))'
         if soln_crnt.stge_kind['iter_status'] == 'terminal':  # kludge:
             mde.hNrm_tp1 = -1.0  # causes hNrm = 0 for final period
-        mde.hNrm = hNrm = eval(py___code, mde.__dict__, sp1.__dict__)
+        mde.hNrm = hNrm = \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         hNrm_fcts.update({'latexexpr': r'\hNrm'})
         hNrm_fcts.update({'_unicode_': r'R/Γ'})
         hNrm_fcts.update({'urlhandle': urlroot+'hNrm'})
@@ -1154,7 +820,8 @@ class ConsPerfForesightSolver(MetricObject):
         if soln_crnt.stge_kind['iter_status'] == 'terminal':  # kludge
             mde.mNrmMin_tp1 = mde.tranShkMin  # causes BoroCnstNat = 0 in term
         py___code = '(mNrmMin_tp1 - tranShkMin)*(PermGroFac/Rfree)*permShkMin'
-        mde.BoroCnstNat = BoroCnstNat = eval(py___code, mde.__dict__, sp1.__dict__)
+        mde.BoroCnstNat = BoroCnstNat = \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         BoroCnstNat_fcts.update({'latexexpr': r'\BoroCnstNat'})
         BoroCnstNat_fcts.update({'_unicode_': r''})
         BoroCnstNat_fcts.update({'urlhandle': urlroot+'BoroCnstNat'})
@@ -1164,25 +831,27 @@ class ConsPerfForesightSolver(MetricObject):
         soln_crnt.mde.BoroCnstNat_fcts = BoroCnstNat_fcts
         soln_crnt.BoroCnstNat = BoroCnstNat
 
-        BoroCnstArt_fcts = {
-            'about': 'Artificial Borrowing Constraint'
+        BoroCnst_fcts = {
+            'about': 'Effective Borrowing Constraint'
         }
         py___code = 'BoroCnstArt if (BoroCnstArt and BoroCnstNat < BoroCnstArt) else BoroCnstNat'
-        mde.BoroCnstArt = BoroCnstArt = eval(py___code, mde.__dict__, sp1.__dict__)
-        BoroCnstArt_fcts.update({'latexexpr': r'\BoroCnstArt'})
-        BoroCnstArt_fcts.update({'_unicode_': r''})
-        BoroCnstArt_fcts.update({'urlhandle': urlroot+'BoroCnstArt'})
-        BoroCnstArt_fcts.update({'py___code': py___code})
-        BoroCnstArt_fcts.update({'value_now': BoroCnstArt})
-        soln_crnt.fcts.update({'BoroCnstArt': BoroCnstArt_fcts})
-        soln_crnt.mde.BoroCnstArt_fcts = BoroCnstArt_fcts
-        soln_crnt.BoroCnstArt = BoroCnstArt
+        mde.BoroCnst = BoroCnst = \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
+        BoroCnst_fcts.update({'latexexpr': r'\BoroCnst'})
+        BoroCnst_fcts.update({'_unicode_': r''})
+        BoroCnst_fcts.update({'urlhandle': urlroot+'BoroCnst'})
+        BoroCnst_fcts.update({'py___code': py___code})
+        BoroCnst_fcts.update({'value_now': BoroCnst})
+        soln_crnt.fcts.update({'BoroCnst': BoroCnst_fcts})
+        soln_crnt.mde.BoroCnst_fcts = BoroCnst_fcts
+        soln_crnt.BoroCnst = BoroCnst
 
         mNrmMin_fcts = {
-            'about': 'Minimum mNrm'
+            'about': 'Min m is the max you can borrow plus min income'
         }
-        py___code = 'max([BoroCnstNat, BoroCnstArt])'
-        mde.mNrmMin = mNrmMin = eval(py___code, mde.__dict__, sp1.__dict__)
+        py___code = 'BoroCnst + tranShkMin'
+        mde.mNrmMin = mNrmMin = \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         mNrmMin_fcts.update({'latexexpr': r'\mNrmMin'})
         mNrmMin_fcts.update({'py___code': py___code})
         soln_crnt.fcts.update({'mNrmMin': mNrmMin_fcts})
@@ -1195,7 +864,8 @@ class ConsPerfForesightSolver(MetricObject):
         py___code = '1.0 / (1.0 + (RPF / MPCmin_tp1))'
         if soln_crnt.stge_kind['iter_status'] == 'terminal':  # kludge:
             mde.MPCmin_tp1 = float('inf')  # causes MPCmin = 1 for final period
-        mde.MPCmin = MPCmin = eval(py___code, mde.__dict__, sp1.__dict__)
+        mde.MPCmin = MPCmin = \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         MPCmin_fcts.update({'latexexpr': r''})
         MPCmin_fcts.update({'urlhandle': urlroot+'MPCmin'})
         MPCmin_fcts.update({'py___code': py___code})
@@ -1210,7 +880,8 @@ class ConsPerfForesightSolver(MetricObject):
         py___code = '1.0 / (1.0 + (RPF / MPCmax_tp1))'
         if soln_crnt.stge_kind['iter_status'] == 'terminal':  # kludge:
             mde.MPCmax_tp1 = float('inf')  # causes MPCmax = 1 for final period
-        mde.MPCmax = MPCmax = eval(py___code, mde.__dict__, sp1.__dict__)
+        mde.MPCmax = MPCmax = \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         MPCmax_fcts.update({'latexexpr': r''})
         MPCmax_fcts.update({'urlhandle': urlroot+'MPCmax'})
         MPCmax_fcts.update({'py___code': py___code})
@@ -1392,7 +1063,7 @@ class ConsPerfForesightSolver(MetricObject):
         return self.soln_crnt
 
 ###############################################################################
-###############################################################################
+# ##############################################################################
 
 
 class ConsIndShockSetup(ConsPerfForesightSolver):
@@ -1549,7 +1220,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         py___code = '1.0 / (1.0 + (RPF / MPCmax_tp1))'
         if soln_crnt.stge_kind['iter_status'] == 'terminal':  # kludge:
             mde.MPCmax_tp1 = float('inf')  # causes MPCmax = 1 for final period
-        mde.MPCmax = MPCmax = eval(py___code, mde.__dict__, sp1.__dict__)
+        mde.MPCmax = MPCmax = eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         MPCmax_fcts.update({'latexexpr': r''})
         MPCmax_fcts.update({'urlhandle': urlroot+'MPCmax'})
         MPCmax_fcts.update({'py___code': py___code})
@@ -1569,7 +1240,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         py___code = '𝔼_dot(ShkPrbs,tranShkValsBcst * permShkValsBcst)'
         mde.𝔼_dot = 𝔼_dot
         mde.Ex_IncNrmNxt = Ex_IncNrmNxt = \
-            eval(py___code, mde.__dict__, sp1.__dict__)  # globals enables 𝔼_dot
+            \
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})  # globals enables 𝔼_dot
         Ex_IncNrmNxt_fcts.update({'latexexpr': r'\Ex_IncNrmNxt'})
         Ex_IncNrmNxt_fcts.update({'_unicode_': r'R/Γ'})
         Ex_IncNrmNxt_fcts.update({'urlhandle': urlroot+'ExIncNrmNxt'})
@@ -1583,7 +1255,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         }
         py___code = '𝔼_dot(1/permShkVals, permShkPrbs)'
         mde.Ex_Inv_permShk = Ex_Inv_permShk = \
-            eval(py___code, mde.__dict__, sp1.__dict__)
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         Ex_Inv_permShk_fcts.update({'latexexpr': r'\ExInvpermShk'})
 #        Ex_Inv_permShk_fcts.update({'_unicode_': r'R/Γ'})
         Ex_Inv_permShk_fcts.update({'urlhandle': urlroot+'ExInvpermShk'})
@@ -1597,7 +1269,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         }
         py___code = '1/Ex_Inv_permShk'
         mde.Inv_Ex_Inv_permShk = Inv_Ex_Inv_permShk = \
-            eval(py___code, mde.__dict__, sp1.__dict__)
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         Inv_Ex_Inv_permShk_fcts.update(
             {'latexexpr': '\left(\Ex[\permShk^{-1}]\right)^{-1}'})
         Inv_Ex_Inv_permShk_fcts.update({'_unicode_': r'1/𝔼[Γψ]'})
@@ -1613,7 +1285,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         }
         py___code = 'PF_RNrm * Ex_Inv_permShk'
         mde.Ex_RNrm = Ex_RNrm = \
-            eval(py___code, mde.__dict__, sp1.__dict__)
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         Ex_RNrm_fcts.update({'latexexpr': r'\ExRNrm'})
         Ex_RNrm_fcts.update({'_unicode_': r'𝔼[R/Γψ]'})
         Ex_RNrm_fcts.update({'urlhandle': urlroot+'ExRNrm'})
@@ -1628,7 +1300,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         }
         py___code = '1/Ex_RNrm'
         mde.Inv_Ex_RNrm = Inv_Ex_RNrm = \
-            eval(py___code, mde.__dict__, sp1.__dict__)
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         Inv_Ex_RNrm_fcts.update(
             {'latexexpr': '\InvExInvRNrm=\left(\Ex[\permShk^{-1}]\right)^{-1}'})
         Inv_Ex_RNrm_fcts.update({'_unicode_': r'1/𝔼[R/(Γψ)]'})
@@ -1644,7 +1316,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         }
         py___code = '𝔼_dot(permShkValsBcst**(1-CRRA), ShkPrbs)'
         mde.Ex_uInv_permShk = Ex_uInv_permShk = \
-            eval(py___code, mde.__dict__, sp1.__dict__)
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         Ex_uInv_permShk_fcts.update({'latexexpr': r'\ExuInvpermShk'})
         Ex_uInv_permShk_fcts.update({'urlhandle': r'ExuInvpermShk'})
         Ex_uInv_permShk_fcts.update({'py___code': py___code})
@@ -1658,7 +1330,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             'about': 'Inverted Expected Utility for Consuming Permanent Shock'
         }
         mde.uInv_Ex_uInv_permShk = uInv_Ex_uInv_permShk = \
-            eval(py___code, mde.__dict__, sp1.__dict__)
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         uInv_Ex_uInv_permShk_fcts.update({'latexexpr': r'\uInvExuInvpermShk'})
         uInv_Ex_uInv_permShk_fcts.update({'urlhandle': urlroot+'uInvExuInvpermShk'})
         uInv_Ex_uInv_permShk_fcts.update({'py___code': py___code})
@@ -1672,7 +1344,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         }
         py___code = 'PermGroFac * Inv_Ex_Inv_permShk'
         mde.PermGroFacAdj = PermGroFacAdj = \
-            eval(py___code, mde.__dict__, sp1.__dict__)
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         PermGroFacAdj_fcts.update({'latexexpr': r'\PermGroFacAdj'})
         PermGroFacAdj_fcts.update({'urlhandle': urlroot+'PermGroFacAdj'})
         PermGroFacAdj_fcts.update({'value_now': PermGroFacAdj})
@@ -1685,7 +1357,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         }
         py___code = 'GPFRaw * Ex_Inv_permShk'
         mde.GPFNrm = GPFNrm = \
-            eval(py___code, mde.__dict__, sp1.__dict__)
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         GPFNrm_fcts.update({'latexexpr': r'\GPFNrm'})
         GPFNrm_fcts.update({'_unicode_': r'Þ_Γ'})
         GPFNrm_fcts.update({'urlhandle': urlroot+'GPFNrm'})
@@ -1717,7 +1389,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         }
         py___code = '(UnempPrb ** (1 / CRRA)) * RPF'
         mde.WRPF = WRPF = \
-            eval(py___code, mde.__dict__, sp1.__dict__)
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         WRPF_fcts.update({'latexexpr': r'\WRPF'})
         WRPF_fcts.update({'_unicode_': r'℘^(1/\rho) RPF'})
         WRPF_fcts.update({'urlhandle': urlroot+'WRPF'})
@@ -1740,7 +1412,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         }
         py___code = '((PermGroFac*Inv_Ex_Inv_permShk)**(CRRA))/Rfree'
         mde.DiscGPFNrmCusp = DiscGPFNrmCusp = \
-            eval(py___code, mde.__dict__, sp1.__dict__)
+            eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         DiscGPFNrmCusp_fcts.update({'latexexpr': ''})
         DiscGPFNrmCusp_fcts.update({'value_now': DiscGPFNrmCusp})
         DiscGPFNrmCusp_fcts.update({'py___code': py___code})
@@ -1889,7 +1561,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 
 
 ####################################################################################################
-####################################################################################################
+# ###################################################################################################
 
 
 class ConsIndShockSolverBasic(ConsIndShockSetup):
@@ -2036,7 +1708,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         vPfunc = MargValueFuncCRRA(cFunc, self.soln_crnt.mde.CRRA)
 
         # Pack up the solution and return it
-        solution_interpolating = ConsumerSolution(
+        solution_interpolating = ConsumerSolutionOneStateCRRA(
             cFunc=cFunc,
             vPfunc=vPfunc,
             mNrmMin=self.soln_crnt.mde.mNrmMin
@@ -2199,7 +1871,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
 
 ###############################################################################
-###############################################################################
+# ##############################################################################
 
 
 class ConsIndShockSolver(ConsIndShockSolverBasic):
@@ -2376,7 +2048,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
 
 
 ####################################################################################################
-####################################################################################################
+# ###################################################################################################
 class ConsKinkedRsolver(ConsIndShockSolver):
     """
     A class to solve a single period consumption-saving problem where the interest
@@ -2798,7 +2470,7 @@ class OneStateConsumerType(AgentType):
     ):
         cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0], [0.0, 1.0])
 
-        solution_afterlife_nobequest_ = ConsumerSolution(
+        solution_afterlife_nobequest_ = ConsumerSolutionOneStateCRRA(
             cFunc=lambda m: float('inf'),
             vFunc=lambda m: 0.0,
             vPfunc=lambda m: 0.0,
@@ -2813,7 +2485,7 @@ class OneStateConsumerType(AgentType):
                 'maker_cls': 'OneStateConsumerType'}
         )
 
-        solution_nobequest_ = ConsumerSolution(  # Omits vFunc b/c u not yet def
+        solution_nobequest_ = ConsumerSolutionOneStateCRRA(  # Omits vFunc b/c u not yet def
             cFunc=cFunc_terminal_nobequest_,
             mNrmMin=0.0,
             hNrm=0.0,
@@ -2830,7 +2502,7 @@ class OneStateConsumerType(AgentType):
         # Define solution_terminal_ for legacy/documentation reasons
         solution_terminal_ = solution_nobequest_
 #        breakpoint()
-        self.soln_crnt = ConsumerSolution()  # Mainly for storing functions, methods
+        self.soln_crnt = ConsumerSolutionOneStateCRRA()  # Mainly for storing functions, methods
         if not hasattr(self, 'solution_startfrom'):
             solution_startfrom = deepcopy(solution_nobequest_)
 
@@ -2883,14 +2555,15 @@ class PerfForesightConsumerType(AgentType):
                  solver=ConsPerfForesightSolver,
                  **kwds
                  ):
-        self.kwds_upd = init_perfect_foresight.copy()  # Get defaults
-        self.kwds_upd.update(kwds)  # Replace defaults with passed vals if difft
+        kwds_upd = init_perfect_foresight.copy()  # Get defaults
+        kwds_upd.update(kwds)  # Replace defaults with passed vals if diff
         OneStateConsumerType.__init__(  # Universals for one state var c models
             self,
             solution_startfrom=None,  # defaults to nobequest
             cycles=cycles,
             pseudo_terminal=False,
-            ** self.kwds_upd)
+            ** kwds_upd)
+        self.check_restrictions()
 
         # OneStateConsumerType creates self.soln_crnt and self.soln_crnt.sp1
 
@@ -2913,18 +2586,101 @@ class PerfForesightConsumerType(AgentType):
         self.parameters.update({"model_type": self.class_name})
 
         # Add solver parameters so solution knows where it came from
-        soln_crnt.parameters_solver = self.parameters_solver = get_solve_one_period_args(self,
-                                                                                         self.solve_one_period, stge_which=0)
+        soln_crnt.parameters_solver = \
+            get_solve_one_period_args(self,
+                                      self.solve_one_period, stge_which=0)
 
         # Store initial model params; later used to test if anything changed
-        self.store_model_params(self.kwds_upd['prmtv_par'],
-                                self.kwds_upd['aprox_lim'])
+        self.store_model_params(kwds_upd['prmtv_par'],
+                                kwds_upd['aprox_lim'])
 
         # Honor arguments (if any) provided with solution_startfrom call
         self.verbose = verbose
         set_verbosity_level((4 - verbose) * 10)
         self.quiet = quiet
         self.dolo_defs()
+
+    def check_restrictions(self):  # url/#check-restrictions
+        """
+        A method to check that various restrictions are met for the model class.
+        """
+        min0Bounded = {
+            'tranShkStd', 'permShkStd', 'UnempPrb', 'IncUnemp', 'UnempPrbRet', 'IncUnempRet'}
+
+        gt0Bounded = {'DiscFac', 'Rfree', 'PermGroFac', 'LivPrb'}
+
+        max1Bounded = {'LivPrb'}
+
+        gt1Bounded = {'CRRA'}
+
+        for var in min0Bounded:
+            if type(self.__dict__[var]) == list:
+                varMin = np.min(self.__dict__[var])
+            else:
+                varMin = self.__dict__[var]
+            if varMin < 0:
+                raise Exception(var+" is negative with value: " + str(varMin))
+        for var in gt0Bounded:
+            if type(self.__dict__[var]) == list:
+                varMin = np.min(self.__dict__[var])
+            else:
+                varMin = self.__dict__[var]
+            if varMin <= 0.0:
+                raise Exception(var+" is nonpositive with value: " + str(varMin))
+
+        for var in max1Bounded:
+            if type(self.__dict__[var]) == list:
+                varMax = np.max(self.__dict__[var])
+            else:
+                varMax = self.__dict__[var]
+            if varMax > 1.0:
+                raise Exception(var+" is greater than 1 with value: " + str(varMax))
+
+        for var in gt1Bounded:
+            if type(self.__dict__[var]) == list:
+                varMin = np.min(self.__dict__[var])
+            else:
+                varMin = self.__dict__[var]
+            if varMin <= 1.0:
+                if var == 'CRRA' and self.__dict__[var] == 1.0:
+                    _log.info('For log utility, use CRRA very close to 1, like 1.00001')
+                raise Exception(var+" is less than or equal to 1.0 with value: " + str(varMax))
+
+        # if self.DiscFac <= 0:
+        #     raise Exception("DiscFac is zero or less with value: " + str(self.DiscFac))
+
+        # if self.Rfree < 0:
+        #     raise Exception("Rfree is below zero with value: " + str(self.DiscFac))
+
+        # if np.min(self.PermGroFac) < 0:
+        #     raise Exception("min[PermGroFac] is negative with value: " + str(np.min(self.PermGroFac))
+
+        # if self.LivPrb < 0:
+        #     raise Exception("LivPrb is less than zero with value: " + str(self.LivPrb))
+
+        # if self.LivPrb > 1:
+        #     raise Exception("LivPrb is greater than one with value: " + str(self.LivPrb))
+
+        # if self.CRRA <= 1:
+        #     raise Exception("CRRA is <= 1 with value: " + str(self.CRRA))
+
+        # if hasattr(self, 'tranShkStd'):
+        #     if self.tranShkStd < 0:
+        #         raise Exception("tranShkStd is negative with value: " + str(self.tranShkStd))
+
+        # if hasattr(self, 'permShkStd'):
+        #     if self.permShkStd < 0:
+        #         raise Exception("permShkStd is negative with value: " + str(self.permShkStd))
+
+        # if hasattr(self, 'permShkStd'):
+        #     if self.IncUnemp < 0:
+        #         raise Exception("IncUnemp is negative with value: " + str(self.IncUnemp))
+
+        # if hasattr(self, 'IncUnempRet'):
+        #     if self.IncUnempRet < 0:
+        #         raise Exception("IncUnempRet is negative with value: " + str(self.IncUnempRet))
+
+        return
 
     def check_conditions(self, verbose=3):
 
@@ -2936,42 +2692,6 @@ class PerfForesightConsumerType(AgentType):
 #        breakpoint()
         soln_crnt = self.solution[-1]
         soln_crnt.check_conditions(soln_crnt, verbose)
-
-    def check_restrictions(self):  # url/#check-restrictions
-        """
-        A method to check that various restrictions are met for the model class.
-        """
-        if self.DiscFac <= 0:
-            raise Exception("DiscFac is zero or less with value: " + str(self.DiscFac))
-
-        if self.Rfree < 0:
-            raise Exception("Rfree is below zero with value: " + str(self.DiscFac))
-
-        if self.PermGroFac < 0:
-            raise Exception("PermGroFac is negative with value: " + str(self.PermGroFac))
-
-        if self.LivPrb < 0:
-            raise Exception("LivPrb is less than zero with value: " + str(self.LivPrb))
-
-        if self.LivPrb > 1:
-            raise Exception("LivPrb is greater than one with value: " + str(self.LivPrb))
-
-        if self.tranShkStd < 0:
-            raise Exception("tranShkStd is negative with value: " + str(self.tranShkStd))
-
-        if self.permShkStd < 0:
-            raise Exception("permShkStd is negative with value: " + str(self.permShkStd))
-
-        if self.IncUnemp < 0:
-            raise Exception("IncUnemp is negative with value: " + str(self.IncUnemp))
-
-        if self.IncUnempRet < 0:
-            raise Exception("IncUnempRet is negative with value: " + str(self.IncUnempRet))
-
-        if self.CRRA <= 1:
-            raise Exception("CRRA is <= 1 with value: " + str(self.CRRA))
-
-        return
 
     def dolo_defs(self):  # CDC 20210415: Beginnings of Dolo integration
         self.symbol_calibration = dict(  # not used yet, just created
