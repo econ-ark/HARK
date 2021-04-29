@@ -6,9 +6,6 @@ another instance; this is used in HARK.core's solve() method to check for soluti
 convergence.  The interpolator classes currently in this module inherit their
 distance method from MetricObject.
 """
-from __future__ import division, print_function
-from __future__ import absolute_import
-from builtins import range
 import numpy as np
 from .core import MetricObject
 from copy import deepcopy
