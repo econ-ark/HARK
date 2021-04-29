@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 from types import SimpleNamespace
 from builtins import (range, str, breakpoint)
-from math import isclose
 from copy import copy, deepcopy
 import numpy as np
 from numpy.testing import assert_approx_equal as assert_approx_equal
-from numpy import dot as 𝔼_dot  # expectations (arg0 and arg1 are prb and val)
-from scipy.optimize import newton
+from numpy import dot as 𝔼_dot  # expectations (arg0 and arg1 are val and prb)
+from numpy import dot as E_dot  # easier to type
+from scipy.optimize import newton as find_zero_newton
 from HARK import AgentType, NullFunc, MetricObject, make_one_period_oo_solver
 from HARK.interpolation import (CubicInterp, LowerEnvelope, LinearInterp, ValueFuncCRRA, MargValueFuncCRRA,
                                 MargMargValueFuncCRRA)
@@ -203,7 +203,7 @@ class ConsumerSolution(MetricObject):
 
 
 class ConsumerSolutionOneStateCRRA(ConsumerSolution):
-    """ 
+    """
     A subclass of ConsumerSolution that assumes that the problem has two
     key additional characteristics:
 
@@ -211,13 +211,13 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
         * Geometric Discounting of Time Separable Utility
 
-    along with a set of restrictions on the parameter values of the model 
-    (like, the time preference factor must be positive).  Under various 
-    combinations of these assumptions, various conditions imply various 
+    along with a set of restrictions on the parameter values of the model
+    (like, the time preference factor must be positive).  Under various
+    combinations of these assumptions, various conditions imply various
     results.  The suite of restrictions is always evaluated.  The set of
     conditions is evaluated using the `check_conditions` method.  Further
-    information about the conditions can be found in the documentation for 
-    that method.  For convenience, we repeat below the documentation for the 
+    information about the conditions can be found in the documentation for
+    that method.  For convenience, we repeat below the documentation for the
     parent ConsumerSolution of this class, all of which applies here.
     """
     __doc__ += ConsumerSolution.__doc__
@@ -258,7 +258,6 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         -------
         None
         """
-#        breakpoint()
         soln_crnt.mde.conditions = {}  # Keep track of truth value of conditions
         soln_crnt.violated = False  # True means solution is degenerate
 
@@ -462,13 +461,43 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
         m_init_guess = self.mNrmMin + self.Ex_IncNrmNxt
         try:  # Find value where argument is zero
-            self.mNrmTrg = newton(
+            self.mNrmTrg = find_zero_newton(
                 self.Ex_m_tp1_minus_m_t,
                 m_init_guess)
         except:
             self.mNrmTrg = None
 
         return self.mNrmTrg
+
+    def mNrmStE_finder(self):
+        """
+        Finds value of (normalized) market resources m at which individual consumer
+        expects the level of market resources M to grow at the same rate as the level
+        of permanent income P.
+
+        This will exist if the GIC holds.
+
+        https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
+
+        Parameters
+        ----------
+        self : ConsumerSolution
+            Solution to this period's problem, which must have attribute cFunc.
+        Returns
+        -------
+        self : ConsumerSolution
+            Same solution that was passed, but now with the attribute mNrmStE.
+        """
+
+        # Minimum market resources plus E[next income] is okay starting guess
+        m_init_guess = self.mde.mNrmMin + self.mde.Ex_IncNextNrm
+        try:
+            m_t = find_zero_newton(self.mde.Ex_m_tp1_minus_m_t, m_init_guess)
+        except:
+            m_t = None
+
+        # Add mNrmTrg to the solution and return it
+        self.mde.mNrmTrg = m_t
 
 # ConsPerfForesightSolver class incorporates calcs and info useful for
 # models in which perfect foresight does not apply, because the contents
@@ -549,9 +578,6 @@ class ConsPerfForesightSolver(MetricObject):
         self.soln_crnt.mde.url_doc = self.url_doc
         self.soln_crnt.mde.urlroot = self.urlroot
 
-        # Facts about the current stage
-        self.soln_crnt.fcts = {}
-
         # Store to mde the exact params with which solver was called
         # except for solution_next and self (no inf recursion)
         for key in parameters_solver:
@@ -602,7 +628,7 @@ class ConsPerfForesightSolver(MetricObject):
         APF_fcts.update({'urlhandle': urlroot+'APF'})
         APF_fcts.update({'py___code': py___code})
         APF_fcts.update({'value_now': APF})
-        soln_crnt.fcts.update({'APF': APF_fcts})
+        # soln_crnt.fcts.update({'APF': APF_fcts})
         soln_crnt.mde.APF_fcts = APF_fcts
 
         AIC_fcts = {
@@ -611,7 +637,7 @@ class ConsPerfForesightSolver(MetricObject):
         AIC_fcts.update({'latexexpr': r'\AIC'})
         AIC_fcts.update({'urlhandle': urlroot+'AIC'})
         AIC_fcts.update({'py___code': 'test: APF < 1'})
-        soln_crnt.fcts.update({'AIC': AIC_fcts})
+        # soln_crnt.fcts.update({'AIC': AIC_fcts})
         soln_crnt.mde.AIC_fcts = AIC_fcts
 
         RPF_fcts = {
@@ -625,7 +651,7 @@ class ConsPerfForesightSolver(MetricObject):
         RPF_fcts.update({'urlhandle': urlroot+'RPF'})
         RPF_fcts.update({'py___code': py___code})
         RPF_fcts.update({'value_now': RPF})
-        soln_crnt.fcts.update({'RPF': RPF_fcts})
+        # soln_crnt.fcts.update({'RPF': RPF_fcts})
         soln_crnt.mde.RPF_fcts = RPF_fcts
 
         RIC_fcts = {
@@ -634,7 +660,7 @@ class ConsPerfForesightSolver(MetricObject):
         RIC_fcts.update({'latexexpr': r'\RIC'})
         RIC_fcts.update({'urlhandle': urlroot+'RIC'})
         RIC_fcts.update({'py___code': 'test: RPF < 1'})
-        soln_crnt.fcts.update({'RIC': RIC_fcts})
+        # soln_crnt.fcts.update({'RIC': RIC_fcts})
         soln_crnt.mde.RIC_fcts = RIC_fcts
 
         GPFRaw_fcts = {
@@ -648,7 +674,7 @@ class ConsPerfForesightSolver(MetricObject):
         GPFRaw_fcts.update({'urlhandle': urlroot+'GPFRaw'})
         GPFRaw_fcts.update({'py___code': py___code})
         GPFRaw_fcts.update({'value_now': GPFRaw})
-        soln_crnt.fcts.update({'GPFRaw': GPFRaw_fcts})
+        # soln_crnt.fcts.update({'GPFRaw': GPFRaw_fcts})
         soln_crnt.mde.GPFRaw_fcts = GPFRaw_fcts
         soln_crnt.GPFRaw = GPFRaw
 
@@ -658,7 +684,7 @@ class ConsPerfForesightSolver(MetricObject):
         GICRaw_fcts.update({'latexexpr': r'\GICRaw'})
         GICRaw_fcts.update({'urlhandle': urlroot+'GICRaw'})
         GICRaw_fcts.update({'py___code': 'test: GPFRaw < 1'})
-        soln_crnt.fcts.update({'GICRaw': GICRaw_fcts})
+        # soln_crnt.fcts.update({'GICRaw': GICRaw_fcts})
         soln_crnt.mde.GICRaw_fcts = GICRaw_fcts
 
         GPFLiv_fcts = {
@@ -671,7 +697,7 @@ class ConsPerfForesightSolver(MetricObject):
         GPFLiv_fcts.update({'urlhandle': urlroot+'GPFLiv'})
         GPFLiv_fcts.update({'py___code': py___code})
         GPFLiv_fcts.update({'value_now': GPFLiv})
-        soln_crnt.fcts.update({'GPFLiv': GPFLiv_fcts})
+        # soln_crnt.fcts.update({'GPFLiv': GPFLiv_fcts})
         soln_crnt.mde.GPFLiv_fcts = GPFLiv_fcts
         soln_crnt.GPFLiv = GPFLiv
 
@@ -681,7 +707,7 @@ class ConsPerfForesightSolver(MetricObject):
         GICLiv_fcts.update({'latexexpr': r'\GICLiv'})
         GICLiv_fcts.update({'urlhandle': urlroot+'GICLiv'})
         GICLiv_fcts.update({'py___code': 'test: GPFLiv < 1'})
-        soln_crnt.fcts.update({'GICLiv': GICLiv_fcts})
+        # soln_crnt.fcts.update({'GICLiv': GICLiv_fcts})
         soln_crnt.mde.GICLiv_fcts = GICLiv_fcts
 
         PF_RNrm_fcts = {
@@ -694,7 +720,7 @@ class ConsPerfForesightSolver(MetricObject):
         PF_RNrm_fcts.update({'_unicode_': r'R/Γ'})
         PF_RNrm_fcts.update({'py___code': py___code})
         PF_RNrm_fcts.update({'value_now': PF_RNrm})
-        soln_crnt.fcts.update({'PF_RNrm': PF_RNrm_fcts})
+        # soln_crnt.fcts.update({'PF_RNrm': PF_RNrm_fcts})
         soln_crnt.mde.PF_RNrm_fcts = PF_RNrm_fcts
         soln_crnt.PF_RNrm = PF_RNrm
 
@@ -708,7 +734,7 @@ class ConsPerfForesightSolver(MetricObject):
         Inv_PF_RNrm_fcts.update({'_unicode_': r'Γ/R'})
         Inv_PF_RNrm_fcts.update({'py___code': py___code})
         Inv_PF_RNrm_fcts.update({'value_now': Inv_PF_RNrm})
-        soln_crnt.fcts.update({'Inv_PF_RNrm': Inv_PF_RNrm_fcts})
+        # soln_crnt.fcts.update({'Inv_PF_RNrm': Inv_PF_RNrm_fcts})
         soln_crnt.mde.Inv_PF_RNrm_fcts = Inv_PF_RNrm_fcts
         soln_crnt.Inv_PF_RNrm = Inv_PF_RNrm
 
@@ -723,7 +749,7 @@ class ConsPerfForesightSolver(MetricObject):
         FHWF_fcts.update({'urlhandle': urlroot+'FHWF'})
         FHWF_fcts.update({'py___code': py___code})
         FHWF_fcts.update({'value_now': FHWF})
-        soln_crnt.fcts.update({'FHWF': FHWF_fcts})
+        # soln_crnt.fcts.update({'FHWF': FHWF_fcts})
         soln_crnt.mde.FHWF_fcts = FHWF_fcts
         soln_crnt.FHWF = FHWF
 
@@ -733,7 +759,7 @@ class ConsPerfForesightSolver(MetricObject):
         FHWC_fcts.update({'latexexpr': r'\FHWC'})
         FHWC_fcts.update({'urlhandle': urlroot+'FHWC'})
         FHWC_fcts.update({'py___code': 'test: FHWF < 1'})
-        soln_crnt.fcts.update({'FHWC': FHWC_fcts})
+        # soln_crnt.fcts.update({'FHWC': FHWC_fcts})
         soln_crnt.mde.FHWC_fcts = FHWC_fcts
 
         hNrmInf_fcts = {
@@ -745,7 +771,7 @@ class ConsPerfForesightSolver(MetricObject):
         hNrmInf_fcts = dict({'latexexpr': '1/(1-\FHWF)'})
         hNrmInf_fcts.update({'value_now': hNrmInf})
         hNrmInf_fcts.update({'py___code': py___code})
-        soln_crnt.fcts.update({'hNrmInf': hNrmInf_fcts})
+        # soln_crnt.fcts.update({'hNrmInf': hNrmInf_fcts})
         soln_crnt.mde.hNrmInf_fcts = hNrmInf_fcts
         soln_crnt.hNrmInf = hNrmInf
 
@@ -758,7 +784,7 @@ class ConsPerfForesightSolver(MetricObject):
         DiscGPFRawCusp_fcts.update({'latexexpr': '\PermGroFac^{\CRRA}/\Rfree'})
         DiscGPFRawCusp_fcts.update({'value_now': DiscGPFRawCusp})
         DiscGPFRawCusp_fcts.update({'py___code': py___code})
-        soln_crnt.fcts.update({'DiscGPFRawCusp': DiscGPFRawCusp_fcts})
+        # soln_crnt.fcts.update({'DiscGPFRawCusp': DiscGPFRawCusp_fcts})
         soln_crnt.mde.DiscGPFRawCusp_fcts = DiscGPFRawCusp_fcts
         soln_crnt.DiscGPFRawCusp = DiscGPFRawCusp
 
@@ -771,7 +797,7 @@ class ConsPerfForesightSolver(MetricObject):
         DiscGPFLivCusp_fcts.update({'latexexpr': '\PermGroFac^{\CRRA}/(\Rfree\LivPrb)'})
         DiscGPFLivCusp_fcts.update({'value_now': DiscGPFLivCusp})
         DiscGPFLivCusp_fcts.update({'py___code': py___code})
-        soln_crnt.fcts.update({'DiscGPFLivCusp': DiscGPFLivCusp_fcts})
+        # soln_crnt.fcts.update({'DiscGPFLivCusp': DiscGPFLivCusp_fcts})
         soln_crnt.mde.DiscGPFLivCusp_fcts = DiscGPFLivCusp_fcts
         soln_crnt.DiscGPFLivCusp = DiscGPFLivCusp
 
@@ -784,7 +810,7 @@ class ConsPerfForesightSolver(MetricObject):
         FVAF_fcts.update({'latexexpr': r'\FVAFPF'})
         FVAF_fcts.update({'urlhandle': urlroot+'FVAFPF'})
         FVAF_fcts.update({'py___code': py___code})
-        soln_crnt.fcts.update({'FVAF': FVAF_fcts})
+        # soln_crnt.fcts.update({'FVAF': FVAF_fcts})
         soln_crnt.mde.FVAF_fcts = FVAF_fcts
         soln_crnt.FVAF = FVAF
 
@@ -794,7 +820,7 @@ class ConsPerfForesightSolver(MetricObject):
         FVAC_fcts.update({'latexexpr': r'\FVACPF'})
         FVAC_fcts.update({'urlhandle': urlroot+'FVACPF'})
         FVAC_fcts.update({'py___code': 'test: FVAFPF < 1'})
-        soln_crnt.fcts.update({'FVAC': FVAC_fcts})
+        # soln_crnt.fcts.update({'FVAC': FVAC_fcts})
         soln_crnt.mde.FVAC_fcts = FVAC_fcts
 
         hNrm_fcts = {
@@ -810,7 +836,7 @@ class ConsPerfForesightSolver(MetricObject):
         hNrm_fcts.update({'urlhandle': urlroot+'hNrm'})
         hNrm_fcts.update({'py___code': py___code})
         hNrm_fcts.update({'value_now': hNrm})
-        soln_crnt.fcts.update({'hNrm': hNrm_fcts})
+        # soln_crnt.fcts.update({'hNrm': hNrm_fcts})
         soln_crnt.mde.hNrm_fcts = hNrm_fcts
         soln_crnt.hNrm = hNrm
 
@@ -829,7 +855,7 @@ class ConsPerfForesightSolver(MetricObject):
         BoroCnstNat_fcts.update({'urlhandle': urlroot+'BoroCnstNat'})
         BoroCnstNat_fcts.update({'py___code': py___code})
         BoroCnstNat_fcts.update({'value_now': BoroCnstNat})
-        soln_crnt.fcts.update({'BoroCnstNat': BoroCnstNat_fcts})
+        # soln_crnt.fcts.update({'BoroCnstNat': BoroCnstNat_fcts})
         soln_crnt.mde.BoroCnstNat_fcts = BoroCnstNat_fcts
         soln_crnt.BoroCnstNat = BoroCnstNat
 
@@ -844,7 +870,7 @@ class ConsPerfForesightSolver(MetricObject):
         BoroCnst_fcts.update({'urlhandle': urlroot+'BoroCnst'})
         BoroCnst_fcts.update({'py___code': py___code})
         BoroCnst_fcts.update({'value_now': BoroCnst})
-        soln_crnt.fcts.update({'BoroCnst': BoroCnst_fcts})
+        # soln_crnt.fcts.update({'BoroCnst': BoroCnst_fcts})
         soln_crnt.mde.BoroCnst_fcts = BoroCnst_fcts
         soln_crnt.BoroCnst = BoroCnst
 
@@ -856,7 +882,7 @@ class ConsPerfForesightSolver(MetricObject):
             eval(py___code, {}, {**mde.__dict__, **sp1.__dict__})
         mNrmMin_fcts.update({'latexexpr': r'\mNrmMin'})
         mNrmMin_fcts.update({'py___code': py___code})
-        soln_crnt.fcts.update({'mNrmMin': mNrmMin_fcts})
+        # soln_crnt.fcts.update({'mNrmMin': mNrmMin_fcts})
         soln_crnt.mde.mNrmMin_fcts = mNrmMin_fcts
         soln_crnt.mNrmMin = mNrmMin
 
@@ -872,7 +898,7 @@ class ConsPerfForesightSolver(MetricObject):
         MPCmin_fcts.update({'urlhandle': urlroot+'MPCmin'})
         MPCmin_fcts.update({'py___code': py___code})
         MPCmin_fcts.update({'value_now': MPCmin})
-        soln_crnt.fcts.update({'MPCmin': MPCmin_fcts})
+        # soln_crnt.fcts.update({'MPCmin': MPCmin_fcts})
         soln_crnt.mde.MPCmin_fcts = MPCmin_fcts
         soln_crnt.MPCmin = soln_crnt.MPCmin = MPCmin
 
@@ -888,7 +914,7 @@ class ConsPerfForesightSolver(MetricObject):
         MPCmax_fcts.update({'urlhandle': urlroot+'MPCmax'})
         MPCmax_fcts.update({'py___code': py___code})
         MPCmax_fcts.update({'value_now': MPCmax})
-        soln_crnt.fcts.update({'MPCmax': MPCmax_fcts})
+        # soln_crnt.fcts.update({'MPCmax': MPCmax_fcts})
         soln_crnt.mde.MPCmax_fcts = MPCmax_fcts
         soln_crnt.MPCmax = soln_crnt.MPCmax = MPCmax
 
@@ -1134,7 +1160,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             permShkDstn,
             tranShkDstn,
             **kwds
-    ):
+    ):  # First execute PF solver init
         # Here we have to reorder params by hand in case someone tries positional solve
         ConsPerfForesightSolver.__init__(self,
                                          solution_next,
@@ -1148,31 +1174,32 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
                                          permShkDstn=permShkDstn,
                                          tranShkDstn=tranShkDstn,
                                          **kwds
-                                         )  # First execute PF solver init
+                                         )
 
-        soln_crnt = self.soln_crnt  # will have set soln_crnt = soln_futr
-
+        soln_crnt = self.soln_crnt
         soln_crnt.IncShkDstn = IncShkDstn
 
-        mde = soln_crnt.mde
+        mde = soln_crnt.mde  # convenient local alias to reduce clutter
 
         # In which column is each object stored in IncShkDstn?
         mde.permPos = IncShkDstn.parameters['ShkPosn']['perm']
         mde.tranPos = IncShkDstn.parameters['ShkPosn']['tran']
 
         # Bcst are "broadcasted" values: serial list of every possible combo
-        # Makes it easy to take expectations
+        # Makes it easy to take expectations using 𝔼_dot
         mde.permShkValsBcst = permShkValsBcst = IncShkDstn.X[mde.permPos]
         mde.tranShkValsBcst = tranShkValsBcst = IncShkDstn.X[mde.tranPos]
         mde.ShkPrbs = ShkPrbs = IncShkDstn.pmf
 
         mde.permShkPrbs = permShkPrbs = permShkDstn.pmf
         mde.permShkVals = permShkVals = permShkDstn.X
-        assert_approx_equal(𝔼_dot(permShkPrbs,permShkVals),1.0)
-        
+        # Test whether perm shocks have expectation near one
+        assert_approx_equal(𝔼_dot(permShkPrbs, permShkVals), 1.0)
+
         mde.tranShkPrbs = tranShkPrbs = tranShkDstn.pmf
         mde.tranShkVals = tranShkVals = tranShkDstn.X
-        assert_approx_equal(𝔼_dot(tranShkPrbs,tranShkVals),1.0)
+        # Test whether tran shocks have expectation near one
+        assert_approx_equal(𝔼_dot(tranShkPrbs, tranShkVals), 1.0)
 
         mde.permShkMin = permShkMin = np.min(permShkVals)
         mde.tranShkMin = tranShkMin = np.min(tranShkVals)
@@ -1229,7 +1256,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         MPCmax_fcts.update({'urlhandle': urlroot+'MPCmax'})
         MPCmax_fcts.update({'py___code': py___code})
         MPCmax_fcts.update({'value_now': MPCmax})
-        soln_crnt.fcts.update({'MPCmax': MPCmax_fcts})
+        # soln_crnt.fcts.update({'MPCmax': MPCmax_fcts})
         soln_crnt.mde.MPCmax_fcts = MPCmax_fcts
         soln_crnt.MPCmax = soln_crnt.MPCmax = MPCmax
 
@@ -1251,7 +1278,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Ex_IncNrmNxt_fcts.update({'urlhandle': urlroot+'ExIncNrmNxt'})
         Ex_IncNrmNxt_fcts.update({'py___code': py___code})
         Ex_IncNrmNxt_fcts.update({'value_now': Ex_IncNrmNxt})
-        soln_crnt.fcts.update({'Ex_IncNrmNxt': Ex_IncNrmNxt_fcts})
+        # soln_crnt.fcts.update({'Ex_IncNrmNxt': Ex_IncNrmNxt_fcts})
         soln_crnt.mde.Ex_IncNrmNxt_fcts = Ex_IncNrmNxt_fcts
 
         Ex_Inv_permShk_fcts = {
@@ -1265,7 +1292,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Ex_Inv_permShk_fcts.update({'urlhandle': urlroot+'ExInvpermShk'})
         Ex_Inv_permShk_fcts.update({'py___code': py___code})
         Ex_Inv_permShk_fcts.update({'value_now': Ex_Inv_permShk})
-        soln_crnt.fcts.update({'Ex_Inv_permShk': Ex_Inv_permShk_fcts})
+        # soln_crnt.fcts.update({'Ex_Inv_permShk': Ex_Inv_permShk_fcts})
         soln_crnt.mde.Ex_Inv_permShk_fcts = Ex_Inv_permShk_fcts
 
         Inv_Ex_Inv_permShk_fcts = {
@@ -1280,7 +1307,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Inv_Ex_Inv_permShk_fcts.update({'urlhandle': urlroot+'InvExInvpermShk'})
         Inv_Ex_Inv_permShk_fcts.update({'py___code': py___code})
         Inv_Ex_Inv_permShk_fcts.update({'value_now': Inv_Ex_Inv_permShk})
-        soln_crnt.fcts.update({'Inv_Ex_Inv_permShk': Inv_Ex_Inv_permShk_fcts})
+        # soln_crnt.fcts.update({'Inv_Ex_Inv_permShk': Inv_Ex_Inv_permShk_fcts})
         soln_crnt.mde.Inv_Ex_Inv_permShk_fcts = Inv_Ex_Inv_permShk_fcts
         # soln_crnt.Inv_Ex_Inv_permShk = Inv_Ex_Inv_permShk
 
@@ -1295,7 +1322,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Ex_RNrm_fcts.update({'urlhandle': urlroot+'ExRNrm'})
         Ex_RNrm_fcts.update({'py___code': py___code})
         Ex_RNrm_fcts.update({'value_now': Ex_RNrm})
-        soln_crnt.fcts.update({'Ex_RNrm': Ex_RNrm_fcts})
+        # soln_crnt.fcts.update({'Ex_RNrm': Ex_RNrm_fcts})
         soln_crnt.mde.Ex_RNrm_fcts = Ex_RNrm_fcts
         soln_crnt.Ex_RNrm = Ex_RNrm
 
@@ -1311,7 +1338,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Inv_Ex_RNrm_fcts.update({'urlhandle': urlroot+'InvExRNrm'})
         Inv_Ex_RNrm_fcts.update({'py___code': py___code})
         Inv_Ex_RNrm_fcts.update({'value_now': Inv_Ex_RNrm})
-        soln_crnt.fcts.update({'Inv_Ex_RNrm': Inv_Ex_RNrm_fcts})
+        # soln_crnt.fcts.update({'Inv_Ex_RNrm': Inv_Ex_RNrm_fcts})
         soln_crnt.mde.Inv_Ex_RNrm_fcts = Inv_Ex_RNrm_fcts
         soln_crnt.Inv_Ex_RNrm = Inv_Ex_RNrm
 
@@ -1325,7 +1352,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Ex_uInv_permShk_fcts.update({'urlhandle': r'ExuInvpermShk'})
         Ex_uInv_permShk_fcts.update({'py___code': py___code})
         Ex_uInv_permShk_fcts.update({'value_now': Ex_uInv_permShk})
-        soln_crnt.fcts.update({'Ex_uInv_permShk': Ex_uInv_permShk_fcts})
+        # soln_crnt.fcts.update({'Ex_uInv_permShk': Ex_uInv_permShk_fcts})
         soln_crnt.mde.Ex_uInv_permShk_fcts = Ex_uInv_permShk_fcts
         soln_crnt.Ex_uInv_permShk = Ex_uInv_permShk
 
@@ -1339,7 +1366,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         uInv_Ex_uInv_permShk_fcts.update({'urlhandle': urlroot+'uInvExuInvpermShk'})
         uInv_Ex_uInv_permShk_fcts.update({'py___code': py___code})
         uInv_Ex_uInv_permShk_fcts.update({'value_now': uInv_Ex_uInv_permShk})
-        soln_crnt.fcts.update({'uInv_Ex_uInv_permShk': uInv_Ex_uInv_permShk_fcts})
+        # soln_crnt.fcts.update({'uInv_Ex_uInv_permShk': uInv_Ex_uInv_permShk_fcts})
         soln_crnt.mde.uInv_Ex_uInv_permShk_fcts = uInv_Ex_uInv_permShk_fcts
         soln_crnt.uInv_Ex_uInv_permShk = uInv_Ex_uInv_permShk
 
@@ -1352,7 +1379,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         PermGroFacAdj_fcts.update({'latexexpr': r'\PermGroFacAdj'})
         PermGroFacAdj_fcts.update({'urlhandle': urlroot+'PermGroFacAdj'})
         PermGroFacAdj_fcts.update({'value_now': PermGroFacAdj})
-        soln_crnt.fcts.update({'PermGroFacAdj': PermGroFacAdj_fcts})
+        # soln_crnt.fcts.update({'PermGroFacAdj': PermGroFacAdj_fcts})
         soln_crnt.mde.PermGroFacAdj_fcts = PermGroFacAdj_fcts
         soln_crnt.PermGroFacAdj = PermGroFacAdj
 
@@ -1366,7 +1393,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         GPFNrm_fcts.update({'_unicode_': r'Þ_Γ'})
         GPFNrm_fcts.update({'urlhandle': urlroot+'GPFNrm'})
         GPFNrm_fcts.update({'py___code': py___code})
-        soln_crnt.fcts.update({'GPFNrm': GPFNrm_fcts})
+        # soln_crnt.fcts.update({'GPFNrm': GPFNrm_fcts})
         soln_crnt.mde.GPFNrm_fcts = GPFNrm_fcts
         soln_crnt.GPFNrm = GPFNrm
 
@@ -1376,7 +1403,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         GICNrm_fcts.update({'latexexpr': r'\GICNrm'})
         GICNrm_fcts.update({'urlhandle': urlroot+'GICNrm'})
         GICNrm_fcts.update({'py___code': 'test: GPFNrm < 1'})
-        soln_crnt.fcts.update({'GICNrm': GICNrm_fcts})
+        # soln_crnt.fcts.update({'GICNrm': GICNrm_fcts})
         soln_crnt.mde.GICNrm_fcts = GICNrm_fcts
 
         FVAC_fcts = {
@@ -1385,7 +1412,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         FVAC_fcts.update({'latexexpr': r'\FVAC'})
         FVAC_fcts.update({'urlhandle': urlroot+'FVAC'})
         FVAC_fcts.update({'py___code': 'test: FVAF < 1'})
-        soln_crnt.fcts.update({'FVAC': FVAC_fcts})
+        # soln_crnt.fcts.update({'FVAC': FVAC_fcts})
         soln_crnt.mde.FVAC_fcts = FVAC_fcts
 
         WRPF_fcts = {
@@ -1399,7 +1426,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         WRPF_fcts.update({'urlhandle': urlroot+'WRPF'})
         WRPF_fcts.update({'value_now': WRPF})
         WRPF_fcts.update({'py___code': py___code})
-        soln_crnt.fcts.update({'WRPF': WRPF_fcts})
+        # soln_crnt.fcts.update({'WRPF': WRPF_fcts})
         soln_crnt.mde.WRPF_fcts = WRPF_fcts
 
         WRIC_fcts = {
@@ -1408,7 +1435,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         WRIC_fcts.update({'latexexpr': r'\WRIC'})
         WRIC_fcts.update({'urlhandle': urlroot+'WRIC'})
         WRIC_fcts.update({'py___code': 'test: WRPF < 1'})
-        soln_crnt.fcts.update({'WRIC': WRIC_fcts})
+        # soln_crnt.fcts.update({'WRIC': WRIC_fcts})
         soln_crnt.mde.WRIC_fcts = WRIC_fcts
 
         DiscGPFNrmCusp_fcts = {
@@ -1420,15 +1447,13 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         DiscGPFNrmCusp_fcts.update({'latexexpr': ''})
         DiscGPFNrmCusp_fcts.update({'value_now': DiscGPFNrmCusp})
         DiscGPFNrmCusp_fcts.update({'py___code': py___code})
-        soln_crnt.fcts.update({'DiscGPFNrmCusp': DiscGPFNrmCusp_fcts})
+        # soln_crnt.fcts.update({'DiscGPFNrmCusp': DiscGPFNrmCusp_fcts})
         soln_crnt.mde.DiscGPFNrmCusp_fcts = DiscGPFNrmCusp_fcts
         soln_crnt.DiscGPFNrmCusp = DiscGPFNrmCusp
 
-        if soln_crnt.Inv_PF_RNrm < 1:        # Finite if Rfree > soln_crnt.mde.PermGroFac
-            soln_crnt.hNrmInf = 1/(1-soln_crnt.Inv_PF_RNrm)
+        # Now define some useful lambda functions
 
         # Given m, value of c where 𝔼[m_{t+1}]=m_{t}
-        # url/#
         soln_crnt.c_where_Ex_mtp1_minus_mt_eq_0 = (
             lambda m_t:
             m_t * (1 - soln_crnt.Inv_Ex_RNrm) + (soln_crnt.Inv_Ex_RNrm)
@@ -1439,64 +1464,99 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 
         soln_crnt.c_where_Ex_permShk_times_mtp1_minus_mt_eq_0 = (
             lambda m_t:
-            m_t * (1 - soln_crnt.Inv_PF_RNrm) + soln_crnt.Inv_PF_RNrm
+            m_t * (1 - soln_crnt.mde.Inv_PF_RNrm) + soln_crnt.mde.Inv_PF_RNrm
         )
 
         # 𝔼[c_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
-        soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_at = (
+        soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_a_t = (
             lambda a_t:
             𝔼_dot(soln_crnt.mde.PermGroFac *
                   soln_crnt.mde.permShkValsBcst *
                   soln_crnt.cFunc(
-                      (soln_crnt.PF_RNrm/soln_crnt.mde.permShkValsBcst) * a_t
+                      (soln_crnt.mde.PF_RNrm/soln_crnt.mde.permShkValsBcst) * a_t
                       + soln_crnt.mde.tranShkValsBcst
                   ),
-                  soln_crnt.ShkPrbs)
+                  soln_crnt.mde.ShkPrbs)
         )
 
         soln_crnt.c_where_Ex_mtp1_minus_mt_eq_0 = \
-                lambda m_t: \
-                m_t * (1 - 1/soln_crnt.Ex_RNrm) + (1/soln_crnt.Ex_RNrm)
+            lambda m_t: \
+            m_t * (1 - 1/soln_crnt.mde.Ex_RNrm) + (1/soln_crnt.mde.Ex_RNrm)
 
         # Solve the equation at url/#balgrostable
         soln_crnt.c_where_Ex_permShk_times_mtp1_minus_mt_eq_0 = \
-                lambda m_t: \
-                (m_t * (1 - 1/soln_crnt.PF_RNrm)) + (1/soln_crnt.PF_RNrm)
+            lambda m_t: \
+            (m_t * (1 - 1/soln_crnt.mde.PF_RNrm)) + (1/soln_crnt.mde.PF_RNrm)
 
         # mNrmTrg solves Ex_RNrm*(m - c(m)) + 𝔼[inc_next] - m = 0
         Ex_m_tp1_minus_m_t = (
             lambda m_t:
-            soln_crnt.Ex_RNrm * (m_t - soln_crnt.cFunc(m_t)) +
-            soln_crnt.Ex_IncNrmNxt - m_t
+            soln_crnt.mde.Ex_RNrm * (m_t - soln_crnt.cFunc(m_t)) +
+            soln_crnt.mde.Ex_IncNrmNxt - m_t
         )
         soln_crnt.Ex_m_tp1_minus_m_t = Ex_m_tp1_minus_m_t
 
-        soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_at = (
+        soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_a_t = (
             lambda a_t:
             𝔼_dot(
                 soln_crnt.mde.permShkValsBcst * soln_crnt.mde.PermGroFac * soln_crnt.cFunc(
-                    (soln_crnt.PF_RNrm/soln_crnt.mde.permShkValsBcst) *
+                    (soln_crnt.mde.PF_RNrm/soln_crnt.mde.permShkValsBcst) *
                     a_t + soln_crnt.mde.tranShkValsBcst
                 ),
-                soln_crnt.ShkPrbs)
+                soln_crnt.mde.ShkPrbs)
         )
 
-        soln_crnt.Ex_permShk_tp1_times_m_tp1_minus_m_t = (\
-                lambda m_t: 
-                    soln_crnt.PF_RNrm *
-                (m_t - soln_crnt.cFunc(m_t)) + 1.0 - m_t
-                )
+        soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_lst_a_t = (
+            lambda a_lst: list(map(
+                soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_aNrm_num, a_lst
+            ))
+        )
 
-        for key in soln_crnt.fcts:
-            setattr(mde, key+'_fcts', soln_crnt.fcts[key])
+        soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_a_t = (
+            lambda a_t:
+            soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_lst_a_t(a_t)
+            if (type(a_t) == list or type(a_t) == np.ndarray) else
+            soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_a_t(a_t)
+        )
+
+        soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_lst_m_t = (
+            lambda m_t:
+            soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_lst_a_t(m_t -
+                                                           soln_crnt.cFunc(m_t))
+        )
+
+        soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_m_t = (
+            lambda m_t:
+            soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
+                                                           soln_crnt.cFunc(m_t))
+        )
+
+        soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_m_t = (
+            lambda m_t:
+            soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
+                                                           soln_crnt.cFunc(m_t))
+        )
+
+        soln_crnt.Ex_cLev_tp1_Over_cLev_t_from_m_t = (
+            lambda m_t:
+            soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_m_t(m_t) /
+            soln_crnt.cFunc(m_t)
+        )
+
+        soln_crnt.Ex_permShk_tp1_times_m_tp1_minus_m_t = (
+            lambda m_t:
+            soln_crnt.mde.PF_RNrm *
+            (m_t - soln_crnt.cFunc(m_t)) + 1.0 - m_t
+        )
+
+        # for key in soln_crnt.fcts:
+        #     setattr(mde, key+'_fcts', soln_crnt.fcts[key])
 
         self.soln_crnt = soln_crnt
 
         return soln_crnt
 
-    # self here is the solver, which knows info about the problem from the agent
-
-    def prepare_to_solve(self):  # stage
+    def prepare_to_solve(self):  # self is solver for this stage of problem
         """
         Prepare the current stage for processing by the one-stage solver.
 
@@ -1739,8 +1799,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             consumption function, marginal value function, and minimum m.
         """
         cNrm, mNrm = self.get_source_points_via_EGM(EndOfPrdvP, aNrmGrid)
-        sol_EGM = \
-            self.use_points_for_interpolation(cNrm, mNrm, interpolator)
+        sol_EGM = self.use_points_for_interpolation(cNrm, mNrm, interpolator)
 
         return sol_EGM
 
@@ -1824,15 +1883,23 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         # If this is the first invocation of solve, just flesh out the terminal
         # period solution so it is a proper starting point for iteration
+        # given the further info that has been added since generic
+        # solution_terminal was constructed
         if futr.stge_kind['iter_status'] == 'terminal':
-            self.soln_crnt.mde_inputs = deepcopy(soln_crnt.mde)
+            #            self.soln_crnt.mde_inputs = deepcopy(soln_crnt.mde)
             self.add_info_useful_for_further_analysis(futr.mde)
             soln_crnt.stge_kind['iter_status'] = 'iterator'
             return soln_crnt  # Replaces original "terminal" solution; next soln_futr
 
         self.soln_crnt.stge_kind = {'iter_status': 'iterator',
                                     'slvr_type': 'ConsIndShockSolver'}
-        # Add a bunch of
+        # Add a bunch of useful stuff
+        # CDC 20200428: This stuff is "useful" only for a candidate converged solution
+        # in an infinite horizon model.  It's not costly to compute but there's not
+        # much point in computing most of it for a non-final infhor stage or a finhor model
+        # TODO: Distinguish between those things that need to be computed for the
+        # "useful" computations in the final stage, and those that are merely info,
+        # and make mandatory only the computations of the former category
         self.add_info_useful_for_further_analysis(futr.sp1)
 
         sol_EGM = self.make_sol_using_EGM()  # Need to add test for finished, change stge_kind if so
@@ -1842,8 +1909,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used for interpolation
         # CDC 20210428: We should just always make the value function.  The cost
-        # is trivial and not worth the maintainence time the option takes in the
-        # codebase
+        # is trivial and making it optional is not worth the maintainence and
+        # mindspace time the option takes in the codebase
         if soln_crnt.mde.vFuncBool:
             soln_crnt.mde.vFunc = self.vFunc = self.add_vFunc(soln_crnt, self.EndOfPrdvP)
         if soln_crnt.mde.CubicBool:
@@ -2285,8 +2352,6 @@ init_perfect_foresight = {
     # Optional extra _fcts about the model and its calibration
 }
 
-init_perfect_foresight.update(dict({'_fcts': {'import': 'init_perfect_foresight'}}))
-
 # The info below is optional at present but may become mandatory as the toolkit evolves
 # 'Primitives' define the 'true' model that we think of ourselves as trying to solve
 # (the limit as approximation error reaches zero)
@@ -2317,7 +2382,7 @@ CRRA_fcts.update({'latexexpr': '\providecommand{\CRRA}{\rho}\CRRA'})
 CRRA_fcts.update({'_unicode_': 'ρ'})  # \rho is Greek r: relative risk aversion rrr
 CRRA_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('CRRA')
-init_perfect_foresight['_fcts'].update({'CRRA': CRRA_fcts})
+# init_perfect_foresight['_fcts'].update({'CRRA': CRRA_fcts})
 init_perfect_foresight.update({'CRRA_fcts': CRRA_fcts})
 
 DiscFac_fcts = {
@@ -2326,7 +2391,7 @@ DiscFac_fcts.update({'latexexpr': '\providecommand{\DiscFac}{\beta}\DiscFac'})
 DiscFac_fcts.update({'_unicode_': 'β'})
 DiscFac_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('DiscFac')
-init_perfect_foresight['_fcts'].update({'DiscFac': DiscFac_fcts})
+# init_perfect_foresight['_fcts'].update({'DiscFac': DiscFac_fcts})
 init_perfect_foresight.update({'DiscFac_fcts': DiscFac_fcts})
 
 LivPrb_fcts = {
@@ -2335,7 +2400,7 @@ LivPrb_fcts.update({'latexexpr': '\providecommand{\LivPrb}{\Pi}\LivPrb'})
 LivPrb_fcts.update({'_unicode_': 'Π'})  # \Pi mnemonic: 'Probability of surival'
 LivPrb_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('LivPrb')
-init_perfect_foresight['_fcts'].update({'LivPrb': LivPrb_fcts})
+# init_perfect_foresight['_fcts'].update({'LivPrb': LivPrb_fcts})
 init_perfect_foresight.update({'LivPrb_fcts': LivPrb_fcts})
 
 Rfree_fcts = {
@@ -2344,7 +2409,7 @@ Rfree_fcts.update({'latexexpr': '\providecommand{\Rfree}{\mathsf{R}}\Rfree'})
 Rfree_fcts.update({'_unicode_': 'R'})
 Rfree_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('Rfree')
-init_perfect_foresight['_fcts'].update({'Rfree': Rfree_fcts})
+# init_perfect_foresight['_fcts'].update({'Rfree': Rfree_fcts})
 init_perfect_foresight.update({'Rfree_fcts': Rfree_fcts})
 
 PermGroFac_fcts = {
@@ -2353,7 +2418,7 @@ PermGroFac_fcts.update({'latexexpr': '\providecommand{\PermGroFac}{\Gamma}\PermG
 PermGroFac_fcts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
 PermGroFac_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('PermGroFac')
-init_perfect_foresight['_fcts'].update({'PermGroFac': PermGroFac_fcts})
+# init_perfect_foresight['_fcts'].update({'PermGroFac': PermGroFac_fcts})
 init_perfect_foresight.update({'PermGroFac_fcts': PermGroFac_fcts})
 
 PermGroFacAgg_fcts = {
@@ -2362,7 +2427,7 @@ PermGroFacAgg_fcts = {
 # PermGroFacAgg_fcts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
 PermGroFacAgg_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('PermGroFacAgg')
-init_perfect_foresight['_fcts'].update({'PermGroFacAgg': PermGroFacAgg_fcts})
+# init_perfect_foresight['_fcts'].update({'PermGroFacAgg': PermGroFacAgg_fcts})
 init_perfect_foresight.update({'PermGroFacAgg_fcts': PermGroFacAgg_fcts})
 
 BoroCnstArt_fcts = {
@@ -2370,7 +2435,7 @@ BoroCnstArt_fcts = {
 BoroCnstArt_fcts.update({'latexexpr': r'\providecommand{\BoroCnstArt}{\underline{a}}\BoroCnstArt'})
 BoroCnstArt_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('BoroCnstArt')
-init_perfect_foresight['_fcts'].update({'BoroCnstArt': BoroCnstArt_fcts})
+# init_perfect_foresight['_fcts'].update({'BoroCnstArt': BoroCnstArt_fcts})
 init_perfect_foresight.update({'BoroCnstArt_fcts': BoroCnstArt_fcts})
 
 MaxKinks_fcts = {
@@ -2378,7 +2443,7 @@ MaxKinks_fcts = {
     ' where the solution has exactly this many kink points'}
 MaxKinks_fcts.update({'prmtv_par': 'False'})
 # init_perfect_foresight['prmtv_par'].append('MaxKinks')
-init_perfect_foresight['_fcts'].update({'MaxKinks': MaxKinks_fcts})
+# init_perfect_foresight['_fcts'].update({'MaxKinks': MaxKinks_fcts})
 init_perfect_foresight.update({'MaxKinks_fcts': MaxKinks_fcts})
 
 mcrlo_AgentCount_fcts = {
@@ -2388,7 +2453,7 @@ mcrlo_AgentCount_fcts.update(
 mcrlo_AgentCount_fcts.update({'mcrlo_sim': 'True'})
 mcrlo_AgentCount_fcts.update({'mcrlo_lim': 'infinity'})
 # init_perfect_foresight['mcrlo_sim'].append('mcrlo_AgentCount')
-init_perfect_foresight['_fcts'].update({'mcrlo_AgentCount': mcrlo_AgentCount_fcts})
+# init_perfect_foresight['_fcts'].update({'mcrlo_AgentCount': mcrlo_AgentCount_fcts})
 init_perfect_foresight.update({'mcrlo_AgentCount_fcts': mcrlo_AgentCount_fcts})
 
 aNrmInitMean_fcts = {
@@ -2396,44 +2461,44 @@ aNrmInitMean_fcts = {
 aNrmInitMean_fcts.update({'mcrlo_sim': 'True'})
 aNrmInitMean_fcts.update({'mcrlo_lim': 'infinity'})
 init_perfect_foresight['mcrlo_sim'].append('aNrmInitMean')
-init_perfect_foresight['_fcts'].update({'aNrmInitMean': aNrmInitMean_fcts})
+# init_perfect_foresight['_fcts'].update({'aNrmInitMean': aNrmInitMean_fcts})
 init_perfect_foresight.update({'aNrmInitMean_fcts': aNrmInitMean_fcts})
 
 aNrmInitStd_fcts = {
     'about': 'Std dev of initial population value of aNrm'}
 aNrmInitStd_fcts.update({'mcrlo_sim': 'True'})
 init_perfect_foresight['mcrlo_sim'].append('aNrmInitStd')
-init_perfect_foresight['_fcts'].update({'aNrmInitStd': aNrmInitStd_fcts})
+# init_perfect_foresight['_fcts'].update({'aNrmInitStd': aNrmInitStd_fcts})
 init_perfect_foresight.update({'aNrmInitStd_fcts': aNrmInitStd_fcts})
 
 mcrlo_pLvlInitMean_fcts = {
     'about': 'Mean initial population value of log pLvl'}
 mcrlo_pLvlInitMean_fcts.update({'mcrlo_sim': 'True'})
 init_perfect_foresight['mcrlo_sim'].append('mcrlo_pLvlInitMean')
-init_perfect_foresight['_fcts'].update({'mcrlo_pLvlInitMean': mcrlo_pLvlInitMean_fcts})
+# init_perfect_foresight['_fcts'].update({'mcrlo_pLvlInitMean': mcrlo_pLvlInitMean_fcts})
 init_perfect_foresight.update({'mcrlo_pLvlInitMean_fcts': mcrlo_pLvlInitMean_fcts})
 
 mcrlo_pLvlInitStd_fcts = {
     'about': 'Mean initial std dev of log ppLvl'}
 mcrlo_pLvlInitStd_fcts.update({'mcrlo_sim': 'True'})
 init_perfect_foresight['mcrlo_sim'].append('mcrlo_pLvlInitStd')
-init_perfect_foresight['_fcts'].update({'mcrlo_pLvlInitStd': mcrlo_pLvlInitStd_fcts})
+# init_perfect_foresight['_fcts'].update({'mcrlo_pLvlInitStd': mcrlo_pLvlInitStd_fcts})
 init_perfect_foresight.update({'mcrlo_pLvlInitStd_fcts': mcrlo_pLvlInitStd_fcts})
 
 T_age_fcts = {
     'about': 'Age after which simulated agents are automatically killedl'}
 T_age_fcts.update({'mcrlo_sim': 'False'})
-init_perfect_foresight['_fcts'].update({'T_age': T_age_fcts})
+# init_perfect_foresight['_fcts'].update({'T_age': T_age_fcts})
 init_perfect_foresight.update({'T_age_fcts': T_age_fcts})
 
 T_cycle_fcts = {
     'about': 'Number of periods in a "cycle" (like, a lifetime) for this agent type'}
-init_perfect_foresight['_fcts'].update({'T_cycle': T_cycle_fcts})
+# init_perfect_foresight['_fcts'].update({'T_cycle': T_cycle_fcts})
 init_perfect_foresight.update({'T_cycle_fcts': T_cycle_fcts})
 
 cycles_fcts = {
     'about': 'Number of times the sequence of periods/stages should be solved'}
-init_perfect_foresight['_fcts'].update({'cycle': cycles_fcts})
+# init_perfect_foresight['_fcts'].update({'cycle': cycles_fcts})
 init_perfect_foresight.update({'cycles_fcts': cycles_fcts})
 
 
@@ -2725,41 +2790,6 @@ class PerfForesightConsumerType(OneStateConsumerType):
                 if var == 'CRRA' and self.__dict__[var] == 1.0:
                     _log.info('For log utility, use CRRA very close to 1, like 1.00001')
                 raise Exception(var+" is less than or equal to 1.0 with value: " + str(varMax))
-
-        # if self.DiscFac <= 0:
-        #     raise Exception("DiscFac is zero or less with value: " + str(self.DiscFac))
-
-        # if self.Rfree < 0:
-        #     raise Exception("Rfree is below zero with value: " + str(self.DiscFac))
-
-        # if np.min(self.PermGroFac) < 0:
-        #     raise Exception("min[PermGroFac] is negative with value: " + str(np.min(self.PermGroFac))
-
-        # if self.LivPrb < 0:
-        #     raise Exception("LivPrb is less than zero with value: " + str(self.LivPrb))
-
-        # if self.LivPrb > 1:
-        #     raise Exception("LivPrb is greater than one with value: " + str(self.LivPrb))
-
-        # if self.CRRA <= 1:
-        #     raise Exception("CRRA is <= 1 with value: " + str(self.CRRA))
-
-        # if hasattr(self, 'tranShkStd'):
-        #     if self.tranShkStd < 0:
-        #         raise Exception("tranShkStd is negative with value: " + str(self.tranShkStd))
-
-        # if hasattr(self, 'permShkStd'):
-        #     if self.permShkStd < 0:
-        #         raise Exception("permShkStd is negative with value: " + str(self.permShkStd))
-
-        # if hasattr(self, 'permShkStd'):
-        #     if self.IncUnemp < 0:
-        #         raise Exception("IncUnemp is negative with value: " + str(self.IncUnemp))
-
-        # if hasattr(self, 'IncUnempRet'):
-        #     if self.IncUnempRet < 0:
-        #         raise Exception("IncUnempRet is negative with value: " + str(self.IncUnempRet))
-
         return
 
     def check_conditions(self, verbose=3):
@@ -2908,8 +2938,10 @@ class PerfForesightConsumerType(OneStateConsumerType):
         self.unpack("cFunc")
 
     def initialize_sim(self):
-        self.permShkAgg = self.PermGroFacAgg  # Never changes during sim
-        self.state_now['PlvlAgg'] = 1.0
+        self.mcrlovars = SimpleNamespace()
+        self.mcrlovars.permShkAgg = self.permShkAgg = self.PermGroFacAgg  # Never changes during sim
+        # CDC 20210428 it would be good if we could separate the sim from the sol variables like this
+        self.mcrlovars.state_now['PlvlAgg'] = self.state_now['PlvlAgg'] = 1.0
         AgentType.initialize_sim(self)
 
     def mcrlo_birth(self, which_agents):
@@ -2929,7 +2961,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
         """
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        self.state_now['aNrm'][which_agents] = Lognormal(
+        self.mcrlovars.state_now['aNrm'][which_agents] = self.state_now['aNrm'][which_agents] = Lognormal(
             mu=self.aNrmInitMean,
             sigma=self.aNrmInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1),
@@ -2938,13 +2970,16 @@ class PerfForesightConsumerType(OneStateConsumerType):
         mcrlo_pLvlInitMean = self.mcrlo_pLvlInitMean + np.log(
             self.state_now['PlvlAgg']
         )  # Account for newer cohorts having higher permanent income
-        self.state_now['pLvl'][which_agents] = Lognormal(
+        self.mcrlovars.state_now['pLvl'][which_agents] = \
+            self.state_now['pLvl'][which_agents] = Lognormal(
             mcrlo_pLvlInitMean,
             self.mcrlo_pLvlInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
-        self.t_age[which_agents] = 0  # How many periods since each agent was born
-        self.t_cycle[
+        # How many periods since each agent was born
+        self.mcrlovars.t_age[which_agents] = self.t_age[which_agents] = 0
+        self.mcrlovars.t_cycle[which_agents] = \
+            self.t_cycle[
             which_agents
         ] = 0  # Which period of the cycle each agent is currently in
         return None
@@ -3024,8 +3059,8 @@ class PerfForesightConsumerType(OneStateConsumerType):
         # Updated aggregate permanent productivity level
         PlvlAgg = self.state_prev['PlvlAgg']*self.permShkAgg
         # "Effective" interest factor on normalized assets
-        Reff = Rfree/self.shocks['permShk']
-        bNrm = Reff*aNrmPrev         # Bank balances before labor income
+        RNrm = Rfree/self.shocks['permShk']
+        bNrm = RNrm*aNrmPrev         # Bank balances before labor income
         mNrm = bNrm + self.shocks['tranShk']  # Market resources after income
 
         return pLvl, PlvlAgg, bNrm, mNrm, None
@@ -3153,113 +3188,113 @@ init_idiosyncratic_shocks['aprox_lim'].update({'aXtraCount': None})
 IncShkDstn_fcts = {
     'about': 'Income Shock Distribution: .X[0] and .X[1] retrieve shocks, .pmf retrieves probabilities'}
 IncShkDstn_fcts.update({'py___code': r'construct_lognormal_income_process_unemployment'})
-init_idiosyncratic_shocks['_fcts'].update({'IncShkDstn': IncShkDstn_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'IncShkDstn': IncShkDstn_fcts})
 init_idiosyncratic_shocks.update({'IncShkDstn_fcts': IncShkDstn_fcts})
 
 permShkStd_fcts = {
     'about': 'Standard deviation for lognormal shock to permanent income'}
 permShkStd_fcts.update({'latexexpr': '\permShkStd'})
-init_idiosyncratic_shocks['_fcts'].update({'permShkStd': permShkStd_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'permShkStd': permShkStd_fcts})
 init_idiosyncratic_shocks.update({'permShkStd_fcts': permShkStd_fcts})
 
 tranShkStd_fcts = {
     'about': 'Standard deviation for lognormal shock to permanent income'}
 tranShkStd_fcts.update({'latexexpr': '\tranShkStd'})
-init_idiosyncratic_shocks['_fcts'].update({'tranShkStd': tranShkStd_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'tranShkStd': tranShkStd_fcts})
 init_idiosyncratic_shocks.update({'tranShkStd_fcts': tranShkStd_fcts})
 
 UnempPrb_fcts = {
     'about': 'Probability of unemployment while working'}
 UnempPrb_fcts.update({'latexexpr': r'\UnempPrb'})
 UnempPrb_fcts.update({'_unicode_': '℘'})
-init_idiosyncratic_shocks['_fcts'].update({'UnempPrb': UnempPrb_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'UnempPrb': UnempPrb_fcts})
 init_idiosyncratic_shocks.update({'UnempPrb_fcts': UnempPrb_fcts})
 
 UnempPrbRet_fcts = {
     'about': '"unemployment" in retirement = big medical shock'}
 UnempPrbRet_fcts.update({'latexexpr': r'\UnempPrbRet'})
-init_idiosyncratic_shocks['_fcts'].update({'UnempPrbRet': UnempPrbRet_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'UnempPrbRet': UnempPrbRet_fcts})
 init_idiosyncratic_shocks.update({'UnempPrbRet_fcts': UnempPrbRet_fcts})
 
 IncUnemp_fcts = {
     'about': 'Unemployment insurance replacement rate'}
 IncUnemp_fcts.update({'latexexpr': '\IncUnemp'})
 IncUnemp_fcts.update({'_unicode_': 'μ'})
-init_idiosyncratic_shocks['_fcts'].update({'IncUnemp': IncUnemp_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'IncUnemp': IncUnemp_fcts})
 init_idiosyncratic_shocks.update({'IncUnemp_fcts': IncUnemp_fcts})
 
 IncUnempRet_fcts = {
     'about': 'Size of medical shock (frac of perm inc)'}
-init_idiosyncratic_shocks['_fcts'].update({'IncUnempRet': IncUnempRet_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'IncUnempRet': IncUnempRet_fcts})
 init_idiosyncratic_shocks.update({'IncUnempRet_fcts': IncUnempRet_fcts})
 
 tax_rate_fcts = {
     'about': 'Flat income tax rate'}
 tax_rate_fcts.update({
     'about': 'Size of medical shock (frac of perm inc)'})
-init_idiosyncratic_shocks['_fcts'].update({'tax_rate': tax_rate_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'tax_rate': tax_rate_fcts})
 init_idiosyncratic_shocks.update({'tax_rate_fcts': tax_rate_fcts})
 
 T_retire_fcts = {
     'about': 'Period of retirement (0 --> no retirement)'}
-init_idiosyncratic_shocks['_fcts'].update({'T_retire': T_retire_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'T_retire': T_retire_fcts})
 init_idiosyncratic_shocks.update({'T_retire_fcts': T_retire_fcts})
 
 permShkCount_fcts = {
     'about': 'Num of pts in discrete approx to permanent income shock dstn'}
-init_idiosyncratic_shocks['_fcts'].update({'permShkCount': permShkCount_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'permShkCount': permShkCount_fcts})
 init_idiosyncratic_shocks.update({'permShkCount_fcts': permShkCount_fcts})
 
 tranShkCount_fcts = {
     'about': 'Num of pts in discrete approx to transitory income shock dstn'}
-init_idiosyncratic_shocks['_fcts'].update({'tranShkCount': tranShkCount_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'tranShkCount': tranShkCount_fcts})
 init_idiosyncratic_shocks.update({'tranShkCount_fcts': tranShkCount_fcts})
 
 aXtraMin_fcts = {
     'about': 'Minimum end-of-period "assets above minimum" value'}
-init_idiosyncratic_shocks['_fcts'].update({'aXtraMin': aXtraMin_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'aXtraMin': aXtraMin_fcts})
 init_idiosyncratic_shocks.update({'aXtraMin_fcts': aXtraMin_fcts})
 
 aXtraMax_fcts = {
     'about': 'Maximum end-of-period "assets above minimum" value'}
-init_idiosyncratic_shocks['_fcts'].update({'aXtraMax': aXtraMax_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'aXtraMax': aXtraMax_fcts})
 init_idiosyncratic_shocks.update({'aXtraMax_fcts': aXtraMax_fcts})
 
 aXtraNestFac_fcts = {
     'about': 'Exponential nesting factor when constructing "assets above minimum" grid'}
-init_idiosyncratic_shocks['_fcts'].update({'aXtraNestFac': aXtraNestFac_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'aXtraNestFac': aXtraNestFac_fcts})
 init_idiosyncratic_shocks.update({'aXtraNestFac_fcts': aXtraNestFac_fcts})
 
 aXtraCount_fcts = {
     'about': 'Number of points in the grid of "assets above minimum"'}
-init_idiosyncratic_shocks['_fcts'].update({'aXtraMax': aXtraCount_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'aXtraMax': aXtraCount_fcts})
 init_idiosyncratic_shocks.update({'aXtraMax_fcts': aXtraCount_fcts})
 
 aXtraCount_fcts = {
     'about': 'Number of points to include in grid of assets above minimum possible'}
-init_idiosyncratic_shocks['_fcts'].update({'aXtraCount': aXtraCount_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'aXtraCount': aXtraCount_fcts})
 init_idiosyncratic_shocks.update({'aXtraCount_fcts': aXtraCount_fcts})
 
 aXtraExtra_fcts = {
     'about': 'List of other values of "assets above minimum" to add to the grid (e.g., 10000)'}
-init_idiosyncratic_shocks['_fcts'].update({'aXtraExtra': aXtraExtra_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'aXtraExtra': aXtraExtra_fcts})
 init_idiosyncratic_shocks.update({'aXtraExtra_fcts': aXtraExtra_fcts})
 
 aXtraGrid_fcts = {
     'about': 'Grid of values to add to minimum possible value to obtain actual end-of-period asset grid'}
-init_idiosyncratic_shocks['_fcts'].update({'aXtraGrid': aXtraGrid_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'aXtraGrid': aXtraGrid_fcts})
 init_idiosyncratic_shocks.update({'aXtraGrid_fcts': aXtraGrid_fcts})
 
 vFuncBool_fcts = {
     'about': 'Whether to calculate the value function during solution'
 }
-init_idiosyncratic_shocks['_fcts'].update({'vFuncBool': vFuncBool_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'vFuncBool': vFuncBool_fcts})
 init_idiosyncratic_shocks.update({'vFuncBool_fcts': vFuncBool_fcts})
 
 CubicBool_fcts = {
     'about': 'Use cubic spline interpolation when True, linear interpolation when False'
 }
-init_idiosyncratic_shocks['_fcts'].update({'CubicBool': CubicBool_fcts})
+# init_idiosyncratic_shocks['_fcts'].update({'CubicBool': CubicBool_fcts})
 init_idiosyncratic_shocks.update({'CubicBool_fcts': CubicBool_fcts})
 
 
@@ -3303,7 +3338,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         "MaxKinks"  # PF inf hor with MaxKinks is equiv to fin hor with hor=MaxKinks
     )
 
-    shock_vars_ = ['permShk', 'tranShk']  # The unemployment shock is transitory
+    shock_vars_ = ['permShk', 'tranShk']  # Unemp shock is min(transShkVal)
 
     def __init__(self, cycles=1, verbose=1,  quiet=True, solution_startfrom=None, **kwds):
         params = init_idiosyncratic_shocks.copy()  # Get default params
@@ -3324,19 +3359,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # If precooked terminal answer not provided by user ...
         if not hasattr(self, 'solution_startfrom'):  # .. then init the default
-            self.update_income_process()
-            self.update_assets_grid()
-            self.shock_vars = deepcopy(self.shock_vars_)  # Default before __init__
             # Add parameters NOT already created by PerfForesightConsumerType
+            self.shock_vars = deepcopy(self.shock_vars_)  # Default before __init__
             self.parameters.update({'shock_vars': self.shock_vars})
-        else:
-            # user-provided solution_startfrom should define shock_vars
-            self.parameters.update({'shock_vars': solution_startfrom.shock_vars})
+            self.update_pre_solve()
 
         # Add consumer-type specific objects; deepcopy creates own versions
         # - Default interpolation method is piecewise linear
         # - Cubic is smoother, works best if problem has no constraints
         # - User may or may not want to create the value function
+        # CDC 20210428: Basic solver is not worth preserving
         if (not self.CubicBool) and (not self.vFuncBool):
             solver = ConsIndShockSolverBasic
         else:  # Use the "advanced" solver if either is requested
@@ -3345,13 +3377,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # slvr_type will have been set by PF as perfect foresight; reset
         soln_crnt.stge_kind['slvr_type'] = 'ConsIndShockSolver'
 
-#        if soln_crnt.stge_kind['iter_status'] == 'terminal':
-#            breakpoint()
-
         # Attach the corresponding one-stage solver to the agent
         self.solve_one_period = make_one_period_oo_solver(solver)
 
         # Add solver args so solution soln_crnt knows how it was made
+        # CDC 20210428: Not sure the next two lines accomplish anything useful
         soln_crnt.parameters_solver = \
             get_solve_one_period_args(self, self.solve_one_period, stge_which=0)
 
@@ -3362,6 +3392,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.store_model_params(params['prmtv_par'], params['aprox_lim'])
 
         # Let solver know about all the params of the model
+        # CDC 20210428: Not sure this accomplishes anything useful
         self.solve_one_period.parameters_model = self.parameters
 
         # and about the ones which, if they change, require iterating
@@ -3380,8 +3411,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.tolerance_orig = deepcopy(self.tolerance)  # preserve true tolerance
         self.tolerance = float('inf')  # tolerance is infinity ...
         self.pseudo_terminal = True  # ... and pseudo_terminal = True
-        self.solve()  # ... means that "solve" will stop after one period ...
-        self.pseudo_terminal = False  # ... and replace terminal with updated
+        self.solve()  # ... means that "solve" will stop after setup ...
+        self.pseudo_terminal = False  # ... replaces generic terminal with updated
         self.tolerance = self.tolerance_orig  # which leaves us ready to solve
 
     def update_pre_solve(self):
@@ -3390,7 +3421,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         from primitives (like, discretizations of a continuous distribution).
         """
         self.update_income_process()
-        self.update_asset_grid()
+        self.update_assets_grid()
 
     def update_income_process(self):
         """
@@ -3557,7 +3588,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # in normal times; value 0.0 in "unemployment" times with small prob.
         if T_retire > 0:
             if UnempPrbRet > 0:
-#                permShkValsNxtRet = np.array([1.0, 1.0])  # Permanent income is deterministic in retirement (2 states for temp income shocks)
+                #                permShkValsNxtRet = np.array([1.0, 1.0])  # Permanent income is deterministic in retirement (2 states for temp income shocks)
                 tranShkValsRet = np.array(
                     [
                         IncUnempRet,
