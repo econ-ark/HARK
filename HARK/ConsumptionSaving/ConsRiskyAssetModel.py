@@ -1326,7 +1326,7 @@ def solveRiskyContribCnsStage(
 
     # Find end of period derivatives and value as discounted expectations of
     # next period's derivatives and value
-    EndOfPrd_derivs = calcExpectation(
+    EndOfPrd_derivs = calc_expectation(
         ShockDstn, end_of_period_ds_func, aNrm_tiled, nNrm_tiled, Share_tiled
     )[:, :, :, :, 0]
     
