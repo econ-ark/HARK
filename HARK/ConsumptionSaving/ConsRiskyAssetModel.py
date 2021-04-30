@@ -65,7 +65,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         self.update_solution_terminal()
 
     def update(self):
-        
+
         IndShockConsumerType.update(self)
         self.update_AdjustPrb()
         self.update_RiskyDstn()
@@ -310,7 +310,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         RiskyAssetConsumerType.__init__(
             self, cycles=cycles, verbose=verbose, quiet=quiet, **kwds
         )
-        
+
         # The model is solved and simulated spliting each of the agent's
         # decisions into its own "stage". The stages in chronological order
         # are
@@ -318,7 +318,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         # - Sha: definition of the income contribution share.
         # - Cns: consumption stage.
         self.stages = ["Reb", "Sha", "Cns"]
-        
+
         # Each stage has its own states and controls, and its methods
         # to find them.
         self.set_states = {
@@ -332,7 +332,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             "Sha": self.get_controls_Sha,
             "Cns": self.get_controls_Cns,
         }
-        
+
         # Set the solver for the portfolio model, and update various constructed attributes
         self.solve_one_period = solveRiskyContrib
         self.update()
@@ -576,7 +576,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
         RiskyAssetConsumerType.sim_birth(self, which_agents)
         self.state_now["Share"][which_agents] = 0.0
-        self.state_now["nNrmTilde"][which_agents] = 0.
+        self.state_now["nNrmTilde"][which_agents] = 0.0
 
     def sim_one_period(self):
         """
@@ -592,7 +592,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         -------
         None
         """
-        
+
         if not hasattr(self, "solution"):
             raise Exception(
                 "Model instance does not have a solution stored. To simulate, it is necessary"
@@ -784,7 +784,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         """
         Get states for the third "stage": consumption.
         """
-        
+
         # Contribution share becomes a state in the consumption problem
         self.state_now["Share"] = self.controls["Share"]
 
@@ -824,6 +824,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         states.
         """
         self.state_now["aNrm"] = self.state_now["mNrmTilde"] - self.controls["cNrm"]
+
 
 # TODO: reformating is up to here
 
@@ -1077,9 +1078,6 @@ class RiskyContribSolution(MetricObject):
         self.stageSols = {"Reb": Reb, "Sha": Sha, "Cns": Cns}
 
 
-
-
-
 def rebalance_assets(d, m, n, tau):
 
     # Initialize
@@ -1135,7 +1133,7 @@ def end_of_period_derivs(
     Rfree,
     DiscFac,
     LivPrb,
-    v_next = None
+    v_next=None,
 ):
 
     temp_fac_A = utilityP(shocks[0] * PermGroFac, CRRA)
@@ -1163,11 +1161,11 @@ def end_of_period_derivs(
     # End of period value function, if needed
     if v_next is not None:
         end_of_prd_v = DiscFac * LivPrb * temp_fac_B * v_next(m_next, n_next, s)
-        return np.stack([end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds, end_of_prd_v])
+        return np.stack(
+            [end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds, end_of_prd_v]
+        )
     else:
         return np.stack([end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds])
-
-    
 
 
 # Consumption stage solver
@@ -1294,7 +1292,6 @@ def solveRiskyContribCnsStage(
         if vFuncBool:
             v_next = lambda m, n, s: vFuncRebAdj_next(m, n)
 
-    
     end_of_period_ds_func = lambda shocks, a, n, s: end_of_period_derivs(
         shocks,
         a,
@@ -1308,7 +1305,7 @@ def solveRiskyContribCnsStage(
         Rfree,
         DiscFac,
         LivPrb,
-        v_next = v_next if vFuncBool else None
+        v_next=v_next if vFuncBool else None,
     )
 
     # Find end of period derivatives and value as discounted expectations of
@@ -1316,7 +1313,7 @@ def solveRiskyContribCnsStage(
     EndOfPrd_derivs = calc_expectation(
         ShockDstn, end_of_period_ds_func, aNrm_tiled, nNrm_tiled, Share_tiled
     )[:, :, :, :, 0]
-    
+
     # Unpack results
     EndOfPrddvdaNvrs = uPinv(EndOfPrd_derivs[0])
     EndOfPrddvdnNvrs = uPinv(EndOfPrd_derivs[1])
@@ -1328,7 +1325,7 @@ def solveRiskyContribCnsStage(
         EndOfPrdvFunc = ValueFuncCRRA(
             TrilinearInterp(EndOfPrdvNvrs, aNrmGrid, nNrmGrid, ShareGrid), CRRA
         )
-        
+
     # STEP TWO:
     # Solve the consumption problem and create interpolators for c, vCns,
     # and its derivatives.
@@ -1368,7 +1365,9 @@ def solveRiskyContribCnsStage(
                 # There's no need to insert points since we have m==0.0
 
                 # c
-                c_vals[:, nInd, sInd] = LinearInterp(m_ns, c_end[:, nInd, sInd])(mNrmGrid)
+                c_vals[:, nInd, sInd] = LinearInterp(m_ns, c_end[:, nInd, sInd])(
+                    mNrmGrid
+                )
 
                 # dvdnNvrs
                 dvdnNvrs_vals[:, nInd, sInd] = LinearInterp(
@@ -1389,7 +1388,7 @@ def solveRiskyContribCnsStage(
                 # -dvdnFxd at (m,n) for m < m0(n) is dvdnFxd(m0,n)
                 # -Same is true for dvdsFxd
 
-                m_ns = np.concatenate([np.array([0]),m_ns])
+                m_ns = np.concatenate([np.array([0]), m_ns])
 
                 # c
                 c_vals[:, nInd, sInd] = LinearInterp(
@@ -1398,7 +1397,7 @@ def solveRiskyContribCnsStage(
 
                 # dvdnNvrs
                 dvdnNvrs_vals[:, nInd, sInd] = LinearInterp(
-                	m_ns,
+                    m_ns,
                     np.concatenate(
                         [
                             np.array([EndOfPrddvdnNvrs[0, nInd, sInd]]),
@@ -1409,12 +1408,12 @@ def solveRiskyContribCnsStage(
 
                 # dvds
                 dvds_vals[:, nInd, sInd] = LinearInterp(
-                	m_ns,
+                    m_ns,
                     np.concatenate(
-                       [
-                           np.array([EndOfPrddvds[0, nInd, sInd]]),
-                           EndOfPrddvds[:, nInd, sInd]
-                       ]
+                        [
+                            np.array([EndOfPrddvds[0, nInd, sInd]]),
+                            EndOfPrddvds[:, nInd, sInd],
+                        ]
                     ),
                 )(mNrmGrid)
 
@@ -1577,7 +1576,9 @@ def solveRiskyContribShaStage(
 
     # Contribution share function
     if DiscreteShareBool:
-        ShareFunc = DiscreteInterp(BilinearInterp(optIdx, mNrmGrid, nNrmGrid), ShareGrid)
+        ShareFunc = DiscreteInterp(
+            BilinearInterp(optIdx, mNrmGrid, nNrmGrid), ShareGrid
+        )
     else:
         ShareFunc = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
 
@@ -1726,8 +1727,12 @@ def solveRiskyContribRebStage(
         vFuncAdj = NullFunc()
 
     # Marginals
-    dvdmFuncAdj = MargValueFuncCRRA(BilinearInterp(dvdmNvrsAdj, mNrmGrid, nNrmGrid), CRRA)
-    dvdnFuncAdj = MargValueFuncCRRA(BilinearInterp(dvdnNvrsAdj, mNrmGrid, nNrmGrid), CRRA)
+    dvdmFuncAdj = MargValueFuncCRRA(
+        BilinearInterp(dvdmNvrsAdj, mNrmGrid, nNrmGrid), CRRA
+    )
+    dvdnFuncAdj = MargValueFuncCRRA(
+        BilinearInterp(dvdnNvrsAdj, mNrmGrid, nNrmGrid), CRRA
+    )
 
     # Decison
     DFuncAdj = BilinearInterp(dOpt, mNrmGrid, nNrmGrid)
