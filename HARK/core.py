@@ -107,17 +107,14 @@ def core_check_condition(name, test, messages, verbose, verbose_messages, fact, 
     """
 
     TF = test(stge)
-    stge.Ths.conditions[name] = TF
+    stge.conditions[name] = TF
     set_verbosity_level((4 - verbose) * 10)
-    stge.Ths.conditions[fact] = (
-        messages[stge.Ths.conditions[name]] +
-        verbose_messages[stge.Ths.conditions[name]]).format(stge.Ths)
-#    print(stge.Ths.conditions[fact])
-#    breakpoint()
-    _log.info((
-        messages[stge.Ths.conditions[name]] +
-        verbose_messages[stge.Ths.conditions[name]]).format(stge.Ths)
-    )
+    stge.conditions[fact] = (
+        messages[stge.conditions[name]] +
+        verbose_messages[stge.conditions[name]]).format(stge)
+    print(stge.conditions[fact])
+    _log.info(stge.conditions[fact])
+
     return TF
 
 
@@ -251,6 +248,7 @@ class MetricObject(object):
                 distance_list.append(
                     1000.0
                 )  # if either object lacks attribute, they are not the same
+        self.distance_last = max(distance_list)  # Store it for later inspection
         return max(distance_list)
 
 
@@ -392,8 +390,6 @@ class AgentType(Model):
         seed=0,
         **kwds
     ):
-        #        breakpoint()
-        #        super().__init__()
         Model.__init__(self)
 
         if solution_terminal is None:
@@ -570,8 +566,8 @@ class AgentType(Model):
 
     def pre_solve(self):
         """
-        A method that is run immediately before the model is solved, to check inputs or to prepare
-        the terminal solution, perhaps.
+        A method that is run immediately before the model is solved, perhaps to 
+        check inputs or to prepare the terminal solution.
 
         Parameters
         ----------
@@ -1024,7 +1020,6 @@ def solve_agent(agent, verbose):
     cycles_left = agent.cycles  # NOQA
     infinite_horizon = cycles_left == 0  # NOQA
     # If this is a first run, the solution object will not exist
-    # breakpoint()
     if not hasattr(agent, 'solution'):
         # Initialize the solution, which includes the terminal solution
         solution = []
@@ -1041,6 +1036,14 @@ def solve_agent(agent, verbose):
             max_cycles = agent.max_cycles
         else:
             max_cycles = 5000
+
+    if hasattr(solution_last, 'stge_kind'):
+        if 'iter_status' in solution_last.stge_kind:
+            if solution_last.stge_kind['iter_status'] \
+               == 'finished':
+                _log.info('The model has already been solved.')
+                print('The existing solution solves the problem')
+                return agent.solution
 
     # Initialize the process, then loop over cycles
     go = True  # NOQA
@@ -1208,8 +1211,10 @@ def solve_one_cycle(agent, solution_last):
         # Solve one stage, add it to the collection, and designate
         # the just-solved solution as being in the future for the
         # purposes of any remaining iteration(s)
-#        breakpoint()
         solution_stge = solve_one_period(**temp_dict)  # -> solve_this_stage
+        # store the parameters
+        solution_stge.parameters_solver = \
+            {k: temp_dict[k] for k in set(list(temp_dict.keys())) - set('solution_next')}
         full_cycle.insert(0, solution_stge)
         solution_next = solution_stge
 
@@ -1261,10 +1266,8 @@ def make_one_period_oo_solver(solver_class):
 
         if hasattr(solver, "prepare_to_solve"):
             # Steps, if any, to prep for sol of stge
-            #            breakpoint()
             solver.prepare_to_solve()  # Fix: rename to prepare_to_solve_stge
 
-#        breakpoint()
         solution_stge = solver.solve()  # Fix: rename to solve_stge
         return solution_stge
 
