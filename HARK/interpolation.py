@@ -4211,6 +4211,45 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         return dfdy
 
 
+class DiscreteInterp(MetricObject):
+    """
+    An interpolator for variables that can only take a discrete set of values.
+
+    If the function we wish to interpolate, f(args) can take on the list of
+    values DiscreteVals, this class expects an interpolator for the index of
+    f's value in DiscreteVals.
+    E.g., if f(a,b,c) = DiscreteVals[5], then IndexInterp(a,b,c) = 5.
+
+    Parameters
+    ----------
+    IndexInterp: HARKInterpolator
+        An interpolator giving an approximation to the index of the value in
+        DiscreteVals that corresponds to a given set of arguments.
+    DiscreteVals: numpy.array
+        A 1D array containing the values in the range of the discrete function
+        to be interpolated.
+    """
+    distance_criteria = ["IndexInterp"]
+
+    def __init__(self, IndexInterp, DiscreteVals):
+
+        self.IndexInterp = IndexInterp
+        self.DiscreteVals = DiscreteVals
+        self.nVals = len(self.DiscreteVals)
+
+    def __call__(self, *args):
+
+        # Interpolate indices and round to integers
+        inds = np.rint(self.IndexInterp(*args)).astype(int)
+        if type(inds) is not np.ndarray:
+            inds = np.array(inds)
+        # Deal with out-of range indices
+        inds[inds < 0] = 0
+        inds[inds >= self.nVals] = self.nVals - 1
+
+        # Get values from grid
+        return self.DiscreteVals[inds]
+
 ###############################################################################
 ## Functions used in discrete choice models with T1EV taste shocks ############
 ###############################################################################
