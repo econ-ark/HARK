@@ -1311,14 +1311,12 @@ def end_of_period_derivs(
         return np.stack([end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds])
 
 
-# %% RiskyContrib solvers (TODO: editing up to here!)
+# %% RiskyContrib solvers
 
 # Consumption stage solver
 def solveRiskyContribCnsStage(
     solution_next,
     ShockDstn,
-    IncShkDstn,
-    RiskyDstn,
     LivPrb,
     DiscFac,
     CRRA,
@@ -1332,7 +1330,6 @@ def solveRiskyContribCnsStage(
     vFuncBool,
     AdjustPrb,
     DiscreteShareBool,
-    IndepDstnBool,
     **unused_params
 ):
 
@@ -1350,7 +1347,6 @@ def solveRiskyContribCnsStage(
 
     # Define temporary functions for utility and its derivative and inverse
     u = lambda x: utility(x, CRRA)
-    uP = lambda x: utilityP(x, CRRA)
     uPinv = lambda x: utilityP_inv(x, CRRA)
     uInv = lambda x: utility_inv(x, CRRA)
 
@@ -1364,16 +1360,6 @@ def solveRiskyContribCnsStage(
     dvdnFuncRebFxd_next = solution_next.dvdnFuncRebFxd
     dvdsFuncRebFxd_next = solution_next.dvdsFuncRebFxd
 
-    # TODO: I am currently contructing the joint distribution of returns and
-    # income, even if they are independent. Is there a way to speed things
-    # up if they are independent?
-    if IndepDstnBool:
-
-        ShockDstn = combine_indep_dstns(IncShkDstn, RiskyDstn)
-
-    # Unpack the shock distribution
-    TranShks_next = ShockDstn.X[1]
-
     # STEP ONE
     # Find end-of-period (continuation) value function and its derivatives.
 
@@ -1386,6 +1372,9 @@ def solveRiskyContribCnsStage(
     # -If he has guaranteed positive income next period.
     # -If he is sure he can draw on iliquid assets even if income and liquid
     #  assets are 0.
+    # If none of these is true, he will not allow his end-of-period liquid
+    # assets to be 0
+    TranShks_next = ShockDstn.X[1]
     zero_bound = np.min(TranShks_next) == 0.0
     if (not zero_bound) or (zero_bound and AdjustPrb == 1.0):
         aNrmGrid = np.insert(aXtraGrid, 0, 0.0)
@@ -1395,9 +1384,6 @@ def solveRiskyContribCnsStage(
 
     # Create tiled arrays with conforming dimensions. These are used
     # to compute expectations at every grid combinations
-    nNrm_N = nNrmGrid.size
-    Share_N = ShareGrid.size
-
     # Convention will be (a,n,s)
     aNrm_tiled, nNrm_tiled, Share_tiled = np.meshgrid(
         aNrmGrid, nNrmGrid, ShareGrid, indexing="ij"
@@ -1428,7 +1414,7 @@ def solveRiskyContribCnsStage(
                 1.0 - AdjustPrb
             ) * vFuncRebFxd_next(m, n, s)
 
-    else:  # Don't evaluate if there's no chance that contribution share is fixed
+    else:
 
         dvdm_next = lambda m, n, s: dvdmFuncRebAdj_next(m, n)
         dvdn_next = lambda m, n, s: dvdnFuncRebAdj_next(m, n)
@@ -1437,6 +1423,10 @@ def solveRiskyContribCnsStage(
         if vFuncBool:
             v_next = lambda m, n, s: vFuncRebAdj_next(m, n)
 
+    # Find end of period derivatives and value as discounted expectations of
+    # next period's derivatives and value.
+    # Create a function to recover the derivatives (and possible value) of the
+    # end of period value function conditional on states and shocks.
     end_of_period_ds_func = lambda shocks, a, n, s: end_of_period_derivs(
         shocks,
         a,
@@ -1453,8 +1443,7 @@ def solveRiskyContribCnsStage(
         v_next=v_next if vFuncBool else None,
     )
 
-    # Find end of period derivatives and value as discounted expectations of
-    # next period's derivatives and value
+    # Then integrate over shocks
     EndOfPrd_derivs = calc_expectation(
         ShockDstn, end_of_period_ds_func, aNrm_tiled, nNrm_tiled, Share_tiled
     )[:, :, :, :, 0]
@@ -1498,6 +1487,8 @@ def solveRiskyContribCnsStage(
     dvdnNvrs_vals = np.zeros_like(mNrm_tiled)
     dvds_vals = np.zeros_like(mNrm_tiled)
 
+    nNrm_N = nNrmGrid.size
+    Share_N = ShareGrid.size
     for nInd in range(nNrm_N):
         for sInd in range(Share_N):
 
@@ -1520,7 +1511,6 @@ def solveRiskyContribCnsStage(
                 )(mNrmGrid)
 
                 # dvds
-                # TODO: this might returns NaN when m=n=0. This might propagate.
                 dvds_vals[:, nInd, sInd] = LinearInterp(
                     m_ns, EndOfPrddvds[:, nInd, sInd]
                 )(mNrmGrid)
@@ -1572,7 +1562,6 @@ def solveRiskyContribCnsStage(
     dvdnNvrsFunc = TrilinearInterp(dvdnNvrs_vals, mNrmGrid, nNrmGrid, ShareGrid)
     dvdnFuncCns = MargValueFuncCRRA(dvdnNvrsFunc, CRRA)
     # dvdsCns interpolator
-    # TODO: dvds might be NaN. Check and fix?
     dvdsFuncCns = TrilinearInterp(dvds_vals, mNrmGrid, nNrmGrid, ShareGrid)
 
     # Compute value function if needed
@@ -1586,6 +1575,7 @@ def solveRiskyContribCnsStage(
     else:
         vFuncCns = NullFunc()
 
+    # Assemble solution
     solution = RiskyContribCnsSolution(
         vFuncCns=vFuncCns,
         cFunc=cFunc,
@@ -1617,15 +1607,14 @@ def solveRiskyContribShaStage(
     dvdnFuncCns_next = solution_next.dvdnFuncCns
     dvdsFuncCns_next = solution_next.dvdsFuncCns
 
-    # Define temporary functions for utility and its derivative and inverse
     uPinv = lambda x: utilityP_inv(x, CRRA)
 
     # Create tiled grids
 
     # Add 0 to the m and n grids
-    nNrmGrid = np.insert(nNrmGrid, 0, 0.0)
+    nNrmGrid = np.concatenate([np.array([0.0]), nNrmGrid])
     nNrm_N = len(nNrmGrid)
-    mNrmGrid = np.insert(mNrmGrid, 0, 0)
+    mNrmGrid = np.concatenate([np.array([0.0]), mNrmGrid])
     mNrm_N = len(mNrmGrid)
 
     if AdjustPrb == 1.0:
@@ -1727,6 +1716,7 @@ def solveRiskyContribShaStage(
     else:
         ShareFunc = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
 
+    # Derivatives
     dvdmNvrsFuncSha = BilinearInterp(dvdmNvrsSha, mNrmGrid, nNrmGrid)
     dvdmFuncSha = MargValueFuncCRRA(dvdmNvrsFuncSha, CRRA)
     dvdnNvrsFuncSha = BilinearInterp(dvdnNvrsSha, mNrmGrid, nNrmGrid)
@@ -1764,15 +1754,14 @@ def solveRiskyContribRebStage(
     dvdnFuncFxd_next = solution_next.dvdnFuncShaFxd
     dvdsFuncFxd_next = solution_next.dvdsFuncShaFxd
 
-    # Define temporary functions for utility and its derivative and inverse
     uPinv = lambda x: utilityP_inv(x, CRRA)
 
     # Create tiled grids
 
     # Add 0 to the m and n grids
-    nNrmGrid = np.insert(nNrmGrid, 0, 0.0)
+    nNrmGrid = np.concatenate([np.array([0.0]), nNrmGrid])
     nNrm_N = len(nNrmGrid)
-    mNrmGrid = np.insert(mNrmGrid, 0, 0)
+    mNrmGrid = np.concatenate([np.array([0.0]), mNrmGrid])
     mNrm_N = len(mNrmGrid)
     d_N = len(dGrid)
 
@@ -1789,7 +1778,7 @@ def solveRiskyContribRebStage(
         dGrid, mNrmGrid, nNrmGrid, indexing="ij"
     )
 
-    # Get post-rebalancing assets the m_tilde, n_tilde.
+    # Get post-rebalancing assets.
     m_tilde, n_tilde = rebalance_assets(d_tiled, mNrm_tiled, nNrm_tiled, tau)
 
     # Now the marginals, in inverse space
@@ -1903,8 +1892,6 @@ def solveRiskyContribRebStage(
 def solveRiskyContrib(
     solution_next,
     ShockDstn,
-    IncShkDstn,
-    RiskyDstn,
     LivPrb,
     DiscFac,
     CRRA,
@@ -1926,8 +1913,6 @@ def solveRiskyContrib(
     # Pack parameters to be passed to stage-specific solvers
     kws = {
         "ShockDstn": ShockDstn,
-        "IncShkDstn": IncShkDstn,
-        "RiskyDstn": RiskyDstn,
         "LivPrb": LivPrb,
         "DiscFac": DiscFac,
         "CRRA": CRRA,
