@@ -1,14 +1,16 @@
-\documentclass[12pt]{econtex}
-\usepackage{econtexSetup}
-\usepackage{econtexShortcuts}
+\input{./econtexRoot}
+\documentclass[12pt]{\econtex}
+\usepackage{\econtexSetup}
+\usepackage{\econtexShortcuts}
 
 \usepackage{cancel}
 
-\begin{document}\bibliographystyle{texmf-local/bibtex/bst/econtex}
+\begin{document}\bibliographystyle{\econtexBibStyle}
 
 
 \title{Suggested Variable Naming Conventions \\ in the Econ-ARK Toolkit}
 
+% \forcedate{2021-02-25} % Updates for HARK 1.0 release
 % \forcedate{2020-02-26} % Add sav, modl; other tweaks
 % \forcedate{2020-06-29} % Update date; shorten ALevBF; add 
 % \forcedate{2020-06-30}  % NARK: Minor tweaks
@@ -25,7 +27,7 @@
 
 
 \begin{abstract}
-  Sharing of code is easier when different contributors use similar names for similar objects.  While we will not enforce the
+  Sharing code is easier when different contributors use similar names for similar objects.  While we will not enforce the
   recommendations below, contributors can make their code more attractive to others 
   by using names consistent with our guidelines.  
 \end{abstract}
@@ -261,12 +263,12 @@ A few operators are so universally used that it will be useful to define them.
 
 \begin{table}[ht]
   \centering
-  \begin{tabular}{|>{\ttfamily}rcll|} 		
+  \begin{tabular}{|>{\ttfamily}rccll|} 		
     \hline
-    Name    & \LaTeX         & Description & Illustration
+    Name    & \LaTeX         & Code & Description & Illustration
     \\ \hline
-    \verb|\Ex|        & $\Ex$       & The expectation as of date $t$ & $\Ex_{t}[\uFunc^{\prime}(\cRat_{t+1})]$
-    \\   \verb|\PDV|        & $\PDV$       & Present Discounted Value & $\PDV_{t}^{T}(y)$ is human wealth
+    \verb|\Ex|        & $\Ex$       & \texttt{Ex\_} & The expectation as of date $t$ & $\Ex_{t}[\uFunc^{\prime}(\cRat_{t+1})]$
+    \\   \verb|\PDV|        & $\PDV$       & \texttt{PDV\_} & Present Discounted Value & $\PDV_{t}^{T}(y)$ is human wealth
     \\	\hline
   \end{tabular}
   \caption{Operators}
@@ -279,8 +281,10 @@ A few operators are so universally used that it will be useful to define them.
 \section{Modifiers}
 \begin{table}[ht]
   \centering
-  \begin{tabular}{|>{\ttfamily}ccl|} 		
+  \begin{tabular}{|>{\ttfamily}lcl|}
     \hline
+ \textit{[object]}\texttt{P} & - & ``Prime'' means derivative, e.g.\ \texttt{vPP} is the second derivative of value: $\vFunc^{\prime\prime}$
+\\    \hline
     \textit{[object]}\texttt{Agg} & - & Value of something at the aggregate level (as opposed to \texttt{Ind})
     \\ \textit{[object]}\texttt{Ind} & - & Value of something at the level of an individual (as opposed to \texttt{Agg})
     \\ \textit{[object]}\texttt{Lvl} & - & Level 
@@ -292,6 +296,7 @@ A few operators are so universally used that it will be useful to define them.
     \\ \textit{[object]}\texttt{Cnt} & - & Continuous-time value
     \\ \textit{[object]}\texttt{Dsc} & - & Discrete-time value
     \\ \textit{[object]}\texttt{Shk} & - & Shock 
+    \\ \textit{[object]}\texttt{StE} & - & Steady-state Equilibrium value of a variable
     \\ \textit{[object]}\texttt{Trg} & - & The `target' value of a variable 
     \\ \textit{[object]}\texttt{Rte} & - & A `rate' variable like the discount rate $\discRte$
     \\ \textit{[object]}\texttt{Fac} & - & A factor variable like the discount factor $\DiscFac$

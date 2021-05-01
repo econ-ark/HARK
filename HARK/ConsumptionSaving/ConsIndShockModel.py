@@ -1,7 +1,7 @@
 """
-Classes to solve canonical consumption-savings models with idiosyncratic shocks
+Classes to solve canonical consumption-saving models with idiosyncratic shocks
 to income.  All models here assume CRRA utility with geometric discounting, no
-bequest motive, and income shocks are fully transitory or fully permanent.
+bequest motive, and income shocks that are fully transitory or fully permanent.
 
 It currently solves three types of models:
    1) A very basic "perfect foresight" consumption-savings model with no uncertainty.
@@ -12,24 +12,28 @@ It currently solves three types of models:
 See NARK https://HARK.githhub.io/Documentation/NARK for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.
 """
-
-from builtins import str
-from builtins import range
-from builtins import object
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
-from HARK import AgentType, NullFunc, HARKobject, makeOnePeriodOOSolver
+from HARK import AgentType, NullFunc, MetricObject, make_one_period_oo_solver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
-from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
+from HARK.interpolation import (
+    CubicInterp,
+    LowerEnvelope,
+    LinearInterp,
+    ValueFuncCRRA,
+    MargValueFuncCRRA,
+    MargMargValueFuncCRRA
+)
 from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
 from HARK.distribution import (
     DiscreteDistribution,
-    addDiscreteOutcomeConstantMean,
-    combineIndepDstns,
+    add_discrete_outcome_constant_mean,
+    calc_expectation,
+    combine_indep_dstns,
 )
 from HARK.utilities import (
-    makeGridExpMult,
+    make_grid_exp_mult,
     CRRAutility,
     CRRAutilityP,
     CRRAutilityPP,
@@ -41,12 +45,12 @@ from HARK.utilities import (
 from HARK import _log
 from HARK import set_verbosity_level
 
+from HARK.Calibration.Income.IncomeTools import parse_income_spec, parse_time_params, Cagetti_income
+from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
+from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 
 __all__ = [
     "ConsumerSolution",
-    "ValueFunc",
-    "MargValueFunc",
-    "MargMargValueFunc",
     "ConsPerfForesightSolver",
     "ConsIndShockSetup",
     "ConsIndShockSolverBasic",
@@ -75,7 +79,7 @@ utilityP_invP = CRRAutilityP_invP
 # =====================================================================
 
 
-class ConsumerSolution(HARKobject):
+class ConsumerSolution(MetricObject):
     """
     A class representing the solution of a single period of a consumption-saving
     problem.  The solution must include a consumption function and marginal
@@ -83,6 +87,34 @@ class ConsumerSolution(HARKobject):
 
     Here and elsewhere in the code, Nrm indicates that variables are normalized
     by permanent income.
+
+    Parameters
+    ----------
+    cFunc : function
+        The consumption function for this period, defined over market
+        resources: c = cFunc(m).
+    vFunc : function
+        The beginning-of-period value function for this period, defined over
+        market resources: v = vFunc(m).
+    vPfunc : function
+        The beginning-of-period marginal value function for this period,
+        defined over market resources: vP = vPfunc(m).
+    vPPfunc : function
+        The beginning-of-period marginal marginal value function for this
+        period, defined over market resources: vPP = vPPfunc(m).
+    mNrmMin : float
+        The minimum allowable market resources for this period; the consump-
+        tion function (etc) are undefined for m < mNrmMin.
+    hNrm : float
+        Human wealth after receiving income this period: PDV of all future
+        income, ignoring mortality.
+    MPCmin : float
+        Infimum of the marginal propensity to consume this period.
+        MPC --> MPCmin as m --> infinity.
+    MPCmax : float
+        Supremum of the marginal propensity to consume this period.
+        MPC --> MPCmax as m --> mNrmMin.
+
     """
 
     distance_criteria = ["vPfunc"]
@@ -98,40 +130,6 @@ class ConsumerSolution(HARKobject):
         MPCmin=None,
         MPCmax=None,
     ):
-        """
-        The constructor for a new ConsumerSolution object.
-
-        Parameters
-        ----------
-        cFunc : function
-            The consumption function for this period, defined over market
-            resources: c = cFunc(m).
-        vFunc : function
-            The beginning-of-period value function for this period, defined over
-            market resources: v = vFunc(m).
-        vPfunc : function
-            The beginning-of-period marginal value function for this period,
-            defined over market resources: vP = vPfunc(m).
-        vPPfunc : function
-            The beginning-of-period marginal marginal value function for this
-            period, defined over market resources: vPP = vPPfunc(m).
-        mNrmMin : float
-            The minimum allowable market resources for this period; the consump-
-            tion function (etc) are undefined for m < mNrmMin.
-        hNrm : float
-            Human wealth after receiving income this period: PDV of all future
-            income, ignoring mortality.
-        MPCmin : float
-            Infimum of the marginal propensity to consume this period.
-            MPC --> MPCmin as m --> infinity.
-        MPCmax : float
-            Supremum of the marginal propensity to consume this period.
-            MPC --> MPCmax as m --> mNrmMin.
-
-        Returns
-        -------
-        None
-        """
         # Change any missing function inputs to NullFunc
         self.cFunc = cFunc if cFunc is not None else NullFunc()
         self.vFunc = vFunc if vFunc is not None else NullFunc()
@@ -143,7 +141,7 @@ class ConsumerSolution(HARKobject):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
 
-    def appendSolution(self, new_solution):
+    def append_solution(self, new_solution):
         """
         Appends one solution to another to create a ConsumerSolution whose
         attributes are lists.  Used in ConsMarkovModel, where we append solutions
@@ -165,7 +163,7 @@ class ConsumerSolution(HARKobject):
             # Begin by checking this is so.
             assert (
                 NullFunc().distance(self.cFunc) == 0
-            ), "appendSolution called incorrectly!"
+            ), "append_solution called incorrectly!"
 
             # We will need the attributes of the solution instance to be lists.  Do that here.
             self.cFunc = [new_solution.cFunc]
@@ -181,179 +179,40 @@ class ConsumerSolution(HARKobject):
             self.mNrmMin.append(new_solution.mNrmMin)
 
 
-class ValueFunc(HARKobject):
-    """
-    A class for representing a value function.  The underlying interpolation is
-    in the space of (m,u_inv(v)); this class "re-curves" to the value function.
-    """
-
-    distance_criteria = ["func", "CRRA"]
-
-    def __init__(self, vFuncNvrs, CRRA):
-        """
-        Constructor for a new value function object.
-
-        Parameters
-        ----------
-        vFuncNvrs : function
-            A real function representing the value function composed with the
-            inverse utility function, defined on market resources: u_inv(vFunc(m))
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        None
-        """
-        self.func = deepcopy(vFuncNvrs)
-        self.CRRA = CRRA
-
-    def __call__(self, m):
-        """
-        Evaluate the value function at given levels of market resources m.
-
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources (normalized by permanent income) whose value is to
-            be found.
-
-        Returns
-        -------
-        v : float or np.array
-            Lifetime value of beginning this period with market resources m; has
-            same size as input m.
-        """
-        return utility(self.func(m), gam=self.CRRA)
-
-
-class MargValueFunc(HARKobject):
-    """
-    A class for representing a marginal value function in models where the
-    standard envelope condition of v'(m) = u'(c(m)) holds (with CRRA utility).
-    """
-
-    distance_criteria = ["cFunc", "CRRA"]
-
-    def __init__(self, cFunc, CRRA):
-        """
-        Constructor for a new marginal value function object.
-
-        Parameters
-        ----------
-        cFunc : function
-            A real function representing the marginal value function composed
-            with the inverse marginal utility function, defined on market
-            resources: uP_inv(vPfunc(m)).  Called cFunc because when standard
-            envelope condition applies, uP_inv(vPfunc(m)) = cFunc(m).
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        None
-        """
-        self.cFunc = deepcopy(cFunc)
-        self.CRRA = CRRA
-
-    def __call__(self, m):
-        """
-        Evaluate the marginal value function at given levels of market resources m.
-
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources (normalized by permanent income) whose marginal
-            value is to be found.
-
-        Returns
-        -------
-        vP : float or np.array
-            Marginal lifetime value of beginning this period with market
-            resources m; has same size as input m.
-        """
-        return utilityP(self.cFunc(m), gam=self.CRRA)
-
-    def derivative(self, m):
-        """
-        Evaluate the derivative of the marginal value function at given levels
-        of market resources m; this is the marginal marginal value function.
-
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources (normalized by permanent income) whose marginal
-            marginal value is to be found.
-
-        Returns
-        -------
-        vPP : float or np.array
-            Marginal marginal lifetime value of beginning this period with market
-            resources m; has same size as input m.
-        """
-        c, MPC = self.cFunc.eval_with_derivative(m)
-        return MPC * utilityPP(c, gam=self.CRRA)
-
-
-class MargMargValueFunc(HARKobject):
-    """
-    A class for representing a marginal marginal value function in models where
-    the standard envelope condition of v'(m) = u'(c(m)) holds (with CRRA utility).
-    """
-
-    distance_criteria = ["cFunc", "CRRA"]
-
-    def __init__(self, cFunc, CRRA):
-        """
-        Constructor for a new marginal marginal value function object.
-
-        Parameters
-        ----------
-        cFunc : function
-            A real function representing the marginal value function composed
-            with the inverse marginal utility function, defined on market
-            resources: uP_inv(vPfunc(m)).  Called cFunc because when standard
-            envelope condition applies, uP_inv(vPfunc(m)) = cFunc(m).
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        None
-        """
-        self.cFunc = deepcopy(cFunc)
-        self.CRRA = CRRA
-
-    def __call__(self, m):
-        """
-        Evaluate the marginal marginal value function at given levels of market
-        resources m.
-
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources (normalized by permanent income) whose marginal
-            marginal value is to be found.
-
-        Returns
-        -------
-        vPP : float or np.array
-            Marginal marginal lifetime value of beginning this period with market
-            resources m; has same size as input m.
-        """
-        c, MPC = self.cFunc.eval_with_derivative(m)
-        return MPC * utilityPP(c, gam=self.CRRA)
-
-
 # =====================================================================
 # === Classes and functions that solve consumption-saving models ===
 # =====================================================================
 
 
-class ConsPerfForesightSolver(HARKobject):
+class ConsPerfForesightSolver(MetricObject):
     """
-    A class for solving a one period perfect foresight consumption-saving problem.
-    An instance of this class is created by the function solvePerfForesight in each period.
+    A class for solving a one period perfect foresight
+    consumption-saving problem.
+    An instance of this class is created by the function solvePerfForesight
+    in each period.
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to next period's one-period problem.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the next period.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    PermGroFac : float
+        Expected permanent income growth factor at the end of this period.
+    BoroCnstArt : float or None
+        Artificial borrowing constraint, as a multiple of permanent income.
+        Can be None, indicating no artificial constraint.
+    MaxKinks : int
+        Maximum number of kink points to allow in the consumption function;
+        additional points will be thrown out.  Only relevant in infinite
+        horizon model with artificial borrowing constraint.
     """
 
     def __init__(
@@ -367,56 +226,16 @@ class ConsPerfForesightSolver(HARKobject):
         BoroCnstArt,
         MaxKinks,
     ):
-        """
-        Constructor for a new ConsPerfForesightSolver.
+        self.solution_next = solution_next
+        self.DiscFac = DiscFac
+        self.LivPrb = LivPrb
+        self.CRRA = CRRA
+        self.Rfree = Rfree
+        self.PermGroFac = PermGroFac
+        self.BoroCnstArt = BoroCnstArt
+        self.MaxKinks = MaxKinks
 
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to next period's one-period problem.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the next period.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rfree : float
-            Risk free interest factor on end-of-period assets.
-        PermGroFac : float
-            Expected permanent income growth factor at the end of this period.
-        BoroCnstArt : float or None
-            Artificial borrowing constraint, as a multiple of permanent income.
-            Can be None, indicating no artificial constraint.
-        MaxKinks : int
-            Maximum number of kink points to allow in the consumption function;
-            additional points will be thrown out.  Only relevant in infinite
-            horizon model with artificial borrowing constraint.
-
-        Returns:
-        ----------
-        None
-        """
-        # We ask that HARK users define single-letter variables they use in a dictionary
-        # attribute called notation. Do that first.
-
-        self.notation = {
-            "a": "assets after all actions",
-            "m": "market resources at decision time",
-            "c": "consumption",
-        }
-        self.assignParameters(
-            solution_next=solution_next,
-            DiscFac=DiscFac,
-            LivPrb=LivPrb,
-            CRRA=CRRA,
-            Rfree=Rfree,
-            PermGroFac=PermGroFac,
-            BoroCnstArt=BoroCnstArt,
-            MaxKinks=MaxKinks,
-        )
-
-    def defUtilityFuncs(self):
+    def def_utility_funcs(self):
         """
         Defines CRRA utility function for this period (and its derivatives),
         saving them as attributes of self for other methods to use.
@@ -435,7 +254,7 @@ class ConsPerfForesightSolver(HARKobject):
             c, gam=self.CRRA
         )  # marginal marginal utility function
 
-    def defValueFuncs(self):
+    def def_value_funcs(self):
         """
         Defines the value and marginal value functions for this period.
         Uses the fact that for a perfect foresight CRRA utility problem,
@@ -446,8 +265,8 @@ class ConsPerfForesightSolver(HARKobject):
         mNrmMin.  See PerfForesightConsumerType.ipynb documentation notebook
         for a brief explanation and the links below for a fuller treatment.
 
-        https://econ.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/#vFuncAnalytical
-        https://econ.jhu.edu/people/ccarroll/SolvingMicroDSOPs/#vFuncPF
+        https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/#vFuncAnalytical
+        https://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/#vFuncPF
 
         Parameters
         ----------
@@ -464,10 +283,10 @@ class ConsPerfForesightSolver(HARKobject):
             np.array([self.mNrmMinNow, self.mNrmMinNow + 1.0]),
             np.array([0.0, vFuncNvrsSlope]),
         )
-        self.vFunc = ValueFunc(vFuncNvrs, self.CRRA)
-        self.vPfunc = MargValueFunc(self.cFunc, self.CRRA)
+        self.vFunc = ValueFuncCRRA(vFuncNvrs, self.CRRA)
+        self.vPfunc = MargValueFuncCRRA(self.cFunc, self.CRRA)
 
-    def makePFcFunc(self):
+    def make_cFunc_PF(self):
         """
         Makes the (linear) consumption function for this period.
 
@@ -531,8 +350,8 @@ class ConsPerfForesightSolver(HARKobject):
 
                 # Adjust the grids of mNrm and cNrm to account for the borrowing constraint.
                 cCrit = mCrit - BoroCnstArt
-                mNrmNow = np.concatenate(([BoroCnstArt, mCrit], mNrmNow[(idx + 1) :]))
-                cNrmNow = np.concatenate(([0.0, cCrit], cNrmNow[(idx + 1) :]))
+                mNrmNow = np.concatenate(([BoroCnstArt, mCrit], mNrmNow[(idx + 1):]))
+                cNrmNow = np.concatenate(([0.0, cCrit], cNrmNow[(idx + 1):]))
 
             else:
                 # If it *is* the very last index, then there are only three points
@@ -557,15 +376,16 @@ class ConsPerfForesightSolver(HARKobject):
         self.MPCmax = (cNrmNow[1] - cNrmNow[0]) / (mNrmNow[1] - mNrmNow[0])
 
         # Add two attributes to enable calculation of steady state market resources.
-        self.ExIncNext = 1.0  # Perfect foresight income of 1
-        self.mNrmMinNow = mNrmNow[0]  # Relabeling for compatibility with addSSmNrm
+        self.Ex_IncNext = 1.0  # Perfect foresight income of 1
+        self.mNrmMinNow = mNrmNow[0]  # Relabeling for compatibility with add_mNrmStE
 
-    def addSSmNrm(self, solution):
+    def add_mNrmTrg(self, solution):
         """
-        Finds steady state (normalized) market resources and adds it to the
-        solution.  This is the level of market resources such that the expectation
-        of market resources in the next period is unchanged.  This value doesn't
-        necessarily exist.
+        Finds value of (normalized) market resources m at which individual consumer
+        expects m not to change.
+        This will exist if the GICNrm holds.
+
+        https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
 
         Parameters
         ----------
@@ -574,28 +394,140 @@ class ConsPerfForesightSolver(HARKobject):
         Returns
         -------
         solution : ConsumerSolution
-            Same solution that was passed, but now with the attribute mNrmSS.
+            Same solution that was passed, but now with the attribute mNrmStE.
         """
-        # Make a linear function of all combinations of c and m that yield mNext = mNow
-        mZeroChangeFunc = (
-            lambda m: (1.0 - self.PermGroFac / self.Rfree) * m
-            + (self.PermGroFac / self.Rfree) * self.ExIncNext
+
+        # If no uncertainty, return the degenerate targets for the PF model
+        if hasattr(self, "TranShkMinNext"):  # Then it has transitory shocks
+            # Handle the degenerate case where shocks are of size zero
+            if ((self.TranShkMinNext == 1.0) and (self.PermShkMinNext == 1.0)):
+                # but they are of zero size (and also permanent are zero)
+                if self.GICRaw:  # max of nat and art boro cnst
+                    if type(self.BoroCnstArt) == type(None):
+                        solution.mNrmStE = -self.hNrmNow
+                        solution.mNrmTrg = -self.hNrmNow
+                    else:
+                        bNrmNxt = -self.BoroCnstArt * self.Rfree/self.PermGroFac
+                        solution.mNrmStE = bNrmNxt + 1.0
+                        solution.mNrmTrg = bNrmNxt + 1.0
+                else:  # infinity
+                    solution.mNrmStE = float('inf')
+                    solution.mNrmTrg = float('inf')
+                return solution
+
+        # First find
+        # \bar{\mathcal{R}} = E_t[R/Gamma_{t+1}] = R/Gamma E_t[1/psi_{t+1}]
+        if type(self) == ConsPerfForesightSolver:
+            Ex_PermShkInv = 1.0
+        else:
+            Ex_PermShkInv = np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
+
+        Ex_RNrmFac = (self.Rfree/self.PermGroFac)*Ex_PermShkInv
+
+        # mNrmTrg solves Rcalbar*(m - c(m)) + E[inc_next] = m. Define a
+        # rearranged version.
+        Ex_m_tp1_minus_m_t = (
+            lambda m: Ex_RNrmFac * (m - solution.cFunc(m)) + self.Ex_IncNext - m
         )
 
-        # Find the steady state level of market resources
-        searchSSfunc = lambda m: solution.cFunc(m) - mZeroChangeFunc(
-            m
-        )  # A zero of this is SS market resources
-        m_init_guess = (
-            self.mNrmMinNow + self.ExIncNext
-        )  # Minimum market resources plus next income is okay starting guess
+        # Minimum market resources plus next income is okay starting guess
+        m_init_guess = self.mNrmMinNow + self.Ex_IncNext
         try:
-            mNrmSS = newton(searchSSfunc, m_init_guess)
+            mNrmTrg = newton(Ex_m_tp1_minus_m_t, m_init_guess)
         except:
-            mNrmSS = None
+            mNrmTrg = None
 
-        # Add mNrmSS to the solution and return it
-        solution.mNrmSS = mNrmSS
+        # Add mNrmTrg to the solution and return it
+        solution.mNrmTrg = mNrmTrg
+        return solution
+
+    def add_mNrmStE(self, solution):
+        """
+        Finds market resources ratio at which 'balanced growth' is expected.
+        This is the m ratio such that the expected growth rate of the M level
+        matches the expected growth rate of permanent income. This value does
+        not exist if the Growth Impatience Condition does not hold.
+
+        https://econ-ark.github.io/BufferStockTheory#Unique-Stable-Points
+
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            Solution to this period's problem, which must have attribute cFunc.
+        Returns
+        -------
+        solution : ConsumerSolution
+            Same solution that was passed, but now with the attribute mNrmStE
+        """
+        # Probably should test whether GICRaw holds and log error if it does not
+        # using check_conditions
+        # All combinations of c and m that yield E[PermGroFac PermShkVal mNext] = mNow
+        # https://econ-ark.github.io/BufferStockTheory/#The-Individual-Steady-State
+
+        PF_RNrm = self.Rfree/self.PermGroFac
+        # If we are working with a model that permits uncertainty but that
+        # uncertainty has been set to zero, return the correct answer
+        # by hand because in this degenerate case numerical search may
+        # have trouble
+        if hasattr(self, "TranShkMinNext"):  # Then it has transitory shocks
+            if ((self.TranShkMinNext == 1.0) and (self.PermShkMinNext == 1.0)):
+                # but they are of zero size (and permanent shocks also not there)
+                if self.GICRaw:  # max of nat and art boro cnst
+                    #                    breakpoint()
+                    if type(self.BoroCnstArt) == type(None):
+                        solution.mNrmStE = -self.hNrmNow
+                        solution.mNrmTrg = -self.hNrmNow
+                    else:
+                        bNrmNxt = -self.BoroCnstArt * self.Rfree/self.PermGroFac
+                        solution.mNrmStE = bNrmNxt + 1.0
+                        solution.mNrmTrg = bNrmNxt + 1.0
+                else:  # infinity
+                    solution.mNrmStE = float('inf')
+                    solution.mNrmTrg = float('inf')
+                return solution
+
+        Ex_PermShk_tp1_times_m_tp1_minus_m_t = (
+            lambda mStE: PF_RNrm * (mStE - solution.cFunc(mStE)) + 1.0 - mStE
+        )
+
+        # Minimum market resources plus next income is okay starting guess
+        m_init_guess = self.mNrmMinNow + self.Ex_IncNext
+        try:
+            mNrmStE = newton(Ex_PermShk_tp1_times_m_tp1_minus_m_t, m_init_guess)
+        except:
+            mNrmStE = None
+
+        solution.mNrmStE = mNrmStE
+        return solution
+
+    def add_stable_points(self, solution):
+        """
+        Checks necessary conditions for the existence of the individual steady
+        state and target levels of market resources (see above).
+        If the conditions are satisfied, computes and adds the stable points
+        to the solution.
+
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            Solution to this period's problem, which must have attribute cFunc.
+        Returns
+        -------
+        solution : ConsumerSolution
+            Same solution that was provided, augmented with attributes mNrmStE and
+            mNrmTrg, if they exist.
+
+        """
+
+        # 0. There is no non-degenerate steady state for any unconstrained PF model.
+        # 1. There is a non-degenerate SS for constrained PF model if GICRaw holds.
+        # Therefore
+        # Check if  (GICRaw and BoroCnstArt) and if so compute them both
+        thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
+        GICRaw = 1 > thorn/self.PermGroFac
+        if self.BoroCnstArt is not None and GICRaw:
+            solution = self.add_mNrmStE(solution)
+            solution = self.add_mNrmTrg(solution)
         return solution
 
     def solve(self):
@@ -611,10 +543,11 @@ class ConsPerfForesightSolver(HARKobject):
         solution : ConsumerSolution
             The solution to this period's problem.
         """
-        self.defUtilityFuncs()
-        self.DiscFacEff = self.DiscFac * self.LivPrb
-        self.makePFcFunc()
-        self.defValueFuncs()
+        self.def_utility_funcs()
+        self.DiscFacEff = self.DiscFac * self.LivPrb  # Effective=pure x LivPrb
+        self.make_cFunc_PF()
+        self.def_value_funcs()
+
         solution = ConsumerSolution(
             cFunc=self.cFunc,
             vFunc=self.vFunc,
@@ -624,7 +557,9 @@ class ConsPerfForesightSolver(HARKobject):
             MPCmin=self.MPCmin,
             MPCmax=self.MPCmax,
         )
-        solution = self.addSSmNrm(solution)
+
+        solution = self.add_stable_points(solution)
+
         return solution
 
 
@@ -635,12 +570,46 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     A superclass for solvers of one period consumption-saving problems with
     constant relative risk aversion utility and permanent and transitory shocks
     to income.  Has methods to set up but not solve the one period problem.
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to next period's one period problem.
+    IncShkDstn : distribution.Distribution
+        A discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next).
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    PermGroFac : float
+        Expected permanent income growth factor at the end of this period.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.  If it is less than the natural borrowing constraint,
+        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+        rowing constraint.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear inter-
+        polation.
     """
 
     def __init__(
         self,
         solution_next,
-        IncomeDstn,
+        IncShkDstn,
         LivPrb,
         DiscFac,
         CRRA,
@@ -654,62 +623,22 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         """
         Constructor for a new solver-setup for problems with income subject to
         permanent and transitory shocks.
-
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rfree : float
-            Risk free interest factor on end-of-period assets.
-        PermGroFac : float
-            Expected permanent income growth factor at the end of this period.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.  If it is less than the natural borrowing constraint,
-            then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-            rowing constraint.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period asset values-- assets above the
-            absolute minimum acceptable level.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear inter-
-            polation.
-
-        Returns
-        -------
-        None
         """
-        self.assignParameters(
-            solution_next=solution_next,
-            IncomeDstn=IncomeDstn,
-            LivPrb=LivPrb,
-            DiscFac=DiscFac,
-            CRRA=CRRA,
-            Rfree=Rfree,
-            PermGroFac=PermGroFac,
-            BoroCnstArt=BoroCnstArt,
-            aXtraGrid=aXtraGrid,
-            vFuncBool=vFuncBool,
-            CubicBool=CubicBool,
-        )
-        self.defUtilityFuncs()
+        self.solution_next = solution_next
+        self.IncShkDstn = IncShkDstn
+        self.LivPrb = LivPrb
+        self.DiscFac = DiscFac
+        self.CRRA = CRRA
+        self.Rfree = Rfree
+        self.PermGroFac = PermGroFac
+        self.BoroCnstArt = BoroCnstArt
+        self.aXtraGrid = aXtraGrid
+        self.vFuncBool = vFuncBool
+        self.CubicBool = CubicBool
 
-    def defUtilityFuncs(self):
+        self.def_utility_funcs()
+
+    def def_utility_funcs(self):
         """
         Defines CRRA utility function for this period (and its derivatives,
         and their inverses), saving them as attributes of self for other methods
@@ -723,14 +652,14 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         -------
         none
         """
-        ConsPerfForesightSolver.defUtilityFuncs(self)
+        ConsPerfForesightSolver.def_utility_funcs(self)
         self.uPinv = lambda u: utilityP_inv(u, gam=self.CRRA)
         self.uPinvP = lambda u: utilityP_invP(u, gam=self.CRRA)
         self.uinvP = lambda u: utility_invP(u, gam=self.CRRA)
         if self.vFuncBool:
             self.uinv = lambda u: utility_inv(u, gam=self.CRRA)
 
-    def setAndUpdateValues(self, solution_next, IncomeDstn, LivPrb, DiscFac):
+    def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.  These include:
@@ -742,7 +671,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncomeDstn : distribution.DiscreteDistribution
+        IncShkDstn : distribution.DiscreteDistribution
             A DiscreteDistribution with a pmf
             and two point value arrays in X, order:
             permanent shocks, transitory shocks.
@@ -757,9 +686,10 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         None
         """
         self.DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
-        self.ShkPrbsNext = IncomeDstn.pmf
-        self.PermShkValsNext = IncomeDstn.X[0]
-        self.TranShkValsNext = IncomeDstn.X[1]
+        self.IncShkDstn = IncShkDstn
+        self.ShkPrbsNext = IncShkDstn.pmf
+        self.PermShkValsNext = IncShkDstn.X[0]
+        self.TranShkValsNext = IncShkDstn.X[1]
         self.PermShkMinNext = np.min(self.PermShkValsNext)
         self.TranShkMinNext = np.min(self.TranShkValsNext)
         self.vPfuncNext = solution_next.vPfunc
@@ -779,11 +709,11 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # Update the bounding MPCs and PDV of human wealth:
         self.PatFac = ((self.Rfree * self.DiscFacEff) ** (1.0 / self.CRRA)) / self.Rfree
         self.MPCminNow = 1.0 / (1.0 + self.PatFac / solution_next.MPCmin)
-        self.ExIncNext = np.dot(
+        self.Ex_IncNext = np.dot(
             self.ShkPrbsNext, self.TranShkValsNext * self.PermShkValsNext
         )
         self.hNrmNow = (
-            self.PermGroFac / self.Rfree * (self.ExIncNext + solution_next.hNrm)
+            self.PermGroFac / self.Rfree * (self.Ex_IncNext + solution_next.hNrm)
         )
         self.MPCmaxNow = 1.0 / (
             1.0
@@ -795,7 +725,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         self.cFuncLimitIntercept = self.MPCminNow * self.hNrmNow
         self.cFuncLimitSlope = self.MPCminNow
 
-    def defBoroCnst(self, BoroCnstArt):
+    def def_BoroCnst(self, BoroCnstArt):
         """
         Defines the constrained portion of the consumption function as cFuncNowCnst,
         an attribute of self.  Uses the artificial and natural borrowing constraints.
@@ -837,7 +767,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             np.array([self.mNrmMinNow, self.mNrmMinNow + 1]), np.array([0.0, 1.0])
         )
 
-    def prepareToSolve(self):
+    def prepare_to_solve(self):
         """
         Perform preparatory work before calculating the unconstrained consumption
         function.
@@ -850,10 +780,10 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         -------
         none
         """
-        self.setAndUpdateValues(
-            self.solution_next, self.IncomeDstn, self.LivPrb, self.DiscFac
+        self.set_and_update_values(
+            self.solution_next, self.IncShkDstn, self.LivPrb, self.DiscFac
         )
-        self.defBoroCnst(self.BoroCnstArt)
+        self.def_BoroCnst(self.BoroCnstArt)
 
 
 ####################################################################################################
@@ -872,7 +802,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
     inherits.
     """
 
-    def prepareToCalcEndOfPrdvP(self):
+    def prepare_to_calc_EndOfPrdvP(self):
         """
         Prepare to calculate end-of-period marginal value by creating an array
         of market resources that the agent could have next period, considering
@@ -894,31 +824,30 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # function as the lower envelope of the (by the artificial borrowing con-
         # straint) uconstrained consumption function, and the artificially con-
         # strained consumption function.
-        aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
-        ShkCount = self.TranShkValsNext.size
-        aNrm_temp = np.tile(aNrmNow, (ShkCount, 1))
+        self.aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
 
-        # Tile arrays of the income shocks and put them into useful shapes
-        aNrmCount = aNrmNow.shape[0]
-        PermShkVals_temp = (np.tile(self.PermShkValsNext, (aNrmCount, 1))).transpose()
-        TranShkVals_temp = (np.tile(self.TranShkValsNext, (aNrmCount, 1))).transpose()
-        ShkPrbs_temp = (np.tile(self.ShkPrbsNext, (aNrmCount, 1))).transpose()
+        return self.aNrmNow
 
-        # Get cash on hand next period
-        mNrmNext = (
-            self.Rfree / (self.PermGroFac * PermShkVals_temp) * aNrm_temp
-            + TranShkVals_temp
-        )  # CDC 20191205: This should be divided by LivPrb[0] for Blanchard insurance
+    def m_nrm_next(self, shocks, a_nrm):
+        """
+        Computes normalized market resources of the next period
+        from income shocks and current normalized market resources.
 
-        # Store and report the results
-        self.PermShkVals_temp = PermShkVals_temp
-        self.ShkPrbs_temp = ShkPrbs_temp
-        self.mNrmNext = mNrmNext
-        self.aNrmNow = aNrmNow
-        return aNrmNow
+        Parameters
+        ----------
+        shocks: [float]
+            Permanent and transitory income shock levels.       a_nrm: float
+            Normalized market assets this period
 
+        Returns
+        -------
+        float
+           normalized market resources in the next period
+        """
+        return self.Rfree / (self.PermGroFac * shocks[0]) \
+            * a_nrm + shocks[1]
 
-    def calcEndOfPrdvP(self):
+    def calc_EndOfPrdvP(self):
         """
         Calculate end-of-period marginal value of assets at each point in aNrmNow.
         Does so by taking a weighted sum of next period marginal values across
@@ -934,20 +863,24 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             A 1D array of end-of-period marginal value of assets
         """
 
+        def vp_next(shocks, a_nrm):
+            return shocks[0] ** (-self.CRRA) \
+                * self.vPfuncNext(self.m_nrm_next(shocks, a_nrm))
+
         EndOfPrdvP = (
             self.DiscFacEff
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA)
-            * np.sum(
-                self.PermShkVals_temp ** (-self.CRRA)
-                * self.vPfuncNext(self.mNrmNext)
-                * self.ShkPrbs_temp,
-                axis=0,
+            * calc_expectation(
+                self.IncShkDstn,
+                vp_next,
+                self.aNrmNow
             )
         )
+
         return EndOfPrdvP
 
-    def getPointsForInterpolation(self, EndOfPrdvP, aNrmNow):
+    def get_points_for_interpolation(self, EndOfPrdvP, aNrmNow):
         """
         Finds interpolation points (c,m) for the consumption function.
 
@@ -979,7 +912,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         return c_for_interpolation, m_for_interpolation
 
-    def usePointsForInterpolation(self, cNrm, mNrm, interpolator):
+    def use_points_for_interpolation(self, cNrm, mNrm, interpolator):
         """
         Constructs a basic solution for this period, including the consumption
         function and marginal value function.
@@ -1003,18 +936,20 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         cFuncNowUnc = interpolator(mNrm, cNrm)
 
         # Combine the constrained and unconstrained functions into the true consumption function
+        # breakpoint()  # LowerEnvelope should only be used when BoroCnstArt is true
         cFuncNow = LowerEnvelope(cFuncNowUnc, self.cFuncNowCnst, nan_bool=False)
 
         # Make the marginal value function and the marginal marginal value function
-        vPfuncNow = MargValueFunc(cFuncNow, self.CRRA)
+        vPfuncNow = MargValueFuncCRRA(cFuncNow, self.CRRA)
 
         # Pack up the solution and return it
         solution_now = ConsumerSolution(
             cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow
         )
+
         return solution_now
 
-    def makeBasicSolution(self, EndOfPrdvP, aNrm, interpolator):
+    def make_basic_solution(self, EndOfPrdvP, aNrm, interpolator):
         """
         Given end of period assets and end of period marginal value, construct
         the basic solution for this period.
@@ -1036,11 +971,12 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             The solution to this period's consumption-saving problem, with a
             consumption function, marginal value function, and minimum m.
         """
-        cNrm, mNrm = self.getPointsForInterpolation(EndOfPrdvP, aNrm)
-        solution_now = self.usePointsForInterpolation(cNrm, mNrm, interpolator)
+        cNrm, mNrm = self.get_points_for_interpolation(EndOfPrdvP, aNrm)
+        solution_now = self.use_points_for_interpolation(cNrm, mNrm, interpolator)
+
         return solution_now
 
-    def addMPCandHumanWealth(self, solution):
+    def add_MPC_and_human_wealth(self, solution):
         """
         Take a solution and add human wealth and the bounding MPCs to it.
 
@@ -1060,7 +996,47 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution.MPCmax = self.MPCmaxEff
         return solution
 
-    def makeLinearcFunc(self, mNrm, cNrm):
+    def add_stable_points(self, solution):
+        """
+        Checks necessary conditions for the existence of the individual steady
+        state and target levels of market resources (see above).
+        If the conditions are satisfied, computes and adds the stable points
+        to the solution.
+
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            Solution to this period's problem, which must have attribute cFunc.
+        Returns
+        -------
+        solution : ConsumerSolution
+            Same solution that was passed, but now with attributes mNrmStE and
+            mNrmTrg, if they exist.
+
+        """
+
+        # 0. Check if GICRaw holds. If so, then mNrmStE will exist. So, compute it.
+        # 1. Check if GICNrm holds. If so, then mNrmTrg will exist. So, compute it.
+
+        thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
+
+        GPFRaw = thorn / self.PermGroFac
+        self.GPFRaw = GPFRaw
+        GPFNrm = thorn / self.PermGroFac / np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
+        self.GPFNrm = GPFNrm
+        GICRaw = 1 > thorn/self.PermGroFac
+        self.GICRaw = GICRaw
+        GICNrm = 1 > GPFNrm
+        self.GICNrm = GICNrm
+
+        if GICRaw:
+            solution = self.add_mNrmStE(solution)  # find steady state m, if it exists
+        if GICNrm:
+            solution = self.add_mNrmTrg(solution)  # find target m, if it exists
+
+        return solution
+
+    def make_linear_cFunc(self, mNrm, cNrm):
         """
         Makes a linear interpolation to represent the (unconstrained) consumption function.
 
@@ -1094,10 +1070,13 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution : ConsumerSolution
             The solution to the one period problem.
         """
-        aNrm = self.prepareToCalcEndOfPrdvP()
-        EndOfPrdvP = self.calcEndOfPrdvP()
-        solution = self.makeBasicSolution(EndOfPrdvP, aNrm, self.makeLinearcFunc)
-        solution = self.addMPCandHumanWealth(solution)
+        self.aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
+        aNrm = self.aNrmNow
+        EndOfPrdvP = self.calc_EndOfPrdvP()
+        solution = self.make_basic_solution(EndOfPrdvP, aNrm, self.make_linear_cFunc)
+        solution = self.add_MPC_and_human_wealth(solution)
+        solution = self.add_stable_points(solution)
+
         return solution
 
 
@@ -1112,7 +1091,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
     interpolation and to calculate the value function.
     """
 
-    def makeCubiccFunc(self, mNrm, cNrm):
+    def make_cubic_cFunc(self, mNrm, cNrm):
         """
         Makes a cubic spline interpolation of the unconstrained consumption
         function for this period.
@@ -1129,16 +1108,19 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         cFuncUnc : CubicInterp
             The unconstrained consumption function for this period.
         """
+        def vpp_next(shocks, a_nrm):
+            return shocks[0] ** (- self.CRRA - 1.0) \
+                * self.vPPfuncNext(self.m_nrm_next(shocks, a_nrm))
+
         EndOfPrdvPP = (
             self.DiscFacEff
             * self.Rfree
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA - 1.0)
-            * np.sum(
-                self.PermShkVals_temp ** (-self.CRRA - 1.0)
-                * self.vPPfuncNext(self.mNrmNext)
-                * self.ShkPrbs_temp,
-                axis=0,
+            * calc_expectation(
+                self.IncShkDstn,
+                vpp_next,
+                self.aNrmNow
             )
         )
         dcda = EndOfPrdvPP / self.uPP(np.array(cNrm[1:]))
@@ -1150,7 +1132,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         )
         return cFuncNowUnc
 
-    def makeEndOfPrdvFunc(self, EndOfPrdvP):
+    def make_EndOfPrdvFunc(self, EndOfPrdvP):
         """
         Construct the end-of-period value function for this period, storing it
         as an attribute of self for use by other methods.
@@ -1165,11 +1147,14 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         -------
         none
         """
-        VLvlNext = (
-            self.PermShkVals_temp ** (1.0 - self.CRRA)
-            * self.PermGroFac ** (1.0 - self.CRRA)
-        ) * self.vFuncNext(self.mNrmNext)
-        EndOfPrdv = self.DiscFacEff * np.sum(VLvlNext * self.ShkPrbs_temp, axis=0)
+        def v_lvl_next(shocks, a_nrm):
+            return (
+                shocks[0] ** (1.0 - self.CRRA)
+                * self.PermGroFac ** (1.0 - self.CRRA)
+            ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm))
+        EndOfPrdv = self.DiscFacEff * calc_expectation(
+            self.IncShkDstn, v_lvl_next, self.aNrmNow
+        )
         EndOfPrdvNvrs = self.uinv(
             EndOfPrdv
         )  # value transformed through inverse utility
@@ -1180,9 +1165,9 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         )  # This is a very good approximation, vNvrsPP = 0 at the asset minimum
         aNrm_temp = np.insert(self.aNrmNow, 0, self.BoroCnstNat)
         EndOfPrdvNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
-        self.EndOfPrdvFunc = ValueFunc(EndOfPrdvNvrsFunc, self.CRRA)
+        self.EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
 
-    def addvFunc(self, solution, EndOfPrdvP):
+    def add_vFunc(self, solution, EndOfPrdvP):
         """
         Creates the value function for this period and adds it to the solution.
 
@@ -1201,11 +1186,11 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             The single period solution passed as an input, but now with the
             value function (defined over market resources m) as an attribute.
         """
-        self.makeEndOfPrdvFunc(EndOfPrdvP)
-        solution.vFunc = self.makevFunc(solution)
+        self.make_EndOfPrdvFunc(EndOfPrdvP)
+        solution.vFunc = self.make_vFunc(solution)
         return solution
 
-    def makevFunc(self, solution):
+    def make_vFunc(self, solution):
         """
         Creates the value function for this period, defined over market resources m.
         self must have the attribute EndOfPrdvFunc in order to execute.
@@ -1218,7 +1203,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
 
         Returns
         -------
-        vFuncNow : ValueFunc
+        vFuncNow : ValueFuncCRRA
             A representation of the value function for this period, defined over
             normalized market resources m: v = vFuncNow(m).
         """
@@ -1241,10 +1226,10 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         vNvrsFuncNow = CubicInterp(
             mNrm_temp, vNvrs, vNvrsP, MPCminNvrs * self.hNrmNow, MPCminNvrs
         )
-        vFuncNow = ValueFunc(vNvrsFuncNow, self.CRRA)
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA)
         return vFuncNow
 
-    def addvPPfunc(self, solution):
+    def add_vPPfunc(self, solution):
         """
         Adds the marginal marginal value function to an existing solution, so
         that the next solver can evaluate vPP and thus use cubic interpolation.
@@ -1261,10 +1246,9 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             The same solution passed as input, but with the marginal marginal
             value function for this period added as the attribute vPPfunc.
         """
-        vPPfuncNow = MargMargValueFunc(solution.cFunc, self.CRRA)
+        vPPfuncNow = MargMargValueFuncCRRA(solution.cFunc, self.CRRA)
         solution.vPPfunc = vPPfuncNow
         return solution
-
 
     def solve(self):
         """
@@ -1285,27 +1269,28 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             The solution to the single period consumption-saving problem.
         """
         # Make arrays of end-of-period assets and end-of-period marginal value
-        aNrm = self.prepareToCalcEndOfPrdvP()
-        EndOfPrdvP = self.calcEndOfPrdvP()
+        aNrm = self.prepare_to_calc_EndOfPrdvP()
+        EndOfPrdvP = self.calc_EndOfPrdvP()
 
         # Construct a basic solution for this period
         if self.CubicBool:
-            solution = self.makeBasicSolution(
-                EndOfPrdvP, aNrm, interpolator=self.makeCubiccFunc
+            solution = self.make_basic_solution(
+                EndOfPrdvP, aNrm, interpolator=self.make_cubic_cFunc
             )
         else:
-            solution = self.makeBasicSolution(
-                EndOfPrdvP, aNrm, interpolator=self.makeLinearcFunc
+            solution = self.make_basic_solution(
+                EndOfPrdvP, aNrm, interpolator=self.make_linear_cFunc
             )
-        solution = self.addMPCandHumanWealth(solution)  # add a few things
-        solution = self.addSSmNrm(solution)  # find steady state m
+
+        solution = self.add_MPC_and_human_wealth(solution)  # add a few things
+        solution = self.add_stable_points(solution)
 
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used (to prepare for next period)
         if self.vFuncBool:
-            solution = self.addvFunc(solution, EndOfPrdvP)
+            solution = self.add_vFunc(solution, EndOfPrdvP)
         if self.CubicBool:
-            solution = self.addvPPfunc(solution)
+            solution = self.add_vPPfunc(solution)
         return solution
 
 
@@ -1321,12 +1306,50 @@ class ConsKinkedRsolver(ConsIndShockSolver):
     erence is that Rfree is replaced by Rsave (a>0) and Rboro (a<0).  The solver
     can handle Rboro == Rsave, which makes it identical to ConsIndShocksolver, but
     it terminates immediately if Rboro < Rsave, as this has a different solution.
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to next period's one period problem.
+    IncShkDstn : distribution.Distribution
+        A discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next).
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rboro: float
+        Interest factor on assets between this period and the succeeding
+        period when assets are negative.
+    Rsave: float
+        Interest factor on assets between this period and the succeeding
+        period when assets are positive.
+    PermGroFac : float
+        Expected permanent income growth factor at the end of this period.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.  If it is less than the natural borrowing constraint,
+        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+        rowing constraint.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear inter-
+        polation.
     """
 
     def __init__(
         self,
         solution_next,
-        IncomeDstn,
+        IncShkDstn,
         LivPrb,
         DiscFac,
         CRRA,
@@ -1338,53 +1361,6 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         vFuncBool,
         CubicBool,
     ):
-        """
-        Constructor for a new solver for problems with risky income and a different
-        interest rate on borrowing and saving.
-
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rboro: float
-            Interest factor on assets between this period and the succeeding
-            period when assets are negative.
-        Rsave: float
-            Interest factor on assets between this period and the succeeding
-            period when assets are positive.
-        PermGroFac : float
-            Expected permanent income growth factor at the end of this period.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.  If it is less than the natural borrowing constraint,
-            then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-            rowing constraint.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period asset values-- assets above the
-            absolute minimum acceptable level.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear inter-
-            polation.
-
-        Returns
-        -------
-        None
-        """
         assert (
             Rboro >= Rsave
         ), "Interest factor on debt less than interest factor on savings!"
@@ -1394,7 +1370,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         ConsIndShockSolver.__init__(
             self,
             solution_next,
-            IncomeDstn,
+            IncShkDstn,
             LivPrb,
             DiscFac,
             CRRA,
@@ -1410,7 +1386,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         self.Rboro = Rboro
         self.Rsave = Rsave
 
-    def makeCubiccFunc(self, mNrm, cNrm):
+    def make_cubic_cFunc(self, mNrm, cNrm):
         """
         Makes a cubic spline interpolation that contains the kink of the unconstrained
         consumption function for this period.
@@ -1427,8 +1403,8 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         cFuncUnc : CubicInterp
             The unconstrained consumption function for this period.
         """
-        # Call the makeCubiccFunc from ConsIndShockSolver.
-        cFuncNowUncKink = super().makeCubiccFunc(mNrm, cNrm)
+        # Call the make_cubic_cFunc from ConsIndShockSolver.
+        cFuncNowUncKink = super().make_cubic_cFunc(mNrm, cNrm)
 
         # Change the coeffients at the kinked points.
         cFuncNowUncKink.coeffs[self.i_kink + 1] = [
@@ -1440,7 +1416,33 @@ class ConsKinkedRsolver(ConsIndShockSolver):
 
         return cFuncNowUncKink
 
-    def prepareToCalcEndOfPrdvP(self):
+    def add_stable_points(self, solution):
+        """
+        TODO:
+        Placeholder method for a possible future implementation of stable
+        points in the kinked R model. For now it simply serves to override
+        ConsIndShock's method, which does not apply here given the multiple
+        interest rates.
+
+        Discusson:
+        - The target and steady state should exist under the same conditions
+          as in ConsIndShock.
+        - The ConsIndShock code as it stands can not be directly applied
+          because it assumes that R is a constant, and in this model R depends
+          on the level of wealth.
+        - After allowing for wealth-depending interest rates, the existing
+         code might work without modification to add the stable points. If not,
+         it should be possible to find these values by checking within three
+         distinct intervals:
+             - From h_min to the lower kink.
+             - From the lower kink to the upper kink
+             - From the upper kink to infinity.
+        the stable points must be in one of these regions.
+
+        """
+        return solution
+
+    def prepare_to_calc_EndOfPrdvP(self):
         """
         Prepare to calculate end-of-period marginal value by creating an array
         of market resources that the agent could have next period, considering
@@ -1487,7 +1489,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
             self.i_kink = (
                 np.sum(aNrmNow <= 0) - 1
             )  # Save the index of the kink point as an attribute
-            Rfree_vec[0 : self.i_kink] = self.Rboro
+            Rfree_vec[0: self.i_kink] = self.Rboro
         self.Rfree = Rfree_vec
         Rfree_temp = np.tile(Rfree_vec, (ShkCount, 1))
 
@@ -1499,7 +1501,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         )
 
         # Recalculate the minimum MPC and human wealth using the interest factor on saving.
-        # This overwrites values from setAndUpdateValues, which were based on Rboro instead.
+        # This overwrites values from set_and_update_values, which were based on Rboro instead.
         if KinkBool:
             PatFacTop = (
                 (self.Rsave * self.DiscFacEff) ** (1.0 / self.CRRA)
@@ -1534,17 +1536,19 @@ init_perfect_foresight = {
     'Rfree': 1.03,        # Interest factor on assets
     'DiscFac': 0.96,      # Intertemporal discount factor
     'LivPrb': [0.98],     # Survival probability
-    'PermGroFac': [1.01], # Permanent income growth factor
+    'PermGroFac': [1.01],  # Permanent income growth factor
     'BoroCnstArt': None,  # Artificial borrowing constraint
     'MaxKinks': 400,      # Maximum number of grid points to allow in cFunc (should be large)
     'AgentCount': 10000,  # Number of agents of this type (only matters for simulation)
-    'aNrmInitMean' : 0.0, # Mean of log initial assets (only matters for simulation)
-    'aNrmInitStd' : 1.0,  # Standard deviation of log initial assets (only for simulation)
-    'pLvlInitMean' : 0.0, # Mean of log initial permanent income (only matters for simulation)
-    'pLvlInitStd' : 0.0,  # Standard deviation of log initial permanent income (only matters for simulation)
-    'PermGroFacAgg' : 1.0,# Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
-    'T_age' : None,       # Age after which simulated agents are automatically killed
-    'T_cycle' : 1         # Number of periods in the cycle for this agent type
+    'aNrmInitMean': 0.0,  # Mean of log initial assets (only matters for simulation)
+    'aNrmInitStd': 1.0,  # Standard deviation of log initial assets (only for simulation)
+    'pLvlInitMean': 0.0,  # Mean of log initial permanent income (only matters for simulation)
+    # Standard deviation of log initial permanent income (only matters for simulation)
+    'pLvlInitStd': 0.0,
+    # Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
+    'PermGroFacAgg': 1.0,
+    'T_age': None,       # Age after which simulated agents are automatically killed
+    'T_cycle': 1         # Number of periods in the cycle for this agent type
 }
 
 
@@ -1554,6 +1558,11 @@ class PerfForesightConsumerType(AgentType):
     His problem is defined by a coefficient of relative risk aversion, intertemporal
     discount factor, interest factor, an artificial borrowing constraint (maybe)
     and time sequences of the permanent income growth rate and survival probability.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     # Define some universal values for all consumer types
@@ -1569,25 +1578,10 @@ class PerfForesightConsumerType(AgentType):
     )
     time_vary_ = ["LivPrb", "PermGroFac"]
     time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt"]
-    state_vars = ['pLvlNow', 'PlvlAggNow', 'bNrmNow', 'mNrmNow', "aNrmNow"]
+    state_vars = ['pLvl', 'PlvlAgg', 'bNrm', 'mNrm', "aNrm"]
     shock_vars_ = []
 
     def __init__(self, cycles=1, verbose=1, quiet=False, **kwds):
-        """
-        Instantiate a new consumer type with given data.
-        See init_perfect_foresight for a dictionary of
-        the keywords that should be passed to the constructor.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
-
         params = init_perfect_foresight.copy()
         params.update(kwds)
         kwds = params
@@ -1608,11 +1602,11 @@ class PerfForesightConsumerType(AgentType):
         self.shock_vars = deepcopy(self.shock_vars_)
         self.verbose = verbose
         self.quiet = quiet
-        self.solveOnePeriod = makeOnePeriodOOSolver(ConsPerfForesightSolver)
+        self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolver)
         set_verbosity_level((4 - verbose) * 10)
 
-    def preSolve(self):
-        self.updateSolutionTerminal()  # Solve the terminal period problem
+    def pre_solve(self):
+        self.update_solution_terminal()  # Solve the terminal period problem
 
         # Fill in BoroCnstArt and MaxKinks if they're not specified or are irrelevant.
         if not hasattr(self, "BoroCnstArt"):  # If no borrowing constraint specified...
@@ -1629,7 +1623,7 @@ class PerfForesightConsumerType(AgentType):
                     )
                 )
 
-    def checkRestrictions(self):
+    def check_restrictions(self):
         """
         A method to check that various restrictions are met for the model class.
         """
@@ -1638,7 +1632,7 @@ class PerfForesightConsumerType(AgentType):
 
         return
 
-    def updateSolutionTerminal(self):
+    def update_solution_terminal(self):
         """
         Update the terminal period solution.  This method should be run when a
         new AgentType is created or when CRRA changes.
@@ -1651,13 +1645,13 @@ class PerfForesightConsumerType(AgentType):
         -------
         none
         """
-        self.solution_terminal.vFunc = ValueFunc(self.cFunc_terminal_, self.CRRA)
-        self.solution_terminal.vPfunc = MargValueFunc(self.cFunc_terminal_, self.CRRA)
-        self.solution_terminal.vPPfunc = MargMargValueFunc(
+        self.solution_terminal.vFunc = ValueFuncCRRA(self.cFunc_terminal_, self.CRRA)
+        self.solution_terminal.vPfunc = MargValueFuncCRRA(self.cFunc_terminal_, self.CRRA)
+        self.solution_terminal.vPPfunc = MargMargValueFuncCRRA(
             self.cFunc_terminal_, self.CRRA
         )
 
-    def unpackcFunc(self):
+    def unpack_cFunc(self):
         """ DEPRECATED: Use solution.unpack('cFunc') instead.
         "Unpacks" the consumption functions into their own field for easier access.
         After the model has been solved, the consumption functions reside in the
@@ -1672,17 +1666,17 @@ class PerfForesightConsumerType(AgentType):
         none
         """
         _log.critical(
-            "unpackcFunc is deprecated and it will soon be removed, "
+            "unpack_cFunc is deprecated and it will soon be removed, "
             "please use unpack('cFunc') instead."
         )
         self.unpack("cFunc")
 
-    def initializeSim(self):
+    def initialize_sim(self):
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
-        self.state_now['PlvlAggNow'] = 1.0
-        AgentType.initializeSim(self)
+        self.state_now['PlvlAgg'] = 1.0
+        AgentType.initialize_sim(self)
 
-    def simBirth(self, which_agents):
+    def sim_birth(self, which_agents):
         """
         Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
         well as time variables t_age and t_cycle.  Normalized assets and permanent income levels
@@ -1699,16 +1693,16 @@ class PerfForesightConsumerType(AgentType):
         """
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        self.state_now["aNrmNow"][which_agents] = Lognormal(
+        self.state_now['aNrm'][which_agents] = Lognormal(
             mu=self.aNrmInitMean,
             sigma=self.aNrmInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1),
         ).draw(N)
         # why is a now variable set here? Because it's an aggregate.
         pLvlInitMeanNow = self.pLvlInitMean + np.log(
-            self.state_now["PlvlAggNow"]
+            self.state_now['PlvlAgg']
         )  # Account for newer cohorts having higher permanent income
-        self.state_now["pLvlNow"][which_agents] = Lognormal(
+        self.state_now['pLvl'][which_agents] = Lognormal(
             pLvlInitMeanNow,
             self.pLvlInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1)
@@ -1719,7 +1713,7 @@ class PerfForesightConsumerType(AgentType):
         ] = 0  # Which period of the cycle each agent is currently in
         return None
 
-    def simDeath(self):
+    def sim_death(self):
         """
         Determines which agents die this period and must be replaced.  Uses the sequence in LivPrb
         to determine survival probabilities for each agent.
@@ -1747,7 +1741,7 @@ class PerfForesightConsumerType(AgentType):
             which_agents = np.logical_or(which_agents, too_old)
         return which_agents
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Finds permanent and transitory income "shocks" for each agent this period.  As this is a
         perfect foresight model, there are no stochastic shocks: PermShkNow = PermGroFac for each
@@ -1762,12 +1756,12 @@ class PerfForesightConsumerType(AgentType):
         None
         """
         PermGroFac = np.array(self.PermGroFac)
-        self.shocks["PermShkNow"] = PermGroFac[
+        self.shocks['PermShk'] = PermGroFac[
             self.t_cycle - 1
         ]  # cycle time has already been advanced
-        self.shocks["TranShkNow"] = np.ones(self.AgentCount)
+        self.shocks['TranShk'] = np.ones(self.AgentCount)
 
-    def getRfree(self):
+    def get_Rfree(self):
         """
         Returns an array of size self.AgentCount with self.Rfree in every entry.
 
@@ -1784,21 +1778,22 @@ class PerfForesightConsumerType(AgentType):
         return RfreeNow
 
     def transition(self):
-        pLvlPrev = self.state_prev['pLvlNow']
-        aNrmPrev = self.state_prev['aNrmNow']
-        RfreeNow = self.getRfree()
+        pLvlPrev = self.state_prev['pLvl']
+        aNrmPrev = self.state_prev['aNrm']
+        RfreeNow = self.get_Rfree()
 
         # Calculate new states: normalized market resources and permanent income level
-        pLvlNow = pLvlPrev*self.shocks['PermShkNow'] # Updated permanent income level
-        PlvlAggNow = self.state_prev['PlvlAggNow']*self.PermShkAggNow # Updated aggregate permanent productivity level
-        ReffNow      = RfreeNow/self.shocks['PermShkNow'] # "Effective" interest factor on normalized assets
+        pLvlNow = pLvlPrev*self.shocks['PermShk']  # Updated permanent income level
+        # Updated aggregate permanent productivity level
+        PlvlAggNow = self.state_prev['PlvlAgg']*self.PermShkAggNow
+        # "Effective" interest factor on normalized assets
+        ReffNow = RfreeNow/self.shocks['PermShk']
         bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
-        mNrmNow = bNrmNow + self.shocks['TranShkNow'] # Market resources after income
+        mNrmNow = bNrmNow + self.shocks['TranShk']  # Market resources after income
 
         return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
 
-
-    def getControls(self):
+    def get_controls(self):
         """
         Calculates consumption for each consumer of this type using the consumption functions.
 
@@ -1815,15 +1810,15 @@ class PerfForesightConsumerType(AgentType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cNrmNow[these], MPCnow[these] = self.solution[t].cFunc.eval_with_derivative(
-                self.state_now['mNrmNow'][these]
+                self.state_now['mNrm'][these]
             )
-        self.controls['cNrmNow'] = cNrmNow
+        self.controls['cNrm'] = cNrmNow
 
         # MPCnow is not really a control
         self.MPCnow = MPCnow
         return None
 
-    def getPostStates(self):
+    def get_poststates(self):
         """
         Calculates end-of-period assets for each consumer of this type.
 
@@ -1836,16 +1831,16 @@ class PerfForesightConsumerType(AgentType):
         None
         """
         # should this be "Now", or "Prev"?!?
-        self.state_now['aNrmNow'] = self.state_now['mNrmNow'] - self.controls['cNrmNow']
+        self.state_now['aNrm'] = self.state_now['mNrm'] - self.controls['cNrm']
         # Useful in some cases to precalculate asset level
-        self.state_now['aLvlNow'] = self.state_now['aNrmNow'] * self.state_now['pLvlNow']
+        self.state_now['aLvl'] = self.state_now['aNrm'] * self.state_now['pLvl']
 
         # moves now to prev
-        super().getPostStates()
+        super().get_poststates()
 
         return None
 
-    def checkCondition(self, name, test, messages, verbose, verbose_messages=None):
+    def check_condition(self, name, test, messages, verbose, verbose_messages=None):
         """
         Checks one condition.
 
@@ -1873,12 +1868,12 @@ class PerfForesightConsumerType(AgentType):
         if verbose_messages:
             _log.debug(verbose_messages[self.conditions[name]].format(self))
 
-    def checkAIC(self, verbose=None):
+    def check_AIC(self, verbose=None):
         """
         Evaluate and report on the Absolute Impatience Condition
         """
         name = "AIC"
-        test = lambda agent: agent.thorn < 1
+        def test(agent): return agent.thorn < 1
 
         messages = {
             True: "The value of the Absolute Patience Factor (APF) for the supplied parameter values satisfies the Absolute Impatience Condition.",
@@ -1889,21 +1884,21 @@ class PerfForesightConsumerType(AgentType):
             False: "  Because the APF > 1, the absolute amount of consumption is expected to grow over time.",
         }
         verbose = self.verbose if verbose is None else verbose
-        self.checkCondition(name, test, messages, verbose, verbose_messages)
+        self.check_condition(name, test, messages, verbose, verbose_messages)
 
-    def checkGICPF(self, verbose=None):
+    def check_GICRaw(self, verbose=None):
         """
         Evaluate and report on the Growth Impatience Condition for the Perfect Foresight model
         """
-        name = "GICPF"
+        name = "GICRaw"
 
-        self.GPFPF = self.thorn / self.PermGroFac[0]
+        self.GPFRaw = self.thorn / self.PermGroFac[0]
 
-        test = lambda agent: agent.GPFPF < 1
+        def test(agent): return agent.GPFRaw < 1
 
         messages = {
             True: "The value of the Growth Patience Factor for the supplied parameter values satisfies the Perfect Foresight Growth Impatience Condition.",
-            False: "The value of the Growth Patience Factor for the supplied parameter values fails the Perfect Foresight Growth Impatience Condition; the GPFPF is: {0.GPFPF}",
+            False: "The value of the Growth Patience Factor for the supplied parameter values fails the Perfect Foresight Growth Impatience Condition; the GPFRaw is: {0.GPFRaw}",
         }
 
         verbose_messages = {
@@ -1911,9 +1906,9 @@ class PerfForesightConsumerType(AgentType):
             False: "  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to grow toward infinity.",
         }
         verbose = self.verbose if verbose is None else verbose
-        self.checkCondition(name, test, messages, verbose, verbose_messages)
+        self.check_condition(name, test, messages, verbose, verbose_messages)
 
-    def checkRIC(self, verbose=None):
+    def check_RIC(self, verbose=None):
         """
         Evaluate and report on the Return Impatience Condition
         """
@@ -1921,7 +1916,7 @@ class PerfForesightConsumerType(AgentType):
         self.RPF = self.thorn / self.Rfree
 
         name = "RIC"
-        test = lambda agent: self.RPF < 1
+        def test(agent): return self.RPF < 1
 
         messages = {
             True: "The value of the Return Patience Factor for the supplied parameter values satisfies the Return Impatience Condition.",
@@ -1933,9 +1928,9 @@ class PerfForesightConsumerType(AgentType):
             False: "  Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.",
         }
         verbose = self.verbose if verbose is None else verbose
-        self.checkCondition(name, test, messages, verbose, verbose_messages)
+        self.check_condition(name, test, messages, verbose, verbose_messages)
 
-    def checkFHWC(self, verbose=None):
+    def check_FHWC(self, verbose=None):
         """
         Evaluate and report on the Finite Human Wealth Condition
         """
@@ -1944,7 +1939,7 @@ class PerfForesightConsumerType(AgentType):
         self.cNrmPDV = 1.0 / (1.0 - self.thorn / self.Rfree)
 
         name = "FHWC"
-        test = lambda agent: self.FHWF < 1
+        def test(agent): return self.FHWF < 1
 
         messages = {
             True: "The Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.",
@@ -1953,19 +1948,19 @@ class PerfForesightConsumerType(AgentType):
 
         verbose_messages = {
             True: "  Therefore, the limiting consumption function is not c(m)=Infinity\nand human wealth normalized by permanent income is {0.hNrm}\nand the PDV of future consumption growth is {0.cNrmPDV}",
-            False: "  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0.  (https://econ-ark.github.io/BufferStockTheory#PFGICHoldsFHWCFailsRICFailsDiscuss)",
+            False: "  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0.  (https://econ-ark.github.io/BufferStockTheory#PFGICRawHoldsFHWCFailsRICFailsDiscuss)",
         }
         verbose = self.verbose if verbose is None else verbose
-        self.checkCondition(name, test, messages, verbose)
+        self.check_condition(name, test, messages, verbose)
 
-    def checkConditions(self, verbose=None):
+    def check_conditions(self, verbose=None):
         """
         This method checks whether the instance's type satisfies the
         Absolute Impatience Condition (AIC),
         the Return Impatience Condition (RIC),
-        the Finite Human Wealth Condition (FHWC) and the perfect foresight
-        model's version of the Finite Value of the Growth Impatience Condition (GICPF) and
-        Autarky Condition (FVACPF). Depending on the configuration of parameter values, some
+        the Finite Human Wealth Condition (FHWC), the perfect foresight
+        model's Growth Impatience Condition (GICRaw) and
+        Perfect Foresight Finite Value of Autarky Condition (FVACPF). Depending on the configuration of parameter values, some
         combination of these conditions must be satisfied in order for the problem to have
         a nondegenerate solution. To check which conditions are required, in the verbose mode
         a reference to the relevant theoretical literature is made.
@@ -1994,10 +1989,10 @@ class PerfForesightConsumerType(AgentType):
         self.thorn = (self.Rfree * self.DiscFac * self.LivPrb[0]) ** (1 / self.CRRA)
 
         verbose = self.verbose if verbose is None else verbose
-        self.checkAIC(verbose)
-        self.checkGICPF(verbose)
-        self.checkRIC(verbose)
-        self.checkFHWC(verbose)
+        self.check_AIC(verbose)
+        self.check_GICRaw(verbose)
+        self.check_RIC(verbose)
+        self.check_FHWC(verbose)
 
         if hasattr(self, "BoroCnstArt") and self.BoroCnstArt is not None:
             self.violated = not self.conditions["RIC"]
@@ -2042,6 +2037,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
     abilities, and permanent income growth rates, as well as time invariant values
     for risk aversion, discount factor, the interest rate, the grid of end-of-
     period assets, and an artificial borrowing constraint.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     time_inv_ = PerfForesightConsumerType.time_inv_ + [
@@ -2052,24 +2052,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
     time_inv_.remove(
         "MaxKinks"
     )  # This is in the PerfForesight model but not ConsIndShock
-    shock_vars_ = ["PermShkNow", "TranShkNow"]
+    shock_vars_ = ['PermShk', 'TranShk']
 
     def __init__(self, cycles=1, verbose=1, quiet=False, **kwds):
-        """
-        Instantiate a new ConsumerType with given data.
-        See ConsumerParameters.init_idiosyncratic_shocks for a dictionary of
-        the keywords that should be passed to the constructor.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
-
         params = init_idiosyncratic_shocks.copy()
         params.update(kwds)
 
@@ -2083,11 +2068,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
             solver = ConsIndShockSolverBasic
         else:  # Use the "advanced" solver if either is requested
             solver = ConsIndShockSolver
-        self.solveOnePeriod = makeOnePeriodOOSolver(solver)
+        self.solve_one_period = make_one_period_oo_solver(solver)
 
         self.update()  # Make assets grid, income process, terminal solution
 
-    def updateIncomeProcess(self):
+    def update_income_process(self):
         """
         Updates this agent's income process based on his own attributes.
 
@@ -2100,16 +2085,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
         none
         """
         (
-            IncomeDstn,
+            IncShkDstn,
             PermShkDstn,
             TranShkDstn,
-        ) = self.constructLognormalIncomeProcessUnemployment()
-        self.IncomeDstn = IncomeDstn
+        ) = self.construct_lognormal_income_process_unemployment()
+        self.IncShkDstn = IncShkDstn
         self.PermShkDstn = PermShkDstn
         self.TranShkDstn = TranShkDstn
-        self.addToTimeVary("IncomeDstn", "PermShkDstn", "TranShkDstn")
+        self.add_to_time_vary("IncShkDstn", "PermShkDstn", "TranShkDstn")
 
-    def updateAssetsGrid(self):
+    def update_assets_grid(self):
         """
         Updates this agent's end-of-period assets grid by constructing a multi-
         exponentially spaced grid of aXtra values.
@@ -2122,9 +2107,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         none
         """
-        aXtraGrid = constructAssetsGrid(self)
+        aXtraGrid = construct_assets_grid(self)
         self.aXtraGrid = aXtraGrid
-        self.addToTimeInv("aXtraGrid")
+        self.add_to_time_inv("aXtraGrid")
 
     def update(self):
         """
@@ -2138,16 +2123,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
-        self.updateIncomeProcess()
-        self.updateAssetsGrid()
-        self.updateSolutionTerminal()
+        self.update_income_process()
+        self.update_assets_grid()
+        self.update_solution_terminal()
 
-    def resetRNG(self):
+    def reset_rng(self):
         """
         Reset the RNG behavior of this type.  This method is called automatically
-        by initializeSim(), ensuring that each simulation run uses the same sequence
+        by initialize_sim(), ensuring that each simulation run uses the same sequence
         of random shocks; this is necessary for structural estimation to work.
-        This method extends AgentType.resetRNG() to also reset elements of IncomeDstn.
+        This method extends AgentType.reset_rng() to also reset elements of IncShkDstn.
 
         Parameters
         ----------
@@ -2157,16 +2142,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
-        PerfForesightConsumerType.resetRNG(self)
+        PerfForesightConsumerType.reset_rng(self)
 
-        # Reset IncomeDstn if it exists (it might not because resetRNG is called at init)
-        if hasattr(self, "IncomeDstn"):
-            for dstn in self.IncomeDstn:
+        # Reset IncShkDstn if it exists (it might not because reset_rng is called at init)
+        if hasattr(self, "IncShkDstn"):
+            for dstn in self.IncShkDstn:
                 dstn.reset()
 
-    def getShocks(self):
+    def get_shocks(self):
         """
-        Gets permanent and transitory income shocks for this period.  Samples from IncomeDstn for
+        Gets permanent and transitory income shocks for this period.  Samples from IncShkDstn for
         each period in the cycle.
 
         Parameters
@@ -2184,12 +2169,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
             these = t == self.t_cycle
             N = np.sum(these)
             if N > 0:
-                IncomeDstnNow = self.IncomeDstn[
+                IncShkDstnNow = self.IncShkDstn[
                     t - 1
                 ]  # set current income distribution
                 PermGroFacNow = self.PermGroFac[t - 1]  # and permanent growth factor
                 # Get random draws of income shocks from the discrete distribution
-                IncShks = IncomeDstnNow.drawDiscrete(N)
+                IncShks = IncShkDstnNow.draw(N)
+
                 PermShkNow[these] = (
                     IncShks[0, :] * PermGroFacNow
                 )  # permanent "shock" includes expected growth
@@ -2200,25 +2186,25 @@ class IndShockConsumerType(PerfForesightConsumerType):
         N = np.sum(newborn)
         if N > 0:
             these = newborn
-            IncomeDstnNow = self.IncomeDstn[0]  # set current income distribution
+            IncShkDstnNow = self.IncShkDstn[0]  # set current income distribution
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
             # Get random draws of income shocks from the discrete distribution
-            EventDraws = IncomeDstnNow.draw_events(N)
+            EventDraws = IncShkDstnNow.draw_events(N)
             PermShkNow[these] = (
-                IncomeDstnNow.X[0][EventDraws] * PermGroFacNow
+                IncShkDstnNow.X[0][EventDraws] * PermGroFacNow
             )  # permanent "shock" includes expected growth
-            TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
+            TranShkNow[these] = IncShkDstnNow.X[1][EventDraws]
         #        PermShkNow[newborn] = 1.0
         TranShkNow[newborn] = 1.0
 
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount, dtype=bool)
         self.EmpNow[TranShkNow == self.IncUnemp] = False
-        self.shocks["PermShkNow"] = PermShkNow
-        self.shocks["TranShkNow"] = TranShkNow
+        self.shocks['PermShk'] = PermShkNow
+        self.shocks['TranShk'] = TranShkNow
 
-    def calcBoundingValues(self):
+    def calc_bounding_values(self):
         """
         Calculate human wealth plus minimum and maximum MPC in an infinite
         horizon model with only one period repeated indefinitely.  Store results
@@ -2237,10 +2223,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         None
         """
         # Unpack the income distribution and get average and worst outcomes
-        PermShkValsNext = self.IncomeDstn[0][1]
-        TranShkValsNext = self.IncomeDstn[0][2]
-        ShkPrbsNext = self.IncomeDstn[0][0]
-        ExIncNext = np.dot(ShkPrbsNext, PermShkValsNext * TranShkValsNext)
+        PermShkValsNext = self.IncShkDstn[0][1]
+        TranShkValsNext = self.IncShkDstn[0][2]
+        ShkPrbsNext = self.IncShkDstn[0][0]
+        Ex_IncNext = np.dot(ShkPrbsNext, PermShkValsNext * TranShkValsNext)
         PermShkMinNext = np.min(PermShkValsNext)
         TranShkMinNext = np.min(TranShkValsNext)
         WorstIncNext = PermShkMinNext * TranShkMinNext
@@ -2249,7 +2235,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         )
 
         # Calculate human wealth and the infinite horizon natural borrowing constraint
-        hNrm = (ExIncNext * self.PermGroFac[0] / self.Rfree) / (
+        hNrm = (Ex_IncNext * self.PermGroFac[0] / self.Rfree) / (
             1.0 - self.PermGroFac[0] / self.Rfree
         )
         temp = self.PermGroFac[0] * PermShkMinNext / self.Rfree
@@ -2269,12 +2255,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
 
-    def makeEulerErrorFunc(self, mMax=100, approx_inc_dstn=True):
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
         Stores result in attribute eulerErrorFunc as an interpolated function.
-        Has option to use approximate income distribution stored in self.IncomeDstn
+        Has option to use approximate income distribution stored in self.IncShkDstn
         or to use a (temporary) very dense approximation.
 
         Only works on (one period) infinite horizon models at this time, will
@@ -2286,28 +2272,33 @@ class IndShockConsumerType(PerfForesightConsumerType):
             Maximum normalized market resources for the Euler error function.
         approx_inc_dstn : Boolean
             Indicator for whether to use the approximate discrete income distri-
-            bution stored in self.IncomeDstn[0], or to use a very accurate
+            bution stored in self.IncShkDstn[0], or to use a very accurate
             discrete approximation instead.  When True, uses approximation in
-            IncomeDstn; when False, makes and uses a very dense approximation.
+            IncShkDstn; when False, makes and uses a very dense approximation.
 
         Returns
         -------
         None
+
+        Notes
+        -----
+        This method is not used by any other code in the library. Rather, it is here
+        for expository and benchmarking purposes.
         """
         # Get the income distribution (or make a very dense one)
         if approx_inc_dstn:
-            IncomeDstn = self.IncomeDstn[0]
+            IncShkDstn = self.IncShkDstn[0]
         else:
             TranShkDstn = MeanOneLogNormal(sigma=self.TranShkStd[0]).approx(
                 N=200, tail_N=50, tail_order=1.3, tail_bound=[0.05, 0.95]
             )
-            TranShkDstn = addDiscreteOutcomeConstantMean(
+            TranShkDstn = add_discrete_outcome_constant_mean(
                 TranShkDstn, self.UnempPrb, self.IncUnemp
             )
             PermShkDstn = MeanOneLogNormal(sigma=self.PermShkStd[0]).approx(
                 N=200, tail_N=50, tail_order=1.3, tail_bound=[0.05, 0.95]
             )
-            IncomeDstn = combineIndepDstns(PermShkDstn, TranShkDstn)
+            IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
         # Make a grid of market resources
         mNowMin = self.solution[0].mNrmMin + 10 ** (
@@ -2326,12 +2317,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         aNowGrid = mNowGrid - cNowGrid
 
         # Tile the grids for fast computation
-        ShkCount = IncomeDstn[0].size
+        ShkCount = IncShkDstn[0].size
         aCount = aNowGrid.size
         aNowGrid_tiled = np.tile(aNowGrid, (ShkCount, 1))
-        PermShkVals_tiled = (np.tile(IncomeDstn[1], (aCount, 1))).transpose()
-        TranShkVals_tiled = (np.tile(IncomeDstn[2], (aCount, 1))).transpose()
-        ShkPrbs_tiled = (np.tile(IncomeDstn[0], (aCount, 1))).transpose()
+        PermShkVals_tiled = (np.tile(IncShkDstn[1], (aCount, 1))).transpose()
+        TranShkVals_tiled = (np.tile(IncShkDstn[2], (aCount, 1))).transpose()
+        ShkPrbs_tiled = (np.tile(IncShkDstn[0], (aCount, 1))).transpose()
 
         # Calculate marginal value next period for each gridpoint and each shock
         mNextArray = (
@@ -2359,29 +2350,29 @@ class IndShockConsumerType(PerfForesightConsumerType):
         eulerErrorFunc = LinearInterp(mNowGrid, EulerErrorNrmGrid)
         self.eulerErrorFunc = eulerErrorFunc
 
-    def preSolve(self):
-        #        AgentType.preSolve(self)
+    def pre_solve(self):
+        #        AgentType.pre_solve(self)
         # Update all income process variables to match any attributes that might
         # have been changed since `__init__` or `solve()` was last called.
-        #        self.updateIncomeProcess()
-        self.updateSolutionTerminal()
+        #        self.update_income_process()
+        self.update_solution_terminal()
         if not self.quiet:
-            self.checkConditions(verbose=self.verbose)
+            self.check_conditions(verbose=self.verbose)
 
-    def checkGICInd(self, verbose=None):
+    def check_GICNrm(self, verbose=None):
         """
         Check Individual Growth Patience Factor.
         """
-        self.GPFInd = self.thorn / (
-            self.PermGroFac[0] * self.InvEPermShkInv
-        )  # [url]/#GICI
+        self.GPFNrm = self.thorn / (
+            self.PermGroFac[0] * self.InvEx_PermShkInv
+        )  # [url]/#GICRawI
 
-        name = "GIC"
-        test = lambda agent: agent.GPFInd <= 1
+        name = "GICRaw"
+        def test(agent): return agent.GPFNrm <= 1
 
         messages = {
-            True: "\nThe value of the Individual Growth Patience Factor for the supplied parameter values satisfies the Individual Growth Impatience Condition; the value of the GPFInd is: {0.GPFInd}",
-            False: "\nThe given parameter values violate the Individual Growth Impatience Condition; the GPFInd is: {0.GPFInd}",
+            True: "\nThe value of the Individual Growth Patience Factor for the supplied parameter values satisfies the Growth Impatience Condition; the value of the GPFNrm is: {0.GPFNrm}",
+            False: "\nThe given parameter values violate the Normalized Growth Impatience Condition; the GPFNrm is: {0.GPFNrm}",
         }
 
         verbose_messages = {
@@ -2389,25 +2380,27 @@ class IndShockConsumerType(PerfForesightConsumerType):
             False: " Therefore, a target ratio of individual market resources to individual permanent income does not exist.  (see {0.url}/#onetarget for more).\n",
         }
         verbose = self.verbose if verbose is None else verbose
-        self.checkCondition(name, test, messages, verbose, verbose_messages)
+        self.check_condition(name, test, messages, verbose, verbose_messages)
 
-    def checkCIGAgg(self, verbose=None):
-        name = "GICAgg"
-        test = lambda agent: agent.GPFAgg <= 1
+    def check_GICAggLivPrb(self, verbose=None):
+        name = "GICAggLivPrb"
+        def test(agent): return agent.GPFAggLivPrb <= 1
 
         messages = {
-            True: "\nThe value of the Aggregate Growth Patience Factor for the supplied parameter values satisfies the Aggregate Growth Impatience Condition; the value of the GPFAgg is: {0.GPFAgg}",
-            False: "\nThe given parameter values violate the Aggregate Growth Impatience Condition; the GPFAgg is: {0.GPFAgg}",
+            True: "\nThe value of the Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values satisfies the Mortality Adjusted Aggregate Growth Imatience Condition; the value of the GPFAggLivPrb is: {0.GPFAggLivPrb}",
+            False: "\nThe given parameter values violate the Mortality Adjusted Aggregate Growth Imatience Condition; the GPFAggLivPrb is: {0.GPFAggLivPrb}",
         }
 
         verbose_messages = {
-            True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.\n",  # (see {0.url}/#WRIC for more).',
-            False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.\n",  # (see {0.url}/#WRIC for more).'
+            # (see {0.url}/#WRIC for more).',
+            True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.\n",
+            # (see {0.url}/#WRIC for more).'
+            False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.\n",
         }
         verbose = self.verbose if verbose is None else verbose
-        self.checkCondition(name, test, messages, verbose, verbose_messages)
+        self.check_condition(name, test, messages, verbose, verbose_messages)
 
-    def checkWRIC(self, verbose=None):
+    def check_WRIC(self, verbose=None):
         """
         Evaluate and report on the Weak Return Impatience Condition
         [url]/#WRPF modified to incorporate LivPrb
@@ -2419,7 +2412,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         )
 
         name = "WRIC"
-        test = lambda agent: agent.WRPF <= 1
+        def test(agent): return agent.WRPF <= 1
 
         messages = {
             True: "\nThe Weak Return Patience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition; the WRPF is {0.WRPF}.",
@@ -2431,16 +2424,18 @@ class IndShockConsumerType(PerfForesightConsumerType):
             False: "  Therefore, a nondegenerate solution is not available (see {0.url}/#WRIC for more). \n",
         }
         verbose = self.verbose if verbose is None else verbose
-        self.checkCondition(name, test, messages, verbose, verbose_messages)
+        self.check_condition(name, test, messages, verbose, verbose_messages)
 
-    def checkFVAC(self, verbose=None):
+    def check_FVAC(self, verbose=None):
         """
         Evaluate and report on the Finite Value of Autarky Condition
         Hyperlink to paper: [url]/#Autarky-Value
         """
-        EpShkuInv = np.dot(
-            self.PermShkDstn[0].pmf, self.PermShkDstn[0].X ** (1 - self.CRRA)
+        EpShkuInv = calc_expectation(
+            self.PermShkDstn[0],
+            lambda x: x ** (1 - self.CRRA)
         )
+
         if self.CRRA != 1.0:
             uInvEpShkuInv = EpShkuInv ** (
                 1 / (1 - self.CRRA)
@@ -2450,14 +2445,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         self.uInvEpShkuInv = uInvEpShkuInv
 
-        self.FVAF = self.LivPrb[0] * self.DiscFac * self.uInvEpShkuInv
+        self.VAF = self.LivPrb[0] * self.DiscFac * self.uInvEpShkuInv
 
         name = "FVAC"
-        test = lambda agent: agent.FVAF <= 1
+        def test(agent): return agent.VAF <= 1
 
         messages = {
-            True: "\nThe Finite Value of Autarky Factor (FVAV) for the supplied parameter values satisfies the Finite Value of Autarky Condition; the FVAF is {0.FVAF}",
-            False: "\nThe Finite Value of Autarky Factor (FVAV) for the supplied parameter values fails     the Finite Value of Autarky Condition; the FVAF is {0.FVAF}",
+            True: "\nThe Value of Autarky Factor (VAF) for the supplied parameter values satisfies the Finite Value of Autarky Condition; the VAF is {0.VAF}",
+            False: "\nThe Value of Autarky Factor (VAF) for the supplied parameter values fails     the Finite Value of Autarky Condition; the VAF is {0.VAF}",
         }
 
         verbose_messages = {
@@ -2465,9 +2460,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
             False: "  Therefore, a nondegenerate solution is not available (see {0.url}/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping\n",
         }
         verbose = self.verbose if verbose is None else verbose
-        self.checkCondition(name, test, messages, verbose, verbose_messages)
+        self.check_condition(name, test, messages, verbose, verbose_messages)
 
-    def checkConditions(self, verbose=None):
+    def check_conditions(self, verbose=None):
         """
         This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC), Weak Return
         Impatience Condition (WRIC), Finite Human Wealth Condition (FHWC) and Finite Value of
@@ -2488,7 +2483,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
         self.conditions = {}
 
-        self.violated = False  # PerfForesightConsumerType.checkConditions(self, verbose=False, verbose_reference=False)
+        # PerfForesightConsumerType.check_conditions(self, verbose=False, verbose_reference=False)
+        self.violated = False
 
         if self.cycles != 0 or self.T_cycle > 1:
             return
@@ -2496,49 +2492,48 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # For theory, see hyperlink targets to expressions in
         # url=https://econ-ark.github.io/BufferStockTheory
         # For example, the hyperlink to the relevant section of the paper
-        self.url = "https://llorracc.github.io/BufferStockTheory"
+        self.url = "https://econ-ark.github.io/BufferStockTheory"
         # would be referenced below as:
         # [url]/#Uncertainty-Modified-Conditions
 
-        self.InvPermShkDstn = deepcopy(self.PermShkDstn)
+        self.Ex_PermShkInv = calc_expectation(
+            self.PermShkDstn[0], lambda x: 1 / x
+        )
+        # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
 
-        self.InvPermShkDstn[0].X = 1 / self.PermShkDstn[0].X
-        self.EPermShkInv = np.dot(
-            self.InvPermShkDstn[0].pmf, 1 / self.PermShkDstn[0].X
-        )  # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
         # [url]/#Pat, adjusted to include mortality
 
-        self.InvEPermShkInv = (
-            1 / self.EPermShkInv
+        self.InvEx_PermShkInv = (
+            1 / self.Ex_PermShkInv
         )  # $\underline{\psi}$ in the paper (\bar{\isp} in private version)
-        self.PermGroFacAdj = self.PermGroFac[0] * self.InvEPermShkInv  # [url]/#PGroAdj
+        self.PermGroFacAdj = self.PermGroFac[0] * self.InvEx_PermShkInv  # [url]/#PGroAdj
 
         self.thorn = ((self.Rfree * self.DiscFac)) ** (1 / self.CRRA)
 
-        # self.Rnorm           = self.Rfree*EPermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
-        self.GPFPF = self.thorn / (self.PermGroFac[0])  # [url]/#GPF
+        # self.Ex_RNrm           = self.Rfree*Ex_PermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
+        self.GPFRaw = self.thorn / (self.PermGroFac[0])  # [url]/#GPF
         # Lower bound of aggregate wealth growth if all inheritances squandered
 
-        self.GPFAgg = self.thorn * self.LivPrb[0] / self.PermGroFac[0]
+        self.GPFAggLivPrb = self.thorn * self.LivPrb[0] / self.PermGroFac[0]
 
-        self.DiscFacGPFPFMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
+        self.DiscFacGPFRawMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
             self.Rfree
         )  # DiscFac at growth impatience knife edge
-        self.DiscFacGPFIndMax = (
-            (self.PermGroFac[0] * self.InvEPermShkInv) ** (self.CRRA)
+        self.DiscFacGPFNrmMax = (
+            (self.PermGroFac[0] * self.InvEx_PermShkInv) ** (self.CRRA)
         ) / (
             self.Rfree
         )  # DiscFac at growth impatience knife edge
-        self.DiscFacGPFAggMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
+        self.DiscFacGPFAggLivPrbMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
             self.Rfree * self.LivPrb[0]
         )  # DiscFac at growth impatience knife edge
         verbose = self.verbose if verbose is None else verbose
 
-        #        self.checkGICPF(verbose)
-        self.checkGICInd(verbose)
-        self.checkCIGAgg(verbose)
-        self.checkWRIC(verbose)
-        self.checkFVAC(verbose)
+        #        self.check_GICRaw(verbose)
+        self.check_GICNrm(verbose)
+        self.check_GICAggLivPrb(verbose)
+        self.check_WRIC(verbose)
+        self.check_FVAC(verbose)
 
         self.violated = not self.conditions["WRIC"] or not self.conditions["FVAC"]
 
@@ -2549,33 +2544,33 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 + "/#Factors-Defined-And-Compared"
             )
 
-        _log.warning("GPFPF            = %2.6f " % (self.GPFPF))
-        _log.warning("GPFInd           = %2.6f " % (self.GPFInd))
-        _log.warning("GPFAgg           = %2.6f " % (self.GPFAgg))
-        _log.warning("Thorn = APF      = %2.6f " % (self.thorn))
-        _log.warning("PermGroFacAdj    = %2.6f " % (self.PermGroFacAdj))
-        _log.warning("uInvEpShkuInv    = %2.6f " % (self.uInvEpShkuInv))
-        _log.warning("FVAF             = %2.6f " % (self.FVAF))
-        _log.warning("WRPF             = %2.6f " % (self.WRPF))
-        _log.warning("DiscFacGPFIndMax = %2.6f " % (self.DiscFacGPFIndMax))
-        _log.warning("DiscFacGPFAggMax = %2.6f " % (self.DiscFacGPFAggMax))
+        _log.warning("GPFRaw                 = %2.6f " % (self.GPFRaw))
+        _log.warning("GPFNrm                 = %2.6f " % (self.GPFNrm))
+        _log.warning("GPFAggLivPrb           = %2.6f " % (self.GPFAggLivPrb))
+        _log.warning("Thorn = APF            = %2.6f " % (self.thorn))
+        _log.warning("PermGroFacAdj          = %2.6f " % (self.PermGroFacAdj))
+        _log.warning("uInvEpShkuInv          = %2.6f " % (self.uInvEpShkuInv))
+        _log.warning("VAF                    = %2.6f " % (self.VAF))
+        _log.warning("WRPF                   = %2.6f " % (self.WRPF))
+        _log.warning("DiscFacGPFNrmMax       = %2.6f " % (self.DiscFacGPFNrmMax))
+        _log.warning("DiscFacGPFAggLivPrbMax = %2.6f " % (self.DiscFacGPFAggLivPrbMax))
 
-    def Ex_Mtp1_over_Ex_Ptp1(self, mRat):
-        cRat = self.solution[-1].cFunc(mRat)
-        aRat = mRat - cRat
+    def Ex_Mtp1_over_Ex_Ptp1(self, mNrm):
+        cNrm = self.solution[-1].cFunc(mNrm)
+        aNrm = mNrm - cNrm
         Ex_Ptp1 = PermGroFac[0]
-        Ex_bLev_tp1 = aRat * self.Rfree
+        Ex_bLev_tp1 = aNrm * self.Rfree
         Ex_Mtp1 = Ex_bLev_tp1
         return Ex_Mtp1 / Ex_Ptp1
 
-    def Ex_mtp1(self, mRat):
-        cRat = self.solution[-1].cFunc(mRat)
-        aRat = mRat - cRat
-        Ex_bRat_tp1 = aRat * self.Rfree * self.EPermShkInv / self.PermGroFac[0]
-        Ex_Mtp1 = (Ex_bRat_tp1 + 1) * Ex_Ptp1  # mean TranShk and PermShk are 1
+    def Ex_mtp1(self, mNrm):
+        cNrm = self.solution[-1].cFunc(mNrm)
+        aNrm = mNrm - cNrm
+        Ex_bNrm_tp1 = aNrm * self.Rfree * self.Ex_PermShkInv / self.PermGroFac[0]
+        Ex_Mtp1 = (Ex_bNrm_tp1 + 1) * Ex_Ptp1  # mean TranShk and PermShk are 1
         return Ex_Mtp1 / Ex_Ptp1
 
-    def calcTargets(self):
+    def calc_stable_points(self):
         """
         If the problem is one that satisfies the conditions required for target ratios of different
         variables to permanent income to exist, and has been solved to within the self-defined
@@ -2593,31 +2588,15 @@ class IndShockConsumerType(PerfForesightConsumerType):
         infinite_horizon = cycles_left == 0
         if not infinite_horizon:
             _log.warning(
-                "The calcTargets method works only for infinite horizon models."
+                "The calc_stable_points method works only for infinite horizon models."
             )
             return
 
-        # To be written.
-        # Defining:
-        ## Rnorm    = Rfree/(PermGroFac[0]*PermShk)
-        ## EPermShkInv    = E[PermShk**(-1)]
-        ## InvEPermShkInv = 1/EPermShkInv
-        ## ExRnorm  = E[Rfree/(PermGroFac[0]*PermShk)] = Rfree EPermShkInv / PermGroFac[0]
-        ## InvExRnorm = 1/ExRnorm
-        ## The "sustainable consumption" locus is given by
-        # cSust = InvExRnorm + m*(1-InvExRnorm)
-
-        # The target level of m, mTarg, will be the value such that
-        # cSust[m] = cFunc[m]
-
-
-
-    # ========================================================
     # = Functions for generating discrete income processes and
     #   simulated income shocks =
     # ========================================================
 
-    def constructLognormalIncomeProcessUnemployment(self):
+    def construct_lognormal_income_process_unemployment(self):
         """
         Generates a list of discrete approximations to the income process for each
         life period, from end of life to beginning of life.  Permanent shocks are mean
@@ -2662,16 +2641,15 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         Returns
         -------
-        IncomeDstn :  [[np.array]]
-            A list with T_cycle elements, each of which is a list of three arrays
-            representing a discrete approximation to the income process in a period.
-            Order: probabilities, permanent shocks, transitory shocks.
-        PermShkDstn : [[np.array]]
-            A list with T_cycle elements, each of which is a list of two arrays
-            representing a discrete approximation to the permanent income shocks.
-        TranShkDstn : [[np.array]]
-            A list with T_cycle elements, each of which is a list of two arrays
-            representing a discrete approximation to the transitory income shocks.
+        IncShkDstn :  [distribution.Distribution]
+            A list with T_cycle elements, each of which is a
+            discrete approximation to the income process in a period.
+        PermShkDstn : [[distribution.Distributiony]]
+            A list with T_cycle elements, each of which
+            a discrete approximation to the permanent income shocks.
+        TranShkDstn : [[distribution.Distribution]]
+            A list with T_cycle elements, each of which
+            a discrete approximation to the transitory income shocks.
         """
         # Unpack the parameters from the input
         PermShkStd = self.PermShkStd
@@ -2685,7 +2663,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         UnempPrbRet = self.UnempPrbRet
         IncUnempRet = self.IncUnempRet
 
-        IncomeDstn = []  # Discrete approximations to income process in each period
+        IncShkDstn = []  # Discrete approximations to income process in each period
         PermShkDstn = []  # Discrete approximations to permanent income shocks
         TranShkDstn = []  # Discrete approximations to transitory income shocks
 
@@ -2707,18 +2685,18 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 PermShkValsRet = np.array([1.0])
                 TranShkValsRet = np.array([1.0])
                 ShkPrbsRet = np.array([1.0])
-            IncomeDstnRet = DiscreteDistribution(
+            IncShkDstnRet = DiscreteDistribution(
                 ShkPrbsRet,
                 [PermShkValsRet, TranShkValsRet],
                 seed=self.RNG.randint(0, 2 ** 31 - 1),
             )
 
-        # Loop to fill in the list of IncomeDstn random variables.
+        # Loop to fill in the list of IncShkDstn random variables.
         for t in range(T_cycle):  # Iterate over all periods, counting forward
 
             if T_retire > 0 and t >= T_retire:
                 # Then we are in the "retirement period" and add a retirement income object.
-                IncomeDstn.append(deepcopy(IncomeDstnRet))
+                IncShkDstn.append(deepcopy(IncShkDstnRet))
                 PermShkDstn.append([np.array([1.0]), np.array([1.0])])
                 TranShkDstn.append([ShkPrbsRet, TranShkValsRet])
             else:
@@ -2727,16 +2705,15 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     TranShkCount, tail_N=0
                 )
                 if UnempPrb > 0:
-                    TranShkDstn_t = addDiscreteOutcomeConstantMean(
+                    TranShkDstn_t = add_discrete_outcome_constant_mean(
                         TranShkDstn_t, p=UnempPrb, x=IncUnemp
                     )
                 PermShkDstn_t = MeanOneLogNormal(sigma=PermShkStd[t]).approx(
                     PermShkCount, tail_N=0
                 )
-                ### REPLACE
-                ###REPLACE
-                IncomeDstn.append(
-                    combineIndepDstns(
+
+                IncShkDstn.append(
+                    combine_indep_dstns(
                         PermShkDstn_t,
                         TranShkDstn_t,
                         seed=self.RNG.randint(0, 2 ** 31 - 1),
@@ -2744,7 +2721,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 )  # mix the independent distributions
                 PermShkDstn.append(PermShkDstn_t)
                 TranShkDstn.append(TranShkDstn_t)
-        return IncomeDstn, PermShkDstn, TranShkDstn
+        return IncShkDstn, PermShkDstn, TranShkDstn
 
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
@@ -2767,6 +2744,11 @@ class KinkedRconsumerType(IndShockConsumerType):
     interest factor on saving vs borrowing.  Extends IndShockConsumerType, with
     very small changes.  Solver for this class is currently only compatible with
     linear spline interpolation.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)
@@ -2774,20 +2756,6 @@ class KinkedRconsumerType(IndShockConsumerType):
     time_inv_ += ["Rboro", "Rsave"]
 
     def __init__(self, cycles=1, **kwds):
-        """
-        Instantiate a new ConsumerType with given data.
-        See ConsumerParameters.init_kinked_R for a dictionary of
-        the keywords that should be passed to the constructor.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
         params = init_kinked_R.copy()
         params.update(kwds)
 
@@ -2795,14 +2763,14 @@ class KinkedRconsumerType(IndShockConsumerType):
         PerfForesightConsumerType.__init__(self, cycles=cycles, **params)
 
         # Add consumer-type specific objects, copying to create independent versions
-        self.solveOnePeriod = makeOnePeriodOOSolver(ConsKinkedRsolver)
+        self.solve_one_period = make_one_period_oo_solver(ConsKinkedRsolver)
         self.update()  # Make assets grid, income process, terminal solution
 
-    def preSolve(self):
-        #        AgentType.preSolve(self)
-        self.updateSolutionTerminal()
+    def pre_solve(self):
+        #        AgentType.pre_solve(self)
+        self.update_solution_terminal()
 
-    def calcBoundingValues(self):
+    def calc_bounding_values(self):
         """
         Calculate human wealth plus minimum and maximum MPC in an infinite
         horizon model with only one period repeated indefinitely.  Store results
@@ -2821,10 +2789,13 @@ class KinkedRconsumerType(IndShockConsumerType):
         None
         """
         # Unpack the income distribution and get average and worst outcomes
-        PermShkValsNext = self.IncomeDstn[0][1]
-        TranShkValsNext = self.IncomeDstn[0][2]
-        ShkPrbsNext = self.IncomeDstn[0][0]
-        ExIncNext = np.dot(ShkPrbsNext, PermShkValsNext * TranShkValsNext)
+        PermShkValsNext = self.IncShkDstn[0][1]
+        TranShkValsNext = self.IncShkDstn[0][2]
+        ShkPrbsNext = self.IncShkDstn[0][0]
+        Ex_IncNext = calc_expectation(
+            IncShkDstn,
+            lambda trans, perm: trans * perm
+        )
         PermShkMinNext = np.min(PermShkValsNext)
         TranShkMinNext = np.min(TranShkValsNext)
         WorstIncNext = PermShkMinNext * TranShkMinNext
@@ -2833,7 +2804,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         )
 
         # Calculate human wealth and the infinite horizon natural borrowing constraint
-        hNrm = (ExIncNext * self.PermGroFac[0] / self.Rsave) / (
+        hNrm = (Ex_IncNext * self.PermGroFac[0] / self.Rsave) / (
             1.0 - self.PermGroFac[0] / self.Rsave
         )
         temp = self.PermGroFac[0] * PermShkMinNext / self.Rboro
@@ -2856,12 +2827,12 @@ class KinkedRconsumerType(IndShockConsumerType):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
 
-    def makeEulerErrorFunc(self, mMax=100, approx_inc_dstn=True):
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
         Stores result in attribute eulerErrorFunc as an interpolated function.
-        Has option to use approximate income distribution stored in self.IncomeDstn
+        Has option to use approximate income distribution stored in self.IncShkDstn
         or to use a (temporary) very dense approximation.
 
         SHOULD BE INHERITED FROM ConsIndShockModel
@@ -2872,17 +2843,22 @@ class KinkedRconsumerType(IndShockConsumerType):
             Maximum normalized market resources for the Euler error function.
         approx_inc_dstn : Boolean
             Indicator for whether to use the approximate discrete income distri-
-            bution stored in self.IncomeDstn[0], or to use a very accurate
+            bution stored in self.IncShkDstn[0], or to use a very accurate
             discrete approximation instead.  When True, uses approximation in
-            IncomeDstn; when False, makes and uses a very dense approximation.
+            IncShkDstn; when False, makes and uses a very dense approximation.
 
         Returns
         -------
         None
+
+        Notes
+        -----
+        This method is not used by any other code in the library. Rather, it is here
+        for expository and benchmarking purposes.
         """
         raise NotImplementedError()
 
-    def getRfree(self):
+    def get_Rfree(self):
         """
         Returns an array of size self.AgentCount with self.Rboro or self.Rsave in each entry, based
         on whether self.aNrmNow >< 0.
@@ -2897,13 +2873,13 @@ class KinkedRconsumerType(IndShockConsumerType):
              Array of size self.AgentCount with risk free interest rate for each agent.
         """
         RfreeNow = self.Rboro * np.ones(self.AgentCount)
-        RfreeNow[self.state_prev['aNrmNow'] > 0] = self.Rsave
+        RfreeNow[self.state_prev['aNrm'] > 0] = self.Rsave
         return RfreeNow
 
-    def checkConditions(self):
+    def check_conditions(self):
         """
         This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC),
-        the Return Impatience Condition (RIC), the Growth Impatience Condition (GIC), the Weak Return
+        the Return Impatience Condition (RIC), the Growth Impatience Condition (GICRaw), the Normalized Growth Impatience Condition (GIC-Nrm), the Weak Return
         Impatience Condition (WRIC), the Finite Human Wealth Condition (FHWC) and the Finite Value of
         Autarky Condition (FVAC). To check which conditions are relevant to the model at hand, a
         reference to the relevant theoretical literature is made.
@@ -2919,8 +2895,8 @@ class KinkedRconsumerType(IndShockConsumerType):
         raise NotImplementedError()
 
 
-def applyFlatIncomeTax(
-    IncomeDstn, tax_rate, T_retire, unemployed_indices=None, transitory_index=2
+def apply_flat_income_tax(
+    IncShkDstn, tax_rate, T_retire, unemployed_indices=None, transitory_index=2
 ):
     """
     Applies a flat income tax rate to all employed income states during the working
@@ -2928,7 +2904,7 @@ def applyFlatIncomeTax(
 
     Parameters
     ----------
-    IncomeDstn : [income distributions]
+    IncShkDstn : [distribution.Distribution]
         The discrete approximation to the income distribution in each time period.
     tax_rate : float
         A flat income tax rate to be applied to all employed income.
@@ -2937,24 +2913,24 @@ def applyFlatIncomeTax(
     unemployed_indices : [int]
         Indices of transitory shocks that represent unemployment states (no tax).
     transitory_index : int
-        The index of each element of IncomeDstn representing transitory shocks.
+        The index of each element of IncShkDstn representing transitory shocks.
 
     Returns
     -------
-    IncomeDstn_new : [income distributions]
+    IncShkDstn_new : [distribution.Distribution]
         The updated income distributions, after applying the tax.
     """
     unemployed_indices = (
         unemployed_indices if unemployed_indices is not None else list()
     )
-    IncomeDstn_new = deepcopy(IncomeDstn)
+    IncShkDstn_new = deepcopy(IncShkDstn)
     i = transitory_index
-    for t in range(len(IncomeDstn)):
+    for t in range(len(IncShkDstn)):
         if t < T_retire:
-            for j in range((IncomeDstn[t][i]).size):
+            for j in range((IncShkDstn[t][i]).size):
                 if j not in unemployed_indices:
-                    IncomeDstn_new[t][i][j] = IncomeDstn[t][i][j] * (1 - tax_rate)
-    return IncomeDstn_new
+                    IncShkDstn_new[t][i][j] = IncShkDstn[t][i][j] * (1 - tax_rate)
+    return IncShkDstn_new
 
 
 # =======================================================
@@ -2962,7 +2938,7 @@ def applyFlatIncomeTax(
 # =======================================================
 
 
-def constructAssetsGrid(parameters):
+def construct_assets_grid(parameters):
     """
     Constructs the base grid of post-decision states, representing end-of-period
     assets above the absolute minimum.
@@ -3001,7 +2977,7 @@ def constructAssetsGrid(parameters):
     if grid_type == "linear":
         aXtraGrid = np.linspace(aXtraMin, aXtraMax, aXtraCount)
     elif grid_type == "exp_mult":
-        aXtraGrid = makeGridExpMult(
+        aXtraGrid = make_grid_exp_mult(
             ming=aXtraMin, maxg=aXtraMax, ng=aXtraCount, timestonest=exp_nest
         )
     else:
@@ -3021,32 +2997,51 @@ def constructAssetsGrid(parameters):
 
 
 # Make a dictionary to specify a lifecycle consumer with a finite horizon
+
+# Main calibration characteristics
+birth_age = 25
+death_age = 90
+adjust_infl_to = 1992
+# Use income estimates from Cagetti (2003) for High-school graduates
+education = "HS"
+income_calib = Cagetti_income[education]
+
+# Income specification
+income_params = parse_income_spec(
+    age_min=birth_age,
+    age_max=death_age,
+    adjust_infl_to=adjust_infl_to,
+    **income_calib,
+    SabelhausSong=True
+)
+
+# Initial distribution of wealth and permanent income
+dist_params = income_wealth_dists_from_scf(
+    base_year=adjust_infl_to, age=birth_age, education=education, wave=1995
+)
+
+# We need survival probabilities only up to death_age-1, because survival
+# probability at death_age is 1.
+liv_prb = parse_ssa_life_table(
+    female=False, cross_sec=True, year=2004, min_age=birth_age, max_age=death_age - 1
+)
+
+# Parameters related to the number of periods implied by the calibration
+time_params = parse_time_params(age_birth=birth_age, age_death=death_age)
+
+# Update all the new parameters
 init_lifecycle = copy(init_idiosyncratic_shocks)
-init_lifecycle["PermGroFac"] = [
-    1.01,
-    1.01,
-    1.01,
-    1.01,
-    1.01,
-    1.02,
-    1.02,
-    1.02,
-    1.02,
-    1.02,
-]
-init_lifecycle["PermShkStd"] = [0.1, 0.2, 0.1, 0.2, 0.1, 0.2, 0.1, 0, 0, 0]
-init_lifecycle["TranShkStd"] = [0.3, 0.2, 0.1, 0.3, 0.2, 0.1, 0.3, 0, 0, 0]
-init_lifecycle["LivPrb"] = [0.99, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
-init_lifecycle["T_cycle"] = 10
-init_lifecycle["T_retire"] = 7
-init_lifecycle[
-    "T_age"
-] = 11  # Make sure that old people die at terminal age and don't turn into newborns!
+init_lifecycle.update(time_params)
+init_lifecycle.update(dist_params)
+# Note the income specification overrides the pLvlInitMean from the SCF.
+init_lifecycle.update(income_params)
+init_lifecycle.update({"LivPrb": liv_prb})
+
 
 # Make a dictionary to specify an infinite consumer with a four period cycle
 init_cyclical = copy(init_idiosyncratic_shocks)
 init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
-init_cyclical['PermShkStd'] = [0.1,0.1,0.1,0.1]
-init_cyclical['TranShkStd'] = [0.1,0.1,0.1,0.1]
-init_cyclical['LivPrb']     = 4*[0.98]
-init_cyclical['T_cycle']    = 4
+init_cyclical['PermShkStd'] = [0.1, 0.1, 0.1, 0.1]
+init_cyclical['TranShkStd'] = [0.1, 0.1, 0.1, 0.1]
+init_cyclical['LivPrb'] = 4*[0.98]
+init_cyclical['T_cycle'] = 4

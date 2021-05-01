@@ -1,0 +1,82 @@
+\Preamble{charset="latin1",p-width,pic-align,pic-tabular} 
+\DeclareGraphicsExtensions{.svg,.png,.jpg} % change to %\DeclareGraphicsExtensions{.png,.svg,.jpg} to prefer png pix
+
+%\Configure{Picture}{.svg} 
+
+\Configure{VERSION}{} 
+
+\DeclareGraphicsRule{.png}{bmp}{.xbb}{}
+%\DeclareGraphicsRule{.svg}{svg}{.xbb}{} % Uncomment if you want to use the commented-out method of configuring svg files to get the size from a boundingbox created by ebb -x *.png 
+
+\ConfigureEnv{figure}
+   {\ifvmode\IgnorePar\fi\EndP\HCode{<div class="figure"\Hnewline>}%
+    \bgroup \Configure{float}{\ShowPar}{}{}%
+   }
+   {\egroup
+    \ifvmode\IgnorePar\fi\EndP\HCode{</div>}\ShowPar
+\par}
+{}{}
+
+\Css{div.caption {text-align:left;font-size:83\%;text-indent:0em; margin-left:2em; margin-right:2em; }}
+\Css{div.caption span.id{font-variant: small-caps; white-space: nowrap; }}
+\Css{.figure div.caption{text-align: center;}}
+ \Css{.table div.caption{text-align: center;}}
+ \Css{.table div.pic-tabular{text-align:center;clear:both;overflow:auto;width:100\%;margin-bottom:1em;margin-left:auto;margin-right:auto}}
+\Css{div.figure{text-align:center;clear:both;overflow:auto;width:100\%;margin-bottom:1em;margin-left:auto;margin-right:auto}}
+\Css{div.table{text-align:center;clear:both;overflow:auto;width:100\%;margin-bottom:1em;margin-left:auto;margin-right:auto}}
+\Css{div.float{text-align:center;clear:both;overflow:auto;width:100\%;margin-bottom:1em;margin-left:auto;margin-right:auto}}
+
+% 20200910: Tried a bunch of ways to center the tabbing envt; all failed:
+% \Css{div.tbody{text-align:center;}}
+% \Css{.table div.tabbing{text-align:center;clear:both;overflow:auto;width:100\%;margin-bottom:1em;margin-left:auto;margin-right:auto}}
+% \Css{div.tabbing{text-align:center;}}
+% \Css{.tabbing div.tbody{text-align:center;clear:both;overflow:auto;width:100\%;margin-bottom:1em;margin-left:auto;margin-right:auto}}
+% \Css{.table tabbing div.tbody{text-align:center;clear:both;overflow:auto;margin-bottom:1em;margin-left:auto;margin-right:auto}}
+
+\ConfigureEnv{subfigure}
+   {\ifvmode\IgnorePar\fi\EndP\HCode{<center><div class="subfigure">}
+   }
+   {\ifvmode\IgnorePar\fi\EndP\HCode{</div></center>}}{}{}
+   %   \Css{.subfigure{display: inline-block;}} would make the figures float next to each other
+\Css{.subfigure img{display:block; margin-left:auto; margin-right:auto}} % Should, but does not seem to, center captions
+
+% This is for figures in png format
+\Configure{graphics*} 
+        {png} 
+        {%the special command below so it will copy the png over 
+           \special{t4ht+@File: \csname Gin@base\endcsname.png} 
+           \Picture[pict]{\csname Gin@base\endcsname .png 
+              \space width="\expandafter\the\csname Gin@req@width\endcsname" 
+}% 
+}% 
+
+\Configure{Picture}{.svg} 
+
+\makeatletter
+\Configure{graphics*}
+{svg}
+{
+  {\Configure{Needs}{File: \Gin@base.svg}\Needs{}}
+  \Picture[\csname a:GraphicsAlt\endcsname]{\csname Gin@base\endcsname.svg
+          \csname a:Gin-dim\endcsname}
+      }
+
+\makeatother
+
+%add any custom \Css or HTML commands here as needed.
+
+% https://tex.stackexchange.com/questions/563276/graphics-scaling-in-tex4ht
+
+
+%These to tell tex4ht to make inline math images also 
+\begin{document}
+
+\Configure{$}{\PicMath}{\EndPicMath}{} 
+\Configure{PicMath}{}{}{}{class="math";align="absmiddle"} 
+
+
+\EndPreamble
+
+% Local Variables:
+% TeX-PDF-mode: t
+% End:

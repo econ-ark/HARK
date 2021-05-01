@@ -6,15 +6,14 @@ import scipy.stats as stats
 
 
 class Distribution:
+    """
+    Parameters
+    ----------
+    seed : int
+        Seed for random number generator.
+    """
     def __init__(self, seed=0):
-        """
-        Initialize the distribution.
 
-        Parameters
-        ----------
-        seed : int
-            Seed for random number generator.
-        """
         self.RNG = np.random.RandomState(seed)
         self.seed = seed
 
@@ -34,42 +33,32 @@ class Distribution:
 class Lognormal(Distribution):
     """
     A Lognormal distribution
+
+    Parameters
+    ----------
+    mu : float or [float]
+        One or more means.  Number of elements T in mu determines number
+        of rows of output.
+    sigma : float or [float]
+        One or more standard deviations. Number of elements T in sigma
+        determines number of rows of output.
+    seed : int
+        Seed for random number generator.
     """
 
     mu = None
     sigma = None
 
     def __init__(self, mu=0.0, sigma=1.0, seed=0):
-        """
-        Initialize the distribution.
-
-        Parameters
-        ----------
-         mu : float or [float]
-            One or more means.  Number of elements T in mu determines number
-            of rows of output.
-        sigma : float or [float]
-            One or more standard deviations. Number of elements T in sigma
-            determines number of rows of output.
-        seed : int
-            Seed for random number generator.
-        """
-        self.mu = mu
-        self.sigma = sigma
+        self.mu = np.array(mu)
+        self.sigma = np.array(sigma)
         # Set up the RNG
         super().__init__(seed)
 
-        if isinstance(self.mu, list) != isinstance(self.sigma, list):
-            raise Exception(
-                "mu and sigma must be of same types. They are %s, %s"
-                % (type(self.mu), type(self.sigma))
-            )
-
-        if isinstance(self.mu, list):
-            if len(list(self.mu)) != len(list(self.sigma)):
+        if self.mu.size != self.sigma.size:
                 raise Exception(
-                    "mu and sigma must be of same length, are %d, %d"
-                    % (len(list(self.mu)), len(list(self.sigma)))
+                    "mu and sigma must be of same size, are %s, %s"
+                    % ((self.mu.size), (self.sigma.size))
                 )
 
     def draw(self, N):
@@ -84,6 +73,8 @@ class Lognormal(Distribution):
         ----------
         N : int
             Number of draws in each row.
+        seed : int
+            Seed for random number generator.
 
         Returns:
         ------------
@@ -92,21 +83,17 @@ class Lognormal(Distribution):
             a single array of size N (if sigma is a scalar).
         """
 
-        if isinstance(self.sigma, float):  # Return a single array of length N
-            if self.sigma == 0:
-                draws = np.exp(self.mu) * np.ones(N)
-            else:
-                draws = self.RNG.lognormal(mean=self.mu, sigma=self.sigma, size=N)
-        else:  # Set up empty list to populate, then loop and populate list with draws
-            draws = []
-            for j in range(len(self.sigma)):
-                if self.sigma[j] == 0:
-                    draws.append(np.exp(self.mu[j]) * np.ones(N))
-                else:
-                    draws.append(
-                        self.RNG.lognormal(mean=self.mu[j], sigma=self.sigma[j], size=N)
-                    )
-        return draws
+        draws = []
+        for j in range(self.mu.size):
+            draws.append(
+                self.RNG.lognormal(
+                    mean=self.mu.item(j),
+                    sigma=self.sigma.item(j),
+                    size=N
+                )
+            )
+        # TODO: change return type to np.array?
+        return draws[0] if len(draws) == 1 else draws
 
     def approx(self, N, tail_N=0, tail_bound=None, tail_order=np.e):
         """
@@ -211,41 +198,70 @@ class Lognormal(Distribution):
             pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
         )
 
+    @classmethod
+    def from_mean_std(cls, mean, std, seed = 0):
+        """
+        Construct a LogNormal distribution from its
+        mean and standard deviation.
+
+        This is unlike the normal constructor for the distribution,
+        which takes the mu and sigma for the normal distribution
+        that is the logarithm of the Log Normal distribution.
+
+        Parameters
+        ----------
+        mean : float or [float]
+            One or more means.  Number of elements T in mu determines number
+            of rows of output.
+        std : float or [float]
+            One or more standard deviations. Number of elements T in sigma
+            determines number of rows of output.
+        seed : int
+            Seed for random number generator.
+
+        Returns
+        ---------
+        LogNormal
+ 
+        """
+        mean_squared = mean ** 2
+        variance = std ** 2
+        mu = np.log(mean / (np.sqrt(1.0 + variance / mean_squared)))
+        sigma = np.sqrt(np.log(1.0 + variance / mean_squared))
+
+        return cls(mu = mu, sigma = sigma, seed = seed)
+
 
 class MeanOneLogNormal(Lognormal):
     def __init__(self, sigma=1.0, seed=0):
         mu = -0.5 * sigma ** 2
         super().__init__(mu=mu, sigma=sigma, seed=seed)
 
-
 class Normal(Distribution):
     """
     A Normal distribution.
+
+    Parameters
+    ----------
+    mu : float or [float]
+        One or more means.  Number of elements T in mu determines number
+        of rows of output.
+    sigma : float or [float]
+        One or more standard deviations. Number of elements T in sigma
+        determines number of rows of output.
+    seed : int
+        Seed for random number generator.
     """
 
     mu = None
     sigma = None
 
     def __init__(self, mu=0.0, sigma=1.0, seed=0):
-        """
-        Initialize the distribution.
-
-        Parameters
-        ----------
-         mu : float or [float]
-            One or more means.  Number of elements T in mu determines number
-            of rows of output.
-        sigma : float or [float]
-            One or more standard deviations. Number of elements T in sigma
-            determines number of rows of output.
-        seed : int
-            Seed for random number generator.
-        """
-        self.mu = mu
-        self.sigma = sigma
+        self.mu = np.array(mu)
+        self.sigma = np.array(sigma)
         super().__init__(seed)
 
-    def draw(self, N, seed=0):
+    def draw(self, N):
         """
         Generate arrays of normal draws.  The mu and sigma inputs can be numbers or
         list-likes.  If a number, output is a length N array of draws from the normal
@@ -264,12 +280,10 @@ class Normal(Distribution):
             T-length list of arrays of normal draws each of size N, or a single array
             of size N (if sigma is a scalar).
         """
-        if isinstance(self.sigma, float):  # Return a single array of length N
-            draws = self.sigma * self.RNG.randn(N) + self.mu
-        else:  # Set up empty list to populate, then loop and populate list with draws
-            draws = []
-            for t in range(len(sigma)):
-                draws.append(self.sigma[t] * self.RNG.randn(N) + self.mu[t])
+        draws = []
+        for t in range(self.sigma.size):
+            draws.append(self.sigma.item(t) * self.RNG.randn(N) + self.mu.item(t))
+
         return draws
 
     def approx(self, N):
@@ -288,30 +302,27 @@ class Normal(Distribution):
 
 class Weibull(Distribution):
     """
-    A Weibull distribution
+    A Weibull distribution.
+
+    Parameters
+    ----------
+    scale : float or [float]
+        One or more scales.  Number of elements T in scale
+        determines number of
+        rows of output.
+    shape : float or [float]
+        One or more shape parameters. Number of elements T in scale
+        determines number of rows of output.
+    seed : int
+        Seed for random number generator.
     """
 
     scale = None
     shape = None
 
     def __init__(self, scale=1.0, shape=1.0, seed=0):
-        """
-        Initialize the distribution.
-
-        Parameters
-        ----------
-        scale : float or [float]
-            One or more scales.  Number of elements T in scale
-            determines number of
-            rows of output.
-        shape : float or [float]
-            One or more shape parameters. Number of elements T in scale
-            determines number of rows of output.
-        seed : int
-            Seed for random number generator.
-        """
-        self.scale = scale
-        self.shape = shape
+        self.scale = np.array(scale)
+        self.shape = np.array(shape)
         # Set up the RNG
         super().__init__(seed)
 
@@ -338,47 +349,39 @@ class Weibull(Distribution):
             T-length list of arrays of Weibull draws each of size N, or a single
             array of size N (if sigma is a scalar).
         """
-        if self.scale == 1:
-            scale = float(self.scale)
-        if isinstance(self.scale, float):  # Return a single array of length N
-            draws = self.scale * (-np.log(1.0 - self.RNG.rand(N))) ** (1.0 / self.shape)
-        else:  # Set up empty list to populate, then loop and populate list with draws
-            draws = []
-            for t in range(len(self.scale)):
-                draws.append(
-                    self.scale[t]
-                    * (-np.log(1.0 - self.RNG.rand(N))) ** (1.0 / self.shape[t])
-                )
-        return draws
+        draws = []
+        for j in range(self.scale.size):
+            draws.append(
+                self.scale.item(j)
+                * (-np.log(1.0 - self.RNG.rand(N))) ** (1.0 / self.shape.item(j))
+            )
+        return draws[0] if len(draws) == 1 else draws
 
 
 class Uniform(Distribution):
     """
     A Uniform distribution.
+
+    Parameters
+    ----------
+    bot : float or [float]
+        One or more bottom values.
+        Number of elements T in mu determines number
+        of rows of output.
+    top : float or [float]
+        One or more top values.
+        Number of elements T in top determines number of
+        rows of output.
+    seed : int
+        Seed for random number generator.
     """
 
     bot = None
     top = None
 
     def __init__(self, bot=0.0, top=1.0, seed=0):
-        """
-        Initialize the distribution.
-
-        Parameters
-        ----------
-        bot : float or [float]
-            One or more bottom values.
-            Number of elements T in mu determines number
-            of rows of output.
-        top : float or [float]
-            One or more top values.
-            Number of elements T in top determines number of
-            rows of output.
-        seed : int
-            Seed for random number generator.
-        """
-        self.bot = bot
-        self.top = top
+        self.bot = np.array(bot)
+        self.top = np.array(top)
         # Set up the RNG
         self.RNG = np.random.RandomState(seed)
 
@@ -401,17 +404,13 @@ class Uniform(Distribution):
             T-length list of arrays of uniform draws each of size N, or a single
             array of size N (if sigma is a scalar).
         """
-        if isinstance(self.bot, float) or isinstance(
-            self.bot, int
-        ):  # Return a single array of size N
-            draws = self.bot + (self.top - self.bot) * self.RNG.rand(N)
-        else:  # Set up empty list to populate, then loop and populate list with draws
-            draws = []
-            for t in range(len(bot)):
-                draws.append(
-                    self.bot[t] + (self.top[t] - self.bot[t]) * self.RNG.rand(N)
-                )
-        return draws
+        draws = []
+        for j in range(self.bot.size):
+            draws.append(
+                self.bot.item(j) + (self.top.item(j) - self.bot.item(j))
+                * self.RNG.rand(N)
+            )
+        return draws[0] if len(draws) == 1 else draws
 
     def approx(self, N):
         """
@@ -438,30 +437,26 @@ class Uniform(Distribution):
             pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
         )
 
-
 ### DISCRETE DISTRIBUTIONS
 
 
 class Bernoulli(Distribution):
     """
     A Bernoulli distribution.
+
+    Parameters
+    ----------
+    p : float or [float]
+        Probability or probabilities of the event occurring (True).
+
+    seed : int
+        Seed for random number generator.
     """
 
     p = None
 
     def __init__(self, p=0.5, seed=0):
-        """
-        Initialize the distribution.
-
-        Parameters
-        ----------
-        p : float or [float]
-            Probability or probabilities of the event occurring (True).
-
-        seed : int
-            Seed for random number generator.
-        """
-        self.p = p
+        self.p = np.array(p)
         # Set up the RNG
         super().__init__(seed)
 
@@ -483,38 +478,31 @@ class Bernoulli(Distribution):
             T-length list of arrays of Bernoulli draws each of size N, or a single
         array of size N (if sigma is a scalar).
         """
-        if isinstance(self.p, float):  # Return a single array of size N
-            draws = self.RNG.uniform(size=N) < self.p
-        else:  # Set up empty list to populate, then loop and populate list with draws:
-            draws = []
-            for t in range(len(self.p)):
-                draws.append(self.RNG.uniform(size=N) < self.p[t])
-        return draws
+        draws = []
+        for j in range(self.p.size):
+            draws.append(self.RNG.uniform(size=N) < self.p.item(j))
+        return draws[0] if len(draws) == 1 else draws
 
 
 class DiscreteDistribution(Distribution):
     """
     A representation of a discrete probability distribution.
 
+    Parameters
+    ----------
+    pmf : np.array
+        An array of floats representing a probability mass function.
+    X : np.array or [np.array]
+        Discrete point values for each probability mass.
+        May be multivariate (list of arrays).
+    seed : int
+        Seed for random number generator.
     """
 
     pmf = None
     X = None
 
     def __init__(self, pmf, X, seed=0):
-        """
-        Initialize a discrete distribution.
-
-        Parameters
-        ----------
-        pmf : np.array
-            An array of floats representing a probability mass function.
-        X : np.array or [np.array]
-            Discrete point values for each probability mass.
-            May be multivariate (list of arrays).
-        seed : int
-            Seed for random number generator.
-        """
         self.pmf = pmf
         self.X = X
         # Set up the RNG
@@ -543,7 +531,7 @@ class DiscreteDistribution(Distribution):
 
         return indices
 
-    def drawDiscrete(self, N, X=None, exact_match=False):
+    def draw(self, N, X=None, exact_match=False):
         """
         Simulates N draws from a discrete distribution with probabilities P and outcomes X.
 
@@ -583,6 +571,7 @@ class DiscreteDistribution(Distribution):
                 int
             )  # cutoff points between discrete outcomes
             top = 0
+
             # Make a list of event indices that closely matches the discrete distribution
             event_list = []
             for j in range(events.size):
@@ -608,28 +597,28 @@ class DiscreteDistribution(Distribution):
         return draws
 
 
-def approxLognormalGaussHermite(N, mu=0.0, sigma=1.0, seed=0):
+def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
     return DiscreteDistribution(d.pmf, np.exp(d.X), seed=seed)
 
 
-def calcNormalStyleParsFromLognormalPars(avgLognormal, stdLognormal):
-    varLognormal = stdLognormal ** 2
-    avgNormal = math.log(avgLognormal / math.sqrt(1 + varLognormal / avgLognormal ** 2))
-    varNormal = math.sqrt(math.log(1 + varLognormal / avgLognormal ** 2))
-    stdNormal = math.sqrt(varNormal)
-    return avgNormal, stdNormal
+def calc_normal_style_pars_from_lognormal_pars(avg_lognormal, std_lognormal):
+    varLognormal = std_lognormal ** 2
+    avgNormal = math.log(avg_lognormal / math.sqrt(1 + varLognormal / avg_lognormal ** 2))
+    varNormal = math.sqrt(math.log(1 + varLognormal / avg_lognormal ** 2))
+    std_normal = math.sqrt(varNormal)
+    return avgNormal, std_normal
 
 
-def calcLognormalStyleParsFromNormalPars(muNormal, stdNormal):
-    varNormal = stdNormal ** 2
-    avgLognormal = math.exp(muNormal + varNormal * 0.5)
-    varLognormal = (math.exp(varNormal) - 1) * math.exp(2 * muNormal + varNormal)
-    stdLognormal = math.sqrt(varLognormal)
-    return avgLognormal, stdLognormal
+def calc_lognormal_style_pars_from_normal_pars(mu_normal, std_normal):
+    varNormal = std_normal ** 2
+    avg_lognormal = math.exp(mu_normal + varNormal * 0.5)
+    varLognormal = (math.exp(varNormal) - 1) * math.exp(2 * mu_normal + varNormal)
+    std_lognormal = math.sqrt(varLognormal)
+    return avg_lognormal, std_lognormal
 
 
-def approxBeta(N, a=1.0, b=1.0):
+def approx_beta(N, a=1.0, b=1.0):
     """
     Calculate a discrete approximation to the beta distribution.  May be quite
     slow, as it uses a rudimentary numeric integration method to generate the
@@ -657,7 +646,7 @@ def approxBeta(N, a=1.0, b=1.0):
     return DiscreteDistribution(pmf, X)
 
 
-def makeMarkovApproxToNormal(x_grid, mu, sigma, K=351, bound=3.5):
+def make_markov_approx_to_normal(x_grid, mu, sigma, K=351, bound=3.5):
     """
     Creates an approximation to a normal distribution with mean mu and standard
     deviation sigma, returning a stochastic vector called p_vec, corresponding
@@ -726,7 +715,7 @@ def makeMarkovApproxToNormal(x_grid, mu, sigma, K=351, bound=3.5):
     return p_vec
 
 
-def makeMarkovApproxToNormalByMonteCarlo(x_grid, mu, sigma, N_draws=10000):
+def make_markov_approx_to_normal_by_monte_carlo(x_grid, mu, sigma, N_draws=10000):
     """
     Creates an approximation to a normal distribution with mean mu and standard
     deviation sigma, by Monte Carlo.
@@ -776,7 +765,7 @@ def makeMarkovApproxToNormalByMonteCarlo(x_grid, mu, sigma, N_draws=10000):
     return p_vec
 
 
-def makeTauchenAR1(N, sigma=1.0, rho=0.9, bound=3.0):
+def make_tauchen_ar1(N, sigma=1.0, rho=0.9, bound=3.0):
     """
     Function to return a discretized version of an AR1 process.
     See http://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
@@ -823,7 +812,7 @@ def makeTauchenAR1(N, sigma=1.0, rho=0.9, bound=3.0):
 # ================================================================================
 
 
-def addDiscreteOutcomeConstantMean(distribution, x, p, sort=False):
+def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
     """
     Adds a discrete outcome of x with probability p to an existing distribution,
     holding constant the relative probabilities of other outcomes and overall mean.
@@ -856,7 +845,7 @@ def addDiscreteOutcomeConstantMean(distribution, x, p, sort=False):
     return DiscreteDistribution(pmf, X)
 
 
-def addDiscreteOutcome(distribution, x, p, sort=False):
+def add_discrete_outcome(distribution, x, p, sort=False):
     """
     Adds a discrete outcome of x with probability p to an existing distribution,
     holding constant the relative probabilities of other outcomes.
@@ -888,7 +877,7 @@ def addDiscreteOutcome(distribution, x, p, sort=False):
     return DiscreteDistribution(pmf, X)
 
 
-def combineIndepDstns(*distributions, seed=0):
+def combine_indep_dstns(*distributions, seed=0):
     """
     Given n lists (or tuples) whose elements represent n independent, discrete
     probability spaces (probabilities and values), construct a joint pmf over
@@ -965,3 +954,107 @@ def combineIndepDstns(*distributions, seed=0):
 
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
     return DiscreteDistribution(P_out, X_out, seed=seed)
+
+def calc_expectation(dstn,func=lambda x : x,*args):
+    '''
+    Calculate the expectation of a stochastic function at an array of values.
+
+    Parameters
+    ----------
+    dstn : DiscreteDistribution
+        The N-valued distribution over which the function is to be evaluated.
+    func : function
+        The function to be evaluated.
+        This function should take an array of size N x M.
+        It may also take other arguments *args
+        Please see numpy.apply_along_axis() for guidance on
+        design of func.
+        Defaults to identity function.
+    *args : scalar or np.array
+        One or more constants or arrays of input values for func,
+        representing the non-stochastic arguments.
+        The arrays must all have the same shape, and the expectation is computed
+        at f(dstn, args[0], args[1],...,args[M]).
+
+    Returns
+    -------
+    f_exp : np.array or scalar
+        The expectation of the function at the queried values.
+        Scalar if only one value.
+    '''
+    N = dstn.dim()
+
+    dstn_array = np.column_stack(dstn.X)
+
+    if N > 1:
+        # numpy is weird about 1-D arrays.
+        dstn_array = dstn_array.T
+
+    f_query = np.apply_along_axis(
+        func, 0, dstn_array, *args
+    )
+
+    # Compute expectations over the values
+    f_exp = np.dot(
+        f_query,
+        np.vstack(dstn.pmf)
+    )
+
+    # a hack.
+    if f_exp.size == 1:
+        f_exp = f_exp.flat[0]
+    elif f_exp.shape[0] == f_exp.size:
+        f_exp = f_exp.flatten()
+
+    return f_exp
+
+
+class MarkovProcess(Distribution):
+    """
+    A representation of a discrete Markov process.
+
+    Parameters
+    ----------
+    transition_matrix : np.array
+        An array of floats representing a probability mass for
+        each state transition.
+    seed : int
+        Seed for random number generator.
+
+    """
+
+    transition_matrix = None
+
+    def __init__(self, transition_matrix, seed=0):
+        """
+        Initialize a discrete distribution.
+
+        """
+        self.transition_matrix = transition_matrix
+
+        # Set up the RNG
+        super().__init__(seed)
+
+    def draw(self, state):
+        """
+        Draw new states fromt the transition matrix.
+
+        Parameters
+        ----------
+        state : int or nd.array
+            The state or states (1-D array) from which to draw new states.
+
+        Returns
+        -------
+        new_state : int or nd.array
+            New states.
+        """
+        def sample(s):
+            return self.RNG.choice(
+                self.transition_matrix.shape[1],
+                p = self.transition_matrix[s,:]
+            )
+
+        array_sample = np.frompyfunc(sample, 1, 1)
+
+        return array_sample(state)

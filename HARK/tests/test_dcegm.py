@@ -25,7 +25,7 @@ class testsForDCEGM(unittest.TestCase):
         slope_2 = (3.5 - 0.5) / (4.0 - 2.0)
         m_cross = 2.0 + (0.5 - 1.0) / (slope_1 - slope_2)
 
-        m_out, c_out, v_out = dcegm.calcMultilineEnvelope(
+        m_out, c_out, v_out = dcegm.calc_multiline_envelope(
             self.m_in, self.c_in, self.v_in, self.commonM
         )
 
@@ -45,6 +45,6 @@ class testsForDCEGM(unittest.TestCase):
     #     # include crossing m in common grid
     #     commonM_augmented = np.append(self.commonM, m_cross).sort()
     #
-    #     m_out, c_out, v_out = calcMultilineEnvelope(self.m_in, self.c_in, self.v_in, self.commonM)
+    #     m_out, c_out, v_out = calc_multiline_envelope(self.m_in, self.c_in, self.v_in, self.commonM)
     #
     #     self.assertTrue(
