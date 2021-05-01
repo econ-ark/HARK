@@ -11,6 +11,6 @@ nbsphinx
 seaborn
 recommonmark
 interpolation
-numba==0.53.0rc2
+numba
 quantecon
 pandas
