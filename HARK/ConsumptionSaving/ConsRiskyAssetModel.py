@@ -826,7 +826,99 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         self.state_now["aNrm"] = self.state_now["mNrmTilde"] - self.controls["cNrm"]
 
 
-# TODO: reformating is up to here
+# %% Classes for RiskyContrib type solution objects
+
+# Class for asset adjustment stage solution
+class RiskyContribRebSolution(MetricObject):
+    """
+    A class for representing the solution to the asset-rebalancing stage of
+    the 'RiskyContrib' model.
+    
+    Parameters
+    ----------
+    vFuncRebAdj : ValueFunc2D
+        Stage value function over normalized liquid resources and normalized
+        iliquid resources when the agent is able to adjust his portfolio.
+    DFuncAdj : Interp2D
+        Deposit function over normalized liquid resources and normalized
+        iliquid resources when the agent is able to adjust his portfolio.
+    dvdmFuncRebAdj : MargValueFunc2D
+        Marginal value over normalized liquid resources when the agent is able
+        to adjust his portfolio.
+    dvdnFuncRebAdj : MargValueFunc2D
+        Marginal value over normalized liquid resources when the agent is able
+        to adjust his portfolio.
+    vFuncRebFxd : ValueFunc3D
+        Stage value function over normalized liquid resources, normalized
+        iliquid resources, and income contribution share when the agent is
+        not able to adjust his portfolio.
+    DFuncFxd : Interp2D
+        Deposit function over normalized liquid resources, normalized iliquid
+        resources, and income contribution share when the agent is not able to
+        adjust his portfolio.
+        Must be ConstantFunction(0.0)
+    dvdmFuncRebFxd : MargValueFunc3D
+        Marginal value over normalized liquid resources when the agent is not
+        able to adjust his portfolio.
+    dvdnFuncRebFxd : MargValueFunc3D
+        Marginal value over normalized iliquid resources when the agent is not
+        able to adjust his portfolio.
+    dvdsFuncRebFxd : Interp3D
+        Marginal value function over income contribution share when the agent
+        is not able to ajust his portfolio.
+    """
+
+    distance_criteria = ["dvdmFuncRebAdj", "dvdnFuncRebAdj"]
+
+    def __init__(
+        self,
+        # Rebalancing stage, adjusting
+        vFuncRebAdj=None,
+        DFuncAdj=None,
+        dvdmFuncRebAdj=None,
+        dvdnFuncRebAdj=None,
+        # Rebalancing stage, fixed
+        vFuncRebFxd=None,
+        DFuncFxd=None,
+        dvdmFuncRebFxd=None,
+        dvdnFuncRebFxd=None,
+        dvdsFuncRebFxd=None,
+    ):
+
+        # Rebalancing stage
+        if vFuncRebAdj is None:
+            vFuncRebAdj = NullFunc()
+        if DFuncAdj is None:
+            DFuncAdj = NullFunc()
+        if dvdmFuncRebAdj is None:
+            dvdmFuncRebAdj = NullFunc()
+        if dvdnFuncRebAdj is None:
+            dvdnFuncRebAdj = NullFunc()
+
+        if vFuncRebFxd is None:
+            vFuncRebFxd = NullFunc()
+        if DFuncFxd is None:
+            DFuncFxd = NullFunc()
+        if dvdmFuncRebFxd is None:
+            dvdmFuncRebFxd = NullFunc()
+        if dvdnFuncRebFxd is None:
+            dvdnFuncRebFxd = NullFunc()
+        if dvdsFuncRebFxd is None:
+            dvdsFuncRebFxd = NullFunc()
+
+        # Components of the adjusting problem
+        self.vFuncRebAdj = vFuncRebAdj
+        self.DFuncAdj = DFuncAdj
+        self.dvdmFuncRebAdj = dvdmFuncRebAdj
+        self.dvdnFuncRebAdj = dvdnFuncRebAdj
+
+        # Components of the fixed problem
+        self.vFuncRebFxd = vFuncRebFxd
+        self.DFuncFxd = DFuncFxd
+        self.dvdmFuncRebFxd = dvdmFuncRebFxd
+        self.dvdnFuncRebFxd = dvdnFuncRebFxd
+        self.dvdsFuncRebFxd = dvdsFuncRebFxd
+
 
 # Class for the contribution share stage solution
 class RiskyContribShaSolution(MetricObject):
@@ -921,97 +1013,6 @@ class RiskyContribShaSolution(MetricObject):
         self.dvdsFuncShaFxd = dvdsFuncShaFxd
 
 
-# Class for asset adjustment stage solution
-class RiskyContribRebSolution(MetricObject):
-    """
-    A class for representing the solution to the asset-rebalancing stage of
-    the 'RiskyContrib' model.
-    
-    Parameters
-    ----------
-    vFuncRebAdj : ValueFunc2D
-        Stage value function over normalized liquid resources and normalized
-        iliquid resources when the agent is able to adjust his portfolio.
-    DFuncAdj : Interp2D
-        Deposit function over normalized liquid resources and normalized
-        iliquid resources when the agent is able to adjust his portfolio.
-    dvdmFuncRebAdj : MargValueFunc2D
-        Marginal value over normalized liquid resources when the agent is able
-        to adjust his portfolio.
-    dvdnFuncRebAdj : MargValueFunc2D
-        Marginal value over normalized liquid resources when the agent is able
-        to adjust his portfolio.
-    vFuncRebFxd : ValueFunc3D
-        Stage value function over normalized liquid resources, normalized
-        iliquid resources, and income contribution share when the agent is
-        not able to adjust his portfolio.
-    DFuncFxd : Interp2D
-        Deposit function over normalized liquid resources, normalized iliquid
-        resources, and income contribution share when the agent is not able to
-        adjust his portfolio.
-        Must be ConstantFunction(0.0)
-    dvdmFuncRebFxd : MargValueFunc3D
-        Marginal value over normalized liquid resources when the agent is not
-        able to adjust his portfolio.
-    dvdnFuncRebFxd : MargValueFunc3D
-        Marginal value over normalized iliquid resources when the agent is not
-        able to adjust his portfolio.
-    dvdsFuncRebFxd : Interp3D
-        Marginal value function over income contribution share when the agent
-        is not able to ajust his portfolio.
-    """
-
-    distance_criteria = ["dvdmFuncRebAdj", "dvdnFuncRebAdj"]
-
-    def __init__(
-        self,
-        # Rebalancing stage, adjusting
-        vFuncRebAdj=None,
-        DFuncAdj=None,
-        dvdmFuncRebAdj=None,
-        dvdnFuncRebAdj=None,
-        # Rebalancing stage, fixed
-        vFuncRebFxd=None,
-        DFuncFxd=None,
-        dvdmFuncRebFxd=None,
-        dvdnFuncRebFxd=None,
-        dvdsFuncRebFxd=None,
-    ):
-
-        # Rebalancing stage
-        if vFuncRebAdj is None:
-            vFuncRebAdj = NullFunc()
-        if DFuncAdj is None:
-            DFuncAdj = NullFunc()
-        if dvdmFuncRebAdj is None:
-            dvdmFuncRebAdj = NullFunc()
-        if dvdnFuncRebAdj is None:
-            dvdnFuncRebAdj = NullFunc()
-
-        if vFuncRebFxd is None:
-            vFuncRebFxd = NullFunc()
-        if DFuncFxd is None:
-            DFuncFxd = NullFunc()
-        if dvdmFuncRebFxd is None:
-            dvdmFuncRebFxd = NullFunc()
-        if dvdnFuncRebFxd is None:
-            dvdnFuncRebFxd = NullFunc()
-        if dvdsFuncRebFxd is None:
-            dvdsFuncRebFxd = NullFunc()
-
-        # Rebalancing stage
-        self.vFuncRebAdj = vFuncRebAdj
-        self.DFuncAdj = DFuncAdj
-        self.dvdmFuncRebAdj = dvdmFuncRebAdj
-        self.dvdnFuncRebAdj = dvdnFuncRebAdj
-
-        self.vFuncRebFxd = vFuncRebFxd
-        self.DFuncFxd = DFuncFxd
-        self.dvdmFuncRebFxd = dvdmFuncRebFxd
-        self.dvdnFuncRebFxd = dvdnFuncRebFxd
-        self.dvdsFuncRebFxd = dvdsFuncRebFxd
-
-
 # Class for the consumption stage solution
 class RiskyContribCnsSolution(MetricObject):
     """
@@ -1046,7 +1047,6 @@ class RiskyContribCnsSolution(MetricObject):
         dvdsFuncCns=None,
     ):
 
-        # Consumption stage
         if vFuncCns is None:
             vFuncCns = NullFunc()
         if cFunc is None:
@@ -1058,7 +1058,6 @@ class RiskyContribCnsSolution(MetricObject):
         if dvdsFuncCns is None:
             dvdsFuncCns = NullFunc()
 
-        # Consumption stage
         self.vFuncCns = vFuncCns
         self.cFunc = cFunc
         self.dvdmFuncCns = dvdmFuncCns
@@ -1068,6 +1067,19 @@ class RiskyContribCnsSolution(MetricObject):
 
 # Class for the solution of a whole period
 class RiskyContribSolution(MetricObject):
+    """
+    A class for representing the solution to a full time-period of the
+    'RiskyContrib' agent type's problem.
+    
+    Parameters
+    ----------
+    Reb : RiskyContribRebSolution
+        Solution to the period's rebalancing stage.
+    Sha : RiskyContribShaSolution
+        Solution to the period's contribution-share stage.
+    Cns : RiskyContribCnsSolution
+        Solution to the period's consumption stage.
+    """
 
     # Solutions are to be compared on the basis of their sub-period solutions
     distance_criteria = ["stageSols"]
@@ -1078,8 +1090,35 @@ class RiskyContribSolution(MetricObject):
         self.stageSols = {"Reb": Reb, "Sha": Sha, "Cns": Cns}
 
 
-def rebalance_assets(d, m, n, tau):
+# %% Auxiliary functions and transition equations for the RiskyContrib model.
 
+
+def rebalance_assets(d, m, n, tau):
+    """
+    A function that produces post-rebalancing assets for given initial assets,
+    rabalancing action, and tax rate.
+
+    Parameters
+    ----------
+    d : np.array
+        Array with rebalancing decisions. d > 0 represents depositing d*m into
+        the risky asset account. d<0 represents withdrawing |d|*n (pre-tax)
+        from the risky account into the risky account.
+    m : np.array
+        Initial risk-free assets.
+    n : np.array
+        Initial risky assets.
+    tau : float
+        Tax rate on flows from the risky to the risk-free asset.
+
+    Returns
+    -------
+    mTil : np.array
+        Post-rebalancing risk-free assets.
+    nTil : np.arrat
+        Post-rebalancing risky assets.
+
+    """
     # Initialize
     mTil = np.zeros_like(m) + np.nan
     nTil = np.zeros_like(m) + np.nan
@@ -1099,7 +1138,33 @@ def rebalance_assets(d, m, n, tau):
 
 # Transition equations for the consumption stage
 def m_nrm_next(shocks, aNrm, Share, Rfree, PermGroFac):
+    """
+    Given end-of-period balances and contribution share and the
+    start-of-next-period shocks, figure out next period's normalized riskless
+    assets
 
+    Parameters
+    ----------
+    shocks : np.array
+        Length-3 array with the stochastic shocks that get realized between the
+        end of the current period and the start of next period. Their order is
+        (0) permanent income shock, (1) transitory income shock, (2) risky
+        asset return.
+    aNrm : float
+        End-of-period risk-free asset balances.
+    Share : float
+        End-of-period income deduction share.
+    Rfree : float
+        Risk-free return factor.
+    PermGroFac : float
+        Permanent income growth factor.
+
+    Returns
+    -------
+    m_nrm_tp1 : float
+        Next-period normalized riskless balance.
+
+    """
     # Extract shocks
     perm_shk = shocks[0]
     tran_shk = shocks[1]
@@ -1110,7 +1175,33 @@ def m_nrm_next(shocks, aNrm, Share, Rfree, PermGroFac):
 
 
 def n_nrm_next(shocks, nNrm, Share, PermGroFac):
+    """
+    Given end-of-period balances and contribution share and the
+    start-of-next-period shocks, figure out next period's normalized risky
+    assets
 
+    Parameters
+    ----------
+    shocks : np.array
+        Length-3 array with the stochastic shocks that get realized between the
+        end of the current period and the start of next period. Their order is
+        (0) permanent income shock, (1) transitory income shock, (2) risky
+        asset return.
+    nNrm : float
+        End-of-period risky asset balances.
+    Share : float
+        End-of-period income deduction share.
+    PermGroFac : float
+        Permanent income growth factor.
+
+    Returns
+    -------
+    n_nrm_tp1 : float
+        Next-period normalized risky balance.
+
+    """
+
+    # Extract shocks
     perm_shk = shocks[0]
     tran_shk = shocks[1]
     R_risky = shocks[2]
@@ -1123,7 +1214,7 @@ def n_nrm_next(shocks, nNrm, Share, PermGroFac):
 def end_of_period_derivs(
     shocks,
     a,
-    n,
+    nTil,
     s,
     dvdm_next,
     dvdn_next,
@@ -1135,14 +1226,65 @@ def end_of_period_derivs(
     LivPrb,
     v_next=None,
 ):
+    """
+    While solving his problem in a given period, the agent must estimate the
+    expected continuation value of ending the current period in a given state.
+    Most importantly, he must know the derivatives of that function.
+    This method is a step in computing these expected values. It computes the
+    end-of-period derivatives (and optionally the value) of the continuation
+    function, conditional on shocks. This is so that the expectations can be
+    calculated later by integrating over shocks.
+
+    Parameters
+    ----------
+    shocks : np.array
+        Length-3 array with the stochastic shocks that get realized between the
+        end of the current period and the start of next period. Their order is
+        (0) permanent income shock, (1) transitory income shock, (2) risky
+        asset return.
+    a : float
+        end-of-period risk-free assets.
+    nTil : float
+        end-of-period risky assets.
+    s : float
+        end-of-period income deduction share.
+    dvdm_next : 3D function
+        Next-period's marginal value of riskless assets.
+    dvdn_next : 3D function
+        Next-period's marginal value of risky assets.
+    dvds_next : 3D function
+        Next-period's marginal value of income-deduction share.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    PermGroFac : float
+        Permanent income deterministic growth factor.
+    Rfree : float
+        Risk-free return factor.
+    DiscFac : float
+        Time-preference discount factor.
+    LivPrb : float
+        Survival probability.
+    v_next : 3D function, optional
+        Next-period's value function. The default is None.
+
+    Returns
+    -------
+    np.array
+        Array with end-of-period-value derivatives conditional on next
+        period's shocks. Order
+        (0) riskless assets, (1) risky assets, (2) income deduction share
+        Optionally, the level of end-of-period value is added in position (3).
+
+    """
 
     temp_fac_A = utilityP(shocks[0] * PermGroFac, CRRA)
     temp_fac_B = (shocks[0] * PermGroFac) ** (1.0 - CRRA)
 
+    # Find next-period asset balances
     m_next = m_nrm_next(shocks, a, s, Rfree, PermGroFac)
-    n_next = n_nrm_next(shocks, n, s, PermGroFac)
+    n_next = n_nrm_next(shocks, nTil, s, PermGroFac)
 
-    # Interpolate derivatives
+    # Interpolate next-period-value derivatives
     dvdm_tp1 = dvdm_next(m_next, n_next, s)
     dvdn_tp1 = dvdn_next(m_next, n_next, s)
     if shocks[1] == 0:
@@ -1150,7 +1292,7 @@ def end_of_period_derivs(
     else:
         dvds_tp1 = shocks[1] * (dvdn_tp1 - dvdm_tp1) + dvds_next(m_next, n_next, s)
 
-    # Discount
+    # Discount next-period-value derivatives to current period
 
     # Liquid resources
     end_of_prd_dvda = DiscFac * Rfree * LivPrb * temp_fac_A * dvdm_tp1
@@ -1158,6 +1300,7 @@ def end_of_period_derivs(
     end_of_prd_dvdn = DiscFac * shocks[2] * LivPrb * temp_fac_A * dvdn_tp1
     # Contribution share
     end_of_prd_dvds = DiscFac * LivPrb * temp_fac_B * dvds_tp1
+
     # End of period value function, if needed
     if v_next is not None:
         end_of_prd_v = DiscFac * LivPrb * temp_fac_B * v_next(m_next, n_next, s)
@@ -1167,6 +1310,8 @@ def end_of_period_derivs(
     else:
         return np.stack([end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds])
 
+
+# %% RiskyContrib solvers (TODO: editing up to here!)
 
 # Consumption stage solver
 def solveRiskyContribCnsStage(
