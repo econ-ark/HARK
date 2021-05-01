@@ -13,6 +13,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     utilityP,  # CRRA marginal utility function
     utilityP_inv,  # Inverse CRRA marginal utility function
     init_idiosyncratic_shocks,  # Baseline dictionary to build on
+    init_lifecycle
 )
 
 from HARK.distribution import (
@@ -52,7 +53,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
 
     def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
-        params = init_risky.copy()
+        params = init_risky_asset.copy()
         params.update(kwds)
         kwds = params
 
@@ -302,7 +303,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
     def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
 
-        params = init_riskyContrib.copy()
+        params = init_risky_contrib.copy()
         params.update(kwds)
         kwds = params
 
@@ -1963,66 +1964,65 @@ def solveRiskyContrib(
     return periodSol
 
 
-# %% Useful parameter sets
+# %% Initial parameter sets
 
 # %% Base risky asset dictionary
 
+risky_asset_parms = {
+    # Risky return factor moments. Based on SP500 real returns from Shiller's
+    # "chapter 26" data, which can be found at http://www.econ.yale.edu/~shiller/data.htm
+    "RiskyAvg": 1.080370891,
+    "RiskyStd": 0.177196585,
+    # Number of integration nodes to use in approximation of risky returns
+    "RiskyCount": 5,
+    # Probability that the agent can adjust their portfolio each period
+    "AdjustPrb": 1.0
+}
+
 # Make a dictionary to specify a risky asset consumer type
-init_risky = init_idiosyncratic_shocks.copy()
-init_risky["RiskyAvg"] = 1.08  # Average return of the risky asset
-init_risky["RiskyStd"] = 0.20  # Standard deviation of (log) risky returns
-init_risky[
-    "RiskyCount"
-] = 5  # Number of integration nodes to use in approximation of risky returns
-init_risky[
-    "ShareCount"
-] = 25  # Number of discrete points in the risky share approximation
-init_risky[
-    "AdjustPrb"
-] = 1.0  # Probability that the agent can adjust their risky portfolio share each period
-init_risky[
-    "DiscreteShareBool"
-] = False  # Flag for whether to optimize risky share on a discrete grid only
-init_risky["vFuncBool"] = False
+init_risky_asset = init_idiosyncratic_shocks.copy()
+init_risky_asset.update(risky_asset_parms)
 
-# Adjust some of the existing parameters in the dictionary
-init_risky["aXtraMax"] = 100  # Make the grid of assets go much higher...
-init_risky["aXtraCount"] = 300  # ...and include many more gridpoints...
-init_risky["aXtraNestFac"] = 1  # ...which aren't so clustered at the bottom
-init_risky["BoroCnstArt"] = 0.0  # Artificial borrowing constraint must be turned on
-init_risky["CRRA"] = 5.0  # Results are more interesting with higher risk aversion
-init_risky["DiscFac"] = 0.90  # And also lower patience
+# %% Base risky-contrib dictionaries
 
-# %% Base risky-contrib dictionary
+risky_contrib_params = {
+    # Preferences. The points of the model are more evident for more risk
+    # averse and impatient agents
+    "CRRA": 5.0,
+    "DiscFac": 0.90,
+    # Artificial borrowing constraint must be on
+    "BoroCnstArt": 0.0,
 
-# TODO: these parameters are preliminary and arbitrary!
-init_riskyContrib = init_risky.copy()
-init_riskyContrib[
-    "ShareMax"
-] = 0.9  # You don't want to put 100% of your wage into pensions.
+    # Grids go up high wealth/P ratios and are less clustered at the bottom.
+    "aXtraMax": 250,
+    "aXtraCount": 50,
+    "aXtraNestFac": 1,
+    
+    # Same goes for the new grids of the model
+    "mNrmMin": 1e-6,
+    "mNrmMax": 250,
+    "mNrmCount": 50,
+    "mNrmNestFac": 1,
 
-# Regular grids in m and n
-init_riskyContrib["mNrmMin"] = 1e-6
-init_riskyContrib["mNrmMax"] = 100
-init_riskyContrib["mNrmCount"] = 300
-init_riskyContrib["mNrmNestFac"] = 1
+    "nNrmMin": 1e-6,
+    "nNrmMax": 250,
+    "nNrmCount": 50,
+    "nNrmNestFac": 1,
+    
+    # Income deduction/contribution share grid
+    "ShareCount": 10,
+    "ShareMax": 0.9,
+    "DiscreteShareBool": False,
+    
+    # Grid for finding the optimal rebalancing flow
+    "dCount": 20
+}
 
-init_riskyContrib["nNrmMin"] = 1e-6
-init_riskyContrib["nNrmMax"] = 100
-init_riskyContrib["nNrmCount"] = 300
-init_riskyContrib["nNrmNestFac"] = 1
+# Infinite horizon version
+init_risky_contrib = init_risky_asset.copy()
+init_risky_contrib.update(risky_contrib_params)
 
-# Number of grid-points for finding the optimal asset rebalance
-init_riskyContrib["dCount"] = 20
-
-# Params from the life-cycle agent
-init_riskyContrib["AdjustPrb"] = [1.0]
-init_riskyContrib["tau"] = [0.1]  # Tax rate on risky asset withdrawals
-
-# TODO: Reduce dimensions while conding the model up
-init_riskyContrib["ShareCount"] = 10
-init_riskyContrib["aXtraCount"] = 40
-init_riskyContrib["nNrmCount"] = 40  #
-init_riskyContrib["mNrmCount"] = 45  #
-init_riskyContrib["PermShkCount"] = 3  #
-init_riskyContrib["TranShkCount"] = 3
+# Lifecycle version
+init_risky_contrib_lifecycle = init_lifecycle.copy()
+init_risky_contrib_lifecycle.update(risky_asset_parms)
+init_risky_contrib_lifecycle.update(risky_contrib_params)
