@@ -16,6 +16,10 @@ from time import time
 from .parallel import multi_thread_commands, multi_thread_commands_fake
 from warnings import warn
 
+from HARK_logger import *
+from HARK_logger import _log
+from HARK_logger import set_verbosity_level
+
 """
 Logging tools for HARK.
 
@@ -352,7 +356,7 @@ class AgentType(Model):
         seed=0,
         **kwds
     ):
-        super.__init__(self)
+        Model.__init__(self)
 
         if solution_terminal is None:
             solution_terminal = NullFunc()
