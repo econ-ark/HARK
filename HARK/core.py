@@ -6,6 +6,7 @@ of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
+import logging
 import sys
 import os
 from distutils.dir_util import copy_tree
@@ -16,19 +17,46 @@ from time import time
 from .parallel import multi_thread_commands, multi_thread_commands_fake
 from warnings import warn
 
-from HARK_logger import *
-from HARK_logger import _log
-from HARK_logger import set_verbosity_level
-
 """
 Logging tools for HARK.
 
 The logger will print logged statements to STDOUT by default.
 
 The logger wil use an informative value by default.
-The user can set it to "verbose" to get more information,
+The user can set it to "verbose" to get more information, 
 or "quiet" to suppress informative messages.
 """
+
+
+logging.basicConfig(format="%(message)s")
+
+_log = logging.getLogger("HARK")
+
+_log.setLevel(logging.ERROR)
+
+
+def disable_logging():
+    _log.disabled = True
+
+
+def enable_logging():
+    _log.disabled = False
+
+
+def warnings():
+    _log.setLevel(logging.WARNING)
+
+
+def quiet():
+    _log.setLevel(logging.ERROR)
+
+
+def verbose():
+    _log.setLevel(logging.INFO)
+
+
+def set_verbosity_level(level):
+    _log.setLevel(level)
 
 
 def core_check_condition(name, test, messages, verbose, verbose_messages, fact, stge):
