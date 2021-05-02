@@ -6,13 +6,6 @@ of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
-from __future__ import print_function, division
-from __future__ import absolute_import
-import logging
-
-from builtins import str
-from builtins import range
-from builtins import object
 import sys
 import os
 from distutils.dir_util import copy_tree
@@ -22,9 +15,6 @@ import numpy as np
 from time import time
 from .parallel import multi_thread_commands, multi_thread_commands_fake
 from warnings import warn
-# from HARK_logger import *
-# from HARK_logger import _log
-# from HARK_logger import set_verbosity_level
 
 """
 Logging tools for HARK.
@@ -35,46 +25,6 @@ The logger wil use an informative value by default.
 The user can set it to "verbose" to get more information,
 or "quiet" to suppress informative messages.
 """
-
-
-logging.basicConfig(format="%(message)s")
-
-_log = logging.getLogger("HARK")
-
-_log.setLevel(logging.ERROR)
-
-
-def disable_logging():
-    _log.disabled = True
-
-
-def enable_logging():
-    _log.disabled = False
-
-
-def warnings():
-    _log.setLevel(logging.WARNING)
-
-
-def quiet():
-    _log.setLevel(logging.ERROR)
-
-
-def verbose():
-    _log.setLevel(logging.INFO)
-
-
-def set_verbosity_level(level):
-    _log.setLevel(level)
-
-# https://stackoverflow.com/questions/92/adding-a-method-to-an-existing-object-instance/2982#2982
-# Allows solver to attach methods to solution
-
-
-def bind_method(to_instance, method):
-    def binding_scope_fn(*args, **kwargs):
-        return method(to_instance, *args, **kwargs)
-    return binding_scope_fn
 
 
 def core_check_condition(name, test, messages, verbose, verbose_messages, fact, stge):
@@ -139,6 +89,7 @@ def distance_metric(thing_a, thing_b):
     type_b = type(thing_b)
 
     if type_a is list and type_b is list:
+        dist_type = "string"
         len_a = len(thing_a)  # If both inputs are lists, then the distance between
         len_b = len(thing_b)  # them is the maximum distance between corresponding
         if len_a == len_b:  # elements in the lists.  If they differ in length,
@@ -154,6 +105,7 @@ def distance_metric(thing_a, thing_b):
             distance = float(abs(len_a - len_b))
     # If both inputs are dictionaries, call distance on the list of its elements
     elif type_a is dict and type_b is dict:
+        dist_type = "dict"
 
         len_a = len(thing_a)
         len_b = len(thing_b)
@@ -185,11 +137,13 @@ def distance_metric(thing_a, thing_b):
 
     # If both inputs are numbers, return their difference
     elif isinstance(thing_a, (int, float)) and isinstance(thing_b, (int, float)):
+        dist_type = "number"
         distance = float(abs(thing_a - thing_b))
     # If both inputs are array-like, return the maximum absolute difference b/w
     # corresponding elements (if same shape); return largest difference in dimensions
     # if shapes do not align.
     elif hasattr(thing_a, "shape") and hasattr(thing_b, "shape"):
+        dist_type = "shape"
         if thing_a.shape == thing_b.shape:
             distance = np.max(abs(thing_a - thing_b))
         else:
@@ -206,6 +160,7 @@ def distance_metric(thing_a, thing_b):
             distance = thing_a.distance(thing_b)
     else:  # Failsafe: the inputs are very far apart
         distance = 1000.0
+
     return distance
 
 
@@ -291,6 +246,12 @@ class Model(object):
         """
         return self.parameters[name]
 
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self.parameters == other.parameters
+
+        return notImplemented
+
     def __init__(self):
         if not hasattr(self, 'parameters'):
             self.parameters = {}
@@ -327,15 +288,15 @@ class AgentType(Model):
     Parameters
     ----------
     solution_terminal : Solution
-        A representation of the solution to the terminal period problem of
+        A representation of the solution to the terminal period/stage problem of
         this AgentType instance, or an initial guess of the solution if this
         is an infinite horizon problem.
     cycles : int
-        The number of times the sequence of periods is experienced by this
+        The number of times the sequence of periods/stages is experienced by this
         AgentType in their "lifetime".  cycles=1 corresponds to a lifecycle
-        model, with a certain sequence of one period problems experienced
+        model, with a certain sequence of one period/stage problems experienced
         once before terminating.  cycles=0 corresponds to an infinite horizon
-        model, with a sequence of one period problems repeating indefinitely.
+        model, with a sequence of one period/stage problems repeating indefinitely.
     pseudo_terminal : boolean
         Indicates whether solution_terminal isn't actually part of the
         solution to the problem (as a known solution to the terminal period
@@ -344,7 +305,7 @@ class AgentType(Model):
         false, solution_terminal is the last element of the solution.
     tolerance : float
         Maximum acceptable "distance" between successive solutions to the
-        one period problem in an infinite horizon (cycles=0) model in order
+        one period/stage problem in an infinite horizon (cycles=0) model in order
         for the solution to be considered as having "converged".  Inoperative
         when cycles>0.
     seed : int
@@ -365,13 +326,14 @@ class AgentType(Model):
 
     input_kind : dictionary
         Keeps track of the nature of the inputs to the model, specifically
-        whether they are 'primtve' parameters that would define the solution
-        with infinite computational power or 'nuisance' parameters 
+        whether they are 'prmtv' parameters that would define the solution
+        with infinite computational power or 'aprox' parameters
         associated with a particular method of approximate solution
 
     fcts : dictionary
-        For storing information about particular objects in the model
-        as that information is created or computed.  Specific example:
+        For storing meta information about an object in the model,
+        for example a mathematical derivation or an explanation of 
+        its role in an economic model.
 
         fcts[objectName]['latexexpr'] - Name of variable in LaTeX docs
         fcts[objectName]['urlhandle'] - url to further info on it
@@ -390,7 +352,7 @@ class AgentType(Model):
         seed=0,
         **kwds
     ):
-        Model.__init__(self)
+        super.__init__(self)
 
         if solution_terminal is None:
             solution_terminal = NullFunc()
@@ -510,8 +472,8 @@ class AgentType(Model):
     def solve(self, verbose=0):  # AgentType
         """
         Solve the model for this instance of an agent type by backward induction.
-        Loops through the sequence of one period problems, passing the solution
-        from period t+1 to the problem for period t.
+        Loops through the sequence of one period/stage problems, passing the solution
+        from period/stage t+1 to the problem for period/stage t.
 
         Parameters
         ----------
@@ -566,7 +528,7 @@ class AgentType(Model):
 
     def pre_solve(self):
         """
-        A method that is run immediately before the model is solved, perhaps to 
+        A method that is run immediately before the model is solved, perhaps to
         check inputs or to prepare the terminal solution.
 
         Parameters
@@ -634,17 +596,17 @@ class AgentType(Model):
             #    self.state_prev[var] = copy(blank_array)
         self.t_age = np.zeros(
             self.AgentCount, dtype=int
-        )  # Number of periods since agent entry
+        )  # Number of periods/stages since agent entry
         self.t_cycle = np.zeros(
             self.AgentCount, dtype=int
-        )  # Which cycle period each agent is on
+        )  # Which cycle period/stage each agent is on
         self.sim_birth(all_agents)
         self.clear_history()
         return None
 
     def sim_one_period(self):  # -> mcrlo_sim_one_prd
         """
-        Simulates one period for this type.  Calls the methods get_mortality(), get_shocks() or
+        Simulates one period/stage for this type.  Calls the methods get_mortality(), get_shocks() or
         read_shocks, get_states(), get_controls(), and get_poststates().  These should be defined for
         AgentType subclasses, except get_mortality (define its components sim_death and sim_birth
         instead) and read_shocks.
@@ -815,7 +777,7 @@ class AgentType(Model):
 
     def read_shocks_from_history(self):  # -> mcrlo_hstry_shks_read
         """
-        Reads values of shock variables for the current period from history arrays.
+        Reads values of shock variables for the current period/stage from history arrays.
         For each variable X named in self.shock_vars, this attribute of self is
         set to self.history[X][self.t_sim,:].
 
@@ -893,9 +855,9 @@ class AgentType(Model):
 
     def get_poststates(self):
         """
-        Gets values of post-decision state variables for the current period, 
+        Gets values of post-decision state variables for the current period,
         probably by current
-        states and controls and maybe market-level events or shock variables.  
+        states and controls and maybe market-level events or shock variables.
         Does nothing by
         default, but can be overwritten by subclasses of AgentType.
 
@@ -915,7 +877,7 @@ class AgentType(Model):
 
     def simulate(self, sim_periods=None):
         """
-        Simulates this agent type for a given number of periods. Defaults to
+        Simulates this agent type for a given number of periods/stages. Defaults to
         self.T_sim if no input.
         Records histories of attributes named in self.track_vars in
         self.history[varname].
@@ -952,9 +914,9 @@ class AgentType(Model):
         # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
         # tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
         # -np.inf, np.inf/np.inf is np.nan and so on.
-#        with np.errstate(
-#            divide="ignore", over="ignore", under="ignore", invalid="ignore"
-#        ):
+        with np.errstate(
+            divide="ignore", over="ignore", under="ignore", invalid="ignore"
+        ):
             if sim_periods is None:
                 sim_periods = self.T_sim
 
@@ -1013,7 +975,7 @@ def solve_agent(agent, verbose):
     Returns
     -------
     solution : [Solution]
-        A list of solutions to the one period problems that the agent will
+        A list of solutions to the one period/stage problems that the agent will
         encounter in his "lifetime".
     """
     # Check to see whether this is an (in)finite horizon problem
@@ -1031,7 +993,11 @@ def solve_agent(agent, verbose):
     else:
         solution = agent.solution
         solution_last = agent.solution[-1]
-        completed_cycles = solution_last.completed_cycles
+        if hasattr(solution_last, 'completed_cycles'):
+            completed_cycles = solution_last.completed_cycles
+        else:
+            completed_cycles = solution_last.completed_cycles \
+                = 0
         if hasattr(agent, 'max_cycles'):
             max_cycles = agent.max_cycles
         else:
@@ -1062,37 +1028,53 @@ def solve_agent(agent, verbose):
         # cycle iterations or run out of cycles
         solution_now = solution_cycle[0]  # element 0 corresponds to last(?)
         if infinite_horizon:
-            #            if completed_cycles > 0:
-            solution_distance = solution_now.distance(solution_last)
-            agent.solution_distance = (
-                solution_distance  # Add these attributes so users can
-            )
-            agent.completed_cycles = (
-                completed_cycles  # query them to see if solution is ready
-            )
-            go = (
-                solution_distance > agent.tolerance
-                and completed_cycles < max_cycles
-            )
-            if not go:  # Finished; CDC 20210415: Mark solution as converged
-                if not hasattr(solution[-1], 'stge_kind'):  # This shoud not happen
-                    solution[-1].stge_kind = {'iter_status': 'iterator'}
-                if not solution[-1].stge_kind['iter_status'] == 'terminal':
-                    # If it's not a terminal stage, don't mark finished
-                    solution[-1].stge_kind['iter_status'] = 'finished'
-                    # Record the tolerance that was satisfied
-                    solution[-1].stge_kind['tolerance'] = agent.tolerance
+            # The types below allow continuation of a solution that has reached
+            # its original tolerance, either to meet a tightened tolerance or
+            # after changing other primitive or approximating parameters.
+            # This is possible for the other models as well, and will eventually
+            # be implemented.  For such models, the calculations below should be
+            # done even for the 'terminal' period
+            if completed_cycles > 0 or (completed_cycles == 0 and (
+                (type(agent) == 'IndShockConsumerType') or
+                (type(agent) == 'PerfForesightConsumerType') or
+                    (type(agent) == 'KinkedRconsumerType'))):
+                solution_distance = solution_now.distance(solution_last)
+                agent.solution_distance = (
+                    solution_distance  # Add these attributes so users can
+                )
+                agent.completed_cycles = (
+                    completed_cycles  # query them to see if solution is ready
+                )
+#                print('      solution_distance = '+str(solution_distance))
+                go = (
+                    solution_distance > agent.tolerance
+                    and completed_cycles < max_cycles
+                )
+                if not go:  # Finished; CDC 20210415: Mark solution as converged
+                    # Eventually, all models should incorporate 'stge_kind'
+                    # This takes care of cases where that has not yet been implemented
+                    if not hasattr(solution[-1], 'stge_kind'):
+                        solution[-1].stge_kind = {'iter_status': 'iterator'}
+                    if not solution[-1].stge_kind['iter_status'] == 'terminal':
+                        # If it's not a terminal stage, don't mark finished
+                        solution[-1].stge_kind['iter_status'] = 'finished'
+                        # Record the tolerance that was satisfied
+                        solution[-1].stge_kind['tolerance'] = agent.tolerance
 
             # CDC 20210415: Below, why assume no convergence after only 1 cycle?
             # If user provides a solution_startfrom that is good, it might...
-#            else:  # Assume solution does not converge after only one cycle
-#                solution_distance = float('inf')
-#                go = True
+            # converge after only one iteration
+            else:
+                # If any solver ever takes this number seriously, it would be a problem.
+                # Like, if Newton's method treated it as a meaningful datapoint, ...
+                # Maybe we should make it float('inf') to ensure an error?
+                solution_distance = 100.0
+                go = True
         else:  # Finite horizon
             cycles_left += -1
             go = cycles_left > 0
 
-        # Update the "last period solution" for next iteration
+        # Update the "last period/stage solution" for next iteration
         solution_last = solution_now
         completed_cycles += 1
 
@@ -1142,36 +1124,36 @@ def solve_agent(agent, verbose):
 def solve_one_cycle(agent, solution_last):
     """
     Solve one "cycle" of the dynamic model for one agent type.  This function
-    iterates over the periods within an agent's cycle, updating the time-
-    varying parameters and passing them to the single period solver(s).
+    iterates over the stages within an agent's cycle, updating the stage-
+    varying parameters and passing them to the single-stage solver(s).
 
     Parameters
     ----------
     agent : AgentType
         The microeconomic AgentType whose dynamic problem is to be solved.
     solution_last : Solution
-        A representation of the solution of the period that comes after the
-        end of the sequence of one period problems.  This might be the term-
-        inal period solution, a "pseudo terminal" solution, or simply the
-        solution to the earliest period from the succeeding cycle.
+        A representation of the solution of the period/stage that comes after the
+        end of the sequence of one period/stage problems.  This might be the term-
+        inal period/stage solution, a "pseudo terminal" solution, or simply the
+        solution to the earliest period/stage from the succeeding cycle.
 
     Returns
     -------
     full_cycle : [Solution]
-        An ordered list of one-period solutions ('stages') for one "cycle"
-        of the AgentType's microeconomic model, constructed by backward 
-        induction.  After construction, each solution is inserted at the
-        beginning of the full_cycle, with the result that in the completed
-        full_cycle element 0 is the solution to the problem at the beginning
-        of the cycle, and full_cycle[-1] is the solution to the last problem
-        in the stage.
+        An ordered list of solutions ('stages') for full "cycle"
+        of the AgentType's microeconomic model, constructed by backward
+        induction.  After construction, each solution is prepended to the
+        existing collection of solutions, with the result that in the completed
+        `full_cycle` object element 0 is the solution to the problem at the
+        beginning of the cycle, and full_cycle[-1] is the solution to the last
+        problem.
     """
     # Calculate number of stages per cycle;
     # defaults to 1 if all variables are stage invariant
     if len(agent.time_vary) > 0:
-        Stges = len(agent.__dict__[agent.time_vary[0]])
+        num_stges = len(agent.__dict__[agent.time_vary[0]])
     else:
-        Stges = 1
+        num_stges = 1
 
     # Add to dict all the parameters in time_inv and time_vary
     solve_dict = {parameter: agent.__dict__[parameter] for parameter in agent.time_inv}
@@ -1180,10 +1162,10 @@ def solve_one_cycle(agent, solution_last):
     # Initialize the solution for this cycle, then iterate through stages
     full_cycle = []
     solution_next = solution_last  # next because about to solve predecessor
-    for stge in range(Stges):  # e.g., for quarterly model, Stges = 4 quarters
-        # Update which single period solver to use (if it depends on stage)
+    for stge in range(num_stges):  # e.g., for quarterly model, num_stges = 4 quarters
+        # Update which single period/stage solver to use (if it depends on stage)
         if hasattr(agent.solve_one_period, "__getitem__"):  # -> solve_this_stge
-            solve_one_period = agent.solve_one_period[Stges - 1 - stge]
+            solve_one_period = agent.solve_one_period[num_stges - 1 - stge]
         else:
             solve_one_period = agent.solve_one_period
 
@@ -1197,12 +1179,12 @@ def solve_one_cycle(agent, solution_last):
         else:
             these_args = get_arg_names(solve_one_period)
 
-        # Update stage-varying single period inputs
+        # Update stage-varying single period/stage inputs
         # This obtains the value for the current step by indexing
-        # into the attribute's list at [Stges - 1 - stge]
+        # into the attribute's list at [num_stges - 1 - stge]
         for name in agent.time_vary:
             if name in these_args:
-                solve_dict[name] = agent.__dict__[name][Stges - 1 - stge]
+                solve_dict[name] = agent.__dict__[name][num_stges - 1 - stge]
         solve_dict["solution_next"] = solution_next  # solution_stage_next
 
         # Make a temporary dictionary for this period
@@ -1218,7 +1200,7 @@ def solve_one_cycle(agent, solution_last):
         full_cycle.insert(0, solution_stge)
         solution_next = solution_stge
 
-    # Return the list of per-period solutions
+    # Return the list of per-period/stage solutions
     return full_cycle
 
 
@@ -1235,9 +1217,9 @@ def get_solve_one_period_args(agent, solve_one_period, stge_which):
     else:
         these_args = get_arg_names(solve_one_period)
 
-    # Update stage-varying single period inputs
+    # Update stage-varying single period/stage inputs
     # This obtains the value for the current step by indexing
-    # into the attribute's list at [Stges - 1 - stge]
+    # into the attribute's list at [num_stges - 1 - stge]
     for name in agent.time_vary:
         if name in these_args:
             solve_dict[name] = agent.__dict__[name][stge_which]
@@ -1247,7 +1229,7 @@ def get_solve_one_period_args(agent, solve_one_period, stge_which):
 
 def make_one_period_oo_solver(solver_class):
     """
-    Returns a function that solves a single period problem.
+    Returns a function that solves a single period/stage problem.
     Parameters
     ----------
     solver_class : Solver
@@ -1256,11 +1238,11 @@ def make_one_period_oo_solver(solver_class):
     Returns
     -------
     solver_function : function
-        A function for solving one period of a problem.
+        A function for solving one period/stage of a problem.
     """
 
     def one_period_solver(**kwds):  # FIX: rename to, say, solve_stge
-        # last step in loop over Stges in solve_one_cycle is:
+        # last step in loop over num_stges in solve_one_cycle is:
         # """ solve_one_period(**temp_dict) [should become, say, solve_this_stge]
         solver = solver_class(**kwds)  # defined extrnally
 
