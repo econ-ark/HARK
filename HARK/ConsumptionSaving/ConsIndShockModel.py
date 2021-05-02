@@ -2758,7 +2758,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
 
     def post_post_solve(self):
         # Things to be done after a solution has been found
-        breakpoint()
+#        breakpoint()
 
         print('In PF post_post_solve')
         print('stge_kind='+str(self.solution[-1].stge_kind))

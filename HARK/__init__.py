@@ -8,8 +8,7 @@ Logging tools for HARK.
 The logger will print logged statements to STDOUT by default.
 
 The logger wil use an informative value by default.
-The user can set it to "verbose" to get more information, 
-or "quiet" to suppress informative messages.
+The user can set it to "verbose" to get more information, or "quiet" to supress informative messages.
 """
 
 import logging
