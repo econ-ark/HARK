@@ -1106,6 +1106,11 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
         )
 
     def post_solve(self):
+
+        for i in range(len(self.solution)):
+            if hasattr(self.solution[i], "parameters_solver"):
+                self.solution[i].parameters_solver["solution_next"] = None
+
         self.solution_fast = deepcopy(self.solution)
 
         if self.cycles == 0:
