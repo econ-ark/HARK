@@ -573,10 +573,16 @@ class ConsPerfForesightSolver(MetricObject):
     ):
         # Preserve the solver's parameters for later use
 
-        parameters_solver = deepcopy(locals())
+        #        breakpoint()
+        parameters_solver = deepcopy(
+            {k: v for k, v in {**kwds, **locals()}.items()
+             if k not in {'self', 'solution_next', 'kwds'}}
+        )
+#        deepcopy(locals())
         parameters_solver.update(kwds)
-        [parameters_solver.pop(key) for key in
-         {'self', 'solution_next', 'kwds'}]
+
+#        [parameters_solver.pop(key) for key in
+#         {'self', 'solution_next', 'kwds'}]
 
         # Give first arg a name that highlights that it's the next "stage"
         self.soln_futr = soln_futr = solution_next
@@ -2758,10 +2764,10 @@ class PerfForesightConsumerType(OneStateConsumerType):
 
     def post_post_solve(self):
         # Things to be done after a solution has been found
-#        breakpoint()
+        #        breakpoint()
 
         print('In PF post_post_solve')
-        print('stge_kind='+str(self.solution[-1].stge_kind))
+        print('stge_kind='+str(self.solution[0].stge_kind))
 
     def check_restrictions(self):  # url/#check-restrictions
         """

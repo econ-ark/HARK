@@ -121,7 +121,6 @@ def distance_metric(thing_a, thing_b):
     type_b = type(thing_b)
 
     if type_a is list and type_b is list:
-        dist_type = "string"
         len_a = len(thing_a)  # If both inputs are lists, then the distance between
         len_b = len(thing_b)  # them is the maximum distance between corresponding
         if len_a == len_b:  # elements in the lists.  If they differ in length,
@@ -137,7 +136,6 @@ def distance_metric(thing_a, thing_b):
             distance = float(abs(len_a - len_b))
     # If both inputs are dictionaries, call distance on the list of its elements
     elif type_a is dict and type_b is dict:
-        dist_type = "dict"
 
         len_a = len(thing_a)
         len_b = len(thing_b)
@@ -169,13 +167,12 @@ def distance_metric(thing_a, thing_b):
 
     # If both inputs are numbers, return their difference
     elif isinstance(thing_a, (int, float)) and isinstance(thing_b, (int, float)):
-        dist_type = "number"
+
         distance = float(abs(thing_a - thing_b))
     # If both inputs are array-like, return the maximum absolute difference b/w
     # corresponding elements (if same shape); return largest difference in dimensions
     # if shapes do not align.
     elif hasattr(thing_a, "shape") and hasattr(thing_b, "shape"):
-        dist_type = "shape"
         if thing_a.shape == thing_b.shape:
             distance = np.max(abs(thing_a - thing_b))
         else:
@@ -1047,51 +1044,60 @@ def solve_agent(agent, verbose):
     go = True  # NOQA
     if verbose:
         t_last = time()
-    while go:
-        # Solve a cycle of the model
+    while go:          # Solve a cycle of the model
         solution_cycle = solve_one_cycle(agent, solution_last)
         # Tell the last solution how many cycles have been solved
-        solution[-1].completed_cycles = completed_cycles
+        solution[0].completed_cycles = completed_cycles
         # If finite horizon model, add cycle to the growing list
         if not infinite_horizon:
             solution = solution_cycle + solution
 
         # Check for termination: solutions identical (within tolerance) across
-        # cycle iterations or run out of cycles
-        solution_now = solution_cycle[0]  # element 0 corresponds to last(?)
+        # iterations (or have finished prescribed number of cycles)
+        solution_now = solution_cycle[0]  # element 0 most recently solved
         if infinite_horizon:
-            # The types below allow continuation of a solution that has reached
-            # its original tolerance, either to meet a tightened tolerance or
+            # The types in "or" below allow continuation the solution process
+            # for a problem that has reached its original tolerance.
+            # This can be either to meet a newly tightened tolerance or
             # after changing other primitive or approximating parameters.
-            # This is possible for the other models as well, and will eventually
-            # be implemented.  For such models, the calculations below should be
-            # done even for the 'terminal' period
+            # This would be easy to implement for the other agent types as well.
+            # For any models where this is allowed, though, the 'terminal'
+            # period now becomes an 'iterator' period.
             if completed_cycles > 0 or (completed_cycles == 0 and (
                 (type(agent) == 'IndShockConsumerType') or
                 (type(agent) == 'PerfForesightConsumerType') or
                     (type(agent) == 'KinkedRconsumerType'))):
                 solution_distance = solution_now.distance(solution_last)
                 agent.solution_distance = (
-                    solution_distance  # Add these attributes so users can
+                    solution_distance  # Add so users can retrieve
                 )
                 agent.completed_cycles = (
                     completed_cycles  # query them to see if solution is ready
                 )
-#                print('      solution_distance = '+str(solution_distance))
                 go = (
                     solution_distance > agent.tolerance
                     and completed_cycles < max_cycles
                 )
-                if not go:  # Finished; CDC 20210415: Mark solution as converged
+                if not go:  # Finished
                     # Eventually, all models should incorporate 'stge_kind'
                     # This takes care of cases where that has not yet been implemented
-                    if not hasattr(solution[-1], 'stge_kind'):
-                        solution[-1].stge_kind = {'iter_status': 'iterator'}
-                    if not solution[-1].stge_kind['iter_status'] == 'terminal':
-                        # If it's not a terminal stage, don't mark finished
-                        solution[-1].stge_kind['iter_status'] = 'finished'
+                    if not hasattr(solution[0], 'stge_kind'):
+                        solution[0].stge_kind = {'iter_status': 'iterator'}
+                    if not solution[0].stge_kind['iter_status'] == 'terminal':
+                        # This prevents a stage marked as 'terminal' from being
+                        # marked as 'finished' because we want to use the machinery
+                        # in add_fcts and check_conditions to enrich the terminal
+                        # stage, which we do by treating it as a 'pseudo-terminal'
+                        # stage that is overwritten after being used once; but
+                        # the distance between the pseudo and the embellished
+                        # terminal stages is zero, which would lead the code
+                        # to think it had finished if not for the if statement
+                        # here, and the fact that later in 'solve' the stage will
+                        # be relabeled with iter_status = 'iterator'
+                        solution[0].stge_kind['iter_status'] = 'finished'
                         # Record the tolerance that was satisfied
-                        solution[-1].stge_kind['tolerance'] = agent.tolerance
+#                        breakpoint()
+                        solution[0].stge_kind['tolerance'] = agent.tolerance
 
             # CDC 20210415: Below, why assume no convergence after only 1 cycle?
             # If user provides a solution_startfrom that is good, it might...
@@ -1109,7 +1115,7 @@ def solve_agent(agent, verbose):
         # Update the "last period/stage solution" for next iteration
         solution_last = solution_now
         completed_cycles += 1
-
+#        breakpoint()
         # Display progress if requested
         if verbose > 1:
             t_now = time()
