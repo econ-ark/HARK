@@ -18,7 +18,6 @@ from HARK.core import (_log, set_verbosity_level, core_check_condition, get_solv
 from HARK.Calibration.Income.IncomeTools import parse_income_spec, parse_time_params, Cagetti_income
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
-# from HARK.ConsumptionSaving.ConsModel import TrnsPars
 
 
 """
@@ -82,9 +81,18 @@ utilityP_invP = CRRAutilityP_invP
 
 class SuccessorInfo(SimpleNamespace):
     """
-    Namespace containing objects retrieved from successor to the stage 
+    Namespace containing objects retrieved from successor to the stage
     referenced in "self." Should contain everything needed to reconstruct
     solution to problem of self even if solution_next is not present.
+    """
+    pass
+
+
+class Parameters(SimpleNamespace):
+    """
+    Namespace containing parameters collected and preserved as arguments
+    to various constructors, functions, and methods
+
     """
     pass
 
@@ -507,15 +515,15 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         """
 
         # Minimum market resources plus E[next income] is okay starting guess
-        m_init_guess = self.bilt.mNrmMin + self.bilt.Ex_IncNrmNxt
+        m_init_guess = self.mNrmMin + self.Ex_IncNrmNxt
         try:
-            m_t = find_zero_newton(
-                self.bilt.Ex_permShk_tp1_times_m_tp1_minus_m_t, m_init_guess)
+            self.mNrmStE = find_zero_newton(
+                self.Ex_permShk_tp1_times_m_tp1_minus_m_t, m_init_guess)
         except:
-            m_t = None
+            self.mNrmStE = None
 
-        # Add mNrmTrg to the solution and return it
-        self.bilt.mNrmStE = m_t
+        # Add mNrmStE to the solution and return it
+        return self.mNrmStE
 
 # ConsPerfForesightSolver class incorporates calcs and info useful for
 # models in which perfect foresight does not apply, because the contents
@@ -573,16 +581,11 @@ class ConsPerfForesightSolver(MetricObject):
     ):
         # Preserve the solver's parameters for later use
 
-        #        breakpoint()
         parameters_solver = deepcopy(
             {k: v for k, v in {**kwds, **locals()}.items()
              if k not in {'self', 'solution_next', 'kwds'}}
-        )
-#        deepcopy(locals())
+        )  # omitting things that would cause recursion
         parameters_solver.update(kwds)
-
-#        [parameters_solver.pop(key) for key in
-#         {'self', 'solution_next', 'kwds'}]
 
         # Give first arg a name that highlights that it's the next "stage"
         self.soln_futr = soln_futr = solution_next
@@ -606,7 +609,6 @@ class ConsPerfForesightSolver(MetricObject):
         self.soln_crnt.bilt.urlroot = self.urlroot
 
     # Methods
-
     def url_doc_for_solver_get(self):
         # Generate a url that will locate the documentation
         self.class_name = self.__class__.__name__
@@ -632,12 +634,12 @@ class ConsPerfForesightSolver(MetricObject):
         """
 
         # Using local variables allows formulae below to be more readable
-
+        breakpoint()
         soln_crnt = self.soln_crnt
         scsr = self.soln_crnt.scsr
         bilt = self.soln_crnt.bilt
         urlroot = bilt.urlroot
-
+#        breakpoint()
         bilt.DiscLiv = bilt.DiscFac * bilt.LivPrb
 
         APF_fcts = {
@@ -787,7 +789,7 @@ class ConsPerfForesightSolver(MetricObject):
         hNrmInf_fcts = {
             'about': 'Human wealth for inf hor'
         }
-        py___code = '1/(1-FHWF) if (FHWF < 1) else np.inf'
+        py___code = '1/(1-FHWF) if (FHWF < 1) else float("inf")'
         soln_crnt.hNrmInf = bilt.hNrmInf = hNrmInf = \
             eval(py___code, {}, {**bilt.__dict__, **scsr.__dict__})
         hNrmInf_fcts = dict({'latexexpr': '1/(1-\FHWF)'})
@@ -859,49 +861,6 @@ class ConsPerfForesightSolver(MetricObject):
         # soln_crnt.fcts.update({'hNrm': hNrm_fcts})
         soln_crnt.hNrm_fcts = bilt.hNrm_fcts = hNrm_fcts
 
-        # That's the end of things that are identical for PF and non-PF models
-
-        BoroCnstNat_fcts = {
-            'about': 'Natural Borrowing Constraint'
-        }
-        if soln_crnt.stge_kind['iter_status'] == 'terminal':  # kludge
-            bilt.mNrmMin_tp1 = bilt.tranShkMin  # causes BoroCnstNat = 0 in term
-        py___code = '(mNrmMin_tp1 - tranShkMin)*(PermGroFac/Rfree)*permShkMin'
-        soln_crnt.BoroCnstNat = bilt.BoroCnstNat = BoroCnstNat = \
-            eval(py___code, {}, {**bilt.__dict__, **scsr.__dict__})
-        BoroCnstNat_fcts.update({'latexexpr': r'\BoroCnstNat'})
-        BoroCnstNat_fcts.update({'_unicode_': r''})
-        BoroCnstNat_fcts.update({'urlhandle': urlroot+'BoroCnstNat'})
-        BoroCnstNat_fcts.update({'py___code': py___code})
-        BoroCnstNat_fcts.update({'value_now': BoroCnstNat})
-        # soln_crnt.fcts.update({'BoroCnstNat': BoroCnstNat_fcts})
-        soln_crnt.BoroCnstNat_fcts = bilt.BoroCnstNat_fcts = BoroCnstNat_fcts
-
-        BoroCnst_fcts = {
-            'about': 'Effective Borrowing Constraint'
-        }
-        py___code = 'BoroCnstArt if (BoroCnstArt and BoroCnstNat < BoroCnstArt) else BoroCnstNat'
-        soln_crnt.BoroCnst = bilt.BoroCnst = BoroCnst = \
-            eval(py___code, {}, {**bilt.__dict__, **scsr.__dict__})
-        BoroCnst_fcts.update({'latexexpr': r'\BoroCnst'})
-        BoroCnst_fcts.update({'_unicode_': r''})
-        BoroCnst_fcts.update({'urlhandle': urlroot+'BoroCnst'})
-        BoroCnst_fcts.update({'py___code': py___code})
-        BoroCnst_fcts.update({'value_now': BoroCnst})
-        # soln_crnt.fcts.update({'BoroCnst': BoroCnst_fcts})
-        soln_crnt.BoroCnst_fcts = bilt.BoroCnst_fcts = BoroCnst_fcts
-
-        mNrmMin_fcts = {
-            'about': 'Min m is the max you can borrow plus min income'
-        }
-        py___code = 'BoroCnst + tranShkMin'
-        soln_crnt.mNrmMin = bilt.mNrmMin = mNrmMin = \
-            eval(py___code, {}, {**bilt.__dict__, **scsr.__dict__})
-        mNrmMin_fcts.update({'latexexpr': r'\mNrmMin'})
-        mNrmMin_fcts.update({'py___code': py___code})
-        # soln_crnt.fcts.update({'mNrmMin': mNrmMin_fcts})
-        soln_crnt.mNrmMin_fcts = bilt.mNrmMin_fcts = mNrmMin_fcts
-
         MPCmin_fcts = {
             'about': 'Minimal MPC in current period as m -> infty'
         }
@@ -916,6 +875,43 @@ class ConsPerfForesightSolver(MetricObject):
         MPCmin_fcts.update({'value_now': MPCmin})
         # soln_crnt.fcts.update({'MPCmin': MPCmin_fcts})
         soln_crnt.MPCmin_fcts = bilt.MPCmin_fcts = MPCmin_fcts
+
+        cFuncLimitIntercept_fcts = {
+            'about': 'Vertical intercept of perfect foresight consumption function'}
+        py___code = 'MPCmin * hNrm'
+        soln_crnt.cFuncLimitIntercept = bilt.cFuncLimitIntercept = \
+            eval(py___code, {}, {**bilt.__dict__, **scsr.__dict__})
+        cFuncLimitIntercept_fcts.update({'py___code': py___code})
+        cFuncLimitIntercept_fcts.update({'latexexpr': '\MPC \hNrm'})
+#        cFuncLimitIntercept_fcts.update({'urlhandle': ''})
+#        cFuncLimitIntercept_fcts.update({'value_now': cFuncLimitIntercept})
+#        cFuncLimitIntercept_fcts.update({'cFuncLimitIntercept': cFuncLimitIntercept_fcts})
+        soln_crnt.cFuncLimitIntercept_fcts = cFuncLimitIntercept_fcts
+
+        cFuncLimitSlope_fcts = {
+            'about': 'Slope of limiting consumption function'}
+        py___code = 'MPCmin'
+        cFuncLimitSlope_fcts.update({'py___code': 'MPCmin'})
+        bilt.cFuncLimitSlope = soln_crnt.cFuncLimitSlope = \
+            eval(py___code, {}, {**bilt.__dict__, **scsr.__dict__})
+        cFuncLimitSlope_fcts.update({'py___code': py___code})
+        cFuncLimitSlope_fcts = dict({'latexexpr': '\MPCmin'})
+        cFuncLimitSlope_fcts.update({'urlhandle': '\MPC'})
+#        cFuncLimitSlope_fcts.update({'value_now': cFuncLimitSlope})
+#        stg_crt.fcts.update({'cFuncLimitSlope': cFuncLimitSlope_fcts})
+        soln_crnt.cFuncLimitSlope_fcts = cFuncLimitSlope_fcts
+        # That's the end of things that are identical for PF and non-PF models
+
+        mNrmMin_fcts = {
+            'about': 'Min m is the max you can borrow plus min income'
+        }  # This is overwritten by appropriate formula when shocks are added
+        py___code = 'BoroCnstArt + 1.0'  # In PF model, min income is 1.0
+        soln_crnt.mNrmMin = bilt.mNrmMin = mNrmMin = \
+            eval(py___code, {}, {**bilt.__dict__, **scsr.__dict__})
+        mNrmMin_fcts.update({'latexexpr': r'\mNrmMin'})
+        mNrmMin_fcts.update({'py___code': py___code})
+        # soln_crnt.fcts.update({'mNrmMin': mNrmMin_fcts})
+        soln_crnt.mNrmMin_fcts = bilt.mNrmMin_fcts = mNrmMin_fcts
 
         MPCmax_fcts = {
             'about': 'Maximal MPC in current period as m -> infty'
@@ -966,8 +962,9 @@ class ConsPerfForesightSolver(MetricObject):
     def def_value_funcs(self, stge):
         """
         Defines the value and marginal value functions for this period.
-        mNrmMin.  See PerfForesightConsumerType.ipynb
-        for a brief explanation and the links below for a fuller treatment.
+        See PerfForesightConsumerType.ipynb for a brief explanation
+        and the links below for a fuller treatment.
+
         https://github.com/llorracc/SolvingMicroDSOPs/#vFuncPF
 
         Parameters
@@ -987,14 +984,17 @@ class ConsPerfForesightSolver(MetricObject):
         vFuncNvrs has value of zero at the lower bound of market resources
         """
 
+#        prms = stge.parameters_solver
+        bilt = stge.bilt
+
         # See PerfForesightConsumerType.ipynb docs for derivations
-        vFuncNvrsSlope = stge.MPCmin ** (-stge.CRRA / (1.0 - stge.CRRA))
+        vFuncNvrsSlope = bilt.MPCmin ** (-bilt.CRRA / (1.0 - bilt.CRRA))
         vFuncNvrs = LinearInterp(
-            np.array([stge.mNrmMin, stge.mNrmMin + 1.0]),
+            np.array([bilt.mNrmMin, bilt.mNrmMin + 1.0]),
             np.array([0.0, vFuncNvrsSlope]),
         )
-        stge.vFunc = ValueFuncCRRA(vFuncNvrs, stge.CRRA)
-        stge.vPfunc = MargValueFuncCRRA(stge.cFunc, stge.CRRA)
+        bilt.vFunc = ValueFuncCRRA(vFuncNvrs, bilt.CRRA)
+        bilt.vPfunc = MargValueFuncCRRA(stge.cFunc, bilt.CRRA)
         return stge
 
     def make_cFunc_PF(self):
@@ -1014,9 +1014,12 @@ class ConsPerfForesightSolver(MetricObject):
         CRRA = self.soln_crnt.bilt.CRRA
         Rfree = self.soln_crnt.bilt.Rfree
         PermGroFac = self.soln_crnt.bilt.PermGroFac
-        MPCmin = self.soln_crnt.MPCmin
+        MPCmin = self.soln_crnt.bilt.MPCmin
+        DiscFac = self.soln_crnt.bilt.DiscFac
+        LivPrb = self.soln_crnt.bilt.LivPrb
+        self.soln_crnt.bilt.DiscLiv = DiscFac * LivPrb
         DiscLiv = self.soln_crnt.bilt.DiscLiv
-        MaxKinks = self.soln_crnt.MaxKinks
+        MaxKinks = self.soln_crnt.bilt.MaxKinks
         BoroCnstArt = self.soln_crnt.bilt.BoroCnstArt
 
         # Use local value of BoroCnstArt to prevent comparing None and float
@@ -1074,6 +1077,7 @@ class ConsPerfForesightSolver(MetricObject):
                 cNrm = np.array([0.0, cCrit, cCrit + MPCmin])
                 # If mNrm, cNrm grids have become too large, throw out last
                 # kink point, being sure to adjust the extrapolation.
+
         if mNrm.size > MaxKinks:
             mNrm = np.concatenate((mNrm[:-2], [mNrm[-3] + 1.0]))
             cNrm = np.concatenate((cNrm[:-2], [cNrm[-3] + MPCmin]))
@@ -1099,10 +1103,105 @@ class ConsPerfForesightSolver(MetricObject):
         solution : ConsumerSolution
             The solution to this period/stage's problem.
         """
-        self.soln_crnt.make_cFunc_PF()
-        self.soln_crnt = self.soln_crnt.def_value_funcs(self.soln_crnt)
+        futr = self.soln_futr
+        soln_crnt = self.soln_crnt
 
-        return self.soln_crnt
+        if futr.stge_kind['iter_status'] == 'finished':
+            breakpoint()
+            if not hasattr(soln_crnt, 'stge_kind'):
+                soln_crnt.stge_kind = {}
+            soln_crnt.stge_kind['iter_status'] = 'finished'
+            _log.info("The model has been solved.")
+            return soln_crnt
+
+        if futr.stge_kind['iter_status'] == 'terminal':
+            #            self.soln_crnt.bilt_inputs = deepcopy(soln_crnt.bilt)
+            self.add_info_useful_for_further_analysis_ConsPerfForesightSolver(futr.bilt)
+            soln_crnt.stge_kind['iter_status'] = 'iterator'
+            return soln_crnt  # Replaces original "terminal" solution; next soln_futr
+
+        self.soln_crnt.stge_kind = {'iter_status': 'iterator',
+                                    'slvr_type': 'ConsIndShockSolver'}
+
+        self.add_info_useful_for_further_analysis_ConsPerfForesightSolver(futr.scsr)
+
+        self.make_cFunc_PF()
+        self.soln_crnt = self.def_value_funcs(soln_crnt)
+        breakpoint()
+        return soln_crnt
+
+    def solver_prepare_for_one_period_solution(self):  # self is solver for this stage of problem
+        """
+        Prepare the current stage for processing by the one-stage solver.
+
+        Parameters
+        ----------
+        none
+
+        Returns
+        -------
+        none
+        """
+        soln_crnt = self.soln_crnt
+        soln_futr = self.soln_futr
+        scsr = soln_crnt.scsr
+        bilt = soln_crnt.bilt
+
+        # .scsr: namespace to store components of next stage solution
+        # needed to solve current stage's problem
+        # Organizing principle: scsr should have a deepcopy of everything
+        # needed to re-solve its problem; and everything needed to construct
+        # the "fcts" about the problem, so that it the stge could be deepcopied
+        # as a standalone object and solved without soln_futr or soln_crnt
+
+        scsr.hNrm_tp1 = deepcopy(soln_futr.bilt.hNrm)
+        scsr.mNrmMin_tp1 = deepcopy(soln_futr.bilt.mNrmMin)
+        scsr.MPCmin_tp1 = deepcopy(soln_futr.bilt.MPCmin)
+        scsr.MPCmax_tp1 = deepcopy(soln_futr.bilt.MPCmax)
+        scsr.cFunc_tp1 = deepcopy(soln_futr.cFunc)
+        scsr.vPfunc_tp1 = deepcopy(soln_futr.vPfunc)
+
+        # Now get the things that might or might not exist
+        if hasattr(soln_futr.bilt, 'vFunc'):
+            scsr.vFunc_tp1 = deepcopy(soln_futr.bilt.vFunc)
+
+        if hasattr(soln_futr.bilt, 'vPPfunc'):
+            scsr.vPPfunc_tp1 = deepcopy(soln_futr.bilt.vPPfunc)
+
+        if hasattr(soln_futr.bilt, 'BoroCnstNat_tp1'):
+            scsr.BoroCnstNat_tp1 = deepcopy(soln_futr.bilt.BoroCnstNat)
+
+        self.def_utility_funcs(bilt)
+
+        # Catch the degenerate case of zero-variance income distributions
+        bilt.PerfFsgt = (type(self) == ConsIndShockSolver)
+
+        # If no uncertainty, return the degenerate targets for the PF model
+        if hasattr(bilt, "tranShkVals"):  # Then it has transitory shocks
+            # Handle the degenerate case where shocks are of size zero
+            if ((bilt.tranShkMin == 1.0) and (bilt.permShkMin == 1.0)):
+                # But they still might have unemployment risk
+                if hasattr(bilt, "UnempPrb"):
+                    if ((bilt.UnempPrb == 0.0) or (bilt.IncUnemp == 1.0)):
+                        bilt.PerfFsgt = True  # No unemployment risk either
+                    else:
+                        bilt.PerfFsgt = False  # Only uncert is unemployment
+            else:  # either tran or perm shocks exist
+                if (bilt.permShkMin <= 0.0):
+                    _log.critical(
+                        'The model cannot handle permanent income <= 0.')
+                    breakpoint()
+
+        if bilt.PerfFsgt:
+            bilt.Ex_Inv_permShk = 1.0
+            bilt.Ex_uInv_permShk = 1.0
+
+        return
+
+    # Disambiguate confusing "prepare_to_solve" from similar method names elsewhere
+    # (needs to be preserved as alias because core.py calls prepare_to_solve)
+    prepare_to_solve = solver_prepare_for_one_period_solution
+
 
 ###############################################################################
 # ##############################################################################
@@ -1154,10 +1253,6 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         polation.
     """
 
-    # # Get the "further info" method from the perfect foresight solver
-    # def add_info_useful_for_further_analysis_ConsPerfForesightSolver(self, soln_crnt):
-    #     super().add_info_useful_for_further_analysis(soln_crnt)
-
     def __init__(  # CDC 20210416: Params shared with PF are in different order. Fix
             self,
             solution_next,
@@ -1190,19 +1285,28 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
                                          **kwds
                                          )
 
-        soln_crnt = self.soln_crnt
+        soln_crnt = self.soln_crnt  # ConsPerfForesightSolver.__init__ makes self.soln_crnt
         soln_crnt.IncShkDstn = IncShkDstn
 
+        # Add to self those arguments that will not have been handled by PF agent type
+        self.aXtraGrid = aXtraGrid
+        self.vFuncBool = vFuncBool
+        self.CubicBool = CubicBool
+        self.IncShkDstn = IncShkDstn
+        self.permShkDstn = permShkDstn
+        self.tranShkDstn = tranShkDstn
+
+        # Don't want to keep track of anything on self of disposable solver
         bilt = soln_crnt.bilt  # convenient local alias to reduce clutter
 
         # In which column is each object stored in IncShkDstn?
-        bilt.permPos = IncShkDstn.parameters['ShkPosn']['perm']
-        bilt.tranPos = IncShkDstn.parameters['ShkPosn']['tran']
+        permPos = IncShkDstn.parameters['ShkPosn']['perm']
+        tranPos = IncShkDstn.parameters['ShkPosn']['tran']
 
         # Bcst are "broadcasted" values: serial list of every possible combo
         # Makes it easy to take expectations using 𝔼_dot
-        bilt.permShkValsBcst = permShkValsBcst = IncShkDstn.X[bilt.permPos]
-        bilt.tranShkValsBcst = tranShkValsBcst = IncShkDstn.X[bilt.tranPos]
+        bilt.permShkValsBcst = permShkValsBcst = IncShkDstn.X[permPos]
+        bilt.tranShkValsBcst = tranShkValsBcst = IncShkDstn.X[tranPos]
         bilt.ShkPrbs = ShkPrbs = IncShkDstn.pmf
 
         bilt.permShkPrbs = permShkPrbs = permShkDstn.pmf
@@ -1460,6 +1564,47 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # soln_crnt.fcts.update({'DiscGPFNrmCusp': DiscGPFNrmCusp_fcts})
         soln_crnt.DiscGPFNrmCusp_fcts = bilt.DiscGPFNrmCusp_fcts = DiscGPFNrmCusp_fcts
 
+        BoroCnstNat_fcts = {
+            'about': 'Natural Borrowing Constraint'
+        }
+        if soln_crnt.stge_kind['iter_status'] == 'terminal':  # kludge
+            bilt.mNrmMin_tp1 = bilt.tranShkMin  # causes BoroCnstNat = 0 in term
+        py___code = '(mNrmMin_tp1 - tranShkMin)*(PermGroFac/Rfree)*permShkMin'
+        soln_crnt.BoroCnstNat = bilt.BoroCnstNat = BoroCnstNat = \
+            eval(py___code, {}, {**bilt.__dict__, **scsr.__dict__})
+        BoroCnstNat_fcts.update({'latexexpr': r'\BoroCnstNat'})
+        BoroCnstNat_fcts.update({'_unicode_': r''})
+        BoroCnstNat_fcts.update({'urlhandle': urlroot+'BoroCnstNat'})
+        BoroCnstNat_fcts.update({'py___code': py___code})
+        BoroCnstNat_fcts.update({'value_now': BoroCnstNat})
+        # soln_crnt.fcts.update({'BoroCnstNat': BoroCnstNat_fcts})
+        soln_crnt.BoroCnstNat_fcts = bilt.BoroCnstNat_fcts = BoroCnstNat_fcts
+
+        BoroCnst_fcts = {
+            'about': 'Effective Borrowing Constraint'
+        }
+        py___code = 'BoroCnstArt if (BoroCnstArt and BoroCnstNat < BoroCnstArt) else BoroCnstNat'
+        soln_crnt.BoroCnst = bilt.BoroCnst = BoroCnst = \
+            eval(py___code, {}, {**bilt.__dict__, **scsr.__dict__})
+        BoroCnst_fcts.update({'latexexpr': r'\BoroCnst'})
+        BoroCnst_fcts.update({'_unicode_': r''})
+        BoroCnst_fcts.update({'urlhandle': urlroot+'BoroCnst'})
+        BoroCnst_fcts.update({'py___code': py___code})
+        BoroCnst_fcts.update({'value_now': BoroCnst})
+        # soln_crnt.fcts.update({'BoroCnst': BoroCnst_fcts})
+        soln_crnt.BoroCnst_fcts = bilt.BoroCnst_fcts = BoroCnst_fcts
+
+        mNrmMin_fcts = {
+            'about': 'Min m is the max you can borrow plus min income'
+        }
+        py___code = 'BoroCnst + tranShkMin'
+        soln_crnt.mNrmMin = bilt.mNrmMin = mNrmMin = \
+            eval(py___code, {}, {**bilt.__dict__, **scsr.__dict__})
+        mNrmMin_fcts.update({'latexexpr': r'\mNrmMin'})
+        mNrmMin_fcts.update({'py___code': py___code})
+        # soln_crnt.fcts.update({'mNrmMin': mNrmMin_fcts})
+        soln_crnt.mNrmMin_fcts = bilt.mNrmMin_fcts = mNrmMin_fcts
+
         # Now define some useful lambda functions
 
         # Given m, value of c where 𝔼[m_{t+1}]=m_{t}
@@ -1474,6 +1619,16 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         soln_crnt.c_where_Ex_permShk_times_mtp1_minus_mt_eq_0 = (
             lambda m_t:
             m_t * (1 - soln_crnt.bilt.Inv_PF_RNrm) + soln_crnt.bilt.Inv_PF_RNrm
+        )
+
+        # 𝔼[m_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
+        soln_crnt.Ex_mLev_tp1_Over_pLev_t_from_a_t = (
+            lambda a_t:
+            𝔼_dot(soln_crnt.bilt.PermGroFac *
+                  soln_crnt.bilt.permShkValsBcst *
+                  (soln_crnt.bilt.PF_RNrm/soln_crnt.bilt.permShkValsBcst) * a_t
+                  + soln_crnt.bilt.tranShkValsBcst,
+                  soln_crnt.bilt.ShkPrbs)
         )
 
         # 𝔼[c_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
@@ -1551,83 +1706,15 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_m_t(m_t) /
             soln_crnt.cFunc(m_t)
         )
-
         soln_crnt.Ex_permShk_tp1_times_m_tp1_minus_m_t = (
             lambda m_t:
             soln_crnt.bilt.PF_RNrm *
             (m_t - soln_crnt.cFunc(m_t)) + 1.0 - m_t
         )
 
-        # for key in soln_crnt.fcts:
-        #     setattr(bilt, key+'_fcts', soln_crnt.fcts[key])
-
         self.soln_crnt = soln_crnt
 
         return soln_crnt
-
-    def prepare_to_solve(self):  # self is solver for this stage of problem
-        """
-        Prepare the current stage for processing by the one-stage solver.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        """
-        soln_crnt = self.soln_crnt
-        soln_futr = self.soln_futr
-        # scsr = self.scsr = soln_crnt.scsr
-        # bilt = self.bilt = soln_crnt.bilt
-        scsr = soln_crnt.scsr
-        bilt = soln_crnt.bilt
-
-        # .scsr: namespace to store components of next stage solution
-        # needed to solve current stage's problem
-        # Organizing principle: scsr should have a deepcopy of everything
-        # needed to re-solve its problem; and everything needed to construct
-        # the "fcts" about the problem, so that it the stge could be deepcopied
-        # as a standalone object and solved without soln_futr or soln_crnt
-
-        scsr.hNrm_tp1 = deepcopy(soln_futr.bilt.hNrm)
-        scsr.BoroCnstNat_tp1 = deepcopy(soln_futr.bilt.BoroCnstNat)
-        scsr.mNrmMin_tp1 = deepcopy(soln_futr.bilt.mNrmMin)
-        scsr.MPCmin_tp1 = deepcopy(soln_futr.bilt.MPCmin)
-        scsr.MPCmax_tp1 = deepcopy(soln_futr.bilt.MPCmax)
-        scsr.cFunc_tp1 = deepcopy(soln_futr.cFunc)
-        scsr.vFunc_tp1 = deepcopy(soln_futr.vFunc)
-        scsr.vPfunc_tp1 = deepcopy(soln_futr.vPfunc)
-        if hasattr(soln_futr, 'vPPfunc'):
-            scsr.vPPfunc_tp1 = deepcopy(soln_futr.vPPfunc)
-
-        self.def_utility_funcs(bilt)
-
-        bilt.PerfFsgt = (type(self) == ConsIndShockSolver)
-
-        # If no uncertainty, return the degenerate targets for the PF model
-        if hasattr(bilt, "tranShkVals"):  # Then it has transitory shocks
-            # Handle the degenerate case where shocks are of size zero
-            if ((bilt.tranShkMin == 1.0) and (bilt.permShkMin == 1.0)):
-                # But they still might have unemployment risk
-                if hasattr(bilt, "UnempPrb"):
-                    if ((bilt.UnempPrb == 0.0) or (bilt.IncUnemp == 1.0)):
-                        bilt.PerfFsgt = True  # No unemployment risk either
-                    else:
-                        bilt.PerfFsgt = False  # Only uncert is unemployment
-            else:  # either tran or perm shocks exist
-                if (bilt.permShkMin <= 0.0):
-                    _log.critical(
-                        'The model cannot handle permanent income <= 0.')
-                    breakpoint()
-
-        if bilt.PerfFsgt:
-            bilt.Ex_Inv_permShk = 1.0
-            bilt.Ex_uInv_permShk = 1.0
-
-        return
-
 
 ####################################################################################################
 # ###################################################################################################
@@ -2352,13 +2439,13 @@ init_perfect_foresight = {
     'BoroCnstArt': None,  # Artificial borrowing constraint
     'T_cycle': 1,         # Num of periods in a finite horizon cycle (like, a life cycle)
     'PermGroFacAgg': 1.0,  # Aggregate income growth factor (multiplies individual)
-    'MaxKinks': 400,      # Maximum number of grid points to allow in cFunc (should be large)
-    'mcrlo_AgentCount': 10000,  # Number of agents of this type (only matters for simulation)
+    'MaxKinks': None,      # Maximum number of grid points to allow in cFunc
+    'AgentCount': 10000,  # Number of agents of this type (only matters for simulation)
     'aNrmInitMean': 0.0,  # Mean of log initial assets (only matters for simulation)
     'aNrmInitStd': 1.0,  # Standard deviation of log initial assets (only for simulation)
-    'mcrlo_pLvlInitMean': 0.0,  # Mean of log initial permanent income (only matters for simulation)
+    'pLvlInitMean': 0.0,  # Mean of log initial permanent income (only matters for simulation)
     # Standard deviation of log initial permanent income (only matters for simulation)
-    'mcrlo_pLvlInitStd': 0.0,
+    'pLvlInitStd': 0.0,
     # Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
     'T_age': None,       # Age after which simulated agents are automatically killed
     # Optional extra _fcts about the model and its calibration
@@ -2376,13 +2463,13 @@ init_perfect_foresight.update(  # In principle, kinks exist all the way to infin
     {'aprox_lim': {'MaxKinks': 'infinity'}})
 # The simulation stge of the problem requires additional parameterization
 init_perfect_foresight.update(  # The 'primitives' for the simulation
-    {'prmtv_sim': ['aNrmInitMean', 'aNrmInitStd', 'mcrlo_pLvlInitMean', 'mcrlo_pLvlInitStd']})
+    {'prmtv_sim': ['aNrmInitMean', 'aNrmInitStd', 'pLvlInitMean', 'pLvlInitStd']})
 init_perfect_foresight.update({  # Approximation parameters for monte carlo sims
-    'mcrlo_sim': ['mcrlo_AgentCount', 'T_age']
+    'sim_mcrlo': ['AgentCount', 'T_age']
 })
 init_perfect_foresight.update({  # Limiting values that define 'true' simulation
-    'mcrlo_lim': {
-        'mcrlo_AgentCount': 'infinity',
+    'sim_mcrlo_lim': {
+        'AgentCount': 'infinity',
         'T_age': 'infinity'
     }
 })
@@ -2458,48 +2545,48 @@ MaxKinks_fcts.update({'prmtv_par': 'False'})
 # init_perfect_foresight['_fcts'].update({'MaxKinks': MaxKinks_fcts})
 init_perfect_foresight.update({'MaxKinks_fcts': MaxKinks_fcts})
 
-mcrlo_AgentCount_fcts = {
+AgentCount_fcts = {
     'about': 'Number of agents to use in baseline Monte Carlo simulation'}
-mcrlo_AgentCount_fcts.update(
-    {'latexexpr': '\providecommand{\mcrlo_AgentCount}{N}\mcrlo_AgentCount'})
-mcrlo_AgentCount_fcts.update({'mcrlo_sim': 'True'})
-mcrlo_AgentCount_fcts.update({'mcrlo_lim': 'infinity'})
-# init_perfect_foresight['mcrlo_sim'].append('mcrlo_AgentCount')
-# init_perfect_foresight['_fcts'].update({'mcrlo_AgentCount': mcrlo_AgentCount_fcts})
-init_perfect_foresight.update({'mcrlo_AgentCount_fcts': mcrlo_AgentCount_fcts})
+AgentCount_fcts.update(
+    {'latexexpr': '\providecommand{\AgentCount}{N}\AgentCount'})
+AgentCount_fcts.update({'sim_mcrlo': 'True'})
+AgentCount_fcts.update({'sim_mcrlo_lim': 'infinity'})
+# init_perfect_foresight['sim_mcrlo'].append('AgentCount')
+# init_perfect_foresight['_fcts'].update({'AgentCount': AgentCount_fcts})
+init_perfect_foresight.update({'AgentCount_fcts': AgentCount_fcts})
 
 aNrmInitMean_fcts = {
     'about': 'Mean initial population value of aNrm'}
-aNrmInitMean_fcts.update({'mcrlo_sim': 'True'})
-aNrmInitMean_fcts.update({'mcrlo_lim': 'infinity'})
-init_perfect_foresight['mcrlo_sim'].append('aNrmInitMean')
+aNrmInitMean_fcts.update({'sim_mcrlo': 'True'})
+aNrmInitMean_fcts.update({'sim_mcrlo_lim': 'infinity'})
+init_perfect_foresight['sim_mcrlo'].append('aNrmInitMean')
 # init_perfect_foresight['_fcts'].update({'aNrmInitMean': aNrmInitMean_fcts})
 init_perfect_foresight.update({'aNrmInitMean_fcts': aNrmInitMean_fcts})
 
 aNrmInitStd_fcts = {
     'about': 'Std dev of initial population value of aNrm'}
-aNrmInitStd_fcts.update({'mcrlo_sim': 'True'})
-init_perfect_foresight['mcrlo_sim'].append('aNrmInitStd')
+aNrmInitStd_fcts.update({'sim_mcrlo': 'True'})
+init_perfect_foresight['sim_mcrlo'].append('aNrmInitStd')
 # init_perfect_foresight['_fcts'].update({'aNrmInitStd': aNrmInitStd_fcts})
 init_perfect_foresight.update({'aNrmInitStd_fcts': aNrmInitStd_fcts})
 
-mcrlo_pLvlInitMean_fcts = {
+pLvlInitMean_fcts = {
     'about': 'Mean initial population value of log pLvl'}
-mcrlo_pLvlInitMean_fcts.update({'mcrlo_sim': 'True'})
-init_perfect_foresight['mcrlo_sim'].append('mcrlo_pLvlInitMean')
-# init_perfect_foresight['_fcts'].update({'mcrlo_pLvlInitMean': mcrlo_pLvlInitMean_fcts})
-init_perfect_foresight.update({'mcrlo_pLvlInitMean_fcts': mcrlo_pLvlInitMean_fcts})
+pLvlInitMean_fcts.update({'sim_mcrlo': 'True'})
+init_perfect_foresight['sim_mcrlo'].append('pLvlInitMean')
+# init_perfect_foresight['_fcts'].update({'pLvlInitMean': pLvlInitMean_fcts})
+init_perfect_foresight.update({'pLvlInitMean_fcts': pLvlInitMean_fcts})
 
-mcrlo_pLvlInitStd_fcts = {
+pLvlInitStd_fcts = {
     'about': 'Mean initial std dev of log ppLvl'}
-mcrlo_pLvlInitStd_fcts.update({'mcrlo_sim': 'True'})
-init_perfect_foresight['mcrlo_sim'].append('mcrlo_pLvlInitStd')
-# init_perfect_foresight['_fcts'].update({'mcrlo_pLvlInitStd': mcrlo_pLvlInitStd_fcts})
-init_perfect_foresight.update({'mcrlo_pLvlInitStd_fcts': mcrlo_pLvlInitStd_fcts})
+pLvlInitStd_fcts.update({'sim_mcrlo': 'True'})
+init_perfect_foresight['sim_mcrlo'].append('pLvlInitStd')
+# init_perfect_foresight['_fcts'].update({'pLvlInitStd': pLvlInitStd_fcts})
+init_perfect_foresight.update({'pLvlInitStd_fcts': pLvlInitStd_fcts})
 
 T_age_fcts = {
     'about': 'Age after which simulated agents are automatically killedl'}
-T_age_fcts.update({'mcrlo_sim': 'False'})
+T_age_fcts.update({'sim_mcrlo': 'False'})
 # init_perfect_foresight['_fcts'].update({'T_age': T_age_fcts})
 init_perfect_foresight.update({'T_age_fcts': T_age_fcts})
 
@@ -2524,24 +2611,27 @@ class AgentTypePlus(AgentType):
     __doc__ += AgentType.__doc__
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)  # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
+        # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
+        AgentType.__init__(self, *args, **kwargs)
 
     def store_model_params(self, prmtv_par, aprox_lim):
         # When anything cached here changes, solution SHOULD change
         self.prmtv_par_vals = {}
         for par in prmtv_par:
-            self.prmtv_par_vals[par] = getattr(self, par)
+            if hasattr(self, par):
+                self.prmtv_par_vals[par] = getattr(self, par)
 
         self.aprox_par_vals = {}
         for key in aprox_lim:
-            self.aprox_par_vals[key] = getattr(self, key)
+            if hasattr(self, key):
+                self.aprox_par_vals[key] = getattr(self, key)
 
         # Merge to get all aprox and prmtv params
         self.solve_par_vals = {**self.prmtv_par_vals, **self.aprox_par_vals}
 
-    def update(self):
+    def agent_update_if_params_have_changed_since_last_solve(self):
         """
-        Update any characteristics of the solution environment that need to be recomputed
+        Update any characteristics of the agent that need to be recomputed
         as a result of changes in parameters since the last time the solver was invoked.
 
         Parameters
@@ -2562,35 +2652,47 @@ class AgentTypePlus(AgentType):
             if not solve_par_vals_now == self.solve_par_vals:
                 _log.info('Some model parameter has changed since last update.')
                 _log.info('Storing new parameters and updating shocks and grid.')
-                self.update_pre_solve()  # The AgentType must define its own
+                self.agent_force_prepare_info_needed_for_solver()  # The AgentType must define its own
 
-    def update_pre_solve(self):
+    #update = agent_update_if_params_have_changed_since_last_solve
+#                update = agent_update_if_params_have_changed_since_last_solve
+
+    def agent_force_prepare_info_needed_for_solver(self):
         # There are no universally required pre_solve objects
+        #
         pass
 
-    def post_solve(self):
+    # update_pre_solve is the old name, preserved as an alias
+    # to prevent breakage of existing code. New name is clearer
+    update_pre_solve = agent_force_prepare_info_needed_for_solver
+
+    def agent_post_solve(self):
         if not hasattr(self, 'solution'):
             _log.critical('No solution was returned.')
             return
-
         else:
             if not type(self.solution) == list:
                 _log.critical('Solution is not a list.')
                 return
-
-        soln = self.solution[-1]
+        soln = self.solution[0]
         if not hasattr(soln, 'stge_kind'):
             _log.warning('Solution does not have attribute stge_kind')
             return
         else:
             soln.stge_kind['iter_status'] = 'finished'
+        self.agent_post_post_solve()
 
-        self.post_post_solve()
+    # Disambiguation: former "[solver].post_solve"; post_solve is now alias to this
+    # it's hard to remember whether "post_solve" is a method of
+    # the solver or of the agent.  The answer is the agent; hence the rename
+    # The alias below prevents breakage
+    post_solve = agent_post_solve
 
-    def post_post_solve(self):
+    def agent_post_post_solve(self):
         # overwrite this with anything required to be customized for post_solve
         # of a particular agent type.
         # For example, computing stable points for inf hor buffer stock
+        # Overwritten in PerfForesightConsumerSolution, carrying over to IndShockConsumerType
         pass
 
 
@@ -2625,7 +2727,7 @@ class OneStateConsumerType(AgentTypePlus):
             self,
             solution_startfrom,
             cycles=1,
-            pseudo_terminal=True,
+            pseudo_terminal=False,
             **kwds
     ):
         cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0], [0.0, 1.0])
@@ -2663,7 +2765,6 @@ class OneStateConsumerType(AgentTypePlus):
         solution_terminal_ = solution_nobequest_
         assert(solution_terminal_ == solution_nobequest_)
 
-#        breakpoint()
         self.soln_crnt = ConsumerSolutionOneStateCRRA()  # Mainly for storing functions, methods
         if not hasattr(self, 'solution_startfrom'):
             solution_startfrom = deepcopy(solution_nobequest_)
@@ -2714,6 +2815,19 @@ class PerfForesightConsumerType(OneStateConsumerType):
                  quiet=False,  # do not check conditions
                  solution_startfrom=None,  # Default is no interim solution
                  BoroCnstArt=None,
+                 MaxKinks=None,
+                 Rfree=1.03,
+                 CRRA=2.0,
+                 DiscFac=0.96,
+                 PermGroFac=[1.0],
+                 LivPrb=[1.0],
+                 T_cycle=1.0,
+                 PermGroFacAgg=[1.0],
+                 aNrmInitMean=0.0,
+                 aNrmInitStd=1.0,
+                 pLvlInitMean=0.0,
+                 pLvlInitStd=0.0,
+                 T_age=None,
                  solver=ConsPerfForesightSolver,
                  **kwds
                  ):
@@ -2725,7 +2839,27 @@ class PerfForesightConsumerType(OneStateConsumerType):
             cycles=cycles,
             pseudo_terminal=False,
             ** kwds_upd)
-        self.check_restrictions()
+
+        self.CRRA = CRRA
+        self.Rfree = Rfree
+        self.DiscFac = DiscFac
+        self.LivPrb = LivPrb
+        self.PermGroFac = PermGroFac
+        self.BoroCnstArt = BoroCnstArt
+        self.T_cycle = T_cycle
+        self.PermGroFacAgg = PermGroFacAgg
+        self.MaxKinks = MaxKinks
+        self.aNrmInitMean = aNrmInitMean
+        self.aNrmInitStd = aNrmInitStd
+        self.pLvlInitMean = pLvlInitMean
+        self.pLvlInitStd = pLvlInitStd
+        self.T_age = T_age
+        self.solver = solver
+        self.verbose = verbose
+        self.quiet = quiet
+        set_verbosity_level((4 - verbose) * 10)
+
+        self.check_restrictions()  # Make sure it's a valid model
 
         # OneStateConsumerType creates self.soln_crnt and self.soln_crnt.scsr
 
@@ -2734,7 +2868,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
             # enrich default OneStateConsumerType terminal function
             # with info specifically needed to solve PF CRRA model
             soln_crnt = self.finish_setup_default_term_by_putting_into_soln_crnt()
-            # url that will locate the documentation
+            # make url that will locate the documentation
             self.url_doc_for_this_agent_type_get()
         else:
             # user-provided solution should already be enriched therewith
@@ -2756,66 +2890,76 @@ class PerfForesightConsumerType(OneStateConsumerType):
         self.store_model_params(kwds_upd['prmtv_par'],
                                 kwds_upd['aprox_lim'])
 
-        # Honor arguments (if any) provided with solution_startfrom call
-        self.verbose = verbose
-        set_verbosity_level((4 - verbose) * 10)
-        self.quiet = quiet
         self.dolo_defs()
 
-    def post_post_solve(self):
-        # Things to be done after a solution has been found
-        #        breakpoint()
+    def make_solution_for_final_period(self):  # solution[0]=terminal_solution
+        # but want to add extra info required for backward induction
+        self.tolerance_orig = deepcopy(self.tolerance)  # preserve true tolerance
+        self.tolerance = float('inf')  # tolerance is infinity ...
+#        self.pseudo_terminal = True  # ... and pseudo_terminal = True
+        self.solve()  # ... means that "solve" will stop after setup ...
+#        self.pseudo_terminal = False  # ... replaces generic terminal with updated
+        self.tolerance = self.tolerance_orig  # which leaves us ready to solve
 
-        print('In PF post_post_solve')
-        print('stge_kind='+str(self.solution[0].stge_kind))
+    def agent_post_post_solve(self):  # Overwrites version from AgentTypePlus
+        # Inherited by IndShockConsumerType
+        if self.cycles == 0:  # if it's an infinite horizon model
+            # Find the stable points (if any)
+            self.add_stable_points(self.solution[0])
 
-    def check_restrictions(self):  # url/#check-restrictions
+    def check_restrictions(self):
         """
-        A method to check that various restrictions are met for the model class.
+        Check that various restrictions are met for the model class.
         """
-        min0Bounded = {
+        min0Bounded = {  # Things that must be >= 0
             'tranShkStd', 'permShkStd', 'UnempPrb', 'IncUnemp', 'UnempPrbRet', 'IncUnempRet'}
 
-        gt0Bounded = {'DiscFac', 'Rfree', 'PermGroFac', 'LivPrb'}
+        gt0Bounded = {  # Things that must be >0
+            'DiscFac', 'Rfree', 'PermGroFac', 'LivPrb'}
 
-        max1Bounded = {'LivPrb'}
+        max1Bounded = {  # Things that must be <= 1
+            'LivPrb'}
 
-        gt1Bounded = {'CRRA'}
+        gt1Bounded = {  # Things that must be > 1
+            'CRRA'}
 
         for var in min0Bounded:
-            if type(self.__dict__[var]) == list:
-                varMin = np.min(self.__dict__[var])
-            else:
-                varMin = self.__dict__[var]
-            if varMin < 0:
-                raise Exception(var+" is negative with value: " + str(varMin))
+            if var in self.__dict__['parameters']:
+                # If a list (because time_var), use extremum of list
+                if type(self.__dict__['parameters'][var]) == list:
+                    varMin = np.min(self.__dict__['parameters'][var])
+                else:
+                    varMin = self.__dict__['parameters'][var]
+                if varMin < 0:
+                    raise Exception(var+" is negative with value: " + str(varMin))
         for var in gt0Bounded:
-            if type(self.__dict__[var]) == list:
-                varMin = np.min(self.__dict__[var])
-            else:
-                varMin = self.__dict__[var]
-            if varMin <= 0.0:
-                raise Exception(var+" is nonpositive with value: " + str(varMin))
+            if var in self.__dict__['parameters']:
+                if type(self.__dict__['parameters'][var]) == list:
+                    varMin = np.min(self.__dict__['parameters'][var])
+                else:
+                    varMin = self.__dict__['parameters'][var]
+                if varMin <= 0.0:
+                    raise Exception(var+" is nonpositive with value: " + str(varMin))
 
         for var in max1Bounded:
-            if type(self.__dict__[var]) == list:
-                varMax = np.max(self.__dict__[var])
-            else:
-                varMax = self.__dict__[var]
-            if varMax > 1.0:
-                raise Exception(var+" is greater than 1 with value: " + str(varMax))
+            if var in self.__dict__['parameters']:
+                if type(self.__dict__['parameters'][var]) == list:
+                    varMax = np.max(self.__dict__['parameters'][var])
+                else:
+                    varMax = self.__dict__['parameters'][var]
+                if varMax > 1.0:
+                    raise Exception(var+" is greater than 1 with value: " + str(varMax))
 
         for var in gt1Bounded:
-            if type(self.__dict__[var]) == list:
-                varMin = np.min(self.__dict__[var])
-            else:
-                varMin = self.__dict__[var]
-            if varMin <= 1.0:
-                if var == 'CRRA' and self.__dict__[var] == 1.0:
-                    _log.info('For log utility, use CRRA very close to 1, like 1.00001')
-                raise Exception(var+" is less than or equal to 1.0 with value: " + str(varMax))
-
-#        self.update()
+            if var in self.__dict__['parameters']:
+                if type(self.__dict__['parameters'][var]) == list:
+                    varMin = np.min(self.__dict__['parameters'][var])
+                else:
+                    varMin = self.__dict__['parameters'][var]
+                if varMin <= 1.0:
+                    if var == 'CRRA' and self.__dict__['parameters'][var] == 1.0:
+                        _log.info('For log utility, use CRRA very close to 1, like 1.00001')
+                    raise Exception(var+" is less than or equal to 1.0 with value: " + str(varMax))
         return
 
     def check_conditions(self, verbose=3):
@@ -2824,7 +2968,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
             _log.info('Solving final period because conditions are computed on solver')
             self.make_solution_for_final_period()
 
-        soln_crnt = self.solution[-1]
+        soln_crnt = self.solution[0]
         soln_crnt.check_conditions(soln_crnt, verbose)
 
     def dolo_defs(self):  # CDC 20210415: Beginnings of Dolo integration
@@ -2871,6 +3015,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
         # Put these at root of solution
         soln_crnt.time_vary = self.time_vary = deepcopy(self.time_vary_)
         soln_crnt.time_inv = self.time_inv = deepcopy(self.time_inv_)
+        soln_crnt.cycles = self.cycles
 
         # Natural borrowing constraint: Cannot die in debt
         soln_crnt.bilt.BoroCnstNat = soln_crnt.BoroCnstNat = -(soln_crnt.hNrm + soln_crnt.mNrmMin)
@@ -2882,7 +3027,6 @@ class PerfForesightConsumerType(OneStateConsumerType):
         self.vPPfunc = soln_crnt.bilt.vPPfunc = soln_crnt.vPPfunc = MargMargValueFuncCRRA(
             soln_crnt.cFunc, self.CRRA)
 
-        # CDC 20210423:
         # utility u, marginal utility u' is uP, marginal marginal uPP
         soln_crnt.bilt.u = soln_crnt.u = lambda c: utility(c, self.CRRA)
         soln_crnt.bilt.uP = soln_crnt.uP = lambda c: utilityP(c, self.CRRA)
@@ -2892,8 +3036,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
         soln_crnt.bilt.uPinv = soln_crnt.uPinv = lambda u: utilityP_inv(u, self.CRRA)
         soln_crnt.bilt.uPinvP = soln_crnt.uPinvP = lambda u: utilityP_invP(u, self.CRRA)
         soln_crnt.bilt.uinvP = soln_crnt.uinvP = lambda u: utility_invP(u, self.CRRA)
-        soln_crnt.bilt.uinv = soln_crnt.uinv = lambda u: utility_inv(
-            u, self.CRRA)  # in case vFuncBool
+        soln_crnt.bilt.uinv = soln_crnt.uinv = lambda u: utility_inv(u, self.CRRA)
 
         soln_crnt.stge_kind = {'iter_status': 'terminal',
                                'slvr_type': 'ConsPerfForesightSolver'
@@ -2907,12 +3050,10 @@ class PerfForesightConsumerType(OneStateConsumerType):
         soln_crnt.bilt.BoroCnstNat = deepcopy(soln_crnt.BoroCnstNat)
 
         # Solution options
-        soln_crnt.bilt.vFuncBool = self.vFuncBool
-        soln_crnt.bilt.CubicBool = self.CubicBool
-
-        # {k: soln_crnt.bilt.__dict__[k] for k in \
-        #  set(list(soln_crnt.bilt.__dict__.keys())) - \
-        #  set('𝔼_dot','EndOfPrdvP','MaxKinks',')}
+        if hasattr(self, 'vFuncBool'):
+            soln_crnt.bilt.vFuncBool = self.vFuncBool
+        if hasattr(self, 'CubicBool'):
+            soln_crnt.bilt.CubicBool = self.CubicBool
 
         return soln_crnt
 
@@ -2924,27 +3065,31 @@ class PerfForesightConsumerType(OneStateConsumerType):
         self.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q=" +\
             self.class_name+"&check_keywords=yes&area=default#"
 
-    def pre_solve(self):  # Prepare for solution of entire problem
-
-        if not self.BoroCnstArt:
+    # Prepare PF agent for solution of entire problem
+    # Overwrites default version from AgentTypePlus
+    # Overwritten by version in ConsIndShockSolver
+    def agent_force_prepare_info_needed_for_solver(self):
+        if (not self.BoroCnstArt) and (not self.BoroCnstArt == 0):
             if hasattr(self, "MaxKinks"):
                 if self.MaxKinks:  # True if MaxKinks is anything other than None
                     raise(
                         AttributeError(
                             "Kinks are caused by constraints.  Cannot specify MaxKinks without constraints!  Ignoring."
                         ))
-                self.MaxKinks = np.inf
             return
         # Then it has a borrowing constraint
         if hasattr(self, "MaxKinks"):
             if self.cycles > 0:  # If it's not an infinite horizon model...
-                self.MaxKinks = np.inf  # ...there's no need to set MaxKinks
+                self.MaxKinks = self.soln_crnt.MaxKinks = \
+                    min(self.soln_crnt.cycles, self.MaxKinks)  #
             else:
                 raise (
                     AttributeError(
                         "PerfForesightConsumerType requires MaxKinks when BoroCnstArt is not None, cycles == 0."
                     )
                 )
+
+    pre_solve = agent_force_prepare_info_needed_for_solver  # Alias to preserve functionality
 
     def unpack_cFunc(self):
         """ DEPRECATED: Use solution.unpack('cFunc') instead.
@@ -2973,7 +3118,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
         self.mcrlovars.state_now['PlvlAgg'] = self.state_now['PlvlAgg'] = 1.0
         AgentType.initialize_sim(self)
 
-    def mcrlo_birth(self, which_agents):
+    def birth(self, which_agents):
         """
         Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
         well as time variables t_age and t_cycle.  Normalized assets and permanent income levels
@@ -2982,7 +3127,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
         Parameters
         ----------
         which_agents : np.array(Bool)
-            Boolean array of size self.mcrlo_AgentCount indicating which agents should be "born".
+            Boolean array of size self.AgentCount indicating which agents should be "born".
 
         Returns
         -------
@@ -2996,13 +3141,13 @@ class PerfForesightConsumerType(OneStateConsumerType):
             seed=self.RNG.randint(0, 2 ** 31 - 1),
         ).draw(N)
         # why is a now variable set here? Because it's an aggregate.
-        mcrlo_pLvlInitMean = self.mcrlo_pLvlInitMean + np.log(
+        pLvlInitMean = self.pLvlInitMean + np.log(
             self.state_now['PlvlAgg']
         )  # Account for newer cohorts having higher permanent income
         self.mcrlovars.state_now['pLvl'][which_agents] = \
             self.state_now['pLvl'][which_agents] = Lognormal(
-            mcrlo_pLvlInitMean,
-            self.mcrlo_pLvlInitStd,
+            pLvlInitMean,
+            self.pLvlInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
         # How many periods since each agent was born
@@ -3013,7 +3158,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
         ] = 0  # Which period of the cycle each agent is currently in
         return None
 
-    def mcrlo_death(self):
+    def death(self):
         """
         Determines which agents die this period and must be replaced.  Uses the sequence in LivPrb
         to determine survival probabilities for each agent.
@@ -3025,7 +3170,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
         Returns
         -------
         which_agents : np.array(bool)
-            Boolean array of size mcrlo_AgentCount indicating which agents die.
+            Boolean array of size AgentCount indicating which agents die.
         """
         # Determine who dies
         DiePrb_by_t_cycle = 1.0 - np.asarray(self.LivPrb)
@@ -3033,7 +3178,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
             self.t_cycle - 1
         ]  # Time has already advanced, so look back one
         DeathShks = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(
-            N=self.mcrlo_AgentCount
+            N=self.AgentCount
         )
         which_agents = DeathShks < DiePrb
         if self.T_age is not None:  # Kill agents that have lived for too many periods
@@ -3059,12 +3204,12 @@ class PerfForesightConsumerType(OneStateConsumerType):
         self.shocks['permShk'] = PermGroFac[
             self.t_cycle - 1
         ]  # cycle time has already been advanced
-        self.shocks['tranShk'] = np.ones(self.mcrlo_AgentCount)
+        self.shocks['tranShk'] = np.ones(self.AgentCount)
 
     def get_Rfree(self):  # -> mcrlo_get_Rfree.
         # CDC: We should have a generic mcrlo_get_all_params
         """
-        Returns an array of size self.mcrlo_AgentCount with self.Rfree in every entry.
+        Returns an array of size self.AgentCount with self.Rfree in every entry.
 
         Parameters
         ----------
@@ -3073,9 +3218,9 @@ class PerfForesightConsumerType(OneStateConsumerType):
         Returns
         -------
         Rfree : np.array
-            Array of size self.mcrlo_AgentCount with risk free interest rate for each agent.
+            Array of size self.AgentCount with risk free interest rate for each agent.
         """
-        Rfree = self.Rfree * np.ones(self.mcrlo_AgentCount)
+        Rfree = self.Rfree * np.ones(self.AgentCount)
         return Rfree
 
     def transition(self):  # -> mcrlo_trnsitn
@@ -3106,8 +3251,8 @@ class PerfForesightConsumerType(OneStateConsumerType):
         -------
         None
         """
-        cNrm = np.zeros(self.mcrlo_AgentCount) + np.nan
-        MPCnow = np.zeros(self.mcrlo_AgentCount) + np.nan
+        cNrm = np.zeros(self.AgentCount) + np.nan
+        MPCnow = np.zeros(self.AgentCount) + np.nan
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cNrm[these], MPCnow[these] = self.solution[t].cFunc.eval_with_derivative(
@@ -3140,6 +3285,18 @@ class PerfForesightConsumerType(OneStateConsumerType):
         super().get_poststates()
 
         return None
+
+    # Below are aliases to the set of methods that perform the Monte Carlo simulation
+    # This is a preliminary step to organizing and then disentangling them from the rest of the code
+    # and abstracting as much common functionality as possible to core.py,
+    # distributions.py, utilities.py, and wherever else is appropriate
+    sim_birth_agent = birth  # alias; collect all methods that are for mcrlo sims for eventual grouping
+    sim_death_agent = death  # alias; collect all methods that are for mcrlo sims for eventual grouping
+    sim_transition_agent = transition
+    sim_get_poststates_agent = get_poststates
+    sim_get_controls_agent = get_controls
+    sim_get_shocks_agent = get_shocks
+    sim_initialize_sim_agent = initialize_sim
 
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
@@ -3349,10 +3506,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         the final stage.
 
     solution_startfrom : stge, optional
-        A user-specified starting point (last stage solution) for the iteration,
-        to be used in place of the hardwired solution_terminal.  For example, you
-        might set a loose tolerance to get a quick `solution_rough,` and
-        then set the tolerance lower, or change some approximation parameter,
+        A user-specified terminal period/stage solution for the iteration,
+        to be used in place of the hardwired solution_terminal.  One use
+        might be to set a loose tolerance to get a quick `solution_rough`
+        using the default hardwired solution (nobequest), then 
+        set the tolerance tighter, or change some approximation parameter,
          and resume iteration using `solution_startfrom = solution_rough` until
         the new tolerance is met with the (presumably better but slower)
         approximation parameter.
@@ -3379,19 +3537,19 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PerfForesightConsumerType.__init__(
             self, cycles=cycles, verbose=verbose, quiet=quiet,
             solution_startfrom=solution_startfrom,
-            solver=ConsPerfForesightSolver,  # Default if (as usual) no solver supplied
+            solver=ConsPerfForesightSolver,  # Default if no solver supplied
             **params
         )
 
         # Reduce clutter with local variable (no annoying 'self.' required)
         soln_crnt = self.soln_crnt  # Already created by PerfForesightConsumerType
 
-        # If precooked terminal answer not provided by user ...
+        # If precooked terminal stage not provided by user ...
         if not hasattr(self, 'solution_startfrom'):  # .. then init the default
             # Add parameters NOT already created by PerfForesightConsumerType
             self.shock_vars = deepcopy(self.shock_vars_)  # Default before __init__
             self.parameters.update({'shock_vars': self.shock_vars})
-            self.update_pre_solve()
+            self.agent_force_prepare_info_needed_for_solver()
 
         # Add consumer-type specific objects; deepcopy creates own versions
         # - Default interpolation method is piecewise linear
@@ -3400,7 +3558,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # CDC 20210428: Basic solver is not worth preserving
         if (not self.CubicBool) and (not self.vFuncBool):
             solver = ConsIndShockSolverBasic
-        else:  # Use the "advanced" solver if either is requested
+        else:  # Use the "advanced" solver if either v or Cubic is requested
             solver = ConsIndShockSolver
 
         # slvr_type will have been set by PF as perfect foresight; reset
@@ -3420,58 +3578,65 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Store setup parameters so we can check for changes
         self.store_model_params(params['prmtv_par'], params['aprox_lim'])
 
-        # Let solver know about all the params of the model
-        # CDC 20210428: Not sure this accomplishes anything useful
-        self.solve_one_period.parameters_model = self.parameters
+        # # Let solver know about all the params of the model
+        # # CDC 20210428: Not sure this accomplishes anything useful
+        # self.solve_one_period.parameters_model = self.parameters
 
-        # and about the ones which, if they change, require iterating
-        self.solve_one_period.solve_par_vals = self.solve_par_vals
+        # # and about the ones which, if they change, require iterating
+        # self.solve_one_period.solve_par_vals = self.solve_par_vals
 
         # Quiet mode: Define model without calculating anything
         # If not quiet, solve one period so we can check conditions
 
-        if not quiet:
-            self.check_conditions(verbose=3)  # Check conditions for nature/existence of soln
-        else:  # Tell solve to keep going after solving first step
-            soln_crnt.stge_kind['iter_status'] = 'iterator'
+        # if not quiet:
+        #     self.check_conditions(verbose=3)  # Check conditions for nature/existence of soln
+        # else:  # Tell solve to keep going after solving first step
+        #     soln_crnt.stge_kind['iter_status'] = 'iterator'
 
-    def make_solution_for_final_period(self):  # solution[0]=terminal_solution
-        # but with extra info required for backward induction
-        self.tolerance_orig = deepcopy(self.tolerance)  # preserve true tolerance
-        self.tolerance = float('inf')  # tolerance is infinity ...
-        self.pseudo_terminal = True  # ... and pseudo_terminal = True
-        self.solve()  # ... means that "solve" will stop after setup ...
-        self.pseudo_terminal = False  # ... replaces generic terminal with updated
-        self.tolerance = self.tolerance_orig  # which leaves us ready to solve
-
-    def add_stable_points(self):
+    def add_stable_points(self, soln):
         """
-        If the model is one characterized by stable points, calculate those and 
+        If the model is one characterized by stable points, calculate those and
         attach them to the solution.
         """
 
-        soln = self.solution[0]
-
         if not hasattr(soln, 'conditions'):
-            self.solution[0].check_conditions(soln, verbose=0)
+            soln.check_conditions(soln, verbose=0)
 
         if not soln.GICRaw:
-            _log.warning(
-                "Because the model's parameters do not satisfy the GIC, it has neither an individual steady state nor a target.  Aborting.")
-            return
+            wrn = "Because the model's parameters do not satisfy the GIC, it has neither an individual steady state nor a target.  Aborting."
+            _log.warning(wrn)
+            if self.verbose == 3:
+                print(wrn)
+            soln.mNrmStE = None
         else:
             soln.mNrmStE = soln.mNrmStE_find()
             if not soln.GICNrm:
-                _log.warning(
-                    "Because the model's parameters do not satisfy the GICNrm, it does not have an individual target m ratio.  Aborting.")
+                wrn = "Because the model's parameters do not satisfy the stochastic-growth-normalized GIC, it has neither an individual steady state nor a target.  Aborting."
+                _log.warning(wrn)
+                if self.verbose == 3:
+                    print(wrn)
+                soln.mNrmTrg = None
+            else:
+                soln.mNrmTrg = soln.mNrmTrg_find()
 
-    def update_pre_solve(self):
+    # Overwrites version from ConsPerfForesightSolver
+    def agent_force_prepare_info_needed_for_solver(self):  # Alias below
         """
         Updates any characteristics of the agent's problem that need to be built
         from primitives (like, discretizations of a continuous distribution).
         """
         self.update_income_process()
         self.update_assets_grid()
+
+    # The former "[AgentType].update_pre_solve()" was poor nomenclature -- easy to confuse with
+    # the also-existing "[AgentType].pre_solve()" and with
+    # "[SolverType].prepare_to_solve()".  The new name,
+    #
+    # agent_force_prepare_info_needed_for_solver()
+    #
+    # is better, but the old one
+    # is preserved as an alias to prevent breakage of existing code:
+    update_pre_solve = agent_force_prepare_info_needed_for_solver
 
     def update_income_process(self):
         """
@@ -3498,8 +3663,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.parameters.update({'IncShkDstn': self.IncShkDstn,
                                 'permShkDstn': self.permShkDstn,
                                 'tranShkDstn': self.tranShkDstn})
-        print('update_income_process')
-#        breakpoint()
 
     def update_assets_grid(self):
         """
@@ -3541,8 +3704,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             for dstn in self.IncShkDstn:
                 dstn.reset()
 
-    def pre_solve(self):  # Before beginning any solution steps
-        self.update()  # Tests whether an update is needed, and performs it if so
+#    pre_solve = agent_update_if_params_have_changed_since_last_solve
 
     def construct_lognormal_income_process_unemployment(self):
         """
@@ -3712,8 +3874,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
-        permShk = np.zeros(self.mcrlo_AgentCount)  # Initialize shock arrays
-        tranShk = np.zeros(self.mcrlo_AgentCount)
+        permShk = np.zeros(self.AgentCount)  # Initialize shock arrays
+        tranShk = np.zeros(self.AgentCount)
         newborn = self.t_age == 0
         for t in range(self.T_cycle):
             these = t == self.t_cycle
@@ -3749,7 +3911,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         tranShk[newborn] = 1.0
 
         # Store the shocks in self
-        self.Emp = np.ones(self.mcrlo_AgentCount, dtype=bool)
+        self.Emp = np.ones(self.AgentCount, dtype=bool)
         self.Emp[tranShk == self.IncUnemp] = False
         self.shocks['permShk'] = permShk
         self.shocks['tranShk'] = tranShk
@@ -3795,11 +3957,14 @@ class KinkedRconsumerType(IndShockConsumerType):
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solve_one_period = make_one_period_oo_solver(ConsKinkedRsolver)
-        self.update()  # Make assets grid, income process, terminal solution
+        # Make assets grid, income process, terminal solution
+        self.agent_update_if_params_have_changed_since_last_solve()
 
-    def pre_solve(self):
-        #        AgentType.pre_solve(self)
-        self.update_solution_terminal()
+    def agent_force_prepare_info_needed_for_solver(self):
+        self.update_assets_grid()
+        self.update_income_process()
+
+    pre_solve = agent_force_prepare_info_needed_for_solver
 
     def calc_bounding_values(self):
         """
@@ -3892,7 +4057,7 @@ class KinkedRconsumerType(IndShockConsumerType):
 
     def get_Rfree(self):
         """
-        Returns an array of size self.mcrlo_AgentCount with self.Rboro or self.Rsave in each entry, based
+        Returns an array of size self.AgentCount with self.Rboro or self.Rsave in each entry, based
         on whether self.aNrm >< 0.
 
         Parameters
@@ -3902,9 +4067,9 @@ class KinkedRconsumerType(IndShockConsumerType):
         Returns
         -------
         Rfree : np.array
-             Array of size self.mcrlo_AgentCount with risk free interest rate for each agent.
+             Array of size self.AgentCount with risk free interest rate for each agent.
         """
-        Rfree = self.Rboro * np.ones(self.mcrlo_AgentCount)
+        Rfree = self.Rboro * np.ones(self.AgentCount)
         Rfree[self.state_prev['aNrm'] > 0] = self.Rsave
         return Rfree
 
@@ -4044,7 +4209,7 @@ time_params = parse_time_params(age_birth=birth_age, age_death=death_age)
 init_lifecycle = copy(init_idiosyncratic_shocks)
 init_lifecycle.update(time_params)
 init_lifecycle.update(dist_params)
-# Note the income specification overrides the mcrlo_pLvlInitMean from the SCF.
+# Note the income specification overrides the pLvlInitMean from the SCF.
 init_lifecycle.update(income_params)
 init_lifecycle.update({"LivPrb": liv_prb})
 
