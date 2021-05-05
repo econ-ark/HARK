@@ -3,30 +3,8 @@ from copy import deepcopy
 from types import SimpleNamespace as ns
 
 __all__ = [
-    "ConsumerSolutionGeneric",
-    "TrnsPars"
+    "ConsumerSolutionGeneric"
 ]
-
-# This is needed in order to copy dicts that contain objects constructed
-# using __builtins__ because __builtins__ cannot be pickled
-
-
-class TrnsPars(ns):
-    def __init__(self):
-        self.about = {
-            'TrnsPars': 'Parameters for transition from current to next stage'
-        }
-
-    # # built-in deepcopy includes builtins which causes recursion problems
-    # # modify to exclude builtins
-    # def __deepcopy__(self, memo):
-    #     cls = self.__class__
-    #     result = cls.__new__(cls)
-    #     memo[id(self)] = result
-    #     for k, v in self.__dict__.items():
-    #         if not k == '__builtins__':
-    #             setattr(result, k, deepcopy(v, memo))
-    #     return result
 
 
 class ConsumerSolutionGeneric(MetricObject):
