@@ -9,8 +9,7 @@ It currently solves three types of models:
    3) The model described in (2), with an interest rate for debt that differs
       from the interest rate for savings. #todo
 
-See NARK https://HARK.githhub.io/Documentation/NARK for information on variable naming conventions.
-See HARK documentation for mathematical descriptions of the models being solved.
+See `NARK <https://github.com/econ-ark/HARK/blob/master/Documentation/NARK/NARK.pdf>`_ for information on variable naming conventions.  See `hark.readthedocs.io <https://hark.readthedocs.io>`_ for mathematical descriptions of the models being solved.
 """
 
 from copy import deepcopy
@@ -34,7 +33,7 @@ from HARK.interpolation import (
     CubicInterp,
     ValueFuncCRRA,
     MargValueFuncCRRA,
-    MargMargValueFuncCRRA
+    MargMargValueFuncCRRA,
 )
 from HARK.numba import (
     CRRAutility,
@@ -134,7 +133,7 @@ class IndShockSolution(MetricObject):
     cNrm : np.array
         (Normalized) consumption points for interpolation.
     vFuncNvrsSlope: float
-        Constant slope of inverse value vFuncNvrs
+        Constant slope of inverse value ``vFuncNvrs``
     mNrmMin : float
         The minimum allowable market resources for this period; the consump-
         tion function (etc) are undefined for m < mNrmMin.
@@ -202,7 +201,9 @@ def _find_mNrmStE(m, Rfree, PermGroFac, mNrm, cNrm, Ex_IncNext):
 
 # @njit(cache=True) can't cache because of use of globals, perhaps newton_secant?
 @njit
-def _add_mNrmStENumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, Ex_IncNext, _find_mNrmStE):
+def _add_mNrmStENumba(
+    Rfree, PermGroFac, mNrm, cNrm, mNrmMin, Ex_IncNext, _find_mNrmStE
+):
     """
     Finds steady state (normalized) market resources and adds it to the
     solution.  This is the level of market resources such that the expectation
@@ -859,7 +860,16 @@ def _add_vFuncNumba(
 
 @njit
 def _add_mNrmStEIndNumba(
-    PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm, _searchfunc,
+    PermGroFac,
+    Rfree,
+    Ex_IncNext,
+    mNrmMin,
+    mNrm,
+    cNrm,
+    MPC,
+    MPCmin,
+    hNrm,
+    _searchfunc,
 ):
     """
     Finds steady state (normalized) market resources and adds it to the
@@ -1106,7 +1116,21 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
         )
 
     def post_solve(self):
+        """
+        Defines the value and marginal value functions for this period.
+        Uses the fact that for a perfect foresight CRRA utility problem,
+        if the MPC at :math:`t` is :math:`\\kappa_{t}`, and relative risk
+        aversion is :math:`\\rho`, then the inverse value function ``vFuncNvrs`` has a
+        constant slope of :math:`\\kappa_{t}^{-\\rho/(1-\\rho)}` and
+        ``vFuncNvrs`` has value of zero at the lower bound of market resources
+        `mNrmMin`.  See the `PerfForesightConsumerType <https://hark.readthedocs.io/en/latest/example_notebooks/PerfForesightConsumerType.html?highlight=PerfForesightConsumerType#Solution-method-for-PerfForesightConsumerType>`_ documentation notebook
+        for a brief explanation and the links below for a fuller treatment.
 
+        `PerfForesightCRRA/#vFuncAnalytical <https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/#vFuncAnalytical>`_
+
+        `SolvingMicroDSOPs/#vFuncPF <https://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/#vFuncPF>`_
+
+        """
         for i in range(len(self.solution)):
             if hasattr(self.solution[i], "parameters_solver"):
                 self.solution[i].parameters_solver["solution_next"] = None
@@ -1124,20 +1148,6 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
 
             # Construct the consumption function as a linear interpolation.
             cFunc = LinearInterp(solution.mNrm, solution.cNrm)
-
-            """
-            Defines the value and marginal value functions for this period.
-            Uses the fact that for a perfect foresight CRRA utility problem,
-            if the MPC in period t is :math:`\kappa_{t}`, and relative risk
-            aversion :math:`\rho`, then the inverse value vFuncNvrs has a
-            constant slope of :math:`\kappa_{t}^{-\rho/(1-\rho)}` and
-            vFuncNvrs has value of zero at the lower bound of market resources
-            mNrmMin.  See PerfForesightConsumerType.ipynb documentation notebook
-            for a brief explanation and the links below for a fuller treatment.
-
-            https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/#vFuncAnalytical
-            https://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/#vFuncPF
-            """
 
             vFuncNvrs = LinearInterp(
                 np.array([solution.mNrmMin, solution.mNrmMin + 1.0]),
