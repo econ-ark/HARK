@@ -78,7 +78,13 @@ class LinearInterpFast(object):
             # If the model that can handle uncertainty has been calibrated with
             # with uncertainty set to zero, the 'extrapolation' will blow up
             # Guard against that and nearby problems by testing slope equality
-            if not np.isclose(slope_limit, slope_at_top, atol=1e-15):
+            # np.isclose is not supported by numba yet
+            a = slope_limit
+            b = slope_at_top
+            rtol = 1e-05
+            atol = 1e-15
+            np_isclose = np.abs(a - b) <= (atol + rtol * np.abs(b))
+            if not np_isclose:
                 self.decay_extrap_A = level_diff
                 self.decay_extrap_B = -slope_diff / level_diff
                 self.intercept_limit = intercept_limit
@@ -158,6 +164,196 @@ class LinearInterpFast(object):
         i = self._get_index(x)
         y = self._evaluate(x, i)
         dydx = self._der(x, i)
+
+        return y, dydx
+
+
+cubic_specs = {
+    "x_list": float64[::1],
+    "y_list": float64[::1],
+    "dydx_list": float64[::1],
+    "intercept_limit": float64,
+    "slope_limit": float64,
+    "lower_extrap": boolean,
+    "distance_criteria": types.ListType(types.string),
+    "n": int32,
+    "coeffs": float64[:, ::1],
+}
+
+
+@jitclass(cubic_specs)
+class CubicInterpFast(object):
+    """
+    An interpolating function using piecewise cubic splines.  Matches level and
+    slope of 1D function at gridpoints, smoothly interpolating in between.
+    Extrapolation above highest gridpoint approaches a limiting linear function
+    if desired (linear extrapolation also enabled.)
+
+    NOTE: When no input is given for the limiting linear function, linear
+        extrapolation is used above the highest gridpoint.
+
+    Parameters
+    ----------
+    x_list : np.array
+        List of x values composing the grid.
+    y_list : np.array
+        List of y values, representing f(x) at the points in x_list.
+    dydx_list : np.array
+        List of dydx values, representing f'(x) at the points in x_list
+    intercept_limit : float
+        Intercept of limiting linear function.
+    slope_limit : float
+        Slope of limiting linear function.
+    lower_extrap : boolean
+        Indicator for whether lower extrapolation is allowed.  False means
+        f(x) = NaN for x < min(x_list); True means linear extrapolation.
+    """
+
+    def __init__(
+        self,
+        x_list,
+        y_list,
+        dydx_list,
+        intercept_limit=None,
+        slope_limit=None,
+        lower_extrap=False,
+    ):
+        self.x_list = x_list
+        self.y_list = y_list
+        self.dydx_list = dydx_list
+
+        self.n = len(x_list)
+
+        # Define lower extrapolation as linear function (or just NaN)
+
+        self.coeffs = np.empty((self.n + 1, 4))
+
+        if lower_extrap:
+            self.coeffs[0] = np.array([y_list[0], dydx_list[0], 0, 0])
+        else:
+            self.coeffs[0] = np.array([np.nan, np.nan, np.nan, np.nan])
+
+        # Calculate interpolation coefficients on segments mapped to [0,1]
+        for i in range(self.n - 1):
+            x0 = x_list[i]
+            y0 = y_list[i]
+            x1 = x_list[i + 1]
+            y1 = y_list[i + 1]
+            Span = x1 - x0
+            dydx0 = dydx_list[i] * Span
+            dydx1 = dydx_list[i + 1] * Span
+
+            self.coeffs[i + 1] = np.array(
+                [
+                    y0,
+                    dydx0,
+                    3 * (y1 - y0) - 2 * dydx0 - dydx1,
+                    2 * (y0 - y1) + dydx0 + dydx1,
+                ]
+            )
+
+        # Calculate extrapolation coefficients as a decay toward limiting function y = mx+b
+        if slope_limit is None and intercept_limit is None:
+            slope_limit = dydx_list[-1]
+            intercept_limit = y_list[-1] - slope_limit * x_list[-1]
+        self.slope_limit = slope_limit
+        self.intercept_limit = intercept_limit
+        gap = self.slope_limit * x1 + self.intercept_limit - y1
+        slope = self.slope_limit - dydx_list[self.n - 1]
+        if (gap != 0) and (slope <= 0):
+            temp = np.array([self.intercept_limit, self.slope_limit, gap, slope / gap])
+        elif slope > 0:
+            # fixing a problem when slope is positive
+            temp = np.array([self.intercept_limit, self.slope_limit, 0, 0])
+        else:
+            temp = np.array([self.intercept_limit, self.slope_limit, gap, 0])
+        self.coeffs[self.n] = temp
+
+    def out_of_bounds(self, x):
+        pos = np.searchsorted(self.x_list, x)
+        out_bot = pos == 0
+        out_top = pos == self.n
+        in_bnds = np.logical_not(np.logical_or(out_bot, out_top))
+        i = pos[in_bnds]
+        coeffs_in = self.coeffs[i, :]
+        alpha = (x[in_bnds] - self.x_list[i - 1]) / (
+            self.x_list[i] - self.x_list[i - 1]
+        )
+        return out_bot, out_top, in_bnds, i, coeffs_in, alpha
+
+    def eval(self, x):
+
+        out_bot, out_top, in_bnds, i, coeffs_in, alpha = self.out_of_bounds(x)
+        y = self._evaluate(x, out_bot, out_top, in_bnds, i, coeffs_in, alpha)
+
+        return y
+
+    def _evaluate(self, x, out_bot, out_top, in_bnds, i, coeffs_in, alpha):
+        """
+        Returns the level of the interpolated function at each value in x.  O
+        """
+
+        y = np.zeros(len(x))
+
+        # Do the "in bounds" evaluation points
+        y[in_bnds] = coeffs_in[:, 0] + alpha * (
+            coeffs_in[:, 1] + alpha * (coeffs_in[:, 2] + alpha * coeffs_in[:, 3])
+        )
+
+        # Do the "out of bounds" evaluation points
+        if np.any(out_bot):
+            y[out_bot] = self.coeffs[0, 0] + self.coeffs[0, 1] * (
+                x[out_bot] - self.x_list[0]
+            )
+        if np.any(out_top):
+            alpha = x[out_top] - self.x_list[self.n - 1]
+            y[out_top] = (
+                self.coeffs[self.n, 0]
+                + x[out_top] * self.coeffs[self.n, 1]
+                - self.coeffs[self.n, 2] * np.exp(alpha * self.coeffs[self.n, 3])
+            )
+
+        y[x == self.x_list[0]] = self.y_list[0]
+
+        return y
+
+    def derivative(self, x):
+        out_bot, out_top, in_bnds, i, coeffs_in, alpha = self.out_of_bounds(x)
+        dydx = self._der(x, out_bot, out_top, in_bnds, i, coeffs_in, alpha)
+
+        return dydx
+
+    def _der(self, x, out_bot, out_top, in_bnds, i, coeffs_in, alpha):
+        """
+        Returns the first derivative of the interpolated function at each value in x.
+        """
+
+        dydx = np.zeros(len(x))
+
+        # Do the "in bounds" evaluation points
+        dydx[in_bnds] = (
+            coeffs_in[:, 1]
+            + alpha * (2 * coeffs_in[:, 2] + alpha * 3 * coeffs_in[:, 3])
+        ) / (self.x_list[i] - self.x_list[i - 1])
+
+        # Do the "out of bounds" evaluation points
+        if np.any(out_bot):
+            dydx[out_bot] = self.coeffs[0, 1]
+        if np.any(out_top):
+            alpha = x[out_top] - self.x_list[self.n - 1]
+            dydx[out_top] = self.coeffs[self.n, 1] - self.coeffs[
+                self.n, 2
+            ] * self.coeffs[self.n, 3] * np.exp(alpha * self.coeffs[self.n, 3])
+
+        return dydx
+
+    def eval_with_derivative(self, x):
+        """
+        Returns the level and first derivative of the function at each value in x.
+        """
+        out_bot, out_top, in_bnds, i, coeffs_in, alpha = self.out_of_bounds(x)
+        y = self._evaluate(x, out_bot, out_top, in_bnds, i, coeffs_in, alpha)
+        dydx = self._der(x, out_bot, out_top, in_bnds, i, coeffs_in, alpha)
 
         return y, dydx
 
