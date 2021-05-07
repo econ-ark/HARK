@@ -10,7 +10,7 @@ from copy import copy
 import numpy as np
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     RiskyContribConsumerType,
-    init_riskyContrib,
+    init_risky_contrib,
 )
 
 
@@ -18,7 +18,7 @@ class test_(unittest.TestCase):
     def setUp(self):
 
         # A set of finite parameters
-        self.par_finite = init_riskyContrib.copy()
+        self.par_finite = init_risky_contrib.copy()
 
         # Four period model
         self.par_finite["PermGroFac"] = [2.0, 1.0, 0.1, 1.0]
@@ -50,13 +50,13 @@ class test_(unittest.TestCase):
         fin_cont_agent.solve()
 
         self.assertAlmostEqual(
-            fin_cont_agent.solution[0].stageSols["Reb"].DFuncAdj(3, 4), -0.87757204
+            fin_cont_agent.solution[0].stageSols["Reb"].DFuncAdj(3, 4), -0.87848691
         )
         self.assertAlmostEqual(
-            fin_cont_agent.solution[0].stageSols["Sha"].ShareFuncAdj(5, 0.1), 0.10846904
+            fin_cont_agent.solution[0].stageSols["Sha"].ShareFuncAdj(5, 0.1), 0.1065815
         )
         self.assertAlmostEqual(
-            fin_cont_agent.solution[0].stageSols["Cns"].cFunc(3, 4, 0.1), 2.46055802
+            fin_cont_agent.solution[0].stageSols["Cns"].cFunc(3, 4, 0.1), 2.45609711
         )
 
     def test_finite_disc_share(self):
@@ -69,11 +69,11 @@ class test_(unittest.TestCase):
         fin_disc_agent.solve()
 
         self.assertAlmostEqual(
-            fin_disc_agent.solution[0].stageSols["Reb"].DFuncAdj(3, 4), -0.87755064
+            fin_disc_agent.solution[0].stageSols["Reb"].DFuncAdj(3, 4), -0.87846342
         )
         self.assertAlmostEqual(
             fin_disc_agent.solution[0].stageSols["Sha"].ShareFuncAdj(5, 0.1), 0.1
         )
         self.assertAlmostEqual(
-            fin_disc_agent.solution[0].stageSols["Cns"].cFunc(3, 4, 0.1), 2.46055803
+            fin_disc_agent.solution[0].stageSols["Cns"].cFunc(3, 4, 0.1), 2.45609716
         )
