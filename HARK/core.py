@@ -1021,7 +1021,7 @@ def solve_agent(agent, verbose):
         # if it's a pseudo-terminal period, it will be removed at the end
     else:
         solution = agent.solution
-        solution_last = agent.solution[-1]
+        solution_last = agent.solution[0]
         if hasattr(solution_last, 'completed_cycles'):
             completed_cycles = solution_last.completed_cycles
         else:
@@ -1072,7 +1072,7 @@ def solve_agent(agent, verbose):
                     solution_distance  # Add so users can retrieve
                 )
                 agent.completed_cycles = (
-                    completed_cycles  # query them to see if solution is ready
+                    completed_cycles  # track how many have been done so far this round
                 )
                 go = (
                     solution_distance > agent.tolerance
@@ -1147,9 +1147,11 @@ def solve_agent(agent, verbose):
         )
 
     if agent.pseudo_terminal:
-        solution = [solution[-1]]  # Remove the last period
+        if agent.cycles > 0:  # Not an infinite horizon agent
+            #            breakpoint()
+            solution.pop(-1)  # Remove the 'pseudo-terminal' last period
+#           solution = [solution[-1]]  # Remove the last period
         completed_cycles -= 1
-
     return solution
 
 # As things stand (20210331) the solve_one_cycle code has begun the
