@@ -731,6 +731,7 @@ class ConsPerfForesightSolver(MetricObject):
         # Reduce cluttered formulae with local aliases
 
         bild = self.soln_crnt.bilt
+        _tp1 = self.soln_crnt._tp1
         made = self.soln_crnt.scsr
         futr = self.soln_futr.bilt
 
@@ -752,8 +753,10 @@ class ConsPerfForesightSolver(MetricObject):
         # Extract kink points in next period's consumption function;
         # don't take the last one; it only defines extrapolation, is not kink.
 
-        mNrmGrid_tp1 = made.cFunc_tp1.x_list[:-1]
-        cNrmGrid_tp1 = made.cFunc_tp1.y_list[:-1]
+#        mNrmGrid_tp1 = made.cFunc_tp1.x_list[:-1]
+        mNrmGrid_tp1 = _tp1.cFunc.x_list[:-1]
+#        cNrmGrid_tp1 = made.cFunc_tp1.y_list[:-1]
+        cNrmGrid_tp1 = _tp1.cFunc.y_list[:-1]
 
         # Calculate end-of-this-period asset vals that would reach those kink points
         # next period, then invert first order condition to get c. Then find
@@ -763,7 +766,7 @@ class ConsPerfForesightSolver(MetricObject):
         aNrmGrid = bNrmGrid_tp1 * (PermGroFac / Rfree)  # Because bNrmGrid_tp1 = (R/Γψ) aNrmGrid
         aNrmGrid = (PermGroFac / Rfree) * (mNrmGrid_tp1 - Ex_IncNrmNxt)
         EvP_tp1 = (DiscLiv * Rfree) * \
-            futr.uP(PermGroFac * cNrmGrid_tp1)  # Rβ E[u'(Γ c_tp1)]
+            _tp1.uP(PermGroFac * cNrmGrid_tp1)  # Rβ E[u'(Γ c_tp1)]
         cNrmGrid = bild.uPinv(EvP_tp1)  # EGM step
         mNrmGrid = aNrmGrid + cNrmGrid  # DBC inverted
 
@@ -809,9 +812,12 @@ class ConsPerfForesightSolver(MetricObject):
             cNrmGrid = np.concatenate((cNrmGrid[:-2], [cNrmGrid[-3] + MPCmin]))
             # Construct the consumption function as a linear interpolation.
         self.cFunc = self.soln_crnt.cFunc = bild.cFunc = LinearInterp(mNrmGrid, cNrmGrid)
+        
         # Calculate the upper bound of the MPC as the slope of bottom segment.
         bild.MPCmax = (cNrmGrid[1] - cNrmGrid[0]) / (mNrmGrid[1] - mNrmGrid[0])
-        bild.mNrmMin = mNrmGrid[0]  # Relabel for compat w add_mNrmStE
+        
+        # Lower bound of mNrm is lowest gridpoint -- usually 0
+        bild.mNrmMin = mNrmGrid[0] 
 
     def build_infhor_facts_from_params_ConsPerfForesightSolver(self):
         """
@@ -1282,10 +1288,10 @@ class ConsPerfForesightSolver(MetricObject):
         # be deepcopied as a standalone object and solved without soln_futr
         # or soln_crnt
 
-        value = {'vFunc', 'vPfunc', 'vPPfunc',
-                 'u', 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uInv'}
-        rules = {'cFunc'}
-        bounds = {'MPCmin', 'MPCmax', 'hNrm', 'mNrmMin'}
+        self.soln_crnt._tp1 = deepcopy(self.soln_futr.bilt)
+        for avoid_recursion in {'solution__tp1', 'scsr'}:
+            if hasattr(self.soln_crnt._tp1, avoid_recursion):
+                delattr(self.soln_crnt._tp1, avoid_recursion)
 
         scsr.hNrm_tp1 = deepcopy(soln_futr.bilt.hNrm)
         scsr.mNrmMin_tp1 = deepcopy(soln_futr.bilt.mNrmMin)
@@ -3007,7 +3013,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
         self.store_model_params(kwds_upd['prmtv_par'],
                                 kwds_upd['aprox_lim'])
 
-        # The foregoing code is executed by all subclasses of the PF model
+        # The foregoing is executed by all classes that inherit from the PF model
         # The code below is excuted only in the Perfect Foresight case
         if 'permShkStd' in locals()['kwds']:  # If so, we must be calling from
             return  # a subclass, which will have its own init method
@@ -3190,10 +3196,16 @@ class PerfForesightConsumerType(OneStateConsumerType):
         soln_crnt.cycles = self.cycles
 
         # Natural borrowing constraint: Cannot die in debt
-        # Measured before tranShk received; relevant for prior period
+        # Measured after tranShk received
         soln_crnt.bilt.BoroCnstNat = soln_crnt.BoroCnstNat = \
-            -(soln_crnt.hNrm + soln_crnt.mNrmMin)
+            -soln_crnt.hNrm
 
+        if not hasattr(self, 'BoroCnstArt'):
+            soln_crnt.bilt.BoroCnstArt = None
+        else:
+            soln_crnt.bilt.BoroCnstArt = self.BoroCnstArt
+
+        self.cFunc = soln_crnt.bilt.cFunc = self.solution_terminal.cFunc
         self.vFunc = soln_crnt.bilt.vFunc = soln_crnt.vFunc = ValueFuncCRRA(
             soln_crnt.cFunc, self.CRRA)
         self.vPfunc = soln_crnt.bilt.vPfunc = soln_crnt.vPfunc = MargValueFuncCRRA(
@@ -3226,8 +3238,13 @@ class PerfForesightConsumerType(OneStateConsumerType):
         # Solution options
         if hasattr(self, 'vFuncBool'):
             soln_crnt.bilt.vFuncBool = self.vFuncBool
+        else:
+            soln_crnt.bilt.vFuncBool = True
+
         if hasattr(self, 'CubicBool'):
             soln_crnt.bilt.CubicBool = self.CubicBool
+        else:
+            soln_crnt.bilt.CubicBool = False
 
         return soln_crnt
 
