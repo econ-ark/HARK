@@ -299,7 +299,7 @@ def CRRAutilityP_invP(uP, gam):
     Returns
     -------
     (unnamed) : float
-        Marginal consumption corresponding to given marginal utility value
+        Consumption corresponding to given marginal utility value
     """
     return (-1.0 / gam) * uP ** (-1.0 / gam - 1.0)
 

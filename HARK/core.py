@@ -6,27 +6,22 @@ of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
-import logging
+
+
 import sys
 import os
 from distutils.dir_util import copy_tree
-from .utilities import get_arg_names, NullFunc
 from copy import copy, deepcopy
+from .utilities import get_arg_names, NullFunc
 import numpy as np
 from time import time
 from .parallel import multi_thread_commands, multi_thread_commands_fake
 from warnings import warn
 
-"""
-Logging tools for HARK.
+# pyflakes kept flagging _log commands in core.py as undefined unless the log stuff
+# was here at the beginning (and not just in __init__.py
 
-The logger will print logged statements to STDOUT by default.
-
-The logger wil use an informative value by default.
-The user can set it to "verbose" to get more information, 
-or "quiet" to suppress informative messages.
-"""
-
+import logging
 
 logging.basicConfig(format="%(message)s")
 
@@ -89,13 +84,13 @@ def core_check_condition(name, test, messages, verbose, verbose_messages, fact, 
     """
 
     TF = test(stge)
-    stge.conditions[name] = TF
+    stge.bilt.conditions[name] = TF
     set_verbosity_level((4 - verbose) * 10)
-    stge.conditions[fact] = (
-        messages[stge.conditions[name]] +
-        verbose_messages[stge.conditions[name]]).format(stge)
-    print(stge.conditions[fact])
-    _log.info(stge.conditions[fact])
+    stge.bilt.conditions[fact] = (
+        messages[stge.bilt.conditions[name]] +
+        verbose_messages[stge.bilt.conditions[name]]).format(stge)
+    print(stge.bilt.conditions[fact])
+    _log.info(stge.bilt.conditions[fact])
 
     return TF
 
@@ -1236,7 +1231,7 @@ def solve_one_cycle(agent, solution_last):
         solution_stge = solve_one_period(**temp_dict)  # -> solve_this_stage
         # store the parameters
         solution_stge.parameters_solver = \
-            {k: temp_dict[k] for k in set(list(temp_dict.keys())) - set('solution_next')}
+            {k: v for k, v in temp_dict.items() if k not in 'solution_next'}
         full_cycle.insert(0, solution_stge)
         solution_next = solution_stge
 

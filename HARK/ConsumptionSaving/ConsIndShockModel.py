@@ -88,10 +88,11 @@ utilityP_invP = CRRAutilityP_invP
 
 class SuccessorInfo(SimpleNamespace):
     """
-    Namespace containing objects retrieved from successor to the stage
+    Containings objects retrieved from successor stage to the stage
     referenced in "self." Should contain everything needed to reconstruct
     solution to problem of self even if solution_next is not present.
     """
+# TODO: Move (to core.py) when vetted/agreed
     pass
 
 
@@ -101,13 +102,15 @@ class Parameters(SimpleNamespace):
     to various constructors, functions, and methods
 
     """
+# TODO: Move (to core.py) when vetted/agreed
     pass
 
 
-class Working(SimpleNamespace):
+class Built(SimpleNamespace):
     """
-    Objects created by solvers during course of solution.
+    Objects built by solvers during course of solution.
     """
+# TODO: Move (to core.py) when vetted/agreed
     pass
 
 
@@ -139,7 +142,7 @@ class ConsumerSolution(MetricObject):
         The minimum allowable market resources for this period; the consump-
         tion and other functions are undefined for m < mNrmMin.
     hNrm : float
-        Human wealth after receiving income this period: PDV of all future
+        Human wealth excluding income from this period: PDV of all future
         income, ignoring mortality.
     MPCmin : float
         Infimum of the marginal propensity to consume this period.
@@ -179,7 +182,7 @@ class ConsumerSolution(MetricObject):
             stge_kind=None,
             parameters_solver=None,
             scsr=SuccessorInfo(),
-            bilt=Working(),
+            bilt=Built(),
             ** kwds,
     ):
         # Change any missing function inputs to NullFunc
@@ -192,7 +195,7 @@ class ConsumerSolution(MetricObject):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
         self.completed_cycles = 0
-        self.bilt = bilt if bilt is not None else Working()
+        self.bilt = bilt if bilt is not None else Built()
         self.scsr = scsr if scsr is not None else SuccessorInfo()
 
     def append_solution(self, new_solution):
@@ -285,11 +288,16 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
             instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
             the factor values for all conditions.
 
+        soln_crnt : ConsumerSolution
+            Contains the solution to the problem described by information
+        for the current stage found in bilt and the succeeding stage found
+        in scsr.
+
         Returns
         -------
         None
         """
-        soln_crnt.conditions = {}  # Keep track of truth value of conditions
+        soln_crnt.bilt.conditions = {}  # Keep track of truth value of conditions
         soln_crnt.degenerate = False  # True means solution is degenerate
 
         if not hasattr(self, 'verbose'):  # If verbose not set yet
@@ -302,7 +310,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
         if verbose >= 2:
             _log.info(msg)
-        print(msg)
+            print(msg)  # Spyder does not make logs easy to watch, so print
 
         soln_crnt.check_AIC(soln_crnt, verbose)
         soln_crnt.check_FHWC(soln_crnt, verbose)
@@ -534,15 +542,15 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         """
 
         # Minimum market resources plus E[next income] is okay starting guess
-        m_init_guess = self.mNrmMin + self.Ex_IncNrmNxt
+        m_init_guess = self.bilt.mNrmMin + self.bilt.Ex_IncNrmNxt
         try:
-            self.mNrmStE = find_zero_newton(
+            self.bilt.mNrmStE = find_zero_newton(
                 self.Ex_permShk_tp1_times_m_tp1_minus_m_t, m_init_guess)
         except:
-            self.mNrmStE = None
+            self.bilt.mNrmStE = None
 
         # Add mNrmStE to the solution and return it
-        return self.mNrmStE
+        return self.bilt.mNrmStE
 
 # ConsPerfForesightSolver also incorporates calcs and info useful for
 # models in which perfect foresight does not apply, because the contents
@@ -603,7 +611,7 @@ class ConsPerfForesightSolver(MetricObject):
         parameters_solver = deepcopy(
             {k: v for k, v in {**kwds, **locals()}.items()
              if k not in {'self', 'solution_next', 'kwds'}}
-        )  # omitting things that would cause recursion
+        )  # omit things that would cause recursion
         parameters_solver.update(kwds)
 
         # Give first arg a name that highlights that it's the next "stage"
@@ -641,7 +649,171 @@ class ConsPerfForesightSolver(MetricObject):
         self.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q=" +\
             self.class_name+"&check_keywords=yes&area=default#"
 
-    def add_info_useful_for_further_analysis_ConsPerfForesightSolver(self):
+    def def_utility_funcs(self, stge):
+        """
+        Defines CRRA utility function for this period (and its derivatives,
+        and their inverses), saving them as attributes of self for other methods
+        to use.
+
+        Parameters
+        ----------
+        solution_stage
+
+        Returns
+        -------
+        none
+        """
+        # utility function
+        stge.u = lambda c: utility(c, gam=stge.CRRA)
+        # marginal utility function
+        stge.uP = lambda c: utilityP(c, gam=stge.CRRA)
+        # marginal marginal utility function
+        stge.uPP = lambda c: utilityPP(c, gam=stge.CRRA)
+
+        # Inverses thereof
+        stge.uPinv = lambda uP: utilityP_inv(uP, gam=stge.CRRA)
+        stge.uPinvP = lambda uP: utilityP_invP(uP, gam=stge.CRRA)
+        stge.uinvP = lambda uinvP: utility_invP(uinvP, gam=stge.CRRA)
+        stge.uinv = lambda uinv: utility_inv(uinv, gam=stge.CRRA)  # in case vFuncBool
+
+        return stge
+
+    def def_value_funcs(self, stge):
+        """
+        Defines the value and marginal value functions for this period.
+        See PerfForesightConsumerType.ipynb for a brief explanation
+        and the links below for a fuller treatment.
+
+        https://github.com/llorracc/SolvingMicroDSOPs/#vFuncPF
+
+        Parameters
+        ----------
+        stge: receptacle to which value_funcs should be added
+
+        Returns
+        -------
+        None
+
+        Notes
+        -------
+        Uses the fact that for a perfect foresight CRRA utility problem,
+        if the MPC in period t is :math:`\kappa_{t}`, and relative risk
+        aversion :math:`\\rho`, then the inverse value vFuncNvrs has a
+        constant slope of :math:`\\kappa_{t}^{-\\rho/(1-\\rho)}` and
+        vFuncNvrs has value of zero at the lower bound of market resources
+        """
+
+#        prms = stge.parameters_solver
+        bilt = stge.bilt
+
+        # See PerfForesightConsumerType.ipynb docs for derivations
+        vFuncNvrsSlope = bilt.MPCmin ** (-bilt.CRRA / (1.0 - bilt.CRRA))
+        vFuncNvrs = LinearInterp(
+            np.array([bilt.mNrmMin, bilt.mNrmMin + 1.0]),
+            np.array([0.0, vFuncNvrsSlope]),
+        )
+        bilt.vFunc = ValueFuncCRRA(vFuncNvrs, bilt.CRRA)
+        bilt.vPfunc = MargValueFuncCRRA(stge.cFunc, bilt.CRRA)
+        return stge
+
+    def make_cFunc_PF(self):
+        """
+        Makes the (linear) consumption function for this period.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        # Reduce cluttered formulae with local aliases
+
+        bild = self.soln_crnt.bilt
+        made = self.soln_crnt.scsr
+        futr = self.soln_futr.bilt
+
+        Rfree = bild.Rfree
+        PermGroFac = bild.PermGroFac
+        MPCmin = bild.MPCmin
+        MaxKinks = bild.MaxKinks
+        BoroCnstArt = bild.BoroCnstArt
+        DiscLiv = bild.DiscLiv
+        Ex_IncNrmNxt = bild.Ex_IncNrmNxt
+        DiscLiv = bild.DiscLiv
+
+        # Use local value of BoroCnstArt to prevent comparing None and float
+        if BoroCnstArt is None:
+            BoroCnstArt = -np.inf
+        else:
+            BoroCnstArt = BoroCnstArt
+
+        # Extract kink points in next period's consumption function;
+        # don't take the last one; it only defines extrapolation, is not kink.
+
+        mNrmGrid_tp1 = made.cFunc_tp1.x_list[:-1]
+        cNrmGrid_tp1 = made.cFunc_tp1.y_list[:-1]
+
+        # Calculate end-of-this-period asset vals that would reach those kink points
+        # next period, then invert first order condition to get c. Then find
+        # endogenous gridpoint (kink point) today corresponding to each kink
+
+        bNrmGrid_tp1 = mNrmGrid_tp1 - Ex_IncNrmNxt
+        aNrmGrid = bNrmGrid_tp1 * (PermGroFac / Rfree)  # Because bNrmGrid_tp1 = (R/Γψ) aNrmGrid
+        aNrmGrid = (PermGroFac / Rfree) * (mNrmGrid_tp1 - Ex_IncNrmNxt)
+        EvP_tp1 = (DiscLiv * Rfree) * \
+            futr.uP(PermGroFac * cNrmGrid_tp1)  # Rβ E[u'(Γ c_tp1)]
+        cNrmGrid = bild.uPinv(EvP_tp1)  # EGM step
+        mNrmGrid = aNrmGrid + cNrmGrid  # DBC inverted
+
+        # Add additional point to the list of gridpoints for extrapolation,
+        # using this period's new value of the lower bound of the MPC, which
+        # defines the PF unconstrained problem through the end of the horizon
+        mNrmGrid = np.append(mNrmGrid, mNrmGrid[-1] + 1.0)
+        cNrmGrid = np.append(cNrmGrid, cNrmGrid[-1] + MPCmin)
+        # If artificial borrowing constraint binds, combine constrained and
+        # unconstrained consumption functions.
+        if BoroCnstArt > mNrmGrid[0]:
+            # Find the highest index where constraint binds
+            cNrmGridCnst = mNrmGrid - BoroCnstArt
+            CnstBinds = cNrmGridCnst < cNrmGrid
+            idx = np.where(CnstBinds)[0][-1]
+            if idx < (mNrmGrid.size - 1):
+                # If not the *very last* index, find the the critical level
+                # of mNrmGrid where artificial borrowing contraint begins to bind.
+                d0 = cNrmGrid[idx] - cNrmGridCnst[idx]
+                d1 = cNrmGridCnst[idx + 1] - cNrmGrid[idx + 1]
+                m0 = mNrmGrid[idx]
+                m1 = mNrmGrid[idx + 1]
+                alpha = d0 / (d0 + d1)
+                mCrit = m0 + alpha * (m1 - m0)
+                # Adjust grids of mNrmGrid and cNrmGrid to account for constraint.
+                cCrit = mCrit - BoroCnstArt
+                mNrmGrid = np.concatenate(([BoroCnstArt, mCrit], mNrmGrid[(idx + 1):]))
+                cNrmGrid = np.concatenate(([0.0, cCrit], cNrmGrid[(idx + 1):]))
+            else:
+                # If it *is* the last index, then there are only three points
+                # that characterize the c function: the artificial borrowing
+                # constraint, the constraint kink, and the extrapolation point
+                mXtra = (cNrmGrid[-1] - cNrmGridCnst[-1]) / (1.0 - MPCmin)
+                mCrit = mNrmGrid[-1] + mXtra
+                cCrit = mCrit - BoroCnstArt
+                mNrmGrid = np.array([BoroCnstArt, mCrit, mCrit + 1.0])
+                cNrmGrid = np.array([0.0, cCrit, cCrit + MPCmin])
+                # If mNrmGrid, cNrmGrid grids have become too large, throw out last
+                # kink point, being sure to adjust the extrapolation.
+
+        if mNrmGrid.size - 1 > MaxKinks:
+            mNrmGrid = np.concatenate((mNrmGrid[:-2], [cNrmGrid[-3] + 1.0]))
+            cNrmGrid = np.concatenate((cNrmGrid[:-2], [cNrmGrid[-3] + MPCmin]))
+            # Construct the consumption function as a linear interpolation.
+        self.cFunc = self.soln_crnt.cFunc = bild.cFunc = LinearInterp(mNrmGrid, cNrmGrid)
+        # Calculate the upper bound of the MPC as the slope of bottom segment.
+        bild.MPCmax = (cNrmGrid[1] - cNrmGrid[0]) / (mNrmGrid[1] - mNrmGrid[0])
+        bild.mNrmMin = mNrmGrid[0]  # Relabel for compat w add_mNrmStE
+
+    def build_infhor_facts_from_params_ConsPerfForesightSolver(self):
         """
             Adds to the solution extensive information and references about
             its elements.
@@ -868,7 +1040,63 @@ class ConsPerfForesightSolver(MetricObject):
         # soln_crnt.fcts.update({'FVAC': FVAC_fcts})
         soln_crnt.FVAC_fcts = bilt.FVAC_fcts = FVAC_fcts
 
-    def add_recursively_calculated_objects_ConsPerfForesightSolver(self):
+        Ex_IncNrmNxt_fcts = {  # Overwritten by version with uncertainty
+            'about': 'Expected income next period'
+        }
+        py___code = '1.0'
+        soln_crnt.Ex_IncNrmNxt = bilt.Ex_IncNrmNxt = Ex_IncNrmNxt = \
+            eval(py___code, {}, {**bilt.__dict__, **scsr.__dict__})
+#        Ex_IncNrmNxt_fcts.update({'latexexpr': r'\Ex_IncNrmNxt'})
+#        Ex_IncNrmNxt_fcts.update({'_unicode_': r'R/Γ'})
+#        Ex_IncNrmNxt_fcts.update({'urlhandle': urlroot+'ExIncNrmNxt'})
+        Ex_IncNrmNxt_fcts.update({'py___code': py___code})
+        Ex_IncNrmNxt_fcts.update({'value_now': Ex_IncNrmNxt})
+        # soln_crnt.fcts.update({'Ex_IncNrmNxt': Ex_IncNrmNxt_fcts})
+        soln_crnt.Ex_IncNrmNxt_fcts = soln_crnt.bilt.Ex_IncNrmNxt_fcts = Ex_IncNrmNxt_fcts
+
+        PF_RNrm_fcts = {
+            'about': 'Expected Growth-Normalized Return'
+        }
+        py___code = 'Rfree / PermGroFac'
+        soln_crnt.PF_RNrm = bilt.PF_RNrm = PF_RNrm = \
+            eval(py___code, {}, {**bilt.__dict__, **scsr.__dict__})
+        PF_RNrm_fcts.update({'latexexpr': r'\PFRNrm'})
+        PF_RNrm_fcts.update({'_unicode_': r'R/Γ'})
+        PF_RNrm_fcts.update({'urlhandle': urlroot+'PFRNrm'})
+        PF_RNrm_fcts.update({'py___code': py___code})
+        PF_RNrm_fcts.update({'value_now': PF_RNrm})
+        # soln_crnt.fcts.update({'PF_RNrm': PF_RNrm_fcts})
+        soln_crnt.PF_RNrm_fcts = bilt.PF_RNrm_fcts = PF_RNrm_fcts
+
+        PF_RNrm_fcts = {
+            'about': 'Expected Growth-Normalized Return'
+        }
+        py___code = 'Rfree / PermGroFac'
+        soln_crnt.PF_RNrm = bilt.PF_RNrm = PF_RNrm = \
+            eval(py___code, {}, {**bilt.__dict__, **scsr.__dict__})
+        PF_RNrm_fcts.update({'latexexpr': r'\PFRNrm'})
+        PF_RNrm_fcts.update({'_unicode_': r'R/Γ'})
+        PF_RNrm_fcts.update({'urlhandle': urlroot+'PFRNrm'})
+        PF_RNrm_fcts.update({'py___code': py___code})
+        PF_RNrm_fcts.update({'value_now': PF_RNrm})
+        # soln_crnt.fcts.update({'PF_RNrm': PF_RNrm_fcts})
+        soln_crnt.PF_RNrm_fcts = bilt.PF_RNrm_fcts = PF_RNrm_fcts
+
+        DiscLiv_fcts = {
+            'about': 'Mortality-Inclusive Discounting'
+        }
+        py___code = 'DiscFac * LivPrb'
+        soln_crnt.DiscLiv = bilt.DiscLiv = DiscLiv = \
+            eval(py___code, {}, {**bilt.__dict__, **scsr.__dict__})
+        DiscLiv_fcts.update({'latexexpr': r'\PFRNrm'})
+        DiscLiv_fcts.update({'_unicode_': r'R/Γ'})
+        DiscLiv_fcts.update({'urlhandle': urlroot+'PFRNrm'})
+        DiscLiv_fcts.update({'py___code': py___code})
+        DiscLiv_fcts.update({'value_now': DiscLiv})
+        # soln_crnt.fcts.update({'DiscLiv': DiscLiv_fcts})
+        soln_crnt.DiscLiv_fcts = bilt.DiscLiv_fcts = DiscLiv_fcts
+
+    def build_recursive_facts_ConsPerfForesightSolver(self):
 
         soln_crnt = self.soln_crnt
         scsr = self.soln_crnt.scsr
@@ -921,7 +1149,6 @@ class ConsPerfForesightSolver(MetricObject):
         BoroCnst_fcts.update({'value_now': BoroCnst})
         # soln_crnt.fcts.update({'BoroCnst': BoroCnst_fcts})
         soln_crnt.BoroCnst_fcts = bilt.BoroCnst_fcts = BoroCnst_fcts
-        # breakpoint()
 
         mNrmMin_fcts = {
             'about': 'Min m is the max you can borrow'
@@ -939,7 +1166,6 @@ class ConsPerfForesightSolver(MetricObject):
         }
         py___code = '1.0 / (1.0 + (RPF / MPCmin_tp1))'
         if soln_crnt.stge_kind['iter_status'] == 'terminal':  # kludge:
-            # breakpoint()
             bilt.MPCmin_tp1 = float('inf')  # causes MPCmin = 1 for final period
         soln_crnt.MPCmin = bilt.MPCmin = MPCmin = \
             eval(py___code, {}, {**bilt.__dict__, **scsr.__dict__})
@@ -993,173 +1219,6 @@ class ConsPerfForesightSolver(MetricObject):
 
         return soln_crnt
 
-    def def_utility_funcs(self, stge):
-        """
-        Defines CRRA utility function for this period (and its derivatives,
-        and their inverses), saving them as attributes of self for other methods
-        to use.
-
-        Parameters
-        ----------
-        solution_stage
-
-        Returns
-        -------
-        none
-        """
-        # utility function
-        stge.u = lambda c: utility(c, gam=stge.CRRA)
-        # marginal utility function
-        stge.uP = lambda c: utilityP(c, gam=stge.CRRA)
-        # marginal marginal utility function
-        stge.uPP = lambda c: utilityPP(c, gam=stge.CRRA)
-
-        # Inverses thereof
-        stge.uPinv = lambda uP: utilityP_inv(uP, gam=stge.CRRA)
-        stge.uPinvP = lambda uP: utilityP_invP(uP, gam=stge.CRRA)
-        stge.uinvP = lambda uinvP: utility_invP(uinvP, gam=stge.CRRA)
-        stge.uinv = lambda uinv: utility_inv(uinv, gam=stge.CRRA)  # in case vFuncBool
-
-        return stge
-
-    def def_value_funcs(self, stge):
-        """
-        Defines the value and marginal value functions for this period.
-        See PerfForesightConsumerType.ipynb for a brief explanation
-        and the links below for a fuller treatment.
-
-        https://github.com/llorracc/SolvingMicroDSOPs/#vFuncPF
-
-        Parameters
-        ----------
-        stge: receptacle to which value_funcs should be added
-
-        Returns
-        -------
-        None
-
-        Notes
-        -------
-        Uses the fact that for a perfect foresight CRRA utility problem,
-        if the MPC in period t is :math:`\kappa_{t}`, and relative risk
-        aversion :math:`\\rho`, then the inverse value vFuncNvrs has a
-        constant slope of :math:`\\kappa_{t}^{-\\rho/(1-\\rho)}` and
-        vFuncNvrs has value of zero at the lower bound of market resources
-        """
-
-#        prms = stge.parameters_solver
-        bilt = stge.bilt
-
-        # See PerfForesightConsumerType.ipynb docs for derivations
-        vFuncNvrsSlope = bilt.MPCmin ** (-bilt.CRRA / (1.0 - bilt.CRRA))
-        vFuncNvrs = LinearInterp(
-            np.array([bilt.mNrmMin, bilt.mNrmMin + 1.0]),
-            np.array([0.0, vFuncNvrsSlope]),
-        )
-        bilt.vFunc = ValueFuncCRRA(vFuncNvrs, bilt.CRRA)
-        bilt.vPfunc = MargValueFuncCRRA(stge.cFunc, bilt.CRRA)
-        return stge
-
-    def make_cFunc_PF(self):
-        """
-        Makes the (linear) consumption function for this period.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        # Reduce cluttered formulae with local copies
-
-        futr = self.soln_futr.bilt
-        crnt = self.soln_crnt.bilt
-
-        Rfree = crnt.Rfree
-        PermGroFac = crnt.PermGroFac
-        MPCmin = crnt.MPCmin
-        DiscFac = crnt.DiscFac
-        LivPrb = crnt.LivPrb
-        crnt.DiscLiv = DiscFac * LivPrb
-        DiscLiv = crnt.DiscLiv
-        MaxKinks = crnt.MaxKinks
-        BoroCnstArt = crnt.BoroCnstArt
-
-        # Use local value of BoroCnstArt to prevent comparing None and float
-        if BoroCnstArt is None:
-            BoroCnstArt = -np.inf
-        else:
-            BoroCnstArt = BoroCnstArt
-
-        # Extract kink points in next period's consumption function;
-        # don't take the last one; it only defines extrapolation, is not kink.
-        mNrm_tp1 = self.soln_futr.cFunc.x_list[:-1]
-        cNrm_tp1 = self.soln_futr.cFunc.y_list[:-1]
-
-        # Calculate end-of-this-period asset vals that would reach those kink points
-        # next period, then invert first order condition to get c. Then find
-        # endogenous gridpoint (kink point) today corresponding to each kink
-        Ex_IncNrm_tp1 = 1.0
-        bNrm_tp1 = mNrm_tp1 - Ex_IncNrm_tp1
-        aNrm = bNrm_tp1 * (PermGroFac / Rfree)  # Because bNrm_tp1 = (R/Γψ) aNrm
-        aNrm = (PermGroFac / Rfree) * (mNrm_tp1 - Ex_IncNrm_tp1)
-        EvP_tp1 = (DiscLiv * Rfree) * \
-            futr.uP(PermGroFac * cNrm_tp1)  # Rβ E[u'(Γ c_tp1)]
-        cNrm = crnt.uPinv(EvP_tp1)  # EGM step
-        mNrm = aNrm + cNrm
-
-        # Add additional point to the list of gridpoints for extrapolation,
-        # using this period's new value of the lower bound of the MPC, which
-        # defines the PF unconstrained problem through the end of the horizon
-        mNrm = np.append(mNrm, mNrm[-1] + 1.0)
-        cNrm = np.append(cNrm, cNrm[-1] + MPCmin)
-        # If artificial borrowing constraint binds, combine constrained and
-        # unconstrained consumption functions.
-        if BoroCnstArt > mNrm[0]:
-            # Find the highest index where constraint binds
-            cNrmCnst = mNrm - BoroCnstArt
-            CnstBinds = cNrmCnst < cNrm
-            idx = np.where(CnstBinds)[0][-1]
-            if idx < (mNrm.size - 1):
-                # If not the *very last* index, find the the critical level
-                # of mNrm where artificial borrowing contraint begins to bind.
-                d0 = cNrm[idx] - cNrmCnst[idx]
-                d1 = cNrmCnst[idx + 1] - cNrm[idx + 1]
-                m0 = mNrm[idx]
-                m1 = mNrm[idx + 1]
-                alpha = d0 / (d0 + d1)
-                mCrit = m0 + alpha * (m1 - m0)
-                # Adjust grids of mNrm and cNrm to account for constraint.
-                cCrit = mCrit - BoroCnstArt
-                mNrm = np.concatenate(([BoroCnstArt, mCrit], mNrm[(idx + 1):]))
-                cNrm = np.concatenate(([0.0, cCrit], cNrm[(idx + 1):]))
-            else:
-                # If it *is* the last index, then there are only three points
-                # that characterize the c function: the artificial borrowing
-                # constraint, the constraint kink, and the extrapolation point
-                mXtra = (cNrm[-1] - cNrmCnst[-1]) / (1.0 - MPCmin)
-                mCrit = mNrm[-1] + mXtra
-                cCrit = mCrit - BoroCnstArt
-                mNrm = np.array([BoroCnstArt, mCrit, mCrit + 1.0])
-                cNrm = np.array([0.0, cCrit, cCrit + MPCmin])
-                # If mNrm, cNrm grids have become too large, throw out last
-                # kink point, being sure to adjust the extrapolation.
-
-        if mNrm.size - 1 > MaxKinks:
-            mNrm = np.concatenate((mNrm[:-2], [cNrm[-3] + 1.0]))
-            cNrm = np.concatenate((cNrm[:-2], [cNrm[-3] + MPCmin]))
-            # Construct the consumption function as a linear interpolation.
-        self.cFunc = self.soln_crnt.cFunc = LinearInterp(mNrm, cNrm)
-        # Calculate the upper bound of the MPC as the slope of bottom segment.
-        self.soln_crnt.MPCmax = (cNrm[1] - cNrm[0]) / (mNrm[1] - mNrm[0])
-
-        # Add two attributes to enable calc of steady state market resources.
-        self.soln_crnt.Ex_IncNrmNxt = 1.0  # Perfect foresight income of 1
-        # breakpoint()
-        self.soln_crnt.mNrmMin = mNrm[0]  # Relabel for compat w add_mNrmStE
-
     def solve(self):  # ConsPerfForesightSolver
         """
         Solves the one-period/stage perfect foresight consumption-saving problem.
@@ -1178,20 +1237,21 @@ class ConsPerfForesightSolver(MetricObject):
 
         if futr.stge_kind['iter_status'] == 'finished':
             breakpoint()
-            # Should not have gotten here because
-            # core.py tests whehter solution_last is 'finished'
+            # Should not have gotten here
+            # because core.py tests whehter solution_last is 'finished'
 
         if futr.stge_kind['iter_status'] == 'terminal':
-            #            self.soln_crnt.bilt_inputs = deepcopy(soln_crnt.bilt)
-            self.add_info_useful_for_further_analysis_ConsPerfForesightSolver()
+            # bare-bones default terminal solution does not have all the facts
+            # so add them
+            self.build_infhor_facts_from_params_ConsPerfForesightSolver()
             soln_crnt.stge_kind['iter_status'] = 'iterator'
-            return soln_crnt  # Replaces original "terminal" solution; next soln_futr
+            return soln_crnt  # if pseudo_terminal = True, enhanced replaces original
 
         self.soln_crnt.stge_kind = {'iter_status': 'iterator',
                                     'slvr_type': 'ConsIndShockSolver'}
 
-        self.add_info_useful_for_further_analysis_ConsPerfForesightSolver()
-        self.add_recursively_calculated_objects_ConsPerfForesightSolver()
+        self.build_infhor_facts_from_params_ConsPerfForesightSolver()
+        self.build_recursive_facts_ConsPerfForesightSolver()
         self.make_cFunc_PF()
         self.soln_crnt = self.def_value_funcs(soln_crnt)
 
@@ -1218,12 +1278,17 @@ class ConsPerfForesightSolver(MetricObject):
         # needed to solve current stage's problem
         # Organizing principle: scsr should have a deepcopy of everything
         # needed to re-solve its problem; and everything needed to construct
-        # the "fcts" about the problem, so that it the stge could be deepcopied
-        # as a standalone object and solved without soln_futr or soln_crnt
+        # the "fcts" about current stage of the problem, so that the stge could
+        # be deepcopied as a standalone object and solved without soln_futr
+        # or soln_crnt
+
+        value = {'vFunc', 'vPfunc', 'vPPfunc',
+                 'u', 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uInv'}
+        rules = {'cFunc'}
+        bounds = {'MPCmin', 'MPCmax', 'hNrm', 'mNrmMin'}
 
         scsr.hNrm_tp1 = deepcopy(soln_futr.bilt.hNrm)
         scsr.mNrmMin_tp1 = deepcopy(soln_futr.bilt.mNrmMin)
-        # breakpoint()
         scsr.MPCmin_tp1 = deepcopy(soln_futr.bilt.MPCmin)
         scsr.MPCmax_tp1 = deepcopy(soln_futr.bilt.MPCmax)
         scsr.cFunc_tp1 = deepcopy(soln_futr.cFunc)
@@ -1323,7 +1388,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         polation.
     """
 
-    def __init__(  # CDC 20210416: Params shared with PF are in different order. Fix
+    # TODO: CDC 20210416: Params shared with PF are in different order. Fix
+    def __init__(
             self,
             solution_next,
             IncShkDstn,
@@ -1406,7 +1472,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         bilt.CubicBool = CubicBool
 
     # self here is the solver, which knows info about the problem from the agent
-    def add_info_useful_for_further_analysis(self):
+    def build_infhor_facts_from_params(self):
         """
         For versions with uncertainty in transitory and/or permanent shocks,
         adds to the solution a set of results useful for calculating
@@ -1428,7 +1494,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         bilt = soln_crnt.bilt
         scsr = soln_crnt.scsr
 
-        self.add_info_useful_for_further_analysis_ConsPerfForesightSolver()
+        self.build_infhor_facts_from_params_ConsPerfForesightSolver()
 
         urlroot = bilt.urlroot
         # Modify formulae also present in PF model but that must change
@@ -1463,7 +1529,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         soln_crnt.Ex_IncNrmNxt = bilt.Ex_IncNrmNxt = Ex_IncNrmNxt = \
             eval(py___code, {}, {**bilt.__dict__, **scsr.__dict__})
         Ex_IncNrmNxt_fcts.update({'latexexpr': r'\Ex_IncNrmNxt'})
-        Ex_IncNrmNxt_fcts.update({'_unicode_': r'R/Γ'})
+        Ex_IncNrmNxt_fcts.update({'_unicode_': r'𝔼[\tranShk \permShk] = 1.0'})
         Ex_IncNrmNxt_fcts.update({'urlhandle': urlroot+'ExIncNrmNxt'})
         Ex_IncNrmNxt_fcts.update({'py___code': py___code})
         Ex_IncNrmNxt_fcts.update({'value_now': Ex_IncNrmNxt})
@@ -1650,11 +1716,11 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # soln_crnt.fcts.update({'DiscGPFNrmCusp': DiscGPFNrmCusp_fcts})
         soln_crnt.DiscGPFNrmCusp_fcts = bilt.DiscGPFNrmCusp_fcts = DiscGPFNrmCusp_fcts
 
-    def add_recursively_calculated_objects(self):
+    def build_recursive_facts(self):
 
         soln_crnt = self.soln_crnt
 
-        self.add_recursively_calculated_objects_ConsPerfForesightSolver()
+        self.build_recursive_facts_ConsPerfForesightSolver()
 
         # Now define some useful lambda functions
 
@@ -1828,9 +1894,9 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         bilt = self.soln_crnt.bilt
 
-        def vP_tp1(shkVec, a_Num):
-            return shkVec[0] ** (-bilt.CRRA) \
-                * self.soln_crnt.scsr.vPfunc_tp1(self.m_Nrm_tp1(shkVec, a_Num))
+        def vP_tp1(shk_vector, a_number):
+            return shk_vector[0] ** (-bilt.CRRA) \
+                * self.soln_crnt.scsr.vPfunc_tp1(self.m_Nrm_tp1(shk_vector, a_number))
 
         EndOfPrdvP = (
             bilt.DiscFac * bilt.LivPrb
@@ -2002,7 +2068,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         return cFunc_unconstrained
 
     # ConsIndShockSolverBasic
-    def solve(self):  # solves one stage; in this model, that is a time period
+    def solve(self):  # solves ONE stage
         """
         Solves (one period/stage of) the single period consumption-saving problem with
         method of endogenous gridpoints.  Solution includes a consumption function
@@ -2034,7 +2100,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # solution_terminal was constructed
         if futr.stge_kind['iter_status'] == 'terminal':
             #            self.soln_crnt.bilt_inputs = deepcopy(soln_crnt.bilt)
-            self.add_info_useful_for_further_analysis()
+            self.build_infhor_facts_from_params()
             soln_crnt.stge_kind['iter_status'] = 'iterator'
             return soln_crnt  # Replaces original "terminal" solution; next soln_futr
 
@@ -2047,8 +2113,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # TODO: Distinguish between those things that need to be computed for the
         # "useful" computations in the final stage, and those that are merely info,
         # and make mandatory only the computations of the former category
-        self.add_info_useful_for_further_analysis()
-        self.add_recursively_calculated_objects()
+        self.build_infhor_facts_from_params()
+        self.build_recursive_facts()
 
         sol_EGM = self.make_sol_using_EGM()  # Need to add test for finished, change stge_kind if so
         soln_crnt.bilt.cFunc = soln_crnt.cFunc = sol_EGM.cFunc
@@ -2066,17 +2132,17 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         return soln_crnt
 
-    def m_Nrm_tp1(self, shkVec, a_Num):
+    def m_Nrm_tp1(self, shk_vector, a_number):
         """
         Computes normalized market resources of the next period
         from income shocks and current normalized market resources.
 
         Parameters
         ----------
-        shkVec: [float]
+        shk_vector: [float]
             Permanent and transitory income shock levels.
 
-        a_Num: float
+        a_number: float
             Normalized market assets this period
 
         Returns
@@ -2084,8 +2150,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         float
            normalized market resources in the next period
         """
-        return self.soln_crnt.bilt.Rfree / (self.soln_crnt.bilt.PermGroFac * shkVec[0]) \
-            * a_Num + shkVec[1]
+        return self.soln_crnt.bilt.Rfree / (self.soln_crnt.bilt.PermGroFac * shk_vector[0]) \
+            * a_number + shk_vector[1]
 
 
 ###############################################################################
@@ -2118,28 +2184,32 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         cFunc_unconstrained : CubicInterp
             The unconstrained consumption function for this period.
         """
-        def vPP_tp1(shkVec, a_Num):
-            return shkVec[0] ** (- self.soln_crnt.bilt.CRRA - 1.0) \
-                * self.soln_crnt.scsr.vPPfunc_tp1(self.m_Nrm_tp1(shkVec, a_Num))
+
+        scsr = self.soln_crnt.scsr
+        bilt = self.soln_crnt.bilt
+
+        def vPP_tp1(shk_vector, a_number):
+            return shk_vector[0] ** (- bilt.CRRA - 1.0) \
+                * scsr.vPPfunc_tp1(self.m_Nrm_tp1(shk_vector, a_number))
 
         EndOfPrdvPP = (
-            self.soln_crnt.bilt.DiscFac * self.soln_crnt.bilt.LivPrb
-            * self.soln_crnt.bilt.Rfree
-            * self.soln_crnt.bilt.Rfree
-            * self.soln_crnt.bilt.PermGroFac ** (-self.soln_crnt.bilt.CRRA - 1.0)
+            bilt.DiscFac * bilt.LivPrb
+            * bilt.Rfree
+            * bilt.Rfree
+            * bilt.PermGroFac ** (-bilt.CRRA - 1.0)
             * calc_expectation(
-                self.soln_crnt.bilt.IncShkDstn,
+                bilt.IncShkDstn,
                 vPP_tp1,
-                self.soln_crnt.bilt.aNrmGrid
+                bilt.aNrmGrid
             )
         )
-        dcda = EndOfPrdvPP / self.soln_crnt.bilt.uPP(np.array(cNrm_Vec[1:]))
+        dcda = EndOfPrdvPP / bilt.uPP(np.array(cNrm_Vec[1:]))
         MPC = dcda / (dcda + 1.0)
-        MPC = np.insert(MPC, 0, self.soln_crnt.bilt.MPCmax)
+        MPC = np.insert(MPC, 0, bilt.MPCmax)
 
         cFuncUnc = CubicInterp(
-            mNrm_Vec, cNrm_Vec, MPC, self.soln_crnt.bilt.MPCmin *
-            self.soln_crnt.bilt.hNrm, self.soln_crnt.bilt.MPCmin
+            mNrm_Vec, cNrm_Vec, MPC, bilt.MPCmin *
+            bilt.hNrm, bilt.MPCmin
         )
         return cFuncUnc
 
@@ -2158,13 +2228,16 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         -------
         none
         """
-        def v_Lvl_tp1(shkVec, a_Num):
+
+        bilt = self.soln_crnt.bilt
+
+        def v_Lvl_tp1(shk_vector, a_number):
             return (
-                shkVec[0] ** (1.0 - self.soln_crnt.bilt.CRRA)
-                * self.soln_crnt.bilt.PermGroFac ** (1.0 - self.soln_crnt.bilt.CRRA)
-            ) * self.soln_crnt.bilt.vFuncNxt(self.soln_crnt.m_Nrm_tp1(shkVec, a_Num))
-        EndOfPrdv = self.soln_crnt.bilt.DiscLiv * calc_expectation(
-            self.soln_crnt.bilt.IncShkDstn, v_Lvl_tp1, self.soln_crnt.aNrm
+                shk_vector[0] ** (1.0 - bilt.CRRA)
+                * bilt.PermGroFac ** (1.0 - bilt.CRRA)
+            ) * bilt.vFuncNxt(self.soln_crnt.m_Nrm_tp1(shk_vector, a_number))
+        EndOfPrdv = bilt.DiscLiv * calc_expectation(
+            bilt.IncShkDstn, v_Lvl_tp1, self.soln_crnt.aNrm
         )
         EndOfPrdvNvrs = self.soln_crnt.uinv(
             EndOfPrdv
@@ -2177,7 +2250,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         aNrm_temp = np.insert(self.soln_crnt.aNrm, 0, self.soln_crnt.BoroCnstNat)
         EndOfPrdvNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
         self.soln_crnt.EndOfPrdvFunc = ValueFuncCRRA(
-            EndOfPrdvNvrsFunc, self.soln_crnt.bilt.CRRA)
+            EndOfPrdvNvrsFunc, bilt.CRRA)
 
     def add_vFunc(self, soln_crnt, EndOfPrdvP):
         """
@@ -2220,27 +2293,29 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             normalized market resources m: v = vFunc(m).
         """
         # Compute expected value and marginal value on a grid of market resources
-        mNrm_temp = self.soln_crnt.mNrmMin + self.soln_crnt.aXtraGrid
+        bilt = self.soln_crnt.bilt
+
+        mNrm_temp = bilt.mNrmMin + bilt.aXtraGrid
         cNrm = soln_crnt.cFunc(mNrm_temp)
         aNrm = mNrm_temp - cNrm
-        vNrm = self.soln_crnt.u(cNrm) + self.EndOfPrdvFunc(aNrm)
+        vNrm = bilt.u(cNrm) + self.EndOfPrdvFunc(aNrm)
         vPnow = self.uP(cNrm)
 
         # Construct the beginning value function
-        vNvrs = self.soln_crnt.uinv(vNrm)  # value transformed through inverse utility
-        vNvrsP = vPnow * self.soln_crnt.uinvP(vNrm)
-        mNrm_temp = np.insert(mNrm_temp, 0, self.soln_crnt.mNrmMin)
+        vNvrs = bilt.uinv(vNrm)  # value transformed through inverse utility
+        vNvrsP = vPnow * bilt.uinvP(vNrm)
+        mNrm_temp = np.insert(mNrm_temp, 0, bilt.mNrmMin)
         vNvrs = np.insert(vNvrs, 0, 0.0)
         vNvrsP = np.insert(
-            vNvrsP, 0, self.soln_crnt.MPCmaxEff ** (-self.soln_crnt.bilt.CRRA /
-                                                    (1.0 - self.soln_crnt.bilt.CRRA))
+            vNvrsP, 0, bilt.MPCmaxEff ** (-bilt.bilt.CRRA /
+                                          (1.0 - bilt.bilt.CRRA))
         )
-        MPCminNvrs = self.soln_crnt.MPCmin ** (-self.soln_crnt.bilt.CRRA /
-                                               (1.0 - self.soln_crnt.bilt.CRRA))
+        MPCminNvrs = bilt.MPCmin ** (-bilt.bilt.CRRA /
+                                     (1.0 - bilt.bilt.CRRA))
         vNvrsFunc = CubicInterp(
-            mNrm_temp, vNvrs, vNvrsP, MPCminNvrs * self.soln_crnt.hNrm, MPCminNvrs
+            mNrm_temp, vNvrs, vNvrsP, MPCminNvrs * bilt.hNrm, MPCminNvrs
         )
-        vFunc = ValueFuncCRRA(vNvrsFunc, self.soln_crnt.bilt.CRRA)
+        vFunc = ValueFuncCRRA(vNvrsFunc, bilt.bilt.CRRA)
         return vFunc
 
     def add_vPPfunc(self, soln_crnt):
@@ -2703,7 +2778,7 @@ class AgentTypePlus(AgentType):
                 _log.info('Storing new parameters and updating shocks and grid.')
                 self.agent_force_prepare_info_needed_for_solver()  # The AgentType must define its own
 
-    #update = agent_update_if_params_have_changed_since_last_solve
+    # update = agent_update_if_params_have_changed_since_last_solve
 #                update = agent_update_if_params_have_changed_since_last_solve
 
     def agent_force_prepare_info_needed_for_solver(self):
@@ -2956,10 +3031,10 @@ class PerfForesightConsumerType(OneStateConsumerType):
         attach them to the solution.
         """
 
-        if not hasattr(soln, 'conditions'):
+        if not hasattr(soln.bilt, 'conditions'):
             soln.check_conditions(soln, verbose=0)
 
-        if not soln.GICRaw:
+        if not soln.bilt.GICRaw:
             wrn = "Because the model's parameters do not satisfy the GIC, it has neither an individual steady state nor a target.  Aborting."
             _log.warning(wrn)
             if self.verbose == 3:
@@ -2967,8 +3042,8 @@ class PerfForesightConsumerType(OneStateConsumerType):
             soln.mNrmStE = None
         else:
             soln.mNrmStE = soln.mNrmStE_find()
-            if hasattr(soln, 'GICNrm'):
-                if not soln.GICNrm:
+            if hasattr(soln.bilt, 'GICNrm'):
+                if not soln.bilt.GICNrm:
                     wrn = "Because the model's parameters do not satisfy the stochastic-growth-normalized GIC, it does not exhibt a target level of wealth."
                     _log.warning(wrn)
                     if self.verbose == 3:
@@ -2992,7 +3067,10 @@ class PerfForesightConsumerType(OneStateConsumerType):
 
     def agent_post_post_solve(self):  # Overwrites version from AgentTypePlus
         # Inherited by IndShockConsumerType
+
         if self.cycles == 0:  # if it's an infinite horizon model
+            # Recalculate the conditions
+            self.check_conditions(verbose=0)
             # Find the stable points (if any)
             self.add_stable_points(self.solution[0])
 
@@ -3056,7 +3134,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
                             var+" is less than or equal to 1.0 with value: " + str(varMax))
         return
 
-    def check_conditions(self, verbose=3):
+    def check_conditions(self, verbose):
 
         if not hasattr(self, 'solution'):  # Need a solution to have been computed
             _log.info('Solving final period because conditions are computed on solver')

@@ -3,24 +3,16 @@ from copy import deepcopy
 from types import SimpleNamespace as ns
 
 __all__ = [
-    "ConsumerSolutionGeneric"
+    "Stage"
 ]
 
 
-class ConsumerSolutionGeneric(MetricObject):
+class Stage(MetricObject):
     """
-    Partial template for solution of single stage of any consumption/
-    saving problem. Specific solutions inherit from this and specialize
-    to particular problems.  But any solution must include a consumption function.
-
-    Here and elsewhere in the code, Nrm indicates that variables are normalized
-    by permanent income.
+    Partial template for solution of single stage of a problem.
 
     Parameters
     ----------
-    cFunc : function
-        The consumption function for this period/stage, defined over state(s) `m`
-
     stge_kind : dict
         Dictionary with info about this stage
         One built-in entry keeps track of the nature of the stage:
@@ -31,14 +23,10 @@ class ConsumerSolutionGeneric(MetricObject):
                 should exist recording what convergence tolerance was satisfied
         Other uses include keeping track of the nature of the next stage
     """
-
-#    distance_criteria = ["cFunc"]
-    distance_criteria = ["vPfunc"]
+# TODO: Move to core.py (whenever agreement reached on universals of a stage)
 
     def __init__(
             self,
-            cFunc=None,
             stge_kind={}
     ):
-        self.cFunc = cFunc if cFunc is not None else NullFunc()
         self.stge_kind = stge_kind
