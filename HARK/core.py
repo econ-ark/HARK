@@ -17,6 +17,10 @@ import numpy as np
 from time import time
 from .parallel import multi_thread_commands, multi_thread_commands_fake
 from warnings import warn
+# Need to import these so we can check whether agents are of these types
+# so they can be treated specially
+# from HARK.ConsumptionSaving.ConsIndShockModel import \
+#    (IndShockConsumerType, PerfForesightConsumerType, KinkedRconsumerType)
 
 # pyflakes kept flagging _log commands in core.py as undefined unless the log stuff
 # was here at the beginning (and not just in __init__.py
@@ -89,7 +93,7 @@ def core_check_condition(name, test, messages, verbose, verbose_messages, fact, 
     stge.bilt.conditions[fact] = (
         messages[stge.bilt.conditions[name]] +
         verbose_messages[stge.bilt.conditions[name]]).format(stge)
-    print(stge.bilt.conditions[fact])
+#    print(stge.bilt.conditions[fact])
     _log.info(stge.bilt.conditions[fact])
 
     return TF
@@ -218,6 +222,7 @@ class MetricObject(object):
                 "distance_criteria not set so distance between "+str(self)+" and " + str(other) + " cannot be computed.")
 
         distance_list = [0.0]
+
         for attr_name in self.distance_criteria:
             try:
                 obj_a = getattr(self, attr_name)
@@ -980,12 +985,10 @@ class AgentType(Model):
 
 def solve_agent(agent, verbose):
     """
-    Solve the dynamic model for one agent type
-    using backwards induction.
-    This function iterates on "cycles"
-    of an agent's model either a given number of times
-    or until solution convergence
-    if an infinite horizon model is used
+    Solve the dynamic model for one agent type using backwards induction.
+    
+    This function iterates on "cycles" of an agent's model either a given number
+    of times or until solution convergence if an infinite horizon model is used
     (with agent.cycles = 0).
 
     Parameters
@@ -1009,12 +1012,18 @@ def solve_agent(agent, verbose):
     if not hasattr(agent, 'solution'):
         # Initialize the solution, which includes the terminal solution
         solution = []
-        solution.insert(0, deepcopy(agent.solution_terminal))
+        # Old pseudo_terminal technology resided on agent; replaced by new
+        # [stge].stge_kind['iter_status']='terminal_pseudo' marker, but old
+        # code preserved here in case used somewhere 
+        pseudo = (agent.pseudo_terminal == True) or \
+            (agent.solution_terminal.stge_kind['iter_status'] == 'terminal_pseudo')
+        if not pseudo:
+            solution.insert(0, deepcopy(agent.solution_terminal))
         completed_cycles = 0  # NOQA
         max_cycles = 5000  # NOQA  - escape clause
         solution_last = agent.solution_terminal  # NOQA
         # if it's a pseudo-terminal period, it will be removed at the end
-    else:
+    else: # We are resuming solution of a model that has already been solved
         solution = agent.solution
         solution_last = agent.solution[0]
         if hasattr(solution_last, 'completed_cycles'):
@@ -1040,76 +1049,61 @@ def solve_agent(agent, verbose):
     if verbose:
         t_last = time()
     while go:          # Solve a cycle of the model
+        #        breakpoint()
         solution_cycle = solve_one_cycle(agent, solution_last)
-        # Tell the last solution how many cycles have been solved
-        solution[0].completed_cycles = completed_cycles
-        # If finite horizon model, add cycle to the growing list
+        solution_now = solution_cycle[0]
         if not infinite_horizon:
+            # If finite horizon model, add cycle to the growing list
             solution = solution_cycle + solution
-
-        # Check for termination: solutions identical (within tolerance) across
-        # iterations (or have finished prescribed number of cycles)
-        solution_now = solution_cycle[0]  # element 0 most recently solved
-        if infinite_horizon:
-            # The types in "or" below allow continuation the solution process
-            # for a problem that has reached its original tolerance.
-            # This can be either to meet a newly tightened tolerance or
-            # after changing other primitive or approximating parameters.
-            # This would be easy to implement for the other agent types as well.
-            # For any models where this is allowed, though, the 'terminal'
-            # period now becomes an 'iterator' period.
-            if completed_cycles > 0 or (completed_cycles == 0 and (
-                (type(agent) == 'IndShockConsumerType') or
-                (type(agent) == 'PerfForesightConsumerType') or
-                    (type(agent) == 'KinkedRconsumerType'))):
-                solution_distance = solution_now.distance(solution_last)
-                agent.solution_distance = (
-                    solution_distance  # Add so users can retrieve
-                )
-                agent.completed_cycles = (
-                    completed_cycles  # track how many have been done so far this round
-                )
-                go = (
-                    solution_distance > agent.tolerance
-                    and completed_cycles < max_cycles
-                )
-                if not go:  # Finished
-                    # Eventually, all models should incorporate 'stge_kind'
-                    # This takes care of cases where that has not yet been implemented
-                    if not hasattr(solution[0], 'stge_kind'):
-                        solution[0].stge_kind = {'iter_status': 'iterator'}
-                    if not solution[0].stge_kind['iter_status'] == 'terminal':
-                        # This prevents a stage marked as 'terminal' from being
-                        # marked as 'finished' because we want to use the machinery
-                        # in add_fcts and check_conditions to enrich the terminal
-                        # stage, which we do by treating it as a 'pseudo-terminal'
-                        # stage that is overwritten after being used once; but
-                        # the distance between the pseudo and the embellished
-                        # terminal stages is zero, which would lead the code
-                        # to think it had finished if not for the if statement
-                        # here, and the fact that later in 'solve' the stage will
-                        # be relabeled with iter_status = 'iterator'
-                        solution[0].stge_kind['iter_status'] = 'finished'
-                        # Record the tolerance that was satisfied
-#                        breakpoint()
-                        solution[0].stge_kind['tolerance'] = agent.tolerance
-
-            # CDC 20210415: Below, why assume no convergence after only 1 cycle?
-            # If user provides a solution_startfrom that is good, it might...
-            # converge after only one iteration
-            else:
-                # If any solver ever takes this number seriously, it would be a problem.
-                # Like, if Newton's method treated it as a meaningful datapoint, ...
-                # Maybe we should make it float('inf') to ensure an error?
-                solution_distance = 100.0
-                go = True
-        else:  # Finite horizon
             cycles_left += -1
             go = cycles_left > 0
-
+            # Don't count replacement of terminal_pseudo as a cycle; see below
+            if solution_last.stge_kind['iter_status'] == 'terminal_pseudo':
+                cycles_left += 1
+                completed_cycles += -1
+                go = True
+        else: # infinite horizon
+            solution = solution_cycle
+            solution_now = solution_cycle[0]  # element 0 most recently solved
+            # Check for termination: solutions identical (within tolerance)
+            solution_distance = solution_now.distance(solution_last)
+            solution_now.solution_distance = solution_distance
+            go = (
+                solution_distance > agent.tolerance
+                and completed_cycles < max_cycles
+            )
+            # To permit ".solve()" method on the agent to resume solution after
+            # reaching convergence under some initial tolerance, user must
+            # * Change something about the problem (e.g., tolerance)
+            # * Change solution[0] stge_kind['iter_status'] to 'iterator'
+            # * Set the variable [instance].solve_resume = True
+            # * Restart the solution process with [instance].solve()
+            # TODO: 20210512 - this has been tested only for PerfForesightConsumerType
+            # and IndShockConsumerType.  We should test whether agent is one of 
+            # those before allowing resume
+            if agent.solve_resume == True: # if resumption requested, 
+                go = True # solve one period for sure, then keep going 
+                agent.solve_resume = False  #  until stop criteria satisfied
+            if not go:  # Finished solving 
+                # Eventually, all models should incorporate 'stge_kind'
+                # Handle cases where that has not yet been implemented:
+                if not hasattr(solution_now, 'stge_kind'):
+                    solution_now.stge_kind = {'iter_status': 'iterator'}
+                if solution_last.stge_kind['iter_status'] == 'terminal_pseudo':
+                    completed_cycles += -1 # replacement is not a cycle
+                else: # Replacing terminal_pseudo is not a cycle 
+                    # This prevents a stage derived from one marked as 
+                    # 'terminal_pseudo' from being labeled as
+                    # 'finished' even though its distance will be zero 
+                    # from the 'terminal_pseudo' stage. Lets us use  
+                    # our machinery to enrich the terminal_pseudo stage
+                    solution_now.stge_kind['iter_status'] = 'finished'
+                    # Record the tolerance that was satisfied
+                    solution_now.stge_kind['tolerance'] = agent.tolerance
         # Update the "last period/stage solution" for next iteration
         solution_last = solution_now
         completed_cycles += 1
+        solution_last.completed_cycles = deepcopy(completed_cycles)
 #        breakpoint()
         # Display progress if requested
         if verbose > 1:
@@ -1134,27 +1128,13 @@ def solve_agent(agent, verbose):
                     + " seconds."
                 )
             t_last = t_now
-
-    # Record the last cycle if horizon is infinite (solution is still empty!)
-    if infinite_horizon:
-        solution = (
-            solution_cycle  # PseudoTerminal=False impossible for infinite horizon
-        )
-
-    if agent.pseudo_terminal:
-        if agent.cycles > 0:  # Not an infinite horizon agent
-            #            breakpoint()
-            solution.pop(-1)  # Remove the 'pseudo-terminal' last period
-#           solution = [solution[-1]]  # Remove the last period
-        completed_cycles -= 1
+        
     return solution
 
 # As things stand (20210331) the solve_one_cycle code has begun the
 # transition from referring to successive problems within a "cycle" as being
 # "stages" rather than "periods". To minimize disruption to other code, the
-# changes have been restricted to variables that are strictly local to the
-# method, and to the comments and descriptions.
-
+# changes have been restricted to variables that are strictly local
 
 def solve_one_cycle(agent, solution_last):
     """
@@ -1228,6 +1208,7 @@ def solve_one_cycle(agent, solution_last):
         # Solve one stage, add it to the collection, and designate
         # the just-solved solution as being in the future for the
         # purposes of any remaining iteration(s)
+#        breakpoint()
         solution_stge = solve_one_period(**temp_dict)  # -> solve_this_stage
         # store the parameters
         solution_stge.parameters_solver = \
@@ -1283,6 +1264,7 @@ def make_one_period_oo_solver(solver_class):
 
         if hasattr(solver, "prepare_to_solve"):
             # Steps, if any, to prep for sol of stge
+            # breakpoint()
             solver.prepare_to_solve()  # Fix: rename to prepare_to_solve_stge
 
         solution_stge = solver.solve()  # Fix: rename to solve_stge
