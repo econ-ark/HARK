@@ -2975,9 +2975,10 @@ class AgentTypePlus(AgentType):
 
     def __init__(self, *args, **kwargs):
         # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
+
         AgentType.__init__(self,
                            *args,
-                           solve_resume=False,
+                           solve_resume=False,  # pass to AgentType so core.py has it
                            **kwargs)
 
     def store_model_params(self, prmtv_par, aprox_lim):
@@ -3075,12 +3076,15 @@ class AgentTypePlus(AgentType):
 
 class OneStateConsumerType(AgentTypePlus):
     """
-    Construct endpoint for solution of problem of a consumer with
-    one state variable, m:
+    Minimal requirements for a consumer with one state variable, m:
 
         * m combines assets from prior history with current income
 
         * it is referred to as `market resources` throughout the docs
+
+    OneStateConsumerType class must be inherited by some subclass that
+    fleshes out the rest of the characteristics of the agent, e.g. the
+    PerfForesightConsumerType or MertonSamuelsonConsumerType or something.
 
     Parameters
     ----------
@@ -3100,52 +3104,53 @@ class OneStateConsumerType(AgentTypePlus):
     # the standard lifetime transition rules are applied, the nobequest
     # terminal solution is generated
 
-    def __init__(
-            self,
-            solution_startfrom,
-            cycles=1,
-            pseudo_terminal=False,
-            **kwds
-    ):
-        # Starts at 1.0 because for PF model 1.0 is minimum possible income
-        cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0], [0.0, 1.0])
+    # def __init__(
+    #         self,
+    #         solution_startfrom,
+    #         cycles=1,
+    #         pseudo_terminal=False,
+    #         **kwds
+    # ):
+    #        breakpoint()
+    # Starts at 1.0 because for PF model 1.0 is minimum possible income
+    cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0], [0.0, 1.0])
 
-        solution_afterlife_nobequest_ = ConsumerSolutionOneStateCRRA(
-            cFunc=lambda m: float('inf'),
-            vFunc=lambda m: 0.0,
-            vPfunc=lambda m: 0.0,
-            vPPfunc=lambda m: 0.0,
-            mNrmMin=0.0,
-            hNrm=-1.0,
-            MPCmin=float('inf'),
-            MPCmax=float('inf'),
-            stge_kind={
-                'iter_status': 'afterlife',
-                'term_type': 'nobequest',
-                'maker_class': 'OneStateConsumerType'}
-        )
+    solution_afterlife_nobequest_ = ConsumerSolutionOneStateCRRA(
+        cFunc=lambda m: float('inf'),
+        vFunc=lambda m: 0.0,
+        vPfunc=lambda m: 0.0,
+        vPPfunc=lambda m: 0.0,
+        mNrmMin=0.0,
+        hNrm=-1.0,
+        MPCmin=float('inf'),
+        MPCmax=float('inf'),
+        stge_kind={
+            'iter_status': 'afterlife',
+            'term_type': 'nobequest',
+            'maker_class': 'OneStateConsumerType'}
+    )
 
-        solution_nobequest_ = ConsumerSolutionOneStateCRRA(  # Omits vFunc b/c u not yet def
-            cFunc=cFunc_terminal_nobequest_,
-            mNrmMin=0.0,  # Assumes PF model in which minimum mNrmMin is 1.0
-            hNrm=0.0,
-            MPCmin=1.0,
-            MPCmax=1.0,
-            stge_kind={
-                'iter_status': 'terminal_pseudo',
-                'term_type': 'nobequest',
-                'maker_class': 'OneStateConsumerType'
+    solution_nobequest_ = ConsumerSolutionOneStateCRRA(  # Omits vFunc b/c u not yet def
+        cFunc=cFunc_terminal_nobequest_,
+        mNrmMin=0.0,  # Assumes PF model in which minimum mNrmMin is 1.0
+        hNrm=0.0,
+        MPCmin=1.0,
+        MPCmax=1.0,
+        stge_kind={
+            'iter_status': 'terminal_pseudo',
+            'term_type': 'nobequest',
+             'maker_class': 'OneStateConsumerType'
             })
 
-        solution_nobequest_.solution_next = solution_afterlife_nobequest_
+    solution_nobequest_.solution_next = solution_afterlife_nobequest_
 
-        # Define solution_terminal_ for legacy/documentation reasons
-        solution_terminal_ = solution_nobequest_
-        assert(solution_terminal_ == solution_nobequest_)
+    # Define solution_terminal_ for legacy/documentation reasons
+    solution_terminal_ = solution_nobequest_
+     assert(solution_terminal_ == solution_nobequest_)
 
-        self.solution_terminal = deepcopy(solution_terminal_)
+      self.solution_terminal = deepcopy(solution_terminal_)
 
-        if not hasattr(self, 'solution_startfrom'):
+       if not hasattr(self, 'solution_startfrom'):
             solution_startfrom = deepcopy(solution_nobequest_)
 
         self.dolo_defs()  # Instantiate (partial) dolo description
