@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools \
     import income_wealth_dists_from_scf
@@ -25,8 +26,9 @@ from copy import copy, deepcopy
 from builtins import (range, str, breakpoint)
 from types import SimpleNamespace
 from IPython.lib.pretty import pprint
-a  # -*- coding: utf-8 -*-
 
+#import HARK.ConsumptionSaving.ConsIndShockModel-Solvers 
+#import HARK.ConsumptionSaving.ConsIndShockModel-Agent
 
 """
 Classes to solve canonical consumption-saving models with idiosyncratic shocks
@@ -245,6 +247,15 @@ def def_value_funcs(stge, CRRA):
 
 # Namespaces are useful to label and track different kinds of things
 
+class BellmanInfo(SimpleNamespace):
+    """
+    
+    """
+# TODO: Move (to core.py) when vetted/agreed
+    pass
+
+
+
 class SuccessorInfo(SimpleNamespace):
     """
     Contains objects retrieved from successor to the stage
@@ -461,16 +472,17 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
     #     super().__init__(*args, **kwargs)  # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
 
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)  # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
+        self.blmn_pblc = {'cFunc','vFUnc'}
+
 
     def check_conditions(self, soln_crnt, verbose=None):
         """
         Checks whether the instance's type satisfies the:
 
-        ============= ===================================================
+        == == == == == == = == == == == == == == == == == == == == == == == == == == == == == == == == =
         Acronym        Condition
-        ============= ===================================================
+        == == == == == == = == == == == == == == == == == == == == == == == == == == == == == == == == =
         AIC           Absolute Impatience Condition
         RIC           Return Impatience Condition
         GIC           Growth Impatience Condition
@@ -478,7 +490,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         GICNrm        GIC adjusted for uncertainty in permanent income
         FHWC          Finite Human Wealth Condition
         FVAC          Finite Value of Autarky Condition
-        ============= ===================================================
+        == == == == == == = == == == == == == == == == == == == == == == == == == == == == == == == == =
 
         Depending on the configuration of parameter values, some combination of
         these conditions must be satisfied in order for the problem to have
@@ -488,13 +500,13 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
         Parameters
         ----------
-        verbose : boolean
-            Specifies different levels of verbosity of feedback. When False, it only reports whether the
-            instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
-            the factor values for all conditions.
+        verbose: boolean
+        Specifies different levels of verbosity of feedback. When False, it only reports whether the
+        instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
+        the factor values for all conditions.
 
-        soln_crnt : ConsumerSolution
-            Contains the solution to the problem described by information
+        soln_crnt: ConsumerSolution
+        Contains the solution to the problem described by information
         for the current stage found in bilt and the succeeding stage found
         in scsr.
 
@@ -504,6 +516,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         """
         soln_crnt.bilt.conditions = {}  # Keep track of truth value of conditions
         soln_crnt.bilt.degenerate = False  # True means solution is degenerate
+        self.blmn_pblc = {'cFunc','vFunc'}
 
         if not hasattr(self, 'verbose'):  # If verbose not set yet
             verbose = 0 if verbose is None else verbose
@@ -680,7 +693,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
     def check_WRIC(self, stge, verbose=None):
         """
         Evaluate and report on the Weak Return Impatience Condition
-        [url]/#WRIC modified to incorporate LivPrb
+        [url]/  # WRIC modified to incorporate LivPrb
         """
 
         if not hasattr(stge, 'IncShkDstn'):
@@ -704,7 +717,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
     def mNrmTrg_find(self):
         """
-        Finds value of (normalized) market resources mNrm at which individual consumer
+        Finds value of(normalized) market resources mNrm at which individual consumer
         expects m not to change.
 
         This will exist if the GICNrm holds.
@@ -768,6 +781,13 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 # ConsPerfForesightSolver also incorporates calcs and info useful for
 # models in which perfect foresight does not apply, because the contents
 # of the PF model are inherited by a variety of non-perfect-foresight models
+
+class ConsumerSolution_ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)  # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
+        self.blmn_pblc.update({'vPfunc','hNrm','MPCmin','MPCmax'})
+        breakpoint()
+
 
 
 class ConsPerfForesightSolver(MetricObject):
@@ -865,12 +885,12 @@ class ConsPerfForesightSolver(MetricObject):
         self.url_doc_for_solver_get()
 
         self.soln_crnt.bilt.parameters_solver = deepcopy(parameters_solver)
-        # Store to bilt the exact params with which solver was called
+        # Store the exact params with which solver was called
         # except for solution_next and self (to prevent inf recursion)
         for key in parameters_solver:
             setattr(self.soln_crnt.bilt, key, parameters_solver[key])
-
-#        breakpoint()
+            breakpoint()
+            setattr(self.soln_crnt, key, parameters_solver[key])
 
     # Methods
     def url_doc_for_solver_get(self):
@@ -3445,9 +3465,9 @@ class PerfForesightConsumerType(OneStateConsumerType):
             soln.mNrmStE = soln.mNrmStE_find()
             if hasattr(soln.bilt, 'GICNrm'):
                 if not soln.bilt.GICNrm:
-                    wrn = "Because the model's parameters do not satisfy the "+\
-                        "stochastic-growth-normalized GIC, it does not exhibit "+\
-                            "a target level of wealth."
+                    wrn = "Because the model's parameters do not satisfy the " +\
+                        "stochastic-growth-normalized GIC, it does not exhibit " +\
+                        "a target level of wealth."
                     _log.warning(wrn)
                     if self.verbose == 3:
                         print(wrn)
@@ -3466,7 +3486,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
         # but want to add extra info required for backward induction
         cycles_orig = deepcopy(self.cycles)
         tolerance_orig = deepcopy(self.tolerance)
-        self.tolerance = float('inf')  # Any distance satisfies this tolerance!            
+        self.tolerance = float('inf')  # Any distance satisfies this tolerance!
         if self.cycles > 0:  # Then it's a finite horizon problem
             self.cycles = 0  # Tell it to solve only one period
         else:  # it's an infinite horizon problem
@@ -3637,7 +3657,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
 
         solution_terminal_bilt.parameters = self.parameters
         CRRA = self.CRRA
-        solution_terminal_bilt = def_utility(solution_terminal_bilt,CRRA)
+        solution_terminal_bilt = def_utility(solution_terminal_bilt, CRRA)
         solution_terminal_bilt = def_value_funcs(solution_terminal_bilt, CRRA)
 
 #        breakpoint()
@@ -4119,8 +4139,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         params.update(kwds)  # Update/overwrite defaults with user-specified
 
         # Inherit characteristics of a PF model with the same parameters
-        PerfForesightConsumerType.__init__(self, cycles=cycles, verbose=verbose, \
-                                           quiet=quiet,_startfrom=solution_startfrom,**params)
+        PerfForesightConsumerType.__init__(self, cycles=cycles, verbose=verbose,
+                                           quiet=quiet, _startfrom=solution_startfrom, **params)
 
         self.update_parameters_for_this_agent_subclass()  # Add new pars
 
@@ -4285,7 +4305,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         none
         """
 #        soln_crnt = self.soln_crnt
-#        soln_crnt.bilt.aXtraGrid = 
+#        soln_crnt.bilt.aXtraGrid =
         self.aXtraGrid = construct_assets_grid(self)
 #        soln_crnt.aXtraGrid = self.aXtraGrid = construct_assets_grid(self)
         self.add_to_time_inv("aXtraGrid")
