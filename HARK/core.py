@@ -1094,10 +1094,11 @@ def solve_agent(agent, verbose):
                     # Record the tolerance that was satisfied
                     solution_now.stge_kind['tolerance'] = agent.tolerance
         # Update the "last period/stage solution" for next iteration
-#        breakpoint()
         solution_last = solution_now
         completed_cycles += 1
-        print('completed_cycles = '+str(completed_cycles))
+        if agent.verbose <= 2:
+#        print('completed_cycles = '+str(completed_cycles))
+            print('.',end='')
         solution_last.completed_cycles = deepcopy(completed_cycles)
 #        breakpoint()
         # Display progress if requested
