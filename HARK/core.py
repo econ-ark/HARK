@@ -239,6 +239,9 @@ class MetricObject(object):
 class Model(object):
     """
     A class with special handling of parameters assignment.
+
+    Creates a "self.parameters" attribute that contains all 
+    keywords explicitly passed to the object.
     """
 
     def assign_parameters(self, **kwds):
@@ -348,40 +351,20 @@ class AgentType(Model):
     state_vars : list of string
         The string labels for this AgentType's model state variables.
 
-    Notes
-    -----
-    The code defines a number of optional elements that are used to
-    to enhance clarity or to allow future functionality.  These include:
-
-    input_kind : dictionary
-        Keeps track of the nature of the inputs to the model, specifically
-        whether they are 'prmtv' parameters that would define the solution
-        with infinite computational power or 'aprox' parameters
-        associated with a particular method of approximate solution
-
-    fcts : dictionary
-        For storing meta information about an object in the model,
-        for example a mathematical derivation or an explanation of 
-        its role in an economic model.
-
-        fcts[objectName]['latexexpr'] - Name of variable in LaTeX docs
-        fcts[objectName]['urlhandle'] - url to further info on it
-        fcts[objectName]['python_ex'] - python expr creating its value
-        fcts[objectName]['value_now'] - latest value calculated for it
     """
 
     state_vars = []
 
     def __init__(
-        self,
-        solution_terminal=None,
-        cycles=1,
-        pseudo_terminal=True,
-        tolerance=0.000001,
-        seed=0,
-        **kwds
+            self,
+            solution_terminal=None,
+            cycles=1,
+            pseudo_terminal=True,
+            tolerance=0.000001,
+            seed=0,
+            **kwds
     ):
-#        breakpoint()
+        #        breakpoint()
         Model.__init__(self)
 
         if solution_terminal is None:
@@ -407,7 +390,6 @@ class AgentType(Model):
         self.aprox_par = {'tolerance': self.tolerance, 'seed': self.seed}  # 'approximation' pars
         # sol approaches truth as all aprox_par -> lim
         self.aprox_lim = {'tolerance': 0.0, 'seed': None}
-        # auxiliary choices (like, options) that might affect the solution
 
     def add_to_time_vary(self, *params):
         """
@@ -521,6 +503,7 @@ class AgentType(Model):
         with np.errstate(
             divide="ignore", over="ignore", under="ignore", invalid="ignore"
         ):
+#            breakpoint()
             self.pre_solve()  # Stuff to do before beginning to solve the model
             self.solution = solve_agent(
                 self, verbose
@@ -1016,16 +999,22 @@ def solve_agent(agent, verbose):
         # Old pseudo_terminal technology resided on agent; replaced by new
         # [stge].stge_kind['iter_status']='terminal_pseudo' marker, but old
         # code preserved here in case used somewhere
-        pseudo = (agent.pseudo_terminal == True) or \
-            (agent.solution_terminal.stge_kind['iter_status'] == 'terminal_pseudo')
-        if not pseudo:
+#        pseudo = (agent.pseudo_terminal == True) or \
+#            (agent.solution_terminal.stge_kind['iter_status'] == 'terminal_pseudo')
+        pseudo = (agent.pseudo_terminal is True) or \
+            (agent.solution_terminal.bilt.stge_kind['iter_status'] == 'terminal_pseudo')
+        if not pseudo:  # Then it's a real solution that should be part of the list
             solution.insert(0, deepcopy(agent.solution_terminal))
         completed_cycles = 0  # NOQA
         max_cycles = 5000  # NOQA  - escape clause
         solution_last = agent.solution_terminal  # NOQA
+        solution_last.cFunc = solution_last.bilt.cFunc
+#        solution_last.IncShkDstn = solution_last.bilt.IncShkDstn
+#        breakpoint()
         # if it's a pseudo-terminal period, it will be removed at the end
     else:  # We are resuming solution of a model that has already been solved
         solution = agent.solution
+#        breakpoint()
         solution_last = agent.solution[0]
         if hasattr(solution_last, 'completed_cycles'):
             completed_cycles = solution_last.completed_cycles
@@ -1059,7 +1048,7 @@ def solve_agent(agent, verbose):
             cycles_left += -1
             go = cycles_left > 0
             # Don't count replacement of terminal_pseudo as a cycle; see below
-            if solution_last.stge_kind['iter_status'] == 'terminal_pseudo':
+            if solution_last.bilt.stge_kind['iter_status'] == 'terminal_pseudo':
                 cycles_left += 1
                 completed_cycles += -1
                 go = True
@@ -1067,7 +1056,9 @@ def solve_agent(agent, verbose):
             solution = solution_cycle
             solution_now = solution_cycle[0]  # element 0 most recently solved
             # Check for termination: solutions identical (within tolerance)
+#            breakpoint()
             solution_distance = solution_now.distance(solution_last)
+#            print('solution_distance'+str(solution_distance))
             solution_now.solution_distance = solution_distance
             go = (
                 solution_distance > agent.tolerance
@@ -1082,15 +1073,16 @@ def solve_agent(agent, verbose):
             # TODO: 20210512 - this has been tested only for PerfForesightConsumerType
             # and IndShockConsumerType.  We should test whether agent is one of
             # those before allowing resume
-            if agent.solve_resume == True:  # if resumption requested,
+
+            if hasattr(agent, 'solve_resume') and (agent.solve_resume is True):  # if resumption requested,
                 go = True  # solve one period for sure, then keep going
-                agent.solve_resume = False  # until stop criteria satisfied
+                agent.solve_resume = False  # go until stop criteria satisfied
             if not go:  # Finished solving
                 # Eventually, all models should incorporate 'stge_kind'
                 # Handle cases where that has not yet been implemented:
-                if not hasattr(solution_now, 'stge_kind'):
-                    solution_now.stge_kind = {'iter_status': 'iterator'}
-                if solution_last.stge_kind['iter_status'] == 'terminal_pseudo':
+                if not hasattr(solution_now.bilt, 'stge_kind'):
+                    solution_now.bilt.stge_kind = {'iter_status': 'iterator'}
+                if solution_last.bilt.stge_kind['iter_status'] == 'terminal_pseudo':
                     completed_cycles += -1  # replacement is not a cycle
                 else:  # Replacing terminal_pseudo is not a cycle
                     # This prevents a stage derived from one marked as
@@ -1098,12 +1090,14 @@ def solve_agent(agent, verbose):
                     # 'finished' even though its distance will be zero
                     # from the 'terminal_pseudo' stage. Lets us use
                     # our machinery to enrich the terminal_pseudo stage
-                    solution_now.stge_kind['iter_status'] = 'finished'
+                    solution_now.bilt.stge_kind['iter_status'] = 'finished'
                     # Record the tolerance that was satisfied
                     solution_now.stge_kind['tolerance'] = agent.tolerance
         # Update the "last period/stage solution" for next iteration
+#        breakpoint()
         solution_last = solution_now
         completed_cycles += 1
+        print('completed_cycles = '+str(completed_cycles))
         solution_last.completed_cycles = deepcopy(completed_cycles)
 #        breakpoint()
         # Display progress if requested
@@ -1178,6 +1172,7 @@ def solve_one_cycle(agent, solution_last):
 
     # Initialize the solution for this cycle, then iterate through stages
     full_cycle = []
+#    breakpoint()
     solution_next = solution_last  # next because about to solve predecessor
     for stge in range(num_stges):  # e.g., for quarterly model, num_stges = 4 quarters
         # Update which single period/stage solver to use (if it depends on stage)
@@ -1205,6 +1200,7 @@ def solve_one_cycle(agent, solution_last):
         solve_dict["solution_next"] = solution_next  # solution_stage_next
 
         # Make a temporary dictionary for this period
+#        breakpoint()
         temp_dict = {name: solve_dict[name] for name in these_args}
 
         # Solve one stage, add it to the collection, and designate
@@ -1212,9 +1208,9 @@ def solve_one_cycle(agent, solution_last):
         # purposes of any remaining iteration(s)
 #        breakpoint()
         solution_stge = solve_one_period(**temp_dict)  # -> solve_this_stage
-        # store the parameters
-        solution_stge.parameters_solver = \
-            {k: v for k, v in temp_dict.items() if k not in 'solution_next'}
+        # # store the parameters
+        # solution_stge.parameters_solver = \
+        #     {k: v for k, v in temp_dict.items() if k not in 'solution_next'}
         full_cycle.insert(0, solution_stge)
         solution_next = solution_stge
 
@@ -1262,11 +1258,11 @@ def make_one_period_oo_solver(solver_class):
     def one_period_solver(**kwds):  # FIX: rename to, say, solve_stge
         # last step in loop over num_stges in solve_one_cycle is:
         # """ solve_one_period(**temp_dict) [should become, say, solve_this_stge]
+#        breakpoint()
         solver = solver_class(**kwds)  # defined extrnally
-
         if hasattr(solver, "prepare_to_solve"):
             # Steps, if any, to prep for sol of stge
-            # breakpoint()
+#            breakpoint()
             solver.prepare_to_solve()  # Fix: rename to prepare_to_solve_stge
 
         solution_stge = solver.solve()  # Fix: rename to solve_stge
