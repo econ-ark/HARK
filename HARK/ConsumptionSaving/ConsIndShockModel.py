@@ -1548,7 +1548,8 @@ init_perfect_foresight = {
     # Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
     'PermGroFacAgg': 1.0,
     'T_age': None,       # Age after which simulated agents are automatically killed
-    'T_cycle': 1         # Number of periods in the cycle for this agent type
+    'T_cycle': 1,        # Number of periods in the cycle for this agent type
+    "PerfMITShk": False    # Do Perfect Foresight MIT Shock: Forces Newborns to follow solution path of the agent he/she replaced when True
 }
 
 
@@ -1577,7 +1578,7 @@ class PerfForesightConsumerType(AgentType):
         MPCmax=1.0,
     )
     time_vary_ = ["LivPrb", "PermGroFac"]
-    time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt"]
+    time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt", "PerfMITShk" ]
     state_vars = ['pLvl', 'PlvlAgg', 'bNrm', 'mNrm', "aNrm"]
     shock_vars_ = []
 
@@ -1708,9 +1709,12 @@ class PerfForesightConsumerType(AgentType):
             seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
         self.t_age[which_agents] = 0  # How many periods since each agent was born
-        self.t_cycle[
-            which_agents
-        ] = 0  # Which period of the cycle each agent is currently in
+        
+        if self.PerfMITShk == False: #If True, Newborns follow solution path of agent they replaced by inheriting their t_cycle (t_cycles are not reset)
+            self.t_cycle[
+                which_agents
+            ] = 0  # Which period of the cycle each agent is currently in
+            
         return None
 
     def sim_death(self):
