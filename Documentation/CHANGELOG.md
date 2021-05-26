@@ -28,6 +28,7 @@ Release Data: March 4, 2021
 * Adds a constructor for LogNormal distributions from mean and standard deviation [#891](https://github.com/econ-ark/HARK/pull/891/)
 * Uses new LogNormal constructor in ConsPortfolioModel [#891](https://github.com/econ-ark/HARK/pull/891/)
 * calcExpectations method for taking the expectation of a distribution over a function [#884](https://github.com/econ-ark/HARK/pull/884/] (#897)[https://github.com/econ-ark/HARK/pull/897/)
+* Implements the multivariate normal as a supported distribution, with a discretization method. See [#948](https://github.com/econ-ark/HARK/pull/948).
 * Centralizes the definition of value, marginal value, and marginal marginal value functions that use inverse-space
 interpolation for problems with CRRA utility. See [#888](https://github.com/econ-ark/HARK/pull/888).
 * MarkovProcess class used in ConsMarkovModel, ConsRepAgentModel, ConsAggShockModel [#902](https://github.com/econ-ark/HARK/pull/902) [#929](https://github.com/econ-ark/HARK/pull/929)
