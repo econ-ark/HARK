@@ -54,22 +54,22 @@ class test_MVNormalApprox(unittest.TestCase):
 
     def test_means(self):
 
-        mu_2D = distribution.calcExpectation(self.dist2D_approx)
+        mu_2D = distribution.calc_expectation(self.dist2D_approx)
         self.assertTrue(np.allclose(mu_2D, self.mu2, rtol=1e-5))
 
-        mu_3D = distribution.calcExpectation(self.dist3D_approx)
+        mu_3D = distribution.calc_expectation(self.dist3D_approx)
         self.assertTrue(np.allclose(mu_3D, self.mu3, rtol=1e-5))
 
     def test_VCOV(self):
 
         vcov_fun = lambda X, mu: np.outer(X - mu, X - mu)
 
-        Sig_2D = distribution.calcExpectation(self.dist2D_approx, vcov_fun, self.mu2)[
+        Sig_2D = distribution.calc_expectation(self.dist2D_approx, vcov_fun, self.mu2)[
             :, :, 0
         ]
         self.assertTrue(np.allclose(Sig_2D, self.Sigma2, rtol=1e-5))
 
-        Sig_3D = distribution.calcExpectation(self.dist3D_approx, vcov_fun, self.mu3)[
+        Sig_3D = distribution.calc_expectation(self.dist3D_approx, vcov_fun, self.mu3)[
             :, :, 0
         ]
         self.assertTrue(np.allclose(Sig_3D, self.Sigma3, rtol=1e-5))
