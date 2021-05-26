@@ -7,6 +7,7 @@ Consumption Saving
    ConsAggShockModel
    ConsGenIncProcessModel
    ConsIndShockModel
+   ConsIndShockModelFast
    ConsMarkovModel
    ConsMedModel
    ConsLaborModel
