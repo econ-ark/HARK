@@ -37,18 +37,18 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
             0.8498496999408691
         )
 
-    def test_simOnePeriod(self):
+    def test_sim_one_period(self):
 
         self.pcct.T_sim = 30
         self.pcct.AgentCount = 10
         self.pcct.track_vars += ['aNrm']
-        self.pcct.initializeSim()
+        self.pcct.initialize_sim()
 
         self.assertFalse(
             np.any(self.pcct.shocks['Adjust'])
         )
 
-        self.pcct.simOnePeriod()
+        self.pcct.sim_one_period()
 
         self.assertAlmostEqual(
             self.pcct.controls["Share"][0],
@@ -76,7 +76,7 @@ class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
             'PermShk',
             'bNrm'
         ]
-        self.pcct.initializeSim()
+        self.pcct.initialize_sim()
 
         self.pcct.simulate()
 

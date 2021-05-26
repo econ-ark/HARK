@@ -697,28 +697,28 @@ class DiscreteDistribution(Distribution):
         return draws
 
 
-def approxLognormalGaussHermite(N, mu=0.0, sigma=1.0, seed=0):
+def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
     return DiscreteDistribution(d.pmf, np.exp(d.X), seed=seed)
 
 
-def calcNormalStyleParsFromLognormalPars(avgLognormal, stdLognormal):
-    varLognormal = stdLognormal ** 2
-    avgNormal = math.log(avgLognormal / math.sqrt(1 + varLognormal / avgLognormal ** 2))
-    varNormal = math.sqrt(math.log(1 + varLognormal / avgLognormal ** 2))
-    stdNormal = math.sqrt(varNormal)
-    return avgNormal, stdNormal
+def calc_normal_style_pars_from_lognormal_pars(avg_lognormal, std_lognormal):
+    varLognormal = std_lognormal ** 2
+    avgNormal = math.log(avg_lognormal / math.sqrt(1 + varLognormal / avg_lognormal ** 2))
+    varNormal = math.sqrt(math.log(1 + varLognormal / avg_lognormal ** 2))
+    std_normal = math.sqrt(varNormal)
+    return avgNormal, std_normal
 
 
-def calcLognormalStyleParsFromNormalPars(muNormal, stdNormal):
-    varNormal = stdNormal ** 2
-    avgLognormal = math.exp(muNormal + varNormal * 0.5)
-    varLognormal = (math.exp(varNormal) - 1) * math.exp(2 * muNormal + varNormal)
-    stdLognormal = math.sqrt(varLognormal)
-    return avgLognormal, stdLognormal
+def calc_lognormal_style_pars_from_normal_pars(mu_normal, std_normal):
+    varNormal = std_normal ** 2
+    avg_lognormal = math.exp(mu_normal + varNormal * 0.5)
+    varLognormal = (math.exp(varNormal) - 1) * math.exp(2 * mu_normal + varNormal)
+    std_lognormal = math.sqrt(varLognormal)
+    return avg_lognormal, std_lognormal
 
 
-def approxBeta(N, a=1.0, b=1.0):
+def approx_beta(N, a=1.0, b=1.0):
     """
     Calculate a discrete approximation to the beta distribution.  May be quite
     slow, as it uses a rudimentary numeric integration method to generate the
@@ -746,7 +746,7 @@ def approxBeta(N, a=1.0, b=1.0):
     return DiscreteDistribution(pmf, X)
 
 
-def makeMarkovApproxToNormal(x_grid, mu, sigma, K=351, bound=3.5):
+def make_markov_approx_to_normal(x_grid, mu, sigma, K=351, bound=3.5):
     """
     Creates an approximation to a normal distribution with mean mu and standard
     deviation sigma, returning a stochastic vector called p_vec, corresponding
@@ -815,7 +815,7 @@ def makeMarkovApproxToNormal(x_grid, mu, sigma, K=351, bound=3.5):
     return p_vec
 
 
-def makeMarkovApproxToNormalByMonteCarlo(x_grid, mu, sigma, N_draws=10000):
+def make_markov_approx_to_normal_by_monte_carlo(x_grid, mu, sigma, N_draws=10000):
     """
     Creates an approximation to a normal distribution with mean mu and standard
     deviation sigma, by Monte Carlo.
@@ -865,7 +865,7 @@ def makeMarkovApproxToNormalByMonteCarlo(x_grid, mu, sigma, N_draws=10000):
     return p_vec
 
 
-def makeTauchenAR1(N, sigma=1.0, rho=0.9, bound=3.0):
+def make_tauchen_ar1(N, sigma=1.0, rho=0.9, bound=3.0):
     """
     Function to return a discretized version of an AR1 process.
     See http://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
@@ -912,7 +912,7 @@ def makeTauchenAR1(N, sigma=1.0, rho=0.9, bound=3.0):
 # ================================================================================
 
 
-def addDiscreteOutcomeConstantMean(distribution, x, p, sort=False):
+def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
     """
     Adds a discrete outcome of x with probability p to an existing distribution,
     holding constant the relative probabilities of other outcomes and overall mean.
@@ -945,7 +945,7 @@ def addDiscreteOutcomeConstantMean(distribution, x, p, sort=False):
     return DiscreteDistribution(pmf, X)
 
 
-def addDiscreteOutcome(distribution, x, p, sort=False):
+def add_discrete_outcome(distribution, x, p, sort=False):
     """
     Adds a discrete outcome of x with probability p to an existing distribution,
     holding constant the relative probabilities of other outcomes.
@@ -977,7 +977,7 @@ def addDiscreteOutcome(distribution, x, p, sort=False):
     return DiscreteDistribution(pmf, X)
 
 
-def combineIndepDstns(*distributions, seed=0):
+def combine_indep_dstns(*distributions, seed=0):
     """
     Given n lists (or tuples) whose elements represent n independent, discrete
     probability spaces (probabilities and values), construct a joint pmf over
@@ -1055,7 +1055,7 @@ def combineIndepDstns(*distributions, seed=0):
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
     return DiscreteDistribution(P_out, X_out, seed=seed)
 
-def calcExpectation(dstn,func=lambda x : x,*args):
+def calc_expectation(dstn,func=lambda x : x,*args):
     '''
     Calculate the expectation of a stochastic function at an array of values.
 

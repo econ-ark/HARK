@@ -4,7 +4,7 @@ Example implementations of HARK.ConsumptionSaving.ConsPortfolioModel
 '''
 from HARK.ConsumptionSaving.ConsPortfolioModel import PortfolioConsumerType, init_portfolio
 from HARK.ConsumptionSaving.ConsIndShockModel import init_lifecycle
-from HARK.utilities import plotFuncs
+from HARK.utilities import plot_funcs
 from copy import copy
 from time import time
 import numpy as np
@@ -25,7 +25,7 @@ print('Solving an infinite horizon portfolio choice problem took ' + str(t1-t0) 
 # %%
 # Plot the consumption and risky-share functions
 print('Consumption function over market resources:')
-plotFuncs(MyType.cFunc[0], 0., 20.)
+plot_funcs(MyType.cFunc[0], 0., 20.)
 print('Risky asset share as a function of market resources:')
 print('Optimal (blue) versus Theoretical Limit (orange)')
 plt.xlabel('Normalized Market Resources')
@@ -34,7 +34,7 @@ plt.ylim(0.0,1.0)
 # Since we are using a discretization of the lognormal distribution,
 # the limit is numerically computed and slightly different from 
 # the analytical limit obtained by Merton and Samuelson for infinite wealth
-plotFuncs([MyType.ShareFunc[0]
+plot_funcs([MyType.ShareFunc[0]
 #           ,lambda m: RiskyShareMertSamLogNormal(MyType.RiskPrem,MyType.CRRA,MyType.RiskyVar)*np.ones_like(m)
            ,lambda m: MyType.ShareLimit*np.ones_like(m)
           ] , 0., 200.)
@@ -43,7 +43,7 @@ plotFuncs([MyType.ShareFunc[0]
 # Now simulate this consumer type
 MyType.track_vars = ['cNrm', 'ShareNow', 'aNrmNow', 't_age']
 MyType.T_sim = 100
-MyType.initializeSim()
+MyType.initialize_sim()
 MyType.simulate()
 
 # %%
@@ -76,7 +76,7 @@ print('Solving an infinite horizon discrete portfolio choice problem took ' + st
 # %%
 # Plot the consumption and risky-share functions
 print('Consumption function over market resources:')
-plotFuncs(DiscreteType.cFunc[0], 0., 50.)
+plot_funcs(DiscreteType.cFunc[0], 0., 50.)
 print('Risky asset share as a function of market resources:')
 print('Optimal (blue) versus Theoretical Limit (orange)')
 plt.xlabel('Normalized Market Resources')
@@ -85,7 +85,7 @@ plt.ylim(0.0,1.0)
 # Since we are using a discretization of the lognormal distribution,
 # the limit is numerically computed and slightly different from 
 # the analytical limit obtained by Merton and Samuelson for infinite wealth
-plotFuncs([DiscreteType.ShareFunc[0]
+plot_funcs([DiscreteType.ShareFunc[0]
            ,lambda m: DiscreteType.ShareLimit*np.ones_like(m)
           ] , 0., 200.)
 
@@ -116,7 +116,7 @@ print('Solving an infinite horizon sticky portfolio choice problem took ' + str(
 # %%
 # Plot the consumption and risky-share functions
 print('Consumption function over market resources when the agent can adjust his portfolio:')
-plotFuncs(StickyType.cFuncAdj[0], 0., 50.)
+plot_funcs(StickyType.cFuncAdj[0], 0., 50.)
 
 # %%
 print("Consumption function over market resources when the agent CAN'T adjust, by current share:")
@@ -134,7 +134,7 @@ print('Optimal (blue) versus Theoretical Limit (orange)')
 plt.xlabel('Normalized Market Resources')
 plt.ylabel('Portfolio Share')
 plt.ylim(0.0,1.0)
-plotFuncs([StickyType.ShareFunc[0]
+plot_funcs([StickyType.ShareFunc[0]
            ,lambda m: StickyType.ShareLimit*np.ones_like(m)
           ] , 0., 200.)
 
@@ -173,9 +173,9 @@ print('Solving a ' + str(AgeVaryingRiskPercType.T_cycle) + ' period portfolio ch
 # %%
 # Plot the consumption and risky-share functions
 print('Consumption function over market resources in each lifecycle period:')
-plotFuncs(AgeVaryingRiskPercType.cFunc, 0., 20.)
+plot_funcs(AgeVaryingRiskPercType.cFunc, 0., 20.)
 print('Risky asset share function over market resources in each lifecycle period:')
-plotFuncs(AgeVaryingRiskPercType.ShareFunc, 0., 200.)
+plot_funcs(AgeVaryingRiskPercType.ShareFunc, 0., 200.)
 
 # %% [markdown]
 # The code below tests the mathematical limits of the model.

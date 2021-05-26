@@ -20,9 +20,6 @@ bounds are exceeded.
 Despite the non-standard solution method, the iterative process can be embedded
 in the HARK framework, as shown below.
 """
-from __future__ import division, print_function
-from __future__ import absolute_import
-from builtins import str
 import numpy as np
 
 # Import the HARK library.
@@ -101,7 +98,7 @@ class TractableConsumerSolution(MetricObject):
         # that captures the notion that the process is over when no points are added.
 
 
-def findNextPoint(
+def find_next_point(
     DiscFac,
     Rfree,
     CRRA,
@@ -175,7 +172,7 @@ def findNextPoint(
     return mNow, cNow, MPCnow
 
 
-def addToStableArmPoints(
+def add_to_stable_arm_points(
     solution_next,
     DiscFac,
     Rfree,
@@ -192,7 +189,7 @@ def addToStableArmPoints(
     Adds a one point to the bottom and top of the list of stable arm points if
     the bounding levels of mLowerBnd (lower) and mUpperBnd (upper) have not yet
     been met by a stable arm point in mNrm_list.  This acts as the "one period
-    solver" / solveOnePeriod in the tractable buffer stock model.
+    solver" / solve_one_period in the tractable buffer stock model.
 
     Parameters
     ----------
@@ -242,7 +239,7 @@ def addToStableArmPoints(
         MPCNext = solution_next.MPC_list[-1]
 
         # Calculate employed levels of c, m, and MPC from next period's values
-        mNow, cNow, MPCnow = findNextPoint(
+        mNow, cNow, MPCnow = find_next_point(
             DiscFac,
             Rfree,
             CRRA,
@@ -269,7 +266,7 @@ def addToStableArmPoints(
         MPCNext = solution_next.MPC_list[0]
 
         # Calculate employed levels of c, m, and MPC from next period's values
-        mNow, cNow, MPCnow = findNextPoint(
+        mNow, cNow, MPCnow = find_next_point(
             DiscFac,
             Rfree,
             CRRA,
@@ -328,9 +325,9 @@ class TractableConsumerType(AgentType):
         ]
         self.shock_vars = ["eStateNow"]
         self.poststate_vars = ['aLvl', "eStateNow"]  # For simulation
-        self.solveOnePeriod = addToStableArmPoints  # set correct solver
+        self.solve_one_period = add_to_stable_arm_points  # set correct solver
 
-    def preSolve(self):
+    def pre_solve(self):
         """
         Calculates all of the solution objects that can be obtained before con-
         ducting the backshooting routine, including the target levels, the per-
@@ -538,7 +535,7 @@ class TractableConsumerType(AgentType):
             + (1.0 - self.PermGroFacCmp / self.Rfree) * m
         )
 
-    def postSolve(self):
+    def post_solve(self):
         """
         This method adds consumption at m=0 to the list of stable arm points,
         then constructs the consumption function as a cubic interpolation over
@@ -567,7 +564,7 @@ class TractableConsumerType(AgentType):
         )
         self.solution[0].cFunc_U = lambda m: self.PFMPC * m
 
-    def simBirth(self, which_agents):
+    def sim_birth(self, which_agents):
         """
         Makes new consumers for the given indices.  Initialized variables include aNrm, as
         well as time variables t_age and t_cycle.  Normalized assets are drawn from a lognormal
@@ -597,7 +594,7 @@ class TractableConsumerType(AgentType):
         ] = 0  # Which period of the cycle each agent is currently in
         return None
 
-    def simDeath(self):
+    def sim_death(self):
         """
         Trivial function that returns boolean array of all False, as there is no death.
 
@@ -614,7 +611,7 @@ class TractableConsumerType(AgentType):
         which_agents = np.zeros(self.AgentCount, dtype=bool)
         return which_agents
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Determine which agents switch from employment to unemployment.  All unemployed agents remain
         unemployed until death.
@@ -651,7 +648,7 @@ class TractableConsumerType(AgentType):
 
         return bLvlNow, mLvlNow
 
-    def getControls(self):
+    def get_controls(self):
         """
         Calculate consumption for each agent this period.
 
@@ -670,7 +667,7 @@ class TractableConsumerType(AgentType):
         cLvlNow[unemployed] = self.solution[0].cFunc_U(self.state_now['mLvl'][unemployed])
         self.controls["cLvlNow"] = cLvlNow
 
-    def getPostStates(self):
+    def get_poststates(self):
         """
         Calculates end-of-period assets for each consumer of this type.
 

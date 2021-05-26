@@ -51,7 +51,7 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
         InfiniteType = IndShockConsumerType(**test_dictionary)
         InfiniteType.cycles = 0
 
-        InfiniteType.updateIncomeProcess()
+        InfiniteType.update_income_process()
         InfiniteType.solve()
         InfiniteType.unpack("cFunc")
 
@@ -69,13 +69,16 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
         """"
         Now compare the consumption functions and make sure they are "close"
         """
+        mNrmMinInf = self.InfiniteType.solution[0].mNrmMin  # mNrm min in inf hor model
+        aXtraMin = self.InfiniteType.aXtraMin  # point above min where a grid starts
+        aXtraMax = self.InfiniteType.aXtraMax  # point above min where a grid ends
 
         def diffFunc(m):
             return self.PerfectForesightType.solution[0].cFunc(
                 m
             ) - self.InfiniteType.cFunc[0](m)
 
-        points = np.arange(0.5, 10.0, 0.01)
+        points = np.arange(0.5, mNrmMinInf+aXtraMin, mNrmMinInf+aXtraMax)
         difference = diffFunc(points)
         max_difference = np.max(np.abs(difference))
 
@@ -140,7 +143,7 @@ class Compare_TBS_and_Markov(unittest.TestCase):
             "aXtraCount": 48,
             "aXtraExtra": [None],
             "aXtraNestFac": 3,
-            "LivPrb": [np.array([1.0, 1.0]),],
+            "LivPrb": [np.array([1.0, 1.0]), ],
             "DiscFac": base_primitives["DiscFac"],
             "Nagents": 1,
             "psi_seed": 0,

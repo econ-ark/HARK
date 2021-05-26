@@ -1,5 +1,5 @@
 import copy
-from HARK import distributeParams
+from HARK import distribute_params
 from HARK.ConsumptionSaving.ConsAggShockModel import (
     AggShockConsumerType,
     SmallOpenEconomy,
@@ -17,7 +17,7 @@ class testSmallOpenEconomy(unittest.TestCase):
         agent.cycles = 0
 
         # Make agents heterogeneous in their discount factor
-        agents = distributeParams(
+        agents = distribute_params(
             agent, "DiscFac", 3, Uniform(bot=0.90, top=0.94)  # Impatient agents
         )
 
@@ -32,11 +32,11 @@ class testSmallOpenEconomy(unittest.TestCase):
 
         small_economy.act_T = 400  # Short simulation history
         small_economy.max_loops = 3  # Give up quickly for the sake of time
-        small_economy.makeAggShkHist()  # Simulate a history of aggregate shocks
+        small_economy.make_AggShkHist()  # Simulate a history of aggregate shocks
         small_economy.verbose = False  # Turn off printed messages
 
         # Give data about the economy to all the agents in it
         for this_type in small_economy.agents:
-            this_type.getEconomyData(small_economy)
+            this_type.get_economy_data(small_economy)
 
         small_economy.solve()

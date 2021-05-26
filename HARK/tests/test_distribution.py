@@ -12,8 +12,8 @@ from HARK.distribution import (
     MVNormal,
     Uniform,
     Weibull,
-    calcExpectation,
-    combineIndepDstns,
+    calc_expectation,
+    combine_indep_dstns
 )
 
 
@@ -28,46 +28,61 @@ class DiscreteDistributionTests(unittest.TestCase):
             DiscreteDistribution(np.ones(1), np.zeros(1)).draw(1)[0], 0,
         )
 
-    def test_calcExpectation(self):
+    def test_calc_expectation(self):
         dd_0_1_20 = Normal().approx(20)
         dd_1_1_40 = Normal(mu=1).approx(40)
         dd_10_10_100 = Normal(mu=10, sigma=10).approx(100)
 
-        ce1 = calcExpectation(dd_0_1_20)
-        ce2 = calcExpectation(dd_1_1_40)
-        ce3 = calcExpectation(dd_10_10_100)
+        ce1 = calc_expectation(dd_0_1_20)
+        ce2 = calc_expectation(dd_1_1_40)
+        ce3 = calc_expectation(dd_10_10_100)
 
         self.assertAlmostEqual(ce1, 0.0)
         self.assertAlmostEqual(ce2, 1.0)
         self.assertAlmostEqual(ce3, 10.0)
 
-        ce4 = calcExpectation(dd_0_1_20, lambda x: 2 ** x)
+        ce4= calc_expectation(
+            dd_0_1_20,
+            lambda x: 2 ** x
+        )
 
         self.assertAlmostEqual(ce4, 1.27153712)
 
-        ce5 = calcExpectation(dd_1_1_40, lambda x: 2 * x)
+        ce5 = calc_expectation(
+            dd_1_1_40,
+            lambda x: 2 * x
+        )
 
         self.assertAlmostEqual(ce5, 2.0)
 
-        ce6 = calcExpectation(dd_10_10_100, lambda x, y: 2 * x + y, 20)
+        ce6 = calc_expectation(
+            dd_10_10_100,
+            lambda x, y: 2 * x + y,
+            20
+        )
 
         self.assertAlmostEqual(ce6, 40.0)
 
-        ce7 = calcExpectation(
-            dd_0_1_20, lambda x, y: x + y, np.hstack(np.array([0, 1, 2, 3, 4, 5]))
+        ce7 = calc_expectation(
+            dd_0_1_20,
+            lambda x, y: x + y,
+            np.hstack(np.array([0,1,2,3,4,5]))
         )
 
         self.assertAlmostEqual(ce7.flat[3], 3.0)
 
         PermShkDstn = MeanOneLogNormal().approx(200)
         TranShkDstn = MeanOneLogNormal().approx(200)
-        IncShkDstn = combineIndepDstns(PermShkDstn, TranShkDstn)
+        IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
-        ce8 = calcExpectation(IncShkDstn, lambda X: X[0] + X[1])
+        ce8 = calc_expectation(
+            IncShkDstn,
+            lambda X: X[0] + X[1]
+        )
 
         self.assertAlmostEqual(ce8, 2.0)
 
-        ce9 = calcExpectation(
+        ce9 = calc_expectation(
             IncShkDstn,
             lambda X, a, r: r / X[0] * a + X[1],
             np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
@@ -129,7 +144,10 @@ class DistributionClassTests(unittest.TestCase):
 
         self.assertEqual(Uniform().draw(1)[0], 0.5488135039273248)
 
-        self.assertEqual(calcExpectation(uni.approx(10)), 0.5)
+        self.assertEqual(
+            calc_expectation(uni.approx(10)),
+            0.5
+        )
 
     def test_Bernoulli(self):
         self.assertEqual(Bernoulli().draw(1)[0], False)

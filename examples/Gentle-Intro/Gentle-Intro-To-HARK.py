@@ -30,15 +30,15 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-import HARK 
+import HARK
 from copy import deepcopy
 mystr = lambda number : "{:.4f}".format(number)
-from HARK.utilities import plotFuncs
+from HARK.utilities import plot_funcs
 
 # %% [markdown]
 # ## Your First HARK Model: Perfect Foresight
 #
-# We start with almost the simplest possible consumption model: A consumer with CRRA utility 
+# We start with almost the simplest possible consumption model: A consumer with CRRA utility
 #
 # \begin{equation}
 # U(C) = \frac{C^{1-\rho}}{1-\rho}
@@ -66,7 +66,7 @@ from HARK.utilities import plotFuncs
 from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
 
 # %% [markdown]
-# The $\texttt{PerfForesightConsumerType}$ class contains within itself the python code that constructs the solution for the perfect foresight model we are studying here, as specifically articulated in [these lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/).  
+# The $\texttt{PerfForesightConsumerType}$ class contains within itself the python code that constructs the solution for the perfect foresight model we are studying here, as specifically articulated in [these lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/).
 #
 # To create an instance of $\texttt{PerfForesightConsumerType}$, we simply call the class as if it were a function, passing as arguments the specific parameter values we want it to have.  In the hidden cell below, we define a $\textbf{dictionary}$ named $\texttt{PF_dictionary}$ with these parameter values:
 #
@@ -102,15 +102,15 @@ PF_dictionary = {
 # Let's make an **object** named $\texttt{PFexample}$ which is an **instance** of the $\texttt{PerfForesightConsumerType}$ class. The object $\texttt{PFexample}$ will bundle together the abstract mathematical description of the solution embodied in $\texttt{PerfForesightConsumerType}$, and the specific set of parameter values defined in $\texttt{PF_dictionary}$.  Such a bundle is created passing $\texttt{PF_dictionary}$ to the class $\texttt{PerfForesightConsumerType}$:
 
 # %%
-PFexample = PerfForesightConsumerType(**PF_dictionary) 
+PFexample = PerfForesightConsumerType(**PF_dictionary)
 # the asterisks ** basically say "here come some arguments" to PerfForesightConsumerType
 
 # %% [markdown]
-# In $\texttt{PFexample}$, we now have _defined_ the problem of a particular infinite horizon perfect foresight consumer who knows how to solve this problem.  
+# In $\texttt{PFexample}$, we now have _defined_ the problem of a particular infinite horizon perfect foresight consumer who knows how to solve this problem.
 #
 # ## Solving an Agent's Problem
 #
-# To tell the agent actually to solve the problem, we call the agent's $\texttt{solve}$ **method**. (A *method** is essentially a function that an object runs that affects the object's own internal characteristics -- in this case, the method adds the consumption function to the contents of $\texttt{PFexample}$.)
+# To tell the agent actually to solve the problem, we call the agent's $\texttt{solve}$ **method**. (A method is essentially a function that an object runs that affects the object's own internal characteristics -- in this case, the method adds the consumption function to the contents of $\texttt{PFexample}$.)
 #
 # The cell below calls the $\texttt{solve}$ method for $\texttt{PFexample}$
 
@@ -118,7 +118,7 @@ PFexample = PerfForesightConsumerType(**PF_dictionary)
 PFexample.solve()
 
 # %% [markdown]
-# Running the $\texttt{solve}$ method creates the **attribute** of $\texttt{PFexample}$ named $\texttt{solution}$.  In fact, every subclass of $\texttt{AgentType}$ works the same way: The class definition contains the abstract algorithm that knows how to solve the model, but to obtain the particular solution for a specific instance (paramterization/configuration), that instance must be instructed to $\texttt{solve()}$ its problem.  
+# Running the $\texttt{solve}$ method creates the **attribute** of $\texttt{PFexample}$ named $\texttt{solution}$.  In fact, every subclass of $\texttt{AgentType}$ works the same way: The class definition contains the abstract algorithm that knows how to solve the model, but to obtain the particular solution for a specific instance (paramterization/configuration), that instance must be instructed to $\texttt{solve()}$ its problem.
 #
 # The $\texttt{solution}$ attribute is always a $\textit{list}$ of solutions to a single period of the problem. In the case of an infinite horizon model like the one here, there is just one element in that list -- the solution to all periods of the infinite horizon problem.  The consumption function stored as the first element (element 0) of the solution list can be retrieved by:
 
@@ -126,13 +126,13 @@ PFexample.solve()
 PFexample.solution[0].cFunc
 
 # %% [markdown]
-# One of the results proven in the associated [the lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/) is that, for the specific problem defined above, there is a solution in which the _ratio_ $c = C/P$ is a linear function of the _ratio_ of market resources to permanent income, $m = M/P$.  
+# One of the results proven in the associated [the lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/) is that, for the specific problem defined above, there is a solution in which the _ratio_ $c = C/P$ is a linear function of the _ratio_ of market resources to permanent income, $m = M/P$.
 #
 # This is why $\texttt{cFunc}$ can be represented by a linear interpolation.  It can be plotted between an $m$ ratio of 0 and 10 using the command below.
 
 # %%
 mPlotTop=10
-plotFuncs(PFexample.solution[0].cFunc,0.,mPlotTop)
+plot_funcs(PFexample.solution[0].cFunc,0.,mPlotTop)
 
 # %% [markdown]
 # The figure illustrates one of the surprising features of the perfect foresight model: A person with zero money should be spending at a rate more than double their income (that is, $\texttt{cFunc}(0.) \approx 2.08$ - the intersection on the vertical axis).  How can this be?
@@ -146,10 +146,10 @@ print("This agent's human wealth is " + str(humanWealth) + ' times his current i
 print("This agent's consumption function is defined (consumption is positive) down to m_t = " + str(mMinimum))
 
 # %% [markdown]
-# Yikes! Let's take a look at the bottom of the consumption function.  In the cell below, the bounds of the $\texttt{plotFuncs}$ function are set to display down to the lowest defined value of the consumption function.
+# Yikes! Let's take a look at the bottom of the consumption function.  In the cell below, the bounds of the `plot_funcs` function are set to display down to the lowest defined value of the consumption function.
 
 # %%
-plotFuncs(PFexample.solution[0].cFunc,
+plot_funcs(PFexample.solution[0].cFunc,
           mMinimum,
           mPlotTop)
 
@@ -162,19 +162,19 @@ plotFuncs(PFexample.solution[0].cFunc,
 NewExample = deepcopy(PFexample)
 
 # %% [markdown]
-# In Python, you can set an **attribute** of an object just like any other variable.  For example, we could make the new agent less patient:
+# You can assign new parameters to an `AgentType` with the `assign_parameter` method. For example, we could make the new agent less patient:
 
 # %%
-NewExample.DiscFac = 0.90
+NewExample.assign_parameters(DiscFac = 0.90)
 NewExample.solve()
 mPlotBottom = mMinimum
-plotFuncs([PFexample.solution[0].cFunc,
+plot_funcs([PFexample.solution[0].cFunc,
            NewExample.solution[0].cFunc],
           mPlotBottom,
           mPlotTop)
 
 # %% [markdown]
-# (Note that you can pass a **list** of functions to $\texttt{plotFuncs}$ as the first argument rather than just a single function. Lists are written inside of [square brackets].)
+# (Note that you can pass a **list** of functions to `plot_funcs` as the first argument rather than just a single function. Lists are written inside of [square brackets].)
 #
 # Let's try to deal with the "problem" of massive human wealth by making another consumer who has essentially no future income.  We can virtually eliminate human wealth by making the permanent income growth factor $\textit{very}$ small.
 #
@@ -187,7 +187,7 @@ plotFuncs([PFexample.solution[0].cFunc,
 # print("your lines here")
 
 # Compare the old and new consumption functions
-plotFuncs([PFexample.solution[0].cFunc,NewExample.solution[0].cFunc],0.,10.)
+plot_funcs([PFexample.solution[0].cFunc,NewExample.solution[0].cFunc],0.,10.)
 
 # %% [markdown]
 # Now $\texttt{NewExample}$'s consumption function has the same slope (MPC) as $\texttt{PFexample}$, but it emanates from (almost) zero-- he has basically no future income to borrow against!
@@ -236,7 +236,7 @@ IndShockDictionary = {
     'DiscFac': 0.96,
     'LivPrb': [0.98],
     'PermGroFac': [1.01],
-    'PermShkStd': [0.1],  # ... and the new parameters for constructing the income process.    
+    'PermShkStd': [0.1],  # ... and the new parameters for constructing the income process.
     'PermShkCount': 7,
     'TranShkStd': [0.1],
     'TranShkCount': 7,
@@ -264,7 +264,7 @@ IndShockDictionary = {
     'AgentCount': 10000,
     'tax_rate':0.0,
 }
-        
+
 # Hey, there's a lot of parameters we didn't tell you about!  Yes, but you don't need to
 # think about them for now.
 
@@ -280,7 +280,7 @@ IndShockExample = IndShockConsumerType(**IndShockDictionary)
 
 # %%
 IndShockExample.solve()
-plotFuncs(IndShockExample.solution[0].cFunc,0.,10.)
+plot_funcs(IndShockExample.solution[0].cFunc,0.,10.)
 
 # %% [markdown]
 # ## Changing Constructed Attributes
@@ -289,12 +289,12 @@ plotFuncs(IndShockExample.solution[0].cFunc,0.,10.)
 #
 # Suppose you were interested in changing (say) the amount of permanent income risk.  From the section above, you might think that you could simply change the attribute $\texttt{TranShkStd}$, solve the model again, and it would work.
 #
-# That's _almost_ true-- there's one extra step. $\texttt{TranShkStd}$ is a primitive input, but it's not the thing you _actually_ want to change. Changing $\texttt{TranShkStd}$ doesn't actually update the income distribution... unless you tell it to (just like changing an agent's preferences does not change the consumption function that was stored for the old set of parameters -- until you invoke the $\texttt{solve}$ method again).  In the cell below, we invoke the method $\texttt{updateIncomeProcess}$ so HARK knows to reconstruct the attribute $\texttt{IncomeDstn}$.
+# That's _almost_ true-- there's one extra step. $\texttt{TranShkStd}$ is a primitive input, but it's not the thing you _actually_ want to change. Changing $\texttt{TranShkStd}$ doesn't actually update the income distribution... unless you tell it to (just like changing an agent's preferences does not change the consumption function that was stored for the old set of parameters -- until you invoke the $\texttt{solve}$ method again).  In the cell below, we invoke the method $\texttt{update_income_process}$ so HARK knows to reconstruct the attribute $\texttt{IncomeDstn}$.
 
 # %%
 OtherExample = deepcopy(IndShockExample)  # Make a copy so we can compare consumption functions
-OtherExample.PermShkStd = [0.2]           # Double permanent income risk (note that it's a one element list)
-OtherExample.updateIncomeProcess()        # Call the method to reconstruct the representation of F_t
+OtherExample.assign_parameters(PermShkStd = [0.2])           # Double permanent income risk (note that it's a one element list)
+OtherExample.update_income_process()        # Call the method to reconstruct the representation of F_t
 OtherExample.solve()
 
 # %% [markdown]
@@ -302,4 +302,3 @@ OtherExample.solve()
 
 # %%
 # Use the line(s) below to plot the consumptions functions against each other
-

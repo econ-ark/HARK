@@ -8,9 +8,210 @@ Created on Thu Jan 21 15:04:24 2021
 # Bring in modules we need
 import unittest
 import numpy as np
-from HARK.Calibration.Income.SabelhausSongProfiles import sabelhaus_song_var_profile
+from HARK.Calibration.Income.IncomeTools import (
+    sabelhaus_song_var_profile,
+    parse_income_spec,
+    find_profile,
+    CGM_income,
+    Cagetti_income,
+)
+
+# %% Mean income profile tests
+class test_income_paths(unittest.TestCase):
+    def setUp(self):
+
+        # Assign a result from Cocco, Gomes, Maenhout
+        self.cgm_hs_mean_p = np.array(
+            [
+                16.8338,
+                17.8221,
+                18.7965,
+                19.7509,
+                20.6796,
+                21.5773,
+                22.4388,
+                23.2596,
+                24.0359,
+                24.7642,
+                25.4417,
+                26.0662,
+                26.6362,
+                27.1506,
+                27.6092,
+                28.0122,
+                28.3603,
+                28.6548,
+                28.8974,
+                29.0902,
+                29.2357,
+                29.3367,
+                29.3963,
+                29.4178,
+                29.4046,
+                29.3602,
+                29.2884,
+                29.1927,
+                29.0771,
+                28.9451,
+                28.8004,
+                28.6468,
+                28.4876,
+                28.3266,
+                28.167,
+                28.0122,
+                27.8655,
+                27.7301,
+                27.6092,
+                27.5059,
+                27.4232,
+                27.3643,
+                27.3323,
+                27.3304,
+                27.3619,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+                18.6635,
+            ]
+        )
+
+        # And a result from Cagetti
+        self.cagetti_college_mean_p = np.array(
+            [
+                29.8545,
+                31.0534,
+                32.2894,
+                33.5602,
+                34.8632,
+                36.1954,
+                37.5537,
+                38.9343,
+                40.3332,
+                41.746,
+                43.1681,
+                44.5943,
+                46.0193,
+                47.4376,
+                48.8433,
+                50.2304,
+                51.5926,
+                52.9237,
+                54.2173,
+                55.4672,
+                56.6672,
+                57.8109,
+                58.8927,
+                59.9067,
+                60.8477,
+                61.7106,
+                62.4908,
+                63.1844,
+                63.7878,
+                64.2979,
+                64.7123,
+                65.0294,
+                65.2479,
+                65.3675,
+                65.3882,
+                65.311,
+                65.1372,
+                64.8691,
+                64.5092,
+                64.0609,
+                63.5278,
+                31.8833,
+                31.8638,
+                31.8444,
+                31.825,
+                31.8056,
+                31.7862,
+                31.7668,
+                31.7474,
+                31.728,
+                31.7087,
+                31.6893,
+                31.67,
+                31.6507,
+                31.6314,
+                31.6121,
+                31.5928,
+                31.5735,
+                31.5542,
+                31.535,
+                31.5158,
+                31.4965,
+                31.4773,
+                31.4581,
+                31.4389,
+                31.4197,
+                31.4006,
+            ]
+        )
+
+    def test_CGM(self):
+
+        adjust_infl_to = 1992
+        age_min = 21
+        age_max = 100
+        spec = CGM_income["HS"]
+        params = parse_income_spec(
+            age_min=age_min, age_max=age_max, adjust_infl_to=adjust_infl_to, **spec
+        )
+        MeanP = find_profile(params["PermGroFac"], params["P0"])
+
+        self.assertTrue(np.allclose(self.cgm_hs_mean_p, MeanP, atol=1e-03))
+
+    def test_Cagetti(self):
+
+        adjust_infl_to = 1992
+        age_min = 25
+        age_max = 91
+        start_year = 1980
+        spec = Cagetti_income["College"]
+        params = parse_income_spec(
+            age_min=age_min,
+            age_max=age_max,
+            adjust_infl_to=adjust_infl_to,
+            start_year=start_year,
+            **spec
+        )
+        MeanP = find_profile(params["PermGroFac"], params["P0"])
+
+        self.assertTrue(np.allclose(self.cagetti_college_mean_p, MeanP, atol=1e-03))
 
 
+# %% Volatility profile tests
 class test_SabelhausSongProfiles(unittest.TestCase):
     def setUp(self):
 
@@ -222,13 +423,13 @@ class test_SabelhausSongProfiles(unittest.TestCase):
 
         self.assertTrue(
             np.allclose(
-                self.Fig6Coh1940Tran, np.array(stds1940["TranShkStd"]), atol=1e-03
+                self.Fig6Coh1940Tran, np.array(stds1940["TranShkStd"])**2, atol=1e-03
             )
         )
 
         self.assertTrue(
             np.allclose(
-                self.Fig6Coh1940Perm, np.array(stds1940["PermShkStd"]), atol=1e-03
+                self.Fig6Coh1940Perm, np.array(stds1940["PermShkStd"])**2, atol=1e-03
             )
         )
 
@@ -239,13 +440,13 @@ class test_SabelhausSongProfiles(unittest.TestCase):
 
         self.assertTrue(
             np.allclose(
-                self.Fig6Coh1965Tran, np.array(stds1965["TranShkStd"]), atol=1e-03
+                self.Fig6Coh1965Tran, np.array(stds1965["TranShkStd"])**2, atol=1e-03
             )
         )
 
         self.assertTrue(
             np.allclose(
-                self.Fig6Coh1965Perm, np.array(stds1965["PermShkStd"]), atol=1e-03
+                self.Fig6Coh1965Perm, np.array(stds1965["PermShkStd"])**2, atol=1e-03
             )
         )
 
@@ -256,11 +457,11 @@ class test_SabelhausSongProfiles(unittest.TestCase):
         )
 
         self.assertTrue(
-            np.allclose(self.AggTran, np.array(stds_agg["TranShkStd"]), atol=1e-03)
+            np.allclose(self.AggTran, np.array(stds_agg["TranShkStd"])**2, atol=1e-03)
         )
 
         self.assertTrue(
-            np.allclose(self.AggPerm, np.array(stds_agg["PermShkStd"]), atol=1e-03)
+            np.allclose(self.AggPerm, np.array(stds_agg["PermShkStd"])**2, atol=1e-03)
         )
 
     def test_smoothing(self):
@@ -283,38 +484,34 @@ class test_SabelhausSongProfiles(unittest.TestCase):
         # 1940
         self.assertTrue(
             np.allclose(
-                np.array(smooth1940["TranShkStd"]), self.Fig6Coh1940Tran, rtol= rtol
+                np.array(smooth1940["TranShkStd"])**2, self.Fig6Coh1940Tran, rtol=rtol
             )
         )
 
         self.assertTrue(
             np.allclose(
-                np.array(smooth1940["PermShkStd"]), self.Fig6Coh1940Perm, atol= rtol
+                np.array(smooth1940["PermShkStd"])**2, self.Fig6Coh1940Perm, atol=rtol
             )
         )
-        
+
         # 1965
         self.assertTrue(
             np.allclose(
-                np.array(smooth1965["TranShkStd"]), self.Fig6Coh1965Tran, rtol= rtol
+                np.array(smooth1965["TranShkStd"])**2, self.Fig6Coh1965Tran, rtol=rtol
             )
         )
 
         self.assertTrue(
             np.allclose(
-                np.array(smooth1965["PermShkStd"]), self.Fig6Coh1965Perm, atol= rtol
+                np.array(smooth1965["PermShkStd"])**2, self.Fig6Coh1965Perm, atol=rtol
             )
         )
-        
+
         # Aggregate
         self.assertTrue(
-            np.allclose(
-                np.array(smoothAgg["TranShkStd"]), self.AggTran, rtol= rtol
-            )
+            np.allclose(np.array(smoothAgg["TranShkStd"])**2, self.AggTran, rtol=rtol)
         )
 
         self.assertTrue(
-            np.allclose(
-                np.array(smoothAgg["PermShkStd"]), self.AggPerm, atol= rtol
-            )
+            np.allclose(np.array(smoothAgg["PermShkStd"])**2, self.AggPerm, atol=rtol)
         )
