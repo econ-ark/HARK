@@ -7,6 +7,7 @@ from HARK.utilities import CRRAutilityP_inv as utilityP_inv
 from HARK.utilities import CRRAutility_invP as utility_invP
 from HARK.utilities import CRRAutility_inv as utility_inv
 from HARK.utilities import CRRAutilityP_invP as utilityP_invP
+
 from HARK.interpolation import (CubicInterp, LowerEnvelope, LinearInterp,
                                 ValueFuncCRRA, MargValueFuncCRRA,
                                 MargMargValueFuncCRRA)
@@ -23,6 +24,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel_Both import (
     def_utility, def_value_funcs)
 from HARK.distribution import (calc_expectation)
 
+
 class Built(SimpleNamespace):
     """
     Objects built by solvers during course of solution.
@@ -31,6 +33,7 @@ class Built(SimpleNamespace):
     pass
 
 # Namespaces are useful to label and track different kinds of things
+
 
 class SuccessorInfo(SimpleNamespace):
     """
@@ -41,6 +44,7 @@ class SuccessorInfo(SimpleNamespace):
 # TODO: Move (to core.py) when vetted/agreed
     pass
 
+
 class SolutionHolder(SimpleNamespace):
     """
     Objects built by solvers during course of solution.
@@ -50,6 +54,7 @@ class SolutionHolder(SimpleNamespace):
 
 
 __all__ = [
+    "ConsumerSolutionOld",
     "ConsumerSolution",
     "ConsumerSolutionOneStateCRRA",
     "ConsPerfForesightSolver",
@@ -59,6 +64,92 @@ __all__ = [
     "ConsKinkedRsolver",
 ]
 
+# ConsumerSolution is identical to base in HARK 0.11.0
+
+
+class ConsumerSolutionOld(MetricObject):
+    """
+    A class representing the solution of a single period of a consumption-saving
+    problem.  The solution must include a consumption function and marginal
+    value function.
+    Here and elsewhere in the code, Nrm indicates that variables are normalized
+    by permanent income.
+    Parameters
+    ----------
+    cFunc : function
+        The consumption function for this period, defined over market
+        resources: c = cFunc(m).
+    vFunc : function
+        The beginning-of-period value function for this period, defined over
+        market resources: v = vFunc(m).
+    vPfunc : function
+        The beginning-of-period marginal value function for this period,
+        defined over market resources: vP = vPfunc(m).
+    vPPfunc : function
+        The beginning-of-period marginal marginal value function for this
+        period, defined over market resources: vPP = vPPfunc(m).
+    mNrmMin : float
+        The minimum allowable market resources for this period; the consump-
+        tion function (etc) are undefined for m < mNrmMin.
+    hNrm : float
+        Human wealth after receiving income this period: PDV of all future
+        income, ignoring mortality.
+    MPCmin : float
+        Infimum of the marginal propensity to consume this period.
+        MPC --> MPCmin as m --> infinity.
+    MPCmax : float
+        Supremum of the marginal propensity to consume this period.
+        MPC --> MPCmax as m --> mNrmMin.
+    """
+
+    distance_criteria = ["vPfunc"]
+
+    def __init__(self, cFunc=None, vFunc=None, vPfunc=None, vPPfunc=None, mNrmMin=None, hNrm=None, MPCmin=None, MPCmax=None,):
+        # Change any missing function inputs to NullFunc
+        self.cFunc = cFunc if cFunc is not None else NullFunc()
+        self.vFunc = vFunc if vFunc is not None else NullFunc()
+        self.vPfunc = vPfunc if vPfunc is not None else NullFunc()
+        self.vPPfunc = vPPfunc if vPPfunc is not None else NullFunc()
+        self.mNrmMin = mNrmMin
+        self.hNrm = hNrm
+        self.MPCmin = MPCmin
+        self.MPCmax = MPCmax
+
+    def append_solution(self, new_solution):
+        """
+        Appends one solution to another to create a ConsumerSolution whose
+        attributes are lists.  Used in ConsMarkovModel, where we append solutions
+        *conditional* on a particular value of a Markov state to each other in
+        order to get the entire solution.
+        Parameters
+        ----------
+        new_solution : ConsumerSolution
+            The solution to a consumption-saving problem; each attribute is a
+            list representing state-conditional values or functions.
+        Returns
+        -------
+        None
+        """
+        if type(self.cFunc) != list:
+            # Then we assume that self is an empty initialized solution instance.
+            # Begin by checking this is so.
+            assert (
+                NullFunc().distance(self.cFunc) == 0
+            ), "append_solution called incorrectly!"
+
+            # We will need the attributes of the solution instance to be lists.  Do that here.
+            self.cFunc = [new_solution.cFunc]
+            self.vFunc = [new_solution.vFunc]
+            self.vPfunc = [new_solution.vPfunc]
+            self.vPPfunc = [new_solution.vPPfunc]
+            self.mNrmMin = [new_solution.mNrmMin]
+        else:
+            self.cFunc.append(new_solution.cFunc)
+            self.vFunc.append(new_solution.vFunc)
+            self.vPfunc.append(new_solution.vPfunc)
+            self.vPPfunc.append(new_solution.vPPfunc)
+            self.mNrmMin.append(new_solution.mNrmMin)
+
 
 class ConsumerSolution(MetricObject):
     """
@@ -66,10 +157,8 @@ class ConsumerSolution(MetricObject):
     state variable at decision time: market resources `m`, which includes both
     liquid assets and current income.  Defines a consumption function and
     marginal value function.
-
     Here and elsewhere in the code, Nrm indicates that variables are normalized
     by permanent income.
-
     Parameters
     ----------
     cFunc : function
@@ -141,13 +230,11 @@ class ConsumerSolution(MetricObject):
         attributes are lists.  Used in ConsMarkovModel, where we append solutions
         *conditional* on a particular value of a Markov state to each other in
         order to get the entire solution.
-
         Parameters
         ----------
         new_solution : ConsumerSolution
             The solution to a consumption-saving problem; each attribute is a
             list representing state-conditional values or functions.
-
         Returns
         -------
         None
@@ -173,15 +260,68 @@ class ConsumerSolution(MetricObject):
             self.mNrmMin.append(new_solution.mNrmMin)
 
 
+# class ConsumerSolutionTest(ConsumerSolution):
+#     __doc__ = ConsumerSolution.__doc__
+#     __doc__ += """
+#     stge_kind : dict
+#         Dictionary with info about this stage
+#         One built-in entry keeps track of the nature of the stage:
+#             {'iter_status':'finished'}: Stopping requirements are satisfied
+#                 If stopping requirements are satisfied, {'tolerance':tolerance}
+#                 should exist recording what convergence tolerance was satisfied
+#             {'iter_status':'iterator'}: Solution during iteration
+#                 solution[0].distance_last records the last distance
+#             {'iter_status':'terminal_pseudo'}: Bare-bones terminal period
+#                 Does not contain all the info needed to begin solution
+#                 Solver will augment and replace it with 'iterator' stage
+#         Other uses include keeping track of the nature of the next stage
+#     parameters_solver : dict
+#         Stores the parameters with which the solver was called
+#     """
+
+#     # CDC 20210426: vPfunc is a bad choice; we should change it,
+#     # but doing so will require recalibrating some of our tests
+#     distance_criteria = ["vPfunc"]  # Bad: it goes to infinity; would be better to use:
+# #    distance_criteria = ["mNrmStE"]  # mNrmStE if the GIC holds (and it's not close)
+# #    distance_criteria = ["cFunc"]  # cFunc if the GIC fails
+
+#     def __init__(self, *args,
+#                  stge_kind={'iter_status': 'not initialized'},
+#                  completed_cycles=0,
+#                  parameters_solver=None,
+#                  **kwds):
+#         ConsumerSolutionOld.__init__(self, *args, **kwds)
+
+#         bilt = self.bilt = Built()
+#         bilt.parameters_solver = None
+#         bilt.cFunc = self.cFunc
+#         bilt.vFunc = self.vFunc
+#         bilt.vPfunc = self.vPfunc
+#         bilt.vPPfunc = self.vPPfunc
+#         bilt.mNrmMin = self.mNrmMin
+#         bilt.hNrm = self.hNrm
+#         bilt.MPCmin = self.MPCmin
+#         bilt.MPCmax = self.MPCmax
+#         bilt.completed_cycles = completed_cycles
+#         bilt.parameters_solver = parameters_solver
+
+
+# class ConsumerSolutionOneStateCRRA_test(ConsumerSolutionPlus):
+#     pass
 # CDC 20210509: This was added as a stage above ConsumerSolution because ConsumerSolution should
 # generically handle any and all general consumption
 # problems and PerfForesightCRRA should handle the subclass that is both PF and CRRA
 # Also as a place to instantiate the stge_kind attribute, which should ultimately move
 # upstream to become a core attribute of any solution
 
-class ConsumerSolutionOneStateCRRA(ConsumerSolution):
+class ConsumerSolutionPlus(ConsumerSolutionOld):
+    def __init__(self, *args, **kwds):
+        ConsumerSolutionOld.__init__(self, *args, **kwds)
+
+# class ConsumerSolutionOneStateCRRA(ConsumerSolutionPlus):
+class ConsumerSolutionOneStateCRRA(ConsumerSolutionPlus):
     """
-    A subclass of ConsumerSolution that assumes that the problem has two
+    This subclass of ConsumerSolution assumes that the problem has two
     key additional characteristics:
 
         * Constant Relative Risk Aversion (CRRA) utility
@@ -198,14 +338,54 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
     parent ConsumerSolution of this class, all of which applies here.
     """
     __doc__ += ConsumerSolution.__doc__
+    __doc__ += """
+    stge_kind : dict
+        Dictionary with info about this stage
+        One built-in entry keeps track of the nature of the stage:
+            {'iter_status':'finished'}: Stopping requirements are satisfied
+                If stopping requirements are satisfied, {'tolerance':tolerance}
+                should exist recording what convergence tolerance was satisfied
+            {'iter_status':'iterator'}: Solution during iteration
+                solution[0].distance_last records the last distance
+            {'iter_status':'terminal_pseudo'}: Bare-bones terminal period
+                Does not contain all the info needed to begin solution
+                Solver will augment and replace it with 'iterator' stage
+        Other uses include keeping track of the nature of the next stage
+    completed_cycles : A count of the number of iterations executed so far
+    parameters_solver : dict
+        Stores the parameters with which the solver was called
+    """
 
-    # def __init__(self, *args, stge_kind={}, **kwargs):
-    #     self.stge_kind = stge_kind
-    #     super().__init__(*args, **kwargs)  # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
+    def __init__(self, *args,
+                 stge_kind={'iter_status': 'not initialized'},
+                 completed_cycles=0,
+                 parameters_solver=None,
+                 **kwds):
+        ConsumerSolutionOld.__init__(self, *args, **kwds)
+        # We are now in position to define some elements of the
+        # dolo representation of the model
+        # dolo = self.dolo
+        # # These will be updated when more specific assumptions are made
+        # dolo.model_name = 'ConsumerSolutionOneStateCRRA'
+        # dolo.symbols = {'states': ['mNrm'],
+        #                 'controls': ['cNrm'],
+        #                 'parameters': ['ρ', 'β', 'Π', 'Rfree', 'Γ'],
+        #                 'expectations': ['Euler_cNrm'],
+        #                 'transition': ['DBC_mNrm'],
+        #                 }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)  # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
-        self.blmn_pblc = {'cFunc', 'vFUnc'}
+        bilt = self.bilt = Built()
+        bilt.parameters_solver = None
+        bilt.cFunc = self.cFunc
+        bilt.vFunc = self.vFunc
+        bilt.vPfunc = self.vPfunc
+        bilt.vPPfunc = self.vPPfunc
+        bilt.mNrmMin = self.mNrmMin
+        bilt.hNrm = self.hNrm
+        bilt.MPCmin = self.MPCmin
+        bilt.MPCmax = self.MPCmax
+        bilt.completed_cycles = completed_cycles
+        bilt.parameters_solver = parameters_solver
 
     def check_conditions(self, soln_crnt, verbose=None):
         """
@@ -1437,18 +1617,6 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 
         soln_crnt = self.soln_crnt
 
-#        soln_crnt.IncShkDstn = IncShkDstn
-
-#        breakpoint()
-
-        # Add to self those arguments that will not have been handled by PF agent type
-        # self.aXtraGrid = aXtraGrid
-        # self.vFuncBool = vFuncBool
-        # self.CubicBool = CubicBool
-        # self.IncShkDstn = IncShkDstn
-        # self.permShkDstn = permShkDstn
-        # self.tranShkDstn = tranShkDstn
-
         # Don't want to keep track of anything on self of disposable solver
         bilt = soln_crnt.bilt  # convenient local alias to reduce clutter
 
@@ -1487,8 +1655,6 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         bilt.aXtraGrid = aXtraGrid
         bilt.vFuncBool = vFuncBool
         bilt.CubicBool = CubicBool
-
-    # "self" here is the solver, which knows info about the problem from the agent
 
     def build_infhor_facts_from_params(self):
         """
@@ -2100,18 +2266,21 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         return cFunc_unconstrained
 
     # ConsIndShockSolverBasic
-    def solve(self):  # solves ONE stage
+    def solve_prepared_stage(self):  # solves ONE stage
         """
-        Solves (one period/stage of) the single period consumption-saving problem with
-        method of endogenous gridpoints.  Solution includes a consumption function
-        cFunc (using cubic or linear splines), a marginal value function vPfunc, a min-
-        imum acceptable level of normalized market resources mNrmMin, normalized
-        human wealth hNrm, and bounding MPCs MPCmin and MPCmax.  It might also
+        Solves one stage (period, in this model) of the consumption-saving problem.  
+        
+        Solution includes a decision rule (consumption function), cFunc,
+        value and marginal value functions vFunc and vPfunc, 
+        a minimum possible level of normalized market resources mNrmMin, 
+        normalized human wealth hNrm, and bounding MPCs MPCmin and MPCmax.  
+        
+        If the user chooses sets `CubicBool` to True, cFunc
         have a value function vFunc and marginal marginal value function vPPfunc.
 
         Parameters
         ----------
-        none
+        none (all should be on self)
 
         Returns
         -------
@@ -2202,6 +2371,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         return soln_crnt
 
+    solve = solve_prepared_stage
+    
     def m_Nrm_tp1(self, shk_vector, a_number):
         """
         Computes normalized market resources of the next period
@@ -2620,4 +2791,3 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         self.mNrmNext = mNrmNext
         self.aNrm = aNrm
         return aNrm
-

@@ -3,6 +3,7 @@
 from HARK.ConsumptionSaving.ConsIndShockModel_Solve \
     import (
         ConsumerSolution, ConsumerSolutionOneStateCRRA,
+#        ConsumerSolutionOneStateCRRA_test,ConsumerSolutionPlus,
         ConsPerfForesightSolver, ConsIndShockSetup,
         ConsIndShockSolverBasic, ConsIndShockSolver, ConsKinkedRsolver)
 

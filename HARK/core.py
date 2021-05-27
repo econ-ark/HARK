@@ -503,7 +503,7 @@ class AgentType(Model):
         with np.errstate(
             divide="ignore", over="ignore", under="ignore", invalid="ignore"
         ):
-#            breakpoint()
+            #            breakpoint()
             self.pre_solve()  # Stuff to do before beginning to solve the model
             self.solution = solve_agent(
                 self, verbose
@@ -1057,9 +1057,9 @@ def solve_agent(agent, verbose):
             solution_now = solution_cycle[0]  # element 0 most recently solved
             # Check for termination: solutions identical (within tolerance)
 #            breakpoint()
-            solution_distance = solution_now.distance(solution_last)
+            solution_now.solution_distance = \
+                solution_distance = solution_now.distance(solution_last)
 #            print('solution_distance'+str(solution_distance))
-            solution_now.solution_distance = solution_distance
             go = (
                 solution_distance > agent.tolerance
                 and completed_cycles < max_cycles
@@ -1094,12 +1094,13 @@ def solve_agent(agent, verbose):
                     # Record the tolerance that was satisfied
                     solution_now.stge_kind['tolerance'] = agent.tolerance
         # Update the "last period/stage solution" for next iteration
-        solution_last = solution_now
         completed_cycles += 1
+        solution_now.completed_cycles = deepcopy(completed_cycles)
+        solution_last = solution_now
+#        breakpoint()
         if agent.verbose <= 2:
-#        print('completed_cycles = '+str(completed_cycles))
-            print('.',end='')
-        solution_last.completed_cycles = deepcopy(completed_cycles)
+            #        print('completed_cycles = '+str(completed_cycles))
+            print('.', end='')
 #        breakpoint()
         # Display progress if requested
         if verbose > 1:
@@ -1259,11 +1260,11 @@ def make_one_period_oo_solver(solver_class):
     def one_period_solver(**kwds):  # FIX: rename to, say, solve_stge
         # last step in loop over num_stges in solve_one_cycle is:
         # """ solve_one_period(**temp_dict) [should become, say, solve_this_stge]
-#        breakpoint()
+        #        breakpoint()
         solver = solver_class(**kwds)  # defined extrnally
         if hasattr(solver, "prepare_to_solve"):
             # Steps, if any, to prep for sol of stge
-#            breakpoint()
+            #            breakpoint()
             solver.prepare_to_solve()  # Fix: rename to prepare_to_solve_stge
 
         solution_stge = solver.solve()  # Fix: rename to solve_stge

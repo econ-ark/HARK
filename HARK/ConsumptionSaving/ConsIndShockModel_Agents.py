@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
-#from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
-#from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools \
-#    import income_wealth_dists_from_scf
-#from HARK.Calibration.Income.IncomeTools \
-#    import (parse_income_spec, parse_time_params, Cagetti_income)
 from HARK.core import (_log, set_verbosity_level)
-#from HARK.utilities \
-#    import (make_grid_exp_mult)
 from HARK.distribution \
     import (add_discrete_outcome_constant_mean, calc_expectation,
             combine_indep_dstns, Lognormal, MeanOneLogNormal, Uniform)
@@ -20,15 +13,23 @@ from types import SimpleNamespace
 
 from HARK.ConsumptionSaving.ConsIndShockModel_Both \
     import (def_utility, def_value_funcs, construct_assets_grid)
-    
+
 from HARK.ConsumptionSaving.ConsIndShockModel_Solve \
-    import (ConsumerSolutionOneStateCRRA, ConsPerfForesightSolver,
+    import (ConsumerSolutionOneStateCRRA,
+            #            ConsumerSolutionOneStateCRRA_test,
+            ConsPerfForesightSolver,
             ConsIndShockSolverBasic, ConsIndShockSolver,
-            ConsKinkedRsolver)
-    
+            ConsKinkedRsolver,
+            ConsumerSolution,
+            #            ConsumerSolutionPlus
+            )
+
 from HARK.ConsumptionSaving.ConsIndShockModel_Both \
     import (init_perfect_foresight, init_idiosyncratic_shocks)
-    
+
+from dolo import yaml_import
+import tempfile # create temp file for dolo yaml import
+
 """
 Classes to solve canonical consumption-saving models with idiosyncratic shocks
 to income.  All models here assume CRRA utility with geometric discounting, no
@@ -56,6 +57,7 @@ __all__ = [
     "KinkedRconsumerType"
 ]
 
+
 class AgentTypePlus(AgentType):
     """
     AgentType augmented with a few features that should be incorporated into
@@ -68,38 +70,43 @@ class AgentTypePlus(AgentType):
     The code defines a number of optional elements that are used to
     to enhance clarity or to allow future functionality.  These include:
 
-    input_kind : dictionary
-        Keeps track of the nature of the inputs to the model, specifically
-        whether they are 'prmtv' parameters that would define the solution
-        with infinite computational power or 'aprox' parameters
-        associated with a particular method of approximate solution
+    prmtv_par : dictionary
+        List of 'prmtv' parameters that are necessary and sufficient to
+        define a unique solution with infinite computational power
 
-    fcts : dictionary
-        For storing meta information about an object in the model,
-        for example a mathematical derivation or an explanation of 
-        its role in an economic model.
+    aprox_lim : dictionary
+        Approximation parameters, including a limiting value.
+        As all aprox parameters approach their limits simultaneously,
+        the numerical solution should converge to the 'true' solution
+        that would be obtained with infinite computational power
 
-        fcts[objectName]['latexexpr'] - Name of variable in LaTeX docs
-        fcts[objectName]['urlhandle'] - url to further info on it
-        fcts[objectName]['python_ex'] - python expr creating its value
-        fcts[objectName]['value_now'] - latest value calculated for it
     """
+    # fcts : dictionary
+    #     For storing meta information about an object in the model,
+    #     for example a mathematical derivation or an explanation of
+    #     its role in an economic model.
 
-    # These three variables seem to be mandatory; they need to be overwritten
+    #     fcts[objectName]['latexexpr'] - Name of variable in LaTeX docs
+    #     fcts[objectName]['urlhandle'] - url to further info on it
+    #     fcts[objectName]['python_ex'] - python expr creating its value
+    #     fcts[objectName]['value_now'] - latest value calculated for it
+
+    # These three variables are mandatory; they must be overwritten
     # as appropriate
     time_vary = []
     time_inv = []
     state_vars = []
 
-    def __init__(self, *args, **kwargs):
-        # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
-
-        AgentType.__init__(self,
-                           *args,
-                           **kwargs)
+    # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
+    def __init__(self, *args, **kwargs):  # Inherit from basic AgentType
+        AgentType.__init__(self, *args, **kwargs)
 
         self.add_to_given_params = {'time_vary', 'time_inv', 'state_vars',
                                     'cycles', 'seed', 'tolerance'}
+        # The base MetricObject class automatically constructs a list
+        # of parameters but for some reason it does not get some
+        # of the parameters {'cycles','seed','tolerance'} needed
+        # TODO: CDC 20210525: Fix this in MetricObject to reduce clutter here
         self.update_parameters_for_this_agent_subclass()
 
     def store_model_params(self, prmtv_par, aprox_lim):
@@ -281,6 +288,23 @@ class OneStateConsumerType(AgentTypePlus):
                 'maker_class': 'OneStateConsumerType'
             })
 
+#        orig = ConsumerSolutionOneStateCRRA()
+#        breakpoint()
+#        plus = ConsumerSolutionOneStateCRRA_test()
+
+#        breakpoint()
+        # solution_nobequest_test = ConsumerSolutionOneStateCRRA_test(  # Omits vFunc b/c u not yet def
+        #     cFunc=cFunc_terminal_nobequest_,
+        #     mNrmMin=0.0,  # Assumes PF model in which minimum mNrmMin is 1.0
+        #     hNrm=0.0,
+        #     MPCmin=1.0,
+        #     MPCmax=1.0,
+        #     stge_kind={
+        #         'iter_status': 'terminal_pseudo',  # will be replaced with iterator
+        #         'term_type': 'nobequest',
+        #         'maker_class': 'OneStateConsumerType'
+        #     })
+
         solution_nobequest_.solution_next = solution_afterlife_nobequest_
 
         # Define solution_terminal_ for legacy/compatability reasons
@@ -318,10 +342,11 @@ class OneStateConsumerType(AgentTypePlus):
 class PerfForesightConsumerType(OneStateConsumerType):
 
     """
-    A perfect foresight consumer who has no uncertainty other than mortality.
-    Problem is defined by a coefficient of relative risk aversion, geometric
-    discount factor, interest factor, an artificial borrowing constraint (maybe)
-    and time sequences of the permanent income growth rate and survival.
+    A perfect foresight consumer who has no uncertainty other than
+    mortality risk.  Time-separable utility maximization problem is
+    defined by a coefficient of relative risk aversion, geometric
+    discount factor, interest factor, an artificial borrowing constraint
+    (maybe) and time sequences of the permanent income growth rate and survival.
 
     Parameters
     ----------
@@ -341,7 +366,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
 
     def __init__(self,
                  cycles=1,  # Default to finite horiz
-                 verbose=1,
+                 verbose=1,  # little feedback
                  quiet=False,  # do not check conditions
                  solution_startfrom=None,  # Default is no interim solution
                  BoroCnstArt=None,
@@ -895,7 +920,6 @@ class PerfForesightConsumerType(OneStateConsumerType):
     sim_initialize_sim_agent = initialize_sim
 
 
-
 class IndShockConsumerType(PerfForesightConsumerType):
 
     """
@@ -964,12 +988,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
             solver = ConsIndShockSolver
 
         # slvr_type will have been set by PF __init__ ; reset
-        # Because same model can be solved by different solvers
+        # Track because same model can be solved by different solvers
         self.solution_terminal.bilt.stge_kind['slvr_type'] = 'ConsIndShockSolver'
 
         # Attach the corresponding one-stage solver to the agent
         # This is what gets called when the user invokes [instance].solve()
         self.solve_one_period = make_one_period_oo_solver(solver)
+
+        self.dolo_model()
 
         # Store setup parameters so later we can check for changes
         # that necessitate restarting solution process
@@ -980,6 +1006,65 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         if not quiet:
             self.check_conditions(verbose=3)  # Check conditions for nature/existence of soln
+
+    def dolo_model(self):
+        # Create a dolo version of the model
+        self.dolo_yaml = """
+name: Buffer_Stock
+
+symbols:
+    exogenous: [lψ, lθ]
+    states: [m]
+    controls: [c]
+    parameters: [β, ρ, σ_lψ, σ_lθ, R, Γ]
+
+definitions: 
+    Thetaθ[t] = exp(lθ[t])
+
+equations:
+
+# The definition of θ[t] above was constructed so that it could 
+# be used instead of exp(lθ[t]) here.  For some reason that does
+# not work
+    transition: |
+        m[t] = exp(lθ[t]) + (m[t-1]-c[t-1])*(R/(Γ*exp(lψ[t])))
+
+    arbitrage: |
+        (R*β*((c[t+1]*exp(lψ[t+1])*Γ)/c[t])^(-ρ)-1 ) ⟂ 0.0 <= c[t] <= m[t]
+
+calibration:
+
+    β: 0.96
+    Γ: 1.03
+    ρ: 2.0
+    R: 1.04
+    σ_lψ: 0.1
+    σ_lθ: 0.1
+    lψ: -(σ_lψ^2)/2
+    lθ: -(σ_lθ^2)/2
+    m: 1.0
+    max_m: 500
+    c: 0.9*m
+    θ: 1.0
+
+domain:
+    m: [0.0, max_m]
+
+exogenous: !Normal
+    Σ:     [[σ_lψ^2,         0]
+           ,[0,        σ_lθ^2]]
+
+options:
+    grid: !Cartesian
+        orders: [1000]
+"""
+
+        tmpyaml = tempfile.NamedTemporaryFile(mode='w+')
+        tmpyaml.write(self.dolo_yaml)
+        tmpyaml.seek(0)  # move to beginning
+        self.dolo_modl = yaml_import(tmpyaml.name)
+#        breakpoint()
+        
 
     def agent_force_prepare_info_needed_to_begin_solving(self):
         """
@@ -1491,4 +1576,3 @@ class KinkedRconsumerType(IndShockConsumerType):
         Rfree = self.Rboro * np.ones(self.AgentCount)
         Rfree[self.state_prev['aNrm'] > 0] = self.Rsave
         return Rfree
-
