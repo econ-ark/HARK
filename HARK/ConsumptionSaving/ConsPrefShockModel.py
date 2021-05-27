@@ -6,10 +6,6 @@ It currently only two models:
 2) A combination of (1) and ConsKinkedR, demonstrating how to construct a new model
    by inheriting from multiple classes.
 """
-from __future__ import division, print_function
-from __future__ import absolute_import
-from builtins import str
-from builtins import range
 import numpy as np
 from HARK import make_one_period_oo_solver
 from HARK.distribution import MeanOneLogNormal
