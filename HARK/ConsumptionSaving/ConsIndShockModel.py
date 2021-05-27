@@ -1737,6 +1737,7 @@ class PerfForesightConsumerType(AgentType):
         # survival probability of the last non-terminal period. This is okay,
         # however, since they will be instantly replaced by new newborns if
         # they die.
+        # See: https://github.com/econ-ark/HARK/pull/981
 
         DeathShks = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(
             N=self.AgentCount
