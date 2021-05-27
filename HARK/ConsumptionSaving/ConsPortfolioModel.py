@@ -175,7 +175,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         None
         """
         # Consume all market resources: c_T = m_T
-        cFuncAdj_terminal = IdentityFunction()
+        cFuncAdj_terminal = LinearInterp([0.0, 1.0], [0.0, 1.0])
         cFuncFxd_terminal = IdentityFunction(i_dim=0, n_dims=2)
 
         # Risky share is irrelevant-- no end-of-period assets; set to zero
