@@ -1736,11 +1736,12 @@ class PerfForesightConsumerType(AgentType):
         DiePrb = DiePrb_by_t_cycle[
             self.t_cycle - 1
         ]  # Time has already advanced, so look back one
-        
-        # Everyone gets to live one period, since death happens at the end of
-        # the period. Therefore, the death probability of newborns is 0.
-        DiePrb[self.t_cycle == 0] = 0.0
-        
+
+        # In finite-horizon problems the previous line gives newborns the
+        # survival probability of the last non-terminal period. This is okay,
+        # however, since they will be instantly replaced by new newborns if
+        # they die.
+
         DeathShks = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(
             N=self.AgentCount
         )
