@@ -191,10 +191,12 @@ class AgentTypePlus(AgentType):
                 return
         soln = self.solution[0]
         if not hasattr(soln, 'stge_kind'):
+#        if not hasattr(soln.bilt, 'stge_kind'):
             _log.warning('Solution does not have attribute stge_kind')
             return
         else:
             soln.stge_kind['iter_status'] = 'finished'
+#            soln.bilt.stge_kind['iter_status'] = 'finished'
         self.agent_post_post_solve()
 
     # Disambiguation: former "[solver].post_solve"; post_solve is now alias to this
@@ -464,6 +466,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
         attach them to the solution.
         """
 
+        breakpoint()
         if not hasattr(soln.bilt, 'conditions'):
             soln.check_conditions(soln, verbose=0)
 
@@ -474,19 +477,27 @@ class PerfForesightConsumerType(OneStateConsumerType):
             if self.verbose == 3:
                 print(wrn)
             soln.mNrmStE = None
+#            soln.bilt.mNrmStE = None
         else:
             soln.mNrmStE = soln.mNrmStE_find()
+#            soln.bilt.mNrmStE = soln.mNrmStE_find()
             if hasattr(soln.bilt, 'GICNrm'):
                 if not soln.bilt.GICNrm:
                     wrn = "Because the model's parameters do not satisfy the " +\
                         "stochastic-growth-normalized GIC, it does not exhibit " +\
                         "a target level of wealth."
                     _log.warning(wrn)
+                    print(wrn)
                     if self.verbose == 3:
                         print(wrn)
+#                    soln.bilt.mNrmTrg = None
                     soln.mNrmTrg = None
                 else:
                     soln.mNrmTrg = soln.mNrmTrg_find()
+
+    # CDC 20210511: The old version of ConsIndShockModel mixed calibration and results
+    # between the agent, the solver, and the solution.  The new version puts all results
+    # on the solution. This requires a final stage solution to exist from the get-go.
 
     # CDC 20210511: The old version of ConsIndShockModel mixed calibration and results
     # between the agent, the solver, and the solution.  The new version puts all results
@@ -518,6 +529,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
             self.check_conditions(verbose=0)
             # Find the stable points (if any)
             self.add_stable_points_to_solution(self.solution[0])
+#            self.solution[0] = self.add_stable_points_to_solution(self.solution[0])
 
     def check_restrictions(self):
         """
@@ -989,8 +1001,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         params.update(kwds)  # Update/overwrite defaults with user-specified
 
         # Inherit characteristics of a PF model with the same parameters
-        PerfForesightConsumerType.__init__(self, cycles=cycles, verbose=verbose,
-                                           quiet=quiet, _startfrom=solution_startfrom, **params)
+        PerfForesightConsumerType.__init__(self, cycles=cycles,
+                                           verbose=verbose, quiet=quiet,
+                                           _startfrom=solution_startfrom,
+                                           **params)
 
         self.update_parameters_for_this_agent_subclass()  # Add new pars
 

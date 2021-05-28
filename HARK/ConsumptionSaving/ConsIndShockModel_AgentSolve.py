@@ -1465,12 +1465,15 @@ class ConsPerfForesightSolver(MetricObject):
 #            breakpoint()
             soln_futr.bilt = soln_crnt.bilt = def_value_funcs(soln_crnt.bilt, CRRA)
             # Now that they've been added, it's good to go as a source for iteration
+            if not hasattr(soln_crnt.bilt,'iter_status'):
+                breakpoint()
             soln_crnt.bilt.stge_kind['iter_status'] = 'iterator'
-#            breakpoint()
+            soln_crnt.stge_kind = soln_crnt.bilt.stge_kind                
+            breakpoint()
             return soln_crnt  # if pseudo_terminal = True, enhanced replaces original
 
         self.soln_crnt.stge_kind = {'iter_status': 'iterator',
-                                    'slvr_type': 'ConsIndShockSolver'}
+                                    'slvr_type': 'ConsPerfForesightSolver'}
 
         self.soln_crnt.bilt.stge_kind = {'iter_status': 'iterator',
                                          'slvr_type': 'ConsPerfForesightSolver'}
@@ -1547,6 +1550,12 @@ class ConsPerfForesightSolver(MetricObject):
                     {'solution_next', 'bilt', 'stge_kind', 'folw', 'parameters'}):
             setattr(folw, key+'_tp1',
                     soln_futr.bilt.__dict__[key])
+#        breakpoint()
+
+#        if hasattr(soln_futr.bilt, 'parameters'):
+#            bilt.parameters = soln_futr.bilt.parameters
+#        else:
+#            print('soln_futr.bilt has no parameters attribute')
 #        breakpoint()
 
 #        if hasattr(soln_futr.bilt, 'parameters'):
