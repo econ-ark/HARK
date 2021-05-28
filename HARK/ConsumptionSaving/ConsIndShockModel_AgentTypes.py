@@ -460,7 +460,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
         attach them to the solution.
         """
         
-        breakpoint()
+#        breakpoint()
         if not hasattr(soln.bilt, 'conditions'):
             soln.check_conditions(soln, verbose=0)
 

@@ -659,7 +659,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolutionPlus):
 #                self.bilt.Ex_m_tp1_minus_m_t,
 #                m_init_guess)
         except:
-#            self.bilt.mNrmTrg = None
+            #            self.bilt.mNrmTrg = None
             self.mNrmTrg = None
 
         return self.mNrmTrg
@@ -1299,7 +1299,7 @@ class ConsPerfForesightSolver(MetricObject):
         }
         py___code = '((PermGroFac / Rfree) * (1.0 + hNrm_tp1))'
         if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
-#        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+            #        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
             soln_crnt.hNrm_tp1 = -1.0  # causes hNrm = 0 for final period
         soln_crnt.hNrm = bilt.hNrm = hNrm = \
             eval(py___code, {}, {**bilt.__dict__, **folw.__dict__})
@@ -1316,7 +1316,7 @@ class ConsPerfForesightSolver(MetricObject):
         }
         py___code = '(mNrmMin_tp1 - tranShkMin)*(PermGroFac/Rfree)*permShkMin'
         if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge
-#        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge
+            #        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge
             py___code = 'hNrm'  # Presumably zero
         soln_crnt.BoroCnstNat = bilt.BoroCnstNat = BoroCnstNat = \
             eval(py___code, {}, {**bilt.__dict__, **folw.__dict__})
@@ -1375,7 +1375,7 @@ class ConsPerfForesightSolver(MetricObject):
         }
         py___code = '1.0 / (1.0 + (RPF /MPCmin_tp1))'
         if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
-#        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+            #        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
             bilt.MPCmin_tp1 = float('inf')  # causes MPCmin = 1 for final period
         soln_crnt.MPCmin = bilt.MPCmin = MPCmin = \
             eval(py___code, {}, {**bilt.__dict__, **folw.__dict__})
@@ -1391,7 +1391,7 @@ class ConsPerfForesightSolver(MetricObject):
         }
         py___code = '1.0 / (1.0 + (RPF / MPCmax_tp1))'
         if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
-#        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+            #        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
             bilt.MPCmax_tp1 = float('inf')  # causes MPCmax = 1 for final period
         soln_crnt.MPCmax = bilt.MPCmax = MPCmax = \
             eval(py___code, {}, {**bilt.__dict__, **folw.__dict__})
@@ -1430,7 +1430,7 @@ class ConsPerfForesightSolver(MetricObject):
 
         return soln_crnt
 
-    def solve(self):  # ConsPerfForesightSolver
+    def solve_prepared_stage(self):  # ConsPerfForesightSolver
         """
         Solves the one-period/stage perfect foresight consumption-saving problem.
 
@@ -1445,6 +1445,9 @@ class ConsPerfForesightSolver(MetricObject):
         """
         soln_futr = self.soln_futr
         soln_crnt = self.soln_crnt
+        soln_futr_bilt = soln_futr.bilt
+        soln_crnt_bilt = soln_crnt.bilt
+        CRRA = soln_crnt.bilt.CRRA
 
         if not hasattr(soln_futr.bilt, 'stge_kind'):
             print('no stge_kind')
@@ -1455,29 +1458,32 @@ class ConsPerfForesightSolver(MetricObject):
             # Should not have gotten here
             # because core.py tests whehter solution_last is 'finished'
 
-        if soln_futr.bilt.stge_kind['iter_status'] == 'terminal_pseudo':
+        if soln_futr_bilt.stge_kind['iter_status'] == 'terminal_pseudo':
             # bare-bones default terminal solution does not have all the facts
             # we want, so add them
             #            breakpoint()
-            CRRA = soln_crnt.bilt.CRRA
-            soln_futr = soln_crnt = def_utility(soln_crnt, CRRA)
+            soln_futr_bilt = soln_crnt_bilt = def_utility(soln_crnt_bilt, CRRA)
             self.build_infhor_facts_from_params_ConsPerfForesightSolver()
 #            breakpoint()
             soln_futr.bilt = soln_crnt.bilt = def_value_funcs(soln_crnt.bilt, CRRA)
             # Now that they've been added, it's good to go as a source for iteration
-            if not hasattr(soln_crnt.bilt,'iter_status'):
+            if not hasattr(soln_crnt.bilt, 'stge_kind'):
+                print('No stge_kind')
                 breakpoint()
             soln_crnt.bilt.stge_kind['iter_status'] = 'iterator'
-            soln_crnt.stge_kind = soln_crnt.bilt.stge_kind                
-            breakpoint()
+            soln_crnt.stge_kind = soln_crnt.bilt.stge_kind
+            self.soln_crnt.vPfunc = self.soln_crnt.bilt.vPfunc  # Need for distance
+            self.soln_crnt.cFunc = self.soln_crnt.bilt.cFunc  # Need for distance
+            self.soln_crnt.IncShkDstn = self.soln_crnt.bilt.IncShkDstn
+            
+#            breakpoint()
             return soln_crnt  # if pseudo_terminal = True, enhanced replaces original
 
-        self.soln_crnt.stge_kind = {'iter_status': 'iterator',
-                                    'slvr_type': 'ConsPerfForesightSolver'}
+        # self.soln_crnt.bilt.stge_kind = \
+        #     self.soln_crnt.stge_kind = {'iter_status': 'iterator',
+        #                                 'slvr_type': self.__class.__name}
 
-        self.soln_crnt.bilt.stge_kind = {'iter_status': 'iterator',
-                                         'slvr_type': 'ConsPerfForesightSolver'}
-
+#        breakpoint()
         CRRA = self.soln_crnt.bilt.CRRA
         self.soln_crnt.bilt = def_utility(soln_crnt.bilt, CRRA)
 #        breakpoint()  # Need to build evPfut here, but previously had it building current
@@ -1491,7 +1497,9 @@ class ConsPerfForesightSolver(MetricObject):
 
         return soln_crnt
 
-    def solver_prep_solution_for_an_iteration(self):  # self is solver for this stage of problem
+    solve = solve_prepared_stage
+
+    def solver_prep_solution_for_an_iteration(self):  # self: solver for this stage
         """
         Prepare the current stage for processing by the one-stage solver.
 
@@ -1550,6 +1558,12 @@ class ConsPerfForesightSolver(MetricObject):
                     {'solution_next', 'bilt', 'stge_kind', 'folw', 'parameters'}):
             setattr(folw, key+'_tp1',
                     soln_futr.bilt.__dict__[key])
+
+        self.soln_crnt.stge_kind = \
+            self.soln_crnt.bilt.stge_kind = {'iter_status': 'iterator',
+                                             'slvr_type': self.__class__.__name__}
+        # Add a bunch of useful stuff
+
 #        breakpoint()
 
 #        if hasattr(soln_futr.bilt, 'parameters'):
@@ -2297,8 +2311,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         )
         return cFunc_unconstrained
 
-    # ConsIndShockSolverBasic
-    def solve_prepared_stage(self):  # solves ONE stage
+    def solve_prepared_stage(self):  # solves ONE stage of ConsIndShockSolverBasic
         """
         Solves one stage (period, in this model) of the consumption-saving problem.  
 
@@ -2342,7 +2355,9 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             #            breakpoint()
 
             soln_futr_bilt = soln_crnt_bilt = def_utility(soln_crnt_bilt, CRRA)
-            soln_futr_bilt = soln_crnt_bilt = def_value_funcs(soln_crnt_bilt, CRRA)
+#            print('Test whether value funcs are already defined; they are in PF case ...')
+#            breakpoint()
+#            soln_futr_bilt = soln_crnt_bilt = def_value_funcs(soln_crnt_bilt, CRRA)
             self.build_infhor_facts_from_params()
             # Now it is good to go as a starting point for backward induction:
             soln_crnt_bilt.stge_kind['iter_status'] = 'iterator'
@@ -2355,11 +2370,10 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # It's not a terminal period
 #        breakpoint()
 
-
 #        breakpoint()
-        self.soln_crnt.stge_kind = \
-            self.soln_crnt.bilt.stge_kind = {'iter_status': 'iterator',
-                                             'slvr_type': 'ConsIndShockSolver'}
+#        self.soln_crnt.stge_kind = \
+#            self.soln_crnt.bilt.stge_kind = {'iter_status': 'iterator',
+#                                             'slvr_type': self.__class__.__name__}
         # Add a bunch of useful stuff
         # CDC 20200428: This stuff is "useful" only for a candidate converged solution
         # in an infinite horizon model.  It's not costly to compute but there's not
