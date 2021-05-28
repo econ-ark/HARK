@@ -184,11 +184,13 @@ class AgentTypePlus(AgentType):
                 _log.critical('Solution is not a list.')
                 return
         soln = self.solution[0]
-        if not hasattr(soln.bilt, 'stge_kind'):
+        if not hasattr(soln, 'stge_kind'):
+#        if not hasattr(soln.bilt, 'stge_kind'):
             _log.warning('Solution does not have attribute stge_kind')
             return
         else:
-            soln.bilt.stge_kind['iter_status'] = 'finished'
+            soln.stge_kind['iter_status'] = 'finished'
+#            soln.bilt.stge_kind['iter_status'] = 'finished'
         self.agent_post_post_solve()
 
     # Disambiguation: former "[solver].post_solve"; post_solve is now alias to this
@@ -468,10 +470,11 @@ class PerfForesightConsumerType(OneStateConsumerType):
             _log.warning(wrn)
             if self.verbose == 3:
                 print(wrn)
-            soln.bilt.mNrmStE = None
+            soln.mNrmStE = None
+#            soln.bilt.mNrmStE = None
         else:
-            soln.bilt.mNrmStE = soln.mNrmStE_find()
-            breakpoint()
+            soln.mNrmStE = soln.mNrmStE_find()
+#            soln.bilt.mNrmStE = soln.mNrmStE_find()
             if hasattr(soln.bilt, 'GICNrm'):
                 if not soln.bilt.GICNrm:
                     wrn = "Because the model's parameters do not satisfy the " +\
@@ -481,11 +484,14 @@ class PerfForesightConsumerType(OneStateConsumerType):
                     print(wrn)
                     if self.verbose == 3:
                         print(wrn)
-                    soln.bilt.mNrmTrg = None
+#                    soln.bilt.mNrmTrg = None
+                    soln.mNrmTrg = None
                 else:
-                    soln.bilt.mNrmTrg = soln.mNrmTrg_find()
+                    soln.mNrmTrg = soln.mNrmTrg_find()
                     
-        return soln
+
+                    
+#        return soln
 
     # CDC 20210511: The old version of ConsIndShockModel mixed calibration and results
     # between the agent, the solver, and the solution.  The new version puts all results
@@ -516,7 +522,8 @@ class PerfForesightConsumerType(OneStateConsumerType):
             # Recalculate the conditions
             self.check_conditions(verbose=0)
             # Find the stable points (if any)
-            self.solution[0] = self.add_stable_points_to_solution(self.solution[0])
+            self.add_stable_points_to_solution(self.solution[0])
+#            self.solution[0] = self.add_stable_points_to_solution(self.solution[0])
 
     def check_restrictions(self):
         """

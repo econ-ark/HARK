@@ -650,16 +650,20 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolutionPlus):
         # Better would be to presere the last value (if it exists)
         # and use that as a starting point
 
-        m_init_guess = self.bilt.mNrmMin + self.bilt.Ex_IncNrmNxt
-        breakpoint()
+        m_init_guess = self.mNrmMin + self.Ex_IncNrmNxt
         try:  # Find value where argument is zero
-            self.bilt.mNrmTrg = find_zero_newton(
-                self.bilt.Ex_m_tp1_minus_m_t,
+            self.mNrmTrg = find_zero_newton(
+                self.Ex_m_tp1_minus_m_t,
                 m_init_guess)
+#            self.bilt.mNrmTrg = find_zero_newton(
+#                self.bilt.Ex_m_tp1_minus_m_t,
+#                m_init_guess)
         except:
-            self.bilt.mNrmTrg = None
+#            self.bilt.mNrmTrg = None
+            self.mNrmTrg = None
 
-        return self.bilt.mNrmTrg
+        return self.mNrmTrg
+#        return self.bilt.mNrmTrg
 
     def mNrmStE_find(self):
         """
@@ -1294,7 +1298,8 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Human Wealth '
         }
         py___code = '((PermGroFac / Rfree) * (1.0 + hNrm_tp1))'
-        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+        if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+#        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
             soln_crnt.hNrm_tp1 = -1.0  # causes hNrm = 0 for final period
         soln_crnt.hNrm = bilt.hNrm = hNrm = \
             eval(py___code, {}, {**bilt.__dict__, **folw.__dict__})
@@ -1310,7 +1315,8 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Natural Borrowing Constraint'
         }
         py___code = '(mNrmMin_tp1 - tranShkMin)*(PermGroFac/Rfree)*permShkMin'
-        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge
+        if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge
+#        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge
             py___code = 'hNrm'  # Presumably zero
         soln_crnt.BoroCnstNat = bilt.BoroCnstNat = BoroCnstNat = \
             eval(py___code, {}, {**bilt.__dict__, **folw.__dict__})
@@ -1342,7 +1348,7 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Maximal MPC in current period as m -> mNrmMin'
         }
         py___code = '1.0 / (1.0 + (RPF / MPCmax_tp1))'
-        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+        if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
             soln_crnt.MPCmax_tp1 = float('inf')  # causes MPCmax = 1 for final period
         soln_crnt.MPCmax = bilt.MPCmax = MPCmax = eval(
             py___code, {}, {**bilt.__dict__, **folw.__dict__})
@@ -1368,7 +1374,8 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Minimal MPC in current period as m -> infty'
         }
         py___code = '1.0 / (1.0 + (RPF /MPCmin_tp1))'
-        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+        if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+#        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
             bilt.MPCmin_tp1 = float('inf')  # causes MPCmin = 1 for final period
         soln_crnt.MPCmin = bilt.MPCmin = MPCmin = \
             eval(py___code, {}, {**bilt.__dict__, **folw.__dict__})
@@ -1383,7 +1390,8 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Maximal MPC in current period as m -> mNrmMin'
         }
         py___code = '1.0 / (1.0 + (RPF / MPCmax_tp1))'
-        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+        if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+#        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
             bilt.MPCmax_tp1 = float('inf')  # causes MPCmax = 1 for final period
         soln_crnt.MPCmax = bilt.MPCmax = MPCmax = \
             eval(py___code, {}, {**bilt.__dict__, **folw.__dict__})
@@ -1460,6 +1468,9 @@ class ConsPerfForesightSolver(MetricObject):
             soln_crnt.bilt.stge_kind['iter_status'] = 'iterator'
 #            breakpoint()
             return soln_crnt  # if pseudo_terminal = True, enhanced replaces original
+
+        self.soln_crnt.stge_kind = {'iter_status': 'iterator',
+                                    'slvr_type': 'ConsIndShockSolver'}
 
         self.soln_crnt.bilt.stge_kind = {'iter_status': 'iterator',
                                          'slvr_type': 'ConsPerfForesightSolver'}
