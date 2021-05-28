@@ -286,4 +286,7 @@ settings.json
 .idea
 
 # Spyder project
-.spyproject/
+.spyproject
+spyproject
+.spyderproject
+
