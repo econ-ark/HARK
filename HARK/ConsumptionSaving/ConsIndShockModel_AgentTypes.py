@@ -1,34 +1,28 @@
 # -*- coding: utf-8 -*-
+import numpy as np
+from copy import copy, deepcopy
+from builtins import (range, str, breakpoint)
+from types import SimpleNamespace
+from dolo import yaml_import
+import tempfile  # create temp file for dolo yaml import
+
 from HARK.core import (_log, set_verbosity_level)
 from HARK.distribution \
     import (add_discrete_outcome_constant_mean, calc_expectation,
             combine_indep_dstns, Lognormal, MeanOneLogNormal, Uniform)
 from HARK.interpolation import (LinearInterp)
 from HARK import AgentType, make_one_period_oo_solver
-# from numpy import dot as E_dot  # easier to type
-import numpy as np
-from copy import copy, deepcopy
-from builtins import (range, str, breakpoint)
-from types import SimpleNamespace
-
-from HARK.ConsumptionSaving.ConsIndShockModel_Both \
-    import (def_utility, def_value_funcs, construct_assets_grid)
-
-from HARK.ConsumptionSaving.ConsIndShockModel_Solve \
+from HARK.ConsumptionSaving.ConsIndShockModel_CommonDefs \
+    import (def_utility, def_value_funcs,
+            construct_assets_grid)
+from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
     import (ConsumerSolutionOneStateCRRA,
-            #            ConsumerSolutionOneStateCRRA_test,
             ConsPerfForesightSolver,
             ConsIndShockSolverBasic, ConsIndShockSolver,
-            ConsKinkedRsolver,
-            ConsumerSolution,
-            #            ConsumerSolutionPlus
+            ConsKinkedRsolver
             )
-
-from HARK.ConsumptionSaving.ConsIndShockModel_Both \
+from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
     import (init_perfect_foresight, init_idiosyncratic_shocks)
-
-from dolo import yaml_import
-import tempfile # create temp file for dolo yaml import
 
 """
 Classes to solve canonical consumption-saving models with idiosyncratic shocks
@@ -109,7 +103,7 @@ class AgentTypePlus(AgentType):
         # TODO: CDC 20210525: Fix this in MetricObject to reduce clutter here
         self.update_parameters_for_this_agent_subclass()
 
-    def store_model_params(self, prmtv_par, aprox_lim):
+    def agent_store_model_params(self, prmtv_par, aprox_lim):
         # When anything cached here changes, solution must be recomputed
         self.prmtv_par_vals = {}
         for par in prmtv_par:
@@ -175,12 +169,13 @@ class AgentTypePlus(AgentType):
     # update_pre_solve is the old name, preserved as an alias
     # to prevent breakage of existing code. New name is clearer
     pre_solve = agent_force_prepare_info_needed_to_begin_solving
+    pre_solve_agent = pre_solve
 
     # Universal method to either warn that something went wrong
     # or to mark the solution as having completed.  Should not
     # be overwritten by subclasses; instead, agent-specific
     # post-solve actions are accomplished by agent_post_post_solve
-    def agent_post_solve(self):
+    def post_solve(self):
         if not hasattr(self, 'solution'):
             _log.critical('No solution was returned.')
             return
@@ -189,18 +184,18 @@ class AgentTypePlus(AgentType):
                 _log.critical('Solution is not a list.')
                 return
         soln = self.solution[0]
-        if not hasattr(soln, 'stge_kind'):
+        if not hasattr(soln.bilt, 'stge_kind'):
             _log.warning('Solution does not have attribute stge_kind')
             return
         else:
-            soln.stge_kind['iter_status'] = 'finished'
+            soln.bilt.stge_kind['iter_status'] = 'finished'
         self.agent_post_post_solve()
 
     # Disambiguation: former "[solver].post_solve"; post_solve is now alias to this
     # it's hard to remember whether "post_solve" is a method of
     # the solver or of the agent.  The answer is the agent; hence the rename
     # The alias below prevents breakage
-    post_solve = agent_post_solve
+    agent_post_solve = post_solve_agent = post_solve
 
     def agent_post_post_solve(self):
         # overwrite this with anything required to be customized for post_solve
@@ -430,7 +425,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
             # with info specifically needed to solve this particular model
             #            breakpoint()
             self.solution_terminal.bilt = \
-                self.finish_setup_default_solution_terminal()
+                self.finish_setup_of_default_solution_terminal()
             # make url that will locate the documentation
             self.url_doc_for_this_agent_type_get()
         else:
@@ -445,8 +440,8 @@ class PerfForesightConsumerType(OneStateConsumerType):
         self.agent_force_prepare_info_needed_to_begin_solving()
 
         # Store initial model params; later used to test if anything changed
-        self.store_model_params(kwds_upd['prmtv_par'],
-                                kwds_upd['aprox_lim'])
+        self.agent_store_model_params(kwds_upd['prmtv_par'],
+                                      kwds_upd['aprox_lim'])
 
         # Construct one-period(/stage) solver
         self.solve_one_period = make_one_period_oo_solver(solver)  # allows user-specified alt
@@ -457,12 +452,13 @@ class PerfForesightConsumerType(OneStateConsumerType):
 
 #        self.dolo_defs()
 
-    def add_stable_points(self, soln):
+    def add_stable_points_to_solution(self, soln):
         """
         If the model is one characterized by stable points, calculate those and
         attach them to the solution.
         """
-
+        
+        breakpoint()
         if not hasattr(soln.bilt, 'conditions'):
             soln.check_conditions(soln, verbose=0)
 
@@ -472,20 +468,24 @@ class PerfForesightConsumerType(OneStateConsumerType):
             _log.warning(wrn)
             if self.verbose == 3:
                 print(wrn)
-            soln.mNrmStE = None
+            soln.bilt.mNrmStE = None
         else:
-            soln.mNrmStE = soln.mNrmStE_find()
+            soln.bilt.mNrmStE = soln.mNrmStE_find()
+            breakpoint()
             if hasattr(soln.bilt, 'GICNrm'):
                 if not soln.bilt.GICNrm:
                     wrn = "Because the model's parameters do not satisfy the " +\
                         "stochastic-growth-normalized GIC, it does not exhibit " +\
                         "a target level of wealth."
                     _log.warning(wrn)
+                    print(wrn)
                     if self.verbose == 3:
                         print(wrn)
-                    soln.mNrmTrg = None
+                    soln.bilt.mNrmTrg = None
                 else:
-                    soln.mNrmTrg = soln.mNrmTrg_find()
+                    soln.bilt.mNrmTrg = soln.mNrmTrg_find()
+                    
+        return soln
 
     # CDC 20210511: The old version of ConsIndShockModel mixed calibration and results
     # between the agent, the solver, and the solution.  The new version puts all results
@@ -516,7 +516,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
             # Recalculate the conditions
             self.check_conditions(verbose=0)
             # Find the stable points (if any)
-            self.add_stable_points(self.solution[0])
+            self.solution[0] = self.add_stable_points_to_solution(self.solution[0])
 
     def check_restrictions(self):
         """
@@ -604,7 +604,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
     #         # Not clear how to specify characteristics of sim starting point
     #     )  # Things all ConsumerSolutions have in common
 
-    def finish_setup_default_solution_terminal(self):
+    def finish_setup_of_default_solution_terminal(self):
         """
         Add to `solution_terminal` characteristics of the agent required
         for solution of the particular type which are not automatically
@@ -675,6 +675,8 @@ class PerfForesightConsumerType(OneStateConsumerType):
 #        breakpoint()
         return solution_terminal_bilt
 
+    check_conditions_solver = solver_check_conditions = check_conditions
+
     def url_doc_for_this_agent_type_get(self):
         # Generate a url that will locate the documentation
         self.class_name = self.__class__.__name__
@@ -732,6 +734,8 @@ class PerfForesightConsumerType(OneStateConsumerType):
         )
         self.unpack("cFunc")
 
+    unpack_cFunc_from_solution_to_agent = unpack_cFunc
+
     def initialize_sim(self):
         self.mcrlovars = SimpleNamespace()
         self.mcrlovars.permShkAgg = self.permShkAgg = self.PermGroFacAgg  # Never changes during sim
@@ -779,6 +783,8 @@ class PerfForesightConsumerType(OneStateConsumerType):
         ] = 0  # Which period of the cycle each agent is currently in
         return None
 
+    mcrlo_birth = birth_mcrlo = birth
+
     def death(self):
         """
         Determines which agents die this period and must be replaced.  Uses the sequence in LivPrb
@@ -807,6 +813,8 @@ class PerfForesightConsumerType(OneStateConsumerType):
             which_agents = np.logical_or(which_agents, too_old)
         return which_agents
 
+    mcrlo_death = death_mcrlo = death
+
     def get_shocks(self):
         """
         Finds permanent and transitory income "shocks" for each agent this period.  When this is a
@@ -827,6 +835,8 @@ class PerfForesightConsumerType(OneStateConsumerType):
         ]  # cycle time has already been advanced
         self.shocks['tranShk'] = np.ones(self.AgentCount)
 
+    get_shocks_mcrlo = mcrlo_get_shocks = get_shocks
+
     def get_Rfree(self):  # -> mcrlo_get_Rfree.
         # CDC: We should have a generic mcrlo_get_all_params
         """
@@ -844,6 +854,8 @@ class PerfForesightConsumerType(OneStateConsumerType):
         Rfree = self.Rfree * np.ones(self.AgentCount)
         return Rfree
 
+    mcrlo_get_Rfree = get_Rfree_mcrlo = get_Rfree
+
     def transition(self):  # -> mcrlo_trnsitn
         pLvlPrev = self.state_prev['pLvl']
         aNrmPrev = self.state_prev['aNrm']
@@ -859,6 +871,8 @@ class PerfForesightConsumerType(OneStateConsumerType):
         mNrm = bNrm + self.shocks['tranShk']  # Market resources after income
 
         return pLvl, PlvlAgg, bNrm, mNrm, None
+
+    transition_mcrlo = mcrlo_transition = transition
 
     def get_controls(self):  # -> mcrlo_get_ctrls
         """
@@ -885,6 +899,8 @@ class PerfForesightConsumerType(OneStateConsumerType):
         self.MPCnow = MPCnow
         return None
 
+    get_controls_mcrlo = mcrlo_get_controls = get_controls
+
     def get_poststates(self):  # -> mcrlo_get_poststes
         """
         Calculates end-of-period assets for each consumer of this type.
@@ -907,17 +923,19 @@ class PerfForesightConsumerType(OneStateConsumerType):
 
         return None
 
-    # Below are aliases to the set of methods that perform the Monte Carlo simulation
-    # This is a preliminary step to organizing and then disentangling them from the rest of the code
-    # and abstracting as much common functionality as possible to core.py,
-    # distributions.py, utilities.py, and wherever else is appropriate
-    sim_birth_agent = birth  # alias; collect all methods that are for mcrlo sims for eventual grouping
-    sim_death_agent = death  # alias; collect all methods that are for mcrlo sims for eventual grouping
-    sim_transition_agent = transition
-    sim_get_poststates_agent = get_poststates
-    sim_get_controls_agent = get_controls
-    sim_get_shocks_agent = get_shocks
-    sim_initialize_sim_agent = initialize_sim
+    mcrlo_get_poststates = get_poststates_mcrlo = get_poststates
+
+    # # Below are aliases to the set of methods that perform the Monte Carlo simulation
+    # # This is a preliminary step to organizing and then disentangling them from the rest of the code
+    # # and abstracting as much common functionality as possible to core.py,
+    # # distributions.py, utilities.py, and wherever else is appropriate
+    # sim_birth_agent = birth  # alias; collect all methods that are for mcrlo sims for eventual grouping
+    # sim_death_agent = death  # alias; collect all methods that are for mcrlo sims for eventual grouping
+    # sim_transition_agent = transition
+    # sim_get_poststates_agent = get_poststates
+    # sim_get_controls_agent = get_controls
+    # sim_get_shocks_agent = get_shocks
+    # sim_initialize_sim_agent = initialize_sim
 
 
 class IndShockConsumerType(PerfForesightConsumerType):
@@ -958,16 +976,22 @@ class IndShockConsumerType(PerfForesightConsumerType):
         "CubicBool",
     ]
     time_inv_.remove(  # Unwanted item(s) inherited from PerfForesight
-        "MaxKinks"  # PF inf hor with MaxKinks is equiv to fin hor with hor=MaxKinks
+        "MaxKinks"  # PF infhor with MaxKinks equiv to finhor with hor=MaxKinks
     )
 
-    def __init__(self, cycles=1, verbose=1,  quiet=True, solution_startfrom=None, **kwds):
+    def __init__(self,
+                 cycles=1, verbose=1,  quiet=True, solution_startfrom=None,
+                 solverType='HARK',
+                 solverName=ConsIndShockSolverBasic,
+                 **kwds):
         params = init_idiosyncratic_shocks.copy()  # Get default params
         params.update(kwds)  # Update/overwrite defaults with user-specified
 
         # Inherit characteristics of a PF model with the same parameters
-        PerfForesightConsumerType.__init__(self, cycles=cycles, verbose=verbose,
-                                           quiet=quiet, _startfrom=solution_startfrom, **params)
+        PerfForesightConsumerType.__init__(self, cycles=cycles,
+                                           verbose=verbose, quiet=quiet,
+                                           _startfrom=solution_startfrom,
+                                           **params)
 
         self.update_parameters_for_this_agent_subclass()  # Add new pars
 
@@ -978,28 +1002,27 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # - Default interpolation method is piecewise linear
         # - Cubic is smoother, works best if problem has no constraints
         # - User may or may not want to create the value function
-        # CDC 20210428: Basic solver is not worth preserving
+        # TODO: CDC 20210428: Basic solver is not worth preserving
         # - 1. We might as well always compute vFunc
         # - 2. Cubic vs linear interpolation is not worth two different solvers
         # -    * Cubic should be preserved as an option
-        if (not self.CubicBool) and (not self.vFuncBool):
-            solver = ConsIndShockSolverBasic
-        else:  # Use the "advanced" solver if either v or Cubic is requested
-            solver = ConsIndShockSolver
+        if self.CubicBool or self.vFuncBool:
+            solverName = ConsIndShockSolver
 
-        # slvr_type will have been set by PF __init__ ; reset
-        # Track because same model can be solved by different solvers
-        self.solution_terminal.bilt.stge_kind['slvr_type'] = 'ConsIndShockSolver'
+        self.solution_terminal.bilt.stge_kind['slvr_type'] = solverName
 
         # Attach the corresponding one-stage solver to the agent
         # This is what gets called when the user invokes [instance].solve()
-        self.solve_one_period = make_one_period_oo_solver(solver)
+        if (solverType == 'HARK') or (solverType == 'DARKolo'):
+            self.solve_one_period = make_one_period_oo_solver(solverName)
 
-        self.dolo_model()
+        if (solverType == 'dolo') or (solverType == 'DARKolo'):
+            # If we want to solve with dolo, set up the model
+            self.dolo_model()
 
         # Store setup parameters so later we can check for changes
         # that necessitate restarting solution process
-        self.store_model_params(params['prmtv_par'], params['aprox_lim'])
+        self.agent_store_model_params(params['prmtv_par'], params['aprox_lim'])
 
         # Put the (enhanced) solution_terminal in self.solution[0]
         self.make_solution_for_final_period()
@@ -1010,7 +1033,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
     def dolo_model(self):
         # Create a dolo version of the model
         self.dolo_yaml = """
-name: Buffer_Stock
+name: BufferStockTheory
 
 symbols:
     exogenous: [lψ, lθ]
@@ -1064,7 +1087,6 @@ options:
         tmpyaml.seek(0)  # move to beginning
         self.dolo_modl = yaml_import(tmpyaml.name)
 #        breakpoint()
-        
 
     def agent_force_prepare_info_needed_to_begin_solving(self):
         """
@@ -1220,6 +1242,8 @@ options:
         if hasattr(self, "IncShkDstn"):
             for dstn in self.IncShkDstn:
                 dstn.reset()
+
+    mcrlo_reset_rng = reset_rng_mcrlo = reset_rng
 
     def construct_lognormal_income_process_unemployment(self):
         """
@@ -1421,6 +1445,8 @@ options:
         self.shocks['permShk'] = permShk
         self.shocks['tranShk'] = tranShk
 
+    get_shocks_mcrlo = mcrlo_get_shocks = get_shocks
+
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
 init_kinked_R = dict(
@@ -1576,3 +1602,5 @@ class KinkedRconsumerType(IndShockConsumerType):
         Rfree = self.Rboro * np.ones(self.AgentCount)
         Rfree[self.state_prev['aNrm'] > 0] = self.Rsave
         return Rfree
+
+    mcrlo_get_Rfree = get_Rfree_mcrlo = get_Rfree

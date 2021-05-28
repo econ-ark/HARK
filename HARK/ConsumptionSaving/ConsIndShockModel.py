@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 
-from HARK.ConsumptionSaving.ConsIndShockModel_Solve \
+from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
     import (
         ConsumerSolution, ConsumerSolutionOneStateCRRA,
-#        ConsumerSolutionOneStateCRRA_test,ConsumerSolutionPlus,
         ConsPerfForesightSolver, ConsIndShockSetup,
-        ConsIndShockSolverBasic, ConsIndShockSolver, ConsKinkedRsolver)
+        ConsIndShockSolverBasic, ConsIndShockSolver,
+        ConsKinkedRsolver)
 
-from HARK.ConsumptionSaving.ConsIndShockModel_Agents \
+from HARK.ConsumptionSaving.ConsIndShockModel_AgentTypes \
     import (OneStateConsumerType, PerfForesightConsumerType,
             IndShockConsumerType, KinkedRconsumerType)
 
-from HARK.ConsumptionSaving.ConsIndShockModel_Both \
-    import (init_perfect_foresight, init_idiosyncratic_shocks, init_kinked_R,
+from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
+    import (init_perfect_foresight,
+            init_idiosyncratic_shocks, init_kinked_R,
             init_lifecycle, init_cyclical)
 
 __all__ = [
@@ -33,4 +34,5 @@ __all__ = [
     "init_lifecycle",
     "init_cyclical",
 ]
+
 

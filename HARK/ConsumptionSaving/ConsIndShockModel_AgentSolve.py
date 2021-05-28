@@ -319,6 +319,8 @@ class ConsumerSolutionPlus(ConsumerSolutionOld):
         ConsumerSolutionOld.__init__(self, *args, **kwds)
 
 # class ConsumerSolutionOneStateCRRA(ConsumerSolutionPlus):
+
+
 class ConsumerSolutionOneStateCRRA(ConsumerSolutionPlus):
     """
     This subclass of ConsumerSolution assumes that the problem has two
@@ -648,15 +650,16 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolutionPlus):
         # Better would be to presere the last value (if it exists)
         # and use that as a starting point
 
-        m_init_guess = self.mNrmMin + self.Ex_IncNrmNxt
+        m_init_guess = self.bilt.mNrmMin + self.bilt.Ex_IncNrmNxt
+        breakpoint()
         try:  # Find value where argument is zero
-            self.mNrmTrg = find_zero_newton(
-                self.Ex_m_tp1_minus_m_t,
+            self.bilt.mNrmTrg = find_zero_newton(
+                self.bilt.Ex_m_tp1_minus_m_t,
                 m_init_guess)
         except:
-            self.mNrmTrg = None
+            self.bilt.mNrmTrg = None
 
-        return self.mNrmTrg
+        return self.bilt.mNrmTrg
 
     def mNrmStE_find(self):
         """
@@ -1282,8 +1285,6 @@ class ConsPerfForesightSolver(MetricObject):
     def build_recursive_facts_ConsPerfForesightSolver(self):
 
         soln_crnt = self.soln_crnt
-#        scsr = self.soln_crnt.scsr
-#        breakpoint()
         bilt = self.soln_crnt.bilt
         folw = soln_crnt.folw
         urlroot = bilt.urlroot
@@ -1293,7 +1294,7 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Human Wealth '
         }
         py___code = '((PermGroFac / Rfree) * (1.0 + hNrm_tp1))'
-        if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
             soln_crnt.hNrm_tp1 = -1.0  # causes hNrm = 0 for final period
         soln_crnt.hNrm = bilt.hNrm = hNrm = \
             eval(py___code, {}, {**bilt.__dict__, **folw.__dict__})
@@ -1309,7 +1310,7 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Natural Borrowing Constraint'
         }
         py___code = '(mNrmMin_tp1 - tranShkMin)*(PermGroFac/Rfree)*permShkMin'
-        if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge
+        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge
             py___code = 'hNrm'  # Presumably zero
         soln_crnt.BoroCnstNat = bilt.BoroCnstNat = BoroCnstNat = \
             eval(py___code, {}, {**bilt.__dict__, **folw.__dict__})
@@ -1341,7 +1342,7 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Maximal MPC in current period as m -> mNrmMin'
         }
         py___code = '1.0 / (1.0 + (RPF / MPCmax_tp1))'
-        if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
             soln_crnt.MPCmax_tp1 = float('inf')  # causes MPCmax = 1 for final period
         soln_crnt.MPCmax = bilt.MPCmax = MPCmax = eval(
             py___code, {}, {**bilt.__dict__, **folw.__dict__})
@@ -1367,7 +1368,7 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Minimal MPC in current period as m -> infty'
         }
         py___code = '1.0 / (1.0 + (RPF /MPCmin_tp1))'
-        if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
             bilt.MPCmin_tp1 = float('inf')  # causes MPCmin = 1 for final period
         soln_crnt.MPCmin = bilt.MPCmin = MPCmin = \
             eval(py___code, {}, {**bilt.__dict__, **folw.__dict__})
@@ -1382,7 +1383,7 @@ class ConsPerfForesightSolver(MetricObject):
             'about': 'Maximal MPC in current period as m -> mNrmMin'
         }
         py___code = '1.0 / (1.0 + (RPF / MPCmax_tp1))'
-        if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
             bilt.MPCmax_tp1 = float('inf')  # causes MPCmax = 1 for final period
         soln_crnt.MPCmax = bilt.MPCmax = MPCmax = \
             eval(py___code, {}, {**bilt.__dict__, **folw.__dict__})
@@ -1437,6 +1438,10 @@ class ConsPerfForesightSolver(MetricObject):
         soln_futr = self.soln_futr
         soln_crnt = self.soln_crnt
 
+        if not hasattr(soln_futr.bilt, 'stge_kind'):
+            print('no stge_kind')
+            breakpoint()
+
         if soln_futr.bilt.stge_kind['iter_status'] == 'finished':
             breakpoint()
             # Should not have gotten here
@@ -1445,19 +1450,19 @@ class ConsPerfForesightSolver(MetricObject):
         if soln_futr.bilt.stge_kind['iter_status'] == 'terminal_pseudo':
             # bare-bones default terminal solution does not have all the facts
             # we want, so add them
-            breakpoint()
+            #            breakpoint()
             CRRA = soln_crnt.bilt.CRRA
             soln_futr = soln_crnt = def_utility(soln_crnt, CRRA)
             self.build_infhor_facts_from_params_ConsPerfForesightSolver()
-            breakpoint()
+#            breakpoint()
             soln_futr.bilt = soln_crnt.bilt = def_value_funcs(soln_crnt.bilt, CRRA)
             # Now that they've been added, it's good to go as a source for iteration
-            soln_crnt.stge_kind['iter_status'] = 'iterator'
-            breakpoint()
+            soln_crnt.bilt.stge_kind['iter_status'] = 'iterator'
+#            breakpoint()
             return soln_crnt  # if pseudo_terminal = True, enhanced replaces original
 
-        self.soln_crnt.stge_kind = {'iter_status': 'iterator',
-                                    'slvr_type': 'ConsIndShockSolver'}
+        self.soln_crnt.bilt.stge_kind = {'iter_status': 'iterator',
+                                         'slvr_type': 'ConsPerfForesightSolver'}
 
         CRRA = self.soln_crnt.bilt.CRRA
         self.soln_crnt.bilt = def_utility(soln_crnt.bilt, CRRA)
@@ -1465,10 +1470,10 @@ class ConsPerfForesightSolver(MetricObject):
         self.build_infhor_facts_from_params_ConsPerfForesightSolver()
         self.build_recursive_facts_ConsPerfForesightSolver()
         self.make_cFunc_PF()
-        breakpoint()
+#        breakpoint()
         CRRA = soln_crnt.bilt.CRRA
         soln_crnt = def_value_funcs(soln_crnt, CRRA)
-        breakpoint()
+#        breakpoint()
 
         return soln_crnt
 
@@ -1504,6 +1509,14 @@ class ConsPerfForesightSolver(MetricObject):
         # Add '_tp1' to names of variables in self.soln_futr.bilt
         # and put in soln_crnt.folw
 
+        # Catch the degenerate case of zero-variance income distributions
+        if hasattr(bilt, "tranShkVals") and hasattr(bilt, "permShkVals"):
+            if ((bilt.tranShkMin == 1.0) and (bilt.permShkMin == 1.0)):
+                bilt.Ex_Inv_permShk = 1.0
+                bilt.Ex_uInv_permShk = 1.0
+        else:
+            bilt.tranShkMin = bilt.permShkMin = 1.0
+
         if hasattr(bilt, 'stge_kind'):
             if 'iter_status' in bilt.stge_kind:
                 if (bilt.stge_kind['iter_status'] == 'terminal_pseudo'):
@@ -1535,12 +1548,6 @@ class ConsPerfForesightSolver(MetricObject):
 #        else:
 #            print('soln_futr.bilt has no parameters_solver attribute')
 #            breakpoint()
-
-        # Catch the degenerate case of zero-variance income distributions
-        if hasattr(bilt, "tranShkVals") and hasattr(bilt, "permShkVals"):
-            if ((bilt.tranShkMin == 1.0) and (bilt.permShkMin == 1.0)):
-                bilt.Ex_Inv_permShk = 1.0
-                bilt.Ex_uInv_permShk = 1.0
 
         return
 
@@ -1940,7 +1947,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             soln_crnt.bilt.Ex_RNrm * (m_t - soln_crnt.cFunc(m_t)) +
             soln_crnt.bilt.Ex_IncNrmNxt - m_t
         )
-        soln_crnt.Ex_m_tp1_minus_m_t = Ex_m_tp1_minus_m_t
+        soln_crnt.Ex_m_tp1_minus_m_t = \
+            soln_crnt.bilt.Ex_m_tp1_minus_m_t = Ex_m_tp1_minus_m_t
 
         soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_a_t = (
             lambda a_t:
@@ -1957,37 +1965,41 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
                 soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_aNrm_num, a_lst
             ))
         )
+        soln_crnt.bilt.Ex_cLev_tp1_Over_pLev_t_from_a_t = \
+            soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_a_t = (
+                lambda a_t:
+                soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_lst_a_t(a_t)
+                if (type(a_t) == list or type(a_t) == np.ndarray) else
+                soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_a_t(a_t)
+            )
 
-        soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_a_t = (
-            lambda a_t:
-            soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_lst_a_t(a_t)
-            if (type(a_t) == list or type(a_t) == np.ndarray) else
-            soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_a_t(a_t)
-        )
+        soln_crnt.bilt.Ex_cLev_tp1_Over_pLev_t_from_lst_m_t = \
+            soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_lst_m_t = (
+                lambda m_t:
+                soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_lst_a_t(m_t -
+                                                               soln_crnt.cFunc(m_t))
+            )
 
-        soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_lst_m_t = (
-            lambda m_t:
-            soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_lst_a_t(m_t -
-                                                           soln_crnt.cFunc(m_t))
-        )
+        soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_m_t = \
+            soln_crnt.bilt.Ex_cLev_tp1_Over_pLev_t_from_num_m_t = (
+                lambda m_t:
+                soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
+                                                               soln_crnt.cFunc(m_t))
+            )
 
-        soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_m_t = (
-            lambda m_t:
-            soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
-                                                           soln_crnt.cFunc(m_t))
-        )
+        soln_crnt.bilt.Ex_cLev_tp1_Over_pLev_t_from_num_m_t = \
+            soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_m_t = (
+                lambda m_t:
+                soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
+                                                               soln_crnt.cFunc(m_t))
+            )
 
-        soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_m_t = (
-            lambda m_t:
-            soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
-                                                           soln_crnt.cFunc(m_t))
-        )
-
-        soln_crnt.Ex_cLev_tp1_Over_cLev_t_from_m_t = (
-            lambda m_t:
-            soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_m_t(m_t) /
-            soln_crnt.cFunc(m_t)
-        )
+        soln_crnt.bilt.Ex_cLev_tp1_Over_cLev_t_from_m_t = \
+            soln_crnt.Ex_cLev_tp1_Over_cLev_t_from_m_t = (
+                lambda m_t:
+                soln_crnt.Ex_cLev_tp1_Over_pLev_t_from_m_t(m_t) /
+                soln_crnt.cFunc(m_t)
+            )
         soln_crnt.Ex_permShk_tp1_times_m_tp1_minus_m_t = (
             lambda m_t:
             soln_crnt.bilt.PF_RNrm *
@@ -2269,12 +2281,12 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
     def solve_prepared_stage(self):  # solves ONE stage
         """
         Solves one stage (period, in this model) of the consumption-saving problem.  
-        
+
         Solution includes a decision rule (consumption function), cFunc,
         value and marginal value functions vFunc and vPfunc, 
         a minimum possible level of normalized market resources mNrmMin, 
         normalized human wealth hNrm, and bounding MPCs MPCmin and MPCmax.  
-        
+
         If the user chooses sets `CubicBool` to True, cFunc
         have a value function vFunc and marginal marginal value function vPPfunc.
 
@@ -2372,7 +2384,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         return soln_crnt
 
     solve = solve_prepared_stage
-    
+
     def m_Nrm_tp1(self, shk_vector, a_number):
         """
         Computes normalized market resources of the next period
