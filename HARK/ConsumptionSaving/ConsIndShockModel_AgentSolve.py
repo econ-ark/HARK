@@ -64,8 +64,8 @@ __all__ = [
     "ConsKinkedRsolver",
 ]
 
-# ConsumerSolution is identical to base in HARK 0.11.0
-
+# ConsumerSolutionOld below is identical to version in HARK 0.11.0
+# ConsumerSolution, later, augments it
 
 class ConsumerSolutionOld(MetricObject):
     """
@@ -152,39 +152,8 @@ class ConsumerSolutionOld(MetricObject):
 
 
 class ConsumerSolution(MetricObject):
-    """
-    Solution of single period/stage of a consumption/saving problem with one
-    state variable at decision time: market resources `m`, which includes both
-    liquid assets and current income.  Defines a consumption function and
-    marginal value function.
-    Here and elsewhere in the code, Nrm indicates that variables are normalized
-    by permanent income.
-    Parameters
-    ----------
-    cFunc : function
-        The consumption function for this period/stage, defined over market
-        resources: c = cFunc(m).
-    vFunc : function
-        The beginning value function for this stage, defined over
-        market resources: v = vFunc(m).
-    vPfunc : function
-        The beginning marginal value function for this period,
-        defined over market resources: vP = vPfunc(m).
-    vPPfunc : function
-        The beginning marginal marginal value function for this
-        period, defined over market resources: vPP = vPPfunc(m).
-    mNrmMin : float
-        The minimum allowable market resources for this period; the consump-
-        tion and other functions are undefined for m < mNrmMin.
-    hNrm : float
-        Human wealth excluding income from this period: PDV of all future
-        income, ignoring mortality.
-    MPCmin : float
-        Infimum of the marginal propensity to consume this period.
-        MPC --> MPCmin as m --> infinity.
-    MPCmax : float
-        Supremum of the marginal propensity to consume this period.
-        MPC --> MPCmax as m --> mNrmMin.
+    __doc__ = ConsumerSolutionOld.__doc__
+    __doc__ += """
     stge_kind : dict
         Dictionary with info about this stage
         One built-in entry keeps track of the nature of the stage:
@@ -212,6 +181,7 @@ class ConsumerSolution(MetricObject):
             MPCmin=float('nan'), MPCmax=float('nan'), stge_kind={'iter_status': 'not initialized'}, parameters_solver=None,
             completed_cycles=0, ** kwds,):
 
+        breakpoint()
         bilt = self.bilt = Built()
         bilt.cFunc = cFunc
         bilt.vFunc = vFunc
@@ -1001,7 +971,8 @@ class ConsPerfForesightSolver(MetricObject):
         # Lower bound of mNrm is lowest gridpoint -- usually 0
         bild.mNrmMin = mNrmGrid[0]
 
-    def build_infhor_facts_from_params_ConsPerfForesightSolver(self):
+#    def build_infhor_facts_from_params_ConsPerfForesightSolver(self):
+    def build_infhor_facts_from_params(self):
         """
             Adds to the solution extensive information and references about
             its elements.
@@ -1286,7 +1257,8 @@ class ConsPerfForesightSolver(MetricObject):
         # soln_crnt.fcts.update({'DiscLiv': DiscLiv_fcts})
         soln_crnt.DiscLiv_fcts = bilt.DiscLiv_fcts = DiscLiv_fcts
 
-    def build_recursive_facts_ConsPerfForesightSolver(self):
+#    def build_recursive_facts_ConsPerfForesightSolver(self):
+    def build_recursive_facts(self):
 
         soln_crnt = self.soln_crnt
         bilt = self.soln_crnt.bilt
@@ -1463,7 +1435,8 @@ class ConsPerfForesightSolver(MetricObject):
             # we want, so add them
             #            breakpoint()
             soln_futr_bilt = soln_crnt_bilt = def_utility(soln_crnt_bilt, CRRA)
-            self.build_infhor_facts_from_params_ConsPerfForesightSolver()
+#            self.build_infhor_facts_from_params_ConsPerfForesightSolver()
+            self.build_infhor_facts_from_params()
 #            breakpoint()
             soln_futr.bilt = soln_crnt.bilt = def_value_funcs(soln_crnt.bilt, CRRA)
             # Now that they've been added, it's good to go as a source for iteration
@@ -1474,8 +1447,9 @@ class ConsPerfForesightSolver(MetricObject):
             soln_crnt.stge_kind = soln_crnt.bilt.stge_kind
             self.soln_crnt.vPfunc = self.soln_crnt.bilt.vPfunc  # Need for distance
             self.soln_crnt.cFunc = self.soln_crnt.bilt.cFunc  # Need for distance
-            self.soln_crnt.IncShkDstn = self.soln_crnt.bilt.IncShkDstn
-            
+            if hasattr(self.soln_crnt.bilt, 'IncShkDstn'):
+                self.soln_crnt.IncShkDstn = self.soln_crnt.bilt.IncShkDstn
+
 #            breakpoint()
             return soln_crnt  # if pseudo_terminal = True, enhanced replaces original
 
@@ -1487,8 +1461,9 @@ class ConsPerfForesightSolver(MetricObject):
         CRRA = self.soln_crnt.bilt.CRRA
         self.soln_crnt.bilt = def_utility(soln_crnt.bilt, CRRA)
 #        breakpoint()  # Need to build evPfut here, but previously had it building current
-        self.build_infhor_facts_from_params_ConsPerfForesightSolver()
-        self.build_recursive_facts_ConsPerfForesightSolver()
+#        self.build_infhor_facts_from_params_ConsPerfForesightSolver()
+        self.build_infhor_facts_from_params()
+        self.build_recursive_facts()
         self.make_cFunc_PF()
 #        breakpoint()
         CRRA = soln_crnt.bilt.CRRA
@@ -1715,13 +1690,14 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             Same solution that was provided, augmented with the factors
 
         """
+        super().build_infhor_facts_from_params()
         soln_crnt = self.soln_crnt
 #        breakpoint()
         bilt = soln_crnt.bilt
         folw = soln_crnt.folw
 #        scsr = soln_crnt.scsr
 
-        self.build_infhor_facts_from_params_ConsPerfForesightSolver()
+#        self.build_infhor_facts_from_params_ConsPerfForesightSolver()
 
         urlroot = bilt.urlroot
         # Modify formulae also present in PF model but that must change
@@ -1924,9 +1900,12 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 
     def build_recursive_facts(self):
 
+        #        self.build_recursive_facts_ConsPerfForesightSolver()
+        super().build_recursive_facts()
+
         soln_crnt = self.soln_crnt
 
-        self.build_recursive_facts_ConsPerfForesightSolver()
+#        self.build_recursive_facts_ConsPerfForesightSolver()
 
         # Now define some useful lambda functions
 

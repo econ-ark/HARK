@@ -25,31 +25,43 @@ from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
     import (init_perfect_foresight, init_idiosyncratic_shocks)
 
 """
-Classes to solve canonical consumption-saving models with idiosyncratic shocks
-to income.  All models here assume CRRA utility with geometric discounting, no
-bequest motive, and income shocks that are fully transitory or fully permanent.
+Defines increasingly specialized agent types for one-state-variable
+consumption problem.
 
-It currently solves three types of models:
-   1) `PerfForesightConsumerType`
-      * A basic "perfect foresight" consumption-saving model with no uncertainty.
-      * Features of the model prepare it for convenient inheritance
-   2) `IndShockConsumerType`
-      * A consumption-saving model with transitory and permanent income shocks
-      * Inherits from PF model
-   3) `KinkedRconsumerType`
-      * `IndShockConsumerType` model but with an interest rate paid on debt, `Rboro`
-        greater than the interest rate earned on savings, `Rboro > `Rsave`
+    * consumer_onestate_nobequest: The single state variable defined here
+    is market resources `m,` the sum of assets from prior choices
+    and income earned immediately before consumption decision.
+    Incorporates a `nobequest` terminal consumption function
+    in which consumption `c = m`
 
-See NARK https://HARK.githhub.io/Documentation/NARK for variable naming conventions.
-See https://hark.readthedocs.io for mathematical descriptions of the models being solved.
+    * PerfForesightConsumerType: Subclass of consumer_onestate_nobequest
+    in which income and asset returns are perfectly predictable
+    and utility is CRRA
+
+    * IndShockConsumerType: Subclass of PerfForesightConsumerType
+    in which noncapital income has transitory and permanent shocks,
+    and the lowest realization of the transitory shock corresponds
+    to a one-period spell of `unemployment.'
+
+    * KinkedRconsumerType: Subclass of IndShockConsumerType
+    in which the interest factor depends on whether the consumer
+    ends the period with positive market assets (earning `Rsave`)
+    or negative market assets (paying interest according to
+    `Rboro > Rsave`).
+
 """
 
 __all__ = [
-    "OneStateConsumerType",
+    "AgentTypePlus",
+    "consumer_onestate_nobequest",
     "PerfForesightConsumerType",
     "IndShockConsumerType",
     "KinkedRconsumerType"
 ]
+# TODO: CDC 20210129: After begin vetted, the elements of "Plus" that add to
+# the base type should be merged into the base type. We can leave the "Plus"
+# type empty in order to preserve an easy workflow that permits discrete
+# proposals for improvements to the core AgentType.
 
 
 class AgentTypePlus(AgentType):
@@ -75,15 +87,6 @@ class AgentTypePlus(AgentType):
         that would be obtained with infinite computational power
 
     """
-    # fcts : dictionary
-    #     For storing meta information about an object in the model,
-    #     for example a mathematical derivation or an explanation of
-    #     its role in an economic model.
-
-    #     fcts[objectName]['latexexpr'] - Name of variable in LaTeX docs
-    #     fcts[objectName]['urlhandle'] - url to further info on it
-    #     fcts[objectName]['python_ex'] - python expr creating its value
-    #     fcts[objectName]['value_now'] - latest value calculated for it
 
     # These three variables are mandatory; they must be overwritten
     # as appropriate
@@ -117,9 +120,9 @@ class AgentTypePlus(AgentType):
         for key in aprox_lim:
             if hasattr(self, key):
                 self.aprox_par_vals[key] = getattr(self, key)
-            else:
-                _log.warning('You have defined '+par+' as an approx_par' +
-                             ' but it is not a parameter being used.')
+            # else:
+            #     _log.warning('You have defined '+par+' as an approx_par' +
+            #                  ' but it is not a parameter being used.')
 
         # Merge to get all aprox and prmtv params and make a copy
         self.solve_par_vals = \
@@ -185,7 +188,7 @@ class AgentTypePlus(AgentType):
                 return
         soln = self.solution[0]
         if not hasattr(soln, 'stge_kind'):
-#        if not hasattr(soln.bilt, 'stge_kind'):
+            #        if not hasattr(soln.bilt, 'stge_kind'):
             _log.warning('Solution does not have attribute stge_kind')
             return
         else:
@@ -207,7 +210,7 @@ class AgentTypePlus(AgentType):
         pass
 
 
-class OneStateConsumerType(AgentTypePlus):
+class consumer_onestate_nobequest(AgentTypePlus):
     """
     Minimal requirements for a consumer with one state variable, m:
 
@@ -215,7 +218,7 @@ class OneStateConsumerType(AgentTypePlus):
 
         * it is referred to as `market resources` throughout the docs
 
-    OneStateConsumerType class must be inherited by some subclass that
+    consumer_onestate_nobequest class must be inherited by some subclass that
     fleshes out the rest of the characteristics of the agent, e.g. the
     PerfForesightConsumerType or MertonSamuelsonConsumerType or something.
 
@@ -269,7 +272,7 @@ class OneStateConsumerType(AgentTypePlus):
             stge_kind={
                 'iter_status': 'afterlife',
                 'term_type': 'nobequest',
-                'maker_class': 'OneStateConsumerType'},
+                'maker_class': 'consumer_onestate_nobequest'},
             completed_cycles=-1
         )
 
@@ -282,7 +285,7 @@ class OneStateConsumerType(AgentTypePlus):
             stge_kind={
                 'iter_status': 'terminal_pseudo',  # will be replaced with iterator
                 'term_type': 'nobequest',
-                'maker_class': 'OneStateConsumerType'
+                'maker_class': 'consumer_onestate_nobequest'
             })
 
 #        orig = ConsumerSolutionOneStateCRRA()
@@ -299,7 +302,7 @@ class OneStateConsumerType(AgentTypePlus):
         #     stge_kind={
         #         'iter_status': 'terminal_pseudo',  # will be replaced with iterator
         #         'term_type': 'nobequest',
-        #         'maker_class': 'OneStateConsumerType'
+        #         'maker_class': 'consumer_onestate_nobequest'
         #     })
 
         solution_nobequest_.solution_next = solution_afterlife_nobequest_
@@ -336,7 +339,7 @@ class OneStateConsumerType(AgentTypePlus):
         #     )  # Things all such models have in common
 
 
-class PerfForesightConsumerType(OneStateConsumerType):
+class PerfForesightConsumerType(consumer_onestate_nobequest):
 
     """
     A perfect foresight consumer who has no uncertainty other than
@@ -350,6 +353,15 @@ class PerfForesightConsumerType(OneStateConsumerType):
     cycles : int
         Number of times the sequence of periods/stages should be solved.
     """
+    # fcts : dictionary
+    #     For storing meta information about an object in the model,
+    #     for example a mathematical derivation or an explanation of
+    #     its role in an economic model.
+
+    #     fcts[objectName]['latexexpr'] - Name of variable in LaTeX docs
+    #     fcts[objectName]['urlhandle'] - url to further info on it
+    #     fcts[objectName]['python_ex'] - python expr creating its value
+    #     fcts[objectName]['value_now'] - latest value calculated for it
 
     time_vary_ = ["LivPrb",  # Age-varying death rates can match mortality data
                   "PermGroFac"]  # Age-varying income growth can match data
@@ -386,7 +398,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
         kwds_upd = init_perfect_foresight.copy()  # Get defaults
         kwds_upd.update(kwds)  # Replace defaults with passed vals if diff
 
-        OneStateConsumerType.__init__(  # Universals for one state var c models
+        consumer_onestate_nobequest.__init__(  # Universals for one state var c models
             self,
             solution_startfrom=None,  # defaults to nobequest
             cycles=cycles,
@@ -419,11 +431,11 @@ class PerfForesightConsumerType(OneStateConsumerType):
 
         self.update_parameters_for_this_agent_subclass()  # self.parameters gets new info
 
-        # OneStateConsumerType creates self.soln_crnt and self.soln_crnt.scsr
+        # consumer_onestate_nobequest creates self.soln_crnt and self.soln_crnt.scsr
         # If they did not provide their own solution_startfrom, use default
 
         if not hasattr(self, 'solution_startfrom'):
-            # enrich generic OneStateConsumerType terminal function
+            # enrich generic consumer_onestate_nobequest terminal function
             # with info specifically needed to solve this particular model
             #            breakpoint()
             self.solution_terminal.bilt = \
@@ -459,7 +471,7 @@ class PerfForesightConsumerType(OneStateConsumerType):
         If the model is one characterized by stable points, calculate those and
         attach them to the solution.
         """
-        
+
 #        breakpoint()
         if not hasattr(soln.bilt, 'conditions'):
             soln.check_conditions(soln, verbose=0)
@@ -488,9 +500,8 @@ class PerfForesightConsumerType(OneStateConsumerType):
                     soln.mNrmTrg = None
                 else:
                     soln.mNrmTrg = soln.mNrmTrg_find()
-                    
 
-                    
+
 #        return soln
 
     # CDC 20210511: The old version of ConsIndShockModel mixed calibration and results
@@ -500,6 +511,8 @@ class PerfForesightConsumerType(OneStateConsumerType):
     # solution_terminal into the solution[0] position where it needs to be, leaving
     # the agent in a state where invoking the ".solve()" method as before will
     # accomplish the same things it did before, but from the new starting setup
+
+
     def make_solution_for_final_period(self):  # solution[0]=terminal_solution
         # but want to add extra info required for backward induction
         cycles_orig = deepcopy(self.cycles)
