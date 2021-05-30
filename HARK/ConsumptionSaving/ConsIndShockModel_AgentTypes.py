@@ -108,19 +108,19 @@ class AgentTypePlus(AgentType):
 
     def agent_store_model_params(self, prmtv_par, aprox_lim):
         # When anything cached here changes, solution must be recomputed
-        self.prmtv_par_vals = {}
+        prmtv_par_vals = {}
         for par in prmtv_par:
             if hasattr(self, par):
-                self.prmtv_par_vals[par] = getattr(self, par)
+                prmtv_par_vals[par] = getattr(self, par)
 
-        self.aprox_par_vals = {}
+        aprox_par_vals = {}
         for key in aprox_lim:
             if hasattr(self, key):
-                self.aprox_par_vals[key] = getattr(self, key)
+                aprox_par_vals[key] = getattr(self, key)
 
         # Merge to get all aprox and prmtv params and make a copy
         self.solve_par_vals = \
-            deepcopy({**self.prmtv_par_vals, **self.aprox_par_vals})
+            deepcopy({**prmtv_par_vals, **aprox_par_vals})
 
         # Needs to go on solution_terminal so it can get on the solutions
         self.solution_terminal.bilt.solve_par_vals = self.solve_par_vals
@@ -962,7 +962,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Inherit characteristics of a PF model with the same parameters
         PerfForesightConsumerType.__init__(self, cycles=cycles,
                                            verbose=verbose, quiet=quiet,
-                                           _startfrom=solution_startfrom,
+#                                           _startfrom=solution_startfrom,
                                            **params)
 
         self.update_parameters_for_this_agent_subclass()  # Add new pars
@@ -992,6 +992,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Store setup parameters so later we can check for changes
         # that necessitate restarting solution process
+
         self.agent_store_model_params(params['prmtv_par'], params['aprox_lim'])
 
         # Put the (enhanced) solution_terminal in self.solution[0]
