@@ -340,12 +340,10 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
     # Get default values from the Single Source of Truth
     from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
-        import init_perfect_foresight \
-            as default
-#        import init_perfect_foresight_plus_make
+        import init_perfect_foresight_plus_make
 
-#    default = init_perfect_foresight_plus_make(
-#        init_perfect_foresight).parameters
+    default = init_perfect_foresight_plus_make(
+        init_perfect_foresight).parameters
 
     def __init__(self,
                  cycles=1,  # Default to finite horiz
@@ -997,30 +995,66 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def dolo_model(self):
         # Create a dolo version of the model
-        breakpoint()
-        self.dolo_modl = yaml_import(
-            '/Volumes/Data/Code/ARK/DARKolo/chimeras/BufferStock/bufferstock.yaml'
-            )
-#        tmpyaml = tempfile.NamedTemporaryFile(mode='w+')
-#        tmpyaml.write(self.dolo_yaml)
-#        tmpyaml.seek(0)  # move to beginning
-#        self.dolo_modl = yaml_import(tmpyaml.name)
+        self.dolo_yaml = """
+name: BufferStockTheory
+
+symbols:
+    exogenous: [lψ, lθ]
+    states: [m]
+    controls: [c]
+    parameters: [β, ρ, σ_lψ, σ_lθ, R, Γ]
+
+definitions: 
+    Thetaθ[t] = exp(lθ[t])
+
+equations:
+
+# The definition of θ[t] above was constructed so that it could 
+# be used instead of exp(lθ[t]) here.  For some reason that does
+# not work
+    transition: |
+        m[t] = exp(lθ[t]) + (m[t-1]-c[t-1])*(R/(Γ*exp(lψ[t])))
+
+    arbitrage: |
+        (R*β*((c[t+1]*exp(lψ[t+1])*Γ)/c[t])^(-ρ)-1 ) ⟂ 0.0 <= c[t] <= m[t]
+
+calibration:
+
+    β: 0.96
+    Γ: 1.03
+    ρ: 2.0
+    R: 1.04
+    σ_lψ: 0.1
+    σ_lθ: 0.1
+    lψ: -(σ_lψ^2)/2
+    lθ: -(σ_lθ^2)/2
+    m: 1.0
+    max_m: 500
+    c: 0.9*m
+    θ: 1.0
+
+domain:
+    m: [0.0, max_m]
+
+exogenous: !Normal
+    Σ:     [[σ_lψ^2,         0]
+           ,[0,        σ_lθ^2]]
+
+options:
+    grid: !Cartesian
+        orders: [1000]
+"""
+
+        tmpyaml = tempfile.NamedTemporaryFile(mode='w+')
+        tmpyaml.write(self.dolo_yaml)
+        tmpyaml.seek(0)  # move to beginning
+        self.dolo_modl = yaml_import(tmpyaml.name)
 #        breakpoint()
-
-
-    # The former "[AgentType].update_pre_solve()" was poor nomenclature --
-    #  easy to confuse with the also-existing "[AgentType].pre_solve()" and with
-    # "[SolverType].prepare_to_solve()".  The new name,
-    #
-    # agent_force_prepare_info_needed_to_begin_solving()
-    #
-    # is better.  The old one
-    # is preserved as an alias, below, to prevent breakage of existing code:
 
     def agent_force_prepare_info_needed_to_begin_solving(self):
         """
-        Update any characteristics of the agent that need to be recomputed as a 
-        result of changes in parameters since the last time the solver was invoked.
+        Update any characteristics of the agent that need to be recomputed
+        as a result of changes in parameters since the last time the solver was invoked.
 
         Parameters
         ----------
@@ -1044,10 +1078,17 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 _log.info('Storing new parameters and updating shocks and grid.')
                 self.update_income_process()
                 self.update_assets_grid()
-                self.solve_par_vals = self.solve_par_vals_now
-
 
     pre_solve = agent_force_prepare_info_needed_to_begin_solving
+
+    # The former "[AgentType].update_pre_solve()" was poor nomenclature --
+    #  easy to confuse with the also-existing "[AgentType].pre_solve()" and with
+    # "[SolverType].prepare_to_solve()".  The new name,
+    #
+    # agent_force_prepare_info_needed_to_begin_solving()
+    #
+    # is better.  The old one
+    # is preserved as an alias, below, to prevent breakage of existing code:
 
     def update_income_process(self):
         """

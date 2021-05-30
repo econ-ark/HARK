@@ -12,12 +12,12 @@ from HARK.ConsumptionSaving.ConsIndShockModel_AgentTypes \
             IndShockConsumerType, KinkedRconsumerType)
 
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
-    import (AgentDict,
+    import (
             init_perfect_foresight,
             init_idiosyncratic_shocks,
-            init_idiosyncratic_shocks_plus,
             init_kinked_R,
-            init_lifecycle, init_cyclical)
+            init_lifecycle, 
+            init_cyclical)
 
 """
 Classes to define and solve canonical consumption-saving models with a single
@@ -51,10 +51,8 @@ __all__ = [
     "PerfForesightConsumerType",
     "IndShockConsumerType",
     "KinkedRconsumerType",
-    "AgentDict",
     "init_perfect_foresight",
     "init_idiosyncratic_shocks",
-    "init_idiosyncratic_shocks_plus",
     "init_kinked_R",
     "init_lifecycle",
     "init_cyclical",
