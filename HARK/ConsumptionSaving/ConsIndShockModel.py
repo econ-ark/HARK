@@ -8,12 +8,15 @@ from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
         ConsKinkedRsolver)
 
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentTypes \
-    import (consumer_onestate_nobequest, PerfForesightConsumerType,
+    import (consumer_terminal_nobequest_onestate, PerfForesightConsumerType,
             IndShockConsumerType, KinkedRconsumerType)
 
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
-    import (init_perfect_foresight,
-            init_idiosyncratic_shocks, init_kinked_R,
+    import (AgentDict,
+            init_perfect_foresight,
+            init_idiosyncratic_shocks,
+            init_idiosyncratic_shocks_plus,
+            init_kinked_R,
             init_lifecycle, init_cyclical)
 
 """
@@ -44,12 +47,14 @@ __all__ = [
     "ConsIndShockSolverBasic",
     "ConsIndShockSolver",
     "ConsKinkedRsolver",
-    "consumer_onestate_nobequest",
+    "consumer_terminal_nobequest_onestate",
     "PerfForesightConsumerType",
     "IndShockConsumerType",
     "KinkedRconsumerType",
+    "AgentDict",
     "init_perfect_foresight",
     "init_idiosyncratic_shocks",
+    "init_idiosyncratic_shocks_plus",
     "init_kinked_R",
     "init_lifecycle",
     "init_cyclical",

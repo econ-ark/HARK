@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 from copy import copy
+from types import SimpleNamespace
+from dataclasses import dataclass
+
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools \
     import income_wealth_dists_from_scf
@@ -7,7 +10,21 @@ from HARK.Calibration.Income.IncomeTools \
     import (parse_income_spec, parse_time_params, Cagetti_income)
 
 
+# TODO: CDC 20210530: We should probably move toward an AgentDict
+# being the direct way of storing parameters rather than a wrapper
+# as here.
+@dataclass
+class AgentDict(SimpleNamespace):  # TODO: Move (to core.py) when vetted/agreed
+    """
+    A dictionary that defines a calibration of an AgentType
+    """
+    parameters: dict
+    pass
+
+
 # Make a dictionary to specify a perfect foresight consumer type
+
+
 init_perfect_foresight = {
     'CRRA': 2.0,          # Coefficient of relative risk aversion,
     'Rfree': 1.03,        # Interest factor on assets
@@ -29,9 +46,17 @@ init_perfect_foresight = {
     # Optional extra _fcts about the model and its calibration
 }
 
+
+#
+class init_perfect_foresight_plus(AgentDict):
+    def __init__(self, base_dict):
+        pass
+
 # The info below is optional at present but may become mandatory as the toolkit evolves
 # 'Primitives' define the 'true' model that we think of ourselves as trying to solve
 # (the limit as approximation error reaches zero)
+
+
 init_perfect_foresight.update(
     {'prmtv_par': ['CRRA', 'Rfree', 'DiscFac', 'LivPrb', 'PermGroFac', 'BoroCnstArt', 'PermGroFacAgg', 'T_cycle', 'cycles']})
 # Approximation parameters define the precision of the approximation
@@ -71,7 +96,7 @@ init_perfect_foresight['prmtv_par'].append('DiscFac')
 # init_perfect_foresight['_fcts'].update({'DiscFac': DiscFac_fcts})
 init_perfect_foresight.update({'DiscFac_fcts': DiscFac_fcts})
 
-LivPrb_fcts={
+LivPrb_fcts = {
     'about': 'Probability of survival from this period to next'}
 LivPrb_fcts.update({'latexexpr': '\providecommand{\LivPrb}{\Pi}\LivPrb'})
 LivPrb_fcts.update({'_unicode_': 'Π'})  # \Pi mnemonic: 'Probability of surival'
@@ -80,7 +105,7 @@ init_perfect_foresight['prmtv_par'].append('LivPrb')
 # init_perfect_foresight['_fcts'].update({'LivPrb': LivPrb_fcts})
 init_perfect_foresight.update({'LivPrb_fcts': LivPrb_fcts})
 
-Rfree_fcts={
+Rfree_fcts = {
     'about': 'Risk free interest factor'}
 Rfree_fcts.update({'latexexpr': '\providecommand{\Rfree}{\mathsf{R}}\Rfree'})
 Rfree_fcts.update({'_unicode_': 'R'})
@@ -89,7 +114,7 @@ init_perfect_foresight['prmtv_par'].append('Rfree')
 # init_perfect_foresight['_fcts'].update({'Rfree': Rfree_fcts})
 init_perfect_foresight.update({'Rfree_fcts': Rfree_fcts})
 
-PermGroFac_fcts={
+PermGroFac_fcts = {
     'about': 'Growth factor for permanent income'}
 PermGroFac_fcts.update({'latexexpr': '\providecommand{\PermGroFac}{\Gamma}\PermGroFac'})
 PermGroFac_fcts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
@@ -98,7 +123,7 @@ init_perfect_foresight['prmtv_par'].append('PermGroFac')
 # init_perfect_foresight['_fcts'].update({'PermGroFac': PermGroFac_fcts})
 init_perfect_foresight.update({'PermGroFac_fcts': PermGroFac_fcts})
 
-PermGroFacAgg_fcts={
+PermGroFacAgg_fcts = {
     'about': 'Growth factor for aggregate permanent income'}
 # PermGroFacAgg_fcts.update({'latexexpr': '\providecommand{\PermGroFacAgg}{\Gamma}\PermGroFacAgg'})
 # PermGroFacAgg_fcts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
@@ -173,7 +198,7 @@ T_cycle_fcts = {
 # init_perfect_foresight['_fcts'].update({'T_cycle': T_cycle_fcts})
 init_perfect_foresight.update({'T_cycle_fcts': T_cycle_fcts})
 
-cycles_fcts={
+cycles_fcts = {
     'about': 'Number of times the sequence of periods/stages should be solved'}
 # init_perfect_foresight['_fcts'].update({'cycle': cycles_fcts})
 init_perfect_foresight.update({'cycles_fcts': cycles_fcts})
@@ -182,7 +207,7 @@ init_perfect_foresight['prmtv_par'].append('cycles')
 
 
 # Make a dictionary to specify a perfect foresight consumer type
-init_perfect_foresight={
+init_perfect_foresight = {
     'CRRA': 2.0,          # Coefficient of relative risk aversion,
     'Rfree': 1.03,        # Interest factor on assets
     'DiscFac': 0.96,      # Intertemporal discount factor
@@ -227,7 +252,7 @@ init_perfect_foresight.update({  # Limiting values that define 'true' simulation
 })
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
-init_idiosyncratic_shocks=dict(
+init_idiosyncratic_shocks = dict(
     init_perfect_foresight,
     **{
         # Income process variables
@@ -260,29 +285,182 @@ init_idiosyncratic_shocks=dict(
 # Some of it is required for further purposes
 
 # Parameters required for a (future) matrix-based discretization of the problem
-init_idiosyncratic_shocks.update({
-    'matrx_par': {
-        'mcrlo_aXtraCount': '100',
-        'mcrlo_aXtraMin': init_idiosyncratic_shocks['aXtraMin'],
-        'mcrlo_aXtraMax': init_idiosyncratic_shocks['aXtraMax']
-    }})
-init_idiosyncratic_shocks.update({
-    'matrx_lim': {
-        'mcrlo_aXtraCount': float('inf'),
-        'mcrlo_aXtraMin': float('inf'),
-        'mcrlo_aXtraMax': float('inf')
-    }})
 
-#  add parameters that were not part of perfect foresight model
-# Primitives
-init_idiosyncratic_shocks['prmtv_par'].append('permShkStd')
-init_idiosyncratic_shocks['prmtv_par'].append('tranShkStd')
-init_idiosyncratic_shocks['prmtv_par'].append('UnempPrb')
-init_idiosyncratic_shocks['prmtv_par'].append('UnempPrbRet')
-init_idiosyncratic_shocks['prmtv_par'].append('IncUnempRet')
-init_idiosyncratic_shocks['prmtv_par'].append('BoroCnstArt')
-init_idiosyncratic_shocks['prmtv_par'].append('tax_rate')
-init_idiosyncratic_shocks['prmtv_par'].append('T_retire')
+
+class init_idiosyncratic_shocks_plus(AgentDict):
+    def __init__(self, init_idiosyncratic_shocks=init_idiosyncratic_shocks):
+        init_idiosyncratic_shocks['prmtv_par'].append('permShkStd')
+        init_idiosyncratic_shocks['prmtv_par'].append('tranShkStd')
+        init_idiosyncratic_shocks['prmtv_par'].append('UnempPrb')
+        init_idiosyncratic_shocks['prmtv_par'].append('UnempPrbRet')
+        init_idiosyncratic_shocks['prmtv_par'].append('IncUnempRet')
+        init_idiosyncratic_shocks['prmtv_par'].append('BoroCnstArt')
+        init_idiosyncratic_shocks['prmtv_par'].append('tax_rate')
+        init_idiosyncratic_shocks['prmtv_par'].append('T_retire')
+        # Approximation parameters and their limits (if any)
+        # init_idiosyncratic_shocks['aprox_par'].append('permShkCount')
+        init_idiosyncratic_shocks['aprox_lim'].update({'permShkCount': 'infinity'})
+        # init_idiosyncratic_shocks['aprox_par'].append('tranShkCount')
+        init_idiosyncratic_shocks['aprox_lim'].update({'tranShkCount': 'infinity'})
+        # init_idiosyncratic_shocks['aprox_par'].append('aXtraMin')
+        init_idiosyncratic_shocks['aprox_lim'].update({'aXtraMin': float('0.0')})
+        # init_idiosyncratic_shocks['aprox_par'].append('aXtraMax')
+        init_idiosyncratic_shocks['aprox_lim'].update({'aXtraMax': float('inf')})
+        # init_idiosyncratic_shocks['aprox_par'].append('aXtraNestFac')
+        init_idiosyncratic_shocks['aprox_lim'].update({'aXtraNestFac': None})
+        # init_idiosyncratic_shocks['aprox_par'].append('aXtraCount')
+        init_idiosyncratic_shocks['aprox_lim'].update({'aXtraCount': None})
+
+        IncShkDstn_fcts = {
+            'about': 'Income Shock Distribution: .X[0] and .X[1] retrieve shocks, .pmf retrieves probabilities'}
+        IncShkDstn_fcts.update({'py___code': r'construct_lognormal_income_process_unemployment'})
+        # init_idiosyncratic_shocks['_fcts'].update({'IncShkDstn': IncShkDstn_fcts})
+        init_idiosyncratic_shocks.update({'IncShkDstn_fcts': IncShkDstn_fcts})
+
+        permShkStd_fcts = {
+            'about': 'Standard deviation for lognormal shock to permanent income'}
+        permShkStd_fcts.update({'latexexpr': '\permShkStd'})
+        # init_idiosyncratic_shocks['_fcts'].update({'permShkStd': permShkStd_fcts})
+        init_idiosyncratic_shocks.update({'permShkStd_fcts': permShkStd_fcts})
+
+        tranShkStd_fcts = {
+            'about': 'Standard deviation for lognormal shock to permanent income'}
+        tranShkStd_fcts.update({'latexexpr': '\tranShkStd'})
+        # init_idiosyncratic_shocks['_fcts'].update({'tranShkStd': tranShkStd_fcts})
+        init_idiosyncratic_shocks.update({'tranShkStd_fcts': tranShkStd_fcts})
+
+        UnempPrb_fcts = {
+            'about': 'Probability of unemployment while working'}
+        UnempPrb_fcts.update({'latexexpr': r'\UnempPrb'})
+        UnempPrb_fcts.update({'_unicode_': '℘'})
+        # init_idiosyncratic_shocks['_fcts'].update({'UnempPrb': UnempPrb_fcts})
+        init_idiosyncratic_shocks.update({'UnempPrb_fcts': UnempPrb_fcts})
+
+        UnempPrbRet_fcts = {
+            'about': '"unemployment" in retirement = big medical shock'}
+        UnempPrbRet_fcts.update({'latexexpr': r'\UnempPrbRet'})
+        # init_idiosyncratic_shocks['_fcts'].update({'UnempPrbRet': UnempPrbRet_fcts})
+        init_idiosyncratic_shocks.update({'UnempPrbRet_fcts': UnempPrbRet_fcts})
+
+        IncUnemp_fcts = {
+            'about': 'Unemployment insurance replacement rate'}
+        IncUnemp_fcts.update({'latexexpr': '\IncUnemp'})
+        IncUnemp_fcts.update({'_unicode_': 'μ'})
+        # init_idiosyncratic_shocks['_fcts'].update({'IncUnemp': IncUnemp_fcts})
+        init_idiosyncratic_shocks.update({'IncUnemp_fcts': IncUnemp_fcts})
+
+        IncUnempRet_fcts = {
+            'about': 'Size of medical shock (frac of perm inc)'}
+        # init_idiosyncratic_shocks['_fcts'].update({'IncUnempRet': IncUnempRet_fcts})
+        init_idiosyncratic_shocks.update({'IncUnempRet_fcts': IncUnempRet_fcts})
+
+        tax_rate_fcts = {
+            'about': 'Flat income tax rate'}
+        tax_rate_fcts.update({
+            'about': 'Size of medical shock (frac of perm inc)'})
+        # init_idiosyncratic_shocks['_fcts'].update({'tax_rate': tax_rate_fcts})
+        init_idiosyncratic_shocks.update({'tax_rate_fcts': tax_rate_fcts})
+
+        T_retire_fcts = {
+            'about': 'Period of retirement (0 --> no retirement)'}
+        # init_idiosyncratic_shocks['_fcts'].update({'T_retire': T_retire_fcts})
+        init_idiosyncratic_shocks.update({'T_retire_fcts': T_retire_fcts})
+
+        permShkCount_fcts = {
+            'about': 'Num of pts in discrete approx to permanent income shock dstn'}
+        # init_idiosyncratic_shocks['_fcts'].update({'permShkCount': permShkCount_fcts})
+        init_idiosyncratic_shocks.update({'permShkCount_fcts': permShkCount_fcts})
+
+        tranShkCount_fcts = {
+            'about': 'Num of pts in discrete approx to transitory income shock dstn'}
+        # init_idiosyncratic_shocks['_fcts'].update({'tranShkCount': tranShkCount_fcts})
+        init_idiosyncratic_shocks.update({'tranShkCount_fcts': tranShkCount_fcts})
+
+        aXtraMin_fcts = {
+            'about': 'Minimum end-of-period "assets above minimum" value'}
+        # init_idiosyncratic_shocks['_fcts'].update({'aXtraMin': aXtraMin_fcts})
+        init_idiosyncratic_shocks.update({'aXtraMin_fcts': aXtraMin_fcts})
+
+        aXtraMax_fcts = {
+            'about': 'Maximum end-of-period "assets above minimum" value'}
+        # init_idiosyncratic_shocks['_fcts'].update({'aXtraMax': aXtraMax_fcts})
+        init_idiosyncratic_shocks.update({'aXtraMax_fcts': aXtraMax_fcts})
+
+        aXtraNestFac_fcts = {
+            'about': 'Exponential nesting factor when constructing "assets above minimum" grid'}
+        # init_idiosyncratic_shocks['_fcts'].update({'aXtraNestFac': aXtraNestFac_fcts})
+        init_idiosyncratic_shocks.update({'aXtraNestFac_fcts': aXtraNestFac_fcts})
+
+        aXtraCount_fcts = {
+            'about': 'Number of points in the grid of "assets above minimum"'}
+        # init_idiosyncratic_shocks['_fcts'].update({'aXtraMax': aXtraCount_fcts})
+        init_idiosyncratic_shocks.update({'aXtraMax_fcts': aXtraCount_fcts})
+
+        aXtraCount_fcts = {
+            'about': 'Number of points to include in grid of assets above minimum possible'}
+        # init_idiosyncratic_shocks['_fcts'].update({'aXtraCount': aXtraCount_fcts})
+        init_idiosyncratic_shocks.update({'aXtraCount_fcts': aXtraCount_fcts})
+
+        aXtraExtra_fcts = {
+            'about': 'List of other values of "assets above minimum" to add to the grid (e.g., 10000)'}
+        # init_idiosyncratic_shocks['_fcts'].update({'aXtraExtra': aXtraExtra_fcts})
+        init_idiosyncratic_shocks.update({'aXtraExtra_fcts': aXtraExtra_fcts})
+
+        aXtraGrid_fcts = {
+            'about': 'Grid of values to add to minimum possible value to obtain actual end-of-period asset grid'}
+        # init_idiosyncratic_shocks['_fcts'].update({'aXtraGrid': aXtraGrid_fcts})
+        init_idiosyncratic_shocks.update({'aXtraGrid_fcts': aXtraGrid_fcts})
+
+        vFuncBool_fcts = {
+            'about': 'Whether to calculate the value function during solution'
+        }
+        # init_idiosyncratic_shocks['_fcts'].update({'vFuncBool': vFuncBool_fcts})
+        init_idiosyncratic_shocks.update({'vFuncBool_fcts': vFuncBool_fcts})
+
+        breakpoint()
+        CubicBool_fcts = {
+            'about': 'Use cubic spline interpolation when True, linear interpolation when False'}
+#        init_idiosyncratic_shocks['_fcts'].update({'CubicBool_fcts': CubicBool_fcts})
+        init_idiosyncratic_shocks.update({'CubicBool_fcts': CubicBool_fcts})
+
+        init_idiosyncratic_shocks.update({
+            'matrx_par': {
+                'mcrlo_aXtraCount': '100',
+                'mcrlo_aXtraMin': init_idiosyncratic_shocks['aXtraMin'],
+                'mcrlo_aXtraMax': init_idiosyncratic_shocks['aXtraMax']
+            }})
+        init_idiosyncratic_shocks.update({
+            'matrx_lim': {
+                'mcrlo_aXtraCount': float('inf'),
+                'mcrlo_aXtraMin': float('inf'),
+                'mcrlo_aXtraMax': float('inf')
+            }})
+        self.parameters = init_idiosyncratic_shocks
+
+
+# init_idiosyncratic_shocks.update({
+#     'matrx_par': {
+#         'mcrlo_aXtraCount': '100',
+#         'mcrlo_aXtraMin': init_idiosyncratic_shocks['aXtraMin'],
+#         'mcrlo_aXtraMax': init_idiosyncratic_shocks['aXtraMax']
+#     }})
+# init_idiosyncratic_shocks.update({
+#     'matrx_lim': {
+#         'mcrlo_aXtraCount': float('inf'),
+#         'mcrlo_aXtraMin': float('inf'),
+#         'mcrlo_aXtraMax': float('inf')
+#     }})
+
+# #  add parameters that were not part of perfect foresight model
+# # Primitives
+# init_idiosyncratic_shocks['prmtv_par'].append('permShkStd')
+# init_idiosyncratic_shocks['prmtv_par'].append('tranShkStd')
+# init_idiosyncratic_shocks['prmtv_par'].append('UnempPrb')
+# init_idiosyncratic_shocks['prmtv_par'].append('UnempPrbRet')
+# init_idiosyncratic_shocks['prmtv_par'].append('IncUnempRet')
+# init_idiosyncratic_shocks['prmtv_par'].append('BoroCnstArt')
+# init_idiosyncratic_shocks['prmtv_par'].append('tax_rate')
+# init_idiosyncratic_shocks['prmtv_par'].append('T_retire')
 
 # Approximation parameters and their limits (if any)
 # init_idiosyncratic_shocks['aprox_par'].append('permShkCount')
@@ -298,120 +476,122 @@ init_idiosyncratic_shocks['aprox_lim'].update({'aXtraNestFac': None})
 # init_idiosyncratic_shocks['aprox_par'].append('aXtraCount')
 init_idiosyncratic_shocks['aprox_lim'].update({'aXtraCount': None})
 
-IncShkDstn_fcts={
+IncShkDstn_fcts = {
     'about': 'Income Shock Distribution: .X[0] and .X[1] retrieve shocks, .pmf retrieves probabilities'}
 IncShkDstn_fcts.update({'py___code': r'construct_lognormal_income_process_unemployment'})
 # init_idiosyncratic_shocks['_fcts'].update({'IncShkDstn': IncShkDstn_fcts})
 init_idiosyncratic_shocks.update({'IncShkDstn_fcts': IncShkDstn_fcts})
 
-permShkStd_fcts={
+permShkStd_fcts = {
     'about': 'Standard deviation for lognormal shock to permanent income'}
 permShkStd_fcts.update({'latexexpr': '\permShkStd'})
 # init_idiosyncratic_shocks['_fcts'].update({'permShkStd': permShkStd_fcts})
 init_idiosyncratic_shocks.update({'permShkStd_fcts': permShkStd_fcts})
 
-tranShkStd_fcts={
+tranShkStd_fcts = {
     'about': 'Standard deviation for lognormal shock to permanent income'}
 tranShkStd_fcts.update({'latexexpr': '\tranShkStd'})
 # init_idiosyncratic_shocks['_fcts'].update({'tranShkStd': tranShkStd_fcts})
 init_idiosyncratic_shocks.update({'tranShkStd_fcts': tranShkStd_fcts})
 
-UnempPrb_fcts={
+UnempPrb_fcts = {
     'about': 'Probability of unemployment while working'}
 UnempPrb_fcts.update({'latexexpr': r'\UnempPrb'})
 UnempPrb_fcts.update({'_unicode_': '℘'})
 # init_idiosyncratic_shocks['_fcts'].update({'UnempPrb': UnempPrb_fcts})
 init_idiosyncratic_shocks.update({'UnempPrb_fcts': UnempPrb_fcts})
 
-UnempPrbRet_fcts={
+UnempPrbRet_fcts = {
     'about': '"unemployment" in retirement = big medical shock'}
 UnempPrbRet_fcts.update({'latexexpr': r'\UnempPrbRet'})
 # init_idiosyncratic_shocks['_fcts'].update({'UnempPrbRet': UnempPrbRet_fcts})
 init_idiosyncratic_shocks.update({'UnempPrbRet_fcts': UnempPrbRet_fcts})
 
-IncUnemp_fcts={
+IncUnemp_fcts = {
     'about': 'Unemployment insurance replacement rate'}
 IncUnemp_fcts.update({'latexexpr': '\IncUnemp'})
 IncUnemp_fcts.update({'_unicode_': 'μ'})
 # init_idiosyncratic_shocks['_fcts'].update({'IncUnemp': IncUnemp_fcts})
 init_idiosyncratic_shocks.update({'IncUnemp_fcts': IncUnemp_fcts})
 
-IncUnempRet_fcts={
+IncUnempRet_fcts = {
     'about': 'Size of medical shock (frac of perm inc)'}
 # init_idiosyncratic_shocks['_fcts'].update({'IncUnempRet': IncUnempRet_fcts})
 init_idiosyncratic_shocks.update({'IncUnempRet_fcts': IncUnempRet_fcts})
 
-tax_rate_fcts={
+tax_rate_fcts = {
     'about': 'Flat income tax rate'}
 tax_rate_fcts.update({
     'about': 'Size of medical shock (frac of perm inc)'})
 # init_idiosyncratic_shocks['_fcts'].update({'tax_rate': tax_rate_fcts})
 init_idiosyncratic_shocks.update({'tax_rate_fcts': tax_rate_fcts})
 
-T_retire_fcts={
+T_retire_fcts = {
     'about': 'Period of retirement (0 --> no retirement)'}
 # init_idiosyncratic_shocks['_fcts'].update({'T_retire': T_retire_fcts})
 init_idiosyncratic_shocks.update({'T_retire_fcts': T_retire_fcts})
 
-permShkCount_fcts={
+permShkCount_fcts = {
     'about': 'Num of pts in discrete approx to permanent income shock dstn'}
 # init_idiosyncratic_shocks['_fcts'].update({'permShkCount': permShkCount_fcts})
 init_idiosyncratic_shocks.update({'permShkCount_fcts': permShkCount_fcts})
 
-tranShkCount_fcts={
+tranShkCount_fcts = {
     'about': 'Num of pts in discrete approx to transitory income shock dstn'}
 # init_idiosyncratic_shocks['_fcts'].update({'tranShkCount': tranShkCount_fcts})
 init_idiosyncratic_shocks.update({'tranShkCount_fcts': tranShkCount_fcts})
 
-aXtraMin_fcts={
+aXtraMin_fcts = {
     'about': 'Minimum end-of-period "assets above minimum" value'}
 # init_idiosyncratic_shocks['_fcts'].update({'aXtraMin': aXtraMin_fcts})
 init_idiosyncratic_shocks.update({'aXtraMin_fcts': aXtraMin_fcts})
 
-aXtraMax_fcts={
+aXtraMax_fcts = {
     'about': 'Maximum end-of-period "assets above minimum" value'}
 # init_idiosyncratic_shocks['_fcts'].update({'aXtraMax': aXtraMax_fcts})
 init_idiosyncratic_shocks.update({'aXtraMax_fcts': aXtraMax_fcts})
 
-aXtraNestFac_fcts={
+aXtraNestFac_fcts = {
     'about': 'Exponential nesting factor when constructing "assets above minimum" grid'}
 # init_idiosyncratic_shocks['_fcts'].update({'aXtraNestFac': aXtraNestFac_fcts})
 init_idiosyncratic_shocks.update({'aXtraNestFac_fcts': aXtraNestFac_fcts})
 
-aXtraCount_fcts={
+aXtraCount_fcts = {
     'about': 'Number of points in the grid of "assets above minimum"'}
 # init_idiosyncratic_shocks['_fcts'].update({'aXtraMax': aXtraCount_fcts})
 init_idiosyncratic_shocks.update({'aXtraMax_fcts': aXtraCount_fcts})
 
-aXtraCount_fcts={
+aXtraCount_fcts = {
     'about': 'Number of points to include in grid of assets above minimum possible'}
 # init_idiosyncratic_shocks['_fcts'].update({'aXtraCount': aXtraCount_fcts})
 init_idiosyncratic_shocks.update({'aXtraCount_fcts': aXtraCount_fcts})
 
-aXtraExtra_fcts={
+aXtraExtra_fcts = {
     'about': 'List of other values of "assets above minimum" to add to the grid (e.g., 10000)'}
 # init_idiosyncratic_shocks['_fcts'].update({'aXtraExtra': aXtraExtra_fcts})
 init_idiosyncratic_shocks.update({'aXtraExtra_fcts': aXtraExtra_fcts})
 
-aXtraGrid_fcts={
+aXtraGrid_fcts = {
     'about': 'Grid of values to add to minimum possible value to obtain actual end-of-period asset grid'}
 # init_idiosyncratic_shocks['_fcts'].update({'aXtraGrid': aXtraGrid_fcts})
 init_idiosyncratic_shocks.update({'aXtraGrid_fcts': aXtraGrid_fcts})
 
-vFuncBool_fcts={
+vFuncBool_fcts = {
     'about': 'Whether to calculate the value function during solution'
+
+
 }
 # init_idiosyncratic_shocks['_fcts'].update({'vFuncBool': vFuncBool_fcts})
 init_idiosyncratic_shocks.update({'vFuncBool_fcts': vFuncBool_fcts})
 
-CubicBool_fcts={
+CubicBool_fcts = {
     'about': 'Use cubic spline interpolation when True, linear interpolation when False'
 }
 # init_idiosyncratic_shocks['_fcts'].update({'CubicBool': CubicBool_fcts})
 init_idiosyncratic_shocks.update({'CubicBool_fcts': CubicBool_fcts})
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
-init_kinked_R=dict(
+init_kinked_R = dict(
     init_idiosyncratic_shocks,
     **{
         "Rboro": 1.20,  # Interest factor on assets when borrowing, a < 0
@@ -424,15 +604,15 @@ init_kinked_R=dict(
 del init_kinked_R["Rfree"]  # get rid of constant interest factor
 
 # Main calibration characteristics
-birth_age=25
-death_age=90
-adjust_infl_to=1992
+birth_age = 25
+death_age = 90
+adjust_infl_to = 1992
 # Use income estimates from Cagetti (2003) for High-school graduates
-education="HS"
-income_calib=Cagetti_income[education]
+education = "HS"
+income_calib = Cagetti_income[education]
 
 # Income specification
-income_params=parse_income_spec(
+income_params = parse_income_spec(
     age_min=birth_age,
     age_max=death_age,
     adjust_infl_to=adjust_infl_to,
@@ -441,21 +621,21 @@ income_params=parse_income_spec(
 )
 
 # Initial distribution of wealth and permanent income
-dist_params=income_wealth_dists_from_scf(
+dist_params = income_wealth_dists_from_scf(
     base_year=adjust_infl_to, age=birth_age, education=education, wave=1995
 )
 
 # We need survival probabilities only up to death_age-1, because survival
 # probability at death_age is 1.
-liv_prb=parse_ssa_life_table(
+liv_prb = parse_ssa_life_table(
     female=False, cross_sec=True, year=2004, min_age=birth_age, max_age=death_age
     - 1)
 
 # Parameters related to the number of periods implied by the calibration
-time_params=parse_time_params(age_birth=birth_age, age_death=death_age)
+time_params = parse_time_params(age_birth=birth_age, age_death=death_age)
 
 # Update all the new parameters
-init_lifecycle=copy(init_idiosyncratic_shocks)
+init_lifecycle = copy(init_idiosyncratic_shocks)
 init_lifecycle.update(time_params)
 init_lifecycle.update(dist_params)
 # Note the income specification overrides the pLvlInitMean from the SCF.
@@ -464,9 +644,9 @@ init_lifecycle.update({"LivPrb": liv_prb})
 
 
 # Make a dictionary to specify an infinite consumer with a four period cycle
-init_cyclical=copy(init_idiosyncratic_shocks)
-init_cyclical['PermGroFac']=[1.082251, 2.8, 0.3, 1.1]
-init_cyclical['permShkStd']=[0.1, 0.1, 0.1, 0.1]
-init_cyclical['tranShkStd']=[0.1, 0.1, 0.1, 0.1]
-init_cyclical['LivPrb']=4*[0.98]
-init_cyclical['T_cycle']=4
+init_cyclical = copy(init_idiosyncratic_shocks)
+init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
+init_cyclical['permShkStd'] = [0.1, 0.1, 0.1, 0.1]
+init_cyclical['tranShkStd'] = [0.1, 0.1, 0.1, 0.1]
+init_cyclical['LivPrb'] = 4*[0.98]
+init_cyclical['T_cycle'] = 4

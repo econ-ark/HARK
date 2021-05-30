@@ -28,13 +28,13 @@ from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
 Defines increasingly specialized agent types for one-state-variable
 consumption problem.
 
-    * consumer_onestate_nobequest: The single state variable defined here
+    * consumer_terminal_nobequest_onestate: The single state variable defined here
     is market resources `m,` the sum of assets from prior choices
     and income earned immediately before consumption decision.
     Incorporates a `nobequest` terminal consumption function
     in which consumption `c = m`
 
-    * PerfForesightConsumerType: Subclass of consumer_onestate_nobequest
+    * PerfForesightConsumerType: Subclass of consumer_terminal_nobequest_onestate
     in which income and asset returns are perfectly predictable
     and utility is CRRA
 
@@ -53,7 +53,7 @@ consumption problem.
 
 __all__ = [
     "AgentTypePlus",
-    "consumer_onestate_nobequest",
+    "consumer_terminal_nobequest_onestate",
     "PerfForesightConsumerType",
     "IndShockConsumerType",
     "KinkedRconsumerType"
@@ -203,7 +203,7 @@ class AgentTypePlus(AgentType):
         pass
 
 
-# TODO: CDC: 20210529 consumer_onestate_nobequest should be changed to
+# TODO: CDC: 20210529 consumer_terminal_nobequest_onestate should be changed to
 # consumer_onestate and we should define a set of allowed bequest
 # choices including at least:
 # - nobequest
@@ -213,13 +213,13 @@ class AgentTypePlus(AgentType):
 #   - implies that bequests are left only if lifetime income high enough
 # - dynasty (Barrovian)
 
-class consumer_onestate_nobequest(AgentTypePlus):
+class consumer_terminal_nobequest_onestate(AgentTypePlus):
     """
     Minimal requirements for a consumer with one state variable, m:
         * m combines assets from prior history with current income
         * it is referred to as `market resources` throughout the docs
 
-    consumer_onestate_nobequest class must be inherited by some subclass that
+    consumer_terminal_nobequest_onestate class must be inherited by some subclass that
     fleshes out the rest of the characteristics of the agent, e.g. the
     PerfForesightConsumerType or MertonSamuelsonConsumerType or something.
 
@@ -303,7 +303,7 @@ class consumer_onestate_nobequest(AgentTypePlus):
         self.update_parameters_for_this_agent_subclass()
 
 
-class PerfForesightConsumerType(consumer_onestate_nobequest):
+class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
     """
     A perfect foresight consumer who has no uncertainty other than
@@ -369,7 +369,7 @@ class PerfForesightConsumerType(consumer_onestate_nobequest):
         params = init_perfect_foresight.copy()  # Get defaults
         params.update(kwds)  # Replace defaults with passed vals if diff
 
-        consumer_onestate_nobequest.__init__(
+        consumer_terminal_nobequest_onestate.__init__(
             self,
             solution_startfrom=None,
             cycles=cycles,
@@ -402,11 +402,11 @@ class PerfForesightConsumerType(consumer_onestate_nobequest):
 
         self.update_parameters_for_this_agent_subclass()  # self.parameters gets new info
 
-        # consumer_onestate_nobequest creates self.soln_crnt and self.soln_crnt.scsr
+        # consumer_terminal_nobequest_onestate creates self.soln_crnt and self.soln_crnt.scsr
         # If they did not provide their own solution_startfrom, use default
 
         if not hasattr(self, 'solution_startfrom'):
-            # enrich generic consumer_onestate_nobequest terminal function
+            # enrich generic consumer_terminal_nobequest_onestate terminal function
             # with info specifically needed to solve this particular model
             self.solution_terminal.bilt = \
                 self.finish_setup_of_default_solution_terminal()
