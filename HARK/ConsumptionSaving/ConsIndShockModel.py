@@ -17,9 +17,9 @@ from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
             init_lifecycle, init_cyclical)
 
 """
-Classes to solve canonical consumption-saving models with idiosyncratic shocks
-to income.  All models here assume CRRA utility with geometric discounting, no
-bequest motive, and income shocks that are fully transitory or fully permanent.
+Classes to define and solve canonical consumption-saving models with a single
+state variable.  All models here assume CRRA utility with geometric discounting, 
+and if income shocks exist they are fully transitory or fully permanent.
 
 It currently solves three types of models:
    1) `PerfForesightConsumerType`

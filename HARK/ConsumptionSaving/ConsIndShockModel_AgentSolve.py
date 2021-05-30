@@ -67,6 +67,7 @@ __all__ = [
 # ConsumerSolutionOld below is identical to version in HARK 0.11.0
 # ConsumerSolution, later, augments it
 
+
 class ConsumerSolutionOld(MetricObject):
     """
     A class representing the solution of a single period of a consumption-saving
@@ -399,7 +400,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolutionPlus):
         """
         soln_crnt.bilt.conditions = {}  # Keep track of truth value of conditions
         soln_crnt.bilt.degenerate = False  # True means solution is degenerate
-        self.blmn_pblc = {'cFunc', 'vFunc'}
+#        self.blmn_pblc = {'cFunc', 'vFunc'}
 
         if not hasattr(self, 'verbose'):  # If verbose not set yet
             verbose = 0 if verbose is None else verbose
@@ -620,20 +621,15 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolutionPlus):
         # Better would be to presere the last value (if it exists)
         # and use that as a starting point
 
-        m_init_guess = self.mNrmMin + self.Ex_IncNrmNxt
+        m_init_guess = self.bilt.mNrmMin + self.bilt.Ex_IncNrmNxt
         try:  # Find value where argument is zero
-            self.mNrmTrg = find_zero_newton(
+            self.bilt.mNrmTrg = find_zero_newton(
                 self.Ex_m_tp1_minus_m_t,
                 m_init_guess)
-#            self.bilt.mNrmTrg = find_zero_newton(
-#                self.bilt.Ex_m_tp1_minus_m_t,
-#                m_init_guess)
         except:
-            #            self.bilt.mNrmTrg = None
-            self.mNrmTrg = None
+            self.bilt.mNrmTrg = None
 
-        return self.mNrmTrg
-#        return self.bilt.mNrmTrg
+        return self.bilt.mNrmTrg
 
     def mNrmStE_find(self):
         """
@@ -1713,6 +1709,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         py___code = '𝔼_dot(ShkPrbs,tranShkValsBcst * permShkValsBcst)'
         bilt.𝔼_dot = 𝔼_dot  # add the expectations operator to envt
         soln_crnt.Ex_IncNrmNxt = bilt.Ex_IncNrmNxt = Ex_IncNrmNxt = eval(
+            #        soln_crnt.Ex_IncNrmNxt = Ex_IncNrmNxt = eval(
             py___code, {}, {**bilt.__dict__, **folw.__dict__})
         Ex_IncNrmNxt_fcts.update({'latexexpr': r'\Ex_IncNrmNxt'})
         Ex_IncNrmNxt_fcts.update({'_unicode_': r'𝔼[\tranShk \permShk] = 1.0'})

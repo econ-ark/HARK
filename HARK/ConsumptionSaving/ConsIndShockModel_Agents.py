@@ -175,7 +175,6 @@ class AgentTypePlus(AgentType):
     # update_pre_solve is the old name, preserved as an alias
     # to prevent breakage of existing code. New name is clearer
     pre_solve = agent_force_prepare_info_needed_to_begin_solving
-    pre_solve_agent = pre_solve
 
     # Universal method to either warn that something went wrong
     # or to mark the solution as having completed.  Should not
@@ -191,7 +190,7 @@ class AgentTypePlus(AgentType):
                 return
         soln = self.solution[0]
         if not hasattr(soln, 'stge_kind'):
-#        if not hasattr(soln.bilt, 'stge_kind'):
+            #        if not hasattr(soln.bilt, 'stge_kind'):
             _log.warning('Solution does not have attribute stge_kind')
             return
         else:
@@ -992,8 +991,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         "MaxKinks"  # PF inf hor with MaxKinks is equiv to fin hor with hor=MaxKinks
     )
 
-    def __init__(self, 
-                 cycles=1, verbose=1,  quiet=True, solution_startfrom=None, 
+    def __init__(self,
+                 cycles=1, verbose=1,  quiet=True, solution_startfrom=None,
                  solverType='HARK',
                  solverName=ConsIndShockSolverBasic,
                  **kwds):

@@ -59,7 +59,7 @@ __all__ = [
     "KinkedRconsumerType"
 ]
 # TODO: CDC 20210129: After begin vetted, the elements of "Plus" that add to
-# the base type should be merged into the base type. We can leave the "Plus"
+# the base type from core.py should be merged into that base type. We can leave the "Plus"
 # type empty in order to preserve an easy workflow that permits discrete
 # proposals for improvements to the core AgentType.
 
@@ -98,12 +98,12 @@ class AgentTypePlus(AgentType):
     def __init__(self, *args, **kwargs):  # Inherit from basic AgentType
         AgentType.__init__(self, *args, **kwargs)
 
-        self.add_to_given_params = {'time_vary', 'time_inv', 'state_vars',
-                                    'cycles', 'seed', 'tolerance'}
         # The base MetricObject class automatically constructs a list
         # of parameters but for some reason it does not get some
         # of the parameters {'cycles','seed','tolerance'} needed
         # TODO: CDC 20210525: Fix this in MetricObject to reduce clutter here
+        self.add_to_given_params = {'time_vary', 'time_inv', 'state_vars',
+                                    'cycles', 'seed', 'tolerance'}
         self.update_parameters_for_this_agent_subclass()
 
     def agent_store_model_params(self, prmtv_par, aprox_lim):
@@ -112,17 +112,11 @@ class AgentTypePlus(AgentType):
         for par in prmtv_par:
             if hasattr(self, par):
                 self.prmtv_par_vals[par] = getattr(self, par)
-            # else:
-            #     _log.info('You have defined '+par+' as a prmtv_par,' +
-            #               ' but it is not a parameter being used.')
 
         self.aprox_par_vals = {}
         for key in aprox_lim:
             if hasattr(self, key):
                 self.aprox_par_vals[key] = getattr(self, key)
-            # else:
-            #     _log.warning('You have defined '+par+' as an approx_par' +
-            #                  ' but it is not a parameter being used.')
 
         # Merge to get all aprox and prmtv params and make a copy
         self.solve_par_vals = \
@@ -150,10 +144,10 @@ class AgentTypePlus(AgentType):
 
         Returns
         -------
-        None
+        None (adds `solve_par_vals_now` dict to self)
 
         """
-        breakpoint()
+
         solve_par_vals_now = {}
         if hasattr(self, 'solve_par_vals'):
             for par in self.solve_par_vals:
@@ -169,10 +163,9 @@ class AgentTypePlus(AgentType):
         #
         pass
 
-    # update_pre_solve is the old name, preserved as an alias
-    # to prevent breakage of existing code. New name is clearer
+    # pre_solve is the old name, preserved as an alias because
+    # core.py uses it.  New name is clearer
     pre_solve = agent_force_prepare_info_needed_to_begin_solving
-    pre_solve_agent = pre_solve
 
     # Universal method to either warn that something went wrong
     # or to mark the solution as having completed.  Should not
@@ -210,12 +203,20 @@ class AgentTypePlus(AgentType):
         pass
 
 
+# TODO: CDC: 20210529 consumer_onestate_nobequest should be changed to
+# consumer_onestate and we should define a set of allowed bequest
+# choices including at least:
+# - nobequest
+# - warm_glow
+# - capitalist_spirit
+#   - warm_glow with bequests as a luxury in Stone-Geary form
+#   - implies that bequests are left only if lifetime income high enough
+# - dynasty (Barrovian)
+
 class consumer_onestate_nobequest(AgentTypePlus):
     """
     Minimal requirements for a consumer with one state variable, m:
-
         * m combines assets from prior history with current income
-
         * it is referred to as `market resources` throughout the docs
 
     consumer_onestate_nobequest class must be inherited by some subclass that
@@ -243,6 +244,7 @@ class consumer_onestate_nobequest(AgentTypePlus):
         pseudo_terminal=False,
         **kwds
     ):
+
         AgentTypePlus.__init__(
             self,
             solution_terminal=solution_startfrom,  # whether handmade or default
@@ -253,12 +255,14 @@ class consumer_onestate_nobequest(AgentTypePlus):
 
         cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0], [0.0, 1.0])
 
-        # This configuration of the 'afterlife' is constructed so that when
+        # The below config of the 'afterlife' is constructed so that when
         # the standard lifetime transition rules are applied, the nobequest
-        # terminal solution is generated.
+        # terminal solution defined below is generated.
+        # This should work if stge_kind['iter_status']="iterator"
         # This is inoperative if the terminal period is labeled with
-        # stge_kind['iter_status']="terminal_pseudo" but should work if
-        # stge_kind['iter_status']="iterator"
+        # stge_kind['iter_status']="terminal_pseudo" (because in that case
+        # the "terminal_pseudo" final solution is used to construct the
+        # augmented "terminal" solution
 
         solution_afterlife_nobequest_ = ConsumerSolutionOneStateCRRA(
             cFunc=lambda m: float('inf'),
@@ -271,8 +275,7 @@ class consumer_onestate_nobequest(AgentTypePlus):
             MPCmax=float('inf'),
             stge_kind={
                 'iter_status': 'afterlife',
-                'term_type': 'nobequest',
-                'maker_class': 'consumer_onestate_nobequest'},
+                'term_type': 'nobequest'},
             completed_cycles=-1
         )
 
@@ -284,26 +287,8 @@ class consumer_onestate_nobequest(AgentTypePlus):
             MPCmax=1.0,
             stge_kind={
                 'iter_status': 'terminal_pseudo',  # will be replaced with iterator
-                'term_type': 'nobequest',
-                'maker_class': 'consumer_onestate_nobequest'
+                'term_type': 'nobequest'
             })
-
-#        orig = ConsumerSolutionOneStateCRRA()
-#        breakpoint()
-#        plus = ConsumerSolutionOneStateCRRA_test()
-
-#        breakpoint()
-        # solution_nobequest_test = ConsumerSolutionOneStateCRRA_test(  # Omits vFunc b/c u not yet def
-        #     cFunc=cFunc_terminal_nobequest_,
-        #     mNrmMin=0.0,  # Assumes PF model in which minimum mNrmMin is 1.0
-        #     hNrm=0.0,
-        #     MPCmin=1.0,
-        #     MPCmax=1.0,
-        #     stge_kind={
-        #         'iter_status': 'terminal_pseudo',  # will be replaced with iterator
-        #         'term_type': 'nobequest',
-        #         'maker_class': 'consumer_onestate_nobequest'
-        #     })
 
         solution_nobequest_.solution_next = solution_afterlife_nobequest_
 
@@ -315,28 +300,7 @@ class consumer_onestate_nobequest(AgentTypePlus):
         # so make a deepcopy so that if multiple agents get created, we
         # always use the unaltered "master" solution_terminal_
         self.solution_terminal = deepcopy(solution_terminal_)
-
         self.update_parameters_for_this_agent_subclass()
-
-#   #        assert(solution_terminal_ == solution_nobequest_)
-
-        # if not hasattr(self, 'solution_startfrom'):
-        #     solution_startfrom = deepcopy(solution_nobequest_)
-
-        # self.dolo_defs()  # Instantiate (partial) dolo description
-        # AgentTypePlus.__init__(
-        #     self,  # position makes this solution_terminal in AgentTypePlus
-        #     solution_terminal=solution_startfrom,  # whether handmade or default
-        #     cycles=cycles,
-        #     pseudo_terminal=False,
-        #     **kwds
-        # )
-
-        # def dolo_defs(self):  # CDC 20210415: Beginnings of Dolo integration
-        #     self.symbol_calibration = dict(  # not used yet, just created
-        #         states={"m": 1.0},
-        #         controls=["c"],
-        #     )  # Things all such models have in common
 
 
 class PerfForesightConsumerType(consumer_onestate_nobequest):
@@ -373,37 +337,44 @@ class PerfForesightConsumerType(consumer_onestate_nobequest):
                   "aNrm"]  # Assets after all actions (pLvl normed)
     shock_vars_ = []
 
+    # Get default values from the Single Source of Truth
+    from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
+        import init_perfect_foresight as default
+
     def __init__(self,
                  cycles=1,  # Default to finite horiz
                  verbose=1,  # little feedback
                  quiet=False,  # do not check conditions
                  solution_startfrom=None,  # Default is no interim solution
-                 BoroCnstArt=None,
-                 MaxKinks=None,
-                 Rfree=1.03,
-                 CRRA=2.0,
-                 DiscFac=0.96,
-                 PermGroFac=[1.0],
-                 LivPrb=[1.0],
-                 T_cycle=1.0,
-                 PermGroFacAgg=[1.0],
-                 aNrmInitMean=0.0,
-                 aNrmInitStd=1.0,
-                 pLvlInitMean=0.0,
-                 pLvlInitStd=0.0,
-                 T_age=None,
+                 # TODO: 20210529: CDC: Probably we should use python 3.7+
+                 # dataclasses for representing parameters.  Cleaner.
+                 BoroCnstArt=default['BoroCnstArt'],
+                 MaxKinks=default['MaxKinks'],
+                 Rfree=default['Rfree'],
+                 CRRA=default['CRRA'],
+                 DiscFac=default['DiscFac'],
+                 PermGroFac=default['PermGroFac'],
+                 LivPrb=default['LivPrb'],
+                 T_cycle=default['T_cycle'],
+                 PermGroFacAgg=default['PermGroFacAgg'],
+                 aNrmInitMean=default['aNrmInitMean'],
+                 aNrmInitStd=default['aNrmInitStd'],
+                 pLvlInitMean=default['pLvlInitMean'],
+                 pLvlInitStd=default['pLvlInitStd'],
+                 T_age=default['T_age'],
                  solver=ConsPerfForesightSolver,
                  **kwds
                  ):
-        kwds_upd = init_perfect_foresight.copy()  # Get defaults
-        kwds_upd.update(kwds)  # Replace defaults with passed vals if diff
 
-        consumer_onestate_nobequest.__init__(  # Universals for one state var c models
+        params = init_perfect_foresight.copy()  # Get defaults
+        params.update(kwds)  # Replace defaults with passed vals if diff
+
+        consumer_onestate_nobequest.__init__(
             self,
-            solution_startfrom=None,  # defaults to nobequest
+            solution_startfrom=None,
             cycles=cycles,
             pseudo_terminal=False,
-            ** kwds_upd)
+            ** params)
 
         self.CRRA = CRRA
         self.Rfree = Rfree
@@ -421,7 +392,7 @@ class PerfForesightConsumerType(consumer_onestate_nobequest):
         self.T_age = T_age
         self.solver = solver
         self.verbose = verbose
-        self.quiet = quiet
+#        self.quiet = quiet
         set_verbosity_level((4 - verbose) * 10)
 
         self.check_restrictions()  # Make sure it's a minimally valid model
@@ -437,72 +408,85 @@ class PerfForesightConsumerType(consumer_onestate_nobequest):
         if not hasattr(self, 'solution_startfrom'):
             # enrich generic consumer_onestate_nobequest terminal function
             # with info specifically needed to solve this particular model
-            #            breakpoint()
             self.solution_terminal.bilt = \
                 self.finish_setup_of_default_solution_terminal()
             # make url that will locate the documentation
             self.url_doc_for_this_agent_type_get()
-        else:
-            # user-provided solution should already be enriched therewith
-            solution_terminal = solution_startfrom
+#        else:
+#            # any user-provided solution should already be enriched
+#            solution_terminal = solution_startfrom
 
         # The foregoing is executed by all classes that inherit from the PF model
         # The code below the following "if" is excuted only in the PF case
-        if 'permShkStd' in locals()['kwds']:  # If so, we must be calling from
-            return  # a subclass, which will have its own init method
 
+        self.income_risks_exist = \
+            ('permShkStd' in params) or \
+            ('tranShkStd' in params) or \
+            (('UnempPrb' in params) and (params['UnempPrb'] != 0)) or \
+            (('UnempPrbRet' in params) and (params['UnempPrbRet'] != 0))
+
+        if self.income_risks_exist:  # We got here from a model with risks
+            return  # Models with risks have different prep
+
+        #
         self.agent_force_prepare_info_needed_to_begin_solving()
 
-        # Store initial model params; later used to test if anything changed
-        self.agent_store_model_params(kwds_upd['prmtv_par'],
-                                      kwds_upd['aprox_lim'])
+        # Store initial params; later used to test if anything changed
+        self.agent_store_model_params(params['prmtv_par'],
+                                      params['aprox_lim'])
 
-        # Construct one-period(/stage) solver
+        # Attach one-period(/stage) solver to AgentType
         self.solve_one_period = make_one_period_oo_solver(solver)  # allows user-specified alt
 
-        self.make_solution_for_final_period()
+        self.make_solution_for_final_period()  # Populate [instance].solution[0]
 
-        self.solution[0].bilt.solve_par_vals = self.solve_par_vals
-
+#        self.solution[0].bilt.solve_par_vals = self.solve_par_vals
 #        self.dolo_defs()
 
     def add_stable_points_to_solution(self, soln):
         """
         If the model is one characterized by stable points, calculate those and
         attach them to the solution.
+
+        Parameters
+        ----------
+        soln : ConsumerSolution
+            The solution whose stable points are to be calculated
         """
-
 #        breakpoint()
-        if not hasattr(soln.bilt, 'conditions'):
-            soln.check_conditions(soln, verbose=0)
+        soln.check_conditions(soln, verbose=0)
 
-        if not soln.bilt.GICRaw:
+        if not soln.bilt.GICRaw:  # no mNrmStE
             wrn = "Because the model's parameters do not satisfy the GIC, it " +\
-                "has neither an individual steady state nor a target.  Aborting."
+                "has neither an individual steady state nor a target."
             _log.warning(wrn)
-            if self.verbose == 3:
-                print(wrn)
-            soln.mNrmStE = None
-#            soln.bilt.mNrmStE = None
-        else:
-            soln.mNrmStE = soln.mNrmStE_find()
+            soln.bilt.mNrmStE = \
+                soln.mNrmStE = float('nan')
+        else:  # mNrmStE exists; compute it and check mNrmTrg
+            # soln.mNrmStE = \
+            soln.bilt.mNrmStE = soln.mNrmStE_find()
 #            soln.bilt.mNrmStE = soln.mNrmStE_find()
-            if hasattr(soln.bilt, 'GICNrm'):
-                if not soln.bilt.GICNrm:
-                    wrn = "Because the model's parameters do not satisfy the " +\
-                        "stochastic-growth-normalized GIC, it does not exhibit " +\
-                        "a target level of wealth."
-                    _log.warning(wrn)
-                    print(wrn)
-                    if self.verbose == 3:
-                        print(wrn)
-#                    soln.bilt.mNrmTrg = None
-                    soln.mNrmTrg = None
-                else:
-                    soln.mNrmTrg = soln.mNrmTrg_find()
+        if not self.income_risks_exist:  # If a PF model, nothing more to do
+            return
+        else:
+            if not hasattr(soln.bilt, 'GICNrm'):  # Should not occur; debug if get here
+                _log.critical('soln.bilt has no GICNrm attribute')
+                breakpoint()
+                return
 
+            if not soln.bilt.GICNrm:
+                wrn = "Because the model's parameters do not satisfy the " +\
+                    "stochastic-growth-normalized GIC, it does not exhibit " +\
+                    "a target level of wealth."
+                _log.warning(wrn)
+#                soln.mNrmTrg = \
+                soln.bilt.mNrmTrg = float('nan')
+            else:  # GICNrm exists
+                #                breakpoint()
+                #                soln.mNrmTrg = \
+                soln.bilt.mNrmTrg = soln.mNrmTrg_find()
 
-#        return soln
+        return
 
     # CDC 20210511: The old version of ConsIndShockModel mixed calibration and results
     # between the agent, the solver, and the solution.  The new version puts all results
@@ -512,7 +496,6 @@ class PerfForesightConsumerType(consumer_onestate_nobequest):
     # the agent in a state where invoking the ".solve()" method as before will
     # accomplish the same things it did before, but from the new starting setup
 
-
     def make_solution_for_final_period(self):  # solution[0]=terminal_solution
         # but want to add extra info required for backward induction
         cycles_orig = deepcopy(self.cycles)
@@ -520,11 +503,7 @@ class PerfForesightConsumerType(consumer_onestate_nobequest):
         self.tolerance = float('inf')  # Any distance satisfies this tolerance!
         if self.cycles > 0:  # Then it's a finite horizon problem
             self.cycles = 0  # Tell it to solve only one period
-        else:  # it's an infinite horizon problem
-            self.tolerance = float('inf')  # Any distance satisfies this tolerance!
-#        self.pseudo_terminal = True  # ... and pseudo_terminal = True
         self.solve()  # ... means that "solve" will stop after setup ...
-#        self.pseudo_terminal = False  # ... replacing generic terminal with updated
         self.tolerance = tolerance_orig  # which leaves us ready to solve
         self.cycles = cycles_orig  # with the original convergence criteria
         self.solution[0].bilt.stge_kind['iter_status'] = 'iterator'
@@ -532,11 +511,8 @@ class PerfForesightConsumerType(consumer_onestate_nobequest):
 
     def agent_post_post_solve(self):  # Overwrites version from AgentTypePlus
         if self.cycles == 0:  # if it's an infinite horizon model
-            # Recalculate the conditions
-            self.check_conditions(verbose=0)
-            # Find the stable points (if any)
+            # Test for the stable points, and if they exist, add them
             self.add_stable_points_to_solution(self.solution[0])
-#            self.solution[0] = self.add_stable_points_to_solution(self.solution[0])
 
     def check_restrictions(self):
         """
@@ -642,39 +618,26 @@ class PerfForesightConsumerType(consumer_onestate_nobequest):
         -------
         None
         """
-        # If no solution attribute exists for the agent,
-        # core.py uses solution_terminal as solution_next;
-        # in last period, it is also current and bilt
+        # If no solution exists for the agent,
+        # core.py uses solution_terminal as solution_next
 
-#        solution_terminal = self.solution_terminal
-#        breakpoint()
         solution_terminal_bilt = self.solution_terminal.bilt
-        # solution_terminal.DiscFac = self.DiscFac
-        # solution_terminal.LivPrb = self.LivPrb
-        # solution_terminal.CRRA = self.CRRA
-        # solution_terminal.Rfree = self.Rfree
-        # solution_terminal.PermGroFac = self.PermGroFac
-        # solution_terminal.BoroCnstArt = self.BoroCnstArt
-
-
-#        solution_terminal.bilt = deepcopy(solution_terminal)
-#        soln_crnt = self.soln_crnt = solution_terminal
 
         # Natural borrowing constraint: Cannot die in debt
-        # Measured after tranShk received
+        # Measured after income = tranShk*permShk/permShk received
         if not hasattr(solution_terminal_bilt, 'hNrm'):
-            _log('warning: hNrm should be set in solution_terminal_bilt.')
-            _log('assuming solution_terminal_bilt.hNrm = 0.')
-            solution_terminal_bilt.bilt.hNrm = 0.
+            _log('warning: hNrm should be set in solution_terminal.')
+            _log('assuming solution_terminal.hNrm = 0.')
+            solution_terminal_bilt.hNrm = 0.
         solution_terminal_bilt.BoroCnstNat = -solution_terminal_bilt.hNrm
 
+        # Define BoroCnstArt if not yet defined
         if not hasattr(self.parameters, 'BoroCnstArt'):
             solution_terminal_bilt.BoroCnstArt = None
         else:
             solution_terminal_bilt.BoroCnstArt = self.parameters.BoroCnstArt
 
-        solution_terminal_bilt.stge_kind = {'iter_status': 'terminal_pseudo',
-                                            'slvr_type': 'ConsPerfForesightSolver'}
+        solution_terminal_bilt.stge_kind = {'iter_status': 'terminal_pseudo'}
 
         # Solution options
         if hasattr(self, 'vFuncBool'):
@@ -692,7 +655,6 @@ class PerfForesightConsumerType(consumer_onestate_nobequest):
         solution_terminal_bilt = def_utility(solution_terminal_bilt, CRRA)
         solution_terminal_bilt = def_value_funcs(solution_terminal_bilt, CRRA)
 
-#        breakpoint()
         return solution_terminal_bilt
 
     check_conditions_solver = solver_check_conditions = check_conditions
@@ -725,12 +687,6 @@ class PerfForesightConsumerType(consumer_onestate_nobequest):
                         return
                 else:  # If MaxKinks not specified, set to number of cycles
                     self.MaxKinks = self.cycles
-            # else:  # BoroCnstArt has some value
-            #     breakpoint()
-            #     if hasattr(self, "MaxKinks"):
-            #         self.MaxKinks = min(self.MaxKinks, self.cycles)
-            #     else:
-            #         self.MaxKinks = self.cycles
 
     pre_solve = agent_force_prepare_info_needed_to_begin_solving
 
@@ -945,18 +901,6 @@ class PerfForesightConsumerType(consumer_onestate_nobequest):
 
     mcrlo_get_poststates = get_poststates_mcrlo = get_poststates
 
-    # # Below are aliases to the set of methods that perform the Monte Carlo simulation
-    # # This is a preliminary step to organizing and then disentangling them from the rest of the code
-    # # and abstracting as much common functionality as possible to core.py,
-    # # distributions.py, utilities.py, and wherever else is appropriate
-    # sim_birth_agent = birth  # alias; collect all methods that are for mcrlo sims for eventual grouping
-    # sim_death_agent = death  # alias; collect all methods that are for mcrlo sims for eventual grouping
-    # sim_transition_agent = transition
-    # sim_get_poststates_agent = get_poststates
-    # sim_get_controls_agent = get_controls
-    # sim_get_shocks_agent = get_shocks
-    # sim_initialize_sim_agent = initialize_sim
-
 
 class IndShockConsumerType(PerfForesightConsumerType):
 
@@ -1029,8 +973,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if self.CubicBool or self.vFuncBool:
             solverName = ConsIndShockSolver
 
-        self.solution_terminal.bilt.stge_kind['slvr_type'] = solverName
-
         # Attach the corresponding one-stage solver to the agent
         # This is what gets called when the user invokes [instance].solve()
         if (solverType == 'HARK') or (solverType == 'DARKolo'):
@@ -1046,9 +988,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Put the (enhanced) solution_terminal in self.solution[0]
         self.make_solution_for_final_period()
-
-        if not quiet:
-            self.check_conditions(verbose=3)  # Check conditions for nature/existence of soln
 
     def dolo_model(self):
         # Create a dolo version of the model
@@ -1138,29 +1077,6 @@ options:
 
     pre_solve = agent_force_prepare_info_needed_to_begin_solving
 
-    # Overwrites version from ConsPerfForesightSolver
-
-#     def agent_force_prepare_info_needed_to_begin_solving(self):  # Alias below
-#         """
-#         Update any characteristics of the agent's problem that need to be built
-#         from primitives (like, discretizations of a continuous distribution).
-#         """
-#         # In principle, we should check whether things need to be updated
-#         # before doing the computational work of updating them
-#         breakpoint()
-#         solve_par_vals_now = {}
-#         if hasattr(self, 'solve_par_vals'):
-#             for par in self.solve_par_vals:
-#                 solve_par_vals_now[par] = getattr(self, par)
-
-#             if not solve_par_vals_now == self.solve_par_vals:
-#                 _log.info('Some model parameter has changed since last update.')
-#                 _log.info('Storing new parameters and updating shocks and grid.')
-#                 # The AgentType must define its ow        self.update_income_process()
-# #                self.agent_force_prepare_info_needed_to_begin_solving()
-#         self.update_assets_grid()
-#         self.update_income_process()
-
     # The former "[AgentType].update_pre_solve()" was poor nomenclature --
     #  easy to confuse with the also-existing "[AgentType].pre_solve()" and with
     # "[SolverType].prepare_to_solve()".  The new name,
@@ -1182,40 +1098,11 @@ options:
         -----------
         none
         """
-#        breakpoint()
-        # if not hasattr(self, 'soln_crnt'):  # Then this must be the init call
-        #     # So construct the first instance of soln_crnt
-        #     soln_crnt = self.soln_crnt = ConsumerSolutionOneStateCRRA()
-        #     self.soln_crnt.bilt = self.solution_terminal.bilt
-        #     bilt = self.soln_crnt.bilt
-        #     # Make aliases to bilt values - allows calling either soln_crnt
-        #     # or soln_crnt.bilt
-        #     # TODO: The code elsewhere should make a deliberate, not an arbitrary
-        #     # choice of what to call
-        #     # self.soln_crnt.cFunc = bilt.cFunc
-        #     # self.soln_crnt.vFunc = bilt.vFunc
-        #     # self.soln_crnt.vPfunc = bilt.vPfunc
-        #     # self.soln_crnt.vPPfunc = bilt.vPPfunc
-        #     # self.soln_crnt.mNrmMin = bilt.mNrmMin
-        #     # self.soln_crnt.hNrm = bilt.hNrm
-        #     # self.soln_crnt.MPCmin = bilt.MPCmin
-        #     # self.soln_crnt.MPCmax = bilt.MPCmax
-        #     # self.soln_crnt.stge_kind = bilt.stge_kind
-
-        # soln_crnt = self.soln_crnt
-        # bilt = soln_crnt.bilt
-        # breakpoint()
 
         (self.IncShkDstn,
             self.permShkDstn,
             self.tranShkDstn,
          ) = self.construct_lognormal_income_process_unemployment()
-#        soln_crnt.IncShkDstn = soln_crnt.bilt.IncShkDstn = self.IncShkDstn = IncShkDstn
-#        soln_crnt.permShkDstn = soln_crnt.bilt.permShkDstn = self.permShkDstn = permShkDstn
-#        soln_crnt.tranShkDstn = soln_crnt.bilt.tranShkDstn = self.tranShkDstn = tranShkDstn
-#        self.IncShkDstn = IncShkDstn
-#        self.permShkDstn = permShkDstn
-#        self.tranShkDstn = tranShkDstn
         self.add_to_time_vary("IncShkDstn", "permShkDstn", "tranShkDstn")
         self.parameters.update({'IncShkDstn': self.IncShkDstn,
                                 'permShkDstn': self.permShkDstn,
@@ -1234,10 +1121,7 @@ options:
         -------
         none
         """
-#        soln_crnt = self.soln_crnt
-#        soln_crnt.bilt.aXtraGrid =
         self.aXtraGrid = construct_assets_grid(self)
-#        soln_crnt.aXtraGrid = self.aXtraGrid = construct_assets_grid(self)
         self.add_to_time_inv("aXtraGrid")
         self.parameters.update({'aXtraGrid': self.aXtraGrid})
 
