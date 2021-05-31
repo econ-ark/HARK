@@ -993,67 +993,19 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Store setup parameters so later we can check for changes
         # that necessitate restarting solution process
 
-        self.agent_store_model_params(params['prmtv_par'], params['aprox_lim'])
+        self.agent_store_model_params(params['prmtv_par'], 
+                                      params['aprox_lim'])
 
         # Put the (enhanced) solution_terminal in self.solution[0]
         self.make_solution_for_final_period()
 
     def dolo_model(self):
         # Create a dolo version of the model
-        self.dolo_yaml = """
-name: BufferStockTheory
-
-symbols:
-    exogenous: [lψ, lθ]
-    states: [m]
-    controls: [c]
-    parameters: [β, ρ, σ_lψ, σ_lθ, R, Γ]
-
-definitions: 
-    Thetaθ[t] = exp(lθ[t])
-
-equations:
-
-# The definition of θ[t] above was constructed so that it could 
-# be used instead of exp(lθ[t]) here.  For some reason that does
-# not work
-    transition: |
-        m[t] = exp(lθ[t]) + (m[t-1]-c[t-1])*(R/(Γ*exp(lψ[t])))
-
-    arbitrage: |
-        (R*β*((c[t+1]*exp(lψ[t+1])*Γ)/c[t])^(-ρ)-1 ) ⟂ 0.0 <= c[t] <= m[t]
-
-calibration:
-
-    β: 0.96
-    Γ: 1.03
-    ρ: 2.0
-    R: 1.04
-    σ_lψ: 0.1
-    σ_lθ: 0.1
-    lψ: -(σ_lψ^2)/2
-    lθ: -(σ_lθ^2)/2
-    m: 1.0
-    max_m: 500
-    c: 0.9*m
-    θ: 1.0
-
-domain:
-    m: [0.0, max_m]
-
-exogenous: !Normal
-    Σ:     [[σ_lψ^2,         0]
-           ,[0,        σ_lθ^2]]
-
-options:
-    grid: !Cartesian
-        orders: [1000]
-"""
-
-        tmpyaml = tempfile.NamedTemporaryFile(mode='w+')
-        tmpyaml.write(self.dolo_yaml)
-        tmpyaml.seek(0)  # move to beginning
-        self.dolo_modl = yaml_import(tmpyaml.name)
+        self.dolo_modl = yaml_import(
+            '/Volumes/Data/Code/ARK/DARKolo/chimeras/BufferStock/bufferstock.yaml'
+            )
+        if self.verbose >= 2:
+            _log.info(self.dolo_modl)
 #        breakpoint()
 
     def agent_force_prepare_info_needed_to_begin_solving(self):

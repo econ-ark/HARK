@@ -105,7 +105,8 @@ class ConsumerSolutionOld(MetricObject):
 
     distance_criteria = ["vPfunc"]
 
-    def __init__(self, cFunc=None, vFunc=None, vPfunc=None, vPPfunc=None, mNrmMin=None, hNrm=None, MPCmin=None, MPCmax=None,):
+    def __init__(self, cFunc=None, vFunc=None, vPfunc=None, vPPfunc=None, 
+                 mNrmMin=None, hNrm=None, MPCmin=None, MPCmax=None,):
         # Change any missing function inputs to NullFunc
         self.cFunc = cFunc if cFunc is not None else NullFunc()
         self.vFunc = vFunc if vFunc is not None else NullFunc()
@@ -670,7 +671,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolutionPlus):
 class ConsumerSolution_ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)  # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
-        self.blmn_pblc.update({'vPfunc', 'hNrm', 'MPCmin', 'MPCmax'})
+#        self.blmn_pblc.update({'vPfunc', 'hNrm', 'MPCmin', 'MPCmax'})
         breakpoint()
 
 
@@ -727,44 +728,6 @@ class ConsPerfForesightSolver(MetricObject):
                 and (bilt_futr.stge_kind['iter_status'] == 'terminal_pseudo'):
             # Then the provided bilt_futr is the actual terminal soln
             soln_crnt.bilt = deepcopy(bilt_futr)
-#            breakpoint()
-#        else:
-            # Otherwise create receptacle for construction of solution
-#            bilt = Built()  # with nothing built yet
-            # Only thing to retrieve is parameters
-#            bilt.parameters = deepcopy(bilt_futr.parameters)
-#            breakpoint()
-
-        # if hasattr(self.soln_futr, 'stge_kind'):
-        #     if soln_futr.stge_kind['iter_status'] == 'terminal_pseudo':
-        #         self.soln_crnt = soln_crnt = deepcopy(soln_futr)
-        #         breakpoint()
-        #     else:
-        #         # Otherwise create receptacle for construction of solution
-        #         breakpoint()
-        #         self.soln_crnt = soln_crnt = ConsumerSolutionOneStateCRRA()
-        #         soln_crnt.bilt = Built()
-        #         # Copy future to current parameters
-        #         soln_crnt.bilt.parameters = deepcopy(soln_futr.bilt.parameters)
-        #         print('delete bilt from future to prevent infinite recursion')
-        #         breakpoint()
-        # else:
-        #     soln_crnt = self.soln_crnt = ConsumerSolutionOneStateCRRA()
-        #     soln_crnt.bilt = Built()
-        #     soln_crnt.bilt.parameters = deepcopy(soln_futr.bilt.parameters)
-        #     print('delete bilt from future to prevent infinite recursion')
-        #     breakpoint()
-
-        # breakpoint()
-        # if hasattr(soln_crnt.bilt, 'bilt'):  # Prevent recursion
-        #     del soln_crnt.bilt.bilt
-
-        # breakpoint()
-        # bilt = deepcopy(soln_crnt.bilt)  # for uncluttered access
-
-        # if hasattr(bilt, 'bilt'):
-        #     breakpoint()
-
         # links for docs; urls are used when "fcts" are added
         self.url_doc_for_solver_get()
 
@@ -2258,11 +2221,13 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # Construct a solution for this period
         if self.soln_crnt.bilt.CubicBool:
             soln_crnt = self.interpolating_EGM_solution(
-                self.soln_crnt.bilt.EndOfPrdvP, self.soln_crnt.bilt.aNrmGrid, interpolator=self.make_cubic_cFunc
+                self.soln_crnt.bilt.EndOfPrdvP, self.soln_crnt.bilt.aNrmGrid, 
+                interpolator=self.make_cubic_cFunc
             )
         else:
             soln_crnt = self.interpolating_EGM_solution(
-                self.soln_crnt.bilt.EndOfPrdvP, self.soln_crnt.bilt.aNrmGrid, interpolator=self.make_linear_cFunc
+                self.soln_crnt.bilt.EndOfPrdvP, self.soln_crnt.bilt.aNrmGrid, 
+                interpolator=self.make_linear_cFunc
             )
         return soln_crnt
 
@@ -2343,13 +2308,6 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             self.soln_crnt.IncShkDstn = self.soln_crnt.bilt.IncShkDstn
             return self.soln_crnt  # Replaces original "terminal" solution; next soln_futr
 
-        # It's not a terminal period
-#        breakpoint()
-
-#        breakpoint()
-#        self.soln_crnt.stge_kind = \
-#            self.soln_crnt.bilt.stge_kind = {'iter_status': 'iterator',
-#                                             'slvr_type': self.__class__.__name__}
         # Add a bunch of useful stuff
         # CDC 20200428: This stuff is "useful" only for a candidate converged solution
         # in an infinite horizon model.  It's not costly to compute but there's not
@@ -2558,7 +2516,6 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             normalized market resources m: v = vFunc(m).
         """
         # Compute expected value and marginal value on a grid of market resources
-        breakpoint()
         bilt = self.soln_crnt.bilt
 
         mNrm_temp = bilt.mNrmMin + bilt.aXtraGrid

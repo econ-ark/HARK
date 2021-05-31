@@ -6,6 +6,9 @@ from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools \
 from HARK.Calibration.Income.IncomeTools \
     import (parse_income_spec, parse_time_params, Cagetti_income)
 
+"""
+Define parameters for various Consumer AgentTypes
+"""
 
 # The info below is optional at present but may become mandatory as the toolkit evolves
 # 'Primitives' define the 'true' model that we think of ourselves as trying to solve
@@ -37,7 +40,7 @@ init_perfect_foresight_plus.update({  # Limiting values that define 'true' simul
 # Optional more detailed _fcts about various parameters
 CRRA_fcts = {
     'about': 'Coefficient of Relative Risk Aversion'}
-CRRA_fcts.update({'latexexpr': '\providecommand{\CRRA}{\rho}\CRRA'})
+CRRA_fcts.update({'latexexpr': r'\providecommand{\CRRA}{\rho}\CRRA'})
 CRRA_fcts.update({'_unicode_': 'ρ'})  # \rho is Greek r: relative risk aversion rrr
 CRRA_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight_plus['prmtv_par'].append('CRRA')
@@ -46,7 +49,7 @@ init_perfect_foresight_plus.update({'CRRA_fcts': CRRA_fcts})
 
 DiscFac_fcts = {
     'about': 'Pure time preference rate'}
-DiscFac_fcts.update({'latexexpr': '\providecommand{\DiscFac}{\beta}\DiscFac'})
+DiscFac_fcts.update({'latexexpr': r'\providecommand{\DiscFac}{\beta}\DiscFac'})
 DiscFac_fcts.update({'_unicode_': 'β'})
 DiscFac_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight_plus['prmtv_par'].append('DiscFac')
@@ -55,7 +58,7 @@ init_perfect_foresight_plus.update({'DiscFac_fcts': DiscFac_fcts})
 
 LivPrb_fcts = {
     'about': 'Probability of survival from this period to next'}
-LivPrb_fcts.update({'latexexpr': '\providecommand{\LivPrb}{\Pi}\LivPrb'})
+LivPrb_fcts.update({'latexexpr': r'\providecommand{\LivPrb}{\Pi}\LivPrb'})
 LivPrb_fcts.update({'_unicode_': 'Π'})  # \Pi mnemonic: 'Probability of surival'
 LivPrb_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight_plus['prmtv_par'].append('LivPrb')
@@ -64,7 +67,7 @@ init_perfect_foresight_plus.update({'LivPrb_fcts': LivPrb_fcts})
 
 Rfree_fcts = {
     'about': 'Risk free interest factor'}
-Rfree_fcts.update({'latexexpr': '\providecommand{\Rfree}{\mathsf{R}}\Rfree'})
+Rfree_fcts.update({'latexexpr': r'\providecommand{\Rfree}{\mathsf{R}}\Rfree'})
 Rfree_fcts.update({'_unicode_': 'R'})
 Rfree_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight_plus['prmtv_par'].append('Rfree')
@@ -73,7 +76,7 @@ init_perfect_foresight_plus.update({'Rfree_fcts': Rfree_fcts})
 
 PermGroFac_fcts = {
     'about': 'Growth factor for permanent income'}
-PermGroFac_fcts.update({'latexexpr': '\providecommand{\PermGroFac}{\Gamma}\PermGroFac'})
+PermGroFac_fcts.update({'latexexpr': r'\providecommand{\PermGroFac}{\Gamma}\PermGroFac'})
 PermGroFac_fcts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
 PermGroFac_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight_plus['prmtv_par'].append('PermGroFac')
@@ -82,7 +85,7 @@ init_perfect_foresight_plus.update({'PermGroFac_fcts': PermGroFac_fcts})
 
 PermGroFacAgg_fcts = {
     'about': 'Growth factor for aggregate permanent income'}
-# PermGroFacAgg_fcts.update({'latexexpr': '\providecommand{\PermGroFacAgg}{\Gamma}\PermGroFacAgg'})
+# PermGroFacAgg_fcts.update({'latexexpr': r'\providecommand{\PermGroFacAgg}{\Gamma}\PermGroFacAgg'})
 # PermGroFacAgg_fcts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
 PermGroFacAgg_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight_plus['prmtv_par'].append('PermGroFacAgg')
@@ -108,7 +111,7 @@ init_perfect_foresight_plus.update({'MaxKinks_fcts': MaxKinks_fcts})
 AgentCount_fcts = {
     'about': 'Number of agents to use in baseline Monte Carlo simulation'}
 AgentCount_fcts.update(
-    {'latexexpr': '\providecommand{\AgentCount}{N}\AgentCount'})
+    {'latexexpr': r'\providecommand{\AgentCount}{N}\AgentCount'})
 AgentCount_fcts.update({'sim_mcrlo': 'True'})
 AgentCount_fcts.update({'sim_mcrlo_lim': 'infinity'})
 # init_perfect_foresight_plus['sim_mcrlo'].append('AgentCount')
@@ -240,13 +243,13 @@ init_idiosyncratic_shocks_plus.update({'IncShkDstn_fcts': IncShkDstn_fcts})
 
 permShkStd_fcts = {
     'about': 'Standard deviation for lognormal shock to permanent income'}
-permShkStd_fcts.update({'latexexpr': '\permShkStd'})
+permShkStd_fcts.update({'latexexpr': r'\permShkStd'})
 # init_idiosyncratic_shocks_plus['_fcts'].update({'permShkStd': permShkStd_fcts})
 init_idiosyncratic_shocks_plus.update({'permShkStd_fcts': permShkStd_fcts})
 
 tranShkStd_fcts = {
     'about': 'Standard deviation for lognormal shock to permanent income'}
-tranShkStd_fcts.update({'latexexpr': '\tranShkStd'})
+tranShkStd_fcts.update({'latexexpr': r'\tranShkStd'})
 # init_idiosyncratic_shocks_plus['_fcts'].update({'tranShkStd': tranShkStd_fcts})
 init_idiosyncratic_shocks_plus.update({'tranShkStd_fcts': tranShkStd_fcts})
 
@@ -265,7 +268,7 @@ init_idiosyncratic_shocks_plus.update({'UnempPrbRet_fcts': UnempPrbRet_fcts})
 
 IncUnemp_fcts = {
     'about': 'Unemployment insurance replacement rate'}
-IncUnemp_fcts.update({'latexexpr': '\IncUnemp'})
+IncUnemp_fcts.update({'latexexpr': r'\IncUnemp'})
 IncUnemp_fcts.update({'_unicode_': 'μ'})
 # init_idiosyncratic_shocks_plus['_fcts'].update({'IncUnemp': IncUnemp_fcts})
 init_idiosyncratic_shocks_plus.update({'IncUnemp_fcts': IncUnemp_fcts})
