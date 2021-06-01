@@ -8,7 +8,7 @@ Created on Tue Jan 26 10:06:51 2021
 import unittest
 from copy import copy
 import numpy as np
-from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
+from HARK.ConsumptionSaving.ConsRiskyContribModel import (
     RiskyContribConsumerType,
     init_risky_contrib,
 )
