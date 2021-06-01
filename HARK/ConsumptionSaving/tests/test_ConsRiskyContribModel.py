@@ -50,13 +50,13 @@ class test_(unittest.TestCase):
         fin_cont_agent.solve()
 
         self.assertAlmostEqual(
-            fin_cont_agent.solution[0].stageSols["Reb"].DFuncAdj(3, 4), -0.87848691
+            fin_cont_agent.solution[0].stage_sols["Reb"].DFunc_Adj(3, 4), -0.87848691
         )
         self.assertAlmostEqual(
-            fin_cont_agent.solution[0].stageSols["Sha"].ShareFuncAdj(5, 0.1), 0.1065815
+            fin_cont_agent.solution[0].stage_sols["Sha"].ShareFunc_Adj(5, 0.1), 0.1065815
         )
         self.assertAlmostEqual(
-            fin_cont_agent.solution[0].stageSols["Cns"].cFunc(3, 4, 0.1), 2.45609711
+            fin_cont_agent.solution[0].stage_sols["Cns"].cFunc(3, 4, 0.1), 2.45609711
         )
 
     def test_finite_disc_share(self):
@@ -69,11 +69,11 @@ class test_(unittest.TestCase):
         fin_disc_agent.solve()
 
         self.assertAlmostEqual(
-            fin_disc_agent.solution[0].stageSols["Reb"].DFuncAdj(3, 4), -0.87846342
+            fin_disc_agent.solution[0].stage_sols["Reb"].DFunc_Adj(3, 4), -0.87846342
         )
         self.assertAlmostEqual(
-            fin_disc_agent.solution[0].stageSols["Sha"].ShareFuncAdj(5, 0.1), 0.1
+            fin_disc_agent.solution[0].stage_sols["Sha"].ShareFunc_Adj(5, 0.1), 0.1
         )
         self.assertAlmostEqual(
-            fin_disc_agent.solution[0].stageSols["Cns"].cFunc(3, 4, 0.1), 2.45609716
+            fin_disc_agent.solution[0].stage_sols["Cns"].cFunc(3, 4, 0.1), 2.45609716
         )
