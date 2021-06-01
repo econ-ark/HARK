@@ -11,7 +11,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     utility_inv,  # Inverse CRRA utility function
     utilityP,  # CRRA marginal utility function
     utilityP_inv,  # Inverse CRRA marginal utility function
-    init_lifecycle
+    init_lifecycle,
 )
 
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
@@ -447,7 +447,9 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             dfrac[those] = (
                 self.solution[t]
                 .stage_sols["Reb"]
-                .dfracFunc_Adj(self.state_now["mNrm"][those], self.state_now["nNrm"][those])
+                .dfracFunc_Adj(
+                    self.state_now["mNrm"][those], self.state_now["nNrm"][those]
+                )
             )
 
             # Get Controls for agents who *can't* adjust.
@@ -1277,9 +1279,9 @@ def solve_RiskyContrib_Cns(
                 )(mNrmGrid)
 
                 # dvds
-                dvds_vals[:, nInd, sInd] = LinearInterp(
-                    m_ns, eop_dvds[:, nInd, sInd]
-                )(mNrmGrid)
+                dvds_vals[:, nInd, sInd] = LinearInterp(m_ns, eop_dvds[:, nInd, sInd])(
+                    mNrmGrid
+                )
 
             else:
 
@@ -1311,10 +1313,7 @@ def solve_RiskyContrib_Cns(
                 dvds_vals[:, nInd, sInd] = LinearInterp(
                     m_ns,
                     np.concatenate(
-                        [
-                            np.array([eop_dvds[0, nInd, sInd]]),
-                            eop_dvds[:, nInd, sInd],
-                        ]
+                        [np.array([eop_dvds[0, nInd, sInd]]), eop_dvds[:, nInd, sInd],]
                     ),
                 )(mNrmGrid)
 
@@ -1728,6 +1727,7 @@ def solveRiskyContrib(
 
     return periodSol
 
+
 # %% Base risky-contrib dictionaries
 
 risky_contrib_params = {
@@ -1737,30 +1737,25 @@ risky_contrib_params = {
     "DiscFac": 0.90,
     # Artificial borrowing constraint must be on
     "BoroCnstArt": 0.0,
-
     # Grids go up high wealth/P ratios and are less clustered at the bottom.
     "aXtraMax": 250,
     "aXtraCount": 50,
     "aXtraNestFac": 1,
-    
     # Same goes for the new grids of the model
     "mNrmMin": 1e-6,
     "mNrmMax": 250,
     "mNrmCount": 50,
     "mNrmNestFac": 1,
-
     "nNrmMin": 1e-6,
     "nNrmMax": 250,
     "nNrmCount": 50,
     "nNrmNestFac": 1,
-    
     # Income deduction/contribution share grid
     "ShareCount": 10,
     "ShareMax": 0.9,
     "DiscreteShareBool": False,
-    
     # Grid for finding the optimal rebalancing flow
-    "dCount": 20
+    "dCount": 20,
 }
 
 # Infinite horizon version
