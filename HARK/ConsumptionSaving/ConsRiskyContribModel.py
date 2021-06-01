@@ -109,7 +109,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
         RiskyAssetConsumerType.update(self)
         self.update_share_grid()
-        self.update_d_grid()
+        self.update_dfrac_grid()
         self.update_nNrm_grid()
         self.update_mNrm_grid()
         self.update_tau()
@@ -172,7 +172,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
         # Adjusting agent:
         # Withdraw everything from the pension fund and consume everything
-        DFunc_Adj_term = ConstantFunction(-1.0)
+        dfracFunc_Adj_term = ConstantFunction(-1.0)
 
         # Find the withdrawal penalty. If it is time-varying, assume it takes
         # the same value as in the last non-terminal period
@@ -192,12 +192,12 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         Reb_stage_sol = RiskyContribRebSolution(
             # Rebalancing stage
             vFunc_Reb_Adj=vFunc_Reb_Adj_term,
-            DFunc_Adj=DFunc_Adj_term,
+            dfracFunc_Adj=dfracFunc_Adj_term,
             dvdmFunc_Reb_Adj=dvdmFunc_Reb_Adj_term,
             dvdnFunc_Reb_Adj=dvdnFunc_Reb_Adj_term,
             # Adjusting stage
             vFunc_RebFxd=vFunc_Cns_term,
-            DFuncFxd=ConstantFunction(0.0),
+            dfracFuncFxd=ConstantFunction(0.0),
             dvdmFunc_RebFxd=dvdmFunc_Cns_term,
             dvdnFunc_RebFxd=dvdnFunc_Cns_term,
             dvdsFunc_RebFxd=dvdsFunc_Cns_term,
@@ -242,7 +242,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         self.ShareGrid = np.linspace(0.0, self.ShareMax, self.ShareCount)
         self.add_to_time_inv("ShareGrid")
 
-    def update_d_grid(self):
+    def update_dfrac_grid(self):
         """
         Creates grid for the rebalancing flow between assets. This flow is
         normalized as a ratio.
@@ -254,8 +254,8 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         None.
 
         """
-        self.dGrid = np.linspace(0, 1, self.dCount)
-        self.add_to_time_inv("dGrid")
+        self.dfracGrid = np.linspace(0, 1, self.dCount)
+        self.add_to_time_inv("dfracGrid")
 
     def update_nNrm_grid(self):
         """
@@ -434,7 +434,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         """
         Get controls for the first stage: rebalancing
         """
-        DNrm = np.zeros(self.AgentCount) + np.nan
+        dfrac = np.zeros(self.AgentCount) + np.nan
 
         # Loop over each period of the cycle, getting controls separately depending on "age"
         for t in range(self.T_cycle):
@@ -444,18 +444,18 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
             # Get controls for agents who *can* adjust.
             those = np.logical_and(these, self.shocks["Adjust"])
-            DNrm[those] = (
+            dfrac[those] = (
                 self.solution[t]
                 .stage_sols["Reb"]
-                .DFunc_Adj(self.state_now["mNrm"][those], self.state_now["nNrm"][those])
+                .dfracFunc_Adj(self.state_now["mNrm"][those], self.state_now["nNrm"][those])
             )
 
             # Get Controls for agents who *can't* adjust.
             those = np.logical_and(these, np.logical_not(self.shocks["Adjust"]))
-            DNrm[those] = (
+            dfrac[those] = (
                 self.solution[t]
                 .stage_sols["Reb"]
-                .DFuncFxd(
+                .dfracFuncFxd(
                     self.state_now["mNrm"][those],
                     self.state_now["nNrm"][those],
                     self.state_prev["Share"][those],
@@ -463,7 +463,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             )
 
         # Store controls as attributes of self
-        self.controls["DNrm"] = DNrm
+        self.controls["dfrac"] = dfrac
 
     def get_states_Sha(self):
         """
@@ -475,7 +475,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         if not "tau" in self.time_vary:
 
             mNrmTilde, nNrmTilde = rebalance_assets(
-                self.controls["DNrm"],
+                self.controls["dfrac"],
                 self.state_now["mNrm"],
                 self.state_now["nNrm"],
                 self.tau,
@@ -497,7 +497,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                     tau = self.tau[t]
 
                     mNrmTilde[these], nNrmTilde[these] = rebalance_assets(
-                        self.controls["DNrm"][these],
+                        self.controls["dfrac"][these],
                         self.state_now["mNrm"][these],
                         self.state_now["nNrm"][these],
                         tau,
@@ -604,7 +604,7 @@ class RiskyContribRebSolution(MetricObject):
     vFunc_Reb_Adj : ValueFunc2D
         Stage value function over normalized liquid resources and normalized
         iliquid resources when the agent is able to adjust his portfolio.
-    DFunc_Adj : Interp2D
+    dfracFunc_Adj : Interp2D
         Deposit function over normalized liquid resources and normalized
         iliquid resources when the agent is able to adjust his portfolio.
     dvdmFunc_Reb_Adj : MargValueFunc2D
@@ -617,7 +617,7 @@ class RiskyContribRebSolution(MetricObject):
         Stage value function over normalized liquid resources, normalized
         iliquid resources, and income contribution share when the agent is
         not able to adjust his portfolio.
-    DFuncFxd : Interp2D
+    dfracFuncFxd : Interp2D
         Deposit function over normalized liquid resources, normalized iliquid
         resources, and income contribution share when the agent is not able to
         adjust his portfolio.
@@ -639,12 +639,12 @@ class RiskyContribRebSolution(MetricObject):
         self,
         # Rebalancing stage, adjusting
         vFunc_Reb_Adj=None,
-        DFunc_Adj=None,
+        dfracFunc_Adj=None,
         dvdmFunc_Reb_Adj=None,
         dvdnFunc_Reb_Adj=None,
         # Rebalancing stage, fixed
         vFunc_RebFxd=None,
-        DFuncFxd=None,
+        dfracFuncFxd=None,
         dvdmFunc_RebFxd=None,
         dvdnFunc_RebFxd=None,
         dvdsFunc_RebFxd=None,
@@ -653,8 +653,8 @@ class RiskyContribRebSolution(MetricObject):
         # Rebalancing stage
         if vFunc_Reb_Adj is None:
             vFunc_Reb_Adj = NullFunc()
-        if DFunc_Adj is None:
-            DFunc_Adj = NullFunc()
+        if dfracFunc_Adj is None:
+            dfracFunc_Adj = NullFunc()
         if dvdmFunc_Reb_Adj is None:
             dvdmFunc_Reb_Adj = NullFunc()
         if dvdnFunc_Reb_Adj is None:
@@ -662,8 +662,8 @@ class RiskyContribRebSolution(MetricObject):
 
         if vFunc_RebFxd is None:
             vFunc_RebFxd = NullFunc()
-        if DFuncFxd is None:
-            DFuncFxd = NullFunc()
+        if dfracFuncFxd is None:
+            dfracFuncFxd = NullFunc()
         if dvdmFunc_RebFxd is None:
             dvdmFunc_RebFxd = NullFunc()
         if dvdnFunc_RebFxd is None:
@@ -673,13 +673,13 @@ class RiskyContribRebSolution(MetricObject):
 
         # Components of the adjusting problem
         self.vFunc_Reb_Adj = vFunc_Reb_Adj
-        self.DFunc_Adj = DFunc_Adj
+        self.dfracFunc_Adj = dfracFunc_Adj
         self.dvdmFunc_Reb_Adj = dvdmFunc_Reb_Adj
         self.dvdnFunc_Reb_Adj = dvdnFunc_Reb_Adj
 
         # Components of the fixed problem
         self.vFunc_RebFxd = vFunc_RebFxd
-        self.DFuncFxd = DFuncFxd
+        self.dfracFuncFxd = dfracFuncFxd
         self.dvdmFunc_RebFxd = dvdmFunc_RebFxd
         self.dvdnFunc_RebFxd = dvdnFunc_RebFxd
         self.dvdsFunc_RebFxd = dvdsFunc_RebFxd
@@ -1507,7 +1507,7 @@ def solve_RiskyContrib_Sha(
 
 # Solver for the asset rebalancing stage
 def solve_RiskyContrib_Reb(
-    solution_next, CRRA, tau, nNrmGrid, mNrmGrid, dGrid, vFuncBool, **unused_params
+    solution_next, CRRA, tau, nNrmGrid, mNrmGrid, dfracGrid, vFuncBool, **unused_params
 ):
 
     # Extract next stage's solution
@@ -1529,19 +1529,19 @@ def solve_RiskyContrib_Reb(
     nNrm_N = len(nNrmGrid)
     mNrmGrid = np.concatenate([np.array([0.0]), mNrmGrid])
     mNrm_N = len(mNrmGrid)
-    d_N = len(dGrid)
+    d_N = len(dfracGrid)
 
-    # Duplicate d so that possible values are -dGrid,dGrid. Duplicate 0 is
+    # Duplicate d so that possible values are -dfracGrid,dfracGrid. Duplicate 0 is
     # intentional since the tax causes a discontinuity. We need the value
     # from the left and right.
-    dGrid = np.concatenate((-1 * np.flip(dGrid), dGrid))
+    dfracGrid = np.concatenate((-1 * np.flip(dfracGrid), dfracGrid))
 
     # It will be useful to pre-evaluate marginals at every (m,n,d) combination
 
     # Create tiled arrays for every d,m,n option
-    d_N2 = len(dGrid)
+    d_N2 = len(dfracGrid)
     d_tiled, mNrm_tiled, nNrm_tiled = np.meshgrid(
-        dGrid, mNrmGrid, nNrmGrid, indexing="ij"
+        dfracGrid, mNrmGrid, nNrmGrid, indexing="ij"
     )
 
     # Get post-rebalancing assets.
@@ -1588,15 +1588,15 @@ def solve_RiskyContrib_Reb(
     slopes = (
         dvdDNvrs[idx1, m_idx_tiled, n_idx_tiled]
         - dvdDNvrs[idx, m_idx_tiled, n_idx_tiled]
-    ) / (dGrid[idx1] - dGrid[idx])
-    dOpt = dGrid[idx] - dvdDNvrs[idx, m_idx_tiled, n_idx_tiled] / slopes
+    ) / (dfracGrid[idx1] - dfracGrid[idx])
+    dfrac_opt = dfracGrid[idx] - dvdDNvrs[idx, m_idx_tiled, n_idx_tiled] / slopes
 
     # Replace the ones we knew were constrained
-    dOpt[constrained_bot] = dGrid[0]
-    dOpt[constrained_top] = dGrid[-1]
+    dfrac_opt[constrained_bot] = dfracGrid[0]
+    dfrac_opt[constrained_top] = dfracGrid[-1]
 
     # Find m_tilde and n_tilde
-    mtil_opt, ntil_opt = rebalance_assets(dOpt, mNrm_tiled[0], nNrm_tiled[0], tau)
+    mtil_opt, ntil_opt = rebalance_assets(dfrac_opt, mNrm_tiled[0], nNrm_tiled[0], tau)
 
     # Now the derivatives. These are not straight forward because of corner
     # solutions with partial derivatives that change the limits. The idea then
@@ -1635,18 +1635,18 @@ def solve_RiskyContrib_Reb(
     )
 
     # Decison
-    DFunc_Adj = BilinearInterp(dOpt, mNrmGrid, nNrmGrid)
+    dfracFunc_Adj = BilinearInterp(dfrac_opt, mNrmGrid, nNrmGrid)
 
     solution = RiskyContribRebSolution(
         # Rebalancing stage adjusting
         vFunc_Reb_Adj=vFunc_Adj,
-        DFunc_Adj=DFunc_Adj,
+        dfracFunc_Adj=dfracFunc_Adj,
         dvdmFunc_Reb_Adj=dvdmFunc_Adj,
         dvdnFunc_Reb_Adj=dvdnFunc_Adj,
         # Rebalancing stage fixed (nothing happens, so value functions are
         # the ones from the next stage)
         vFunc_RebFxd=vFuncFxd_next,
-        DFuncFxd=ConstantFunction(0.0),
+        dfracFuncFxd=ConstantFunction(0.0),
         dvdmFunc_RebFxd=dvdmFuncFxd_next,
         dvdnFunc_RebFxd=dvdnFuncFxd_next,
         dvdsFunc_RebFxd=dvdsFuncFxd_next,
@@ -1669,7 +1669,7 @@ def solveRiskyContrib(
     nNrmGrid,
     mNrmGrid,
     ShareGrid,
-    dGrid,
+    dfracGrid,
     vFuncBool,
     AdjustPrb,
     DiscreteShareBool,
@@ -1690,7 +1690,7 @@ def solveRiskyContrib(
         "nNrmGrid": nNrmGrid,
         "mNrmGrid": mNrmGrid,
         "ShareGrid": ShareGrid,
-        "dGrid": dGrid,
+        "dfracGrid": dfracGrid,
         "vFuncBool": vFuncBool,
         "AdjustPrb": AdjustPrb,
         "DiscreteShareBool": DiscreteShareBool,
