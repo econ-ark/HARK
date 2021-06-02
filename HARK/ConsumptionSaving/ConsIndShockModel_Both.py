@@ -40,7 +40,8 @@ def def_utility(stge, CRRA):
     -------
     none
     """
-    bilt = stge
+
+    bilt = stge.bilt
 
 #    CRRA = bilt.parameters['CRRA']
 
@@ -86,7 +87,7 @@ def def_value_funcs(stge, CRRA):
     """
 
 #    bilt = stge.bilt
-    bilt = stge
+    bilt = stge.bilt
 #    CRRA = bilt.parameters['CRRA']
 
     # See PerfForesightConsumerType.ipynb docs for derivations

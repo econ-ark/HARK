@@ -3,8 +3,6 @@ import numpy as np
 from copy import copy, deepcopy
 from builtins import (range, str, breakpoint)
 from types import SimpleNamespace
-from dolo import yaml_import
-import tempfile  # create temp file for dolo yaml import
 
 from HARK.core import (_log, set_verbosity_level)
 from HARK.distribution \
@@ -88,8 +86,7 @@ class AgentTypePlus(AgentType):
 
     """
 
-    # These three variables are mandatory; they must be overwritten
-    # as appropriate
+    # Mandatory lists; they must be overwritten as appropriate
     time_vary = []
     time_inv = []
     state_vars = []
@@ -101,6 +98,7 @@ class AgentTypePlus(AgentType):
         # The base MetricObject class automatically constructs a list
         # of parameters but for some reason it does not get some
         # of the parameters {'cycles','seed','tolerance'} needed
+        # to reproduce results exactly
         # TODO: CDC 20210525: Fix this in MetricObject to reduce clutter here
         self.add_to_given_params = {'time_vary', 'time_inv', 'state_vars',
                                     'cycles', 'seed', 'tolerance'}
@@ -122,13 +120,13 @@ class AgentTypePlus(AgentType):
         self.solve_par_vals = \
             deepcopy({**prmtv_par_vals, **aprox_par_vals})
 
-        # Needs to go on solution_terminal so it can get on the solutions
+        # Put on solution_terminal so it can get on non-term solution
         self.solution_terminal.bilt.solve_par_vals = self.solve_par_vals
 
     def update_parameters_for_this_agent_subclass(self):
-        # Model class adds parameters explicitly passed; but parameters should also
+        # class(Model) adds parameters explicitly passed; but parameters should also
         # include anything else (even default values not explicitly passed) required
-        # to reproduce results of the model
+        # to reproduce exactly ALL results of the model
 
         for add_it in self.add_to_given_params:
             self.parameters.update({add_it: getattr(self, add_it)})
@@ -148,19 +146,19 @@ class AgentTypePlus(AgentType):
 
         """
 
+        # Get current parameter values
         solve_par_vals_now = {}
         if hasattr(self, 'solve_par_vals'):
             for par in self.solve_par_vals:
                 solve_par_vals_now[par] = getattr(self, par)
 
-            if not solve_par_vals_now == self.solve_par_vals:
+            if not (solve_par_vals_now == self.solve_par_vals):
                 _log.info('Some model parameter has changed since last update.')
                 _log.info('Storing new parameters and updating shocks and grid.')
                 self.agent_force_prepare_info_needed_to_begin_solving()  # The AgentType must define its own
 
     def agent_force_prepare_info_needed_to_begin_solving(self):
         # There are no universally required pre_solve objects
-        #
         pass
 
     # pre_solve is the old name, preserved as an alias because
@@ -185,15 +183,14 @@ class AgentTypePlus(AgentType):
             _log.warning('Solution does not have attribute stge_kind')
             return
         else:
-#            breakpoint()
+            #            breakpoint()
             soln.bilt.stge_kind['iter_status'] = 'finished'
 #            soln.bilt.stge_kind['iter_status'] = 'finished'
         self.agent_post_post_solve()
 
     # Disambiguation: former "[solver].post_solve"; post_solve is now alias to this
-    # it's hard to remember whether "post_solve" is a method of
+    # it's too hard to remember whether "post_solve" is a method of
     # the solver or of the agent.  The answer is the agent; hence the rename
-    # The alias below prevents breakage
     agent_post_solve = post_solve_agent = post_solve
 
     def agent_post_post_solve(self):
@@ -220,8 +217,8 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         * m combines assets from prior history with current income
         * it is referred to as `market resources` throughout the docs
 
-    consumer_terminal_nobequest_onestate class must be inherited by some subclass that
-    fleshes out the rest of the characteristics of the agent, e.g. the
+    consumer_terminal_nobequest_onestate class must be inherited by some subclass
+    that fleshes out the rest of the characteristics of the agent, e.g. the
     PerfForesightConsumerType or MertonSamuelsonConsumerType or something.
 
     Parameters
@@ -230,7 +227,6 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         Number of times the sequence of periods/stages should be solved.
 
     solution_startfrom : ConsumerSolution, optional
-
         A prespecified solution for the endpoint of the consumer
     problem. If no value is supplied, the terminal solution defaults
     to the case in which the consumer spends all available resources,
@@ -260,10 +256,10 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         # the standard lifetime transition rules are applied, the nobequest
         # terminal solution defined below is generated.
         # This should work if stge_kind['iter_status']="iterator"
-        # This is inoperative if the terminal period is labeled with
+        # The afterlife is inoperative if the terminal period is labeled with
         # stge_kind['iter_status']="terminal_pseudo" (because in that case
         # the "terminal_pseudo" final solution is used to construct the
-        # augmented "terminal" solution
+        # augmented "terminal" solution)
 
         solution_afterlife_nobequest_ = ConsumerSolutionOneStateCRRA(
             cFunc=lambda m: float('inf'),
@@ -280,23 +276,21 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
             completed_cycles=-1
         )
 
-        solution_nobequest_ = ConsumerSolutionOneStateCRRA(  # Omits vFunc b/c u not yet def
-            cFunc=cFunc_terminal_nobequest_,
-            mNrmMin=0.0,  # Assumes PF model in which minimum mNrmMin is 1.0
-            hNrm=0.0,
-            MPCmin=1.0,
-            MPCmax=1.0,
-            stge_kind={
-                'iter_status': 'terminal_pseudo',  # will be replaced with iterator
-                'term_type': 'nobequest'
-            })
-
+        solution_nobequest_ = \
+            ConsumerSolutionOneStateCRRA(  # Omit vFunc b/c u not yet def
+                cFunc=cFunc_terminal_nobequest_,
+                mNrmMin=0.0,
+                hNrm=0.0,
+                MPCmin=1.0,
+                MPCmax=1.0,
+                stge_kind={
+                    'iter_status': 'terminal_pseudo',  # will be replaced with iterator
+                    'term_type': 'nobequest'
+                })
         solution_nobequest_.solution_next = solution_afterlife_nobequest_
-
         # Define solution_terminal_ for legacy/compatability reasons
         # Otherwise would be better to just explicitly use solution_nobequest_
         solution_terminal_ = solution_nobequest_
-
         # Deepcopy: We will be modifying features of solution_terminal,
         # so make a deepcopy so that if multiple agents get created, we
         # always use the unaltered "master" solution_terminal_
@@ -318,58 +312,22 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     cycles : int
         Number of times the sequence of periods/stages should be solved.
     """
-    # fcts : dictionary
-    #     For storing meta information about an object in the model,
-    #     for example a mathematical derivation or an explanation of
-    #     its role in an economic model.
-
-    #     fcts[objectName]['latexexpr'] - Name of variable in LaTeX docs
-    #     fcts[objectName]['urlhandle'] - url to further info on it
-    #     fcts[objectName]['python_ex'] - python expr creating its value
-    #     fcts[objectName]['value_now'] - latest value calculated for it
 
     time_vary_ = ["LivPrb",  # Age-varying death rates can match mortality data
-                  "PermGroFac"]  # Age-varying income growth can match data
+                  "PermGroFac"]  # Age-varying income growth can match lifecycle
     time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt"]
-    state_vars = ['pLvl',  # Idiosyncratic permanent income
+    state_vars = ['pLvl',  # Initial idiosyncratic permanent income
                   'PlvlAgg',  # Aggregate permanent income
                   'bNrm',  # Bank balances beginning of period (pLvl normed)
                   'mNrm',  # Market resources (b + income) (pLvl normed)
                   "aNrm"]  # Assets after all actions (pLvl normed)
     shock_vars_ = []
 
-    # Get default values from the Single Source of Truth
-#    from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
-#        import init_perfect_foresight_plus_make
-
- #   default = init_perfect_foresight_plus_make(
- #       init_perfect_foresight).parameters
- 
-    from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
-        import init_perfect_foresight as default
-
-
     def __init__(self,
                  cycles=1,  # Default to finite horiz
                  verbose=1,  # little feedback
                  quiet=False,  # do not check conditions
                  solution_startfrom=None,  # Default is no interim solution
-                 # TODO: 20210529: CDC: Probably we should use python 3.7+
-                 # dataclasses for representing parameters.  Cleaner.
-                 BoroCnstArt=default['BoroCnstArt'],
-                 MaxKinks=default['MaxKinks'],
-                 Rfree=default['Rfree'],
-                 CRRA=default['CRRA'],
-                 DiscFac=default['DiscFac'],
-                 PermGroFac=default['PermGroFac'],
-                 LivPrb=default['LivPrb'],
-                 T_cycle=default['T_cycle'],
-                 PermGroFacAgg=default['PermGroFacAgg'],
-                 aNrmInitMean=default['aNrmInitMean'],
-                 aNrmInitStd=default['aNrmInitStd'],
-                 pLvlInitMean=default['pLvlInitMean'],
-                 pLvlInitStd=default['pLvlInitStd'],
-                 T_age=default['T_age'],
                  solver=ConsPerfForesightSolver,
                  **kwds
                  ):
@@ -384,20 +342,20 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
             pseudo_terminal=False,
             ** params)
 
-        self.CRRA = CRRA
-        self.Rfree = Rfree
-        self.DiscFac = DiscFac
-        self.LivPrb = LivPrb
-        self.PermGroFac = PermGroFac
-        self.BoroCnstArt = BoroCnstArt
-        self.T_cycle = T_cycle
-        self.PermGroFacAgg = PermGroFacAgg
-        self.MaxKinks = MaxKinks
-        self.aNrmInitMean = aNrmInitMean
-        self.aNrmInitStd = aNrmInitStd
-        self.pLvlInitMean = pLvlInitMean
-        self.pLvlInitStd = pLvlInitStd
-        self.T_age = T_age
+        # self.CRRA = CRRA
+        # self.Rfree = Rfree
+        # self.DiscFac = DiscFac
+        # self.LivPrb = LivPrb
+        # self.PermGroFac = PermGroFac
+        # self.BoroCnstArt = BoroCnstArt
+        # self.T_cycle = T_cycle
+        # self.PermGroFacAgg = PermGroFacAgg
+        # self.MaxKinks = MaxKinks
+        # self.aNrmInitMean = aNrmInitMean
+        # self.aNrmInitStd = aNrmInitStd
+        # self.pLvlInitMean = pLvlInitMean
+        # self.pLvlInitStd = pLvlInitStd
+        # self.T_age = T_age
         self.solver = solver
         self.verbose = verbose
 #        self.quiet = quiet
@@ -420,9 +378,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                 self.finish_setup_of_default_solution_terminal()
             # make url that will locate the documentation
             self.url_doc_for_this_agent_type_get()
-#        else:
-#            # any user-provided solution should already be enriched
-#            solution_terminal = solution_startfrom
+        # any user-provided solution should already be enriched
 
         # The foregoing is executed by all classes that inherit from the PF model
         # The code below the following "if" is excuted only in the PF case
@@ -683,18 +639,36 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         # PerfForesightConsumerType.__init__ but will subsequently be
         # overridden by the agent_force_prepare_info_needed_to_begin_solving
         # method attached to the IndShockConsumerType class
+
         if (type(self) == PerfForesightConsumerType):
-            if not hasattr(self, 'BoroCnstArt'):
-                if hasattr(self, "MaxKinks"):
-                    if self.MaxKinks:
-                        # What does it mean to have specified MaxKinks but no BoroCnst?
-                        raise(
-                            AttributeError(
-                                "Kinks are caused by constraints.  \nCannot specify MaxKinks without constraints!  Aborting."
-                            ))
-                        return
-                else:  # If MaxKinks not specified, set to number of cycles
-                    self.MaxKinks = self.cycles
+            if self.cycles > 0:
+                if hasattr(self, 'BoroCnstArt'):
+                    if isinstance(self.BoroCnstArt, float):  # 0.0 means no borrowing
+                        if self.MaxKinks:  # If they did specify MaxKinks
+                            if self.MaxKinks > self.cycles - 1:
+                                msg = 'You have requested a number of constraints ' +\
+                                    'greater than the number of cycles - 1.  ' +\
+                                    'Reducing to MaxKinks = cycles - 1'
+                                self.MaxKinks = self.cycles - 1
+                                _log.critical(msg)
+                        else:  # They specified a BoroCnstArt but no MaxKinks
+                            self.MaxKinks = self.cycles - 1
+                    else:  # BoroCnstArt is not defined
+                        if not hasattr(self, "MaxKinks"):
+                            self.MaxKinks = self.cycles - 1
+                        else:
+                            if self.MaxKinks:
+                                breakpoint()
+                                # What does it mean to have specified MaxKinks
+                                # but no BoroCnstArt?
+                                raise(
+                                    AttributeError(
+                                        "Kinks are caused by constraints.  \n" +
+                                        "Cannot specify MaxKinks without constraints!\n" +
+                                        "  Aborting."
+                                    ))
+                            else:
+                                self.MaxKinks = self.cycles - 1
 
     pre_solve = agent_force_prepare_info_needed_to_begin_solving
 
@@ -962,7 +936,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Inherit characteristics of a PF model with the same parameters
         PerfForesightConsumerType.__init__(self, cycles=cycles,
                                            verbose=verbose, quiet=quiet,
-#                                           _startfrom=solution_startfrom,
+                                           #                                           _startfrom=solution_startfrom,
                                            **params)
 
         self.update_parameters_for_this_agent_subclass()  # Add new pars
@@ -993,7 +967,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Store setup parameters so later we can check for changes
         # that necessitate restarting solution process
 
-        self.agent_store_model_params(params['prmtv_par'], 
+        self.agent_store_model_params(params['prmtv_par'],
                                       params['aprox_lim'])
 
         # Put the (enhanced) solution_terminal in self.solution[0]
@@ -1001,9 +975,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def dolo_model(self):
         # Create a dolo version of the model
+        from dolo import yaml_import
         self.dolo_modl = yaml_import(
             '/Volumes/Data/Code/ARK/DARKolo/chimeras/BufferStock/bufferstock.yaml'
-            )
+        )
         if self.verbose >= 2:
             _log.info(self.dolo_modl)
 #        breakpoint()
@@ -1361,63 +1336,63 @@ class KinkedRconsumerType(IndShockConsumerType):
 
 #    pre_solve = agent_force_prepare_info_needed_to_begin_solving
 
-    def calc_bounding_values(self):
-        """
-        Calculate human wealth plus minimum and maximum MPC in an infinite
-        horizon model with only one period repeated indefinitely.  Store results
-        as attributes of self.  Human wealth is the present discounted value of
-        expected future income after receiving income this period, ignoring mort-
-        ality.  The maximum MPC is the limit of the MPC as m --> mNrmMin.  The
-        minimum MPC is the limit of the MPC as m --> infty.  This version deals
-        with the different interest rates on borrowing vs saving.
+    # def calc_bounding_values(self):
+    #     """
+    #     Calculate human wealth plus minimum and maximum MPC in an infinite
+    #     horizon model with only one period repeated indefinitely.  Store results
+    #     as attributes of self.  Human wealth is the present discounted value of
+    #     expected future income after receiving income this period, ignoring mort-
+    #     ality.  The maximum MPC is the limit of the MPC as m --> mNrmMin.  The
+    #     minimum MPC is the limit of the MPC as m --> infty.  This version deals
+    #     with the different interest rates on borrowing vs saving.
 
-        Parameters
-        ----------
-        None
+    #     Parameters
+    #     ----------
+    #     None
 
-        Returns
-        -------
-        None
-        """
-        # Unpack the income distribution and get average and worst outcomes
-        permShkVals = self.IncShkDstn[0][1]
-        tranShkVals = self.IncShkDstn[0][2]
-        ShkPrbs = self.IncShkDstn[0][0]
-        Ex_IncNrmNxt = calc_expectation(
-            self.IncShkDstn,
-            lambda trans, perm: trans * perm
-        )
-        permShkMinNext = np.min(permShkVals)
-        tranShkMinNext = np.min(tranShkVals)
-        WorstIncNext = permShkMinNext * tranShkMinNext
-        WorstIncPrb = np.sum(
-            ShkPrbs[(permShkVals * tranShkVals) == WorstIncNext]
-        )
+    #     Returns
+    #     -------
+    #     None
+    #     """
+    #     # Unpack the income distribution and get average and worst outcomes
+    #     permShkVals = self.IncShkDstn[0][1]
+    #     tranShkVals = self.IncShkDstn[0][2]
+    #     ShkPrbs = self.IncShkDstn[0][0]
+    #     Ex_IncNrmNxt = calc_expectation(
+    #         self.IncShkDstn,
+    #         lambda trans, perm: trans * perm
+    #     )
+    #     permShkMinNext = np.min(permShkVals)
+    #     tranShkMinNext = np.min(tranShkVals)
+    #     WorstIncNext = permShkMinNext * tranShkMinNext
+    #     WorstIncPrb = np.sum(
+    #         ShkPrbs[(permShkVals * tranShkVals) == WorstIncNext]
+    #     )
 
-        # Calculate human wealth and the infinite horizon natural borrowing constraint
-        hNrm = (Ex_IncNrmNxt * self.PermGroFac[0] / self.Rsave) / (
-            1.0 - self.PermGroFac[0] / self.Rsave
-        )
-        temp = self.PermGroFac[0] * permShkMinNext / self.Rboro
-        BoroCnstNat = -tranShkMinNext * temp / (1.0 - temp)
+    #     # Calculate human wealth and the infinite horizon natural borrowing constraint
+    #     hNrm = (Ex_IncNrmNxt * self.PermGroFac[0] / self.Rsave) / (
+    #         1.0 - self.PermGroFac[0] / self.Rsave
+    #     )
+    #     temp = self.PermGroFac[0] * permShkMinNext / self.Rboro
+    #     BoroCnstNat = -tranShkMinNext * temp / (1.0 - temp)
+    #     breakpoint()
+    #     RPFTop = (self.DiscFac * self.LivPrb * self.Rsave) ** (
+    #         1.0 / self.CRRA
+    #     ) / self.Rsave
+    #     RPFBot = (self.DiscFac * self.LivPrb * self.Rboro) ** (
+    #         1.0 / self.CRRA
+    #     ) / self.Rboro
+    #     if BoroCnstNat < self.BoroCnstArt:
+    #         MPCmax = 1.0  # if natural borrowing constraint is overridden by artificial one, MPCmax is 1
+    #     else:
+    #         MPCmax = 1.0 - WorstIncPrb ** (1.0 / self.CRRA) * RPFBot
+    #         MPCmin = 1.0 - RPFTop
 
-        RPFTop = (self.DiscFac * self.LivPrb * self.Rsave) ** (
-            1.0 / self.CRRA
-        ) / self.Rsave
-        RPFBot = (self.DiscFac * self.LivPrb * self.Rboro) ** (
-            1.0 / self.CRRA
-        ) / self.Rboro
-        if BoroCnstNat < self.BoroCnstArt:
-            MPCmax = 1.0  # if natural borrowing constraint is overridden by artificial one, MPCmax is 1
-        else:
-            MPCmax = 1.0 - WorstIncPrb ** (1.0 / self.CRRA) * RPFBot
-            MPCmin = 1.0 - RPFTop
-
-        # Store the results as attributes of self
-        self.hNrm = hNrm
-        self.MPCmin = MPCmin
-        self.MPCmax = MPCmax
-        self.IncNext_min = WorstIncNext
+    #     # Store the results as attributes of self
+    #     self.hNrm = hNrm
+    #     self.MPCmin = MPCmin
+    #     self.MPCmax = MPCmax
+    #     self.IncNext_min = WorstIncNext
 
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """

@@ -92,7 +92,7 @@ def core_check_condition(name, test, messages, verbose, verbose_messages, fact, 
     set_verbosity_level((4 - verbose) * 10)
     stge.bilt.conditions[fact] = (
         messages[stge.bilt.conditions[name]] +
-        verbose_messages[stge.bilt.conditions[name]]).format(stge)
+        verbose_messages[stge.bilt.conditions[name]]).format(stge.bilt)
 #    print(stge.bilt.conditions[fact])
     _log.info(stge.bilt.conditions[fact])
 
@@ -1097,6 +1097,9 @@ def solve_agent(agent, verbose):
         else:  # infinite horizon
             solution= solution_cycle
             solution_now= solution_cycle[0]  # element 0 most recently solved
+#            if not solution_now.bilt.hNrm:
+#                print('no solutioni_now.bilt')
+#                breakpoint()
             # Check for termination: solutions identical (within tolerance)
 #            breakpoint()
             solution_now.solution_distance= \
@@ -1119,6 +1122,9 @@ def solve_agent(agent, verbose):
             if hasattr(agent, 'solve_resume') and (agent.solve_resume is True):  # if resumption requested,
                 go= True  # solve one period for sure, then keep going
                 agent.solve_resume= False  # go until stop criteria satisfied
+#            if not solution_now.bilt.hNrm:
+#                print('solution_now is empty')
+#                breakpoint()
             if not go:  # Finished solving
                 # Eventually, all models should incorporate 'stge_kind'
                 # Handle cases where that has not yet been implemented:
