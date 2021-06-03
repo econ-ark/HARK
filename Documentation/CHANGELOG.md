@@ -17,6 +17,7 @@ Release Data: TBD
 #### Minor Changes
 
 * Fix bug in DCEGM's primary kink finder due to numpy no longer accepting NaN in integer arrays [#990](https://github.com/econ-ark/HARK/pull/990).
+* Add a general class for consumers who can save using a risky asset [#1012](https://github.com/econ-ark/HARK/pull/1012/).
 
 ### 0.11.0
 
