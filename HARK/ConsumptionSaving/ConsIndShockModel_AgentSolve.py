@@ -1549,16 +1549,6 @@ class ConsPerfForesightSolver(MetricObject):
                     # No work needed in terminal period, which replaces itself
                     return
 
-        # if len(soln_futr.bilt.__dict__) > 0:
-        #     folw.cFunc_tp1 = soln_futr.bilt.cFunc
-        #     folw.vFunc_tp1 = soln_futr.bilt.vFunc
-        #     folw.vPfunc_tp1 = soln_futr.bilt.vPfunc
-        #     folw.vPPfunc_tp1 = soln_futr.bilt.vPPfunc
-        #     folw.u_tp1 = soln_futr.bilt.u
-        #     folw.uP_tp1 = soln_futr.bilt.uP
-
-
-#        for key in (k for k in soln_futr.bilt.__dict__.keys()
         if not ('MPCmin' in soln_futr.bilt.__dict__):
             print('Breaking because no MPCmin')
             breakpoint()
@@ -1571,26 +1561,6 @@ class ConsPerfForesightSolver(MetricObject):
 
         self.soln_crnt.stge_kind = self.soln_crnt.bilt.stge_kind = {'iter_status': 'iterator',
                                                                     'slvr_type': self.__class__.__name__}
-        # Add a bunch of useful stuff
-
-#        breakpoint()
-
-#        if hasattr(soln_futr.bilt, 'parameters'):
-#            bilt.parameters = soln_futr.bilt.parameters
-#        else:
-#            print('soln_futr.bilt has no parameters attribute')
-#        breakpoint()
-
-#        if hasattr(soln_futr.bilt, 'parameters'):
-#            bilt.parameters = soln_futr.bilt.parameters
-#        else:
-#            print('soln_futr.bilt has no parameters attribute')
-#            breakpoint()
-#        if hasattr(soln_futr.bilt, 'parameters_solver'):
-#            bilt.parameters_solver = soln_futr.bilt.parameters_solver
-#        else:
-#            print('soln_futr.bilt has no parameters_solver attribute')
-#            breakpoint()
 
         return
 

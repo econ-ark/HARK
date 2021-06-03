@@ -124,6 +124,7 @@ class AgentTypePlus(AgentType):
         self.solution_terminal.bilt.solve_par_vals = self.solve_par_vals
 
     def update_parameters_for_this_agent_subclass(self):
+        # add_it: (below)
         # class(Model) adds parameters explicitly passed; but parameters should also
         # include anything else (even default values not explicitly passed) required
         # to reproduce exactly ALL results of the model
