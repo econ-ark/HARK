@@ -70,7 +70,22 @@ class PortfolioSolution(MetricObject):
         Marginal value of Share function over normalized market resources and risky
         portfolio share when the agent is NOT able to adjust their portfolio shares,
         so they are fixed.
-    mNrmMin
+    aGrid: np.array
+        End-of-period-assets grid used to find the solution.
+    Share_adj: np.array
+        Optimal portfolio share associated with each aGrid point.
+    EndOfPrddvda_adj: np.array
+        Marginal value of end-of-period resources associated with each aGrid
+        point.
+    ShareGrid: np.array
+        Grid for the portfolio share that is used to solve the model.
+    EndOfPrddvda_fxd: np.array
+        Marginal value of end-of-period resources associated with each
+        (aGrid x sharegrid) combination, for the agent who can not adjust his
+        portfolio.
+    AdjustPrb: float
+        Probability that the agent will be able to adjust his portfolio
+        next period.
     """
 
     distance_criteria = ["vPfuncAdj"]
@@ -86,6 +101,12 @@ class PortfolioSolution(MetricObject):
         vFuncFxd=None,
         dvdmFuncFxd=None,
         dvdsFuncFxd=None,
+        aGrid=None,
+        Share_adj=None,
+        EndOfPrddvda_adj=None,
+        ShareGrid=None,
+        EndOfPrddvda_fxd=None, 
+        AdjPrb=None,
     ):
 
         # Change any missing function inputs to NullFunc
@@ -118,6 +139,12 @@ class PortfolioSolution(MetricObject):
         self.vPfuncAdj = vPfuncAdj
         self.dvdmFuncFxd = dvdmFuncFxd
         self.dvdsFuncFxd = dvdsFuncFxd
+        self.aGrid = aGrid
+        self.Share_adj = Share_adj
+        self.EndOfPrddvda_adj = EndOfPrddvda_adj
+        self.ShareGrid = ShareGrid
+        self.EndOfPrddvda_fxd = EndOfPrddvda_fxd
+        self.AdjPrb = AdjPrb
 
 
 class PortfolioConsumerType(RiskyAssetConsumerType):
@@ -786,6 +813,12 @@ def solveConsPortfolio(
     # Calculate the endogenous mNrm gridpoints when the agent adjusts his portfolio
     mNrmAdj_now = aNrmGrid + cNrmAdj_now
 
+    # This is a point at which (a,c,share) have consistent length. Take the
+    # snapshot for storing the grid and values in the solution.
+    save_points = {'a': deepcopy(aNrmGrid), 'eop_dvda_adj': uP(cNrmAdj_now),
+                   'share_adj': deepcopy(Share_now), 'share_grid': deepcopy(ShareGrid),
+                   'eop_dvda_fxd': uP(EndOfPrddvda)}
+
     # Construct the risky share function when the agent can adjust
     if DiscreteShareBool:
         mNrmAdj_mid = (mNrmAdj_now[1:] + mNrmAdj_now[:-1]) / 2
@@ -888,7 +921,6 @@ def solveConsPortfolio(
         vFuncAdj_now = None
         vFuncFxd_now = None
 
-    # Create and return this period's solution
     return PortfolioSolution(
         cFuncAdj=cFuncAdj_now,
         ShareFuncAdj=ShareFuncAdj_now,
@@ -899,6 +931,12 @@ def solveConsPortfolio(
         dvdmFuncFxd=dvdmFuncFxd_now,
         dvdsFuncFxd=dvdsFuncFxd_now,
         vFuncFxd=vFuncFxd_now,
+        aGrid = save_points['a'],
+        Share_adj = save_points['share_adj'],
+        EndOfPrddvda_adj = save_points['eop_dvda_adj'],
+        ShareGrid = save_points['share_grid'],
+        EndOfPrddvda_fxd = save_points['eop_dvda_fxd'],
+        AdjPrb = AdjustPrb,
     )
 
 
