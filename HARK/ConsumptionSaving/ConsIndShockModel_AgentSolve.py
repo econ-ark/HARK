@@ -32,22 +32,12 @@ class Built(SimpleNamespace):
 # TODO: Move (to core.py) when vetted/agreed
     pass
 
-# Namespaces are useful to label and track different kinds of things
-
 
 class SuccessorInfo(SimpleNamespace):
     """
-    Contains objects retrieved from successor to the stage
+    Objects retrieved from successor to the stage
     referenced in "self." Should contain everything needed to reconstruct
     solution to problem of self even if solution_next is not present.
-    """
-# TODO: Move (to core.py) when vetted/agreed
-    pass
-
-
-class SolutionHolder(SimpleNamespace):
-    """
-    Objects built by solvers during course of solution.
     """
 # TODO: Move (to core.py) when vetted/agreed
     pass
@@ -57,15 +47,22 @@ __all__ = [
     "ConsumerSolutionOld",
     "ConsumerSolution",
     "ConsumerSolutionOneStateCRRA",
+    "ConsPerfForesightSolverEOP",
     "ConsPerfForesightSolver",
+    "ConsIndShockSetupEOP",
     "ConsIndShockSetup",
+    "ConsIndShockSolverBasicEOP",
     "ConsIndShockSolverBasic",
+    "ConsIndShockSolverEOP",
     "ConsIndShockSolver",
+    "ConsKinkedRsolver",
+    "ConsIndShockSetupEOP",
+    "ConsIndShockSetup",
     "ConsKinkedRsolver",
 ]
 
-# ConsumerSolutionOld below is identical to version in HARK 0.11.0
-# ConsumerSolution, later, augments it
+# ConsumerSolutionOld below is identical to ConsumerSolution in HARK 0.11.0
+# New definition of ConsumerSolution, later, augments it
 
 
 class ConsumerSolutionOld(MetricObject):
@@ -152,6 +149,8 @@ class ConsumerSolutionOld(MetricObject):
             self.vPPfunc.append(new_solution.vPPfunc)
             self.mNrmMin.append(new_solution.mNrmMin)
 
+# class ConsumerSolution(ConsumerSolutionOld):
+
 
 class ConsumerSolution(MetricObject):
     __doc__ = ConsumerSolutionOld.__doc__
@@ -179,11 +178,12 @@ class ConsumerSolution(MetricObject):
 #    distance_criteria = ["cFunc"]  # cFunc if the GIC fails
 
     def __init__(
-            self, cFunc=NullFunc(), vFunc=NullFunc(), vPfunc=NullFunc(), vPPfunc=NullFunc(), mNrmMin=float('nan'), hNrm=float('nan'),
-            MPCmin=float('nan'), MPCmax=float('nan'), stge_kind={'iter_status': 'not initialized'}, parameters_solver=None,
+            self, cFunc=NullFunc(), vFunc=NullFunc(), vPfunc=NullFunc(),
+            vPPfunc=NullFunc(), mNrmMin=float('nan'), hNrm=float('nan'),
+            MPCmin=float('nan'), MPCmax=float('nan'),
+            stge_kind={'iter_status': 'not initialized'}, parameters_solver=None,
             completed_cycles=0, ** kwds,):
 
-        breakpoint()
         bilt = self.bilt = Built()
         bilt.cFunc = cFunc
         bilt.vFunc = vFunc
@@ -231,82 +231,31 @@ class ConsumerSolution(MetricObject):
             self.vPPfunc.append(new_solution.vPPfunc)
             self.mNrmMin.append(new_solution.mNrmMin)
 
-
-# class ConsumerSolutionTest(ConsumerSolution):
-#     __doc__ = ConsumerSolution.__doc__
-#     __doc__ += """
-#     stge_kind : dict
-#         Dictionary with info about this stage
-#         One built-in entry keeps track of the nature of the stage:
-#             {'iter_status':'finished'}: Stopping requirements are satisfied
-#                 If stopping requirements are satisfied, {'tolerance':tolerance}
-#                 should exist recording what convergence tolerance was satisfied
-#             {'iter_status':'iterator'}: Solution during iteration
-#                 solution[0].distance_last records the last distance
-#             {'iter_status':'terminal_pseudo'}: Bare-bones terminal period
-#                 Does not contain all the info needed to begin solution
-#                 Solver will augment and replace it with 'iterator' stage
-#         Other uses include keeping track of the nature of the next stage
-#     parameters_solver : dict
-#         Stores the parameters with which the solver was called
-#     """
-
-#     # CDC 20210426: vPfunc is a bad choice; we should change it,
-#     # but doing so will require recalibrating some of our tests
-#     distance_criteria = ["vPfunc"]  # Bad: it goes to infinity; would be better to use:
-# #    distance_criteria = ["mNrmStE"]  # mNrmStE if the GIC holds (and it's not close)
-# #    distance_criteria = ["cFunc"]  # cFunc if the GIC fails
-
-#     def __init__(self, *args,
-#                  stge_kind={'iter_status': 'not initialized'},
-#                  completed_cycles=0,
-#                  parameters_solver=None,
-#                  **kwds):
-#         ConsumerSolutionOld.__init__(self, *args, **kwds)
-
-#         bilt = self.bilt = Built()
-#         bilt.parameters_solver = None
-#         bilt.cFunc = self.cFunc
-#         bilt.vFunc = self.vFunc
-#         bilt.vPfunc = self.vPfunc
-#         bilt.vPPfunc = self.vPPfunc
-#         bilt.mNrmMin = self.mNrmMin
-#         bilt.hNrm = self.hNrm
-#         bilt.MPCmin = self.MPCmin
-#         bilt.MPCmax = self.MPCmax
-#         bilt.completed_cycles = completed_cycles
-#         bilt.parameters_solver = parameters_solver
+# CDC 20210509: ConsumerSolutionPlus was added as a stage above
+# ConsumerSolution because ConsumerSolution should
+# generically handle any and ALL general consumption problems
+#  and PerfForesightCRRA should handle the subsubclass that is both PF and CRRA
+# Also as a place to instantiate the stge_kind attribute, which should
+# ultimately move upstream to become a core attribute of ANY solution
 
 
-# class ConsumerSolutionOneStateCRRA_test(ConsumerSolutionPlus):
-#     pass
-# CDC 20210509: This was added as a stage above ConsumerSolution because ConsumerSolution should
-# generically handle any and all general consumption
-# problems and PerfForesightCRRA should handle the subclass that is both PF and CRRA
-# Also as a place to instantiate the stge_kind attribute, which should ultimately move
-# upstream to become a core attribute of any solution
-
-class ConsumerSolutionPlus(ConsumerSolutionOld):
-    def __init__(self, *args, **kwds):
-        ConsumerSolutionOld.__init__(self, *args, **kwds)
-
-# class ConsumerSolutionOneStateCRRA(ConsumerSolutionPlus):
-
-
-class ConsumerSolutionOneStateCRRA(ConsumerSolutionPlus):
+# class ConsumerSolution_ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)  # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
+#         breakpoint()
+class ConsumerSolutionOneStateCRRA(ConsumerSolutionOld):
     """
     This subclass of ConsumerSolution assumes that the problem has two
-    key additional characteristics:
+    additional characteristics:
 
         * Constant Relative Risk Aversion (CRRA) utility
-
         * Geometric Discounting of Time Separable Utility
 
     along with a standard set of restrictions on the parameter values of the
-     model (like, the time preference factor must be positive).  Under various
-    combinations of these assumptions, various conditions imply various
-    results.  The suite of minimal restrictions is always evaluated.  The set of
-    conditions is evaluated using the `check_conditions` method.  (Further
+    model (like, the time preference factor must be positive).  Under various
+    combinations of these assumptions, various conditions imply different
+    conclusions.  The suite of minimal restrictions is always evaluated.  The set
+    of conditions is evaluated using the `check_conditions` method.  (Further
     information about the conditions can be found in the documentation for
     that method.)  For convenience, we repeat below the documentation for the
     parent ConsumerSolution of this class, all of which applies here.
@@ -370,9 +319,9 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolutionPlus):
         """
         Checks whether the instance's type satisfies the:
 
-        == == == == == == = == == == == == == == == == == == == == == == == == == == == == == == == == =
+        ================================================================
         Acronym        Condition
-        == == == == == == = == == == == == == == == == == == == == == == == == == == == == == == == == =
+        ================================================================
         AIC           Absolute Impatience Condition
         RIC           Return Impatience Condition
         GIC           Growth Impatience Condition
@@ -380,7 +329,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolutionPlus):
         GICNrm        GIC adjusted for uncertainty in permanent income
         FHWC          Finite Human Wealth Condition
         FVAC          Finite Value of Autarky Condition
-        == == == == == == = == == == == == == == == == == == == == == == == == == == == == == == == == =
+        ================================================================
 
         Depending on the configuration of parameter values, some combination of
         these conditions must be satisfied in order for the problem to have
@@ -404,9 +353,8 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolutionPlus):
         -------
         None
         """
-        soln_crnt.bilt.conditions = {}  # Keep track of truth value of conditions
+        soln_crnt.bilt.conditions = {}  # Keep track of truth of conditions
         soln_crnt.bilt.degenerate = False  # True means solution is degenerate
-#        self.blmn_pblc = {'cFunc', 'vFunc'}
 
         if not hasattr(self, 'verbose'):  # If verbose not set yet
             verbose = 0 if verbose is None else verbose
@@ -680,14 +628,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolutionPlus):
 # of the PF model are inherited by a variety of non-perfect-foresight models
 
 
-class ConsumerSolution_ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)  # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
-#        self.blmn_pblc.update({'vPfunc', 'hNrm', 'MPCmin', 'MPCmax'})
-        breakpoint()
-
-
-class ConsPerfForesightSolver(MetricObject):
+class ConsPerfForesightSolverEOP(MetricObject):
     """
     A class for solving a one period perfect foresight
     CRRA utility consumption-saving problem.
@@ -721,32 +662,25 @@ class ConsPerfForesightSolver(MetricObject):
     # manually if a user wants them).
 
     def __init__(
-            self, solution_next, DiscFac=1.0, LivPrb=1.0, CRRA=2.0, Rfree=1.0, PermGroFac=1.0, BoroCnstArt=None, MaxKinks=None, **kwds
+            self, solution_next, DiscFac=1.0, LivPrb=1.0, CRRA=2.0, Rfree=1.0,
+            PermGroFac=1.0, BoroCnstArt=None, MaxKinks=None, **kwds
     ):
         self.soln_futr = soln_futr = solution_next
         # list objects whose _tp1 value is neeeded to solve problem of t
         self.recursive = {'cFunc', 'vFunc', 'vPfunc', 'vPPfunc',
                           'u', 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
-                          'hNrm', 'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat'}  # ,
-#                          'cFuncLimitSlope', 'cFuncLimitIntercept'}
+                          'hNrm', 'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat'}
 
-#        self.soln_crnt = soln_crnt = deepcopy(soln_futr)
         self.soln_crnt = ConsumerSolutionOneStateCRRA()
-#        bilt_futr = soln_futr.bilt  # info built for next
-#        bilt_crnt = soln_crnt.bilt  # info built for nextco
-        # Get solver parameters and store for later use
-        parameters_solver = \
-            {k: v for k, v in {**kwds, **locals()}.items()
-             if k not in {'self', 'solution_next', 'kwds', 'soln_futr',
-                          'bilt_futr', 'soln_crnt', 'bilt'}}
-        # omitting things that would cause recursion
 
+        # Get solver parameters and store for later use
+        parameters_solver = {k: v for k, v in {**kwds, **locals()}.items()
+                             if k not in {'self', 'solution_next', 'kwds', 'soln_futr',
+                                          'bilt_futr', 'soln_crnt', 'bilt'}}
+        # omitting things that would cause recursion
 #        breakpoint()
         if hasattr(self.soln_futr.bilt, 'stge_kind') \
                 and (soln_futr.bilt.stge_kind['iter_status'] == 'terminal_pseudo'):
-            # Then the provided soln_futr.bilt is the actual terminal soln
-            #            breakpoint()
-            #            soln_crnt.bilt = deepcopy(soln_futr.bilt)
             self.soln_crnt.bilt = deepcopy(self.soln_futr.bilt)
         # links for docs; urls are used when "fcts" are added
         self.url_doc_for_solver_get()
@@ -756,7 +690,6 @@ class ConsPerfForesightSolver(MetricObject):
         # except for solution_next and self (to prevent inf recursion)
         for key in parameters_solver:
             setattr(self.soln_crnt.bilt, key, parameters_solver[key])
-#            breakpoint()
             setattr(self.soln_crnt.bilt, key, parameters_solver[key])
         return
 
@@ -772,82 +705,45 @@ class ConsPerfForesightSolver(MetricObject):
             "https://hark.readthedocs.io/en/latest/search.html?q=" +\
             self.class_name+"&check_keywords=yes&area=default#"
 
-    # Arguably def_utility_funcs should be in definition of agent_type
-    # But solvers always use characteristics of utility function to solve
-    # and therefore must have them.  Single source of truth says they
-    # should be in solver since they must be there but only CAN be elsewhere
-    def def_utility_funcs(self, stge, CRRA):
-        """
-        Defines CRRA utility function for this period (and its derivatives,
-        and their inverses), saving them as attributes of self for other methods
-        to use.
+    # def def_value_funcs(self, stge):
+    #     """
+    #     Defines the value and marginal value functions for this period.
+    #     See PerfForesightConsumerType.ipynb for a brief explanation
+    #     and the links below for a fuller treatment.
 
-        Parameters
-        ----------
-        solution_stage
+    #     https://github.com/llorracc/SolvingMicroDSOPs/#vFuncPF
 
-        Returns
-        -------
-        none
-        """
-        breakpoint()
-        bilt = stge.bilt
-        # utility function
-        bilt.u = stge.u = lambda c: utility(c, CRRA)
-        # marginal utility function
-        bilt.uP = stge.uP = lambda c: utilityP(c, CRRA)
-        # marginal marginal utility function
-        bilt.uPP = stge.uPP = lambda c: utilityPP(c, CRRA)
+    #     Parameters
+    #     ----------
+    #     stge
 
-        # Inverses thereof
-        bilt.uPinv = stge.uPinv = lambda uP: utilityP_inv(uP, CRRA)
-        bilt.uPinvP = stge.uPinvP = lambda uP: utilityP_invP(uP, CRRA)
-        bilt.uinvP = stge.uinvP = lambda uinvP: utility_invP(uinvP, CRRA)
-        bilt.uinv = stge.uinv = lambda uinv: utility_inv(uinv, CRRA)  # in case vFuncBool
+    #     Returns
+    #     -------
+    #     None
 
-        return stge
+    #     Notes
+    #     -------
+    #     Uses the fact that for a perfect foresight CRRA utility problem,
+    #     if the MPC in period t is :math:`\kappa_{t}`, and relative risk
+    #     aversion :math:`\\rho`, then the inverse value vFuncNvrs has a
+    #     constant slope of :math:`\\kappa_{t}^{-\\rho/(1-\\rho)}` and
+    #     vFuncNvrs has value of zero at the lower bound of market resources
+    #     """
 
-    def def_value_funcs(self, stge):
-        """
-        Defines the value and marginal value functions for this period.
-        See PerfForesightConsumerType.ipynb for a brief explanation
-        and the links below for a fuller treatment.
+    #     bilt = stge.bilt
+    #     CRRA = stge.bilt.CRRA
 
-        https://github.com/llorracc/SolvingMicroDSOPs/#vFuncPF
+    #     # See PerfForesightConsumerType.ipynb docs for derivations
+    #     vFuncNvrsSlope = bilt.MPCmin ** (-CRRA / (1.0 - CRRA))
+    #     vFuncNvrs = LinearInterp(
+    #         np.array([bilt.mNrmMin, bilt.mNrmMin + 1.0]),
+    #         np.array([0.0, vFuncNvrsSlope]),
+    #     )
+    #     bilt.vFunc = ValueFuncCRRA(vFuncNvrs, CRRA)
+    #     bilt.vPfunc = MargValueFuncCRRA(bilt.cFunc, CRRA)
+    #     bilt.vPPfunc = MargMargValueFuncCRRA(bilt.cFunc, CRRA)
 
-        Parameters
-        ----------
-        stge
-
-        Returns
-        -------
-        None
-
-        Notes
-        -------
-        Uses the fact that for a perfect foresight CRRA utility problem,
-        if the MPC in period t is :math:`\kappa_{t}`, and relative risk
-        aversion :math:`\\rho`, then the inverse value vFuncNvrs has a
-        constant slope of :math:`\\kappa_{t}^{-\\rho/(1-\\rho)}` and
-        vFuncNvrs has value of zero at the lower bound of market resources
-        """
-
-#        prms = stge.parameters_solver
-        breakpoint()
-        bilt = stge.bilt
-        CRRA = stge.bilt.CRRA
-
-        # See PerfForesightConsumerType.ipynb docs for derivations
-        vFuncNvrsSlope = bilt.MPCmin ** (-CRRA / (1.0 - CRRA))
-        vFuncNvrs = LinearInterp(
-            np.array([bilt.mNrmMin, bilt.mNrmMin + 1.0]),
-            np.array([0.0, vFuncNvrsSlope]),
-        )
-        bilt.vFunc = ValueFuncCRRA(vFuncNvrs, CRRA)
-        bilt.vPfunc = MargValueFuncCRRA(bilt.cFunc, CRRA)
-        bilt.vPPfunc = MargMargValueFuncCRRA(bilt.cFunc, CRRA)
-
-        return stge
+    #     return stge
 
     def make_cFunc_PF(self):
         """
@@ -885,22 +781,19 @@ class ConsPerfForesightSolver(MetricObject):
         # Extract kink points in next period's consumption function;
         # don't take the last one; it only defines extrapolation, is not kink.
 
-#        mNrmGrid_tp1 = made.cFunc_tp1.x_list[:-1]
         mNrmGrid_tp1 = folw.cFunc_tp1.x_list[:-1]
-#        cNrmGrid_tp1 = made.cFunc_tp1.y_list[:-1]
         cNrmGrid_tp1 = folw.cFunc_tp1.y_list[:-1]
 
         # Calculate end-of-this-period asset vals that would reach those kink points
         # next period, then invert first order condition to get c. Then find
         # endogenous gridpoint (kink point) today corresponding to each kink
 
-        bNrmGrid_tp1 = mNrmGrid_tp1 - Ex_IncNrmNxt
-        aNrmGrid = bNrmGrid_tp1 * (PermGroFac / Rfree)  # Because bNrmGrid_tp1 = (R/Γψ) aNrmGrid
-        aNrmGrid = (PermGroFac / Rfree) * (mNrmGrid_tp1 - Ex_IncNrmNxt)
+        bNrmGrid_tp1 = mNrmGrid_tp1 - Ex_IncNrmNxt  # = (R/Γψ) aNrmGrid
+        aNrmGrid = bNrmGrid_tp1 * (PermGroFac / Rfree)
         EvP_tp1 = (DiscLiv * Rfree) * \
             folw.uP_tp1(PermGroFac * cNrmGrid_tp1)  # Rβ E[u'(Γ c_tp1)]
-        cNrmGrid = bild.uPinv(EvP_tp1)  # EGM step
-        mNrmGrid = aNrmGrid + cNrmGrid  # DBC inverted
+        cNrmGrid = bild.uPinv(EvP_tp1)  # EGM step 1
+        mNrmGrid = aNrmGrid + cNrmGrid  # EGM step 2: DBC inverted
 
         # Add additional point to the list of gridpoints for extrapolation,
         # using this period's new value of the lower bound of the MPC, which
@@ -951,7 +844,14 @@ class ConsPerfForesightSolver(MetricObject):
         # Lower bound of mNrm is lowest gridpoint -- usually 0
         bild.mNrmMin = mNrmGrid[0]
 
+        # Add the calculated grids to self.bild
+        bild.aNrmGrid = aNrmGrid
+        bild.EvP_tp1 = EvP_tp1
+        bild.cNrmGrid = cNrmGrid
+        bild.mNrmGrid = mNrmGrid
+
 #    def build_infhor_facts_from_params_ConsPerfForesightSolver(self):
+
     def build_infhor_facts_from_params(self):
         """
             Adds to the solution extensive information and references about
@@ -1522,7 +1422,7 @@ class ConsPerfForesightSolver(MetricObject):
         bilt = soln_crnt.bilt
 
         # Organizing principle: folw should have a deepcopy of everything
-        # needed to re-solve its problem; and everything needed to construct
+        # needed to re-solve crnt problem; and everything needed to construct
         # the "fcts" about current stage of the problem, so that the stge could
         # be deepcopied as a standalone object and solved without soln_futr
         # or soln_crnt
@@ -1535,7 +1435,7 @@ class ConsPerfForesightSolver(MetricObject):
         # Add '_tp1' to names of variables in self.soln_futr.bilt
         # and put in soln_crnt.folw
 
-        # Catch the degenerate case of zero-variance income distributions
+        # Catch degenerate case of zero-variance income distributions
         if hasattr(bilt, "tranShkVals") and hasattr(bilt, "permShkVals"):
             if ((bilt.tranShkMin == 1.0) and (bilt.permShkMin == 1.0)):
                 bilt.Ex_Inv_permShk = 1.0
@@ -1572,8 +1472,20 @@ class ConsPerfForesightSolver(MetricObject):
 ###############################################################################
 # ##############################################################################
 
+class ConsPerfForesightSolver(ConsPerfForesightSolverEOP):
+    def __new__(self, *args, **kwds):
+        breakpoint()
+        super().__new__(self, *args, **kwds)
 
-class ConsIndShockSetup(ConsPerfForesightSolver):
+    def __init__(self):
+        pass
+
+        #    def __init__(self, *args, **kwds):
+        #        breakpoint()
+        #        super().__init__(self, *args, **kwds)
+
+
+class ConsIndShockSetupEOP(ConsPerfForesightSolver):
     """
     A superclass for solvers of one period consumption-saving problems with
     constant relative risk aversion utility and permanent and transitory shocks
@@ -1674,6 +1586,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 
         bilt.aXtraGrid = aXtraGrid
         bilt.vFuncBool = vFuncBool
+# e        breakpoint()
         bilt.CubicBool = CubicBool
 
     def build_infhor_facts_from_params(self):
@@ -1699,9 +1612,6 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 #        breakpoint()
         bilt = soln_crnt.bilt
         folw = soln_crnt.folw
-#        scsr = soln_crnt.scsr
-
-#        self.build_infhor_facts_from_params_ConsPerfForesightSolver()
 
         urlroot = bilt.urlroot
         # Modify formulae also present in PF model but that must change
@@ -1731,9 +1641,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Ex_Inv_permShk_fcts = {
             'about': 'Expected Inverse of Permanent Shock'
         }
-        py___code='𝔼_dot(1/permShkVals, permShkPrbs)'
+        py___code = '𝔼_dot(1/permShkVals, permShkPrbs)'
 #        soln_crnt.Ex_Inv_permShk = \
-        bilt.Ex_Inv_permShk=Ex_Inv_permShk=eval(
+        bilt.Ex_Inv_permShk = Ex_Inv_permShk = eval(
             py___code, {}, {**bilt.__dict__, **folw.__dict__})
         Ex_Inv_permShk_fcts.update({'latexexpr': r'\ExInvpermShk'})
 #        Ex_Inv_permShk_fcts.update({'_unicode_': r'R/Γ'})
@@ -1741,14 +1651,14 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Ex_Inv_permShk_fcts.update({'py___code': py___code})
         Ex_Inv_permShk_fcts.update({'value_now': Ex_Inv_permShk})
         # soln_crnt.fcts.update({'Ex_Inv_permShk': Ex_Inv_permShk_fcts})
-        soln_crnt.Ex_Inv_permShk_fcts=soln_crnt.bilt.Ex_Inv_permShk_fcts=Ex_Inv_permShk_fcts
+        soln_crnt.Ex_Inv_permShk_fcts = soln_crnt.bilt.Ex_Inv_permShk_fcts = Ex_Inv_permShk_fcts
 
-        Inv_Ex_Inv_permShk_fcts={
+        Inv_Ex_Inv_permShk_fcts = {
             'about': 'Inverse of Expected Inverse of Permanent Shock'
         }
-        py___code='1/Ex_Inv_permShk'
+        py___code = '1/Ex_Inv_permShk'
 #        soln_crnt.Inv_Ex_Inv_permShk = \
-        bilt.Inv_Ex_Inv_permShk=Inv_Ex_Inv_permShk=eval(
+        bilt.Inv_Ex_Inv_permShk = Inv_Ex_Inv_permShk = eval(
             py___code, {}, {**bilt.__dict__, **folw.__dict__})
         Inv_Ex_Inv_permShk_fcts.update(
             {'latexexpr': '\left(\Ex[\permShk^{-1}]\right)^{-1}'})
@@ -1757,15 +1667,15 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Inv_Ex_Inv_permShk_fcts.update({'py___code': py___code})
         Inv_Ex_Inv_permShk_fcts.update({'value_now': Inv_Ex_Inv_permShk})
         # soln_crnt.fcts.update({'Inv_Ex_Inv_permShk': Inv_Ex_Inv_permShk_fcts})
-        soln_crnt.Inv_Ex_Inv_permShk_fcts=soln_crnt.bilt.Inv_Ex_Inv_permShk_fcts=Inv_Ex_Inv_permShk_fcts
+        soln_crnt.Inv_Ex_Inv_permShk_fcts = soln_crnt.bilt.Inv_Ex_Inv_permShk_fcts = Inv_Ex_Inv_permShk_fcts
         # soln_crnt.Inv_Ex_Inv_permShk = Inv_Ex_Inv_permShk
 
-        Ex_RNrm_fcts={
+        Ex_RNrm_fcts = {
             'about': 'Expected Stochastic-Growth-Normalized Return'
         }
-        py___code='PF_RNrm * Ex_Inv_permShk'
+        py___code = 'PF_RNrm * Ex_Inv_permShk'
 #        soln_crnt.Ex_RNrm = \
-        bilt.Ex_RNrm=Ex_RNrm=eval(
+        bilt.Ex_RNrm = Ex_RNrm = eval(
             py___code, {}, {**bilt.__dict__, **folw.__dict__})
         Ex_RNrm_fcts.update({'latexexpr': r'\ExRNrm'})
         Ex_RNrm_fcts.update({'_unicode_': r'𝔼[R/Γψ]'})
@@ -1774,7 +1684,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Ex_RNrm_fcts.update({'value_now': Ex_RNrm})
         # soln_crnt.fcts.update({'Ex_RNrm': Ex_RNrm_fcts})
 #        soln_crnt.Ex_RNrm_fcts = \
-        bilt.Ex_RNrm_fcts=Ex_RNrm_fcts
+        bilt.Ex_RNrm_fcts = Ex_RNrm_fcts
 
         Inv_Ex_RNrm_fcts = {
             'about': 'Inverse of Expected Stochastic-Growth-Normalized Return'
@@ -1822,20 +1732,6 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # soln_crnt.fcts.update({'uInv_Ex_uInv_permShk': uInv_Ex_uInv_permShk_fcts})
 #        soln_crnt.uInv_Ex_uInv_permShk_fcts = \
         bilt.uInv_Ex_uInv_permShk_fcts = uInv_Ex_uInv_permShk_fcts
-
-        PermGroFacAdj_fcts = {
-            'about': 'Uncertainty-Adjusted Permanent Income Growth Factor'
-        }
-        py___code = 'PermGroFac * Inv_Ex_Inv_permShk'
-#        soln_crnt.PermGroFacAdj = \
-        bilt.PermGroFacAdj = PermGroFacAdj = eval(
-            py___code, {}, {**bilt.__dict__, **folw.__dict__})
-        PermGroFacAdj_fcts.update({'latexexpr': r'\PermGroFacAdj'})
-        PermGroFacAdj_fcts.update({'urlhandle': urlroot+'PermGroFacAdj'})
-        PermGroFacAdj_fcts.update({'value_now': PermGroFacAdj})
-        # soln_crnt.fcts.update({'PermGroFacAdj': PermGroFacAdj_fcts})
-#        soln_crnt.PermGroFacAdj_fcts = \
-        bilt.PermGroFacAdj_fcts = PermGroFacAdj_fcts
 
         GPFNrm_fcts = {
             'about': 'Normalized Expected Growth Patience Factor'
@@ -1928,14 +1824,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         bilt.DiscGPFNrmCusp_fcts = DiscGPFNrmCusp_fcts
 
     def build_recursive_facts(self):
-
-        #        self.build_recursive_facts_ConsPerfForesightSolver()
         super().build_recursive_facts()
 
         soln_crnt = self.soln_crnt
-
-#        self.build_recursive_facts_ConsPerfForesightSolver()
-
         # Now define some useful lambda functions
 
         # Given m, value of c where 𝔼[m_{t+1}]=m_{t}
@@ -2052,11 +1943,15 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 
         return soln_crnt
 
+
+class ConsIndShockSetup(ConsIndShockSetupEOP):
+    pass
+
 ####################################################################################################
 # ###################################################################################################
 
 
-class ConsIndShockSolverBasic(ConsIndShockSetup):
+class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
     """
     This class solves a single period of a standard consumption-saving problem,
     using linear interpolation and without the ability to calculate the value
@@ -2239,33 +2134,6 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         return sol_EGM
 
-    # def gpi(self, EndOfPrdvP, aNrmGrid):
-    #     cNrmGrid = bilt.uPinv(EndOfPrdvP)
-    #     mNrmGrid = aNrmGrid + cNrmGrid
-
-    #     cPlus = np.insert(cNrmGrid, 0, 0.0, axis=-1)
-    #     mPlus = np.insert(mNrmGrid, 0, bilt.BoroCnstNat, axis=-1)
-
-    #     return cPlus, mPlus
-
-    # def upi(self, cPlus, mPlus, interpolator):
-    #     bilt = bilt
-    #     cUnc = interpolator(mPlus, cPlus)
-    #     cCnst = LinearInterp(
-    #         np.array([bilt.mNrmMin, bilt.mNrmMin+1]),
-    #         np.array([0., 1.]))
-    #     cFuncLower = LowerEnvelope(cUnc, cCnst, nan_bool=False)
-    #     vPfuncNow = MargValueFuncCRRA(cFuncLower, bilt.CRRA)
-    #     vPPfuncNow = MargMargValueFuncCRRA(cFuncLower, bilt.CRRA)
-    #     solnow = ConsumerSolution(cFunc=cFuncLower, vPfunc=vPfuncNow,
-    #                               vPPfunc=vPPfuncNow, mNrmMin=bilt.mNrmMin)
-    #     return solnow
-
-    # def mbs(self, EndOfPrdvP, aNrmGrid, interpolator):
-    #     cPlus, mPlus = self.gpi(EndOfPrdvP, aNrmGrid)
-    #     solnow = self.upi(cPlus, mPlus, interpolator)
-    #     return solnow
-
     def make_sol_using_EGM(self):  # Endogenous Gridpts Method
         """
         Given a grid of end-of-period values of assets a, use the endogenous
@@ -2320,6 +2188,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         )
         return cFunc_unconstrained
 
+#    def solve_prepared_stage(self):  # solves ONE stage of ConsIndShockSolverBasic
     def solve_prepared_stage(self):  # solves ONE stage of ConsIndShockSolverBasic
         """
         Solves one stage (period, in this model) of the consumption-saving problem.  
@@ -2409,7 +2278,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         if not hasattr(soln_crnt.bilt, 'IncShkDstn'):
             print('not hasattr(soln_crnt.bilt, "IncShkDstn")')
             breakpoint()
-            
+
         soln_crnt.IncShkDstn = soln_crnt.bilt.IncShkDstn
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used for interpolation
@@ -2452,11 +2321,14 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             * a_number + shk_vector[1]
 
 
+class ConsIndShockSolverBasic(ConsIndShockSolverBasicEOP):
+    pass
+
+
 ###############################################################################
-# ##############################################################################
 
 
-class ConsIndShockSolver(ConsIndShockSolverBasic):
+class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
     """
     This class solves a single period of a standard consumption-saving problem.
     It inherits from ConsIndShockSolverBasic, and adds the ability to perform cubic
@@ -2640,8 +2512,13 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         return soln_crnt.bilt.vPPfunc
 
 
+class ConsIndShockSolver(ConsIndShockSolverEOP):
+    pass
+
 ####################################################################################################
 ####################################################################################################
+
+
 class ConsKinkedRsolver(ConsIndShockSolver):
     """
     A class to solve a single period consumption-saving problem where the interest

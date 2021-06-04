@@ -13,15 +13,26 @@ from HARK.ConsumptionSaving.ConsIndShockModel_AgentTypes \
 
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
     import (
-            init_perfect_foresight,
-            init_idiosyncratic_shocks,
-            init_kinked_R,
-            init_lifecycle, 
-            init_cyclical)
+        init_perfect_foresight,
+        init_idiosyncratic_shocks,
+        init_kinked_R,
+        init_lifecycle,
+        init_cyclical)
+
+from HARK.utilities import CRRAutility as utility
+from HARK.utilities import CRRAutilityP as utilityP
+from HARK.utilities import CRRAutilityPP as utilityPP
+from HARK.utilities import CRRAutilityP_inv as utilityP_inv
+from HARK.utilities import CRRAutility_invP as utility_invP
+from HARK.utilities import CRRAutility_inv as utility_inv
+from HARK.utilities import CRRAutilityP as utilityP_invP
+
+#from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve_EndOfPeriodValue \
+#    import (ConsIndShockSetupEOP, ConsIndShockSolverBasicEOP, ConsIndShockSolverEOP)
 
 """
 Classes to define and solve canonical consumption-saving models with a single
-state variable.  All models here assume CRRA utility with geometric discounting, 
+state variable.  All models here assume CRRA utility with geometric discounting,
 and if income shocks exist they are fully transitory or fully permanent.
 
 It currently solves three types of models:
@@ -46,6 +57,9 @@ __all__ = [
     "ConsIndShockSetup",
     "ConsIndShockSolverBasic",
     "ConsIndShockSolver",
+    "ConsIndShockSetupEOP",
+    "ConsIndShockSolverBasicEOP",
+    "ConsIndShockSolverEOP",
     "ConsKinkedRsolver",
     "consumer_terminal_nobequest_onestate",
     "PerfForesightConsumerType",
@@ -56,4 +70,11 @@ __all__ = [
     "init_kinked_R",
     "init_lifecycle",
     "init_cyclical",
+    "utility",
+    "utilityP",
+    "utilityPP",
+    "utilityP_inv",
+    "utility_invP",
+    "utility_inv",
+    "utilityP_invP"
 ]
