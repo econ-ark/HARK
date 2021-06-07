@@ -22,7 +22,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
     import (init_perfect_foresight, init_idiosyncratic_shocks)
 
-#from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve_EndOfPeriodValue \
+# from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve_EndOfPeriodValue \
 #    import (ConsIndShockSolverBasicEOP
 #            )
 
@@ -244,7 +244,8 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
             self, solution_terminal=solution_startfrom,  # whether handmade or default
             cycles=cycles, pseudo_terminal=False, **kwds)
 
-        cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0], [0.0, 1.0])
+#        cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0], [0.0, 1.0])
+        cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0, 2.0], [0.0, 1.0, 2.0], [0.0, 1.0, 2.0])
 
         # The below config of the 'afterlife' is constructed so that when
         # the standard lifetime transition rules are applied, the nobequest
@@ -284,7 +285,7 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         solution_nobequest_.solution_next = solution_afterlife_nobequest_
         # solution_terminal_ is defined for legacy/compatability reasons
         # Otherwise would be better to just explicitly use solution_nobequest_
-        solution_terminal_ = solution_nobequest_
+        self.solution_terminal_ = solution_terminal_ = solution_nobequest_
         # Deepcopy: We will be modifying features of solution_terminal,
         # so make a deepcopy so that if multiple agents get created, we
         # always use the unaltered "master" solution_terminal_
@@ -431,7 +432,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         tolerance_orig = deepcopy(self.tolerance)
         self.tolerance = float('inf')  # Any distance satisfies this tolerance!
         if self.cycles > 0:  # Then it's a finite horizon problem
-            self.cycles = 0  # Tell it to solve only one period
+            self.cycles = 0  # Tell it to solve only one period (leaving MaxKinks be)
         self.solve()  # ... means that "solve" will stop after setup ...
         self.tolerance = tolerance_orig  # which leaves us ready to solve
         self.cycles = cycles_orig  # with the original convergence criteria
@@ -606,24 +607,23 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         # method attached to the IndShockConsumerType class
 
         if (type(self) == PerfForesightConsumerType):
-            if self.cycles > 0:
+            if self.cycles > 0:  # finite horizon, not solving terminal period
                 if hasattr(self, 'BoroCnstArt'):
                     if isinstance(self.BoroCnstArt, float):  # 0.0 means no borrowing
                         if self.MaxKinks:  # If they did specify MaxKinks
-                            if self.MaxKinks > self.cycles - 1:
+                            if self.MaxKinks > self.cycles:
                                 msg = 'You have requested a number of constraints ' +\
-                                    'greater than the number of cycles - 1.  ' +\
-                                    'Reducing to MaxKinks = cycles - 1'
-                                self.MaxKinks = self.cycles - 1
+                                    'greater than the number of cycles.  ' +\
+                                    'Reducing to MaxKinks = cycles'
+                                self.MaxKinks = self.cycles
                                 _log.critical(msg)
                         else:  # They specified a BoroCnstArt but no MaxKinks
-                            self.MaxKinks = self.cycles - 1
+                            self.MaxKinks = self.cycles
                     else:  # BoroCnstArt is not defined
                         if not hasattr(self, "MaxKinks"):
-                            self.MaxKinks = self.cycles - 1
+                            self.MaxKinks = self.cycles
                         else:
                             if self.MaxKinks:
-                                breakpoint()
                                 # What does it mean to have specified MaxKinks
                                 # but no BoroCnstArt?
                                 raise(
@@ -633,7 +633,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                                         "  Aborting."
                                     ))
                             else:
-                                self.MaxKinks = self.cycles - 1
+                                self.MaxKinks = self.cycles
 
     pre_solve = agent_force_prepare_info_needed_to_begin_solving
 

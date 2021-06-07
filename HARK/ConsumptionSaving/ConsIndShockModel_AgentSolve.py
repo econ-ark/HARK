@@ -298,6 +298,9 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolutionOld):
         #                 'transition': ['DBC_mNrm'],
         #                 }
 
+#        global Rfree, PermGroFac, MPCmin, MaxKinks, BoroCnstArt, DiscFac, \
+#                Ex_IncNrmNxt, LivPrb, DiscLiv
+
         bilt = self.bilt = Built()
         bilt.parameters_solver = None
         bilt.cFunc = self.cFunc
@@ -427,7 +430,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolutionOld):
         }
         verbose_messages = {
             True: "\n  Therefore, a nondegenerate solution exists if the RIC also holds. ("+stge.bilt.FVAC_fcts['urlhandle']+")\n",
-            False: "\n  Therefore, a nondegenerate solution exits if the RIC holds.\n",
+            False: "\n  Therefore, a nondegenerate solution exits if the RIC holds, but will not exist if the RIC fails unless the FHWC also fails.\n",
         }
 
         stge.FVAC = stge.bilt.FVAC = core_check_condition(name, test, messages, verbose,
@@ -447,7 +450,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolutionOld):
         }
         verbose_messages = {
             True: "\n  Therefore,  for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
-            False: "\n  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to rise toward infinity. \n"
+            False: "\n  Therefore, for a perfect foresight consumer whose parameters satisfy the FHWC, the ratio of individual wealth to permanent income is expected to rise toward infinity. \n"
         }
         stge.GICRaw = stge.bilt.GICRaw = core_check_condition(name, test, messages, verbose,
                                                               verbose_messages, "GPFRaw", stge)
@@ -630,7 +633,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolutionOld):
 
 class ConsPerfForesightSolverEOP(MetricObject):
     """
-    A class for solving a one period perfect foresight
+    Solves a one period perfect foresight
     CRRA utility consumption-saving problem.
 
     Parameters
@@ -665,23 +668,29 @@ class ConsPerfForesightSolverEOP(MetricObject):
             self, solution_next, DiscFac=1.0, LivPrb=1.0, CRRA=2.0, Rfree=1.0,
             PermGroFac=1.0, BoroCnstArt=None, MaxKinks=None, **kwds
     ):
+
         self.soln_futr = soln_futr = solution_next
-        # list objects whose _tp1 value is neeeded to solve problem of t
-        self.recursive = {'cFunc', 'vFunc', 'vPfunc', 'vPPfunc',
-                          'u', 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
-                          'hNrm', 'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat'}
+
+        # objects whose _tp1 value is neeeded to solve problem of t:
+        self.recursive = \
+            {'cFunc', 'vFunc', 'vPfunc', 'vPPfunc',  # 'vFuncNvrs',
+             'u', 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
+             'hNrm', 'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA'}
 
         self.soln_crnt = ConsumerSolutionOneStateCRRA()
 
         # Get solver parameters and store for later use
-        parameters_solver = {k: v for k, v in {**kwds, **locals()}.items()
-                             if k not in {'self', 'solution_next', 'kwds', 'soln_futr',
-                                          'bilt_futr', 'soln_crnt', 'bilt'}}
         # omitting things that would cause recursion
-#        breakpoint()
-        if hasattr(self.soln_futr.bilt, 'stge_kind') \
-                and (soln_futr.bilt.stge_kind['iter_status'] == 'terminal_pseudo'):
+        parameters_solver = \
+            {k: v for k, v in {**kwds, **locals()}.items()
+             if k not in {'self', 'solution_next', 'kwds', 'soln_futr',
+                          'bilt_futr', 'soln_crnt', 'bilt'}}
+
+        # 'terminal' solution should replace pseuco_terminal:
+        if hasattr(self.soln_futr.bilt, 'stge_kind') and \
+                (soln_futr.bilt.stge_kind['iter_status'] == 'terminal_pseudo'):
             self.soln_crnt.bilt = deepcopy(self.soln_futr.bilt)
+
         # links for docs; urls are used when "fcts" are added
         self.url_doc_for_solver_get()
 
@@ -705,49 +714,10 @@ class ConsPerfForesightSolverEOP(MetricObject):
             "https://hark.readthedocs.io/en/latest/search.html?q=" +\
             self.class_name+"&check_keywords=yes&area=default#"
 
-    # def def_value_funcs(self, stge):
-    #     """
-    #     Defines the value and marginal value functions for this period.
-    #     See PerfForesightConsumerType.ipynb for a brief explanation
-    #     and the links below for a fuller treatment.
-
-    #     https://github.com/llorracc/SolvingMicroDSOPs/#vFuncPF
-
-    #     Parameters
-    #     ----------
-    #     stge
-
-    #     Returns
-    #     -------
-    #     None
-
-    #     Notes
-    #     -------
-    #     Uses the fact that for a perfect foresight CRRA utility problem,
-    #     if the MPC in period t is :math:`\kappa_{t}`, and relative risk
-    #     aversion :math:`\\rho`, then the inverse value vFuncNvrs has a
-    #     constant slope of :math:`\\kappa_{t}^{-\\rho/(1-\\rho)}` and
-    #     vFuncNvrs has value of zero at the lower bound of market resources
-    #     """
-
-    #     bilt = stge.bilt
-    #     CRRA = stge.bilt.CRRA
-
-    #     # See PerfForesightConsumerType.ipynb docs for derivations
-    #     vFuncNvrsSlope = bilt.MPCmin ** (-CRRA / (1.0 - CRRA))
-    #     vFuncNvrs = LinearInterp(
-    #         np.array([bilt.mNrmMin, bilt.mNrmMin + 1.0]),
-    #         np.array([0.0, vFuncNvrsSlope]),
-    #     )
-    #     bilt.vFunc = ValueFuncCRRA(vFuncNvrs, CRRA)
-    #     bilt.vPfunc = MargValueFuncCRRA(bilt.cFunc, CRRA)
-    #     bilt.vPPfunc = MargMargValueFuncCRRA(bilt.cFunc, CRRA)
-
-    #     return stge
-
     def make_cFunc_PF(self):
         """
-        Makes the (linear) consumption function for this period.
+        Makes the (linear) consumption function for this period.  See the 
+        PerfForesightConsumerType.ipynb notebook for derivations.
 
         Parameters
         ----------
@@ -759,96 +729,264 @@ class ConsPerfForesightSolverEOP(MetricObject):
         """
         # Reduce cluttered formulae with local aliases
 
-        bild = self.soln_crnt.bilt
-        folw = self.soln_crnt.folw
-#        futr = self.soln_futr.bilt
+        bild, folw = self.soln_crnt.bilt, self.soln_crnt.folw
 
-        Rfree = bild.Rfree
-        PermGroFac = bild.PermGroFac
-        MPCmin = bild.MPCmin
-        MaxKinks = bild.MaxKinks
-        BoroCnstArt = bild.BoroCnstArt
-        DiscLiv = bild.DiscLiv
-        Ex_IncNrmNxt = bild.Ex_IncNrmNxt
-        DiscLiv = bild.DiscLiv
+        Rfree, PermGroFac, MPCmin, MaxKinks = \
+            bild.Rfree, bild.PermGroFac, bild.MPCmin, bild.MaxKinks
+        BoroCnstArt, DiscFac, Ex_IncNrmNxt, LivPrb = \
+            bild.BoroCnstArt, bild.DiscFac, bild.Ex_IncNrmNxt, bild.LivPrb
+        BoroCnstNat = bild.BoroCnstNat
+#        mNrmMin = bild.mNrmMin
+        uPinv = bild.uPinv
+        vPfunc_tp1 = folw.vPfunc_tp1
 
-        # Use local value of BoroCnstArt to prevent comparing None and float
+        _PF_IncNrm_tp1 = Ex_IncNrmNxt        
+        DiscLiv = DiscFac * LivPrb
+        CRRA_tp1 = folw.CRRA_tp1
+
         if BoroCnstArt is None:
             BoroCnstArt = -np.inf
-        else:
-            BoroCnstArt = BoroCnstArt
 
+        BoroCnst = max(BoroCnstArt,BoroCnstNat)
+        # Use local value of BoroCnstArt to prevent comparing None and float
         # Extract kink points in next period's consumption function;
-        # don't take the last one; it only defines extrapolation, is not kink.
 
-        mNrmGrid_tp1 = folw.cFunc_tp1.x_list[:-1]
-        cNrmGrid_tp1 = folw.cFunc_tp1.y_list[:-1]
+        # Omit first and last points which define extrapolation below and above
+        # the kink points
+        mNrm_kinks_tp1 = folw.cFunc_tp1.x_list[:-1][1:]  
+        cNrm_kinks_tp1 = folw.cFunc_tp1.y_list[:-1][1:]  
 
-        # Calculate end-of-this-period asset vals that would reach those kink points
-        # next period, then invert first order condition to get c. Then find
-        # endogenous gridpoint (kink point) today corresponding to each kink
+        # Calculate end-of-this-period aNrm vals that would reach those mNrm's
+        
+        aNrm_kinks = (mNrm_kinks_tp1 - _PF_IncNrm_tp1)*(PermGroFac/Rfree)
+        
+        # Obtains c_t from which unconstrained consumers would land on each 
+        # kink next period by inverting FOC: c_t = (RβΠ)^(-1/ρ) c_tp1
+        # This is the endogenous gridpoint (kink point) today 
+        # corresponding to each next-period kink (each of which corresponds
+        # to a finite-horizon solution ending one more period in the future)
+        
+        cNrm_kinks = (((Rfree * DiscLiv) ** (-1/CRRA_tp1)) *
+            PermGroFac * cNrm_kinks_tp1)
+        
+        mNrm_kinks = aNrm_kinks + cNrm_kinks
+        
+        # _v_t(aNrm) is value as of the END of period t
+        # _v_t'(aNrmMin) = RβΠ (Γ**(-ρ)) v_tp1'(bNrmMin+_PF_IncNrmNxt)
+        _vP_t_at_BoroCnst = \
+            ((Rfree * DiscLiv) * PermGroFac**(-CRRA_tp1) *
+             vPfunc_tp1(_PF_IncNrm_tp1 + BoroCnst * (Rfree/PermGroFac)))
+        
+        # cusp is point where current constraint stops binding
+        cNrm_cusp = uPinv(_vP_t_at_BoroCnst)
+        mNrm_cusp = cNrm_cusp + BoroCnst
 
-        bNrmGrid_tp1 = mNrmGrid_tp1 - Ex_IncNrmNxt  # = (R/Γψ) aNrmGrid
-        aNrmGrid = bNrmGrid_tp1 * (PermGroFac / Rfree)
-        EvP_tp1 = (DiscLiv * Rfree) * \
-            folw.uP_tp1(PermGroFac * cNrmGrid_tp1)  # Rβ E[u'(Γ c_tp1)]
-        cNrmGrid = bild.uPinv(EvP_tp1)  # EGM step 1
-        mNrmGrid = aNrmGrid + cNrmGrid  # EGM step 2: DBC inverted
+        # cusp today compared to today's implications of future constraints
+        if mNrm_cusp >= mNrm_kinks[-1]: # tighter than the tightest existing
+                mNrm_kinks = np.array(mNrm_cusp) # none of the looser ones
+                cNrm_kinks = np.array(cNrm_cusp) # remain relevant
+        else:
+            first_reachable = np.where(mNrm_kinks >= mNrm_cusp)[0][-1]
+            if first_reachable < mNrm_kinks.size - 1: # Keep reachable pts
+                mNrm_kinks = mNrm_kinks[first_reachable:-1]
+                cNrm_kinks = cNrm_kinks[first_reachable:-1]
 
-        # Add additional point to the list of gridpoints for extrapolation,
-        # using this period's new value of the lower bound of the MPC, which
-        # defines the PF unconstrained problem through the end of the horizon
-        mNrmGrid = np.append(mNrmGrid, mNrmGrid[-1] + 1.0)
-        cNrmGrid = np.append(cNrmGrid, cNrmGrid[-1] + MPCmin)
-        # If artificial borrowing constraint binds, combine constrained and
-        # unconstrained consumption functions.
-        if BoroCnstArt > mNrmGrid[0]:
-            # Find the highest index where constraint binds
-            cNrmGridCnst = mNrmGrid - BoroCnstArt
-            CnstBinds = cNrmGridCnst < cNrmGrid
-            idx = np.where(CnstBinds)[0][-1]
-            if idx < (mNrmGrid.size - 1):
-                # If not the *very last* index, find the the critical level
-                # of mNrmGrid where artificial borrowing contraint begins to bind.
-                d0 = cNrmGrid[idx] - cNrmGridCnst[idx]
-                d1 = cNrmGridCnst[idx + 1] - cNrmGrid[idx + 1]
-                m0 = mNrmGrid[idx]
-                m1 = mNrmGrid[idx + 1]
-                alpha = d0 / (d0 + d1)
-                mCrit = m0 + alpha * (m1 - m0)
-                # Adjust grids of mNrmGrid and cNrmGrid to account for constraint.
-                cCrit = mCrit - BoroCnstArt
-                mNrmGrid = np.concatenate(([BoroCnstArt, mCrit], mNrmGrid[(idx + 1):]))
-                cNrmGrid = np.concatenate(([0.0, cCrit], cNrmGrid[(idx + 1):]))
-            else:
-                # If it *is* the last index, then there are only three points
-                # that characterize the c function: the artificial borrowing
-                # constraint, the constraint kink, and the extrapolation point
-                mXtra = (cNrmGrid[-1] - cNrmGridCnst[-1]) / (1.0 - MPCmin)
-                mCrit = mNrmGrid[-1] + mXtra
-                cCrit = mCrit - BoroCnstArt
-                mNrmGrid = np.array([BoroCnstArt, mCrit, mCrit + 1.0])
-                cNrmGrid = np.array([0.0, cCrit, cCrit + MPCmin])
-                # If mNrmGrid, cNrmGrid grids have become too large, throw out last
-                # kink point, being sure to adjust the extrapolation.
+            mNrm_kinks = np.insert(mNrm_kinks,0,mNrm_cusp)
+            cNrm_kinks = np.insert(cNrm_kinks,0,cNrm_cusp)
+                
+        # To guarantee meeting BoroCnst, if mNrm = BoroCnst then cNrm = 0.
+        mNrmGrid = np.append([BoroCnst],mNrm_kinks)
+        cNrmGrid = np.append(0.,cNrm_kinks)
+        
+        # Above last kink point, use PF solution
+        mNrmGrid = np.append(mNrmGrid,mNrmGrid[-1]+1)
+        cNrmGrid = np.append(cNrmGrid,cNrmGrid[-1]+MPCmin)
+            
+        self.cFunc = self.soln_crnt.cFunc = bild.cFunc = \
+            LinearInterp(mNrmGrid, cNrmGrid)
 
-        if mNrmGrid.size > MaxKinks:
-            mNrmGrid = np.concatenate((mNrmGrid[:-2], [cNrmGrid[-3] + 1.0]))
-            cNrmGrid = np.concatenate((cNrmGrid[:-2], [cNrmGrid[-3] + MPCmin]))
-            # Construct the consumption function as a linear interpolation.
-        self.cFunc = self.soln_crnt.cFunc = bild.cFunc = LinearInterp(mNrmGrid, cNrmGrid)
+        # If the mNrm that would unconstrainedly yield next period's bottom pt
+#        if BoroCnst > mNrmGrid_pts[0]: # is prohibited by BoroCnst
+#            satisfies_BoroCnst = np.where(
+#                mNrmGrid_unconst - BoroCnst < cNrm_from_aNrmMin) # True if OK
+        
+            
+        # Amount of m in excess of minimum possible m
+#        mNrmXtraGrid = mNrmGrid_pts - BoroCnst
+        
+        # We think of the stage at which income has been realized 
+        # as prior to the start of the period when the problem is solved.
+        # You "enter" the period with normalized market resources mNrm
+        # If this is starting period of life, we want problem to be defined all
+        # the way down to the point where c would be forced to be zero
+        # That requires us to find the min aNrm with which the period can end
+#        cNrmMin = 0. # You cannot spend anything and still satisfy constraint
+        
+        # Find first kink point in existing grid
+#        kink_min = np.where(mNrmXtraGrid <= cNrmGrid_pts)[0][-1]
+#        kink_min = np.where(aNrmGrid_pts <= BoroCnst)[0][-1]
+        
+        # Now calculate the minimum mNrm that will be possible for a consumer 
+        # who lived in the prior period and in that period satisfied the 
+        # relevant borrowing constraint
+#        _bNrmMin = aNrmMin*(Rfree/PermGroFac)
+#        mNrmMin = _bNrmMin + BoroCnst
+#        mNrmMin_with_income = mNrmMin + _PF_IncNrmNxt
+ #       if c_at_aNrmMin > aNrmMin+_PF_IncNrmNxt-BoroCnst:
+            # The u' from ending this period with aNrm = BoroCnst exceeds
+            # u' from the last penny of spending, so the consumer
+            # at 
+            
+#            mNrmGrid_pts = np.insert(mNrmGrid_pts,kink_min,mNrmMin_with_income)
+#            cNrmGrid_pts = np.insert(cNrmGrid_pts,kink_min,mNrmMin_with_income)
+            
+        # Last index where constraint binds (in current period)
+#        kink_min = np.where(mNrmXtraGrid <= cNrmGrid)[0][-1]
+#        mNrmGrid_pts = np.insert(mNrmGrid_pts,kink_min,mNrmMin)
+#        cNrmGrid_pts = np.insert(cNrmGrid_pts,kink_min,cNrmMin)
+        
+            
+        # The minimum m if you were at the binding borrowing constraint
+        
+        # at the end of the last period (assumes prior period's )
+#         mNrmMin_BoroCnstLast = BoroCnst*(Rfree/PermGroFac)
+        
+# #        mNrmGrid_pts = np.insert(mNrmGrid,kink_min,bNrmMin+PF_IncNrmNow)
+# #        cNrmGrid_pts = np.insert(cNrmGrid,kink_min,bNrmMin+PF_IncNrmNow)
+#         kink_max = np.where(mNrmXtraGrid >= cNrmGrid)[0][-1]
+        
+#         # Below binding point, c is maximum allowed, which is attained by line
+#         # from [BoroCnst,0.] to [mNrmGrid[cusp],mNrmGrid[cusp]]
+#         cNrmGrid_pts = np.insert(cNrmGrid,kink_min,)
+        
+#         mNrmGrid_pts = np.insert(mNrmGrid,kink_min-1,Ex_IncNrmNxt)
+#         cNrmGrid_pts = np.insert(cNrmGrid,kink_min-1,Ex_IncNrmNxt-BoroCnst)
 
-        # Calculate the upper bound of the MPC as the slope of bottom segment.
-        bild.MPCmax = (cNrmGrid[1] - cNrmGrid[0]) / (mNrmGrid[1] - mNrmGrid[0])
+#        mNrmGrid_pts = np.append(mNrmGrid_pts,mNrmGrid_pts[-1]+1.)       
+#        cNrmGrid_pts = np.append(cNrmGrid_pts,cNrmGrid_pts[-1]+MPCmin)        
+        
+        
+        
+#         mNrmGrid = np.insert(mNrmGrid,0,mNrmMin)
+#         cNrmGrid = np.insert(cNrmGrid,0,0.)
+        
 
-        # Lower bound of mNrm is lowest gridpoint -- usually 0
-        bild.mNrmMin = mNrmGrid[0]
+#         if BoroCnstArt+Ex_IncNrmNxt > mNrmGrid[0]:
+#             mNrmGrid
+        
+#         mNrmGrid = np.append(mNrmGrid,mNrmGrid[-1]+1.0)
+#         cNrmGrid = np.append(cNrmGrid,cNrmGrid[-1]+MPCmin)
+        
+            
 
-        # Add the calculated grids to self.bild
-        bild.aNrmGrid = aNrmGrid
-        bild.EvP_tp1 = EvP_tp1
-        bild.cNrmGrid = cNrmGrid
-        bild.mNrmGrid = mNrmGrid
+
+#         # Add the point corresponding to 
+#         mNrmGrid = np.unique(np.insert(mNrmGrid,0,Ex_IncNrmNxt-BoroCnstArt))
+#         cNrmGrid = np.unique(np.insert(cNrmGrid,0,Ex_IncNrmNxt-BoroCnstArt))
+        
+        
+
+# #        vNvrs_tp1 = (DiscLiv * LivPrb) * folw.vFunc_tp1(mNrmGrid_tp1)
+# #        PF_t_vNvrs_tp1_Grid = folw.uinv_tp1(DiscLiv) * \
+# #            folw.vFuncNvrs_tp1.y_list
+#         # Beginning-of-period-tp1 marginal value vec is vP_tp1
+# #        vP_tp1 = folw.uP_tp1(cNrmGrid_tp1)
+#         # Corresponding end-of-period-t marginal value is _vP_t
+# #        _vP_t = ((DiscLiv * Rfree) * (PermGroFac**(-CRRA_tp1)))*vP_tp1
+# #        _vP_t = 
+#         # Endogenous gridpoints method
+#  #       cNrmGrid = bild.uPinv(_vP_t)    # EGM step 1: u' inverse yields c 
+#         mNrmGrid = aNrmGrid + cNrmGrid  # EGM step 2: DBC inverted
+
+#         cNrmGrid = np.unique(np.insert(cNrmGrid,0,Ex_IncNrmNxt-BoroCnstArt))
+
+#         # Add additional point to the list of gridpoints for extrapolation,
+#         # using this period's new value of the lower bound of the MPC, which
+#         # defines the PF unconstrained problem through the end of the horizon
+# #        mNrmGrid_interp_pts = np.append(mNrmGrid, mNrmGrid[-1] + 1.0)
+# #        cNrmGrid_interp_pts = np.append(cNrmGrid, cNrmGrid[-1] + MPCmin)
+#         # If artificial borrowing constraint binds, combine constrained and
+#         # unconstrained consumption functions.
+        
+#         # The problem is well-defined down to BoroCnstArt even if in
+#         # principle from t you could not get to any m_tp1 < Ex_IncNrmNxt
+#         # because nothing prevents you from starting tp1 with m \geq BoroCnstArt
+#  #       if BoroCnstArt < mNrmGrid[0] - Ex_IncNrmNxt:
+#  #           mNrmGrid_interp_pts = np.append([BoroCnstArt], mNrmGrid_interp_pts)
+#  #           cNrmGrid_interp_pts = np.append([BoroCnstArt], cNrmGrid_interp_pts)
+# #        else: # BoroCnstArt is irrelevant if BoroCnstNat is tighter
+#             # cNrmGridCnst defines points where cnst would bind for each m gpt
+# #        cNrmGridCnst = mNrmGrid_interp_pts - BoroCnstArt
+#         mXtraGrid = mNrmGrid - BoroCnstArt # m in excess of minimum m
+# #        idx_binding =   # c > possible
+#         # highest m where cnst binds
+#         idx_binding_last = np.where(mNrmXtraGrid <= cNrmGrid)[0][-1]  
+#         if idx_binding_last < (mNrmGrid.size - 1):
+#             print('hi')
+#             # # If not the *very last* index, find the the critical level
+#             # # of mNrmGrid where artificial cnst begins to bind.
+#             # d0 = cNrmGrid[idx] - cNrmGridCnst[idx]
+#             # d1 = cNrmGridCnst[idx + 1] - cNrmGrid[idx + 1]
+#             # m0 = mNrmGrid[idx]
+#             # m1 = mNrmGrid[idx + 1]
+#             # alpha = d0 / (d0 + d1)
+#             # mCrit = m0 + alpha * (m1 - m0)
+#             # # Adjust grids of mNrmGrid and cNrmGrid to account for constraint.
+#             # cCrit = mCrit - BoroCnstArt
+#             # mNrmGrid = np.concatenate(([BoroCnstArt, mCrit], mNrmGrid[(idx + 1):]))
+#             # cNrmGrid = np.concatenate(([0.0, cCrit], cNrmGrid[(idx + 1):]))
+#             # aNrmGrid = mNrmGrid-cNrmGrid
+#         else:
+#             # If it *is* the last index, then there are only three points
+#             # that characterize the c function: the artificial borrowing
+#             # constraint, the constraint kink, and the extrapolation point
+#             mAbve= 1.0 # (cNrmGrid[-1] - cNrmGridCnst[-1]) / (1.0 - MPCmin)
+#             mNrm_max_bindpoint = mNrmGrid[idx_binding_last]
+#             cNrm_max_bindpoint = cNrmGrid[idx_binding_last]
+# #                mCrit = mNrmGrid[-1] + mXtra
+# #                cCrit = mCrit - BoroCnstArt
+#             mNrmGrid_Xtra = np.array(
+#                 [BoroCnstArt, mNrm_max_bindpoint, mNrm_max_bindpoint + 1])
+#             cNrmGrid_Xtra = np.array(
+#                 [0.0, cNrm_max_bindpoint, cNrm_max_bindpoint + MPCmin])
+#             aNrmGrid_Xtra = mNrmGrid_Xtra- cNrmGrid_Xtra
+#             # If mNrmGrid, cNrmGrid grids have become too large, throw out last
+#             # kink point, being sure to adjust the extrapolation.
+
+#         if mNrmGrid.size > MaxKinks:
+#             mNrmGrid = np.concatenate((mNrmGrid[:-2], [cNrmGrid[-3] + 1.0]))
+#             cNrmGrid = np.concatenate((cNrmGrid[:-2], [cNrmGrid[-3] + MPCmin]))
+#             aNrmGrid = mNrmGrid - cNrmGrid
+
+        # Consumption function is a linear interpolation between kink pts
+#        self.cFunc = self.soln_crnt.cFunc = bild.cFunc = \
+#            LinearInterp(mNrmGrid_pts, cNrmGrid_pts)
+
+
+#        PF_t_v_tp1_last = (DiscLiv*(PermGroFac ** (1-folw.CRRA_tp1)))*\
+#            np.float(folw.vFunc_tp1((Rfree/PermGroFac)*aNrmGrid[-1]+Ex_IncNrmNxt))
+#        PF_t_vNvrs_tp1_Grid_2 = \
+#            np.append(PF_t_vNvrs_tp1_Grid,PF_t_v_tp1_last)
+
+        #vNvrsGrid = bild.uinv(bild.u(cNrmGrid)+ folw.u_tp1(PF_t_vNvrs_tp1_Grid))
+
+        # # Calculate the upper bound of the MPC as the slope of bottom segment
+        # # In practice, this is always 1.  Code is here for clarity
+        # bild.MPCmax = ((cNrmGrid_Xtra[1] - cNrmGrid_Xtra[0])/ 
+        #                (mNrmGrid_Xtra[1] - mNrmGrid_Xtra[0]))
+
+        # # Lower bound of mNrm is lowest gridpoint -- usually 0
+        # bild.mNrmMin = mNrmGrid_Xtra[0]
+
+        # # Add the calculated grids to self.bild
+        # bild.aNrmGrid = aNrmGrid_Xtra
+        # bild._vP_t = _vP_t
+        # bild.cNrmGrid = cNrmGrid_Xtra
+        # bild.mNrmGrid = mNrmGrid_Xtra
+
+        # Add approximation to v and vP
+#        breakpoint()
+#        bild.vNvrs = self.soln_crnt.uinv(_vP_t)
 
 #    def build_infhor_facts_from_params_ConsPerfForesightSolver(self):
 
@@ -1428,12 +1566,6 @@ class ConsPerfForesightSolverEOP(MetricObject):
         # or soln_crnt
 
         folw = soln_crnt.folw = SuccessorInfo()
-        # for avoid_recursion in {'solution__tp1', 'scsr'}:
-        #     if hasattr(self.soln_crnt._tp1, avoid_recursion):
-        #         delattr(self.soln_crnt._tp1, avoid_recursion)
-
-        # Add '_tp1' to names of variables in self.soln_futr.bilt
-        # and put in soln_crnt.folw
 
         # Catch degenerate case of zero-variance income distributions
         if hasattr(bilt, "tranShkVals") and hasattr(bilt, "permShkVals"):
@@ -1472,17 +1604,15 @@ class ConsPerfForesightSolverEOP(MetricObject):
 ###############################################################################
 # ##############################################################################
 
+
 class ConsPerfForesightSolver(ConsPerfForesightSolverEOP):
-    def __new__(self, *args, **kwds):
-        breakpoint()
-        super().__new__(self, *args, **kwds)
-
-    def __init__(self):
-        pass
-
-        #    def __init__(self, *args, **kwds):
-        #        breakpoint()
-        #        super().__init__(self, *args, **kwds)
+    def __init__(
+            self, solution_next, DiscFac=1.0, LivPrb=1.0, CRRA=2.0, Rfree=1.0,
+            PermGroFac=1.0, BoroCnstArt=None, MaxKinks=None, **kwds
+    ):
+        super().__init__(solution_next, DiscFac=DiscFac, LivPrb=LivPrb, CRRA=CRRA,
+                         Rfree=Rfree, PermGroFac=PermGroFac,
+                         BoroCnstArt=BoroCnstArt, MaxKinks=MaxKinks, **kwds)
 
 
 class ConsIndShockSetupEOP(ConsPerfForesightSolver):
@@ -2240,6 +2370,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             # Now it is good to go as a starting point for backward induction:
             soln_crnt_bilt.stge_kind['iter_status'] = 'iterator'
 #            breakpoint()
+            self.soln_crnt.vFunc = self.soln_crnt.bilt.vFunc  # Need for distance
             self.soln_crnt.vPfunc = self.soln_crnt.bilt.vPfunc  # Need for distance
             self.soln_crnt.cFunc = self.soln_crnt.bilt.cFunc  # Need for distance
             self.soln_crnt.IncShkDstn = self.soln_crnt.bilt.IncShkDstn

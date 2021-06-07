@@ -86,17 +86,15 @@ def def_value_funcs(stge, CRRA):
     vFuncNvrs has value of zero at the lower bound of market resources
     """
 
-#    bilt = stge.bilt
     bilt = stge.bilt
-#    CRRA = bilt.parameters['CRRA']
 
     # See PerfForesightConsumerType.ipynb docs for derivations
-    vFuncNvrsSlope = bilt.MPCmin ** (-CRRA / (1.0 - CRRA))
-    vFuncNvrs = LinearInterp(
+    vFuncNvrsSlopeLim = bilt.MPCmin ** (-CRRA / (1.0 - CRRA))
+    bilt.vFuncNvrs = LinearInterp(
         np.array([bilt.mNrmMin, bilt.mNrmMin + 1.0]),
-        np.array([0.0, vFuncNvrsSlope]),
+        np.array([0.0, vFuncNvrsSlopeLim]),
     )
-    stge.vFunc = bilt.vFunc = ValueFuncCRRA(vFuncNvrs, CRRA)
+    stge.vFunc = bilt.vFunc = ValueFuncCRRA(bilt.vFuncNvrs, CRRA)
     stge.vPfunc = bilt.vPfunc = MargValueFuncCRRA(bilt.cFunc, CRRA)
     stge.vPPfunc = bilt.vPPfunc = MargMargValueFuncCRRA(bilt.cFunc, CRRA)
     return stge

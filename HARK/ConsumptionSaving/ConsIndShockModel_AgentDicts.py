@@ -10,10 +10,10 @@ from HARK.Calibration.Income.IncomeTools \
 Define parameters for various Consumer AgentTypes
 """
 
+init_perfect_foresight_plus = {}
 # The info below is optional at present but may become mandatory as the toolkit evolves
 # 'Primitives' define the 'true' model that we think of ourselves as trying to solve
 # (the limit as approximation error reaches zero)
-init_perfect_foresight_plus = {}
 init_perfect_foresight_plus.update(
     {'prmtv_par': ['CRRA', 'Rfree', 'DiscFac', 'LivPrb', 'PermGroFac', 'BoroCnstArt', 'PermGroFacAgg', 'T_cycle', 'cycles']})
 # Approximation parameters define the precision of the approximation
@@ -93,7 +93,7 @@ init_perfect_foresight_plus['prmtv_par'].append('PermGroFacAgg')
 init_perfect_foresight_plus.update({'PermGroFacAgg_fcts': PermGroFacAgg_fcts})
 
 BoroCnstArt_fcts = {
-    'about': 'If not None, maximum proportion of permanent income borrowable'}
+    'about': 'If not None, maximum future income borrowable (normalized by current permanent income)'}
 BoroCnstArt_fcts.update({'latexexpr': r'\providecommand{\BoroCnstArt}{\underline{a}}\BoroCnstArt'})
 BoroCnstArt_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight_plus['prmtv_par'].append('BoroCnstArt')
