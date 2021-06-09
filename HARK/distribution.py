@@ -1,4 +1,5 @@
 from HARK.utilities import memoize
+from itertools import product
 import math
 import numpy as np
 from scipy.special import erf, erfc
@@ -298,7 +299,106 @@ class Normal(Distribution):
         return DiscreteDistribution(
             pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
         )
+    
+    def approx_equiprobable(self, N):
 
+        CDF = np.linspace(0,1,N+1)
+        lims = stats.norm.ppf(CDF)
+        scores = (lims - self.mu)/self.sigma
+        pdf = stats.norm.pdf(scores)
+        
+        # Find conditional means using Mills's ratio
+        pmf = np.diff(CDF)
+        X = self.mu - np.diff(pdf)/pmf
+
+        return DiscreteDistribution(
+            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+        )
+
+
+class MVNormal(Distribution):
+    """
+    A Multivariate Normal distribution.
+
+    Parameters
+    ----------
+    mu : numpy array
+        Mean vector.
+    Sigma : 2-d numpy array. Each dimension must have length equal to that of
+            mu.
+        Variance-covariance matrix.
+    seed : int
+        Seed for random number generator.
+    """
+
+    mu = None
+    Sigma = None
+
+    def __init__(self, mu = np.array([1,1]), Sigma = np.array([[1,0],[0,1]]), seed=0):
+        self.mu = mu
+        self.Sigma = Sigma
+        self.M = len(self.mu)
+        super().__init__(seed)
+
+    def draw(self, N):
+        """
+        Generate an array of multivariate normal draws.
+
+        Parameters
+        ----------
+        N : int
+            Number of multivariate draws.
+
+        Returns
+        -------
+        draws : np.array
+            Array of dimensions N x M containing the random draws, where M is
+            the dimension of the multivariate normal and N is the number of
+            draws. Each row represents a draw.
+        """
+        draws = self.RNG.multivariate_normal(self.mu, self.Sigma, N)
+        
+        return draws
+
+    def approx(self, N, equiprobable = False):
+        """
+        Returns a discrete approximation of this distribution.
+        
+        The discretization will have N**M points, where M is the dimension of
+        the multivariate normal.
+        
+        It uses the fact that:
+            - Being positive definite, Sigma can be factorized as Sigma = QVQ',
+              with V diagonal. So, letting A=Q*sqrt(V), Sigma = A*A'.
+            - If Z is an N-dimensional multivariate standard normal, then
+              A*Z ~ N(0,A*A' = Sigma).
+        
+        The idea therefore is to construct an equiprobable grid for a standard
+        normal and multiply it by matrix A.
+        """
+        
+        # Start by computing matrix A.
+        v, Q = np.linalg.eig(self.Sigma)
+        sqrtV = np.diag(np.sqrt(v))
+        A = np.matmul(Q,sqrtV) 
+
+        # Now find a discretization for a univariate standard normal.
+        if equiprobable:
+            z_approx = Normal().approx_equiprobable(N)
+        else:
+            z_approx = Normal().approx(N)
+
+        # Now create the multivariate grid and pmf
+        Z = np.array(list(product(*[z_approx.X]*self.M)))
+        pmf = np.prod(np.array(list(product(*[z_approx.pmf]*self.M))),axis = 1)
+        
+        # Apply mean and standard deviation to the Z grid
+        X = np.tile(np.reshape(self.mu, (1, self.M)), (N**self.M,1)) + np.matmul(Z, A.T)
+        
+        # Construct and return discrete distribution
+        return DiscreteDistribution(
+            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+        )
 
 class Weibull(Distribution):
     """
