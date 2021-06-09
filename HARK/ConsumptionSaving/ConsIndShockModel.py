@@ -1709,7 +1709,7 @@ class PerfForesightConsumerType(AgentType):
             seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
         self.t_age[which_agents] = 0  # How many periods since each agent was born
-        if self.PerfMITShk == False: #If True, Newborns follow solution path of agent they replaced by inheriting their t_cycle (t_cycles are not reset)
+        if self.PerfMITShk == False:  # If True, Newborns inherit t_cycle of agent they replaced (i.e. t_cycles are not reset). 
             self.t_cycle[
                 which_agents
             ] = 0  # Which period of the cycle each agent is currently in
