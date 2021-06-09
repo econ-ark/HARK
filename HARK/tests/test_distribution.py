@@ -9,6 +9,7 @@ from HARK.distribution import (
     Lognormal,
     MeanOneLogNormal,
     Normal,
+    MVNormal,
     Uniform,
     Weibull,
     calc_expectation,
@@ -24,18 +25,13 @@ class DiscreteDistributionTests(unittest.TestCase):
 
     def test_draw(self):
         self.assertEqual(
-            DiscreteDistribution(
-                np.ones(1),
-                np.zeros(1)).draw(1)[
-                0
-            ],
-            0,
+            DiscreteDistribution(np.ones(1), np.zeros(1)).draw(1)[0], 0,
         )
 
     def test_calc_expectation(self):
         dd_0_1_20 = Normal().approx(20)
-        dd_1_1_40 = Normal(mu = 1).approx(40)
-        dd_10_10_100 = Normal(mu = 10, sigma = 10).approx(100)
+        dd_1_1_40 = Normal(mu=1).approx(40)
+        dd_10_10_100 = Normal(mu=10, sigma=10).approx(100)
 
         ce1 = calc_expectation(dd_0_1_20)
         ce2 = calc_expectation(dd_1_1_40)
@@ -89,14 +85,12 @@ class DiscreteDistributionTests(unittest.TestCase):
         ce9 = calc_expectation(
             IncShkDstn,
             lambda X, a, r: r / X[0] * a + X[1],
-            np.array([0,1,2,3,4,5]), # an aNrmNow grid?
-            1.05 # an interest rate?
+            np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
+            1.05,  # an interest rate?
         )
 
-        self.assertAlmostEqual(
-            ce9[3],
-            9.518015322143837
-        )
+        self.assertAlmostEqual(ce9[3], 9.518015322143837)
+
 
 class DistributionClassTests(unittest.TestCase):
     """
@@ -128,17 +122,27 @@ class DistributionClassTests(unittest.TestCase):
 
         self.assertEqual(dist.draw(1)[0], 1.764052345967664)
 
+    def test_MVNormal(self):
+        dist = MVNormal()
+
+        self.assertTrue(
+            np.allclose(dist.draw(1)[0], np.array([2.76405235, 1.40015721]))
+        )
+
+        dist.draw(100)
+        dist.reset()
+
+        self.assertTrue(
+            np.allclose(dist.draw(1)[0], np.array([2.76405235, 1.40015721]))
+        )
+
     def test_Weibull(self):
-        self.assertEqual(
-            Weibull().draw(1)[0],
-            0.79587450816311)
+        self.assertEqual(Weibull().draw(1)[0], 0.79587450816311)
 
     def test_Uniform(self):
         uni = Uniform()
 
-        self.assertEqual(
-            Uniform().draw(1)[0],
-            0.5488135039273248)
+        self.assertEqual(Uniform().draw(1)[0], 0.5488135039273248)
 
         self.assertEqual(
             calc_expectation(uni.approx(10)),
@@ -146,9 +150,7 @@ class DistributionClassTests(unittest.TestCase):
         )
 
     def test_Bernoulli(self):
-        self.assertEqual(
-            Bernoulli().draw(1)[0], False
-        )
+        self.assertEqual(Bernoulli().draw(1)[0], False)
 
 
 class MarkovProcessTests(unittest.TestCase):
@@ -158,9 +160,7 @@ class MarkovProcessTests(unittest.TestCase):
 
     def test_draw(self):
 
-        mrkv_array = np.array(
-            [[.75, .25],[0.1, 0.9]]
-        )
+        mrkv_array = np.array([[0.75, 0.25], [0.1, 0.9]])
 
         mp = distribution.MarkovProcess(mrkv_array)
 
