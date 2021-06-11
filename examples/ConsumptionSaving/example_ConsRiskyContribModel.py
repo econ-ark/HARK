@@ -2,7 +2,7 @@
 '''
 Example implementations of HARK.ConsumptionSaving.ConsPortfolioModel
 '''
-from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyContribConsumerType, init_riskyContrib
+from HARK.ConsumptionSaving.ConsRiskyContribModel import RiskyContribConsumerType, init_risky_contrib
 from time import time
 import numpy as np
 
@@ -166,7 +166,7 @@ def plotSlices4D(functions,bot_x,top_x,y_slices,w_slices,N=300,
 # Solve an infinite horizon version
 
 # Get initial parameters
-par_infinite = init_riskyContrib.copy()
+par_infinite = init_risky_contrib.copy()
 # And make the problem infinite horizon
 par_infinite['cycles']   = 0
 # and sticky
@@ -178,7 +178,7 @@ par_infinite['DiscreteShareBool'] = False
 par_infinite['vFuncBool'] = False
 
 # Create agent and solve it.
-InfAgent = RiskyContribConsumerType(**par_infinite)
+InfAgent = RiskyContribConsumerType(tolerance = 1e-3, **par_infinite)
 print('Now solving infinite horizon version')
 t0 = time()
 InfAgent.solve(verbose = True)
@@ -191,12 +191,12 @@ periods = [0]
 n_slices = [0,2,6]
 mMax = 20
 
-DFuncAdj     = [InfAgent.solution[t].stageSols['Reb'].DFuncAdj for t in periods]
-ShareFuncSha = [InfAgent.solution[t].stageSols['Sha'].ShareFuncAdj for t in periods]
-cFuncFxd     = [InfAgent.solution[t].stageSols['Cns'].cFunc for t in periods]
+dfracFunc_Adj     = [InfAgent.solution[t].stage_sols['Reb'].dfracFunc_Adj for t in periods]
+ShareFuncSha = [InfAgent.solution[t].stage_sols['Sha'].ShareFunc_Adj for t in periods]
+cFuncFxd     = [InfAgent.solution[t].stage_sols['Cns'].cFunc for t in periods]
 
 # Rebalancing
-plotSlices3D(DFuncAdj,0,mMax,y_slices = n_slices,y_name = 'n',
+plotSlices3D(dfracFunc_Adj,0,mMax,y_slices = n_slices,y_name = 'n',
              titles = ['t = ' + str(t) for t in periods],
              ax_labs = ['m','d'])
 # Share
@@ -213,7 +213,7 @@ plotSlices4D(cFuncFxd,0,mMax,y_slices = n_slices,w_slices = shares,
 
 # %%
 # Solve a short, finite horizon version
-par_finite = init_riskyContrib.copy()
+par_finite = init_risky_contrib.copy()
 
 # Four period model
 par_finite['PermGroFac'] = [2.0, 1.0, 0.1, 1.0]
@@ -245,12 +245,12 @@ print('Solving took ' + str(t1-t0) + ' seconds.')
 # Plot Policy functions
 periods = [0,2,3]
 
-DFuncAdj     = [ContribAgent.solution[t].stageSols['Reb'].DFuncAdj for t in periods]
-ShareFuncSha = [ContribAgent.solution[t].stageSols['Sha'].ShareFuncAdj for t in periods]
-cFuncFxd     = [ContribAgent.solution[t].stageSols['Cns'].cFunc for t in periods]
+dfracFunc_Adj     = [ContribAgent.solution[t].stage_sols['Reb'].dfracFunc_Adj for t in periods]
+ShareFuncSha = [ContribAgent.solution[t].stage_sols['Sha'].ShareFunc_Adj for t in periods]
+cFuncFxd     = [ContribAgent.solution[t].stage_sols['Cns'].cFunc for t in periods]
 
 # Rebalancing
-plotSlices3D(DFuncAdj,0,mMax,y_slices = n_slices,y_name = 'n',
+plotSlices3D(dfracFunc_Adj,0,mMax,y_slices = n_slices,y_name = 'n',
              titles = ['t = ' + str(t) for t in periods],
              ax_labs = ['m','d'])
 # Share
@@ -266,7 +266,7 @@ plotSlices4D(cFuncFxd,0,mMax,y_slices = n_slices,w_slices = shares,
 # %%  Simulate the finite horizon consumer
 ContribAgent.track_vars = ['pLvl','t_age','Adjust',
                            'mNrm','nNrm','mNrmTilde','nNrmTilde','aNrm',
-                           'cNrm', 'Share', 'DNrm']
+                           'cNrm', 'Share', 'dfrac']
 ContribAgent.T_sim = 4
 ContribAgent.AgentCount = 10
 ContribAgent.initialize_sim()
