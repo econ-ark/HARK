@@ -293,6 +293,149 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         self.update_parameters_for_this_agent_subclass()
 
 
+# class solution_stone_geary(ConsumerSolutionOneStateCRRA):
+#     def __init__(
+#             self, solution_startfrom=None, cycles=1, pseudo_terminal=False, 
+#             stone_geary = 0,
+#             equiv_life_periods = 1,
+#             CRRA = 2,
+#             **kwds):
+    
+# class solution_terminal_bequest_warmglow_homothetic_onestate(ConsumerSolutionOneStateCRRA):
+#     """
+#     Minimal requirements for a consumer with one state variable, m:
+#         * m combines assets from prior history with current income
+#         * it is referred to as `market resources` throughout the docs
+
+#     consumer_terminal_bequest_homothetic_onestate must be inherited by a subclass
+#     that fleshes out the rest of the characteristics of the agent, e.g. the
+#     PerfForesightConsumerType or MertonSamuelsonConsumerType or something.
+    
+#     The bequest utility function is assumed to be of the Stone-Geary form
+#     and to have a scale reflecting the number of periods worth of consumption
+#     that it is equivalent to in the limit.  (In the limit as wealth approaches
+#     infinity, if this parameter were equal to the number of periods of life 
+#     and the pure time preference factor were 1, the consumer would split their
+#     lifetime resources equally between the bequest and their lifetime 
+#     consumption).
+
+#     Parameters
+#     ----------
+#     cycles : int
+#         Number of times the sequence of periods/stages should be solved.
+
+#     solution_startfrom : ConsumerSolution, optional
+#         A prespecified solution for the endpoint of the consumer
+#     problem. If no value is supplied, the terminal solution defaults
+#     to the case in which the consumer spends all available resources,
+#     obtaining no residual utility from any unspent m.
+    
+#     stone_geary : float
+#         This parameter is added to the argument of the bequest utility function
+#     in order to make bequests a luxury good
+    
+#     equiv_life_periods : float
+#         Limiting number of periods worth of consumption that the bequest is 
+#     equivalent to
+#     """
+
+#     def __init__(
+#             self, solution_startfrom=None, cycles=1, pseudo_terminal=False, 
+#             stone_geary = 0,
+#             equiv_life_periods = 1,
+#             CRRA = 2,
+#             **kwds):
+
+#         AgentTypePlus.__init__(
+#             self, solution_terminal=solution_startfrom,  # whether handmade or default
+#             cycles=cycles, pseudo_terminal=False, 
+#             **kwds)
+
+#         if (stone_geary == None) and (equiv_life_periods == None):
+#             msg = 'Without stone_geary and equiv_life_periods parameters, '+\
+#                 'the model exhibits no bequest motive.'
+#             _log.info(msg)
+        
+#         ℶ = self.equiv_life_periods = equiv_life_periods
+#         η = self.stone_geary = stone_geary
+#         ρ = self.CRRA = CRRA
+        
+#         cFunc_terminal_bequest_ = LinearInterp(
+#             [[0.,0.],[1.,(η+1.)/(1+ℶ**(1-ρ))]]
+#             )
+        
+#         sab = solution_afterlife_bequest_ = ConsumerSolutionOneStateCRRA(
+#             mNrmMin=0.0,
+#             hNrm=-1.0,
+#             MPCmin=1.0,
+#             MPCmax=1.0,
+#             stge_kind={
+#                 'iter_status': 'afterlife',
+#                 'term_type': 'bequest'},
+#             completed_cycles=-1
+#         )
+#         # Google "adding a method to an existing object instance stackoverflow"
+#         # https://stackoverflow.com/questions/972/adding-a-method-to-an-existing-object-instance
+        
+#         # import types
+#         # def cFunc(self, m):
+#         #     return m
+        
+#         # sab.cFunc = types.MethodType( cFunc, sab )
+        
+#         # sab.cFunc=lambda m: m
+#         # sab.vFunc=lambda m,η,ρ: self.bilt.u(m)
+#         #     vPfunc=lambda m: self.bilt.uP(m),
+#         #     vPPfunc=lambda m: self.bilt.uPP(m),
+
+        
+
+#         solution_bequest_= ConsumerSolutionOneStateCRRA(
+#             u = lambda c,ρ: (1/(1-ρ))*(c**(1-ρ)),
+#             uP = lambda c,ρ: c**(-ρ),
+#             uPP = lambda c,ρ: (-ρ)*(c**(-ρ-1)),
+#             mNrmMin=0.0,
+#             hNrm=-1.0,
+#             MPCmin=1.0,
+#             MPCmax=1.0,
+#             stge_kind={
+#                 'iter_status': 'afterlife',
+#                 'term_type': 'bequest'},
+#             completed_cycles=-1
+#         )
+#                     cFunc=lambda m: 
+#             vFunc=lambda m,η,ρ: self.u(m),  
+#             vPfunc=lambda m: self.uP(m),
+#             vPPfunc=lambda m: self.uPP(m),
+
+        
+#         solution_bequest_.solution_next = solution_afterlife_bequest_
+#         # solution_terminal_ is defined for legacy/compatability reasons
+#         # Otherwise would be better to just explicitly use solution_bequest_
+#         self.solution_terminal_ = solution_terminal_ = solution_nobequest_
+#         # Deepcopy: We will be modifying features of solution_terminal,
+#         # so make a deepcopy so that if multiple agents get created, we
+#         # always use the unaltered "master" solution_terminal_
+#         self.solution_terminal = deepcopy(solution_terminal_)
+#         self.update_parameters_for_this_agent_subclass()
+    
+#     def cFunc(m):
+#         return m
+    
+#     def u(c, CRRA):
+#         return utility(c, CRRA)
+
+#     def uP(c, CRRA):
+#         return utilityP(c, CRRA)
+    
+#     def uPP(c):
+#         return utilityPP(c, CRRA)
+    
+#     def vFunc(m):
+#         breakpoint()
+        
+
+
 class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     """
     A perfect foresight consumer who has no uncertainty other than
@@ -437,6 +580,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         self.tolerance = tolerance_orig  # which leaves us ready to solve
         self.cycles = cycles_orig  # with the original convergence criteria
         self.solution[0].bilt.stge_kind['iter_status'] = 'iterator'
+        self.solution[0].bilt.vAdd = np.array([0.0]) # Amount to add to final v
         self.soln_crnt = self.solution[0]  # current soln is now the newly made one
 
     def agent_post_post_solve(self):  # Overwrites version from AgentTypePlus
@@ -506,12 +650,12 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
     def check_conditions(self, verbose):
 
-        if not hasattr(self, 'solution'):  # Need a solution to have been computed
-            _log.info('Solving final period because conditions are computed on solver')
+        if not hasattr(self, 'solution'):  # A solution must have been computed
+            _log.info('Make final soln because conditions are computed there')
             self.make_solution_for_final_period()
 
         soln_crnt = self.solution[0]
-        soln_crnt.check_conditions(soln_crnt, verbose)
+        soln_crnt.check_conditions(soln_crnt, verbose) # real version on soln
 
     # def dolo_defs(self):  # CDC 20210415: Beginnings of Dolo integration
     #     self.symbol_calibration = dict(  # not used yet, just created

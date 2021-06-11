@@ -79,8 +79,8 @@ def def_value_funcs(stge, CRRA):
 
     Notes
     -------
-    Uses the fact that for a perfect foresight CRRA utility problem,
-    if the MPC in period t is :math:`\kappa_{t}`, and relative risk
+    Uses the fact that for an unconstrained perfect foresight CRRA,
+    if the MPC in period t is :math:`\\kappa_{t}`, and relative risk
     aversion :math:`\\rho`, then the inverse value vFuncNvrs has a
     constant slope of :math:`\\kappa_{t}^{-\\rho/(1-\\rho)}` and
     vFuncNvrs has value of zero at the lower bound of market resources
