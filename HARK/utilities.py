@@ -132,10 +132,85 @@ def CRRAutility(c, gam):
     >>> utility(c=c, gam=gamma)
     -1.0
     """
+    
     if gam == 1:
         return np.log(c)
     else:
         return c ** (1.0 - gam) / (1.0 - gam)
+
+def uFunc_CRRA_stone_geary(c, CRRA, stone_geary):
+    """
+    Evaluates Stone-Geary version of a constant relative risk aversion (CRRA) 
+    utility of consumption c wiht given risk aversion parameter CRRA and 
+    Stone-Geary intercept parameter stone_geary
+
+    Parameters
+    ----------
+    c : float
+        Consumption value
+    CRRA : float
+        Relative risk aversion
+    stone_geary : float
+        Intercept in Stone-Geary utility 
+    Returns
+    -------
+    (unnamed) : float
+        Utility
+
+    Tests
+    -----
+    Test a value which should pass:
+    >>> c, CRRA, stone_geary = 1.0, 2.0, 0.0    
+    >>> utility(c=c, CRRA=CRRA, stone_geary=stone_geary )
+    -1.0
+    """
+    if CRRA == 1:
+        return np.log( stone_geary + c)
+    else:
+        return ( stone_geary + c ) ** (1.0 - CRRA) / (1.0 - CRRA)
+
+def uPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
+    """
+    Marginal utility of Stone-Geary version of a constant relative risk aversion (CRRA) 
+    utility of consumption c wiht given risk aversion parameter CRRA and 
+    Stone-Geary intercept parameter stone_geary
+
+    Parameters
+    ----------
+    c : float
+        Consumption value
+    CRRA : float
+        Relative risk aversion
+    stone_geary : float
+        Intercept in Stone-Geary utility 
+    Returns
+    -------
+    (unnamed) : float
+        marginal utility
+
+    """
+    return ( stone_geary + c ) ** (- CRRA)
+
+def uPPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
+    """
+    Marginal marginal utility of Stone-Geary version of a CRRA utilty function 
+    with risk aversion parameter CRRA and Stone-Geary intercept parameter stone_geary
+
+    Parameters
+    ----------
+    c : float
+        Consumption value
+    CRRA : float
+        Relative risk aversion
+    stone_geary : float
+        Intercept in Stone-Geary utility 
+    Returns
+    -------
+    (unnamed) : float
+        marginal utility
+
+    """
+    return (- CRRA)*( stone_geary + c ) ** (- CRRA - 1)
 
 
 def CRRAutilityP(c, gam):
@@ -155,6 +230,10 @@ def CRRAutilityP(c, gam):
     (unnamed) : float
         Marginal utility
     """
+
+    if gam == 1:
+        return 1/c
+    
     return c ** -gam
 
 
@@ -175,6 +254,7 @@ def CRRAutilityPP(c, gam):
     (unnamed) : float
         Marginal marginal utility
     """
+    
     return -gam * c ** (-gam - 1.0)
 
 
@@ -195,6 +275,7 @@ def CRRAutilityPPP(c, gam):
     (unnamed) : float
         Marginal marginal marginal utility
     """
+        
     return (gam + 1.0) * gam * c ** (-gam - 2.0)
 
 
@@ -215,6 +296,7 @@ def CRRAutilityPPPP(c, gam):
     (unnamed) : float
         Marginal marginal marginal marginal utility
     """
+    
     return -(gam + 2.0) * (gam + 1.0) * gam * c ** (-gam - 3.0)
 
 

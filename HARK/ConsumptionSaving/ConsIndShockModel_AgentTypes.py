@@ -22,6 +22,20 @@ from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
     import (init_perfect_foresight, init_idiosyncratic_shocks)
 
+from HARK.utilities import CRRAutility
+from HARK.utilities import CRRAutilityP
+from HARK.utilities import CRRAutilityPP
+
+from HARK.utilities import CRRAutility as utility
+from HARK.utilities import CRRAutilityP as utilityP
+from HARK.utilities import CRRAutilityPP as utilityPP
+from HARK.utilities import uFunc_CRRA_stone_geary as u_stone_geary
+from HARK.utilities import uPFunc_CRRA_stone_geary as uP_stone_geary
+from HARK.utilities import uPPFunc_CRRA_stone_geary as uPP_stone_geary
+from HARK.utilities import CRRAutility_invP as utility_invP
+from HARK.utilities import CRRAutility_inv as utility_inv
+from HARK.utilities import CRRAutilityP as utilityP_invP
+
 # from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve_EndOfPeriodValue \
 #    import (ConsIndShockSolverBasicEOP
 #            )
@@ -58,7 +72,8 @@ __all__ = [
     "consumer_terminal_nobequest_onestate",
     "PerfForesightConsumerType",
     "IndShockConsumerType",
-    "KinkedRconsumerType"
+    "KinkedRconsumerType",
+    "onestate_bequest_warmglow_homothetic"
 ]
 
 # TODO: CDC 20210129: After being vetted, the elements of "Plus" that add to
@@ -282,6 +297,7 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
                     'iter_status': 'terminal_pseudo',  # will be replaced with iterator
                     'term_type': 'nobequest'
                 })
+        
         solution_nobequest_.solution_next = solution_afterlife_nobequest_
         # solution_terminal_ is defined for legacy/compatability reasons
         # Otherwise would be better to just explicitly use solution_nobequest_
@@ -290,9 +306,7 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         # so make a deepcopy so that if multiple agents get created, we
         # always use the unaltered "master" solution_terminal_
         self.solution_terminal = deepcopy(solution_terminal_)
-        self.update_parameters_for_this_agent_subclass()
-
-
+        
 # class solution_stone_geary(ConsumerSolutionOneStateCRRA):
 #     def __init__(
 #             self, solution_startfrom=None, cycles=1, pseudo_terminal=False, 
@@ -301,138 +315,168 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
 #             CRRA = 2,
 #             **kwds):
     
-# class solution_terminal_bequest_warmglow_homothetic_onestate(ConsumerSolutionOneStateCRRA):
-#     """
-#     Minimal requirements for a consumer with one state variable, m:
-#         * m combines assets from prior history with current income
-#         * it is referred to as `market resources` throughout the docs
+class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
+    """
 
-#     consumer_terminal_bequest_homothetic_onestate must be inherited by a subclass
-#     that fleshes out the rest of the characteristics of the agent, e.g. the
-#     PerfForesightConsumerType or MertonSamuelsonConsumerType or something.
+    Must be inherited by a subclass
+    that fleshes out the rest of the characteristics of the agent, e.g. the
+    PerfForesightConsumerType or MertonSamuelsonConsumerType or something.
     
-#     The bequest utility function is assumed to be of the Stone-Geary form
-#     and to have a scale reflecting the number of periods worth of consumption
-#     that it is equivalent to in the limit.  (In the limit as wealth approaches
-#     infinity, if this parameter were equal to the number of periods of life 
-#     and the pure time preference factor were 1, the consumer would split their
-#     lifetime resources equally between the bequest and their lifetime 
-#     consumption).
+    The bequest utility function is assumed to be of the Stone-Geary form
+    and to have a scale reflecting the number of periods worth of consumption
+    that it is equivalent to in the limit.  (In the limit as wealth approaches
+    infinity, if this parameter were equal to the number of periods of life 
+    and the pure time preference factor were 1, the consumer would split their
+    lifetime resources equally between the bequest and their lifetime 
+    consumption).
 
-#     Parameters
-#     ----------
-#     cycles : int
-#         Number of times the sequence of periods/stages should be solved.
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods/stages should be solved.
 
-#     solution_startfrom : ConsumerSolution, optional
-#         A prespecified solution for the endpoint of the consumer
-#     problem. If no value is supplied, the terminal solution defaults
-#     to the case in which the consumer spends all available resources,
-#     obtaining no residual utility from any unspent m.
+    solution_startfrom : ConsumerSolution, optional
+        A prespecified solution for the endpoint of the consumer
+    problem. If no value is supplied, the terminal solution defaults
+    to the case in which the consumer spends all available resources,
+    obtaining no residual utility from any unspent m.
     
-#     stone_geary : float
-#         This parameter is added to the argument of the bequest utility function
-#     in order to make bequests a luxury good
+    stone_geary : float
+        This parameter is added to the argument of the bequest utility function
+    in order to make bequests a luxury good
     
-#     equiv_life_periods : float
-#         Limiting number of periods worth of consumption that the bequest is 
-#     equivalent to
-#     """
-
-#     def __init__(
-#             self, solution_startfrom=None, cycles=1, pseudo_terminal=False, 
-#             stone_geary = 0,
-#             equiv_life_periods = 1,
-#             CRRA = 2,
-#             **kwds):
-
-#         AgentTypePlus.__init__(
-#             self, solution_terminal=solution_startfrom,  # whether handmade or default
-#             cycles=cycles, pseudo_terminal=False, 
-#             **kwds)
-
-#         if (stone_geary == None) and (equiv_life_periods == None):
-#             msg = 'Without stone_geary and equiv_life_periods parameters, '+\
-#                 'the model exhibits no bequest motive.'
-#             _log.info(msg)
-        
-#         ℶ = self.equiv_life_periods = equiv_life_periods
-#         η = self.stone_geary = stone_geary
-#         ρ = self.CRRA = CRRA
-        
-#         cFunc_terminal_bequest_ = LinearInterp(
-#             [[0.,0.],[1.,(η+1.)/(1+ℶ**(1-ρ))]]
-#             )
-        
-#         sab = solution_afterlife_bequest_ = ConsumerSolutionOneStateCRRA(
-#             mNrmMin=0.0,
-#             hNrm=-1.0,
-#             MPCmin=1.0,
-#             MPCmax=1.0,
-#             stge_kind={
-#                 'iter_status': 'afterlife',
-#                 'term_type': 'bequest'},
-#             completed_cycles=-1
-#         )
-#         # Google "adding a method to an existing object instance stackoverflow"
-#         # https://stackoverflow.com/questions/972/adding-a-method-to-an-existing-object-instance
-        
-#         # import types
-#         # def cFunc(self, m):
-#         #     return m
-        
-#         # sab.cFunc = types.MethodType( cFunc, sab )
-        
-#         # sab.cFunc=lambda m: m
-#         # sab.vFunc=lambda m,η,ρ: self.bilt.u(m)
-#         #     vPfunc=lambda m: self.bilt.uP(m),
-#         #     vPPfunc=lambda m: self.bilt.uPP(m),
-
-        
-
-#         solution_bequest_= ConsumerSolutionOneStateCRRA(
-#             u = lambda c,ρ: (1/(1-ρ))*(c**(1-ρ)),
-#             uP = lambda c,ρ: c**(-ρ),
-#             uPP = lambda c,ρ: (-ρ)*(c**(-ρ-1)),
-#             mNrmMin=0.0,
-#             hNrm=-1.0,
-#             MPCmin=1.0,
-#             MPCmax=1.0,
-#             stge_kind={
-#                 'iter_status': 'afterlife',
-#                 'term_type': 'bequest'},
-#             completed_cycles=-1
-#         )
-#                     cFunc=lambda m: 
-#             vFunc=lambda m,η,ρ: self.u(m),  
-#             vPfunc=lambda m: self.uP(m),
-#             vPPfunc=lambda m: self.uPP(m),
-
-        
-#         solution_bequest_.solution_next = solution_afterlife_bequest_
-#         # solution_terminal_ is defined for legacy/compatability reasons
-#         # Otherwise would be better to just explicitly use solution_bequest_
-#         self.solution_terminal_ = solution_terminal_ = solution_nobequest_
-#         # Deepcopy: We will be modifying features of solution_terminal,
-#         # so make a deepcopy so that if multiple agents get created, we
-#         # always use the unaltered "master" solution_terminal_
-#         self.solution_terminal = deepcopy(solution_terminal_)
-#         self.update_parameters_for_this_agent_subclass()
+    equiv_life_periods : float
+        Limiting number of periods worth of consumption that the bequest is 
+    equivalent to
+    """
     
-#     def cFunc(m):
-#         return m
-    
-#     def u(c, CRRA):
-#         return utility(c, CRRA)
+    def __init__(
+            self, solution_startfrom=None, cycles=1, pseudo_terminal=False, 
+            stone_geary = 1.0,
+            equiv_life_periods = 1.0,
+            CRRA = 2,
+            **kwds):
 
-#     def uP(c, CRRA):
-#         return utilityP(c, CRRA)
+        ConsumerSolutionOneStateCRRA.__init__(self,
+            cycles=cycles, # allow finite or infinite horizon
+            pseudo_terminal=False, CRRA=CRRA,
+            **kwds)
+        
+        bilt = self.bilt # alias
+        
+        if (equiv_life_periods == 0.0):
+            msg = 'With zero equiv_life_periods '+\
+                'parameters, the model exhibits no bequest motive.'
+                
+            nobequest_agent = consumer_terminal_nobequest_onestate()
+            self.solution_terminal = nobequest_agent.solution_terminal
+            
+            # Only reason to use the tool here instead of the default one 
+            # is to get the infrastructure for solving the PF liquidity 
+            # constrained problem.  That is below.
+            
+            # Add infrastructure for piecewise linear PF solution
+            breakpoint()
+            bilt.mNrm_cusp = 0.0 # then 'cusp' => cannot die in debt  
+            bilt.vNrm_cusp = -float('inf') # yields neg inf value
+            bilt.vInv_cusp = 0.0
+            bilt.mNrm_kinks = [bilt.mNrm_cusp]
+            bilt.vNrm_kinks = [bilt.vNrm_cusp]
+            bilt.MPC_kinks = [1.0]
+            _log.info(msg)
+            return
+
+        if (stone_geary == 0.0):
+            msg = 'With stone_geary parameter of zero, the bequest motive '+\
+                'is equivlent to equiv_life_periods worth of consumption.'
+            _log.info(msg)
+        
+        # The entire bequest enters the utility function 
+        bequest_entering_utility = LinearInterp( 
+            [0.,1.],[0.,1.]        
+            )
+        
+        sab = solution_afterlife_bequest_ = ConsumerSolutionOneStateCRRA(
+            cFunc = bequest_entering_utility,
+            u=u_stone_geary,uP=uP_stone_geary,uPP=uPP_stone_geary,
+            vFunc=u_stone_geary,vPfunc=uP_stone_geary,vPPfunc=uPP_stone_geary,
+            mNrmMin=0.0,
+            MPCmin=1.0,
+            MPCmax=1.0,
+            stge_kind={
+                'iter_status': 'afterlife',
+                'term_type': 'bequest_warmglow_homothetic'},
+            completed_cycles=-1 
+        )
+        ρ = sab.bilt.CRRA = CRRA
+        η = sab.bilt.stone_geary = stone_geary
+        ℶ = sab.bilt.equiv_life_periods = equiv_life_periods # Hebrew bet 
+
+        if (equiv_life_periods == 0.0):
+            bilt.vNrm_cusp = -float('inf') # then 'cusp' => cannot die in debt
+        else:
+            bequest_size = 0.0
+            bilt.vNrm_cusp = CRRAutility(bilt.mNrm_cusp, CRRA)+\
+                ℶ * u_stone_geary(bequest_size,CRRA,stone_geary)
+
+        bilt.mNrm_kinks = [bilt.mNrm_cusp] # zero if no bequest motive
+        bilt.vInv_uncons = [self.bilt.uinv(bilt.vNrm_cusp)]
+        bilt.vInv_constr = [self.bilt.uinv(bilt.u(0.))]
+        # See PerfForesightConsumerType for MPC derivation
+        if ℶ == 0.0:
+            bilt.MPC_constr = [1/(1+0.0)]
+        else:
+            bilt.MPC_constr = [1/(1+(ℶ**(-1/ρ)))] 
+            
+        # solution_bequest_= ConsumerSolutionOneStateCRRA(
+        #     cFunc = self.cFunc,
+        #     mNrmMin=0.0,
+        #     hNrm=-1.0,
+        #     MPCmin=bilt.MPC_constr,
+        #     MPCmax=1.0,
+        #     stge_kind={
+        #         'iter_status': 'terminal_pseudo',
+        #         'term_type': 'bequest_warmglow'},
+        #     completed_cycles=-1
+        # )
+
+#        solution_bequest_.solution_next = solution_afterlife_bequest_
+#        self.solution_terminal_ = solution_bequest_
+#        self.solution_terminal = deepcopy(self.solution_terminal_)
+        tmp = sab.cFunc(2)
+#        tmp2 = self.cFunc(2)
+
+    def cFunc(self, m):
+        breakpoint()
+        MPC_constr = self.bilt.MPC_constr
+        mNrm_kinks = self.bilt.mNrm_kinks
+        constr_0 = np.heaviside(m-mNrm_kinks[0], 0.) # 0 if constrained, else 1
+        c_constr = (1-constr_0)*m # m if m < kink
+        c_uncons = constr_0*(c_constr+MPC_constr[0]*(m-mNrm_kinks[0]))
+        return c_constr+c_uncons 
     
-#     def uPP(c):
-#         return utilityPP(c, CRRA)
+#     def u(self, c, CRRA, stone_geary):
+#         return u_stone_geary(c, CRRA, stone_geary)
+
+# #    def uP(self, c, CRRA, stone_geary):
+# #        return uP_stone_geary(c, CRRA, stone_geary)
     
-#     def vFunc(m):
-#         breakpoint()
+#     def uP(self, c):
+#         CRRA = self.bilt.CRRA
+#         stone_geary = self.bilt.stone_geary
+#         return uP_stone_geary(c, CRRA, stone_geary)
+    
+#     def uPP(self, c, CRRA, stone_geary):
+#         return uPP_stone_geary(c, CRRA, stone_geary)
+    
+#     def vFunc(self, m):
+#         return self.u(m, self.CRRA, self.stone_geary)
+
+#     def vPfunc(self, m):
+#         return self.u(m, self.CRRA, self.stone_geary)
+        
+#     def vPPfunc(self, m):
+#         return self.u(m, self.CRRA, self.stone_geary)
         
 
 

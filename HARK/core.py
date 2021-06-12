@@ -395,6 +395,7 @@ class AgentType(Model):
         self.read_shocks = False  # NOQA
         self.shock_history = {}
         self.history = {}
+#        breakpoint()
         self.assign_parameters(**kwds)  # NOQA
         self.reset_rng()  # NOQA
         self.prmtv_par = dict()  # 'primitives' define true model

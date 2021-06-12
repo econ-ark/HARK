@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 from HARK.core import (_log, core_check_condition)
+from HARK.utilities import CRRAutility
+from HARK.utilities import CRRAutilityP
+from HARK.utilities import CRRAutilityPP
 from HARK.utilities import CRRAutility as utility
 from HARK.utilities import CRRAutilityP as utilityP
 from HARK.utilities import CRRAutilityPP as utilityPP
@@ -280,12 +283,25 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
     parameters_solver : dict
         Stores the parameters with which the solver was called
     """
-
+    time_vary_ = ["LivPrb",  # Age-varying death rates can match mortality data
+                  "PermGroFac"]  # Age-varying income growth can match lifecycle
+    time_inv_ = ["CRRA", "Rfree", "DiscFac", "BoroCnstArt"]
+    state_vars = ['pLvl',  # Initial idiosyncratic permanent income
+                  'PlvlAgg',  # Aggregate permanent income
+                  'bNrm',  # Bank balances beginning of period (pLvl normed)
+                  'mNrm',  # Market resources (b + income) (pLvl normed)
+                  "aNrm"]  # Assets after all actions (pLvl normed)
+    shock_vars_ = []
+    
     def __init__(self, *args,
                  stge_kind={'iter_status': 'not initialized'},
                  completed_cycles=0,
                  parameters_solver=None,
                  vAdd=None,
+                 CRRA=2.0,
+                 u=CRRAutility,
+                 uP=CRRAutilityP,
+                 uPP=CRRAutilityPP,
                  **kwds):
 
         ConsumerSolutionOld.__init__(self, *args, **kwds)
@@ -304,6 +320,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 #        global Rfree, PermGroFac, MPCmin, MaxKinks, BoroCnstArt, DiscFac, \
 #                Ex_IncNrmNxt, LivPrb, DiscLiv
 
+        # Put into bilt a lot of stuff that was on the whiteboard root level
         bilt = self.bilt = Built()
 
         bilt.vAdd = self.vAdd = vAdd
@@ -313,19 +330,20 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         bilt.vFunc = self.vFunc
         bilt.vPfunc = self.vPfunc
         bilt.vPPfunc = self.vPPfunc
+        bilt.u = u
+        bilt.uP = uP
+        bilt.uPP = uPP
         bilt.mNrmMin = self.mNrmMin
         bilt.hNrm = self.hNrm
         bilt.MPCmin = self.MPCmin
         bilt.MPCmax = self.MPCmax
-        # bilt.u = self.u
-        # bilt.uP = self.uP
-        # bilt.uPP = self.uPP
         del self.mNrmMin
         del self.hNrm
         del self.MPCmin
         del self.MPCmax
         bilt.completed_cycles = completed_cycles
         bilt.parameters_solver = parameters_solver
+        
 
     def check_conditions(self, soln_crnt, verbose=None):
         """
@@ -638,9 +656,66 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 # ConsPerfForesightSolver also incorporates calcs and info useful for
 # models in which perfect foresight does not apply, because the contents
 # of the PF model are inherited by a variety of non-perfect-foresight models
+    def finish_setup_of_default_solution_terminal(self):
+        """
+        Add to `solution_terminal` characteristics of the agent required
+        for solution of the particular type which are not automatically
+        created as part of the definition of the generic `solution_terminal.`
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        Notes
+        -------
+        None
+        """
+        # If no solution exists for the agent,
+        # core.py uses solution_terminal as solution_next
+
+        solution_terminal_bilt = self.solution_terminal.bilt
+
+        # Natural borrowing constraint: Cannot die in debt
+        # Measured after income = tranShk*permShk/permShk received
+        if not hasattr(solution_terminal_bilt, 'hNrm'):
+            _log('warning: hNrm should be set in solution_terminal.')
+            _log('assuming solution_terminal.hNrm = 0.')
+            solution_terminal_bilt.hNrm = 0.
+        solution_terminal_bilt.BoroCnstNat = -solution_terminal_bilt.hNrm
+
+        # Define BoroCnstArt if not yet defined
+        if not hasattr(self.parameters, 'BoroCnstArt'):
+            solution_terminal_bilt.BoroCnstArt = None
+        else:
+            solution_terminal_bilt.BoroCnstArt = self.parameters.BoroCnstArt
+
+        solution_terminal_bilt.stge_kind = {'iter_status': 'terminal_pseudo'}
+
+        # Solution options
+        if hasattr(self, 'vFuncBool'):
+            solution_terminal_bilt.vFuncBool = self.parameters['vFuncBool']
+        else:  # default to true
+            solution_terminal_bilt.vFuncBool = True
+
+        if hasattr(self, 'CubicBool'):
+            solution_terminal_bilt.CubicBool = self.parameters['CubicBool']
+        else:  # default to false (linear)
+            solution_terminal_bilt.CubicBool = False
+
+        solution_terminal_bilt.parameters = self.parameters
+        CRRA = self.CRRA
+        solution_terminal_bilt = def_utility(solution_terminal_bilt, CRRA)
+        solution_terminal_bilt = def_value_funcs(solution_terminal_bilt, CRRA)
+
+        return solution_terminal_bilt
 
 
-class ConsPerfForesightSolverEOP(MetricObject):
+#class ConsPerfForesightSolverEOP(MetricObject):
+class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
     """
     Solves a one period perfect foresight
     CRRA utility consumption-saving problem.

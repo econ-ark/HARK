@@ -2,6 +2,7 @@
 
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
     import (
+        ConsumerSolutionOld,
         ConsumerSolution, ConsumerSolutionOneStateCRRA,
         ConsPerfForesightSolver, ConsIndShockSetup,
         ConsIndShockSolverBasic, ConsIndShockSolver,
@@ -9,7 +10,9 @@ from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
 
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentTypes \
     import (consumer_terminal_nobequest_onestate, PerfForesightConsumerType,
-            IndShockConsumerType, KinkedRconsumerType)
+            IndShockConsumerType, KinkedRconsumerType
+            ,onestate_bequest_warmglow_homothetic
+            )
 
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
     import (
@@ -51,15 +54,16 @@ See https://hark.readthedocs.io for mathematical descriptions of the models bein
 """
 
 __all__ = [
+    "ConsumerSolutionOld",
     "ConsumerSolution",
     "ConsumerSolutionOneStateCRRA",
     "ConsPerfForesightSolver",
     "ConsIndShockSetup",
     "ConsIndShockSolverBasic",
     "ConsIndShockSolver",
-    "ConsIndShockSetupEOP",
-    "ConsIndShockSolverBasicEOP",
-    "ConsIndShockSolverEOP",
+#    "ConsIndShockSetupEOP",
+#    "ConsIndShockSolverBasicEOP",
+#    "ConsIndShockSolverEOP",
     "ConsKinkedRsolver",
     "consumer_terminal_nobequest_onestate",
     "PerfForesightConsumerType",
@@ -76,5 +80,6 @@ __all__ = [
     "utilityP_inv",
     "utility_invP",
     "utility_inv",
-    "utilityP_invP"
+    "utilityP_invP",
+    "onestate_bequest_warmglow_homothetic"
 ]
