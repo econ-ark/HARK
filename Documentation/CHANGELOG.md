@@ -18,6 +18,7 @@ Release Data: TBD
 
 * Fix bug in DCEGM's primary kink finder due to numpy no longer accepting NaN in integer arrays [#990](https://github.com/econ-ark/HARK/pull/990).
 * Add a general class for consumers who can save using a risky asset [#1012](https://github.com/econ-ark/HARK/pull/1012/).
+* Add Boolean attribute 'PerfMITShk' to PerfForesightConsumerType. When the attribute is true, t_cycle is not reset during simulation [#1013](https://github.com/econ-ark/HARK/pull/1013).
 
 ### 0.11.0
 
