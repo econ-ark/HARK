@@ -26,7 +26,6 @@ from HARK.interpolation import (LinearInterp,
                                 MargMargValueFuncCRRA)
 import numpy as np
 from copy import copy, deepcopy
-from functools import partial
 
 
 def def_utility(stge, CRRA):
@@ -56,7 +55,7 @@ def def_utility(stge, CRRA):
 
     # Inverses thereof
     bilt.u.dc.inv = bilt.uPinv = lambda uP: CRRAutilityP_inv(uP, CRRA)
-    bilt.uPinvP = lambda uP: CRRAutilityP_invP(uP, CRRA)
+    bilt.u.dc.inv.du = bilt.uPinvP = lambda uP: CRRAutilityP_invP(uP, CRRA)
     bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
     bilt.uinv = lambda u: CRRAutility_inv(u, CRRA)
 
@@ -97,8 +96,8 @@ def def_value_funcs(stge, CRRA):
         np.array([0.0, vFuncNvrsSlopeLim]),
     )
     stge.vFunc = bilt.vFunc = ValueFuncCRRA(bilt.vFuncNvrs, CRRA)
-    stge.vPfunc = bilt.vPfunc = MargValueFuncCRRA(bilt.cFunc, CRRA)
-    stge.vPPfunc = bilt.vPPfunc = MargMargValueFuncCRRA(bilt.cFunc, CRRA)
+    stge.vFunc.dm = stge.vPfunc = bilt.vPfunc = MargValueFuncCRRA(bilt.cFunc, CRRA)
+    stge.vFunc.dm.dm = stge.vPPfunc = bilt.vPPfunc = MargMargValueFuncCRRA(bilt.cFunc, CRRA)
     return stge
 
 

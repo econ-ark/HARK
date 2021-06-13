@@ -1,15 +1,5 @@
 # -*- coding: utf-8 -*-
 from HARK.core import (_log, core_check_condition)
-from HARK.utilities import CRRAutility
-from HARK.utilities import CRRAutilityP
-from HARK.utilities import CRRAutilityPP
-from HARK.utilities import CRRAutility as utility
-from HARK.utilities import CRRAutilityP as utilityP
-from HARK.utilities import CRRAutilityPP as utilityPP
-from HARK.utilities import CRRAutilityP_inv as utilityP_inv
-from HARK.utilities import CRRAutility_invP as utility_invP
-from HARK.utilities import CRRAutility_inv as utility_inv
-from HARK.utilities import CRRAutilityP_invP as utilityP_invP
 
 from HARK.interpolation import (CubicInterp, LowerEnvelope, LinearInterp,
                                 ValueFuncCRRA, MargValueFuncCRRA,
@@ -153,7 +143,6 @@ class ConsumerSolutionOld(MetricObject):
             self.mNrmMin.append(new_solution.mNrmMin)
 
 
-
 class ConsumerSolution(ConsumerSolutionOld):
     __doc__ = ConsumerSolutionOld.__doc__
     __doc__ += """
@@ -171,32 +160,43 @@ class ConsumerSolution(ConsumerSolutionOld):
         Other uses include keeping track of the nature of the next stage
     parameters_solver : dict
         Stores the parameters with which the solver was called
+    completed_cycles : integer
+        The number of cycles of the model that have been solved before this call
     """
 
-    # CDC 20210426: vPfunc is a bad choice; we should change it,
-    # but doing so will require recalibrating some of our tests
-    distance_criteria = ["vPfunc"]  # Bad: it goes to infinity; would be better to use:
-#    distance_criteria = ["mNrmStE"]  # mNrmStE if the GIC holds (and it's not close)
+    # CDC 20210426: vPfunc is a bad choice for distance; we should change
+    # to cFunc but doing so will require recalibrating some of our tests
+    distance_criteria = ["vPfunc"]  # Bad b/c vP(0)=inf; should use cFunc
+#    distance_criteria = ["mNrmTrg"]  # mNrmTrg is better choice if GICNrm holds
 #    distance_criteria = ["cFunc"]  # cFunc if the GIC fails
 
-    def __init__(
-            self, cFunc=NullFunc(), vFunc=NullFunc(), vPfunc=NullFunc(),
-            vPPfunc=NullFunc(), mNrmMin=float('nan'), hNrm=float('nan'),
-            MPCmin=float('nan'), MPCmax=float('nan'),
-            stge_kind={'iter_status': 'not initialized'}, parameters_solver=None,
-            completed_cycles=0, ** kwds,):
+    def __init__(self, *args,
+                 stge_kind={'iter_status': 'not initialized'},
+                 completed_cycles=0,
+                 parameters_solver=None,
+                 vAdd=None,
+                 **kwds):
 
+        ConsumerSolutionOld.__init__(self, *args, **kwds)
+
+        # Place to copy most of whiteboard content to
         bilt = self.bilt = Built()
-        bilt.cFunc = cFunc
-        bilt.vFunc = vFunc
-        bilt.vPfunc = vPfunc
-        bilt.vPPfunc = vPPfunc
-        bilt.mNrmMin = mNrmMin
-        bilt.hNrm = hNrm
-        bilt.MPCmin = MPCmin
-        bilt.MPCmax = MPCmax
-        bilt.stge_kind = stge_kind
-        bilt.completed_cycles = completed_cycles
+
+        bilt.recursive = \
+            {'cFunc', 'vFunc', 'vPfunc', 'vPPfunc',  # 'vFuncNvrs',
+             'u', 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
+             'hNrm', 'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA', 'vAdd'
+             }
+
+        for key in (k for k in bilt.recursive
+                    if k not in {''}):  # These do not exist yet
+            if hasattr(self, key):
+                setattr(bilt, key, self.__dict__[key])
+
+        self.bilt.stge_kind = stge_kind
+        self.bilt.completed_cycles = completed_cycles
+        self.bilt.parameters_solver = parameters_solver
+        self.bilt.vAdd = vAdd
 
     def append_solution(self, new_solution):
         """
@@ -233,8 +233,8 @@ class ConsumerSolution(ConsumerSolutionOld):
             self.vPPfunc.append(new_solution.vPPfunc)
             self.mNrmMin.append(new_solution.mNrmMin)
 
-# CDC 20210509: ConsumerSolutionPlus was added as a stage above
-# ConsumerSolution because ConsumerSolution should
+# CDC 20210509: ConsumerSolution was added as a stage above
+# ConsumerSolutionOld because ConsumerSolution should
 # generically handle any and ALL general consumption problems
 #  and PerfForesightCRRA should handle the subsubclass that is both PF and CRRA
 # Also as a place to instantiate the stge_kind attribute, which should
@@ -245,7 +245,7 @@ class ConsumerSolution(ConsumerSolutionOld):
 #     def __init__(self, *args, **kwargs):
 #         super().__init__(*args, **kwargs)  # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
 #         breakpoint()
-#class ConsumerSolutionOneStateCRRA(ConsumerSolutionOld):
+# class ConsumerSolutionOneStateCRRA(ConsumerSolutionOld):
 class ConsumerSolutionOneStateCRRA(ConsumerSolution):
     """
     This subclass of ConsumerSolution assumes that the problem has two
@@ -265,21 +265,6 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
     """
     __doc__ += ConsumerSolution.__doc__
     __doc__ += """
-    stge_kind : dict
-        Dictionary with info about this stage
-        One built-in entry keeps track of the nature of the stage:
-            {'iter_status':'finished'}: Stopping requirements are satisfied
-                If stopping requirements are satisfied, {'tolerance':tolerance}
-                should exist recording what convergence tolerance was satisfied
-            {'iter_status':'iterator'}: Solution during iteration
-                solution[0].distance_last records the last distance
-            {'iter_status':'terminal_pseudo'}: Bare-bones terminal period
-                Does not contain all the info needed to begin solution
-                Solver will augment and replace it with 'iterator' stage
-        Other uses include keeping track of the nature of the next stage
-    completed_cycles : A count of the number of iterations executed so far
-    parameters_solver : dict
-        Stores the parameters with which the solver was called
     """
     time_vary_ = ["LivPrb",  # Age-varying death rates can match mortality data
                   "PermGroFac"]  # Age-varying income growth can match lifecycle
@@ -290,19 +275,18 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
                   'mNrm',  # Market resources (b + income) (pLvl normed)
                   "aNrm"]  # Assets after all actions (pLvl normed)
     shock_vars_ = []
-    
+
     def __init__(self, *args,
-                 stge_kind={'iter_status': 'not initialized'},
-                 completed_cycles=0,
-                 parameters_solver=None,
+                 #                 stge_kind={'iter_status': 'not initialized'},
+                 #                 completed_cycles=0,
+                 #                 parameters_solver=None,
                  CRRA=2.0,
-                 u=CRRAutility,
-                 uP=CRRAutilityP,
-                 uPP=CRRAutilityPP,
-                 vAdd=None,
+                 # u=CRRAutility,
+                 # uP=CRRAutilityP,
+                 # uPP=CRRAutilityPP,
                  **kwds):
 
-        ConsumerSolutionOld.__init__(self, *args, **kwds)
+        ConsumerSolution.__init__(self, *args, **kwds)
         # We are now in position to define some elements of the
         # dolo representation of the model
         # dolo = self.dolo
@@ -319,26 +303,22 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 #                Ex_IncNrmNxt, LivPrb, DiscLiv
 
         # Put into bilt a lot of stuff that was on the whiteboard root level
-        bilt = self.bilt = Built()
-#        breakpoint()
-        
+#        bilt = self.bilt = Built()
+
         self = def_utility(self, CRRA)
 
-        bilt.vAdd = vAdd
+        # # Put a bunch of things on the bilt attribute
+        # bilt.vAdd = vAdd
 
-        bilt.parameters_solver = None
-        bilt.cFunc = self.cFunc
-        bilt.vFunc = self.vFunc
-        bilt.vFunc.dm = self.vPfunc
-        bilt.vFunc.ddm = self.vPPfunc
-        bilt.u = u
-        bilt.u.dc = uP
-        bilt.u.ddc = uPP
-        bilt.mNrmMin = self.mNrmMin
-        bilt.hNrm = self.hNrm
-        bilt.MPCmin = self.MPCmin
-        bilt.MPCmax = self.MPCmax
-        
+        # bilt.cFunc = self.cFunc
+        # bilt.vFunc = self.vFunc
+        # bilt.mNrmMin = self.mNrmMin
+        # bilt.hNrm = self.hNrm
+        # bilt.MPCmin = self.MPCmin
+        # bilt.MPCmax = self.MPCmax
+
+#        breakpoint()
+        # These things have been moved to bilt to declutter
         del self.mNrmMin
         del self.hNrm
         del self.MPCmin
@@ -346,10 +326,9 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         del self.vFunc
         del self.vPfunc
         del self.vPPfunc
-        
-        bilt.completed_cycles = completed_cycles
-        bilt.parameters_solver = parameters_solver
-        
+
+#        bilt.completed_cycles = completed_cycles
+#        bilt.parameters_solver = parameters_solver
 
     def check_conditions(self, soln_crnt, verbose=None):
         """
@@ -720,7 +699,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         return solution_terminal_bilt
 
 
-#class ConsPerfForesightSolverEOP(MetricObject):
+# class ConsPerfForesightSolverEOP(MetricObject):
 class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
     """
     Solves a one period perfect foresight
@@ -760,14 +739,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
     ):
 
         self.soln_futr = soln_futr = solution_next
-
-        # objects whose _tp1 value is neeeded to solve problem of t:
-        self.recursive = \
-            {'cFunc', 'vFunc', 'vPfunc', 'vPPfunc',  # 'vFuncNvrs',
-             'u', 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
-             'hNrm', 'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA'
-             ,'vAdd'
-             }
 
         self.soln_crnt = ConsumerSolutionOneStateCRRA()
 
@@ -911,7 +882,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         mNrm_kinks = aNrm_kinks + cNrm_kinks
 
         vInv_kinks = uinv(vNrm_kinks)
-        
+
         vAdd_kinks = mNrm_kinks-mNrm_kinks
 
         # _v_t(aNrm) is value as of the END of period t
@@ -928,15 +899,14 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
         # h is the 'horizon': h_t(m_t) is the number of periods it will take
         # before you hit the constraint, after which you remain constrained
-        
+
         # For any c_t where you are unconstrained today, value is the discounted
-        # sum of values you will receive during periods between now and t+h, 
+        # sum of values you will receive during periods between now and t+h,
         # and values you will receive afer h
 #        vAdd = # Sum of post-constrained value by gridpoint
 #            (DiscLiv * PermGroFac**(1-CRRA))*\
 #                (bild.u(folw.cFunc_tp1(mNrm_kinks_tp1) # u at next period cusp
 #                        +vAdd_tp1) # v from s
-
 
         # cusp is point where current period constraint stops binding
         cNrm_cusp = uPinv(_vP_t_at_BoroCnst)
@@ -966,8 +936,8 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #            vInv_kinks = np.insert(vInv_kinks, 0, vInv_cusp)
 #            vAdd_kinks = np.insert(vAdd_kinks, 0, vAdd_cusp)
 
-        vAddGrid = np.append(vAdd_cusp,vAdd_kinks)
-        vAddGrid = np.append(vAddGrid,0.)
+        vAddGrid = np.append(vAdd_cusp, vAdd_kinks)
+        vAddGrid = np.append(vAddGrid, 0.)
         # vFuncNvrsSlopeLim = MPCmin ** (-CRRA / (1.0 - CRRA))
         # vFuncNvrs_vals = \
         #     np.array([vFuncNvrsSlopeLim*(mNrm_kinks-BoroCnstNat),
@@ -976,55 +946,52 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         # vFuncNvrs = LinearInterp(vFuncNvrs_grid,vFuncNvrs_vals)
         # vFuncNvrsIntercept = mNrm_kinks[-1]
         # vFuncNvrs_kinks = vFunc_tp1.vFuncNvrs(mNrm_kinks)
-        
+
         # To guarantee meeting BoroCnst, if mNrm = BoroCnst then cNrm = 0.
         mNrmGrid_unconst = np.append(mNrm_kinks, mNrm_kinks+1)
         cNrmGrid_unconst = np.append(cNrm_kinks, cNrm_kinks+MPCmin)
         aNrmGrid_unconst = mNrmGrid_unconst-cNrmGrid_unconst
         mNrmGrid_tp1_unconst = aNrmGrid_unconst*(Rfree/PermGroFac)+_PF_IncNrm_tp1
         vNrmGrid_unconst = u(cNrmGrid_unconst)+(DiscLiv * PermGroFac**(1-CRRA_tp1) *
-             vFunc_tp1(mNrmGrid_tp1_unconst))
+                                                vFunc_tp1(mNrmGrid_tp1_unconst))
         vInvGrid_unconst = uinv(vNrmGrid_unconst)
         vInvPGrid_unconst = \
             (((1-CRRA)*vNrmGrid_unconst)**(-1+1/(1-CRRA)))*(cNrmGrid_unconst**(-CRRA))
         c_from_vInvPGrid_unconst = \
             ((vInvPGrid_unconst/(((1-CRRA)*vNrmGrid_unconst)**(-1+1/(1-CRRA)))))**(-1/CRRA)
 
-        mNrmGrid_const = np.array([BoroCnst,mNrm_cusp,mNrm_cusp+1])
-        uNrmGrid_const = np.array([float('inf'),u(mNrm_cusp),float('inf')])
+        mNrmGrid_const = np.array([BoroCnst, mNrm_cusp, mNrm_cusp+1])
+        uNrmGrid_const = np.array([float('inf'), u(mNrm_cusp), float('inf')])
         uInvGrid_const = uinv(uNrmGrid_const)
-        def vAddFunc(m,mNrmGrid,vAddGrid):
-            mNrmGridPlus = np.append(mNrmGrid,float('inf'))
-            vAddGridPlus = np.append(vAddGrid,vAddGrid[-1])
+
+        def vAddFunc(m, mNrmGrid, vAddGrid):
+            mNrmGridPlus = np.append(mNrmGrid, float('inf'))
+            vAddGridPlus = np.append(vAddGrid, vAddGrid[-1])
             from collections import Iterable
-            if isinstance(m,Iterable):
+            if isinstance(m, Iterable):
                 from itertools import repeat
-                return np.array(list(map(lambda m, mNrmGridPlus, vAddGridPlus: \
-                                         vAddGridPlus[np.where(m<mNrmGridPlus)[0][0]]
-                                ,m
-                                ,repeat(mNrmGridPlus)
-                                ,repeat(vAddGridPlus))))
+                return np.array(list(map(lambda m, mNrmGridPlus, vAddGridPlus:
+                                         vAddGridPlus[np.where(m < mNrmGridPlus)[0][0]], m, repeat(mNrmGridPlus), repeat(vAddGridPlus))))
             else:
-                return vAddGridPlus[np.where(m<mNrmGridPlus)[0][0]]
-                
+                return vAddGridPlus[np.where(m < mNrmGridPlus)[0][0]]
+
 #        mPts = np.linspace(mNrmGrid[0],mNrmGrid[-1],10)
-            
+
         vInvFunc_unconst = \
-            LinearInterp(mNrmGrid_unconst,vInvGrid_unconst)
-        
+            LinearInterp(mNrmGrid_unconst, vInvGrid_unconst)
+
 #        from HARK.utilities import plot_funcs
 #        plot_funcs(lambda x: np.heaviside(x-BoroCnst,0.5),1,2)
         uInvFunc_const = \
-            LinearInterp(mNrmGrid_const,uInvGrid_const)
+            LinearInterp(mNrmGrid_const, uInvGrid_const)
         vFunc_const = bild.u(uInvGrid_const)+_v_t_at_BoroCnst
         vFunc_unconst = bild.u(vInvGrid_unconst)
-        
-        def vAddFunc(m,mGrid,vAddGrid):
-            return vAddGrid[np.where(m<mGrid)[0][0]]
-        
+
+        def vAddFunc(m, mGrid, vAddGrid):
+            return vAddGrid[np.where(m < mGrid)[0][0]]
+
 #        vNrmGrid_const=[BoroCnst,u(mNrmGrid_unconst[0])]
-                    
-        
+
         mNrmGrid = np.append([BoroCnst], mNrmGrid_unconst)
         cNrmGrid = np.append(0., cNrmGrid_unconst)
         vInvGrid = np.append(0., vInvGrid_unconst)
@@ -1044,29 +1011,28 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #        vInvGrid = np.append(vInvGrid, vInvGrid[-1]+MPCmin**(-CRRA/(1.0-CRRA)))
 
         # To guarantee meeting BoroCnst, if mNrm = BoroCnst then cNrm = 0.
-        mNrmGrid = np.append([BoroCnst],mNrm_kinks)
-        cNrmGrid = np.append(0.,cNrm_kinks)
-        
+        mNrmGrid = np.append([BoroCnst], mNrm_kinks)
+        cNrmGrid = np.append(0., cNrm_kinks)
+
         # Above last kink point, use PF solution
-        mNrmGrid = np.append(mNrmGrid,mNrmGrid[-1]+1)
-        cNrmGrid = np.append(cNrmGrid,cNrmGrid[-1]+MPCmin)
-            
+        mNrmGrid = np.append(mNrmGrid, mNrmGrid[-1]+1)
+        cNrmGrid = np.append(cNrmGrid, cNrmGrid[-1]+MPCmin)
 
         self.cFunc = self.soln_crnt.cFunc = bild.cFunc = \
             LinearInterp(mNrmGrid, cNrmGrid)
-            
+
 #        vInvFunc_unconst = self.vFuncNvrs = \
 #            LinearInterp(mNrmGrid,vInvGrid)
-        
-            # self.vNvrsFunc.derivative(m)
-            # (vNvrsFunc.derivative(/(((1-CRRA)*vInvGrid_unconst)**(-1+1/(1-CRRA))))
-            
+
+        # self.vNvrsFunc.derivative(m)
+        # (vNvrsFunc.derivative(/(((1-CRRA)*vInvGrid_unconst)**(-1+1/(1-CRRA))))
+
 #        cc = self.cFunc_from_vFunc(2.0)
 #        cFromvP=uPinv(vP_Grid)
 #        cFuncFromvNvrsFunc = LinearInterp(mNrmGrid,cFromvP)
 #        from HARK.utilities import plot_funcs
 #        plot_funcs([self.cFunc,cFuncFromvNvrsFunc],0,2)
-            
+
 #        print('hi')
 #        PF_t_v_tp1_last = (DiscLiv*(PermGroFac ** (1-folw.CRRA_tp1)))*\
 #            np.float(folw.vFunc_tp1((Rfree/PermGroFac)*aNrmGrid[-1]+Ex_IncNrmNxt))
@@ -1848,11 +1814,13 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             print('Breaking because no MPCmin')
             breakpoint()
 
-        for key in (k for k in self.recursive
+#        breakpoint()
+        for key in (k for k in bilt.recursive
                     if k not in
                     {'solution_next', 'bilt', 'stge_kind', 'folw'}):
-            setattr(folw, key+'_tp1',
-                    soln_futr.bilt.__dict__[key])
+            if hasattr(soln_futr.bilt, key):
+                setattr(folw, key+'_tp1',
+                        soln_futr.bilt.__dict__[key])
 
         self.soln_crnt.bilt.stge_kind = \
             self.soln_crnt.stge_kind = {'iter_status': 'iterator',

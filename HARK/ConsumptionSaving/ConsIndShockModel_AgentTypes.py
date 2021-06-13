@@ -270,12 +270,19 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         # stge_kind['iter_status']="terminal_pseudo" (because in that case
         # the "terminal_pseudo" final solution is used to construct the
         # augmented "terminal" solution)
+        
+        # no value in afterlife:
+        def vFunc(m): return 0.
+        vFunc.dm = vPfunc = vFunc
+        vFunc.dm.dm = vPPfunc =  vFunc
+        
+        def cFunc(m): return float('inf') # With CRRA utility, c=inf gives v=0
 
         solution_afterlife_nobequest_ = ConsumerSolutionOneStateCRRA(
-            cFunc=lambda m: float('inf'),
-            vFunc=lambda m: 0.0,  # nobequest vFunc same for all utility funcs
-            vPfunc=lambda m: 0.0,
-            vPPfunc=lambda m: 0.0,
+            vFunc=vFunc,
+            vPfunc=vPfunc,
+            vPPfunc=vPPfunc,
+            cFunc=cFunc,
             mNrmMin=0.0,
             hNrm=-1.0,
             MPCmin=float('inf'),
@@ -1121,6 +1128,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def dolo_model(self):
         # Create a dolo version of the model
+        return
         from dolo import yaml_import
         self.dolo_modl = yaml_import(
             '/Volumes/Data/Code/ARK/DARKolo/chimeras/BufferStock/bufferstock.yaml'
