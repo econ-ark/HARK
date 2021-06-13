@@ -183,8 +183,9 @@ class ConsumerSolution(ConsumerSolutionOld):
         bilt = self.bilt = Built()
 
         bilt.recursive = \
-            {'cFunc', 'vFunc', 'vPfunc', 'vPPfunc',  # 'vFuncNvrs',
-             'u', 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
+            {'cFunc', 'vFunc',  # 'vPfunc', 'vPPfunc',  # 'vFuncNvrs',
+             #             'u', 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
+             'u',
              'hNrm', 'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA', 'vAdd'
              }
 
@@ -324,8 +325,9 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         del self.MPCmin
         del self.MPCmax
         del self.vFunc
-        del self.vPfunc
-        del self.vPPfunc
+        del self.cFunc
+#        del self.vPfunc
+#        del self.vPPfunc
 
 #        bilt.completed_cycles = completed_cycles
 #        bilt.parameters_solver = parameters_solver
