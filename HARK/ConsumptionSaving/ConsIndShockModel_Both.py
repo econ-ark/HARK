@@ -8,22 +8,25 @@ from HARK.utilities import make_grid_exp_mult
 # TODO: CDC 20210524: Below is clunky.  Presumably done with an eye toward
 # writing general code that would work for any utility function; but that is
 # not actually done in the actual code as written.
+from HARK.utilities import CRRAutility
+from HARK.utilities import CRRAutilityP
+from HARK.utilities import CRRAutilityPP
+from HARK.utilities import CRRAutilityP_inv
+from HARK.utilities import CRRAutility_invP
+from HARK.utilities import CRRAutilityP_invP
+from HARK.utilities import CRRAutility_inv
 from HARK.utilities import CRRAutility as utility
 from HARK.utilities import CRRAutilityP as utilityP
 from HARK.utilities import CRRAutilityPP as utilityPP
 from HARK.utilities import CRRAutilityP_inv as utilityP_inv
 from HARK.utilities import CRRAutility_invP as utility_invP
 from HARK.utilities import CRRAutility_inv as utility_inv
-from HARK.utilities import CRRAutilityP as utilityP_invP
 from HARK.interpolation import (LinearInterp,
                                 ValueFuncCRRA, MargValueFuncCRRA,
                                 MargMargValueFuncCRRA)
 import numpy as np
 from copy import copy, deepcopy
-
-# Both agent types and solvers need to define CRRA utility and value functions
-# So make the tools to do so available to both
-# TODO: This should go into core.py or utilities.py
+from functools import partial
 
 
 def def_utility(stge, CRRA):
@@ -40,23 +43,22 @@ def def_utility(stge, CRRA):
     -------
     none
     """
-
     bilt = stge.bilt
-
-#    CRRA = bilt.parameters['CRRA']
-
-    # utility
-    bilt.u = lambda c: utility(c, CRRA)
+    
+    # Can't use partial() here because it does not allow positional arguments
+    # Google: how-to-fill-specific-positional-arguments-with-partial-in-python
+    bilt.u = lambda c: CRRAutility(c, CRRA)
     # marginal utility
-    bilt.uP = lambda c: utilityP(c, CRRA)
+    # CDC 20210613: Proposed new syntax makes derivatives attributes of function
+    bilt.u.dc = bilt.uP = lambda c: CRRAutilityP(c, CRRA) # dc is der wrt c
     # marginal marginal utility
-    bilt.uPP = lambda c: utilityPP(c, CRRA)
+    bilt.u.dc.dc = bilt.uPP = lambda c: CRRAutilityPP(c, CRRA) # another der
 
     # Inverses thereof
-    bilt.uPinv = lambda uP: utilityP_inv(uP, CRRA)
-    bilt.uPinvP = lambda uP: utilityP_invP(uP, CRRA)
-    bilt.uinvP = lambda uinvP: utility_invP(uinvP, CRRA)
-    bilt.uinv = lambda uinv: utility_inv(uinv, CRRA)
+    bilt.u.dc.inv = bilt.uPinv = lambda uP: CRRAutilityP_inv(uP, CRRA)
+    bilt.uPinvP = lambda uP: CRRAutilityP_invP(uP, CRRA)
+    bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
+    bilt.uinv = lambda u: CRRAutility_inv(u, CRRA)
 
     return stge
 

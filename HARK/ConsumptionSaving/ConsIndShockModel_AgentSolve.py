@@ -152,10 +152,8 @@ class ConsumerSolutionOld(MetricObject):
             self.vPPfunc.append(new_solution.vPPfunc)
             self.mNrmMin.append(new_solution.mNrmMin)
 
-# class ConsumerSolution(ConsumerSolutionOld):
 
 
-# class ConsumerSolution(MetricObject):
 class ConsumerSolution(ConsumerSolutionOld):
     __doc__ = ConsumerSolutionOld.__doc__
     __doc__ += """
@@ -297,11 +295,11 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
                  stge_kind={'iter_status': 'not initialized'},
                  completed_cycles=0,
                  parameters_solver=None,
-                 vAdd=None,
                  CRRA=2.0,
                  u=CRRAutility,
                  uP=CRRAutilityP,
                  uPP=CRRAutilityPP,
+                 vAdd=None,
                  **kwds):
 
         ConsumerSolutionOld.__init__(self, *args, **kwds)
@@ -322,25 +320,33 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
         # Put into bilt a lot of stuff that was on the whiteboard root level
         bilt = self.bilt = Built()
+#        breakpoint()
+        
+        self = def_utility(self, CRRA)
 
-        bilt.vAdd = self.vAdd = vAdd
+        bilt.vAdd = vAdd
 
         bilt.parameters_solver = None
         bilt.cFunc = self.cFunc
         bilt.vFunc = self.vFunc
-        bilt.vPfunc = self.vPfunc
-        bilt.vPPfunc = self.vPPfunc
+        bilt.vFunc.dm = self.vPfunc
+        bilt.vFunc.ddm = self.vPPfunc
         bilt.u = u
-        bilt.uP = uP
-        bilt.uPP = uPP
+        bilt.u.dc = uP
+        bilt.u.ddc = uPP
         bilt.mNrmMin = self.mNrmMin
         bilt.hNrm = self.hNrm
         bilt.MPCmin = self.MPCmin
         bilt.MPCmax = self.MPCmax
+        
         del self.mNrmMin
         del self.hNrm
         del self.MPCmin
         del self.MPCmax
+        del self.vFunc
+        del self.vPfunc
+        del self.vPPfunc
+        
         bilt.completed_cycles = completed_cycles
         bilt.parameters_solver = parameters_solver
         
@@ -759,8 +765,9 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         self.recursive = \
             {'cFunc', 'vFunc', 'vPfunc', 'vPPfunc',  # 'vFuncNvrs',
              'u', 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
-             'hNrm', 'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA',
-             'vAdd'}
+             'hNrm', 'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA'
+             ,'vAdd'
+             }
 
         self.soln_crnt = ConsumerSolutionOneStateCRRA()
 

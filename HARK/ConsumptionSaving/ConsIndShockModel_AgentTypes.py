@@ -236,7 +236,7 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         * m combines assets from prior history with current income
         * it is referred to as `market resources` throughout the docs
 
-    consumer_terminal_nobequest_onestate class must be inherited by some subclass
+    This class must be inherited by some subclass
     that fleshes out the rest of the characteristics of the agent, e.g. the
     PerfForesightConsumerType or MertonSamuelsonConsumerType or something.
 
@@ -368,15 +368,15 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
             msg = 'With zero equiv_life_periods '+\
                 'parameters, the model exhibits no bequest motive.'
                 
-            nobequest_agent = consumer_terminal_nobequest_onestate()
+            nobequest_agent = consumer_terminal_nobequest_onestate(
+                )
             self.solution_terminal = nobequest_agent.solution_terminal
             
-            # Only reason to use the tool here instead of the default one 
+            # Only reason to use the bequest type here instead of nobequest 
             # is to get the infrastructure for solving the PF liquidity 
             # constrained problem.  That is below.
             
             # Add infrastructure for piecewise linear PF solution
-            breakpoint()
             bilt.mNrm_cusp = 0.0 # then 'cusp' => cannot die in debt  
             bilt.vNrm_cusp = -float('inf') # yields neg inf value
             bilt.vInv_cusp = 0.0
