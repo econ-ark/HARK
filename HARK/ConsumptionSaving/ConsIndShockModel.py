@@ -12,10 +12,6 @@ It currently solves three types of models:
 See NARK https://HARK.githhub.io/Documentation/NARK for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.
 """
-
-from builtins import str
-from builtins import range
-from builtins import object
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton

@@ -17,6 +17,10 @@ Release Date: TBD
 * FrameAgentType for modular definitions of agents [#865](https://github.com/econ-ark/HARK/pull/865)
 * PortfolioConsumerFrameType, a port of PortfolioConsumerType to use Frames [#865](https://github.com/econ-ark/HARK/pull/865)
 
+#### Minor Changes
+
+* Fix bug in DCEGM's primary kink finder due to numpy no longer accepting NaN in integer arrays [#990](https://github.com/econ-ark/HARK/pull/990).
+* Add a general class for consumers who can save using a risky asset [#1012](https://github.com/econ-ark/HARK/pull/1012/).
 
 ### 0.11.0
 
@@ -28,6 +32,7 @@ Release Data: March 4, 2021
 * Adds a constructor for LogNormal distributions from mean and standard deviation [#891](https://github.com/econ-ark/HARK/pull/891/)
 * Uses new LogNormal constructor in ConsPortfolioModel [#891](https://github.com/econ-ark/HARK/pull/891/)
 * calcExpectations method for taking the expectation of a distribution over a function [#884](https://github.com/econ-ark/HARK/pull/884/] (#897)[https://github.com/econ-ark/HARK/pull/897/)
+* Implements the multivariate normal as a supported distribution, with a discretization method. See [#948](https://github.com/econ-ark/HARK/pull/948).
 * Centralizes the definition of value, marginal value, and marginal marginal value functions that use inverse-space
 interpolation for problems with CRRA utility. See [#888](https://github.com/econ-ark/HARK/pull/888).
 * MarkovProcess class used in ConsMarkovModel, ConsRepAgentModel, ConsAggShockModel [#902](https://github.com/econ-ark/HARK/pull/902) [#929](https://github.com/econ-ark/HARK/pull/929)

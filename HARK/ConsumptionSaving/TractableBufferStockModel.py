@@ -20,9 +20,6 @@ bounds are exceeded.
 Despite the non-standard solution method, the iterative process can be embedded
 in the HARK framework, as shown below.
 """
-from __future__ import division, print_function
-from __future__ import absolute_import
-from builtins import str
 import numpy as np
 
 # Import the HARK library.

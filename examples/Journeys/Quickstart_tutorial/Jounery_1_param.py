@@ -1,7 +1,6 @@
 '''
 Set if parameters for the first journey
 '''
-from __future__ import division, print_function
 from copy import copy
 import numpy as np
 
