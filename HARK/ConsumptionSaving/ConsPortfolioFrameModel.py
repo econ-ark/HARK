@@ -86,7 +86,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         'pLvl' : birth_pLvlNow
     }
 
-    def transition_ShareNow(self):
+    def transition_ShareNow(self, **context):
         """
         Transition method for ShareNow.
         """
@@ -106,12 +106,14 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                 these,
                 np.logical_not(self.shocks['Adjust']))
             ShareNow[those] = self.solution[t].ShareFuncFxd(
-                self.state_now['mNrm'][those], ShareNow[those]
+                context['mNrm'][those], ShareNow[those]
             )
 
         self.controls["Share"] = ShareNow
 
-    def transition_cNrmNow(self):
+        return ShareNow
+
+    def transition_cNrmNow(self, **context):
         """
         Transition method for cNrmNow.
         """
@@ -123,19 +125,22 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             these = t == self.t_cycle
 
             # Get controls for agents who *can* adjust their portfolio share
-            those = np.logical_and(these, self.shocks['Adjust'])
-            cNrmNow[those] = self.solution[t].cFuncAdj(self.state_now['mNrm'][those])
+            those = np.logical_and(these, context['Adjust'])
+            cNrmNow[those] = self.solution[t].cFuncAdj(context['mNrm'][those])
 
             # Get Controls for agents who *can't* adjust their portfolio share
             those = np.logical_and(
                 these,
-                np.logical_not(self.shocks['Adjust']))
+                np.logical_not(context['Adjust']))
             cNrmNow[those] = self.solution[t].cFuncFxd(
-                self.state_now['mNrm'][those], ShareNow[those]
+                context['mNrm'][those], ShareNow[those]
             )
 
         # Store controls as attributes of self
+	# redundant for now
         self.controls["cNrm"] = cNrmNow
+
+	return cNrmNow
 
     frames = {
         ('Risky','Adjust') : PortfolioConsumerType.get_shocks,

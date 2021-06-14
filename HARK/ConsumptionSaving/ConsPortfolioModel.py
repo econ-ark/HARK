@@ -28,8 +28,6 @@ from HARK.interpolation import (
     BilinearInterp,  # 2D interpolator
     ConstantFunction,  # Interpolator-like class that returns constant value
     IdentityFunction,  # Interpolator-like class that returns one of its arguments
-    ValueFuncCRRA,
-    MargValueFuncCRRA
 )
 
 
@@ -921,6 +919,7 @@ def solveConsPortfolio(
         vFuncAdj_now = None
         vFuncFxd_now = None
 
+    # Create and return this period's solution
     return PortfolioSolution(
         cFuncAdj=cFuncAdj_now,
         ShareFuncAdj=ShareFuncAdj_now,
