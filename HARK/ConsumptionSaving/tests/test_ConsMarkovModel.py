@@ -65,7 +65,7 @@ class test_ConsMarkovSolver(unittest.TestCase):
         unemployed_income_dist = DiscreteDistribution(
             np.ones(1), [np.ones(1), np.zeros(1)]
         )  # Definitely don't
-        self.model.IncomeDstn = [
+        self.model.IncShkDstn = [
             [
                 employed_income_dist,
                 unemployed_income_dist,
@@ -74,23 +74,23 @@ class test_ConsMarkovSolver(unittest.TestCase):
             ]
         ]
 
-    def test_checkMarkovInputs(self):
+    def test_check_markov_inputs(self):
         # check Rfree
-        self.assertRaises(ValueError, self.model.checkMarkovInputs)
+        self.assertRaises(ValueError, self.model.check_markov_inputs)
         # fix Rfree
         self.model.Rfree = np.array(4 * [self.model.Rfree])
         # check MrkvArray, first mess up the setup
         self.MrkvArray = self.model.MrkvArray
         self.model.MrkvArray = np.random.rand(3, 3)
-        self.assertRaises(ValueError, self.model.checkMarkovInputs)
+        self.assertRaises(ValueError, self.model.check_markov_inputs)
         # then fix it back
         self.model.MrkvArray = self.MrkvArray
         # check LivPrb
-        self.assertRaises(ValueError, self.model.checkMarkovInputs)
+        self.assertRaises(ValueError, self.model.check_markov_inputs)
         # fix LivPrb
         self.model.LivPrb = [np.array(4 * self.model.LivPrb)]
         # check PermGroFac
-        self.assertRaises(ValueError, self.model.checkMarkovInputs)
+        self.assertRaises(ValueError, self.model.check_markov_inputs)
         # fix PermGroFac
         self.model.PermGroFac = [np.array(4 * self.model.PermGroFac)]
 
@@ -107,7 +107,7 @@ class test_ConsMarkovSolver(unittest.TestCase):
         self.model.solve()
         self.model.T_sim = 120
         self.model.MrkvPrbsInit = [0.25, 0.25, 0.25, 0.25]
-        self.model.track_vars = ["mNrmNow", "cNrmNow"]
-        self.model.makeShockHistory()  # This is optional
-        self.model.initializeSim()
+        self.model.track_vars = ["mNrm", 'cNrm']
+        self.model.make_shock_history()  # This is optional
+        self.model.initialize_sim()
         self.model.simulate()

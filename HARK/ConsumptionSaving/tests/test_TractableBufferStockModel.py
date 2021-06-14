@@ -16,8 +16,8 @@ class testTractableBufferStock(unittest.TestCase):
         self.tct.aLvlInitMean = 0.0  # Mean of log initial assets for new agents
         self.tct.aLvlInitStd = 1.0 # stdev of log initial assets for new agents
         self.tct.T_cycle = 1
-        self.tct.track_vars += ["mLvlNow"]
-        self.tct.initializeSim()
+        self.tct.track_vars += ["mLvl"]
+        self.tct.initialize_sim()
         self.tct.simulate()
 
-        self.assertAlmostEqual(self.tct.history["mLvlNow"][15][0], 5.820630251772332)
+        self.assertAlmostEqual(self.tct.history["mLvl"][15][0], 5.820630251772332)

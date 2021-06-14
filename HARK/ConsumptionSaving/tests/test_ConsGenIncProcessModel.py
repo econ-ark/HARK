@@ -96,11 +96,11 @@ class testPersistentShockConsumerType(unittest.TestCase):
 
         # why does ,"bLvlNow" not work here?
         self.agent.track_vars = [
-            "aLvlNow","mLvlNow", "cLvlNow", "pLvlNow"
+            'aLvl',"mLvl", "cLvl", 'pLvl'
         ]
-        self.agent.initializeSim()
+        self.agent.initialize_sim()
         self.agent.simulate()
 
         self.assertAlmostEqual(
-            np.mean(self.agent.history["mLvlNow"]), 1.2043946738813716
+            np.mean(self.agent.history["mLvl"]), 1.2043946738813716
         )

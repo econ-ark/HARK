@@ -19,15 +19,15 @@ class testRepAgentConsumerType(unittest.TestCase):
     def test_simulation(self):
         # Simulate the representative agent model
         self.agent.T_sim = 100
-        self.agent.track_vars = ["cNrmNow", "mNrmNow", "Rfree", "wRte"]
-        self.agent.initializeSim()
+        self.agent.track_vars = ['cNrm', "mNrm", "Rfree", "wRte"]
+        self.agent.initialize_sim()
         self.agent.simulate()
 
 
 class testRepAgentMarkovConsumerType(unittest.TestCase):
     def setUp(self):
         self.agent = RepAgentMarkovConsumerType()
-        self.agent.IncomeDstn[0] = 2 * [self.agent.IncomeDstn[0]]
+        self.agent.IncShkDstn[0] = 2 * [self.agent.IncShkDstn[0]]
         self.agent.solve()
 
     def test_solution(self):
@@ -38,6 +38,6 @@ class testRepAgentMarkovConsumerType(unittest.TestCase):
     def test_simulation(self):
         # Simulate the representative agent model
         self.agent.T_sim = 100
-        self.agent.track_vars = ["cNrmNow", "mNrmNow", "Rfree", "wRte", "MrkvNow"]
-        self.agent.initializeSim()
+        self.agent.track_vars = ['cNrm', "mNrm", "Rfree", "wRte", "Mrkv"]
+        self.agent.initialize_sim()
         self.agent.simulate()

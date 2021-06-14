@@ -16,6 +16,6 @@ class test_LaborIntMargConsumerType(unittest.TestCase):
         self.model_finite_lifecycle.solve()
 
         self.model.T_sim = 120
-        self.model.track_vars = ["bNrmNow", "cNrmNow"]
-        self.model.initializeSim()
+        self.model.track_vars = ["bNrm", 'cNrm']
+        self.model.initialize_sim()
         self.model.simulate()

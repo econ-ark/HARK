@@ -1,4 +1,4 @@
-# Release Notes  
+# Release Notes
 
 ## Introduction
 
@@ -8,7 +8,7 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.10.9
+### 0.12.0
 
 Release Date: TBD
 
@@ -16,6 +16,44 @@ Release Date: TBD
 
 * FrameAgentType for modular definitions of agents [#865](https://github.com/econ-ark/HARK/pull/865)
 * PortfolioConsumerFrameType, a port of PortfolioConsumerType to use Frames [#865](https://github.com/econ-ark/HARK/pull/865)
+
+
+### 0.11.0
+
+Release Data: March 4, 2021
+
+#### Major Changes
+
+* Converts non-mathematical code to PEP8 compliant form [#953](https://github.com/econ-ark/HARK/pull/953)
+* Adds a constructor for LogNormal distributions from mean and standard deviation [#891](https://github.com/econ-ark/HARK/pull/891/)
+* Uses new LogNormal constructor in ConsPortfolioModel [#891](https://github.com/econ-ark/HARK/pull/891/)
+* calcExpectations method for taking the expectation of a distribution over a function [#884](https://github.com/econ-ark/HARK/pull/884/] (#897)[https://github.com/econ-ark/HARK/pull/897/)
+* Centralizes the definition of value, marginal value, and marginal marginal value functions that use inverse-space
+interpolation for problems with CRRA utility. See [#888](https://github.com/econ-ark/HARK/pull/888).
+* MarkovProcess class used in ConsMarkovModel, ConsRepAgentModel, ConsAggShockModel [#902](https://github.com/econ-ark/HARK/pull/902) [#929](https://github.com/econ-ark/HARK/pull/929)
+* replace HARKobject base class with MetricObject and Model classes [#903](https://github.com/econ-ark/HARK/pull/903/)
+* Add __repr__ and __eq__ methods to Model class [#903](https://github.com/econ-ark/HARK/pull/903/)
+* Adds SSA life tables and methods to extract survival probabilities from them [#986](https://github.com/econ-ark/HARK/pull/906).
+* Adds the U.S. CPI research series and tools to extract inflation adjustments from it [#930](https://github.com/econ-ark/HARK/pull/930).
+* Adds a module for extracting initial distributions of permanent income (`pLvl`) and normalized assets (`aNrm`) from the SCF [#932](https://github.com/econ-ark/HARK/pull/932).
+* Fix the return fields of `dcegm/calcCrossPoints`[#909](https://github.com/econ-ark/HARK/pull/909).
+* Corrects location of constructor documentation to class string for Sphinx rendering [#908](https://github.com/econ-ark/HARK/pull/908)
+* Adds a module with tools for parsing and using various income calibrations from the literature. It includes the option of using life-cycle profiles of income shock variances from [Sabelhaus and Song (2010)](https://www.sciencedirect.com/science/article/abs/pii/S0304393210000358). See [#921](https://github.com/econ-ark/HARK/pull/921), [#941](https://github.com/econ-ark/HARK/pull/941), [#980](https://github.com/econ-ark/HARK/pull/980).
+* remove "Now" from model variable names [#936](https://github.com/econ-ark/HARK/pull/936)
+* remove Model.__call__; use Model init in Market and AgentType init to standardize on parameters dictionary [#947](https://github.com/econ-ark/HARK/issues/947)
+* Moves state MrkvNow to shocks['Mrkv'] in AggShockMarkov and KrusellSmith models [#935](https://github.com/econ-ark/HARK/pull/935)
+* Replaces `ConsIndShock`'s `init_lifecycle` with an actual life-cycle calibration [#951](https://github.com/econ-ark/HARK/pull/951).
+
+#### Minor Changes
+
+* Move AgentType constructor parameters docs to class docstring so it is rendered by Sphinx.
+* Remove uses of deprecated time.clock [#887](https://github.com/econ-ark/HARK/pull/887)
+* Change internal representation of parameters to Distributions to ndarray type
+* Rename IncomeDstn to IncShkDstn
+* AgentType simulate() method now returns history. [#916](https://github.com/econ-ark/HARK/pull/916)
+* Rename DiscreteDistribution.drawDiscrete() to draw()
+* Update documentation and warnings around IncShkDstn [#955](https://github.com/econ-ark/HARK/pull/955)
+* Adds csv files to `MANIFEST.in`. [957](https://github.com/econ-ark/HARK/pull/957)
 
 ### 0.10.8
 

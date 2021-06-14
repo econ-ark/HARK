@@ -9,12 +9,11 @@ from __future__ import absolute_import
 from builtins import str
 from builtins import range
 import numpy as np
-from HARK.interpolation import LinearInterp
-from HARK.distribution import Uniform
+from HARK.interpolation import LinearInterp, MargValueFuncCRRA
+from HARK.distribution import (MarkovProcess, Uniform)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     ConsumerSolution,
-    MargValueFunc,
     init_idiosyncratic_shocks,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
@@ -22,8 +21,8 @@ from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 __all__ = ["RepAgentConsumerType", "RepAgentMarkovConsumerType"]
 
 
-def solveConsRepAgent(
-    solution_next, DiscFac, CRRA, IncomeDstn, CapShare, DeprFac, PermGroFac, aXtraGrid
+def solve_ConsRepAgent(
+    solution_next, DiscFac, CRRA, IncShkDstn, CapShare, DeprFac, PermGroFac, aXtraGrid
 ):
     """
     Solve one period of the simple representative agent consumption-saving model.
@@ -36,11 +35,11 @@ def solveConsRepAgent(
         Intertemporal discount factor for future utility.
     CRRA : float
         Coefficient of relative risk aversion.
-    IncomeDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
+    IncShkDstn : distribution.Distribution
+        A discrete
         approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
+        and the one immediately following (in solution_next). Order: 
+        permanent shocks, transitory shocks.
     CapShare : float
         Capital's share of income in Cobb-Douglas production function.
     DeprFac : float
@@ -59,9 +58,9 @@ def solveConsRepAgent(
     """
     # Unpack next period's solution and the income distribution
     vPfuncNext = solution_next.vPfunc
-    ShkPrbsNext = IncomeDstn.pmf
-    PermShkValsNext = IncomeDstn.X[0]
-    TranShkValsNext = IncomeDstn.X[1]
+    ShkPrbsNext = IncShkDstn.pmf
+    PermShkValsNext = IncShkDstn.X[0]
+    TranShkValsNext = IncShkDstn.X[1]
 
     # Make tiled versions of end-of-period assets, shocks, and probabilities
     aNrmNow = aXtraGrid
@@ -104,19 +103,19 @@ def solveConsRepAgent(
 
     # Construct the consumption function and the marginal value function
     cFuncNow = LinearInterp(np.insert(mNrmNow, 0, 0.0), np.insert(cNrmNow, 0, 0.0))
-    vPfuncNow = MargValueFunc(cFuncNow, CRRA)
+    vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)
 
     # Construct and return the solution for this period
     solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow)
     return solution_now
 
 
-def solveConsRepAgentMarkov(
+def solve_ConsRepAgentMarkov(
     solution_next,
     MrkvArray,
     DiscFac,
     CRRA,
-    IncomeDstn,
+    IncShkDstn,
     CapShare,
     DeprFac,
     PermGroFac,
@@ -136,9 +135,9 @@ def solveConsRepAgentMarkov(
         Intertemporal discount factor for future utility.
     CRRA : float
         Coefficient of relative risk aversion.
-    IncomeDstn : [[np.array]]
-        A list of lists containing three arrays of floats, representing a discrete
-        approximation to the income process between the period being solved
+    IncShkDstn : [distribution.Distribution]
+        A list of discrete
+        approximations to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
         probabilities, permanent shocks, transitory shocks.
     CapShare : float
@@ -168,9 +167,9 @@ def solveConsRepAgentMarkov(
     for j in range(StateCount):
         # Define next-period-state conditional objects
         vPfuncNext = solution_next.vPfunc[j]
-        ShkPrbsNext = IncomeDstn[j].pmf
-        PermShkValsNext = IncomeDstn[j].X[0]
-        TranShkValsNext = IncomeDstn[j].X[1]
+        ShkPrbsNext = IncShkDstn[j].pmf
+        PermShkValsNext = IncShkDstn[j].X[0]
+        TranShkValsNext = IncShkDstn[j].X[1]
 
         # Make tiled versions of end-of-period assets, shocks, and probabilities
         ShkCount = ShkPrbsNext.size
@@ -220,7 +219,7 @@ def solveConsRepAgentMarkov(
         cFuncNow_list.append(
             LinearInterp(np.insert(mNrmNow, 0, 0.0), np.insert(cNrmNow, 0, 0.0))
         )
-        vPfuncNow_list.append(MargValueFunc(cFuncNow_list[-1], CRRA))
+        vPfuncNow_list.append(MargValueFuncCRRA(cFuncNow_list[-1], CRRA))
 
     # Construct and return the solution for this period
     solution_now = ConsumerSolution(cFunc=cFuncNow_list, vPfunc=vPfuncNow_list)
@@ -230,33 +229,29 @@ def solveConsRepAgentMarkov(
 class RepAgentConsumerType(IndShockConsumerType):
     """
     A class for representing representative agents with inelastic labor supply.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
+
     """
 
     time_inv_ = IndShockConsumerType.time_inv_ + ["CapShare", "DeprFac"]
 
     def __init__(self, **kwds):
-        """
-        Make a new instance of a representative agent.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        None
-        """
         params = init_rep_agent.copy()
         params.update(kwds)
 
         IndShockConsumerType.__init__(self, cycles=0, **params)
         self.AgentCount = 1  # Hardcoded, because this is rep agent
-        self.solveOnePeriod = solveConsRepAgent
-        self.delFromTimeInv("Rfree", "BoroCnstArt", "vFuncBool", "CubicBool")
+        self.solve_one_period = solve_ConsRepAgent
+        self.del_from_time_inv("Rfree", "BoroCnstArt", "vFuncBool", "CubicBool")
 
-    def preSolve(self):
-        self.updateSolutionTerminal()
+    def pre_solve(self):
+        self.update_solution_terminal()
 
-    def getStates(self):
+    def get_states(self):
         """
         TODO: replace with call to transition
 
@@ -271,61 +266,59 @@ class RepAgentConsumerType(IndShockConsumerType):
         -------
         None
         """
-        pLvlPrev = self.state_prev['pLvlNow']
-        aNrmPrev = self.state_prev['aNrmNow']
+        pLvlPrev = self.state_prev['pLvl']
+        aNrmPrev = self.state_prev['aNrm']
 
         # Calculate new states: normalized market resources and permanent income level
         self.pLvlNow = (
-            pLvlPrev * self.shocks["PermShkNow"]
+            pLvlPrev * self.shocks['PermShk']
         )  # Same as in IndShockConsType
-        self.kNrmNow = aNrmPrev / self.shocks["PermShkNow"]
-        self.yNrmNow = self.kNrmNow ** self.CapShare * self.shocks["TranShkNow"] ** (
+        self.kNrmNow = aNrmPrev / self.shocks['PermShk']
+        self.yNrmNow = self.kNrmNow ** self.CapShare * self.shocks['TranShk'] ** (
             1.0 - self.CapShare
         )
         self.Rfree = (
             1.0
             + self.CapShare
             * self.kNrmNow ** (self.CapShare - 1.0)
-            * self.shocks["TranShkNow"] ** (1.0 - self.CapShare)
+            * self.shocks['TranShk'] ** (1.0 - self.CapShare)
             - self.DeprFac
         )
         self.wRte = (
             (1.0 - self.CapShare)
             * self.kNrmNow ** self.CapShare
-            * self.shocks["TranShkNow"] ** (-self.CapShare)
+            * self.shocks['TranShk'] ** (-self.CapShare)
         )
-        self.mNrmNow = self.Rfree * self.kNrmNow + self.wRte * self.shocks["TranShkNow"]
+        self.mNrmNow = self.Rfree * self.kNrmNow + self.wRte * self.shocks['TranShk']
 
 
 class RepAgentMarkovConsumerType(RepAgentConsumerType):
     """
     A class for representing representative agents with inelastic labor supply
     and a discrete MarkovState
+
+    Parameters
+    ----------
     """
 
     time_inv_ = RepAgentConsumerType.time_inv_ + ["MrkvArray"]
 
     def __init__(self, **kwds):
-        """
-        Make a new instance of a representative agent with Markov state.
-
-        Parameters
-        ----------
- 
-        Returns
-        -------
-        None
-        """
         params = init_markov_rep_agent.copy()
         params.update(kwds)
 
         RepAgentConsumerType.__init__(self, **params)
-        self.solveOnePeriod = solveConsRepAgentMarkov
+        self.solve_one_period = solve_ConsRepAgentMarkov
 
-    def preSolve(self):
-        self.updateSolutionTerminal()
+    def pre_solve(self):
+        self.update_solution_terminal()
 
-    def updateSolutionTerminal(self):
+    def initialize_sim(self):
+        #self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
+        RepAgentConsumerType.initialize_sim(self)
+        self.shocks["Mrkv"] = self.Mrkv
+
+    def update_solution_terminal(self):
         """
         Update the terminal period solution.  This method should be run when a
         new AgentType is created or when CRRA changes.
@@ -338,7 +331,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         -------
         None
         """
-        RepAgentConsumerType.updateSolutionTerminal(self)
+        RepAgentConsumerType.update_solution_terminal(self)
 
         # Make replicated terminal period solution
         StateCount = self.MrkvArray.shape[0]
@@ -346,10 +339,10 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         self.solution_terminal.vPfunc = StateCount * [self.solution_terminal.vPfunc]
         self.solution_terminal.mNrmMin = StateCount * [self.solution_terminal.mNrmMin]
 
-    def resetRNG(self):
-        MarkovConsumerType.resetRNG(self)
+    def reset_rng(self):
+        MarkovConsumerType.reset_rng(self)
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Draws a new Markov state and income shocks for the representative agent.
 
@@ -361,24 +354,25 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         -------
         None
         """
-        cutoffs = np.cumsum(self.MrkvArray[self.MrkvNow, :])
-        MrkvDraw = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(N=1)
-        self.MrkvNow = np.searchsorted(cutoffs, MrkvDraw)
+        self.shocks["Mrkv"] = MarkovProcess(
+            self.MrkvArray,
+            seed=self.RNG.randint(0, 2 ** 31 - 1)
+            ).draw(self.shocks["Mrkv"])
 
         t = self.t_cycle[0]
-        i = self.MrkvNow[0]
-        IncomeDstnNow = self.IncomeDstn[t - 1][i]  # set current income distribution
+        i = self.shocks["Mrkv"]
+        IncShkDstnNow = self.IncShkDstn[t - 1][i]  # set current income distribution
         PermGroFacNow = self.PermGroFac[t - 1][i]  # and permanent growth factor
         # Get random draws of income shocks from the discrete distribution
-        EventDraw = IncomeDstnNow.draw_events(1)
+        EventDraw = IncShkDstnNow.draw_events(1)
         PermShkNow = (
-            IncomeDstnNow.X[0][EventDraw] * PermGroFacNow
+            IncShkDstnNow.X[0][EventDraw] * PermGroFacNow
         )  # permanent "shock" includes expected growth
-        TranShkNow = IncomeDstnNow.X[1][EventDraw]
-        self.shocks["PermShkNow"] = np.array(PermShkNow)
-        self.shocks["TranShkNow"] = np.array(TranShkNow)
+        TranShkNow = IncShkDstnNow.X[1][EventDraw]
+        self.shocks['PermShk'] = np.array(PermShkNow)
+        self.shocks['TranShk'] = np.array(TranShkNow)
 
-    def getControls(self):
+    def get_controls(self):
         """
         Calculates consumption for the representative agent using the consumption functions.
 
@@ -391,8 +385,8 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         None
         """
         t = self.t_cycle[0]
-        i = self.MrkvNow[0]
-        self.controls["cNrmNow"] = self.solution[t].cFunc[i](self.mNrmNow)
+        i = self.shocks["Mrkv"]
+        self.controls['cNrm'] = self.solution[t].cFunc[i](self.mNrmNow)
 
 
 # Define the default dictionary for a representative agent type
@@ -406,4 +400,4 @@ init_rep_agent["LivPrb"] = [1.0]
 init_markov_rep_agent = init_rep_agent.copy()
 init_markov_rep_agent["PermGroFac"] = [[0.97, 1.03]]
 init_markov_rep_agent["MrkvArray"] = np.array([[0.99, 0.01], [0.01, 0.99]])
-init_markov_rep_agent["MrkvNow"] = 0
+init_markov_rep_agent["Mrkv"] = 0

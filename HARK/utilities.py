@@ -46,7 +46,7 @@ def memoize(obj):
 # ==============================================================================
 # ============== Some basic function tools  ====================================
 # ==============================================================================
-def getArgNames(function):
+def get_arg_names(function):
     """
     Returns a list of strings naming all of the arguments for the passed function.
 
@@ -453,7 +453,7 @@ def CARAutility_invP(u, alpha):
 # ==============================================================================
 # ============== Functions for generating state space grids  ===================
 # ==============================================================================
-def makeGridExpMult(ming, maxg, ng, timestonest=20):
+def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     """
     Make a multi-exponentially spaced grid.
 
@@ -500,7 +500,7 @@ def makeGridExpMult(ming, maxg, ng, timestonest=20):
 # ==============================================================================
 # ============== Uncategorized general functions  ===================
 # ==============================================================================
-def calcWeightedAvg(data, weights):
+def calc_weighted_avg(data, weights):
     """
     Generates a weighted average of simulated data.  The Nth row of data is averaged
     and then weighted by the Nth element of weights in an aggregate average.
@@ -522,7 +522,7 @@ def calcWeightedAvg(data, weights):
     return weighted_sum
 
 
-def getPercentiles(data, weights=None, percentiles=None, presorted=False):
+def get_percentiles(data, weights=None, percentiles=None, presorted=False):
     """
     Calculates the requested percentiles of (weighted) data.  Median by default.
 
@@ -580,7 +580,7 @@ def getPercentiles(data, weights=None, percentiles=None, presorted=False):
     return pctl_out
 
 
-def getLorenzShares(data, weights=None, percentiles=None, presorted=False):
+def get_lorenz_shares(data, weights=None, percentiles=None, presorted=False):
     """
     Calculates the Lorenz curve at the requested percentiles of (weighted) data.
     Median by default.
@@ -637,7 +637,7 @@ def getLorenzShares(data, weights=None, percentiles=None, presorted=False):
     return lorenz_out
 
 
-def calcSubpopAvg(data, reference, cutoffs, weights=None):
+def calc_subpop_avg(data, reference, cutoffs, weights=None):
     """
     Calculates the average of (weighted) data between cutoff percentiles of a
     reference variable.
@@ -683,7 +683,7 @@ def calcSubpopAvg(data, reference, cutoffs, weights=None):
     return slice_avg
 
 
-def kernelRegression(x, y, bot=None, top=None, N=500, h=None):
+def kernel_regression(x, y, bot=None, top=None, N=500, h=None):
     """
     Performs a non-parametric Nadaraya-Watson 1D kernel regression on given data
     with optionally specified range, number of points, and kernel bandwidth.
@@ -721,13 +721,13 @@ def kernelRegression(x, y, bot=None, top=None, N=500, h=None):
     y_vec = np.zeros_like(x_vec) + np.nan
     for j in range(N):
         x_here = x_vec[j]
-        weights = epanechnikovKernel(x, x_here, h)
+        weights = epanechnikov_kernel(x, x_here, h)
         y_vec[j] = np.dot(weights, y) / np.sum(weights)
     regression = interp1d(x_vec, y_vec, bounds_error=False, assume_sorted=True)
     return regression
 
 
-def epanechnikovKernel(x, ref_x, h=1.0):
+def epanechnikov_kernel(x, ref_x, h=1.0):
     """
     The Epanechnikov kernel.
 
@@ -757,7 +757,7 @@ def epanechnikovKernel(x, ref_x, h=1.0):
 # ==============================================================================
 
 
-def plotFuncs(functions, bottom, top, N=1000, legend_kwds=None):
+def plot_funcs(functions, bottom, top, N=1000, legend_kwds=None):
     """
     Plots 1D function(s) over a given range.
 
@@ -795,7 +795,7 @@ def plotFuncs(functions, bottom, top, N=1000, legend_kwds=None):
     plt.show()
 
 
-def plotFuncsDer(functions, bottom, top, N=1000, legend_kwds=None):
+def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
     """
     Plots the first derivative of 1D function(s) over a given range.
 
@@ -844,7 +844,7 @@ def determine_platform():
     """
     import platform
 
-    pform = platform.platform().lower()
+    pform = platform.system().lower()
     if "darwin" in pform:
         pf = "darwin"  # MacOS
     elif "debian" in pform:
@@ -942,7 +942,9 @@ def setup_latex_env_notebook(pf, latexExists):
         latex_preamble = (
             r"\usepackage{amsmath}\usepackage{amsfonts}\usepackage[T1]{fontenc}"
         )
-        latexdefs_path = os.getcwd() + "/latexdefs.tex"
+        # Latex expects paths to be separated by /. \ might result in pieces
+        # being interpreted as commands.
+        latexdefs_path = os.getcwd().replace(os.path.sep, '/') + "/latexdefs.tex"
         if os.path.isfile(latexdefs_path):
             latex_preamble = latex_preamble + r"\input{" + latexdefs_path + r"}"
         else:  # the required latex_envs package needs this file to exist even if it is empty
@@ -965,7 +967,7 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
               True if the figure should be displayed using plt.draw()
     target_dir: str, default = 'Figures/'
               Name of folder to save figures to in the current directory
-            
+
     """
     import matplotlib.pyplot as plt
 

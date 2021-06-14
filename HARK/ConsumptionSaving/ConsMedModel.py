@@ -7,15 +7,15 @@ from builtins import str
 from builtins import range
 import numpy as np
 from scipy.optimize import brentq
-from HARK import  AgentType, HARKobject, makeOnePeriodOOSolver
-from HARK.distribution import addDiscreteOutcomeConstantMean, Lognormal
+from HARK import  AgentType, MetricObject, make_one_period_oo_solver
+from HARK.distribution import add_discrete_outcome_constant_mean, Lognormal
 from HARK.utilities import (
     CRRAutilityP_inv,
     CRRAutility,
     CRRAutility_inv,
     CRRAutility_invP,
     CRRAutilityPP,
-    makeGridExpMult,
+    make_grid_exp_mult,
     NullFunc,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
@@ -29,13 +29,13 @@ from HARK.interpolation import (
     UpperEnvelope,
     LinearInterpOnInterp1D,
     VariableLowerBoundFunc3D,
+    ValueFuncCRRA,
+    MargValueFuncCRRA,
+    MargMargValueFuncCRRA
 )
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     ConsGenIncProcessSolver,
     PersistentShockConsumerType,
-    ValueFunc2D,
-    MargValueFunc2D,
-    MargMargValueFunc2D,
     VariableLowerBoundFunc2D,
     init_persistent_shocks,
 )
@@ -56,11 +56,33 @@ utility_invP = CRRAutility_invP
 utilityPP = CRRAutilityPP
 
 
-class MedShockPolicyFunc(HARKobject):
+class MedShockPolicyFunc(MetricObject):
     """
     Class for representing the policy function in the medical shocks model: opt-
     imal consumption and medical care for given market resources, permanent income,
     and medical need shock.  Always obeys Con + MedPrice*Med = optimal spending.
+
+    Parameters
+    ----------
+    xFunc : function
+        Optimal total spending as a function of market resources, permanent
+        income, and the medical need shock.
+    xLvlGrid : np.array
+        1D array of total expenditure levels.
+    MedShkGrid : np.array
+        1D array of medical shocks.
+    MedPrice : float
+        Relative price of a unit of medical care.
+    CRRAcon : float
+        Coefficient of relative risk aversion for consumption.
+    CRRAmed : float
+        Coefficient of relative risk aversion for medical care.
+    xLvlCubicBool : boolean
+        Indicator for whether cubic spline interpolation (rather than linear)
+        should be used in the xLvl dimension.
+    MedShkCubicBool : boolean
+        Indicator for whether bicubic interpolation should be used; only
+        operative when xLvlCubicBool=True.
     """
 
     distance_criteria = ["xFunc", "cFunc", "MedPrice"]
@@ -76,35 +98,6 @@ class MedShockPolicyFunc(HARKobject):
         xLvlCubicBool=False,
         MedShkCubicBool=False,
     ):
-        """
-        Make a new MedShockPolicyFunc.
-
-        Parameters
-        ----------
-        xFunc : function
-            Optimal total spending as a function of market resources, permanent
-            income, and the medical need shock.
-        xLvlGrid : np.array
-            1D array of total expenditure levels.
-        MedShkGrid : np.array
-            1D array of medical shocks.
-        MedPrice : float
-            Relative price of a unit of medical care.
-        CRRAcon : float
-            Coefficient of relative risk aversion for consumption.
-        CRRAmed : float
-            Coefficient of relative risk aversion for medical care.
-        xLvlCubicBool : boolean
-            Indicator for whether cubic spline interpolation (rather than linear)
-            should be used in the xLvl dimension.
-        MedShkCubicBool : boolean
-            Indicator for whether bicubic interpolation should be used; only
-            operative when xLvlCubicBool=True.
-
-        Returns
-        -------
-        None
-        """
         # Store some of the inputs in self
         self.MedPrice = MedPrice
         self.xFunc = xFunc
@@ -280,31 +273,24 @@ class MedShockPolicyFunc(HARKobject):
         return dcdShk, dMeddShk
 
 
-class cThruXfunc(HARKobject):
+class cThruXfunc(MetricObject):
     """
     Class for representing consumption function derived from total expenditure
     and consumption.
+
+    Parameters
+    ----------
+    xFunc : function
+        Optimal total spending as a function of market resources, permanent
+        income, and the medical need shock.
+    cFunc : function
+        Optimal consumption as a function of total spending and the medical
+        need shock.
     """
 
     distance_criteria = ["xFunc", "cFunc"]
 
     def __init__(self, xFunc, cFunc):
-        """
-        Make a new instance of MedFromXfunc.
-
-        Parameters
-        ----------
-        xFunc : function
-            Optimal total spending as a function of market resources, permanent
-            income, and the medical need shock.
-        cFunc : function
-            Optimal consumption as a function of total spending and the medical
-            need shock.
-
-        Returns
-        -------
-        None
-        """
         self.xFunc = xFunc
         self.cFunc = cFunc
 
@@ -413,33 +399,26 @@ class cThruXfunc(HARKobject):
         return dcdShk
 
 
-class MedThruXfunc(HARKobject):
+class MedThruXfunc(MetricObject):
     """
     Class for representing medical care function derived from total expenditure
     and consumption.
+
+    Parameters
+    ----------
+    xFunc : function
+        Optimal total spending as a function of market resources, permanent
+        income, and the medical need shock.
+    cFunc : function
+        Optimal consumption as a function of total spending and the medical
+        need shock.
+    MedPrice : float
+        Relative price of a unit of medical care.
     """
 
     distance_criteria = ["xFunc", "cFunc", "MedPrice"]
 
     def __init__(self, xFunc, cFunc, MedPrice):
-        """
-        Make a new instance of MedFromXfunc.
-
-        Parameters
-        ----------
-        xFunc : function
-            Optimal total spending as a function of market resources, permanent
-            income, and the medical need shock.
-        cFunc : function
-            Optimal consumption as a function of total spending and the medical
-            need shock.
-        MedPrice : float
-            Relative price of a unit of medical care.
-
-        Returns
-        -------
-        None
-        """
         self.xFunc = xFunc
         self.cFunc = cFunc
         self.MedPrice = MedPrice
@@ -583,37 +562,30 @@ class MedShockConsumerType(PersistentShockConsumerType):
     and medical care; both goods yield CRRAutility, and the coefficients on the
     goods might be different.  Agents expect to receive shocks to permanent and
     transitory income as well as multiplicative shocks to utility from medical care.
+
+    See init_med_shock for a dictionary of the keywords
+    that should be passed to the constructor.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
-    shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShkNow"]
-    state_vars = PersistentShockConsumerType.state_vars + ['mLvlNow']
+    shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShk"]
+    state_vars = PersistentShockConsumerType.state_vars + ['mLvl']
 
     def __init__(self, cycles=0, **kwds):
-        """
-        Instantiate a new ConsumerType with given data, and construct objects
-        to be used during solution (income distribution, assets grid, etc).
-        See ConsumerParameters.init_med_shock for a dictionary of the keywords
-        that should be passed to the constructor.
-
-        Parameters
-        ----------
-        cycles : int
-            Number of times the sequence of periods should be solved.
-
-        Returns
-        -------
-        None
-        """
         params = init_medical_shocks.copy()
         params.update(kwds)
 
         PersistentShockConsumerType.__init__(self, cycles=cycles, **params)
-        self.solveOnePeriod = makeOnePeriodOOSolver(ConsMedShockSolver)
-        self.addToTimeInv("CRRAmed")
-        self.addToTimeVary("MedPrice")
+        self.solve_one_period = make_one_period_oo_solver(ConsMedShockSolver)
+        self.add_to_time_inv("CRRAmed")
+        self.add_to_time_vary("MedPrice")
 
-    def preSolve(self):
-        self.updateSolutionTerminal()
+    def pre_solve(self):
+        self.update_solution_terminal()
 
     def update(self):
         """
@@ -628,14 +600,14 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        self.updateIncomeProcess()
-        self.updateAssetsGrid()
-        self.updatepLvlNextFunc()
-        self.updatepLvlGrid()
-        self.updateMedShockProcess()
-        self.updateSolutionTerminal()
+        self.update_income_process()
+        self.update_assets_grid()
+        self.update_pLvlNextFunc()
+        self.update_pLvlGrid()
+        self.update_med_shock_process()
+        self.update_solution_terminal()
 
-    def updateMedShockProcess(self):
+    def update_med_shock_process(self):
         """
         Constructs discrete distributions of medical preference shocks for each
         period in the cycle.  Distributions are saved as attribute MedShkDstn,
@@ -658,14 +630,14 @@ class MedShockConsumerType(PersistentShockConsumerType):
             ).approx(
                 N=self.MedShkCount, tail_N=self.MedShkCountTail, tail_bound=[0, 0.9]
             )
-            MedShkDstnNow = addDiscreteOutcomeConstantMean(
+            MedShkDstnNow = add_discrete_outcome_constant_mean(
                 MedShkDstnNow, 0.0, 0.0, sort=True
             )  # add point at zero with no probability
             MedShkDstn.append(MedShkDstnNow)
         self.MedShkDstn = MedShkDstn
-        self.addToTimeVary("MedShkDstn")
+        self.add_to_time_vary("MedShkDstn")
 
-    def updateSolutionTerminal(self):
+    def update_solution_terminal(self):
         """
         Update the terminal period solution for this type.  Similar to other models,
         optimal behavior involves spending all available market resources; however,
@@ -688,7 +660,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         MedShkGrid = MedShkVals
         xLvlMin = np.min(self.aXtraGrid) * np.min(self.pLvlGrid)
         xLvlMax = np.max(self.aXtraGrid) * np.max(self.pLvlGrid)
-        xLvlGrid = makeGridExpMult(xLvlMin, xLvlMax, 3 * self.aXtraGrid.size, 8)
+        xLvlGrid = make_grid_exp_mult(xLvlMin, xLvlMax, 3 * self.aXtraGrid.size, 8)
         trivial_grid = np.array([0.0, 1.0])  # Trivial grid
 
         # Make the policy functions for the terminal period
@@ -743,8 +715,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
             mLvlGrid,
             trivial_grid,
         )
-        vPfunc_terminal = MargValueFunc2D(vPnvrsFunc, self.CRRA)
-        vPPfunc_terminal = MargMargValueFunc2D(vPnvrsFunc, self.CRRA)
+        vPfunc_terminal = MargValueFuncCRRA(vPnvrsFunc, self.CRRA)
+        vPPfunc_terminal = MargMargValueFuncCRRA(vPnvrsFunc, self.CRRA)
 
         # Integrate value across shocks to get expected value
         vGrid = utility(cLvlGrid, gam=self.CRRA) + MedShkGrid_tiled * utility(
@@ -765,7 +737,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         vNvrsP[0] = 0.0
         tempFunc = CubicInterp(mLvlGrid, vNvrs, vNvrsP)
         vNvrsFunc = LinearInterpOnInterp1D([tempFunc, tempFunc], trivial_grid)
-        vFunc_terminal = ValueFunc2D(vNvrsFunc, self.CRRA)
+        vFunc_terminal = ValueFuncCRRA(vNvrsFunc, self.CRRA)
 
         # Make the terminal period solution
         self.solution_terminal.cFunc = cFunc_terminal
@@ -782,7 +754,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
             p
         )  # And minimum allowable market resources by perm inc
 
-    def updatepLvlGrid(self):
+    def update_pLvlGrid(self):
         """
         Update the grid of permanent income levels.  Currently only works for
         infinite horizon models (cycles=0) and lifecycle models (cycles=1).  Not
@@ -799,17 +771,17 @@ class MedShockConsumerType(PersistentShockConsumerType):
         None
         """
         # Run basic version of this method
-        PersistentShockConsumerType.updatepLvlGrid(self)
+        PersistentShockConsumerType.update_pLvlGrid(self)
         for j in range(len(self.pLvlGrid)):  # Then add 0 to the bottom of each pLvlGrid
             this_grid = self.pLvlGrid[j]
             self.pLvlGrid[j] = np.insert(this_grid, 0, 0.0001)
 
-    def resetRNG(self):
+    def reset_rng(self):
         """
         Reset the RNG behavior of this type.  This method is called automatically
-        by initializeSim(), ensuring that each simulation run uses the same sequence
+        by initialize_sim(), ensuring that each simulation run uses the same sequence
         of random shocks; this is necessary for structural estimation to work.
-        This method extends PersistentShockConsumerType.resetRNG() to also reset
+        This method extends PersistentShockConsumerType.reset_rng() to also reset
         elements of MedShkDstn.
 
         Parameters
@@ -820,14 +792,14 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        PersistentShockConsumerType.resetRNG(self)
+        PersistentShockConsumerType.reset_rng(self)
 
-        # Reset MedShkDstn if it exists (it might not because resetRNG is called at init)
+        # Reset MedShkDstn if it exists (it might not because reset_rng is called at init)
         if hasattr(self, "MedShkDstn"):
             for dstn in self.MedShkDstn:
                 dstn.reset()
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Gets permanent and transitory income shocks for this period as well as medical need shocks
         and the price of medical care.
@@ -840,7 +812,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        PersistentShockConsumerType.getShocks(
+        PersistentShockConsumerType.get_shocks(
             self
         )  # Get permanent and transitory income shocks
         MedShkNow = np.zeros(self.AgentCount)  # Initialize medical shock array
@@ -849,12 +821,12 @@ class MedShockConsumerType(PersistentShockConsumerType):
             these = t == self.t_cycle
             N = np.sum(these)
             if N > 0:
-                MedShkNow[these] = self.MedShkDstn[t].drawDiscrete(N)
+                MedShkNow[these] = self.MedShkDstn[t].draw(N)
                 MedPriceNow[these] = self.MedPrice[t]
-        self.shocks["MedShkNow"] = MedShkNow
-        self.shocks["MedPriceNow"] = MedPriceNow
+        self.shocks["MedShk"] = MedShkNow
+        self.shocks["MedPrice"] = MedPriceNow
 
-    def getControls(self):
+    def get_controls(self):
         """
         Calculates consumption and medical care for each consumer of this type using the consumption
         and medical care functions.
@@ -872,15 +844,15 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cLvlNow[these], MedNow[these] = self.solution[t].policyFunc(
-                self.state_now['mLvlNow'][these],
-                self.state_now['pLvlNow'][these],
-                self.shocks["MedShkNow"][these],
+                self.state_now['mLvl'][these],
+                self.state_now['pLvl'][these],
+                self.shocks["MedShk"][these],
             )
-        self.controls['cLvlNow'] = cLvlNow
-        self.controls['MedNow'] = MedNow
+        self.controls['cLvl'] = cLvlNow
+        self.controls['Med'] = MedNow
         return None
 
-    def getPostStates(self):
+    def get_poststates(self):
         """
         Calculates end-of-period assets for each consumer of this type.
 
@@ -892,10 +864,10 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        self.state_now['aLvlNow'] = self.state_now['mLvlNow'] - self.controls['cLvlNow'] - self.shocks["MedPriceNow"] * self.controls['MedNow']
+        self.state_now['aLvl'] = self.state_now['mLvl'] - self.controls['cLvl'] - self.shocks["MedPrice"] * self.controls['Med']
 
         # moves now to prev
-        AgentType.getPostStates(self)
+        AgentType.get_poststates(self)
 
         return None
 
@@ -908,12 +880,53 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
     Class for solving the one period problem for the "medical shocks" model, in
     which consumers receive shocks to permanent and transitory income as well as
     shocks to "medical need"-- multiplicative utility shocks for a second good.
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to next period's one period problem.
+    IncShkDstn : distribution.Distribution
+        A discrete
+        approximations to the income process between the period being solved
+        and the one immediately following (in solution_next).
+    MedShkDstn : distribution.Distribution
+        Discrete distribution of the multiplicative utility shifter for med-
+        ical care. 
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion for composite consumption.
+    CRRAmed : float
+        Coefficient of relative risk aversion for medical care.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    MedPrice : float
+        Price of unit of medical care relative to unit of consumption.
+    pLvlNextFunc : float
+        Expected permanent income next period as a function of current pLvl.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period (normalized) asset values-- assets
+        above the absolute minimum acceptable level.
+    pLvlGrid: np.array
+        Array of permanent income levels at which to solve the problem.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear inter-
+        polation.
     """
 
     def __init__(
         self,
         solution_next,
-        IncomeDstn,
+        IncShkDstn,
         MedShkDstn,
         LivPrb,
         DiscFac,
@@ -931,74 +944,26 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         """
         Constructor for a new solver for a one period problem with idiosyncratic
         shocks to permanent and transitory income and shocks to medical need.
-
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
-        MedShkDstn : [np.array]
-            Discrete distribution of the multiplicative utility shifter for med-
-            ical care. Order: probabilities, preference shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion for composite consumption.
-        CRRAmed : float
-            Coefficient of relative risk aversion for medical care.
-        Rfree : float
-            Risk free interest factor on end-of-period assets.
-        MedPrice : float
-            Price of unit of medical care relative to unit of consumption.
-        pLvlNextFunc : float
-            Expected permanent income next period as a function of current pLvl.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period (normalized) asset values-- assets
-            above the absolute minimum acceptable level.
-        pLvlGrid: np.array
-            Array of permanent income levels at which to solve the problem.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear inter-
-            polation.
-
-        Returns
-        -------
-        None
         """
-        self.assignParameters(
-            solution_next=solution_next,
-            IncomeDstn=IncomeDstn,
-            MedShkDstn=MedShkDstn,
-            LivPrb=LivPrb,
-            DiscFac=DiscFac,
-            CRRA=CRRA,
-            CRRAmed=CRRAmed,
-            Rfree=Rfree,
-            MedPrice=MedPrice,
-            pLvlNextFunc=pLvlNextFunc,
-            BoroCnstArt=BoroCnstArt,
-            aXtraGrid=aXtraGrid,
-            pLvlGrid=pLvlGrid,
-            vFuncBool=vFuncBool,
-            CubicBool=CubicBool,
-            PermGroFac=0.0,
-        )  # dummy value required?
-        self.defUtilityFuncs()
+        self.solution_next = solution_next
+        self.IncShkDstn = IncShkDstn
+        self.MedShkDstn = MedShkDstn
+        self.LivPrb = LivPrb
+        self.DiscFac = DiscFac
+        self.CRRA = CRRA
+        self.CRRAmed = CRRAmed
+        self.Rfree = Rfree
+        self.MedPrice = MedPrice
+        self.pLvlNextFunc = pLvlNextFunc
+        self.BoroCnstArt = BoroCnstArt
+        self.aXtraGrid = aXtraGrid
+        self.pLvlGrid = pLvlGrid
+        self.vFuncBool = vFuncBool
+        self.CubicBool = CubicBool
+        self.PermGroFac = 0.0
+        self.def_utility_funcs()
 
-    def setAndUpdateValues(self, solution_next, IncomeDstn, LivPrb, DiscFac):
+    def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.  These include:
@@ -1011,11 +976,10 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
+        IncShkDstn : distribution.Distribution
+            A discrete
             approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
+            and the one immediately following (in solution_next).
         LivPrb : float
             Survival probability; likelihood of being alive at the beginning of
             the succeeding period.
@@ -1027,15 +991,15 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         None
         """
         # Run basic version of this method
-        ConsGenIncProcessSolver.setAndUpdateValues(
-            self, self.solution_next, self.IncomeDstn, self.LivPrb, self.DiscFac
+        ConsGenIncProcessSolver.set_and_update_values(
+            self, self.solution_next, self.IncShkDstn, self.LivPrb, self.DiscFac
         )
 
         # Also unpack the medical shock distribution
         self.MedShkPrbs = self.MedShkDstn.pmf
         self.MedShkVals = self.MedShkDstn.X
 
-    def defUtilityFuncs(self):
+    def def_utility_funcs(self):
         """
         Defines CRRA utility function for this period (and its derivatives,
         and their inverses), saving them as attributes of self for other methods
@@ -1050,12 +1014,12 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         -------
         none
         """
-        ConsGenIncProcessSolver.defUtilityFuncs(self)  # Do basic version
+        ConsGenIncProcessSolver.def_utility_funcs(self)  # Do basic version
         self.uMedPinv = lambda Med: utilityP_inv(Med, gam=self.CRRAmed)
         self.uMed = lambda Med: utility(Med, gam=self.CRRAmed)
         self.uMedPP = lambda Med: utilityPP(Med, gam=self.CRRAmed)
 
-    def defBoroCnst(self, BoroCnstArt):
+    def def_BoroCnst(self, BoroCnstArt):
         """
         Defines the constrained portion of the consumption function as cFuncNowCnst,
         an attribute of self.  Uses the artificial and natural borrowing constraints.
@@ -1109,7 +1073,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             0.0  # Actually might vary by p, but no use formulating as a function
         )
 
-    def getPointsForInterpolation(self, EndOfPrdvP, aLvlNow):
+    def get_points_for_interpolation(self, EndOfPrdvP, aLvlNow):
         """
         Finds endogenous interpolation points (x,m) for the expenditure function.
 
@@ -1178,7 +1142,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
 
         return x_for_interpolation, m_for_interpolation, p_for_interpolation
 
-    def usePointsForInterpolation(self, xLvl, mLvl, pLvl, MedShk, interpolator):
+    def use_points_for_interpolation(self, xLvl, mLvl, pLvl, MedShk, interpolator):
         """
         Constructs a basic solution for this period, including the consumption
         function and marginal value function.
@@ -1209,7 +1173,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
 
         # Transform the expenditure function into policy functions for consumption and medical care
         aug_factor = 2
-        xLvlGrid = makeGridExpMult(
+        xLvlGrid = make_grid_exp_mult(
             np.min(xLvl), np.max(xLvl), aug_factor * self.aXtraGrid.size, 8
         )
         policyFuncNow = MedShockPolicyFunc(
@@ -1225,7 +1189,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         MedFuncNow = MedThruXfunc(xFuncNow, policyFuncNow.cFunc, self.MedPrice)
 
         # Make the marginal value function (and the value function if vFuncBool=True)
-        vFuncNow, vPfuncNow = self.makevAndvPfuncs(policyFuncNow)
+        vFuncNow, vPfuncNow = self.make_v_and_vP_funcs(policyFuncNow)
 
         # Pack up the solution and return it
         solution_now = ConsumerSolution(
@@ -1235,7 +1199,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         solution_now.policyFunc = policyFuncNow
         return solution_now
 
-    def makevAndvPfuncs(self, policyFunc):
+    def make_v_and_vP_funcs(self, policyFunc):
         """
         Constructs the marginal value function for this period.
 
@@ -1339,15 +1303,15 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             )  # adjust for the lower bound of mLvl
 
         # "Re-curve" the (marginal) value function
-        vPfunc = MargValueFunc2D(vPnvrsFunc, self.CRRA)
+        vPfunc = MargValueFuncCRRA(vPnvrsFunc, self.CRRA)
         if self.vFuncBool:
-            vFunc = ValueFunc2D(vNvrsFunc, self.CRRA)
+            vFunc = ValueFuncCRRA(vNvrsFunc, self.CRRA)
         else:
             vFunc = NullFunc()
 
         return vFunc, vPfunc
 
-    def makeLinearxFunc(self, mLvl, pLvl, MedShk, xLvl):
+    def make_linear_xFunc(self, mLvl, pLvl, MedShk, xLvl):
         """
         Constructs the (unconstrained) expenditure function for this period using
         bilinear interpolation (over permanent income and the medical shock) among
@@ -1395,7 +1359,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         xFuncUnc = VariableLowerBoundFunc3D(xFuncUncBase, self.BoroCnstNat)
         return xFuncUnc
 
-    def makeCubicxFunc(self, mLvl, pLvl, MedShk, xLvl):
+    def make_cubic_xFunc(self, mLvl, pLvl, MedShk, xLvl):
         """
         Constructs the (unconstrained) expenditure function for this period using
         bilinear interpolation (over permanent income and the medical shock) among
@@ -1470,7 +1434,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         xFuncUnc = VariableLowerBoundFunc3D(xFuncUncBase, self.BoroCnstNat)
         return xFuncUnc
 
-    def makeBasicSolution(self, EndOfPrdvP, aLvl, interpolator):
+    def make_basic_solution(self, EndOfPrdvP, aLvl, interpolator):
         """
         Given end of period assets and end of period marginal value, construct
         the basic solution for this period.
@@ -1491,17 +1455,17 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             The solution to this period's consumption-saving problem, with a
             consumption function, marginal value function, and minimum m.
         """
-        xLvl, mLvl, pLvl = self.getPointsForInterpolation(EndOfPrdvP, aLvl)
+        xLvl, mLvl, pLvl = self.get_points_for_interpolation(EndOfPrdvP, aLvl)
         MedShk_temp = np.tile(
             np.reshape(self.MedShkVals, (self.MedShkVals.size, 1, 1)),
             (1, mLvl.shape[1], mLvl.shape[2]),
         )
-        solution_now = self.usePointsForInterpolation(
+        solution_now = self.use_points_for_interpolation(
             xLvl, mLvl, pLvl, MedShk_temp, interpolator
         )
         return solution_now
 
-    def addvPPfunc(self, solution):
+    def add_vPPfunc(self, solution):
         """
         Adds the marginal marginal value function to an existing solution, so
         that the next solver can evaluate vPP and thus use cubic interpolation.
@@ -1518,7 +1482,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             The same solution passed as input, but with the marginal marginal
             value function for this period added as the attribute vPPfunc.
         """
-        vPPfuncNow = MargMargValueFunc2D(solution.vPfunc.cFunc, self.CRRA)
+        vPPfuncNow = MargMargValueFuncCRRA(solution.vPfunc.cFunc, self.CRRA)
         solution.vPPfunc = vPPfuncNow
         return solution
 
@@ -1540,16 +1504,16 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             tion (defined over market resources and permanent income), and human
             wealth as a function of permanent income.
         """
-        aLvl, trash = self.prepareToCalcEndOfPrdvP()
-        EndOfPrdvP = self.calcEndOfPrdvP()
+        aLvl, trash = self.prepare_to_calc_EndOfPrdvP()
+        EndOfPrdvP = self.calc_EndOfPrdvP()
         if self.vFuncBool:
-            self.makeEndOfPrdvFunc(EndOfPrdvP)
+            self.make_EndOfPrdvFunc(EndOfPrdvP)
         if self.CubicBool:
-            interpolator = self.makeCubicxFunc
+            interpolator = self.make_cubic_xFunc
         else:
-            interpolator = self.makeLinearxFunc
-        solution = self.makeBasicSolution(EndOfPrdvP, aLvl, interpolator)
-        solution = self.addMPCandHumanWealth(solution)
+            interpolator = self.make_linear_xFunc
+        solution = self.make_basic_solution(EndOfPrdvP, aLvl, interpolator)
+        solution = self.add_MPC_and_human_wealth(solution)
         if self.CubicBool:
-            solution = self.addvPPfunc(solution)
+            solution = self.add_vPPfunc(solution)
         return solution
