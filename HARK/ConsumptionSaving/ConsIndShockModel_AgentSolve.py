@@ -166,9 +166,10 @@ class ConsumerSolution(ConsumerSolutionOld):
 
     # CDC 20210426: vPfunc is a bad choice for distance; we should change
     # to cFunc but doing so will require recalibrating some of our tests
-    distance_criteria = ["vPfunc"]  # Bad b/c vP(0)=inf; should use cFunc
+#    distance_criteria = ["vPfunc"]  # Bad b/c vP(0)=inf; should use cFunc
+#    distance_criteria = ["vFunc.dm"]  # Bad b/c vP(0)=inf; should use cFunc
 #    distance_criteria = ["mNrmTrg"]  # mNrmTrg is better choice if GICNrm holds
-#    distance_criteria = ["cFunc"]  # cFunc if the GIC fails
+    distance_criteria = ["cFunc"]  # cFunc if the GIC fails
 
     def __init__(self, *args,
                  stge_kind={'iter_status': 'not initialized'},
@@ -183,9 +184,9 @@ class ConsumerSolution(ConsumerSolutionOld):
         bilt = self.bilt = Built()
 
         bilt.recursive = \
-            {'cFunc', 'vFunc',  # 'vPfunc', 'vPPfunc',  # 'vFuncNvrs',
-             #             'u', 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
-             'u',
+            {'cFunc', 'vFunc',  'vPfunc', 'vPPfunc',  # 'vFuncNvrs',
+             'u', 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
+             #             'u',
              'hNrm', 'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA', 'vAdd'
              }
 
@@ -326,8 +327,8 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         del self.MPCmax
         del self.vFunc
         del self.cFunc
-#        del self.vPfunc
-#        del self.vPPfunc
+        del self.vPfunc
+        del self.vPPfunc
 
 #        bilt.completed_cycles = completed_cycles
 #        bilt.parameters_solver = parameters_solver
@@ -848,6 +849,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         uPinv = bild.uPinv
         vFunc_tp1 = folw.vFunc_tp1
         vPfunc_tp1 = folw.vPfunc_tp1
+        vPfunc_tp1 = folw.vPfunc_tp1
 
         _PF_IncNrm_tp1 = Ex_IncNrmNxt
         DiscLiv = DiscFac * LivPrb
@@ -1221,7 +1223,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #        bild.vNvrs = self.soln_crnt.uinv(_vP_t)
 
 #    def build_infhor_facts_from_params_ConsPerfForesightSolver(self):
-
 
     def build_infhor_facts_from_params(self):
         """
@@ -1816,7 +1817,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             print('Breaking because no MPCmin')
             breakpoint()
 
-#        breakpoint()
         for key in (k for k in bilt.recursive
                     if k not in
                     {'solution_next', 'bilt', 'stge_kind', 'folw'}):
@@ -2454,19 +2454,41 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         if bilt.BoroCnstArt is None:
             cFunc = cFuncUnc
         else:
+            # CDC 20210614: LinearInterp and LowerEnvelope are both handmade
+            # We should substitute standard ways to do these things
+            # interpolation.py or scipy.interpolate for interpolation
             bilt.cFuncCnst = LinearInterp(
-                np.array([bilt.mNrmMin, bilt.mNrmMin + 1]
+                np.array([bilt.mNrmMin, bilt.mNrmMin + 1.0]
                          ), np.array([0.0, 1.0]))
             cFunc = LowerEnvelope(cFuncUnc, bilt.cFuncCnst, nan_bool=False)
 
         # Make the marginal value function and the marginal marginal value function
         vPfunc = MargValueFuncCRRA(cFunc, bilt.CRRA)
 
+        # Make the value function and its derivatives
+#        breakpoint()
+
+        # def vFunc(mNrm):
+        #     bilt = self.soln_crnt.bilt
+        #     cNrm = self.soln_crnt.bilt.cFunc(mNrm)
+        #     aNrm = mNrm - cNrm
+        #     u = self.soln_crnt.bilt.u
+        #     v = u(cNrm)+ bilt.DiscLiv*(bilt.PermGroFac**(1-bilt.CRRA))*vFunc_EOP(aNrm)
+        #     return v
+
+        # Need to define vFunc so we can define vFunc.dm
+        bilt.vFunc = vFunc = NullFunc()  # Not calculating the level of value -- yet
+
+        # bilt.vPfunc = bilt.vFunc.dm = MargValueFuncCRRA(cFunc, bilt.CRRA)
+        bilt.vFunc.dm = MargValueFuncCRRA(cFunc, bilt.CRRA)
+
         # Pack up the solution and return it
         solution_interpolating = ConsumerSolutionOneStateCRRA(
             cFunc=cFunc,
+            vFunc=vFunc,
             vPfunc=vPfunc,
-            mNrmMin=bilt.mNrmMin
+            mNrmMin=bilt.mNrmMin,
+            CRRA=bilt.CRRA
         )
 
         return solution_interpolating
@@ -2552,7 +2574,6 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         )
         return cFunc_unconstrained
 
-#    def solve_prepared_stage(self):  # solves ONE stage of ConsIndShockSolverBasic
     def solve_prepared_stage(self):  # solves ONE stage of ConsIndShockSolverBasic
         """
         Solves one stage (period, in this model) of the consumption-saving problem.  
@@ -2638,8 +2659,8 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 #        soln_crnt.bilt = def_value_funcs(soln_crnt.bilt, CRRA)
 
         soln_crnt = def_value_funcs(soln_crnt, CRRA)
-        soln_crnt.vPfunc = soln_crnt.bilt.vPfunc
-        soln_crnt.cFunc = soln_crnt.bilt.cFunc
+#        soln_crnt.vPfunc = soln_crnt.bilt.vPfunc
+#        soln_crnt.cFunc = soln_crnt.bilt.cFunc
         if not hasattr(soln_crnt.bilt, 'IncShkDstn'):
             print('not hasattr(soln_crnt.bilt, "IncShkDstn")')
             breakpoint()
@@ -2663,6 +2684,14 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         return soln_crnt
 
     solve = solve_prepared_stage
+
+    def solve_prepared_stage_saver(self):
+        soln_crnt = self.solve_prepared_stage()
+        soln_savr = ConsumerSolutionOneStateCRRA()
+#        breakpoint()
+        return soln_crnt
+
+    solve = solve_prepared_stage_saver
 
     def m_Nrm_tp1(self, shk_vector, a_number):
         """
