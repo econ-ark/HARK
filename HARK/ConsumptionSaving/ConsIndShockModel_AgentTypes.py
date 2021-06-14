@@ -270,13 +270,13 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         # stge_kind['iter_status']="terminal_pseudo" (because in that case
         # the "terminal_pseudo" final solution is used to construct the
         # augmented "terminal" solution)
-        
+
         # no value in afterlife:
         def vFunc(m): return 0.
         vFunc.dm = vPfunc = vFunc
-        vFunc.dm.dm = vPPfunc =  vFunc
-        
-        def cFunc(m): return float('inf') # With CRRA utility, c=inf gives v=0
+        vFunc.dm.dm = vPPfunc = vFunc
+
+        def cFunc(m): return float('inf')  # With CRRA utility, c=inf gives v=0
 
         solution_afterlife_nobequest_ = ConsumerSolutionOneStateCRRA(
             vFunc=vFunc,
@@ -304,7 +304,7 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
                     'iter_status': 'terminal_pseudo',  # will be replaced with iterator
                     'term_type': 'nobequest'
                 })
-        
+
         solution_nobequest_.solution_next = solution_afterlife_nobequest_
         # solution_terminal_ is defined for legacy/compatability reasons
         # Otherwise would be better to just explicitly use solution_nobequest_
@@ -313,22 +313,23 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         # so make a deepcopy so that if multiple agents get created, we
         # always use the unaltered "master" solution_terminal_
         self.solution_terminal = deepcopy(solution_terminal_)
-        
+
 # class solution_stone_geary(ConsumerSolutionOneStateCRRA):
 #     def __init__(
-#             self, solution_startfrom=None, cycles=1, pseudo_terminal=False, 
+#             self, solution_startfrom=None, cycles=1, pseudo_terminal=False,
 #             stone_geary = 0,
 #             equiv_life_periods = 1,
 #             CRRA = 2,
 #             **kwds):
-    
+
+
 class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
     """
 
     Must be inherited by a subclass
     that fleshes out the rest of the characteristics of the agent, e.g. the
     PerfForesightConsumerType or MertonSamuelsonConsumerType or something.
-    
+
     The bequest utility function is assumed to be of the Stone-Geary form
     and to have a scale reflecting the number of periods worth of consumption
     that it is equivalent to in the limit.  (In the limit as wealth approaches
@@ -347,45 +348,45 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
     problem. If no value is supplied, the terminal solution defaults
     to the case in which the consumer spends all available resources,
     obtaining no residual utility from any unspent m.
-    
+
     stone_geary : float
         This parameter is added to the argument of the bequest utility function
     in order to make bequests a luxury good
-    
+
     equiv_life_periods : float
         Limiting number of periods worth of consumption that the bequest is 
     equivalent to
     """
-    
+
     def __init__(
-            self, solution_startfrom=None, cycles=1, pseudo_terminal=False, 
-            stone_geary = 1.0,
-            equiv_life_periods = 1.0,
-            CRRA = 2,
+            self, solution_startfrom=None, cycles=1, pseudo_terminal=False,
+            stone_geary=1.0,
+            equiv_life_periods=1.0,
+            CRRA=2,
             **kwds):
 
         ConsumerSolutionOneStateCRRA.__init__(self,
-            cycles=cycles, # allow finite or infinite horizon
-            pseudo_terminal=False, CRRA=CRRA,
-            **kwds)
-        
-        bilt = self.bilt # alias
-        
+                                              cycles=cycles,  # allow finite or infinite horizon
+                                              pseudo_terminal=False, CRRA=CRRA,
+                                              **kwds)
+
+        bilt = self.bilt  # alias
+
         if (equiv_life_periods == 0.0):
-            msg = 'With zero equiv_life_periods '+\
+            msg = 'With zero equiv_life_periods ' +\
                 'parameters, the model exhibits no bequest motive.'
-                
+
             nobequest_agent = consumer_terminal_nobequest_onestate(
-                )
+            )
             self.solution_terminal = nobequest_agent.solution_terminal
-            
-            # Only reason to use the bequest type here instead of nobequest 
-            # is to get the infrastructure for solving the PF liquidity 
+
+            # Only reason to use the bequest type here instead of nobequest
+            # is to get the infrastructure for solving the PF liquidity
             # constrained problem.  That is below.
-            
+
             # Add infrastructure for piecewise linear PF solution
-            bilt.mNrm_cusp = 0.0 # then 'cusp' => cannot die in debt  
-            bilt.vNrm_cusp = -float('inf') # yields neg inf value
+            bilt.mNrm_cusp = 0.0  # then 'cusp' => cannot die in debt
+            bilt.vNrm_cusp = -float('inf')  # yields neg inf value
             bilt.vInv_cusp = 0.0
             bilt.mNrm_kinks = [bilt.mNrm_cusp]
             bilt.vNrm_kinks = [bilt.vNrm_cusp]
@@ -394,47 +395,47 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
             return
 
         if (stone_geary == 0.0):
-            msg = 'With stone_geary parameter of zero, the bequest motive '+\
+            msg = 'With stone_geary parameter of zero, the bequest motive ' +\
                 'is equivlent to equiv_life_periods worth of consumption.'
             _log.info(msg)
-        
-        # The entire bequest enters the utility function 
-        bequest_entering_utility = LinearInterp( 
-            [0.,1.],[0.,1.]        
-            )
-        
+
+        # The entire bequest enters the utility function
+        bequest_entering_utility = LinearInterp(
+            [0., 1.], [0., 1.]
+        )
+
         sab = solution_afterlife_bequest_ = ConsumerSolutionOneStateCRRA(
-            cFunc = bequest_entering_utility,
-            u=u_stone_geary,uP=uP_stone_geary,uPP=uPP_stone_geary,
-            vFunc=u_stone_geary,vPfunc=uP_stone_geary,vPPfunc=uPP_stone_geary,
+            cFunc=bequest_entering_utility,
+            u=u_stone_geary, uP=uP_stone_geary, uPP=uPP_stone_geary,
+            vFunc=u_stone_geary, vPfunc=uP_stone_geary, vPPfunc=uPP_stone_geary,
             mNrmMin=0.0,
             MPCmin=1.0,
             MPCmax=1.0,
             stge_kind={
                 'iter_status': 'afterlife',
                 'term_type': 'bequest_warmglow_homothetic'},
-            completed_cycles=-1 
+            completed_cycles=-1
         )
         ρ = sab.bilt.CRRA = CRRA
         η = sab.bilt.stone_geary = stone_geary
-        ℶ = sab.bilt.equiv_life_periods = equiv_life_periods # Hebrew bet 
+        ℶ = sab.bilt.equiv_life_periods = equiv_life_periods  # Hebrew bet
 
         if (equiv_life_periods == 0.0):
-            bilt.vNrm_cusp = -float('inf') # then 'cusp' => cannot die in debt
+            bilt.vNrm_cusp = -float('inf')  # then 'cusp' => cannot die in debt
         else:
             bequest_size = 0.0
-            bilt.vNrm_cusp = CRRAutility(bilt.mNrm_cusp, CRRA)+\
-                ℶ * u_stone_geary(bequest_size,CRRA,stone_geary)
+            bilt.vNrm_cusp = CRRAutility(bilt.mNrm_cusp, CRRA) +\
+                ℶ * u_stone_geary(bequest_size, CRRA, stone_geary)
 
-        bilt.mNrm_kinks = [bilt.mNrm_cusp] # zero if no bequest motive
+        bilt.mNrm_kinks = [bilt.mNrm_cusp]  # zero if no bequest motive
         bilt.vInv_uncons = [self.bilt.uinv(bilt.vNrm_cusp)]
         bilt.vInv_constr = [self.bilt.uinv(bilt.u(0.))]
         # See PerfForesightConsumerType for MPC derivation
         if ℶ == 0.0:
             bilt.MPC_constr = [1/(1+0.0)]
         else:
-            bilt.MPC_constr = [1/(1+(ℶ**(-1/ρ)))] 
-            
+            bilt.MPC_constr = [1/(1+(ℶ**(-1/ρ)))]
+
         # solution_bequest_= ConsumerSolutionOneStateCRRA(
         #     cFunc = self.cFunc,
         #     mNrmMin=0.0,
@@ -457,34 +458,33 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
         breakpoint()
         MPC_constr = self.bilt.MPC_constr
         mNrm_kinks = self.bilt.mNrm_kinks
-        constr_0 = np.heaviside(m-mNrm_kinks[0], 0.) # 0 if constrained, else 1
-        c_constr = (1-constr_0)*m # m if m < kink
+        constr_0 = np.heaviside(m-mNrm_kinks[0], 0.)  # 0 if constrained, else 1
+        c_constr = (1-constr_0)*m  # m if m < kink
         c_uncons = constr_0*(c_constr+MPC_constr[0]*(m-mNrm_kinks[0]))
-        return c_constr+c_uncons 
-    
+        return c_constr+c_uncons
+
 #     def u(self, c, CRRA, stone_geary):
 #         return u_stone_geary(c, CRRA, stone_geary)
 
 # #    def uP(self, c, CRRA, stone_geary):
 # #        return uP_stone_geary(c, CRRA, stone_geary)
-    
+
 #     def uP(self, c):
 #         CRRA = self.bilt.CRRA
 #         stone_geary = self.bilt.stone_geary
 #         return uP_stone_geary(c, CRRA, stone_geary)
-    
+
 #     def uPP(self, c, CRRA, stone_geary):
 #         return uPP_stone_geary(c, CRRA, stone_geary)
-    
+
 #     def vFunc(self, m):
 #         return self.u(m, self.CRRA, self.stone_geary)
 
 #     def vPfunc(self, m):
 #         return self.u(m, self.CRRA, self.stone_geary)
-        
+
 #     def vPPfunc(self, m):
 #         return self.u(m, self.CRRA, self.stone_geary)
-        
 
 
 class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
@@ -631,7 +631,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         self.tolerance = tolerance_orig  # which leaves us ready to solve
         self.cycles = cycles_orig  # with the original convergence criteria
         self.solution[0].bilt.stge_kind['iter_status'] = 'iterator'
-        self.solution[0].bilt.vAdd = np.array([0.0]) # Amount to add to final v
+        self.solution[0].bilt.vAdd = np.array([0.0])  # Amount to add to final v
         self.soln_crnt = self.solution[0]  # current soln is now the newly made one
 
     def agent_post_post_solve(self):  # Overwrites version from AgentTypePlus
@@ -706,7 +706,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
             self.make_solution_for_final_period()
 
         soln_crnt = self.solution[0]
-        soln_crnt.check_conditions(soln_crnt, verbose) # real version on soln
+        soln_crnt.check_conditions(soln_crnt, verbose)  # real version on soln
 
     # def dolo_defs(self):  # CDC 20210415: Beginnings of Dolo integration
     #     self.symbol_calibration = dict(  # not used yet, just created

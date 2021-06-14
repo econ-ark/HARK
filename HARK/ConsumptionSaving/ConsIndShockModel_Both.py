@@ -43,15 +43,15 @@ def def_utility(stge, CRRA):
     none
     """
     bilt = stge.bilt
-    
+
     # Can't use partial() here because it does not allow positional arguments
     # Google: how-to-fill-specific-positional-arguments-with-partial-in-python
     bilt.u = lambda c: CRRAutility(c, CRRA)
     # marginal utility
     # CDC 20210613: Proposed new syntax makes derivatives attributes of function
-    bilt.u.dc = bilt.uP = lambda c: CRRAutilityP(c, CRRA) # dc is der wrt c
+    bilt.u.dc = bilt.uP = lambda c: CRRAutilityP(c, CRRA)  # dc is der wrt c
     # marginal marginal utility
-    bilt.u.dc.dc = bilt.uPP = lambda c: CRRAutilityPP(c, CRRA) # another der
+    bilt.u.dc.dc = bilt.uPP = lambda c: CRRAutilityPP(c, CRRA)  # another der
 
     # Inverses thereof
     bilt.u.dc.inv = bilt.uPinv = lambda uP: CRRAutilityP_inv(uP, CRRA)
@@ -98,6 +98,7 @@ def def_value_funcs(stge, CRRA):
     stge.vFunc = bilt.vFunc = ValueFuncCRRA(bilt.vFuncNvrs, CRRA)
     stge.vFunc.dm = stge.vPfunc = bilt.vPfunc = MargValueFuncCRRA(bilt.cFunc, CRRA)
     stge.vFunc.dm.dm = stge.vPPfunc = bilt.vPPfunc = MargMargValueFuncCRRA(bilt.cFunc, CRRA)
+#    breakpoint()
     return stge
 
 

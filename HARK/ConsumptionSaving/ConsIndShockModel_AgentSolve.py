@@ -849,9 +849,9 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         uPinv = bild.uPinv
         vFunc_tp1 = folw.vFunc_tp1
         vPfunc_tp1 = folw.vPfunc_tp1
-        vPfunc_tp1 = folw.vPfunc_tp1
+        vPPfunc_tp1 = folw.vPPfunc_tp1
 
-        _PF_IncNrm_tp1 = Ex_IncNrmNxt
+        folw.PF_IncNrm_tp1 = Ex_IncNrmNxt
         DiscLiv = DiscFac * LivPrb
         CRRA = bild.CRRA
         CRRA_tp1 = folw.CRRA_tp1
@@ -864,13 +864,13 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
         # Omit first and last points which define extrapolation below and above
         # the kink points
-        mNrm_kinks_tp1 = folw.cFunc_tp1.x_list[:-1][1:]
-        cNrm_kinks_tp1 = folw.cFunc_tp1.y_list[:-1][1:]
+        folw.mNrm_kinks_tp1 = folw.cFunc_tp1.x_list[:-1][1:]
+        folw.cNrm_kinks_tp1 = folw.cFunc_tp1.y_list[:-1][1:]
         vAdd_tp1 = folw.vAdd_tp1
-        vNrm_kinks_tp1 = folw.vFunc_tp1(mNrm_kinks_tp1)
+        folw.vNrm_kinks_tp1 = folw.vFunc_tp1(folw.mNrm_kinks_tp1)
 
         # Calculate end-of-this-period aNrm vals that would reach those mNrm's
-        aNrm_kinks = (mNrm_kinks_tp1 - _PF_IncNrm_tp1)*(PermGroFac/Rfree)
+        aNrm_kinks = (folw.mNrm_kinks_tp1 - folw.PF_IncNrm_tp1)*(PermGroFac/Rfree)
 
         # Obtain c_t from which unconstrained consumers would land on each
         # kink next period by inverting FOC: c_t = (RβΠ)^(-1/ρ) c_tp1
@@ -878,10 +878,10 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         # corresponding to each next-period kink (each of which corresponds
         # to a finite-horizon solution ending one more period in the future)
 
-        cNrm_kinks = (((Rfree * DiscLiv) ** (-1/CRRA_tp1)) *
-                      PermGroFac * cNrm_kinks_tp1)
+        cNrm_kinks = (((Rfree * DiscLiv) ** (-1/folw.CRRA_tp1)) *
+                      PermGroFac * folw.cNrm_kinks_tp1)
 
-        vNrm_kinks = (DiscLiv * PermGroFac**(1-CRRA))*vNrm_kinks_tp1
+        vNrm_kinks = (DiscLiv * PermGroFac**(1-CRRA))*folw.vNrm_kinks_tp1
 
         mNrm_kinks = aNrm_kinks + cNrm_kinks
 
@@ -890,16 +890,16 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         vAdd_kinks = mNrm_kinks-mNrm_kinks
 
         # _v_t(aNrm) is value as of the END of period t
-        # _v_t'(aNrmMin) = RβΠ (Γ**(-ρ)) v_tp1'(bNrmMin+_PF_IncNrmNxt)
-        mNrmMin_tp1 = _PF_IncNrm_tp1 + BoroCnst * (Rfree/PermGroFac)
+        # _v_t'(aNrmMin) = RβΠ (Γ**(-ρ)) folw.v'(bNrmMin+folw.PF_IncNrmNxt)
+        folw.mNrmMin_tp1 = folw.PF_IncNrm_tp1 + BoroCnst * (Rfree/PermGroFac)
 
         _v_t_at_BoroCnst = \
             (DiscLiv * PermGroFac**(1-CRRA_tp1) *
-             vFunc_tp1(mNrmMin_tp1))
+             folw.vFunc_tp1(folw.mNrmMin_tp1))
 
         _vP_t_at_BoroCnst = \
             ((Rfree * DiscLiv) * PermGroFac**(-CRRA_tp1) *
-             vPfunc_tp1(mNrmMin_tp1))
+             folw.vFunc_tp1.dm(folw.mNrmMin_tp1))
 
         # h is the 'horizon': h_t(m_t) is the number of periods it will take
         # before you hit the constraint, after which you remain constrained
@@ -949,15 +949,15 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         # vFuncNvrs_grid = np.array([mNrm_kinks,mNrm_kinks+1])
         # vFuncNvrs = LinearInterp(vFuncNvrs_grid,vFuncNvrs_vals)
         # vFuncNvrsIntercept = mNrm_kinks[-1]
-        # vFuncNvrs_kinks = vFunc_tp1.vFuncNvrs(mNrm_kinks)
+        # vFuncNvrs_kinks = folw.vFunc_tp1.vFuncNvrs(mNrm_kinks)
 
         # To guarantee meeting BoroCnst, if mNrm = BoroCnst then cNrm = 0.
         mNrmGrid_unconst = np.append(mNrm_kinks, mNrm_kinks+1)
         cNrmGrid_unconst = np.append(cNrm_kinks, cNrm_kinks+MPCmin)
         aNrmGrid_unconst = mNrmGrid_unconst-cNrmGrid_unconst
-        mNrmGrid_tp1_unconst = aNrmGrid_unconst*(Rfree/PermGroFac)+_PF_IncNrm_tp1
+        mNrmGrid_tp1_unconst = aNrmGrid_unconst*(Rfree/PermGroFac)+folw.PF_IncNrm_tp1
         vNrmGrid_unconst = u(cNrmGrid_unconst)+(DiscLiv * PermGroFac**(1-CRRA_tp1) *
-                                                vFunc_tp1(mNrmGrid_tp1_unconst))
+                                                folw.vFunc_tp1(mNrmGrid_tp1_unconst))
         vInvGrid_unconst = uinv(vNrmGrid_unconst)
         vInvPGrid_unconst = \
             (((1-CRRA)*vNrmGrid_unconst)**(-1+1/(1-CRRA)))*(cNrmGrid_unconst**(-CRRA))
@@ -1007,9 +1007,9 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #        cNrmGrid = np.append(cNrmGrid, cNrmGrid[-1]+MPCmin)
 #        aNrmGrid = mNrmGrid - cNrmGrid
 #        bNrmGrid_tp1 = aNrmGrid*(Rfree/PermGroFac)
-#        mNrmGrid_tp1 = bNrmGrid_tp1+_PF_IncNrm_tp1
+#        mNrmGrid_tp1 = bNrmGrid_tp1+folw.PF_IncNrm_tp1
 #        vNrmGrid = u(cNrmGrid)+(DiscLiv * PermGroFac**(1-CRRA_tp1) *
-#             vFunc_tp1(mNrmGrid_tp1))
+#             folw.vFunc_tp1(mNrmGrid_tp1))
 #        vInvGrid = (vNrmGrid*(1-CRRA))**(1/(1-CRRA))
 
 #        vInvGrid = np.append(vInvGrid, vInvGrid[-1]+MPCmin**(-CRRA/(1.0-CRRA)))
@@ -1070,8 +1070,8 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         # relevant borrowing constraint
 #        _bNrmMin = aNrmMin*(Rfree/PermGroFac)
 #        mNrmMin = _bNrmMin + BoroCnst
-#        mNrmMin_with_income = mNrmMin + _PF_IncNrmNxt
- #       if c_at_aNrmMin > aNrmMin+_PF_IncNrmNxt-BoroCnst:
+#        mNrmMin_with_income = mNrmMin + folw.PF_IncNrmNxt
+ #       if c_at_aNrmMin > aNrmMin+folw.PF_IncNrmNxt-BoroCnst:
         # The u' from ending this period with aNrm = BoroCnst exceeds
         # u' from the last penny of spending, so the consumer
         # at
@@ -2375,7 +2375,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         def vP_tp1(shk_vector, a_number):
             return shk_vector[0] ** (-bilt.CRRA) \
-                * folw.vPfunc_tp1(self.m_Nrm_tp1(shk_vector, a_number))
+                * folw.vFunc_tp1.dm(self.m_Nrm_tp1(shk_vector, a_number))
 
         EndOfPrdvP = (
             bilt.DiscFac * bilt.LivPrb
@@ -2574,14 +2574,54 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         )
         return cFunc_unconstrained
 
+    def solve_prepared_stage_saver(self):
+        """
+
+        Construct circumstances of an agent who has assets aNrm 
+        an instant before the realization of the shocks that determine
+        next period's states.
+
+        Resulting stage object contains the value function vFunc and 
+        its derivatives.
+
+        Parameters
+        ----------
+        none (all should be on self)
+
+        Returns
+        -------
+        solution : ConsumerSolution
+            The solution to this period/stage's problem.
+        """
+
+        soln_crnt = self.soln_crnt
+        CRRA = soln_crnt.bilt.CRRA
+
+        # Add a bunch of useful info
+        # CDC 20200428: This stuff is "useful" only for a candidate converged solution
+        # in an infinite horizon model.  It's not costly to compute but there's not
+        # much point in computing most of it for a non-final infhor stage or a finhor model
+        # TODO: Distinguish between those things that need to be computed for the
+        # "useful" computations in the final stage, and those that are merely info,
+        # and make mandatory only the computations of the former category
+        self.build_infhor_facts_from_params()
+        self.build_recursive_facts()
+
+        # Current utility functions could be different from future
+        soln_crnt = def_utility(soln_crnt, CRRA)
+
+        return soln_crnt
+
+    solve = solve_prepared_stage_saver
+
     def solve_prepared_stage(self):  # solves ONE stage of ConsIndShockSolverBasic
         """
-        Solves one stage (period, in this model) of the consumption-saving problem.  
+        Solves one stage (period, in this model) of the consumption-saving problem. 
 
         Solution includes a decision rule (consumption function), cFunc,
-        value and marginal value functions vFunc and vPfunc, 
-        a minimum possible level of normalized market resources mNrmMin, 
-        normalized human wealth hNrm, and bounding MPCs MPCmin and MPCmax.  
+        value and marginal value functions vFunc and vPfunc,
+        a minimum possible level of normalized market resources mNrmMin,
+        normalized human wealth hNrm, and bounding MPCs MPCmin and MPCmax. 
 
         If the user chooses sets `CubicBool` to True, cFunc
         have a value function vFunc and marginal marginal value function vPPfunc.
@@ -2595,103 +2635,42 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         solution : ConsumerSolution
             The solution to this period/stage's problem.
         """
-        soln_futr_bilt = self.soln_futr.bilt
-        soln_crnt_bilt = self.soln_crnt.bilt
-#        soln_futr = self.soln_futr
         soln_crnt = self.soln_crnt
         CRRA = soln_crnt.bilt.CRRA
-
-        if soln_futr_bilt.stge_kind['iter_status'] == 'finished':
-            breakpoint()
-            # Should not have gotten here
-            # core.py tests whehter solution_last is 'finished'
-
-        # If this is the first invocation of solve, just flesh out the
+        # If this is the first invocation of ".solve", just flesh out the
         # terminal_pseudo solution so it is a proper starting point for iteration
         # given the further info that has been added since generic
         # solution_terminal was constructed.  This involves copying its
         # contents into the bilt attribute, then invoking the
         # build_infhor_facts_from_params() method
-#        breakpoint()
-        if soln_futr_bilt.stge_kind['iter_status'] == 'terminal_pseudo':
-            # generic AgentType solution_terminal does not have utility or value
-            #            breakpoint()
-
-            soln_futr = soln_crnt = def_utility(soln_crnt, CRRA)
-#            print('Test whether value funcs are already defined; they are in PF case ...')
-#            breakpoint()
-#            soln_futr_bilt = soln_crnt_bilt = def_value_funcs(soln_crnt_bilt, CRRA)
+        if self.soln_futr.bilt.stge_kind['iter_status'] == 'terminal_pseudo':
+            soln_crnt = def_utility(soln_crnt, CRRA)
+            soln_crnt = def_value_funcs(soln_crnt, CRRA)
+            soln_crnt.vFunc = self.soln_crnt.bilt.vFunc  # Need for distance
+#            self.soln_crnt.vPfunc = self.soln_crnt.bilt.vPfunc  # Need for distance
+            soln_crnt.cFunc = self.soln_crnt.bilt.cFunc  # Need for distance
+#            self.soln_crnt.IncShkDstn = self.soln_crnt.bilt.IncShkDstn
             self.build_infhor_facts_from_params()
+
             # Now it is good to go as a starting point for backward induction:
-            soln_crnt_bilt.stge_kind['iter_status'] = 'iterator'
-#            breakpoint()
-            self.soln_crnt.vFunc = self.soln_crnt.bilt.vFunc  # Need for distance
-            self.soln_crnt.vPfunc = self.soln_crnt.bilt.vPfunc  # Need for distance
-            self.soln_crnt.cFunc = self.soln_crnt.bilt.cFunc  # Need for distance
-            self.soln_crnt.IncShkDstn = self.soln_crnt.bilt.IncShkDstn
-            return self.soln_crnt  # Replaces original "terminal" solution; next soln_futr
+            soln_crnt.bilt.stge_kind['iter_status'] = 'iterator'
 
-        # Add a bunch of useful stuff
-        # CDC 20200428: This stuff is "useful" only for a candidate converged solution
-        # in an infinite horizon model.  It's not costly to compute but there's not
-        # much point in computing most of it for a non-final infhor stage or a finhor model
-        # TODO: Distinguish between those things that need to be computed for the
-        # "useful" computations in the final stage, and those that are merely info,
-        # and make mandatory only the computations of the former category
-        self.build_infhor_facts_from_params()
-#        if self.soln_futr.bilt.completed_cycles == 1:
-#            print('about to call recursive on soln_futr.completed_cycles==1')
-#            breakpoint()
-        self.build_recursive_facts()
+            return soln_crnt  # Replaces original "terminal" solution; next soln_futr
 
-        # Current utility functions colud be different from future
-        soln_crnt_bilt = def_utility(soln_crnt, CRRA)
-#        breakpoint()
+        # Calculate everything about "saver" who ends period with aNrm
+        soln_crnt = self.solve_prepared_stage_saver()
+
+        if self.soln_futr.bilt.stge_kind['iter_status'] != 'iterator':
+            return soln_crnt
+
+        CRRA = self.soln_crnt.bilt.CRRA
         sol_EGM = self.make_sol_using_EGM()  # Need to add test for finished, change stge_kind if so
-
-#        breakpoint()
         soln_crnt.bilt.cFunc = soln_crnt.cFunc = sol_EGM.bilt.cFunc
-        # soln_crnt.bilt.vPfunc = soln_crnt.vPfunc = sol_EGM.vPfunc
-        # # Adding vPPfunc does no harm if non-cubic solution is being used
-        # soln_crnt.bilt.vPPfunc = MargMargValueFuncCRRA(soln_crnt.bilt.cFunc, soln_crnt.bilt.CRRA)
-        # Can't build current value function until current consumption function exists
-#        CRRA = soln_crnt.bilt.CRRA
-#        soln_crnt.bilt = def_value_funcs(soln_crnt.bilt, CRRA)
-
         soln_crnt = def_value_funcs(soln_crnt, CRRA)
-#        soln_crnt.vPfunc = soln_crnt.bilt.vPfunc
-#        soln_crnt.cFunc = soln_crnt.bilt.cFunc
-        if not hasattr(soln_crnt.bilt, 'IncShkDstn'):
-            print('not hasattr(soln_crnt.bilt, "IncShkDstn")')
-            breakpoint()
-
-        soln_crnt.IncShkDstn = soln_crnt.bilt.IncShkDstn
-        # Add the value function if requested, as well as the marginal marginal
-        # value function if cubic splines were used for interpolation
-        # CDC 20210428: We should just always make the value function.  The cost
-        # is trivial and making it optional is not worth the maintainence and
-        # mindspace time the option takes in the codebase
-        # if soln_crnt.bilt.vFuncBool:
-        #     soln_crnt.bilt.vFunc = self.vFunc = self.add_vFunc(soln_crnt, self.EndOfPrdvP)
-        # if soln_crnt.bilt.CubicBool:
-        #     soln_crnt.bilt.vPPfunc = self.add_vPPfunc(soln_crnt)
-
-        # EndOfPrdvP=self.soln_crnt.bilt.EndOfPrdvP
-        # aNrmGrid=self.soln_crnt.bilt.aNrmGrid
-
-        # solnow=self.mbs(EndOfPrdvP, aNrmGrid, self.make_cubic_cFunc)
-
+        soln_savr = ConsumerSolutionOneStateCRRA()
         return soln_crnt
 
     solve = solve_prepared_stage
-
-    def solve_prepared_stage_saver(self):
-        soln_crnt = self.solve_prepared_stage()
-        soln_savr = ConsumerSolutionOneStateCRRA()
-#        breakpoint()
-        return soln_crnt
-
-    solve = solve_prepared_stage_saver
 
     def m_Nrm_tp1(self, shk_vector, a_number):
         """
