@@ -18,21 +18,21 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
 
         self.pcct.T_sim = 30
         self.pcct.AgentCount = 10
-        self.pcct.track_vars += ['aNrmNow']
-        self.pcct.initializeSim()
+        self.pcct.track_vars += ['aNrm']
+        self.pcct.initialize_sim()
 
         self.assertFalse(
-            np.any(self.pcct.shocks['AdjustNow'])
+            np.any(self.pcct.shocks['Adjust'])
         )
 
-        self.pcct.simOnePeriod()
+        self.pcct.sim_one_period()
 
         self.assertAlmostEqual(
-            self.pcct.controls["ShareNow"][0],
+            self.pcct.controls["Share"][0],
             0.8627164488246847
         )
         self.assertAlmostEqual(
-            self.pcct.controls["cNrmNow"][0],
+            self.pcct.controls["cNrm"][0],
             1.67874799
         )
 
@@ -43,78 +43,78 @@ class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         self.pcct.T_sim = 30
         self.pcct.AgentCount = 10
         self.pcct.track_vars += [
-            'mNrmNow',
-            'cNrmNow',
-            'ShareNow',
-            'aNrmNow',
-            'RiskyNow',
-            'RportNow',
-            'AdjustNow',
-            'PermShkNow',
-            'bNrmNow'
+            'mNrm',
+            'cNrm',
+            'Share',
+            'aNrm',
+            'Risky',
+            'Rport',
+            'Adjust',
+            'PermShk',
+            'bNrm'
         ]
-        self.pcct.initializeSim()
+        self.pcct.initialize_sim()
 
         self.pcct.simulate()
 
         self.assertAlmostEqual(
-            self.pcct.history['mNrmNow'][0][0], 9.70233892
+            self.pcct.history['mNrm'][0][0], 9.70233892
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['cNrmNow'][0][0], 1.6787479894848298
+            self.pcct.history['cNrm'][0][0], 1.6787479894848298
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['ShareNow'][0][0], 0.8627164488246847
+            self.pcct.history['Share'][0][0], 0.8627164488246847
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['aNrmNow'][0][0], 8.023590930905383
+            self.pcct.history['aNrm'][0][0], 8.023590930905383
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['AdjustNow'][0][0], 1.0
+            self.pcct.history['Adjust'][0][0], 1.0
         )
 
 
         # the next period
         self.assertAlmostEqual(
-            self.pcct.history['RiskyNow'][1][0], 0.8950304697526602
+            self.pcct.history['Risky'][1][0], 0.8950304697526602
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['RportNow'][1][0], 0.9135595661654792
+            self.pcct.history['Rport'][1][0], 0.9135595661654792
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['AdjustNow'][1][0], 1.0
+            self.pcct.history['Adjust'][1][0], 1.0
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['PermShkNow'][1][0], 1.0050166461586711
+            self.pcct.history['PermShk'][1][0], 1.0050166461586711
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['bNrmNow'][1][0], 7.293439643953855
+            self.pcct.history['bNrm'][1][0], 7.293439643953855
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['mNrmNow'][1][0], 8.287859049575047
+            self.pcct.history['mNrm'][1][0], 8.287859049575047
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['cNrmNow'][1][0], 1.5773607434989751
+            self.pcct.history['cNrm'][1][0], 1.5773607434989751
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['ShareNow'][1][0], 0.9337608822146805
+            self.pcct.history['Share'][1][0], 0.9337608822146805
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['aNrmNow'][1][0], 6.710498306076072
+            self.pcct.history['aNrm'][1][0], 6.710498306076072
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['aNrmNow'][15][0], 5.304746367434934
+            self.pcct.history['aNrm'][15][0], 5.304746367434934
         )

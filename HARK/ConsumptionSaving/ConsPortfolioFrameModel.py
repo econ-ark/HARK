@@ -9,11 +9,9 @@ This file also demonstrates a "frame" model architecture.
 import numpy as np
 from scipy.optimize import minimize_scalar
 from copy import deepcopy
-from HARK import HARKobject, NullFunc, FrameAgentType  # Basic HARK features
+from HARK import NullFunc, FrameAgentType  # Basic HARK features
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
-    ValueFunc,  # For representing 1D value function
-    MargValueFunc,  # For representing 1D marginal value function
     utility,  # CRRA utility function
     utility_inv,  # Inverse CRRA utility function
     utilityP,  # CRRA marginal utility function
@@ -21,11 +19,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     utilityP_inv,  # Inverse CRRA marginal utility function
     init_idiosyncratic_shocks,  # Baseline dictionary to build on
 )
-from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
-    ValueFunc2D,  # For representing 2D value function
-    MargValueFunc2D,  # For representing 2D marginal value function
-)
-
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     init_portfolio,
     solveConsPortfolio,
@@ -33,7 +26,7 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
     PortfolioSolution
 )
 
-from HARK.distribution import combineIndepDstns
+from HARK.distribution import combine_indep_dstns
 from HARK.distribution import Lognormal, MeanOneLogNormal, Bernoulli  # Random draws for simulating agents
 from HARK.interpolation import (
     LinearInterp,  # Piecewise linear interpolation
@@ -57,7 +50,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
     # currently not doing anything because still using old
     # initializeSim()
     aggregate_init_values = {
-        'PlvlAggNow' : 1.0
+        'PlvlAgg' : 1.0
     }
 
     def birth_aNrmNow(self, N):
@@ -75,7 +68,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         Birth value for pLvlNow
         """
         pLvlInitMeanNow = self.pLvlInitMean + np.log(
-            self.state_now["PlvlAggNow"]
+            self.state_now["PlvlAgg"]
         )  # Account for newer cohorts having higher permanent income
 
         return Lognormal(
@@ -87,10 +80,10 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
 
     # values to assign to agents at birth
     birth_values = {
-        'ShareNow' : 0,
-        'AdjustNow' : False,
-        'aNrmNow' : birth_aNrmNow,
-        'pLvlNow' : birth_pLvlNow
+        'Share' : 0,
+        'Adjust' : False,
+        'aNrm' : birth_aNrmNow,
+        'pLvl' : birth_pLvlNow
     }
 
     def transition_ShareNow(self):
@@ -104,50 +97,50 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             these = t == self.t_cycle
 
             # Get controls for agents who *can* adjust their portfolio share
-            those = np.logical_and(these, self.shocks['AdjustNow'])
+            those = np.logical_and(these, self.shocks['Adjust'])
 
-            ShareNow[those] = self.solution[t].ShareFuncAdj(self.state_now['mNrmNow'][those])
+            ShareNow[those] = self.solution[t].ShareFuncAdj(self.state_now['mNrm'][those])
 
             # Get Controls for agents who *can't* adjust their portfolio share
             those = np.logical_and(
                 these,
-                np.logical_not(self.shocks['AdjustNow']))
+                np.logical_not(self.shocks['Adjust']))
             ShareNow[those] = self.solution[t].ShareFuncFxd(
-                self.state_now['mNrmNow'][those], ShareNow[those]
+                self.state_now['mNrm'][those], ShareNow[those]
             )
 
-        self.controls["ShareNow"] = ShareNow
+        self.controls["Share"] = ShareNow
 
     def transition_cNrmNow(self):
         """
         Transition method for cNrmNow.
         """
         cNrmNow = np.zeros(self.AgentCount) + np.nan
-        ShareNow = self.controls["ShareNow"]
+        ShareNow = self.controls["Share"]
 
         # Loop over each period of the cycle, getting controls separately depending on "age"
         for t in range(self.T_cycle):
             these = t == self.t_cycle
 
             # Get controls for agents who *can* adjust their portfolio share
-            those = np.logical_and(these, self.shocks['AdjustNow'])
-            cNrmNow[those] = self.solution[t].cFuncAdj(self.state_now['mNrmNow'][those])
+            those = np.logical_and(these, self.shocks['Adjust'])
+            cNrmNow[those] = self.solution[t].cFuncAdj(self.state_now['mNrm'][those])
 
             # Get Controls for agents who *can't* adjust their portfolio share
             those = np.logical_and(
                 these,
-                np.logical_not(self.shocks['AdjustNow']))
+                np.logical_not(self.shocks['Adjust']))
             cNrmNow[those] = self.solution[t].cFuncFxd(
-                self.state_now['mNrmNow'][those], ShareNow[those]
+                self.state_now['mNrm'][those], ShareNow[those]
             )
 
         # Store controls as attributes of self
-        self.controls["cNrmNow"] = cNrmNow
+        self.controls["cNrm"] = cNrmNow
 
     frames = {
-        ('RiskyNow','AdjustNow') : PortfolioConsumerType.getShocks,
-        ('pLvlNow', 'PlvlAggNow', 'bNrmNow', 'mNrmNow') : PortfolioConsumerType.getStates,
-        ('ShareNow') : transition_ShareNow,
-        ('cNrmNow') : transition_cNrmNow,
-        ('aNrmNow', 'aLvlNow') : PortfolioConsumerType.getPostStates
+        ('Risky','Adjust') : PortfolioConsumerType.get_shocks,
+        ('pLvl', 'PlvlAgg', 'bNrm', 'mNrm') : PortfolioConsumerType.get_states,
+        ('Share') : transition_ShareNow,
+        ('cNrm') : transition_cNrmNow,
+        ('aNrm', 'aLvl') : PortfolioConsumerType.get_poststates
     }

@@ -89,8 +89,8 @@ def distance_metric(thing_a, thing_b):
             distance = float(abs(len_a - len_b))
 
     # If both inputs are numbers, return their difference
-    elif isinstance(thing_A, (int, float)) and isinstance(thing_B, (int, float)):
-        distance = float(abs(thing_A - thing_B))
+    elif isinstance(thing_a, (int, float)) and isinstance(thing_b, (int, float)):
+        distance = float(abs(thing_a - thing_b))
     # If both inputs are array-like, return the maximum absolute difference b/w
     # corresponding elements (if same shape); return largest difference in dimensions
     # if shapes do not align.
