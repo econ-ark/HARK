@@ -29,12 +29,16 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
 from HARK.distribution import combine_indep_dstns
 from HARK.distribution import Lognormal, MeanOneLogNormal, Bernoulli  # Random draws for simulating agents
 from HARK.interpolation import (
+    
     LinearInterp,  # Piecewise linear interpolation
     CubicInterp,  # Piecewise cubic interpolation
     LinearInterpOnInterp1D,  # Interpolator over 1D interpolations
     BilinearInterp,  # 2D interpolator
     ConstantFunction,  # Interpolator-like class that returns constant value
     IdentityFunction,  # Interpolator-like class that returns one of its arguments
+    ValueFuncCRRA,
+    MargValueFuncCRRA,
+    MargMargValueFuncCRRA
 )
 
 class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
@@ -137,10 +141,10 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             )
 
         # Store controls as attributes of self
-	# redundant for now
+	    # redundant for now
         self.controls["cNrm"] = cNrmNow
-
-	return cNrmNow
+        
+        return cNrmNow
 
     frames = {
         ('Risky','Adjust') : PortfolioConsumerType.get_shocks,
