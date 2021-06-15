@@ -9,7 +9,7 @@ This file also demonstrates a "frame" model architecture.
 import numpy as np
 from scipy.optimize import minimize_scalar
 from copy import deepcopy
-from HARK import NullFunc, FrameAgentType  # Basic HARK features
+from HARK import NullFunc, Frame, FrameAgentType  # Basic HARK features
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
     utility,  # CRRA utility function
@@ -18,6 +18,9 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     utility_invP,  # Derivative of inverse CRRA utility function
     utilityP_inv,  # Inverse CRRA marginal utility function
     init_idiosyncratic_shocks,  # Baseline dictionary to build on
+)
+from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
+    RiskyAssetConsumerType
 )
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     init_portfolio,
@@ -57,6 +60,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         'PlvlAgg' : 1.0
     }
 
+    # TODO: streamline this so it can draw the parameters from context
     def birth_aNrmNow(self, N):
         """
         Birth value for aNrmNow
@@ -67,6 +71,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             seed=self.RNG.randint(0, 2 ** 31 - 1),
         ).draw(N)
 
+    # TODO: streamline this so it can draw the parameters from context
     def birth_pLvlNow(self, N):
         """
         Birth value for pLvlNow
@@ -82,13 +87,36 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         ).draw(N)
 
 
-    # values to assign to agents at birth
-    birth_values = {
-        'Share' : 0,
-        'Adjust' : False,
-        'aNrm' : birth_aNrmNow,
-        'pLvl' : birth_pLvlNow
-    }
+    def draw_Risky(self):
+        """
+        Gets the attribute Risky as a single draw from a lognormal distribution.
+        Uses the attributes RiskyAvgTrue and RiskyStdTrue if RiskyAvg is time-varying,
+        else just uses the single values from RiskyAvg and RiskyStd.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        if "RiskyDstn" in self.time_vary:
+            RiskyAvg = self.RiskyAvgTrue
+            RiskyStd = self.RiskyStdTrue
+        else:
+            RiskyAvg = self.RiskyAvg
+            RiskyStd = self.RiskyStd
+        RiskyAvgSqrd = RiskyAvg ** 2
+        RiskyVar = RiskyStd ** 2
+
+        mu = np.log(RiskyAvg / (np.sqrt(1.0 + RiskyVar / RiskyAvgSqrd)))
+        sigma = np.sqrt(np.log(1.0 + RiskyVar / RiskyAvgSqrd))
+        self.shocks["Risky"] = Lognormal(
+            mu, sigma, seed=self.RNG.randint(0, 2 ** 31 - 1)
+        ).draw(1)
+
+        return self.shocks["Risky"]
 
     def transition_ShareNow(self, **context):
         """
@@ -146,10 +174,33 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         
         return cNrmNow
 
-    frames = {
-        ('Risky','Adjust') : PortfolioConsumerType.get_shocks,
-        ('pLvl', 'PlvlAgg', 'bNrm', 'mNrm') : PortfolioConsumerType.get_states,
-        ('Share') : transition_ShareNow,
-        ('cNrm') : transition_cNrmNow,
-        ('aNrm', 'aLvl') : PortfolioConsumerType.get_poststates
-    }
+    frames = [
+        Frame(
+            ('Risky'),None, 
+            transition = draw_Risky
+        ),
+        Frame(
+            ('Adjust'),None, 
+            default = {'Adjust' : False},
+            transition = RiskyAssetConsumerType.get_Adjust
+        ),
+        Frame(
+            ('pLvl', 'PlvlAgg', 'bNrm', 'mNrm'), None,
+            default = {'pLvl' : birth_pLvlNow},
+            transition = PortfolioConsumerType.get_states
+        ),
+        Frame(
+            ('Share'), None,
+            default = {'Share' : 0}, 
+            transition = transition_ShareNow
+        ),
+        Frame(
+            ('cNrm'), None, 
+            transition = transition_cNrmNow
+        ),
+        Frame(
+            ('aNrm', 'aLvl'), None,
+            default = {'aNrm' : birth_aNrmNow}, 
+            transition = PortfolioConsumerType.get_poststates
+        )
+    ]

@@ -865,6 +865,28 @@ class AgentType(Model):
             self.history[var_name] = np.empty((self.T_sim, self.AgentCount)) + np.nan
 
 
+class Frame():
+    """
+    """
+
+    def __init__(
+            self,
+            target,
+            scope,
+            default = None,
+            transition = None,
+            objective = None
+    ):
+        """
+        """
+
+        self.target = target # tuple of variables
+        self.scope = scope # tuple of variables
+        self.default = default # default value used in simBirth; a dict
+        self.transition = transition # for use in simulation
+        self.objective = objective # for use in solver
+
+
 class FrameAgentType(AgentType):
     """
     A variation of AgentType that uses Frames to organize
@@ -876,27 +898,23 @@ class FrameAgentType(AgentType):
 
     Attributes
     ----------
-    birth_values : dict
-        The values of properties for agents to take
-        on at birth. Keys are strings naming model
-        variables or parameters. Values may be numbers
-        (int, float, etc.), booleans, or a calleable with
-        one argument, an number of agents N.
-        Calleables are called and the return value is assigned.
 
-    frames : dict
-        Keys are tuples of strings corresponding to model variables.
-        Values are methods.
-        Each frame method should update the the variables
-        named in the key.
-        Frame order is significant here.
+    frames : [Frame]
+        #Keys are tuples of strings corresponding to model variables.
+        #Values are methods.
+        #Each frame method should update the the variables
+        #named in the key.
+        #Frame order is significant here.
     """
 
-    # init : initial states for variables.
-    birth_values = {}
-
     # frames property
-    frames = {}
+    frames = [
+        Frame(
+            ('y'),('x'),
+            transition = lambda x: x^2
+        )
+    ]
+
 
     def sim_one_period(self):
         """
@@ -932,7 +950,7 @@ class FrameAgentType(AgentType):
 
         # transition the variables in the frame
         for frame in self.frames:
-            self.transition_frame(frame, self.frames[frame])
+            self.transition_frame(frame)
 
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
@@ -959,21 +977,26 @@ class FrameAgentType(AgentType):
         -------
         None
         """
-        for var in self.birth_values:
+        for frame in self.frames:
+            for var in frame.target:
 
-            N = np.sum(which_agents)
+                N = np.sum(which_agents)
 
-            if callable(self.birth_values[var]):
-                value = self.birth_values[var](self, N)
-            else:
-                value = self.birth_values[var]
+                if frame.default is not None and var in frame.default:
+                    if callable(frame.default[var]):
+                        value = frame.default[var](self, N)
+                    else:
+                        value = frame.default[var]
 
-            if var in self.state_now:
-                self.state_now[var][which_agents] = value
-            elif var in self.controls:
-                self.controls[var][which_agents] = value
-            elif var in self.shocks:
-                self.shocks[var][which_agents] = value
+                    if var in self.state_now:
+                        ## need to check in case of aggregate variables.. PlvlAgg
+                        if hasattr(self.state_now[var],'__getitem__'):
+                            self.state_now[var][which_agents] = value
+                    elif var in self.controls:
+                        self.controls[var][which_agents] = value
+                    elif var in self.shocks:
+                        ## assuming no aggregate shocks... 
+                        self.shocks[var][which_agents] = value
 
         # from ConsIndShockModel. Needed???
         self.t_age[which_agents] = 0  # How many periods since each agent was born
@@ -991,7 +1014,55 @@ class FrameAgentType(AgentType):
         """
 
         ## simplest version of this.
-        transition(self)
+    def transition_frame(self, frame):
+        """
+        Updates the model variables in `target`
+        using the `transition` function.
+        The transition function will use current model
+        variable state as arguments.
+        """
+
+        # build a context object based on model state variables
+        # and 'self' reference for 'global' variables
+        context = {'self' : self}
+        context.update(self.shocks)
+        context.update(self.controls)
+        context.update(self.state_now)
+
+        # a method for indicating that a 'previous' version
+        # of a variable is intended.
+        # Perhaps store this in a separate notation.py module
+        #def decrement(var_name):
+        #    return var_name + '_'
+
+        # use special notation for the 'previous state' variables
+        #context.update({
+        #    decrement(var) : state_prev[var]
+        #    for var
+        #    in state_prev
+
+        #})
+
+        # limit context to scope of frame
+        local_context = {
+            var : context[var]
+            for var
+            in frame.scope
+        } if frame.scope is not None else context.copy()
+
+        if frame.transition is not None:
+            new_values = frame.transition(
+                **local_context
+            )
+        else:
+            raise Exception(f"Frame has None for transition: {frame}")
+
+        # because the context was a shallow update,
+        # the model values can be modified directly(?)
+        for i in enumerate(frame_target):
+            context[target[i]] = new_values[i]
+
+
 
 
 def solve_agent(agent, verbose):
