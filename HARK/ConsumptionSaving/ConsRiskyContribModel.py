@@ -57,6 +57,13 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     time_inv_ = deepcopy(RiskyAssetConsumerType.time_inv_)
     time_inv_ = time_inv_ + ["DiscreteShareBool"]
 
+    # The new state variables (over those in ConsIndShock) are:
+    # - nMrm: start-of-period risky resources.
+    # - mNrmTilde: post-rebalancing risk-free resources.
+    # - nNrmTilde: post-rebalancing risky resources.
+    # - Share: income-deduction share.
+    # For details, see
+    # https://github.com/Mv77/RiskyContrib/blob/main/RiskyContrib.pdf
     state_vars = RiskyAssetConsumerType.state_vars + [
         "nNrm",
         "mNrmTilde",
