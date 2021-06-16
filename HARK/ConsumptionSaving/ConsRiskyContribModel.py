@@ -93,13 +93,13 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
         # Each stage has its own states and controls, and its methods
         # to find them.
-        self.set_states = {
+        self.get_states = {
             "Reb": self.get_states_Reb,
             "Sha": self.get_states_Sha,
             "Cns": self.get_states_Cns,
         }
 
-        self.set_controls = {
+        self.get_controls = {
             "Reb": self.get_controls_Reb,
             "Sha": self.get_controls_Sha,
             "Cns": self.get_controls_Cns,
@@ -391,8 +391,8 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
         # Sequentially get states and controls of every stage
         for s in self.stages:
-            self.set_states[s]()
-            self.set_controls[s]()
+            self.get_states[s]()
+            self.get_controls[s]()
 
         self.get_post_states()
 
