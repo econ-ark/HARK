@@ -10,63 +10,6 @@ from time import time
 import numpy as np
 
 # %% Define a plotting function
-def plotFuncs3D(functions, bottom, top, N=300, titles=None, ax_labs=None):
-    """
-    Plots 3D function(s) over a given range.
-
-    Parameters
-    ----------
-    functions : [function] or function
-        A single function, or a list of functions, to be plotted.
-    bottom : (float,float)
-        The lower limit of the domain to be plotted.
-    top : (float,float)
-        The upper limit of the domain to be plotted.
-    N : int
-        Number of points in the domain to evaluate.
-    titles: None, or list of string
-        If not None, the titles of the subplots
-
-    Returns
-    -------
-    none
-    """
-    import matplotlib.pyplot as plt
-
-    if type(functions) == list:
-        function_list = functions
-    else:
-        function_list = [functions]
-
-    nfunc = len(function_list)
-
-    # Initialize figure and axes
-    fig = plt.figure(figsize=plt.figaspect(1.0 / nfunc))
-    # Create a mesh
-    x = np.linspace(bottom[0], top[0], N, endpoint=True)
-    y = np.linspace(bottom[1], top[1], N, endpoint=True)
-    X, Y = np.meshgrid(x, y)
-
-    for k in range(nfunc):
-
-        # Add axisplt
-        ax = fig.add_subplot(1, nfunc, k + 1, projection="3d")
-        # ax = fig.add_subplot(1, nfunc, k+1)
-        Z = function_list[k](X, Y)
-        ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap="viridis", edgecolor="none")
-        if ax_labs is not None:
-            ax.set_xlabel(ax_labs[0])
-            ax.set_ylabel(ax_labs[1])
-            ax.set_zlabel(ax_labs[2])
-        # ax.imshow(Z, extent=[bottom[0],top[0],bottom[1],top[1]], origin='lower')
-        # ax.colorbar();
-        if titles is not None:
-            ax.set_title(titles[k])
-
-        ax.set_xlim([bottom[0], top[0]])
-        ax.set_ylim([bottom[1], top[1]])
-
-    plt.show()
 
 
 def plotSlices3D(
@@ -203,10 +146,10 @@ par_infinite["DiscreteShareBool"] = False
 par_infinite["vFuncBool"] = False
 
 # Create agent and solve it.
-InfAgent = RiskyContribConsumerType(tolerance=1e-3, **par_infinite)
+inf_agent = RiskyContribConsumerType(tolerance=1e-3, **par_infinite)
 print("Now solving infinite horizon version")
 t0 = time()
-InfAgent.solve(verbose=True)
+inf_agent.solve(verbose=True)
 t1 = time()
 print("Converged!")
 print("Solving took " + str(t1 - t0) + " seconds.")
@@ -216,13 +159,13 @@ periods = [0]
 n_slices = [0, 2, 6]
 mMax = 20
 
-dfracFunc_Adj = [InfAgent.solution[t].stage_sols["Reb"].dfracFunc_Adj for t in periods]
-ShareFuncSha = [InfAgent.solution[t].stage_sols["Sha"].ShareFunc_Adj for t in periods]
-cFuncFxd = [InfAgent.solution[t].stage_sols["Cns"].cFunc for t in periods]
+dfracFunc = [inf_agent.solution[t].stage_sols["Reb"].dfracFunc_Adj for t in periods]
+ShareFunc = [inf_agent.solution[t].stage_sols["Sha"].ShareFunc_Adj for t in periods]
+cFuncFxd = [inf_agent.solution[t].stage_sols["Cns"].cFunc for t in periods]
 
 # Rebalancing
 plotSlices3D(
-    dfracFunc_Adj,
+    dfracFunc,
     0,
     mMax,
     y_slices=n_slices,
@@ -232,7 +175,7 @@ plotSlices3D(
 )
 # Share
 plotSlices3D(
-    ShareFuncSha,
+    ShareFunc,
     0,
     mMax,
     y_slices=n_slices,
@@ -278,27 +221,23 @@ par_finite["RiskyStd"] = 0.20 * np.sqrt(15)  # Standard deviation of (log) risky
 
 
 # Create and solve
-ContribAgent = RiskyContribConsumerType(**par_finite)
+contrib_agent = RiskyContribConsumerType(**par_finite)
 print("Now solving")
 t0 = time()
-ContribAgent.solve()
+contrib_agent.solve()
 t1 = time()
 print("Solving took " + str(t1 - t0) + " seconds.")
 
 # Plot Policy functions
 periods = [0, 2, 3]
 
-dfracFunc_Adj = [
-    ContribAgent.solution[t].stage_sols["Reb"].dfracFunc_Adj for t in periods
-]
-ShareFuncSha = [
-    ContribAgent.solution[t].stage_sols["Sha"].ShareFunc_Adj for t in periods
-]
-cFuncFxd = [ContribAgent.solution[t].stage_sols["Cns"].cFunc for t in periods]
+dfracFunc = [contrib_agent.solution[t].stage_sols["Reb"].dfracFunc_Adj for t in periods]
+ShareFunc = [contrib_agent.solution[t].stage_sols["Sha"].ShareFunc_Adj for t in periods]
+cFuncFxd = [contrib_agent.solution[t].stage_sols["Cns"].cFunc for t in periods]
 
 # Rebalancing
 plotSlices3D(
-    dfracFunc_Adj,
+    dfracFunc,
     0,
     mMax,
     y_slices=n_slices,
@@ -308,7 +247,7 @@ plotSlices3D(
 )
 # Share
 plotSlices3D(
-    ShareFuncSha,
+    ShareFunc,
     0,
     mMax,
     y_slices=n_slices,
@@ -329,7 +268,7 @@ plotSlices4D(
 )
 
 # %%  Simulate the finite horizon consumer
-ContribAgent.track_vars = [
+contrib_agent.track_vars = [
     "pLvl",
     "t_age",
     "Adjust",
@@ -342,23 +281,23 @@ ContribAgent.track_vars = [
     "Share",
     "dfrac",
 ]
-ContribAgent.T_sim = 4
-ContribAgent.AgentCount = 10
-ContribAgent.initialize_sim()
-ContribAgent.simulate()
+contrib_agent.T_sim = 4
+contrib_agent.AgentCount = 10
+contrib_agent.initialize_sim()
+contrib_agent.simulate()
 
 # %% Format simulation results
 
 import pandas as pd
 
-Data = ContribAgent.history
+df = contrib_agent.history
 
 # Add an id to the simulation results
-agent_id = np.arange(ContribAgent.AgentCount)
-Data["id"] = np.tile(agent_id, (ContribAgent.T_sim, 1))
+agent_id = np.arange(contrib_agent.AgentCount)
+df["id"] = np.tile(agent_id, (contrib_agent.T_sim, 1))
 
 # Flatten variables
-Data = {k: v.flatten(order="F") for k, v in Data.items()}
+df = {k: v.flatten(order="F") for k, v in df.items()}
 
 # Make dataframe
-Data = pd.DataFrame(Data)
+df = pd.DataFrame(df)
