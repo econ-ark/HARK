@@ -87,8 +87,8 @@ class RiskyAssetConsumerType(IndShockConsumerType):
             self.RiskyDstn = ConditionalDistribution(
                 Lognormal.from_mean_std,
                 {
-                    'mu' : self.RiskyAvg,
-                    'sigma' : self.RiskyStd
+                    'mean' : self.RiskyAvg,
+                    'std' : self.RiskyStd
                 },
                 seed=self.RNG.randint(0, 2 ** 31 - 1)
             ).approx(
