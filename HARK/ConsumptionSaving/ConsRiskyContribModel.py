@@ -1099,7 +1099,52 @@ def solve_RiskyContrib_Cns(
     DiscreteShareBool,
     **unused_params
 ):
+    """
+    Solves the consumption stage of the agent's problem
 
+    Parameters
+    ----------
+    solution_next : RiskyContribRebSolution
+        Solution to the first stage of the next period in the agent's problem.
+    ShockDstn : DiscreteDistribution
+        Joint distribution of next period's (0) permanent income shock, (1)
+        transitory income shock, and (2) risky asset return factor.
+    LivPrb : float
+        Probability of surviving until next period.
+    DiscFac : float
+        Time-preference discount factor.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk-free return factor.
+    PermGroFac : float
+        Deterministic permanent income growth factor.
+    BoroCnstArt : float
+        Minimum allowed market resources (must be 0).
+    aXtraGrid : numpy array
+        Exogenous grid for end-of-period risk free resources.
+    nNrmGrid : numpy array
+        Exogenous grid for risky resources.
+    mNrmGrid : numpy array
+        Exogenous grid for risk-free resources.
+    ShareGrid : numpt array
+        Exogenous grid for the income contribution share.
+    vFuncBool : bool
+        Boolean that determines wether the value function's level needs to be
+        computed.
+    AdjustPrb : float
+        Probability thet the agent will be able to adjust his portfolio next
+        period.
+    DiscreteShareBool : bool
+        Boolean that determines whether only a discrete set of contribution
+        shares (ShareGrid) is allowed.
+    
+    Returns
+    -------
+    solution : RiskyContribCnsSolution
+        Solution to the agent's consumption stage problem.
+
+    """
     # Make sure the individual is liquidity constrained.  Allowing a consumer to
     # borrow *and* invest in an asset with unbounded (negative) returns is a bad mix.
     if BoroCnstArt != 0.0:
@@ -1364,7 +1409,36 @@ def solve_RiskyContrib_Sha(
     vFuncBool,
     **unused_params
 ):
+    """
+    Solves the income-contribution-share stag of the agent's problem
 
+    Parameters
+    ----------
+    solution_next : RiskyContribCnsSolution
+        Solution to the agent's consumption stage problem that follows.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    AdjustPrb : float
+        Probability that the agent will be able to rebalance his portfolio
+        next period.
+    mNrmGrid : numpy array
+        Exogenous grid for risk-free resources.
+    nNrmGrid : numpy array
+        Exogenous grid for risky resources.
+    ShareGrid : numpy array
+        Exogenous grid for the income contribution share.
+    DiscreteShareBool : bool
+        Boolean that determines whether only a discrete set of contribution
+        shares (ShareGrid) is allowed.
+    vFuncBool : bool
+        Determines whether the level of the value function is computed.
+
+    Yields
+    ------
+    solution : RiskyContribShaSolution
+        Solution to the income-contribution-share stage of the agent's problem.
+
+    """
     # Unpack solution from the next sub-stage
     vFunc_Cns_next = solution_next.vFunc
     cFunc_next = solution_next.cFunc
@@ -1508,7 +1582,33 @@ def solve_RiskyContrib_Sha(
 def solve_RiskyContrib_Reb(
     solution_next, CRRA, tau, nNrmGrid, mNrmGrid, dfracGrid, vFuncBool, **unused_params
 ):
+    """
+    Solves the asset-rebalancing-stage of the agent's problem
 
+    Parameters
+    ----------
+    solution_next : RiskyContribShaSolution
+        Solution to the income-contribution-share stage problem that follows.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    tau : float
+        Tax rate on risky asset withdrawals.
+    nNrmGrid : numpy array
+        Exogenous grid for risky resources.
+    mNrmGrid : numpy array
+        Exogenous grid for risk-free resources.
+    dfracGrid : numpy array
+        Grid for rebalancing flows. The final grid will be equivalent to
+        [-nNrm*dfracGrid, dfracGrid*mNrm].
+    vFuncBool : bool
+        Determines whether the level of th value function must be computed.
+    
+    Returns
+    -------
+    solution : RiskyContribShaSolution
+        Solution to the asset-rebalancing stage of the agent's problem.
+
+    """
     # Extract next stage's solution
     vFunc_Adj_next = solution_next.vFunc_Adj
     dvdmFunc_Adj_next = solution_next.dvdmFunc_Adj
@@ -1672,9 +1772,57 @@ def solveRiskyContrib(
     vFuncBool,
     AdjustPrb,
     DiscreteShareBool,
-    IndepDstnBool,
 ):
+    """
+    Solve a full period (with its three stages) of the agent's problem
 
+    Parameters
+    ----------
+    solution_next : RiskyContribSolution
+        Solution to next period's problem.
+    ShockDstn : DiscreteDistribution
+        Joint distribution of next period's (0) permanent income shock, (1)
+        transitory income shock, and (2) risky asset return factor.
+    LivPrb : float
+        Probability of surviving until next period.
+    DiscFac : float
+        Time-preference discount factor.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk-free return factor.
+    PermGroFac : float
+        Deterministic permanent income growth factor.
+    tau : float
+        Tax rate on risky asset withdrawals.
+    BoroCnstArt : float
+        Minimum allowed market resources (must be 0).
+    aXtraGrid : numpy array
+        Exogenous grid for end-of-period risk free resources.
+    nNrmGrid : numpy array
+        Exogenous grid for risky resources.
+    mNrmGrid : numpy array
+        Exogenous grid for risk-free resources.
+    ShareGrid : numpy array
+        Exogenous grid for the income contribution share.
+    dfracGrid : numpy array
+        Grid for rebalancing flows. The final grid will be equivalent to
+        [-nNrm*dfracGrid, dfracGrid*mNrm].
+    vFuncBool : bool
+        Determines whether the level of th value function must be computed.
+    AdjustPrb : float
+        Probability that the agent will be able to rebalance his portfolio
+        next period.
+    DiscreteShareBool : bool
+        Boolean that determines whether only a discrete set of contribution
+        shares (ShareGrid) is allowed.
+
+    Returns
+    -------
+    periodSol : RiskyContribSolution
+        Solution to the agent's current-period problem.
+
+    """
     # Pack parameters to be passed to stage-specific solvers
     kws = {
         "ShockDstn": ShockDstn,
@@ -1693,7 +1841,6 @@ def solveRiskyContrib(
         "vFuncBool": vFuncBool,
         "AdjustPrb": AdjustPrb,
         "DiscreteShareBool": DiscreteShareBool,
-        "IndepDstnBool": IndepDstnBool,
     }
 
     # Stages of the problem in chronological order
