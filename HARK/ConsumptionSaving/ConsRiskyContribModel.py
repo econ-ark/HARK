@@ -168,7 +168,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             dvdsFunc_Fxd=dvdsFunc_Cns_term,
         )
 
-        # Rabalancing stage
+        # Rebalancing stage
 
         # Adjusting agent:
         # Withdraw everything from the pension fund and consume everything
@@ -863,7 +863,7 @@ class RiskyContribSolution(MetricObject):
 def rebalance_assets(d, m, n, tau):
     """
     A function that produces post-rebalancing assets for given initial assets,
-    rabalancing action, and tax rate.
+    rebalancing action, and tax rate.
 
     Parameters
     ----------
