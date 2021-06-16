@@ -5,6 +5,7 @@ import HARK.distribution as distribution
 
 from HARK.distribution import (
     Bernoulli,
+    ConditionalDistribution,
     DiscreteDistribution,
     Lognormal,
     MeanOneLogNormal,
@@ -152,6 +153,37 @@ class DistributionClassTests(unittest.TestCase):
     def test_Bernoulli(self):
         self.assertEqual(Bernoulli().draw(1)[0], False)
 
+class ConditionalDistributionClassTests(unittest.TestCase):
+    """
+    Tests for distribution.py sampling distributions
+    with default seed.
+    """
+
+    def test_ConditionalDistribution(self):
+        cd = ConditionalDistribution(Bernoulli, {'p' : [.01, .5, .99]})
+
+        conditions = np.array([0,0,0,0,1,1,1,1,1,1,1,1,2,2,2,2])
+
+        draws = cd.draw(conditions)
+
+        self.assertEqual(draws[:4].sum(), 0)
+        self.assertEqual(draws[-4:].sum(),4)
+        self.assertEqual(cd[2].p.tolist(), .99)
+
+    def test_ConditionalDistribution_approx(self):
+        cd = ConditionalDistribution(
+            Lognormal,
+            {
+                'mu' : [.01, .5, .99],
+                'sigma' : [.05, .05, .05]
+            }
+        )
+
+        approx = cd.approx(10)
+
+        draw = approx[2].draw(5)
+
+        self.assertAlmostEqual(draw[1], 2.93868620)
 
 class MarkovProcessTests(unittest.TestCase):
     """
