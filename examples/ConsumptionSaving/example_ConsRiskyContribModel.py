@@ -12,7 +12,7 @@ import numpy as np
 # %% Define a plotting function
 
 
-def plotSlices3D(
+def plot_slices_3d(
     functions, bot_x, top_x, y_slices, N=300, y_name=None, titles=None, ax_labs=None
 ):
 
@@ -61,7 +61,7 @@ def plotSlices3D(
     plt.show()
 
 
-def plotSlices4D(
+def plot_slices_4d(
     functions,
     bot_x,
     top_x,
@@ -164,7 +164,7 @@ ShareFunc = [inf_agent.solution[t].stage_sols["Sha"].ShareFunc_Adj for t in peri
 cFuncFxd = [inf_agent.solution[t].stage_sols["Cns"].cFunc for t in periods]
 
 # Rebalancing
-plotSlices3D(
+plot_slices_3d(
     dfracFunc,
     0,
     mMax,
@@ -174,7 +174,7 @@ plotSlices3D(
     ax_labs=["m", "d"],
 )
 # Share
-plotSlices3D(
+plot_slices_3d(
     ShareFunc,
     0,
     mMax,
@@ -186,7 +186,7 @@ plotSlices3D(
 
 # Consumption
 shares = [0.0, 0.9]
-plotSlices4D(
+plot_slices_4d(
     cFuncFxd,
     0,
     mMax,
@@ -236,7 +236,7 @@ ShareFunc = [contrib_agent.solution[t].stage_sols["Sha"].ShareFunc_Adj for t in 
 cFuncFxd = [contrib_agent.solution[t].stage_sols["Cns"].cFunc for t in periods]
 
 # Rebalancing
-plotSlices3D(
+plot_slices_3d(
     dfracFunc,
     0,
     mMax,
@@ -246,7 +246,7 @@ plotSlices3D(
     ax_labs=["m", "d"],
 )
 # Share
-plotSlices3D(
+plot_slices_3d(
     ShareFunc,
     0,
     mMax,
@@ -256,7 +256,7 @@ plotSlices3D(
     ax_labs=["m", "S"],
 )
 # Consumption
-plotSlices4D(
+plot_slices_4d(
     cFuncFxd,
     0,
     mMax,
