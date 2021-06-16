@@ -14,6 +14,8 @@ Release Data: TBD
 
 #### Major Changes
 
+* A ConditionalDistribution class for representing conditional probability distributions [#1017](https://github.com/econ-ark/HARK/issues/1017/).
+
 #### Minor Changes
 
 * Fix bug in DCEGM's primary kink finder due to numpy no longer accepting NaN in integer arrays [#990](https://github.com/econ-ark/HARK/pull/990).
