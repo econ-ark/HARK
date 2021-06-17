@@ -1,10 +1,13 @@
 """
-This file contains classes and functions for representing, solving, and simulating
-agents who must allocate their resources among consumption, saving in a risk-free
-asset (with a low return), and saving in a risky asset (with higher average return).
+This file contains a class that adds a risky asset with a log-normal return
+factor to IndShockConsumerType.
+This class is not a fully specified model and therefore has no solution or
+simulation methods. It is meant as a container of methods for dealing with
+risky assets that will be useful to models what will inherit from it.
 """
 import numpy as np
 from copy import deepcopy
+from HARK.utilities import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
     init_idiosyncratic_shocks,  # Baseline dictionary to build on
@@ -41,6 +44,10 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         IndShockConsumerType.__init__(
             self, cycles=cycles, verbose=verbose, quiet=quiet, **kwds
         )
+
+        # These method must be overwritten by classes that inherit from
+        # RiskyAssetConsumerType
+        self.solve_one_period = NullFunc()
 
     def pre_solve(self):
         self.update_solution_terminal()
