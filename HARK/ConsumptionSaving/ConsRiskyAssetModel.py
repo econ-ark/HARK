@@ -15,6 +15,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 
 from HARK.distribution import (
     combine_indep_dstns,
+    IndexDistribution,
     Lognormal,
     Bernoulli,
 )
@@ -90,13 +91,17 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         # Generate a discrete approximation to the risky return distribution if the
         # agent has age-varying beliefs about the risky asset
         if "RiskyAvg" in self.time_vary:
-            self.RiskyDstn = []
-            for t in range(self.T_cycle):
-                self.RiskyDstn.append(
-                    Lognormal.from_mean_std(self.RiskyAvg[t], self.RiskyStd[t]).approx(
-                        self.RiskyCount
-                    )
-                )
+            self.RiskyDstn = IndexDistribution(
+                Lognormal.from_mean_std,
+                {
+                    'mean' : self.RiskyAvg,
+                    'std' : self.RiskyStd
+                },
+                seed=self.RNG.randint(0, 2 ** 31 - 1)
+            ).approx(
+                self.RiskyCount
+            )
+
             self.add_to_time_vary("RiskyDstn")
 
         # Generate a discrete approximation to the risky return distribution if the
@@ -202,25 +207,11 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         """
-        if not ("AdjustPrb" in self.time_vary):
-
-            self.shocks["Adjust"] = Bernoulli(
-                self.AdjustPrb, seed=self.RNG.randint(0, 2 ** 31 - 1)
-            ).draw(self.AgentCount)
-
-        else:
-
-            Adjust = np.zeros(self.AgentCount)  # Initialize shock array
-            for t in range(self.T_cycle):
-                these = t == self.t_cycle
-                N = np.sum(these)
-                if N > 0:
-                    AdjustPrb = self.AdjustPrb[t - 1]
-                    Adjust[these] = Bernoulli(
-                        AdjustPrb, seed=self.RNG.randint(0, 2 ** 31 - 1)
-                    ).draw(N)
-
-            self.shocks["Adjust"] = Adjust
+        self.shocks['Adjust'] = IndexDistribution(
+            Bernoulli,
+            {'p' : self.AdjustPrb},
+            seed=self.RNG.randint(0, 2 ** 31 - 1)
+            ).draw(self.t_cycle)
 
     def initialize_sim(self):
         """
