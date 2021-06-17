@@ -14,7 +14,7 @@ Release Data: TBD
 
 #### Major Changes
 
-* A ConditionalDistribution class for representing conditional probability distributions [#1017](https://github.com/econ-ark/HARK/pull/1018/).
+* A IndexDistribution class for representing time-indexed probability distributions [#1018](https://github.com/econ-ark/pull/1018/).
 * Adds new consumption-savings-portfolio model `RiskyContrib`, which represents an agent who can save in risky and risk-free assets but faces
 frictions to moving funds between them. To circumvent these frictions, he has access to an income-deduction scheme to accumulate risky assets.
 PR: [#832](https://github.com/econ-ark/HARK/pull/832). See [this forthcoming REMARK](https://github.com/Mv77/RiskyContrib) for the model's details.
