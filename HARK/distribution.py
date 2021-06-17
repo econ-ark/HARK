@@ -29,16 +29,16 @@ class Distribution:
         """
         self.RNG = np.random.RandomState(self.seed)
 
-class ConditionalDistribution(Distribution):
+class IndexDistribution(Distribution):
     """
     This class provides a way to define a distribution that
-    is conditional on some set of inputs.
+    is conditional on an index.
 
     The current implementation combines a defined distribution
     class (such as Bernoulli, LogNormal, etc.) with information
     about the conditions on the parameters of the distribution.
 
-    For example, a ConditionalDistribution can be defined as
+    For example, an IndexDistribution can be defined as
     a Bernoulli distribution whose parameter p is a function of
     a different inpute parameter.
 
@@ -79,7 +79,7 @@ class ConditionalDistribution(Distribution):
                 )
         else:
             raise(Exception(
-                f"ConditionalDistribution: Unhandled case for __getitem__ access. y: {y}; conditional: {conditional}"
+                f"IndexDistribution: Unhandled case for __getitem__ access. y: {y}; conditional: {conditional}"
                 ))
 
     def approx(self, N, **kwds):

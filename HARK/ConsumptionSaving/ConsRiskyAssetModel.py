@@ -15,7 +15,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 
 from HARK.distribution import (
     combine_indep_dstns,
-    ConditionalDistribution,
+    IndexDistribution,
     Lognormal,
     Bernoulli,
 )
@@ -91,7 +91,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         # Generate a discrete approximation to the risky return distribution if the
         # agent has age-varying beliefs about the risky asset
         if "RiskyAvg" in self.time_vary:
-            self.RiskyDstn = ConditionalDistribution(
+            self.RiskyDstn = IndexDistribution(
                 Lognormal.from_mean_std,
                 {
                     'mean' : self.RiskyAvg,
@@ -207,7 +207,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.shocks['Adjust'] = ConditionalDistribution(
+        self.shocks['Adjust'] = IndexDistribution(
             Bernoulli,
             {'p' : self.AdjustPrb},
             seed=self.RNG.randint(0, 2 ** 31 - 1)

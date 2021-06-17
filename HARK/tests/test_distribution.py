@@ -5,7 +5,7 @@ import HARK.distribution as distribution
 
 from HARK.distribution import (
     Bernoulli,
-    ConditionalDistribution,
+    IndexDistribution,
     DiscreteDistribution,
     Lognormal,
     MeanOneLogNormal,
@@ -153,14 +153,14 @@ class DistributionClassTests(unittest.TestCase):
     def test_Bernoulli(self):
         self.assertEqual(Bernoulli().draw(1)[0], False)
 
-class ConditionalDistributionClassTests(unittest.TestCase):
+class IndexDistributionClassTests(unittest.TestCase):
     """
     Tests for distribution.py sampling distributions
     with default seed.
     """
 
-    def test_ConditionalDistribution(self):
-        cd = ConditionalDistribution(Bernoulli, {'p' : [.01, .5, .99]})
+    def test_IndexDistribution(self):
+        cd = IndexDistribution(Bernoulli, {'p' : [.01, .5, .99]})
 
         conditions = np.array([0,0,0,0,1,1,1,1,1,1,1,1,2,2,2,2])
 
@@ -170,8 +170,8 @@ class ConditionalDistributionClassTests(unittest.TestCase):
         self.assertEqual(draws[-4:].sum(),4)
         self.assertEqual(cd[2].p.tolist(), .99)
 
-    def test_ConditionalDistribution_approx(self):
-        cd = ConditionalDistribution(
+    def test_IndexDistribution_approx(self):
+        cd = IndexDistribution(
             Lognormal,
             {
                 'mu' : [.01, .5, .99],
@@ -185,8 +185,8 @@ class ConditionalDistributionClassTests(unittest.TestCase):
 
         self.assertAlmostEqual(draw[1], 2.93868620)
 
-    def test_ConditionalDistribution_seeds(self):
-        cd = ConditionalDistribution(
+    def test_IndexDistribution_seeds(self):
+        cd = IndexDistribution(
             Lognormal,
             {
                 'mu' : [1, 1],
