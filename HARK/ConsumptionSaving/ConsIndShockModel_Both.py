@@ -53,9 +53,12 @@ def def_utility(stge, CRRA):
     # marginal marginal utility
     bilt.u.dc.dc = bilt.uPP = lambda c: CRRAutilityPP(c, CRRA)  # another der
 
+    def dudc(stge, c):
+        CRRAutilityP(c, bilt.CRRA)
+
     # Inverses thereof
-    bilt.u.dc.inv = bilt.uPinv = lambda uP: CRRAutilityP_inv(uP, CRRA)
-    bilt.u.dc.inv.du = bilt.uPinvP = lambda uP: CRRAutilityP_invP(uP, CRRA)
+    bilt.u.dc.Nvrs = bilt.uPinv = lambda uP: CRRAutilityP_inv(uP, CRRA)
+    bilt.u.dc.Nvrs.du = bilt.uPinvP = lambda uP: CRRAutilityP_invP(uP, CRRA)
     bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
     bilt.uinv = lambda u: CRRAutility_inv(u, CRRA)
 
