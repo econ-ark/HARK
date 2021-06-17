@@ -185,6 +185,20 @@ class ConditionalDistributionClassTests(unittest.TestCase):
 
         self.assertAlmostEqual(draw[1], 2.93868620)
 
+    def test_ConditionalDistribution_seeds(self):
+        cd = ConditionalDistribution(
+            Lognormal,
+            {
+                'mu' : [1, 1],
+                'sigma' : [1, 1]
+            }
+        )
+
+        draw_0 = cd[0].draw(1).tolist()
+        draw_1 = cd[1].draw(1).tolist()
+
+        self.assertNotEqual(draw_0, draw_1)
+
 class MarkovProcessTests(unittest.TestCase):
     """
     Tests for MarkovProcess class.
