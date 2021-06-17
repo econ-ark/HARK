@@ -1182,24 +1182,10 @@ def solve_RiskyContrib_Cns(
     # STEP ONE
     # Find end-of-period (continuation) value function and its derivatives.
 
-    # It's possible for the agent to end with 0 iliquid assets regardless of
-    # future income and probability of adjustment.
+    # The "inversion" machinery can deal with assets of 0 even if there is a
+    # natural borrowing constraint, so include zeros.
     nNrmGrid = np.concatenate([np.array([0.0]), nNrmGrid])
-
-    # Now, under which parameters do we need to consider the possibility
-    # of the agent ending with 0 liquid assets?:
-    # -If he has guaranteed positive income next period.
-    # -If he is sure he can draw on iliquid assets even if income and liquid
-    #  assets are 0.
-    # If none of these is true, he will not allow his end-of-period liquid
-    # assets to be 0
-    TranShks_next = ShockDstn.X[1]
-    zero_bound = np.min(TranShks_next) == 0.0
-    if (not zero_bound) or (zero_bound and AdjustPrb == 1.0):
-        aNrmGrid = np.insert(aXtraGrid, 0, 0.0)
-    else:
-        # aNrmGrid = aXtraGrid
-        aNrmGrid = np.insert(aXtraGrid, 0, 0.0)
+    aNrmGrid = np.concatenate([np.array([0.0]), aXtraGrid])
 
     # Create tiled arrays with conforming dimensions. These are used
     # to compute expectations at every grid combinations
@@ -1294,7 +1280,7 @@ def solve_RiskyContrib_Cns(
     # values of the functions of interest on a regular (m,n,s) grid. We use
     # trilinear interpolation on those points.
 
-    # Expand the regular m grid to contain 0.
+    # Expand the exogenous m grid to contain 0.
     mNrmGrid = np.insert(mNrmGrid, 0, 0)
 
     # Dimensions might have changed, so re-create tiled arrays
