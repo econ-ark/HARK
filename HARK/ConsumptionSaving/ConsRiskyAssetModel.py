@@ -7,7 +7,7 @@ risky assets that will be useful to models what will inherit from it.
 """
 import numpy as np
 from copy import deepcopy
-from HARK.interpolation import NullFunc
+from HARK.utilities import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
     init_idiosyncratic_shocks,  # Baseline dictionary to build on
