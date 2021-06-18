@@ -1232,7 +1232,7 @@ class CubicHermiteInterp(HARKinterpolator1D):
 
         self.n = len(x_list)
 
-        self._chs = CubicHermiteSpline(x_list, y_list, dydx_list, extrapolate=None)
+        self._chs = CubicHermiteSpline(self.x_list, self.y_list, self.dydx_list, extrapolate=None)
         self.coeffs = np.flip(self._chs.c.T, 1)
 
         # Define lower extrapolation as linear function (or just NaN)

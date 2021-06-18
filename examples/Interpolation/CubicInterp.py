@@ -59,7 +59,7 @@ plt.show()
 x_out = np.linspace(-1, 11, num=41, endpoint=True)
 
 plt.plot(x, y, "o", x_out, f(x_out), "-", x_out, f3(x_out), "-.")
-plt.legend(["data", "hark", "scipy", "hark_new"], loc="best")
+plt.legend(["data", "hark", "hark_new"], loc="best")
 plt.show()
 
 # %% [markdown]
@@ -80,8 +80,6 @@ plt.show()
 # %timeit f3(x_out)
 
 # %% [markdown] pycharm={"name": "#%%\n"}
-# Notice in particular
-# the
-# difference
-# between
-# interpolating and extrapolating for the new ** CubicHermiteInterp **.The difference comes from having to calculate the extrapolation "by hand", since `HARK` uses linear decay extrapolation, whereas for interpolation it returns `scipy`'s result directly.
+# Notice in particular the difference between interpolating and extrapolating for the new ** CubicHermiteInterp **.The difference comes from having to calculate the extrapolation "by hand", since `HARK` uses linear decay extrapolation, whereas for interpolation it returns `scipy`'s result directly.
+
+# %%
