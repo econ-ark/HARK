@@ -10,12 +10,16 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ### 0.12.0
 
-Release Date: TBD
+Release Data: TBD
 
 #### Major Changes
 
 * FrameAgentType for modular definitions of agents [#865](https://github.com/econ-ark/HARK/pull/865)
 * PortfolioConsumerFrameType, a port of PortfolioConsumerType to use Frames [#865](https://github.com/econ-ark/HARK/pull/865)
+* A IndexDistribution class for representing time-indexed probability distributions [#1018](https://github.com/econ-ark/pull/1018/).
+* Adds new consumption-savings-portfolio model `RiskyContrib`, which represents an agent who can save in risky and risk-free assets but faces
+frictions to moving funds between them. To circumvent these frictions, he has access to an income-deduction scheme to accumulate risky assets.
+PR: [#832](https://github.com/econ-ark/HARK/pull/832). See [this forthcoming REMARK](https://github.com/Mv77/RiskyContrib) for the model's details.
 
 #### Minor Changes
 
@@ -62,7 +66,7 @@ interpolation for problems with CRRA utility. See [#888](https://github.com/econ
 
 ### 0.10.8
 
-Release Date: Nov. 05 2020
+Release Data: Nov. 05 2020
 
 #### Major Changes
 
