@@ -15,7 +15,7 @@ from types import SimpleNamespace
 from IPython.lib.pretty import pprint
 from HARK.ConsumptionSaving.ConsIndShockModel_Both import (
     def_utility, def_value_funcs)
-from HARK.distribution import (calc_expectation)
+from HARK.distribution import (calc_expectation, calc_expectation_of_array)
 
 
 class Built(SimpleNamespace):
@@ -1872,13 +1872,13 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         bilt = soln_crnt.bilt  # convenient local alias to reduce clutter
 
         # In which column is each object stored in IncShkDstn?
-        permPos = IncShkDstn.parameters['ShkPosn']['perm']
-        tranPos = IncShkDstn.parameters['ShkPosn']['tran']
+        bilt.permPos = IncShkDstn.parameters['ShkPosn']['perm']
+        bilt.tranPos = IncShkDstn.parameters['ShkPosn']['tran']
 
         # Bcst are "broadcasted" values: serial list of every possible combo
         # Makes it easy to take expectations using 𝔼_dot
-        bilt.permShkValsBcst = permShkValsBcst = IncShkDstn.X[permPos]
-        bilt.tranShkValsBcst = tranShkValsBcst = IncShkDstn.X[tranPos]
+        bilt.permShkValsBcst = permShkValsBcst = IncShkDstn.X[bilt.permPos]
+        bilt.tranShkValsBcst = tranShkValsBcst = IncShkDstn.X[bilt.tranPos]
         bilt.ShkPrbs = ShkPrbs = IncShkDstn.pmf
 
         bilt.permShkPrbs = permShkPrbs = permShkDstn.pmf
@@ -2311,35 +2311,70 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
     def add_E_v_tp1(self):
         bilt = self.soln_crnt.bilt
-        bilt.E.v_tp1 = \
-            lambda shk_vector, a_number, CRRA: \
-            shk_vector[0] ** (1-bilt.CRRA - 0.0) * \
-            self.soln_crnt.folw.vFunc_tp1(self.m_Nrm_tp1(shk_vector, a_number))
+        IncShkDstn = bilt.IncShkDstn
+        aNrmGrid = bilt.aNrmGrid
+        # bilt.E.vals_v_tp1 = \
+        #     lambda shks_perm_tran_bcst, a_number, CRRA: \
+        #     shks_perm_tran_bcst[bilt.permPos] ** (1-bilt.CRRA - 0.0) * \
+        #     self.soln_crnt.folw.vFunc_tp1(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
-        bilt.E.v_tp1.dm = \
-            lambda shk_vector, a_number, CRRA: \
-            shk_vector[0] ** (0-bilt.CRRA - 0.0) * \
-            self.soln_crnt.folw.vFunc_tp1.dm(self.m_Nrm_tp1(shk_vector, a_number))
+        # bilt.E.vals_v_tp1.dm = \
+        #     lambda shks_perm_tran_bcst, a_number, CRRA: \
+        #     shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA - 0.0) * \
+        #     self.soln_crnt.folw.vFunc_tp1.dm(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
-        bilt.E.v_tp1.dm.dm = \
-            lambda shk_vector, a_number, CRRA: \
-            shk_vector[0] ** (0-bilt.CRRA - 1.0) * \
-            self.soln_crnt.folw.vFunc_tp1.dm.dm(self.m_Nrm_tp1(shk_vector, a_number))
+        # bilt.E.vals_v_tp1.dm.dm = \
+        #     lambda shks_perm_tran_bcst, a_number, CRRA: \
+        #     shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA - 1.0) * \
+        #     self.soln_crnt.folw.vFunc_tp1.dm.dm(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
-        bilt.E.v_tp1_derivatives_012 = \
-            lambda shk_vector, a_number, CRRA: \
-            np.array([self.soln_crnt.bilt.E.v_tp1(shk_vector, a_number, CRRA),
-                      self.soln_crnt.bilt.E.v_tp1.dm(shk_vector, a_number, CRRA),
-                      self.soln_crnt.bilt.E.v_tp1.dm.dm(shk_vector, a_number, CRRA)])
+        # bilt.E.vals_v_tp1_derivatives_012 = \
+        #     lambda shks_perm_tran_bcst, a_number, CRRA: \
+        #     np.array([self.soln_crnt.bilt.E.vals_v_tp1(shks_perm_tran_bcst, a_number, CRRA),
+        #               self.soln_crnt.bilt.E.vals_v_tp1.dm(shks_perm_tran_bcst, a_number, CRRA),
+        #               self.soln_crnt.bilt.E.vals_v_tp1.dm.dm(shks_perm_tran_bcst, a_number, CRRA)])
 
-        # bilt.E.v = \
-        #     lambda shk_vector, a_number, CRRA: \
-        #     np.array([shk_vector[0] ** (1-bilt.CRRA - 0.0) *
-        #               self.soln_crnt.folw.vFunc_tp1(self.m_Nrm_tp1(shk_vector, a_number)),
-        #               shk_vector[0] ** (0-bilt.CRRA - 0.0) *
-        #               self.soln_crnt.folw.vFunc_tp1.dm(self.m_Nrm_tp1(shk_vector, a_number)),
-        #               shk_vector[0] ** (0-bilt.CRRA - 1.0) *
-        #               self.soln_crnt.folw.vFunc_tp1.dm.dm(self.m_Nrm_tp1(shk_vector, a_number))])
+        def vals_v_tp1(shks_perm_tran_bcst, a_number):
+            return shks_perm_tran_bcst[bilt.permPos] ** (1-bilt.CRRA - 0.0) * \
+                self.soln_crnt.folw.vFunc_tp1(
+                    self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
+
+        vals_v_tp1.dm = \
+            lambda shks_perm_tran_bcst, a_number: \
+            shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA - 0.0) * \
+            self.soln_crnt.folw.vFunc_tp1.dm(
+                self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
+
+        vals_v_tp1.dm.dm = \
+            lambda shks_perm_tran_bcst, a_number: \
+            shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA - 1.0) * \
+            self.soln_crnt.folw.vFunc_tp1.dm.dm(
+                self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
+
+        vals_v_tp1_derivatives_012 = \
+            lambda shks_perm_tran_bcst, a_number: \
+            np.array([vals_v_tp1(shks_perm_tran_bcst, a_number),
+                      vals_v_tp1.dm(shks_perm_tran_bcst, a_number),
+                      vals_v_tp1.dm.dm(shks_perm_tran_bcst, a_number)])
+
+        bilt.E.v_tp1 = np.squeeze(
+            bilt.DiscFac * bilt.LivPrb
+            * bilt.Rfree
+            * bilt.PermGroFac ** (-bilt.CRRA)
+            * calc_expectation_of_array(
+                IncShkDstn,
+                vals_v_tp1_derivatives_012,
+                aNrmGrid
+            )
+        )
+        # bilt.E.vals_v = \
+        #     lambda shks_perm_tran_bcst, a_number, CRRA: \
+        #     np.array([shks_perm_tran_bcst[bilt.permPos] ** (1-bilt.CRRA - 0.0) *
+        #               self.soln_crnt.folw.vFunc_tp1(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number)),
+        #               shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA - 0.0) *
+        #               self.soln_crnt.folw.vFunc_tp1.dm(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number)),
+        #               shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA - 1.0) *
+        #               self.soln_crnt.folw.vFunc_tp1.dm.dm(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))])
 
     def calc_EndOfPrdvP(self):
         """
@@ -2362,42 +2397,42 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         IncShkDstn = bilt.IncShkDstn
         aNrmGrid = bilt.aNrmGrid
 
-        def Ex_v_tp1(shk_vector, a_number):
-            return shk_vector[0] ** (1-bilt.CRRA) \
-                * folw.vFunc_tp1(self.m_Nrm_tp1(shk_vector, a_number))
+        def vals_v_tp1(shks_perm_tran_bcst, a_number):
+            return shks_perm_tran_bcst[bilt.permPos] ** (1-bilt.CRRA) \
+                * folw.vFunc_tp1(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
-        def Ex_vP_tp1(shk_vector, a_number):
-            return shk_vector[0] ** (0-bilt.CRRA) \
-                * folw.vFunc_tp1.dm(self.m_Nrm_tp1(shk_vector, a_number))
+        def vals_vP_tp1(shks_perm_tran_bcst, a_number):
+            return shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA) \
+                * folw.vFunc_tp1.dm(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
-        def Ex_v_tp1_dm(shk_vector, a_number):
-            return shk_vector[0] ** (0-bilt.CRRA) \
-                * folw.vFunc_tp1.dm(self.m_Nrm_tp1(shk_vector, a_number))
+        def vals_v_tp1_dm(shks_perm_tran_bcst, a_number):
+            return shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA) \
+                * folw.vFunc_tp1.dm(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
-        def Ex_v_tp1_dm_dm(shk_vector, a_number):
-            return shk_vector[0] ** (0-bilt.CRRA - 1.0) \
-                * folw.vFunc_tp1.dm.dm(self.m_Nrm_tp1(shk_vector, a_number))
+        def vals_v_tp1_dm_dm(shks_perm_tran_bcst, a_number):
+            return shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA - 1.0) \
+                * folw.vFunc_tp1.dm.dm(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
-        # def v_and_dvdm_tp1(shk_vector, a_number):
+        # def v_and_dvdm_tp1(shks_perm_tran_bcst, a_number):
         #     return (
-        #         (shk_vector[0] ** (1-bilt.CRRA)) *
-        #         folw.vFunc_tp1(self.m_Nrm_tp1(shk_vector, a_number)),
-        #         (shk_vector[0] ** (0-bilt.CRRA)) *
-        #         folw.vFunc_tp1.dm(self.m_Nrm_tp1(shk_vector, a_number))
+        #         (shks_perm_tran_bcst[bilt.permPos] ** (1-bilt.CRRA)) *
+        #         folw.vFunc_tp1(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number)),
+        #         (shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA)) *
+        #         folw.vFunc_tp1.dm(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
         #     )
 
-        def Ex_vDers_tp1(shk_vector, a_number):
-            return np.array([Ex_v_tp1(shk_vector, a_number),
-                             Ex_v_tp1_dm(shk_vector, a_number),
-                             Ex_v_tp1_dm_dm(shk_vector, a_number)])
+        def vals_vDers_tp1(shks_perm_tran_bcst, a_number):
+            return np.array([vals_v_tp1(shks_perm_tran_bcst, a_number),
+                             vals_v_tp1_dm(shks_perm_tran_bcst, a_number),
+                             vals_v_tp1_dm_dm(shks_perm_tran_bcst, a_number)])
 
         EndOfPrdvP = (
             bilt.DiscFac * bilt.LivPrb
             * bilt.Rfree
             * bilt.PermGroFac ** (-bilt.CRRA)
-            * calc_expectation(
+            * calc_expectation_of_array(
                 IncShkDstn,
-                Ex_vP_tp1,
+                vals_vP_tp1,
                 aNrmGrid
             )
         )
@@ -2406,9 +2441,9 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             bilt.DiscFac * bilt.LivPrb
             * bilt.Rfree
             * bilt.PermGroFac ** (-bilt.CRRA)
-            * calc_expectation(
-                bilt.IncShkDstn,
-                Ex_vDers_tp1,
+            * calc_expectation_of_array(
+                IncShkDstn,
+                vals_vDers_tp1,
                 aNrmGrid
             )
         )
@@ -2452,7 +2487,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
     def use_points_for_interpolation(self, cNrm, mNrm, interpolator):
         """
-        Constructs a basic solution for this period, including the consumption
+        Constructs a solution for this period, including the consumption
         function and marginal value function.
 
         Parameters
@@ -2488,8 +2523,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
                          ), np.array([0.0, 1.0]))
             cFunc = LowerEnvelope(cFuncUnc, bilt.cFuncCnst, nan_bool=False)
 
-        # Make the marginal value function and the marginal marginal value function
-        vPfunc = MargValueFuncCRRA(cFunc, bilt.CRRA)
+        # The marginal value function and the marginal marginal value function
 
         # Make the value function and its derivatives
 #        breakpoint()
@@ -2503,13 +2537,14 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         #     return v
 
         # Need to define vFunc so we can define vFunc.dm
-        bilt.vFunc=vFunc=NullFunc()  # Not calculating the level of value -- yet
+        bilt.vFunc = vFunc = NullFunc()  # Not calculating the level of value -- yet
 
         # bilt.vPfunc = bilt.vFunc.dm = MargValueFuncCRRA(cFunc, bilt.CRRA)
-        bilt.vFunc.dm=MargValueFuncCRRA(cFunc, bilt.CRRA)
-
+        bilt.vFunc.dm = vPfunc = MargValueFuncCRRA(cFunc, bilt.CRRA)
+        bilt.vFunc.dm.dm = MargMargValueFuncCRRA(bilt.cFunc, bilt.CRRA)
+        
         # Pack up the solution and return it
-        solution_interpolating=ConsumerSolutionOneStateCRRA(
+        solution_interpolating = ConsumerSolutionOneStateCRRA(
             cFunc=cFunc,
             vFunc=vFunc,
             vPfunc=vPfunc,
@@ -2541,8 +2576,8 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             The EGM solution to this period's consumption-saving problem, with a
             consumption function, marginal value function, and minimum m.
         """
-        cNrm, mNrm=self.get_source_points_via_EGM(EndOfPrdvP, aNrmGrid)
-        sol_EGM=self.use_points_for_interpolation(cNrm, mNrm, interpolator)
+        cNrm, mNrm = self.get_source_points_via_EGM(EndOfPrdvP, aNrmGrid)
+        sol_EGM = self.use_points_for_interpolation(cNrm, mNrm, interpolator)
 
         return sol_EGM
 
@@ -2562,9 +2597,9 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         solution : ConsumerSolution
             The solution to the single period consumption-saving problem.
         """
-        bilt=self.soln_crnt.bilt
-        uFunc=bilt.u
-        bilt.cNrmGrid=uFunc.dc.Nvrs(bilt.Ex_vDers_tp1[1])
+        bilt = self.soln_crnt.bilt
+        uFunc = bilt.u
+        bilt.cNrmGrid = uFunc.dc.Nvrs(bilt.Ex_vDers_tp1[1])
 
 #        result.cNrm = Vals()  # Levels and derivatives of cNrm
 #        expect.beg = Vals()  # expectations as of the beginning of the stage
@@ -2586,20 +2621,30 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
  #       bilt.EndOfPrdvP = Ex_vDers_tp1[da]
 #        bilt.aNrmGrid = states.end.aNrm.Grid
 
-        breakpoint()
         self.add_E_v_tp1()
-        E = bilt.E
-        bilt.Ex_vDers_tp1[1]
+#         dstn = bilt.IncShkDstn
+#         N = dstn.dim()
+#         dstn_array = np.column_stack(dstn.X)
+#         if N > 1:
+#             dstn_array = dstn_array.T
+
+#         shks_perm_tran_bcst = dstn_array
+#         E = bilt.E
+#         a_number = 1.1
+#         breakpoint()
+# #        vec = E.vals_v_tp1_derivatives_012(shks_perm_tran_bcst, a_number)
+#         bilt.Ex_vDers_tp1[1]
+#         EvPtp1 = bilt.E.v_tp1[1]
 
         # Construct a solution for this period
         if bilt.CubicBool:
-            soln_crnt=self.interpolating_EGM_solution(
-                bilt.Ex_vDers_tp1[1], bilt.aNrmGrid,
+            soln_crnt = self.interpolating_EGM_solution(
+                bilt.E.v_tp1[1], bilt.aNrmGrid,
                 interpolator=self.make_cubic_cFunc
             )
         else:
-            soln_crnt=self.interpolating_EGM_solution(
-                bilt.EndOfPrdvP, bilt.aNrmGrid,
+            soln_crnt = self.interpolating_EGM_solution(
+                bilt.E.v_tp1[1], bilt.aNrmGrid,
                 interpolator=self.make_linear_cFunc
             )
         return soln_crnt
@@ -2620,7 +2665,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         cFunc_unconstrained : LinearInterp
             The unconstrained consumption function for this period.
         """
-        cFunc_unconstrained=LinearInterp(
+        cFunc_unconstrained = LinearInterp(
             mNrm, cNrm, self.soln_crnt.bilt.cFuncLimitIntercept, self.soln_crnt.bilt.cFuncLimitSlope
         )
         return cFunc_unconstrained
@@ -2657,13 +2702,13 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         self.build_recursive_facts()  # These require solution to successor
 
         # Allows current CRRA to be different from future
-        soln_crnt=def_utility(self.soln_crnt, self.soln_crnt.bilt.CRRA)
-        soln_crnt=self.make_ending_states()
-        self.calc_EndOfPrdvP()
+        soln_crnt = def_utility(self.soln_crnt, self.soln_crnt.bilt.CRRA)
+        soln_crnt = self.make_ending_states()
+        self.EndOfPrdvP = self.calc_EndOfPrdvP()
 
         return soln_crnt
 
-    solve=solve_prepared_stage_E_IncShkDstn
+    solve = solve_prepared_stage_E_IncShkDstn
 
     def solve_prepared_stage(self):  # solve ONE stage (ConsIndShockSolver)
         """
@@ -2691,8 +2736,8 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         solution : ConsumerSolution
             The solution to this period/stage's problem.
         """
-        soln_crnt=self.soln_crnt
-        CRRA=soln_crnt.bilt.CRRA
+        soln_crnt = self.soln_crnt
+        CRRA = soln_crnt.bilt.CRRA
         # The first invocation of ".solve" has iter_status='terminal_pseudo':
         # "pseudo" because it is not ready to serve as a proper starting point
         # for backward induction because further info (e.g., utility function)
@@ -2703,16 +2748,16 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         # TODO CDC 20210615: This is a kludge to get things to work without modifying
         # core.py. Think about how to change core.py to address more elegantly
         if self.soln_futr.bilt.stge_kind['iter_status'] == 'terminal_pseudo':
-            soln_crnt=def_utility(soln_crnt, CRRA)
-            soln_crnt=def_value_funcs(soln_crnt, CRRA)
-            soln_crnt.vFunc=self.soln_crnt.bilt.vFunc
-            soln_crnt.cFunc=self.soln_crnt.bilt.cFunc
+            soln_crnt = def_utility(soln_crnt, CRRA)
+            soln_crnt = def_value_funcs(soln_crnt, CRRA)
+            soln_crnt.vFunc = self.soln_crnt.bilt.vFunc
+            soln_crnt.cFunc = self.soln_crnt.bilt.cFunc
 
             # Now that it "knows itself" it can build the facts
             self.build_infhor_facts_from_params()
 
             # NOW mark as good-to-go as starting point for backward induction:
-            self.soln_crnt.bilt.stge_kind['iter_status']='iterator'
+            self.soln_crnt.bilt.stge_kind['iter_status'] = 'iterator'
 
             return soln_crnt  # Replace original "terminal_pseudo" solution
 
@@ -2731,33 +2776,38 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         # Having calculated (marginal value, etc) of saving, construct c
 
-        sol_EGM=self.make_sol_using_EGM()  # Need to add test for finished, change stge_kind if so
-        soln_crnt.bilt.cFunc=soln_crnt.cFunc=sol_EGM.bilt.cFunc
-        soln_crnt=def_value_funcs(soln_crnt, CRRA)
+        sol_EGM = self.make_sol_using_EGM()  # Need to add test for finished, change stge_kind if so
+        soln_crnt.bilt.cFunc = soln_crnt.cFunc = sol_EGM.bilt.cFunc
+        soln_crnt = def_value_funcs(soln_crnt, CRRA)
         return soln_crnt
 
-    solve=solve_prepared_stage
+    solve = solve_prepared_stage
 
-    def m_Nrm_tp1(self, shk_vector, a_number):
+    def mNrm_tp1_from_a_t_bcst(self, shks_perm_tran_bcst, a_number):
         """
-        Computes normalized market resources of the next period
-        from income shocks and current normalized market resources.
+        Returns normalized market resources m of the next period
+        from income shocks and current end-of-period assets a.
 
         Parameters
         ----------
-        shk_vector: [float]
-            Permanent and transitory income shock levels.
+        shks_perm_tran_bcst: 2D nd.array
+            Permanent and transitory income shocks.
 
         a_number: float
-            Normalized market assets this period
+            Normalized end-of-period assets this period
 
         Returns
         -------
-        float
+        1D nd.array of m values conditional as a function of the 
+        2D nd.array of permanent and transitory shocks
            normalized market resources in the next period
         """
-        return self.soln_crnt.bilt.Rfree / (self.soln_crnt.bilt.PermGroFac * shk_vector[0]) \
-            * a_number + shk_vector[1]
+        bilt = self.soln_crnt.bilt
+        permPos = bilt.IncShkDstn.parameters['ShkPosn']['perm']
+        tranPos = bilt.IncShkDstn.parameters['ShkPosn']['tran']
+
+        return bilt.Rfree / (bilt.PermGroFac * shks_perm_tran_bcst[permPos]) \
+            * a_number + shks_perm_tran_bcst[tranPos]
 
 
 class ConsIndShockSolverBasic(ConsIndShockSolverBasicEOP):
@@ -2795,29 +2845,29 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
         """
 
 #        scsr = self.soln_crnt.scsr
-        bilt=self.soln_crnt.bilt
-        folw=self.soln_crnt.folw
+        bilt = self.soln_crnt.bilt
+        folw = self.soln_crnt.folw
 
-        def vPP_tp1(shk_vector, a_number):
-            return shk_vector[0] ** (- bilt.CRRA - 1.0) \
-                * folw.vPPfunc_tp1(self.m_Nrm_tp1(shk_vector, a_number))
+        def vPP_tp1(shks_perm_tran_bcst, a_number):
+            return shks_perm_tran_bcst[bilt.permPos] ** (- bilt.CRRA - 1.0) \
+                * folw.vPPfunc_tp1(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
-        EndOfPrdvPP=(
+        EndOfPrdvPP = (
             bilt.DiscFac * bilt.LivPrb
             * bilt.Rfree
             * bilt.Rfree
             * bilt.PermGroFac ** (-bilt.CRRA - 1.0)
-            * calc_expectation(
+            * calc_expectation_of_array(
                 bilt.IncShkDstn,
                 vPP_tp1,
                 bilt.aNrmGrid
             )
         )
-        dcda=EndOfPrdvPP / bilt.uPP(np.array(cNrm_Vec[1:]))
-        MPC=dcda / (dcda + 1.0)
-        MPC=np.insert(MPC, 0, bilt.MPCmax)
+        dcda = EndOfPrdvPP / bilt.uPP(np.array(cNrm_Vec[1:]))
+        MPC = dcda / (dcda + 1.0)
+        MPC = np.insert(MPC, 0, bilt.MPCmax)
 
-        cFuncUnc=CubicInterp(
+        cFuncUnc = CubicInterp(
             mNrm_Vec, cNrm_Vec, MPC, bilt.MPCmin *
             bilt.hNrm, bilt.MPCmin
         )
@@ -2840,27 +2890,27 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
         """
 
         breakpoint()
-        bilt=self.soln_crnt.bilt
+        bilt = self.soln_crnt.bilt
 
-        def v_Lvl_tp1(shk_vector, a_number):
+        def v_Lvl_tp1(shks_perm_tran_bcst, a_number):
             return (
-                shk_vector[0] ** (1.0 - bilt.CRRA)
+                shks_perm_tran_bcst[bilt.permPos] ** (1.0 - bilt.CRRA)
                 * bilt.PermGroFac ** (1.0 - bilt.CRRA)
-            ) * bilt.vFuncNxt(self.soln_crnt.m_Nrm_tp1(shk_vector, a_number))
-        EndOfPrdv=bilt.DiscLiv * calc_expectation(
+            ) * bilt.vFuncNxt(self.soln_crnt.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
+        EndOfPrdv = bilt.DiscLiv * calc_expectation_of_array(
             bilt.IncShkDstn, v_Lvl_tp1, self.soln_crnt.aNrm
         )
-        EndOfPrdvNvrs=self.soln_crnt.uinv(
+        EndOfPrdvNvrs = self.soln_crnt.uinv(
             EndOfPrdv
         )  # value transformed through inverse utility
-        EndOfPrdvNvrsP=EndOfPrdvP * self.soln_crnt.uinvP(EndOfPrdv)
-        EndOfPrdvNvrs=np.insert(EndOfPrdvNvrs, 0, 0.0)
-        EndOfPrdvNvrsP=np.insert(
+        EndOfPrdvNvrsP = EndOfPrdvP * self.soln_crnt.uinvP(EndOfPrdv)
+        EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
+        EndOfPrdvNvrsP = np.insert(
             EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0]
         )  # This is a very good approximation, vNvrsPP = 0 at the asset minimum
-        aNrm_temp=np.insert(self.soln_crnt.aNrm, 0, self.soln_crnt.BoroCnstNat)
-        EndOfPrdvNvrsFunc=CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
-        self.soln_crnt.EndOfPrdvFunc=ValueFuncCRRA(
+        aNrm_temp = np.insert(self.soln_crnt.aNrm, 0, self.soln_crnt.BoroCnstNat)
+        EndOfPrdvNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
+        self.soln_crnt.EndOfPrdvFunc = ValueFuncCRRA(
             EndOfPrdvNvrsFunc, bilt.CRRA)
 
     def add_vFunc(self, soln_crnt, EndOfPrdvP):
@@ -2883,7 +2933,7 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
             value function (defined over market resources m) as an attribute.
         """
         self.make_EndOfPrdvFunc(EndOfPrdvP)
-        self.vFunc=soln_crnt.vFunc=self.make_vFunc(soln_crnt)
+        self.vFunc = soln_crnt.vFunc = self.make_vFunc(soln_crnt)
         return soln_crnt.vFunc
 
     def make_vFunc(self, soln_crnt):
@@ -2904,29 +2954,29 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
             normalized market resources m: v = vFunc(m).
         """
         # Compute expected value and marginal value on a grid of market resources
-        bilt=self.soln_crnt.bilt
+        bilt = self.soln_crnt.bilt
 
-        mNrm_temp=bilt.mNrmMin + bilt.aXtraGrid
-        cNrm=soln_crnt.cFunc(mNrm_temp)
-        aNrm=mNrm_temp - cNrm
-        vNrm=bilt.u(cNrm) + self.EndOfPrdvFunc(aNrm)
-        vPnow=self.uP(cNrm)
+        mNrm_temp = bilt.mNrmMin + bilt.aXtraGrid
+        cNrm = soln_crnt.cFunc(mNrm_temp)
+        aNrm = mNrm_temp - cNrm
+        vNrm = bilt.u(cNrm) + self.EndOfPrdvFunc(aNrm)
+        vPnow = self.uP(cNrm)
 
         # Construct the beginning value function
-        vNvrs=bilt.uinv(vNrm)  # value transformed through inverse utility
-        vNvrsP=vPnow * bilt.uinvP(vNrm)
-        mNrm_temp=np.insert(mNrm_temp, 0, bilt.mNrmMin)
-        vNvrs=np.insert(vNvrs, 0, 0.0)
-        vNvrsP=np.insert(
+        vNvrs = bilt.uinv(vNrm)  # value transformed through inverse utility
+        vNvrsP = vPnow * bilt.uinvP(vNrm)
+        mNrm_temp = np.insert(mNrm_temp, 0, bilt.mNrmMin)
+        vNvrs = np.insert(vNvrs, 0, 0.0)
+        vNvrsP = np.insert(
             vNvrsP, 0, bilt.MPCmaxEff ** (-bilt.CRRA /
                                           (1.0 - bilt.CRRA))
         )
-        MPCminNvrs=bilt.MPCmin ** (-bilt.CRRA /
+        MPCminNvrs = bilt.MPCmin ** (-bilt.CRRA /
                                      (1.0 - bilt.CRRA))
-        vNvrsFunc=CubicInterp(
+        vNvrsFunc = CubicInterp(
             mNrm_temp, vNvrs, vNvrsP, MPCminNvrs * bilt.hNrm, MPCminNvrs
         )
-        vFunc=ValueFuncCRRA(vNvrsFunc, bilt.CRRA)
+        vFunc = ValueFuncCRRA(vNvrsFunc, bilt.CRRA)
         return vFunc
 
     def add_vPPfunc(self, soln_crnt):  # Deprecated
@@ -2947,8 +2997,8 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
             The same solution passed as input, but with the marginal marginal
             value function for this period added as the attribute vPPfunc.
         """
-        self.vPPfunc=MargMargValueFuncCRRA(soln_crnt.bilt.cFunc, soln_crnt.bilt.CRRA)
-        soln_crnt.bilt.vPPfunc=self.vPPfunc
+        self.vPPfunc = MargMargValueFuncCRRA(soln_crnt.bilt.cFunc, soln_crnt.bilt.CRRA)
+        soln_crnt.bilt.vPPfunc = self.vPPfunc
         return soln_crnt.bilt.vPPfunc
 
 
@@ -3044,13 +3094,13 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         )
 
         # Assign the interest rates as class attributes, to use them later.
-        self.bilt.Rboro=self.Rboro=Rboro
-        self.bilt.Rsave=self.Rsave=Rsave
-        self.bilt.cnstrct={'vFuncBool', 'IncShkDstn'}
+        self.bilt.Rboro = self.Rboro = Rboro
+        self.bilt.Rsave = self.Rsave = Rsave
+        self.bilt.cnstrct = {'vFuncBool', 'IncShkDstn'}
 
-        self.Rboro=Rboro
-        self.Rsave=Rsave
-        self.cnstrct={'vFuncBool', 'IncShkDstn'}
+        self.Rboro = Rboro
+        self.Rsave = Rsave
+        self.cnstrct = {'vFuncBool', 'IncShkDstn'}
 
     def make_cubic_cFunc(self, mNrm, cNrm):
         """
@@ -3070,10 +3120,10 @@ class ConsKinkedRsolver(ConsIndShockSolver):
             The unconstrained consumption function for this period.
         """
         # Call the make_cubic_cFunc from ConsIndShockSolver.
-        cFuncUncKink=super().make_cubic_cFunc(mNrm, cNrm)
+        cFuncUncKink = super().make_cubic_cFunc(mNrm, cNrm)
 
         # Change the coeffients at the kinked points.
-        cFuncUncKink.coeffs[self.i_kink + 1]=[
+        cFuncUncKink.coeffs[self.i_kink + 1] = [
             cNrm[self.i_kink],
             mNrm[self.i_kink + 1] - mNrm[self.i_kink],
             0,
@@ -3099,7 +3149,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         aNrm : np.array
             A 1D array of end-of-period assets; stored as attribute of self.
         """
-        KinkBool=(
+        KinkBool = (
             self.bilt.Rboro > self.bilt.Rsave
         )  # Boolean indicating that there is actually a kink.
         # When Rboro == Rsave, this method acts just like it did in IndShock.
@@ -3107,21 +3157,21 @@ class ConsKinkedRsolver(ConsIndShockSolver):
 
         # Make a grid of end-of-period assets, including *two* copies of a=0
         if KinkBool:
-            aNrm=np.sort(
+            aNrm = np.sort(
                 np.hstack(
                     (np.asarray(self.aXtraGrid) + self.mNrmMin, np.array([0.0, 0.0]))
                 )
             )
         else:
-            aNrm=np.asarray(self.aXtraGrid) + self.mNrmMin
-            aXtraCount=aNrm.size
+            aNrm = np.asarray(self.aXtraGrid) + self.mNrmMin
+            aXtraCount = aNrm.size
 
         # Make tiled versions of the assets grid and income shocks
-        ShkCount=self.bilt.tranShkVals.size
-        aNrm_temp=np.tile(aNrm, (ShkCount, 1))
-        permShkVals_temp=(np.tile(self.bilt.permShkVals, (aXtraCount, 1))).transpose()
-        tranShkVals_temp=(np.tile(self.bilt.tranShkVals, (aXtraCount, 1))).transpose()
-        ShkPrbs_temp=(np.tile(self.ShkPrbs, (aXtraCount, 1))).transpose()
+        ShkCount = self.bilt.tranShkVals.size
+        aNrm_temp = np.tile(aNrm, (ShkCount, 1))
+        permShkVals_temp = (np.tile(self.bilt.permShkVals, (aXtraCount, 1))).transpose()
+        tranShkVals_temp = (np.tile(self.bilt.tranShkVals, (aXtraCount, 1))).transpose()
+        ShkPrbs_temp = (np.tile(self.ShkPrbs, (aXtraCount, 1))).transpose()
 
         # Make a 1D array of the interest factor at each asset gridpoint
         Rfree_vec=self.bilt.Rsave * np.ones(aXtraCount)
