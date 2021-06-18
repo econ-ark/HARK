@@ -30,7 +30,12 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
 )
 
 from HARK.distribution import combine_indep_dstns
-from HARK.distribution import Lognormal, MeanOneLogNormal, Bernoulli  # Random draws for simulating agents
+from HARK.distribution import (
+    IndexDistribution,
+    Lognormal,
+    MeanOneLogNormal,
+    Bernoulli  # Random draws for simulating agents
+)
 from HARK.interpolation import (
     
     LinearInterp,  # Piecewise linear interpolation
@@ -182,7 +187,11 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         Frame(
             ('Adjust'),None, 
             default = {'Adjust' : False},
-            transition = RiskyAssetConsumerType.get_Adjust
+            transition = IndexDistribution(
+                Bernoulli,
+                {'p' : init_portfolio['AdjustPrb']},
+                # seed=self.RNG.randint(0, 2 ** 31 - 1) : TODO: Seed logic
+            ) # self.t_cycle input implied
         ),
         Frame(
             ('pLvl', 'PlvlAgg', 'bNrm', 'mNrm'), None,

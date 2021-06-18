@@ -8,6 +8,7 @@ problem by finding a general equilibrium dynamic rule.
 """
 import sys
 import os
+from HARK.distribution import Distribution
 from distutils.dir_util import copy_tree
 from .utilities import get_arg_names, NullFunc
 from copy import copy, deepcopy
@@ -1051,9 +1052,15 @@ class FrameAgentType(AgentType):
         } if frame.scope is not None else context.copy()
 
         if frame.transition is not None:
-            new_values = frame.transition(
-                **local_context
-            )
+            if isinstance(frame.transition, Distribution):
+                # assume this is an IndexDistribution keyed to age (t_cycle)
+                # for now
+                # later, t_cycle should be included in local context, etc.
+                new_values = frame.transition.draw(self.t_cycle)
+            else: # transition is function of state variables not an exogenous shock
+                new_values = frame.transition(
+                    **local_context
+                )
         else:
             raise Exception(f"Frame has None for transition: {frame}")
 
