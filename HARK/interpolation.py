@@ -1328,6 +1328,54 @@ class CubicHermiteInterp(HARKinterpolator1D):
         return y, dydx
 
 
+    def der_interp(self, nu=1):
+        """
+        Construct a new piecewise polynomial representing the derivative.
+        See `scipy` for additional documentation:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html
+        """
+        return self._chs.derivative(nu)
+
+    def antider_interp(self, nu=1):
+        """
+        Construct a new piecewise polynomial representing the antiderivative.
+
+        Antiderivative is also the indefinite integral of the function,
+        and derivative is its inverse operation.
+
+        See `scipy` for additional documentation:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html
+        """
+        return self._chs.antiderivative(nu)
+
+    def integrate(self, a, b, extrapolate=False):
+        """
+        Compute a definite integral over a piecewise polynomial.
+
+        See `scipy` for additional documentation:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html
+        """
+        return self._chs.integrate(a, b, extrapolate)
+
+    def roots(self, discontinuity=True, extrapolate=False):
+        """
+        Find real roots of the the piecewise polynomial.
+
+        See `scipy` for additional documentation:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html
+        """
+        return self._chs.roots(discontinuity, extrapolate)
+
+    def solve(self, y=0.0, discontinuity=True, extrapolate=False):
+        """
+        Find real solutions of the the equation ``pp(x) == y``.
+
+        See `scipy` for additional documentation:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html
+        """
+        return self._chs.solve(y, discontinuity, extrapolate)
+
+
 class BilinearInterp(HARKinterpolator2D):
     """
     Bilinear full (or tensor) grid interpolation of a function f(x,y).
