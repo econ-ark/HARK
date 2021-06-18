@@ -208,7 +208,7 @@ class ConsumerSolution(ConsumerSolutionOld):
 
         bilt.states = Vals()  # Values of state variables
         bilt.result = Vals()  # Calculated results (like consumption)
-        bilt.E = Expectations()  # Values of expectations
+        bilt.E_t = Expectations()  # Values of expectations
 
         bilt.recursive = \
             {'cFunc', 'vFunc',  'vPfunc', 'vPPfunc',  'vFuncNvrs',
@@ -1177,7 +1177,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #        bild.vNvrs = self.soln_crnt.uinv(_vP_t)
 
 #    def build_infhor_facts_from_params_ConsPerfForesightSolver(self):
-
 
     def build_infhor_facts_from_params(self):
         """
@@ -2313,51 +2312,28 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         bilt = self.soln_crnt.bilt
         IncShkDstn = bilt.IncShkDstn
         aNrmGrid = bilt.aNrmGrid
-        # bilt.E.vals_v_tp1 = \
-        #     lambda shks_perm_tran_bcst, a_number, CRRA: \
-        #     shks_perm_tran_bcst[bilt.permPos] ** (1-bilt.CRRA - 0.0) * \
-        #     self.soln_crnt.folw.vFunc_tp1(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
-
-        # bilt.E.vals_v_tp1.dm = \
-        #     lambda shks_perm_tran_bcst, a_number, CRRA: \
-        #     shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA - 0.0) * \
-        #     self.soln_crnt.folw.vFunc_tp1.dm(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
-
-        # bilt.E.vals_v_tp1.dm.dm = \
-        #     lambda shks_perm_tran_bcst, a_number, CRRA: \
-        #     shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA - 1.0) * \
-        #     self.soln_crnt.folw.vFunc_tp1.dm.dm(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
-
-        # bilt.E.vals_v_tp1_derivatives_012 = \
-        #     lambda shks_perm_tran_bcst, a_number, CRRA: \
-        #     np.array([self.soln_crnt.bilt.E.vals_v_tp1(shks_perm_tran_bcst, a_number, CRRA),
-        #               self.soln_crnt.bilt.E.vals_v_tp1.dm(shks_perm_tran_bcst, a_number, CRRA),
-        #               self.soln_crnt.bilt.E.vals_v_tp1.dm.dm(shks_perm_tran_bcst, a_number, CRRA)])
 
         def vals_v_tp1(shks_perm_tran_bcst, a_number):
             return shks_perm_tran_bcst[bilt.permPos] ** (1-bilt.CRRA - 0.0) * \
                 self.soln_crnt.folw.vFunc_tp1(
                     self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
-        vals_v_tp1.dm = \
-            lambda shks_perm_tran_bcst, a_number: \
-            shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA - 0.0) * \
-            self.soln_crnt.folw.vFunc_tp1.dm(
-                self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
+        def vals_v_tp1_dm(shks_perm_tran_bcst, a_number):
+            return shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA - 0.0) * \
+                self.soln_crnt.folw.vFunc_tp1.dm(
+                    self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
-        vals_v_tp1.dm.dm = \
-            lambda shks_perm_tran_bcst, a_number: \
-            shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA - 1.0) * \
-            self.soln_crnt.folw.vFunc_tp1.dm.dm(
-                self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
+        def vals_v_tp1_dm_dm(shks_perm_tran_bcst, a_number):
+            return shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA - 1.0) * \
+                self.soln_crnt.folw.vFunc_tp1.dm.dm(
+                    self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
-        vals_v_tp1_derivatives_012 = \
-            lambda shks_perm_tran_bcst, a_number: \
-            np.array([vals_v_tp1(shks_perm_tran_bcst, a_number),
-                      vals_v_tp1.dm(shks_perm_tran_bcst, a_number),
-                      vals_v_tp1.dm.dm(shks_perm_tran_bcst, a_number)])
+        def vals_v_tp1_derivatives_012(shks_perm_tran_bcst, a_number):
+            return np.array([vals_v_tp1(shks_perm_tran_bcst, a_number),
+                             vals_v_tp1_dm(shks_perm_tran_bcst, a_number),
+                             vals_v_tp1_dm_dm(shks_perm_tran_bcst, a_number)])
 
-        bilt.E.v_tp1 = np.squeeze(
+        bilt.E_t.v_tp1 = np.squeeze(
             bilt.DiscFac * bilt.LivPrb
             * bilt.Rfree
             * bilt.PermGroFac ** (-bilt.CRRA)
@@ -2367,14 +2343,6 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
                 aNrmGrid
             )
         )
-        # bilt.E.vals_v = \
-        #     lambda shks_perm_tran_bcst, a_number, CRRA: \
-        #     np.array([shks_perm_tran_bcst[bilt.permPos] ** (1-bilt.CRRA - 0.0) *
-        #               self.soln_crnt.folw.vFunc_tp1(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number)),
-        #               shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA - 0.0) *
-        #               self.soln_crnt.folw.vFunc_tp1.dm(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number)),
-        #               shks_perm_tran_bcst[bilt.permPos] ** (0-bilt.CRRA - 1.0) *
-        #               self.soln_crnt.folw.vFunc_tp1.dm.dm(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))])
 
     def calc_EndOfPrdvP(self):
         """
@@ -2542,7 +2510,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         # bilt.vPfunc = bilt.vFunc.dm = MargValueFuncCRRA(cFunc, bilt.CRRA)
         bilt.vFunc.dm = vPfunc = MargValueFuncCRRA(cFunc, bilt.CRRA)
         bilt.vFunc.dm.dm = MargMargValueFuncCRRA(bilt.cFunc, bilt.CRRA)
-        
+
         # Pack up the solution and return it
         solution_interpolating = ConsumerSolutionOneStateCRRA(
             cFunc=cFunc,
@@ -2609,7 +2577,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 #        states.final.aNrmGrid = bilt.aNrmGrid
         # Ex_vDers_tp1 has ders 0, 1, and 2 with respect to m
 
-#        E.final.Ex_vDers_tp1 = bilt.Ex_vDers_tp1
+#        E_t.final.Ex_vDers_tp1 = bilt.Ex_vDers_tp1
 #        Ex_vDers_tp1 = expect.final.Ex_vDers_tp1
  #       da = 1  # Ex_vDers_tp1[da] is derivs wrt a
 
@@ -2632,19 +2600,19 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 #         E = bilt.E
 #         a_number = 1.1
 #         breakpoint()
-# #        vec = E.vals_v_tp1_derivatives_012(shks_perm_tran_bcst, a_number)
+# #        vec = E_t.vals_v_tp1_derivatives_012(shks_perm_tran_bcst, a_number)
 #         bilt.Ex_vDers_tp1[1]
-#         EvPtp1 = bilt.E.v_tp1[1]
+#         EvPtp1 = bilt.E_t.v_tp1[1]
 
         # Construct a solution for this period
         if bilt.CubicBool:
             soln_crnt = self.interpolating_EGM_solution(
-                bilt.E.v_tp1[1], bilt.aNrmGrid,
+                bilt.E_t.v_tp1[1], bilt.aNrmGrid,
                 interpolator=self.make_cubic_cFunc
             )
         else:
             soln_crnt = self.interpolating_EGM_solution(
-                bilt.E.v_tp1[1], bilt.aNrmGrid,
+                bilt.E_t.v_tp1[1], bilt.aNrmGrid,
                 interpolator=self.make_linear_cFunc
             )
         return soln_crnt
@@ -3174,7 +3142,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         ShkPrbs_temp = (np.tile(self.ShkPrbs, (aXtraCount, 1))).transpose()
 
         # Make a 1D array of the interest factor at each asset gridpoint
-        Rfree_vec=self.bilt.Rsave * np.ones(aXtraCount)
+        Rfree_vec = self.bilt.Rsave * np.ones(aXtraCount)
         if KinkBool:
             self.i_kink = (
                 np.sum(aNrm <= 0) - 1
