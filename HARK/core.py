@@ -1066,8 +1066,8 @@ class FrameAgentType(AgentType):
 
         # because the context was a shallow update,
         # the model values can be modified directly(?)
-        for i in enumerate(frame_target):
-            context[target[i]] = new_values[i]
+        for i,t in enumerate(frame.target):
+            context[frame.target[i]] = new_values[i]
 
 
 

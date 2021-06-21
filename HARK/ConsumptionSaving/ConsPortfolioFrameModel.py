@@ -92,36 +92,24 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         ).draw(N)
 
 
-    def draw_Risky(self):
-        """
-        Gets the attribute Risky as a single draw from a lognormal distribution.
-        Uses the attributes RiskyAvgTrue and RiskyStdTrue if RiskyAvg is time-varying,
-        else just uses the single values from RiskyAvg and RiskyStd.
+    def transition(pLvl, aNrm, Rfree, PlvlAgg, PermShk, TranShk):
+        pLvlPrev = pLvl
+        aNrmPrev = aNrm
 
-        Parameters
-        ----------
-        None
+        # This should be computed separately in its own transition
+        RfreeNow = self.Rboro * np.ones(self.AgentCount)
+        RfreeNow[self.state_prev['aNrm'] > 0] = self.Rsave
 
-        Returns
-        -------
-        None
-        """
-        if "RiskyDstn" in self.time_vary:
-            RiskyAvg = self.RiskyAvgTrue
-            RiskyStd = self.RiskyStdTrue
-        else:
-            RiskyAvg = self.RiskyAvg
-            RiskyStd = self.RiskyStd
-        RiskyAvgSqrd = RiskyAvg ** 2
-        RiskyVar = RiskyStd ** 2
+        # Calculate new states: normalized market resources and permanent income level
+        pLvlNow = pLvlPrev * PermShk  # Updated permanent income level
+        # Updated aggregate permanent productivity level
+        PlvlAggNow = PlvlAgg * self.PermShkAggNow
+        # "Effective" interest factor on normalized assets
+        ReffNow = RfreeNow / PermShk
+        bNrmNow = ReffNow * aNrmPrev         # Bank balances before labor income
+        mNrmNow = bNrmNow + TranShk  # Market resources after income
 
-        mu = np.log(RiskyAvg / (np.sqrt(1.0 + RiskyVar / RiskyAvgSqrd)))
-        sigma = np.sqrt(np.log(1.0 + RiskyVar / RiskyAvgSqrd))
-        self.shocks["Risky"] = Lognormal(
-            mu, sigma, seed=self.RNG.randint(0, 2 ** 31 - 1)
-        ).draw(1)
-
-        return self.shocks["Risky"]
+        return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow
 
     def transition_ShareNow(self, **context):
         """
@@ -179,10 +167,19 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         
         return cNrmNow
 
+
     frames = [
+        ## TODO: Income shocks
         Frame(
             ('Risky'),None, 
-            transition = draw_Risky
+            transition = IndexDistribution(
+                Lognormal.from_mean_std,
+                {
+                    'mean' : init_portfolio['RiskyAvg'],
+                    'std' : init_portfolio['RiskyStd']
+                }
+                # seed=self.RNG.randint(0, 2 ** 31 - 1) : TODO: Seed logic
+            )
         ),
         Frame(
             ('Adjust'),None, 
@@ -193,10 +190,12 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                 # seed=self.RNG.randint(0, 2 ** 31 - 1) : TODO: Seed logic
             ) # self.t_cycle input implied
         ),
+        ## TODO risk free return rate
         Frame(
-            ('pLvl', 'PlvlAgg', 'bNrm', 'mNrm'), None,
+            ('pLvl', 'PlvlAgg', 'bNrm', 'mNrm'),
+            ('pLvl', 'aNrm', 'Rfree', 'PlvlAgg', 'PermShk', 'TranShk'),
             default = {'pLvl' : birth_pLvlNow},
-            transition = PortfolioConsumerType.get_states
+            transition = IndShockConsumerType.transition
         ),
         Frame(
             ('Share'), None,
