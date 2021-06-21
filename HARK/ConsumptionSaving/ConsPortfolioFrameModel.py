@@ -29,7 +29,7 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
     PortfolioSolution
 )
 
-from HARK.distribution import combine_indep_dstns
+from HARK.distribution import combine_indep_dstns, add_discrete_outcome_constant_mean
 from HARK.distribution import (
     IndexDistribution,
     Lognormal,
@@ -167,9 +167,36 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         
         return cNrmNow
 
-
+    # maybe replace reference to init_portfolio to self.parameters?
     frames = [
         ## TODO: Income shocks
+        Frame(
+            ('PermShk'), None,
+            # this is discretized before it's sampled
+            transition = IndexDistribution(
+                    MeanOneLogNormal,
+                    {
+                        'sigma' : init_portfolio['PermShkStd']
+                    }
+                ).approx(
+                    init_portfolio['PermShkCount'], tail_N=0
+                )
+        ),
+        Frame(
+            ('TranShk'), None,
+            transition = IndexDistribution(
+                # Need to discretize this "first" to add unemployed in
+                lambda sigma : add_discrete_outcome_constant_mean(
+                    MeanOneLogNormal(sigma = sigma).approx(
+                        init_portfolio['TranShkCount'], tail_N=0
+                    ),
+                    p = init_portfolio['UnempPrb'], x = init_portfolio['IncUnemp']
+                ),
+                {
+                    'sigma' : init_portfolio['PermShkStd']
+                }
+            )
+        ),
         Frame(
             ('Risky'),None, 
             transition = IndexDistribution(
