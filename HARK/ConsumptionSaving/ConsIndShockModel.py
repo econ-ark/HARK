@@ -2171,9 +2171,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
-        newborn = self.t_age == 0
-        for t in range(self.T_cycle):
-            these = t == self.t_cycle
+
+        draw_age = self.t_cycle - 1
+        draw_age[draw_age < 0] = 0
+
+        for t in np.unique(draw_age):
+            these = t == draw_age
             N = np.sum(these)
             if N > 0:
                 IncShkDstnNow = self.IncShkDstn[
@@ -2187,23 +2190,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     IncShks[0, :] * PermGroFacNow
                 )  # permanent "shock" includes expected growth
                 TranShkNow[these] = IncShks[1, :]
-
-        # That procedure used the *last* period in the sequence for newborns, but that's not right
-        # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
-        N = np.sum(newborn)
-        if N > 0:
-            these = newborn
-            IncShkDstnNow = self.IncShkDstn[0]  # set current income distribution
-            PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
-
-            # Get random draws of income shocks from the discrete distribution
-            EventDraws = IncShkDstnNow.draw_events(N)
-            PermShkNow[these] = (
-                IncShkDstnNow.X[0][EventDraws] * PermGroFacNow
-            )  # permanent "shock" includes expected growth
-            TranShkNow[these] = IncShkDstnNow.X[1][EventDraws]
-        #        PermShkNow[newborn] = 1.0
-        TranShkNow[newborn] = 1.0
 
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount, dtype=bool)
