@@ -15,7 +15,7 @@ from HARK.distribution import (calc_expectation, calc_expectation_of_array)
 from HARK.interpolation import (CubicInterp, LowerEnvelope, LinearInterp,
                                 ValueFuncCRRA, MargValueFuncCRRA,
                                 MargMargValueFuncCRRA)
-from HARK import NullFunc, MetricObject
+from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModelOld \
     import ConsumerSolution as ConsumerSolutionOlder
 
@@ -68,10 +68,8 @@ __all__ = [
     "ConsIndShockSolverBasic",
     "ConsIndShockSolverEOP",
     "ConsIndShockSolver",
-    "ConsKinkedRsolver",
     "ConsIndShockSetupEOP",
     "ConsIndShockSetup",
-    "ConsKinkedRsolver",
 ]
 
 
@@ -114,11 +112,11 @@ class ConsumerSolution(ConsumerSolutionOlder):
                  **kwds):
         ConsumerSolutionOlder.__init__(self, *args, **kwds)
 
-        # Most of previous "whiteboard" content is now on "bilt"
+        # Most previous "whiteboard" content is now on "bilt"
         bilt = self.bilt = Built()
         pars = self.pars = Parameters()
         pars.about = {'Parameters exogenously given'}
-        bilt.E_t = Expectations()  # Values of expectations
+        bilt.E_t = Expectations()  # Namespace for expectations
         bilt.Inv_E_t = Expectations()  # Inverses of expected variables
 
         bilt.recursive = \
@@ -128,7 +126,7 @@ class ConsumerSolution(ConsumerSolutionOlder):
              }
 
         # Store recursive stuff in bilt namespace
-        exclude = {''}  # Probably there are things that should be excluded
+        exclude = {''}  # Allow things that should be excluded
         for key in (k for k in bilt.recursive if k not in exclude):  #
             if hasattr(self, key):
                 setattr(bilt, key, self.__dict__[key])
@@ -498,9 +496,9 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         # Add mNrmStE to the solution and return it
         return self.bilt.mNrmStE
 
-# ConsPerfForesightSolver also incorporates calcs and info useful for
-# models in which perfect foresight does not apply (because the contents
-# of the PF model are inherited by a variety of non-PF models)
+# Contents of the PF solver are inherited by a variety of non-PF models
+# so ConsPerfForesightSolver incorporates calcs and info useful for
+# models in which perfect foresight does not apply
 
     def finish_setup_of_default_solution_terminal(self):
         """
@@ -1028,7 +1026,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         # Using local variables makes formulae more readable
         soln_crnt = self.soln_crnt  # current
         bilt = self.soln_crnt.bilt  # built
-        folw = self.soln_crnt.folw  # following
+        folw = self.soln_crnt.folw  # following stage
         pars = self.soln_crnt.pars  # parameters
 
         E_t = bilt.E_t
@@ -2043,7 +2041,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
                 bilt.E_t_cLev_tp1_Over_pLev_t_from_aNrm_num, a_lst
             ))
         )
-        soln_crnt.bilt.E_t_cLev_tp1_Over_pLev_t_from_a_t = \
+        bilt.E_t_cLev_tp1_Over_pLev_t_from_a_t = \
             bilt.E_t_cLev_tp1_Over_pLev_t_from_a_t = (
                 lambda a_t:
                 bilt.E_t_cLev_tp1_Over_pLev_t_from_lst_a_t(a_t)
@@ -2051,7 +2049,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
                 bilt.E_t_cLev_tp1_Over_pLev_t_from_num_a_t(a_t)
             )
 
-        soln_crnt.bilt.E_t_cLev_tp1_Over_pLev_t_from_lst_m_t = \
+        bilt.E_t_cLev_tp1_Over_pLev_t_from_lst_m_t = \
             bilt.E_t_cLev_tp1_Over_pLev_t_from_lst_m_t = (
                 lambda m_t:
                 bilt.E_t_cLev_tp1_Over_pLev_t_from_lst_a_t(m_t -
@@ -2065,14 +2063,14 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
                                                            bilt.cFunc(m_t))
             )
 
-        soln_crnt.bilt.E_t_cLev_tp1_Over_pLev_t_from_num_m_t = \
+        bilt.E_t_cLev_tp1_Over_pLev_t_from_num_m_t = \
             bilt.E_t_cLev_tp1_Over_pLev_t_from_num_m_t = (
                 lambda m_t:
                 bilt.E_t_cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
                                                            bilt.cFunc(m_t))
             )
 
-        soln_crnt.bilt.E_t_cLev_tp1_Over_cLev_t_from_m_t = \
+        bilt.E_t_cLev_tp1_Over_cLev_t_from_m_t = \
             bilt.E_t_cLev_tp1_Over_cLev_t_from_m_t = (
                 lambda m_t:
                 bilt.E_t_cLev_tp1_Over_pLev_t_from_m_t(m_t) /
@@ -2690,211 +2688,3 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
 class ConsIndShockSolver(ConsIndShockSolverEOP):
     pass
 
-##############################################################################
-
-
-class ConsKinkedRsolver(ConsIndShockSolver):
-    """
-    A class to solve a single period consumption-saving problem where the interest
-    rate on debt differs from the interest rate on savings.  Inherits from
-    ConsIndShockSolver, with nearly identical inputs and outputs.  The key diff-
-    erence is that Rfree is replaced by Rsave (a>0) and Rboro (a<0).  The solver
-    can handle Rboro == Rsave, which makes it identical to ConsIndShocksolver, but
-    it terminates immediately if Rboro < Rsave, as this has a different soln_crnt.
-
-    Parameters
-    ----------
-    soln_futr : ConsumerSolution
-        The solution to next period's one period problem.
-    IncShkDstn : distribution.Distribution
-        A discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in soln_futr).
-    LivPrb : float
-        Survival probability; likelihood of being alive at the beginning of
-        the succeeding period.
-    DiscFac : float
-        Intertemporal discount factor for future utility.
-    CRRA : float
-        Coefficient of relative risk aversion.
-    Rboro: float
-        Interest factor on assets between this period and the succeeding
-        period when assets are negative.
-    Rsave: float
-        Interest factor on assets between this period and the succeeding
-        period when assets are positive.
-    PermGroFac : float
-        Expected permanent income growth factor at the end of this period.
-    BoroCnstArt: float or None
-        Borrowing constraint for the minimum allowable assets to end the
-        period with.  If it is less than the natural borrowing constraint,
-        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-        rowing constraint.
-    aXtraGrid: np.array
-        Array of "extra" end-of-period asset values-- assets above the
-        absolute minimum acceptable level.
-    vFuncBool: boolean
-        An indicator for whether the value function should be computed and
-        included in the reported soln_crnt.
-    CubicBool: boolean
-        An indicator for whether the solver should use cubic or linear inter-
-        polation.
-    """
-
-    def __init__(
-            self,
-            soln_futr,
-            IncShkDstn,
-            LivPrb,
-            DiscFac,
-            CRRA,
-            Rboro,
-            Rsave,
-            PermGroFac,
-            BoroCnstArt,
-            aXtraGrid,
-            vFuncBool,
-            CubicBool,
-    ):
-        assert (
-            Rboro >= Rsave
-        ), "Interest factor on debt less than interest factor on savings!"
-
-        # Initialize the solver.  Most of the steps are exactly the same as in
-        # the non-kinked-R basic case, so start with that.
-        ConsIndShockSolver.__init__(
-            self,
-            soln_futr,
-            IncShkDstn,
-            LivPrb,
-            DiscFac,
-            CRRA,
-            Rboro,
-            PermGroFac,
-            BoroCnstArt,
-            aXtraGrid,
-            vFuncBool,
-            CubicBool,
-        )
-
-        # Assign the interest rates as class attributes, to use them later.
-        self.bilt.Rboro = self.Rboro = Rboro
-        self.bilt.Rsave = self.Rsave = Rsave
-        self.bilt.cnstrct = {'vFuncBool', 'IncShkDstn'}
-
-        self.Rboro = Rboro
-        self.Rsave = Rsave
-        self.cnstrct = {'vFuncBool', 'IncShkDstn'}
-
-    def make_cubic_cFunc(self, mNrm, cNrm):
-        """
-        Makes a cubic spline interpolation that contains the kink of the unconstrained
-        consumption function for this period.
-
-
-        ----------
-        mNrm : np.array
-            Corresponding market resource points for interpolation.
-        cNrm : np.array
-            Consumption points for interpolation.
-
-        Returns
-        -------
-        cFunc_unconstrained : CubicInterp
-            The unconstrained consumption function for this period.
-        """
-        # Call the make_cubic_cFunc from ConsIndShockSolver.
-        cFuncUncKink = super().make_cubic_cFunc(mNrm, cNrm)
-
-        # Change the coeffients at the kinked points.
-        cFuncUncKink.coeffs[self.i_kink + 1] = [
-            cNrm[self.i_kink],
-            mNrm[self.i_kink + 1] - mNrm[self.i_kink],
-            0,
-            0,
-        ]
-
-        return cFuncUncKink
-
-    def make_ending_states(self):
-        """
-        Prepare to calculate end-of-period marginal value by creating an array
-        of market resources that the agent could have next period, considering
-        the grid of end-of-period assets and the distribution of shocks he might
-        experience next period.  This differs from the baseline case because
-        different savings choices yield different interest rates.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        aNrm : np.array
-            A 1D array of end-of-period assets; stored as attribute of self.
-        """
-        KinkBool = (
-            self.bilt.Rboro > self.bilt.Rsave
-        )  # Boolean indicating that there is actually a kink.
-        # When Rboro == Rsave, this method acts just like it did in IndShock.
-        # When Rboro < Rsave, the solver would have terminated when it was called.
-
-        # Make a grid of end-of-period assets, including *two* copies of a=0
-        if KinkBool:
-            aNrm = np.sort(
-                np.hstack(
-                    (np.asarray(self.aXtraGrid) + self.mNrmMin, np.array([0.0, 0.0]))
-                )
-            )
-        else:
-            aNrm = np.asarray(self.aXtraGrid) + self.mNrmMin
-            aXtraCount = aNrm.size
-
-        # Make tiled versions of the assets grid and income shocks
-        ShkCount = self.pars.tranShkVals.size
-        aNrm_temp = np.tile(aNrm, (ShkCount, 1))
-        permShkVals_temp = (np.tile(self.pars.permShkVals, (aXtraCount, 1))).transpose()
-        tranShkVals_temp = (np.tile(self.pars.tranShkVals, (aXtraCount, 1))).transpose()
-        ShkPrbs_temp = (np.tile(self.ShkPrbs, (aXtraCount, 1))).transpose()
-
-        # Make a 1D array of the interest factor at each asset gridpoint
-        Rfree_vec = self.bilt.Rsave * np.ones(aXtraCount)
-        if KinkBool:
-            self.i_kink = (
-                np.sum(aNrm <= 0) - 1
-            )  # Save the index of the kink point as an attribute
-            Rfree_vec[0: self.i_kink] = self.bilt.Rboro
-#            Rfree = Rfree_vec
-            Rfree_temp = np.tile(Rfree_vec, (ShkCount, 1))
-
-        # Make an array of market resources that we could have next period,
-        # considering the grid of assets and the income shocks that could occur
-        mNrmNext = (
-            Rfree_temp / (self.PermGroFac * permShkVals_temp) * aNrm_temp
-            + tranShkVals_temp
-        )
-
-        # Recalculate the minimum MPC and human wealth using the interest factor on saving.
-        # This overwrites values from set_and_update_values, which were based on Rboro instead.
-        if KinkBool:
-            RPFTop = (
-                (self.bilt.Rsave * self.DiscLiv) ** (1.0 / self.CRRA)
-            ) / self.bilt.Rsave
-            self.MPCmin = 1.0 / (1.0 + RPFTop / self.soln_crnt.bilt.MPCmin)
-            self.hNrm = (
-                self.PermGroFac
-                / self.bilt.Rsave
-                * (
-                    𝔼_dot(
-                        self.ShkPrbs, self.pars.tranShkVals * self.pars.permShkVals
-                    )
-                    + self.soln_crnt.bilt.hNrm
-                )
-            )
-
-        # Store some of the constructed arrays for later use and return the assets grid
-        self.permShkVals_temp = permShkVals_temp
-        self.ShkPrbs_temp = ShkPrbs_temp
-        self.mNrmNext = mNrmNext
-        self.aNrm = aNrm
-        return aNrm

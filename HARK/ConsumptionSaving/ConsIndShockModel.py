@@ -6,8 +6,10 @@ from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
         ConsumerSolutionOlder,
         ConsumerSolution, ConsumerSolutionOneStateCRRA,
         ConsPerfForesightSolver, ConsIndShockSetup,
-        ConsIndShockSolverBasic, ConsIndShockSolver,
-        ConsKinkedRsolver)
+        ConsIndShockSolverBasic, ConsIndShockSolver)
+
+from HARK.ConsumptionSaving.ConsIndShockModel_KinkedRSolver \
+        import ConsKinkedRsolver 
 
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentTypes \
     import (consumer_terminal_nobequest_onestate, PerfForesightConsumerType,

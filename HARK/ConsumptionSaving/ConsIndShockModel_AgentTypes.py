@@ -16,8 +16,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel_CommonDefs \
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
     import (ConsumerSolutionOneStateCRRA,
             ConsPerfForesightSolver,
-            ConsIndShockSolverBasic, ConsIndShockSolver,
-            ConsKinkedRsolver
+            ConsIndShockSolverBasic, ConsIndShockSolver
             )
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
     import (init_perfect_foresight, init_idiosyncratic_shocks)
