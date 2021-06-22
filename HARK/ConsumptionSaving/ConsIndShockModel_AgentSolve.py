@@ -489,7 +489,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         m_init_guess = self.bilt.mNrmMin + self.bilt.E_t.IncNrmNxt
         try:
             self.bilt.mNrmStE = find_zero_newton(
-                self.bilt.E_t_permShk_tp1_times_m_tp1_minus_m_t, m_init_guess)
+                self.bilt.E_t.permShk_tp1_times_m_tp1_minus_m_t, m_init_guess)
         except:
             self.bilt.mNrmStE = None
 
@@ -1006,6 +1006,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
 # 20210618: TODO: CDC: Find a way to isolate this stuff so it does not clutter
 
+
     def build_infhor_facts_from_params(self):
         """
             Adds to the solution extensive information and references about
@@ -1470,20 +1471,20 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #        cFuncLimitIntercept_fcts.update({'urlhandle': ''})
 #        cFuncLimitIntercept_fcts.update({'value_now': cFuncLimitIntercept})
 #        cFuncLimitIntercept_fcts.update({'cFuncLimitIntercept': cFuncLimitIntercept_fcts})
-        soln_crnt.cFuncLimitIntercept_fcts = cFuncLimitIntercept_fcts
+        soln_crnt.bilt.cFuncLimitIntercept_fcts = cFuncLimitIntercept_fcts
 
         cFuncLimitSlope_fcts = {
             'about': 'Slope of limiting consumption function'}
         py___code = 'MPCmin'
         cFuncLimitSlope_fcts.update({'py___code': 'MPCmin'})
-        bilt.cFuncLimitSlope = soln_crnt.cFuncLimitSlope = \
+        bilt.cFuncLimitSlope = \
             eval(py___code, {}, {**bilt.__dict__, **vars})
         cFuncLimitSlope_fcts.update({'py___code': py___code})
         cFuncLimitSlope_fcts = dict({'latexexpr': '\MPCmin'})
         cFuncLimitSlope_fcts.update({'urlhandle': '\MPC'})
 #        cFuncLimitSlope_fcts.update({'value_now': cFuncLimitSlope})
 #        stg_crt.fcts.update({'cFuncLimitSlope': cFuncLimitSlope_fcts})
-        soln_crnt.cFuncLimitSlope_fcts = cFuncLimitSlope_fcts
+        soln_crnt.bilt.cFuncLimitSlope_fcts = cFuncLimitSlope_fcts
         # That's the end of things that are identical for PF and non-PF models
 
         return soln_crnt
@@ -1709,18 +1710,18 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
 
         pars.UnempPrb = pars.tranShkPrbs[0]
 
-        pars.BaddestIncPrb = np.sum(  # All cases where perm and tran Shk are Min
+        pars.inc_min_Prb = np.sum(  # All cases where perm and tran Shk are Min
             ShkPrbs[ \
                 permShkValsBcst * tranShkValsBcst == permShkMin * tranShkMin
             ]
         )
 
-        pars.GoodestIncPrb = np.sum(  # All cases where perm and tran Shk are Min
+        pars.inc_max_Prb = np.sum(  # All cases where perm and tran Shk are Min
             ShkPrbs[ \
                 permShkValsBcst * tranShkValsBcst == permShkMax * tranShkMax
             ]
         )
-        pars.GoodestIncVal = permShkMax * tranShkMax
+        pars.inc_max_Val = permShkMax * tranShkMax
 
     def build_infhor_facts_from_params(self):
         """
@@ -1972,7 +1973,8 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         # Now define some useful lambda functions
 
         # Given m, value of c where 𝔼[m_{t+1}]=m_{t}
-        bilt.c_where_E_t_mtp1_minus_mt_eq_0 = (
+#        bilt.c_where_E_t_mtp1_minus_mt_eq_0 = (
+        bilt.E_t.mtp1_minus_mt_eq_0 = (
             lambda m_t:
             m_t * (1 - bilt.Inv_E_t.RNrm) + (bilt.Inv_E_t.RNrm)
         )
@@ -1980,13 +1982,14 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         # Given m, value of c where 𝔼[mLev_{t+1}/mLev_{t}]=bilt.pars.permGroFac
         # Solves for c in equation at url/#balgrostable
 
-        bilt.c_where_E_t_permShk_times_mtp1_minus_mt_eq_0 = (
+#        bilt.c_where_E_t_permShk_times_mtp1_minus_mt_eq_0 = (
+        bilt.E_t.permShk_times_mtp1_minus_mt_eq_0 = (
             lambda m_t:
-            m_t * (1 - bilt.bilt.Inv_PF_RNrm) + bilt.bilt.Inv_PF_RNrm
+            m_t * (1 - bilt.Inv_PF_RNrm) + bilt.Inv_PF_RNrm
         )
 
         # 𝔼[m_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
-        bilt.E_t_mLev_tp1_Over_pLev_t_from_a_t = (
+        bilt.E_t.mLev_tp1_Over_pLev_t_from_a_t = (
             lambda a_t:
             𝔼_dot(soln_crnt.pars.PermGroFac *
                   soln_crnt.pars.permShkValsBcst *
@@ -1996,7 +1999,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         )
 
         # 𝔼[c_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
-        bilt.E_t_cLev_tp1_Over_pLev_t_from_a_t = (
+        bilt.E_t.cLev_tp1_Over_pLev_t_from_a_t = (
             lambda a_t:
             𝔼_dot(soln_crnt.pars.PermGroFac *
                   soln_crnt.pars.permShkValsBcst *
@@ -2017,15 +2020,15 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
             (m_t * (1 - 1/soln_crnt.bilt.PF_RNrm)) + (1/soln_crnt.bilt.PF_RNrm)
 
         # mNrmTrg solves E_t.RNrm*(m - c(m)) + 𝔼[inc_next] - m = 0
-        bilt.E_t_m_tp1_minus_m_t = (
+        bilt.E_t.m_tp1_minus_m_t = (
             lambda m_t:
             soln_crnt.bilt.E_t.RNrm * (m_t - bilt.cFunc(m_t)) +
             soln_crnt.bilt.E_t.IncNrmNxt - m_t
         )
-        # # bilt.E_t_m_tp1_minus_m_t = \
-        # #     soln_crnt.bilt.E_t_m_tp1_minus_m_t = bilt.E_t.m_tp1_minus_m_t
+        # # bilt.E_t.m_tp1_minus_m_t = \
+        # #     soln_crnt.bilt.E_t.m_tp1_minus_m_t = bilt.E_t.m_tp1_minus_m_t
 
-        bilt.E_t_cLev_tp1_Over_pLev_t_from_num_a_t = (
+        bilt.E_t.cLev_tp1_Over_pLev_t_from_num_a_t = (
             lambda a_t:
             𝔼_dot(
                 soln_crnt.pars.permShkValsBcst * soln_crnt.pars.PermGroFac * bilt.cFunc(
@@ -2035,48 +2038,48 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
                 soln_crnt.pars.ShkPrbs)
         )
 
-        bilt.E_t_cLev_tp1_Over_pLev_t_from_lst_a_t = (
+        bilt.E_t.cLev_tp1_Over_pLev_t_from_lst_a_t = (
             lambda a_lst: list(map(
-                bilt.E_t_cLev_tp1_Over_pLev_t_from_aNrm_num, a_lst
+                bilt.E_t.cLev_tp1_Over_pLev_t_from_aNrm_num, a_lst
             ))
         )
-        bilt.E_t_cLev_tp1_Over_pLev_t_from_a_t = \
-            bilt.E_t_cLev_tp1_Over_pLev_t_from_a_t = (
+        bilt.E_t.cLev_tp1_Over_pLev_t_from_a_t = \
+            bilt.E_t.cLev_tp1_Over_pLev_t_from_a_t = (
                 lambda a_t:
-                bilt.E_t_cLev_tp1_Over_pLev_t_from_lst_a_t(a_t)
+                bilt.E_t.cLev_tp1_Over_pLev_t_from_lst_a_t(a_t)
                 if (type(a_t) == list or type(a_t) == np.ndarray) else
-                bilt.E_t_cLev_tp1_Over_pLev_t_from_num_a_t(a_t)
+                bilt.E_t.cLev_tp1_Over_pLev_t_from_num_a_t(a_t)
             )
 
-        bilt.E_t_cLev_tp1_Over_pLev_t_from_lst_m_t = \
-            bilt.E_t_cLev_tp1_Over_pLev_t_from_lst_m_t = (
+        bilt.E_t.cLev_tp1_Over_pLev_t_from_lst_m_t = \
+            bilt.E_t.cLev_tp1_Over_pLev_t_from_lst_m_t = (
                 lambda m_t:
-                bilt.E_t_cLev_tp1_Over_pLev_t_from_lst_a_t(m_t -
+                bilt.E_t.cLev_tp1_Over_pLev_t_from_lst_a_t(m_t -
                                                            bilt.cFunc(m_t))
             )
 
-        bilt.E_t_cLev_tp1_Over_pLev_t_from_num_m_t = \
-            soln_crnt.bilt.E_t_cLev_tp1_Over_pLev_t_from_num_m_t = (
+        bilt.E_t.cLev_tp1_Over_pLev_t_from_num_m_t = \
+            soln_crnt.bilt.E_t.cLev_tp1_Over_pLev_t_from_num_m_t = (
                 lambda m_t:
-                bilt.E_t_cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
+                bilt.E_t.cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
                                                            bilt.cFunc(m_t))
             )
 
-        bilt.E_t_cLev_tp1_Over_pLev_t_from_num_m_t = \
-            bilt.E_t_cLev_tp1_Over_pLev_t_from_num_m_t = (
+        bilt.E_t.cLev_tp1_Over_pLev_t_from_num_m_t = \
+            bilt.E_t.cLev_tp1_Over_pLev_t_from_num_m_t = (
                 lambda m_t:
-                bilt.E_t_cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
+                bilt.E_t.cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
                                                            bilt.cFunc(m_t))
             )
 
-        bilt.E_t_cLev_tp1_Over_cLev_t_from_m_t = \
-            bilt.E_t_cLev_tp1_Over_cLev_t_from_m_t = (
+        bilt.E_t.cLev_tp1_Over_cLev_t_from_m_t = \
+            bilt.E_t.cLev_tp1_Over_cLev_t_from_m_t = (
                 lambda m_t:
-                bilt.E_t_cLev_tp1_Over_pLev_t_from_m_t(m_t) /
+                bilt.E_t.cLev_tp1_Over_pLev_t_from_m_t(m_t) /
                 bilt.cFunc(m_t)
             )
 
-        bilt.E_t_permShk_tp1_times_m_tp1_minus_m_t = (
+        bilt.E_t.permShk_tp1_times_m_tp1_minus_m_t = (
             lambda m_t:
             soln_crnt.bilt.PF_RNrm *
             (m_t - bilt.cFunc(m_t)) + 1.0 - m_t
@@ -2193,6 +2196,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         aNrmGrid = bilt.aNrmGrid
 
         def vals_v_tp1_wrapped(dstn, a_number):
+            CRRA = folw.vFunc_tp1.CRRA
             permPos = dstn.parameters['ShkPosn']['perm']
             tranPos = dstn.parameters['ShkPosn']['tran']
             permShk = dstn.X[permPos]
@@ -2200,22 +2204,25 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             mNrm_tp1_from_a_t_by_shk = \
                 (pars.Rfree / (pars.PermGroFac * permShk)) * a_number + tranShk
             v_tp1_vals = self.soln_crnt.folw.vFunc_tp1(mNrm_tp1_from_a_t_by_shk)
-            v_NormFac_vals = permShk**(1-folw.CRRA - 0.0)
+            v_NormFac_vals = permShk**(1-CRRA - 0.0)
             E_t_v_tp1_vals = v_NormFac_vals * v_tp1_vals
             return E_t_v_tp1_vals
 
         def vals_v_tp1(shks_perm_tran_bcst, a_number):
-            return shks_perm_tran_bcst[pars.permPos] ** (1-folw.CRRA_tp1 - 0.0) * \
+            CRRA = folw.vFunc_tp1.CRRA
+            return shks_perm_tran_bcst[pars.permPos] ** (1-CRRA - 0.0) * \
                 self.soln_crnt.folw.vFunc_tp1(
                     self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
         def vals_v_tp1_dm(shks_perm_tran_bcst, a_number):
-            return shks_perm_tran_bcst[pars.permPos] ** (0-folw.CRRA_tp1 - 0.0) * \
+            CRRA = folw.vFunc_tp1.CRRA
+            return shks_perm_tran_bcst[pars.permPos] ** (0-CRRA - 0.0) * \
                 self.soln_crnt.folw.vFunc_tp1.dm(
                     self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
         def vals_v_tp1_dm_dm(shks_perm_tran_bcst, a_number):
-            return shks_perm_tran_bcst[pars.permPos] ** (0-folw.CRRA_tp1 - 1.0) * \
+            CRRA = folw.vFunc_tp1.CRRA
+            return shks_perm_tran_bcst[pars.permPos] ** (0-CRRA - 1.0) * \
                 self.soln_crnt.folw.vFunc_tp1.dm.dm(
                     self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
@@ -2259,19 +2266,23 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         aNrmGrid = bilt.aNrmGrid
 
         def vals_v_tp1(shks_perm_tran_bcst, a_number):
-            return shks_perm_tran_bcst[pars.permPos] ** (1-pars.CRRA) \
+            CRRA = folw.vFunc_tp1.CRRA
+            return shks_perm_tran_bcst[pars.permPos] ** (1-CRRA) \
                 * folw.vFunc_tp1(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
         def vals_vP_tp1(shks_perm_tran_bcst, a_number):
-            return shks_perm_tran_bcst[pars.permPos] ** (0-pars.CRRA) \
+            CRRA = folw.vFunc_tp1.CRRA
+            return shks_perm_tran_bcst[pars.permPos] ** (0-CRRA) \
                 * folw.vFunc_tp1.dm(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
         def vals_v_tp1_dm(shks_perm_tran_bcst, a_number):
-            return shks_perm_tran_bcst[pars.permPos] ** (0-pars.CRRA) \
+            CRRA = folw.vFunc_tp1.CRRA
+            return shks_perm_tran_bcst[pars.permPos] ** (0-CRRA) \
                 * folw.vFunc_tp1.dm(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
         def vals_v_tp1_dm_dm(shks_perm_tran_bcst, a_number):
-            return shks_perm_tran_bcst[pars.permPos] ** (0-pars.CRRA - 1.0) \
+            CRRA = folw.vFunc_tp1.CRRA
+            return shks_perm_tran_bcst[pars.permPos] ** (0-CRRA - 1.0) \
                 * folw.vFunc_tp1.dm.dm(self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
         def vals_vDers_tp1(shks_perm_tran_bcst, a_number):
