@@ -16,7 +16,8 @@ from HARK.interpolation import (CubicInterp, LowerEnvelope, LinearInterp,
                                 ValueFuncCRRA, MargValueFuncCRRA,
                                 MargMargValueFuncCRRA)
 from HARK import NullFunc, MetricObject
-
+from HARK.ConsumptionSaving.ConsIndShockModelOld \
+    import ConsumerSolution as ConsumerSolutionOlder
 
 class Built(SimpleNamespace):
     """
@@ -44,7 +45,7 @@ class Expectations(SimpleNamespace):
 # Google stackoverflow "accessing dict keys like an attribute"
 
 
-class SuccessorInfo(SimpleNamespace):
+class Successor(SimpleNamespace):
     """
     Objects retrieved from successor to the stage
     referenced in "self." Should contain everything needed to reconstruct
@@ -55,7 +56,7 @@ class SuccessorInfo(SimpleNamespace):
 
 
 __all__ = [
-    "ConsumerSolutionOld",
+    "ConsumerSolutionOlder",
     "ConsumerSolution",
     "ConsumerSolutionOneStateCRRA",
     "ConsPerfForesightSolverEOP",
@@ -72,101 +73,10 @@ __all__ = [
     "ConsKinkedRsolver",
 ]
 
-# ConsumerSolutionOld below is identical to ConsumerSolution in HARK 0.11.0
-# except for comments
-# New definition of ConsumerSolution, later, augments it
 
 
-class ConsumerSolutionOld(MetricObject):
-    """
-    A class representing the solution of a single period of a consumption-saving
-    problem.  The solution must include a consumption function and marginal
-    value function.
-    Here and elsewhere in the code, Nrm indicates that variables are normalized
-    by permanent income.
-    Parameters
-    ----------
-    cFunc : function
-        The consumption function for this period, defined over market
-        resources: c = cFunc(m).
-    vFunc : function
-        The beginning-of-period value function for this period, defined over
-        market resources: v = vFunc(m).
-    vPfunc : function
-        The beginning-of-period marginal value function for this period,
-        defined over market resources: vP = vPfunc(m).
-    vPPfunc : function
-        The beginning-of-period marginal marginal value function for this
-        period, defined over market resources: vPP = vPPfunc(m).
-    mNrmMin : float
-        The minimum allowable market resources for this period; the consump-
-        tion function (etc) are undefined for m < mNrmMin.
-    hNrm : float
-        Human wealth after receiving income this period: PDV of all future
-        income, ignoring mortality.
-    MPCmin : float
-        Infimum of the marginal propensity to consume this period.
-        MPC --> MPCmin as m --> infinity.
-    MPCmax : float
-        Supremum of the marginal propensity to consume this period.
-        MPC --> MPCmax as m --> mNrmMin.
-    """
-
-    distance_criteria = ["vPfunc"]
-
-    def __init__(self, cFunc=None, vFunc=None, vPfunc=None, vPPfunc=None,
-                 mNrmMin=None, hNrm=None, MPCmin=None, MPCmax=None, *args, **kwargs):
-        # Change any missing function inputs to NullFunc
-        # 20210621: CDC: Why do we need to do this?
-        self.cFunc = cFunc if cFunc is not None else NullFunc()
-        self.vFunc = vFunc if vFunc is not None else NullFunc()
-        self.vPfunc = vPfunc if vPfunc is not None else NullFunc()
-        self.vPPfunc = vPPfunc if vPPfunc is not None else NullFunc()
-        self.mNrmMin = mNrmMin
-        self.hNrm = hNrm
-        self.MPCmin = MPCmin
-        self.MPCmax = MPCmax
-
-    def append_solution(self, new_solution):
-        """
-        Appends one solution to another to create a ConsumerSolution whose
-        attributes are lists.  Used in ConsMarkovModel, where we append solutions
-        *conditional* on a particular value of a Markov state to each other in
-        order to get the entire solution.
-        Parameters
-        ----------
-        new_solution : ConsumerSolution
-            The solution to a consumption-saving problem; each attribute is a
-            list representing state-conditional values or functions.
-        Returns
-        -------
-        None
-        """
-        if type(self.cFunc) != list:
-            # Then we assume that self is an empty initialized solution instance.
-            # Begin by checking this is so.
-            assert (
-                NullFunc().distance(self.cFunc) == 0
-            ), "append_solution called incorrectly!"
-
-            # We will need the attributes of the solution instance to be lists.  Do that here.
-            self.cFunc = [new_solution.cFunc]
-            self.vFunc = [new_solution.vFunc]
-            self.vPfunc = [new_solution.vPfunc]
-            self.vPPfunc = [new_solution.vPPfunc]
-            self.mNrmMin = [new_solution.mNrmMin]
-        else:
-            self.cFunc.append(new_solution.cFunc)
-            self.vFunc.append(new_solution.vFunc)
-            self.vPfunc.append(new_solution.vPfunc)
-            self.vPPfunc.append(new_solution.vPPfunc)
-            self.mNrmMin.append(new_solution.mNrmMin)
-
-# Calling it ConsumerSolution so that modules that inherit will be augmented
-
-
-class ConsumerSolution(ConsumerSolutionOld):
-    __doc__ = ConsumerSolutionOld.__doc__
+class ConsumerSolution(ConsumerSolutionOlder):
+    __doc__ = ConsumerSolutionOlder.__doc__
     __doc__ += """
     stge_kind : dict
         Dictionary with info about this stage
@@ -202,7 +112,7 @@ class ConsumerSolution(ConsumerSolutionOld):
                  parameters_solver=None,
                  vAdd=None,
                  **kwds):
-        ConsumerSolutionOld.__init__(self, *args, **kwds)
+        ConsumerSolutionOlder.__init__(self, *args, **kwds)
 
         # Most of previous "whiteboard" content is now on "bilt"
         bilt = self.bilt = Built()
@@ -1098,7 +1008,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
 # 20210618: TODO: CDC: Find a way to isolate this stuff so it does not clutter
 
-
     def build_infhor_facts_from_params(self):
         """
             Adds to the solution extensive information and references about
@@ -1630,7 +1539,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
     solve = solve_prepared_stage
 
-    def solver_prep_solution_for_an_iteration(self):  # self: solver for this stage
+    def solver_prep_solution_for_an_iteration(self):  # self: solver for stage
         """
         Prepare the current stage for processing by the one-stage solver.
         """
@@ -1651,7 +1560,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         # be deepcopied as a standalone object and solved without soln_futr
         # or soln_crnt
 
-        folw = soln_crnt.folw = SuccessorInfo()
+        folw = soln_crnt.folw = Successor()
 
         # Catch degenerate case of zero-variance income distributions
         if hasattr(pars, "tranShkVals") and hasattr(pars, "permShkVals"):
@@ -1762,7 +1671,6 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
                                          )
 
         # ConsPerfForesightSolver.__init__ makes self.soln_crnt
-        # At this point it just has params copied from self.soln_futr
 
         soln_crnt = self.soln_crnt
 
@@ -2626,8 +2534,8 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             * a minimum possible level of normalized market resources mNrmMin
             * normalized human wealth hNrm, and bounding MPCs MPCmin and MPCmax.
 
-        If the user chooses sets `CubicBool` to True, cFunc is interpolated
-        with a Cubic Hermiite interpolator.  This is smoother than the default
+        If the user sets `CubicBool` to True, cFunc is interpolated
+        with a Cubic Hermite interpolator.  This is smoother than the default
         piecewise linear interpolator, but does not perform well around kink
         points caused by liquidity constraints.
 
@@ -2681,9 +2589,9 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         # Having calculated (marginal value, etc) of saving, construct c
 
-        sol_EGM = self.make_sol_using_EGM()  
+        sol_EGM = self.make_sol_using_EGM()
         soln_crnt.bilt.cFunc = soln_crnt.cFunc = sol_EGM.bilt.cFunc
-        soln_crnt = def_value_funcs(soln_crnt, CRRA) # add value funcs
+        soln_crnt = def_value_funcs(soln_crnt, CRRA)  # add value funcs
         return soln_crnt
 
     solve = solve_prepared_stage
@@ -2818,94 +2726,94 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
         self.soln_crnt.EndOfPrdvFunc = ValueFuncCRRA(
             EndOfPrdvNvrsFunc, pars.CRRA)
 
-    def add_vFunc(self, soln_crnt, EndOfPrdvP):
-        """
-        Creates the value function for this period and adds it to the soln_crnt.
+    # def add_vFunc(self, soln_crnt, EndOfPrdvP):
+    #     """
+    #     Creates the value function for this period and adds it to the soln_crnt.
 
-        Parameters
-        ----------
-        solution : ConsumerSolution
-            The solution to this single period problem, likely including the
-            consumption function, marginal value function, etc.
-        EndOfPrdvP : np.array
-            Array of end-of-period marginal value of assets corresponding to the
-            asset values in self.soln_crnt.aNrm.
+    #     Parameters
+    #     ----------
+    #     solution : ConsumerSolution
+    #         The solution to this single period problem, likely including the
+    #         consumption function, marginal value function, etc.
+    #     EndOfPrdvP : np.array
+    #         Array of end-of-period marginal value of assets corresponding to the
+    #         asset values in self.soln_crnt.aNrm.
 
-        Returns
-        -------
-        solution : ConsumerSolution
-            The single period solution passed as an input, but now with the
-            value function (defined over market resources m) as an attribute.
-        """
-        self.make_EndOfPrdvFunc(EndOfPrdvP)
-        self.vFunc = soln_crnt.vFunc = self.make_vFunc(soln_crnt)
-        return soln_crnt.vFunc
+    #     Returns
+    #     -------
+    #     solution : ConsumerSolution
+    #         The single period solution passed as an input, but now with the
+    #         value function (defined over market resources m) as an attribute.
+    #     """
+    #     self.make_EndOfPrdvFunc(EndOfPrdvP)
+    #     self.vFunc = soln_crnt.vFunc = self.make_vFunc(soln_crnt)
+    #     return soln_crnt.vFunc
 
-    def make_vFunc(self, soln_crnt):
-        """
-        Creates the value function for this period, defined over market resources m.
-        self must have the attribute EndOfPrdvFunc in order to execute.
+    # def make_vFunc(self, soln_crnt):
+    #     """
+    #     Creates the value function for this period, defined over market resources m.
+    #     self must have the attribute EndOfPrdvFunc in order to execute.
 
-        Parameters
-        ----------
-        solution : ConsumerSolution
-            The solution to this single period problem, which must include the
-            consumption function.
+    #     Parameters
+    #     ----------
+    #     solution : ConsumerSolution
+    #         The solution to this single period problem, which must include the
+    #         consumption function.
 
-        Returns
-        -------
-        vFunc : ValueFuncCRRA
-            A representation of the value function for this period, defined over
-            normalized market resources m: v = vFunc(m).
-        """
-        # Compute expected value and marginal value on a grid of market resources
-        bilt = self.soln_crnt.bilt
-        folw = self.soln_crnt.folw
+    #     Returns
+    #     -------
+    #     vFunc : ValueFuncCRRA
+    #         A representation of the value function for this period, defined over
+    #         normalized market resources m: v = vFunc(m).
+    #     """
+    #     # Compute expected value and marginal value on a grid of market resources
+    #     bilt = self.soln_crnt.bilt
+    #     folw = self.soln_crnt.folw
 
-        mNrm_temp = bilt.mNrmMin + bilt.aXtraGrid
-        cNrm = soln_crnt.cFunc(mNrm_temp)
-        aNrm = mNrm_temp - cNrm
-        vNrm = bilt.u(cNrm) + self.EndOfPrdvFunc(aNrm)
-        vPnow = self.uP(cNrm)
+    #     mNrm_temp = bilt.mNrmMin + bilt.aXtraGrid
+    #     cNrm = soln_crnt.cFunc(mNrm_temp)
+    #     aNrm = mNrm_temp - cNrm
+    #     vNrm = bilt.u(cNrm) + self.EndOfPrdvFunc(aNrm)
+    #     vPnow = self.uP(cNrm)
 
-        # Construct the beginning value function
-        vNvrs = bilt.uinv(vNrm)  # value transformed through inverse utility
-        vNvrsP = vPnow * bilt.uinvP(vNrm)
-        mNrm_temp = np.insert(mNrm_temp, 0, bilt.mNrmMin)
-        vNvrs = np.insert(vNvrs, 0, 0.0)
-        vNvrsP = np.insert(
-            vNvrsP, 0, bilt.MPCmaxEff ** (-folw.CRRA_tp1 /
-                                          (1.0 - folw.CRRA_tp1))
-        )
-        MPCminNvrs = bilt.MPCmin ** (-folw.CRRA_tp1 /
-                                     (1.0 - folw.CRRA_tp1))
-        vNvrsFunc = CubicInterp(
-            mNrm_temp, vNvrs, vNvrsP, MPCminNvrs * bilt.hNrm, MPCminNvrs
-        )
-        vFunc = ValueFuncCRRA(vNvrsFunc, folw.CRRA_tp1)
-        return vFunc
+    #     # Construct the beginning value function
+    #     vNvrs = bilt.uinv(vNrm)  # value transformed through inverse utility
+    #     vNvrsP = vPnow * bilt.uinvP(vNrm)
+    #     mNrm_temp = np.insert(mNrm_temp, 0, bilt.mNrmMin)
+    #     vNvrs = np.insert(vNvrs, 0, 0.0)
+    #     vNvrsP = np.insert(
+    #         vNvrsP, 0, bilt.MPCmaxEff ** (-folw.CRRA_tp1 /
+    #                                       (1.0 - folw.CRRA_tp1))
+    #     )
+    #     MPCminNvrs = bilt.MPCmin ** (-folw.CRRA_tp1 /
+    #                                  (1.0 - folw.CRRA_tp1))
+    #     vNvrsFunc = CubicInterp(
+    #         mNrm_temp, vNvrs, vNvrsP, MPCminNvrs * bilt.hNrm, MPCminNvrs
+    #     )
+    #     vFunc = ValueFuncCRRA(vNvrsFunc, folw.CRRA_tp1)
+    #     return vFunc
 
-    def add_vPPfunc(self, soln_crnt):  # Deprecated
-        # Now always automatically calculated via calc_expectations
-        """
-        Adds the marginal marginal value function to an existing solution, so
-        that the next solver can evaluate vPP and thus use cubic interpolation.
+    # def add_vPPfunc(self, soln_crnt):  # Deprecated
+    #     # Now always automatically calculated via calc_expectations
+    #     """
+    #     Adds the marginal marginal value function to an existing solution, so
+    #     that the next solver can evaluate vPP and thus use cubic interpolation.
 
-        Parameters
-        ----------
-        solution : ConsumerSolution
-            The solution to this single period problem, which must include the
-            consumption function.
+    #     Parameters
+    #     ----------
+    #     solution : ConsumerSolution
+    #         The solution to this single period problem, which must include the
+    #         consumption function.
 
-        Returns
-        -------
-        solution : ConsumerSolution
-            The same solution passed as input, but with the marginal marginal
-            value function for this period added as the attribute vPPfunc.
-        """
-        self.vPPfunc = MargMargValueFuncCRRA(soln_crnt.bilt.cFunc, soln_crnt.pars.CRRA)
-        soln_crnt.bilt.vPPfunc = self.vPPfunc
-        return soln_crnt.bilt.vPPfunc
+    #     Returns
+    #     -------
+    #     solution : ConsumerSolution
+    #         The same solution passed as input, but with the marginal marginal
+    #         value function for this period added as the attribute vPPfunc.
+    #     """
+    #     self.vPPfunc = MargMargValueFuncCRRA(soln_crnt.bilt.cFunc, soln_crnt.pars.CRRA)
+    #     soln_crnt.bilt.vPPfunc = self.vPPfunc
+    #     return soln_crnt.bilt.vPPfunc
 
 
 class ConsIndShockSolver(ConsIndShockSolverEOP):

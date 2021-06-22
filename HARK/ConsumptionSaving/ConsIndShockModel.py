@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from HARK.ConsumptionSaving.ConsIndShockModelOld import ConsumerSolution as ConsumerSolutionOld
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
     import (
-        ConsumerSolutionOld,
+        ConsumerSolutionOlder,
         ConsumerSolution, ConsumerSolutionOneStateCRRA,
         ConsPerfForesightSolver, ConsIndShockSetup,
         ConsIndShockSolverBasic, ConsIndShockSolver,
