@@ -307,8 +307,8 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
             False: "\n  Therefore, a nondegenerate solution exits if the RIC holds, but will not exist if the RIC fails unless the FHWC also fails.\n",
         }
 
-        stge.FVAC = stge.bilt.FVAC = core_check_condition(name, test, messages, verbose,
-                                                          verbose_messages, "FVAF", stge)
+        stge.bilt.FVAC = core_check_condition(name, test, messages, verbose,
+                                              verbose_messages, "FVAF", stge)
 
     def check_GICRaw(self, stge, verbose=None):
         """
@@ -326,8 +326,8 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
             True: "\n  Therefore,  for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
             False: "\n  Therefore, for a perfect foresight consumer whose parameters satisfy the FHWC, the ratio of individual wealth to permanent income is expected to rise toward infinity. \n"
         }
-        stge.GICRaw = stge.bilt.GICRaw = core_check_condition(name, test, messages, verbose,
-                                                              verbose_messages, "GPFRaw", stge)
+        stge.bilt.GICRaw = core_check_condition(name, test, messages, verbose,
+                                                verbose_messages, "GPFRaw", stge)
 
     def check_GICLiv(self, stge, verbose=None):
         name = "GICLiv"
@@ -1005,7 +1005,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #    def build_infhor_facts_from_params_ConsPerfForesightSolver(self):
 
 # 20210618: TODO: CDC: Find a way to isolate this stuff so it does not clutter
-
 
     def build_infhor_facts_from_params(self):
         """
@@ -2010,7 +2009,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
 
         bilt.c_where_E_t_mtp1_minus_mt_eq_0 = \
             lambda m_t: \
-            m_t * (1 - 1/soln_crnt.bilt.E_t.RNrm) + (1/soln_crnt.bilt.E_t.RNrm)
+            m_t * (1 - 1/bilt.E_t.RNrm) + (1/soln_crnt.bilt.E_t.RNrm)
 
         # Solve the equation at url/#balgrostable
         bilt.c_where_E_t_permShk_times_mtp1_minus_mt_eq_0 = \
@@ -2685,6 +2684,6 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
         )
         return cFuncUnc
 
+
 class ConsIndShockSolver(ConsIndShockSolverEOP):
     pass
-
