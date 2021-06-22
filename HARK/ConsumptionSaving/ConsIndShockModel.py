@@ -2730,6 +2730,28 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 TranShkDstn.append(TranShkDstn_t)
         return IncShkDstn, PermShkDstn, TranShkDstn
 
+def PermShk_engine(sigma, n_approx):
+
+    PermShkDstn = MeanOneLogNormal(sigma).approx(n_approx, tail_N=0)
+
+    return PermShkDstn
+
+def TranShk_engine(sigma, UnempPrb, IncUnemp, n_approx):
+
+    TranShkDstn = MeanOneLogNormal(sigma).approx(n_approx, tail_N=0)
+    if UnempPrb > 0:
+        TranShkDstn = add_discrete_outcome_constant_mean(TranShkDstn, p=UnempPrb, x=IncUnemp)
+    
+    return TranShkDstn
+
+def InkShk_engine(sigma_Perm, sigma_Tran, n_approx_Perm, n_approx_Tran, UnempPrb, IncUnemp, seed):
+    
+    PermShkDstn = PermShk_engine(sigma_Perm, n_approx_Perm)
+    TranShkDstn = TranShk_engine(sigma_Tran, UnempPrb, IncUnemp, n_approx_Tran)
+
+    InkShkDstn = combine_indep_dstns(PermShkDstn,TranShkDstn,seed=seed)
+
+    return InkShkDstn
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
 init_kinked_R = dict(
