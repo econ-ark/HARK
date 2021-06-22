@@ -8,7 +8,6 @@ import numpy as np
 from copy import deepcopy
 from builtins import (str, breakpoint)
 from types import SimpleNamespace
-from collections import namedtuple
 from IPython.lib.pretty import pprint
 from HARK.ConsumptionSaving.ConsIndShockModel_Both import (
     def_utility, def_value_funcs)
@@ -45,18 +44,6 @@ class Expectations(SimpleNamespace):
 # Google stackoverflow "accessing dict keys like an attribute"
 
 
-# class Vals(SimpleNamespace):
-#     """
-#     Values of variables constructed at gridpoints. This is a very flexible
-#     way to store these results. Arbitrary dimensionality is possible by
-#     adding attributes. Not be the most efficient way to do this but
-#     convenience is considerable.  For efficiency, contents can be
-#     converted to np.array or tensorflow tensors.
-#     """
-# # TODO: Move (to core.py) when vetted/agreed
-#     pass
-
-
 class SuccessorInfo(SimpleNamespace):
     """
     Objects retrieved from successor to the stage
@@ -86,6 +73,7 @@ __all__ = [
 ]
 
 # ConsumerSolutionOld below is identical to ConsumerSolution in HARK 0.11.0
+# except for comments
 # New definition of ConsumerSolution, later, augments it
 
 
@@ -129,6 +117,7 @@ class ConsumerSolutionOld(MetricObject):
     def __init__(self, cFunc=None, vFunc=None, vPfunc=None, vPPfunc=None,
                  mNrmMin=None, hNrm=None, MPCmin=None, MPCmax=None, *args, **kwargs):
         # Change any missing function inputs to NullFunc
+        # 20210621: CDC: Why do we need to do this?
         self.cFunc = cFunc if cFunc is not None else NullFunc()
         self.vFunc = vFunc if vFunc is not None else NullFunc()
         self.vPfunc = vPfunc if vPfunc is not None else NullFunc()
@@ -217,18 +206,20 @@ class ConsumerSolution(ConsumerSolutionOld):
 
         # Most of previous "whiteboard" content is now on "bilt"
         bilt = self.bilt = Built()
-        self.pars = Parameters()
+        pars = self.pars = Parameters()
+        pars.about = {'Parameters exogenously given'}
         bilt.E_t = Expectations()  # Values of expectations
         bilt.Inv_E_t = Expectations()  # Inverses of expected variables
 
         bilt.recursive = \
             {'cFunc', 'vFunc',  'vPfunc', 'vPPfunc',  'vFuncNvrs',
-             'u', 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
-             'hNrm', 'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA', 'vAdd'
+             'u', 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv', 'hNrm',
+             'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA', 'vAdd'
              }
 
-        # Store this stuff on bilt object
-        for key in (k for k in bilt.recursive if k not in {''}):  # Exclusions ''
+        # Store recursive stuff in bilt namespace
+        exclude = {''}  # Probably there are things that should be excluded
+        for key in (k for k in bilt.recursive if k not in exclude):  #
             if hasattr(self, key):
                 setattr(bilt, key, self.__dict__[key])
 
@@ -256,8 +247,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
     parent ConsumerSolution of this class, all of which applies here.
     """
     __doc__ += ConsumerSolution.__doc__
-    __doc__ += """
-    """
+
     time_vary_ = ["LivPrb",  # Age-varying death rates can match mortality data
                   "PermGroFac"]  # Age-varying income growth to match lifecycle
     time_inv_ = ["CRRA", "Rfree", "DiscFac", "BoroCnstArt"]
@@ -599,13 +589,13 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         return self.bilt.mNrmStE
 
 # ConsPerfForesightSolver also incorporates calcs and info useful for
-# models in which perfect foresight does not apply, because the contents
-# of the PF model are inherited by a variety of non-PF models
+# models in which perfect foresight does not apply (because the contents
+# of the PF model are inherited by a variety of non-PF models)
 
     def finish_setup_of_default_solution_terminal(self):
         """
         Add to `solution_terminal` characteristics which are not automatically
-        created as part of the definition of the generic `solution_terminal.`
+        created as part of the definition of a generic `solution_terminal.`
         """
         # If no solution exists, core.py sets solution_terminal to solution_next
         solution_terminal = self.solution_terminal
@@ -645,7 +635,6 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         return solution_terminal
 
 
-# class ConsPerfForesightSolverEOP(MetricObject):
 class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
     """
     Solves a one period perfect foresight
@@ -729,14 +718,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         """
         Makes the (linear) consumption function for this period.  See the
         PerfForesightConsumerType.ipynb notebook for derivations.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
         """
         # Reduce cluttered formulae with local aliases
         soln_crnt = self.soln_crnt
@@ -804,7 +785,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         # h is the 'horizon': h_t(m_t) is the number of periods it will take
         # before you hit the constraint, after which you remain constrained
 
-        # For any c_t where you are unconstrained today, value is the discounted
+        # For any c_t where you are unconstrained today, value is discounted
         # sum of values you will receive during periods between now and t+h,
         # and values you will receive afer h
 #        vAdd = # Sum of post-constrained value by gridpoint
@@ -817,7 +798,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         vNrm_cusp = bilt.u(cNrm_cusp)+_v_t_at_BoroCnst
         vAdd_cusp = _v_t_at_BoroCnst
         vInv_cusp = uinv(vNrm_cusp)
-        uInv_cusp = uinv(bilt.u(cNrm_cusp))
         mNrm_cusp = cNrm_cusp + BoroCnst
 
         # cusp today vs today's implications of future constraints
@@ -842,14 +822,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
         vAddGrid = np.append(vAdd_cusp, vAdd_kinks)
         vAddGrid = np.append(vAddGrid, 0.)
-        # vFuncNvrsSlopeLim = MPCmin ** (-CRRA / (1.0 - CRRA))
-        # vFuncNvrs_vals = \
-        #     np.array([vFuncNvrsSlopeLim*(mNrm_kinks-BoroCnstNat),
-        #               vFuncNvrsSlopeLim*(mNrm_kinks-BoroCnstNat+1)])
-        # vFuncNvrs_grid = np.array([mNrm_kinks,mNrm_kinks+1])
-        # vFuncNvrs = LinearInterp(vFuncNvrs_grid,vFuncNvrs_vals)
-        # vFuncNvrsIntercept = mNrm_kinks[-1]
-        # vFuncNvrs_kinks = folw.vFunc_tp1.vFuncNvrs(mNrm_kinks)
 
         # To guarantee meeting BoroCnst, if mNrm = BoroCnst then cNrm = 0.
         mNrmGrid_unconst = np.append(mNrm_kinks, mNrm_kinks+1)
@@ -1126,15 +1098,16 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
 # 20210618: TODO: CDC: Find a way to isolate this stuff so it does not clutter
 
+
     def build_infhor_facts_from_params(self):
         """
             Adds to the solution extensive information and references about
-            its elements.
+            its nature and elements.
 
             Parameters
             ----------
             solution: ConsumerSolution
-                A solution that already has minimal requirements (vPfunc, cFunc)
+                Solution that already has minimal requirements (vPfunc, cFunc)
 
             Returns
             -------
@@ -1142,18 +1115,15 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
                 Same solution that was provided, augmented with facts
         """
 
-        # Using local variables makes formulae below more readable
+        # Using local variables makes formulae more readable
+        soln_crnt = self.soln_crnt  # current
+        bilt = self.soln_crnt.bilt  # built
+        folw = self.soln_crnt.folw  # following
+        pars = self.soln_crnt.pars  # parameters
 
-        soln_crnt = self.soln_crnt
-        bilt = self.soln_crnt.bilt
-        folw = self.soln_crnt.folw
-        pars = self.soln_crnt.pars
-#        self.soln_crnt.pars = pars = \
-#            namedtuple("pars", bilt.parameters_solver.keys())(*bilt.parameters_solver.values())
         E_t = bilt.E_t
         urlroot = bilt.urlroot
         pars.DiscLiv = pars.DiscFac * pars.LivPrb
-#        bilt.DiscLiv = bilt.DiscFac * bilt.LivPrb
         vars = {**folw.__dict__, **pars.__dict__}
 
         APF_fcts = {
@@ -1450,7 +1420,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #        soln_crnt.DiscLiv_fcts = \
         bilt.DiscLiv_fcts = DiscLiv_fcts
 
-#    def build_recursive_facts_ConsPerfForesightSolver(self):
     def build_recursive_facts(self):
 
         soln_crnt = self.soln_crnt
@@ -1461,7 +1430,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         urlroot = bilt.urlroot
         pars.DiscLiv = pars.DiscFac * pars.LivPrb
 
-#        breakpoint()
         hNrm_fcts = {
             'about': 'Human Wealth '
         }
@@ -1613,7 +1581,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
         return soln_crnt
 
-    def solve_prepared_stage(self):  # ConsPerfForesightSolver
+    def solve_prepared_stage(self):  # inside ConsPerfForesightSolver
         """
         Solve the one-period/stage consumption-saving problem.
 
@@ -1628,32 +1596,20 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         """
         soln_futr = self.soln_futr
         soln_crnt = self.soln_crnt
-        soln_futr_bilt = soln_futr.bilt
-#        soln_crnt_bilt = soln_crnt.bilt
         CRRA = soln_crnt.pars.CRRA
-
-        if not hasattr(soln_futr.bilt, 'stge_kind'):
-            print('no stge_kind')
-            breakpoint()
 
         if soln_futr.bilt.stge_kind['iter_status'] == 'finished':
             breakpoint()
             # Should not have gotten here
-            # because core.py tests whehter solution_last is 'finished'
+            # because core.py tests whether solution_last is 'finished'
 
-        if soln_futr_bilt.stge_kind['iter_status'] == 'terminal_pseudo':
+        if soln_futr.bilt.stge_kind['iter_status'] == 'terminal_pseudo':
             # bare-bones default terminal solution does not have all the facts
-            # we want, so add them
-            #            breakpoint()
-            soln_futr_bilt = def_utility(soln_crnt, CRRA)
-#            self.build_infhor_facts_from_params_ConsPerfForesightSolver()
+            # we want, because it is multipurpose (for any u func) so add them
+            soln_futr.bilt = def_utility(soln_crnt, CRRA)
             self.build_infhor_facts_from_params()
-#            breakpoint()
             soln_futr = soln_crnt = def_value_funcs(soln_crnt, CRRA)
-            # Now that they've been added, it's good to go as a source for iteration
-            if not hasattr(soln_crnt.bilt, 'stge_kind'):
-                print('No stge_kind')
-                breakpoint()
+            # Now that they've been added, it's good to go for iteration
             soln_crnt.bilt.stge_kind['iter_status'] = 'iterator'
             soln_crnt.stge_kind = soln_crnt.bilt.stge_kind
             self.soln_crnt.vPfunc = self.soln_crnt.bilt.vPfunc  # Need for distance
@@ -1677,14 +1633,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
     def solver_prep_solution_for_an_iteration(self):  # self: solver for this stage
         """
         Prepare the current stage for processing by the one-stage solver.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
         """
 
         soln_crnt = self.soln_crnt
@@ -1692,7 +1640,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
         bilt, pars = soln_crnt.bilt, soln_crnt.pars
 
-#        breakpoint()
         # Create current pars
         for key in (k for k in bilt.parameters_solver
                     if k not in {'', ''}):
@@ -1815,14 +1762,17 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
                                          )
 
         # ConsPerfForesightSolver.__init__ makes self.soln_crnt
-        # At this point it just has params copied from self.soln_futr, otherwise empty
-#        breakpoint()
+        # At this point it just has params copied from self.soln_futr
 
         soln_crnt = self.soln_crnt
 
         # Don't want to keep track of anything on self of disposable solver
-        bilt = soln_crnt.bilt  # convenient local alias to reduce clutter
-        pars = soln_crnt.pars  # convenient local alias to reduce clutter
+        bilt = soln_crnt.bilt  # things that are built
+        pars = soln_crnt.pars  # parameters are exogenous
+
+        bilt.aXtraGrid = aXtraGrid
+        bilt.vFuncBool = vFuncBool
+        bilt.CubicBool = CubicBool
 
         # In which column is each object stored in IncShkDstn?
         pars.permPos = IncShkDstn.parameters['ShkPosn']['perm']
@@ -1832,6 +1782,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         # Makes it easy to take expectations using 𝔼_dot
         pars.permShkValsBcst = permShkValsBcst = IncShkDstn.X[pars.permPos]
         pars.tranShkValsBcst = tranShkValsBcst = IncShkDstn.X[pars.tranPos]
+
         pars.ShkPrbs = ShkPrbs = IncShkDstn.pmf
 
         pars.permShkPrbs = permShkPrbs = permShkDstn.pmf
@@ -1847,6 +1798,9 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         pars.permShkMin = permShkMin = np.min(permShkVals)
         pars.tranShkMin = tranShkMin = np.min(tranShkVals)
 
+        pars.permShkMax = permShkMax = np.max(permShkVals)
+        pars.tranShkMax = tranShkMax = np.max(tranShkVals)
+
         pars.UnempPrb = pars.tranShkPrbs[0]
 
         pars.WorstIncPrb = np.sum(  # All cases where perm and tran Shk are Min
@@ -1854,11 +1808,13 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
                 permShkValsBcst * tranShkValsBcst == permShkMin * tranShkMin
             ]
         )
-        pars.WorstIncVal = permShkMin * tranShkMin
 
-        bilt.aXtraGrid = aXtraGrid
-        bilt.vFuncBool = vFuncBool
-        bilt.CubicBool = CubicBool
+        pars.BestIncPrb = np.sum(  # All cases where perm and tran Shk are Min
+            ShkPrbs[ \
+                permShkValsBcst * tranShkValsBcst == permShkMax * tranShkMax
+            ]
+        )
+        pars.BestIncVal = permShkMax * tranShkMax
 
     def build_infhor_facts_from_params(self):
         """
@@ -2107,7 +2063,6 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
 
         soln_crnt = self.soln_crnt
         bilt = soln_crnt.bilt
-#        E_t = bilt.E_t
         # Now define some useful lambda functions
 
         # Given m, value of c where 𝔼[m_{t+1}]=m_{t}
@@ -2229,7 +2184,60 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
 class ConsIndShockSetup(ConsIndShockSetupEOP):
     pass
 
+
+class ConsIndShockSetup_ex_ante(ConsIndShockSetup):
+    pass
+
 #############################################################################
+
+
+class ConsIndShockSolverBasic_ex_ante(ConsIndShockSetup_ex_ante):
+    def make_ex_ante_states_from_transition_eqns_inverse(self):
+        vars = {}
+        bilt = self.soln_crnt.bilt
+        for key in self.transition_eqns_inverse.keys():
+            eval(self.transition_eqns_inverse[key], {}, {**bilt.__dict__, **vars})
+
+    def make_ex_ante_states(self):
+        bilt = self.soln_crnt.bilt
+        aNrmMin_tm1 = bilt.BoroCnstNat*(bilt.PermGroFac*bilt.permShkMax)/bilt.Rfree
+        bilt.aNrmGrid_tm1 = np.asarray(bilt.aXtraGrid) + aNrmMin_tm1
+
+    def add_E_tm1_v_t(self):
+        bilt = self.soln_crnt.bilt
+        pars = self.soln_crnt.pars
+        IncShkDstn = pars.IncShkDstn
+        aNrmGrid_tm1 = bilt.aNrmGrid_tm1
+
+        def vals_given_shocks_v_t(shks_perm_tran_bcst, a_number):
+            return shks_perm_tran_bcst[pars.permPos] ** (1-pars.CRRA - 0.0) * \
+                self.soln_crnt.vFunc(
+                    self.mNrm_t_from_a_tm1_bcst(shks_perm_tran_bcst, a_number))
+
+        def vals_given_shocks_v_t_dm(shks_perm_tran_bcst, a_number):
+            return shks_perm_tran_bcst[pars.permPos] ** (1-pars.CRRA - 1.0) * \
+                self.soln_crnt.vFunc.dm(
+                    self.mNrm_t_from_a_tm1_bcst(shks_perm_tran_bcst, a_number))
+
+        def vals_given_shocks_v_t_dm_dm(shks_perm_tran_bcst, a_number):
+            return shks_perm_tran_bcst[pars.permPos] ** (1-pars.CRRA - 2.0) * \
+                self.soln_crnt.vFunc.dm.dm(
+                    self.mNrm_t_from_a_tm1_bcst(shks_perm_tran_bcst, a_number))
+
+        def vals_given_shocks_v_t_derivatives_012(shks_perm_tran_bcst, a_number):
+            return np.array([vals_given_shocks_v_t(shks_perm_tran_bcst, a_number),
+                             vals_given_shocks_v_t_dm(shks_perm_tran_bcst, a_number),
+                             vals_given_shocks_v_t_dm_dm(shks_perm_tran_bcst, a_number)])
+
+        bilt.E_tm1.v_t = np.squeeze(
+            * pars.Rfree
+            * pars.PermGroFac ** (-pars.CRRA)
+            * calc_expectation_of_array(
+                IncShkDstn,
+                vals_given_shocks_v_t_derivatives_012,
+                aNrmGrid_tm1
+            )
+        )
 
 
 class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
@@ -2274,21 +2282,34 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
     def add_E_v_tp1(self):
         bilt = self.soln_crnt.bilt
         pars = self.soln_crnt.pars
+        folw = self.soln_crnt.folw
         IncShkDstn = pars.IncShkDstn
         aNrmGrid = bilt.aNrmGrid
 
+        def vals_v_tp1_wrapped(dstn, a_number):
+            permPos = dstn.parameters['ShkPosn']['perm']
+            tranPos = dstn.parameters['ShkPosn']['tran']
+            permShk = dstn.X[permPos]
+            tranShk = dstn.X[tranPos]
+            mNrm_tp1_from_a_t_by_shk = \
+                (pars.Rfree / (pars.PermGroFac * permShk)) * a_number + tranShk
+            v_tp1_vals = self.soln_crnt.folw.vFunc_tp1(mNrm_tp1_from_a_t_by_shk)
+            v_NormFac_vals = permShk**(1-folw.CRRA - 0.0)
+            E_t_v_tp1_vals = v_NormFac_vals * v_tp1_vals
+            return E_t_v_tp1_vals
+
         def vals_v_tp1(shks_perm_tran_bcst, a_number):
-            return shks_perm_tran_bcst[pars.permPos] ** (1-pars.CRRA - 0.0) * \
+            return shks_perm_tran_bcst[pars.permPos] ** (1-folw.CRRA_tp1 - 0.0) * \
                 self.soln_crnt.folw.vFunc_tp1(
                     self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
         def vals_v_tp1_dm(shks_perm_tran_bcst, a_number):
-            return shks_perm_tran_bcst[pars.permPos] ** (0-pars.CRRA - 0.0) * \
+            return shks_perm_tran_bcst[pars.permPos] ** (0-folw.CRRA_tp1 - 0.0) * \
                 self.soln_crnt.folw.vFunc_tp1.dm(
                     self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
         def vals_v_tp1_dm_dm(shks_perm_tran_bcst, a_number):
-            return shks_perm_tran_bcst[pars.permPos] ** (0-pars.CRRA - 1.0) * \
+            return shks_perm_tran_bcst[pars.permPos] ** (0-folw.CRRA_tp1 - 1.0) * \
                 self.soln_crnt.folw.vFunc_tp1.dm.dm(
                     self.mNrm_tp1_from_a_t_bcst(shks_perm_tran_bcst, a_number))
 
@@ -2660,9 +2681,9 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         # Having calculated (marginal value, etc) of saving, construct c
 
-        sol_EGM = self.make_sol_using_EGM()  # Need to add test for finished, change stge_kind if so
+        sol_EGM = self.make_sol_using_EGM()  
         soln_crnt.bilt.cFunc = soln_crnt.cFunc = sol_EGM.bilt.cFunc
-        soln_crnt = def_value_funcs(soln_crnt, CRRA)
+        soln_crnt = def_value_funcs(soln_crnt, CRRA) # add value funcs
         return soln_crnt
 
     solve = solve_prepared_stage
@@ -2731,8 +2752,6 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
         bilt = self.soln_crnt.bilt
         folw = self.soln_crnt.folw
         pars = self.soln_crnt.pars
-        permPos = pars.IncShkDstn.parameters['ShkPosn']['perm']
-        tranPos = pars.IncShkDstn.parameters['ShkPosn']['tran']
 
         def vPP_tp1(shks_perm_tran_bcst, a_number):
             return shks_perm_tran_bcst[pars.permPos] ** (- pars.CRRA - 1.0) \
@@ -2841,6 +2860,7 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
         """
         # Compute expected value and marginal value on a grid of market resources
         bilt = self.soln_crnt.bilt
+        folw = self.soln_crnt.folw
 
         mNrm_temp = bilt.mNrmMin + bilt.aXtraGrid
         cNrm = soln_crnt.cFunc(mNrm_temp)
@@ -2854,15 +2874,15 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
         mNrm_temp = np.insert(mNrm_temp, 0, bilt.mNrmMin)
         vNvrs = np.insert(vNvrs, 0, 0.0)
         vNvrsP = np.insert(
-            vNvrsP, 0, bilt.MPCmaxEff ** (-pars.CRRA /
-                                          (1.0 - pars.CRRA))
+            vNvrsP, 0, bilt.MPCmaxEff ** (-folw.CRRA_tp1 /
+                                          (1.0 - folw.CRRA_tp1))
         )
-        MPCminNvrs = bilt.MPCmin ** (-pars.CRRA /
-                                     (1.0 - pars.CRRA))
+        MPCminNvrs = bilt.MPCmin ** (-folw.CRRA_tp1 /
+                                     (1.0 - folw.CRRA_tp1))
         vNvrsFunc = CubicInterp(
             mNrm_temp, vNvrs, vNvrsP, MPCminNvrs * bilt.hNrm, MPCminNvrs
         )
-        vFunc = ValueFuncCRRA(vNvrsFunc, pars.CRRA)
+        vFunc = ValueFuncCRRA(vNvrsFunc, folw.CRRA_tp1)
         return vFunc
 
     def add_vPPfunc(self, soln_crnt):  # Deprecated

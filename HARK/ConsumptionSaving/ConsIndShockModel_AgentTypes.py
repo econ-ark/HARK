@@ -314,15 +314,6 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         # always use the unaltered "master" solution_terminal_
         self.solution_terminal = deepcopy(solution_terminal_)
 
-# class solution_stone_geary(ConsumerSolutionOneStateCRRA):
-#     def __init__(
-#             self, solution_startfrom=None, cycles=1, pseudo_terminal=False,
-#             stone_geary = 0,
-#             equiv_life_periods = 1,
-#             CRRA = 2,
-#             **kwds):
-
-
 class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
     """
 
@@ -436,24 +427,6 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
         else:
             bilt.MPC_constr = [1/(1+(ℶ**(-1/ρ)))]
 
-        # solution_bequest_= ConsumerSolutionOneStateCRRA(
-        #     cFunc = self.cFunc,
-        #     mNrmMin=0.0,
-        #     hNrm=-1.0,
-        #     MPCmin=bilt.MPC_constr,
-        #     MPCmax=1.0,
-        #     stge_kind={
-        #         'iter_status': 'terminal_pseudo',
-        #         'term_type': 'bequest_warmglow'},
-        #     completed_cycles=-1
-        # )
-
-#        solution_bequest_.solution_next = solution_afterlife_bequest_
-#        self.solution_terminal_ = solution_bequest_
-#        self.solution_terminal = deepcopy(self.solution_terminal_)
-        tmp = sab.cFunc(2)
-#        tmp2 = self.cFunc(2)
-
     def cFunc(self, m):
         breakpoint()
         MPC_constr = self.bilt.MPC_constr
@@ -462,30 +435,6 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
         c_constr = (1-constr_0)*m  # m if m < kink
         c_uncons = constr_0*(c_constr+MPC_constr[0]*(m-mNrm_kinks[0]))
         return c_constr+c_uncons
-
-#     def u(self, c, CRRA, stone_geary):
-#         return u_stone_geary(c, CRRA, stone_geary)
-
-# #    def uP(self, c, CRRA, stone_geary):
-# #        return uP_stone_geary(c, CRRA, stone_geary)
-
-#     def uP(self, c):
-#         CRRA = self.bilt.CRRA
-#         stone_geary = self.bilt.stone_geary
-#         return uP_stone_geary(c, CRRA, stone_geary)
-
-#     def uPP(self, c, CRRA, stone_geary):
-#         return uPP_stone_geary(c, CRRA, stone_geary)
-
-#     def vFunc(self, m):
-#         return self.u(m, self.CRRA, self.stone_geary)
-
-#     def vPfunc(self, m):
-#         return self.u(m, self.CRRA, self.stone_geary)
-
-#     def vPPfunc(self, m):
-#         return self.u(m, self.CRRA, self.stone_geary)
-
 
 class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     """
@@ -541,7 +490,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         # If they did not provide their own solution_startfrom, use default
 
         if not hasattr(self, 'solution_startfrom'):
-            # enrich generic consumer_terminal_nobequest_onestate terminal function
+            # enrich generic consumer_terminal_nobequest_onestate terminal func
             # with info specifically needed to solve this particular model
             self.solution_terminal.bilt = \
                 self.finish_setup_of_default_solution_terminal()
@@ -730,18 +679,6 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         Add to `solution_terminal` characteristics of the agent required
         for solution of the particular type which are not automatically
         created as part of the definition of the generic `solution_terminal.`
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-
-        Notes
-        -------
-        None
         """
         # If no solution exists for the agent,
         # core.py uses solution_terminal as solution_next
@@ -831,28 +768,6 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                                 self.MaxKinks = self.cycles
 
     pre_solve = agent_force_prepare_info_needed_to_begin_solving
-
-    def unpack_cFunc(self):
-        """ DEPRECATED: Use solution.unpack('cFunc') instead.
-        "Unpacks" the consumption functions into their own field for easier access.
-        After the model has been solved, the consumption functions reside in the
-        attribute cFunc of each element of ConsumerType.solution.  This method
-        creates a (time varying) attribute cFunc that contains a list of consumption
-        functions.
-        Parameters
-        ----------
-        none
-        Returns
-        -------
-        none
-        """
-        _log.critical(
-            "unpack_cFunc is deprecated and it will soon be removed, "
-            "please use unpack('cFunc') instead."
-        )
-        self.unpack("cFunc")
-
-    unpack_cFunc_from_solution_to_agent = unpack_cFunc
 
     def initialize_sim(self):
         self.mcrlovars = SimpleNamespace()
