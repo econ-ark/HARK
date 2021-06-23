@@ -313,6 +313,7 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         # always use the unaltered "master" solution_terminal_
         self.solution_terminal = deepcopy(solution_terminal_)
 
+
 class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
     """
 
@@ -344,7 +345,7 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
     in order to make bequests a luxury good
 
     equiv_life_periods : float
-        Limiting number of periods worth of consumption that the bequest is 
+        Limiting number of periods-worth of consumption that the bequest is
     equivalent to
     """
 
@@ -363,8 +364,8 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
         bilt = self.bilt  # alias
 
         if (equiv_life_periods == 0.0):
-            msg = 'With zero equiv_life_periods ' +\
-                'parameters, the model exhibits no bequest motive.'
+            msg = 'With bequest parameter equiv_life_periods = 0, ' +\
+                'the model exhibits no bequest motive.'
 
             nobequest_agent = consumer_terminal_nobequest_onestate(
             )
@@ -375,7 +376,7 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
             # constrained problem.  That is below.
 
             # Add infrastructure for piecewise linear PF solution
-            bilt.mNrm_cusp = 0.0  # then 'cusp' => cannot die in debt
+            bilt.mNrm_cusp = 0.0  # here 'cusp' => cannot die in debt
             bilt.vNrm_cusp = -float('inf')  # yields neg inf value
             bilt.vInv_cusp = 0.0
             bilt.mNrm_kinks = [bilt.mNrm_cusp]
@@ -434,6 +435,7 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
         c_constr = (1-constr_0)*m  # m if m < kink
         c_uncons = constr_0*(c_constr+MPC_constr[0]*(m-mNrm_kinks[0]))
         return c_constr+c_uncons
+
 
 class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     """

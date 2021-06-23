@@ -48,19 +48,27 @@ def def_utility(stge, CRRA):
     # Google: how-to-fill-specific-positional-arguments-with-partial-in-python
     bilt.u = lambda c: CRRAutility(c, CRRA)
     # marginal utility
-    # CDC 20210613: Proposed new syntax makes derivatives attributes of function
-    bilt.u.dc = bilt.uP = lambda c: CRRAutilityP(c, CRRA)  # dc is der wrt c
+    # CDC 20210613: New syntax makes derivatives attributes of function
+#    bilt.u.dc = bilt.uP = lambda c: CRRAutilityP(c, CRRA)  # dc is der wrt c
+    bilt.u.dc = lambda c: CRRAutilityP(c, CRRA)  # dc is der wrt c
     # marginal marginal utility
-    bilt.u.dc.dc = bilt.uPP = lambda c: CRRAutilityPP(c, CRRA)  # another der
+    bilt.uPP = lambda c: CRRAutilityPP(c, CRRA)  # another der
+#    breakpoint()
+    bilt.u.dc.dc = lambda c: CRRAutilityPP(c, CRRA)  # another der
 
-    def dudc(stge, c):
-        CRRAutilityP(c, bilt.CRRA)
+#    def dudc(stge, c):
+#        CRRAutilityP(c, bilt.CRRA)
 
     # Inverses thereof
-    bilt.u.dc.Nvrs = bilt.uPinv = lambda uP: CRRAutilityP_inv(uP, CRRA)
-    bilt.u.dc.Nvrs.du = bilt.uPinvP = lambda uP: CRRAutilityP_invP(uP, CRRA)
-    bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
-    bilt.uinv = lambda u: CRRAutility_inv(u, CRRA)
+#    bilt.u.dc.Nvrs = bilt.uPinv = lambda uP: CRRAutilityP_inv(uP, CRRA)
+    bilt.u.Nvrs = lambda u: CRRAutility_inv(u, CRRA)
+    bilt.u.dc.Nvrs = lambda uP: CRRAutilityP_inv(uP, CRRA)
+#    bilt.u.dc.Nvrs.du = bilt.uPinvP = lambda uP: CRRAutilityP_invP(uP, CRRA)
+    bilt.u.dc.Nvrs.du = lambda uP: CRRAutilityP_invP(uP, CRRA)
+#    bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
+    bilt.u.Nvrs.du = lambda u: CRRAutility_invP(u, CRRA)
+#    bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
+#    bilt.uinv = lambda u: CRRAutility_inv(u, CRRA)
 
     return stge
 
