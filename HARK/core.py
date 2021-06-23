@@ -972,8 +972,20 @@ def solve_agent(agent, verbose):
 
 def solve_one_cycle(agent, solution_last):
     """
-    Solve one "cycle" of the dynamic model for one agent type.  This function
-    iterates over the periods within an agent's cycle, updating the time-varying
+    Solve one "cycle" of the dynamic model for one agent type.
+    "Cycle" may be a misnomer (see below).
+
+    If the model is not-timevarying, then this solves one period of
+    the infinite horizon model.
+
+    If the model is time-varying and infinite, then this solves
+    one cycle.
+
+    If the model is time-varying and finite, then it solves one pass
+    through the lifetime of the agent.
+
+    This function iterates over the periods within an agent's time-scale,
+    updating the time-varying
     parameters and passing them to the single period solver(s).
 
     Parameters
@@ -992,13 +1004,18 @@ def solve_one_cycle(agent, solution_last):
         A list of one period solutions for one "cycle" of the AgentType's
         microeconomic model.
     """
-    # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
+    infinite_horizon = agent.cycles == 0 
+
+    # Calculate number of periods to be solved.
     if len(agent.time_vary) > 0:
-        # name = agent.time_vary[0]
-        # T = len(eval('agent.' + name))
         T = len(agent.__dict__[agent.time_vary[0]])
+
+        if infinite_horizon:
+            i_range = range(0, -T, -1)
+        else:
+            i_range = range(-1, -T, -1)
     else:
-        T = 1
+        i_range = [1]
 
     solve_dict = {parameter: agent.__dict__[parameter] for parameter in agent.time_inv}
     solve_dict.update({parameter: None for parameter in agent.time_vary})
@@ -1006,10 +1023,11 @@ def solve_one_cycle(agent, solution_last):
     # Initialize the solution for this cycle, then iterate on periods
     solution_cycle = []
     solution_next = solution_last
-    for t in range(T):
+    for i in i_range:
         # Update which single period solver to use (if it depends on time)
         if hasattr(agent.solve_one_period, "__getitem__"):
-            solve_one_period = agent.solve_one_period[T - 1 - t]
+            ## This feature is rarely used in practiced and is not maintained.
+            solve_one_period = agent.solve_one_period[i]
         else:
             solve_one_period = agent.solve_one_period
 
@@ -1021,8 +1039,7 @@ def solve_one_cycle(agent, solution_last):
         # Update time-varying single period inputs
         for name in agent.time_vary:
             if name in these_args:
-                # solve_dict[name] = eval('agent.' + name + '[t]')
-                solve_dict[name] = agent.__dict__[name][T - 1 - t]
+                solve_dict[name] = agent.__dict__[name][i]
         solve_dict["solution_next"] = solution_next
 
         # Make a temporary dictionary for this period
