@@ -2693,7 +2693,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                                                        'IncUnemp': IncUnemp_list,
                                                        'n_approx': TranShkCount_list})
 
-        IncShkDstn = IndexDistribution(engine = InkShk_engine,
+        IncShkDstn = IndexDistribution(engine = IncShk_engine,
                                        conditional = {'sigma_Perm': PermShkStd,
                                                       'sigma_Tran': TranShkStd,
                                                       'n_approx_Perm': PermShkCount_list,
@@ -2718,14 +2718,14 @@ def TranShk_engine(sigma, UnempPrb, IncUnemp, n_approx, seed = 0):
 
     return TranShkDstn
 
-def InkShk_engine(sigma_Perm, sigma_Tran, n_approx_Perm, n_approx_Tran, UnempPrb, IncUnemp, seed = 0):
+def IncShk_engine(sigma_Perm, sigma_Tran, n_approx_Perm, n_approx_Tran, UnempPrb, IncUnemp, seed = 0):
 
     PermShkDstn = PermShk_engine(sigma_Perm, n_approx_Perm)
     TranShkDstn = TranShk_engine(sigma_Tran, UnempPrb, IncUnemp, n_approx_Tran)
 
-    InkShkDstn = combine_indep_dstns(PermShkDstn,TranShkDstn,seed=seed)
+    IncShkDstn = combine_indep_dstns(PermShkDstn,TranShkDstn,seed=seed)
 
-    return InkShkDstn
+    return IncShkDstn
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
 init_kinked_R = dict(
