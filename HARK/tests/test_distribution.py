@@ -1,8 +1,8 @@
-import numpy as np
 import unittest
 
-import HARK.distribution as distribution
+import numpy as np
 
+import HARK.distribution as distribution
 from HARK.distribution import (
     Bernoulli,
     IndexDistribution,
@@ -14,7 +14,7 @@ from HARK.distribution import (
     Uniform,
     Weibull,
     calc_expectation,
-    combine_indep_dstns
+    combine_indep_dstns,
 )
 
 
@@ -26,7 +26,8 @@ class DiscreteDistributionTests(unittest.TestCase):
 
     def test_draw(self):
         self.assertEqual(
-            DiscreteDistribution(np.ones(1), np.zeros(1)).draw(1)[0], 0,
+            DiscreteDistribution(np.ones(1), np.zeros(1)).draw(1)[0],
+            0,
         )
 
     def test_calc_expectation(self):
@@ -42,32 +43,20 @@ class DiscreteDistributionTests(unittest.TestCase):
         self.assertAlmostEqual(ce2, 1.0)
         self.assertAlmostEqual(ce3, 10.0)
 
-        ce4= calc_expectation(
-            dd_0_1_20,
-            lambda x: 2 ** x
-        )
+        ce4 = calc_expectation(dd_0_1_20, lambda x: 2 ** x)
 
         self.assertAlmostEqual(ce4, 1.27153712)
 
-        ce5 = calc_expectation(
-            dd_1_1_40,
-            lambda x: 2 * x
-        )
+        ce5 = calc_expectation(dd_1_1_40, lambda x: 2 * x)
 
         self.assertAlmostEqual(ce5, 2.0)
 
-        ce6 = calc_expectation(
-            dd_10_10_100,
-            lambda x, y: 2 * x + y,
-            20
-        )
+        ce6 = calc_expectation(dd_10_10_100, lambda x, y: 2 * x + y, 20)
 
         self.assertAlmostEqual(ce6, 40.0)
 
         ce7 = calc_expectation(
-            dd_0_1_20,
-            lambda x, y: x + y,
-            np.hstack(np.array([0,1,2,3,4,5]))
+            dd_0_1_20, lambda x, y: x + y, np.hstack(np.array([0, 1, 2, 3, 4, 5]))
         )
 
         self.assertAlmostEqual(ce7.flat[3], 3.0)
@@ -76,10 +65,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         TranShkDstn = MeanOneLogNormal().approx(200)
         IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
-        ce8 = calc_expectation(
-            IncShkDstn,
-            lambda X: X[0] + X[1]
-        )
+        ce8 = calc_expectation(IncShkDstn, lambda X: X[0] + X[1])
 
         self.assertAlmostEqual(ce8, 2.0)
 
@@ -90,7 +76,7 @@ class DiscreteDistributionTests(unittest.TestCase):
             1.05,  # an interest rate?
         )
 
-        self.assertAlmostEqual(ce9[3], 9.518015322143837)
+        self.assertAlmostEqual(ce9[3], 9.51801532)
 
 
 class DistributionClassTests(unittest.TestCase):
@@ -100,28 +86,27 @@ class DistributionClassTests(unittest.TestCase):
     """
 
     def test_drawMeanOneLognormal(self):
-        self.assertEqual(MeanOneLogNormal().draw(1)[0], 3.5397367004222002)
+        self.assertAlmostEqual(MeanOneLogNormal().draw(1)[0], 3.53973670)
 
     def test_Lognormal(self):
-
         dist = Lognormal()
 
-        self.assertEqual(dist.draw(1)[0], 5.836039190663969)
+        self.assertAlmostEqual(dist.draw(1)[0], 5.83603919)
 
         dist.draw(100)
         dist.reset()
 
-        self.assertEqual(dist.draw(1)[0], 5.836039190663969)
+        self.assertAlmostEqual(dist.draw(1)[0], 5.83603919)
 
     def test_Normal(self):
         dist = Normal()
 
-        self.assertEqual(dist.draw(1)[0], 1.764052345967664)
+        self.assertAlmostEqual(dist.draw(1)[0][0], 1.76405235)
 
         dist.draw(100)
         dist.reset()
 
-        self.assertEqual(dist.draw(1)[0], 1.764052345967664)
+        self.assertAlmostEqual(dist.draw(1)[0][0], 1.76405235)
 
     def test_MVNormal(self):
         dist = MVNormal()
@@ -138,20 +123,18 @@ class DistributionClassTests(unittest.TestCase):
         )
 
     def test_Weibull(self):
-        self.assertEqual(Weibull().draw(1)[0], 0.79587450816311)
+        self.assertAlmostEqual(Weibull().draw(1)[0], 0.79587451)
 
     def test_Uniform(self):
         uni = Uniform()
 
-        self.assertEqual(Uniform().draw(1)[0], 0.5488135039273248)
+        self.assertAlmostEqual(Uniform().draw(1)[0], 0.54881350)
 
-        self.assertEqual(
-            calc_expectation(uni.approx(10)),
-            0.5
-        )
+        self.assertEqual(calc_expectation(uni.approx(10)), 0.5)
 
     def test_Bernoulli(self):
         self.assertEqual(Bernoulli().draw(1)[0], False)
+
 
 class IndexDistributionClassTests(unittest.TestCase):
     """
@@ -160,23 +143,19 @@ class IndexDistributionClassTests(unittest.TestCase):
     """
 
     def test_IndexDistribution(self):
-        cd = IndexDistribution(Bernoulli, {'p' : [.01, .5, .99]})
+        cd = IndexDistribution(Bernoulli, {"p": [0.01, 0.5, 0.99]})
 
-        conditions = np.array([0,0,0,0,1,1,1,1,1,1,1,1,2,2,2,2])
+        conditions = np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2])
 
         draws = cd.draw(conditions)
 
         self.assertEqual(draws[:4].sum(), 0)
-        self.assertEqual(draws[-4:].sum(),4)
-        self.assertEqual(cd[2].p.tolist(), .99)
+        self.assertEqual(draws[-4:].sum(), 4)
+        self.assertEqual(cd[2].p.tolist(), 0.99)
 
     def test_IndexDistribution_approx(self):
         cd = IndexDistribution(
-            Lognormal,
-            {
-                'mu' : [.01, .5, .99],
-                'sigma' : [.05, .05, .05]
-            }
+            Lognormal, {"mu": [0.01, 0.5, 0.99], "sigma": [0.05, 0.05, 0.05]}
         )
 
         approx = cd.approx(10)
@@ -186,18 +165,13 @@ class IndexDistributionClassTests(unittest.TestCase):
         self.assertAlmostEqual(draw[1], 2.93868620)
 
     def test_IndexDistribution_seeds(self):
-        cd = IndexDistribution(
-            Lognormal,
-            {
-                'mu' : [1, 1],
-                'sigma' : [1, 1]
-            }
-        )
+        cd = IndexDistribution(Lognormal, {"mu": [1, 1], "sigma": [1, 1]})
 
         draw_0 = cd[0].draw(1).tolist()
         draw_1 = cd[1].draw(1).tolist()
 
         self.assertNotEqual(draw_0, draw_1)
+
 
 class MarkovProcessTests(unittest.TestCase):
     """
@@ -205,7 +179,6 @@ class MarkovProcessTests(unittest.TestCase):
     """
 
     def test_draw(self):
-
         mrkv_array = np.array([[0.75, 0.25], [0.1, 0.9]])
 
         mp = distribution.MarkovProcess(mrkv_array)
