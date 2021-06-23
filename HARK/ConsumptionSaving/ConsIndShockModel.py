@@ -31,6 +31,7 @@ from HARK.distribution import (
     add_discrete_outcome_constant_mean,
     calc_expectation,
     combine_indep_dstns,
+    IndexDistribution,
 )
 from HARK.utilities import (
     make_grid_exp_mult,
@@ -2659,93 +2660,66 @@ class IndShockConsumerType(PerfForesightConsumerType):
             a discrete approximation to the transitory income shocks.
         """
         # Unpack the parameters from the input
+        T_cycle = self.T_cycle
         PermShkStd = self.PermShkStd
         PermShkCount = self.PermShkCount
         TranShkStd = self.TranShkStd
         TranShkCount = self.TranShkCount
-        T_cycle = self.T_cycle
         T_retire = self.T_retire
         UnempPrb = self.UnempPrb
         IncUnemp = self.IncUnemp
         UnempPrbRet = self.UnempPrbRet
         IncUnempRet = self.IncUnempRet
 
-        IncShkDstn = []  # Discrete approximations to income process in each period
-        PermShkDstn = []  # Discrete approximations to permanent income shocks
-        TranShkDstn = []  # Discrete approximations to transitory income shocks
-
-        # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
-        # in normal times; value 0.0 in "unemployment" times with small prob.
         if T_retire > 0:
-            if UnempPrbRet > 0:
-                PermShkValsRet = np.array(
-                    [1.0, 1.0]
-                )  # Permanent income is deterministic in retirement (2 states for temp income shocks)
-                TranShkValsRet = np.array(
-                    [
-                        IncUnempRet,
-                        (1.0 - UnempPrbRet * IncUnempRet) / (1.0 - UnempPrbRet),
-                    ]
-                )
-                ShkPrbsRet = np.array([UnempPrbRet, 1.0 - UnempPrbRet])
-            else:
-                PermShkValsRet = np.array([1.0])
-                TranShkValsRet = np.array([1.0])
-                ShkPrbsRet = np.array([1.0])
-            IncShkDstnRet = DiscreteDistribution(
-                ShkPrbsRet,
-                [PermShkValsRet, TranShkValsRet],
-                seed=self.RNG.randint(0, 2 ** 31 - 1),
-            )
+            normal_length = T_retire
+            retire_length = T_cycle - T_retire
+        else:
+            normal_length = T_cycle
+            retire_length = 0
 
-        # Loop to fill in the list of IncShkDstn random variables.
-        for t in range(T_cycle):  # Iterate over all periods, counting forward
+        UnempPrb_list = [UnempPrb]*normal_length + [UnempPrbRet]*retire_length
+        IncUnemp_list = [IncUnemp]*normal_length + [IncUnempRet]*retire_length
+        PermShkCount_list = [PermShkCount]*normal_length + [1]*retire_length
+        TranShkCount_list = [TranShkCount]*normal_length + [1]*retire_length
 
-            if T_retire > 0 and t >= T_retire:
-                # Then we are in the "retirement period" and add a retirement income object.
-                IncShkDstn.append(deepcopy(IncShkDstnRet))
-                PermShkDstn.append([np.array([1.0]), np.array([1.0])])
-                TranShkDstn.append([ShkPrbsRet, TranShkValsRet])
-            else:
-                # We are in the "working life" periods.
-                TranShkDstn_t = MeanOneLogNormal(sigma=TranShkStd[t]).approx(
-                    TranShkCount, tail_N=0
-                )
-                if UnempPrb > 0:
-                    TranShkDstn_t = add_discrete_outcome_constant_mean(
-                        TranShkDstn_t, p=UnempPrb, x=IncUnemp
-                    )
-                PermShkDstn_t = MeanOneLogNormal(sigma=PermShkStd[t]).approx(
-                    PermShkCount, tail_N=0
-                )
+        PermShkDstn = IndexDistribution(engine = PermShk_engine,
+                                        conditional = {'sigma': PermShkStd,
+                                                       'n_approx': PermShkCount_list})
 
-                IncShkDstn.append(
-                    combine_indep_dstns(
-                        PermShkDstn_t,
-                        TranShkDstn_t,
-                        seed=self.RNG.randint(0, 2 ** 31 - 1),
-                    )
-                )  # mix the independent distributions
-                PermShkDstn.append(PermShkDstn_t)
-                TranShkDstn.append(TranShkDstn_t)
+        TranShkDstn = IndexDistribution(engine = TranShk_engine,
+                                        conditional = {'sigma': TranShkStd,
+                                                       'UnempPrb': UnempPrb_list,
+                                                       'IncUnemp': IncUnemp_list,
+                                                       'n_approx': TranShkCount_list})
+
+        IncShkDstn = IndexDistribution(engine = InkShk_engine,
+                                       conditional = {'sigma_Perm': PermShkStd,
+                                                      'sigma_Tran': TranShkStd,
+                                                      'n_approx_Perm': PermShkCount_list,
+                                                      'n_approx_Tran': TranShkCount_list,
+                                                      'UnempPrb': UnempPrb_list,
+                                                      'IncUnemp': IncUnemp_list},
+                                       seed=self.RNG.randint(0, 2 ** 31 - 1))
+
         return IncShkDstn, PermShkDstn, TranShkDstn
 
-def PermShk_engine(sigma, n_approx):
+def PermShk_engine(sigma, n_approx, seed = 0):
 
-    PermShkDstn = MeanOneLogNormal(sigma).approx(n_approx, tail_N=0)
+    PermShkDstn = MeanOneLogNormal(sigma, seed = seed).approx(n_approx, tail_N=0)
 
     return PermShkDstn
 
-def TranShk_engine(sigma, UnempPrb, IncUnemp, n_approx):
+def TranShk_engine(sigma, UnempPrb, IncUnemp, n_approx, seed = 0):
 
-    TranShkDstn = MeanOneLogNormal(sigma).approx(n_approx, tail_N=0)
+    TranShkDstn = MeanOneLogNormal(sigma, seed = seed).approx(n_approx, tail_N=0)
     if UnempPrb > 0:
         TranShkDstn = add_discrete_outcome_constant_mean(TranShkDstn, p=UnempPrb, x=IncUnemp)
-    
+
     return TranShkDstn
 
-def InkShk_engine(sigma_Perm, sigma_Tran, n_approx_Perm, n_approx_Tran, UnempPrb, IncUnemp, seed):
-    
+def InkShk_engine(sigma_Perm, sigma_Tran, n_approx_Perm, n_approx_Tran, UnempPrb, IncUnemp, seed = 0):
+
     PermShkDstn = PermShk_engine(sigma_Perm, n_approx_Perm)
     TranShkDstn = TranShk_engine(sigma_Tran, UnempPrb, IncUnemp, n_approx_Tran)
 

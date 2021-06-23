@@ -427,7 +427,10 @@ class AgentType(Model):
         A method to check that elements of time_vary are lists.
         """
         for param in self.time_vary:
-            assert type(getattr(self, param)) == list, (
+            # TODO: this method has become a misnomer.
+            # Distributions do not have to be lists. They can be
+            # IndexDistribution.
+            assert hasattr(getattr(self, param),'__getitem__'), (
                 param + " is not a list, but should be" + " because it is in time_vary"
             )
 
