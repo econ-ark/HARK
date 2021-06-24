@@ -11,7 +11,7 @@ GenIncDictionary = {
     "CRRA": 2.0,  # Coefficient of relative risk aversion
     "Rfree": 1.03,  # Interest factor on assets
     "DiscFac": 0.96,  # Intertemporal discount factor
-    "LivPrb": [0.98],  # Survival probability
+    "LivPrb": [1, 0.98],  # Survival probability
     "AgentCount": 10000,  # Number of agents of this type (only matters for simulation)
     "aNrmInitMean": 0.0,  # Mean of log initial assets (only matters for simulation)
     "aNrmInitStd": 1.0,  # Standard deviation of log initial assets (only for simulation)
@@ -32,8 +32,8 @@ GenIncDictionary = {
     # Parameters describing the income process
     "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
     "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
-    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
-    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "PermShkStd": [0.1, 0.1],  # Standard deviation of log permanent income shocks
+    "TranShkStd": [0.1, 0.1],  # Standard deviation of log transitory income shocks
     "UnempPrb": 0.05,  # Probability of unemployment while working
     "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
     "IncUnemp": 0.3,  # Unemployment benefits replacement rate
@@ -52,7 +52,7 @@ GenIncDictionary = {
         )
     ),
     "PermGroFac": [
-        1.0
+        1.0, 1.0
     ],  # Permanent income growth factor - long run permanent income growth doesn't work yet
 }
 

@@ -83,7 +83,7 @@ class test_AgentType(unittest.TestCase):
     def test_solve(self):
         self.agent.time_vary = ["vary_1"]
         self.agent.time_inv = ["inv_1"]
-        self.agent.vary_1 = [1.1, 1.2, 1.3, 1.4]
+        self.agent.vary_1 = [1.0, 1.1, 1.2, 1.3, 1.4]
         self.agent.inv_1 = 1.05
         # to test the superclass we create a dummy solve_one_period function
         # for our agent, which doesn't do anything, instead of using a NullFunc

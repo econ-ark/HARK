@@ -251,12 +251,12 @@ LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionar
     "CRRA": 2.0,  # Coefficient of relative risk aversion
     "Rfree": 1.03,  # Interest factor on assets
     "DiscFac": 0.96,  # Intertemporal discount factor
-    "LivPrb": [0.99, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1],
-    "PermGroFac": [1.01, 1.01, 1.01, 1.02, 1.02, 1.02, 0.7, 1.0, 1.0, 1.0],
+    "LivPrb": [0.99, 0.99, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1],
+    "PermGroFac": [1.01, 1.01, 1.01, 1.01, 1.02, 1.02, 1.02, 0.7, 1.0, 1.0, 1.0],
     # Parameters that specify the income distribution over the lifecycle
-    "PermShkStd": [0.1, 0.2, 0.1, 0.2, 0.1, 0.2, 0.1, 0, 0, 0],
+    "PermShkStd": [0.1, 0.1, 0.2, 0.1, 0.2, 0.1, 0.2, 0.1, 0, 0, 0],
     "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
-    "TranShkStd": [0.3, 0.2, 0.1, 0.3, 0.2, 0.1, 0.3, 0, 0, 0],
+    "TranShkStd": [0.3, 0.3, 0.2, 0.1, 0.3, 0.2, 0.1, 0.3, 0, 0, 0],
     "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
     "UnempPrb": 0.05,  # Probability of unemployment while working
     "IncUnemp": 0.3,  # Unemployment benefits replacement rate

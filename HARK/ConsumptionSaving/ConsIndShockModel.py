@@ -1535,8 +1535,8 @@ init_perfect_foresight = {
     'CRRA': 2.0,          # Coefficient of relative risk aversion,
     'Rfree': 1.03,        # Interest factor on assets
     'DiscFac': 0.96,      # Intertemporal discount factor
-    'LivPrb': [0.98],     # Survival probability
-    'PermGroFac': [1.01],  # Permanent income growth factor
+    'LivPrb': [1, 0.98],     # Survival probability
+    'PermGroFac': [1, 1.01],  # Permanent income growth factor
     'BoroCnstArt': None,  # Artificial borrowing constraint
     'MaxKinks': 400,      # Maximum number of grid points to allow in cFunc (should be large)
     'AgentCount': 10000,  # Number of agents of this type (only matters for simulation)
@@ -2020,9 +2020,9 @@ init_idiosyncratic_shocks = dict(
             None
         ],  # Some other value of "assets above minimum" to add to the grid, not used
         # Income process variables
-        "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+        "PermShkStd": [0.1, 0.1],  # Standard deviation of log permanent income shocks
         "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
-        "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+        "TranShkStd": [0.1, 0.1],  # Standard deviation of log transitory income shocks
         "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
         "UnempPrb": 0.05,  # Probability of unemployment while working
         "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
