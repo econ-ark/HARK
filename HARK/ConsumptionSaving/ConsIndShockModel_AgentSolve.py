@@ -13,7 +13,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel_Both import (
     def_utility, def_value_funcs)
 from HARK.distribution import (calc_expectation, calc_expectation_of_array)
 from HARK.interpolation import (CubicInterp, LowerEnvelope, LinearInterp,
-                                ValueFuncCRRA, MargValueFuncCRRA,
+                                MargValueFuncCRRA,
                                 MargMargValueFuncCRRA)
 from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModelOld \
@@ -88,7 +88,7 @@ class ConsumerSolution(ConsumerSolutionOlder):
     __doc__ = ConsumerSolutionOlder.__doc__
     __doc__ += """
     stge_kind : dict
-        Dictionary with info about this stage
+        Dictionary with info about this solution stage
         One built-in entry keeps track of the nature of the stage:
             {'iter_status':'finished'}: Stopping requirements are satisfied
                 If stopping requirements are satisfied, {'tolerance':tolerance}
@@ -115,7 +115,7 @@ class ConsumerSolution(ConsumerSolutionOlder):
     distance_criteria = ["cFunc"]  # cFunc if the GIC fails
 
     def __init__(self, *args,
-                 # TODO: These new items should eventually become part of the default
+                 # TODO: These new items should become part of default
                  stge_kind={'iter_status': 'not initialized'},
                  completed_cycles=0,
                  parameters_solver=None,
@@ -140,7 +140,8 @@ class ConsumerSolution(ConsumerSolutionOlder):
         bilt.recursive = \
             {'cFunc', 'vFunc',  'vPfunc', 'vPPfunc',  'vFuncNvrs',
              'vFunc.dm', 'vFunc.dm.dm',
-             'u', 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv', 'hNrm',
+             'u', #'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv', 
+             'hNrm',
              'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA', 'vAdd'
              }
 
@@ -1026,7 +1027,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
 # 20210618: TODO: CDC: Find a way to isolate this stuff so it does not clutter
 
-
     def build_infhor_facts_from_params(self):
         """
             Adds to the solution extensive information and references about
@@ -1437,7 +1437,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
         Parameters
         ----------
-        None (all should be in self)
+        None (all are already in self)
 
         Returns
         -------
@@ -1954,64 +1954,64 @@ class ConsIndShockSetup_ex_ante(ConsIndShockSetup):
 #############################################################################
 
 
-class ConsIndShockSolverBasic_ex_ante(ConsIndShockSetup_ex_ante):
-    def __init__(self, *args, **kwds):
-        super().init(self, *args, **kwds)
+# class ConsIndShockSolverBasic_ex_ante(ConsIndShockSetup_ex_ante):
+#     def __init__(self, *args, **kwds):
+#         super().init(self, *args, **kwds)
 
-    def make_ex_ante_states_from_transition_eqns_inverse(self):
-        givens = {}
-        E_t = self.soln_crnt.E_t
-        bilt = self.soln_crnt.bilt
-        for key in self.transition_eqns_inverse.keys():
-            eval(self.transition_eqns_inverse[key], {}, {
-                 **E_t.__dict__, **bilt.__dict__, **givens})
+#     def make_ex_ante_states_from_transition_eqns_inverse(self):
+#         givens = {}
+#         E_t = self.soln_crnt.E_t
+#         bilt = self.soln_crnt.bilt
+#         for key in self.transition_eqns_inverse.keys():
+#             eval(self.transition_eqns_inverse[key], {}, {
+#                  **E_t.__dict__, **bilt.__dict__, **givens})
 
-    def make_ex_ante_states(self):
-        bilt = self.soln_crnt.bilt
-        aNrmMin_tm1 = bilt.BoroCnstNat*(bilt.PermGroFac*bilt.permShkMax)/bilt.Rfree
-        bilt.aNrmGrid_tm1 = np.asarray(bilt.aXtraGrid) + aNrmMin_tm1
+#     def make_ex_ante_states(self):
+#         bilt = self.soln_crnt.bilt
+#         aNrmMin_tm1 = bilt.BoroCnstNat*(bilt.PermGroFac*bilt.permShkMax)/bilt.Rfree
+#         bilt.aNrmGrid_tm1 = np.asarray(bilt.aXtraGrid) + aNrmMin_tm1
 
-    def add_E_tm1_v_t(self):
-        bilt = self.soln_crnt.bilt
-        pars = self.soln_crnt.pars
-        IncShkDstn = pars.IncShkDstn
-        aNrmGrid_tm1 = bilt.aNrmGrid_tm1
+#     def add_E_tm1_v_t(self):
+#         bilt = self.soln_crnt.bilt
+#         pars = self.soln_crnt.pars
+#         IncShkDstn = pars.IncShkDstn
+#         aNrmGrid_tm1 = bilt.aNrmGrid_tm1
 
-        def vals_given_shocks_v_t(xfer_shks_bcst, curr_post_states):
-            return xfer_shks_bcst[pars.permPos] ** (1-pars.CRRA - 0.0) * \
-                self.soln_crnt.vFunc(
-                    self.mNrm_t_from_a_tm1_bcst(xfer_shks_bcst, curr_post_states))
+#         def vals_given_shocks_v_t(xfer_shks_bcst, curr_post_states):
+#             return xfer_shks_bcst[pars.permPos] ** (1-pars.CRRA - 0.0) * \
+#                 self.soln_crnt.vFunc(
+#                     self.mNrm_t_from_a_tm1_bcst(xfer_shks_bcst, curr_post_states))
 
-        def vals_given_shocks_v_t_dm(xfer_shks_bcst, curr_post_states):
-            return xfer_shks_bcst[pars.permPos] ** (1-pars.CRRA - 1.0) * \
-                self.soln_crnt.vFunc.dm(
-                    self.mNrm_t_from_a_tm1_bcst(xfer_shks_bcst, curr_post_states))
+#         def vals_given_shocks_v_t_dm(xfer_shks_bcst, curr_post_states):
+#             return xfer_shks_bcst[pars.permPos] ** (1-pars.CRRA - 1.0) * \
+#                 self.soln_crnt.vFunc.dm(
+#                     self.mNrm_t_from_a_tm1_bcst(xfer_shks_bcst, curr_post_states))
 
-        def vals_given_shocks_v_t_dm_dm(xfer_shks_bcst, curr_post_states):
-            return xfer_shks_bcst[pars.permPos] ** (1-pars.CRRA - 2.0) * \
-                self.soln_crnt.vFunc.dm.dm(
-                    self.mNrm_t_from_a_tm1_bcst(xfer_shks_bcst, curr_post_states))
+#         def vals_given_shocks_v_t_dm_dm(xfer_shks_bcst, curr_post_states):
+#             return xfer_shks_bcst[pars.permPos] ** (1-pars.CRRA - 2.0) * \
+#                 self.soln_crnt.vFunc.dm.dm(
+#                     self.mNrm_t_from_a_tm1_bcst(xfer_shks_bcst, curr_post_states))
 
-        def vals_given_shocks_v_t_derivatives_012(xfer_shks_bcst, curr_post_states):
-            return np.array([vals_given_shocks_v_t(xfer_shks_bcst, curr_post_states),
-                             vals_given_shocks_v_t_dm(xfer_shks_bcst, curr_post_states),
-                             vals_given_shocks_v_t_dm_dm(xfer_shks_bcst, curr_post_states)])
+#         def vals_given_shocks_v_t_derivatives_012(xfer_shks_bcst, curr_post_states):
+#             return np.array([vals_given_shocks_v_t(xfer_shks_bcst, curr_post_states),
+#                              vals_given_shocks_v_t_dm(xfer_shks_bcst, curr_post_states),
+#                              vals_given_shocks_v_t_dm_dm(xfer_shks_bcst, curr_post_states)])
 
-        E_t = self.soln_crnt.E_t
-        E_t.ante.v_t = np.squeeze(
-            * pars.Rfree
-            * pars.PermGroFac ** (-pars.CRRA)
-            * calc_expectation_of_array(
-                IncShkDstn,
-                vals_given_shocks_v_t_derivatives_012,
-                aNrmGrid_tm1
-            )
-        )
+#         E_t = self.soln_crnt.E_t
+#         E_t.ante.v_t = np.squeeze(
+#             * pars.Rfree
+#             * pars.PermGroFac ** (-pars.CRRA)
+#             * calc_expectation_of_array(
+#                 IncShkDstn,
+#                 vals_given_shocks_v_t_derivatives_012,
+#                 aNrmGrid_tm1
+#             )
+#         )
 
 
 class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
     """
-    This class solves a single period of a standard consumption-saving problem,
+    Solves a single period of a standard consumption-saving problem,
     using linear interpolation and without the ability to calculate the value
     function.  ConsIndShockSolver inherits from this class and adds the ability
     to perform cubic interpolation and to calculate the value function.
@@ -2056,8 +2056,8 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         soln_crnt = self.soln_crnt
         futr = self.soln_futr
 
-        bilt, pars, folw, E_t = \
-            soln_crnt.bilt, soln_crnt.pars, soln_crnt.folw, soln_crnt.E_t
+        bilt, pars, E_t = \
+            soln_crnt.bilt, soln_crnt.pars, soln_crnt.E_t
 
         IncShkDstn = pars.IncShkDstn
         aNrmGrid = bilt.aNrmGrid
@@ -2065,7 +2065,6 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         Rfree = pars.Rfree
 
         def post_t_E_v_tp1_wrapped(dstn, aNrm):
-            CRRA = folw.vFunc_tp1.CRRA
             permPos = dstn.parameters['ShkPosn']['perm']
             tranPos = dstn.parameters['ShkPosn']['tran']
             permShk = dstn.X[permPos]
@@ -2077,39 +2076,42 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             E_t_v_tp1_vals = v_NormFac_vals * v_tp1_vals
             return E_t_v_tp1_vals
 
-        def post_t_E_v_tp1(xfer_shks_bcst, curr_post_states):
-            mNrm_tp1 = self.next_ante_states(xfer_shks_bcst, curr_post_states).mNrm
-            return (pars.DiscLiv *
-                    xfer_shks_bcst[pars.permPos] ** (1-CRRA_tp1 - 0) *
-                    futr.vFunc(mNrm_tp1))
+        # def post_t_E_v_tp1(xfer_shks_bcst, curr_post_states):
+        #     mNrm_tp1 = self.next_ante_states(xfer_shks_bcst, curr_post_states).mNrm
+        #     return (pars.DiscLiv *
+        #             xfer_shks_bcst[pars.permPos] ** (1-CRRA_tp1 - 0) *
+        #             futr.vFunc(mNrm_tp1))
 
-        def post_t_E_v_tp1_da_t(xfer_shks_bcst, curr_post_states):
-            mNrm_tp1 = self.next_ante_states(xfer_shks_bcst, curr_post_states).mNrm
-            return (pars.DiscLiv * pars.Rfree *
-                    xfer_shks_bcst[pars.permPos] ** (0-CRRA_tp1 - 0) *
-                    futr.vFunc.dm(mNrm_tp1))
+        # def post_t_E_v_tp1_da_t(xfer_shks_bcst, curr_post_states):
+        #     mNrm_tp1 = self.next_ante_states(xfer_shks_bcst, curr_post_states).mNrm
+        #     return (pars.DiscLiv * pars.Rfree *
+        #             xfer_shks_bcst[pars.permPos] ** (0-CRRA_tp1 - 0) *
+        #             futr.vFunc.dm(mNrm_tp1))
 
-        def post_t_E_v_tp1_da_t_da_t(xfer_shks_bcst, curr_post_states):
-            mNrm_tp1 = self.next_ante_states(xfer_shks_bcst, curr_post_states).mNrm
-            return (pars.DiscLiv * pars.Rfree * pars.Rfree *
-                    xfer_shks_bcst[pars.permPos] ** (0-CRRA_tp1 - 1) *
-                    futr.vFunc.dm.dm(mNrm_tp1))
+        # def post_t_E_v_tp1_da_t_da_t(xfer_shks_bcst, curr_post_states):
+        #     mNrm_tp1 = self.next_ante_states(xfer_shks_bcst, curr_post_states).mNrm
+        #     return (pars.DiscLiv * pars.Rfree * pars.Rfree *
+        #             xfer_shks_bcst[pars.permPos] ** (0-CRRA_tp1 - 1) *
+        #             futr.vFunc.dm.dm(mNrm_tp1))
 
-        def v_post_choice_t(xfer_shks_bcst, curr_post_states):
+        #
+        def post_choice_t(xfer_shks_bcst, curr_post_states):
             tp1 = self.next_ante_states(xfer_shks_bcst, curr_post_states)
             mNrm_tp1 = tp1.mNrm
             PermGro = xfer_shks_bcst[pars.permPos]*pars.PermGroFac
             DiscLiv = pars.DiscLiv
-            v_0 = PermGro ** (1-CRRA_tp1 - 0) * futr.vFunc(mNrm_tp1) * DiscLiv 
-            v_1 = PermGro ** (1-CRRA_tp1 - 1) * futr.vFunc.dm(mNrm_tp1) * Rfree * DiscLiv 
-            v_2 = PermGro ** (1-CRRA_tp1 - 2) * futr.vFunc.dm.dm(mNrm_tp1) * Rfree * Rfree * DiscLiv
+            # Derivatives 0, 1, 2
+            v_0 = PermGro ** (1-CRRA_tp1 - 0) * futr.vFunc(mNrm_tp1)  # * DiscLiv
+            v_1 = PermGro ** (1-CRRA_tp1 - 1) * futr.vFunc.dm(mNrm_tp1) * Rfree  # * DiscLiv
+            v_2 = PermGro ** (1-CRRA_tp1 - 2) * futr.vFunc.dm.dm(mNrm_tp1) * \
+                Rfree * Rfree  # * DiscLiv
 #            breakpoint()
-            return v_0, v_1, v_2
+            return DiscLiv*np.array([v_0, v_1, v_2])
 
-        def post_t_E_v_tp1_derivatives_012(xfer_shks_bcst, curr_post_states):
-            return np.array([post_t_E_v_tp1(xfer_shks_bcst, curr_post_states),
-                             post_t_E_v_tp1_da_t(xfer_shks_bcst, curr_post_states),
-                             post_t_E_v_tp1_da_t_da_t(xfer_shks_bcst, curr_post_states)])
+        # def post_t_E_v_tp1_derivatives_012(xfer_shks_bcst, curr_post_states):
+        #     return np.array([post_t_E_v_tp1(xfer_shks_bcst, curr_post_states),
+        #                      post_t_E_v_tp1_da_t(xfer_shks_bcst, curr_post_states),
+        #                      post_t_E_v_tp1_da_t_da_t(xfer_shks_bcst, curr_post_states)])
 
         # E_t.v_post_choice = np.squeeze(  # squeezes unused dimensions
         #     calc_expectation_of_array(
@@ -2118,90 +2120,90 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         #         aNrmGrid)
         # )
 
-        E_t.v_post_choice_t = np.squeeze(
+        E_t.post_choice_t = np.squeeze(
             calc_expectation_of_array(
                 IncShkDstn,
-                v_post_choice_t,
+                post_choice_t,
                 aNrmGrid)
-#            * pars.DiscLiv
+            #            * pars.DiscLiv
         )
 
 #        breakpoint()
 
-    def calc_EndOfPrdvP(self):
-        """
-        Calculate end-of-period marginal value of assets at each point in aNrm.
-        Does so by taking a weighted sum of next period marginal values across
-        income shocks (in a preconstructed grid self.soln_crnt.bilt.mNrmNext).
+    # def calc_EndOfPrdvP(self):
+    #     """
+    #     Calculate end-of-period marginal value of assets at each point in aNrm.
+    #     Does so by taking a weighted sum of next period marginal values across
+    #     income shocks (in a preconstructed grid self.soln_crnt.bilt.mNrmNext).
 
-        Parameters
-        ----------
-        none
+    #     Parameters
+    #     ----------
+    #     none
 
-        Returns
-        -------
-        EndOfPrdvP : np.array
-            A 1D array of end-of-period marginal value of assets
-        """
+    #     Returns
+    #     -------
+    #     EndOfPrdvP : np.array
+    #         A 1D array of end-of-period marginal value of assets
+    #     """
 
-        soln_crnt = self.soln_crnt
-        bilt = soln_crnt.bilt
-        folw = soln_crnt.folw
-        pars = soln_crnt.pars
-        E_t = soln_crnt.E_t
+    #     soln_crnt = self.soln_crnt
+    #     bilt = soln_crnt.bilt
+    #     folw = soln_crnt.folw
+    #     pars = soln_crnt.pars
+    #     E_t = soln_crnt.E_t
 
-        IncShkDstn = pars.IncShkDstn
-        aNrmGrid = bilt.aNrmGrid
+    #     IncShkDstn = pars.IncShkDstn
+    #     aNrmGrid = bilt.aNrmGrid
 
-        def post_t_v_tp1(xfer_shks_bcst, curr_post_states):
-            CRRA = folw.vFunc_tp1.CRRA
-            return (xfer_shks_bcst[pars.permPos] ** (1-CRRA)
-                    * folw.vFunc_tp1(self.next_ante_states(xfer_shks_bcst, curr_post_states)))
+    #     def post_t_v_tp1(xfer_shks_bcst, curr_post_states):
+    #         CRRA = folw.vFunc_tp1.CRRA
+    #         return (xfer_shks_bcst[pars.permPos] ** (1-CRRA)
+    #                 * folw.vFunc_tp1(self.next_ante_states(xfer_shks_bcst, curr_post_states)))
 
-        def post_t_vP_tp1(xfer_shks_bcst, curr_post_states):
-            CRRA = folw.vFunc_tp1.CRRA
-            return (xfer_shks_bcst[pars.permPos] ** (0-CRRA)
-                    * folw.vFunc_tp1.dm(self.next_ante_states(xfer_shks_bcst, curr_post_states)))
+    #     def post_t_vP_tp1(xfer_shks_bcst, curr_post_states):
+    #         CRRA = folw.vFunc_tp1.CRRA
+    #         return (xfer_shks_bcst[pars.permPos] ** (0-CRRA)
+    #                 * folw.vFunc_tp1.dm(self.next_ante_states(xfer_shks_bcst, curr_post_states)))
 
-        def post_t_v_tp1_dm(xfer_shks_bcst, curr_post_states):
-            CRRA = folw.vFunc_tp1.CRRA
-            return (xfer_shks_bcst[pars.permPos] ** (0-CRRA)
-                    * folw.vFunc_tp1.dm(self.next_ante_states(xfer_shks_bcst, curr_post_states)))
+    #     def post_t_v_tp1_dm(xfer_shks_bcst, curr_post_states):
+    #         CRRA = folw.vFunc_tp1.CRRA
+    #         return (xfer_shks_bcst[pars.permPos] ** (0-CRRA)
+    #                 * folw.vFunc_tp1.dm(self.next_ante_states(xfer_shks_bcst, curr_post_states)))
 
-        def post_t_v_tp1_dm_dm(xfer_shks_bcst, curr_post_states):
-            CRRA = folw.vFunc_tp1.CRRA
-            return (xfer_shks_bcst[pars.permPos] ** (0-CRRA - 1.0)
-                    * folw.vFunc_tp1.dm.dm(self.next_ante_states(xfer_shks_bcst, curr_post_states)))
+    #     def post_t_v_tp1_dm_dm(xfer_shks_bcst, curr_post_states):
+    #         CRRA = folw.vFunc_tp1.CRRA
+    #         return (xfer_shks_bcst[pars.permPos] ** (0-CRRA - 1.0)
+    #                 * folw.vFunc_tp1.dm.dm(self.next_ante_states(xfer_shks_bcst, curr_post_states)))
 
-        def post_t_vDers_tp1(xfer_shks_bcst, curr_post_states):
-            return np.array([post_t_v_tp1(xfer_shks_bcst, curr_post_states),
-                             post_t_v_tp1_dm(xfer_shks_bcst, curr_post_states),
-                             post_t_v_tp1_dm_dm(xfer_shks_bcst, curr_post_states)])
+    #     def post_t_vDers_tp1(xfer_shks_bcst, curr_post_states):
+    #         return np.array([post_t_v_tp1(xfer_shks_bcst, curr_post_states),
+    #                          post_t_v_tp1_dm(xfer_shks_bcst, curr_post_states),
+    #                          post_t_v_tp1_dm_dm(xfer_shks_bcst, curr_post_states)])
 
-        EndOfPrdvP = (
-            pars.DiscFac * pars.LivPrb
-            * pars.Rfree
-            * pars.PermGroFac ** (-pars.CRRA)
-            * calc_expectation_of_array(
-                IncShkDstn,
-                post_t_vP_tp1,
-                aNrmGrid
-            )
-        )
-        # Get derivatives 0, 1, and 2 at the same time
-        E_t.vDers_tp1 = np.squeeze(
-            pars.DiscFac * pars.LivPrb
-            * pars.Rfree
-            * pars.PermGroFac ** (-pars.CRRA)
-            * calc_expectation_of_array(
-                IncShkDstn,
-                post_t_vDers_tp1,
-                aNrmGrid
-            )
-        )
-        breakpoint()
+    #     EndOfPrdvP = (
+    #         pars.DiscFac * pars.LivPrb
+    #         * pars.Rfree
+    #         * pars.PermGroFac ** (-pars.CRRA)
+    #         * calc_expectation_of_array(
+    #             IncShkDstn,
+    #             post_t_vP_tp1,
+    #             aNrmGrid
+    #         )
+    #     )
+    #     # Get derivatives 0, 1, and 2 at the same time
+    #     E_t.vDers_tp1 = np.squeeze(
+    #         pars.DiscFac * pars.LivPrb
+    #         * pars.Rfree
+    #         * pars.PermGroFac ** (-pars.CRRA)
+    #         * calc_expectation_of_array(
+    #             IncShkDstn,
+    #             post_t_vDers_tp1,
+    #             aNrmGrid
+    #         )
+    #     )
+    #     breakpoint()
 
-        return EndOfPrdvP
+    #     return EndOfPrdvP
 
     def get_source_points_via_EGM(self, EndOfPrdvP, aNrm):
         """
@@ -2346,18 +2348,18 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
 #        self.add_Post_Choice_Value()  # Calculate v and its derivatives
 
-        bilt.cNrmGrid = uFunc.dc.Nvrs(E_t.v_post_choice_t[1])  # [1]: first derivative
+        bilt.cNrmGrid = uFunc.dc.Nvrs(E_t.post_choice_t[1])  # [1]: first derivative
 
         # Construct a solution for this period
 #        breakpoint()
         if bilt.CubicBool:
             soln_crnt = self.interpolating_EGM_solution(
-                E_t.v_post_choice_t[1], bilt.aNrmGrid,
+                E_t.post_choice_t[1], bilt.aNrmGrid,
                 interpolator=self.make_cubic_cFunc
             )
         else:
             soln_crnt = self.interpolating_EGM_solution(
-                E_t.v_post_choice_t[1], bilt.aNrmGrid,
+                E_t.post_choice_t[1], bilt.aNrmGrid,
                 interpolator=self.make_linear_cFunc
             )
 
@@ -2384,11 +2386,11 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         )
         return cFunc_unconstrained
 
-    def solve_prepared_stage_E_IncShkDstn(self):
+    def make_post_choice_ante_IncShk_status(self):
         """
-        Calculate circumstances of an agent who has assets aNrm
-        an instant before the realization of the shocks that constitute the 
-        transition to the next period's state.
+        Calculate circumstances of an agent 
+        an instant before the realization of the labor income shocks that 
+        constitute the transition to the next period's state.
 
         Resulting solution object contains the value function vFunc and
         its derivatives.  Does not calculate consumption function cFunc:
@@ -2408,7 +2410,10 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         # Add a bunch of useful info to solution object
         # CDC 20200428: "useful" only for a candidate converged solution
         # in an infinite horizon model.  It's virtually costless to compute but
-        # not much point in computing it for a non-final infhor stage or finhor
+        # usually there would not be much point in computing it for a
+        # non-final infhor stage or finhor.  Exception: Better to construct
+        # finhor LiqConstr without MaxKinks but user might want to know
+        # these facts
         # TODO: Distinguish between those things that need to be computed for
         # "useful" computations in the final stage, and just info,
         # and make mandatory only the computations of the former category
@@ -2419,7 +2424,6 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         soln_crnt = def_utility(self.soln_crnt, self.soln_crnt.pars.CRRA)
         soln_crnt = self.make_ending_states()
         self.add_Post_Choice_Value()
-#        self.EndOfPrdvP = self.calc_EndOfPrdvP()
 
         return soln_crnt
 
@@ -2434,14 +2438,14 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             * normalized human wealth hNrm, and bounding MPCs MPCmin and MPCmax.
 
         If the user sets `CubicBool` to True, cFunc is interpolated
-        with a Cubic Hermite interpolator.  This is much smoother than the default
+        with a cubic Hermite interpolator.  This is much smoother than the default
         piecewise linear interpolator, and permits construction of the marginal
         marginal value function vFunc.dm.dm (which occurs automatically).
 
         In principle, the resulting cFunc will be numerically incorect at values 
         of market resources where a marginal increment to m would discretely 
         change the probability of a future constraint binding, because in 
-        principle cFunc is nondifferentiable at those points.  In practice, if
+        principle cFunc is nondifferentiable at those points (cf LiqConstr REMARK).  In practice, if
         the distribution of shocks is not too granular, the approximation error
         is minor.
 
@@ -2460,7 +2464,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         # The first invocation of ".solve" has iter_status='terminal_pseudo':
         # "pseudo" since it is not ready to serve as a proper starting point
         # for backward induction because further info (e.g., utility function)
-        # must be added after solution_terminal was constructed.  Fix
+        # must be added after solution_terminal is constructed.  Fix
         # by copying contents into the bilt attribute, then invoking the
         # build_infhor_facts_from_params() method to add the extra info
 
@@ -2481,17 +2485,21 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             return soln_crnt  # Replace original "terminal_pseudo" solution
 
         # Calculate everything about "saver" who ends period with aNrm
-        self.solve_prepared_stage_E_IncShkDstn()
+        self.make_post_choice_ante_IncShk_status()
 
         # Notice that we could insert here a stage that would
         # solve any other problem that produces the state
-        # variables needed for the self.solve_prepared_stage_E_IncShkDstn()
-        # e.g., we could have:
-        # self.solve_prepared_stage_E_RiskyReturnDistn
+        # variables needed for the self.make_post_choice_ante_IncShk_status()
+        # e.g., we could add a stage that adds a risky return:
+        # make_post_choice_ante_Risky_return()
         # and before that a
-        # self.solve_prepared_stage_calc_optimal_portfolio_share
-        # and those would be the only changes needed to add the portfolio
-        # choice model to this one
+        # make_post_consumption_choice_choose_portfolio_share() that
+        # relies on self.make_post_portfolio_choice_ante_Risky_return() to calculate
+        # the optimal risky portfolio share given the consequence for
+        # the risky return.
+        # Note that these insertions could occur without changing either the
+        # make_post_choice_ante_IncShk_status() or
+        # make_consumption_choice_given_post_choice_value
 
         # Having calculated (marginal value, etc) of saving, construct c
 
@@ -2532,7 +2540,6 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         next_ante_states = Ante_Choice()
         aNrm = curr_post_states
 
-#        breakpoint()
         eqns = self.soln_crnt.xfer_crnt_post_to_next_ante
         for key in eqns.keys():
             setattr(next_ante_states, key,
@@ -2610,7 +2617,7 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
 #         dcda = EndOfPrdvPP / bilt.uPP(np.array(cNrm_Vec[1:]))
 # #        bilt.uPP(np.array(cNrm_Vec[1:]))
 
-        dc_da = E_t.v_post_choice_t[2] / bilt.u.dc.dc(np.array(cNrm_Vec[1:]))
+        dc_da = E_t.post_choice_t[2] / bilt.u.dc.dc(np.array(cNrm_Vec[1:]))
         # Second derivative
         MPC = dc_da / (dc_da + 1.0)
         MPC = np.insert(MPC, 0, bilt.MPCmax)
