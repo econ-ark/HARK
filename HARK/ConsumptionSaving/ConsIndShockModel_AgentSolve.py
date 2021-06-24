@@ -128,8 +128,6 @@ class ConsumerSolution(ConsumerSolutionOlder):
         pars = self.pars = Parameters()
         pars.about = {'Parameters exogenously given'}
         self.E_t = Expectations()  # Namespace for expectations
-#        self.E_t.ante = Ante_Choice()  # Before choices or shocks
-#        self.E_t.post = Post_Choice()  # After choices, before shocks
 
         # xfer is short for transfer, which is short for transition
         # These equations are used to construct the transition dynamics
@@ -140,9 +138,9 @@ class ConsumerSolution(ConsumerSolutionOlder):
         eqns.update({'mNrm': 'bNrm + yNrm'})
 
         bilt.recursive = \
-            {'cFunc', 'vFunc',  # 'vPfunc', 'vPPfunc',  'vFuncNvrs',
-             'vFunc.dm', 'vFunc.dm.dm',
-             'u',  # 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
+            {'cFunc', #'vFunc',  # 'vPfunc', 'vPPfunc',  'vFuncNvrs',
+#             'vFunc.dm', 'vFunc.dm.dm',
+#             'u',  # 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
              'hNrm',
              'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA', 'vAdd'
              }
@@ -365,7 +363,6 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
             True: "\n  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists ("+stge.bilt.GPFLiv_fcts['urlhandle']+")\n",
             False: "\n  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist ("+stge.bilt.GPFLiv_fcts['urlhandle']+")\n",
         }
-#        stge.GICLiv =
         stge.bilt.GICLiv = core_check_condition(name, test, messages, verbose,
                                                 verbose_messages, "GPFLiv", stge)
 
@@ -386,7 +383,6 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
             True: "\n  Therefore, the limiting consumption function is not c(m)=0 for all m\n",
             False: "\n  Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.\n",
         }
-#        stge.RIC =
         stge.bilt.RIC = core_check_condition(name, test, messages, verbose,
                                              verbose_messages, "RPF", stge)
 
@@ -406,7 +402,6 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
             True: "\n  Therefore, the limiting consumption function is not c(m)=Infinity.\n  Human wealth normalized by permanent income is {0.hNrmInf}.\n",
             False: "\n  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.\n  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0. ("+stge.bilt.FHWC_fcts['urlhandle']+")\n",
         }
-#        stge.FHWC =
         stge.bilt.FHWC = core_check_condition(name, test, messages, verbose,
                                               verbose_messages, "FHWF", stge)
 
@@ -681,12 +676,12 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
         # Omit first and last points which define extrapolation below and above
         # the kink points
-        folw.mNrm_kinks_tp1 = folw.cFunc_tp1.x_list[:-1][1:]
-        folw.cNrm_kinks_tp1 = folw.cFunc_tp1.y_list[:-1][1:]
-        folw.vNrm_kinks_tp1 = folw.vFunc_tp1(folw.mNrm_kinks_tp1)
+        mNrm_kinks_tp1 = futr.cFunc.x_list[:-1][1:]
+        cNrm_kinks_tp1 = futr.cFunc.y_list[:-1][1:]
+        vNrm_kinks_tp1 = futr.vFunc(mNrm_kinks_tp1)
 
         # Calculate end-of-this-period aNrm vals that would reach those mNrm's
-        aNrm_kinks = (folw.mNrm_kinks_tp1 - folw.PF_IncNrm_tp1)*(PermGroFac/Rfree)
+        aNrm_kinks = (mNrm_kinks_tp1 - folw.PF_IncNrm_tp1)*(PermGroFac/Rfree)
 
         # Obtain c_t from which unconstrained consumers would land on each
         # kink next period by inverting FOC: c_t = (RβΠ)^(-1/ρ) c_tp1
@@ -695,24 +690,24 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         # to a finite-horizon solution ending one more period in the future)
 
         cNrm_kinks = (((Rfree * DiscLiv) ** (-1/CRRA_tp1)) *
-                      PermGroFac * folw.cNrm_kinks_tp1)
+                      PermGroFac * cNrm_kinks_tp1)
 
-        vNrm_kinks = (DiscLiv * PermGroFac**(1-CRRA))*folw.vNrm_kinks_tp1
+        vNrm_kinks = (DiscLiv * PermGroFac**(1-CRRA))*vNrm_kinks_tp1
         mNrm_kinks = aNrm_kinks + cNrm_kinks
         vInv_kinks = u.Nvrs(vNrm_kinks)
         vAdd_kinks = mNrm_kinks-mNrm_kinks
 
         # _v_t(aNrm) is value as of the END of period t
         # _v_t'(aNrmMin) = RβΠ (Γ**(-ρ)) folw.v'(bNrmMin+folw.PF_IncNrmNxt)
-        folw.mNrmMin_tp1 = folw.PF_IncNrm_tp1 + BoroCnst * (Rfree/PermGroFac)
+        mNrmMin_tp1 = folw.PF_IncNrm_tp1 + BoroCnst * (Rfree/PermGroFac)
 
         _v_t_at_BoroCnst = \
             (DiscLiv * PermGroFac**(1-CRRA_tp1) *
-             folw.vFunc_tp1(folw.mNrmMin_tp1))
+             futr.vFunc(mNrmMin_tp1))
 
         _vP_t_at_BoroCnst = \
             ((Rfree * DiscLiv) * PermGroFac**(-CRRA_tp1) *
-             folw.vFunc_tp1.dm(folw.mNrmMin_tp1))
+             futr.vFunc.dm(mNrmMin_tp1))
 
         # h is the 'horizon': h_t(m_t) is the number of periods it will take
         # before you hit the constraint, after which you remain constrained
@@ -749,8 +744,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             mNrm_kinks = np.insert(mNrm_kinks, 0, mNrm_cusp)
             cNrm_kinks = np.insert(cNrm_kinks, 0, cNrm_cusp)
             vNrm_kinks = np.insert(vNrm_kinks, 0, vNrm_cusp)
-#            vInv_kinks = np.insert(vInv_kinks, 0, vInv_cusp)
-#            vAdd_kinks = np.insert(vAdd_kinks, 0, vAdd_cusp)
 
         vAddGrid = np.append(vAdd_cusp, vAdd_kinks)
         vAddGrid = np.append(vAddGrid, 0.)
@@ -761,7 +754,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         aNrmGrid_unconst = mNrmGrid_unconst-cNrmGrid_unconst
         mNrmGrid_tp1_unconst = aNrmGrid_unconst*(Rfree/PermGroFac)+folw.PF_IncNrm_tp1
         vNrmGrid_unconst = u(cNrmGrid_unconst)+(DiscLiv * PermGroFac**(1-CRRA_tp1) *
-                                                folw.vFunc_tp1(mNrmGrid_tp1_unconst))
+                                                futr.vFunc(mNrmGrid_tp1_unconst))
         vInvGrid_unconst = u.Nvrs(vNrmGrid_unconst)
         vInvPGrid_unconst = \
             (((1-CRRA)*vNrmGrid_unconst)**(-1+1/(1-CRRA)))*(cNrmGrid_unconst**(-CRRA))
@@ -1247,7 +1240,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             'about': 'Expected income next period'
         }
         py___code = '1.0'
-#        soln_crnt.E_t.IncNrmNxt = \
         E_t.IncNrmNxt = \
             eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
 #        E_t.IncNrmNxt_fcts.update({'latexexpr': r'ExIncNrmNxt'})
@@ -1255,8 +1247,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #        E_t.IncNrmNxt_fcts.update({'urlhandle': urlroot+'ExIncNrmNxt'})
         E_t.IncNrmNxt_fcts.update({'py___code': py___code})
         E_t.IncNrmNxt_fcts.update({'value_now': E_t.IncNrmNxt})
-        # soln_crnt.fcts.update({'E_t.IncNrmNxt': E_t.IncNrmNxt_fcts})
-#        soln_crnt.E_t.IncNrmNxt_fcts =
         soln_crnt.E_t.IncNrmNxt_fcts = E_t.IncNrmNxt_fcts
 
         RNrm_PF_fcts = {
@@ -1556,10 +1546,9 @@ class ConsPerfForesightSolver(ConsPerfForesightSolverEOP):
 
 class ConsIndShockSetupEOP(ConsPerfForesightSolver):
     """
-    A superclass for solvers of one period consumption-saving problems with
+    Superclass for solvers of one period consumption-saving problems with
     constant relative risk aversion utility and permanent and transitory shocks
-    to income, containing code shared among alternative specific solvers.
-    Has methods to set up but not solve the one period problem.
+    to labor income, containing code shared among alternative specific solvers.
 
     N.B.: Because this is a one stge solver, objects that (in the full problem)
     are lists because they are allowed to vary at different stages, are scalars
@@ -1699,7 +1688,6 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         bilt.E_dot = E_dot  # plain not doublestruck E
 
         urlroot = bilt.urlroot
-        # Modify formulae also present in PF model but that must change
 
         # Many other _fcts will have been inherited from the perfect foresight
         # model of which this model is a descendant
@@ -1833,13 +1821,15 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
 
     def build_facts_recursive(self):
         super().build_facts_recursive()
+        
+        # All the recursive facts are required for PF model so already exist
+        # But various lambda functions are interesting when uncertainty exists
 
         soln_crnt = self.soln_crnt
         bilt = soln_crnt.bilt
         pars = soln_crnt.pars
         E_t = soln_crnt.E_t
 
-        # Now define some useful lambda functions
         # To use these it is necessary to have created an alias to
         # the relevant namespace on the solution object, e.g.
         # E_t = [soln].E_t
@@ -2025,9 +2015,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
     def make_ending_states(self):
         """
         Prepare to calculate end-of-period marginal value by creating an array
-        of market resources that the agent could have next period, given the
-        current grid of end-of-period assets and the distribution of shocks
-        they might experience next period.
+        of asset values with which the agent might end the current period.
 
         Parameters
         ----------
@@ -2036,7 +2024,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         Returns
         -------
         aNrmGrid : np.array
-            A 1D array of end-of-period assets; also stored as attribute of self.soln_crnt.bilt.
+            A 1D array of end-of-period assets; also is made attribute of bilt.
         """
 
         # We define aNrmGrid all the way from BoroCnstNat up to max(aXtraGrid)
@@ -2095,18 +2083,18 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         #             xfer_shks_bcst[pars.permPos] ** (0-CRRA_tp1 - 1) *
         #             futr.vFunc.dm.dm(mNrm_tp1))
 
-        #
+        # This is the efficient place to compute expectations of anything
+        # at near zero cost by adding to list of things calculated and returned
         def post_choice_t(xfer_shks_bcst, curr_post_states):
             tp1 = self.next_ante_states(xfer_shks_bcst, curr_post_states)
             mNrm_tp1 = tp1.mNrm
             PermGro = xfer_shks_bcst[pars.permPos]*pars.PermGroFac
             DiscLiv = pars.DiscLiv
             # Derivatives 0, 1, 2
-            v_0 = PermGro ** (1-CRRA_tp1 - 0) * futr.vFunc(mNrm_tp1)  # * DiscLiv
-            v_1 = PermGro ** (1-CRRA_tp1 - 1) * futr.vFunc.dm(mNrm_tp1) * Rfree  # * DiscLiv
+            v_0 = PermGro ** (1-CRRA_tp1 - 0) * futr.vFunc(mNrm_tp1)  
+            v_1 = PermGro ** (1-CRRA_tp1 - 1) * futr.vFunc.dm(mNrm_tp1) * Rfree  
             v_2 = PermGro ** (1-CRRA_tp1 - 2) * futr.vFunc.dm.dm(mNrm_tp1) * \
-                Rfree * Rfree  # * DiscLiv
-#            breakpoint()
+                Rfree * Rfree  
             return DiscLiv*np.array([v_0, v_1, v_2])
 
         # def post_t_E_v_tp1_derivatives_012(xfer_shks_bcst, curr_post_states):
@@ -2286,6 +2274,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         # bilt.vPfunc = bilt.vFunc.dm = MargValueFuncCRRA(cFunc, pars.CRRA)
         bilt.vFunc.dm = vPfunc = MargValueFuncCRRA(cFunc, pars.CRRA)
+        vFunc.dm = MargValueFuncCRRA(cFunc, pars.CRRA)
         bilt.vFunc.dm.dm = MargMargValueFuncCRRA(bilt.cFunc, pars.CRRA)
 
         # Pack up the solution and return it
