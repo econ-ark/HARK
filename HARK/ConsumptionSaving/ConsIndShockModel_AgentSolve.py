@@ -1512,12 +1512,12 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
                     return
 
         # Create folw
-        for key in (k for k in Bilt.recursive
-                    if k not in
-                    {'solution_next', 'Bilt', 'stge_kind', 'folw'}):
-            if hasattr(soln_futr.Bilt, key):
-                setattr(folw, key+'_tp1',
-                        soln_futr.Bilt.__dict__[key])
+        # for key in (k for k in Bilt.recursive
+        #             if k not in
+        #             {'solution_next', 'Bilt', 'stge_kind', 'folw'}):
+        #     if hasattr(soln_futr.Bilt, key):
+        #         setattr(folw, key+'_tp1',
+        #                 soln_futr.Bilt.__dict__[key])
 
         # # Add futr parameters to folw
         # for key in (k for k in soln_futr.Pars.__dict__.keys()):
