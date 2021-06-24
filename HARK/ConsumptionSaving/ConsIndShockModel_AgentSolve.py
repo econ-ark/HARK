@@ -50,11 +50,11 @@ class Ante_Choice(SimpleNamespace):
     """
 
 
-class Post_Choice(SimpleNamespace):
-    """
-    Expectations after choices before shocks
+# class Post_Choice(SimpleNamespace):
+#     """
+#     Expectations after choices before shocks
 
-    """
+#     """
 
 
 class Successor(SimpleNamespace):
@@ -89,7 +89,7 @@ class ConsumerSolution(ConsumerSolutionOlder):
     __doc__ += """
     stge_kind : dict
         Dictionary with info about this solution stage
-        One built-in entry keeps track of the nature of the stage:
+        One required entry keeps track of the nature of the stage:
             {'iter_status':'finished'}: Stopping requirements are satisfied
                 If stopping requirements are satisfied, {'tolerance':tolerance}
                 should exist recording what convergence tolerance was satisfied
@@ -128,19 +128,21 @@ class ConsumerSolution(ConsumerSolutionOlder):
         pars = self.pars = Parameters()
         pars.about = {'Parameters exogenously given'}
         self.E_t = Expectations()  # Namespace for expectations
-        self.E_t.ante = Ante_Choice()  # Before choices or shocks
-        self.E_t.post = Post_Choice()  # After choices, before shocks
+#        self.E_t.ante = Ante_Choice()  # Before choices or shocks
+#        self.E_t.post = Post_Choice()  # After choices, before shocks
 
+        # xfer is short for transfer, which is short for transition
+        # These equations are used to construct the transition dynamics
         eqns = self.xfer_crnt_post_to_next_ante = {}
         eqns.update({'RNrm': 'Rfree / (PermGroFac * permShk)'})
         eqns.update({'bNrm': 'aNrm * RNrm'})
         eqns.update({'yNrm': 'tranShk'})
-        eqns.update({'mNrm': 'bNrm + tranShk'})
+        eqns.update({'mNrm': 'bNrm + yNrm'})
 
         bilt.recursive = \
-            {'cFunc', 'vFunc',  'vPfunc', 'vPPfunc',  'vFuncNvrs',
+            {'cFunc', 'vFunc',  # 'vPfunc', 'vPPfunc',  'vFuncNvrs',
              'vFunc.dm', 'vFunc.dm.dm',
-             'u', #'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv', 
+             'u',  # 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
              'hNrm',
              'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA', 'vAdd'
              }
@@ -645,11 +647,12 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
     def make_cFunc_PF(self):
         """
-        Makes the (linear) consumption function for this period.  See the
+        Makes (piecewise linear) consumption function for this period.  See 
         PerfForesightConsumerType.ipynb notebook for derivations.
         """
         # Reduce cluttered formulae with local aliases
         soln_crnt = self.soln_crnt
+        futr = self.soln_futr
         bilt, folw, pars = soln_crnt.bilt, soln_crnt.folw, soln_crnt.pars
         E_t = soln_crnt.E_t
 
@@ -667,7 +670,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         folw.PF_IncNrm_tp1 = E_t.IncNrmNxt
         DiscLiv = DiscFac * LivPrb
         CRRA = pars.CRRA
-        CRRA_tp1 = folw.vFunc_tp1.CRRA
+        CRRA_tp1 = futr.vFunc.CRRA
 #        CRRA_tp1 = folw.vFunc_tp1.CRRA
 
         if BoroCnstArt is None:
@@ -1023,11 +1026,12 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #        breakpoint()
 #        bilt.vNvrs = self.soln_crnt.uinv(_vP_t)
 
-#    def build_infhor_facts_from_params_ConsPerfForesightSolver(self):
+#    def build_facts_infhor_ConsPerfForesightSolver(self):
 
 # 20210618: TODO: CDC: Find a way to isolate this stuff so it does not clutter
 
-    def build_infhor_facts_from_params(self):
+
+    def build_facts_infhor(self):
         """
             Adds to the solution extensive information and references about
             its nature and elements.
@@ -1053,6 +1057,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
         urlroot = bilt.urlroot
         pars.DiscLiv = pars.DiscFac * pars.LivPrb
+        # givens are not changed by the calculations below; bilt and E_t are
         givens = {**folw.__dict__, **pars.__dict__}
 
         APF_fcts = {
@@ -1243,7 +1248,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         }
         py___code = '1.0'
 #        soln_crnt.E_t.IncNrmNxt = \
-        E_t.IncNrmNxt = E_t.IncNrmNxt = \
+        E_t.IncNrmNxt = \
             eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
 #        E_t.IncNrmNxt_fcts.update({'latexexpr': r'ExIncNrmNxt'})
 #        E_t.IncNrmNxt_fcts.update({'_unicode_': r'R/Γ'})
@@ -1293,7 +1298,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         DiscLiv_fcts.update({'value_now': DiscLiv})
         bilt.DiscLiv_fcts = DiscLiv_fcts
 
-    def build_recursive_facts(self):
+    def build_facts_recursive(self):
 
         soln_crnt = self.soln_crnt
         bilt = soln_crnt.bilt
@@ -1406,13 +1411,10 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         cFuncLimitIntercept_fcts = {
             'about': 'Vertical intercept of perfect foresight consumption function'}
         py___code = 'MPCmin * hNrm'
-#        soln_crnt.cFuncLimitIntercept = \
         bilt.cFuncLimitIntercept = \
             eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
         cFuncLimitIntercept_fcts.update({'py___code': py___code})
         cFuncLimitIntercept_fcts.update({'latexexpr': '\MPC \hNrm'})
-#        cFuncLimitIntercept_fcts.update({'urlhandle': ''})
-#        cFuncLimitIntercept_fcts.update({'value_now': cFuncLimitIntercept})
         soln_crnt.bilt.cFuncLimitIntercept_fcts = cFuncLimitIntercept_fcts
 
         cFuncLimitSlope_fcts = {
@@ -1424,7 +1426,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         cFuncLimitSlope_fcts.update({'py___code': py___code})
         cFuncLimitSlope_fcts = dict({'latexexpr': '\MPCmin'})
         cFuncLimitSlope_fcts.update({'urlhandle': '\MPC'})
-#        cFuncLimitSlope_fcts.update({'value_now': cFuncLimitSlope})
         soln_crnt.bilt.cFuncLimitSlope_fcts = cFuncLimitSlope_fcts
 
         # That's the end of things that are identical for PF and non-PF models
@@ -1457,7 +1458,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             # bare-bones default terminal solution does not have all the facts
             # we want, because it is multipurpose (for any u func) so add them
             soln_futr.bilt = def_utility(soln_crnt, CRRA)
-            self.build_infhor_facts_from_params()
+            self.build_facts_infhor()
             soln_futr = soln_crnt = def_value_funcs(soln_crnt, CRRA)
             # Now that they've been added, it's good to go for iteration
             soln_crnt.bilt.stge_kind['iter_status'] = 'iterator'
@@ -1471,8 +1472,8 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
         CRRA = self.soln_crnt.pars.CRRA
         self.soln_crnt = def_utility(soln_crnt, CRRA)
-        self.build_infhor_facts_from_params()
-        self.build_recursive_facts()
+        self.build_facts_infhor()
+        self.build_facts_recursive()
         self.make_cFunc_PF()
         soln_crnt = def_value_funcs(soln_crnt, CRRA)
 
@@ -1666,7 +1667,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         )
         pars.inc_max_Val = permShkMax * tranShkMax
 
-    def build_infhor_facts_from_params(self):
+    def build_facts_infhor(self):
         """
         For versions with uncertainty in transitory and/or permanent shocks,
         adds to the solution a set of results useful for calculating
@@ -1684,7 +1685,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
             Same solution that was provided, augmented with the factors
 
         """
-        super().build_infhor_facts_from_params()
+        super().build_facts_infhor()
         soln_crnt = self.soln_crnt
 
         bilt, folw, pars = soln_crnt.bilt, soln_crnt.folw, soln_crnt.pars
@@ -1830,8 +1831,8 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         DiscGPFNrmCusp_fcts.update({'py___code': py___code})
         bilt.DiscGPFNrmCusp_fcts = DiscGPFNrmCusp_fcts
 
-    def build_recursive_facts(self):
-        super().build_recursive_facts()
+    def build_facts_recursive(self):
+        super().build_facts_recursive()
 
         soln_crnt = self.soln_crnt
         bilt = soln_crnt.bilt
@@ -2355,17 +2356,17 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         if bilt.CubicBool:
             soln_crnt = self.interpolating_EGM_solution(
                 E_t.post_choice_t[1], bilt.aNrmGrid,
-                interpolator=self.make_cubic_cFunc
+                interpolator=self.make_cFunc_cubic
             )
         else:
             soln_crnt = self.interpolating_EGM_solution(
                 E_t.post_choice_t[1], bilt.aNrmGrid,
-                interpolator=self.make_linear_cFunc
+                interpolator=self.make_cFunc_linear
             )
 
         return soln_crnt
 
-    def make_linear_cFunc(self, mNrm, cNrm):
+    def make_cFunc_linear(self, mNrm, cNrm):
         """
         Makes linear interpolation for the (unconstrained) consumption function.
 
@@ -2417,8 +2418,8 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         # TODO: Distinguish between those things that need to be computed for
         # "useful" computations in the final stage, and just info,
         # and make mandatory only the computations of the former category
-        self.build_infhor_facts_from_params()
-        self.build_recursive_facts()  # These require solution to successor
+        self.build_facts_infhor()
+        self.build_facts_recursive()  # These require solution to successor
 
         # Current CRRA might be different from future
         soln_crnt = def_utility(self.soln_crnt, self.soln_crnt.pars.CRRA)
@@ -2466,7 +2467,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         # for backward induction because further info (e.g., utility function)
         # must be added after solution_terminal is constructed.  Fix
         # by copying contents into the bilt attribute, then invoking the
-        # build_infhor_facts_from_params() method to add the extra info
+        # build_facts_infhor() method to add the extra info
 
         # TODO CDC 20210615: This is a kludge to get things to work without modifying
         # core.py. Think about how to change core.py to address more elegantly
@@ -2477,7 +2478,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             soln_crnt.cFunc = self.soln_crnt.bilt.cFunc
 
             # Now that it "knows itself" it can build the facts
-            self.build_infhor_facts_from_params()
+            self.build_facts_infhor()
 
             # NOW mark as good-to-go as starting point for backward induction:
             self.soln_crnt.bilt.stge_kind['iter_status'] = 'iterator'
@@ -2514,21 +2515,20 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         """
         Returns array of values of normalized market resources m
         corresponding to permutations of potential realizations of
-        the shocks, given the value of end-of-period assets aNrm.
+        the permanent and transitory income shocks, given the value of 
+        end-of-period assets aNrm.
 
         Parameters
         ----------
         xfer_shks_bcst: 2D ndarray
-            Permanent and transitory income shocks.
+            Permanent and transitory income shocks in 2D ndarray
 
         aNrm: float
             Normalized end-of-period assets this period
 
         Returns
         -------
-        1D ndarray of m values conditional as a function of the
-        2D ndarray of permanent and transitory shocks
-           normalized market resources in the next period
+        next_ante_states : namespace with results of applying transition eqns
         """
         pars = self.soln_crnt.pars
         permPos = pars.IncShkDstn.parameters['ShkPosn']['perm']
@@ -2567,10 +2567,10 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
     """
     Solves a single period of a standard consumption-saving problem.
     It inherits from ConsIndShockSolverBasic, and adds ability to perform cubic
-    interpolation and to calculate the value function.
+    interpolation.
     """
 
-    def make_cubic_cFunc(self, mNrm_Vec, cNrm_Vec):
+    def make_cFunc_cubic(self, mNrm_Vec, cNrm_Vec):
         """
         Makes a cubic spline interpolation of the unconstrained consumption
         function for this period.
@@ -2591,9 +2591,11 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
         """
 
         soln_crnt = self.soln_crnt
-        bilt, folw, pars, E_t = \
-            soln_crnt.bilt, soln_crnt.folw, soln_crnt.pars, soln_crnt.E_t
-        CRRA_tp1 = folw.vFunc_tp1.CRRA
+        bilt, E_t = soln_crnt.bilt, soln_crnt.E_t
+#        futr = self.soln_futr
+#        bilt, folw, pars, E_t = \
+#            soln_crnt.bilt, soln_crnt.folw, soln_crnt.pars, soln_crnt.E_t
+#        CRRA_tp1 = futr.vFunc.CRRA
 #         breakpoint()
 
 #         def vPP_tp1(xfer_shks_bcst, curr_post_states):
@@ -2618,7 +2620,6 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
 # #        bilt.uPP(np.array(cNrm_Vec[1:]))
 
         dc_da = E_t.post_choice_t[2] / bilt.u.dc.dc(np.array(cNrm_Vec[1:]))
-        # Second derivative
         MPC = dc_da / (dc_da + 1.0)
         MPC = np.insert(MPC, 0, bilt.MPCmax)
 
