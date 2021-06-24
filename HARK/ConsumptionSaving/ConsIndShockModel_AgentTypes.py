@@ -1009,7 +1009,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                                            verbose=verbose, quiet=quiet,
                                            **params)
 
-        self.update_parameters_for_this_agent_subclass()  # Add new pars
+        self.update_parameters_for_this_agent_subclass()  # Add new Pars
 
         # If precooked terminal stage not provided by user ...
         if not hasattr(self, 'solution_startfrom'):  # .. then init the default
