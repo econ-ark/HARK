@@ -140,7 +140,7 @@ class AgentTypePlus(AgentType):
             deepcopy({**prmtv_par_vals, **aprox_par_vals})
 
         # Put on solution_terminal so it can get on non-term solution
-        self.solution_terminal.bilt.solve_par_vals = self.solve_par_vals
+        self.solution_terminal.Bilt.solve_par_vals = self.solve_par_vals
 
     def update_parameters_for_this_agent_subclass(self):
         # add_it: (below)
@@ -198,11 +198,11 @@ class AgentTypePlus(AgentType):
                 _log.critical('Solution is not a list.')
                 return
         soln = self.solution[0]
-        if not hasattr(soln.bilt, 'stge_kind'):
+        if not hasattr(soln.Bilt, 'stge_kind'):
             _log.warning('Solution does not have attribute stge_kind')
             return
         else:  # breakpoint()
-            soln.bilt.stge_kind['iter_status'] = 'finished'
+            soln.Bilt.stge_kind['iter_status'] = 'finished'
         self.agent_post_post_solve()
 
     # Disambiguation: former "[solver].post_solve"; post_solve is now alias
@@ -361,7 +361,7 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
                                               pseudo_terminal=False, CRRA=CRRA,
                                               **kwds)
 
-        bilt = self.bilt  # alias
+        Bilt = self.Bilt  # alias
 
         if (equiv_life_periods == 0.0):
             msg = 'With bequest parameter equiv_life_periods = 0, ' +\
@@ -376,12 +376,12 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
             # constrained problem.  That is below.
 
             # Add infrastructure for piecewise linear PF solution
-            bilt.mNrm_cusp = 0.0  # here 'cusp' => cannot die in debt
-            bilt.vNrm_cusp = -float('inf')  # yields neg inf value
-            bilt.vInv_cusp = 0.0
-            bilt.mNrm_kinks = [bilt.mNrm_cusp]
-            bilt.vNrm_kinks = [bilt.vNrm_cusp]
-            bilt.MPC_kinks = [1.0]
+            Bilt.mNrm_cusp = 0.0  # here 'cusp' => cannot die in debt
+            Bilt.vNrm_cusp = -float('inf')  # yields neg inf value
+            Bilt.vInv_cusp = 0.0
+            Bilt.mNrm_kinks = [Bilt.mNrm_cusp]
+            Bilt.vNrm_kinks = [Bilt.vNrm_cusp]
+            Bilt.MPC_kinks = [1.0]
             _log.info(msg)
             return
 
@@ -407,30 +407,30 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
                 'term_type': 'bequest_warmglow_homothetic'},
             completed_cycles=-1
         )
-        ρ = sab.bilt.CRRA = CRRA
-        η = sab.bilt.stone_geary = stone_geary
-        ℶ = sab.bilt.equiv_life_periods = equiv_life_periods  # Hebrew bet
+        ρ = sab.Bilt.CRRA = CRRA
+        η = sab.Bilt.stone_geary = stone_geary
+        ℶ = sab.Bilt.equiv_life_periods = equiv_life_periods  # Hebrew bet
 
         if (equiv_life_periods == 0.0):
-            bilt.vNrm_cusp = -float('inf')  # then 'cusp' => cannot die in debt
+            Bilt.vNrm_cusp = -float('inf')  # then 'cusp' => cannot die in debt
         else:
             bequest_size = 0.0
-            bilt.vNrm_cusp = CRRAutility(bilt.mNrm_cusp, CRRA) +\
+            Bilt.vNrm_cusp = CRRAutility(Bilt.mNrm_cusp, CRRA) +\
                 ℶ * u_stone_geary(bequest_size, CRRA, stone_geary)
 
-        bilt.mNrm_kinks = [bilt.mNrm_cusp]  # zero if no bequest motive
-        bilt.vInv_uncons = [self.bilt.uinv(bilt.vNrm_cusp)]
-        bilt.vInv_constr = [self.bilt.uinv(bilt.u(0.))]
+        Bilt.mNrm_kinks = [Bilt.mNrm_cusp]  # zero if no bequest motive
+        Bilt.vInv_uncons = [self.Bilt.uinv(Bilt.vNrm_cusp)]
+        Bilt.vInv_constr = [self.Bilt.uinv(Bilt.u(0.))]
         # See PerfForesightConsumerType for MPC derivation
         if ℶ == 0.0:
-            bilt.MPC_constr = [1/(1+0.0)]
+            Bilt.MPC_constr = [1/(1+0.0)]
         else:
-            bilt.MPC_constr = [1/(1+(ℶ**(-1/ρ)))]
+            Bilt.MPC_constr = [1/(1+(ℶ**(-1/ρ)))]
 
     def cFunc(self, m):
         breakpoint()
-        MPC_constr = self.bilt.MPC_constr
-        mNrm_kinks = self.bilt.mNrm_kinks
+        MPC_constr = self.Bilt.MPC_constr
+        mNrm_kinks = self.Bilt.mNrm_kinks
         constr_0 = np.heaviside(m-mNrm_kinks[0], 0.)  # 0 if constrained, else 1
         c_constr = (1-constr_0)*m  # m if m < kink
         c_uncons = constr_0*(c_constr+MPC_constr[0]*(m-mNrm_kinks[0]))
@@ -493,7 +493,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         if not hasattr(self, 'solution_startfrom'):
             # enrich generic consumer_terminal_nobequest_onestate terminal func
             # with info specifically needed to solve this particular model
-            self.solution_terminal.bilt = \
+            self.solution_terminal.Bilt = \
                 self.finish_setup_of_default_solution_terminal()
             # make url that will locate the documentation
             self.url_doc_for_this_agent_type_get()
@@ -534,31 +534,31 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         """
         soln.check_conditions(soln, verbose=0)
 
-        if not soln.bilt.GICRaw:  # no mNrmStE
+        if not soln.Bilt.GICRaw:  # no mNrmStE
             wrn = "Because the model's parameters do not satisfy the GIC, it " +\
                 "has neither an individual steady state nor a target."
             _log.warning(wrn)
-            soln.bilt.mNrmStE = \
+            soln.Bilt.mNrmStE = \
                 soln.mNrmStE = float('nan')
         else:  # mNrmStE exists; compute it and check mNrmTrg
             # soln.mNrmStE = \
-            soln.bilt.mNrmStE = soln.mNrmStE_find()
+            soln.Bilt.mNrmStE = soln.mNrmStE_find()
         if not self.income_risks_exist:  # If a PF model, nothing more to do
             return
         else:
-            if not hasattr(soln.bilt, 'GICNrm'):  # Should not occur; debug if get here
-                _log.critical('soln.bilt has no GICNrm attribute')
+            if not hasattr(soln.Bilt, 'GICNrm'):  # Should not occur; debug if get here
+                _log.critical('soln.Bilt has no GICNrm attribute')
                 breakpoint()
                 return
 
-            if not soln.bilt.GICNrm:
+            if not soln.Bilt.GICNrm:
                 wrn = "Because the model's parameters do not satisfy the " +\
                     "stochastic-growth-normalized GIC, it does not exhibit " +\
                     "a target level of wealth."
                 _log.warning(wrn)
-                soln.bilt.mNrmTrg = float('nan')
+                soln.Bilt.mNrmTrg = float('nan')
             else:  # GICNrm exists
-                soln.bilt.mNrmTrg = soln.mNrmTrg_find()
+                soln.Bilt.mNrmTrg = soln.mNrmTrg_find()
 
         return
 
@@ -580,8 +580,8 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         self.solve()  # ... means that "solve" will stop after setup ...
         self.tolerance = tolerance_orig  # which leaves us ready to solve
         self.cycles = cycles_orig  # with the original convergence criteria
-        self.solution[0].bilt.stge_kind['iter_status'] = 'iterator'
-        self.solution[0].bilt.vAdd = np.array([0.0])  # Amount to add to final v
+        self.solution[0].Bilt.stge_kind['iter_status'] = 'iterator'
+        self.solution[0].Bilt.vAdd = np.array([0.0])  # Amount to add to final v
         self.soln_crnt = self.solution[0]  # current soln is now the newly made one
 
     def agent_post_post_solve(self):  # Overwrites version from AgentTypePlus
@@ -684,41 +684,41 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         # If no solution exists for the agent,
         # core.py uses solution_terminal as solution_next
 
-        solution_terminal_bilt = self.solution_terminal.bilt
+        solution_terminal_Bilt = self.solution_terminal.Bilt
 
         # Natural borrowing constraint: Cannot die in debt
         # Measured after income = tranShk*permShk/permShk received
-        if not hasattr(solution_terminal_bilt, 'hNrm'):
-            _log('warning: hNrm should be set in solution_terminal.')
-            _log('assuming solution_terminal.hNrm = 0.')
-            solution_terminal_bilt.hNrm = 0.
-        solution_terminal_bilt.BoroCnstNat = -solution_terminal_bilt.hNrm
+        if not hasattr(solution_terminal_Bilt, 'hNrm'):
+            _log.warning('warning: hNrm should be set in solution_terminal.')
+            _log.warning('assuming solution_terminal.hNrm = 0.')
+            solution_terminal_Bilt.hNrm = 0.
+        solution_terminal_Bilt.BoroCnstNat = -solution_terminal_Bilt.hNrm
 
         # Define BoroCnstArt if not yet defined
         if not hasattr(self.parameters, 'BoroCnstArt'):
-            solution_terminal_bilt.BoroCnstArt = None
+            solution_terminal_Bilt.BoroCnstArt = None
         else:
-            solution_terminal_bilt.BoroCnstArt = self.parameters.BoroCnstArt
+            solution_terminal_Bilt.BoroCnstArt = self.parameters.BoroCnstArt
 
-        solution_terminal_bilt.stge_kind = {'iter_status': 'terminal_pseudo'}
+        solution_terminal_Bilt.stge_kind = {'iter_status': 'terminal_pseudo'}
 
         # Solution options
         if hasattr(self, 'vFuncBool'):
-            solution_terminal_bilt.vFuncBool = self.parameters['vFuncBool']
+            solution_terminal_Bilt.vFuncBool = self.parameters['vFuncBool']
         else:  # default to true
-            solution_terminal_bilt.vFuncBool = True
+            solution_terminal_Bilt.vFuncBool = True
 
         if hasattr(self, 'CubicBool'):
-            solution_terminal_bilt.CubicBool = self.parameters['CubicBool']
+            solution_terminal_Bilt.CubicBool = self.parameters['CubicBool']
         else:  # default to false (linear)
-            solution_terminal_bilt.CubicBool = False
+            solution_terminal_Bilt.CubicBool = False
 
-        solution_terminal_bilt.parameters = self.parameters
+        solution_terminal_Bilt.parameters = self.parameters
         CRRA = self.CRRA
-        solution_terminal_bilt = def_utility(solution_terminal_bilt, CRRA)
-        solution_terminal_bilt = def_value_funcs(solution_terminal_bilt, CRRA)
+        solution_terminal_Bilt = def_utility(solution_terminal_Bilt, CRRA)
+        solution_terminal_Bilt = def_value_funcs(solution_terminal_Bilt, CRRA)
 
-        return solution_terminal_bilt
+        return solution_terminal_Bilt
 
     check_conditions_solver = solver_check_conditions = check_conditions
 

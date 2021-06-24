@@ -123,8 +123,8 @@ class ConsumerSolution(ConsumerSolutionOlder):
                  **kwds):
         ConsumerSolutionOlder.__init__(self, *args, **kwds)
 
-        # Most previous "whiteboard" content is now on "bilt"
-        bilt = self.bilt = Built()
+        # Most previous "whiteboard" content is now on "Bilt"
+        Bilt = self.Bilt = Built()
         pars = self.pars = Parameters()
         pars.about = {'Parameters exogenously given'}
         self.E_t = Expectations()  # Namespace for expectations
@@ -137,25 +137,27 @@ class ConsumerSolution(ConsumerSolutionOlder):
         eqns.update({'yNrm': 'tranShk'})
         eqns.update({'mNrm': 'bNrm + yNrm'})
 
-        bilt.recursive = \
-            {'cFunc', #'vFunc',  # 'vPfunc', 'vPPfunc',  'vFuncNvrs',
-#             'vFunc.dm', 'vFunc.dm.dm',
-#             'u',  # 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
-             'hNrm',
-             'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA', 'vAdd'
+        Bilt.recursive = \
+            {'cFunc',  # 'vFunc',  # 'vPfunc', 'vPPfunc',  'vFuncNvrs',
+             #             'vFunc.dm', 'vFunc.dm.dm',
+             #             'u',  # 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
+             #             'hNrm',
+             'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA',
+             'vAdd'
              }
 
-        # Store recursive stuff in bilt namespace
+        # Store recursive stuff in Bilt namespace
         exclude = {''}  # Allow things that should be excluded
-        for key in (k for k in bilt.recursive if k not in exclude):  #
+        for key in (k for k in Bilt.recursive if k not in exclude):  #
             if hasattr(self, key):
-                setattr(bilt, key, self.__dict__[key])
+                setattr(Bilt, key, self.__dict__[key])
+                delattr(self, key)
 
         # Stuff added; should (ultimately) be incorporated in ConsumerSolution
-        bilt.stge_kind = stge_kind
-        bilt.completed_cycles = completed_cycles
-        bilt.parameters_solver = parameters_solver
-        bilt.vAdd = vAdd
+        Bilt.stge_kind = stge_kind
+        Bilt.completed_cycles = completed_cycles
+        Bilt.parameters_solver = parameters_solver
+        Bilt.vAdd = vAdd
 
 
 class ConsumerSolutionOneStateCRRA(ConsumerSolution):
@@ -206,15 +208,15 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         # Instantiate CRRA utility
         self = def_utility(self, CRRA)
 
-        # These things have been moved to bilt to declutter whiteboard
-        del self.mNrmMin
-        del self.hNrm
-        del self.MPCmin
-        del self.MPCmax
+        # These things have been moved to Bilt to declutter whiteboard
+#        del self.mNrmMin
+#        del self.hNrm
+#        del self.MPCmin
+#       del self.MPCmax
         del self.vFunc
-        del self.cFunc
-        del self.vPfunc
-        del self.vPPfunc
+#        del self.cFunc
+#        del self.vPfunc
+#        del self.vPPfunc
 
     def check_conditions(self, soln_crnt, verbose=None):
         """
@@ -247,15 +249,15 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
         soln_crnt : ConsumerSolution
         Solution to the problem described by information
-        for the current stage found in bilt and the succeeding stage found
+        for the current stage found in Bilt and the succeeding stage found
         in folw.
 
         Returns
         -------
         None
         """
-        soln_crnt.bilt.conditions = {}  # Keep track of truth of conditions
-        soln_crnt.bilt.degenerate = False  # True: solution is degenerate
+        soln_crnt.Bilt.conditions = {}  # Keep track of truth of conditions
+        soln_crnt.Bilt.degenerate = False  # True: solution is degenerate
 
         if not hasattr(self, 'verbose'):  # If verbose not set yet
             verbose = 0
@@ -263,15 +265,15 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
             verbose = verbose if verbose is None else verbose
 
         msg = '\nFor a model with the following parameter values:\n'
-        msg = msg+'\n'+str(soln_crnt.bilt.parameters_solver)+'\n'
+        msg = msg+'\n'+str(soln_crnt.Bilt.parameters_solver)+'\n'
 
         if verbose >= 2:
             _log.info(msg)
-            _log.info(str(soln_crnt.bilt.parameters_solver))
+            _log.info(str(soln_crnt.Bilt.parameters_solver))
             np.set_printoptions(threshold=20)  # Don't print huge output
-            for key in soln_crnt.bilt.parameters_solver.keys():
+            for key in soln_crnt.Bilt.parameters_solver.keys():
                 print('\t'+key+': ', end='')
-                pprint(soln_crnt.bilt.parameters_solver[key])
+                pprint(soln_crnt.Bilt.parameters_solver[key])
             msg = '\nThe following results hold:\n'
             _log.info(msg)
 
@@ -284,13 +286,13 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         soln_crnt.check_FVAC(soln_crnt, verbose)
 
         # degenerate flag is true if the model has no nondegenerate solution
-        if hasattr(soln_crnt.bilt, "BoroCnstArt") \
+        if hasattr(soln_crnt.Bilt, "BoroCnstArt") \
                 and soln_crnt.pars.BoroCnstArt is not None:
-            soln_crnt.degenerate = not soln_crnt.bilt.RIC
+            soln_crnt.degenerate = not soln_crnt.Bilt.RIC
             # If BoroCnstArt exists but RIC fails, limiting soln is c(m)=0
         else:  # No constraint; not degenerate if neither c(m)=0 or \infty
             soln_crnt.degenerate = \
-                not soln_crnt.bilt.RIC or not soln_crnt.bilt.FHWC
+                not soln_crnt.Bilt.RIC or not soln_crnt.Bilt.FHWC
 
     def check_AIC(self, stge, verbose=None):
         """
@@ -298,18 +300,18 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         """
         name = "AIC"
 
-        def test(stge): return stge.bilt.APF < 1
+        def test(stge): return stge.Bilt.APF < 1
 
         messages = {
-            True: "\n\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, satisfies the Absolute Impatience Condition (AIC), which requires APF < 1:\n    "+stge.bilt.AIC_fcts['urlhandle'],
-            False: "\n\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, violates the Absolute Impatience Condition (AIC), which requires APF < 1:\n    "+stge.bilt.AIC_fcts['urlhandle']
+            True: "\n\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, satisfies the Absolute Impatience Condition (AIC), which requires APF < 1:\n    "+stge.Bilt.AIC_fcts['urlhandle'],
+            False: "\n\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, violates the Absolute Impatience Condition (AIC), which requires APF < 1:\n    "+stge.Bilt.AIC_fcts['urlhandle']
         }
         verbose_messages = {
             True: "\n  Because the APF < 1,  the absolute amount of consumption is expected to fall over time.  \n",
             False: "\n  Because the APF > 1, the absolute amount of consumption is expected to grow over time.  \n",
         }
 
-        stge.bilt.AIC = core_check_condition(name, test, messages, verbose,
+        stge.Bilt.AIC = core_check_condition(name, test, messages, verbose,
                                              verbose_messages, "APF", stge)
 
     def check_FVAC(self, stge, verbose=None):
@@ -317,18 +319,18 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         Evaluate and report on the Finite Value of Autarky Condition
         """
         name = "FVAC"
-        def test(stge): return stge.bilt.FVAF < 1
+        def test(stge): return stge.Bilt.FVAF < 1
 
         messages = {
-            True: "\n\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, satisfies the Finite Value of Autarky Condition, which requires FVAF < 1:\n    "+stge.bilt.FVAC_fcts['urlhandle'],
-            False: "\n\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, violates the Finite Value of Autarky Condition, which requires FVAF:\n    "+stge.bilt.FVAC_fcts['urlhandle']
+            True: "\n\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, satisfies the Finite Value of Autarky Condition, which requires FVAF < 1:\n    "+stge.Bilt.FVAC_fcts['urlhandle'],
+            False: "\n\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, violates the Finite Value of Autarky Condition, which requires FVAF:\n    "+stge.Bilt.FVAC_fcts['urlhandle']
         }
         verbose_messages = {
-            True: "\n  Therefore, a nondegenerate solution exists if the RIC also holds. ("+stge.bilt.FVAC_fcts['urlhandle']+")\n",
+            True: "\n  Therefore, a nondegenerate solution exists if the RIC also holds. ("+stge.Bilt.FVAC_fcts['urlhandle']+")\n",
             False: "\n  Therefore, a nondegenerate solution exits if the RIC holds, but will not exist if the RIC fails unless the FHWC also fails.\n",
         }
 
-        stge.bilt.FVAC = core_check_condition(name, test, messages, verbose,
+        stge.Bilt.FVAC = core_check_condition(name, test, messages, verbose,
                                               verbose_messages, "FVAF", stge)
 
     def check_GICRaw(self, stge, verbose=None):
@@ -337,33 +339,33 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         """
         name = "GICRaw"
 
-        def test(stge): return stge.bilt.GPFRaw < 1
+        def test(stge): return stge.Bilt.GPFRaw < 1
 
         messages = {
-            True: "\n\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, satisfies the Growth Impatience Condition (GIC), which requires GPF < 1:\n    "+stge.bilt.GICRaw_fcts['urlhandle'],
-            False: "\n\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, violates the Growth Impatience Condition (GIC), which requires GPF < 1:\n    "+stge.bilt.GICRaw_fcts['urlhandle'],
+            True: "\n\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, satisfies the Growth Impatience Condition (GIC), which requires GPF < 1:\n    "+stge.Bilt.GICRaw_fcts['urlhandle'],
+            False: "\n\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, violates the Growth Impatience Condition (GIC), which requires GPF < 1:\n    "+stge.Bilt.GICRaw_fcts['urlhandle'],
         }
         verbose_messages = {
             True: "\n  Therefore,  for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
             False: "\n  Therefore, for a perfect foresight consumer whose parameters satisfy the FHWC, the ratio of individual wealth to permanent income is expected to rise toward infinity. \n"
         }
-        stge.bilt.GICRaw = core_check_condition(name, test, messages, verbose,
+        stge.Bilt.GICRaw = core_check_condition(name, test, messages, verbose,
                                                 verbose_messages, "GPFRaw", stge)
 
     def check_GICLiv(self, stge, verbose=None):
         name = "GICLiv"
 
-        def test(stge): return stge.bilt.GPFLiv < 1
+        def test(stge): return stge.Bilt.GPFLiv < 1
 
         messages = {
-            True: "\n\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, satisfies the Mortality Adjusted Aggregate Growth Impatience Condition (GICLiv):\n    "+stge.bilt.GPFLiv_fcts['urlhandle'],
-            False: "\n\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, violates the Mortality Adjusted Aggregate Growth Impatience Condition (GICLiv):\n    "+stge.bilt.GPFLiv_fcts['urlhandle'],
+            True: "\n\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, satisfies the Mortality Adjusted Aggregate Growth Impatience Condition (GICLiv):\n    "+stge.Bilt.GPFLiv_fcts['urlhandle'],
+            False: "\n\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, violates the Mortality Adjusted Aggregate Growth Impatience Condition (GICLiv):\n    "+stge.Bilt.GPFLiv_fcts['urlhandle'],
         }
         verbose_messages = {
-            True: "\n  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists ("+stge.bilt.GPFLiv_fcts['urlhandle']+")\n",
-            False: "\n  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist ("+stge.bilt.GPFLiv_fcts['urlhandle']+")\n",
+            True: "\n  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists ("+stge.Bilt.GPFLiv_fcts['urlhandle']+")\n",
+            False: "\n  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist ("+stge.Bilt.GPFLiv_fcts['urlhandle']+")\n",
         }
-        stge.bilt.GICLiv = core_check_condition(name, test, messages, verbose,
+        stge.Bilt.GICLiv = core_check_condition(name, test, messages, verbose,
                                                 verbose_messages, "GPFLiv", stge)
 
     def check_RIC(self, stge, verbose=None):
@@ -373,17 +375,17 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
         name = "RIC"
 
-        def test(stge): return stge.bilt.RPF < 1
+        def test(stge): return stge.Bilt.RPF < 1
 
         messages = {
-            True: "\n\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, satisfies the Return Impatience Condition (RIC), which requires RPF < 1:\n    "+stge.bilt.RPF_fcts['urlhandle'],
-            False: "\n\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, violates the Return Impatience Condition (RIC), which requires RPF < 1:\n    "+stge.bilt.RPF_fcts['urlhandle'],
+            True: "\n\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, satisfies the Return Impatience Condition (RIC), which requires RPF < 1:\n    "+stge.Bilt.RPF_fcts['urlhandle'],
+            False: "\n\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, violates the Return Impatience Condition (RIC), which requires RPF < 1:\n    "+stge.Bilt.RPF_fcts['urlhandle'],
         }
         verbose_messages = {
             True: "\n  Therefore, the limiting consumption function is not c(m)=0 for all m\n",
             False: "\n  Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.\n",
         }
-        stge.bilt.RIC = core_check_condition(name, test, messages, verbose,
+        stge.Bilt.RIC = core_check_condition(name, test, messages, verbose,
                                              verbose_messages, "RPF", stge)
 
     def check_FHWC(self, stge, verbose=None):
@@ -392,17 +394,17 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         """
         name = "FHWC"
 
-        def test(stge): return stge.bilt.FHWF < 1
+        def test(stge): return stge.Bilt.FHWF < 1
 
         messages = {
-            True: "\n\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, satisfies the Finite Human Wealth Condition (FHWC), which requires FHWF < 1:\n    "+stge.bilt.FHWC_fcts['urlhandle'],
-            False: "\n\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, violates the Finite Human Wealth Condition (FHWC), which requires FHWF < 1:\n    "+stge.bilt.FHWC_fcts['urlhandle'],
+            True: "\n\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, satisfies the Finite Human Wealth Condition (FHWC), which requires FHWF < 1:\n    "+stge.Bilt.FHWC_fcts['urlhandle'],
+            False: "\n\nThe Finite Human Wealth Factor value for the supplied parameter values, FHWF={0.FHWF}, violates the Finite Human Wealth Condition (FHWC), which requires FHWF < 1:\n    "+stge.Bilt.FHWC_fcts['urlhandle'],
         }
         verbose_messages = {
             True: "\n  Therefore, the limiting consumption function is not c(m)=Infinity.\n  Human wealth normalized by permanent income is {0.hNrmInf}.\n",
-            False: "\n  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.\n  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0. ("+stge.bilt.FHWC_fcts['urlhandle']+")\n",
+            False: "\n  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.\n  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0. ("+stge.Bilt.FHWC_fcts['urlhandle']+")\n",
         }
-        stge.bilt.FHWC = core_check_condition(name, test, messages, verbose,
+        stge.Bilt.FHWC = core_check_condition(name, test, messages, verbose,
                                               verbose_messages, "FHWF", stge)
 
     def check_GICNrm(self, stge, verbose=None):
@@ -414,18 +416,18 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
         name = "GICNrm"
 
-        def test(stge): return stge.bilt.GPFNrm <= 1
+        def test(stge): return stge.Bilt.GPFNrm <= 1
 
         messages = {
-            True: "\n\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, satisfies the Normalized Growth Impatience Condition (GICNrm), which requires GPFNrm < 1:\n    "+stge.bilt.GICNrm_fcts['urlhandle'],
-            False: "\n\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, violates the Normalized Growth Impatience Condition (GICNrm), which requires GPFNrm < 1:\n    "+stge.bilt.GICNrm_fcts['urlhandle'],
+            True: "\n\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, satisfies the Normalized Growth Impatience Condition (GICNrm), which requires GPFNrm < 1:\n    "+stge.Bilt.GICNrm_fcts['urlhandle'],
+            False: "\n\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, violates the Normalized Growth Impatience Condition (GICNrm), which requires GPFNrm < 1:\n    "+stge.Bilt.GICNrm_fcts['urlhandle'],
         }
         verbose_messages = {
             True: "\n  Therefore, a target level of the individual market resources ratio m exists.",
-            False: "\n  Therefore, a target ratio of individual market resources to individual permanent income does not exist.  ("+stge.bilt.GICNrm_fcts['urlhandle']+")\n",
+            False: "\n  Therefore, a target ratio of individual market resources to individual permanent income does not exist.  ("+stge.Bilt.GICNrm_fcts['urlhandle']+")\n",
         }
 
-        stge.bilt.GICNrm = core_check_condition(name, test, messages, verbose,
+        stge.Bilt.GICNrm = core_check_condition(name, test, messages, verbose,
                                                 verbose_messages, "GPFNrm", stge)
 
     def check_WRIC(self, stge, verbose=None):
@@ -439,18 +441,18 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
         name = "WRIC"
 
-        def test(stge): return stge.bilt.WRPF <= 1
+        def test(stge): return stge.Bilt.WRPF <= 1
 
         messages = {
-            True: "\n\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, satisfies the Weak Return Impatience Condition, which requires WRPF < 1:\n    "+stge.bilt.WRIC_fcts['urlhandle'],
-            False: "\n\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, violates the Weak Return Impatience Condition, which requires WRPF < 1:\n    "+stge.bilt.WRIC_fcts['urlhandle'],
+            True: "\n\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, satisfies the Weak Return Impatience Condition, which requires WRPF < 1:\n    "+stge.Bilt.WRIC_fcts['urlhandle'],
+            False: "\n\nThe Weak Return Patience Factor value for the supplied parameter values, WRPF={0.WRPF}, violates the Weak Return Impatience Condition, which requires WRPF < 1:\n    "+stge.Bilt.WRIC_fcts['urlhandle'],
         }
 
         verbose_messages = {
-            True: "\n  Therefore, a nondegenerate solution exists if the FVAC is also satisfied. ("+stge.bilt.WRIC_fcts['urlhandle']+")\n",
-            False: "\n  Therefore, a nondegenerate solution is not available ("+stge.bilt.WRIC_fcts['urlhandle']+")\n",
+            True: "\n  Therefore, a nondegenerate solution exists if the FVAC is also satisfied. ("+stge.Bilt.WRIC_fcts['urlhandle']+")\n",
+            False: "\n  Therefore, a nondegenerate solution is not available ("+stge.Bilt.WRIC_fcts['urlhandle']+")\n",
         }
-        stge.bilt.WRIC = core_check_condition(name, test, messages, verbose,
+        stge.Bilt.WRIC = core_check_condition(name, test, messages, verbose,
                                               verbose_messages, "WRPF", stge)
 
     def mNrmTrg_find(self):
@@ -471,15 +473,15 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
             The target value mNrmTrg.
         """
 
-        m_init_guess = self.bilt.mNrmMin + self.E_t.IncNrmNxt
+        m_init_guess = self.Bilt.mNrmMin + self.E_t.IncNrmNxt
         try:  # Find value where argument is zero
-            self.bilt.mNrmTrg = find_zero_newton(
+            self.Bilt.mNrmTrg = find_zero_newton(
                 self.E_t.m_tp1_minus_m_t,
                 m_init_guess)
         except:
-            self.bilt.mNrmTrg = None
+            self.Bilt.mNrmTrg = None
 
-        return self.bilt.mNrmTrg
+        return self.Bilt.mNrmTrg
 
     def mNrmStE_find(self):
         """
@@ -504,15 +506,15 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
         # Minimum market resources plus E[next income] is okay starting guess
 
-        m_init_guess = self.bilt.mNrmMin + self.E_t.IncNrmNxt
+        m_init_guess = self.Bilt.mNrmMin + self.E_t.IncNrmNxt
         try:
-            self.bilt.mNrmStE = find_zero_newton(
+            self.Bilt.mNrmStE = find_zero_newton(
                 self.E_t.permShk_tp1_times_m_tp1_minus_m_t, m_init_guess)
         except:
-            self.bilt.mNrmStE = None
+            self.Bilt.mNrmStE = None
 
         # Add mNrmStE to the solution and return it
-        return self.bilt.mNrmStE
+        return self.Bilt.mNrmStE
 
 # Contents of the PF solver are inherited by a variety of non-PF models
 # so ConsPerfForesightSolver incorporates calcs and info useful for
@@ -607,27 +609,27 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         parameters_solver = \
             {k: v for k, v in {**kwds, **locals()}.items()
              if k not in {'self', 'solution_next', 'kwds', 'soln_futr',
-                          'bilt_futr', 'soln_crnt', 'bilt'}}
+                          'Bilt_futr', 'soln_crnt', 'Bilt'}}
 
         # 'terminal' solution should replace pseudo_terminal:
-        if hasattr(self.soln_futr.bilt, 'stge_kind') and \
-                (soln_futr.bilt.stge_kind['iter_status'] == 'terminal_pseudo'):
-            self.soln_crnt.bilt = deepcopy(self.soln_futr.bilt)
+        if hasattr(self.soln_futr.Bilt, 'stge_kind') and \
+                (soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_pseudo'):
+            self.soln_crnt.Bilt = deepcopy(self.soln_futr.Bilt)
 
         # links for docs; urls are used when "fcts" are added
         self.url_doc_for_solver_get()
-        self.soln_crnt.bilt.parameters_solver = deepcopy(parameters_solver)
+        self.soln_crnt.Bilt.parameters_solver = deepcopy(parameters_solver)
 
         return
 
     def url_doc_for_solver_get(self):
         # Generate a url that will locate the documentation
         self.class_name = self.__class__.__name__
-        self.soln_crnt.bilt.url_ref = self.url_ref =\
+        self.soln_crnt.Bilt.url_ref = self.url_ref =\
             "https://econ-ark.github.io/BufferStockTheory"
-        self.soln_crnt.bilt.urlroot = self.urlroot = \
+        self.soln_crnt.Bilt.urlroot = self.urlroot = \
             self.url_ref+'/#'
-        self.soln_crnt.bilt.url_doc = self.url_doc = \
+        self.soln_crnt.Bilt.url_doc = self.url_doc = \
             "https://hark.readthedocs.io/en/latest/search.html?q=" +\
             self.class_name+"&check_keywords=yes&area=default#"
 
@@ -648,19 +650,19 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         # Reduce cluttered formulae with local aliases
         soln_crnt = self.soln_crnt
         futr = self.soln_futr
-        bilt, folw, pars = soln_crnt.bilt, soln_crnt.folw, soln_crnt.pars
+        Bilt, folw, pars = soln_crnt.Bilt, soln_crnt.folw, soln_crnt.pars
         E_t = soln_crnt.E_t
 
-        Rfree, PermGroFac, MPCmin = pars.Rfree, pars.PermGroFac, bilt.MPCmin
+        Rfree, PermGroFac, MPCmin = pars.Rfree, pars.PermGroFac, Bilt.MPCmin
         BoroCnstArt, DiscFac, E_t.IncNrmNxt, LivPrb = \
             pars.BoroCnstArt, pars.DiscFac, E_t.IncNrmNxt, pars.LivPrb
-        BoroCnstNat = bilt.BoroCnstNat
-        u = bilt.u
-        u.Nvrs = bilt.u.Nvrs
-        u.dc.Nvrs = bilt.u.dc.Nvrs
+        BoroCnstNat = Bilt.BoroCnstNat
+        u = Bilt.u
+        u.Nvrs = Bilt.u.Nvrs
+        u.dc.Nvrs = Bilt.u.dc.Nvrs
 
-#        uinv = bilt.uinv
-#        uPinv = bilt.uPinv
+#        uinv = Bilt.uinv
+#        uPinv = Bilt.uPinv
 
         folw.PF_IncNrm_tp1 = E_t.IncNrmNxt
         DiscLiv = DiscFac * LivPrb
@@ -717,12 +719,12 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         # and values you will receive afer h
 #        vAdd = # Sum of post-constrained value by gridpoint
 #            (DiscLiv * PermGroFac**(1-CRRA))*\
-#                (bilt.u(folw.cFunc_tp1(mNrm_kinks_tp1) # u at next period cusp
+#                (Bilt.u(folw.cFunc_tp1(mNrm_kinks_tp1) # u at next period cusp
 #                        +vAdd_tp1) # v from s
 
         # cusp is point where current period constraint stops binding
         cNrm_cusp = u.dc.Nvrs(_vP_t_at_BoroCnst)
-        vNrm_cusp = bilt.u(cNrm_cusp)+_v_t_at_BoroCnst
+        vNrm_cusp = Bilt.u(cNrm_cusp)+_v_t_at_BoroCnst
         vAdd_cusp = _v_t_at_BoroCnst
         vInv_cusp = u.Nvrs(vNrm_cusp)
         mNrm_cusp = cNrm_cusp + BoroCnst
@@ -785,8 +787,8 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #        plot_funcs(lambda x: np.heaviside(x-BoroCnst,0.5),1,2)
         uInvFunc_const = \
             LinearInterp(mNrmGrid_const, uInvGrid_const)
-        vFunc_const = bilt.u(uInvGrid_const)+_v_t_at_BoroCnst
-        vFunc_unconst = bilt.u(vInvGrid_unconst)
+        vFunc_const = Bilt.u(uInvGrid_const)+_v_t_at_BoroCnst
+        vFunc_unconst = Bilt.u(vInvGrid_unconst)
 
         def vAddFunc(m, mGrid, vAddGrid):
             return vAddGrid[np.where(m < mGrid)[0][0]]
@@ -819,7 +821,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         mNrmGrid = np.append(mNrmGrid, mNrmGrid[-1]+1)
         cNrmGrid = np.append(cNrmGrid, cNrmGrid[-1]+MPCmin)
 
-        self.cFunc = self.soln_crnt.cFunc = bilt.cFunc = \
+        self.cFunc = self.soln_crnt.cFunc = Bilt.cFunc = \
             LinearInterp(mNrmGrid, cNrmGrid)
 
 #        vInvFunc_unconst = self.vFuncNvrs = \
@@ -840,7 +842,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #        PF_t_vNvrs_tp1_Grid_2 = \
 #            np.append(PF_t_vNvrs_tp1_Grid,PF_t_v_tp1_last)
 
-        # vNvrsGrid = bilt.uinv(bilt.u(cNrmGrid)+ folw.u_tp1(PF_t_vNvrs_tp1_Grid))
+        # vNvrsGrid = Bilt.uinv(Bilt.u(cNrmGrid)+ folw.u_tp1(PF_t_vNvrs_tp1_Grid))
 
         # If the mNrm that would unconstrainedly yield next period's bottom pt
 #        if BoroCnst > mNrmGrid_pts[0]: # is prohibited by BoroCnst
@@ -926,7 +928,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 # #        _vP_t = ((DiscLiv * Rfree) * (PermGroFac**(-CRRA_tp1)))*vP_tp1
 # #        _vP_t =
 #         # Endogenous gridpoints method
-#  #       cNrmGrid = bilt.uPinv(_vP_t)    # EGM step 1: u' inverse yields c
+#  #       cNrmGrid = Bilt.uPinv(_vP_t)    # EGM step 1: u' inverse yields c
 #         mNrmGrid = aNrmGrid + cNrmGrid  # EGM step 2: DBC inverted
 
 #         cNrmGrid = np.unique(np.insert(cNrmGrid,0,E_t.IncNrmNxt-BoroCnstArt))
@@ -990,7 +992,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #             aNrmGrid = mNrmGrid - cNrmGrid
 
         # Consumption function is a linear interpolation between kink pts
-#        self.cFunc = self.soln_crnt.cFunc = bilt.cFunc = \
+#        self.cFunc = self.soln_crnt.cFunc = Bilt.cFunc = \
 #            LinearInterp(mNrmGrid_pts, cNrmGrid_pts)
 
 
@@ -999,30 +1001,29 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #        PF_t_vNvrs_tp1_Grid_2 = \
 #            np.append(PF_t_vNvrs_tp1_Grid,PF_t_v_tp1_last)
 
-        # vNvrsGrid = bilt.uinv(bilt.u(cNrmGrid)+ folw.u_tp1(PF_t_vNvrs_tp1_Grid))
+        # vNvrsGrid = Bilt.uinv(Bilt.u(cNrmGrid)+ folw.u_tp1(PF_t_vNvrs_tp1_Grid))
 
         # # Calculate the upper bound of the MPC as the slope of bottom segment
         # # In practice, this is always 1.  Code is here for clarity
-        # bilt.MPCmax = ((cNrmGrid_Xtra[1] - cNrmGrid_Xtra[0])/
+        # Bilt.MPCmax = ((cNrmGrid_Xtra[1] - cNrmGrid_Xtra[0])/
         #                (mNrmGrid_Xtra[1] - mNrmGrid_Xtra[0]))
 
         # # Lower bound of mNrm is lowest gridpoint -- usually 0
-        # bilt.mNrmMin = mNrmGrid_Xtra[0]
+        # Bilt.mNrmMin = mNrmGrid_Xtra[0]
 
-        # # Add the calculated grids to self.bilt
-        # bilt.aNrmGrid = aNrmGrid_Xtra
-        # bilt._vP_t = _vP_t
-        # bilt.cNrmGrid = cNrmGrid_Xtra
-        # bilt.mNrmGrid = mNrmGrid_Xtra
+        # # Add the calculated grids to self.Bilt
+        # Bilt.aNrmGrid = aNrmGrid_Xtra
+        # Bilt._vP_t = _vP_t
+        # Bilt.cNrmGrid = cNrmGrid_Xtra
+        # Bilt.mNrmGrid = mNrmGrid_Xtra
 
         # Add approximation to v and vP
 #        breakpoint()
-#        bilt.vNvrs = self.soln_crnt.uinv(_vP_t)
+#        Bilt.vNvrs = self.soln_crnt.uinv(_vP_t)
 
 #    def build_facts_infhor_ConsPerfForesightSolver(self):
 
 # 20210618: TODO: CDC: Find a way to isolate this stuff so it does not clutter
-
 
     def build_facts_infhor(self):
         """
@@ -1042,29 +1043,29 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
         # Using local variables makes formulae more readable
         soln_crnt = self.soln_crnt  # current
-        bilt = self.soln_crnt.bilt  # built
+        Bilt = self.soln_crnt.Bilt  # built
         folw = self.soln_crnt.folw  # following stage
         pars = self.soln_crnt.pars  # parameters
 
         E_t = self.soln_crnt.E_t
 
-        urlroot = bilt.urlroot
+        urlroot = Bilt.urlroot
         pars.DiscLiv = pars.DiscFac * pars.LivPrb
-        # givens are not changed by the calculations below; bilt and E_t are
+        # givens are not changed by the calculations below; Bilt and E_t are
         givens = {**folw.__dict__, **pars.__dict__}
 
         APF_fcts = {
             'about': 'Absolute Patience Factor'
         }
         py___code = '((Rfree * DiscLiv) ** (1.0 / CRRA))'
-        bilt.APF = APF = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.APF = APF = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         APF_fcts.update({'latexexpr': r'\APF'})
         APF_fcts.update({'_unicode_': r'Þ'})
         APF_fcts.update({'urlhandle': urlroot+'APF'})
         APF_fcts.update({'py___code': py___code})
         APF_fcts.update({'value_now': APF})
-        bilt.APF_fcts = APF_fcts
+        Bilt.APF_fcts = APF_fcts
 
         AIC_fcts = {
             'about': 'Absolute Impatience Condition'
@@ -1072,20 +1073,20 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         AIC_fcts.update({'latexexpr': r'\AIC'})
         AIC_fcts.update({'urlhandle': urlroot+'AIC'})
         AIC_fcts.update({'py___code': 'test: APF < 1'})
-        bilt.AIC_fcts = AIC_fcts
+        Bilt.AIC_fcts = AIC_fcts
 
         RPF_fcts = {
             'about': 'Return Patience Factor'
         }
         py___code = 'APF / Rfree'
-        bilt.RPF = RPF = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.RPF = RPF = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         RPF_fcts.update({'latexexpr': r'\RPF'})
         RPF_fcts.update({'_unicode_': r'Þ_R'})
         RPF_fcts.update({'urlhandle': urlroot+'RPF'})
         RPF_fcts.update({'py___code': py___code})
         RPF_fcts.update({'value_now': RPF})
-        bilt.RPF_fcts = RPF_fcts
+        Bilt.RPF_fcts = RPF_fcts
 
         RIC_fcts = {
             'about': 'Growth Impatience Condition'
@@ -1093,20 +1094,20 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         RIC_fcts.update({'latexexpr': r'\RIC'})
         RIC_fcts.update({'urlhandle': urlroot+'RIC'})
         RIC_fcts.update({'py___code': 'test: RPF < 1'})
-        bilt.RIC_fcts = RIC_fcts
+        Bilt.RIC_fcts = RIC_fcts
 
         GPFRaw_fcts = {
             'about': 'Growth Patience Factor'
         }
         py___code = 'APF / PermGroFac'
-        bilt.GPFRaw = GPFRaw = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.GPFRaw = GPFRaw = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         GPFRaw_fcts.update({'latexexpr': '\GPFRaw'})
         GPFRaw_fcts.update({'_unicode_': r'Þ_Γ'})
         GPFRaw_fcts.update({'urlhandle': urlroot+'GPFRaw'})
         GPFRaw_fcts.update({'py___code': py___code})
         GPFRaw_fcts.update({'value_now': GPFRaw})
-        bilt.GPFRaw_fcts = GPFRaw_fcts
+        Bilt.GPFRaw_fcts = GPFRaw_fcts
 
         GICRaw_fcts = {
             'about': 'Growth Impatience Condition'
@@ -1114,19 +1115,19 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         GICRaw_fcts.update({'latexexpr': r'\GICRaw'})
         GICRaw_fcts.update({'urlhandle': urlroot+'GICRaw'})
         GICRaw_fcts.update({'py___code': 'test: GPFRaw < 1'})
-        bilt.GICRaw_fcts = GICRaw_fcts
+        Bilt.GICRaw_fcts = GICRaw_fcts
 
         GPFLiv_fcts = {
             'about': 'Mortality-Adjusted Growth Patience Factor'
         }
         py___code = 'APF * LivPrb / PermGroFac'
-        bilt.GPFLiv = GPFLiv = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.GPFLiv = GPFLiv = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         GPFLiv_fcts.update({'latexexpr': '\GPFLiv'})
         GPFLiv_fcts.update({'urlhandle': urlroot+'GPFLiv'})
         GPFLiv_fcts.update({'py___code': py___code})
         GPFLiv_fcts.update({'value_now': GPFLiv})
-        bilt.GPFLiv_fcts = GPFLiv_fcts
+        Bilt.GPFLiv_fcts = GPFLiv_fcts
 
         GICLiv_fcts = {
             'about': 'Growth Impatience Condition'
@@ -1134,14 +1135,14 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         GICLiv_fcts.update({'latexexpr': r'\GICLiv'})
         GICLiv_fcts.update({'urlhandle': urlroot+'GICLiv'})
         GICLiv_fcts.update({'py___code': 'test: GPFLiv < 1'})
-        bilt.GICLiv_fcts = GICLiv_fcts
+        Bilt.GICLiv_fcts = GICLiv_fcts
 
         RNrm_PF_fcts = {
             'about': 'Growth-Normalized PF Return Factor'
         }
         py___code = 'Rfree/PermGroFac'
         E_t.RNrm_PF = RNrm_PF = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         RNrm_PF_fcts.update({'latexexpr': r'\PFRNrm'})
         RNrm_PF_fcts.update({'_unicode_': r'R/Γ'})
         RNrm_PF_fcts.update({'py___code': py___code})
@@ -1153,7 +1154,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         }
         py___code = '1 / RNrm_PF'
         E_t.Inv_RNrm_PF = Inv_RNrm_PF = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         Inv_RNrm_PF_fcts.update({'latexexpr': r'\InvPFRNrm'})
         Inv_RNrm_PF_fcts.update({'_unicode_': r'Γ/R'})
         Inv_RNrm_PF_fcts.update({'py___code': py___code})
@@ -1165,14 +1166,14 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             'about': 'Finite Human Wealth Factor'
         }
         py___code = 'PermGroFac / Rfree'
-        bilt.FHWF = FHWF = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.FHWF = FHWF = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         FHWF_fcts.update({'latexexpr': r'\FHWF'})
         FHWF_fcts.update({'_unicode_': r'R/Γ'})
         FHWF_fcts.update({'urlhandle': urlroot+'FHWF'})
         FHWF_fcts.update({'py___code': py___code})
         FHWF_fcts.update({'value_now': FHWF})
-        bilt.FHWF_fcts = \
+        Bilt.FHWF_fcts = \
             FHWF_fcts
 
         FHWC_fcts = {
@@ -1181,52 +1182,52 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         FHWC_fcts.update({'latexexpr': r'\FHWC'})
         FHWC_fcts.update({'urlhandle': urlroot+'FHWC'})
         FHWC_fcts.update({'py___code': 'test: FHWF < 1'})
-        bilt.FHWC_fcts = FHWC_fcts
+        Bilt.FHWC_fcts = FHWC_fcts
 
         hNrmInf_fcts = {
             'about': 'Human wealth for inf hor'
         }
         py___code = '1/(1-FHWF) if (FHWF < 1) else float("inf")'
-        bilt.hNrmInf = hNrmInf = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.hNrmInf = hNrmInf = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         hNrmInf_fcts = dict({'latexexpr': '1/(1-\FHWF)'})
         hNrmInf_fcts.update({'value_now': hNrmInf})
         hNrmInf_fcts.update({'py___code': py___code})
-        bilt.hNrmInf_fcts = hNrmInf_fcts
+        Bilt.hNrmInf_fcts = hNrmInf_fcts
 
         DiscGPFRawCusp_fcts = {
             'about': 'DiscFac s.t. GPFRaw = 1'
         }
         py___code = '( PermGroFac                       ** CRRA)/(Rfree)'
-        bilt.DiscGPFRawCusp = DiscGPFRawCusp = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.DiscGPFRawCusp = DiscGPFRawCusp = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         DiscGPFRawCusp_fcts.update({'latexexpr': '\PermGroFac^{\CRRA}/\Rfree'})
         DiscGPFRawCusp_fcts.update({'value_now': DiscGPFRawCusp})
         DiscGPFRawCusp_fcts.update({'py___code': py___code})
-        bilt.DiscGPFRawCusp_fcts = \
+        Bilt.DiscGPFRawCusp_fcts = \
             DiscGPFRawCusp_fcts
 
         DiscGPFLivCusp_fcts = {
             'about': 'DiscFac s.t. GPFLiv = 1'
         }
         py___code = '( PermGroFac                       ** CRRA)/(Rfree*LivPrb)'
-        bilt.DiscGPFLivCusp = DiscGPFLivCusp = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.DiscGPFLivCusp = DiscGPFLivCusp = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         DiscGPFLivCusp_fcts.update({'latexexpr': '\PermGroFac^{\CRRA}/(\Rfree\LivPrb)'})
         DiscGPFLivCusp_fcts.update({'value_now': DiscGPFLivCusp})
         DiscGPFLivCusp_fcts.update({'py___code': py___code})
-        bilt.DiscGPFLivCusp_fcts = DiscGPFLivCusp_fcts
+        Bilt.DiscGPFLivCusp_fcts = DiscGPFLivCusp_fcts
 
         FVAF_fcts = {  # overwritten by version with uncertainty
             'about': 'Finite Value of Autarky Factor'
         }
         py___code = 'LivPrb * DiscLiv'
-        bilt.FVAF = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.FVAF = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         FVAF_fcts.update({'latexexpr': r'\FVAFPF'})
         FVAF_fcts.update({'urlhandle': urlroot+'FVAFPF'})
         FVAF_fcts.update({'py___code': py___code})
-        bilt.FVAF_fcts = FVAF_fcts
+        Bilt.FVAF_fcts = FVAF_fcts
 
         FVAC_fcts = {  # overwritten by version with uncertainty
             'about': 'Finite Value of Autarky Condition - Perfect Foresight'
@@ -1234,14 +1235,14 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         FVAC_fcts.update({'latexexpr': r'\FVACPF'})
         FVAC_fcts.update({'urlhandle': urlroot+'FVACPF'})
         FVAC_fcts.update({'py___code': 'test: FVAFPF < 1'})
-        bilt.FVAC_fcts = FVAC_fcts
+        Bilt.FVAC_fcts = FVAC_fcts
 
         E_t.IncNrmNxt_fcts = {  # Overwritten by version with uncertainty
             'about': 'Expected income next period'
         }
         py___code = '1.0'
         E_t.IncNrmNxt = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
 #        E_t.IncNrmNxt_fcts.update({'latexexpr': r'ExIncNrmNxt'})
 #        E_t.IncNrmNxt_fcts.update({'_unicode_': r'R/Γ'})
 #        E_t.IncNrmNxt_fcts.update({'urlhandle': urlroot+'ExIncNrmNxt'})
@@ -1254,7 +1255,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         }
         py___code = 'Rfree / PermGroFac'
         E_t.RNrm_PF = RNrm_PF = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         RNrm_PF_fcts.update({'latexexpr': r'\PFRNrm'})
         RNrm_PF_fcts.update({'_unicode_': r'R/Γ'})
         RNrm_PF_fcts.update({'urlhandle': urlroot+'PFRNrm'})
@@ -1267,7 +1268,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         }
         py___code = 'Rfree / PermGroFac'
         E_t.RNrm_PF = RNrm_PF = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         RNrm_PF_fcts.update({'latexexpr': r'\PFRNrm'})
         RNrm_PF_fcts.update({'_unicode_': r'R/Γ'})
         RNrm_PF_fcts.update({'urlhandle': urlroot+'PFRNrm'})
@@ -1279,144 +1280,145 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             'about': 'Mortality-Inclusive Discounting'
         }
         py___code = 'DiscFac * LivPrb'
-        bilt.DiscLiv = DiscLiv = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.DiscLiv = DiscLiv = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         DiscLiv_fcts.update({'latexexpr': r'\PFRNrm'})
         DiscLiv_fcts.update({'_unicode_': r'R/Γ'})
         DiscLiv_fcts.update({'urlhandle': urlroot+'PFRNrm'})
         DiscLiv_fcts.update({'py___code': py___code})
         DiscLiv_fcts.update({'value_now': DiscLiv})
-        bilt.DiscLiv_fcts = DiscLiv_fcts
+        Bilt.DiscLiv_fcts = DiscLiv_fcts
 
     def build_facts_recursive(self):
 
         soln_crnt = self.soln_crnt
-        bilt = soln_crnt.bilt
+        Bilt = soln_crnt.Bilt
+        tp1 = self.soln_futr.Bilt
         folw = soln_crnt.folw
         pars = soln_crnt.pars
         E_t = soln_crnt.E_t
 
-        givens = {**folw.__dict__, **pars.__dict__}
-        urlroot = bilt.urlroot
+        givens = {**folw.__dict__, **pars.__dict__, **locals()}
+        urlroot = Bilt.urlroot
         pars.DiscLiv = pars.DiscFac * pars.LivPrb
 
         hNrm_fcts = {
             'about': 'Human Wealth '
         }
-        py___code = '((PermGroFac / Rfree) * (1.0 + hNrm_tp1))'
+        py___code = '((PermGroFac / Rfree) * (1.0 + tp1.hNrm))'
         if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
-            soln_crnt.hNrm_tp1 = -1.0  # causes hNrm = 0 for final period
-        bilt.hNrm = hNrm = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+            py___code = '0.0'  # hNrm = 0.0 for last period
+        Bilt.hNrm = hNrm = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         hNrm_fcts.update({'latexexpr': r'\hNrm'})
         hNrm_fcts.update({'_unicode_': r'R/Γ'})
         hNrm_fcts.update({'urlhandle': urlroot+'hNrm'})
         hNrm_fcts.update({'py___code': py___code})
         hNrm_fcts.update({'value_now': hNrm})
-        bilt.hNrm_fcts = hNrm_fcts
+        Bilt.hNrm_fcts = hNrm_fcts
 
         BoroCnstNat_fcts = {
             'about': 'Natural Borrowing Constraint'
         }
-        py___code = '(mNrmMin_tp1 - tranShkMin)*(PermGroFac/Rfree)*permShkMin'
+        py___code = '(tp1.mNrmMin - tranShkMin)*(PermGroFac/Rfree)*permShkMin'
         if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge
             py___code = 'hNrm'  # Presumably zero
-        bilt.BoroCnstNat = BoroCnstNat = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.BoroCnstNat = BoroCnstNat = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         BoroCnstNat_fcts.update({'latexexpr': r'\BoroCnstNat'})
         BoroCnstNat_fcts.update({'_unicode_': r''})
         BoroCnstNat_fcts.update({'urlhandle': urlroot+'BoroCnstNat'})
         BoroCnstNat_fcts.update({'py___code': py___code})
         BoroCnstNat_fcts.update({'value_now': BoroCnstNat})
-        bilt.BoroCnstNat_fcts = BoroCnstNat_fcts
+        Bilt.BoroCnstNat_fcts = BoroCnstNat_fcts
 
         BoroCnst_fcts = {
             'about': 'Effective Borrowing Constraint'
         }
         py___code = 'BoroCnstNat if (BoroCnstArt == None) else (BoroCnstArt if BoroCnstNat < BoroCnstArt else BoroCnstNat)'
-        bilt.BoroCnst = BoroCnst = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.BoroCnst = BoroCnst = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         BoroCnst_fcts.update({'latexexpr': r'\BoroCnst'})
         BoroCnst_fcts.update({'_unicode_': r''})
         BoroCnst_fcts.update({'urlhandle': urlroot+'BoroCnst'})
         BoroCnst_fcts.update({'py___code': py___code})
         BoroCnst_fcts.update({'value_now': BoroCnst})
-        bilt.BoroCnst_fcts = BoroCnst_fcts
+        Bilt.BoroCnst_fcts = BoroCnst_fcts
 
         # MPCmax is not a meaningful object in the PF model so is not created there
         # so create it here
         MPCmax_fcts = {
             'about': 'Maximal MPC in current period as m -> mNrmMin'
         }
-        py___code = '1.0 / (1.0 + (RPF / MPCmax_tp1))'
+        py___code = '1.0 / (1.0 + (RPF / tp1.MPCmax))'
         if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
-            soln_crnt.MPCmax_tp1 = float('inf')  # causes MPCmax = 1 for final period
-        bilt.MPCmax = MPCmax = eval(
-            py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+            soln_crnt.tp1.MPCmax = float('inf')  # causes MPCmax = 1 for final period
+        Bilt.MPCmax = MPCmax = eval(
+            py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         MPCmax_fcts.update({'latexexpr': r''})
         MPCmax_fcts.update({'urlhandle': urlroot+'MPCmax'})
         MPCmax_fcts.update({'py___code': py___code})
         MPCmax_fcts.update({'value_now': MPCmax})
-        bilt.MPCmax_fcts = MPCmax_fcts
+        Bilt.MPCmax_fcts = MPCmax_fcts
 
         mNrmMin_fcts = {
             'about': 'Min m is the max you can borrow'
         }
         py___code = 'BoroCnst'
-        bilt.mNrmMin =  \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.mNrmMin =  \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         mNrmMin_fcts.update({'latexexpr': r'\mNrmMin'})
         mNrmMin_fcts.update({'py___code': py___code})
-        bilt.mNrmMin_fcts = mNrmMin_fcts
+        Bilt.mNrmMin_fcts = mNrmMin_fcts
 
         MPCmin_fcts = {
             'about': 'Minimal MPC in current period as m -> infty'
         }
-        py___code = '1.0 / (1.0 + (RPF /MPCmin_tp1))'
+        py___code = '1.0 / (1.0 + (RPF / tp1.MPCmin))'
         if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
-            #        if soln_crnt.bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
-            bilt.MPCmin_tp1 = float('inf')  # causes MPCmin = 1 for final period
-        bilt.MPCmin = MPCmin = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+            #        if soln_crnt.Bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+            py__code = '1.0'
+        Bilt.MPCmin = MPCmin = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         MPCmin_fcts.update({'latexexpr': r''})
         MPCmin_fcts.update({'urlhandle': urlroot+'MPCmin'})
         MPCmin_fcts.update({'py___code': py___code})
         MPCmin_fcts.update({'value_now': MPCmin})
-        bilt.MPCmin_fcts = MPCmin_fcts
+        Bilt.MPCmin_fcts = MPCmin_fcts
 
         MPCmax_fcts = {
             'about': 'Maximal MPC in current period as m -> mNrmMin'
         }
-        py___code = '1.0 / (1.0 + (RPF / MPCmax_tp1))'
+        py___code = '1.0 / (1.0 + (RPF / tp1.MPCmax))'
         if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
-            bilt.MPCmax_tp1 = float('inf')  # causes MPCmax = 1 for final period
-        bilt.MPCmax = MPCmax = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+            Bilt.tp1.MPCmax = float('inf')  # causes MPCmax = 1 for final period
+        Bilt.MPCmax = MPCmax = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         MPCmax_fcts.update({'latexexpr': r''})
         MPCmax_fcts.update({'urlhandle': urlroot+'MPCmax'})
         MPCmax_fcts.update({'py___code': py___code})
         MPCmax_fcts.update({'value_now': MPCmax})
-        bilt.MPCmax_fcts = MPCmax_fcts
+        Bilt.MPCmax_fcts = MPCmax_fcts
 
         cFuncLimitIntercept_fcts = {
             'about': 'Vertical intercept of perfect foresight consumption function'}
         py___code = 'MPCmin * hNrm'
-        bilt.cFuncLimitIntercept = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.cFuncLimitIntercept = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         cFuncLimitIntercept_fcts.update({'py___code': py___code})
         cFuncLimitIntercept_fcts.update({'latexexpr': '\MPC \hNrm'})
-        soln_crnt.bilt.cFuncLimitIntercept_fcts = cFuncLimitIntercept_fcts
+        soln_crnt.Bilt.cFuncLimitIntercept_fcts = cFuncLimitIntercept_fcts
 
         cFuncLimitSlope_fcts = {
             'about': 'Slope of limiting consumption function'}
         py___code = 'MPCmin'
         cFuncLimitSlope_fcts.update({'py___code': 'MPCmin'})
-        bilt.cFuncLimitSlope = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.cFuncLimitSlope = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         cFuncLimitSlope_fcts.update({'py___code': py___code})
         cFuncLimitSlope_fcts = dict({'latexexpr': '\MPCmin'})
         cFuncLimitSlope_fcts.update({'urlhandle': '\MPC'})
-        soln_crnt.bilt.cFuncLimitSlope_fcts = cFuncLimitSlope_fcts
+        soln_crnt.Bilt.cFuncLimitSlope_fcts = cFuncLimitSlope_fcts
 
         # That's the end of things that are identical for PF and non-PF models
 
@@ -1439,24 +1441,24 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         soln_crnt = self.soln_crnt
         CRRA = soln_crnt.pars.CRRA
 
-        if soln_futr.bilt.stge_kind['iter_status'] == 'finished':
+        if soln_futr.Bilt.stge_kind['iter_status'] == 'finished':
             breakpoint()
             # Should not have gotten here
             # because core.py tests whether solution_last is 'finished'
 
-        if soln_futr.bilt.stge_kind['iter_status'] == 'terminal_pseudo':
+        if soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_pseudo':
             # bare-bones default terminal solution does not have all the facts
             # we want, because it is multipurpose (for any u func) so add them
-            soln_futr.bilt = def_utility(soln_crnt, CRRA)
+            soln_futr.Bilt = def_utility(soln_crnt, CRRA)
             self.build_facts_infhor()
             soln_futr = soln_crnt = def_value_funcs(soln_crnt, CRRA)
             # Now that they've been added, it's good to go for iteration
-            soln_crnt.bilt.stge_kind['iter_status'] = 'iterator'
-            soln_crnt.stge_kind = soln_crnt.bilt.stge_kind
-            self.soln_crnt.vPfunc = self.soln_crnt.bilt.vPfunc  # Need for distance
-            self.soln_crnt.cFunc = self.soln_crnt.bilt.cFunc  # Need for distance
-            if hasattr(self.soln_crnt.bilt, 'IncShkDstn'):
-                self.soln_crnt.IncShkDstn = self.soln_crnt.bilt.IncShkDstn
+            soln_crnt.Bilt.stge_kind['iter_status'] = 'iterator'
+            soln_crnt.stge_kind = soln_crnt.Bilt.stge_kind
+            self.soln_crnt.vPfunc = self.soln_crnt.Bilt.vPfunc  # Need for distance
+            self.soln_crnt.cFunc = self.soln_crnt.Bilt.cFunc  # Need for distance
+            if hasattr(self.soln_crnt.Bilt, 'IncShkDstn'):
+                self.soln_crnt.IncShkDstn = self.soln_crnt.Bilt.IncShkDstn
 
             return soln_crnt  # if pseudo_terminal = True, enhanced replaces original
 
@@ -1471,7 +1473,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
     solve = solve_prepared_stage
 
-    def solver_prep_solution_for_an_iteration(self):  # self: solver for stage
+    def solver_prep_solution_for_an_iteration(self):  # self: solver
         """
         Prepare the current stage for processing by the one-stage solver.
         """
@@ -1479,12 +1481,12 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         soln_crnt = self.soln_crnt
         soln_futr = self.soln_futr
 
-        bilt, pars = soln_crnt.bilt, soln_crnt.pars
+        Bilt, pars = soln_crnt.Bilt, soln_crnt.pars
 
         # Create current pars
-        for key in (k for k in bilt.parameters_solver
+        for key in (k for k in Bilt.parameters_solver
                     if k not in {'', ''}):
-            setattr(pars, key, bilt.parameters_solver[key])
+            setattr(pars, key, Bilt.parameters_solver[key])
 
         # Organizing principle: folw should have a deepcopy of everything
         # needed to re-solve crnt problem; and everything needed to construct
@@ -1503,25 +1505,25 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             pars.tranShkMin = pars.permShkMin = 1.0
 
         # Nothing needs to be done for terminal_pseudo
-        if hasattr(bilt, 'stge_kind'):
-            if 'iter_status' in bilt.stge_kind:
-                if (bilt.stge_kind['iter_status'] == 'terminal_pseudo'):
+        if hasattr(Bilt, 'stge_kind'):
+            if 'iter_status' in Bilt.stge_kind:
+                if (Bilt.stge_kind['iter_status'] == 'terminal_pseudo'):
                     # No work needed in terminal period, which replaces itself
                     return
 
         # Create folw
-        for key in (k for k in bilt.recursive
+        for key in (k for k in Bilt.recursive
                     if k not in
-                    {'solution_next', 'bilt', 'stge_kind', 'folw'}):
-            if hasattr(soln_futr.bilt, key):
+                    {'solution_next', 'Bilt', 'stge_kind', 'folw'}):
+            if hasattr(soln_futr.Bilt, key):
                 setattr(folw, key+'_tp1',
-                        soln_futr.bilt.__dict__[key])
+                        soln_futr.Bilt.__dict__[key])
 
         # # Add futr parameters to folw
         # for key in (k for k in soln_futr.pars.__dict__.keys()):
         #     setattr(folw, key+'_tp1', soln_futr.pars.__dict__[key])
 
-        self.soln_crnt.bilt.stge_kind = \
+        self.soln_crnt.Bilt.stge_kind = \
             self.soln_crnt.stge_kind = {'iter_status': 'iterator',
                                         'slvr_type': self.__class__.__name__}
 
@@ -1607,12 +1609,12 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         soln_crnt = self.soln_crnt
 
         # Don't want to keep track of anything on self of disposable solver
-        bilt = soln_crnt.bilt  # things that are built
+        Bilt = soln_crnt.Bilt  # things that are built
         pars = soln_crnt.pars  # parameters are exogenous
 
-        bilt.aXtraGrid = aXtraGrid
-        bilt.vFuncBool = vFuncBool
-        bilt.CubicBool = CubicBool
+        Bilt.aXtraGrid = aXtraGrid
+        Bilt.vFuncBool = vFuncBool
+        Bilt.CubicBool = CubicBool
 
         # In which column is each object stored in IncShkDstn?
         pars.permPos = IncShkDstn.parameters['ShkPosn']['perm']
@@ -1677,17 +1679,17 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         super().build_facts_infhor()
         soln_crnt = self.soln_crnt
 
-        bilt, folw, pars = soln_crnt.bilt, soln_crnt.folw, soln_crnt.pars
+        Bilt, folw, pars = soln_crnt.Bilt, soln_crnt.folw, soln_crnt.pars
 
         E_t = soln_crnt.E_t
 
         # The 'givens' do not change as facts are constructed
         givens = {**folw.__dict__, **pars.__dict__, **soln_crnt.__dict__}
 
-        bilt.𝔼_dot = 𝔼_dot  # add the expectations operator to envt
-        bilt.E_dot = E_dot  # plain not doublestruck E
+        Bilt.𝔼_dot = 𝔼_dot  # add the expectations operator to envt
+        Bilt.E_dot = E_dot  # plain not doublestruck E
 
-        urlroot = bilt.urlroot
+        urlroot = Bilt.urlroot
 
         # Many other _fcts will have been inherited from the perfect foresight
         # model of which this model is a descendant
@@ -1699,7 +1701,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         }
         py___code = '𝔼_dot(ShkPrbs,tranShkValsBcst * permShkValsBcst)'
         E_t.IncNrmNxt = E_t.IncNrmNxt = eval(
-            py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+            py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         E_t.IncNrmNxt_fcts.update({'latexexpr': r'ExIncNrmNxt'})
         E_t.IncNrmNxt_fcts.update({'_unicode_': r'𝔼[tranShk permShk] = 1.0'})
         E_t.IncNrmNxt_fcts.update({'urlhandle': urlroot+'ExIncNrmNxt'})
@@ -1712,7 +1714,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         }
         py___code = '𝔼_dot(1/permShkVals, permShkPrbs)'
         E_t.Inv_permShk = E_t.Inv_permShk = eval(
-            py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+            py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         E_t.Inv_permShk_fcts.update({'latexexpr': r'\ExInvpermShk'})
         E_t.Inv_permShk_fcts.update({'urlhandle': urlroot+'ExInvpermShk'})
         E_t.Inv_permShk_fcts.update({'py___code': py___code})
@@ -1724,7 +1726,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         }
         py___code = 'RNrm_PF * E_t.Inv_permShk'
         E_t.RNrm = eval(
-            py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+            py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         E_t.RNrm_fcts.update({'latexexpr': r'\ExRNrm'})
         E_t.RNrm_fcts.update({'_unicode_': r'𝔼[R/Γψ]'})
         E_t.RNrm_fcts.update({'urlhandle': urlroot+'ExRNrm'})
@@ -1737,7 +1739,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         }
         py___code = '𝔼_dot(permShkValsBcst**(1-CRRA), ShkPrbs)'
         E_t.uInv_permShk = E_t.uInv_permShk = eval(
-            py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+            py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         E_t.uInv_permShk_fcts.update({'latexexpr': r'\ExuInvpermShk'})
         E_t.uInv_permShk_fcts.update({'urlhandle': r'ExuInvpermShk'})
         E_t.uInv_permShk_fcts.update({'py___code': py___code})
@@ -1748,13 +1750,13 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
             'about': 'Normalized Expected Growth Patience Factor'
         }
         py___code = 'GPFRaw * E_t.Inv_permShk'
-        bilt.GPFNrm = eval(py___code, {},
-                           {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.GPFNrm = eval(py___code, {},
+                           {**E_t.__dict__, **Bilt.__dict__, **givens})
         GPFNrm_fcts.update({'latexexpr': r'\GPFNrm'})
         GPFNrm_fcts.update({'_unicode_': r'Þ_Γ'})
         GPFNrm_fcts.update({'urlhandle': urlroot+'GPFNrm'})
         GPFNrm_fcts.update({'py___code': py___code})
-        bilt.GPFNrm_fcts = GPFNrm_fcts
+        Bilt.GPFNrm_fcts = GPFNrm_fcts
 
         GICNrm_fcts = {
             'about': 'Stochastic Growth Normalized Impatience Condition'
@@ -1762,7 +1764,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         GICNrm_fcts.update({'latexexpr': r'\GICNrm'})
         GICNrm_fcts.update({'urlhandle': urlroot+'GICNrm'})
         GICNrm_fcts.update({'py___code': 'test: GPFNrm < 1'})
-        bilt.GICNrm_fcts = GICNrm_fcts
+        Bilt.GICNrm_fcts = GICNrm_fcts
 
         FVAC_fcts = {  # overwrites PF version
             'about': 'Finite Value of Autarky Condition'
@@ -1772,12 +1774,12 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
             'about': 'Finite Value of Autarky Factor'
         }
         py___code = 'LivPrb * DiscLiv'
-        bilt.FVAF = eval(py___code, {},
-                         {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.FVAF = eval(py___code, {},
+                         {**E_t.__dict__, **Bilt.__dict__, **givens})
         FVAF_fcts.update({'latexexpr': r'\FVAF'})
         FVAF_fcts.update({'urlhandle': urlroot+'FVAF'})
         FVAF_fcts.update({'py___code': py___code})
-        bilt.FVAF_fcts = FVAF_fcts
+        Bilt.FVAF_fcts = FVAF_fcts
 
         FVAC_fcts = {  # overwrites PF version
             'about': 'Finite Value of Autarky Condition'
@@ -1785,20 +1787,20 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         FVAC_fcts.update({'latexexpr': r'\FVAC'})
         FVAC_fcts.update({'urlhandle': urlroot+'FVAC'})
         FVAC_fcts.update({'py___code': 'test: FVAF < 1'})
-        bilt.FVAC_fcts = FVAC_fcts
+        Bilt.FVAC_fcts = FVAC_fcts
 
         WRPF_fcts = {
             'about': 'Weak Return Patience Factor'
         }
         py___code = '(UnempPrb ** (1 / CRRA)) * RPF'
-        bilt.WRPF = WRPF = eval(py___code, {},
-                                {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.WRPF = WRPF = eval(py___code, {},
+                                {**E_t.__dict__, **Bilt.__dict__, **givens})
         WRPF_fcts.update({'latexexpr': r'\WRPF'})
         WRPF_fcts.update({'_unicode_': r'℘^(1/\rho) RPF'})
         WRPF_fcts.update({'urlhandle': urlroot+'WRPF'})
         WRPF_fcts.update({'value_now': WRPF})
         WRPF_fcts.update({'py___code': py___code})
-        bilt.WRPF_fcts = WRPF_fcts
+        Bilt.WRPF_fcts = WRPF_fcts
 
         WRIC_fcts = {
             'about': 'Weak Return Impatience Condition'
@@ -1806,34 +1808,34 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         WRIC_fcts.update({'latexexpr': r'\WRIC'})
         WRIC_fcts.update({'urlhandle': urlroot+'WRIC'})
         WRIC_fcts.update({'py___code': 'test: WRPF < 1'})
-        bilt.WRIC_fcts = WRIC_fcts
+        Bilt.WRIC_fcts = WRIC_fcts
 
         DiscGPFNrmCusp_fcts = {
             'about': 'DiscFac s.t. GPFNrm = 1'
         }
         py___code = '((PermGroFac/E_t.Inv_permShk)**(CRRA))/Rfree'
-        bilt.DiscGPFNrmCusp = DiscGPFNrmCusp = \
-            eval(py___code, {}, {**E_t.__dict__, **bilt.__dict__, **givens})
+        Bilt.DiscGPFNrmCusp = DiscGPFNrmCusp = \
+            eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
         DiscGPFNrmCusp_fcts.update({'latexexpr': ''})
         DiscGPFNrmCusp_fcts.update({'value_now': DiscGPFNrmCusp})
         DiscGPFNrmCusp_fcts.update({'py___code': py___code})
-        bilt.DiscGPFNrmCusp_fcts = DiscGPFNrmCusp_fcts
+        Bilt.DiscGPFNrmCusp_fcts = DiscGPFNrmCusp_fcts
 
     def build_facts_recursive(self):
         super().build_facts_recursive()
-        
+
         # All the recursive facts are required for PF model so already exist
         # But various lambda functions are interesting when uncertainty exists
 
         soln_crnt = self.soln_crnt
-        bilt = soln_crnt.bilt
+        Bilt = soln_crnt.Bilt
         pars = soln_crnt.pars
         E_t = soln_crnt.E_t
 
         # To use these it is necessary to have created an alias to
         # the relevant namespace on the solution object, e.g.
         # E_t = [soln].E_t
-        # bilt = [soln].bilt
+        # Bilt = [soln].Bilt
         # pars = [soln].pars
 
         # Given m, value of c where 𝔼[m_{t+1}]=m_{t}
@@ -1842,7 +1844,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
             m_t * (1 - 1/E_t.RNrm) + (1/E_t.RNrm)
         )
 
-        # Given m, value of c where 𝔼[mLev_{t+1}/mLev_{t}]=bilt.pars.permGroFac
+        # Given m, value of c where 𝔼[mLev_{t+1}/mLev_{t}]=Bilt.pars.permGroFac
         # Solves for c in equation at url/#balgrostable
 
         E_t.permShk_times_m_tp1_minus_m_t_eq_0 = (
@@ -1864,7 +1866,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
             lambda a_t:
             𝔼_dot(pars.PermGroFac *
                   pars.permShkValsBcst *
-                  bilt.cFunc((E_t.RNrm_PF/pars.permShkValsBcst) * a_t + pars.tranShkValsBcst),
+                  Bilt.cFunc((E_t.RNrm_PF/pars.permShkValsBcst) * a_t + pars.tranShkValsBcst),
                   pars.ShkPrbs)
         )
 
@@ -1880,13 +1882,13 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         # mNrmTrg solves E_t.RNrm*(m - c(m)) + 𝔼[inc_next] - m = 0
         E_t.m_tp1_minus_m_t = (
             lambda m_t:
-            E_t.RNrm * (m_t - bilt.cFunc(m_t)) + E_t.IncNrmNxt - m_t
+            E_t.RNrm * (m_t - Bilt.cFunc(m_t)) + E_t.IncNrmNxt - m_t
         )
 
         E_t.cLev_tp1_Over_pLev_t_from_num_a_t = (
             lambda a_t:
             𝔼_dot(
-                pars.permShkValsBcst * pars.PermGroFac * bilt.cFunc(
+                pars.permShkValsBcst * pars.PermGroFac * Bilt.cFunc(
                     (E_t.RNrm_PF/pars.permShkValsBcst) *
                     a_t + pars.tranShkValsBcst
                 ),
@@ -1909,25 +1911,25 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         E_t.cLev_tp1_Over_pLev_t_from_lst_m_t = (
             lambda m_t:
             E_t.cLev_tp1_Over_pLev_t_from_lst_a_t(m_t -
-                                                  bilt.cFunc(m_t))
+                                                  Bilt.cFunc(m_t))
         )
 
         E_t.cLev_tp1_Over_pLev_t_from_num_m_t = (
             lambda m_t:
             E_t.cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
-                                                  bilt.cFunc(m_t))
+                                                  Bilt.cFunc(m_t))
         )
 
         E_t.cLev_tp1_Over_cLev_t_from_m_t = (
             lambda m_t:
-            E_t.cLev_tp1_Over_pLev_t_from_lst_m_t(m_t) / bilt.cFunc(m_t)
+            E_t.cLev_tp1_Over_pLev_t_from_lst_m_t(m_t) / Bilt.cFunc(m_t)
             if (type(m_t) == list or type(m_t) == np.ndarray) else
-            E_t.cLev_tp1_Over_pLev_t_from_num_m_t(m_t) / bilt.cFunc(m_t)
+            E_t.cLev_tp1_Over_pLev_t_from_num_m_t(m_t) / Bilt.cFunc(m_t)
         )
 
         E_t.permShk_tp1_times_m_tp1_minus_m_t = (
             lambda m_t:
-            E_t.RNrm_PF * (m_t - bilt.cFunc(m_t)) + E_t.IncNrmNxt - m_t
+            E_t.RNrm_PF * (m_t - Bilt.cFunc(m_t)) + E_t.IncNrmNxt - m_t
         )
 
         self.soln_crnt = soln_crnt
@@ -1952,21 +1954,21 @@ class ConsIndShockSetup_ex_ante(ConsIndShockSetup):
 #     def make_ex_ante_states_from_transition_eqns_inverse(self):
 #         givens = {}
 #         E_t = self.soln_crnt.E_t
-#         bilt = self.soln_crnt.bilt
+#         Bilt = self.soln_crnt.Bilt
 #         for key in self.transition_eqns_inverse.keys():
 #             eval(self.transition_eqns_inverse[key], {}, {
-#                  **E_t.__dict__, **bilt.__dict__, **givens})
+#                  **E_t.__dict__, **Bilt.__dict__, **givens})
 
 #     def make_ex_ante_states(self):
-#         bilt = self.soln_crnt.bilt
-#         aNrmMin_tm1 = bilt.BoroCnstNat*(bilt.PermGroFac*bilt.permShkMax)/bilt.Rfree
-#         bilt.aNrmGrid_tm1 = np.asarray(bilt.aXtraGrid) + aNrmMin_tm1
+#         Bilt = self.soln_crnt.Bilt
+#         aNrmMin_tm1 = Bilt.BoroCnstNat*(Bilt.PermGroFac*Bilt.permShkMax)/Bilt.Rfree
+#         Bilt.aNrmGrid_tm1 = np.asarray(Bilt.aXtraGrid) + aNrmMin_tm1
 
 #     def add_E_tm1_v_t(self):
-#         bilt = self.soln_crnt.bilt
+#         Bilt = self.soln_crnt.Bilt
 #         pars = self.soln_crnt.pars
 #         IncShkDstn = pars.IncShkDstn
-#         aNrmGrid_tm1 = bilt.aNrmGrid_tm1
+#         aNrmGrid_tm1 = Bilt.aNrmGrid_tm1
 
 #         def vals_given_shocks_v_t(xfer_shks_bcst, curr_post_states):
 #             return xfer_shks_bcst[pars.permPos] ** (1-pars.CRRA - 0.0) * \
@@ -2024,7 +2026,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         Returns
         -------
         aNrmGrid : np.array
-            A 1D array of end-of-period assets; also is made attribute of bilt.
+            A 1D array of end-of-period assets; also is made attribute of Bilt.
         """
 
         # We define aNrmGrid all the way from BoroCnstNat up to max(aXtraGrid)
@@ -2032,10 +2034,10 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         # function as the lower envelope of the (by the artificial borrowing con-
         # straint) unconstrained consumption function, and the artificially con-
         # strained consumption function.
-        self.soln_crnt.bilt.aNrmGrid = np.asarray(
-            self.soln_crnt.bilt.aXtraGrid) + self.soln_crnt.bilt.BoroCnstNat
+        self.soln_crnt.Bilt.aNrmGrid = np.asarray(
+            self.soln_crnt.Bilt.aXtraGrid) + self.soln_crnt.Bilt.BoroCnstNat
 
-        return self.soln_crnt.bilt.aNrmGrid
+        return self.soln_crnt.Bilt.aNrmGrid
 
     def add_Post_Choice_Value(self):
         """
@@ -2045,11 +2047,11 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         soln_crnt = self.soln_crnt
         futr = self.soln_futr
 
-        bilt, pars, E_t = \
-            soln_crnt.bilt, soln_crnt.pars, soln_crnt.E_t
+        Bilt, pars, E_t = \
+            soln_crnt.Bilt, soln_crnt.pars, soln_crnt.E_t
 
         IncShkDstn = pars.IncShkDstn
-        aNrmGrid = bilt.aNrmGrid
+        aNrmGrid = Bilt.aNrmGrid
         CRRA_tp1 = futr.vFunc.CRRA
         Rfree = pars.Rfree
 
@@ -2091,10 +2093,10 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             PermGro = xfer_shks_bcst[pars.permPos]*pars.PermGroFac
             DiscLiv = pars.DiscLiv
             # Derivatives 0, 1, 2
-            v_0 = PermGro ** (1-CRRA_tp1 - 0) * futr.vFunc(mNrm_tp1)  
-            v_1 = PermGro ** (1-CRRA_tp1 - 1) * futr.vFunc.dm(mNrm_tp1) * Rfree  
+            v_0 = PermGro ** (1-CRRA_tp1 - 0) * futr.vFunc(mNrm_tp1)
+            v_1 = PermGro ** (1-CRRA_tp1 - 1) * futr.vFunc.dm(mNrm_tp1) * Rfree
             v_2 = PermGro ** (1-CRRA_tp1 - 2) * futr.vFunc.dm.dm(mNrm_tp1) * \
-                Rfree * Rfree  
+                Rfree * Rfree
             return DiscLiv*np.array([v_0, v_1, v_2])
 
         # def post_t_E_v_tp1_derivatives_012(xfer_shks_bcst, curr_post_states):
@@ -2123,7 +2125,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
     #     """
     #     Calculate end-of-period marginal value of assets at each point in aNrm.
     #     Does so by taking a weighted sum of next period marginal values across
-    #     income shocks (in a preconstructed grid self.soln_crnt.bilt.mNrmNext).
+    #     income shocks (in a preconstructed grid self.soln_crnt.Bilt.mNrmNext).
 
     #     Parameters
     #     ----------
@@ -2136,13 +2138,13 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
     #     """
 
     #     soln_crnt = self.soln_crnt
-    #     bilt = soln_crnt.bilt
+    #     Bilt = soln_crnt.Bilt
     #     folw = soln_crnt.folw
     #     pars = soln_crnt.pars
     #     E_t = soln_crnt.E_t
 
     #     IncShkDstn = pars.IncShkDstn
-    #     aNrmGrid = bilt.aNrmGrid
+    #     aNrmGrid = Bilt.aNrmGrid
 
     #     def post_t_v_tp1(xfer_shks_bcst, curr_post_states):
     #         CRRA = folw.vFunc_tp1.CRRA
@@ -2214,17 +2216,17 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             Corresponding market resource points for interpolation.
         """
 
-#        cNrm = self.soln_crnt.bilt.uPinv(EndOfPrdvP)
-        cNrm = self.soln_crnt.bilt.u.dc.Nvrs(EndOfPrdvP)
+#        cNrm = self.soln_crnt.Bilt.uPinv(EndOfPrdvP)
+        cNrm = self.soln_crnt.Bilt.u.dc.Nvrs(EndOfPrdvP)
         mNrm = cNrm + aNrm
 
         # Limiting consumption is zero as m approaches mNrmMin
         c_for_interpolation = np.insert(cNrm, 0, 0.0, axis=-1)
-        m_for_interpolation = np.insert(mNrm, 0, self.soln_crnt.bilt.BoroCnstNat, axis=-1)
+        m_for_interpolation = np.insert(mNrm, 0, self.soln_crnt.Bilt.BoroCnstNat, axis=-1)
 
         # Store these for calcvFunc
-        self.soln_crnt.bilt.cNrm = cNrm
-        self.soln_crnt.bilt.mNrm = mNrm
+        self.soln_crnt.Bilt.cNrm = cNrm
+        self.soln_crnt.Bilt.mNrm = mNrm
 
         return c_for_interpolation, m_for_interpolation
 
@@ -2248,7 +2250,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             The solution to this period's consumption-saving problem, with a
             minimum m, a consumption function, and marginal value function.
         """
-        bilt = self.soln_crnt.bilt
+        Bilt = self.soln_crnt.Bilt
         pars = self.soln_crnt.pars
         # Use the given interpolator to construct the consumption function
         cFuncUnc = interpolator(mNrm, cNrm)  # Unc=Unconstrained
@@ -2262,27 +2264,27 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             # CDC 20210614: LinearInterp and LowerEnvelope are both handmade
             # We should substitute standard ways to do these things
             # EconForge interpolation.py or scipy.interpolate for interpolation
-            bilt.cFuncCnst = LinearInterp(
-                np.array([bilt.mNrmMin, bilt.mNrmMin + 1.0]
+            Bilt.cFuncCnst = LinearInterp(
+                np.array([Bilt.mNrmMin, Bilt.mNrmMin + 1.0]
                          ), np.array([0.0, 1.0]))
-            cFunc = LowerEnvelope(cFuncUnc, bilt.cFuncCnst, nan_bool=False)
+            cFunc = LowerEnvelope(cFuncUnc, Bilt.cFuncCnst, nan_bool=False)
 
         # The marginal value function and the marginal marginal value function
 
         # Need to define vFunc so we can define vFunc.dm
-        bilt.vFunc = vFunc = NullFunc()  # Not calculating the level of value -- yet
+        Bilt.vFunc = vFunc = NullFunc()  # Not calculating the level of value -- yet
 
-        # bilt.vPfunc = bilt.vFunc.dm = MargValueFuncCRRA(cFunc, pars.CRRA)
-        bilt.vFunc.dm = vPfunc = MargValueFuncCRRA(cFunc, pars.CRRA)
+        # Bilt.vPfunc = Bilt.vFunc.dm = MargValueFuncCRRA(cFunc, pars.CRRA)
+        Bilt.vFunc.dm = vPfunc = MargValueFuncCRRA(cFunc, pars.CRRA)
         vFunc.dm = MargValueFuncCRRA(cFunc, pars.CRRA)
-        bilt.vFunc.dm.dm = MargMargValueFuncCRRA(bilt.cFunc, pars.CRRA)
+        Bilt.vFunc.dm.dm = MargMargValueFuncCRRA(Bilt.cFunc, pars.CRRA)
 
         # Pack up the solution and return it
         solution_interpolating = ConsumerSolutionOneStateCRRA(
             cFunc=cFunc,
             vFunc=vFunc,
             vPfunc=vPfunc,
-            mNrmMin=bilt.mNrmMin,
+            mNrmMin=Bilt.mNrmMin,
             CRRA=pars.CRRA
         )
 
@@ -2331,25 +2333,21 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         solution : ConsumerSolution
             The solution to the single period consumption-saving problem.
         """
-        bilt = self.soln_crnt.bilt
-        uFunc = bilt.u
+        Bilt = self.soln_crnt.Bilt
+        uFunc = Bilt.u
         E_t = self.soln_crnt.E_t
-#        breakpoint()
 
-#        self.add_Post_Choice_Value()  # Calculate v and its derivatives
-
-        bilt.cNrmGrid = uFunc.dc.Nvrs(E_t.post_choice_t[1])  # [1]: first derivative
+        Bilt.cNrmGrid = uFunc.dc.Nvrs(E_t.post_choice_t[1])  # [1]: first derivative
 
         # Construct a solution for this period
-#        breakpoint()
-        if bilt.CubicBool:
+        if Bilt.CubicBool:
             soln_crnt = self.interpolating_EGM_solution(
-                E_t.post_choice_t[1], bilt.aNrmGrid,
+                E_t.post_choice_t[1], Bilt.aNrmGrid,
                 interpolator=self.make_cFunc_cubic
             )
         else:
             soln_crnt = self.interpolating_EGM_solution(
-                E_t.post_choice_t[1], bilt.aNrmGrid,
+                E_t.post_choice_t[1], Bilt.aNrmGrid,
                 interpolator=self.make_cFunc_linear
             )
 
@@ -2372,7 +2370,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             The unconstrained consumption function for this period.
         """
         cFunc_unconstrained = LinearInterp(
-            mNrm, cNrm, self.soln_crnt.bilt.cFuncLimitIntercept, self.soln_crnt.bilt.cFuncLimitSlope
+            mNrm, cNrm, self.soln_crnt.Bilt.cFuncLimitIntercept, self.soln_crnt.Bilt.cFuncLimitSlope
         )
         return cFunc_unconstrained
 
@@ -2421,7 +2419,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         """
         Solves one period of the consumption-saving problem. 
 
-        The ".bilt" namespace on the returned solution object includes
+        The ".Bilt" namespace on the returned solution object includes
             * decision rule (consumption function), cFunc
             * value and marginal value functions vFunc and vFunc.dm
             * a minimum possible level of normalized market resources mNrmMin
@@ -2455,22 +2453,22 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         # "pseudo" since it is not ready to serve as a proper starting point
         # for backward induction because further info (e.g., utility function)
         # must be added after solution_terminal is constructed.  Fix
-        # by copying contents into the bilt attribute, then invoking the
+        # by copying contents into the Bilt attribute, then invoking the
         # build_facts_infhor() method to add the extra info
 
         # TODO CDC 20210615: This is a kludge to get things to work without modifying
         # core.py. Think about how to change core.py to address more elegantly
-        if self.soln_futr.bilt.stge_kind['iter_status'] == 'terminal_pseudo':
+        if self.soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_pseudo':
             soln_crnt = def_utility(soln_crnt, CRRA)
             soln_crnt = def_value_funcs(soln_crnt, CRRA)
-            soln_crnt.vFunc = self.soln_crnt.bilt.vFunc
-            soln_crnt.cFunc = self.soln_crnt.bilt.cFunc
+            soln_crnt.vFunc = self.soln_crnt.Bilt.vFunc
+            soln_crnt.cFunc = self.soln_crnt.Bilt.cFunc
 
             # Now that it "knows itself" it can build the facts
             self.build_facts_infhor()
 
             # NOW mark as good-to-go as starting point for backward induction:
-            self.soln_crnt.bilt.stge_kind['iter_status'] = 'iterator'
+            self.soln_crnt.Bilt.stge_kind['iter_status'] = 'iterator'
 
             return soln_crnt  # Replace original "terminal_pseudo" solution
 
@@ -2479,22 +2477,23 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         # Notice that we could insert here a stage that would
         # solve any other problem that produces the state
-        # variables needed for the self.make_post_choice_ante_IncShk_status()
+        # variables needed for make_post_choice_ante_IncShk_status()
         # e.g., we could add a stage that adds a risky return:
-        # make_post_choice_ante_Risky_return()
+        # make_post_choice_ante_Risky_return() where the risk scales
+        # with the return (as would be the case for a higher portfolio share)
         # and before that a
         # make_post_consumption_choice_choose_portfolio_share() that
         # relies on self.make_post_portfolio_choice_ante_Risky_return() to calculate
         # the optimal risky portfolio share given the consequence for
         # the risky return.
         # Note that these insertions could occur without changing either the
-        # make_post_choice_ante_IncShk_status() or
+        # make_post_ßchoice_ante_IncShk_status() or
         # make_consumption_choice_given_post_choice_value
 
         # Having calculated (marginal value, etc) of saving, construct c
 
         sol_EGM = self.make_sol_using_EGM()
-        soln_crnt.bilt.cFunc = soln_crnt.cFunc = sol_EGM.bilt.cFunc
+        soln_crnt.Bilt.cFunc = soln_crnt.cFunc = sol_EGM.Bilt.cFunc
         soln_crnt = def_value_funcs(soln_crnt, CRRA)  # add value funcs
         return soln_crnt
 
@@ -2539,10 +2538,8 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
                     )
 
         test = calc_expectation(self.soln_crnt.pars.IncShkDstn, lambda x,
-                                y: x[0]+x[1]+y, self.soln_crnt.bilt.aNrmGrid)
+                                y: x[0]+x[1]+y, self.soln_crnt.Bilt.aNrmGrid)
         return next_ante_states
-#        return pars.Rfree / (pars.PermGroFac * xfer_shks_bcst[permPos]) \
-#            * curr_post_states + xfer_shks_bcst[tranPos]
 
 
 class ConsIndShockSolverBasic(ConsIndShockSolverBasicEOP):
@@ -2564,7 +2561,7 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
         Makes a cubic spline interpolation of the unconstrained consumption
         function for this period.
 
-        Requires self.soln_crnt.bilt.aNrm to have been computed already.
+        Requires self.soln_crnt.Bilt.aNrm to have been computed already.
 
         Parameters
         ----------
@@ -2580,10 +2577,10 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
         """
 
         soln_crnt = self.soln_crnt
-        bilt, E_t = soln_crnt.bilt, soln_crnt.E_t
+        Bilt, E_t = soln_crnt.Bilt, soln_crnt.E_t
 #        futr = self.soln_futr
-#        bilt, folw, pars, E_t = \
-#            soln_crnt.bilt, soln_crnt.folw, soln_crnt.pars, soln_crnt.E_t
+#        Bilt, folw, pars, E_t = \
+#            soln_crnt.Bilt, soln_crnt.folw, soln_crnt.pars, soln_crnt.E_t
 #        CRRA_tp1 = futr.vFunc.CRRA
 #         breakpoint()
 
@@ -2601,20 +2598,20 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
 #             * calc_expectation_of_array(
 #                 pars.IncShkDstn,
 #                 vPP_tp1,
-#                 bilt.aNrmGrid
+#                 Bilt.aNrmGrid
 #             )
 #         )
 
-#         dcda = EndOfPrdvPP / bilt.uPP(np.array(cNrm_Vec[1:]))
-# #        bilt.uPP(np.array(cNrm_Vec[1:]))
+#         dcda = EndOfPrdvPP / Bilt.uPP(np.array(cNrm_Vec[1:]))
+# #        Bilt.uPP(np.array(cNrm_Vec[1:]))
 
-        dc_da = E_t.post_choice_t[2] / bilt.u.dc.dc(np.array(cNrm_Vec[1:]))
+        dc_da = E_t.post_choice_t[2] / Bilt.u.dc.dc(np.array(cNrm_Vec[1:]))
         MPC = dc_da / (dc_da + 1.0)
-        MPC = np.insert(MPC, 0, bilt.MPCmax)
+        MPC = np.insert(MPC, 0, Bilt.MPCmax)
 
         cFuncUnc = CubicInterp(
-            mNrm_Vec, cNrm_Vec, MPC, bilt.MPCmin *
-            bilt.hNrm, bilt.MPCmin
+            mNrm_Vec, cNrm_Vec, MPC, Bilt.MPCmin *
+            Bilt.hNrm, Bilt.MPCmin
         )
         return cFuncUnc
 

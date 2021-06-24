@@ -42,33 +42,33 @@ def def_utility(stge, CRRA):
     -------
     none
     """
-    bilt = stge.bilt
+    Bilt = stge.Bilt
 
     # Can't use partial() here because it does not allow positional arguments
     # Google: how-to-fill-specific-positional-arguments-with-partial-in-python
-    bilt.u = lambda c: CRRAutility(c, CRRA)
+    Bilt.u = lambda c: CRRAutility(c, CRRA)
     # marginal utility
     # CDC 20210613: New syntax makes derivatives attributes of function
-#    bilt.u.dc = bilt.uP = lambda c: CRRAutilityP(c, CRRA)  # dc is der wrt c
-    bilt.u.dc = lambda c: CRRAutilityP(c, CRRA)  # dc is der wrt c
+#    Bilt.u.dc = Bilt.uP = lambda c: CRRAutilityP(c, CRRA)  # dc is der wrt c
+    Bilt.u.dc = lambda c: CRRAutilityP(c, CRRA)  # dc is der wrt c
     # marginal marginal utility
-    bilt.uPP = lambda c: CRRAutilityPP(c, CRRA)  # another der
+    Bilt.uPP = lambda c: CRRAutilityPP(c, CRRA)  # another der
 #    breakpoint()
-    bilt.u.dc.dc = lambda c: CRRAutilityPP(c, CRRA)  # another der
+    Bilt.u.dc.dc = lambda c: CRRAutilityPP(c, CRRA)  # another der
 
 #    def dudc(stge, c):
-#        CRRAutilityP(c, bilt.CRRA)
+#        CRRAutilityP(c, Bilt.CRRA)
 
     # Inverses thereof
-#    bilt.u.dc.Nvrs = bilt.uPinv = lambda uP: CRRAutilityP_inv(uP, CRRA)
-    bilt.u.Nvrs = lambda u: CRRAutility_inv(u, CRRA)
-    bilt.u.dc.Nvrs = lambda uP: CRRAutilityP_inv(uP, CRRA)
-#    bilt.u.dc.Nvrs.du = bilt.uPinvP = lambda uP: CRRAutilityP_invP(uP, CRRA)
-    bilt.u.dc.Nvrs.du = lambda uP: CRRAutilityP_invP(uP, CRRA)
-#    bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
-    bilt.u.Nvrs.du = lambda u: CRRAutility_invP(u, CRRA)
-#    bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
-#    bilt.uinv = lambda u: CRRAutility_inv(u, CRRA)
+#    Bilt.u.dc.Nvrs = Bilt.uPinv = lambda uP: CRRAutilityP_inv(uP, CRRA)
+    Bilt.u.Nvrs = lambda u: CRRAutility_inv(u, CRRA)
+    Bilt.u.dc.Nvrs = lambda uP: CRRAutilityP_inv(uP, CRRA)
+#    Bilt.u.dc.Nvrs.du = Bilt.uPinvP = lambda uP: CRRAutilityP_invP(uP, CRRA)
+    Bilt.u.dc.Nvrs.du = lambda uP: CRRAutilityP_invP(uP, CRRA)
+#    Bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
+    Bilt.u.Nvrs.du = lambda u: CRRAutility_invP(u, CRRA)
+#    Bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
+#    Bilt.uinv = lambda u: CRRAutility_inv(u, CRRA)
 
     return stge
 
@@ -98,17 +98,17 @@ def def_value_funcs(stge, CRRA):
     vFuncNvrs has value of zero at the lower bound of market resources
     """
 
-    bilt = stge.bilt
+    Bilt = stge.Bilt
 
     # See PerfForesightConsumerType.ipynb docs for derivations
-    vFuncNvrsSlopeLim = bilt.MPCmin ** (-CRRA / (1.0 - CRRA))
-    bilt.vFuncNvrs = LinearInterp(
-        np.array([bilt.mNrmMin, bilt.mNrmMin + 1.0]),
+    vFuncNvrsSlopeLim = Bilt.MPCmin ** (-CRRA / (1.0 - CRRA))
+    Bilt.vFuncNvrs = LinearInterp(
+        np.array([Bilt.mNrmMin, Bilt.mNrmMin + 1.0]),
         np.array([0.0, vFuncNvrsSlopeLim]),
     )
-    stge.vFunc = bilt.vFunc = ValueFuncCRRA(bilt.vFuncNvrs, CRRA)
-    stge.vFunc.dm = stge.vPfunc = bilt.vPfunc = MargValueFuncCRRA(bilt.cFunc, CRRA)
-    stge.vFunc.dm.dm = stge.vPPfunc = bilt.vPPfunc = MargMargValueFuncCRRA(bilt.cFunc, CRRA)
+    stge.vFunc = Bilt.vFunc = ValueFuncCRRA(Bilt.vFuncNvrs, CRRA)
+    stge.vFunc.dm = stge.vPfunc = Bilt.vPfunc = MargValueFuncCRRA(Bilt.cFunc, CRRA)
+    stge.vFunc.dm.dm = stge.vPPfunc = Bilt.vPPfunc = MargMargValueFuncCRRA(Bilt.cFunc, CRRA)
 #    breakpoint()
     return stge
 
