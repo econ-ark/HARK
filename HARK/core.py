@@ -1004,13 +1004,13 @@ def solve_one_cycle(agent, solution_last):
         A list of one period solutions for one "cycle" of the AgentType's
         microeconomic model.
     """
-    infinite_horizon = agent.cycles == 0 
+    cyclic = agent.cycles == 0 or agent.cycles > 1
 
     # Calculate number of periods to be solved.
     if len(agent.time_vary) > 0:
         T = len(agent.__dict__[agent.time_vary[0]])
 
-        if infinite_horizon:
+        if cyclic:
             i_range = range(0, -T, -1)
         else:
             i_range = range(-1, -T, -1)
