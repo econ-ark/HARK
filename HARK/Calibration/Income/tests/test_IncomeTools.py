@@ -190,7 +190,7 @@ class test_income_paths(unittest.TestCase):
         )
         MeanP = find_profile(params["PermGroFac"], params["P0"])
 
-        self.assertTrue(np.allclose(self.cgm_hs_mean_p, MeanP, atol=1e-03))
+        self.assertTrue(np.allclose(self.cgm_hs_mean_p, MeanP[1:], atol=1e-03))
 
     def test_Cagetti(self):
 
@@ -208,7 +208,7 @@ class test_income_paths(unittest.TestCase):
         )
         MeanP = find_profile(params["PermGroFac"], params["P0"])
 
-        self.assertTrue(np.allclose(self.cagetti_college_mean_p, MeanP, atol=1e-03))
+        self.assertTrue(np.allclose(self.cagetti_college_mean_p, MeanP[1:], atol=1e-03))
 
 
 # %% Volatility profile tests
