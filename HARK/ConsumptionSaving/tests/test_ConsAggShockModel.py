@@ -50,6 +50,7 @@ class testAggShockConsumerType(unittest.TestCase):
         self.economy.solve()  # Solve for the general equilibrium of the economy
 
         self.economy.AFunc = self.economy.dynamics.AFunc
+        import pdb; pdb.set_trace()
         self.assertAlmostEqual(
             self.economy.AFunc.slope, 1.116259456228145
         )

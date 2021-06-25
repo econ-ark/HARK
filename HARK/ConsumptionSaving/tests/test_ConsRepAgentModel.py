@@ -12,6 +12,7 @@ class testRepAgentConsumerType(unittest.TestCase):
         self.agent.solve()
 
     def test_solution(self):
+        import pdb; pdb.set_trace()
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc(10).tolist(), 1.7130553407923501
         )

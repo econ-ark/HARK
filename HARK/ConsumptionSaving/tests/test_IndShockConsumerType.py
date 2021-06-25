@@ -30,11 +30,12 @@ class testIndShockConsumerType(unittest.TestCase):
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerType(**init_lifecycle)
         LifecycleExample.cycles = 1
+        import pdb; pdb.set_trace()
         LifecycleExample.solve()
 
         # test the solution_terminal
         self.assertAlmostEqual(LifecycleExample.solution[-1].cFunc(2).tolist(), 2)
-
+        import pdb; pdb.set_trace()
         self.assertAlmostEqual(LifecycleExample.solution[9].cFunc(1), 0.79429538)
         self.assertAlmostEqual(LifecycleExample.solution[8].cFunc(1), 0.79391692)
         self.assertAlmostEqual(LifecycleExample.solution[7].cFunc(1), 0.79253095)
@@ -301,7 +302,7 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
                 for t in range(LifecycleExample.T_cycle)
             ]
         )
-
+        import pdb; pdb.set_trace()
         self.assertAlmostEqual(
             LifecycleExample.solution[5].cFunc(3).tolist(), 2.129983771775666
         )
@@ -353,7 +354,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         CyclicalExample = IndShockConsumerType(**CyclicalDict)
         CyclicalExample.cycles = 0  # Make this consumer type have an infinite horizon
         CyclicalExample.solve()
-
+        import pdb; pdb.set_trace()
         self.assertAlmostEqual(
             CyclicalExample.solution[3].cFunc(3).tolist(), 1.5958390056965004
         )

@@ -21,6 +21,7 @@ class testPerfForesightConsumerType(unittest.TestCase):
         self.agent_alt = PerfForesightConsumerType(**PF_dictionary)
 
     def test_default_solution(self):
+        import pdb; pdb.set_trace()
         self.agent.solve()
         c = self.agent.solution[0].cFunc
 

@@ -188,7 +188,7 @@ class testIndShockConsumerTypeFastLifecycle(unittest.TestCase):
                 for t in range(LifecycleExample.T_cycle)
             ]
         )
-
+        import pdb; pdb.set_trace()
         self.assertAlmostEqual(
             LifecycleExample.solution[5].cFunc(3).tolist(), 2.129983771775666
         )
@@ -199,7 +199,7 @@ class testIndShockConsumerTypeFastCyclical(unittest.TestCase):
         CyclicalExample = IndShockConsumerTypeFast(**CyclicalDict)
         CyclicalExample.cycles = 0  # Make this consumer type have an infinite horizon
         CyclicalExample.solve()
-
+        import pdb; pdb.set_trace()
         self.assertAlmostEqual(
             CyclicalExample.solution[3].cFunc(3).tolist(), 1.5958390056965004
         )

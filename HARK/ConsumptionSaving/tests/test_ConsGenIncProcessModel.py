@@ -86,7 +86,7 @@ class testPersistentShockConsumerType(unittest.TestCase):
 
     def test_solution(self):
         pLvlGrid = self.agent.pLvlGrid[0]
-
+        import pdb; pdb.set_trace()
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc(10, pLvlGrid[1]).tolist(), 5.6030075768585075
         )
