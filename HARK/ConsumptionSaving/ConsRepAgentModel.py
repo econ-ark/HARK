@@ -239,7 +239,7 @@ class RepAgentConsumerType(IndShockConsumerType):
         params = init_rep_agent.copy()
         params.update(kwds)
 
-        IndShockConsumerType.__init__(self, cycles=0, **params)
+        IndShockConsumerType.__init__(self, **params)
         self.AgentCount = 1  # Hardcoded, because this is rep agent
         self.solve_one_period = solve_ConsRepAgent
         self.del_from_time_inv("Rfree", "BoroCnstArt", "vFuncBool", "CubicBool")

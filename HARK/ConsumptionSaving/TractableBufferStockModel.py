@@ -303,11 +303,11 @@ class TractableConsumerType(AgentType):
 
     state_vars = ['bLvl', 'mLvl', 'aLvl']
 
-    def __init__(self, cycles=0, **kwds):
+    def __init__(self, **kwds):
         params = init_tractable.copy()
         params.update(kwds)
         # Initialize a basic AgentType
-        AgentType.__init__(self, cycles=cycles, pseudo_terminal=True, **params)
+        AgentType.__init__(self, pseudo_terminal=True, **params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = []

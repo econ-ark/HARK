@@ -77,11 +77,11 @@ class PrefShockConsumerType(IndShockConsumerType):
 
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["PrefShk"]
 
-    def __init__(self, cycles=1, **kwds):
+    def __init__(self, **kwds):
         params = init_preference_shocks.copy()
         params.update(kwds)
 
-        IndShockConsumerType.__init__(self, cycles=cycles, **params)
+        IndShockConsumerType.__init__(self, **params)
         self.solve_one_period = make_one_period_oo_solver(ConsPrefShockSolver)
 
     def pre_solve(self):
@@ -267,7 +267,7 @@ class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
         Number of times the sequence of periods should be solved.
     """
 
-    def __init__(self, cycles=1, **kwds):
+    def __init__(self, **kwds):
         params = init_kinky_pref.copy()
         params.update(kwds)
         kwds = params
