@@ -138,7 +138,7 @@ class DistributionClassTests(unittest.TestCase):
         )
 
     def test_Weibull(self):
-        self.assertEqual(Weibull().draw(1)[0], 0.79587450816311)
+        self.assertAlmostEqual(Weibull().draw(1)[0], 0.79587450816311)
 
     def test_Uniform(self):
         uni = Uniform()
