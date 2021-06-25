@@ -50,6 +50,22 @@ class Ante_Choice(SimpleNamespace):
     """
 
 
+class Model(SimpleNamespace):
+    """
+    Description of the model in HARK and python syntax.
+    """
+# TODO: Move (to core.py) when vetted/agreed
+    pass
+
+
+class Equations(SimpleNamespace):
+    """
+    Description of the model in HARK and python syntax.
+    """
+# TODO: Move (to core.py) when vetted/agreed
+    pass
+
+
 # class Post_Choice(SimpleNamespace):
 #     """
 #     Expectations after choices before shocks
@@ -131,20 +147,20 @@ class ConsumerSolution(ConsumerSolutionOlder):
 
         # xfer is short for transfer, which is short for transition
         # These equations are used to construct the transition dynamics
-        eqns = self.xfer_crnt_post_to_next_ante = {}
-        eqns.update({'RNrm': 'Rfree / (PermGroFac * permShk)'})
-        eqns.update({'bNrm': 'aNrm * RNrm'})
-        eqns.update({'yNrm': 'tranShk'})
-        eqns.update({'mNrm': 'bNrm + yNrm'})
+        self.Model_HARK = Model()
+        transitions = self.Model_HARK.transitions_crnt_post_to_next_ante = {}
+        transitions.update({'RNrm': 'Rfree / (PermGroFac * permShk)'})
+        transitions.update({'bNrm': 'aNrm * RNrm'})
+        transitions.update({'yNrm': 'tranShk'})
+        transitions.update({'mNrm': 'bNrm + yNrm'})
 
-        Bilt.recursive = \
-            {'cFunc',  # 'vFunc',  # 'vPfunc', 'vPPfunc',  'vFuncNvrs',
-             #             'vFunc.dm', 'vFunc.dm.dm',
-             #             'u',  # 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
-             #             'hNrm',
-             'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA',
-             'vAdd'
-             }
+        Bilt.recursive = {'cFunc',  # 'vFunc',  # 'vPfunc', 'vPPfunc',  'vFuncNvrs',
+                          #             'vFunc.dm', 'vFunc.dm.dm',
+                          #             'u',  # 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
+                          #             'hNrm',
+                          'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA',
+                          'vAdd'
+                          }
 
         # Store recursive stuff in Bilt namespace
         exclude = {''}  # Allow things that should be excluded
@@ -215,8 +231,8 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 #       del self.MPCmax
         del self.vFunc
 #        del self.cFunc
-#        del self.vPfunc
-#        del self.vPPfunc
+        del self.vPfunc
+        del self.vPPfunc
 
     def check_conditions(self, soln_crnt, verbose=None):
         """
@@ -256,16 +272,16 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         -------
         None
         """
-        soln_crnt.Bilt.conditions = {}  # Keep track of truth of conditions
-        soln_crnt.Bilt.degenerate = False  # True: solution is degenerate
+        soln_crnt.Bilt.conditions={}  # Keep track of truth of conditions
+        soln_crnt.Bilt.degenerate=False  # True: solution is degenerate
 
         if not hasattr(self, 'verbose'):  # If verbose not set yet
-            verbose = 0
+            verbose=0
         else:
-            verbose = verbose if verbose is None else verbose
+            verbose=verbose if verbose is None else verbose
 
-        msg = '\nFor a model with the following parameter values:\n'
-        msg = msg+'\n'+str(soln_crnt.Bilt.parameters_solver)+'\n'
+        msg='\nFor a model with the following parameter values:\n'
+        msg=msg+'\n'+str(soln_crnt.Bilt.parameters_solver)+'\n'
 
         if verbose >= 2:
             _log.info(msg)
@@ -274,7 +290,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
             for key in soln_crnt.Bilt.parameters_solver.keys():
                 print('\t'+key+': ', end='')
                 pprint(soln_crnt.Bilt.parameters_solver[key])
-            msg = '\nThe following results hold:\n'
+            msg='\nThe following results hold:\n'
             _log.info(msg)
 
         soln_crnt.check_AIC(soln_crnt, verbose)
@@ -288,76 +304,75 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         # degenerate flag is true if the model has no nondegenerate solution
         if hasattr(soln_crnt.Bilt, "BoroCnstArt") \
                 and soln_crnt.Pars.BoroCnstArt is not None:
-            soln_crnt.degenerate = not soln_crnt.Bilt.RIC
+            soln_crnt.degenerate=not soln_crnt.Bilt.RIC
             # If BoroCnstArt exists but RIC fails, limiting soln is c(m)=0
         else:  # No constraint; not degenerate if neither c(m)=0 or \infty
-            soln_crnt.degenerate = \
-                not soln_crnt.Bilt.RIC or not soln_crnt.Bilt.FHWC
+            soln_crnt.degenerate=not soln_crnt.Bilt.RIC or not soln_crnt.Bilt.FHWC
 
     def check_AIC(self, stge, verbose=None):
         """
         Evaluate and report on the Absolute Impatience Condition
         """
-        name = "AIC"
+        name="AIC"
 
         def test(stge): return stge.Bilt.APF < 1
 
-        messages = {
+        messages={
             True: "\n\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, satisfies the Absolute Impatience Condition (AIC), which requires APF < 1:\n    "+stge.Bilt.AIC_fcts['urlhandle'],
             False: "\n\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, violates the Absolute Impatience Condition (AIC), which requires APF < 1:\n    "+stge.Bilt.AIC_fcts['urlhandle']
         }
-        verbose_messages = {
+        verbose_messages={
             True: "\n  Because the APF < 1,  the absolute amount of consumption is expected to fall over time.  \n",
             False: "\n  Because the APF > 1, the absolute amount of consumption is expected to grow over time.  \n",
         }
 
-        stge.Bilt.AIC = core_check_condition(name, test, messages, verbose,
+        stge.Bilt.AIC=core_check_condition(name, test, messages, verbose,
                                              verbose_messages, "APF", stge)
 
     def check_FVAC(self, stge, verbose=None):
         """
         Evaluate and report on the Finite Value of Autarky Condition
         """
-        name = "FVAC"
+        name="FVAC"
         def test(stge): return stge.Bilt.FVAF < 1
 
-        messages = {
+        messages={
             True: "\n\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, satisfies the Finite Value of Autarky Condition, which requires FVAF < 1:\n    "+stge.Bilt.FVAC_fcts['urlhandle'],
             False: "\n\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, violates the Finite Value of Autarky Condition, which requires FVAF:\n    "+stge.Bilt.FVAC_fcts['urlhandle']
         }
-        verbose_messages = {
+        verbose_messages={
             True: "\n  Therefore, a nondegenerate solution exists if the RIC also holds. ("+stge.Bilt.FVAC_fcts['urlhandle']+")\n",
             False: "\n  Therefore, a nondegenerate solution exits if the RIC holds, but will not exist if the RIC fails unless the FHWC also fails.\n",
         }
 
-        stge.Bilt.FVAC = core_check_condition(name, test, messages, verbose,
+        stge.Bilt.FVAC=core_check_condition(name, test, messages, verbose,
                                               verbose_messages, "FVAF", stge)
 
     def check_GICRaw(self, stge, verbose=None):
         """
         Evaluate and report on the Growth Impatience Condition
         """
-        name = "GICRaw"
+        name="GICRaw"
 
         def test(stge): return stge.Bilt.GPFRaw < 1
 
-        messages = {
+        messages={
             True: "\n\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, satisfies the Growth Impatience Condition (GIC), which requires GPF < 1:\n    "+stge.Bilt.GICRaw_fcts['urlhandle'],
             False: "\n\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, violates the Growth Impatience Condition (GIC), which requires GPF < 1:\n    "+stge.Bilt.GICRaw_fcts['urlhandle'],
         }
-        verbose_messages = {
+        verbose_messages={
             True: "\n  Therefore,  for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
             False: "\n  Therefore, for a perfect foresight consumer whose parameters satisfy the FHWC, the ratio of individual wealth to permanent income is expected to rise toward infinity. \n"
         }
-        stge.Bilt.GICRaw = core_check_condition(name, test, messages, verbose,
+        stge.Bilt.GICRaw=core_check_condition(name, test, messages, verbose,
                                                 verbose_messages, "GPFRaw", stge)
 
     def check_GICLiv(self, stge, verbose=None):
-        name = "GICLiv"
+        name="GICLiv"
 
         def test(stge): return stge.Bilt.GPFLiv < 1
 
-        messages = {
+        messages={
             True: "\n\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, satisfies the Mortality Adjusted Aggregate Growth Impatience Condition (GICLiv):\n    "+stge.Bilt.GPFLiv_fcts['urlhandle'],
             False: "\n\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, violates the Mortality Adjusted Aggregate Growth Impatience Condition (GICLiv):\n    "+stge.Bilt.GPFLiv_fcts['urlhandle'],
         }
@@ -1025,6 +1040,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
 # 20210618: TODO: CDC: Find a way to isolate this stuff so it does not clutter
 
+
     def build_facts_infhor(self):
         """
             Adds to the solution extensive information and references about
@@ -1455,7 +1471,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             # Now that they've been added, it's good to go for iteration
             soln_crnt.Bilt.stge_kind['iter_status'] = 'iterator'
             soln_crnt.stge_kind = soln_crnt.Bilt.stge_kind
-            self.soln_crnt.vPfunc = self.soln_crnt.Bilt.vPfunc  # Need for distance
+#            self.soln_crnt.vPfunc = self.soln_crnt.Bilt.vPfunc  # Need for distance
             self.soln_crnt.cFunc = self.soln_crnt.Bilt.cFunc  # Need for distance
             if hasattr(self.soln_crnt.Bilt, 'IncShkDstn'):
                 self.soln_crnt.IncShkDstn = self.soln_crnt.Bilt.IncShkDstn
@@ -2093,6 +2109,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             PermGro = xfer_shks_bcst[Pars.permPos]*Pars.PermGroFac
             DiscLiv = Pars.DiscLiv
             # Derivatives 0, 1, 2
+            breakpoint()
             v_0 = PermGro ** (1-CRRA_tp1 - 0) * futr.vFunc(mNrm_tp1)
             v_1 = PermGro ** (1-CRRA_tp1 - 1) * futr.vFunc.dm(mNrm_tp1) * Rfree
             v_2 = PermGro ** (1-CRRA_tp1 - 2) * futr.vFunc.dm.dm(mNrm_tp1) * \
@@ -2275,7 +2292,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         Bilt.vFunc = vFunc = NullFunc()  # Not calculating the level of value -- yet
 
         # Bilt.vPfunc = Bilt.vFunc.dm = MargValueFuncCRRA(cFunc, Pars.CRRA)
-        Bilt.vFunc.dm = vPfunc = MargValueFuncCRRA(cFunc, Pars.CRRA)
+#        Bilt.vFunc.dm = vPfunc = MargValueFuncCRRA(cFunc, Pars.CRRA)
         vFunc.dm = MargValueFuncCRRA(cFunc, Pars.CRRA)
         Bilt.vFunc.dm.dm = MargMargValueFuncCRRA(Bilt.cFunc, Pars.CRRA)
 
@@ -2283,7 +2300,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         solution_interpolating = ConsumerSolutionOneStateCRRA(
             cFunc=cFunc,
             vFunc=vFunc,
-            vPfunc=vPfunc,
+            #            vPfunc=vPfunc,
             mNrmMin=Bilt.mNrmMin,
             CRRA=Pars.CRRA
         )
@@ -2528,17 +2545,15 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         next_ante_states = Ante_Choice()
         aNrm = curr_post_states
 
-        eqns = self.soln_crnt.xfer_crnt_post_to_next_ante
-        for key in eqns.keys():
+        transitions = self.soln_crnt.Model_HARK.transitions_crnt_post_to_next_ante
+        for key in transitions.keys():
             setattr(next_ante_states, key,
-                    eval(eqns[key], {},
+                    eval(transitions[key], {},
                          {**locals(),
                           **Pars.__dict__,
                           **next_ante_states.__dict__})
                     )
 
-        test = calc_expectation(self.soln_crnt.Pars.IncShkDstn, lambda x,
-                                y: x[0]+x[1]+y, self.soln_crnt.Bilt.aNrmGrid)
         return next_ante_states
 
 

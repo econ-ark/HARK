@@ -43,30 +43,37 @@ def def_utility(stge, CRRA):
     none
     """
     Bilt = stge.Bilt
+    Modl = stge.Model_HARK
+
+    Modl.reward = {}
 
     # Can't use partial() here because it does not allow positional arguments
     # Google: how-to-fill-specific-positional-arguments-with-partial-in-python
     Bilt.u = lambda c: CRRAutility(c, CRRA)
+    Modl.reward.update({'u': 'lambda c: CRRAutility(c, CRRA)'})
     # marginal utility
     # CDC 20210613: New syntax makes derivatives attributes of function
 #    Bilt.u.dc = Bilt.uP = lambda c: CRRAutilityP(c, CRRA)  # dc is der wrt c
     Bilt.u.dc = lambda c: CRRAutilityP(c, CRRA)  # dc is der wrt c
-    # marginal marginal utility
-    Bilt.uPP = lambda c: CRRAutilityPP(c, CRRA)  # another der
-#    breakpoint()
-    Bilt.u.dc.dc = lambda c: CRRAutilityPP(c, CRRA)  # another der
+    Modl.reward.update({'u.dc': 'lambda c: CRRAutilityP(c, CRRA)'})
 
-#    def dudc(stge, c):
-#        CRRAutilityP(c, Bilt.CRRA)
+    # marginal marginal utility
+#    Bilt.uPP = lambda c: CRRAutilityPP(c, CRRA)  # another der
+    Bilt.u.dc.dc = lambda c: CRRAutilityPP(c, CRRA)  # another der
+    Modl.reward.update({'u.dc.dc': 'lambda c: CRRAutilityPP(c, CRRA)'})
 
     # Inverses thereof
 #    Bilt.u.dc.Nvrs = Bilt.uPinv = lambda uP: CRRAutilityP_inv(uP, CRRA)
     Bilt.u.Nvrs = lambda u: CRRAutility_inv(u, CRRA)
+    Modl.reward.update({'u.Nvrs': 'lambda u: CRRAutility_inv(u, CRRA)'})
     Bilt.u.dc.Nvrs = lambda uP: CRRAutilityP_inv(uP, CRRA)
+    Modl.reward.update({'u.dc.Nvrs': 'lambda uP: CRRAutilityP_inv(uP, CRRA)'})
 #    Bilt.u.dc.Nvrs.du = Bilt.uPinvP = lambda uP: CRRAutilityP_invP(uP, CRRA)
     Bilt.u.dc.Nvrs.du = lambda uP: CRRAutilityP_invP(uP, CRRA)
+    Modl.reward.update({'u.dc.Nvrs.du': 'lambda uP: CRRAutilityP_invP(uP, CRRA)'})
 #    Bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
     Bilt.u.Nvrs.du = lambda u: CRRAutility_invP(u, CRRA)
+    Modl.reward.update({'u.Nvrs.du': 'lambda u: CRRAutility_invP(u, CRRA)'})
 #    Bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
 #    Bilt.uinv = lambda u: CRRAutility_inv(u, CRRA)
 
@@ -99,16 +106,53 @@ def def_value_funcs(stge, CRRA):
     """
 
     Bilt = stge.Bilt
+    Modl = stge.Model_HARK
+    Modl.value = {}
+    givens = {**locals(),**Bilt.__dict__}
 
     # See PerfForesightConsumerType.ipynb docs for derivations
-    vFuncNvrsSlopeLim = Bilt.MPCmin ** (-CRRA / (1.0 - CRRA))
-    Bilt.vFuncNvrs = LinearInterp(
-        np.array([Bilt.mNrmMin, Bilt.mNrmMin + 1.0]),
-        np.array([0.0, vFuncNvrsSlopeLim]),
-    )
-    stge.vFunc = Bilt.vFunc = ValueFuncCRRA(Bilt.vFuncNvrs, CRRA)
-    stge.vFunc.dm = stge.vPfunc = Bilt.vPfunc = MargValueFuncCRRA(Bilt.cFunc, CRRA)
-    stge.vFunc.dm.dm = stge.vPPfunc = Bilt.vPPfunc = MargMargValueFuncCRRA(Bilt.cFunc, CRRA)
+    vFuncNvrsSlopeLim_code = 'MPCmin ** (-CRRA / (1.0 - CRRA))'
+    vFuncNvrsSlopeLim = eval(vFuncNvrsSlopeLim_code, {}, givens)
+    Modl.value.update({'vFuncNvrsSlopeLim': vFuncNvrsSlopeLim_code})
+#    breakpoint()
+#    vFuncNvrsSlopeLim = Bilt.MPCmin ** (-CRRA / (1.0 - CRRA))
+    vFuncNvrs_code = 'LinearInterp('+\
+        'np.array([mNrmMin, mNrmMin + 1.0]),'+\
+            'np.array([0.0, vFuncNvrsSlopeLim]))'
+            
+    Modl.value.update({'vFuncNvrs': vFuncNvrs_code})
+#    breakpoint()
+    Bilt.vFuncNvrs = \
+        eval(vFuncNvrs_code, {**globals()},
+             {**Modl.value, **locals(), **givens})
+    # Bilt.vFuncNvrs = LinearInterp(
+    #     np.array([Bilt.mNrmMin, Bilt.mNrmMin + 1.0]),
+    #     np.array([0.0, vFuncNvrsSlopeLim]),
+    # )
+    vFunc_code = 'ValueFuncCRRA(vFuncNvrs, CRRA)'
+    Modl.value.update({'vFunc': vFunc_code})
+    breakpoint()
+    stge.vFunc = Bilt.vFunc = \
+        eval(vFunc_code, {**globals()}, {**Modl.value, **givens}) 
+    # ValueFuncCRRA(Bilt.vFuncNvrs, CRRA)
+#    stge.vFunc.dm = stge.vPfunc = Bilt.vPfunc = MargValueFuncCRRA(Bilt.cFunc, CRRA)
+    vFunc_dm_code = 'MargValueFuncCRRA(cFunc, CRRA)'
+    Modl.value.update({'vFunc.dm': vFunc_dm_code})
+
+#    stge.vFunc.dm = MargValueFuncCRRA(Bilt.cFunc, CRRA)
+    stge.vFunc.dm = Bilt.vFunc.dm = \
+        eval(vFunc_dm_code, {**globals()}, givens)
+#    stge.vFunc.dm.dm = stge.vPPfunc = Bilt.vPPfunc = MargMargValueFuncCRRA(Bilt.cFunc, CRRA)
+
+    vFunc_dm_dm_code = 'MargMargValueFuncCRRA(cFunc, CRRA)'
+    Modl.value.update({'vFunc.dm.dm': vFunc_dm_dm_code})
+
+#    stge.vFunc.dm = MargValueFuncCRRA(Bilt.cFunc, CRRA)
+    stge.vFunc.dm.dm = Bilt.vFunc.dm.dm = \
+        eval(vFunc_dm_dm_code, {**globals()}, givens)
+        
+    breakpoint()
+#    stge.vFunc.dm.dm = MargMargValueFuncCRRA(Bilt.cFunc, CRRA)
 #    breakpoint()
     return stge
 
