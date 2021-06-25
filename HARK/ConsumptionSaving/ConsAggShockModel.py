@@ -106,7 +106,7 @@ init_agg_shocks = init_idiosyncratic_shocks.copy()
 del init_agg_shocks["Rfree"]  # Interest factor is endogenous in agg shocks model
 del init_agg_shocks["CubicBool"]  # Not supported yet for agg shocks model
 del init_agg_shocks["vFuncBool"]  # Not supported yet for agg shocks model
-init_agg_shocks["PermGroFac"] = [1.0]
+init_agg_shocks["PermGroFac"] = [1.0, 1.0]
 # Grid of capital-to-labor-ratios (factors)
 MgridBase = np.array(
     [0.1, 0.3, 0.6, 0.8, 0.9, 0.98, 1.0, 1.02, 1.1, 1.2, 1.6, 2.0, 3.0]
@@ -114,7 +114,7 @@ MgridBase = np.array(
 init_agg_shocks["MgridBase"] = MgridBase
 init_agg_shocks["aXtraCount"] = 24
 init_agg_shocks["aNrmInitStd"] = 0.0
-init_agg_shocks["LivPrb"] = [0.98]
+init_agg_shocks["LivPrb"] = [0.98, 0.98]
 
 
 class AggShockConsumerType(IndShockConsumerType):
