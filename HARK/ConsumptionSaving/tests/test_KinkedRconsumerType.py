@@ -26,10 +26,9 @@ class testKinkedRConsumerType(unittest.TestCase):
 
         KinkyExample.BoroCnstArt = -0.2
         KinkyExample.solve()
-        import pdb; pdb.set_trace()
         self.assertAlmostEqual(
             KinkyExample.solution[0].cFunc(1).tolist(), 0.9346895908550565
-        )
+        ) ##SOLTEST
 
         self.assertAlmostEqual(
             KinkyExample.solution[0].cFunc(4).tolist(), 1.3401428646781697

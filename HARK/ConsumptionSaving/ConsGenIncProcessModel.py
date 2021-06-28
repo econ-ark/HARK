@@ -873,7 +873,7 @@ init_explicit_perm_inc["PermGroFac"] = [
 ]  # long run permanent income growth doesn't work yet
 init_explicit_perm_inc["aXtraMax"] = 30
 init_explicit_perm_inc["aXtraExtra"] = [0.005, 0.01]
-
+init_explicit_perm_inc["cycles"] = 0
 
 class GenIncProcessConsumerType(IndShockConsumerType):
     """
