@@ -1562,8 +1562,7 @@ class PerfForesightConsumerType(AgentType):
 
     Parameters
     ----------
-    cycles : int
-        Number of times the sequence of periods should be solved.
+
     """
 
     # Define some universal values for all consumer types
@@ -2752,10 +2751,11 @@ class KinkedRconsumerType(IndShockConsumerType):
     very small changes.  Solver for this class is currently only compatible with
     linear spline interpolation.
 
+    Same parameters as AgentType.
+
+
     Parameters
     ----------
-    cycles : int
-        Number of times the sequence of periods should be solved.
     """
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)

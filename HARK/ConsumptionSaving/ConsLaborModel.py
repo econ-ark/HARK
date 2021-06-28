@@ -349,11 +349,11 @@ class LaborIntMargConsumerType(IndShockConsumerType):
 
     See init_labor_intensive for a dictionary of
     the keywords that should be passed to the constructor.
+    Same parameters as AgentType.
+
 
     Parameters
     ----------
-    cycles : int
-        Number of times the sequence of periods should be solved.
     """
 
     time_vary_ = copy(IndShockConsumerType.time_vary_)

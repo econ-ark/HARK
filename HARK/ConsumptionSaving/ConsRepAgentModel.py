@@ -228,8 +228,6 @@ class RepAgentConsumerType(IndShockConsumerType):
 
     Parameters
     ----------
-    cycles : int
-        Number of times the sequence of periods should be solved.
 
     """
 

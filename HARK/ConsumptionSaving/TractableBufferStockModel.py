@@ -297,8 +297,7 @@ class TractableConsumerType(AgentType):
     """
     Parameters
     ----------
-    cycles : int
-        Number of times the sequence of periods should be solved.
+    Same as AgentType
     """
 
     state_vars = ['bLvl', 'mLvl', 'aLvl']

@@ -71,8 +71,7 @@ class PrefShockConsumerType(IndShockConsumerType):
 
     Parameters
     ----------
-    cycles : int
-        Number of times the sequence of periods should be solved.
+
     """
 
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["PrefShk"]
@@ -263,8 +262,7 @@ class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
 
     Parameters
     ----------
-    cycles : int
-        Number of times the sequence of periods should be solved.
+
     """
 
     def __init__(self, **kwds):
