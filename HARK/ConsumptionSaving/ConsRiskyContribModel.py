@@ -72,7 +72,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     ]
     shock_vars_ = RiskyAssetConsumerType.shock_vars_
 
-    def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
+    def __init__(self, verbose=False, quiet=False, **kwds):
 
         params = init_risky_contrib.copy()
         params.update(kwds)
@@ -80,7 +80,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
         # Initialize a basic consumer type
         RiskyAssetConsumerType.__init__(
-            self, cycles=cycles, verbose=verbose, quiet=quiet, **kwds
+            self, verbose=verbose, quiet=quiet, **kwds
         )
 
         # The model is solved and simulated spliting each of the agent's

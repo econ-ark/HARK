@@ -35,14 +35,14 @@ class RiskyAssetConsumerType(IndShockConsumerType):
 
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
 
-    def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
+    def __init__(self, verbose=False, quiet=False, **kwds):
         params = init_risky_asset.copy()
         params.update(kwds)
         kwds = params
 
         # Initialize a basic consumer type
         IndShockConsumerType.__init__(
-            self, cycles=cycles, verbose=verbose, quiet=quiet, **kwds
+            self, verbose=verbose, quiet=quiet, **kwds
         )
 
         # These method must be overwritten by classes that inherit from

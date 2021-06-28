@@ -160,14 +160,14 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
     time_inv_ = deepcopy(RiskyAssetConsumerType.time_inv_)
     time_inv_ = time_inv_ + ["AdjustPrb", "DiscreteShareBool"]
 
-    def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
+    def __init__(self, verbose=False, quiet=False, **kwds):
         params = init_portfolio.copy()
         params.update(kwds)
         kwds = params
 
         # Initialize a basic consumer type
         RiskyAssetConsumerType.__init__(
-            self, cycles=cycles, verbose=verbose, quiet=quiet, **kwds
+            self, verbose=verbose, quiet=quiet, **kwds
         )
 
         # Set the solver for the portfolio model, and update various constructed attributes

@@ -262,7 +262,6 @@ class AgentType(Model):
     def __init__(
         self,
         solution_terminal=None,
-        cycles=1,
         pseudo_terminal=True,
         tolerance=0.000001,
         seed=0,
@@ -274,7 +273,6 @@ class AgentType(Model):
             solution_terminal = NullFunc()
 
         self.solution_terminal = solution_terminal  # NOQA
-        self.cycles = cycles  # NOQA
         self.pseudo_terminal = pseudo_terminal  # NOQA
         self.solve_one_period = NullFunc()  # NOQA
         self.tolerance = tolerance  # NOQA
