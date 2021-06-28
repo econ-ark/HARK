@@ -528,15 +528,17 @@ def solveConsPortfolio(
         Income_N = IncPrbs_next.size
         Risky_N = Rprbs_next.size
 
+        # Make tiled arrays to calculate future realizations of mNrm and Share when integrating over IncShkDstn
+        Share_tiled = np.tile(np.reshape(ShareGrid, (1, Share_N)), (bNrm_N, 1))
+
         # Calculate future realizations of market resources
         def m_nrm_next(shocks, b_nrm):
             return b_nrm / (PermGroFac * shocks[0]) + shocks[1]
 
         # Evaluate realizations of marginal value of market resources next period
-        def dvdm_next(shocks, b_nrm, shares):
+        def dvdm_next(shocks, b_nrm):
             mNrm = m_nrm_next(shocks, b_nrm)
             mNrm_tiled = np.tile(np.reshape(mNrm, (bNrm_N, 1)), (1, Share_N))
-            Share_tiled = np.tile(np.reshape(shares, (1, Share_N)), (bNrm_N, 1))
 
             dvdmAdj_next = vPfuncAdj_next(mNrm_tiled)
             if AdjustPrb < 1.0:
@@ -549,10 +551,9 @@ def solveConsPortfolio(
             return shocks[0] ** (-CRRA) * dvdm
 
         # Evaluate realizations of marginal value of risky share next period
-        def dvds_next(shocks, b_nrm, shares):
+        def dvds_next(shocks, b_nrm):
             mNrm = m_nrm_next(shocks, b_nrm)
             mNrm_tiled = np.tile(np.reshape(mNrm, (bNrm_N, 1)), (1, Share_N))
-            Share_tiled = np.tile(np.reshape(shares, (1, Share_N)), (bNrm_N, 1))
             # No marginal value of Share if it's a free choice!
             dvdsAdj_next = np.zeros_like(mNrm_tiled)
             if AdjustPrb < 1.0:
@@ -565,10 +566,9 @@ def solveConsPortfolio(
             return shocks[0] ** (-CRRA) * dvds
 
         # If the value function has been requested, evaluate realizations of value
-        def v_next(shocks, b_nrm, shares):
+        def v_next(shocks, b_nrm):
             mNrm = m_nrm_next(shocks, b_nrm)
             mNrm_tiled = np.tile(np.reshape(mNrm, (bNrm_N, 1)), (1, Share_N))
-            Share_tiled = np.tile(np.reshape(shares, (1, Share_N)), (bNrm_N, 1))
 
             vAdj_next = vFuncAdj_next(mNrm_tiled)
             if AdjustPrb < 1.0:
@@ -583,7 +583,7 @@ def solveConsPortfolio(
         # Calculate intermediate marginal value of bank balances by taking expectations over income shocks
         dvdb_intermed = (
             PermGroFac ** (-CRRA)
-            * calc_expectation(IncShkDstn, dvdm_next, bNrmGrid, ShareGrid)[:, :, 0]
+            * calc_expectation(IncShkDstn, dvdm_next, bNrmGrid)[:, :, 0]
         )
         dvdbNvrs_intermed = uPinv(dvdb_intermed)
         dvdbNvrsFunc_intermed = BilinearInterp(dvdbNvrs_intermed, bNrmGrid, ShareGrid)
@@ -593,7 +593,7 @@ def solveConsPortfolio(
         if vFuncBool:
             v_intermed = (
                 PermGroFac ** (1 - CRRA)
-                * calc_expectation(IncShkDstn, v_next, bNrmGrid, ShareGrid)[:, :, 0]
+                * calc_expectation(IncShkDstn, v_next, bNrmGrid)[:, :, 0]
             )
             vNvrs_intermed = n(v_intermed)
             vNvrsFunc_intermed = BilinearInterp(vNvrs_intermed, bNrmGrid, ShareGrid)
@@ -602,16 +602,17 @@ def solveConsPortfolio(
         # Calculate intermediate marginal value of risky portfolio share by taking expectations
         dvds_intermed = (
             PermGroFac ** (-CRRA)
-            * calc_expectation(IncShkDstn, dvds_next, bNrmGrid, ShareGrid)[:, :, 0]
+            * calc_expectation(IncShkDstn, dvds_next, bNrmGrid)[:, :, 0]
         )
         dvdsFunc_intermed = BilinearInterp(dvds_intermed, bNrmGrid, ShareGrid)
 
+        # Make tiled arrays to calculate future realizations of bNrm and Share when integrating over RiskyDstn
+        aNrm_tiled = np.tile(np.reshape(aNrmGrid, (aNrm_N, 1)), (1, Share_N))
+        Share_tiled = np.tile(np.reshape(ShareGrid, (1, Share_N)), (aNrm_N, 1))
+
         # Evaluate realizations of value and marginal value after asset returns are realized
 
-        def dvdb_next(shock, a_nrm, shares):
-            aNrm_tiled = np.tile(np.reshape(a_nrm, (aNrm_N, 1)), (1, Share_N))
-            Share_tiled = np.tile(np.reshape(shares, (1, Share_N)), (aNrm_N, 1))
-
+        def dvdb_next(shock):
             # Calculate future realizations of bank balances bNrm
             Rxs = shock - Rfree
             Rport = Rfree + Share_tiled * Rxs
@@ -619,10 +620,7 @@ def solveConsPortfolio(
 
             return Rport * dvdbFunc_intermed(b_nrm_next, Share_tiled)
 
-        def v_next(shock, a_nrm, shares):
-            aNrm_tiled = np.tile(np.reshape(a_nrm, (aNrm_N, 1)), (1, Share_N))
-            Share_tiled = np.tile(np.reshape(shares, (1, Share_N)), (aNrm_N, 1))
-
+        def v_next(shock):
             # Calculate future realizations of bank balances bNrm
             Rxs = shock - Rfree
             Rport = Rfree + Share_tiled * Rxs
@@ -630,10 +628,7 @@ def solveConsPortfolio(
 
             return vFunc_intermed(b_nrm_next, Share_tiled)
 
-        def dvds_next(shock, a_nrm, shares):
-            aNrm_tiled = np.tile(np.reshape(a_nrm, (aNrm_N, 1)), (1, Share_N))
-            Share_tiled = np.tile(np.reshape(shares, (1, Share_N)), (aNrm_N, 1))
-
+        def dvds_next(shock):
             # Calculate future realizations of bank balances bNrm
             Rxs = shock - Rfree
             Rport = Rfree + Share_tiled * Rxs
@@ -645,26 +640,18 @@ def solveConsPortfolio(
 
         # Calculate end-of-period marginal value of assets by taking expectations
         EndOfPrddvda = (
-            DiscFac
-            * LivPrb
-            * calc_expectation(RiskyDstn, dvdb_next, aNrmGrid, ShareGrid)[:, :, 0]
+            DiscFac * LivPrb * calc_expectation(RiskyDstn, dvdb_next)[:, :, 0]
         )
         EndOfPrddvdaNvrs = uPinv(EndOfPrddvda)
 
         # Calculate end-of-period value by taking expectations
         if vFuncBool:
-            EndOfPrdv = (
-                DiscFac
-                * LivPrb
-                * calc_expectation(RiskyDstn, v_next, aNrmGrid, ShareGrid)[:, :, 0]
-            )
+            EndOfPrdv = DiscFac * LivPrb * calc_expectation(RiskyDstn, v_next)[:, :, 0]
             EndOfPrdvNvrs = n(EndOfPrdv)
 
         # Calculate end-of-period marginal value of risky portfolio share by taking expectations
         EndOfPrddvds = (
-            DiscFac
-            * LivPrb
-            * calc_expectation(RiskyDstn, dvds_next, aNrmGrid, ShareGrid)[:, :, 0]
+            DiscFac * LivPrb * calc_expectation(RiskyDstn, dvds_next)[:, :, 0]
         )
 
     else:  # If the distributions are NOT independent...
