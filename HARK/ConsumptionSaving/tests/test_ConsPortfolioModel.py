@@ -26,11 +26,10 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         )
 
     def test_solution(self):
-        import pdb; pdb.set_trace()
         self.assertAlmostEqual(
             self.pcct.solution[0].cFuncAdj(10).tolist(),
             1.6996557721625785
-        )
+        ) ##SOLTEST
 
         self.assertAlmostEqual(
             self.pcct.solution[0].ShareFuncAdj(10).tolist(),

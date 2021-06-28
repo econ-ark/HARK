@@ -49,10 +49,9 @@ class test_(unittest.TestCase):
         fin_cont_agent = RiskyContribConsumerType(**cont_params)
         fin_cont_agent.solve()
 
-        import pdb; pdb.set_trace()
         self.assertAlmostEqual(
             fin_cont_agent.solution[0].stage_sols["Reb"].dfracFunc_Adj(3, 4), -0.87848691
-        )
+        ) ##SOLTEST
         self.assertAlmostEqual(
             fin_cont_agent.solution[0].stage_sols["Sha"].ShareFunc_Adj(5, 0.1), 0.1065815
         )
@@ -69,10 +68,9 @@ class test_(unittest.TestCase):
         fin_disc_agent = RiskyContribConsumerType(**disc_params)
         fin_disc_agent.solve()
 
-        import pdb; pdb.set_trace()
         self.assertAlmostEqual(
             fin_disc_agent.solution[0].stage_sols["Reb"].dfracFunc_Adj(3, 4), -0.87846342
-        )
+        ) ##SOLTEST
         self.assertAlmostEqual(
             fin_disc_agent.solution[0].stage_sols["Sha"].ShareFunc_Adj(5, 0.1), 0.1
         )

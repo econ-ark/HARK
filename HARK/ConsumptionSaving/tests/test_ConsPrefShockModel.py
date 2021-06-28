@@ -20,10 +20,9 @@ class testPrefShockConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(self.agent.PrefShkDstn[0].X[5], 0.69046812)
 
-        import pdb; pdb.set_trace()
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc(m, np.ones_like(m))[35], 0.8123891603954809
-        )
+        ) ##SOLTEST
 
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc.derivativeX(m, np.ones_like(m))[35],
@@ -55,8 +54,7 @@ class testKinkyPrefConsumerType(unittest.TestCase):
         self.agent.solve()
 
     def test_solution(self):
-        import pdb; pdb.set_trace()
-        self.assertAlmostEqual(self.agent.solution[0].mNrmMin, -0.7555156106287383)
+        self.assertAlmostEqual(self.agent.solution[0].mNrmMin, -0.7555156106287383) ##SOLTEST
 
         m = np.linspace(self.agent.solution[0].mNrmMin, 5, 200)
 
