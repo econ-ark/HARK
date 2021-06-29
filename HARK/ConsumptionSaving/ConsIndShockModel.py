@@ -1729,14 +1729,8 @@ class PerfForesightConsumerType(AgentType):
         # Determine who dies
         DiePrb_by_t_cycle = 1.0 - np.asarray(self.LivPrb)
         DiePrb = DiePrb_by_t_cycle[
-            self.t_cycle - 1
-        ]  # Time has already advanced, so look back one
-
-        # In finite-horizon problems the previous line gives newborns the
-        # survival probability of the last non-terminal period. This is okay,
-        # however, since they will be instantly replaced by new newborns if
-        # they die.
-        # See: https://github.com/econ-ark/HARK/pull/981
+            self.t_cycle
+        ]
 
         DeathShks = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(
             N=self.AgentCount
@@ -1763,7 +1757,7 @@ class PerfForesightConsumerType(AgentType):
         """
         PermGroFac = np.array(self.PermGroFac)
         self.shocks['PermShk'] = PermGroFac[
-            self.t_cycle - 1
+            self.t_cycle
         ]  # cycle time has already been advanced
         self.shocks['TranShk'] = np.ones(self.AgentCount)
 
