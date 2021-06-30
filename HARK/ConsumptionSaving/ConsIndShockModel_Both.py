@@ -15,18 +15,12 @@ from HARK.utilities import CRRAutilityP_inv
 from HARK.utilities import CRRAutility_invP
 from HARK.utilities import CRRAutilityP_invP
 from HARK.utilities import CRRAutility_inv
-from HARK.utilities import CRRAutility as utility
-from HARK.utilities import CRRAutilityP as utilityP
-from HARK.utilities import CRRAutilityPP as utilityPP
-from HARK.utilities import CRRAutilityP_inv as utilityP_inv
-from HARK.utilities import CRRAutility_invP as utility_invP
-from HARK.utilities import CRRAutility_inv as utility_inv
 from HARK.interpolation import (LinearInterp,
                                 ValueFuncCRRA, MargValueFuncCRRA,
                                 MargMargValueFuncCRRA)
 import numpy as np
 from copy import copy, deepcopy
-import dolo.misc.dprint as dprint
+#import dolo.misc.dprint as dprint
 from types import SimpleNamespace
 from ast import parse as parse  # Allow storing python stmts as objects
 
@@ -52,53 +46,76 @@ def def_utility(stge, CRRA):
     none
     """
     Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
-    Info = Modl.Info = {**Bilt.__dict__,
-                        **Pars.__dict__,
-                        **locals()}  # We could be more discriminating ...
+    Info = Modl.Info = {**Bilt.__dict__, **Pars.__dict__}
 
-    Modl.reward = {}
-    eqns_source = {}
+#    Modl.reward = {}
 
-    # Can't use partial() here because it does not allow positional arguments
-    # Google: how-to-fill-specific-positional-arguments-with-partial-in-python
+    Modl.rewards = SimpleNamespace()
+    Modl.rewards.eqns = {}
+    Modl.rewards.vals = {}
 
-    eqns_source.update({
-        'u_D0': 'u = lambda c: CRRAutility(c, CRRA)',
-        'u_D1': 'u.dc = lambda c: CRRAutilityP(c, CRRA)',
-        'u_D2': 'u.dc.dc = lambda c: CRRAutilityP(c, CRRA)',
-        'uNvrs_D0': 'u.Nvrs = lambda u: CRRAutility_inv(u, CRRA)',
-        'uNvrs_D1': 'u.Nvrs.du = lambda u: CRRAutility_invP(u, CRRA)',
-        'u_D1_Nvrs': 'u.dc.Nvrs = lambda uP: CRRAutilityP_inv(uP, CRRA)',
-        'u_D1_Nvrs_D1': 'u.dc.Nvrs.du = lambda uP: CRRAutilityP_invP(uP, CRRA)'
-    })
+    # Add required funcs to Modl.Info
+    for func in {'CRRAutility', 'CRRAutilityP', 'CRRAutilityPP',
+                 'CRRAutility_inv', 'CRRAutility_invP', 'CRRAutilityP_inv',
+                 'CRRAutilityP_invP'}:
+        Info[func] = globals()[func]
+    
+    # Hard-wire the passed CRRA into the utility function and its progeny
+    eqns_source = {
+        'u_D0':
+            'u = lambda c: CRRAutility(c,'+str(CRRA)+')',
+        'u_D1':
+            'u.dc = lambda c: CRRAutilityP(c, '+str(CRRA)+')',
+        'u_D2':
+            'u.dc.dc = lambda c: CRRAutilityPP(c, '+str(CRRA)+')',
+        'uNvrs_D0':
+            'u.Nvrs = lambda u: CRRAutility_inv(u, '+str(CRRA)+')',
+        'uNvrs_D1':
+            'u.Nvrs.du = lambda u: CRRAutility_invP(u, '+str(CRRA)+')',
+        'u_D1_Nvrs':
+            'u.dc.Nvrs = lambda uP: CRRAutilityP_inv(uP, '+str(CRRA)+')',
+        'u_D1_Nvrs_D1': 
+            'u.dc.Nvrs.du = lambda uP: CRRAutilityP_invP(uP, '+str(CRRA)+')',
+    }
+    
+    for eqn_name in eqns_source.keys():
+#        print(eqn_name+': '+eqns_source[eqn_name])
+        tree = parse(eqns_source[eqn_name], mode='exec')
+        code = compile(tree, filename="<ast>", mode='exec')
+        Modl.rewards.eqns.update({eqn_name: code})
+        exec(code, {**globals(), **Info}, Modl.rewards.vals)
 
-    Bilt.u = lambda c: CRRAutility(c, CRRA)
-    Modl.reward.update({'u': 'lambda c: CRRAutility(c, CRRA)'})
-    # marginal utility
-    # CDC 20210613: New syntax makes derivatives attributes of function
-#    Bilt.u.dc = Bilt.uP = lambda c: CRRAutilityP(c, CRRA)  # dc is der wrt c
-    Bilt.u.dc = lambda c: CRRAutilityP(c, CRRA)  # dc is der wrt c
-    Modl.reward.update({'u.dc': 'lambda c: CRRAutilityP(c, CRRA)'})
+#     # Can't use partial() here because it does not allow positional arguments
+#     # Google: how-to-fill-specific-positional-arguments-with-partial-in-python
 
-    # marginal marginal utility
-#    Bilt.uPP = lambda c: CRRAutilityPP(c, CRRA)  # another der
-    Bilt.u.dc.dc = lambda c: CRRAutilityPP(c, CRRA)  # another der
-    Modl.reward.update({'u.dc.dc': 'lambda c: CRRAutilityPP(c, CRRA)'})
+#     Bilt.uFunc = lambda c: CRRAutility(c, CRRA)
+#     Modl.reward.update({'uFunc': 'lambda c: CRRAutility(c, CRRA)'})
+#     # marginal utility
+#     # CDC 20210613: New syntax makes derivatives attributes of function
+# #    Bilt.uFunc.dc = Bilt.uP = lambda c: CRRAutilityP(c, CRRA)  # dc is der wrt c
+#     Bilt.uFunc.dc = lambda c: CRRAutilityP(c, CRRA)  # dc is der wrt c
+#     Modl.reward.update({'uFunc.dc': 'lambda c: CRRAutilityP(c, CRRA)'})
 
-    # Inverses thereof
-#    Bilt.u.dc.Nvrs = Bilt.uPinv = lambda uP: CRRAutilityP_inv(uP, CRRA)
-    Bilt.u.Nvrs = lambda u: CRRAutility_inv(u, CRRA)
-    Modl.reward.update({'u.Nvrs': 'lambda u: CRRAutility_inv(u, CRRA)'})
-    Bilt.u.dc.Nvrs = lambda uP: CRRAutilityP_inv(uP, CRRA)
-    Modl.reward.update({'u.dc.Nvrs': 'lambda uP: CRRAutilityP_inv(uP, CRRA)'})
-#    Bilt.u.dc.Nvrs.du = Bilt.uPinvP = lambda uP: CRRAutilityP_invP(uP, CRRA)
-    Bilt.u.dc.Nvrs.du = lambda uP: CRRAutilityP_invP(uP, CRRA)
-    Modl.reward.update({'u.dc.Nvrs.du': 'lambda uP: CRRAutilityP_invP(uP, CRRA)'})
-#    Bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
-    Bilt.u.Nvrs.du = lambda u: CRRAutility_invP(u, CRRA)
-    Modl.reward.update({'u.Nvrs.du': 'lambda u: CRRAutility_invP(u, CRRA)'})
-#    Bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
-#    Bilt.uinv = lambda u: CRRAutility_inv(u, CRRA)
+#     # marginal marginal utility
+# #    Bilt.uFuncPP = lambda c: CRRAutilityPP(c, CRRA)  # another der
+#     Bilt.uFunc.dc.dc = lambda c: CRRAutilityPP(c, CRRA)  # another der
+#     Modl.reward.update({'uFunc.dc.dc': 'lambda c: CRRAutilityPP(c, CRRA)'})
+
+#     # Inverses thereof
+# #    Bilt.uFunc.dc.Nvrs = Bilt.uPinv = lambda uP: CRRAutilityP_inv(uP, CRRA)
+#     Bilt.uFunc.Nvrs = lambda u: CRRAutility_inv(u, CRRA)
+#     Modl.reward.update({'uFunc.Nvrs': 'lambda u: CRRAutility_inv(u, CRRA)'})
+#     Bilt.uFunc.dc.Nvrs = lambda uP: CRRAutilityP_inv(uP, CRRA)
+#     Modl.reward.update({'uFunc.dc.Nvrs': 'lambda uP: CRRAutilityP_inv(uP, CRRA)'})
+# #    Bilt.uFunc.dc.Nvrs.du = Bilt.uPinvP = lambda uP: CRRAutilityP_invP(uP, CRRA)
+#     Bilt.uFunc.dc.Nvrs.du = lambda uP: CRRAutilityP_invP(uP, CRRA)
+#     Modl.reward.update({'uFunc.dc.Nvrs.du': 'lambda uP: CRRAutilityP_invP(uP, CRRA)'})
+# #    Bilt.uFuncinvP = lambda u: CRRAutility_invP(u, CRRA)
+#     Bilt.uFunc.Nvrs.du = lambda u: CRRAutility_invP(u, CRRA)
+#     Modl.reward.update({'uFunc.Nvrs.du': 'lambda u: CRRAutility_invP(u, CRRA)'})
+# #    Bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
+# #    Bilt.uinv = lambda u: CRRAutility_inv(u, CRRA)
+#     Bilt.__dict__.update({k: v for k, v in Modl.rewards.vals.items()})
 
     return stge
 
@@ -132,9 +149,8 @@ def def_value_funcs(stge, CRRA):
 
     # Info needed to create the model objects
     Info = Modl.Info = {**Bilt.__dict__,
-                        **Pars.__dict__,
-                        **locals()}  # We could be more discriminating ...
-    Info['about']={'Info available when model creation equations are executed'}
+                        **Pars.__dict__}
+    Info['about'] = {'Info available when model creation equations are executed'}
 
     Modl.value = SimpleNamespace()
     Modl.value.eqns = {}  # Equations
@@ -170,7 +186,7 @@ def def_value_funcs(stge, CRRA):
         {'vFunc_D0':
          'vFunc = ValueFuncCRRA(vFuncNvrs, CRRA)'})
 
-    cFunc=Bilt.cFunc
+#    cFunc = Bilt.cFunc
 
     # Derivative 1
     eqns_source.update(
