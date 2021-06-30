@@ -89,7 +89,9 @@ class test_AgentType(unittest.TestCase):
         # for our agent, which doesn't do anything, instead of using a NullFunc
         self.agent.solve_one_period = lambda vary_1: MetricObject()
         self.agent.solve()
-        self.assertEqual(len(self.agent.solution), 4)
+
+        # this registers 3 because it's a finite, non-cyclic model.
+        self.assertEqual(len(self.agent.solution), 3)
         self.assertTrue(isinstance(self.agent.solution[0], MetricObject))
 
     def test___repr__(self):

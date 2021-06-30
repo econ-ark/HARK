@@ -1,4 +1,8 @@
-from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import(
+    PerfForesightConsumerType,
+    init_perfect_foresight,
+    init_perfect_foresight_inf
+)
 import numpy as np
 import unittest
 
@@ -6,7 +10,7 @@ import unittest
 class testPerfForesightConsumerType(unittest.TestCase):
     def setUp(self):
         self.agent = PerfForesightConsumerType()
-        self.agent_infinite = PerfForesightConsumerType(cycles=0)
+        self.agent_infinite = PerfForesightConsumerType(**init_perfect_foresight_inf)
         
         PF_dictionary = {
             "CRRA": 2.5,
