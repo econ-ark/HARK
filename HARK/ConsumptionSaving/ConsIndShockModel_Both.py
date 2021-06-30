@@ -115,7 +115,8 @@ def def_utility(stge, CRRA):
 #     Modl.reward.update({'uFunc.Nvrs.du': 'lambda u: CRRAutility_invP(u, CRRA)'})
 # #    Bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
 # #    Bilt.uinv = lambda u: CRRAutility_inv(u, CRRA)
-#     Bilt.__dict__.update({k: v for k, v in Modl.rewards.vals.items()})
+
+    Bilt.__dict__.update({k: v for k, v in Modl.rewards.vals.items()})
 
     return stge
 
