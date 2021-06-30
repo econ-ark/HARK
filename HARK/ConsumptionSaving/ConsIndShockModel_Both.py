@@ -51,13 +51,27 @@ def def_utility(stge, CRRA):
     -------
     none
     """
-    Bilt = stge.Bilt
-    Modl = stge.Model_HARK
+    Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
+    Info = Modl.Info = {**Bilt.__dict__,
+                        **Pars.__dict__,
+                        **locals()}  # We could be more discriminating ...
 
     Modl.reward = {}
+    eqns_source = {}
 
     # Can't use partial() here because it does not allow positional arguments
     # Google: how-to-fill-specific-positional-arguments-with-partial-in-python
+
+    eqns_source.update({
+        'u_D0': 'u = lambda c: CRRAutility(c, CRRA)',
+        'u_D1': 'u.dc = lambda c: CRRAutilityP(c, CRRA)',
+        'u_D2': 'u.dc.dc = lambda c: CRRAutilityP(c, CRRA)',
+        'uNvrs_D0': 'u.Nvrs = lambda u: CRRAutility_inv(u, CRRA)',
+        'uNvrs_D1': 'u.Nvrs.du = lambda u: CRRAutility_invP(u, CRRA)',
+        'u_D1_Nvrs': 'u.dc.Nvrs = lambda uP: CRRAutilityP_inv(uP, CRRA)',
+        'u_D1_Nvrs_D1': 'u.dc.Nvrs.du = lambda uP: CRRAutilityP_invP(uP, CRRA)'
+    })
+
     Bilt.u = lambda c: CRRAutility(c, CRRA)
     Modl.reward.update({'u': 'lambda c: CRRAutility(c, CRRA)'})
     # marginal utility
@@ -114,31 +128,30 @@ def def_value_funcs(stge, CRRA):
     vFuncNvrs has value of zero at the lower bound of market resources
     """
 
-    Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Model_HARK
+    Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
 
     # Info needed to create the model objects
     Info = Modl.Info = {**Bilt.__dict__,
                         **Pars.__dict__,
                         **locals()}  # We could be more discriminating ...
-    Info['about'] = \
-        {'Info available when model creation equations are executed'}
+    Info['about']={'Info available when model creation equations are executed'}
 
     Modl.value = SimpleNamespace()
     Modl.value.eqns = {}  # Equations
-    Modl.value.vals = {}  # Numerical values at time of creation
+    Modl.value.vals = {}  # Compiled and executed result at time of exec
 
     eqns_source = {}  # For storing the equations
     # Pattern below: Equations needed to define value function and derivativfes
     # Each eqn is preceded by adding to the scope whatever is needed
     # to make sure the variables in the equation
 
-    CRRA, MPCmin = Pars.CRRA, Bilt.MPCmin
+#    CRRA, MPCmin = Pars.CRRA, Bilt.MPCmin
     eqns_source.update(
         {'vFuncNvrsSlopeLim':
          'vFuncNvrsSlopeLim = MPCmin ** (-CRRA / (1.0 - CRRA))'})
 
     # vFuncNvrs function
-    mNrmMin = Bilt.mNrmMin
+#    mNrmMin = Bilt.mNrmMin
     Info['LinearInterp'] = LinearInterp  # store so it can be retrieved later
 
     eqns_source.update(
@@ -157,7 +170,7 @@ def def_value_funcs(stge, CRRA):
         {'vFunc_D0':
          'vFunc = ValueFuncCRRA(vFuncNvrs, CRRA)'})
 
-    cFunc = Bilt.cFunc
+    cFunc=Bilt.cFunc
 
     # Derivative 1
     eqns_source.update(
@@ -286,16 +299,16 @@ def apply_flat_income_tax(
     IncShkDstn_new : [distribution.Distribution]
         The updated income distributions, after applying the tax.
     """
-    unemployed_indices = (
+    unemployed_indices=(
         unemployed_indices if unemployed_indices is not None else list()
     )
-    IncShkDstn_new = deepcopy(IncShkDstn)
-    i = transitory_index
+    IncShkDstn_new=deepcopy(IncShkDstn)
+    i=transitory_index
     for t in range(len(IncShkDstn)):
         if t < T_retire:
             for j in range((IncShkDstn[t][i]).size):
                 if j not in unemployed_indices:
-                    IncShkDstn_new[t][i][j] = IncShkDstn[t][i][j] * (1 - tax_rate)
+                    IncShkDstn_new[t][i][j]=IncShkDstn[t][i][j] * (1 - tax_rate)
     return IncShkDstn_new
 
 # =======================================================

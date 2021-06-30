@@ -147,8 +147,8 @@ class ConsumerSolution(ConsumerSolutionOlder):
 
         # xfer is short for transfer, which is short for transition
         # These equations are used to construct the transition dynamics
-        self.Model_HARK = Model()
-        transitions = self.Model_HARK.transitions_crnt_post_to_next_ante = {}
+        self.Modl = Model()
+        transitions = self.Modl.transitions_crnt_post_to_next_ante = {}
         transitions.update({'RNrm': 'Rfree / (PermGroFac * permShk)'})
         transitions.update({'bNrm': 'aNrm * RNrm'})
         transitions.update({'yNrm': 'tranShk'})
@@ -272,8 +272,8 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         -------
         None
         """
-        soln_crnt.Bilt.conditions={}  # Keep track of truth of conditions
-        soln_crnt.Bilt.degenerate=False  # True: solution is degenerate
+        soln_crnt.Bilt.conditions = {}  # Keep track of truth of conditions
+        soln_crnt.Bilt.degenerate = False  # True: solution is degenerate
 
         if not hasattr(self, 'verbose'):  # If verbose not set yet
             verbose=0
@@ -2545,7 +2545,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         next_ante_states = Ante_Choice()
         aNrm = curr_post_states
 
-        transitions = self.soln_crnt.Model_HARK.transitions_crnt_post_to_next_ante
+        transitions = self.soln_crnt.Modl.transitions_crnt_post_to_next_ante
         for key in transitions.keys():
             setattr(next_ante_states, key,
                     eval(transitions[key], {},
