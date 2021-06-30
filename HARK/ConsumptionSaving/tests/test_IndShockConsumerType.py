@@ -186,6 +186,7 @@ class testBufferStock(unittest.TestCase):
 
 
 IdiosyncDict = {
+    "cycles" : 0,
     # Parameters shared with the perfect foresight model
     "CRRA": 2.0,  # Coefficient of relative risk aversion
     "Rfree": 1.03,  # Interest factor on assets
@@ -229,7 +230,6 @@ IdiosyncDict = {
 class testIndShockConsumerTypeExample(unittest.TestCase):
     def test_infinite_horizon(self):
         IndShockExample = IndShockConsumerType(**IdiosyncDict)
-        IndShockExample.assign_parameters(cycles = 0)  # Make this type have an infinite horizon
         IndShockExample.solve()
 
         self.assertAlmostEqual(IndShockExample.solution[0].mNrmStE, 1.5488165705077026)
@@ -308,12 +308,13 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
 
 
 CyclicalDict = {
+    "cycles" : 0, # Make this consumer type have an infinite horizon
     # Parameters shared with the perfect foresight model
     "CRRA": 2.0,  # Coefficient of relative risk aversion
     "Rfree": 1.03,  # Interest factor on assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": 4 * [0.98],  # Survival probability
-    "PermGroFac": [1.082251, 2.8, 0.3, 1.1],
+    "PermGroFac": [1.1, 1.082251, 2.8, 0.3],
     # Parameters that specify the income distribution over the lifecycle
     "PermShkStd": [0.1, 0.1, 0.1, 0.1],
     "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
@@ -351,7 +352,6 @@ CyclicalDict = {
 class testIndShockConsumerTypeCyclical(unittest.TestCase):
     def test_cyclical(self):
         CyclicalExample = IndShockConsumerType(**CyclicalDict)
-        CyclicalExample.cycles = 0  # Make this consumer type have an infinite horizon
         CyclicalExample.solve()
 
         self.assertAlmostEqual(
