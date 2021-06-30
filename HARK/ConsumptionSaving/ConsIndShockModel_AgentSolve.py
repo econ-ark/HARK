@@ -2109,7 +2109,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             PermGro = xfer_shks_bcst[Pars.permPos]*Pars.PermGroFac
             DiscLiv = Pars.DiscLiv
             # Derivatives 0, 1, 2
-            breakpoint()
+#            breakpoint()
             v_0 = PermGro ** (1-CRRA_tp1 - 0) * futr.vFunc(mNrm_tp1)
             v_1 = PermGro ** (1-CRRA_tp1 - 1) * futr.vFunc.dm(mNrm_tp1) * Rfree
             v_2 = PermGro ** (1-CRRA_tp1 - 2) * futr.vFunc.dm.dm(mNrm_tp1) * \

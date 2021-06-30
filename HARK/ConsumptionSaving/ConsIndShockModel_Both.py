@@ -26,7 +26,15 @@ from HARK.interpolation import (LinearInterp,
                                 MargMargValueFuncCRRA)
 import numpy as np
 from copy import copy, deepcopy
+import dolo.misc.dprint as dprint
+from types import SimpleNamespace
+from ast import parse as parse # Allow storing python stmts as objects
 
+
+def print_last_line():
+   import inspect                                                                                          
+   d = inspect.currentframe().f_back.f_locals                                                             
+   print(f"Value of a: {d['a']}")
 
 def def_utility(stge, CRRA):
     """
@@ -105,55 +113,146 @@ def def_value_funcs(stge, CRRA):
     vFuncNvrs has value of zero at the lower bound of market resources
     """
 
-    Bilt = stge.Bilt
-    Modl = stge.Model_HARK
-    Modl.value = {}
-    givens = {**locals(),**Bilt.__dict__}
+    Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Model_HARK
 
-    # See PerfForesightConsumerType.ipynb docs for derivations
-    vFuncNvrsSlopeLim_code = 'MPCmin ** (-CRRA / (1.0 - CRRA))'
-    vFuncNvrsSlopeLim = eval(vFuncNvrsSlopeLim_code, {}, givens)
-    Modl.value.update({'vFuncNvrsSlopeLim': vFuncNvrsSlopeLim_code})
-#    breakpoint()
-#    vFuncNvrsSlopeLim = Bilt.MPCmin ** (-CRRA / (1.0 - CRRA))
-    vFuncNvrs_code = 'LinearInterp('+\
-        'np.array([mNrmMin, mNrmMin + 1.0]),'+\
-            'np.array([0.0, vFuncNvrsSlopeLim]))'
-            
-    Modl.value.update({'vFuncNvrs': vFuncNvrs_code})
-#    breakpoint()
-    Bilt.vFuncNvrs = \
-        eval(vFuncNvrs_code, {**globals()},
-             {**Modl.value, **locals(), **givens})
-    # Bilt.vFuncNvrs = LinearInterp(
-    #     np.array([Bilt.mNrmMin, Bilt.mNrmMin + 1.0]),
-    #     np.array([0.0, vFuncNvrsSlopeLim]),
-    # )
-    vFunc_code = 'ValueFuncCRRA(vFuncNvrs, CRRA)'
-    Modl.value.update({'vFunc': vFunc_code})
-    breakpoint()
-    stge.vFunc = Bilt.vFunc = \
-        eval(vFunc_code, {**globals()}, {**Modl.value, **givens}) 
-    # ValueFuncCRRA(Bilt.vFuncNvrs, CRRA)
-#    stge.vFunc.dm = stge.vPfunc = Bilt.vPfunc = MargValueFuncCRRA(Bilt.cFunc, CRRA)
-    vFunc_dm_code = 'MargValueFuncCRRA(cFunc, CRRA)'
-    Modl.value.update({'vFunc.dm': vFunc_dm_code})
+    # Info needed to create the model objects
+    Info = Modl.Info = {**Bilt.__dict__,
+                        **Pars.__dict__, 
+                        **locals()} # We could be more discriminating ...
+    Info['about'] = \
+        {'Info available when model creation equations are executed'}
 
-#    stge.vFunc.dm = MargValueFuncCRRA(Bilt.cFunc, CRRA)
-    stge.vFunc.dm = Bilt.vFunc.dm = \
-        eval(vFunc_dm_code, {**globals()}, givens)
-#    stge.vFunc.dm.dm = stge.vPPfunc = Bilt.vPPfunc = MargMargValueFuncCRRA(Bilt.cFunc, CRRA)
+    Modl.value = SimpleNamespace()
+    Modl.value.eqns = {} # Equations
+    Modl.value.vals = {} # Numerical values at time of creation
 
-    vFunc_dm_dm_code = 'MargMargValueFuncCRRA(cFunc, CRRA)'
-    Modl.value.update({'vFunc.dm.dm': vFunc_dm_dm_code})
+    value_funcs_make = {}
+    # Pattern below: Equations needed to define value function and derivativfes
+    # Each eqn is preceded by adding to the scope whatever is needed
+    # to make sure the variables in the equation
+    
+    # CRRA, MPCmin = Pars.CRRA, Bilt.MPCmin
+    value_funcs_make.update(\
+        {'vFuncNvrsSlopeLim': \
+         'vFuncNvrsSlopeLim = MPCmin ** (-CRRA / (1.0 - CRRA))'})
 
-#    stge.vFunc.dm = MargValueFuncCRRA(Bilt.cFunc, CRRA)
-    stge.vFunc.dm.dm = Bilt.vFunc.dm.dm = \
-        eval(vFunc_dm_dm_code, {**globals()}, givens)
+    # vFuncNvrs function
+#    mNrmMin = Bilt.mNrmMin
+    Info['LinearInterp']=LinearInterp # store so it can be retrieved later
+    
+    value_funcs_make.update(\
+        {'vFuncNvrs': \
+         'vFuncNvrs = LinearInterp('+\
+            'np.array([mNrmMin, mNrmMin + 1.0]),'+\
+            'np.array([0.0, vFuncNvrsSlopeLim]))'})
+    
+    # vFunc and its derivatives
+    Info['ValueFuncCRRA']=ValueFuncCRRA
+    Info['MargValueFuncCRRA']=MargValueFuncCRRA
+    Info['MargMargValueFuncCRRA']=MargMargValueFuncCRRA
+    
+    # Derivative 0 (undifferentiated)
+    value_funcs_make.update(\
+        {'vFunc_D0': \
+         'vFunc = ValueFuncCRRA(vFuncNvrs, CRRA)'})
+    
+#    cFunc = Bilt.cFunc
+    
+    # Derivative 1
+    value_funcs_make.update(\
+        {'vFunc_D1':\
+         'vFunc.dm = MargValueFuncCRRA(cFunc, CRRA)'})
+    
+    # Derivative 2
+    value_funcs_make.update(\
+        {'vFunc_D2':\
+         'vFunc.dm.dm = MargMargValueFuncCRRA(cFunc, CRRA)'})
+
+    # Store the equations in Modl.value.eqns so they can be retrieved later
+    # then execute them now
+    for eqn_name in value_funcs_make.keys():
+#        print(eqn_name+': '+value_funcs_make[eqn_name])
+        tree = parse(value_funcs_make[eqn_name], mode='exec')
+        Modl.value.eqns.update({eqn_name: tree})
+        code = compile(Modl.value.eqns[eqn_name], filename="<ast>", mode='exec')
+        exec(code, {**globals(), **Modl.Info}, Modl.value.vals)
         
-    breakpoint()
+    Bilt.__dict__.update({k: v  for k, v in Modl.value.vals.items()})
+    stge.vFunc = Bilt.vFunc # vFunc needs to be on root as well as Bilt
+                
+        # code = compile(tree, filename="<ast>", mode='exec')
+        # body0 = tree.body[0]
+        # Modl.value.fncs.update({body0.targets[0].id: body0.value})
+        # exec(code,Info) # Put in locals()
+        
+    # for key in Modl.value.eqns.keys():
+    #     breakpoint()
+    #     exec(compile(Modl.value.eqns[key],filename="<ast>",mode='exec'),
+    #          globals(), locals())
+        
+#     def magic():
+#         import inspect
+#         d = inspect.currentframe().f_back.f_locals
+#         print(f"value: {d['vFuncNvrsSlopeLim']}")
+#     def magical():
+#         import inspect
+#         d = inspect.currentframe().f_back.f_locals
+#         return d
+#     # See PerfForesightConsumerType.ipynb docs for derivations
+#     vFuncNvrsSlopeLim_code = 'MPCmin ** (-CRRA / (1.0 - CRRA))'
+#     vFuncNvrsSlopeLim_make = \
+#         'vFuncNvrsSlopeLim = MPCmin ** (-CRRA / (1.0 - CRRA))'
+#     vFuncNvrsSlopeLimit = exec(vFuncNvrsSlopeLim_code, {}, givens)
+#     MPCmin, CRRA = Bilt.MPCmin, Pars.CRRA
+#     import inspect                                                                                          
+#     vFuncNvrsSlopeLim = MPCmin ** (-CRRA / (1.0 - CRRA))
+#     d = inspect.currentframe().f_back.f_locals
+#     d['vFuncNvrsSlopeLim']
+    
+#     Modl.value.update({'vFuncNvrsSlopeLim': vFuncNvrsSlopeLim_code})
+# #    breakpoint()
+# #    vFuncNvrsSlopeLim = Bilt.MPCmin ** (-CRRA / (1.0 - CRRA))
+#     vFuncNvrs_code = 'LinearInterp('+\
+#         'np.array([mNrmMin, mNrmMin + 1.0]),'+\
+#             'np.array([0.0, vFuncNvrsSlopeLim]))'
+            
+#     Modl.value.update({'vFuncNvrs': vFuncNvrs_code})
+#     breakpoint()
+#     Bilt.vFuncNvrs = \
+#         eval(vFuncNvrs_code, {**globals()},
+#              {**Modl.value, **locals(), **givens})
+#     # Bilt.vFuncNvrs = LinearInterp(
+#     #     np.array([Bilt.mNrmMin, Bilt.mNrmMin + 1.0]),
+#     #     np.array([0.0, vFuncNvrsSlopeLim]),
+#     # )
+#     vFunc_code = 'ValueFuncCRRA(vFuncNvrs, CRRA)'
+#     Modl.value.update({'vFunc': vFunc_code})
+#     stge.vFunc = Bilt.vFunc = \
+#         eval(vFunc_code, {**globals()}, {**Modl.value, **givens}) 
+#     # ValueFuncCRRA(Bilt.vFuncNvrs, CRRA)
+# #    stge.vFunc.dm = stge.vPfunc = Bilt.vPfunc = MargValueFuncCRRA(Bilt.cFunc, CRRA)
+#     vFunc_dm_code = 'MargValueFuncCRRA(cFunc, CRRA)'
+#     Modl.value.update({'vFunc.dm': vFunc_dm_code})
+
+# #    stge.vFunc.dm = MargValueFuncCRRA(Bilt.cFunc, CRRA)
+#     stge.vFunc.dm = Bilt.vFunc.dm = \
+#         eval(vFunc_dm_code, {**globals()}, givens)
+# #    stge.vFunc.dm.dm = stge.vPPfunc = Bilt.vPPfunc = MargMargValueFuncCRRA(Bilt.cFunc, CRRA)
+
+#     vFunc_dm_dm_code = 'MargMargValueFuncCRRA(cFunc, CRRA)'
+#     Modl.value.update({'vFunc.dm.dm': vFunc_dm_dm_code})
+
+# #    stge.vFunc.dm = MargValueFuncCRRA(Bilt.cFunc, CRRA)
+#     stge.vFunc.dm.dm = Bilt.vFunc.dm.dm = \
+#         eval(vFunc_dm_dm_code, {**globals()}, givens)
+        
+#    breakpoint()
 #    stge.vFunc.dm.dm = MargMargValueFuncCRRA(Bilt.cFunc, CRRA)
 #    breakpoint()
+
+#    stge.vFunc = locals()['vFunc']
+#    stge.vFunc.dm = locals()['vFunc_dm']
+#    stge.vFunc.dm.dm = locals()['vFunc_dm_dm']
     return stge
 
 
