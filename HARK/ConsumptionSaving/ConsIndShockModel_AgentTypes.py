@@ -265,8 +265,8 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         # terminal solution defined below is generated.
         # This should work if stge_kind['iter_status']="iterator"
         # The afterlife is inoperative if the terminal period is labeled with
-        # stge_kind['iter_status']="terminal_pseudo" (because in that case
-        # the "terminal_pseudo" final solution is used to construct the
+        # stge_kind['iter_status']="terminal_partial" (because in that case
+        # the "terminal_partial" final solution is used to construct the
         # augmented "terminal" solution)
 
         # no value in afterlife:
@@ -318,7 +318,7 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
                 MPCmin=MPCmin,
                 MPCmax=MPCmin,
                 stge_kind={
-                    'iter_status': 'terminal_pseudo',  # will be replaced with iterator
+                    'iter_status': 'terminal_partial',  # will be replaced with iterator
                     'term_type': 'nobequest'
                 })
 
@@ -725,7 +725,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         else:
             solution_terminal.Bilt.BoroCnstArt = self.parameters.BoroCnstArt
 
-        solution_terminal.Bilt.stge_kind = {'iter_status': 'terminal_pseudo'}
+        solution_terminal.Bilt.stge_kind = {'iter_status': 'terminal_partial'}
 
         # Solution options
         if hasattr(self, 'vFuncBool'):

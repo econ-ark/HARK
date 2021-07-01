@@ -123,7 +123,7 @@ class ConsumerSolution(ConsumerSolutionOlder):
                 should exist recording what convergence tolerance was satisfied
             {'iter_status':'iterator'}: Solution during iteration
                 solution[0].distance_last records the last distance
-            {'iter_status':'terminal_pseudo'}: Bare-bones terminal period
+            {'iter_status':'terminal_partial'}: Bare-bones terminal period
                 Does not contain all the info needed to begin solution
                 Solver will augment and replace it with 'iterator' stage
         Other uses include keeping track of the nature of the next stage
@@ -566,7 +566,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
             solution_terminal.BoroCnstArt = self.parameters.BoroCnstArt
 
         # pseudo means this will be replaced by richer augmented soln
-        solution_terminal.stge_kind = {'iter_status': 'terminal_pseudo'}
+        solution_terminal.stge_kind = {'iter_status': 'terminal_partial'}
 
         # Always calculate the value function
         solution_terminal.vFuncBool = True
@@ -634,7 +634,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
         # 'terminal' solution should replace pseudo_terminal:
         if hasattr(self.soln_futr.Bilt, 'stge_kind') and \
-                (soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_pseudo'):
+                (soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_partial'):
             self.soln_crnt.Bilt = deepcopy(self.soln_futr.Bilt)
 
         # links for docs; urls are used when "fcts" are added
@@ -1045,7 +1045,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
 # 20210618: TODO: CDC: Find a way to isolate this stuff so it does not clutter
 
-
     def build_facts_infhor(self):
         """
             Adds to the solution extensive information and references about
@@ -1329,7 +1328,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             'about': 'Human Wealth '
         }
         py___code = '((PermGroFac / Rfree) * (1.0 + tp1.hNrm))'
-        if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+        if soln_crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge:
             py___code = '0.0'  # hNrm = 0.0 for last period
         Bilt.hNrm = hNrm = \
             eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
@@ -1344,7 +1343,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             'about': 'Natural Borrowing Constraint'
         }
         py___code = '(tp1.mNrmMin - tranShkMin)*(PermGroFac/Rfree)*permShkMin'
-        if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge
+        if soln_crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge
             py___code = 'hNrm'  # Presumably zero
         Bilt.BoroCnstNat = BoroCnstNat = \
             eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
@@ -1374,7 +1373,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             'about': 'Maximal MPC in current period as m -> mNrmMin'
         }
         py___code = '1.0 / (1.0 + (RPF / tp1.MPCmax))'
-        if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+        if soln_crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge:
             soln_crnt.tp1.MPCmax = float('inf')  # causes MPCmax = 1 for final period
         Bilt.MPCmax = MPCmax = eval(
             py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
@@ -1398,8 +1397,8 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             'about': 'Minimal MPC in current period as m -> infty'
         }
         py___code = '1.0 / (1.0 + (RPF / tp1.MPCmin))'
-        if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
-            #        if soln_crnt.Bilt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+        if soln_crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge:
+            #        if soln_crnt.Bilt.stge_kind['iter_status'] == 'terminal_partial':  # kludge:
             py__code = '1.0'
         Bilt.MPCmin = MPCmin = \
             eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
@@ -1413,7 +1412,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             'about': 'Maximal MPC in current period as m -> mNrmMin'
         }
         py___code = '1.0 / (1.0 + (RPF / tp1.MPCmax))'
-        if soln_crnt.stge_kind['iter_status'] == 'terminal_pseudo':  # kludge:
+        if soln_crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge:
             Bilt.tp1.MPCmax = float('inf')  # causes MPCmax = 1 for final period
         Bilt.MPCmax = MPCmax = \
             eval(py___code, {}, {**E_t.__dict__, **Bilt.__dict__, **givens})
@@ -1469,7 +1468,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             # Should not have gotten here
             # because core.py tests whether solution_last is 'finished'
 
-        if soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_pseudo':
+        if soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_partial':
             # bare-bones default terminal solution does not have all the facts
             # we want, because it is multipurpose (for any u func) so add them
             soln_futr.Bilt = def_utility(soln_crnt, CRRA)
@@ -1528,10 +1527,10 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         else:
             Pars.tranShkMin = Pars.permShkMin = 1.0
 
-        # Nothing needs to be done for terminal_pseudo
+        # Nothing needs to be done for terminal_partial
         if hasattr(Bilt, 'stge_kind'):
             if 'iter_status' in Bilt.stge_kind:
-                if (Bilt.stge_kind['iter_status'] == 'terminal_pseudo'):
+                if (Bilt.stge_kind['iter_status'] == 'terminal_partial'):
                     # No work needed in terminal period, which replaces itself
                     return
 
@@ -2077,7 +2076,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         IncShkDstn = Pars.IncShkDstn
         aNrmGrid = Bilt.aNrmGrid
-        CRRA_tp1 = futr.vFunc.CRRA
+        CRRA_tp1 = futr.Bilt.vFunc.CRRA
         Rfree = Pars.Rfree
 
         def post_t_E_v_tp1_wrapped(dstn, aNrm):
@@ -2115,13 +2114,15 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         def post_choice_t(xfer_shks_bcst, curr_post_states):
             tp1 = self.next_ante_states(xfer_shks_bcst, curr_post_states)
             mNrm_tp1 = tp1.mNrm
-            PermGro = xfer_shks_bcst[Pars.permPos]*Pars.PermGroFac
+            # Random (Rnd) shocks to permanent income affect mean PermGroFac
+            PermGroRnd = xfer_shks_bcst[Pars.permPos]*Pars.PermGroFac
             DiscLiv = Pars.DiscLiv
+            vFutr = futr.Bilt.vFunc
             # Derivatives 0, 1, 2
 #            breakpoint()
-            v_0 = PermGro ** (1-CRRA_tp1 - 0) * futr.vFunc(mNrm_tp1)
-            v_1 = PermGro ** (1-CRRA_tp1 - 1) * futr.vFunc.dm(mNrm_tp1) * Rfree
-            v_2 = PermGro ** (1-CRRA_tp1 - 2) * futr.vFunc.dm.dm(mNrm_tp1) * \
+            v_0 = PermGroRnd ** (1-CRRA_tp1 - 0) * vFutr(mNrm_tp1)
+            v_1 = PermGroRnd ** (1-CRRA_tp1 - 1) * vFutr.dm(mNrm_tp1) * Rfree
+            v_2 = PermGroRnd ** (1-CRRA_tp1 - 2) * vFutr.dm.dm(mNrm_tp1) * \
                 Rfree * Rfree
             return DiscLiv*np.array([v_0, v_1, v_2])
 
@@ -2309,14 +2310,13 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         # Pack up the solution and return it
         solution_interpolating = ConsumerSolutionOneStateCRRA(
-#            cFunc=cFunc,
+            #            cFunc=cFunc,
             vFunc=vFunc,
             #            vPfunc=vPfunc,
-#            mNrmMin=Bilt.mNrmMin,
+            #            mNrmMin=Bilt.mNrmMin,
             CRRA=Pars.CRRA
         )
         solution_interpolating.Bilt.cFunc = cFunc
-        
 
         return solution_interpolating
 
@@ -2481,7 +2481,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         soln_crnt = self.soln_crnt
         CRRA = soln_crnt.Pars.CRRA
 
-        # The first invocation of ".solve" has iter_status='terminal_pseudo':
+        # The first invocation of ".solve" has iter_status='terminal_partial':
         # "pseudo" since it is not ready to serve as a proper starting point
         # for backward induction because further info (e.g., utility function)
         # must be added after solution_terminal is constructed.  Fix
@@ -2491,7 +2491,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         # TODO CDC 20210615: This is a kludge to get things to work without modifying
         # core.py. Think about how to change core.py to address more elegantly
 
-        if self.soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_pseudo':
+        if self.soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_partial':
             soln_crnt = def_utility(soln_crnt, CRRA)
             soln_crnt = def_value_funcs(soln_crnt, CRRA)
             soln_crnt.vFunc = self.soln_crnt.Bilt.vFunc
@@ -2503,7 +2503,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             # NOW mark as good-to-go as starting point for backward induction:
             self.soln_crnt.Bilt.stge_kind['iter_status'] = 'iterator'
 
-            return soln_crnt  # Replace original "terminal_pseudo" solution
+            return soln_crnt  # Replace original "terminal_partial" solution
 
         # Calculate everything about "saver" who ends period with aNrm
         self.make_post_choice_ante_IncShk_status()
