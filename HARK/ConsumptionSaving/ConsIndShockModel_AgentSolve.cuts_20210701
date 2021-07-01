@@ -1,0 +1,50 @@
+        # Bilt.recursive = {'cFunc',  # 'vFunc',  # 'vPfunc', 'vPPfunc',  'vFuncNvrs',
+        #                   #             'vFunc.dm', 'vFunc.dm.dm',
+        #                   #             'u',  # 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
+        #                   #             'hNrm',
+        #                   'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA',
+        #                   'vAdd'
+        #                   }
+
+        # Store recursive stuff in Bilt namespace
+        # exclude = {''}  # Allow things that should be excluded
+        # for key in (k for k in Bilt.recursive if k not in exclude):  #
+        #     if hasattr(self, key):
+        #         setattr(Bilt, key, self.__dict__[key])
+        #         delattr(self, key)
+
+        # Natural borrowing constraint: Cannot die in debt
+        # # Measured after income = tranShk*permShk/permShk received
+        # if not hasattr(solution_terminal, 'hNrm'):
+        #     _log('warning: hNrm should be set in solution_terminal.')
+        #     _log('assuming solution_terminal.hNrm = 0.')
+        #     solution_terminal.hNrm = 0.0
+
+
+
+        if soln_futr.Bilt.stge_kind['iter_status'] == 'finished':
+            breakpoint()
+            # Should not have gotten here
+            # because core.py tests whether solution_last is 'finished'
+
+
+
+        # Organizing principle: folw should have a deepcopy of everything
+        # needed to re-solve crnt problem; and everything needed to construct
+        # the "fcts" about current stage of the problem, so that the stge could
+        # be deepcopied as a standalone object and solved without soln_futr
+        # or soln_crnt
+
+
+        # Create folw
+        # for key in (k for k in Bilt.recursive
+        #             if k not in
+        #             {'solution_next', 'Bilt', 'stge_kind', 'folw'}):
+        #     if hasattr(soln_futr.Bilt, key):
+        #         setattr(folw, key+'_tp1',
+        #                 soln_futr.Bilt.__dict__[key])
+
+        # # Add futr parameters to folw
+        # for key in (k for k in soln_futr.Pars.__dict__.keys()):
+        #     setattr(folw, key+'_tp1', soln_futr.Pars.__dict__[key])
+

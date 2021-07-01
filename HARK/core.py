@@ -1039,12 +1039,12 @@ def solve_agent(agent, verbose):
         # Initialize the solution, which includes the terminal solution
         solution = []
         # Old pseudo_terminal technology resided on agent; replaced by new
-        # [stge].stge_kind['iter_status']='terminal_pseudo' marker, but old
+        # [stge].stge_kind['iter_status']='terminal_partial' marker, but old
         # code preserved here in case used somewhere
 #        pseudo = (agent.pseudo_terminal == True) or \
-#            (agent.solution_terminal.stge_kind['iter_status'] == 'terminal_pseudo')
+#            (agent.solution_terminal.stge_kind['iter_status'] == 'terminal_partial')
         pseudo = (agent.pseudo_terminal is True) or \
-            (agent.solution_terminal.Bilt.stge_kind['iter_status'] == 'terminal_pseudo')
+            (agent.solution_terminal.Bilt.stge_kind['iter_status'] == 'terminal_partial')
         if not pseudo:  # Then it's a real solution that should be part of the list
             solution.insert(0, deepcopy(agent.solution_terminal))
         completed_cycles = 0  # NOQA
@@ -1089,8 +1089,8 @@ def solve_agent(agent, verbose):
             solution = solution_cycle + solution
             cycles_left += -1
             go = cycles_left > 0
-            # Don't count replacement of terminal_pseudo as a cycle; see below
-            if solution_last.Bilt.stge_kind['iter_status'] == 'terminal_pseudo':
+            # Don't count replacement of terminal_partial as a cycle; see below
+            if solution_last.Bilt.stge_kind['iter_status'] == 'terminal_partial':
                 cycles_left += 1
                 completed_cycles += -1
                 go = True
@@ -1130,14 +1130,14 @@ def solve_agent(agent, verbose):
                 # Handle cases where that has not yet been implemented:
                 if not hasattr(solution_now.Bilt, 'stge_kind'):
                     solution_now.Bilt.stge_kind = {'iter_status': 'iterator'}
-                if solution_last.Bilt.stge_kind['iter_status'] == 'terminal_pseudo':
+                if solution_last.Bilt.stge_kind['iter_status'] == 'terminal_partial':
                     completed_cycles += -1  # replacement is not a cycle
-                else:  # Replacing terminal_pseudo is not a cycle
+                else:  # Replacing terminal_partial is not a cycle
                     # This prevents a stage derived from one marked as
-                    # 'terminal_pseudo' from being labeled as
+                    # 'terminal_partial' from being labeled as
                     # 'finished' even though its distance will be zero
-                    # from the 'terminal_pseudo' stage. Lets us use
-                    # our machinery to enrich the terminal_pseudo stage
+                    # from the 'terminal_partial' stage. Lets us use
+                    # our machinery to enrich the terminal_partial stage
                     solution_now.Bilt.stge_kind['iter_status'] = 'finished'
                     # Record the tolerance that was satisfied
                     solution_now.stge_kind['tolerance'] = agent.tolerance

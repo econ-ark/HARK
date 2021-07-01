@@ -19,7 +19,6 @@ from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModelOld \
     import ConsumerSolution as ConsumerSolutionOlder
 
-# from ast import parse as parse  # Allow storing python stmts as objects
 from HARK.ConsumptionSaving.ConsIndShockModel_Both \
     import (TransitionFunctions, def_transitions)
 
@@ -76,13 +75,6 @@ class Equations(SimpleNamespace):
     """
 # TODO: Move (to core.py) when vetted/agreed
     pass
-
-
-# class Post_Choice(SimpleNamespace):
-#     """
-#     Expectations after choices before shocks
-
-#     """
 
 
 class Successor(SimpleNamespace):
@@ -159,23 +151,8 @@ class ConsumerSolution(ConsumerSolutionOlder):
         Pars = self.Pars = Parameters()
         Pars.about = {'Parameters exogenously given'}
 
-        # Bilt.recursive = {'cFunc',  # 'vFunc',  # 'vPfunc', 'vPPfunc',  'vFuncNvrs',
-        #                   #             'vFunc.dm', 'vFunc.dm.dm',
-        #                   #             'u',  # 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
-        #                   #             'hNrm',
-        #                   'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA',
-        #                   'vAdd'
-        #                   }
-
-        # Store recursive stuff in Bilt namespace
-        # exclude = {''}  # Allow things that should be excluded
-        # for key in (k for k in Bilt.recursive if k not in exclude):  #
-        #     if hasattr(self, key):
-        #         setattr(Bilt, key, self.__dict__[key])
-        #         delattr(self, key)
-
         # Stuff added; should (ultimately) be incorporated in ConsumerSolution
-        Bilt.stge_kind = stge_kind
+#        Bilt.stge_kind = stge_kind
         Bilt.completed_cycles = completed_cycles
         Bilt.parameters_solver = parameters_solver
         Bilt.vAdd = vAdd
@@ -217,7 +194,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         # We are now in position to define some elements of the
         # dolo representation of the model
 #        dolo = self.dolo
-        # # These will be updated when more specific assumptions are made
+#        # These will be updated when more specific assumptions are made
 #        dolo.model_name = 'ConsumerSolutionOneStateCRRA'
 #        dolo.symbols = {'states': ['mNrm'],
 #                        'controls': ['cNrm'],
@@ -226,17 +203,15 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 #                        'transition': ['DBC_mNrm'],
 #                        }
 
-        # Instantiate CRRA utility
         self = def_utility(self, CRRA)
-        self = def_transitions(self)
-        # self.Modl.Transitions.crnt_post_to_next_ante = TransitionFunctions()
-        # self.Modl.Transitions.crnt_ante_to_this_choice = TransitionFunctions()
-        # self.Modl.Transitions.crnt_ante_to_this_choice = TransitionFunctions()
 
-        # These things have been moved to Bilt to declutter whiteboard
+        # Construct transition functions
+        self = def_transitions(self)
+
+        # These have been moved to Bilt to declutter whiteboard:
         del self.hNrm
         del self.vFunc
-#        del self.cFunc
+        del self.cFunc
         del self.vPfunc
         del self.vPPfunc
 
@@ -549,15 +524,8 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         # If no solution exists, core.py sets solution_terminal to solution_next
         solution_terminal = self.solution_terminal
 
-        # Natural borrowing constraint: Cannot die in debt
-        # # Measured after income = tranShk*permShk/permShk received
-        # if not hasattr(solution_terminal, 'hNrm'):
-        #     _log('warning: hNrm should be set in solution_terminal.')
-        #     _log('assuming solution_terminal.hNrm = 0.')
-        #     solution_terminal.hNrm = 0.0
-
         # BoroCnstNat might be nonzero if resuming
-        solution_terminal.BoroCnstNat = -solution_terminal.hNrm
+        solution_terminal.BoroCnstNat = -solution_terminal.mNrmMin
 
         # Define BoroCnstArt if not yet defined
         if not hasattr(self.parameters, 'BoroCnstArt'):
@@ -565,11 +533,11 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         else:
             solution_terminal.BoroCnstArt = self.parameters.BoroCnstArt
 
-        # pseudo means this will be replaced by richer augmented soln
+        # partial means this will be replaced by richer augmented soln
         solution_terminal.stge_kind = {'iter_status': 'terminal_partial'}
 
-        # Always calculate the value function
-        solution_terminal.vFuncBool = True
+#        # Always calculate the value function
+#        solution_terminal.vFuncBool = True
 
         # Cubic cFunc is problematic with hard kinks where c'' is undefined
         if hasattr(self, 'CubicBool'):
@@ -577,6 +545,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         else:  # default to false (linear)
             solution_terminal.CubicBool = False
 
+        # General-purpose solution terminal might not have utility or value
         solution_terminal.parameters = self.parameters
         solution_terminal = def_utility(solution_terminal, self.CRRA)
         solution_terminal = def_value_funcs(solution_terminal, self.CRRA)
@@ -622,15 +591,19 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             PermGroFac=1.0, BoroCnstArt=None, MaxKinks=None, **kwds
     ):
 
-        self.soln_futr = soln_futr = solution_next
-        self.soln_crnt = ConsumerSolutionOneStateCRRA()
+        soln_futr = self.soln_futr = solution_next
+        soln_crnt = self.soln_crnt = ConsumerSolutionOneStateCRRA()
+
+        Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
 
         # Get solver parameters and store for later use
         # omitting things that could cause recursion
-        parameters_solver = \
+#       parameters_solver = \
+        Pars.__dict__.update(
             {k: v for k, v in {**kwds, **locals()}.items()
              if k not in {'self', 'solution_next', 'kwds', 'soln_futr',
                           'Bilt_futr', 'soln_crnt', 'Bilt'}}
+        )
 
         # 'terminal' solution should replace pseudo_terminal:
         if hasattr(self.soln_futr.Bilt, 'stge_kind') and \
@@ -639,7 +612,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
         # links for docs; urls are used when "fcts" are added
         self.url_doc_for_solver_get()
-        self.soln_crnt.Bilt.parameters_solver = deepcopy(parameters_solver)
+#        self.soln_crnt.Bilt.parameters_solver = deepcopy(parameters_solver)
 
         return
 
@@ -669,26 +642,19 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         PerfForesightConsumerType.ipynb notebook for derivations.
         """
         # Reduce cluttered formulae with local aliases
-        soln_crnt = self.soln_crnt
-        futr = self.soln_futr
-        Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
-        E_t = soln_crnt.E_t
+        crnt, futr = self.soln_crnt, self.soln_futr
+        Bilt, Pars, E_t = crnt.Bilt, crnt.Pars, crnt.E_t
 
         Rfree, PermGroFac, MPCmin = Pars.Rfree, Pars.PermGroFac, Bilt.MPCmin
-        BoroCnstArt, DiscFac, E_t.IncNrmNxt, LivPrb = \
-            Pars.BoroCnstArt, Pars.DiscFac, E_t.IncNrmNxt, Pars.LivPrb
-        BoroCnstNat = Bilt.BoroCnstNat
+
+        BoroCnstArt, DiscLiv, BoroCnstNat = \
+            Pars.BoroCnstArt, Pars.DiscLiv, Bilt.BoroCnstNat
+
         u = Bilt.u
-        u.Nvrs = Bilt.u.Nvrs
-        u.dc.Nvrs = Bilt.u.dc.Nvrs
+        u.Nvrs, u.dc.Nvrs = Bilt.u.Nvrs, Bilt.u.dc.Nvrs
 
-#        uinv = Bilt.uinv
-#        uPinv = Bilt.uPinv
-
-        DiscLiv = DiscFac * LivPrb
         CRRA = Pars.CRRA
-        CRRA_tp1 = futr.vFunc.CRRA
-#        CRRA_tp1 = folw.vFunc_tp1.CRRA
+        CRRA_tp1 = futr.Bilt.vFunc.CRRA
 
         if BoroCnstArt is None:
             BoroCnstArt = -np.inf
@@ -1045,6 +1011,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
 # 20210618: TODO: CDC: Find a way to isolate this stuff so it does not clutter
 
+
     def build_facts_infhor(self):
         """
             Adds to the solution extensive information and references about
@@ -1072,7 +1039,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         urlroot = Bilt.urlroot
         Pars.DiscLiv = Pars.DiscFac * Pars.LivPrb
         # givens are not changed by the calculations below; Bilt and E_t are
-#        givens = {**folw.__dict__, **Pars.__dict__}
         givens = {**Pars.__dict__}
 
         APF_fcts = {
@@ -1459,14 +1425,9 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         solution : ConsumerSolution
             The solution to this period/stage's problem.
         """
-        soln_futr = self.soln_futr
-        soln_crnt = self.soln_crnt
-        CRRA = soln_crnt.Pars.CRRA
 
-        if soln_futr.Bilt.stge_kind['iter_status'] == 'finished':
-            breakpoint()
-            # Should not have gotten here
-            # because core.py tests whether solution_last is 'finished'
+        soln_futr, soln_crnt = self.soln_futr, self.soln_crnt
+        CRRA = soln_crnt.Pars.CRRA
 
         if soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_partial':
             # bare-bones default terminal solution does not have all the facts
@@ -1479,12 +1440,8 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             soln_crnt.stge_kind = soln_crnt.Bilt.stge_kind
 #            self.soln_crnt.vPfunc = self.soln_crnt.Bilt.vPfunc  # Need for distance
             self.soln_crnt.cFunc = self.soln_crnt.Bilt.cFunc  # Need for distance
-            if hasattr(self.soln_crnt.Bilt, 'IncShkDstn'):
-                self.soln_crnt.IncShkDstn = self.soln_crnt.Bilt.IncShkDstn
-
             return soln_crnt  # if pseudo_terminal = True, enhanced replaces original
 
-        CRRA = self.soln_crnt.Pars.CRRA
         self.soln_crnt = def_utility(soln_crnt, CRRA)
         self.build_facts_infhor()
         self.build_facts_recursive()
@@ -1495,56 +1452,35 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
     solve = solve_prepared_stage
 
-    def solver_prep_solution_for_an_iteration(self):  # self: solver
+    def solver_prep_solution_for_an_iteration(self):  # self: PF solver
         """
         Prepare the current stage for processing by the one-stage solver.
         """
 
         soln_crnt = self.soln_crnt
-#        soln_futr = self.soln_futr
 
         Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
 
-        # Create current Pars
-        for key in (k for k in Bilt.parameters_solver
-                    if k not in {'', ''}):
-            setattr(Pars, key, Bilt.parameters_solver[key])
-
-        # Organizing principle: folw should have a deepcopy of everything
-        # needed to re-solve crnt problem; and everything needed to construct
-        # the "fcts" about current stage of the problem, so that the stge could
-        # be deepcopied as a standalone object and solved without soln_futr
-        # or soln_crnt
-
-#        folw = soln_crnt.folw = Successor()
+        # # Add to Pars contents newly added to Bilt.parameters_solver by core.py
+        # for key in (k for k in Bilt.parameters_solver
+        #             if k not in {''}): # Don't exclude anything
+        #     setattr(Pars, key, Bilt.parameters_solver[key])
 
         # Catch degenerate case of zero-variance income distributions
-        # These are "test cases" that will otherwise fail
+        # Otherwise "test cases" that try the degenerate dstns will fail
         if hasattr(Pars, "tranShkVals") and hasattr(Pars, "permShkVals"):
             if ((Pars.tranShkMin == 1.0) and (Pars.permShkMin == 1.0)):
                 soln_crnt.E_t.Inv_permShk = 1.0
                 soln_crnt.E_t.uInv_permShk = 1.0
-        else:
+        else:  # Missing trans or permShkVals; assume it's PF model
             Pars.tranShkMin = Pars.permShkMin = 1.0
 
         # Nothing needs to be done for terminal_partial
         if hasattr(Bilt, 'stge_kind'):
             if 'iter_status' in Bilt.stge_kind:
                 if (Bilt.stge_kind['iter_status'] == 'terminal_partial'):
-                    # No work needed in terminal period, which replaces itself
+                    # solution_terminal is handmade, do not remake
                     return
-
-        # Create folw
-        # for key in (k for k in Bilt.recursive
-        #             if k not in
-        #             {'solution_next', 'Bilt', 'stge_kind', 'folw'}):
-        #     if hasattr(soln_futr.Bilt, key):
-        #         setattr(folw, key+'_tp1',
-        #                 soln_futr.Bilt.__dict__[key])
-
-        # # Add futr parameters to folw
-        # for key in (k for k in soln_futr.Pars.__dict__.keys()):
-        #     setattr(folw, key+'_tp1', soln_futr.Pars.__dict__[key])
 
         self.soln_crnt.Bilt.stge_kind = \
             self.soln_crnt.stge_kind = {'iter_status': 'iterator',
@@ -1606,9 +1542,6 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
     aXtraGrid: np.array
         Array of "extra" end-of-period asset values-- assets above the
         absolute minimum acceptable level.
-    vFuncBool: boolean
-        An indicator for whether the value function should be computed and
-        included in the reported soln_crnt.
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear inter-
         polation.
@@ -1617,15 +1550,23 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
 
     # TODO: CDC 20210416: Params shared with PF are in different order. Fix
     def __init__(
-            self, solution_next, IncShkDstn, LivPrb, DiscFac, CRRA, Rfree, PermGroFac, BoroCnstArt, aXtraGrid, vFuncBool,
-            CubicBool, permShkDstn, tranShkDstn, **kwds
-    ):  # First execute PF solver init
+            self, solution_next, IncShkDstn, LivPrb, DiscFac, CRRA, Rfree, 
+            PermGroFac, BoroCnstArt, aXtraGrid, vFuncBool, CubicBool, 
+            permShkDstn, tranShkDstn, **kwds):
+        
+        # First execute PF solver init
         # We must reorder params by hand in case someone tries positional solve
-        #        breakpoint()
-        ConsPerfForesightSolver.__init__(self, solution_next, DiscFac=DiscFac, LivPrb=LivPrb, CRRA=CRRA,
-                                         Rfree=Rfree, PermGroFac=PermGroFac, BoroCnstArt=BoroCnstArt, IncShkDstn=IncShkDstn, permShkDstn=permShkDstn,
-                                         tranShkDstn=tranShkDstn, **kwds
-                                         )
+        
+        ConsPerfForesightSolver.__init__\
+            (self, solution_next, DiscFac=DiscFac, LivPrb=LivPrb,
+             CRRA=CRRA, Rfree=Rfree, PermGroFac=PermGroFac,
+             BoroCnstArt=BoroCnstArt, IncShkDstn=IncShkDstn,
+             permShkDstn=permShkDstn,tranShkDstn=tranShkDstn, **kwds)
+                                         
+        # ConsPerfForesightSolver.__init__(self, solution_next, DiscFac=DiscFac, LivPrb=LivPrb, CRRA=CRRA,
+        #                                  Rfree=Rfree, PermGroFac=PermGroFac, BoroCnstArt=BoroCnstArt, IncShkDstn=IncShkDstn, permShkDstn=permShkDstn,
+        #                                  tranShkDstn=tranShkDstn, **kwds
+        #                                  )
 
         # ConsPerfForesightSolver.__init__ makes self.soln_crnt
 
@@ -1636,15 +1577,15 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         Pars = soln_crnt.Pars  # parameters are exogenous
 
         Bilt.aXtraGrid = aXtraGrid
-        Bilt.vFuncBool = vFuncBool
-        Bilt.CubicBool = CubicBool
+#        self.vFuncBool = vFuncBool
+        self.CubicBool = CubicBool
 
         # In which column is each object stored in IncShkDstn?
         Pars.permPos = IncShkDstn.parameters['ShkPosn']['perm']
         Pars.tranPos = IncShkDstn.parameters['ShkPosn']['tran']
 
-        # Bcst are "broadcasted" values: serial list of every possible combo
-        # Makes it easy to take expectations using 𝔼_dot
+        # Bcst are "broadcasted" values: serial list of every permutation
+        # Makes it fast to take expectations using 𝔼_dot
         Pars.permShkValsBcst = permShkValsBcst = IncShkDstn.X[Pars.permPos]
         Pars.tranShkValsBcst = tranShkValsBcst = IncShkDstn.X[Pars.tranPos]
 
@@ -2370,7 +2311,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         Bilt.cNrmGrid = uFunc.dc.Nvrs(E_t.post_choice_t[1])  # [1]: first derivative
 
         # Construct a solution for this period
-        if Bilt.CubicBool:
+        if self.CubicBool:
             soln_crnt = self.interpolating_EGM_solution(
                 E_t.post_choice_t[1], Bilt.aNrmGrid,
                 interpolator=self.make_cFunc_cubic
