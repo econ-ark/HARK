@@ -20,7 +20,8 @@ from HARK.ConsumptionSaving.ConsIndShockModelOld \
     import ConsumerSolution as ConsumerSolutionOlder
 
 # from ast import parse as parse  # Allow storing python stmts as objects
-from HARK.ConsumptionSaving.ConsIndShockModel_Both import Transitions
+from HARK.ConsumptionSaving.ConsIndShockModel_Both \
+    import (TransitionFunctions, def_transitions)
 
 
 class Built(SimpleNamespace):
@@ -40,6 +41,14 @@ class Parameters(SimpleNamespace):
 
 
 class Expectations(SimpleNamespace):
+    """
+    Expectations across realization of stochastic shocks.
+    """
+# TODO: Move (to core.py) when vetted/agreed
+    pass
+
+
+class ValueFunctions(SimpleNamespace):
     """
     Expectations across realization of stochastic shocks.
     """
@@ -145,7 +154,7 @@ class ConsumerSolution(ConsumerSolutionOlder):
         # Previous "whiteboard" content is now on "Bilt" or "Pars" or "E_t"
         self.E_t = Expectations()
         self.Modl = Model()
-        self.Modl.Transits = Transitions()
+        self.Modl.Transitions = TransitionFunctions()
         Bilt = self.Bilt = Built()
         Pars = self.Pars = Parameters()
         Pars.about = {'Parameters exogenously given'}
@@ -223,8 +232,10 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
         # Instantiate CRRA utility
         self = def_utility(self, CRRA)
-        self.Modl.Transits.crnt_post_to_next_ante = Transitions()
-        self.Modl.Transits.crnt_ante_to_this_choice = Transitions()
+        self = def_transitions(self)
+        # self.Modl.Transitions.crnt_post_to_next_ante = TransitionFunctions()
+        # self.Modl.Transitions.crnt_ante_to_this_choice = TransitionFunctions()
+        # self.Modl.Transitions.crnt_ante_to_this_choice = TransitionFunctions()
 
         # These things have been moved to Bilt to declutter whiteboard
 #        del self.mNrmMin
@@ -1040,6 +1051,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #    def build_facts_infhor_ConsPerfForesightSolver(self):
 
 # 20210618: TODO: CDC: Find a way to isolate this stuff so it does not clutter
+
 
     def build_facts_infhor(self):
         """
@@ -2542,7 +2554,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         """
 
         stge = self.soln_crnt
-        Pars, Modl, Transits = stge.Pars, stge.Modl, stge.Modl.Transits
+        Pars, Modl, Transitions = stge.Pars, stge.Modl, stge.Modl.Transitions
 
         permPos, tranPos = (
             Pars.IncShkDstn.parameters['ShkPosn']['perm'],
@@ -2559,7 +2571,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         # Everything needed to execute the transition equations
         Info = {**Pars.__dict__, **xfer_vars}
 
-        post_to_ante = Transits.crnt_post_to_next_ante
+        post_to_ante = Transitions.crnt_post_to_next_ante
         # They are already defined; just execute them
         for eqn_name in post_to_ante.__dict__['eqns'].keys():
             #            print(eqn_name)

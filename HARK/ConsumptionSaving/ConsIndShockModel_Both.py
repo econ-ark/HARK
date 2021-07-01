@@ -25,9 +25,17 @@ from types import SimpleNamespace
 from ast import parse as parse  # Allow storing python stmts as objects
 
 
-class Transitions(SimpleNamespace):
+class TransitionFunctions(SimpleNamespace):
     """
     Transitions between stges of the solution process
+    """
+# TODO: Move (to core.py) when vetted/agreed
+    pass
+
+
+class ValueFunctions(SimpleNamespace):
+    """
+    Equations that define value functions
     """
 # TODO: Move (to core.py) when vetted/agreed
     pass
@@ -38,6 +46,13 @@ class Information(SimpleNamespace):
     Parameters, functions, etc needed for model equations
     """
     pass
+
+
+def def_transitions(stge):
+    stge = def_transition_post_to_ante(stge)
+    stge = def_transition_ante_to_choice(stge)
+    stge = def_transition_before_to_after_choice(stge)
+    return stge
 
 
 def def_transition_post_to_ante(stge):
@@ -56,7 +71,7 @@ def def_transition_post_to_ante(stge):
         'next_ante_states': 'next_ante_states = mNrm'
     }
 
-    post_to_ante = Transitions()
+    post_to_ante = TransitionFunctions()
     post_to_ante.eqns = {}
     post_to_ante.vals = {}
 
@@ -67,7 +82,38 @@ def def_transition_post_to_ante(stge):
         post_to_ante.eqns.update({eqn_name: code})
 #        exec(code, {**globals(), **Info}, post_to_ante.vals)
 
-    stge.Modl.Transits.crnt_post_to_next_ante = post_to_ante
+    stge.Modl.Transitions.crnt_post_to_next_ante = post_to_ante
+    stge.Modl.Transitions.crnt_post_to_next_ante.eqns_source = eqns_source
+
+    return stge
+
+
+def def_transition_before_to_after_choice(stge):
+    """
+    Transition from end of one period to beginning of next.
+    """
+
+    Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
+#    Info = Modl.Info = {**Bilt.__dict__, **Pars.__dict__}
+
+    eqns_source = {
+        'aNrm': 'aNrm = mNrm - cNrm',
+        'after_choice_states': 'after_choie_states = aNrm'
+    }
+
+    choose = TransitionFunctions()
+    choose.eqns = {}
+    choose.vals = {}
+
+    for eqn_name in eqns_source.keys():
+        #        print(eqn_name+': '+eqns_source[eqn_name])
+        tree = parse(eqns_source[eqn_name], mode='exec')
+        code = compile(tree, filename="<ast>", mode='exec')
+        choose.eqns.update({eqn_name: code})
+        # Eqns are only beig defined here; executed when needed
+
+    choose.eqns_source = eqns_source
+    Modl.Transitions.before_to_after_choice = choose
 
     return stge
 
@@ -81,22 +127,26 @@ def def_transition_ante_to_choice(stge):
     Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
     Info = Modl.Info = {**Bilt.__dict__, **Pars.__dict__}
 
-    eqns_source = {
-        {'new_var': 'new_var = 1.0'},
-    }
+    # Dummy example variable
+    eqns_source = {'new_var': 'new_var = 1.0'}
 
-    ante_to_choice = Transitions()
+    ante_to_choice = TransitionFunctions()
     ante_to_choice.eqns = {}
     ante_to_choice.vals = {}
 
     for eqn_name in eqns_source.keys():
-        print(eqn_name+': '+eqns_source[eqn_name])
+#        print(eqn_name+': '+eqns_source[eqn_name])
         tree = parse(eqns_source[eqn_name], mode='exec')
         code = compile(tree, filename="<ast>", mode='exec')
         ante_to_choice.eqns.update({eqn_name: code})
         exec(code, {**globals(), **Info}, ante_to_choice.vals)
 
-    Bilt.__dict__.update({k: v for k, v in ante_to_choice.items()})
+    Bilt.__dict__.update({k: v for k, v in ante_to_choice.vals.items()})
+
+    ante_to_choice.eqns_source = eqns_source
+    Modl.Transitions.ante_to_choice = ante_to_choice  # Save uncompiled source code
+    
+    return stge
 
 
 def def_utility(stge, CRRA):
@@ -218,9 +268,9 @@ def def_value_funcs(stge, CRRA):
     Info = Modl.Info = {**Bilt.__dict__, **Pars.__dict__}
     Info['about'] = {'Info available when model creation equations are executed'}
 
-    Modl.value = SimpleNamespace()
-    Modl.value.eqns = {}  # Equations
-    Modl.value.vals = {}  # Compiled and executed result at time of exec
+    Modl.Value = ValueFunctions()
+    Modl.Value.eqns = {}  # Equations
+    Modl.Value.vals = {}  # Compiled and executed result at time of exec
 
     eqns_source = {}  # For storing the equations
     # Pattern below: Equations needed to define value function and derivativfes
@@ -264,30 +314,30 @@ def def_value_funcs(stge, CRRA):
         {'vFunc_D2':
          'vFunc.dm.dm = MargMargValueFuncCRRA(cFunc, CRRA)'})
 
-    # Store the equations in Modl.value.eqns so they can be retrieved later
+    # Store the equations in Modl.Value.eqns so they can be retrieved later
     # then execute them now
     for eqn_name in eqns_source.keys():
         #        print(eqn_name+': '+eqns_source[eqn_name])
         tree = parse(eqns_source[eqn_name], mode='exec')
         code = compile(tree, filename="<ast>", mode='exec')
-        Modl.value.eqns.update({eqn_name: code})
-        exec(code, {**globals(), **Modl.Info}, Modl.value.vals)
+        Modl.Value.eqns.update({eqn_name: code})
+        exec(code, {**globals(), **Modl.Info}, Modl.Value.vals)
 
     # Add newly created stuff to Bilt namespace
-    Bilt.__dict__.update({k: v for k, v in Modl.value.vals.items()})
+    Bilt.__dict__.update({k: v for k, v in Modl.Value.vals.items()})
 
     stge.vFunc = Bilt.vFunc  # vFunc needs to be on root as well as Bilt
 
-    Modl.value.eqns_source = eqns_source  # Save uncompiled source code
+    Modl.Value.eqns_source = eqns_source  # Save uncompiled source code
 
     # code = compile(tree, filename="<ast>", mode='exec')
     # body0 = tree.body[0]
-    # Modl.value.fncs.update({body0.targets[0].id: body0.value})
+    # Modl.Value.fncs.update({body0.targets[0].id: body0.Value})
     # exec(code,Info) # Put in locals()
 
-    # for key in Modl.value.eqns.keys():
+    # for key in Modl.Value.eqns.keys():
     #     breakpoint()
-    #     exec(compile(Modl.value.eqns[key],filename="<ast>",mode='exec'),
+    #     exec(compile(Modl.Value.eqns[key],filename="<ast>",mode='exec'),
     #          globals(), locals())
 
 #     def magic():
@@ -309,30 +359,30 @@ def def_value_funcs(stge, CRRA):
 #     d = inspect.currentframe().f_back.f_locals
 #     d['vFuncNvrsSlopeLim']
 
-#     Modl.value.update({'vFuncNvrsSlopeLim': vFuncNvrsSlopeLim_code})
+#     Modl.Value.update({'vFuncNvrsSlopeLim': vFuncNvrsSlopeLim_code})
 # #    breakpoint()
 # #    vFuncNvrsSlopeLim = Bilt.MPCmin ** (-CRRA / (1.0 - CRRA))
 #     vFuncNvrs_code = 'LinearInterp('+\
 #         'np.array([mNrmMin, mNrmMin + 1.0]),'+\
 #             'np.array([0.0, vFuncNvrsSlopeLim]))'
 
-#     Modl.value.update({'vFuncNvrs': vFuncNvrs_code})
+#     Modl.Value.update({'vFuncNvrs': vFuncNvrs_code})
 #     breakpoint()
 #     Bilt.vFuncNvrs = \
 #         eval(vFuncNvrs_code, {**globals()},
-#              {**Modl.value, **locals(), **givens})
+#              {**Modl.Value, **locals(), **givens})
 #     # Bilt.vFuncNvrs = LinearInterp(
 #     #     np.array([Bilt.mNrmMin, Bilt.mNrmMin + 1.0]),
 #     #     np.array([0.0, vFuncNvrsSlopeLim]),
 #     # )
 #     vFunc_code = 'ValueFuncCRRA(vFuncNvrs, CRRA)'
-#     Modl.value.update({'vFunc': vFunc_code})
+#     Modl.Value.update({'vFunc': vFunc_code})
 #     stge.vFunc = Bilt.vFunc = \
-#         eval(vFunc_code, {**globals()}, {**Modl.value, **givens})
+#         eval(vFunc_code, {**globals()}, {**Modl.Value, **givens})
 #     # ValueFuncCRRA(Bilt.vFuncNvrs, CRRA)
 # #    stge.vFunc.dm = stge.vPfunc = Bilt.vPfunc = MargValueFuncCRRA(Bilt.cFunc, CRRA)
 #     vFunc_dm_code = 'MargValueFuncCRRA(cFunc, CRRA)'
-#     Modl.value.update({'vFunc.dm': vFunc_dm_code})
+#     Modl.Value.update({'vFunc.dm': vFunc_dm_code})
 
 # #    stge.vFunc.dm = MargValueFuncCRRA(Bilt.cFunc, CRRA)
 #     stge.vFunc.dm = Bilt.vFunc.dm = \
@@ -340,7 +390,7 @@ def def_value_funcs(stge, CRRA):
 # #    stge.vFunc.dm.dm = stge.vPPfunc = Bilt.vPPfunc = MargMargValueFuncCRRA(Bilt.cFunc, CRRA)
 
 #     vFunc_dm_dm_code = 'MargMargValueFuncCRRA(cFunc, CRRA)'
-#     Modl.value.update({'vFunc.dm.dm': vFunc_dm_dm_code})
+#     Modl.Value.update({'vFunc.dm.dm': vFunc_dm_dm_code})
 
 # #    stge.vFunc.dm = MargValueFuncCRRA(Bilt.cFunc, CRRA)
 #     stge.vFunc.dm.dm = Bilt.vFunc.dm.dm = \
