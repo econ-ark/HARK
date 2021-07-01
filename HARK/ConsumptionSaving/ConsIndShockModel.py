@@ -6,15 +6,15 @@ from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
         ConsumerSolutionOlder,
         ConsumerSolution, ConsumerSolutionOneStateCRRA,
         ConsPerfForesightSolver, ConsIndShockSetup,
-        ConsIndShockSolverBasic, ConsIndShockSolver)
+        ConsIndShockSolverBasic, ConsIndShockSolver,
+        Equations)
 
 from HARK.ConsumptionSaving.ConsIndShockModel_KinkedRSolver \
-        import ConsKinkedRsolver 
+    import ConsKinkedRsolver
 
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentTypes \
     import (consumer_terminal_nobequest_onestate, PerfForesightConsumerType,
-            IndShockConsumerType, KinkedRconsumerType
-            ,onestate_bequest_warmglow_homothetic
+            IndShockConsumerType, KinkedRconsumerType, onestate_bequest_warmglow_homothetic
             )
 
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
@@ -33,7 +33,7 @@ from HARK.utilities import CRRAutility_invP as utility_invP
 from HARK.utilities import CRRAutility_inv as utility_inv
 from HARK.utilities import CRRAutilityP as utilityP_invP
 
-#from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve_EndOfPeriodValue \
+# from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve_EndOfPeriodValue \
 #    import (ConsIndShockSetupEOP, ConsIndShockSolverBasicEOP, ConsIndShockSolverEOP)
 
 """
@@ -64,9 +64,9 @@ __all__ = [
     "ConsIndShockSetup",
     "ConsIndShockSolverBasic",
     "ConsIndShockSolver",
-#    "ConsIndShockSetupEOP",
-#    "ConsIndShockSolverBasicEOP",
-#    "ConsIndShockSolverEOP",
+    #    "ConsIndShockSetupEOP",
+    #    "ConsIndShockSolverBasicEOP",
+    #    "ConsIndShockSolverEOP",
     "ConsKinkedRsolver",
     "consumer_terminal_nobequest_onestate",
     "PerfForesightConsumerType",

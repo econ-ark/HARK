@@ -54,20 +54,20 @@ def def_transition_post_to_ante(stge):
         'yNrm': 'yNrm = tranShk',
         'mNrm': 'mNrm = bNrm + yNrm',
         'next_ante_states': 'next_ante_states = mNrm'
-        }
-            
+    }
+
     post_to_ante = Transitions()
     post_to_ante.eqns = {}
     post_to_ante.vals = {}
 
     for eqn_name in eqns_source.keys():
-#        print(eqn_name+': '+eqns_source[eqn_name])
+        #        print(eqn_name+': '+eqns_source[eqn_name])
         tree = parse(eqns_source[eqn_name], mode='exec')
         code = compile(tree, filename="<ast>", mode='exec')
         post_to_ante.eqns.update({eqn_name: code})
 #        exec(code, {**globals(), **Info}, post_to_ante.vals)
 
-    stge.Modl.transitions.crnt_post_to_next_ante = post_to_ante
+    stge.Modl.Transits.crnt_post_to_next_ante = post_to_ante
 
     return stge
 
@@ -116,9 +116,9 @@ def def_utility(stge, CRRA):
     Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
     Info = Modl.Info = {**Bilt.__dict__, **Pars.__dict__}
 
-    Modl.rewards = SimpleNamespace()
-    Modl.rewards.eqns = {}
-    Modl.rewards.vals = {}
+    Modl.Rewards = SimpleNamespace()
+    Modl.Rewards.eqns = {}
+    Modl.Rewards.vals = {}
 
     # Add required funcs to Modl.Info
     for func in {'CRRAutility', 'CRRAutilityP', 'CRRAutilityPP',
@@ -148,8 +148,8 @@ def def_utility(stge, CRRA):
         #        print(eqn_name+': '+eqns_source[eqn_name])
         tree = parse(eqns_source[eqn_name], mode='exec')
         code = compile(tree, filename="<ast>", mode='exec')
-        Modl.rewards.eqns.update({eqn_name: code})
-        exec(code, {**globals(), **Info}, Modl.rewards.vals)
+        Modl.Rewards.eqns.update({eqn_name: code})
+        exec(code, {**globals(), **Info}, Modl.Rewards.vals)
 
 #     # Can't use partial() here because it does not allow positional arguments
 #     # Google: how-to-fill-specific-positional-arguments-with-partial-in-python
@@ -182,7 +182,7 @@ def def_utility(stge, CRRA):
 # #    Bilt.uinvP = lambda u: CRRAutility_invP(u, CRRA)
 # #    Bilt.uinv = lambda u: CRRAutility_inv(u, CRRA)
 
-    Bilt.__dict__.update({k: v for k, v in Modl.rewards.vals.items()})
+    Bilt.__dict__.update({k: v for k, v in Modl.Rewards.vals.items()})
 
     return stge
 

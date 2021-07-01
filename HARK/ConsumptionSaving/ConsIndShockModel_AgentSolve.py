@@ -19,8 +19,9 @@ from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModelOld \
     import ConsumerSolution as ConsumerSolutionOlder
 
-#from ast import parse as parse  # Allow storing python stmts as objects
+# from ast import parse as parse  # Allow storing python stmts as objects
 from HARK.ConsumptionSaving.ConsIndShockModel_Both import Transitions
+
 
 class Built(SimpleNamespace):
     """
@@ -142,16 +143,12 @@ class ConsumerSolution(ConsumerSolutionOlder):
         ConsumerSolutionOlder.__init__(self, *args, **kwds)
 
         # Previous "whiteboard" content is now on "Bilt" or "Pars" or "E_t"
+        self.E_t = Expectations()
+        self.Modl = Model()
+        self.Modl.Transits = Transitions()
         Bilt = self.Bilt = Built()
         Pars = self.Pars = Parameters()
         Pars.about = {'Parameters exogenously given'}
-        self.E_t = Expectations()
-
-        # xfer is short for transfer, which is short for transition
-        # These equations are used to construct the transition dynamics
-        self.Modl = Model()
-        self.Modl.transitions = Transitions()
-        # transitions = self.Modl.transitions.crnt_post_to_next_ante = {}
         # transitions.update({'RNrm': 'Rfree / (PermGroFac * permShk)'})
         # transitions.update({'bNrm': 'aNrm * RNrm'})
         # transitions.update({'yNrm': 'tranShk'})
@@ -226,6 +223,8 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
         # Instantiate CRRA utility
         self = def_utility(self, CRRA)
+        self.Modl.Transits.crnt_post_to_next_ante = Transitions()
+        self.Modl.Transits.crnt_ante_to_this_choice = Transitions()
 
         # These things have been moved to Bilt to declutter whiteboard
 #        del self.mNrmMin
@@ -339,43 +338,43 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         name = "FVAC"
         def test(stge): return stge.Bilt.FVAF < 1
 
-        messages={
+        messages = {
             True: "\n\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, satisfies the Finite Value of Autarky Condition, which requires FVAF < 1:\n    "+stge.Bilt.FVAC_fcts['urlhandle'],
             False: "\n\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, violates the Finite Value of Autarky Condition, which requires FVAF:\n    "+stge.Bilt.FVAC_fcts['urlhandle']
         }
-        verbose_messages={
+        verbose_messages = {
             True: "\n  Therefore, a nondegenerate solution exists if the RIC also holds. ("+stge.Bilt.FVAC_fcts['urlhandle']+")\n",
             False: "\n  Therefore, a nondegenerate solution exits if the RIC holds, but will not exist if the RIC fails unless the FHWC also fails.\n",
         }
 
-        stge.Bilt.FVAC=core_check_condition(name, test, messages, verbose,
+        stge.Bilt.FVAC = core_check_condition(name, test, messages, verbose,
                                               verbose_messages, "FVAF", stge)
 
     def check_GICRaw(self, stge, verbose=None):
         """
         Evaluate and report on the Growth Impatience Condition
         """
-        name="GICRaw"
+        name = "GICRaw"
 
         def test(stge): return stge.Bilt.GPFRaw < 1
 
-        messages={
+        messages = {
             True: "\n\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, satisfies the Growth Impatience Condition (GIC), which requires GPF < 1:\n    "+stge.Bilt.GICRaw_fcts['urlhandle'],
             False: "\n\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, violates the Growth Impatience Condition (GIC), which requires GPF < 1:\n    "+stge.Bilt.GICRaw_fcts['urlhandle'],
         }
-        verbose_messages={
+        verbose_messages = {
             True: "\n  Therefore,  for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
             False: "\n  Therefore, for a perfect foresight consumer whose parameters satisfy the FHWC, the ratio of individual wealth to permanent income is expected to rise toward infinity. \n"
         }
-        stge.Bilt.GICRaw=core_check_condition(name, test, messages, verbose,
+        stge.Bilt.GICRaw = core_check_condition(name, test, messages, verbose,
                                                 verbose_messages, "GPFRaw", stge)
 
     def check_GICLiv(self, stge, verbose=None):
-        name="GICLiv"
+        name = "GICLiv"
 
         def test(stge): return stge.Bilt.GPFLiv < 1
 
-        messages={
+        messages = {
             True: "\n\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, satisfies the Mortality Adjusted Aggregate Growth Impatience Condition (GICLiv):\n    "+stge.Bilt.GPFLiv_fcts['urlhandle'],
             False: "\n\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, violates the Mortality Adjusted Aggregate Growth Impatience Condition (GICLiv):\n    "+stge.Bilt.GPFLiv_fcts['urlhandle'],
         }
@@ -617,7 +616,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
     def __init__(
             self, solution_next, DiscFac=1.0, LivPrb=1.0, CRRA=2.0, Rfree=1.0,
             PermGroFac=1.0, BoroCnstArt=None, MaxKinks=None, **kwds
-            ):
+    ):
 
         self.soln_futr = soln_futr = solution_next
         self.soln_crnt = ConsumerSolutionOneStateCRRA()
@@ -682,7 +681,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #        uinv = Bilt.uinv
 #        uPinv = Bilt.uPinv
 
-        
         DiscLiv = DiscFac * LivPrb
         CRRA = Pars.CRRA
         CRRA_tp1 = futr.vFunc.CRRA
@@ -1042,7 +1040,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #    def build_facts_infhor_ConsPerfForesightSolver(self):
 
 # 20210618: TODO: CDC: Find a way to isolate this stuff so it does not clutter
-
 
     def build_facts_infhor(self):
         """
@@ -2543,31 +2540,31 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         -------
         next_ante_states : namespace with results of applying transition eqns
         """
-        
-        stge = self.soln_crnt
-        Pars, Modl = stge.Pars, stge.Modl
 
-        permPos, tranPos = (\
+        stge = self.soln_crnt
+        Pars, Modl, Transits = stge.Pars, stge.Modl, stge.Modl.Transits
+
+        permPos, tranPos = (
             Pars.IncShkDstn.parameters['ShkPosn']['perm'],
             Pars.IncShkDstn.parameters['ShkPosn']['tran'])
 
         zeros = curr_post_states - curr_post_states  # zeros of the right size
 
-        xfer_dict = {
-            'permShk': xfer_shks_bcst[permPos] + zeros, # + zeros fixes size
+        xfer_vars = {
+            'permShk': xfer_shks_bcst[permPos] + zeros,  # + zeros fixes size
             'tranShk': xfer_shks_bcst[tranPos] + zeros,
             'aNrm': curr_post_states
-            }
+        }
 
-        # Everything needed to execute the transition equations        
-        Info = {**Pars.__dict__, **xfer_dict}
-        
-        transitions = Modl.transitions.crnt_post_to_next_ante
+        # Everything needed to execute the transition equations
+        Info = {**Pars.__dict__, **xfer_vars}
+
+        post_to_ante = Transits.crnt_post_to_next_ante
         # They are already defined; just execute them
-        for eqn_name in transitions.__dict__['eqns'].keys():
-#            print(eqn_name)
-            exec(transitions.__dict__['eqns'][eqn_name],Info)
-        
+        for eqn_name in post_to_ante.__dict__['eqns'].keys():
+            #            print(eqn_name)
+            exec(post_to_ante.__dict__['eqns'][eqn_name], Info)
+
         tp1 = SimpleNamespace()
         tp1.mNrm = Info['mNrm']
 #        breakpoint()
