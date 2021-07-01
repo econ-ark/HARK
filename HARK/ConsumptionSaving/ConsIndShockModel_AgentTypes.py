@@ -16,7 +16,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel_CommonDefs \
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
     import (ConsumerSolutionOneStateCRRA,
             ConsPerfForesightSolver,
-            ConsIndShockSolverBasic, ConsIndShockSolver
+            ConsIndShockSolverBasic, ConsIndShockSolver,
+            Built
             )
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
     import (init_perfect_foresight, init_idiosyncratic_shocks)
@@ -34,6 +35,7 @@ from HARK.utilities import uPPFunc_CRRA_stone_geary as uPP_stone_geary
 from HARK.utilities import CRRAutility_invP as utility_invP
 from HARK.utilities import CRRAutility_inv as utility_inv
 from HARK.utilities import CRRAutilityP as utilityP_invP
+
 
 # from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve_EndOfPeriodValue \
 #    import (ConsIndShockSolverBasicEOP
@@ -258,9 +260,6 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
             self, solution_terminal=solution_startfrom,  # whether handmade or default
             cycles=cycles, pseudo_terminal=False, **kwds)
 
-#        cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0], [0.0, 1.0])
-        cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0, 2.0], [0.0, 1.0, 2.0], [0.0, 1.0, 2.0])
-
         # The below config of the 'afterlife' is constructed so that when
         # the standard lifetime transition rules are applied, the nobequest
         # terminal solution defined below is generated.
@@ -276,33 +275,56 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         vFunc.dm.dm = vPPfunc = vFunc
 
         def cFunc(m): return float('inf')  # With CRRA utility, c=inf gives v=0
+        cFunc.derivativeX = lambda m: float('inf')
+
+        mNrmMin, hNrm, MPCmin, MPCmax = 0.0, -1.0, float('inf'), float('inf')
 
         solution_afterlife_nobequest_ = ConsumerSolutionOneStateCRRA(
             vFunc=vFunc,
             vPfunc=vPfunc,
             vPPfunc=vPPfunc,
             cFunc=cFunc,
-            mNrmMin=0.0,
-            hNrm=-1.0,
-            MPCmin=float('inf'),
-            MPCmax=float('inf'),
+            mNrmMin=mNrmMin,
+            hNrm=-hNrm,
+            MPCmin=MPCmin,
+            MPCmax=MPCmax,
             stge_kind={
                 'iter_status': 'afterlife',
                 'term_type': 'nobequest'},
             completed_cycles=-1
         )
+        Bilt = solution_afterlife_nobequest_.Bilt
+        Bilt.cFunc, Bilt.vFunc, Bilt.mNrmMin, Bilt.hNrm, Bilt.MPCmin, Bilt.MPCmax = \
+            cFunc, vFunc, mNrmMin, hNrm, MPCmin, MPCmax
+
+        mNrmMin, hNrm, MPCmin, MPCmax = 0.0, 0.0, 1.0, 1.0
+
+        # This is the solution that would be constructed by applying
+        # our normal iteration tools to solution_afterlife_nobequest_
+
+        cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0, 2.0], [0.0, 1.0, 2.0], [0.0, 1.0, 2.0])
+#        cFunc_terminal_nobequest_.derivativeX = lambda m: 1.0
+        cFunc = cFunc_terminal_nobequest_
+
+        CRRA = 2.0
+        def u(c): CRRAutility(c, CRRA)
 
         solution_nobequest_ = \
             ConsumerSolutionOneStateCRRA(  # Omit vFunc b/c u not yet def
                 cFunc=cFunc_terminal_nobequest_,
-                mNrmMin=0.0,
-                hNrm=0.0,
-                MPCmin=1.0,
-                MPCmax=1.0,
+                vFunc=u,
+                mNrmMin=mNrmMin,
+                hNrm=hNrm,
+                MPCmin=MPCmin,
+                MPCmax=MPCmin,
                 stge_kind={
                     'iter_status': 'terminal_pseudo',  # will be replaced with iterator
                     'term_type': 'nobequest'
                 })
+
+        Bilt = solution_nobequest_.Bilt
+        Bilt.cFunc, Bilt.vFunc, Bilt.mNrmMin, Bilt.hNrm, Bilt.MPCmin, Bilt.MPCmax = \
+            cFunc, vFunc, mNrmMin, hNrm, MPCmin, MPCmax
 
         solution_nobequest_.solution_next = solution_afterlife_nobequest_
         # solution_terminal_ is defined for legacy/compatability reasons
@@ -312,6 +334,7 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         # so make a deepcopy so that if multiple agents get created, we
         # always use the unaltered "master" solution_terminal_
         self.solution_terminal = deepcopy(solution_terminal_)
+#        breakpoint()
 
 
 class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
@@ -382,6 +405,7 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
             Bilt.mNrm_kinks = [Bilt.mNrm_cusp]
             Bilt.vNrm_kinks = [Bilt.vNrm_cusp]
             Bilt.MPC_kinks = [1.0]
+            Bilt.hNrm = 0.0
             _log.info(msg)
             return
 
@@ -684,41 +708,42 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         # If no solution exists for the agent,
         # core.py uses solution_terminal as solution_next
 
-        solution_terminal_Bilt = self.solution_terminal.Bilt
+        solution_terminal = self.solution_terminal
+#        solution_terminal_Bilt = self.solution_terminal.Bilt
 
         # Natural borrowing constraint: Cannot die in debt
         # Measured after income = tranShk*permShk/permShk received
-        if not hasattr(solution_terminal_Bilt, 'hNrm'):
+        if not hasattr(solution_terminal.Bilt, 'hNrm'):
             _log.warning('warning: hNrm should be set in solution_terminal.')
             _log.warning('assuming solution_terminal.hNrm = 0.')
-            solution_terminal_Bilt.hNrm = 0.
-        solution_terminal_Bilt.BoroCnstNat = -solution_terminal_Bilt.hNrm
+            solution_terminal.Bilt.hNrm = 0.
+        solution_terminal.Bilt.BoroCnstNat = -solution_terminal.Bilt.hNrm
 
         # Define BoroCnstArt if not yet defined
         if not hasattr(self.parameters, 'BoroCnstArt'):
-            solution_terminal_Bilt.BoroCnstArt = None
+            solution_terminal.Bilt.BoroCnstArt = None
         else:
-            solution_terminal_Bilt.BoroCnstArt = self.parameters.BoroCnstArt
+            solution_terminal.Bilt.BoroCnstArt = self.parameters.BoroCnstArt
 
-        solution_terminal_Bilt.stge_kind = {'iter_status': 'terminal_pseudo'}
+        solution_terminal.Bilt.stge_kind = {'iter_status': 'terminal_pseudo'}
 
         # Solution options
         if hasattr(self, 'vFuncBool'):
-            solution_terminal_Bilt.vFuncBool = self.parameters['vFuncBool']
+            solution_terminal.Bilt.vFuncBool = self.parameters['vFuncBool']
         else:  # default to true
-            solution_terminal_Bilt.vFuncBool = True
+            solution_terminal.Bilt.vFuncBool = True
 
         if hasattr(self, 'CubicBool'):
-            solution_terminal_Bilt.CubicBool = self.parameters['CubicBool']
+            solution_terminal.Bilt.CubicBool = self.parameters['CubicBool']
         else:  # default to false (linear)
-            solution_terminal_Bilt.CubicBool = False
+            solution_terminal.Bilt.CubicBool = False
 
-        solution_terminal_Bilt.parameters = self.parameters
+        solution_terminal.Bilt.parameters = self.parameters
         CRRA = self.CRRA
-        solution_terminal_Bilt = def_utility(solution_terminal_Bilt, CRRA)
-        solution_terminal_Bilt = def_value_funcs(solution_terminal_Bilt, CRRA)
+        solution_terminal.Bilt = def_utility(solution_terminal.Bilt, CRRA)
+        solution_terminal.Bilt = def_value_funcs(solution_terminal.Bilt, CRRA)
 
-        return solution_terminal_Bilt
+        return solution_terminal.Bilt
 
     check_conditions_solver = solver_check_conditions = check_conditions
 

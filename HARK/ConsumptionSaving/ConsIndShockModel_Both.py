@@ -98,7 +98,7 @@ def def_transition_before_to_after_choice(stge):
 
     eqns_source = {
         'aNrm': 'aNrm = mNrm - cNrm',
-        'after_choice_states': 'after_choie_states = aNrm'
+        'after_choice_states': 'after_choice_states = aNrm'
     }
 
     choose = TransitionFunctions()
@@ -135,7 +135,7 @@ def def_transition_ante_to_choice(stge):
     ante_to_choice.vals = {}
 
     for eqn_name in eqns_source.keys():
-#        print(eqn_name+': '+eqns_source[eqn_name])
+        #        print(eqn_name+': '+eqns_source[eqn_name])
         tree = parse(eqns_source[eqn_name], mode='exec')
         code = compile(tree, filename="<ast>", mode='exec')
         ante_to_choice.eqns.update({eqn_name: code})
@@ -145,7 +145,7 @@ def def_transition_ante_to_choice(stge):
 
     ante_to_choice.eqns_source = eqns_source
     Modl.Transitions.ante_to_choice = ante_to_choice  # Save uncompiled source code
-    
+
     return stge
 
 
@@ -200,6 +200,8 @@ def def_utility(stge, CRRA):
         code = compile(tree, filename="<ast>", mode='exec')
         Modl.Rewards.eqns.update({eqn_name: code})
         exec(code, {**globals(), **Info}, Modl.Rewards.vals)
+
+        Modl.Rewards.eqns_source = eqns_source
 
 #     # Can't use partial() here because it does not allow positional arguments
 #     # Google: how-to-fill-specific-positional-arguments-with-partial-in-python

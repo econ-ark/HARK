@@ -158,25 +158,21 @@ class ConsumerSolution(ConsumerSolutionOlder):
         Bilt = self.Bilt = Built()
         Pars = self.Pars = Parameters()
         Pars.about = {'Parameters exogenously given'}
-        # transitions.update({'RNrm': 'Rfree / (PermGroFac * permShk)'})
-        # transitions.update({'bNrm': 'aNrm * RNrm'})
-        # transitions.update({'yNrm': 'tranShk'})
-        # transitions.update({'mNrm': 'bNrm + yNrm'})
 
-        Bilt.recursive = {'cFunc',  # 'vFunc',  # 'vPfunc', 'vPPfunc',  'vFuncNvrs',
-                          #             'vFunc.dm', 'vFunc.dm.dm',
-                          #             'u',  # 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
-                          #             'hNrm',
-                          'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA',
-                          'vAdd'
-                          }
+        # Bilt.recursive = {'cFunc',  # 'vFunc',  # 'vPfunc', 'vPPfunc',  'vFuncNvrs',
+        #                   #             'vFunc.dm', 'vFunc.dm.dm',
+        #                   #             'u',  # 'uP', 'uPP', 'uPinv', 'uPinvP', 'uinvP', 'uinv',
+        #                   #             'hNrm',
+        #                   'mNrmMin', 'MPCmin', 'MPCmax', 'BoroCnstNat', 'CRRA',
+        #                   'vAdd'
+        #                   }
 
         # Store recursive stuff in Bilt namespace
-        exclude = {''}  # Allow things that should be excluded
-        for key in (k for k in Bilt.recursive if k not in exclude):  #
-            if hasattr(self, key):
-                setattr(Bilt, key, self.__dict__[key])
-                delattr(self, key)
+        # exclude = {''}  # Allow things that should be excluded
+        # for key in (k for k in Bilt.recursive if k not in exclude):  #
+        #     if hasattr(self, key):
+        #         setattr(Bilt, key, self.__dict__[key])
+        #         delattr(self, key)
 
         # Stuff added; should (ultimately) be incorporated in ConsumerSolution
         Bilt.stge_kind = stge_kind
@@ -238,10 +234,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         # self.Modl.Transitions.crnt_ante_to_this_choice = TransitionFunctions()
 
         # These things have been moved to Bilt to declutter whiteboard
-#        del self.mNrmMin
-#        del self.hNrm
-#        del self.MPCmin
-#       del self.MPCmax
+        del self.hNrm
         del self.vFunc
 #        del self.cFunc
         del self.vPfunc
@@ -557,11 +550,11 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         solution_terminal = self.solution_terminal
 
         # Natural borrowing constraint: Cannot die in debt
-        # Measured after income = tranShk*permShk/permShk received
-        if not hasattr(solution_terminal, 'hNrm'):
-            _log('warning: hNrm should be set in solution_terminal.')
-            _log('assuming solution_terminal.hNrm = 0.')
-            solution_terminal.hNrm = 0.0
+        # # Measured after income = tranShk*permShk/permShk received
+        # if not hasattr(solution_terminal, 'hNrm'):
+        #     _log('warning: hNrm should be set in solution_terminal.')
+        #     _log('assuming solution_terminal.hNrm = 0.')
+        #     solution_terminal.hNrm = 0.0
 
         # BoroCnstNat might be nonzero if resuming
         solution_terminal.BoroCnstNat = -solution_terminal.hNrm
@@ -2046,7 +2039,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
     inherits.
     """
 
-    def make_ending_states(self):
+    def make_post_choice_state_grid(self):
         """
         Prepare to calculate end-of-period marginal value by creating an array
         of asset values with which the agent might end the current period.
@@ -2306,20 +2299,24 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         # Need to define vFunc so we can define vFunc.dm
         Bilt.vFunc = vFunc = NullFunc()  # Not calculating the level of value -- yet
+#        breakpoint()
+        Bilt.cFunc = cFunc
 
         # Bilt.vPfunc = Bilt.vFunc.dm = MargValueFuncCRRA(cFunc, Pars.CRRA)
 #        Bilt.vFunc.dm = vPfunc = MargValueFuncCRRA(cFunc, Pars.CRRA)
-        vFunc.dm = MargValueFuncCRRA(cFunc, Pars.CRRA)
+        vFunc.dm = MargValueFuncCRRA(Bilt.cFunc, Pars.CRRA)
         Bilt.vFunc.dm.dm = MargMargValueFuncCRRA(Bilt.cFunc, Pars.CRRA)
 
         # Pack up the solution and return it
         solution_interpolating = ConsumerSolutionOneStateCRRA(
-            cFunc=cFunc,
+#            cFunc=cFunc,
             vFunc=vFunc,
             #            vPfunc=vPfunc,
-            mNrmMin=Bilt.mNrmMin,
+#            mNrmMin=Bilt.mNrmMin,
             CRRA=Pars.CRRA
         )
+        solution_interpolating.Bilt.cFunc = cFunc
+        
 
         return solution_interpolating
 
@@ -2427,6 +2424,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         solution : ConsumerSolution object
             Contains info (like vFunc.dm) required to construct consumption
         """
+        soln_crnt = self.soln_crnt
 
         # Add a bunch of useful info to solution object
         # CDC 20200428: "useful" only for a candidate converged solution
@@ -2442,9 +2440,9 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         self.build_facts_recursive()  # These require solution to successor
 
         # Current CRRA might be different from future
-        soln_crnt = def_utility(self.soln_crnt, self.soln_crnt.Pars.CRRA)
-        soln_crnt = def_transition_post_to_ante(self.soln_crnt)
-        soln_crnt = self.make_ending_states()
+        soln_crnt = def_utility(soln_crnt, soln_crnt.Pars.CRRA)
+        soln_crnt = def_transition_post_to_ante(soln_crnt)
+        soln_crnt = self.make_post_choice_state_grid()
         self.add_Post_Choice_Value()
 
         return soln_crnt
@@ -2492,6 +2490,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         # TODO CDC 20210615: This is a kludge to get things to work without modifying
         # core.py. Think about how to change core.py to address more elegantly
+
         if self.soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_pseudo':
             soln_crnt = def_utility(soln_crnt, CRRA)
             soln_crnt = def_value_funcs(soln_crnt, CRRA)
@@ -2526,7 +2525,9 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         # Having calculated (marginal value, etc) of saving, construct c
 
+#        breakpoint()
         sol_EGM = self.make_sol_using_EGM()
+#        breakpoint()
         soln_crnt.Bilt.cFunc = soln_crnt.cFunc = sol_EGM.Bilt.cFunc
         soln_crnt = def_value_funcs(soln_crnt, CRRA)  # add value funcs
         return soln_crnt
