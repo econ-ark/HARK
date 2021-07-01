@@ -20,15 +20,83 @@ from HARK.interpolation import (LinearInterp,
                                 MargMargValueFuncCRRA)
 import numpy as np
 from copy import copy, deepcopy
-#import dolo.misc.dprint as dprint
+# import dolo.misc.dprint as dprint
 from types import SimpleNamespace
 from ast import parse as parse  # Allow storing python stmts as objects
 
 
-def print_last_line():
-    import inspect
-    d = inspect.currentframe().f_back.f_locals
-    print(f"Value of a: {d['a']}")
+class Transitions(SimpleNamespace):
+    """
+    Transitions between stges of the solution process
+    """
+# TODO: Move (to core.py) when vetted/agreed
+    pass
+
+
+class Information(SimpleNamespace):
+    """
+    Parameters, functions, etc needed for model equations
+    """
+    pass
+
+
+def def_transition_post_to_ante(stge):
+    """
+    Transition from end of one period to beginning of next.
+    """
+
+#    Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
+#    Info = Modl.Info = {**Bilt.__dict__, **Pars.__dict__}
+
+    eqns_source = {
+        'RNrm': 'RNrm = Rfree / (PermGroFac * permShk)',
+        'bNrm': 'bNrm = aNrm * RNrm',
+        'yNrm': 'yNrm = tranShk',
+        'mNrm': 'mNrm = bNrm + yNrm',
+        'next_ante_states': 'next_ante_states = mNrm'
+        }
+            
+    post_to_ante = Transitions()
+    post_to_ante.eqns = {}
+    post_to_ante.vals = {}
+
+    for eqn_name in eqns_source.keys():
+#        print(eqn_name+': '+eqns_source[eqn_name])
+        tree = parse(eqns_source[eqn_name], mode='exec')
+        code = compile(tree, filename="<ast>", mode='exec')
+        post_to_ante.eqns.update({eqn_name: code})
+#        exec(code, {**globals(), **Info}, post_to_ante.vals)
+
+    stge.Modl.transitions.crnt_post_to_next_ante = post_to_ante
+
+    return stge
+
+
+# This is here as a placeholder
+def def_transition_ante_to_choice(stge):
+    """
+    Transition from beginning of period to decision stage
+    """
+
+    Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
+    Info = Modl.Info = {**Bilt.__dict__, **Pars.__dict__}
+
+    eqns_source = {
+        {'new_var': 'new_var = 1.0'},
+    }
+
+    ante_to_choice = Transitions()
+    ante_to_choice.eqns = {}
+    ante_to_choice.vals = {}
+
+    for eqn_name in eqns_source.keys():
+        print(eqn_name+': '+eqns_source[eqn_name])
+        tree = parse(eqns_source[eqn_name], mode='exec')
+        code = compile(tree, filename="<ast>", mode='exec')
+        ante_to_choice.eqns.update({eqn_name: code})
+        exec(code, {**globals(), **Info}, ante_to_choice.vals)
+
+    Bilt.__dict__.update({k: v for k, v in ante_to_choice.items()})
 
 
 def def_utility(stge, CRRA):
@@ -48,8 +116,6 @@ def def_utility(stge, CRRA):
     Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
     Info = Modl.Info = {**Bilt.__dict__, **Pars.__dict__}
 
-#    Modl.reward = {}
-
     Modl.rewards = SimpleNamespace()
     Modl.rewards.eqns = {}
     Modl.rewards.vals = {}
@@ -59,7 +125,7 @@ def def_utility(stge, CRRA):
                  'CRRAutility_inv', 'CRRAutility_invP', 'CRRAutilityP_inv',
                  'CRRAutilityP_invP'}:
         Info[func] = globals()[func]
-    
+
     # Hard-wire the passed CRRA into the utility function and its progeny
     eqns_source = {
         'u_D0':
@@ -74,12 +140,12 @@ def def_utility(stge, CRRA):
             'u.Nvrs.du = lambda u: CRRAutility_invP(u, '+str(CRRA)+')',
         'u_D1_Nvrs':
             'u.dc.Nvrs = lambda uP: CRRAutilityP_inv(uP, '+str(CRRA)+')',
-        'u_D1_Nvrs_D1': 
+        'u_D1_Nvrs_D1':
             'u.dc.Nvrs.du = lambda uP: CRRAutilityP_invP(uP, '+str(CRRA)+')',
     }
-    
+
     for eqn_name in eqns_source.keys():
-#        print(eqn_name+': '+eqns_source[eqn_name])
+        #        print(eqn_name+': '+eqns_source[eqn_name])
         tree = parse(eqns_source[eqn_name], mode='exec')
         code = compile(tree, filename="<ast>", mode='exec')
         Modl.rewards.eqns.update({eqn_name: code})
@@ -149,8 +215,7 @@ def def_value_funcs(stge, CRRA):
     Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
 
     # Info needed to create the model objects
-    Info = Modl.Info = {**Bilt.__dict__,
-                        **Pars.__dict__}
+    Info = Modl.Info = {**Bilt.__dict__, **Pars.__dict__}
     Info['about'] = {'Info available when model creation equations are executed'}
 
     Modl.value = SimpleNamespace()
@@ -316,16 +381,16 @@ def apply_flat_income_tax(
     IncShkDstn_new : [distribution.Distribution]
         The updated income distributions, after applying the tax.
     """
-    unemployed_indices=(
+    unemployed_indices = (
         unemployed_indices if unemployed_indices is not None else list()
     )
-    IncShkDstn_new=deepcopy(IncShkDstn)
-    i=transitory_index
+    IncShkDstn_new = deepcopy(IncShkDstn)
+    i = transitory_index
     for t in range(len(IncShkDstn)):
         if t < T_retire:
             for j in range((IncShkDstn[t][i]).size):
                 if j not in unemployed_indices:
-                    IncShkDstn_new[t][i][j]=IncShkDstn[t][i][j] * (1 - tax_rate)
+                    IncShkDstn_new[t][i][j] = IncShkDstn[t][i][j] * (1 - tax_rate)
     return IncShkDstn_new
 
 # =======================================================

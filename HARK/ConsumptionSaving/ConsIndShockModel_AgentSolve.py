@@ -10,7 +10,7 @@ from builtins import (str, breakpoint)
 from types import SimpleNamespace
 from IPython.lib.pretty import pprint
 from HARK.ConsumptionSaving.ConsIndShockModel_Both import (
-    def_utility, def_value_funcs)
+    def_utility, def_value_funcs, def_transition_post_to_ante)
 from HARK.distribution import (calc_expectation, calc_expectation_of_array)
 from HARK.interpolation import (CubicInterp, LowerEnvelope, LinearInterp,
                                 MargValueFuncCRRA,
@@ -19,6 +19,8 @@ from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModelOld \
     import ConsumerSolution as ConsumerSolutionOlder
 
+#from ast import parse as parse  # Allow storing python stmts as objects
+from HARK.ConsumptionSaving.ConsIndShockModel_Both import Transitions
 
 class Built(SimpleNamespace):
     """
@@ -139,20 +141,21 @@ class ConsumerSolution(ConsumerSolutionOlder):
                  **kwds):
         ConsumerSolutionOlder.__init__(self, *args, **kwds)
 
-        # Most previous "whiteboard" content is now on "Bilt"
+        # Previous "whiteboard" content is now on "Bilt" or "Pars" or "E_t"
         Bilt = self.Bilt = Built()
         Pars = self.Pars = Parameters()
         Pars.about = {'Parameters exogenously given'}
-        self.E_t = Expectations()  # Namespace for expectations
+        self.E_t = Expectations()
 
         # xfer is short for transfer, which is short for transition
         # These equations are used to construct the transition dynamics
         self.Modl = Model()
-        transitions = self.Modl.transitions_crnt_post_to_next_ante = {}
-        transitions.update({'RNrm': 'Rfree / (PermGroFac * permShk)'})
-        transitions.update({'bNrm': 'aNrm * RNrm'})
-        transitions.update({'yNrm': 'tranShk'})
-        transitions.update({'mNrm': 'bNrm + yNrm'})
+        self.Modl.transitions = Transitions()
+        # transitions = self.Modl.transitions.crnt_post_to_next_ante = {}
+        # transitions.update({'RNrm': 'Rfree / (PermGroFac * permShk)'})
+        # transitions.update({'bNrm': 'aNrm * RNrm'})
+        # transitions.update({'yNrm': 'tranShk'})
+        # transitions.update({'mNrm': 'bNrm + yNrm'})
 
         Bilt.recursive = {'cFunc',  # 'vFunc',  # 'vPfunc', 'vPPfunc',  'vFuncNvrs',
                           #             'vFunc.dm', 'vFunc.dm.dm',
@@ -276,12 +279,12 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         soln_crnt.Bilt.degenerate = False  # True: solution is degenerate
 
         if not hasattr(self, 'verbose'):  # If verbose not set yet
-            verbose=0
+            verbose = 0
         else:
-            verbose=verbose if verbose is None else verbose
+            verbose = verbose if verbose is None else verbose
 
-        msg='\nFor a model with the following parameter values:\n'
-        msg=msg+'\n'+str(soln_crnt.Bilt.parameters_solver)+'\n'
+        msg = '\nFor a model with the following parameter values:\n'
+        msg = msg+'\n'+str(soln_crnt.Bilt.parameters_solver)+'\n'
 
         if verbose >= 2:
             _log.info(msg)
@@ -290,7 +293,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
             for key in soln_crnt.Bilt.parameters_solver.keys():
                 print('\t'+key+': ', end='')
                 pprint(soln_crnt.Bilt.parameters_solver[key])
-            msg='\nThe following results hold:\n'
+            msg = '\nThe following results hold:\n'
             _log.info(msg)
 
         soln_crnt.check_AIC(soln_crnt, verbose)
@@ -304,36 +307,36 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         # degenerate flag is true if the model has no nondegenerate solution
         if hasattr(soln_crnt.Bilt, "BoroCnstArt") \
                 and soln_crnt.Pars.BoroCnstArt is not None:
-            soln_crnt.degenerate=not soln_crnt.Bilt.RIC
+            soln_crnt.degenerate = not soln_crnt.Bilt.RIC
             # If BoroCnstArt exists but RIC fails, limiting soln is c(m)=0
         else:  # No constraint; not degenerate if neither c(m)=0 or \infty
-            soln_crnt.degenerate=not soln_crnt.Bilt.RIC or not soln_crnt.Bilt.FHWC
+            soln_crnt.degenerate = not soln_crnt.Bilt.RIC or not soln_crnt.Bilt.FHWC
 
     def check_AIC(self, stge, verbose=None):
         """
         Evaluate and report on the Absolute Impatience Condition
         """
-        name="AIC"
+        name = "AIC"
 
         def test(stge): return stge.Bilt.APF < 1
 
-        messages={
+        messages = {
             True: "\n\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, satisfies the Absolute Impatience Condition (AIC), which requires APF < 1:\n    "+stge.Bilt.AIC_fcts['urlhandle'],
             False: "\n\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, violates the Absolute Impatience Condition (AIC), which requires APF < 1:\n    "+stge.Bilt.AIC_fcts['urlhandle']
         }
-        verbose_messages={
+        verbose_messages = {
             True: "\n  Because the APF < 1,  the absolute amount of consumption is expected to fall over time.  \n",
             False: "\n  Because the APF > 1, the absolute amount of consumption is expected to grow over time.  \n",
         }
 
-        stge.Bilt.AIC=core_check_condition(name, test, messages, verbose,
+        stge.Bilt.AIC = core_check_condition(name, test, messages, verbose,
                                              verbose_messages, "APF", stge)
 
     def check_FVAC(self, stge, verbose=None):
         """
         Evaluate and report on the Finite Value of Autarky Condition
         """
-        name="FVAC"
+        name = "FVAC"
         def test(stge): return stge.Bilt.FVAF < 1
 
         messages={
@@ -614,7 +617,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
     def __init__(
             self, solution_next, DiscFac=1.0, LivPrb=1.0, CRRA=2.0, Rfree=1.0,
             PermGroFac=1.0, BoroCnstArt=None, MaxKinks=None, **kwds
-    ):
+            ):
 
         self.soln_futr = soln_futr = solution_next
         self.soln_crnt = ConsumerSolutionOneStateCRRA()
@@ -665,7 +668,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         # Reduce cluttered formulae with local aliases
         soln_crnt = self.soln_crnt
         futr = self.soln_futr
-        Bilt, folw, Pars = soln_crnt.Bilt, soln_crnt.folw, soln_crnt.Pars
+        Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
         E_t = soln_crnt.E_t
 
         Rfree, PermGroFac, MPCmin = Pars.Rfree, Pars.PermGroFac, Bilt.MPCmin
@@ -679,7 +682,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #        uinv = Bilt.uinv
 #        uPinv = Bilt.uPinv
 
-        folw.PF_IncNrm_tp1 = E_t.IncNrmNxt
+        
         DiscLiv = DiscFac * LivPrb
         CRRA = Pars.CRRA
         CRRA_tp1 = futr.vFunc.CRRA
@@ -698,7 +701,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         vNrm_kinks_tp1 = futr.vFunc(mNrm_kinks_tp1)
 
         # Calculate end-of-this-period aNrm vals that would reach those mNrm's
-        aNrm_kinks = (mNrm_kinks_tp1 - folw.PF_IncNrm_tp1)*(PermGroFac/Rfree)
+        aNrm_kinks = (mNrm_kinks_tp1 - E_t.IncNrmNxt)*(PermGroFac/Rfree)
 
         # Obtain c_t from which unconstrained consumers would land on each
         # kink next period by inverting FOC: c_t = (RβΠ)^(-1/ρ) c_tp1
@@ -716,7 +719,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
         # _v_t(aNrm) is value as of the END of period t
         # _v_t'(aNrmMin) = RβΠ (Γ**(-ρ)) folw.v'(bNrmMin+folw.PF_IncNrmNxt)
-        mNrmMin_tp1 = folw.PF_IncNrm_tp1 + BoroCnst * (Rfree/PermGroFac)
+        mNrmMin_tp1 = E_t.IncNrmNxt + BoroCnst * (Rfree/PermGroFac)
 
         _v_t_at_BoroCnst = \
             (DiscLiv * PermGroFac**(1-CRRA_tp1) *
@@ -769,7 +772,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         mNrmGrid_unconst = np.append(mNrm_kinks, mNrm_kinks+1)
         cNrmGrid_unconst = np.append(cNrm_kinks, cNrm_kinks+MPCmin)
         aNrmGrid_unconst = mNrmGrid_unconst-cNrmGrid_unconst
-        mNrmGrid_tp1_unconst = aNrmGrid_unconst*(Rfree/PermGroFac)+folw.PF_IncNrm_tp1
+        mNrmGrid_tp1_unconst = aNrmGrid_unconst*(Rfree/PermGroFac)+E_t.IncNrmNxt
         vNrmGrid_unconst = u(cNrmGrid_unconst)+(DiscLiv * PermGroFac**(1-CRRA_tp1) *
                                                 futr.vFunc(mNrmGrid_tp1_unconst))
         vInvGrid_unconst = u.Nvrs(vNrmGrid_unconst)
@@ -1060,7 +1063,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         # Using local variables makes formulae more readable
         soln_crnt = self.soln_crnt  # current
         Bilt = self.soln_crnt.Bilt  # built
-        folw = self.soln_crnt.folw  # following stage
+#        folw = self.soln_crnt.folw  # following stage
         Pars = self.soln_crnt.Pars  # parameters
 
         E_t = self.soln_crnt.E_t
@@ -1068,7 +1071,8 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         urlroot = Bilt.urlroot
         Pars.DiscLiv = Pars.DiscFac * Pars.LivPrb
         # givens are not changed by the calculations below; Bilt and E_t are
-        givens = {**folw.__dict__, **Pars.__dict__}
+#        givens = {**folw.__dict__, **Pars.__dict__}
+        givens = {**Pars.__dict__}
 
         APF_fcts = {
             'about': 'Absolute Patience Factor'
@@ -1310,11 +1314,12 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         soln_crnt = self.soln_crnt
         Bilt = soln_crnt.Bilt
         tp1 = self.soln_futr.Bilt
-        folw = soln_crnt.folw
+#        folw = soln_crnt.folw
         Pars = soln_crnt.Pars
         E_t = soln_crnt.E_t
 
-        givens = {**folw.__dict__, **Pars.__dict__, **locals()}
+#        givens = {**folw.__dict__, **Pars.__dict__, **locals()}
+        givens = {**Pars.__dict__, **locals()}
         urlroot = Bilt.urlroot
         Pars.DiscLiv = Pars.DiscFac * Pars.LivPrb
 
@@ -1495,7 +1500,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         """
 
         soln_crnt = self.soln_crnt
-        soln_futr = self.soln_futr
+#        soln_futr = self.soln_futr
 
         Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
 
@@ -1510,9 +1515,10 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         # be deepcopied as a standalone object and solved without soln_futr
         # or soln_crnt
 
-        folw = soln_crnt.folw = Successor()
+#        folw = soln_crnt.folw = Successor()
 
         # Catch degenerate case of zero-variance income distributions
+        # These are "test cases" that will otherwise fail
         if hasattr(Pars, "tranShkVals") and hasattr(Pars, "permShkVals"):
             if ((Pars.tranShkMin == 1.0) and (Pars.permShkMin == 1.0)):
                 soln_crnt.E_t.Inv_permShk = 1.0
@@ -1695,12 +1701,13 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         super().build_facts_infhor()
         soln_crnt = self.soln_crnt
 
-        Bilt, folw, Pars = soln_crnt.Bilt, soln_crnt.folw, soln_crnt.Pars
+        Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
 
         E_t = soln_crnt.E_t
 
         # The 'givens' do not change as facts are constructed
-        givens = {**folw.__dict__, **Pars.__dict__, **soln_crnt.__dict__}
+#        givens = {**folw.__dict__, **Pars.__dict__, **soln_crnt.__dict__}
+        givens = {**Pars.__dict__, **soln_crnt.__dict__}
 
         Bilt.𝔼_dot = 𝔼_dot  # add the expectations operator to envt
         Bilt.E_dot = E_dot  # plain not doublestruck E
@@ -2427,6 +2434,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         # Current CRRA might be different from future
         soln_crnt = def_utility(self.soln_crnt, self.soln_crnt.Pars.CRRA)
+        soln_crnt = def_transition_post_to_ante(self.soln_crnt)
         soln_crnt = self.make_ending_states()
         self.add_Post_Choice_Value()
 
@@ -2535,26 +2543,35 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         -------
         next_ante_states : namespace with results of applying transition eqns
         """
-        Pars = self.soln_crnt.Pars
-        permPos = Pars.IncShkDstn.parameters['ShkPosn']['perm']
-        tranPos = Pars.IncShkDstn.parameters['ShkPosn']['tran']
-        zeros = curr_post_states - curr_post_states  # adding zeros fixes size
-        permShk = xfer_shks_bcst[permPos] + zeros
-        tranShk = xfer_shks_bcst[tranPos] + zeros
+        
+        stge = self.soln_crnt
+        Pars, Modl = stge.Pars, stge.Modl
 
-        next_ante_states = Ante_Choice()
-        aNrm = curr_post_states
+        permPos, tranPos = (\
+            Pars.IncShkDstn.parameters['ShkPosn']['perm'],
+            Pars.IncShkDstn.parameters['ShkPosn']['tran'])
 
-        transitions = self.soln_crnt.Modl.transitions_crnt_post_to_next_ante
-        for key in transitions.keys():
-            setattr(next_ante_states, key,
-                    eval(transitions[key], {},
-                         {**locals(),
-                          **Pars.__dict__,
-                          **next_ante_states.__dict__})
-                    )
+        zeros = curr_post_states - curr_post_states  # zeros of the right size
 
-        return next_ante_states
+        xfer_dict = {
+            'permShk': xfer_shks_bcst[permPos] + zeros, # + zeros fixes size
+            'tranShk': xfer_shks_bcst[tranPos] + zeros,
+            'aNrm': curr_post_states
+            }
+
+        # Everything needed to execute the transition equations        
+        Info = {**Pars.__dict__, **xfer_dict}
+        
+        transitions = Modl.transitions.crnt_post_to_next_ante
+        # They are already defined; just execute them
+        for eqn_name in transitions.__dict__['eqns'].keys():
+#            print(eqn_name)
+            exec(transitions.__dict__['eqns'][eqn_name],Info)
+        
+        tp1 = SimpleNamespace()
+        tp1.mNrm = Info['mNrm']
+#        breakpoint()
+        return tp1
 
 
 class ConsIndShockSolverBasic(ConsIndShockSolverBasicEOP):
