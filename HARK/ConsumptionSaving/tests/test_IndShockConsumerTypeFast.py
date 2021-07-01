@@ -109,9 +109,9 @@ class testBufferStock(unittest.TestCase):
         GICRaw_fail_dictionary = dict(self.base_params)
         GICRaw_fail_dictionary["Rfree"] = 1.08
         GICRaw_fail_dictionary["PermGroFac"] = [1.00]
+        GICRaw_fail_dictionary['cycles'] = 0 # cycles=0 makes this an infinite horizon consumer
 
         GICRawFailExample = IndShockConsumerTypeFast(
-            cycles=0,  # cycles=0 makes this an infinite horizon consumer
             **GICRaw_fail_dictionary
         )
 
@@ -126,8 +126,8 @@ class testBufferStock(unittest.TestCase):
         self.assertFalse(GICRawFailExample.conditions["GICRaw"])
 
     def test_infinite_horizon(self):
-        baseEx_inf = IndShockConsumerTypeFast(cycles=0, **self.base_params)
-
+        baseEx_inf = IndShockConsumerTypeFast(**self.base_params)
+        baseEx_inf.assign_parameters(cycles = 0)
         baseEx_inf.solve()
         baseEx_inf.unpack_cFunc()
 
@@ -157,7 +157,7 @@ class testBufferStock(unittest.TestCase):
 class testIndShockConsumerTypeFastExample(unittest.TestCase):
     def test_infinite_horizon(self):
         IndShockExample = IndShockConsumerTypeFast(**IdiosyncDict)
-        IndShockExample.cycles = 0  # Make this type have an infinite horizon
+        IndShockExample.assign_parameters(cycles = 0)  # Make this type have an infinite horizon
         IndShockExample.solve()
 
         self.assertAlmostEqual(IndShockExample.solution[0].mNrmStE, 1.5488165705077026)
