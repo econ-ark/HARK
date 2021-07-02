@@ -61,7 +61,7 @@ class Ante_Choice(SimpleNamespace):
     """
 
 
-class Model(SimpleNamespace):
+class ModelParts(SimpleNamespace):
     """
     Description of the model in HARK and python syntax.
     """
@@ -125,6 +125,8 @@ class ConsumerSolution(ConsumerSolutionOlder):
         Stores the parameters with which the solver was called
     completed_cycles : integer
         The number of cycles of the model that have been solved before this call
+    solveMethod : str, optional
+        The name of the solution method to use, e.g. 'EGM'
     """
 
 # CDC 20210426: vPfunc was a bad choice for distance; here we change
@@ -133,9 +135,10 @@ class ConsumerSolution(ConsumerSolutionOlder):
 #    distance_criteria = ["vFunc.dm"]  # Bad b/c vP(0)=inf; should use cFunc
 #    distance_criteria = ["mNrmTrg"]  # mNrmTrg is better choice if GICNrm holds
     distance_criteria = ["cFunc"]  # cFunc if the GIC fails
+#    breakpoint()
 
     def __init__(self, *args,
-                 # TODO: These new items should become part of default
+                 # TODO: New items below should go into default ConsumerSolution
                  stge_kind={'iter_status': 'not initialized'},
                  completed_cycles=0,
                  parameters_solver=None,
@@ -143,9 +146,10 @@ class ConsumerSolution(ConsumerSolutionOlder):
                  **kwds):
         ConsumerSolutionOlder.__init__(self, *args, **kwds)
 
+        # New structures that should become defaults
         # Previous "whiteboard" content is now on "Bilt" or "Pars" or "E_t"
         self.E_t = Expectations()
-        self.Modl = Model()
+        self.Modl = ModelParts()
         self.Modl.Transitions = TransitionFunctions()
         Bilt = self.Bilt = Built()
         Pars = self.Pars = Parameters()
@@ -204,8 +208,6 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 #                        }
 
         self = def_utility(self, CRRA)
-
-        # Construct transition functions
         self = def_transitions(self)
 
         # These have been moved to Bilt to declutter whiteboard:
@@ -536,9 +538,6 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         # partial means this will be replaced by richer augmented soln
         solution_terminal.stge_kind = {'iter_status': 'terminal_partial'}
 
-#        # Always calculate the value function
-#        solution_terminal.vFuncBool = True
-
         # Cubic cFunc is problematic with hard kinks where c'' is undefined
         if hasattr(self, 'CubicBool'):
             solution_terminal.CubicBool = self.parameters['CubicBool']
@@ -594,25 +593,22 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         soln_futr = self.soln_futr = solution_next
         soln_crnt = self.soln_crnt = ConsumerSolutionOneStateCRRA()
 
-        Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
+        Pars = soln_crnt.Pars
 
         # Get solver parameters and store for later use
         # omitting things that could cause recursion
-#       parameters_solver = \
         Pars.__dict__.update(
             {k: v for k, v in {**kwds, **locals()}.items()
              if k not in {'self', 'solution_next', 'kwds', 'soln_futr',
-                          'Bilt_futr', 'soln_crnt', 'Bilt'}}
-        )
+                          'soln_crnt', 'Bilt'}})
 
         # 'terminal' solution should replace pseudo_terminal:
-        if hasattr(self.soln_futr.Bilt, 'stge_kind') and \
+        if hasattr(soln_futr.Bilt, 'stge_kind') and \
                 (soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_partial'):
-            self.soln_crnt.Bilt = deepcopy(self.soln_futr.Bilt)
+            soln_crnt.Bilt = deepcopy(soln_futr.Bilt)
 
         # links for docs; urls are used when "fcts" are added
         self.url_doc_for_solver_get()
-#        self.soln_crnt.Bilt.parameters_solver = deepcopy(parameters_solver)
 
         return
 
@@ -1425,37 +1421,43 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             The solution to this period/stage's problem.
         """
 
-        soln_futr, soln_crnt = self.soln_futr, self.soln_crnt
-        CRRA = soln_crnt.Pars.CRRA
+        futr, crnt = self.soln_futr, self.soln_crnt
+        CRRA = crnt.Pars.CRRA
 
-        if soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_partial':
+        self.crnt = def_utility(crnt, CRRA)
+        self.build_facts_infhor()
+
+        if futr.Bilt.stge_kind['iter_status'] == 'terminal_partial':
             # bare-bones default terminal solution does not have all the facts
             # we want, because it is multipurpose (for any u func) so add them
-            soln_futr.Bilt = def_utility(soln_crnt, CRRA)
-            self.build_facts_infhor()
-            soln_futr = soln_crnt = def_value_funcs(soln_crnt, CRRA)
+            crnt = def_value_funcs(crnt, CRRA)
             # Now that they've been added, it's good to go for iteration
-            soln_crnt.Bilt.stge_kind['iter_status'] = 'iterator'
-            soln_crnt.stge_kind = soln_crnt.Bilt.stge_kind
+            crnt.Bilt.stge_kind['iter_status'] = 'iterator'
 #            self.soln_crnt.vPfunc = self.soln_crnt.Bilt.vPfunc  # Need for distance
-            self.soln_crnt.cFunc = self.soln_crnt.Bilt.cFunc  # Need for distance
-            return soln_crnt  # if pseudo_terminal = True, enhanced replaces original
+            crnt.cFunc = crnt.Bilt.cFunc  # Need for distance
+            return crnt  # if pseudo_terminal = True, enhanced replaces original
 
-        self.soln_crnt = def_utility(soln_crnt, CRRA)
-        self.build_facts_infhor()
-        self.build_facts_recursive()
-        self.make_cFunc_PF()
-        soln_crnt = def_value_funcs(soln_crnt, CRRA)
+        crnt = self.build_facts_recursive()
+        crnt = self.build_decision_rules_and_value_functions(crnt)
 
-        return soln_crnt
+        return crnt
 
     solve = solve_prepared_stage
 
-    def solver_prep_solution_for_an_iteration(self):  # self: PF solver
+    def build_decision_rules_and_value_functions(self, crnt):
+
+        self.make_decision_rules(crnt)
+        return def_value_funcs(crnt, crnt.Pars.CRRA)
+
+    def make_decision_rules(self, crnt):
+        self.make_cFunc_PF()
+
+    def solver_prep_solution_for_an_iteration(self, solveMethod='EGM'):  # PF
         """
         Prepare the current stage for processing by the one-stage solver.
         """
 
+#        breakpoint()
         soln_crnt = self.soln_crnt
 
         Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
@@ -1544,6 +1546,8 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear inter-
         polation.
+    solveMethod : str, optional
+        Solution method to use
     """
     shock_vars = ['tranShkDstn', 'permShkDstn']  # Unemp shock is min(transShkVal)
 
@@ -1551,21 +1555,26 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
     def __init__(
             self, solution_next, IncShkDstn, LivPrb, DiscFac, CRRA, Rfree,
             PermGroFac, BoroCnstArt, aXtraGrid, vFuncBool, CubicBool,
-            permShkDstn, tranShkDstn, **kwds):
-
+            permShkDstn, tranShkDstn,
+            solveMethod='EGM',
+            **kwds):
         # First execute PF solver init
         # We must reorder params by hand in case someone tries positional solve
 
-        ConsPerfForesightSolver.__init__(self, solution_next, DiscFac=DiscFac, LivPrb=LivPrb,
-                                         CRRA=CRRA, Rfree=Rfree, PermGroFac=PermGroFac,
-                                         BoroCnstArt=BoroCnstArt, IncShkDstn=IncShkDstn,
-                                         permShkDstn=permShkDstn, tranShkDstn=tranShkDstn, **kwds)
+        ConsPerfForesightSolver.__init__(self, solution_next, DiscFac=DiscFac, LivPrb=LivPrb, CRRA=CRRA,
+                                         Rfree=Rfree, PermGroFac=PermGroFac, BoroCnstArt=BoroCnstArt,
+                                         IncShkDstn=IncShkDstn, permShkDstn=permShkDstn,
+                                         tranShkDstn=tranShkDstn,
+                                         solveMethod=solveMethod,
+                                         **kwds)
 
         # ConsPerfForesightSolver.__init__ makes self.soln_crnt
         soln_crnt = self.soln_crnt
 
         # Things we have built vs exogenous parameters:
-        Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
+        Bilt, Pars, Modl = soln_crnt.Bilt, soln_crnt.Pars, soln_crnt.Modl
+
+        Modl.solveMethod = solveMethod
 
         Bilt.aXtraGrid = aXtraGrid
 #        self.vFuncBool = vFuncBool

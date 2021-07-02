@@ -113,7 +113,9 @@ class AgentTypePlus(AgentType):
     state_vars = []
 
     # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
-    def __init__(self, *args, **kwargs):  # Inherit from basic AgentType
+    def __init__(self, *args,
+                 verbose=1,
+                 **kwargs):  # Inherit from basic AgentType
         AgentType.__init__(self, *args, **kwargs)
 
         # The base MetricObject class automatically constructs a list
@@ -124,6 +126,11 @@ class AgentTypePlus(AgentType):
         self.add_to_given_params = {'time_vary', 'time_inv', 'state_vars',
                                     'cycles', 'seed', 'tolerance'}
         self.update_parameters_for_this_agent_subclass()
+
+        # Goal: Push everything that will universally be needed down to the
+        # AgentType level.  Verbosity is such a thing.
+        self.verbose = verbose
+        set_verbosity_level((4 - verbose) * 10)
 
     def agent_store_model_params(self, prmtv_par, aprox_lim):
         # When anything cached here changes, solution must be recomputed
@@ -212,6 +219,17 @@ class AgentTypePlus(AgentType):
     # the solver or of the agent.  The answer is the agent; hence the rename
     agent_post_solve = post_solve_agent = post_solve
 
+    # User-provided handmade solution_terminal is likely to be bare-bones
+    # Below is a placeholder for anything that user might want to do
+    # programmatially to enhance it
+    def finish_setup_of_default_solution_terminal():
+        """
+        Add to `solution_terminal` characteristics of the agent required
+        for solution of the particular type which are not automatically
+        created as part of the definition of the generic `solution_terminal.`
+        """
+        pass
+
     def agent_post_post_solve(self):
         # overwrite this with anything required to be customized for post_solve
         # of a particular agent type.
@@ -219,6 +237,16 @@ class AgentTypePlus(AgentType):
         # Overwritten in PerfForesightConsumerSolution, carrying over
         # to IndShockConsumerType
         pass
+
+        # If they did not provide their own solution_startfrom, use default
+        if not hasattr(self, 'solution_startfrom'):
+            # enrich generic consumer_terminal_nobequest_onestate terminal func
+            # with info specifically needed to solve this particular model
+            self.solution_terminal.Bilt = \
+                self.finish_setup_of_default_solution_terminal()
+            # make url that will locate the documentation
+            self.url_doc_for_this_agent_type_get()
+        # any user-provided solution should already be enriched
 
 
 # TODO: CDC: 20210529 consumer_terminal_nobequest_onestate should be changed to
@@ -258,7 +286,8 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
 
         AgentTypePlus.__init__(
             self, solution_terminal=solution_startfrom,  # whether handmade or default
-            cycles=cycles, pseudo_terminal=False, **kwds)
+            cycles=cycles, pseudo_terminal=False,
+            **kwds)
 
         # The below config of the 'afterlife' is constructed so that when
         # the standard lifetime transition rules are applied, the nobequest
@@ -281,13 +310,14 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
 
         solution_afterlife_nobequest_ = ConsumerSolutionOneStateCRRA(
             vFunc=vFunc,
-            vPfunc=vPfunc,
-            vPPfunc=vPPfunc,
+            vPfunc=vPfunc,  # TODO: vPfunc deprecated; remove
+            vPPfunc=vPPfunc,  # TODO: vPPfunc deprecated: Remove
             cFunc=cFunc,
-            mNrmMin=mNrmMin,
-            hNrm=-hNrm,
-            MPCmin=MPCmin,
-            MPCmax=MPCmax,
+            mNrmMin=mNrmMin,  # TODO: mNrmMin should be on Bilt; remove
+            hNrm=-hNrm,  # TODO: hNrm should be on Bilt; remove
+            MPCmin=MPCmin,  # TODO: hNrm should be on Bilt; remove
+            MPCmax=MPCmax,  # TODO: hNrm should be on Bilt; remove
+            # TODO: stge_kind should be on Bilt; remove
             stge_kind={
                 'iter_status': 'afterlife',
                 'term_type': 'nobequest'},
@@ -313,10 +343,11 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
             ConsumerSolutionOneStateCRRA(  # Omit vFunc b/c u not yet def
                 cFunc=cFunc_terminal_nobequest_,
                 vFunc=u,
-                mNrmMin=mNrmMin,
-                hNrm=hNrm,
-                MPCmin=MPCmin,
-                MPCmax=MPCmin,
+                mNrmMin=mNrmMin,  # TODO: vPfunc deprecated; remove
+                hNrm=hNrm,  # TODO: should be on Bilt; remove
+                MPCmin=MPCmin,  # TODO: should be on Bilt; remove
+                MPCmax=MPCmin,  # TODO: should be on Bilt; remove
+                # TODO: should be on Bilt; remove
                 stge_kind={
                     'iter_status': 'terminal_partial',  # will be replaced with iterator
                     'term_type': 'nobequest'
@@ -334,7 +365,6 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         # so make a deepcopy so that if multiple agents get created, we
         # always use the unaltered "master" solution_terminal_
         self.solution_terminal = deepcopy(solution_terminal_)
-#        breakpoint()
 
 
 class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
@@ -487,10 +517,10 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
     def __init__(self,
                  cycles=1,  # Default to finite horiz
-                 verbose=1,  # little feedback
                  quiet=False,  # do not check conditions
                  solution_startfrom=None,  # Default: no interim solution
                  solver=ConsPerfForesightSolver,
+                 solveMethod='EGM',
                  **kwds
                  ):
 
@@ -501,19 +531,21 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
             self, solution_startfrom=None, cycles=cycles, pseudo_terminal=False,
             ** params)
 
+        # Solver and method are:
+        # - required to solve
+        # - not necessarily set in any ancestral class
         self.solver = solver
-        self.verbose = verbose
-        set_verbosity_level((4 - verbose) * 10)
+        self.solveMethod = solveMethod
 
+        # Things to keep track of for this and child models
         self.check_restrictions()  # Make sure it's a minimally valid model
         self.time_vary = deepcopy(self.time_vary_)
         self.time_inv = deepcopy(self.time_inv_)
         self.cycles = deepcopy(self.cycles)
 
-        self.update_parameters_for_this_agent_subclass()  # self.parameters gets new info
+        self.update_parameters_for_this_agent_subclass()  # store new info
 
         # If they did not provide their own solution_startfrom, use default
-
         if not hasattr(self, 'solution_startfrom'):
             # enrich generic consumer_terminal_nobequest_onestate terminal func
             # with info specifically needed to solve this particular model
@@ -709,7 +741,6 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         # core.py uses solution_terminal as solution_next
 
         solution_terminal = self.solution_terminal
-#        solution_terminal_Bilt = self.solution_terminal.Bilt
 
         # Natural borrowing constraint: Cannot die in debt
         # Measured after income = tranShk*permShk/permShk received
@@ -1054,7 +1085,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Attach the corresponding one-stage solver to the agent
         # This is what gets called when the user invokes [instance].solve()
         if (solverType == 'HARK') or (solverType == 'DARKolo'):
-            self.solve_one_period = make_one_period_oo_solver(solverName)
+            #            breakpoint()
+            self.solve_one_period = \
+                make_one_period_oo_solver(solverName, solveMethod=solveMethod)
 
         if (solverType == 'dolo') or (solverType == 'DARKolo'):
             # If we want to solve with dolo, set up the model
@@ -1093,7 +1126,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         """
         # If solverType other than HARK or solveMethod other than EGM have been
-        # passed, in kwds, we might need to do some other setup steps
+        # passed, we might need to do some other setup steps
         solve_par_vals_now = {}
         if not hasattr(self, 'solve_par_vals'):  # We haven't set it up yet
             self.update_income_process()
@@ -1109,7 +1142,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     pre_solve = agent_force_prepare_info_needed_to_begin_solving
 
-    # The former "[AgentType].update_pre_solve()" was poor nomenclature --
+    # The former "[AgentType].update_pre_solve()" was not good nomenclature --
     #  easy to confuse with the also-existing "[AgentType].pre_solve()" and with
     # "[SolverType].prepare_to_solve()".  The new name,
     #
