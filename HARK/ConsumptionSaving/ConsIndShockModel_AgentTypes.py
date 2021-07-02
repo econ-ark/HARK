@@ -1024,6 +1024,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
     def __init__(self,
                  cycles=1, verbose=1,  quiet=True, solution_startfrom=None,
                  solverType='HARK',
+                 solveMethod='EGM',
                  solverName=ConsIndShockSolverBasic,
                  **kwds):
         params = init_idiosyncratic_shocks.copy()  # Get default params
@@ -1091,7 +1092,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         None
 
         """
-
+        # If solverType other than HARK or solveMethod other than EGM have been
+        # passed, in kwds, we might need to do some other setup steps
         solve_par_vals_now = {}
         if not hasattr(self, 'solve_par_vals'):  # We haven't set it up yet
             self.update_income_process()

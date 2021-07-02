@@ -493,7 +493,9 @@ class AgentType(Model):
             self.__dict__[parameter].append(solution_t.__dict__[parameter])
         self.add_to_time_vary(parameter)
 
-    def solve(self, verbose=0):  # AgentType
+    # At present, the only solution method is EGM
+    # The next method to add is value function iteration
+    def solve(self, verbose=0, method='EGM'):  # AgentType
         """
         Solve the model for this instance of an agent type by backward induction.
         Loops through the sequence of one period/stage problems, passing the solution
@@ -508,6 +510,7 @@ class AgentType(Model):
         -------
         none
         """
+#        breakpoint()
 
         # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
         # tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
@@ -515,7 +518,6 @@ class AgentType(Model):
         with np.errstate(
             divide="ignore", over="ignore", under="ignore", invalid="ignore"
         ):
-            #            breakpoint()
             self.pre_solve()  # Stuff to do before beginning to solve the model
             self.solution = solve_agent(
                 self, verbose
@@ -553,7 +555,7 @@ class AgentType(Model):
         """
         return
 
-    def pre_solve(self):
+    def pre_solve(self, **kwargs):
         """
         An agent method that runs immediately before the model is solved, perhaps to
         check inputs or to prepare the terminal solution.
@@ -566,6 +568,7 @@ class AgentType(Model):
         -------
         none
         """
+        breakpoint()
         self.check_restrictions()
         self.check_elements_of_time_vary_are_lists()
         return None
@@ -1294,7 +1297,9 @@ def get_solve_one_period_args(agent, solve_one_period, stge_which):
     return solve_dict
 
 
+#def make_one_period_oo_solver(solver_class, solverType='HARK', solveMethod='EGM'):
 def make_one_period_oo_solver(solver_class):
+    # Allow for future methods by making solverMethod an option
     """
     Returns a function that solves a single period/stage problem.
     Parameters
@@ -1311,11 +1316,9 @@ def make_one_period_oo_solver(solver_class):
     def one_period_solver(**kwds):  # FIX: rename to, say, solve_stge
         # last step in loop over num_stges in solve_one_cycle is:
         # """ solve_one_period(**temp_dict) [should become, say, solve_this_stge]
-        #        breakpoint()
         solver = solver_class(**kwds)  # defined extrnally
         if hasattr(solver, "prepare_to_solve"):
             # Steps, if any, to prep for sol of stge
-            #            breakpoint()
             solver.prepare_to_solve()  # Fix: rename to prepare_to_solve_stge
 
         solution_stge = solver.solve()  # Fix: rename to solve_stge

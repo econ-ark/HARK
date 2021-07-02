@@ -48,3 +48,139 @@
         # for key in (k for k in soln_futr.Pars.__dict__.keys()):
         #     setattr(folw, key+'_tp1', soln_futr.Pars.__dict__[key])
 
+
+
+        # def post_t_E_v_tp1_derivatives_012(xfer_shks_bcst, curr_post_states):
+        #     return np.array([post_t_E_v_tp1(xfer_shks_bcst, curr_post_states),
+        #                      post_t_E_v_tp1_da_t(xfer_shks_bcst, curr_post_states),
+        #                      post_t_E_v_tp1_da_t_da_t(xfer_shks_bcst, curr_post_states)])
+
+        # E_t.v_post_choice = np.squeeze(  # squeezes unused dimensions
+        #     calc_expectation_of_array(
+        #         IncShkDstn,
+        #         post_t_E_v_tp1_derivatives_012,
+        #         aNrmGrid)
+        # )
+
+        # def post_t_E_v_tp1(xfer_shks_bcst, curr_post_states):
+        #     mNrm_tp1 = self.next_ante_states(xfer_shks_bcst, curr_post_states).mNrm
+        #     return (Pars.DiscLiv *
+        #             xfer_shks_bcst[Pars.permPos] ** (1-CRRA_tp1 - 0) *
+        #             futr.vFunc(mNrm_tp1))
+
+        # def post_t_E_v_tp1_da_t(xfer_shks_bcst, curr_post_states):
+        #     mNrm_tp1 = self.next_ante_states(xfer_shks_bcst, curr_post_states).mNrm
+        #     return (Pars.DiscLiv * Pars.Rfree *
+        #             xfer_shks_bcst[Pars.permPos] ** (0-CRRA_tp1 - 0) *
+        #             futr.vFunc.dm(mNrm_tp1))
+
+        # def post_t_E_v_tp1_da_t_da_t(xfer_shks_bcst, curr_post_states):
+        #     mNrm_tp1 = self.next_ante_states(xfer_shks_bcst, curr_post_states).mNrm
+        #     return (Pars.DiscLiv * Pars.Rfree * Pars.Rfree *
+        #             xfer_shks_bcst[Pars.permPos] ** (0-CRRA_tp1 - 1) *
+        #             futr.vFunc.dm.dm(mNrm_tp1))
+
+
+#        breakpoint()
+
+    # def calc_EndOfPrdvP(self):
+    #     """
+    #     Calculate end-of-period marginal value of assets at each point in aNrm.
+    #     Does so by taking a weighted sum of next period marginal values across
+    #     income shocks (in a preconstructed grid self.soln_crnt.Bilt.mNrmNext).
+
+    #     Parameters
+    #     ----------
+    #     none
+
+    #     Returns
+    #     -------
+    #     EndOfPrdvP : np.array
+    #         A 1D array of end-of-period marginal value of assets
+    #     """
+
+    #     soln_crnt = self.soln_crnt
+    #     Bilt = soln_crnt.Bilt
+    #     folw = soln_crnt.folw
+    #     Pars = soln_crnt.Pars
+    #     E_t = soln_crnt.E_t
+
+    #     IncShkDstn = Pars.IncShkDstn
+    #     aNrmGrid = Bilt.aNrmGrid
+
+    #     def post_t_v_tp1(xfer_shks_bcst, curr_post_states):
+    #         CRRA = folw.vFunc_tp1.CRRA
+    #         return (xfer_shks_bcst[Pars.permPos] ** (1-CRRA)
+    #                 * folw.vFunc_tp1(self.next_ante_states(xfer_shks_bcst, curr_post_states)))
+
+    #     def post_t_vP_tp1(xfer_shks_bcst, curr_post_states):
+    #         CRRA = folw.vFunc_tp1.CRRA
+    #         return (xfer_shks_bcst[Pars.permPos] ** (0-CRRA)
+    #                 * folw.vFunc_tp1.dm(self.next_ante_states(xfer_shks_bcst, curr_post_states)))
+
+    #     def post_t_v_tp1_dm(xfer_shks_bcst, curr_post_states):
+    #         CRRA = folw.vFunc_tp1.CRRA
+    #         return (xfer_shks_bcst[Pars.permPos] ** (0-CRRA)
+    #                 * folw.vFunc_tp1.dm(self.next_ante_states(xfer_shks_bcst, curr_post_states)))
+
+    #     def post_t_v_tp1_dm_dm(xfer_shks_bcst, curr_post_states):
+    #         CRRA = folw.vFunc_tp1.CRRA
+    #         return (xfer_shks_bcst[Pars.permPos] ** (0-CRRA - 1.0)
+    #                 * folw.vFunc_tp1.dm.dm(self.next_ante_states(xfer_shks_bcst, curr_post_states)))
+
+    #     def post_t_vDers_tp1(xfer_shks_bcst, curr_post_states):
+    #         return np.array([post_t_v_tp1(xfer_shks_bcst, curr_post_states),
+    #                          post_t_v_tp1_dm(xfer_shks_bcst, curr_post_states),
+    #                          post_t_v_tp1_dm_dm(xfer_shks_bcst, curr_post_states)])
+
+    #     EndOfPrdvP = (
+    #         Pars.DiscFac * Pars.LivPrb
+    #         * Pars.Rfree
+    #         * Pars.PermGroFac ** (-Pars.CRRA)
+    #         * calc_expectation_of_array(
+    #             IncShkDstn,
+    #             post_t_vP_tp1,
+    #             aNrmGrid
+    #         )
+    #     )
+    #     # Get derivatives 0, 1, and 2 at the same time
+    #     E_t.vDers_tp1 = np.squeeze(
+    #         Pars.DiscFac * Pars.LivPrb
+    #         * Pars.Rfree
+    #         * Pars.PermGroFac ** (-Pars.CRRA)
+    #         * calc_expectation_of_array(
+    #             IncShkDstn,
+    #             post_t_vDers_tp1,
+    #             aNrmGrid
+    #         )
+    #     )
+    #     breakpoint()
+
+    #     return EndOfPrdvP
+
+#        futr = self.soln_futr
+#        Bilt, folw, Pars, E_t = \
+#            soln_crnt.Bilt, soln_crnt.folw, soln_crnt.Pars, soln_crnt.E_t
+#        CRRA_tp1 = futr.vFunc.CRRA
+#         breakpoint()
+
+#         def vPP_tp1(xfer_shks_bcst, curr_post_states):
+#             tp1 = self.next_ante_states(xfer_shks_bcst, curr_post_states)
+#             mNrmGrid_tp1 = tp1.mNrm
+#             return xfer_shks_bcst[Pars.permPos] ** (- CRRA_tp1 - 1.0) \
+#                 * folw.vPPfunc_tp1(mNrmGrid_tp1)
+
+#         EndOfPrdvPP = (
+#             Pars.DiscFac * Pars.LivPrb
+#             * Pars.Rfree
+#             * Pars.Rfree
+#             * Pars.PermGroFac ** (-CRRA_tp1 - 1.0)
+#             * calc_expectation_of_array(
+#                 Pars.IncShkDstn,
+#                 vPP_tp1,
+#                 Bilt.aNrmGrid
+#             )
+#         )
+
+#         dcda = EndOfPrdvPP / Bilt.uPP(np.array(cNrm_Vec[1:]))
+# #        Bilt.uPP(np.array(cNrm_Vec[1:]))
