@@ -184,3 +184,43 @@
 
 #         dcda = EndOfPrdvPP / Bilt.uPP(np.array(cNrm_Vec[1:]))
 # #        Bilt.uPP(np.array(cNrm_Vec[1:]))
+
+
+# Contents of the PF solver are inherited by a variety of non-PF models
+# so ConsPerfForesightSolver incorporates calcs and info useful for
+# models in which perfect foresight does not apply
+
+    def finish_setup_of_default_solution_terminal(self):
+        """
+        Add to `solution_terminal` characteristics which are not automatically
+        created as part of the definition of a generic `solution_terminal.`
+        """
+        breakpoint()
+        # If no solution exists, core.py sets solution_terminal to solution_next
+        solution_terminal = self.solution_terminal
+
+        # BoroCnstNat might be nonzero if resuming
+        solution_terminal.BoroCnstNat = -solution_terminal.mNrmMin
+
+        # Define BoroCnstArt if not yet defined
+        if not hasattr(self.parameters, 'BoroCnstArt'):
+            solution_terminal.BoroCnstArt = None
+        else:
+            solution_terminal.BoroCnstArt = self.parameters.BoroCnstArt
+
+        # partial means this will be replaced by richer augmented soln
+        solution_terminal.stge_kind = {'iter_status': 'terminal_partial'}
+
+        # Cubic cFunc is problematic with hard kinks where c'' is undefined
+        if hasattr(self, 'CubicBool'):
+            solution_terminal.CubicBool = self.parameters['CubicBool']
+        else:  # default to false (linear)
+            solution_terminal.CubicBool = False
+
+        # General-purpose solution terminal might not have utility or value
+        solution_terminal.parameters = self.parameters
+        solution_terminal = def_utility(solution_terminal, self.CRRA)
+        solution_terminal = def_value_funcs(solution_terminal, self.CRRA)
+
+        return solution_terminal
+
