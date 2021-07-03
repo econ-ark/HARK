@@ -149,7 +149,12 @@ def def_transition_ante_to_choice(stge):
     return stge
 
 
-def def_utility(stge, CRRA):
+def def_felicity(stge): 
+    stge = def_utility_CRRA(stge, stge.Pars.CRRA)
+    return stge
+
+
+def def_utility_CRRA(stge, CRRA):
     """
     Defines CRRA utility function for this period (and its derivatives,
     and their inverses), saving them as attributes of self for other methods

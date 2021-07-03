@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from HARK.core import (_log, core_check_condition)
+from HARK.core import (_log, core_check_condition, MetricObject)
 
 from scipy.optimize import newton as find_zero_newton
 from numpy import dot as E_dot  # easier to type
@@ -10,7 +10,8 @@ from builtins import (str, breakpoint)
 from types import SimpleNamespace
 from IPython.lib.pretty import pprint
 from HARK.ConsumptionSaving.ConsIndShockModel_Both import (
-    def_utility, def_value_funcs, def_transition_post_to_ante)
+    def_felicity,
+    def_utility_CRRA, def_value_funcs, def_transition_post_to_ante)
 from HARK.distribution import (calc_expectation, calc_expectation_of_array)
 from HARK.interpolation import (CubicInterp, LowerEnvelope, LinearInterp,
                                 MargValueFuncCRRA,
@@ -41,7 +42,31 @@ class Parameters(SimpleNamespace):
 
 class Expectations(SimpleNamespace):
     """
-    Expectations across realization of stochastic shocks.
+    Expectations about future period
+    """
+# TODO: Move (to core.py) when vetted/agreed
+    pass
+
+
+class Elements(SimpleNamespace):
+    """
+    Elements of a HARK model
+    """
+# TODO: Move (to core.py) when vetted/agreed
+    pass
+
+
+class Nextspectations(SimpleNamespace):
+    """
+    Expectations about future period after current decisions
+    """
+# TODO: Move (to core.py) when vetted/agreed
+    pass
+
+
+class Prospectations(SimpleNamespace):
+    """
+    Expectations prior to the realization of current period shocks
     """
 # TODO: Move (to core.py) when vetted/agreed
     pass
@@ -61,9 +86,9 @@ class Ante_Choice(SimpleNamespace):
     """
 
 
-class ModelParts(SimpleNamespace):
+class Elements(SimpleNamespace):
     """
-    Description of the model in HARK and python syntax.
+    Elements of the model in python/HARK code.
     """
 # TODO: Move (to core.py) when vetted/agreed
     pass
@@ -104,7 +129,138 @@ __all__ = [
 ]
 
 
-class ConsumerSolution(ConsumerSolutionOlder):
+class agent_solution(MetricObject):
+    """
+    A class that contains the solution of a single period of a generic
+    well-behaved scritctly concave decision problem.  This is meant as
+    to provide the minimum foundational structure that all models will
+    share.  It must be specialized to solve any particular problem.
+
+
+    Parameters
+    ----------
+    soln_futr : agent_solution
+
+    Returns
+    -------
+
+    soln_crnt : object containing solution to the current period
+
+    Elements of the soln_crnt object contain, but are not limited to:
+        Pars : The parameters used in solving the model
+        Bilt : Objects constructed and retained from the solution process
+        Modl : Equations of the model, in the form of the python code
+            that instantiates the computational solution 
+
+            At a minimum, this is broken down into:
+
+            states : predetermined variables at the time of decisions
+            controls : variables under control of the decisionmaker
+            felicity : current period payoff as function of states and controls
+            transitions : evolution of states
+            choices : conditions that determine the agent's choices
+
+            At a minimum, it should result in:
+
+                [dr] : decision rule
+                    Maps states into choices
+                    Example: consumption function cFunc over market resources
+                [v] : value function
+                    Bellman value function the agent expects to experience for
+                    behaving according to the dynamically optimal plan over 
+                    the remainder of the horizon.
+
+    stge_kind : dict
+        Dictionary with info about this solution stage
+        One required entry keeps track of the nature of the stage:
+            {'iter_status':'not initialized'}: Before model is set up            
+            {'iter_status':'finished'}: Stopping requirements are satisfied
+                If such requirements are satisfied, {'tolerance':tolerance}
+                should exist recording what convergence tolerance was satisfied
+            {'iter_status':'iterator'}: Status during iteration
+                solution[0].distance_last records the last distance
+            {'iter_status':'terminal_partial'}: Bare-bones terminal period
+                Does not contain all the info needed to begin solution
+                Solver will augment and replace it with 'iterator' stage
+        Other uses include keeping track of the nature of the next stage
+    completed_cycles : integer
+        The number of cycles of the model that have been solved before this call
+    solveMethod : str, optional
+        The name of the solution method to use, e.g. 'EGM'
+    """
+
+    def __init__(self, *args,
+                 stge_kind={'iter_status': 'not initialized'},
+                 parameters_solver=None,
+                 completed_cycles=0,
+                 **kwds):
+
+        self.E_t_ = Nextspectations()
+        self._t_E = Prospectations()
+        self.Pars = Parameters()
+        self.Bilt = Built()
+        self.Bilt.completed_cycles = completed_cycles
+        self.Bilt.stge_kind = stge_kind
+        self.Bilt.parameters_solver = parameters_solver
+        self.Modl = Elements()
+        self.Modl.Transitions = TransitionFunctions()
+
+        # Allow doublestruck or regular E for expectations
+        self.𝔼_t_ = self.E_t_
+        self._t_𝔼 = self._t_E
+
+    def define_felicity():
+        # Determine the current period payoff (utility? profit?)
+        pass
+
+    def define_transitions(self):
+        # Equations that define transitions that affect agent's state
+        pass
+
+    def prep_solve_to_finish():
+        # Prep work not done in init but that needs to be done before
+        # solve_to_finish
+        pass
+
+    def prep_solve_this_stge(crnt, futr):
+        # Do any prep work that should be accomplished before tackling the
+        # actual solution of this stage of the problem
+        # Like building the Pars namespace of parameters for this period
+        pass
+
+    def solve_prepared_stge(self):
+        # Things that will likely be needed for solution but might time-vary
+        self.define_transitions()
+        self.define_felicity()
+        self.expectations_after_shocks_and_choices__E_t_()
+        self.import_optional_modules()
+        self.make_decision_rules_and_value_functions()
+        self.expectations_before_shocks_or_choices__t_E()
+
+        return
+
+    def import_optional_modules(self):
+        pass
+
+    def expectations_after_shocks_and_choices__E_t_(self):
+        self.build_facts()
+        pass
+
+    expectations_after_shocks_and_choices__E_t_ =\
+        expectations_after_shocks_and_choices__𝔼_t_
+
+    def expectations_before_shocks_or_choices__t_E(self):
+        pass
+
+    expectations_before_shocks_or_choices__t_E =\
+        expectations_before_shocks_or_choices__t_𝔼
+
+    def build_facts(self):
+        pass
+
+# ConsumerSolution basically does nothing except add agent_solution
+# content to old ConsumerSolutionOlder, plus documentation 
+class ConsumerSolution(ConsumerSolutionOlder, agent_solution):
     __doc__ = ConsumerSolutionOlder.__doc__
     __doc__ += """
     stge_kind : dict
@@ -144,22 +300,22 @@ class ConsumerSolution(ConsumerSolutionOlder):
                  parameters_solver=None,
                  vAdd=None,
                  **kwds):
-        ConsumerSolutionOlder.__init__(self, *args, **kwds)
+        ConsumerSolutionOlder.__init__(self, **kwds)
+        agent_solution.__init__(self, *args, **kwds)
 
         # New structures that should become defaults
         # Previous "whiteboard" content is now on "Bilt" or "Pars" or "E_t"
-        self.E_t = Expectations()
-        self.Modl = ModelParts()
-        self.Modl.Transitions = TransitionFunctions()
-        Bilt = self.Bilt = Built()
-        Pars = self.Pars = Parameters()
-        Pars.about = {'Parameters exogenously given'}
+#        self.E_t = Nextspectations()
+#        self.Modl = Elements()
+#        self.Modl.Transitions = TransitionFunctions()
+#        Bilt = self.Bilt = Built()
+#        Pars = self.Pars = Parameters()
+#        Pars.about = {'Parameters exogenously given'}
 
         # Stuff added; should (ultimately) be incorporated in ConsumerSolution
-#        Bilt.stge_kind = stge_kind
-        Bilt.completed_cycles = completed_cycles
-        Bilt.parameters_solver = parameters_solver
-        Bilt.vAdd = vAdd
+#        Bilt.completed_cycles = completed_cycles
+#        Bilt.parameters_solver = parameters_solver
+#        Bilt.vAdd = vAdd
 
 
 class ConsumerSolutionOneStateCRRA(ConsumerSolution):
@@ -207,7 +363,9 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 #                        'transition': ['DBC_mNrm'],
 #                        }
 
-        self = def_utility(self, CRRA)
+        self.Pars.CRRA = CRRA
+
+        self = def_felicity(self)
         self = def_transitions(self)
 
         # These have been moved to Bilt to declutter whiteboard:
@@ -216,6 +374,9 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         del self.cFunc
         del self.vPfunc
         del self.vPPfunc
+
+    def define_felicity(self):
+        self = def_utility_CRRA(self, self.Pars.CRRA)
 
     def check_conditions(self, soln_crnt, verbose=None):
         """
@@ -513,43 +674,6 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
         # Add mNrmStE to the solution and return it
         return self.Bilt.mNrmStE
-
-# Contents of the PF solver are inherited by a variety of non-PF models
-# so ConsPerfForesightSolver incorporates calcs and info useful for
-# models in which perfect foresight does not apply
-
-    def finish_setup_of_default_solution_terminal(self):
-        """
-        Add to `solution_terminal` characteristics which are not automatically
-        created as part of the definition of a generic `solution_terminal.`
-        """
-        # If no solution exists, core.py sets solution_terminal to solution_next
-        solution_terminal = self.solution_terminal
-
-        # BoroCnstNat might be nonzero if resuming
-        solution_terminal.BoroCnstNat = -solution_terminal.mNrmMin
-
-        # Define BoroCnstArt if not yet defined
-        if not hasattr(self.parameters, 'BoroCnstArt'):
-            solution_terminal.BoroCnstArt = None
-        else:
-            solution_terminal.BoroCnstArt = self.parameters.BoroCnstArt
-
-        # partial means this will be replaced by richer augmented soln
-        solution_terminal.stge_kind = {'iter_status': 'terminal_partial'}
-
-        # Cubic cFunc is problematic with hard kinks where c'' is undefined
-        if hasattr(self, 'CubicBool'):
-            solution_terminal.CubicBool = self.parameters['CubicBool']
-        else:  # default to false (linear)
-            solution_terminal.CubicBool = False
-
-        # General-purpose solution terminal might not have utility or value
-        solution_terminal.parameters = self.parameters
-        solution_terminal = def_utility(solution_terminal, self.CRRA)
-        solution_terminal = def_value_funcs(solution_terminal, self.CRRA)
-
-        return solution_terminal
 
 
 class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
@@ -1424,7 +1548,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         futr, crnt = self.soln_futr, self.soln_crnt
         CRRA = crnt.Pars.CRRA
 
-        self.crnt = def_utility(crnt, CRRA)
+        self.crnt = def_felicity(crnt)
         self.build_facts_infhor()
 
         if futr.Bilt.stge_kind['iter_status'] == 'terminal_partial':
@@ -1457,7 +1581,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         Prepare the current stage for processing by the one-stage solver.
         """
 
-#        breakpoint()
         soln_crnt = self.soln_crnt
 
         Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
@@ -2271,7 +2394,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         self.build_facts_recursive()  # These require solution to successor
 
         # Current CRRA might be different from future
-        soln_crnt = def_utility(soln_crnt, soln_crnt.Pars.CRRA)
+        soln_crnt = def_felicity(soln_crnt)
         soln_crnt = def_transition_post_to_ante(soln_crnt)
         soln_crnt = self.make_post_choice_state_grid()
         self.add_Post_Choice_Value()
@@ -2323,7 +2446,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         # core.py. Think about how to change core.py to address more elegantly
 
         if self.soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_partial':
-            soln_crnt = def_utility(soln_crnt, CRRA)
+            soln_crnt = def_felicity(soln_crnt)  # def_utility(soln_crnt, CRRA)
             soln_crnt = def_value_funcs(soln_crnt, CRRA)
             soln_crnt.vFunc = self.soln_crnt.Bilt.vFunc
             soln_crnt.cFunc = self.soln_crnt.Bilt.cFunc
