@@ -572,9 +572,10 @@ def solveConsPortfolio(
             return (shocks[0] * PermGroFac) ** (1.0 - CRRA) * v_next
 
         # Calculate intermediate marginal value of bank balances by taking expectations over income shocks
-        dvdb_intermed = calc_expectation(
-            IncShkDstn, dvdb_dist, bNrm_tiled, Share_tiled
-        )[:, :, 0]
+        dvdb_intermed = calc_expectation(IncShkDstn, dvdb_dist, bNrm_tiled, Share_tiled)
+        # calc_expectation returns one additional "empty" dimension, remove it
+        # this line can be deleted when calc_expectation is fixed
+        dvdb_intermed = dvdb_intermed[:, :, 0]
         dvdbNvrs_intermed = uPinv(dvdb_intermed)
         dvdbNvrsFunc_intermed = BilinearInterp(dvdbNvrs_intermed, bNrmGrid, ShareGrid)
         dvdbFunc_intermed = MargValueFuncCRRA(dvdbNvrsFunc_intermed, CRRA)
@@ -583,15 +584,19 @@ def solveConsPortfolio(
         if vFuncBool:
             v_intermed = calc_expectation(
                 IncShkDstn, v_intermed_dist, bNrm_tiled, Share_tiled
-            )[:, :, 0]
+            )
+            # calc_expectation returns one additional "empty" dimension, remove it
+            # this line can be deleted when calc_expectation is fixed
+            v_intermed = v_intermed[:, :, 0]
             vNvrs_intermed = n(v_intermed)
             vNvrsFunc_intermed = BilinearInterp(vNvrs_intermed, bNrmGrid, ShareGrid)
             vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, CRRA)
 
         # Calculate intermediate marginal value of risky portfolio share by taking expectations
-        dvds_intermed = calc_expectation(
-            IncShkDstn, dvds_dist, bNrm_tiled, Share_tiled
-        )[:, :, 0]
+        dvds_intermed = calc_expectation(IncShkDstn, dvds_dist, bNrm_tiled, Share_tiled)
+        # calc_expectation returns one additional "empty" dimension, remove it
+        # this line can be deleted when calc_expectation is fixed
+        dvds_intermed = dvds_intermed[:, :, 0]
         dvdsFunc_intermed = BilinearInterp(dvds_intermed, bNrmGrid, ShareGrid)
 
         # Make tiled arrays to calculate future realizations of bNrm and Share when integrating over RiskyDstn
@@ -629,10 +634,11 @@ def solveConsPortfolio(
         EndOfPrddvda = (
             DiscFac
             * LivPrb
-            * calc_expectation(RiskyDstn, EndOfPrddvda_dist, aNrm_tiled, Share_tiled)[
-                :, :, 0
-            ]
+            * calc_expectation(RiskyDstn, EndOfPrddvda_dist, aNrm_tiled, Share_tiled)
         )
+        # calc_expectation returns one additional "empty" dimension, remove it
+        # this line can be deleted when calc_expectation is fixed
+        EndOfPrddvda = EndOfPrddvda[:, :, 0]
         EndOfPrddvdaNvrs = uPinv(EndOfPrddvda)
 
         # Calculate end-of-period value by taking expectations
@@ -640,20 +646,22 @@ def solveConsPortfolio(
             EndOfPrdv = (
                 DiscFac
                 * LivPrb
-                * calc_expectation(RiskyDstn, EndOfPrdv_dist, aNrm_tiled, Share_tiled)[
-                    :, :, 0
-                ]
+                * calc_expectation(RiskyDstn, EndOfPrdv_dist, aNrm_tiled, Share_tiled)
             )
+            # calc_expectation returns one additional "empty" dimension, remove it
+            # this line can be deleted when calc_expectation is fixed
+            EndOfPrdv = EndOfPrdv[:, :, 0]
             EndOfPrdvNvrs = n(EndOfPrdv)
 
         # Calculate end-of-period marginal value of risky portfolio share by taking expectations
         EndOfPrddvds = (
             DiscFac
             * LivPrb
-            * calc_expectation(RiskyDstn, EndOfPrddvds_dist, aNrm_tiled, Share_tiled)[
-                :, :, 0
-            ]
+            * calc_expectation(RiskyDstn, EndOfPrddvds_dist, aNrm_tiled, Share_tiled)
         )
+        # calc_expectation returns one additional "empty" dimension, remove it
+        # this line can be deleted when calc_expectation is fixed
+        EndOfPrddvds = EndOfPrddvds[:, :, 0]
 
     else:  # If the distributions are NOT independent...
         # Unpack the shock distribution
