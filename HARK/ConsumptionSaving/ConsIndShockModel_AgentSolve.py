@@ -99,24 +99,22 @@ class agent_solution(MetricObject):
         self.Bilt.parameters_solver = parameters_solver
         self.Modl = Elements()
         self.Modl.TransitionFuncs = TransitionFunctions()
-        # List all possible transition types in their canonical possible order
+        # List most likely transition types in their canonical possible order
         # Each status will end up transiting only to one subsequent status
         # There are multiple possibilities because many models may skip many steps
         # For example, with no end of period shocks, you could go directly from
         # the "chosen" (after choice) status to the "next_BOP" status
+
         self.Modl.Transitions = {  # BOP = Beginnning of Problem/Period
             'BOP__to__choice': {},
             'choice__to__chosen': {},  # or
-            'choice__to__EOP': {},  # or
-            'choice__to__next_BOP': {},  # or
-            'choice__to__next_choice': {},
-            'chosen__to__EOP': {},
+            'choice__to__next_BOP': {},
+            'chosen__to__EOP': {},  # or
             'chosen__to__next_BOP': {},  # or
             'chosen__to__next_choice': {},
             'EOP__to__next_BOP': {},  # or
             'EOP__to__next_choice': {},  # EOP = End of Problem/Period
         }
-        self.Modl.TransitionsList = []
 
         # Allow doublestruck or regular E for expectations
         self.𝔼_tp1_ = self.E_tp1_
@@ -184,14 +182,6 @@ class Parameters(SimpleNamespace):
 class Expectations(SimpleNamespace):
     """
     Expectations about future period
-    """
-# TODO: Move (to core.py) when vetted/agreed
-    pass
-
-
-class Elements(SimpleNamespace):
-    """
-    Elements of a HARK model
     """
 # TODO: Move (to core.py) when vetted/agreed
     pass
@@ -2580,7 +2570,6 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         stge = self.soln_crnt
         Pars, Modl, TransitionFuncs = stge.Pars, stge.Modl, stge.Modl.TransitionFuncs
         Transitions = stge.Modl.Transitions
-        TransitionsList = stge.Modl.TransitionsList
 
         permPos, tranPos = (
             Pars.IncShkDstn.parameters['ShkPosn']['perm'],
@@ -2597,7 +2586,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         # Everything needed to execute the transition equations
         Info = {**Pars.__dict__, **xfer_vars}
 
-        chosen__to__next_choice_old = TransitionFuncs.chosen__to__next_choice
+#        chosen__to__next_choice_old = TransitionFuncs.chosen__to__next_choice
 
         chosen__to__next_choice = \
             Transitions['chosen__to__next_choice']
