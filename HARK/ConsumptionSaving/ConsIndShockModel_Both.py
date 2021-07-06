@@ -48,78 +48,35 @@ class Information(SimpleNamespace):
     pass
 
 
+def def_reward(stge):
+    stge = def_utility_CRRA(stge, stge.Pars.CRRA)
+    return stge
+
+
 def def_transitions(stge):
-    stge = def_transition_post_to_ante(stge)
-    stge = def_transition_ante_to_choice(stge)
-    stge = def_transition_before_to_after_choice(stge)
+    stge = def_transition_BOP__to__choice(stge)  # Setup state for choice
+    stge = def_transition_choice__to__chosen(stge)  # Consequences of choice
+    stge = def_transition_chosen__to__EOP(stge)  # EOP=End of Period
+    stge = def_transition_chosen__to__next_choice(stge)
+    stge = def_transition_chosen__to__next_BOP(stge)  # BOP = Beginning of Period
     return stge
 
 
-def def_transition_post_to_ante(stge):
-    """
-    Transition from end of one period to beginning of next.
-    """
+transitions_caused_by_shocks = {
+    'RNrm': 'RNrm = Rfree / (PermGroFac * permShk)',
+    'bNrm': 'bNrm = aNrm * RNrm',
+    'yNrm': 'yNrm = tranShk',
+    'mNrm': 'mNrm = bNrm + yNrm'
+}
 
-#    Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
-#    Info = Modl.Info = {**Bilt.__dict__, **Pars.__dict__}
-
-    eqns_source = {
-        'RNrm': 'RNrm = Rfree / (PermGroFac * permShk)',
-        'bNrm': 'bNrm = aNrm * RNrm',
-        'yNrm': 'yNrm = tranShk',
-        'mNrm': 'mNrm = bNrm + yNrm',
-        'next_ante_states': 'next_ante_states = mNrm'
-    }
-
-    post_to_ante = TransitionFunctions()
-    post_to_ante.eqns = {}
-    post_to_ante.vals = {}
-
-    for eqn_name in eqns_source.keys():
-        #        print(eqn_name+': '+eqns_source[eqn_name])
-        tree = parse(eqns_source[eqn_name], mode='exec')
-        code = compile(tree, filename="<ast>", mode='exec')
-        post_to_ante.eqns.update({eqn_name: code})
-#        exec(code, {**globals(), **Info}, post_to_ante.vals)
-
-    stge.Modl.Transitions.crnt_post_to_next_ante = post_to_ante
-    stge.Modl.Transitions.crnt_post_to_next_ante.eqns_source = eqns_source
-
-    return stge
-
-
-def def_transition_before_to_after_choice(stge):
-    """
-    Transition from end of one period to beginning of next.
-    """
-
-    Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
-#    Info = Modl.Info = {**Bilt.__dict__, **Pars.__dict__}
-
-    eqns_source = {
-        'aNrm': 'aNrm = mNrm - cNrm',
-        'after_choice_states': 'after_choice_states = aNrm'
-    }
-
-    choose = TransitionFunctions()
-    choose.eqns = {}
-    choose.vals = {}
-
-    for eqn_name in eqns_source.keys():
-        #        print(eqn_name+': '+eqns_source[eqn_name])
-        tree = parse(eqns_source[eqn_name], mode='exec')
-        code = compile(tree, filename="<ast>", mode='exec')
-        choose.eqns.update({eqn_name: code})
-        # Eqns are only beig defined here; executed when needed
-
-    choose.eqns_source = eqns_source
-    Modl.Transitions.before_to_after_choice = choose
-
-    return stge
-
+#    After the choices have been made, it is possible that
+#    other shocks could be realized or other evolutions could
+#    occur.
 
 # This is here as a placeholder
-def def_transition_ante_to_choice(stge):
+
+
+def def_transition_BOP__to__choice(stge):
     """
     Transition from beginning of period to decision stage
     """
@@ -128,28 +85,183 @@ def def_transition_ante_to_choice(stge):
     Info = Modl.Info = {**Bilt.__dict__, **Pars.__dict__}
 
     # Dummy example variable
-    eqns_source = {'new_var': 'new_var = 1.0'}
+    eqns_source = {'BOP__to__choice': 'BOP__to__choice = "Done"'}
 
-    ante_to_choice = TransitionFunctions()
-    ante_to_choice.eqns = {}
-    ante_to_choice.vals = {}
+    BOP__to__choice = TransitionFunctions()
+    BOP__to__choice.eqns = {}
+    BOP__to__choice.vals = {}
 
     for eqn_name in eqns_source.keys():
         #        print(eqn_name+': '+eqns_source[eqn_name])
         tree = parse(eqns_source[eqn_name], mode='exec')
         code = compile(tree, filename="<ast>", mode='exec')
-        ante_to_choice.eqns.update({eqn_name: code})
-        exec(code, {**globals(), **Info}, ante_to_choice.vals)
+        BOP__to__choice.eqns.update({eqn_name: code})
+        exec(code, {**globals(), **Info}, BOP__to__choice.vals)
 
-    Bilt.__dict__.update({k: v for k, v in ante_to_choice.vals.items()})
+    Bilt.__dict__.update({k: v for k, v in BOP__to__choice.vals.items()})
 
-    ante_to_choice.eqns_source = eqns_source
-    Modl.Transitions.ante_to_choice = ante_to_choice  # Save uncompiled source code
+    BOP__to__choice.eqns_source = eqns_source
+    Modl.TransitionFuncs.BOP__to__choice = BOP__to__choice   # Save uncompiled source code
+    Modl.TransitionsList.append([BOP__to__choice])
+    stge.Modl.Transitions['BOP__to__choice'] = BOP__to__choice
 
     return stge
 
 
-def def_felicity(stge): 
+def def_transition_choice__to__chosen(stge):
+    """
+    Transition from state before the choice to state after
+    """
+
+    Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
+
+    eqns_source = {
+        'aNrm': 'aNrm = mNrm - cNrm',
+        'after_choice_states': 'after_choice_states = aNrm'
+    }
+
+    choice__to__chosen = TransitionFunctions()
+    choice__to__chosen.eqns = {}
+    choice__to__chosen.vals = {}
+
+    for eqn_name in eqns_source.keys():
+        #        print(eqn_name+': '+eqns_source[eqn_name])
+        tree = parse(eqns_source[eqn_name], mode='exec')
+        code = compile(tree, filename="<ast>", mode='exec')
+        choice__to__chosen.eqns.update({eqn_name: code})
+        # Eqns are only beig defined here; executed when needed
+
+    choice__to__chosen.eqns_source = eqns_source
+    Modl.TransitionFuncs.choice__to__chosen = choice__to__chosen
+    Modl.TransitionsList.append([choice__to__chosen])
+    stge.Modl.Transitions['choice__to__chosen'] = choice__to__chosen
+
+    return stge
+
+
+def def_transition_chosen__to__EOP(stge):
+    """
+    After consumption has been chosen, realize the shocks
+    (permShk, tranShk) required for the transition to the
+    next period.
+    """
+
+    eqns_source = deepcopy(transitions_caused_by_shocks)
+    eqns_source.update({'next_states': 'next_states = [mNrm]'})
+
+    chosen__to__EOP = TransitionFunctions()
+    chosen__to__EOP.eqns = {}
+    chosen__to__EOP.vals = {}
+
+    for eqn_name in eqns_source.keys():
+        tree = parse(eqns_source[eqn_name], mode='exec')
+        code = compile(tree, filename="<ast>", mode='exec')
+        chosen__to__EOP.eqns.update({eqn_name: code})
+
+    stge.Modl.TransitionFuncs.chosen__to__EOP = chosen__to__EOP
+    stge.Modl.TransitionFuncs.chosen__to__EOP.eqns = chosen__to__EOP.eqns
+    stge.Modl.TransitionFuncs.chosen__to__EOP.eqns_source = eqns_source
+    stge.Modl.TransitionsList.append([chosen__to__EOP])
+    stge.Modl.Transitions['chosen__to__EOP'] = chosen__to__EOP
+
+    return stge
+
+
+def def_transition_chosen__to__next_choice(stge):
+    """
+    After consumption has been chosen, realize the shocks
+    (permShk, tranShk) required for the transition to the
+    next period.
+    """
+
+    eqns_source = deepcopy(transitions_caused_by_shocks)
+    eqns_source.update({'next_states': 'next_states = [mNrm]'})
+
+    chosen__to__next_choice = TransitionFunctions()
+    chosen__to__next_choice.eqns = {}
+    chosen__to__next_choice.vals = {}
+
+    for eqn_name in eqns_source.keys():
+        tree = parse(eqns_source[eqn_name], mode='exec')
+        code = compile(tree, filename="<ast>", mode='exec')
+        chosen__to__next_choice.eqns.update({eqn_name: code})
+
+    stge.Modl.TransitionFuncs.chosen__to__next_choice = chosen__to__next_choice
+    stge.Modl.TransitionFuncs.chosen__to__next_choice.eqns = chosen__to__next_choice.eqns
+    stge.Modl.TransitionFuncs.chosen__to__next_choice.eqns_source = eqns_source
+
+    stge.Modl.Transitions['chosen__to__next_choice'] = chosen__to__next_choice
+    stge.Modl.TransitionFuncs.chosen__to__next_choice.eqns = chosen__to__next_choice.eqns
+    stge.Modl.TransitionFuncs.chosen__to__next_choice.eqns_source = eqns_source
+    return stge
+
+
+def def_transition_chosen__to__next_BOP(stge):
+    """
+    After consumption has been chosen, realize the shocks
+    (permShk, tranShk) required for the transition to the
+    beginning of the next period.
+    """
+
+    eqns_source = deepcopy(transitions_caused_by_shocks)
+    eqns_source.update({'next_states': 'next_states = [mNrm]'})
+
+    chosen__to__next_BOP = TransitionFunctions()
+    chosen__to__next_BOP.eqns = {}
+    chosen__to__next_BOP.vals = {}
+
+    for eqn_name in eqns_source.keys():
+        tree = parse(eqns_source[eqn_name], mode='exec')
+        code = compile(tree, filename="<ast>", mode='exec')
+        chosen__to__next_BOP.eqns.update({eqn_name: code})
+
+    stge.Modl.TransitionFuncs.chosen__to__next_BOP = chosen__to__next_BOP
+    stge.Modl.TransitionFuncs.chosen__to__next_BOP.eqns = chosen__to__next_BOP.eqns
+    stge.Modl.TransitionFuncs.chosen__to__next_BOP.eqns_source = eqns_source
+
+    stge.Modl.Transitions['chosen__to__next_BOP'] = chosen__to__next_BOP
+    stge.Modl.TransitionFuncs.chosen__to__next_BOP.eqns = chosen__to__next_BOP.eqns
+    stge.Modl.TransitionFuncs.chosen__to__next_BOP.eqns_source = eqns_source
+    return stge
+
+
+# End of this to beginning of next period
+
+
+def def_transition_EOP_to_next_BOP(stge):
+    """
+    Transition from beginning of period to decision stage
+    """
+
+    Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
+    Info = Modl.Info = {**Bilt.__dict__, **Pars.__dict__}
+
+    # Dummy example variable
+    eqns_source = {'EOP__to__next_BOP': 'EOP__to__next_BOP = "Done"'}
+
+    EOP__to__next_BOP = TransitionFunctions()
+    EOP__to__next_BOP.eqns = {}
+    EOP__to__next_BOP.vals = {}
+
+    for eqn_name in eqns_source.keys():
+        #        print(eqn_name+': '+eqns_source[eqn_name])
+        tree = parse(eqns_source[eqn_name], mode='exec')
+        code = compile(tree, filename="<ast>", mode='exec')
+        EOP__to__next_BOP.eqns.update({eqn_name: code})
+        exec(code, {**globals(), **Info}, EOP__to__next_BOP.vals)
+
+    Bilt.__dict__.update({k: v for k, v in EOP__to__next_BOP.vals.items()})
+
+    EOP__to__next_BOP.eqns_source = eqns_source
+    Modl.TransitionFuncs.EOP__to__next_BOP = EOP__to__next_BOP   # Save uncompiled source code
+    Modl.TransitionsList.append([EOP__to__next_BOP])
+    stge.Modl.Transitions['EOP__to__next_BOP'] = EOP__to__next_BOP
+
+    breakpoint()
+    return stge
+
+
+def def_felicity(stge):
     stge = def_utility_CRRA(stge, stge.Pars.CRRA)
     return stge
 
@@ -411,6 +523,9 @@ def def_value_funcs(stge, CRRA):
 #    stge.vFunc.dm = locals()['vFunc_dm']
 #    stge.vFunc.dm.dm = locals()['vFunc_dm_dm']
     return stge
+
+
+def_value_CRRA = def_value_funcs
 
 
 def apply_flat_income_tax(

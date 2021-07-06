@@ -574,9 +574,23 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                                       params['aprox_lim'])
 
         # Attach one-period(/stage) solver to AgentType
-        self.solve_one_period = make_one_period_oo_solver(solver)  # allows user-specified alt
+        self.solve_one_period = make_one_period_oo_solver(
+            solver, solveMethod=solveMethod)  # allows user-specified alt
 
         self.make_solution_for_final_period()  # Populate [instance].solution[0]
+
+    def add_transitions(self):
+        """
+        Transition equations are kept in a dict
+        """
+        self.Modl = Model()
+        # Beginning of Period to End of Period then to next Beginning
+        self.Modl.Transitions = TransitionFunctions()
+        self.Modl.Transitions.Phases = {
+            'BOP_to_choice': '',
+            'choice_to_chosen': def_transition_chosen_to_choice(),
+            'chosen_to_EOP': def_transition_chosen_to_EOP(),
+            'EOP_to_next_BOP': ''}
 
     def add_stable_points_to_solution(self, soln):
         """
@@ -1456,7 +1470,8 @@ class KinkedRconsumerType(IndShockConsumerType):
         PerfForesightConsumerType.__init__(self, cycles=cycles, **params)
 
         # Add consumer-type specific objects, copying to create independent versions
-        self.solve_one_period = make_one_period_oo_solver(ConsKinkedRsolver)
+        self.solve_one_period = make_one_period_oo_solver(
+            ConsKinkedRsolver, solveMethod=solveMethod)
         # Make assets grid, income process, terminal solution
 
     def agent_force_prepare_info_needed_to_begin_solving(self):
