@@ -333,7 +333,7 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         # our normal iteration tools to solution_afterlife_nobequest_
 
         cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0, 2.0], [0.0, 1.0, 2.0], [0.0, 1.0, 2.0])
-#        cFunc_terminal_nobequest_.derivativeX = lambda m: 1.0
+
         cFunc = cFunc_terminal_nobequest_
 
         CRRA = 2.0
@@ -342,12 +342,11 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         solution_nobequest_ = \
             ConsumerSolutionOneStateCRRA(  # Omit vFunc b/c u not yet def
                 cFunc=cFunc_terminal_nobequest_,
-                vFunc=u,
-                mNrmMin=mNrmMin,  # TODO: vPfunc deprecated; remove
+                #                vFunc=u,
+                mNrmMin=mNrmMin,  # TODO: deprecated; remove
                 hNrm=hNrm,  # TODO: should be on Bilt; remove
                 MPCmin=MPCmin,  # TODO: should be on Bilt; remove
                 MPCmax=MPCmin,  # TODO: should be on Bilt; remove
-                # TODO: should be on Bilt; remove
                 stge_kind={
                     'iter_status': 'terminal_partial',  # will be replaced with iterator
                     'term_type': 'nobequest'
@@ -521,6 +520,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                  solution_startfrom=None,  # Default: no interim solution
                  solver=ConsPerfForesightSolver,
                  solveMethod='EGM',
+                 shockTiming='EOP',
                  **kwds
                  ):
 
@@ -536,6 +536,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         # - not necessarily set in any ancestral class
         self.solver = solver
         self.solveMethod = solveMethod
+        self.shockTiming = shockTiming
 
         # Things to keep track of for this and child models
         self.check_restrictions()  # Make sure it's a minimally valid model
@@ -574,23 +575,14 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                                       params['aprox_lim'])
 
         # Attach one-period(/stage) solver to AgentType
-        self.solve_one_period = make_one_period_oo_solver(
-            solver, solveMethod=solveMethod)  # allows user-specified alt
+        self.solve_one_period = \
+            make_one_period_oo_solver(
+                solver,
+                solveMethod=solveMethod,
+                shockTiming=shockTiming
+            )  # allows user-specified alt
 
         self.make_solution_for_final_period()  # Populate [instance].solution[0]
-
-    def add_transitions(self):
-        """
-        Transition equations are kept in a dict
-        """
-        self.Modl = Model()
-        # Beginning of Period to End of Period then to next Beginning
-        self.Modl.Transitions = TransitionFunctions()
-        self.Modl.Transitions.Phases = {
-            'BOP_to_choice': '',
-            'choice_to_chosen': def_transition_chosen_to_choice(),
-            'chosen_to_EOP': def_transition_chosen_to_EOP(),
-            'EOP_to_next_BOP': ''}
 
     def add_stable_points_to_solution(self, soln):
         """
@@ -1070,6 +1062,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                  cycles=1, verbose=1,  quiet=True, solution_startfrom=None,
                  solverType='HARK',
                  solveMethod='EGM',
+                 shockTiming='EOP',
                  solverName=ConsIndShockSolverBasic,
                  **kwds):
         params = init_idiosyncratic_shocks.copy()  # Get default params
@@ -1101,7 +1094,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if (solverType == 'HARK') or (solverType == 'DARKolo'):
             #            breakpoint()
             self.solve_one_period = \
-                make_one_period_oo_solver(solverName, solveMethod=solveMethod)
+                make_one_period_oo_solver(
+                    solverName,
+                    solveMethod=solveMethod,
+                    shockTiming=shockTiming
+                )
 
         if (solverType == 'dolo') or (solverType == 'DARKolo'):
             # If we want to solve with dolo, set up the model
@@ -1471,7 +1468,10 @@ class KinkedRconsumerType(IndShockConsumerType):
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solve_one_period = make_one_period_oo_solver(
-            ConsKinkedRsolver, solveMethod=solveMethod)
+            ConsKinkedRsolver,
+            solveMethod=solveMethod,
+            shockTiming=shockTiming
+        )
         # Make assets grid, income process, terminal solution
 
     def agent_force_prepare_info_needed_to_begin_solving(self):

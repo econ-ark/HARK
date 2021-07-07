@@ -27,9 +27,10 @@ from HARK.ConsumptionSaving.ConsIndShockModel_Both \
 class agent_solution(MetricObject):
     """
     A class that contains the solution of a single period of a generic
-    well-behaved scritctly concave decision problem.  This is meant as
-    to provide the minimum foundational structure that all models will
-    share.  It must be specialized to solve any particular problem.
+    well-behaved strictly concave decision problem.  This is meant
+    to provide a foundational structure that all models will
+    share.  It must be specialized and elaborated to solve any
+    particular problem.
 
 
     Parameters
@@ -90,15 +91,14 @@ class agent_solution(MetricObject):
                  completed_cycles=0,
                  **kwds):
 
-        self.E_tp1_ = Nexspectations()
-        self._t_E_t = Prospectations()
+        self.E_tp1_ = Nexspectations()  # Next given this period choices
+        self._t_E_t = Prospectations()  # Before this period choices
         self.Pars = Parameters()
         self.Bilt = Built()
         self.Bilt.completed_cycles = completed_cycles
         self.Bilt.stge_kind = stge_kind
         self.Bilt.parameters_solver = parameters_solver
         self.Modl = Elements()
-        self.Modl.TransitionFuncs = TransitionFunctions()
         # List most likely transition types in their canonical possible order
         # Each status will end up transiting only to one subsequent status
         # There are multiple possibilities because many models may skip many steps
@@ -219,7 +219,7 @@ class Ante_Choice(SimpleNamespace):
 
 class Elements(SimpleNamespace):
     """
-    Elements of the model in python/HARK code.
+   Elements of the model in python/HARK code.
     """
 # TODO: Move (to core.py) when vetted/agreed
     pass
@@ -374,8 +374,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
         # These have been moved to Bilt to declutter whiteboard:
         del self.hNrm
-        del self.vFunc
-        del self.cFunc
+#        del self.vFunc
         del self.vPfunc
         del self.vPPfunc
 
@@ -719,6 +718,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             PermGroFac=1.0, BoroCnstArt=None, MaxKinks=None,
             solverType='HARK',
             solveMethod='EGM',
+            shockTiming='EOP',
             solverName='ConsPerfForesightSolver',
             **kwds
     ):
@@ -1141,6 +1141,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
 # 20210618: TODO: CDC: Find a way to isolate this stuff so it does not clutter
 
+
     def build_facts_infhor(self):
         """
         Add to solution information about its nature and elements.
@@ -1562,25 +1563,22 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         Returns
         -------
         divert : boolean
-            If True, the method will have produced its own solution and put it
-            on self.
-
+            If False (usually), continue normal solution
+            If True, produce alternative solution and store on self.soln_crnt
         """
         # bare-bones default terminal solution does not have all the facts
-        # we want, because it is multipurpose (for any u func) so add them
+        # we need, because it is multipurpose (for any u func) so add them
         crnt, futr = self.soln_crnt, self.soln_futr
         if futr.Bilt.stge_kind['iter_status'] != 'terminal_partial':
             return False  # Continue with normal solution procedures
         else:
             crnt = self.def_reward()  # reward = CRRA utility
-            crnt = self.make_E_postchoice.E_tp1(crnt, futr)
-#            crnt = self.optional_modules(crnt)
-            crnt.cFunc = crnt.Bilt.cFunc  # make cFunc accessible for distance
+            crnt.cFunc = crnt.Bilt.cFunc  # make cFunc accessible
             crnt = self.def_value()  # make value functions using cFunc
             crnt.vFunc = crnt.Bilt.vFunc  # make vFunc accessible for distance
-            crnt.Bilt.stge_kind['iter_status'] = 'iterator'
             self.build_facts_infhor()
-            return True  # if pseudo_terminal = True, enhanced replaces original
+            crnt.Bilt.stge_kind['iter_status'] = 'iterator'  # now it's legit
+            return True  # if pseudo_terminal=True, enhanced replaces original
 
     def solve_prepared_stage(self):  # inside ConsPerfForesightSolver
         """
@@ -1595,23 +1593,20 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         solution : ConsumerSolution
             The solution to this period/stage's problem
         """
+        if self.solve_prepared_stage_divert():  # Allow bypass of normal soln
+            return self.soln_crnt  # created by bypass
 
-        if self.solve_prepared_stage_divert():  # Allow bypass
-            return self.soln_crnt
+        futr, crnt, Pars = self.soln_futr, self.soln_crnt, self.soln_crnt.Pars
 
-        # Start of normal solution
-        futr, crnt = self.soln_futr, self.soln_crnt
-        Pars = crnt.Pars
-
-        #  Protean allows many things to change that otherwise won't
-        if Pars.solveMethod == 'Protean':  # what could change?
-            crnt = self.def_transitions(crnt, futr)  # bud constr
-            crnt = self.after_shocks_and_choices__E_tp1(crnt, futr)
-            crnt = self.optional_modules(crnt, futr)  # MertonSamuelsonConsumerType?
-            crnt = self.def_reward(crnt)  # Allow CRRA change
-        else:  # infhor calcs only make sense if none of above happen
-            self.build_facts_infhor()
-
+        # #  Protean allows many things to change that otherwise won't
+        # if Pars.solveMethod == 'Protean':  # what could change?
+        #     crnt = self.def_transitions(crnt, futr)  # bud constr
+        #     crnt = self.after_shocks_and_choices__E_tp1(crnt, futr)
+        #     crnt = self.optional_modules(crnt, futr)
+        #     crnt = self.def_reward(crnt)  # Allow CRRA change
+        # else:  # infhor calcs only make sense if none of above happen
+        #     self.build_facts_infhor()
+        crnt = self.build_facts_infhor()
         crnt = self.build_facts_recursive()
         crnt = self.build_decision_rules_and_value_functions(crnt)
 
@@ -1630,7 +1625,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
     def make_decision_rules(self, crnt):
         self.make_cFunc_PF()
 
-    def solver_prep_solution_for_an_iteration(self, solveMethod='EGM'):  # PF
+    def solver_prep_solution_for_an_iteration(self):  # PF
         """
         Prepare the current stage for processing by the one-stage solver.
         """
@@ -1734,6 +1729,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
             PermGroFac, BoroCnstArt, aXtraGrid, vFuncBool, CubicBool,
             permShkDstn, tranShkDstn,
             solveMethod='EGM',
+            shockTiming='EOP',
             **kwds):
         # First execute PF solver init
         # We must reorder params by hand in case someone tries positional solve
@@ -1743,6 +1739,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
                                          IncShkDstn=IncShkDstn, permShkDstn=permShkDstn,
                                          tranShkDstn=tranShkDstn,
                                          solveMethod=solveMethod,
+                                         shockTiming=shockTiming,
                                          **kwds)
 
         # ConsPerfForesightSolver.__init__ makes self.soln_crnt
@@ -1752,6 +1749,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         Bilt, Pars, Modl = soln_crnt.Bilt, soln_crnt.Pars, soln_crnt.Modl
 
         Modl.solveMethod = solveMethod
+        Modl.shockTiming = shockTiming
 
         Bilt.aXtraGrid = aXtraGrid
 #        self.vFuncBool = vFuncBool
@@ -1801,6 +1799,8 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
 
     def build_facts_infhor(self):
         """
+        Calculate expectations and facts for models with uncertainty.
+
         For versions with uncertainty in transitory and/or permanent shocks,
         adds to the solution a set of results useful for calculating
         various diagnostic conditions about the problem, and stable
@@ -1817,7 +1817,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
             Same solution that was provided, augmented with the factors
 
         """
-        super().build_facts_infhor()  # Make the facts are built by the PF model
+        super().build_facts_infhor()  # Make the facts built by the PF model
 
         soln_crnt = self.soln_crnt
 
@@ -1834,7 +1834,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         # Many other _fcts will have been inherited from the perfect foresight
 
         # Here we need compute only those objects whose value changes from PF
-        # or does not exist when the shock distributions are degenerate.
+        # (or does not exist in PF case)
 
         E_tp1_.IncNrmNxt_fcts = {
             'about': 'Expected income next period'
@@ -1843,7 +1843,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         E_tp1_.IncNrmNxt = E_tp1_.IncNrmNxt = eval(
             py___code, {}, {**E_tp1_.__dict__, **Bilt.__dict__, **givens})
         E_tp1_.IncNrmNxt_fcts.update({'latexexpr': r'ExIncNrmNxt'})
-        E_tp1_.IncNrmNxt_fcts.update({'_unicode_': r'𝔼[tranShk permShk] = 1.0'})
+        E_tp1_.IncNrmNxt_fcts.update({'_unicode_': r'𝔼[tranShk permShk]= 1.0'})
         E_tp1_.IncNrmNxt_fcts.update({'urlhandle': urlroot+'ExIncNrmNxt'})
         E_tp1_.IncNrmNxt_fcts.update({'py___code': py___code})
         E_tp1_.IncNrmNxt_fcts.update({'value_now': E_tp1_.IncNrmNxt})
@@ -1962,6 +1962,14 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         Bilt.DiscGPFNrmCusp_fcts = DiscGPFNrmCusp_fcts
 
     def build_facts_recursive(self):
+        """
+        Calculate recursive facts for current period from next.
+
+        Returns
+        -------
+        soln_crnt : solution
+
+        """
         super().build_facts_recursive()
 
         # All the recursive facts are required for PF model so already exist
@@ -1997,7 +2005,8 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
             lambda a_t:
             𝔼_dot(Pars.PermGroFac *
                   Pars.permShkValsBcst *
-                  (E_tp1_.RNrm_PF/Pars.permShkValsBcst) * a_t + Pars.tranShkValsBcst,
+                  (E_tp1_.RNrm_PF/Pars.permShkValsBcst) * a_t
+                  + Pars.tranShkValsBcst,
                   Pars.ShkPrbs)
         )
 
@@ -2006,7 +2015,8 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
             lambda a_t:
             𝔼_dot(Pars.PermGroFac *
                   Pars.permShkValsBcst *
-                  Bilt.cFunc((E_tp1_.RNrm_PF/Pars.permShkValsBcst) * a_t + Pars.tranShkValsBcst),
+                  Bilt.cFunc((E_tp1_.RNrm_PF/Pars.permShkValsBcst) * a_t
+                             + Pars.tranShkValsBcst),
                   Pars.ShkPrbs)
         )
 
@@ -2081,67 +2091,6 @@ class ConsIndShockSetup(ConsIndShockSetupEOP):
     pass
 
 
-class ConsIndShockSetup_ex_ante(ConsIndShockSetup):
-    pass
-
-#############################################################################
-
-
-# class ConsIndShockSolverBasic_ex_ante(ConsIndShockSetup_ex_ante):
-#     def __init__(self, *args, **kwds):
-#         super().init(self, *args, **kwds)
-
-#     def make_ex_ante_states_from_transition_eqns_inverse(self):
-#         givens = {}
-#         E_tp1_ = self.soln_crnt.E_tp1_
-#         Bilt = self.soln_crnt.Bilt
-#         for key in self.transition_eqns_inverse.keys():
-#             eval(self.transition_eqns_inverse[key], {}, {
-#                  **E_tp1_.__dict__, **Bilt.__dict__, **givens})
-
-#     def make_ex_ante_states(self):
-#         Bilt = self.soln_crnt.Bilt
-#         aNrmMin_tm1 = Bilt.BoroCnstNat*(Bilt.PermGroFac*Bilt.permShkMax)/Bilt.Rfree
-#         Bilt.aNrmGrid_tm1 = np.asarray(Bilt.aXtraGrid) + aNrmMin_tm1
-
-#     def add_E_tp1_m1_v_t(self):
-#         Bilt = self.soln_crnt.Bilt
-#         Pars = self.soln_crnt.Pars
-#         IncShkDstn = Pars.IncShkDstn
-#         aNrmGrid_tm1 = Bilt.aNrmGrid_tm1
-
-#         def vals_given_shocks_v_t(xfer_shks_bcst, curr_tp0_poststates):
-#             return xfer_shks_bcst[Pars.permPos] ** (1-Pars.CRRA - 0.0) * \
-#                 self.soln_crnt.vFunc(
-#                     self.mNrm_t_from_a_tm1_bcst(xfer_shks_bcst, curr_tp0_poststates))
-
-#         def vals_given_shocks_v_t_dm(xfer_shks_bcst, curr_tp0_poststates):
-#             return xfer_shks_bcst[Pars.permPos] ** (1-Pars.CRRA - 1.0) * \
-#                 self.soln_crnt.vFunc.dm(
-#                     self.mNrm_t_from_a_tm1_bcst(xfer_shks_bcst, curr_tp0_poststates))
-
-#         def vals_given_shocks_v_t_dm_dm(xfer_shks_bcst, curr_tp0_poststates):
-#             return xfer_shks_bcst[Pars.permPos] ** (1-Pars.CRRA - 2.0) * \
-#                 self.soln_crnt.vFunc.dm.dm(
-#                     self.mNrm_t_from_a_tm1_bcst(xfer_shks_bcst, curr_tp0_poststates))
-
-#         def vals_given_shocks_v_t_derivatives_012(xfer_shks_bcst, curr_tp0_poststates):
-#             return np.array([vals_given_shocks_v_t(xfer_shks_bcst, curr_tp0_poststates),
-#                              vals_given_shocks_v_t_dm(xfer_shks_bcst, curr_tp0_poststates),
-#                              vals_given_shocks_v_t_dm_dm(xfer_shks_bcst, curr_tp0_poststates)])
-
-#         E_tp1_ = self.soln_crnt.E_tp1_
-#         E_tp1_.ante.v_t = np.squeeze(
-#             * Pars.Rfree
-#             * Pars.PermGroFac ** (-Pars.CRRA)
-#             * calc_expectation_of_array(
-#                 IncShkDstn,
-#                 vals_given_shocks_v_t_derivatives_012,
-#                 aNrmGrid_tm1
-#             )
-#         )
-
-
 class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
     """
     Solves a single period of a standard consumption-saving problem,
@@ -2154,7 +2103,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
     inherits.
     """
 
-    def make_tp0_postchoice_state_grid(self):
+    def make_chosen_state_grid(self):
         """
         Prepare to calculate end-of-period marginal value by creating an array
         of asset values with which the agent might end the current period.
@@ -2170,66 +2119,90 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         """
 
         # We define aNrmGrid all the way from BoroCnstNat up to max(aXtraGrid)
-        # even if BoroCnstNat < BoroCnstArt, so we can construct the consumption
-        # function as the lower envelope of the (by the artificial borrowing con-
-        # straint) unconstrained consumption function, and the artificially con-
+        # even if BoroCnstNat<BoroCnstArt, so we can construct the consumption
+        # function as lower envelope of the (by the artificial borrowing con-
+        # straint) unconstrained consumption function, and  artificially con-
         # strained consumption function.
         self.soln_crnt.Bilt.aNrmGrid = np.asarray(
             self.soln_crnt.Bilt.aXtraGrid) + self.soln_crnt.Bilt.BoroCnstNat
 
         return self.soln_crnt.Bilt.aNrmGrid
 
-    def add_tp0_postChoice_Value(self):
+    def _E_tp1_make(self, IncShkDstn):
         """
-        Calculate expected value after choices but before shocks.
+        Calculate expectations after choices but before shocks.
         """
 
-        soln_crnt = self.soln_crnt
-        futr = self.soln_futr
+        crnt, futr = self.soln_crnt, self.soln_futr
 
-        Bilt, Pars, E_tp1_ = \
-            soln_crnt.Bilt, soln_crnt.Pars, soln_crnt.E_tp1_
+        Bilt, Pars, E_tp1_ = crnt.Bilt, crnt.Pars, crnt.E_tp1_
 
-        IncShkDstn = Pars.IncShkDstn
-        aNrmGrid = Bilt.aNrmGrid
-        CRRA_tp1 = futr.Bilt.vFunc.CRRA
+        shockTiming = Pars.shockTiming  # this_EOP or next_BOP (or both)
+
+#        IncShkDstn = Pars.IncShkDstn
+        states_chosen = Bilt.aNrmGrid
+        permPos = IncShkDstn.parameters['ShkPosn']['perm']
+        tranPos = IncShkDstn.parameters['ShkPosn']['tran']
+        
+#        breakpoint()
+
+        if shockTiming == 'EOP':  # shocks happen at end of this period
+            CRRA = futr.Bilt.vFunc.CRRA
+            Discount = Pars.DiscLiv
+            vFunc = futr.Bilt.vFunc
+            cFunc = futr.Bilt.cFunc
+            PermGroFac = futr.Pars.PermGroFac
+        else:  # default to BOP
+            CRRA = Pars.CRRA
+            Discount = 1.0
+            vFunc = crnt.Bilt.vFunc
+            cFunc = crnt.Bilt.cFunc
+            PermGroFac = Pars.PermGroFac
+
         Rfree = Pars.Rfree
 
-        def post_t_E_v_tp1_wrapped(dstn, aNrm):
-            permPos = dstn.parameters['ShkPosn']['perm']
-            tranPos = dstn.parameters['ShkPosn']['tran']
-            permShk = dstn.X[permPos]
-            tranShk = dstn.X[tranPos]
-            mNrm_tp1_from_a_t_by_shk = \
-                (Pars.Rfree / (Pars.PermGroFac * permShk)) * aNrm + tranShk
-            v_tp1_vals = self.soln_crnt.folw.vFunc_tp1(mNrm_tp1_from_a_t_by_shk)
-            v_NormFac_vals = permShk**(1-CRRA_tp1 - 0.0)
-            E_tp1__v_tp1_vals = v_NormFac_vals * v_tp1_vals
-            return E_tp1__v_tp1_vals
+        # def post_t_E_v_tp1_wrapped(dstn, aNrm):
+        #     permPos = dstn.parameters['ShkPosn']['perm']
+        #     tranPos = dstn.parameters['ShkPosn']['tran']
+        #     permShk = dstn.X[permPos]
+        #     tranShk = dstn.X[tranPos]
+        #     mNrm_tp1_from_a_t_by_shk = \
+        #         (Pars.Rfree / (Pars.PermGroFac * permShk)) * aNrm + tranShk
+        #     v_tp1_vals = self.crnt.folw.vFunc_tp1(mNrm_tp1_from_a_t_by_shk)
+        #     v_NormFac_vals = permShk**(1-CRRA_tp1 - 0.0)
+        #     E_tp1__v_tp1_vals = v_NormFac_vals * v_tp1_vals
+        #     return E_tp1__v_tp1_vals
 
         # This is the efficient place to compute expectations of anything
         # at near zero marginal cost by adding to list of things calculated
-        def post_choice_t(xfer_shks_bcst, curr_tp0_poststates):
+        def stuff_to_expect(xfer_shks_bcst, states_chosen):
             # tp1 contains the realizations of the state variables
-            tp1 = self.next_choice_states(xfer_shks_bcst, curr_tp0_poststates)
-            mNrm_tp1 = tp1.mNrm
+            next_choice_states = \
+                self.transition_chosen__to__next_choice(
+                    xfer_shks_bcst, states_chosen, IncShkDstn)
+            mNrm = next_choice_states.mNrm
             # Random (Rnd) shocks to permanent income affect mean PermGroFac
-            PermGroRnd = xfer_shks_bcst[Pars.permPos]*Pars.PermGroFac
-            DiscLiv = Pars.DiscLiv
-            vFunc_tp1 = futr.Bilt.vFunc
+            PermGroRnd = xfer_shks_bcst[Pars.permPos]*PermGroFac
+#            DiscLiv = Pars.DiscLiv
+#            vFunc_tp1 = futr.Bilt.vFunc
+#            cFunc_tp1 = futr.Bilt.cFunc
             # Derivatives 0, 1, 2
-            v_0 = PermGroRnd ** (1-CRRA_tp1-0) * vFunc_tp1(mNrm_tp1)
-            v_1 = PermGroRnd ** (1-CRRA_tp1-1) * vFunc_tp1.dm(mNrm_tp1) * Rfree
-            v_2 = PermGroRnd ** (1-CRRA_tp1-2) * vFunc_tp1.dm.dm(mNrm_tp1) * \
+            v_0 = PermGroRnd ** (1-CRRA-0) * vFunc(mNrm)
+            v_1 = PermGroRnd ** (1-CRRA-1) * vFunc.dm(mNrm) * Rfree
+            v_2 = PermGroRnd ** (1-CRRA-2) * vFunc.dm.dm(mNrm) * \
                 Rfree * Rfree
-            return DiscLiv*np.array([v_0, v_1, v_2])
+            c_0 = cFunc(mNrm)
+            c_1 = cFunc.derivative(mNrm)
+            return Discount*np.array([v_0, v_1, v_2, c_0, c_1])
 
-        E_tp1_.post_choice_t = np.squeeze(
+        E_tp1_.given_chosen = np.squeeze(
             calc_expectation_of_array(
                 IncShkDstn,
-                post_choice_t,
-                aNrmGrid)
+                stuff_to_expect,
+                states_chosen)
         )
+        E_tp1_.v0_pos, E_tp1_.v1_pos, E_tp1_.v2_pos = 0, 1, 2
+        E_tp1_.c0_pos, E_tp1_.c1_pos = 4, 5
 
     def get_source_points_via_EGM(self, EndOfPrdvP, aNrm):
         """
@@ -2358,7 +2331,9 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
     def make_sol_using_EGM(self):  # Endogenous Gridpts Method
         """
-        Given a grid of end-of-period values of assets a, use the endogenous
+        Calculate consumption levels corresponding to end of period dv/dm.
+
+        Given the grid of end-of-period values of assets a, use the endogenous
         gridpoints method to obtain the corresponding values of consumption,
         and use the dynamic budget constraint to obtain the corresponding value
         of market resources m.
@@ -2373,19 +2348,21 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             The solution to the single period consumption-saving problem.
         """
         Bilt, E_tp1_ = self.soln_crnt.Bilt, self.soln_crnt.E_tp1_
+        v1_pos = E_tp1_.v1_pos  # first derivative of value function at chosen
         u = Bilt.u
 
-        Bilt.cNrmGrid = u.dc.Nvrs(E_tp1_.post_choice_t[1])  # [1]: first derivative
+        # [v1_pos]: first derivative
+        Bilt.cNrmGrid = u.dc.Nvrs(E_tp1_.given_chosen[v1_pos])
 
         # Construct a solution for this period
         if self.CubicBool:
             soln_crnt = self.interpolating_EGM_solution(
-                E_tp1_.post_choice_t[1], Bilt.aNrmGrid,
+                E_tp1_.given_chosen[v1_pos], Bilt.aNrmGrid,
                 interpolator=self.make_cFunc_cubic
             )
         else:
             soln_crnt = self.interpolating_EGM_solution(
-                E_tp1_.post_choice_t[1], Bilt.aNrmGrid,
+                E_tp1_.given_chosen[v1_pos], Bilt.aNrmGrid,
                 interpolator=self.make_cFunc_linear
             )
 
@@ -2450,8 +2427,8 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         # Current CRRA might be different from future
         soln_crnt = def_reward(soln_crnt)
         soln_crnt = def_transition_chosen__to__next_choice(soln_crnt)
-        soln_crnt = self.make_tp0_postchoice_state_grid()
-        self.add_tp0_postChoice_Value()
+        soln_crnt = self.make_chosen_state_grid()
+        self._E_tp1_make(self.soln_crnt.Pars.IncShkDstn)
 
         return soln_crnt
 
@@ -2547,7 +2524,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
     def make_optimal_decision_rule_and_construct_value(self):
         pass
 
-    def next_choice_states(self, xfer_shks_bcst, chosen_states):
+    def transition_chosen__to__next_choice(self, xfer_shks_bcst, chosen_states, IncShkDstn):
         """
         Returns array of values of normalized market resources m
         corresponding to permutations of potential realizations of
@@ -2564,18 +2541,18 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         Returns
         -------
-        next_choice_states : namespace with results of applying transition eqns
+        transition_chosen__to__next_choice : namespace with results of applying transition eqns
         """
 
         stge = self.soln_crnt
-        Pars, Modl, TransitionFuncs = stge.Pars, stge.Modl, stge.Modl.TransitionFuncs
+        Pars, Modl = stge.Pars, stge.Modl
         Transitions = stge.Modl.Transitions
 
         permPos, tranPos = (
             Pars.IncShkDstn.parameters['ShkPosn']['perm'],
             Pars.IncShkDstn.parameters['ShkPosn']['tran'])
 
-        zeros = chosen_states - chosen_states  # zeros of the right size
+        zeros = chosen_states - chosen_states  # zero array of the right size
 
         xfer_vars = {
             'permShk': xfer_shks_bcst[permPos] + zeros,  # + zeros fixes size
@@ -2586,18 +2563,15 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         # Everything needed to execute the transition equations
         Info = {**Pars.__dict__, **xfer_vars}
 
-#        chosen__to__next_choice_old = TransitionFuncs.chosen__to__next_choice
-
         chosen__to__next_choice = \
             Transitions['chosen__to__next_choice']
-        # They are already defined; just execute them
+
         for eqn_name in chosen__to__next_choice.__dict__['eqns'].keys():
-            #            print(eqn_name)
             exec(chosen__to__next_choice.__dict__['eqns'][eqn_name], Info)
 
         tp1 = SimpleNamespace()
         tp1.mNrm = Info['mNrm']
-#        breakpoint()
+
         return tp1
 
 
@@ -2617,8 +2591,7 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
 
     def make_cFunc_cubic(self, mNrm_Vec, cNrm_Vec):
         """
-        Makes a cubic spline interpolation of the unconstrained consumption
-        function for this period.
+        Make cubic spline interpolation of unconstrained consumption function.
 
         Requires self.soln_crnt.Bilt.aNrm to have been computed already.
 
@@ -2631,15 +2604,15 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
 
         Returns
         -------
-        cFunc_unconstrained : CubicInterp
+        cFuncUnc : CubicInterp
             The unconstrained consumption function for this period.
         """
-
         soln_crnt = self.soln_crnt
         Bilt, E_tp1_ = soln_crnt.Bilt, soln_crnt.E_tp1_
+        v2_pos = E_tp1_.v2_pos  # second derivative of value function
         u = Bilt.u
 
-        dc_da = E_tp1_.post_choice_t[2] / u.dc.dc(np.array(cNrm_Vec[1:]))
+        dc_da = E_tp1_.given_chosen[v2_pos] / u.dc.dc(np.array(cNrm_Vec[1:]))
         MPC = dc_da / (dc_da + 1.0)
         MPC = np.insert(MPC, 0, Bilt.MPCmax)
 
