@@ -11,8 +11,12 @@ from types import SimpleNamespace
 from IPython.lib.pretty import pprint
 from HARK.ConsumptionSaving.ConsIndShockModel_Both import (
     def_reward,
-    def_utility_CRRA, def_value_funcs, def_value_CRRA, def_transition_chosen__to__next_choice)
-from HARK.distribution import (calc_expectation, calc_expectation_of_array)
+    def_utility_CRRA, def_value_funcs, def_value_CRRA,
+    def_transition_chosen__to__next_choice,
+    def_transition_chosen__to__next_BOP,
+    def_transition_choice__to__chosen,
+)
+from HARK.distribution import calc_expectation as expect_funcs_given_states
 from HARK.interpolation import (CubicInterp, LowerEnvelope, LinearInterp,
                                 MargValueFuncCRRA,
                                 MargMargValueFuncCRRA)
@@ -374,7 +378,6 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
         # These have been moved to Bilt to declutter whiteboard:
         del self.hNrm
-#        del self.vFunc
         del self.vPfunc
         del self.vPPfunc
 
@@ -1572,7 +1575,8 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         if futr.Bilt.stge_kind['iter_status'] != 'terminal_partial':
             return False  # Continue with normal solution procedures
         else:
-            crnt = self.def_reward()  # reward = CRRA utility
+            crnt = def_reward(crnt,
+                reward=def_utility_CRRA)  # reward = CRRA utility
             crnt.cFunc = crnt.Bilt.cFunc  # make cFunc accessible
             crnt = self.def_value()  # make value functions using cFunc
             crnt.vFunc = crnt.Bilt.vFunc  # make vFunc accessible for distance
@@ -2128,7 +2132,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         return self.soln_crnt.Bilt.aNrmGrid
 
-    def _E_tp1_make(self, IncShkDstn):
+    def E_make(self, IncShkDstn):
         """
         Calculate expectations after choices but before shocks.
         """
@@ -2139,12 +2143,8 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         shockTiming = Pars.shockTiming  # this_EOP or next_BOP (or both)
 
-#        IncShkDstn = Pars.IncShkDstn
         states_chosen = Bilt.aNrmGrid
         permPos = IncShkDstn.parameters['ShkPosn']['perm']
-        tranPos = IncShkDstn.parameters['ShkPosn']['tran']
-        
-#        breakpoint()
 
         if shockTiming == 'EOP':  # shocks happen at end of this period
             CRRA = futr.Bilt.vFunc.CRRA
@@ -2175,30 +2175,27 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         # This is the efficient place to compute expectations of anything
         # at near zero marginal cost by adding to list of things calculated
-        def stuff_to_expect(xfer_shks_bcst, states_chosen):
+        def funcs_to_expect(xfer_shks_bcst, states_chosen):
             # tp1 contains the realizations of the state variables
             next_choice_states = \
-                self.transition_chosen__to__next_choice(
+                self.transit_chosen__to__next_choice(
                     xfer_shks_bcst, states_chosen, IncShkDstn)
             mNrm = next_choice_states.mNrm
             # Random (Rnd) shocks to permanent income affect mean PermGroFac
-            PermGroRnd = xfer_shks_bcst[Pars.permPos]*PermGroFac
-#            DiscLiv = Pars.DiscLiv
-#            vFunc_tp1 = futr.Bilt.vFunc
-#            cFunc_tp1 = futr.Bilt.cFunc
-            # Derivatives 0, 1, 2
+            PermGroRnd = xfer_shks_bcst[permPos]*PermGroFac
+            # expected value function derivatives 0, 1, 2
             v_0 = PermGroRnd ** (1-CRRA-0) * vFunc(mNrm)
             v_1 = PermGroRnd ** (1-CRRA-1) * vFunc.dm(mNrm) * Rfree
-            v_2 = PermGroRnd ** (1-CRRA-2) * vFunc.dm.dm(mNrm) * \
-                Rfree * Rfree
+            v_2 = PermGroRnd ** (1-CRRA-2) * vFunc.dm.dm(mNrm) * Rfree * Rfree
+            # cFunc derivatives 0, 1 (level and MPC)
             c_0 = cFunc(mNrm)
             c_1 = cFunc.derivative(mNrm)
             return Discount*np.array([v_0, v_1, v_2, c_0, c_1])
 
         E_tp1_.given_chosen = np.squeeze(
-            calc_expectation_of_array(
+            expect_funcs_given_states(
                 IncShkDstn,
-                stuff_to_expect,
+                funcs_to_expect,
                 states_chosen)
         )
         E_tp1_.v0_pos, E_tp1_.v1_pos, E_tp1_.v2_pos = 0, 1, 2
@@ -2389,15 +2386,14 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         )
         return cFunc_unconstrained
 
-    def make_tp0_postchoice_ante_IncShk_status(self):
+    def make_E_from_chosen_states(self):
         """
-        Calculate circumstances of an agent 
-        an instant before the realization of the labor income shocks that 
-        constitute the transition to the next period's state.
+        Calculate circumstances of an agent before the realization of the labor
+        income shocks that constitute the transition to the next period's state.
 
         Resulting solution object contains the value function vFunc and
         its derivatives.  Does not calculate consumption function cFunc:
-        that is a consequence of vFunc.dm but is calculated in the
+        that is a consequence of vFunc.da but is calculated in the
         stage that calls this one.
 
         Parameters
@@ -2407,7 +2403,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         Returns
         -------
         solution : ConsumerSolution object
-            Contains info (like vFunc.dm) required to construct consumption
+            Contains info (like vFunc.da) required to construct consumption
         """
         soln_crnt = self.soln_crnt
 
@@ -2428,7 +2424,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         soln_crnt = def_reward(soln_crnt)
         soln_crnt = def_transition_chosen__to__next_choice(soln_crnt)
         soln_crnt = self.make_chosen_state_grid()
-        self._E_tp1_make(self.soln_crnt.Pars.IncShkDstn)
+        self.E_make(self.soln_crnt.Pars.IncShkDstn)
 
         return soln_crnt
 
@@ -2463,8 +2459,12 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         solution : ConsumerSolution
             The solution to this period/stage's problem.
         """
+        if self.solve_prepared_stage_divert():  # Allow bypass of normal soln
+            return self.soln_crnt  # created by bypass
+        
         soln_crnt = self.soln_crnt
-        CRRA = soln_crnt.Pars.CRRA
+        Pars = soln_crnt.Pars
+        shockTiming, CRRA = Pars.shockTiming, Pars.CRRA
 
         # The first invocation of ".solve" has iter_status='terminal_partial':
         # "pseudo" since it is not ready to serve as a proper starting point
@@ -2476,26 +2476,35 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         # TODO CDC 20210615: This is a kludge to get things to work without modifying
         # core.py. Think about how to change core.py to address more elegantly
 
-        if self.soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_partial':
-            soln_crnt = def_reward(soln_crnt)  # def_utility(soln_crnt, CRRA)
-            soln_crnt = def_value_funcs(soln_crnt, CRRA)
-            soln_crnt.vFunc = self.soln_crnt.Bilt.vFunc
-            soln_crnt.cFunc = self.soln_crnt.Bilt.cFunc
+        # if self.soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_partial':
+        #     soln_crnt = def_reward(soln_crnt,
+        #                            reward=def_utility_CRRA)  # def_utility(soln_crnt, CRRA)
+        #     soln_crnt = def_value_funcs(soln_crnt, CRRA)
+        #     soln_crnt.vFunc = self.soln_crnt.Bilt.vFunc
+        #     soln_crnt.cFunc = self.soln_crnt.Bilt.cFunc
 
-            # Now that it "knows itself" it can build the facts
-            self.build_facts_infhor()
+        #     # Now that it "knows itself" it can build the facts
+        #     self.build_facts_infhor()
 
-            # NOW mark as good-to-go as starting point for backward induction:
-            self.soln_crnt.Bilt.stge_kind['iter_status'] = 'iterator'
+        #     # NOW mark as good-to-go as starting point for backward induction:
+        #     self.soln_crnt.Bilt.stge_kind['iter_status'] = 'iterator'
 
-            return soln_crnt  # Replace original "terminal_partial" solution
+        #     return soln_crnt  # Replace original "terminal_partial" solution
 
-        # Calculate everything about "saver" who ends period with aNrm
-        self.make_tp0_postchoice_ante_IncShk_status()
+        # transition to next choice stage for "saver" who has chosen aNrm
+        if shockTiming == 'EOP':  # End of Period
+            def_transition_chosen__to__next_choice(soln_crnt)
+        else:
+            def_transition_chosen__to__next_BOP(soln_crnt)
+
+        self.make_E_from_chosen_states()  # Given that transition, calculate expectations
+        def_reward(soln_crnt,
+                   reward=def_utility_CRRA)  # Utility is the reward for today's choice
+        def_transition_choice__to__chosen(soln_crnt)
 
         # Notice that we could insert here a stage that would
         # solve any other problem that produces the state
-        # variables needed for make_tp0_postchoice_ante_IncShk_status()
+        # variables needed for make_E_from_chosen_states()
         # e.g., we could add a stage that adds a risky return:
         # make_tp0_postchoice_ante_Risky_return() where the risk scales
         # with the return (as would be the case for a higher portfolio share)
@@ -2514,9 +2523,13 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 #        self.make_optimal_decision_rule_and_construct_value(self)
 
         sol_EGM = self.make_sol_using_EGM()
-#        breakpoint()
+
         soln_crnt.Bilt.cFunc = soln_crnt.cFunc = sol_EGM.Bilt.cFunc
         soln_crnt = def_value_funcs(soln_crnt, CRRA)  # add value funcs
+
+        if shockTiming == 'BOP':  # Beginning of Period
+            self.make_expectations_at_BOP
+
         return soln_crnt
 
     solve = solve_prepared_stage
@@ -2524,7 +2537,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
     def make_optimal_decision_rule_and_construct_value(self):
         pass
 
-    def transition_chosen__to__next_choice(self, xfer_shks_bcst, chosen_states, IncShkDstn):
+    def transit_chosen__to__next_choice(self, xfer_shks_bcst, chosen_states, IncShkDstn):
         """
         Returns array of values of normalized market resources m
         corresponding to permutations of potential realizations of
@@ -2541,7 +2554,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         Returns
         -------
-        transition_chosen__to__next_choice : namespace with results of applying transition eqns
+        transit_chosen__to__next_choice : namespace with results of applying transition eqns
         """
 
         stge = self.soln_crnt
