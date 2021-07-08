@@ -415,9 +415,9 @@ def def_value_funcs(stge, CRRA):
             'np.array([0.0, vFuncNvrsSlopeLim]))'})
 
     # vFunc and its derivatives
-    Info['ValueFuncCRRA']=ValueFuncCRRA
-    Info['MargValueFuncCRRA']=MargValueFuncCRRA
-    Info['MargMargValueFuncCRRA']=MargMargValueFuncCRRA
+    Info['ValueFuncCRRA'] = ValueFuncCRRA
+    Info['MargValueFuncCRRA'] = MargValueFuncCRRA
+    Info['MargMargValueFuncCRRA'] = MargMargValueFuncCRRA
 
     # Derivative 0 (undifferentiated)
     eqns_source.update(
@@ -440,95 +440,22 @@ def def_value_funcs(stge, CRRA):
     # then execute them now
     for eqn_name in eqns_source.keys():
         #        print(eqn_name+': '+eqns_source[eqn_name])
-        tree=parse(eqns_source[eqn_name], mode='exec')
-        code=compile(tree, filename="<ast>", mode='exec')
+        tree = parse(eqns_source[eqn_name], mode='exec')
+        code = compile(tree, filename="<ast>", mode='exec')
         Modl.Value.eqns.update({eqn_name: code})
         exec(code, {**globals(), **Modl.Info}, Modl.Value.vals)
 
     # Add newly created stuff to Bilt namespace
     Bilt.__dict__.update({k: v for k, v in Modl.Value.vals.items()})
 
-    stge.vFunc=Bilt.vFunc  # vFunc needs to be on root as well as Bilt
+    stge.vFunc = Bilt.vFunc  # vFunc needs to be on root as well as Bilt
 
-    Modl.Value.eqns_source=eqns_source  # Save uncompiled source code
+    Modl.Value.eqns_source = eqns_source  # Save uncompiled source code
 
-    # code = compile(tree, filename="<ast>", mode='exec')
-    # body0 = tree.body[0]
-    # Modl.Value.fncs.update({body0.targets[0].id: body0.Value})
-    # exec(code,Info) # Put in locals()
-
-    # for key in Modl.Value.eqns.keys():
-    #     breakpoint()
-    #     exec(compile(Modl.Value.eqns[key],filename="<ast>",mode='exec'),
-    #          globals(), locals())
-
-#     def magic():
-#         import inspect
-#         d = inspect.currentframe().f_back.f_locals
-#         print(f"value: {d['vFuncNvrsSlopeLim']}")
-#     def magical():
-#         import inspect
-#         d = inspect.currentframe().f_back.f_locals
-#         return d
-#     # See PerfForesightConsumerType.ipynb docs for derivations
-#     vFuncNvrsSlopeLim_code = 'MPCmin ** (-CRRA / (1.0 - CRRA))'
-#     vFuncNvrsSlopeLim_make = \
-#         'vFuncNvrsSlopeLim = MPCmin ** (-CRRA / (1.0 - CRRA))'
-#     vFuncNvrsSlopeLimit = exec(vFuncNvrsSlopeLim_code, {}, givens)
-#     MPCmin, CRRA = Bilt.MPCmin, Pars.CRRA
-#     import inspect
-#     vFuncNvrsSlopeLim = MPCmin ** (-CRRA / (1.0 - CRRA))
-#     d = inspect.currentframe().f_back.f_locals
-#     d['vFuncNvrsSlopeLim']
-
-#     Modl.Value.update({'vFuncNvrsSlopeLim': vFuncNvrsSlopeLim_code})
-# #    breakpoint()
-# #    vFuncNvrsSlopeLim = Bilt.MPCmin ** (-CRRA / (1.0 - CRRA))
-#     vFuncNvrs_code = 'LinearInterp('+\
-#         'np.array([mNrmMin, mNrmMin + 1.0]),'+\
-#             'np.array([0.0, vFuncNvrsSlopeLim]))'
-
-#     Modl.Value.update({'vFuncNvrs': vFuncNvrs_code})
-#     breakpoint()
-#     Bilt.vFuncNvrs = \
-#         eval(vFuncNvrs_code, {**globals()},
-#              {**Modl.Value, **locals(), **givens})
-#     # Bilt.vFuncNvrs = LinearInterp(
-#     #     np.array([Bilt.mNrmMin, Bilt.mNrmMin + 1.0]),
-#     #     np.array([0.0, vFuncNvrsSlopeLim]),
-#     # )
-#     vFunc_code = 'ValueFuncCRRA(vFuncNvrs, CRRA)'
-#     Modl.Value.update({'vFunc': vFunc_code})
-#     stge.vFunc = Bilt.vFunc = \
-#         eval(vFunc_code, {**globals()}, {**Modl.Value, **givens})
-#     # ValueFuncCRRA(Bilt.vFuncNvrs, CRRA)
-# #    stge.vFunc.dm = stge.vPfunc = Bilt.vPfunc = MargValueFuncCRRA(Bilt.cFunc, CRRA)
-#     vFunc_dm_code = 'MargValueFuncCRRA(cFunc, CRRA)'
-#     Modl.Value.update({'vFunc.dm': vFunc_dm_code})
-
-# #    stge.vFunc.dm = MargValueFuncCRRA(Bilt.cFunc, CRRA)
-#     stge.vFunc.dm = Bilt.vFunc.dm = \
-#         eval(vFunc_dm_code, {**globals()}, givens)
-# #    stge.vFunc.dm.dm = stge.vPPfunc = Bilt.vPPfunc = MargMargValueFuncCRRA(Bilt.cFunc, CRRA)
-
-#     vFunc_dm_dm_code = 'MargMargValueFuncCRRA(cFunc, CRRA)'
-#     Modl.Value.update({'vFunc.dm.dm': vFunc_dm_dm_code})
-
-# #    stge.vFunc.dm = MargValueFuncCRRA(Bilt.cFunc, CRRA)
-#     stge.vFunc.dm.dm = Bilt.vFunc.dm.dm = \
-#         eval(vFunc_dm_dm_code, {**globals()}, givens)
-
-#    breakpoint()
-#    stge.vFunc.dm.dm = MargMargValueFuncCRRA(Bilt.cFunc, CRRA)
-#    breakpoint()
-
-#    stge.vFunc = locals()['vFunc']
-#    stge.vFunc.dm = locals()['vFunc_dm']
-#    stge.vFunc.dm.dm = locals()['vFunc_dm_dm']
     return stge
 
 
-def_value_CRRA=def_value_funcs
+def_value_CRRA = def_value_funcs
 
 
 def apply_flat_income_tax(
@@ -556,16 +483,16 @@ def apply_flat_income_tax(
     IncShkDstn_new : [distribution.Distribution]
         The updated income distributions, after applying the tax.
     """
-    unemployed_indices=(
+    unemployed_indices = (
         unemployed_indices if unemployed_indices is not None else list()
     )
-    IncShkDstn_new=deepcopy(IncShkDstn)
-    i=transitory_index
+    IncShkDstn_new = deepcopy(IncShkDstn)
+    i = transitory_index
     for t in range(len(IncShkDstn)):
         if t < T_retire:
             for j in range((IncShkDstn[t][i]).size):
                 if j not in unemployed_indices:
-                    IncShkDstn_new[t][i][j]=IncShkDstn[t][i][j] * (1 - tax_rate)
+                    IncShkDstn_new[t][i][j] = IncShkDstn[t][i][j] * (1 - tax_rate)
     return IncShkDstn_new
 
 # =======================================================
@@ -600,19 +527,19 @@ def construct_assets_grid(parameters):
         Base array of values for the post-decision-state grid.
     """
     # Unpack the parameters
-    aXtraMin=parameters.aXtraMin
-    aXtraMax=parameters.aXtraMax
-    aXtraCount=parameters.aXtraCount
-    aXtraExtra=parameters.aXtraExtra
-    grid_type="exp_mult"
-    exp_nest=parameters.aXtraNestFac
+    aXtraMin = parameters.aXtraMin
+    aXtraMax = parameters.aXtraMax
+    aXtraCount = parameters.aXtraCount
+    aXtraExtra = parameters.aXtraExtra
+    grid_type = "exp_mult"
+    exp_nest = parameters.aXtraNestFac
 
     # Set up post decision state grid:
-    aXtraGrid=None
+    aXtraGrid = None
     if grid_type == "linear":
-        aXtraGrid=np.linspace(aXtraMin, aXtraMax, aXtraCount)
+        aXtraGrid = np.linspace(aXtraMin, aXtraMax, aXtraCount)
     elif grid_type == "exp_mult":
-        aXtraGrid=make_grid_exp_mult(
+        aXtraGrid = make_grid_exp_mult(
             ming=aXtraMin, maxg=aXtraMax, ng=aXtraCount, timestonest=exp_nest
         )
     else:
@@ -624,13 +551,13 @@ def construct_assets_grid(parameters):
     for a in aXtraExtra:
         if a is not None:
             if a not in aXtraGrid:
-                j=aXtraGrid.searchsorted(a)
-                aXtraGrid=np.insert(aXtraGrid, j, a)
+                j = aXtraGrid.searchsorted(a)
+                aXtraGrid = np.insert(aXtraGrid, j, a)
     return aXtraGrid
 
 
 # Make a dictionary to specify a perfect foresight consumer type
-init_perfect_foresight={
+init_perfect_foresight = {
     'CRRA': 2.0,          # Coefficient of relative risk aversion,
     'Rfree': 1.03,        # Interest factor on assets
     'DiscFac': 0.96,      # Intertemporal discount factor
@@ -675,7 +602,7 @@ init_perfect_foresight.update({  # Limiting values that define 'true' simulation
 })
 
 # Optional more detailed _fcts about various parameters
-CRRA_fcts={
+CRRA_fcts = {
     'about': 'Coefficient of Relative Risk Aversion'}
 CRRA_fcts.update({'latexexpr': '\providecommand{\CRRA}{\rho}\CRRA'})
 CRRA_fcts.update({'_unicode_': 'ρ'})  # \rho is Greek r: relative risk aversion rrr
@@ -684,7 +611,7 @@ init_perfect_foresight['prmtv_par'].append('CRRA')
 # init_perfect_foresight['_fcts'].update({'CRRA': CRRA_fcts})
 init_perfect_foresight.update({'CRRA_fcts': CRRA_fcts})
 
-DiscFac_fcts={
+DiscFac_fcts = {
     'about': 'Pure time preference rate'}
 DiscFac_fcts.update({'latexexpr': '\providecommand{\DiscFac}{\beta}\DiscFac'})
 DiscFac_fcts.update({'_unicode_': 'β'})
@@ -693,7 +620,7 @@ init_perfect_foresight['prmtv_par'].append('DiscFac')
 # init_perfect_foresight['_fcts'].update({'DiscFac': DiscFac_fcts})
 init_perfect_foresight.update({'DiscFac_fcts': DiscFac_fcts})
 
-LivPrb_fcts={
+LivPrb_fcts = {
     'about': 'Probability of survival from this period to next'}
 LivPrb_fcts.update({'latexexpr': '\providecommand{\LivPrb}{\Pi}\LivPrb'})
 LivPrb_fcts.update({'_unicode_': 'Π'})  # \Pi mnemonic: 'Probability of surival'
@@ -702,7 +629,7 @@ init_perfect_foresight['prmtv_par'].append('LivPrb')
 # init_perfect_foresight['_fcts'].update({'LivPrb': LivPrb_fcts})
 init_perfect_foresight.update({'LivPrb_fcts': LivPrb_fcts})
 
-Rfree_fcts={
+Rfree_fcts = {
     'about': 'Risk free interest factor'}
 Rfree_fcts.update({'latexexpr': '\providecommand{\Rfree}{\mathsf{R}}\Rfree'})
 Rfree_fcts.update({'_unicode_': 'R'})
@@ -711,7 +638,7 @@ init_perfect_foresight['prmtv_par'].append('Rfree')
 # init_perfect_foresight['_fcts'].update({'Rfree': Rfree_fcts})
 init_perfect_foresight.update({'Rfree_fcts': Rfree_fcts})
 
-PermGroFac_fcts={
+PermGroFac_fcts = {
     'about': 'Growth factor for permanent income'}
 PermGroFac_fcts.update({'latexexpr': '\providecommand{\PermGroFac}{\Gamma}\PermGroFac'})
 PermGroFac_fcts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
@@ -720,7 +647,7 @@ init_perfect_foresight['prmtv_par'].append('PermGroFac')
 # init_perfect_foresight['_fcts'].update({'PermGroFac': PermGroFac_fcts})
 init_perfect_foresight.update({'PermGroFac_fcts': PermGroFac_fcts})
 
-PermGroFacAgg_fcts={
+PermGroFacAgg_fcts = {
     'about': 'Growth factor for aggregate permanent income'}
 # PermGroFacAgg_fcts.update({'latexexpr': '\providecommand{\PermGroFacAgg}{\Gamma}\PermGroFacAgg'})
 # PermGroFacAgg_fcts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
@@ -729,7 +656,7 @@ init_perfect_foresight['prmtv_par'].append('PermGroFacAgg')
 # init_perfect_foresight['_fcts'].update({'PermGroFacAgg': PermGroFacAgg_fcts})
 init_perfect_foresight.update({'PermGroFacAgg_fcts': PermGroFacAgg_fcts})
 
-BoroCnstArt_fcts={
+BoroCnstArt_fcts = {
     'about': 'If not None, maximum proportion of permanent income borrowable'}
 BoroCnstArt_fcts.update({'latexexpr': r'\providecommand{\BoroCnstArt}{\underline{a}}\BoroCnstArt'})
 BoroCnstArt_fcts.update({'prmtv_par': 'True'})
@@ -737,7 +664,7 @@ init_perfect_foresight['prmtv_par'].append('BoroCnstArt')
 # init_perfect_foresight['_fcts'].update({'BoroCnstArt': BoroCnstArt_fcts})
 init_perfect_foresight.update({'BoroCnstArt_fcts': BoroCnstArt_fcts})
 
-MaxKinks_fcts={
+MaxKinks_fcts = {
     'about': 'PF Constrained model solves to period T-MaxKinks,'
     ' where the solution has exactly this many kink points'}
 MaxKinks_fcts.update({'prmtv_par': 'False'})
@@ -745,7 +672,7 @@ MaxKinks_fcts.update({'prmtv_par': 'False'})
 # init_perfect_foresight['_fcts'].update({'MaxKinks': MaxKinks_fcts})
 init_perfect_foresight.update({'MaxKinks_fcts': MaxKinks_fcts})
 
-AgentCount_fcts={
+AgentCount_fcts = {
     'about': 'Number of agents to use in baseline Monte Carlo simulation'}
 AgentCount_fcts.update(
     {'latexexpr': '\providecommand{\AgentCount}{N}\AgentCount'})
@@ -755,7 +682,7 @@ AgentCount_fcts.update({'sim_mcrlo_lim': 'infinity'})
 # init_perfect_foresight['_fcts'].update({'AgentCount': AgentCount_fcts})
 init_perfect_foresight.update({'AgentCount_fcts': AgentCount_fcts})
 
-aNrmInitMean_fcts={
+aNrmInitMean_fcts = {
     'about': 'Mean initial population value of aNrm'}
 aNrmInitMean_fcts.update({'sim_mcrlo': 'True'})
 aNrmInitMean_fcts.update({'sim_mcrlo_lim': 'infinity'})
@@ -763,39 +690,39 @@ init_perfect_foresight['sim_mcrlo'].append('aNrmInitMean')
 # init_perfect_foresight['_fcts'].update({'aNrmInitMean': aNrmInitMean_fcts})
 init_perfect_foresight.update({'aNrmInitMean_fcts': aNrmInitMean_fcts})
 
-aNrmInitStd_fcts={
+aNrmInitStd_fcts = {
     'about': 'Std dev of initial population value of aNrm'}
 aNrmInitStd_fcts.update({'sim_mcrlo': 'True'})
 init_perfect_foresight['sim_mcrlo'].append('aNrmInitStd')
 # init_perfect_foresight['_fcts'].update({'aNrmInitStd': aNrmInitStd_fcts})
 init_perfect_foresight.update({'aNrmInitStd_fcts': aNrmInitStd_fcts})
 
-pLvlInitMean_fcts={
+pLvlInitMean_fcts = {
     'about': 'Mean initial population value of log pLvl'}
 pLvlInitMean_fcts.update({'sim_mcrlo': 'True'})
 init_perfect_foresight['sim_mcrlo'].append('pLvlInitMean')
 # init_perfect_foresight['_fcts'].update({'pLvlInitMean': pLvlInitMean_fcts})
 init_perfect_foresight.update({'pLvlInitMean_fcts': pLvlInitMean_fcts})
 
-pLvlInitStd_fcts={
+pLvlInitStd_fcts = {
     'about': 'Mean initial std dev of log ppLvl'}
 pLvlInitStd_fcts.update({'sim_mcrlo': 'True'})
 init_perfect_foresight['sim_mcrlo'].append('pLvlInitStd')
 # init_perfect_foresight['_fcts'].update({'pLvlInitStd': pLvlInitStd_fcts})
 init_perfect_foresight.update({'pLvlInitStd_fcts': pLvlInitStd_fcts})
 
-T_age_fcts={
+T_age_fcts = {
     'about': 'Age after which simulated agents are automatically killedl'}
 T_age_fcts.update({'sim_mcrlo': 'False'})
 # init_perfect_foresight['_fcts'].update({'T_age': T_age_fcts})
 init_perfect_foresight.update({'T_age_fcts': T_age_fcts})
 
-T_cycle_fcts={
+T_cycle_fcts = {
     'about': 'Number of periods in a "cycle" (like, a lifetime) for this agent type'}
 # init_perfect_foresight['_fcts'].update({'T_cycle': T_cycle_fcts})
 init_perfect_foresight.update({'T_cycle_fcts': T_cycle_fcts})
 
-cycles_fcts={
+cycles_fcts = {
     'about': 'Number of times the sequence of periods/stages should be solved'}
 # init_perfect_foresight['_fcts'].update({'cycle': cycles_fcts})
 init_perfect_foresight.update({'cycles_fcts': cycles_fcts})
@@ -804,7 +731,7 @@ init_perfect_foresight['prmtv_par'].append('cycles')
 
 
 # Make a dictionary to specify a perfect foresight consumer type
-init_perfect_foresight={
+init_perfect_foresight = {
     'CRRA': 2.0,          # Coefficient of relative risk aversion,
     'Rfree': 1.03,        # Interest factor on assets
     'DiscFac': 0.96,      # Intertemporal discount factor
@@ -849,7 +776,7 @@ init_perfect_foresight.update({  # Limiting values that define 'true' simulation
 })
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
-init_idiosyncratic_shocks=dict(
+init_idiosyncratic_shocks = dict(
     init_perfect_foresight,
     **{
         # Income process variables
@@ -920,19 +847,19 @@ init_idiosyncratic_shocks['aprox_lim'].update({'aXtraNestFac': None})
 # init_idiosyncratic_shocks['aprox_par'].append('aXtraCount')
 init_idiosyncratic_shocks['aprox_lim'].update({'aXtraCount': None})
 
-IncShkDstn_fcts={
+IncShkDstn_fcts = {
     'about': 'Income Shock Distribution: .X[0] and .X[1] retrieve shocks, .pmf retrieves probabilities'}
 IncShkDstn_fcts.update({'py___code': r'construct_lognormal_income_process_unemployment'})
 # init_idiosyncratic_shocks['_fcts'].update({'IncShkDstn': IncShkDstn_fcts})
 init_idiosyncratic_shocks.update({'IncShkDstn_fcts': IncShkDstn_fcts})
 
-permShkStd_fcts={
+permShkStd_fcts = {
     'about': 'Standard deviation for lognormal shock to permanent income'}
 permShkStd_fcts.update({'latexexpr': '\permShkStd'})
 # init_idiosyncratic_shocks['_fcts'].update({'permShkStd': permShkStd_fcts})
 init_idiosyncratic_shocks.update({'permShkStd_fcts': permShkStd_fcts})
 
-tranShkStd_fcts={
+tranShkStd_fcts = {
     'about': 'Standard deviation for lognormal shock to permanent income'}
 tranShkStd_fcts.update({'latexexpr': '\tranShkStd'})
 # init_idiosyncratic_shocks['_fcts'].update({'tranShkStd': tranShkStd_fcts})
@@ -1094,7 +1021,6 @@ init_cyclical['LivPrb'] = 4*[0.98]
 init_cyclical['T_cycle'] = 4
 
 
-
 # def def_reward(stge):
 #     stge = def_utility_CRRA(stge, stge.Pars.CRRA)
 #     return stge
@@ -1102,5 +1028,3 @@ init_cyclical['T_cycle'] = 4
 def def_reward(stge, reward=def_utility_CRRA):
     stge = reward(stge, stge.Pars.CRRA)
     return stge
-
-
