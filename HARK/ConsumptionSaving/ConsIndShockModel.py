@@ -1729,7 +1729,7 @@ class PerfForesightConsumerType(AgentType):
         # Determine who dies
         DiePrb_by_t_cycle = 1.0 - np.asarray(self.LivPrb)
         DiePrb = DiePrb_by_t_cycle[
-            self.t_cycle - 1
+            self.t_cycle - 1 if self.cycles == 1 else self.t_cycle
         ]  # Time has already advanced, so look back one
 
         # In finite-horizon problems the previous line gives newborns the
@@ -3047,7 +3047,7 @@ init_lifecycle.update({"LivPrb": liv_prb})
 
 # Make a dictionary to specify an infinite consumer with a four period cycle
 init_cyclical = copy(init_idiosyncratic_shocks)
-init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
+init_cyclical['PermGroFac'] = [1.1, 1.082251, 2.8, 0.3]
 init_cyclical['PermShkStd'] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical['TranShkStd'] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical['LivPrb'] = 4*[0.98]
