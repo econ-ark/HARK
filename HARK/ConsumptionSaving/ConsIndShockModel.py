@@ -2173,12 +2173,17 @@ class IndShockConsumerType(PerfForesightConsumerType):
         newborn = self.t_age == 0
         for t in range(self.T_cycle):
             these = t == self.t_cycle
+
+            # temporary, see #1022
+            if self.cycles == 1:
+                t = t - 1
+
             N = np.sum(these)
             if N > 0:
                 IncShkDstnNow = self.IncShkDstn[
-                    t - 1
+                    t
                 ]  # set current income distribution
-                PermGroFacNow = self.PermGroFac[t - 1]  # and permanent growth factor
+                PermGroFacNow = self.PermGroFac[t]  # and permanent growth factor
                 # Get random draws of income shocks from the discrete distribution
                 IncShks = IncShkDstnNow.draw(N)
 

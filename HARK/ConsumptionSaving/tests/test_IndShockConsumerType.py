@@ -358,6 +358,11 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
             CyclicalExample.solution[3].cFunc(3).tolist(), 1.5958390056965004
         )
 
+        CyclicalExample.initialize_sim()
+        CyclicalExample.simulate()
+
+        self.assertAlmostEqual(CyclicalExample.state_now['aLvl'][1], 0.41839957)
+
 # %% Tests of 'stable points'
 
 
