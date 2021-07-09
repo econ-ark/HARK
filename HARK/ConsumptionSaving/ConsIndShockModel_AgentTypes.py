@@ -45,7 +45,7 @@ from HARK.utilities import CRRAutilityP as utilityP_invP
 Defines increasingly specialized agent types for one-state-variable
 consumption problem.
 
-    * consumer_terminal_nobequest_onestate: The single state variable defined 
+    * consumer_terminal_nobequest_onestate: The single state variable defined
     here is market resources `m,` the sum of assets from prior choices
     and income earned immediately before consumption decision.
     Incorporates a `nobequest` terminal consumption function
@@ -282,10 +282,11 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
     """
 
     def __init__(
-            self, solution_startfrom=None, cycles=1, pseudo_terminal=False, **kwds):
+            self, solution_startfrom=None, cycles=1, pseudo_terminal=False,
+            **kwds):
 
         AgentTypePlus.__init__(
-            self, solution_terminal=solution_startfrom,  # whether handmade or default
+            self, solution_terminal=solution_startfrom,  # handmade or default
             cycles=cycles, pseudo_terminal=False,
             **kwds)
 
@@ -348,7 +349,7 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
                 MPCmin=MPCmin,  # TODO: should be on Bilt; remove
                 MPCmax=MPCmin,  # TODO: should be on Bilt; remove
                 stge_kind={
-                    'iter_status': 'terminal_partial',  # will be replaced with iterator
+                    'iter_status': 'terminal_partial',  # must be replaced
                     'term_type': 'nobequest'
                 })
 
@@ -368,6 +369,7 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
 
 class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
     """
+    Homothetic Stone-Geary bequest utility function with bequests as a luxury.
 
     Must be inherited by a subclass
     that fleshes out the rest of the characteristics of the agent, e.g. the
@@ -376,9 +378,9 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
     The bequest utility function is assumed to be of the Stone-Geary form
     and to have a scale reflecting the number of periods worth of consumption
     that it is equivalent to in the limit.  (In the limit as wealth approaches
-    infinity, if this parameter were equal to the number of periods of life 
+    infinity, if this parameter were equal to the number of periods of life
     and the pure time preference factor were 1, the consumer would split their
-    lifetime resources equally between the bequest and their lifetime 
+    lifetime resources equally between the bequest and their lifetime
     consumption).
 
     Parameters
@@ -409,7 +411,7 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
             **kwds):
 
         ConsumerSolutionOneStateCRRA.__init__(self,
-                                              cycles=cycles,  # allow finite or infinite horizon
+                                              cycles=cycles,
                                               pseudo_terminal=False, CRRA=CRRA,
                                               **kwds)
 
@@ -451,7 +453,8 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
         sab = solution_afterlife_bequest_ = ConsumerSolutionOneStateCRRA(
             cFunc=bequest_entering_utility,
             u=u_stone_geary, uP=uP_stone_geary, uPP=uPP_stone_geary,
-            vFunc=u_stone_geary, vPfunc=uP_stone_geary, vPPfunc=uPP_stone_geary,
+            vFunc=u_stone_geary, vPfunc=uP_stone_geary,
+            vPPfunc=uPP_stone_geary,
             mNrmMin=0.0,
             MPCmin=1.0,
             MPCmax=1.0,
@@ -481,7 +484,6 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
             Bilt.MPC_constr = [1/(1+(ℶ**(-1/ρ)))]
 
     def cFunc(self, m):
-        breakpoint()
         MPC_constr = self.Bilt.MPC_constr
         mNrm_kinks = self.Bilt.mNrm_kinks
         constr_0 = np.heaviside(m-mNrm_kinks[0], 0.)  # 0 if constrained, else 1
@@ -492,11 +494,13 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
 
 class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     """
+    Consumer with perfect foresight except for potential mortality risk.
+
     A perfect foresight consumer who has no uncertainty other than
     mortality risk.  Time-separable utility maximization problem is
     defined by a coefficient of relative risk aversion, geometric
     discount factor, interest factor, an artificial borrowing constraint
-    (maybe) and time sequences of the permanent income growth rate and survival.
+    (maybe) and time sequences of permanent income growth rate and survival.
 
     Parameters
     ----------
@@ -505,7 +509,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     """
 
     time_vary_ = ["LivPrb",  # Age-varying death rates can match mortality data
-                  "PermGroFac"]  # Age-varying income growth can match lifecycle
+                  "PermGroFac"]  # Age-varying income growth to match lifecycle
     time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt"]
     state_vars = ['pLvl',  # Initial idiosyncratic permanent income
                   'PlvlAgg',  # Aggregate permanent income
@@ -529,8 +533,8 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         params.update(kwds)  # Replace defaults with passed vals if diff
 
         consumer_terminal_nobequest_onestate.__init__(
-            self, solution_startfrom=None, cycles=cycles, pseudo_terminal=False,
-            ** params)
+            self, solution_startfrom=None, cycles=cycles,
+            pseudo_terminal=False, ** params)
 
         # Solver and method are:
         # - required to solve
@@ -558,7 +562,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
             self.url_doc_for_this_agent_type_get()
         # any user-provided solution should already be enriched
 
-        # The foregoing is executed by all classes that inherit from the PF model
+        # The foregoing is executed by all classes that inherit from PF model
         # The code below the following "if" is excuted only in the PF case
 
         self.income_risks_exist = \
@@ -584,7 +588,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                 shockTiming=shockTiming
             )  # allows user-specified alt
 
-        self.make_solution_for_final_period()  # Populate [instance].solution[0]
+        self.make_solution_for_final_period()  # Populate instance.solution[0]
 
     def add_stable_points_to_solution(self, soln):
         """
