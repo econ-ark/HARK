@@ -733,14 +733,14 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 
         # Omit first and last points which define extrapolation below and above
         # the kink points
-        mNrm_kinks_tp1 = tp1.cFunc.x_list[:-1][1:]
-        cNrm_kinks_tp1 = tp1.cFunc.y_list[:-1][1:]
-        vNrm_kinks_tp1 = tp1.vFunc(mNrm_kinks_tp1)
+#        mNrm_kinks_tp1 = tp1.cFunc.x_list[:-1][1:]
+#        cNrm_kinks_tp1 = tp1.cFunc.y_list[:-1][1:]
+#        vNrm_kinks_tp1 = tp1.vFunc(mNrm_kinks_tp1)
 
         # Calculate end-of-this-period aNrm vals that would reach those mNrm's
         # There are no shocks in the PF model, so tranShkMin = tranShk = 1.0
-        bNrm_kinks_tp1 = (mNrm_kinks_tp1 - yNrm_tp1)
-        aNrm_kinks = bNrm_kinks_tp1*(PermGroFac/Rfree)
+#       bNrm_kinks_tp1 = (mNrm_kinks_tp1 - yNrm_tp1)
+#       aNrm_kinks = bNrm_kinks_tp1*(PermGroFac/Rfree)
 
         # Obtain c_t from which unconstrained consumers would land on each
         # kink next period by inverting FOC: c^#_t = (RβΠ)^(-1/ρ) c^#_tp1
@@ -748,17 +748,17 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         # corresponding to each next-period kink (each of which corresponds
         # to a finite-horizon solution ending one more period in the future)
 
-        cNrm_kinks_old = (((Rfree * DiscLiv) ** (-1/CRRA_tp1)) *
-                      PermGroFac * cNrm_kinks_tp1)
+#        cNrm_kinks_old = (((Rfree * DiscLiv) ** (-1/CRRA_tp1)) *
+#                      PermGroFac * cNrm_kinks_tp1)
         cNrm_kinks = tp1.Bilt.u.dc.Nvrs(E_tp1_.given_shocks[E_tp1_.v1_pos])
 
-        vNrm_kinks_old = (DiscLiv * PermGroFac**(1-tp1.Pars.CRRA))*vNrm_kinks_tp1
+#      vNrm_kinks_old=(DiscLiv * PermGroFac**(1-tp1.Pars.CRRA))*vNrm_kinks_tp1
         vNrm_kinks = E_tp1_.given_shocks[E_tp1_.v0_pos]
 
-        mNrm_kinks_old = aNrm_kinks + cNrm_kinks
+#        mNrm_kinks_old = aNrm_kinks + cNrm_kinks
         mNrm_kinks = Bilt.aNrmGrid + cNrm_kinks
 
-        vInv_kinks_old = u.Nvrs(vNrm_kinks)
+#        vInv_kinks_old = u.Nvrs(vNrm_kinks)
         vInv_kinks = u.Nvrs(vNrm_kinks)
 
         vAdd_kinks = mNrm_kinks-mNrm_kinks
@@ -1107,7 +1107,6 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         """
         crnt = self.build_facts_infhor()
         crnt = self.build_facts_recursive()
-
 
         # Reduce cluttered formulae with local aliases
         E_tp1_ = crnt.E_tp1_
