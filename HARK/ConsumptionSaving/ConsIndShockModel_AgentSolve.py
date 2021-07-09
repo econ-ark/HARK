@@ -103,7 +103,8 @@ class agent_solution(MetricObject):
         self.Bilt.stge_kind = stge_kind
         self.Bilt.parameters_solver = parameters_solver
         self.Modl = Elements()
-        # List most likely transition types in their canonical possible order
+
+        # Below: Likely transition types in their canonical possible order
         # Each status will end up transiting only to one subsequent status
         # There are multiple possibilities because models may skip many steps
         # For example, with no end of period shocks, you could go directly from
@@ -1140,6 +1141,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 #        breakpoint()
 #        Bilt.vNvrs = self.soln_crnt.uinv(_vP_t)
 
+
     def from_chosen_states_make_E_tp1_(self, crnt):
         """
         Construct expectations of useful objects from post-choice stage.
@@ -1421,7 +1423,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
     def build_facts_recursive(self):
         """
-        Calculate results whose values depend on the immediately prior period.
+        Calculate results that depend on the last period solved (t+1).
 
         Returns
         -------
@@ -1429,10 +1431,8 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
         """
         soln_crnt = self.soln_crnt
-        tp1 = self.soln_futr.Bilt
-        Bilt = soln_crnt.Bilt
-        Pars = soln_crnt.Pars
-        E_tp1_ = soln_crnt.E_tp1_
+        tp1 = self.soln_futr.Bilt  # tp1 means t+1
+        Bilt, Pars, E_tp1_ = soln_crnt.Bilt, soln_crnt.Pars, soln_crnt.E_tp1_
 
         givens = {**Pars.__dict__, **locals()}
         urlroot = Bilt.urlroot
@@ -1583,7 +1583,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             If True, produce alternative solution and store on self.soln_crnt
         """
         # bare-bones default terminal solution does not have all the facts
-        # we need, because it is multipurpose (for any u func) so add them
+        # we need, because it is generic (for any u func) so add the facts
         crnt, futr = self.soln_crnt, self.soln_futr
         if futr.Bilt.stge_kind['iter_status'] != 'terminal_partial':
             return False  # Continue with normal solution procedures
@@ -1612,16 +1612,14 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         """
 
         if self.solve_prepared_stage_divert():  # Allow bypass of normal soln
-            return self.soln_crnt  # created by bypass
+            return self.soln_crnt  # created by solve_prepared_stage_divert
 
         crnt = self.soln_crnt
 
         crnt = def_transition_chosen__to__next_choice(crnt)
-#        crnt = self.from_chosen_states_make_E_tp1_(crnt)
-        def_reward(crnt, reward=def_utility_CRRA)  # Utility is the reward for today's choice
+        crnt = self.from_chosen_states_make_E_tp1_(crnt)
+        def_reward(crnt, reward=def_utility_CRRA)  # Utility rewards consumer
 
-        crnt = self.build_facts_infhor()
-        crnt = self.build_facts_recursive()
         crnt = self.build_decision_rules_and_value_functions(crnt)
 
         return crnt
@@ -1645,11 +1643,6 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
         Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
 
-        # # Add to Pars contents newly added to Bilt.parameters_solver by core.py
-        # for key in (k for k in Bilt.parameters_solver
-        #             if k not in {''}): # Don't exclude anything
-        #     setattr(Pars, key, Bilt.parameters_solver[key])
-
         # Catch degenerate case of zero-variance income distributions
         # Otherwise "test cases" that try the degenerate dstns will fail
         if hasattr(Pars, "tranShkVals") and hasattr(Pars, "permShkVals"):
@@ -1666,8 +1659,8 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
                     # solution_terminal is handmade, do not remake
                     return
 
-        self.soln_crnt.Bilt.stge_kind = \
-            self.soln_crnt.stge_kind = {'iter_status': 'iterator',
+        Bilt.stge_kind = \
+            soln_crnt.stge_kind = {'iter_status': 'iterator',
                                         'slvr_type': self.__class__.__name__}
 
         return
@@ -1745,9 +1738,12 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         # First execute PF solver init
         # We must reorder params by hand in case someone tries positional solve
 
-        ConsPerfForesightSolver.__init__(self, solution_next, DiscFac=DiscFac, LivPrb=LivPrb, CRRA=CRRA,
-                                         Rfree=Rfree, PermGroFac=PermGroFac, BoroCnstArt=BoroCnstArt,
-                                         IncShkDstn=IncShkDstn, permShkDstn=permShkDstn,
+        ConsPerfForesightSolver.__init__(self, solution_next, DiscFac=DiscFac,
+                                         LivPrb=LivPrb, CRRA=CRRA,
+                                         Rfree=Rfree, PermGroFac=PermGroFac,
+                                         BoroCnstArt=BoroCnstArt,
+                                         IncShkDstn=IncShkDstn,
+                                         permShkDstn=permShkDstn,
                                          tranShkDstn=tranShkDstn,
                                          solveMethod=solveMethod,
                                          shockTiming=shockTiming,
@@ -1763,7 +1759,6 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         Modl.shockTiming = shockTiming
 
         Bilt.aXtraGrid = aXtraGrid
-#        self.vFuncBool = vFuncBool
         self.CubicBool = CubicBool
 
         # In which column is each object stored in IncShkDstn?
@@ -2003,15 +1998,12 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
             lambda m_t:
             m_t * (1 - 1/E_tp1_.RNrm) + (1/E_tp1_.RNrm)
         )
-
         # Given m, value of c where 𝔼[mLev_{t+1}/mLev_{t}]=Bilt.Pars.permGroFac
         # Solves for c in equation at url/#balgrostable
-
         E_tp1_.permShk_times_m_tp1_minus_m_t_eq_0 = (
             lambda m_t:
             m_t * (1 - E_tp1_.Inv_RNrm_PF) + E_tp1_.Inv_RNrm_PF
         )
-
         # 𝔼[m_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
         E_tp1_.mLev_tp1_Over_pLev_t_from_a_t = (
             lambda a_t:
@@ -2021,7 +2013,6 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
                   + Pars.tranShkValsBcst,
                   Pars.ShkPrbs)
         )
-
         # 𝔼[c_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
         E_tp1_.cLev_tp1_Over_pLev_t_from_a_t = (
             lambda a_t:
@@ -2031,22 +2022,18 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
                              + Pars.tranShkValsBcst),
                   Pars.ShkPrbs)
         )
-
         E_tp1_.c_where_E_tp1__m_tp1_minus_m_t_eq_0 = \
             lambda m_t: \
             m_t * (1 - 1/E_tp1_.RNrm) + (1/E_tp1_.RNrm)
-
         # Solve the equation at url/#balgrostable
         E_tp1_.c_where_E_tp1__permShk_times_m_tp1_minus_m_t_eq_0 = \
             lambda m_t: \
             (m_t * (1 - 1/E_tp1_.RNrm_PF)) + (1/E_tp1_.RNrm_PF)
-
         # mNrmTrg solves E_tp1_.RNrm*(m - c(m)) + 𝔼[inc_next] - m = 0
         E_tp1_.m_tp1_minus_m_t = (
             lambda m_t:
             E_tp1_.RNrm * (m_t - Bilt.cFunc(m_t)) + E_tp1_.IncNrmNxt - m_t
         )
-
         E_tp1_.cLev_tp1_Over_pLev_t_from_num_a_t = (
             lambda a_t:
             𝔼_dot(
@@ -2056,39 +2043,33 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
                 ),
                 Pars.ShkPrbs)
         )
-
         E_tp1_.cLev_tp1_Over_pLev_t_from_lst_a_t = (
             lambda a_lst: list(map(
                 E_tp1_.cLev_tp1_Over_pLev_t_from_num_a_t, a_lst
             ))
         )
-
         E_tp1_.cLev_tp1_Over_pLev_t_from_a_t = (
             lambda a_t:
             E_tp1_.cLev_tp1_Over_pLev_t_from_lst_a_t(a_t)
             if (type(a_t) == list or type(a_t) == np.ndarray) else
             E_tp1_.cLev_tp1_Over_pLev_t_from_num_a_t(a_t)
         )
-
         E_tp1_.cLev_tp1_Over_pLev_t_from_lst_m_t = (
             lambda m_t:
             E_tp1_.cLev_tp1_Over_pLev_t_from_lst_a_t(m_t -
                                                      Bilt.cFunc(m_t))
         )
-
         E_tp1_.cLev_tp1_Over_pLev_t_from_num_m_t = (
             lambda m_t:
             E_tp1_.cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
                                                      Bilt.cFunc(m_t))
         )
-
         E_tp1_.cLev_tp1_Over_cLev_t_from_m_t = (
             lambda m_t:
             E_tp1_.cLev_tp1_Over_pLev_t_from_lst_m_t(m_t) / Bilt.cFunc(m_t)
             if (type(m_t) == list or type(m_t) == np.ndarray) else
             E_tp1_.cLev_tp1_Over_pLev_t_from_num_m_t(m_t) / Bilt.cFunc(m_t)
         )
-
         E_tp1_.permShk_tp1_times_m_tp1_minus_m_t = (
             lambda m_t:
             E_tp1_.RNrm_PF * (m_t - Bilt.cFunc(m_t)) + E_tp1_.IncNrmNxt - m_t
@@ -2118,10 +2099,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
     def make_chosen_state_grid(self):
         """
-        Make grid of potential values of state variables after choices.
-
-        Prepare to calculate end-of-period marginal value by creating an array
-        of asset values with which the agent might end the current period.
+        Make grid of potential values of state variable(s) after choice(s).
 
         Parameters
         ----------
@@ -2142,7 +2120,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
         return self.soln_crnt.Bilt.aNrmGrid
 
-    def E_make(self, IncShkDstn):
+    def make_E_tp1_(self, IncShkDstn):
         """
         Calculate expectations after choices but before shocks.
 
@@ -2176,7 +2154,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         Rfree = Pars.Rfree
 
         # This is the efficient place to compute expectations of anything
-        # at near zero marginal cost by adding to list of things calculated
+        # at very low marginal cost by adding to list of things calculated
         def funcs_to_expect(xfer_shks_bcst, states_chosen):
             # tp1 contains the realizations of the state variables
             next_choice_states = \
@@ -2184,11 +2162,11 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
                     xfer_shks_bcst, states_chosen, IncShkDstn)
             mNrm = next_choice_states.mNrm
             # Random (Rnd) shocks to permanent income affect mean PermGroFac
-            PermGroRnd = xfer_shks_bcst[permPos]*PermGroFac
+            PermGroFacShk = xfer_shks_bcst[permPos]*PermGroFac
             # expected value function derivatives 0, 1, 2
-            v_0 = PermGroRnd ** (1-CRRA-0) * vFunc(mNrm)
-            v_1 = PermGroRnd ** (1-CRRA-1) * vFunc.dm(mNrm) * Rfree
-            v_2 = PermGroRnd ** (1-CRRA-2) * vFunc.dm.dm(mNrm) * Rfree * Rfree
+            v_0 = PermGroFacShk ** (1-CRRA-0) * vFunc(mNrm)
+            v_1 = PermGroFacShk ** (1-CRRA-1) * vFunc.dm(mNrm) * Rfree
+            v_2 = PermGroFacShk ** (1-CRRA-2) * vFunc.dm.dm(mNrm) * Rfree * Rfree
             # cFunc derivatives 0, 1 (level and MPC); no need, but ~zero cost..
             c_0 = cFunc(mNrm)
             c_1 = cFunc.derivative(mNrm)
@@ -2200,7 +2178,6 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
                 funcs_to_expect,
                 states_chosen)
         )
-
         # Store info on positions of the various objects for later retrieval
         E_tp1_.v0_pos, E_tp1_.v1_pos, E_tp1_.v2_pos = 0, 1, 2
         E_tp1_.c0_pos, E_tp1_.c1_pos = 4, 5
@@ -2287,7 +2264,7 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
 
     def make_cFunc_linear(self, mNrm, cNrm):
         """
-        Makes linear interpolation for the (unconstrained) consumption function.
+        Make linear interpolation for the (unconstrained) consumption function.
 
         Parameters
         ----------
@@ -2302,7 +2279,9 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
             The unconstrained consumption function for this period.
         """
         cFunc_unconstrained = LinearInterp(
-            mNrm, cNrm, self.soln_crnt.Bilt.cFuncLimitIntercept, self.soln_crnt.Bilt.cFuncLimitSlope
+            mNrm, cNrm,
+            self.soln_crnt.Bilt.cFuncLimitIntercept,
+            self.soln_crnt.Bilt.cFuncLimitSlope
         )
         return cFunc_unconstrained
 
@@ -2340,11 +2319,9 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         self.build_facts_infhor()
         self.build_facts_recursive()  # These require solution to successor
 
-        # Current CRRA might be different from future
-        soln_crnt = def_reward(soln_crnt)
         soln_crnt = def_transition_chosen__to__next_choice(soln_crnt)
         soln_crnt = self.make_chosen_state_grid()
-        self.E_make(self.soln_crnt.Pars.IncShkDstn)
+        self.make_E_tp1_(self.soln_crnt.Pars.IncShkDstn)
 
         return soln_crnt
 
