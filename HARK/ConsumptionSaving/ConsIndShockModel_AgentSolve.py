@@ -172,25 +172,25 @@ class Built(SimpleNamespace):
 
 
 class Parameters(SimpleNamespace):
-    """Parameters (both as passed, and as exposed for convenience). But not modified."""
+    """Parameters (as passed, and exposed). But not modified."""
 
     pass
 
 
 class Expectations(SimpleNamespace):
-    """Expectations about future period"""
+    """Expectations about future period."""
 
     pass
 
 
 class Nexspectations(SimpleNamespace):
-    """Expectations about future period after current decisions"""
+    """Expectations about future period after current decisions."""
 
     pass
 
 
 class Prospectations(SimpleNamespace):
-    """Expectations prior to the realization of current period shocks"""
+    """Expectations prior to the realization of current period shocks."""
 
     pass
 
@@ -213,15 +213,6 @@ class Elements(SimpleNamespace):
 
 class Equations(SimpleNamespace):
     """Description of the model in HARK and python syntax."""
-
-    pass
-
-
-class Successor(SimpleNamespace):
-    """Objects retrieved from successor to the stage
-    referenced in "self." Should contain everything needed to reconstruct
-    solution to problem of self even if solution_next is not present.
-    """
 
     pass
 
@@ -406,9 +397,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
                 not soln_crnt.Bilt.RIC or not soln_crnt.Bilt.FHWC
 
     def check_AIC(self, stge, verbose=None):
-        """
-        Evaluate and report on the Absolute Impatience Condition
-        """
+        """Evaluate and report on the Absolute Impatience Condition."""
         name = "AIC"
 
         def test(stge): return stge.Bilt.APF < 1
@@ -426,9 +415,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
                                              verbose_messages, "APF", stge)
 
     def check_FVAC(self, stge, verbose=None):
-        """
-        Evaluate and report on the Finite Value of Autarky Condition
-        """
+        """Evaluate and report on the Finite Value of Autarky Condition."""
         name = "FVAC"
         def test(stge): return stge.Bilt.FVAF < 1
 
@@ -445,9 +432,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
                                               verbose_messages, "FVAF", stge)
 
     def check_GICRaw(self, stge, verbose=None):
-        """
-        Evaluate and report on the Growth Impatience Condition
-        """
+        """Evaluate and report on the Growth Impatience Condition."""
         name = "GICRaw"
 
         def test(stge): return stge.Bilt.GPFRaw < 1
@@ -464,6 +449,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
                                                 verbose_messages, "GPFRaw", stge)
 
     def check_GICLiv(self, stge, verbose=None):
+        """Evaluate and report on Mortality Adjusted GIC."""
         name = "GICLiv"
 
         def test(stge): return stge.Bilt.GPFLiv < 1
@@ -480,9 +466,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
                                                 verbose_messages, "GPFLiv", stge)
 
     def check_RIC(self, stge, verbose=None):
-        """
-        Evaluate and report on the Return Impatience Condition
-        """
+        """Evaluate and report on the Return Impatience Condition."""
 
         name = "RIC"
 
@@ -500,9 +484,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
                                              verbose_messages, "RPF", stge)
 
     def check_FHWC(self, stge, verbose=None):
-        """
-        Evaluate and report on the Finite Human Wealth Condition
-        """
+        """Evaluate and report on the Finite Human Wealth Condition."""
         name = "FHWC"
 
         def test(stge): return stge.Bilt.FHWF < 1
@@ -519,9 +501,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
                                               verbose_messages, "FHWF", stge)
 
     def check_GICNrm(self, stge, verbose=None):
-        """
-        Check Normalized Growth Patience Factor.
-        """
+        """Check Normalized Growth Patience Factor."""
         if not hasattr(stge.Pars, 'IncShkDstn'):
             return  # GICNrm is same as GIC for PF consumer
 
@@ -542,11 +522,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
                                                 verbose_messages, "GPFNrm", stge)
 
     def check_WRIC(self, stge, verbose=None):
-        """
-        Evaluate and report on the Weak Return Impatience Condition
-        [url]/  # WRIC modified to incorporate LivPrb
-        """
-
+        """Evaluate and report on the Weak Return Impatience Condition."""
         if not hasattr(stge, 'IncShkDstn'):
             return  # WRIC is same as RIC for PF consumer
 
@@ -723,7 +699,8 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         u, u.Nvrs, u.dc.Nvrs = Bilt.u, Bilt.u.Nvrs, Bilt.u.dc.Nvrs
         CRRA, CRRA_tp1 = Pars.CRRA, tp1.Bilt.vFunc.CRRA
 
-        yNrm_tp1 = tp1.Pars.tranShkMin  # for PF model tranShkMin = 1.0
+        # define yNrm_tp1 to make formulas below easier to read
+        yNrm_tp1 = tp1.Pars.tranShkMin  # in PF model tranShk[Min,Max] = 1.0
 
         if BoroCnstArt is None:
             BoroCnstArt = -np.inf
@@ -731,82 +708,68 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         # Whichever constraint is tighter is the relevant one
         BoroCnst = max(BoroCnstArt, BoroCnstNat)
 
-        # Omit first and last points which define extrapolation below and above
-        # the kink points
-#        mNrm_kinks_tp1 = tp1.cFunc.x_list[:-1][1:]
-#        cNrm_kinks_tp1 = tp1.cFunc.y_list[:-1][1:]
-#        vNrm_kinks_tp1 = tp1.vFunc(mNrm_kinks_tp1)
-
-        # Calculate end-of-this-period aNrm vals that would reach those mNrm's
-        # There are no shocks in the PF model, so tranShkMin = tranShk = 1.0
-#       bNrm_kinks_tp1 = (mNrm_kinks_tp1 - yNrm_tp1)
-#       aNrm_kinks = bNrm_kinks_tp1*(PermGroFac/Rfree)
-
-        # Obtain c_t from which unconstrained consumers would land on each
-        # kink next period by inverting FOC: c^#_t = (RβΠ)^(-1/ρ) c^#_tp1
-        # This is the endogenous gridpoint (kink point number #) today
-        # corresponding to each next-period kink (each of which corresponds
-        # to a finite-horizon solution ending one more period in the future)
-
-#        cNrm_kinks_old = (((Rfree * DiscLiv) ** (-1/CRRA_tp1)) *
-#                      PermGroFac * cNrm_kinks_tp1)
+        # Translate t+1 constraints into their consequences for t
+        # Endogenous Gridpoints steps:
+        # c today yielding u' equal to discounted u' from each kink in t+1
         cNrm_kinks = tp1.Bilt.u.dc.Nvrs(E_tp1_.given_shocks[E_tp1_.v1_pos])
-
-#      vNrm_kinks_old=(DiscLiv * PermGroFac**(1-tp1.Pars.CRRA))*vNrm_kinks_tp1
-        vNrm_kinks = E_tp1_.given_shocks[E_tp1_.v0_pos]
-
-#        mNrm_kinks_old = aNrm_kinks + cNrm_kinks
         mNrm_kinks = Bilt.aNrmGrid + cNrm_kinks
 
-#        vInv_kinks_old = u.Nvrs(vNrm_kinks)
+        # Corresponding value and inverse value
+        vNrm_kinks = E_tp1_.given_shocks[E_tp1_.v0_pos]
         vInv_kinks = u.Nvrs(vNrm_kinks)
 
-        vAdd_kinks = mNrm_kinks-mNrm_kinks
+        vAdd_kinks = mNrm_kinks-mNrm_kinks  # zero array of correct size
 
-        # tranShkMin = tranShkMax = 1.0 for PF model
         mNrmMin_tp1 = \
-            tp1.Pars.tranShkMin + BoroCnst * (Rfree/PermGroFac)
+            yNrm_tp1 + BoroCnst * (Rfree/PermGroFac)
 
-        t_E_v_tp1_at_BoroCnst = \
+        # by t_E_ we mean "discounted back to period t"
+        t_E_v_tp1_at_mNrmMin_tp1 = \
             (DiscLiv * PermGroFac**(1-CRRA_tp1) *
              tp1.vFunc(mNrmMin_tp1))
 
-        t_E_vP_tp1_at_BoroCnst = \
+        t_E_vP_tp1_at_mNrmMin_tp1 = \
             ((Rfree * DiscLiv) * PermGroFac**(-CRRA_tp1) *
              tp1.vFunc.dm(mNrmMin_tp1))
 
         # h is the 'horizon': h_t(m_t) is the number of periods it will take
         # before you hit the constraint, after which you remain constrained
 
-        # For any c_t where you are unconstrained today, value is discounted
-        # sum of values you will receive during periods between now and t+h,
-        # and values you will receive afer h
-#        vAdd = # Sum of post-constrained value by gridpoint
-#            (DiscLiv * PermGroFac**(1-CRRA))*\
-#                (Bilt.u(folw.cFunc_tp1(mNrm_kinks_tp1) # u at next period cusp
-#                        +vAdd_tp1) # v from s
+        # The maximum h in a finite horizon model
+        # is the remaining number of periods of life: h = T - t
 
-        # cusp is point where current period constraint stops binding
-        cNrm_cusp = u.dc.Nvrs(t_E_vP_tp1_at_BoroCnst)
-        vNrm_cusp = Bilt.u(cNrm_cusp)+t_E_vP_tp1_at_BoroCnst
-        vAdd_cusp = t_E_v_tp1_at_BoroCnst
+        # If the consumer is sufficiently impatient, there will be levels of
+        # m from which the optimal plan will be to run down existing wealth
+        # over some horizon less than T - t, and for the remainder of the
+        # horizon to set consumption equal to income
+
+        # In a given period t, it will be optimal to spend all resources
+        # whenever the marginal utility of doing so exceeds the marginal
+        # utility yielded by receiving the minimum possible income next
+        # period: u'(m_t) > (discounted) u'(c(y_{t+1}))
+
+        # "cusp" is name for where current period constraint stops binding
+        cNrm_cusp = u.dc.Nvrs(t_E_vP_tp1_at_mNrmMin_tp1)
+        vNrm_cusp = Bilt.u(cNrm_cusp)+t_E_v_tp1_at_mNrmMin_tp1
+        vAdd_cusp = t_E_v_tp1_at_mNrmMin_tp1
         vInv_cusp = u.Nvrs(vNrm_cusp)
         mNrm_cusp = cNrm_cusp + BoroCnst
 
         # cusp today vs today's implications of future constraints
         if mNrm_cusp >= mNrm_kinks[-1]:  # tighter than the tightest existing
             mNrm_kinks = np.array(mNrm_cusp)  # looser ones are irrelevant
-            cNrm_kinks = np.array(cNrm_cusp)
+            cNrm_kinks = np.array(cNrm_cusp)  # forget about them
             vNrm_kinks = np.array(vNrm_cusp)
             vInv_kinks = np.array(vInv_cusp)
             vAdd_kinks = np.array(vAdd_cusp)
-        else:
+        else:  # keep today's implications of future kinks that could matter
             first_reachable = np.where(mNrm_kinks >= mNrm_cusp)[0][-1]
-            if first_reachable < mNrm_kinks.size - 1:  # Keep reachable pts
+            if first_reachable < mNrm_kinks.size - 1:  # Keep binding pts
                 mNrm_kinks = mNrm_kinks[first_reachable:-1]
                 cNrm_kinks = cNrm_kinks[first_reachable:-1]
                 vInv_kinks = vInv_kinks[first_reachable:-1]
                 vAdd_kinks = vAdd_kinks[first_reachable:-1]
+            # Add the new kink introduced by today's constraint
             mNrm_kinks = np.insert(mNrm_kinks, 0, mNrm_cusp)
             cNrm_kinks = np.insert(cNrm_kinks, 0, cNrm_cusp)
             vNrm_kinks = np.insert(vNrm_kinks, 0, vNrm_cusp)
@@ -854,7 +817,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 #        plot_funcs(lambda x: np.heaviside(x-BoroCnst,0.5),1,2)
         uInvFunc_const = \
             LinearInterp(mNrmGrid_const, uInvGrid_const)
-        vFunc_const = Bilt.u(uInvGrid_const)+t_E_v_tp1_at_BoroCnst
+        vFunc_const = Bilt.u(uInvGrid_const)+t_E_v_tp1_at_mNrmMin_tp1
         vFunc_unconst = Bilt.u(vInvGrid_unconst)
 
         def vAddFunc(m, mGrid, vAddGrid):
@@ -891,7 +854,6 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         self.cFunc = self.soln_crnt.cFunc = Bilt.cFunc = \
             LinearInterp(mNrmGrid, cNrmGrid)
 
-#        breakpoint()
 
 #        vInvFunc_unconst = self.vFuncNvrs = \
 #            LinearInterp(mNrmGrid,vInvGrid)
@@ -920,67 +882,6 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 
         # Amount of m in excess of minimum possible m
 #        mNrmXtraGrid = mNrmGrid_pts - BoroCnst
-
-        # We think of the stage at which income has been realized
-        # as prior to the start of the period when the problem is solved.
-        # You "enter" the period with normalized market resources mNrm
-        # If this is starting period of life, we want problem to be defined all
-        # the way down to the point where c would be forced to be zero
-        # That requires us to find the min aNrm with which the period can end
-#        cNrmMin = 0. # You cannot spend anything and still satisfy constraint
-
-        # Find first kink point in existing grid
-#        kink_min = np.where(mNrmXtraGrid <= cNrmGrid_pts)[0][-1]
-#        kink_min = np.where(aNrmGrid_pts <= BoroCnst)[0][-1]
-
-        # Now calculate the minimum mNrm that will be possible for a consumer
-        # who lived in the prior period and in that period satisfied the
-        # relevant borrowing constraint
-#        _bNrmMin = aNrmMin*(Rfree/PermGroFac)
-#        mNrmMin = _bNrmMin + BoroCnst
-#        mNrmMin_with_income = mNrmMin + folw.PF_IncNrmNxt
- #       if c_at_aNrmMin > aNrmMin+folw.PF_IncNrmNxt-BoroCnst:
-        # The u' from ending this period with aNrm = BoroCnst exceeds
-        # u' from the last penny of spending, so the consumer
-        # at
-
-#            mNrmGrid_pts = np.insert(mNrmGrid_pts,kink_min,mNrmMin_with_income)
-#            cNrmGrid_pts = np.insert(cNrmGrid_pts,kink_min,mNrmMin_with_income)
-
-        # Last index where constraint binds (in current period)
-#        kink_min = np.where(mNrmXtraGrid <= cNrmGrid)[0][-1]
-#        mNrmGrid_pts = np.insert(mNrmGrid_pts,kink_min,mNrmMin)
-#        cNrmGrid_pts = np.insert(cNrmGrid_pts,kink_min,cNrmMin)
-
-        # The minimum m if you were at the binding borrowing constraint
-
-        # at the end of the last period (assumes prior period's )
-#         mNrmMin_BoroCnstLast = BoroCnst*(Rfree/PermGroFac)
-
-# #        mNrmGrid_pts = np.insert(mNrmGrid,kink_min,bNrmMin+PF_IncNrmNow)
-# #        cNrmGrid_pts = np.insert(cNrmGrid,kink_min,bNrmMin+PF_IncNrmNow)
-#         kink_max = np.where(mNrmXtraGrid >= cNrmGrid)[0][-1]
-
-#         # Below binding point, c is maximum allowed, which is attained by line
-#         # from [BoroCnst,0.] to [mNrmGrid[cusp],mNrmGrid[cusp]]
-#         cNrmGrid_pts = np.insert(cNrmGrid,kink_min,)
-
-#         mNrmGrid_pts = np.insert(mNrmGrid,kink_min-1,E_tp1_.IncNrmNxt)
-#         cNrmGrid_pts = np.insert(cNrmGrid,kink_min-1,E_tp1_.IncNrmNxt-BoroCnst)
-
-#        mNrmGrid_pts = np.append(mNrmGrid_pts,mNrmGrid_pts[-1]+1.)
-#        cNrmGrid_pts = np.append(cNrmGrid_pts,cNrmGrid_pts[-1]+MPCmin)
-
-
-#         mNrmGrid = np.insert(mNrmGrid,0,mNrmMin)
-#         cNrmGrid = np.insert(cNrmGrid,0,0.)
-
-
-#         if BoroCnstArt+E_tp1_.IncNrmNxt > mNrmGrid[0]:
-#             mNrmGrid
-
-#         mNrmGrid = np.append(mNrmGrid,mNrmGrid[-1]+1.0)
-#         cNrmGrid = np.append(cNrmGrid,cNrmGrid[-1]+MPCmin)
 
 
 #         # Add the point corresponding to
@@ -1600,7 +1501,6 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         solution : ConsumerSolution
             The solution to this period/stage's problem
         """
-
         if self.solve_prepared_stage_divert():  # Allow bypass of normal soln
             return self.soln_crnt  # created by solve_prepared_stage_divert
 
@@ -1608,7 +1508,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 
         crnt = def_transition_chosen__to__next_choice(crnt)
         crnt = self.from_chosen_states_make_E_tp1_(crnt)
-        def_reward(crnt, reward=def_utility_CRRA)  # Utility rewards consumer
+        def_reward(crnt, reward=def_utility_CRRA)  # Utility is consumer reward
 
         crnt = self.build_decision_rules_and_value_functions(crnt)
 
@@ -2304,7 +2204,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
     def solve_prepared_stage(self):  # solve ONE stage (ConsIndShockSolver)
         """
-        Solves one period of the consumption-saving problem. 
+        Solves one period of the consumption-saving problem.
 
         The ".Bilt" namespace on the returned solution object includes
             * decision rule (consumption function), cFunc
@@ -2349,8 +2249,6 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             crnt = self.def_transition_EOP__to__next_BOP(crnt)
             # draw EOP shocks (if any):
             crnt = self.def_transition_chosen__to__EOP(crnt)
-            # create aNrmGrid
-            crnt = self.make_chosen_state_grid(crnt)
             # like, β E[R Γ_{t+1}^{-ρ}u'(c_{t+1})]
             crnt = self.from_chosen_states_make_E_tp1_(crnt)
             # Defines current utility
@@ -2409,7 +2307,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         Returns
         -------
-        transit_chosen__to__next_choice : namespace with results of applying transition eqns
+        transit_chosen__to__next_choice : namespace with results of applying
+        transition eqns
         """
 
         stge = self.soln_crnt
