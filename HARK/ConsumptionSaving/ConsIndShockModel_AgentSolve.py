@@ -740,7 +740,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         # Calculate end-of-this-period aNrm vals that would reach those mNrm's
         # There are no shocks in the PF model, so tranShkMin = tranShk = 1.0
         bNrm_kinks_tp1 = (mNrm_kinks_tp1 - yNrm_tp1)
-        kNrm_kinks_tp1 = aNrm_kinks = bNrm_kinks_tp1*(PermGroFac/Rfree)
+        aNrm_kinks = bNrm_kinks_tp1*(PermGroFac/Rfree)
 
         # Obtain c_t from which unconstrained consumers would land on each
         # kink next period by inverting FOC: c^#_t = (RβΠ)^(-1/ρ) c^#_tp1
@@ -748,18 +748,18 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         # corresponding to each next-period kink (each of which corresponds
         # to a finite-horizon solution ending one more period in the future)
 
-        cNrm_kinks = (((Rfree * DiscLiv) ** (-1/CRRA_tp1)) *
+        cNrm_kinks_old = (((Rfree * DiscLiv) ** (-1/CRRA_tp1)) *
                       PermGroFac * cNrm_kinks_tp1)
-        cNrm_kinks_EGM = tp1.Bilt.u.dc.Nvrs(E_tp1_.given_shocks[E_tp1_.v1_pos])
+        cNrm_kinks = tp1.Bilt.u.dc.Nvrs(E_tp1_.given_shocks[E_tp1_.v1_pos])
 
-        vNrm_kinks = (DiscLiv * PermGroFac**(1-tp1.Pars.CRRA))*vNrm_kinks_tp1
-        vNrm_kinks_EGM = E_tp1_.given_shocks[E_tp1_.v0_pos]
+        vNrm_kinks_old = (DiscLiv * PermGroFac**(1-tp1.Pars.CRRA))*vNrm_kinks_tp1
+        vNrm_kinks = E_tp1_.given_shocks[E_tp1_.v0_pos]
 
-        mNrm_kinks = aNrm_kinks + cNrm_kinks
-        mNrm_kinks_EGM = Bilt.aNrmGrid + cNrm_kinks_EGM
+        mNrm_kinks_old = aNrm_kinks + cNrm_kinks
+        mNrm_kinks = Bilt.aNrmGrid + cNrm_kinks
 
+        vInv_kinks_old = u.Nvrs(vNrm_kinks)
         vInv_kinks = u.Nvrs(vNrm_kinks)
-        vInv_kinks_EGM = u.Nvrs(vNrm_kinks_EGM)
 
         vAdd_kinks = mNrm_kinks-mNrm_kinks
 
@@ -774,7 +774,6 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         t_E_vP_tp1_at_BoroCnst = \
             ((Rfree * DiscLiv) * PermGroFac**(-CRRA_tp1) *
              tp1.vFunc.dm(mNrmMin_tp1))
-
 
         # h is the 'horizon': h_t(m_t) is the number of periods it will take
         # before you hit the constraint, after which you remain constrained
@@ -1108,7 +1107,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         """
         crnt = self.build_facts_infhor()
         crnt = self.build_facts_recursive()
-        
+
 
         # Reduce cluttered formulae with local aliases
         E_tp1_ = crnt.E_tp1_
