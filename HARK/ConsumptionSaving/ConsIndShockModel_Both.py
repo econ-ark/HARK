@@ -195,7 +195,7 @@ def make_transition_equations(stge, transition_name, equations):
 
 def def_transition_chosen__to__next_choice(stge):
     """
-    Define transition from post-choice now to ready-to-choose.
+    Define transition from post-choice now to ready-to-choose next.
 
     Equations must be evaluated in a namespace containing
     compatibly shaped variables aNrm, permShk, and tranShk.
@@ -214,6 +214,7 @@ def def_transition_chosen__to__next_choice(stge):
 
     chosen__to__next_choice.eqns_source = eqns_source
     stge.Modl.Transitions['chosen__to__next_choice'] = chosen__to__next_choice
+
     return stge
 
 

@@ -93,7 +93,7 @@ class agent_solution(MetricObject):
                  **kwds):
 
         self.E_tp1_ = Nexspectations()  # Next given this period choices
-        self._t_E_t = Prospectations()  # Before this period choices
+        self.t_E_ = Prospectations()  # Before this period choices
         self.Pars = Parameters()
         self.Bilt = Built()
         self.Bilt.completed_cycles = completed_cycles
@@ -120,7 +120,7 @@ class agent_solution(MetricObject):
 
         # Allow doublestruck or regular E for expectations
         self.𝔼_tp1_ = self.E_tp1_
-        self._t_𝔼_t = self._t_E_t
+        self.t_𝔼_ = self.t_E_
 
     def define_reward():
         # Determine the current period payoff (utility? profit?)
@@ -172,74 +172,57 @@ class Built(SimpleNamespace):
 
 
 class Parameters(SimpleNamespace):
-    """
-    Parameters (both as passed, and as exposed for convenience). But not modified.
-    """
-# TODO: Move (to core.py) when vetted/agreed
+    """Parameters (both as passed, and as exposed for convenience). But not modified."""
+
     pass
 
 
 class Expectations(SimpleNamespace):
-    """
-    Expectations about future period
-    """
-# TODO: Move (to core.py) when vetted/agreed
+    """Expectations about future period"""
+
     pass
 
 
 class Nexspectations(SimpleNamespace):
-    """
-    Expectations about future period after current decisions
-    """
-# TODO: Move (to core.py) when vetted/agreed
+    """Expectations about future period after current decisions"""
+
     pass
 
 
 class Prospectations(SimpleNamespace):
-    """
-    Expectations prior to the realization of current period shocks
-    """
-# TODO: Move (to core.py) when vetted/agreed
+    """Expectations prior to the realization of current period shocks"""
+
     pass
 
 
 class ValueFunctions(SimpleNamespace):
-    """
-    Expectations across realization of stochastic shocks.
-    """
-# TODO: Move (to core.py) when vetted/agreed
+    """Expectations across realization of stochastic shocks."""
+
     pass
 
 
 class Ante_Choice(SimpleNamespace):
-    """
-    Expectations before choices or shocks
-    """
+    """Expectations before choices or shocks."""
 
 
 class Elements(SimpleNamespace):
-    """
-   Elements of the model in python/HARK code.
-    """
-# TODO: Move (to core.py) when vetted/agreed
+    """Elements of the model in python/HARK code."""
+
     pass
 
 
 class Equations(SimpleNamespace):
-    """
-    Description of the model in HARK and python syntax.
-    """
-# TODO: Move (to core.py) when vetted/agreed
+    """Description of the model in HARK and python syntax."""
+
     pass
 
 
 class Successor(SimpleNamespace):
-    """
-    Objects retrieved from successor to the stage
+    """Objects retrieved from successor to the stage
     referenced in "self." Should contain everything needed to reconstruct
     solution to problem of self even if solution_next is not present.
     """
-# TODO: Move (to core.py) when vetted/agreed
+
     pass
 
 
@@ -346,9 +329,6 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         del self.vPfunc
         del self.vPPfunc
 
-#    def def_reward(self):
-#        return def_utility_CRRA(self.soln_crnt, self.soln_crnt.Pars.CRRA)
-
     def check_conditions(self, soln_crnt, verbose=None):
         """
         Check whether the instance's type satisfies a set of conditions.
@@ -374,6 +354,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         Parameters
         ----------
         verbose : int
+
         Specifies different levels of verbosity of feedback. When False, it only reports whether the
         instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
         the factor values for all conditions.
@@ -732,19 +713,17 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         See PerfForesightConsumerType.ipynb notebook for derivations.
         """
         # Reduce cluttered formulae with local aliases
-        crnt, futr = self.soln_crnt, self.soln_futr
+        crnt, tp1 = self.soln_crnt, self.soln_futr
         Bilt, Pars, E_tp1_ = crnt.Bilt, crnt.Pars, crnt.E_tp1_
-
         Rfree, PermGroFac, MPCmin = Pars.Rfree, Pars.PermGroFac, Bilt.MPCmin
 
         BoroCnstArt, DiscLiv, BoroCnstNat = \
             Pars.BoroCnstArt, Pars.DiscLiv, Bilt.BoroCnstNat
 
-        u = Bilt.u
-        u.Nvrs, u.dc.Nvrs = Bilt.u.Nvrs, Bilt.u.dc.Nvrs
+        u, u.Nvrs, u.dc.Nvrs = Bilt.u, Bilt.u.Nvrs, Bilt.u.dc.Nvrs
+        CRRA, CRRA_tp1 = Pars.CRRA, tp1.Bilt.vFunc.CRRA
 
-        CRRA = Pars.CRRA
-        CRRA_tp1 = futr.Bilt.vFunc.CRRA
+        yNrm_tp1 = tp1.Pars.tranShkMin  # for PF model tranShkMin = 1.0
 
         if BoroCnstArt is None:
             BoroCnstArt = -np.inf
@@ -754,36 +733,48 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 
         # Omit first and last points which define extrapolation below and above
         # the kink points
-        mNrm_kinks_tp1 = futr.cFunc.x_list[:-1][1:]
-        cNrm_kinks_tp1 = futr.cFunc.y_list[:-1][1:]
-        vNrm_kinks_tp1 = futr.vFunc(mNrm_kinks_tp1)
+        mNrm_kinks_tp1 = tp1.cFunc.x_list[:-1][1:]
+        cNrm_kinks_tp1 = tp1.cFunc.y_list[:-1][1:]
+        vNrm_kinks_tp1 = tp1.vFunc(mNrm_kinks_tp1)
 
         # Calculate end-of-this-period aNrm vals that would reach those mNrm's
-        aNrm_kinks = (mNrm_kinks_tp1 - E_tp1_.IncNrmNxt)*(PermGroFac/Rfree)
+        # There are no shocks in the PF model, so tranShkMin = tranShk = 1.0
+        bNrm_kinks_tp1 = (mNrm_kinks_tp1 - yNrm_tp1)
+        kNrm_kinks_tp1 = aNrm_kinks = bNrm_kinks_tp1*(PermGroFac/Rfree)
 
         # Obtain c_t from which unconstrained consumers would land on each
-        # kink next period by inverting FOC: c_t = (RβΠ)^(-1/ρ) c_tp1
-        # This is the endogenous gridpoint (kink point) today
+        # kink next period by inverting FOC: c^#_t = (RβΠ)^(-1/ρ) c^#_tp1
+        # This is the endogenous gridpoint (kink point number #) today
         # corresponding to each next-period kink (each of which corresponds
         # to a finite-horizon solution ending one more period in the future)
 
         cNrm_kinks = (((Rfree * DiscLiv) ** (-1/CRRA_tp1)) *
                       PermGroFac * cNrm_kinks_tp1)
+        cNrm_kinks_EGM = tp1.Bilt.u.dc.Nvrs(E_tp1_.given_shocks[E_tp1_.v1_pos])
 
-        vNrm_kinks = (DiscLiv * PermGroFac**(1-CRRA))*vNrm_kinks_tp1
+        vNrm_kinks = (DiscLiv * PermGroFac**(1-tp1.Pars.CRRA))*vNrm_kinks_tp1
+        vNrm_kinks_EGM = E_tp1_.given_shocks[E_tp1_.v0_pos]
+
         mNrm_kinks = aNrm_kinks + cNrm_kinks
+        mNrm_kinks_EGM = Bilt.aNrmGrid + cNrm_kinks_EGM
+
         vInv_kinks = u.Nvrs(vNrm_kinks)
+        vInv_kinks_EGM = u.Nvrs(vNrm_kinks_EGM)
+
         vAdd_kinks = mNrm_kinks-mNrm_kinks
 
-        mNrmMin_tp1 = E_tp1_.IncNrmNxt + BoroCnst * (Rfree/PermGroFac)
+        # tranShkMin = tranShkMax = 1.0 for PF model
+        mNrmMin_tp1 = \
+            tp1.Pars.tranShkMin + BoroCnst * (Rfree/PermGroFac)
 
-        _v_t_at_BoroCnst = \
+        t_E_v_tp1_at_BoroCnst = \
             (DiscLiv * PermGroFac**(1-CRRA_tp1) *
-             futr.vFunc(mNrmMin_tp1))
+             tp1.vFunc(mNrmMin_tp1))
 
-        _vP_t_at_BoroCnst = \
+        t_E_vP_tp1_at_BoroCnst = \
             ((Rfree * DiscLiv) * PermGroFac**(-CRRA_tp1) *
-             futr.vFunc.dm(mNrmMin_tp1))
+             tp1.vFunc.dm(mNrmMin_tp1))
+
 
         # h is the 'horizon': h_t(m_t) is the number of periods it will take
         # before you hit the constraint, after which you remain constrained
@@ -797,9 +788,9 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 #                        +vAdd_tp1) # v from s
 
         # cusp is point where current period constraint stops binding
-        cNrm_cusp = u.dc.Nvrs(_vP_t_at_BoroCnst)
-        vNrm_cusp = Bilt.u(cNrm_cusp)+_v_t_at_BoroCnst
-        vAdd_cusp = _v_t_at_BoroCnst
+        cNrm_cusp = u.dc.Nvrs(t_E_vP_tp1_at_BoroCnst)
+        vNrm_cusp = Bilt.u(cNrm_cusp)+t_E_vP_tp1_at_BoroCnst
+        vAdd_cusp = t_E_v_tp1_at_BoroCnst
         vInv_cusp = u.Nvrs(vNrm_cusp)
         mNrm_cusp = cNrm_cusp + BoroCnst
 
@@ -828,14 +819,17 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         mNrmGrid_unconst = np.append(mNrm_kinks, mNrm_kinks+1)
         cNrmGrid_unconst = np.append(cNrm_kinks, cNrm_kinks+MPCmin)
         aNrmGrid_unconst = mNrmGrid_unconst-cNrmGrid_unconst
-        mNrmGrid_tp1_unconst = aNrmGrid_unconst*(Rfree/PermGroFac)+E_tp1_.IncNrmNxt
-        vNrmGrid_unconst = u(cNrmGrid_unconst)+(DiscLiv * PermGroFac**(1-CRRA_tp1) *
-                                                futr.vFunc(mNrmGrid_tp1_unconst))
+        mNrmGrid_tp1_unconst = aNrmGrid_unconst*(Rfree/PermGroFac)+yNrm_tp1
+        vNrmGrid_unconst = u(cNrmGrid_unconst) + \
+            (DiscLiv * PermGroFac**(1-CRRA_tp1) *
+             tp1.vFunc(mNrmGrid_tp1_unconst))
         vInvGrid_unconst = u.Nvrs(vNrmGrid_unconst)
         vInvPGrid_unconst = \
-            (((1-CRRA)*vNrmGrid_unconst)**(-1+1/(1-CRRA)))*(cNrmGrid_unconst**(-CRRA))
+            (((1-CRRA)*vNrmGrid_unconst)**(-1+1/(1-CRRA))) * \
+            (cNrmGrid_unconst**(-CRRA))
         c_from_vInvPGrid_unconst = \
-            ((vInvPGrid_unconst/(((1-CRRA)*vNrmGrid_unconst)**(-1+1/(1-CRRA)))))**(-1/CRRA)
+            ((vInvPGrid_unconst/(((1-CRRA)*vNrmGrid_unconst) **
+                                 (-1+1/(1-CRRA)))))**(-1/CRRA)
 
         mNrmGrid_const = np.array([BoroCnst, mNrm_cusp, mNrm_cusp+1])
         uNrmGrid_const = np.array([float('inf'), u(mNrm_cusp), float('inf')])
@@ -861,7 +855,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 #        plot_funcs(lambda x: np.heaviside(x-BoroCnst,0.5),1,2)
         uInvFunc_const = \
             LinearInterp(mNrmGrid_const, uInvGrid_const)
-        vFunc_const = Bilt.u(uInvGrid_const)+_v_t_at_BoroCnst
+        vFunc_const = Bilt.u(uInvGrid_const)+t_E_v_tp1_at_BoroCnst
         vFunc_unconst = Bilt.u(vInvGrid_unconst)
 
         def vAddFunc(m, mGrid, vAddGrid):
@@ -897,6 +891,8 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 
         self.cFunc = self.soln_crnt.cFunc = Bilt.cFunc = \
             LinearInterp(mNrmGrid, cNrmGrid)
+
+#        breakpoint()
 
 #        vInvFunc_unconst = self.vFuncNvrs = \
 #            LinearInterp(mNrmGrid,vInvGrid)
@@ -1112,6 +1108,47 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         """
         crnt = self.build_facts_infhor()
         crnt = self.build_facts_recursive()
+        
+
+        # Reduce cluttered formulae with local aliases
+        E_tp1_ = crnt.E_tp1_
+        tp1 = self.soln_futr
+        Bilt, Pars = crnt.Bilt, crnt.Pars
+        Rfree, PermGroFac, DiscLiv = Pars.Rfree, Pars.PermGroFac, Pars.DiscLiv
+        CRRA = tp1.vFunc.CRRA
+
+        BoroCnstArt, BoroCnstNat = \
+            Pars.BoroCnstArt, Bilt.BoroCnstNat
+
+        if BoroCnstArt is None:
+            BoroCnstArt = -np.inf
+
+        # Whichever constraint is tighter is the relevant one
+        BoroCnst = max(BoroCnstArt, BoroCnstNat)
+
+        # Omit first and last points which define extrapolation below and above
+        # the kink points
+        mNrm_kinks_tp1 = tp1.cFunc.x_list[:-1][1:]
+        cNrm_kinks_tp1 = tp1.cFunc.y_list[:-1][1:]
+        vNrm_kinks_tp1 = tp1.vFunc(mNrm_kinks_tp1)
+
+        # Calculate end-of-this-period aNrm vals that would reach those mNrm's
+        # There are no shocks in the PF model, so tranShkMin = tranShk = 1.0
+        bNrm_kinks_tp1 = (mNrm_kinks_tp1 - tp1.Pars.tranShkMin)
+        aNrm_kinks = bNrm_kinks_tp1*(PermGroFac/Rfree)
+
+        crnt.Bilt.aNrmGrid = aNrm_kinks
+        # Level and first derivative of expected value from aNrmGrid points
+        v_0 = DiscLiv * \
+            PermGroFac ** (1-CRRA) * vNrm_kinks_tp1
+        v_1 = DiscLiv * \
+            PermGroFac ** (0-CRRA) * tp1.Bilt.u.dc(cNrm_kinks_tp1) * Rfree
+        c_0 = cNrm_kinks_tp1
+
+        E_tp1_.given_shocks = np.array([v_0, v_1, c_0])
+        E_tp1_.v0_pos, E_tp1_.v1_pos = 0, 1
+        E_tp1_.c0_pos = 3
+
         return crnt
 
     def build_facts_infhor(self):
@@ -2314,6 +2351,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             crnt = self.def_transition_EOP__to__next_BOP(crnt)
             # draw EOP shocks (if any):
             crnt = self.def_transition_chosen__to__EOP(crnt)
+            # create aNrmGrid
+            crnt = self.make_chosen_state_grid(crnt)
             # like, β E[R Γ_{t+1}^{-ρ}u'(c_{t+1})]
             crnt = self.from_chosen_states_make_E_tp1_(crnt)
             # Defines current utility
@@ -2345,7 +2384,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # Having calculated E(marginal value, etc) of saving, construct c
         self.build_decision_rules_and_value_functions()
 
-        self.t_E_from_BOP_states_make()
+        self.t_E_from_BOP_states_make()  # t_E: Before BOP shocks are realized
 
         return crnt
 
