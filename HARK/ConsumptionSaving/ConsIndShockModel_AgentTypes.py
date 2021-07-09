@@ -521,6 +521,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                  solver=ConsPerfForesightSolver,
                  solveMethod='EGM',
                  shockTiming='EOP',
+                 solverType='HARK',
                  **kwds
                  ):
 
@@ -537,6 +538,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         self.solver = solver
         self.solveMethod = solveMethod
         self.shockTiming = shockTiming
+        self.solverType = solverType
 
         # Things to keep track of for this and child models
         self.check_restrictions()  # Make sure it's a minimally valid model
@@ -1026,9 +1028,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     """
     A consumer with idiosyncratic shocks to permanent and transitory income.
-    The problem is defined by a sequence of income distributions, survival prob-
-    abilities, and permanent income growth rates, as well as time invariant values
-    for risk aversion, the discount factor, the interest rate, the grid of end-of-
+    Problem is defined by a sequence of income distributions, survival prob-
+    abilities, permanent income growth rates, and time invariant values for
+    risk aversion, the discount factor, the interest rate, the grid of end-of-
     period assets, and (optionally) an artificial borrowing constraint.
 
     Parameters

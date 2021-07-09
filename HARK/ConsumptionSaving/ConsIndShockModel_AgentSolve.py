@@ -684,7 +684,7 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         return self.Bilt.mNrmStE
 
 
-class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
+class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
     """
     Solves a one period perfect foresight
     CRRA utility consumption-saving problem.
@@ -712,8 +712,8 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
         additional points will be thrown out.  Only relevant in infinite
         horizon model with artificial borrowing constraint.
     """
-    # CDC 20200426: MaxKinks adds a lot of complexity to little purpose
-    # because everything it accomplishes could be done using a finite horizon
+    # CDC 20200426: MaxKinks adds a lot of complexity to no necessary purpose
+    # because everything it accomplishes could be done solivng a finite horizon
     # model (including tests of convergence conditions, which can be invoked
     # manually if a user wants them).
 
@@ -723,9 +723,9 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
             solverType='HARK',
             solveMethod='EGM',
             shockTiming='EOP',
-            solverName='ConsPerfForesightSolver',
+#            solverName='ConsPerfForesightSolver',
             **kwds
-    ):
+            ):
 
         soln_futr = self.soln_futr = solution_next
         soln_crnt = self.soln_crnt = ConsumerSolutionOneStateCRRA()
@@ -1661,7 +1661,7 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
         Bilt.stge_kind = \
             soln_crnt.stge_kind = {'iter_status': 'iterator',
-                                        'slvr_type': self.__class__.__name__}
+                                   'slvr_type': self.__class__.__name__}
 
         return
 
@@ -1672,17 +1672,17 @@ class ConsPerfForesightSolverEOP(ConsumerSolutionOneStateCRRA):
 
 ##############################################################################
 
-class ConsPerfForesightSolver(ConsPerfForesightSolverEOP):
-    def __init__(
-            self, solution_next, DiscFac=1.0, LivPrb=1.0, CRRA=2.0, Rfree=1.0,
-            PermGroFac=1.0, BoroCnstArt=None, MaxKinks=None, **kwds
-    ):
-        super().__init__(solution_next, DiscFac=DiscFac, LivPrb=LivPrb, CRRA=CRRA,
-                         Rfree=Rfree, PermGroFac=PermGroFac,
-                         BoroCnstArt=BoroCnstArt, MaxKinks=MaxKinks, **kwds)
+# class ConsPerfForesightSolver(ConsPerfForesightSolverEOP):
+#     def __init__(
+#             self, solution_next, DiscFac=1.0, LivPrb=1.0, CRRA=2.0, Rfree=1.0,
+#             PermGroFac=1.0, BoroCnstArt=None, MaxKinks=None, **kwds
+#     ):
+#         super().__init__(solution_next, DiscFac=DiscFac, LivPrb=LivPrb, CRRA=CRRA,
+#                          Rfree=Rfree, PermGroFac=PermGroFac,
+#                          BoroCnstArt=BoroCnstArt, MaxKinks=MaxKinks, **kwds)
 
 
-class ConsIndShockSetupEOP(ConsPerfForesightSolver):
+class ConsIndShockSetup(ConsPerfForesightSolver):
     """
     Superclass for solvers of one period consumption-saving problems with
     constant relative risk aversion utility and permanent and transitory shocks
@@ -1734,6 +1734,7 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
             permShkDstn, tranShkDstn,
             solveMethod='EGM',
             shockTiming='EOP',
+            solverType='HARK',
             **kwds):
         # First execute PF solver init
         # We must reorder params by hand in case someone tries positional solve
@@ -2080,11 +2081,11 @@ class ConsIndShockSetupEOP(ConsPerfForesightSolver):
         return soln_crnt
 
 
-class ConsIndShockSetup(ConsIndShockSetupEOP):
-    pass
+#class ConsIndShockSetup(ConsIndShockSetupEOP):
+#    pass
 
 
-class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
+class ConsIndShockSolverBasic(ConsIndShockSetup):
     """
     Solves a single period of a standard consumption-saving problem.
 
@@ -2460,14 +2461,14 @@ class ConsIndShockSolverBasicEOP(ConsIndShockSetupEOP):
         return tp1
 
 
-class ConsIndShockSolverBasic(ConsIndShockSolverBasicEOP):
-    pass
+#class ConsIndShockSolverBasic(ConsIndShockSolverBasic):
+#    pass
 
 
 ###############################################################################
 
 
-class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
+class ConsIndShockSolver(ConsIndShockSolverBasic):
     """
     Solves a single period of a standard consumption-saving problem.
     It inherits from ConsIndShockSolverBasic, and adds ability to perform cubic
@@ -2508,5 +2509,5 @@ class ConsIndShockSolverEOP(ConsIndShockSolverBasicEOP):
         return cFuncUnc
 
 
-class ConsIndShockSolver(ConsIndShockSolverEOP):
-    pass
+#class ConsIndShockSolver(ConsIndShockSolverEOP):
+#    pass
