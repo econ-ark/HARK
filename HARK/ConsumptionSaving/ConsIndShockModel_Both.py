@@ -366,7 +366,7 @@ def def_value_funcs(stge, CRRA):
     See PerfForesightConsumerType.ipynb for a brief explanation
     and the links below for a fuller treatment.
 
-    https://github.com/llorracc/SolvingMicroDSOPs/#vFuncPF
+    https://llorracc.github.io/SolvingMicroDSOPs/#vFuncPF
 
     Parameters
     ----------
@@ -377,12 +377,16 @@ def def_value_funcs(stge, CRRA):
     None
 
     Notes
-    -------
-    Uses the fact that for an unconstrained perfect foresight CRRA,
-    if the MPC in period t is :math:`\\kappa_{t}`, and relative risk
-    aversion :math:`\\rho`, then the inverse value vFuncNvrs has a
-    constant slope of :math:`\\kappa_{t}^{-\\rho/(1-\\rho)}` and
-    vFuncNvrs has value of zero at the lower bound of market resources
+    -----
+
+    Call vFuncPF the value function for the solution to the perfect foresight CRRA
+    consumption problem in period t for a consumer with no bequest motive and no
+    constraints.  ('Top' because this is an upper bound for the value functions
+    that would characterize consumers with constraints or uncertainty).  For
+    such a problem, the MPC in period t is constant at :math:`\\kappa_{t}`, and
+    calling relative risk aversion :math:`\\rho`, the inverse value function
+    vFuncPFNvrs has a constant slope of :math:`\\kappa_{t}^{-\\rho/(1-\\rho)}` and
+    vFuncPFNvrs has value of zero at the lower bound of market resources.
     """
 
     Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
@@ -396,24 +400,24 @@ def def_value_funcs(stge, CRRA):
     Modl.Value.vals = {}  # Compiled and executed result at time of exec
 
     eqns_source = {}  # For storing the equations
-    # Pattern below: Equations needed to define value function and derivativfes
+    # Pattern below: Equations needed to define value function and derivatives
     # Each eqn is preceded by adding to the scope whatever is needed
     # to make sure the variables in the equation
 
 #    CRRA, MPCmin = Pars.CRRA, Bilt.MPCmin
     eqns_source.update(
-        {'vFuncNvrsSlopeLim':
-         'vFuncNvrsSlopeLim = MPCmin ** (-CRRA / (1.0 - CRRA))'})
+        {'vFuncPFNvrsSlopeLim':
+         'vFuncPFNvrsSlopeLim = MPCmin ** (-CRRA / (1.0 - CRRA))'})
 
-    # vFuncNvrs function
+    # vFuncPFNvrs function
 #    mNrmMin = Bilt.mNrmMin
     Info['LinearInterp'] = LinearInterp  # store so it can be retrieved later
 
     eqns_source.update(
-        {'vFuncNvrs':
-         'vFuncNvrs = LinearInterp(' +
+        {'vFuncPFNvrs':
+         'vFuncPFNvrs = LinearInterp(' +
             'np.array([mNrmMin, mNrmMin + 1.0]),' +
-            'np.array([0.0, vFuncNvrsSlopeLim]))'})
+            'np.array([0.0, vFuncPFNvrsSlopeLim]))'})
 
     # vFunc and its derivatives
     Info['ValueFuncCRRA'] = ValueFuncCRRA
@@ -423,7 +427,7 @@ def def_value_funcs(stge, CRRA):
     # Derivative 0 (undifferentiated)
     eqns_source.update(
         {'vFunc_D0':
-         'vFunc = ValueFuncCRRA(vFuncNvrs, CRRA)'})
+         'vFunc = ValueFuncCRRA(vFuncPFNvrs, CRRA)'})
 
 #    cFunc = Bilt.cFunc
 

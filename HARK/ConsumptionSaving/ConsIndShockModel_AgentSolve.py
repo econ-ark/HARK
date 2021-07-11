@@ -654,7 +654,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 
         # 'terminal' solution should replace pseudo_terminal:
         if hasattr(soln_futr.Bilt, 'stge_kind') and \
-                (soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_partial'):
+                soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_partial':
             soln_crnt.Bilt = deepcopy(soln_futr.Bilt)
 
         # links for docs; urls are used when "fcts" are added
@@ -681,6 +681,56 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
     #     cP = self.cFunc.derivative(m)
     #     cVal = vInv ** (cP / vInvP)
     #     return cVal
+
+    def from_chosen_states_make_E_tp1_(self, crnt):
+        """
+        Construct expectations of useful objects from post-choice stage.
+
+        Parameters
+        ----------
+        crnt : ConsumerSolution
+            The solution to the problem without the expectations info.
+
+        Returns
+        -------
+        crnt : ConsumerSolution
+            The given solution, with the relevant namespaces updated to
+        contain the constructed info.
+        """
+        crnt = self.build_facts_infhor()
+        crnt = self.build_facts_recursive()
+
+        # Reduce cluttered formulae with local aliases
+        E_tp1_ = crnt.E_tp1_
+        tp1 = self.soln_futr
+        Bilt, Pars = crnt.Bilt, crnt.Pars
+        Rfree, PermGroFac, DiscLiv = Pars.Rfree, Pars.PermGroFac, Pars.DiscLiv
+        CRRA = tp1.vFunc.CRRA
+
+        # Omit first and last points which define extrapolation below and above
+        # the kink points
+        Bilt.mNrm_kinks_tp1 = mNrm_kinks_tp1 = tp1.cFunc.x_list[:-1][1:]
+        Bilt.cNrm_kinks_tp1 = cNrm_kinks_tp1 = tp1.cFunc.y_list[:-1][1:]
+        Bilt.vNrm_kinks_tp1 = vNrm_kinks_tp1 = tp1.vFunc(mNrm_kinks_tp1)
+
+        # Calculate end-of-this-period aNrm vals that would reach those mNrm's
+        # There are no shocks in the PF model, so tranShkMin = tranShk = 1.0
+        bNrm_kinks_tp1 = (mNrm_kinks_tp1 - tp1.Pars.tranShkMin)
+        aNrm_kinks = bNrm_kinks_tp1*(PermGroFac/Rfree)
+
+        crnt.Bilt.aNrmGrid = aNrm_kinks
+        # Level and first derivative of expected value from aNrmGrid points
+        v_0 = DiscLiv * \
+            PermGroFac ** (1-CRRA) * vNrm_kinks_tp1
+        v_1 = DiscLiv * \
+            PermGroFac ** (0-CRRA) * tp1.Bilt.u.dc(cNrm_kinks_tp1) * Rfree
+        c_0 = cNrm_kinks_tp1
+
+        E_tp1_.given_shocks = np.array([v_0, v_1, c_0])
+        E_tp1_.v0_pos, E_tp1_.v1_pos = 0, 1
+        E_tp1_.c0_pos = 3
+
+        return crnt
 
     def make_cFunc_PF(self):
         """
@@ -711,14 +761,15 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         # Translate t+1 constraints into their consequences for t
         # Endogenous Gridpoints steps:
         # c today yielding u' equal to discounted u' from each kink in t+1
-        cNrm_kinks = tp1.Bilt.u.dc.Nvrs(E_tp1_.given_shocks[E_tp1_.v1_pos])
+        cNrm_kinks = crnt.Bilt.u.dc.Nvrs(E_tp1_.given_shocks[E_tp1_.v1_pos])
         mNrm_kinks = Bilt.aNrmGrid + cNrm_kinks
 
         # Corresponding value and inverse value
         vNrm_kinks = E_tp1_.given_shocks[E_tp1_.v0_pos]
         vInv_kinks = u.Nvrs(vNrm_kinks)
 
-        vAdd_kinks = mNrm_kinks-mNrm_kinks  # zero array of correct size
+        # vAdd used later to add some new points; should add zero to existing
+        vAdd_kinks = mNrm_kinks-mNrm_kinks  # makes zero array of correct size
 
         mNrmMin_tp1 = \
             yNrm_tp1 + BoroCnst * (Rfree/PermGroFac)
@@ -757,12 +808,12 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 
         # cusp today vs today's implications of future constraints
         if mNrm_cusp >= mNrm_kinks[-1]:  # tighter than the tightest existing
-            mNrm_kinks = np.array(mNrm_cusp)  # looser ones are irrelevant
-            cNrm_kinks = np.array(cNrm_cusp)  # forget about them
-            vNrm_kinks = np.array(vNrm_cusp)
-            vInv_kinks = np.array(vInv_cusp)
-            vAdd_kinks = np.array(vAdd_cusp)
-        else:  # keep today's implications of future kinks that could matter
+            mNrm_kinks = np.array([mNrm_cusp])  # looser kinka are irrelevant
+            cNrm_kinks = np.array([cNrm_cusp])  # forget about them all
+            vNrm_kinks = np.array([vNrm_cusp])
+            vInv_kinks = np.array([vInv_cusp])
+            vAdd_kinks = np.array([vAdd_cusp])
+        else:  # keep today's implications of future kinks that matter today
             first_reachable = np.where(mNrm_kinks >= mNrm_cusp)[0][-1]
             if first_reachable < mNrm_kinks.size - 1:  # Keep binding pts
                 mNrm_kinks = mNrm_kinks[first_reachable:-1]
@@ -774,55 +825,72 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
             cNrm_kinks = np.insert(cNrm_kinks, 0, cNrm_cusp)
             vNrm_kinks = np.insert(vNrm_kinks, 0, vNrm_cusp)
 
-        vAddGrid = np.append(vAdd_cusp, vAdd_kinks)
-        vAddGrid = np.append(vAddGrid, 0.)
+#        vAddGrid = np.append(vAdd_cusp, vAdd_kinks)
+#        vAddGrid = np.append(vAddGrid, 0.)
+#        breakpoint()
 
-        # To guarantee meeting BoroCnst, if mNrm = BoroCnst then cNrm = 0.
-        mNrmGrid_unconst = np.append(mNrm_kinks, mNrm_kinks+1)
-        cNrmGrid_unconst = np.append(cNrm_kinks, cNrm_kinks+MPCmin)
-        aNrmGrid_unconst = mNrmGrid_unconst-cNrmGrid_unconst
+        # Add point to construct cFunc, vFunc as PF solution beyond last kink
+        mNrmGrid_unconst = np.append(mNrm_kinks, mNrm_kinks[-1]+1)  # + 1 to m
+        cNrmGrid_unconst = np.append(cNrm_kinks, cNrm_kinks[-1]+MPCmin)  # *MPC
+        aNrmGrid_unconst = mNrmGrid_unconst-cNrmGrid_unconst  # a_t = m_t - c_t
+        # DBC : m_{t+1} = (Rfree/PermGroFac)a_{t} + y_{t+1}
         mNrmGrid_tp1_unconst = aNrmGrid_unconst*(Rfree/PermGroFac)+yNrm_tp1
+        # v_{t} = u_{t} + [dicounted] v_{t+1}
         vNrmGrid_unconst = u(cNrmGrid_unconst) + \
             (DiscLiv * PermGroFac**(1-CRRA_tp1) *
              tp1.vFunc(mNrmGrid_tp1_unconst))
+        # u Invert it
         vInvGrid_unconst = u.Nvrs(vNrmGrid_unconst)
-        vInvPGrid_unconst = \
-            (((1-CRRA)*vNrmGrid_unconst)**(-1+1/(1-CRRA))) * \
-            (cNrmGrid_unconst**(-CRRA))
-        c_from_vInvPGrid_unconst = \
-            ((vInvPGrid_unconst/(((1-CRRA)*vNrmGrid_unconst) **
-                                 (-1+1/(1-CRRA)))))**(-1/CRRA)
+        # No reason to construct dv/dm: It's going to be available via
+        # u'(cFunc) in any case, and the correct representation of its
+        # proper inverse at non-kink points is as a Heaviside function which
+        # is a pain  to interpolate
+#        vInvPGrid_unconst = \
+#            (((1-CRRA)*vNrmGrid_unconst)**(-1+1/(1-CRRA))) * \
+#            (cNrmGrid_unconst**(-CRRA))
+#        vInvPGrid_unconst_v2 = u.dc.Nvrs()
+#       c_from_vInvPGrid_unconst = \
+#            ((vInvPGrid_unconst/(((1-CRRA)*vNrmGrid_unconst) **
+#                                 (-1+1/(1-CRRA)))))**(-1/CRRA)
 
-        mNrmGrid_const = np.array([BoroCnst, mNrm_cusp, mNrm_cusp+1])
-        uNrmGrid_const = np.array([float('inf'), u(mNrm_cusp), float('inf')])
-        uInvGrid_const = u.Nvrs(uNrmGrid_const)
+#        mNrmGrid_const = np.array([BoroCnst, mNrm_cusp, mNrm_cusp+1])
+#        mNrmGrid_const = np.array([BoroCnst, mNrm_cusp])
+#        uNrmGrid_const = np.array([float('inf'), u(mNrm_cusp), float('inf')])
+#        uNrmGrid_const = np.array([float('inf'), u(mNrm_cusp)])
+#        uInvGrid_const = u.Nvrs(uNrmGrid_const)
 
+        # Add point(s) at infinity with value of zero
         def vAddFunc(m, mNrmGrid, vAddGrid):
             mNrmGridPlus = np.append(mNrmGrid, float('inf'))
             vAddGridPlus = np.append(vAddGrid, vAddGrid[-1])
             from collections import Iterable
             if isinstance(m, Iterable):
                 from itertools import repeat
-                return np.array(list(map(lambda m, mNrmGridPlus, vAddGridPlus:
-                                         vAddGridPlus[np.where(m < mNrmGridPlus)[0][0]], m, repeat(mNrmGridPlus), repeat(vAddGridPlus))))
+                points_at_infinity = \
+                    np.array(
+                        list(
+                            map(lambda m, mNrmGridPlus, vAddGridPlus:
+                                vAddGridPlus[np.where(m < mNrmGridPlus)[0][0]],
+                                m, repeat(mNrmGridPlus), repeat(vAddGridPlus)
+                                )))
+                return points_at_infinity
             else:
                 return vAddGridPlus[np.where(m < mNrmGridPlus)[0][0]]
 
-#        mPts = np.linspace(mNrmGrid[0],mNrmGrid[-1],10)
+#         vInvFunc_unconst = \
+#             LinearInterp(mNrmGrid_unconst, vInvGrid_unconst)
 
-        vInvFunc_unconst = \
-            LinearInterp(mNrmGrid_unconst, vInvGrid_unconst)
+# #        from HARK.utilities import plot_funcs
+# #        plot_funcs(lambda x: np.heaviside(x-BoroCnst,0.5),1,2)
+#         uInvFunc_const = \
+#             LinearInterp(mNrmGrid_const, uInvGrid_const)
+#         vFunc_const = Bilt.u(uInvGrid_const)+t_E_v_tp1_at_mNrmMin_tp1
+#         vFunc_unconst = Bilt.u(vInvGrid_unconst)
 
-#        from HARK.utilities import plot_funcs
-#        plot_funcs(lambda x: np.heaviside(x-BoroCnst,0.5),1,2)
-        uInvFunc_const = \
-            LinearInterp(mNrmGrid_const, uInvGrid_const)
-        vFunc_const = Bilt.u(uInvGrid_const)+t_E_v_tp1_at_mNrmMin_tp1
-        vFunc_unconst = Bilt.u(vInvGrid_unconst)
+#         def vAddFunc(m, mGrid, vAddGrid):
+#             return vAddGrid[np.where(m < mGrid)[0][0]]
 
-        def vAddFunc(m, mGrid, vAddGrid):
-            return vAddGrid[np.where(m < mGrid)[0][0]]
-
+#        breakpoint()
 #        vNrmGrid_const=[BoroCnst,u(mNrmGrid_unconst[0])]
 
         mNrmGrid = np.append([BoroCnst], mNrmGrid_unconst)
@@ -844,12 +912,12 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 #        vInvGrid = np.append(vInvGrid, vInvGrid[-1]+MPCmin**(-CRRA/(1.0-CRRA)))
 
         # To guarantee meeting BoroCnst, if mNrm = BoroCnst then cNrm = 0.
-        mNrmGrid = np.append([BoroCnst], mNrm_kinks)
-        cNrmGrid = np.append(0., cNrm_kinks)
+#        mNrmGrid = np.append([BoroCnst], mNrm_kinks)
+#        cNrmGrid = np.append(0., cNrm_kinks)
 
         # Above last kink point, use PF solution
-        mNrmGrid = np.append(mNrmGrid, mNrmGrid[-1]+1)
-        cNrmGrid = np.append(cNrmGrid, cNrmGrid[-1]+MPCmin)
+#        mNrmGrid = np.append(mNrmGrid, mNrmGrid[-1]+1)
+#        cNrmGrid = np.append(cNrmGrid, cNrmGrid[-1]+MPCmin)
 
         self.cFunc = self.soln_crnt.cFunc = Bilt.cFunc = \
             LinearInterp(mNrmGrid, cNrmGrid)
@@ -990,65 +1058,6 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         # Add approximation to v and vP
 #        breakpoint()
 #        Bilt.vNvrs = self.soln_crnt.uinv(_vP_t)
-
-    def from_chosen_states_make_E_tp1_(self, crnt):
-        """
-        Construct expectations of useful objects from post-choice stage.
-
-        Parameters
-        ----------
-        crnt : ConsumerSolution
-            The solution to the problem without the expectations info.
-
-        Returns
-        -------
-        crnt : ConsumerSolution
-            The given solution, with the relevant namespaces updated to
-        contain the constructed info.
-        """
-        crnt = self.build_facts_infhor()
-        crnt = self.build_facts_recursive()
-
-        # Reduce cluttered formulae with local aliases
-        E_tp1_ = crnt.E_tp1_
-        tp1 = self.soln_futr
-        Bilt, Pars = crnt.Bilt, crnt.Pars
-        Rfree, PermGroFac, DiscLiv = Pars.Rfree, Pars.PermGroFac, Pars.DiscLiv
-        CRRA = tp1.vFunc.CRRA
-
-        BoroCnstArt, BoroCnstNat = \
-            Pars.BoroCnstArt, Bilt.BoroCnstNat
-
-        if BoroCnstArt is None:
-            BoroCnstArt = -np.inf
-
-        # Whichever constraint is tighter is the relevant one
-        BoroCnst = max(BoroCnstArt, BoroCnstNat)
-
-        # Omit first and last points which define extrapolation below and above
-        # the kink points
-        mNrm_kinks_tp1 = tp1.cFunc.x_list[:-1][1:]
-        cNrm_kinks_tp1 = tp1.cFunc.y_list[:-1][1:]
-        vNrm_kinks_tp1 = tp1.vFunc(mNrm_kinks_tp1)
-
-        # Calculate end-of-this-period aNrm vals that would reach those mNrm's
-        # There are no shocks in the PF model, so tranShkMin = tranShk = 1.0
-        bNrm_kinks_tp1 = (mNrm_kinks_tp1 - tp1.Pars.tranShkMin)
-        aNrm_kinks = bNrm_kinks_tp1*(PermGroFac/Rfree)
-
-        crnt.Bilt.aNrmGrid = aNrm_kinks
-        # Level and first derivative of expected value from aNrmGrid points
-        v_0 = DiscLiv * \
-            PermGroFac ** (1-CRRA) * vNrm_kinks_tp1
-        v_1 = DiscLiv * \
-            PermGroFac ** (0-CRRA) * tp1.Bilt.u.dc(cNrm_kinks_tp1) * Rfree
-        c_0 = cNrm_kinks_tp1
-
-        E_tp1_.given_shocks = np.array([v_0, v_1, c_0])
-        E_tp1_.v0_pos, E_tp1_.v1_pos = 0, 1
-        E_tp1_.c0_pos = 3
-
-        return crnt
 
     def build_facts_infhor(self):
         """
