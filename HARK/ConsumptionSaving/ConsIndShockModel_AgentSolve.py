@@ -747,7 +747,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
             Pars.BoroCnstArt, Pars.DiscLiv, Bilt.BoroCnstNat
 
         u, u.Nvrs, u.dc.Nvrs = Bilt.u, Bilt.u.Nvrs, Bilt.u.dc.Nvrs
-        CRRA, CRRA_tp1 = Pars.CRRA, tp1.Bilt.vFunc.CRRA
+        CRRA_tp1 = tp1.Bilt.vFunc.CRRA
 
         # define yNrm_tp1 to make formulas below easier to read
         yNrm_tp1 = tp1.Pars.tranShkMin  # in PF model tranShk[Min,Max] = 1.0
@@ -829,18 +829,18 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 #        vAddGrid = np.append(vAddGrid, 0.)
 #        breakpoint()
 
-        # Add point to construct cFunc, vFunc as PF solution beyond last kink
+        # Add a point to construct cFunc, vFunc as PF solution beyond last kink
         mNrmGrid_unconst = np.append(mNrm_kinks, mNrm_kinks[-1]+1)  # + 1 to m
         cNrmGrid_unconst = np.append(cNrm_kinks, cNrm_kinks[-1]+MPCmin)  # *MPC
-        aNrmGrid_unconst = mNrmGrid_unconst-cNrmGrid_unconst  # a_t = m_t - c_t
+#        aNrmGrid_unconst = mNrmGrid_unconst-cNrmGrid_unconst  # a_t=m_t-c_t
         # DBC : m_{t+1} = (Rfree/PermGroFac)a_{t} + y_{t+1}
-        mNrmGrid_tp1_unconst = aNrmGrid_unconst*(Rfree/PermGroFac)+yNrm_tp1
+#        mNrmGrid_tp1_unconst = aNrmGrid_unconst*(Rfree/PermGroFac)+yNrm_tp1
         # v_{t} = u_{t} + [dicounted] v_{t+1}
-        vNrmGrid_unconst = u(cNrmGrid_unconst) + \
-            (DiscLiv * PermGroFac**(1-CRRA_tp1) *
-             tp1.vFunc(mNrmGrid_tp1_unconst))
-        # u Invert it
-        vInvGrid_unconst = u.Nvrs(vNrmGrid_unconst)
+#        vNrmGrid_unconst = u(cNrmGrid_unconst) + \
+#            (DiscLiv * PermGroFac**(1-CRRA_tp1) *
+#             tp1.vFunc(mNrmGrid_tp1_unconst))
+#        # u Invert it
+#        vInvGrid_unconst = u.Nvrs(vNrmGrid_unconst)
         # No reason to construct dv/dm: It's going to be available via
         # u'(cFunc) in any case, and the correct representation of its
         # proper inverse at non-kink points is as a Heaviside function which
@@ -859,23 +859,23 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 #        uNrmGrid_const = np.array([float('inf'), u(mNrm_cusp)])
 #        uInvGrid_const = u.Nvrs(uNrmGrid_const)
 
-        # Add point(s) at infinity with value of zero
-        def vAddFunc(m, mNrmGrid, vAddGrid):
-            mNrmGridPlus = np.append(mNrmGrid, float('inf'))
-            vAddGridPlus = np.append(vAddGrid, vAddGrid[-1])
-            from collections import Iterable
-            if isinstance(m, Iterable):
-                from itertools import repeat
-                points_at_infinity = \
-                    np.array(
-                        list(
-                            map(lambda m, mNrmGridPlus, vAddGridPlus:
-                                vAddGridPlus[np.where(m < mNrmGridPlus)[0][0]],
-                                m, repeat(mNrmGridPlus), repeat(vAddGridPlus)
-                                )))
-                return points_at_infinity
-            else:
-                return vAddGridPlus[np.where(m < mNrmGridPlus)[0][0]]
+        # # Add point(s) at infinity with value of zero
+        # def vAddFunc(m, mNrmGrid, vAddGrid):
+        #     mNrmGridPlus = np.append(mNrmGrid, float('inf'))
+        #     vAddGridPlus = np.append(vAddGrid, vAddGrid[-1])
+        #     from collections import Iterable
+        #     if isinstance(m, Iterable):
+        #         from itertools import repeat
+        #         points_at_infinity = \
+        #             np.array(
+        #                 list(
+        #                     map(lambda m, mNrmGridPlus, vAddGridPlus:
+        #                         vAddGridPlus[np.where(m < mNrmGridPlus)[0][0]],
+        #                         m, repeat(mNrmGridPlus), repeat(vAddGridPlus)
+        #                         )))
+        #         return points_at_infinity
+        #     else:
+        #         return vAddGridPlus[np.where(m < mNrmGridPlus)[0][0]]
 
 #         vInvFunc_unconst = \
 #             LinearInterp(mNrmGrid_unconst, vInvGrid_unconst)
@@ -895,7 +895,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 
         mNrmGrid = np.append([BoroCnst], mNrmGrid_unconst)
         cNrmGrid = np.append(0., cNrmGrid_unconst)
-        vInvGrid = np.append(0., vInvGrid_unconst)
+#        vInvGrid = np.append(0., vInvGrid_unconst)
 #        vInvPGrid = np.append(float('inf'), vInvPGrid_unconst)
 #        vInvGrid = np.insert(vInvGrid, 0, -1)
 
