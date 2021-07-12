@@ -2262,7 +2262,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
         
-        
     def Define_Distribution_Grid(self, Dist_mGrid=None, Dist_pGrid=None):
         '''
         Defines the grid on which the distribution is defined.
@@ -2511,7 +2510,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         
         self.VecErgDstn = ergodic_distr #distribution as a vector
         self.ErgDstn = ergodic_distr.reshape((len(self.Dist_mGrid),len(self.Dist_pGrid))) # distribution reshaped into len(mgrid) by len(pgrid) array
-
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
         Creates a "normalized Euler error" function for this instance, mapping
