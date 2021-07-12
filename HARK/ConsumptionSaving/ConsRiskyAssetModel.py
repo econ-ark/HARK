@@ -1,10 +1,13 @@
 """
-This file contains classes and functions for representing, solving, and simulating
-agents who must allocate their resources among consumption, saving in a risk-free
-asset (with a low return), and saving in a risky asset (with higher average return).
+This file contains a class that adds a risky asset with a log-normal return
+factor to IndShockConsumerType.
+This class is not a fully specified model and therefore has no solution or
+simulation methods. It is meant as a container of methods for dealing with
+risky assets that will be useful to models what will inherit from it.
 """
 import numpy as np
 from copy import deepcopy
+from HARK.utilities import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
     init_idiosyncratic_shocks,  # Baseline dictionary to build on
@@ -12,6 +15,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 
 from HARK.distribution import (
     combine_indep_dstns,
+    IndexDistribution,
     Lognormal,
     Bernoulli,
 )
@@ -31,15 +35,19 @@ class RiskyAssetConsumerType(IndShockConsumerType):
 
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
 
-    def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
+    def __init__(self, verbose=False, quiet=False, **kwds):
         params = init_risky_asset.copy()
         params.update(kwds)
         kwds = params
 
         # Initialize a basic consumer type
         IndShockConsumerType.__init__(
-            self, cycles=cycles, verbose=verbose, quiet=quiet, **kwds
+            self, verbose=verbose, quiet=quiet, **kwds
         )
+
+        # These method must be overwritten by classes that inherit from
+        # RiskyAssetConsumerType
+        self.solve_one_period = NullFunc()
 
     def pre_solve(self):
         self.update_solution_terminal()
@@ -83,13 +91,17 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         # Generate a discrete approximation to the risky return distribution if the
         # agent has age-varying beliefs about the risky asset
         if "RiskyAvg" in self.time_vary:
-            self.RiskyDstn = []
-            for t in range(self.T_cycle):
-                self.RiskyDstn.append(
-                    Lognormal.from_mean_std(self.RiskyAvg[t], self.RiskyStd[t]).approx(
-                        self.RiskyCount
-                    )
-                )
+            self.RiskyDstn = IndexDistribution(
+                Lognormal.from_mean_std,
+                {
+                    'mean' : self.RiskyAvg,
+                    'std' : self.RiskyStd
+                },
+                seed=self.RNG.randint(0, 2 ** 31 - 1)
+            ).approx(
+                self.RiskyCount
+            )
+
             self.add_to_time_vary("RiskyDstn")
 
         # Generate a discrete approximation to the risky return distribution if the
@@ -172,13 +184,9 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         else:
             RiskyAvg = self.RiskyAvg
             RiskyStd = self.RiskyStd
-        RiskyAvgSqrd = RiskyAvg ** 2
-        RiskyVar = RiskyStd ** 2
 
-        mu = np.log(RiskyAvg / (np.sqrt(1.0 + RiskyVar / RiskyAvgSqrd)))
-        sigma = np.sqrt(np.log(1.0 + RiskyVar / RiskyAvgSqrd))
-        self.shocks["Risky"] = Lognormal(
-            mu, sigma, seed=self.RNG.randint(0, 2 ** 31 - 1)
+        self.shocks["Risky"] = Lognormal.from_mean_std(
+            self.RiskyAvg, self.RiskyStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(1)
 
     def get_Adjust(self):
@@ -195,25 +203,11 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         """
-        if not ("AdjustPrb" in self.time_vary):
-
-            self.shocks["Adjust"] = Bernoulli(
-                self.AdjustPrb, seed=self.RNG.randint(0, 2 ** 31 - 1)
-            ).draw(self.AgentCount)
-
-        else:
-
-            Adjust = np.zeros(self.AgentCount)  # Initialize shock array
-            for t in range(self.T_cycle):
-                these = t == self.t_cycle
-                N = np.sum(these)
-                if N > 0:
-                    AdjustPrb = self.AdjustPrb[t - 1]
-                    Adjust[these] = Bernoulli(
-                        AdjustPrb, seed=self.RNG.randint(0, 2 ** 31 - 1)
-                    ).draw(N)
-
-            self.shocks["Adjust"] = Adjust
+        self.shocks['Adjust'] = IndexDistribution(
+            Bernoulli,
+            {'p' : self.AdjustPrb},
+            seed=self.RNG.randint(0, 2 ** 31 - 1)
+            ).draw(self.t_cycle)
 
     def initialize_sim(self):
         """

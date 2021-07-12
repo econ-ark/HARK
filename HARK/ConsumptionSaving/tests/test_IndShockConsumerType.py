@@ -24,8 +24,8 @@ class testIndShockConsumerType(unittest.TestCase):
         self.agent.get_shocks()
 
         self.assertEqual(self.agent.shocks['PermShk'][0], 1.0427376294215103)
-        self.assertEqual(self.agent.shocks['PermShk'][1], 0.9278094171517413)
-        self.assertEqual(self.agent.shocks['TranShk'][0], 0.881761797501595)
+        self.assertAlmostEqual(self.agent.shocks['PermShk'][1], 0.9278094171517413)
+        self.assertAlmostEqual(self.agent.shocks['TranShk'][0], 0.881761797501595)
 
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerType(**init_lifecycle)
@@ -140,9 +140,9 @@ class testBufferStock(unittest.TestCase):
         GICRaw_fail_dictionary = dict(self.base_params)
         GICRaw_fail_dictionary["Rfree"] = 1.08
         GICRaw_fail_dictionary["PermGroFac"] = [1.00]
+        GICRaw_fail_dictionary["cycles"] = 0 # cycles=0 makes this an infinite horizon consumer
 
         GICRawFailExample = IndShockConsumerType(
-            cycles=0,  # cycles=0 makes this an infinite horizon consumer
             **GICRaw_fail_dictionary
         )
 
@@ -157,8 +157,8 @@ class testBufferStock(unittest.TestCase):
         self.assertFalse(GICRawFailExample.conditions["GICRaw"])
 
     def test_infinite_horizon(self):
-        baseEx_inf = IndShockConsumerType(cycles=0, **self.base_params)
-
+        baseEx_inf = IndShockConsumerType(**self.base_params)
+        baseEx_inf.assign_parameters(cycles = 0)
         baseEx_inf.solve()
         baseEx_inf.unpack("cFunc")
 
@@ -229,7 +229,7 @@ IdiosyncDict = {
 class testIndShockConsumerTypeExample(unittest.TestCase):
     def test_infinite_horizon(self):
         IndShockExample = IndShockConsumerType(**IdiosyncDict)
-        IndShockExample.cycles = 0  # Make this type have an infinite horizon
+        IndShockExample.assign_parameters(cycles = 0)  # Make this type have an infinite horizon
         IndShockExample.solve()
 
         self.assertAlmostEqual(IndShockExample.solution[0].mNrmStE, 1.5488165705077026)
@@ -387,7 +387,8 @@ class testStablePoints(unittest.TestCase):
         # Theory" paper.
 
         # Create and solve the agent
-        baseAgent_Inf = IndShockConsumerType(cycles=0, verbose=0, **bst_params)
+        baseAgent_Inf = IndShockConsumerType(verbose=0, **bst_params)
+        baseAgent_Inf.assign_parameters(cycles = 0)
         baseAgent_Inf.solve()
 
         # Extract stable points
