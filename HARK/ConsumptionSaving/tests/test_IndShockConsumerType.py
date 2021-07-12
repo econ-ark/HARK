@@ -400,9 +400,6 @@ class testStablePoints(unittest.TestCase):
         self.assertAlmostEqual(mNrmStE, 1.37731133865, decimalPlacesTo)
         self.assertAlmostEqual(mNrmTrg, 1.39101653806, decimalPlacesTo)
         
-        
-        
-        
 TranMatTest_Dict={
     # Parameters shared with the perfect foresight model
     "CRRA":2,                           # Coefficient of relative risk aversion
@@ -565,6 +562,3 @@ class testCalcTransitionMatrix(unittest.TestCase):
         self.assertAlmostEqual(AggA_List[24], 1.157277788883796)
         
         
-        
-
-
