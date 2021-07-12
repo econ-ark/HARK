@@ -60,6 +60,7 @@ __all__ = [
     "IndShockConsumerType",
     "KinkedRconsumerType",
     "init_perfect_foresight",
+    "init_perfect_foresight_infinite",
     "init_idiosyncratic_shocks",
     "init_kinked_R",
     "init_lifecycle",
@@ -1536,8 +1537,8 @@ init_perfect_foresight = {
     'CRRA': 2.0,          # Coefficient of relative risk aversion,
     'Rfree': 1.03,        # Interest factor on assets
     'DiscFac': 0.96,      # Intertemporal discount factor
-    'LivPrb': [0.98],     # Survival probability
-    'PermGroFac': [1.01],  # Permanent income growth factor
+    'LivPrb': [0.98, 0.98],     # Survival probability
+    'PermGroFac': [1.01, 1.01],  # Permanent income growth factor
     'BoroCnstArt': None,  # Artificial borrowing constraint
     'MaxKinks': 400,      # Maximum number of grid points to allow in cFunc (should be large)
     'AgentCount': 10000,  # Number of agents of this type (only matters for simulation)
@@ -1549,9 +1550,16 @@ init_perfect_foresight = {
     # Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
     'PermGroFacAgg': 1.0,
     'T_age': None,       # Age after which simulated agents are automatically killed
-    'T_cycle': 1         # Number of periods in the cycle for this agent type
+    'T_cycle': 2         # Number of periods in the cycle for this agent type
 }
 
+init_perfect_foresight_infinite = init_perfect_foresight.copy()
+init_perfect_foresight_infinite.update({
+    'cycles' : 0,         # Finite, non-cyclic model
+    'LivPrb': [0.98],     # Survival probability
+    'PermGroFac': [1.01],
+    'T_cycle': 1  
+})
 
 class PerfForesightConsumerType(AgentType):
     """
@@ -1729,7 +1737,7 @@ class PerfForesightConsumerType(AgentType):
         # Determine who dies
         DiePrb_by_t_cycle = 1.0 - np.asarray(self.LivPrb)
         DiePrb = DiePrb_by_t_cycle[
-            self.t_cycle - 1
+            self.t_cycle - 1 if self.cycles == 1 else self.t_cycle
         ]  # Time has already advanced, so look back one
 
         # In finite-horizon problems the previous line gives newborns the
@@ -2019,9 +2027,9 @@ init_idiosyncratic_shocks = dict(
             None
         ],  # Some other value of "assets above minimum" to add to the grid, not used
         # Income process variables
-        "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+        "PermShkStd": [0.1, 0.1],  # Standard deviation of log permanent income shocks
         "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
-        "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+        "TranShkStd": [0.1, 0.1],  # Standard deviation of log transitory income shocks
         "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
         "UnempPrb": 0.05,  # Probability of unemployment while working
         "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
@@ -2173,12 +2181,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         newborn = self.t_age == 0
         for t in range(self.T_cycle):
             these = t == self.t_cycle
+
             N = np.sum(these)
             if N > 0:
                 IncShkDstnNow = self.IncShkDstn[
-                    t - 1
+                    t
                 ]  # set current income distribution
-                PermGroFacNow = self.PermGroFac[t - 1]  # and permanent growth factor
+                PermGroFacNow = self.PermGroFac[t]  # and permanent growth factor
                 # Get random draws of income shocks from the discrete distribution
                 IncShks = IncShkDstnNow.draw(N)
 
@@ -2187,8 +2196,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 )  # permanent "shock" includes expected growth
                 TranShkNow[these] = IncShks[1, :]
 
-        # That procedure used the *last* period in the sequence for newborns, but that's not right
-        # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
+        # This is now redundant and can be safely removed. #1022
         N = np.sum(newborn)
         if N > 0:
             these = newborn
@@ -3047,7 +3055,7 @@ init_lifecycle.update({"LivPrb": liv_prb})
 
 # Make a dictionary to specify an infinite consumer with a four period cycle
 init_cyclical = copy(init_idiosyncratic_shocks)
-init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
+init_cyclical['PermGroFac'] = [1.1, 1.082251, 2.8, 0.3]
 init_cyclical['PermShkStd'] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical['TranShkStd'] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical['LivPrb'] = 4*[0.98]

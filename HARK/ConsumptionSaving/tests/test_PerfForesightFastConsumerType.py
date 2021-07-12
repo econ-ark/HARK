@@ -1,5 +1,8 @@
 from HARK.ConsumptionSaving.ConsIndShockModelFast import PerfForesightConsumerTypeFast
-from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    PerfForesightConsumerType,
+    init_perfect_foresight_infinite
+)
 from HARK.ConsumptionSaving.tests.test_PerfForesightConsumerType import (
     testPerfForesightConsumerType,
 )
@@ -9,8 +12,8 @@ class testPerfForesightFastConsumerType(testPerfForesightConsumerType):
     def setUp(self):
         self.agent = PerfForesightConsumerTypeFast()
         self.agent_slow = PerfForesightConsumerType()
-        self.agent_infinite = PerfForesightConsumerTypeFast(cycles=0)
-        self.agent_infinite_slow = PerfForesightConsumerType(cycles=0)
+        self.agent_infinite = PerfForesightConsumerTypeFast(**init_perfect_foresight_infinite)
+        self.agent_infinite_slow = PerfForesightConsumerType(**init_perfect_foresight_infinite)
 
         PF_dictionary = {
             "CRRA": 2.5,
