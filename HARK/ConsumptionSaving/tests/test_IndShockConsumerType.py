@@ -399,16 +399,8 @@ class testStablePoints(unittest.TestCase):
         decimalPlacesTo = 10
         self.assertAlmostEqual(mNrmStE, 1.37731133865, decimalPlacesTo)
         self.assertAlmostEqual(mNrmTrg, 1.39101653806, decimalPlacesTo)
-        
-        
-        
-        
 
 
-
-
-        
-        
 JACDict={
     # Parameters shared with the perfect foresight model
     "CRRA":2,                             # Coefficient of relative risk aversion
@@ -585,4 +577,3 @@ class testPerfMITShk(unittest.TestCase):
         JACA = (AHist[0]-A_dx0)/(dx)
         
         self.assertAlmostEqual(JACA[175], 6.441930322509393e-06)
-
