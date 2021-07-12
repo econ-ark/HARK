@@ -1005,8 +1005,9 @@ def solve_one_cycle(agent, solution_last):
     solution_cycle = []
     solution_next = solution_last
     
-    cycles_range = [0] + list(range(T - 1, 0, -1))
-    for k in (range(T-1, -1, -1) if agent.cycles == 1 else cycles_range):
+    lifecycle_range = range(T-1, 0, -1) # All but the first
+    cycle_range = [0] + list(range(T - 1, 0, -1))
+    for k in (lifecycle_range if agent.cycles == 1 else cycle_range):
         # Update which single period solver to use (if it depends on time)
         if hasattr(agent.solve_one_period, "__getitem__"):
             solve_one_period = agent.solve_one_period[k]

@@ -60,6 +60,7 @@ __all__ = [
     "IndShockConsumerType",
     "KinkedRconsumerType",
     "init_perfect_foresight",
+    "init_perfect_foresight_infinite",
     "init_idiosyncratic_shocks",
     "init_kinked_R",
     "init_lifecycle",
@@ -1536,8 +1537,8 @@ init_perfect_foresight = {
     'CRRA': 2.0,          # Coefficient of relative risk aversion,
     'Rfree': 1.03,        # Interest factor on assets
     'DiscFac': 0.96,      # Intertemporal discount factor
-    'LivPrb': [0.98],     # Survival probability
-    'PermGroFac': [1.01],  # Permanent income growth factor
+    'LivPrb': [0.98, 0.98],     # Survival probability
+    'PermGroFac': [1.01, 1.01],  # Permanent income growth factor
     'BoroCnstArt': None,  # Artificial borrowing constraint
     'MaxKinks': 400,      # Maximum number of grid points to allow in cFunc (should be large)
     'AgentCount': 10000,  # Number of agents of this type (only matters for simulation)
@@ -1552,6 +1553,12 @@ init_perfect_foresight = {
     'T_cycle': 1         # Number of periods in the cycle for this agent type
 }
 
+init_perfect_foresight_infinite = init_perfect_foresight.copy()
+init_perfect_foresight_infinite.update({
+    'cycles' : 0,         # Finite, non-cyclic model
+    'LivPrb': [0.98],     # Survival probability
+    'PermGroFac': [1.01],
+})
 
 class PerfForesightConsumerType(AgentType):
     """
