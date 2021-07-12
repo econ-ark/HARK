@@ -629,18 +629,12 @@ def parse_income_spec(
         raise NotImplementedError()
 
     # Volatilities
-    # In this section, it is important to keep in mind that IncomeDstn[t]
-    # is the income distribution from period t to t+1, as perceived in period
-    # t.
-    # Therefore (assuming an annual model with agents entering at age 0),
-    # IncomeDstn[3] would contain the distribution of income shocks that occur
-    # at the start of age 4.
     if SabelhausSong:
 
         if age_ret is None:
 
             IncShkStds = sabelhaus_song_var_profile(
-                cohort=1950, age_min=age_min + 1, age_max=age_max
+                cohort=1950, age_min=age_min, age_max=age_max
             )
             PermShkStd = IncShkStds["PermShkStd"]
             TranShkStd = IncShkStds["TranShkStd"]
@@ -648,7 +642,7 @@ def parse_income_spec(
         else:
 
             IncShkStds = sabelhaus_song_var_profile(
-                cohort=1950, age_min=age_min + 1, age_max=age_ret
+                cohort=1950, age_min=age_min, age_max=age_ret
             )
             PermShkStd = IncShkStds["PermShkStd"] + [0.0] * (N_ret_periods + 1)
             TranShkStd = IncShkStds["TranShkStd"] + [0.0] * (N_ret_periods + 1)
@@ -664,10 +658,10 @@ def parse_income_spec(
 
             else:
 
-                PermShkStd = [PermShkStd] * (N_work_periods - 1) + [0.0] * (
+                PermShkStd = [PermShkStd] * (N_work_periods) + [0.0] * (
                     N_ret_periods + 1
                 )
-                TranShkStd = [TranShkStd] * (N_work_periods - 1) + [0.0] * (
+                TranShkStd = [TranShkStd] * (N_work_periods) + [0.0] * (
                     N_ret_periods + 1
                 )
 

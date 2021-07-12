@@ -1023,6 +1023,7 @@ def solve_one_cycle(agent, solution_last):
         for name in agent.time_vary:
             if name in these_args:
                 solve_dict[name] = agent.__dict__[name][k]
+
         solve_dict["solution_next"] = solution_next
 
         # Make a temporary dictionary for this period

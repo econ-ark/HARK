@@ -23,9 +23,9 @@ class testIndShockConsumerType(unittest.TestCase):
 
         self.agent.get_shocks()
 
-        self.assertEqual(self.agent.shocks['PermShk'][0], 1.0427376294215103)
-        self.assertAlmostEqual(self.agent.shocks['PermShk'][1], 0.9278094171517413)
-        self.assertAlmostEqual(self.agent.shocks['TranShk'][0], 0.881761797501595)
+        self.assertEqual(self.agent.shocks['PermShk'][0], 1.0050166461586711)
+        self.assertAlmostEqual(self.agent.shocks['PermShk'][1], 1.1780702264015421)
+        self.assertAlmostEqual(self.agent.shocks['TranShk'][0], 1.0704497811153597)
 
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerType(**init_lifecycle)
@@ -35,18 +35,18 @@ class testIndShockConsumerType(unittest.TestCase):
         # test the solution_terminal
         self.assertAlmostEqual(LifecycleExample.solution[-1].cFunc(2).tolist(), 2)
 
-        self.assertAlmostEqual(LifecycleExample.solution[9].cFunc(1), 0.79429538)
-        self.assertAlmostEqual(LifecycleExample.solution[8].cFunc(1), 0.79391692)
-        self.assertAlmostEqual(LifecycleExample.solution[7].cFunc(1), 0.79253095)
+        self.assertAlmostEqual(LifecycleExample.solution[9].cFunc(1), 0.78943688)
+        self.assertAlmostEqual(LifecycleExample.solution[8].cFunc(1), 0.78934515)
+        self.assertAlmostEqual(LifecycleExample.solution[7].cFunc(1), 0.78821644)
 
         self.assertAlmostEqual(
-            LifecycleExample.solution[0].cFunc(1).tolist(), 0.7506184692092213
+            LifecycleExample.solution[0].cFunc(1).tolist(), 0.7472898578766399
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[1].cFunc(1).tolist(), 0.7586358637239385
+            LifecycleExample.solution[1].cFunc(1).tolist(), 0.7551914217221962
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[2].cFunc(1).tolist(), 0.7681247572911291
+            LifecycleExample.solution[2].cFunc(1).tolist(), 0.7645965714276972
         )
 
         solver = ConsIndShockSolverBasic(
@@ -73,20 +73,21 @@ class testIndShockConsumerType(unittest.TestCase):
 
         EndOfPrdvP = solver.calc_EndOfPrdvP()
 
-        self.assertAlmostEqual(EndOfPrdvP[0], 6657.839372100613)
-        self.assertAlmostEqual(EndOfPrdvP[-1], 0.2606075215645896)
+        self.assertAlmostEqual(EndOfPrdvP[0], 6657.849481857674)
+        self.assertAlmostEqual(EndOfPrdvP[-1], 0.2635560321220346)
 
         solution = solver.make_basic_solution(
             EndOfPrdvP, solver.aNrmNow, solver.make_linear_cFunc
         )
         solver.add_MPC_and_human_wealth(solution)
 
-        self.assertAlmostEqual(solution.cFunc(4).tolist(), 1.0028005137373956)
+        self.assertAlmostEqual(solution.cFunc(4).tolist(), 0.9935251977248167)
 
     def test_simulated_values(self):
         self.agent.initialize_sim()
         self.agent.simulate()
 
+        ## uses simulated values -- needs simulation code update.
         self.assertAlmostEqual(self.agent.MPCnow[1], 0.5711503906043797)
 
         self.assertAlmostEqual(self.agent.state_now['aLvl'][1], 0.18438326264597635)
@@ -251,12 +252,12 @@ LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionar
     "CRRA": 2.0,  # Coefficient of relative risk aversion
     "Rfree": 1.03,  # Interest factor on assets
     "DiscFac": 0.96,  # Intertemporal discount factor
-    "LivPrb": [0.99, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1],
-    "PermGroFac": [1.01, 1.01, 1.01, 1.02, 1.02, 1.02, 0.7, 1.0, 1.0, 1.0],
+    "LivPrb": [1.0, 0.99, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1],
+    "PermGroFac": [1.0, 1.01, 1.01, 1.01, 1.02, 1.02, 1.02, 0.7, 1.0, 1.0, 1.0],
     # Parameters that specify the income distribution over the lifecycle
-    "PermShkStd": [0.1, 0.2, 0.1, 0.2, 0.1, 0.2, 0.1, 0, 0, 0],
+    "PermShkStd": [0.1, 0.1, 0.2, 0.1, 0.2, 0.1, 0.2, 0.1, 0, 0, 0],
     "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
-    "TranShkStd": [0.3, 0.2, 0.1, 0.3, 0.2, 0.1, 0.3, 0, 0, 0],
+    "TranShkStd": [0.3, 0.3, 0.2, 0.1, 0.3, 0.2, 0.1, 0.3, 0, 0, 0],
     "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
     "UnempPrb": 0.05,  # Probability of unemployment while working
     "IncUnemp": 0.3,  # Unemployment benefits replacement rate
@@ -274,7 +275,7 @@ LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionar
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Preference shocks currently only compatible with linear cFunc
-    "T_cycle": 10,  # Number of periods in the cycle for this agent type
+    "T_cycle": 11,  # Number of periods in the cycle for this agent type
     # Parameters only used in simulation
     "AgentCount": 10000,  # Number of agents of this type
     "T_sim": 120,  # Number of periods to simulate
@@ -284,26 +285,19 @@ LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionar
     "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     "T_age": 11,  # Age after which simulated agents are automatically killed
+    "cycles" : 1
 }
 
 
 class testIndShockConsumerTypeLifecycle(unittest.TestCase):
     def test_lifecyle(self):
         LifecycleExample = IndShockConsumerType(**LifecycleDict)
-        LifecycleExample.cycles = 1
         LifecycleExample.solve()
 
         self.assertEqual(len(LifecycleExample.solution), 11)
 
-        mMin = np.min(
-            [
-                LifecycleExample.solution[t].mNrmMin
-                for t in range(LifecycleExample.T_cycle)
-            ]
-        )
-
         self.assertAlmostEqual(
-            LifecycleExample.solution[5].cFunc(3).tolist(), 2.129983771775666
+            LifecycleExample.solution[5].cFunc(3).tolist(), 2.16741812
         )
 
 
