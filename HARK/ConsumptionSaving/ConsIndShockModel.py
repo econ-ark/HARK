@@ -14,6 +14,7 @@ See HARK documentation for mathematical descriptions of the models being solved.
 """
 from copy import copy, deepcopy
 import numpy as np
+from scipy import sparse
 from scipy.optimize import newton
 from HARK import AgentType, NullFunc, MetricObject, make_one_period_oo_solver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
@@ -1532,7 +1533,6 @@ class ConsKinkedRsolver(ConsIndShockSolver):
 
 # Make a dictionary to specify a perfect foresight consumer type
 init_perfect_foresight = {
-    'cycles' : 1,         # Finite, non-cyclic model
     'CRRA': 2.0,          # Coefficient of relative risk aversion,
     'Rfree': 1.03,        # Interest factor on assets
     'DiscFac': 0.96,      # Intertemporal discount factor
@@ -1549,7 +1549,8 @@ init_perfect_foresight = {
     # Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
     'PermGroFacAgg': 1.0,
     'T_age': None,       # Age after which simulated agents are automatically killed
-    'T_cycle': 1         # Number of periods in the cycle for this agent type
+    'T_cycle': 1,        # Number of periods in the cycle for this agent type
+    "PerfMITShk": False    # Do Perfect Foresight MIT Shock: Forces Newborns to follow solution path of the agent he/she replaced when True
 }
 
 
@@ -1562,7 +1563,8 @@ class PerfForesightConsumerType(AgentType):
 
     Parameters
     ----------
-
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     # Define some universal values for all consumer types
@@ -1577,11 +1579,11 @@ class PerfForesightConsumerType(AgentType):
         MPCmax=1.0,
     )
     time_vary_ = ["LivPrb", "PermGroFac"]
-    time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt"]
+    time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt" ]
     state_vars = ['pLvl', 'PlvlAgg', 'bNrm', 'mNrm', "aNrm"]
     shock_vars_ = []
 
-    def __init__(self, verbose=1, quiet=False, **kwds):
+    def __init__(self, cycles=1, verbose=1, quiet=False, **kwds):
         params = init_perfect_foresight.copy()
         params.update(kwds)
         kwds = params
@@ -1590,6 +1592,7 @@ class PerfForesightConsumerType(AgentType):
         AgentType.__init__(
             self,
             solution_terminal=deepcopy(self.solution_terminal_),
+            cycles=cycles,
             pseudo_terminal=False,
             **kwds
         )
@@ -1707,9 +1710,11 @@ class PerfForesightConsumerType(AgentType):
             seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
         self.t_age[which_agents] = 0  # How many periods since each agent was born
-        self.t_cycle[
-            which_agents
-        ] = 0  # Which period of the cycle each agent is currently in
+        if self.PerfMITShk == False:  # If True, Newborns inherit t_cycle of agent they replaced (i.e. t_cycles are not reset). 
+            self.t_cycle[
+                which_agents
+            ] = 0  # Which period of the cycle each agent is currently in
+            
         return None
 
     def sim_death(self):
@@ -1731,13 +1736,6 @@ class PerfForesightConsumerType(AgentType):
         DiePrb = DiePrb_by_t_cycle[
             self.t_cycle - 1
         ]  # Time has already advanced, so look back one
-
-        # In finite-horizon problems the previous line gives newborns the
-        # survival probability of the last non-terminal period. This is okay,
-        # however, since they will be instantly replaced by new newborns if
-        # they die.
-        # See: https://github.com/econ-ark/HARK/pull/981
-
         DeathShks = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(
             N=self.AgentCount
         )
@@ -2060,13 +2058,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
     )  # This is in the PerfForesight model but not ConsIndShock
     shock_vars_ = ['PermShk', 'TranShk']
 
-    def __init__(self, verbose=1, quiet=False, **kwds):
+    def __init__(self, cycles=1, verbose=1, quiet=False, **kwds):
         params = init_idiosyncratic_shocks.copy()
         params.update(kwds)
 
         # Initialize a basic AgentType
         PerfForesightConsumerType.__init__(
-            self, verbose=verbose, quiet=quiet, **params
+            self, cycles=cycles, verbose=verbose, quiet=quiet, **params
         )
 
         # Add consumer-type specific objects, copying to create independent versions
@@ -2260,6 +2258,257 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.hNrm = hNrm
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
+        
+
+    def Define_Distribution_Grid(self, Dist_mGrid=None, Dist_pGrid=None):
+        '''
+        Defines the grid on which the distribution is defined.
+        
+        Parameters
+        ----------
+        Dist_mGrid : np.array
+            Grid for distribution over normalized market resources
+        Dist_pGrid : np.array
+            Grid for distribution over permanent income
+        
+        Returns
+        -------
+        None
+        '''  
+        
+        
+ 
+        if self.cycles == 0:
+            if Dist_mGrid == None:
+                self.Dist_mGrid = self.aXtraGrid
+            else:
+                self.Dist_mGrid = Dist_mGrid #If grid of market resources prespecified then use as mgrid
+            if Dist_pGrid == None:
+                num_points = 50
+                #Dist_pGrid is taken to cover most of the ergodic distribution
+                p_variance = self.PermShkStd[0]**2 #set variance of permanent income shocks
+                max_p = 20.0*(p_variance/(1-self.LivPrb[0]))**0.5 # Consider probability of staying alive
+                one_sided_grid = make_grid_exp_mult(1.0+1e-3, np.exp(max_p), num_points, 2)
+                self.Dist_pGrid = np.append(np.append(1.0/np.fliplr([one_sided_grid])[0],np.ones(1)),one_sided_grid) #Compute permanent income grid
+            else:
+                self.Dist_pGrid = Dist_pGrid #If grid of permanent income prespecified then use as pgrid
+        
+        elif self.T_cycle != 0:
+            
+            if Dist_mGrid == None:
+                self.Dist_mGrid = self.aXtraGrid
+            else:
+                self.Dist_mGrid = Dist_mGrid #If grid of market resources prespecified then use as mgrid
+                    
+            if Dist_pGrid == None:
+                
+                self.Dist_pGrid = [] #list of grids of permanent income    
+                
+                for i in range(self.T_cycle):
+                    
+                    num_points = 50
+                    #Dist_pGrid is taken to cover most of the ergodic distribution
+                    p_variance = self.PermShkStd[i]**2 # set variance of permanent income shocks this period
+                    max_p = 20.0*(p_variance/(1-self.LivPrb[i]))**0.5 # Consider probability of staying alive this period
+                    one_sided_grid = make_grid_exp_mult(1.0+1e-3, np.exp(max_p), num_points, 2)
+                    
+                    Dist_pGrid = np.append(np.append(1.0/np.fliplr([one_sided_grid])[0],np.ones(1)),one_sided_grid) # Compute permanent income grid this period. Grid of permanent income may differ dependent on PermShkStd
+                    self.Dist_pGrid.append(Dist_pGrid)
+
+            else:
+                self.Dist_pGrid = Dist_pGrid #If grid of permanent income prespecified then use as pgrid
+                
+                
+            
+                
+    def Calc_Transition_Matrix(self):
+        '''
+        Calculates how the distribution of agents across market resources 
+        transitions from one period to the next. If finite horizon problem, then calculates
+        a list of transition matrices, consumption and asset policy grids for each period of the problem.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        
+        ''' 
+        
+        
+        if self.cycles == 0: 
+            Dist_mGrid = self.Dist_mGrid #Grid of market resources
+            Dist_pGrid = self.Dist_pGrid #Grid of permanent incomes
+            aNext = Dist_mGrid - self.solution[0].cFunc(Dist_mGrid)  #assets next period
+            
+            self.aPolGrid = aNext # Steady State Asset Policy Grid
+            self.cPolGrid = self.solution[0].cFunc(Dist_mGrid) #Steady State Consumption Policy Grid
+            
+            # Obtain shock values and shock probabilities from income distribution
+            bNext = self.Rfree*aNext # Bank Balances next period (Interest rate * assets)
+            ShockProbs = self.IncShkDstn[0].pmf  # Probability of shocks 
+            TranShocks = self.IncShkDstn[0].X[1] # Transitory shocks
+            PermShocks = self.IncShkDstn[0].X[0] # Permanent shocks
+            LivPrb = self.LivPrb[0] # Update probability of staying alive
+            
+            #New borns have this distribution (assumes start with no assets and permanent income=1)
+            NewBornDist = self.Jump_To_Grid(TranShocks,np.ones_like(TranShocks),ShockProbs,Dist_mGrid,Dist_pGrid)
+            
+            # Generate Transition Matrix
+            TranMatrix = np.zeros((len(Dist_mGrid)*len(Dist_pGrid),len(Dist_mGrid)*len(Dist_pGrid)))
+            for i in range(len(Dist_mGrid)):
+                for j in range(len(Dist_pGrid)):
+                    mNext_ij = bNext[i]/PermShocks + TranShocks # Compute next period's market resources given todays bank balances bnext[i]
+                    pNext_ij = Dist_pGrid[j]*PermShocks # Computes next period's permanent income level by applying permanent income shock
+                    TranMatrix[:,i*len(Dist_pGrid)+j] = LivPrb*self.Jump_To_Grid(mNext_ij, pNext_ij, ShockProbs,Dist_mGrid,Dist_pGrid) + (1.0-LivPrb)*NewBornDist
+            self.TranMatrix = TranMatrix
+            
+        elif self.T_cycle!= 0:
+            
+            self.cPolGrid = [] # List of consumption policy grids for each period in T_cycle
+            self.aPolGrid = [] # List of asset policy grids for each period in T_cycle
+            self.TranMatrix = [] # List of transition matrices
+            
+            Dist_mGrid =  self.Dist_mGrid
+            
+            for k in range(self.T_cycle):
+                           
+                if type(self.Dist_pGrid) == list:
+                    Dist_pGrid = self.Dist_pGrid[k] #Permanent income grid this period
+                else:
+                    Dist_pGrid = self.Dist_pGrid #If here then use prespecified permanent income grid
+                
+                Cnow = self.solution[k].cFunc(Dist_mGrid) #Consumption policy grid in period k
+                self.cPolGrid.append(Cnow) #Add to list
+
+                aNext = Dist_mGrid - Cnow # Asset policy grid in period k
+                self.aPolGrid.append(aNext) # Add to list
+                
+                bNext = self.Rfree[k]*aNext # Update interest rate this period
+        
+                #Obtain shocks and shock probabilities from income distribution this period
+                ShockProbs = self.IncShkDstn[k].pmf  #Probability of shocks this period
+                TranShocks = self.IncShkDstn[k].X[1] #Transitory shocks this period
+                PermShocks = self.IncShkDstn[k].X[0] #Permanent shocks this period
+                LivPrb = self.LivPrb[k] # Update probability of staying alive this period
+                
+                #New borns have this distribution (assumes start with no assets and permanent income=1)
+                NewBornDist = self.Jump_To_Grid(TranShocks,np.ones_like(TranShocks),ShockProbs,Dist_mGrid,Dist_pGrid)
+                
+                # Generate Transition Matrix this period
+                TranMatrix = np.zeros((len(Dist_mGrid)*len(Dist_pGrid),len(Dist_mGrid)*len(Dist_pGrid))) 
+                for i in range(len(Dist_mGrid)):
+                    for j in range(len(Dist_pGrid)):
+                        mNext_ij = bNext[i]/PermShocks + TranShocks # Compute next period's market resources given todays bank balances bnext[i]
+                        pNext_ij = Dist_pGrid[j]*PermShocks # Computes next period's permanent income level by applying permanent income shock
+                        TranMatrix[:,i*len(Dist_pGrid)+j] = LivPrb*self.Jump_To_Grid(mNext_ij, pNext_ij, ShockProbs,Dist_mGrid,Dist_pGrid) + (1.0-LivPrb)*NewBornDist 
+                TranMatrix = TranMatrix
+                self.TranMatrix.append(TranMatrix)
+                         
+        
+    def Jump_To_Grid(self,m_vals, perm_vals, probs, Dist_mGrid, Dist_pGrid ):
+        '''
+        Distributes values onto a predefined grid, maintaining the means.
+        
+        
+        Parameters
+        ----------
+        m_vals: np.array
+                Array of 
+        
+        perm_vals: np.array
+                Array of 
+        
+        probs: np.array
+                Probabilities
+        
+        Dist_mGrid : np.array
+            Grid for distribution over normalized market resources
+        Dist_pGrid : np.array
+            Grid for distribution over permanent income 
+
+        Returns
+        -------
+        probGrid.flatten(): np.array
+                Grid of length len(Dist_mGrid)*len(Dist_pGrid) 
+        '''
+    
+        probGrid = np.zeros((len(Dist_mGrid),len(Dist_pGrid)))
+        mIndex = np.digitize(m_vals,Dist_mGrid) - 1
+        mIndex[m_vals <= Dist_mGrid[0]] = -1
+        mIndex[m_vals >= Dist_mGrid[-1]] = len(Dist_mGrid)-1
+        
+        pIndex = np.digitize(perm_vals,Dist_pGrid) - 1
+        pIndex[perm_vals <= Dist_pGrid[0]] = -1
+        pIndex[perm_vals >= Dist_pGrid[-1]] = len(Dist_pGrid)-1
+        
+        for i in range(len(m_vals)):
+            if mIndex[i]==-1:
+                mlowerIndex = 0
+                mupperIndex = 0
+                mlowerWeight = 1.0
+                mupperWeight = 0.0
+            elif mIndex[i]==len(Dist_mGrid)-1:
+                mlowerIndex = -1
+                mupperIndex = -1
+                mlowerWeight = 1.0
+                mupperWeight = 0.0
+            else:
+                mlowerIndex = mIndex[i]
+                mupperIndex = mIndex[i]+1
+                mlowerWeight = (Dist_mGrid[mupperIndex]-m_vals[i])/(Dist_mGrid[mupperIndex]-Dist_mGrid[mlowerIndex])
+                mupperWeight = 1.0 - mlowerWeight
+                
+            if pIndex[i]==-1:
+                plowerIndex = 0
+                pupperIndex = 0
+                plowerWeight = 1.0
+                pupperWeight = 0.0
+            elif pIndex[i]==len(Dist_pGrid)-1:
+                plowerIndex = -1
+                pupperIndex = -1
+                plowerWeight = 1.0
+                pupperWeight = 0.0
+            else:
+                plowerIndex = pIndex[i]
+                pupperIndex = pIndex[i]+1
+                plowerWeight = (Dist_pGrid[pupperIndex]-perm_vals[i])/(Dist_pGrid[pupperIndex]-Dist_pGrid[plowerIndex])
+                pupperWeight = 1.0 - plowerWeight
+                
+            probGrid[mlowerIndex][plowerIndex] = probGrid[mlowerIndex][plowerIndex] + probs[i]*mlowerWeight*plowerWeight
+            probGrid[mlowerIndex][pupperIndex] = probGrid[mlowerIndex][pupperIndex] + probs[i]*mlowerWeight*pupperWeight
+            probGrid[mupperIndex][plowerIndex] = probGrid[mupperIndex][plowerIndex] + probs[i]*mupperWeight*plowerWeight
+            probGrid[mupperIndex][pupperIndex] = probGrid[mupperIndex][pupperIndex] + probs[i]*mupperWeight*pupperWeight
+            
+        return probGrid.flatten()
+    
+    
+    def Calc_Ergodic_Dist(self):
+        
+        '''
+        Calculates the egodic distribution across normalized market resources and
+        permanent income as the eigenvector associated with the eigenvalue 1.
+        The distribution is presented as a vector and as a reshaped array with the ij'th element representing
+        the probability of being at the i'th point on the mGrid and the j'th
+        point on the pGrid.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        
+        eigen, ergodic_distr = sparse.linalg.eigs(self.TranMatrix , k=1 , which='LM')  # Solve for ergodic distribution
+        ergodic_distr = ergodic_distr.real/np.sum(ergodic_distr.real)
+        
+        self.VecErgDstn = ergodic_distr #distribution as a vector
+        self.ErgDstn = ergodic_distr.reshape((len(self.Dist_mGrid),len(self.Dist_pGrid))) # distribution reshaped into len(mgrid) by len(pgrid) array
+
 
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
@@ -2751,23 +3000,22 @@ class KinkedRconsumerType(IndShockConsumerType):
     very small changes.  Solver for this class is currently only compatible with
     linear spline interpolation.
 
-    Same parameters as AgentType.
-
-
     Parameters
     ----------
+    cycles : int
+        Number of times the sequence of periods should be solved.
     """
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)
     time_inv_.remove("Rfree")
     time_inv_ += ["Rboro", "Rsave"]
 
-    def __init__(self, **kwds):
+    def __init__(self, cycles=1, **kwds):
         params = init_kinked_R.copy()
         params.update(kwds)
 
         # Initialize a basic AgentType
-        PerfForesightConsumerType.__init__(self, **params)
+        PerfForesightConsumerType.__init__(self, cycles=cycles, **params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solve_one_period = make_one_period_oo_solver(ConsKinkedRsolver)
