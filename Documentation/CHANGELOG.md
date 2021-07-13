@@ -19,6 +19,7 @@ Release Data: TBD
 frictions to moving funds between them. To circumvent these frictions, he has access to an income-deduction scheme to accumulate risky assets.
 PR: [#832](https://github.com/econ-ark/HARK/pull/832). See [this forthcoming REMARK](https://github.com/Mv77/RiskyContrib) for the model's details.
 * 'cycles' agent property moved from constructor argument to parameter [#1031](https://github.com/econ-ark/HARK/pull/1031)
+* Adds functions to compute transition matrices and ergodic distribution [#1041](https://github.com/econ-ark/HARK/pull/1041).
 
 #### Minor Changes
 
