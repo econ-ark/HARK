@@ -2412,29 +2412,31 @@ class IndShockConsumerType(PerfForesightConsumerType):
         
     def Jump_To_Grid(self,m_vals, perm_vals, probs, Dist_mGrid, Dist_pGrid ):
         '''
-        Distributes values onto a predefined grid, maintaining the means.
+        Distributes values onto a predefined grid, maintaining the means. The first two arguments indicate possible values 
+        of market resources and permanent income, respectively. These values do not necessarily lie on their respective grid. 
         
         
         Parameters
         ----------
         m_vals: np.array
-                Array of 
+                Market resource values 
         
         perm_vals: np.array
-                Array of 
+                Permanent income values 
         
         probs: np.array
-                Probabilities
+                Shock probabilities
         
         Dist_mGrid : np.array
-            Grid for distribution over normalized market resources
+                Grid over normalized market resources
+            
         Dist_pGrid : np.array
-            Grid for distribution over permanent income 
+                Grid over permanent income 
 
         Returns
         -------
         probGrid.flatten(): np.array
-                Grid of length len(Dist_mGrid)*len(Dist_pGrid) 
+                Transition probabilities
         '''
     
         probGrid = np.zeros((len(Dist_mGrid),len(Dist_pGrid)))
