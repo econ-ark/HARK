@@ -7,7 +7,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
         ConsumerSolution, ConsumerSolutionOneStateCRRA,
         ConsPerfForesightSolver, ConsIndShockSetup,
         ConsIndShockSolverBasic, ConsIndShockSolver,
-        Equations)
+#        Equations
+        )
 
 from HARK.ConsumptionSaving.ConsIndShockModel_KinkedRSolver \
     import ConsKinkedRsolver

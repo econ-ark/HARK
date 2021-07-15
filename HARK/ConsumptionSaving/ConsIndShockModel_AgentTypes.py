@@ -524,7 +524,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                  solution_startfrom=None,  # Default: no interim solution
                  solver=ConsPerfForesightSolver,
                  solveMethod='EGM',
-                 shockTiming='EOP',
+                 eventTiming='EOP',
                  solverType='HARK',
                  **kwds
                  ):
@@ -541,7 +541,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         # - not necessarily set in any ancestral class
         self.solver = solver
         self.solveMethod = solveMethod
-        self.shockTiming = shockTiming
+        self.eventTiming = eventTiming
         self.solverType = solverType
 
         # Things to keep track of for this and child models
@@ -585,7 +585,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
             make_one_period_oo_solver(
                 solver,
                 solveMethod=solveMethod,
-                shockTiming=shockTiming
+                eventTiming=eventTiming
             )  # allows user-specified alt
 
         self.make_solution_for_final_period()  # Populate instance.solution[0]
@@ -1068,7 +1068,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                  cycles=1, verbose=1,  quiet=True, solution_startfrom=None,
                  solverType='HARK',
                  solveMethod='EGM',
-                 shockTiming='EOP',
+                 eventTiming='EOP',
                  solverName=ConsIndShockSolverBasic,
                  **kwds):
         params = init_idiosyncratic_shocks.copy()  # Get default params
@@ -1103,7 +1103,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 make_one_period_oo_solver(
                     solverName,
                     solveMethod=solveMethod,
-                    shockTiming=shockTiming
+                    eventTiming=eventTiming
                 )
 
         if (solverType == 'dolo') or (solverType == 'DARKolo'):
@@ -1476,7 +1476,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         self.solve_one_period = make_one_period_oo_solver(
             ConsKinkedRsolver,
             solveMethod=solveMethod,
-            shockTiming=shockTiming
+            eventTiming=eventTiming
         )
         # Make assets grid, income process, terminal solution
 
