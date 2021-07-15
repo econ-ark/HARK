@@ -15,6 +15,7 @@ See HARK documentation for mathematical descriptions of the models being solved.
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
+from scipy import sparse
 from HARK import AgentType, NullFunc, MetricObject, make_one_period_oo_solver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import (
@@ -2264,6 +2265,291 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
 
+
+    def Define_Distribution_Grid(self, Dist_mGrid=None, Dist_pGrid=None, mdensity = 3, num_pointsM = 48,  num_pointsP = 50, max_p_fac = 20.0):
+        '''
+        Defines the grid on which the distribution is defined. 
+        Grid for normalized market resources and permanent income may be prespecified 
+        as Dist_mGrid and Dist_pGrid, respectively. If not then default grid is self.aXtraGrid.
+        Density of self.aXtraGrid is determined by mdensity. 
+        
+        Parameters
+        ----------
+        Dist_mGrid : np.array
+                Prespecified grid for distribution over normalized market resources
+            
+        Dist_pGrid : np.array
+                Prespecified grid for distribution over permanent income. 
+            
+        mdensity: float
+                Density of default normalized market resources grid. 
+                Only affects grid of market resources if Dist_mGrid=None.
+            
+        num_pointsM: float
+                Number of gridpoints for market resources grid.
+        
+        num_pointsP: float
+                 Number of gridpoints for permanent income. 
+                 This grid will be exponentiated by the function make_grid_exp_mult.
+                
+        max_p_fac : float
+                Factor that scales the maximum value of permanent income grid. 
+                Larger values increases the maximum value of permanent income grid.
+        
+        Returns
+        -------
+        None
+        '''  
+ 
+        if self.cycles == 0:
+            if Dist_mGrid == None:    
+                aXtraGrid = make_grid_exp_mult(
+                        ming=self.aXtraMin, maxg=self.aXtraMax, ng = num_pointsM, timestonest = mdensity )
+                self.Dist_mGrid =  aXtraGrid
+        
+            else:
+                self.Dist_mGrid = Dist_mGrid #If grid of market resources prespecified then use as mgrid
+                
+            if Dist_pGrid == None:
+                num_points = num_pointsP
+                #Dist_pGrid is taken to cover most of the ergodic distribution
+                p_variance = self.PermShkStd[0]**2 #set variance of permanent income shocks
+                max_p = max_p_fac*(p_variance/(1-self.LivPrb[0]))**0.5 #Maximum Permanent income value
+                one_sided_grid = make_grid_exp_mult(1.0+1e-3, np.exp(max_p), num_points, 2)
+                self.Dist_pGrid = np.append(np.append(1.0/np.fliplr([one_sided_grid])[0],np.ones(1)),one_sided_grid) #Compute permanent income grid
+            else:
+                self.Dist_pGrid = Dist_pGrid #If grid of permanent income prespecified then use it as pgrid
+                
+        elif self.cycles > 1:
+            print('Define_Distribution_Grid requires cycles = 0 or cycles = 1')
+        
+        elif self.T_cycle != 0:
+            
+            if Dist_mGrid == None:
+                self.Dist_mGrid = self.aXtraGrid
+            else:
+                self.Dist_mGrid = Dist_mGrid #If grid of market resources prespecified then use as mgrid
+                    
+            if Dist_pGrid == None:
+                
+                self.Dist_pGrid = [] #list of grids of permanent income    
+                
+                for i in range(self.T_cycle):
+                    
+                    num_points = 50
+                    #Dist_pGrid is taken to cover most of the ergodic distribution
+                    p_variance = self.PermShkStd[i]**2 # set variance of permanent income shocks this period
+                    max_p = 20.0*(p_variance/(1-self.LivPrb[i]))**0.5 # Consider probability of staying alive this period
+                    one_sided_grid = make_grid_exp_mult(1.0+1e-3, np.exp(max_p), num_points, 2)
+                    
+                    Dist_pGrid = np.append(np.append(1.0/np.fliplr([one_sided_grid])[0],np.ones(1)),one_sided_grid) # Compute permanent income grid this period. Grid of permanent income may differ dependent on PermShkStd
+                    self.Dist_pGrid.append(Dist_pGrid)
+
+            else:
+                self.Dist_pGrid = Dist_pGrid #If grid of permanent income prespecified then use as pgrid
+                
+                
+            
+                
+    def Calc_Transition_Matrix(self):
+        '''
+        Calculates how the distribution of agents across market resources 
+        transitions from one period to the next. If finite horizon problem, then calculates
+        a list of transition matrices, consumption and asset policy grids for each period of the problem.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        
+        ''' 
+        
+        
+        if self.cycles == 0: 
+            Dist_mGrid = self.Dist_mGrid #Grid of market resources
+            Dist_pGrid = self.Dist_pGrid #Grid of permanent incomes
+            aNext = Dist_mGrid - self.solution[0].cFunc(Dist_mGrid)  #assets next period
+            
+            self.aPolGrid = aNext # Steady State Asset Policy Grid
+            self.cPolGrid = self.solution[0].cFunc(Dist_mGrid) #Steady State Consumption Policy Grid
+            
+            # Obtain shock values and shock probabilities from income distribution
+            bNext = self.Rfree*aNext # Bank Balances next period (Interest rate * assets)
+            ShockProbs = self.IncShkDstn[0].pmf  # Probability of shocks 
+            TranShocks = self.IncShkDstn[0].X[1] # Transitory shocks
+            PermShocks = self.IncShkDstn[0].X[0] # Permanent shocks
+            LivPrb = self.LivPrb[0] # Update probability of staying alive
+            
+            #New borns have this distribution (assumes start with no assets and permanent income=1)
+            NewBornDist = self.Jump_To_Grid(TranShocks,np.ones_like(TranShocks),ShockProbs,Dist_mGrid,Dist_pGrid)
+            
+            # Generate Transition Matrix
+            TranMatrix = np.zeros((len(Dist_mGrid)*len(Dist_pGrid),len(Dist_mGrid)*len(Dist_pGrid)))
+            for i in range(len(Dist_mGrid)):
+                for j in range(len(Dist_pGrid)):
+                    mNext_ij = bNext[i]/PermShocks + TranShocks # Compute next period's market resources given todays bank balances bnext[i]
+                    pNext_ij = Dist_pGrid[j]*PermShocks # Computes next period's permanent income level by applying permanent income shock
+                    TranMatrix[:,i*len(Dist_pGrid)+j] = LivPrb*self.Jump_To_Grid(mNext_ij, pNext_ij, ShockProbs,Dist_mGrid,Dist_pGrid) + (1.0-LivPrb)*NewBornDist
+            self.TranMatrix = TranMatrix
+            
+            
+        elif self.cycles > 1:
+            print('Calc_Transition_Matrix requires cycles = 0 or cycles = 1')
+            
+        elif self.T_cycle!= 0:
+            
+            self.cPolGrid = [] # List of consumption policy grids for each period in T_cycle
+            self.aPolGrid = [] # List of asset policy grids for each period in T_cycle
+            self.TranMatrix = [] # List of transition matrices
+            
+            Dist_mGrid =  self.Dist_mGrid
+            
+            for k in range(self.T_cycle):
+                           
+                if type(self.Dist_pGrid) == list:
+                    Dist_pGrid = self.Dist_pGrid[k] #Permanent income grid this period
+                else:
+                    Dist_pGrid = self.Dist_pGrid #If here then use prespecified permanent income grid
+                
+                Cnow = self.solution[k].cFunc(Dist_mGrid) #Consumption policy grid in period k
+                self.cPolGrid.append(Cnow) #Add to list
+
+                aNext = Dist_mGrid - Cnow # Asset policy grid in period k
+                self.aPolGrid.append(aNext) # Add to list
+                
+                bNext = self.Rfree[k]*aNext # Update interest rate this period
+        
+                #Obtain shocks and shock probabilities from income distribution this period
+                ShockProbs = self.IncShkDstn[k].pmf  #Probability of shocks this period
+                TranShocks = self.IncShkDstn[k].X[1] #Transitory shocks this period
+                PermShocks = self.IncShkDstn[k].X[0] #Permanent shocks this period
+                LivPrb = self.LivPrb[k] # Update probability of staying alive this period
+                
+                #New borns have this distribution (assumes start with no assets and permanent income=1)
+                NewBornDist = self.Jump_To_Grid(TranShocks,np.ones_like(TranShocks),ShockProbs,Dist_mGrid,Dist_pGrid)
+                
+                # Generate Transition Matrix this period
+                TranMatrix = np.zeros((len(Dist_mGrid)*len(Dist_pGrid),len(Dist_mGrid)*len(Dist_pGrid))) 
+                for i in range(len(Dist_mGrid)):
+                    for j in range(len(Dist_pGrid)):
+                        mNext_ij = bNext[i]/PermShocks + TranShocks # Compute next period's market resources given todays bank balances bnext[i]
+                        pNext_ij = Dist_pGrid[j]*PermShocks # Computes next period's permanent income level by applying permanent income shock
+                        TranMatrix[:,i*len(Dist_pGrid)+j] = LivPrb*self.Jump_To_Grid(mNext_ij, pNext_ij, ShockProbs,Dist_mGrid,Dist_pGrid) + (1.0-LivPrb)*NewBornDist 
+                TranMatrix = TranMatrix
+                self.TranMatrix.append(TranMatrix)
+                         
+        
+    def Jump_To_Grid(self, m_vals, perm_vals, probs, Dist_mGrid, Dist_pGrid ):
+        '''
+        Distributes values onto a predefined grid, maintaining the means.
+        
+        
+        Parameters
+        ----------
+        m_vals: np.array
+                Market resource values 
+        
+        perm_vals: np.array
+                Permanent income values 
+        
+        probs: np.array
+                Shock probabilities
+        
+        Dist_mGrid : np.array
+                Grid over normalized market resources
+            
+        Dist_pGrid : np.array
+                Grid over permanent income 
+
+        Returns
+        -------
+        probGrid.flatten(): np.array
+                Transition probabilities
+        '''
+    
+        probGrid = np.zeros((len(Dist_mGrid),len(Dist_pGrid)))
+        mIndex = np.digitize(m_vals,Dist_mGrid) - 1 #where it appears on the grid in terms of indexing, 
+        mIndex[m_vals <= Dist_mGrid[0]] = -1 # if the value is less than the value of grid,
+        mIndex[m_vals >= Dist_mGrid[-1]] = len(Dist_mGrid)-1 # 
+        
+        pIndex = np.digitize(perm_vals,Dist_pGrid) - 1
+        pIndex[perm_vals <= Dist_pGrid[0]] = -1
+        pIndex[perm_vals >= Dist_pGrid[-1]] = len(Dist_pGrid)-1
+        
+        for i in range(len(m_vals)):
+            if mIndex[i]==-1: # if m val is below lowest value of mgrid
+                mlowerIndex = 0
+                mupperIndex = 0
+                mlowerWeight = 1.0
+                mupperWeight = 0.0
+            elif mIndex[i]==len(Dist_mGrid)-1: # upper extreme exase
+                mlowerIndex = -1
+                mupperIndex = -1
+                mlowerWeight = 1.0
+                mupperWeight = 0.0
+            else: #standard case , not extremes
+                mlowerIndex = mIndex[i] #identifying which two poitns on the grid this point is inbetween
+                mupperIndex = mIndex[i]+1
+                mlowerWeight = (Dist_mGrid[mupperIndex]-m_vals[i])/(Dist_mGrid[mupperIndex]-Dist_mGrid[mlowerIndex]) # splitting this point into two linearly,
+                mupperWeight = 1.0 - mlowerWeight
+                
+            if pIndex[i]==-1: # could be a bug, seems like it should have another loop
+                plowerIndex = 0
+                pupperIndex = 0
+                plowerWeight = 1.0
+                pupperWeight = 0.0
+            elif pIndex[i]==len(Dist_pGrid)-1:
+                plowerIndex = -1
+                pupperIndex = -1
+                plowerWeight = 1.0
+                pupperWeight = 0.0
+            else:
+                plowerIndex = pIndex[i]
+                pupperIndex = pIndex[i]+1
+                plowerWeight = (Dist_pGrid[pupperIndex]-perm_vals[i])/(Dist_pGrid[pupperIndex]-Dist_pGrid[plowerIndex])
+                pupperWeight = 1.0 - plowerWeight
+                
+            probGrid[mlowerIndex][plowerIndex] = probGrid[mlowerIndex][plowerIndex] + probs[i]*mlowerWeight*plowerWeight  
+            probGrid[mlowerIndex][pupperIndex] = probGrid[mlowerIndex][pupperIndex] + probs[i]*mlowerWeight*pupperWeight
+            probGrid[mupperIndex][plowerIndex] = probGrid[mupperIndex][plowerIndex] + probs[i]*mupperWeight*plowerWeight
+            probGrid[mupperIndex][pupperIndex] = probGrid[mupperIndex][pupperIndex] + probs[i]*mupperWeight*pupperWeight 
+            # if it was just m ,probs[i]*mlowerweight = probGrid[mLowerIndex]
+            
+            # if it was just m , This is what the code would look like.
+            #probGrid[mlowerIndex] = probGrid[mlowerIndex]+ probs[i]*mlowerWeight
+            #probGrid[mupperIndex] = probGrid[mupperIndex] + probs[i]*mupperWeight
+            # 
+            
+        return probGrid.flatten()
+    
+    
+    def Calc_Ergodic_Dist(self):
+        
+        '''
+        Calculates the egodic distribution across normalized market resources and
+        permanent income as the eigenvector associated with the eigenvalue 1.
+        The distribution is presented as a vector and as a reshaped array with the ij'th element representing
+        the probability of being at the i'th point on the mGrid and the j'th
+        point on the pGrid.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        
+        eigen, ergodic_distr = sparse.linalg.eigs(self.TranMatrix , k=1 , which='LM')  # Solve for ergodic distribution
+        ergodic_distr = ergodic_distr.real/np.sum(ergodic_distr.real)
+        
+        self.VecErgDstn = ergodic_distr #distribution as a vector
+        self.ErgDstn = ergodic_distr.reshape((len(self.Dist_mGrid),len(self.Dist_pGrid))) # distribution reshaped into len(mgrid) by len(pgrid) array
+        
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
         Creates a "normalized Euler error" function for this instance, mapping
