@@ -14,8 +14,8 @@ See HARK documentation for mathematical descriptions of the models being solved.
 """
 from copy import copy, deepcopy
 import numpy as np
-from scipy import sparse
 from scipy.optimize import newton
+from scipy import sparse
 from HARK import AgentType, NullFunc, MetricObject, make_one_period_oo_solver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import (
@@ -1550,7 +1550,8 @@ init_perfect_foresight = {
     # Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
     'PermGroFacAgg': 1.0,
     'T_age': None,       # Age after which simulated agents are automatically killed
-    'T_cycle': 1         # Number of periods in the cycle for this agent type
+    'T_cycle': 1,        # Number of periods in the cycle for this agent type
+    "PerfMITShk": False    # Do Perfect Foresight MIT Shock: Forces Newborns to follow solution path of the agent he/she replaced when True
 }
 
 
@@ -1578,7 +1579,7 @@ class PerfForesightConsumerType(AgentType):
         MPCmax=1.0,
     )
     time_vary_ = ["LivPrb", "PermGroFac"]
-    time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt"]
+    time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt" ]
     state_vars = ['pLvl', 'PlvlAgg', 'bNrm', 'mNrm', "aNrm"]
     shock_vars_ = []
 
@@ -1708,9 +1709,11 @@ class PerfForesightConsumerType(AgentType):
             seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
         self.t_age[which_agents] = 0  # How many periods since each agent was born
-        self.t_cycle[
-            which_agents
-        ] = 0  # Which period of the cycle each agent is currently in
+        if self.PerfMITShk == False:  # If True, Newborns inherit t_cycle of agent they replaced (i.e. t_cycles are not reset). 
+            self.t_cycle[
+                which_agents
+            ] = 0  # Which period of the cycle each agent is currently in
+            
         return None
 
     def sim_death(self):
@@ -2261,39 +2264,64 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.hNrm = hNrm
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
-        
-    def Define_Distribution_Grid(self, Dist_mGrid=None, Dist_pGrid=None):
+
+
+    def Define_Distribution_Grid(self, Dist_mGrid=None, Dist_pGrid=None, mdensity = 3, num_pointsM = 48,  num_pointsP = 50, max_p_fac = 20.0):
         '''
-        Defines the grid on which the distribution is defined.
+        Defines the grid on which the distribution is defined. 
+        Grid for normalized market resources and permanent income may be prespecified 
+        as Dist_mGrid and Dist_pGrid, respectively. If not then default grid is self.aXtraGrid.
+        Density of self.aXtraGrid is determined by mdensity. 
         
         Parameters
         ----------
         Dist_mGrid : np.array
-            Grid for distribution over normalized market resources
+                Prespecified grid for distribution over normalized market resources
+            
         Dist_pGrid : np.array
-            Grid for distribution over permanent income
+                Prespecified grid for distribution over permanent income. 
+            
+        mdensity: float
+                Density of default normalized market resources grid. 
+                Only affects grid of market resources if Dist_mGrid=None.
+            
+        num_pointsM: float
+                Number of gridpoints for market resources grid.
+        
+        num_pointsP: float
+                 Number of gridpoints for permanent income. 
+                 This grid will be exponentiated by the function make_grid_exp_mult.
+                
+        max_p_fac : float
+                Factor that scales the maximum value of permanent income grid. 
+                Larger values increases the maximum value of permanent income grid.
         
         Returns
         -------
         None
         '''  
-        
-        
  
         if self.cycles == 0:
-            if Dist_mGrid == None:
-                self.Dist_mGrid = self.aXtraGrid
+            if Dist_mGrid == None:    
+                aXtraGrid = make_grid_exp_mult(
+                        ming=self.aXtraMin, maxg=self.aXtraMax, ng = num_pointsM, timestonest = mdensity )
+                self.Dist_mGrid =  aXtraGrid
+        
             else:
                 self.Dist_mGrid = Dist_mGrid #If grid of market resources prespecified then use as mgrid
+                
             if Dist_pGrid == None:
-                num_points = 50
+                num_points = num_pointsP
                 #Dist_pGrid is taken to cover most of the ergodic distribution
                 p_variance = self.PermShkStd[0]**2 #set variance of permanent income shocks
-                max_p = 20.0*(p_variance/(1-self.LivPrb[0]))**0.5 # Consider probability of staying alive
+                max_p = max_p_fac*(p_variance/(1-self.LivPrb[0]))**0.5 #Maximum Permanent income value
                 one_sided_grid = make_grid_exp_mult(1.0+1e-3, np.exp(max_p), num_points, 2)
                 self.Dist_pGrid = np.append(np.append(1.0/np.fliplr([one_sided_grid])[0],np.ones(1)),one_sided_grid) #Compute permanent income grid
             else:
-                self.Dist_pGrid = Dist_pGrid #If grid of permanent income prespecified then use as pgrid
+                self.Dist_pGrid = Dist_pGrid #If grid of permanent income prespecified then use it as pgrid
+                
+        elif self.cycles > 1:
+            print('Define_Distribution_Grid requires cycles = 0 or cycles = 1')
         
         elif self.T_cycle != 0:
             
@@ -2367,6 +2395,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     TranMatrix[:,i*len(Dist_pGrid)+j] = LivPrb*self.Jump_To_Grid(mNext_ij, pNext_ij, ShockProbs,Dist_mGrid,Dist_pGrid) + (1.0-LivPrb)*NewBornDist
             self.TranMatrix = TranMatrix
             
+            
+        elif self.cycles > 1:
+            print('Calc_Transition_Matrix requires cycles = 0 or cycles = 1')
+            
         elif self.T_cycle!= 0:
             
             self.cPolGrid = [] # List of consumption policy grids for each period in T_cycle
@@ -2410,10 +2442,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 self.TranMatrix.append(TranMatrix)
                          
         
-    def Jump_To_Grid(self,m_vals, perm_vals, probs, Dist_mGrid, Dist_pGrid ):
+    def Jump_To_Grid(self, m_vals, perm_vals, probs, Dist_mGrid, Dist_pGrid ):
         '''
-        Distributes values onto a predefined grid, maintaining the means. The first two arguments indicate possible values 
-        of market resources and permanent income, respectively. These values do not necessarily lie on their respective grid. 
+        Distributes values onto a predefined grid, maintaining the means.
         
         
         Parameters
@@ -2440,32 +2471,32 @@ class IndShockConsumerType(PerfForesightConsumerType):
         '''
     
         probGrid = np.zeros((len(Dist_mGrid),len(Dist_pGrid)))
-        mIndex = np.digitize(m_vals,Dist_mGrid) - 1
-        mIndex[m_vals <= Dist_mGrid[0]] = -1
-        mIndex[m_vals >= Dist_mGrid[-1]] = len(Dist_mGrid)-1
+        mIndex = np.digitize(m_vals,Dist_mGrid) - 1 #where it appears on the grid in terms of indexing, 
+        mIndex[m_vals <= Dist_mGrid[0]] = -1 # if the value is less than the value of grid,
+        mIndex[m_vals >= Dist_mGrid[-1]] = len(Dist_mGrid)-1 # 
         
         pIndex = np.digitize(perm_vals,Dist_pGrid) - 1
         pIndex[perm_vals <= Dist_pGrid[0]] = -1
         pIndex[perm_vals >= Dist_pGrid[-1]] = len(Dist_pGrid)-1
         
         for i in range(len(m_vals)):
-            if mIndex[i]==-1:
+            if mIndex[i]==-1: # if m val is below lowest value of mgrid
                 mlowerIndex = 0
                 mupperIndex = 0
                 mlowerWeight = 1.0
                 mupperWeight = 0.0
-            elif mIndex[i]==len(Dist_mGrid)-1:
+            elif mIndex[i]==len(Dist_mGrid)-1: # upper extreme exase
                 mlowerIndex = -1
                 mupperIndex = -1
                 mlowerWeight = 1.0
                 mupperWeight = 0.0
-            else:
-                mlowerIndex = mIndex[i]
+            else: #standard case , not extremes
+                mlowerIndex = mIndex[i] #identifying which two poitns on the grid this point is inbetween
                 mupperIndex = mIndex[i]+1
-                mlowerWeight = (Dist_mGrid[mupperIndex]-m_vals[i])/(Dist_mGrid[mupperIndex]-Dist_mGrid[mlowerIndex])
+                mlowerWeight = (Dist_mGrid[mupperIndex]-m_vals[i])/(Dist_mGrid[mupperIndex]-Dist_mGrid[mlowerIndex]) # splitting this point into two linearly,
                 mupperWeight = 1.0 - mlowerWeight
                 
-            if pIndex[i]==-1:
+            if pIndex[i]==-1: # could be a bug, seems like it should have another loop
                 plowerIndex = 0
                 pupperIndex = 0
                 plowerWeight = 1.0
@@ -2481,10 +2512,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 plowerWeight = (Dist_pGrid[pupperIndex]-perm_vals[i])/(Dist_pGrid[pupperIndex]-Dist_pGrid[plowerIndex])
                 pupperWeight = 1.0 - plowerWeight
                 
-            probGrid[mlowerIndex][plowerIndex] = probGrid[mlowerIndex][plowerIndex] + probs[i]*mlowerWeight*plowerWeight
+            probGrid[mlowerIndex][plowerIndex] = probGrid[mlowerIndex][plowerIndex] + probs[i]*mlowerWeight*plowerWeight  
             probGrid[mlowerIndex][pupperIndex] = probGrid[mlowerIndex][pupperIndex] + probs[i]*mlowerWeight*pupperWeight
             probGrid[mupperIndex][plowerIndex] = probGrid[mupperIndex][plowerIndex] + probs[i]*mupperWeight*plowerWeight
-            probGrid[mupperIndex][pupperIndex] = probGrid[mupperIndex][pupperIndex] + probs[i]*mupperWeight*pupperWeight
+            probGrid[mupperIndex][pupperIndex] = probGrid[mupperIndex][pupperIndex] + probs[i]*mupperWeight*pupperWeight 
+            # if it was just m ,probs[i]*mlowerweight = probGrid[mLowerIndex]
+            
+            # if it was just m , This is what the code would look like.
+            #probGrid[mlowerIndex] = probGrid[mlowerIndex]+ probs[i]*mlowerWeight
+            #probGrid[mupperIndex] = probGrid[mupperIndex] + probs[i]*mupperWeight
+            # 
             
         return probGrid.flatten()
     
@@ -2512,6 +2549,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         
         self.VecErgDstn = ergodic_distr #distribution as a vector
         self.ErgDstn = ergodic_distr.reshape((len(self.Dist_mGrid),len(self.Dist_pGrid))) # distribution reshaped into len(mgrid) by len(pgrid) array
+        
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
         Creates a "normalized Euler error" function for this instance, mapping
