@@ -10,22 +10,16 @@ from builtins import (str, breakpoint)
 from types import SimpleNamespace
 from IPython.lib.pretty import pprint
 from HARK.ConsumptionSaving.ConsIndShockModel_Both import (
-    def_reward,
+    define_t_reward,
+    define_transition_chosen__to__next_choice,
     def_utility_CRRA, def_value_funcs, def_value_CRRA,
-    def_transition_chosen__to__next_choice,
-    def_transition_chosen__to__next_BOP,
-    def_transition_choice__to__chosen,
+    define_transition
 )
 from HARK.distribution import calc_expectation as expect_funcs_given_states
 from HARK.interpolation import (CubicInterp, LowerEnvelope, LinearInterp,
-                                MargValueFuncCRRA,
-                                MargMargValueFuncCRRA)
-from HARK import NullFunc
+                                )
 from HARK.ConsumptionSaving.ConsIndShockModelOld \
     import ConsumerSolution as ConsumerSolutionOlder
-
-from HARK.ConsumptionSaving.ConsIndShockModel_Both \
-    import (TransitionFunctions, def_transitions)
 
 
 class agent_solution(MetricObject):
@@ -100,34 +94,49 @@ class agent_solution(MetricObject):
         self.Bilt.stge_kind = stge_kind
         self.Bilt.parameters_solver = parameters_solver
         self.Modl = Elements()
-
-        # Below: Likely transition types in their canonical possible order
-        # Each status will end up transiting only to one subsequent status
-        # There are multiple possibilities because models may skip many steps
-        # For example, with no end of period shocks, you could go directly from
-        # the "chosen" (after choice) status to the "next_BOP" status
-
-        self.Modl.Transitions = {  # BOP = Beginnning of Problem/Period
-            'BOP__to__choice': {},
-            'choice__to__chosen': {},  # or
-            'choice__to__next_BOP': {},
-            'chosen__to__EOP': {},  # or
-            'chosen__to__next_BOP': {},  # or
-            'chosen__to__next_choice': {},
-            'EOP__to__next_BOP': {},  # or
-            'EOP__to__next_choice': {},  # EOP = End of Problem/Period
-        }
+        self.Modl.Transitions = {}
 
         # Allow doublestruck or regular E for expectations
         self.𝔼_tp1_ = self.E_tp1_
         self.t_𝔼_ = self.t_E_
 
-    def define_reward():
+    def define_t_reward():
         # Determine the current period payoff (utility? profit?)
         pass
 
-    def define_transitions(self):
+    def define_transitions_possible(self):
+        # Below: Transition types in their canonical possible order
+
+        # These equations should be used by both solution and simulation code
+
+        # We use an OrderedDict so that the Monte Carlo simulation machinery
+        # will know the order in which they should be executed
+        # (even though the Spyder variable explorer seems, confusingly, to be
+        # unable to show an OrderedDict in its intrinsic order)
+
+        # The name of each equation corresponds to a variable that could be
+        # preserved in the simulation (or not)
+
+        # Each status will end up transiting only to one subsequent status
+        # There are multiple possibilities because models may skip many steps
+        # Steps can be skipped when the model is one in which nothing happens
+        # in that step, or what happens is so simple that it can be directly
+        # captured in the transition equation itself.
+        # For example, with no end of period shocks, you could go directly from
+        # the "chosen" (after choice) status to the "next_BOP" status
+
         # Equations that define transitions that affect agent's state
+        self.Pars.transitions_possible = {  # BOP: Beginnning of Problem/Period
+            'BOP_to_choice': {},
+            'choice__to_chosen': {},  # or
+            'choice__to_next_BOP': {},
+            'chosen__to_EOP': {},  # or
+            'chosen__to_next_BOP': {},  # or
+            'chosen__to_next_choice': {},
+            'EOP__to_next_BOP': {},  # or
+            'EOP__to_next_choice': {},  # EOP: End of Problem/Period
+        }
+
         pass
 
     def prep_solve_to_finish():
@@ -145,8 +154,10 @@ class agent_solution(MetricObject):
         crnt, futr = self.soln_crnt, self.soln_futr
         self.define_transitions(crnt, futr)
         self.define_reward(crnt)
+        self.define_t_reward(crnt)
         self.expectations_after_shocks_and_choices__E_tp1_(crnt)
         self.make_decision_rules_and_value_functions()
+        self.make_t_decision_rules_and_value_functions()
         self.expectations_before_shocks_or_choices__t_E()
 
         return crnt
@@ -320,6 +331,60 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         del self.vPfunc
         del self.vPPfunc
 
+        self.Pars.transitions_possible = self.define_transitions_possible()
+
+    def define_transitions_possible(self):
+        """
+        Construct dictionary containing the possible transition equations.
+
+        Parameters
+        ----------
+        soln_crnt : agent_solution
+            The solution object currently being built.
+
+        Returns
+        -------
+        possible_transitions : dict
+            Names and definitions of the transitions possible from this stage.
+
+        """
+        # Working backwards from End of Period
+
+        # Later we can select among the allowed transitions
+        # First, for model with shocks at Beginning of Problem/Period (BOP):
+
+        chosen_to_next_BOP = \
+            {'kNrm': 'kNrm = aNrm'}  # k_{t+1} = a_{t}
+
+        choice_to_chosen = \
+            {'aNrm': 'aNrm = mNrm - cNrm'}  # a_{t} = m_{t} - c_{t}
+
+        BOP_to_choice = {
+            'RNrm': 'RNrm = Rfree / (PermGroFac * permShk)',
+            'bNrm': 'bNrm = kNrm * RNrm',
+            'yNrm': 'yNrm = tranShk',
+            'mNrm': 'mNrm = bNrm + yNrm'}
+
+        # Now, for model with shocks at End of period (EOP)
+
+        chosen_to_next_choice = \
+            {'kNrm': 'kNrm = aNrm',
+             'RNrm': 'RNrm = Rfree / (PermGroFac * permShk)',
+             'bNrm': 'bNrm = kNrm * RNrm',  # b_{t} = k_{t} RNrm_{t}
+             'yNrm': 'yNrm = tranShk',  # y_{t} = \tranShk_{t}
+             'mNrm': 'mNrm = bNrm + yNrm'}
+
+        # choice_to_chosen not redefined; same as defined above
+
+        possible_transitions = \
+            {'chosen_to_next_BOP': chosen_to_next_BOP,
+             'chosen_to_next_choice': chosen_to_next_choice,
+             'choice_to_chosen': choice_to_chosen,
+             'BOP_to_choice': BOP_to_choice
+             }
+
+        return possible_transitions
+
     def check_conditions(self, soln_crnt, verbose=None):
         """
         Check whether the instance's type satisfies a set of conditions.
@@ -346,9 +411,10 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         ----------
         verbose : int
 
-        Specifies different levels of verbosity of feedback. When False, it only reports whether the
-        instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
-        the factor values for all conditions.
+        Specifies different levels of verbosity of feedback. When False, it
+        only reports whether the instance's type fails to satisfy a particular
+        condition. When True, it reports all results, i.e.  the factor values
+        for all conditions.
 
         soln_crnt : ConsumerSolution
         Solution to the problem described by information
@@ -366,10 +432,9 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
         else:
             verbose = verbose if verbose is None else verbose
 
-        msg = '\nFor a model with the following parameter values:\n'
-        msg = msg+'\n'+str(soln_crnt.Bilt.parameters_solver)+'\n'
-
         if verbose >= 2:
+            msg = '\nFor a model with the following parameter values:\n'
+            msg = msg+'\n'+str(soln_crnt.Bilt.parameters_solver)+'\n'
             _log.info(msg)
             _log.info(str(soln_crnt.Bilt.parameters_solver))
             np.set_printoptions(threshold=20)  # Don't print huge output
@@ -673,16 +738,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
             "https://hark.readthedocs.io/en/latest/search.html?q=" +\
             self.class_name+"&check_keywords=yes&area=default#"
 
-    # def cFunc_from_vFunc(self, m):
-    #     #        ρ = self.soln_crnt.Pars.CRRA
-    #     vFuncNvrs = self.vFuncNvrs
-    #     vInv = vFuncNvrs(m)
-    #     vInvP = vFuncNvrs.derivative(m)
-    #     cP = self.cFunc.derivative(m)
-    #     cVal = vInv ** (cP / vInvP)
-    #     return cVal
-
-    def from_chosen_states_make_E_tp1_(self, crnt):
+    def from_chosen_states_make_residual_E_tp1_(self, crnt):
         """
         Construct expectations of useful objects from post-choice stage.
 
@@ -870,7 +926,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         #             np.array(
         #                 list(
         #                     map(lambda m, mNrmGridPlus, vAddGridPlus:
-        #                         vAddGridPlus[np.where(m < mNrmGridPlus)[0][0]],
+        #                      vAddGridPlus[np.where(m < mNrmGridPlus)[0][0]],
         #                         m, repeat(mNrmGridPlus), repeat(vAddGridPlus)
         #                         )))
         #         return points_at_infinity
@@ -909,7 +965,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 #             folw.vFunc_tp1(mNrmGrid_tp1))
 #        vInvGrid = (vNrmGrid*(1-CRRA))**(1/(1-CRRA))
 
-#        vInvGrid = np.append(vInvGrid, vInvGrid[-1]+MPCmin**(-CRRA/(1.0-CRRA)))
+#     vInvGrid = np.append(vInvGrid, vInvGrid[-1]+MPCmin**(-CRRA/(1.0-CRRA)))
 
         # To guarantee meeting BoroCnst, if mNrm = BoroCnst then cNrm = 0.
 #        mNrmGrid = np.append([BoroCnst], mNrm_kinks)
@@ -940,8 +996,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 #            np.float(folw.vFunc_tp1((Rfree/PermGroFac)*aNrmGrid[-1]+E_tp1_.IncNrmNxt))
 #        PF_t_vNvrs_tp1_Grid_2 = \
 #            np.append(PF_t_vNvrs_tp1_Grid,PF_t_v_tp1_last)
-
-        # vNvrsGrid = Bilt.uinv(Bilt.u(cNrmGrid)+ folw.u_tp1(PF_t_vNvrs_tp1_Grid))
+# vNvrsGrid = Bilt.uinv(Bilt.u(cNrmGrid)+ folw.u_tp1(PF_t_vNvrs_tp1_Grid))
 
         # If the mNrm that would unconstrainedly yield next period's bottom pt
 #        if BoroCnst > mNrmGrid_pts[0]: # is prohibited by BoroCnst
@@ -953,8 +1008,8 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 
 
 #         # Add the point corresponding to
-#         mNrmGrid = np.unique(np.insert(mNrmGrid,0,E_tp1_.IncNrmNxt-BoroCnstArt))
-#         cNrmGrid = np.unique(np.insert(cNrmGrid,0,E_tp1_.IncNrmNxt-BoroCnstArt))
+#    mNrmGrid = np.unique(np.insert(mNrmGrid,0,E_tp1_.IncNrmNxt-BoroCnstArt))
+#     cNrmGrid = np.unique(np.insert(cNrmGrid,0,E_tp1_.IncNrmNxt-BoroCnstArt))
 
 
 # #        vNvrs_tp1 = (DiscLiv * LivPrb) * folw.vFunc_tp1(mNrmGrid_tp1)
@@ -969,7 +1024,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 #  #       cNrmGrid = Bilt.uPinv(_vP_t)    # EGM step 1: u' inverse yields c
 #         mNrmGrid = aNrmGrid + cNrmGrid  # EGM step 2: DBC inverted
 
-#         cNrmGrid = np.unique(np.insert(cNrmGrid,0,E_tp1_.IncNrmNxt-BoroCnstArt))
+#     cNrmGrid = np.unique(np.insert(cNrmGrid,0,E_tp1_.IncNrmNxt-BoroCnstArt))
 
 #         # Add additional point to the list of gridpoints for extrapolation,
 #         # using this period's new value of the lower bound of the MPC, which
@@ -981,12 +1036,12 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 
 #         # The problem is well-defined down to BoroCnstArt even if in
 #         # principle from t you could not get to any m_tp1 < E_tp1_.IncNrmNxt
-#         # because nothing prevents you from starting tp1 with m \geq BoroCnstArt
+#     # because nothing prevents you from starting tp1 with m \geq BoroCnstArt
 #  #       if BoroCnstArt < mNrmGrid[0] - E_tp1_.IncNrmNxt:
-#  #           mNrmGrid_interp_pts = np.append([BoroCnstArt], mNrmGrid_interp_pts)
-#  #           cNrmGrid_interp_pts = np.append([BoroCnstArt], cNrmGrid_interp_pts)
+#  #       mNrmGrid_interp_pts = np.append([BoroCnstArt], mNrmGrid_interp_pts)
+#  #      cNrmGrid_interp_pts = np.append([BoroCnstArt], cNrmGrid_interp_pts)
 # #        else: # BoroCnstArt is irrelevant if BoroCnstNat is tighter
-#             # cNrmGridCnst defines points where cnst would bind for each m gpt
+#         # cNrmGridCnst defines points where cnst would bind for each m gpt
 # #        cNrmGridCnst = mNrmGrid_interp_pts - BoroCnstArt
 #         mXtraGrid = mNrmGrid - BoroCnstArt # m in excess of minimum m
 # #        idx_binding =   # c > possible
@@ -1002,9 +1057,9 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 #             # m1 = mNrmGrid[idx + 1]
 #             # alpha = d0 / (d0 + d1)
 #             # mCrit = m0 + alpha * (m1 - m0)
-#             # # Adjust grids of mNrmGrid and cNrmGrid to account for constraint.
+#         # # Adjust grids of mNrmGrid and cNrmGrid to account for constraint.
 #             # cCrit = mCrit - BoroCnstArt
-#             # mNrmGrid = np.concatenate(([BoroCnstArt, mCrit], mNrmGrid[(idx + 1):]))
+#     # mNrmGrid = np.concatenate(([BoroCnstArt, mCrit], mNrmGrid[(idx + 1):]))
 #             # cNrmGrid = np.concatenate(([0.0, cCrit], cNrmGrid[(idx + 1):]))
 #             # aNrmGrid = mNrmGrid-cNrmGrid
 #         else:
@@ -1021,12 +1076,12 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 #             cNrmGrid_Xtra = np.array(
 #                 [0.0, cNrm_max_bindpoint, cNrm_max_bindpoint + MPCmin])
 #             aNrmGrid_Xtra = mNrmGrid_Xtra- cNrmGrid_Xtra
-#             # If mNrmGrid, cNrmGrid grids have become too large, throw out last
+#         # If mNrmGrid, cNrmGrid grids have become too large, throw out last
 #             # kink point, being sure to adjust the extrapolation.
 
 #         if mNrmGrid.size > MaxKinks:
 #             mNrmGrid = np.concatenate((mNrmGrid[:-2], [cNrmGrid[-3] + 1.0]))
-#             cNrmGrid = np.concatenate((cNrmGrid[:-2], [cNrmGrid[-3] + MPCmin]))
+#         cNrmGrid = np.concatenate((cNrmGrid[:-2], [cNrmGrid[-3] + MPCmin]))
 #             aNrmGrid = mNrmGrid - cNrmGrid
 
         # Consumption function is a linear interpolation between kink pts
@@ -1039,7 +1094,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 #        PF_t_vNvrs_tp1_Grid_2 = \
 #            np.append(PF_t_vNvrs_tp1_Grid,PF_t_v_tp1_last)
 
-        # vNvrsGrid = Bilt.uinv(Bilt.u(cNrmGrid)+ folw.u_tp1(PF_t_vNvrs_tp1_Grid))
+    # vNvrsGrid = Bilt.uinv(Bilt.u(cNrmGrid)+ folw.u_tp1(PF_t_vNvrs_tp1_Grid))
 
         # # Calculate the upper bound of the MPC as the slope of bottom segment
         # # In practice, this is always 1.  Code is here for clarity
@@ -1059,6 +1114,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 #        breakpoint()
 #        Bilt.vNvrs = self.soln_crnt.uinv(_vP_t)
 
+
     def build_facts_infhor(self):
         """
         Calculate facts useful for characterizing infinite horizon models.
@@ -1074,7 +1130,6 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
             The given solution, with the relevant namespaces updated to
         contain the constructed info.
         """
-        # Using local variables makes formulae more readable
         soln_crnt = self.soln_crnt  # current
         Bilt, Pars, E_tp1_ = soln_crnt.Bilt, soln_crnt.Pars, soln_crnt.E_tp1_
 
@@ -1082,7 +1137,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         Pars.DiscLiv = Pars.DiscFac * Pars.LivPrb
         # givens are not changed by the calculations below; Bilt and E_tp1_ are
         givens = {**Pars.__dict__}
-#        breakpoint()
+    #        breakpoint()
 
         APF_fcts = {
             'about': 'Absolute Patience Factor'
@@ -1275,9 +1330,9 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         py___code = '1.0'
         E_tp1_.IncNrmNxt = \
             eval(py___code, {}, {**E_tp1_.__dict__, **Bilt.__dict__, **givens})
-#        E_tp1_.IncNrmNxt_fcts.update({'latexexpr': r'ExIncNrmNxt'})
-#        E_tp1_.IncNrmNxt_fcts.update({'_unicode_': r'R/Γ'})
-#        E_tp1_.IncNrmNxt_fcts.update({'urlhandle': urlroot+'ExIncNrmNxt'})
+    #        E_tp1_.IncNrmNxt_fcts.update({'latexexpr': r'ExIncNrmNxt'})
+    #        E_tp1_.IncNrmNxt_fcts.update({'_unicode_': r'R/Γ'})
+    #        E_tp1_.IncNrmNxt_fcts.update({'urlhandle': urlroot+'ExIncNrmNxt'})
         E_tp1_.IncNrmNxt_fcts.update({'py___code': py___code})
         E_tp1_.IncNrmNxt_fcts.update({'value_now': E_tp1_.IncNrmNxt})
         soln_crnt.E_tp1_.IncNrmNxt_fcts = E_tp1_.IncNrmNxt_fcts
@@ -1488,8 +1543,8 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
         if futr.Bilt.stge_kind['iter_status'] != 'terminal_partial':
             return False  # Continue with normal solution procedures
         else:
-            crnt = def_reward(crnt,
-                              reward=def_utility_CRRA)  # reward = CRRA utility
+            crnt = define_t_reward(crnt, def_utility_CRRA)  # Bellman reward
+
             crnt.cFunc = crnt.Bilt.cFunc  # make cFunc accessible
             crnt = self.def_value()  # make value functions using cFunc
             crnt.vFunc = crnt.Bilt.vFunc  # make vFunc accessible for distance
@@ -1515,11 +1570,13 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 
         crnt = self.soln_crnt
 
-        crnt = def_transition_chosen__to__next_choice(crnt)
-        crnt = self.from_chosen_states_make_E_tp1_(crnt)
-        def_reward(crnt, reward=def_utility_CRRA)  # Utility is consumer reward
+        define_transition(crnt, 'chosen_to_next_choice')
 
-        crnt = self.build_decision_rules_and_value_functions(crnt)
+        self.from_chosen_states_make_residual_E_tp1_(crnt)
+
+        define_t_reward(crnt, def_utility_CRRA)  # Bellman reward: utility
+
+        self.build_decision_rules_and_value_functions(crnt)
 
         return crnt
 
@@ -1527,17 +1584,39 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
     solve = solve_prepared_stage
 
     def build_decision_rules_and_value_functions(self, crnt):
+        """
+        Add decision rules and value funcs to current solution object.
+
+        Parameters
+        ----------
+        crnt : agent_solution
+
+        Returns
+        -------
+        agent_solution : agent_solution
+            Augmented with decision rules and value functions
+
+        """
         self.make_cFunc_PF()
         return def_value_funcs(crnt, crnt.Pars.CRRA)
 
     def make_decision_rules(self, crnt):
+        """
+        Make decision rule(s).
+
+        Parameters
+        ----------
+        crnt : agent_solution
+
+        Returns
+        -------
+        crnt : agent_solution
+            Augmented with decision rule(s).
+        """
         self.make_cFunc_PF()
 
     def solver_prep_solution_for_an_iteration(self):  # PF
-        """
-        Prepare the current stage for processing by the one-stage solver.
-        """
-
+        """Prepare current stage for processing by the one-stage solver."""
         soln_crnt = self.soln_crnt
 
         Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
@@ -1573,6 +1652,8 @@ class ConsPerfForesightSolver(ConsumerSolutionOneStateCRRA):
 
 class ConsIndShockSetup(ConsPerfForesightSolver):
     """
+    Solve one period of CRRA problem with transitory and permanent shocks.
+
     Superclass for solvers of one period consumption-saving problems with
     constant relative risk aversion utility and permanent and transitory shocks
     to labor income, containing code shared among alternative specific solvers.
@@ -1614,6 +1695,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     solveMethod : str, optional
         Solution method to use
     """
+
     shock_vars = ['tranShkDstn', 'permShkDstn']  # Unemp shock=min(transShkVal)
 
     # TODO: CDC 20210416: Params shared with PF are in different order. Fix
@@ -2171,10 +2253,12 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         )
         return cFunc_unconstrained
 
-    def from_chosen_states_make_E_tp1_(self):
+    def from_chosen_states_make_residual_E_tp1_(self):
         """
+        Expect after choices have been made and before shocks realized.
+
         Calculate circumstances of an agent before the realization of the labor
-        income shocks that constitute the transition to the next period's state.
+        income shocks that constitute transition to the next period's state.
 
         Resulting solution object contains the value function vFunc and
         its derivatives.  Does not calculate consumption function cFunc:
@@ -2205,7 +2289,6 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         self.build_facts_infhor()
         self.build_facts_recursive()  # These require solution to successor
 
-        soln_crnt = def_transition_chosen__to__next_choice(soln_crnt)
         soln_crnt = self.make_chosen_state_grid()
         self.make_E_tp1_(self.soln_crnt.Pars.IncShkDstn)
 
@@ -2213,28 +2296,28 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
     def solve_prepared_stage(self):  # solve ONE stage (ConsIndShockSolver)
         """
-        Solves one period of the consumption-saving problem.
+        Solve one period of the consumption-saving problem.
 
         The ".Bilt" namespace on the returned solution object includes
             * decision rule (consumption function), cFunc
             * value and marginal value functions vFunc and vFunc.dm
             * a minimum possible level of normalized market resources mNrmMin
-            * normalized human wealth hNrm, and bounding MPCs MPCmin and MPCmax.
+            * normalized human wealth hNrm; bounding MPCs MPCmin and MPCmax.
 
-        If the user sets `CubicBool` to True, cFunc is interpolated
-        with a cubic Hermite interpolator.  This is much smoother than the default
-        piecewise linear interpolator, and permits construction of the marginal
-        marginal value function vFunc.dm.dm (which occurs automatically).
+        If the user sets `CubicBool` to True, cFunc is interpolated with a
+        cubic Hermite interpolator.  This is much smoother than the default
+        piecewise linear interpolator, and causes (automatic) construction of
+        the marginal marginal value function vFunc.dm.dm (which occurs
+        automatically).
 
-        In principle, the resulting cFunc will be numerically incorect at values
-        of market resources where a marginal increment to m would discretely
-        change the probability of a future constraint binding, because in
-        principle cFunc is nondifferentiable at those points (cf LiqConstr
-        REMARK).
+        In principle, the resulting cFunc will be numerically incorect at
+        values of market resources where a marginal increment to m would
+        discretely change the probability of a future constraint binding,
+        because in principle cFunc is nondifferentiable at those points (cf
+        LiqConstr REMARK).
 
-        In practice, if
-        the distribution of shocks is not too granular, the approximation error
-        is minor.
+        In practice, if the distribution of shocks is not too granular, the
+        approximation error is minor.
 
         Parameters
         ----------
@@ -2245,7 +2328,6 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution : ConsumerSolution
             The solution to this period/stage's problem.
         """
-
         if self.solve_prepared_stage_divert():  # Allow bypass of normal soln
             return self.soln_crnt  # created by bypass
 
@@ -2254,53 +2336,54 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         shockTiming, solveMethod = Pars.shockTiming, Pars.solveMethod
 
         if solveMethod == 'Generic':
-            # like, aNrm_{t} -> kNrm_{t+1}:
-            crnt = self.def_transition_EOP__to__next_BOP(crnt)
-            # draw EOP shocks (if any):
-            crnt = self.def_transition_chosen__to__EOP(crnt)
-            # like, β E[R Γ_{t+1}^{-ρ}u'(c_{t+1})]
-            crnt = self.from_chosen_states_make_E_tp1_(crnt)
-            # Defines current utility
-            crnt = self.def_reward(crnt, reward=def_utility_CRRA)
-            # like, aNrm = mNrm - cNrm
-            crnt = self.def_transition_choice__to__chosen(crnt)
-            # like, cFunc and vFunc
-            crnt = self.make_decision_rules_and_value_functions(crnt)
-            # draw BOP shocks, if any
-            crnt = self.def_transition_BOP__to__choice(crnt)
-            # expectations before BOP shocks realized: t_E
-            crnt = self.t_E_from_BOP_states_make(crnt)
+            self.define_transition(crnt, 'EOP_to_next_BOP')
+            self.define_transition(crnt, 'chosen_to_EOP')
+            self.from_chosen_states_make_residual_E_tp1_(crnt)
+            self.define_t_reward(crnt, reward=def_utility_CRRA)
+            self.define_transition(crnt, 'choice_to_chosen')
+            self.make_t_decision_rules_and_value_functions(crnt)
+            self.define_transition(crnt, 'BOP_to_choice')
+            self.from_BOP_states_make_t_E_(crnt)
             return crnt
 
-        # if not using generic, then solve using custom method
+        # if not using Generic, then solve using custom method
 
-        # transition for "saver" who has chosen aNrm; slightly different
-        # depending on whether shocks are at End or Beginning of period
+        # transition depends on whether shocks are EOP or BOP
         if shockTiming == 'EOP':  # Shocks at End of Period
-            def_transition_chosen__to__next_choice(crnt)  # result: m_{t+1}
+            define_transition(crnt, 'chosen_to_next_choice')
+
         else:
-            def_transition_chosen__to__next_BOP(crnt)  # result: k_{t+1}
+            define_transition(crnt, 'chosen_to_next_BOP')
 
-        # Given that transition, calculate expectations
-        self.from_chosen_states_make_E_tp1_()
+        # Given the transition, calculate expectations
 
-        def_reward(crnt, reward=def_utility_CRRA)  # Utility is consumer reward
+        self.from_chosen_states_make_residual_E_tp1_()
 
-        # Having calculated E(marginal value, etc) of saving, construct c
+        # Given choice, define chosen states
+        define_transition(crnt, 'choice_to_chosen')
+
+        define_t_reward(crnt, def_utility_CRRA)  # Bellman reward
+
+        # Having calculated E(marginal value, etc) of saving, construct c and v
         self.build_decision_rules_and_value_functions()
 
-        self.t_E_from_BOP_states_make()  # t_E: Before BOP shocks are realized
+        # t_E: Before BOP shocks are realized (does nothing if no BOP shocks)
+        self.from_BOP_states_make_t_E_()
 
         return crnt
 
+    # alias "solve" because core.py expects [agent].solve to solve the model
     solve = solve_prepared_stage
 
-    def t_E_from_BOP_states_make(self):
+    def from_BOP_states_make_t_E_(self):
+        """No docstring."""
         pass
 
     def transit_chosen__to__next_choice(self, xfer_shks_bcst, chosen_states,
                                         IncShkDstn):
         """
+        Return normalized market resources m.
+
         Return array of values of normalized market resources m
         corresponding to permutations of potential realizations of
         the permanent and transitory income shocks, given the value of
@@ -2319,9 +2402,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         transit_chosen__to__next_choice : namespace with results of applying
         transition eqns
         """
-
         stge = self.soln_crnt
-        Pars, Modl = stge.Pars, stge.Modl
+        Pars = stge.Pars
         Transitions = stge.Modl.Transitions
 
         permPos, tranPos = (
@@ -2339,23 +2421,72 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # Everything needed to execute the transition equations
         Info = {**Pars.__dict__, **xfer_vars}
 
-        chosen__to__next_choice = \
-            Transitions['chosen__to__next_choice']
-
-        for eqn_name in chosen__to__next_choice.__dict__['eqns'].keys():
-            exec(chosen__to__next_choice.__dict__['eqns'][eqn_name], Info)
+        chosen_to_next_choice = \
+            Transitions['chosen_to_next_choice']
+        for eqn_name in chosen_to_next_choice['compiled'].keys():
+            exec(chosen_to_next_choice['compiled'][eqn_name], Info)
 
         tp1 = SimpleNamespace()
         tp1.mNrm = Info['mNrm']
 
         return tp1
 
+    def transit(self, transition_name, xfer_shks_bcst, chosen_states,
+                IncShkDstn):
+        """
+        Next states resultng from transition from this state and shocks.
+
+        Return array of values of normalized market resources m
+        corresponding to permutations of potential realizations of
+        the permanent and transitory income shocks, given the value of
+        end-of-period assets aNrm.
+
+        Parameters
+        ----------
+        xfer_shks_bcst: 2D ndarray
+            Permanent and transitory income shocks in 2D ndarray
+
+        aNrm: float
+            Normalized end-of-period assets this period
+
+        Returns
+        -------
+        transited : namespace with results of applying transition eqns
+        """
+        stge = self.soln_crnt
+        Pars = stge.Pars
+        Transitions = stge.Modl.Transitions
+
+        permPos, tranPos = (
+            Pars.IncShkDstn.parameters['ShkPosn']['perm'],
+            Pars.IncShkDstn.parameters['ShkPosn']['tran'])
+
+        zeros = chosen_states - chosen_states  # zero array of the right size
+
+        xfer_vars = {
+            'permShk': xfer_shks_bcst[permPos] + zeros,  # + zeros fixes size
+            'tranShk': xfer_shks_bcst[tranPos] + zeros,
+            'aNrm': chosen_states
+        }
+
+        # Everything needed to execute the transition equations
+        Info = {**Pars.__dict__, **xfer_vars}
+
+        transition = Transitions[transition_name]
+        for eqn_name in transition['compiled'].keys():
+            exec(transition['compiled'][eqn_name], Info)
+
+        breakpoint()
+
+        return Info
 
 ###############################################################################
+
 
 class ConsIndShockSolver(ConsIndShockSolverBasic):
     """
     Solves a single period of a standard consumption-saving problem.
+
     It inherits from ConsIndShockSolverBasic, and adds ability to perform cubic
     interpolation.
     """

@@ -25,11 +25,8 @@ from types import SimpleNamespace
 from ast import parse as parse  # Allow storing python stmts as objects
 
 
-class TransitionFunctions(SimpleNamespace):
-    """
-    Transitions between stges of the solution process
-    """
-# TODO: Move (to core.py) when vetted/agreed
+class NextStep(SimpleNamespace):
+    """Defines raw_text and executable ('compiled') transitions between adjacent steps"""
     pass
 
 
@@ -48,12 +45,12 @@ class Information(SimpleNamespace):
     pass
 
 
-def def_transitions(stge):
-    stge = def_transition_BOP__to__choice(stge)  # Setup state for choice
-    stge = def_transition_choice__to__chosen(stge)  # Consequences of choice
-    stge = def_transition_chosen__to__EOP(stge)  # EOP=End of Period
-    stge = def_transition_chosen__to__next_choice(stge)
-    stge = def_transition_chosen__to__next_BOP(stge)  # BOP = Beginning of Period
+def define_transitions(stge):
+    stge = define_transition_BOP__to__choice(stge)  # Setup state for choice
+    stge = define_transition_choice__to__chosen(stge)  # Consequences of choice
+    stge = define_transition_chosen__to__EOP(stge)  # EOP=End of Period
+    stge = define_transition_chosen__to__next_choice(stge)
+    stge = define_transition_chosen__to__next_BOP(stge)  # BOP = Beginning of Period
     return stge
 
 
@@ -70,16 +67,53 @@ transitions_caused_by_shocks = {
 
 # This is here as a placeholder
 
+# Dictionaries containing lists of transition equations between various steps
 
-def def_transition_BOP__to__choice(stge):
+
+def define_transition(stge, transition_name):
     """
-    Transition from beginning of period to choice stage
+    Add to Modl.Transitions the transition defined by transition_name.
+
+    Parameters
+    ----------
+    stge : agent_solution
+        A solution with an atached Modl object.
+
+    transition_name : str
+        Name of the step in Pars.transitions_possible to execute
+
+    Returns
+    -------
+    None.
+
     """
 
-    # Dummy example variable
+    transitions_possible = stge.Pars.transitions_possible
+    step_nxt = NextStep()
+    step_nxt.compiled = {}
+    step_nxt.raw_text = {}
+    step_nxt.last_val = {}
+    step_nxt_dict = transitions_possible[transition_name]
+    transiter = {}
+    transiter['compiled'] = {}
+    transiter['raw_text'] = {}
+    transiter['last_val'] = {}
+
+    for eqn_name in step_nxt_dict:
+        transiter['raw_text'].update({eqn_name: step_nxt_dict[eqn_name]})
+        tree = parse(step_nxt_dict[eqn_name], mode='exec')
+        compiled = compile(tree, filename="<ast>", mode='exec')
+        transiter['compiled'].update({eqn_name: compiled})
+
+    stge.Modl.Transitions[transition_name] = transiter
+    return stge
+
+
+def define_transition_BOP__to__choice(stge):
+    """Transition from beginning of period to choice stage."""
     eqns_source = {'BOP__to__choice': 'BOP__to__choice = "Done"'}
 
-    BOP__to__choice = TransitionFunctions()
+    BOP__to__choice = NextStep()
     BOP__to__choice.eqns = {}
     BOP__to__choice.vals = {}
 
@@ -94,7 +128,7 @@ def def_transition_BOP__to__choice(stge):
     return stge
 
 
-def def_transition_choice__to__chosen(stge):
+def define_transition_choice__to__chosen(stge):
     """
     Transition from state(s) before the choice to state(s) after.
     """
@@ -104,7 +138,7 @@ def def_transition_choice__to__chosen(stge):
         'after_choice_states': 'after_choice_states = [aNrm]'
     }
 
-    choice__to__chosen = TransitionFunctions()
+    choice__to__chosen = NextStep()
     choice__to__chosen.eqns = {}
     choice__to__chosen.vals = {}
 
@@ -119,7 +153,7 @@ def def_transition_choice__to__chosen(stge):
     return stge
 
 
-def def_transition_chosen__to__EOP(stge):
+def define_transition_chosen__to__EOP(stge):
     """
     After consumption has been chosen, realize the shocks
     (permShk, tranShk) required for the transition to the
@@ -129,7 +163,7 @@ def def_transition_chosen__to__EOP(stge):
     eqns_source = deepcopy(transitions_caused_by_shocks)
     eqns_source.update({'shocked_states': 'shocked_states = [mNrm]'})
 
-    chosen__to__EOP = TransitionFunctions()
+    chosen__to__EOP = NextStep()
     chosen__to__EOP.eqns = {}
     chosen__to__EOP.vals = {}
 
@@ -144,7 +178,7 @@ def def_transition_chosen__to__EOP(stge):
     return stge
 
 
-def def_transition_chosen__to__next_BOP(stge):
+def define_transition_chosen__to__next_BOP(stge):
     """
     After consumption has been chosen, realize the shocks
     (permShk, tranShk) required for the transition to the
@@ -154,7 +188,7 @@ def def_transition_chosen__to__next_BOP(stge):
     eqns_source = deepcopy(transitions_caused_by_shocks)
     eqns_source.update({'next_states': 'next_states = [mNrm]'})
 
-    chosen__to__next_BOP = TransitionFunctions()
+    chosen__to__next_BOP = NextStep()
     chosen__to__next_BOP.eqns = {}
     chosen__to__next_BOP.vals = {}
 
@@ -181,7 +215,7 @@ def make_transition_equations(stge, transition_name, equations):
     equations : dict
         Equations in python code with names in keys
     """
-    stge.Modl.Transitions[transition_name] = TransitionFunctions()
+    stge.Modl.Transitions[transition_name] = NextStep()
     setattr(stge.Modl.Transitions[transition_name], 'eqns_source', equations)
     setattr(stge.Modl.Transitions[transition_name], 'eqns', {})
     setattr(stge.Modl.Transitions[transition_name], 'vals', {})
@@ -193,7 +227,7 @@ def make_transition_equations(stge, transition_name, equations):
         stge.Modl.Transitions[transition_name].eqns.update({eqn_name: code})
 
 
-def def_transition_chosen__to__next_choice(stge):
+def define_transition_chosen__to__next_choice(stge):
     """
     Define transition from post-choice now to ready-to-choose next.
 
@@ -203,16 +237,18 @@ def def_transition_chosen__to__next_choice(stge):
     eqns_source = deepcopy(transitions_caused_by_shocks)
     eqns_source.update({'next_states': 'next_states = [mNrm]'})
 
-    chosen__to__next_choice = TransitionFunctions()
-    chosen__to__next_choice.eqns = {}
-    chosen__to__next_choice.vals = {}
+    chosen__to__next_choice = NextStep()
+    chosen__to__next_choice.raw_text = {}
+    chosen__to__next_choice.compiled = {}
+    chosen__to__next_choice.last_val = {}
 
     for eqn_name in eqns_source.keys():
         tree = parse(eqns_source[eqn_name], mode='exec')
-        code = compile(tree, filename="<ast>", mode='exec')
-        chosen__to__next_choice.eqns.update({eqn_name: code})
+        compiled = compile(tree, filename="<ast>", mode='exec')
+        chosen__to__next_choice.compiled.update({eqn_name: compiled})
 
-    chosen__to__next_choice.eqns_source = eqns_source
+    chosen__to__next_choice.raw_text = eqns_source
+
     stge.Modl.Transitions['chosen__to__next_choice'] = chosen__to__next_choice
 
     return stge
@@ -221,7 +257,7 @@ def def_transition_chosen__to__next_choice(stge):
 # End of this to beginning of next period
 
 
-def def_transition_EOP_to_next_BOP(stge):
+def define_transition_EOP_to_next_BOP(stge):
     """
     Transition from beginning of period to decision stage
     """
@@ -229,7 +265,7 @@ def def_transition_EOP_to_next_BOP(stge):
     # Dummy example variable
     eqns_source = {'EOP__to__next_BOP': 'EOP__to__next_BOP = "Done"'}
 
-    EOP__to__next_BOP = TransitionFunctions()
+    EOP__to__next_BOP = NextStep()
     EOP__to__next_BOP.eqns = {}
     EOP__to__next_BOP.vals = {}
 
@@ -244,14 +280,14 @@ def def_transition_EOP_to_next_BOP(stge):
     return stge
 
 
-def def_transition_EOP_to_next_choice(stge):
+def define_transition_EOP_to_next_choice(stge):
     """
     Transition from end of period to next choice stage
     """
 
     eqns_source = transitions_caused_by_shocks
 
-    EOP__to__next_choice = TransitionFunctions()
+    EOP__to__next_choice = NextStep()
     EOP__to__next_choice.eqns = {}
     EOP__to__next_choice.vals = {}
 
@@ -1030,6 +1066,11 @@ init_cyclical['T_cycle'] = 4
 #     stge = def_utility_CRRA(stge, stge.Pars.CRRA)
 #     return stge
 
-def def_reward(stge, reward=def_utility_CRRA):
+def define_reward(stge, reward=def_utility_CRRA):
+    stge = reward(stge, stge.Pars.CRRA)
+    return stge
+
+
+def define_t_reward(stge, reward):
     stge = reward(stge, stge.Pars.CRRA)
     return stge
