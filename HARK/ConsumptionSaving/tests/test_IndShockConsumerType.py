@@ -577,3 +577,167 @@ class testPerfMITShk(unittest.TestCase):
         JACA = (AHist[0]-A_dx0)/(dx)
         
         self.assertAlmostEqual(JACA[175], 6.441930322509393e-06)
+        
+        
+        
+        
+TranMatTest_Dict={
+    # Parameters shared with the perfect foresight model
+    "CRRA":2,                           # Coefficient of relative risk aversion
+    "Rfree": 1.05**.25,                       # Interest factor on assets
+    "DiscFac": 0.97,                   # Intertemporal discount factor
+    "LivPrb" : [.99375],                    # Survival probability
+    "PermGroFac" :[1.00],                 # Permanent income growth factor
+
+    # Parameters that specify the income distribution over the lifecycle
+   
+    "PermShkStd" :  [.05],    # Standard deviation of log permanent shocks to income
+    "PermShkCount" : 5,                    # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd" : [.3],        # Standard deviation of log transitory shocks to income
+    "TranShkCount" : 5,                    # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb" : 0.05,                     # Probability of unemployment while working
+    "IncUnemp" :  .2,                    # Unemployment benefits replacement rate
+    "UnempPrbRet" : 0.0005,                # Probability of "unemployment" while retired
+    "IncUnempRet" : 0.0,                   # "Unemployment" benefits when retired
+    "T_retire" : 0,                        # Period of retirement (0 --> no retirement)
+    "tax_rate" : .3,                      # Flat income tax rate (legacy parameter, will be removed in future)
+
+    # Parameters for constructing the "assets above minimum" grid
+    "aXtraMin" : 0.001,                    # Minimum end-of-period "assets above minimum" value
+    "aXtraMax" : 20,                       # Maximum end-of-period "assets above minimum" value
+    "aXtraCount" : 48,                     # Number of points in the base grid of "assets above minimum"
+    "aXtraNestFac" : 3,                    # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraExtra" : [None],                 # Additional values to add to aXtraGrid
+
+    # A few other parameters
+    "BoroCnstArt" : 0.0,                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "vFuncBool" : False,                    # Whether to calculate the value function during solution
+    "CubicBool" : False,                   # Preference shocks currently only compatible with linear cFunc
+    "T_cycle" : 1,                         # Number of periods in the cycle for this agent type
+
+    # Parameters only used in simulation
+    "AgentCount" : 50000,                  # Number of agents of this type
+    "T_sim" : 200,                         # Number of periods to simulate
+    "aNrmInitMean" : np.log(1.6)-(.5**2)/2,# Mean of log initial assets
+    "aNrmInitStd"  : .5,                   # Standard deviation of log initial assets
+    "pLvlInitMean" : 0.0,                  # Mean of log initial permanent income
+    "pLvlInitStd"  : 0.0,                  # Standard deviation of log initial permanent income
+    "PermGroFacAgg" : 1.0,                 # Aggregate permanent income growth factor
+    "T_age" : None,                        # Age after which simulated agents are automatically killed
+    
+     }
+
+class testCalcTransitionMatrix(unittest.TestCase):
+    
+    def test_Define_Distribution_Grid(self):
+        Test_DDG = IndShockConsumerType(**TranMatTest_Dict)
+        Test_DDG.cycles=0
+        Test_DDG.solve()
+        
+        Test_DDG.Define_Distribution_Grid()
+        pGrid = Test_DDG.Dist_pGrid 
+        mGrid= Test_DDG.Dist_mGrid 
+        
+        self.assertAlmostEqual(pGrid[30], 0.06447360177364282)
+        self.assertAlmostEqual(pGrid[15], 0.0020221388496700233)
+        self.assertAlmostEqual(pGrid[94], 14347.036122621412)
+
+        self.assertAlmostEqual(mGrid[17], 0.5712729653797313)
+        self.assertAlmostEqual(mGrid[32], 2.516007772829577)
+        self.assertAlmostEqual(mGrid[25], 1.2461809524952696)
+    
+        
+    def test_Calc_Transition_Matrix(self):
+        Test_DDG = IndShockConsumerType(**TranMatTest_Dict)
+        Test_DDG.cycles=0
+        Test_DDG.solve()
+        Test_DDG.Define_Distribution_Grid()
+        Test_DDG.Calc_Transition_Matrix()
+        TMat = Test_DDG.TranMatrix
+        
+        self.assertAlmostEqual(TMat[4844][4845], 0.046607021695878006)
+        self.assertAlmostEqual(TMat[4847][4847], 0.7358006793692058)
+        
+        
+    def test_Calc_Ergodic_Dist(self):
+        Test_DDG = IndShockConsumerType(**TranMatTest_Dict)
+        Test_DDG.cycles=0
+        Test_DDG.solve()
+        Test_DDG.Define_Distribution_Grid()
+        Test_DDG.Calc_Transition_Matrix()
+        Test_DDG.Calc_Ergodic_Dist()
+        
+        vecDstn = Test_DDG.VecErgDstn
+        erg_Dstn = Test_DDG.ErgDstn
+        
+        self.assertAlmostEqual(vecDstn[403][0], -9.031794194427849e-20)
+        self.assertAlmostEqual(vecDstn[3703][0], 2.0297505364093426e-05)
+        
+        self.assertAlmostEqual(erg_Dstn[30][47], 0.008277747805950647)
+        self.assertAlmostEqual(erg_Dstn[21][17], 3.997421282771595e-06)
+
+        
+    def test_finiteHorizonProblem(self):
+        Test_DDG = IndShockConsumerType(**TranMatTest_Dict)
+        Test_DDG.cycles=0
+        Test_DDG.solve()
+        Test_DDG.Define_Distribution_Grid()
+        Test_DDG.Calc_Transition_Matrix()
+        Test_DDG.Calc_Ergodic_Dist()
+        vecDstn = Test_DDG.VecErgDstn
+        
+        params = deepcopy(TranMatTest_Dict)
+        params['T_cycle']= 30
+        params['LivPrb']= params['T_cycle']*[Test_DDG.LivPrb[0]]
+        params['PermGroFac']=params['T_cycle']*[1]
+        params['PermShkStd'] = params['T_cycle']*[Test_DDG.PermShkStd[0]]
+        params['TranShkStd']= params['T_cycle']*[Test_DDG.TranShkStd[0]]
+        params['Rfree'] = params['T_cycle']*[Test_DDG.Rfree]
+        
+        test_finHorizon = IndShockConsumerType(**params)
+        test_finHorizon.cycles = 1
+        
+        dx=.01
+        test_finHorizon.del_from_time_inv('Rfree')
+        test_finHorizon.add_to_time_vary('Rfree')
+        test_finHorizon.IncShkDstn = params['T_cycle']*Test_DDG.IncShkDstn
+        test_finHorizon.cFunc_terminal_ = deepcopy(Test_DDG.solution[0].cFunc)
+        
+        
+        i = 15
+        test_finHorizon.Rfree = (i)*[Test_DDG.Rfree] + [Test_DDG.Rfree + dx] + (params['T_cycle'] - i - 1 )*[Test_DDG.Rfree]
+        test_finHorizon.solve()
+        test_finHorizon.Define_Distribution_Grid()
+        test_finHorizon.Calc_Transition_Matrix()
+            
+        AggC_List =[]
+        AggA_List =[]
+        
+        dstn = vecDstn
+        
+        for i in range(params['T_cycle']):
+        
+            p = test_finHorizon.Dist_pGrid[i]
+            c = test_finHorizon.cPolGrid[i]
+            a = test_finHorizon.aPolGrid[i]
+            
+            gridc = np.dot( c.reshape( len(c), 1 ) , p.reshape( 1 , len(p) ) )
+            C = np.dot( gridc.flatten() , dstn )
+            AggC_List.append(C)
+            
+            
+            grida = np.dot( a.reshape( len(a), 1 ) , p.reshape( 1 , len(p) ) )
+            A = np.dot( grida.flatten() , dstn )
+            AggA_List.append(A)
+            
+            dstn = np.dot(test_finHorizon.TranMatrix[i],dstn)
+            
+        AggC_List  = np.array(AggC_List).T[0]
+        AggA_List  = np.array(AggA_List).T[0]
+
+        
+        self.assertAlmostEqual(AggC_List[10], 1.0059654158772287)
+        self.assertAlmostEqual(AggC_List[3], 1.0063920775079447)
+        
+        self.assertAlmostEqual(AggA_List[7], 1.152676157514746)
+        self.assertAlmostEqual(AggA_List[24], 1.157277788883796)
