@@ -470,7 +470,6 @@ class ConsumerSolutionOneStateCRRA(ConsumerSolution):
 
     def check_RIC(self, stge, verbose=None):
         """Evaluate and report on the Return Impatience Condition."""
-
         name = "RIC"
 
         def test(stge): return stge.Bilt.RPF < 1
@@ -2363,7 +2362,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # Having calculated E(marginal value, etc) of saving, construct c and v
         self.make_t_decision_rules_and_value_functions()
 
-        # pre_E_: Before BOP shocks are realized (does nothing if no BOP shocks)
+        # pre_E_: Before BOP shocks realized (does nothing if no BOP shocks)
         self.from_BOP_states_make_pre_E_()
 
         return crnt
@@ -2372,7 +2371,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
     solve = solve_prepared_stage
 
     def from_BOP_states_make_pre_E_(self):
-        """Make expectations before period t beginning-of-period events (shocks)."""
+        """Make expectations before beginning-of-period events (shocks)."""
         self.make_pre_E_(self)
 
     def transit_states_given_shocks(self, transition_name, starting_states,
