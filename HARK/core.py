@@ -1261,7 +1261,7 @@ def solve_one_cycle(agent, solution_last):
         # should change to become variables that are allowed to time-vary
 
         solve_dict['solveMethod'] = agent.solveMethod
-        solve_dict['shockTiming'] = agent.shockTiming
+        solve_dict['eventTiming'] = agent.eventTiming
         solve_dict['solverType'] = agent.solverType
 
         # Make a temporary dictionary for this period

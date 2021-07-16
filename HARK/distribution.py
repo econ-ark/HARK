@@ -1060,13 +1060,11 @@ def calc_expectation(dstn, func=lambda x: x, *args):
     return f_exp
 
 # "calc_expectation" is not a good name for something that
-# requires an array as an argument, and returns an array.
+# requires an array as an argument, returns an array, and
+# expects a peculiarly shaped distribution object as its first
+# argument.
 # TODO: 20210618: we REALLY need to improve our tools for calculating
-# expectations.  They are now highly specific, without any obvious signal
-# of the nature of that specifity (who could guess from the name that
-# calc_expectation works only with arrays, and returns an array which must be
-# multiplied by a broadcasted version of the shocks?)  (This question reflects painful experience
-# of figuring this out)
+# expectations, both to make them better documented and more flexible.
 
 
 calc_expectation_of_array = calc_expectation

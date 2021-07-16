@@ -17,29 +17,17 @@ from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
     import (ConsumerSolutionOneStateCRRA,
             ConsPerfForesightSolver,
             ConsIndShockSolverBasic, ConsIndShockSolver,
-            Built
+            #            Built
             )
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
     import (init_perfect_foresight, init_idiosyncratic_shocks)
 
 from HARK.utilities import CRRAutility
-from HARK.utilities import CRRAutilityP
-from HARK.utilities import CRRAutilityPP
 
-from HARK.utilities import CRRAutility as utility
-from HARK.utilities import CRRAutilityP as utilityP
-from HARK.utilities import CRRAutilityPP as utilityPP
 from HARK.utilities import uFunc_CRRA_stone_geary as u_stone_geary
 from HARK.utilities import uPFunc_CRRA_stone_geary as uP_stone_geary
 from HARK.utilities import uPPFunc_CRRA_stone_geary as uPP_stone_geary
-from HARK.utilities import CRRAutility_invP as utility_invP
-from HARK.utilities import CRRAutility_inv as utility_inv
-from HARK.utilities import CRRAutilityP as utilityP_invP
 
-
-# from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve_EndOfPeriodValue \
-#    import (ConsIndShockSolverBasicEOP
-#            )
 
 """
 Defines increasingly specialized agent types for one-state-variable
