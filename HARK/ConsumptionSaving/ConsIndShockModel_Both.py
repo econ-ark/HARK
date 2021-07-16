@@ -5,19 +5,13 @@ from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools \
 from HARK.Calibration.Income.IncomeTools \
     import (parse_income_spec, parse_time_params, Cagetti_income)
 from HARK.utilities import make_grid_exp_mult
-# TODO: CDC 20210524: Below is clunky.  Presumably done with an eye toward
-# writing general code that would work for any utility function; but that is
-# not actually done in the actual code as written.
-from HARK.utilities import CRRAutility
-from HARK.utilities import CRRAutilityP
-from HARK.utilities import CRRAutilityPP
-from HARK.utilities import CRRAutilityP_inv
-from HARK.utilities import CRRAutility_invP
-from HARK.utilities import CRRAutilityP_invP
-from HARK.utilities import CRRAutility_inv
 from HARK.interpolation import (LinearInterp,
                                 ValueFuncCRRA, MargValueFuncCRRA,
                                 MargMargValueFuncCRRA)
+
+from HARK.utilities import (  # These are used in exec so IDE doesn't see them
+    CRRAutility, CRRAutilityPP, CRRAutilityP_invP, 
+    CRRAutility_inv, CRRAutility_invP, CRRAutilityP, CRRAutilityP_inv)
 import numpy as np
 from copy import copy, deepcopy
 
@@ -27,11 +21,13 @@ from ast import parse as parse  # Allow storing python stmts as objects
 
 class ValueFunctions(SimpleNamespace):
     """Equations that define value function and related Bellman objects."""
+
     pass
 
 
 class Information(SimpleNamespace):
     """Parameters, functions, etc needed for model equations."""
+
     pass
 
 
@@ -52,7 +48,6 @@ def define_transition(stge, transition_name):
     None.
 
     """
-
     transitions_possible = stge.Pars.transitions_possible
     transition = transitions_possible[transition_name]
     transiter = {}  # It's the actor that actually does the job
@@ -72,9 +67,9 @@ def define_transition(stge, transition_name):
 
 def def_utility_CRRA(stge, CRRA):
     """
-    Defines CRRA utility function for this period (and its derivatives,
-    and their inverses), saving them as attributes of self for other methods
-    to use.
+    Define CRRA utility function and its relatives (derivatives, inverses).
+
+    Saves them as attributes of self for other methods to use.
 
     Parameters
     ----------
@@ -132,8 +127,9 @@ def def_utility_CRRA(stge, CRRA):
 
 
 def def_value_funcs(stge, CRRA):
-    """
-    Defines the value and function and its derivatives for this period.
+    r"""
+    Define the value and function and its derivatives for this period.
+
     See PerfForesightConsumerType.ipynb for a brief explanation
     and the links below for a fuller treatment.
 
@@ -149,22 +145,20 @@ def def_value_funcs(stge, CRRA):
 
     Notes
     -----
-
-    Call vFuncPF the value function for the solution to the perfect foresight CRRA
-    consumption problem in period t for a consumer with no bequest motive and no
+    Call vFuncPF the value function for solution to the perfect foresight CRRA
+    consumption problem in t for a consumer with no bequest motive and no
     constraints.  ('Top' because this is an upper bound for the value functions
     that would characterize consumers with constraints or uncertainty).  For
     such a problem, the MPC in period t is constant at :math:`\\kappa_{t}`, and
     calling relative risk aversion :math:`\\rho`, the inverse value function
-    vFuncPFNvrs has a constant slope of :math:`\\kappa_{t}^{-\\rho/(1-\\rho)}` and
+    vFuncPFNvrs has constant slope :math:`\\kappa_{t}^{-\\rho/(1-\\rho)}` and
     vFuncPFNvrs has value of zero at the lower bound of market resources.
     """
-
     Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
 
     # Info needed to create the model objects
     Info = Modl.Info = {**Bilt.__dict__, **Pars.__dict__}
-    Info['about'] = {'Info available when model creation equations are executed'}
+    Info['about'] = {'Info available when model creation equations executed'}
 
     Modl.Value = ValueFunctions()
     Modl.Value.eqns = {}  # Equations
@@ -235,22 +229,26 @@ def_value_CRRA = def_value_funcs
 
 
 def apply_flat_income_tax(
-        IncShkDstn, tax_rate, T_retire, unemployed_indices=None, transitory_index=2
-):
+        IncShkDstn, tax_rate, T_retire, unemployed_indices=None,
+        transitory_index=2
+        ):
     """
-    Applies a flat income tax rate to all employed income states during the working
-    period of life (those before T_retire).  Time runs forward in this function.
+    Apply a flat income tax rate to employed income states.
+
+    Effective only during the working period of life (those before T_retire).
+
+    (Time runs forward in this function.)
 
     Parameters
     ----------
     IncShkDstn : [distribution.Distribution]
-        The discrete approximation to the income distribution in each time period.
+        The discrete approximation to income distribution in each time period.
     tax_rate : float
         A flat income tax rate to be applied to all employed income.
     T_retire : int
         The time index after which the agent retires.
     unemployed_indices : [int]
-        Indices of transitory shocks that represent unemployment states (no tax).
+        Indices of transitory shocks representing unemployment states (no tax).
     transitory_index : int
         The index of each element of IncShkDstn representing transitory shocks.
 
@@ -268,7 +266,8 @@ def apply_flat_income_tax(
         if t < T_retire:
             for j in range((IncShkDstn[t][i]).size):
                 if j not in unemployed_indices:
-                    IncShkDstn_new[t][i][j] = IncShkDstn[t][i][j] * (1 - tax_rate)
+                    IncShkDstn_new[t][i][j] = \
+                        IncShkDstn[t][i][j] * (1 - tax_rate)
     return IncShkDstn_new
 
 # =======================================================
@@ -278,10 +277,11 @@ def apply_flat_income_tax(
 
 def construct_assets_grid(parameters):
     """
-    Constructs the base grid of post-decision states, representing end-of-period
-    assets above the absolute minimum.
+    Construct base grid of post-decision states.
 
-    All parameters are passed as attributes of the single input parameters.  The
+    Represents end-of-period assets above the absolute minimum.
+
+    All parameters passed as attributes of the single input parameters.  The
     input can be an instance of a ConsumerType, or a custom Parameters class.
 
     Parameters
@@ -340,8 +340,8 @@ init_perfect_foresight = {
     'LivPrb': [0.98],     # Survival probability
     'PermGroFac': [1.01],  # Permanent income growth factor
     'BoroCnstArt': None,  # Artificial borrowing constraint
-    'T_cycle': 1,         # Num of periods in a finite horizon cycle (like, a life cycle)
-    'PermGroFacAgg': 1.0,  # Aggregate income growth factor (multiplies individual)
+    'T_cycle': 1,         # Num periods in finite horizon cycle (like, life)
+    'PermGroFacAgg': 1.0,  # Aggregate growth factor (multiplies individual)
     'MaxKinks': None,      # Maximum number of grid points to allow in cFunc
     'AgentCount': 10000,  # Number of agents of this type (only matters for simulation)
     'aNrmInitMean': 0.0,  # Mean of log initial assets (only matters for simulation)
@@ -354,23 +354,26 @@ init_perfect_foresight = {
     # Optional extra _fcts about the model and its calibration
 }
 
-# The info below is optional at present but may become mandatory as the toolkit evolves
-# 'Primitives' define the 'true' model that we think of ourselves as trying to solve
+# Info below optional at present but may become mandatory the toolkit evolves
+# 'Primitives' define 'true' model that we think we are trying to solve
 # (the limit as approximation error reaches zero)
 init_perfect_foresight.update(
-    {'prmtv_par': ['CRRA', 'Rfree', 'DiscFac', 'LivPrb', 'PermGroFac', 'BoroCnstArt', 'PermGroFacAgg', 'T_cycle', 'cycles']})
+    {'prmtv_par': ['CRRA', 'Rfree', 'DiscFac', 'LivPrb', 'PermGroFac',
+                   'BoroCnstArt', 'PermGroFacAgg', 'T_cycle', 'cycles']})
 # Approximation parameters define the precision of the approximation
-# Limiting values for approximation parameters: values such that, as all such parameters approach their limits,
+# Limiting values for approximation parameters: values such that, as all such
+# parameters approach their limits,
 # the approximation gets arbitrarily close to the 'true' model
-init_perfect_foresight.update(  # In principle, kinks exist all the way to infinity
+init_perfect_foresight.update(  # In principle, kinks exist all the way to inf
     {'aprox_lim': {'MaxKinks': 'infinity'}})
 # The simulation stge of the problem requires additional parameterization
 init_perfect_foresight.update(  # The 'primitives' for the simulation
-    {'prmtv_sim': ['aNrmInitMean', 'aNrmInitStd', 'pLvlInitMean', 'pLvlInitStd']})
-init_perfect_foresight.update({  # Approximation parameters for monte carlo sims
+    {'prmtv_sim': ['aNrmInitMean', 'aNrmInitStd', 'pLvlInitMean',
+                   'pLvlInitStd']})
+init_perfect_foresight.update({  # Approximation params for monte carlo sims
     'sim_mcrlo': ['AgentCount', 'T_age']
 })
-init_perfect_foresight.update({  # Limiting values that define 'true' simulation
+init_perfect_foresight.update({  # Limiting values define 'true' simulation
     'sim_mcrlo_lim': {
         'AgentCount': 'infinity',
         'T_age': 'infinity'
@@ -380,8 +383,8 @@ init_perfect_foresight.update({  # Limiting values that define 'true' simulation
 # Optional more detailed _fcts about various parameters
 CRRA_fcts = {
     'about': 'Coefficient of Relative Risk Aversion'}
-CRRA_fcts.update({'latexexpr': '\providecommand{\CRRA}{\rho}\CRRA'})
-CRRA_fcts.update({'_unicode_': 'ρ'})  # \rho is Greek r: relative risk aversion rrr
+CRRA_fcts.update({'latexexpr': r'\providecommand{\CRRA}{\rho}\CRRA'})
+CRRA_fcts.update({'_unicode_': 'ρ'})  # \rho: Greek r: relative risk aversion
 CRRA_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('CRRA')
 # init_perfect_foresight['_fcts'].update({'CRRA': CRRA_fcts})
@@ -389,7 +392,7 @@ init_perfect_foresight.update({'CRRA_fcts': CRRA_fcts})
 
 DiscFac_fcts = {
     'about': 'Pure time preference rate'}
-DiscFac_fcts.update({'latexexpr': '\providecommand{\DiscFac}{\beta}\DiscFac'})
+DiscFac_fcts.update({'latexexpr': r'\providecommand{\DiscFac}{\beta}\DiscFac'})
 DiscFac_fcts.update({'_unicode_': 'β'})
 DiscFac_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('DiscFac')
@@ -398,8 +401,8 @@ init_perfect_foresight.update({'DiscFac_fcts': DiscFac_fcts})
 
 LivPrb_fcts = {
     'about': 'Probability of survival from this period to next'}
-LivPrb_fcts.update({'latexexpr': '\providecommand{\LivPrb}{\Pi}\LivPrb'})
-LivPrb_fcts.update({'_unicode_': 'Π'})  # \Pi mnemonic: 'Probability of surival'
+LivPrb_fcts.update({'latexexpr': r'\providecommand{\LivPrb}{\Pi}\LivPrb'})
+LivPrb_fcts.update({'_unicode_': r'Π'})  # mnemonic: 'Probability of surival'
 LivPrb_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('LivPrb')
 # init_perfect_foresight['_fcts'].update({'LivPrb': LivPrb_fcts})
@@ -407,7 +410,7 @@ init_perfect_foresight.update({'LivPrb_fcts': LivPrb_fcts})
 
 Rfree_fcts = {
     'about': 'Risk free interest factor'}
-Rfree_fcts.update({'latexexpr': '\providecommand{\Rfree}{\mathsf{R}}\Rfree'})
+Rfree_fcts.update({'latexexpr': r'\providecommand{\Rfree}{\mathsf{R}}\Rfree'})
 Rfree_fcts.update({'_unicode_': 'R'})
 Rfree_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('Rfree')
@@ -416,7 +419,8 @@ init_perfect_foresight.update({'Rfree_fcts': Rfree_fcts})
 
 PermGroFac_fcts = {
     'about': 'Growth factor for permanent income'}
-PermGroFac_fcts.update({'latexexpr': '\providecommand{\PermGroFac}{\Gamma}\PermGroFac'})
+PermGroFac_fcts.update({'latexexpr':
+                        r'\providecommand{\PermGroFac}{\Gamma}\PermGroFac'})
 PermGroFac_fcts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
 PermGroFac_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('PermGroFac')
@@ -425,8 +429,6 @@ init_perfect_foresight.update({'PermGroFac_fcts': PermGroFac_fcts})
 
 PermGroFacAgg_fcts = {
     'about': 'Growth factor for aggregate permanent income'}
-# PermGroFacAgg_fcts.update({'latexexpr': '\providecommand{\PermGroFacAgg}{\Gamma}\PermGroFacAgg'})
-# PermGroFacAgg_fcts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
 PermGroFacAgg_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('PermGroFacAgg')
 # init_perfect_foresight['_fcts'].update({'PermGroFacAgg': PermGroFacAgg_fcts})
@@ -434,7 +436,8 @@ init_perfect_foresight.update({'PermGroFacAgg_fcts': PermGroFacAgg_fcts})
 
 BoroCnstArt_fcts = {
     'about': 'If not None, maximum proportion of permanent income borrowable'}
-BoroCnstArt_fcts.update({'latexexpr': r'\providecommand{\BoroCnstArt}{\underline{a}}\BoroCnstArt'})
+BoroCnstArt_fcts.update({
+    'latexexpr': r'\providecommand{\BoroCnstArt}{\underline{a}}\BoroCnstArt'})
 BoroCnstArt_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight['prmtv_par'].append('BoroCnstArt')
 # init_perfect_foresight['_fcts'].update({'BoroCnstArt': BoroCnstArt_fcts})
@@ -451,7 +454,7 @@ init_perfect_foresight.update({'MaxKinks_fcts': MaxKinks_fcts})
 AgentCount_fcts = {
     'about': 'Number of agents to use in baseline Monte Carlo simulation'}
 AgentCount_fcts.update(
-    {'latexexpr': '\providecommand{\AgentCount}{N}\AgentCount'})
+    {'latexexpr': r'\providecommand{\AgentCount}{N}\AgentCount'})
 AgentCount_fcts.update({'sim_mcrlo': 'True'})
 AgentCount_fcts.update({'sim_mcrlo_lim': 'infinity'})
 # init_perfect_foresight['sim_mcrlo'].append('AgentCount')
@@ -494,7 +497,8 @@ T_age_fcts.update({'sim_mcrlo': 'False'})
 init_perfect_foresight.update({'T_age_fcts': T_age_fcts})
 
 T_cycle_fcts = {
-    'about': 'Number of periods in a "cycle" (like, a lifetime) for this agent type'}
+    r'about':
+        'Periods in a "cycle" (like, a lifetime) for this agent type'}
 # init_perfect_foresight['_fcts'].update({'T_cycle': T_cycle_fcts})
 init_perfect_foresight.update({'T_cycle_fcts': T_cycle_fcts})
 
@@ -624,14 +628,16 @@ init_idiosyncratic_shocks['aprox_lim'].update({'aXtraNestFac': None})
 init_idiosyncratic_shocks['aprox_lim'].update({'aXtraCount': None})
 
 IncShkDstn_fcts = {
-    'about': 'Income Shock Distribution: .X[0] and .X[1] retrieve shocks, .pmf retrieves probabilities'}
-IncShkDstn_fcts.update({'py___code': r'construct_lognormal_income_process_unemployment'})
+    'about': 
+        'Income Shock Distribution: .X[0] and .X[1] retrieve shocks, .pmf retrieves probabilities'}
+IncShkDstn_fcts.update({'py___code': 
+                        r'construct_lognormal_income_process_unemployment'})
 # init_idiosyncratic_shocks['_fcts'].update({'IncShkDstn': IncShkDstn_fcts})
 init_idiosyncratic_shocks.update({'IncShkDstn_fcts': IncShkDstn_fcts})
 
 permShkStd_fcts = {
     'about': 'Standard deviation for lognormal shock to permanent income'}
-permShkStd_fcts.update({'latexexpr': '\permShkStd'})
+permShkStd_fcts.update({'latexexpr': r'\permShkStd'})
 # init_idiosyncratic_shocks['_fcts'].update({'permShkStd': permShkStd_fcts})
 init_idiosyncratic_shocks.update({'permShkStd_fcts': permShkStd_fcts})
 
@@ -656,7 +662,7 @@ init_idiosyncratic_shocks.update({'UnempPrbRet_fcts': UnempPrbRet_fcts})
 
 IncUnemp_fcts = {
     'about': 'Unemployment insurance replacement rate'}
-IncUnemp_fcts.update({'latexexpr': '\IncUnemp'})
+IncUnemp_fcts.update({'latexexpr': r'\IncUnemp'})
 IncUnemp_fcts.update({'_unicode_': 'μ'})
 # init_idiosyncratic_shocks['_fcts'].update({'IncUnemp': IncUnemp_fcts})
 init_idiosyncratic_shocks.update({'IncUnemp_fcts': IncUnemp_fcts})
@@ -680,12 +686,11 @@ init_idiosyncratic_shocks.update({'T_retire_fcts': T_retire_fcts})
 
 permShkCount_fcts = {
     'about': 'Num of pts in discrete approx to permanent income shock dstn'}
-# init_idiosyncratic_shocks['_fcts'].update({'permShkCount': permShkCount_fcts})
 init_idiosyncratic_shocks.update({'permShkCount_fcts': permShkCount_fcts})
 
 tranShkCount_fcts = {
     'about': 'Num of pts in discrete approx to transitory income shock dstn'}
-# init_idiosyncratic_shocks['_fcts'].update({'tranShkCount': tranShkCount_fcts})
+
 init_idiosyncratic_shocks.update({'tranShkCount_fcts': tranShkCount_fcts})
 
 aXtraMin_fcts = {
@@ -699,8 +704,8 @@ aXtraMax_fcts = {
 init_idiosyncratic_shocks.update({'aXtraMax_fcts': aXtraMax_fcts})
 
 aXtraNestFac_fcts = {
-    'about': 'Exponential nesting factor when constructing "assets above minimum" grid'}
-# init_idiosyncratic_shocks['_fcts'].update({'aXtraNestFac': aXtraNestFac_fcts})
+    'about':
+        'Exponential nesting factor for "assets above minimum" grid'}
 init_idiosyncratic_shocks.update({'aXtraNestFac_fcts': aXtraNestFac_fcts})
 
 aXtraCount_fcts = {
@@ -709,17 +714,20 @@ aXtraCount_fcts = {
 init_idiosyncratic_shocks.update({'aXtraMax_fcts': aXtraCount_fcts})
 
 aXtraCount_fcts = {
-    'about': 'Number of points to include in grid of assets above minimum possible'}
+    'about':
+        'Number of points to include in grid of assets above minimum possible'}
 # init_idiosyncratic_shocks['_fcts'].update({'aXtraCount': aXtraCount_fcts})
 init_idiosyncratic_shocks.update({'aXtraCount_fcts': aXtraCount_fcts})
 
 aXtraExtra_fcts = {
-    'about': 'List of other values of "assets above minimum" to add to the grid (e.g., 10000)'}
+    'about':
+        'List of values of "assets above minimum" to add to grid (e.g., 100)'}
 # init_idiosyncratic_shocks['_fcts'].update({'aXtraExtra': aXtraExtra_fcts})
 init_idiosyncratic_shocks.update({'aXtraExtra_fcts': aXtraExtra_fcts})
 
 aXtraGrid_fcts = {
-    'about': 'Grid of values to add to minimum possible value to obtain actual end-of-period asset grid'}
+    'about':
+        'Vlues to add to minimum to obtain actual end-of-period asset grid'}
 # init_idiosyncratic_shocks['_fcts'].update({'aXtraGrid': aXtraGrid_fcts})
 init_idiosyncratic_shocks.update({'aXtraGrid_fcts': aXtraGrid_fcts})
 
@@ -730,7 +738,7 @@ vFuncBool_fcts = {
 init_idiosyncratic_shocks.update({'vFuncBool_fcts': vFuncBool_fcts})
 
 CubicBool_fcts = {
-    'about': 'Use cubic spline interpolation when True, linear interpolation when False'
+    'about': 'Use cubic spline interpolation when True, linear when False'
 }
 # init_idiosyncratic_shocks['_fcts'].update({'CubicBool': CubicBool_fcts})
 init_idiosyncratic_shocks.update({'CubicBool_fcts': CubicBool_fcts})
@@ -741,9 +749,9 @@ init_kinked_R = dict(
     **{
         "Rboro": 1.20,  # Interest factor on assets when borrowing, a < 0
         "Rsave": 1.02,  # Interest factor on assets when saving, a > 0
-        "BoroCnstArt": None,  # kinked R is a bit silly if borrowing not allowed
-        "CubicBool": True,  # kinked R is now compatible with linear cFunc and cubic cFunc
-        "aXtraCount": 48,  # ...so need lots of extra gridpoints to make up for it
+        "BoroCnstArt": None,  # kinked R a bit silly if borrowing not allowed
+        "CubicBool": True,  # kinked R compatible with linear and cubic cFunc
+        "aXtraCount": 48,  # ...need lots of extra gridpoints to make up for it
     }
 )
 del init_kinked_R["Rfree"]  # get rid of constant interest factor
@@ -773,7 +781,8 @@ dist_params = income_wealth_dists_from_scf(
 # We need survival probabilities only up to death_age-1, because survival
 # probability at death_age is 1.
 liv_prb = parse_ssa_life_table(
-    female=False, cross_sec=True, year=2004, min_age=birth_age, max_age=death_age
+    female=False, cross_sec=True, year=2004, min_age=birth_age,
+    max_age=death_age
     - 1)
 
 # Parameters related to the number of periods implied by the calibration
@@ -797,15 +806,13 @@ init_cyclical['LivPrb'] = 4*[0.98]
 init_cyclical['T_cycle'] = 4
 
 
-# def def_reward(stge):
-#     stge = def_utility_CRRA(stge, stge.Pars.CRRA)
-#     return stge
-
 def define_reward(stge, reward=def_utility_CRRA):
+    """Bellman reward."""
     stge = reward(stge, stge.Pars.CRRA)
     return stge
 
 
 def define_t_reward(stge, reward):
+    """Bellman reward."""
     stge = reward(stge, stge.Pars.CRRA)
     return stge
