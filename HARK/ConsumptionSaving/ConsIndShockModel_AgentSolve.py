@@ -20,6 +20,7 @@ from HARK.interpolation import (CubicInterp, LowerEnvelope, LinearInterp)
 from HARK.ConsumptionSaving.ConsIndShockModelOld \
     import ConsumerSolution as ConsumerSolutionOlder
 
+𝔼_dot = E_dot  # Alias in case anybody wants doublestruck E as expectations
 
 class agent_solution(MetricObject):
     """
@@ -98,10 +99,6 @@ class agent_solution(MetricObject):
         # Allow doublestruck or regular E for expectations
         self.𝔼_tp1_ = self.E_tp1_
         self.pre_𝔼_ = self.pre_E_
-
-    def define_t_reward():
-        # Determine the current period payoff (utility? profit?)
-        pass
 
     def define_transitions_possible(self):
         # Below: Transition types in their canonical possible order
