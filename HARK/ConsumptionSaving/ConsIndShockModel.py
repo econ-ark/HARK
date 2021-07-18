@@ -2268,10 +2268,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def Define_Distribution_Grid(self, Dist_mGrid=None, Dist_pGrid=None, mdensity = 3, num_pointsM = 48,  num_pointsP = 50, max_p_fac = 20.0):
         '''
-        Defines the grid on which the distribution is defined. 
+        Defines the grid on which the distribution is defined. Stores the grid of market resources and permanent income as attributes of self.
         Grid for normalized market resources and permanent income may be prespecified 
-        as Dist_mGrid and Dist_pGrid, respectively. If not then default grid is self.aXtraGrid.
-        Density of self.aXtraGrid is determined by mdensity. 
+        as Dist_mGrid and Dist_pGrid, respectively. If not then default grid is computed based off given parameters.
         
         Parameters
         ----------
@@ -2304,14 +2303,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if self.cycles == 0:
             if Dist_mGrid == None:    
                 aXtraGrid = make_grid_exp_mult(
-                        ming=self.aXtraMin, maxg=self.aXtraMax, ng = num_pointsM, timestonest = mdensity )
+                        ming=self.aXtraMin, maxg=self.aXtraMax, ng = num_pointsM, timestonest = mdensity ) #Generate Market resources grid given density and number of points
                 self.Dist_mGrid =  aXtraGrid
         
             else:
                 self.Dist_mGrid = Dist_mGrid #If grid of market resources prespecified then use as mgrid
                 
             if Dist_pGrid == None:
-                num_points = num_pointsP
+                num_points = num_pointsP #Number of permanent income gridpoints
                 #Dist_pGrid is taken to cover most of the ergodic distribution
                 p_variance = self.PermShkStd[0]**2 #set variance of permanent income shocks
                 max_p = max_p_fac*(p_variance/(1-self.LivPrb[0]))**0.5 #Maximum Permanent income value
@@ -2340,7 +2339,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     #Dist_pGrid is taken to cover most of the ergodic distribution
                     p_variance = self.PermShkStd[i]**2 # set variance of permanent income shocks this period
                     max_p = 20.0*(p_variance/(1-self.LivPrb[i]))**0.5 # Consider probability of staying alive this period
-                    one_sided_grid = make_grid_exp_mult(1.0+1e-3, np.exp(max_p), num_points, 2)
+                    one_sided_grid = make_grid_exp_mult(1.0+1e-3, np.exp(max_p), num_points, 2) 
                     
                     Dist_pGrid = np.append(np.append(1.0/np.fliplr([one_sided_grid])[0],np.ones(1)),one_sided_grid) # Compute permanent income grid this period. Grid of permanent income may differ dependent on PermShkStd
                     self.Dist_pGrid.append(Dist_pGrid)
@@ -2355,7 +2354,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         '''
         Calculates how the distribution of agents across market resources 
         transitions from one period to the next. If finite horizon problem, then calculates
-        a list of transition matrices, consumption and asset policy grids for each period of the problem.
+        a list of transition matrices, consumption and asset policy grids for each period of the problem. 
+        The transition matrix/matrices and consumption and asset policy grid(s) are stored as attributes of self.
+        
         
         Parameters
         ----------
@@ -2421,7 +2422,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 self.aPolGrid.append(aNext) # Add to list
                 
                 bNext = self.Rfree[k]*aNext # Update interest rate this period
-        
                 #Obtain shocks and shock probabilities from income distribution this period
                 ShockProbs = self.IncShkDstn[k].pmf  #Probability of shocks this period
                 TranShocks = self.IncShkDstn[k].X[1] #Transitory shocks this period
@@ -2437,14 +2437,17 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     for j in range(len(Dist_pGrid)):
                         mNext_ij = bNext[i]/PermShocks + TranShocks # Compute next period's market resources given todays bank balances bnext[i]
                         pNext_ij = Dist_pGrid[j]*PermShocks # Computes next period's permanent income level by applying permanent income shock
-                        TranMatrix[:,i*len(Dist_pGrid)+j] = LivPrb*self.Jump_To_Grid(mNext_ij, pNext_ij, ShockProbs,Dist_mGrid,Dist_pGrid) + (1.0-LivPrb)*NewBornDist 
+                        TranMatrix[:,i*len(Dist_pGrid)+j] = LivPrb*self.Jump_To_Grid(mNext_ij, pNext_ij, ShockProbs, Dist_mGrid, Dist_pGrid) + (1.0-LivPrb)*NewBornDist #generate transition probabilities
                 TranMatrix = TranMatrix
                 self.TranMatrix.append(TranMatrix)
                          
         
     def Jump_To_Grid(self, m_vals, perm_vals, probs, Dist_mGrid, Dist_pGrid ):
+        
         '''
-        Distributes values onto a predefined grid, maintaining the means.
+        Distributes values onto a predefined grid, maintaining the means. m_vals and perm_vals are realizations of market resources and permanent income while 
+        Dist_mGrid and Dist_pGrid are the predefined grids of market resources and permanent income, respectively. That is, m_vals and perm_vals do not necesarily lie on their 
+        respective grids. Returns probabilities of each gridpoint on the combined grid of market resources and permanent income.
         
         
         Parameters
@@ -2456,7 +2459,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 Permanent income values 
         
         probs: np.array
-                Shock probabilities
+                Shock probabilities associated with combinations of m_vals and perm_vals. 
+                Can be thought of as the probability mass function  of (m_vals, perm_vals).
         
         Dist_mGrid : np.array
                 Grid over normalized market resources
@@ -2467,36 +2471,41 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Returns
         -------
         probGrid.flatten(): np.array
-                Transition probabilities
+                 Probabilities of each gridpoint on the combined grid of market resources and permanent income
         '''
     
         probGrid = np.zeros((len(Dist_mGrid),len(Dist_pGrid)))
-        mIndex = np.digitize(m_vals,Dist_mGrid) - 1 #where it appears on the grid in terms of indexing, 
-        mIndex[m_vals <= Dist_mGrid[0]] = -1 # if the value is less than the value of grid,
-        mIndex[m_vals >= Dist_mGrid[-1]] = len(Dist_mGrid)-1 # 
+        mIndex = np.digitize(m_vals,Dist_mGrid) - 1 # Array indicating in which bin each values of m_vals lies in relative to Dist_mGrid. Bins lie between between point of Dist_mGrid. 
+        #For instance, if mval lies between Dist_mGrid[4] and Dist_mGrid[5] it is in bin 4 (would be 5 if 1 was not subtracted in the previous line). 
+        mIndex[m_vals <= Dist_mGrid[0]] = -1 # if the value is less than the smallest value on Dist_mGrid assign it an index of -1
+        mIndex[m_vals >= Dist_mGrid[-1]] = len(Dist_mGrid)-1 # if value if greater than largest value on Dist_mGrid assign it an index of the length of the grid minus 1
         
+        #the following three lines hold the same intuition as above
         pIndex = np.digitize(perm_vals,Dist_pGrid) - 1
         pIndex[perm_vals <= Dist_pGrid[0]] = -1
         pIndex[perm_vals >= Dist_pGrid[-1]] = len(Dist_pGrid)-1
         
         for i in range(len(m_vals)):
-            if mIndex[i]==-1: # if m val is below lowest value of mgrid
+            if mIndex[i]==-1: # if mval is below smallest gridpoint, then assign it a weight of 1.0 for lower weight. 
                 mlowerIndex = 0
                 mupperIndex = 0
                 mlowerWeight = 1.0
                 mupperWeight = 0.0
-            elif mIndex[i]==len(Dist_mGrid)-1: # upper extreme exase
+            elif mIndex[i]==len(Dist_mGrid)-1: # if mval is greater than maximum gridpoint, then assign the following weights
                 mlowerIndex = -1
                 mupperIndex = -1
                 mlowerWeight = 1.0
                 mupperWeight = 0.0
-            else: #standard case , not extremes
-                mlowerIndex = mIndex[i] #identifying which two poitns on the grid this point is inbetween
+            else: # Standard case where mval does not lie past any extremes
+            #identify which two points on the grid the mval is inbetween
+                mlowerIndex = mIndex[i] 
                 mupperIndex = mIndex[i]+1
-                mlowerWeight = (Dist_mGrid[mupperIndex]-m_vals[i])/(Dist_mGrid[mupperIndex]-Dist_mGrid[mlowerIndex]) # splitting this point into two linearly,
-                mupperWeight = 1.0 - mlowerWeight
+            #Assign weight to the indices that bound the m_vals point. Intuitively, an mval perfectly between two points on the mgrid will assign a weight of .5 to the gridpoint above and below
+                mlowerWeight = (Dist_mGrid[mupperIndex]-m_vals[i])/(Dist_mGrid[mupperIndex]-Dist_mGrid[mlowerIndex]) #Metric to determine weight of gridpoint/index below. Intuitively, mvals that are close to gridpoint/index above are assigned a smaller mlowerweight.
+                mupperWeight = 1.0 - mlowerWeight # weight of gridpoint/ index above
                 
-            if pIndex[i]==-1: # could be a bug, seems like it should have another loop
+            #Same logic as above except the weights here concern the permanent income grid
+            if pIndex[i]==-1: 
                 plowerIndex = 0
                 pupperIndex = 0
                 plowerWeight = 1.0
@@ -2512,26 +2521,24 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 plowerWeight = (Dist_pGrid[pupperIndex]-perm_vals[i])/(Dist_pGrid[pupperIndex]-Dist_pGrid[plowerIndex])
                 pupperWeight = 1.0 - plowerWeight
                 
-            probGrid[mlowerIndex][plowerIndex] = probGrid[mlowerIndex][plowerIndex] + probs[i]*mlowerWeight*plowerWeight  
-            probGrid[mlowerIndex][pupperIndex] = probGrid[mlowerIndex][pupperIndex] + probs[i]*mlowerWeight*pupperWeight
-            probGrid[mupperIndex][plowerIndex] = probGrid[mupperIndex][plowerIndex] + probs[i]*mupperWeight*plowerWeight
-            probGrid[mupperIndex][pupperIndex] = probGrid[mupperIndex][pupperIndex] + probs[i]*mupperWeight*pupperWeight 
-            # if it was just m ,probs[i]*mlowerweight = probGrid[mLowerIndex]
+            # Compute probabilities of each gridpoint on the combined market resources and permanent income grid by looping through each point on the combined market resources and permanent income grid, 
+            # assigning probabilities to each gridpoint based off the probabilities of the surrounding mvals and pvals and their respective weights placed on the gridpoint.
+            # Note* probs[i] is the probability of mval AND pval occurring
+            probGrid[mlowerIndex][plowerIndex] = probGrid[mlowerIndex][plowerIndex] + probs[i]*mlowerWeight*plowerWeight # probability of gridpoint below mval and pval 
+            probGrid[mlowerIndex][pupperIndex] = probGrid[mlowerIndex][pupperIndex] + probs[i]*mlowerWeight*pupperWeight # probability of gridpoint below mval and above pval
+            probGrid[mupperIndex][plowerIndex] = probGrid[mupperIndex][plowerIndex] + probs[i]*mupperWeight*plowerWeight # probability of gridpoint above mval and below pval
+            probGrid[mupperIndex][pupperIndex] = probGrid[mupperIndex][pupperIndex] + probs[i]*mupperWeight*pupperWeight # probability of gridpoint above mval and above pval
             
-            # if it was just m , This is what the code would look like.
-            #probGrid[mlowerIndex] = probGrid[mlowerIndex]+ probs[i]*mlowerWeight
-            #probGrid[mupperIndex] = probGrid[mupperIndex] + probs[i]*mupperWeight
-            # 
-            
+
         return probGrid.flatten()
     
     
     def Calc_Ergodic_Dist(self):
         
         '''
-        Calculates the egodic distribution across normalized market resources and
+        Calculates the ergodic distribution across normalized market resources and
         permanent income as the eigenvector associated with the eigenvalue 1.
-        The distribution is presented as a vector and as a reshaped array with the ij'th element representing
+        The distribution is stored as attributes of self both as a vector and as a reshaped array with the ij'th element representing
         the probability of being at the i'th point on the mGrid and the j'th
         point on the pGrid.
         
