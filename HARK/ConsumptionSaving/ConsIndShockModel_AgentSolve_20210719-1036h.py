@@ -1857,46 +1857,46 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         self.CubicBool = CubicBool
 
         # In which column is each object stored in IncShkDstn?
-        Pars.permPos = IncShkDstn.parameters['ShkPosn']['perm']
-        Pars.tranPos = IncShkDstn.parameters['ShkPosn']['tran']
+        Bilt.permPos = IncShkDstn.parameters['ShkPosn']['perm']
+        Bilt.tranPos = IncShkDstn.parameters['ShkPosn']['tran']
 
         # Bcst are "broadcasted" values: serial list of every permutation
         # Makes it fast to take expectations using E_dot
-        Pars.permShkValsBcst = permShkValsBcst = IncShkDstn.X[Pars.permPos]
-        Pars.tranShkValsBcst = tranShkValsBcst = IncShkDstn.X[Pars.tranPos]
+        Bilt.permShkValsBcst = permShkValsBcst = IncShkDstn.X[Bilt.permPos]
+        Bilt.tranShkValsBcst = tranShkValsBcst = IncShkDstn.X[Bilt.tranPos]
 
-        Pars.ShkPrbs = ShkPrbs = IncShkDstn.pmf
+        Bilt.ShkPrbs = ShkPrbs = IncShkDstn.pmf
 
-        Pars.permShkPrbs = permShkPrbs = permShkDstn.pmf
-        Pars.permShkVals = permShkVals = permShkDstn.X
+        Bilt.permShkPrbs = permShkPrbs = permShkDstn.pmf
+        Bilt.permShkVals = permShkVals = permShkDstn.X
         # Confirm that perm shocks have expectation near one
         assert_approx_equal(E_dot(permShkPrbs, permShkVals), 1.0)
 
-        Pars.tranShkPrbs = tranShkPrbs = tranShkDstn.pmf
-        Pars.tranShkVals = tranShkVals = tranShkDstn.X
+        Bilt.tranShkPrbs = tranShkPrbs = tranShkDstn.pmf
+        Bilt.tranShkVals = tranShkVals = tranShkDstn.X
         # Confirm that tran shocks have expectation near one
         assert_approx_equal(E_dot(tranShkPrbs, tranShkVals), 1.0)
 
-        Pars.permShkMin = permShkMin = np.min(permShkVals)
-        Pars.tranShkMin = tranShkMin = np.min(tranShkVals)
+        Bilt.permShkMin = permShkMin = np.min(permShkVals)
+        Bilt.tranShkMin = tranShkMin = np.min(tranShkVals)
 
-        Pars.permShkMax = permShkMax = np.max(permShkVals)
-        Pars.tranShkMax = tranShkMax = np.max(tranShkVals)
+        Bilt.permShkMax = permShkMax = np.max(permShkVals)
+        Bilt.tranShkMax = tranShkMax = np.max(tranShkVals)
 
-        Pars.UnempPrb = Pars.tranShkPrbs[0]
+        Bilt.UnempPrb = Bilt.tranShkPrbs[0]
 
-        Pars.inc_min_Prb = np.sum(  # All cases where perm and tran Shk are Min
+        Bilt.inc_min_Prb = np.sum(  # All cases where perm and tran Shk are Min
             ShkPrbs[ \
                 permShkValsBcst * tranShkValsBcst == permShkMin * tranShkMin
             ]
         )
 
-        Pars.inc_max_Prb = np.sum(  # All cases where perm and tran Shk are Min
+        Bilt.inc_max_Prb = np.sum(  # All cases where perm and tran Shk are Min
             ShkPrbs[ \
                 permShkValsBcst * tranShkValsBcst == permShkMax * tranShkMax
             ]
         )
-        Pars.inc_max_Val = permShkMax * tranShkMax
+        Bilt.inc_max_Val = permShkMax * tranShkMax
 
     def build_facts_infhor(self):
         """
@@ -2101,19 +2101,19 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         E_Next_.mLev_tp1_Over_pLev_t_from_a_t = (
             lambda a_t:
             E_dot(Pars.PermGroFac *
-                  Pars.permShkValsBcst *
-                  (E_Next_.RNrm_PF / Pars.permShkValsBcst) * a_t
-                  + Pars.tranShkValsBcst,
-                  Pars.ShkPrbs)
+                  Bilt.permShkValsBcst *
+                  (E_Next_.RNrm_PF / Bilt.permShkValsBcst) * a_t
+                  + Bilt.tranShkValsBcst,
+                  Bilt.ShkPrbs)
         )
         # E[c_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
         E_Next_.cLev_tp1_Over_pLev_t_from_a_t = (
             lambda a_t:
             E_dot(Pars.PermGroFac *
-                  Pars.permShkValsBcst *
-                  Bilt.cFunc((E_Next_.RNrm_PF / Pars.permShkValsBcst) * a_t
-                             + Pars.tranShkValsBcst),
-                  Pars.ShkPrbs)
+                  Bilt.permShkValsBcst *
+                  Bilt.cFunc((E_Next_.RNrm_PF / Bilt.permShkValsBcst) * a_t
+                             + Bilt.tranShkValsBcst),
+                  Bilt.ShkPrbs)
         )
         E_Next_.c_where_E_Next_m_tp1_minus_m_t_eq_0 = \
             lambda m_t: \
@@ -2130,11 +2130,11 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         E_Next_.cLev_tp1_Over_pLev_t_from_num_a_t = (
             lambda a_t:
             E_dot(
-                Pars.permShkValsBcst * Pars.PermGroFac * Bilt.cFunc(
-                    (E_Next_.RNrm_PF / Pars.permShkValsBcst) *
-                    a_t + Pars.tranShkValsBcst
+                Bilt.permShkValsBcst * Pars.PermGroFac * Bilt.cFunc(
+                    (E_Next_.RNrm_PF / Bilt.permShkValsBcst) *
+                    a_t + Bilt.tranShkValsBcst
                 ),
-                Pars.ShkPrbs)
+                Bilt.ShkPrbs)
         )
         E_Next_.cLev_tp1_Over_pLev_t_from_lst_a_t = (
             lambda a_lst: list(map(
@@ -2296,7 +2296,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         if eventTiming == 'EOP':  # shocks happen at end of this period
             return  # nothing needs to be done
 
-        CRRA, Rfree, permPos = Pars.CRRA, Pars.Rfree, Pars.permPos
+        CRRA, Rfree, permPos = Pars.CRRA, Pars.Rfree, Bilt.permPos
         PermGroFac = Pars.PermGroFac
         vFunc, cFunc = crnt.vFunc, crnt.cFunc
         Discount = 1.0  # Allows formulae to be identical here and in E_Next_

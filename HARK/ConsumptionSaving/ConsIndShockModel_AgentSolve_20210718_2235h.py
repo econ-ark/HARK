@@ -385,7 +385,6 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         Bilt.conditions = {}  # Keep track of truth of conditions
         Bilt.degenerate = False  # True: solution is degenerate
-        breakpoint()
 
         stdout_handler = logging.StreamHandler(sys.stdout)
         _log.addHandler(stdout_handler)  # "print" it to stdout as well as logfile

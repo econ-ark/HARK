@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 import numpy as np
 from copy import copy, deepcopy
 from builtins import (range, str, breakpoint)
@@ -14,10 +15,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel_CommonDefs \
     import (def_utility, def_value_funcs,
             construct_assets_grid)
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
-    import (ConsumerSolutionOneStateCRRA,
-            ConsPerfForesightSolver,
+    import (ConsumerSolutionOneNrmStateCRRA, ConsPerfForesightSolver,
             ConsIndShockSolverBasic, ConsIndShockSolver,
-            #            Built
             )
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
     import (init_perfect_foresight, init_idiosyncratic_shocks)
@@ -30,28 +29,32 @@ from HARK.utilities import uPPFunc_CRRA_stone_geary as uPP_stone_geary
 
 
 """
-Defines increasingly specialized agent types for one-state-variable
+Define increasingly specialized AgentTypes for one-state-variable
 consumption problem.
 
-    * consumer_terminal_nobequest_onestate: The single state variable defined
-    here is market resources `m,` the sum of assets from prior choices
-    and income earned immediately before consumption decision.
-    Incorporates a `nobequest` terminal consumption function
-    in which consumption `c = m`
+    * consumer_terminal_nobequest_onestate:
 
-    * PerfForesightConsumerType: Subclass of consumer_terminal_nobequest_onestate
-    in which income and asset returns are perfectly predictable
-    and utility is CRRA
+        The single state variable defined here is market resources `m,` the sum
+    of assets from prior choices and income earned immediately before
+    consumption decision.  Incorporates a `nobequest` terminal consumption
+    function in which consumption `c = m`
 
-    * IndShockConsumerType: Subclass of PerfForesightConsumerType
-    in which noncapital income has transitory and permanent shocks,
-    and the lowest realization of the transitory shock corresponds
-    to a one-period spell of `unemployment.'
+    * PerfForesightConsumerType:
 
-    * KinkedRconsumerType: Subclass of IndShockConsumerType
-    in which the interest factor depends on whether the consumer
-    ends the period with positive market assets (earning `Rsave`)
-    or negative market assets (paying interest according to
+        Subclass of consumer_terminal_nobequest_onestate in which income and
+    asset returns are perfectly predictable and utility is CRRA
+
+    * IndShockConsumerType:
+
+        Subclass of PerfForesightConsumerType in which noncapital income has
+    transitory and permanent shocks, and the lowest realization of the
+    transitory shock corresponds to a one-period spell of `unemployment.'
+
+    * KinkedRconsumerType:
+
+        Subclass of IndShockConsumerType in which the interest factor depends
+    on whether the consumer ends the period with positive market assets
+    (earning `Rsave`) or negative market assets (paying interest according to
     `Rboro > Rsave`).
 
 """
@@ -73,8 +76,7 @@ __all__ = [
 
 class AgentTypePlus(AgentType):
     """
-    AgentType augmented with a few features that should be incorporated into
-    the base AgentType
+    Augment AgentType with features that should be incorporated into AgentType.
     """
     __doc__ += AgentType.__doc__
     __doc__ += """
@@ -102,9 +104,10 @@ class AgentTypePlus(AgentType):
 
     # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
     def __init__(self, *args,
-                 verbose=1,
-                 **kwargs):  # Inherit from basic AgentType
-        AgentType.__init__(self, *args, **kwargs)
+                 verbose=True,  # Equivalent to "True"
+                 quietly=False,  # Suppress all output
+                 **kwds):  # Inherit from basic AgentType
+        AgentType.__init__(self, *args, **kwds)
 
         # The base MetricObject class automatically constructs a list
         # of parameters but for some reason it does not get some
@@ -118,6 +121,7 @@ class AgentTypePlus(AgentType):
         # Goal: Push everything that will universally be needed down to the
         # AgentType level.  Verbosity is such a thing.
         self.verbose = verbose
+        self.quietly = quietly  #
         set_verbosity_level((4 - verbose) * 10)
 
     def agent_store_model_params(self, prmtv_par, aprox_lim):
@@ -169,18 +173,21 @@ class AgentTypePlus(AgentType):
             for par in self.solve_par_vals:
                 solve_par_vals_now[par] = getattr(self, par)
 
-            if not (solve_par_vals_now == self.solve_par_vals):
-                _log.info('Some model parameter has changed since last update.')
-                _log.info('Storing new parameters and updating shocks and grid.')
-                self.agent_force_prepare_info_needed_to_begin_solving()
+            breakpoint()
 
-    def agent_force_prepare_info_needed_to_begin_solving(self):
+            if not (solve_par_vals_now == self.solve_par_vals):
+                if self.verbose:
+                    _log.info('Some model parameter has changed since last update.')
+                    _log.info('Storing new parameters and updating shocks and grid.')
+                self._agent_force_prepare_info_needed_to_begin_solving()
+
+    def _agent_force_prepare_info_needed_to_begin_solving(self):
         # There are no universally required pre_solve objects
         pass
 
     # pre_solve is the old name, preserved as an alias because
     # core.py uses it.  New name is MUCH clearer
-    pre_solve = agent_force_prepare_info_needed_to_begin_solving
+    pre_solve = _agent_force_prepare_info_needed_to_begin_solving
 
     # Universal method to either warn that something went wrong
     # or to mark the solution as having completed.  Should not
@@ -210,7 +217,7 @@ class AgentTypePlus(AgentType):
     # User-provided handmade solution_terminal is likely to be bare-bones
     # Below is a placeholder for anything that user might want to do
     # programmatially to enhance it
-    def finish_setup_of_default_solution_terminal():
+    def finish_setup_of_default_solution_terminal(self):
         """
         Add to `solution_terminal` characteristics of the agent required
         for solution of the particular type which are not automatically
@@ -233,7 +240,7 @@ class AgentTypePlus(AgentType):
             self.solution_terminal.Bilt = \
                 self.finish_setup_of_default_solution_terminal()
             # make url that will locate the documentation
-            self.url_doc_for_this_agent_type_get()
+            self._url_doc_for_this_agent_type_get()
         # any user-provided solution should already be enriched
 
 
@@ -297,7 +304,7 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
 
         mNrmMin, hNrm, MPCmin, MPCmax = 0.0, -1.0, float('inf'), float('inf')
 
-        solution_afterlife_nobequest_ = ConsumerSolutionOneStateCRRA(
+        solution_afterlife_nobequest_ = ConsumerSolutionOneNrmStateCRRA(
             vFunc=vFunc,
             vPfunc=vPfunc,  # TODO: vPfunc deprecated; remove
             vPPfunc=vPPfunc,  # TODO: vPPfunc deprecated: Remove
@@ -329,7 +336,7 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         def u(c): CRRAutility(c, CRRA)
 
         solution_nobequest_ = \
-            ConsumerSolutionOneStateCRRA(  # Omit vFunc b/c u not yet def
+            ConsumerSolutionOneNrmStateCRRA(  # Omit vFunc b/c u not yet def
                 cFunc=cFunc_terminal_nobequest_,
                 #                vFunc=u,
                 mNrmMin=mNrmMin,  # TODO: deprecated; remove
@@ -355,7 +362,7 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         self.solution_terminal = deepcopy(solution_terminal_)
 
 
-class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
+class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneNrmStateCRRA):
     """
     Homothetic Stone-Geary bequest utility function with bequests as a luxury.
 
@@ -398,10 +405,10 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
             CRRA=2,
             **kwds):
 
-        ConsumerSolutionOneStateCRRA.__init__(self,
-                                              cycles=cycles,
-                                              pseudo_terminal=False, CRRA=CRRA,
-                                              **kwds)
+        ConsumerSolutionOneNrmStateCRRA.__init__(self,
+                                                 cycles=cycles,
+                                                 pseudo_terminal=False, CRRA=CRRA,
+                                                 **kwds)
 
         Bilt = self.Bilt  # alias
 
@@ -438,7 +445,7 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
             [0., 1.], [0., 1.]
         )
 
-        sab = solution_afterlife_bequest_ = ConsumerSolutionOneStateCRRA(
+        sab = solution_afterlife_bequest_ = ConsumerSolutionOneNrmStateCRRA(
             cFunc=bequest_entering_utility,
             u=u_stone_geary, uP=uP_stone_geary, uPP=uPP_stone_geary,
             vFunc=u_stone_geary, vPfunc=uP_stone_geary,
@@ -474,10 +481,13 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneStateCRRA):
     def cFunc(self, m):
         MPC_constr = self.Bilt.MPC_constr
         mNrm_kinks = self.Bilt.mNrm_kinks
-        constr_0 = np.heaviside(m-mNrm_kinks[0], 0.)  # 0 if constrained, else 1
+        constr_0 = np.heaviside(m-mNrm_kinks[0], 0.)  # 0 if constrnd, else 1
         c_constr = (1-constr_0)*m  # m if m < kink
         c_uncons = constr_0*(c_constr+MPC_constr[0]*(m-mNrm_kinks[0]))
         return c_constr+c_uncons
+
+# It should be possible to swap other bequest motive choices, but this
+# has not really been tested (20210718)
 
 
 class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
@@ -498,7 +508,10 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
     time_vary_ = ["LivPrb",  # Age-varying death rates can match mortality data
                   "PermGroFac"]  # Age-varying income growth to match lifecycle
-    time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt"]
+    time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt",
+                 "solveMethod", "eventTiming", "solverType",
+                 "horizon"
+                 ]
     state_vars = ['pLvl',  # Initial idiosyncratic permanent income
                   'PlvlAgg',  # Aggregate permanent income
                   'bNrm',  # Bank balances beginning of period (pLvl normed)
@@ -508,12 +521,13 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
     def __init__(self,
                  cycles=1,  # Default to finite horiz
-                 quiet=False,  # do not check conditions
+                 quietly=False,  # if True, do print anything conditions
                  solution_startfrom=None,  # Default: no interim solution
                  solver=ConsPerfForesightSolver,
                  solveMethod='EGM',
                  eventTiming='EOP',
                  solverType='HARK',
+                 horizon='infinite',
                  **kwds
                  ):
 
@@ -531,6 +545,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         self.solveMethod = solveMethod
         self.eventTiming = eventTiming
         self.solverType = solverType
+        self.horizon = horizon
 
         # Things to keep track of for this and child models
         self.check_restrictions()  # Make sure it's a minimally valid model
@@ -547,7 +562,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
             self.solution_terminal.Bilt = \
                 self.finish_setup_of_default_solution_terminal()
             # make url that will locate the documentation
-            self.url_doc_for_this_agent_type_get()
+            self._url_doc_for_this_agent_type_get()
         # any user-provided solution should already be enriched
 
         # The foregoing is executed by all classes that inherit from PF model
@@ -562,7 +577,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         if self.income_risks_exist:  # We got here from a model with risks
             return  # Models with risks have different prep
 
-        self.agent_force_prepare_info_needed_to_begin_solving()
+        self._agent_force_prepare_info_needed_to_begin_solving()
 
         # Store initial params; later used to test if anything changed
         self.agent_store_model_params(params['prmtv_par'],
@@ -576,19 +591,29 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                 eventTiming=eventTiming
             )  # allows user-specified alt
 
-        self.make_solution_for_final_period()  # Populate instance.solution[0]
+        self._make_solution_for_final_period()  # Populate instance.solution[0]
 
     def add_stable_points_to_solution(self, soln):
         """
-        If the model is one characterized by stable points, calculate those and
-        attach them to the solution.
+        If they exist, add any stable points to the model solution object.
 
         Parameters
         ----------
-        soln : ConsumerSolution
+        soln : agent_solution
             The solution whose stable points are to be calculated
         """
-        soln.check_conditions(soln, verbose=0)
+        #  Users can effectively solve approx to inf hor PF model by specifying
+        #  the "horizon" (number of periods to be solved). In that special case
+        #  the "conditions" are relevant because we are thinking of it as an
+        #  inf hor model, so allow that case to slip through the cracks
+        if soln.Pars.horizon != 'infinite':
+            if soln.Pars.BoroCnstArt is None:
+                return
+            else:  # finite horizon borrowing constrained model
+                if self.income_risks_exist:
+                    return  # infinite horizon conditions unimportant
+
+        soln.check_conditions(messaging_level=logging.INFO)
 
         if not soln.Bilt.GICRaw:  # no mNrmStE
             wrn = "Because the model's parameters do not satisfy the GIC, it " +\
@@ -610,7 +635,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
             if not soln.Bilt.GICNrm:
                 wrn = "Because the model's parameters do not satisfy the " +\
                     "stochastic-growth-normalized GIC, it does not exhibit " +\
-                    "a target level of wealth."
+                    "a target ratio of assets (or cash-on-hand) to permanent income."
                 _log.warning(wrn)
                 soln.Bilt.mNrmTrg = float('nan')
             else:  # GICNrm exists
@@ -626,19 +651,22 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     # the agent in a state where invoking the ".solve()" method as before will
     # accomplish the same things it did before, but from the new starting setup
 
-    def make_solution_for_final_period(self):  # solution[0]=terminal_solution
+    def _make_solution_for_final_period(self, verbose=False, quietly=True):
         # but want to add extra info required for backward induction
         cycles_orig = deepcopy(self.cycles)
         tolerance_orig = deepcopy(self.tolerance)
         self.tolerance = float('inf')  # Any distance satisfies this tolerance!
         if self.cycles > 0:  # Then it's a finite horizon problem
-            self.cycles = 0  # Tell it to solve only one period (leaving MaxKinks be)
-        self.solve()  # ... means that "solve" will stop after setup ...
+            self.cycles = 0  # solve only one period (leaving MaxKinks be)
+            self.solve(verbose=False, quietly=True)  # do not spout nonsense
+        else:  # tolerance of inf means that "solve" will stop after setup ...
+#            breakpoint()
+            self.solve(verbose=False, quietly=True)
         self.tolerance = tolerance_orig  # which leaves us ready to solve
         self.cycles = cycles_orig  # with the original convergence criteria
         self.solution[0].Bilt.stge_kind['iter_status'] = 'iterator'
-        self.solution[0].Bilt.vAdd = np.array([0.0])  # Amount to add to final v
-        self.soln_crnt = self.solution[0]  # current soln is now the newly made one
+        self.solution[0].Bilt.vAdd = np.array([0.0])  # Amount to add to last v
+        self.soln_crnt = self.solution[0]  # current soln is now newly made one
 
     def agent_post_post_solve(self):  # Overwrites version from AgentTypePlus
         if self.cycles == 0:  # if it's an infinite horizon model
@@ -650,7 +678,8 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         Check that various restrictions are met for the model class.
         """
         min0Bounded = {  # Things that must be >= 0
-            'tranShkStd', 'permShkStd', 'UnempPrb', 'IncUnemp', 'UnempPrbRet', 'IncUnempRet'}
+            'tranShkStd', 'permShkStd', 'UnempPrb', 'IncUnemp', 'UnempPrbRet',
+            'IncUnempRet'}
 
         gt0Bounded = {  # Things that must be >0
             'DiscFac', 'Rfree', 'PermGroFac', 'LivPrb'}
@@ -709,10 +738,11 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
         if not hasattr(self, 'solution'):  # A solution must have been computed
             _log.info('Make final soln because conditions are computed there')
-            self.make_solution_for_final_period()
+            self._make_solution_for_final_period()
 
         soln_crnt = self.solution[0]
-        soln_crnt.check_conditions(soln_crnt, verbose)  # real version on soln
+        soln_crnt.check_conditions(verbose)
+#       soln_crnt.check_conditions(soln_crnt, verbose)  # real version on soln
 
     # def dolo_defs(self):  # CDC 20210415: Beginnings of Dolo integration
     #     self.symbol_calibration = dict(  # not used yet, just created
@@ -778,7 +808,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
     check_conditions_solver = solver_check_conditions = check_conditions
 
-    def url_doc_for_this_agent_type_get(self):
+    def _url_doc_for_this_agent_type_get(self):
         # Generate a url that will locate the documentation
         self.class_name = self.__class__.__name__
         self.url_ref = "https://econ-ark.github.io/BufferStockTheory"
@@ -789,10 +819,10 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     # Prepare PF agent for solution of entire problem
     # Overwrites default version from AgentTypePlus
     # Overwritten by version in ConsIndShockSolver
-    def agent_force_prepare_info_needed_to_begin_solving(self):
+    def _agent_force_prepare_info_needed_to_begin_solving(self):
         # This will be reached by IndShockConsumerTypes when they execute
         # PerfForesightConsumerType.__init__ but will subsequently be
-        # overridden by the agent_force_prepare_info_needed_to_begin_solving
+        # overridden by the _agent_force_prepare_info_needed_to_begin_solving
         # method attached to the IndShockConsumerType class
 
         if (type(self) == PerfForesightConsumerType):
@@ -824,7 +854,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                             else:
                                 self.MaxKinks = self.cycles
 
-    pre_solve = agent_force_prepare_info_needed_to_begin_solving
+    pre_solve = _agent_force_prepare_info_needed_to_begin_solving
 
     def initialize_sim(self):
         self.mcrlovars = SimpleNamespace()
@@ -1053,7 +1083,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
     )
 
     def __init__(self,
-                 cycles=1, verbose=1,  quiet=True, solution_startfrom=None,
+                 cycles=0,  # cycles=0 signals infinite horizon
+                 verbose=True,  quietly=False, solution_startfrom=None,
                  solverType='HARK',
                  solveMethod='EGM',
                  eventTiming='EOP',
@@ -1064,14 +1095,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Inherit characteristics of a PF model with the same parameters
         PerfForesightConsumerType.__init__(self, cycles=cycles,
-                                           verbose=verbose, quiet=quiet,
+                                           verbose=verbose, quietly=quietly,
                                            **params)
 
         self.update_parameters_for_this_agent_subclass()  # Add new Pars
 
         # If precooked terminal stage not provided by user ...
         if not hasattr(self, 'solution_startfrom'):  # .. then init the default
-            self.agent_force_prepare_info_needed_to_begin_solving()
+            self._agent_force_prepare_info_needed_to_begin_solving(quietly)
 
         # - Default interpolation method is piecewise linear
         # - Cubic is smoother, works if problem has no constraints
@@ -1104,7 +1135,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.agent_store_model_params(params['prmtv_par'], params['aprox_lim'])
 
         # Put the (enhanced) solution_terminal in self.solution[0]
-        self.make_solution_for_final_period()
+
+        self._make_solution_for_final_period(verbose=verbose, quietly=True)
 
     def dolo_model(self):
         # Create a dolo version of the model
@@ -1116,7 +1148,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if self.verbose >= 2:
             _log.info(self.dolo_modl)
 
-    def agent_force_prepare_info_needed_to_begin_solving(self):
+    def _agent_force_prepare_info_needed_to_begin_solving(self, quietly):
         """
         Update any characteristics of the agent that need to be recomputed
         as a result of changes in parameters since the last time the solver was invoked.
@@ -1134,24 +1166,26 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # passed, we might need to do some other setup steps
         solve_par_vals_now = {}
         if not hasattr(self, 'solve_par_vals'):  # We haven't set it up yet
+            #            breakpoint()
             self.update_income_process()
             self.update_assets_grid()
         else:  # it has been set up, so see if anything changed
             for par in self.solve_par_vals:
                 solve_par_vals_now[par] = getattr(self, par)
             if not solve_par_vals_now == self.solve_par_vals:
-                _log.info('Some model parameter has changed since last update.')
-                _log.info('Storing new parameters and updating shocks and grid.')
+                if not quietly:
+                    _log.info('Some parameter has changed since last update.')
+                    _log.info('Storing calculated consequences for grid etc.')
                 self.update_income_process()
                 self.update_assets_grid()
 
-    pre_solve = agent_force_prepare_info_needed_to_begin_solving
+    pre_solve = _agent_force_prepare_info_needed_to_begin_solving
 
     # The former "[AgentType].update_pre_solve()" was not good nomenclature --
     #  easy to confuse with the also-existing "[AgentType].pre_solve()" and with
     # "[SolverType].prepare_to_solve()".  The new name,
     #
-    # agent_force_prepare_info_needed_to_begin_solving()
+    # _agent_force_prepare_info_needed_to_begin_solving()
     #
     # is better.  The old one
     # is preserved as an alias, below, to prevent breakage of existing code:
@@ -1462,13 +1496,10 @@ class KinkedRconsumerType(IndShockConsumerType):
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solve_one_period = make_one_period_oo_solver(
-            ConsKinkedRsolver,
-            solveMethod=solveMethod,
-            eventTiming=eventTiming
-        )
+            ConsKinkedRsolver)
         # Make assets grid, income process, terminal solution
 
-    def agent_force_prepare_info_needed_to_begin_solving(self):
+    def _agent_force_prepare_info_needed_to_begin_solving(self):
         self.update_assets_grid()
         self.update_income_process()
 

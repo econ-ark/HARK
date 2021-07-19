@@ -58,7 +58,7 @@ def set_verbosity_level(level):
     _log.setLevel(level)
 
 
-def core_check_condition(name, test, messages, verbose, verbose_messages, fact, stge):
+def core_check_condition(name, test, messages, messaging_intensity, verbose_messages, fact, stge, quietly=False):
     """
     Checks whether parameter values of a model satisfy a condition
 
@@ -70,31 +70,46 @@ def core_check_condition(name, test, messages, verbose, verbose_messages, fact, 
     test : function(self -> boolean)
          A function (of self) which tests the condition
 
+    verbose : Boolean
+         If False, print minimal information about the condition and exit
+         If True, print more detailed information and a reference
+
     messages : dict{boolean : string}
-        A dictiomary with boolean keys containing values
+        A dictionary with boolean keys containing values
         for messages to print if the condition is
         true or false.
 
+    messaging_intensity : int 
+        Controls verbosity of messages. 0 is less verbose, 1 is more verbose, 
+        etc.
+
     verbose_messages : dict{boolean : string}
-        (Optional) A dictiomary with boolean keys containing values
+        (Optional) A dictionary with boolean keys containing values
         for messages to print if the condition is
-        true or false under verbose printing.
+        true or false if messaging_intensity is high
 
     fact : string
          Name of the fact (for recording the results)
 
-    stage : instance containing condition to be tested
+    stge : solution object containing condition to be tested
         Must have dict 'conditions' [name]
+
+    quiet : boolean
+        If True, construct the conditions but print nothing
     """
 
     TF = test(stge)
     stge.Bilt.conditions[name] = TF
-    set_verbosity_level((4 - verbose) * 10)
-    stge.Bilt.conditions[fact] = (
-        messages[stge.Bilt.conditions[name]] +
-        verbose_messages[stge.Bilt.conditions[name]]).format(stge.Bilt)
-#    print(stge.Bilt.conditions[fact])
-    _log.info(stge.Bilt.conditions[fact])
+    if not quietly:
+        # Messages of severity less than minimum intensity are ignored
+        minimum_intensity = ((3 - messaging_intensity) * 10)
+        set_verbosity_level(minimum_intensity)  # Uses python logger setLevel
+        # Add verbose_messages to base if messaging intensity is high enough
+        stge.Bilt.conditions[fact] = (
+            messages[stge.Bilt.conditions[name]] +
+            verbose_messages[stge.Bilt.conditions[name]]).format(stge.Bilt)
+        _log.info(stge.Bilt.conditions[fact])
+
 
     return TF
 
@@ -321,25 +336,26 @@ class Model(object):
 class AgentType(Model):
     """
     A superclass for economic agents in the HARK framework. Each model should
-    specify its own subclass of AgentType, inheriting its methods and overwriting
+    specify its own subclass of AgentType, inheriting  methods and overwriting
     as necessary.  Critically, every subclass of AgentType should define class-
     specific static values of the attributes time_vary and time_inv as lists of
     strings.  Each element of time_vary is the name of a field in AgentSubType
-    that varies over time in the model.  Each element of time_inv is the name of
+    that varies over time in the model. Each element of time_inv is the name of
     a field in AgentSubType that is constant over time in the model.
 
     Parameters
     ----------
     solution_terminal : Solution
-        A representation of the solution to the terminal period/stage problem of
+        A representation of the solution to the terminal period/stage of
         this AgentType instance, or an initial guess of the solution if this
         is an infinite horizon problem.
     cycles : int
-        The number of times the sequence of periods/stages is experienced by this
-        AgentType in their "lifetime".  cycles=1 corresponds to a lifecycle
-        model, with a certain sequence of one period/stage problems experienced
+        The number of times the sequence of periods/stages is experienced by
+        this AgentType in their lifetime. cycles=1 corresponds to a lifecycle
+        model, with a given sequence of one period/stage problems experienced
         once before terminating.  cycles=0 corresponds to an infinite horizon
-        model, with a sequence of one period/stage problems repeating indefinitely.
+        model, with a sequence of one period/stage problems repeating
+        indefinitely.
     pseudo_terminal : boolean
         Indicates whether solution_terminal isn't actually part of the
         solution to the problem (as a known solution to the terminal period
@@ -347,8 +363,8 @@ class AgentType(Model):
         When True, solution_terminal is not included in the solution; when
         false, solution_terminal is the last element of the solution.
     tolerance : float
-        Maximum acceptable "distance" between successive solutions to the
-        one period/stage problem in an infinite horizon (cycles=0) model in order
+        Maximum acceptable "distance" between successive solutions to the one
+        period/stage problem in an infinite horizon (cycles=0) model in order
         for the solution to be considered as having "converged".  Inoperative
         when cycles>0.
     seed : int
@@ -395,11 +411,12 @@ class AgentType(Model):
         self.read_shocks = False  # NOQA
         self.shock_history = {}
         self.history = {}
-#        breakpoint()
+
         self.assign_parameters(**kwds)  # NOQA
         self.reset_rng()  # NOQA
         self.prmtv_par = dict()  # 'primitives' define true model
-        self.aprox_par = {'tolerance': self.tolerance, 'seed': self.seed}  # 'approximation' pars
+        # 'approximation' pars:
+        self.aprox_par = {'tolerance': self.tolerance, 'seed': self.seed}
         # sol approaches truth as all aprox_par -> lim
         self.aprox_lim = {'tolerance': 0.0, 'seed': None}
 
@@ -444,7 +461,7 @@ class AgentType(Model):
         Parameters
         ----------
         params : string
-            Any number of strings naming attributes to be removed from time_vary
+            Any number of strings naming attributes to remove from time_vary
 
         Returns
         -------
@@ -495,22 +512,21 @@ class AgentType(Model):
 
     # At present, the only solution method is EGM
     # The next method to add is value function iteration
-    def solve(self, **kwds):  # AgentType
+    def solve(self, verbose=False, quietly=True, **kwds):  # AgentType
         """
-        Solve the model for this instance of an agent type by backward induction.
-        Loops through the sequence of one period/stage problems, passing the solution
-        from period/stage t+1 to the problem for period/stage t.
+        Solve the model for this instance of an agent by backward induction.
+        Loops through sequence of one period/stage problems, passing solution
+        from next period/stage to the problem for current period/stage.
 
         Parameters
         ----------
-        verbose : boolean
-            If True, solution progress is printed to screen.
+        verbose : int
+            Level of verbosity, from 0 (be very, very quiet) to 4 (say it all)
 
         Returns
         -------
         none
         """
-#        breakpoint()
 
         # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
         # tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
@@ -518,9 +534,9 @@ class AgentType(Model):
         with np.errstate(
             divide="ignore", over="ignore", under="ignore", invalid="ignore"
         ):
-            self.pre_solve()  # Stuff to do before beginning to solve the model
+            self.pre_solve(quietly=True)  # Stuff to do before beginning to solve the model
             self.solution = solve_agent(
-                self, verbose
+                self, verbose, quietly, **kwds
             )  # Solve the model by backward induction
             self.post_solve()  # Do post-solution stuff
 
@@ -1012,11 +1028,11 @@ class AgentType(Model):
     clear_history_mcrlo = mcrlo_clear_history = clear_history
 
 
-def solve_agent(agent, verbose):
+def solve_agent(agent, verbose, quietly=False, **kwds):
     """
     Solve the dynamic model for one agent type using backwards induction.
 
-    This function iterates on "cycles" of an agent's model either a given number
+    Iterates on "cycles" of an agent's model either a given number
     of times or until solution convergence if an infinite horizon model is used
     (with agent.cycles = 0).
 
@@ -1027,65 +1043,57 @@ def solve_agent(agent, verbose):
         is to be solved.
     verbose : boolean
         If True, solution progress is printed to screen (when cycles != 1).
+    quietly : boolean
+        If True, all printed output is suppressed.
 
     Returns
     -------
     solution : [Solution]
-        A list of solutions to the one period/stage problems that the agent will
-        encounter in his "lifetime".
+        A list of solutions to one period/stage problems that the agent will
+        encounter in a "lifetime".
     """
     # Check to see whether this is an (in)finite horizon problem
     cycles_left = agent.cycles  # NOQA
     infinite_horizon = cycles_left == 0  # NOQA
-    # If this is a first run, the solution object will not exist
-    if not hasattr(agent, 'solution'):
+    # If we are resuming a solution process, a solution might already exist
+    if not hasattr(agent, 'solution'):  # Not resuming, create anew
         # Initialize the solution, which includes the terminal solution
         solution = []
-        # Old pseudo_terminal technology resided on agent; replaced by new
-        # [stge].stge_kind['iter_status']='terminal_partial' marker, but old
-        # code preserved here in case used somewhere
-#        pseudo = (agent.pseudo_terminal == True) or \
-#            (agent.solution_terminal.stge_kind['iter_status'] == 'terminal_partial')
-        pseudo = (agent.pseudo_terminal is True) or \
-            (agent.solution_terminal.Bilt.stge_kind['iter_status'] == 'terminal_partial')
-        if not pseudo:  # Then it's a real solution that should be part of the list
+        pseudo = (agent.pseudo_terminal is True)
+        if not pseudo:  # Then it's a real solution; should be part of the list
             solution.insert(0, deepcopy(agent.solution_terminal))
         completed_cycles = 0  # NOQA
-        max_cycles = 5000  # NOQA  - escape clause
-        solution_last = agent.solution_terminal  # NOQA
-        solution_last.cFunc = solution_last.Bilt.cFunc
-#        solution_last.IncShkDstn = solution_last.Bilt.IncShkDstn
-#        breakpoint()
-        # if it's a pseudo-terminal period, it will be removed at the end
+        max_cycles = 5000  # NOQA  - escape clause, stop eventually
+        solution_next = agent.solution_terminal  # NOQA
+        solution_next.cFunc = solution_next.Bilt.cFunc
     else:  # We are resuming solution of a model that has already been solved
         solution = agent.solution
-#        breakpoint()
-        solution_last = agent.solution[0]
-        if hasattr(solution_last, 'completed_cycles'):
-            completed_cycles = solution_last.completed_cycles
-        else:
-            completed_cycles = solution_last.completed_cycles \
-                = 0
-        if hasattr(agent, 'max_cycles'):
+        solution_next = agent.solution[0]
+        if hasattr(solution_next, 'completed_cycles'):  # keep counting
+            completed_cycles = solution_next.completed_cycles
+        else:  # start counting
+            completed_cycles = solution_next.completed_cycles = 0
+        if hasattr(agent, 'max_cycles'):  # keep max
             max_cycles = agent.max_cycles
         else:
-            max_cycles = 5000
+            max_cycles = 5000  # stop eventually
 
-    if hasattr(solution_last, 'stge_kind'):
-        if 'iter_status' in solution_last.stge_kind:
-            if solution_last.stge_kind['iter_status'] \
-               == 'finished':
+    if hasattr(solution_next, 'stge_kind'):
+        # User who wants to resume, say to solve to tighter tolerance, needs
+        # of course to change the tolerance parameter but must also change the
+        # from 'finished' to 'iterator'
+        if 'iter_status' in solution_next.stge_kind:
+            if solution_next.stge_kind['iter_status'] == 'finished':
                 _log.info('The model has already been solved.')
                 print('The existing solution solves the problem')
                 return agent.solution
 
     # Initialize the process, then loop over cycles
     go = True  # NOQA
-    if verbose:
+    if verbose > 0:
         t_last = time()
     while go:          # Solve a cycle of the model
-        #        breakpoint()
-        solution_cycle = solve_one_cycle(agent, solution_last)
+        solution_cycle = solve_one_cycle(agent, solution_next)
         solution_now = solution_cycle[0]
         if not infinite_horizon:
             # If finite horizon model, add cycle to the growing list
@@ -1093,21 +1101,15 @@ def solve_agent(agent, verbose):
             cycles_left += -1
             go = cycles_left > 0
             # Don't count replacement of terminal_partial as a cycle; see below
-            if solution_last.Bilt.stge_kind['iter_status'] == 'terminal_partial':
+            if solution_next.Bilt.stge_kind['iter_status'] == 'terminal_partial':
                 cycles_left += 1
                 completed_cycles += -1
                 go = True
         else:  # infinite horizon
             solution = solution_cycle
             solution_now = solution_cycle[0]  # element 0 most recently solved
-#            if not solution_now.Bilt.hNrm:
-#                print('no solutioni_now.Bilt')
-#                breakpoint()
-            # Check for termination: solutions identical (within tolerance)
-#            breakpoint()
             solution_now.solution_distance = \
-                solution_distance = solution_now.distance(solution_last)
-#            print('solution_distance'+str(solution_distance))
+                solution_distance = solution_now.distance(solution_next)
             go = (
                 solution_distance > agent.tolerance
                 and completed_cycles < max_cycles
@@ -1118,7 +1120,7 @@ def solve_agent(agent, verbose):
             # * Change solution[0] stge_kind['iter_status'] to 'iterator'
             # * Set the variable [instance].solve_resume = True
             # * Restart the solution process with [instance].solve()
-            # TODO: 20210512 - this has been tested only for PerfForesightConsumerType
+            # TODO: this has been tested only for PerfForesightConsumerType
             # and IndShockConsumerType.  We should test whether agent is one of
             # those before allowing resume
 
@@ -1133,9 +1135,9 @@ def solve_agent(agent, verbose):
                 # Handle cases where that has not yet been implemented:
                 if not hasattr(solution_now.Bilt, 'stge_kind'):
                     solution_now.Bilt.stge_kind = {'iter_status': 'iterator'}
-                if solution_last.Bilt.stge_kind['iter_status'] == 'terminal_partial':
+                if solution_next.Bilt.stge_kind['iter_status'] == 'terminal_partial':
                     completed_cycles += -1  # replacement is not a cycle
-                else:  # Replacing terminal_partial is not a cycle
+                else:  # Replacing terminal_partial is not a "real" cycle
                     # This prevents a stage derived from one marked as
                     # 'terminal_partial' from being labeled as
                     # 'finished' even though its distance will be zero
@@ -1147,48 +1149,39 @@ def solve_agent(agent, verbose):
         # Update the "last period/stage solution" for next iteration
         completed_cycles += 1
         solution_now.completed_cycles = deepcopy(completed_cycles)
-        solution_last = solution_now
-#        breakpoint()
-        if (agent.verbose < 2):
-            #        print('completed_cycles = '+str(completed_cycles))
-            if go:
-                print('.', end='')
-            else:
-                print('')
-#        breakpoint()
+        solution_next = solution_now
+
+        if not quietly:
+            print('.', end='')  # visually indicate something is happening
         # Display progress if requested
-        if agent.verbose > 1:
-            t_now = time()
-            if infinite_horizon:
-                print(
-                    "Finished cycle # "
-                    + str(completed_cycles).zfill(6)
-                    + " in "
-                    + str("{:9.6f}".format(t_now - t_last))
-                    + " seconds, solution distance = "
-                    + str("{:.3e}".format(solution_distance))
-                )
-            else:
-                print(
-                    "Finished cycle # "
-                    + str(completed_cycles).zfill(len(agent.cycles))
-                    + " of "
-                    + str(agent.cycles)
-                    + " in "
-                    + str("{:9.6f}".format(t_now - t_last))
-                    + " seconds."
-                )
-            t_last = t_now
+        if not quietly:
+            if verbose > 0:
+                t_now = time()
+                if infinite_horizon:
+                    print(
+                        "Finished cycle # "
+                        + str(completed_cycles).zfill(6)
+                        + " in "
+                        + str("{:9.6f}".format(t_now - t_last))
+                        + " seconds, solution distance = "
+                        + str("{:.3e}".format(solution_distance))
+                    )
+                else:
+                    print(
+                        "Finished cycle # "
+                        + str(completed_cycles).zfill(len(str(agent.cycles)))
+                        + " of "
+                        + str(agent.cycles)
+                        + " in "
+                        + str("{:9.6f}".format(t_now - t_last))
+                        + " seconds."
+                    )
+                    t_last = t_now
 
     return solution
 
-# As things stand (20210331) the solve_one_cycle code has begun the
-# transition from referring to successive problems within a "cycle" as being
-# "stages" rather than "periods". To minimize disruption to other code, the
-# changes have been restricted to variables that are strictly local
 
-
-def solve_one_cycle(agent, solution_last):
+def solve_one_cycle(agent, solution_next):
     """
     Solve one "cycle" of the dynamic model for one agent type.  This function
     iterates over the stages within an agent's cycle, updating the stage-
@@ -1198,7 +1191,7 @@ def solve_one_cycle(agent, solution_last):
     ----------
     agent : AgentType
         The microeconomic AgentType whose dynamic problem is to be solved.
-    solution_last : Solution
+    solution_next : Solution
         A representation of the solution of the period/stage that comes after the
         end of the sequence of one period/stage problems.  This might be the term-
         inal period/stage solution, a "pseudo terminal" solution, or simply the
@@ -1222,17 +1215,18 @@ def solve_one_cycle(agent, solution_last):
     else:
         num_stges = 1
 
-    # Add to dict all the parameters in time_inv and time_vary
-    solve_dict = {parameter: agent.__dict__[parameter] for parameter in agent.time_inv}
-    solve_dict.update({parameter: None for parameter in agent.time_vary})
+    # Add to solve_dict all the parameters in time_inv and time_vary
+    solve_dict = {parameter: agent.__dict__[parameter]
+                  for parameter in agent.time_inv}
+    solve_dict.update({parameter: None
+                       for parameter in agent.time_vary})
 
     # Initialize the solution for this cycle, then iterate through stages
     full_cycle = []
-#    breakpoint()
-    solution_next = solution_last  # next because about to solve predecessor
-    for stge in range(num_stges):  # e.g., for quarterly model, num_stges = 4 quarters
-        # Update which single period/stage solver to use (if it depends on stage)
-        if hasattr(agent.solve_one_period, "__getitem__"):  # -> solve_this_stge
+#    solution_next = solution_last  # next because about to solve predecessor
+    for stge in range(num_stges):  # for quarterly model, num_stges = 4 qtrs
+        # Update which single period/stage solver to use (if depends on stage)
+        if hasattr(agent.solve_one_period, "__getitem__"):  # ->solve_this_stge
             solve_one_period = agent.solve_one_period[num_stges - 1 - stge]
         else:
             solve_one_period = agent.solve_one_period
@@ -1247,7 +1241,6 @@ def solve_one_cycle(agent, solution_last):
         else:
             these_args = get_arg_names(solve_one_period)
 
-#        breakpoint()
         # Update stage-varying single period/stage inputs
         # This obtains the value for the current step by indexing
         # into the attribute's list at [num_stges - 1 - stge]
@@ -1257,21 +1250,13 @@ def solve_one_cycle(agent, solution_last):
 
         solve_dict['solution_next'] = solution_next  # solution_stage_next
 
-        # solveMethod is attached to agent like "tolerance"; both of them
-        # should change to become variables that are allowed to time-vary
-
-        solve_dict['solveMethod'] = agent.solveMethod
-        solve_dict['eventTiming'] = agent.eventTiming
-        solve_dict['solverType'] = agent.solverType
-
         # Make a temporary dictionary for this period
-#        breakpoint()
         temp_dict = {name: solve_dict[name] for name in these_args}
 
         # Solve one stage, add it to the collection, and designate
         # the just-solved solution as being in the future for the
         # purposes of any remaining iteration(s)
-#        breakpoint()
+
         solution_stge = solve_one_period(**temp_dict)  # -> solve_this_stage
         # # store the parameters
         # solution_stge.parameters_solver = \
@@ -1320,25 +1305,24 @@ def make_one_period_oo_solver(solver_class, **kwds):
     solver_function : function
         A function for solving one period/stage of a problem.
     """
-#    breakpoint()
 
-    def one_period_solver(**kwds):  # FIX: rename to, say, solve_stge
+    def one_period_solver(**kwds):  # TODO: rename to, say, one_stage_solver_make
         # last step in loop over num_stges in solve_one_cycle is:
-        # """ solve_one_period(**temp_dict) [should become, say, solve_this_stge]
-        solver = solver_class(**kwds)  # defined extrnally
-#        breakpoint()
+        # solve_one_period(**temp_dict) [should become, say, solve_this_stge]
+        solver = solver_class(**kwds)  # defined externally
+
         if hasattr(solver, "prepare_to_solve"):
             # Steps, if any, to prep for sol of stge
-            solver.prepare_to_solve()  # Fix: rename to prepare_to_solve_stge
+            solver.prepare_to_solve()  # TODO: rename to prepare_to_solve_stge
 
-        solution_stge = solver.solve()  # Fix: rename to solve_stge
+        solution_stge = solver.solve()  # TODO: rename to solve_stge
         return solution_stge
 
     one_period_solver.solver_class = solver_class
-    # This can be revisited once it is possible to export parameters
+
     one_period_solver.solver_args = get_arg_names(solver_class.__init__)[1:]
 
-    return one_period_solver  # Fix: rename to this_stge_solver
+    return one_period_solver  # TODO: rename to this_stge_solver
 
 
 # ========================================================================

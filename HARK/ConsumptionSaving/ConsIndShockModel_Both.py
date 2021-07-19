@@ -97,19 +97,19 @@ def def_utility_CRRA(stge, CRRA):
     # Hard-wire the passed CRRA into the utility function and its progeny
     eqns_source = {
         'u_D0':
-            'u = lambda c: CRRAutility(c,'+str(CRRA)+')',
+            'u = lambda c: CRRAutility(c,' + str(CRRA) + ')',
         'u_D1':
-            'u.dc = lambda c: CRRAutilityP(c, '+str(CRRA)+')',
+            'u.dc = lambda c: CRRAutilityP(c, ' + str(CRRA) + ' )',
         'u_D2':
-            'u.dc.dc = lambda c: CRRAutilityPP(c, '+str(CRRA)+')',
+            'u.dc.dc = lambda c: CRRAutilityPP(c, ' + str(CRRA) + ')',
         'uNvrs_D0':
-            'u.Nvrs = lambda u: CRRAutility_inv(u, '+str(CRRA)+')',
+            'u.Nvrs = lambda u: CRRAutility_inv(u, ' + str(CRRA) + ')',
         'uNvrs_D1':
-            'u.Nvrs.du = lambda u: CRRAutility_invP(u, '+str(CRRA)+')',
+            'u.Nvrs.du = lambda u: CRRAutility_invP(u, ' + str(CRRA) + ' )',
         'u_D1_Nvrs':
-            'u.dc.Nvrs = lambda uP: CRRAutilityP_inv(uP, '+str(CRRA)+')',
+            'u.dc.Nvrs = lambda uP: CRRAutilityP_inv(uP, ' + str(CRRA) + ')',
         'u_D1_Nvrs_D1':
-            'u.dc.Nvrs.du = lambda uP: CRRAutilityP_invP(uP, '+str(CRRA)+')',
+            'u.dc.Nvrs.du = lambda uP: CRRAutilityP_invP(uP, ' + str(CRRA) + ')',
     }
 
     # Put the utility function in the "rewards" part of the Modl object
@@ -230,8 +230,7 @@ def_value_CRRA = def_value_funcs
 
 def apply_flat_income_tax(
         IncShkDstn, tax_rate, T_retire, unemployed_indices=None,
-        transitory_index=2
-        ):
+        transitory_index=2):
     """
     Apply a flat income tax rate to employed income states.
 
@@ -348,8 +347,7 @@ init_perfect_foresight = {
     'aNrmInitStd': 1.0,  # Standard deviation of log initial assets (only for simulation)
     'pLvlInitMean': 0.0,  # Mean of log initial permanent income (only matters for simulation)
     # Standard deviation of log initial permanent income (only matters for simulation)
-    'pLvlInitStd': 0.0,
-    # Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
+    'pLvlInitStd': 0.0,  # Aggregate permanent income growth factor
     'T_age': None,       # Age after which simulated agents are automatically killed
     # Optional extra _fcts about the model and its calibration
 }
@@ -526,8 +524,7 @@ init_perfect_foresight = {
     'aNrmInitStd': 1.0,  # Standard deviation of log initial assets (only for simulation)
     'pLvlInitMean': 0.0,  # Mean of log initial permanent income (only matters for simulation)
     # Standard deviation of log initial permanent income (only matters for simulation)
-    'pLvlInitStd': 0.0,
-    # Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
+    'pLvlInitStd': 0.0,  # Initial standard deviation of permanent income
     'T_age': None,       # Age after which simulated agents are automatically killed
     # Optional extra _fcts about the model and its calibration
 }
@@ -536,15 +533,18 @@ init_perfect_foresight = {
 # 'Primitives' define the 'true' model that we think of ourselves as trying to solve
 # (the limit as approximation error reaches zero)
 init_perfect_foresight.update(
-    {'prmtv_par': ['CRRA', 'Rfree', 'DiscFac', 'LivPrb', 'PermGroFac', 'BoroCnstArt', 'PermGroFacAgg', 'T_cycle', 'cycles']})
+    {'prmtv_par': ['CRRA', 'Rfree', 'DiscFac', 'LivPrb', 'PermGroFac',
+                   'BoroCnstArt', 'PermGroFacAgg', 'T_cycle', 'cycles']})
 # Approximation parameters define the precision of the approximation
-# Limiting values for approximation parameters: values such that, as all such parameters approach their limits,
+# Limiting values for approximation parameters: values such that, as
+# all such parameters approach their limits,
 # the approximation gets arbitrarily close to the 'true' model
 init_perfect_foresight.update(  # In principle, kinks exist all the way to infinity
     {'aprox_lim': {'MaxKinks': 'infinity'}})
 # The simulation stge of the problem requires additional parameterization
 init_perfect_foresight.update(  # The 'primitives' for the simulation
-    {'prmtv_sim': ['aNrmInitMean', 'aNrmInitStd', 'pLvlInitMean', 'pLvlInitStd']})
+    {'prmtv_sim': ['aNrmInitMean', 'aNrmInitStd', 'pLvlInitMean',
+                   'pLvlInitStd']})
 init_perfect_foresight.update({  # Approximation parameters for monte carlo sims
     'sim_mcrlo': ['AgentCount', 'T_age']
 })
@@ -566,21 +566,21 @@ init_idiosyncratic_shocks = dict(
         "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
         "IncUnemp": 0.3,  # Unemployment benefits replacement rate
         "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
-        "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
+        "BoroCnstArt": 0.0,  # Artificial borrowing constraint; end-of period
         "tax_rate": 0.0,  # Flat income tax rate
         "T_retire": 0,  # Period of retirement (0 --> no retirement)
         # Parameters governing construction of income process
-        "permShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
-        "tranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+        "permShkCount": 7,  # Pts in discr approx to permanent income shocks
+        "tranShkCount": 7,  # Pts in discr approx to transitory income shocks
         # parameters governing construction of grid of assets above min value
         "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
         "aXtraMax": 20,     # Maximum end-of-period "assets above minimum" value
-        "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-        "aXtraCount": 48,   # Number of points in the grid of "assets above minimum"
+        "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+        "aXtraCount": 48,   # Num of points in grid of "assets above minimum"
         # list other values of "assets above minimum" to add to the grid (e.g., 10000)
         "aXtraExtra": [None],
         "vFuncBool": False,  # Whether to calculate the value function during solution
-        "CubicBool": False,  # Use cubic spline interpolation when True, linear interpolation when False
+        "CubicBool": False,  # Use cubic spline interp, linear interp when False
     }
 )
 
@@ -628,9 +628,9 @@ init_idiosyncratic_shocks['aprox_lim'].update({'aXtraNestFac': None})
 init_idiosyncratic_shocks['aprox_lim'].update({'aXtraCount': None})
 
 IncShkDstn_fcts = {
-    'about': 
+    'about':
         'Income Shock Distribution: .X[0] and .X[1] retrieve shocks, .pmf retrieves probabilities'}
-IncShkDstn_fcts.update({'py___code': 
+IncShkDstn_fcts.update({'py___code':
                         r'construct_lognormal_income_process_unemployment'})
 # init_idiosyncratic_shocks['_fcts'].update({'IncShkDstn': IncShkDstn_fcts})
 init_idiosyncratic_shocks.update({'IncShkDstn_fcts': IncShkDstn_fcts})
@@ -802,7 +802,7 @@ init_cyclical = copy(init_idiosyncratic_shocks)
 init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
 init_cyclical['permShkStd'] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical['tranShkStd'] = [0.1, 0.1, 0.1, 0.1]
-init_cyclical['LivPrb'] = 4*[0.98]
+init_cyclical['LivPrb'] = 4 * [0.98]
 init_cyclical['T_cycle'] = 4
 
 

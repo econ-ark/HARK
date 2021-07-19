@@ -1,4 +1,5 @@
 from .core import *
+import sys
 
 __version__ = "0.11.0"
 
@@ -42,3 +43,11 @@ def verbose():
 
 def set_verbosity_level(level):
     _log.setLevel(level)
+
+
+def log_stdout_on():
+    _log.addHandler(logging.StreamHandler(sys.stdout))
+
+
+def log_stdout_off():
+    _log.removeHandler(logging.StreamHandler(sys.stdout))

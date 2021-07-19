@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from HARK.ConsumptionSaving.ConsIndShockModelOld import ConsumerSolution as ConsumerSolutionOld
+from HARK.ConsumptionSaving.ConsIndShockModelOld \
+    import ConsumerSolution as ConsumerSolutionOld
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
     import (
-        ConsumerSolutionOlder,
-        ConsumerSolution, ConsumerSolutionOneStateCRRA,
+        ConsumerSolution, ConsumerSolutionOneNrmStateCRRA,
         ConsPerfForesightSolver, ConsIndShockSetup,
-        ConsIndShockSolverBasic, ConsIndShockSolver,
-#        Equations
+        ConsIndShockSolverBasic, ConsIndShockSolver
         )
 
 from HARK.ConsumptionSaving.ConsIndShockModel_KinkedRSolver \
@@ -15,7 +14,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel_KinkedRSolver \
 
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentTypes \
     import (consumer_terminal_nobequest_onestate, PerfForesightConsumerType,
-            IndShockConsumerType, KinkedRconsumerType, onestate_bequest_warmglow_homothetic
+            IndShockConsumerType, KinkedRconsumerType,
+            onestate_bequest_warmglow_homothetic
             )
 
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
@@ -34,40 +34,34 @@ from HARK.utilities import CRRAutility_invP as utility_invP
 from HARK.utilities import CRRAutility_inv as utility_inv
 from HARK.utilities import CRRAutilityP as utilityP_invP
 
-# from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve_EndOfPeriodValue \
-#    import (ConsIndShockSetupEOP, ConsIndShockSolverBasicEOP, ConsIndShockSolverEOP)
-
 """
 Classes to define and solve canonical consumption-saving models with a single
-state variable.  All models here assume CRRA utility with geometric discounting,
+state variable.  All models assume CRRA utility with geometric discounting,
 and if income shocks exist they are fully transitory or fully permanent.
 
 It currently solves three types of models:
    1) `PerfForesightConsumerType`
-      * A basic "perfect foresight" consumption-saving model with no uncertainty.
+      * A basic perfect foresight consumption-saving model with no uncertainty.
       * Features of the model prepare it for convenient inheritance
    2) `IndShockConsumerType`
       * A consumption-saving model with transitory and permanent income shocks
       * Inherits from PF model
    3) `KinkedRconsumerType`
-      * `IndShockConsumerType` model but with an interest rate paid on debt, `Rboro`
+      * `IndShockConsumerType` model but with interest rate on debt, `Rboro`
         greater than the interest rate earned on savings, `Rboro > `Rsave`
 
-See NARK https://HARK.githhub.io/Documentation/NARK for variable naming conventions.
-See https://hark.readthedocs.io for mathematical descriptions of the models being solved.
+See NARK https://HARK.githhub.io/Documentation/NARK for naming conventions.
+See https://hark.readthedocs.io for descriptions of the models.
 """
 
 __all__ = [
     "ConsumerSolutionOld",
     "ConsumerSolution",
-    "ConsumerSolutionOneStateCRRA",
+    "ConsumerSolutionOneNrmStateCRRA",
     "ConsPerfForesightSolver",
     "ConsIndShockSetup",
     "ConsIndShockSolverBasic",
     "ConsIndShockSolver",
-    #    "ConsIndShockSetupEOP",
-    #    "ConsIndShockSolverBasicEOP",
-    #    "ConsIndShockSolverEOP",
     "ConsKinkedRsolver",
     "consumer_terminal_nobequest_onestate",
     "PerfForesightConsumerType",
