@@ -152,20 +152,20 @@ class AgentTypePlus(AgentType):
         for add_it in self.add_to_given_params:
             self.parameters.update({add_it: getattr(self, add_it)})
 
-    def agent_update_if_params_have_changed_since_last_solve(self):
+    def agent_update_if_params_have_changed_since_last_solve(self, quietly):
         """
-        Update any characteristics of the agent that need to be recomputed
-        as a result of changes in parameters since the last time the solver was invoked.
+            Update any characteristics of the agent that need to be recomputed
+            as a result of changes in parameters since the last time the solver was invoked.
 
-        Parameters
-        ----------
-        None
+            Parameters
+            ----------
+            None
 
-        Returns
-        -------
-        None (adds `solve_par_vals_now` dict to self)
+            Returns
+            -------
+            None (adds `solve_par_vals_now` dict to self)
 
-        """
+            """
 
         # Get current parameter values
         solve_par_vals_now = {}
@@ -174,20 +174,19 @@ class AgentTypePlus(AgentType):
                 solve_par_vals_now[par] = getattr(self, par)
 
             breakpoint()
-
+            # Check whether any of them has changed
             if not (solve_par_vals_now == self.solve_par_vals):
-                if self.verbose:
+                if not quietly:
                     _log.info('Some model parameter has changed since last update.')
-                    _log.info('Storing new parameters and updating shocks and grid.')
-                self._agent_force_prepare_info_needed_to_begin_solving()
+                self._agent_force_prepare_info_needed_to_begin_solving(quietly)
 
-    def _agent_force_prepare_info_needed_to_begin_solving(self):
+    def _agent_force_prepare_info_needed_to_begin_solving(self, quietly):
         # There are no universally required pre_solve objects
         pass
 
     # pre_solve is the old name, preserved as an alias because
     # core.py uses it.  New name is MUCH clearer
-    pre_solve = _agent_force_prepare_info_needed_to_begin_solving
+    pre_solve = agent_update_if_params_have_changed_since_last_solve
 
     # Universal method to either warn that something went wrong
     # or to mark the solution as having completed.  Should not
@@ -577,7 +576,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         if self.income_risks_exist:  # We got here from a model with risks
             return  # Models with risks have different prep
 
-        self._agent_force_prepare_info_needed_to_begin_solving()
+        self._agent_force_prepare_info_needed_to_begin_solving(quietly)
 
         # Store initial params; later used to test if anything changed
         self.agent_store_model_params(params['prmtv_par'],
@@ -602,6 +601,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         soln : agent_solution
             The solution whose stable points are to be calculated
         """
+
         #  Users can effectively solve approx to inf hor PF model by specifying
         #  the "horizon" (number of periods to be solved). In that special case
         #  the "conditions" are relevant because we are thinking of it as an
@@ -613,34 +613,22 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                 if self.income_risks_exist:
                     return  # infinite horizon conditions unimportant
 
-        soln.check_conditions(messaging_level=logging.INFO)
+        soln.check_conditions()
 
         if not soln.Bilt.GICRaw:  # no mNrmStE
-            wrn = "Because the model's parameters do not satisfy the GIC, it " +\
-                "has neither an individual steady state nor a target."
-            _log.warning(wrn)
-            soln.Bilt.mNrmStE = \
-                soln.mNrmStE = float('nan')
+            # wrn = "Because the model's parameters do not satisfy the GIC," +\
+            #     "it has neither an individual steady state nor a target."
+            # _log.warning(wrn)
+            soln.Bilt.mNrmStE = soln.mNrmStE = float('nan')
         else:  # mNrmStE exists; compute it and check mNrmTrg
-            # soln.mNrmStE = \
             soln.Bilt.mNrmStE = soln.mNrmStE_find()
         if not self.income_risks_exist:  # If a PF model, nothing more to do
             return
         else:
-            if not hasattr(soln.Bilt, 'GICNrm'):  # Should not occur; debug if get here
-                _log.critical('soln.Bilt has no GICNrm attribute')
-                breakpoint()
-                return
-
             if not soln.Bilt.GICNrm:
-                wrn = "Because the model's parameters do not satisfy the " +\
-                    "stochastic-growth-normalized GIC, it does not exhibit " +\
-                    "a target ratio of assets (or cash-on-hand) to permanent income."
-                _log.warning(wrn)
                 soln.Bilt.mNrmTrg = float('nan')
-            else:  # GICNrm exists
+            else:  # GICNrm exists; calculate it
                 soln.Bilt.mNrmTrg = soln.mNrmTrg_find()
-
         return
 
     # CDC 20210511: The old version of ConsIndShockModel mixed calibration and results
@@ -660,7 +648,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
             self.cycles = 0  # solve only one period (leaving MaxKinks be)
             self.solve(verbose=False, quietly=True)  # do not spout nonsense
         else:  # tolerance of inf means that "solve" will stop after setup ...
-#            breakpoint()
+            #            breakpoint()
             self.solve(verbose=False, quietly=True)
         self.tolerance = tolerance_orig  # which leaves us ready to solve
         self.cycles = cycles_orig  # with the original convergence criteria
@@ -669,8 +657,8 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         self.soln_crnt = self.solution[0]  # current soln is now newly made one
 
     def agent_post_post_solve(self):  # Overwrites version from AgentTypePlus
+        """For infinite horizon models, add stable points (if they exist)."""
         if self.cycles == 0:  # if it's an infinite horizon model
-            # Test for the stable points, and if they exist, add them
             self.add_stable_points_to_solution(self.solution[0])
 
     def check_restrictions(self):
@@ -819,7 +807,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     # Prepare PF agent for solution of entire problem
     # Overwrites default version from AgentTypePlus
     # Overwritten by version in ConsIndShockSolver
-    def _agent_force_prepare_info_needed_to_begin_solving(self):
+    def _agent_force_prepare_info_needed_to_begin_solving(self, quietly):
         # This will be reached by IndShockConsumerTypes when they execute
         # PerfForesightConsumerType.__init__ but will subsequently be
         # overridden by the _agent_force_prepare_info_needed_to_begin_solving
@@ -1164,6 +1152,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
         # If solverType other than HARK or solveMethod other than EGM have been
         # passed, we might need to do some other setup steps
+
         solve_par_vals_now = {}
         if not hasattr(self, 'solve_par_vals'):  # We haven't set it up yet
             #            breakpoint()
@@ -1499,7 +1488,7 @@ class KinkedRconsumerType(IndShockConsumerType):
             ConsKinkedRsolver)
         # Make assets grid, income process, terminal solution
 
-    def _agent_force_prepare_info_needed_to_begin_solving(self):
+    def _agent_force_prepare_info_needed_to_begin_solving(self, quietly):
         self.update_assets_grid()
         self.update_income_process()
 

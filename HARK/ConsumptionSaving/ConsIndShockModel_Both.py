@@ -48,7 +48,7 @@ def define_transition(stge, transition_name):
     None.
 
     """
-    transitions_possible = stge.Pars.transitions_possible
+    transitions_possible = stge.Bilt.transitions_possible
     transition = transitions_possible[transition_name]
     transiter = {}  # It's the actor that actually does the job
     transiter['compiled'] = {}

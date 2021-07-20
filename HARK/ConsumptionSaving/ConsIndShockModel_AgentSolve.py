@@ -84,6 +84,8 @@ class agent_solution(MetricObject):
         The name of the type of solver ('HARK', 'Dolo')
     eventTiming : str, optional
         Clarifies timing of any events whose timing might otherwise be ambiguous
+    messaging_level : int, optional
+        Controls the amount of information returned to user. Varies by model.
     """
 
     def __init__(self, *args,
@@ -286,7 +288,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         del self.vPfunc
         del self.vPPfunc
 
-        self.Pars.transitions_possible = self.define_transitions_possible()
+        self.Bilt.transitions_possible = self.define_transitions_possible()
 
     def define_transitions_possible(self):
         """
@@ -336,7 +338,47 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         return possible_transitions
 
-    def check_conditions(self, messaging_level=0, quietly=False):
+    def describe_model_and_calibration(self, quietly=False):
+        """
+        Log a brief description of the model and its calibration.
+
+
+        Parameters
+        ----------
+        self : agent_solution
+
+            Solution to the problem described by information for the current
+        stage found in Bilt and the succeeding stage.
+
+        quietly : boolean, optional
+
+            If true, suppresses all output
+
+        Returns
+        -------
+        None
+        """
+        soln_crnt = self
+        Pars, Modl = soln_crnt.Pars, soln_crnt.Modl
+        Tran = Modl.Transitions
+
+        if not quietly:
+            msg = '\n\n(Because quietly=False and messaging_level is less ' + \
+                'than logging.WARNING, model information is provided below)\n'
+            msg = msg + '\nThe model has the following parameter values:\n'
+            _log.info(print(msg))
+            for key in Pars.__dict__.keys():
+                _log.info(print('\t' + key + ': ' + str(Pars.__dict__[key])))
+
+            msg = "\nThe model's transition equations are:\n"
+            _log.info(print(msg))
+            for key in Tran.keys():
+                _log.info(print('\n' + key + ' step:'))
+                for eqn_name in Tran[key]['raw_text']:
+                    _log.info(print('\t' + str(Tran[key]['raw_text'][eqn_name])))
+            _log.info(print('\n'))
+
+    def check_conditions(self, messaging_level=logging.DEBUG, quietly=False):
         """
         Check whether parameters satisfy some possibly interesting conditions.
 
@@ -368,8 +410,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         messaging_level : int, optional
 
-            Specifies amount of information returned about conditions. When
-        zero, returns minimum amount of info; maximum allowed value is 4.
+            Controls verbosity of messages. logging.DEBUG is most verbose,
+            logging.INFO is less verbose, logging.WARNING indicates possible
+            problems, logging.CRITICAL indicates it is degenerate.
 
         quietly : boolean, optional
 
@@ -385,22 +428,10 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         Bilt.conditions = {}  # Keep track of truth of conditions
         Bilt.degenerate = False  # True: solution is degenerate
-        breakpoint()
 
-        stdout_handler = logging.StreamHandler(sys.stdout)
-        _log.addHandler(stdout_handler)  # "print" it to stdout as well as logfile
+        self.describe_model_and_calibration(quietly)
 
-        if not quietly:
-            msg = '\nFor a model with the following parameter values:\n'
-            msg = msg + '\n' + str(Pars.__dict__) + '\n'
-            _log.info(msg)
-            _log.info(str(Pars.__dict__))
-            np.set_printoptions(threshold=20)  # Don't print huge output
-            for key in Pars.__dict__.keys():
-                _log.info(print('\t' + key + ': ', end=''))
-                _log.info(pprint(Pars.__dict__[key]))
-            msg = '\nThe following results hold:\n'
-            _log.info(msg)
+        _log.info('\nBecause messaging_level=logging.INFO, conditions are reported below\n')
 
         soln_crnt.check_AIC(soln_crnt, messaging_level)
         soln_crnt.check_FHWC(soln_crnt, messaging_level)
@@ -411,13 +442,14 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         soln_crnt.check_FVAC(soln_crnt, messaging_level)
 
         # degenerate flag is True if the model has no nondegenerate solution
-        if hasattr(Bilt, "BoroCnstArt") \
-                and Pars.BoroCnstArt is not None:
+        if hasattr(Bilt, "BoroCnstArt") and Pars.BoroCnstArt is not None:
             Bilt.degenerate = not Bilt.RIC
             # If BoroCnstArt exists but RIC fails, limiting soln is c(m)=0
         else:  # No BoroCnst; not degenerate if neither c(m)=0 or \infty
-            Bilt.degenerate = \
-                not Bilt.RIC or not Bilt.FHWC
+            Bilt.degenerate = not Bilt.RIC or not Bilt.FHWC
+
+        if Bilt.degenerate:
+            _log.critical("Under the given parameter values, the model is degenerate.")
 
 #         soln_crnt = self
 
@@ -537,7 +569,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
     #         Bilt.degenerate = \
     #             not Bilt.RIC or not Bilt.FHWC
 
-    def check_AIC(self, stge, messaging_level=0, quietly=False):
+    def check_AIC(self, stge, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Absolute Impatience Condition."""
         name = "AIC"
 
@@ -557,7 +589,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         stge.Bilt.AIC = core_check_condition(name, test, messages, messaging_level,
                                              verbose_messages, "APF", stge)
 
-    def check_FVAC(self, stge, messaging_level=0, quietly=False):
+    def check_FVAC(self, stge, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Finite Value of Autarky Condition."""
         name = "FVAC"
 
@@ -578,7 +610,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         stge.Bilt.FVAC = core_check_condition(name, test, messages, messaging_level,
                                               verbose_messages, "FVAF", stge)
 
-    def check_GICRaw(self, stge, messaging_level=0, quietly=False):
+    def check_GICRaw(self, stge, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Growth Impatience Condition."""
         name = "GICRaw"
 
@@ -597,7 +629,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         stge.Bilt.GICRaw = core_check_condition(name, test, messages, messaging_level,
                                                 verbose_messages, "GPFRaw", stge)
 
-    def check_GICLiv(self, stge, messaging_level=0, quietly=False):
+    def check_GICLiv(self, stge, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on Mortality Adjusted GIC."""
         name = "GICLiv"
 
@@ -618,7 +650,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         stge.Bilt.GICLiv = core_check_condition(name, test, messages, messaging_level,
                                                 verbose_messages, "GPFLiv", stge)
 
-    def check_RIC(self, stge, messaging_level=0, quietly=False):
+    def check_RIC(self, stge, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Return Impatience Condition."""
         name = "RIC"
 
@@ -637,7 +669,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         stge.Bilt.RIC = core_check_condition(name, test, messages, messaging_level,
                                              verbose_messages, "RPF", stge)
 
-    def check_FHWC(self, stge, messaging_level=0, quietly=False):
+    def check_FHWC(self, stge, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Finite Human Wealth Condition."""
         name = "FHWC"
 
@@ -657,7 +689,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         stge.Bilt.FHWC = core_check_condition(name, test, messages, messaging_level,
                                               verbose_messages, "FHWF", stge)
 
-    def check_GICNrm(self, stge, messaging_level=0, quietly=False):
+    def check_GICNrm(self, stge, messaging_level=logging.DEBUG, quietly=False):
         """Check Normalized Growth Patience Factor."""
         if not hasattr(stge.Pars, 'IncShkDstn'):
             return  # GICNrm is same as GIC for PF consumer
@@ -681,7 +713,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         stge.Bilt.GICNrm = core_check_condition(name, test, messages, messaging_level,
                                                 verbose_messages, "GPFNrm", stge)
 
-    def check_WRIC(self, stge, messaging_level=0, quietly=False):
+    def check_WRIC(self, stge, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Weak Return Impatience Condition."""
         if not hasattr(stge, 'IncShkDstn'):
             return  # WRIC is same as RIC for PF consumer
@@ -891,7 +923,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         # Reduce cluttered formulae with local aliases
         E_Next_, tp1 = crnt.E_Next_, self.soln_futr
         Bilt, Pars = crnt.Bilt, crnt.Pars
-        Rfree, PermGroFac, DiscLiv = Pars.Rfree, Pars.PermGroFac, Pars.DiscLiv
+        Rfree, PermGroFac, DiscLiv = Pars.Rfree, Pars.PermGroFac, Bilt.DiscLiv
 
         CRRA = tp1.vFunc.CRRA
 
@@ -902,7 +934,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
 
         # Calculate end-of-this-period aNrm vals that would reach those mNrm's
         # There are no shocks in the PF model, so tranShkMin = tranShk = 1.0
-        bNrm_kinks_tp1 = (mNrm_kinks_tp1 - tp1.Pars.tranShkMin)
+        bNrm_kinks_tp1 = (mNrm_kinks_tp1 - tp1.Bilt.tranShkMin)
         aNrm_kinks = bNrm_kinks_tp1 * (PermGroFac / Rfree)
 
         crnt.Bilt.aNrmGrid = aNrm_kinks
@@ -935,13 +967,13 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         Rfree, PermGroFac, MPCmin = Pars.Rfree, Pars.PermGroFac, Bilt.MPCmin
 
         BoroCnstArt, DiscLiv, BoroCnstNat = \
-            Pars.BoroCnstArt, Pars.DiscLiv, Bilt.BoroCnstNat
+            Pars.BoroCnstArt, Bilt.DiscLiv, Bilt.BoroCnstNat
 
         u, u.Nvrs, u.dc.Nvrs = Bilt.u, Bilt.u.Nvrs, Bilt.u.dc.Nvrs
         CRRA_tp1 = tp1.Bilt.vFunc.CRRA
 
         # define yNrm_tp1 to make formulas below easier to read
-        yNrm_tp1 = tp1.Pars.tranShkMin  # in PF model tranShk[Min,Max] = 1.0
+        yNrm_tp1 = tp1.Bilt.tranShkMin  # in PF model tranShk[Min,Max] = 1.0
 
         if BoroCnstArt is None:
             BoroCnstArt = -np.inf
@@ -1262,7 +1294,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         Bilt, Pars, E_Next_ = soln_crnt.Bilt, soln_crnt.Pars, soln_crnt.E_Next_
 
         urlroot = Bilt.urlroot
-        Pars.DiscLiv = Pars.DiscFac * Pars.LivPrb
+        Bilt.DiscLiv = Pars.DiscFac * Pars.LivPrb
         # givens are not changed by the calculations below; Bilt and E_Next_ are
         givens = {**Pars.__dict__}
 
@@ -1518,7 +1550,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
 
         givens = {**Pars.__dict__, **locals()}
         urlroot = Bilt.urlroot
-        Pars.DiscLiv = Pars.DiscFac * Pars.LivPrb
+        Bilt.DiscLiv = Pars.DiscFac * Pars.LivPrb
 
         hNrm_fcts = {
             'about': 'Human Wealth '
@@ -1671,13 +1703,16 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         if futr.Bilt.stge_kind['iter_status'] != 'terminal_partial':
             return False  # Continue with normal solution procedures
         else:
+            # Populate it with the proper properties
             crnt = define_t_reward(crnt, def_utility_CRRA)  # Bellman reward
-
+            define_transition(crnt, 'chosen_to_next_choice')
+            define_transition(crnt, 'choice_to_chosen')
             crnt.cFunc = crnt.Bilt.cFunc  # make cFunc accessible
             crnt = self.def_value()  # make value functions using cFunc
             crnt.vFunc = crnt.Bilt.vFunc  # make vFunc accessible for distance
             self.build_facts_infhor()
             crnt.Bilt.stge_kind['iter_status'] = 'iterator'  # now it's legit
+
             return True  # if pseudo_terminal=True, enhanced replaces original
 
     def solve_prepared_stage(self):  # inside ConsPerfForesightSolver
@@ -1736,12 +1771,12 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
 
         # Catch degenerate case of zero-variance income distributions
         # Otherwise "test cases" that try the degenerate dstns will fail
-        if hasattr(Pars, "tranShkVals") and hasattr(Pars, "permShkVals"):
-            if ((Pars.tranShkMin == 1.0) and (Pars.permShkMin == 1.0)):
+        if hasattr(Bilt, "tranShkVals") and hasattr(Bilt, "permShkVals"):
+            if ((Bilt.tranShkMin == 1.0) and (Bilt.permShkMin == 1.0)):
                 soln_crnt.E_Next_.Inv_permShk = 1.0
                 soln_crnt.E_Next_.uInv_permShk = 1.0
         else:  # Missing trans or permShkVals; assume it's PF model
-            Pars.tranShkMin = Pars.permShkMin = 1.0
+            Bilt.tranShkMin = Bilt.permShkMin = 1.0
 
         # Nothing needs to be done for terminal_partial
         if hasattr(Bilt, 'stge_kind'):
@@ -1857,46 +1892,46 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         self.CubicBool = CubicBool
 
         # In which column is each object stored in IncShkDstn?
-        Pars.permPos = IncShkDstn.parameters['ShkPosn']['perm']
-        Pars.tranPos = IncShkDstn.parameters['ShkPosn']['tran']
+        Bilt.permPos = IncShkDstn.parameters['ShkPosn']['perm']
+        Bilt.tranPos = IncShkDstn.parameters['ShkPosn']['tran']
 
         # Bcst are "broadcasted" values: serial list of every permutation
         # Makes it fast to take expectations using E_dot
-        Pars.permShkValsBcst = permShkValsBcst = IncShkDstn.X[Pars.permPos]
-        Pars.tranShkValsBcst = tranShkValsBcst = IncShkDstn.X[Pars.tranPos]
+        Bilt.permShkValsBcst = permShkValsBcst = IncShkDstn.X[Bilt.permPos]
+        Bilt.tranShkValsBcst = tranShkValsBcst = IncShkDstn.X[Bilt.tranPos]
 
-        Pars.ShkPrbs = ShkPrbs = IncShkDstn.pmf
+        Bilt.ShkPrbs = ShkPrbs = IncShkDstn.pmf
 
-        Pars.permShkPrbs = permShkPrbs = permShkDstn.pmf
-        Pars.permShkVals = permShkVals = permShkDstn.X
+        Bilt.permShkPrbs = permShkPrbs = permShkDstn.pmf
+        Bilt.permShkVals = permShkVals = permShkDstn.X
         # Confirm that perm shocks have expectation near one
         assert_approx_equal(E_dot(permShkPrbs, permShkVals), 1.0)
 
-        Pars.tranShkPrbs = tranShkPrbs = tranShkDstn.pmf
-        Pars.tranShkVals = tranShkVals = tranShkDstn.X
+        Bilt.tranShkPrbs = tranShkPrbs = tranShkDstn.pmf
+        Bilt.tranShkVals = tranShkVals = tranShkDstn.X
         # Confirm that tran shocks have expectation near one
         assert_approx_equal(E_dot(tranShkPrbs, tranShkVals), 1.0)
 
-        Pars.permShkMin = permShkMin = np.min(permShkVals)
-        Pars.tranShkMin = tranShkMin = np.min(tranShkVals)
+        Bilt.permShkMin = permShkMin = np.min(permShkVals)
+        Bilt.tranShkMin = tranShkMin = np.min(tranShkVals)
 
-        Pars.permShkMax = permShkMax = np.max(permShkVals)
-        Pars.tranShkMax = tranShkMax = np.max(tranShkVals)
+        Bilt.permShkMax = permShkMax = np.max(permShkVals)
+        Bilt.tranShkMax = tranShkMax = np.max(tranShkVals)
 
-        Pars.UnempPrb = Pars.tranShkPrbs[0]
+        Bilt.UnempPrb = Bilt.tranShkPrbs[0]
 
-        Pars.inc_min_Prb = np.sum(  # All cases where perm and tran Shk are Min
+        Bilt.inc_min_Prb = np.sum(  # All cases where perm and tran Shk are Min
             ShkPrbs[ \
                 permShkValsBcst * tranShkValsBcst == permShkMin * tranShkMin
             ]
         )
 
-        Pars.inc_max_Prb = np.sum(  # All cases where perm and tran Shk are Min
+        Bilt.inc_max_Prb = np.sum(  # All cases where perm and tran Shk are Min
             ShkPrbs[ \
                 permShkValsBcst * tranShkValsBcst == permShkMax * tranShkMax
             ]
         )
-        Pars.inc_max_Val = permShkMax * tranShkMax
+        Bilt.inc_max_Val = permShkMax * tranShkMax
 
     def build_facts_infhor(self):
         """
@@ -2101,19 +2136,19 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         E_Next_.mLev_tp1_Over_pLev_t_from_a_t = (
             lambda a_t:
             E_dot(Pars.PermGroFac *
-                  Pars.permShkValsBcst *
-                  (E_Next_.RNrm_PF / Pars.permShkValsBcst) * a_t
-                  + Pars.tranShkValsBcst,
-                  Pars.ShkPrbs)
+                  Bilt.permShkValsBcst *
+                  (E_Next_.RNrm_PF / Bilt.permShkValsBcst) * a_t
+                  + Bilt.tranShkValsBcst,
+                  Bilt.ShkPrbs)
         )
         # E[c_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
         E_Next_.cLev_tp1_Over_pLev_t_from_a_t = (
             lambda a_t:
             E_dot(Pars.PermGroFac *
-                  Pars.permShkValsBcst *
-                  Bilt.cFunc((E_Next_.RNrm_PF / Pars.permShkValsBcst) * a_t
-                             + Pars.tranShkValsBcst),
-                  Pars.ShkPrbs)
+                  Bilt.permShkValsBcst *
+                  Bilt.cFunc((E_Next_.RNrm_PF / Bilt.permShkValsBcst) * a_t
+                             + Bilt.tranShkValsBcst),
+                  Bilt.ShkPrbs)
         )
         E_Next_.c_where_E_Next_m_tp1_minus_m_t_eq_0 = \
             lambda m_t: \
@@ -2130,11 +2165,11 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         E_Next_.cLev_tp1_Over_pLev_t_from_num_a_t = (
             lambda a_t:
             E_dot(
-                Pars.permShkValsBcst * Pars.PermGroFac * Bilt.cFunc(
-                    (E_Next_.RNrm_PF / Pars.permShkValsBcst) *
-                    a_t + Pars.tranShkValsBcst
+                Bilt.permShkValsBcst * Pars.PermGroFac * Bilt.cFunc(
+                    (E_Next_.RNrm_PF / Bilt.permShkValsBcst) *
+                    a_t + Bilt.tranShkValsBcst
                 ),
-                Pars.ShkPrbs)
+                Bilt.ShkPrbs)
         )
         E_Next_.cLev_tp1_Over_pLev_t_from_lst_a_t = (
             lambda a_lst: list(map(
@@ -2233,7 +2268,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         if eventTiming == 'EOP':  # shocks happen at end of this period
             CRRA = futr.Bilt.vFunc.CRRA  # Next CRRA utility normalizes
-            Discount = Pars.DiscLiv  # Discount next period
+            Discount = Bilt.DiscLiv  # Discount next period
             vFunc = futr.Bilt.vFunc
             cFunc = futr.Bilt.cFunc
             PermGroFac = futr.Pars.PermGroFac
@@ -2242,7 +2277,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             # In this case, we should have computed the 'hard part' and
             # attached it already to the BOP of the futr stage.
             breakpoint()
-            # DiscLiv = Pars.DiscLiv
+            # DiscLiv = Bilt.DiscLiv
             # v0_pos, v1_pos = futr.Ante_E_.v0_pos, futr.Ante_E_.v1_pos
             # v2_pos = futr.Ante_E_.v2_pos
 
@@ -2296,7 +2331,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         if eventTiming == 'EOP':  # shocks happen at end of this period
             return  # nothing needs to be done
 
-        CRRA, Rfree, permPos = Pars.CRRA, Pars.Rfree, Pars.permPos
+        CRRA, Rfree, permPos = Pars.CRRA, Pars.Rfree, Bilt.permPos
         PermGroFac = Pars.PermGroFac
         vFunc, cFunc = crnt.vFunc, crnt.cFunc
         Discount = 1.0  # Allows formulae to be identical here and in E_Next_

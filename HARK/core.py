@@ -58,7 +58,7 @@ def set_verbosity_level(level):
     _log.setLevel(level)
 
 
-def core_check_condition(name, test, messages, messaging_intensity, verbose_messages, fact, stge, quietly=False):
+def core_check_condition(name, test, messages, messaging_level, verbose_messages, fact, stge, quietly=False):
     """
     Checks whether parameter values of a model satisfy a condition
 
@@ -79,14 +79,15 @@ def core_check_condition(name, test, messages, messaging_intensity, verbose_mess
         for messages to print if the condition is
         true or false.
 
-    messaging_intensity : int 
-        Controls verbosity of messages. 0 is less verbose, 1 is more verbose, 
-        etc.
+    messaging_level : int
+        Controls verbosity of messages. logging.NOTSET is most verbose,
+        logging.INFO is less verbose, logging.WARNING indicates if the
+        model may have problems, logging.CRITICAL indicates it is degenerate.
 
     verbose_messages : dict{boolean : string}
         (Optional) A dictionary with boolean keys containing values
         for messages to print if the condition is
-        true or false if messaging_intensity is high
+        true or false if messaging_level is high
 
     fact : string
          Name of the fact (for recording the results)
@@ -102,14 +103,15 @@ def core_check_condition(name, test, messages, messaging_intensity, verbose_mess
     stge.Bilt.conditions[name] = TF
     if not quietly:
         # Messages of severity less than minimum intensity are ignored
-        minimum_intensity = ((3 - messaging_intensity) * 10)
+        minimum_intensity = messaging_level  # Always use an existing standard
         set_verbosity_level(minimum_intensity)  # Uses python logger setLevel
-        # Add verbose_messages to base if messaging intensity is high enough
+        # Store the messages for later retrieval if desired
         stge.Bilt.conditions[fact] = (
             messages[stge.Bilt.conditions[name]] +
             verbose_messages[stge.Bilt.conditions[name]]).format(stge.Bilt)
-        _log.info(stge.Bilt.conditions[fact])
-
+        _log.info(messages[stge.Bilt.conditions[name]].format(stge.Bilt))
+        _log.debug(
+            verbose_messages[stge.Bilt.conditions[name]].format(stge.Bilt))
 
     return TF
 
@@ -277,7 +279,7 @@ class Model(object):
         for key in kwds:
             setattr(self, key, kwds[key])
 
-    assign_parameters_model = assign_parameters
+    assign_parameters_model=assign_parameters
 
     def get_parameter(self, name):
         # CDC 20210527: A global search across all HARK, REMARKs,
@@ -302,7 +304,7 @@ class Model(object):
         """
         return self.parameters[name]
 
-    get_parameter_model = get_parameter
+    get_parameter_model=get_parameter
 
     def __eq__(self, other):
         if isinstance(other, type(self)):
@@ -312,15 +314,15 @@ class Model(object):
 
     def __init__(self):
         if not hasattr(self, 'parameters'):
-            self.parameters = {}
+            self.parameters={}
 
     def __str__(self):
 
-        type_ = type(self)
-        module = type_.__module__
-        qualname = type_.__qualname__
+        type_=type(self)
+        module=type_.__module__
+        qualname=type_.__qualname__
 
-        s = f"<{module}.{qualname} object at {hex(id(self))}.\n"
+        s=f"<{module}.{qualname} object at {hex(id(self))}.\n"
         s += "Parameters:"
 
         for p in self.parameters:
@@ -380,7 +382,7 @@ class AgentType(Model):
 
     """
 
-    state_vars = []
+    state_vars=[]
 
     def __init__(
             self,
@@ -395,30 +397,30 @@ class AgentType(Model):
         Model.__init__(self)
 
         if solution_terminal is None:
-            solution_terminal = NullFunc()
+            solution_terminal=NullFunc()
 
-        self.solution_terminal = solution_terminal  # NOQA
-        self.cycles = cycles  # NOQA
-        self.pseudo_terminal = pseudo_terminal  # NOQA
-        self.solve_one_period = NullFunc()  # NOQA
-        self.tolerance = tolerance  # NOQA
-        self.seed = seed  # NOQA
-        self.track_vars = []  # NOQA
-        self.state_now = {sv: None for sv in self.state_vars}
-        self.state_prev = self.state_now.copy()
-        self.controls = {}
-        self.shocks = {}
-        self.read_shocks = False  # NOQA
-        self.shock_history = {}
-        self.history = {}
+        self.solution_terminal=solution_terminal  # NOQA
+        self.cycles=cycles  # NOQA
+        self.pseudo_terminal=pseudo_terminal  # NOQA
+        self.solve_one_period=NullFunc()  # NOQA
+        self.tolerance=tolerance  # NOQA
+        self.seed=seed  # NOQA
+        self.track_vars=[]  # NOQA
+        self.state_now={sv: None for sv in self.state_vars}
+        self.state_prev=self.state_now.copy()
+        self.controls={}
+        self.shocks={}
+        self.read_shocks=False  # NOQA
+        self.shock_history={}
+        self.history={}
 
         self.assign_parameters(**kwds)  # NOQA
         self.reset_rng()  # NOQA
-        self.prmtv_par = dict()  # 'primitives' define true model
+        self.prmtv_par=dict()  # 'primitives' define true model
         # 'approximation' pars:
-        self.aprox_par = {'tolerance': self.tolerance, 'seed': self.seed}
+        self.aprox_par={'tolerance': self.tolerance, 'seed': self.seed}
         # sol approaches truth as all aprox_par -> lim
-        self.aprox_lim = {'tolerance': 0.0, 'seed': None}
+        self.aprox_lim={'tolerance': 0.0, 'seed': None}
 
     def add_to_time_vary(self, *params):
         """
@@ -535,7 +537,7 @@ class AgentType(Model):
             divide="ignore", over="ignore", under="ignore", invalid="ignore"
         ):
             self.pre_solve(quietly=True)  # Stuff to do before beginning to solve the model
-            self.solution = solve_agent(
+            self.solution=solve_agent(
                 self, verbose, quietly, **kwds
             )  # Solve the model by backward induction
             self.post_solve()  # Do post-solution stuff
@@ -552,9 +554,9 @@ class AgentType(Model):
         -------
         none
         """
-        self.RNG = np.random.RandomState(self.seed)
+        self.RNG=np.random.RandomState(self.seed)
 
-    reset_rng_mcrlo = mcrlo_reset_rng = reset_rng
+    reset_rng_mcrlo=mcrlo_reset_rng=reset_rng
 
     def check_elements_of_time_vary_are_lists(self):
         """
@@ -567,14 +569,12 @@ class AgentType(Model):
 
     def check_restrictions(self):
         """
-        A method to check that various restrictions are met for the model class.
+        Check that various restrictions are met for the model class.
         """
         return
 
-    def pre_solve(self):
-        """
-        An agent method that runs immediately before the model is solved, perhaps to
-        check inputs or to prepare the terminal solution.
+    def pre_solve(self, quietly):
+        """Check agent immediately before beginning embarking on solution.
 
         Parameters
         ----------
@@ -584,7 +584,6 @@ class AgentType(Model):
         -------
         none
         """
-        breakpoint()
         self.check_restrictions()
         self.check_elements_of_time_vary_are_lists()
         return None
@@ -606,7 +605,7 @@ class AgentType(Model):
         """
         return None
 
-    post_solve_agent = post_solve
+    post_solve_agent=post_solve
 
     def initialize_sim(self):
         """
@@ -634,27 +633,27 @@ class AgentType(Model):
             )
 
         self.reset_rng()
-        self.t_sim = 0
-        all_agents = np.ones(self.AgentCount, dtype=bool)
-        blank_array = np.empty(self.AgentCount)
-        blank_array[:] = np.nan
+        self.t_sim=0
+        all_agents=np.ones(self.AgentCount, dtype=bool)
+        blank_array=np.empty(self.AgentCount)
+        blank_array[:]=np.nan
         for var in self.state_now:
             if self.state_now[var] is None:
-                self.state_now[var] = copy(blank_array)
+                self.state_now[var]=copy(blank_array)
 
             # elif self.state_prev[var] is None:
             #    self.state_prev[var] = copy(blank_array)
-        self.t_age = np.zeros(
+        self.t_age=np.zeros(
             self.AgentCount, dtype=int
         )  # Number of periods/stages since agent entry
-        self.t_cycle = np.zeros(
+        self.t_cycle=np.zeros(
             self.AgentCount, dtype=int
         )  # Which cycle period/stage each agent is on
         self.sim_birth(all_agents)
         self.clear_history()
         return None
 
-    mcrlo_initialize_sim = initialize_sim_mcrlo = initialize_sim
+    mcrlo_initialize_sim=initialize_sim_mcrlo=initialize_sim
 
     def sim_one_period(self):  # -> mcrlo_sim_one_prd
         """
@@ -682,10 +681,10 @@ class AgentType(Model):
 
         # state_{t-1}
         for var in self.state_now:
-            self.state_prev[var] = self.state_now[var]
+            self.state_prev[var]=self.state_now[var]
 
             if isinstance(self.state_now[var], np.ndarray):
-                self.state_now[var] = np.empty(self.AgentCount)
+                self.state_now[var]=np.empty(self.AgentCount)
             else:
                 # Probably an aggregate variable. It may be getting set by the Market.
                 pass
@@ -699,13 +698,13 @@ class AgentType(Model):
         self.get_poststates()  # Move now state_now to state_prev
 
         # Advance time for all agents
-        self.t_age = self.t_age + 1  # Age all consumers by one period
-        self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
+        self.t_age=self.t_age + 1  # Age all consumers by one period
+        self.t_cycle=self.t_cycle + 1  # Age all consumers within their cycle
         self.t_cycle[
             self.t_cycle == self.T_cycle
-        ] = 0  # Resetting to zero for those who have reached the end
+        ]=0  # Resetting to zero for those who have reached the end
 
-    mcrlo_sim_one_period = sim_one_period
+    mcrlo_sim_one_period=sim_one_period
 
     def make_shock_history(self):  # -> make_shock_hst
         """
@@ -729,31 +728,31 @@ class AgentType(Model):
 
         # Make blank history arrays for each shock variable (and mortality)
         for var_name in self.shock_vars:
-            self.shock_history[var_name] = (
+            self.shock_history[var_name]=(
                 np.zeros((self.T_sim, self.AgentCount)) + np.nan
             )
-        self.shock_history["who_dies"] = np.zeros(
+        self.shock_history["who_dies"]=np.zeros(
             (self.T_sim, self.AgentCount), dtype=bool
         )
         # Make and store the history of shocks for each period
         for t in range(self.T_sim):
             self.get_mortality()
-            self.shock_history["who_dies"][t, :] = self.who_dies
+            self.shock_history["who_dies"][t, :]=self.who_dies
             self.get_shocks()
             for var_name in self.shock_vars:
-                self.shock_history[var_name][self.t_sim, :] = self.shocks[var_name]
+                self.shock_history[var_name][self.t_sim, :]=self.shocks[var_name]
 
             self.t_sim += 1
-            self.t_age = self.t_age + 1  # Age all consumers by one period
-            self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
+            self.t_age=self.t_age + 1  # Age all consumers by one period
+            self.t_cycle=self.t_cycle + 1  # Age all consumers within their cycle
             self.t_cycle[
                 self.t_cycle == self.T_cycle
-            ] = 0  # Resetting to zero for those who have reached the end
+            ]=0  # Resetting to zero for those who have reached the end
 
         # Flag that shocks can be read rather than simulated
-        self.read_shocks = True
+        self.read_shocks=True
 
-    make_shock_history_mcrlo = mcrlo_make_shocks_history = make_shock_history
+    make_shock_history_mcrlo=mcrlo_make_shocks_history=make_shock_history
 
     def get_mortality(self):  # -> mcrlo_get_mrtlty
         """
@@ -772,14 +771,14 @@ class AgentType(Model):
         None
         """
         if self.read_shocks:
-            who_dies = self.shock_history["who_dies"][self.t_sim, :]
+            who_dies=self.shock_history["who_dies"][self.t_sim, :]
         else:
-            who_dies = self.sim_death()
+            who_dies=self.sim_death()
         self.sim_birth(who_dies)
-        self.who_dies = who_dies
+        self.who_dies=who_dies
         return None
 
-    mcrlo_get_mortality = get_mortality_mcrlo = get_mortality
+    mcrlo_get_mortality=get_mortality_mcrlo=get_mortality
 
     def sim_death(self):  # -> mcrlo_sim_deth
         """
@@ -797,7 +796,7 @@ class AgentType(Model):
         who_dies : np.array
             Boolean array of size self.AgentCount indicating which agents die and are replaced.
         """
-        who_dies = np.zeros(self.AgentCount, dtype=bool)
+        who_dies=np.zeros(self.AgentCount, dtype=bool)
         return who_dies
 
     def sim_birth(self, which_agents):  # -> mcrlo_sim_brth
@@ -832,7 +831,7 @@ class AgentType(Model):
         """
         return None
 
-    mcrlo_get_shocks = get_shocks_mcrlo = get_shocks
+    mcrlo_get_shocks=get_shocks_mcrlo=get_shocks
 
     def read_shocks_from_history(self):  # -> mcrlo_hstry_shks_read
         """
