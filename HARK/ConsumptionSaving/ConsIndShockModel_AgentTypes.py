@@ -152,7 +152,7 @@ class AgentTypePlus(AgentType):
         for add_it in self.add_to_given_params:
             self.parameters.update({add_it: getattr(self, add_it)})
 
-    def agent_update_if_params_have_changed_since_last_solve(self, quietly):
+    def agent_update_if_params_have_changed_since_last_solve(self):
         """
             Update any characteristics of the agent that need to be recomputed
             as a result of changes in parameters since the last time the solver was invoked.
@@ -178,9 +178,9 @@ class AgentTypePlus(AgentType):
             if not (solve_par_vals_now == self.solve_par_vals):
                 if not quietly:
                     _log.info('Some model parameter has changed since last update.')
-                self._agent_force_prepare_info_needed_to_begin_solving(quietly)
+                self._agent_force_prepare_info_needed_to_begin_solving()
 
-    def _agent_force_prepare_info_needed_to_begin_solving(self, quietly):
+    def _agent_force_prepare_info_needed_to_begin_solving(self):
         # There are no universally required pre_solve objects
         pass
 
@@ -527,6 +527,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                  eventTiming='EOP',
                  solverType='HARK',
                  horizon='infinite',
+                 messaging_level=logging.INFO,
                  **kwds
                  ):
 
@@ -545,6 +546,8 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         self.eventTiming = eventTiming
         self.solverType = solverType
         self.horizon = horizon
+        self.messaging_level = messaging_level
+        self.quietly = quietly
 
         # Things to keep track of for this and child models
         self.check_restrictions()  # Make sure it's a minimally valid model
@@ -576,7 +579,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         if self.income_risks_exist:  # We got here from a model with risks
             return  # Models with risks have different prep
 
-        self._agent_force_prepare_info_needed_to_begin_solving(quietly)
+        self._agent_force_prepare_info_needed_to_begin_solving()
 
         # Store initial params; later used to test if anything changed
         self.agent_store_model_params(params['prmtv_par'],
@@ -613,7 +616,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                 if self.income_risks_exist:
                     return  # infinite horizon conditions unimportant
 
-        soln.check_conditions()
+        soln.check_conditions(messaging_level=self.messaging_level, quietly=self.quietly)
 
         if not soln.Bilt.GICRaw:  # no mNrmStE
             # wrn = "Because the model's parameters do not satisfy the GIC," +\
@@ -639,17 +642,18 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     # the agent in a state where invoking the ".solve()" method as before will
     # accomplish the same things it did before, but from the new starting setup
 
-    def _make_solution_for_final_period(self, verbose=False, quietly=True):
+    def _make_solution_for_final_period(self, messaging_level=logging.INFO,
+                                        quietly=True):
         # but want to add extra info required for backward induction
         cycles_orig = deepcopy(self.cycles)
         tolerance_orig = deepcopy(self.tolerance)
         self.tolerance = float('inf')  # Any distance satisfies this tolerance!
         if self.cycles > 0:  # Then it's a finite horizon problem
             self.cycles = 0  # solve only one period (leaving MaxKinks be)
-            self.solve(verbose=False, quietly=True)  # do not spout nonsense
+            self.solve()  # do not spout nonsense
         else:  # tolerance of inf means that "solve" will stop after setup ...
             #            breakpoint()
-            self.solve(verbose=False, quietly=True)
+            self.solve()
         self.tolerance = tolerance_orig  # which leaves us ready to solve
         self.cycles = cycles_orig  # with the original convergence criteria
         self.solution[0].Bilt.stge_kind['iter_status'] = 'iterator'
@@ -722,14 +726,14 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                             var+" is less than or equal to 1.0 with value: " + str(varMax))
         return
 
-    def check_conditions(self, verbose):
+    def check_conditions(self, messaging_level=logging.INFO, quietly=False):
 
         if not hasattr(self, 'solution'):  # A solution must have been computed
             _log.info('Make final soln because conditions are computed there')
             self._make_solution_for_final_period()
 
         soln_crnt = self.solution[0]
-        soln_crnt.check_conditions(verbose)
+        soln_crnt.check_conditions(messaging_level=logging.INFO, quietly=False)
 #       soln_crnt.check_conditions(soln_crnt, verbose)  # real version on soln
 
     # def dolo_defs(self):  # CDC 20210415: Beginnings of Dolo integration
@@ -807,7 +811,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     # Prepare PF agent for solution of entire problem
     # Overwrites default version from AgentTypePlus
     # Overwritten by version in ConsIndShockSolver
-    def _agent_force_prepare_info_needed_to_begin_solving(self, quietly):
+    def _agent_force_prepare_info_needed_to_begin_solving(self):
         # This will be reached by IndShockConsumerTypes when they execute
         # PerfForesightConsumerType.__init__ but will subsequently be
         # overridden by the _agent_force_prepare_info_needed_to_begin_solving
@@ -1072,7 +1076,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def __init__(self,
                  cycles=0,  # cycles=0 signals infinite horizon
-                 verbose=True,  quietly=False, solution_startfrom=None,
+                 messaging_level=logging.INFO,  quietly=False,
+                 solution_startfrom=None,
                  solverType='HARK',
                  solveMethod='EGM',
                  eventTiming='EOP',
@@ -1080,17 +1085,20 @@ class IndShockConsumerType(PerfForesightConsumerType):
                  **kwds):
         params = init_idiosyncratic_shocks.copy()  # Get default params
         params.update(kwds)  # Update/overwrite defaults with user-specified
+#        self.messaging_level = messaging_level
+#        self.quietly = quietly
 
         # Inherit characteristics of a PF model with the same parameters
         PerfForesightConsumerType.__init__(self, cycles=cycles,
-                                           verbose=verbose, quietly=quietly,
+                                           messaging_level=messaging_level,
+                                           quietly=quietly,
                                            **params)
 
         self.update_parameters_for_this_agent_subclass()  # Add new Pars
 
         # If precooked terminal stage not provided by user ...
         if not hasattr(self, 'solution_startfrom'):  # .. then init the default
-            self._agent_force_prepare_info_needed_to_begin_solving(quietly)
+            self._agent_force_prepare_info_needed_to_begin_solving()
 
         # - Default interpolation method is piecewise linear
         # - Cubic is smoother, works if problem has no constraints
@@ -1124,7 +1132,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Put the (enhanced) solution_terminal in self.solution[0]
 
-        self._make_solution_for_final_period(verbose=verbose, quietly=True)
+        self._make_solution_for_final_period(messaging_level=messaging_level,
+                                             quietly=True)
 
     def dolo_model(self):
         # Create a dolo version of the model
@@ -1136,10 +1145,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if self.verbose >= 2:
             _log.info(self.dolo_modl)
 
-    def _agent_force_prepare_info_needed_to_begin_solving(self, quietly):
+    def _agent_force_prepare_info_needed_to_begin_solving(self):
         """
         Update any characteristics of the agent that need to be recomputed
-        as a result of changes in parameters since the last time the solver was invoked.
+        as a result of changes in parameters since the last time the solver was 
+        invoked.
 
         Parameters
         ----------
@@ -1150,19 +1160,15 @@ class IndShockConsumerType(PerfForesightConsumerType):
         None
 
         """
-        # If solverType other than HARK or solveMethod other than EGM have been
-        # passed, we might need to do some other setup steps
-
         solve_par_vals_now = {}
         if not hasattr(self, 'solve_par_vals'):  # We haven't set it up yet
-            #            breakpoint()
             self.update_income_process()
             self.update_assets_grid()
         else:  # it has been set up, so see if anything changed
             for par in self.solve_par_vals:
                 solve_par_vals_now[par] = getattr(self, par)
             if not solve_par_vals_now == self.solve_par_vals:
-                if not quietly:
+                if not self.quietly:
                     _log.info('Some parameter has changed since last update.')
                     _log.info('Storing calculated consequences for grid etc.')
                 self.update_income_process()
@@ -1488,7 +1494,7 @@ class KinkedRconsumerType(IndShockConsumerType):
             ConsKinkedRsolver)
         # Make assets grid, income process, terminal solution
 
-    def _agent_force_prepare_info_needed_to_begin_solving(self, quietly):
+    def _agent_force_prepare_info_needed_to_begin_solving(self):
         self.update_assets_grid()
         self.update_income_process()
 

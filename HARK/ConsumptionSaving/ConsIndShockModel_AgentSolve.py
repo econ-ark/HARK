@@ -338,7 +338,8 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         return possible_transitions
 
-    def describe_model_and_calibration(self, quietly=False):
+    def describe_model_and_calibration(self, messaging_level=logging.INFO,
+                                       quietly=False):
         """
         Log a brief description of the model and its calibration.
 
@@ -362,21 +363,27 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         Pars, Modl = soln_crnt.Pars, soln_crnt.Modl
         Tran = Modl.Transitions
 
-        if not quietly:
-            msg = '\n\n(Because quietly=False and messaging_level is less ' + \
-                'than logging.WARNING, model information is provided below)\n'
+        if not quietly and messaging_level < logging.WARNING:
+            msg = '\n(quietly=False and messaging_level < ' + \
+                'logging.WARNING, so some model information is provided below):\n'
             msg = msg + '\nThe model has the following parameter values:\n'
-            _log.info(print(msg))
+            _log.setLevel(messaging_level)
+#            _log.info(print(msg))
+            _log.info(msg)
             for key in Pars.__dict__.keys():
-                _log.info(print('\t' + key + ': ' + str(Pars.__dict__[key])))
+                #                _log.info(print('\t' + key + ': ' + str(Pars.__dict__[key])))
+                _log.info('\t' + key + ': ' + str(Pars.__dict__[key]))
 
-            msg = "\nThe model's transition equations are:\n"
-            _log.info(print(msg))
+            msg = "\nThe model's transition equations are:"
+#            _log.info(print(msg))
+            _log.info(msg)
             for key in Tran.keys():
-                _log.info(print('\n' + key + ' step:'))
+                #                _log.info(print('\n' + key + ' step:'))
+                _log.info('\n' + key + ' step:')
                 for eqn_name in Tran[key]['raw_text']:
-                    _log.info(print('\t' + str(Tran[key]['raw_text'][eqn_name])))
-            _log.info(print('\n'))
+                    #                    _log.info(print('\t' + str(Tran[key]['raw_text'][eqn_name])))
+                    _log.info('\t' + str(Tran[key]['raw_text'][eqn_name]))
+#            _log.info(print('\n'))
 
     def check_conditions(self, messaging_level=logging.DEBUG, quietly=False):
         """
@@ -429,24 +436,29 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         Bilt.conditions = {}  # Keep track of truth of conditions
         Bilt.degenerate = False  # True: solution is degenerate
 
-        self.describe_model_and_calibration(quietly)
+        self.describe_model_and_calibration(messaging_level, quietly)
 
-        _log.info('\nBecause messaging_level=logging.INFO, conditions are reported below\n')
+        _log.info('\n\nBecause messaging_level=logging.INFO, conditions are reported below:\n')
 
-        soln_crnt.check_AIC(soln_crnt, messaging_level)
-        soln_crnt.check_FHWC(soln_crnt, messaging_level)
-        soln_crnt.check_RIC(soln_crnt, messaging_level)
-        soln_crnt.check_GICRaw(soln_crnt, messaging_level)
-        soln_crnt.check_GICNrm(soln_crnt, messaging_level)
-        soln_crnt.check_GICLiv(soln_crnt, messaging_level)
-        soln_crnt.check_FVAC(soln_crnt, messaging_level)
+        soln_crnt.check_AIC(soln_crnt, messaging_level, quietly)
+        soln_crnt.check_FHWC(soln_crnt, messaging_level, quietly)
+        soln_crnt.check_RIC(soln_crnt, messaging_level, quietly)
+        soln_crnt.check_GICRaw(soln_crnt, messaging_level, quietly)
+        soln_crnt.check_GICNrm(soln_crnt, messaging_level, quietly)
+        soln_crnt.check_GICLiv(soln_crnt, messaging_level, quietly)
+        soln_crnt.check_WRIC(soln_crnt, messaging_level, quietly)
+        soln_crnt.check_FVAC(soln_crnt, messaging_level, quietly)
 
         # degenerate flag is True if the model has no nondegenerate solution
         if hasattr(Bilt, "BoroCnstArt") and Pars.BoroCnstArt is not None:
-            Bilt.degenerate = not Bilt.RIC
+            if Bilt.FHWC:
+                Bilt.degenerate = not Bilt.RIC  # h finite and patient => c(m)=0
             # If BoroCnstArt exists but RIC fails, limiting soln is c(m)=0
         else:  # No BoroCnst; not degenerate if neither c(m)=0 or \infty
-            Bilt.degenerate = not Bilt.RIC or not Bilt.FHWC
+            if Bilt.FHWC:
+                Bilt.degenerate = not Bilt.RIC  # Finite h requires finite PatFac
+            else:
+                Bilt.degenerate = Bilt.RIC  # infinite h requires impatience
 
         if Bilt.degenerate:
             _log.critical("Under the given parameter values, the model is degenerate.")
@@ -576,9 +588,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         def test(stge): return stge.Bilt.APF < 1
 
         messages = {
-            True: "\n\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, satisfies the Absolute Impatience Condition (AIC), which requires APF < 1:\n    " +
+            True: f"\nThe Absolute Patience Factor, APF={stge.Bilt.APF:.5f} satisfies the Absolute Impatience Condition (AIC), APF < 1:\n    " +
                   stge.Bilt.AIC_fcts['urlhandle'],
-            False: "\n\nThe Absolute Patience Factor for the supplied parameter values, APF={0.APF}, violates the Absolute Impatience Condition (AIC), which requires APF < 1:\n    " +
+            False: f"\nThe Absolute Patience Factor, APF={stge.Bilt.APF:.5f} violates the Absolute Impatience Condition (AIC), APF < 1:\n    " +
                    stge.Bilt.AIC_fcts['urlhandle']
         }
         verbose_messages = {
@@ -587,7 +599,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         }
 
         stge.Bilt.AIC = core_check_condition(name, test, messages, messaging_level,
-                                             verbose_messages, "APF", stge)
+                                             verbose_messages, "APF", stge, quietly)
 
     def check_FVAC(self, stge, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Finite Value of Autarky Condition."""
@@ -596,9 +608,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         def test(stge): return stge.Bilt.FVAF < 1
 
         messages = {
-            True: "\n\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, satisfies the Finite Value of Autarky Condition, which requires FVAF < 1:\n    " +
+            True: f"\nThe Finite Value of Autarky Factor, FVAF={stge.Bilt.FVAF:.5f} satisfies the Finite Value of Autarky Condition, FVAF < 1:\n    " +
                   stge.Bilt.FVAC_fcts['urlhandle'],
-            False: "\n\nThe Finite Value of Autarky Factor for the supplied parameter values, FVAF={0.FVAF}, violates the Finite Value of Autarky Condition, which requires FVAF:\n    " +
+            False: f"\nThe Finite Value of Autarky Factor, FVAF={stge.Bilt.FVAF:.5f} violates the Finite Value of Autarky Condition, FVAF:\n    " +
                    stge.Bilt.FVAC_fcts['urlhandle']
         }
         verbose_messages = {
@@ -607,8 +619,13 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
             False: "\n  Therefore, a nondegenerate solution exits if the RIC holds, but will not exist if the RIC fails unless the FHWC also fails.\n",
         }
 
+        # Bad enough to report as a warning
+        if messaging_level == logging.WARNING and quietly is False \
+           and stge.Bilt.FVAF > 1:
+            _log.warning(messages['False']+verbose_messages['False'])
+
         stge.Bilt.FVAC = core_check_condition(name, test, messages, messaging_level,
-                                              verbose_messages, "FVAF", stge)
+                                              verbose_messages, "FVAF", stge, quietly)
 
     def check_GICRaw(self, stge, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Growth Impatience Condition."""
@@ -617,17 +634,21 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         def test(stge): return stge.Bilt.GPFRaw < 1
 
         messages = {
-            True: "\n\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, satisfies the Growth Impatience Condition (GIC), which requires GPF < 1:\n    " +
+            True: f"\nThe Growth Patience Factor, GPF={stge.Bilt.GPFRaw:.5f} satisfies the Growth Impatience Condition (GIC), GPF < 1:\n    " +
                   stge.Bilt.GICRaw_fcts['urlhandle'],
-            False: "\n\nThe Growth Patience Factor for the supplied parameter values, GPF={0.GPFRaw}, violates the Growth Impatience Condition (GIC), which requires GPF < 1:\n    " +
+            False: f"\nThe Growth Patience Factor, GPF={stge.Bilt.GPFRaw:.5f} violates the Growth Impatience Condition (GIC), GPF < 1:\n    " +
                    stge.Bilt.GICRaw_fcts['urlhandle'],
         }
         verbose_messages = {
-            True: "\n  Therefore,  for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
+            True: "\n  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
             False: "\n  Therefore, for a perfect foresight consumer whose parameters satisfy the FHWC, the ratio of individual wealth to permanent income is expected to rise toward infinity. \n"
         }
         stge.Bilt.GICRaw = core_check_condition(name, test, messages, messaging_level,
-                                                verbose_messages, "GPFRaw", stge)
+                                                verbose_messages, "GPFRaw", stge, quietly)
+
+        if messaging_level == logging.WARNING and quietly is False \
+           and stge.Bilt.GPFRaw > 1:
+            _log.warning(messages['False']+verbose_messages['False'])
 
     def check_GICLiv(self, stge, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on Mortality Adjusted GIC."""
@@ -636,19 +657,23 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         def test(stge): return stge.Bilt.GPFLiv < 1
 
         messages = {
-            True: "\n\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, satisfies the Mortality Adjusted Aggregate Growth Impatience Condition (GICLiv):\n    " +
+            True: f"\nThe Mortality Adjusted Aggregate Growth Patience Factor, GPFLiv={stge.Bilt.GPFLiv:.5f} satisfies the Mortality Adjusted Aggregate Growth Impatience Condition (GICLiv):\n    " +
                   stge.Bilt.GPFLiv_fcts['urlhandle'],
-            False: "\n\nThe Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values, GPFLiv={0.GPFLiv}, violates the Mortality Adjusted Aggregate Growth Impatience Condition (GICLiv):\n    " +
+            False: f"\nThe Mortality Adjusted Aggregate Growth Patience Factor, GPFLiv={stge.Bilt.GPFLiv:.5f} violates the Mortality Adjusted Aggregate Growth Impatience Condition (GICLiv):\n    " +
                    stge.Bilt.GPFLiv_fcts['urlhandle'],
         }
         verbose_messages = {
-            True: "\n  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists (" +
-                  stge.Bilt.GPFLiv_fcts['urlhandle'] + ")\n",
-            False: "\n  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist (" +
-                   stge.Bilt.GPFLiv_fcts['urlhandle'] + ")\n",
+            True: "\n  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.\n" +
+                  stge.Bilt.GPFLiv_fcts['urlhandle'] + "\n",
+            False: "\n  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.  \n" +
+                   stge.Bilt.GPFLiv_fcts['urlhandle'] + "\n",
         }
         stge.Bilt.GICLiv = core_check_condition(name, test, messages, messaging_level,
-                                                verbose_messages, "GPFLiv", stge)
+                                                verbose_messages, "GPFLiv", stge, quietly)
+
+        if messaging_level == logging.WARNING and quietly is False \
+           and stge.Bilt.GICLiv is False:
+            _log.warning(messages['False']+verbose_messages['False'])
 
     def check_RIC(self, stge, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Return Impatience Condition."""
@@ -657,9 +682,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         def test(stge): return stge.Bilt.RPF < 1
 
         messages = {
-            True: "\n\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, satisfies the Return Impatience Condition (RIC), which requires RPF < 1:\n    " +
+            True: f"\nThe Return Patience Factor, RPF={stge.Bilt.RPF:.5f} satisfies the Return Impatience Condition (RIC), RPF < 1:\n    " +
                   stge.Bilt.RPF_fcts['urlhandle'],
-            False: "\n\nThe Return Patience Factor for the supplied parameter values, RPF= {0.RPF}, violates the Return Impatience Condition (RIC), which requires RPF < 1:\n    " +
+            False: f"\nThe Return Patience Factor, RPF={stge.Bilt.RPF:.5f} violates the Return Impatience Condition (RIC), RPF < 1:\n    " +
                    stge.Bilt.RPF_fcts['urlhandle'],
         }
         verbose_messages = {
@@ -667,7 +692,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
             False: "\n  Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.\n",
         }
         stge.Bilt.RIC = core_check_condition(name, test, messages, messaging_level,
-                                             verbose_messages, "RPF", stge)
+                                             verbose_messages, "RPF", stge, quietly)
 
     def check_FHWC(self, stge, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Finite Human Wealth Condition."""
@@ -676,18 +701,18 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         def test(stge): return stge.Bilt.FHWF < 1
 
         messages = {
-            True: "\n\nThe Finite Human Wealth Factor for the supplied parameter values, FHWF={0.FHWF}, satisfies the Finite Human Wealth Condition (FHWC), which requires FHWF < 1:\n    " +
+            True: f"\nThe Finite Human Wealth Factor, FHWF={stge.Bilt.FHWF:.5f} satisfies the Finite Human Wealth Condition (FHWC), FHWF < 1:\n    " +
                   stge.Bilt.FHWC_fcts['urlhandle'],
-            False: "\n\nThe Finite Human Wealth Factor for the supplied parameter values, FHWF={0.FHWF}, violates the Finite Human Wealth Condition (FHWC), which requires FHWF < 1:\n    " +
+            False: f"\nThe Finite Human Wealth Factor, FHWF={stge.Bilt.FHWF:.5f} violates the Finite Human Wealth Condition (FHWC), FHWF < 1:\n    " +
                    stge.Bilt.FHWC_fcts['urlhandle'],
         }
         verbose_messages = {
-            True: "\n  Therefore, the limiting consumption function is not c(m)=Infinity.\n  Human wealth normalized by permanent income is {0.hNrmInf}.\n",
+            True: f"\n  Therefore, the limiting consumption function is not c(m)=Infinity.\n  Human wealth normalized by permanent income is {stge.Bilt.hNrmInf:.5f}.\n",
             False: "\n  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.\n  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0. (" +
                    stge.Bilt.FHWC_fcts['urlhandle'] + ")\n",
         }
         stge.Bilt.FHWC = core_check_condition(name, test, messages, messaging_level,
-                                              verbose_messages, "FHWF", stge)
+                                              verbose_messages, "FHWF", stge, quietly)
 
     def check_GICNrm(self, stge, messaging_level=logging.DEBUG, quietly=False):
         """Check Normalized Growth Patience Factor."""
@@ -699,19 +724,19 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         def test(stge): return stge.Bilt.GPFNrm <= 1
 
         messages = {
-            True: "\n\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, satisfies the Normalized Growth Impatience Condition (GICNrm), which requires GPFNrm < 1:\n    " +
+            True: f"\nThe Normalized Growth Patience Factor GPFNrm, GPFNrm={stge.Bilt.GPFNrm:.5f} satisfies the Normalized Growth Impatience Condition (GICNrm), GPFNrm < 1:\n    " +
                   stge.Bilt.GICNrm_fcts['urlhandle'],
-            False: "\n\nThe Normalized Growth Patience Factor GPFNrm for the supplied parameter values, GPFNrm={0.GPFNrm}, violates the Normalized Growth Impatience Condition (GICNrm), which requires GPFNrm < 1:\n    " +
+            False: f"\nThe Normalized Growth Patience Factor GPFNrm, GPFNrm={stge.Bilt.GPFNrm:.5f} violates the Normalized Growth Impatience Condition (GICNrm), GPFNrm < 1:\n    " +
                    stge.Bilt.GICNrm_fcts['urlhandle'],
         }
         verbose_messages = {
             True: "\n  Therefore, a target level of the individual market resources ratio m exists.",
-            False: "\n  Therefore, a target ratio of individual market resources to individual permanent income does not exist.  (" +
-                   stge.Bilt.GICNrm_fcts['urlhandle'] + ")\n",
+            False: "\n  Therefore, a target ratio of individual market resources to individual permanent income does not exist.  \n" +
+                   stge.Bilt.GICNrm_fcts['urlhandle'] + "\n",
         }
 
         stge.Bilt.GICNrm = core_check_condition(name, test, messages, messaging_level,
-                                                verbose_messages, "GPFNrm", stge)
+                                                verbose_messages, "GPFNrm", stge, quietly)
 
     def check_WRIC(self, stge, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Weak Return Impatience Condition."""
@@ -723,9 +748,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         def test(stge): return stge.Bilt.WRPF <= 1
 
         messages = {
-            True: "\n\nThe Weak Return Patience Factor for the supplied parameter values, WRPF={0.WRPF}, satisfies the Weak Return Impatience Condition, which requires WRPF < 1:\n    " +
+            True: f"\nThe Weak Return Patience Factor, WRPF={stge.Bilt.WRPF:.5f} satisfies the Weak Return Impatience Condition, WRPF < 1:\n    " +
                   stge.Bilt.WRIC_fcts['urlhandle'],
-            False: "\n\nThe Weak Return Patience Factor for the supplied parameter values, WRPF={0.WRPF}, violates the Weak Return Impatience Condition, which requires WRPF < 1:\n    " +
+            False: f"\nThe Weak Return Patience Factor, WRPF={stge.Bilt.WRPF:.5f} violates the Weak Return Impatience Condition, WRPF < 1:\n    " +
                    stge.Bilt.WRIC_fcts['urlhandle'],
         }
 
@@ -736,7 +761,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                 'urlhandle'] + ")\n",
         }
         stge.Bilt.WRIC = core_check_condition(
-            name, test, messages, messaging_level, verbose_messages, "WRPF", stge)
+            name, test, messages, messaging_level, verbose_messages, "WRPF", stge, quietly)
 
     def mNrmTrg_find(self):
         """
