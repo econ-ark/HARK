@@ -906,6 +906,8 @@ class FrameAgentType(AgentType):
         #Frame order is significant here.
     """
 
+    cycles = 0 # for now, only infinite horizon models.
+
     # frames property
     frames = [
         Frame(
