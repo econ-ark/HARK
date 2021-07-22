@@ -580,9 +580,6 @@ def solveConsPortfolio(
         dvdbFunc_intermed = MargValueFuncCRRA(dvdbNvrsFunc_intermed, CRRA)
 
         # Calculate intermediate value by taking expectations over income shocks
-        temp_fac_B = (PermShks_tiled * PermGroFac) ** (
-            1.0 - CRRA
-        )  # Will use this below
         if vFuncBool:
             v_intermed = calc_expectation(
                 IncShkDstn, v_intermed_dist, bNrm_tiled, Share_tiled
