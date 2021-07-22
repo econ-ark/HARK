@@ -228,8 +228,6 @@ class RepAgentConsumerType(IndShockConsumerType):
 
     Parameters
     ----------
-    cycles : int
-        Number of times the sequence of periods should be solved.
 
     """
 
@@ -239,7 +237,7 @@ class RepAgentConsumerType(IndShockConsumerType):
         params = init_rep_agent.copy()
         params.update(kwds)
 
-        IndShockConsumerType.__init__(self, cycles=0, **params)
+        IndShockConsumerType.__init__(self, **params)
         self.AgentCount = 1  # Hardcoded, because this is rep agent
         self.solve_one_period = solve_ConsRepAgent
         self.del_from_time_inv("Rfree", "BoroCnstArt", "vFuncBool", "CubicBool")
@@ -387,6 +385,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
 
 # Define the default dictionary for a representative agent type
 init_rep_agent = init_idiosyncratic_shocks.copy()
+init_rep_agent["cycles"] = 0
 init_rep_agent["DeprFac"] = 0.05
 init_rep_agent["CapShare"] = 0.36
 init_rep_agent["UnempPrb"] = 0.0

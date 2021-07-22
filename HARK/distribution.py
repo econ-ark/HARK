@@ -181,11 +181,11 @@ class Lognormal(Distribution):
     Parameters
     ----------
     mu : float or [float]
-        One or more means.  Number of elements T in mu determines number
-        of rows of output.
+        One or more means of underlying normal distribution.
+        Number of elements T in mu determines number of rows of output.
     sigma : float or [float]
-        One or more standard deviations. Number of elements T in sigma
-        determines number of rows of output.
+        One or more standard deviations of underlying normal distribution.
+        Number of elements T in sigma determines number of rows of output.
     seed : int
         Seed for random number generator.
     """

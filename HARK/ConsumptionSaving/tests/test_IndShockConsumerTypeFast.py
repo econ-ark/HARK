@@ -28,8 +28,8 @@ class testIndShockConsumerTypeFast(unittest.TestCase):
         self.agent.get_shocks()
 
         self.assertEqual(self.agent.shocks['PermShk'][0], 1.0427376294215103)
-        self.assertEqual(self.agent.shocks['PermShk'][1], 0.9278094171517413)
-        self.assertEqual(self.agent.shocks['TranShk'][0], 0.881761797501595)
+        self.assertAlmostEqual(self.agent.shocks['PermShk'][1], 0.9278094171517413)
+        self.assertAlmostEqual(self.agent.shocks['TranShk'][0], 0.881761797501595)
 
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerTypeFast(**init_lifecycle)
@@ -109,9 +109,9 @@ class testBufferStock(unittest.TestCase):
         GICRaw_fail_dictionary = dict(self.base_params)
         GICRaw_fail_dictionary["Rfree"] = 1.08
         GICRaw_fail_dictionary["PermGroFac"] = [1.00]
+        GICRaw_fail_dictionary['cycles'] = 0 # cycles=0 makes this an infinite horizon consumer
 
         GICRawFailExample = IndShockConsumerTypeFast(
-            cycles=0,  # cycles=0 makes this an infinite horizon consumer
             **GICRaw_fail_dictionary
         )
 
@@ -126,8 +126,8 @@ class testBufferStock(unittest.TestCase):
         self.assertFalse(GICRawFailExample.conditions["GICRaw"])
 
     def test_infinite_horizon(self):
-        baseEx_inf = IndShockConsumerTypeFast(cycles=0, **self.base_params)
-
+        baseEx_inf = IndShockConsumerTypeFast(**self.base_params)
+        baseEx_inf.assign_parameters(cycles = 0)
         baseEx_inf.solve()
         baseEx_inf.unpack_cFunc()
 
@@ -157,7 +157,7 @@ class testBufferStock(unittest.TestCase):
 class testIndShockConsumerTypeFastExample(unittest.TestCase):
     def test_infinite_horizon(self):
         IndShockExample = IndShockConsumerTypeFast(**IdiosyncDict)
-        IndShockExample.cycles = 0  # Make this type have an infinite horizon
+        IndShockExample.assign_parameters(cycles = 0)  # Make this type have an infinite horizon
         IndShockExample.solve()
 
         self.assertAlmostEqual(IndShockExample.solution[0].mNrmStE, 1.5488165705077026)

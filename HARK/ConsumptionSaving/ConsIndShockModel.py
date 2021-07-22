@@ -1532,6 +1532,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
 
 # Make a dictionary to specify a perfect foresight consumer type
 init_perfect_foresight = {
+    'cycles' : 1,         # Finite, non-cyclic model
     'CRRA': 2.0,          # Coefficient of relative risk aversion,
     'Rfree': 1.03,        # Interest factor on assets
     'DiscFac': 0.96,      # Intertemporal discount factor
@@ -1548,7 +1549,8 @@ init_perfect_foresight = {
     # Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
     'PermGroFacAgg': 1.0,
     'T_age': None,       # Age after which simulated agents are automatically killed
-    'T_cycle': 1         # Number of periods in the cycle for this agent type
+    'T_cycle': 1,        # Number of periods in the cycle for this agent type
+    "PerfMITShk": False    # Do Perfect Foresight MIT Shock: Forces Newborns to follow solution path of the agent he/she replaced when True
 }
 
 
@@ -1561,8 +1563,7 @@ class PerfForesightConsumerType(AgentType):
 
     Parameters
     ----------
-    cycles : int
-        Number of times the sequence of periods should be solved.
+
     """
 
     # Define some universal values for all consumer types
@@ -1577,11 +1578,11 @@ class PerfForesightConsumerType(AgentType):
         MPCmax=1.0,
     )
     time_vary_ = ["LivPrb", "PermGroFac"]
-    time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt"]
+    time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt" ]
     state_vars = ['pLvl', 'PlvlAgg', 'bNrm', 'mNrm', "aNrm"]
     shock_vars_ = []
 
-    def __init__(self, cycles=1, verbose=1, quiet=False, **kwds):
+    def __init__(self, verbose=1, quiet=False, **kwds):
         params = init_perfect_foresight.copy()
         params.update(kwds)
         kwds = params
@@ -1590,7 +1591,6 @@ class PerfForesightConsumerType(AgentType):
         AgentType.__init__(
             self,
             solution_terminal=deepcopy(self.solution_terminal_),
-            cycles=cycles,
             pseudo_terminal=False,
             **kwds
         )
@@ -1708,9 +1708,11 @@ class PerfForesightConsumerType(AgentType):
             seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
         self.t_age[which_agents] = 0  # How many periods since each agent was born
-        self.t_cycle[
-            which_agents
-        ] = 0  # Which period of the cycle each agent is currently in
+        if self.PerfMITShk == False:  # If True, Newborns inherit t_cycle of agent they replaced (i.e. t_cycles are not reset). 
+            self.t_cycle[
+                which_agents
+            ] = 0  # Which period of the cycle each agent is currently in
+            
         return None
 
     def sim_death(self):
@@ -2061,13 +2063,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
     )  # This is in the PerfForesight model but not ConsIndShock
     shock_vars_ = ['PermShk', 'TranShk']
 
-    def __init__(self, cycles=1, verbose=1, quiet=False, **kwds):
+    def __init__(self, verbose=1, quiet=False, **kwds):
         params = init_idiosyncratic_shocks.copy()
         params.update(kwds)
 
         # Initialize a basic AgentType
         PerfForesightConsumerType.__init__(
-            self, cycles=cycles, verbose=verbose, quiet=quiet, **params
+            self, verbose=verbose, quiet=quiet, **params
         )
 
         # Add consumer-type specific objects, copying to create independent versions
@@ -2752,22 +2754,23 @@ class KinkedRconsumerType(IndShockConsumerType):
     very small changes.  Solver for this class is currently only compatible with
     linear spline interpolation.
 
+    Same parameters as AgentType.
+
+
     Parameters
     ----------
-    cycles : int
-        Number of times the sequence of periods should be solved.
     """
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)
     time_inv_.remove("Rfree")
     time_inv_ += ["Rboro", "Rsave"]
 
-    def __init__(self, cycles=1, **kwds):
+    def __init__(self, **kwds):
         params = init_kinked_R.copy()
         params.update(kwds)
 
         # Initialize a basic AgentType
-        PerfForesightConsumerType.__init__(self, cycles=cycles, **params)
+        PerfForesightConsumerType.__init__(self, **params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solve_one_period = make_one_period_oo_solver(ConsKinkedRsolver)

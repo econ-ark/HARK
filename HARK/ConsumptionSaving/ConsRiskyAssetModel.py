@@ -35,14 +35,14 @@ class RiskyAssetConsumerType(IndShockConsumerType):
 
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
 
-    def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
+    def __init__(self, verbose=False, quiet=False, **kwds):
         params = init_risky_asset.copy()
         params.update(kwds)
         kwds = params
 
         # Initialize a basic consumer type
         IndShockConsumerType.__init__(
-            self, cycles=cycles, verbose=verbose, quiet=quiet, **kwds
+            self, verbose=verbose, quiet=quiet, **kwds
         )
 
         # These method must be overwritten by classes that inherit from
@@ -184,13 +184,9 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         else:
             RiskyAvg = self.RiskyAvg
             RiskyStd = self.RiskyStd
-        RiskyAvgSqrd = RiskyAvg ** 2
-        RiskyVar = RiskyStd ** 2
 
-        mu = np.log(RiskyAvg / (np.sqrt(1.0 + RiskyVar / RiskyAvgSqrd)))
-        sigma = np.sqrt(np.log(1.0 + RiskyVar / RiskyAvgSqrd))
-        self.shocks["Risky"] = Lognormal(
-            mu, sigma, seed=self.RNG.randint(0, 2 ** 31 - 1)
+        self.shocks["Risky"] = Lognormal.from_mean_std(
+            self.RiskyAvg, self.RiskyStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(1)
 
     def get_Adjust(self):
