@@ -119,7 +119,9 @@ class IndexDistribution(Distribution):
                 ).approx(N,**kwds)
 
         if type(item0) is list:
-            return [self[i].approx(N,**kwds) for i, _ in enumerate(item0)]
+            return TimeVaryingDiscreteDistribution(
+                [self[i].approx(N,**kwds) for i, _ in enumerate(item0)]
+            )
 
 
     def draw(self, condition):
@@ -170,6 +172,68 @@ class IndexDistribution(Distribution):
                 draws[these] = self[c].draw(N)
 
             return draws
+
+class TimeVaryingDiscreteDistribution(Distribution):
+    """
+    This class provides a way to define a discrete distribution that
+    is conditional on an index.
+
+    Wraps a list of discrete distributions.
+
+    Parameters
+    ----------
+
+    distributions : [DiscreteDistribution]
+        A list of discrete distributions
+
+    seed : int
+        Seed for random number generator.
+    """
+    distributions = []
+
+    def __init__(self, distributions, seed = 0):
+        # Set up the RNG
+        super().__init__(seed)
+
+        self.distributions = distributions
+
+    def __getitem__(self, y):
+        return self.distributions[y]
+
+    def draw(self, condition):
+        """
+        Generate arrays of draws.
+        The input is an array containing the conditions.
+        The output is an array of the same length (axis 1 dimension)
+        as the conditions containing random draws of the conditional
+        distribution.
+
+        Parameters
+        ----------
+        condition : np.array
+            The input conditions to the distribution.
+
+        Returns:
+        ------------
+        draws : np.array
+        """
+        # for now, assume that all the conditionals
+        # are of the same type.
+        # this matches the HARK 'time-varying' model architecture.
+
+        # conditions are indices into list
+        # somewhat convoluted sampling strategy retained
+        # for test backwards compatibility
+
+        draws = np.zeros(condition.size)
+
+        for c in np.unique(condition):
+            these = c == condition
+            N = np.sum(these)
+
+            draws[these] = self.distributions[c].draw(N)
+
+        return draws
 
 ### CONTINUOUS DISTRIBUTIONS
 
