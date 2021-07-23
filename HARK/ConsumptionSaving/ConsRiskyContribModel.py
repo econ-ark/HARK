@@ -65,6 +65,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     # For details, see
     # https://github.com/Mv77/RiskyContrib/blob/main/RiskyContrib.pdf
     state_vars = RiskyAssetConsumerType.state_vars + [
+        "gNrm",
         "nNrm",
         "mNrmTilde",
         "nNrmTilde",
@@ -427,13 +428,13 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         RfEff = Rfree / self.shocks["PermShk"]
         RrEff = Rrisk / self.shocks["PermShk"]
 
-        bNrm = RfEff * aNrmPrev  # Liquid balances before labor income
-        gNrm = RrEff * nNrmTildePrev  # Iliquid balances before labor income
+        self.state_now["bNrm"] = RfEff * aNrmPrev  # Liquid balances before labor income
+        self.state_now["gNrm"] = RrEff * nNrmTildePrev  # Iliquid balances before labor income
 
         # Liquid balances after labor income
-        self.state_now["mNrm"] = bNrm + self.shocks["TranShk"] * (1 - SharePrev)
+        self.state_now["mNrm"] = self.state_now["bNrm"] + self.shocks["TranShk"] * (1 - SharePrev)
         # Iliquid balances after labor income
-        self.state_now["nNrm"] = gNrm + self.shocks["TranShk"] * SharePrev
+        self.state_now["nNrm"] = self.state_now["gNrm"] + self.shocks["TranShk"] * SharePrev
 
         return None
 
