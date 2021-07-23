@@ -246,9 +246,22 @@ mPts = 1000  # Number of points to plot
 eevalgrid = np.linspace(0, mMax, mPts)  # range of values of assets for the plot
 
 # Number of points that will be used to approximate the risky distribution
-risky_count_grid = [5, 200]
+risky_count_grid = [5, 50, 200]
 # Plot by ages (time periods) at which to plot. We will use the default life-cycle calibration.
 ages = [2, 4, 6, 8]
+
+# Create lifecycle dictionary with portfolio choice parameters
+merton_dict = copy(init_lifecycle)
+merton_dict["RiskyCount"] = init_portfolio["RiskyCount"]
+merton_dict["ShareCount"] = init_portfolio["ShareCount"]
+merton_dict["aXtraMax"] = init_portfolio["aXtraMax"]
+merton_dict["aXtraCount"] = init_portfolio["aXtraCount"]
+merton_dict["aXtraNestFac"] = init_portfolio["aXtraNestFac"]
+merton_dict["BoroCnstArt"] = init_portfolio["BoroCnstArt"]
+merton_dict["CRRA"] = init_portfolio["CRRA"]
+merton_dict["DiscFac"] = init_portfolio["DiscFac"]
+merton_dict["RiskyAvgTrue"] = 1.08
+merton_dict["RiskyStdTrue"] = 0.20
 
 
 # Create a function to compute the Merton-Samuelson limiting portfolio share.
@@ -263,7 +276,6 @@ for rcount in risky_count_grid:
     # approximate the risky return distribution
 
     # Create new dictionary copying the default
-    merton_dict = init_lifecycle.copy()
     merton_dict["RiskyCount"] = rcount
 
     # Create and solve agent
@@ -294,7 +306,8 @@ for rcount in risky_count_grid:
     )
 
     plt.ylim(0, 1.05)
-    plt.xlim(eevalgrid[0], eevalgrid[-1])
+    plt.xlim(eevalgrid[0] + 1, eevalgrid[-1])
+    plt.xscale("log")
     plt.legend()
     plt.title(
         "Risky Portfolio Share by Age\n Risky distribution with {points} equiprobable points".format(
