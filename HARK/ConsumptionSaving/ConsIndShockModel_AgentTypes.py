@@ -16,7 +16,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel_CommonDefs \
             construct_assets_grid)
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
     import (ConsumerSolutionOneNrmStateCRRA, ConsPerfForesightSolver,
-            ConsIndShockSolverBasic, ConsIndShockSolver,
+            ConsIndShockSolverBasic, ConsIndShockSolver, ConsKinkedRsolver
             )
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
     import (init_perfect_foresight, init_idiosyncratic_shocks)
@@ -104,8 +104,6 @@ class AgentTypePlus(AgentType):
 
     # https://elfi-y.medium.com/super-inherit-your-python-class-196369e3377a
     def __init__(self, *args,
-                 verbose=True,  # Equivalent to "True"
-                 quietly=False,  # Suppress all output
                  **kwds):  # Inherit from basic AgentType
         AgentType.__init__(self, *args, **kwds)
 
@@ -117,12 +115,6 @@ class AgentTypePlus(AgentType):
         self.add_to_given_params = {'time_vary', 'time_inv', 'state_vars',
                                     'cycles', 'seed', 'tolerance'}
         self.update_parameters_for_this_agent_subclass()
-
-        # Goal: Push everything that will universally be needed down to the
-        # AgentType level.  Verbosity is such a thing.
-        self.verbose = verbose
-        self.quietly = quietly  #
-        set_verbosity_level((4 - verbose) * 10)
 
     def agent_store_model_params(self, prmtv_par, aprox_lim):
         # When anything cached here changes, solution must be recomputed
@@ -176,7 +168,7 @@ class AgentTypePlus(AgentType):
             breakpoint()
             # Check whether any of them has changed
             if not (solve_par_vals_now == self.solve_par_vals):
-                if not quietly:
+                if not self.quietly:
                     _log.info('Some model parameter has changed since last update.')
                 self._agent_force_prepare_info_needed_to_begin_solving()
 
@@ -205,8 +197,7 @@ class AgentTypePlus(AgentType):
             _log.warning('Solution does not have attribute stge_kind')
             return
         else:  # breakpoint()
-            soln.Bilt.stge_kind['iter_status'] = 'finished'
-        self.agent_post_post_solve()
+            self.agent_post_post_solve()
 
     # Disambiguation: former "[solver].post_solve"; post_solve is now alias
     # it's too hard to remember whether "post_solve" is a method of
@@ -593,7 +584,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                 eventTiming=eventTiming
             )  # allows user-specified alt
 
-        self._make_solution_for_final_period()  # Populate instance.solution[0]
+        self.make_solution_for_final_period()  # Populate instance.solution[0]
 
     def add_stable_points_to_solution(self, soln):
         """
@@ -626,6 +617,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         else:  # mNrmStE exists; compute it and check mNrmTrg
             soln.Bilt.mNrmStE = soln.mNrmStE_find()
         if not self.income_risks_exist:  # If a PF model, nothing more to do
+            soln.Bilt.mNrmTrg = soln.mNrmStE_find()
             return
         else:
             if not soln.Bilt.GICNrm:
@@ -642,28 +634,32 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     # the agent in a state where invoking the ".solve()" method as before will
     # accomplish the same things it did before, but from the new starting setup
 
-    def _make_solution_for_final_period(self, messaging_level=logging.INFO,
-                                        quietly=True):
+    def make_solution_for_final_period(self):
         # but want to add extra info required for backward induction
+        quietly, messaging_level = self.quietly, self.messaging_level
         cycles_orig = deepcopy(self.cycles)
         tolerance_orig = deepcopy(self.tolerance)
-        self.tolerance = float('inf')  # Any distance satisfies this tolerance!
+        self.tolerance = float('inf')  # Any distance satisfies this tolerance
+#        breakpoint()
         if self.cycles > 0:  # Then it's a finite horizon problem
             self.cycles = 0  # solve only one period (leaving MaxKinks be)
-            self.solve()  # do not spout nonsense
+            self.solve(quietly=quietly, messaging_level=messaging_level)  # do not spout nonsense
         else:  # tolerance of inf means that "solve" will stop after setup ...
             #            breakpoint()
-            self.solve()
+            self.solve(quietly=quietly, messaging_level=messaging_level)
+
+#            self.solution[0].distance_last = float('inf')
         self.tolerance = tolerance_orig  # which leaves us ready to solve
         self.cycles = cycles_orig  # with the original convergence criteria
         self.solution[0].Bilt.stge_kind['iter_status'] = 'iterator'
-        self.solution[0].Bilt.vAdd = np.array([0.0])  # Amount to add to last v
+#        self.solution[0].Bilt.vAdd = np.array([0.0])  # Amount to add to last v
         self.soln_crnt = self.solution[0]  # current soln is now newly made one
 
     def agent_post_post_solve(self):  # Overwrites version from AgentTypePlus
         """For infinite horizon models, add stable points (if they exist)."""
         if self.cycles == 0:  # if it's an infinite horizon model
-            self.add_stable_points_to_solution(self.solution[0])
+            if self.solution[0].completed_cycles > 0:
+                self.add_stable_points_to_solution(self.solution[0])
 
     def check_restrictions(self):
         """
@@ -730,7 +726,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
         if not hasattr(self, 'solution'):  # A solution must have been computed
             _log.info('Make final soln because conditions are computed there')
-            self._make_solution_for_final_period()
+            self.make_solution_for_final_period()
 
         soln_crnt = self.solution[0]
         soln_crnt.check_conditions(messaging_level=logging.INFO, quietly=False)
@@ -899,7 +895,9 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
     def death(self):
         """
-        Determines which agents die this period and must be replaced.  Uses the sequence in LivPrb
+        Determine which agents die this period and must be replaced.
+
+        Uses the sequence in LivPrb
         to determine survival probabilities for each agent.
 
         Parameters
@@ -1132,8 +1130,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Put the (enhanced) solution_terminal in self.solution[0]
 
-        self._make_solution_for_final_period(messaging_level=messaging_level,
-                                             quietly=True)
+        self.make_solution_for_final_period()
 
     def dolo_model(self):
         # Create a dolo version of the model
@@ -1147,8 +1144,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def _agent_force_prepare_info_needed_to_begin_solving(self):
         """
-        Update any characteristics of the agent that need to be recomputed
-        as a result of changes in parameters since the last time the solver was 
+        Update characteristics of the agent that need to be recomputed.
+
+        Update parameters changed since the last time the solver was
         invoked.
 
         Parameters

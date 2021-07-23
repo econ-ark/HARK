@@ -13,6 +13,8 @@ from scipy.optimize import newton as find_zero_newton
 
 from HARK.ConsumptionSaving.ConsIndShockModelOld \
     import ConsumerSolution as ConsumerSolutionOlder
+from HARK.ConsumptionSaving.ConsIndShockModelOld \
+    import ConsKinkedRsolver
 from HARK.ConsumptionSaving.ConsIndShockModel_Both import (
     define_t_reward,
     def_utility_CRRA, def_value_funcs, def_value_CRRA,
@@ -437,9 +439,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         Bilt.degenerate = False  # True: solution is degenerate
 
         self.describe_model_and_calibration(messaging_level, quietly)
-
-        _log.info('\n\nBecause messaging_level=logging.INFO, conditions are reported below:\n')
-
+        if not quietly:
+            _log.info('\n\nBecause messaging_level=logging.INFO, ' +
+                      'infinite horizon conditions are reported below:\n')
         soln_crnt.check_AIC(soln_crnt, messaging_level, quietly)
         soln_crnt.check_FHWC(soln_crnt, messaging_level, quietly)
         soln_crnt.check_RIC(soln_crnt, messaging_level, quietly)
@@ -594,8 +596,8 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                    stge.Bilt.AIC_fcts['urlhandle']
         }
         verbose_messages = {
-            True: "\n  Because the APF < 1,  the absolute amount of consumption is expected to fall over time.  \n",
-            False: "\n  Because the APF > 1, the absolute amount of consumption is expected to grow over time.  \n",
+            True: "\n    Because the APF < 1,  the absolute amount of consumption is expected to fall over time.  \n",
+            False: "\n    Because the APF > 1, the absolute amount of consumption is expected to grow over time.  \n",
         }
 
         stge.Bilt.AIC = core_check_condition(name, test, messages, messaging_level,
@@ -614,9 +616,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                    stge.Bilt.FVAC_fcts['urlhandle']
         }
         verbose_messages = {
-            True: "\n  Therefore, a nondegenerate solution exists if the RIC also holds. (" + stge.Bilt.FVAC_fcts[
+            True: "\n    Therefore, a nondegenerate solution exists if the RIC also holds. (" + stge.Bilt.FVAC_fcts[
                 'urlhandle'] + ")\n",
-            False: "\n  Therefore, a nondegenerate solution exits if the RIC holds, but will not exist if the RIC fails unless the FHWC also fails.\n",
+            False: "\n    Therefore, a nondegenerate solution exits if the RIC holds, but will not exist if the RIC fails unless the FHWC also fails.\n",
         }
 
         # Bad enough to report as a warning
@@ -640,8 +642,8 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                    stge.Bilt.GICRaw_fcts['urlhandle'],
         }
         verbose_messages = {
-            True: "\n  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
-            False: "\n  Therefore, for a perfect foresight consumer whose parameters satisfy the FHWC, the ratio of individual wealth to permanent income is expected to rise toward infinity. \n"
+            True: "\n    Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
+            False: "\n    Therefore, for a perfect foresight consumer whose parameters satisfy the FHWC, the ratio of individual wealth to permanent income is expected to rise toward infinity. \n"
         }
         stge.Bilt.GICRaw = core_check_condition(name, test, messages, messaging_level,
                                                 verbose_messages, "GPFRaw", stge, quietly)
@@ -663,9 +665,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                    stge.Bilt.GPFLiv_fcts['urlhandle'],
         }
         verbose_messages = {
-            True: "\n  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.\n" +
+            True: "\n    Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.\n" +
                   stge.Bilt.GPFLiv_fcts['urlhandle'] + "\n",
-            False: "\n  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.  \n" +
+            False: "\n    Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.  \n" +
                    stge.Bilt.GPFLiv_fcts['urlhandle'] + "\n",
         }
         stge.Bilt.GICLiv = core_check_condition(name, test, messages, messaging_level,
@@ -688,8 +690,8 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                    stge.Bilt.RPF_fcts['urlhandle'],
         }
         verbose_messages = {
-            True: "\n  Therefore, the limiting consumption function is not c(m)=0 for all m\n",
-            False: "\n  Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.\n",
+            True: "\n    Therefore, the limiting consumption function is not c(m)=0 for all m\n",
+            False: "\n    Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.\n",
         }
         stge.Bilt.RIC = core_check_condition(name, test, messages, messaging_level,
                                              verbose_messages, "RPF", stge, quietly)
@@ -707,8 +709,8 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                    stge.Bilt.FHWC_fcts['urlhandle'],
         }
         verbose_messages = {
-            True: f"\n  Therefore, the limiting consumption function is not c(m)=Infinity.\n  Human wealth normalized by permanent income is {stge.Bilt.hNrmInf:.5f}.\n",
-            False: "\n  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.\n  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0. (" +
+            True: f"\n    Therefore, the limiting consumption function is not c(m)=Infinity.\n  Human wealth normalized by permanent income is {stge.Bilt.hNrmInf:.5f}.\n",
+            False: "\n    Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.\n  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0. (" +
                    stge.Bilt.FHWC_fcts['urlhandle'] + ")\n",
         }
         stge.Bilt.FHWC = core_check_condition(name, test, messages, messaging_level,
@@ -730,9 +732,8 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                    stge.Bilt.GICNrm_fcts['urlhandle'],
         }
         verbose_messages = {
-            True: "\n  Therefore, a target level of the individual market resources ratio m exists.",
-            False: "\n  Therefore, a target ratio of individual market resources to individual permanent income does not exist.  \n" +
-                   stge.Bilt.GICNrm_fcts['urlhandle'] + "\n",
+            True: "\n    Therefore, a target level of the individual market resources ratio m exists.",
+            False: "\n    Therefore, a target ratio of individual market resources to individual permanent income does not exist.  \n"
         }
 
         stge.Bilt.GICNrm = core_check_condition(name, test, messages, messaging_level,
@@ -755,9 +756,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         }
 
         verbose_messages = {
-            True: "\n  Therefore, a nondegenerate solution exists if the FVAC is also satisfied. (" +
+            True: "\n    Therefore, a nondegenerate solution exists if the FVAC is also satisfied. (" +
                   stge.Bilt.WRIC_fcts['urlhandle'] + ")\n",
-            False: "\n  Therefore, a nondegenerate solution is not available (" + stge.Bilt.WRIC_fcts[
+            False: "\n    Therefore, a nondegenerate solution is not available (" + stge.Bilt.WRIC_fcts[
                 'urlhandle'] + ")\n",
         }
         stge.Bilt.WRIC = core_check_condition(
@@ -812,12 +813,46 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         m_init_guess = self.Bilt.mNrmMin + self.E_Next_.IncNrmNxt
         try:
             self.Bilt.mNrmStE = find_zero_newton(
-                self.E_Next_.permShk_tp1_times_m_tp1_minus_m_t, m_init_guess)
+                self.E_Next_.permShk_tp1_times_m_tp1_Over_m_t_minus_PGro, m_init_guess)
         except:
             self.Bilt.mNrmStE = None
 
         # Add mNrmStE to the solution and return it
         return self.Bilt.mNrmStE
+
+    def mNrmStE_find_soln(self, soln):
+        """
+        Find pseudo Steady-State Equilibrium (normalized) market resources m.
+
+        This is the m at which the consumer
+        expects level of market resources M to grow at same rate as the level
+        of permanent income P.
+
+        This will exist if the GIC holds.
+
+        https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
+
+        Parameters
+        ----------
+        self : ConsumerSolution
+            Solution to this period's problem, which must have attribute cFunc.
+
+        Returns
+        -------
+        soln : ConsumerSolution
+            Same solution that was passed, but now with attribute mNrmStE.
+        """
+        # Minimum market resources plus E[next income] is okay starting guess
+
+        m_init_guess = soln.Bilt.mNrmMin + soln.E_Next_.IncNrmNxt
+        try:
+            soln.Bilt.mNrmStE = find_zero_newton(
+                soln.E_Next_.permShk_tp1_times_m_tp1_Over_m_t_minus_PGro, m_init_guess)
+        except:
+            soln.Bilt.mNrmStE = None
+
+        # Add mNrmStE to the solution and return it
+        return soln.Bilt.mNrmStE
 
 
 # Until this point, our objects have been "solution" not "solver" objects.  To
@@ -1300,6 +1335,17 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
     #        breakpoint()
     #        Bilt.vNvrs = self.soln_crnt.uinv(_vP_t)
 
+    def def_value(self):
+        """
+        Build value function and store results in Modl.value.
+
+        Returns
+        -------
+        soln : solution object with value functions attached
+
+        """
+        return def_value_CRRA(self.soln_crnt, self.soln_crnt.Pars.CRRA)
+
     def build_facts_infhor(self):
         """
         Calculate facts useful for characterizing infinite horizon models.
@@ -1701,17 +1747,6 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
 
         return soln_crnt
 
-    def def_value(self):
-        """
-        Build value function and store results in Modl.value.
-
-        Returns
-        -------
-        soln : solution object with value functions attached
-
-        """
-        return def_value_CRRA(self.soln_crnt, self.soln_crnt.Pars.CRRA)
-
     def solve_prepared_stage_divert(self):
         """
         Allow alternative solution method in special cases.
@@ -1871,12 +1906,12 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Stochastic shocks or deterministic evolutions of the problem (aside
         from state variable transitions) can occur between choice stages. The
         informaton about these events needs to be attached to the appropriate
-        solution stage, and executed at the appropriate point. This option allows
-        changing the interpretation of an existing variable, e.g. income shocks,
+        solution stage, and executed at appropriate point. This option allows
+        changing interpretation of an existing variable, e.g. income shocks,
         between the allowed timings.
              'EOP' is 'End of problem/period'
              'BOP' is 'Beginning of problem/period'
-             'Both' there are things to do both before and after the decision stage
+             'Both' there are things to do both before and after decision stage
     """
 
     shock_vars = ['tranShkDstn', 'permShkDstn']  # Unemp shock=min(transShkVal)
@@ -2003,7 +2038,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         E_Next_.IncNrmNxt = E_Next_.IncNrmNxt = eval(
             py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         E_Next_.IncNrmNxt_fcts.update({'latexexpr': r'ExIncNrmNxt'})
-        E_Next_.IncNrmNxt_fcts.update({'_unicode_': r'E[tranShk permShk]= 1.0'})
+        E_Next_.IncNrmNxt_fcts.update({'_unicode_': r'E[tranShk permShk]=1.0'})
         E_Next_.IncNrmNxt_fcts.update({'urlhandle': urlroot + 'ExIncNrmNxt'})
         E_Next_.IncNrmNxt_fcts.update({'py___code': py___code})
         E_Next_.IncNrmNxt_fcts.update({'value_now': E_Next_.IncNrmNxt})
@@ -2016,7 +2051,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         E_Next_.Inv_permShk = E_Next_.Inv_permShk = eval(
             py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         E_Next_.Inv_permShk_fcts.update({'latexexpr': r'\ExInvpermShk'})
-        E_Next_.Inv_permShk_fcts.update({'urlhandle': urlroot + 'ExInvpermShk'})
+        E_Next_.Inv_permShk_fcts.update({'urlhandle':
+                                         urlroot + 'ExInvpermShk'})
         E_Next_.Inv_permShk_fcts.update({'py___code': py___code})
         E_Next_.Inv_permShk_fcts.update({'value_now': E_Next_.Inv_permShk})
         soln_crnt.E_Next_.Inv_permShk_fcts = E_Next_.Inv_permShk_fcts
@@ -2093,8 +2129,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             'about': 'Weak Return Patience Factor'
         }
         py___code = '(UnempPrb ** (1 / CRRA)) * RPF'
-        Bilt.WRPF = WRPF = eval(py___code, {},
-                                {**E_Next_.__dict__, **Bilt.__dict__, **givens})
+        Bilt.WRPF = WRPF = \
+            eval(py___code, {},
+                 {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         WRPF_fcts.update({'latexexpr': r'\WRPF'})
         WRPF_fcts.update({'_unicode_': r'℘^(1/\rho) RPF'})
         WRPF_fcts.update({'urlhandle': urlroot + 'WRPF'})
@@ -2115,7 +2152,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         }
         py___code = '((PermGroFac/E_Next_.Inv_permShk)**(CRRA))/Rfree'
         Bilt.DiscGPFNrmCusp = DiscGPFNrmCusp = \
-            eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
+            eval(py___code, {},
+                 {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         DiscGPFNrmCusp_fcts.update({'latexexpr': ''})
         DiscGPFNrmCusp_fcts.update({'value_now': DiscGPFNrmCusp})
         DiscGPFNrmCusp_fcts.update({'py___code': py___code})
@@ -2160,8 +2198,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # E[m_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
         E_Next_.mLev_tp1_Over_pLev_t_from_a_t = (
             lambda a_t:
-            E_dot(Pars.PermGroFac *
-                  Bilt.permShkValsBcst *
+            E_dot(Bilt.permShkValsBcst *
                   (E_Next_.RNrm_PF / Bilt.permShkValsBcst) * a_t
                   + Bilt.tranShkValsBcst,
                   Bilt.ShkPrbs)
@@ -2183,10 +2220,12 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             lambda m_t: \
             (m_t * (1 - 1 / E_Next_.RNrm_PF)) + (1 / E_Next_.RNrm_PF)
         # mNrmTrg solves E_Next_.RNrm*(m - c(m)) + E[inc_next] - m = 0
+
         E_Next_.m_tp1_minus_m_t = (
             lambda m_t:
             E_Next_.RNrm * (m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt - m_t
         )
+
         E_Next_.cLev_tp1_Over_pLev_t_from_num_a_t = (
             lambda a_t:
             E_dot(
@@ -2223,11 +2262,37 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             if (type(m_t) == list or type(m_t) == np.ndarray) else
             E_Next_.cLev_tp1_Over_pLev_t_from_num_m_t(m_t) / Bilt.cFunc(m_t)
         )
-        E_Next_.permShk_tp1_times_m_tp1_minus_m_t = (
+        E_Next_.permGro_tp1_times_m_tp1_minus_m_t = (
             lambda m_t:
             E_Next_.RNrm_PF * (m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt - m_t
         )
 
+        E_Next_.permGro_tp1_times_m_tp1 = (
+            lambda m_t:
+            E_Next_.RNrm_PF * (m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt
+        )
+
+        E_Next_.permGro_tp1_times_m_tp1_Over_m_t_minus_PGro_pt0 = (
+            lambda m_t:
+            (E_Next_.RNrm_PF*(m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt)
+            - Pars.PermGroFac
+        )
+
+        E_Next_.m_tp1_from_a_t = (
+            lambda a_t:
+            E_Next_.RNrm * a_t + E_Next_.IncNrmNxt
+        )
+        E_Next_.cLev_tp1_Over_pLev_t_from_num_m_t = (
+            lambda m_t:
+            E_Next_.cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
+                                                      Bilt.cFunc(m_t))
+        )
+        E_Next_.cLev_tp1_Over_cLev_t_from_m_t = (
+            lambda m_t:
+            E_Next_.cLev_tp1_Over_pLev_t_from_lst_m_t(m_t) / Bilt.cFunc(m_t)
+            if (type(m_t) == list or type(m_t) == np.ndarray) else
+            E_Next_.cLev_tp1_Over_pLev_t_from_num_m_t(m_t) / Bilt.cFunc(m_t)
+        )
         self.soln_crnt = soln_crnt
 
         return soln_crnt
@@ -2273,6 +2338,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
     # distribution of shocks at constructed grid of values of the relevant
     # states. I tried to invent a new usage, "Expectate" but Spyder/PyCharm
     # kept flagging it as not a real word, while now they don't complain!
+
     def make_E_Next_(self, IncShkDstn):
         """
         Expectorate after choices but before end of period (incl. discounting).
@@ -2311,10 +2377,9 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         def f_to_expect_across_shocks_given_current_state(xfer_shks_bcst,
                                                           states_chosen):
-            next_choice_states = \
-                self.transit_states_given_shocks(
-                    'chosen_to_next_choice', states_chosen,
-                    xfer_shks_bcst, IncShkDstn)
+            next_choice_states = self.transit_states_given_shocks(
+                'chosen_to_next_choice', states_chosen,
+                xfer_shks_bcst, IncShkDstn)
             mNrm = next_choice_states['mNrm']
             # Random shocks to permanent income affect mean PermGroFac
             PermGroFacShk = xfer_shks_bcst[permPos] * PermGroFac
@@ -2367,10 +2432,9 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         def f_to_expect_across_shocks_given_current_state(xfer_shks_bcst,
                                                           BOP_state):
-            choicestep_states = \
-                self.transit_states_given_shocks(
-                    'BOP_to_choice', BOP_state,
-                    xfer_shks_bcst, IncShkDstn)
+            choicestep_states = self.transit_states_given_shocks(
+                'BOP_to_choice', BOP_state,
+                xfer_shks_bcst, IncShkDstn)
             mNrm = choicestep_states['mNrm']
             # Random shocks to permanent income affect mean PermGroFac
             PermGroFacShk = xfer_shks_bcst[permPos] * PermGroFac

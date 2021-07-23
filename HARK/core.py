@@ -1093,7 +1093,7 @@ def solve_agent(agent, messaging_level, quietly=False, **kwds):
         if 'iter_status' in solution_next.stge_kind:
             if solution_next.stge_kind['iter_status'] == 'finished':
                 _log.info('The model has already been solved.')
-                print('The existing solution solves the problem')
+#                print('The existing solution solves the problem')
                 return agent.solution
 
     # Initialize the process, then loop over cycles
@@ -1140,14 +1140,14 @@ def solve_agent(agent, messaging_level, quietly=False, **kwds):
 #                print('solution_now is empty')
 #                breakpoint()
             if not go:  # Finished solving
-                # Eventually, all models should incorporate 'stge_kind'
+                # All models should incorporate 'stge_kind', but some have not
                 # Handle cases where that has not yet been implemented:
                 if not hasattr(solution_now.Bilt, 'stge_kind'):
                     solution_now.Bilt.stge_kind = {'iter_status': 'iterator'}
                 if solution_next.Bilt.stge_kind['iter_status'] == 'terminal_partial':
-                    completed_cycles += -1  # replacement is not a cycle
+                        completed_cycles += -1  # replacement is not a cycle
                 else:  # Replacing terminal_partial is not a "real" cycle
-                    # This prevents a stage derived from one marked as
+                    # This if/else prevents a stage derived from one marked as
                     # 'terminal_partial' from being labeled as
                     # 'finished' even though its distance will be zero
                     # from the 'terminal_partial' stage. Lets us use
