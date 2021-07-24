@@ -1,20 +1,16 @@
 # -*- coding: utf-8 -*-
-import sys
 import logging
 from builtins import (str, breakpoint)
 from copy import deepcopy
 from types import SimpleNamespace
 
 import numpy as np
-from IPython.lib.pretty import pprint
 from numpy import dot as E_dot  # easier to type
 from numpy.testing import assert_approx_equal as assert_approx_equal
 from scipy.optimize import newton as find_zero_newton
 
 from HARK.ConsumptionSaving.ConsIndShockModelOld \
     import ConsumerSolution as ConsumerSolutionOlder
-from HARK.ConsumptionSaving.ConsIndShockModelOld \
-    import ConsKinkedRsolver
 from HARK.ConsumptionSaving.ConsIndShockModel_Both import (
     define_t_reward,
     def_utility_CRRA, def_value_funcs, def_value_CRRA,
@@ -115,15 +111,16 @@ class agent_solution(MetricObject):
         # (even though the Spyder variable explorer seems, confusingly, to be
         # unable to show an OrderedDict in its intrinsic order)
 
-        # The name of each equation corresponds to a variable that could be
-        # preserved in the simulation (or not)
+        # The name of each equation corresponds to a variable that will be made
+        # and could be preserved in the simulation (or not)
 
         # Each status will end up transiting only to one subsequent status
+        # ("status" = set of state variables with associated decision problem)
         # There are multiple possibilities because models may skip many steps
 
         # Steps can be skipped when the model is one in which nothing happens
         # in that step, or what happens is so simple that it can be directly
-        # captured in a prior transition equation
+        # captured in a transition equation
 
         # For example, with no end of stage shocks, you could go directly from
         # the "chosen" (after choice) status to the "next_BOP" status
@@ -289,6 +286,8 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         del self.hNrm
         del self.vPfunc
         del self.vPPfunc
+        del self.MPCmax
+        del self.MPCmin
 
         self.Bilt.transitions_possible = self.define_transitions_possible()
 
@@ -320,7 +319,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
             'yNrm': 'yNrm = tranShk',
             'mNrm': 'mNrm = bNrm + yNrm'}
 
-        # Now, for model with shocks at End of period (EOP)
+        # Now, for model with shocks at End of Problem/Period (EOP)
 
         chosen_to_next_choice = \
             {'kNrm': 'kNrm = aNrm',
@@ -370,22 +369,16 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                 'logging.WARNING, so some model information is provided below):\n'
             msg = msg + '\nThe model has the following parameter values:\n'
             _log.setLevel(messaging_level)
-#            _log.info(print(msg))
             _log.info(msg)
             for key in Pars.__dict__.keys():
-                #                _log.info(print('\t' + key + ': ' + str(Pars.__dict__[key])))
                 _log.info('\t' + key + ': ' + str(Pars.__dict__[key]))
 
             msg = "\nThe model's transition equations are:"
-#            _log.info(print(msg))
             _log.info(msg)
             for key in Tran.keys():
-                #                _log.info(print('\n' + key + ' step:'))
                 _log.info('\n' + key + ' step:')
                 for eqn_name in Tran[key]['raw_text']:
-                    #                    _log.info(print('\t' + str(Tran[key]['raw_text'][eqn_name])))
                     _log.info('\t' + str(Tran[key]['raw_text'][eqn_name]))
-#            _log.info(print('\n'))
 
     def check_conditions(self, messaging_level=logging.DEBUG, quietly=False):
         """
@@ -440,7 +433,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         self.describe_model_and_calibration(messaging_level, quietly)
         if not quietly:
-            _log.info('\n\nBecause messaging_level=logging.INFO, ' +
+            _log.info('\n\nBecause messaging_level is at least logging.INFO, ' +
                       'infinite horizon conditions are reported below:\n')
         soln_crnt.check_AIC(soln_crnt, messaging_level, quietly)
         soln_crnt.check_FHWC(soln_crnt, messaging_level, quietly)
@@ -813,46 +806,12 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         m_init_guess = self.Bilt.mNrmMin + self.E_Next_.IncNrmNxt
         try:
             self.Bilt.mNrmStE = find_zero_newton(
-                self.E_Next_.permShk_tp1_times_m_tp1_Over_m_t_minus_PGro, m_init_guess)
+                self.E_Next_.permGroShk_tp1_times_m_tp1_Over_m_t_minus_PGro, m_init_guess)
         except:
             self.Bilt.mNrmStE = None
 
         # Add mNrmStE to the solution and return it
         return self.Bilt.mNrmStE
-
-    def mNrmStE_find_soln(self, soln):
-        """
-        Find pseudo Steady-State Equilibrium (normalized) market resources m.
-
-        This is the m at which the consumer
-        expects level of market resources M to grow at same rate as the level
-        of permanent income P.
-
-        This will exist if the GIC holds.
-
-        https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
-
-        Parameters
-        ----------
-        self : ConsumerSolution
-            Solution to this period's problem, which must have attribute cFunc.
-
-        Returns
-        -------
-        soln : ConsumerSolution
-            Same solution that was passed, but now with attribute mNrmStE.
-        """
-        # Minimum market resources plus E[next income] is okay starting guess
-
-        m_init_guess = soln.Bilt.mNrmMin + soln.E_Next_.IncNrmNxt
-        try:
-            soln.Bilt.mNrmStE = find_zero_newton(
-                soln.E_Next_.permShk_tp1_times_m_tp1_Over_m_t_minus_PGro, m_init_guess)
-        except:
-            soln.Bilt.mNrmStE = None
-
-        # Add mNrmStE to the solution and return it
-        return soln.Bilt.mNrmStE
 
 
 # Until this point, our objects have been "solution" not "solver" objects.  To
@@ -2191,7 +2150,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         )
         # Given m, value of c where E[mLev_{t+1}/mLev_{t}]=Bilt.Pars.permGroFac
         # Solves for c in equation at url/#balgrostable
-        E_Next_.permShk_times_m_tp1_minus_m_t_eq_0 = (
+        E_Next_.permGroShk_times_m_tp1_minus_m_t_eq_0 = (
             lambda m_t:
             m_t * (1 - E_Next_.Inv_RNrm_PF) + E_Next_.Inv_RNrm_PF
         )
@@ -2214,7 +2173,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         )
         E_Next_.c_where_E_Next_m_tp1_minus_m_t_eq_0 = \
             lambda m_t: \
-            m_t * (1 - 1 / E_Next_.RNrm) + (1 / E_Next_.RNrm)
+            m_t * (1 - 1/E_Next_.RNrm) + (1 / E_Next_.RNrm)
+
         # Solve the equation at url/#balgrostable
         E_Next_.c_where_E_Next_permShk_times_m_tp1_minus_m_t_eq_0 = \
             lambda m_t: \
@@ -2224,6 +2184,11 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         E_Next_.m_tp1_minus_m_t = (
             lambda m_t:
             E_Next_.RNrm * (m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt - m_t
+        )
+
+        E_Next_.m_tp1_Over_m_t = (
+            lambda m_t:
+            (E_Next_.RNrm * (m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt)/m_t
         )
 
         E_Next_.cLev_tp1_Over_pLev_t_from_num_a_t = (
@@ -2262,19 +2227,19 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             if (type(m_t) == list or type(m_t) == np.ndarray) else
             E_Next_.cLev_tp1_Over_pLev_t_from_num_m_t(m_t) / Bilt.cFunc(m_t)
         )
-        E_Next_.permGro_tp1_times_m_tp1_minus_m_t = (
+        E_Next_.permGroShk_tp1_times_m_tp1_minus_m_t = (
             lambda m_t:
             E_Next_.RNrm_PF * (m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt - m_t
         )
 
-        E_Next_.permGro_tp1_times_m_tp1 = (
+        E_Next_.permGroShk_tp1_times_m_tp1 = (
             lambda m_t:
             E_Next_.RNrm_PF * (m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt
         )
 
-        E_Next_.permGro_tp1_times_m_tp1_Over_m_t_minus_PGro_pt0 = (
+        E_Next_.permGroShk_tp1_times_m_tp1_Over_m_t_minus_PGro = (
             lambda m_t:
-            (E_Next_.RNrm_PF*(m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt)
+            (E_Next_.RNrm_PF*(m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt)/m_t
             - Pars.PermGroFac
         )
 

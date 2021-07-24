@@ -12,8 +12,9 @@ from HARK.distribution \
 from HARK.interpolation import (LinearInterp)
 from HARK import AgentType, make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel_CommonDefs \
-    import (def_utility, def_value_funcs,
-            construct_assets_grid)
+    import (def_utility, def_value_funcs)
+from HARK.ConsumptionSaving.ConsIndShockModel_Both \
+    import (construct_assets_grid)
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
     import (ConsumerSolutionOneNrmStateCRRA, ConsPerfForesightSolver,
             ConsIndShockSolverBasic, ConsIndShockSolver, ConsKinkedRsolver
@@ -292,17 +293,17 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         def cFunc(m): return float('inf')  # With CRRA utility, c=inf gives v=0
         cFunc.derivativeX = lambda m: float('inf')
 
-        mNrmMin, hNrm, MPCmin, MPCmax = 0.0, -1.0, float('inf'), float('inf')
+#        mNrmMin, hNrm, MPCmin, MPCmax = 0.0, -1.0, float('inf'), float('inf')
 
         solution_afterlife_nobequest_ = ConsumerSolutionOneNrmStateCRRA(
             vFunc=vFunc,
-            vPfunc=vPfunc,  # TODO: vPfunc deprecated; remove
-            vPPfunc=vPPfunc,  # TODO: vPPfunc deprecated: Remove
+            #            vPfunc=vPfunc,  # TODO: vPfunc deprecated; remove
+            #            vPPfunc=vPPfunc,  # TODO: vPPfunc deprecated: Remove
             cFunc=cFunc,
-            mNrmMin=mNrmMin,  # TODO: mNrmMin should be on Bilt; remove
-            hNrm=-hNrm,  # TODO: hNrm should be on Bilt; remove
-            MPCmin=MPCmin,  # TODO: hNrm should be on Bilt; remove
-            MPCmax=MPCmax,  # TODO: hNrm should be on Bilt; remove
+            #            mNrmMin=mNrmMin,  # TODO: mNrmMin should be on Bilt; remove
+            #            hNrm=-hNrm,  # TODO: hNrm should be on Bilt; remove
+            #            MPCmin=MPCmin,  # TODO: hNrm should be on Bilt; remove
+            #            MPCmax=MPCmax,  # TODO: hNrm should be on Bilt; remove
             # TODO: stge_kind should be on Bilt; remove
             stge_kind={
                 'iter_status': 'afterlife',
@@ -311,9 +312,9 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         )
         Bilt = solution_afterlife_nobequest_.Bilt
         Bilt.cFunc, Bilt.vFunc, Bilt.mNrmMin, Bilt.hNrm, Bilt.MPCmin, Bilt.MPCmax = \
-            cFunc, vFunc, mNrmMin, hNrm, MPCmin, MPCmax
+            cFunc, vFunc, 0.0, -1.0, float('inf'), float('inf')
 
-        mNrmMin, hNrm, MPCmin, MPCmax = 0.0, 0.0, 1.0, 1.0
+#        mNrmMin, hNrm, MPCmin, MPCmax = 0.0, 0.0, 1.0, 1.0
 
         # This is the solution that would be constructed by applying
         # our normal iteration tools to solution_afterlife_nobequest_
@@ -329,19 +330,21 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
             ConsumerSolutionOneNrmStateCRRA(  # Omit vFunc b/c u not yet def
                 cFunc=cFunc_terminal_nobequest_,
                 #                vFunc=u,
-                mNrmMin=mNrmMin,  # TODO: deprecated; remove
-                hNrm=hNrm,  # TODO: should be on Bilt; remove
-                MPCmin=MPCmin,  # TODO: should be on Bilt; remove
-                MPCmax=MPCmin,  # TODO: should be on Bilt; remove
+                #                mNrmMin=mNrmMin,  # TODO: deprecated; remove
+                #                hNrm=hNrm,  # TODO: should be on Bilt; remove
+                #                MPCmin=MPCmin,  # TODO: should be on Bilt; remove
+                #                MPCmax=MPCmin,  # TODO: should be on Bilt; remove
                 stge_kind={
                     'iter_status': 'terminal_partial',  # must be replaced
                     'term_type': 'nobequest'
                 })
 
         Bilt = solution_nobequest_.Bilt
-        Bilt.cFunc, Bilt.vFunc, Bilt.mNrmMin, Bilt.hNrm, Bilt.MPCmin, Bilt.MPCmax = \
-            cFunc, vFunc, mNrmMin, hNrm, MPCmin, MPCmax
+#        Bilt.cFunc, Bilt.vFunc, Bilt.mNrmMin, Bilt.hNrm, Bilt.MPCmin, Bilt.MPCmax = \
+#            cFunc, vFunc, mNrmMin, hNrm, MPCmin, MPCmax
 
+        Bilt.cFunc, Bilt.vFunc, Bilt.mNrmMin, Bilt.hNrm, Bilt.MPCmin, Bilt.MPCmax = \
+            cFunc, vFunc, 0.0, 0.0, 1.0, 1.0
         solution_nobequest_.solution_next = solution_afterlife_nobequest_
         # solution_terminal_ is defined for legacy/compatability reasons
         # Otherwise would be better to just explicitly use solution_nobequest_
@@ -440,9 +443,9 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneNrmStateCRRA):
             u=u_stone_geary, uP=uP_stone_geary, uPP=uPP_stone_geary,
             vFunc=u_stone_geary, vPfunc=uP_stone_geary,
             vPPfunc=uPP_stone_geary,
-            mNrmMin=0.0,
-            MPCmin=1.0,
-            MPCmax=1.0,
+            #            mNrmMin=0.0,
+            #            MPCmin=1.0,
+            #            MPCmax=1.0,
             stge_kind={
                 'iter_status': 'afterlife',
                 'term_type': 'bequest_warmglow_homothetic'},
@@ -610,9 +613,6 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         soln.check_conditions(messaging_level=self.messaging_level, quietly=self.quietly)
 
         if not soln.Bilt.GICRaw:  # no mNrmStE
-            # wrn = "Because the model's parameters do not satisfy the GIC," +\
-            #     "it has neither an individual steady state nor a target."
-            # _log.warning(wrn)
             soln.Bilt.mNrmStE = soln.mNrmStE = float('nan')
         else:  # mNrmStE exists; compute it and check mNrmTrg
             soln.Bilt.mNrmStE = soln.mNrmStE_find()
