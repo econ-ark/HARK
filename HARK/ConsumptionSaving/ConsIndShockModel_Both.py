@@ -10,7 +10,7 @@ from HARK.interpolation import (LinearInterp,
                                 MargMargValueFuncCRRA)
 
 from HARK.utilities import (  # These are used in exec so IDE doesn't see them
-    CRRAutility, CRRAutilityPP, CRRAutilityP_invP, 
+    CRRAutility, CRRAutilityPP, CRRAutilityP_invP,
     CRRAutility_inv, CRRAutility_invP, CRRAutilityP, CRRAutilityP_inv)
 import numpy as np
 from copy import copy, deepcopy
@@ -31,13 +31,13 @@ class Information(SimpleNamespace):
     pass
 
 
-def define_transition(stge, transition_name):
+def define_transition(soln, transition_name):
     """
     Add to Modl.Transitions the transition defined by transition_name.
 
     Parameters
     ----------
-    stge : agent_solution
+    soln : agent_solution
         A solution with an atached Modl object.
 
     transition_name : str
@@ -48,7 +48,7 @@ def define_transition(stge, transition_name):
     None.
 
     """
-    transitions_possible = stge.Bilt.transitions_possible
+    transitions_possible = soln.Bilt.transitions_possible
     transition = transitions_possible[transition_name]
     transiter = {}  # It's the actor that actually does the job
     transiter['compiled'] = {}
@@ -61,11 +61,11 @@ def define_transition(stge, transition_name):
         compiled = compile(tree, filename="<ast>", mode='exec')
         transiter['compiled'].update({eqn_name: compiled})
 
-    stge.Modl.Transitions[transition_name] = transiter
-    return stge
+    soln.Modl.Transitions[transition_name] = transiter
+    return soln
 
 
-def def_utility_CRRA(stge, CRRA):
+def def_utility_CRRA(soln, CRRA):
     """
     Define CRRA utility function and its relatives (derivatives, inverses).
 
@@ -73,13 +73,13 @@ def def_utility_CRRA(stge, CRRA):
 
     Parameters
     ----------
-    stge : ConsumerSolutionOneStateCRRA
+    soln : ConsumerSolutionOneStateCRRA
 
     Returns
     -------
     none
     """
-    Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
+    Bilt, Pars, Modl = soln.Bilt, soln.Pars, soln.Modl
     Info = Modl.Info = {**Bilt.__dict__, **Pars.__dict__}
 
     Modl.Rewards = SimpleNamespace()
@@ -123,10 +123,10 @@ def def_utility_CRRA(stge, CRRA):
 
     Bilt.__dict__.update({k: v for k, v in Modl.Rewards.vals.items()})
 
-    return stge
+    return soln
 
 
-def def_value_funcs(stge, CRRA):
+def def_value_funcs(soln, CRRA):
     r"""
     Define the value and function and its derivatives for this period.
 
@@ -137,7 +137,7 @@ def def_value_funcs(stge, CRRA):
 
     Parameters
     ----------
-    stge
+    soln : agent_solution
 
     Returns
     -------
@@ -154,7 +154,7 @@ def def_value_funcs(stge, CRRA):
     vFuncPFNvrs has constant slope :math:`\\kappa_{t}^{-\\rho/(1-\\rho)}` and
     vFuncPFNvrs has value of zero at the lower bound of market resources.
     """
-    Bilt, Pars, Modl = stge.Bilt, stge.Pars, stge.Modl
+    Bilt, Pars, Modl = soln.Bilt, soln.Pars, soln.Modl
 
     # Info needed to create the model objects
     Info = Modl.Info = {**Bilt.__dict__, **Pars.__dict__}
@@ -218,11 +218,11 @@ def def_value_funcs(stge, CRRA):
     # Add newly created stuff to Bilt namespace
     Bilt.__dict__.update({k: v for k, v in Modl.Value.vals.items()})
 
-    stge.vFunc = Bilt.vFunc  # vFunc needs to be on root as well as Bilt
+    soln.vFunc = Bilt.vFunc  # vFunc needs to be on root as well as Bilt
 
     Modl.Value.eqns_source = eqns_source  # Save uncompiled source code
 
-    return stge
+    return soln
 
 
 def_value_CRRA = def_value_funcs
@@ -364,7 +364,7 @@ init_perfect_foresight.update(
 # the approximation gets arbitrarily close to the 'true' model
 init_perfect_foresight.update(  # In principle, kinks exist all the way to inf
     {'aprox_lim': {'MaxKinks': 'infinity'}})
-# The simulation stge of the problem requires additional parameterization
+# The simulation stage of the problem requires additional parameterization
 init_perfect_foresight.update(  # The 'primitives' for the simulation
     {'prmtv_sim': ['aNrmInitMean', 'aNrmInitStd', 'pLvlInitMean',
                    'pLvlInitStd']})
@@ -541,7 +541,7 @@ init_perfect_foresight.update(
 # the approximation gets arbitrarily close to the 'true' model
 init_perfect_foresight.update(  # In principle, kinks exist all the way to infinity
     {'aprox_lim': {'MaxKinks': 'infinity'}})
-# The simulation stge of the problem requires additional parameterization
+# The simulation stage of the problem requires additional parameterization
 init_perfect_foresight.update(  # The 'primitives' for the simulation
     {'prmtv_sim': ['aNrmInitMean', 'aNrmInitStd', 'pLvlInitMean',
                    'pLvlInitStd']})
@@ -806,13 +806,13 @@ init_cyclical['LivPrb'] = 4 * [0.98]
 init_cyclical['T_cycle'] = 4
 
 
-def define_reward(stge, reward=def_utility_CRRA):
+def define_reward(soln, reward=def_utility_CRRA):
     """Bellman reward."""
-    stge = reward(stge, stge.Pars.CRRA)
-    return stge
+    soln = reward(soln, soln.Pars.CRRA)
+    return soln
 
 
-def define_t_reward(stge, reward):
+def define_t_reward(soln, reward):
     """Bellman reward."""
-    stge = reward(stge, stge.Pars.CRRA)
-    return stge
+    soln = reward(soln, soln.Pars.CRRA)
+    return soln

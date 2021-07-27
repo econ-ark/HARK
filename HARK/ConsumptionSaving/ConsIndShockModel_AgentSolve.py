@@ -26,24 +26,30 @@ class agent_solution(MetricObject):
     """
     Framework for solution of a single stage of a decision problem.
 
+    A "stage" of a problem is the smallest unit into which it is useful
+    to break down the problem. Often this will correspond to a time period,
+    but sometimes a stage may correspond to subcomponents of a problem 
+    which are conceived of as being solved simultaneously but which are 
+    computationally useful to solve sequentially.
+
     Provides a foundational structure that all models will build on.  It must
     be specialized and elaborated to solve any particular problem.
 
     Parameters
     ----------
-    solution_future : agent_solution
+    solution_follows : agent_solution
 
     Returns
     -------
-    crnt : agent_solution
+    solution_current : agent_solution
 
     Elements of the current solution crnt contain, but are not limited to:
-        Pars : The parameters used in solving the model
+        Pars : The parameters used in solving this stage of the model
         Bilt : Objects constructed and retained from the solution process
         Modl : Equations of the model, in the form of the python code
             that instantiates the computational solution
 
-            At a minimum, this is broken down into:
+            This is broken down into:
 
             States : predetermined variables at the time of decisions
             Controls : variables under control of the decisionmaker
@@ -51,15 +57,16 @@ class agent_solution(MetricObject):
             Transitions : evolution of states
             Choices : conditions that determine the agent's choices
 
-            At a minimum, it should result in:
-
-                [dr] : decision rule
-                    Maps states into choices
-                    Example: consumption function cFunc over market resources
-                [v] : value function
+            The minimal required element of a solution_current object is
+                [vFunc] : value function
                     Bellman value function the agent expects to experience for
                     behaving according to the dynamically optimal plan over
                     the remainder of the horizon.
+
+            Solution objects will usually also contain a 'decision rule' (for
+            example a consumption function), although this is not a requirement.
+
+    Other components of a solution object are:
 
     stge_kind : dict
         Dictionary with info about this solution stage
