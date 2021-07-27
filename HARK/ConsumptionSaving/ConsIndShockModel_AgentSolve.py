@@ -31,7 +31,7 @@ class agent_solution(MetricObject):
 
     Parameters
     ----------
-    soln_futr : agent_solution
+    solution_future : agent_solution
 
     Returns
     -------
@@ -878,7 +878,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             horizon='infinite',
             **kwds):
 
-        soln_futr = self.soln_futr = solution_next
+        folw = self.solution_follows = solution_next
 
         # Do NOT __init__ as a ConsumerSolutionOneNrmStateCRRA object
         # even though that is the parent class
@@ -897,13 +897,13 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         Pars = crnt.Pars
         Pars.__dict__.update(
             {k: v for k, v in {**kwds, **locals()}.items()
-             if k not in {'self', 'solution_next', 'kwds', 'soln_futr',
-                          'crnt', 'Pars'}})
+             if k not in {'self', 'solution_next', 'kwds', 'solution_follows',
+                          'folw', 'crnt', 'Pars'}})
 
         # 'terminal' solution should replace pseudo_terminal:
-        if hasattr(soln_futr.Bilt, 'stge_kind') and \
-                soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_partial':
-            crnt.Bilt = deepcopy(soln_futr.Bilt)
+        if hasattr(folw.Bilt, 'stge_kind') and \
+                folw.Bilt.stge_kind['iter_status'] == 'terminal_partial':
+            crnt.Bilt = deepcopy(folw.Bilt)
 
         # links for docs; urls are used when "fcts" are added
         self._url_doc_for_solver_get()
@@ -940,7 +940,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         crnt = self.build_facts_recursive()
 
         # Reduce cluttered formulae with local aliases
-        E_Next_, tp1 = crnt.E_Next_, self.soln_futr
+        E_Next_, tp1 = crnt.E_Next_, self.solution_follows
         Bilt, Pars = crnt.Bilt, crnt.Pars
         Rfree, PermGroFac, DiscLiv = Pars.Rfree, Pars.PermGroFac, Bilt.DiscLiv
 
@@ -981,7 +981,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         See PerfForesightConsumerType.ipynb notebook for derivations.
         """
         # Reduce cluttered formulae with local aliases
-        crnt, tp1 = self.solution_current, self.soln_futr
+        crnt, tp1 = self.solution_current, self.solution_follows
         Bilt, Pars, E_Next_ = crnt.Bilt, crnt.Pars, crnt.E_Next_
         Rfree, PermGroFac, MPCmin = Pars.Rfree, Pars.PermGroFac, Bilt.MPCmin
 
@@ -1575,7 +1575,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
 
         """
         crnt = self.solution_current
-        tp1 = self.soln_futr.Bilt  # tp1 means t+1
+        tp1 = self.solution_follows.Bilt  # tp1 means t+1
         Bilt, Pars, E_Next_ = crnt.Bilt, crnt.Pars, crnt.E_Next_
 
         givens = {**Pars.__dict__, **locals()}
@@ -1718,8 +1718,8 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         """
         # bare-bones default terminal solution does not have all the facts
         # we need, because it is generic (for any u func) so add the facts
-        crnt, futr = self.solution_current, self.soln_futr
-        if futr.Bilt.stge_kind['iter_status'] != 'terminal_partial':
+        crnt, folw = self.solution_current, self.solution_follows
+        if folw.Bilt.stge_kind['iter_status'] != 'terminal_partial':
             return False  # Continue with normal solution procedures
         else:
             # Populate it with the proper properties
@@ -2313,7 +2313,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         IncShkDstn : DiscreteDistribution
             The distribution of the stochastic shocks to income.
         """
-        crnt, futr = self.solution_current, self.soln_futr
+        crnt, folw = self.solution_current, self.solution_follows
 
         Bilt, Pars, E_Next_ = crnt.Bilt, crnt.Pars, crnt.E_Next_
 
@@ -2323,19 +2323,19 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         permPos = IncShkDstn.parameters['ShkPosn']['perm']
 
         if eventTiming == 'EOP':  # shocks happen at end of this period
-            CRRA = futr.Bilt.vFunc.CRRA  # Next CRRA utility normalizes
+            CRRA = folw.Bilt.vFunc.CRRA  # Next CRRA utility normalizes
             Discount = Bilt.DiscLiv  # Discount next period
-            vFunc = futr.Bilt.vFunc
-            cFunc = futr.Bilt.cFunc
-            PermGroFac = futr.Pars.PermGroFac
+            vFunc = folw.Bilt.vFunc
+            cFunc = folw.Bilt.cFunc
+            PermGroFac = folw.Pars.PermGroFac
             Rfree = Pars.Rfree
         else:  # default to BOP
             # In this case, we should have computed the 'hard part' and
-            # attached it already to the BOP of the futr stage.
+            # attached it already to the BOP of the folw stage.
             breakpoint()
             # DiscLiv = Bilt.DiscLiv
-            # v0_pos, v1_pos = futr.Ante_E_.v0_pos, futr.Ante_E_.v1_pos
-            # v2_pos = futr.Ante_E_.v2_pos
+            # v0_pos, v1_pos = folw.Ante_E_.v0_pos, folw.Ante_E_.v1_pos
+            # v2_pos = folw.Ante_E_.v2_pos
 
         # This is the efficient place to compute expectations of anything
         # at very low marginal cost by adding to list of things calculated

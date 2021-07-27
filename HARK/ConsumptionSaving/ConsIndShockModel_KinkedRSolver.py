@@ -22,12 +22,12 @@ class ConsKinkedRsolver(ConsIndShockSolver):
 
     Parameters
     ----------
-    soln_futr : ConsumerSolution
+    folw : ConsumerSolution
         The solution to next period's one period problem.
     IncShkDstn : distribution.Distribution
         A discrete
         approximation to the income process between the period being solved
-        and the one immediately following (in soln_futr).
+        and the one immediately following (in folw).
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -61,7 +61,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
 
     def __init__(
             self,
-            soln_futr,
+            folw,
             IncShkDstn,
             LivPrb,
             DiscFac,
@@ -82,7 +82,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         # the non-kinked-R basic case, so start with that.
         ConsIndShockSolver.__init__(
             self,
-            soln_futr,
+            folw,
             IncShkDstn,
             LivPrb,
             DiscFac,
