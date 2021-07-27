@@ -197,7 +197,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
             RPFTop = (
                 (self.bilt.Rsave * self.DiscLiv) ** (1.0 / self.CRRA)
             ) / self.bilt.Rsave
-            self.MPCmin = 1.0 / (1.0 + RPFTop / self.soln_crnt.bilt.MPCmin)
+            self.MPCmin = 1.0 / (1.0 + RPFTop / self.solution_current.bilt.MPCmin)
             self.hNrm = (
                 self.PermGroFac
                 / self.bilt.Rsave
@@ -205,7 +205,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
                     𝔼_dot(
                         self.ShkPrbs, self.Pars.tranShkVals * self.Pars.permShkVals
                     )
-                    + self.soln_crnt.bilt.hNrm
+                    + self.solution_current.bilt.hNrm
                 )
             )
 

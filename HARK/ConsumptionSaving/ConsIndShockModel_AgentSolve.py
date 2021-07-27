@@ -492,7 +492,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
     # # Passing the soln_crnt object to check_conditions might seem unnecessary,
     # # since its first argument is self, and during the solution process the
     # # solver has soln_crnt attached to its self, so its contents could be
-    # # obtained from self.soln_crnt.  But after the solution is
+    # # obtained from self.solution_current.  But after the solution is
     # # completed, the solution that is returned should be a standalone object
     # # that does not reside on a solver instance. Doing things as below allows
     # # such a standalone a solution object to check not only its own conditions
@@ -887,7 +887,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         # solution
 
         # In principle, a solution need not know its solver
-        soln_crnt = self.soln_crnt = \
+        soln_crnt = self.solution_current = \
             ConsumerSolutionOneNrmStateCRRA(
                 self, DiscFac, LivPrb, CRRA, Rfree, PermGroFac, eventTiming)
 
@@ -913,11 +913,11 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
     def _url_doc_for_solver_get(self):
         # Generate a url that will locate the documentation
         self.class_name = self.__class__.__name__
-        self.soln_crnt.Bilt.url_ref = self.url_ref = \
+        self.solution_current.Bilt.url_ref = self.url_ref = \
             "https://econ-ark.github.io/BufferStockTheory"
-        self.soln_crnt.Bilt.urlroot = self.urlroot = \
+        self.solution_current.Bilt.urlroot = self.urlroot = \
             self.url_ref + '/#'
-        self.soln_crnt.Bilt.url_doc = self.url_doc = \
+        self.solution_current.Bilt.url_doc = self.url_doc = \
             "https://hark.readthedocs.io/en/latest/search.html?q=" + \
             self.class_name + "&check_keywords=yes&area=default#"
 
@@ -981,7 +981,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         See PerfForesightConsumerType.ipynb notebook for derivations.
         """
         # Reduce cluttered formulae with local aliases
-        crnt, tp1 = self.soln_crnt, self.soln_futr
+        crnt, tp1 = self.solution_current, self.soln_futr
         Bilt, Pars, E_Next_ = crnt.Bilt, crnt.Pars, crnt.E_Next_
         Rfree, PermGroFac, MPCmin = Pars.Rfree, Pars.PermGroFac, Bilt.MPCmin
 
@@ -1159,7 +1159,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         #        mNrmGrid = np.append(mNrmGrid, mNrmGrid[-1]+1)
         #        cNrmGrid = np.append(cNrmGrid, cNrmGrid[-1]+MPCmin)
 
-        self.cFunc = self.soln_crnt.cFunc = Bilt.cFunc = \
+        self.cFunc = self.solution_current.cFunc = Bilt.cFunc = \
             LinearInterp(mNrmGrid, cNrmGrid)
 
     #        vInvFunc_unconst = self.vFuncNvrs = \
@@ -1266,7 +1266,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
     #             aNrmGrid = mNrmGrid - cNrmGrid
 
     # Consumption function is a linear interpolation between kink pts
-    #        self.cFunc = self.soln_crnt.cFunc = Bilt.cFunc = \
+    #        self.cFunc = self.solution_current.cFunc = Bilt.cFunc = \
     #            LinearInterp(mNrmGrid_pts, cNrmGrid_pts)
 
     #        PF_t_v_tp1_last = (DiscLiv*(PermGroFac ** (1-CRRA_tp1)))*\
@@ -1292,7 +1292,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
 
     # Add approximation to v and vP
     #        breakpoint()
-    #        Bilt.vNvrs = self.soln_crnt.uinv(_vP_t)
+    #        Bilt.vNvrs = self.solution_current.uinv(_vP_t)
 
     def def_value(self):
         """
@@ -1303,7 +1303,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         soln : solution object with value functions attached
 
         """
-        return def_value_CRRA(self.soln_crnt, self.soln_crnt.Pars.CRRA)
+        return def_value_CRRA(self.solution_current, self.solution_current.Pars.CRRA)
 
     def build_facts_infhor(self):
         """
@@ -1320,7 +1320,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             The given solution, with the relevant namespaces updated to
         contain the constructed info.
         """
-        soln_crnt = self.soln_crnt  # current
+        soln_crnt = self.solution_current  # current
         Bilt, Pars, E_Next_ = soln_crnt.Bilt, soln_crnt.Pars, soln_crnt.E_Next_
 
         urlroot = Bilt.urlroot
@@ -1574,7 +1574,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         None.
 
         """
-        soln_crnt = self.soln_crnt
+        soln_crnt = self.solution_current
         tp1 = self.soln_futr.Bilt  # tp1 means t+1
         Bilt, Pars, E_Next_ = soln_crnt.Bilt, soln_crnt.Pars, soln_crnt.E_Next_
 
@@ -1714,11 +1714,11 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         -------
         divert : boolean
             If False (usually), continue normal solution
-            If True, produce alternative solution and store on self.soln_crnt
+            If True, produce alternative solution and store on self.solution_current
         """
         # bare-bones default terminal solution does not have all the facts
         # we need, because it is generic (for any u func) so add the facts
-        crnt, futr = self.soln_crnt, self.soln_futr
+        crnt, futr = self.solution_current, self.soln_futr
         if futr.Bilt.stge_kind['iter_status'] != 'terminal_partial':
             return False  # Continue with normal solution procedures
         else:
@@ -1748,9 +1748,9 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             The solution to this period/stage's problem
         """
         if self.solve_prepared_stage_divert():  # Allow bypass of normal soln
-            return self.soln_crnt  # created by solve_prepared_stage_divert
+            return self.solution_current  # created by solve_prepared_stage_divert
 
-        crnt = self.soln_crnt
+        crnt = self.solution_current
 
         define_transition(crnt, 'chosen_to_next_choice')
 
@@ -1784,7 +1784,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
 
     def solver_prep_solution_for_an_iteration(self):  # PF
         """Prepare current stage for processing by the one-stage solver."""
-        soln_crnt = self.soln_crnt
+        soln_crnt = self.solution_current
 
         Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
 
@@ -1898,8 +1898,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
                                          horizon=horizon,
                                          **kwds)
 
-        # ConsPerfForesightSolver.__init__ makes self.soln_crnt
-        soln_crnt = self.soln_crnt
+        # ConsPerfForesightSolver.__init__ makes self.solution_current
+        soln_crnt = self.solution_current
 
         # Things we have built, exogenous parameters, and model structures:
         Bilt, Pars, Modl = soln_crnt.Bilt, soln_crnt.Pars, soln_crnt.Modl
@@ -1974,7 +1974,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         """
         super().build_facts_infhor()  # Make the facts built by the PF model
 
-        soln_crnt = self.soln_crnt
+        soln_crnt = self.solution_current
 
         Bilt, Pars, E_Next_ = soln_crnt.Bilt, soln_crnt.Pars, soln_crnt.E_Next_
 
@@ -2132,7 +2132,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # All the recursive facts are required for PF model so already exist
         # But various lambda functions are interesting when uncertainty exists
 
-        soln_crnt = self.soln_crnt
+        soln_crnt = self.solution_current
         Bilt = soln_crnt.Bilt
         Pars = soln_crnt.Pars
         E_Next_ = soln_crnt.E_Next_
@@ -2258,7 +2258,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             if (type(m_t) == list or type(m_t) == np.ndarray) else
             E_Next_.cLev_tp1_Over_pLev_t_from_num_m_t(m_t) / Bilt.cFunc(m_t)
         )
-        self.soln_crnt = soln_crnt
+        self.solution_current = soln_crnt
 
         return soln_crnt
 
@@ -2294,10 +2294,10 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # function as lower envelope of the (by the artificial borrowing con-
         # straint) unconstrained consumption function, and  artificially con-
         # strained consumption function.
-        self.soln_crnt.Bilt.aNrmGrid = np.asarray(
-            self.soln_crnt.Bilt.aXtraGrid) + self.soln_crnt.Bilt.BoroCnstNat
+        self.solution_current.Bilt.aNrmGrid = np.asarray(
+            self.solution_current.Bilt.aXtraGrid) + self.solution_current.Bilt.BoroCnstNat
 
-        return self.soln_crnt.Bilt.aNrmGrid
+        return self.solution_current.Bilt.aNrmGrid
 
     # "Expectorate" = calculate expected values of useful objects across the
     # distribution of shocks at constructed grid of values of the relevant
@@ -2313,7 +2313,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         IncShkDstn : DiscreteDistribution
             The distribution of the stochastic shocks to income.
         """
-        crnt, futr = self.soln_crnt, self.soln_futr
+        crnt, futr = self.solution_current, self.soln_futr
 
         Bilt, Pars, E_Next_ = crnt.Bilt, crnt.Pars, crnt.E_Next_
 
@@ -2377,7 +2377,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         IncShkDstn : DiscreteDistribution
             The distribution of the stochastic shocks to income.
         """
-        crnt = self.soln_crnt
+        crnt = self.solution_current
 
         Bilt, Pars, Ante_E_ = crnt.Bilt, crnt.Pars, crnt.Ante_E_
 
@@ -2435,7 +2435,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         -------
         cFunc : LowerEnvelope or LinerarInterp
         """
-        crnt = self.soln_crnt
+        crnt = self.solution_current
         Bilt, E_Next_, Pars = crnt.Bilt, crnt.E_Next_, crnt.Pars
         v1_pos = E_Next_.v1_pos  # first derivative of value function at chosen
         u, aNrmGrid, BoroCnstArt = Bilt.u, Bilt.aNrmGrid, Pars.BoroCnstArt
@@ -2488,14 +2488,14 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         Parameters
         ----------
-        none (relies upon self.soln_crnt.aNrmGrid to exist at invocation)
+        none (relies upon self.solution_current.aNrmGrid to exist at invocation)
 
         Returns
         -------
         solution : ConsumerSolution
             The solution to the single period consumption-saving problem.
         """
-        crnt = self.soln_crnt
+        crnt = self.solution_current
         Bilt, Pars = crnt.Bilt, crnt.Pars
 
         crnt.cFunc = Bilt.cFunc = self.build_cFunc_using_EGM()
@@ -2521,8 +2521,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
         cFunc_unconstrained = LinearInterp(
             mNrm, cNrm,
-            self.soln_crnt.Bilt.cFuncLimitIntercept,
-            self.soln_crnt.Bilt.cFuncLimitSlope
+            self.solution_current.Bilt.cFuncLimitIntercept,
+            self.solution_current.Bilt.cFuncLimitSlope
         )
         return cFunc_unconstrained
 
@@ -2547,7 +2547,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution : ConsumerSolution object
             Contains info (like vFunc.da) required to construct consumption
         """
-        soln_crnt = self.soln_crnt
+        soln_crnt = self.solution_current
 
         # Add some useful info to solution object
         # CDC 20200428: "useful" only for a candidate converged solution
@@ -2563,7 +2563,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         self.build_facts_recursive()  # These require solution to successor
 
         soln_crnt = self.make_chosen_state_grid()
-        self.make_E_Next_(self.soln_crnt.Pars.IncShkDstn)
+        self.make_E_Next_(self.solution_current.Pars.IncShkDstn)
 
         return soln_crnt
 
@@ -2603,9 +2603,9 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
 
         if self.solve_prepared_stage_divert():  # Allow bypass of normal soln
-            return self.soln_crnt  # created by solve_prepared_stage_divert
+            return self.solution_current  # created by solve_prepared_stage_divert
 
-        crnt = self.soln_crnt
+        crnt = self.solution_current
 
         Pars = crnt.Pars
         eventTiming, solveMethod = Pars.eventTiming, Pars.solveMethod
@@ -2675,7 +2675,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         -------
         transited : dict with results of applying transition eqns
         """
-        stge = self.soln_crnt
+        stge = self.solution_current
         Pars = stge.Pars
         Transitions = stge.Modl.Transitions
 
@@ -2712,7 +2712,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         """
         Make cubic spline interpolation of unconstrained consumption function.
 
-        Requires self.soln_crnt.Bilt.aNrm to have been computed already.
+        Requires self.solution_current.Bilt.aNrm to have been computed already.
 
         Parameters
         ----------
@@ -2726,7 +2726,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         cFuncUnc : CubicInterp
             The unconstrained consumption function for this period.
         """
-        soln_crnt = self.soln_crnt
+        soln_crnt = self.solution_current
         Bilt, E_Next_ = soln_crnt.Bilt, soln_crnt.E_Next_
         v2_pos = E_Next_.v2_pos  # second derivative of value function
         u = Bilt.u

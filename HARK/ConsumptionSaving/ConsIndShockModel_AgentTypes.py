@@ -653,7 +653,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         self.cycles = cycles_orig  # with the original convergence criteria
         self.solution[0].Bilt.stge_kind['iter_status'] = 'iterator'
 #        self.solution[0].Bilt.vAdd = np.array([0.0])  # Amount to add to last v
-        self.soln_crnt = self.solution[0]  # current soln is now newly made one
+        self.solution_current = self.solution[0]  # current soln is now newly made one
 
     def agent_post_post_solve(self):  # Overwrites version from AgentTypePlus
         """For infinite horizon models, add stable points (if they exist)."""
