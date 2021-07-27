@@ -5,16 +5,14 @@ from copy import copy, deepcopy
 from builtins import (range, str, breakpoint)
 from types import SimpleNamespace
 
-from HARK.core import (_log, set_verbosity_level)
+from HARK.core import (_log)
 from HARK.distribution \
     import (add_discrete_outcome_constant_mean,
             combine_indep_dstns, Lognormal, MeanOneLogNormal, Uniform)
 from HARK.interpolation import (LinearInterp)
 from HARK import AgentType, make_one_period_oo_solver
-from HARK.ConsumptionSaving.ConsIndShockModel_CommonDefs \
-    import (def_utility, def_value_funcs)
 from HARK.ConsumptionSaving.ConsIndShockModel_Both \
-    import (construct_assets_grid)
+    import (construct_assets_grid, def_utility_CRRA, def_value_funcs)
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
     import (ConsumerSolutionOneNrmStateCRRA, ConsPerfForesightSolver,
             ConsIndShockSolverBasic, ConsIndShockSolver
@@ -789,8 +787,12 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
         solution_terminal.Bilt.parameters = self.parameters
         CRRA = self.CRRA
-        solution_terminal.Bilt = def_utility(solution_terminal.Bilt, CRRA)
-        solution_terminal.Bilt = def_value_funcs(solution_terminal.Bilt, CRRA)
+#        breakpoint()
+#        solution_terminal.Bilt = def_utility(solution_terminal.Bilt, CRRA)
+
+        solution_terminal = def_utility_CRRA(solution_terminal, CRRA)
+#        solution_terminal.Bilt = def_value_funcs(solution_terminal.Bilt, CRRA)
+        solution_terminal = def_value_funcs(solution_terminal, CRRA)
 
         return solution_terminal.Bilt
 

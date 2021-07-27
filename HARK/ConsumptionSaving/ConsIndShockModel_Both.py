@@ -141,7 +141,7 @@ def def_value_funcs(soln, CRRA):
 
     Returns
     -------
-    None
+    soln : agent_stage_solution, enhanced with value function
 
     Notes
     -----
