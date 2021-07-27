@@ -595,7 +595,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
         Parameters
         ----------
-        soln : agent_solution
+        soln : agent_stage_solution
             The solution whose stable points are to be calculated
         """
 
@@ -1052,7 +1052,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         the solver will continue until successive policy functions are closer
         than the tolerance specified as a default parameter.
 
-    solution_startfrom : agent_solution, optional
+    solution_startfrom : agent_stage_solution, optional
         A user-specified terminal period/stage solution for the iteration,
         to be used in place of the hardwired solution_terminal.  One use
         might be to set a loose tolerance to get a quick `solution_rough`

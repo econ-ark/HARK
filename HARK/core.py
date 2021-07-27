@@ -9,18 +9,12 @@ problem by finding a general equilibrium dynamic rule.
 
 
 import sys
-import os
-from distutils.dir_util import copy_tree
 from copy import copy, deepcopy
 from .utilities import get_arg_names, NullFunc
 import numpy as np
 from time import time
 from .parallel import multi_thread_commands, multi_thread_commands_fake
 from warnings import warn
-# Need to import these so we can check whether agents are of these types
-# so they can be treated specially
-# from HARK.ConsumptionSaving.ConsIndShockModel import \
-#    (IndShockConsumerType, PerfForesightConsumerType, KinkedRconsumerType)
 
 # pyflakes kept flagging _log commands in core.py as undefined unless the log stuff
 # was here at the beginning (and not just in __init__.py
@@ -289,7 +283,7 @@ class Model(object):
         # and DemARKs does not find any instance of this being used.
         # We ought either to:
         # 1. use it pervasively
-        #    * in which case there should be a companion set_parameters
+        #    * in which case there should be a companion set_parameter
         # or
         # 2. Eliminate it
         """
@@ -396,7 +390,6 @@ class AgentType(Model):
             seed=0,
             **kwds
     ):
-        #        breakpoint()
         Model.__init__(self)
 
         if solution_terminal is None:
@@ -420,9 +413,9 @@ class AgentType(Model):
         self.assign_parameters(**kwds)  # NOQA
         self.reset_rng()  # NOQA
         self.prmtv_par = dict()  # 'primitives' define true model
-        # 'approximation' pars:
+        # 'approximation' pars
         self.aprox_par = {'tolerance': self.tolerance, 'seed': self.seed}
-        # sol approaches truth as all aprox_par -> lim
+        # if lim exists, sol approaches truth as all aprox_par -> lim
         self.aprox_lim = {'tolerance': 0.0, 'seed': None}
 
     def add_to_time_vary(self, *params):
@@ -535,9 +528,6 @@ class AgentType(Model):
         -------
         none
         """
-        # These need to be kept track of; it is too cumbersome to pass them
-        # through every sub-sub component from which there is any chance
-        # they might be needed
         self.messaging_level = messaging_level
         self.quietly = quietly
         # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
@@ -714,7 +704,7 @@ class AgentType(Model):
             self.t_cycle == self.T_cycle
         ] = 0  # Resetting to zero for those who have reached the end
 
-    mcrlo_sim_one_period = sim_one_period
+    mcrlo_sim_one_stge = sim_one_period
 
     def make_shock_history(self):  # -> make_shock_hst
         """
@@ -828,8 +818,10 @@ class AgentType(Model):
 
     def get_shocks(self):  # -> mcrlo_get_shks
         """
-        Gets values of shock variables for the current period.  Does nothing by default, but can
-        be overwritten by subclasses of AgentType.
+        Get values of shock variables for the current stage/period.  
+
+        Does nothing by default, but can be overwritten by subclasses of
+        AgentType.
 
         Parameters
         ----------
@@ -915,7 +907,7 @@ class AgentType(Model):
 
     def get_controls(self):
         """
-        Gets values of control variables for the current period, probably by using current states.
+        Gets values of control variables for the current period/stage, probably by using current states.
         Does nothing by default, but can be overwritten by subclasses of AgentType.
 
         Parameters
@@ -932,7 +924,7 @@ class AgentType(Model):
 
     def get_poststates(self):
         """
-        Gets values of post-decision state variables for the current period,
+        Gets values of post-decision state variables for the current period/stage,
         probably by current
         states and controls and maybe market-level events or shock variables.
         Does nothing by
@@ -954,7 +946,7 @@ class AgentType(Model):
 
     get_poststates_mcrlo = mcrlo_get_poststates = get_poststates
 
-    def simulate(self, sim_periods=None):
+    def simulate(self, sim_periods=None):  # -> sim_stage=None
         """
         Simulates this agent type for a given number of periods/stages. Defaults to
         self.T_sim if no input.
@@ -1074,8 +1066,8 @@ def solve_agent(agent, messaging_level, quietly=False, **kwds):
         completed_cycles = 0  # NOQA
         max_cycles = 5000  # NOQA  - escape clause, stop eventually
         solution_next = agent.solution_terminal  # NOQA
-        solution_next.cFunc = solution_next.Bilt.cFunc  # Should be generic
-    else:  # We are resuming solution of a model that has already been solved
+        solution_next.cFunc = solution_next.Bilt.cFunc  # Should be generic dr
+    else:  # We are resuming solution of a model that has already converged
         solution = agent.solution
         solution_next = agent.solution[0]
         if hasattr(solution_next, 'completed_cycles'):  # keep counting
@@ -1090,7 +1082,7 @@ def solve_agent(agent, messaging_level, quietly=False, **kwds):
     if hasattr(solution_next, 'stge_kind'):
         # User who wants to resume, say to solve to tighter tolerance, needs
         # of course to change the tolerance parameter but must also change the
-        # from 'finished' to 'iterator'
+        # stge_kind from 'finished' to 'iterator'
         if 'iter_status' in solution_next.stge_kind:
             if solution_next.stge_kind['iter_status'] == 'finished':
                 _log.info('The model has already been solved.')
@@ -1134,7 +1126,7 @@ def solve_agent(agent, messaging_level, quietly=False, **kwds):
             # those before allowing resume
 
             if hasattr(agent, 'solve_resume') and (agent.solve_resume is True):  # if resumption requested,
-                go = True  # solve one period for sure, then keep going
+                go = True  # solve one period/stage for sure, then keep going
                 agent.solve_resume = False  # go until stop criteria satisfied
             if not go:  # Finished solving
                 # All models should incorporate 'stge_kind', but some have not
@@ -1157,11 +1149,10 @@ def solve_agent(agent, messaging_level, quietly=False, **kwds):
         solution_now.completed_cycles = deepcopy(completed_cycles)
         solution_next = solution_now
 
-        if not quietly and messaging_level >= logging.DEBUG:
-            print('.', end='')  # visually indicate something is happening
-        # Display progress if requested
         if not quietly:
-            if messaging_level < logging.DEBUG:
+            if messaging_level >= logging.DEBUG:
+                print('.', end='')  # visually indicate something is happening
+            else:  # Display progress
                 t_now = time()
                 if infinite_horizon:
                     print(
@@ -1189,7 +1180,7 @@ def solve_agent(agent, messaging_level, quietly=False, **kwds):
 
 def solve_one_cycle(agent, solution_next):
     """
-    Solve one "cycle" of the dynamic model for one agent type.  
+    Solve one "cycle" of the dynamic model for one agent type. 
 
     This function iterates over the stages within an agent's cycle, updating
     the stage-varying parameters and passing them to the single-stage
@@ -1314,9 +1305,7 @@ def make_one_period_oo_solver(solver_class, **kwds):
         A function for solving one period/stage of a problem.
     """
 
-    def one_period_solver(**kwds):  # TODO: rename to, say, one_stage_solver_make
-        # last step in loop over num_stges in solve_one_cycle is:
-        # solve_one_period(**temp_dict) [should become, say, solve_this_stge]
+    def one_period_solver(**kwds):
         solver = solver_class(**kwds)  # defined externally
 
         if hasattr(solver, "prepare_to_solve"):
@@ -1330,7 +1319,10 @@ def make_one_period_oo_solver(solver_class, **kwds):
 
     one_period_solver.solver_args = get_arg_names(solver_class.__init__)[1:]
 
-    return one_period_solver  # TODO: rename to this_stge_solver
+    return one_period_solver  # TODO: rename to one_stge_solver someday
+
+
+make_one_stage_oo_solver = make_one_period_oo_solver
 
 
 # ========================================================================

@@ -37,7 +37,7 @@ def define_transition(soln, transition_name):
 
     Parameters
     ----------
-    soln : agent_solution
+    soln : agent_stage_solution
         A solution with an atached Modl object.
 
     transition_name : str
@@ -137,7 +137,7 @@ def def_value_funcs(soln, CRRA):
 
     Parameters
     ----------
-    soln : agent_solution
+    soln : agent_stage_solution
 
     Returns
     -------

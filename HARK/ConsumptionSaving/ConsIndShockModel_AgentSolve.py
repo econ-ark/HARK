@@ -22,7 +22,7 @@ from HARK.distribution import calc_expectation \
 from HARK.interpolation import (CubicInterp, LowerEnvelope, LinearInterp)
 
 
-class agent_solution(MetricObject):
+class agent_stage_solution(MetricObject):
     """
     Framework for solution of a single stage of a decision problem.
 
@@ -37,11 +37,11 @@ class agent_solution(MetricObject):
 
     Parameters
     ----------
-    solution_follows : agent_solution
+    solution_follows : agent_stage_solution
 
     Returns
     -------
-    solution_current : agent_solution
+    solution_current : agent_stage_solution
 
     Elements of the current solution crnt contain, but are not limited to:
         Pars : The parameters used in solving this stage of the model
@@ -206,13 +206,13 @@ __all__ = [
 ]
 
 
-# ConsumerSolution does nothing except add agent_solution
+# ConsumerSolution does nothing except add agent_stage_solution
 # content to original ConsumerSolutionOlder, and set distance_criteria to cFunc
 
-class ConsumerSolution(ConsumerSolutionOlder, agent_solution):
+class ConsumerSolution(ConsumerSolutionOlder, agent_stage_solution):
     __doc__ = ConsumerSolutionOlder.__doc__
     __doc__ += """
-    In addition, it inherits the attributes of agent_solution.
+    In addition, it inherits the attributes of agent_stage_solution.
     """
     # CDC 20210426:
     # vPfunc is unbounded so seems a bad choice for distance; here we change
@@ -229,7 +229,7 @@ class ConsumerSolution(ConsumerSolutionOlder, agent_solution):
                  parameters_solver=None,
                  **kwds):
         ConsumerSolutionOlder.__init__(self, **kwds)
-        agent_solution.__init__(self, *args, **kwds)
+        agent_stage_solution.__init__(self, *args, **kwds)
 
 
 class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
@@ -354,7 +354,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         Parameters
         ----------
-        self : agent_solution
+        self : agent_stage_solution
 
             Solution to the problem described by information for the current
         stage found in Bilt and the succeeding stage.
@@ -412,7 +412,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         Parameters
         ----------
-        self : agent_solution
+        self : agent_stage_solution
 
             Solution to the problem described by information for the current
         stage found in Bilt and the succeeding stage.
@@ -934,12 +934,12 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
 
         Parameters
         ----------
-        crnt : agent_solution
+        crnt : agent_stage_solution
             The solution to the problem without the expectations info.
 
         Returns
         -------
-        crnt : agent_solution
+        crnt : agent_stage_solution
             The given solution, with the relevant namespaces updated to
         contain the constructed info.
         """
@@ -1778,11 +1778,11 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
 
         Parameters
         ----------
-        crnt : agent_solution
+        crnt : agent_stage_solution
 
         Returns
         -------
-        agent_solution : agent_solution
+        agent_stage_solution : agent_stage_solution
             Augmented with decision rules and value functions
 
         """
@@ -2131,7 +2131,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 
         Returns
         -------
-        crnt : agent_solution
+        crnt : agent_stage_solution
 
         """
         super().build_facts_recursive()
@@ -2605,7 +2605,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         Returns
         -------
-        solution : agent_solution
+        solution : agent_stage_solution
             The solution to this period/stage's problem.
         """
 
