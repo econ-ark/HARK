@@ -728,9 +728,9 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
             _log.info('Make final soln because conditions are computed there')
             self.make_solution_for_final_period()
 
-        soln_crnt = self.solution[0]
-        soln_crnt.check_conditions(messaging_level=logging.INFO, quietly=False)
-#       soln_crnt.check_conditions(soln_crnt, verbose)  # real version on soln
+        solution_current = self.solution[0]
+        solution_current.check_conditions(messaging_level=logging.INFO, quietly=False)
+#       solution_current.check_conditions(solution_current, verbose)  # real version on soln
 
     # def dolo_defs(self):  # CDC 20210415: Beginnings of Dolo integration
     #     self.symbol_calibration = dict(  # not used yet, just created

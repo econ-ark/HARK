@@ -10,6 +10,7 @@ Created on Mon Jun 21 23:21:19 2021
 
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolver
 
+
 class ConsKinkedRsolver(ConsIndShockSolver):
     """
     A class to solve a single period consumption-saving problem where the interest
@@ -17,7 +18,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
     ConsIndShockSolver, with nearly identical inputs and outputs.  The key diff-
     erence is that Rfree is replaced by Rsave (a>0) and Rboro (a<0).  The solver
     can handle Rboro == Rsave, which makes it identical to ConsIndShocksolver, but
-    it terminates immediately if Rboro < Rsave, as this has a different soln_crnt.
+    it terminates immediately if Rboro < Rsave, as this has a different solution_current.
 
     Parameters
     ----------

@@ -35,9 +35,9 @@ class agent_solution(MetricObject):
 
     Returns
     -------
-    soln_crnt : agent_solution
+    crnt : agent_solution
 
-    Elements of the soln_crnt object contain, but are not limited to:
+    Elements of the current solution crnt contain, but are not limited to:
         Pars : The parameters used in solving the model
         Bilt : Objects constructed and retained from the solution process
         Modl : Equations of the model, in the form of the python code
@@ -360,8 +360,8 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         -------
         None
         """
-        soln_crnt = self
-        Pars, Modl = soln_crnt.Pars, soln_crnt.Modl
+        crnt = self
+        Pars, Modl = crnt.Pars, crnt.Modl
         Tran = Modl.Transitions
 
         if not quietly and messaging_level < logging.WARNING:
@@ -399,7 +399,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         Depending on the configuration of parameter values, some combination of
         these conditions must be satisfied in order for the problem to have
-        a nondegenerate soln_crnt. To check which conditions are required,
+        a nondegenerate solution. To check which conditions are required,
         in the verbose mode, a reference to the relevant theoretical literature
         is made.
 
@@ -424,9 +424,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         -------
         None
         """
-        soln_crnt = self
+        crnt = self  # A current solution object
 
-        Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
+        Bilt, Pars = crnt.Bilt, crnt.Pars
 
         Bilt.conditions = {}  # Keep track of truth of conditions
         Bilt.degenerate = False  # True: solution is degenerate
@@ -435,14 +435,14 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         if not quietly:
             _log.info('\n\nBecause messaging_level is at least logging.INFO, ' +
                       'infinite horizon conditions are reported below:\n')
-        soln_crnt.check_AIC(soln_crnt, messaging_level, quietly)
-        soln_crnt.check_FHWC(soln_crnt, messaging_level, quietly)
-        soln_crnt.check_RIC(soln_crnt, messaging_level, quietly)
-        soln_crnt.check_GICRaw(soln_crnt, messaging_level, quietly)
-        soln_crnt.check_GICNrm(soln_crnt, messaging_level, quietly)
-        soln_crnt.check_GICLiv(soln_crnt, messaging_level, quietly)
-        soln_crnt.check_WRIC(soln_crnt, messaging_level, quietly)
-        soln_crnt.check_FVAC(soln_crnt, messaging_level, quietly)
+        crnt.check_AIC(crnt, messaging_level, quietly)
+        crnt.check_FHWC(crnt, messaging_level, quietly)
+        crnt.check_RIC(crnt, messaging_level, quietly)
+        crnt.check_GICRaw(crnt, messaging_level, quietly)
+        crnt.check_GICNrm(crnt, messaging_level, quietly)
+        crnt.check_GICLiv(crnt, messaging_level, quietly)
+        crnt.check_WRIC(crnt, messaging_level, quietly)
+        crnt.check_FVAC(crnt, messaging_level, quietly)
 
         # degenerate flag is True if the model has no nondegenerate solution
         if hasattr(Bilt, "BoroCnstArt") and Pars.BoroCnstArt is not None:
@@ -458,9 +458,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         if Bilt.degenerate:
             _log.critical("Under the given parameter values, the model is degenerate.")
 
-#         soln_crnt = self
+#         crnt = self
 
-#         Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
+#         Bilt, Pars = crnt.Bilt, crnt.Pars
 
 #         Bilt.conditions = {}  # Keep track of truth of conditions
 #         Bilt.degenerate = False  # True: solution is degenerate
@@ -481,23 +481,23 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 #             msg = '\nThe following results hold:\n'
 #             _log.info(msg)
 
-#         soln_crnt.check_AIC(soln_crnt, verbose)
-#         soln_crnt.check_FHWC(soln_crnt, verbose)
-#         soln_crnt.check_RIC(soln_crnt, verbose)
-#         soln_crnt.check_GICRaw(soln_crnt, verbose)
-#         soln_crnt.check_GICNrm(soln_crnt, verbose)
-#         soln_crnt.check_GICLiv(soln_crnt, verbose)
-#         soln_crnt.check_FVAC(soln_crnt, verbose)
+#         crnt.check_AIC(crnt, verbose)
+#         crnt.check_FHWC(crnt, verbose)
+#         crnt.check_RIC(crnt, verbose)
+#         crnt.check_GICRaw(crnt, verbose)
+#         crnt.check_GICNrm(crnt, verbose)
+#         crnt.check_GICLiv(crnt, verbose)
+#         crnt.check_FVAC(crnt, verbose)
 
-    # # Passing the soln_crnt object to check_conditions might seem unnecessary,
+    # # Passing the crnt object to check_conditions might seem unnecessary,
     # # since its first argument is self, and during the solution process the
-    # # solver has soln_crnt attached to its self, so its contents could be
+    # # solver has crnt attached to its self, so its contents could be
     # # obtained from self.solution_current.  But after the solution is
     # # completed, the solution that is returned should be a standalone object
     # # that does not reside on a solver instance. Doing things as below allows
     # # such a standalone a solution object to check not only its own conditions
     # # but even to check the conditions of another solution.
-    # def check_conditions_old(self, soln_crnt, verbose=None):
+    # def check_conditions_old(self, crnt, verbose=None):
     #     """
     #     Check whether the instance's type satisfies a set of conditions.
 
@@ -515,7 +515,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
     #     Depending on the configuration of parameter values, some combination of
     #     these conditions must be satisfied in order for the problem to have
-    #     a nondegenerate soln_crnt. To check which conditions are required,
+    #     a nondegenerate crnt. To check which conditions are required,
     #     in the verbose mode, a reference to the relevant theoretical literature
     #     is made.
 
@@ -528,7 +528,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
     #     condition. When True, it reports all results, i.e.  the factor values
     #     for all conditions.
 
-    #     soln_crnt : ConsumerSolution
+    #     crnt : ConsumerSolution
     #     Solution to the problem described by information
     #     for the current stage found in Bilt and the succeeding stage.
 
@@ -537,7 +537,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
     #     None
     #     """
 
-    #     Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
+    #     Bilt, Pars = crnt.Bilt, crnt.Pars
 
     #     Bilt.conditions = {}  # Keep track of truth of conditions
     #     Bilt.degenerate = False  # True: solution is degenerate
@@ -559,13 +559,13 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
     #         msg = '\nThe following results hold:\n'
     #         _log.info(msg)
 
-    #     soln_crnt.check_AIC(soln_crnt, verbose)
-    #     soln_crnt.check_FHWC(soln_crnt, verbose)
-    #     soln_crnt.check_RIC(soln_crnt, verbose)
-    #     soln_crnt.check_GICRaw(soln_crnt, verbose)
-    #     soln_crnt.check_GICNrm(soln_crnt, verbose)
-    #     soln_crnt.check_GICLiv(soln_crnt, verbose)
-    #     soln_crnt.check_FVAC(soln_crnt, verbose)
+    #     crnt.check_AIC(crnt, verbose)
+    #     crnt.check_FHWC(crnt, verbose)
+    #     crnt.check_RIC(crnt, verbose)
+    #     crnt.check_GICRaw(crnt, verbose)
+    #     crnt.check_GICNrm(crnt, verbose)
+    #     crnt.check_GICLiv(crnt, verbose)
+    #     crnt.check_FVAC(crnt, verbose)
 
     #     # degenerate flag is True if the model has no nondegenerate solution
     #     if hasattr(Bilt, "BoroCnstArt") \
@@ -825,7 +825,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 # As a first step in that direction, solver classes do not __init__ themselves
 # with the __init__ method of their "parent" solution class.  Instead, they
 # expect to receive as an argument an instance of a solution object called
-# solution_next, and they will construct a soln_crnt object that begins
+# solution_next, and they will construct a solution_current object that begins
 # empty and onto which the information describing the model and its solution
 # are added step by step.
 
@@ -887,23 +887,23 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         # solution
 
         # In principle, a solution need not know its solver
-        soln_crnt = self.solution_current = \
+        crnt = self.solution_current = \
             ConsumerSolutionOneNrmStateCRRA(
                 self, DiscFac, LivPrb, CRRA, Rfree, PermGroFac, eventTiming)
 
         # Get solver parameters and store for later use
         # omitting things that are not needed
 
-        Pars = soln_crnt.Pars
+        Pars = crnt.Pars
         Pars.__dict__.update(
             {k: v for k, v in {**kwds, **locals()}.items()
              if k not in {'self', 'solution_next', 'kwds', 'soln_futr',
-                          'soln_crnt', 'Pars'}})
+                          'crnt', 'Pars'}})
 
         # 'terminal' solution should replace pseudo_terminal:
         if hasattr(soln_futr.Bilt, 'stge_kind') and \
                 soln_futr.Bilt.stge_kind['iter_status'] == 'terminal_partial':
-            soln_crnt.Bilt = deepcopy(soln_futr.Bilt)
+            crnt.Bilt = deepcopy(soln_futr.Bilt)
 
         # links for docs; urls are used when "fcts" are added
         self._url_doc_for_solver_get()
@@ -1320,8 +1320,8 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             The given solution, with the relevant namespaces updated to
         contain the constructed info.
         """
-        soln_crnt = self.solution_current  # current
-        Bilt, Pars, E_Next_ = soln_crnt.Bilt, soln_crnt.Pars, soln_crnt.E_Next_
+        crnt = self.solution_current  # current
+        Bilt, Pars, E_Next_ = crnt.Bilt, crnt.Pars, crnt.E_Next_
 
         urlroot = Bilt.urlroot
         Bilt.DiscLiv = Pars.DiscFac * Pars.LivPrb
@@ -1524,7 +1524,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         #        E_Next_.IncNrmNxt_fcts.update({'urlhandle': urlroot+'ExIncNrmNxt'})
         E_Next_.IncNrmNxt_fcts.update({'py___code': py___code})
         E_Next_.IncNrmNxt_fcts.update({'value_now': E_Next_.IncNrmNxt})
-        soln_crnt.E_Next_.IncNrmNxt_fcts = E_Next_.IncNrmNxt_fcts
+        crnt.E_Next_.IncNrmNxt_fcts = E_Next_.IncNrmNxt_fcts
 
         RNrm_PF_fcts = {
             'about': 'Expected Growth-Normalized Return'
@@ -1574,9 +1574,9 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         None.
 
         """
-        soln_crnt = self.solution_current
+        crnt = self.solution_current
         tp1 = self.soln_futr.Bilt  # tp1 means t+1
-        Bilt, Pars, E_Next_ = soln_crnt.Bilt, soln_crnt.Pars, soln_crnt.E_Next_
+        Bilt, Pars, E_Next_ = crnt.Bilt, crnt.Pars, crnt.E_Next_
 
         givens = {**Pars.__dict__, **locals()}
         urlroot = Bilt.urlroot
@@ -1586,7 +1586,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             'about': 'Human Wealth '
         }
         py___code = '((PermGroFac / Rfree) * (1.0 + tp1.hNrm))'
-        if soln_crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge:
+        if crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge:
             py___code = '0.0'  # hNrm = 0.0 for last period
         Bilt.hNrm = hNrm = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
@@ -1601,7 +1601,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             'about': 'Natural Borrowing Constraint'
         }
         py___code = '(tp1.mNrmMin - tranShkMin)*(PermGroFac/Rfree)*permShkMin'
-        if soln_crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge
+        if crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge
             py___code = 'hNrm'  # Presumably zero
         Bilt.BoroCnstNat = BoroCnstNat = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
@@ -1632,8 +1632,8 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             'about': 'Maximal MPC in current period as m -> mNrmMin'
         }
         py___code = '1.0 / (1.0 + (RPF / tp1.MPCmax))'
-        if soln_crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge:
-            soln_crnt.tp1.MPCmax = float('inf')  # => MPCmax = 1 for last per
+        if crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge:
+            crnt.tp1.MPCmax = float('inf')  # => MPCmax = 1 for last per
         Bilt.MPCmax = eval(
             py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         MPCmax_fcts.update({'latexexpr': r''})
@@ -1656,7 +1656,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             'about': 'Minimal MPC in current period as m -> infty'
         }
         py___code = '1.0 / (1.0 + (RPF / tp1.MPCmin))'
-        if soln_crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge:
+        if crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge:
             py__code = '1.0'
         Bilt.MPCmin = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
@@ -1670,7 +1670,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             'about': 'Maximal MPC in current period as m -> mNrmMin'
         }
         py___code = '1.0 / (1.0 + (RPF / tp1.MPCmax))'
-        if soln_crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge:
+        if crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge:
             Bilt.tp1.MPCmax = float('inf')  # => MPCmax = 1 for final period
         Bilt.MPCmax = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
@@ -1688,7 +1688,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         cFuncLimitIntercept_fcts.update({'py___code': py___code})
         cFuncLimitIntercept_fcts.update({'latexexpr': r'\MPC \hNrm'})
-        soln_crnt.Bilt.cFuncLimitIntercept_fcts = cFuncLimitIntercept_fcts
+        crnt.Bilt.cFuncLimitIntercept_fcts = cFuncLimitIntercept_fcts
 
         cFuncLimitSlope_fcts = {
             'about': 'Slope of limiting consumption function'}
@@ -1699,12 +1699,12 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         cFuncLimitSlope_fcts.update({'py___code': py___code})
         cFuncLimitSlope_fcts = dict({'latexexpr': r'\MPCmin'})
         cFuncLimitSlope_fcts.update({'urlhandle': r'\MPC'})
-        soln_crnt.Bilt.cFuncLimitSlope_fcts = cFuncLimitSlope_fcts
+        crnt.Bilt.cFuncLimitSlope_fcts = cFuncLimitSlope_fcts
 
         # That's the end of things that are identical for PF and non-PF models
         # Models with uncertainty will supplement the above calculations
 
-        return soln_crnt
+        return crnt
 
     def solve_prepared_stage_divert(self):
         """
@@ -1784,16 +1784,16 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
 
     def solver_prep_solution_for_an_iteration(self):  # PF
         """Prepare current stage for processing by the one-stage solver."""
-        soln_crnt = self.solution_current
+        crnt = self.solution_current
 
-        Bilt, Pars = soln_crnt.Bilt, soln_crnt.Pars
+        Bilt, Pars = crnt.Bilt, crnt.Pars
 
         # Catch degenerate case of zero-variance income distributions
         # Otherwise "test cases" that try the degenerate dstns will fail
         if hasattr(Bilt, "tranShkVals") and hasattr(Bilt, "permShkVals"):
             if ((Bilt.tranShkMin == 1.0) and (Bilt.permShkMin == 1.0)):
-                soln_crnt.E_Next_.Inv_permShk = 1.0
-                soln_crnt.E_Next_.uInv_permShk = 1.0
+                crnt.E_Next_.Inv_permShk = 1.0
+                crnt.E_Next_.uInv_permShk = 1.0
         else:  # Missing trans or permShkVals; assume it's PF model
             Bilt.tranShkMin = Bilt.permShkMin = 1.0
 
@@ -1805,8 +1805,8 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
                     return
 
         Bilt.stge_kind = \
-            soln_crnt.stge_kind = {'iter_status': 'iterator',
-                                   'slvr_type': self.__class__.__name__}
+            crnt.stge_kind = {'iter_status': 'iterator',
+                              'slvr_type': self.__class__.__name__}
 
         return
 
@@ -1899,10 +1899,10 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
                                          **kwds)
 
         # ConsPerfForesightSolver.__init__ makes self.solution_current
-        soln_crnt = self.solution_current
+        crnt = self.solution_current
 
         # Things we have built, exogenous parameters, and model structures:
-        Bilt, Pars, Modl = soln_crnt.Bilt, soln_crnt.Pars, soln_crnt.Modl
+        Bilt, Pars, Modl = crnt.Bilt, crnt.Pars, crnt.Modl
 
         Modl.eventTiming = eventTiming
         Modl.horizon = horizon
@@ -1974,12 +1974,12 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         """
         super().build_facts_infhor()  # Make the facts built by the PF model
 
-        soln_crnt = self.solution_current
+        crnt = self.solution_current
 
-        Bilt, Pars, E_Next_ = soln_crnt.Bilt, soln_crnt.Pars, soln_crnt.E_Next_
+        Bilt, Pars, E_Next_ = crnt.Bilt, crnt.Pars, crnt.E_Next_
 
         # The 'givens' do not change as facts are constructed
-        givens = {**Pars.__dict__, **soln_crnt.__dict__}
+        givens = {**Pars.__dict__, **crnt.__dict__}
 
         Bilt.E_dot = E_dot  # add dot product expectations operator to envt
 
@@ -2001,7 +2001,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         E_Next_.IncNrmNxt_fcts.update({'urlhandle': urlroot + 'ExIncNrmNxt'})
         E_Next_.IncNrmNxt_fcts.update({'py___code': py___code})
         E_Next_.IncNrmNxt_fcts.update({'value_now': E_Next_.IncNrmNxt})
-        soln_crnt.E_Next_.IncNrmNxt_fcts = E_Next_.IncNrmNxt_fcts
+        crnt.E_Next_.IncNrmNxt_fcts = E_Next_.IncNrmNxt_fcts
 
         E_Next_.Inv_permShk_fcts = {
             'about': 'Expected Inverse of Permanent Shock'
@@ -2014,7 +2014,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
                                          urlroot + 'ExInvpermShk'})
         E_Next_.Inv_permShk_fcts.update({'py___code': py___code})
         E_Next_.Inv_permShk_fcts.update({'value_now': E_Next_.Inv_permShk})
-        soln_crnt.E_Next_.Inv_permShk_fcts = E_Next_.Inv_permShk_fcts
+        crnt.E_Next_.Inv_permShk_fcts = E_Next_.Inv_permShk_fcts
 
         E_Next_.RNrm_fcts = {
             'about': 'Expected Stochastic-Growth-Normalized Return'
@@ -2124,7 +2124,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 
         Returns
         -------
-        soln_crnt : solution
+        crnt : agent_solution
 
         """
         super().build_facts_recursive()
@@ -2132,10 +2132,10 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # All the recursive facts are required for PF model so already exist
         # But various lambda functions are interesting when uncertainty exists
 
-        soln_crnt = self.solution_current
-        Bilt = soln_crnt.Bilt
-        Pars = soln_crnt.Pars
-        E_Next_ = soln_crnt.E_Next_
+        crnt = self.solution_current
+        Bilt = crnt.Bilt
+        Pars = crnt.Pars
+        E_Next_ = crnt.E_Next_
 
         # To use these it is necessary to have created an alias to
         # the relevant namespace on the solution object, e.g.
@@ -2258,9 +2258,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             if (type(m_t) == list or type(m_t) == np.ndarray) else
             E_Next_.cLev_tp1_Over_pLev_t_from_num_m_t(m_t) / Bilt.cFunc(m_t)
         )
-        self.solution_current = soln_crnt
+        self.solution_current = crnt
 
-        return soln_crnt
+        return crnt
 
 
 class ConsIndShockSolverBasic(ConsIndShockSetup):
@@ -2547,7 +2547,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution : ConsumerSolution object
             Contains info (like vFunc.da) required to construct consumption
         """
-        soln_crnt = self.solution_current
+        crnt = self.solution_current
 
         # Add some useful info to solution object
         # CDC 20200428: "useful" only for a candidate converged solution
@@ -2562,10 +2562,10 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         self.build_facts_infhor()
         self.build_facts_recursive()  # These require solution to successor
 
-        soln_crnt = self.make_chosen_state_grid()
+        crnt = self.make_chosen_state_grid()
         self.make_E_Next_(self.solution_current.Pars.IncShkDstn)
 
-        return soln_crnt
+        return crnt
 
     def solve_prepared_stage(self):  # solve ONE stage (ConsIndShockSolver)
         """
@@ -2726,8 +2726,8 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         cFuncUnc : CubicInterp
             The unconstrained consumption function for this period.
         """
-        soln_crnt = self.solution_current
-        Bilt, E_Next_ = soln_crnt.Bilt, soln_crnt.E_Next_
+        crnt = self.solution_current
+        Bilt, E_Next_ = crnt.Bilt, crnt.E_Next_
         v2_pos = E_Next_.v2_pos  # second derivative of value function
         u = Bilt.u
 
