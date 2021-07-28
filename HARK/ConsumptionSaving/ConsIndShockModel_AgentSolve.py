@@ -76,7 +76,7 @@ class agent_stage_solution(MetricObject):
                 should exist recording what convergence tolerance was satisfied
             {'iter_status':'iterator'}: Status during iteration
                 solution[0].distance_last records the last distance
-            {'iter_status':'terminal_partial'}: Bare-bones terminal period/stage
+            {'iter_status':'terminal_partial'}:Bare-bones terminal period/stage
                 Does not contain all the info needed to begin solution
                 Solver will augment and replace it with 'iterator' stage
         Other uses include keeping track of the nature of the next stage
@@ -87,16 +87,18 @@ class agent_stage_solution(MetricObject):
     solverType : str, optional
         The name of the type of solver ('HARK', 'Dolo')
     eventTiming : str, optional
-        Clarifies timing of any events whose timing might otherwise be ambiguous
+        Clarifies timing of events whose timing might otherwise be ambiguous
     messaging_level : int, optional
         Controls the amount of information returned to user. Varies by model.
     """
 
     def __init__(self, *args,
-                 stge_kind={'iter_status': 'not initialized'},
+                 stge_kind=None,
                  parameters_solver=None,
                  completed_cycles=0,
                  **kwds):
+        if stge_kind is None:
+            stge_kind = {'iter_status': 'not initialized'}
         self.E_Next_ = Nexspectations()  # Next given this period/stage choices
         self.Ante_E_ = Prospectations()  # Before this stage shocks/choices
         self.Pars = Parameters()
@@ -144,6 +146,9 @@ class agent_stage_solution(MetricObject):
         }
 
         return transitions_possible
+
+    def describe_model_and_calibration(self, messaging_level, quietly):
+        pass
 
 
 class Built(SimpleNamespace):
@@ -212,14 +217,17 @@ class ConsumerSolution(ConsumerSolutionOlder, agent_stage_solution):
 
     def __init__(self, *args,
                  # TODO: New items below should be in default ConsumerSolution
-                 stge_kind={'iter_status': 'not initialized'},
+                 stge_kind=None,
                  completed_cycles=0,
                  parameters_solver=None,
                  **kwds):
         ConsumerSolutionOlder.__init__(self, **kwds)
         agent_stage_solution.__init__(self, *args, **kwds)
+        if stge_kind is None:
+            stge_kind = dict(iter_status='not initialized')
 
 
+# noinspection PyTypeChecker
 class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
     """
     ConsumerSolution with CRRA utility and geometric discounting.
@@ -359,8 +367,8 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         Tran = Modl.Transitions
 
         if not quietly and messaging_level < logging.WARNING:
-            msg = '\n(quietly=False and messaging_level < ' + \
-                'logging.WARNING, so some model information is provided below):\n'
+            msg = '\n(quietly=False and messaging_level < logging.WARNING, ' \
+                + 'so some model information is provided below):\n'
             msg = msg + '\nThe model has the following parameter values:\n'
             _log.setLevel(messaging_level)
             _log.info(msg)
@@ -427,7 +435,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         self.describe_model_and_calibration(messaging_level, quietly)
         if not quietly:
-            _log.info('\n\nBecause messaging_level is at least logging.INFO, ' +
+            _log.info('\n\nBecause messaging_level is >= logging.INFO, ' +
                       'infinite horizon conditions are reported below:\n')
         crnt.check_AIC(crnt, messaging_level, quietly)
         crnt.check_FHWC(crnt, messaging_level, quietly)
@@ -441,16 +449,17 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         # degenerate flag is True if the model has no nondegenerate solution
         if hasattr(Bilt, "BoroCnstArt") and Pars.BoroCnstArt is not None:
             if Bilt.FHWC:
-                Bilt.degenerate = not Bilt.RIC  # h finite and patient => c(m)=0
+                Bilt.degenerate = not Bilt.RIC  # h finite & patient => c(m)=0
             # If BoroCnstArt exists but RIC fails, limiting soln is c(m)=0
         else:  # No BoroCnst; not degenerate if neither c(m)=0 or \infty
             if Bilt.FHWC:
-                Bilt.degenerate = not Bilt.RIC  # Finite h requires finite PatFac
+                Bilt.degenerate = not Bilt.RIC  # Finite h requires finite Pat
             else:
                 Bilt.degenerate = Bilt.RIC  # infinite h requires impatience
 
         if Bilt.degenerate:
-            _log.critical("Under the given parameter values, the model is degenerate.")
+            _log.critical("Under the given parameter values, " +
+                          "the model is degenerate.")
 
     def check_AIC(self, soln, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Absolute Impatience Condition."""
@@ -472,6 +481,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         soln.Bilt.AIC = core_check_condition(name, test, messages, messaging_level,
                                              verbose_messages, "APF", soln, quietly)
 
+    # noinspection PyTypeChecker
     def check_FVAC(self, soln, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Finite Value of Autarky Condition."""
         name = "FVAC"
@@ -743,17 +753,11 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
     # because everything it accomplishes could be done solving a finite horizon
     # model (including tests of convergence conditions, which can be invoked
     # manually if a user wants them).
-    def __init__(
-            self,
-            solution_next,  # mandatory first arg, hardcoded in core.py
-            DiscFac=0.96, LivPrb=1.0, CRRA=2.0, Rfree=1.0,
-            PermGroFac=1.0, BoroCnstArt=None, MaxKinks=None,
-            # Solver has extra parameters that solution does not
-            solverType='HARK',
-            solveMethod='EGM',
-            eventTiming='EOP',
-            horizon='infinite',
-            **kwds):
+    def __init__(self, solution_next, DiscFac=0.96, LivPrb=1.0, CRRA=2.0,
+                 Rfree=1.0, PermGroFac=1.0, BoroCnstArt=None,
+                 MaxKinks=None, solverType='HARK', solveMethod='EGM',
+                 eventTiming='EOP', horizon='infinite', *args,
+                 **kwds):
 
         folw = self.solution_follows = solution_next  # abbreviation
 
@@ -813,7 +817,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             The given solution, with the relevant namespaces updated to
         contain the constructed info.
         """
-        crnt = self.build_facts_infhor()
+        self.build_facts_infhor()
         crnt = self.build_facts_recursive()
 
         # Reduce cluttered formulae with local aliases
@@ -1180,16 +1184,12 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         soln : solution object with value functions attached
 
         """
-        return def_value_CRRA(self.solution_current, self.solution_current.Pars.CRRA)
+        return def_value_CRRA(self.solution_current,
+                              self.solution_current.Pars.CRRA)
 
     def build_facts_infhor(self):
         """
         Calculate facts useful for characterizing infinite horizon models.
-
-        Parameters
-        ----------
-        solution: ConsumerSolution
-            Solution that already has minimal requirements (vPfunc, cFunc)
 
         Returns
         -------
@@ -1202,7 +1202,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
 
         urlroot = Bilt.urlroot
         Bilt.DiscLiv = Pars.DiscFac * Pars.LivPrb
-        # givens are not changed by the calculations below; Bilt and E_Next_ are
+        # givens are not changed by calculations below; Bilt and E_Next_ are
         givens = {**Pars.__dict__}
 
         APF_fcts = {
@@ -1630,20 +1630,16 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
 
         define_t_reward(crnt, def_utility_CRRA)  # Bellman reward: utility
 
-        self.make_t_decision_rules_and_value_functions(crnt)
+        self.make_t_decision_rules_and_value_functions()
 
         return crnt
 
     # alias for core.py which calls .solve method
     solve = solve_prepared_stage
 
-    def make_t_decision_rules_and_value_functions(self, crnt):
+    def make_t_decision_rules_and_value_functions(self):
         """
         Add decision rules and value funcs to current solution object.
-
-        Parameters
-        ----------
-        crnt : agent_stage_solution
 
         Returns
         -------
@@ -1652,7 +1648,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
 
         """
         self.make_cFunc_PF()
-        return def_value_funcs(crnt, crnt.Pars.CRRA)
+        return def_value_funcs(self.solution_current, self.solution_current.Pars.CRRA)
 
     def solver_prep_solution_for_an_iteration(self):  # PF
         """Prepare current stage for processing by the one-stage solver."""
@@ -1748,6 +1744,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     shock_vars = ['tranShkDstn', 'permShkDstn']  # Unemp shock=min(transShkVal)
 
     # TODO: CDC 20210416: Params shared with PF are in different order. Fix
+    # noinspection PyTypeChecker
     def __init__(
             self, solution_next, IncShkDstn, LivPrb, DiscFac, CRRA, Rfree,
             PermGroFac, BoroCnstArt, aXtraGrid, vFuncBool, CubicBool,
@@ -1774,7 +1771,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         crnt = self.solution_current
 
         # Things we have built, exogenous parameters, and model structures:
-        Bilt, Pars, Modl = crnt.Bilt, crnt.Pars, crnt.Modl
+        Bilt, Modl = crnt.Bilt, crnt.Modl
 
         Modl.eventTiming = eventTiming
         Modl.horizon = horizon
@@ -1832,11 +1829,6 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         adds to the solution a set of results useful for calculating
         various diagnostic conditions about the problem, and stable
         points (if they exist).
-
-        Parameters
-        ----------
-        solution: ConsumerSolution
-            Solution to this period's problem, which must have attribute cFunc.
 
         Returns
         -------
@@ -2093,12 +2085,12 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             E_Next_.cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
                                                       Bilt.cFunc(m_t))
         )
-        E_Next_.cLev_tp1_Over_cLev_t_from_m_t = (
-            lambda m_t:
-            E_Next_.cLev_tp1_Over_pLev_t_from_lst_m_t(m_t) / Bilt.cFunc(m_t)
-            if (type(m_t) == list or type(m_t) == np.ndarray) else
-            E_Next_.cLev_tp1_Over_pLev_t_from_num_m_t(m_t) / Bilt.cFunc(m_t)
-        )
+        # E_Next_.cLev_tp1_Over_cLev_t_from_m_t = (
+        #     lambda m_t:
+        #     E_Next_.cLev_tp1_Over_pLev_t_from_lst_m_t(m_t) / Bilt.cFunc(m_t)
+        #     if (type(m_t) == list or type(m_t) == np.ndarray) else
+        #     E_Next_.cLev_tp1_Over_pLev_t_from_num_m_t(m_t) / Bilt.cFunc(m_t)
+        # )
         E_Next_.permGroShk_tp1_times_m_tp1_minus_m_t = (
             lambda m_t:
             E_Next_.RNrm_PF * (m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt - m_t
@@ -2152,10 +2144,6 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
         Make grid of potential values of state variable(s) after choice(s).
 
-        Parameters
-        ----------
-        none
-
         Returns
         -------
         aNrmGrid : np.array
@@ -2167,7 +2155,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # straint) unconstrained consumption function, and  artificially con-
         # strained consumption function.
         self.solution_current.Bilt.aNrmGrid = np.asarray(
-            self.solution_current.Bilt.aXtraGrid) + self.solution_current.Bilt.BoroCnstNat
+            self.solution_current.Bilt.aXtraGrid) + \
+            self.solution_current.Bilt.BoroCnstNat
 
         return self.solution_current.Bilt.aNrmGrid
 
@@ -2299,10 +2288,6 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
         Find interpolation points (c, m) for the consumption function.
 
-        Parameters
-        ----------
-        none
-
         Returns
         -------
         cFunc : LowerEnvelope or LinerarInterp
@@ -2360,7 +2345,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         Parameters
         ----------
-        none (relies upon self.solution_current.aNrmGrid to exist at invocation)
+        None (relies on self.solution_current.aNrmGrid to exist at invocation)
 
         Returns
         -------
@@ -2398,7 +2383,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         )
         return cFunc_unconstrained
 
-    def from_chosen_states_make_continuation_E_Next_(self):
+    def from_chosen_states_make_continuation_E_Next_(self, crnt):
         """
         Expect after choices have been made and before shocks realized.
 
@@ -2473,9 +2458,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution : agent_stage_solution
             The solution to this period/stage's problem.
         """
-
         if self.solve_prepared_stage_divert():  # Allow bypass of normal soln
-            return self.solution_current  # created by solve_prepared_stage_divert
+            return self.solution_current  # made by solve_prepared_stage_divert
 
         crnt = self.solution_current
 
@@ -2483,14 +2467,14 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         eventTiming, solveMethod = Pars.eventTiming, Pars.solveMethod
 
         if solveMethod == 'Generic':  # Steps that should encompass any problem
-            self.define_transition(crnt, 'EOP_to_next_BOP')
-            self.define_transition(crnt, 'chosen_to_EOP')
+            define_transition(crnt, 'EOP_to_next_BOP')
+            define_transition(crnt, 'chosen_to_EOP')
             self.from_chosen_states_make_continuation_E_Next_(crnt)
-            self.define_t_reward(crnt, def_utility_CRRA)
-            self.define_transition(crnt, 'choice_to_chosen')
-            self.make_t_decision_rules_and_value_functions(crnt)
-            self.define_transition(crnt, 'BOP_to_choice')
-            self.from_BOP_states_make_Ante_E_(crnt)
+            define_t_reward(crnt, def_utility_CRRA)
+            define_transition(crnt, 'choice_to_chosen')
+            self.make_t_decision_rules_and_value_functions()
+            define_transition(crnt, 'BOP_to_choice')
+            self.from_BOP_states_make_Ante_E_()
             return crnt
 
         # if not using Generic, then solve using custom method
@@ -2502,7 +2486,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             define_transition(crnt, 'chosen_to_next_BOP')
 
         # Given the transition, calculate expectations
-        self.from_chosen_states_make_continuation_E_Next_()
+        self.from_chosen_states_make_continuation_E_Next_(crnt)
 
         # Define transition caused by choice
         define_transition(crnt, 'choice_to_chosen')
@@ -2539,9 +2523,6 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         ----------
         shks_permuted: 2D ndarray
             Permanent and transitory income shocks in 2D ndarray
-
-        aNrm: float
-            Normalized end-of-period assets this period
 
         Returns
         -------
