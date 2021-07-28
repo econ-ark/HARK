@@ -28,8 +28,8 @@ class agent_stage_solution(MetricObject):
 
     A "stage" of a problem is the smallest unit into which it is useful
     to break down the problem. Often this will correspond to a time period,
-    but sometimes a stage may correspond to subcomponents of a problem 
-    which are conceived of as being solved simultaneously but which are 
+    but sometimes a stage may correspond to subcomponents of a problem
+    which are conceived of as being solved simultaneously but which are
     computationally useful to solve sequentially.
 
     Provides a foundational structure that all models will build on.  It must
@@ -155,17 +155,6 @@ class Built(SimpleNamespace):
 
 class Parameters(SimpleNamespace):
     """Parameters (as passed, and exposed). But not modified."""
-
-    pass
-
-
-class Expectations(SimpleNamespace):
-    """
-
-    Expectations about future period.
-
-    From any point in the current period.
-"""
 
     pass
 
@@ -350,7 +339,6 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                                        quietly=False):
         """
         Log a brief description of the model and its calibration.
-
 
         Parameters
         ----------
