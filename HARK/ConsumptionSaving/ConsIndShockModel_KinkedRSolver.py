@@ -10,6 +10,7 @@ Created on Mon Jun 21 23:21:19 2021
 
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolver
 
+
 class ConsKinkedRsolver(ConsIndShockSolver):
     """
     A class to solve a single period consumption-saving problem where the interest
@@ -17,16 +18,16 @@ class ConsKinkedRsolver(ConsIndShockSolver):
     ConsIndShockSolver, with nearly identical inputs and outputs.  The key diff-
     erence is that Rfree is replaced by Rsave (a>0) and Rboro (a<0).  The solver
     can handle Rboro == Rsave, which makes it identical to ConsIndShocksolver, but
-    it terminates immediately if Rboro < Rsave, as this has a different soln_crnt.
+    it terminates immediately if Rboro < Rsave, as this has a different solution_current.
 
     Parameters
     ----------
-    soln_futr : ConsumerSolution
+    folw : ConsumerSolution
         The solution to next period's one period problem.
     IncShkDstn : distribution.Distribution
         A discrete
         approximation to the income process between the period being solved
-        and the one immediately following (in soln_futr).
+        and the one immediately following (in folw).
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -60,7 +61,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
 
     def __init__(
             self,
-            soln_futr,
+            folw,
             IncShkDstn,
             LivPrb,
             DiscFac,
@@ -81,7 +82,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         # the non-kinked-R basic case, so start with that.
         ConsIndShockSolver.__init__(
             self,
-            soln_futr,
+            folw,
             IncShkDstn,
             LivPrb,
             DiscFac,
@@ -197,7 +198,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
             RPFTop = (
                 (self.bilt.Rsave * self.DiscLiv) ** (1.0 / self.CRRA)
             ) / self.bilt.Rsave
-            self.MPCmin = 1.0 / (1.0 + RPFTop / self.soln_crnt.bilt.MPCmin)
+            self.MPCmin = 1.0 / (1.0 + RPFTop / self.solution_current.bilt.MPCmin)
             self.hNrm = (
                 self.PermGroFac
                 / self.bilt.Rsave
@@ -205,7 +206,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
                     𝔼_dot(
                         self.ShkPrbs, self.Pars.tranShkVals * self.Pars.permShkVals
                     )
-                    + self.soln_crnt.bilt.hNrm
+                    + self.solution_current.bilt.hNrm
                 )
             )
 

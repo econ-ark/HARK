@@ -9,18 +9,12 @@ problem by finding a general equilibrium dynamic rule.
 
 
 import sys
-import os
-from distutils.dir_util import copy_tree
 from copy import copy, deepcopy
 from .utilities import get_arg_names, NullFunc
 import numpy as np
 from time import time
 from .parallel import multi_thread_commands, multi_thread_commands_fake
 from warnings import warn
-# Need to import these so we can check whether agents are of these types
-# so they can be treated specially
-# from HARK.ConsumptionSaving.ConsIndShockModel import \
-#    (IndShockConsumerType, PerfForesightConsumerType, KinkedRconsumerType)
 
 # pyflakes kept flagging _log commands in core.py as undefined unless the log stuff
 # was here at the beginning (and not just in __init__.py
@@ -58,7 +52,7 @@ def set_verbosity_level(level):
     _log.setLevel(level)
 
 
-def core_check_condition(name, test, messages, messaging_level, verbose_messages, fact, stge, quietly=False):
+def core_check_condition(name, test, messages, messaging_level, verbose_messages, fact, stage_solution, quietly=False):
     """
     Checks whether parameter values of a model satisfy a condition
 
@@ -92,28 +86,29 @@ def core_check_condition(name, test, messages, messaging_level, verbose_messages
     fact : string
          Name of the fact (for recording the results)
 
-    stge : solution object containing condition to be tested
-        Must have dict 'conditions' [name]
+    stage_solution : solution for a stage of the problem containing a condition 
+        to be tested.  Must have dict 'conditions' [name]
 
     quiet : boolean
         If True, construct the conditions but print nothing
     """
 
-    TF = test(stge)
-    stge.Bilt.conditions[name] = TF  # Set whether condition was true or false
-#    breakpoint()
+    soln = stage_solution
+
+    TF = test(soln)
+    soln.Bilt.conditions[name] = TF  # Set whether condition was true or false
     if not quietly:
         # Messages of severity less than minimum intensity are not displayed
         minimum_intensity = messaging_level  # Do not show messages less important
         _log.setLevel(minimum_intensity)  # Uses python logger setLevel
         # Store the messages for later retrieval if desired
-        stge.Bilt.conditions[fact] = (
-            messages[stge.Bilt.conditions[name]] +
-            verbose_messages[stge.Bilt.conditions[name]]).format(stge.Bilt)
-        _log.info(messages[stge.Bilt.conditions[name]].format(stge.Bilt))
-        # Debug log gets the extra info
+        soln.Bilt.conditions[fact] = (
+            messages[soln.Bilt.conditions[name]] +
+            verbose_messages[soln.Bilt.conditions[name]]).format(soln.Bilt)
+        _log.info(messages[soln.Bilt.conditions[name]].format(soln.Bilt))
+        # Debug log gets the verbose info
         _log.debug(
-            verbose_messages[stge.Bilt.conditions[name]].format(stge.Bilt))
+            verbose_messages[soln.Bilt.conditions[name]].format(soln.Bilt))
 
     return TF
 
@@ -288,7 +283,7 @@ class Model(object):
         # and DemARKs does not find any instance of this being used.
         # We ought either to:
         # 1. use it pervasively
-        #    * in which case there should be a companion set_parameters
+        #    * in which case there should be a companion set_parameter
         # or
         # 2. Eliminate it
         """
@@ -395,7 +390,6 @@ class AgentType(Model):
             seed=0,
             **kwds
     ):
-        #        breakpoint()
         Model.__init__(self)
 
         if solution_terminal is None:
@@ -419,9 +413,9 @@ class AgentType(Model):
         self.assign_parameters(**kwds)  # NOQA
         self.reset_rng()  # NOQA
         self.prmtv_par = dict()  # 'primitives' define true model
-        # 'approximation' pars:
+        # 'approximation' pars
         self.aprox_par = {'tolerance': self.tolerance, 'seed': self.seed}
-        # sol approaches truth as all aprox_par -> lim
+        # if lim exists, sol approaches truth as all aprox_par -> lim
         self.aprox_lim = {'tolerance': 0.0, 'seed': None}
 
     def add_to_time_vary(self, *params):
@@ -534,9 +528,6 @@ class AgentType(Model):
         -------
         none
         """
-        # These need to be kept track of; it is too cumbersome to pass them
-        # through every sub-sub component from which there is any chance
-        # they might be needed
         self.messaging_level = messaging_level
         self.quietly = quietly
         # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
@@ -713,7 +704,7 @@ class AgentType(Model):
             self.t_cycle == self.T_cycle
         ] = 0  # Resetting to zero for those who have reached the end
 
-    mcrlo_sim_one_period = sim_one_period
+    mcrlo_sim_one_stge = sim_one_period
 
     def make_shock_history(self):  # -> make_shock_hst
         """
@@ -827,8 +818,10 @@ class AgentType(Model):
 
     def get_shocks(self):  # -> mcrlo_get_shks
         """
-        Gets values of shock variables for the current period.  Does nothing by default, but can
-        be overwritten by subclasses of AgentType.
+        Get values of shock variables for the current stage/period.  
+
+        Does nothing by default, but can be overwritten by subclasses of
+        AgentType.
 
         Parameters
         ----------
@@ -914,7 +907,7 @@ class AgentType(Model):
 
     def get_controls(self):
         """
-        Gets values of control variables for the current period, probably by using current states.
+        Gets values of control variables for the current period/stage, probably by using current states.
         Does nothing by default, but can be overwritten by subclasses of AgentType.
 
         Parameters
@@ -931,7 +924,7 @@ class AgentType(Model):
 
     def get_poststates(self):
         """
-        Gets values of post-decision state variables for the current period,
+        Gets values of post-decision state variables for the current period/stage,
         probably by current
         states and controls and maybe market-level events or shock variables.
         Does nothing by
@@ -953,7 +946,7 @@ class AgentType(Model):
 
     get_poststates_mcrlo = mcrlo_get_poststates = get_poststates
 
-    def simulate(self, sim_periods=None):
+    def simulate(self, sim_periods=None):  # -> sim_stage=None
         """
         Simulates this agent type for a given number of periods/stages. Defaults to
         self.T_sim if no input.
@@ -1073,8 +1066,8 @@ def solve_agent(agent, messaging_level, quietly=False, **kwds):
         completed_cycles = 0  # NOQA
         max_cycles = 5000  # NOQA  - escape clause, stop eventually
         solution_next = agent.solution_terminal  # NOQA
-        solution_next.cFunc = solution_next.Bilt.cFunc
-    else:  # We are resuming solution of a model that has already been solved
+        solution_next.cFunc = solution_next.Bilt.cFunc  # Should be generic dr
+    else:  # We are resuming solution of a model that has already converged
         solution = agent.solution
         solution_next = agent.solution[0]
         if hasattr(solution_next, 'completed_cycles'):  # keep counting
@@ -1089,7 +1082,7 @@ def solve_agent(agent, messaging_level, quietly=False, **kwds):
     if hasattr(solution_next, 'stge_kind'):
         # User who wants to resume, say to solve to tighter tolerance, needs
         # of course to change the tolerance parameter but must also change the
-        # from 'finished' to 'iterator'
+        # stge_kind from 'finished' to 'iterator'
         if 'iter_status' in solution_next.stge_kind:
             if solution_next.stge_kind['iter_status'] == 'finished':
                 _log.info('The model has already been solved.')
@@ -1127,25 +1120,21 @@ def solve_agent(agent, messaging_level, quietly=False, **kwds):
             # reaching convergence under some initial tolerance, user must
             # * Change something about the problem (e.g., tolerance)
             # * Change solution[0] stge_kind['iter_status'] to 'iterator'
-            # * Set the variable [instance].solve_resume = True
             # * Restart the solution process with [instance].solve()
             # TODO: this has been tested only for PerfForesightConsumerType
             # and IndShockConsumerType.  We should test whether agent is one of
             # those before allowing resume
 
             if hasattr(agent, 'solve_resume') and (agent.solve_resume is True):  # if resumption requested,
-                go = True  # solve one period for sure, then keep going
+                go = True  # solve one period/stage for sure, then keep going
                 agent.solve_resume = False  # go until stop criteria satisfied
-#            if not solution_now.Bilt.hNrm:
-#                print('solution_now is empty')
-#                breakpoint()
             if not go:  # Finished solving
                 # All models should incorporate 'stge_kind', but some have not
                 # Handle cases where that has not yet been implemented:
                 if not hasattr(solution_now.Bilt, 'stge_kind'):
                     solution_now.Bilt.stge_kind = {'iter_status': 'iterator'}
                 if solution_next.Bilt.stge_kind['iter_status'] == 'terminal_partial':
-                        completed_cycles += -1  # replacement is not a cycle
+                    completed_cycles += -1  # replacement is not a cycle
                 else:  # Replacing terminal_partial is not a "real" cycle
                     # This if/else prevents a stage derived from one marked as
                     # 'terminal_partial' from being labeled as
@@ -1160,11 +1149,10 @@ def solve_agent(agent, messaging_level, quietly=False, **kwds):
         solution_now.completed_cycles = deepcopy(completed_cycles)
         solution_next = solution_now
 
-        if not quietly and messaging_level >= logging.DEBUG:
-            print('.', end='')  # visually indicate something is happening
-        # Display progress if requested
         if not quietly:
-            if messaging_level < logging.DEBUG:
+            if messaging_level >= logging.DEBUG:
+                print('.', end='')  # visually indicate something is happening
+            else:  # Display progress
                 t_now = time()
                 if infinite_horizon:
                     print(
@@ -1192,14 +1180,17 @@ def solve_agent(agent, messaging_level, quietly=False, **kwds):
 
 def solve_one_cycle(agent, solution_next):
     """
-    Solve one "cycle" of the dynamic model for one agent type.  This function
-    iterates over the stages within an agent's cycle, updating the stage-
-    varying parameters and passing them to the single-stage solver(s).
+    Solve one "cycle" of the dynamic model for one agent type. 
+
+    This function iterates over the stages within an agent's cycle, updating
+    the stage-varying parameters and passing them to the single-stage
+    solver(s).
 
     Parameters
     ----------
     agent : AgentType
-        The microeconomic AgentType whose dynamic problem is to be solved.
+        An instance of an AgentType whose dynamic problem is to be solved.
+
     solution_next : Solution
         A representation of the solution of the period/stage that comes after the
         end of the sequence of one period/stage problems.  This might be the term-
@@ -1209,13 +1200,13 @@ def solve_one_cycle(agent, solution_next):
     Returns
     -------
     full_cycle : [Solution]
-        An ordered list of solutions ('stages') for full "cycle"
-        of the AgentType's microeconomic model, constructed by backward
+        An ordered list of solutions ('stages') for a full "cycle"
+        of the AgentType's problem, constructed by backward
         induction.  After construction, each solution is prepended to the
         existing collection of solutions, with the result that in the completed
         `full_cycle` object element 0 is the solution to the problem at the
         beginning of the cycle, and full_cycle[-1] is the solution to the last
-        problem.
+        problem completed before moving to the next cycle.
     """
     # Calculate number of stages per cycle;
     # defaults to 1 if all variables are stage invariant
@@ -1232,32 +1223,34 @@ def solve_one_cycle(agent, solution_next):
 
     # Initialize the solution for this cycle, then iterate through stages
     full_cycle = []
-#    solution_next = solution_last  # next because about to solve predecessor
-    for stge in range(num_stges):  # for quarterly model, num_stges = 4 qtrs
+
+    for this_stge in range(num_stges):  # for quarterly model, num_stges = 4 qtrs
         # Update which single period/stage solver to use (if depends on stage)
         if hasattr(agent.solve_one_period, "__getitem__"):  # ->solve_this_stge
-            solve_one_period = agent.solve_one_period[num_stges - 1 - stge]
+            solve_one_period = agent.solve_one_period[num_stges - 1 - this_stge]
         else:
             solve_one_period = agent.solve_one_period
 
         # Code below has been made standalone in get_solve_one_period_args
         # which returns the solve_dict without the "solution_next" object
 
-        # The code below allows stage-varying arguments by constructing the
-        # arguments demanded by solve_one_period
+        # Construct arguments demanded by solve_one_period
         if hasattr(solve_one_period, "solver_args"):
             these_args = solve_one_period.solver_args
         else:
             these_args = get_arg_names(solve_one_period)
 
-        # Update stage-varying single period/stage inputs
+        # Update any stage-varying single period/stage inputs
         # This obtains the value for the current step by indexing
-        # into the attribute's list at [num_stges - 1 - stge]
+        # into the attribute's list at [num_stges - 1 - this_stge]
         for name in agent.time_vary:
             if name in these_args:
-                solve_dict[name] = agent.__dict__[name][num_stges - 1 - stge]
+                solve_dict[name] = agent.__dict__[name][num_stges - 1 - this_stge]
 
         solve_dict['solution_next'] = solution_next  # solution_stage_next
+        # solution_next is added here because it is a required argument but is
+        # included in neither time_vary nor time_inv. Seems like maybe it could
+        # (and should) be included in one of those ...
 
         # Make a temporary dictionary for this period
         temp_dict = {name: solve_dict[name] for name in these_args}
@@ -1266,38 +1259,35 @@ def solve_one_cycle(agent, solution_next):
         # the just-solved solution as being in the future for the
         # purposes of any remaining iteration(s)
 
-        solution_stge = solve_one_period(**temp_dict)  # -> solve_this_stage
-        # # store the parameters
-        # solution_stge.parameters_solver = \
-        #     {k: v for k, v in temp_dict.items() if k not in 'solution_next'}
-        full_cycle.insert(0, solution_stge)
-        solution_next = solution_stge
+        solution_current = solve_one_period(**temp_dict)  # -> solve_this_stage
+        full_cycle.insert(0, solution_current)
+        solution_next = solution_current
 
     # Return the list of per-period/stage solutions
     return full_cycle
 
 
-def get_solve_one_period_args(agent, solve_one_period, stge_which):
-    # Add to dict all the parameters in time_inv and time_vary
-    solve_dict = \
-        {parameter: agent.__dict__[parameter] for parameter in agent.time_inv}
-    solve_dict.update({parameter: None for parameter in agent.time_vary})
+# def get_solve_one_period_args(agent, solve_one_period, stge_which):
+#     # Add to dict all the parameters in time_inv and time_vary
+#     solve_dict = \
+#         {parameter: agent.__dict__[parameter] for parameter in agent.time_inv}
+#     solve_dict.update({parameter: None for parameter in agent.time_vary})
 
-    # The code below allows stage-varying arguments by constructing the
-    # arguments demanded by the given solve_one_period
-    if hasattr(solve_one_period, "solver_args"):
-        these_args = solve_one_period.solver_args
-    else:
-        these_args = get_arg_names(solve_one_period)
+#     # The code below allows stage-varying arguments by constructing the
+#     # arguments demanded by the given solve_one_period
+#     if hasattr(solve_one_period, "solver_args"):
+#         these_args = solve_one_period.solver_args
+#     else:
+#         these_args = get_arg_names(solve_one_period)
 
-    # Update stage-varying single period/stage inputs
-    # This obtains the value for the current step by indexing
-    # into the attribute's list at [num_stges - 1 - stge]
-    for name in agent.time_vary:
-        if name in these_args:
-            solve_dict[name] = agent.__dict__[name][stge_which]
+#     # Update stage-varying single period/stage inputs
+#     # This obtains the value for the current step by indexing
+#     # into the attribute's list at [num_stges - 1 - stge]
+#     for name in agent.time_vary:
+#         if name in these_args:
+#             solve_dict[name] = agent.__dict__[name][stge_which]
 
-    return solve_dict
+#     return solve_dict
 
 
 def make_one_period_oo_solver(solver_class, **kwds):
@@ -1315,23 +1305,24 @@ def make_one_period_oo_solver(solver_class, **kwds):
         A function for solving one period/stage of a problem.
     """
 
-    def one_period_solver(**kwds):  # TODO: rename to, say, one_stage_solver_make
-        # last step in loop over num_stges in solve_one_cycle is:
-        # solve_one_period(**temp_dict) [should become, say, solve_this_stge]
+    def one_period_solver(**kwds):
         solver = solver_class(**kwds)  # defined externally
 
         if hasattr(solver, "prepare_to_solve"):
             # Steps, if any, to prep for sol of stge
             solver.prepare_to_solve()  # TODO: rename to prepare_to_solve_stge
 
-        solution_stge = solver.solve()  # TODO: rename to solve_stge
-        return solution_stge
+        solution_current = solver.solve()  # TODO: rename to solve_stge
+        return solution_current
 
     one_period_solver.solver_class = solver_class
 
     one_period_solver.solver_args = get_arg_names(solver_class.__init__)[1:]
 
-    return one_period_solver  # TODO: rename to this_stge_solver
+    return one_period_solver  # TODO: rename to one_stge_solver someday
+
+
+make_one_stage_oo_solver = make_one_period_oo_solver
 
 
 # ========================================================================
