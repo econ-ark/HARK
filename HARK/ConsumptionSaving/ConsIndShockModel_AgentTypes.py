@@ -15,13 +15,11 @@ from HARK.ConsumptionSaving.ConsIndShockModel_Both \
     import (construct_assets_grid, def_utility_CRRA, def_value_funcs)
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
     import (ConsumerSolutionOneNrmStateCRRA, ConsPerfForesightSolver,
-            ConsIndShockSolverBasic, ConsIndShockSolver
-            )
+            ConsIndShockSolverBasic, ConsIndShockSolver)
 from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
     import (init_perfect_foresight, init_idiosyncratic_shocks)
 
 from HARK.utilities import CRRAutility
-
 from HARK.utilities import uFunc_CRRA_stone_geary as u_stone_geary
 from HARK.utilities import uPFunc_CRRA_stone_geary as uP_stone_geary
 from HARK.utilities import uPPFunc_CRRA_stone_geary as uPP_stone_geary
@@ -291,18 +289,9 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         def cFunc(m): return float('inf')  # With CRRA utility, c=inf gives v=0
         cFunc.derivativeX = lambda m: float('inf')
 
-#        mNrmMin, hNrm, MPCmin, MPCmax = 0.0, -1.0, float('inf'), float('inf')
-
         solution_afterlife_nobequest_ = ConsumerSolutionOneNrmStateCRRA(
             vFunc=vFunc,
-            #            vPfunc=vPfunc,  # TODO: vPfunc deprecated; remove
-            #            vPPfunc=vPPfunc,  # TODO: vPPfunc deprecated: Remove
             cFunc=cFunc,
-            #            mNrmMin=mNrmMin,  # TODO: mNrmMin should be on Bilt; remove
-            #            hNrm=-hNrm,  # TODO: hNrm should be on Bilt; remove
-            #            MPCmin=MPCmin,  # TODO: hNrm should be on Bilt; remove
-            #            MPCmax=MPCmax,  # TODO: hNrm should be on Bilt; remove
-            # TODO: stge_kind should be on Bilt; remove
             stge_kind={
                 'iter_status': 'afterlife',
                 'term_type': 'nobequest'},
@@ -311,8 +300,6 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         Bilt = solution_afterlife_nobequest_.Bilt
         Bilt.cFunc, Bilt.vFunc, Bilt.mNrmMin, Bilt.hNrm, Bilt.MPCmin, Bilt.MPCmax = \
             cFunc, vFunc, 0.0, -1.0, float('inf'), float('inf')
-
-#        mNrmMin, hNrm, MPCmin, MPCmax = 0.0, 0.0, 1.0, 1.0
 
         # This is the solution that would be constructed by applying
         # our normal iteration tools to solution_afterlife_nobequest_
@@ -327,19 +314,12 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         solution_nobequest_ = \
             ConsumerSolutionOneNrmStateCRRA(  # Omit vFunc b/c u not yet def
                 cFunc=cFunc_terminal_nobequest_,
-                #                vFunc=u,
-                #                mNrmMin=mNrmMin,  # TODO: deprecated; remove
-                #                hNrm=hNrm,  # TODO: should be on Bilt; remove
-                #                MPCmin=MPCmin,  # TODO: should be on Bilt; remove
-                #                MPCmax=MPCmin,  # TODO: should be on Bilt; remove
                 stge_kind={
                     'iter_status': 'terminal_partial',  # must be replaced
                     'term_type': 'nobequest'
                 })
 
         Bilt = solution_nobequest_.Bilt
-#        Bilt.cFunc, Bilt.vFunc, Bilt.mNrmMin, Bilt.hNrm, Bilt.MPCmin, Bilt.MPCmax = \
-#            cFunc, vFunc, mNrmMin, hNrm, MPCmin, MPCmax
 
         Bilt.cFunc, Bilt.vFunc, Bilt.mNrmMin, Bilt.hNrm, Bilt.MPCmin, Bilt.MPCmax = \
             cFunc, vFunc, 0.0, 0.0, 1.0, 1.0
@@ -441,9 +421,6 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneNrmStateCRRA):
             u=u_stone_geary, uP=uP_stone_geary, uPP=uPP_stone_geary,
             vFunc=u_stone_geary, vPfunc=uP_stone_geary,
             vPPfunc=uPP_stone_geary,
-            #            mNrmMin=0.0,
-            #            MPCmin=1.0,
-            #            MPCmax=1.0,
             stge_kind={
                 'iter_status': 'afterlife',
                 'term_type': 'bequest_warmglow_homothetic'},
@@ -728,24 +705,6 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
         solution_current = self.solution[0]
         solution_current.check_conditions(messaging_level=logging.INFO, quietly=False)
-#       solution_current.check_conditions(solution_current, verbose)  # real version on soln
-
-    # def dolo_defs(self):  # CDC 20210415: Beginnings of Dolo integration
-    #     self.symbol_calibration = dict(  # not used yet, just created
-    #         states={"mNrm": 2.0,
-    #                 "aNrm": 1.0,
-    #                 "bNrm": 1.0,
-    #                 "pLvl": 1.0,
-    #                 "pLvlAgg": 1.0
-    #                 },
-    #         controls=["cNrm"],
-    #         exogenous=[],
-    #         parameters={"DiscFac": 0.96, "LivPrb": 1.0, "CRRA": 2.0,
-    #                     "Rfree": 1.03, "PermGroFac": 1.0,
-    #                     "BoroCnstArt": None,
-    #                     }
-    #         # Not clear how to specify characteristics of sim starting point
-    #     )  # Things all ConsumerSolutions have in common
 
     def finish_setup_of_default_solution_terminal(self):
         """
@@ -1085,8 +1044,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
                  **kwds):
         params = init_idiosyncratic_shocks.copy()  # Get default params
         params.update(kwds)  # Update/overwrite defaults with user-specified
-#        self.messaging_level = messaging_level
-#        self.quietly = quietly
 
         # Inherit characteristics of a PF model with the same parameters
         PerfForesightConsumerType.__init__(self, cycles=cycles,

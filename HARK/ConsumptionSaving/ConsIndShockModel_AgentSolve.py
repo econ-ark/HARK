@@ -6,14 +6,13 @@ from types import SimpleNamespace
 
 import numpy as np
 from numpy import dot as E_dot  # easier to type
-from numpy.testing import assert_approx_equal as assert_approx_equal
+from numpy.testing import assert_approx_equal
 from scipy.optimize import newton as find_zero_newton
 
 from HARK.ConsumptionSaving.ConsIndShockModelOld \
     import ConsumerSolution as ConsumerSolutionOlder
 from HARK.ConsumptionSaving.ConsIndShockModel_Both import (
-    define_t_reward,
-    def_utility_CRRA, def_value_funcs, def_value_CRRA,
+    define_t_reward, def_utility_CRRA, def_value_funcs, def_value_CRRA,
     define_transition
 )
 from HARK.core import (_log, core_check_condition, MetricObject)
@@ -453,124 +452,6 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         if Bilt.degenerate:
             _log.critical("Under the given parameter values, the model is degenerate.")
 
-#         crnt = self
-
-#         Bilt, Pars = crnt.Bilt, crnt.Pars
-
-#         Bilt.conditions = {}  # Keep track of truth of conditions
-#         Bilt.degenerate = False  # True: solution is degenerate
-
-#         verbose = verbose if verbose is None else verbose
-
-#         if hasattr(self, 'verbose'):  # If not an argument, use default
-#             verbose = self.verbose
-#         if verbose >= 2:
-#             msg = '\nFor a model with the following parameter values:\n'
-# #            msg = msg + '\n' + str(Pars.__dict__) + '\n'
-#             _log.info(msg)
-#             _log.info(str(Pars.__dict__))
-#             # np.set_printoptions(threshold=20)  # Don't print huge output
-#             # for key in Pars.__dict__.keys():
-#             #     print('\t' + key + ': ', end='')
-#             #     pprint(Pars.__dict__[key])
-#             msg = '\nThe following results hold:\n'
-#             _log.info(msg)
-
-#         crnt.check_AIC(crnt, verbose)
-#         crnt.check_FHWC(crnt, verbose)
-#         crnt.check_RIC(crnt, verbose)
-#         crnt.check_GICRaw(crnt, verbose)
-#         crnt.check_GICNrm(crnt, verbose)
-#         crnt.check_GICLiv(crnt, verbose)
-#         crnt.check_FVAC(crnt, verbose)
-
-    # # Passing the crnt object to check_conditions might seem unnecessary,
-    # # since its first argument is self, and during the solution process the
-    # # solver has crnt attached to its self, so its contents could be
-    # # obtained from self.solution_current.  But after the solution is
-    # # completed, the solution that is returned should be a standalone object
-    # # that does not reside on a solver instance. Doing things as below allows
-    # # such a standalone a solution object to check not only its own conditions
-    # # but even to check the conditions of another solution.
-    # def check_conditions_old(self, crnt, verbose=None):
-    #     """
-    #     Check whether the instance's type satisfies a set of conditions.
-
-    #     ================================================================
-    #     Acronym        Condition
-    #     ================================================================
-    #     AIC           Absolute Impatience Condition
-    #     RIC           Return Impatience Condition
-    #     GIC           Growth Impatience Condition
-    #     GICLiv        GIC adjusting for constant probability of mortality
-    #     GICNrm        GIC adjusted for uncertainty in permanent income
-    #     FHWC          Finite Human Wealth Condition
-    #     FVAC          Finite Value of Autarky Condition
-    #     ================================================================
-
-    #     Depending on the configuration of parameter values, some combination of
-    #     these conditions must be satisfied in order for the problem to have
-    #     a nondegenerate crnt. To check which conditions are required,
-    #     in the verbose mode, a reference to the relevant theoretical literature
-    #     is made.
-
-    #     Parameters
-    #     ----------
-    #     verbose : int
-
-    #     Specifies different levels of verbosity of feedback. When False, it
-    #     only reports whether the instance's type fails to satisfy a particular
-    #     condition. When True, it reports all results, i.e.  the factor values
-    #     for all conditions.
-
-    #     crnt : ConsumerSolution
-    #     Solution to the problem described by information
-    #     for the current stage found in Bilt and the succeeding stage.
-
-    #     Returns
-    #     -------
-    #     None
-    #     """
-
-    #     Bilt, Pars = crnt.Bilt, crnt.Pars
-
-    #     Bilt.conditions = {}  # Keep track of truth of conditions
-    #     Bilt.degenerate = False  # True: solution is degenerate
-
-    #     verbose = verbose if verbose is None else verbose
-
-    #     if hasattr(self, 'verbose'):  # If not an argument, use default
-    #         verbose = self.verbose
-
-    #     if verbose >= 2:
-    #         msg = '\nFor a model with the following parameter values:\n'
-    #         msg = msg + '\n' + str(Pars.__dict__) + '\n'
-    #         _log.info(msg)
-    #         _log.info(str(Pars.__dict__))
-    #         np.set_printoptions(threshold=20)  # Don't print huge output
-    #         for key in Pars.__dict__.keys():
-    #             print('\t' + key + ': ', end='')
-    #             pprint(Pars.__dict__[key])
-    #         msg = '\nThe following results hold:\n'
-    #         _log.info(msg)
-
-    #     crnt.check_AIC(crnt, verbose)
-    #     crnt.check_FHWC(crnt, verbose)
-    #     crnt.check_RIC(crnt, verbose)
-    #     crnt.check_GICRaw(crnt, verbose)
-    #     crnt.check_GICNrm(crnt, verbose)
-    #     crnt.check_GICLiv(crnt, verbose)
-    #     crnt.check_FVAC(crnt, verbose)
-
-    #     # degenerate flag is True if the model has no nondegenerate solution
-    #     if hasattr(Bilt, "BoroCnstArt") \
-    #             and Pars.BoroCnstArt is not None:
-    #         Bilt.degenerate = not Bilt.RIC
-    #         # If BoroCnstArt exists but RIC fails, limiting soln is c(m)=0
-    #     else:  # No BoroCnst; not degenerate if neither c(m)=0 or \infty
-    #         Bilt.degenerate = \
-    #             not Bilt.RIC or not Bilt.FHWC
-
     def check_AIC(self, soln, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Absolute Impatience Condition."""
         name = "AIC"
@@ -609,7 +490,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
             False: "\n    Therefore, a nondegenerate solution exits if the RIC holds, but will not exist if the RIC fails unless the FHWC also fails.\n",
         }
 
-        # Bad enough to report as a warning
+        # This is bad enough to report as a warning
         if messaging_level == logging.WARNING and quietly is False \
            and soln.Bilt.FVAF > 1:
             _log.warning(messages['False']+verbose_messages['False'])
@@ -863,7 +744,8 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
     # model (including tests of convergence conditions, which can be invoked
     # manually if a user wants them).
     def __init__(
-            self, solution_next,  # Successor solution is mandatory first arg
+            self,
+            solution_next,  # mandatory first arg, hardcoded in core.py
             DiscFac=0.96, LivPrb=1.0, CRRA=2.0, Rfree=1.0,
             PermGroFac=1.0, BoroCnstArt=None, MaxKinks=None,
             # Solver has extra parameters that solution does not
@@ -873,7 +755,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             horizon='infinite',
             **kwds):
 
-        folw = self.solution_follows = solution_next
+        folw = self.solution_follows = solution_next  # abbreviation
 
         # Do NOT __init__ as a ConsumerSolutionOneNrmStateCRRA object
         # even though that is the parent class
@@ -1514,9 +1396,6 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         py___code = '1.0'
         E_Next_.IncNrmNxt = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        #        E_Next_.IncNrmNxt_fcts.update({'latexexpr': r'ExIncNrmNxt'})
-        #        E_Next_.IncNrmNxt_fcts.update({'_unicode_': r'R/Γ'})
-        #        E_Next_.IncNrmNxt_fcts.update({'urlhandle': urlroot+'ExIncNrmNxt'})
         E_Next_.IncNrmNxt_fcts.update({'py___code': py___code})
         E_Next_.IncNrmNxt_fcts.update({'value_now': E_Next_.IncNrmNxt})
         crnt.E_Next_.IncNrmNxt_fcts = E_Next_.IncNrmNxt_fcts
@@ -1722,11 +1601,9 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             define_transition(crnt, 'chosen_to_next_choice')
             define_transition(crnt, 'choice_to_chosen')
             crnt.cFunc = crnt.Bilt.cFunc  # make cFunc accessible
-            crnt = self.def_value()  # make value functions using cFunc
-            crnt.vFunc = crnt.Bilt.vFunc  # make vFunc accessible for distance
+            crnt = def_value_CRRA(crnt, crnt.Pars.CRRA)  # make v using cFunc
             self.build_facts_infhor()
             crnt.Bilt.stge_kind['iter_status'] = 'iterator'  # now it's legit
-
             return True  # if pseudo_terminal=True, enhanced replaces original
 
     def solve_prepared_stage(self):  # inside ConsPerfForesightSolver
