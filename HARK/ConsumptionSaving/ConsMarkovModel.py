@@ -4,9 +4,6 @@ stochastic Markov state.  The only solver here extends ConsIndShockModel to
 include a Markov state; the interest factor, permanent growth factor, and income
 distribution can vary with the discrete state.
 """
-from __future__ import division, print_function
-from __future__ import absolute_import
-from builtins import range
 from copy import deepcopy
 import numpy as np
 from HARK import AgentType
@@ -846,8 +843,8 @@ class MarkovConsumerType(IndShockConsumerType):
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Mrkv"]
     state_vars = IndShockConsumerType.state_vars + ["Mrkv"]
 
-    def __init__(self, cycles=1, **kwds):
-        IndShockConsumerType.__init__(self, cycles=1, **kwds)
+    def __init__(self, **kwds):
+        IndShockConsumerType.__init__(self, **kwds)
         self.solve_one_period = _solve_ConsMarkov
 
         if not hasattr(self, "global_markov"):

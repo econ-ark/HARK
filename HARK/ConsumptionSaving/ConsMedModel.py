@@ -1,10 +1,6 @@
 """
 Consumption-saving models that also include medical spending.
 """
-from __future__ import division, print_function
-from __future__ import absolute_import
-from builtins import str
-from builtins import range
 import numpy as np
 from scipy.optimize import brentq
 from HARK import  AgentType, MetricObject, make_one_period_oo_solver
@@ -575,11 +571,11 @@ class MedShockConsumerType(PersistentShockConsumerType):
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShk"]
     state_vars = PersistentShockConsumerType.state_vars + ['mLvl']
 
-    def __init__(self, cycles=0, **kwds):
+    def __init__(self, **kwds):
         params = init_medical_shocks.copy()
         params.update(kwds)
 
-        PersistentShockConsumerType.__init__(self, cycles=cycles, **params)
+        PersistentShockConsumerType.__init__(self, **params)
         self.solve_one_period = make_one_period_oo_solver(ConsMedShockSolver)
         self.add_to_time_inv("CRRAmed")
         self.add_to_time_vary("MedPrice")

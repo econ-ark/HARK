@@ -4,10 +4,6 @@ in which shocks are not necessarily fully transitory or fully permanent.  Extend
 ConsIndShockModel by explicitly tracking persistent income as a state variable,
 and allows (log) persistent income to follow an AR1 process rather than random walk.
 """
-from __future__ import division, print_function
-from __future__ import absolute_import
-from builtins import str
-from builtins import range
 from copy import deepcopy
 import numpy as np
 from HARK import AgentType, MetricObject, make_one_period_oo_solver
@@ -905,12 +901,12 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
     state_vars = ['pLvl',"mLvl",'aLvl']
 
-    def __init__(self, cycles=0, **kwds):
+    def __init__(self, **kwds):
         params = init_explicit_perm_inc.copy()
         params.update(kwds)
 
         # Initialize a basic ConsumerType
-        IndShockConsumerType.__init__(self, cycles=cycles, **params)
+        IndShockConsumerType.__init__(self, **params)
         self.solve_one_period = make_one_period_oo_solver(ConsGenIncProcessSolver)
 
         # a poststate?

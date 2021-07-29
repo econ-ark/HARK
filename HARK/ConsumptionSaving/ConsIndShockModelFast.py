@@ -134,7 +134,7 @@ class IndShockSolution(MetricObject):
     cNrm : np.array
         (Normalized) consumption points for interpolation.
     vFuncNvrsSlope: float
-        Constant slope of inverse value vFuncNvrs
+        Constant slope of inverse value ``vFuncNvrs``
     mNrmMin : float
         The minimum allowable market resources for this period; the consump-
         tion function (etc) are undefined for m < mNrmMin.
@@ -202,7 +202,9 @@ def _find_mNrmStE(m, Rfree, PermGroFac, mNrm, cNrm, Ex_IncNext):
 
 # @njit(cache=True) can't cache because of use of globals, perhaps newton_secant?
 @njit
-def _add_mNrmStENumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, Ex_IncNext, _find_mNrmStE):
+def _add_mNrmStENumba(
+    Rfree, PermGroFac, mNrm, cNrm, mNrmMin, Ex_IncNext, _find_mNrmStE
+):
     """
     Finds steady state (normalized) market resources and adds it to the
     solution.  This is the level of market resources such that the expectation
@@ -859,7 +861,16 @@ def _add_vFuncNumba(
 
 @njit
 def _add_mNrmStEIndNumba(
-    PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm, _searchfunc,
+    PermGroFac,
+    Rfree,
+    Ex_IncNext,
+    mNrmMin,
+    mNrm,
+    cNrm,
+    MPC,
+    MPCmin,
+    hNrm,
+    _searchfunc,
 ):
     """
     Finds steady state (normalized) market resources and adds it to the

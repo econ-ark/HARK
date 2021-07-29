@@ -20,9 +20,6 @@ bounds are exceeded.
 Despite the non-standard solution method, the iterative process can be embedded
 in the HARK framework, as shown below.
 """
-from __future__ import division, print_function
-from __future__ import absolute_import
-from builtins import str
 import numpy as np
 
 # Import the HARK library.
@@ -154,7 +151,7 @@ def find_next_point(
     MPCnow : float
         Marginal propensity to consume this period.
     """
-    def uPP(x): return utilityPP(x, gam=CRRA)
+    uPP = lambda x: utilityPP(x, gam=CRRA)
     cNow = (
         PermGroFacCmp
         * (DiscFac * Rfree) ** (-1.0 / CRRA)
@@ -300,17 +297,16 @@ class TractableConsumerType(AgentType):
     """
     Parameters
     ----------
-    cycles : int
-        Number of times the sequence of periods should be solved.
+    Same as AgentType
     """
 
     state_vars = ['bLvl', 'mLvl', 'aLvl']
 
-    def __init__(self, cycles=0, **kwds):
+    def __init__(self, **kwds):
         params = init_tractable.copy()
         params.update(kwds)
         # Initialize a basic AgentType
-        AgentType.__init__(self, cycles=cycles, pseudo_terminal=True, **params)
+        AgentType.__init__(self, pseudo_terminal=True, **params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = []
@@ -346,9 +342,9 @@ class TractableConsumerType(AgentType):
         none
         """
         # Define utility functions
-        def uPP(x): return utilityPP(x, gam=self.CRRA)
-        def uPPP(x): return utilityPPP(x, gam=self.CRRA)
-        def uPPPP(x): return utilityPPPP(x, gam=self.CRRA)
+        uPP = lambda x: utilityPP(x, gam=self.CRRA)
+        uPPP = lambda x: utilityPPP(x, gam=self.CRRA)
+        uPPPP = lambda x: utilityPPPP(x, gam=self.CRRA)
 
         # Define some useful constants from model primitives
         self.PermGroFacCmp = self.PermGroFac / (
@@ -390,7 +386,7 @@ class TractableConsumerType(AgentType):
         self.SSperturbance = self.mTarg * 0.1
 
         # Find the MPC, MMPC, and MMMPC at the target
-        def mpcTargFixedPointFunc(k): return k * uPP(self.cTarg) - self.Beth * (
+        mpcTargFixedPointFunc = lambda k: k * uPP(self.cTarg) - self.Beth * (
             (1.0 - self.UnempPrb) * (1.0 - k) * k * self.Rnrm * uPP(self.cTarg)
             + self.PFMPC * self.UnempPrb * (1.0 - k) * self.Rnrm * uPP(cTargU)
         )
@@ -482,7 +478,7 @@ class TractableConsumerType(AgentType):
             * (self.PFMPC * self.Rnrm * ((1.0 - k) / k)) ** (-self.CRRA - 1.0)
             * self.PFMPC
         )
-        def mpcAtZeroFixedPointFunc(k): return k - f_temp(k) / (1 + f_temp(k))
+        mpcAtZeroFixedPointFunc = lambda k: k - f_temp(k) / (1 + f_temp(k))
         # self.MPCmax = newton(mpcAtZeroFixedPointFunc,0.5)
         self.MPCmax = brentq(
             mpcAtZeroFixedPointFunc, self.PFMPC, 0.99, xtol=0.00000001, rtol=0.00000001
@@ -589,7 +585,7 @@ class TractableConsumerType(AgentType):
             sigma=self.aLvlInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1),
         ).draw(N)
-        self.shocks["eStateNow"] = np.zeros(self.AgentCount)  # Initialize shock array
+        self.shocks["eStateNow"] = np.zeros(self.AgentCount) # Initialize shock array
         self.shocks["eStateNow"][which_agents] = 1.0  # Agents are born employed
         self.t_age[which_agents] = 0  # How many periods since each agent was born
         self.t_cycle[

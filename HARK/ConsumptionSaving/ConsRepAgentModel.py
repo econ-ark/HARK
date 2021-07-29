@@ -4,10 +4,6 @@ This stands in contrast to all other model modules in HARK, which (unsurprisingl
 take a heterogeneous agents approach.  In RA models, all attributes are either
 time invariant or exist on a short cycle; models must be infinite horizon.
 """
-from __future__ import division, print_function
-from __future__ import absolute_import
-from builtins import str
-from builtins import range
 import numpy as np
 from HARK.interpolation import LinearInterp, MargValueFuncCRRA
 from HARK.distribution import (MarkovProcess, Uniform)
@@ -232,8 +228,6 @@ class RepAgentConsumerType(IndShockConsumerType):
 
     Parameters
     ----------
-    cycles : int
-        Number of times the sequence of periods should be solved.
 
     """
 
@@ -243,7 +237,7 @@ class RepAgentConsumerType(IndShockConsumerType):
         params = init_rep_agent.copy()
         params.update(kwds)
 
-        IndShockConsumerType.__init__(self, cycles=0, **params)
+        IndShockConsumerType.__init__(self, **params)
         self.AgentCount = 1  # Hardcoded, because this is rep agent
         self.solve_one_period = solve_ConsRepAgent
         self.del_from_time_inv("Rfree", "BoroCnstArt", "vFuncBool", "CubicBool")
