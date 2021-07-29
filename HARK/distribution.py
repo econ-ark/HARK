@@ -4,6 +4,7 @@ import math
 import numpy as np
 from scipy.special import erf, erfc
 import scipy.stats as stats
+from types import SimpleNamespace
 
 
 class Distribution:
@@ -725,7 +726,7 @@ class Bernoulli(Distribution):
         return draws[0] if len(draws) == 1 else draws
 
 
-class DiscreteDistribution(Distribution):
+class DiscreteDistributionOld(Distribution):
     """
     A representation of a discrete probability distribution.
 
@@ -836,6 +837,36 @@ class DiscreteDistribution(Distribution):
             draws = np.asarray(X)[indices]
 
         return draws
+
+# CDC 20210621: We should not use pmf for the point masses of the realizations, because it
+# is not a probability mass 'function.' Scipy.discrete_rv, sympy, and Mathematica all
+# return pmf (or pdf) as a function. They have different syntaxes for retrieving the
+# vector of point masses; here it is called the pmv (probability mass vector)
+
+
+class DiscreteDistribution(DiscreteDistributionOld):
+    __doc__ = DiscreteDistributionOld.__doc__
+    __doc__ += """
+        XYZ : np.array
+            Restructure the dimensions of the np.array so that successive
+            columns in XYZ correspond to the vectors of values of each
+            discrete random variables across the broadcasted combinations.
+            Thus, [instance].XYZ[0] will return the vector of discrete
+            realizations of the first variable, [instance].XYZ[-1] will
+            get the last RV, etc.
+        pmv : The vector of point masses of the broadcasted collection
+            of random variables
+"""
+
+    def __init__(self, pmf, X, seed=0):  # Get the old definition
+        super().__init__(pmf, X, seed)  # execute the old def
+        XYZ = np.column_stack(X)  # stack actually unstacks them
+        if self.dim() == 1:  # numpy 1 dimensional arrays want to be
+            XYZ = XYZ.T  # the wrong shape
+        self.XYZ = XYZ  # [ N dimensional matrix ]
+        # The pmf should be a function, not a vector (as now)
+        # TODO: Replace invocations of pmf with pmv
+        self.pmv = pmf
 
 
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
@@ -1006,7 +1037,7 @@ def make_markov_approx_to_normal_by_monte_carlo(x_grid, mu, sigma, N_draws=10000
     return p_vec
 
 
-def make_tauchen_ar1(N, sigma=1.0, rho=0.9, bound=3.0):
+def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0):
     """
     Function to return a discretized version of an AR1 process.
     See http://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
@@ -1017,7 +1048,7 @@ def make_tauchen_ar1(N, sigma=1.0, rho=0.9, bound=3.0):
         Size of discretized grid
     sigma: float
         Standard deviation of the error term
-    rho: float
+    ar_1: float
         AR1 coefficient
     bound: float
         The highest (lowest) grid point will be bound (-bound) multiplied by the unconditional
@@ -1030,7 +1061,7 @@ def make_tauchen_ar1(N, sigma=1.0, rho=0.9, bound=3.0):
     trans_matrix: np.array
         Markov transition array for the discretized process
     """
-    yN = bound * sigma / ((1 - rho ** 2) ** 0.5)
+    yN = bound * sigma / ((1 - ar_1 ** 2) ** 0.5)
     y = np.linspace(-yN, yN, N)
     d = y[1] - y[0]
     trans_matrix = np.ones((N, N))
@@ -1038,11 +1069,11 @@ def make_tauchen_ar1(N, sigma=1.0, rho=0.9, bound=3.0):
         for k_1 in range(N - 2):
             k = k_1 + 1
             trans_matrix[j, k] = stats.norm.cdf(
-                (y[k] + d / 2.0 - rho * y[j]) / sigma
-            ) - stats.norm.cdf((y[k] - d / 2.0 - rho * y[j]) / sigma)
-        trans_matrix[j, 0] = stats.norm.cdf((y[0] + d / 2.0 - rho * y[j]) / sigma)
+                (y[k] + d / 2.0 - ar_1 * y[j]) / sigma
+            ) - stats.norm.cdf((y[k] - d / 2.0 - ar_1 * y[j]) / sigma)
+        trans_matrix[j, 0] = stats.norm.cdf((y[0] + d / 2.0 - ar_1 * y[j]) / sigma)
         trans_matrix[j, N - 1] = 1.0 - stats.norm.cdf(
-            (y[N - 1] - d / 2.0 - rho * y[j]) / sigma
+            (y[N - 1] - d / 2.0 - ar_1 * y[j]) / sigma
         )
 
     return y, trans_matrix
@@ -1164,7 +1195,7 @@ def combine_indep_dstns(*distributions, seed=0):
         )
 
         # The tiling we want to do
-        dist_tiles = dist_lengths[:dd] + (1,) + dist_lengths[dd + 1 :]
+        dist_tiles = dist_lengths[:dd] + (1,) + dist_lengths[dd + 1:]
 
         # Now we are ready to tile.
         # We don't use the np.meshgrid commands, because they do not
@@ -1196,9 +1227,27 @@ def combine_indep_dstns(*distributions, seed=0):
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
     return DiscreteDistribution(P_out, X_out, seed=seed)
 
-def calc_expectation(dstn,func=lambda x : x,*args):
+
+# # 20210619: CDC: This method for taking expectations is designed for efficiency but is
+# # not at all intuitive for the user because it works only with functions that take as
+
+# handcrafted specialized functions that know that their positional first argument must be
+# a matrix whose structure matches the structure of the discrete income distribution provided
+# as the first argument. For example, if the 2D distribution is of transitory and permanent
+# shocks, the function must take as an input a matrix which is assumed to have a structure
+# that exactly mirrors the internal structure of the arrangement of broadcasted transitory
+# and permanent shocks inside the dstn object, and knows(for example) that the value of the permanent shock can be how to extract
+
+# hard to understand because it requires the user to
+# # provide an array of values of its inputs but then assumes it already knows what those
+# # inputs are. This makes little sense. If it is going to assume it knows what the inputs
+
+
+def calc_expectation(dstn, func=lambda x: x, *args):
     '''
-    Calculate the expectation of a stochastic function at an array of values.
+    Expectation of a function, given an array of configurations of its inputs
+    along with a DiscreteDistribution object that specifies the probability
+    of each configuration.
 
     Parameters
     ----------
@@ -1248,6 +1297,16 @@ def calc_expectation(dstn,func=lambda x : x,*args):
         f_exp = f_exp.flatten()
 
     return f_exp
+
+# "calc_expectation" is not a good name for something that
+# requires an array as an argument, returns an array, and
+# expects a peculiarly shaped distribution object as its first
+# argument.
+# TODO: 20210618: we REALLY need to improve our tools for calculating
+# expectations, both to make them better documented and more flexible.
+
+
+calc_expectation_of_array = calc_expectation
 
 
 class MarkovProcess(Distribution):
