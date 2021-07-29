@@ -1247,15 +1247,14 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
 
     Parameters
     ----------
-    cycles : int
-        Number of times the sequence of periods should be solved.
+
     """
 
-    def __init__(self, cycles=0, **kwds):
+    def __init__(self, **kwds):
         params = init_persistent_shocks.copy()
         params.update(kwds)
 
-        GenIncProcessConsumerType.__init__(self, cycles=cycles, **params)
+        GenIncProcessConsumerType.__init__(self, **params)
 
     def update_pLvlNextFunc(self):
         """

@@ -6,11 +6,11 @@ of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
-
-
 import sys
-from copy import copy, deepcopy
+import os
+from distutils.dir_util import copy_tree
 from .utilities import get_arg_names, NullFunc
+from copy import copy, deepcopy
 import numpy as np
 from time import time
 from .parallel import multi_thread_commands, multi_thread_commands_fake
@@ -145,7 +145,7 @@ def distance_metric(thing_a, thing_b):
             warn(
                 'Objects of different lengths are being compared. ' +
                 'Returning difference in lengths.'
-            )
+                )
             distance = float(abs(len_a - len_b))
     # If both inputs are dictionaries, call distance on the list of its elements
     elif type_a is dict and type_b is dict:

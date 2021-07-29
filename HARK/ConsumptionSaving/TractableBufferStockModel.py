@@ -683,6 +683,7 @@ class TractableConsumerType(AgentType):
 
 
 init_tractable = {
+    "cycles" : 0, # infinite horizon
     "UnempPrb": 0.00625,  # Probability of becoming unemployed
     "DiscFac": 0.975,  # Intertemporal discount factor
     "Rfree": 1.01,  # Risk-free interest factor on assets

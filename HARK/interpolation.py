@@ -6,9 +6,6 @@ another instance; this is used in HARK.core's solve() method to check for soluti
 convergence.  The interpolator classes currently in this module inherit their
 distance method from MetricObject.
 """
-from __future__ import division, print_function
-from __future__ import absolute_import
-from builtins import range
 import numpy as np
 from .core import MetricObject
 from copy import deepcopy
@@ -4213,6 +4210,45 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         dfdy = y_alpha * dfda + y_beta * dfdb
         return dfdy
 
+
+class DiscreteInterp(MetricObject):
+    """
+    An interpolator for variables that can only take a discrete set of values.
+
+    If the function we wish to interpolate, f(args) can take on the list of
+    values discrete_vals, this class expects an interpolator for the index of
+    f's value in discrete_vals.
+    E.g., if f(a,b,c) = discrete_vals[5], then index_interp(a,b,c) = 5.
+
+    Parameters
+    ----------
+    index_interp: HARKInterpolator
+        An interpolator giving an approximation to the index of the value in
+        discrete_vals that corresponds to a given set of arguments.
+    discrete_vals: numpy.array
+        A 1D array containing the values in the range of the discrete function
+        to be interpolated.
+    """
+    distance_criteria = ["index_interp"]
+
+    def __init__(self, index_interp, discrete_vals):
+
+        self.index_interp = index_interp
+        self.discrete_vals = discrete_vals
+        self.n_vals = len(self.discrete_vals)
+
+    def __call__(self, *args):
+
+        # Interpolate indices and round to integers
+        inds = np.rint(self.index_interp(*args)).astype(int)
+        if type(inds) is not np.ndarray:
+            inds = np.array(inds)
+        # Deal with out-of range indices
+        inds[inds < 0] = 0
+        inds[inds >= self.n_vals] = self.n_vals - 1
+
+        # Get values from grid
+        return self.discrete_vals[inds]
 
 ###############################################################################
 ## Functions used in discrete choice models with T1EV taste shocks ############
