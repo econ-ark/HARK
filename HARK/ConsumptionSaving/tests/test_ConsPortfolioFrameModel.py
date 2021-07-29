@@ -48,7 +48,6 @@ class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
             'Share',
             'aNrm',
             'Risky',
-            'Rport',
             'Adjust',
             'PermShk',
             'bNrm'

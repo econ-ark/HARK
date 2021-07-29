@@ -879,7 +879,7 @@ class Frame():
         """
         """
 
-        self.target = target # tuple of variables
+        self.target = target if isinstance(target, tuple) else (target,) # tuple of variables
         self.scope = scope # tuple of variables
         self.default = default # default value used in simBirth; a dict
         self.transition = transition # for use in simulation
@@ -916,6 +916,17 @@ class FrameAgentType(AgentType):
         )
     ]
 
+    def initialize_sim(self):
+        for shock in self.shocks:
+            # TODO: What about aggregate shocks?
+            self.shocks[shock] = np.empty(self.AgentCount)
+
+        for control in self.controls:
+            self.controls[control] = np.empty(self.AgentCount)
+
+        for state in self.state_now:
+            self.state_now[state] = np.empty(self.AgentCount)
+        super().initialize_sim()
 
     def sim_one_period(self):
         """
@@ -1005,15 +1016,6 @@ class FrameAgentType(AgentType):
             which_agents
         ] = 0  # Which period of the cycle each agent is currently in
 
-    def transition_frame(self, target, transition):
-        """
-        Updates the model variables in `target`
-        using the `transition` function.
-
-        The transition function will use current model
-        variable state as arguments.
-        """
-
         ## simplest version of this.
     def transition_frame(self, frame):
         """
@@ -1022,13 +1024,13 @@ class FrameAgentType(AgentType):
         The transition function will use current model
         variable state as arguments.
         """
-
         # build a context object based on model state variables
         # and 'self' reference for 'global' variables
-        context = {'self' : self}
+        context = {} # 'self' : self}
         context.update(self.shocks)
         context.update(self.controls)
         context.update(self.state_now)
+        context.update(self.parameters)
 
         # a method for indicating that a 'previous' version
         # of a variable is intended.
@@ -1059,6 +1061,7 @@ class FrameAgentType(AgentType):
                 new_values = frame.transition.draw(self.t_cycle)
             else: # transition is function of state variables not an exogenous shock
                 new_values = frame.transition(
+                    self,
                     **local_context
                 )
         else:
@@ -1067,7 +1070,11 @@ class FrameAgentType(AgentType):
         # because the context was a shallow update,
         # the model values can be modified directly(?)
         for i,t in enumerate(frame.target):
-            context[frame.target[i]] = new_values[i]
+            if t in context:
+                context[t] = new_values[i]
+            else:
+                import pdb; pdb.set_trace()
+                raise Exception(f"From frame {frame.target}, target {t} is not in the context object.")
 
 
 

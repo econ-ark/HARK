@@ -65,6 +65,31 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         'PlvlAgg' : 1.0
     }
 
+    def __init__(self, **kwds):
+        params = init_portfolio.copy()
+        params.update(kwds)
+        kwds = params
+
+        # Initialize a basic consumer type
+        PortfolioConsumerType.__init__(
+            self, **kwds
+        )
+
+        # Set the solver for the portfolio model, and update various constructed attributes
+        self.solve_one_period = solveConsPortfolio
+        self.update()
+
+        ## TODO: Should be defined in the configuration.
+        self.shocks = {'Adjust' : None, 'PermShk' : None, 'Risky': None, 'TranShk' : None}
+        self.controls = {'cNrm' : None, 'Share' : None}
+        self.state_now = {
+            'aLvl' : None,
+            'aNrm' : None,
+            'bNrm' : None,
+            'mNrm' : None,
+            'pLvl' : None
+            }
+
     # TODO: streamline this so it can draw the parameters from context
     def birth_aNrmNow(self, N):
         """
@@ -92,22 +117,22 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         ).draw(N)
 
 
-    def transition(pLvl, aNrm, Rfree, PlvlAgg, PermShk, TranShk):
-        pLvlPrev = pLvl
-        aNrmPrev = aNrm
+    def transition(self, **context):
+        pLvlPrev = context['pLvl']
+        aNrmPrev = context['aNrm']
 
         # This should be computed separately in its own transition
-        RfreeNow = self.Rboro * np.ones(self.AgentCount)
-        RfreeNow[self.state_prev['aNrm'] > 0] = self.Rsave
+        # Using IndShock get_Rfree instead of generic.
+        RfreeNow = self.Rfree * np.ones(self.AgentCount)
 
         # Calculate new states: normalized market resources and permanent income level
-        pLvlNow = pLvlPrev * PermShk  # Updated permanent income level
+        pLvlNow = pLvlPrev * context['PermShk']  # Updated permanent income level
         # Updated aggregate permanent productivity level
-        PlvlAggNow = PlvlAgg * self.PermShkAggNow
+        PlvlAggNow = context['PlvlAgg'] * self.PermShkAggNow
         # "Effective" interest factor on normalized assets
-        ReffNow = RfreeNow / PermShk
+        ReffNow = RfreeNow / context['PermShk']
         bNrmNow = ReffNow * aNrmPrev         # Bank balances before labor income
-        mNrmNow = bNrmNow + TranShk  # Market resources after income
+        mNrmNow = bNrmNow + context['TranShk']  # Market resources after income
 
         return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow
 
@@ -122,14 +147,14 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             these = t == self.t_cycle
 
             # Get controls for agents who *can* adjust their portfolio share
-            those = np.logical_and(these, self.shocks['Adjust'])
+            those = np.logical_and(these, context['Adjust'])
 
-            ShareNow[those] = self.solution[t].ShareFuncAdj(self.state_now['mNrm'][those])
+            ShareNow[those] = self.solution[t].ShareFuncAdj(context['mNrm'][those])
 
             # Get Controls for agents who *can't* adjust their portfolio share
             those = np.logical_and(
                 these,
-                np.logical_not(self.shocks['Adjust']))
+                np.logical_not(context['Adjust']))
             ShareNow[those] = self.solution[t].ShareFuncFxd(
                 context['mNrm'][those], ShareNow[those]
             )
@@ -143,7 +168,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         Transition method for cNrmNow.
         """
         cNrmNow = np.zeros(self.AgentCount) + np.nan
-        ShareNow = self.controls["Share"]
+        ShareNow = context["Share"]
 
         # Loop over each period of the cycle, getting controls separately depending on "age"
         for t in range(self.T_cycle):
@@ -167,11 +192,34 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         
         return cNrmNow
 
+    def transition_poststates(self, **context):
+        """
+        Calculates end-of-period assets for each consumer of this type.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        # should this be "Now", or "Prev"?!?
+        self.state_now['aNrm'] = context['mNrm'] - context['cNrm']
+        # Useful in some cases to precalculate asset level
+        self.state_now['aLvl'] = context['aNrm'] * context['pLvl']
+
+        # moves now to prev
+        super().get_poststates()
+
+        return (self.state_now['aNrm'], self.state_now['aLvl'])
+
     # maybe replace reference to init_portfolio to self.parameters?
     frames = [
         ## TODO: Income shocks
         Frame(
             ('PermShk'), None,
+            default = {'PermShk' : 1.0},
             # this is discretized before it's sampled
             transition = IndexDistribution(
                     MeanOneLogNormal,
@@ -180,14 +228,15 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                     }
                 ).approx(
                     init_portfolio['PermShkCount'], tail_N=0
-                )
+                ),
         ),
         Frame(
             ('TranShk'), None,
+            default = {'TranShk' : 1.0},
             transition = IndexDistribution(
                 # Need to discretize this "first" to add unemployed in
-                lambda sigma : add_discrete_outcome_constant_mean(
-                    MeanOneLogNormal(sigma = sigma).approx(
+                lambda sigma, seed : add_discrete_outcome_constant_mean(
+                    MeanOneLogNormal(sigma = sigma, seed = seed).approx(
                         init_portfolio['TranShkCount'], tail_N=0
                     ),
                     p = init_portfolio['UnempPrb'], x = init_portfolio['IncUnemp']
@@ -195,9 +244,9 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                 {
                     'sigma' : init_portfolio['PermShkStd']
                 }
-            )
+            ),
         ),
-        Frame(
+        Frame( ## TODO: Handle Risky as an Aggregate value
             ('Risky'),None, 
             transition = IndexDistribution(
                 Lognormal.from_mean_std,
@@ -222,20 +271,20 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             ('pLvl', 'PlvlAgg', 'bNrm', 'mNrm'),
             ('pLvl', 'aNrm', 'Rfree', 'PlvlAgg', 'PermShk', 'TranShk'),
             default = {'pLvl' : birth_pLvlNow},
-            transition = IndShockConsumerType.transition
+            transition = transition
         ),
         Frame(
-            ('Share'), None,
+            ('Share'), ('Adjust', 'mNrm'),
             default = {'Share' : 0}, 
             transition = transition_ShareNow
         ),
         Frame(
-            ('cNrm'), None, 
+            ('cNrm'), ('Adjust','mNrm','Share'), 
             transition = transition_cNrmNow
         ),
         Frame(
-            ('aNrm', 'aLvl'), None,
+            ('aNrm', 'aLvl'), ('aNrm', 'cNrm', 'mNrm', 'pLvl'),
             default = {'aNrm' : birth_aNrmNow}, 
-            transition = PortfolioConsumerType.get_poststates
+            transition = transition_poststates
         )
     ]
