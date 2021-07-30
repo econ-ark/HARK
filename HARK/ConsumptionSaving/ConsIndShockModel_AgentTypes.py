@@ -206,6 +206,8 @@ class AgentTypePlus(AgentType):
     # programmatially to enhance it
     def finish_setup_of_default_solution_terminal(self):
         """
+        Add to terminal solution info specific to this agent type.
+
         Add to `solution_terminal` characteristics of the agent required
         for solution of the particular type which are not automatically
         created as part of the definition of the generic `solution_terminal.`
@@ -213,6 +215,7 @@ class AgentTypePlus(AgentType):
         pass
 
     def agent_post_post_solve(self):
+        """Do anything specific to this AgentType required after solution."""
         # overwrite this with anything required to be customized for post_solve
         # of a particular agent type.
         # For example, computing stable points for inf hor buffer stock
@@ -243,6 +246,8 @@ class AgentTypePlus(AgentType):
 
 class consumer_terminal_nobequest_onestate(AgentTypePlus):
     """
+    Define one-state no-bequest terminal consumption function.
+
     Minimal requirements for a consumer with one state variable, m:
         * m combines assets from prior history with current income
         * it is referred to as `market resources` throughout the docs
@@ -283,7 +288,9 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
 
         # no value in afterlife:
         def vFunc(m): return 0.
-        vFunc.dm = vPfunc = vFunc
+        # TODO: Globally (throughout codebase) replace vPfunc  with vFunc.dm
+        # TODO: Globally (throughout codebase) replace vPPfunc with vFunc.dm.dm
+        vFunc.dm = vPfunc = vFunc 
         vFunc.dm.dm = vPPfunc = vFunc
 
         def cFunc(m): return float('inf')  # With CRRA utility, c=inf gives v=0
@@ -298,13 +305,15 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
             completed_cycles=-1
         )
         Bilt = solution_afterlife_nobequest_.Bilt
-        Bilt.cFunc, Bilt.vFunc, Bilt.mNrmMin, Bilt.hNrm, Bilt.MPCmin, Bilt.MPCmax = \
-            cFunc, vFunc, 0.0, -1.0, float('inf'), float('inf')
+        Bilt.cFunc, Bilt.vFunc, Bilt.mNrmMin, Bilt.hNrm, Bilt.MPCmin,\
+            Bilt.MPCmax = cFunc, vFunc, 0.0, -1.0, float('inf'), float('inf')
 
         # This is the solution that would be constructed by applying
         # our normal iteration tools to solution_afterlife_nobequest_
 
-        cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0, 2.0], [0.0, 1.0, 2.0], [0.0, 1.0, 2.0])
+        cFunc_terminal_nobequest_ = LinearInterp([0.0, 1.0, 2.0],
+                                                 [0.0, 1.0, 2.0],
+                                                 [0.0, 1.0, 2.0])
 
         cFunc = cFunc_terminal_nobequest_
 
@@ -321,8 +330,9 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
 
         Bilt = solution_nobequest_.Bilt
 
-        Bilt.cFunc, Bilt.vFunc, Bilt.mNrmMin, Bilt.hNrm, Bilt.MPCmin, Bilt.MPCmax = \
-            cFunc, vFunc, 0.0, 0.0, 1.0, 1.0
+        Bilt.cFunc, Bilt.vFunc, Bilt.mNrmMin, Bilt.hNrm, Bilt.MPCmin,\
+            Bilt.MPCmax = cFunc, vFunc, 0.0, 0.0, 1.0, 1.0
+
         solution_nobequest_.solution_next = solution_afterlife_nobequest_
         # solution_terminal_ is defined for legacy/compatability reasons
         # Otherwise would be better to just explicitly use solution_nobequest_
@@ -378,7 +388,8 @@ class onestate_bequest_warmglow_homothetic(ConsumerSolutionOneNrmStateCRRA):
 
         ConsumerSolutionOneNrmStateCRRA.__init__(self,
                                                  cycles=cycles,
-                                                 pseudo_terminal=False, CRRA=CRRA,
+                                                 pseudo_terminal=False,
+                                                 CRRA=CRRA,
                                                  **kwds)
 
         Bilt = self.Bilt  # alias
@@ -488,7 +499,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     shock_vars_ = []
 
     def __init__(self,
-                 cycles=1,  # Default to finite horiz
+                 cycles=0,  # Default to finite horiz
                  quietly=False,  # if True, do print anything conditions
                  solution_startfrom=None,  # Default: no interim solution
                  solver=ConsPerfForesightSolver,
@@ -615,19 +626,16 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         cycles_orig = deepcopy(self.cycles)
         tolerance_orig = deepcopy(self.tolerance)
         self.tolerance = float('inf')  # Any distance satisfies this tolerance
-#        breakpoint()
+
         if self.cycles > 0:  # Then it's a finite horizon problem
             self.cycles = 0  # solve only one period (leaving MaxKinks be)
             self.solve(quietly=quietly, messaging_level=messaging_level)  # do not spout nonsense
         else:  # tolerance of inf means that "solve" will stop after setup ...
-            #            breakpoint()
             self.solve(quietly=quietly, messaging_level=messaging_level)
 
-#            self.solution[0].distance_last = float('inf')
         self.tolerance = tolerance_orig  # which leaves us ready to solve
         self.cycles = cycles_orig  # with the original convergence criteria
         self.solution[0].Bilt.stge_kind['iter_status'] = 'iterator'
-#        self.solution[0].Bilt.vAdd = np.array([0.0])  # Amount to add to last v
         self.solution_current = self.solution[0]  # current soln is now newly made one
 
     def agent_post_post_solve(self):  # Overwrites version from AgentTypePlus
@@ -635,6 +643,10 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         if self.cycles == 0:  # if it's an infinite horizon model
             if self.solution[0].completed_cycles > 0:
                 self.add_stable_points_to_solution(self.solution[0])
+        else:  # finite horizon model
+            self.describe_model_and_calibration(
+                messaging_level=self.messaging_level,
+                quietly=self.quietly)
 
     def check_restrictions(self):
         """
@@ -694,8 +706,21 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                         if var == 'CRRA' and self.__dict__['parameters'][var] == 1.0:
                             _log.info('For log utility, use CRRA very close to 1, like 1.00001')
                         raise Exception(
-                            var+" is less than or equal to 1.0 with value: " + str(varMax))
+                            var+" is less than or equal to 1.0 with value: " +
+                            str(varMax))
         return
+    
+    def describe_model_and_calibration(self, messaging_level=logging.INFO,
+                                       quietly=False):
+
+        if not hasattr(self, 'solution'):  # A solution must have been computed
+            _log.info('Making final soln because model info stored there')
+            self.make_solution_for_final_period()
+
+        solution_current = self.solution[0]
+        solution_current.describe_model_and_calibration(
+            messaging_level=logging.INFO,
+            quietly=False)
 
     def check_conditions(self, messaging_level=logging.INFO, quietly=False):
 
@@ -704,7 +729,8 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
             self.make_solution_for_final_period()
 
         solution_current = self.solution[0]
-        solution_current.check_conditions(messaging_level=logging.INFO, quietly=False)
+        solution_current.check_conditions(messaging_level=logging.INFO,
+                                          quietly=False)
 
     def finish_setup_of_default_solution_terminal(self):
         """
@@ -998,9 +1024,9 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
 
 class IndShockConsumerType(PerfForesightConsumerType):
-
     """
     A consumer with idiosyncratic shocks to permanent and transitory income.
+
     Problem is defined by a sequence of income distributions, survival prob-
     abilities, permanent income growth rates, and time invariant values for
     risk aversion, the discount factor, the interest rate, the grid of end-of-
@@ -1034,7 +1060,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
     )
 
     def __init__(self,
-                 cycles=0,  # cycles=0 signals infinite horizon
                  messaging_level=logging.INFO,  quietly=False,
                  solution_startfrom=None,
                  solverType='HARK',
@@ -1046,7 +1071,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         params.update(kwds)  # Update/overwrite defaults with user-specified
 
         # Inherit characteristics of a PF model with the same parameters
-        PerfForesightConsumerType.__init__(self, cycles=cycles,
+        PerfForesightConsumerType.__init__(self,  # cycles=cycles,
                                            messaging_level=messaging_level,
                                            quietly=quietly,
                                            **params)
@@ -1093,7 +1118,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def dolo_model(self):
         # Create a dolo version of the model
-        return
+        return  # return because the code below is the sketch of a beginning..
         from dolo import yaml_import
         self.dolo_modl = yaml_import(
             '/Volumes/Data/Code/ARK/DARKolo/chimeras/BufferStock/bufferstock.yaml'
@@ -1274,7 +1299,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         T_cycle = self.T_cycle
 
         # make a dictionary of the parameters
-        # Created so, later, we can determine whether any parameters have changed
+        # Created so later we can determine whether any have changed
         parameters = {
             'permShkStd':  self.permShkStd,
             'permShkCount':  self.permShkCount,
@@ -1291,7 +1316,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # constructed_by: later, we can determine whether another distribution
         # object was constructed using the same method or a different method
-        constructed_by = {'method': 'construct_lognormal_income_process_unemployment'}
+        constructed_by = {'method': 
+                          'construct_lognormal_income_process_unemployment'}
 
         IncShkDstn = []  # Discrete approximations to income process in each period
         permShkDstn = []  # Discrete approximations to permanent income shocks
