@@ -1058,7 +1058,7 @@ class FrameAgentType(AgentType):
                 # assume this is an IndexDistribution keyed to age (t_cycle)
                 # for now
                 # later, t_cycle should be included in local context, etc.
-                new_values = frame.transition.draw(self.t_cycle)
+                new_values = (frame.transition.draw(self.t_cycle),)
             else: # transition is function of state variables not an exogenous shock
                 new_values = frame.transition(
                     self,
@@ -1071,13 +1071,10 @@ class FrameAgentType(AgentType):
         # the model values can be modified directly(?)
         for i,t in enumerate(frame.target):
             if t in context:
-                context[t] = new_values[i]
+                context[t][:] = new_values[i]
             else:
                 import pdb; pdb.set_trace()
                 raise Exception(f"From frame {frame.target}, target {t} is not in the context object.")
-
-
-
 
 def solve_agent(agent, verbose):
     """
