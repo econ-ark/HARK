@@ -342,7 +342,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         return possible_transitions
 
-    def describe_model_and_calibration(self, messaging_level=logging.INFO,
+    def describe_model_and_calibration(self, messaging_level=logging.INFO, 
                                        quietly=False):
         """
         Log a brief description of the model and its calibration.
@@ -362,6 +362,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         -------
         None
         """
+
         crnt = self
         Pars, Modl = crnt.Pars, crnt.Modl
         Tran = Modl.Transitions

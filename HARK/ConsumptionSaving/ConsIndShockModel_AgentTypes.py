@@ -161,12 +161,11 @@ class AgentTypePlus(AgentType):
         if hasattr(self, 'solve_par_vals'):
             for par in self.solve_par_vals:
                 solve_par_vals_now[par] = getattr(self, par)
-
-            breakpoint()
             # Check whether any of them has changed
             if not (solve_par_vals_now == self.solve_par_vals):
+                breakpoint()
                 if not self.quietly:
-                    _log.info('Some model parameter has changed since last update.')
+                    _log.info('Some parameter has changed since last update.')
                 self._agent_force_prepare_info_needed_to_begin_solving()
 
     def _agent_force_prepare_info_needed_to_begin_solving(self):
@@ -290,7 +289,7 @@ class consumer_terminal_nobequest_onestate(AgentTypePlus):
         def vFunc(m): return 0.
         # TODO: Globally (throughout codebase) replace vPfunc  with vFunc.dm
         # TODO: Globally (throughout codebase) replace vPPfunc with vFunc.dm.dm
-        vFunc.dm = vPfunc = vFunc 
+        vFunc.dm = vPfunc = vFunc
         vFunc.dm.dm = vPPfunc = vFunc
 
         def cFunc(m): return float('inf')  # With CRRA utility, c=inf gives v=0
@@ -709,7 +708,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                             var+" is less than or equal to 1.0 with value: " +
                             str(varMax))
         return
-    
+
     def describe_model_and_calibration(self, messaging_level=logging.INFO,
                                        quietly=False):
 
@@ -718,9 +717,8 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
             self.make_solution_for_final_period()
 
         solution_current = self.solution[0]
-        solution_current.describe_model_and_calibration(
-            messaging_level=logging.INFO,
-            quietly=False)
+        solution_current.describe_model_and_calibration(messaging_level,
+            quietly)
 
     def check_conditions(self, messaging_level=logging.INFO, quietly=False):
 
@@ -1316,7 +1314,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # constructed_by: later, we can determine whether another distribution
         # object was constructed using the same method or a different method
-        constructed_by = {'method': 
+        constructed_by = {'method':
                           'construct_lognormal_income_process_unemployment'}
 
         IncShkDstn = []  # Discrete approximations to income process in each period
