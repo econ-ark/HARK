@@ -97,18 +97,17 @@ def core_check_condition(name, test, messages, messaging_level, verbose_messages
 
     TF = test(soln)
     soln.Bilt.conditions[name] = TF  # Set whether condition was true or false
-    if not quietly:
-        # Messages of severity less than minimum intensity are not displayed
-        minimum_intensity = messaging_level  # Do not show messages less important
-        _log.setLevel(minimum_intensity)  # Uses python logger setLevel
-        # Store the messages for later retrieval if desired
-        soln.Bilt.conditions[fact] = (
-            messages[soln.Bilt.conditions[name]] +
-            verbose_messages[soln.Bilt.conditions[name]]).format(soln.Bilt)
-        _log.info(messages[soln.Bilt.conditions[name]].format(soln.Bilt))
-        # Debug log gets the verbose info
-        _log.debug(
-            verbose_messages[soln.Bilt.conditions[name]].format(soln.Bilt))
+    # Messages of severity less than minimum intensity are not displayed
+    minimum_intensity = messaging_level  # Do not show messages less important
+    _log.setLevel(minimum_intensity)  # Uses python logger setLevel
+    # Store the messages for later retrieval if desired
+    soln.Bilt.conditions[fact] = (
+        messages[soln.Bilt.conditions[name]] +
+        verbose_messages[soln.Bilt.conditions[name]]).format(soln.Bilt)
+    _log.info(messages[soln.Bilt.conditions[name]].format(soln.Bilt))
+    # Debug log gets the verbose info
+    _log.debug(
+        verbose_messages[soln.Bilt.conditions[name]].format(soln.Bilt))
 
     return TF
 
@@ -145,7 +144,7 @@ def distance_metric(thing_a, thing_b):
             warn(
                 'Objects of different lengths are being compared. ' +
                 'Returning difference in lengths.'
-                )
+            )
             distance = float(abs(len_a - len_b))
     # If both inputs are dictionaries, call distance on the list of its elements
     elif type_a is dict and type_b is dict:

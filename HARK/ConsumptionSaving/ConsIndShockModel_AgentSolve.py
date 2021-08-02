@@ -342,7 +342,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         return possible_transitions
 
-    def describe_model_and_calibration(self, messaging_level=logging.INFO, 
+    def describe_model_and_calibration(self, messaging_level=logging.INFO,
                                        quietly=False):
         """
         Log a brief description of the model and its calibration.
@@ -459,6 +459,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                 Bilt.degenerate = Bilt.RIC  # infinite h requires impatience
 
         if Bilt.degenerate:
+            breakpoint()
             _log.critical("Under the given parameter values, " +
                           "the model is degenerate.")
 
@@ -528,9 +529,12 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         soln.Bilt.GICRaw = core_check_condition(name, test, messages, messaging_level,
                                                 verbose_messages, "GPFRaw", soln, quietly)
 
-        if messaging_level == logging.WARNING and quietly is False \
-           and soln.Bilt.GPFRaw > 1:
-            _log.warning(messages['False']+verbose_messages['False'])
+        # Give them a warning if the model does not satisfy the GIC,
+        # even if they asked to solve quietly, unless messaging_level is CRITICAL
+        if quietly is True:  # Otherwise they will get the info anyway
+            if soln.Bilt.GPFRaw > 1:
+                if messaging_level <= logging.CRITICAL:
+                    _log.warning(messages[False]+verbose_messages[False])
 
     def check_GICLiv(self, soln, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on Mortality Adjusted GIC."""
@@ -553,9 +557,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         soln.Bilt.GICLiv = core_check_condition(name, test, messages, messaging_level,
                                                 verbose_messages, "GPFLiv", soln, quietly)
 
-        if messaging_level == logging.WARNING and quietly is False \
-           and soln.Bilt.GICLiv is False:
-            _log.warning(messages['False']+verbose_messages['False'])
+        # This is important enough to warn them even if quietly == True; unless messaging_level = CRITICAL
+        if (soln.Bilt.GICLiv == np.False_) and (quietly is True) and (messaging_level < logging.CRITICAL):
+            _log.warning(messages[False]+verbose_messages[False])
 
     def check_RIC(self, soln, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Return Impatience Condition."""
@@ -596,6 +600,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         soln.Bilt.FHWC = core_check_condition(name, test, messages, messaging_level,
                                               verbose_messages, "FHWF", soln, quietly)
 
+        if (messaging_level < logging.CRITICAL) and (soln.Bilt.FHWC == np.False_):
+            _log.info(messages[False]+verbose_messages[False])
+
     def check_GICNrm(self, soln, messaging_level=logging.DEBUG, quietly=False):
         """Check Normalized Growth Patience Factor."""
         if not hasattr(soln.Pars, 'IncShkDstn'):
@@ -616,8 +623,15 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
             False: "\n    Therefore, a target ratio of individual market resources to individual permanent income does not exist.  \n"
         }
 
-        soln.Bilt.GICNrm = core_check_condition(name, test, messages, messaging_level,
-                                                verbose_messages, "GPFNrm", soln, quietly)
+        soln.Bilt.GICNrm = \
+            core_check_condition(name, test, messages, messaging_level,
+                                 verbose_messages, "GPFNrm", soln, quietly)
+
+        # Warn them their model does not satisfy the GICNrm even if they asked
+        # for the "quietly" solution -- unless they said "only CRITICAL"
+
+        if (messaging_level < logging.CRITICAL) and (soln.Bilt.GICNrm == np.False_):
+            _log.info(messages[False]+verbose_messages[False])
 
     def check_WRIC(self, soln, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Weak Return Impatience Condition."""
@@ -691,6 +705,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         # Minimum market resources plus E[next income] is okay starting guess
 
         m_init_guess = self.Bilt.mNrmMin + self.E_Next_.IncNrmNxt
+
         try:
             self.Bilt.mNrmStE = find_zero_newton(
                 self.E_Next_.permGroShk_tp1_times_m_tp1_Over_m_t_minus_PGro, m_init_guess)
@@ -2040,7 +2055,6 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             lambda m_t: \
             m_t * (1 - 1/E_Next_.RNrm) + (1 / E_Next_.RNrm)
 
-        # Solve the equation at url/#balgrostable
         E_Next_.c_where_E_Next_permShk_times_m_tp1_minus_m_t_eq_0 = \
             lambda m_t: \
             (m_t * (1 - 1 / E_Next_.RNrm_PF)) + (1 / E_Next_.RNrm_PF)
@@ -2420,7 +2434,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         self.build_facts_infhor()
         self.build_facts_recursive()  # These require solution to successor
 
-        crnt = self.make_chosen_state_grid()
+        self.make_chosen_state_grid()
         self.make_E_Next_(self.solution_current.Pars.IncShkDstn)
 
         return crnt

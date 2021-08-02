@@ -628,7 +628,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
         if self.cycles > 0:  # Then it's a finite horizon problem
             self.cycles = 0  # solve only one period (leaving MaxKinks be)
-            self.solve(quietly=quietly, messaging_level=messaging_level)  # do not spout nonsense
+            self.solve(quietly=quietly, messaging_level=logging.CRITICAL+1)  # do not spout nonsense
         else:  # tolerance of inf means that "solve" will stop after setup ...
             self.solve(quietly=quietly, messaging_level=messaging_level)
 
@@ -640,7 +640,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     def agent_post_post_solve(self):  # Overwrites version from AgentTypePlus
         """For infinite horizon models, add stable points (if they exist)."""
         if self.cycles == 0:  # if it's an infinite horizon model
-            if self.solution[0].completed_cycles > 0:
+            if self.messaging_level <= logging.CRITICAL:
                 self.add_stable_points_to_solution(self.solution[0])
         else:  # finite horizon model
             self.describe_model_and_calibration(
