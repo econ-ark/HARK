@@ -459,7 +459,6 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                 Bilt.degenerate = Bilt.RIC  # infinite h requires impatience
 
         if Bilt.degenerate:
-            breakpoint()
             _log.critical("Under the given parameter values, " +
                           "the model is degenerate.")
 
@@ -962,234 +961,14 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             cNrm_kinks = np.insert(cNrm_kinks, 0, cNrm_cusp)
             vNrm_kinks = np.insert(vNrm_kinks, 0, vNrm_cusp)
 
-        #        vAddGrid = np.append(vAdd_cusp, vAdd_kinks)
-        #        vAddGrid = np.append(vAddGrid, 0.)
-        #        breakpoint()
-
         # Add a point to construct cFunc, vFunc as PF solution beyond last kink
         mNrmGrid_unconst = np.append(mNrm_kinks, mNrm_kinks[-1] + 1)  # m + 1
         cNrmGrid_unconst = np.append(cNrm_kinks, cNrm_kinks[-1] + 1*MPCmin)
-        #        aNrmGrid_unconst = mNrmGrid_unconst-cNrmGrid_unconst  # a_t=m_t-c_t
-        # DBC : m_{t+1} = (Rfree/PermGroFac)a_{t} + y_{t+1}
-        #        mNrmGrid_tp1_unconst = aNrmGrid_unconst*(Rfree/PermGroFac)+yNrm_tp1
-        # v_{t} = u_{t} + [dicounted] v_{t+1}
-        #        vNrmGrid_unconst = u(cNrmGrid_unconst) + \
-        #            (DiscLiv * PermGroFac**(1-CRRA_tp1) *
-        #             tp1.vFunc(mNrmGrid_tp1_unconst))
-        #        # u Invert it
-        #        vInvGrid_unconst = u.Nvrs(vNrmGrid_unconst)
-        # No reason to construct dv/dm: It's going to be available via
-        # u'(cFunc) in any case, and the correct representation of its
-        # proper inverse at non-kink points is as a Heaviside function which
-        # is a pain  to interpolate
-        #        vInvPGrid_unconst = \
-        #            (((1-CRRA)*vNrmGrid_unconst)**(-1+1/(1-CRRA))) * \
-        #            (cNrmGrid_unconst**(-CRRA))
-        #        vInvPGrid_unconst_v2 = u.dc.Nvrs()
-        #       c_from_vInvPGrid_unconst = \
-        #            ((vInvPGrid_unconst/(((1-CRRA)*vNrmGrid_unconst) **
-        #                                 (-1+1/(1-CRRA)))))**(-1/CRRA)
-
-        #        mNrmGrid_const = np.array([BoroCnst, mNrm_cusp, mNrm_cusp+1])
-        #        mNrmGrid_const = np.array([BoroCnst, mNrm_cusp])
-        #        uNrmGrid_const = np.array([float('inf'), u(mNrm_cusp), float('inf')])
-        #        uNrmGrid_const = np.array([float('inf'), u(mNrm_cusp)])
-        #        uInvGrid_const = u.Nvrs(uNrmGrid_const)
-
-        # # Add point(s) at infinity with value of zero
-        # def vAddFunc(m, mNrmGrid, vAddGrid):
-        #     mNrmGridPlus = np.append(mNrmGrid, float('inf'))
-        #     vAddGridPlus = np.append(vAddGrid, vAddGrid[-1])
-        #     from collections import Iterable
-        #     if isinstance(m, Iterable):
-        #         from itertools import repeat
-        #         points_at_infinity = \
-        #             np.array(
-        #                 list(
-        #                     map(lambda m, mNrmGridPlus, vAddGridPlus:
-        #                      vAddGridPlus[np.where(m < mNrmGridPlus)[0][0]],
-        #                         m, repeat(mNrmGridPlus), repeat(vAddGridPlus)
-        #                         )))
-        #         return points_at_infinity
-        #     else:
-        #         return vAddGridPlus[np.where(m < mNrmGridPlus)[0][0]]
-
-        #         vInvFunc_unconst = \
-        #             LinearInterp(mNrmGrid_unconst, vInvGrid_unconst)
-
-        # #        from HARK.utilities import plot_funcs
-        # #        plot_funcs(lambda x: np.heaviside(x-BoroCnst,0.5),1,2)
-        #         uInvFunc_const = \
-        #             LinearInterp(mNrmGrid_const, uInvGrid_const)
-        #         vFunc_const = Bilt.u(uInvGrid_const)+t_E_v_tp1_at_mNrmMin_tp1
-        #         vFunc_unconst = Bilt.u(vInvGrid_unconst)
-
-        #         def vAddFunc(m, mGrid, vAddGrid):
-        #             return vAddGrid[np.where(m < mGrid)[0][0]]
-
-        #        breakpoint()
-        #        vNrmGrid_const=[BoroCnst,u(mNrmGrid_unconst[0])]
-
         mNrmGrid = np.append([BoroCnst], mNrmGrid_unconst)
         cNrmGrid = np.append(0., cNrmGrid_unconst)
-        #        vInvGrid = np.append(0., vInvGrid_unconst)
-        #        vInvPGrid = np.append(float('inf'), vInvPGrid_unconst)
-        #        vInvGrid = np.insert(vInvGrid, 0, -1)
-
-        # Above last kink point, use PF solution
-        #        mNrmGrid = np.append(mNrmGrid, mNrmGrid[-1]+1)
-        #        cNrmGrid = np.append(cNrmGrid, cNrmGrid[-1]+MPCmin)
-        #        aNrmGrid = mNrmGrid - cNrmGrid
-        #        bNrmGrid_tp1 = aNrmGrid*(Rfree/PermGroFac)
-        #        mNrmGrid_tp1 = bNrmGrid_tp1+folw.PF_IncNrm_tp1
-        #        vNrmGrid = u(cNrmGrid)+(DiscLiv * PermGroFac**(1-CRRA_tp1) *
-        #             folw.vFunc_tp1(mNrmGrid_tp1))
-        #        vInvGrid = (vNrmGrid*(1-CRRA))**(1/(1-CRRA))
-
-        #     vInvGrid = np.append(vInvGrid, vInvGrid[-1]+MPCmin**(-CRRA/(1.0-CRRA)))
-
-        # To guarantee meeting BoroCnst, if mNrm = BoroCnst then cNrm = 0.
-        #        mNrmGrid = np.append([BoroCnst], mNrm_kinks)
-        #        cNrmGrid = np.append(0., cNrm_kinks)
-
-        # Above last kink point, use PF solution
-        #        mNrmGrid = np.append(mNrmGrid, mNrmGrid[-1]+1)
-        #        cNrmGrid = np.append(cNrmGrid, cNrmGrid[-1]+MPCmin)
 
         self.cFunc = self.solution_current.cFunc = Bilt.cFunc = \
             LinearInterp(mNrmGrid, cNrmGrid)
-
-    #        vInvFunc_unconst = self.vFuncNvrs = \
-    #            LinearInterp(mNrmGrid,vInvGrid)
-
-    # self.vNvrsFunc.derivative(m)
-    # (vNvrsFunc.derivative(/(((1-CRRA)*vInvGrid_unconst)**(-1+1/(1-CRRA))))
-
-    #        cc = self.cFunc_from_vFunc(2.0)
-    #        cFromvP=uPinv(vP_Grid)
-    #        cFuncFromvNvrsFunc = LinearInterp(mNrmGrid,cFromvP)
-    #        from HARK.utilities import plot_funcs
-    #        plot_funcs([self.cFunc,cFuncFromvNvrsFunc],0,2)
-
-    #        print('hi')
-    #        PF_t_v_tp1_last = (DiscLiv*(PermGroFac ** (1-CRRA_tp1)))*\
-    #            np.float(folw.vFunc_tp1((Rfree/PermGroFac)*aNrmGrid[-1]+E_Next_.IncNrmNxt))
-    #        PF_t_vNvrs_tp1_Grid_2 = \
-    #            np.append(PF_t_vNvrs_tp1_Grid,PF_t_v_tp1_last)
-    # vNvrsGrid = Bilt.uinv(Bilt.u(cNrmGrid)+ folw.u_tp1(PF_t_vNvrs_tp1_Grid))
-
-    # If the mNrm that would unconstrainedly yield next period's bottom pt
-    #        if BoroCnst > mNrmGrid_pts[0]: # is prohibited by BoroCnst
-    #            satisfies_BoroCnst = np.where(
-    #                mNrmGrid_unconst - BoroCnst < cNrm_from_aNrmMin) # True if OK
-
-    # Amount of m in excess of minimum possible m
-    #        mNrmXtraGrid = mNrmGrid_pts - BoroCnst
-
-    #         # Add the point corresponding to
-    #    mNrmGrid = np.unique(np.insert(mNrmGrid,0,E_Next_.IncNrmNxt-BoroCnstArt))
-    #     cNrmGrid = np.unique(np.insert(cNrmGrid,0,E_Next_.IncNrmNxt-BoroCnstArt))
-
-    # #        vNvrs_tp1 = (DiscLiv * LivPrb) * folw.vFunc_tp1(mNrmGrid_tp1)
-    # #        PF_t_vNvrs_tp1_Grid = folw.uinv_tp1(DiscLiv) * \
-    # #            folw.vFuncNvrs_tp1.y_list
-    #         # Beginning-of-period-tp1 marginal value vec is vP_tp1
-    # #        vP_tp1 = folw.uP_tp1(cNrmGrid_tp1)
-    #         # Corresponding end-of-period-t marginal value is _vP_t
-    # #        _vP_t = ((DiscLiv * Rfree) * (PermGroFac**(-CRRA_tp1)))*vP_tp1
-    # #        _vP_t =
-    #         # Endogenous gridpoints method
-    #  #       cNrmGrid = Bilt.uPinv(_vP_t)    # EGM step 1: u' inverse yields c
-    #         mNrmGrid = aNrmGrid + cNrmGrid  # EGM step 2: DBC inverted
-
-    #     cNrmGrid = np.unique(np.insert(cNrmGrid,0,E_Next_.IncNrmNxt-BoroCnstArt))
-
-    #         # Add additional point to the list of gridpoints for extrapolation,
-    #         # using this period's new value of the lower bound of the MPC, which
-    #         # defines the PF unconstrained problem through the end of the horizon
-    # #        mNrmGrid_interp_pts = np.append(mNrmGrid, mNrmGrid[-1] + 1.0)
-    # #        cNrmGrid_interp_pts = np.append(cNrmGrid, cNrmGrid[-1] + MPCmin)
-    #         # If artificial borrowing constraint binds, combine constrained and
-    #         # unconstrained consumption functions.
-
-    #         # The problem is well-defined down to BoroCnstArt even if in
-    #         # principle from t you could not get to any m_tp1 < E_Next_.IncNrmNxt
-    #     # because nothing prevents you from starting tp1 with m \geq BoroCnstArt
-    #  #       if BoroCnstArt < mNrmGrid[0] - E_Next_.IncNrmNxt:
-    #  #       mNrmGrid_interp_pts = np.append([BoroCnstArt], mNrmGrid_interp_pts)
-    #  #      cNrmGrid_interp_pts = np.append([BoroCnstArt], cNrmGrid_interp_pts)
-    # #        else: # BoroCnstArt is irrelevant if BoroCnstNat is tighter
-    #         # cNrmGridCnst defines points where cnst would bind for each m gpt
-    # #        cNrmGridCnst = mNrmGrid_interp_pts - BoroCnstArt
-    #         mXtraGrid = mNrmGrid - BoroCnstArt # m in excess of minimum m
-    # #        idx_binding =   # c > possible
-    #         # highest m where cnst binds
-    #         idx_binding_last = np.where(mNrmXtraGrid <= cNrmGrid)[0][-1]
-    #         if idx_binding_last < (mNrmGrid.size - 1):
-    #             print('hi')
-    #             # # If not the *very last* index, find the the critical level
-    #             # # of mNrmGrid where artificial cnst begins to bind.
-    #             # d0 = cNrmGrid[idx] - cNrmGridCnst[idx]
-    #             # d1 = cNrmGridCnst[idx + 1] - cNrmGrid[idx + 1]
-    #             # m0 = mNrmGrid[idx]
-    #             # m1 = mNrmGrid[idx + 1]
-    #             # alpha = d0 / (d0 + d1)
-    #             # mCrit = m0 + alpha * (m1 - m0)
-    #         # # Adjust grids of mNrmGrid and cNrmGrid to account for constraint.
-    #             # cCrit = mCrit - BoroCnstArt
-    #     # mNrmGrid = np.concatenate(([BoroCnstArt, mCrit], mNrmGrid[(idx + 1):]))
-    #             # cNrmGrid = np.concatenate(([0.0, cCrit], cNrmGrid[(idx + 1):]))
-    #             # aNrmGrid = mNrmGrid-cNrmGrid
-    #         else:
-    #             # If it *is* the last index, then there are only three points
-    #             # that characterize the c function: the artificial borrowing
-    #             # constraint, the constraint kink, and the extrapolation point
-    #             mAbve= 1.0 # (cNrmGrid[-1] - cNrmGridCnst[-1]) / (1.0 - MPCmin)
-    #             mNrm_max_bindpoint = mNrmGrid[idx_binding_last]
-    #             cNrm_max_bindpoint = cNrmGrid[idx_binding_last]
-    # #                mCrit = mNrmGrid[-1] + mXtra
-    # #                cCrit = mCrit - BoroCnstArt
-    #             mNrmGrid_Xtra = np.array(
-    #                 [BoroCnstArt, mNrm_max_bindpoint, mNrm_max_bindpoint + 1])
-    #             cNrmGrid_Xtra = np.array(
-    #                 [0.0, cNrm_max_bindpoint, cNrm_max_bindpoint + MPCmin])
-    #             aNrmGrid_Xtra = mNrmGrid_Xtra- cNrmGrid_Xtra
-    #         # If mNrmGrid, cNrmGrid grids have become too large, throw out last
-    #             # kink point, being sure to adjust the extrapolation.
-
-    #         if mNrmGrid.size > MaxKinks:
-    #             mNrmGrid = np.concatenate((mNrmGrid[:-2], [cNrmGrid[-3] + 1.0]))
-    #         cNrmGrid = np.concatenate((cNrmGrid[:-2], [cNrmGrid[-3] + MPCmin]))
-    #             aNrmGrid = mNrmGrid - cNrmGrid
-
-    # Consumption function is a linear interpolation between kink pts
-    #        self.cFunc = self.solution_current.cFunc = Bilt.cFunc = \
-    #            LinearInterp(mNrmGrid_pts, cNrmGrid_pts)
-
-    #        PF_t_v_tp1_last = (DiscLiv*(PermGroFac ** (1-CRRA_tp1)))*\
-    #            np.float(folw.vFunc_tp1((Rfree/PermGroFac)*aNrmGrid[-1]+E_Next_.IncNrmNxt))
-    #        PF_t_vNvrs_tp1_Grid_2 = \
-    #            np.append(PF_t_vNvrs_tp1_Grid,PF_t_v_tp1_last)
-
-    # vNvrsGrid = Bilt.uinv(Bilt.u(cNrmGrid)+ folw.u_tp1(PF_t_vNvrs_tp1_Grid))
-
-    # # Calculate the upper bound of the MPC as the slope of bottom segment
-    # # In practice, this is always 1.  Code is here for clarity
-    # Bilt.MPCmax = ((cNrmGrid_Xtra[1] - cNrmGrid_Xtra[0])/
-    #                (mNrmGrid_Xtra[1] - mNrmGrid_Xtra[0]))
-
-    # # Lower bound of mNrm is lowest gridpoint -- usually 0
-    # Bilt.mNrmMin = mNrmGrid_Xtra[0]
-
-    # # Add the calculated grids to self.Bilt
-    # Bilt.aNrmGrid = aNrmGrid_Xtra
-    # Bilt._vP_t = _vP_t
-    # Bilt.cNrmGrid = cNrmGrid_Xtra
-    # Bilt.mNrmGrid = mNrmGrid_Xtra
-
-    # Add approximation to v and vP
-    #        breakpoint()
-    #        Bilt.vNvrs = self.solution_current.uinv(_vP_t)
 
     def def_value(self):
         """
@@ -2024,24 +1803,14 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # Pars = [soln].Pars
 
         # Given m, value of c where E[m_{t+1}]=m_{t}
-        E_Next_.m_tp1_minus_m_t_eq_0 = (
-            lambda m_t:
-            m_t * (1 - 1 / E_Next_.RNrm) + (1 / E_Next_.RNrm)
-        )
-        # Given m, value of c where E[mLev_{t+1}/mLev_{t}]=Bilt.Pars.permGroFac
-        # Solves for c in equation at url/#balgrostable
-        E_Next_.permGroShk_times_m_tp1_minus_m_t_eq_0 = (
-            lambda m_t:
-            m_t * (1 - E_Next_.Inv_RNrm_PF) + E_Next_.Inv_RNrm_PF
-        )
-        # E[m_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
-        E_Next_.mLev_tp1_Over_pLev_t_from_a_t = (
-            lambda a_t:
-            E_dot(Bilt.permShkValsBcst *
-                  (E_Next_.RNrm_PF / Bilt.permShkValsBcst) * a_t
-                  + Bilt.tranShkValsBcst,
-                  Bilt.ShkPrbs)
-        )
+        # E_Next_.c_where_m_tp1_minus_m_t_eq_0 = (
+        #     lambda m_t:
+        #     m_t * (1 - 1 / E_Next_.RNrm) + (1 / E_Next_.RNrm)
+        # )
+        # E_Next_.c_where_permGroShk_times_m_tp1_minus_m_t_eq_0 = (
+        #     lambda m_t:
+        #     m_t * (1 - E_Next_.Inv_RNrm_PF) + E_Next_.Inv_RNrm_PF
+        # )
         # E[c_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
         E_Next_.cLev_tp1_Over_pLev_t_from_a_t = (
             lambda a_t:
@@ -2055,21 +1824,20 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             lambda m_t: \
             m_t * (1 - 1/E_Next_.RNrm) + (1 / E_Next_.RNrm)
 
-        E_Next_.c_where_E_Next_permShk_times_m_tp1_minus_m_t_eq_0 = \
+        E_Next_.c_where_E_Next_permGroShk_times_m_tp1_minus_m_t_eq_0 = \
             lambda m_t: \
             (m_t * (1 - 1 / E_Next_.RNrm_PF)) + (1 / E_Next_.RNrm_PF)
         # mNrmTrg solves E_Next_.RNrm*(m - c(m)) + E[inc_next] - m = 0
 
         E_Next_.m_tp1_minus_m_t = (
             lambda m_t:
-            E_Next_.RNrm * (m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt - m_t
+            (E_Next_.RNrm * (m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt)-m_t
         )
-
         E_Next_.m_tp1_Over_m_t = (
             lambda m_t:
             (E_Next_.RNrm * (m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt)/m_t
         )
-
+        # Define separately for float ('num') and listlike ('lst'), then combine
         E_Next_.cLev_tp1_Over_pLev_t_from_num_a_t = (
             lambda a_t:
             E_dot(
@@ -2090,38 +1858,31 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             if (type(a_t) == list or type(a_t) == np.ndarray) else
             E_Next_.cLev_tp1_Over_pLev_t_from_num_a_t(a_t)
         )
+        E_Next_.mLev_tp1_Over_pLev_t_from_num_a_t = (
+            lambda a_t:
+            Pars.Rfree * a_t + Pars.PermGroFac
+        )
+        E_Next_.mLev_tp1_Over_pLev_t_from_lst_a_t = (
+            lambda a_lst: list(map(
+                E_Next_.mLev_tp1_Over_pLev_t_from_num_a_t, a_lst
+            ))
+        )
+        E_Next_.mLev_tp1_Over_pLev_t_from_a_t = (
+            lambda a_t:
+            E_Next_.mLev_tp1_Over_pLev_t_from_lst_a_t(a_t)
+            if (type(a_t) == list or type(a_t) == np.ndarray) else
+            E_Next_.mLev_tp1_Over_pLev_t_from_num_a_t(a_t)
+        )
         E_Next_.cLev_tp1_Over_pLev_t_from_lst_m_t = (
             lambda m_t:
             E_Next_.cLev_tp1_Over_pLev_t_from_lst_a_t(m_t -
                                                       Bilt.cFunc(m_t))
         )
-        E_Next_.cLev_tp1_Over_pLev_t_from_num_m_t = (
-            lambda m_t:
-            E_Next_.cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
-                                                      Bilt.cFunc(m_t))
-        )
-        # E_Next_.cLev_tp1_Over_cLev_t_from_m_t = (
-        #     lambda m_t:
-        #     E_Next_.cLev_tp1_Over_pLev_t_from_lst_m_t(m_t) / Bilt.cFunc(m_t)
-        #     if (type(m_t) == list or type(m_t) == np.ndarray) else
-        #     E_Next_.cLev_tp1_Over_pLev_t_from_num_m_t(m_t) / Bilt.cFunc(m_t)
-        # )
-        E_Next_.permGroShk_tp1_times_m_tp1_minus_m_t = (
-            lambda m_t:
-            E_Next_.RNrm_PF * (m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt - m_t
-        )
-
-        E_Next_.permGroShk_tp1_times_m_tp1 = (
-            lambda m_t:
-            E_Next_.RNrm_PF * (m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt
-        )
-
         E_Next_.permGroShk_tp1_times_m_tp1_Over_m_t_minus_PGro = (
             lambda m_t:
-            (E_Next_.RNrm_PF*(m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt)/m_t
+            (Pars.Rfree*(m_t - Bilt.cFunc(m_t)) + Pars.PermGroFac * E_Next_.IncNrmNxt)/m_t
             - Pars.PermGroFac
         )
-
         E_Next_.m_tp1_from_a_t = (
             lambda a_t:
             E_Next_.RNrm * a_t + E_Next_.IncNrmNxt
@@ -2137,6 +1898,12 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             if (type(m_t) == list or type(m_t) == np.ndarray) else
             E_Next_.cLev_tp1_Over_pLev_t_from_num_m_t(m_t) / Bilt.cFunc(m_t)
         )
+        # E_Next_.mLev_tp1_Over_mLev_t_from_m_t = (
+        #     lambda m_t:
+        #     E_Next_.mLev_tp1_Over_pLev_t_from_lst_m_t(m_t) / m_t
+        #     if (type(m_t) == list or type(m_t) == np.ndarray) else
+        #     E_Next_.mLev_tp1_Over_pLev_t_from_num_m_t(m_t) / m_t
+        # )
         self.solution_current = crnt
 
         return crnt
