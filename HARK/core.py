@@ -917,6 +917,19 @@ class FrameAgentType(AgentType):
     ]
 
     def initialize_sim(self):
+        for agg in self.aggs:
+            self.aggs[agg] = np.empty(1)
+
+            agg_default = [
+                frame.default[agg] for frame in self.frames 
+                if agg in frame.target
+                and frame.default is not None
+                and agg in frame.default
+                ]
+
+            if len(agg_default) > 0:
+                self.aggs[agg][:] = agg_default[0]    
+
         for shock in self.shocks:
             # TODO: What about aggregate shocks?
             self.shocks[shock] = np.empty(self.AgentCount)
@@ -1027,6 +1040,7 @@ class FrameAgentType(AgentType):
         # build a context object based on model state variables
         # and 'self' reference for 'global' variables
         context = {} # 'self' : self}
+        context.update(self.aggs)
         context.update(self.shocks)
         context.update(self.controls)
         context.update(self.state_now)

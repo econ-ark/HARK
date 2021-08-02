@@ -80,6 +80,8 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         self.update()
 
         ## TODO: Should be defined in the configuration.
+        self.aggs = {'PermShkAggNow' : None, 'PlvlAgg' : None} # aggregate values
+                      # -- handled differently because only one value each per AgentType
         self.shocks = {'Adjust' : None, 'PermShk' : None, 'Risky': None, 'TranShk' : None}
         self.controls = {'cNrm' : None, 'Share' : None}
         self.state_now = {
@@ -107,7 +109,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         Birth value for pLvlNow
         """
         pLvlInitMeanNow = self.pLvlInitMean + np.log(
-            self.state_now["PlvlAgg"]
+            self.aggs["PlvlAgg"]
         )  # Account for newer cohorts having higher permanent income
 
         return Lognormal(
@@ -128,7 +130,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         # Calculate new states: normalized market resources and permanent income level
         pLvlNow = pLvlPrev * context['PermShk']  # Updated permanent income level
         # Updated aggregate permanent productivity level
-        PlvlAggNow = context['PlvlAgg'] * self.PermShkAggNow
+        PlvlAggNow = context['PlvlAgg'] * context['PermShkAggNow']
         # "Effective" interest factor on normalized assets
         ReffNow = RfreeNow / context['PermShk']
         bNrmNow = ReffNow * aNrmPrev         # Bank balances before labor income
@@ -140,7 +142,8 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         """
         Transition method for ShareNow.
         """
-        ShareNow = np.zeros(self.AgentCount) + np.nan
+        ## Changed from HARK. See #1049. Should be added to context.
+        ShareNow = self.controls['Share'].copy()
 
         # Loop over each period of the cycle, getting controls separately depending on "age"
         for t in range(self.T_cycle):
@@ -216,10 +219,12 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
 
     # maybe replace reference to init_portfolio to self.parameters?
     frames = [
-        ## TODO: Income shocks
+        Frame(('PermShkAggNow',), ('PermGroFacAgg',),
+            transition = lambda self, PermGroFacAgg : (PermGroFacAgg,)
+        ),
         Frame(
             ('PermShk'), None,
-            default = {'PermShk' : 1.0},
+            default = {'PermShk' : 1.0}, # maybe this is unnecessary because the shock gets sampled at t = 0
             # this is discretized before it's sampled
             transition = IndexDistribution(
                     MeanOneLogNormal,
@@ -232,9 +237,10 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         ),
         Frame(
             ('TranShk'), None,
-            default = {'TranShk' : 1.0},
+            default = {'TranShk' : 1.0}, # maybe this is unnecessary because the shock gets sampled at t = 0
             transition = IndexDistribution(
                 # Need to discretize this "first" to add unemployed in
+                # TODO: Encapsulate this widely used distribution form in the OO logic.
                 lambda sigma, seed : add_discrete_outcome_constant_mean(
                     MeanOneLogNormal(sigma = sigma, seed = seed).approx(
                         init_portfolio['TranShkCount'], tail_N=0
@@ -269,8 +275,8 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         ## TODO risk free return rate
         Frame(
             ('pLvl', 'PlvlAgg', 'bNrm', 'mNrm'),
-            ('pLvl', 'aNrm', 'Rfree', 'PlvlAgg', 'PermShk', 'TranShk'),
-            default = {'pLvl' : birth_pLvlNow},
+            ('pLvl', 'aNrm', 'Rfree', 'PlvlAgg', 'PermShk', 'TranShk', 'PermShkAggNow'),
+            default = {'pLvl' : birth_pLvlNow, 'PlvlAgg' : 1.0},
             transition = transition
         ),
         Frame(
