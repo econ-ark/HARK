@@ -634,9 +634,9 @@ class testCalcTransitionMatrix(unittest.TestCase):
         Test_DDG.cycles=0
         Test_DDG.solve()
         
-        Test_DDG.Define_Distribution_Grid()
-        pGrid = Test_DDG.Dist_pGrid 
-        mGrid= Test_DDG.Dist_mGrid 
+        Test_DDG.define_distribution_grid()
+        pGrid = Test_DDG.dist_pGrid 
+        mGrid= Test_DDG.dist_mGrid 
         
         self.assertAlmostEqual(pGrid[30], 0.06447360177364282)
         self.assertAlmostEqual(pGrid[15], 0.0020221388496700233)
@@ -651,8 +651,8 @@ class testCalcTransitionMatrix(unittest.TestCase):
         Test_DDG = IndShockConsumerType(**TranMatTest_Dict)
         Test_DDG.cycles=0
         Test_DDG.solve()
-        Test_DDG.Define_Distribution_Grid()
-        Test_DDG.Calc_Transition_Matrix()
+        Test_DDG.define_distribution_grid()
+        Test_DDG.calc_transition_matrix()
         TMat = Test_DDG.TranMatrix
         
         self.assertAlmostEqual(TMat[4844][4845], 0.046607021695878006)
@@ -663,12 +663,12 @@ class testCalcTransitionMatrix(unittest.TestCase):
         Test_DDG = IndShockConsumerType(**TranMatTest_Dict)
         Test_DDG.cycles=0
         Test_DDG.solve()
-        Test_DDG.Define_Distribution_Grid()
-        Test_DDG.Calc_Transition_Matrix()
-        Test_DDG.Calc_Ergodic_Dist()
+        Test_DDG.define_distribution_grid()
+        Test_DDG.calc_transition_matrix()
+        Test_DDG.calc_ergodic_dist()
         
-        vecDstn = Test_DDG.VecErgDstn
-        erg_Dstn = Test_DDG.ErgDstn
+        vecDstn = Test_DDG.vec_erg_dstn
+        erg_Dstn = Test_DDG.erg_dstn
         
         self.assertAlmostEqual(vecDstn[403][0], -9.031794194427849e-20)
         self.assertAlmostEqual(vecDstn[3703][0], 2.0297505364093426e-05)
@@ -681,10 +681,10 @@ class testCalcTransitionMatrix(unittest.TestCase):
         Test_DDG = IndShockConsumerType(**TranMatTest_Dict)
         Test_DDG.cycles=0
         Test_DDG.solve()
-        Test_DDG.Define_Distribution_Grid()
-        Test_DDG.Calc_Transition_Matrix()
-        Test_DDG.Calc_Ergodic_Dist()
-        vecDstn = Test_DDG.VecErgDstn
+        Test_DDG.define_distribution_grid()
+        Test_DDG.calc_transition_matrix()
+        Test_DDG.calc_ergodic_dist()
+        vecDstn = Test_DDG.vec_erg_dstn
         
         params = deepcopy(TranMatTest_Dict)
         params['T_cycle']= 30
@@ -707,8 +707,8 @@ class testCalcTransitionMatrix(unittest.TestCase):
         i = 15
         test_finHorizon.Rfree = (i)*[Test_DDG.Rfree] + [Test_DDG.Rfree + dx] + (params['T_cycle'] - i - 1 )*[Test_DDG.Rfree]
         test_finHorizon.solve()
-        test_finHorizon.Define_Distribution_Grid()
-        test_finHorizon.Calc_Transition_Matrix()
+        test_finHorizon.define_distribution_grid()
+        test_finHorizon.calc_transition_matrix()
             
         AggC_List =[]
         AggA_List =[]
@@ -717,7 +717,7 @@ class testCalcTransitionMatrix(unittest.TestCase):
         
         for i in range(params['T_cycle']):
         
-            p = test_finHorizon.Dist_pGrid[i]
+            p = test_finHorizon.dist_pGrid[i]
             c = test_finHorizon.cPolGrid[i]
             a = test_finHorizon.aPolGrid[i]
             
