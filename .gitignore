@@ -285,8 +285,8 @@ nate-notes/
 settings.json
 .idea
 
-# Spyder project
-.spyproject
-spyproject
+# Spyder project settings
 .spyderproject
+spyproject
+.spyproject
 
