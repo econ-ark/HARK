@@ -57,14 +57,6 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
     This is mainly to keep the _solver_ logic intact.
     """
 
-    # values for aggregate variables
-    # to be set when simulation initializes.
-    # currently not doing anything because still using old
-    # initializeSim()
-    aggregate_init_values = {
-        'PlvlAgg' : 1.0
-    }
-
     def __init__(self, **kwds):
         params = init_portfolio.copy()
         params.update(kwds)
@@ -164,7 +156,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
 
         self.controls["Share"] = ShareNow
 
-        return ShareNow
+        return ShareNow,
 
     def transition_cNrmNow(self, **context):
         """
@@ -193,7 +185,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
 	    # redundant for now
         self.controls["cNrm"] = cNrmNow
         
-        return cNrmNow
+        return cNrmNow,
 
     def transition_poststates(self, **context):
         """
@@ -211,9 +203,6 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         self.state_now['aNrm'] = context['mNrm'] - context['cNrm']
         # Useful in some cases to precalculate asset level
         self.state_now['aLvl'] = context['aNrm'] * context['pLvl']
-
-        # moves now to prev
-        super().get_poststates()
 
         return (self.state_now['aNrm'], self.state_now['aLvl'])
 
