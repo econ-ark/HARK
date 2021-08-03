@@ -726,7 +726,7 @@ class Bernoulli(Distribution):
         return draws[0] if len(draws) == 1 else draws
 
 
-class DiscreteDistributionOld(Distribution):
+class DiscreteDistribution(Distribution):
     """
     A representation of a discrete probability distribution.
 
@@ -837,37 +837,6 @@ class DiscreteDistributionOld(Distribution):
             draws = np.asarray(X)[indices]
 
         return draws
-
-# CDC 20210621: We should not use pmf for the point masses of the realizations, because it
-# is not a probability mass 'function.' Scipy.discrete_rv, sympy, and Mathematica all
-# return pmf (or pdf) as a function. They have different syntaxes for retrieving the
-# vector of point masses; here it is called the pmv (probability mass vector)
-
-
-class DiscreteDistribution(DiscreteDistributionOld):
-    __doc__ = DiscreteDistributionOld.__doc__
-    __doc__ += """
-        XYZ : np.array
-            Restructure the dimensions of the np.array so that successive
-            columns in XYZ correspond to the vectors of values of each
-            discrete random variables across the broadcasted combinations.
-            Thus, [instance].XYZ[0] will return the vector of discrete
-            realizations of the first variable, [instance].XYZ[-1] will
-            get the last RV, etc.
-        pmv : The vector of point masses of the broadcasted collection
-            of random variables
-"""
-
-    def __init__(self, pmf, X, seed=0):  # Get the old definition
-        super().__init__(pmf, X, seed)  # execute the old def
-        XYZ = np.column_stack(X)  # stack actually unstacks them
-        if self.dim() == 1:  # numpy 1 dimensional arrays want to be
-            XYZ = XYZ.T  # the wrong shape
-        self.XYZ = XYZ  # [ N dimensional matrix ]
-        # The pmf should be a function, not a vector (as now)
-        # TODO: Replace invocations of pmf with pmv
-        self.pmv = pmf
-
 
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
@@ -1227,22 +1196,6 @@ def combine_indep_dstns(*distributions, seed=0):
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
     return DiscreteDistribution(P_out, X_out, seed=seed)
 
-
-# # 20210619: CDC: This method for taking expectations is designed for efficiency but is
-# # not at all intuitive for the user because it works only with functions that take as
-
-# handcrafted specialized functions that know that their positional first argument must be
-# a matrix whose structure matches the structure of the discrete income distribution provided
-# as the first argument. For example, if the 2D distribution is of transitory and permanent
-# shocks, the function must take as an input a matrix which is assumed to have a structure
-# that exactly mirrors the internal structure of the arrangement of broadcasted transitory
-# and permanent shocks inside the dstn object, and knows(for example) that the value of the permanent shock can be how to extract
-
-# hard to understand because it requires the user to
-# # provide an array of values of its inputs but then assumes it already knows what those
-# # inputs are. This makes little sense. If it is going to assume it knows what the inputs
-
-
 def calc_expectation(dstn, func=lambda x: x, *args):
     '''
     Expectation of a function, given an array of configurations of its inputs
@@ -1297,16 +1250,6 @@ def calc_expectation(dstn, func=lambda x: x, *args):
         f_exp = f_exp.flatten()
 
     return f_exp
-
-# "calc_expectation" is not a good name for something that
-# requires an array as an argument, returns an array, and
-# expects a peculiarly shaped distribution object as its first
-# argument.
-# TODO: 20210618: we REALLY need to improve our tools for calculating
-# expectations, both to make them better documented and more flexible.
-
-
-calc_expectation_of_array = calc_expectation
 
 
 class MarkovProcess(Distribution):
