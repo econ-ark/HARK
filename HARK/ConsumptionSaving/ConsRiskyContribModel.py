@@ -1461,7 +1461,7 @@ def solve_RiskyContrib_Sha(
         opt_Share = ShareGrid[opt_idx]
 
         if vFuncBool:
-            vNvrsSha = vFunc_Cns_next.func(mNrm_tiled, nNrm_tiled, opt_Share)
+            vNvrsSha = vFunc_Cns_next.vFuncNvrs(mNrm_tiled, nNrm_tiled, opt_Share)
 
     else:
 
@@ -1479,7 +1479,7 @@ def solve_RiskyContrib_Sha(
 
             # Evaluate value function to optimize over shares.
             # Do it in inverse space
-            vNvrs = vFunc_Cns_next.func(mNrm_tiled, nNrm_tiled, Share_tiled)
+            vNvrs = vFunc_Cns_next.vFuncNvrs(mNrm_tiled, nNrm_tiled, Share_tiled)
 
             # Find the optimal share at each (m,n).
             opt_idx = np.argmax(vNvrs, axis=2)
@@ -1713,7 +1713,7 @@ def solve_RiskyContrib_Reb(
 
     # Value
     if vFuncBool:
-        vNvrs_Adj = vFunc_Adj_next.func(mtil_opt, ntil_opt)
+        vNvrs_Adj = vFunc_Adj_next.vFuncNvrs(mtil_opt, ntil_opt)
         vNvrsFunc_Adj = BilinearInterp(vNvrs_Adj, mNrmGrid, nNrmGrid)
         vFunc_Adj = ValueFuncCRRA(vNvrsFunc_Adj, CRRA)
     else:

@@ -1041,7 +1041,7 @@ class CubicInterp(HARKinterpolator1D):
                     - self.coeffs[self.n, 2] * np.exp(alpha * self.coeffs[self.n, 3])
                 )
 
-                y[x == self.x_list[0]] = self.y_list[0]
+                y[x == self.x_list.min()] = self.y_list.min()
                 
         return y
 
@@ -4383,7 +4383,7 @@ class ValueFuncCRRA(MetricObject):
     distance_criteria = ["func", "CRRA"]
 
     def __init__(self, vFuncNvrs, CRRA):
-        self.func = deepcopy(vFuncNvrs)
+        self.vFuncNvrs = deepcopy(vFuncNvrs)
         self.CRRA = CRRA
 
     def __call__(self, *vFuncArgs):
@@ -4402,7 +4402,8 @@ class ValueFuncCRRA(MetricObject):
             Lifetime value of beginning this period with the given states; has
             same size as the state inputs.
         """
-        return CRRAutility(self.func(*vFuncArgs), gam=self.CRRA)
+#        return CRRAutility(self.func(*vFuncArgs), gam=self.CRRA)
+        return CRRAutility(self.vFuncNvrs(*vFuncArgs), self.CRRA)
 
 
 class MargValueFuncCRRA(MetricObject):
