@@ -868,7 +868,6 @@ class DiscreteDistribution(DiscreteDistributionOld):
         # TODO: Replace invocations of pmf with pmv
         self.pmv = pmf
 
-
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
     return DiscreteDistribution(d.pmf, np.exp(d.X), seed=seed)
@@ -1227,22 +1226,6 @@ def combine_indep_dstns(*distributions, seed=0):
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
     return DiscreteDistribution(P_out, X_out, seed=seed)
 
-
-# # 20210619: CDC: This method for taking expectations is designed for efficiency but is
-# # not at all intuitive for the user because it works only with functions that take as
-
-# handcrafted specialized functions that know that their positional first argument must be
-# a matrix whose structure matches the structure of the discrete income distribution provided
-# as the first argument. For example, if the 2D distribution is of transitory and permanent
-# shocks, the function must take as an input a matrix which is assumed to have a structure
-# that exactly mirrors the internal structure of the arrangement of broadcasted transitory
-# and permanent shocks inside the dstn object, and knows(for example) that the value of the permanent shock can be how to extract
-
-# hard to understand because it requires the user to
-# # provide an array of values of its inputs but then assumes it already knows what those
-# # inputs are. This makes little sense. If it is going to assume it knows what the inputs
-
-
 def calc_expectation(dstn, func=lambda x: x, *args):
     '''
     Expectation of a function, given an array of configurations of its inputs
@@ -1297,16 +1280,6 @@ def calc_expectation(dstn, func=lambda x: x, *args):
         f_exp = f_exp.flatten()
 
     return f_exp
-
-# "calc_expectation" is not a good name for something that
-# requires an array as an argument, returns an array, and
-# expects a peculiarly shaped distribution object as its first
-# argument.
-# TODO: 20210618: we REALLY need to improve our tools for calculating
-# expectations, both to make them better documented and more flexible.
-
-
-calc_expectation_of_array = calc_expectation
 
 
 class MarkovProcess(Distribution):

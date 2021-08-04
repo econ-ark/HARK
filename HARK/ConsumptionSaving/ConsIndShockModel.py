@@ -1,39 +1,16 @@
-# -*- coding: utf-8 -*-
+"""
+Classes to solve canonical consumption-saving models with idiosyncratic shocks
+to income.  All models here assume CRRA utility with geometric discounting, no
+bequest motive, and income shocks that are fully transitory or fully permanent.
 
-from HARK.ConsumptionSaving.ConsIndShockModelOld \
-    import ConsumerSolution as ConsumerSolutionOld
-from HARK.ConsumptionSaving.ConsIndShockModel_AgentSolve \
-    import (
-        ConsumerSolution, ConsumerSolutionOneNrmStateCRRA,
-        ConsPerfForesightSolver, ConsIndShockSetup,
-        ConsIndShockSolverBasic, ConsIndShockSolver
-        )
+It currently solves three types of models:
+   1) A very basic "perfect foresight" consumption-savings model with no uncertainty.
+   2) A consumption-savings model with risk over transitory and permanent income shocks.
+   3) The model described in (2), with an interest rate for debt that differs
+      from the interest rate for savings.
 
-from HARK.ConsumptionSaving.ConsIndShockModel_KinkedRSolver \
-    import ConsKinkedRsolver
-
-from HARK.ConsumptionSaving.ConsIndShockModel_AgentTypes \
-    import (consumer_terminal_nobequest_onestate, PerfForesightConsumerType,
-            IndShockConsumerType, KinkedRconsumerType,
-            onestate_bequest_warmglow_homothetic
-            )
-
-from HARK.ConsumptionSaving.ConsIndShockModel_AgentDicts \
-    import (
-        init_perfect_foresight,
-        init_idiosyncratic_shocks,
-        init_kinked_R,
-        init_lifecycle,
-        init_cyclical)
-
-from HARK.utilities import CRRAutility as utility
-from HARK.utilities import CRRAutilityP as utilityP
-from HARK.utilities import CRRAutilityPP as utilityPP
-from HARK.utilities import CRRAutilityP_inv as utilityP_inv
-from HARK.utilities import CRRAutility_invP as utility_invP
-from HARK.utilities import CRRAutility_inv as utility_inv
-from HARK.utilities import CRRAutilityP as utilityP_invP
-
+See NARK https://HARK.githhub.io/Documentation/NARK for information on variable naming conventions.
+See HARK documentation for mathematical descriptions of the models being solved.
 """
 Classes to define and solve canonical consumption-saving models with a single
 state variable.  All models assume CRRA utility with geometric discounting,
@@ -49,10 +26,6 @@ It currently solves three types of models:
    3) `KinkedRconsumerType`
       * `IndShockConsumerType` model but with interest rate on debt, `Rboro`
         greater than the interest rate earned on savings, `Rboro > `Rsave`
-
-See NARK https://HARK.githhub.io/Documentation/NARK for naming conventions.
-See https://hark.readthedocs.io for descriptions of the models.
-"""
 
 __all__ = [
     "ConsumerSolutionOld",

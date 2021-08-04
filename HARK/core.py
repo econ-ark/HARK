@@ -144,7 +144,7 @@ def distance_metric(thing_a, thing_b):
             warn(
                 'Objects of different lengths are being compared. ' +
                 'Returning difference in lengths.'
-            )
+                )
             distance = float(abs(len_a - len_b))
     # If both inputs are dictionaries, call distance on the list of its elements
     elif type_a is dict and type_b is dict:
@@ -179,7 +179,6 @@ def distance_metric(thing_a, thing_b):
 
     # If both inputs are numbers, return their difference
     elif isinstance(thing_a, (int, float)) and isinstance(thing_b, (int, float)):
-
         distance = float(abs(thing_a - thing_b))
     # If both inputs are array-like, return the maximum absolute difference b/w
     # corresponding elements (if same shape); return largest difference in dimensions
@@ -201,7 +200,6 @@ def distance_metric(thing_a, thing_b):
             distance = thing_a.distance(thing_b)
     else:  # Failsafe: the inputs are very far apart
         distance = 1000.0
-
     return distance
 
 
@@ -381,13 +379,12 @@ class AgentType(Model):
     state_vars = []
 
     def __init__(
-            self,
-            solution_terminal=None,
-            cycles=1,
-            pseudo_terminal=True,
-            tolerance=0.000001,
-            seed=0,
-            **kwds
+        self,
+        solution_terminal=None,
+        pseudo_terminal=True,
+        tolerance=0.000001,
+        seed=0,
+        **kwds
     ):
         Model.__init__(self)
 
@@ -395,7 +392,6 @@ class AgentType(Model):
             solution_terminal = NullFunc()
 
         self.solution_terminal = solution_terminal  # NOQA
-        self.cycles = cycles  # NOQA
         self.pseudo_terminal = pseudo_terminal  # NOQA
         self.solve_one_period = NullFunc()  # NOQA
         self.tolerance = tolerance  # NOQA
@@ -1662,7 +1658,7 @@ class Market(Model):
             Should have attributes named in dyn_vars.
         """
         # Make a dictionary of inputs for the dynamics calculator
-#        history_vars_string = ""
+        history_vars_string = ""
         arg_names = list(get_arg_names(self.calc_dynamics))
         if "self" in arg_names:
             arg_names.remove("self")
@@ -1704,6 +1700,10 @@ def distribute_params(agent, param_name, param_count, distribution):
 
     for j in range(param_count):
         agent_set[j].AgentCount = int(agent.AgentCount * param_dist.pmf[j])
-        agent_set[j].__dict__[param_name] = param_dist.X[j]
+        # agent_set[j].__dict__[param_name] = param_dist.X[j]
+
+        agent_set[j].assign_parameters(**{param_name: param_dist.X[j]})
+
+
 
     return agent_set
