@@ -45,6 +45,15 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
 
         self.pcct.sim_one_period()
 
+        self.assertTrue(
+            np.any(self.pcct.shocks['Adjust'][0])
+        )
+
+        self.assertAlmostEqual(
+            self.pcct.state_now["mNrm"][0],
+            9.70233892039
+        )
+
         self.assertAlmostEqual(self.pcct.controls["Share"][0], 0.8627164488246847)
         self.assertAlmostEqual(self.pcct.controls["cNrm"][0], 1.67874799)
 
