@@ -2,12 +2,13 @@
 # jupyter:
 #   jupytext:
 #     cell_metadata_filter: collapsed,code_folding
+#     cell_metadata_json: true
 #     formats: ipynb,py:percent
 #     text_representation:
 #       extension: .py
 #       format_name: percent
-#       format_version: '1.2'
-#       jupytext_version: 1.2.4
+#       format_version: '1.3'
+#       jupytext_version: 1.6.0
 #   kernelspec:
 #     display_name: econ-ark-3.8
 #     language: python
@@ -25,14 +26,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType
-from HARK.utilities import plotFuncsDer, plotFuncs
+from HARK.utilities import plot_funcs_der, plot_funcs
 
 mystr = lambda number: "{:.4f}".format(number)
 
 # %% [markdown]
-# The module $\texttt{HARK.ConsumptionSaving.ConsIndShockModel}$ concerns consumption-saving models with idiosyncratic shocks to (non-capital) income.  All of the models assume CRRA utility with geometric discounting, no bequest motive, and income shocks are fully transitory or fully permanent.
+# The module `HARK.ConsumptionSaving.ConsIndShockModel` concerns consumption-saving models with idiosyncratic shocks to (non-capital) income.  All of the models assume CRRA utility with geometric discounting, no bequest motive, and income shocks are fully transitory or fully permanent.
 #
-# $\texttt{ConsIndShockModel}$ currently includes three models:
+# `ConsIndShockModel` currently includes three models:
 # 1. A very basic "perfect foresight" model with no uncertainty.
 # 2. A model with risk over transitory and permanent income shocks.
 # 3. The model described in (2), with an interest rate for debt that differs from the interest rate for savings.
@@ -47,7 +48,7 @@ mystr = lambda number: "{:.4f}".format(number)
 # %% [markdown]
 # ## Statement of "kinked R" model
 #
-# Consider a small extension to the model faced by $\texttt{IndShockConsumerType}$s: that the interest rate on borrowing $a_t < 0$ is greater than the interest rate on saving $a_t > 0$.  Consumers who face this kind of problem are represented by the $\texttt{KinkedRconsumerType}$ class.
+# Consider a small extension to the model faced by `IndShockConsumerType`s: that the interest rate on borrowing $a_t < 0$ is greater than the interest rate on saving $a_t > 0$.  Consumers who face this kind of problem are represented by the $\texttt{KinkedRconsumerType}$ class.
 #
 # For a full theoretical treatment, this model analyzed in [A Theory of the Consumption Function, With
 # and Without Liquidity Constraints](http://www.econ2.jhu.edu/people/ccarroll/ATheoryv3JEP.pdf)
@@ -70,16 +71,16 @@ mystr = lambda number: "{:.4f}".format(number)
 # %% [markdown]
 # ## Solving the "kinked R" model
 #
-# The solution method for the "kinked R" model is nearly identical to that of the $\texttt{IndShockConsumerType}$ on which it is based, using the endogenous grid method; see the notebook for that model for more information.  The only significant difference is that the interest factor varies by $a_t$ across the exogenously chosen grid of end-of-period assets, with a discontinuity in $\Rfree$ at $a_t=0$.
+# The solution method for the "kinked R" model is nearly identical to that of the `IndShockConsumerType` on which it is based, using the endogenous grid method; see the notebook for that model for more information.  The only significant difference is that the interest factor varies by $a_t$ across the exogenously chosen grid of end-of-period assets, with a discontinuity in $\Rfree$ at $a_t=0$.
 #
-# To correctly handle this, the $\texttt{solveConsKinkedR}$ function inserts *two* instances of $a_t=0$ into the grid of $a_t$ values: the first corresponding to $\Rfree_{boro}$ ($a_t = -0$) and the other corresponding to $\Rfree_{save}$ ($a_t = +0$).  The two consumption levels (and corresponding endogenous $m_t$ gridpoints) represent points at which the agent's first order condition is satisfied at *exactly* $a_t=0$  at the two different interest factors.  In between these two points, the first order condition *does not hold with equality*: the consumer will end the period with exactly $a_t=0$, consuming $c_t=m_t$, but his marginal utility of consumption exceeds the marginal value of saving and is less than the marginal value of borrowing.  This generates a consumption function with *two* kinks: two concave portions (for borrowing and saving) with a linear segment of slope 1 in between.
+# To correctly handle this, the `solveConsKinkedR` function inserts *two* instances of $a_t=0$ into the grid of $a_t$ values: the first corresponding to $\Rfree_{boro}$ ($a_t = -0$) and the other corresponding to $\Rfree_{save}$ ($a_t = +0$).  The two consumption levels (and corresponding endogenous $m_t$ gridpoints) represent points at which the agent's first order condition is satisfied at *exactly* $a_t=0$  at the two different interest factors.  In between these two points, the first order condition *does not hold with equality*: the consumer will end the period with exactly $a_t=0$, consuming $c_t=m_t$, but his marginal utility of consumption exceeds the marginal value of saving and is less than the marginal value of borrowing.  This generates a consumption function with *two* kinks: two concave portions (for borrowing and saving) with a linear segment of slope 1 in between.
 
 # %% [markdown]
 # ## Example parameter values to construct an instance of KinkedRconsumerType
 #
-# The parameters required to create an instance of $\texttt{KinkedRconsumerType}$ are nearly identical to those for $\texttt{IndShockConsumerType}$.  The only difference is that the parameter $\texttt{Rfree}$ is replaced with $\texttt{Rboro}$ and $\texttt{Rsave}$.
+# The parameters required to create an instance of `KinkedRconsumerType` are nearly identical to those for `IndShockConsumerType`.  The only difference is that the parameter $\texttt{Rfree}$ is replaced with $\texttt{Rboro}$ and $\texttt{Rsave}$.
 #
-# While the parameter $\texttt{CubicBool}$ is required to create a valid $\texttt{KinkedRconsumerType}$ instance, it must be set to $\texttt{False}$; cubic spline interpolation has not yet been implemented for this model.  In the future, this restriction will be lifted.
+# While the parameter $\texttt{CubicBool}$ is required to create a valid `KinkedRconsumerType` instance, it must be set to `False`; cubic spline interpolation has not yet been implemented for this model.  In the future, this restriction will be lifted.
 #
 # | Parameter | Description | Code | Example value | Time-varying? |
 # | :---: | --- | --- | --- | --- |
@@ -109,7 +110,7 @@ mystr = lambda number: "{:.4f}".format(number)
 # |$T$| Number of periods in this type's "cycle" |$\texttt{T_cycle}$| $1$ | |
 # |(none)| Number of times the "cycle" occurs |$\texttt{cycles}$| $0$ | |
 #
-# These example parameters are almostidentical to those used for $\texttt{IndShockExample}$ in the prior notebook, except that the interest rate on borrowing is 20% (like a credit card), and the interest rate on saving is 1%. Moreover, the artificial borrowing constraint has been set to $\texttt{None}$.  The cell below defines a parameter dictionary with these example values.
+# These example parameters are almostidentical to those used for `IndShockExample` in the prior notebook, except that the interest rate on borrowing is 20% (like a credit card), and the interest rate on saving is 1%. Moreover, the artificial borrowing constraint has been set to `None`.  The cell below defines a parameter dictionary with these example values.
 
 # %% {"code_folding": [0]}
 KinkedRdict = {  # Click the arrow to expand this parameter dictionary
@@ -157,7 +158,7 @@ KinkedRdict = {  # Click the arrow to expand this parameter dictionary
 # %% [markdown]
 # ## Solving and examining the solution of the "kinked R" model
 #
-# The cell below creates an infinite horizon instance of $\texttt{KinkedRconsumerType}$ and solves its model by calling its $\texttt{solve}$ method.
+# The cell below creates an infinite horizon instance of `KinkedRconsumerType` and solves its model by calling its `solve` method.
 
 # %%
 KinkyExample = KinkedRconsumerType(**KinkedRdict)
@@ -165,21 +166,21 @@ KinkyExample.cycles = 0  # Make the example infinite horizon
 KinkyExample.solve()
 
 # %% [markdown]
-# An element of a $\texttt{KinkedRconsumerType}$'s solution will have all the same attributes as that of a $\texttt{IndShockConsumerType}$; see that notebook for details.
+# An element of a `KinkedRconsumerType`'s solution will have all the same attributes as that of a `IndShockConsumerType`; see that notebook for details.
 #
 # We can plot the consumption function of our "kinked R" example, as well as the MPC:
 
 # %%
 print("Kinked R consumption function:")
-plotFuncs(KinkyExample.solution[0].cFunc, KinkyExample.solution[0].mNrmMin, 5)
+plot_funcs(KinkyExample.solution[0].cFunc, KinkyExample.solution[0].mNrmMin, 5)
 
 print("Kinked R marginal propensity to consume:")
-plotFuncsDer(KinkyExample.solution[0].cFunc, KinkyExample.solution[0].mNrmMin, 5)
+plot_funcs_der(KinkyExample.solution[0].cFunc, KinkyExample.solution[0].mNrmMin, 5)
 
 # %% [markdown]
 # ## Simulating the "kinked R" model
 #
-# In order to generate simulated data, an instance of $\texttt{KinkedRconsumerType}$ needs to know how many agents there are that share these particular parameters (and are thus *ex ante* homogeneous), the distribution of states for newly "born" agents, and how many periods to simulated.  These simulation parameters are described in the table below, along with example values.
+# In order to generate simulated data, an instance of `KinkedRconsumerType` needs to know how many agents there are that share these particular parameters (and are thus *ex ante* homogeneous), the distribution of states for newly "born" agents, and how many periods to simulated.  These simulation parameters are described in the table below, along with example values.
 #
 # | Description | Code | Example value |
 # | :---: | --- | --- |
@@ -194,11 +195,11 @@ plotFuncsDer(KinkyExample.solution[0].cFunc, KinkyExample.solution[0].mNrmMin, 5
 #
 # Here, we will simulate 10,000 consumers for 500 periods.  All newly born agents will start with permanent income of exactly $P_t = 1.0 = \exp(\texttt{pLvlInitMean})$, as $\texttt{pLvlInitStd}$ has been set to zero; they will have essentially zero assets at birth, as $\texttt{aNrmInitMean}$ is $-6.0$; assets will be less than $1\%$ of permanent income at birth.
 #
-# These example parameter values were already passed as part of the parameter dictionary that we used to create $\texttt{KinkyExample}$, so it is ready to simulate.  We need to set the $\texttt{track_vars}$ attribute to indicate the variables for which we want to record a *history*.
+# These example parameter values were already passed as part of the parameter dictionary that we used to create `KinkyExample`, so it is ready to simulate.  We need to set the `track_vars` attribute to indicate the variables for which we want to record a *history*.
 
 # %%
 KinkyExample.track_vars = ['mNrm', 'cNrm', 'pLvl']
-KinkyExample.initializeSim()
+KinkyExample.initialize_sim()
 KinkyExample.simulate()
 
 # %% [markdown]
@@ -224,3 +225,9 @@ plt.show()
 # We can see there's a significant point mass of consumers with *exactly* $a_t=0$; these are consumers who do not find it worthwhile to give up a bit of consumption to begin saving (because $\Rfree_{save}$ is too low), and also are not willing to finance additional consumption by borrowing (because $\Rfree_{boro}$ is too high).
 #
 # The smaller point masses in this distribution are due to $\texttt{HARK}$ drawing simulated income shocks from the discretized distribution, rather than the "true" lognormal distributions of shocks.  For consumers who ended $t-1$ with $a_{t-1}=0$ in assets, there are only 8 values the transitory shock $\theta_{t}$ can take on, and thus only 8 values of $m_t$ thus $a_t$ they can achieve; the value of $\psi_t$ is immaterial to $m_t$ when $a_{t-1}=0$.  You can verify this by changing $\texttt{TranShkCount}$ to some higher value, like 25, in the dictionary above, then running the subsequent cells; the smaller point masses will not be visible to the naked eye.
+
+# %%
+
+# %%
+
+# %%

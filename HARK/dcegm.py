@@ -10,13 +10,13 @@ import numpy as np
 from HARK.interpolation import LinearInterp
 
 
-def calcCrossPoints(mGrid, condVs, optIdx):
+def calc_cross_points(mGrid, condVs, optIdx):
     """
     Given a grid of m values, a matrix of the conditional values of different
     actions at every grid point, and a vector indicating the optimal action
     at each grid point, this function computes the coordinates of the
     crossing points that happen when the optimal action changes
-    
+
     Parameters
     ----------
     mGrid : np.array
@@ -24,7 +24,7 @@ def calcCrossPoints(mGrid, condVs, optIdx):
     condVs : np.array must have as many rows as possible discrete actions, and
              as many columns as m gridpoints there are.
         Conditional value functions
-        
+
     optIdx : np.array of indices
         Optimal decision at each grid point
     Returns
@@ -85,14 +85,14 @@ def calcCrossPoints(mGrid, condVs, optIdx):
 
         # Find crossing points. Returns a list (m,v) tuples. Keep m's only
         xing_points = [
-            calcLinearCrossing(switchMs[i, :], left_v[i, :], right_v[i, :])
+            calc_linear_crossing(switchMs[i, :], left_v[i, :], right_v[i, :])
             for i in range(segments.shape[0])
         ]
 
         return xing_points, segments
 
 
-def calcPrimKink(mGrid, vTGrids, Choices):
+def calc_prim_kink(mGrid, vTGrids, choices):
     """
     Parameters
     ----------
@@ -100,7 +100,7 @@ def calcPrimKink(mGrid, vTGrids, Choices):
         Common m grid
     vTGrids : [np.array], length  = # choices, each element has length = len(mGrid)
         value functions evaluated on the common m grid.
-    Choices : [np.array], length  = # choices, each element has length = len(mGrid)
+    choices : [np.array], length  = # choices, each element has length = len(mGrid)
         Optimal choices. In the form of choice probability vectors that must
         be degenerate
 
@@ -114,16 +114,15 @@ def calcPrimKink(mGrid, vTGrids, Choices):
     """
 
     # Construct a vector with the optimal choice at each m point
-    optChoice = np.empty(len(mGrid), dtype=int)
-    optChoice[:] = np.nan
+    optChoice = np.zeros_like(mGrid, dtype=int)
     for i in range(len(vTGrids)):
-        idx = Choices[i] == 1
+        idx = choices[i] == 1
         optChoice[idx] = i
 
-    return calcCrossPoints(mGrid, vTGrids.T, optChoice)
+    return calc_cross_points(mGrid, vTGrids.T, optChoice)
 
 
-def calcSegments(x, v):
+def calc_segments(x, v):
     """
     Find index vectors `rise` and `fall` such that `rise` holds the indeces `i`
     such that x[i+1]>x[i] and `fall` holds indeces `j` such that either
@@ -206,7 +205,7 @@ def calcSegments(x, v):
 # in all nan slices to a valueerror...it's nans, aaarghgghg
 
 
-def calcLinearCrossing(m, left_v, right_v):
+def calc_linear_crossing(m, left_v, right_v):
     """
     Computes the intersection between two line segments, defined by two common
     x points, and the values of both segments at both x points
@@ -244,7 +243,7 @@ def calcLinearCrossing(m, left_v, right_v):
             return (m[0] + h, left_v[0] + h * s0)
 
 
-def calcMultilineEnvelope(M, C, V_T, commonM, findXings=False):
+def calc_multiline_envelope(M, C, V_T, commonM, find_crossings=False):
     """
     Do the envelope step of the DCEGM algorithm. Takes in market ressources,
     consumption levels, and inverse values from the EGM step. These represent
@@ -261,7 +260,7 @@ def calcMultilineEnvelope(M, C, V_T, commonM, findXings=False):
         transformed values at the EGM grid
     commonM : np.array
         common grid to do upper envelope calculations on
-    findXings: boolean
+    find_crossings: boolean
         should the exact crossing points of segments be computed and added to
         the grids?
     Returns
@@ -270,13 +269,13 @@ def calcMultilineEnvelope(M, C, V_T, commonM, findXings=False):
 
     """
     m_len = len(commonM)
-    rise, fall = calcSegments(M, V_T)
+    rise, fall = calc_segments(M, V_T)
 
     num_kinks = len(fall)  # number of kinks / falling EGM grids
 
     # Use these segments to sequentially find upper envelopes. commonVARNAME
     # means the VARNAME evaluated on the common grid with a cloumn for each kink
-    # discovered in calcSegments. This means that commonVARNAME is a matrix
+    # discovered in calc_segments. This means that commonVARNAME is a matrix
     # common grid length-by-number of segments to consider. In the end, we'll
     # use nanargmax over the columns to pick out the best (transformed) values.
     # This is why we fill the arrays with np.nan's.
@@ -288,7 +287,7 @@ def calcMultilineEnvelope(M, C, V_T, commonM, findXings=False):
     # Now, loop over all segments as defined by the "kinks" or the combination
     # of "rise" and "fall" indeces. These (rise[j], fall[j]) pairs define regions.
 
-    if findXings:
+    if find_crossings:
         # We'll save V_T and C interpolating functions to aid crossing points later
         vT_funcs = []
         c_funcs = []
@@ -310,7 +309,7 @@ def calcMultilineEnvelope(M, C, V_T, commonM, findXings=False):
 
         # If we need to compute the xing points, create and store the
         # interpolating functions. Else simply create them.
-        if findXings:
+        if find_crossings:
             # Create and store interpolating functions
             vT_funcs.append(LinearInterp(m_idx_j, V_T[idxs], lower_extrap=True))
             c_funcs.append(LinearInterp(m_idx_j, C[idxs], lower_extrap=True))
@@ -376,13 +375,13 @@ def calcMultilineEnvelope(M, C, V_T, commonM, findXings=False):
 
     # If crossing points are requested, compute them. Else just return the
     # envelope.
-    if not findXings:
+    if not find_crossings:
 
         return upperM, upperC, upperV_T
 
     else:
 
-        xing_points, segments = calcCrossPoints(commonM, commonV_T, idx_max)
+        xing_points, segments = calc_cross_points(commonM, commonV_T, idx_max)
         # keep only the m component of crossing points.
         xing_points = [x[0] for x in xing_points]
 

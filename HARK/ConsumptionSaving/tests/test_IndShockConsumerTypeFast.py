@@ -19,17 +19,17 @@ class testIndShockConsumerTypeFast(unittest.TestCase):
 
         self.agent.solve()
 
-    def test_getShocks(self):
-        self.agent.initializeSim()
-        self.agent.simBirth(np.array([True, False]))
-        self.agent.simOnePeriod()
-        self.agent.simBirth(np.array([False, True]))
+    def test_get_shocks(self):
+        self.agent.initialize_sim()
+        self.agent.sim_birth(np.array([True, False]))
+        self.agent.sim_one_period()
+        self.agent.sim_birth(np.array([False, True]))
 
-        self.agent.getShocks()
+        self.agent.get_shocks()
 
         self.assertEqual(self.agent.shocks['PermShk'][0], 1.0427376294215103)
-        self.assertEqual(self.agent.shocks['PermShk'][1], 0.9278094171517413)
-        self.assertEqual(self.agent.shocks['TranShk'][0], 0.881761797501595)
+        self.assertAlmostEqual(self.agent.shocks['PermShk'][1], 0.9278094171517413)
+        self.assertAlmostEqual(self.agent.shocks['TranShk'][0], 0.881761797501595)
 
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerTypeFast(**init_lifecycle)
@@ -39,22 +39,22 @@ class testIndShockConsumerTypeFast(unittest.TestCase):
         # test the solution_terminal
         self.assertAlmostEqual(LifecycleExample.solution[-1].cFunc(2).tolist(), 2)
 
-        self.assertAlmostEqual(LifecycleExample.solution[9].cFunc(1), 0.89066194)
-        self.assertAlmostEqual(LifecycleExample.solution[8].cFunc(1), 0.89144313)
-        self.assertAlmostEqual(LifecycleExample.solution[7].cFunc(1), 0.89210133)
+        self.assertAlmostEqual(LifecycleExample.solution[9].cFunc(1), 0.79429538)
+        self.assertAlmostEqual(LifecycleExample.solution[8].cFunc(1), 0.79391692)
+        self.assertAlmostEqual(LifecycleExample.solution[7].cFunc(1), 0.79253095)
 
         self.assertAlmostEqual(
-            LifecycleExample.solution[0].cFunc(1).tolist(), 0.8928547282397321
+            LifecycleExample.solution[0].cFunc(1).tolist(), 0.7506184692092213
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[1].cFunc(1).tolist(), 0.8930303445748624
+            LifecycleExample.solution[1].cFunc(1).tolist(), 0.7586358637239385
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[2].cFunc(1).tolist(), 0.8933075371183773
+            LifecycleExample.solution[2].cFunc(1).tolist(), 0.7681247572911291
         )
 
     def test_simulated_values(self):
-        self.agent.initializeSim()
+        self.agent.initialize_sim()
         self.agent.simulate()
         self.assertAlmostEqual(self.agent.MPCnow[1], 0.5711503906043797)
 
@@ -89,7 +89,7 @@ class testBufferStock(unittest.TestCase):
         baseEx.cycles = 100  # Make this type have a finite horizon (Set T = 100)
 
         baseEx.solve()
-        baseEx.unpackcFunc()
+        baseEx.unpack_cFunc()
 
         m = np.linspace(0, 9.5, 1000)
 
@@ -105,34 +105,34 @@ class testBufferStock(unittest.TestCase):
         self.assertAlmostEqual(c_t10[600], 1.6101476268581576)
         self.assertAlmostEqual(c_t10[700], 1.7196531041366991)
 
-    def test_GICFails(self):
-        GIC_fail_dictionary = dict(self.base_params)
-        GIC_fail_dictionary["Rfree"] = 1.08
-        GIC_fail_dictionary["PermGroFac"] = [1.00]
+    def test_GICRawFails(self):
+        GICRaw_fail_dictionary = dict(self.base_params)
+        GICRaw_fail_dictionary["Rfree"] = 1.08
+        GICRaw_fail_dictionary["PermGroFac"] = [1.00]
+        GICRaw_fail_dictionary['cycles'] = 0 # cycles=0 makes this an infinite horizon consumer
 
-        GICFailExample = IndShockConsumerTypeFast(
-            cycles=0,  # cycles=0 makes this an infinite horizon consumer
-            **GIC_fail_dictionary
+        GICRawFailExample = IndShockConsumerTypeFast(
+            **GICRaw_fail_dictionary
         )
 
-        GICFailExample.solve()
-        GICFailExample.unpackcFunc()
+        GICRawFailExample.solve()
+        GICRawFailExample.unpack_cFunc()
         m = np.linspace(0, 5, 1000)
-        c_m = GICFailExample.cFunc[0](m)
+        c_m = GICRawFailExample.cFunc[0](m)
 
         self.assertAlmostEqual(c_m[500], 0.7772637042393458)
         self.assertAlmostEqual(c_m[700], 0.8392649061916746)
 
-        self.assertFalse(GICFailExample.conditions["GIC"])
+        self.assertFalse(GICRawFailExample.conditions["GICRaw"])
 
     def test_infinite_horizon(self):
-        baseEx_inf = IndShockConsumerTypeFast(cycles=0, **self.base_params)
-
+        baseEx_inf = IndShockConsumerTypeFast(**self.base_params)
+        baseEx_inf.assign_parameters(cycles = 0)
         baseEx_inf.solve()
-        baseEx_inf.unpackcFunc()
+        baseEx_inf.unpack_cFunc()
 
         m1 = np.linspace(
-            1, baseEx_inf.solution[0].mNrmSS, 50
+            1, baseEx_inf.solution[0].mNrmStE, 50
         )  # m1 defines the plot range on the left of target m value (e.g. m <= target m)
         c_m1 = baseEx_inf.cFunc[0](m1)
 
@@ -157,16 +157,16 @@ class testBufferStock(unittest.TestCase):
 class testIndShockConsumerTypeFastExample(unittest.TestCase):
     def test_infinite_horizon(self):
         IndShockExample = IndShockConsumerTypeFast(**IdiosyncDict)
-        IndShockExample.cycles = 0  # Make this type have an infinite horizon
+        IndShockExample.assign_parameters(cycles = 0)  # Make this type have an infinite horizon
         IndShockExample.solve()
 
-        self.assertAlmostEqual(IndShockExample.solution[0].mNrmSS, 1.5488165705077026)
+        self.assertAlmostEqual(IndShockExample.solution[0].mNrmStE, 1.5488165705077026)
         self.assertAlmostEqual(
             IndShockExample.solution[0].cFunc.functions[0].x_list[0], -0.25017509
         )
 
         IndShockExample.track_vars = ['aNrm', "mNrm", 'cNrm', 'pLvl']
-        IndShockExample.initializeSim()
+        IndShockExample.initialize_sim()
         IndShockExample.simulate()
 
         self.assertAlmostEqual(

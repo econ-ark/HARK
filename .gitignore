@@ -284,3 +284,8 @@ nate-notes/
 # VSCode 
 settings.json
 .idea
+
+# Spyder project settings
+.spyderproject
+spyproject
+.spyproject

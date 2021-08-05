@@ -6,78 +6,72 @@ of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
-from __future__ import print_function, division
-from __future__ import absolute_import
-
-from builtins import str
-from builtins import range
-from builtins import object
 import sys
 import os
 from distutils.dir_util import copy_tree
-from .utilities import getArgNames, NullFunc
+from .utilities import get_arg_names, NullFunc
 from copy import copy, deepcopy
 import numpy as np
 from time import time
-from .parallel import multiThreadCommands, multiThreadCommandsFake
+from .parallel import multi_thread_commands, multi_thread_commands_fake
 from warnings import warn
 
 
-def distanceMetric(thing_A, thing_B):
+def distance_metric(thing_a, thing_b):
     """
     A "universal distance" metric that can be used as a default in many settings.
 
     Parameters
     ----------
-    thing_A : object
+    thing_a : object
         A generic object.
-    thing_B : object
+    thing_b : object
         Another generic object.
 
     Returns:
     ------------
     distance : float
-        The "distance" between thing_A and thing_B.
+        The "distance" between thing_a and thing_b.
     """
     # Get the types of the two inputs
-    typeA = type(thing_A)
-    typeB = type(thing_B)
+    type_a = type(thing_a)
+    type_b = type(thing_b)
 
-    if typeA is list and typeB is list:
-        lenA = len(thing_A)  # If both inputs are lists, then the distance between
-        lenB = len(thing_B)  # them is the maximum distance between corresponding
-        if lenA == lenB:  # elements in the lists.  If they differ in length,
+    if type_a is list and type_b is list:
+        len_a = len(thing_a)  # If both inputs are lists, then the distance between
+        len_b = len(thing_b)  # them is the maximum distance between corresponding
+        if len_a == len_b:  # elements in the lists.  If they differ in length,
             distance_temp = []  # the distance is the difference in lengths.
-            for n in range(lenA):
-                distance_temp.append(distanceMetric(thing_A[n], thing_B[n]))
+            for n in range(len_a):
+                distance_temp.append(distance_metric(thing_a[n], thing_b[n]))
             distance = max(distance_temp)
         else:
             warn(
                 'Objects of different lengths are being compared. ' +
                 'Returning difference in lengths.'
                 )
-            distance = float(abs(lenA - lenB))
+            distance = float(abs(len_a - len_b))
     # If both inputs are dictionaries, call distance on the list of its elements
-    elif typeA is dict and typeB is dict:
+    elif type_a is dict and type_b is dict:
 
-        lenA = len(thing_A)
-        lenB = len(thing_B)
+        len_a = len(thing_a)
+        len_b = len(thing_b)
 
-        if lenA == lenB:
+        if len_a == len_b:
 
             # Create versions sorted by key
-            sortedA = dict(sorted(thing_A.items()))
-            sortedB = dict(sorted(thing_B.items()))
+            sorted_a = dict(sorted(thing_a.items()))
+            sorted_b = dict(sorted(thing_b.items()))
 
             # If keys don't match, print a warning.
-            if list(sortedA.keys()) != list(sortedB.keys()):
+            if list(sorted_a.keys()) != list(sorted_b.keys()):
                 warn(
                     'Dictionaries with keys that do not match are being ' + 
                     'compared.'
                 )
 
-            distance = distanceMetric(list(sortedA.values()),
-                                      list(sortedB.values()))
+            distance = distance_metric(list(sorted_a.values()),
+                                      list(sorted_b.values()))
 
         else:
             # If they have different lengths, log a warning and return the
@@ -86,29 +80,29 @@ def distanceMetric(thing_A, thing_B):
                 'Objects of different lengths are being compared. ' + 
                 'Returning difference in lengths.'
                 )
-            distance = float(abs(lenA - lenB))
+            distance = float(abs(len_a - len_b))
 
     # If both inputs are numbers, return their difference
-    elif isinstance(thing_A, (int, float)) and isinstance(thing_B, (int, float)):
-        distance = float(abs(thing_A - thing_B))
+    elif isinstance(thing_a, (int, float)) and isinstance(thing_b, (int, float)):
+        distance = float(abs(thing_a - thing_b))
     # If both inputs are array-like, return the maximum absolute difference b/w
     # corresponding elements (if same shape); return largest difference in dimensions
     # if shapes do not align.
-    elif hasattr(thing_A, "shape") and hasattr(thing_B, "shape"):
-        if thing_A.shape == thing_B.shape:
-            distance = np.max(abs(thing_A - thing_B))
+    elif hasattr(thing_a, "shape") and hasattr(thing_b, "shape"):
+        if thing_a.shape == thing_b.shape:
+            distance = np.max(abs(thing_a - thing_b))
         else:
             # Flatten arrays so they have the same dimensions
             distance = np.max(
-                abs(thing_A.flatten().shape[0] - thing_B.flatten().shape[0])
+                abs(thing_a.flatten().shape[0] - thing_b.flatten().shape[0])
             )
     # If none of the above cases, but the objects are of the same class, call
     # the distance method of one on the other
-    elif thing_A.__class__.__name__ == thing_B.__class__.__name__:
-        if thing_A.__class__.__name__ == "function":
+    elif thing_a.__class__.__name__ == thing_b.__class__.__name__:
+        if thing_a.__class__.__name__ == "function":
             distance = 0.0
         else:
-            distance = thing_A.distance(thing_B)
+            distance = thing_a.distance(thing_b)
     else:  # Failsafe: the inputs are very far apart
         distance = 1000.0
     return distance
@@ -142,9 +136,9 @@ class MetricObject(object):
         distance_list = [0.0]
         for attr_name in self.distance_criteria:
             try:
-                obj_A = getattr(self, attr_name)
-                obj_B = getattr(other, attr_name)
-                distance_list.append(distanceMetric(obj_A, obj_B))
+                obj_a = getattr(self, attr_name)
+                obj_b = getattr(other, attr_name)
+                distance_list.append(distance_metric(obj_a, obj_b))
             except AttributeError:
                 distance_list.append(
                     1000.0
@@ -155,7 +149,7 @@ class Model(object):
     """
     A class with special handling of parameters assignment.
     """
-    def assignParameters(self, **kwds):
+    def assign_parameters(self, **kwds):
         """
         Assign an arbitrary number of attributes to this agent.
 
@@ -169,22 +163,35 @@ class Model(object):
         -------
         none
         """
-        self.parameters = kwds
+        self.parameters.update(kwds)
         for key in kwds:
             setattr(self, key, kwds[key])
 
-    def __call__(self, **kwds):
+    def get_parameter(self, name):
         """
-        Assign an arbitrary number of attributes to this agent, as a convenience.
-        See assignParameters.
+        Returns a parameter of this model
+
+        Parameters
+        ----------
+        name : string
+            The name of the parameter to get
+
+        Returns
+        -------
+        value :
+            The value of the parameter
         """
-        self.assignParameters(**kwds)
+        return self.parameters[name]
 
     def __eq__(self, other):
         if isinstance(other, type(self)):
             return self.parameters == other.parameters
 
         return notImplemented
+
+    def __init__(self):
+        if not hasattr(self, 'parameters'):
+            self.parameters = {}
 
     def __str__(self):
 
@@ -255,19 +262,19 @@ class AgentType(Model):
     def __init__(
         self,
         solution_terminal=None,
-        cycles=1,
         pseudo_terminal=True,
         tolerance=0.000001,
         seed=0,
         **kwds
     ):
+        super().__init__()
+
         if solution_terminal is None:
             solution_terminal = NullFunc()
 
         self.solution_terminal = solution_terminal  # NOQA
-        self.cycles = cycles  # NOQA
         self.pseudo_terminal = pseudo_terminal  # NOQA
-        self.solveOnePeriod = NullFunc()  # NOQA
+        self.solve_one_period = NullFunc()  # NOQA
         self.tolerance = tolerance  # NOQA
         self.seed = seed  # NOQA
         self.track_vars = []  # NOQA
@@ -278,10 +285,10 @@ class AgentType(Model):
         self.read_shocks = False  # NOQA
         self.shock_history = {}
         self.history = {}
-        self.assignParameters(**kwds)  # NOQA
-        self.resetRNG()  # NOQA
+        self.assign_parameters(**kwds)  # NOQA
+        self.reset_rng()  # NOQA
 
-    def addToTimeVary(self, *params):
+    def add_to_time_vary(self, *params):
         """
         Adds any number of parameters to time_vary for this instance.
 
@@ -298,7 +305,7 @@ class AgentType(Model):
             if param not in self.time_vary:
                 self.time_vary.append(param)
 
-    def addToTimeInv(self, *params):
+    def add_to_time_inv(self, *params):
         """
         Adds any number of parameters to time_inv for this instance.
 
@@ -315,7 +322,7 @@ class AgentType(Model):
             if param not in self.time_inv:
                 self.time_inv.append(param)
 
-    def delFromTimeVary(self, *params):
+    def del_from_time_vary(self, *params):
         """
         Removes any number of parameters from time_vary for this instance.
 
@@ -332,7 +339,7 @@ class AgentType(Model):
             if param in self.time_vary:
                 self.time_vary.remove(param)
 
-    def delFromTimeInv(self, *params):
+    def del_from_time_inv(self, *params):
         """
         Removes any number of parameters from time_inv for this instance.
 
@@ -369,7 +376,7 @@ class AgentType(Model):
         setattr(self, parameter, list())
         for solution_t in self.solution:
             self.__dict__[parameter].append(solution_t.__dict__[parameter])
-        self.addToTimeVary(parameter)
+        self.add_to_time_vary(parameter)
 
     def solve(self, verbose=False):
         """
@@ -393,13 +400,13 @@ class AgentType(Model):
         with np.errstate(
             divide="ignore", over="ignore", under="ignore", invalid="ignore"
         ):
-            self.preSolve()  # Do pre-solution stuff
-            self.solution = solveAgent(
+            self.pre_solve()  # Do pre-solution stuff
+            self.solution = solve_agent(
                 self, verbose
             )  # Solve the model by backward induction
-            self.postSolve()  # Do post-solution stuff
+            self.post_solve()  # Do post-solution stuff
 
-    def resetRNG(self):
+    def reset_rng(self):
         """
         Reset the random number generator for this type.
 
@@ -413,7 +420,7 @@ class AgentType(Model):
         """
         self.RNG = np.random.RandomState(self.seed)
 
-    def checkElementsOfTimeVaryAreLists(self):
+    def check_elements_of_time_vary_are_lists(self):
         """
         A method to check that elements of time_vary are lists.
         """
@@ -422,13 +429,13 @@ class AgentType(Model):
                 param + " is not a list, but should be" + " because it is in time_vary"
             )
 
-    def checkRestrictions(self):
+    def check_restrictions(self):
         """
         A method to check that various restrictions are met for the model class.
         """
         return
 
-    def preSolve(self):
+    def pre_solve(self):
         """
         A method that is run immediately before the model is solved, to check inputs or to prepare
         the terminal solution, perhaps.
@@ -441,11 +448,11 @@ class AgentType(Model):
         -------
         none
         """
-        self.checkRestrictions()
-        self.checkElementsOfTimeVaryAreLists()
+        self.check_restrictions()
+        self.check_elements_of_time_vary_are_lists()
         return None
 
-    def postSolve(self):
+    def post_solve(self):
         """
         A method that is run immediately after the model is solved, to finalize
         the solution in some way.  Does nothing here.
@@ -460,10 +467,10 @@ class AgentType(Model):
         """
         return None
 
-    def initializeSim(self):
+    def initialize_sim(self):
         """
         Prepares this AgentType for a new simulation.  Resets the internal random number generator,
-        makes initial states for all agents (using simBirth), clears histories of tracked variables.
+        makes initial states for all agents (using sim_birth), clears histories of tracked variables.
 
         Parameters
         ----------
@@ -485,7 +492,7 @@ class AgentType(Model):
                 + "that can be simulated for an agent, and must be a positive number."
             )
 
-        self.resetRNG()
+        self.reset_rng()
         self.t_sim = 0
         all_agents = np.ones(self.AgentCount, dtype=bool)
         blank_array = np.empty(self.AgentCount)
@@ -502,16 +509,16 @@ class AgentType(Model):
         self.t_cycle = np.zeros(
             self.AgentCount, dtype=int
         )  # Which cycle period each agent is on
-        self.simBirth(all_agents)
-        self.clearHistory()
+        self.sim_birth(all_agents)
+        self.clear_history()
         return None
 
-    def simOnePeriod(self):
+    def sim_one_period(self):
         """
-        Simulates one period for this type.  Calls the methods getMortality(), getShocks() or
-        readShocks, getStates(), getControls(), and getPostStates().  These should be defined for
-        AgentType subclasses, except getMortality (define its components simDeath and simBirth
-        instead) and readShocks.
+        Simulates one period for this type.  Calls the methods get_mortality(), get_shocks() or
+        read_shocks, get_states(), get_controls(), and get_poststates().  These should be defined for
+        AgentType subclasses, except get_mortality (define its components sim_death and sim_birth
+        instead) and read_shocks.
 
         Parameters
         ----------
@@ -528,7 +535,7 @@ class AgentType(Model):
             )
 
         # Mortality adjusts the agent population
-        self.getMortality()  # Replace some agents with "newborns"
+        self.get_mortality()  # Replace some agents with "newborns"
 
         # state_{t-1}
         for var in self.state_now:
@@ -541,12 +548,12 @@ class AgentType(Model):
                 pass
 
         if self.read_shocks:  # If shock histories have been pre-specified, use those
-            self.readShocks()
+            self.read_shocks_from_history()
         else:  # Otherwise, draw shocks as usual according to subclass-specific method
-            self.getShocks()
-        self.getStates()  # Determine each agent's state at decision time
-        self.getControls()  # Determine each agent's choice or control variables based on states
-        self.getPostStates()  # Move now state_now to state_prev
+            self.get_shocks()
+        self.get_states()  # Determine each agent's state at decision time
+        self.get_controls()  # Determine each agent's choice or control variables based on states
+        self.get_poststates()  # Move now state_now to state_prev
 
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
@@ -555,7 +562,7 @@ class AgentType(Model):
             self.t_cycle == self.T_cycle
         ] = 0  # Resetting to zero for those who have reached the end
 
-    def makeShockHistory(self):
+    def make_shock_history(self):
         """
         Makes a pre-specified history of shocks for the simulation.  Shock variables should be named
         in self.shock_vars, a list of strings that is subclass-specific.  This method runs a subset
@@ -573,7 +580,7 @@ class AgentType(Model):
         None
         """
         # Re-initialize the simulation
-        self.initializeSim()
+        self.initialize_sim()
 
         # Make blank history arrays for each shock variable (and mortality)
         for var_name in self.shock_vars:
@@ -586,9 +593,9 @@ class AgentType(Model):
 
         # Make and store the history of shocks for each period
         for t in range(self.T_sim):
-            self.getMortality()
+            self.get_mortality()
             self.shock_history["who_dies"][t, :] = self.who_dies
-            self.getShocks()
+            self.get_shocks()
             for var_name in self.shock_vars:
                 self.shock_history[var_name][self.t_sim, :] = self.shocks[var_name]
 
@@ -602,12 +609,12 @@ class AgentType(Model):
         # Flag that shocks can be read rather than simulated
         self.read_shocks = True
 
-    def getMortality(self):
+    def get_mortality(self):
         """
-        Simulates mortality or agent turnover according to some model-specific rules named simDeath
-        and simBirth (methods of an AgentType subclass).  simDeath takes no arguments and returns
+        Simulates mortality or agent turnover according to some model-specific rules named sim_death
+        and sim_birth (methods of an AgentType subclass).  sim_death takes no arguments and returns
         a Boolean array of size AgentCount, indicating which agents of this type have "died" and
-        must be replaced.  simBirth takes such a Boolean array as an argument and generates initial
+        must be replaced.  sim_birth takes such a Boolean array as an argument and generates initial
         post-decision states for those agent indices.
 
         Parameters
@@ -621,12 +628,12 @@ class AgentType(Model):
         if self.read_shocks:
             who_dies = self.shock_history["who_dies"][self.t_sim, :]
         else:
-            who_dies = self.simDeath()
-        self.simBirth(who_dies)
+            who_dies = self.sim_death()
+        self.sim_birth(who_dies)
         self.who_dies = who_dies
         return None
 
-    def simDeath(self):
+    def sim_death(self):
         """
         Determines which agents in the current population "die" or should be replaced.  Takes no
         inputs, returns a Boolean array of size self.AgentCount, which has True for agents who die
@@ -645,7 +652,7 @@ class AgentType(Model):
         who_dies = np.zeros(self.AgentCount, dtype=bool)
         return who_dies
 
-    def simBirth(self, which_agents):
+    def sim_birth(self, which_agents):
         """
         Makes new agents for the simulation.  Takes a boolean array as an input, indicating which
         agent indices are to be "born".  Does nothing by default, must be overwritten by a subclass.
@@ -659,10 +666,10 @@ class AgentType(Model):
         -------
         None
         """
-        print("AgentType subclass must define method simBirth!")
+        print("AgentType subclass must define method sim_birth!")
         return None
 
-    def getShocks(self):
+    def get_shocks(self):
         """
         Gets values of shock variables for the current period.  Does nothing by default, but can
         be overwritten by subclasses of AgentType.
@@ -677,14 +684,14 @@ class AgentType(Model):
         """
         return None
 
-    def readShocks(self):
+    def read_shocks_from_history(self):
         """
         Reads values of shock variables for the current period from history arrays.
         For each variable X named in self.shock_vars, this attribute of self is
         set to self.history[X][self.t_sim,:].
 
         This method is only ever called if self.read_shocks is True.  This can
-        be achieved by using the method makeShockHistory() (or manually after
+        be achieved by using the method make_shock_history() (or manually after
         storing a "handcrafted" shock history).
 
         Parameters
@@ -698,7 +705,7 @@ class AgentType(Model):
         for var_name in self.shock_vars:
             self.shocks[var_name] = self.shock_history[var_name][self.t_sim, :]
 
-    def getStates(self):
+    def get_states(self):
         """
         Gets values of state variables for the current period.
         By default, calls transition function and assigns values
@@ -740,7 +747,7 @@ class AgentType(Model):
 
         return ()
 
-    def getControls(self):
+    def get_controls(self):
         """
         Gets values of control variables for the current period, probably by using current states.
         Does nothing by default, but can be overwritten by subclasses of AgentType.
@@ -755,13 +762,16 @@ class AgentType(Model):
         """
         return None
 
-    def getPostStates(self):
+    def get_poststates(self):
         """
         Gets values of post-decision state variables for the current period, 
         probably by current
         states and controls and maybe market-level events or shock variables.  
         Does nothing by
         default, but can be overwritten by subclasses of AgentType.
+
+        DEPRECATED: New models should use the state now/previous rollover
+        functionality instead of poststates.
 
         Parameters
         ----------
@@ -793,7 +803,7 @@ class AgentType(Model):
         if not hasattr(self, "t_sim"):
             raise Exception(
                 "It seems that the simulation variables were not initialize before calling "
-                + "simulate(). Call initializeSim() to initialize the variables before calling simulate() again."
+                + "simulate(). Call initialize_sim() to initialize the variables before calling simulate() again."
             )
 
         if not hasattr(self, "T_sim"):
@@ -807,7 +817,7 @@ class AgentType(Model):
             raise Exception(
                 "To simulate, sim_periods has to be larger than the maximum data set size "
                 + "T_sim. Either increase the attribute T_sim of this agent type instance "
-                + "and call the initializeSim() method again, or set sim_periods <= T_sim."
+                + "and call the initialize_sim() method again, or set sim_periods <= T_sim."
             )
 
         # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
@@ -820,7 +830,7 @@ class AgentType(Model):
                 sim_periods = self.T_sim
 
             for t in range(sim_periods):
-                self.simOnePeriod()
+                self.sim_one_period()
 
                 for var_name in self.track_vars:
                     if var_name in self.state_now:
@@ -837,7 +847,7 @@ class AgentType(Model):
 
             return self.history
 
-    def clearHistory(self):
+    def clear_history(self):
         """
         Clears the histories of the attributes named in self.track_vars.
 
@@ -853,7 +863,7 @@ class AgentType(Model):
             self.history[var_name] = np.empty((self.T_sim, self.AgentCount)) + np.nan
 
 
-def solveAgent(agent, verbose):
+def solve_agent(agent, verbose):
     """
     Solve the dynamic model for one agent type
     using backwards induction.
@@ -894,7 +904,7 @@ def solveAgent(agent, verbose):
         t_last = time()
     while go:
         # Solve a cycle of the model, recording it if horizon is finite
-        solution_cycle = solveOneCycle(agent, solution_last)
+        solution_cycle = solve_one_cycle(agent, solution_last)
         if not infinite_horizon:
             solution = solution_cycle + solution
 
@@ -958,7 +968,7 @@ def solveAgent(agent, verbose):
     return solution
 
 
-def solveOneCycle(agent, solution_last):
+def solve_one_cycle(agent, solution_last):
     """
     Solve one "cycle" of the dynamic model for one agent type.  This function
     iterates over the periods within an agent's cycle, updating the time-varying
@@ -996,15 +1006,15 @@ def solveOneCycle(agent, solution_last):
     solution_next = solution_last
     for t in range(T):
         # Update which single period solver to use (if it depends on time)
-        if hasattr(agent.solveOnePeriod, "__getitem__"):
-            solveOnePeriod = agent.solveOnePeriod[T - 1 - t]
+        if hasattr(agent.solve_one_period, "__getitem__"):
+            solve_one_period = agent.solve_one_period[T - 1 - t]
         else:
-            solveOnePeriod = agent.solveOnePeriod
+            solve_one_period = agent.solve_one_period
 
-        if hasattr(solveOnePeriod, "solver_args"):
-            these_args = solveOnePeriod.solver_args
+        if hasattr(solve_one_period, "solver_args"):
+            these_args = solve_one_period.solver_args
         else:
-            these_args = getArgNames(solveOnePeriod)
+            these_args = get_arg_names(solve_one_period)
 
         # Update time-varying single period inputs
         for name in agent.time_vary:
@@ -1017,7 +1027,7 @@ def solveOneCycle(agent, solution_last):
         temp_dict = {name: solve_dict[name] for name in these_args}
 
         # Solve one period, add it to the solution, and move to the next period
-        solution_t = solveOnePeriod(**temp_dict)
+        solution_t = solve_one_period(**temp_dict)
         solution_cycle.insert(0, solution_t)
         solution_next = solution_t
 
@@ -1025,7 +1035,7 @@ def solveOneCycle(agent, solution_last):
     return solution_cycle
 
 
-def makeOnePeriodOOSolver(solver_class):
+def make_one_period_oo_solver(solver_class):
     """
     Returns a function that solves a single period consumption-saving
     problem.
@@ -1038,21 +1048,21 @@ def makeOnePeriodOOSolver(solver_class):
         A function for solving one period of a problem.
     """
 
-    def onePeriodSolver(**kwds):
+    def one_period_solver(**kwds):
         solver = solver_class(**kwds)
 
         # not ideal; better if this is defined in all Solver classes
-        if hasattr(solver, "prepareToSolve"):
-            solver.prepareToSolve()
+        if hasattr(solver, "prepare_to_solve"):
+            solver.prepare_to_solve()
 
         solution_now = solver.solve()
         return solution_now
 
-    onePeriodSolver.solver_class = solver_class
+    one_period_solver.solver_class = solver_class
     # This can be revisited once it is possible to export parameters
-    onePeriodSolver.solver_args = getArgNames(solver_class.__init__)[1:]
+    one_period_solver.solver_args = get_arg_names(solver_class.__init__)[1:]
 
-    return onePeriodSolver
+    return one_period_solver
 
 
 # ========================================================================
@@ -1085,11 +1095,11 @@ class Market(Model):
         This is often a subset of sow_vars.
     dyn_vars : [string]
         Names of variables that constitute a "dynamic rule".
-    millRule : function
+    mill_rule : function
         A function that takes inputs named in reap_vars and returns a tuple the same size and order as sow_vars.  The "aggregate market process" that
         transforms individual agent actions/states/data into aggregate data to
         be sent back to agents.
-    calcDynamics : function
+    calc_dynamics : function
         A function that takes inputs named in track_vars and returns an object
         with attributes named in dyn_vars.  Looks at histories of aggregate
         variables and generates a new "dynamic rule" for agents to believe and
@@ -1110,12 +1120,13 @@ class Market(Model):
         const_vars=None,
         track_vars=None,
         dyn_vars=None,
-        millRule=None,
-        calcDynamics=None,
+        mill_rule=None,
+        calc_dynamics=None,
         act_T=1000,
         tolerance=0.000001,
         **kwds
     ):
+        super().__init__()
         self.agents = agents if agents is not None else list()  # NOQA
 
         reap_vars = reap_vars if reap_vars is not None else list()  # NOQA
@@ -1133,22 +1144,22 @@ class Market(Model):
         self.track_vars = track_vars if track_vars is not None else list()  # NOQA
         self.dyn_vars = dyn_vars if dyn_vars is not None else list()  # NOQA
 
-        if millRule is not None:  # To prevent overwriting of method-based millRules
-            self.millRule = millRule
-        if calcDynamics is not None:  # Ditto for calcDynamics
-            self.calcDynamics = calcDynamics
+        if mill_rule is not None:  # To prevent overwriting of method-based mill_rules
+            self.mill_rule = mill_rule
+        if calc_dynamics is not None:  # Ditto for calc_dynamics
+            self.calc_dynamics = calc_dynamics
         self.act_T = act_T  # NOQA
         self.tolerance = tolerance  # NOQA
         self.max_loops = 1000  # NOQA
         self.history = {}
-        self.assignParameters(**kwds)
+        self.assign_parameters(**kwds)
 
         self.print_parallel_error_once = True
         # Print the error associated with calling the parallel method
-        # "solveAgents" one time. If set to false, the error will never
-        # print. See "solveAgents" for why this prints once or never.
+        # "solve_agents" one time. If set to false, the error will never
+        # print. See "solve_agents" for why this prints once or never.
 
-    def solveAgents(self):
+    def solve_agents(self):
         """
         Solves the microeconomic problem for all AgentTypes in this market.
 
@@ -1161,13 +1172,13 @@ class Market(Model):
         None
         """
         try:
-            multiThreadCommands(self.agents, ["solve()"])
+            multi_thread_commands(self.agents, ["solve()"])
         except Exception as err:
             if self.print_parallel_error_once:
                 # Set flag to False so this is only printed once.
                 self.print_parallel_error_once = False
                 print(
-                    "**** WARNING: could not execute multiThreadCommands in HARK.core.Market.solveAgents() ",
+                    "**** WARNING: could not execute multi_thread_commands in HARK.core.Market.solve_agents() ",
                     "so using the serial version instead. This will likely be slower. "
                     "The multiTreadCommands() functions failed with the following error:",
                     "\n",
@@ -1175,7 +1186,7 @@ class Market(Model):
                     ":",
                     err,
                 )  # sys.exc_info()[0])
-            multiThreadCommandsFake(self.agents, ["solve()"])
+            multi_thread_commands_fake(self.agents, ["solve()"])
 
     def solve(self):
         """
@@ -1197,9 +1208,9 @@ class Market(Model):
         old_dynamics = None
 
         while go:  # Loop until the dynamic process converges or we hit the loop cap
-            self.solveAgents()  # Solve each AgentType's micro problem
-            self.makeHistory()  # "Run" the model while tracking aggregate variables
-            new_dynamics = self.updateDynamics()  # Find a new aggregate dynamic rule
+            self.solve_agents()  # Solve each AgentType's micro problem
+            self.make_history()  # "Run" the model while tracking aggregate variables
+            new_dynamics = self.update_dynamics()  # Find a new aggregate dynamic rule
 
             # Check to see if the dynamic rule has converged (if this is not the first loop)
             if completed_loops > 0:
@@ -1262,7 +1273,7 @@ class Market(Model):
 
     def mill(self):
         """
-        Processes the variables collected from agents using the function millRule,
+        Processes the variables collected from agents using the function mill_rule,
         storing the results in attributes named in aggr_sow.
 
         Parameters
@@ -1273,21 +1284,21 @@ class Market(Model):
         -------
         none
         """
-        # Make a dictionary of inputs for the millRule
+        # Make a dictionary of inputs for the mill_rule
         mill_dict = copy(self.reap_state)
         mill_dict.update(self.const_vars)
 
-        # Run the millRule and store its output in self
-        product = self.millRule(**mill_dict)
+        # Run the mill_rule and store its output in self
+        product = self.mill_rule(**mill_dict)
 
         for i, sow_var in enumerate(self.sow_state):
             self.sow_state[sow_var] = product[i]
 
     def cultivate(self):
         """
-        Has each AgentType in agents perform their marketAction method, using
+        Has each AgentType in agents perform their market_action method, using
         variables sown from the market (and maybe also "private" variables).
-        The marketAction method should store new results in attributes named in
+        The market_action method should store new results in attributes named in
         reap_vars to be reaped later.
 
         Parameters
@@ -1299,7 +1310,7 @@ class Market(Model):
         none
         """
         for this_type in self.agents:
-            this_type.marketAction()
+            this_type.market_action()
 
     def reset(self):
         """
@@ -1354,7 +1365,7 @@ class Market(Model):
 
             self.history[var_name].append(value_now)
 
-    def makeHistory(self):
+    def make_history(self):
         """
         Runs a loop of sow-->cultivate-->reap-->mill act_T times, tracking the
         evolution of variables X named in track_vars in dictionary fields
@@ -1376,7 +1387,7 @@ class Market(Model):
             self.mill()  # Process individual data into aggregate data
             self.store()  # Record variables of interest
 
-    def updateDynamics(self):
+    def update_dynamics(self):
         """
         Calculates a new "aggregate dynamic rule" using the history of variables
         named in track_vars, and distributes this rule to AgentTypes in agents.
@@ -1393,12 +1404,12 @@ class Market(Model):
         """
         # Make a dictionary of inputs for the dynamics calculator
         history_vars_string = ""
-        arg_names = list(getArgNames(self.calcDynamics))
+        arg_names = list(get_arg_names(self.calc_dynamics))
         if "self" in arg_names:
             arg_names.remove("self")
         update_dict = {name: self.history[name] for name in arg_names}
         # Calculate a new dynamic rule and distribute it to the agents in agent_list
-        dynamics = self.calcDynamics(**update_dict)  # User-defined dynamics calculator
+        dynamics = self.calc_dynamics(**update_dict)  # User-defined dynamics calculator
         for var_name in self.dyn_vars:
             this_obj = getattr(dynamics, var_name)
             for this_type in self.agents:
@@ -1406,7 +1417,7 @@ class Market(Model):
         return dynamics
 
 
-def distributeParams(agent, param_name, param_count, distribution):
+def distribute_params(agent, param_name, param_count, distribution):
     """
     Distributes heterogeneous values of one parameter to the AgentTypes in self.agents.
     Parameters
@@ -1434,6 +1445,10 @@ def distributeParams(agent, param_name, param_count, distribution):
 
     for j in range(param_count):
         agent_set[j].AgentCount = int(agent.AgentCount * param_dist.pmf[j])
-        agent_set[j].__dict__[param_name] = param_dist.X[j]
+        # agent_set[j].__dict__[param_name] = param_dist.X[j]
+
+        agent_set[j].assign_parameters(**{param_name: param_dist.X[j]})
+
+
 
     return agent_set

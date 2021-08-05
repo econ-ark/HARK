@@ -1,12 +1,16 @@
 from HARK.utilities import memoize
+from itertools import product
 import math
 import numpy as np
 from scipy.special import erf, erfc
 import scipy.stats as stats
+from types import SimpleNamespace
 
 
 class Distribution:
     """
+    Base class for all probability distributions.
+
     Parameters
     ----------
     seed : int
@@ -25,6 +29,148 @@ class Distribution:
         ----------
         """
         self.RNG = np.random.RandomState(self.seed)
+
+class IndexDistribution(Distribution):
+    """
+    This class provides a way to define a distribution that
+    is conditional on an index.
+
+    The current implementation combines a defined distribution
+    class (such as Bernoulli, LogNormal, etc.) with information
+    about the conditions on the parameters of the distribution.
+
+    For example, an IndexDistribution can be defined as
+    a Bernoulli distribution whose parameter p is a function of
+    a different inpute parameter.
+
+    Parameters
+    ----------
+
+    engine : Distribution class
+        A Distribution subclass.
+
+    conditional: dict
+        Information about the conditional variation
+        on the input parameters of the engine distribution.
+        Keys should match the arguments to the engine class
+        constructor.
+
+    seed : int
+        Seed for random number generator.
+    """
+    conditional = None
+    engine = None
+
+    def __init__(self, engine, conditional, seed = 0):
+        # Set up the RNG
+        super().__init__(seed)
+
+        self.conditional = conditional
+        self.engine = engine
+
+    def __getitem__(self, y):
+        # test one item to determine case handling
+        item0 = list(self.conditional.values())[0]
+
+        if type(item0) is list:
+            cond = {key : val[y] for (key, val) in self.conditional.items()}
+            return self.engine(
+                    seed=self.RNG.randint(0, 2 ** 31 - 1),
+                    **cond
+                )
+        else:
+            raise(Exception(
+                f"IndexDistribution: Unhandled case for __getitem__ access. y: {y}; conditional: {conditional}"
+                ))
+
+    def approx(self, N, **kwds):
+        """
+        Approximation of the distribution.
+
+        Parameters
+        ----------
+        N : init
+            Number of discrete points to approximate
+            continuous distribution into.
+
+        kwds: dict
+            Other keyword arguments passed to engine
+            distribution approx() method.
+
+        Returns:
+        ------------
+        dists : [DiscreteDistribution]
+            A list of DiscreteDistributions that are the
+            approximation of engine distribution under each condition.
+
+            TODO: It would be better if there were a conditional discrete
+            distribution representation. But that integrates with the
+            solution code. This implementation will return the list of
+            distributions representations expected by the solution code.
+        """
+
+        # test one item to determine case handling
+        item0 = list(self.conditional.values())[0]
+
+        if type(item0) is float:
+            # degenerate case. Treat the parameterization as constant.
+            return self.engine(
+                seed = self.RNG.randint(0, 2 ** 31 - 1),
+                **self.conditional
+                ).approx(N,**kwds)
+
+        if type(item0) is list:
+            return [self[i].approx(N,**kwds) for i, _ in enumerate(item0)]
+
+
+    def draw(self, condition):
+        """
+        Generate arrays of draws.
+        The input is an array containing the conditions.
+        The output is an array of the same length (axis 1 dimension)
+        as the conditions containing random draws of the conditional
+        distribution.
+
+        Parameters
+        ----------
+        condition : np.array
+            The input conditions to the distribution.
+
+        Returns:
+        ------------
+        draws : np.array
+        """
+        # for now, assume that all the conditionals
+        # are of the same type.
+        # this matches the HARK 'time-varying' model architecture.
+
+        # test one item to determine case handling
+        item0 = list(self.conditional.values())[0]
+
+        if type(item0) is float:
+            # degenerate case. Treat the parameterization as constant.
+            N = condition.size
+
+            return self.engine(
+                seed = self.RNG.randint(0, 2 ** 31 - 1),
+                **self.conditional
+                ).draw(N)
+
+        if type(item0) is list:
+            # conditions are indices into list
+            # somewhat convoluted sampling strategy retained
+            # for test backwards compatibility
+
+            draws = np.zeros(condition.size)
+
+            for c in np.unique(condition):
+                these = c == condition
+                N = np.sum(these)
+
+                cond = {key : val[c] for (key, val) in self.conditional.items()}
+                draws[these] = self[c].draw(N)
+
+            return draws
 
 ### CONTINUOUS DISTRIBUTIONS
 
@@ -89,11 +235,11 @@ class Lognormal(ContinuousDistribution):
     Parameters
     ----------
     mu : float or [float]
-        One or more means.  Number of elements T in mu determines number
-        of rows of output.
+        One or more means of underlying normal distribution.
+        Number of elements T in mu determines number of rows of output.
     sigma : float or [float]
-        One or more standard deviations. Number of elements T in sigma
-        determines number of rows of output.
+        One or more standard deviations of underlying normal distribution.
+        Number of elements T in sigma determines number of rows of output.
     seed : int
         Seed for random number generator.
     """
@@ -115,7 +261,7 @@ class Lognormal(ContinuousDistribution):
 
     def draw(self, N):
         """
-        Generate arrays of lognormal draws. The sigma input can be a number
+        Generate arrays of lognormal draws. The sigma parameter can be a number
         or list-like.  If a number, output is a length N array of draws from the
         lognormal distribution with standard deviation sigma. If a list, output is
         a length T list whose t-th entry is a length N array of draws from the
@@ -125,8 +271,6 @@ class Lognormal(ContinuousDistribution):
         ----------
         N : int
             Number of draws in each row.
-        seed : int
-            Seed for random number generator.
 
         Returns:
         ------------
@@ -357,7 +501,109 @@ class Normal(ContinuousDistribution):
         # correct x
         X = math.sqrt(2.0) * self.sigma * x + self.mu
 
-        return pmf, X
+        return DiscreteDistribution(
+            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+        )
+    
+    def approx_equiprobable(self, N):
+
+        CDF = np.linspace(0,1,N+1)
+        lims = stats.norm.ppf(CDF)
+        scores = (lims - self.mu)/self.sigma
+        pdf = stats.norm.pdf(scores)
+        
+        # Find conditional means using Mills's ratio
+        pmf = np.diff(CDF)
+        X = self.mu - np.diff(pdf)/pmf
+
+        return DiscreteDistribution(
+            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+        )
+
+
+class MVNormal(Distribution):
+    """
+    A Multivariate Normal distribution.
+
+    Parameters
+    ----------
+    mu : numpy array
+        Mean vector.
+    Sigma : 2-d numpy array. Each dimension must have length equal to that of
+            mu.
+        Variance-covariance matrix.
+    seed : int
+        Seed for random number generator.
+    """
+
+    mu = None
+    Sigma = None
+
+    def __init__(self, mu = np.array([1,1]), Sigma = np.array([[1,0],[0,1]]), seed=0):
+        self.mu = mu
+        self.Sigma = Sigma
+        self.M = len(self.mu)
+        super().__init__(seed)
+
+    def draw(self, N):
+        """
+        Generate an array of multivariate normal draws.
+
+        Parameters
+        ----------
+        N : int
+            Number of multivariate draws.
+
+        Returns
+        -------
+        draws : np.array
+            Array of dimensions N x M containing the random draws, where M is
+            the dimension of the multivariate normal and N is the number of
+            draws. Each row represents a draw.
+        """
+        draws = self.RNG.multivariate_normal(self.mu, self.Sigma, N)
+        
+        return draws
+
+    def approx(self, N, equiprobable = False):
+        """
+        Returns a discrete approximation of this distribution.
+        
+        The discretization will have N**M points, where M is the dimension of
+        the multivariate normal.
+        
+        It uses the fact that:
+            - Being positive definite, Sigma can be factorized as Sigma = QVQ',
+              with V diagonal. So, letting A=Q*sqrt(V), Sigma = A*A'.
+            - If Z is an N-dimensional multivariate standard normal, then
+              A*Z ~ N(0,A*A' = Sigma).
+        
+        The idea therefore is to construct an equiprobable grid for a standard
+        normal and multiply it by matrix A.
+        """
+        
+        # Start by computing matrix A.
+        v, Q = np.linalg.eig(self.Sigma)
+        sqrtV = np.diag(np.sqrt(v))
+        A = np.matmul(Q,sqrtV) 
+
+        # Now find a discretization for a univariate standard normal.
+        if equiprobable:
+            z_approx = Normal().approx_equiprobable(N)
+        else:
+            z_approx = Normal().approx(N)
+
+        # Now create the multivariate grid and pmf
+        Z = np.array(list(product(*[z_approx.X]*self.M)))
+        pmf = np.prod(np.array(list(product(*[z_approx.pmf]*self.M))),axis = 1)
+        
+        # Apply mean and standard deviation to the Z grid
+        X = np.tile(np.reshape(self.mu, (1, self.M)), (N**self.M,1)) + np.matmul(Z, A.T)
+        
+        # Construct and return discrete distribution
+        return DiscreteDistribution(
+            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+        )
 
 class Weibull(ContinuousDistribution):
     """
@@ -659,29 +905,28 @@ class DiscreteDistribution(Distribution):
 
         return draws
 
-
-def approxLognormalGaussHermite(N, mu=0.0, sigma=1.0, seed=0):
+def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
     return DiscreteDistribution(d.pmf, np.exp(d.X), seed=seed)
 
 
-def calcNormalStyleParsFromLognormalPars(avgLognormal, stdLognormal):
-    varLognormal = stdLognormal ** 2
-    avgNormal = math.log(avgLognormal / math.sqrt(1 + varLognormal / avgLognormal ** 2))
-    varNormal = math.sqrt(math.log(1 + varLognormal / avgLognormal ** 2))
-    stdNormal = math.sqrt(varNormal)
-    return avgNormal, stdNormal
+def calc_normal_style_pars_from_lognormal_pars(avg_lognormal, std_lognormal):
+    varLognormal = std_lognormal ** 2
+    avgNormal = math.log(avg_lognormal / math.sqrt(1 + varLognormal / avg_lognormal ** 2))
+    varNormal = math.sqrt(math.log(1 + varLognormal / avg_lognormal ** 2))
+    std_normal = math.sqrt(varNormal)
+    return avgNormal, std_normal
 
 
-def calcLognormalStyleParsFromNormalPars(muNormal, stdNormal):
-    varNormal = stdNormal ** 2
-    avgLognormal = math.exp(muNormal + varNormal * 0.5)
-    varLognormal = (math.exp(varNormal) - 1) * math.exp(2 * muNormal + varNormal)
-    stdLognormal = math.sqrt(varLognormal)
-    return avgLognormal, stdLognormal
+def calc_lognormal_style_pars_from_normal_pars(mu_normal, std_normal):
+    varNormal = std_normal ** 2
+    avg_lognormal = math.exp(mu_normal + varNormal * 0.5)
+    varLognormal = (math.exp(varNormal) - 1) * math.exp(2 * mu_normal + varNormal)
+    std_lognormal = math.sqrt(varLognormal)
+    return avg_lognormal, std_lognormal
 
 
-def approxBeta(N, a=1.0, b=1.0):
+def approx_beta(N, a=1.0, b=1.0):
     """
     Calculate a discrete approximation to the beta distribution.  May be quite
     slow, as it uses a rudimentary numeric integration method to generate the
@@ -709,7 +954,7 @@ def approxBeta(N, a=1.0, b=1.0):
     return DiscreteDistribution(pmf, X)
 
 
-def makeMarkovApproxToNormal(x_grid, mu, sigma, K=351, bound=3.5):
+def make_markov_approx_to_normal(x_grid, mu, sigma, K=351, bound=3.5):
     """
     Creates an approximation to a normal distribution with mean mu and standard
     deviation sigma, returning a stochastic vector called p_vec, corresponding
@@ -778,7 +1023,7 @@ def makeMarkovApproxToNormal(x_grid, mu, sigma, K=351, bound=3.5):
     return p_vec
 
 
-def makeMarkovApproxToNormalByMonteCarlo(x_grid, mu, sigma, N_draws=10000):
+def make_markov_approx_to_normal_by_monte_carlo(x_grid, mu, sigma, N_draws=10000):
     """
     Creates an approximation to a normal distribution with mean mu and standard
     deviation sigma, by Monte Carlo.
@@ -828,7 +1073,7 @@ def makeMarkovApproxToNormalByMonteCarlo(x_grid, mu, sigma, N_draws=10000):
     return p_vec
 
 
-def makeTauchenAR1(N, sigma=1.0, rho=0.9, bound=3.0):
+def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0):
     """
     Function to return a discretized version of an AR1 process.
     See http://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
@@ -839,7 +1084,7 @@ def makeTauchenAR1(N, sigma=1.0, rho=0.9, bound=3.0):
         Size of discretized grid
     sigma: float
         Standard deviation of the error term
-    rho: float
+    ar_1: float
         AR1 coefficient
     bound: float
         The highest (lowest) grid point will be bound (-bound) multiplied by the unconditional
@@ -852,7 +1097,7 @@ def makeTauchenAR1(N, sigma=1.0, rho=0.9, bound=3.0):
     trans_matrix: np.array
         Markov transition array for the discretized process
     """
-    yN = bound * sigma / ((1 - rho ** 2) ** 0.5)
+    yN = bound * sigma / ((1 - ar_1 ** 2) ** 0.5)
     y = np.linspace(-yN, yN, N)
     d = y[1] - y[0]
     trans_matrix = np.ones((N, N))
@@ -860,11 +1105,11 @@ def makeTauchenAR1(N, sigma=1.0, rho=0.9, bound=3.0):
         for k_1 in range(N - 2):
             k = k_1 + 1
             trans_matrix[j, k] = stats.norm.cdf(
-                (y[k] + d / 2.0 - rho * y[j]) / sigma
-            ) - stats.norm.cdf((y[k] - d / 2.0 - rho * y[j]) / sigma)
-        trans_matrix[j, 0] = stats.norm.cdf((y[0] + d / 2.0 - rho * y[j]) / sigma)
+                (y[k] + d / 2.0 - ar_1 * y[j]) / sigma
+            ) - stats.norm.cdf((y[k] - d / 2.0 - ar_1 * y[j]) / sigma)
+        trans_matrix[j, 0] = stats.norm.cdf((y[0] + d / 2.0 - ar_1 * y[j]) / sigma)
         trans_matrix[j, N - 1] = 1.0 - stats.norm.cdf(
-            (y[N - 1] - d / 2.0 - rho * y[j]) / sigma
+            (y[N - 1] - d / 2.0 - ar_1 * y[j]) / sigma
         )
 
     return y, trans_matrix
@@ -875,7 +1120,7 @@ def makeTauchenAR1(N, sigma=1.0, rho=0.9, bound=3.0):
 # ================================================================================
 
 
-def addDiscreteOutcomeConstantMean(distribution, x, p, sort=False):
+def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
     """
     Adds a discrete outcome of x with probability p to an existing distribution,
     holding constant the relative probabilities of other outcomes and overall mean.
@@ -908,7 +1153,7 @@ def addDiscreteOutcomeConstantMean(distribution, x, p, sort=False):
     return DiscreteDistribution(pmf, X)
 
 
-def addDiscreteOutcome(distribution, x, p, sort=False):
+def add_discrete_outcome(distribution, x, p, sort=False):
     """
     Adds a discrete outcome of x with probability p to an existing distribution,
     holding constant the relative probabilities of other outcomes.
@@ -940,7 +1185,7 @@ def addDiscreteOutcome(distribution, x, p, sort=False):
     return DiscreteDistribution(pmf, X)
 
 
-def combineIndepDstns(*distributions, seed=0):
+def combine_indep_dstns(*distributions, seed=0):
     """
     Given n lists (or tuples) whose elements represent n independent, discrete
     probability spaces (probabilities and values), construct a joint pmf over
@@ -986,7 +1231,7 @@ def combineIndepDstns(*distributions, seed=0):
         )
 
         # The tiling we want to do
-        dist_tiles = dist_lengths[:dd] + (1,) + dist_lengths[dd + 1 :]
+        dist_tiles = dist_lengths[:dd] + (1,) + dist_lengths[dd + 1:]
 
         # Now we are ready to tile.
         # We don't use the np.meshgrid commands, because they do not
@@ -1018,9 +1263,11 @@ def combineIndepDstns(*distributions, seed=0):
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
     return DiscreteDistribution(P_out, X_out, seed=seed)
 
-def calcExpectation(dstn,func=lambda x : x,*args):
+def calc_expectation(dstn, func=lambda x: x, *args):
     '''
-    Calculate the expectation of a stochastic function at an array of values.
+    Expectation of a function, given an array of configurations of its inputs
+    along with a DiscreteDistribution object that specifies the probability
+    of each configuration.
 
     Parameters
     ----------

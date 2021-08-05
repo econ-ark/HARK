@@ -8,26 +8,27 @@ Created on Sat Dec 19 15:08:54 2020
 # %% Preamble
 
 import numpy as np
-from warnings import warn
 from HARK.interpolation import LinearInterp
 from HARK.datasets.cpi.us.CPITools import cpi_deflator
 
+from HARK import _log
+
 __all__ = [
-    "ParseTimeParams",
+    "parse_time_params",
     "Sabelhaus_Song_cohort_trend",
     "Sabelhaus_Song_all_years",
     "sabelhaus_song_var_profile",
     "Cagetti_income",
     "CGM_income",
-    "ParseIncomeSpec",
-    "findProfile",
+    "parse_income_spec",
+    "find_profile",
 ]
 
 
 # %% Tools for setting time-related parameters
 
 
-def ParseTimeParams(age_birth, age_death):
+def parse_time_params(age_birth, age_death):
     """
     Converts simple statements of the age at which an agent is born and the
     age at which he dies with certaintiy into the parameters that HARK needs
@@ -59,19 +60,19 @@ def ParseTimeParams(age_birth, age_death):
 # %% Tools for finding the mean profiles of permanent income.
 
 
-def AgeLogPolyToGrowthRates(coefs, age_min, age_max):
+def age_log_poly_to_growth_rates(coefs, age_min, age_max):
     """
     The deterministic component of permanent income is often expressed as a
     log-polynomial of age. In multiple HARK models, this part of the income
     process is expressed in a sequence of growth factors 'PermGroFac'.
-    
+
     This function computes growth factors from the coefficients of a
     log-polynomial specification
-    
+
     The form of the polynomial is assumed to be
     alpha_0 + age/10 * alpha_1 + age^2/100 * alpha_2 + ... + (age/10)^n * alpha_n
     Be sure to adjust the coefficients accordingly.
-    
+
     Parameters
     ----------
     coefs : numpy array or list of floats
@@ -86,7 +87,7 @@ def AgeLogPolyToGrowthRates(coefs, age_min, age_max):
     -------
     GrowthFac : [float] of length age_max - age_min + 1
         List of growth factors that replicate the polynomial.
-    
+
     P0 : float
         Initial level of income implied my the polynomial
     """
@@ -111,12 +112,12 @@ def AgeLogPolyToGrowthRates(coefs, age_min, age_max):
     return GrowthFac.tolist(), P0
 
 
-def findPermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
+def find_PermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
     """
     Finds initial income and sequence of growth factors from a polynomial
     specification of log-income, an optional retirement age and a replacement
     rate.
-    
+
     Retirement income will be Income_{age_ret} * ReplRate.
 
     Parameters
@@ -149,12 +150,12 @@ def findPermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
 
         # If there is no retirement, the age polynomial applies for the whole
         # lifetime
-        GroFacs, Y0 = AgeLogPolyToGrowthRates(AgePolyCoefs, age_min, age_max)
+        GroFacs, Y0 = age_log_poly_to_growth_rates(AgePolyCoefs, age_min, age_max)
 
     else:
 
         # First find working age growth rates and starting income
-        WrkGroFacs, Y0 = AgeLogPolyToGrowthRates(AgePolyCoefs, age_min, age_ret)
+        WrkGroFacs, Y0 = age_log_poly_to_growth_rates(AgePolyCoefs, age_min, age_ret)
 
         # Replace the last item, which must be NaN, with the replacement rate
         WrkGroFacs[-1] = ReplRate
@@ -169,7 +170,7 @@ def findPermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
     return GroFacs, Y0
 
 
-def findProfile(GroFacs, Y0):
+def find_profile(GroFacs, Y0):
     """
     Generates a sequence {Y_{t}}_{t=0}^N from an initial Y_0 and a sequence
     of growth factors GroFac[n] = Y_{n+1}/Y_n
@@ -353,7 +354,7 @@ Sabelhaus_Song_all_years = {
 def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None, smooth=True):
     """
     This is a function to find the life-cycle profiles of the volatilities
-    of transitory and permanent shocks to income using the estimates in 
+    of transitory and permanent shocks to income using the estimates in
     [1] Sabelhaus and Song (2010).
 
     Parameters
@@ -370,7 +371,7 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None, smooth=True)
         Boolean indicating whether to smooth the variance profile estimates
         using third degree polynomials for the age dummies estimated by
         Sabelhaus and Song. If False, the original dummies are used.
-        
+
     Returns
     -------
     profiles : dict
@@ -381,11 +382,11 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None, smooth=True)
                 shocks. Position n corresponds to Ages[n].
             - PermShkStd: array of standard deviations of permanent income
                 shocks. Position n corresponds to Ages[n].
-        
+
         Note that TransShkStd[n] and PermShkStd[n] are the volatilities of
         shocks _experienced_ at age Age[n], (not those expected at Age[n+1]
         from the perspective of Age[n]).
-        
+
         Note that Sabelhaus and Song work in discrete time and with periods
         that represent one year. Therefore, the outputs must be interpreted
         at the yearly frequency.
@@ -401,7 +402,7 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None, smooth=True)
 
         spec = Sabelhaus_Song_all_years
         cohort = 0
-        warn("No cohort was provided. Using aggregate specification.")
+        _log.debug("No cohort was provided. Using aggregate specification.")
 
     else:
 
@@ -446,13 +447,13 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None, smooth=True)
     )
 
     if age_min < 27 or age_max > 54:
-        warn(
+        _log.debug(
             "Sabelhaus and Song (2010) provide variance profiles for ages "
             + "27 to 54. Extrapolating variances using the extreme points."
         )
 
     if cohort < 1926 or cohort > 1980:
-        warn(
+        _log.debug(
             "Sabelhaus and Song (2010) use data from birth cohorts "
             + "[1926,1980]. Extrapolating variances."
         )
@@ -462,13 +463,13 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None, smooth=True)
     # Construct variances
     # They use 1926 as the base year for cohort effects.
     ages = np.arange(age_min, age_max + 1)
-    tran_std = tran_dummy_interp(ages) + (cohort - 1926) * beta_eps
-    perm_std = perm_dummy_interp(ages) + (cohort - 1926) * beta_eta
+    tran_var = tran_dummy_interp(ages) + (cohort - 1926) * beta_eps
+    perm_var = perm_dummy_interp(ages) + (cohort - 1926) * beta_eta
 
     profiles = {
         "Age": list(ages),
-        "TranShkStd": list(tran_std),
-        "PermShkStd": list(perm_std),
+        "TranShkStd": list(np.sqrt(tran_var)),
+        "PermShkStd": list(np.sqrt(perm_var)),
     }
 
     return profiles
@@ -477,7 +478,7 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None, smooth=True)
 # %% Encompassing tool to parse full income specifications
 
 
-def ParseIncomeSpec(
+def parse_income_spec(
     base_monet_year,
     age_min,
     age_max,
@@ -559,7 +560,7 @@ def ParseIncomeSpec(
                 to income.
             - PermGroFacAgg: if a yearly trend in income is provided, this will
                 be the aggregate level of growth in permanent incomes.
-                
+
         This dictionary has the names and formats that various models in HARK
         expect, so that it can be directly updated into other parameter
         dictionaries.
@@ -580,20 +581,20 @@ def ParseIncomeSpec(
 
         if AgePolyRetir is None:
 
-            PermGroFac, P0 = findPermGroFacs(
+            PermGroFac, P0 = find_PermGroFacs(
                 age_min, age_max, age_ret, AgePolyCoefs, ReplRate
             )
 
         else:
 
             # Working period
-            PermGroWrk, P0 = findPermGroFacs(
+            PermGroWrk, P0 = find_PermGroFacs(
                 age_min, age_ret, None, AgePolyCoefs, ReplRate
             )
-            PLast = findProfile(PermGroWrk[:-1], P0)[-1]
+            PLast = find_profile(PermGroWrk[:-1], P0)[-1]
 
             # Retirement period
-            PermGroRet, R0 = findPermGroFacs(
+            PermGroRet, R0 = find_PermGroFacs(
                 age_ret + 1, age_max, None, AgePolyRetir, ReplRate
             )
 
@@ -671,7 +672,7 @@ def ParseIncomeSpec(
                 )
 
         else:
-            
+
             # Placeholder for future ways of specifying volatilities
             raise NotImplementedError()
 
