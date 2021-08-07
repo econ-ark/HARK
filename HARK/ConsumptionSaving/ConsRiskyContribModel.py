@@ -80,9 +80,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         kwds = params
 
         # Initialize a basic consumer type
-        RiskyAssetConsumerType.__init__(
-            self, verbose=verbose, quiet=quiet, **kwds
-        )
+        RiskyAssetConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
 
         # The model is solved and simulated spliting each of the agent's
         # decisions into its own "stage". The stages in chronological order
@@ -429,12 +427,18 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         RrEff = Rrisk / self.shocks["PermShk"]
 
         self.state_now["bNrm"] = RfEff * aNrmPrev  # Liquid balances before labor income
-        self.state_now["gNrm"] = RrEff * nNrmTildePrev  # Iliquid balances before labor income
+        self.state_now["gNrm"] = (
+            RrEff * nNrmTildePrev
+        )  # Iliquid balances before labor income
 
         # Liquid balances after labor income
-        self.state_now["mNrm"] = self.state_now["bNrm"] + self.shocks["TranShk"] * (1 - SharePrev)
+        self.state_now["mNrm"] = self.state_now["bNrm"] + self.shocks["TranShk"] * (
+            1 - SharePrev
+        )
         # Iliquid balances after labor income
-        self.state_now["nNrm"] = self.state_now["gNrm"] + self.shocks["TranShk"] * SharePrev
+        self.state_now["nNrm"] = (
+            self.state_now["gNrm"] + self.shocks["TranShk"] * SharePrev
+        )
 
         return None
 
@@ -985,6 +989,7 @@ def n_nrm_next(shocks, nNrm, Share, PermGroFac):
 
     return n_nrm_tp1
 
+
 # %% RiskyContrib solvers
 
 # Consumption stage solver
@@ -1081,7 +1086,7 @@ def solve_RiskyContrib_Cns(
 
     # STEP ONE
     # Find end-of-period (continuation) value function and its derivatives.
-    
+
     # Start by constructing functions for next-period's pre-adjustment-shock
     # expected value functions
     if AdjustPrb < 1.0:
@@ -1109,10 +1114,10 @@ def solve_RiskyContrib_Cns(
 
         if vFuncBool:
             v_next = lambda m, n, s: vFunc_Reb_Adj_next(m, n)
-    
+
     # Now construct a function that evaluates and discounts them given a
     # vector of return and income shocks and an end-of-period state
-    def end_of_period_derivs(shocks,a,nTil,s):
+    def end_of_period_derivs(shocks, a, nTil, s):
         """
         Computes the end-of-period derivatives (and optionally the value) of the
         continuation value function, conditional on shocks. This is so that the
@@ -1134,11 +1139,11 @@ def solve_RiskyContrib_Cns(
         """
         temp_fac_A = utilityP(shocks[0] * PermGroFac, CRRA)
         temp_fac_B = (shocks[0] * PermGroFac) ** (1.0 - CRRA)
-        
+
         # Find next-period asset balances
         m_next = m_nrm_next(shocks, a, s, Rfree, PermGroFac)
         n_next = n_nrm_next(shocks, nTil, s, PermGroFac)
-        
+
         # Interpolate next-period-value derivatives
         dvdm_tp1 = dvdm_next(m_next, n_next, s)
         dvdn_tp1 = dvdn_next(m_next, n_next, s)
@@ -1146,16 +1151,16 @@ def solve_RiskyContrib_Cns(
             dvds_tp1 = dvds_next(m_next, n_next, s)
         else:
             dvds_tp1 = shocks[1] * (dvdn_tp1 - dvdm_tp1) + dvds_next(m_next, n_next, s)
-        
+
         # Discount next-period-value derivatives to current period
-        
+
         # Liquid resources
         end_of_prd_dvda = DiscFac * Rfree * LivPrb * temp_fac_A * dvdm_tp1
         # Iliquid resources
         end_of_prd_dvdn = DiscFac * shocks[2] * LivPrb * temp_fac_A * dvdn_tp1
         # Contribution share
         end_of_prd_dvds = DiscFac * LivPrb * temp_fac_B * dvds_tp1
-        
+
         # End of period value function, i11f needed
         if vFuncBool:
             end_of_prd_v = DiscFac * LivPrb * temp_fac_B * v_next(m_next, n_next, s)
@@ -1164,9 +1169,9 @@ def solve_RiskyContrib_Cns(
             )
         else:
             return np.stack([end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds])
-    
+
     # Now find the expected values on a (a, nTil, s) grid
-    
+
     # The "inversion" machinery can deal with assets of 0 even if there is a
     # natural borrowing constraint, so include zeros.
     nNrmGrid = np.concatenate([np.array([0.0]), nNrmGrid])
@@ -1176,7 +1181,7 @@ def solve_RiskyContrib_Cns(
     aNrm_tiled, nNrm_tiled, Share_tiled = np.meshgrid(
         aNrmGrid, nNrmGrid, ShareGrid, indexing="ij"
     )
-    
+
     # Find end of period derivatives and value as expectations of (discounted)
     # next period's derivatives and value.
     eop_derivs = calc_expectation(
