@@ -4,6 +4,7 @@ import math
 import numpy as np
 from scipy.special import erf, erfc
 import scipy.stats as stats
+from types import SimpleNamespace
 
 
 class Distribution:
@@ -837,7 +838,6 @@ class DiscreteDistribution(Distribution):
 
         return draws
 
-
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
     return DiscreteDistribution(d.pmf, np.exp(d.X), seed=seed)
@@ -1006,7 +1006,7 @@ def make_markov_approx_to_normal_by_monte_carlo(x_grid, mu, sigma, N_draws=10000
     return p_vec
 
 
-def make_tauchen_ar1(N, sigma=1.0, rho=0.9, bound=3.0):
+def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0):
     """
     Function to return a discretized version of an AR1 process.
     See http://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
@@ -1017,7 +1017,7 @@ def make_tauchen_ar1(N, sigma=1.0, rho=0.9, bound=3.0):
         Size of discretized grid
     sigma: float
         Standard deviation of the error term
-    rho: float
+    ar_1: float
         AR1 coefficient
     bound: float
         The highest (lowest) grid point will be bound (-bound) multiplied by the unconditional
@@ -1030,7 +1030,7 @@ def make_tauchen_ar1(N, sigma=1.0, rho=0.9, bound=3.0):
     trans_matrix: np.array
         Markov transition array for the discretized process
     """
-    yN = bound * sigma / ((1 - rho ** 2) ** 0.5)
+    yN = bound * sigma / ((1 - ar_1 ** 2) ** 0.5)
     y = np.linspace(-yN, yN, N)
     d = y[1] - y[0]
     trans_matrix = np.ones((N, N))
@@ -1038,11 +1038,11 @@ def make_tauchen_ar1(N, sigma=1.0, rho=0.9, bound=3.0):
         for k_1 in range(N - 2):
             k = k_1 + 1
             trans_matrix[j, k] = stats.norm.cdf(
-                (y[k] + d / 2.0 - rho * y[j]) / sigma
-            ) - stats.norm.cdf((y[k] - d / 2.0 - rho * y[j]) / sigma)
-        trans_matrix[j, 0] = stats.norm.cdf((y[0] + d / 2.0 - rho * y[j]) / sigma)
+                (y[k] + d / 2.0 - ar_1 * y[j]) / sigma
+            ) - stats.norm.cdf((y[k] - d / 2.0 - ar_1 * y[j]) / sigma)
+        trans_matrix[j, 0] = stats.norm.cdf((y[0] + d / 2.0 - ar_1 * y[j]) / sigma)
         trans_matrix[j, N - 1] = 1.0 - stats.norm.cdf(
-            (y[N - 1] - d / 2.0 - rho * y[j]) / sigma
+            (y[N - 1] - d / 2.0 - ar_1 * y[j]) / sigma
         )
 
     return y, trans_matrix
@@ -1164,7 +1164,7 @@ def combine_indep_dstns(*distributions, seed=0):
         )
 
         # The tiling we want to do
-        dist_tiles = dist_lengths[:dd] + (1,) + dist_lengths[dd + 1 :]
+        dist_tiles = dist_lengths[:dd] + (1,) + dist_lengths[dd + 1:]
 
         # Now we are ready to tile.
         # We don't use the np.meshgrid commands, because they do not
@@ -1196,9 +1196,11 @@ def combine_indep_dstns(*distributions, seed=0):
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
     return DiscreteDistribution(P_out, X_out, seed=seed)
 
-def calc_expectation(dstn,func=lambda x : x,*args):
+def calc_expectation(dstn, func=lambda x: x, *args):
     '''
-    Calculate the expectation of a stochastic function at an array of values.
+    Expectation of a function, given an array of configurations of its inputs
+    along with a DiscreteDistribution object that specifies the probability
+    of each configuration.
 
     Parameters
     ----------

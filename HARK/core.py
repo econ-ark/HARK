@@ -262,7 +262,6 @@ class AgentType(Model):
     def __init__(
         self,
         solution_terminal=None,
-        cycles=1,
         pseudo_terminal=True,
         tolerance=0.000001,
         seed=0,
@@ -274,7 +273,6 @@ class AgentType(Model):
             solution_terminal = NullFunc()
 
         self.solution_terminal = solution_terminal  # NOQA
-        self.cycles = cycles  # NOQA
         self.pseudo_terminal = pseudo_terminal  # NOQA
         self.solve_one_period = NullFunc()  # NOQA
         self.tolerance = tolerance  # NOQA
@@ -1009,10 +1007,12 @@ def solve_one_cycle(agent, solution_last):
     # Initialize the solution for this cycle, then iterate on periods
     solution_cycle = []
     solution_next = solution_last
-    for t in range(T):
+    
+    cycles_range = [0] + list(range(T - 1, 0, -1))
+    for k in (range(T-1, -1, -1) if agent.cycles == 1 else cycles_range):
         # Update which single period solver to use (if it depends on time)
         if hasattr(agent.solve_one_period, "__getitem__"):
-            solve_one_period = agent.solve_one_period[T - 1 - t]
+            solve_one_period = agent.solve_one_period[k]
         else:
             solve_one_period = agent.solve_one_period
 
@@ -1024,8 +1024,7 @@ def solve_one_cycle(agent, solution_last):
         # Update time-varying single period inputs
         for name in agent.time_vary:
             if name in these_args:
-                # solve_dict[name] = eval('agent.' + name + '[t]')
-                solve_dict[name] = agent.__dict__[name][T - 1 - t]
+                solve_dict[name] = agent.__dict__[name][k]
         solve_dict["solution_next"] = solution_next
 
         # Make a temporary dictionary for this period
@@ -1450,6 +1449,10 @@ def distribute_params(agent, param_name, param_count, distribution):
 
     for j in range(param_count):
         agent_set[j].AgentCount = int(agent.AgentCount * param_dist.pmf[j])
-        agent_set[j].__dict__[param_name] = param_dist.X[j]
+        # agent_set[j].__dict__[param_name] = param_dist.X[j]
+
+        agent_set[j].assign_parameters(**{param_name: param_dist.X[j]})
+
+
 
     return agent_set

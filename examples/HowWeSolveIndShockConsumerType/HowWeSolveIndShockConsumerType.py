@@ -102,7 +102,7 @@
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, init_lifecycle
 import numpy as np
 import matplotlib.pyplot as plt
-LifecycleExample = IndShockConsumerType(init_lifecycle)
+LifecycleExample = IndShockConsumerType(**init_lifecycle)
 LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once
 LifecycleExample.solve()
 
