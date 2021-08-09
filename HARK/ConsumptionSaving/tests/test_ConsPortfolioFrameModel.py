@@ -28,28 +28,23 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         self.pcct.sim_one_period()
 
         self.assertAlmostEqual(
-            self.pcct.state_now['pLvl'][0],
-            0.858934461
-        )
-
-        self.assertAlmostEqual(
-            self.pcct.state_now['aNrm'][0],
-            8.02359093
-        )
-
-        self.assertAlmostEqual(
             self.pcct.shocks['PermShk'][0],
-            0.85893446
+            0.95908471
         )
 
         self.assertAlmostEqual(
             self.pcct.shocks['TranShk'][0],
-            1.0
+            1.03172631
         )
 
         self.assertAlmostEqual(
             self.pcct.shocks['Risky'][0],
-            0.92405816
+            1.52812838
+        )
+
+        self.assertAlmostEqual(
+            self.pcct.state_now['pLvl'][0],
+            self.pcct.state_prev['pLvl'][0] * self.pcct.shocks['PermShk'][0]
         )
 
         self.assertTrue(
@@ -58,16 +53,23 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
 
         self.assertAlmostEqual(
             self.pcct.state_now["mNrm"][0],
-            9.70233892039
+            self.pcct.state_prev["aNrm"][0] \
+            * self.pcct.Rfree / self.pcct.shocks['PermShk'][0] \
+            + self.pcct.shocks['TranShk'][0] \
         )
 
         self.assertAlmostEqual(
             self.pcct.controls["Share"][0],
-            0.8627164488246847
+            0.89838257
         )
         self.assertAlmostEqual(
             self.pcct.controls["cNrm"][0],
-            1.67874799
+            self.pcct.solution[0].cFuncAdj(self.pcct.state_now['mNrm'][0])
+        )
+
+        self.assertAlmostEqual(
+            self.pcct.state_now['aNrm'][0],
+            self.pcct.state_now["mNrm"][0] - self.pcct.controls["cNrm"][0]
         )
 
 class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
@@ -84,6 +86,7 @@ class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
             'Risky',
             'Adjust',
             'PermShk',
+            'TranShk',
             'bNrm'
         ]
         self.pcct.initialize_sim()
@@ -91,63 +94,53 @@ class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         self.pcct.simulate()
 
         self.assertAlmostEqual(
-            self.pcct.history['mNrm'][0][0], 9.70233892
+            self.pcct.history["mNrm"][0][0],
+            self.pcct.history["bNrm"][0][0] \
+            + self.pcct.history['TranShk'][0][0]
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['cNrm'][0][0], 1.6787479894848298
+            self.pcct.history['cNrm'][0][0],
+            self.pcct.solution[0].cFuncAdj(self.pcct.history['mNrm'][0][0])
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['Share'][0][0], 0.8627164488246847
+            self.pcct.history['Share'][0][0],
+            self.pcct.solution[0].ShareFuncAdj(self.pcct.history['mNrm'][0][0])
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['aNrm'][0][0], 8.023590930905383
+            self.pcct.history['aNrm'][0][0],
+            self.pcct.history["mNrm"][0][0] - self.pcct.history["cNrm"][0][0]
         )
 
         self.assertAlmostEqual(
             self.pcct.history['Adjust'][0][0], 1.0
         )
-
-
         # the next period
+
         self.assertAlmostEqual(
-            self.pcct.history['Risky'][1][0], 0.8950304697526602
+            self.pcct.history["mNrm"][1][0],
+            self.pcct.history["bNrm"][1][0] \
+            + self.pcct.history['TranShk'][1][0]
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['Rport'][1][0], 0.9135595661654792
+            self.pcct.history['cNrm'][1][0],
+            self.pcct.solution[0].cFuncAdj(self.pcct.history['mNrm'][1][0])
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['Adjust'][1][0], 1.0
+            self.pcct.history['Share'][1][0],
+            self.pcct.solution[0].ShareFuncAdj(self.pcct.history['mNrm'][1][0])
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['PermShk'][1][0], 1.0050166461586711
+            self.pcct.history['aNrm'][1][0],
+            self.pcct.history["mNrm"][1][0] - self.pcct.history["cNrm"][1][0]
         )
 
         self.assertAlmostEqual(
-            self.pcct.history['bNrm'][1][0], 7.293439643953855
-        )
-
-        self.assertAlmostEqual(
-            self.pcct.history['mNrm'][1][0], 8.287859049575047
-        )
-
-        self.assertAlmostEqual(
-            self.pcct.history['cNrm'][1][0], 1.5773607434989751
-        )
-
-        self.assertAlmostEqual(
-            self.pcct.history['Share'][1][0], 0.9337608822146805
-        )
-
-        self.assertAlmostEqual(
-            self.pcct.history['aNrm'][1][0], 6.710498306076072
-        )
-
-        self.assertAlmostEqual(
-            self.pcct.history['aNrm'][15][0], 5.304746367434934
+            self.pcct.history['aNrm'][15][0],
+            self.pcct.history["mNrm"][15][0] - self.pcct.history["cNrm"][15][0]
         )
