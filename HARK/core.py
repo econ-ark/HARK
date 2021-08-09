@@ -8,7 +8,7 @@ problem by finding a general equilibrium dynamic rule.
 """
 import sys
 import os
-from HARK.distribution import Distribution
+from HARK.distribution import Distribution, TimeVaryingDiscreteDistribution
 from distutils.dir_util import copy_tree
 from .utilities import get_arg_names, NullFunc
 from copy import copy, deepcopy
@@ -426,9 +426,11 @@ class AgentType(Model):
         A method to check that elements of time_vary are lists.
         """
         for param in self.time_vary:
-            assert type(getattr(self, param)) == list, (
-                param + " is not a list, but should be" + " because it is in time_vary"
-            )
+            if type(getattr(self, param)) != TimeVaryingDiscreteDistribution:
+                assert type(getattr(self, param)) == list, (
+                    param + " is not a list or time varying distribution," 
+                    + " but should be because it is in time_vary"
+                )
 
     def check_restrictions(self):
         """
