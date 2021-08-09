@@ -1043,7 +1043,14 @@ class FrameAgentType(AgentType):
         context.update(self.aggs)
         context.update(self.shocks)
         context.update(self.controls)
-        context.update(self.state_now)
+        context.update(self.state_prev)
+
+        # use the "now" version of variables that have already been targetted.
+        for pre_frame in self.frames[:self.frames.index(frame)]:
+            for var in pre_frame.target:
+                if var in self.state_now:
+                    context.update({var : self.state_now[var]})
+
         context.update(self.parameters)
 
         # a method for indicating that a 'previous' version
@@ -1080,6 +1087,9 @@ class FrameAgentType(AgentType):
                 )
         else:
             raise Exception(f"Frame has None for transition: {frame}")
+
+        # because we want to alter the 'now' not 'prev' table
+        context.update(self.state_now)
 
         # because the context was a shallow update,
         # the model values can be modified directly(?)
