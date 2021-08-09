@@ -117,10 +117,11 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
 
         # This should be computed separately in its own transition
         # Using IndShock get_Rfree instead of generic.
-        RfreeNow = self.Rfree * np.ones(self.AgentCount)
+        RfreeNow = self.parameters['Rfree'] * np.ones(self.AgentCount)
 
         # Calculate new states: normalized market resources and permanent income level
         pLvlNow = pLvlPrev * context['PermShk']  # Updated permanent income level
+
         # Updated aggregate permanent productivity level
         PlvlAggNow = context['PlvlAgg'] * context['PermShkAggNow']
         # "Effective" interest factor on normalized assets
