@@ -1840,3 +1840,4 @@ init_risky_contrib.update(risky_contrib_params)
 init_risky_contrib_lifecycle = init_lifecycle.copy()
 init_risky_contrib_lifecycle.update(risky_asset_parms)
 init_risky_contrib_lifecycle.update(risky_contrib_params)
+

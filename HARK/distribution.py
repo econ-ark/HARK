@@ -726,7 +726,7 @@ class Bernoulli(Distribution):
         return draws[0] if len(draws) == 1 else draws
 
 
-class DiscreteDistribution(Distribution):
+class DiscreteDistributionOld(Distribution):
     """
     A representation of a discrete probability distribution.
 
@@ -837,6 +837,36 @@ class DiscreteDistribution(Distribution):
             draws = np.asarray(X)[indices]
 
         return draws
+
+# CDC 20210621: We should not use pmf for the point masses of the realizations, because it
+# is not a probability mass 'function.' Scipy.discrete_rv, sympy, and Mathematica all
+# return pmf (or pdf) as a function. They have different syntaxes for retrieving the
+# vector of point masses; here it is called the pmv (probability mass vector)
+
+
+class DiscreteDistribution(DiscreteDistributionOld):
+    __doc__ = DiscreteDistributionOld.__doc__
+    __doc__ += """
+        XYZ : np.array
+            Restructure the dimensions of the np.array so that successive
+            columns in XYZ correspond to the vectors of values of each
+            discrete random variables across the broadcasted combinations.
+            Thus, [instance].XYZ[0] will return the vector of discrete
+            realizations of the first variable, [instance].XYZ[-1] will
+            get the last RV, etc.
+        pmv : The vector of point masses of the broadcasted collection
+            of random variables
+"""
+
+    def __init__(self, pmf, X, seed=0):  # Get the old definition
+        super().__init__(pmf, X, seed)  # execute the old def
+        XYZ = np.column_stack(X)  # stack actually unstacks them
+        if self.dim() == 1:  # numpy 1 dimensional arrays want to be
+            XYZ = XYZ.T  # the wrong shape
+        self.XYZ = XYZ  # [ N dimensional matrix ]
+        # The pmf should be a function, not a vector (as now)
+        # TODO: Replace invocations of pmf with pmv
+        self.pmv = pmf
 
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
