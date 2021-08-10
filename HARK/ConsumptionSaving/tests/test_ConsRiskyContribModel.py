@@ -49,9 +49,21 @@ class test_(unittest.TestCase):
         
         fin_cont_agent = RiskyContribConsumerType(**cont_params)
         
+        # Independent solver
+        fin_cont_agent.solve()
+        self.assertAlmostEqual(
+            fin_cont_agent.solution[0].stage_sols["Reb"].dfracFunc_Adj(3, 4), -0.87671241
+        )
+        self.assertAlmostEqual(
+            fin_cont_agent.solution[0].stage_sols["Sha"].ShareFunc_Adj(5, 0.1), 0.14641409
+        )
+        self.assertAlmostEqual(
+            fin_cont_agent.solution[0].stage_sols["Cns"].cFunc(3, 4, 0.1), 2.4560881
+        )
+        
+        # General correlated solver
         fin_cont_agent.joint_dist_solver = True
         fin_cont_agent.solve()
-
         self.assertAlmostEqual(
             fin_cont_agent.solution[0].stage_sols["Reb"].dfracFunc_Adj(3, 4), -0.87848691
         )
@@ -70,6 +82,20 @@ class test_(unittest.TestCase):
 
         fin_disc_agent = RiskyContribConsumerType(**disc_params)
         
+        # Independent solver
+        fin_disc_agent.solve()
+
+        self.assertAlmostEqual(
+            fin_disc_agent.solution[0].stage_sols["Reb"].dfracFunc_Adj(3, 4), -0.8767603
+        )
+        self.assertAlmostEqual(
+            fin_disc_agent.solution[0].stage_sols["Sha"].ShareFunc_Adj(5, 0.1), 0.1
+        )
+        self.assertAlmostEqual(
+            fin_disc_agent.solution[0].stage_sols["Cns"].cFunc(3, 4, 0.1), 2.45608803
+        )
+        
+        # General correlated solver
         fin_disc_agent.joint_dist_solver = True
         fin_disc_agent.solve()
 
