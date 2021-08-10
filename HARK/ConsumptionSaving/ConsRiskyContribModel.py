@@ -1,7 +1,25 @@
 """
 This file contains classes and functions for representing, solving, and simulating
-agents who must allocate their resources among consumption, saving in a risk-free
-asset (with a low return), and saving in a risky asset (with higher average return).
+a consumer type with idiosyncratic shocks to permanent and transitory income,
+who can save in both a risk-free and a risky asset but faces frictions to
+moving funds between them. The agent can only consume out of his risk-free
+asset.
+
+The model is described in detail in the REMARK:
+https://econ-ark.org/materials/riskycontrib
+
+@software{mateo_velasquez_giraldo_2021_4977915,
+  author       = {Mateo Velásquez-Giraldo},
+  title        = {{Mv77/RiskyContrib: A Two-Asset Savings Model with 
+                   an Income-Contribution Scheme}},
+  month        = jun,
+  year         = 2021,
+  publisher    = {Zenodo},
+  version      = {v1.0.1},
+  doi          = {10.5281/zenodo.4977915},
+  url          = {https://doi.org/10.5281/zenodo.4977915}
+}
+
 """
 import numpy as np
 from copy import deepcopy
