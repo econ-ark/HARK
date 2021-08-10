@@ -45,8 +45,11 @@ class test_(unittest.TestCase):
         cont_params = copy(self.par_finite)
         cont_params["DiscreteShareBool"] = False
         cont_params["vFuncBool"] = False
-
+        
+        
         fin_cont_agent = RiskyContribConsumerType(**cont_params)
+        
+        fin_cont_agent.joint_dist_solver = True
         fin_cont_agent.solve()
 
         self.assertAlmostEqual(
@@ -66,6 +69,8 @@ class test_(unittest.TestCase):
         disc_params["vFuncBool"] = True
 
         fin_disc_agent = RiskyContribConsumerType(**disc_params)
+        
+        fin_disc_agent.joint_dist_solver = True
         fin_disc_agent.solve()
 
         self.assertAlmostEqual(

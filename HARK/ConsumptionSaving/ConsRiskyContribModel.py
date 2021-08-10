@@ -55,7 +55,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     """
 
     time_inv_ = deepcopy(RiskyAssetConsumerType.time_inv_)
-    time_inv_ = time_inv_ + ["DiscreteShareBool"]
+    time_inv_ = time_inv_ + ["DiscreteShareBool", "joint_dist_solver"]
 
     # The new state variables (over those in ConsIndShock) are:
     # - nMrm: start-of-period risky resources.
@@ -73,7 +73,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     ]
     shock_vars_ = RiskyAssetConsumerType.shock_vars_
 
-    def __init__(self, verbose=False, quiet=False, **kwds):
+    def __init__(self, verbose=False, quiet=False, joint_dist_solver=False, **kwds):
 
         params = init_risky_contrib.copy()
         params.update(kwds)
@@ -103,7 +103,12 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             "Sha": self.get_controls_Sha,
             "Cns": self.get_controls_Cns,
         }
-
+        
+        # The model can be solved more quickly if income and risky returns are
+        # independent. However, people might want to use the general solver
+        # even when they are independent for debugging and testing.
+        self.joint_dist_solver=joint_dist_solver
+        
         # Set the solver for the portfolio model, and update various constructed attributes
         self.solve_one_period = solveRiskyContrib
         self.update()
@@ -1012,6 +1017,7 @@ def solve_RiskyContrib_Cns(
     vFuncBool,
     AdjustPrb,
     DiscreteShareBool,
+    joint_dist_solver,
     **unused_params
 ):
     """
@@ -1061,6 +1067,9 @@ def solve_RiskyContrib_Cns(
     DiscreteShareBool : bool
         Boolean that determines whether only a discrete set of contribution
         shares (ShareGrid) is allowed.
+    joint_dist_solver: bool
+        Should the general solver be used even if income and returns are
+        independent?
     
     Returns
     -------
@@ -1126,8 +1135,8 @@ def solve_RiskyContrib_Cns(
         if vFuncBool:
             v_next = lambda m, n, s: vFunc_Reb_Adj_next(m, n)
 
-    IndepDstnBool = True
-    if IndepDstnBool:
+    
+    if IndepDstnBool and not joint_dist_solver:
 
         # If income and returns are independent we can use the law of iterated
         # expectations to speed up the computation of end-of-period derivatives
@@ -1330,7 +1339,7 @@ def solve_RiskyContrib_Cns(
     # Find end of period derivatives and value as expectations of (discounted)
     # next period's derivatives and value.
     eop_derivs = calc_expectation(
-        RiskyDstn if IndepDstnBool else ShockDstn,
+        RiskyDstn if IndepDstnBool and not joint_dist_solver else ShockDstn,
         end_of_period_derivs,
         aNrm_tiled,
         nNrm_tiled,
@@ -1851,6 +1860,7 @@ def solveRiskyContrib(
     vFuncBool,
     AdjustPrb,
     DiscreteShareBool,
+    joint_dist_solver,
 ):
     """
     Solve a full period (with its three stages) of the agent's problem
@@ -1903,6 +1913,9 @@ def solveRiskyContrib(
     DiscreteShareBool : bool
         Boolean that determines whether only a discrete set of contribution
         shares (ShareGrid) is allowed.
+    joint_dist_solver: bool
+        Should the general solver be used even if income and returns are
+        independent?
 
     Returns
     -------
@@ -1931,6 +1944,7 @@ def solveRiskyContrib(
         "vFuncBool": vFuncBool,
         "AdjustPrb": AdjustPrb,
         "DiscreteShareBool": DiscreteShareBool,
+        "joint_dist_solver": joint_dist_solver,
     }
 
     # Stages of the problem in chronological order
