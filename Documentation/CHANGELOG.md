@@ -30,6 +30,7 @@ Add Boolean attribute 'PerfMITShk' to consumption models. When true, allows perf
 * Track and update start-of-period (pre-income) risky and risk-free assets as states in the `RiskyContrib` model [1046](https://github.com/econ-ark/HARK/pull/1046).
 * distribute_params now uses assign_params to create consistent output [#1044](https://github.com/econ-ark/HARK/pull/1044)
 * The function that computes end-of-period derivatives of the value function was moved to the inside of `ConsRiskyContrib`'s solver [#1057](https://github.com/econ-ark/HARK/pull/1057)
+* Adds functions to compute transition matrices and ergodic distribution [#1045](https://github.com/econ-ark/HARK/pull/1045).
 
 ### 0.11.0
 
