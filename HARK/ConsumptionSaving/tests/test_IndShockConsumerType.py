@@ -313,7 +313,7 @@ CyclicalDict = {
     "Rfree": 1.03,  # Interest factor on assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": 4 * [0.98],  # Survival probability
-    "PermGroFac": [1.082251, 2.8, 0.3, 1.1],
+    "PermGroFac": [1.1, 1.082251, 2.8, 0.3],
     # Parameters that specify the income distribution over the lifecycle
     "PermShkStd": [0.1, 0.1, 0.1, 0.1],
     "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
@@ -357,6 +357,11 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         self.assertAlmostEqual(
             CyclicalExample.solution[3].cFunc(3).tolist(), 1.5958390056965004
         )
+
+        CyclicalExample.initialize_sim()
+        CyclicalExample.simulate()
+
+        self.assertAlmostEqual(CyclicalExample.state_now['aLvl'][1], 0.41839957)
 
 # %% Tests of 'stable points'
 
