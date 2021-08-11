@@ -1733,7 +1733,7 @@ class PerfForesightConsumerType(AgentType):
         # Determine who dies
         DiePrb_by_t_cycle = 1.0 - np.asarray(self.LivPrb)
         DiePrb = DiePrb_by_t_cycle[
-            self.t_cycle - 1 if self.cycles == 1 else self.t_cycle
+            self.t_cycle - 1
         ]  # Time has already advanced, so look back one
 
         # In finite-horizon problems the previous line gives newborns the
@@ -2177,17 +2177,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         newborn = self.t_age == 0
         for t in range(self.T_cycle):
             these = t == self.t_cycle
-
-            # temporary, see #1022
-            if self.cycles == 1:
-                t = t - 1
-
             N = np.sum(these)
             if N > 0:
                 IncShkDstnNow = self.IncShkDstn[
-                    t
+                    t - 1
                 ]  # set current income distribution
-                PermGroFacNow = self.PermGroFac[t]  # and permanent growth factor
+                PermGroFacNow = self.PermGroFac[t - 1]  # and permanent growth factor
                 # Get random draws of income shocks from the discrete distribution
                 IncShks = IncShkDstnNow.draw(N)
 
@@ -2271,7 +2266,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.MPCmax = MPCmax
 
 
-    def define_distribution_grid(self, dist_mGrid=None, dist_pGrid=None, mdensity = 0, num_pointsM = 48,  num_pointsP = 50, max_p_fac = 20.0):
+     
+    def define_distribution_grid(self, dist_mGrid=None, dist_pGrid=None, m_density = 0, num_pointsM = 48,  num_pointsP = 50, max_p_fac = 20.0):
+        
         '''
         Defines the grid on which the distribution is defined. Stores the grid of market resources and permanent income as attributes of self.
         Grid for normalized market resources and permanent income may be prespecified 
@@ -2285,7 +2282,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         dist_pGrid : np.array
                 Prespecified grid for distribution over permanent income. 
             
-        mdensity: float
+        m_density: float
                 Density of normalized market resources grid. Default value is mdensity = 0.
                 Only affects grid of market resources if dist_mGrid=None.
             
@@ -2307,19 +2304,19 @@ class IndShockConsumerType(PerfForesightConsumerType):
  
         if self.cycles == 0:
             if dist_mGrid == None:    
-                aXtraGrid = make_grid_exp_mult(
-                        ming=self.aXtraMin, maxg=self.aXtraMax, ng = num_pointsM, timestonest = 3 ) #Generate Market resources grid given density and number of points
+                aXtra_Grid = make_grid_exp_mult(
+                        ming=self.aXtraMin, maxg=self.aXtraMax, ng = num_pointsM, timestonest = 3) #Generate Market resources grid given density and number of points
                 
-                for i in range(mdensity):
-                    axtrashift = np.delete(aXtraGrid,-1) 
-                    axtrashift = np.insert(axtrashift, 0,1.00000000e-04)
-                    dist_betw_pts = aXtraGrid - axtrashift
+                for i in range(m_density):
+                    axtra_shifted = np.delete(aXtra_Grid,-1) 
+                    axtra_shifted = np.insert(axtra_shifted, 0,1.00000000e-04)
+                    dist_betw_pts = aXtra_Grid - axtra_shifted
                     dist_betw_pts_half = dist_betw_pts/2
-                    newAgrid = axtrashift + dist_betw_pts_half
-                    aXtraGrid = np.concatenate((aXtraGrid,newAgrid))
-                    aXtraGrid = np.sort(aXtraGrid)
+                    new_A_grid = axtra_shifted + dist_betw_pts_half
+                    aXtra_Grid = np.concatenate((aXtra_Grid,new_A_grid))
+                    aXtra_Grid = np.sort(aXtra_Grid)
                     
-                self.dist_mGrid =  aXtraGrid
+                self.dist_mGrid =  aXtra_Grid
             else:
                 self.dist_mGrid = dist_mGrid #If grid of market resources prespecified then use as mgrid
                 
@@ -2339,19 +2336,19 @@ class IndShockConsumerType(PerfForesightConsumerType):
         elif self.T_cycle != 0:
             
             if dist_mGrid == None:
-                aXtraGrid = make_grid_exp_mult(
-                        ming=self.aXtraMin, maxg=self.aXtraMax, ng = num_pointsM, timestonest = 3 ) #Generate Market resources grid given density and number of points
+                aXtra_Grid = make_grid_exp_mult(
+                        ming=self.aXtraMin, maxg=self.aXtraMax, ng = num_pointsM, timestonest = 3) #Generate Market resources grid given density and number of points
                 
-                for i in range(mdensity):
-                    axtrashift = np.delete(aXtraGrid,-1) 
-                    axtrashift = np.insert(axtrashift, 0,1.00000000e-04)
-                    dist_betw_pts = aXtraGrid - axtrashift
+                for i in range(m_density):
+                    axtra_shifted = np.delete(aXtra_Grid,-1) 
+                    axtra_shifted = np.insert(axtra_shifted, 0,1.00000000e-04)
+                    dist_betw_pts = aXtra_Grid - axtra_shifted
                     dist_betw_pts_half = dist_betw_pts/2
-                    newAgrid = axtrashift + dist_betw_pts_half
-                    aXtraGrid = np.concatenate((aXtraGrid,newAgrid))
-                    aXtraGrid = np.sort(aXtraGrid)
-            
-                self.dist_mGrid = aXtraGrid
+                    new_A_grid = axtra_shifted + dist_betw_pts_half
+                    aXtra_Grid = np.concatenate((aXtra_Grid,new_A_grid))
+                    aXtra_Grid = np.sort(aXtra_Grid)
+                    
+                self.dist_mGrid =  aXtra_Grid
                 
             else:
                 self.dist_mGrid = dist_mGrid #If grid of market resources prespecified then use as mgrid
@@ -2375,9 +2372,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 self.dist_pGrid = dist_pGrid #If grid of permanent income prespecified then use as pgrid
                 
                 
-            
-                
-    def calc_transition_matrix(self):
+    def calc_transition_matrix(self, shk_dstn = None):
         '''
         Calculates how the distribution of agents across market resources 
         transitions from one period to the next. If finite horizon problem, then calculates
@@ -2387,7 +2382,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         
         Parameters
         ----------
-        None
+            shk_dstn: list 
+                list of income shock distributions
 
         Returns
         -------
@@ -2397,31 +2393,35 @@ class IndShockConsumerType(PerfForesightConsumerType):
         
         
         if self.cycles == 0: 
+            
+            if shk_dstn == None:
+                shk_dstn = self.IncShkDstn
+            
             dist_mGrid = self.dist_mGrid #Grid of market resources
             dist_pGrid = self.dist_pGrid #Grid of permanent incomes
             aNext = dist_mGrid - self.solution[0].cFunc(dist_mGrid)  #assets next period
             
-            self.aPolGrid = aNext # Steady State Asset Policy Grid
-            self.cPolGrid = self.solution[0].cFunc(dist_mGrid) #Steady State Consumption Policy Grid
+            self.aPol_Grid = aNext # Steady State Asset Policy Grid
+            self.cPol_Grid = self.solution[0].cFunc(dist_mGrid) #Steady State Consumption Policy Grid
             
             # Obtain shock values and shock probabilities from income distribution
             bNext = self.Rfree*aNext # Bank Balances next period (Interest rate * assets)
-            ShockProbs = self.IncShkDstn[0].pmf  # Probability of shocks 
-            TranShocks = self.IncShkDstn[0].X[1] # Transitory shocks
-            PermShocks = self.IncShkDstn[0].X[0] # Permanent shocks
+            shk_prbs = shk_dstn[0].pmf  # Probability of shocks 
+            tran_shks = shk_dstn[0].X[1] # Transitory shocks
+            perm_shks = shk_dstn[0].X[0] # Permanent shocks
             LivPrb = self.LivPrb[0] # Update probability of staying alive
             
             #New borns have this distribution (assumes start with no assets and permanent income=1)
-            NewBornDist = self.jump_to_grid(TranShocks,np.ones_like(TranShocks),ShockProbs,dist_mGrid,dist_pGrid)
+            NewBornDist = self.jump_to_grid(tran_shks,np.ones_like(tran_shks),shk_prbs,dist_mGrid,dist_pGrid)
             
             # Generate Transition Matrix
             TranMatrix = np.zeros((len(dist_mGrid)*len(dist_pGrid),len(dist_mGrid)*len(dist_pGrid)))
             for i in range(len(dist_mGrid)):
                 for j in range(len(dist_pGrid)):
-                    mNext_ij = bNext[i]/PermShocks + TranShocks # Compute next period's market resources given todays bank balances bnext[i]
-                    pNext_ij = dist_pGrid[j]*PermShocks # Computes next period's permanent income level by applying permanent income shock
-                    TranMatrix[:,i*len(dist_pGrid)+j] = LivPrb*self.jump_to_grid(mNext_ij, pNext_ij, ShockProbs,dist_mGrid,dist_pGrid) + (1.0-LivPrb)*NewBornDist
-            self.TranMatrix = TranMatrix
+                    mNext_ij = bNext[i]/perm_shks + tran_shks # Compute next period's market resources given todays bank balances bnext[i]
+                    pNext_ij = dist_pGrid[j]*perm_shks # Computes next period's permanent income level by applying permanent income shock
+                    TranMatrix[:,i*len(dist_pGrid)+j] = LivPrb*self.jump_to_grid(mNext_ij, pNext_ij, shk_prbs,dist_mGrid,dist_pGrid) + (1.0-LivPrb)*NewBornDist
+            self.tran_matrix = TranMatrix
             
             
         elif self.cycles > 1:
@@ -2429,9 +2429,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
             
         elif self.T_cycle!= 0:
             
-            self.cPolGrid = [] # List of consumption policy grids for each period in T_cycle
-            self.aPolGrid = [] # List of asset policy grids for each period in T_cycle
-            self.TranMatrix = [] # List of transition matrices
+            if shk_dstn == None:
+                shk_dstn = self.IncShkDstn
+            
+            self.cPol_Grid = [] # List of consumption policy grids for each period in T_cycle
+            self.aPol_Grid = [] # List of asset policy grids for each period in T_cycle
+            self.tran_matrix = [] # List of transition matrices
             
             dist_mGrid =  self.dist_mGrid
             
@@ -2443,32 +2446,56 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     dist_pGrid = self.dist_pGrid #If here then use prespecified permanent income grid
                 
                 Cnow = self.solution[k].cFunc(dist_mGrid) #Consumption policy grid in period k
-                self.cPolGrid.append(Cnow) #Add to list
+                self.cPol_Grid.append(Cnow) #Add to list
 
                 aNext = dist_mGrid - Cnow # Asset policy grid in period k
-                self.aPolGrid.append(aNext) # Add to list
+                self.aPol_Grid.append(aNext) # Add to list
                 
-                bNext = self.Rfree[k]*aNext # Update interest rate this period
+                
+                if type(self.Rfree)==list:
+                    bNext = self.Rfree[k]*aNext
+                else:
+                    bNext = self.Rfree*aNext
+                    
                 #Obtain shocks and shock probabilities from income distribution this period
-                ShockProbs = self.IncShkDstn[k].pmf  #Probability of shocks this period
-                TranShocks = self.IncShkDstn[k].X[1] #Transitory shocks this period
-                PermShocks = self.IncShkDstn[k].X[0] #Permanent shocks this period
+                shk_prbs = shk_dstn[k].pmf  #Probability of shocks this period
+                tran_shks = shk_dstn[k].X[1] #Transitory shocks this period
+                perm_shks = shk_dstn[k].X[0] #Permanent shocks this period
                 LivPrb = self.LivPrb[k] # Update probability of staying alive this period
                 
-                #New borns have this distribution (assumes start with no assets and permanent income=1)
-                NewBornDist = self.jump_to_grid(TranShocks,np.ones_like(TranShocks),ShockProbs,dist_mGrid,dist_pGrid)
                 
-                # Generate Transition Matrix this period
-                TranMatrix = np.zeros((len(dist_mGrid)*len(dist_pGrid),len(dist_mGrid)*len(dist_pGrid))) 
-                for i in range(len(dist_mGrid)):
-                    for j in range(len(dist_pGrid)):
-                        mNext_ij = bNext[i]/PermShocks + TranShocks # Compute next period's market resources given todays bank balances bnext[i]
-                        pNext_ij = dist_pGrid[j]*PermShocks # Computes next period's permanent income level by applying permanent income shock
-                        TranMatrix[:,i*len(dist_pGrid)+j] = LivPrb*self.jump_to_grid(mNext_ij, pNext_ij, ShockProbs, dist_mGrid, dist_pGrid) + (1.0-LivPrb)*NewBornDist #generate transition probabilities
-                TranMatrix = TranMatrix
-                self.TranMatrix.append(TranMatrix)
-                         
-        
+                
+                if len(dist_pGrid) == 1: 
+            
+                    #New borns have this distribution (assumes start with no assets and permanent income=1)
+                    NewBornDist = self.jump_to_grid_fast(tran_shks,shk_prbs,dist_mGrid)
+                    
+                    # Generate Transition Matrix this period
+                    TranMatrix_M = np.zeros((len(dist_mGrid),len(dist_mGrid))) 
+                    for i in range(len(dist_mGrid)):
+                            mNext_ij = bNext[i]/perm_shks + tran_shks # Compute next period's market resources given todays bank balances bnext[i]
+                            TranMatrix_M[:,i] = LivPrb*self.jump_to_grid_fast(mNext_ij, shk_prbs,dist_mGrid) + (1.0-LivPrb)*NewBornDist 
+                    TranMatrix_M = TranMatrix_M
+                    self.tran_matrix.append(TranMatrix_M)
+                    
+                else:
+                    
+                    NewBornDist = self.jump_to_grid(tran_shks,np.ones_like(tran_shks),shk_prbs,dist_mGrid,dist_pGrid)
+
+                    # Generate Transition Matrix this period
+                    TranMatrix = np.zeros((len(dist_mGrid)*len(dist_pGrid),len(dist_mGrid)*len(dist_pGrid))) 
+                    for i in range(len(dist_mGrid)):
+                        for j in range(len(dist_pGrid)):
+                            mNext_ij = bNext[i]/perm_shks + tran_shks # Compute next period's market resources given todays bank balances bnext[i]
+                            pNext_ij = dist_pGrid[j]*perm_shks # Computes next period's permanent income level by applying permanent income shock
+                            TranMatrix[:,i*len(dist_pGrid)+j] = LivPrb*self.jump_to_grid(mNext_ij, pNext_ij, shk_prbs, dist_mGrid, dist_pGrid) + (1.0-LivPrb)*NewBornDist #generate transition probabilities
+                    TranMatrix = TranMatrix #columns represent the current state while rows represent the next state
+                    #the 4th row , 6th column entry represents the probability of transitioning from the 6th element of the combined perm and m grid (grid of market resources multiplied by grid of perm income) to the 4th element of the combined perm and m grid
+                    self.tran_matrix.append(TranMatrix)         
+                
+
+
+                
     def jump_to_grid(self, m_vals, perm_vals, probs, dist_mGrid, dist_pGrid ):
         
         '''
@@ -2558,9 +2585,42 @@ class IndShockConsumerType(PerfForesightConsumerType):
             
 
         return probGrid.flatten()
+
+    def jump_to_grid_fast(self,m_vals, probs ,Dist_mGrid ):
+        '''
+        Distributes values onto a predefined grid, maintaining the means.
+        ''' 
     
+        probGrid = np.zeros(len(Dist_mGrid))
+        mIndex = np.digitize(m_vals,Dist_mGrid) - 1
+        mIndex[m_vals <= Dist_mGrid[0]] = -1
+        mIndex[m_vals >= Dist_mGrid[-1]] = len(Dist_mGrid)-1
+        
+ 
+        for i in range(len(m_vals)):
+            if mIndex[i]==-1:
+                mlowerIndex = 0
+                mupperIndex = 0
+                mlowerWeight = 1.0
+                mupperWeight = 0.0
+            elif mIndex[i]==len(Dist_mGrid)-1:
+                mlowerIndex = -1
+                mupperIndex = -1
+                mlowerWeight = 1.0
+                mupperWeight = 0.0
+            else:
+                mlowerIndex = mIndex[i]
+                mupperIndex = mIndex[i]+1
+                mlowerWeight = (Dist_mGrid[mupperIndex]-m_vals[i])/(Dist_mGrid[mupperIndex]-Dist_mGrid[mlowerIndex])
+                mupperWeight = 1.0 - mlowerWeight
+                
+            probGrid[mlowerIndex] = probGrid[mlowerIndex] + probs[i]*mlowerWeight
+            probGrid[mupperIndex] = probGrid[mupperIndex] + probs[i]*mupperWeight
+            
+        return probGrid.flatten()
     
-    def calc_ergodic_dist(self):
+        
+    def calc_ergodic_dist(self, transition_matrix = None):
         
         '''
         Calculates the ergodic distribution across normalized market resources and
@@ -2571,26 +2631,30 @@ class IndShockConsumerType(PerfForesightConsumerType):
         
         Parameters
         ----------
-        None
+        transition_matrix: List 
+                    transition matrix whose ergordic distribution is to be solved
 
         Returns
         -------
         None
         '''
         
-        eigen, ergodic_distr = sparse.linalg.eigs(self.TranMatrix , k=1 , which='LM')  # Solve for ergodic distribution
+        if transition_matrix == None:
+            transition_matrix = [self.tran_matrix]
+        
+        
+        eigen, ergodic_distr = sparse.linalg.eigs(transition_matrix[0] , k=1 , which='LM')  # Solve for ergodic distribution
         ergodic_distr = ergodic_distr.real/np.sum(ergodic_distr.real)
         
         self.vec_erg_dstn = ergodic_distr #distribution as a vector
         self.erg_dstn = ergodic_distr.reshape((len(self.dist_mGrid),len(self.dist_pGrid))) # distribution reshaped into len(mgrid) by len(pgrid) array
         
-        
-    def calc_agg_path(self, init_dstn, cPolGrid_list = None, aPolGrid_list = None, TranMatrix_list = None, distpGrid_list = None):
+
+    def calc_agg_path(self, init_dstn, cPolGrid_list = None, aPolGrid_list = None, tran_matrix_list = None, dist_pGrid_list =None):
         
         '''
         Calculates the paths of aggregate consumption and aggregate assets storing both as attributes of self. The consumption and asset policies along with the 
         the transition matrices each period may be specified as lists. 
-        
         
         Parameters
         ----------
@@ -2606,9 +2670,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         TranMatrix_list: list
                 list of transition matrices
                 
-        distpGrid_list: list
-                list of permanent income grids
-        
         Returns
         -------
         None
@@ -2616,15 +2677,15 @@ class IndShockConsumerType(PerfForesightConsumerType):
         ''' 
         
         if cPolGrid_list == None:
-            cPolGrid_list = self.cPolGrid
+            cPolGrid_list = self.cPol_Grid
             
         if aPolGrid_list == None:
-            aPolGrid_list = self.aPolGrid
+            aPolGrid_list = self.aPol_Grid
             
-        if TranMatrix_list == None:
-            TranMatrix_list = self.TranMatrix
+        if tran_matrix_list == None:
+            tran_matrix_list = self.tran_matrix
             
-        if distpGrid_list == None:
+        if dist_pGrid_list == None:
             dist_pGrid_list = self.dist_pGrid
                         
         AggC =[] # List of aggregate consumption for each period t 
@@ -2634,20 +2695,30 @@ class IndShockConsumerType(PerfForesightConsumerType):
     
         T = len(cPolGrid_list)
         for i in range(T):
-    
-            p = dist_pGrid_list[i]# Permanent income Grid this period
+            
+            p = dist_pGrid_list[i]
             c = cPolGrid_list[i] # Consumption Policy Grid this period
             a = aPolGrid_list[i] # Asset Policy Grid this period
-    
-            gridc = np.dot( c.reshape( len(c), 1 ) , p.reshape( 1 , len(p) ) ) #Transform grid from normalized consumption to level of consumption
-            C = np.dot( gridc.flatten() , dstn )  # Compute Aggregate Consumption this period
-            AggC.append(C)
-    
-            grida = np.dot( a.reshape( len(a), 1 ) , p.reshape( 1 , len(p) ) ) #Transform grid from normalized assets to level of assets
-            A = np.dot( grida.flatten() , dstn ) # Compute Aggregate Assets this period
-            AggA.append(A)
-    
-            dstn = np.dot(TranMatrix_list[i],dstn) # Iterate Distribution forward
+            
+            if len(p) == 1:
+                
+                C = np.dot( c , dstn )  # Compute Aggregate Consumption this period
+                AggC.append(C)
+        
+                A = np.dot( a, dstn ) # Compute Aggregate Assets this period
+                AggA.append(A)
+                
+            else:
+                
+                gridc = np.dot( c.reshape( len(c), 1 ) , p.reshape( 1 , len(p) ) ) #Transform grid from normalized consumption to level of consumption
+                C = np.dot( gridc.flatten() , dstn )  # Compute Aggregate Consumption this period
+                AggC.append(C)
+        
+                grida = np.dot( a.reshape( len(a), 1 ) , p.reshape( 1 , len(p) ) ) #Transform grid from normalized assets to level of assets
+                A = np.dot( grida.flatten() , dstn ) # Compute Aggregate Assets this period
+                AggA.append(A)
+                                
+            dstn = np.dot(tran_matrix_list[i],dstn) # Iterate Distribution forward
     
         #Transform Lists into tractable arrays
         self.AggC  = np.array(AggC).T[0] 
@@ -3441,7 +3512,7 @@ init_lifecycle.update({"LivPrb": liv_prb})
 
 # Make a dictionary to specify an infinite consumer with a four period cycle
 init_cyclical = copy(init_idiosyncratic_shocks)
-init_cyclical['PermGroFac'] = [1.1, 1.082251, 2.8, 0.3]
+init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
 init_cyclical['PermShkStd'] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical['TranShkStd'] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical['LivPrb'] = 4*[0.98]
