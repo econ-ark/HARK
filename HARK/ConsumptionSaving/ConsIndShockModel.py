@@ -14,8 +14,8 @@ See HARK documentation for mathematical descriptions of the models being solved.
 """
 from copy import copy, deepcopy
 import numpy as np
-from scipy.optimize import newton
 from scipy import sparse
+from scipy.optimize import newton
 from HARK import AgentType, NullFunc, MetricObject, make_one_period_oo_solver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import (
@@ -1733,7 +1733,7 @@ class PerfForesightConsumerType(AgentType):
         # Determine who dies
         DiePrb_by_t_cycle = 1.0 - np.asarray(self.LivPrb)
         DiePrb = DiePrb_by_t_cycle[
-            self.t_cycle - 1
+            self.t_cycle - 1 if self.cycles == 1 else self.t_cycle
         ]  # Time has already advanced, so look back one
 
         # In finite-horizon problems the previous line gives newborns the
@@ -2177,12 +2177,17 @@ class IndShockConsumerType(PerfForesightConsumerType):
         newborn = self.t_age == 0
         for t in range(self.T_cycle):
             these = t == self.t_cycle
+
+            # temporary, see #1022
+            if self.cycles == 1:
+                t = t - 1
+
             N = np.sum(these)
             if N > 0:
                 IncShkDstnNow = self.IncShkDstn[
-                    t - 1
+                    t
                 ]  # set current income distribution
-                PermGroFacNow = self.PermGroFac[t - 1]  # and permanent growth factor
+                PermGroFacNow = self.PermGroFac[t]  # and permanent growth factor
                 # Get random draws of income shocks from the discrete distribution
                 IncShks = IncShkDstnNow.draw(N)
 
@@ -2264,9 +2269,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.hNrm = hNrm
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
-
-
-     
+        
+        
+    
     def define_distribution_grid(self, dist_mGrid=None, dist_pGrid=None, m_density = 0, num_pointsM = 48,  num_pointsP = 50, max_p_fac = 20.0):
         
         '''
@@ -2723,9 +2728,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         #Transform Lists into tractable arrays
         self.AggC  = np.array(AggC).T[0] 
         self.AggA  = np.array(AggA).T[0]
-        
-        
-        
+
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
         Creates a "normalized Euler error" function for this instance, mapping
@@ -3512,7 +3515,7 @@ init_lifecycle.update({"LivPrb": liv_prb})
 
 # Make a dictionary to specify an infinite consumer with a four period cycle
 init_cyclical = copy(init_idiosyncratic_shocks)
-init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
+init_cyclical['PermGroFac'] = [1.1, 1.082251, 2.8, 0.3]
 init_cyclical['PermShkStd'] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical['TranShkStd'] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical['LivPrb'] = 4*[0.98]
