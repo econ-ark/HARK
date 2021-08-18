@@ -1946,7 +1946,7 @@ def solveRiskyContrib(
         "ShockDstn": ShockDstn,
         "IncShkDstn": IncShkDstn,
         "RiskyDstn": RiskyDstn,
-        "IndepDstnBool": RiskyDstn,
+        "IndepDstnBool": IndepDstnBool,
         "LivPrb": LivPrb,
         "DiscFac": DiscFac,
         "CRRA": CRRA,
