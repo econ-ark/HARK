@@ -1099,7 +1099,6 @@ class FrameAgentType(AgentType):
             if t in context:
                 context[t][:] = new_values[i]
             else:
-                import pdb; pdb.set_trace()
                 raise Exception(f"From frame {frame.target}, target {t} is not in the context object.")
 
 def solve_agent(agent, verbose):
