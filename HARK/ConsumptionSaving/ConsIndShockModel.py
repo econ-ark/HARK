@@ -1732,7 +1732,7 @@ class PerfForesightConsumerType(AgentType):
         # Determine who dies
         DiePrb_by_t_cycle = 1.0 - np.asarray(self.LivPrb)
         DiePrb = DiePrb_by_t_cycle[
-            self.t_cycle - 1
+            self.t_cycle - 1 if self.cycles == 1 else self.t_cycle
         ]  # Time has already advanced, so look back one
 
         # In finite-horizon problems the previous line gives newborns the
@@ -2176,12 +2176,17 @@ class IndShockConsumerType(PerfForesightConsumerType):
         newborn = self.t_age == 0
         for t in range(self.T_cycle):
             these = t == self.t_cycle
+
+            # temporary, see #1022
+            if self.cycles == 1:
+                t = t - 1
+
             N = np.sum(these)
             if N > 0:
                 IncShkDstnNow = self.IncShkDstn[
-                    t - 1
+                    t
                 ]  # set current income distribution
-                PermGroFacNow = self.PermGroFac[t - 1]  # and permanent growth factor
+                PermGroFacNow = self.PermGroFac[t]  # and permanent growth factor
                 # Get random draws of income shocks from the discrete distribution
                 IncShks = IncShkDstnNow.draw(N)
 
@@ -3050,7 +3055,7 @@ init_lifecycle.update({"LivPrb": liv_prb})
 
 # Make a dictionary to specify an infinite consumer with a four period cycle
 init_cyclical = copy(init_idiosyncratic_shocks)
-init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
+init_cyclical['PermGroFac'] = [1.1, 1.082251, 2.8, 0.3]
 init_cyclical['PermShkStd'] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical['TranShkStd'] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical['LivPrb'] = 4*[0.98]
