@@ -29,7 +29,7 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
 
         self.assertAlmostEqual(
             self.pcct.shocks['PermShk'][0],
-            0.95908471
+            0.9692322
         )
 
         self.assertAlmostEqual(
@@ -59,8 +59,9 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         )
 
         self.assertAlmostEqual(
+            # todo: more flexible test
             self.pcct.controls["Share"][0],
-            0.89838257
+            0.90256316
         )
         self.assertAlmostEqual(
             self.pcct.controls["cNrm"][0],

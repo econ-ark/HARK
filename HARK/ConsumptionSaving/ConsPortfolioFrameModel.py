@@ -217,9 +217,10 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             default = {'PermShk' : 1.0}, # maybe this is unnecessary because the shock gets sampled at t = 0
             # this is discretized before it's sampled
             transition = IndexDistribution(
-                    MeanOneLogNormal,
+                    Lognormal.from_mean_std,
                     {
-                        'sigma' : init_portfolio['PermShkStd']
+                        'mean' : init_portfolio['PermGroFac'],
+                        'std' : init_portfolio['PermShkStd']
                     }
                 ).approx(
                     init_portfolio['PermShkCount'], tail_N=0
