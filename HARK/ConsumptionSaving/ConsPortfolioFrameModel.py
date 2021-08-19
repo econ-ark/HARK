@@ -228,19 +228,16 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         Frame(
             ('TranShk'), None,
             default = {'TranShk' : 1.0}, # maybe this is unnecessary because the shock gets sampled at t = 0
-            transition = IndexDistribution(
-                # Need to discretize this "first" to add unemployed in
-                # TODO: Encapsulate this widely used distribution form in the OO logic.
-                lambda sigma, seed : add_discrete_outcome_constant_mean(
-                    MeanOneLogNormal(sigma = sigma, seed = seed).approx(
+            transition = add_discrete_outcome_constant_mean(
+                IndexDistribution(
+                    MeanOneLogNormal,
+                    {
+                        'sigma' : init_portfolio['TranShkStd']
+                    }).approx(
                         init_portfolio['TranShkCount'], tail_N=0
                     ),
-                    p = init_portfolio['UnempPrb'], x = init_portfolio['IncUnemp']
-                ),
-                {
-                    'sigma' : init_portfolio['PermShkStd']
-                }
-            ),
+                    p = init_portfolio['UnempPrb'], x = init_portfolio['IncUnemp'] 
+            )
         ),
         Frame( ## TODO: Handle Risky as an Aggregate value
             ('Risky'),None, 

@@ -1124,8 +1124,8 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
 
     Parameters
     ----------
-    distribution : [np.array]
-        Two element list containing a list of probabilities and a list of outcomes.
+    distribution : DiscreteDistribution
+        A DiscreteDistribution
     x : float
         The new value to be added to the distribution.
     p : float
@@ -1139,15 +1139,24 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
         Probability associated with each point in array of discrete
         points for discrete probability mass function.
     """
-    X = np.append(x, distribution.X * (1 - p * x) / (1 - p))
-    pmf = np.append(p, distribution.pmf * (1 - p))
 
-    if sort:
-        indices = np.argsort(X)
-        X = X[indices]
-        pmf = pmf[indices]
+    if type(distribution) != TimeVaryingDiscreteDistribution:
+        X = np.append(x, distribution.X * (1 - p * x) / (1 - p))
+        pmf = np.append(p, distribution.pmf * (1 - p))
 
-    return DiscreteDistribution(pmf, X)
+        if sort:
+            indices = np.argsort(X)
+            X = X[indices]
+            pmf = pmf[indices]
+
+        return DiscreteDistribution(pmf, X)
+    elif type(distribution) == TimeVaryingDiscreteDistribution:
+        # apply recursively on all the internal distributions
+        return TimeVaryingDiscreteDistribution([
+            add_discrete_outcome_constant_mean(d, x, p)
+            for d
+            in distribution.distributions
+        ], seed = distribution.seed)
 
 
 def add_discrete_outcome(distribution, x, p, sort=False):
