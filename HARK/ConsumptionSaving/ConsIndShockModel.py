@@ -1848,6 +1848,46 @@ class PerfForesightConsumerType(AgentType):
         super().get_poststates()
 
         return None
+    
+    def sim_agg_path(self):
+        """
+        Simulates and calculates the paths of aggregate consumption, assets and cash on hand storing each as
+        attrbutes of self. The simulation utilizes (Harmenberg 2021) method involving an altered permanent shock distribution.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        
+        """
+        
+        self.track_vars = ['aNrm','mNrm','cNrm']
+        self.ntrl = True # Is this the problem?
+        self.initialize_sim()
+        self.simulate()
+        
+        Asset_list = []
+        consumption_list = []
+        M_list =[]
+        for i in range (self.T_sim):
+            
+            Assetagg =  np.mean(self.history['aNrm'][i])
+            Asset_list.append(Assetagg)
+            
+            ConsumptionAgg =  np.mean(self.history['cNrm'][i])
+            consumption_list.append(ConsumptionAgg)
+            
+            Magg = np.mean(self.history['mNrm'][i])
+            M_list.append(Magg)
+            
+            
+        self.agg_assets = np.array(Asset_list)
+        self.agg_consumption = np.array(consumption_list)
+        self.agg_cash_on_hand = np.array(M_list)
+
 
     def check_condition(self, name, test, messages, verbose, verbose_messages=None):
         """
@@ -2035,6 +2075,8 @@ init_idiosyncratic_shocks = dict(
         "T_retire": 0,  # Period of retirement (0 --> no retirement)
         "vFuncBool": False,  # Whether to calculate the value function during solution
         "CubicBool": False,  # Use cubic spline interpolation when True, linear interpolation when False
+        "ntrl_msr": False,      # Use permanent income neutral measure during simulations when True.
+
     }
 )
 
@@ -2097,10 +2139,18 @@ class IndShockConsumerType(PerfForesightConsumerType):
             IncShkDstn,
             PermShkDstn,
             TranShkDstn,
+            IncShkDstn_ntrl,
         ) = self.construct_lognormal_income_process_unemployment()
         self.IncShkDstn = IncShkDstn
         self.PermShkDstn = PermShkDstn
         self.TranShkDstn = TranShkDstn
+        self.IncShkDstn_ntrl = IncShkDstn_ntrl
+
+        if self.ntrl_msr == False:
+            self.IncShkDstn = IncShkDstn
+        else:
+            self.IncShkDstn = self.IncShkDstn_ntrl
+    
         self.add_to_time_vary("IncShkDstn", "PermShkDstn", "TranShkDstn")
 
     def update_assets_grid(self):
@@ -2178,7 +2228,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             these = t == self.t_cycle
 
             # temporary, see #1022
-            if self.cycles == 1:
+            if self.cycles == 1 and self.ntrl_msr == False:
                 t = t - 1
 
             N = np.sum(these)
@@ -2680,6 +2730,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         IncShkDstn = []  # Discrete approximations to income process in each period
         PermShkDstn = []  # Discrete approximations to permanent income shocks
         TranShkDstn = []  # Discrete approximations to transitory income shocks
+        IncShkDstn_ntrl =[]
 
         # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
         # in normal times; value 0.0 in "unemployment" times with small prob.
@@ -2725,7 +2776,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 PermShkDstn_t = MeanOneLogNormal(sigma=PermShkStd[t]).approx(
                     PermShkCount, tail_N=0
                 )
-
+                
+                PermShk_ntrl = deepcopy(PermShkDstn_t)
+                PermShk_ntrl.pmf = PermShk_ntrl.X*PermShk_ntrl.pmf
+                IncShkDstn_ntrl.append(combine_indep_dstns(PermShk_ntrl,TranShkDstn_t))
+                
                 IncShkDstn.append(
                     combine_indep_dstns(
                         PermShkDstn_t,
@@ -2735,7 +2790,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 )  # mix the independent distributions
                 PermShkDstn.append(PermShkDstn_t)
                 TranShkDstn.append(TranShkDstn_t)
-        return IncShkDstn, PermShkDstn, TranShkDstn
+        return IncShkDstn, PermShkDstn, TranShkDstn, IncShkDstn_ntrl
 
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
