@@ -648,7 +648,6 @@ class test_Harmenbergs_method(unittest.TestCase):
         ss.cycles = 0
         ss.track_vars = ['aNrm','mNrm','cNrm','pLvl','aLvl']
         ss.T_sim= 20000
-        ss.ntrl_msr = True
         
         
         ##################################################################################
@@ -680,7 +679,6 @@ class test_Harmenbergs_method(unittest.TestCase):
         example2.cycles = 0
         example2.track_vars = [ 'aNrm', 'mNrm','cNrm','pLvl','aLvl']
         example2.T_sim= 20000
-        example2.ntrl_msr = False
             
         
         example2.solve()
