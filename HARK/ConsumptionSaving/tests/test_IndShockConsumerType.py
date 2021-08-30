@@ -582,3 +582,134 @@ class testPerfMITShk(unittest.TestCase):
         JACA = (AHist[0]-A_dx0)/(dx)
         
         self.assertAlmostEqual(JACA[175], 6.441930322509393e-06)
+        
+        
+        
+        
+        
+        
+        
+        
+
+        
+Harmenberg_Dict={
+    # Parameters shared with the perfect foresight model
+    "CRRA":2,                             # Coefficient of relative risk aversion
+    "Rfree": 1.04**.25,                  # Interest factor on assets
+    "DiscFac": 0.9735,                    # Intertemporal discount factor
+    "LivPrb" : [.99375],                    # Survival probability
+    "PermGroFac" :[1.00],                 # Permanent income growth factor
+
+    # Parameters that specify the income distribution over the lifecycle
+   
+    "PermShkStd" :  [.06], #[(0.01*4/11)**0.5],    # Standard deviation of log permanent shocks to income
+    "PermShkCount" : 5,                    # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd" : [.3],                   # Standard deviation of log transitory shocks to income
+    "TranShkCount" : 5,                    # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb" : 0.07,                     # Probability of unemployment while working
+    "IncUnemp" : 0.3,      # Unemployment benefits replacement rate
+    "UnempPrbRet" : 0.0005,                # Probability of "unemployment" while retired
+    "IncUnempRet" : 0.0,                   # "Unemployment" benefits when retired
+    "T_retire" : 0,                        # Period of retirement (0 --> no retirement)
+    "tax_rate" : 0.18,      # Flat income tax rate (legacy parameter, will be removed in future)
+
+    # Parameters for constructing the "assets above minimum" grid
+    "aXtraMin" : 0.001,                    # Minimum end-of-period "assets above minimum" value
+    "aXtraMax" : 20,                       # Maximum end-of-period "assets above minimum" value
+    "aXtraCount" : 48,                     # Number of points in the base grid of "assets above minimum"
+    "aXtraNestFac" : 3,                    # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraExtra" : [None],                 # Additional values to add to aXtraGrid
+
+    # A few other parameters
+    "BoroCnstArt" : 0.0,                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "vFuncBool" : True,                    # Whether to calculate the value function during solution
+    "CubicBool" : False,                   # Preference shocks currently only compatible with linear cFunc
+    "T_cycle" : 1,                         # Number of periods in the cycle for this agent type
+
+    # Parameters only used in simulation
+    "AgentCount" : 500,                 # Number of agents of this type
+    "T_sim" : 100,                         # Number of periods to simulate
+    "aNrmInitMean" : np.log(1.3)-(.5**2)/2,# Mean of log initial assets
+    "aNrmInitStd"  : .5,                   # Standard deviation of log initial assets
+    "pLvlInitMean" : 0,                    # Mean of log initial permanent income
+    "pLvlInitStd"  : 0,                    # Standard deviation of log initial permanent income
+    "PermGroFacAgg" : 1.0,                 # Aggregate permanent income growth factor
+    "T_age" : None,                        # Age after which simulated agents are automatically killed
+
+}
+
+
+class test_Harmenbergs_method(unittest.TestCase):
+    
+    def test_Harmenberg_mtd(self):
+
+        
+        ss = IndShockConsumerType(**Harmenberg_Dict, verbose = 0 )
+        ss.cycles = 0
+        ss.track_vars = ['aNrm','mNrm','cNrm','pLvl','aLvl']
+        ss.T_sim= 20000
+        ss.ntrl_msr = True
+        
+        
+        ##################################################################################
+            
+        
+        ss.solve()
+        ss.initialize_sim()
+        ss.simulate()
+        
+        
+        AggA_HB = np.mean(ss.state_now['aNrm'])
+        AggC_HB = np.mean(ss.state_now['mNrm'] - ss.state_now['aNrm'])
+        AggM_HB = np.mean(ss.state_now['mNrm'])
+        
+        ss.sim_agg_path()
+        
+        self.assertAlmostEqual(AggA_HB,1.2682262640334434)
+        self.assertAlmostEqual(AggC_HB, 1.0191239494589863)
+        self.assertAlmostEqual(AggM_HB, 2.2873502134924295 )
+
+        self.assertAlmostEqual(np.std(ss.agg_assets),0.032690971234024854 )
+        self.assertAlmostEqual(np.std(ss.agg_consumption),0.004460587745942368)
+        self.assertAlmostEqual(np.std(ss.agg_cash_on_hand),0.036755109160745106 )
+        
+        #########################################################
+        
+        
+        example2 = IndShockConsumerType(**Harmenberg_Dict, verbose = 0)
+        example2.cycles = 0
+        example2.track_vars = [ 'aNrm', 'mNrm','cNrm','pLvl','aLvl']
+        example2.T_sim= 20000
+        example2.ntrl_msr = False
+            
+        
+        example2.solve()
+        example2.initialize_sim()
+        example2.simulate()
+        
+        
+        AggA = np.mean(example2.state_now['aLvl'])
+        AggC = np.mean((example2.state_now['mNrm'] - example2.state_now['aNrm'])  * example2.state_now['pLvl'])
+        Agg_M = np.mean(example2.state_now['mNrm']*example2.state_now['pLvl'])
+        
+        
+        Asset_list2 = []
+        Consumption_list2 = []
+        M_list2 =[]
+        
+        for i in range (example2.T_sim):
+            Assetagg =  np.mean(example2.history['aLvl'][i])
+            Asset_list2.append(Assetagg)
+            ConsAgg =  np.mean(example2.history['cNrm'][i] * example2.history['pLvl'][i])
+            Consumption_list2.append(ConsAgg)
+            Magg = np.mean(example2.history['mNrm'][i] * example2.history['pLvl'][i])
+            M_list2.append(Magg)
+        
+        self.assertAlmostEqual(AggA, 1.3078032820333236)
+        self.assertAlmostEqual(AggC, 1.0777116423860673)
+        self.assertAlmostEqual(Agg_M, 2.385514924419391)
+
+        self.assertAlmostEqual(np.std(np.array(Asset_list2)), 0.05956214290892312 )
+        self.assertAlmostEqual(np.std(np.array(Consumption_list2)), 0.03768819564871894 )
+        self.assertAlmostEqual( np.std( np.array(M_list2) ) ,0.09308921795864981)
+        
