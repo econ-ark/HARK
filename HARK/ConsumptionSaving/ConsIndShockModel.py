@@ -1864,14 +1864,14 @@ class PerfForesightConsumerType(AgentType):
         
         """
         
-        self.track_vars = ['aNrm','mNrm','cNrm']
-        self.ntrl = True # Is this the problem?
+        self.track_vars = ['aNrm','mNrm','cNrm'] # #variables to track
+        self.ntrl_msr = True 
         self.initialize_sim()
         self.simulate()
         
-        Asset_list = []
-        consumption_list = []
-        M_list =[]
+        Asset_list = [] # list of aggregate asset values
+        consumption_list = [] # list of aggregate consumption values
+        M_list =[] # list of cash_on_hand values
         for i in range (self.T_sim):
             
             Assetagg =  np.mean(self.history['aNrm'][i])
@@ -1884,9 +1884,9 @@ class PerfForesightConsumerType(AgentType):
             M_list.append(Magg)
             
             
-        self.agg_assets = np.array(Asset_list)
-        self.agg_consumption = np.array(consumption_list)
-        self.agg_cash_on_hand = np.array(M_list)
+        self.agg_assets = np.array(Asset_list) # path of aggregate assets
+        self.agg_consumption = np.array(consumption_list) # path of aggregate consumption
+        self.agg_cash_on_hand = np.array(M_list) # path of aggregate cash on hand/market resources
 
 
     def check_condition(self, name, test, messages, verbose, verbose_messages=None):
@@ -2146,7 +2146,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.TranShkDstn = TranShkDstn
         self.IncShkDstn_ntrl = IncShkDstn_ntrl
 
-        if self.ntrl_msr == False:
+        if self.ntrl_msr == False: # Use default income shock distribution
             self.IncShkDstn = IncShkDstn
         else:
             self.IncShkDstn = self.IncShkDstn_ntrl
@@ -2714,6 +2714,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         TranShkDstn : [[distribution.Distribution]]
             A list with T_cycle elements, each of which
             a discrete approximation to the transitory income shocks.
+        IncShkDstn_ntrl :  [distribution.Distribution]
+            A list with T_cycle elements, each of which is a
+            discrete approximation to the income process in a period.
+            Permanent shock component of the income process uses the permanent 
+            income neutral measure (see Harmenberg 2021).  
         """
         # Unpack the parameters from the input
         PermShkStd = self.PermShkStd
