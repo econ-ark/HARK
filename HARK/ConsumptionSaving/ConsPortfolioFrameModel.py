@@ -77,6 +77,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         self.shocks = {'Adjust' : None, 'PermShk' : None, 'TranShk' : None}
         self.controls = {'cNrm' : None, 'Share' : None}
         self.state_now = {
+            'Rport' : None,
             'aLvl' : None,
             'aNrm' : None,
             'bNrm' : None,
@@ -110,6 +111,13 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
 
+    def transition_Rport(self, **context):
+
+        Rport = (
+            context["Share"] * context["Risky"]
+            + (1.0 - context["Share"]) * self.parameters['Rfree']
+        )
+        return Rport
 
     def transition(self, **context):
         pLvlPrev = context['pLvl']
@@ -117,7 +125,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
 
         # This should be computed separately in its own transition
         # Using IndShock get_Rfree instead of generic.
-        RfreeNow = self.parameters['Rfree'] * np.ones(self.AgentCount)
+        RfreeNow = context['Rport']
 
         # Calculate new states: normalized market resources and permanent income level
         pLvlNow = pLvlPrev * context['PermShk']  # Updated permanent income level
@@ -264,10 +272,14 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                 # seed=self.RNG.randint(0, 2 ** 31 - 1) : TODO: Seed logic
             ) # self.t_cycle input implied
         ),
+        Frame(
+            ('Rport'), ('Share', 'Risky'), 
+            transition = transition_Rport
+        ),
         ## TODO risk free return rate
         Frame(
             ('pLvl', 'PlvlAgg', 'bNrm', 'mNrm'),
-            ('pLvl', 'aNrm', 'Rfree', 'PlvlAgg', 'PermShk', 'TranShk', 'PermShkAggNow'),
+            ('pLvl', 'aNrm', 'Rport', 'PlvlAgg', 'PermShk', 'TranShk', 'PermShkAggNow'),
             default = {'pLvl' : birth_pLvlNow, 'PlvlAgg' : 1.0},
             transition = transition
         ),
