@@ -72,9 +72,9 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         self.update()
 
         ## TODO: Should be defined in the configuration.
-        self.aggs = {'PermShkAggNow' : None, 'PlvlAgg' : None} # aggregate values
+        self.aggs = {'PermShkAggNow' : None, 'PlvlAgg' : None, 'Risky' : None} # aggregate values
                       # -- handled differently because only one value each per AgentType
-        self.shocks = {'Adjust' : None, 'PermShk' : None, 'Risky': None, 'TranShk' : None}
+        self.shocks = {'Adjust' : None, 'PermShk' : None, 'TranShk' : None}
         self.controls = {'cNrm' : None, 'Share' : None}
         self.state_now = {
             'aLvl' : None,
@@ -155,7 +155,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                 context['mNrm'][those], ShareNow[those]
             )
 
-        self.controls["Share"] = ShareNow
+        # self.controls["Share"] = ShareNow
 
         return ShareNow,
 
@@ -184,7 +184,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
 
         # Store controls as attributes of self
 	    # redundant for now
-        self.controls["cNrm"] = cNrmNow
+        #self.controls["cNrm"] = cNrmNow
         
         return cNrmNow,
 
@@ -201,6 +201,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         None
         """
         # should this be "Now", or "Prev"?!?
+        # todo: don't store on self
         self.state_now['aNrm'] = context['mNrm'] - context['cNrm']
         # Useful in some cases to precalculate asset level
         self.state_now['aLvl'] = context['aNrm'] * context['pLvl']
@@ -209,6 +210,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
 
     # maybe replace reference to init_portfolio to self.parameters?
     frames = [
+        # todo : make an aggegrate value
         Frame(('PermShkAggNow',), ('PermGroFacAgg',),
             transition = lambda self, PermGroFacAgg : (PermGroFacAgg,)
         ),
@@ -249,6 +251,8 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                     'std' : init_portfolio['RiskyStd']
                 }
                 # seed=self.RNG.randint(0, 2 ** 31 - 1) : TODO: Seed logic
+            ).approx(
+                init_portfolio['RiskyCount']
             )
         ),
         Frame(

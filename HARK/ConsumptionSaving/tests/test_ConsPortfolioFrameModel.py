@@ -38,8 +38,8 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         )
 
         self.assertAlmostEqual(
-            self.pcct.shocks['Risky'][0],
-            1.52812838
+             self.pcct.aggs['Risky'][0],
+             0.96358739
         )
 
         self.assertAlmostEqual(
@@ -84,7 +84,6 @@ class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
             'cNrm',
             'Share',
             'aNrm',
-            'Risky',
             'Adjust',
             'PermShk',
             'TranShk',
