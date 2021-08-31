@@ -163,8 +163,6 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                 context['mNrm'][those], ShareNow[those]
             )
 
-        # self.controls["Share"] = ShareNow
-
         return ShareNow,
 
     def transition_cNrmNow(self, **context):
@@ -189,10 +187,6 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             cNrmNow[those] = self.solution[t].cFuncFxd(
                 context['mNrm'][those], ShareNow[those]
             )
-
-        # Store controls as attributes of self
-	    # redundant for now
-        #self.controls["cNrm"] = cNrmNow
         
         return cNrmNow,
 

@@ -1081,16 +1081,11 @@ class FrameAgentType(AgentType):
                 # assume this is an IndexDistribution keyed to age (t_cycle)
                 # for now
                 # later, t_cycle should be included in local context, etc.
-                try:
-                    if frame.target[0] in self.aggs: # very clunky, to fix
-                        new_values = (frame.transition.draw(1),)
-                    else:    
-                        new_values = (frame.transition.draw(self.t_cycle),)
+                if frame.target[0] in self.aggs: # very clunky, to fix when 'aggregate' is a frame property
+                    new_values = (frame.transition.draw(1),)
+                else:    
+                    new_values = (frame.transition.draw(self.t_cycle),)
 
-                    if len(new_values[0].shape) > 2 :
-                        import pdb; pdb.set_trace()    
-                except Exception as e:
-                    import pdb; pdb.set_trace()
             else: # transition is function of state variables not an exogenous shock
                 new_values = frame.transition(
                     self,
@@ -1106,10 +1101,7 @@ class FrameAgentType(AgentType):
         # the model values can be modified directly(?)
         for i,t in enumerate(frame.target):
             if t in context:
-                try:
-                    context[t][:] = new_values[i]
-                except Exception as e:
-                    import pdb; pdb.set_trace()
+                context[t][:] = new_values[i]
             else:
                 raise Exception(f"From frame {frame.target}, target {t} is not in the context object.")
 
