@@ -1866,6 +1866,7 @@ class PerfForesightConsumerType(AgentType):
         
         self.track_vars = ['aNrm','mNrm','cNrm'] # #variables to track
         self.ntrl_msr = True 
+        self.update_income_process()
         self.initialize_sim()
         self.simulate()
         
