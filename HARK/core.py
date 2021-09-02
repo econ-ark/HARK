@@ -8,6 +8,7 @@ problem by finding a general equilibrium dynamic rule.
 """
 import sys
 import os
+from HARK.distribution import Distribution, TimeVaryingDiscreteDistribution
 from distutils.dir_util import copy_tree
 from .utilities import get_arg_names, NullFunc
 from copy import copy, deepcopy
@@ -425,9 +426,11 @@ class AgentType(Model):
         A method to check that elements of time_vary are lists.
         """
         for param in self.time_vary:
-            assert type(getattr(self, param)) == list, (
-                param + " is not a list, but should be" + " because it is in time_vary"
-            )
+            if type(getattr(self, param)) != TimeVaryingDiscreteDistribution:
+                assert type(getattr(self, param)) == list, (
+                    param + " is not a list or time varying distribution," 
+                    + " but should be because it is in time_vary"
+                )
 
     def check_restrictions(self):
         """
@@ -862,6 +865,245 @@ class AgentType(Model):
         for var_name in self.track_vars:
             self.history[var_name] = np.empty((self.T_sim, self.AgentCount)) + np.nan
 
+
+class Frame():
+    """
+    """
+
+    def __init__(
+            self,
+            target,
+            scope,
+            default = None,
+            transition = None,
+            objective = None
+    ):
+        """
+        """
+
+        self.target = target if isinstance(target, tuple) else (target,) # tuple of variables
+        self.scope = scope # tuple of variables
+        self.default = default # default value used in simBirth; a dict
+        self.transition = transition # for use in simulation
+        self.objective = objective # for use in solver
+
+
+class FrameAgentType(AgentType):
+    """
+    A variation of AgentType that uses Frames to organize
+    its simulation steps.
+
+    Frames allow for state, control, and shock resolutions
+    in a specified order, rather than assuming that they
+    are resolved as shocks -> states -> controls -> poststates.
+
+    Attributes
+    ----------
+
+    frames : [Frame]
+        #Keys are tuples of strings corresponding to model variables.
+        #Values are methods.
+        #Each frame method should update the the variables
+        #named in the key.
+        #Frame order is significant here.
+    """
+
+    cycles = 0 # for now, only infinite horizon models.
+
+    # frames property
+    frames = [
+        Frame(
+            ('y'),('x'),
+            transition = lambda x: x^2
+        )
+    ]
+
+    def initialize_sim(self):
+        for agg in self.aggs:
+            self.aggs[agg] = np.empty(1)
+
+            agg_default = [
+                frame.default[agg] for frame in self.frames 
+                if agg in frame.target
+                and frame.default is not None
+                and agg in frame.default
+                ]
+
+            if len(agg_default) > 0:
+                self.aggs[agg][:] = agg_default[0]    
+
+        for shock in self.shocks:
+            # TODO: What about aggregate shocks?
+            self.shocks[shock] = np.empty(self.AgentCount)
+
+        for control in self.controls:
+            self.controls[control] = np.empty(self.AgentCount)
+
+        for state in self.state_now:
+            self.state_now[state] = np.empty(self.AgentCount)
+        super().initialize_sim()
+
+    def sim_one_period(self):
+        """
+        Simulates one period for this type.
+        Calls each frame in order.
+        These should be defined for
+        AgentType subclasses, except getMortality (define
+        its components simDeath and simBirth instead)
+        and readShocks.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        if not hasattr(self, "solution"):
+            raise Exception(
+                "Model instance does not have a solution stored. To simulate, it is necessary"
+                " to run the `solve()` method of the class first."
+            )
+
+        # Mortality adjusts the agent population
+        self.get_mortality()  # Replace some agents with "newborns"
+
+        # state_{t-1}
+        for var in self.state_now:
+            self.state_prev[var] = self.state_now[var]
+            # note: this is not type checked for aggregate variables.
+            self.state_now[var] = np.empty(self.AgentCount)
+
+        # transition the variables in the frame
+        for frame in self.frames:
+            self.transition_frame(frame)
+
+        # Advance time for all agents
+        self.t_age = self.t_age + 1  # Age all consumers by one period
+        self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
+        self.t_cycle[
+            self.t_cycle == self.T_cycle
+        ] = 0  # Resetting to zero for those who have reached the end
+
+    def sim_birth(self, which_agents):
+        """
+        Makes new agents for the simulation.
+        Takes a boolean array as an input, indicating which
+        agent indices are to be "born".
+
+        Populates model variable values with value from `init`
+        property
+
+        Parameters
+        ----------
+        which_agents : np.array(Bool)
+            Boolean array of size self.AgentCount indicating which agents should be "born".
+
+        Returns
+        -------
+        None
+        """
+        for frame in self.frames:
+            for var in frame.target:
+
+                N = np.sum(which_agents)
+
+                if frame.default is not None and var in frame.default:
+                    if callable(frame.default[var]):
+                        value = frame.default[var](self, N)
+                    else:
+                        value = frame.default[var]
+
+                    if var in self.state_now:
+                        ## need to check in case of aggregate variables.. PlvlAgg
+                        if hasattr(self.state_now[var],'__getitem__'):
+                            self.state_now[var][which_agents] = value
+                    elif var in self.controls:
+                        self.controls[var][which_agents] = value
+                    elif var in self.shocks:
+                        ## assuming no aggregate shocks... 
+                        self.shocks[var][which_agents] = value
+
+        # from ConsIndShockModel. Needed???
+        self.t_age[which_agents] = 0  # How many periods since each agent was born
+        self.t_cycle[
+            which_agents
+        ] = 0  # Which period of the cycle each agent is currently in
+
+        ## simplest version of this.
+    def transition_frame(self, frame):
+        """
+        Updates the model variables in `target`
+        using the `transition` function.
+        The transition function will use current model
+        variable state as arguments.
+        """
+        # build a context object based on model state variables
+        # and 'self' reference for 'global' variables
+        context = {} # 'self' : self}
+        context.update(self.aggs)
+        context.update(self.shocks)
+        context.update(self.controls)
+        context.update(self.state_prev)
+
+        # use the "now" version of variables that have already been targetted.
+        for pre_frame in self.frames[:self.frames.index(frame)]:
+            for var in pre_frame.target:
+                if var in self.state_now:
+                    context.update({var : self.state_now[var]})
+
+        context.update(self.parameters)
+
+        # a method for indicating that a 'previous' version
+        # of a variable is intended.
+        # Perhaps store this in a separate notation.py module
+        #def decrement(var_name):
+        #    return var_name + '_'
+
+        # use special notation for the 'previous state' variables
+        #context.update({
+        #    decrement(var) : state_prev[var]
+        #    for var
+        #    in state_prev
+
+        #})
+
+        # limit context to scope of frame
+        local_context = {
+            var : context[var]
+            for var
+            in frame.scope
+        } if frame.scope is not None else context.copy()
+
+        if frame.transition is not None:
+            if isinstance(frame.transition, Distribution):
+                # assume this is an IndexDistribution keyed to age (t_cycle)
+                # for now
+                # later, t_cycle should be included in local context, etc.
+                if frame.target[0] in self.aggs: # very clunky, to fix when 'aggregate' is a frame property
+                    new_values = (frame.transition.draw(1),)
+                else:    
+                    new_values = (frame.transition.draw(self.t_cycle),)
+
+            else: # transition is function of state variables not an exogenous shock
+                new_values = frame.transition(
+                    self,
+                    **local_context
+                )
+        else:
+            raise Exception(f"Frame has None for transition: {frame}")
+
+        # because we want to alter the 'now' not 'prev' table
+        context.update(self.state_now)
+
+        # because the context was a shallow update,
+        # the model values can be modified directly(?)
+        for i,t in enumerate(frame.target):
+            if t in context:
+                context[t][:] = new_values[i]
+            else:
+                raise Exception(f"From frame {frame.target}, target {t} is not in the context object.")
 
 def solve_agent(agent, verbose):
     """
