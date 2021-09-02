@@ -627,8 +627,8 @@ Harmenberg_Dict={
     "T_cycle" : 1,                         # Number of periods in the cycle for this agent type
 
     # Parameters only used in simulation
-    "AgentCount" : 500,                 # Number of agents of this type
-    "T_sim" : 100,                         # Number of periods to simulate
+    "AgentCount" : 15000,                 # Number of agents of this type
+    "T_sim" : 4000,                         # Number of periods to simulate
     "aNrmInitMean" : np.log(1.3)-(.5**2)/2,# Mean of log initial assets
     "aNrmInitStd"  : .5,                   # Standard deviation of log initial assets
     "pLvlInitMean" : 0,                    # Mean of log initial permanent income
@@ -647,7 +647,6 @@ class test_Harmenbergs_method(unittest.TestCase):
         ss = IndShockConsumerType(**Harmenberg_Dict, verbose = 0 )
         ss.cycles = 0
         ss.track_vars = ['aNrm','mNrm','cNrm','pLvl','aLvl']
-        ss.T_sim= 20000
         
         
         ##################################################################################
@@ -664,22 +663,20 @@ class test_Harmenbergs_method(unittest.TestCase):
         
         ss.sim_agg_path()
         
-        self.assertAlmostEqual(AggA_HB,1.2682262640334434)
-        self.assertAlmostEqual(AggC_HB, 1.0191239494589863)
-        self.assertAlmostEqual(AggM_HB, 2.2873502134924295 )
+        self.assertAlmostEqual(AggA_HB, 1.259246746292083)
+        self.assertAlmostEqual(AggC_HB, 1.0152961328375112)
+        self.assertAlmostEqual(AggM_HB, 2.2745428791295943 )
 
-        self.assertAlmostEqual(np.std(ss.agg_assets),0.032690971234024854 )
-        self.assertAlmostEqual(np.std(ss.agg_consumption),0.004460587745942368)
-        self.assertAlmostEqual(np.std(ss.agg_cash_on_hand),0.036755109160745106 )
+        self.assertAlmostEqual(np.std(ss.agg_assets),0.005662851925516517 )
+        self.assertAlmostEqual(np.std(ss.agg_consumption),0.0008864340443988528)
+        self.assertAlmostEqual(np.std(ss.agg_cash_on_hand),0.006453321311552852 )
         
         #########################################################
         
         
         example2 = IndShockConsumerType(**Harmenberg_Dict, verbose = 0)
         example2.cycles = 0
-        example2.track_vars = [ 'aNrm', 'mNrm','cNrm','pLvl','aLvl']
-        example2.T_sim= 20000
-            
+        example2.track_vars = [ 'aNrm', 'mNrm','cNrm','pLvl','aLvl']            
         
         example2.solve()
         example2.initialize_sim()
@@ -703,11 +700,11 @@ class test_Harmenbergs_method(unittest.TestCase):
             Magg = np.mean(example2.history['mNrm'][i] * example2.history['pLvl'][i])
             M_list2.append(Magg)
         
-        self.assertAlmostEqual(AggA, 1.3078032820333236)
-        self.assertAlmostEqual(AggC, 1.0777116423860673)
-        self.assertAlmostEqual(Agg_M, 2.385514924419391)
+        self.assertAlmostEqual(AggA, 1.2195800766012552)
+        self.assertAlmostEqual(AggC, 1.0050558496149504)
+        self.assertAlmostEqual(Agg_M, 2.224635926216205)
 
-        self.assertAlmostEqual(np.std(np.array(Asset_list2)), 0.05956214290892312 )
-        self.assertAlmostEqual(np.std(np.array(Consumption_list2)), 0.03768819564871894 )
-        self.assertAlmostEqual( np.std( np.array(M_list2) ) ,0.09308921795864981)
+        self.assertAlmostEqual(np.std(np.array(Asset_list2)), 0.013597248080945087 )
+        self.assertAlmostEqual(np.std(np.array(Consumption_list2)),0.008480193166926229 )
+        self.assertAlmostEqual( np.std( np.array(M_list2) ) , 0.021238903041961285)
         
