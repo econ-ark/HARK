@@ -7,7 +7,6 @@ from copy import deepcopy
 
 import numpy as np
 from scipy.optimize import minimize_scalar
-
 from HARK import MetricObject, NullFunc, AgentType  # Basic HARK features
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it

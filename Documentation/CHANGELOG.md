@@ -14,6 +14,8 @@ Release Data: TBD
 
 #### Major Changes
 
+* FrameAgentType for modular definitions of agents [#865](https://github.com/econ-ark/HARK/pull/865)
+* PortfolioConsumerFrameType, a port of PortfolioConsumerType to use Frames [#865](https://github.com/econ-ark/HARK/pull/865)
 * Input parameters for cyclical models now indexed by t [#1039](https://github.com/econ-ark/HARK/pull/1039)
 * A IndexDistribution class for representing time-indexed probability distributions [#1018](https://github.com/econ-ark/pull/1018/).
 * Adds new consumption-savings-portfolio model `RiskyContrib`, which represents an agent who can save in risky and risk-free assets but faces
