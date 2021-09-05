@@ -8,6 +8,7 @@ Example can be found in https://github.com/econ-ark/DemARK/blob/master/notebooks
 """
 import numpy as np
 from HARK.interpolation import LinearInterp
+from interpolation import interp
 
 
 def calc_cross_points(mGrid, condVs, optIdx):
@@ -433,3 +434,53 @@ def calc_multiline_envelope(M, C, V_T, commonM, find_crossings=False):
             upperV_T = np.insert(upperV_T, insertIdx, add_vT)
 
         return upperM, upperC, upperV_T, xing_points
+
+# %% New methods
+
+def upper_envelope(segments, calc_crossings = True):
+    
+    n_seg = len(segments)
+    
+    # Collect the x points of all segments in an ordered array
+    x = np.sort(np.concatenate([x[0] for x in segments]))
+    
+    # Interpolate on all points using all segments
+    y_cond = np.zeros((n_seg, len(x)))
+    for i in range(n_seg):
+        
+        row = interp(segments[i][0], segments[i][1], x)
+        extrap = np.logical_or(x < segments[i][0][0], x > segments[i][0][-1])
+        row[extrap] = -np.Inf
+        
+        y_cond[i,:] = row
+        
+    # Take the maximum to get the upper envelope
+    env_inds = np.argmax(y_cond, 0)
+    y = y_cond[env_inds,range(len(x))]
+    
+    # Get crossing points if needed
+    if calc_crossings:
+        
+        xing_points, xing_lines = calc_cross_points(x, y_cond.T, env_inds)
+        
+        # Extract x and y coordinates
+        xing_x = np.array([p[0] for p in xing_points])
+        xing_y = np.array([p[1] for p in xing_points])
+        
+        # To capture the discontinuity, we'll add the successors of xing_x to
+        # the grid
+        succ = np.nextafter(xing_x, xing_x + 1)
+        
+        # Collect points to add to grids
+        xtra_x = np.concatenate([xing_x, succ])
+        # if there is a crossing, y will be the same on both segments
+        xtra_y = np.concatenate([xing_y, xing_y]) 
+        xtra_lines = np.concatenate([xing_lines[:,0], xing_lines[:,1]])
+        
+        # Insert them
+        idx = np.searchsorted(x, xtra_x)
+        x = np.insert(x, idx, xtra_x)
+        y = np.insert(y, idx, xtra_y)
+        env_inds = np.insert(env_inds, idx, xtra_lines)
+        
+    return x, y, env_inds
