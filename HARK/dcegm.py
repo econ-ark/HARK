@@ -56,6 +56,8 @@ def calc_linear_crossing(m, left_v, right_v):
             return (m[0] + h, left_v[0] + h * s0)
         else:
             return (np.nan, np.nan)
+
+@njit('Tuple((float64[:,:],int64[:,:]))(float64[:], float64[:,:], int64[:])', cache = True)
 def calc_cross_points(mGrid, condVs, optIdx):
     """
     Given a grid of m values, a matrix of the conditional values of different
@@ -75,8 +77,8 @@ def calc_cross_points(mGrid, condVs, optIdx):
         Optimal decision at each grid point
     Returns
     -------
-    xing_points: [tuple]
-        List of crossing points, each as an (m,v) tuple.
+    xing_points: 2D np.array
+        Crossing points, each in its own row as an [m, v] pair.
 
     segments: np.array with two columns and as many rows as xing points.
         Each row represents a crossing point. The first column is the index
@@ -84,58 +86,67 @@ def calc_cross_points(mGrid, condVs, optIdx):
     """
     # Compute differences in the optimal index,
     # to find positions of choice-changes
-    diff_max = np.insert(np.diff(optIdx), len(optIdx) - 1, 0)
+    diff_max = np.append(optIdx[1:] - optIdx[:-1], 0)
     idx_change = np.where(diff_max != 0)[0]
 
     # If no crossings, return an empty list
     if len(idx_change) == 0:
-        return [], np.empty(0)
+        points = np.zeros((0,2), dtype = np.float64)
+        segments = np.zeros((0,2), dtype = np.int64)
+        return points, segments
     else:
 
         # To find the crossing points we need the extremes of the intervals in
         # which they happen, and the two candidate segments evaluated in both
         # extremes. switchMs[0] has the left points and switchMs[1] the right
         # points of these intervals.
-        switchMs = np.stack([mGrid[idx_change], mGrid[idx_change + 1]], axis=1)
+        switchMs = np.stack((mGrid[idx_change], mGrid[idx_change + 1]), axis=1)
 
         # Store the indices of the two segments involved in the changes, by
         # looking at the argmax in the switching possitions.
         # Columns are [0]: left extreme, [1]: right extreme,
         # Rows are individual crossing points.
-        segments = np.stack([optIdx[idx_change], optIdx[idx_change + 1]], axis=1)
-
-        # Values of both segments on the left point
-        left_v = np.stack(
-            [condVs[idx_change, segments[:, 0]], condVs[idx_change, segments[:, 1]]],
-            axis=1,
-        )
-        # and the right point
-        right_v = np.stack(
-            [
-                condVs[idx_change + 1, segments[:, 0]],
-                condVs[idx_change + 1, segments[:, 1]],
-            ],
-            axis=1,
-        )
-
+        segments = np.stack((optIdx[idx_change], optIdx[idx_change + 1]), axis=1)
+        
+        # Get values of segments on both the left and the right
+        left_v = np.zeros_like(segments, dtype=np.float64)
+        right_v = np.zeros_like(segments, dtype=np.float64)
+        for i, idx in enumerate(idx_change):
+            
+            left_v[i,0] = condVs[idx, segments[i,0]]
+            left_v[i,1] = condVs[idx, segments[i,1]]
+            
+            right_v[i,0] = condVs[idx + 1, segments[i,0]]
+            right_v[i,1] = condVs[idx + 1, segments[i,1]]
+            
         # A valid crossing must have both switching segments well defined at the
         # encompassing gridpoints. Filter those that do not.
-        valid = np.logical_and(
-            ~np.isnan(left_v).any(axis=1), ~np.isnan(right_v).any(axis=1)
-        )
-
-        segments = segments[valid, :]
-        switchMs = switchMs[valid, :]
-        left_v = left_v[valid, :]
-        right_v = right_v[valid, :]
-
-        # Find crossing points. Returns a list (m,v) tuples. Keep m's only
-        xing_points = [
-            calc_linear_crossing(switchMs[i, :], left_v[i, :], right_v[i, :])
-            for i in range(segments.shape[0])
-        ]
+        valid = np.repeat(False, len(idx_change))
+        for i in range(len(valid)):    
+            valid[i] = np.logical_and(~np.isnan(left_v[i,:]).any(), ~np.isnan(right_v[i,:]).any())
         
-        return xing_points, segments
+        if not np.any(valid):
+            
+            points = np.zeros((0,2), dtype = np.float64)
+            segments = np.zeros((0,2), dtype = np.int64)
+            return points, segments
+        
+        else: 
+            
+            segments = segments[valid, :]
+            switchMs = switchMs[valid, :]
+            left_v = left_v[valid, :]
+            right_v = right_v[valid, :]
+    
+            # Find crossing points. Returns a list (m,v) tuples. Keep m's only
+            xing_points = [
+                calc_linear_crossing(switchMs[i, :], left_v[i, :], right_v[i, :])
+                for i in range(segments.shape[0])
+            ]
+            
+            xing_array = np.asarray(xing_points)
+            
+            return xing_array, segments
 
 
 def calc_prim_kink(mGrid, vTGrids, choices):
@@ -160,7 +171,7 @@ def calc_prim_kink(mGrid, vTGrids, choices):
     """
 
     # Construct a vector with the optimal choice at each m point
-    optChoice = np.zeros_like(mGrid, dtype=int)
+    optChoice = np.zeros_like(mGrid, dtype=np.int64)
     for i in range(len(vTGrids)):
         idx = choices[i] == 1
         optChoice[idx] = i
