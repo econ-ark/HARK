@@ -9,8 +9,53 @@ Example can be found in https://github.com/econ-ark/DemARK/blob/master/notebooks
 import numpy as np
 from HARK.interpolation import LinearInterp
 from interpolation import interp
+from numba import jit, njit, typeof
 
+@njit('Tuple((float64,float64))(float64[:], float64[:], float64[:])', cache = True)
+def calc_linear_crossing(m, left_v, right_v):
+    """
+    Computes the intersection between two line segments, defined by two common
+    x points, and the values of both segments at both x points. The intercept
+    is only found if it happens between the two x coordinates
 
+    Parameters
+    ----------
+    m : list or np.array, length 2
+        The two common x coordinates. m[0] < m[1] is assumed 
+    left_v :list or np.array, length 2
+        y values of the two segments at m[0]
+    right_v : list or np.array, length 2
+        y values of the two segments at m[1]
+
+    Returns
+    -------
+    (m_int, v_int):  a tuple with the corrdinates of the intercept.
+    if there is no intercept in the interval [m[0],m[1]], (nan,nan)
+
+    """
+
+    # Find slopes of both segments
+    delta_m = m[1] - m[0]
+    s0 = (right_v[0] - left_v[0]) / delta_m
+    s1 = (right_v[1] - left_v[1]) / delta_m
+
+    if s1 == s0:
+        # If they have the same slope, they can only cross if they perfectly
+        # overlap. In this case, return the left extreme
+        if left_v[0] == left_v[1]:
+            return (m[0], left_v[0])
+        else:
+            return (np.nan, np.nan)
+    else:
+        # Find h where intercept happens at m[0] + h
+        h = (left_v[0] - left_v[1]) / (s1 - s0)
+        
+        # Return the crossing if it happens between the given x coordinates.
+        # If not, return nan
+        if h >= 0 and h <= (m[1] - m[0]):
+            return (m[0] + h, left_v[0] + h * s0)
+        else:
+            return (np.nan, np.nan)
 def calc_cross_points(mGrid, condVs, optIdx):
     """
     Given a grid of m values, a matrix of the conditional values of different
