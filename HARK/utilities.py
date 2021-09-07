@@ -132,7 +132,7 @@ def CRRAutility(c, gam):
     >>> utility(c=c, gam=gamma)
     -1.0
     """
-    
+
     if gam == 1:
         return np.log(c)
     else:
@@ -165,9 +165,9 @@ def uFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     -1.0
     """
     if CRRA == 1:
-        return np.log( stone_geary + c)
+        return np.log(stone_geary + c)
     else:
-        return ( stone_geary + c ) ** (1.0 - CRRA) / (1.0 - CRRA)
+        return (stone_geary + c) ** (1.0 - CRRA) / (1.0 - CRRA)
 
 def uPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     """
@@ -189,7 +189,7 @@ def uPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
         marginal utility
 
     """
-    return ( stone_geary + c ) ** (- CRRA)
+    return (stone_geary + c) ** (- CRRA)
 
 def uPPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     """
@@ -210,7 +210,7 @@ def uPPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
         marginal utility
 
     """
-    return (- CRRA)*( stone_geary + c ) ** (- CRRA - 1)
+    return (- CRRA)*(stone_geary + c) ** (- CRRA - 1)
 
 
 def CRRAutilityP(c, gam):
@@ -233,7 +233,7 @@ def CRRAutilityP(c, gam):
 
     if gam == 1:
         return 1/c
-    
+
     return c ** -gam
 
 
@@ -254,7 +254,7 @@ def CRRAutilityPP(c, gam):
     (unnamed) : float
         Marginal marginal utility
     """
-    
+
     return -gam * c ** (-gam - 1.0)
 
 
@@ -275,7 +275,7 @@ def CRRAutilityPPP(c, gam):
     (unnamed) : float
         Marginal marginal marginal utility
     """
-        
+
     return (gam + 1.0) * gam * c ** (-gam - 2.0)
 
 
@@ -296,7 +296,7 @@ def CRRAutilityPPPP(c, gam):
     (unnamed) : float
         Marginal marginal marginal marginal utility
     """
-    
+
     return -(gam + 2.0) * (gam + 1.0) * gam * c ** (-gam - 3.0)
 
 
@@ -1016,19 +1016,56 @@ def setup_latex_env_notebook(pf, latexExists):
     plt.rc("text", usetex=latexExists)
     if latexExists:
         latex_preamble = (
-            r"\usepackage{amsmath}\usepackage{amsfonts}"
-            r"\usepackage[T1]{fontenc}"
+            r"\providecommand{\aFunc}{\mathrm{a}}"
+            r"\providecommand{\ALev}{{\mathbf{A}}}"
+            r"\providecommand{\aLev}{{\mathbf{a}}}"
+            r"\providecommand{\ANrm}{A}"
+            r"\providecommand{\aNrm}{a}"
+            r"\providecommand{\bFunc}{\mathrm{b}}"
+            r"\providecommand{\BLev}{{\mathbf{B}}}"
+            r"\providecommand{\bLev}{{\mathbf{B}}}"
+            r"\providecommand{\BNrm}{B}"
+            r"\providecommand{\bNrm}{b}"
+            r"\providecommand{\cFunc}{\mathrm{c}}"
+            r"\providecommand{\CLev}{{\mathbf{C}}}"
+            r"\providecommand{\cLev}{{\mathbf{c}}}"
+            r"\providecommand{\CNrm}{C}"
+            r"\providecommand{\cNrm}{c}"
+            r"\providecommand{\CRRA}{\rho}"
+            r"\providecommand{\DiscFac}{\beta}"
             r"\providecommand{\Ex}{\mathbb{E}}"
+            r"\providecommand{\HLev}{{\mathbf{H}}}"
+            r"\providecommand{\hLev}{{\mathbf{h}}}"
+            r"\providecommand{\HNrm}{H}"
+            r"\providecommand{\hNrm}{h}"
+            r"\providecommand{\KLev}{{\mathbf{K}}}"
+            r"\providecommand{\kLev}{{\mathbf{k}}}"
+            r"\providecommand{\KNrm}{K}"
+            r"\providecommand{\kNrm}{k}"
+            r"\providecommand{\MLev}{{\mathbf{M}}}"
+            r"\providecommand{\mLev}{{\mathbf{m}}}"
+            r"\providecommand{\MNrm}{M}"
+            r"\providecommand{\mNrm}{m}"
+            r"\providecommand{\MPC}{\kappa}"
+            r"\providecommand{\PermGroFac}{\Gamma}"
+            r"\providecommand{\PLev}{{\mathbf{P}}}"
+            r"\providecommand{\pLev}{{\mathbf{p}}}"
+            r"\providecommand{\Rfree}{\mathsf{R}}"
+            r"\providecommand{\Risky}{\mathcal{R}}"
             r"\providecommand{\StE}{\check}"
             r"\providecommand{\Trg}{\hat}"
-            r"\providecommand{\PermGroFac}{\Gamma}"
-            r"\providecommand{\cLev}{\pmb{\mathrm{c}}}"
-            r"\providecommand{\mLev}{\pmb{\mathrm{m}}}"
-            r"\providecommand{\Rfree}{\mathsf{R}}"
-            r"\providecommand{\DiscFac}{\beta}"
-            r"\providecommand{\CRRA}{\rho}"
-            r"\providecommand{\MPC}{\kappa}"
             r"\providecommand{\UnempPrb}{\wp}"
+            r"\providecommand{\vFunc}{\mathrm{v}}"
+            r"\providecommand{\VLev}{{\mathbf{V}}}"
+            r"\providecommand{\vLev}{{\mathbf{v}}}"
+            r"\providecommand{\VNrm}{V}"
+            r"\providecommand{\vNrm}{v}"
+            r"\providecommand{\YLev}{{\mathbf{Y}}}"
+            r"\providecommand{\yLev}{{\mathbf{y}}}"
+            r"\providecommand{\YNrm}{Y}"
+            r"\providecommand{\yNrm}{y}"
+            r"\usepackage[T1]{fontenc}"
+            r"\usepackage{amsmath}\usepackage{amsfonts}"
         )
         # Latex expects paths to be separated by /. \ might result in pieces
         # being interpreted as commands.
