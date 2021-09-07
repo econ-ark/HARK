@@ -1837,6 +1837,11 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             lambda m_t:
             (E_Next_.RNrm * (m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt)/m_t
         )
+        E_Next_.mLev_tp1_Over_mLev_t = (
+            lambda m_t:
+            (Pars.Rfree * (m_t - Bilt.cFunc(m_t)) +
+             Pars.PermGroFac * E_Next_.IncNrmNxt)/m_t
+        )
         # Define separately for float ('num') and listlike ('lst'), then combine
         E_Next_.cLev_tp1_Over_pLev_t_from_num_a_t = (
             lambda a_t:
@@ -1878,10 +1883,13 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             E_Next_.cLev_tp1_Over_pLev_t_from_lst_a_t(m_t -
                                                       Bilt.cFunc(m_t))
         )
-        E_Next_.permGroShk_tp1_times_m_tp1_Over_m_t_minus_PGro = (
+        E_Next_.permGroShk_tp1_times_m_tp1_Over_m_t = (
             lambda m_t:
             (Pars.Rfree*(m_t - Bilt.cFunc(m_t)) + Pars.PermGroFac * E_Next_.IncNrmNxt)/m_t
-            - Pars.PermGroFac
+        )
+        E_Next_.permGroShk_tp1_times_m_tp1_Over_m_t_minus_PGro = (
+            lambda m_t:
+            E_Next_.permGroShk_tp1_times_m_tp1_Over_m_t(m_t) - Pars.PermGroFac
         )
         E_Next_.m_tp1_from_a_t = (
             lambda a_t:
