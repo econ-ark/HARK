@@ -9,7 +9,8 @@ This file also demonstrates a "frame" model architecture.
 import numpy as np
 from scipy.optimize import minimize_scalar
 from copy import deepcopy
-from HARK import NullFunc, Frame, FrameAgentType  # Basic HARK features
+from HARK import NullFunc  # Basic HARK features
+from HARK.frame import Frame, FrameAgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
     utility,  # CRRA utility function
@@ -214,7 +215,8 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
     frames = [
         # todo : make an aggegrate value
         Frame(('PermShkAggNow',), ('PermGroFacAgg',),
-            transition = lambda self, PermGroFacAgg : (PermGroFacAgg,)
+            transition = lambda self, PermGroFacAgg : (PermGroFacAgg,),
+            aggregate = True
         ),
         Frame(
             ('PermShk'), None,
@@ -255,7 +257,8 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                 # seed=self.RNG.randint(0, 2 ** 31 - 1) : TODO: Seed logic
             ).approx(
                 init_portfolio['RiskyCount']
-            )
+            ),
+            aggregate = True
         ),
         Frame(
             ('Adjust'),None, 
@@ -270,8 +273,8 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             ('Rport'), ('Share', 'Risky'), 
             transition = transition_Rport
         ),
-        ## TODO risk free return rate
         Frame(
+            # TODO: PlvlAgg split out and handled as aggregate
             ('pLvl', 'PlvlAgg', 'bNrm', 'mNrm'),
             ('pLvl', 'aNrm', 'Rport', 'PlvlAgg', 'PermShk', 'TranShk', 'PermShkAggNow'),
             default = {'pLvl' : birth_pLvlNow, 'PlvlAgg' : 1.0},
