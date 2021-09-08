@@ -4,6 +4,9 @@ import numpy as np
 
 class Frame():
     """
+    An object representing a single 'frame' of an optimization problem.
+    A frame defines some variables of a model, including what other variables
+    (if any) they depend on for their values.
     """
 
     def __init__(
@@ -23,6 +26,7 @@ class Frame():
         self.default = default # default value used in simBirth; a dict
         self.transition = transition # for use in simulation
         self.objective = objective # for use in solver
+        self.aggregate = aggregate
 
 
 class FrameAgentType(AgentType):
@@ -218,7 +222,7 @@ class FrameAgentType(AgentType):
                 # assume this is an IndexDistribution keyed to age (t_cycle)
                 # for now
                 # later, t_cycle should be included in local context, etc.
-                if frame.target[0] in self.aggs: # very clunky, to fix when 'aggregate' is a frame property
+                if frame.aggregate:
                     new_values = (frame.transition.draw(1),)
                 else:    
                     new_values = (frame.transition.draw(self.t_cycle),)
