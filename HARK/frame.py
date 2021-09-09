@@ -16,7 +16,8 @@ class Frame():
             default = None,
             transition = None,
             objective = None,
-            aggregate = False
+            aggregate = False,
+            control = False
     ):
         """
         """
@@ -27,6 +28,7 @@ class Frame():
         self.transition = transition # for use in simulation
         self.objective = objective # for use in solver
         self.aggregate = aggregate
+        self.control = control
 
 
 class FrameAgentType(AgentType):
@@ -60,28 +62,24 @@ class FrameAgentType(AgentType):
     ]
 
     def initialize_sim(self):
-        for agg in self.aggs:
-            self.aggs[agg] = np.empty(1)
 
-            agg_default = [
-                frame.default[agg] for frame in self.frames 
-                if agg in frame.target
-                and frame.default is not None
-                and agg in frame.default
-                ]
+        for frame in self.frames:
+            for var in frame.target:
 
-            if len(agg_default) > 0:
-                self.aggs[agg][:] = agg_default[0]    
+                if frame.aggregate:
+                    val = np.empty(1)
+                    if frame.default is not None and var in frame.default:
+                        val[:] = frame.default[var]
+                else:
+                    val = np.empty(self.AgentCount)
 
-        for shock in self.shocks:
-            # TODO: What about aggregate shocks?
-            self.shocks[shock] = np.empty(self.AgentCount)
-
-        for control in self.controls:
-            self.controls[control] = np.empty(self.AgentCount)
-
-        for state in self.state_now:
-            self.state_now[state] = np.empty(self.AgentCount)
+                if frame.control:
+                    self.controls[var] = val
+                elif  isinstance(frame.transition, Distribution):
+                    self.shocks[var] = val
+                else:
+                    self.state_now[var] = val
+    
         super().initialize_sim()
 
     def sim_one_period(self):
@@ -111,10 +109,15 @@ class FrameAgentType(AgentType):
         self.get_mortality()  # Replace some agents with "newborns"
 
         # state_{t-1}
-        for var in self.state_now:
-            self.state_prev[var] = self.state_now[var]
-            # note: this is not type checked for aggregate variables.
-            self.state_now[var] = np.empty(self.AgentCount)
+        for frame in self.frames:
+            for var in frame.target:
+                if var in self.state_now:
+                    self.state_prev[var] = self.state_now[var]
+                
+                    if not frame.aggregate:
+                        self.state_now[var] = np.empty(self.AgentCount)
+                    else:
+                        self.state_now[var] = np.empty(1)
 
         # transition the variables in the frame
         for frame in self.frames:
@@ -146,25 +149,26 @@ class FrameAgentType(AgentType):
         None
         """
         for frame in self.frames:
-            for var in frame.target:
+            if not frame.aggregate:
+                for var in frame.target:
 
-                N = np.sum(which_agents)
+                    N = np.sum(which_agents)
 
-                if frame.default is not None and var in frame.default:
-                    if callable(frame.default[var]):
-                        value = frame.default[var](self, N)
-                    else:
-                        value = frame.default[var]
+                    if frame.default is not None and var in frame.default:
+                        if callable(frame.default[var]):
+                            value = frame.default[var](self, N)
+                        else:
+                            value = frame.default[var]
 
-                    if var in self.state_now:
-                        ## need to check in case of aggregate variables.. PlvlAgg
-                        if hasattr(self.state_now[var],'__getitem__'):
-                            self.state_now[var][which_agents] = value
-                    elif var in self.controls:
-                        self.controls[var][which_agents] = value
-                    elif var in self.shocks:
-                        ## assuming no aggregate shocks... 
-                        self.shocks[var][which_agents] = value
+                        if var in self.state_now:
+                            ## need to check in case of aggregate variables.. PlvlAgg
+                            if hasattr(self.state_now[var],'__getitem__'):
+                                self.state_now[var][which_agents] = value
+                        elif var in self.controls:
+                            self.controls[var][which_agents] = value
+                        elif var in self.shocks:
+                            ## assuming no aggregate shocks... 
+                            self.shocks[var][which_agents] = value
 
         # from ConsIndShockModel. Needed???
         self.t_age[which_agents] = 0  # How many periods since each agent was born
@@ -183,7 +187,6 @@ class FrameAgentType(AgentType):
         # build a context object based on model state variables
         # and 'self' reference for 'global' variables
         context = {} # 'self' : self}
-        context.update(self.aggs)
         context.update(self.shocks)
         context.update(self.controls)
         context.update(self.state_prev)
