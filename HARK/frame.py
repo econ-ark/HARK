@@ -17,7 +17,8 @@ class Frame():
             transition = None,
             objective = None,
             aggregate = False,
-            control = False
+            control = False,
+            reward = False
     ):
         """
         """
@@ -25,10 +26,12 @@ class Frame():
         self.target = target if isinstance(target, tuple) else (target,) # tuple of variables
         self.scope = scope # tuple of variables
         self.default = default # default value used in simBirth; a dict
+        ## Careful! Transition functions need to return a tuple, even if there is only one state value
         self.transition = transition # for use in simulation
         self.objective = objective # for use in solver
         self.aggregate = aggregate
         self.control = control
+        self.reward = reward
 
 
 class FrameAgentType(AgentType):
@@ -199,19 +202,8 @@ class FrameAgentType(AgentType):
 
         context.update(self.parameters)
 
-        # a method for indicating that a 'previous' version
-        # of a variable is intended.
-        # Perhaps store this in a separate notation.py module
-        #def decrement(var_name):
-        #    return var_name + '_'
-
-        # use special notation for the 'previous state' variables
-        #context.update({
-        #    decrement(var) : state_prev[var]
-        #    for var
-        #    in state_prev
-
-        #})
+        # The "most recently" computed value of the variable is used.
+        # This could be the value from the 'previous' time step.
 
         # limit context to scope of frame
         local_context = {
@@ -235,6 +227,7 @@ class FrameAgentType(AgentType):
                     self,
                     **local_context
                 )
+
         else:
             raise Exception(f"Frame has None for transition: {frame}")
 
