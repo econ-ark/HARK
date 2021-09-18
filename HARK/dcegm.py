@@ -179,83 +179,29 @@ def calc_prim_kink(mGrid, vTGrids, choices):
     return calc_cross_points(mGrid, vTGrids.T, optChoice)
 
 
-def calc_segments(x, v):
+def calc_nondecreasing_segments(x, v):
     """
-    Find index vectors `rise` and `fall` such that `rise` holds the indeces `i`
-    such that x[i+1]>x[i] and `fall` holds indeces `j` such that either
-    - x[j+1] < x[j] or,
-    - x[j]>x[j-1] and v[j]<v[j-1].
-
-    The vectors are essential to the DCEGM algorithm, as they definite the
-    relevant intervals to be used to construct the upper envelope of potential
-    solutions to the (necessary) first order conditions.
-
-    Parameters
-    ----------
-    x : np.ndarray
-        array of points where `v` is evaluated
-    v : np.ndarray
-        array of values of some function of `x`
-
-    Returns
-    -------
-    rise : np.ndarray
-        see description above
-    fall : np.ndarray
-        see description above
     """
-    # NOTE: assumes that the first segment is in fact increasing (forced in EGM
-    # by augmentation with the constrained segment).
-    # elements in common grid g
+    
+    starts = [0]
+    ends = []
+    for i in range(1,len(x)):
+        
+        # Check if grid decreases in x or v
+        x_dec = x[i] < x[i - 1]
+        v_dec = v[i] < v[i - 1]
 
-    # Identify index intervals of falling and rising regions
-    # We need these to construct the upper envelope because we need to discard
-    # solutions from the inverted Euler equations that do not represent optimal
-    # choices (the FOCs are only necessary in these models).
-    #
-    # `fall` is a vector of indeces that represent the first elements in all
-    # of the falling segments (the curve can potentially fold several times)
-    fall = np.empty(
-        0, dtype=int
-    )  # initialize with empty and then add the last point below while-loop
-
-    rise = np.array([0])  # Initialize such thatthe lowest point is the first grid point
-    i = 1  # Initialize
-    while i <= len(x) - 2:
-        # Check if the next (`ip1` stands for i plus 1) grid point is below the
-        # current one, such that the line is folding back.
-        ip1_falls = x[i + 1] < x[i]  # true if grid decreases on index increment
-        i_rose = x[i] > x[i - 1]  # true if grid decreases on index decrement
-        val_fell = v[i] < v[i - 1]  # true if value rises on index decrement
-
-        if (ip1_falls and i_rose) or (val_fell and i_rose):
-
-            # we are in a region where the endogenous grid is decreasing or
-            # the value function rises by stepping back in the grid.
-            fall = np.append(fall, i)  # add the index to the vector
-
-            # We now iterate from the current index onwards until we find point
-            # where resources rises again. Unfortunately, we need to check
-            # each points, as there can be multiple spells of falling endogenous
-            # grids, so we cannot use bisection or some other fast algorithm.
-            k = i
-            while x[k + 1] < x[k]:
-                k = k + 1
-            # k now holds either the next index the starts a new rising
-            # region, or it holds the length of M, `m_len`.
-
-            rise = np.append(rise, k)
-
-            # Set the index to the point where resources again is rising
-            i = k
+        if x_dec or v_dec:
+            
+            ends.append(i-1)
+            starts.append(i)
 
         i = i + 1
 
-    # Add the last index for convenience (then all segments are complete, as
-    # len(fall) == len(rise), and we can form them by range(rise[j], fall[j]+1).
-    fall = np.append(fall, len(v) - 1)
+    # The last segment always starts in the last point
+    ends.append(len(v) - 1)
 
-    return rise, fall
+    return np.array(starts), np.array(ends)
 
 
 # think! nanargmax makes everythign super ugly because numpy changed the wraning
@@ -287,13 +233,13 @@ def calc_multiline_envelope(M, C, V_T, commonM, find_crossings=False):
 
     """
     m_len = len(commonM)
-    rise, fall = calc_segments(M, V_T)
+    rise, fall = calc_nondecreasing_segments(M, V_T)
 
     num_kinks = len(fall)  # number of kinks / falling EGM grids
 
     # Use these segments to sequentially find upper envelopes. commonVARNAME
     # means the VARNAME evaluated on the common grid with a cloumn for each kink
-    # discovered in calc_segments. This means that commonVARNAME is a matrix
+    # discovered in calc_nondecreasing_segments. This means that commonVARNAME is a matrix
     # common grid length-by-number of segments to consider. In the end, we'll
     # use nanargmax over the columns to pick out the best (transformed) values.
     # This is why we fill the arrays with np.nan's.
