@@ -411,9 +411,17 @@ def upper_envelope(segments, calc_crossings = True):
     y_cond = np.zeros((n_seg, len(x)))
     for i in range(n_seg):
         
-        row = interp(segments[i][0], segments[i][1], x)
-        extrap = np.logical_or(x < segments[i][0][0], x > segments[i][0][-1])
-        row[extrap] = np.nan
+        if len(segments[i][0]) == 1:
+            # If the segment is a single point, we can only know its value
+            # at the observed point.
+            row = np.repeat(np.nan, len(x))
+            ind = np.searchsorted(x, segments[i][0][0])
+            row[ind] = segments[i][1][0]
+        else:
+            # If the segment has more than one point, we can interpolate
+            row = interp(segments[i][0], segments[i][1], x)
+            extrap = np.logical_or(x < segments[i][0][0], x > segments[i][0][-1])
+            row[extrap] = np.nan
         
         y_cond[i,:] = row
         
