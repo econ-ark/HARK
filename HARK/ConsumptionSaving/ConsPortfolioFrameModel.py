@@ -263,7 +263,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             control = True
         ),
         Frame(
-            ('R'), ('cNrm','CRRA'), ## Note CRRA here is a parameter not a state var
+            ('U'), ('cNrm','CRRA'), ## Note CRRA here is a parameter not a state var
             transition = lambda self, cNrm, CRRA : (CRRAutility(cNrm, CRRA),),
             reward = True
         ),
