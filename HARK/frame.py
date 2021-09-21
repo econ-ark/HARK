@@ -33,6 +33,13 @@ class Frame():
         self.control = control
         self.reward = reward
 
+    def __repr__(self):
+        return f"<{self.__class__}, target:{self.target}, scope:{self.scope}>"
+
+    def name(self):
+        target = self.target
+        return str(target[0]) if len(target) == 1 else str(self.target)
+
 
 class FrameAgentType(AgentType):
     """
