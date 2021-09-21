@@ -268,8 +268,12 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             reward = True
         ),
         Frame(
-            ('aNrm', 'aLvl'), ('aNrm', 'cNrm', 'mNrm', 'pLvl'),
-            default = {'aNrm' : birth_aNrmNow}, 
-            transition = transition_poststates
+            ('aNrm'), ('mNrm', 'cNrm'),
+            default = {'aNrm' : birth_aNrmNow},
+            transition = lambda self, mNrm, cNrm : (mNrm - cNrm,)
+        ),
+        Frame(
+            ('aLvl'), ('aNrm', 'pLvl'),
+            transition = lambda self, aNrm, pLvl : (aNrm * pLvl,)
         )
     ]
