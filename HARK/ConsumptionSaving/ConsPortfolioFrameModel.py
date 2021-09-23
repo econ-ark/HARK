@@ -87,23 +87,31 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         )
         return Rport, 
 
-    def transition(self, **context):
+    def transition_pLvl(self, **context):
         pLvlPrev = context['pLvl']
+        
+        # Calculate new states: normalized market resources and permanent income level
+        pLvlNow = pLvlPrev * context['PermShk']  # Updated permanent income level
+
+        return pLvlNow
+
+    def transition_bNrm(self, **context):
         aNrmPrev = context['aNrm']
 
         # This should be computed separately in its own transition
         # Using IndShock get_Rfree instead of generic.
         RfreeNow = context['Rport']
 
-        # Calculate new states: normalized market resources and permanent income level
-        pLvlNow = pLvlPrev * context['PermShk']  # Updated permanent income level
-
         # "Effective" interest factor on normalized assets
         ReffNow = RfreeNow / context['PermShk']
         bNrmNow = ReffNow * aNrmPrev         # Bank balances before labor income
-        mNrmNow = bNrmNow + context['TranShk']  # Market resources after income
 
-        return pLvlNow, bNrmNow, mNrmNow
+        return bNrmNow
+
+    def transition_mNrm(self, **context):
+        mNrm = context['bNrm'] + context['TranShk']  # Market resources after income
+
+        return mNrm
 
     def transition_ShareNow(self, **context):
         """
@@ -245,11 +253,21 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             aggregate = True
         ),
         Frame(
-            # TODO: PlvlAgg split out and handled as aggregate
-            ('pLvl', 'bNrm', 'mNrm'),
-            ('pLvl', 'aNrm', 'Rport', 'PlvlAgg', 'PermShk', 'TranShk'),
+            ('pLvl',),
+            ('pLvl', 'PermShk'),
             default = {'pLvl' : birth_pLvlNow},
-            transition = transition
+            transition = transition_pLvl
+        ),
+        Frame(
+            ('bNrm',),
+            ('aNrm', 'Rport', 'PermShk'),
+            default = {'pLvl' : birth_pLvlNow},
+            transition = transition_bNrm
+        ),
+        Frame(
+            ('mNrm',),
+            ('bNrm', 'TranShk'),
+            transition = transition_mNrm
         ),
         Frame(
             ('Share'), ('Adjust', 'mNrm'),
