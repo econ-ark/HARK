@@ -435,8 +435,8 @@ def upper_envelope(segments, calc_crossings = True):
         xing_points, xing_lines = calc_cross_points(x, y_cond.T, env_inds)
         
         if len(xing_points) > 0:
+            
             # Extract x and y coordinates
-            print(xing_points)
             xing_x = np.array([p[0] for p in xing_points])
             xing_y = np.array([p[1] for p in xing_points])
             
