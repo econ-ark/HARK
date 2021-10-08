@@ -499,8 +499,9 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                 )
             )
 
-        # Store controls as attributes of self
-        self.controls["dfrac"] = dfrac
+        # Limit dfrac to [-1,1] to prevent negative balances. Values outside
+        # the range can come from extrapolation.
+        self.controls["dfrac"] = np.minimum(np.maximum(dfrac,-1),1.0)
 
     def get_states_Sha(self):
         """
