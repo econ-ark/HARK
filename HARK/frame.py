@@ -71,6 +71,39 @@ class FrameAgentType(AgentType):
         )
     ]
 
+    def __init__(self, **kwds):
+
+        ## set up relationships between frames
+        for frame in self.frames:
+            frame.children = []
+            frame.parents = []
+
+        for frame in self.frames:
+            if frame.scope is not None:
+                for var in frame.scope:
+                    scope_frames = [frm for frm in self.frames if var in frm.target]
+
+                    for scope_frame in scope_frames:
+                        if self.frames.index(frame) > self.frames.index(scope_frame):
+                            if frame not in scope_frame.children:
+                                scope_frame.children.append(frame)
+
+                            if scope_frame not in frame.parents:
+                                frame.parents.append(scope_frame)
+                        else:
+                            ffr = ForwardFrameReference(frame)
+                            bfr = BackwardFrameReference(frame)
+
+                            # ignoring equivalence checks for now
+                            scope_frame.children.append(ffr)
+                            frame.parents.append(bfr)
+
+        # Initialize a basic AgentType
+        #AgentType.__init__(
+        #    self,
+        #    **kwds
+        #)
+
     def initialize_sim(self):
 
         for frame in self.frames:
@@ -248,3 +281,41 @@ class FrameAgentType(AgentType):
                 context[t][:] = new_values[i]
             else:
                 raise Exception(f"From frame {frame.target}, target {t} is not in the context object.")
+
+class ForwardFrameReference():
+    """
+    A 'reference' to a frame that is in the next period
+    """
+
+    def __init__(self, frame):
+        self.frame = frame
+        self.target = frame.target
+
+        self.reward = frame.reward
+        self.control = frame.control
+        self.aggregate = frame.aggregate
+
+    def name(self):
+        return self.frame.name() + "'"
+
+    def __repr__(self):
+        return f"<FFR:{self.frame.target}>"
+
+class BackwardFrameReference():
+    """
+    A 'reference' to a frame that is in the previous period.
+    """
+
+    def __init__(self, frame):
+        self.frame = frame
+        self.target = frame.target
+
+        self.reward = frame.reward
+        self.control = frame.control
+        self.aggregate = frame.aggregate
+
+    def name(self):
+        return self.frame.name() + "-"
+
+    def __repr__(self):
+        return f"<BFR:{self.frame.target}>"

@@ -45,6 +45,11 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             self, **kwds
         )
 
+        # Initialize a basic consumer type
+        FrameAgentType.__init__(
+            self, **kwds
+        )
+
         # Set the solver for the portfolio model, and update various constructed attributes
         self.solve_one_period = solveConsPortfolio
         self.update()
