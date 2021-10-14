@@ -24,7 +24,6 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
 )
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     init_portfolio,
-    solveConsPortfolio,
     PortfolioConsumerType,
     PortfolioSolution
 )
@@ -67,9 +66,6 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             self, **kwds
         )
 
-        # Set the solver for the portfolio model, and update various constructed attributes
-        self.solve_one_period = solveConsPortfolio
-        self.update()
 
         ## TODO: Should be defined in the configuration.
         self.aggs = {'PermShkAggNow' : None, 'PlvlAgg' : None, 'Risky' : None} # aggregate values
