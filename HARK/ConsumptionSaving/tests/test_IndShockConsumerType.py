@@ -313,7 +313,7 @@ CyclicalDict = {
     "Rfree": 1.03,  # Interest factor on assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": 4 * [0.98],  # Survival probability
-    "PermGroFac": [1.082251, 2.8, 0.3, 1.1],
+    "PermGroFac": [1.1, 1.082251, 2.8, 0.3],
     # Parameters that specify the income distribution over the lifecycle
     "PermShkStd": [0.1, 0.1, 0.1, 0.1],
     "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
@@ -357,6 +357,11 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         self.assertAlmostEqual(
             CyclicalExample.solution[3].cFunc(3).tolist(), 1.5958390056965004
         )
+
+        CyclicalExample.initialize_sim()
+        CyclicalExample.simulate()
+
+        self.assertAlmostEqual(CyclicalExample.state_now['aLvl'][1], 0.41839957)
 
 # %% Tests of 'stable points'
 
@@ -577,3 +582,132 @@ class testPerfMITShk(unittest.TestCase):
         JACA = (AHist[0]-A_dx0)/(dx)
         
         self.assertAlmostEqual(JACA[175], 6.441930322509393e-06)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        
+dict_harmenberg={
+    # Parameters shared with the perfect foresight model
+    "CRRA":2,                             # Coefficient of relative risk aversion
+    "Rfree": 1.04**.25,                  # Interest factor on assets
+    "DiscFac": 0.9735,                    # Intertemporal discount factor
+    "LivPrb" : [.99375],                    # Survival probability
+    "PermGroFac" :[1.00],                 # Permanent income growth factor
+
+    # Parameters that specify the income distribution over the lifecycle
+   
+    "PermShkStd" :  [.06], #[(0.01*4/11)**0.5],    # Standard deviation of log permanent shocks to income
+    "PermShkCount" : 5,                    # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd" : [.3],                   # Standard deviation of log transitory shocks to income
+    "TranShkCount" : 5,                    # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb" : 0.07,                     # Probability of unemployment while working
+    "IncUnemp" : 0.3,      # Unemployment benefits replacement rate
+    "UnempPrbRet" : 0.0005,                # Probability of "unemployment" while retired
+    "IncUnempRet" : 0.0,                   # "Unemployment" benefits when retired
+    "T_retire" : 0,                        # Period of retirement (0 --> no retirement)
+    "tax_rate" : 0.18,      # Flat income tax rate (legacy parameter, will be removed in future)
+
+    # Parameters for constructing the "assets above minimum" grid
+    "aXtraMin" : 0.001,                    # Minimum end-of-period "assets above minimum" value
+    "aXtraMax" : 20,                       # Maximum end-of-period "assets above minimum" value
+    "aXtraCount" : 48,                     # Number of points in the base grid of "assets above minimum"
+    "aXtraNestFac" : 3,                    # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraExtra" : [None],                 # Additional values to add to aXtraGrid
+
+    # A few other parameters
+    "BoroCnstArt" : 0.0,                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "vFuncBool" : True,                    # Whether to calculate the value function during solution
+    "CubicBool" : False,                   # Preference shocks currently only compatible with linear cFunc
+    "T_cycle" : 1,                         # Number of periods in the cycle for this agent type
+
+    # Parameters only used in simulation
+    "AgentCount" : 500,                 # Number of agents of this type
+    "T_sim" : 100,                         # Number of periods to simulate
+    "aNrmInitMean" : np.log(1.3)-(.5**2)/2,# Mean of log initial assets
+    "aNrmInitStd"  : .5,                   # Standard deviation of log initial assets
+    "pLvlInitMean" : 0,                    # Mean of log initial permanent income
+    "pLvlInitStd"  : 0,                    # Standard deviation of log initial permanent income
+    "PermGroFacAgg" : 1.0,                 # Aggregate permanent income growth factor
+    "T_age" : None,                        # Age after which simulated agents are automatically killed
+
+}
+
+
+class test_Harmenbergs_method(unittest.TestCase):
+    
+    def test_Harmenberg_mtd(self):
+
+        example = IndShockConsumerType(**dict_harmenberg, verbose = 0)
+        example.cycles = 0
+        example.track_vars = [ 'aNrm', 'mNrm','cNrm','pLvl','aLvl']
+        example.T_sim= 20000
+        
+        example.solve()
+        
+        example.neutral_measure = True
+        example.update_income_process()
+        
+        example.initialize_sim()
+        example.simulate()
+        
+    
+        
+        
+        Asset_list = []
+        Consumption_list = []
+        M_list =[]
+        
+        
+        for i in range (example.T_sim):
+            Assetagg =  np.mean(example.history['aNrm'][i])
+            Asset_list.append(Assetagg)
+            ConsAgg =  np.mean(example.history['cNrm'][i] )
+            Consumption_list.append(ConsAgg)
+            Magg = np.mean(example.history['mNrm'][i])
+            M_list.append(Magg)
+                
+        #########################################################
+        
+        
+       
+        
+        example2 = IndShockConsumerType(**dict_harmenberg, verbose = 0)
+        example2.cycles = 0
+        example2.track_vars = [ 'aNrm', 'mNrm','cNrm','pLvl','aLvl']
+        example2.T_sim= 20000
+            
+        
+        example2.solve()
+        example2.initialize_sim()
+        example2.simulate()
+        
+        
+        
+        Asset_list2 = []
+        Consumption_list2 = []
+        M_list2 =[]
+        
+        
+        for i in range (example2.T_sim):
+            Assetagg =  np.mean(example2.history['aLvl'][i])
+            Asset_list2.append(Assetagg)
+            ConsAgg =  np.mean(example2.history['cNrm'][i] * example2.history['pLvl'][i])
+            Consumption_list2.append(ConsAgg)
+            Magg = np.mean(example2.history['mNrm'][i] * example2.history['pLvl'][i])
+            M_list2.append(Magg)
+        
+        
+        c_std_ratio = np.std(Consumption_list2) / np.std( Consumption_list)
+
+        self.assertAlmostEqual(c_std_ratio, 8.542694099741672)
+        
+        
+        
+        

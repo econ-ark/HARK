@@ -1,7 +1,25 @@
 """
 This file contains classes and functions for representing, solving, and simulating
-agents who must allocate their resources among consumption, saving in a risk-free
-asset (with a low return), and saving in a risky asset (with higher average return).
+a consumer type with idiosyncratic shocks to permanent and transitory income,
+who can save in both a risk-free and a risky asset but faces frictions to
+moving funds between them. The agent can only consume out of his risk-free
+asset.
+
+The model is described in detail in the REMARK:
+https://econ-ark.org/materials/riskycontrib
+
+@software{mateo_velasquez_giraldo_2021_4977915,
+  author       = {Mateo Velásquez-Giraldo},
+  title        = {{Mv77/RiskyContrib: A Two-Asset Savings Model with 
+                   an Income-Contribution Scheme}},
+  month        = jun,
+  year         = 2021,
+  publisher    = {Zenodo},
+  version      = {v1.0.1},
+  doi          = {10.5281/zenodo.4977915},
+  url          = {https://doi.org/10.5281/zenodo.4977915}
+}
+
 """
 import numpy as np
 from copy import deepcopy
@@ -55,7 +73,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     """
 
     time_inv_ = deepcopy(RiskyAssetConsumerType.time_inv_)
-    time_inv_ = time_inv_ + ["DiscreteShareBool"]
+    time_inv_ = time_inv_ + ["DiscreteShareBool", "joint_dist_solver"]
 
     # The new state variables (over those in ConsIndShock) are:
     # - nMrm: start-of-period risky resources.
@@ -65,6 +83,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     # For details, see
     # https://github.com/Mv77/RiskyContrib/blob/main/RiskyContrib.pdf
     state_vars = RiskyAssetConsumerType.state_vars + [
+        "gNrm",
         "nNrm",
         "mNrmTilde",
         "nNrmTilde",
@@ -72,16 +91,14 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     ]
     shock_vars_ = RiskyAssetConsumerType.shock_vars_
 
-    def __init__(self, verbose=False, quiet=False, **kwds):
+    def __init__(self, verbose=False, quiet=False, joint_dist_solver=False, **kwds):
 
         params = init_risky_contrib.copy()
         params.update(kwds)
         kwds = params
 
         # Initialize a basic consumer type
-        RiskyAssetConsumerType.__init__(
-            self, verbose=verbose, quiet=quiet, **kwds
-        )
+        RiskyAssetConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
 
         # The model is solved and simulated spliting each of the agent's
         # decisions into its own "stage". The stages in chronological order
@@ -104,7 +121,12 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             "Sha": self.get_controls_Sha,
             "Cns": self.get_controls_Cns,
         }
-
+        
+        # The model can be solved more quickly if income and risky returns are
+        # independent. However, people might want to use the general solver
+        # even when they are independent for debugging and testing.
+        self.joint_dist_solver=joint_dist_solver
+        
         # Set the solver for the portfolio model, and update various constructed attributes
         self.solve_one_period = solveRiskyContrib
         self.update()
@@ -427,13 +449,19 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         RfEff = Rfree / self.shocks["PermShk"]
         RrEff = Rrisk / self.shocks["PermShk"]
 
-        bNrm = RfEff * aNrmPrev  # Liquid balances before labor income
-        gNrm = RrEff * nNrmTildePrev  # Iliquid balances before labor income
+        self.state_now["bNrm"] = RfEff * aNrmPrev  # Liquid balances before labor income
+        self.state_now["gNrm"] = (
+            RrEff * nNrmTildePrev
+        )  # Iliquid balances before labor income
 
         # Liquid balances after labor income
-        self.state_now["mNrm"] = bNrm + self.shocks["TranShk"] * (1 - SharePrev)
+        self.state_now["mNrm"] = self.state_now["bNrm"] + self.shocks["TranShk"] * (
+            1 - SharePrev
+        )
         # Iliquid balances after labor income
-        self.state_now["nNrm"] = gNrm + self.shocks["TranShk"] * SharePrev
+        self.state_now["nNrm"] = (
+            self.state_now["gNrm"] + self.shocks["TranShk"] * SharePrev
+        )
 
         return None
 
@@ -471,8 +499,9 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                 )
             )
 
-        # Store controls as attributes of self
-        self.controls["dfrac"] = dfrac
+        # Limit dfrac to [-1,1] to prevent negative balances. Values outside
+        # the range can come from extrapolation.
+        self.controls["dfrac"] = np.minimum(np.maximum(dfrac,-1),1.0)
 
     def get_states_Sha(self):
         """
@@ -985,112 +1014,15 @@ def n_nrm_next(shocks, nNrm, Share, PermGroFac):
     return n_nrm_tp1
 
 
-def end_of_period_derivs(
-    shocks,
-    a,
-    nTil,
-    s,
-    dvdm_next,
-    dvdn_next,
-    dvds_next,
-    CRRA,
-    PermGroFac,
-    Rfree,
-    DiscFac,
-    LivPrb,
-    v_next=None,
-):
-    """
-    While solving his problem in a given period, the agent must estimate the
-    expected continuation value of ending the current period in a given state.
-    Most importantly, he must know the derivatives of that function.
-    This method is a step in computing these expected values. It computes the
-    end-of-period derivatives (and optionally the value) of the continuation
-    function, conditional on shocks. This is so that the expectations can be
-    calculated later by integrating over shocks.
-
-    Parameters
-    ----------
-    shocks : np.array
-        Length-3 array with the stochastic shocks that get realized between the
-        end of the current period and the start of next period. Their order is
-        (0) permanent income shock, (1) transitory income shock, (2) risky
-        asset return.
-    a : float
-        end-of-period risk-free assets.
-    nTil : float
-        end-of-period risky assets.
-    s : float
-        end-of-period income deduction share.
-    dvdm_next : 3D function
-        Next-period's marginal value of riskless assets.
-    dvdn_next : 3D function
-        Next-period's marginal value of risky assets.
-    dvds_next : 3D function
-        Next-period's marginal value of income-deduction share.
-    CRRA : float
-        Coefficient of relative risk aversion.
-    PermGroFac : float
-        Permanent income deterministic growth factor.
-    Rfree : float
-        Risk-free return factor.
-    DiscFac : float
-        Time-preference discount factor.
-    LivPrb : float
-        Survival probability.
-    v_next : 3D function, optional
-        Next-period's value function. The default is None.
-
-    Returns
-    -------
-    np.array
-        Array with end-of-period-value derivatives conditional on next
-        period's shocks. Order
-        (0) riskless assets, (1) risky assets, (2) income deduction share
-        Optionally, the level of end-of-period value is added in position (3).
-
-    """
-
-    temp_fac_A = utilityP(shocks[0] * PermGroFac, CRRA)
-    temp_fac_B = (shocks[0] * PermGroFac) ** (1.0 - CRRA)
-
-    # Find next-period asset balances
-    m_next = m_nrm_next(shocks, a, s, Rfree, PermGroFac)
-    n_next = n_nrm_next(shocks, nTil, s, PermGroFac)
-
-    # Interpolate next-period-value derivatives
-    dvdm_tp1 = dvdm_next(m_next, n_next, s)
-    dvdn_tp1 = dvdn_next(m_next, n_next, s)
-    if shocks[1] == 0:
-        dvds_tp1 = dvds_next(m_next, n_next, s)
-    else:
-        dvds_tp1 = shocks[1] * (dvdn_tp1 - dvdm_tp1) + dvds_next(m_next, n_next, s)
-
-    # Discount next-period-value derivatives to current period
-
-    # Liquid resources
-    end_of_prd_dvda = DiscFac * Rfree * LivPrb * temp_fac_A * dvdm_tp1
-    # Iliquid resources
-    end_of_prd_dvdn = DiscFac * shocks[2] * LivPrb * temp_fac_A * dvdn_tp1
-    # Contribution share
-    end_of_prd_dvds = DiscFac * LivPrb * temp_fac_B * dvds_tp1
-
-    # End of period value function, if needed
-    if v_next is not None:
-        end_of_prd_v = DiscFac * LivPrb * temp_fac_B * v_next(m_next, n_next, s)
-        return np.stack(
-            [end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds, end_of_prd_v]
-        )
-    else:
-        return np.stack([end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds])
-
-
 # %% RiskyContrib solvers
 
 # Consumption stage solver
 def solve_RiskyContrib_Cns(
     solution_next,
     ShockDstn,
+    IncShkDstn,
+    RiskyDstn,
+    IndepDstnBool,
     LivPrb,
     DiscFac,
     CRRA,
@@ -1104,6 +1036,7 @@ def solve_RiskyContrib_Cns(
     vFuncBool,
     AdjustPrb,
     DiscreteShareBool,
+    joint_dist_solver,
     **unused_params
 ):
     """
@@ -1116,6 +1049,14 @@ def solve_RiskyContrib_Cns(
     ShockDstn : DiscreteDistribution
         Joint distribution of next period's (0) permanent income shock, (1)
         transitory income shock, and (2) risky asset return factor.
+    IncShkDstn : DiscreteDistribution
+        Joint distribution of next period's (0) permanent income shock and (1)
+        transitory income shock.
+    RiskyDstn : DiscreteDistribution
+        Distribution of next period's risky asset return factor.
+    IndepDstnBool : bool
+        Indicates whether the income and risky return distributions are
+        independent.
     LivPrb : float
         Probability of surviving until next period.
     DiscFac : float
@@ -1145,6 +1086,9 @@ def solve_RiskyContrib_Cns(
     DiscreteShareBool : bool
         Boolean that determines whether only a discrete set of contribution
         shares (ShareGrid) is allowed.
+    joint_dist_solver: bool
+        Should the general solver be used even if income and returns are
+        independent?
     
     Returns
     -------
@@ -1182,26 +1126,8 @@ def solve_RiskyContrib_Cns(
     # STEP ONE
     # Find end-of-period (continuation) value function and its derivatives.
 
-    # The "inversion" machinery can deal with assets of 0 even if there is a
-    # natural borrowing constraint, so include zeros.
-    nNrmGrid = np.concatenate([np.array([0.0]), nNrmGrid])
-    aNrmGrid = np.concatenate([np.array([0.0]), aXtraGrid])
-
-    # Create tiled arrays with conforming dimensions. These are used
-    # to compute expectations at every grid combinations
-    # Convention will be (a,n,s)
-    aNrm_tiled, nNrm_tiled, Share_tiled = np.meshgrid(
-        aNrmGrid, nNrmGrid, ShareGrid, indexing="ij"
-    )
-
-    # Evaluate realizations of the derivatives and levels of next period's
-    # value function
-
-    # The agent who can adjust starts at the "contrib" stage, the one who can't
-    # starts at the Fxd stage.
-
-    # We are interested in marginal values before the realization of the
-    # adjustment random variable. Compute those objects
+    # Start by constructing functions for next-period's pre-adjustment-shock
+    # expected value functions
     if AdjustPrb < 1.0:
 
         dvdm_next = lambda m, n, s: AdjustPrb * dvdmFunc_Reb_Adj_next(m, n) + (
@@ -1228,30 +1154,215 @@ def solve_RiskyContrib_Cns(
         if vFuncBool:
             v_next = lambda m, n, s: vFunc_Reb_Adj_next(m, n)
 
-    # Find end of period derivatives and value as discounted expectations of
-    # next period's derivatives and value.
-    # Create a function to recover the derivatives (and possible value) of the
-    # end of period value function conditional on states and shocks.
-    end_of_period_ds_func = lambda shocks, a, n, s: end_of_period_derivs(
-        shocks,
-        a,
-        n,
-        s,
-        dvdm_next,
-        dvdn_next,
-        dvds_next,
-        CRRA,
-        PermGroFac,
-        Rfree,
-        DiscFac,
-        LivPrb,
-        v_next=v_next if vFuncBool else None,
+    
+    if IndepDstnBool and not joint_dist_solver:
+
+        # If income and returns are independent we can use the law of iterated
+        # expectations to speed up the computation of end-of-period derivatives
+
+        # Define "post-return variables"
+        # b_aux = aNrm * R
+        # g_aux = nNrmTilde * Rtilde
+        # and create a function that interpolates end-of-period marginal values
+        # as functions of those and the contribution share
+
+        def post_return_derivs(inc_shocks, b_aux, g_aux, s):
+
+            perm_shk = inc_shocks[0]
+            tran_shk = inc_shocks[1]
+
+            temp_fac_A = utilityP(perm_shk * PermGroFac, CRRA)
+            temp_fac_B = (perm_shk * PermGroFac) ** (1.0 - CRRA)
+
+            # Find next-period asset balances
+            m_next = b_aux / (perm_shk * PermGroFac) + (1.0 - s) * tran_shk
+            n_next = g_aux / (perm_shk * PermGroFac) + s * tran_shk
+
+            # Interpolate next-period-value derivatives
+            dvdm_tp1 = dvdm_next(m_next, n_next, s)
+            dvdn_tp1 = dvdn_next(m_next, n_next, s)
+            if tran_shk == 0:
+                dvds_tp1 = dvds_next(m_next, n_next, s)
+            else:
+                dvds_tp1 = tran_shk * (dvdn_tp1 - dvdm_tp1) + dvds_next(
+                    m_next, n_next, s
+                )
+
+            # Discount next-period-value derivatives to current period
+
+            # Liquid resources
+            pr_dvda = temp_fac_A * dvdm_tp1
+            # Iliquid resources
+            pr_dvdn = temp_fac_A * dvdn_tp1
+            # Contribution share
+            pr_dvds = temp_fac_B * dvds_tp1
+
+            # End of period value function, if needed
+            if vFuncBool:
+                pr_v = temp_fac_B * v_next(m_next, n_next, s)
+                return np.stack([pr_dvda, pr_dvdn, pr_dvds, pr_v])
+            else:
+                return np.stack([pr_dvda, pr_dvdn, pr_dvds])
+
+        # Define grids
+        b_aux_grid = np.concatenate([np.array([0.0]), Rfree * aXtraGrid])
+        g_aux_grid = np.concatenate([np.array([0.0]), max(RiskyDstn.X) * nNrmGrid])
+
+        # Create tiled arrays with conforming dimensions.
+        b_aux_tiled, g_aux_tiled, Share_tiled = np.meshgrid(
+            b_aux_grid, g_aux_grid, ShareGrid, indexing="ij"
+        )
+
+        # Find end of period derivatives and value as expectations of (discounted)
+        # next period's derivatives and value.
+        pr_derivs = calc_expectation(
+            IncShkDstn, post_return_derivs, b_aux_tiled, g_aux_tiled, Share_tiled
+        )[:, :, :, :, 0]
+
+        # Unpack results and create interpolators
+        pr_dvdb_func = MargValueFuncCRRA(
+            TrilinearInterp(uPinv(pr_derivs[0]), b_aux_grid, g_aux_grid, ShareGrid), CRRA
+        )
+        pr_dvdg_func = MargValueFuncCRRA(
+            TrilinearInterp(uPinv(pr_derivs[1]), b_aux_grid, g_aux_grid, ShareGrid), CRRA
+        )
+        pr_dvds_func = TrilinearInterp(pr_derivs[2], b_aux_grid, g_aux_grid, ShareGrid)
+
+        if vFuncBool:
+
+            pr_vFunc = ValueFuncCRRA(
+                TrilinearInterp(uInv(pr_derivs[3]), b_aux_grid, g_aux_grid, ShareGrid), CRRA
+            )
+
+        # Now construct a function that produces end-of-period derivatives
+        # given the risky return draw
+        def end_of_period_derivs(risky_ret, a, nTil, s):
+            """
+            Computes the end-of-period derivatives (and optionally the value) of the
+            continuation value function, conditional on risky returns. This is so that the
+            expectations can be calculated by integrating over risky returns.
+        
+            Parameters
+            ----------
+            risky_ret : float
+                Risky return factor
+            a : float
+                end-of-period risk-free assets.
+            nTil : float
+                end-of-period risky assets.
+            s : float
+                end-of-period income deduction share.
+            """
+
+            # Find next-period asset balances
+            b_aux = a * Rfree
+            g_aux = nTil * risky_ret
+
+            # Interpolate post-return derivatives
+            pr_dvdb = pr_dvdb_func(b_aux, g_aux, s)
+            pr_dvdg = pr_dvdg_func(b_aux, g_aux, s)
+            pr_dvds = pr_dvds_func(b_aux, g_aux, s)
+
+            # Discount
+
+            # Liquid resources
+            end_of_prd_dvda = DiscFac * Rfree * LivPrb * pr_dvdb
+            # Iliquid resources
+            end_of_prd_dvdn = DiscFac * risky_ret * LivPrb * pr_dvdg
+            # Contribution share
+            end_of_prd_dvds = DiscFac * LivPrb * pr_dvds
+
+            # End of period value function, i11f needed
+            if vFuncBool:
+                end_of_prd_v = DiscFac * LivPrb * pr_vFunc(b_aux, g_aux, s)
+                return np.stack(
+                    [end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds, end_of_prd_v]
+                )
+            else:
+                return np.stack([end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds])
+
+    else:
+
+        # If income and returns are not independent, we just integrate over
+        # them jointly.
+
+        # Construct a function that evaluates and discounts them given a
+        # vector of return and income shocks and an end-of-period state
+        def end_of_period_derivs(shocks, a, nTil, s):
+            """
+            Computes the end-of-period derivatives (and optionally the value) of the
+            continuation value function, conditional on shocks. This is so that the
+            expectations can be calculated by integrating over shocks.
+        
+            Parameters
+            ----------
+            shocks : np.array
+                Length-3 array with the stochastic shocks that get realized between the
+                end of the current period and the start of next period. Their order is
+                (0) permanent income shock, (1) transitory income shock, (2) risky
+                asset return.
+            a : float
+                end-of-period risk-free assets.
+            nTil : float
+                end-of-period risky assets.
+            s : float
+                end-of-period income deduction share.
+            """
+            temp_fac_A = utilityP(shocks[0] * PermGroFac, CRRA)
+            temp_fac_B = (shocks[0] * PermGroFac) ** (1.0 - CRRA)
+
+            # Find next-period asset balances
+            m_next = m_nrm_next(shocks, a, s, Rfree, PermGroFac)
+            n_next = n_nrm_next(shocks, nTil, s, PermGroFac)
+
+            # Interpolate next-period-value derivatives
+            dvdm_tp1 = dvdm_next(m_next, n_next, s)
+            dvdn_tp1 = dvdn_next(m_next, n_next, s)
+            if shocks[1] == 0:
+                dvds_tp1 = dvds_next(m_next, n_next, s)
+            else:
+                dvds_tp1 = shocks[1] * (dvdn_tp1 - dvdm_tp1) + dvds_next(
+                    m_next, n_next, s
+                )
+
+            # Discount next-period-value derivatives to current period
+
+            # Liquid resources
+            end_of_prd_dvda = DiscFac * Rfree * LivPrb * temp_fac_A * dvdm_tp1
+            # Iliquid resources
+            end_of_prd_dvdn = DiscFac * shocks[2] * LivPrb * temp_fac_A * dvdn_tp1
+            # Contribution share
+            end_of_prd_dvds = DiscFac * LivPrb * temp_fac_B * dvds_tp1
+
+            # End of period value function, i11f needed
+            if vFuncBool:
+                end_of_prd_v = DiscFac * LivPrb * temp_fac_B * v_next(m_next, n_next, s)
+                return np.stack(
+                    [end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds, end_of_prd_v]
+                )
+            else:
+                return np.stack([end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds])
+
+    # Now find the expected values on a (a, nTil, s) grid
+
+    # The "inversion" machinery can deal with assets of 0 even if there is a
+    # natural borrowing constraint, so include zeros.
+    nNrmGrid = np.concatenate([np.array([0.0]), nNrmGrid])
+    aNrmGrid = np.concatenate([np.array([0.0]), aXtraGrid])
+
+    # Create tiled arrays with conforming dimensions.
+    aNrm_tiled, nNrm_tiled, Share_tiled = np.meshgrid(
+        aNrmGrid, nNrmGrid, ShareGrid, indexing="ij"
     )
 
-    # Then integrate over shocks
-    # (eop = end of period)
+    # Find end of period derivatives and value as expectations of (discounted)
+    # next period's derivatives and value.
     eop_derivs = calc_expectation(
-        ShockDstn, end_of_period_ds_func, aNrm_tiled, nNrm_tiled, Share_tiled
+        RiskyDstn if IndepDstnBool and not joint_dist_solver else ShockDstn,
+        end_of_period_derivs,
+        aNrm_tiled,
+        nNrm_tiled,
+        Share_tiled,
     )[:, :, :, :, 0]
 
     # Unpack results
@@ -1460,7 +1571,7 @@ def solve_RiskyContrib_Sha(
         opt_Share = ShareGrid[opt_idx]
 
         if vFuncBool:
-            vNvrsSha = vFunc_Cns_next.func(mNrm_tiled, nNrm_tiled, opt_Share)
+            vNvrsSha = vFunc_Cns_next.vFuncNvrs(mNrm_tiled, nNrm_tiled, opt_Share)
 
     else:
 
@@ -1478,7 +1589,7 @@ def solve_RiskyContrib_Sha(
 
             # Evaluate value function to optimize over shares.
             # Do it in inverse space
-            vNvrs = vFunc_Cns_next.func(mNrm_tiled, nNrm_tiled, Share_tiled)
+            vNvrs = vFunc_Cns_next.vFuncNvrs(mNrm_tiled, nNrm_tiled, Share_tiled)
 
             # Find the optimal share at each (m,n).
             opt_idx = np.argmax(vNvrs, axis=2)
@@ -1712,7 +1823,7 @@ def solve_RiskyContrib_Reb(
 
     # Value
     if vFuncBool:
-        vNvrs_Adj = vFunc_Adj_next.func(mtil_opt, ntil_opt)
+        vNvrs_Adj = vFunc_Adj_next.vFuncNvrs(mtil_opt, ntil_opt)
         vNvrsFunc_Adj = BilinearInterp(vNvrs_Adj, mNrmGrid, nNrmGrid)
         vFunc_Adj = ValueFuncCRRA(vNvrsFunc_Adj, CRRA)
     else:
@@ -1750,6 +1861,9 @@ def solve_RiskyContrib_Reb(
 def solveRiskyContrib(
     solution_next,
     ShockDstn,
+    IncShkDstn,
+    RiskyDstn,
+    IndepDstnBool,
     LivPrb,
     DiscFac,
     CRRA,
@@ -1765,6 +1879,7 @@ def solveRiskyContrib(
     vFuncBool,
     AdjustPrb,
     DiscreteShareBool,
+    joint_dist_solver,
 ):
     """
     Solve a full period (with its three stages) of the agent's problem
@@ -1776,6 +1891,14 @@ def solveRiskyContrib(
     ShockDstn : DiscreteDistribution
         Joint distribution of next period's (0) permanent income shock, (1)
         transitory income shock, and (2) risky asset return factor.
+    IncShkDstn : DiscreteDistribution
+        Joint distribution of next period's (0) permanent income shock and (1)
+        transitory income shock.
+    RiskyDstn : DiscreteDistribution
+        Distribution of next period's risky asset return factor.
+    IndepDstnBool : bool
+        Indicates whether the income and risky return distributions are
+        independent.
     LivPrb : float
         Probability of surviving until next period.
     DiscFac : float
@@ -1809,6 +1932,9 @@ def solveRiskyContrib(
     DiscreteShareBool : bool
         Boolean that determines whether only a discrete set of contribution
         shares (ShareGrid) is allowed.
+    joint_dist_solver: bool
+        Should the general solver be used even if income and returns are
+        independent?
 
     Returns
     -------
@@ -1819,6 +1945,9 @@ def solveRiskyContrib(
     # Pack parameters to be passed to stage-specific solvers
     kws = {
         "ShockDstn": ShockDstn,
+        "IncShkDstn": IncShkDstn,
+        "RiskyDstn": RiskyDstn,
+        "IndepDstnBool": IndepDstnBool,
         "LivPrb": LivPrb,
         "DiscFac": DiscFac,
         "CRRA": CRRA,
@@ -1834,6 +1963,7 @@ def solveRiskyContrib(
         "vFuncBool": vFuncBool,
         "AdjustPrb": AdjustPrb,
         "DiscreteShareBool": DiscreteShareBool,
+        "joint_dist_solver": joint_dist_solver,
     }
 
     # Stages of the problem in chronological order

@@ -4,6 +4,7 @@ import math
 import numpy as np
 from scipy.special import erf, erfc
 import scipy.stats as stats
+from types import SimpleNamespace
 
 
 class Distribution:
@@ -119,7 +120,9 @@ class IndexDistribution(Distribution):
                 ).approx(N,**kwds)
 
         if type(item0) is list:
-            return [self[i].approx(N,**kwds) for i, _ in enumerate(item0)]
+            return TimeVaryingDiscreteDistribution(
+                [self[i].approx(N,**kwds) for i, _ in enumerate(item0)]
+            )
 
 
     def draw(self, condition):
@@ -170,6 +173,68 @@ class IndexDistribution(Distribution):
                 draws[these] = self[c].draw(N)
 
             return draws
+
+class TimeVaryingDiscreteDistribution(Distribution):
+    """
+    This class provides a way to define a discrete distribution that
+    is conditional on an index.
+
+    Wraps a list of discrete distributions.
+
+    Parameters
+    ----------
+
+    distributions : [DiscreteDistribution]
+        A list of discrete distributions
+
+    seed : int
+        Seed for random number generator.
+    """
+    distributions = []
+
+    def __init__(self, distributions, seed = 0):
+        # Set up the RNG
+        super().__init__(seed)
+
+        self.distributions = distributions
+
+    def __getitem__(self, y):
+        return self.distributions[y]
+
+    def draw(self, condition):
+        """
+        Generate arrays of draws.
+        The input is an array containing the conditions.
+        The output is an array of the same length (axis 1 dimension)
+        as the conditions containing random draws of the conditional
+        distribution.
+
+        Parameters
+        ----------
+        condition : np.array
+            The input conditions to the distribution.
+
+        Returns:
+        ------------
+        draws : np.array
+        """
+        # for now, assume that all the conditionals
+        # are of the same type.
+        # this matches the HARK 'time-varying' model architecture.
+
+        # conditions are indices into list
+        # somewhat convoluted sampling strategy retained
+        # for test backwards compatibility
+
+        draws = np.zeros(condition.size)
+
+        for c in np.unique(condition):
+            these = c == condition
+            N = np.sum(these)
+
+            draws[these] = self.distributions[c].draw(N)
+
+        return draws
 
 ### CONTINUOUS DISTRIBUTIONS
 
@@ -837,7 +902,6 @@ class DiscreteDistribution(Distribution):
 
         return draws
 
-
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
     return DiscreteDistribution(d.pmf, np.exp(d.X), seed=seed)
@@ -1006,7 +1070,7 @@ def make_markov_approx_to_normal_by_monte_carlo(x_grid, mu, sigma, N_draws=10000
     return p_vec
 
 
-def make_tauchen_ar1(N, sigma=1.0, rho=0.9, bound=3.0):
+def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0):
     """
     Function to return a discretized version of an AR1 process.
     See http://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
@@ -1017,7 +1081,7 @@ def make_tauchen_ar1(N, sigma=1.0, rho=0.9, bound=3.0):
         Size of discretized grid
     sigma: float
         Standard deviation of the error term
-    rho: float
+    ar_1: float
         AR1 coefficient
     bound: float
         The highest (lowest) grid point will be bound (-bound) multiplied by the unconditional
@@ -1030,7 +1094,7 @@ def make_tauchen_ar1(N, sigma=1.0, rho=0.9, bound=3.0):
     trans_matrix: np.array
         Markov transition array for the discretized process
     """
-    yN = bound * sigma / ((1 - rho ** 2) ** 0.5)
+    yN = bound * sigma / ((1 - ar_1 ** 2) ** 0.5)
     y = np.linspace(-yN, yN, N)
     d = y[1] - y[0]
     trans_matrix = np.ones((N, N))
@@ -1038,11 +1102,11 @@ def make_tauchen_ar1(N, sigma=1.0, rho=0.9, bound=3.0):
         for k_1 in range(N - 2):
             k = k_1 + 1
             trans_matrix[j, k] = stats.norm.cdf(
-                (y[k] + d / 2.0 - rho * y[j]) / sigma
-            ) - stats.norm.cdf((y[k] - d / 2.0 - rho * y[j]) / sigma)
-        trans_matrix[j, 0] = stats.norm.cdf((y[0] + d / 2.0 - rho * y[j]) / sigma)
+                (y[k] + d / 2.0 - ar_1 * y[j]) / sigma
+            ) - stats.norm.cdf((y[k] - d / 2.0 - ar_1 * y[j]) / sigma)
+        trans_matrix[j, 0] = stats.norm.cdf((y[0] + d / 2.0 - ar_1 * y[j]) / sigma)
         trans_matrix[j, N - 1] = 1.0 - stats.norm.cdf(
-            (y[N - 1] - d / 2.0 - rho * y[j]) / sigma
+            (y[N - 1] - d / 2.0 - ar_1 * y[j]) / sigma
         )
 
     return y, trans_matrix
@@ -1060,8 +1124,8 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
 
     Parameters
     ----------
-    distribution : [np.array]
-        Two element list containing a list of probabilities and a list of outcomes.
+    distribution : DiscreteDistribution
+        A DiscreteDistribution
     x : float
         The new value to be added to the distribution.
     p : float
@@ -1075,15 +1139,24 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
         Probability associated with each point in array of discrete
         points for discrete probability mass function.
     """
-    X = np.append(x, distribution.X * (1 - p * x) / (1 - p))
-    pmf = np.append(p, distribution.pmf * (1 - p))
 
-    if sort:
-        indices = np.argsort(X)
-        X = X[indices]
-        pmf = pmf[indices]
+    if type(distribution) != TimeVaryingDiscreteDistribution:
+        X = np.append(x, distribution.X * (1 - p * x) / (1 - p))
+        pmf = np.append(p, distribution.pmf * (1 - p))
 
-    return DiscreteDistribution(pmf, X)
+        if sort:
+            indices = np.argsort(X)
+            X = X[indices]
+            pmf = pmf[indices]
+
+        return DiscreteDistribution(pmf, X)
+    elif type(distribution) == TimeVaryingDiscreteDistribution:
+        # apply recursively on all the internal distributions
+        return TimeVaryingDiscreteDistribution([
+            add_discrete_outcome_constant_mean(d, x, p)
+            for d
+            in distribution.distributions
+        ], seed = distribution.seed)
 
 
 def add_discrete_outcome(distribution, x, p, sort=False):
@@ -1164,7 +1237,7 @@ def combine_indep_dstns(*distributions, seed=0):
         )
 
         # The tiling we want to do
-        dist_tiles = dist_lengths[:dd] + (1,) + dist_lengths[dd + 1 :]
+        dist_tiles = dist_lengths[:dd] + (1,) + dist_lengths[dd + 1:]
 
         # Now we are ready to tile.
         # We don't use the np.meshgrid commands, because they do not
@@ -1196,9 +1269,11 @@ def combine_indep_dstns(*distributions, seed=0):
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
     return DiscreteDistribution(P_out, X_out, seed=seed)
 
-def calc_expectation(dstn,func=lambda x : x,*args):
+def calc_expectation(dstn, func=lambda x: x, *args):
     '''
-    Calculate the expectation of a stochastic function at an array of values.
+    Expectation of a function, given an array of configurations of its inputs
+    along with a DiscreteDistribution object that specifies the probability
+    of each configuration.
 
     Parameters
     ----------

@@ -1,7 +1,8 @@
 """
 This file implements unit tests for interpolation methods
 """
-from HARK.core import Model, MetricObject, distance_metric, AgentType
+from HARK.core import Model, MetricObject, distance_metric, AgentType, distribute_params
+from HARK.distribution import Uniform
 
 import numpy as np
 import unittest
@@ -101,3 +102,18 @@ class test_AgentType(unittest.TestCase):
 
         self.assertEqual(self.agent, agent2)
         self.assertNotEqual(self.agent, agent3)
+
+class test_distribute_params(unittest.TestCase):
+    def setUp(self):
+        self.agent = AgentType(cycles=1, AgentCount=3)
+
+
+    def test_distribute_params(self):
+        dist = Uniform(bot=0.9, top=0.94)
+
+        self.agents = distribute_params(self.agent, 'DiscFac', 3, dist)
+
+        self.assertTrue(all(['DiscFac' in agent.parameters for agent in self.agents]))
+        self.assertTrue(all([self.agents[i].parameters['DiscFac'] == dist.approx(3).X[i] for i in range(3)]))
+
+
