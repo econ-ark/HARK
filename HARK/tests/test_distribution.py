@@ -5,6 +5,7 @@ import HARK.distribution as distribution
 
 from HARK.distribution import (
     Bernoulli,
+    IndexDistribution,
     DiscreteDistribution,
     Lognormal,
     MeanOneLogNormal,
@@ -137,7 +138,7 @@ class DistributionClassTests(unittest.TestCase):
         )
 
     def test_Weibull(self):
-        self.assertEqual(Weibull().draw(1)[0], 0.79587450816311)
+        self.assertAlmostEqual(Weibull().draw(1)[0], 0.79587450816311)
 
     def test_Uniform(self):
         uni = Uniform()
@@ -152,6 +153,51 @@ class DistributionClassTests(unittest.TestCase):
     def test_Bernoulli(self):
         self.assertEqual(Bernoulli().draw(1)[0], False)
 
+class IndexDistributionClassTests(unittest.TestCase):
+    """
+    Tests for distribution.py sampling distributions
+    with default seed.
+    """
+
+    def test_IndexDistribution(self):
+        cd = IndexDistribution(Bernoulli, {'p' : [.01, .5, .99]})
+
+        conditions = np.array([0,0,0,0,1,1,1,1,1,1,1,1,2,2,2,2])
+
+        draws = cd.draw(conditions)
+
+        self.assertEqual(draws[:4].sum(), 0)
+        self.assertEqual(draws[-4:].sum(),4)
+        self.assertEqual(cd[2].p.tolist(), .99)
+
+    def test_IndexDistribution_approx(self):
+        cd = IndexDistribution(
+            Lognormal,
+            {
+                'mu' : [.01, .5, .99],
+                'sigma' : [.05, .05, .05]
+            }
+        )
+
+        approx = cd.approx(10)
+
+        draw = approx[2].draw(5)
+
+        self.assertAlmostEqual(draw[1], 2.93868620)
+
+    def test_IndexDistribution_seeds(self):
+        cd = IndexDistribution(
+            Lognormal,
+            {
+                'mu' : [1, 1],
+                'sigma' : [1, 1]
+            }
+        )
+
+        draw_0 = cd[0].draw(1).tolist()
+        draw_1 = cd[1].draw(1).tolist()
+
+        self.assertNotEqual(draw_0, draw_1)
 
 class MarkovProcessTests(unittest.TestCase):
     """

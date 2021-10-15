@@ -901,12 +901,12 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
     state_vars = ['pLvl',"mLvl",'aLvl']
 
-    def __init__(self, cycles=0, **kwds):
+    def __init__(self, **kwds):
         params = init_explicit_perm_inc.copy()
         params.update(kwds)
 
         # Initialize a basic ConsumerType
-        IndShockConsumerType.__init__(self, cycles=cycles, **params)
+        IndShockConsumerType.__init__(self, **params)
         self.solve_one_period = make_one_period_oo_solver(ConsGenIncProcessSolver)
 
         # a poststate?
@@ -1247,15 +1247,14 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
 
     Parameters
     ----------
-    cycles : int
-        Number of times the sequence of periods should be solved.
+
     """
 
-    def __init__(self, cycles=0, **kwds):
+    def __init__(self, **kwds):
         params = init_persistent_shocks.copy()
         params.update(kwds)
 
-        GenIncProcessConsumerType.__init__(self, cycles=cycles, **params)
+        GenIncProcessConsumerType.__init__(self, **params)
 
     def update_pLvlNextFunc(self):
         """
