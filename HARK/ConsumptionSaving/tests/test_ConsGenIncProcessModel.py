@@ -1,11 +1,12 @@
+import unittest
 from copy import copy
+
+import numpy as np
+
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     IndShockExplicitPermIncConsumerType,
-    IndShockConsumerType,
     PersistentShockConsumerType,
 )
-import numpy as np
-import unittest
 
 GenIncDictionary = {
     "CRRA": 2.0,  # Coefficient of relative risk aversion
@@ -95,12 +96,8 @@ class testPersistentShockConsumerType(unittest.TestCase):
         self.agent.T_sim = 25
 
         # why does ,"bLvlNow" not work here?
-        self.agent.track_vars = [
-            'aLvl',"mLvl", "cLvl", 'pLvl'
-        ]
+        self.agent.track_vars = ["aLvl", "mLvl", "cLvl", "pLvl"]
         self.agent.initialize_sim()
         self.agent.simulate()
 
-        self.assertAlmostEqual(
-            np.mean(self.agent.history["mLvl"]), 1.2043946738813716
-        )
+        self.assertAlmostEqual(np.mean(self.agent.history["mLvl"]), 1.2043946738813716)
