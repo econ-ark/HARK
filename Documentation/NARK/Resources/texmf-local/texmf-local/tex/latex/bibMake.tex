@@ -1,0 +1,6 @@
+
+\write18{if [ ! -f \jobname.bib     ]; then touch \jobname.bib     ; fi}
+\write18{if [ ! -f \jobname-Add.bib ]; then touch \jobname-Add.bib ; fi}
+
+\bibliographystyle{econtex}
+\bibliography{\jobname,\jobname-Add,economics}

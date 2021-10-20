@@ -263,8 +263,9 @@ Web
 # Mac system files
 .DS_Store
 
-# Emacs automatic backup files
+# Emacs automatic backup and hash files
 *~
+\#*#
 
 # Vim swap files
 *.swp
@@ -282,3 +283,9 @@ nate-notes/
 
 # VSCode 
 settings.json
+.idea
+
+# Spyder project settings
+.spyderproject
+spyproject
+.spyproject
