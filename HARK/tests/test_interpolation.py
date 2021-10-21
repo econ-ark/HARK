@@ -3,11 +3,12 @@ This file implements unit tests for interpolation methods
 """
 from HARK.interpolation import (
     LinearInterp,
-    CubicInterp,
     BilinearInterp,
     TrilinearInterp,
     QuadlinearInterp,
 )
+
+from HARK.interpolation import CubicHermiteInterp as CubicInterp
 
 import numpy as np
 import unittest
