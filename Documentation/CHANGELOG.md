@@ -23,6 +23,9 @@ frictions to moving funds between them. To circumvent these frictions, he has ac
 PR: [#832](https://github.com/econ-ark/HARK/pull/832). See [this forthcoming REMARK](https://github.com/Mv77/RiskyContrib) for the model's details.
 * 'cycles' agent property moved from constructor argument to parameter [#1031](https://github.com/econ-ark/HARK/pull/1031)
 * Uses iterated expectations to speed-up the solution of `RiskyContrib` when income and returns are independent [#1058](https://github.com/econ-ark/HARK/pull/1058).
+* `ConsPortfolioSolver` class for solving portfolio choice model replaces `solveConsPortfolio` method [#1047](https://github.com/econ-ark/HARK/pull/1047)
+* `ConsPortfolioDiscreteSolver` class for solving portfolio choice model when allowed share is on a discrete grid [#1047](https://github.com/econ-ark/HARK/pull/1047)
+* `ConsPortfolioJointDistSolver` class for solving portfolio chioce model when the income and risky return shocks are not independent [#1047](https://github.com/econ-ark/HARK/pull/1047)
 
 #### Minor Changes
 
@@ -35,6 +38,7 @@ PR: [#832](https://github.com/econ-ark/HARK/pull/832). See [this forthcoming REM
 * The function that computes end-of-period derivatives of the value function was moved to the inside of `ConsRiskyContrib`'s solver [#1057](https://github.com/econ-ark/HARK/pull/1057)
 * Use `np.fill(np.nan)` to clear or initialize the arrays that store simulations. [#1068](https://github.com/econ-ark/HARK/pull/1068)
 * Add Boolean attribute 'neutral_measure' to consumption models. When true, simulations are more precise by allowing permanent shocks to be drawn from a neutral measure (see Harmenberg 2021). [#1069](https://github.com/econ-ark/HARK/pull/1069)
+* Fix mathematical limits of model example in `example_ConsPortfolioModel.ipynb` [#1047](https://github.com/econ-ark/HARK/pull/1047)
 * Update `ConsGenIncProcessModel.py` to use `calc_expectation` method [#1072](https://github.com/econ-ark/HARK/pull/1072)
 
 ### 0.11.0
