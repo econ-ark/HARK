@@ -17,6 +17,7 @@ import numpy as np
 from scipy.optimize import newton
 from HARK import AgentType, NullFunc, MetricObject, make_one_period_oo_solver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
+from HARK.interpolation import CubicHermiteInterp as CubicInterp
 from HARK.interpolation import (
     CubicInterp,
     LowerEnvelope,
