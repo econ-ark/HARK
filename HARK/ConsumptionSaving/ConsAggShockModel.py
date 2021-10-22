@@ -1983,10 +1983,10 @@ class CobbDouglasEconomy(Market):
         None
         """
         self.TranShkAggDstn = MeanOneLogNormal(sigma=self.TranShkAggStd).approx(
-            N=self.TranShkAggCount
+            n=self.TranShkAggCount
         )
         self.PermShkAggDstn = MeanOneLogNormal(sigma=self.PermShkAggStd).approx(
-            N=self.PermShkAggCount
+            n=self.PermShkAggCount
         )
         self.AggShkDstn = combine_indep_dstns(self.PermShkAggDstn, self.TranShkAggDstn)
 
@@ -2237,10 +2237,10 @@ class SmallOpenEconomy(Market):
         None
         """
         self.TranShkAggDstn = MeanOneLogNormal(sigma=self.TranShkAggStd).approx(
-            N=self.TranShkAggCount
+            n=self.TranShkAggCount
         )
         self.PermShkAggDstn = MeanOneLogNormal(sigma=self.PermShkAggStd).approx(
-            N=self.PermShkAggCount
+            n=self.PermShkAggCount
         )
         self.AggShkDstn = combine_indep_dstns(self.PermShkAggDstn, self.TranShkAggDstn)
 
@@ -2489,12 +2489,12 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         for i in range(StateCount):
             TranShkAggDstn.append(
                 MeanOneLogNormal(sigma=self.TranShkAggStd[i]).approx(
-                    N=self.TranShkAggCount
+                    n=self.TranShkAggCount
                 )
             )
             PermShkAggDstn.append(
                 MeanOneLogNormal(sigma=self.PermShkAggStd[i]).approx(
-                    N=self.PermShkAggCount
+                    n=self.PermShkAggCount
                 )
             )
             AggShkDstn.append(combine_indep_dstns(PermShkAggDstn[-1], TranShkAggDstn[-1]))
