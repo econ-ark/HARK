@@ -1122,8 +1122,8 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
             # Add an asset point at exactly zero
             self.aNrmGrid = np.insert(self.aXtraGrid, 0, 0.0)
 
-        self.aNrm_N = self.aNrmGrid.size
-        self.Share_N = self.ShareGrid.size
+        self.aNrmCount = self.aNrmGrid.size
+        self.ShareCount = self.ShareGrid.size
 
         self.aNrm_tiled, self.Share_tiled = np.meshgrid(
             self.aNrmGrid, self.ShareGrid, indexing="ij"
