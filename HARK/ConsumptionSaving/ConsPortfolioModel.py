@@ -716,42 +716,42 @@ class ConsPortfolioSolver(MetricObject):
         Optimization of Share on continuous interval [0,1]
         """
 
-        # For values of aNrm at which the agent wants to put more than 100% into risky asset, constrain them
         FOC_s = self.EndOfPrddvds
-        # Initialize to putting everything in safe asset
-        self.Share_now = np.zeros_like(self.aNrmGrid)
-        self.cNrmAdj_now = np.zeros_like(self.aNrmGrid)
+
+        # For each value of aNrm, find the value of Share such that FOC-Share == 0.
+        crossing = np.logical_and(FOC_s[:, 1:] <= 0.0, FOC_s[:, :-1] >= 0.0)
+        share_idx = np.argmax(crossing, axis=1)
+        a_idx = np.arange(self.aNrm_N)
+        bot_s = self.ShareGrid[share_idx]
+        top_s = self.ShareGrid[share_idx + 1]
+        bot_f = FOC_s[a_idx, share_idx]
+        top_f = FOC_s[a_idx, share_idx + 1]
+        bot_c = self.EndOfPrddvdaNvrs[a_idx, share_idx]
+        top_c = self.EndOfPrddvdaNvrs[a_idx, share_idx + 1]
+        alpha = 1.0 - top_f / (top_f - bot_f)
+
+        self.Share_now = (1.0 - alpha) * bot_s + alpha * top_s
+        self.cNrmAdj_now = (1.0 - alpha) * bot_c + alpha * top_c
+
         # If agent wants to put more than 100% into risky asset, he is constrained
         constrained_top = FOC_s[:, -1] > 0.0
         # Likewise if he wants to put less than 0% into risky asset
         constrained_bot = FOC_s[:, 0] < 0.0
+
+        # For values of aNrm at which the agent wants to put
+        # more than 100% into risky asset, constrain them
         self.Share_now[constrained_top] = 1.0
+        self.Share_now[constrained_bot] = 0.0
+
+        # Get consumption when share-constrained
+        self.cNrmAdj_now[constrained_top] = self.EndOfPrddvdaNvrs[constrained_top, -1]
+        self.cNrmAdj_now[constrained_bot] = self.EndOfPrddvdaNvrs[constrained_bot, 0]
+
         if not self.zero_bound:
             # aNrm=0, so there's no way to "optimize" the portfolio
             self.Share_now[0] = 1.0
             # Consumption when aNrm=0 does not depend on Share
             self.cNrmAdj_now[0] = self.EndOfPrddvdaNvrs[0, -1]
-            # Mark as constrained so that there is no attempt at optimization
-            constrained_top[0] = True
-
-        # Get consumption when share-constrained
-        self.cNrmAdj_now[constrained_top] = self.EndOfPrddvdaNvrs[constrained_top, -1]
-        self.cNrmAdj_now[constrained_bot] = self.EndOfPrddvdaNvrs[constrained_bot, 0]
-        # For each value of aNrm, find the value of Share such that FOC-Share == 0.
-        # This loop can probably be eliminated, but it's such a small step that it won't speed things up much.
-        crossing = np.logical_and(FOC_s[:, 1:] <= 0.0, FOC_s[:, :-1] >= 0.0)
-        for j in range(self.aNrm_N):
-            if not (constrained_top[j] or constrained_bot[j]):
-                idx = np.argwhere(crossing[j, :])[0][0]
-                bot_s = self.ShareGrid[idx]
-                top_s = self.ShareGrid[idx + 1]
-                bot_f = FOC_s[j, idx]
-                top_f = FOC_s[j, idx + 1]
-                bot_c = self.EndOfPrddvdaNvrs[j, idx]
-                top_c = self.EndOfPrddvdaNvrs[j, idx + 1]
-                alpha = 1.0 - top_f / (top_f - bot_f)
-                self.Share_now[j] = (1.0 - alpha) * bot_s + alpha * top_s
-                self.cNrmAdj_now[j] = (1.0 - alpha) * bot_c + alpha * top_c
 
     def make_basic_solution(self):
         """
