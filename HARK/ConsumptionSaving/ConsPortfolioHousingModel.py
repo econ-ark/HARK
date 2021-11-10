@@ -6,7 +6,6 @@ risk-free asset (with a low return), and saving in a risky asset (with higher av
 from copy import copy, deepcopy
 
 import numpy as np
-from Calibration.params_CGM import dict_portfolio
 from numba import njit, prange
 from scipy.optimize import minimize_scalar
 
@@ -22,7 +21,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     PortfolioSolution,
     PortfolioConsumerType,
-    solveConsPortfolio,
+    init_portfolio,
+    ConsPortfolioSolver,
 )
 from HARK.distribution import (
     Lognormal,
@@ -283,7 +283,7 @@ class ConsPortfolioRentalHousingSolver(MetricObject):
         return self.hNrmNow
 
     def solve(self):
-        solution = solveConsPortfolio(
+        solution = ConsPortfolioSolver(
             self.solution_next,
             self.ShockDstn,
             self.IncShkDstn,
@@ -301,7 +301,7 @@ class ConsPortfolioRentalHousingSolver(MetricObject):
             self.DiscreteShareBool,
             self.ShareLimit,
             self.IndepDstnBool,
-        )
+        ).solve()
 
         solution.hNrm = self.add_human_wealth()
 
@@ -310,9 +310,9 @@ class ConsPortfolioRentalHousingSolver(MetricObject):
 
 class PortfolioRiskyHousingType(PortfolioConsumerType):
     time_inv_ = deepcopy(PortfolioConsumerType.time_inv_)
-    time_inv_ = time_inv_ + ["HouseShare", "HseDiscFac", "RntHseShare", "HseInitPrice"]
+    time_inv_ += ["HouseShare", "HseDiscFac", "RntHseShare", "HseInitPrice"]
     time_vary_ = deepcopy(PortfolioConsumerType.time_vary_)
-    time_vary_ = time_vary_ + ["RentPrb", "HseGroFac"]
+    time_vary_ += ["RentPrb", "HseGroFac"]
     shock_vars_ = PortfolioConsumerType.shock_vars_ + ["RntShk", "HouseShk"]
     state_vars = PortfolioConsumerType.state_vars + ["haveHse", "hNrm"]
     track_vars = ["mNrm", "hNrm", "haveHse", "cNrm", "aNrm", "pLvl", "aLvl", "Share"]
@@ -690,7 +690,7 @@ class MargValueFuncHousing(MetricObject):
         return utilityP(x_comp, gam=self.CRRA) * (h_nrm / c_opt) ** self.HouseShare
 
 
-class ConsPortfolioRiskyHousingSolver(MetricObject):
+class ConsPortfolioRiskyHousingSolver(ConsPortfolioSolver):
     """
     Define an object-oriented one period solver.
     Solve the one period problem for a portfolio-choice consumer.
@@ -1295,7 +1295,7 @@ class ConsPortfolioRiskyHousingSolver(MetricObject):
         AdjPrb = 1.0
         IndepDstnBool = True
 
-        portfolio_solution = solveConsPortfolio(
+        portfolio_solution = ConsPortfolioSolver(
             portfolio_sn,
             self.ShockDstn,
             self.IncShkDstn,
@@ -1313,7 +1313,7 @@ class ConsPortfolioRiskyHousingSolver(MetricObject):
             self.DiscreteShareBool,
             self.ShareLimit,
             IndepDstnBool,
-        )
+        ).solve()
 
         self.rental_solution = portfolio_to_housing(
             portfolio_solution, self.RntHseShare
@@ -1518,7 +1518,7 @@ def life_cycle_by_years(lc_dict, years):
 
 
 # init_portfolio_housing = life_cycle_by_years(dict_portfolio, 5)
-init_portfolio_housing = dict_portfolio.copy()
+init_portfolio_housing = init_portfolio.copy()
 
 T_cycle = init_portfolio_housing["T_cycle"]
 T_retire = init_portfolio_housing["T_retire"]
@@ -1539,7 +1539,7 @@ init_portfolio_housing["FixRiskyStd"] = False
 init_portfolio_housing["WlthNrmAvg"] = np.linspace(1.0, 20.0, 14)
 init_portfolio_housing["RntHseShare"] = 0.3
 
-init_portfolio_risky_housing = dict_portfolio.copy()
+init_portfolio_risky_housing = init_portfolio.copy()
 init_portfolio_risky_housing["LivPrb"] = [1.0] * T_cycle
 # Standard deviation of log transitory income shocks
 init_portfolio_risky_housing["TranShkStd"] = [0.0] * T_cycle
