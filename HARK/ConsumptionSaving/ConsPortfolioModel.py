@@ -110,6 +110,7 @@ class PortfolioSolution(MetricObject):
         EndOfPrddvda_adj=None,
         ShareGrid=None,
         EndOfPrddvda_fxd=None,
+        EndOfPrddvds_fxd=None,
         AdjPrb=None,
     ):
 
@@ -148,6 +149,7 @@ class PortfolioSolution(MetricObject):
         self.EndOfPrddvda_adj = EndOfPrddvda_adj
         self.ShareGrid = ShareGrid
         self.EndOfPrddvda_fxd = EndOfPrddvda_fxd
+        self.EndOfPrddvds_fxd = EndOfPrddvds_fxd
         self.AdjPrb = AdjPrb
 
 
@@ -841,6 +843,7 @@ class ConsPortfolioSolver(MetricObject):
             "share_adj": deepcopy(self.Share_now),
             "share_grid": deepcopy(self.ShareGrid),
             "eop_dvda_fxd": self.uP(self.EndOfPrddvda),
+            "eop_dvds_fxd": self.EndOfPrddvds,
         }
 
     def add_vFunc(self):
@@ -971,6 +974,7 @@ class ConsPortfolioSolver(MetricObject):
             EndOfPrddvda_adj=self.save_points["eop_dvda_adj"],
             ShareGrid=self.save_points["share_grid"],
             EndOfPrddvda_fxd=self.save_points["eop_dvda_fxd"],
+            EndOfPrddvds_fxd=self.save_points["eop_dvds_fxd"],
             AdjPrb=self.AdjustPrb,
         )
 
