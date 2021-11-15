@@ -42,6 +42,25 @@ from HARK.interpolation import (
 )
 
 
+class PortfolioRentalHousingSolution(MetricObject):
+    distance_criteria = ["vPfunc"]
+
+    def __init__(
+        self,
+        cFunc=NullFunc(),
+        hFunc=NullFunc(),
+        shareFunc=NullFunc(),
+        vFuncAdj=NullFunc(),
+        vPfuncAdj=NullFunc(),
+    ):
+
+        self.cFunc = cFunc
+        self.hFunc = hFunc
+        self.shareFunc = shareFunc
+        self.vFuncAdj = vFuncAdj
+        self.vPfuncAdj = vPfuncAdj
+
+
 class PortfolioRiskyHousingSolution(MetricObject):
     distance_criteria = ["vPfuncRnt", "vPfuncHse"]
 
