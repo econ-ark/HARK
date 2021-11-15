@@ -5,20 +5,22 @@ This class is not a fully specified model and therefore has no solution or
 simulation methods. It is meant as a container of methods for dealing with
 risky assets that will be useful to models what will inherit from it.
 """
-import numpy as np
 from copy import deepcopy
-from HARK.utilities import NullFunc
+
+import numpy as np
+
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
     init_idiosyncratic_shocks,  # Baseline dictionary to build on
 )
-
 from HARK.distribution import (
     combine_indep_dstns,
     IndexDistribution,
     Lognormal,
     Bernoulli,
 )
+from HARK.utilities import NullFunc
+
 
 class RiskyAssetConsumerType(IndShockConsumerType):
     """
@@ -41,9 +43,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         kwds = params
 
         # Initialize a basic consumer type
-        IndShockConsumerType.__init__(
-            self, verbose=verbose, quiet=quiet, **kwds
-        )
+        IndShockConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
 
         # These method must be overwritten by classes that inherit from
         # RiskyAssetConsumerType
@@ -93,14 +93,9 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         if "RiskyAvg" in self.time_vary:
             self.RiskyDstn = IndexDistribution(
                 Lognormal.from_mean_std,
-                {
-                    'mean' : self.RiskyAvg,
-                    'std' : self.RiskyStd
-                },
-                seed=self.RNG.randint(0, 2 ** 31 - 1)
-            ).approx(
-                self.RiskyCount
-            )
+                {"mean": self.RiskyAvg, "std": self.RiskyStd},
+                seed=self.RNG.randint(0, 2 ** 31 - 1),
+            ).approx(self.RiskyCount)
 
             self.add_to_time_vary("RiskyDstn")
 
@@ -108,7 +103,8 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         # agent does *not* have age-varying beliefs about the risky asset (base case)
         else:
             self.RiskyDstn = Lognormal.from_mean_std(
-                self.RiskyAvg, self.RiskyStd,
+                self.RiskyAvg,
+                self.RiskyStd,
             ).approx(self.RiskyCount)
             self.add_to_time_inv("RiskyDstn")
 
@@ -186,7 +182,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
             RiskyStd = self.RiskyStd
 
         self.shocks["Risky"] = Lognormal.from_mean_std(
-            self.RiskyAvg, self.RiskyStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
+            RiskyAvg, RiskyStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(1)
 
     def get_Adjust(self):
@@ -194,7 +190,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         Sets the attribute Adjust as a boolean array of size AgentCount, indicating
         whether each agent is able to adjust their risky portfolio share this period.
         Uses the attribute AdjustPrb to draw from a Bernoulli distribution.
-        
+
         Parameters
         ----------
         None
@@ -203,11 +199,9 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.shocks['Adjust'] = IndexDistribution(
-            Bernoulli,
-            {'p' : self.AdjustPrb},
-            seed=self.RNG.randint(0, 2 ** 31 - 1)
-            ).draw(self.t_cycle)
+        self.shocks["Adjust"] = IndexDistribution(
+            Bernoulli, {"p": self.AdjustPrb}, seed=self.RNG.randint(0, 2 ** 31 - 1)
+        ).draw(self.t_cycle)
 
     def initialize_sim(self):
         """
@@ -244,6 +238,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         self.get_Risky()
         self.get_Adjust()
 
+
 # %% Initial parameter sets
 
 # %% Base risky asset dictionary
@@ -256,7 +251,7 @@ risky_asset_parms = {
     # Number of integration nodes to use in approximation of risky returns
     "RiskyCount": 5,
     # Probability that the agent can adjust their portfolio each period
-    "AdjustPrb": 1.0
+    "AdjustPrb": 1.0,
 }
 
 # Make a dictionary to specify a risky asset consumer type

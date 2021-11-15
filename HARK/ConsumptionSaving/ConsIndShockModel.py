@@ -17,6 +17,7 @@ import numpy as np
 from scipy.optimize import newton
 from HARK import AgentType, NullFunc, MetricObject, make_one_period_oo_solver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
+from HARK.interpolation import CubicHermiteInterp as CubicInterp
 from HARK.interpolation import (
     CubicInterp,
     LowerEnvelope,
@@ -2035,6 +2036,7 @@ init_idiosyncratic_shocks = dict(
         "T_retire": 0,  # Period of retirement (0 --> no retirement)
         "vFuncBool": False,  # Whether to calculate the value function during solution
         "CubicBool": False,  # Use cubic spline interpolation when True, linear interpolation when False
+        "neutral_measure": False,      # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
     }
 )
 
@@ -2726,6 +2728,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     PermShkCount, tail_N=0
                 )
 
+                if not hasattr(self, "neutral_measure"):
+                    self.neutral_measure = False
+                    
+                if self.neutral_measure == True:
+                    PermShkDstn_t.pmf = PermShkDstn_t.X*PermShkDstn_t.pmf
+                
                 IncShkDstn.append(
                     combine_indep_dstns(
                         PermShkDstn_t,

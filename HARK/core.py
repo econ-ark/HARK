@@ -863,7 +863,8 @@ class AgentType(Model):
         None
         """
         for var_name in self.track_vars:
-            self.history[var_name] = np.empty((self.T_sim, self.AgentCount)) + np.nan
+            self.history[var_name] = np.empty((self.T_sim, self.AgentCount))
+            self.history[var_name].fill(np.nan)
 
 
 def solve_agent(agent, verbose):

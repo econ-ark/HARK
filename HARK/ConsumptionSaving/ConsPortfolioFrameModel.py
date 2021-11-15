@@ -12,7 +12,6 @@ from copy import deepcopy
 from HARK.frame import Frame, FrameAgentType
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     init_portfolio,
-    solveConsPortfolio,
     PortfolioConsumerType,
 )
 
@@ -44,7 +43,6 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         PortfolioConsumerType.__init__(
             self, **kwds
         )
-
         # Initialize a basic consumer type
         FrameAgentType.__init__(
             self, **kwds
