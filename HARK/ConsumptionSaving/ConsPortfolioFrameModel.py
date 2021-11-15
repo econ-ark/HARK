@@ -9,11 +9,13 @@ This file also demonstrates a "frame" model architecture.
 import numpy as np
 from scipy.optimize import minimize_scalar
 from copy import deepcopy
+from HARK.distribution import Distribution
 from HARK.frame import Frame, FrameAgentType
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     init_portfolio,
     solveConsPortfolio,
     PortfolioConsumerType,
+    PortfolioSolution
 )
 
 from HARK.distribution import combine_indep_dstns, add_discrete_outcome_constant_mean
@@ -49,10 +51,6 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         FrameAgentType.__init__(
             self, **kwds
         )
-
-        # Set the solver for the portfolio model, and update various constructed attributes
-        self.solve_one_period = solveConsPortfolio
-        self.update()
 
         self.shocks = {}
         self.controls = {}
@@ -107,9 +105,13 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         # Using IndShock get_Rfree instead of generic.
         RfreeNow = context['Rport']
 
+        # Calculate new states: normalized market resources and permanent income level
+        pLvlNow = pLvlPrev * context['PermShk']  # Updated permanent income level
+
         # "Effective" interest factor on normalized assets
         ReffNow = RfreeNow / context['PermShk']
         bNrmNow = ReffNow * aNrmPrev         # Bank balances before labor income
+        mNrmNow = bNrmNow + context['TranShk']  # Market resources after income
 
         return bNrmNow
 
