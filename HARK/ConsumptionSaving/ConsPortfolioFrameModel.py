@@ -13,7 +13,6 @@ from HARK.distribution import Distribution
 from HARK.frame import Frame, FrameAgentType
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     init_portfolio,
-    solveConsPortfolio,
     PortfolioConsumerType,
     PortfolioSolution
 )
@@ -105,13 +104,9 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         # Using IndShock get_Rfree instead of generic.
         RfreeNow = context['Rport']
 
-        # Calculate new states: normalized market resources and permanent income level
-        pLvlNow = pLvlPrev * context['PermShk']  # Updated permanent income level
-
         # "Effective" interest factor on normalized assets
         ReffNow = RfreeNow / context['PermShk']
         bNrmNow = ReffNow * aNrmPrev         # Bank balances before labor income
-        mNrmNow = bNrmNow + context['TranShk']  # Market resources after income
 
         return bNrmNow
 
