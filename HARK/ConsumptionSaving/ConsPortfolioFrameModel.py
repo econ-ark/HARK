@@ -9,12 +9,10 @@ This file also demonstrates a "frame" model architecture.
 import numpy as np
 from scipy.optimize import minimize_scalar
 from copy import deepcopy
-from HARK.distribution import Distribution
 from HARK.frame import Frame, FrameAgentType
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     init_portfolio,
     PortfolioConsumerType,
-    PortfolioSolution
 )
 
 from HARK.distribution import combine_indep_dstns, add_discrete_outcome_constant_mean
@@ -45,7 +43,6 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         PortfolioConsumerType.__init__(
             self, **kwds
         )
-
         # Initialize a basic consumer type
         FrameAgentType.__init__(
             self, **kwds
