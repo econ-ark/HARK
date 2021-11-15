@@ -9,7 +9,9 @@ This file also demonstrates a "frame" model architecture.
 import numpy as np
 from scipy.optimize import minimize_scalar
 from copy import deepcopy
-from HARK import NullFunc, Frame, FrameAgentType  # Basic HARK features
+from HARK import NullFunc  # Basic HARK features
+from HARK.distribution import Distribution
+from HARK.frame import Frame, FrameAgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
     utility,  # CRRA utility function
@@ -67,19 +69,9 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         )
 
 
-        ## TODO: Should be defined in the configuration.
-        self.aggs = {'PermShkAggNow' : None, 'PlvlAgg' : None, 'Risky' : None} # aggregate values
-                      # -- handled differently because only one value each per AgentType
-        self.shocks = {'Adjust' : None, 'PermShk' : None, 'TranShk' : None}
-        self.controls = {'cNrm' : None, 'Share' : None}
-        self.state_now = {
-            'Rport' : None,
-            'aLvl' : None,
-            'aNrm' : None,
-            'bNrm' : None,
-            'mNrm' : None,
-            'pLvl' : None
-            }
+        self.shocks = {}
+        self.controls = {}
+        self.state_now = {}
 
     # TODO: streamline this so it can draw the parameters from context
     def birth_aNrmNow(self, N):
@@ -98,7 +90,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         Birth value for pLvlNow
         """
         pLvlInitMeanNow = self.pLvlInitMean + np.log(
-            self.aggs["PlvlAgg"]
+            self.state_now["PlvlAgg"]
         )  # Account for newer cohorts having higher permanent income
 
         return Lognormal(
@@ -126,14 +118,12 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         # Calculate new states: normalized market resources and permanent income level
         pLvlNow = pLvlPrev * context['PermShk']  # Updated permanent income level
 
-        # Updated aggregate permanent productivity level
-        PlvlAggNow = context['PlvlAgg'] * context['PermShkAggNow']
         # "Effective" interest factor on normalized assets
         ReffNow = RfreeNow / context['PermShk']
         bNrmNow = ReffNow * aNrmPrev         # Bank balances before labor income
         mNrmNow = bNrmNow + context['TranShk']  # Market resources after income
 
-        return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow
+        return pLvlNow, bNrmNow, mNrmNow
 
     def transition_ShareNow(self, **context):
         """
@@ -209,8 +199,9 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
     # maybe replace reference to init_portfolio to self.parameters?
     frames = [
         # todo : make an aggegrate value
-        Frame(('PermShkAggNow',), ('PermGroFacAgg',),
-            transition = lambda self, PermGroFacAgg : (PermGroFacAgg,)
+        Frame(('PermShkAgg',), ('PermGroFacAgg',),
+            transition = lambda self, PermGroFacAgg : (PermGroFacAgg,),
+            aggregate = True
         ),
         Frame(
             ('PermShk'), None,
@@ -251,7 +242,8 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                 # seed=self.RNG.randint(0, 2 ** 31 - 1) : TODO: Seed logic
             ).approx(
                 init_portfolio['RiskyCount']
-            )
+            ),
+            aggregate = True
         ),
         Frame(
             ('Adjust'),None, 
@@ -266,21 +258,29 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             ('Rport'), ('Share', 'Risky'), 
             transition = transition_Rport
         ),
-        ## TODO risk free return rate
         Frame(
-            ('pLvl', 'PlvlAgg', 'bNrm', 'mNrm'),
-            ('pLvl', 'aNrm', 'Rport', 'PlvlAgg', 'PermShk', 'TranShk', 'PermShkAggNow'),
-            default = {'pLvl' : birth_pLvlNow, 'PlvlAgg' : 1.0},
+            ('PlvlAgg'), ('PlvlAgg', 'PermShkAgg'), 
+            default = {'PlvlAgg' : 1.0},
+            transition = lambda self, PlvlAgg, PermShkAgg : PlvlAgg * PermShkAgg,
+            aggregate = True
+        ),
+        Frame(
+            # TODO: PlvlAgg split out and handled as aggregate
+            ('pLvl', 'bNrm', 'mNrm'),
+            ('pLvl', 'aNrm', 'Rport', 'PlvlAgg', 'PermShk', 'TranShk'),
+            default = {'pLvl' : birth_pLvlNow},
             transition = transition
         ),
         Frame(
             ('Share'), ('Adjust', 'mNrm'),
             default = {'Share' : 0}, 
-            transition = transition_ShareNow
+            transition = transition_ShareNow,
+            control = True
         ),
         Frame(
             ('cNrm'), ('Adjust','mNrm','Share'), 
-            transition = transition_cNrmNow
+            transition = transition_cNrmNow,
+            control = True
         ),
         Frame(
             ('aNrm', 'aLvl'), ('aNrm', 'cNrm', 'mNrm', 'pLvl'),

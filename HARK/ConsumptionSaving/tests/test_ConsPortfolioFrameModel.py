@@ -38,7 +38,7 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         )
 
         self.assertAlmostEqual(
-             self.pcct.aggs['Risky'][0],
+             self.pcct.shocks['Risky'][0],
              0.96358739
         )
 
