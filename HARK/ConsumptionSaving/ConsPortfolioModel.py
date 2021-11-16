@@ -598,6 +598,11 @@ class ConsPortfolioSolver(MetricObject):
             self.bNrmGrid, self.ShareGrid, indexing="ij"
         )
 
+        # Make tiled arrays to calculate future realizations of bNrm and Share when integrating over RiskyDstn
+        self.aNrmNow, self.ShareNext = np.meshgrid(
+            self.aNrmGrid, self.ShareGrid, indexing="ij"
+        )
+
     def m_nrm_next(self, shocks, b_nrm_next):
         """
         Calculate future realizations of market resources
@@ -674,11 +679,6 @@ class ConsPortfolioSolver(MetricObject):
         dvds_intermed = dvds_intermed[:, :, 0]
         dvdsFunc_intermed = BilinearInterp(dvds_intermed, self.bNrmGrid, self.ShareGrid)
 
-        # Make tiled arrays to calculate future realizations of bNrm and Share when integrating over RiskyDstn
-        self.aNrm_tiled, self.ShareNext = np.meshgrid(
-            self.aNrmGrid, self.ShareGrid, indexing="ij"
-        )
-
         # Evaluate realizations of value and marginal value after asset returns are realized
 
         def EndOfPrddvda_dist(shock, a_nrm, Share_next):
@@ -706,7 +706,7 @@ class ConsPortfolioSolver(MetricObject):
             self.DiscFac
             * self.LivPrb
             * calc_expectation(
-                self.RiskyDstn, EndOfPrddvda_dist, self.aNrm_tiled, self.ShareNext
+                self.RiskyDstn, EndOfPrddvda_dist, self.aNrmNow, self.ShareNext
             )
         )
         # calc_expectation returns one additional "empty" dimension, remove it
@@ -719,7 +719,7 @@ class ConsPortfolioSolver(MetricObject):
             self.DiscFac
             * self.LivPrb
             * calc_expectation(
-                self.RiskyDstn, EndOfPrddvds_dist, self.aNrm_tiled, self.ShareNext
+                self.RiskyDstn, EndOfPrddvds_dist, self.aNrmNow, self.ShareNext
             )
         )
         # calc_expectation returns one additional "empty" dimension, remove it
@@ -897,7 +897,7 @@ class ConsPortfolioSolver(MetricObject):
             self.DiscFac
             * self.LivPrb
             * calc_expectation(
-                self.RiskyDstn, EndOfPrdv_dist, self.aNrm_tiled, self.ShareNext
+                self.RiskyDstn, EndOfPrdv_dist, self.aNrmNow, self.ShareNext
             )
         )
         # calc_expectation returns one additional "empty" dimension, remove it
@@ -936,7 +936,9 @@ class ConsPortfolioSolver(MetricObject):
         self.vFuncAdj_now = ValueFuncCRRA(vNvrsFuncAdj, self.CRRA)
 
         # Construct the value function when the agent *can't* adjust his portfolio
-        mNrm_temp, Share_temp = np.meshgrid(self.aXtraGrid, self.ShareGrid)
+        mNrm_temp, Share_temp = np.meshgrid(
+            self.aXtraGrid, self.ShareGrid, indexing="ij"
+        )
         cNrm_temp = self.cFuncFxd_now(mNrm_temp, Share_temp)
         aNrm_temp = mNrm_temp - cNrm_temp
         v_temp = self.u(cNrm_temp) + EndOfPrdvFunc(aNrm_temp, Share_temp)
@@ -1125,7 +1127,7 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
         self.aNrmCount = self.aNrmGrid.size
         self.ShareCount = self.ShareGrid.size
 
-        self.aNrm_tiled, self.Share_tiled = np.meshgrid(
+        self.aNrmNow, self.ShareNext = np.meshgrid(
             self.aNrmGrid, self.ShareGrid, indexing="ij"
         )
 
@@ -1211,7 +1213,7 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
             self.DiscFac
             * self.LivPrb
             * calc_expectation(
-                self.ShockDstn, EndOfPrddvda_dists, self.aNrm_tiled, self.Share_tiled
+                self.ShockDstn, EndOfPrddvda_dists, self.aNrmNow, self.ShareNext
             )
         )
         self.EndOfPrddvda = self.EndOfPrddvda[:, :, 0]
@@ -1222,7 +1224,7 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
             self.DiscFac
             * self.LivPrb
             * calc_expectation(
-                self.ShockDstn, EndOfPrddvds_dist, self.aNrm_tiled, self.Share_tiled
+                self.ShockDstn, EndOfPrddvds_dist, self.aNrmNow, self.ShareNext
             )
         )
         self.EndOfPrddvds = self.EndOfPrddvds[:, :, 0]
@@ -1249,9 +1251,7 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
         self.EndOfPrdv = (
             self.DiscFac
             * self.LivPrb
-            * calc_expectation(
-                self.ShockDstn, v_dist, self.aNrm_tiled, self.Share_tiled
-            )
+            * calc_expectation(self.ShockDstn, v_dist, self.aNrmNow, self.ShareNext)
         )
         self.EndOfPrdv = self.EndOfPrdv[:, :, 0]
         self.EndOfPrdvNvrs = self.uinv(self.EndOfPrdv)
