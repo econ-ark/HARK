@@ -191,6 +191,8 @@ class FrameAgentType(AgentType):
         -------
         None
         """
+        which_agents = which_agents.astype(bool)
+
         for frame in self.frames:
             if not frame.aggregate:
                 for var in frame.target:
