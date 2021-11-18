@@ -17,7 +17,8 @@ class Frame():
             transition = None,
             objective = None,
             aggregate = False,
-            control = False
+            control = False,
+            reward = False
     ):
         """
         """
@@ -25,10 +26,19 @@ class Frame():
         self.target = target if isinstance(target, tuple) else (target,) # tuple of variables
         self.scope = scope # tuple of variables
         self.default = default # default value used in simBirth; a dict
+        ## Careful! Transition functions need to return a tuple, even if there is only one state value
         self.transition = transition # for use in simulation
         self.objective = objective # for use in solver
         self.aggregate = aggregate
         self.control = control
+        self.reward = reward
+
+    def __repr__(self):
+        return f"<{self.__class__}, target:{self.target}, scope:{self.scope}>"
+
+    def name(self):
+        target = self.target
+        return str(target[0]) if len(target) == 1 else str(self.target)
 
 
 class FrameAgentType(AgentType):
@@ -60,6 +70,39 @@ class FrameAgentType(AgentType):
             transition = lambda x: x^2
         )
     ]
+
+    def __init__(self, **kwds):
+
+        ## set up relationships between frames
+        for frame in self.frames:
+            frame.children = []
+            frame.parents = []
+
+        for frame in self.frames:
+            if frame.scope is not None:
+                for var in frame.scope:
+                    scope_frames = [frm for frm in self.frames if var in frm.target]
+
+                    for scope_frame in scope_frames:
+                        if self.frames.index(frame) > self.frames.index(scope_frame):
+                            if frame not in scope_frame.children:
+                                scope_frame.children.append(frame)
+
+                            if scope_frame not in frame.parents:
+                                frame.parents.append(scope_frame)
+                        else:
+                            ffr = ForwardFrameReference(frame)
+                            bfr = BackwardFrameReference(frame)
+
+                            # ignoring equivalence checks for now
+                            scope_frame.children.append(ffr)
+                            frame.parents.append(bfr)
+
+        # Initialize a basic AgentType
+        #AgentType.__init__(
+        #    self,
+        #    **kwds
+        #)
 
     def initialize_sim(self):
 
@@ -148,6 +191,8 @@ class FrameAgentType(AgentType):
         -------
         None
         """
+        which_agents = which_agents.astype(bool)
+
         for frame in self.frames:
             if not frame.aggregate:
                 for var in frame.target:
@@ -199,19 +244,8 @@ class FrameAgentType(AgentType):
 
         context.update(self.parameters)
 
-        # a method for indicating that a 'previous' version
-        # of a variable is intended.
-        # Perhaps store this in a separate notation.py module
-        #def decrement(var_name):
-        #    return var_name + '_'
-
-        # use special notation for the 'previous state' variables
-        #context.update({
-        #    decrement(var) : state_prev[var]
-        #    for var
-        #    in state_prev
-
-        #})
+        # The "most recently" computed value of the variable is used.
+        # This could be the value from the 'previous' time step.
 
         # limit context to scope of frame
         local_context = {
@@ -235,6 +269,7 @@ class FrameAgentType(AgentType):
                     self,
                     **local_context
                 )
+
         else:
             raise Exception(f"Frame has None for transition: {frame}")
 
@@ -248,3 +283,41 @@ class FrameAgentType(AgentType):
                 context[t][:] = new_values[i]
             else:
                 raise Exception(f"From frame {frame.target}, target {t} is not in the context object.")
+
+class ForwardFrameReference():
+    """
+    A 'reference' to a frame that is in the next period
+    """
+
+    def __init__(self, frame):
+        self.frame = frame
+        self.target = frame.target
+
+        self.reward = frame.reward
+        self.control = frame.control
+        self.aggregate = frame.aggregate
+
+    def name(self):
+        return self.frame.name() + "'"
+
+    def __repr__(self):
+        return f"<FFR:{self.frame.target}>"
+
+class BackwardFrameReference():
+    """
+    A 'reference' to a frame that is in the previous period.
+    """
+
+    def __init__(self, frame):
+        self.frame = frame
+        self.target = frame.target
+
+        self.reward = frame.reward
+        self.control = frame.control
+        self.aggregate = frame.aggregate
+
+    def name(self):
+        return self.frame.name() + "-"
+
+    def __repr__(self):
+        return f"<BFR:{self.frame.target}>"

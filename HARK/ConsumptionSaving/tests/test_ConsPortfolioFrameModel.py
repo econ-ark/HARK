@@ -13,6 +13,21 @@ class PortfolioConsumerTypeTestCase(unittest.TestCase):
 
         self.pcct.solve()
 
+class FramesTestCase(PortfolioConsumerTypeTestCase):
+    def test_frames(self):
+
+        cNrm_frame = self.pcct.frames[11]
+
+        self.assertTrue(cNrm_frame.control)
+        self.assertFalse(cNrm_frame.aggregate)
+        self.assertFalse(cNrm_frame.reward)
+
+        U_frame = cNrm_frame.children[0]
+        self.assertTrue(U_frame.reward)
+        self.assertEqual(U_frame.target[0], 'U')
+
+        bNrm_ffr = cNrm_frame.children[0]
+
 class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
     def test_simOnePeriod(self):
 

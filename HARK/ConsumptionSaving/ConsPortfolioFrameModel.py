@@ -9,25 +9,10 @@ This file also demonstrates a "frame" model architecture.
 import numpy as np
 from scipy.optimize import minimize_scalar
 from copy import deepcopy
-from HARK import NullFunc  # Basic HARK features
-from HARK.distribution import Distribution
 from HARK.frame import Frame, FrameAgentType
-from HARK.ConsumptionSaving.ConsIndShockModel import (
-    IndShockConsumerType,  # PortfolioConsumerType inherits from it
-    utility,  # CRRA utility function
-    utility_inv,  # Inverse CRRA utility function
-    utilityP,  # CRRA marginal utility function
-    utility_invP,  # Derivative of inverse CRRA utility function
-    utilityP_inv,  # Inverse CRRA marginal utility function
-    init_idiosyncratic_shocks,  # Baseline dictionary to build on
-)
-from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
-    RiskyAssetConsumerType
-)
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     init_portfolio,
     PortfolioConsumerType,
-    PortfolioSolution
 )
 
 from HARK.distribution import combine_indep_dstns, add_discrete_outcome_constant_mean
@@ -37,17 +22,8 @@ from HARK.distribution import (
     MeanOneLogNormal,
     Bernoulli  # Random draws for simulating agents
 )
-from HARK.interpolation import (
-    
-    LinearInterp,  # Piecewise linear interpolation
-    CubicInterp,  # Piecewise cubic interpolation
-    LinearInterpOnInterp1D,  # Interpolator over 1D interpolations
-    BilinearInterp,  # 2D interpolator
-    ConstantFunction,  # Interpolator-like class that returns constant value
-    IdentityFunction,  # Interpolator-like class that returns one of its arguments
-    ValueFuncCRRA,
-    MargValueFuncCRRA,
-    MargMargValueFuncCRRA
+from HARK.utilities import (
+    CRRAutility,
 )
 
 class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
@@ -67,7 +43,10 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         PortfolioConsumerType.__init__(
             self, **kwds
         )
-
+        # Initialize a basic consumer type
+        FrameAgentType.__init__(
+            self, **kwds
+        )
 
         self.shocks = {}
         self.controls = {}
@@ -105,25 +84,33 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             context["Share"] * context["Risky"]
             + (1.0 - context["Share"]) * self.parameters['Rfree']
         )
-        return Rport
+        return Rport, 
 
-    def transition(self, **context):
+    def transition_pLvl(self, **context):
         pLvlPrev = context['pLvl']
+        
+        # Calculate new states: normalized market resources and permanent income level
+        pLvlNow = pLvlPrev * context['PermShk']  # Updated permanent income level
+
+        return pLvlNow
+
+    def transition_bNrm(self, **context):
         aNrmPrev = context['aNrm']
 
         # This should be computed separately in its own transition
         # Using IndShock get_Rfree instead of generic.
         RfreeNow = context['Rport']
 
-        # Calculate new states: normalized market resources and permanent income level
-        pLvlNow = pLvlPrev * context['PermShk']  # Updated permanent income level
-
         # "Effective" interest factor on normalized assets
         ReffNow = RfreeNow / context['PermShk']
         bNrmNow = ReffNow * aNrmPrev         # Bank balances before labor income
-        mNrmNow = bNrmNow + context['TranShk']  # Market resources after income
 
-        return pLvlNow, bNrmNow, mNrmNow
+        return bNrmNow
+
+    def transition_mNrm(self, **context):
+        mNrm = context['bNrm'] + context['TranShk']  # Market resources after income
+
+        return mNrm
 
     def transition_ShareNow(self, **context):
         """
@@ -265,11 +252,21 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             aggregate = True
         ),
         Frame(
-            # TODO: PlvlAgg split out and handled as aggregate
-            ('pLvl', 'bNrm', 'mNrm'),
-            ('pLvl', 'aNrm', 'Rport', 'PlvlAgg', 'PermShk', 'TranShk'),
+            ('pLvl',),
+            ('pLvl', 'PermShk'),
             default = {'pLvl' : birth_pLvlNow},
-            transition = transition
+            transition = transition_pLvl
+        ),
+        Frame(
+            ('bNrm',),
+            ('aNrm', 'Rport', 'PermShk'),
+            default = {'pLvl' : birth_pLvlNow},
+            transition = transition_bNrm
+        ),
+        Frame(
+            ('mNrm',),
+            ('bNrm', 'TranShk'),
+            transition = transition_mNrm
         ),
         Frame(
             ('Share'), ('Adjust', 'mNrm'),
@@ -283,8 +280,17 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             control = True
         ),
         Frame(
-            ('aNrm', 'aLvl'), ('aNrm', 'cNrm', 'mNrm', 'pLvl'),
-            default = {'aNrm' : birth_aNrmNow}, 
-            transition = transition_poststates
+            ('U'), ('cNrm','CRRA'), ## Note CRRA here is a parameter not a state var
+            transition = lambda self, cNrm, CRRA : (CRRAutility(cNrm, CRRA),),
+            reward = True
+        ),
+        Frame(
+            ('aNrm'), ('mNrm', 'cNrm'),
+            default = {'aNrm' : birth_aNrmNow},
+            transition = lambda self, mNrm, cNrm : (mNrm - cNrm,)
+        ),
+        Frame(
+            ('aLvl'), ('aNrm', 'pLvl'),
+            transition = lambda self, aNrm, pLvl : (aNrm * pLvl,)
         )
     ]
