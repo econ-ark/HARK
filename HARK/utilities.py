@@ -16,6 +16,15 @@ import numpy as np  # Python's numeric library, abbreviated "np"
 from scipy.interpolate import interp1d
 import warnings
 
+def install_requirements():
+    import os.path
+    import sys
+    import subprocess
+
+    if os.path.isdir('binder'):  # Folder defining requirements exists
+        # File requirements.out should be created first time notebook is run
+        if not os.path.isfile('./binder/requirements.out'):  
+            subprocess.check_call([sys.executable, '-m', 'pip', 'install -r','./binder/requirements.txt']) 
 
 def memoize(obj):
     """
