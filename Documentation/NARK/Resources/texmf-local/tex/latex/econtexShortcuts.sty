@@ -639,25 +639,29 @@
 
 
 % Ensure that you're in math mode when using the \cancel command (otherwise tex4ht produces bad output)
-\newcommand\cncl[1]{\ensuremath{\cancel{#1}}}
+\providecommand{\cncl}{}
+\renewcommand\cncl[1]{\ensuremath{\cancel{#1}}}
+
+
+\renewcommand\cncl[1]{\ensuremath{\cancel{#1}}}
 
 % Define the handles for the various conditions
-\newcommand{\constr}[1]{\grave{#1}}
+\renewcommand{\constr}[1]{\grave{#1}}
 
-\newcommand{\PFGPF}{{\mbox{PF-GPF}}}
-\newcommand{\PFGIC}{{\mbox{PF-GIC}}}
-\newcommand{\AIC}{{\mbox{AIC}}}
-\newcommand{\PFFVAC}{{\mbox{PF-FVAC}}}
-\newcommand{\PFVAF}{{\mbox{PF-FVAF}}}
-\newcommand{\FVAC}{{\mbox{FVAC}}}
-\newcommand{\FVAF}{{\mbox{FVAF}}}
-\newcommand{\GIC}{{\mbox{GIC}}}
-\newcommand{\GICAgg}{{\mbox{GIC-Agg}}}
-\newcommand{\RIC}{{\mbox{RIC}}}
-\newcommand{\WRIC}{{\mbox{WRIC}}}
-\newcommand{\FHWC}{{\mbox{FHWC}}}
-\newcommand{\RPF}{{\mbox{RPF}}}
-\newcommand{\GPF}{{\mbox{GPF}}}
-\newcommand{\GPFAgg}{{\mbox{GPF-Agg}}}
-\newcommand{\FHWF}{\mbox{FHWF}}
+\providecommand{\PFGPF}{{\mbox{PF-GPF}}}
+\providecommand{\PFGIC}{{\mbox{PF-GIC}}}
+\providecommand{\AIC}{{\mbox{AIC}}}
+\providecommand{\PFFVAC}{{\mbox{PF-FVAC}}}
+\providecommand{\PFVAF}{{\mbox{PF-FVAF}}}
+\providecommand{\FVAC}{{\mbox{FVAC}}}
+\providecommand{\FVAF}{{\mbox{FVAF}}}
+\providecommand{\GIC}{{\mbox{GIC}}}
+\providecommand{\GICAgg}{{\mbox{GIC-Agg}}}
+\providecommand{\RIC}{{\mbox{RIC}}}
+\providecommand{\WRIC}{{\mbox{WRIC}}}
+\providecommand{\FHWC}{{\mbox{FHWC}}}
+\providecommand{\RPF}{{\mbox{RPF}}}
+\providecommand{\GPF}{{\mbox{GPF}}}
+\providecommand{\GPFAgg}{{\mbox{GPF-Agg}}}
+\providecommand{\FHWF}{\mbox{FHWF}}
 

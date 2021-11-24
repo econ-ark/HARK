@@ -1,5 +1,7 @@
 \input{./econtexRoot}
 \documentclass[12pt]{\econtex}
+\providecommand{\texname}{NARK}
+\usepackage{\LaTeXInputs/\texname}
 \usepackage{\econtexSetup}
 \usepackage{\econtexShortcuts}
 
@@ -139,8 +141,10 @@ There are more objects that are likely to be used extensively in ARK projects th
     \\  \texttt{Pop}    & - & Size of population
     \\  \texttt{Sav}    & - & Saving (=Income Minus Consumption)
     \\  \texttt{Tax}    & - & Tax -- should be modified by \texttt{Rte} or \texttt{Amt} articulated below
-    \\  \texttt{Perm}   & - & Permanent (labor; or at least, noncapital) income
-    \\  \texttt{Tran}   & - & Transitory (labor; or at least, noncapital) income
+    \\  \texttt{perm}   & - & permanent (noncapital) income - individual
+    \\  \texttt{Perm}   & - & Permanent (noncapital) - aggregate
+    \\  \texttt{tran}   & - & Transitory (noncapital) income - idiosyncratic
+    \\  \texttt{Tran}   & - & Transitory (noncapital) income - aggregate
     \\ \hline
   \end{tabular}
   \caption{String Variables}
@@ -183,10 +187,7 @@ the annual interest factor is $\Rfree=1.03$.\footnote{In the rare cases where it
   \label{table:Factors}
 \end{table}	
 
-We depart from the upper-lower case scheme when the natural letter to use has an even more urgent use elsewhere in our scheme.
-A particularly common example occurs in the case of models like \cite{blanchardFinite} in which 
-individual agents are subject to a Poisson probability of death.  Because death was common in the 
-middle ages, we use the archaic Gothic font for the death rate; and the probability of survival is the cancellation of the probability of death:
+We depart from the upper-lower case scheme when the natural letter to use has an even more urgent use elsewhere in our scheme.  A particularly common example occurs in the case of models like \cite{blanchardFinite} in which individual agents are subject to a Poisson/Bernoulli probability of death.  Because death was common in the middle ages, we use the archaic Gothic font for the death rate; and the probability of survival is the cancellation of the probability of death:
 \begin{table}[ht]
   \centering
   \begin{tabular}{|>{\ttfamily}cccl|} 		
@@ -226,13 +227,15 @@ document and \texttt{CRRA} in a software module.
     \\ \verb|\DeprFac|     & $\DeprFac$    & Depreciation Factor (Hebrew \texttt{daleth}) & $\Kap_{t+1} = \DeprFac \Kap_{t}+\ILev_{t}$
     \\ \verb|\deprRte|     & $\deprRte$    & Depreciation Rate & $\DeprFac = 1-\deprRte$
     \\ \verb|\TranShkAgg|  & $\TranShkAgg$ & Transitory shock (aggregate) & $\Ex_{t}[\TranShkAgg_{t+n}]=1$ if $\TranShkAgg$ iid
-    \\ \verb|\tranShkInd|  & $\tranShkInd$ & Transitory shock (individual) &  $\Ex_{t}[\tranShkInd_{t+n}]=1$ if $\tranShkInd$ iid
+    \\ \verb|\tranShkInd|  & $\tranShkInd$ & transitory shock (individual) &  $\Ex_{t}[\tranShkInd_{t+n}]=1$ if $\tranShkInd$ iid
     \\ \verb|\PermShkAgg|  & $\PermShkAgg$ & Permanent shock (aggregate) & $\Ex_{t}[\PermShkAgg_{t+n}]=1$ if $\PermShkAgg$ iid
-    \\ \verb|\permShkInd|  & $\permShkInd$ & Permanent shock (individual) & $\Ex_{t}[\permShkInd_{t+n}]=1$ if $\permShkInd$ iid
-    \\ \verb|\PopGro|  & $\PopGro$ & Population Growth Factor & $\mathtt{Pop}_{t+1} = \PopGro \mathtt{Pop}_{t}$
-    \\ \verb|\popGro|  & $\popGro$ & Population Growth rate & $\PopGro = 1 + \popGro$
-    \\ \verb|\PtyGro|  & $\PtyGro$ & Productivity Growth Factor & $\GLev = \PtyGro \PopGro$
-    \\ \verb|\ptyGro|  & $\ptyGro$ & Productivity Growth rate & $\PtyGro = (1+\ptyGro)$
+    \\ \verb|\permShkInd|  & $\permShkInd$ & permanent shock (individual) & $\Ex_{t}[\permShkInd_{t+n}]=1$ if $\permShkInd$ iid
+    \\ \verb|\PopGroFac|  & $\PopGroFac$ & Population Growth (Aggregate) & $\mathtt{Pop}_{t+1} = \PopGroFac \mathtt{Pop}_{t}$
+    \\ \verb|\popGro|  & $\popGro$ & Population Growth rate & $\PopGroFac = 1 + \popGro$
+    \\ \verb|\PtyGroFac|  & $\PtyGroFac$ & Productivity Growth (Aggregate) & $\GLev = \PtyGro$
+    \\ \verb|\PtyGroRte|  & $\PtyGroRte$ & Productivity Growth Rate & $\PtyGro = (1+\ptyGro)$
+    \\ \verb|\ptyGroFac|  & $\ptyGroFac$ & productivity Growth (Idiosyncratic) & $\GLev = \PtyGro$
+    \\ \verb|\ptyGroRte|  & $\ptyGro$ & productivity Growth Rate & $\ptyGro = (1+\ptyGro)$
     \\ \verb|\leiShare|  & $\leiShare$ & Leisure share, Cobb-Douglas utility & $\uFunc(c,z)=(1-\CRRA)^{-1}(c^{1-\leiShare}z^{\leiShare})^{1-\CRRA}$
     \\ \verb|\MPC|  & $\MPC$ & Marginal Propensity to Consume & $\cFunc^{\prime}(\mRat)=\partial c/\partial m$
     \\ \verb|\Pat|  & $\Pat$ & Absolute Patience Factor (\texttt{Thorn}) & $\Pat = (\Rfree \DiscFac)^{1/\CRRA} $

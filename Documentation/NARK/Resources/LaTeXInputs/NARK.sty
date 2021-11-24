@@ -1,0 +1,30 @@
+\input{\ResourcesDir/owner} % Owned by llorracc (draft) or econ-ark (published) ?
+\newcommand{\onlyinsubfile}[1]{#1}\newcommand{\notinsubfile}[1]{}
+
+% Appendices and body are subfiles
+\usepackage{subfiles}
+
+% Implement a standard setup and shortcuts, e.g. for the \CRRA
+\usepackage{\econtexSetup}
+\usepackage{econtexShortcuts}
+
+% Embed metadata 
+\hypersetup{pdfauthor={Econ-ARK Team},
+  pdftitle={Notation for the Econ-ARK},
+  pdfkeywords={},
+  pdfcreator = {ccarroll@llorracc.org}
+}
+
+\bibliographystyle{\econtexBibStyle}
+
+\newcommand{\PopGroFac}{\Xi}
+\newcommand{\PopGroRte}{\xi}
+\providecommand{\cncl}{}
+\renewcommand\cncl[1]{\ensuremath{\cancel{#1}}}
+
+
+\newcommand{\PtyGroFac}{\pmb{\Gamma}}
+\newcommand{\PtyGroRte}{\pmb{\gamma}}
+
+\newcommand{\ptyGroFac}{\Gamma}
+\newcommand{\ptyGroRte}{\gamma}
