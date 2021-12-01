@@ -1,7 +1,6 @@
 \RequireVersions{
   *{application}{TeX}     {1990/03/25 v3.x}
   *{format} {LaTeX2e}     {2020-02-02 v2.e}
-  *{file}   {NARK.tex}    {0000/00/00 v0.0}
   *{file}   {./econtexRoot.tex}{0000/00/00 v0.0}
   *{file}   {./Resources/econtexPaths.tex}{0000/00/00 v0.0}
   *{class}  {./Resources/texmf-local/tex/latex/econtex}{0000/00/00 v0.0}
@@ -74,6 +73,10 @@
   *{package}{manyfoot}    {2019/08/03 v1.11}
   *{package}{nccfoots}    {2005/02/03 v1.2}
   *{package}{perpage}     {2014/10/25 v2.0}
+  *{package}{./Resources/LaTeXInputs/NARK}{0000/00/00 v0.0}
+  *{file}   {./Resources/owner.tex}{0000/00/00 v0.0}
+  *{package}{subfiles}    {2020/02/14 v1.6}
+  *{package}{import}      {2020/01/22 v6.0}
   *{package}{./Resources/texmf-local/tex/latex/econtexSetup}{0000/00/00 v0.0}
   *{package}{wasysym}     {2020/01/19 v2.4}
   *{package}{psibycus}    {2004/10/18 v4.5}
@@ -103,6 +106,7 @@
   *{package}{atveryend}   {2019-12-11 v1.11}
   *{package}{rerunfilecheck}{2019/12/05 v1.9}
   *{package}{uniquecounter}{2019/12/15 v1.4}
+  *{package}{econtexShortcuts}{0000/00/00 v0.0}
   *{package}{./Resources/texmf-local/tex/latex/econtexShortcuts}{0000/00/00 v0.0}
   *{file}   {t3cmr.fd}    {2001/12/31 v0.0}
   *{file}   {translations-basic-dictionary-english.trsl}{(english v0.0}
@@ -116,11 +120,12 @@
   *{file}   {NARK.out}    {0000/00/00 v0.0}
   *{package}{bookmark}    {2019/12/03 v1.28}
   *{file}   {bkm-pdftex.def}{2019/12/03 v1.28}
-  *{file}   {t1cmtt.fd}   {2019/12/16 v2.5j}
   *{file}   {umsa.fd}     {2013/01/14 v3.01}
   *{file}   {umsb.fd}     {2013/01/14 v3.01}
   *{file}   {ulasy.fd}    {1998/08/17 v2.2e}
   *{file}   {uwasy.fd}    {2020/01/19 v2.4}
+  *{file}   {t1cmtt.fd}   {2019/12/16 v2.5j}
   *{file}   {ubbmss.fd}   {1999/03/15 v1.2}
+  *{file}   {./Resources/LaTeXInputs/bibliography_blend.tex}{0000/00/00 v0.0}
   *{file}   {NARK.bbl}    {0000/00/00 v0.0}
 }

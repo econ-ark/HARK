@@ -5,33 +5,28 @@
 \usepackage{\econtexSetup}
 \usepackage{\econtexShortcuts}
 
-\usepackage{cancel}
-
-\begin{document}\bibliographystyle{\econtexBibStyle}
-
+\begin{document}
 
 \title{Suggested Variable Naming Conventions \\ in the Econ-ARK Toolkit}
 
+\forcedate{2021-11-24} % Update for QE BST revision
 % \forcedate{2021-02-25} % Updates for HARK 1.0 release
 % \forcedate{2020-02-26} % Add sav, modl; other tweaks
 % \forcedate{2020-06-29} % Update date; shorten ALevBF; add 
 % \forcedate{2020-06-30}  % NARK: Minor tweaks
 % \forcedate{2020-07-01}  % Version posted by doEvertyhing.sh
-\forcedate{2020-07-02}  % Add conventions for marginal value and utility
+%\forcedate{2020-07-02}  % Add conventions for marginal value and utility
 
 \vspace{2in}
 
 \keywords{ARK, Variable, Function, Object, Operator, Naming, Guidelines, Conventions}
 \jelclass{None}
 
-
 \maketitle 
 
-
 \begin{abstract}
-  Sharing code is easier when different contributors use similar names for similar objects.  While we will not enforce the
-  recommendations below, contributors can make their code more attractive to others 
-  by using names consistent with our guidelines.  
+  Sharing code is easier when different contributors use similar names for similar objects.  While we will not enforce the recommendations below, contributors can make their code more attractive to others by using names consistent with our guidelines.
+  $\GPF$
 \end{abstract}
 
 \centerline{html version at \url{https://econ-ark.github.io/HARK/Documentation/NARK}}
@@ -64,11 +59,11 @@ It is only slightly less objectionable to name a variable after a familiar lette
 
 But, because brevity is a virtue, a single letter \textit{in combination with a modifier or two} (`\texttt{hMin}' as the value of minimum human wealth, say) is fine -- so long as the reader has some reason to expect that the lower-case letter \texttt{h} signifies human wealth (as they will, if they consult Table~\ref{table:RomanLetters}).
 
-That is the spirit in which we offer preferred interpretations for the Roman letters below.  The upper case version is an aggregated version of the variable (at the level of the whole economy, say, or of the whole market being studied), while the lower case indicates the level of an individual consumer or firm or other subaggregate entity.  
+That is the spirit in which we offer preferred interpretations for the Roman letters below.  The upper case version is an aggregated version of the variable (at the level of the whole economy, say, or of the whole market being studied), while the lower case indicates the level of an idiosyncratic consumer or firm or other subaggregate entity.  
 
 A few exceptions to these rules are explicitly noted below the table.
 
-When an alternative is needed with a meaning similar to, but distinct from, the definitions below, please use a multi-letter name to represent it.  For example, please do not use $W$ for wealth (if some measure of wealth that differs from $\ALev$, $\BLev$, $\HLev$, or $\NLev$ is needed); instead use, say, \texttt{Wlth} or \texttt{Wealth}.  (Some examples follow in a subsequent section).
+When an alternative is needed with a meaning similar to, but distinct from, the definitions below, please use a multi-letter name to represent it.  For example, please do not use $W$ for wealth (if some measure of wealth that differs from $\ALvl$, $\BLvl$, $\HLvl$, or $\NLvl$ is needed); instead use, say, \texttt{Wlth} or \texttt{Wealth}.  (Some examples follow in a subsequent section).
 
 Finally, a few of the definitions below are actually prohibitions; these are based on many years of experience which have shown that use of the prohibited variable name generates more confusion than clarity.  
 
@@ -78,32 +73,32 @@ Finally, a few of the definitions below are actually prohibitions; these are bas
   \begin{tabular}{|lcl|}   \hline
     Letter & & Meaning 
     \\ \hline
-    \ALev & & \textit{A}ssets \textit{A}fter \textit{A}ll \textit{A}ctions \textit{A}re \textit{A}ccomplished (end of period)
-    \\  \BLev & & \textit{B}eginning \textit{B}ank \textit{B}alances \textit{B}efore any \textit{B}ehavior (\textit{b}eginning-of-period)
-    \\  \CLev & & \textit{C}onsumption \textit{C}hoice \textit{C}onnects $B$ to $A$
-    \\  \DLev & & \textit{D}ebt
-    \\  \ELev & & PROHIBITED:  Too many possible meanings (expectations, effort, expenses)
-    \\  \FLev & & Production \textit{F}unction
-    \\  \GLev & & \textit{G}rowth 
-    \\  \HLev & & \textit{H}uman wealth
-    \\  \ILev & & \textit{I}nvestment
-    \\  \JLev & & Ad\textit{J}ustment costs (e.g., in a $Q$ model)
-    \\  \KLev & & Capital or beginning of period nonhuman assets
-    \\  \LLev & & PROHIBITED: Is it Labor or Leisure or Land or ...?
-    \\  \MLev & & \textit{M}arket resources (the sum of capital, capital income, and labor income)
-    \\  \NLev & & \textit{N}et wealth including human wealth ($=B + H$)
-    \\  \OLev & & PROHIBITED: Too similar to the number 0; too many possible meanings
-    \\  \PLev & & PROHIBITED: Is it prices, permanent income, present value, profits, ...?
-    \\  \QLev & & Hayashi/Abel $Q$ (or similar asset price)
-    \\  \RLev & & \textit{R}eturn (see the variants articulated below)
-    \\  \SLev & & PROHIBITED: ``saving'' (flow)? ``savings'' (stock)? or the ``saving rate'' (ratio)?
-    \\  \TLev & & This is a tough one.  See the discussion below.
-    \\  \ULev & & \textit{U}tility
-    \\  \VLev & & \textit{V}alue
-    \\  \WLev & & \textit{W}age
-    \\  \XLev & & e\textit{X}penditures (as distinct from consumption; e.g., for durables)
-    \\  \YLev & & Noncapital income (usually, the sum of transfer and labor income)
-    \\  \ZLev & & Lei\textit{Z}ure in consumption/leisure tradeoff
+    \ALvl & & \textit{A}ssets \textit{A}fter \textit{A}ll \textit{A}ctions \textit{A}re \textit{A}ccomplished (end of period)
+    \\  \BLvl & & \textit{B}eginning \textit{B}ank \textit{B}alances \textit{B}efore any \textit{B}ehavior (\textit{b}eginning-of-period)
+    \\  \CLvl & & \textit{C}onsumption \textit{C}hoice \textit{C}onnects $B$ to $A$
+    \\  \DLvl & & \textit{D}ebt
+    \\  \ELvl & & PROHIBITED:  Too many possible meanings (expectations, effort, expenses)
+    \\  \FLvl & & Production \textit{F}unction
+    \\  \GLvl & & \textit{G}rowth 
+    \\  \HLvl & & \textit{H}uman wealth
+    \\  \ILvl & & \textit{I}nvestment
+    \\  \JLvl & & Ad\textit{J}ustment costs (e.g., in a $Q$ model)
+    \\  \KLvl & & Capital or beginning of period nonhuman assets
+    \\  \LLvl & & PROHIBITED: Is it Labor or Leisure or Land or ...?
+    \\  \MLvl & & \textit{M}arket resources (the sum of capital, capital income, and labor income)
+    \\  \NLvl & & \textit{N}et wealth including human wealth ($=B + H$)
+    \\  \OLvl & & PROHIBITED: Too similar to the number 0; too many possible meanings
+    \\  \PLvl & & PROHIBITED: Is it prices, permanent income, present value, profits, ...?
+    \\  \QLvl & & Hayashi/Abel $Q$ (or similar asset price)
+    \\  \RLvl & & \textit{R}eturn (see the variants articulated below)
+    \\  \SLvl & & PROHIBITED: ``saving'' (flow)? ``savings'' (stock)? or the ``saving rate'' (ratio)?
+    \\  \TLvl & & This is a tough one.  See the discussion below.
+    \\  \ULvl & & \textit{U}tility
+    \\  \VLvl & & \textit{V}alue
+    \\  \WLvl & & \textit{W}age
+    \\  \XLvl & & e\textit{X}penditures (as distinct from consumption; e.g., for durables)
+    \\  \YLvl & & Noncapital income (usually, the sum of transfer and labor income)
+    \\  \ZLvl & & Lei\textit{Z}ure in consumption/leisure tradeoff
     \\ \hline 
   \end{tabular}
   \caption{Preferred Usages of Roman Letters}
@@ -112,7 +107,7 @@ Finally, a few of the definitions below are actually prohibitions; these are bas
 
 \subsection{Exceptions to the Rules}
 
-The letter $\TLev$ is an exception to the rule that lower- and upper-case versions of variables are individual and aggregate quantities.  We reserve the capital letter to designate the end of the horizon (death, or the end of the economy, occurs at the end of period $\TLev$).  The lower case version $t$ is so ubiquitiously used as the current time period that we follow that convention here.
+The letter $\TLvl$ is an exception to the rule that lower- and upper-case versions of variables are idiosyncratic and aggregate quantities.  We reserve the capital letter to designate the end of the horizon (death, or the end of the economy, occurs at the end of period $\TLvl$).  The lower case version $t$ is so ubiquitiously used as the current time period that we follow that convention here.
 
 Finally, the following are exempted from the prohibition on single-letter variable names because they are used so frequently that the prohibition would be more trouble than it is worth: $a$, $b$, $c$, $m$.  
 
@@ -141,10 +136,10 @@ There are more objects that are likely to be used extensively in ARK projects th
     \\  \texttt{Pop}    & - & Size of population
     \\  \texttt{Sav}    & - & Saving (=Income Minus Consumption)
     \\  \texttt{Tax}    & - & Tax -- should be modified by \texttt{Rte} or \texttt{Amt} articulated below
-    \\  \texttt{perm}   & - & permanent (noncapital) income - individual
-    \\  \texttt{Perm}   & - & Permanent (noncapital) - aggregate
-    \\  \texttt{tran}   & - & Transitory (noncapital) income - idiosyncratic
+    \\  \texttt{Perm}   & - & Permanent (noncapital) income - aggregate
+    \\  \texttt{perm}   & - & permanent (noncapital) income - idiosyncratic
     \\  \texttt{Tran}   & - & Transitory (noncapital) income - aggregate
+    \\  \texttt{tran}   & - & Transitory (noncapital) income - idiosyncratic
     \\ \hline
   \end{tabular}
   \caption{String Variables}
@@ -157,7 +152,7 @@ There are more objects that are likely to be used extensively in ARK projects th
 When measuring change over time, lower-case variables reflect rates
 while the corresponding upper-case variable connects adjacent discrete periods.\footnote{This
   convention rarely conflicts with the usage we endorse elsewhere of
-  indicating individual-level variables by the lower and aggregate
+  indicating idiosyncratic-level variables by the lower and aggregate
   variables by the upper case.}$^{,}$\footnote{If there is a need for the continuous-time 
   representation, we endorse use of the discrete-time rate defined below.  Any
   author who needs a continuous-time rate, a discrete-time rate, and a discrete-time factor
@@ -187,7 +182,7 @@ the annual interest factor is $\Rfree=1.03$.\footnote{In the rare cases where it
   \label{table:Factors}
 \end{table}	
 
-We depart from the upper-lower case scheme when the natural letter to use has an even more urgent use elsewhere in our scheme.  A particularly common example occurs in the case of models like \cite{blanchardFinite} in which individual agents are subject to a Poisson/Bernoulli probability of death.  Because death was common in the middle ages, we use the archaic Gothic font for the death rate; and the probability of survival is the cancellation of the probability of death:
+We depart from the upper-lower case scheme when the natural letter to use has an even more urgent use elsewhere in our scheme.  A particularly common example occurs in the case of models like \cite{blanchardFinite} in which idiosyncratic agents are subject to a Poisson/Bernoulli probability of death.  Because death was common in the middle ages, we use the archaic Gothic font for the death rate; and the probability of survival is the cancellation of the probability of death:
 \begin{table}[ht]
   \centering
   \begin{tabular}{|>{\ttfamily}cccl|} 		
@@ -222,28 +217,32 @@ document and \texttt{CRRA} in a software module.
     \\ \hline
     \verb|\CARA|        & $\CARA$       & Coefficient of Absolute Risk Aversion &$\uFunc(\bullet)=-\CARA^{-1} e^{-\CARA \bullet}$
     \\ \verb|\CRRA|        & $\CRRA$       & Coefficient of Relative Risk Aversion & $\uFunc(\bullet)=(1-\CRRA)^{-1}\bullet^{1-\CRRA}$ 
-    \\ \verb|\DiscFac|     & $\DiscFac$    & Time Discount Factor & $\uFunc^{\prime}(\cLev_{t}) =  \Rfree \DiscFac \uFunc^{\prime}(\cLev_{t+1})$
+    \\ \verb|\DiscFac|     & $\DiscFac$    & Time Discount Factor & $\uFunc^{\prime}(\cLvl_{t}) =  \Rfree \DiscFac \uFunc^{\prime}(\cLvl_{t+1})$
     \\ \verb|\discRte|     & $\discRte$    & Time Discount rate & $\discRte=\DiscFac^{-1}-1$
-    \\ \verb|\DeprFac|     & $\DeprFac$    & Depreciation Factor (Hebrew \texttt{daleth}) & $\Kap_{t+1} = \DeprFac \Kap_{t}+\ILev_{t}$
+    \\ \verb|\DeprFac|     & $\DeprFac$    & Depreciation Factor (\texttt{daleth}) & $\Kap_{t+1} = \DeprFac \Kap_{t}+\ILvl_{t}$
     \\ \verb|\deprRte|     & $\deprRte$    & Depreciation Rate & $\DeprFac = 1-\deprRte$
     \\ \verb|\TranShkAgg|  & $\TranShkAgg$ & Transitory shock (aggregate) & $\Ex_{t}[\TranShkAgg_{t+n}]=1$ if $\TranShkAgg$ iid
-    \\ \verb|\tranShkInd|  & $\tranShkInd$ & transitory shock (individual) &  $\Ex_{t}[\tranShkInd_{t+n}]=1$ if $\tranShkInd$ iid
+    \\ \verb|\tranShkInd|  & $\tranShkInd$ & transitory shock (idiosyncratic) &  $\Ex_{t}[\tranShkInd_{t+n}]=1$ if $\tranShkInd$ iid
+    \\ \verb|\trnShk|      & $\trnShk$ & transitory shock (combo) &  $\trnShk_{t} = \TranShkAgg_{t}\tranShkInd_{t}$
     \\ \verb|\PermShkAgg|  & $\PermShkAgg$ & Permanent shock (aggregate) & $\Ex_{t}[\PermShkAgg_{t+n}]=1$ if $\PermShkAgg$ iid
-    \\ \verb|\permShkInd|  & $\permShkInd$ & permanent shock (individual) & $\Ex_{t}[\permShkInd_{t+n}]=1$ if $\permShkInd$ iid
-    \\ \verb|\PopGroFac|  & $\PopGroFac$ & Population Growth (Aggregate) & $\mathtt{Pop}_{t+1} = \PopGroFac \mathtt{Pop}_{t}$
-    \\ \verb|\popGro|  & $\popGro$ & Population Growth rate & $\PopGroFac = 1 + \popGro$
-    \\ \verb|\PtyGroFac|  & $\PtyGroFac$ & Productivity Growth (Aggregate) & $\GLev = \PtyGro$
-    \\ \verb|\PtyGroRte|  & $\PtyGroRte$ & Productivity Growth Rate & $\PtyGro = (1+\ptyGro)$
-    \\ \verb|\ptyGroFac|  & $\ptyGroFac$ & productivity Growth (Idiosyncratic) & $\GLev = \PtyGro$
-    \\ \verb|\ptyGroRte|  & $\ptyGro$ & productivity Growth Rate & $\ptyGro = (1+\ptyGro)$
+    \\ \verb|\permShkInd|  & $\permShkInd$ & permanent shock (idiosyncratic) & $\Ex_{t}[\permShkInd_{t+n}]=1$ if $\permShkInd$ iid
+    \\ \verb|\prmShk|      & $\prmShk$ & permanent shock (combo) & $\pmb{\prmShk}_{t} = \PermShkAgg_{t} \permShkInd_{t}$
+    \\ \verb|\PopGroFac|   & $\PopGroFac$ & Population Growth (Aggregate) & $\mathtt{Pop}_{t+1} = \PopGroFac \mathtt{Pop}_{t}$
+    \\ \verb|\PopGroRte|   & $\PopGroRte$ & Population Growth rate & $\PopGroFac = 1 + \PopGroRte$
+    \\ \verb|\PtyGroFacAgg|  & $\PtyGroFacAgg$ & Productivity Growth (Aggregate) & $\GLvl = \PtyGro$
+%    \\ \verb|\PtyGroRteAgg|  & $\PtyGroRteAgg$ & Productivity Growth Rate & $\PtyGro = (1+\ptyGro)$
+    \\ \verb|\ptyGroFacInd|  & $\ptyGroFacInd$ & productivity Growth (Idiosyncratic) & $\ptyLvlInd_{t+1} = \ptyGroFacInd \ptyLvlInd_{t}$
+%    \\ \verb|\ptyGroRteInd|  & $\ptyGroRteInd$ & productivity Growth Rate & $\ptyGroFac = (1+\ptyGroRte)$
+    \\ \verb|\ptyGroFac|  & $\ptyGroFac$ & productivity Growth (combo) & $\ptyGroFac = \ptyGroFacInd \PtyGroFacAgg$
+    % \\ \verb|\ptyGroRte|  & $\ptyGroRte$ & productivity Growth Rate (combo) & $\ptyGroRte = \PtyGroRteAgg+\ptyGroRteInd$
     \\ \verb|\leiShare|  & $\leiShare$ & Leisure share, Cobb-Douglas utility & $\uFunc(c,z)=(1-\CRRA)^{-1}(c^{1-\leiShare}z^{\leiShare})^{1-\CRRA}$
-    \\ \verb|\MPC|  & $\MPC$ & Marginal Propensity to Consume & $\cFunc^{\prime}(\mRat)=\partial c/\partial m$
-    \\ \verb|\Pat|  & $\Pat$ & Absolute Patience Factor (\texttt{Thorn}) & $\Pat = (\Rfree \DiscFac)^{1/\CRRA} $
-    \\ \verb|\PatPGro| & $\PatPGro$ & Growth Patience Factor (\texttt{Thorn}) & $\Pat = (\Rfree \DiscFac)^{1/\CRRA}/\PtyGro $
-    \\ \verb|\PatR| & $\PatR$ & Return Patience Factor (\texttt{Thorn}) & $\Pat = (\Rfree \DiscFac)^{1/\CRRA}/\Rfree $ 
-    \\ \verb|\pat|  & $\pat$ & Absolute Patience rate (\texttt{thorn}) & $\pat = (\Rfree \DiscFac)^{1/\CRRA}-1 \approx \CRRA^{-1}(\rfree-\discRte) $
-    \\ \verb|\patpGro| & $\patpGro$ & Growth Patience rate (\texttt{thorn}) & $\patpGro = \pat -\ptyGro $
-    \\ \verb|\patr| & $\patr$ & Return Patience rate (\texttt{thorn}) & $\patr =\pat -\rfree $
+    \\ \verb|\MPC|  & $\MPC$ & Marginal Propensity to Consume & $\cFunc^{\prime}(\mNrm)=\partial c/\partial m$
+    \\ \verb|\APF|  & $\APF$ & Absolute Patience Factor (\texttt{Thorn}) & $\APF = (\Rfree \DiscFac)^{1/\CRRA} $
+    \\ \verb|\GPF| & $\GPF$ & Growth Patience Factor & $\GPF = \APF//\PtyGro $
+    \\ \verb|\RPF| & $\RPF$ & Return Patience Factor & $\Pat = (\Rfree \DiscFac)^{1/\CRRA}/\Rfree $ 
+    \\ \verb|\APRte|  & $\APRte$ & Absolute Patience rate (\texttt{thorn}) & $\pat = (\Rfree \DiscFac)^{1/\CRRA}-1 \approx \CRRA^{-1}(\rfree-\discRte) $
+    \\ \verb|\GPRte| & $\GPRte$ & Growth Patience rate  & $\patpGro = \pat -\ptyGro $
+    \\ \verb|\RPRte| & $\patr$ & Return Patience rate  & $\patr =\pat -\rfree $
     \\ \verb|\riskyshare|  & $\riskyshare$ & Portfolio share in risky assets & $\Rport_{t+1}=(1-\riskyshare)\Rfree+\riskyshare\Risky_{t+1}$
     \\	\hline
   \end{tabular}
@@ -270,7 +269,7 @@ A few operators are so universally used that it will be useful to define them.
     \hline
     Name    & \LaTeX         & Code & Description & Illustration
     \\ \hline
-    \verb|\Ex|        & $\Ex$       & \texttt{Ex\_} & The expectation as of date $t$ & $\Ex_{t}[\uFunc^{\prime}(\cRat_{t+1})]$
+    \verb|\Ex|        & $\Ex$       & \texttt{Ex\_} & The expectation as of date $t$ & $\Ex_{t}[\uFunc^{\prime}(\cNrm_{t+1})]$
     \\   \verb|\PDV|        & $\PDV$       & \texttt{PDV\_} & Present Discounted Value & $\PDV_{t}^{T}(y)$ is human wealth
     \\	\hline
   \end{tabular}
@@ -279,9 +278,13 @@ A few operators are so universally used that it will be useful to define them.
 \end{table}	
 
 
+\medskip\medskip
 
 \hypertarget{Modifiers}{}
 \section{Modifiers}
+
+There are a number of ways in which we need to refer to specific values of a variable like its min or max.  
+
 \begin{table}[ht]
   \centering
   \begin{tabular}{|>{\ttfamily}lcl|}
@@ -289,7 +292,7 @@ A few operators are so universally used that it will be useful to define them.
  \textit{[object]}\texttt{P} & - & ``Prime'' means derivative, e.g.\ \texttt{vPP} is the second derivative of value: $\vFunc^{\prime\prime}$
 \\    \hline
     \textit{[object]}\texttt{Agg} & - & Value of something at the aggregate level (as opposed to \texttt{Ind})
-    \\ \textit{[object]}\texttt{Ind} & - & Value of something at the level of an individual (as opposed to \texttt{Agg})
+    \\ \textit{[object]}\texttt{Ind} & - & Value of something at the level of an idiosyncratic (as opposed to \texttt{Agg})
     \\ \textit{[object]}\texttt{Lvl} & - & Level 
     \\ \textit{[object]}\texttt{Rto} & - & Ratio 
     \\ \textit{[object]}\texttt{Bot} & - & Lower value in some range 
@@ -304,27 +307,41 @@ A few operators are so universally used that it will be useful to define them.
     \\ \textit{[object]}\texttt{Rte} & - & A `rate' variable like the discount rate $\discRte$
     \\ \textit{[object]}\texttt{Fac} & - & A factor variable like the discount factor $\DiscFac$
     \\ \textit{[object]}\texttt{Amt} & - & An amount, like \texttt{TaxAmt} which might be lump-sum
-    \\ \textit{[object]}\texttt{Nrm} & - & A normalized quantity; ex: \texttt{RNrm}=$\Rfree/\PGro$
-    \\ 	\hline
+    \\ \textit{[object]}\texttt{Nrm} & - & A normalized quantity; ex: \texttt{RNrm}=$\Rfree/\permGroFac$
     \\ \textit{[object]}\texttt{Abve} & - & Range of points ABOvE some boundary
     \\ \textit{[object]}\texttt{Belw} & - & Range of points BELoW some boundary
     \\ \textit{[object]}\texttt{Grid} & - & Points to be used as a grid for interpolations
     \\ \textit{[object]}\texttt{Xtra} & - & An ``extra'' set of points to be added to some existing set
+\\ \textit{[object]}\texttt{P} & - & ``Prime'' means derivative, e.g.\ \texttt{vPP} is the second derivative of value: $\vFunc^{\prime\prime}$
+\\    \hline
   \end{tabular}
   \caption{General Purpose Modifiers}
   \label{table:General}
 \end{table}	
 
+\hypertarget{Stability-Points}{}
+\section{Stability Points}
+\begin{table}[ht]
+\centering
+  \begin{tabular}{|>{\ttfamily}lcl|} \hline 
+     \textit{[object]}\texttt{BalGro} & - & Value of variable at a balanced growth point
+    \\ \textit{[object]}\texttt{Target} & - & The `target' value of a variable \\ \hline
+  \end{tabular}
+  \caption{Points of Stability}
+  \label{table:Stability}
+\end{table}	
+
+
 \medskip\medskip
 \hypertarget{Shocks}{}
-Shocks will generally be represented by finite vectors of outcomes and their probabilities.  For example, permanent income is called \texttt{Perm} and shocks are designated \texttt{PermShk}
+Shocks will generally be represented by finite vectors of outcomes and their probabilities.  For example, permanent income is called \texttt{Perm} and shocks are designated \texttt{PermShkAgg}
 \begin{table}[ht]
   \centering
   \begin{tabular}{|>{\ttfamily}ccl|} 		
     \hline
     \textit{[object]}\texttt{Dstn} & - & Representation of a probability distribution (includes both Prbs and Vals)
-    \\ \textit{[object]}\texttt{Prbs} & - & Probabilities of outcomes (e.g. \texttt{PermShkPrbs} for permanent shocks) 
-    \\ \textit{[object]}\texttt{Vals} & - & Values (e.g., for mean one shock \texttt{PermShkVals} . \texttt{PermShkPrbs} = 1)                                            
+    \\ \textit{[object]}\texttt{Prbs} & - & Probabilities of outcomes (e.g. \texttt{PermShkAggPrbs} for permanent shocks) 
+    \\ \textit{[object]}\texttt{Vals} & - & Values (e.g., for mean one shock \texttt{PermShkAggVals} . \texttt{PermShkAggPrbs} = 1)                                            
     \\ 	\hline
   \end{tabular}
   \caption{Probabilities}
@@ -369,9 +386,27 @@ Here are the preferred shortnames for some of our models:
 
 \vfill\eject\pagebreak\newpage 
 
-
-\bibliography{NARK-Add,economics}
+\pagebreak\input{\LaTeXInputs/bibliography_blend}\end{document}
 
 \end{document}
 
 
+% If you are editing in Emacs-AucTeX, modify the lines below for your system (otherwise ignore)
+% Local Variables:
+% eval: (setq TeX-command-list  (assq-delete-all (car (assoc "BibTeX" TeX-command-list)) TeX-command-list))
+% eval: (setq TeX-command-list  (assq-delete-all (car (assoc "BibTeX" TeX-command-list)) TeX-command-list))
+% eval: (setq TeX-command-list  (assq-delete-all (car (assoc "BibTeX" TeX-command-list)) TeX-command-list))
+% eval: (setq TeX-command-list  (assq-delete-all (car (assoc "Biber"  TeX-command-list)) TeX-command-list))
+% eval: (add-to-list 'TeX-command-list '("BibTeX" "bibtex LaTeX/%s" TeX-run-BibTeX nil t                                                                              :help "Run BibTeX") t)
+% eval: (add-to-list 'TeX-command-list '("BibTeX" "bibtex LaTeX/%s" TeX-run-BibTeX nil (plain-tex-mode latex-mode doctex-mode ams-tex-mode texinfo-mode context-mode) :help "Run BibTeX") t)
+% TeX-PDF-mode: t
+% TeX-file-line-error: t
+% TeX-debug-warnings: t
+% LaTeX-command-style: (("" "%(PDF)%(latex) %(file-line-error) %(extraopts) -output-directory=LaTeX %S%(PDFout)"))
+% TeX-source-correlate-mode: t
+% TeX-parse-self: t
+% eval: (cond ((string-equal system-type "darwin")    (progn (setq TeX-view-program-list '(("Skim" "/Applications/Skim.app/Contents/SharedSupport/displayline -b %n LaTeX/%o %b"))))))
+% eval: (cond ((string-equal system-type "gnu/linux") (progn (setq TeX-view-program-list '(("Evince" "evince --page-index=%(outpage) LaTeX/%o"))))))
+% eval: (cond ((string-equal system-type "gnu/linux") (progn (setq TeX-view-program-selection '((output-pdf "Evince"))))))
+% TeX-parse-all-errors: t
+% End:

@@ -1,0 +1,44 @@
+% Allows two (optional) supplements to hard-wired \texname.bib bibfile:
+% economics.bib is a default bibfile that supplies anything missing elsewhere
+% Add-Refs.bib is an override bibfile that supplants anything in \texfile.bib or economics.bib
+\IfFileExists{\econtexRoot/Add-Refs.bib}{
+  % then
+  \typeout{References in Add-Refs.bib will take precedence over those elsewhere}
+  \setboolean{AddRefsExists}{true}
+  \setboolean{NeitherExists}{false} % Default is true
+}{
+  % else
+  \setboolean{AddRefsExists}{false} % No added refs exist so defaults will be used
+  \setboolean{BothExist}{false}     % Default is that Add-Refs and economics.bib both exist
+}
+
+% Deal with case where economics.bib is found by kpsewhich
+\IfFileExists{/usr/local/texlive/texmf-local/bibtex/bib/economics.bib}{
+  % then
+  \typeout{References in default global economics.bib will be used for items not found elsewhere}
+  \setboolean{economicsExists}{true}
+  \setboolean{NeitherExists}{false}
+}{
+  % else
+  \typeout{Found no global database file}
+  \setboolean{economicsExists}{false}
+  \setboolean{BothExist}{false}
+}
+
+\ifthenelse{\boolean{BothExist}}{
+  % then use both
+  \typeout{bibliography{\econtexRoot/Add-Refs,\econtexRoot/\texname,economics}}
+  \bibliography{\econtexRoot/Add-Refs,\econtexRoot/\texname,economics}
+  % else both do not exist
+}{ % maybe neither does?
+  \ifthenelse{\boolean{NeitherExists}}{
+    \typeout{bibliography{\texname}}
+    \bibliography{\texname}}{
+    % no -- at least one exists
+    \ifthenelse{\boolean{AddRefsExists}}{
+      \typeout{bibliography{\econtexRoot/Add-Refs,\econtexRoot/\texname}}
+      \bibliography{\econtexRoot/Add-Refs,\econtexRoot/\texname}}{
+      \typeout{bibliography{\econtexRoot/\texname,economics}}
+      \bibliography{         \econtexRoot/\texname,economics}}
+  } % end of picking the one that exists
+} % end of testing whether neither exists
