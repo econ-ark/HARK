@@ -548,7 +548,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                    soln.Bilt.GPFLiv_fcts['urlhandle'],
         }
         verbose_messages = {
-            True: "\n    Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.\n" +
+            True: "\n    Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.    \n" +
                   soln.Bilt.GPFLiv_fcts['urlhandle'] + "\n",
             False: "\n    Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.  \n" +
                    soln.Bilt.GPFLiv_fcts['urlhandle'] + "\n",
@@ -592,7 +592,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                    soln.Bilt.FHWC_fcts['urlhandle'],
         }
         verbose_messages = {
-            True: f"\n    Therefore, the limiting consumption function is not c(m)=Infinity.\n  Human wealth normalized by permanent income is {soln.Bilt.hNrmInf:.5f}.\n",
+            True: f"\n    Therefore, the limiting consumption function is not c(m)=Infinity.\n\n    Human wealth normalized by permanent income is {soln.Bilt.hNrmInf:.5f}.\n",
             False: "\n    Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.\n  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0. (" +
                    soln.Bilt.FHWC_fcts['urlhandle'] + ")\n",
         }
@@ -707,12 +707,46 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         try:
             self.Bilt.mNrmStE = find_zero_newton(
-                self.E_Next_.permGroShk_tp1_times_m_tp1_Over_m_t_minus_PGro, m_init_guess)
+                self.E_Next_.permShk_tp1_times_m_tp1_Over_m_t_minus_PGro, m_init_guess)
         except:
             self.Bilt.mNrmStE = None
 
         # Add mNrmStE to the solution and return it
         return self.Bilt.mNrmStE
+
+    def mNrmGro_find(self):
+        """
+        Find mNrmGro where expected growth in log mLev matches growth in log pLev
+
+        This is the m at which the consumer expects log of market resources  
+        to grow at same rate as the log of permanent income
+
+        This will exist if the GIC holds.
+
+        Parameters
+        ----------
+        self : ConsumerSolution
+            Solution to this period's problem, which must have attribute cFunc.
+
+        Returns
+        -------
+        self : ConsumerSolution
+            Same solution that was passed, but now with attribute mNrmStE.
+        """
+        # Minimum market resources plus E[next income] is okay starting guess
+
+        m_init_guess = self.Bilt.mNrmMin + self.E_Next_.IncNrmNxt
+
+        try:
+            self.Bilt.mNrmGro = find_zero_newton(
+                self.E_Next_.mLog_tp1_from_a_t(
+                    self.Bilt.cFunc
+                    , m_init_guess))
+        except:
+            self.Bilt.mNrmGro = None
+
+        # Add mNrmGro to the solution and return it
+        return self.Bilt.mNrmGro
 
 
 # Until this point, our objects have been "solution" not "solver" objects.  To
@@ -1803,14 +1837,14 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # Pars = [soln].Pars
 
         # Given m, value of c where E[m_{t+1}]=m_{t}
-        # E_Next_.c_where_m_tp1_minus_m_t_eq_0 = (
-        #     lambda m_t:
-        #     m_t * (1 - 1 / E_Next_.RNrm) + (1 / E_Next_.RNrm)
-        # )
-        # E_Next_.c_where_permGroShk_times_m_tp1_minus_m_t_eq_0 = (
-        #     lambda m_t:
-        #     m_t * (1 - E_Next_.Inv_RNrm_PF) + E_Next_.Inv_RNrm_PF
-        # )
+        E_Next_.c_where_m_tp1_minus_m_t_eq_0 = (
+            lambda m_t:
+            m_t * (1 - 1 / E_Next_.RNrm) + (1 / E_Next_.RNrm)
+        )
+        E_Next_.c_where_permShk_tp1_times_m_tp1_minus_m_t_eq_0 = (
+            lambda m_t:
+            m_t * (1 - E_Next_.Inv_RNrm_PF) + E_Next_.Inv_RNrm_PF
+        )
         # E[c_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
         E_Next_.cLev_tp1_Over_pLev_t_from_a_t = (
             lambda a_t:
@@ -1824,7 +1858,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             lambda m_t: \
             m_t * (1 - 1/E_Next_.RNrm) + (1 / E_Next_.RNrm)
 
-        E_Next_.c_where_E_Next_permGroShk_times_m_tp1_minus_m_t_eq_0 = \
+        E_Next_.c_where_E_Next_permShk_tp1_times_m_tp1_minus_m_t_eq_0 = \
             lambda m_t: \
             (m_t * (1 - 1 / E_Next_.RNrm_PF)) + (1 / E_Next_.RNrm_PF)
         # mNrmTrg solves E_Next_.RNrm*(m - c(m)) + E[inc_next] - m = 0
@@ -1863,6 +1897,124 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             if (type(a_t) == list or type(a_t) == np.ndarray) else
             E_Next_.cLev_tp1_Over_pLev_t_from_num_a_t(a_t)
         )
+        # Define separately for float ('num') and listlike ('lst'), then combine
+        # E_Next_.mLog_tp1_from_num_a_t = (
+        #     lambda a_t:
+        #     E_dot(
+        #         np.log(
+        #             Pars.PermGroFac *
+        #                 (E_Next_.RNrm_PF * a_t
+        #                  + Bilt.tranShkValsBcst)
+        #         )
+        #         ,
+        #         Bilt.ShkPrbs)
+        # )
+        # E_Next_.mLog_tp1_from_lst_a_t = (
+        #     lambda a_lst: list(map(
+        #         E_Next_.mLog_tp1_from_num_a_t, a_lst
+        #     ))
+        # )
+        # E_Next_.mLog_tp1_from_a_t = (
+        #     lambda a_t:
+        #     E_Next_.mLog_tp1_from_lst_a_t(a_t)
+        #     if (type(a_t) == list or type(a_t) == np.ndarray) else
+        #     E_Next_.mLog_tp1_from_num_a_t(a_t)
+        # )
+        # E_Next_.mLog_tp1_from_num_m_t = (
+        #     lambda m_t:
+        #     E_dot(
+        #         np.log(
+        #             Pars.PermGroFac * (E_Next_.RNrm_PF *
+        #                                (m_t - Bilt.cFunc(m_t))
+        #                                + Bilt.tranShkValsBcst*Bilt.permShkValsBcst)
+        #         )
+        #         ,
+        #         Bilt.ShkPrbs)
+        # )
+        # E_Next_.mLog_tp1_from_lst_m_t = (
+        #     lambda m_lst: list(map(
+        #         E_Next_.mLog_tp1_from_num_m_t, a_lst
+        #     ))
+        # )
+        # E_Next_.mLog_tp1_from_a_t = (
+        #     lambda a_t:
+        #     E_Next_.mLog_tp1_from_lst_a_t(a_t)
+        #     if (type(a_t) == list or type(a_t) == np.ndarray) else
+        #     E_Next_.mLog_tp1_from_num_a_t(a_t)
+        # )
+        E_Next_.k_tp1_from_num_m_t = (
+            lambda m_t:
+                m_t - Bilt.cFunc(m_t)
+        )
+        E_Next_.k_tp1_from_lst_m_t = (
+            lambda m_lst: list(map(
+                E_Next_.k_tp1_from_num_m_t, m_lst
+            ))
+        )
+        E_Next_.k_tp1_from_m_t = (
+            lambda m_t:
+            E_Next_.k_tp1_from_lst_m_t(m_t)
+            if (type(m_t) == list or type(m_t) == np.ndarray) else
+            E_Next_.k_tp1_from_num_m_t(m_t)
+        )
+        E_Next_.a_t_from_num_m_t = (
+            lambda m_t:
+                m_t - Bilt.cFunc(m_t)
+        )
+        E_Next_.a_t_from_lst_m_t = (
+            lambda m_lst: list(map(
+                E_Next_.a_t_from_num_m_t, m_lst
+            ))
+        )
+        E_Next_.a_t_from_m_t = (
+            lambda m_t:
+            E_Next_.a_t_from_lst_m_t(m_t)
+            if (type(m_t) == list or type(m_t) == np.ndarray) else
+            E_Next_.a_t_from_num_m_t(m_t)
+        )
+#         E_Next_.mApx_tp1_from_num_a_t = (
+#             lambda a_t:
+#             E_dot(
+#                                        - ((Bilt.tranShkValsBcst*Bilt.permShkValsBcst-1) * (Bilt.tranShkValsBcst*Bilt.permShkValsBcst)-1)/(a_t+1)/2
+# #                                       + ((Bilt.tranShkValsBcst-1) * (Bilt.tranShkValsBcst-1)* (Bilt.tranShkValsBcst-1)/(a_t+1))/3
+#                 +
+#                 np.log(
+#                     Pars.PermGroFac * (E_Next_.RNrm_PF *
+#                                        a_t + 1
+#                                        )
+#                 )
+#                 ,
+#                 Bilt.ShkPrbs)
+#         )
+#         E_Next_.mApx_tp1_from_lst_a_t = (
+#             lambda a_lst: list(map(
+#                 E_Next_.mApx_tp1_from_num_a_t, a_lst
+#             ))
+#         )
+#         E_Next_.mApx_tp1_from_a_t = (
+#             lambda a_t:
+#             E_Next_.mApx_tp1_from_lst_a_t(a_t)
+#             if (type(a_t) == list or type(a_t) == np.ndarray) else
+#             E_Next_.mApx_tp1_from_num_a_t(a_t)
+#         )
+#         E_Next_.mDif_tp1_from_num_a_t = (
+#             lambda a_t:
+#             E_dot(np.log(1.+(((a_t * Pars.Rfree + 1)**(-1))
+#                                        *((Bilt.tranShkValsBcst*Bilt.permShkValsBcst-1))))
+#                 ,
+#                 Bilt.ShkPrbs)
+#         )
+#         E_Next_.mDif_tp1_from_lst_a_t = (
+#             lambda a_lst: list(map(
+#                 E_Next_.mDif_tp1_from_num_a_t, a_lst
+#             ))
+#         )
+#         E_Next_.mDif_tp1_from_a_t = (
+#             lambda a_t:
+#             E_Next_.mDif_tp1_from_lst_a_t(a_t)
+#             if (type(a_t) == list or type(a_t) == np.ndarray) else
+#             E_Next_.mDif_tp1_from_num_a_t(a_t)
+#         )
         E_Next_.mLev_tp1_Over_pLev_t_from_num_a_t = (
             lambda a_t:
             Pars.Rfree * a_t + Pars.PermGroFac
@@ -1878,22 +2030,39 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             if (type(a_t) == list or type(a_t) == np.ndarray) else
             E_Next_.mLev_tp1_Over_pLev_t_from_num_a_t(a_t)
         )
+        E_Next_.m_tp1_from_a_t = (
+            lambda a_t:
+            E_Next_.RNrm * a_t + E_Next_.IncNrmNxt
+        )
+        E_Next_.log_permShk_tp1_times_m_tp1_from_num_a_t = (
+            lambda a_t:
+            E_dot(np.log(Pars.Rfree * a_t
+                  + Pars.PermGroFac * Bilt.tranShkValsBcst*Bilt.permShkValsBcst)
+                 ,Bilt.ShkPrbs)
+        )
+        E_Next_.log_permShk_tp1_times_permShk_t_from_lst_a_t = (
+            lambda a_lst: list(map(
+                E_Next_.log_permShk_tp1_times_m_tp1_from_num_a_t, a_lst
+            ))
+        )
+        E_Next_.log_permShk_tp1_times_m_tp1_from_a_t = (
+            lambda a_t:
+            E_Next_.log_permShk_tp1_times_m_tp1_from_lst_a_t(a_t)
+            if (type(a_t) == list or type(a_t) == np.ndarray) else
+            E_Next_.log_permShk_tp1_times_m_tp1_from_num_a_t(a_t)
+        )
         E_Next_.cLev_tp1_Over_pLev_t_from_lst_m_t = (
             lambda m_t:
             E_Next_.cLev_tp1_Over_pLev_t_from_lst_a_t(m_t -
                                                       Bilt.cFunc(m_t))
         )
-        E_Next_.permGroShk_tp1_times_m_tp1_Over_m_t = (
+        E_Next_.permShk_tp1_times_m_tp1_Over_m_t = (
             lambda m_t:
             (Pars.Rfree*(m_t - Bilt.cFunc(m_t)) + Pars.PermGroFac * E_Next_.IncNrmNxt)/m_t
         )
-        E_Next_.permGroShk_tp1_times_m_tp1_Over_m_t_minus_PGro = (
+        E_Next_.permShk_tp1_times_m_tp1_Over_m_t_minus_PGro = (
             lambda m_t:
-            E_Next_.permGroShk_tp1_times_m_tp1_Over_m_t(m_t) - Pars.PermGroFac
-        )
-        E_Next_.m_tp1_from_a_t = (
-            lambda a_t:
-            E_Next_.RNrm * a_t + E_Next_.IncNrmNxt
+            E_Next_.permShk_tp1_times_m_tp1_Over_m_t(m_t) - Pars.PermGroFac
         )
         E_Next_.cLev_tp1_Over_pLev_t_from_num_m_t = (
             lambda m_t:
@@ -1906,12 +2075,11 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             if (type(m_t) == list or type(m_t) == np.ndarray) else
             E_Next_.cLev_tp1_Over_pLev_t_from_num_m_t(m_t) / Bilt.cFunc(m_t)
         )
-        # E_Next_.mLev_tp1_Over_mLev_t_from_m_t = (
-        #     lambda m_t:
-        #     E_Next_.mLev_tp1_Over_pLev_t_from_lst_m_t(m_t) / m_t
-        #     if (type(m_t) == list or type(m_t) == np.ndarray) else
-        #     E_Next_.mLev_tp1_Over_pLev_t_from_num_m_t(m_t) / m_t
-        # )
+        E_Next_.mLog_tp1_minus_mLog_t_from_m_t = (
+            lambda m_t:
+            E_Next_.log_permShk_tp1_times_m_tp1_from_a_t(E_Next_.a_t_from_m_t(m_t)) \
+               - np.log(m_t)
+        )
         self.solution_current = crnt
 
         return crnt
