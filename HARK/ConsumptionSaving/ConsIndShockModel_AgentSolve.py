@@ -261,7 +261,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
     Parameters
     ----------
     DiscFac : float
-        Intertemporal discount factor for future utility.
+        Pure intertemporal discount factor for future utility.
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the next period.
@@ -393,17 +393,18 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         AIC           Absolute Impatience Condition
         RIC           Return Impatience Condition
         GICRaw        Growth Impatience Condition (not mortality adjusted)
-        GICLiv        GIC adjusting for constant probability of mortality
         GICNrm        GIC adjusted for uncertainty in permanent income
+        GICLiv        GIC adjusted for constant probability of mortality
+        GICLivMod     Aggregate GIC assuming Modigliani bequests
         FHWC          Finite Human Wealth Condition
         WRIC          Weak Return Impatience Condition
         FVAC          Finite Value of Autarky Condition
         ==================================================================
 
         Depending on the configuration of parameter values, some combination of
-        these conditions must be satisfied in order for the problem to have
-        a nondegenerate solution. To check which conditions are required,
-        in the verbose mode, a reference to the relevant theoretical literature
+        these conditions must be satisfied in order for the problem to have a
+        nondegenerate solution. To check which conditions are required, in 
+        the verbose mode, a reference to the relevant theoretical literature
         is made.
 
         Parameters
@@ -444,6 +445,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         crnt.check_GICRaw(crnt, messaging_level, quietly)
         crnt.check_GICNrm(crnt, messaging_level, quietly)
         crnt.check_GICLiv(crnt, messaging_level, quietly)
+        crnt.check_GICLivMod(crnt, messaging_level, quietly)
         crnt.check_WRIC(crnt, messaging_level, quietly)
         crnt.check_FVAC(crnt, messaging_level, quietly)
 
@@ -558,6 +560,31 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         # This is important enough to warn them even if quietly == True; unless messaging_level = CRITICAL
         if (soln.Bilt.GICLiv == np.False_) and (quietly is True) and (messaging_level < logging.CRITICAL):
+            _log.warning(messages[False]+verbose_messages[False])
+
+    def check_GICLivMod(self, soln, messaging_level=logging.DEBUG, quietly=False):
+        """Evaluate and report on Mortality Adjusted GIC (GICLivMod)."""
+        name = "GICLivMod"
+
+        def test(soln): return soln.Bilt.GPFLivMod < 1
+
+        messages = {
+            True: f"\nThe Mortality Adjusted Growth Patience Factor, GPFLivMod={soln.Bilt.GPFLivMod:.5f} satisfies the Mortality Adjusted Growth Impatience Condition (GICLivMod):\n    " +
+                  soln.Bilt.GPFLivMod_fcts['urlhandle'],
+            False: f"\nThe Mortality Adjusted Growth Patience Factor, GPFLivMod={soln.Bilt.GPFLivMod:.5f} violates the Mortality Adjusted Growth Impatience Condition (GICLivMod):\n    " +
+                   soln.Bilt.GPFLivMod_fcts['urlhandle'],
+        }
+        verbose_messages = {
+            True: "\n    Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.    \n" +
+                  soln.Bilt.GPFLivMod_fcts['urlhandle'] + "\n",
+            False: "\n    Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.  \n" +
+                   soln.Bilt.GPFLivMod_fcts['urlhandle'] + "\n",
+        }
+        soln.Bilt.GICLivMod = core_check_condition(name, test, messages, messaging_level,
+                                                verbose_messages, "GPFLivMod", soln, quietly)
+
+        # This is important enough to warn them even if quietly == True; unless messaging_level = CRITICAL
+        if (soln.Bilt.GICLivMod == np.False_) and (quietly is True) and (messaging_level < logging.CRITICAL):
             _log.warning(messages[False]+verbose_messages[False])
 
     def check_RIC(self, soln, messaging_level=logging.DEBUG, quietly=False):
@@ -1117,6 +1144,26 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         GICLiv_fcts.update({'urlhandle': urlroot + 'GICLiv'})
         GICLiv_fcts.update({'py___code': 'test: GPFLiv < 1'})
         Bilt.GICLiv_fcts = GICLiv_fcts
+
+        GPFLivMod_fcts = {
+            'about': 'Aggregate GPF with Modigliani Bequests'
+        }
+        py___code = 'GPFLiv * LivPrb'
+        Bilt.GPFLivMod = GPFLivMod = \
+            eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
+        GPFLivMod_fcts.update({'latexexpr': r'\GPFLivMod'})
+        GPFLivMod_fcts.update({'urlhandle': urlroot + 'GPFLivMod'})
+        GPFLivMod_fcts.update({'py___code': py___code})
+        GPFLivMod_fcts.update({'value_now': GPFLivMod})
+        Bilt.GPFLivMod_fcts = GPFLivMod_fcts
+
+        GICLivMod_fcts = {
+            'about': 'Aggregate GIC with Modigliani Mortality'
+        }
+        GICLivMod_fcts.update({'latexexpr': r'\GICLivMod'})
+        GICLivMod_fcts.update({'urlhandle': urlroot + 'GICLivMod'})
+        GICLivMod_fcts.update({'py___code': 'test: GPFLiv < 1'})
+        Bilt.GICLivMod_fcts = GICLivMod_fcts
 
         RNrm_PF_fcts = {
             'about': 'Growth-Normalized PF Return Factor'
