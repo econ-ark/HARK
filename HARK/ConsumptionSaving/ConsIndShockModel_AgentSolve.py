@@ -213,7 +213,7 @@ class ConsumerSolution(ConsumerSolutionOlder, agent_stage_solution):
     #  distance_criteria = ["vPfunc"]  # Bad b/c vP(0)=inf; should use cFunc
     #  distance_criteria = ["vFunc.dm"]  # Bad b/c vP(0)=inf; should use cFunc
     #  distance_criteria = ["mNrmTrg"]  # mNrmTrg better choice if GICNrm holds
-    distance_criteria = ["cFunc"]  # cFunc if the GIC fails
+    distance_criteria = ["cFunc"]  # cFunc if the GICRaw fails
 
     def __init__(self, *args,
                  # TODO: New items below should be in default ConsumerSolution
@@ -387,18 +387,18 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         """
         Check whether parameters satisfy some possibly interesting conditions.
 
-        ================================================================
+        ==================================================================
         Acronym        Condition
-        ================================================================
+        ==================================================================
         AIC           Absolute Impatience Condition
         RIC           Return Impatience Condition
-        GIC           Growth Impatience Condition
+        GICRaw        Growth Impatience Condition (not mortality adjusted)
         GICLiv        GIC adjusting for constant probability of mortality
         GICNrm        GIC adjusted for uncertainty in permanent income
         FHWC          Finite Human Wealth Condition
         WRIC          Weak Return Impatience Condition
         FVAC          Finite Value of Autarky Condition
-        ================================================================
+        ==================================================================
 
         Depending on the configuration of parameter values, some combination of
         these conditions must be satisfied in order for the problem to have
@@ -510,15 +510,15 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                                               verbose_messages, "FVAF", soln, quietly)
 
     def check_GICRaw(self, soln, messaging_level=logging.DEBUG, quietly=False):
-        """Evaluate and report on the Growth Impatience Condition."""
+        """Evaluate and report on the Growth Impatience Condition (GICRaw)."""
         name = "GICRaw"
 
         def test(soln): return soln.Bilt.GPFRaw < 1
 
         messages = {
-            True: f"\nThe Growth Patience Factor, GPF={soln.Bilt.GPFRaw:.5f} satisfies the Growth Impatience Condition (GIC), GPF < 1:\n    " +
+            True: f"\nThe Growth Patience Factor, GPF={soln.Bilt.GPFRaw:.5f} satisfies the Growth Impatience Condition (GICRaw), GPF < 1:\n    " +
                   soln.Bilt.GICRaw_fcts['urlhandle'],
-            False: f"\nThe Growth Patience Factor, GPF={soln.Bilt.GPFRaw:.5f} violates the Growth Impatience Condition (GIC), GPF < 1:\n    " +
+            False: f"\nThe Growth Patience Factor, GPF={soln.Bilt.GPFRaw:.5f} violates the Growth Impatience Condition (GICRaw), GPF < 1:\n    " +
                    soln.Bilt.GICRaw_fcts['urlhandle'],
         }
         verbose_messages = {
@@ -528,7 +528,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         soln.Bilt.GICRaw = core_check_condition(name, test, messages, messaging_level,
                                                 verbose_messages, "GPFRaw", soln, quietly)
 
-        # Give them a warning if the model does not satisfy the GIC,
+        # Give them a warning if the model does not satisfy the GICRaw,
         # even if they asked to solve quietly, unless messaging_level is CRITICAL
         if quietly is True:  # Otherwise they will get the info anyway
             if soln.Bilt.GPFRaw > 1:
@@ -536,15 +536,15 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                     _log.warning(messages[False]+verbose_messages[False])
 
     def check_GICLiv(self, soln, messaging_level=logging.DEBUG, quietly=False):
-        """Evaluate and report on Mortality Adjusted GIC."""
+        """Evaluate and report on Mortality Adjusted GIC (GICLiv)."""
         name = "GICLiv"
 
         def test(soln): return soln.Bilt.GPFLiv < 1
 
         messages = {
-            True: f"\nThe Mortality Adjusted Aggregate Growth Patience Factor, GPFLiv={soln.Bilt.GPFLiv:.5f} satisfies the Mortality Adjusted Aggregate Growth Impatience Condition (GICLiv):\n    " +
+            True: f"\nThe Mortality Adjusted Growth Patience Factor, GPFLiv={soln.Bilt.GPFLiv:.5f} satisfies the Mortality Adjusted Growth Impatience Condition (GICLiv):\n    " +
                   soln.Bilt.GPFLiv_fcts['urlhandle'],
-            False: f"\nThe Mortality Adjusted Aggregate Growth Patience Factor, GPFLiv={soln.Bilt.GPFLiv:.5f} violates the Mortality Adjusted Aggregate Growth Impatience Condition (GICLiv):\n    " +
+            False: f"\nThe Mortality Adjusted Growth Patience Factor, GPFLiv={soln.Bilt.GPFLiv:.5f} violates the Mortality Adjusted Growth Impatience Condition (GICLiv):\n    " +
                    soln.Bilt.GPFLiv_fcts['urlhandle'],
         }
         verbose_messages = {
@@ -687,7 +687,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         expects level of market resources M to grow at same rate as the level
         of permanent income P.
 
-        This will exist if the GIC holds.
+        This will exist if the GICRaw holds.
 
         https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
 
@@ -721,7 +721,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         This is the m at which the consumer expects log of market resources  
         to grow at same rate as the log of permanent income
 
-        This will exist if the GIC holds.
+        This will exist if the GICRaw holds.
 
         Parameters
         ----------
@@ -812,7 +812,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
 
         # Do NOT __init__ as a ConsumerSolutionOneNrmStateCRRA object
         # even though that is the parent class
-        # Because this is a SOLVER (which, admittedly, present, can only
+        # Because this is a SOLVER (which, admittedly, at present, can only
         # handle that class). But in principle, this is a solver, not a
         # solution
 
@@ -953,7 +953,8 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             (((Rfree * DiscLiv) * (PermGroFac ** (-CRRA_tp1))
               ) * tp1.vFunc.dm(mNrmMin_tp1))
 
-        # h is the 'horizon': h_t(m_t) is the number of periods it will take
+        # Explanation:
+        # Define h as the 'horizon': h_t(m_t) is the number of periods it will take
         # before you hit the constraint, after which you remain constrained
 
         # The maximum h in a finite horizon model
