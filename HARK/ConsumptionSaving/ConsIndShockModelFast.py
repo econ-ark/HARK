@@ -34,7 +34,7 @@ from HARK.interpolation import (
     CubicInterp,
     ValueFuncCRRA,
     MargValueFuncCRRA,
-    MargMargValueFuncCRRA
+    MargMargValueFuncCRRA,
 )
 from HARK.numba import (
     CRRAutility,
@@ -301,7 +301,7 @@ def _solveConsPerfForesightNumba(
             # If it *is* the very last index, then there are only three points
             # that characterize the consumption function: the artificial borrowing
             # constraint, the constraint kink, and the extrapolation point.
-            mXtra = cNrmNow[-1] - cNrmCnst[-1] / (1.0 - MPCmin)
+            mXtra = (cNrmNow[-1] - cNrmCnst[-1]) / (1.0 - MPCmin)
             mCrit = mNrmNow[-1] + mXtra
             cCrit = mCrit - BoroCnstArt
             mNrmNow = np.array([BoroCnstArt, mCrit, mCrit + 1.0])
@@ -668,7 +668,7 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
         return solution
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def _solveConsIndShockCubicNumba(
     mNrmMinNext,
     mNrmNext,
@@ -742,7 +742,7 @@ def _solveConsIndShockCubicNumba(
     return cNrm, mNrm, MPC, EndOfPrdvP
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def _cFuncCubic(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCNow, MPCminNow, hNrmNow):
     mNrmGrid = mNrmMinNow + aXtraGrid
     mNrmCnst = np.array([mNrmMinNow, mNrmMinNow + 1])
@@ -757,7 +757,7 @@ def _cFuncCubic(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCNow, MPCminNow, hNrm
     return cNrmNow, mNrmGrid
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def _cFuncLinear(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCminNow, hNrmNow):
     mNrmGrid = mNrmMinNow + aXtraGrid
     mNrmCnst = np.array([mNrmMinNow, mNrmMinNow + 1])
@@ -772,7 +772,7 @@ def _cFuncLinear(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCminNow, hNrmNow):
     return cNrmNow, mNrmGrid
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def _add_vFuncNumba(
     mNrmNext,
     mNrmGridNext,
@@ -859,7 +859,7 @@ def _add_vFuncNumba(
     )
 
 
-@njit
+@njit(parallel=True)
 def _add_mNrmStEIndNumba(
     PermGroFac,
     Rfree,
@@ -895,7 +895,7 @@ def _add_mNrmStEIndNumba(
         return None
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def _find_mNrmStELinear(
     m, PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
 ):
@@ -915,7 +915,7 @@ def _find_mNrmStELinear(
     return res
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def _find_mNrmStECubic(
     m, PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
 ):
