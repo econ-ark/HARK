@@ -34,7 +34,7 @@ from HARK.interpolation import (
     CubicInterp,
     ValueFuncCRRA,
     MargValueFuncCRRA,
-    MargMargValueFuncCRRA
+    MargMargValueFuncCRRA,
 )
 from HARK.numba import (
     CRRAutility,
@@ -301,7 +301,7 @@ def _solveConsPerfForesightNumba(
             # If it *is* the very last index, then there are only three points
             # that characterize the consumption function: the artificial borrowing
             # constraint, the constraint kink, and the extrapolation point.
-            mXtra = cNrmNow[-1] - cNrmCnst[-1] / (1.0 - MPCmin)
+            mXtra = (cNrmNow[-1] - cNrmCnst[-1]) / (1.0 - MPCmin)
             mCrit = mNrmNow[-1] + mXtra
             cCrit = mCrit - BoroCnstArt
             mNrmNow = np.array([BoroCnstArt, mCrit, mCrit + 1.0])
