@@ -706,7 +706,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         return self.Bilt.mNrmTrg
 
-    def mNrmStE_find(self):
+    def mBalLvl_find(self):
         """
         Find pseudo Steady-State Equilibrium (normalized) market resources m.
 
@@ -726,20 +726,20 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         Returns
         -------
         self : ConsumerSolution
-            Same solution that was passed, but now with attribute mNrmStE.
+            Same solution that was passed, but now with attribute mBalLvl.
         """
         # Minimum market resources plus E[next income] is okay starting guess
 
         m_init_guess = self.Bilt.mNrmMin + self.E_Next_.IncNrmNxt
 
         try:
-            self.Bilt.mNrmStE = find_zero_newton(
+            self.Bilt.mBalLvl = find_zero_newton(
                 self.E_Next_.permShk_tp1_times_m_tp1_Over_m_t_minus_PGro, m_init_guess)
         except:
-            self.Bilt.mNrmStE = None
+            self.Bilt.mBalLvl = None
 
-        # Add mNrmStE to the solution and return it
-        return self.Bilt.mNrmStE
+        # Add mBalLvl to the solution and return it
+        return self.Bilt.mBalLvl
 
     def mNrmGro_find(self):
         """
@@ -758,7 +758,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         Returns
         -------
         self : ConsumerSolution
-            Same solution that was passed, but now with attribute mNrmStE.
+            Same solution that was passed, but now with attribute mBalLvl.
         """
         # Minimum market resources plus E[next income] is okay starting guess
 

@@ -110,7 +110,7 @@ class testPerfForesightConsumerType(unittest.TestCase):
         constrained_agent.solve()
         
         # Check against pre-computed values.
-        self.assertEqual(constrained_agent.solution[0].mNrmStE , 1.0)
+        self.assertEqual(constrained_agent.solution[0].mBalLvl , 1.0)
         # Check that they are both the same, since the problem is deterministic
-        self.assertEqual(constrained_agent.solution[0].mNrmStE,
+        self.assertEqual(constrained_agent.solution[0].mBalLvl,
                          constrained_agent.solution[0].mNrmTrg)

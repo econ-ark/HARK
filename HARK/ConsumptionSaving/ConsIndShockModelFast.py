@@ -190,7 +190,7 @@ class IndShockSolution(MetricObject):
 
 
 @njit(cache=True)
-def _find_mNrmStE(m, Rfree, PermGroFac, mNrm, cNrm, Ex_IncNext):
+def _find_mBalLvl(m, Rfree, PermGroFac, mNrm, cNrm, Ex_IncNext):
     # Make a linear function of all combinations of c and m that yield mNext = mNow
     mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * Ex_IncNext
 
@@ -202,8 +202,8 @@ def _find_mNrmStE(m, Rfree, PermGroFac, mNrm, cNrm, Ex_IncNext):
 
 # @njit(cache=True) can't cache because of use of globals, perhaps newton_secant?
 @njit
-def _add_mNrmStENumba(
-    Rfree, PermGroFac, mNrm, cNrm, mNrmMin, Ex_IncNext, _find_mNrmStE
+def _add_mBalLvlNumba(
+    Rfree, PermGroFac, mNrm, cNrm, mNrmMin, Ex_IncNext, _find_mBalLvl
 ):
     """
     Finds steady state (normalized) market resources and adds it to the
@@ -215,15 +215,15 @@ def _add_mNrmStENumba(
     # Minimum market resources plus next income is okay starting guess
     m_init_guess = mNrmMin + Ex_IncNext
 
-    mNrmStE = newton_secant(
-        _find_mNrmStE,
+    mBalLvl = newton_secant(
+        _find_mBalLvl,
         m_init_guess,
         args=(Rfree, PermGroFac, mNrm, cNrm, Ex_IncNext),
         disp=False,
     )
 
-    if mNrmStE.converged:
-        return mNrmStE.root
+    if mBalLvl.converged:
+        return mBalLvl.root
     else:
         return None
 
@@ -317,7 +317,7 @@ def _solveConsPerfForesightNumba(
     MPCmax = (cNrmNow[1] - cNrmNow[0]) / (mNrmNow[1] - mNrmNow[0])
 
     # Add attributes to enable calculation of steady state market resources.
-    # Relabeling for compatibility with add_mNrmStE
+    # Relabeling for compatibility with add_mBalLvl
     mNrmMinNow = mNrmNow[0]
 
     # See the PerfForesightConsumerType.ipynb documentation notebook for the derivations
@@ -860,7 +860,7 @@ def _add_vFuncNumba(
 
 
 @njit
-def _add_mNrmStEIndNumba(
+def _add_mBalLvlIndNumba(
     PermGroFac,
     Rfree,
     Ex_IncNext,
@@ -882,21 +882,21 @@ def _add_mNrmStEIndNumba(
     # Minimum market resources plus next income is okay starting guess
     m_init_guess = mNrmMin + Ex_IncNext
 
-    mNrmStE = newton_secant(
+    mBalLvl = newton_secant(
         _searchfunc,
         m_init_guess,
         args=(PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm),
         disp=False,
     )
 
-    if mNrmStE.converged:
-        return mNrmStE.root
+    if mBalLvl.converged:
+        return mBalLvl.root
     else:
         return None
 
 
 @njit(cache=True)
-def _find_mNrmStELinear(
+def _find_mBalLvlLinear(
     m, PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
 ):
     # Make a linear function of all combinations of c and m that yield mNext = mNow
@@ -916,7 +916,7 @@ def _find_mNrmStELinear(
 
 
 @njit(cache=True)
-def _find_mNrmStECubic(
+def _find_mBalLvlCubic(
     m, PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
 ):
     # Make a linear function of all combinations of c and m that yield mNext = mNow
@@ -1164,15 +1164,15 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
 
             Ex_IncNext = 1.0  # Perfect foresight income of 1
 
-            # Add mNrmStE to the solution and return it
-            consumer_solution.mNrmStE = _add_mNrmStENumba(
+            # Add mBalLvl to the solution and return it
+            consumer_solution.mBalLvl = _add_mBalLvlNumba(
                 self.Rfree,
                 self.PermGroFac[i],
                 solution.mNrm,
                 solution.cNrm,
                 solution.mNrmMin,
                 Ex_IncNext,
-                _find_mNrmStE,
+                _find_mBalLvl,
             )
 
             self.solution[i] = consumer_solution
@@ -1277,10 +1277,10 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
 
                 if self.CubicBool or self.vFuncBool:
                     _searchFunc = (
-                        _find_mNrmStECubic if self.CubicBool else _find_mNrmStELinear
+                        _find_mBalLvlCubic if self.CubicBool else _find_mBalLvlLinear
                     )
-                    # Add mNrmStE to the solution and return it
-                    consumer_solution.mNrmStE = _add_mNrmStEIndNumba(
+                    # Add mBalLvl to the solution and return it
+                    consumer_solution.mBalLvl = _add_mBalLvlIndNumba(
                         self.PermGroFac[j],
                         self.Rfree,
                         solution.Ex_IncNext,

@@ -597,12 +597,12 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
         soln.check_conditions(messaging_level=self.messaging_level, quietly=self.quietly)
 
-        if not soln.Bilt.GICRaw:  # no mNrmStE
-            soln.Bilt.mNrmStE = soln.mNrmStE = float('nan')
-        else:  # mNrmStE exists; compute it and check mNrmTrg
-            soln.Bilt.mNrmStE = soln.mNrmStE_find()
+        if not soln.Bilt.GICRaw:  # no mBalLvl
+            soln.Bilt.mBalLvl = soln.mBalLvl = float('nan')
+        else:  # mBalLvl exists; compute it and check mNrmTrg
+            soln.Bilt.mBalLvl = soln.mBalLvl_find()
         if not self.income_risks_exist:  # If a PF model, nothing more to do
-            soln.Bilt.mNrmTrg = soln.mNrmStE_find()
+            soln.Bilt.mNrmTrg = soln.mBalLvl_find()
             return
         else:
             if not soln.Bilt.GICNrm:

@@ -377,7 +377,7 @@ class ConsPerfForesightSolver(MetricObject):
 
         # Add two attributes to enable calculation of steady state market resources.
         self.Ex_IncNext = 1.0  # Perfect foresight income of 1
-        self.mNrmMinNow = mNrmNow[0]  # Relabeling for compatibility with add_mNrmStE
+        self.mNrmMinNow = mNrmNow[0]  # Relabeling for compatibility with add_mBalLvl
 
     def add_mNrmTrg(self, solution):
         """
@@ -394,7 +394,7 @@ class ConsPerfForesightSolver(MetricObject):
         Returns
         -------
         solution : ConsumerSolution
-            Same solution that was passed, but now with the attribute mNrmStE.
+            Same solution that was passed, but now with the attribute mBalLvl.
         """
 
         # If no uncertainty, return the degenerate targets for the PF model
@@ -404,14 +404,14 @@ class ConsPerfForesightSolver(MetricObject):
                 # but they are of zero size (and also permanent are zero)
                 if self.GICRaw:  # max of nat and art boro cnst
                     if type(self.BoroCnstArt) == type(None):
-                        solution.mNrmStE = -self.hNrmNow
+                        solution.mBalLvl = -self.hNrmNow
                         solution.mNrmTrg = -self.hNrmNow
                     else:
                         bNrmNxt = -self.BoroCnstArt * self.Rfree/self.PermGroFac
-                        solution.mNrmStE = bNrmNxt + 1.0
+                        solution.mBalLvl = bNrmNxt + 1.0
                         solution.mNrmTrg = bNrmNxt + 1.0
                 else:  # infinity
-                    solution.mNrmStE = float('inf')
+                    solution.mBalLvl = float('inf')
                     solution.mNrmTrg = float('inf')
                 return solution
 
@@ -441,7 +441,7 @@ class ConsPerfForesightSolver(MetricObject):
         solution.mNrmTrg = mNrmTrg
         return solution
 
-    def add_mNrmStE(self, solution):
+    def add_mBalLvl(self, solution):
         """
         Finds market resources ratio at which 'balanced growth' is expected.
         This is the m ratio such that the expected growth rate of the M level
@@ -457,7 +457,7 @@ class ConsPerfForesightSolver(MetricObject):
         Returns
         -------
         solution : ConsumerSolution
-            Same solution that was passed, but now with the attribute mNrmStE
+            Same solution that was passed, but now with the attribute mBalLvl
         """
         # Probably should test whether GICRaw holds and log error if it does not
         # using check_conditions
@@ -475,14 +475,14 @@ class ConsPerfForesightSolver(MetricObject):
                 if self.GICRaw:  # max of nat and art boro cnst
                     #                    breakpoint()
                     if type(self.BoroCnstArt) == type(None):
-                        solution.mNrmStE = -self.hNrmNow
+                        solution.mBalLvl = -self.hNrmNow
                         solution.mNrmTrg = -self.hNrmNow
                     else:
                         bNrmNxt = -self.BoroCnstArt * self.Rfree/self.PermGroFac
-                        solution.mNrmStE = bNrmNxt + 1.0
+                        solution.mBalLvl = bNrmNxt + 1.0
                         solution.mNrmTrg = bNrmNxt + 1.0
                 else:  # infinity
-                    solution.mNrmStE = float('inf')
+                    solution.mBalLvl = float('inf')
                     solution.mNrmTrg = float('inf')
                 return solution
 
@@ -493,11 +493,11 @@ class ConsPerfForesightSolver(MetricObject):
         # Minimum market resources plus next income is okay starting guess
         m_init_guess = self.mNrmMinNow + self.Ex_IncNext
         try:
-            mNrmStE = newton(Ex_PermShk_tp1_times_m_tp1_minus_m_t, m_init_guess)
+            mBalLvl = newton(Ex_PermShk_tp1_times_m_tp1_minus_m_t, m_init_guess)
         except:
-            mNrmStE = None
+            mBalLvl = None
 
-        solution.mNrmStE = mNrmStE
+        solution.mBalLvl = mBalLvl
         return solution
 
     def add_stable_points(self, solution):
@@ -514,7 +514,7 @@ class ConsPerfForesightSolver(MetricObject):
         Returns
         -------
         solution : ConsumerSolution
-            Same solution that was provided, augmented with attributes mNrmStE and
+            Same solution that was provided, augmented with attributes mBalLvl and
             mNrmTrg, if they exist.
 
         """
@@ -526,7 +526,7 @@ class ConsPerfForesightSolver(MetricObject):
         thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
         GICRaw = 1 > thorn/self.PermGroFac
         if self.BoroCnstArt is not None and GICRaw:
-            solution = self.add_mNrmStE(solution)
+            solution = self.add_mBalLvl(solution)
             solution = self.add_mNrmTrg(solution)
         return solution
 
@@ -1010,12 +1010,12 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         Returns
         -------
         solution : ConsumerSolution
-            Same solution that was passed, but now with attributes mNrmStE and
+            Same solution that was passed, but now with attributes mBalLvl and
             mNrmTrg, if they exist.
 
         """
 
-        # 0. Check if GICRaw holds. If so, then mNrmStE will exist. So, compute it.
+        # 0. Check if GICRaw holds. If so, then mBalLvl will exist. So, compute it.
         # 1. Check if GICNrm holds. If so, then mNrmTrg will exist. So, compute it.
 
         thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
@@ -1030,7 +1030,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         self.GICNrm = GICNrm
 
         if GICRaw:
-            solution = self.add_mNrmStE(solution)  # find steady state m, if it exists
+            solution = self.add_mBalLvl(solution)  # find steady state m, if it exists
         if GICNrm:
             solution = self.add_mNrmTrg(solution)  # find target m, if it exists
 
