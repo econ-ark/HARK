@@ -70,12 +70,12 @@ Finally, a few of the definitions below are actually prohibitions; these are bas
 \hypertarget{RomanLetters}{}
 \begin{table}[ht]
   \centering
-  \begin{tabular}{|lcl|}   \hline
+  \begin{tabular}{|ccl|}   \hline
     Letter & & Meaning 
     \\ \hline
     \ALvl & & \textit{A}ssets \textit{A}fter \textit{A}ll \textit{A}ctions \textit{A}re \textit{A}ccomplished (end of period)
     \\  \BLvl & & \textit{B}eginning \textit{B}ank \textit{B}alances \textit{B}efore any \textit{B}ehavior (\textit{b}eginning-of-period)
-    \\  \CLvl & & \textit{C}onsumption \textit{C}hoice \textit{C}onnects $B$ to $A$
+    \\  \CLvl & & \textit{C}onsumption \textit{C}hoice \textit{C}onnects $B_{t}$ to $A_{t}$ (with possible contribution from $Y_{t}$)
     \\  \DLvl & & \textit{D}ebt
     \\  \ELvl & & PROHIBITED:  Too many possible meanings (expectations, effort, expenses)
     \\  \FLvl & & Production \textit{F}unction
@@ -109,7 +109,7 @@ Finally, a few of the definitions below are actually prohibitions; these are bas
 
 The letter $\TLvl$ is an exception to the rule that lower- and upper-case versions of variables are idiosyncratic and aggregate quantities.  We reserve the capital letter to designate the end of the horizon (death, or the end of the economy, occurs at the end of period $\TLvl$).  The lower case version $t$ is so ubiquitiously used as the current time period that we follow that convention here.
 
-Finally, the following are exempted from the prohibition on single-letter variable names because they are used so frequently that the prohibition would be more trouble than it is worth: $a$, $b$, $c$, $m$.  
+Finally, the following are exempted from the prohibition on single-letter variable names because they are used so frequently that the prohibition would be more trouble than it is worth: $a$, $b$, $c$, $k$, $m$, $v$.  
 
 \pagebreak
 
@@ -133,13 +133,15 @@ There are more objects that are likely to be used extensively in ARK projects th
     \\  \texttt{Inc}    & - & Income
     \\  \texttt{Nlq}    & - & Quantity that is \textbf{N}ot \textbf{l}i\textbf{q}uid (e.g., $\mathtt{aNlq}$ is illiquid financial)
     \\  \texttt{Lbr}    & - & Quantity of labor (hours)
-    \\  \texttt{Pop}    & - & Size of population
     \\  \texttt{Sav}    & - & Saving (=Income Minus Consumption)
     \\  \texttt{Tax}    & - & Tax -- should be modified by \texttt{Rte} or \texttt{Amt} articulated below
+    \\  \texttt{Popn}    & - & Size of population
     \\  \texttt{Perm}   & - & Permanent (noncapital) income - aggregate
-    \\  \texttt{perm}   & - & permanent (noncapital) income - idiosyncratic
+    \\  \texttt{prm}   & - & permanent (noncapital) income - idiosyncratic component
+    \\  \texttt{perm}   & - & permanent (noncapital) income - combined aggregate and idiosyncratic
     \\  \texttt{Tran}   & - & Transitory (noncapital) income - aggregate
-    \\  \texttt{tran}   & - & Transitory (noncapital) income - idiosyncratic
+    \\  \texttt{trn}   & - & Transitory (noncapital) income - idiosyncratic
+    \\  \texttt{tran}   & - & Transitory (noncapital) income - combined aggregate and idiosyncratic
     \\ \hline
   \end{tabular}
   \caption{String Variables}
@@ -213,36 +215,42 @@ document and \texttt{CRRA} in a software module.
   \centering
   \begin{tabular}{|>{\ttfamily}rcll|} 		
     \hline
-    Name    & \LaTeX         & Description & Illustration
+    Name    & \LaTeX         & Description & Definition or Illustration
     \\ \hline
     \verb|\CARA|        & $\CARA$       & Coefficient of Absolute Risk Aversion &$\uFunc(\bullet)=-\CARA^{-1} e^{-\CARA \bullet}$
     \\ \verb|\CRRA|        & $\CRRA$       & Coefficient of Relative Risk Aversion & $\uFunc(\bullet)=(1-\CRRA)^{-1}\bullet^{1-\CRRA}$ 
     \\ \verb|\DiscFac|     & $\DiscFac$    & Time Discount Factor & $\uFunc^{\prime}(\cLvl_{t}) =  \Rfree \DiscFac \uFunc^{\prime}(\cLvl_{t+1})$
     \\ \verb|\discRte|     & $\discRte$    & Time Discount rate & $\discRte=\DiscFac^{-1}-1$
     \\ \verb|\DeprFac|     & $\DeprFac$    & Depreciation Factor (\texttt{daleth}) & $\Kap_{t+1} = \DeprFac \Kap_{t}+\ILvl_{t}$
-    \\ \verb|\deprRte|     & $\deprRte$    & Depreciation Rate & $\DeprFac = 1-\deprRte$
+    \\ \verb|\deprRte|     & $\deprRte$    & Depreciation Rate & $\deprRte = \DeprFac -1 \approx \log \DeprFac $
     \\ \verb|\TranShkAgg|  & $\TranShkAgg$ & Transitory shock (aggregate) & $\Ex_{t}[\TranShkAgg_{t+n}]=1$ if $\TranShkAgg$ iid
     \\ \verb|\tranShkInd|  & $\tranShkInd$ & transitory shock (idiosyncratic) &  $\Ex_{t}[\tranShkInd_{t+n}]=1$ if $\tranShkInd$ iid
-    \\ \verb|\trnShk|      & $\trnShk$ & transitory shock (combo) &  $\trnShk_{t} = \TranShkAgg_{t}\tranShkInd_{t}$
+    \\ \verb|\tranShk|      & $\tranShk$   & transitory shock (combo) &  $\tranShk_{t} = \TranShkAgg_{t}\tranShkInd_{t}$
     \\ \verb|\PermShkAgg|  & $\PermShkAgg$ & Permanent shock (aggregate) & $\Ex_{t}[\PermShkAgg_{t+n}]=1$ if $\PermShkAgg$ iid
     \\ \verb|\permShkInd|  & $\permShkInd$ & permanent shock (idiosyncratic) & $\Ex_{t}[\permShkInd_{t+n}]=1$ if $\permShkInd$ iid
-    \\ \verb|\prmShk|      & $\prmShk$ & permanent shock (combo) & $\pmb{\prmShk}_{t} = \PermShkAgg_{t} \permShkInd_{t}$
-    \\ \verb|\PopGroFac|   & $\PopGroFac$ & Population Growth (Aggregate) & $\mathtt{Pop}_{t+1} = \PopGroFac \mathtt{Pop}_{t}$
-    \\ \verb|\PopGroRte|   & $\PopGroRte$ & Population Growth rate & $\PopGroFac = 1 + \PopGroRte$
-    \\ \verb|\PtyGroFacAgg|  & $\PtyGroFacAgg$ & Productivity Growth (Aggregate) & $\GLvl = \PtyGro$
+%    \\ \verb|\permShk|      & $\permShk$ & permanent shock (combo) & $\pmb{\permShk}_{t} = \PermShkAgg_{t} \permShkInd_{t}$
+    \\ \verb|\permShk|      & $\permShk$ & permanent shock (combo) & $\pmb{\permShk}_{t} = \PermShkAgg_{t} \permShkInd_{t}$
+    \\ \verb|\PermLvlAgg|  & $\PermLvlAgg$ & Permanent Productivity (level) & $\PermLvlAgg_{t+1} = \PtyGroFacAgg_{t+1}\PermLvlAgg_{t} $
+    \\ \verb|\permLvlInd|  & $\permLvlInd$ & permanent productivity (idiosyncratic) & $\permLvlInd_{t+1} = \ptyGroFacInd_{t+1}\permLvlInd_{t} $
+    \\ \verb|\permLvl|  & $\permLvl$ & permanent productivity (combo) & $\permLvl_{t} = \PermLvlAgg_{t}\permLvlInd_{t} $
+    \\ \verb|\PopnGroFac|   & $\PopnGroFac$ & Population Growth (Aggregate) & $\PopnLvl_{t+1} = \PopnGroFac \PopnLvl_{t}$
+    \\ \verb|\PopnGroRte|   & $\PopnGroRte$ & Population Growth rate & $\PopnGroRte = \PopnGroFac - 1 \approx \log \PopnGroFac$
+    \\ \verb|\PopnLvl|   & $\PopnLvl$ & Population Level & $\PopnLvl_{t+1} = \PopnGroFac_{t+1} \PopnLvl_{t}$
+    \\ \verb|\PtyGroFacAgg|  & $\PtyGroFacAgg$ & Productivity Growth (Aggregate) & $\PermLvlAgg_{t+1}=\PermLvlAgg_{t} \PtyGro$
 %    \\ \verb|\PtyGroRteAgg|  & $\PtyGroRteAgg$ & Productivity Growth Rate & $\PtyGro = (1+\ptyGro)$
     \\ \verb|\ptyGroFacInd|  & $\ptyGroFacInd$ & productivity Growth (Idiosyncratic) & $\ptyLvlInd_{t+1} = \ptyGroFacInd \ptyLvlInd_{t}$
 %    \\ \verb|\ptyGroRteInd|  & $\ptyGroRteInd$ & productivity Growth Rate & $\ptyGroFac = (1+\ptyGroRte)$
     \\ \verb|\ptyGroFac|  & $\ptyGroFac$ & productivity Growth (combo) & $\ptyGroFac = \ptyGroFacInd \PtyGroFacAgg$
+    \\ \verb|\ptyGroRte|  & $\ptyGroRte$ & productivity growth rate (combo) & $\ptyGroRte = \log \ptyGroFac$
     % \\ \verb|\ptyGroRte|  & $\ptyGroRte$ & productivity Growth Rate (combo) & $\ptyGroRte = \PtyGroRteAgg+\ptyGroRteInd$
     \\ \verb|\leiShare|  & $\leiShare$ & Leisure share, Cobb-Douglas utility & $\uFunc(c,z)=(1-\CRRA)^{-1}(c^{1-\leiShare}z^{\leiShare})^{1-\CRRA}$
     \\ \verb|\MPC|  & $\MPC$ & Marginal Propensity to Consume & $\cFunc^{\prime}(\mNrm)=\partial c/\partial m$
     \\ \verb|\APF|  & $\APF$ & Absolute Patience Factor (\texttt{Thorn}) & $\APF = (\Rfree \DiscFac)^{1/\CRRA} $
-    \\ \verb|\GPF| & $\GPF$ & Growth Patience Factor & $\GPF = \APF//\PtyGro $
-    \\ \verb|\RPF| & $\RPF$ & Return Patience Factor & $\Pat = (\Rfree \DiscFac)^{1/\CRRA}/\Rfree $ 
-    \\ \verb|\APRte|  & $\APRte$ & Absolute Patience rate (\texttt{thorn}) & $\pat = (\Rfree \DiscFac)^{1/\CRRA}-1 \approx \CRRA^{-1}(\rfree-\discRte) $
-    \\ \verb|\GPRte| & $\GPRte$ & Growth Patience rate  & $\patpGro = \pat -\ptyGro $
-    \\ \verb|\RPRte| & $\patr$ & Return Patience rate  & $\patr =\pat -\rfree $
+    \\ \verb|\GPF| & $\GPF$ & Growth Patience Factor & $\GPF = \APF/\ptyGro $
+    \\ \verb|\RPF| & $\RPF$ & Return Patience Factor & $\Pat = \APF/\Rfree $ 
+    \\ \verb|\APR|  & $\APR$ & Absolute Patience rate (\texttt{thorn}) & $\pat = (\Rfree \DiscFac)^{1/\CRRA}-1 \approx \CRRA^{-1}(\rfree-\discRte) $
+    \\ \verb|\GPR| & $\GPR$ & Growth Patience rate  & $\patpGro = \pat -\ptyGroRte $
+    \\ \verb|\RPR| & $\patr$ & Return Patience rate  & $\patr =\pat -\rfree $
     \\ \verb|\riskyshare|  & $\riskyshare$ & Portfolio share in risky assets & $\Rport_{t+1}=(1-\riskyshare)\Rfree+\riskyshare\Risky_{t+1}$
     \\	\hline
   \end{tabular}
@@ -270,6 +278,7 @@ A few operators are so universally used that it will be useful to define them.
     Name    & \LaTeX         & Code & Description & Illustration
     \\ \hline
     \verb|\Ex|        & $\Ex$       & \texttt{Ex\_} & The expectation as of date $t$ & $\Ex_{t}[\uFunc^{\prime}(\cNrm_{t+1})]$
+\\     \verb|\Mean| & $\Mean$ & \texttt{Mean\_} & The population mean of a variable & $\Mean[\permLvl]=1$
     \\   \verb|\PDV|        & $\PDV$       & \texttt{PDV\_} & Present Discounted Value & $\PDV_{t}^{T}(y)$ is human wealth
     \\	\hline
   \end{tabular}

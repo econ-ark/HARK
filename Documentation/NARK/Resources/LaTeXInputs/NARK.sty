@@ -23,16 +23,20 @@
 
 \bibliographystyle{\econtexBibStyle}
 
-\newcommand{\PopGroFac}{\Xi}
-\newcommand{\PopGroRte}{\xi}
+\newcommand{\PopnGroFac}{\Xi}
+\newcommand{\PopnGroRte}{\xi}
+\newcommand{\PopnLvl}{\pmb{\mathrm{N}}}
+  
+
 \providecommand{\cncl}{}
 \renewcommand\cncl[1]{\ensuremath{\cancel{#1}}}
 
 \newcommand{\PtyGroFacAgg}{\Phi}
-
 \newcommand{\ptyGroFacInd}{\phi}
 
 \newcommand{\ptyGroFac}{\pmb{\ptyGroFacInd}}
+\renewcommand{\ptyGro}{\ptyGroFac}
+\newcommand{\ptyShkInd}{\psi}
 \newcommand{\PtyLvlAgg}{P}
 \newcommand{\ptyLvlInd}{p}
 \newcommand{\ptyLvl}{\mathbf{\ptyLvlInd}}
@@ -45,31 +49,33 @@
 
 \providecommand{\permGroFac}{}
 \providecommand{\permGroRte}{}
-\providecommand{\APF}{}
-\providecommand{\APRte}{}
+\providecommand{\APR}{}
 \providecommand{\discRte}{}
 \providecommand{\GPF}{}
-\providecommand{\GPRte}{}
+\providecommand{\GPR}{}
 \providecommand{\GPFNrm}{}
 \providecommand{\GPFNrmRte}{}
 \providecommand{\prmShk}{}
 \providecommand{\RPF}{}
-\providecommand{\RPRte}{}
+\providecommand{\RPR}{}
 \providecommand{\mNrm}{}
 \providecommand{\trnShk}{}
-\renewcommand{\permGroFac}{\Gamma}
-\renewcommand{\permGroRte}{\gamma}
-\renewcommand{\prmShk}{\pmb{\permShkInd}}
+\renewcommand{\permGroFac}{\ptyGroFac}
+\providecommand{\ptyGroRte}{}
+\renewcommand{\ptyGroRte}{\pmb{\varphi}}
+\renewcommand{\permGroRte}{\ptyGroRte}
+\renewcommand{\permShk}{\pmb{\permShkInd}}
 \renewcommand{\APF}{\text{\pmb{\Thorn}}}
-\renewcommand{\APRte}{\text{\pmb{\thorn}}}
+\renewcommand{\APR}{\text{\thorn}}
 \renewcommand{\discRte}{\vartheta}
-\renewcommand{\GPF}{\text{\pmb{\Thorn}}_{\permGroFac}}
-\renewcommand{\GPRte}{\text{\pmb{\thorn}}_{\permGroRte}}
-\renewcommand{\GPFNrm}{\text{\pmb{\Thorn}}_{\underline{\permGroFac}}}
+\renewcommand{\GPF}{\text{\APF}_{\permGroFac}}
+\renewcommand{\GPR}{\text{\thorn}_{\permGroRte}}
+\renewcommand{\GPFNrm}{\APF_{\underline{\permGroFac}}}
 \renewcommand{\GPFNrmRte}{\text{\thorn}_{\underline{\permGroRte}}}
-\renewcommand{\RPF}{\text{\pmb{\Thorn}}_{\Rfree}}
-\renewcommand{\RPRte}{\text{\pmb{\thorn}}_{\rfree}}
-\renewcommand{\trnShk}{\pmb{\tranShkInd}}
+\renewcommand{\RPF}{\APF_{\Rfree}}
+\renewcommand{\RPR}{\text{\pmb{\thorn}}_{\rfree}}
+\providecommand{\tranShk}{}
+\renewcommand{\tranShk}{\pmb{\tranShkInd}}
 
 \renewcommand{\mNrm}{m}
 
@@ -128,3 +134,6 @@
 \newcommand{\zLvl}{z}
 
 
+\newcommand{\PermLvlAgg}{\mathrm{P}}
+\newcommand{\permLvlInd}{\mathrm{p}}
+\newcommand{\permLvl}{\pmb{\mathrm{p}}}
