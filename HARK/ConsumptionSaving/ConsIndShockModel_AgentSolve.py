@@ -743,7 +743,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
     def mNrmGro_find(self):
         """
-        Find mNrmGro where expected growth in log mLev matches growth in log pLev
+        Find mNrmGro where expected growth in log mLvl matches growth in log pLvl
 
         This is the m at which the consumer expects log of market resources  
         to grow at same rate as the log of permanent income
@@ -1893,8 +1893,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             lambda m_t:
             m_t * (1 - E_Next_.Inv_RNrm_PF) + E_Next_.Inv_RNrm_PF
         )
-        # E[c_{t+1} pLev_{t+1}/pLev_{t}] as a fn of a_{t}
-        E_Next_.cLev_tp1_Over_pLev_t_from_a_t = (
+        # E[c_{t+1} pLvl_{t+1}/pLvl_{t}] as a fn of a_{t}
+        E_Next_.cLvl_tp1_Over_pLvl_t_from_a_t = (
             lambda a_t:
             E_dot(Pars.PermGroFac *
                   Bilt.permShkValsBcst *
@@ -1919,13 +1919,13 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             lambda m_t:
             (E_Next_.RNrm * (m_t - Bilt.cFunc(m_t)) + E_Next_.IncNrmNxt)/m_t
         )
-        E_Next_.mLev_tp1_Over_mLev_t = (
+        E_Next_.mLvl_tp1_Over_mLvl_t = (
             lambda m_t:
             (Pars.Rfree * (m_t - Bilt.cFunc(m_t)) +
              Pars.PermGroFac * E_Next_.IncNrmNxt)/m_t
         )
         # Define separately for float ('num') and listlike ('lst'), then combine
-        E_Next_.cLev_tp1_Over_pLev_t_from_num_a_t = (
+        E_Next_.cLvl_tp1_Over_pLvl_t_from_num_a_t = (
             lambda a_t:
             E_dot(
                 Bilt.permShkValsBcst * Pars.PermGroFac * Bilt.cFunc(
@@ -1934,16 +1934,16 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
                 ),
                 Bilt.ShkPrbs)
         )
-        E_Next_.cLev_tp1_Over_pLev_t_from_lst_a_t = (
+        E_Next_.cLvl_tp1_Over_pLvl_t_from_lst_a_t = (
             lambda a_lst: list(map(
-                E_Next_.cLev_tp1_Over_pLev_t_from_num_a_t, a_lst
+                E_Next_.cLvl_tp1_Over_pLvl_t_from_num_a_t, a_lst
             ))
         )
-        E_Next_.cLev_tp1_Over_pLev_t_from_a_t = (
+        E_Next_.cLvl_tp1_Over_pLvl_t_from_a_t = (
             lambda a_t:
-            E_Next_.cLev_tp1_Over_pLev_t_from_lst_a_t(a_t)
+            E_Next_.cLvl_tp1_Over_pLvl_t_from_lst_a_t(a_t)
             if (type(a_t) == list or type(a_t) == np.ndarray) else
-            E_Next_.cLev_tp1_Over_pLev_t_from_num_a_t(a_t)
+            E_Next_.cLvl_tp1_Over_pLvl_t_from_num_a_t(a_t)
         )
         # Define separately for float ('num') and listlike ('lst'), then combine
         # E_Next_.mLog_tp1_from_num_a_t = (
@@ -2063,20 +2063,20 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 #             if (type(a_t) == list or type(a_t) == np.ndarray) else
 #             E_Next_.mDif_tp1_from_num_a_t(a_t)
 #         )
-        E_Next_.mLev_tp1_Over_pLev_t_from_num_a_t = (
+        E_Next_.mLvl_tp1_Over_pLvl_t_from_num_a_t = (
             lambda a_t:
             Pars.Rfree * a_t + Pars.PermGroFac
         )
-        E_Next_.mLev_tp1_Over_pLev_t_from_lst_a_t = (
+        E_Next_.mLvl_tp1_Over_pLvl_t_from_lst_a_t = (
             lambda a_lst: list(map(
-                E_Next_.mLev_tp1_Over_pLev_t_from_num_a_t, a_lst
+                E_Next_.mLvl_tp1_Over_pLvl_t_from_num_a_t, a_lst
             ))
         )
-        E_Next_.mLev_tp1_Over_pLev_t_from_a_t = (
+        E_Next_.mLvl_tp1_Over_pLvl_t_from_a_t = (
             lambda a_t:
-            E_Next_.mLev_tp1_Over_pLev_t_from_lst_a_t(a_t)
+            E_Next_.mLvl_tp1_Over_pLvl_t_from_lst_a_t(a_t)
             if (type(a_t) == list or type(a_t) == np.ndarray) else
-            E_Next_.mLev_tp1_Over_pLev_t_from_num_a_t(a_t)
+            E_Next_.mLvl_tp1_Over_pLvl_t_from_num_a_t(a_t)
         )
         E_Next_.m_tp1_from_a_t = (
             lambda a_t:
@@ -2099,9 +2099,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             if (type(a_t) == list or type(a_t) == np.ndarray) else
             E_Next_.log_permShk_tp1_times_m_tp1_from_num_a_t(a_t)
         )
-        E_Next_.cLev_tp1_Over_pLev_t_from_lst_m_t = (
+        E_Next_.cLvl_tp1_Over_pLvl_t_from_lst_m_t = (
             lambda m_t:
-            E_Next_.cLev_tp1_Over_pLev_t_from_lst_a_t(m_t -
+            E_Next_.cLvl_tp1_Over_pLvl_t_from_lst_a_t(m_t -
                                                       Bilt.cFunc(m_t))
         )
         E_Next_.permShk_tp1_times_m_tp1_Over_m_t = (
@@ -2112,16 +2112,16 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             lambda m_t:
             E_Next_.permShk_tp1_times_m_tp1_Over_m_t(m_t) - Pars.PermGroFac
         )
-        E_Next_.cLev_tp1_Over_pLev_t_from_num_m_t = (
+        E_Next_.cLvl_tp1_Over_pLvl_t_from_num_m_t = (
             lambda m_t:
-            E_Next_.cLev_tp1_Over_pLev_t_from_num_a_t(m_t -
+            E_Next_.cLvl_tp1_Over_pLvl_t_from_num_a_t(m_t -
                                                       Bilt.cFunc(m_t))
         )
-        E_Next_.cLev_tp1_Over_cLev_t_from_m_t = (
+        E_Next_.cLvl_tp1_Over_cLvl_t_from_m_t = (
             lambda m_t:
-            E_Next_.cLev_tp1_Over_pLev_t_from_lst_m_t(m_t) / Bilt.cFunc(m_t)
+            E_Next_.cLvl_tp1_Over_pLvl_t_from_lst_m_t(m_t) / Bilt.cFunc(m_t)
             if (type(m_t) == list or type(m_t) == np.ndarray) else
-            E_Next_.cLev_tp1_Over_pLev_t_from_num_m_t(m_t) / Bilt.cFunc(m_t)
+            E_Next_.cLvl_tp1_Over_pLvl_t_from_num_m_t(m_t) / Bilt.cFunc(m_t)
         )
         E_Next_.mLog_tp1_minus_mLog_t_from_m_t = (
             lambda m_t:

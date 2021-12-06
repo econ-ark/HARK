@@ -2566,8 +2566,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         cNrm = self.solution[-1].cFunc(mNrm)
         aNrm = mNrm - cNrm
         Ex_Ptp1 = PermGroFac[0]
-        Ex_bLev_tp1 = aNrm * self.Rfree
-        Ex_Mtp1 = Ex_bLev_tp1
+        Ex_bLvl_tp1 = aNrm * self.Rfree
+        Ex_Mtp1 = Ex_bLvl_tp1
         return Ex_Mtp1 / Ex_Ptp1
 
     def Ex_mtp1(self, mNrm):
