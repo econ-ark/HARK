@@ -487,7 +487,7 @@ class ConsPerfForesightSolver(MetricObject):
                 return solution
 
         Ex_PermShk_tp1_times_m_tp1_minus_m_t = (
-            lambda mStE: PF_RNrm * (mStE - solution.cFunc(mStE)) + 1.0 - mStE
+            lambda mBalLvl: PF_RNrm * (mBalLvl - solution.cFunc(mBalLvl)) + 1.0 - mBalLvl
         )
 
         # Minimum market resources plus next income is okay starting guess
