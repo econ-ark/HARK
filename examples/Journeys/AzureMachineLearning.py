@@ -1,7 +1,7 @@
 # ---
 # jupyter:
 #   jupytext:
-#     cell_metadata_filter: collapsed,code_folding,heading_collapsed,hidden
+#     cell_metadata_filter: collapsed,code_folding,heading_collapsed,hidden,jupyter,pycharm
 #     cell_metadata_json: true
 #     formats: ipynb,py:percent
 #     text_representation:
@@ -21,7 +21,7 @@
 # %% [markdown]
 # ## [Quickstart: Create workspace resources you need to get started with Azure Machine Learning](https://docs.microsoft.com/en-us/azure/machine-learning/quickstart-create-resources)
 #
-# 1. Create an azure account ([Github Student developer pack](https://education.github.com/pack provides free account with $100 credit)
+# 1. Create an azure account -- [Github Student developer pack](https://education.github.com/pack) provides free account with $100 credit
 # 2. Follow ["Create the workspace"](https://docs.microsoft.com/en-us/azure/machine-learning/quickstart-create-resources#create-the-workspace) to start a Azure Machine Learning Studio
 # 3. Follow ["Create compute instance"](https://docs.microsoft.com/en-us/azure/machine-learning/quickstart-create-resources#instance) to create 2 compute instances (don't use the defaults!). Here, you can create a 1-core (Standard_DS1_v2 (1 cores, 3.5 GB RAM, 7 GB disk) and a 4-core (Standard_DS3_v2 (4 cores, 14 GB RAM, 28 GB disk) instance.
 
@@ -30,9 +30,10 @@
 #
 # 1. Download this notebook as a `.ipynb` file to your PC.
 # 2. On the home of Microsoft Azure Machine Learning Studio, you will see a panel with `Notebooks`. Click on `Start now`.
-# 3. Click on `Terminal` and type `pip install econ-ark` on both computes. You can switch computes on the top right part of the window.
+# 3. Click on `Terminal` and type `pip install git+https://github.com/econ-ark/HARK.git` on both computes. You can switch computes on the top right part of the window.
 # 4. Close and terminate the terminals.
 # 5. Click on `+ Create` and `Upload files`. Upload this notebook.
+# 6. Make sure the kernel is set to `Python 3.8 AzureML` on upper right corner next to compute.
 #
 # Now, you should be able to run this notebook on either compute (switch computes on top right again) and test out the differences in computational resources. When you run into an issue on your desktop computer or laptop, you can take advantage of cloud computing resources.
 

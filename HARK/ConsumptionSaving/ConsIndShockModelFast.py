@@ -228,7 +228,7 @@ def _add_mNrmStENumba(
         return None
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def _solveConsPerfForesightNumba(
     DiscFac,
     LivPrb,
@@ -404,7 +404,7 @@ def _np_insert(arr, obj, values, axis=-1):
     return np.append(np.array(values), arr)
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def _prepare_to_solveConsIndShockNumba(
     DiscFac,
     LivPrb,
@@ -512,7 +512,7 @@ def _prepare_to_solveConsIndShockNumba(
     )
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def _solveConsIndShockLinearNumba(
     mNrmMinNext,
     mNrmNext,
@@ -668,7 +668,7 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
         return solution
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def _solveConsIndShockCubicNumba(
     mNrmMinNext,
     mNrmNext,
