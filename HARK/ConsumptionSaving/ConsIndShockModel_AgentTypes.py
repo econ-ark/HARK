@@ -599,16 +599,16 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
         if not soln.Bilt.GICRaw:  # no mBalLvl
             soln.Bilt.mBalLvl = soln.mBalLvl = float('nan')
-        else:  # mBalLvl exists; compute it and check mNrmTrg
+        else:  # mBalLvl exists; compute it and check mTrgNrm
             soln.Bilt.mBalLvl = soln.mBalLvl_find()
         if not self.income_risks_exist:  # If a PF model, nothing more to do
-            soln.Bilt.mNrmTrg = soln.mBalLvl_find()
+            soln.Bilt.mTrgNrm = soln.mBalLvl_find()
             return
         else:
             if not soln.Bilt.GICNrm:
-                soln.Bilt.mNrmTrg = float('nan')
+                soln.Bilt.mTrgNrm = float('nan')
             else:  # GICNrm exists; calculate it
-                soln.Bilt.mNrmTrg = soln.mNrmTrg_find()
+                soln.Bilt.mTrgNrm = soln.mTrgNrm_find()
         return
 
     # CDC 20210511: The old version of ConsIndShockModel mixed calibration and results

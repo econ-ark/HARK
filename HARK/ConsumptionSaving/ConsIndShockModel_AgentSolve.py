@@ -212,7 +212,7 @@ class ConsumerSolution(ConsumerSolutionOlder, agent_stage_solution):
     # to cFunc but doing so will require recalibrating some of our tests
     #  distance_criteria = ["vPfunc"]  # Bad b/c vP(0)=inf; should use cFunc
     #  distance_criteria = ["vFunc.dm"]  # Bad b/c vP(0)=inf; should use cFunc
-    #  distance_criteria = ["mNrmTrg"]  # mNrmTrg better choice if GICNrm holds
+    #  distance_criteria = ["mTrgNrm"]  # mTrgNrm better choice if GICNrm holds
     distance_criteria = ["cFunc"]  # cFunc if the GICRaw fails
 
     def __init__(self, *args,
@@ -684,7 +684,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         soln.Bilt.WRIC = core_check_condition(
             name, test, messages, messaging_level, verbose_messages, "WRPF", soln, quietly)
 
-    def mNrmTrg_find(self):
+    def mTrgNrm_find(self):
         """
         Find value of m at which individual consumer expects m not to change.
 
@@ -694,17 +694,17 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         Returns
         -------
-            The target value mNrmTrg.
+            The target value mTrgNrm.
         """
         m_init_guess = self.Bilt.mNrmMin + self.E_Next_.IncNrmNxt
         try:  # Find value where argument is zero
-            self.Bilt.mNrmTrg = find_zero_newton(
+            self.Bilt.mTrgNrm = find_zero_newton(
                 self.E_Next_.m_tp1_minus_m_t,
                 m_init_guess)
         except:
-            self.Bilt.mNrmTrg = None
+            self.Bilt.mTrgNrm = None
 
-        return self.Bilt.mNrmTrg
+        return self.Bilt.mTrgNrm
 
     def mBalLvl_find(self):
         """
@@ -1909,7 +1909,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         E_Next_.c_where_E_Next_permShk_tp1_times_m_tp1_minus_m_t_eq_0 = \
             lambda m_t: \
             (m_t * (1 - 1 / E_Next_.RNrm_PF)) + (1 / E_Next_.RNrm_PF)
-        # mNrmTrg solves E_Next_.RNrm*(m - c(m)) + E[inc_next] - m = 0
+        # mTrgNrm solves E_Next_.RNrm*(m - c(m)) + E[inc_next] - m = 0
 
         E_Next_.m_tp1_minus_m_t = (
             lambda m_t:

@@ -393,12 +393,12 @@ class testStablePoints(unittest.TestCase):
 
         # Extract stable points
         mBalLvl = baseAgent_Inf.solution[0].mBalLvl
-        mNrmTrg = baseAgent_Inf.solution[0].mNrmTrg
+        mTrgNrm = baseAgent_Inf.solution[0].mTrgNrm
 
         # Check against pre-computed values
         decimalPlacesTo = 10
         self.assertAlmostEqual(mBalLvl, 1.37731133865, decimalPlacesTo)
-        self.assertAlmostEqual(mNrmTrg, 1.39101653806, decimalPlacesTo)
+        self.assertAlmostEqual(mTrgNrm, 1.39101653806, decimalPlacesTo)
 
 
 JACDict={

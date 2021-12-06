@@ -379,7 +379,7 @@ class ConsPerfForesightSolver(MetricObject):
         self.Ex_IncNext = 1.0  # Perfect foresight income of 1
         self.mNrmMinNow = mNrmNow[0]  # Relabeling for compatibility with add_mBalLvl
 
-    def add_mNrmTrg(self, solution):
+    def add_mTrgNrm(self, solution):
         """
         Finds value of (normalized) market resources m at which individual consumer
         expects m not to change.
@@ -405,14 +405,14 @@ class ConsPerfForesightSolver(MetricObject):
                 if self.GICRaw:  # max of nat and art boro cnst
                     if type(self.BoroCnstArt) == type(None):
                         solution.mBalLvl = -self.hNrmNow
-                        solution.mNrmTrg = -self.hNrmNow
+                        solution.mTrgNrm = -self.hNrmNow
                     else:
                         bNrmNxt = -self.BoroCnstArt * self.Rfree/self.PermGroFac
                         solution.mBalLvl = bNrmNxt + 1.0
-                        solution.mNrmTrg = bNrmNxt + 1.0
+                        solution.mTrgNrm = bNrmNxt + 1.0
                 else:  # infinity
                     solution.mBalLvl = float('inf')
-                    solution.mNrmTrg = float('inf')
+                    solution.mTrgNrm = float('inf')
                 return solution
 
         # First find
@@ -424,7 +424,7 @@ class ConsPerfForesightSolver(MetricObject):
 
         Ex_RNrmFac = (self.Rfree/self.PermGroFac)*Ex_PermShkInv
 
-        # mNrmTrg solves Rcalbar*(m - c(m)) + E[inc_next] = m. Define a
+        # mTrgNrm solves Rcalbar*(m - c(m)) + E[inc_next] = m. Define a
         # rearranged version.
         Ex_m_tp1_minus_m_t = (
             lambda m: Ex_RNrmFac * (m - solution.cFunc(m)) + self.Ex_IncNext - m
@@ -433,12 +433,12 @@ class ConsPerfForesightSolver(MetricObject):
         # Minimum market resources plus next income is okay starting guess
         m_init_guess = self.mNrmMinNow + self.Ex_IncNext
         try:
-            mNrmTrg = newton(Ex_m_tp1_minus_m_t, m_init_guess)
+            mTrgNrm = newton(Ex_m_tp1_minus_m_t, m_init_guess)
         except:
-            mNrmTrg = None
+            mTrgNrm = None
 
-        # Add mNrmTrg to the solution and return it
-        solution.mNrmTrg = mNrmTrg
+        # Add mTrgNrm to the solution and return it
+        solution.mTrgNrm = mTrgNrm
         return solution
 
     def add_mBalLvl(self, solution):
@@ -476,14 +476,14 @@ class ConsPerfForesightSolver(MetricObject):
                     #                    breakpoint()
                     if type(self.BoroCnstArt) == type(None):
                         solution.mBalLvl = -self.hNrmNow
-                        solution.mNrmTrg = -self.hNrmNow
+                        solution.mTrgNrm = -self.hNrmNow
                     else:
                         bNrmNxt = -self.BoroCnstArt * self.Rfree/self.PermGroFac
                         solution.mBalLvl = bNrmNxt + 1.0
-                        solution.mNrmTrg = bNrmNxt + 1.0
+                        solution.mTrgNrm = bNrmNxt + 1.0
                 else:  # infinity
                     solution.mBalLvl = float('inf')
-                    solution.mNrmTrg = float('inf')
+                    solution.mTrgNrm = float('inf')
                 return solution
 
         Ex_PermShk_tp1_times_m_tp1_minus_m_t = (
@@ -515,7 +515,7 @@ class ConsPerfForesightSolver(MetricObject):
         -------
         solution : ConsumerSolution
             Same solution that was provided, augmented with attributes mBalLvl and
-            mNrmTrg, if they exist.
+            mTrgNrm, if they exist.
 
         """
 
@@ -527,7 +527,7 @@ class ConsPerfForesightSolver(MetricObject):
         GICRaw = 1 > thorn/self.PermGroFac
         if self.BoroCnstArt is not None and GICRaw:
             solution = self.add_mBalLvl(solution)
-            solution = self.add_mNrmTrg(solution)
+            solution = self.add_mTrgNrm(solution)
         return solution
 
     def solve(self):
@@ -1011,12 +1011,12 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         -------
         solution : ConsumerSolution
             Same solution that was passed, but now with attributes mBalLvl and
-            mNrmTrg, if they exist.
+            mTrgNrm, if they exist.
 
         """
 
         # 0. Check if GICRaw holds. If so, then mBalLvl will exist. So, compute it.
-        # 1. Check if GICNrm holds. If so, then mNrmTrg will exist. So, compute it.
+        # 1. Check if GICNrm holds. If so, then mTrgNrm will exist. So, compute it.
 
         thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
 
@@ -1032,7 +1032,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         if GICRaw:
             solution = self.add_mBalLvl(solution)  # find steady state m, if it exists
         if GICNrm:
-            solution = self.add_mNrmTrg(solution)  # find target m, if it exists
+            solution = self.add_mTrgNrm(solution)  # find target m, if it exists
 
         return solution
 
