@@ -741,9 +741,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         # Add mBalLvl to the solution and return it
         return self.Bilt.mBalLvl
 
-    def mNrmGro_find(self):
+    def mBalLog_find(self):
         """
-        Find mNrmGro where expected growth in log mLvl matches growth in log pLvl
+        Find mBalLog where expected growth in log mLvl matches growth in log pLvl
 
         This is the m at which the consumer expects log of market resources  
         to grow at same rate as the log of permanent income
@@ -765,15 +765,15 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         m_init_guess = self.Bilt.mNrmMin + self.E_Next_.IncNrmNxt
 
         try:
-            self.Bilt.mNrmGro = find_zero_newton(
+            self.Bilt.mBalLog = find_zero_newton(
                 self.E_Next_.mLog_tp1_from_a_t(
                     self.Bilt.cFunc
                     , m_init_guess))
         except:
-            self.Bilt.mNrmGro = None
+            self.Bilt.mBalLog = None
 
-        # Add mNrmGro to the solution and return it
-        return self.Bilt.mNrmGro
+        # Add mBalLog to the solution and return it
+        return self.Bilt.mBalLog
 
 
 # Until this point, our objects have been "solution" not "solver" objects.  To
