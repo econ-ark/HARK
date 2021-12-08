@@ -225,31 +225,31 @@ document and \texttt{CRRA} in a software module.
     \\ \verb|\deprRte|     & $\deprRte$    & Depreciation Rate & $\deprRte = \DeprFac -1 \approx \log \DeprFac $
     \\ \verb|\TranShkAgg|  & $\TranShkAgg$ & Transitory shock (aggregate) & $\Ex_{t}[\TranShkAgg_{t+n}]=1$ if $\TranShkAgg$ iid
     \\ \verb|\tranShkInd|  & $\tranShkInd$ & transitory shock (idiosyncratic) &  $\Ex_{t}[\tranShkInd_{t+n}]=1$ if $\tranShkInd$ iid
-    \\ \verb|\tranShk|      & $\tranShk$   & transitory shock (combo) &  $\tranShk_{t} = \TranShkAgg_{t}\tranShkInd_{t}$
+    \\ \verb|\TranShk|      & $\TranShk$   & transitory shock (combo) &  $\TranShk_{t} = \TranShkAgg_{t}\tranShkInd_{t}$
     \\ \verb|\PermShkAgg|  & $\PermShkAgg$ & Permanent shock (aggregate) & $\Ex_{t}[\PermShkAgg_{t+n}]=1$ if $\PermShkAgg$ iid
     \\ \verb|\permShkInd|  & $\permShkInd$ & permanent shock (idiosyncratic) & $\Ex_{t}[\permShkInd_{t+n}]=1$ if $\permShkInd$ iid
 %    \\ \verb|\permShk|      & $\permShk$ & permanent shock (combo) & $\pmb{\permShk}_{t} = \PermShkAgg_{t} \permShkInd_{t}$
-    \\ \verb|\permShk|      & $\permShk$ & permanent shock (combo) & $\pmb{\permShk}_{t} = \PermShkAgg_{t} \permShkInd_{t}$
-    \\ \verb|\PermLvlAgg|  & $\PermLvlAgg$ & Permanent Productivity (level) & $\PermLvlAgg_{t+1} = \PtyGroFacAgg_{t+1}\PermLvlAgg_{t} $
-    \\ \verb|\permLvlInd|  & $\permLvlInd$ & permanent productivity (idiosyncratic) & $\permLvlInd_{t+1} = \ptyGroFacInd_{t+1}\permLvlInd_{t} $
-    \\ \verb|\permLvl|  & $\permLvl$ & permanent productivity (combo) & $\permLvl_{t} = \PermLvlAgg_{t}\permLvlInd_{t} $
+    \\ \verb|\PermShk|      & $\PermShk$ & permanent shock (combo) & $\pmb{\PermShk}_{t} = \PermShkAgg_{t} \permShkInd_{t}$
+    \\ \verb|\PermLvlAgg|  & $\PermLvlAgg$ & Permanent Productivity (level) & $\PermLvlAgg_{t+1} = \PermGroFacAgg_{t+1}\PermLvlAgg_{t} $
+    \\ \verb|\permLvlInd|  & $\permLvlInd$ & permanent productivity (idiosyncratic) & $\permLvlInd_{t+1} = \permGroFacInd_{t+1}\permLvlInd_{t} $
+    \\ \verb|\PermLvl|  & $\PermLvl$ & permanent productivity (combo) & $\PermLvl_{t} = \PermLvlAgg_{t}\permLvlInd_{t} $
     \\ \verb|\PopnGroFac|   & $\PopnGroFac$ & Population Growth (Aggregate) & $\PopnLvl_{t+1} = \PopnGroFac \PopnLvl_{t}$
     \\ \verb|\PopnGroRte|   & $\PopnGroRte$ & Population Growth rate & $\PopnGroRte = \PopnGroFac - 1 \approx \log \PopnGroFac$
     \\ \verb|\PopnLvl|   & $\PopnLvl$ & Population Level & $\PopnLvl_{t+1} = \PopnGroFac_{t+1} \PopnLvl_{t}$
-    \\ \verb|\PtyGroFacAgg|  & $\PtyGroFacAgg$ & Productivity Growth (Aggregate) & $\PermLvlAgg_{t+1}=\PermLvlAgg_{t} \PtyGro$
-%    \\ \verb|\PtyGroRteAgg|  & $\PtyGroRteAgg$ & Productivity Growth Rate & $\PtyGro = (1+\ptyGro)$
-    \\ \verb|\ptyGroFacInd|  & $\ptyGroFacInd$ & productivity Growth (Idiosyncratic) & $\ptyLvlInd_{t+1} = \ptyGroFacInd \ptyLvlInd_{t}$
-%    \\ \verb|\ptyGroRteInd|  & $\ptyGroRteInd$ & productivity Growth Rate & $\ptyGroFac = (1+\ptyGroRte)$
-    \\ \verb|\ptyGroFac|  & $\ptyGroFac$ & productivity Growth (combo) & $\ptyGroFac = \ptyGroFacInd \PtyGroFacAgg$
-    \\ \verb|\ptyGroRte|  & $\ptyGroRte$ & productivity growth rate (combo) & $\ptyGroRte = \log \ptyGroFac$
-    % \\ \verb|\ptyGroRte|  & $\ptyGroRte$ & productivity Growth Rate (combo) & $\ptyGroRte = \PtyGroRteAgg+\ptyGroRteInd$
+    \\ \verb|\PermGroFacAgg|  & $\PermGroFacAgg$ & Productivity Growth (Aggregate) & $\PermLvlAgg_{t+1}=\PermLvlAgg_{t} \PermGroFacAgg$
+%    \\ \verb|\PermGroRteAgg|  & $\PermGroRteAgg$ & Productivity Growth Rate & $\PermGro = (1+\permGro)$
+    \\ \verb|\permGroFacInd|  & $\permGroFacInd$ & productivity Growth (Idiosyncratic) & $\permLvlInd_{t+1} = \permGroFacInd \permLvlInd_{t}$
+%    \\ \verb|\permGroRteInd|  & $\permGroRteInd$ & productivity Growth Rate & $\permGroFac = (1+\permGroRte)$
+    \\ \verb|\PermGroFac|  & $\PermGroFac$ & productivity Growth (combo) & $\PermGroFac = \permGroFacInd \PermGroFacAgg$
+    \\ \verb|\permGroRte|  & $\permGroRte$ & productivity growth rate (combo) & $\permGroRte = \log \permGroFac$
+    % \\ \verb|\permGroRte|  & $\permGroRte$ & productivity Growth Rate (combo) & $\permGroRte = \PermGroRteAgg+\permGroRteInd$
     \\ \verb|\leiShare|  & $\leiShare$ & Leisure share, Cobb-Douglas utility & $\uFunc(c,z)=(1-\CRRA)^{-1}(c^{1-\leiShare}z^{\leiShare})^{1-\CRRA}$
     \\ \verb|\MPC|  & $\MPC$ & Marginal Propensity to Consume & $\cFunc^{\prime}(\mNrm)=\partial c/\partial m$
     \\ \verb|\APF|  & $\APF$ & Absolute Patience Factor (\texttt{Thorn}) & $\APF = (\Rfree \DiscFac)^{1/\CRRA} $
-    \\ \verb|\GPF| & $\GPF$ & Growth Patience Factor & $\GPF = \APF/\ptyGro $
+    \\ \verb|\GPF| & $\GPF$ & Growth Patience Factor & $\GPF = \APF/\PermGroFac $
     \\ \verb|\RPF| & $\RPF$ & Return Patience Factor & $\Pat = \APF/\Rfree $ 
     \\ \verb|\APR|  & $\APR$ & Absolute Patience rate (\texttt{thorn}) & $\pat = (\Rfree \DiscFac)^{1/\CRRA}-1 \approx \CRRA^{-1}(\rfree-\discRte) $
-    \\ \verb|\GPR| & $\GPR$ & Growth Patience rate  & $\patpGro = \pat -\ptyGroRte $
+    \\ \verb|\GPR| & $\GPR$ & Growth Patience rate  & $\patpGro = \pat -\permGroRte $
     \\ \verb|\RPR| & $\patr$ & Return Patience rate  & $\patr =\pat -\rfree $
     \\ \verb|\riskyshare|  & $\riskyshare$ & Portfolio share in risky assets & $\Rport_{t+1}=(1-\riskyshare)\Rfree+\riskyshare\Risky_{t+1}$
     \\	\hline
@@ -278,7 +278,7 @@ A few operators are so universally used that it will be useful to define them.
     Name    & \LaTeX         & Code & Description & Illustration
     \\ \hline
     \verb|\Ex|        & $\Ex$       & \texttt{Ex\_} & The expectation as of date $t$ & $\Ex_{t}[\uFunc^{\prime}(\cNrm_{t+1})]$
-\\     \verb|\Mean| & $\Mean$ & \texttt{Mean\_} & The population mean of a variable & $\Mean[\permLvl]=1$
+\\     \verb|\Mean| & $\Mean$ & \texttt{Mean\_} & The population mean of a variable & $\Mean[\permLvlInd]=1$
     \\   \verb|\PDV|        & $\PDV$       & \texttt{PDV\_} & Present Discounted Value & $\PDV_{t}^{T}(y)$ is human wealth
     \\	\hline
   \end{tabular}
