@@ -4,6 +4,7 @@
 \usepackage{\LaTeXInputs/\texname}
 \usepackage{\econtexSetup}
 \usepackage{\econtexShortcuts}
+\usepackage{/Volumes/Data/Papers/BufferStockTheory/BufferStockTheory-Latest/Resources/LaTeXInputs/BufferStockTheory}
 
 \begin{document}
 
@@ -124,7 +125,7 @@ There are more objects that are likely to be used extensively in ARK projects th
     \hline
     Name & - & Description 
     \\ \hline
-    \texttt{CND}    & - & Consumption of Nondurable Good 
+    \texttt{CND}    & - & Consumption of Nondurable Goods 
     \\   \texttt{CNS}    & - & Consumption of Nondurables and Services
     \\  \texttt{Cst}    & - & Cost of something 
     \\  \texttt{Dgd}    & - & Stock of durable good
@@ -136,12 +137,10 @@ There are more objects that are likely to be used extensively in ARK projects th
     \\  \texttt{Sav}    & - & Saving (=Income Minus Consumption)
     \\  \texttt{Tax}    & - & Tax -- should be modified by \texttt{Rte} or \texttt{Amt} articulated below
     \\  \texttt{Popn}    & - & Size of population
-    \\  \texttt{Perm}   & - & Permanent (noncapital) income - aggregate
-    \\  \texttt{prm}   & - & permanent (noncapital) income - idiosyncratic component
-    \\  \texttt{perm}   & - & permanent (noncapital) income - combined aggregate and idiosyncratic
-    \\  \texttt{Tran}   & - & Transitory (noncapital) income - aggregate
-    \\  \texttt{trn}   & - & Transitory (noncapital) income - idiosyncratic
-    \\  \texttt{tran}   & - & Transitory (noncapital) income - combined aggregate and idiosyncratic
+%    \\  \texttt{Perm}   & - & Permanent (noncapital) income - combined
+%    \\  \texttt{perm}   & - & ~~individual or aggregate depending on suffix
+%    \\  \texttt{Tran}   & - & Transitory (noncapital) income - combined
+%    \\  \texttt{tran}   & - & ~~individual or aggregate depending on suffix
     \\ \hline
   \end{tabular}
   \caption{String Variables}
@@ -223,33 +222,33 @@ document and \texttt{CRRA} in a software module.
     \\ \verb|\discRte|     & $\discRte$    & Time Discount rate & $\discRte=\DiscFac^{-1}-1$
     \\ \verb|\DeprFac|     & $\DeprFac$    & Depreciation Factor (\texttt{daleth}) & $\Kap_{t+1} = \DeprFac \Kap_{t}+\ILvl_{t}$
     \\ \verb|\deprRte|     & $\deprRte$    & Depreciation Rate & $\deprRte = \DeprFac -1 \approx \log \DeprFac $
-    \\ \verb|\TranShkAgg|  & $\TranShkAgg$ & Transitory shock (aggregate) & $\Ex_{t}[\TranShkAgg_{t+n}]=1$ if $\TranShkAgg$ iid
+    \\ \verb|\tranShkAgg|  & $\tranShkAgg$ & Transitory shock (aggregate) & $\Ex_{t}[\tranShkAgg_{t+n}]=1$ if $\tranShkAgg$ iid
     \\ \verb|\tranShkInd|  & $\tranShkInd$ & transitory shock (idiosyncratic) &  $\Ex_{t}[\tranShkInd_{t+n}]=1$ if $\tranShkInd$ iid
-    \\ \verb|\TranShk|      & $\TranShk$   & transitory shock (combo) &  $\TranShk_{t} = \TranShkAgg_{t}\tranShkInd_{t}$
-    \\ \verb|\PermShkAgg|  & $\PermShkAgg$ & Permanent shock (aggregate) & $\Ex_{t}[\PermShkAgg_{t+n}]=1$ if $\PermShkAgg$ iid
+    \\ \verb|\TranShk|      & $\TranShk$   & transitory shock (combo) &  $\TranShk_{t} = \tranShkAgg_{t}\tranShkInd_{t}$
+    \\ \verb|\permShkAgg|  & $\permShkAgg$ & Permanent shock (aggregate) & $\Ex_{t}[\permShkAgg_{t+n}]=1$ if $\permShkAgg$ iid
     \\ \verb|\permShkInd|  & $\permShkInd$ & permanent shock (idiosyncratic) & $\Ex_{t}[\permShkInd_{t+n}]=1$ if $\permShkInd$ iid
-%    \\ \verb|\permShk|      & $\permShk$ & permanent shock (combo) & $\pmb{\permShk}_{t} = \PermShkAgg_{t} \permShkInd_{t}$
-    \\ \verb|\PermShk|      & $\PermShk$ & permanent shock (combo) & $\pmb{\PermShk}_{t} = \PermShkAgg_{t} \permShkInd_{t}$
-    \\ \verb|\PermLvlAgg|  & $\PermLvlAgg$ & Permanent Productivity (level) & $\PermLvlAgg_{t+1} = \PermGroFacAgg_{t+1}\PermLvlAgg_{t} $
-    \\ \verb|\permLvlInd|  & $\permLvlInd$ & permanent productivity (idiosyncratic) & $\permLvlInd_{t+1} = \permGroFacInd_{t+1}\permLvlInd_{t} $
-    \\ \verb|\PermLvl|  & $\PermLvl$ & permanent productivity (combo) & $\PermLvl_{t} = \PermLvlAgg_{t}\permLvlInd_{t} $
+%    \\ \verb|\permShk|      & $\permShk$ & permanent shock (combo) & $\pmb{\permShk}_{t} = \permShkAgg_{t} \permShkInd_{t}$
+    \\ \verb|\PermShk|      & $\PermShk$ & permanent shock (combo) & $\pmb{\PermShk}_{t} = \permShkAgg_{t} \permShkInd_{t}$
+    \\ \verb|\permLvlAgg|  & $\permLvlAgg$ & Permanent Income (level) & $\permLvlAgg_{t+1} = \permGroFacAgg_{t+1}\permLvlAgg_{t} $
+    \\ \verb|\permLvlInd|  & $\permLvlInd$ & permanent income (idiosyncratic) & $\permLvlInd_{t+1} = \permGroFacInd_{t+1}\permLvlInd_{t} $
+    \\ \verb|\PermLvl|  & $\PermLvl$ & permanent income (combo) & $\PermLvl_{t} = \permLvlAgg_{t}\permLvlInd_{t} $
     \\ \verb|\PopnGroFac|   & $\PopnGroFac$ & Population Growth (Aggregate) & $\PopnLvl_{t+1} = \PopnGroFac \PopnLvl_{t}$
     \\ \verb|\PopnGroRte|   & $\PopnGroRte$ & Population Growth rate & $\PopnGroRte = \PopnGroFac - 1 \approx \log \PopnGroFac$
     \\ \verb|\PopnLvl|   & $\PopnLvl$ & Population Level & $\PopnLvl_{t+1} = \PopnGroFac_{t+1} \PopnLvl_{t}$
-    \\ \verb|\PermGroFacAgg|  & $\PermGroFacAgg$ & Productivity Growth (Aggregate) & $\PermLvlAgg_{t+1}=\PermLvlAgg_{t} \PermGroFacAgg$
+    \\ \verb|\permGroFacAgg|  & $\permGroFacAgg$ & Productivity Growth (Aggregate) & $\permLvlAgg_{t+1}=\permLvlAgg_{t} \permGroFacAgg$
 %    \\ \verb|\PermGroRteAgg|  & $\PermGroRteAgg$ & Productivity Growth Rate & $\PermGro = (1+\permGro)$
     \\ \verb|\permGroFacInd|  & $\permGroFacInd$ & productivity Growth (Idiosyncratic) & $\permLvlInd_{t+1} = \permGroFacInd \permLvlInd_{t}$
-%    \\ \verb|\permGroRteInd|  & $\permGroRteInd$ & productivity Growth Rate & $\permGroFac = (1+\permGroRte)$
-    \\ \verb|\PermGroFac|  & $\PermGroFac$ & productivity Growth (combo) & $\PermGroFac = \permGroFacInd \PermGroFacAgg$
-    \\ \verb|\permGroRte|  & $\permGroRte$ & productivity growth rate (combo) & $\permGroRte = \log \permGroFac$
-    % \\ \verb|\permGroRte|  & $\permGroRte$ & productivity Growth Rate (combo) & $\permGroRte = \PermGroRteAgg+\permGroRteInd$
+%    \\ \verb|\PermGroRteInd|  & $\PermGroRteInd$ & productivity Growth Rate & $\permGroFac = (1+\PermGroRte)$
+    \\ \verb|\PermGroFac|  & $\PermGroFac$ & productivity Growth (combo) & $\PermGroFac = \permGroFacInd \permGroFacAgg$
+    \\ \verb|\PermGroRte|  & $\PermGroRte$ & productivity growth rate (combo) & $\PermGroRte = \log \permGroFac$
+    % \\ \verb|\PermGroRte|  & $\PermGroRte$ & productivity Growth Rate (combo) & $\PermGroRte = \PermGroRteAgg+\PermGroRteInd$
     \\ \verb|\leiShare|  & $\leiShare$ & Leisure share, Cobb-Douglas utility & $\uFunc(c,z)=(1-\CRRA)^{-1}(c^{1-\leiShare}z^{\leiShare})^{1-\CRRA}$
     \\ \verb|\MPC|  & $\MPC$ & Marginal Propensity to Consume & $\cFunc^{\prime}(\mNrm)=\partial c/\partial m$
-    \\ \verb|\APF|  & $\APF$ & Absolute Patience Factor (\texttt{Thorn}) & $\APF = (\Rfree \DiscFac)^{1/\CRRA} $
-    \\ \verb|\GPF| & $\GPF$ & Growth Patience Factor & $\GPF = \APF/\PermGroFac $
-    \\ \verb|\RPF| & $\RPF$ & Return Patience Factor & $\Pat = \APF/\Rfree $ 
-    \\ \verb|\APR|  & $\APR$ & Absolute Patience rate (\texttt{thorn}) & $\pat = (\Rfree \DiscFac)^{1/\CRRA}-1 \approx \CRRA^{-1}(\rfree-\discRte) $
-    \\ \verb|\GPR| & $\GPR$ & Growth Patience rate  & $\patpGro = \pat -\permGroRte $
+    \\ \verb|\APF|  & $\Pat$ & Absolute Patience Factor (\texttt{Thorn}) & $\APF = (\Rfree \DiscFac)^{1/\CRRA} $
+    \\ \verb|\GPF| & $\PatPGro$ & Growth Patience Factor & $\GPF = \APF/\PermGroFac $
+    \\ \verb|\RPF| & $\PatR$ & Return Patience Factor & $\Pat = \APF/\Rfree $ 
+    \\ \verb|\APR|  & $\pat$ & Absolute Patience rate (\texttt{thorn}) & $\pat = (\Rfree \DiscFac)^{1/\CRRA}-1 \approx \CRRA^{-1}(\rfree-\discRte) $
+    \\ \verb|\GPR| & $\patPGro$ & Growth Patience rate  & $\patpGro = \pat -\PermGroRte $
     \\ \verb|\RPR| & $\patr$ & Return Patience rate  & $\patr =\pat -\rfree $
     \\ \verb|\riskyshare|  & $\riskyshare$ & Portfolio share in risky assets & $\Rport_{t+1}=(1-\riskyshare)\Rfree+\riskyshare\Risky_{t+1}$
     \\	\hline
@@ -304,6 +303,7 @@ There are a number of ways in which we need to refer to specific values of a var
     \\ \textit{[object]}\texttt{Ind} & - & Value of something at the level of an idiosyncratic (as opposed to \texttt{Agg})
     \\ \textit{[object]}\texttt{Lvl} & - & Level 
     \\ \textit{[object]}\texttt{Rto} & - & Ratio 
+    \\ \textit{[object]}\texttt{Log} & - & Logarithm of the variable
     \\ \textit{[object]}\texttt{Bot} & - & Lower value in some range 
     \\ \textit{[object]}\texttt{Top} & - & Upper value in some range 
     \\ \textit{[object]}\texttt{Min} & - & Minimum possible value 
@@ -311,7 +311,7 @@ There are a number of ways in which we need to refer to specific values of a var
     \\ \textit{[object]}\texttt{Cnt} & - & Continuous-time value
     \\ \textit{[object]}\texttt{Dsc} & - & Discrete-time value
     \\ \textit{[object]}\texttt{Shk} & - & Shock 
-    \\ \textit{[object]}\texttt{StE} & - & Steady-state Equilibrium value of a variable
+    \\ \textit{[object]}\texttt{Bal} & - & Balanced Growth Equilibrium value of a variable
     \\ \textit{[object]}\texttt{Trg} & - & The `target' value of a variable 
     \\ \textit{[object]}\texttt{Rte} & - & A `rate' variable like the discount rate $\discRte$
     \\ \textit{[object]}\texttt{Fac} & - & A factor variable like the discount factor $\DiscFac$
@@ -328,6 +328,7 @@ There are a number of ways in which we need to refer to specific values of a var
   \label{table:General}
 \end{table}	
 
+\begin{comment}
 \hypertarget{Stability-Points}{}
 \section{Stability Points}
 \begin{table}[ht]
@@ -339,18 +340,18 @@ There are a number of ways in which we need to refer to specific values of a var
   \caption{Points of Stability}
   \label{table:Stability}
 \end{table}	
-
+\end{comment}
 
 \medskip\medskip
 \hypertarget{Shocks}{}
-Shocks will generally be represented by finite vectors of outcomes and their probabilities.  For example, permanent income is called \texttt{Perm} and shocks are designated \texttt{PermShkAgg}
+Shocks will generally be represented by finite vectors of outcomes and their probabilities.  For example, permanent income is called \texttt{Perm} and shocks are designated \texttt{permShkAgg}
 \begin{table}[ht]
   \centering
   \begin{tabular}{|>{\ttfamily}ccl|} 		
     \hline
     \textit{[object]}\texttt{Dstn} & - & Representation of a probability distribution (includes both Prbs and Vals)
-    \\ \textit{[object]}\texttt{Prbs} & - & Probabilities of outcomes (e.g. \texttt{PermShkAggPrbs} for permanent shocks) 
-    \\ \textit{[object]}\texttt{Vals} & - & Values (e.g., for mean one shock \texttt{PermShkAggVals} . \texttt{PermShkAggPrbs} = 1)                                            
+    \\ \textit{[object]}\texttt{Prbs} & - & Probabilities of outcomes (e.g. \texttt{permShkAggPrbs} for permanent shocks) 
+    \\ \textit{[object]}\texttt{Vals} & - & Values (e.g., for mean one shock \texttt{permShkAggVals} . \texttt{permShkAggPrbs} = 1)                                            
     \\ 	\hline
   \end{tabular}
   \caption{Probabilities}

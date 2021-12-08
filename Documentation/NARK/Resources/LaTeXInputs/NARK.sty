@@ -1,11 +1,13 @@
 \input{\ResourcesDir/owner} % Owned by llorracc (draft) or econ-ark (published) ?
-\newboolean{AddRefsExists}
-\newboolean{economicsExists}
-\newboolean{BothExist}
-\newboolean{NeitherExists}
+\provideboolean{AddRefsExists}
+\provideboolean{economicsExists}
+\provideboolean{BothExist}
+\provideboolean{NeitherExists}
 \setboolean{BothExist}{true}
 \setboolean{NeitherExists}{true}
-\newcommand{\onlyinsubfile}[1]{#1}\newcommand{\notinsubfile}[1]{}
+
+\providecommand{\onlyinsubfile}{}
+\providecommand{\notinsubfile}[1]{#1}\renewcommand{\notinsubfile}[1]{}
 
 % Appendices and body are subfiles
 \usepackage{subfiles}
