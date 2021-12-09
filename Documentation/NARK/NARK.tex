@@ -28,7 +28,6 @@
 
 \begin{abstract}
   Sharing code is easier when different contributors use similar names for similar objects.  While we will not enforce the recommendations below, contributors can make their code more attractive to others by using names consistent with our guidelines.
-  $\GPF$
 \end{abstract}
 
 \centerline{html version at \url{https://econ-ark.github.io/HARK/Documentation/NARK}}
@@ -245,9 +244,9 @@ document and \texttt{CRRA} in a software module.
     % \\ \verb|\PermGroRte|  & $\PermGroRte$ & productivity Growth Rate (combo) & $\PermGroRte = \PermGroRteAgg+\PermGroRteInd$
     \\ \verb|\leiShare|  & $\leiShare$ & Leisure share, Cobb-Douglas utility & $\uFunc(c,z)=(1-\CRRA)^{-1}(c^{1-\leiShare}z^{\leiShare})^{1-\CRRA}$
     \\ \verb|\MPC|  & $\MPC$ & Marginal Propensity to Consume & $\cFunc^{\prime}(\mNrm)=\partial c/\partial m$
-    \\ \verb|\APF|  & $\Pat$ & Absolute Patience Factor (\texttt{Thorn}) & $\APF = (\Rfree \DiscFac)^{1/\CRRA} $
-    \\ \verb|\GPF| & $\PatPGro$ & Growth Patience Factor & $\GPF = \APF/\PermGroFac $
-    \\ \verb|\RPF| & $\PatR$ & Return Patience Factor & $\Pat = \APF/\Rfree $ 
+    \\ \verb|\APF|  & $\Pat$ & Absolute Patience Factor (\texttt{Thorn}) & $\Pat = (\Rfree \DiscFac)^{1/\CRRA} $
+    \\ \verb|\GPF| & $\PatPGro$ & Growth Patience Factor & $\PatPGro = \Pat/\PermGroFac $
+    \\ \verb|\RPF| & $\PatR$ & Return Patience Factor & $\PatR = \Pat/\Rfree $ 
     \\ \verb|\APR|  & $\pat$ & Absolute Patience rate (\texttt{thorn}) & $\pat = (\Rfree \DiscFac)^{1/\CRRA}-1 \approx \CRRA^{-1}(\rfree-\discRte) $
     \\ \verb|\GPR| & $\patPGro$ & Growth Patience rate  & $\patpGro = \pat -\PermGroRte $
     \\ \verb|\RPR| & $\patr$ & Return Patience rate  & $\patr =\pat -\rfree $
