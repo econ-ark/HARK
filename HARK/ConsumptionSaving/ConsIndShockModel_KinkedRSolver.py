@@ -196,7 +196,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         # This overwrites values from set_and_update_values, which were based on Rboro instead.
         if KinkBool:
             RPFacTop = (
-                (self.bilt.Rsave * self.DiscLiv) ** (1.0 / self.CRRA)
+                (self.bilt.Rsave * self.DiscFacLiv) ** (1.0 / self.CRRA)
             ) / self.bilt.Rsave
             self.MPCmin = 1.0 / (1.0 + RPFacTop / self.solution_current.bilt.MPCmin)
             self.hNrm = (

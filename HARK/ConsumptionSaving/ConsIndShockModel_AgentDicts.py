@@ -79,7 +79,7 @@ init_perfect_foresight_plus.update({'Rfree_fcts': Rfree_fcts})
 PermGroFac_fcts = {
     'about': 'Growth factor for permanent income'}
 PermGroFac_fcts.update({'latexexpr': r'\providecommand{\PermGroFac}{\Gamma}\PermGroFac'})
-PermGroFac_fcts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
+PermGroFac_fcts.update({'_unicode_': 'Φ'})  # \Gamma is Greek G for Growth
 PermGroFac_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight_plus['prmtv_par'].append('PermGroFac')
 # init_perfect_foresight_plus['_fcts'].update({'PermGroFac': PermGroFac_fcts})
@@ -88,7 +88,7 @@ init_perfect_foresight_plus.update({'PermGroFac_fcts': PermGroFac_fcts})
 PermGroFacAgg_fcts = {
     'about': 'Growth factor for aggregate permanent income'}
 # PermGroFacAgg_fcts.update({'latexexpr': r'\providecommand{\PermGroFacAgg}{\Gamma}\PermGroFacAgg'})
-# PermGroFacAgg_fcts.update({'_unicode_': 'Γ'})  # \Gamma is Greek G for Growth
+# PermGroFacAgg_fcts.update({'_unicode_': 'Φ'})  # \Gamma is Greek G for Growth
 PermGroFacAgg_fcts.update({'prmtv_par': 'True'})
 init_perfect_foresight_plus['prmtv_par'].append('PermGroFacAgg')
 # init_perfect_foresight_plus['_fcts'].update({'PermGroFacAgg': PermGroFacAgg_fcts})

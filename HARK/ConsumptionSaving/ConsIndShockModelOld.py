@@ -1967,7 +1967,7 @@ class PerfForesightConsumerType(AgentType):
         the Return Impatience Condition (RIC),
         the Finite Human Wealth Condition (FHWC), the perfect foresight
         model's Growth Impatience Condition (GICRaw) and
-        Perfect Foresight Finite Value of Autarky Condition (FVACPF). Depending on the configuration of parameter values, some
+        Perfect Foresight Finite Value of Autarky Condition (PFFVAC). Depending on the configuration of parameter values, some
         combination of these conditions must be satisfied in order for the problem to have
         a nondegenerate solution. To check which conditions are required, in the verbose mode
         a reference to the relevant theoretical literature is made.

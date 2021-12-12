@@ -899,7 +899,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         # Reduce cluttered formulae with local aliases
         E_Next_, tp1 = crnt.E_Next_, self.solution_follows
         Bilt, Pars = crnt.Bilt, crnt.Pars
-        Rfree, PermGroFac, DiscLiv = Pars.Rfree, Pars.PermGroFac, Bilt.DiscLiv
+        Rfree, PermGroFac, DiscFacLiv = Pars.Rfree, Pars.PermGroFac, Bilt.DiscFacLiv
 
         CRRA = tp1.vFunc.CRRA
 
@@ -916,9 +916,9 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         crnt.Bilt.aNrmGrid = aNrm_kinks
 
         # Level and first derivative of expected value from aNrmGrid points
-        v_0 = DiscLiv * \
+        v_0 = DiscFacLiv * \
             PermGroFac ** (1 - CRRA) * vNrm_kinks_tp1
-        v_1 = DiscLiv * \
+        v_1 = DiscFacLiv * \
             PermGroFac ** (0 - CRRA) * tp1.Bilt.u.dc(cNrm_kinks_tp1) * Rfree
 
         c_0 = cNrm_kinks_tp1
@@ -942,8 +942,8 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         Bilt, Pars, E_Next_ = crnt.Bilt, crnt.Pars, crnt.E_Next_
         Rfree, PermGroFac, MPCmin = Pars.Rfree, Pars.PermGroFac, Bilt.MPCmin
 
-        BoroCnstArt, DiscLiv, BoroCnstNat = \
-            Pars.BoroCnstArt, Bilt.DiscLiv, Bilt.BoroCnstNat
+        BoroCnstArt, DiscFacLiv, BoroCnstNat = \
+            Pars.BoroCnstArt, Bilt.DiscFacLiv, Bilt.BoroCnstNat
 
         u, u.Nvrs, u.dc.Nvrs = Bilt.u, Bilt.u.Nvrs, Bilt.u.dc.Nvrs
         CRRA_tp1 = tp1.Bilt.vFunc.CRRA
@@ -974,10 +974,10 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
 
         # by t_E_ here we mean "discounted back to period t"
         t_E_v_tp1_at_mNrmMin_tp1 = \
-            (DiscLiv * PermGroFac ** (1 - CRRA_tp1) * tp1.vFunc(mNrmMin_tp1))
+            (DiscFacLiv * PermGroFac ** (1 - CRRA_tp1) * tp1.vFunc(mNrmMin_tp1))
 
         t_E_v1_tp1_at_mNrmMin_tp1 = \
-            (((Rfree * DiscLiv) * (PermGroFac ** (-CRRA_tp1))
+            (((Rfree * DiscFacLiv) * (PermGroFac ** (-CRRA_tp1))
               ) * tp1.vFunc.dm(mNrmMin_tp1))
 
         # Explanation:
@@ -1058,19 +1058,19 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         Bilt, Pars, E_Next_ = crnt.Bilt, crnt.Pars, crnt.E_Next_
 
         urlroot = Bilt.urlroot
-        Bilt.DiscLiv = Pars.DiscFac * Pars.LivPrb
+        Bilt.DiscFacLiv = Pars.DiscFac * Pars.LivPrb
         # givens are not changed by calculations below; Bilt and E_Next_ are
         givens = {**Pars.__dict__}
 
         APFac_fcts = {
             'about': 'Absolute Patience Factor'
         }
-        py___code = '((Rfree * DiscLiv) ** (1.0 / CRRA))'
+        py___code = '((Rfree * DiscFacLiv) ** (1.0 / CRRA))'
         Bilt.APFac = APFac = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         APFac_fcts.update({'latexexpr': r'\APFac'})
         APFac_fcts.update({'_unicode_': r'Þ'})
-        APFac_fcts.update({'urlhandle': urlroot + 'APFac'})
+        APFac_fcts.update({'urlhandle': urlroot + 'APFacDefn'})
         APFac_fcts.update({'py___code': py___code})
         APFac_fcts.update({'value_now': APFac})
         Bilt.APFac_fcts = APFac_fcts
@@ -1079,7 +1079,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             'about': 'Absolute Impatience Condition'
         }
         AIC_fcts.update({'latexexpr': r'\AIC'})
-        AIC_fcts.update({'urlhandle': urlroot + 'AIC'})
+        AIC_fcts.update({'urlhandle': urlroot + 'AICDefn'})
         AIC_fcts.update({'py___code': 'test: APFac < 1'})
         Bilt.AIC_fcts = AIC_fcts
 
@@ -1091,7 +1091,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         RPFac_fcts.update({'latexexpr': r'\RPFac'})
         RPFac_fcts.update({'_unicode_': r'Þ_R'})
-        RPFac_fcts.update({'urlhandle': urlroot + 'RPFac'})
+        RPFac_fcts.update({'urlhandle': urlroot + 'RPFacDefn'})
         RPFac_fcts.update({'py___code': py___code})
         RPFac_fcts.update({'value_now': RPFac})
         Bilt.RPFac_fcts = RPFac_fcts
@@ -1100,7 +1100,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             'about': 'Growth Impatience Condition'
         }
         RIC_fcts.update({'latexexpr': r'\RIC'})
-        RIC_fcts.update({'urlhandle': urlroot + 'RIC'})
+        RIC_fcts.update({'urlhandle': urlroot + 'RICDefn'})
         RIC_fcts.update({'py___code': 'test: RPFac < 1'})
         Bilt.RIC_fcts = RIC_fcts
 
@@ -1111,8 +1111,8 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         Bilt.GPFacRaw = GPFacRaw = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         GPFacRaw_fcts.update({'latexexpr': r'\GPFacRaw'})
-        GPFacRaw_fcts.update({'_unicode_': r'Þ_Γ'})
-        GPFacRaw_fcts.update({'urlhandle': urlroot + 'GPFacRaw'})
+        GPFacRaw_fcts.update({'_unicode_': r'Þ_Φ'})
+        GPFacRaw_fcts.update({'urlhandle': urlroot + 'GPFacRawDefn'})
         GPFacRaw_fcts.update({'py___code': py___code})
         GPFacRaw_fcts.update({'value_now': GPFacRaw})
         Bilt.GPFacRaw_fcts = GPFacRaw_fcts
@@ -1121,7 +1121,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             'about': 'Growth Impatience Condition'
         }
         GICRaw_fcts.update({'latexexpr': r'\GICRaw'})
-        GICRaw_fcts.update({'urlhandle': urlroot + 'GICRaw'})
+        GICRaw_fcts.update({'urlhandle': urlroot + 'GICRawDefn'})
         GICRaw_fcts.update({'py___code': 'test: GPFacRaw < 1'})
         Bilt.GICRaw_fcts = GICRaw_fcts
 
@@ -1132,7 +1132,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         Bilt.GPFacLiv = GPFacLiv = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         GPFacLiv_fcts.update({'latexexpr': r'\GPFacLiv'})
-        GPFacLiv_fcts.update({'urlhandle': urlroot + 'GPFacLiv'})
+        GPFacLiv_fcts.update({'urlhandle': urlroot + 'GPFacLivDefn'})
         GPFacLiv_fcts.update({'py___code': py___code})
         GPFacLiv_fcts.update({'value_now': GPFacLiv})
         Bilt.GPFacLiv_fcts = GPFacLiv_fcts
@@ -1141,7 +1141,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             'about': 'Growth Impatience Condition'
         }
         GICLiv_fcts.update({'latexexpr': r'\GICLiv'})
-        GICLiv_fcts.update({'urlhandle': urlroot + 'GICLiv'})
+        GICLiv_fcts.update({'urlhandle': urlroot + 'GICLivDefn'})
         GICLiv_fcts.update({'py___code': 'test: GPFacLiv < 1'})
         Bilt.GICLiv_fcts = GICLiv_fcts
 
@@ -1152,7 +1152,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         Bilt.GPFacLivMod = GPFacLivMod = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         GPFacLivMod_fcts.update({'latexexpr': r'\GPFacLivMod'})
-        GPFacLivMod_fcts.update({'urlhandle': urlroot + 'GPFacLivMod'})
+        GPFacLivMod_fcts.update({'urlhandle': urlroot + 'GPFacLivModDefn'})
         GPFacLivMod_fcts.update({'py___code': py___code})
         GPFacLivMod_fcts.update({'value_now': GPFacLivMod})
         Bilt.GPFacLivMod_fcts = GPFacLivMod_fcts
@@ -1161,7 +1161,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             'about': 'Aggregate GIC with Modigliani Mortality'
         }
         GICLivMod_fcts.update({'latexexpr': r'\GICLivMod'})
-        GICLivMod_fcts.update({'urlhandle': urlroot + 'GICLivMod'})
+        GICLivMod_fcts.update({'urlhandle': urlroot + 'GICLivModDefn'})
         GICLivMod_fcts.update({'py___code': 'test: GPFacLiv < 1'})
         Bilt.GICLivMod_fcts = GICLivMod_fcts
 
@@ -1172,7 +1172,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         E_Next_.RNrm_PF = RNrm_PF = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         RNrm_PF_fcts.update({'latexexpr': r'\PFRNrm'})
-        RNrm_PF_fcts.update({'_unicode_': r'R/Γ'})
+        RNrm_PF_fcts.update({'_unicode_': r'R/Φ'})
         RNrm_PF_fcts.update({'py___code': py___code})
         RNrm_PF_fcts.update({'value_now': RNrm_PF})
         E_Next_.RNrm_PF_fcts = RNrm_PF_fcts
@@ -1184,7 +1184,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         E_Next_.Inv_RNrm_PF = Inv_RNrm_PF = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         Inv_RNrm_PF_fcts.update({'latexexpr': r'\InvPFRNrm'})
-        Inv_RNrm_PF_fcts.update({'_unicode_': r'Γ/R'})
+        Inv_RNrm_PF_fcts.update({'_unicode_': r'Φ/R'})
         Inv_RNrm_PF_fcts.update({'py___code': py___code})
         Inv_RNrm_PF_fcts.update({'value_now': Inv_RNrm_PF})
         E_Next_.Inv_RNrm_PF_fcts = \
@@ -1197,8 +1197,8 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         Bilt.FHWFac = FHWFac = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         FHWFac_fcts.update({'latexexpr': r'\FHWFac'})
-        FHWFac_fcts.update({'_unicode_': r'R/Γ'})
-        FHWFac_fcts.update({'urlhandle': urlroot + 'FHWFac'})
+        FHWFac_fcts.update({'_unicode_': r'R/Φ'})
+        FHWFac_fcts.update({'urlhandle': urlroot + 'FHWFacDefn'})
         FHWFac_fcts.update({'py___code': py___code})
         FHWFac_fcts.update({'value_now': FHWFac})
         Bilt.FHWFac_fcts = \
@@ -1208,7 +1208,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             'about': 'Finite Human Wealth Condition'
         }
         FHWC_fcts.update({'latexexpr': r'\FHWC'})
-        FHWC_fcts.update({'urlhandle': urlroot + 'FHWC'})
+        FHWC_fcts.update({'urlhandle': urlroot + 'FHWCDefn'})
         FHWC_fcts.update({'py___code': 'test: FHWFac < 1'})
         Bilt.FHWC_fcts = FHWC_fcts
 
@@ -1251,20 +1251,20 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         VAFac_fcts = {  # overwritten by version with uncertainty
             'about': 'Finite Value of Autarky Factor'
         }
-        py___code = 'LivPrb * DiscLiv'
+        py___code = 'LivPrb * DiscFacLiv'
         Bilt.VAFac = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        VAFac_fcts.update({'latexexpr': r'\VAFacPF'})
-        VAFac_fcts.update({'urlhandle': urlroot + 'VAFacPF'})
+        VAFac_fcts.update({'latexexpr': r'\PFVAFac'})
+        VAFac_fcts.update({'urlhandle': urlroot + 'PFVAFacDefn'})
         VAFac_fcts.update({'py___code': py___code})
         Bilt.VAFac_fcts = VAFac_fcts
 
         FVAC_fcts = {  # overwritten by version with uncertainty
             'about': 'Finite Value of Autarky Condition - Perfect Foresight'
         }
-        FVAC_fcts.update({'latexexpr': r'\FVACPF'})
-        FVAC_fcts.update({'urlhandle': urlroot + 'FVACPF'})
-        FVAC_fcts.update({'py___code': 'test: VAFacPF < 1'})
+        FVAC_fcts.update({'latexexpr': r'\PFFVAC'})
+        FVAC_fcts.update({'urlhandle': urlroot + 'PFFVACDefn'})
+        FVAC_fcts.update({'py___code': 'test: PFVAFac < 1'})
         Bilt.FVAC_fcts = FVAC_fcts
 
         E_Next_.IncNrmNxt_fcts = {  # Overwritten by version with uncertainty
@@ -1284,37 +1284,24 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         E_Next_.RNrm_PF = RNrm_PF = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         RNrm_PF_fcts.update({'latexexpr': r'\PFRNrm'})
-        RNrm_PF_fcts.update({'_unicode_': r'R/Γ'})
-        RNrm_PF_fcts.update({'urlhandle': urlroot + 'PFRNrm'})
+        RNrm_PF_fcts.update({'_unicode_': r'R/Φ'})
+        RNrm_PF_fcts.update({'urlhandle': urlroot + 'PFRNrmDefn'})
         RNrm_PF_fcts.update({'py___code': py___code})
         RNrm_PF_fcts.update({'value_now': RNrm_PF})
         E_Next_.RNrm_PF_fcts = RNrm_PF_fcts
 
-        RNrm_PF_fcts = {
-            'about': 'Expected Growth-Normalized Return'
-        }
-        py___code = 'Rfree / PermGroFac'
-        E_Next_.RNrm_PF = RNrm_PF = \
-            eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        RNrm_PF_fcts.update({'latexexpr': r'\PFRNrm'})
-        RNrm_PF_fcts.update({'_unicode_': r'R/Γ'})
-        RNrm_PF_fcts.update({'urlhandle': urlroot + 'PFRNrm'})
-        RNrm_PF_fcts.update({'py___code': py___code})
-        RNrm_PF_fcts.update({'value_now': RNrm_PF})
-        E_Next_.RNrm_PF_fcts = RNrm_PF_fcts
-
-        DiscLiv_fcts = {
+        DiscFacLiv_fcts = {
             'about': 'Mortality-Inclusive Discounting'
         }
         py___code = 'DiscFac * LivPrb'
-        Bilt.DiscLiv = DiscLiv = \
+        Bilt.DiscFacLiv = DiscFacLiv = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        DiscLiv_fcts.update({'latexexpr': r'\PFRNrm'})
-        DiscLiv_fcts.update({'_unicode_': r'R/Γ'})
-        DiscLiv_fcts.update({'urlhandle': urlroot + 'PFRNrm'})
-        DiscLiv_fcts.update({'py___code': py___code})
-        DiscLiv_fcts.update({'value_now': DiscLiv})
-        Bilt.DiscLiv_fcts = DiscLiv_fcts
+        DiscFacLiv_fcts.update({'latexexpr': r'\DiscFacLiv'})
+        DiscFacLiv_fcts.update({'_unicode_': r'ℒ β'})
+        DiscFacLiv_fcts.update({'urlhandle': urlroot + 'PFRNrm'})
+        DiscFacLiv_fcts.update({'py___code': py___code})
+        DiscFacLiv_fcts.update({'value_now': DiscFacLiv})
+        Bilt.DiscFacLiv_fcts = DiscFacLiv_fcts
 
     def build_facts_recursive(self):
         """
@@ -1331,7 +1318,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
 
         givens = {**Pars.__dict__, **locals()}
         urlroot = Bilt.urlroot
-        Bilt.DiscLiv = Pars.DiscFac * Pars.LivPrb
+        Bilt.DiscFacLiv = Pars.DiscFac * Pars.LivPrb
 
         hNrm_fcts = {
             'about': 'Human Wealth '
@@ -1342,7 +1329,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         Bilt.hNrm = hNrm = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         hNrm_fcts.update({'latexexpr': r'\hNrm'})
-        hNrm_fcts.update({'_unicode_': r'R/Γ'})
+        hNrm_fcts.update({'_unicode_': r'R/Φ'})
         hNrm_fcts.update({'urlhandle': urlroot + 'hNrm'})
         hNrm_fcts.update({'py___code': py___code})
         hNrm_fcts.update({'value_now': hNrm})
@@ -1764,7 +1751,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         E_Next_.RNrm = eval(
             py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         E_Next_.RNrm_fcts.update({'latexexpr': r'\ExRNrm'})
-        E_Next_.RNrm_fcts.update({'_unicode_': r'E[R/Γψ]'})
+        E_Next_.RNrm_fcts.update({'_unicode_': r'E[R/Φψ]'})
         E_Next_.RNrm_fcts.update({'urlhandle': urlroot + 'ExRNrm'})
         E_Next_.RNrm_fcts.update({'py___code': py___code})
         E_Next_.RNrm_fcts.update({'value_now': E_Next_.RNrm})
@@ -1789,7 +1776,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Bilt.GPFacNrm = eval(py___code, {},
                            {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         GPFacNrm_fcts.update({'latexexpr': r'\GPFacNrm'})
-        GPFacNrm_fcts.update({'_unicode_': r'Þ_Γ'})
+        GPFacNrm_fcts.update({'_unicode_': r'Þ_Φ'})
         GPFacNrm_fcts.update({'urlhandle': urlroot + 'GPFacNrm'})
         GPFacNrm_fcts.update({'py___code': py___code})
         Bilt.GPFacNrm_fcts = GPFacNrm_fcts
@@ -1806,14 +1793,14 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             'about': 'Finite Value of Autarky Condition'
         }
 
-        VAFac_fcts = {  # overwrites PF version VAFacPF
+        VAFac_fcts = {  # overwrites PF version PFVAFac
             'about': 'Finite Value of Autarky Factor'
         }
-        py___code = 'LivPrb * DiscLiv'
+        py___code = 'LivPrb * DiscFacLiv'
         Bilt.VAFac = eval(py___code, {},
                          {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         VAFac_fcts.update({'latexexpr': r'\VAFac'})
-        VAFac_fcts.update({'urlhandle': urlroot + 'VAFac'})
+        VAFac_fcts.update({'urlhandle': urlroot + 'VAFacDefn'})
         VAFac_fcts.update({'py___code': py___code})
         Bilt.VAFac_fcts = VAFac_fcts
 
@@ -1834,7 +1821,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
                  {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         WRPFac_fcts.update({'latexexpr': r'\WRPFac'})
         WRPFac_fcts.update({'_unicode_': r'℘^(1/\rho) RPFac'})
-        WRPFac_fcts.update({'urlhandle': urlroot + 'WRPFac'})
+        WRPFac_fcts.update({'urlhandle': urlroot + 'WRPFacDefn'})
         WRPFac_fcts.update({'value_now': WRPFac})
         WRPFac_fcts.update({'py___code': py___code})
         Bilt.WRPFac_fcts = WRPFac_fcts
@@ -2191,7 +2178,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         if eventTiming == 'EOP':  # shocks happen at end of this period
             CRRA = folw.Bilt.vFunc.CRRA  # Next CRRA utility normalizes
-            Discount = Bilt.DiscLiv  # Discount next period
+            Discount = Bilt.DiscFacLiv  # Discount next period
             vFunc = folw.Bilt.vFunc
             cFunc = folw.Bilt.cFunc
             PermGroFac = folw.Pars.PermGroFac
@@ -2200,7 +2187,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             # In this case, we should have computed the 'hard part' and
             # attached it already to the BOP of the folw stage.
             breakpoint()
-            # DiscLiv = Bilt.DiscLiv
+            # DiscFacLiv = Bilt.DiscFacLiv
             # v0_pos, v1_pos = folw.Ante_E_.v0_pos, folw.Ante_E_.v1_pos
             # v2_pos = folw.Ante_E_.v2_pos
 
