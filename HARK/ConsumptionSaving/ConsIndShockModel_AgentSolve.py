@@ -871,7 +871,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         # Generate a url that will locate the documentation
         self.class_name = self.__class__.__name__
         self.solution_current.Bilt.url_ref = self.url_ref = \
-            "https://econ-ark.github.io/BufferStockTheory"
+            "https://econ-ark.github.io/BufferStockTheory3.html"
         self.solution_current.Bilt.urlroot = self.urlroot = \
             self.url_ref + '/#'
         self.solution_current.Bilt.url_doc = self.url_doc = \
