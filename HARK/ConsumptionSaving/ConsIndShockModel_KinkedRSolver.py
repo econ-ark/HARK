@@ -195,10 +195,10 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         # Recalculate the minimum MPC and human wealth using the interest factor on saving.
         # This overwrites values from set_and_update_values, which were based on Rboro instead.
         if KinkBool:
-            RPFTop = (
+            RPFacTop = (
                 (self.bilt.Rsave * self.DiscLiv) ** (1.0 / self.CRRA)
             ) / self.bilt.Rsave
-            self.MPCmin = 1.0 / (1.0 + RPFTop / self.solution_current.bilt.MPCmin)
+            self.MPCmin = 1.0 / (1.0 + RPFacTop / self.solution_current.bilt.MPCmin)
             self.hNrm = (
                 self.PermGroFac
                 / self.bilt.Rsave

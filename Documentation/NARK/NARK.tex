@@ -5,7 +5,7 @@
 \usepackage{\LaTeXInputs/\texname}
 \usepackage{\econtexSetup}
 \usepackage{\econtexShortcuts}
-\usepackage{\texMaster}
+\usepackage{/Volumes/Data/Papers/BufferStockTheory/BufferStockTheory-Latest/Resources/LaTeXInputs/BufferStockTheory}
 \usepackage{/Volumes/Data/Papers/BufferStockTheory/BufferStockTheory-Latest/Resources/LaTeXInputs/BufferStockTheory-Shortcuts}
 
 \providecommand{\ushort}{}
@@ -246,12 +246,12 @@ document and \texttt{CRRA} in a software module.
     % \\ \verb|\PermGroRte|  & $\PermGroRte$ & productivity Growth Rate (combo) & $\PermGroRte = \PermGroRteAgg+\PermGroRteInd$
     \\ \verb|\leiShare|  & $\leiShare$ & Leisure share, Cobb-Douglas utility & $\uFunc(c,z)=(1-\CRRA)^{-1}(c^{1-\leiShare}z^{\leiShare})^{1-\CRRA}$
     \\ \verb|\MPC|  & $\MPC$ & Marginal Propensity to Consume & $\cFunc^{\prime}(\mNrm)=\partial c/\partial m$
-    \\ \verb|\APF|  & $\Pat$ & Absolute Patience Factor (\texttt{Thorn}) & $\Pat = (\Rfree \DiscFac)^{1/\CRRA} $
-    \\ \verb|\GPF| & $\PatPGro$ & Growth Patience Factor & $\PatPGro = \Pat/\PermGroFac $
-    \\ \verb|\RPF| & $\PatR$ & Return Patience Factor & $\PatR = \Pat/\Rfree $ 
-    \\ \verb|\APR|  & $\pat$ & Absolute Patience rate (\texttt{thorn}) & $\pat = (\Rfree \DiscFac)^{1/\CRRA}-1 \approx \CRRA^{-1}(\rfree-\discRte) $
-    \\ \verb|\GPR| & $\patPGro$ & Growth Patience rate  & $\patpGro = \pat -\PermGroRte $
-    \\ \verb|\RPR| & $\patr$ & Return Patience rate  & $\patr =\pat -\rfree $
+    \\ \verb|\APFac|  & $\APFac\phantom{_{\PermGroFac}}$ & Absolute Patience Factor (\texttt{Thorn}) & $\APFac\phantom{_{\PermGroFac}} = (\Rfree \DiscFac)^{1/\CRRA} $
+    \\ \verb|\GPFac| & $\GPFacRaw$ & Growth Patience Factor & $\GPFacRaw = \APFac/\PermGroFac $
+    \\ \verb|\RPFac| & $\RPFac$ & Return Patience Factor & $\RPFac = \APFac/\Rfree $ 
+    \\ \verb|\APRte|  & $\APRte$ & Absolute Patience rate (\texttt{thorn}) & $\APRte = (\Rfree \DiscFac)^{1/\CRRA}-1 \approx \CRRA^{-1}(\rfree-\discRte) $
+    \\ \verb|\GPRte| & $\GPRte$ & Growth Patience rate  & $\GPRte = \APRte -\PermGroRte $
+    \\ \verb|\RPRte| & $\RPRte$ & Return Patience rate  & $\RPRte =\APRte -\rfree $
     \\ \verb|\riskyshare|  & $\riskyshare$ & Portfolio share in risky assets & $\Rport_{t+1}=(1-\riskyshare)\Rfree+\riskyshare\Risky_{t+1}$
     \\	\hline
   \end{tabular}
@@ -264,7 +264,7 @@ Mnemonics:
 \item Hebrew \texttt{daleth} is the fourth letter of the Hebrew alphabet (as d and $\delta$ are of the Roman and Greek) and is an etymological and linguistic cousin of those letters
 \item $\discRte$ is the lower case Greek letter \texttt{omega}, because people say ``OMG, I've got to think about the future.''
 \item You are invited to scrutinize $\Xi$ yourself to imagine reasons it could represent something to do with population growth.  
-\item The glorious letter $\Pat$ (pronounced `\href{http://en.wikipedia.org/wiki/Thorn_(letter)}{thorn}') enriched Old English, Gothic, and some other defunct alphabets; sadly, it remains in use today only in Iceland.  It is useful because having to type the many symbols in the object $(\Rfree \DiscFac)^{1/\CRRA}$ over and over again is a \textit{thorn} in the side of economists working with dynamic models!  (It is the `absolute patience factor' because if it is less than one the consumer wants to bring resources from the future to the present and is therefore absolutely impatient; for a fuller discussion of this terminology, see \cite{carrollTractable}.)
+\item The glorious letter $\APFac$ (pronounced `\href{http://en.wikipedia.org/wiki/Thorn_(letter)}{thorn}') enriched Old English, Gothic, and some other defunct alphabets; sadly, it remains in use today only in Iceland.  It is useful because having to type the many symbols in the object $(\Rfree \DiscFac)^{1/\CRRA}$ over and over again is a \textit{thorn} in the side of economists working with dynamic models!  (It is the `absolute patience factor' because if it is less than one the consumer wants to bring resources from the future to the present and is therefore absolutely impatient; for a fuller discussion of this terminology, see \cite{carrollTractable}.)
 \end{itemize}
 
 

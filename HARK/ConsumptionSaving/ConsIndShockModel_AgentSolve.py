@@ -468,33 +468,33 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         """Evaluate and report on the Absolute Impatience Condition."""
         name = "AIC"
 
-        def test(soln): return soln.Bilt.APF < 1
+        def test(soln): return soln.Bilt.APFac < 1
 
         messages = {
-            True: f"\nThe Absolute Patience Factor, APF={soln.Bilt.APF:.5f} satisfies the Absolute Impatience Condition (AIC), APF < 1:\n    " +
+            True: f"\nThe Absolute Patience Factor, APFac={soln.Bilt.APFac:.5f} satisfies the Absolute Impatience Condition (AIC), APFac < 1:\n    " +
                   soln.Bilt.AIC_fcts['urlhandle'],
-            False: f"\nThe Absolute Patience Factor, APF={soln.Bilt.APF:.5f} violates the Absolute Impatience Condition (AIC), APF < 1:\n    " +
+            False: f"\nThe Absolute Patience Factor, APFac={soln.Bilt.APFac:.5f} violates the Absolute Impatience Condition (AIC), APFac < 1:\n    " +
                    soln.Bilt.AIC_fcts['urlhandle']
         }
         verbose_messages = {
-            True: "\n    Because the APF < 1,  the absolute amount of consumption is expected to fall over time.  \n",
-            False: "\n    Because the APF > 1, the absolute amount of consumption is expected to grow over time.  \n",
+            True: "\n    Because the APFac < 1,  the absolute amount of consumption is expected to fall over time.  \n",
+            False: "\n    Because the APFac > 1, the absolute amount of consumption is expected to grow over time.  \n",
         }
 
         soln.Bilt.AIC = core_check_condition(name, test, messages, messaging_level,
-                                             verbose_messages, "APF", soln, quietly)
+                                             verbose_messages, "APFac", soln, quietly)
 
     # noinspection PyTypeChecker
     def check_FVAC(self, soln, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Finite Value of Autarky Condition."""
         name = "FVAC"
 
-        def test(soln): return soln.Bilt.FVAF < 1
+        def test(soln): return soln.Bilt.VAFac < 1
 
         messages = {
-            True: f"\nThe Finite Value of Autarky Factor, FVAF={soln.Bilt.FVAF:.5f} satisfies the Finite Value of Autarky Condition, FVAF < 1:\n    " +
+            True: f"\nThe Finite Value of Autarky Factor, VAFac={soln.Bilt.VAFac:.5f} satisfies the Finite Value of Autarky Condition, VAFac < 1:\n    " +
                   soln.Bilt.FVAC_fcts['urlhandle'],
-            False: f"\nThe Finite Value of Autarky Factor, FVAF={soln.Bilt.FVAF:.5f} violates the Finite Value of Autarky Condition, FVAF:\n    " +
+            False: f"\nThe Finite Value of Autarky Factor, VAFac={soln.Bilt.VAFac:.5f} violates the Finite Value of Autarky Condition, VAFac:\n    " +
                    soln.Bilt.FVAC_fcts['urlhandle']
         }
         verbose_messages = {
@@ -505,22 +505,22 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         # This is bad enough to report as a warning
         if messaging_level == logging.WARNING and quietly is False \
-           and soln.Bilt.FVAF > 1:
+           and soln.Bilt.VAFac > 1:
             _log.warning(messages['False']+verbose_messages['False'])
 
         soln.Bilt.FVAC = core_check_condition(name, test, messages, messaging_level,
-                                              verbose_messages, "FVAF", soln, quietly)
+                                              verbose_messages, "VAFac", soln, quietly)
 
     def check_GICRaw(self, soln, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Growth Impatience Condition (GICRaw)."""
         name = "GICRaw"
 
-        def test(soln): return soln.Bilt.GPFRaw < 1
+        def test(soln): return soln.Bilt.GPFacRaw < 1
 
         messages = {
-            True: f"\nThe Growth Patience Factor, GPF={soln.Bilt.GPFRaw:.5f} satisfies the Growth Impatience Condition (GICRaw), GPF < 1:\n    " +
+            True: f"\nThe Growth Patience Factor, GPF={soln.Bilt.GPFacRaw:.5f} satisfies the Growth Impatience Condition (GICRaw), GPF < 1:\n    " +
                   soln.Bilt.GICRaw_fcts['urlhandle'],
-            False: f"\nThe Growth Patience Factor, GPF={soln.Bilt.GPFRaw:.5f} violates the Growth Impatience Condition (GICRaw), GPF < 1:\n    " +
+            False: f"\nThe Growth Patience Factor, GPF={soln.Bilt.GPFacRaw:.5f} violates the Growth Impatience Condition (GICRaw), GPF < 1:\n    " +
                    soln.Bilt.GICRaw_fcts['urlhandle'],
         }
         verbose_messages = {
@@ -528,12 +528,12 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
             False: "\n    Therefore, for a perfect foresight consumer whose parameters satisfy the FHWC, the ratio of individual wealth to permanent income is expected to rise toward infinity. \n"
         }
         soln.Bilt.GICRaw = core_check_condition(name, test, messages, messaging_level,
-                                                verbose_messages, "GPFRaw", soln, quietly)
+                                                verbose_messages, "GPFacRaw", soln, quietly)
 
         # Give them a warning if the model does not satisfy the GICRaw,
         # even if they asked to solve quietly, unless messaging_level is CRITICAL
         if quietly is True:  # Otherwise they will get the info anyway
-            if soln.Bilt.GPFRaw > 1:
+            if soln.Bilt.GPFacRaw > 1:
                 if messaging_level <= logging.CRITICAL:
                     _log.warning(messages[False]+verbose_messages[False])
 
@@ -541,22 +541,22 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         """Evaluate and report on Mortality Adjusted GIC (GICLiv)."""
         name = "GICLiv"
 
-        def test(soln): return soln.Bilt.GPFLiv < 1
+        def test(soln): return soln.Bilt.GPFacLiv < 1
 
         messages = {
-            True: f"\nThe Mortality Adjusted Growth Patience Factor, GPFLiv={soln.Bilt.GPFLiv:.5f} satisfies the Mortality Adjusted Growth Impatience Condition (GICLiv):\n    " +
-                  soln.Bilt.GPFLiv_fcts['urlhandle'],
-            False: f"\nThe Mortality Adjusted Growth Patience Factor, GPFLiv={soln.Bilt.GPFLiv:.5f} violates the Mortality Adjusted Growth Impatience Condition (GICLiv):\n    " +
-                   soln.Bilt.GPFLiv_fcts['urlhandle'],
+            True: f"\nThe Mortality Adjusted Growth Patience Factor, GPFacLiv={soln.Bilt.GPFacLiv:.5f} satisfies the Mortality Adjusted Growth Impatience Condition (GICLiv):\n    " +
+                  soln.Bilt.GPFacLiv_fcts['urlhandle'],
+            False: f"\nThe Mortality Adjusted Growth Patience Factor, GPFacLiv={soln.Bilt.GPFacLiv:.5f} violates the Mortality Adjusted Growth Impatience Condition (GICLiv):\n    " +
+                   soln.Bilt.GPFacLiv_fcts['urlhandle'],
         }
         verbose_messages = {
             True: "\n    Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.    \n" +
-                  soln.Bilt.GPFLiv_fcts['urlhandle'] + "\n",
+                  soln.Bilt.GPFacLiv_fcts['urlhandle'] + "\n",
             False: "\n    Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.  \n" +
-                   soln.Bilt.GPFLiv_fcts['urlhandle'] + "\n",
+                   soln.Bilt.GPFacLiv_fcts['urlhandle'] + "\n",
         }
         soln.Bilt.GICLiv = core_check_condition(name, test, messages, messaging_level,
-                                                verbose_messages, "GPFLiv", soln, quietly)
+                                                verbose_messages, "GPFacLiv", soln, quietly)
 
         # This is important enough to warn them even if quietly == True; unless messaging_level = CRITICAL
         if (soln.Bilt.GICLiv == np.False_) and (quietly is True) and (messaging_level < logging.CRITICAL):
@@ -566,22 +566,22 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         """Evaluate and report on Mortality Adjusted GIC (GICLivMod)."""
         name = "GICLivMod"
 
-        def test(soln): return soln.Bilt.GPFLivMod < 1
+        def test(soln): return soln.Bilt.GPFacLivMod < 1
 
         messages = {
-            True: f"\nThe Mortality Adjusted Growth Patience Factor, GPFLivMod={soln.Bilt.GPFLivMod:.5f} satisfies the Mortality Adjusted Growth Impatience Condition (GICLivMod):\n    " +
-                  soln.Bilt.GPFLivMod_fcts['urlhandle'],
-            False: f"\nThe Mortality Adjusted Growth Patience Factor, GPFLivMod={soln.Bilt.GPFLivMod:.5f} violates the Mortality Adjusted Growth Impatience Condition (GICLivMod):\n    " +
-                   soln.Bilt.GPFLivMod_fcts['urlhandle'],
+            True: f"\nThe Mortality Adjusted Growth Patience Factor, GPFacLivMod={soln.Bilt.GPFacLivMod:.5f} satisfies the Mortality Adjusted Growth Impatience Condition (GICLivMod):\n    " +
+                  soln.Bilt.GPFacLivMod_fcts['urlhandle'],
+            False: f"\nThe Mortality Adjusted Growth Patience Factor, GPFacLivMod={soln.Bilt.GPFacLivMod:.5f} violates the Mortality Adjusted Growth Impatience Condition (GICLivMod):\n    " +
+                   soln.Bilt.GPFacLivMod_fcts['urlhandle'],
         }
         verbose_messages = {
             True: "\n    Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.    \n" +
-                  soln.Bilt.GPFLivMod_fcts['urlhandle'] + "\n",
+                  soln.Bilt.GPFacLivMod_fcts['urlhandle'] + "\n",
             False: "\n    Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.  \n" +
-                   soln.Bilt.GPFLivMod_fcts['urlhandle'] + "\n",
+                   soln.Bilt.GPFacLivMod_fcts['urlhandle'] + "\n",
         }
         soln.Bilt.GICLivMod = core_check_condition(name, test, messages, messaging_level,
-                                                verbose_messages, "GPFLivMod", soln, quietly)
+                                                verbose_messages, "GPFacLivMod", soln, quietly)
 
         # This is important enough to warn them even if quietly == True; unless messaging_level = CRITICAL
         if (soln.Bilt.GICLivMod == np.False_) and (quietly is True) and (messaging_level < logging.CRITICAL):
@@ -591,31 +591,31 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         """Evaluate and report on the Return Impatience Condition."""
         name = "RIC"
 
-        def test(soln): return soln.Bilt.RPF < 1
+        def test(soln): return soln.Bilt.RPFac < 1
 
         messages = {
-            True: f"\nThe Return Patience Factor, RPF={soln.Bilt.RPF:.5f} satisfies the Return Impatience Condition (RIC), RPF < 1:\n    " +
-                  soln.Bilt.RPF_fcts['urlhandle'],
-            False: f"\nThe Return Patience Factor, RPF={soln.Bilt.RPF:.5f} violates the Return Impatience Condition (RIC), RPF < 1:\n    " +
-                   soln.Bilt.RPF_fcts['urlhandle'],
+            True: f"\nThe Return Patience Factor, RPFac={soln.Bilt.RPFac:.5f} satisfies the Return Impatience Condition (RIC), RPFac < 1:\n    " +
+                  soln.Bilt.RPFac_fcts['urlhandle'],
+            False: f"\nThe Return Patience Factor, RPFac={soln.Bilt.RPFac:.5f} violates the Return Impatience Condition (RIC), RPFac < 1:\n    " +
+                   soln.Bilt.RPFac_fcts['urlhandle'],
         }
         verbose_messages = {
             True: "\n    Therefore, the limiting consumption function is not c(m)=0 for all m\n",
             False: "\n    Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.\n",
         }
         soln.Bilt.RIC = core_check_condition(name, test, messages, messaging_level,
-                                             verbose_messages, "RPF", soln, quietly)
+                                             verbose_messages, "RPFac", soln, quietly)
 
     def check_FHWC(self, soln, messaging_level=logging.DEBUG, quietly=False):
         """Evaluate and report on the Finite Human Wealth Condition."""
         name = "FHWC"
 
-        def test(soln): return soln.Bilt.FHWF < 1
+        def test(soln): return soln.Bilt.FHWFac < 1
 
         messages = {
-            True: f"\nThe Finite Human Wealth Factor, FHWF={soln.Bilt.FHWF:.5f} satisfies the Finite Human Wealth Condition (FHWC), FHWF < 1:\n    " +
+            True: f"\nThe Finite Human Wealth Factor, FHWFac={soln.Bilt.FHWFac:.5f} satisfies the Finite Human Wealth Condition (FHWC), FHWFac < 1:\n    " +
                   soln.Bilt.FHWC_fcts['urlhandle'],
-            False: f"\nThe Finite Human Wealth Factor, FHWF={soln.Bilt.FHWF:.5f} violates the Finite Human Wealth Condition (FHWC), FHWF < 1:\n    " +
+            False: f"\nThe Finite Human Wealth Factor, FHWFac={soln.Bilt.FHWFac:.5f} violates the Finite Human Wealth Condition (FHWC), FHWFac < 1:\n    " +
                    soln.Bilt.FHWC_fcts['urlhandle'],
         }
         verbose_messages = {
@@ -624,7 +624,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                    soln.Bilt.FHWC_fcts['urlhandle'] + ")\n",
         }
         soln.Bilt.FHWC = core_check_condition(name, test, messages, messaging_level,
-                                              verbose_messages, "FHWF", soln, quietly)
+                                              verbose_messages, "FHWFac", soln, quietly)
 
         if (messaging_level < logging.CRITICAL) and (soln.Bilt.FHWC == np.False_):
             _log.info(messages[False]+verbose_messages[False])
@@ -636,12 +636,12 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         name = "GICNrm"
 
-        def test(soln): return soln.Bilt.GPFNrm <= 1
+        def test(soln): return soln.Bilt.GPFacNrm <= 1
 
         messages = {
-            True: f"\nThe Normalized Growth Patience Factor GPFNrm, GPFNrm={soln.Bilt.GPFNrm:.5f} satisfies the Normalized Growth Impatience Condition (GICNrm), GPFNrm < 1:\n    " +
+            True: f"\nThe Normalized Growth Patience Factor GPFacNrm, GPFacNrm={soln.Bilt.GPFacNrm:.5f} satisfies the Normalized Growth Impatience Condition (GICNrm), GPFacNrm < 1:\n    " +
                   soln.Bilt.GICNrm_fcts['urlhandle'],
-            False: f"\nThe Normalized Growth Patience Factor GPFNrm, GPFNrm={soln.Bilt.GPFNrm:.5f} violates the Normalized Growth Impatience Condition (GICNrm), GPFNrm < 1:\n    " +
+            False: f"\nThe Normalized Growth Patience Factor GPFacNrm, GPFacNrm={soln.Bilt.GPFacNrm:.5f} violates the Normalized Growth Impatience Condition (GICNrm), GPFacNrm < 1:\n    " +
                    soln.Bilt.GICNrm_fcts['urlhandle'],
         }
         verbose_messages = {
@@ -651,7 +651,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         soln.Bilt.GICNrm = \
             core_check_condition(name, test, messages, messaging_level,
-                                 verbose_messages, "GPFNrm", soln, quietly)
+                                 verbose_messages, "GPFacNrm", soln, quietly)
 
         # Warn them their model does not satisfy the GICNrm even if they asked
         # for the "quietly" solution -- unless they said "only CRITICAL"
@@ -666,12 +666,12 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         name = "WRIC"
 
-        def test(soln): return soln.Bilt.WRPF <= 1
+        def test(soln): return soln.Bilt.WRPFac <= 1
 
         messages = {
-            True: f"\nThe Weak Return Patience Factor, WRPF={soln.Bilt.WRPF:.5f} satisfies the Weak Return Impatience Condition, WRPF < 1:\n    " +
+            True: f"\nThe Weak Return Patience Factor, WRPFac={soln.Bilt.WRPFac:.5f} satisfies the Weak Return Impatience Condition, WRPFac < 1:\n    " +
                   soln.Bilt.WRIC_fcts['urlhandle'],
-            False: f"\nThe Weak Return Patience Factor, WRPF={soln.Bilt.WRPF:.5f} violates the Weak Return Impatience Condition, WRPF < 1:\n    " +
+            False: f"\nThe Weak Return Patience Factor, WRPFac={soln.Bilt.WRPFac:.5f} violates the Weak Return Impatience Condition, WRPFac < 1:\n    " +
                    soln.Bilt.WRIC_fcts['urlhandle'],
         }
 
@@ -682,7 +682,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                 'urlhandle'] + ")\n",
         }
         soln.Bilt.WRIC = core_check_condition(
-            name, test, messages, messaging_level, verbose_messages, "WRPF", soln, quietly)
+            name, test, messages, messaging_level, verbose_messages, "WRPFac", soln, quietly)
 
     def mTrgNrm_find(self):
         """
@@ -734,7 +734,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         try:
             self.Bilt.mBalLvl = find_zero_newton(
-                self.E_Next_.permShk_tp1_times_m_tp1_Over_m_t_minus_PGro, m_init_guess)
+                self.E_Next_.permShk_tp1_times_m_tp1_Over_m_t_minus_PermGroFac, m_init_guess)
         except:
             self.Bilt.mBalLvl = None
 
@@ -1062,107 +1062,107 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         # givens are not changed by calculations below; Bilt and E_Next_ are
         givens = {**Pars.__dict__}
 
-        APF_fcts = {
+        APFac_fcts = {
             'about': 'Absolute Patience Factor'
         }
         py___code = '((Rfree * DiscLiv) ** (1.0 / CRRA))'
-        Bilt.APF = APF = \
+        Bilt.APFac = APFac = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        APF_fcts.update({'latexexpr': r'\APF'})
-        APF_fcts.update({'_unicode_': r'Þ'})
-        APF_fcts.update({'urlhandle': urlroot + 'APF'})
-        APF_fcts.update({'py___code': py___code})
-        APF_fcts.update({'value_now': APF})
-        Bilt.APF_fcts = APF_fcts
+        APFac_fcts.update({'latexexpr': r'\APFac'})
+        APFac_fcts.update({'_unicode_': r'Þ'})
+        APFac_fcts.update({'urlhandle': urlroot + 'APFac'})
+        APFac_fcts.update({'py___code': py___code})
+        APFac_fcts.update({'value_now': APFac})
+        Bilt.APFac_fcts = APFac_fcts
 
         AIC_fcts = {
             'about': 'Absolute Impatience Condition'
         }
         AIC_fcts.update({'latexexpr': r'\AIC'})
         AIC_fcts.update({'urlhandle': urlroot + 'AIC'})
-        AIC_fcts.update({'py___code': 'test: APF < 1'})
+        AIC_fcts.update({'py___code': 'test: APFac < 1'})
         Bilt.AIC_fcts = AIC_fcts
 
-        RPF_fcts = {
+        RPFac_fcts = {
             'about': 'Return Patience Factor'
         }
-        py___code = 'APF / Rfree'
-        Bilt.RPF = RPF = \
+        py___code = 'APFac / Rfree'
+        Bilt.RPFac = RPFac = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        RPF_fcts.update({'latexexpr': r'\RPF'})
-        RPF_fcts.update({'_unicode_': r'Þ_R'})
-        RPF_fcts.update({'urlhandle': urlroot + 'RPF'})
-        RPF_fcts.update({'py___code': py___code})
-        RPF_fcts.update({'value_now': RPF})
-        Bilt.RPF_fcts = RPF_fcts
+        RPFac_fcts.update({'latexexpr': r'\RPFac'})
+        RPFac_fcts.update({'_unicode_': r'Þ_R'})
+        RPFac_fcts.update({'urlhandle': urlroot + 'RPFac'})
+        RPFac_fcts.update({'py___code': py___code})
+        RPFac_fcts.update({'value_now': RPFac})
+        Bilt.RPFac_fcts = RPFac_fcts
 
         RIC_fcts = {
             'about': 'Growth Impatience Condition'
         }
         RIC_fcts.update({'latexexpr': r'\RIC'})
         RIC_fcts.update({'urlhandle': urlroot + 'RIC'})
-        RIC_fcts.update({'py___code': 'test: RPF < 1'})
+        RIC_fcts.update({'py___code': 'test: RPFac < 1'})
         Bilt.RIC_fcts = RIC_fcts
 
-        GPFRaw_fcts = {
+        GPFacRaw_fcts = {
             'about': 'Growth Patience Factor'
         }
-        py___code = 'APF / PermGroFac'
-        Bilt.GPFRaw = GPFRaw = \
+        py___code = 'APFac / PermGroFac'
+        Bilt.GPFacRaw = GPFacRaw = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        GPFRaw_fcts.update({'latexexpr': r'\GPFRaw'})
-        GPFRaw_fcts.update({'_unicode_': r'Þ_Γ'})
-        GPFRaw_fcts.update({'urlhandle': urlroot + 'GPFRaw'})
-        GPFRaw_fcts.update({'py___code': py___code})
-        GPFRaw_fcts.update({'value_now': GPFRaw})
-        Bilt.GPFRaw_fcts = GPFRaw_fcts
+        GPFacRaw_fcts.update({'latexexpr': r'\GPFacRaw'})
+        GPFacRaw_fcts.update({'_unicode_': r'Þ_Γ'})
+        GPFacRaw_fcts.update({'urlhandle': urlroot + 'GPFacRaw'})
+        GPFacRaw_fcts.update({'py___code': py___code})
+        GPFacRaw_fcts.update({'value_now': GPFacRaw})
+        Bilt.GPFacRaw_fcts = GPFacRaw_fcts
 
         GICRaw_fcts = {
             'about': 'Growth Impatience Condition'
         }
         GICRaw_fcts.update({'latexexpr': r'\GICRaw'})
         GICRaw_fcts.update({'urlhandle': urlroot + 'GICRaw'})
-        GICRaw_fcts.update({'py___code': 'test: GPFRaw < 1'})
+        GICRaw_fcts.update({'py___code': 'test: GPFacRaw < 1'})
         Bilt.GICRaw_fcts = GICRaw_fcts
 
-        GPFLiv_fcts = {
+        GPFacLiv_fcts = {
             'about': 'Mortality-Adjusted Growth Patience Factor'
         }
-        py___code = 'APF * LivPrb / PermGroFac'
-        Bilt.GPFLiv = GPFLiv = \
+        py___code = 'APFac * LivPrb / PermGroFac'
+        Bilt.GPFacLiv = GPFacLiv = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        GPFLiv_fcts.update({'latexexpr': r'\GPFLiv'})
-        GPFLiv_fcts.update({'urlhandle': urlroot + 'GPFLiv'})
-        GPFLiv_fcts.update({'py___code': py___code})
-        GPFLiv_fcts.update({'value_now': GPFLiv})
-        Bilt.GPFLiv_fcts = GPFLiv_fcts
+        GPFacLiv_fcts.update({'latexexpr': r'\GPFacLiv'})
+        GPFacLiv_fcts.update({'urlhandle': urlroot + 'GPFacLiv'})
+        GPFacLiv_fcts.update({'py___code': py___code})
+        GPFacLiv_fcts.update({'value_now': GPFacLiv})
+        Bilt.GPFacLiv_fcts = GPFacLiv_fcts
 
         GICLiv_fcts = {
             'about': 'Growth Impatience Condition'
         }
         GICLiv_fcts.update({'latexexpr': r'\GICLiv'})
         GICLiv_fcts.update({'urlhandle': urlroot + 'GICLiv'})
-        GICLiv_fcts.update({'py___code': 'test: GPFLiv < 1'})
+        GICLiv_fcts.update({'py___code': 'test: GPFacLiv < 1'})
         Bilt.GICLiv_fcts = GICLiv_fcts
 
-        GPFLivMod_fcts = {
+        GPFacLivMod_fcts = {
             'about': 'Aggregate GPF with Modigliani Bequests'
         }
-        py___code = 'GPFLiv * LivPrb'
-        Bilt.GPFLivMod = GPFLivMod = \
+        py___code = 'GPFacLiv * LivPrb'
+        Bilt.GPFacLivMod = GPFacLivMod = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        GPFLivMod_fcts.update({'latexexpr': r'\GPFLivMod'})
-        GPFLivMod_fcts.update({'urlhandle': urlroot + 'GPFLivMod'})
-        GPFLivMod_fcts.update({'py___code': py___code})
-        GPFLivMod_fcts.update({'value_now': GPFLivMod})
-        Bilt.GPFLivMod_fcts = GPFLivMod_fcts
+        GPFacLivMod_fcts.update({'latexexpr': r'\GPFacLivMod'})
+        GPFacLivMod_fcts.update({'urlhandle': urlroot + 'GPFacLivMod'})
+        GPFacLivMod_fcts.update({'py___code': py___code})
+        GPFacLivMod_fcts.update({'value_now': GPFacLivMod})
+        Bilt.GPFacLivMod_fcts = GPFacLivMod_fcts
 
         GICLivMod_fcts = {
             'about': 'Aggregate GIC with Modigliani Mortality'
         }
         GICLivMod_fcts.update({'latexexpr': r'\GICLivMod'})
         GICLivMod_fcts.update({'urlhandle': urlroot + 'GICLivMod'})
-        GICLivMod_fcts.update({'py___code': 'test: GPFLiv < 1'})
+        GICLivMod_fcts.update({'py___code': 'test: GPFacLiv < 1'})
         Bilt.GICLivMod_fcts = GICLivMod_fcts
 
         RNrm_PF_fcts = {
@@ -1190,81 +1190,81 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         E_Next_.Inv_RNrm_PF_fcts = \
             Inv_RNrm_PF_fcts
 
-        FHWF_fcts = {
+        FHWFac_fcts = {
             'about': 'Finite Human Wealth Factor'
         }
         py___code = 'PermGroFac / Rfree'
-        Bilt.FHWF = FHWF = \
+        Bilt.FHWFac = FHWFac = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        FHWF_fcts.update({'latexexpr': r'\FHWF'})
-        FHWF_fcts.update({'_unicode_': r'R/Γ'})
-        FHWF_fcts.update({'urlhandle': urlroot + 'FHWF'})
-        FHWF_fcts.update({'py___code': py___code})
-        FHWF_fcts.update({'value_now': FHWF})
-        Bilt.FHWF_fcts = \
-            FHWF_fcts
+        FHWFac_fcts.update({'latexexpr': r'\FHWFac'})
+        FHWFac_fcts.update({'_unicode_': r'R/Γ'})
+        FHWFac_fcts.update({'urlhandle': urlroot + 'FHWFac'})
+        FHWFac_fcts.update({'py___code': py___code})
+        FHWFac_fcts.update({'value_now': FHWFac})
+        Bilt.FHWFac_fcts = \
+            FHWFac_fcts
 
         FHWC_fcts = {
             'about': 'Finite Human Wealth Condition'
         }
         FHWC_fcts.update({'latexexpr': r'\FHWC'})
         FHWC_fcts.update({'urlhandle': urlroot + 'FHWC'})
-        FHWC_fcts.update({'py___code': 'test: FHWF < 1'})
+        FHWC_fcts.update({'py___code': 'test: FHWFac < 1'})
         Bilt.FHWC_fcts = FHWC_fcts
 
         hNrmInf_fcts = {
             'about': 'Human wealth for inf hor'
         }
-        py___code = '1/(1-FHWF) if (FHWF < 1) else float("inf")'
+        py___code = '1/(1-FHWFac) if (FHWFac < 1) else float("inf")'
         Bilt.hNrmInf = hNrmInf = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        hNrmInf_fcts = dict({'latexexpr': r'1/(1-\FHWF)'})
+        hNrmInf_fcts = dict({'latexexpr': r'1/(1-\FHWFac)'})
         hNrmInf_fcts.update({'value_now': hNrmInf})
         hNrmInf_fcts.update({'py___code': py___code})
         Bilt.hNrmInf_fcts = hNrmInf_fcts
 
-        DiscGPFRawCusp_fcts = {
-            'about': 'DiscFac s.t. GPFRaw = 1'
+        DiscGPFacRawCusp_fcts = {
+            'about': 'DiscFac s.t. GPFacRaw = 1'
         }
         py___code = '( PermGroFac                       **CRRA)/(Rfree)'
-        Bilt.DiscGPFRawCusp = DiscGPFRawCusp = \
+        Bilt.DiscGPFacRawCusp = DiscGPFacRawCusp = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        DiscGPFRawCusp_fcts.update({'latexexpr':
+        DiscGPFacRawCusp_fcts.update({'latexexpr':
                                     r'\PermGroFac^{\CRRA}/\Rfree'})
-        DiscGPFRawCusp_fcts.update({'value_now': DiscGPFRawCusp})
-        DiscGPFRawCusp_fcts.update({'py___code': py___code})
-        Bilt.DiscGPFRawCusp_fcts = \
-            DiscGPFRawCusp_fcts
+        DiscGPFacRawCusp_fcts.update({'value_now': DiscGPFacRawCusp})
+        DiscGPFacRawCusp_fcts.update({'py___code': py___code})
+        Bilt.DiscGPFacRawCusp_fcts = \
+            DiscGPFacRawCusp_fcts
 
-        DiscGPFLivCusp_fcts = {
-            'about': 'DiscFac s.t. GPFLiv = 1'
+        DiscGPFacLivCusp_fcts = {
+            'about': 'DiscFac s.t. GPFacLiv = 1'
         }
         py___code = '( PermGroFac                       **CRRA)/(Rfree*LivPrb)'
-        Bilt.DiscGPFLivCusp = DiscGPFLivCusp = \
+        Bilt.DiscGPFacLivCusp = DiscGPFacLivCusp = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        DiscGPFLivCusp_fcts.update({'latexexpr':
+        DiscGPFacLivCusp_fcts.update({'latexexpr':
                                     r'\PermGroFac^{\CRRA}/(\Rfree\LivPrb)'})
-        DiscGPFLivCusp_fcts.update({'value_now': DiscGPFLivCusp})
-        DiscGPFLivCusp_fcts.update({'py___code': py___code})
-        Bilt.DiscGPFLivCusp_fcts = DiscGPFLivCusp_fcts
+        DiscGPFacLivCusp_fcts.update({'value_now': DiscGPFacLivCusp})
+        DiscGPFacLivCusp_fcts.update({'py___code': py___code})
+        Bilt.DiscGPFacLivCusp_fcts = DiscGPFacLivCusp_fcts
 
-        FVAF_fcts = {  # overwritten by version with uncertainty
+        VAFac_fcts = {  # overwritten by version with uncertainty
             'about': 'Finite Value of Autarky Factor'
         }
         py___code = 'LivPrb * DiscLiv'
-        Bilt.FVAF = \
+        Bilt.VAFac = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        FVAF_fcts.update({'latexexpr': r'\FVAFPF'})
-        FVAF_fcts.update({'urlhandle': urlroot + 'FVAFPF'})
-        FVAF_fcts.update({'py___code': py___code})
-        Bilt.FVAF_fcts = FVAF_fcts
+        VAFac_fcts.update({'latexexpr': r'\VAFacPF'})
+        VAFac_fcts.update({'urlhandle': urlroot + 'VAFacPF'})
+        VAFac_fcts.update({'py___code': py___code})
+        Bilt.VAFac_fcts = VAFac_fcts
 
         FVAC_fcts = {  # overwritten by version with uncertainty
             'about': 'Finite Value of Autarky Condition - Perfect Foresight'
         }
         FVAC_fcts.update({'latexexpr': r'\FVACPF'})
         FVAC_fcts.update({'urlhandle': urlroot + 'FVACPF'})
-        FVAC_fcts.update({'py___code': 'test: FVAFPF < 1'})
+        FVAC_fcts.update({'py___code': 'test: VAFacPF < 1'})
         Bilt.FVAC_fcts = FVAC_fcts
 
         E_Next_.IncNrmNxt_fcts = {  # Overwritten by version with uncertainty
@@ -1382,7 +1382,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         MPCmax_fcts = {
             'about': 'Maximal MPC in current period as m -> mNrmMin'
         }
-        py___code = '1.0 / (1.0 + (RPF / tp1.MPCmax))'
+        py___code = '1.0 / (1.0 + (RPFac / tp1.MPCmax))'
         if crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge:
             crnt.tp1.MPCmax = float('inf')  # => MPCmax = 1 for last per
         Bilt.MPCmax = eval(
@@ -1406,7 +1406,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         MPCmin_fcts = {
             'about': 'Minimal MPC in current period as m -> infty'
         }
-        py___code = '1.0 / (1.0 + (RPF / tp1.MPCmin))'
+        py___code = '1.0 / (1.0 + (RPFac / tp1.MPCmin))'
         if crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge:
             py__code = '1.0'
         Bilt.MPCmin = \
@@ -1420,7 +1420,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         MPCmax_fcts = {
             'about': 'Maximal MPC in current period as m -> mNrmMin'
         }
-        py___code = '1.0 / (1.0 + (RPF / tp1.MPCmax))'
+        py___code = '1.0 / (1.0 + (RPFac / tp1.MPCmax))'
         if crnt.stge_kind['iter_status'] == 'terminal_partial':  # kludge:
             Bilt.tp1.MPCmax = float('inf')  # => MPCmax = 1 for final period
         Bilt.MPCmax = \
@@ -1782,82 +1782,82 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         E_Next_.uInv_permShk_fcts.update({'value_now': E_Next_.uInv_permShk})
         E_Next_.uInv_permShk_fcts = E_Next_.uInv_permShk_fcts
 
-        GPFNrm_fcts = {
+        GPFacNrm_fcts = {
             'about': 'Normalized Expected Growth Patience Factor'
         }
-        py___code = 'GPFRaw * E_Next_.Inv_permShk'
-        Bilt.GPFNrm = eval(py___code, {},
+        py___code = 'GPFacRaw * E_Next_.Inv_permShk'
+        Bilt.GPFacNrm = eval(py___code, {},
                            {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        GPFNrm_fcts.update({'latexexpr': r'\GPFNrm'})
-        GPFNrm_fcts.update({'_unicode_': r'Þ_Γ'})
-        GPFNrm_fcts.update({'urlhandle': urlroot + 'GPFNrm'})
-        GPFNrm_fcts.update({'py___code': py___code})
-        Bilt.GPFNrm_fcts = GPFNrm_fcts
+        GPFacNrm_fcts.update({'latexexpr': r'\GPFacNrm'})
+        GPFacNrm_fcts.update({'_unicode_': r'Þ_Γ'})
+        GPFacNrm_fcts.update({'urlhandle': urlroot + 'GPFacNrm'})
+        GPFacNrm_fcts.update({'py___code': py___code})
+        Bilt.GPFacNrm_fcts = GPFacNrm_fcts
 
         GICNrm_fcts = {
             'about': 'Stochastic Growth Normalized Impatience Condition'
         }
         GICNrm_fcts.update({'latexexpr': r'\GICNrm'})
         GICNrm_fcts.update({'urlhandle': urlroot + 'GICNrm'})
-        GICNrm_fcts.update({'py___code': 'test: GPFNrm < 1'})
+        GICNrm_fcts.update({'py___code': 'test: GPFacNrm < 1'})
         Bilt.GICNrm_fcts = GICNrm_fcts
 
         FVAC_fcts = {  # overwrites PF version
             'about': 'Finite Value of Autarky Condition'
         }
 
-        FVAF_fcts = {  # overwrites PF version FVAFPF
+        VAFac_fcts = {  # overwrites PF version VAFacPF
             'about': 'Finite Value of Autarky Factor'
         }
         py___code = 'LivPrb * DiscLiv'
-        Bilt.FVAF = eval(py___code, {},
+        Bilt.VAFac = eval(py___code, {},
                          {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        FVAF_fcts.update({'latexexpr': r'\FVAF'})
-        FVAF_fcts.update({'urlhandle': urlroot + 'FVAF'})
-        FVAF_fcts.update({'py___code': py___code})
-        Bilt.FVAF_fcts = FVAF_fcts
+        VAFac_fcts.update({'latexexpr': r'\VAFac'})
+        VAFac_fcts.update({'urlhandle': urlroot + 'VAFac'})
+        VAFac_fcts.update({'py___code': py___code})
+        Bilt.VAFac_fcts = VAFac_fcts
 
         FVAC_fcts = {  # overwrites PF version
             'about': 'Finite Value of Autarky Condition'
         }
         FVAC_fcts.update({'latexexpr': r'\FVAC'})
         FVAC_fcts.update({'urlhandle': urlroot + 'FVAC'})
-        FVAC_fcts.update({'py___code': 'test: FVAF < 1'})
+        FVAC_fcts.update({'py___code': 'test: VAFac < 1'})
         Bilt.FVAC_fcts = FVAC_fcts
 
-        WRPF_fcts = {
+        WRPFac_fcts = {
             'about': 'Weak Return Patience Factor'
         }
-        py___code = '(UnempPrb ** (1 / CRRA)) * RPF'
-        Bilt.WRPF = WRPF = \
+        py___code = '(UnempPrb ** (1 / CRRA)) * RPFac'
+        Bilt.WRPFac = WRPFac = \
             eval(py___code, {},
                  {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        WRPF_fcts.update({'latexexpr': r'\WRPF'})
-        WRPF_fcts.update({'_unicode_': r'℘^(1/\rho) RPF'})
-        WRPF_fcts.update({'urlhandle': urlroot + 'WRPF'})
-        WRPF_fcts.update({'value_now': WRPF})
-        WRPF_fcts.update({'py___code': py___code})
-        Bilt.WRPF_fcts = WRPF_fcts
+        WRPFac_fcts.update({'latexexpr': r'\WRPFac'})
+        WRPFac_fcts.update({'_unicode_': r'℘^(1/\rho) RPFac'})
+        WRPFac_fcts.update({'urlhandle': urlroot + 'WRPFac'})
+        WRPFac_fcts.update({'value_now': WRPFac})
+        WRPFac_fcts.update({'py___code': py___code})
+        Bilt.WRPFac_fcts = WRPFac_fcts
 
         WRIC_fcts = {
             'about': 'Weak Return Impatience Condition'
         }
         WRIC_fcts.update({'latexexpr': r'\WRIC'})
         WRIC_fcts.update({'urlhandle': urlroot + 'WRIC'})
-        WRIC_fcts.update({'py___code': 'test: WRPF < 1'})
+        WRIC_fcts.update({'py___code': 'test: WRPFac < 1'})
         Bilt.WRIC_fcts = WRIC_fcts
 
-        DiscGPFNrmCusp_fcts = {
-            'about': 'DiscFac s.t. GPFNrm = 1'
+        DiscGPFacNrmCusp_fcts = {
+            'about': 'DiscFac s.t. GPFacNrm = 1'
         }
         py___code = '((PermGroFac/E_Next_.Inv_permShk)**(CRRA))/Rfree'
-        Bilt.DiscGPFNrmCusp = DiscGPFNrmCusp = \
+        Bilt.DiscGPFacNrmCusp = DiscGPFacNrmCusp = \
             eval(py___code, {},
                  {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        DiscGPFNrmCusp_fcts.update({'latexexpr': ''})
-        DiscGPFNrmCusp_fcts.update({'value_now': DiscGPFNrmCusp})
-        DiscGPFNrmCusp_fcts.update({'py___code': py___code})
-        Bilt.DiscGPFNrmCusp_fcts = DiscGPFNrmCusp_fcts
+        DiscGPFacNrmCusp_fcts.update({'latexexpr': ''})
+        DiscGPFacNrmCusp_fcts.update({'value_now': DiscGPFacNrmCusp})
+        DiscGPFacNrmCusp_fcts.update({'py___code': py___code})
+        Bilt.DiscGPFacNrmCusp_fcts = DiscGPFacNrmCusp_fcts
 
     def build_facts_recursive(self):
         """
@@ -2108,7 +2108,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             lambda m_t:
             (Pars.Rfree*(m_t - Bilt.cFunc(m_t)) + Pars.PermGroFac * E_Next_.IncNrmNxt)/m_t
         )
-        E_Next_.permShk_tp1_times_m_tp1_Over_m_t_minus_PGro = (
+        E_Next_.permShk_tp1_times_m_tp1_Over_m_t_minus_PermGroFac = (
             lambda m_t:
             E_Next_.permShk_tp1_times_m_tp1_Over_m_t(m_t) - Pars.PermGroFac
         )

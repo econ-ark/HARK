@@ -1020,13 +1020,13 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
 
-        GPFRaw = thorn / self.PermGroFac
-        self.GPFRaw = GPFRaw
-        GPFNrm = thorn / self.PermGroFac / np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
-        self.GPFNrm = GPFNrm
+        GPFacRaw = thorn / self.PermGroFac
+        self.GPFacRaw = GPFacRaw
+        GPFacNrm = thorn / self.PermGroFac / np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
+        self.GPFacNrm = GPFacNrm
         GICRaw = 1 > thorn/self.PermGroFac
         self.GICRaw = GICRaw
-        GICNrm = 1 > GPFNrm
+        GICNrm = 1 > GPFacNrm
         self.GICNrm = GICNrm
 
         if GICRaw:
@@ -1883,12 +1883,12 @@ class PerfForesightConsumerType(AgentType):
         def test(agent): return agent.thorn < 1
 
         messages = {
-            True: "The value of the Absolute Patience Factor (APF) for the supplied parameter values satisfies the Absolute Impatience Condition.",
-            False: "The given type violates the Absolute Impatience Condition with the supplied parameter values; the APF is {0.thorn}",
+            True: "The value of the Absolute Patience Factor (APFac) for the supplied parameter values satisfies the Absolute Impatience Condition.",
+            False: "The given type violates the Absolute Impatience Condition with the supplied parameter values; the APFac is {0.thorn}",
         }
         verbose_messages = {
-            True: "  Because the APF < 1, the absolute amount of consumption is expected to fall over time.",
-            False: "  Because the APF > 1, the absolute amount of consumption is expected to grow over time.",
+            True: "  Because the APFac < 1, the absolute amount of consumption is expected to fall over time.",
+            False: "  Because the APFac > 1, the absolute amount of consumption is expected to grow over time.",
         }
         verbose = self.verbose if verbose is None else verbose
         self.check_condition(name, test, messages, verbose, verbose_messages)
@@ -1899,13 +1899,13 @@ class PerfForesightConsumerType(AgentType):
         """
         name = "GICRaw"
 
-        self.GPFRaw = self.thorn / self.PermGroFac[0]
+        self.GPFacRaw = self.thorn / self.PermGroFac[0]
 
-        def test(agent): return agent.GPFRaw < 1
+        def test(agent): return agent.GPFacRaw < 1
 
         messages = {
             True: "The value of the Growth Patience Factor for the supplied parameter values satisfies the Perfect Foresight Growth Impatience Condition.",
-            False: "The value of the Growth Patience Factor for the supplied parameter values fails the Perfect Foresight Growth Impatience Condition; the GPFRaw is: {0.GPFRaw}",
+            False: "The value of the Growth Patience Factor for the supplied parameter values fails the Perfect Foresight Growth Impatience Condition; the GPFacRaw is: {0.GPFacRaw}",
         }
 
         verbose_messages = {
@@ -1920,14 +1920,14 @@ class PerfForesightConsumerType(AgentType):
         Evaluate and report on the Return Impatience Condition
         """
 
-        self.RPF = self.thorn / self.Rfree
+        self.RPFac = self.thorn / self.Rfree
 
         name = "RIC"
-        def test(agent): return self.RPF < 1
+        def test(agent): return self.RPFac < 1
 
         messages = {
             True: "The value of the Return Patience Factor for the supplied parameter values satisfies the Return Impatience Condition.",
-            False: "The value of the Return Patience Factor for the supplied parameter values fails the Return Impatience Condition; the factor is {0.RPF}",
+            False: "The value of the Return Patience Factor for the supplied parameter values fails the Return Impatience Condition; the factor is {0.RPFac}",
         }
 
         verbose_messages = {
@@ -1942,15 +1942,15 @@ class PerfForesightConsumerType(AgentType):
         Evaluate and report on the Finite Human Wealth Condition
         """
 
-        self.FHWF = self.PermGroFac[0] / self.Rfree
+        self.FHWFac = self.PermGroFac[0] / self.Rfree
         self.cNrmPDV = 1.0 / (1.0 - self.thorn / self.Rfree)
 
         name = "FHWC"
-        def test(agent): return self.FHWF < 1
+        def test(agent): return self.FHWFac < 1
 
         messages = {
             True: "The Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.",
-            False: "The given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value is {0.FHWF}",
+            False: "The given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value is {0.FHWFac}",
         }
 
         verbose_messages = {
@@ -2370,16 +2370,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
         Check Individual Growth Patience Factor.
         """
-        self.GPFNrm = self.thorn / (
+        self.GPFacNrm = self.thorn / (
             self.PermGroFac[0] * self.InvEx_PermShkInv
         )  # [url]/#GICRawI
 
         name = "GICRaw"
-        def test(agent): return agent.GPFNrm <= 1
+        def test(agent): return agent.GPFacNrm <= 1
 
         messages = {
-            True: "\nThe value of the Individual Growth Patience Factor for the supplied parameter values satisfies the Growth Impatience Condition; the value of the GPFNrm is: {0.GPFNrm}",
-            False: "\nThe given parameter values violate the Normalized Growth Impatience Condition; the GPFNrm is: {0.GPFNrm}",
+            True: "\nThe value of the Individual Growth Patience Factor for the supplied parameter values satisfies the Growth Impatience Condition; the value of the GPFacNrm is: {0.GPFacNrm}",
+            False: "\nThe given parameter values violate the Normalized Growth Impatience Condition; the GPFacNrm is: {0.GPFacNrm}",
         }
 
         verbose_messages = {
@@ -2391,11 +2391,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def check_GICAggLivPrb(self, verbose=None):
         name = "GICAggLivPrb"
-        def test(agent): return agent.GPFAggLivPrb <= 1
+        def test(agent): return agent.GPFacAggLivPrb <= 1
 
         messages = {
-            True: "\nThe value of the Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values satisfies the Mortality Adjusted Aggregate Growth Imatience Condition; the value of the GPFAggLivPrb is: {0.GPFAggLivPrb}",
-            False: "\nThe given parameter values violate the Mortality Adjusted Aggregate Growth Imatience Condition; the GPFAggLivPrb is: {0.GPFAggLivPrb}",
+            True: "\nThe value of the Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values satisfies the Mortality Adjusted Aggregate Growth Imatience Condition; the value of the GPFacAggLivPrb is: {0.GPFacAggLivPrb}",
+            False: "\nThe given parameter values violate the Mortality Adjusted Aggregate Growth Imatience Condition; the GPFacAggLivPrb is: {0.GPFacAggLivPrb}",
         }
 
         verbose_messages = {
@@ -2410,20 +2410,20 @@ class IndShockConsumerType(PerfForesightConsumerType):
     def check_WRIC(self, verbose=None):
         """
         Evaluate and report on the Weak Return Impatience Condition
-        [url]/#WRPF modified to incorporate LivPrb
+        [url]/#WRPFac modified to incorporate LivPrb
         """
-        self.WRPF = (
+        self.WRPFac = (
             (self.UnempPrb ** (1 / self.CRRA))
             * (self.Rfree * self.DiscFac * self.LivPrb[0]) ** (1 / self.CRRA)
             / self.Rfree
         )
 
         name = "WRIC"
-        def test(agent): return agent.WRPF <= 1
+        def test(agent): return agent.WRPFac <= 1
 
         messages = {
-            True: "\nThe Weak Return Patience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition; the WRPF is {0.WRPF}.",
-            False: "\nThe Weak Return Patience Factor value for the supplied parameter values fails     the Weak Return Impatience Condition; the WRPF is {0.WRPF} (see {0.url}/#WRIC for more).",
+            True: "\nThe Weak Return Patience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition; the WRPFac is {0.WRPFac}.",
+            False: "\nThe Weak Return Patience Factor value for the supplied parameter values fails     the Weak Return Impatience Condition; the WRPFac is {0.WRPFac} (see {0.url}/#WRIC for more).",
         }
 
         verbose_messages = {
@@ -2518,20 +2518,20 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.thorn = ((self.Rfree * self.DiscFac)) ** (1 / self.CRRA)
 
         # self.Ex_RNrm           = self.Rfree*Ex_PermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
-        self.GPFRaw = self.thorn / (self.PermGroFac[0])  # [url]/#GPF
+        self.GPFacRaw = self.thorn / (self.PermGroFac[0])  # [url]/#GPF
         # Lower bound of aggregate wealth growth if all inheritances squandered
 
-        self.GPFAggLivPrb = self.thorn * self.LivPrb[0] / self.PermGroFac[0]
+        self.GPFacAggLivPrb = self.thorn * self.LivPrb[0] / self.PermGroFac[0]
 
-        self.DiscFacGPFRawMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
+        self.DiscFacGPFacRawMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
             self.Rfree
         )  # DiscFac at growth impatience knife edge
-        self.DiscFacGPFNrmMax = (
+        self.DiscFacGPFacNrmMax = (
             (self.PermGroFac[0] * self.InvEx_PermShkInv) ** (self.CRRA)
         ) / (
             self.Rfree
         )  # DiscFac at growth impatience knife edge
-        self.DiscFacGPFAggLivPrbMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
+        self.DiscFacGPFacAggLivPrbMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
             self.Rfree * self.LivPrb[0]
         )  # DiscFac at growth impatience knife edge
         verbose = self.verbose if verbose is None else verbose
@@ -2551,16 +2551,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 + "/#Factors-Defined-And-Compared"
             )
 
-        _log.warning("GPFRaw                 = %2.6f " % (self.GPFRaw))
-        _log.warning("GPFNrm                 = %2.6f " % (self.GPFNrm))
-        _log.warning("GPFAggLivPrb           = %2.6f " % (self.GPFAggLivPrb))
-        _log.warning("Thorn = APF            = %2.6f " % (self.thorn))
+        _log.warning("GPFacRaw                 = %2.6f " % (self.GPFacRaw))
+        _log.warning("GPFacNrm                 = %2.6f " % (self.GPFacNrm))
+        _log.warning("GPFacAggLivPrb           = %2.6f " % (self.GPFacAggLivPrb))
+        _log.warning("Thorn = APFac            = %2.6f " % (self.thorn))
         _log.warning("PermGroFacAdj          = %2.6f " % (self.PermGroFacAdj))
         _log.warning("uInvEpShkuInv          = %2.6f " % (self.uInvEpShkuInv))
         _log.warning("VAF                    = %2.6f " % (self.VAF))
-        _log.warning("WRPF                   = %2.6f " % (self.WRPF))
-        _log.warning("DiscFacGPFNrmMax       = %2.6f " % (self.DiscFacGPFNrmMax))
-        _log.warning("DiscFacGPFAggLivPrbMax = %2.6f " % (self.DiscFacGPFAggLivPrbMax))
+        _log.warning("WRPFac                   = %2.6f " % (self.WRPFac))
+        _log.warning("DiscFacGPFacNrmMax       = %2.6f " % (self.DiscFacGPFacNrmMax))
+        _log.warning("DiscFacGPFacAggLivPrbMax = %2.6f " % (self.DiscFacGPFacAggLivPrbMax))
 
     def Ex_Mtp1_over_Ex_Ptp1(self, mNrm):
         cNrm = self.solution[-1].cFunc(mNrm)
