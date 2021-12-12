@@ -1330,7 +1330,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         hNrm_fcts.update({'latexexpr': r'\hNrm'})
         hNrm_fcts.update({'_unicode_': r'R/Φ'})
-        hNrm_fcts.update({'urlhandle': urlroot + 'hNrm'})
+        hNrm_fcts.update({'urlhandle': urlroot + 'hNrmDefn'})
         hNrm_fcts.update({'py___code': py___code})
         hNrm_fcts.update({'value_now': hNrm})
         Bilt.hNrm_fcts = hNrm_fcts
@@ -1357,9 +1357,6 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             '(BoroCnstArt if BoroCnstNat < BoroCnstArt else BoroCnstNat)'
         Bilt.BoroCnst = BoroCnst = \
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        BoroCnst_fcts.update({'latexexpr': r'\BoroCnst'})
-        BoroCnst_fcts.update({'_unicode_': r''})
-        BoroCnst_fcts.update({'urlhandle': urlroot + 'BoroCnst'})
         BoroCnst_fcts.update({'py___code': py___code})
         BoroCnst_fcts.update({'value_now': BoroCnst})
         Bilt.BoroCnst_fcts = BoroCnst_fcts
@@ -1436,7 +1433,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             eval(py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         cFuncLimitSlope_fcts.update({'py___code': py___code})
         cFuncLimitSlope_fcts = dict({'latexexpr': r'\MPCmin'})
-        cFuncLimitSlope_fcts.update({'urlhandle': r'\MPC'})
+        cFuncLimitSlope_fcts.update({'urlhandle': r'\MPCminDefn'})
         crnt.Bilt.cFuncLimitSlope_fcts = cFuncLimitSlope_fcts
 
         # That's the end of things that are identical for PF and non-PF models
@@ -1724,9 +1721,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         py___code = 'E_dot(ShkPrbs, TranShkValsBcst * PermShkValsBcst)'
         E_Next_.IncNrmNxt = E_Next_.IncNrmNxt = eval(
             py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        E_Next_.IncNrmNxt_fcts.update({'latexexpr': r'ExIncNrmNxt'})
+#        E_Next_.IncNrmNxt_fcts.update({'latexexpr': r'ExIncNrmNxt'})
         E_Next_.IncNrmNxt_fcts.update({'_unicode_': r'E[TranShk PermShk]=1.0'})
-        E_Next_.IncNrmNxt_fcts.update({'urlhandle': urlroot + 'ExIncNrmNxt'})
+#        E_Next_.IncNrmNxt_fcts.update({'urlhandle': urlroot + 'ExIncNrmNxt'})
         E_Next_.IncNrmNxt_fcts.update({'py___code': py___code})
         E_Next_.IncNrmNxt_fcts.update({'value_now': E_Next_.IncNrmNxt})
         crnt.E_Next_.IncNrmNxt_fcts = E_Next_.IncNrmNxt_fcts
@@ -1737,9 +1734,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         py___code = 'E_dot(1/PermShkVals, PermShkPrbs)'
         E_Next_.Inv_PermShk = E_Next_.Inv_PermShk = eval(
             py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        E_Next_.Inv_PermShk_fcts.update({'latexexpr': r'\ExInvPermShk'})
-        E_Next_.Inv_PermShk_fcts.update({'urlhandle':
-                                         urlroot + 'ExInvPermShk'})
+#        E_Next_.Inv_PermShk_fcts.update({'latexexpr': r'\ExInvPermShk'})
+#        E_Next_.Inv_PermShk_fcts.update({'urlhandle':urlroot + 'ExInvPermShk'})
         E_Next_.Inv_PermShk_fcts.update({'py___code': py___code})
         E_Next_.Inv_PermShk_fcts.update({'value_now': E_Next_.Inv_PermShk})
         crnt.E_Next_.Inv_PermShk_fcts = E_Next_.Inv_PermShk_fcts
@@ -1751,7 +1747,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         E_Next_.RNrm = eval(
             py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         E_Next_.RNrm_fcts.update({'latexexpr': r'\ExRNrm'})
-        E_Next_.RNrm_fcts.update({'_unicode_': r'E[R/Φψ]'})
+        E_Next_.RNrm_fcts.update({'_unicode_': r'E[R/φ]'})
         E_Next_.RNrm_fcts.update({'urlhandle': urlroot + 'ExRNrm'})
         E_Next_.RNrm_fcts.update({'py___code': py___code})
         E_Next_.RNrm_fcts.update({'value_now': E_Next_.RNrm})
@@ -1763,8 +1759,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         py___code = 'E_dot(PermShkValsBcst**(1-CRRA), ShkPrbs)'
         E_Next_.uInv_PermShk = E_Next_.uInv_PermShk = eval(
             py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        E_Next_.uInv_PermShk_fcts.update({'latexexpr': r'\ExuInvPermShk'})
-        E_Next_.uInv_PermShk_fcts.update({'urlhandle': r'ExuInvPermShk'})
+#        E_Next_.uInv_PermShk_fcts.update({'latexexpr': r'\ExuInvPermShk'})
+        E_Next_.uInv_PermShk_fcts.update({'urlhandle': urlroot+r'ExuInvPermShk'})
         E_Next_.uInv_PermShk_fcts.update({'py___code': py___code})
         E_Next_.uInv_PermShk_fcts.update({'value_now': E_Next_.uInv_PermShk})
         E_Next_.uInv_PermShk_fcts = E_Next_.uInv_PermShk_fcts
