@@ -108,6 +108,23 @@
   *{package}{uniquecounter}{2019/12/15 v1.4}
   *{package}{econtexShortcuts}{0000/00/00 v0.0}
   *{package}{./Resources/texmf-local/tex/latex/econtexShortcuts}{0000/00/00 v0.0}
+  *{package}{/Volumes/Data/Papers/BufferStockTheory/BufferStockTheory-Latest/Resources/LaTeXInputs/BufferStockTheory}{0000/00/00 v0.0}
+  *{file}   {./Resources/owner.tex}{0000/00/00 v0.0}
+  *{package}{datetime2}   {2020/03/02 v1.5.6}
+  *{package}{tracklang}   {2019/11/30 v1.4}
+  *{file}   {tracklang.tex}{2019/11/30 v1.4}
+  *{package}{xkeyval}     {2014/12/03 v2.7a}
+  *{file}   {xkeyval.tex} {2014/12/03 v2.7a}
+  *{file}   {datetime2-english.ldf}{2019/10/21 v1.05}
+  *{file}   {datetime2-english-base.ldf}{2019/10/21 v1.05}
+  *{package}{refcount}    {2019/12/15 v3.6}
+  *{package}{xr-hyper}    {2019/10/03 v6.1}
+  *{package}{makecell}    {2009/08/03 v0.1e}
+  *{package}{rotating}    {2016/08/11 v2.16d}
+  *{package}{subfigure}   {2002/03/15 v2.1.5}
+  *{file}   {subfigure.cfg}{0000/00/00 v0.0}
+  *{package}{scrlayer-scrpage}{2020/01/24 v3.29}
+  *{package}{scrlayer}    {2020/01/24 v3.29}
   *{package}{/Volumes/Data/Papers/BufferStockTheory/BufferStockTheory-Latest/Resources/LaTeXInputs/BufferStockTheory-Shortcuts}{0000/00/00 v0.0}
   *{file}   {./Resources/owner.tex}{0000/00/00 v0.0}
   *{file}   {t3cmr.fd}    {2001/12/31 v0.0}
@@ -116,7 +133,6 @@
   *{package}{epstopdf-base}{2020-01-24 v2.11}
   *{file}   {epstopdf-sys.cfg}{2010/07/13 v1.3}
   *{package}{nameref}     {2019/09/16 v2.46}
-  *{package}{refcount}    {2019/12/15 v3.6}
   *{package}{gettitlestring}{2019/12/15 v1.6}
   *{file}   {NARK.out}    {0000/00/00 v0.0}
   *{file}   {NARK.out}    {0000/00/00 v0.0}

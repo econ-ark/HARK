@@ -242,7 +242,7 @@ document and \texttt{CRRA} in a software module.
     \\ \verb|\permGroFacInd|  & $\permGroFacInd$ & productivity Growth (Idiosyncratic) & $\permLvlInd_{t+1} = \permGroFacInd \permLvlInd_{t}$
 %    \\ \verb|\PermGroRteInd|  & $\PermGroRteInd$ & productivity Growth Rate & $\permGroFac = (1+\PermGroRte)$
     \\ \verb|\PermGroFac|  & $\PermGroFac$ & productivity Growth (combo) & $\PermGroFac = \permGroFacInd \permGroFacAgg$
-    \\ \verb|\PermGroRte|  & $\PermGroRte$ & productivity growth rate (combo) & $\PermGroRte = \log \permGroFac$
+%    \\ \verb|\PermGroRte|  & $\PermGroRte$ & productivity growth rate (combo) & $\PermGroRte = \log \permGroFac$
     % \\ \verb|\PermGroRte|  & $\PermGroRte$ & productivity Growth Rate (combo) & $\PermGroRte = \PermGroRteAgg+\PermGroRteInd$
     \\ \verb|\leiShare|  & $\leiShare$ & Leisure share, Cobb-Douglas utility & $\uFunc(c,z)=(1-\CRRA)^{-1}(c^{1-\leiShare}z^{\leiShare})^{1-\CRRA}$
     \\ \verb|\MPC|  & $\MPC$ & Marginal Propensity to Consume & $\cFunc^{\prime}(\mNrm)=\partial c/\partial m$
@@ -250,7 +250,7 @@ document and \texttt{CRRA} in a software module.
     \\ \verb|\GPFac| & $\GPFacRaw$ & Growth Patience Factor & $\GPFacRaw = \APFac/\PermGroFac $
     \\ \verb|\RPFac| & $\RPFac$ & Return Patience Factor & $\RPFac = \APFac/\Rfree $ 
     \\ \verb|\APRte|  & $\APRte$ & Absolute Patience rate (\texttt{thorn}) & $\APRte = (\Rfree \DiscFac)^{1/\CRRA}-1 \approx \CRRA^{-1}(\rfree-\discRte) $
-    \\ \verb|\GPRte| & $\GPRte$ & Growth Patience rate  & $\GPRte = \APRte -\PermGroRte $
+    \\ \verb|\GPRte| & $\GPRte$ & Growth Patience rate  & $\GPRte = \APRte - \log \PermGroFac $
     \\ \verb|\RPRte| & $\RPRte$ & Return Patience rate  & $\RPRte =\APRte -\rfree $
     \\ \verb|\riskyshare|  & $\riskyshare$ & Portfolio share in risky assets & $\Rport_{t+1}=(1-\riskyshare)\Rfree+\riskyshare\Risky_{t+1}$
     \\	\hline

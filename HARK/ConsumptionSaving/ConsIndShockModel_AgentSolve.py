@@ -1522,7 +1522,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         if hasattr(Bilt, "TranShkVals") and hasattr(Bilt, "PermShkVals"):
             if ((Bilt.TranShkMin == 1.0) and (Bilt.PermShkMin == 1.0)):
                 crnt.E_Next_.Inv_PermShk = 1.0
-                crnt.E_Next_.uInv_PermShk = 1.0
+                crnt.E_Next_.u_PermShk = 1.0
         else:  # Missing trans or PermShkVals; assume it's PF model
             Bilt.TranShkMin = Bilt.PermShkMin = 1.0
 
@@ -1753,17 +1753,17 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         E_Next_.RNrm_fcts.update({'value_now': E_Next_.RNrm})
         E_Next_.RNrm_fcts = E_Next_.RNrm_fcts
 
-        E_Next_.uInv_PermShk_fcts = {
+        E_Next_.u_PermShk_fcts = {
             'about': 'Expected Utility for Consuming Permanent Shock'
         }
         py___code = 'E_dot(PermShkValsBcst**(1-CRRA), ShkPrbs)'
-        E_Next_.uInv_PermShk = E_Next_.uInv_PermShk = eval(
+        E_Next_.u_PermShk = E_Next_.u_PermShk = eval(
             py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-#        E_Next_.uInv_PermShk_fcts.update({'latexexpr': r'\ExuInvPermShk'})
-        E_Next_.uInv_PermShk_fcts.update({'urlhandle': urlroot+r'ExuInvPermShk'})
-        E_Next_.uInv_PermShk_fcts.update({'py___code': py___code})
-        E_Next_.uInv_PermShk_fcts.update({'value_now': E_Next_.uInv_PermShk})
-        E_Next_.uInv_PermShk_fcts = E_Next_.uInv_PermShk_fcts
+#        E_Next_.u_PermShk_fcts.update({'latexexpr': r'\ExuInvPermShk'})
+        E_Next_.u_PermShk_fcts.update({'urlhandle': urlroot+r'ExuInvPermShk'})
+        E_Next_.u_PermShk_fcts.update({'py___code': py___code})
+        E_Next_.u_PermShk_fcts.update({'value_now': E_Next_.u_PermShk})
+        E_Next_.u_PermShk_fcts = E_Next_.u_PermShk_fcts
 
         GPFacNrm_fcts = {
             'about': 'Normalized Expected Growth Patience Factor'
