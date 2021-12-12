@@ -1760,7 +1760,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         E_Next_.u_PermShk = E_Next_.u_PermShk = eval(
             py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens})
 #        E_Next_.u_PermShk_fcts.update({'latexexpr': r'\ExuInvPermShk'})
-        E_Next_.u_PermShk_fcts.update({'urlhandle': urlroot+r'ExuInvPermShk'})
+        E_Next_.u_PermShk_fcts.update({'urlhandle': urlroot+r'EuPermShk'})
         E_Next_.u_PermShk_fcts.update({'py___code': py___code})
         E_Next_.u_PermShk_fcts.update({'value_now': E_Next_.u_PermShk})
         E_Next_.u_PermShk_fcts = E_Next_.u_PermShk_fcts
@@ -1773,7 +1773,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
                            {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         GPFacNrm_fcts.update({'latexexpr': r'\GPFacNrm'})
         GPFacNrm_fcts.update({'_unicode_': r'Þ_Φ'})
-        GPFacNrm_fcts.update({'urlhandle': urlroot + 'GPFacNrm'})
+        GPFacNrm_fcts.update({'urlhandle': urlroot + 'GPFacNrmDefn'})
         GPFacNrm_fcts.update({'py___code': py___code})
         Bilt.GPFacNrm_fcts = GPFacNrm_fcts
 
@@ -1781,7 +1781,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             'about': 'Stochastic Growth Normalized Impatience Condition'
         }
         GICNrm_fcts.update({'latexexpr': r'\GICNrm'})
-        GICNrm_fcts.update({'urlhandle': urlroot + 'GICNrm'})
+        GICNrm_fcts.update({'urlhandle': urlroot + 'GICNrmDefn'})
         GICNrm_fcts.update({'py___code': 'test: GPFacNrm < 1'})
         Bilt.GICNrm_fcts = GICNrm_fcts
 
@@ -1804,7 +1804,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             'about': 'Finite Value of Autarky Condition'
         }
         FVAC_fcts.update({'latexexpr': r'\FVAC'})
-        FVAC_fcts.update({'urlhandle': urlroot + 'FVAC'})
+        FVAC_fcts.update({'urlhandle': urlroot + 'FVACDefn'})
         FVAC_fcts.update({'py___code': 'test: VAFac < 1'})
         Bilt.FVAC_fcts = FVAC_fcts
 
@@ -1826,7 +1826,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             'about': 'Weak Return Impatience Condition'
         }
         WRIC_fcts.update({'latexexpr': r'\WRIC'})
-        WRIC_fcts.update({'urlhandle': urlroot + 'WRIC'})
+        WRIC_fcts.update({'urlhandle': urlroot + 'WRICDefn'})
         WRIC_fcts.update({'py___code': 'test: WRPFac < 1'})
         Bilt.WRIC_fcts = WRIC_fcts
 
