@@ -550,9 +550,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                    soln.Bilt.GPFacLiv_fcts['urlhandle'],
         }
         verbose_messages = {
-            True: "\n    Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.    \n" +
+            True: "\n    Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.    \n    " +
                   soln.Bilt.GPFacLiv_fcts['urlhandle'] + "\n",
-            False: "\n    Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.  \n" +
+            False: "\n    Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.  \n    " +
                    soln.Bilt.GPFacLiv_fcts['urlhandle'] + "\n",
         }
         soln.Bilt.GICLiv = core_check_condition(name, test, messages, messaging_level,
