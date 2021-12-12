@@ -550,8 +550,8 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         # The code below the following "if" is excuted only in the PF case
 
         self.income_risks_exist = \
-            ('permShkStd' in params) or \
-            ('tranShkStd' in params) or \
+            ('PermShkStd' in params) or \
+            ('TranShkStd' in params) or \
             (('UnempPrb' in params) and (params['UnempPrb'] != 0)) or \
             (('UnempPrbRet' in params) and (params['UnempPrbRet'] != 0))
 
@@ -652,7 +652,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         Check that various restrictions are met for the model class.
         """
         min0Bounded = {  # Things that must be >= 0
-            'tranShkStd', 'permShkStd', 'UnempPrb', 'IncUnemp', 'UnempPrbRet',
+            'TranShkStd', 'PermShkStd', 'UnempPrb', 'IncUnemp', 'UnempPrbRet',
             'IncUnempRet'}
 
         gt0Bounded = {  # Things that must be >0
@@ -742,7 +742,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         solution_terminal = self.solution_terminal
 
         # Natural borrowing constraint: Cannot die in debt
-        # Measured after income = tranShk*permShk/permShk received
+        # Measured after income = TranShk*PermShk/PermShk received
         if not hasattr(solution_terminal.Bilt, 'hNrm'):
             _log.warning('warning: hNrm should be set in solution_terminal.')
             _log.warning('assuming solution_terminal.hNrm = 0.')
@@ -831,7 +831,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
 
     def initialize_sim(self):
         self.mcrlovars = SimpleNamespace()
-        self.mcrlovars.permShkAgg = self.permShkAgg = self.PermGroFacAgg  # Never changes during sim
+        self.mcrlovars.PermShkAgg = self.PermShkAgg = self.PermGroFacAgg  # Never changes during sim
         # CDC 20210428 it would be good if we could separate the sim from the sol variables like this
         self.mcrlovars.state_now['PlvlAgg'] = self.state_now['PlvlAgg'] = 1.0
         AgentType.initialize_sim(self)
@@ -913,8 +913,8 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     def get_shocks(self):
         """
         Finds permanent and transitory income "shocks" for each agent this period.  When this is a
-        perfect foresight model, there are no stochastic shocks: permShk = PermGroFac for each
-        agent (according to their t_cycle) and tranShk = 1.0 for all agents.
+        perfect foresight model, there are no stochastic shocks: PermShk = PermGroFac for each
+        agent (according to their t_cycle) and TranShk = 1.0 for all agents.
 
         Parameters
         ----------
@@ -925,10 +925,10 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         None
         """
         PermGroFac = np.array(self.PermGroFac)
-        self.shocks['permShk'] = PermGroFac[
+        self.shocks['PermShk'] = PermGroFac[
             self.t_cycle - 1
         ]  # cycle time has already been advanced
-        self.shocks['tranShk'] = np.ones(self.AgentCount)
+        self.shocks['TranShk'] = np.ones(self.AgentCount)
 
     get_shocks_mcrlo = mcrlo_get_shocks = get_shocks
 
@@ -957,13 +957,13 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         Rfree = self.get_Rfree()
 
         # Calculate new states: normalized market resources and permanent income level
-        pLvl = pLvlPrev*self.shocks['permShk']  # Updated permanent income level
+        pLvl = pLvlPrev*self.shocks['PermShk']  # Updated permanent income level
         # Updated aggregate permanent productivity level
-        PlvlAgg = self.state_prev['PlvlAgg']*self.permShkAgg
+        PlvlAgg = self.state_prev['PlvlAgg']*self.PermShkAgg
         # "Effective" interest factor on normalized assets
-        RNrm = Rfree/self.shocks['permShk']
+        RNrm = Rfree/self.shocks['PermShk']
         bNrm = RNrm*aNrmPrev         # Bank balances before labor income
-        mNrm = bNrm + self.shocks['tranShk']  # Market resources after income
+        mNrm = bNrm + self.shocks['TranShk']  # Market resources after income
 
         return pLvl, PlvlAgg, bNrm, mNrm, None
 
@@ -1179,13 +1179,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
 
         (self.IncShkDstn,
-            self.permShkDstn,
-            self.tranShkDstn,
+            self.PermShkDstn,
+            self.TranShkDstn,
          ) = self.construct_lognormal_income_process_unemployment()
-        self.add_to_time_vary("IncShkDstn", "permShkDstn", "tranShkDstn")
+        self.add_to_time_vary("IncShkDstn", "PermShkDstn", "TranShkDstn")
         self.parameters.update({'IncShkDstn': self.IncShkDstn,
-                                'permShkDstn': self.permShkDstn,
-                                'tranShkDstn': self.tranShkDstn})
+                                'PermShkDstn': self.PermShkDstn,
+                                'TranShkDstn': self.TranShkDstn})
 
     def update_assets_grid(self):
         """
@@ -1232,7 +1232,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
         Generates a sequence of discrete approximations to the income process for each
         life period, from end of life to beginning of life.  Permanent shocks are mean
-        one lognormally distributed with standard deviation permShkStd[t] during the
+        one lognormally distributed with standard deviation PermShkStd[t] during the
         working life, and degenerate at 1 in the retirement period.  transitory shocks
         are mean one lognormally distributed with a point mass at IncUnemp with
         probability UnempPrb while working; they are mean one with a point mass at
@@ -1245,16 +1245,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         Parameters (passed as attributes of the input parameters)
         ----------
-        permShkStd : [float]
+        PermShkStd : [float]
             List of standard deviations in log permanent income uncertainty during
             the agent's life.
-        permShkCount : int
+        PermShkCount : int
             The number of approximation points to be used in the discrete approxima-
             tion to the permanent income shock distribution.
-        tranShkStd : [float]
+        TranShkStd : [float]
             List of standard deviations in log transitory income uncertainty during
             the agent's life.
-        tranShkCount : int
+        TranShkCount : int
             The number of approximation points to be used in the discrete approxima-
             tion to the permanent income shock distribution.
         UnempPrb : float
@@ -1276,19 +1276,19 @@ class IndShockConsumerType(PerfForesightConsumerType):
         IncShkDstn :  [distribution.Distribution]
             A list with elements from t = 0 to T_cycle, each of which is a
             discrete approximation to the joint income distribution at at [t]
-        permShkDstn : [[distribution.Distribution]]
+        PermShkDstn : [[distribution.Distribution]]
             A list with elements from t = 0 to T_cycle, each of which is a
             discrete approximation to the permanent shock distribution at [t]
-        tranShkDstn : [[distribution.Distribution]]
+        TranShkDstn : [[distribution.Distribution]]
             A list with elements from t = 0 to T_cycle, each of which is a
             discrete approximation to the transitory shock distribution at [t]
         """
         # Unpack the parameters from the input
 
-        permShkStd = self.permShkStd
-        permShkCount = self.permShkCount
-        tranShkStd = self.tranShkStd
-        tranShkCount = self.tranShkCount
+        PermShkStd = self.PermShkStd
+        PermShkCount = self.PermShkCount
+        TranShkStd = self.TranShkStd
+        TranShkCount = self.TranShkCount
         UnempPrb = self.UnempPrb
         UnempPrbRet = self.UnempPrbRet
         T_retire = self.T_retire
@@ -1299,10 +1299,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # make a dictionary of the parameters
         # Created so later we can determine whether any have changed
         parameters = {
-            'permShkStd':  self.permShkStd,
-            'permShkCount':  self.permShkCount,
-            'tranShkStd':  self.tranShkStd,
-            'tranShkCount':  self.tranShkCount,
+            'PermShkStd':  self.PermShkStd,
+            'PermShkCount':  self.PermShkCount,
+            'TranShkStd':  self.TranShkStd,
+            'TranShkCount':  self.TranShkCount,
             'UnempPrb':  self.UnempPrb,
             'UnempPrbRet':  self.UnempPrbRet,
             'T_retire':  self.T_retire,
@@ -1318,15 +1318,15 @@ class IndShockConsumerType(PerfForesightConsumerType):
                           'construct_lognormal_income_process_unemployment'}
 
         IncShkDstn = []  # Discrete approximations to income process in each period
-        permShkDstn = []  # Discrete approximations to permanent income shocks
-        tranShkDstn = []  # Discrete approximations to transitory income shocks
+        PermShkDstn = []  # Discrete approximations to permanent income shocks
+        TranShkDstn = []  # Discrete approximations to transitory income shocks
 
         # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
         # in normal times; value 0.0 in "unemployment" times with small prob.
         if T_retire > 0:
             if UnempPrbRet > 0:
-                #                permShkValsNxtRet = np.array([1.0, 1.0])  # Permanent income is deterministic in retirement (2 states for temp income shocks)
-                tranShkValsRet = np.array(
+                #                PermShkValsNxtRet = np.array([1.0, 1.0])  # Permanent income is deterministic in retirement (2 states for temp income shocks)
+                TranShkValsRet = np.array(
                     [
                         IncUnempRet,
                         (1.0 - UnempPrbRet * IncUnempRet) / (1.0 - UnempPrbRet),
@@ -1335,8 +1335,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 ShkPrbsRet = np.array([UnempPrbRet, 1.0 - UnempPrbRet])
             else:
                 (IncShkDstnRet,
-                 permShkDstnRet,
-                 tranShkDstnRet,
+                 PermShkDstnRet,
+                 TranShkDstnRet,
                  ) = self.construct_lognormal_income_process_unemployment()
                 ShkPrbsRet = IncShkDstnRet.pmf
 
@@ -1345,34 +1345,34 @@ class IndShockConsumerType(PerfForesightConsumerType):
             if T_retire > 0 and t >= T_retire:
                 # Then we are in the "retirement period" and add a retirement income object.
                 IncShkDstn.append(deepcopy(IncShkDstnRet))
-                permShkDstn.append([np.array([1.0]), np.array([1.0])])
-                tranShkDstn.append([ShkPrbsRet, tranShkValsRet])
+                PermShkDstn.append([np.array([1.0]), np.array([1.0])])
+                TranShkDstn.append([ShkPrbsRet, TranShkValsRet])
             else:
                 # We are in the "working life" periods.
-                tranShkDstn_t = MeanOneLogNormal(sigma=tranShkStd[t]).approx(
-                    tranShkCount, tail_N=0
+                TranShkDstn_t = MeanOneLogNormal(sigma=TranShkStd[t]).approx(
+                    TranShkCount, tail_N=0
                 )
                 if UnempPrb > 0:
-                    tranShkDstn_t = add_discrete_outcome_constant_mean(
-                        tranShkDstn_t, p=UnempPrb, x=IncUnemp
+                    TranShkDstn_t = add_discrete_outcome_constant_mean(
+                        TranShkDstn_t, p=UnempPrb, x=IncUnemp
                     )
-                permShkDstn_t = MeanOneLogNormal(sigma=permShkStd[t]).approx(
-                    permShkCount, tail_N=0
+                PermShkDstn_t = MeanOneLogNormal(sigma=PermShkStd[t]).approx(
+                    PermShkCount, tail_N=0
                 )
                 IncShkDstn.append(
                     combine_indep_dstns(
-                        permShkDstn_t,
-                        tranShkDstn_t,
+                        PermShkDstn_t,
+                        TranShkDstn_t,
                         seed=self.RNG.randint(0, 2 ** 31 - 1),
                     )
                 )  # mix the independent distributions
-                permShkDstn.append(permShkDstn_t)
-                tranShkDstn.append(tranShkDstn_t)
+                PermShkDstn.append(PermShkDstn_t)
+                TranShkDstn.append(TranShkDstn_t)
 
         IncShkDstn[-1].parameters = parameters
         IncShkDstn[-1].constructed_by = constructed_by
 
-        return IncShkDstn, permShkDstn, tranShkDstn
+        return IncShkDstn, PermShkDstn, TranShkDstn
 
     def get_shocks(self):  # mcrlo simulation tool
         """
@@ -1387,8 +1387,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
-        permShk = np.zeros(self.AgentCount)  # Initialize shock arrays
-        tranShk = np.zeros(self.AgentCount)
+        PermShk = np.zeros(self.AgentCount)  # Initialize shock arrays
+        TranShk = np.zeros(self.AgentCount)
         newborn = self.t_age == 0
         for t in range(self.T_cycle):
             these = t == self.t_cycle
@@ -1401,10 +1401,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 # Get random draws of income shocks from the discrete distribution
                 IncShks = IncShkDstn.draw(N)
 
-                permShk[these] = (
+                PermShk[these] = (
                     IncShks[0, :] * PermGroFac
                 )  # permanent "shock" includes expected growth
-                tranShk[these] = IncShks[1, :]
+                TranShk[these] = IncShks[1, :]
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
@@ -1416,18 +1416,18 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
             # Get random draws of income shocks from the discrete distribution
             EventDraws = IncShkDstn.draw_events(N)
-            permShk[these] = (
+            PermShk[these] = (
                 IncShkDstn.X[0][EventDraws] * PermGroFac
             )  # permanent "shock" includes expected growth
-            tranShk[these] = IncShkDstn.X[1][EventDraws]
-            #        permShk[newborn] = 1.0
-        tranShk[newborn] = 1.0
+            TranShk[these] = IncShkDstn.X[1][EventDraws]
+            #        PermShk[newborn] = 1.0
+        TranShk[newborn] = 1.0
 
         # Store the shocks in self
         self.Emp = np.ones(self.AgentCount, dtype=bool)
-        self.Emp[tranShk == self.IncUnemp] = False
-        self.shocks['permShk'] = permShk
-        self.shocks['tranShk'] = tranShk
+        self.Emp[TranShk == self.IncUnemp] = False
+        self.shocks['PermShk'] = PermShk
+        self.shocks['TranShk'] = TranShk
 
     get_shocks_mcrlo = mcrlo_get_shocks = get_shocks
 

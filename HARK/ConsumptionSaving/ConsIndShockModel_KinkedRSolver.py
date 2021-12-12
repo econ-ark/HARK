@@ -169,10 +169,10 @@ class ConsKinkedRsolver(ConsIndShockSolver):
             aXtraCount = aNrm.size
 
         # Make tiled versions of the assets grid and income shocks
-        ShkCount = self.Pars.tranShkVals.size
+        ShkCount = self.Pars.TranShkVals.size
         aNrm_temp = np.tile(aNrm, (ShkCount, 1))
-        permShkVals_temp = (np.tile(self.Pars.permShkVals, (aXtraCount, 1))).transpose()
-        tranShkVals_temp = (np.tile(self.Pars.tranShkVals, (aXtraCount, 1))).transpose()
+        PermShkVals_temp = (np.tile(self.Pars.PermShkVals, (aXtraCount, 1))).transpose()
+        TranShkVals_temp = (np.tile(self.Pars.TranShkVals, (aXtraCount, 1))).transpose()
         ShkPrbs_temp = (np.tile(self.ShkPrbs, (aXtraCount, 1))).transpose()
 
         # Make a 1D array of the interest factor at each asset gridpoint
@@ -188,8 +188,8 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         # Make an array of market resources that we could have next period,
         # considering the grid of assets and the income shocks that could occur
         mNrmNext = (
-            Rfree_temp / (self.PermGroFac * permShkVals_temp) * aNrm_temp
-            + tranShkVals_temp
+            Rfree_temp / (self.PermGroFac * PermShkVals_temp) * aNrm_temp
+            + TranShkVals_temp
         )
 
         # Recalculate the minimum MPC and human wealth using the interest factor on saving.
@@ -204,14 +204,14 @@ class ConsKinkedRsolver(ConsIndShockSolver):
                 / self.bilt.Rsave
                 * (
                     𝔼_dot(
-                        self.ShkPrbs, self.Pars.tranShkVals * self.Pars.permShkVals
+                        self.ShkPrbs, self.Pars.TranShkVals * self.Pars.PermShkVals
                     )
                     + self.solution_current.bilt.hNrm
                 )
             )
 
         # Store some of the constructed arrays for later use and return the assets grid
-        self.permShkVals_temp = permShkVals_temp
+        self.PermShkVals_temp = PermShkVals_temp
         self.ShkPrbs_temp = ShkPrbs_temp
         self.mNrmNext = mNrmNext
         self.aNrm = aNrm

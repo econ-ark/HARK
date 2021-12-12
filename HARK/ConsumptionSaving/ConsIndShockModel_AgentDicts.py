@@ -214,8 +214,8 @@ init_idiosyncratic_shocks_plus['aprox_lim'] = {}
 
 #  add parameters that were not part of perfect foresight model
 # Primitives
-init_idiosyncratic_shocks_plus['prmtv_par'].append('permShkStd')
-init_idiosyncratic_shocks_plus['prmtv_par'].append('tranShkStd')
+init_idiosyncratic_shocks_plus['prmtv_par'].append('PermShkStd')
+init_idiosyncratic_shocks_plus['prmtv_par'].append('TranShkStd')
 init_idiosyncratic_shocks_plus['prmtv_par'].append('UnempPrb')
 init_idiosyncratic_shocks_plus['prmtv_par'].append('UnempPrbRet')
 init_idiosyncratic_shocks_plus['prmtv_par'].append('IncUnempRet')
@@ -224,10 +224,10 @@ init_idiosyncratic_shocks_plus['prmtv_par'].append('tax_rate')
 init_idiosyncratic_shocks_plus['prmtv_par'].append('T_retire')
 
 # Approximation parameters and their limits (if any)
-# init_idiosyncratic_shocks_plus['aprox_par'].append('permShkCount')
-init_idiosyncratic_shocks_plus['aprox_lim'].update({'permShkCount': 'infinity'})
-# init_idiosyncratic_shocks_plus['aprox_par'].append('tranShkCount')
-init_idiosyncratic_shocks_plus['aprox_lim'].update({'tranShkCount': 'infinity'})
+# init_idiosyncratic_shocks_plus['aprox_par'].append('PermShkCount')
+init_idiosyncratic_shocks_plus['aprox_lim'].update({'PermShkCount': 'infinity'})
+# init_idiosyncratic_shocks_plus['aprox_par'].append('TranShkCount')
+init_idiosyncratic_shocks_plus['aprox_lim'].update({'TranShkCount': 'infinity'})
 # init_idiosyncratic_shocks_plus['aprox_par'].append('aXtraMin')
 init_idiosyncratic_shocks_plus['aprox_lim'].update({'aXtraMin': float('0.0')})
 # init_idiosyncratic_shocks_plus['aprox_par'].append('aXtraMax')
@@ -243,17 +243,17 @@ IncShkDstn_fcts.update({'py___code': r'construct_lognormal_income_process_unempl
 # init_idiosyncratic_shocks_plus['_fcts'].update({'IncShkDstn': IncShkDstn_fcts})
 init_idiosyncratic_shocks_plus.update({'IncShkDstn_fcts': IncShkDstn_fcts})
 
-permShkStd_fcts = {
+PermShkStd_fcts = {
     'about': 'Standard deviation for lognormal shock to permanent income'}
-permShkStd_fcts.update({'latexexpr': r'\permShkStd'})
-# init_idiosyncratic_shocks_plus['_fcts'].update({'permShkStd': permShkStd_fcts})
-init_idiosyncratic_shocks_plus.update({'permShkStd_fcts': permShkStd_fcts})
+PermShkStd_fcts.update({'latexexpr': r'\PermShkStd'})
+# init_idiosyncratic_shocks_plus['_fcts'].update({'PermShkStd': PermShkStd_fcts})
+init_idiosyncratic_shocks_plus.update({'PermShkStd_fcts': PermShkStd_fcts})
 
-tranShkStd_fcts = {
+TranShkStd_fcts = {
     'about': 'Standard deviation for lognormal shock to permanent income'}
-tranShkStd_fcts.update({'latexexpr': r'\tranShkStd'})
-# init_idiosyncratic_shocks_plus['_fcts'].update({'tranShkStd': tranShkStd_fcts})
-init_idiosyncratic_shocks_plus.update({'tranShkStd_fcts': tranShkStd_fcts})
+TranShkStd_fcts.update({'latexexpr': r'\TranShkStd'})
+# init_idiosyncratic_shocks_plus['_fcts'].update({'TranShkStd': TranShkStd_fcts})
+init_idiosyncratic_shocks_plus.update({'TranShkStd_fcts': TranShkStd_fcts})
 
 UnempPrb_fcts = {
     'about': 'Probability of unemployment while working'}
@@ -292,15 +292,15 @@ T_retire_fcts = {
 # init_idiosyncratic_shocks_plus['_fcts'].update({'T_retire': T_retire_fcts})
 init_idiosyncratic_shocks_plus.update({'T_retire_fcts': T_retire_fcts})
 
-permShkCount_fcts = {
+PermShkCount_fcts = {
     'about': 'Num of pts in discrete approx to permanent income shock dstn'}
-# init_idiosyncratic_shocks_plus['_fcts'].update({'permShkCount': permShkCount_fcts})
-init_idiosyncratic_shocks_plus.update({'permShkCount_fcts': permShkCount_fcts})
+# init_idiosyncratic_shocks_plus['_fcts'].update({'PermShkCount': PermShkCount_fcts})
+init_idiosyncratic_shocks_plus.update({'PermShkCount_fcts': PermShkCount_fcts})
 
-tranShkCount_fcts = {
+TranShkCount_fcts = {
     'about': 'Num of pts in discrete approx to transitory income shock dstn'}
-# init_idiosyncratic_shocks_plus['_fcts'].update({'tranShkCount': tranShkCount_fcts})
-init_idiosyncratic_shocks_plus.update({'tranShkCount_fcts': tranShkCount_fcts})
+# init_idiosyncratic_shocks_plus['_fcts'].update({'TranShkCount': TranShkCount_fcts})
+init_idiosyncratic_shocks_plus.update({'TranShkCount_fcts': TranShkCount_fcts})
 
 aXtraMin_fcts = {
     'about': 'Minimum end-of-period "assets above minimum" value'}
@@ -354,8 +354,8 @@ init_idiosyncratic_shocks = dict(
     init_perfect_foresight,
     **{
         # Income process variables
-        "permShkStd": [0.1],  # Standard deviation of log permanent income shocks
-        "tranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+        "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+        "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
         "UnempPrb": 0.05,  # Probability of unemployment while working
         "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
         "IncUnemp": 0.3,  # Unemployment benefits replacement rate
@@ -364,8 +364,8 @@ init_idiosyncratic_shocks = dict(
         "tax_rate": 0.0,  # Flat income tax rate
         "T_retire": 0,  # Period of retirement (0 --> no retirement)
         # Parameters governing construction of income process
-        "permShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
-        "tranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+        "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+        "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
         # parameters governing construction of grid of assets above min value
         "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
         "aXtraMax": 20,     # Maximum end-of-period "assets above minimum" value
@@ -437,7 +437,7 @@ init_lifecycle.update({"LivPrb": liv_prb})
 # Make a dictionary to specify an infinite consumer with a four period cycle
 init_cyclical = copy(init_idiosyncratic_shocks_plus)
 init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
-init_cyclical['permShkStd'] = [0.1, 0.1, 0.1, 0.1]
-init_cyclical['tranShkStd'] = [0.1, 0.1, 0.1, 0.1]
+init_cyclical['PermShkStd'] = [0.1, 0.1, 0.1, 0.1]
+init_cyclical['TranShkStd'] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical['LivPrb'] = 4*[0.98]
 init_cyclical['T_cycle'] = 4
