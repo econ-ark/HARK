@@ -1449,7 +1449,7 @@ def distribute_params(agent, param_name, param_count, distribution):
     agent_set = [deepcopy(agent) for i in range(param_count)]
 
     for j in range(param_count):
-        agent_set[j].AgentCount = int(agent.AgentCount * param_dist.pmf[j])
+        agent_set[j].assign_parameters(**{'AgentCount': int(agent.AgentCount * param_dist.pmf[j])})
         # agent_set[j].__dict__[param_name] = param_dist.X[j]
 
         agent_set[j].assign_parameters(**{param_name: param_dist.X[j]})
