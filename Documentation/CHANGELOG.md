@@ -42,6 +42,7 @@ PR: [#832](https://github.com/econ-ark/HARK/pull/832). See [this forthcoming REM
 * Fix mathematical limits of model example in `example_ConsPortfolioModel.ipynb` [#1047](https://github.com/econ-ark/HARK/pull/1047)
 * Update `ConsGenIncProcessModel.py` to use `calc_expectation` method [#1072](https://github.com/econ-ark/HARK/pull/1072)
 * Fix bug in `calc_normal_style_pars_from_lognormal_pars` due to math error. [#1076](https://github.com/econ-ark/HARK/pull/1076)
+* Fix bug in `distribute_params` so that `AgentCount` parameter is updated.
 
 ### 0.11.0
 
