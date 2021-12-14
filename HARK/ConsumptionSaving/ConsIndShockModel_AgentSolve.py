@@ -1079,7 +1079,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             'about': 'Absolute Impatience Condition'
         }
         AIC_fcts.update({'latexexpr': r'\AIC'})
-        AIC_fcts.update({'urlhandle': urlroot + 'AICDefn'})
+        AIC_fcts.update({'urlhandle': urlroot + 'AIC'})
         AIC_fcts.update({'py___code': 'test: APFac < 1'})
         Bilt.AIC_fcts = AIC_fcts
 
@@ -1100,7 +1100,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             'about': 'Growth Impatience Condition'
         }
         RIC_fcts.update({'latexexpr': r'\RIC'})
-        RIC_fcts.update({'urlhandle': urlroot + 'RICDefn'})
+        RIC_fcts.update({'urlhandle': urlroot + 'RIC'})
         RIC_fcts.update({'py___code': 'test: RPFac < 1'})
         Bilt.RIC_fcts = RIC_fcts
 
@@ -1208,7 +1208,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             'about': 'Finite Human Wealth Condition'
         }
         FHWC_fcts.update({'latexexpr': r'\FHWC'})
-        FHWC_fcts.update({'urlhandle': urlroot + 'FHWCDefn'})
+        FHWC_fcts.update({'urlhandle': urlroot + 'FHWC'})
         FHWC_fcts.update({'py___code': 'test: FHWFac < 1'})
         Bilt.FHWC_fcts = FHWC_fcts
 
@@ -1263,7 +1263,7 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
             'about': 'Finite Value of Autarky Condition - Perfect Foresight'
         }
         FVAC_fcts.update({'latexexpr': r'\PFFVAC'})
-        FVAC_fcts.update({'urlhandle': urlroot + 'PFFVACDefn'})
+        FVAC_fcts.update({'urlhandle': urlroot + 'PFFVAC'})
         FVAC_fcts.update({'py___code': 'test: PFVAFac < 1'})
         Bilt.FVAC_fcts = FVAC_fcts
 
@@ -1804,7 +1804,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             'about': 'Finite Value of Autarky Condition'
         }
         FVAC_fcts.update({'latexexpr': r'\FVAC'})
-        FVAC_fcts.update({'urlhandle': urlroot + 'FVACDefn'})
+        FVAC_fcts.update({'urlhandle': urlroot + 'FVAC'})
         FVAC_fcts.update({'py___code': 'test: VAFac < 1'})
         Bilt.FVAC_fcts = FVAC_fcts
 
@@ -1826,7 +1826,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             'about': 'Weak Return Impatience Condition'
         }
         WRIC_fcts.update({'latexexpr': r'\WRIC'})
-        WRIC_fcts.update({'urlhandle': urlroot + 'WRICDefn'})
+        WRIC_fcts.update({'urlhandle': urlroot + 'WRIC'})
         WRIC_fcts.update({'py___code': 'test: WRPFac < 1'})
         Bilt.WRIC_fcts = WRIC_fcts
 
