@@ -1,14 +1,22 @@
 \input{./econtexRoot}
 \documentclass[12pt]{\econtex}
 \providecommand{\texname}{NARK}
-\providecommand{\texMaster}{/Volumes/Data/Papers/BufferStockTheory/BufferStockTheory-Latest/Resources/LaTeXInputs/BufferStockTheory-Shortcuts}
+%\providecommand{\texMaster}{/Volumes/Data/Papers/BufferStockTheory/BufferStockTheory-Latest/Resources/LaTeXInputs/BufferStockTheory-Shortcuts}
 \usepackage{\LaTeXInputs/\texname}
-\usepackage{\econtexSetup}
-\usepackage{\econtexShortcuts}
-\usepackage{/Volumes/Data/Papers/BufferStockTheory/BufferStockTheory-Latest/Resources/LaTeXInputs/BufferStockTheory}
-\usepackage{/Volumes/Data/Papers/BufferStockTheory/BufferStockTheory-Latest/Resources/LaTeXInputs/BufferStockTheory-Shortcuts}
+%\usepackage{\econtexSetup}
+%\usepackage{\econtexShortcuts}
+%\usepackage{/Volumes/Data/Papers/BufferStockTheory/BufferStockTheory-Latest/Resources/LaTeXInputs/BufferStockTheory}
+%\usepackage{/Volumes/Data/Papers/BufferStockTheory/BufferStockTheory-Latest/Resources/LaTeXInputs/BufferStockTheory-Shortcuts}
 
 \providecommand{\ushort}{}
+% Embed metadata 
+% \hypersetup{pdfauthor={Econ-ARK Team},
+%   pdftitle={Notation for the Econ-ARK},
+%   pdfkeywords={},
+%   pdfcreator = {ccarroll@llorracc.org}
+% }
+
+
 \begin{document}
 
 \title{Suggested Variable Naming Conventions \\ in the Econ-ARK Toolkit}
@@ -76,32 +84,32 @@ Finally, a few of the definitions below are actually prohibitions; these are bas
   \begin{tabular}{|ccl|}   \hline
     Letter & & Meaning 
     \\ \hline
-    \ALvl & & \textit{A}ssets \textit{A}fter \textit{A}ll \textit{A}ctions \textit{A}re \textit{A}ccomplished (end of period)
-    \\  \BLvl & & \textit{B}eginning \textit{B}ank \textit{B}alances \textit{B}efore any \textit{B}ehavior (\textit{b}eginning-of-period)
-    \\  \CLvl & & \textit{C}onsumption \textit{C}hoice \textit{C}onnects $B_{t}$ to $A_{t}$ (with possible contribution from $Y_{t}$)
-    \\  \DLvl & & \textit{D}ebt
-    \\  \ELvl & & PROHIBITED:  Too many possible meanings (expectations, effort, expenses)
-    \\  \FLvl & & Production \textit{F}unction
-    \\  \GLvl & & \textit{G}rowth 
-    \\  \HLvl & & \textit{H}uman wealth
-    \\  \ILvl & & \textit{I}nvestment
-    \\  \JLvl & & Ad\textit{J}ustment costs (e.g., in a $Q$ model)
-    \\  \KLvl & & Capital or beginning of period nonhuman assets
-    \\  \LLvl & & PROHIBITED: Is it Labor or Leisure or Land or ...?
-    \\  \MLvl & & \textit{M}arket resources (the sum of capital, capital income, and labor income)
-    \\  \NLvl & & \textit{N}et wealth including human wealth ($=B + H$)
-    \\  \OLvl & & PROHIBITED: Too similar to the number 0; too many possible meanings
-    \\  \PLvl & & PROHIBITED: Is it prices, permanent income, present value, profits, ...?
-    \\  \QLvl & & Hayashi/Abel $Q$ (or similar asset price)
-    \\  \RLvl & & \textit{R}eturn (see the variants articulated below)
-    \\  \SLvl & & PROHIBITED: ``saving'' (flow)? ``savings'' (stock)? or the ``saving rate'' (ratio)?
-    \\  \TLvl & & This is a tough one.  See the discussion below.
-    \\  \ULvl & & \textit{U}tility
-    \\  \VLvl & & \textit{V}alue
-    \\  \WLvl & & \textit{W}age
-    \\  \XLvl & & e\textit{X}penditures (as distinct from consumption; e.g., for durables)
-    \\  \YLvl & & Noncapital income (usually, the sum of transfer and labor income)
-    \\  \ZLvl & & Lei\textit{Z}ure in consumption/leisure tradeoff
+$    \ALvl$ & & \textit{A}ssets \textit{A}fter \textit{A}ll \textit{A}ctions \textit{A}re \textit{A}ccomplished (end of period)
+    \\ $ \BLvl$ & & \textit{B}eginning \textit{B}ank \textit{B}alances \textit{B}efore any \textit{B}ehavior (\textit{b}eginning-of-period)
+    \\ $ \CLvl$ & & \textit{C}onsumption \textit{C}hoice \textit{C}onnects $B_{t}$ to $A_{t}$ (with possible contribution from $Y_{t}$)
+    \\ $ \DLvl$ & & \textit{D}ebt
+    \\ $ \ELvl$ & & PROHIBITED:  Too many possible meanings (expectations, effort, expenses)
+    \\ $ \FLvl$ & & Production \textit{F}unction
+    \\ $ \GLvl$ & & \textit{G}rowth 
+    \\ $ \HLvl$ & & \textit{H}uman wealth
+    \\ $ \ILvl$ & & \textit{I}nvestment
+    \\ $ \JLvl$ & & Ad\textit{J}ustment costs (e.g., in a $Q$ model)
+    \\ $ \KLvl$ & & Capital or beginning of period nonhuman assets
+    \\ $ \LLvl$ & & PROHIBITED: Is it Labor or Leisure or Land or ...?
+    \\ $ \MLvl$ & & \textit{M}arket resources (the sum of capital, capital income, and labor income)
+    \\ $ \NLvl$ & & \textit{N}et wealth including human wealth ($=B + H$)
+    \\ $ \OLvl$ & & PROHIBITED: Too similar to the number 0; too many possible meanings
+    \\ $ \PLvl$ & & PROHIBITED: Is it prices, permanent income, present value, profits, ...?
+    \\ $ \QLvl$ & & Hayashi/Abel $Q$ (or similar asset price)
+    \\ $ \RLvl$ & & \textit{R}eturn (see the variants articulated below)
+    \\ $ \SLvl$ & & PROHIBITED: ``saving'' (flow)? ``savings'' (stock)? or the ``saving rate'' (ratio)?
+    \\ $ \TLvl$ & & This is a tough one.  See the discussion below.
+    \\ $ \ULvl$ & & \textit{U}tility
+    \\ $ \VLvl$ & & \textit{V}alue
+    \\ $ \WLvl$ & & \textit{W}age
+    \\ $ \XLvl$ & & e\textit{X}penditures (as distinct from consumption; e.g., for durables)
+    \\ $ \YLvl$ & & Noncapital income (usually, the sum of transfer and labor income)
+    \\ $ \ZLvl$ & & Lei\textit{Z}ure in consumption/leisure tradeoff
     \\ \hline 
   \end{tabular}
   \caption{Preferred Usages of Roman Letters}
@@ -318,7 +326,7 @@ There are a number of ways in which we need to refer to specific values of a var
     \\ \textit{[object]}\texttt{Rte} & - & A `rate' variable like the discount rate $\discRte$
     \\ \textit{[object]}\texttt{Fac} & - & A factor variable like the discount factor $\DiscFac$
     \\ \textit{[object]}\texttt{Amt} & - & An amount, like \texttt{TaxAmt} which might be lump-sum
-    \\ \textit{[object]}\texttt{Nrm} & - & A normalized quantity; ex: \texttt{RNrm}=$\Rfree/\permGroFac$
+    \\ \textit{[object]}\texttt{Nrm} & - & A normalized quantity; ex: \texttt{RNrm}=$\Rfree/\PermGroFac$
     \\ \textit{[object]}\texttt{Abve} & - & Range of points ABOvE some boundary
     \\ \textit{[object]}\texttt{Belw} & - & Range of points BELoW some boundary
     \\ \textit{[object]}\texttt{Grid} & - & Points to be used as a grid for interpolations
