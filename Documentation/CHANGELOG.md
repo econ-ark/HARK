@@ -8,9 +8,17 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.13.0
+
+Release Date: TBD
+
+### Major Changes
+
+### Minor Changes
+
 ### 0.12.0
 
-Release Data: December 14, 2021
+Release Date: December 14, 2021
 
 #### Major Changes
 
@@ -46,7 +54,7 @@ PR: [#832](https://github.com/econ-ark/HARK/pull/832). See [this forthcoming REM
 
 ### 0.11.0
 
-Release Data: March 4, 2021
+Release Date: March 4, 2021
 
 #### Major Changes
 
@@ -84,7 +92,7 @@ interpolation for problems with CRRA utility. See [#888](https://github.com/econ
 
 ### 0.10.8
 
-Release Data: Nov. 05 2020
+Release Date: Nov. 05 2020
 
 #### Major Changes
 
