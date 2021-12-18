@@ -258,7 +258,7 @@ document and \texttt{CRRA} in a software module.
     \\ \verb|\GPFac| & $\GPFacRaw$ & Growth Patience Factor & $\GPFacRaw = \APFac/\PermGroFac $
     \\ \verb|\RPFac| & $\RPFac$ & Return Patience Factor & $\RPFac = \APFac/\Rfree $ 
     \\ \verb|\APRte|  & $\APRte$ & Absolute Patience rate (\texttt{thorn}) & $\APRte = (\Rfree \DiscFac)^{1/\CRRA}-1 \approx \CRRA^{-1}(\rfree-\discRte) $
-    \\ \verb|\GPRte| & $\GPRte$ & Growth Patience rate  & $\GPRte = \APRte - \log \PermGroFac $
+    \\ \verb|\GPRte| & $\GPRte$ & Growth Patience rate  & $\GPRte = \APRte - \PermGroRte $
     \\ \verb|\RPRte| & $\RPRte$ & Return Patience rate  & $\RPRte =\APRte -\rfree $
     \\ \verb|\riskyshare|  & $\riskyshare$ & Portfolio share in risky assets & $\Rport_{t+1}=(1-\riskyshare)\Rfree+\riskyshare\Risky_{t+1}$
     \\	\hline
