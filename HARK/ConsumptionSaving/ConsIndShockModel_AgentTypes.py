@@ -784,7 +784,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     def _url_doc_for_this_agent_type_get(self):
         # Generate a url that will locate the documentation
         self.class_name = self.__class__.__name__
-        self.url_ref = "https://econ-ark.github.io/BufferStockTheory"
+        self.url_ref = "https://econ-ark.github.io/BufferStockTheory/BufferStockTheory3.html"
         self.urlroot = self.url_ref+'/#'
         self.url_doc = "https://hark.readthedocs.io/en/latest/search.html?q=" +\
             self.class_name+"&check_keywords=yes&area=default#"
