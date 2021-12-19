@@ -832,6 +832,7 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
     def initialize_sim(self):
         self.mcrlovars = SimpleNamespace()
         self.mcrlovars.PermShkAgg = self.PermShkAgg = self.PermGroFacAgg  # Never changes during sim
+        self.mcrlovars.state_now = self.state_now # Eventually all monte carlo variables should be subsetted
         # CDC 20210428 it would be good if we could separate the sim from the sol variables like this
         self.mcrlovars.state_now['PlvlAgg'] = self.state_now['PlvlAgg'] = 1.0
         AgentType.initialize_sim(self)
@@ -870,13 +871,17 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
         ).draw(N)
         # How many periods since each agent was born
         self.mcrlovars.t_age[which_agents] = self.t_age[which_agents] = 0
-        self.mcrlovars.t_cycle[which_agents] = \
+        self.t_cycle[which_agents] = \
             self.t_cycle[
+            which_agents
+        ] = 0  # Which period of the cycle each agent is currently in
+        self.mcrlovars.t_cycle[which_agents] = \
+            self.mcrlovars.t_cycle[
             which_agents
         ] = 0  # Which period of the cycle each agent is currently in
         return None
 
-    mcrlo_birth = birth_mcrlo = birth
+    sim_birth = mcrlo_birth = birth_mcrlo = birth
 
     def death(self):
         """
@@ -1359,6 +1364,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 PermShkDstn_t = MeanOneLogNormal(sigma=PermShkStd[t]).approx(
                     PermShkCount, tail_N=0
                 )
+
+                if not hasattr(self, "neutral_measure"):
+                    self.neutral_measure = False
+                    
+                if self.neutral_measure == True:
+                    PermShkDstn_t.pmf = PermShkDstn_t.X*PermShkDstn_t.pmf
+                
                 IncShkDstn.append(
                     combine_indep_dstns(
                         PermShkDstn_t,
@@ -1389,7 +1401,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
         PermShk = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShk = np.zeros(self.AgentCount)
-        newborn = self.t_age == 0
+        newborn = self.mcrlovars.t_age = self.t_age == 0
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             N = np.sum(these)

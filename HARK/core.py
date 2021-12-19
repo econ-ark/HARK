@@ -638,10 +638,10 @@ class AgentType(Model):
 
             # elif self.state_prev[var] is None:
             #    self.state_prev[var] = copy(blank_array)
-        self.t_age = np.zeros(
+        self.mcrlovars.t_age = self.t_age = np.zeros(
             self.AgentCount, dtype=int
         )  # Number of periods/stages since agent entry
-        self.t_cycle = np.zeros(
+        self.mcrlovars.t_cycle = self.t_cycle = np.zeros(
             self.AgentCount, dtype=int
         )  # Which cycle period/stage each agent is on
         self.sim_birth(all_agents)
@@ -693,7 +693,7 @@ class AgentType(Model):
         self.get_poststates()  # Move now state_now to state_prev
 
         # Advance time for all agents
-        self.t_age = self.t_age + 1  # Age all consumers by one period
+        self.mcrlovars.t_age = self.t_age = self.t_age + 1  # Age all consumers by one period
         self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
         self.t_cycle[
             self.t_cycle == self.T_cycle

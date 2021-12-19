@@ -375,7 +375,7 @@ init_idiosyncratic_shocks = dict(
         "aXtraExtra": [None],
         "vFuncBool": False,  # Whether to calculate the value function during solution
         "CubicBool": False,  # Use cubic spline interpolation when True, linear interpolation when False
-        **init_idiosyncratic_shocks_plus
+        "neutral_measure": False,      # Use permanent income neutral measure (see Harmenberg 2021) during simulations whe        **init_idiosyncratic_shocks_plus
     }
 )
 
