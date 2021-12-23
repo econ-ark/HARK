@@ -690,7 +690,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         This will exist if the GICNrm holds.
 
-        https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
+        https://econ-ark.github.io/BufferStockTheory/BufferStockTheory3.html#UniqueStablePoints
 
         Returns
         -------
@@ -716,7 +716,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         This will exist if the GICRaw holds.
 
-        https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
+        https://econ-ark.github.io/BufferStockTheory/BufferStockTheory3.html#UniqueStablePoints
 
         Parameters
         ----------
@@ -871,9 +871,9 @@ class ConsPerfForesightSolver(ConsumerSolutionOneNrmStateCRRA):
         # Generate a url that will locate the documentation
         self.class_name = self.__class__.__name__
         self.solution_current.Bilt.url_ref = self.url_ref = \
-            "https://econ-ark.github.io/BufferStockTheory3.html"
+            "https://econ-ark.github.io/BufferStockTheory/BufferStockTheory3.html"
         self.solution_current.Bilt.urlroot = self.urlroot = \
-            self.url_ref + '/#'
+            self.url_ref + '#'
         self.solution_current.Bilt.url_doc = self.url_doc = \
             "https://hark.readthedocs.io/en/latest/search.html?q=" + \
             self.class_name + "&check_keywords=yes&area=default#"
