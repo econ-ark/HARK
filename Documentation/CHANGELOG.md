@@ -8,6 +8,14 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.12.1
+
+#### Major Changes
+
+#### Minor Changes
+
+* Add booleans normalize_shocks and normalize_levels to allow user to impose population facts on statistical draws, e.g. renormalize permanent shock draws to have mean one
+
 ### 0.12.0
 
 Release Data: TBD

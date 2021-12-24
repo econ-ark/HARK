@@ -959,7 +959,7 @@ class AgentType(Model):
         """
         if not hasattr(self, "t_sim"):
             raise Exception(
-                "It seems that the simulation variables were not initialize before calling "
+                "It seems that the simulation variables were not initialized before calling "
                 + "simulate(). Call initialize_sim() to initialize the variables before calling simulate() again."
             )
 
