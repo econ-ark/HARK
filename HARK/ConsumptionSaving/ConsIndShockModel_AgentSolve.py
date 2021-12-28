@@ -392,8 +392,10 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         ==================================================================
         AIC           Absolute Impatience Condition
         RIC           Return Impatience Condition
-        GICRaw        Growth Impatience Condition (not mortality adjusted)
         GICNrm        GIC adjusted for uncertainty in permanent income
+        GICSdl        Szeidl condition for invariance
+        GICRaw        Growth Impatience Condition (not mortality adjusted)
+        GICHrm        Harmenberg condition for invariance
         GICLiv        GIC adjusted for constant probability of mortality
         GICLivMod     Aggregate GIC assuming Modigliani bequests
         FHWC          Finite Human Wealth Condition
@@ -422,7 +424,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         quietly : boolean, optional
 
-            If true, performs calculations but prints no results
+            If True, performs calculations but prints no results
 
         Returns
         -------
@@ -442,8 +444,10 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         crnt.check_AIC(crnt, messaging_level, quietly)
         crnt.check_FHWC(crnt, messaging_level, quietly)
         crnt.check_RIC(crnt, messaging_level, quietly)
-        crnt.check_GICRaw(crnt, messaging_level, quietly)
         crnt.check_GICNrm(crnt, messaging_level, quietly)
+        crnt.check_GICSdl(crnt, messaging_level, quietly)
+        crnt.check_GICRaw(crnt, messaging_level, quietly)
+        crnt.check_GICHrm(crnt, messaging_level, quietly)
         crnt.check_GICLiv(crnt, messaging_level, quietly)
         crnt.check_GICLivMod(crnt, messaging_level, quietly)
         crnt.check_WRIC(crnt, messaging_level, quietly)
@@ -569,9 +573,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         def test(soln): return soln.Bilt.GPFacLivMod < 1
 
         messages = {
-            True: f"\nThe Mortality Adjusted Growth Patience Factor, GPFacLivMod={soln.Bilt.GPFacLivMod:.5f} satisfies the Mortality Adjusted Growth Impatience Condition (GICLivMod):\n    " +
+            True: f"\nThe Modigliani Mortality Adjusted Growth Patience Factor, GPFacLivMod={soln.Bilt.GPFacLivMod:.5f} satisfies the Mortality Adjusted Growth Impatience Condition (GICLivMod):\n    " +
                   soln.Bilt.GPFacLivMod_fcts['urlhandle'],
-            False: f"\nThe Mortality Adjusted Growth Patience Factor, GPFacLivMod={soln.Bilt.GPFacLivMod:.5f} violates the Mortality Adjusted Growth Impatience Condition (GICLivMod):\n    " +
+            False: f"\nThe Modigliani Mortality Adjusted Growth Patience Factor, GPFacLivMod={soln.Bilt.GPFacLivMod:.5f} violates the Mortality Adjusted Growth Impatience Condition (GICLivMod):\n    " +
                    soln.Bilt.GPFacLivMod_fcts['urlhandle'],
         }
         verbose_messages = {
@@ -630,7 +634,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
             _log.info(messages[False]+verbose_messages[False])
 
     def check_GICNrm(self, soln, messaging_level=logging.DEBUG, quietly=False):
-        """Check Normalized Growth Patience Factor."""
+        """Check Normalized Growth Impatience Condition."""
         if not hasattr(soln.Pars, 'IncShkDstn'):
             return  # GICNrm is same as GIC for PF consumer
 
@@ -656,7 +660,69 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         # Warn them their model does not satisfy the GICNrm even if they asked
         # for the "quietly" solution -- unless they said "only CRITICAL"
 
-        if (messaging_level < logging.CRITICAL) and (soln.Bilt.GICNrm == np.False_):
+        if (messaging_level < logging.CRITICAL) and \
+           (soln.Bilt.GICNrm == np.False_) and \
+           quietly == True:  # If quietly == false, they will have seen it already
+            _log.info(messages[False]+verbose_messages[False])
+
+    def check_GICSdl(self, soln, messaging_level=logging.DEBUG, quietly=False):
+        """Check Szeidl Growth Impatience Condition."""
+        if not hasattr(soln.Pars, 'IncShkDstn'):
+            return  # GICSdl is same as GIC for PF consumer
+
+        name = "GICSdl"
+
+        def test(soln): return soln.Bilt.GPFacSdl <= 1
+
+        messages = {
+            True: f"\nThe Szeidl Growth Patience Factor GPFacSdl={soln.Bilt.GPFacSdl:.5f} satisfies the Szeidl Growth Impatience Condition (GICSdl), GPFacSdl < 1:\n    " +
+                  soln.Bilt.GICSdl_fcts['urlhandle'],
+            False: f"\nThe Szeidl Growth Patience Factor GPFacSdl={soln.Bilt.GPFacSdl:.5f} violates the Szeidl Growth Impatience Condition (GICSdl), GPFacSdl < 1:\n    " +
+                   soln.Bilt.GICSdl_fcts['urlhandle'],
+        }
+        verbose_messages = {
+            True: "\n    Therefore, invariant distributions of ratio variables like m exist.",
+            False: "\n    Therefore, invariant distributions of ratio variables like m do not exist.  \n"
+        }
+
+        soln.Bilt.GICSdl = \
+            core_check_condition(name, test, messages, messaging_level,
+                                 verbose_messages, "GPFacSdl", soln, quietly)
+
+        # Warn them their model does not satisfy the GICSdl even if they asked
+        # for the "quietly" solution -- unless they said "only CRITICAL"
+
+        if (messaging_level < logging.CRITICAL) and (soln.Bilt.GICSdl == np.False_):
+            _log.info(messages[False]+verbose_messages[False])
+
+    def check_GICHrm(self, soln, messaging_level=logging.DEBUG, quietly=False):
+        """Check Harmenberg-Normalized Growth Impatience Condition."""
+        if not hasattr(soln.Pars, 'IncShkDstn'):
+            return  # GICHrm is same as GIC for PF consumer
+
+        name = "GICHrm"
+
+        def test(soln): return soln.Bilt.GPFacHrm <= 1
+
+        messages = {
+            True: f"\nThe Harmenberg Growth Patience Factor GPFacHrm={soln.Bilt.GPFacHrm:.5f} satisfies the Harmenberg Growth Impatience Condition (GICHrm), GPFacHrm < 1:\n    " +
+                  soln.Bilt.GICHrm_fcts['urlhandle'],
+            False: f"\nThe Harmenberg Growth Patience Factor GPFacHrm={soln.Bilt.GPFacHrm:.5f} violates the Harmenberg Growth Impatience Condition (GICHrm), GPFacHrm < 1:\n    " +
+                   soln.Bilt.GICHrm_fcts['urlhandle'],
+        }
+        verbose_messages = {
+            True: "\n    Therefore, a target level of the individual market resources ratio m exists.",
+            False: "\n    Therefore, a target ratio of individual market resources to individual permanent income does not exist.  \n"
+        }
+
+        soln.Bilt.GICHrm = \
+            core_check_condition(name, test, messages, messaging_level,
+                                 verbose_messages, "GPFacHrm", soln, quietly)
+
+        # Warn them their model does not satisfy the GICHrm even if they asked
+        # for the "quietly" solution -- unless they said "only CRITICAL"
+
+        if (messaging_level < logging.CRITICAL) and (soln.Bilt.GICHrm == np.False_):
             _log.info(messages[False]+verbose_messages[False])
 
     def check_WRIC(self, soln, messaging_level=logging.DEBUG, quietly=False):
@@ -1740,6 +1806,26 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         E_Next_.Inv_PermShk_fcts.update({'value_now': E_Next_.Inv_PermShk})
         crnt.E_Next_.Inv_PermShk_fcts = E_Next_.Inv_PermShk_fcts
 
+        E_Next_.Hrm_PermShk_fcts = {
+            'about': 'Harmenberg expected log permanent shock'
+        }
+        py___code = 'np.exp(E_dot(np.log(PermShkVals) * PermShkVals, PermShkPrbs))'
+        E_Next_.Hrm_PermShk = eval(
+            py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens, **globals()})
+        E_Next_.Hrm_PermShk_fcts.update({'py___code': py___code})
+        E_Next_.Hrm_PermShk_fcts.update({'value_now': E_Next_.Hrm_PermShk})
+        crnt.E_Next_.Hrm_PermShk_fcts = E_Next_.Hrm_PermShk_fcts
+
+        E_Next_.Sdl_PermShk_fcts = {
+            'about': 'Szeidl expected log permanent shock'
+        }
+        py___code = 'np.exp(E_dot(np.log(PermShkVals), PermShkPrbs))'
+        E_Next_.Sdl_PermShk = eval(
+            py___code, {}, {**E_Next_.__dict__, **Bilt.__dict__, **givens, **globals()})
+        E_Next_.Sdl_PermShk_fcts.update({'py___code': py___code})
+        E_Next_.Sdl_PermShk_fcts.update({'value_now': E_Next_.Sdl_PermShk})
+        crnt.E_Next_.Sdl_PermShk_fcts = E_Next_.Sdl_PermShk_fcts
+
         E_Next_.RNrm_fcts = {
             'about': 'Expected Stochastic-Growth-Normalized Return'
         }
@@ -1784,6 +1870,45 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         GICNrm_fcts.update({'urlhandle': urlroot + 'GICNrmDefn'})
         GICNrm_fcts.update({'py___code': 'test: GPFacNrm < 1'})
         Bilt.GICNrm_fcts = GICNrm_fcts
+
+        GPFacHrm_fcts = {
+            'about': 'Harmenberg Expected Growth Patience Factor'
+        }
+        py___code = 'GPFacRaw * E_Next_.Hrm_PermShk'
+        Bilt.GPFacHrm = eval(py___code, {},
+                           {**E_Next_.__dict__, **Bilt.__dict__, **givens, **globals()})
+        GPFacHrm_fcts.update({'latexexpr': r'\GPFacHrm'})
+#        GPFacHrm_fcts.update({'_unicode_': r'Þ_Φ'})
+        GPFacHrm_fcts.update({'urlhandle': urlroot + 'GPFacHrmDefn'})
+        GPFacHrm_fcts.update({'py___code': py___code})
+        Bilt.GPFacHrm_fcts = GPFacHrm_fcts
+
+        GICHrm_fcts = {
+            'about': 'Harmenberg Growth Normalized Impatience Condition'
+        }
+        GICHrm_fcts.update({'latexexpr': r'\GICHrm'})
+        GICHrm_fcts.update({'urlhandle': urlroot + 'GICHrmDefn'})
+        GICHrm_fcts.update({'py___code': 'test: GPFacHrm < 1'})
+        Bilt.GICHrm_fcts = GICHrm_fcts
+
+        GPFacSdl_fcts = {
+            'about': 'Szeidl Expected Growth Patience Factor'
+        }
+        py___code = 'GPFacRaw * E_Next_.Sdl_PermShk'
+        Bilt.GPFacSdl = eval(py___code, 
+                           {**E_Next_.__dict__, **Bilt.__dict__, **givens, **globals()})
+        GPFacSdl_fcts.update({'latexexpr': r'\GPFacSdl'})
+        GPFacSdl_fcts.update({'urlhandle': urlroot + 'GPFacSdlDefn'})
+        GPFacSdl_fcts.update({'py___code': py___code})
+        Bilt.GPFacSdl_fcts = GPFacSdl_fcts
+
+        GICSdl_fcts = {
+            'about': 'Szeidl Growth Normalized Impatience Condition'
+        }
+        GICSdl_fcts.update({'latexexpr': r'\GICSdl'})
+        GICSdl_fcts.update({'urlhandle': urlroot + 'GICSdlDefn'})
+        GICSdl_fcts.update({'py___code': 'test: GPFacSdl < 1'})
+        Bilt.GICSdl_fcts = GICSdl_fcts
 
         FVAC_fcts = {  # overwrites PF version
             'about': 'Finite Value of Autarky Condition'
