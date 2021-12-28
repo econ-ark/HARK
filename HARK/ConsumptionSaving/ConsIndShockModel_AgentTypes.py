@@ -709,16 +709,16 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
                             str(varMax))
         return
 
-    def describe_model_and_calibration(self, messaging_level=logging.INFO,
-                                       quietly=False):
+    def describe_model_and_calibration(self, messaging_level,
+                                       quietly):
 
         if not hasattr(self, 'solution'):  # A solution must have been computed
             _log.info('Making final soln because model info stored there')
             self.make_solution_for_final_period()
 
         solution_current = self.solution[0]
-        solution_current.describe_model_and_calibration(messaging_level,
-            quietly)
+        solution_current.describe_model_and_calibration(messaging_level=self.messaging_level,
+                                                        quietly=self.quietly)
 
     def check_conditions(self, messaging_level=logging.INFO, quietly=False):
 
@@ -727,8 +727,8 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
             self.make_solution_for_final_period()
 
         solution_current = self.solution[0]
-        solution_current.check_conditions(messaging_level=logging.INFO,
-                                          quietly=False)
+        solution_current.check_conditions(messaging_level=messaging_level,
+                                          quietly=quietly)
 
     def finish_setup_of_default_solution_terminal(self):
         """
