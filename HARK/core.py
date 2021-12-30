@@ -1153,8 +1153,8 @@ def solve_agent(agent, messaging_level, quietly=False, **kwds):
                     print(
                         "Finished cycle # "
                         + str(completed_cycles).zfill(6)
-                        + " in "
-                        + str("{:9.6f}".format(t_now - t_last))
+                        + " after "
+                        + str("{:9.4f}".format(t_now - t_last))
                         + " seconds, solution distance = "
                         + str("{:.3e}".format(solution_distance))
                     )
@@ -1164,8 +1164,8 @@ def solve_agent(agent, messaging_level, quietly=False, **kwds):
                         + str(completed_cycles).zfill(len(str(agent.cycles)))
                         + " of "
                         + str(agent.cycles)
-                        + " in "
-                        + str("{:9.6f}".format(t_now - t_last))
+                        + " after "
+                        + str("{:9.4f}".format(t_now - t_last))
                         + " seconds."
                     )
                     t_last = t_now
