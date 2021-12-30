@@ -502,7 +502,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                    soln.Bilt.FVAC_fcts['urlhandle']
         }
         verbose_messages = {
-            True: "\n    Therefore, a nondegenerate solution exists if the RIC also holds. (" + soln.Bilt.FVAC_fcts[
+            True: "\n    Therefore, a nondegenerate solution exists if the RIC also holds. \n    " + soln.Bilt.FVAC_fcts[
                 'urlhandle'] + ")\n",
             False: "\n    Therefore, a nondegenerate solution exits if the RIC holds, but will not exist if the RIC fails unless the FHWC also fails.\n",
         }
@@ -522,9 +522,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         def test(soln): return soln.Bilt.GPFacRaw < 1
 
         messages = {
-            True: f"\nThe Growth Patience Factor, GPF={soln.Bilt.GPFacRaw:.5f} satisfies the Growth Impatience Condition (GICRaw), GPF < 1:\n    " +
+            True: f"\nThe Growth Patience Factor, GPF={soln.Bilt.GPFacRaw:.5f} satisfies the Growth Impatience Condition (GICRaw), GPFac < 1:\n    " +
                   soln.Bilt.GICRaw_fcts['urlhandle'],
-            False: f"\nThe Growth Patience Factor, GPF={soln.Bilt.GPFacRaw:.5f} violates the Growth Impatience Condition (GICRaw), GPF < 1:\n    " +
+            False: f"\nThe Growth Patience Factor, GPF={soln.Bilt.GPFacRaw:.5f} violates the Growth Impatience Condition (GICRaw), GPFac < 1:\n    " +
                    soln.Bilt.GICRaw_fcts['urlhandle'],
         }
         verbose_messages = {
@@ -579,10 +579,8 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                    soln.Bilt.GPFacLivMod_fcts['urlhandle'],
         }
         verbose_messages = {
-            True: "\n    Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.    \n" +
-                  soln.Bilt.GPFacLivMod_fcts['urlhandle'] + "\n",
-            False: "\n    Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.  \n" +
-                   soln.Bilt.GPFacLivMod_fcts['urlhandle'] + "\n",
+            True: "\n    Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.    \n",
+            False: "\n    Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.  \n"
         }
         soln.Bilt.GICLivMod = core_check_condition(name, test, messages, messaging_level,
                                                 verbose_messages, "GPFacLivMod", soln, quietly)
@@ -675,9 +673,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         def test(soln): return soln.Bilt.GPFacSdl <= 1
 
         messages = {
-            True: f"\nThe Szeidl Growth Patience Factor GPFacSdl={soln.Bilt.GPFacSdl:.5f} satisfies the Szeidl Growth Impatience Condition (GICSdl), GPFacSdl < 1:\n    " +
+            True: f"The Szeidl Growth Patience Factor GPFacSdl={soln.Bilt.GPFacSdl:.5f} satisfies the Szeidl Growth Impatience Condition (GICSdl), GPFacSdl < 1:\n    " +
                   soln.Bilt.GICSdl_fcts['urlhandle'],
-            False: f"\nThe Szeidl Growth Patience Factor GPFacSdl={soln.Bilt.GPFacSdl:.5f} violates the Szeidl Growth Impatience Condition (GICSdl), GPFacSdl < 1:\n    " +
+            False: f"The Szeidl Growth Patience Factor GPFacSdl={soln.Bilt.GPFacSdl:.5f} violates the Szeidl Growth Impatience Condition (GICSdl), GPFacSdl < 1:\n    " +
                    soln.Bilt.GICSdl_fcts['urlhandle'],
         }
         verbose_messages = {
@@ -692,7 +690,8 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         # Warn them their model does not satisfy the GICSdl even if they asked
         # for the "quietly" solution -- unless they said "only CRITICAL"
 
-        if (messaging_level < logging.CRITICAL) and (soln.Bilt.GICSdl == np.False_):
+        if (messaging_level < logging.CRITICAL) and (soln.Bilt.GICSdl == np.False_) \
+           and (quietly == True):
             _log.info(messages[False]+verbose_messages[False])
 
     def check_GICHrm(self, soln, messaging_level=logging.DEBUG, quietly=False):
@@ -705,9 +704,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         def test(soln): return soln.Bilt.GPFacHrm <= 1
 
         messages = {
-            True: f"\nThe Harmenberg Growth Patience Factor GPFacHrm={soln.Bilt.GPFacHrm:.5f} satisfies the Harmenberg Growth Impatience Condition (GICHrm), GPFacHrm < 1:\n    " +
+            True: f"The Harmenberg Growth Patience Factor GPFacHrm={soln.Bilt.GPFacHrm:.5f} satisfies the Harmenberg Growth Impatience Condition (GICHrm), GPFacHrm < 1:\n    " +
                   soln.Bilt.GICHrm_fcts['urlhandle'],
-            False: f"\nThe Harmenberg Growth Patience Factor GPFacHrm={soln.Bilt.GPFacHrm:.5f} violates the Harmenberg Growth Impatience Condition (GICHrm), GPFacHrm < 1:\n    " +
+            False: f"The Harmenberg Growth Patience Factor GPFacHrm={soln.Bilt.GPFacHrm:.5f} violates the Harmenberg Growth Impatience Condition (GICHrm), GPFacHrm < 1:\n    " +
                    soln.Bilt.GICHrm_fcts['urlhandle'],
         }
         verbose_messages = {
@@ -742,10 +741,8 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         }
 
         verbose_messages = {
-            True: "\n    Therefore, a nondegenerate solution exists if the FVAC is also satisfied. (" +
-                  soln.Bilt.WRIC_fcts['urlhandle'] + ")\n",
-            False: "\n    Therefore, a nondegenerate solution is not available (" + soln.Bilt.WRIC_fcts[
-                'urlhandle'] + ")\n",
+            True: "\n    Therefore, a nondegenerate solution exists if the FVAC is also satisfied.\n",
+            False: "\n    Therefore, a nondegenerate solution is not available.\n"
         }
         soln.Bilt.WRIC = core_check_condition(
             name, test, messages, messaging_level, verbose_messages, "WRPFac", soln, quietly)
@@ -814,7 +811,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         This is the m at which the consumer expects log of market resources  
         to grow at same rate as the log of permanent income
 
-        This will exist if the GICRaw holds.
+        This will exist if the GICSdl holds.
 
         Parameters
         ----------
@@ -824,7 +821,7 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         Returns
         -------
         self : ConsumerSolution
-            Same solution that was passed, but now with attribute mBalLvl.
+            Same solution that was passed, but now with attribute mBalLog.
         """
         # Minimum market resources plus E[next income] is okay starting guess
 
@@ -832,14 +829,42 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         try:
             self.Bilt.mBalLog = find_zero_newton(
-                self.E_Next_.mLog_tp1_from_a_t(
-                    self.Bilt.cFunc
-                    , m_init_guess))
+                self.E_Next_.mLog_tp1_minus_mLog_t_from_m_t,m_init_guess
+                )
         except:
             self.Bilt.mBalLog = None
 
         # Add mBalLog to the solution and return it
         return self.Bilt.mBalLog
+
+    def c_where_E_Next_mLog_tp1_minus_mLog_t_eq_0(self, m_t):
+        """
+        Find cNrm where expected growth in log mLvl and log pLvl match
+
+        For the given m, this is the c at which the consumer expects log of 
+        market resources to grow at same rate as the log of permanent income
+
+        Parameters
+        ----------
+        self : ConsumerSolution
+            Solution to this period's problem, which must have attribute cFunc.
+
+        m_t : The level of mNrm for which the corresponding cNrm should be found
+
+        Returns
+        -------
+        c_t : The balanced-log-growth value of cNrm for the given mNrm
+        """
+
+        c_t = c_init_guess = 0.000001
+        try:
+            c_where_E_Delta_mLog_eq_Zero = find_zero_newton(
+                lambda c_t: self.E_Next_.mLog_tp1_from_a_t(m_t - c_t)-np.log(m_t),c_t
+            )
+        except: # If m_t is too low, there will be no such c_t
+            return np.nan
+        
+        return c_where_E_Delta_mLog_eq_Zero
 
 
 # Until this point, our objects have been "solution" not "solver" objects.  To
@@ -1874,7 +1899,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         GPFacHrm_fcts = {
             'about': 'Harmenberg Expected Growth Patience Factor'
         }
-        py___code = 'GPFacRaw * E_Next_.Hrm_PermShk'
+        py___code = 'GPFacRaw / E_Next_.Hrm_PermShk'
         Bilt.GPFacHrm = eval(py___code, {},
                            {**E_Next_.__dict__, **Bilt.__dict__, **givens, **globals()})
         GPFacHrm_fcts.update({'latexexpr': r'\GPFacHrm'})
@@ -1894,7 +1919,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         GPFacSdl_fcts = {
             'about': 'Szeidl Expected Growth Patience Factor'
         }
-        py___code = 'GPFacRaw * E_Next_.Sdl_PermShk'
+        py___code = 'GPFacRaw / E_Next_.Sdl_PermShk'
         Bilt.GPFacSdl = eval(py___code, 
                            {**E_Next_.__dict__, **Bilt.__dict__, **givens, **globals()})
         GPFacSdl_fcts.update({'latexexpr': r'\GPFacSdl'})
@@ -1941,7 +1966,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             eval(py___code, {},
                  {**E_Next_.__dict__, **Bilt.__dict__, **givens})
         WRPFac_fcts.update({'latexexpr': r'\WRPFac'})
-        WRPFac_fcts.update({'_unicode_': r'℘^(1/\rho) RPFac'})
+        WRPFac_fcts.update({'_unicode_': r'℘^(1/ρ) RPFac'})
         WRPFac_fcts.update({'urlhandle': urlroot + 'WRPFacDefn'})
         WRPFac_fcts.update({'value_now': WRPFac})
         WRPFac_fcts.update({'py___code': py___code})
@@ -1958,14 +1983,37 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         DiscGPFacNrmCusp_fcts = {
             'about': 'DiscFac s.t. GPFacNrm = 1'
         }
-        py___code = '((PermGroFac/E_Next_.Inv_PermShk)**(CRRA))/Rfree'
+        py___code = '((PermGroFac * E_Next_.Inv_PermShk)**(CRRA))/Rfree'
         Bilt.DiscGPFacNrmCusp = DiscGPFacNrmCusp = \
             eval(py___code, {},
                  {**E_Next_.__dict__, **Bilt.__dict__, **givens})
-        DiscGPFacNrmCusp_fcts.update({'latexexpr': ''})
         DiscGPFacNrmCusp_fcts.update({'value_now': DiscGPFacNrmCusp})
         DiscGPFacNrmCusp_fcts.update({'py___code': py___code})
         Bilt.DiscGPFacNrmCusp_fcts = DiscGPFacNrmCusp_fcts
+
+        DiscGPFacSdlCusp_fcts = {
+            'about': 'DiscFac s.t. GPFacSdl = 1'
+        }
+        py___code = '((PermGroFac * E_Next_.Sdl_PermShk)**(CRRA))/Rfree'
+        Bilt.DiscGPFacSdlCusp = DiscGPFacSdlCusp = \
+            eval(py___code, {},
+                 {**E_Next_.__dict__, **Bilt.__dict__, **givens})
+        DiscGPFacSdlCusp_fcts.update({'latexexpr': ''})
+        DiscGPFacSdlCusp_fcts.update({'value_now': DiscGPFacSdlCusp})
+        DiscGPFacSdlCusp_fcts.update({'py___code': py___code})
+        Bilt.DiscGPFacSdlCusp_fcts = DiscGPFacSdlCusp_fcts
+
+        DiscGPFacHrmCusp_fcts = {
+            'about': 'DiscFac s.t. GPFacHrm = 1'
+        }
+        py___code = '((PermGroFac * E_Next_.Hrm_PermShk)**(CRRA))/Rfree'
+        Bilt.DiscGPFacHrmCusp = DiscGPFacHrmCusp = \
+            eval(py___code, {},
+                 {**E_Next_.__dict__, **Bilt.__dict__, **givens})
+        DiscGPFacHrmCusp_fcts.update({'latexexpr': ''})
+        DiscGPFacHrmCusp_fcts.update({'value_now': DiscGPFacHrmCusp})
+        DiscGPFacHrmCusp_fcts.update({'py___code': py___code})
+        Bilt.DiscGPFacHrmCusp_fcts = DiscGPFacHrmCusp_fcts
 
     def build_facts_recursive(self):
         """
@@ -2053,51 +2101,45 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             if (type(a_t) == list or type(a_t) == np.ndarray) else
             E_Next_.cLvl_tp1_Over_pLvl_t_from_num_a_t(a_t)
         )
-        # Define separately for float ('num') and listlike ('lst'), then combine
-        # E_Next_.mLog_tp1_from_num_a_t = (
-        #     lambda a_t:
-        #     E_dot(
-        #         np.log(
-        #             Pars.PermGroFac *
-        #                 (E_Next_.RNrm_PF * a_t
-        #                  + Bilt.TranShkValsBcst)
-        #         )
-        #         ,
-        #         Bilt.ShkPrbs)
-        # )
-        # E_Next_.mLog_tp1_from_lst_a_t = (
-        #     lambda a_lst: list(map(
-        #         E_Next_.mLog_tp1_from_num_a_t, a_lst
-        #     ))
-        # )
-        # E_Next_.mLog_tp1_from_a_t = (
-        #     lambda a_t:
-        #     E_Next_.mLog_tp1_from_lst_a_t(a_t)
-        #     if (type(a_t) == list or type(a_t) == np.ndarray) else
-        #     E_Next_.mLog_tp1_from_num_a_t(a_t)
-        # )
-        # E_Next_.mLog_tp1_from_num_m_t = (
-        #     lambda m_t:
-        #     E_dot(
-        #         np.log(
-        #             Pars.PermGroFac * (E_Next_.RNrm_PF *
-        #                                (m_t - Bilt.cFunc(m_t))
-        #                                + Bilt.TranShkValsBcst*Bilt.PermShkValsBcst)
-        #         )
-        #         ,
-        #         Bilt.ShkPrbs)
-        # )
-        # E_Next_.mLog_tp1_from_lst_m_t = (
-        #     lambda m_lst: list(map(
-        #         E_Next_.mLog_tp1_from_num_m_t, a_lst
-        #     ))
-        # )
-        # E_Next_.mLog_tp1_from_a_t = (
-        #     lambda a_t:
-        #     E_Next_.mLog_tp1_from_lst_a_t(a_t)
-        #     if (type(a_t) == list or type(a_t) == np.ndarray) else
-        #     E_Next_.mLog_tp1_from_num_a_t(a_t)
-        # )
+#         Define separately for float ('num') and listlike ('lst'), then combine
+        E_Next_.mLog_tp1_from_num_a_t = (
+            lambda a_t:
+            E_dot(
+                np.log(
+                    Pars.PermGroFac *
+                        (E_Next_.RNrm_PF * a_t
+                         + Bilt.TranShkValsBcst)
+                )
+                ,
+                Bilt.ShkPrbs)
+        )
+        E_Next_.mLog_tp1_from_lst_a_t = (
+            lambda a_lst: list(map(
+                E_Next_.mLog_tp1_from_num_a_t, a_lst
+            ))
+        )
+        E_Next_.mLog_tp1_from_num_m_t = (
+            lambda m_t:
+            E_dot(
+                np.log(
+                    Pars.PermGroFac * (E_Next_.RNrm_PF *
+                                       (m_t - Bilt.cFunc(m_t))
+                                       + Bilt.TranShkValsBcst*Bilt.PermShkValsBcst)
+                )
+                ,
+                Bilt.ShkPrbs)
+        )
+        E_Next_.mLog_tp1_from_lst_m_t = (
+            lambda m_lst: list(map(
+                E_Next_.mLog_tp1_from_num_m_t, a_lst
+            ))
+        )
+        E_Next_.mLog_tp1_from_a_t = (
+            lambda a_t:
+            E_Next_.mLog_tp1_from_lst_a_t(a_t)
+            if (type(a_t) == list or type(a_t) == np.ndarray) else
+            E_Next_.mLog_tp1_from_num_a_t(a_t)
+        )
         E_Next_.k_tp1_from_num_m_t = (
             lambda m_t:
                 m_t - Bilt.cFunc(m_t)
@@ -2233,9 +2275,15 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         )
         E_Next_.mLog_tp1_minus_mLog_t_from_m_t = (
             lambda m_t:
-            E_Next_.log_PermShk_tp1_times_m_tp1_from_a_t(E_Next_.a_t_from_m_t(m_t)) \
+            E_Next_.mLog_tp1_from_a_t(E_Next_.a_t_from_m_t(m_t)) \
                - np.log(m_t)
         )
+        E_Next_.mLog_tp1_minus_mLog_t_from_m_t_and_c_t = (
+            lambda m_t, c_t:
+            E_Next_.mLog_tp1_from_a_t(E_Next_.a_t_from_m_t(m_t - c_t)) \
+               - np.log(m_t)
+        )
+        
         self.solution_current = crnt
 
         return crnt
