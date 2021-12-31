@@ -498,12 +498,11 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         messages = {
             True: f"\nThe Finite Value of Autarky Factor, VAFac={soln.Bilt.VAFac:.5f} satisfies the Finite Value of Autarky Condition, VAFac < 1:\n    " +
                   soln.Bilt.FVAC_fcts['urlhandle'],
-            False: f"\nThe Finite Value of Autarky Factor, VAFac={soln.Bilt.VAFac:.5f} violates the Finite Value of Autarky Condition, VAFac:\n    " +
+            False: f"\nThe Finite Value of Autarky Factor, VAFac={soln.Bilt.VAFac:.5f} violates the Finite Value of Autarky Condition, VAFac < 1:\n    " +
                    soln.Bilt.FVAC_fcts['urlhandle']
         }
         verbose_messages = {
-            True: "\n    Therefore, a nondegenerate solution exists if the RIC also holds. \n    " + soln.Bilt.FVAC_fcts[
-                'urlhandle'] + ")\n",
+            True: "\n    Therefore, a nondegenerate solution exists if the RIC also holds. \n    ",
             False: "\n    Therefore, a nondegenerate solution exits if the RIC holds, but will not exist if the RIC fails unless the FHWC also fails.\n",
         }
 
@@ -523,9 +522,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         messages = {
             True: f"\nThe Growth Patience Factor, GPF={soln.Bilt.GPFacRaw:.5f} satisfies the Growth Impatience Condition (GICRaw), GPFac < 1:\n    " +
-                  soln.Bilt.GICRaw_fcts['urlhandle'],
+                  soln.Bilt.GICRaw_fcts['urlhandle']+'\n',
             False: f"\nThe Growth Patience Factor, GPF={soln.Bilt.GPFacRaw:.5f} violates the Growth Impatience Condition (GICRaw), GPFac < 1:\n    " +
-                   soln.Bilt.GICRaw_fcts['urlhandle'],
+                   soln.Bilt.GICRaw_fcts['urlhandle']+'\n',
         }
         verbose_messages = {
             True: "\n    Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to fall indefinitely.    \n",
@@ -554,10 +553,8 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
                    soln.Bilt.GPFacLiv_fcts['urlhandle'],
         }
         verbose_messages = {
-            True: "\n    Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.    \n    " +
-                  soln.Bilt.GPFacLiv_fcts['urlhandle'] + "\n",
-            False: "\n    Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.  \n    " +
-                   soln.Bilt.GPFacLiv_fcts['urlhandle'] + "\n",
+            True: "\n    Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.    \n    ",
+            False: "\n    Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.  \n    " 
         }
         soln.Bilt.GICLiv = core_check_condition(name, test, messages, messaging_level,
                                                 verbose_messages, "GPFacLiv", soln, quietly)
@@ -642,13 +639,13 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         messages = {
             True: f"\nThe Normalized Growth Patience Factor GPFacNrm, GPFacNrm={soln.Bilt.GPFacNrm:.5f} satisfies the Normalized Growth Impatience Condition (GICNrm), GPFacNrm < 1:\n    " +
-                  soln.Bilt.GICNrm_fcts['urlhandle'],
+                  soln.Bilt.GICNrm_fcts['urlhandle']+"\n",
             False: f"\nThe Normalized Growth Patience Factor GPFacNrm, GPFacNrm={soln.Bilt.GPFacNrm:.5f} violates the Normalized Growth Impatience Condition (GICNrm), GPFacNrm < 1:\n    " +
-                   soln.Bilt.GICNrm_fcts['urlhandle'],
+                   soln.Bilt.GICNrm_fcts['urlhandle']+"\n",
         }
         verbose_messages = {
-            True: "\n    Therefore, a target level of the individual market resources ratio m exists.",
-            False: "\n    Therefore, a target ratio of individual market resources to individual permanent income does not exist.  \n"
+            True: "\n    Therefore, a target level of the individual market resources ratio m exists.\n",
+            False: "\n    Therefore, a target ratio of individual market resources to individual permanent income does not exist.\n"
         }
 
         soln.Bilt.GICNrm = \
@@ -673,13 +670,13 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         def test(soln): return soln.Bilt.GPFacSdl <= 1
 
         messages = {
-            True: f"The Szeidl Growth Patience Factor GPFacSdl={soln.Bilt.GPFacSdl:.5f} satisfies the Szeidl Growth Impatience Condition (GICSdl), GPFacSdl < 1:\n    " +
+            True: f"\nThe Szeidl Growth Patience Factor GPFacSdl={soln.Bilt.GPFacSdl:.5f} satisfies the Szeidl Growth Impatience Condition (GICSdl), GPFacSdl < 1:\n    " +
                   soln.Bilt.GICSdl_fcts['urlhandle'],
-            False: f"The Szeidl Growth Patience Factor GPFacSdl={soln.Bilt.GPFacSdl:.5f} violates the Szeidl Growth Impatience Condition (GICSdl), GPFacSdl < 1:\n    " +
+            False: f"\nThe Szeidl Growth Patience Factor GPFacSdl={soln.Bilt.GPFacSdl:.5f} violates the Szeidl Growth Impatience Condition (GICSdl), GPFacSdl < 1:\n    " +
                    soln.Bilt.GICSdl_fcts['urlhandle'],
         }
         verbose_messages = {
-            True: "\n    Therefore, invariant distributions of ratio variables like m exist.",
+            True: "\n    Therefore, invariant distributions of ratio variables like m exist.\n",
             False: "\n    Therefore, invariant distributions of ratio variables like m do not exist.  \n"
         }
 
@@ -704,14 +701,14 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
         def test(soln): return soln.Bilt.GPFacHrm <= 1
 
         messages = {
-            True: f"The Harmenberg Growth Patience Factor GPFacHrm={soln.Bilt.GPFacHrm:.5f} satisfies the Harmenberg Growth Impatience Condition (GICHrm), GPFacHrm < 1:\n    " +
+            True: f"\nThe Harmenberg Growth Patience Factor GPFacHrm={soln.Bilt.GPFacHrm:.5f} satisfies the Harmenberg Growth Impatience Condition (GICHrm), GPFacHrm < 1:\n    " +
                   soln.Bilt.GICHrm_fcts['urlhandle'],
-            False: f"The Harmenberg Growth Patience Factor GPFacHrm={soln.Bilt.GPFacHrm:.5f} violates the Harmenberg Growth Impatience Condition (GICHrm), GPFacHrm < 1:\n    " +
+            False: f"\nThe Harmenberg Growth Patience Factor GPFacHrm={soln.Bilt.GPFacHrm:.5f} violates the Harmenberg Growth Impatience Condition (GICHrm), GPFacHrm < 1:\n    " +
                    soln.Bilt.GICHrm_fcts['urlhandle'],
         }
         verbose_messages = {
-            True: "\n    Therefore, a target level of the individual market resources ratio m exists.",
-            False: "\n    Therefore, a target ratio of individual market resources to individual permanent income does not exist.  \n"
+            True: "\n    Therefore, a target level of the individual market resources ratio m exists under the permanent-income-neutral measure.\n",
+            False: "\n    Therefore, a target ratio of individual market resources to individual permanent income does not exist under the permanent-income-neutral measure.\n"
         }
 
         soln.Bilt.GICHrm = \
