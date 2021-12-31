@@ -1170,8 +1170,11 @@ def solve_agent(agent, messaging_level, quietly=False, **kwds):
                     )
                     t_last = t_now
 
+    if not quietly:
+        if messaging_level >= logging.DEBUG:
+            print('') # end of line for progress dots
+            
     return solution
-
 
 def solve_one_cycle(agent, solution_next):
     """
