@@ -1385,6 +1385,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 # Use Harmenberg (2021) permanent income neutral measure
                 if self.neutral_measure == True:
                     PermShkDstn_t.pmf = PermShkDstn_t.X*PermShkDstn_t.pmf
+#                    PermShkDstn_t.pmf = PermShkDstn_t.pmf                    
                 
                 IncShkDstn.append(
                     combine_indep_dstns(
@@ -1419,12 +1420,18 @@ class IndShockConsumerType(PerfForesightConsumerType):
         newborn = self.mcrlovars.t_age = self.t_age == 0
         for t in range(self.T_cycle):
             these = t == self.t_cycle
+
+            # temporary, see #1022
+            if self.cycles == 1:
+                t = t - 1
+
+
             N = np.sum(these)
             if N > 0:
                 IncShkDstn = self.IncShkDstn[
-                    t - 1
+                    t
                 ]  # set current income distribution
-                PermGroFac = self.PermGroFac[t - 1]  # and permanent growth factor
+                PermGroFac = self.PermGroFac[t]  # and permanent growth factor
                 # Get random draws of income shocks from the discrete distribution
                 IncShks = IncShkDstn.draw(N)
 
