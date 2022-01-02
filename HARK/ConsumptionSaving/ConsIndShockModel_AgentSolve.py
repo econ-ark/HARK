@@ -571,9 +571,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         messages = {
             True: f"\nThe Modigliani Mortality Adjusted Growth Patience Factor, GPFacLivMod={soln.Bilt.GPFacLivMod:.5f} satisfies the Mortality Adjusted Growth Impatience Condition (GICLivMod):\n    " +
-                  soln.Bilt.GPFacLivMod_fcts['urlhandle'],
+                  soln.Bilt.GICLivMod_fcts['urlhandle'],
             False: f"\nThe Modigliani Mortality Adjusted Growth Patience Factor, GPFacLivMod={soln.Bilt.GPFacLivMod:.5f} violates the Mortality Adjusted Growth Impatience Condition (GICLivMod):\n    " +
-                   soln.Bilt.GPFacLivMod_fcts['urlhandle'],
+                   soln.Bilt.GICLivMod_fcts['urlhandle'],
         }
         verbose_messages = {
             True: "\n    Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.    \n",
@@ -594,9 +594,9 @@ class ConsumerSolutionOneNrmStateCRRA(ConsumerSolution):
 
         messages = {
             True: f"\nThe Return Patience Factor, RPFac={soln.Bilt.RPFac:.5f} satisfies the Return Impatience Condition (RIC), RPFac < 1:\n    " +
-                  soln.Bilt.RPFac_fcts['urlhandle'],
+                  soln.Bilt.RIC_fcts['urlhandle'],
             False: f"\nThe Return Patience Factor, RPFac={soln.Bilt.RPFac:.5f} violates the Return Impatience Condition (RIC), RPFac < 1:\n    " +
-                   soln.Bilt.RPFac_fcts['urlhandle'],
+                   soln.Bilt.RIC_fcts['urlhandle'],
         }
         verbose_messages = {
             True: "\n    Therefore, the limiting consumption function is not c(m)=0 for all m\n",
@@ -1889,7 +1889,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             'about': 'Stochastic Growth Normalized Impatience Condition'
         }
         GICNrm_fcts.update({'latexexpr': r'\GICNrm'})
-        GICNrm_fcts.update({'urlhandle': urlroot + 'GICNrmDefn'})
+        GICNrm_fcts.update({'urlhandle': urlroot + 'GICNrm'})
         GICNrm_fcts.update({'py___code': 'test: GPFacNrm < 1'})
         Bilt.GICNrm_fcts = GICNrm_fcts
 
@@ -1909,7 +1909,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             'about': 'Harmenberg Growth Normalized Impatience Condition'
         }
         GICHrm_fcts.update({'latexexpr': r'\GICHrm'})
-        GICHrm_fcts.update({'urlhandle': urlroot + 'GICHrmDefn'})
+        GICHrm_fcts.update({'urlhandle': urlroot + 'GICHrm'})
         GICHrm_fcts.update({'py___code': 'test: GPFacHrm < 1'})
         Bilt.GICHrm_fcts = GICHrm_fcts
 
@@ -1928,7 +1928,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             'about': 'Szeidl Growth Normalized Impatience Condition'
         }
         GICSdl_fcts.update({'latexexpr': r'\GICSdl'})
-        GICSdl_fcts.update({'urlhandle': urlroot + 'GICSdlDefn'})
+        GICSdl_fcts.update({'urlhandle': urlroot + 'GICSdl'})
         GICSdl_fcts.update({'py___code': 'test: GPFacSdl < 1'})
         Bilt.GICSdl_fcts = GICSdl_fcts
 
@@ -1976,6 +1976,11 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         WRIC_fcts.update({'urlhandle': urlroot + 'WRIC'})
         WRIC_fcts.update({'py___code': 'test: WRPFac < 1'})
         Bilt.WRIC_fcts = WRIC_fcts
+
+        RIC_fcts.update({'latexexpr': r'\RIC'})
+        RIC_fcts.update({'urlhandle': urlroot + 'RIC'})
+        RIC_fcts.update({'py___code': 'test: RPFac < 1'})
+        Bilt.RIC_fcts = RIC_fcts
 
         DiscGPFacNrmCusp_fcts = {
             'about': 'DiscFac s.t. GPFacNrm = 1'
