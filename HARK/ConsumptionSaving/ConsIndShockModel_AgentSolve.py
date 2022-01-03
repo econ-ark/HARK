@@ -1977,10 +1977,6 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         WRIC_fcts.update({'py___code': 'test: WRPFac < 1'})
         Bilt.WRIC_fcts = WRIC_fcts
 
-        RIC_fcts.update({'latexexpr': r'\RIC'})
-        RIC_fcts.update({'urlhandle': urlroot + 'RIC'})
-        RIC_fcts.update({'py___code': 'test: RPFac < 1'})
-        Bilt.RIC_fcts = RIC_fcts
 
         DiscGPFacNrmCusp_fcts = {
             'about': 'DiscFac s.t. GPFacNrm = 1'
