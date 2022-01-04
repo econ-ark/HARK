@@ -2213,10 +2213,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     (IncShks[0, :] * PermGroFacNow
                      / PermShkMeanNow) 
                 )  # permanent "shock" includes expected growth
-                TranShkNow[these] = (
-                    (IncShks[1, :]
-                     / TranShkMeanNow) 
-                )
+                TranShkNow[these] = IncShks[1, :] / TranShkMeanNow 
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
