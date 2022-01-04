@@ -1797,6 +1797,12 @@ class PerfForesightConsumerType(AgentType):
         # Asymptotically it can't hurt to impose true restrictions
         # (at least if the GICRaw holds)
         pLvlNowMean = 1.0
+        if not hasattr(self, "normalize_shocks"):
+            self.normalize_shocks = False
+            
+        if not hasattr(self, "normalize_levels"):
+            self.normalize_levels = False
+                    
         if self.normalize_levels == True:
             pLvlNowMean = np.mean(pLvlNow)
 
