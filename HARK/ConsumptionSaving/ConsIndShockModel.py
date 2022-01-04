@@ -1800,7 +1800,7 @@ class PerfForesightConsumerType(AgentType):
         if self.normalize_levels == True:
             pLvlNowMean = np.mean(pLvlNow)
 
-        pLvlNow = pLvlNow / pLvlNowMean # Does nothing if normalize_levels != True
+        pLvlNow = pLvlNow / pLvlNowMean # Divide by 1.0 if normalize_levels=False
         
         # Updated aggregate permanent productivity level
         PlvlAggNow = self.state_prev['PlvlAgg']*self.PermShkAggNow
@@ -2211,7 +2211,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
                 PermShkNow[these] = (
                     (IncShks[0, :] * PermGroFacNow
-                     / PermShkMeanNow) 
+                     / PermShkMeanNow) # Divide by 1.0 if normalize_shocks=False
                 )  # permanent "shock" includes expected growth
                 TranShkNow[these] = IncShks[1, :] / TranShkMeanNow 
 
@@ -2235,7 +2235,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     
             PermShkNow[these] = (
                 (IncShkDstnNow.X[0][EventDraws] * PermGroFacNow
-                 / PermShkMeanNow)
+                 / PermShkMeanNow) # Divide by 1.0 if normalize_shocks=False
             )  # permanent "shock" includes expected growth
             TranShkNow[these] = IncShkDstnNow.X[1][EventDraws] / TranShkMeanNow
         #        PermShkNow[newborn] = 1.0
@@ -2763,8 +2763,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     
                 if not hasattr(self, "neutral_measure"):
                     self.neutral_measure = False
-
-                # Use Harmenberg (2021) permanent income neutral measure
+                    
                 if self.neutral_measure == True:
                     PermShkDstn_t.pmf = PermShkDstn_t.X*PermShkDstn_t.pmf
                 
