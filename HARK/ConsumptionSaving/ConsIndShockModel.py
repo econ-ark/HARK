@@ -2209,11 +2209,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     PermShkMeanNow = np.mean(IncShks[0])
                     TranShkMeanNow = np.mean(IncShks[1])
 
-                PermShkNow[these] = (# permanent "shock" includes expected growth
-                    (IncShks[0, :] / PermShkMeanNow) * PermGroFacNow
-                )  
+                PermShkNow[these] = (
+                    (IncShks[0, :] * PermGroFacNow
+                     / PermShkMeanNow) 
+                )  # permanent "shock" includes expected growth
                 TranShkNow[these] = (
-                    (IncShks[1, :] / TranShkMeanNow) 
+                    (IncShks[1, :]
+                     / TranShkMeanNow) 
                 )
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
@@ -2221,7 +2223,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         N = np.sum(newborn)
         if N > 0:
             these = newborn
-            IncShkDstnNow = self.IncShkDstn[0]  # set current shock distribution
+            IncShkDstnNow = self.IncShkDstn[0]  # set current income distribution
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
             # Get random draws of income shocks from the discrete distribution
@@ -2234,11 +2236,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 PermShkMeanNow = np.mean(IncShkDstnNow.X[0][EventDraws])
                 TranShkMeanNow = np.mean(IncShkDstnNow.X[1][EventDraws])
                     
-            PermShkNow[these] = (# permanent "shock" includes expected growth
-                (IncShkDstnNow.X[0][EventDraws] / PermShkMeanNow)* PermGroFacNow 
+            PermShkNow[these] = (
+                (IncShkDstnNow.X[0][EventDraws] * PermGroFacNow
+                 / PermShkMeanNow)
             )  
             TranShkNow[these] = (
-                (IncShkDstnNow.X[1][EventDraws] / TranShkMeanNow)
+                (IncShkDstnNow.X[1][EventDraws]
+                 / TranShkMeanNow)
             )
         #        PermShkNow[newborn] = 1.0
         TranShkNow[newborn] = 1.0
@@ -2399,7 +2403,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         #        AgentType.pre_solve(self)
         # Update all income process variables to match any attributes that might
         # have been changed since `__init__` or `solve()` was last called.
-        self.update_income_process()
+        #        self.update_income_process()
         self.update_solution_terminal()
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
