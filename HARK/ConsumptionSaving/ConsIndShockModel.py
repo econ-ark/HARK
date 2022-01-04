@@ -2761,11 +2761,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     PermShkCount, tail_N=0
                 )
 
-                if not hasattr(self, "normalize_shocks"):
-                    self.normalize_shocks = False
+                # if not hasattr(self, "normalize_shocks"):
+                #     self.normalize_shocks = False
                     
-                if not hasattr(self, "normalize_levels"):
-                    self.normalize_levels = False
+                # if not hasattr(self, "normalize_levels"):
+                #     self.normalize_levels = False
                     
                 if not hasattr(self, "neutral_measure"):
                     self.neutral_measure = False
