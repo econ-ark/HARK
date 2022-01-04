@@ -2236,11 +2236,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
             PermShkNow[these] = (
                 (IncShkDstnNow.X[0][EventDraws] * PermGroFacNow
                  / PermShkMeanNow)
-            )  
-            TranShkNow[these] = (
-                (IncShkDstnNow.X[1][EventDraws]
-                 / TranShkMeanNow)
-            )
+            )  # permanent "shock" includes expected growth
+            TranShkNow[these] = IncShkDstnNow.X[1][EventDraws] / TranShkMeanNow
         #        PermShkNow[newborn] = 1.0
         TranShkNow[newborn] = 1.0
 
