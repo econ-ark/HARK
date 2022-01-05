@@ -187,6 +187,8 @@ init_perfect_foresight = {
     'pLvlInitStd': 0.0,
     # Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
     'T_age': None,       # Age after which simulated agents are automatically killed
+    'normalize_shocks': False, # In sims, normalize mean of collection of shocks to population mean
+    'normalize_levels': False, # In sims, normalize mean of level variables like permanent income to 1
     # Optional extra _fcts about the model and its calibration
     **init_perfect_foresight_plus
 }
@@ -376,8 +378,6 @@ init_idiosyncratic_shocks = dict(
         "vFuncBool": False,  # Whether to calculate the value function during solution
         "CubicBool": False,  # Use cubic spline interpolation when True, linear interpolation when False
         "neutral_measure": False,      # Use permanent income neutral measure (see Harmenberg 2021) during simulations whe        **init_idiosyncratic_shocks_plus
-        "normalize_shocks": False,   
-        "normalize_levels": False,   
     }
 )
 
