@@ -194,7 +194,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             # Construct the end-of-period value functional conditional on next
             # period's state and add it to the list of value functions
             if self.vFuncBool:
-                EndOfPrdvFunc_cond = self.make_EndOfPrdvFuncCond()
+                EndOfPrdvFunc_cond = self.make_EndOfPrdvFuncCond(self.EndOfPrdvP_cond)
                 self.EndOfPrdvFunc_list.append(EndOfPrdvFunc_cond)
 
         # EndOfPrdvP_cond is EndOfPrdvP conditional on *next* period's state.
@@ -338,39 +338,43 @@ class ConsMarkovSolver(ConsIndShockSolver):
         )
         return EndOfPrdvPP
 
-    def make_EndOfPrdvFuncCond(self):
+        
+    def make_EndOfPrdvFuncCond(self, EndOfPrdvP):
         """
-        Construct the end-of-period value function conditional on next period's
-        state.  NOTE: It might be possible to eliminate this method and replace
-        it with ConsIndShockSolver.make_EndOfPrdvFunc, but the self.X_cond
-        variables must be renamed.
-
+        Construct the end-of-period value function for this period, storing it
+        as an attribute of self for use by other methods.
         Parameters
         ----------
-        none
-
+        EndOfPrdvP : np.array
+            Array of end-of-period marginal value of assets corresponding to the
+            asset values in self.aNrmNow.
         Returns
         -------
-        EndofPrdvFunc_cond : ValueFuncCRRA
-            The end-of-period value function conditional on a particular state
-            occuring in the next period.
+        none
         """
-        VLvlNext = (
-            self.PermShkVals_temp ** (1.0 - self.CRRA)
-            * self.PermGroFac ** (1.0 - self.CRRA)
-        ) * self.vFuncNext(self.mNrmNext)
-        EndOfPrdv_cond = self.DiscFacEff * np.sum(VLvlNext * self.ShkPrbs_temp, axis=0)
-        EndOfPrdvNvrs_cond = self.uinv(EndOfPrdv_cond)
-        EndOfPrdvNvrsP_cond = self.EndOfPrdvP_cond * self.uinvP(EndOfPrdv_cond)
-        EndOfPrdvNvrs_cond = np.insert(EndOfPrdvNvrs_cond, 0, 0.0)
-        EndOfPrdvNvrsP_cond = np.insert(EndOfPrdvNvrsP_cond, 0, EndOfPrdvNvrsP_cond[0])
-        aNrm_temp = np.insert(self.aNrm_cond, 0, self.BoroCnstNat)
-        EndOfPrdvNvrsFunc_cond = CubicInterp(
-            aNrm_temp, EndOfPrdvNvrs_cond, EndOfPrdvNvrsP_cond
+        def v_lvl_next(shocks, a_nrm):
+            return (
+                shocks[0] ** (1.0 - self.CRRA)
+                * self.PermGroFac ** (1.0 - self.CRRA)
+            ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm))
+        EndOfPrdv = self.DiscFacEff * calc_expectation(
+            self.IncShkDstn, v_lvl_next, self.aNrmNow
         )
-        EndofPrdvFunc_cond = ValueFuncCRRA(EndOfPrdvNvrsFunc_cond, self.CRRA)
-        return EndofPrdvFunc_cond
-
+        EndOfPrdvNvrs = self.uinv(
+            EndOfPrdv
+        )  # value transformed through inverse utility
+        EndOfPrdvNvrsP = EndOfPrdvP * self.uinvP(EndOfPrdv)
+        EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
+        EndOfPrdvNvrsP = np.insert(
+            EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0]
+        )  # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+        aNrm_temp = np.insert(self.aNrmNow, 0, self.BoroCnstNat)
+        EndOfPrdvNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
+        EndOfPrdvFuncCond = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
+        
+        return EndOfPrdvFuncCond
+    
+    
     def calc_EndOfPrdvPcond(self):
         """
         Calculate end-of-period marginal value of assets at each point in aNrmNow
