@@ -341,8 +341,9 @@ class ConsMarkovSolver(ConsIndShockSolver):
         
     def make_EndOfPrdvFuncCond(self, EndOfPrdvP):
         """
-        Construct the end-of-period value function for this period, storing it
-        as an attribute of self for use by other methods.
+        Construct the end-of-period value function conditional on next period's
+        state. 
+        
         Parameters
         ----------
         EndOfPrdvP : np.array
@@ -357,22 +358,22 @@ class ConsMarkovSolver(ConsIndShockSolver):
                 shocks[0] ** (1.0 - self.CRRA)
                 * self.PermGroFac ** (1.0 - self.CRRA)
             ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm))
-        EndOfPrdv = self.DiscFacEff * calc_expectation(
+        EndOfPrdv_cond = self.DiscFacEff * calc_expectation(
             self.IncShkDstn, v_lvl_next, self.aNrmNow
         )
         EndOfPrdvNvrs = self.uinv(
-            EndOfPrdv
+            EndOfPrdv_cond
         )  # value transformed through inverse utility
-        EndOfPrdvNvrsP = EndOfPrdvP * self.uinvP(EndOfPrdv)
+        EndOfPrdvNvrsP = EndOfPrdvP * self.uinvP(EndOfPrdv_cond)
         EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
         EndOfPrdvNvrsP = np.insert(
             EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0]
         )  # This is a very good approximation, vNvrsPP = 0 at the asset minimum
         aNrm_temp = np.insert(self.aNrmNow, 0, self.BoroCnstNat)
         EndOfPrdvNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
-        EndOfPrdvFuncCond = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
+        EndOfPrdvFunc_dond = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
         
-        return EndOfPrdvFuncCond
+        return EndOfPrdvFunc_dond
     
     
     def calc_EndOfPrdvPcond(self):
