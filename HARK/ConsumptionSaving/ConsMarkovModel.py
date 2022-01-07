@@ -194,7 +194,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             # Construct the end-of-period value functional conditional on next
             # period's state and add it to the list of value functions
             if self.vFuncBool:
-                EndOfPrdvFunc_cond = self.make_EndOfPrdvFuncCond(self.EndOfPrdvP_cond)
+                EndOfPrdvFunc_cond = self.make_EndOfPrdvFuncCond()
                 self.EndOfPrdvFunc_list.append(EndOfPrdvFunc_cond)
 
         # EndOfPrdvP_cond is EndOfPrdvP conditional on *next* period's state.
@@ -339,7 +339,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         return EndOfPrdvPP
 
         
-    def make_EndOfPrdvFuncCond(self, EndOfPrdvP):
+    def make_EndOfPrdvFuncCond(self):
         """
         Construct the end-of-period value function conditional on next period's
         state. 
@@ -364,7 +364,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         EndOfPrdvNvrs = self.uinv(
             EndOfPrdv_cond
         )  # value transformed through inverse utility
-        EndOfPrdvNvrsP = EndOfPrdvP * self.uinvP(EndOfPrdv_cond)
+        EndOfPrdvNvrsP = self.EndOfPrdvP_cond * self.uinvP(EndOfPrdv_cond)
         EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
         EndOfPrdvNvrsP = np.insert(
             EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0]
