@@ -11,7 +11,8 @@ from HARK.interpolation import LinearInterp
 from interpolation import interp
 from numba import jit, njit, typeof
 
-@njit('Tuple((float64,float64))(float64[:], float64[:], float64[:])', cache = True)
+
+@njit("Tuple((float64,float64))(float64[:], float64[:], float64[:])", cache=True)
 def calc_linear_crossing(m, left_v, right_v):
     """
     Computes the intersection between two line segments, defined by two common
@@ -49,7 +50,7 @@ def calc_linear_crossing(m, left_v, right_v):
     else:
         # Find h where intercept happens at m[0] + h
         h = (left_v[0] - left_v[1]) / (s1 - s0)
-        
+
         # Return the crossing if it happens between the given x coordinates.
         # If not, return nan
         if h >= 0 and h <= (m[1] - m[0]):
@@ -57,7 +58,10 @@ def calc_linear_crossing(m, left_v, right_v):
         else:
             return (np.nan, np.nan)
 
-@njit('Tuple((float64[:,:],int64[:,:]))(float64[:], float64[:,:], int64[:])', cache = True)
+
+@njit(
+    "Tuple((float64[:,:],int64[:,:]))(float64[:], float64[:,:], int64[:])", cache=True
+)
 def calc_cross_points(mGrid, condVs, optIdx):
     """
     Given a grid of m values, a matrix of the conditional values of different
@@ -91,8 +95,8 @@ def calc_cross_points(mGrid, condVs, optIdx):
 
     # If no crossings, return an empty list
     if len(idx_change) == 0:
-        points = np.zeros((0,2), dtype = np.float64)
-        segments = np.zeros((0,2), dtype = np.int64)
+        points = np.zeros((0, 2), dtype=np.float64)
+        segments = np.zeros((0, 2), dtype=np.int64)
         return points, segments
     else:
 
@@ -107,45 +111,47 @@ def calc_cross_points(mGrid, condVs, optIdx):
         # Columns are [0]: left extreme, [1]: right extreme,
         # Rows are individual crossing points.
         segments = np.stack((optIdx[idx_change], optIdx[idx_change + 1]), axis=1)
-        
+
         # Get values of segments on both the left and the right
         left_v = np.zeros_like(segments, dtype=np.float64)
         right_v = np.zeros_like(segments, dtype=np.float64)
         for i, idx in enumerate(idx_change):
-            
-            left_v[i,0] = condVs[idx, segments[i,0]]
-            left_v[i,1] = condVs[idx, segments[i,1]]
-            
-            right_v[i,0] = condVs[idx + 1, segments[i,0]]
-            right_v[i,1] = condVs[idx + 1, segments[i,1]]
-            
+
+            left_v[i, 0] = condVs[idx, segments[i, 0]]
+            left_v[i, 1] = condVs[idx, segments[i, 1]]
+
+            right_v[i, 0] = condVs[idx + 1, segments[i, 0]]
+            right_v[i, 1] = condVs[idx + 1, segments[i, 1]]
+
         # A valid crossing must have both switching segments well defined at the
         # encompassing gridpoints. Filter those that do not.
         valid = np.repeat(False, len(idx_change))
-        for i in range(len(valid)):    
-            valid[i] = np.logical_and(~np.isnan(left_v[i,:]).any(), ~np.isnan(right_v[i,:]).any())
-        
+        for i in range(len(valid)):
+            valid[i] = np.logical_and(
+                ~np.isnan(left_v[i, :]).any(), ~np.isnan(right_v[i, :]).any()
+            )
+
         if not np.any(valid):
-            
-            points = np.zeros((0,2), dtype = np.float64)
-            segments = np.zeros((0,2), dtype = np.int64)
+
+            points = np.zeros((0, 2), dtype=np.float64)
+            segments = np.zeros((0, 2), dtype=np.int64)
             return points, segments
-        
-        else: 
-            
+
+        else:
+
             segments = segments[valid, :]
             switchMs = switchMs[valid, :]
             left_v = left_v[valid, :]
             right_v = right_v[valid, :]
-    
+
             # Find crossing points. Returns a list (m,v) tuples. Keep m's only
             xing_points = [
                 calc_linear_crossing(switchMs[i, :], left_v[i, :], right_v[i, :])
                 for i in range(segments.shape[0])
             ]
-            
+
             xing_array = np.asarray(xing_points)
-            
+
             return xing_array, segments
 
 
@@ -182,23 +188,23 @@ def calc_prim_kink(mGrid, vTGrids, choices):
 def calc_nondecreasing_segments(x, v):
     """
     """
-    
+
     starts = [0]
     ends = []
-    for i in range(1,len(x)):
-        
+    for i in range(1, len(x)):
+
         # Check if grid decreases in x or v
         x_dec = x[i] < x[i - 1]
         v_dec = v[i] < v[i - 1]
 
         if x_dec or v_dec:
-            
-            ends.append(i-1)
+
+            ends.append(i - 1)
             starts.append(i)
 
         i = i + 1
 
-    # The last segment always starts in the last point
+    # The last segment always ends in the last point
     ends.append(len(v) - 1)
 
     return np.array(starts), np.array(ends)
@@ -206,6 +212,7 @@ def calc_nondecreasing_segments(x, v):
 
 # think! nanargmax makes everythign super ugly because numpy changed the wraning
 # in all nan slices to a valueerror...it's nans, aaarghgghg
+
 
 def calc_multiline_envelope(M, C, V_T, commonM, find_crossings=False):
     """
@@ -398,19 +405,21 @@ def calc_multiline_envelope(M, C, V_T, commonM, find_crossings=False):
 
         return upperM, upperC, upperV_T, xing_points
 
+
 # %% New methods
 
-def upper_envelope(segments, calc_crossings = True):
-    
+
+def upper_envelope(segments, calc_crossings=True):
+
     n_seg = len(segments)
-    
+
     # Collect the x points of all segments in an ordered array
     x = np.sort(np.concatenate([x[0] for x in segments]))
-    
+
     # Interpolate on all points using all segments
     y_cond = np.zeros((n_seg, len(x)))
     for i in range(n_seg):
-        
+
         if len(segments[i][0]) == 1:
             # If the segment is a single point, we can only know its value
             # at the observed point.
@@ -422,38 +431,38 @@ def upper_envelope(segments, calc_crossings = True):
             row = interp(segments[i][0], segments[i][1], x)
             extrap = np.logical_or(x < segments[i][0][0], x > segments[i][0][-1])
             row[extrap] = np.nan
-        
-        y_cond[i,:] = row
-        
+
+        y_cond[i, :] = row
+
     # Take the maximum to get the upper envelope
     env_inds = np.nanargmax(y_cond, 0)
-    y = y_cond[env_inds,range(len(x))]
-    
+    y = y_cond[env_inds, range(len(x))]
+
     # Get crossing points if needed
     if calc_crossings:
-        
+
         xing_points, xing_lines = calc_cross_points(x, y_cond.T, env_inds)
-        
+
         if len(xing_points) > 0:
-            
+
             # Extract x and y coordinates
             xing_x = np.array([p[0] for p in xing_points])
             xing_y = np.array([p[1] for p in xing_points])
-            
+
             # To capture the discontinuity, we'll add the successors of xing_x to
             # the grid
             succ = np.nextafter(xing_x, xing_x + 1)
-            
+
             # Collect points to add to grids
             xtra_x = np.concatenate([xing_x, succ])
             # if there is a crossing, y will be the same on both segments
-            xtra_y = np.concatenate([xing_y, xing_y]) 
-            xtra_lines = np.concatenate([xing_lines[:,0], xing_lines[:,1]])
-            
+            xtra_y = np.concatenate([xing_y, xing_y])
+            xtra_lines = np.concatenate([xing_lines[:, 0], xing_lines[:, 1]])
+
             # Insert them
             idx = np.searchsorted(x, xtra_x)
             x = np.insert(x, idx, xtra_x)
             y = np.insert(y, idx, xtra_y)
             env_inds = np.insert(env_inds, idx, xtra_lines)
-        
+
     return x, y, env_inds
