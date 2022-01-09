@@ -285,6 +285,7 @@ class AgentType(Model):
         self.shocks = {}
         self.read_shocks = False  # NOQA
         self.shock_history = {}
+        self.newborn_init_history = {}
         self.history = {}
         self.assign_parameters(**kwds)  # NOQA
         self.reset_rng()  # NOQA
@@ -593,11 +594,30 @@ class AgentType(Model):
         self.shock_history["who_dies"] = np.zeros(
             (self.T_sim, self.AgentCount), dtype=bool
         )
+        
+        # Also make blank arrays for the draws of newborns' initial conditions
+        for var_name in self.state_vars:
+            self.newborn_init_history[var_name] = (
+                np.zeros((self.T_sim, self.AgentCount)) + np.nan
+            )
 
         # Make and store the history of shocks for each period
         for t in range(self.T_sim):
+            
+            # Deaths
             self.get_mortality()
             self.shock_history["who_dies"][t, :] = self.who_dies
+            
+            # Initial conditions of newborns
+            if np.sum(self.who_dies) > 0:
+                for var_name in self.state_vars:
+                    # Check whether the state is array-like or an aggregate
+                    if hasattr(self.state_now[var_name],'shape'):
+                        self.newborn_init_history[var_name][self.t_sim, self.who_dies] = self.state_now[var_name][self.who_dies]
+                    else:
+                        self.newborn_init_history[var_name][self.t_sim, self.who_dies] = self.state_now[var_name]
+                        
+            # Other Shocks
             self.get_shocks()
             for var_name in self.shock_vars:
                 self.shock_history[var_name][self.t_sim, :] = self.shocks[var_name]
