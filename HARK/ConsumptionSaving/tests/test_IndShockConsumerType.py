@@ -4,6 +4,9 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_lifecycle,
     init_idiosyncratic_shocks,
 )
+
+from HARK.distribution import MeanOneLogNormal,combine_indep_dstns
+
 import numpy as np
 import unittest
 from copy import copy, deepcopy
@@ -586,13 +589,6 @@ class testPerfMITShk(unittest.TestCase):
         
         
         
-        
-        
-        
-        
-        
-
-        
 dict_harmenberg={
     # Parameters shared with the perfect foresight model
     "CRRA":2,                             # Coefficient of relative risk aversion
@@ -710,4 +706,167 @@ class test_Harmenbergs_method(unittest.TestCase):
         
         
         
-        
+
+TranMatTest_Dict={
+    # Parameters shared with the perfect foresight model
+    "CRRA":2,                             # Coefficient of relative risk aversion
+    "Rfree": 1.05**.25,                   # Interest factor on assets
+    "DiscFac": 0.97,                      # Intertemporal discount factor
+    "LivPrb" : [.99375],                  # Survival probability
+    "PermGroFac" :[1.00],                 # Permanent income growth factor
+
+    # Parameters that specify the income distribution over the lifecycle
+
+    "PermShkStd" :  [.05],                 # Standard deviation of log permanent shocks to income
+    "PermShkCount" : 5,                    # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd" : [.2],                   # Standard deviation of log transitory shocks to income
+    "TranShkCount" : 5,                    # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb" : 0.05,                     # Probability of unemployment while working
+    "IncUnemp" :  .2,                      # Unemployment benefits replacement rate
+    "UnempPrbRet" : 0.0005,                # Probability of "unemployment" while retired
+    "IncUnempRet" : 0.0,                   # "Unemployment" benefits when retired
+    "T_retire" : 0,                        # Period of retirement (0 --> no retirement)
+    "tax_rate" : .2,                       # Flat income tax rate (legacy parameter, will be removed in future)
+
+    # Parameters for constructing the "assets above minimum" grid
+    "aXtraMin" : 0.001,                    # Minimum end-of-period "assets above minimum" value
+    "aXtraMax" : 20,                       # Maximum end-of-period "assets above minimum" value
+    "aXtraCount" : 48,                     # Number of points in the base grid of "assets above minimum"
+    "aXtraNestFac" : 3,                    # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraExtra" : [None],                 # Additional values to add to aXtraGrid
+
+    # A few other parameters
+    "BoroCnstArt" : 0.0,                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "vFuncBool" : False,                   # Whether to calculate the value function during solution
+    "CubicBool" : False,                   # Preference shocks currently only compatible with linear cFunc
+    "T_cycle" : 1,                         # Number of periods in the cycle for this agent type
+
+    # Parameters only used in simulation
+    "AgentCount" : 10000,                  # Number of agents of this type
+    "T_sim" : 2000,                        # Number of periods to simulate
+    "aNrmInitMean" : np.log(.6)-(.5**2)/2,# Mean of log initial assets
+    "aNrmInitStd"  : .5,                   # Standard deviation of log initial assets
+    "pLvlInitMean" : 0.0,                  # Mean of log initial permanent income
+    "pLvlInitStd"  : 0.0,                  # Standard deviation of log initial permanent income
+    "PermGroFacAgg" : 1.0,                 # Aggregate permanent income growth factor
+    "T_age" : None,                        # Age after which simulated agents are automatically killed
+
+     }
+
+
+
+class testCalcTransitionMatrix(unittest.TestCase):
+
+    def test_Define_Distribution_Grid(self):
+        Test_DDG = IndShockConsumerType(**TranMatTest_Dict)
+        Test_DDG.cycles=0
+        Test_DDG.solve()
+
+        Test_DDG.define_distribution_grid()
+        mGrid = Test_DDG.dist_mGrid
+        pGrid = Test_DDG.dist_pGrid
+
+
+        self.assertAlmostEqual(pGrid[30], 0.06447360177364282)
+        self.assertAlmostEqual(pGrid[15], 0.0020221388496700233)
+        self.assertAlmostEqual(pGrid[94], 14347.036122621412)
+
+        self.assertAlmostEqual(mGrid[17], 0.5712729653797313)
+        self.assertAlmostEqual(mGrid[32], 2.516007772829577)
+        self.assertAlmostEqual(mGrid[25], 1.2461809524952696)
+
+
+    def test_Calc_Transition_Matrix(self):
+        Test_DDG = IndShockConsumerType(**TranMatTest_Dict)
+        Test_DDG.cycles=0
+        Test_DDG.solve()
+        Test_DDG.define_distribution_grid()
+        Test_DDG.calc_transition_matrix()
+        TMat = Test_DDG.tran_matrix
+
+        self.assertAlmostEqual(TMat[4844][4845], 0.04674235785990505)
+        self.assertAlmostEqual(TMat[4847][4847], 0.7365793121571594)
+
+
+    def test_Calc_Ergodic_Dist(self):
+        Test_DDG = IndShockConsumerType(**TranMatTest_Dict)
+        Test_DDG.cycles=0
+        Test_DDG.solve()
+        Test_DDG.define_distribution_grid()
+        Test_DDG.calc_transition_matrix()
+        Test_DDG.calc_ergodic_dist()
+
+        vecDstn = Test_DDG.vec_erg_dstn
+        erg_Dstn = Test_DDG.erg_dstn
+
+        self.assertAlmostEqual(vecDstn[3005][0], 6.056536090747234e-06)
+        self.assertAlmostEqual(vecDstn[3705][0], 1.3912925712081983e-06)
+
+        self.assertAlmostEqual(erg_Dstn[30][47], 0.010957302933651306)
+        self.assertAlmostEqual(erg_Dstn[21][17], 2.8726724513001853e-06)
+
+
+    def test_finiteHorizonProblem(self):
+        Test_DDG = IndShockConsumerType(**TranMatTest_Dict)
+
+        TranShkDstn = MeanOneLogNormal(Test_DDG.TranShkStd[0],123).approx(Test_DDG.TranShkCount)
+        TranShkDstn.pmf  = np.insert(TranShkDstn.pmf*(1.0-Test_DDG.UnempPrb),0,Test_DDG.UnempPrb)   
+        TranShkDstn.X  = np.insert(TranShkDstn.X*(1.0-Test_DDG.tax_rate),0,Test_DDG.IncUnemp)
+        PermShkDstn     = MeanOneLogNormal(Test_DDG.PermShkStd[0],123).approx(Test_DDG.PermShkCount)
+        Test_DDG.IncShkDstn = [combine_indep_dstns(PermShkDstn,TranShkDstn)]
+        Test_DDG.TranShkDstn = [TranShkDstn]
+        Test_DDG.PermShkDstn = [PermShkDstn]
+
+        #permanent income neutral measure
+        PermShk_ntrl_msr = deepcopy(PermShkDstn)
+        PermShk_ntrl_msr.pmf = PermShk_ntrl_msr.X*PermShk_ntrl_msr.pmf
+        Test_DDG.IncShkDstn_ntrl_msr = [combine_indep_dstns(PermShk_ntrl_msr,TranShkDstn)]# this is crucial for fast method
+
+        Test_DDG.cycles=0
+        Test_DDG.solve()
+
+        Test_DDG.define_distribution_grid(dist_pGrid = np.array([1]))
+        Test_DDG.calc_transition_matrix(Test_DDG.IncShkDstn_ntrl_msr)
+
+        Test_DDG.calc_ergodic_dist([Test_DDG.tran_matrix])
+        vecDstn = Test_DDG.vec_erg_dstn
+
+        params = deepcopy(TranMatTest_Dict)
+        params['T_cycle']= 30
+        params['LivPrb']= params['T_cycle']*[Test_DDG.LivPrb[0]]
+        params['PermGroFac']=params['T_cycle']*[1]
+        params['PermShkStd'] = params['T_cycle']*[Test_DDG.PermShkStd[0]]
+        params['TranShkStd']= params['T_cycle']*[Test_DDG.TranShkStd[0]]
+        params['Rfree'] = params['T_cycle']*[Test_DDG.Rfree]
+
+
+        test_finHorizon = IndShockConsumerType(**params)
+        test_finHorizon.cycles = 1
+
+        dx=.01
+        test_finHorizon.del_from_time_inv('Rfree')
+        test_finHorizon.add_to_time_vary('Rfree')
+        test_finHorizon.IncShkDstn = params['T_cycle']*Test_DDG.IncShkDstn
+        test_finHorizon.IncShkDstn_ntrl_msr = params['T_cycle']*Test_DDG.IncShkDstn_ntrl_msr # Crucial for fast method
+
+        test_finHorizon.cFunc_terminal_ = deepcopy(Test_DDG.solution[0].cFunc)
+
+
+        i = 10
+        test_finHorizon.Rfree = (i)*[Test_DDG.Rfree] + [Test_DDG.Rfree + dx] + (params['T_cycle'] - i - 1 )*[Test_DDG.Rfree]
+        test_finHorizon.solve()
+
+        test_finHorizon.define_distribution_grid(dist_pGrid = test_finHorizon.T_cycle*[np.array([1])])
+        test_finHorizon.calc_transition_matrix(test_finHorizon.IncShkDstn_ntrl_msr)
+        test_finHorizon.calc_agg_path(init_dstn = Test_DDG.vec_erg_dstn)
+
+        Agg_C = test_finHorizon.AggC
+        Agg_A = test_finHorizon.AggA
+
+
+
+        self.assertAlmostEqual(Agg_C[14], 0.7751623796347769)
+        self.assertAlmostEqual(Agg_C[3], 0.773321046209258)
+
+        self.assertAlmostEqual(Agg_A[17], 0.650509440369095)
+        self.assertAlmostEqual(Agg_A[24], 0.6471398863433487) 
