@@ -169,6 +169,7 @@ def calc_cross_points(x_grid, cond_ys, opt_idx):
 
             return xing_array, segments
 
+
 def calc_nondecreasing_segments(x, y):
     """
     Given a sequence of (x,y) points, this function finds the start and end
@@ -193,16 +194,14 @@ def calc_nondecreasing_segments(x, y):
         Indices where a non-decreasing segment ends.
 
     """
-    
-    if (not bool(x) or not bool(y) or len(y) != len(x)):
-        raise Exception(
-                "x and y must be non-empty arrays of the same size."
-            )
-    
+
+    if not bool(x) or not bool(y) or len(y) != len(x):
+        raise Exception("x and y must be non-empty arrays of the same size.")
+
     # Initialize
     starts = [0]
     ends = []
-    
+
     for i in range(1, len(x)):
 
         # Check if grid decreases in x or v
@@ -218,10 +217,10 @@ def calc_nondecreasing_segments(x, y):
 
     # The last segment always ends in the last point
     ends.append(len(y) - 1)
-    
+
     starts = np.array(starts)
     ends = np.array(ends)
-    
+
     return starts, ends
 
 
