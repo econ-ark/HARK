@@ -514,6 +514,17 @@ class AgentType(Model):
             self.AgentCount, dtype=int
         )  # Which cycle period each agent is on
         self.sim_birth(all_agents)
+        
+        # If we are asked to use existing shocks and a set of initial conditions
+        # exist, use them
+        if self.read_shocks and bool(self.newborn_init_history):
+            
+            for var_name in self.state_now:
+                # Copy only array-like idiosyncratic states. Aggregates should
+                # not be set by newborns
+                if hasattr(self.state_now[var_name],'shape'):
+                    self.state_now[var_name] = self.newborn_init_history[var_name][0]
+        
         self.clear_history()
         return None
 
@@ -600,7 +611,16 @@ class AgentType(Model):
             self.newborn_init_history[var_name] = (
                 np.zeros((self.T_sim, self.AgentCount)) + np.nan
             )
-
+        
+        # Record the initial condition of the newborns created by 
+        # initialize_sim -> sim_births
+        for var_name in self.state_vars:
+            # Check whether the state is array-like or an aggregate
+            if hasattr(self.state_now[var_name],'shape'):
+                self.newborn_init_history[var_name][self.t_sim] = self.state_now[var_name]
+            else:
+                self.newborn_init_history[var_name][self.t_sim] = self.state_now[var_name]
+                        
         # Make and store the history of shocks for each period
         for t in range(self.T_sim):
             
