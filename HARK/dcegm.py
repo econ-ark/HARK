@@ -169,37 +169,6 @@ def calc_cross_points(x_grid, cond_ys, opt_idx):
 
             return xing_array, segments
 
-
-def calc_prim_kink(mGrid, vTGrids, choices):
-    """
-    Parameters
-    ----------
-    mGrid : np.array
-        Common m grid
-    vTGrids : [np.array], length  = # choices, each element has length = len(mGrid)
-        value functions evaluated on the common m grid.
-    choices : [np.array], length  = # choices, each element has length = len(mGrid)
-        Optimal choices. In the form of choice probability vectors that must
-        be degenerate
-
-    Returns
-    -------
-    kinks: [(mCoord, vTCoor)]
-        list of kink points
-    segments: [(left, right)]
-        List of the same length as kinks, where each element is a tuple
-        indicating which segments are optimal on each side of the kink.
-    """
-
-    # Construct a vector with the optimal choice at each m point
-    optChoice = np.zeros_like(mGrid, dtype=np.int64)
-    for i in range(len(vTGrids)):
-        idx = choices[i] == 1
-        optChoice[idx] = i
-
-    return calc_cross_points(mGrid, vTGrids, optChoice)
-
-
 def calc_nondecreasing_segments(x, v):
     """
     """
