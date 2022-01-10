@@ -169,19 +169,47 @@ def calc_cross_points(x_grid, cond_ys, opt_idx):
 
             return xing_array, segments
 
-def calc_nondecreasing_segments(x, v):
+def calc_nondecreasing_segments(x, y):
     """
-    """
+    Given a sequence of (x,y) points, this function finds the start and end
+    indices of its largest non-decreasing segments.
+    
+    A non-decreasing segment is a sub-sequence of points
+    {(x_0, y_0),...,(x_n,y_n)} such that for all 0 <= i,j <= n,
+    If j>=i then x_j >= x_i and y_j >= y_i
 
+    Parameters
+    ----------
+    x : 1D np.array of floats
+        x coordinates of the sequence of points.
+    y : 1D np.array of floats
+        y coordinates of the sequence of points.
+
+    Returns
+    -------
+    starts : 1D np.array of ints
+        Indices where a new non-decreasing segment starts.
+    ends : 1D np.array of ints
+        Indices where a non-decreasing segment ends.
+
+    """
+    
+    if (not bool(x) or not bool(y) or len(y) != len(x)):
+        raise Exception(
+                "x and y must be non-empty arrays of the same size."
+            )
+    
+    # Initialize
     starts = [0]
     ends = []
+    
     for i in range(1, len(x)):
 
         # Check if grid decreases in x or v
         x_dec = x[i] < x[i - 1]
-        v_dec = v[i] < v[i - 1]
+        y_dec = y[i] < y[i - 1]
 
-        if x_dec or v_dec:
+        if x_dec or y_dec:
 
             ends.append(i - 1)
             starts.append(i)
@@ -189,19 +217,44 @@ def calc_nondecreasing_segments(x, v):
         i = i + 1
 
     # The last segment always ends in the last point
-    ends.append(len(v) - 1)
-
-    return np.array(starts), np.array(ends)
+    ends.append(len(y) - 1)
+    
+    starts = np.array(starts)
+    ends = np.array(ends)
+    
+    return starts, ends
 
 
 def upper_envelope(segments, calc_crossings=True):
+    """
+    Finds the upper envelope of a list of non-decreasing segments
 
+    Parameters
+    ----------
+    segments : list of segments. Segments are tuples of arrays, with item[0]
+        containing the x coordninates and item[1] the y coordinates of the
+        points that confrom the segment item.
+    calc_crossings : Bool, optional
+        Indicates whether the crossing points at which the "upper" segment
+        changes should be computed. The default is True.
+
+    Returns
+    -------
+    x : np.array of floats
+        x coordinates of the points that conform the upper envelope.
+    y : np.array of floats
+        y coordinates of the points that conform the upper envelope.
+    env_inds : np array of ints
+        Array of the same length as x and y. It indicates which of the
+        provided segments is the "upper" one at every returned (x,y) point.
+
+    """
     n_seg = len(segments)
 
-    # Collect the x points of all segments in an ordered array
-    x = np.sort(np.concatenate([x[0] for x in segments]))
+    # Collect the x points of all segments in an ordered array, removing duplicates
+    x = np.unique(np.concatenate([x[0] for x in segments]))
 
-    # Interpolate on all points using all segments
+    # Interpolate all segments on every x point, without extrapolating.
     y_cond = np.zeros((n_seg, len(x)))
     for i in range(n_seg):
 
@@ -219,7 +272,7 @@ def upper_envelope(segments, calc_crossings=True):
 
         y_cond[i, :] = row
 
-    # Take the maximum to get the upper envelope
+    # Take the maximum to get the upper envelope.
     env_inds = np.nanargmax(y_cond, 0)
     y = y_cond[env_inds, range(len(x))]
 
