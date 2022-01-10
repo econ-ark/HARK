@@ -650,9 +650,18 @@ class AgentType(Model):
         """
         if self.read_shocks:
             who_dies = self.shock_history["who_dies"][self.t_sim, :]
+            # Instead of simulating births, assign the saved newborn initial conditions
+            if np.sum(who_dies) > 0:
+                for var_name in self.state_now:
+                    # Copy only array-like idiosyncratic states. Aggregates should
+                    # not be set by newborns
+                    if hasattr(self.state_now[var_name],'shape'):
+                        self.state_now[var_name][who_dies] = self.newborn_init_history[var_name][self.t_sim, who_dies]
+                # Reset ages of newborns
+                self.t_age[who_dies] = 0 
         else:
             who_dies = self.sim_death()
-        self.sim_birth(who_dies)
+            self.sim_birth(who_dies)
         self.who_dies = who_dies
         return None
 
