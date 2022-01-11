@@ -2307,6 +2307,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         '''  
+        
+        if not hasattr(self, "neutral_measure"):
+                   self.neutral_measure = False
  
         if self.cycles == 0:
             if dist_mGrid == None:    
@@ -2336,6 +2339,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
             else:
                 self.dist_pGrid = dist_pGrid #If grid of permanent income prespecified then use it as pgrid
                 
+            if self.neutral_measure == True: # Use Harmenberg 2021's Neutral Measure
+                
+                self.dist_pGrid = np.array([1])
+            
+            
+            
         elif self.cycles > 1:
             print('define_distribution_grid requires cycles = 0 or cycles = 1')
         
@@ -2377,7 +2386,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
             else:
                 self.dist_pGrid = dist_pGrid #If grid of permanent income prespecified then use as pgrid
                 
+            if self.neutral_measure == True: # Use Harmenberg 2021's Neutral Measure
                 
+                self.dist_pGrid = self.T_cycle*[np.array([1])]
+            
                 
     def calc_transition_matrix(self, shk_dstn = None):
         '''
