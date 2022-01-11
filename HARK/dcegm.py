@@ -195,7 +195,7 @@ def calc_nondecreasing_segments(x, y):
 
     """
 
-    if not bool(x) or not bool(y) or len(y) != len(x):
+    if len(x) == 0 or len(y) == 0 or len(y) != len(x):
         raise Exception("x and y must be non-empty arrays of the same size.")
 
     # Initialize
