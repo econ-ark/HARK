@@ -14,6 +14,8 @@ Release Date: TBD
 
 ### Major Changes
 
+* Updates the DCEGM tools to address the flaws identified in [issue #1062](https://github.com/econ-ark/HARK/issues/1062). PR: [1100](https://github.com/econ-ark/HARK/pull/1100).
+,
 ### Minor Changes
 
 ### 0.12.0
