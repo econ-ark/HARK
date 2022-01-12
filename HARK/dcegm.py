@@ -7,9 +7,8 @@ choice models with (or without) taste shocks" by Iskhakov et al. (2016)
 Example can be found in https://github.com/econ-ark/DemARK/blob/master/notebooks/DCEGM-Upper-Envelope.ipynb
 """
 import numpy as np
-from HARK.interpolation import LinearInterp
 from interpolation import interp
-from numba import jit, njit, typeof
+from numba import njit
 
 
 @njit("Tuple((float64,float64))(float64[:], float64[:], float64[:])", cache=True)
