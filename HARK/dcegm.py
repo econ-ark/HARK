@@ -169,6 +169,7 @@ def calc_cross_points(x_grid, cond_ys, opt_idx):
             return xing_array, segments
 
 
+@njit("Tuple((int64[:],int64[:]))(float64[:], float64[:])", cache=True)
 def calc_nondecreasing_segments(x, y):
     """
     Given a sequence of (x,y) points, this function finds the start and end
