@@ -198,28 +198,19 @@ def calc_nondecreasing_segments(x, y):
     if len(x) == 0 or len(y) == 0 or len(y) != len(x):
         raise Exception("x and y must be non-empty arrays of the same size.")
 
-    # Initialize
-    starts = [0]
-    ends = []
+    # Find points with decreases in x or y
+    nd = np.logical_or(x[1:] < x[:-1], y[1:] < y[:-1])
+    idx = np.where(nd)[0]
 
-    for i in range(1, len(x)):
+    # Find the starts and ends of non-decreasing segments. Convoluted because
+    # numba does not support np.concatenate.
+    starts = np.zeros(len(idx) + 1, dtype=np.int64)
+    ends = np.zeros(len(idx) + 1, dtype=np.int64)
 
-        # Check if grid decreases in x or v
-        x_dec = x[i] < x[i - 1]
-        y_dec = y[i] < y[i - 1]
+    starts[1:] = idx + 1
 
-        if x_dec or y_dec:
-
-            ends.append(i - 1)
-            starts.append(i)
-
-        i = i + 1
-
-    # The last segment always ends in the last point
-    ends.append(len(y) - 1)
-
-    starts = np.array(starts)
-    ends = np.array(ends)
+    ends[:-1] = idx
+    ends[-1] = len(y) - 1
 
     return starts, ends
 
