@@ -147,7 +147,7 @@ For more examples please visit the [econ-ark/DemARK](https://github.com/econ-ark
 
 ## Citation
 
-If using Econ-ARK in your work or research please [cite our Digital Object Identifier](http://doi.org/10.5281/zenodo.1332015) or copy the BibTex below.
+If using Econ-ARK in your work or research please [cite our Digital Object Identifier](https://doi.org/10.5281/zenodo.1332015) or copy the BibTex below.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1332015.svg)](https://doi.org/10.5281/zenodo.1332015)
 
@@ -243,14 +243,14 @@ For more information on contributing to HARK please see [CONTRIBUTING.md](https:
 Collaborators follow the [COLLABORATOR_GUIDE](https://github.com/econ-ark/HARK/blob/master/Documentation/contributing/CONTRIBUTING.md#contributing-guide) in maintaining the Econ-ARK project.
 
 ### Founders
-Econ-ARK was created by [**Christopher D. Carroll**](http://www.econ2.jhu.edu/people/ccarroll/), Professor of Economics at the Johns Hopkins University. 
+Econ-ARK was created by [**Christopher D. Carroll**](https://www.econ2.jhu.edu/people/ccarroll/), Professor of Economics at the Johns Hopkins University. 
 
 Founders of the current repository also include:
 * [shaunagm](https://github.com/shaunagm) - **Shauna Gordon-McKeon** &lt;shaunagm@gmail.com&gt; (she/her)
 * [sbrice](https://github.com/sbrice) - [**Samuel Brice**](https://medium.com/@sbrice) &lt;brices@gmail.com&gt; (he/him)
 
 ### TSC (Technical Steering Committee)
-* [llorracc](https://github.com/llorracc) - [**Christopher “Chris” D. Carroll**]((http://www.econ2.jhu.edu/people/ccarroll/)) &lt;ccarroll@llorracc.org&gt; (he/him)
+* [llorracc](https://github.com/llorracc) - [**Christopher “Chris” D. Carroll**]((https://www.econ2.jhu.edu/people/ccarroll/)) &lt;ccarroll@llorracc.org&gt; (he/him)
 * [sbrice](https://github.com/sbrice) - [**Samuel Brice**](https://medium.com/@sbrice) &lt;brices@gmail.com&gt; (he/him)
 * [shaunagm](https://github.com/shaunagm) - **Shauna Gordon-McKeon** &lt;shaunagm@gmail.com&gt; (she/her)
 
