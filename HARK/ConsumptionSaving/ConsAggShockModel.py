@@ -1022,9 +1022,6 @@ class KrusellSmithType(AgentType):
         # TODO: replace poststate_vars functionality with shocks here
         EmpNow = self.state_now["EmpNow"]
 
-        if employed.sum() != emp_permute.size:
-            import pdb; pdb.set_trace()
-
         # It's really this permutation that is the shock...
         # This apparatus is trying to 'exact match' the 'internal' Markov process.
         EmpNow[employed] = self.RNG.permutation(emp_permute)

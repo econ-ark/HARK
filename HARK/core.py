@@ -8,6 +8,7 @@ problem by finding a general equilibrium dynamic rule.
 """
 import sys
 import os
+from HARK.distribution import Distribution, TimeVaryingDiscreteDistribution
 from distutils.dir_util import copy_tree
 from .utilities import get_arg_names, NullFunc
 from copy import copy, deepcopy
@@ -425,12 +426,11 @@ class AgentType(Model):
         A method to check that elements of time_vary are lists.
         """
         for param in self.time_vary:
-            # TODO: this method has become a misnomer.
-            # Distributions do not have to be lists. They can be
-            # IndexDistribution.
-            assert hasattr(getattr(self, param),'__getitem__'), (
-                param + " is not a list, but should be" + " because it is in time_vary"
-            )
+            if type(getattr(self, param)) != TimeVaryingDiscreteDistribution:
+                assert type(getattr(self, param)) == list, (
+                    param + " is not a list or time varying distribution," 
+                    + " but should be because it is in time_vary"
+                )
 
     def check_restrictions(self):
         """
@@ -863,7 +863,8 @@ class AgentType(Model):
         None
         """
         for var_name in self.track_vars:
-            self.history[var_name] = np.empty((self.T_sim, self.AgentCount)) + np.nan
+            self.history[var_name] = np.empty((self.T_sim, self.AgentCount))
+            self.history[var_name].fill(np.nan)
 
 
 def solve_agent(agent, verbose):
@@ -1448,7 +1449,7 @@ def distribute_params(agent, param_name, param_count, distribution):
     agent_set = [deepcopy(agent) for i in range(param_count)]
 
     for j in range(param_count):
-        agent_set[j].AgentCount = int(agent.AgentCount * param_dist.pmf[j])
+        agent_set[j].assign_parameters(**{'AgentCount': int(agent.AgentCount * param_dist.pmf[j])})
         # agent_set[j].__dict__[param_name] = param_dist.X[j]
 
         agent_set[j].assign_parameters(**{param_name: param_dist.X[j]})

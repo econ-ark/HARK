@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 
 import HARK.ConsumptionSaving.ConsPortfolioModel as cpm
+from HARK import make_one_period_oo_solver
 
 
 class PortfolioConsumerTypeTestCase(unittest.TestCase):
@@ -43,7 +44,29 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
 
         self.assertFalse(np.any(self.pcct.shocks["Adjust"]))
 
+        self.assertAlmostEqual(self.pcct.state_now["pLvl"][0], 1.0)
+
+        self.assertAlmostEqual(self.pcct.state_now["aNrm"][0], 7.257027956)
+
+        self.assertAlmostEqual(self.pcct.Rfree, 1.03)
+
+        self.assertAlmostEqual(self.pcct.state_now["PlvlAgg"], 1.0)
+
         self.pcct.sim_one_period()
+
+        self.assertAlmostEqual(self.pcct.state_now["pLvl"][0], 0.858934461)
+
+        self.assertAlmostEqual(self.pcct.state_now["aNrm"][0], 8.02359093)
+
+        self.assertAlmostEqual(self.pcct.shocks["PermShk"][0], 0.85893446)
+
+        self.assertAlmostEqual(self.pcct.shocks["TranShk"][0], 1.0)
+
+        self.assertAlmostEqual(self.pcct.shocks["Risky"][0], 0.92405816)
+
+        self.assertTrue(np.any(self.pcct.shocks["Adjust"][0]))
+
+        self.assertAlmostEqual(self.pcct.state_now["mNrm"][0], 9.70233892039)
 
         self.assertAlmostEqual(self.pcct.controls["Share"][0], 0.8627164488246847)
         self.assertAlmostEqual(self.pcct.controls["cNrm"][0], 1.67874799)
@@ -109,8 +132,57 @@ class testPortfolioConsumerTypeSticky(unittest.TestCase):
 
         # Create portfolio choice consumer type
         self.sticky = cpm.PortfolioConsumerType(**init_sticky_share)
-        self.sticky.cycles = 0
 
         # Solve the model under the given parameters
 
         self.sticky.solve()
+
+
+class testPortfolioConsumerTypeDiscrete(unittest.TestCase):
+    def test_discrete(self):
+        # Make example type of agent who can only choose risky share along discrete grid
+        init_discrete_share = cpm.init_portfolio.copy()
+        # PortfolioConsumerType requires vFuncBool to be True when DiscreteShareBool is True
+        init_discrete_share["DiscreteShareBool"] = True
+        init_discrete_share["vFuncBool"] = True
+
+        # Create portfolio choice consumer type
+        self.discrete = cpm.PortfolioConsumerType(**init_discrete_share)
+
+        # Solve model under given parameters
+        self.discrete.solve()
+
+
+class testPortfolioConsumerTypeJointDist(unittest.TestCase):
+    def test_joint_dist(self):
+        # Create portfolio choice consumer type
+        self.joint_dist = cpm.PortfolioConsumerType()
+        self.joint_dist.IndepDstnBool = False
+        self.joint_dist.solve_one_period = make_one_period_oo_solver(
+            cpm.ConsPortfolioJointDistSolver
+        )
+
+        # Solve model under given parameters
+        self.joint_dist.solve()
+
+
+class testPortfolioConsumerTypeDiscreteAndJoint(unittest.TestCase):
+    def test_discrete_and_joint(self):
+        # Make example type of agent who can only choose risky share along
+        # discrete grid and income dist is correlated with risky dist
+        init_discrete_and_joint_share = cpm.init_portfolio.copy()
+        # PortfolioConsumerType requires vFuncBool to be True when DiscreteShareBool is True
+        init_discrete_and_joint_share["DiscreteShareBool"] = True
+        init_discrete_and_joint_share["vFuncBool"] = True
+
+        # Create portfolio choice consumer type
+        self.discrete_and_joint = cpm.PortfolioConsumerType(
+            **init_discrete_and_joint_share
+        )
+        self.discrete_and_joint.IndepDstnBool = False
+        self.discrete_and_joint.solve_one_period = make_one_period_oo_solver(
+            cpm.ConsPortfolioJointDistSolver
+        )
+
+        # Solve model under given parameters
+        self.discrete_and_joint.solve()

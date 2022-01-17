@@ -17,6 +17,7 @@ import numpy as np
 from scipy.optimize import newton
 from HARK import AgentType, NullFunc, MetricObject, make_one_period_oo_solver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
+from HARK.interpolation import CubicHermiteInterp as CubicInterp
 from HARK.interpolation import (
     CubicInterp,
     LowerEnvelope,
@@ -1580,7 +1581,7 @@ class PerfForesightConsumerType(AgentType):
     )
     time_vary_ = ["LivPrb", "PermGroFac"]
     time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt" ]
-    state_vars = ['pLvl', 'PlvlAgg', 'bNrm', 'mNrm', "aNrm"]
+    state_vars = ['pLvl', 'PlvlAgg', 'bNrm', 'mNrm', "aNrm", 'aLvl']
     shock_vars_ = []
 
     def __init__(self, verbose=1, quiet=False, **kwds):
@@ -2036,6 +2037,7 @@ init_idiosyncratic_shocks = dict(
         "T_retire": 0,  # Period of retirement (0 --> no retirement)
         "vFuncBool": False,  # Whether to calculate the value function during solution
         "CubicBool": False,  # Use cubic spline interpolation when True, linear interpolation when False
+        "neutral_measure": False,      # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
     }
 )
 
@@ -2713,6 +2715,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
 def PermShk_engine(sigma, n_approx, seed = 0):
 
+    # TODO: NEUTRAL MEASURE
     PermShkDstn = MeanOneLogNormal(sigma, seed = seed).approx(n_approx, tail_N=0)
 
     return PermShkDstn

@@ -8,32 +8,56 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.13.0
+
+Release Date: TBD
+
+### Major Changes
+
+* Updates the DCEGM tools to address the flaws identified in [issue #1062](https://github.com/econ-ark/HARK/issues/1062). PR: [1100](https://github.com/econ-ark/HARK/pull/1100).
+,
+### Minor Changes
+
 ### 0.12.0
 
-Release Data: TBD
+Release Date: December 14, 2021
 
 #### Major Changes
 
+* FrameAgentType for modular definitions of agents [#865](https://github.com/econ-ark/HARK/pull/865) [#1064](https://github.com/econ-ark/HARK/pull/1064)
+* Frame relationships with backward and forward references, with plotting example [#1071](https://github.com/econ-ark/HARK/pull/1071)	
+* PortfolioConsumerFrameType, a port of PortfolioConsumerType to use Frames [#865](https://github.com/econ-ark/HARK/pull/865)
 * Input parameters for cyclical models now indexed by t [#1039](https://github.com/econ-ark/HARK/pull/1039)
 * A IndexDistribution class for representing time-indexed probability distributions [#1018](https://github.com/econ-ark/pull/1018/).
 * Adds new consumption-savings-portfolio model `RiskyContrib`, which represents an agent who can save in risky and risk-free assets but faces
 frictions to moving funds between them. To circumvent these frictions, he has access to an income-deduction scheme to accumulate risky assets.
 PR: [#832](https://github.com/econ-ark/HARK/pull/832). See [this forthcoming REMARK](https://github.com/Mv77/RiskyContrib) for the model's details.
 * 'cycles' agent property moved from constructor argument to parameter [#1031](https://github.com/econ-ark/HARK/pull/1031)
+* Uses iterated expectations to speed-up the solution of `RiskyContrib` when income and returns are independent [#1058](https://github.com/econ-ark/HARK/pull/1058).
+* `ConsPortfolioSolver` class for solving portfolio choice model replaces `solveConsPortfolio` method [#1047](https://github.com/econ-ark/HARK/pull/1047)
+* `ConsPortfolioDiscreteSolver` class for solving portfolio choice model when allowed share is on a discrete grid [#1047](https://github.com/econ-ark/HARK/pull/1047)
+* `ConsPortfolioJointDistSolver` class for solving portfolio chioce model when the income and risky return shocks are not independent [#1047](https://github.com/econ-ark/HARK/pull/1047)
 
 #### Minor Changes
 
 * Using Lognormal.from_mean_std in the forward simulation of the RiskyAsset model [#1019](https://github.com/econ-ark/HARK/pull/1019)
 * Fix bug in DCEGM's primary kink finder due to numpy no longer accepting NaN in integer arrays [#990](https://github.com/econ-ark/HARK/pull/990).
 * Add a general class for consumers who can save using a risky asset [#1012](https://github.com/econ-ark/HARK/pull/1012/).
-Add Boolean attribute 'PerfMITShk' to consumption models. When true, allows perfect foresight MIT shocks to be simulated. [#1013](https://github.com/econ-ark/HARK/pull/1013).
+* Add Boolean attribute 'PerfMITShk' to consumption models. When true, allows perfect foresight MIT shocks to be simulated. [#1013](https://github.com/econ-ark/HARK/pull/1013).
 * Track and update start-of-period (pre-income) risky and risk-free assets as states in the `RiskyContrib` model [1046](https://github.com/econ-ark/HARK/pull/1046).
 * distribute_params now uses assign_params to create consistent output [#1044](https://github.com/econ-ark/HARK/pull/1044)
 * The function that computes end-of-period derivatives of the value function was moved to the inside of `ConsRiskyContrib`'s solver [#1057](https://github.com/econ-ark/HARK/pull/1057)
+* Use `np.fill(np.nan)` to clear or initialize the arrays that store simulations. [#1068](https://github.com/econ-ark/HARK/pull/1068)
+* Add Boolean attribute 'neutral_measure' to consumption models. When true, simulations are more precise by allowing permanent shocks to be drawn from a neutral measure (see Harmenberg 2021). [#1069](https://github.com/econ-ark/HARK/pull/1069)
+* Fix mathematical limits of model example in `example_ConsPortfolioModel.ipynb` [#1047](https://github.com/econ-ark/HARK/pull/1047)
+* Update `ConsGenIncProcessModel.py` to use `calc_expectation` method [#1072](https://github.com/econ-ark/HARK/pull/1072)
+* Fix bug in `calc_normal_style_pars_from_lognormal_pars` due to math error. [#1076](https://github.com/econ-ark/HARK/pull/1076)
+* Fix bug in `distribute_params` so that `AgentCount` parameter is updated. [#1089](https://github.com/econ-ark/HARK/pull/1089)
+* Fix bug in 'vFuncBool' option for 'MarkovConsumerType' so that the value function may now be calculated. [#1095](https://github.com/econ-ark/HARK/pull/1095)
 
 ### 0.11.0
 
-Release Data: March 4, 2021
+Release Date: March 4, 2021
 
 #### Major Changes
 
@@ -71,7 +95,7 @@ interpolation for problems with CRRA utility. See [#888](https://github.com/econ
 
 ### 0.10.8
 
-Release Data: Nov. 05 2020
+Release Date: Nov. 05 2020
 
 #### Major Changes
 

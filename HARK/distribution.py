@@ -1,10 +1,9 @@
-from HARK.utilities import memoize
-from itertools import product
 import math
+from itertools import product
+
 import numpy as np
-from scipy.special import erf, erfc
 import scipy.stats as stats
-from types import SimpleNamespace
+from scipy.special import erf, erfc
 
 
 class Distribution:
@@ -16,8 +15,8 @@ class Distribution:
     seed : int
         Seed for random number generator.
     """
-    def __init__(self, seed=0):
 
+    def __init__(self, seed=0):
         self.RNG = np.random.RandomState(seed)
         self.seed = seed
 
@@ -29,6 +28,7 @@ class Distribution:
         ----------
         """
         self.RNG = np.random.RandomState(self.seed)
+
 
 class IndexDistribution(Distribution):
     """
@@ -58,10 +58,11 @@ class IndexDistribution(Distribution):
     seed : int
         Seed for random number generator.
     """
+
     conditional = None
     engine = None
 
-    def __init__(self, engine, conditional, seed = 0):
+    def __init__(self, engine, conditional, seed=0):
         # Set up the RNG
         super().__init__(seed)
 
@@ -73,15 +74,14 @@ class IndexDistribution(Distribution):
         item0 = list(self.conditional.values())[0]
 
         if type(item0) is list:
-            cond = {key : val[y] for (key, val) in self.conditional.items()}
-            return self.engine(
-                    seed=self.RNG.randint(0, 2 ** 31 - 1),
-                    **cond
-                )
+            cond = {key: val[y] for (key, val) in self.conditional.items()}
+            return self.engine(seed=self.RNG.randint(0, 2 ** 31 - 1), **cond)
         else:
-            raise(Exception(
-                f"IndexDistribution: Unhandled case for __getitem__ access. y: {y}; conditional: {conditional}"
-                ))
+            raise (
+                Exception(
+                    f"IndexDistribution: Unhandled case for __getitem__ access. y: {y}; conditional: {self.conditional}"
+                )
+            )
 
     def approx(self, N, **kwds):
         """
@@ -115,13 +115,13 @@ class IndexDistribution(Distribution):
         if type(item0) is float:
             # degenerate case. Treat the parameterization as constant.
             return self.engine(
-                seed = self.RNG.randint(0, 2 ** 31 - 1),
-                **self.conditional
-                ).approx(N,**kwds)
+                seed=self.RNG.randint(0, 2 ** 31 - 1), **self.conditional
+            ).approx(N, **kwds)
 
         if type(item0) is list:
-            return [self[i].approx(N,**kwds) for i, _ in enumerate(item0)]
-
+            return TimeVaryingDiscreteDistribution(
+                [self[i].approx(N, **kwds) for i, _ in enumerate(item0)]
+            )
 
     def draw(self, condition):
         """
@@ -152,9 +152,8 @@ class IndexDistribution(Distribution):
             N = condition.size
 
             return self.engine(
-                seed = self.RNG.randint(0, 2 ** 31 - 1),
-                **self.conditional
-                ).draw(N)
+                seed=self.RNG.randint(0, 2 ** 31 - 1), **self.conditional
+            ).draw(N)
 
         if type(item0) is list:
             # conditions are indices into list
@@ -167,10 +166,75 @@ class IndexDistribution(Distribution):
                 these = c == condition
                 N = np.sum(these)
 
-                cond = {key : val[c] for (key, val) in self.conditional.items()}
+                cond = {key: val[c] for (key, val) in self.conditional.items()}
                 draws[these] = self[c].draw(N)
 
             return draws
+
+
+class TimeVaryingDiscreteDistribution(Distribution):
+    """
+    This class provides a way to define a discrete distribution that
+    is conditional on an index.
+
+    Wraps a list of discrete distributions.
+
+    Parameters
+    ----------
+
+    distributions : [DiscreteDistribution]
+        A list of discrete distributions
+
+    seed : int
+        Seed for random number generator.
+    """
+
+    distributions = []
+
+    def __init__(self, distributions, seed=0):
+        # Set up the RNG
+        super().__init__(seed)
+
+        self.distributions = distributions
+
+    def __getitem__(self, y):
+        return self.distributions[y]
+
+    def draw(self, condition):
+        """
+        Generate arrays of draws.
+        The input is an array containing the conditions.
+        The output is an array of the same length (axis 1 dimension)
+        as the conditions containing random draws of the conditional
+        distribution.
+
+        Parameters
+        ----------
+        condition : np.array
+            The input conditions to the distribution.
+
+        Returns:
+        ------------
+        draws : np.array
+        """
+        # for now, assume that all the conditionals
+        # are of the same type.
+        # this matches the HARK 'time-varying' model architecture.
+
+        # conditions are indices into list
+        # somewhat convoluted sampling strategy retained
+        # for test backwards compatibility
+
+        draws = np.zeros(condition.size)
+
+        for c in np.unique(condition):
+            these = c == condition
+            N = np.sum(these)
+
+            draws[these] = self.distributions[c].draw(N)
+
+        return draws
+
 
 ### CONTINUOUS DISTRIBUTIONS
 
@@ -201,10 +265,10 @@ class Lognormal(Distribution):
         super().__init__(seed)
 
         if self.mu.size != self.sigma.size:
-                raise Exception(
-                    "mu and sigma must be of same size, are %s, %s"
-                    % ((self.mu.size), (self.sigma.size))
-                )
+            raise Exception(
+                "mu and sigma must be of same size, are %s, %s"
+                % ((self.mu.size), (self.sigma.size))
+            )
 
     def draw(self, N):
         """
@@ -230,9 +294,7 @@ class Lognormal(Distribution):
         for j in range(self.mu.size):
             draws.append(
                 self.RNG.lognormal(
-                    mean=self.mu.item(j),
-                    sigma=self.sigma.item(j),
-                    size=N
+                    mean=self.mu.item(j), sigma=self.sigma.item(j), size=N
                 )
             )
         # TODO: change return type to np.array?
@@ -342,7 +404,7 @@ class Lognormal(Distribution):
         )
 
     @classmethod
-    def from_mean_std(cls, mean, std, seed = 0):
+    def from_mean_std(cls, mean, std, seed=0):
         """
         Construct a LogNormal distribution from its
         mean and standard deviation.
@@ -365,20 +427,21 @@ class Lognormal(Distribution):
         Returns
         ---------
         LogNormal
- 
+
         """
         mean_squared = mean ** 2
         variance = std ** 2
         mu = np.log(mean / (np.sqrt(1.0 + variance / mean_squared)))
         sigma = np.sqrt(np.log(1.0 + variance / mean_squared))
 
-        return cls(mu = mu, sigma = sigma, seed = seed)
+        return cls(mu=mu, sigma=sigma, seed=seed)
 
 
 class MeanOneLogNormal(Lognormal):
     def __init__(self, sigma=1.0, seed=0):
         mu = -0.5 * sigma ** 2
         super().__init__(mu=mu, sigma=sigma, seed=seed)
+
 
 class Normal(Distribution):
     """
@@ -441,17 +504,16 @@ class Normal(Distribution):
         return DiscreteDistribution(
             pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
         )
-    
-    def approx_equiprobable(self, N):
 
-        CDF = np.linspace(0,1,N+1)
+    def approx_equiprobable(self, N):
+        CDF = np.linspace(0, 1, N + 1)
         lims = stats.norm.ppf(CDF)
-        scores = (lims - self.mu)/self.sigma
+        scores = (lims - self.mu) / self.sigma
         pdf = stats.norm.pdf(scores)
-        
+
         # Find conditional means using Mills's ratio
         pmf = np.diff(CDF)
-        X = self.mu - np.diff(pdf)/pmf
+        X = self.mu - np.diff(pdf) / pmf
 
         return DiscreteDistribution(
             pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
@@ -476,7 +538,7 @@ class MVNormal(Distribution):
     mu = None
     Sigma = None
 
-    def __init__(self, mu = np.array([1,1]), Sigma = np.array([[1,0],[0,1]]), seed=0):
+    def __init__(self, mu=np.array([1, 1]), Sigma=np.array([[1, 0], [0, 1]]), seed=0):
         self.mu = mu
         self.Sigma = Sigma
         self.M = len(self.mu)
@@ -499,30 +561,30 @@ class MVNormal(Distribution):
             draws. Each row represents a draw.
         """
         draws = self.RNG.multivariate_normal(self.mu, self.Sigma, N)
-        
+
         return draws
 
-    def approx(self, N, equiprobable = False):
+    def approx(self, N, equiprobable=False):
         """
         Returns a discrete approximation of this distribution.
-        
+
         The discretization will have N**M points, where M is the dimension of
         the multivariate normal.
-        
+
         It uses the fact that:
             - Being positive definite, Sigma can be factorized as Sigma = QVQ',
               with V diagonal. So, letting A=Q*sqrt(V), Sigma = A*A'.
             - If Z is an N-dimensional multivariate standard normal, then
               A*Z ~ N(0,A*A' = Sigma).
-        
+
         The idea therefore is to construct an equiprobable grid for a standard
         normal and multiply it by matrix A.
         """
-        
+
         # Start by computing matrix A.
         v, Q = np.linalg.eig(self.Sigma)
         sqrtV = np.diag(np.sqrt(v))
-        A = np.matmul(Q,sqrtV) 
+        A = np.matmul(Q, sqrtV)
 
         # Now find a discretization for a univariate standard normal.
         if equiprobable:
@@ -531,16 +593,19 @@ class MVNormal(Distribution):
             z_approx = Normal().approx(N)
 
         # Now create the multivariate grid and pmf
-        Z = np.array(list(product(*[z_approx.X]*self.M)))
-        pmf = np.prod(np.array(list(product(*[z_approx.pmf]*self.M))),axis = 1)
-        
+        Z = np.array(list(product(*[z_approx.X] * self.M)))
+        pmf = np.prod(np.array(list(product(*[z_approx.pmf] * self.M))), axis=1)
+
         # Apply mean and standard deviation to the Z grid
-        X = np.tile(np.reshape(self.mu, (1, self.M)), (N**self.M,1)) + np.matmul(Z, A.T)
-        
+        X = np.tile(np.reshape(self.mu, (1, self.M)), (N ** self.M, 1)) + np.matmul(
+            Z, A.T
+        )
+
         # Construct and return discrete distribution
         return DiscreteDistribution(
             pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
         )
+
 
 class Weibull(Distribution):
     """
@@ -649,8 +714,8 @@ class Uniform(Distribution):
         draws = []
         for j in range(self.bot.size):
             draws.append(
-                self.bot.item(j) + (self.top.item(j) - self.bot.item(j))
-                * self.RNG.rand(N)
+                self.bot.item(j)
+                + (self.top.item(j) - self.bot.item(j)) * self.RNG.rand(N)
             )
         return draws[0] if len(draws) == 1 else draws
 
@@ -678,6 +743,7 @@ class Uniform(Distribution):
         return DiscreteDistribution(
             pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
         )
+
 
 ### DISCRETE DISTRIBUTIONS
 
@@ -838,6 +904,7 @@ class DiscreteDistribution(Distribution):
 
         return draws
 
+
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
     return DiscreteDistribution(d.pmf, np.exp(d.X), seed=seed)
@@ -845,8 +912,8 @@ def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
 
 def calc_normal_style_pars_from_lognormal_pars(avg_lognormal, std_lognormal):
     varLognormal = std_lognormal ** 2
-    avgNormal = math.log(avg_lognormal / math.sqrt(1 + varLognormal / avg_lognormal ** 2))
-    varNormal = math.sqrt(math.log(1 + varLognormal / avg_lognormal ** 2))
+    varNormal = math.log(1 + varLognormal / avg_lognormal ** 2)
+    avgNormal = math.log(avg_lognormal) - varNormal * 0.5
     std_normal = math.sqrt(varNormal)
     return avgNormal, std_normal
 
@@ -854,7 +921,7 @@ def calc_normal_style_pars_from_lognormal_pars(avg_lognormal, std_lognormal):
 def calc_lognormal_style_pars_from_normal_pars(mu_normal, std_normal):
     varNormal = std_normal ** 2
     avg_lognormal = math.exp(mu_normal + varNormal * 0.5)
-    varLognormal = (math.exp(varNormal) - 1) * math.exp(2 * mu_normal + varNormal)
+    varLognormal = (math.exp(varNormal) - 1) * avg_lognormal ** 2
     std_lognormal = math.sqrt(varLognormal)
     return avg_lognormal, std_lognormal
 
@@ -1060,8 +1127,8 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
 
     Parameters
     ----------
-    distribution : [np.array]
-        Two element list containing a list of probabilities and a list of outcomes.
+    distribution : DiscreteDistribution
+        A DiscreteDistribution
     x : float
         The new value to be added to the distribution.
     p : float
@@ -1075,15 +1142,26 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
         Probability associated with each point in array of discrete
         points for discrete probability mass function.
     """
-    X = np.append(x, distribution.X * (1 - p * x) / (1 - p))
-    pmf = np.append(p, distribution.pmf * (1 - p))
 
-    if sort:
-        indices = np.argsort(X)
-        X = X[indices]
-        pmf = pmf[indices]
+    if type(distribution) != TimeVaryingDiscreteDistribution:
+        X = np.append(x, distribution.X * (1 - p * x) / (1 - p))
+        pmf = np.append(p, distribution.pmf * (1 - p))
 
-    return DiscreteDistribution(pmf, X)
+        if sort:
+            indices = np.argsort(X)
+            X = X[indices]
+            pmf = pmf[indices]
+
+        return DiscreteDistribution(pmf, X)
+    elif type(distribution) == TimeVaryingDiscreteDistribution:
+        # apply recursively on all the internal distributions
+        return TimeVaryingDiscreteDistribution(
+            [
+                add_discrete_outcome_constant_mean(d, x, p)
+                for d in distribution.distributions
+            ],
+            seed=distribution.seed,
+        )
 
 
 def add_discrete_outcome(distribution, x, p, sort=False):
@@ -1164,7 +1242,7 @@ def combine_indep_dstns(*distributions, seed=0):
         )
 
         # The tiling we want to do
-        dist_tiles = dist_lengths[:dd] + (1,) + dist_lengths[dd + 1:]
+        dist_tiles = dist_lengths[:dd] + (1,) + dist_lengths[dd + 1 :]
 
         # Now we are ready to tile.
         # We don't use the np.meshgrid commands, because they do not
@@ -1196,8 +1274,9 @@ def combine_indep_dstns(*distributions, seed=0):
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
     return DiscreteDistribution(P_out, X_out, seed=seed)
 
+
 def calc_expectation(dstn, func=lambda x: x, *args):
-    '''
+    """
     Expectation of a function, given an array of configurations of its inputs
     along with a DiscreteDistribution object that specifies the probability
     of each configuration.
@@ -1224,7 +1303,7 @@ def calc_expectation(dstn, func=lambda x: x, *args):
     f_exp : np.array or scalar
         The expectation of the function at the queried values.
         Scalar if only one value.
-    '''
+    """
     N = dstn.dim()
 
     dstn_array = np.column_stack(dstn.X)
@@ -1233,15 +1312,10 @@ def calc_expectation(dstn, func=lambda x: x, *args):
         # numpy is weird about 1-D arrays.
         dstn_array = dstn_array.T
 
-    f_query = np.apply_along_axis(
-        func, 0, dstn_array, *args
-    )
+    f_query = np.apply_along_axis(func, 0, dstn_array, *args)
 
     # Compute expectations over the values
-    f_exp = np.dot(
-        f_query,
-        np.vstack(dstn.pmf)
-    )
+    f_exp = np.dot(f_query, np.vstack(dstn.pmf))
 
     # a hack.
     if f_exp.size == 1:
@@ -1292,10 +1366,10 @@ class MarkovProcess(Distribution):
         new_state : int or nd.array
             New states.
         """
+
         def sample(s):
             return self.RNG.choice(
-                self.transition_matrix.shape[1],
-                p = self.transition_matrix[s,:]
+                self.transition_matrix.shape[1], p=self.transition_matrix[s, :]
             )
 
         array_sample = np.frompyfunc(sample, 1, 1)
