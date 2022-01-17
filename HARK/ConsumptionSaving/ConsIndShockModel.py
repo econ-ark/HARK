@@ -2691,10 +2691,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
         IncUnemp_list = [IncUnemp]*normal_length + [IncUnempRet]*retire_length
         PermShkCount_list = [PermShkCount]*normal_length + [1]*retire_length
         TranShkCount_list = [TranShkCount]*normal_length + [1]*retire_length
-
+        
+        if not hasattr(self, "neutral_measure"):
+            self.neutral_measure = False
+        
+        neutral_measure_list = [self.neutral_measure] * len(PermShkCount_list)
+        
         PermShkDstn = IndexDistribution(engine = PermShk_engine,
                                         conditional = {'sigma': PermShkStd,
-                                                       'n_approx': PermShkCount_list})
+                                                       'n_approx': PermShkCount_list,
+                                                       'neutral_measure': neutral_measure_list})
 
         TranShkDstn = IndexDistribution(engine = TranShk_engine,
                                         conditional = {'sigma': TranShkStd,
@@ -2707,17 +2713,19 @@ class IndShockConsumerType(PerfForesightConsumerType):
                                                       'sigma_Tran': TranShkStd,
                                                       'n_approx_Perm': PermShkCount_list,
                                                       'n_approx_Tran': TranShkCount_list,
+                                                      'neutral_measure': neutral_measure_list,
                                                       'UnempPrb': UnempPrb_list,
                                                       'IncUnemp': IncUnemp_list},
                                        seed=self.RNG.randint(0, 2 ** 31 - 1))
 
         return IncShkDstn, PermShkDstn, TranShkDstn
 
-def PermShk_engine(sigma, n_approx, seed = 0):
+def PermShk_engine(sigma, n_approx, neutral_measure = False, seed = 0):
 
-    # TODO: NEUTRAL MEASURE
     PermShkDstn = MeanOneLogNormal(sigma, seed = seed).approx(n_approx, tail_N=0)
-
+    if neutral_measure:
+        PermShkDstn.pmf = PermShkDstn.X*PermShkDstn.pmf        
+        
     return PermShkDstn
 
 def TranShk_engine(sigma, UnempPrb, IncUnemp, n_approx, seed = 0):
@@ -2728,9 +2736,9 @@ def TranShk_engine(sigma, UnempPrb, IncUnemp, n_approx, seed = 0):
 
     return TranShkDstn
 
-def IncShk_engine(sigma_Perm, sigma_Tran, n_approx_Perm, n_approx_Tran, UnempPrb, IncUnemp, seed = 0):
+def IncShk_engine(sigma_Perm, sigma_Tran, n_approx_Perm, n_approx_Tran, UnempPrb, IncUnemp, neutral_measure = False, seed = 0):
 
-    PermShkDstn = PermShk_engine(sigma_Perm, n_approx_Perm)
+    PermShkDstn = PermShk_engine(sigma_Perm, n_approx_Perm, neutral_measure)
     TranShkDstn = TranShk_engine(sigma_Tran, UnempPrb, IncUnemp, n_approx_Tran)
 
     IncShkDstn = combine_indep_dstns(PermShkDstn,TranShkDstn,seed=seed)
