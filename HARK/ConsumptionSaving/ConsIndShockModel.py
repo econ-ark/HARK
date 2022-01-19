@@ -2697,25 +2697,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         neutral_measure_list = [self.neutral_measure] * len(PermShkCount_list)
 
-        PermShkDstn = IndexDistribution(
-            engine=PermShk_engine,
-            conditional={
-                "sigma": PermShkStd,
-                "n_approx": PermShkCount_list,
-                "neutral_measure": neutral_measure_list,
-            },
-        )
-
-        TranShkDstn = IndexDistribution(
-            engine=TranShk_engine,
-            conditional={
-                "sigma": TranShkStd,
-                "UnempPrb": UnempPrb_list,
-                "IncUnemp": IncUnemp_list,
-                "n_approx": TranShkCount_list,
-            },
-        )
-
         IncShkDstn = IndexDistribution(
             engine=IncShk_engine,
             conditional={
@@ -2727,7 +2708,28 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 "UnempPrb": UnempPrb_list,
                 "IncUnemp": IncUnemp_list,
             },
-            seed=self.RNG.randint(0, 2 ** 31 - 1),
+            RNG = self.RNG,
+        )
+        
+        PermShkDstn = IndexDistribution(
+            engine=PermShk_engine,
+            conditional={
+                "sigma": PermShkStd,
+                "n_approx": PermShkCount_list,
+                "neutral_measure": neutral_measure_list,
+            },
+            RNG = self.RNG,
+        )
+
+        TranShkDstn = IndexDistribution(
+            engine=TranShk_engine,
+            conditional={
+                "sigma": TranShkStd,
+                "UnempPrb": UnempPrb_list,
+                "IncUnemp": IncUnemp_list,
+                "n_approx": TranShkCount_list,
+            },
+            RNG = self.RNG,
         )
 
         return IncShkDstn, PermShkDstn, TranShkDstn

@@ -30,7 +30,7 @@ class Distribution:
         self.RNG = np.random.RandomState(self.seed)
 
 
-class IndexDistribution(Distribution):
+class IndexDistribution():
     """
     This class provides a way to define a distribution that
     is conditional on an index.
@@ -62,26 +62,24 @@ class IndexDistribution(Distribution):
     conditional = None
     engine = None
 
-    def __init__(self, engine, conditional, seed=0):
+    def __init__(self, engine, conditional, RNG):
         # Set up the RNG
-        super().__init__(seed)
-
+        
         self.conditional = conditional
         self.engine = engine
-
-    def __getitem__(self, y):
-        # test one item to determine case handling
+        self.RNG = RNG
+        self.dstns = []
         item0 = list(self.conditional.values())[0]
 
         if type(item0) is list:
-            cond = {key: val[y] for (key, val) in self.conditional.items()}
-            return self.engine(seed=self.RNG.randint(0, 2 ** 31 - 1), **cond)
-        else:
-            raise (
-                Exception(
-                    f"IndexDistribution: Unhandled case for __getitem__ access. y: {y}; conditional: {self.conditional}"
-                )
-            )
+            for y in range(len(item0)):
+                cond = {key: val[y] for (key, val) in self.conditional.items()}
+                self.dstns.append(self.engine(seed=self.RNG.randint(0, 2 ** 31 - 1), **cond))
+        
+    def __getitem__(self, y):
+        
+        return self.dstns[y]
+
 
     def approx(self, N, **kwds):
         """
@@ -146,14 +144,6 @@ class IndexDistribution(Distribution):
 
         # test one item to determine case handling
         item0 = list(self.conditional.values())[0]
-
-        if type(item0) is float:
-            # degenerate case. Treat the parameterization as constant.
-            N = condition.size
-
-            return self.engine(
-                seed=self.RNG.randint(0, 2 ** 31 - 1), **self.conditional
-            ).draw(N)
 
         if type(item0) is list:
             # conditions are indices into list
