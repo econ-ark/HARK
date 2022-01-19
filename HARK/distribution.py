@@ -62,9 +62,19 @@ class IndexDistribution(Distribution):
     conditional = None
     engine = None
 
-    def __init__(self, engine, conditional, seed=0):
-        # Set up the RNG
-        super().__init__(seed)
+    def __init__(self, engine, conditional, RNG = None, seed=0):
+        
+        if RNG is None:
+            # Set up the RNG
+            super().__init__(seed)
+        else:
+            # If an RNG is received, use it in whatever state it is in.
+            self.RNG = RNG
+            # The seed will still be set, even if it is not used for the RNG,
+            # for whenever self.reset() is called.
+            # Note that self.reset() will stop using the RNG that was passed
+            # and create a new one.
+            self.seed = seed
 
         self.conditional = conditional
         self.engine = engine
