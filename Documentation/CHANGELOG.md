@@ -15,7 +15,7 @@ Release Date: TBD
 ### Major Changes
 
 * Updates the DCEGM tools to address the flaws identified in [issue #1062](https://github.com/econ-ark/HARK/issues/1062). PR: [1100](https://github.com/econ-ark/HARK/pull/1100).
-,
+* `make_shock_history` and `read_shocks == True` now store and use the random draws that determine newborn's initial states [#1101](https://github.com/econ-ark/HARK/pull/1101).
 ### Minor Changes
 
 ### 0.12.0
