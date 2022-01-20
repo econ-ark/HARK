@@ -605,9 +605,9 @@ class PerfForesightConsumerType(consumer_terminal_nobequest_onestate):
             soln.Bilt.mTrgNrm = soln.mBalLvl_find()
             return
         else:
-            if not soln.Bilt.GICNrm:
+            if not soln.Bilt.GICMod:
                 soln.Bilt.mTrgNrm = float('nan')
-            else:  # GICNrm exists; calculate it
+            else:  # GICMod exists; calculate it
                 soln.Bilt.mTrgNrm = soln.mTrgNrm_find()
         return
 

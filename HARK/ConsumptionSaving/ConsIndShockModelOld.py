@@ -383,7 +383,7 @@ class ConsPerfForesightSolver(MetricObject):
         """
         Finds value of (normalized) market resources m at which individual consumer
         expects m not to change.
-        This will exist if the GICNrm holds.
+        This will exist if the GICMod holds.
 
         https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
 
@@ -1016,22 +1016,22 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
 
         # 0. Check if GICRaw holds. If so, then mBalLvl will exist. So, compute it.
-        # 1. Check if GICNrm holds. If so, then mTrgNrm will exist. So, compute it.
+        # 1. Check if GICMod holds. If so, then mTrgNrm will exist. So, compute it.
 
         thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
 
         GPFacRaw = thorn / self.PermGroFac
         self.GPFacRaw = GPFacRaw
-        GPFacNrm = thorn / self.PermGroFac / np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
-        self.GPFacNrm = GPFacNrm
+        GPFacMod = thorn / self.PermGroFac / np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
+        self.GPFacMod = GPFacMod
         GICRaw = 1 > thorn/self.PermGroFac
         self.GICRaw = GICRaw
-        GICNrm = 1 > GPFacNrm
-        self.GICNrm = GICNrm
+        GICMod = 1 > GPFacMod
+        self.GICMod = GICMod
 
         if GICRaw:
             solution = self.add_mBalLvl(solution)  # find steady state m, if it exists
-        if GICNrm:
+        if GICMod:
             solution = self.add_mTrgNrm(solution)  # find target m, if it exists
 
         return solution
@@ -2366,20 +2366,20 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
 
-    def check_GICNrm(self, verbose=None):
+    def check_GICMod(self, verbose=None):
         """
         Check Individual Growth Patience Factor.
         """
-        self.GPFacNrm = self.thorn / (
+        self.GPFacMod = self.thorn / (
             self.PermGroFac[0] * self.InvEx_PermShkInv
         )  # [url]/#GICRawI
 
         name = "GICRaw"
-        def test(agent): return agent.GPFacNrm <= 1
+        def test(agent): return agent.GPFacMod <= 1
 
         messages = {
-            True: "\nThe value of the Individual Growth Patience Factor for the supplied parameter values satisfies the Growth Impatience Condition; the value of the GPFacNrm is: {0.GPFacNrm}",
-            False: "\nThe given parameter values violate the Normalized Growth Impatience Condition; the GPFacNrm is: {0.GPFacNrm}",
+            True: "\nThe value of the Individual Growth Patience Factor for the supplied parameter values satisfies the Growth Impatience Condition; the value of the GPFacMod is: {0.GPFacMod}",
+            False: "\nThe given parameter values violate the Normalized Growth Impatience Condition; the GPFacMod is: {0.GPFacMod}",
         }
 
         verbose_messages = {
@@ -2526,7 +2526,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.DiscFacGPFacRawMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
             self.Rfree
         )  # DiscFac at growth impatience knife edge
-        self.DiscFacGPFacNrmMax = (
+        self.DiscFacGPFacModMax = (
             (self.PermGroFac[0] * self.InvEx_PermShkInv) ** (self.CRRA)
         ) / (
             self.Rfree
@@ -2537,7 +2537,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         verbose = self.verbose if verbose is None else verbose
 
         #        self.check_GICRaw(verbose)
-        self.check_GICNrm(verbose)
+        self.check_GICMod(verbose)
         self.check_GICAggLivPrb(verbose)
         self.check_WRIC(verbose)
         self.check_FVAC(verbose)
@@ -2552,14 +2552,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
             )
 
         _log.warning("GPFacRaw                 = %2.6f " % (self.GPFacRaw))
-        _log.warning("GPFacNrm                 = %2.6f " % (self.GPFacNrm))
+        _log.warning("GPFacMod                 = %2.6f " % (self.GPFacMod))
         _log.warning("GPFacAggLivPrb           = %2.6f " % (self.GPFacAggLivPrb))
         _log.warning("Thorn = APFac            = %2.6f " % (self.thorn))
         _log.warning("PermGroFacAdj          = %2.6f " % (self.PermGroFacAdj))
         _log.warning("uInvEpShkuInv          = %2.6f " % (self.uInvEpShkuInv))
         _log.warning("VAF                    = %2.6f " % (self.VAF))
         _log.warning("WRPFac                   = %2.6f " % (self.WRPFac))
-        _log.warning("DiscFacGPFacNrmMax       = %2.6f " % (self.DiscFacGPFacNrmMax))
+        _log.warning("DiscFacGPFacModMax       = %2.6f " % (self.DiscFacGPFacModMax))
         _log.warning("DiscFacGPFacAggLivPrbMax = %2.6f " % (self.DiscFacGPFacAggLivPrbMax))
 
     def Ex_Mtp1_over_Ex_Ptp1(self, mNrm):
