@@ -2037,7 +2037,7 @@ init_idiosyncratic_shocks = dict(
         "T_retire": 0,  # Period of retirement (0 --> no retirement)
         "vFuncBool": False,  # Whether to calculate the value function during solution
         "CubicBool": False,  # Use cubic spline interpolation when True, linear interpolation when False
-        "neutral_measure": False,      # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
+        "neutral_measure": False,  # Use permanent income neutral measure during simulations when True (see https://github.com/econ-ark/DemARK/blob/master/notebooks/Harmenberg-Aggregation.ipynb).
     }
 )
 
@@ -2308,7 +2308,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         None
         '''  
         
-        if not hasattr(self, "neutral_measure"):
+        if not hasattr(self, "neutral_measure"): # If true Use Harmenberg 2021's Neutral Measure. For more information, see https://github.com/econ-ark/DemARK/blob/master/notebooks/Harmenberg-Aggregation.ipynb
                    self.neutral_measure = False
  
         if self.cycles == 0:
@@ -2339,11 +2339,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
             else:
                 self.dist_pGrid = dist_pGrid #If grid of permanent income prespecified then use it as pgrid
                 
-            if self.neutral_measure == True: # Use Harmenberg 2021's Neutral Measure
+            if self.neutral_measure == True: # If true Use Harmenberg 2021's Neutral Measure. For more information, see https://github.com/econ-ark/DemARK/blob/master/notebooks/Harmenberg-Aggregation.ipynb
                 
                 self.dist_pGrid = np.array([1])
-            
-            
             
         elif self.cycles > 1:
             print('define_distribution_grid requires cycles = 0 or cycles = 1')
@@ -2386,7 +2384,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             else:
                 self.dist_pGrid = dist_pGrid #If grid of permanent income prespecified then use as pgrid
                 
-            if self.neutral_measure == True: # Use Harmenberg 2021's Neutral Measure
+            if self.neutral_measure == True: # If true Use Harmenberg 2021's Neutral Measure. For more information, see https://github.com/econ-ark/DemARK/blob/master/notebooks/Harmenberg-Aggregation.ipynb
                 
                 self.dist_pGrid = self.T_cycle*[np.array([1])]
             
@@ -2480,7 +2478,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 tran_shks = shk_dstn[k].X[1] #Transitory shocks this period
                 perm_shks = shk_dstn[k].X[0] #Permanent shocks this period
                 LivPrb = self.LivPrb[k] # Update probability of staying alive this period
-                
                 
                 
                 if len(dist_pGrid) == 1: 
@@ -2705,7 +2702,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             
         if dist_pGrid_list == None:
             dist_pGrid_list = self.dist_pGrid
-                        
+                 
         AggC =[] # List of aggregate consumption for each period t 
         AggA =[] # List of aggregate assets for each period t 
     
@@ -3200,10 +3197,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     PermShkCount, tail_N=0
                 )
 
-                if not hasattr(self, "neutral_measure"):
+                if not hasattr(self, "neutral_measure"): 
                     self.neutral_measure = False
                     
-                if self.neutral_measure == True:
+                if self.neutral_measure == True: # If true, Use Harmenberg 2021's Neutral Measure. For more information, see https://github.com/econ-ark/DemARK/blob/master/notebooks/Harmenberg-Aggregation.ipynb
                     PermShkDstn_t.pmf = PermShkDstn_t.X*PermShkDstn_t.pmf
                 
                 IncShkDstn.append(
