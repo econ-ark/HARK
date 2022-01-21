@@ -8,6 +8,28 @@ import unittest
 import numpy as np
 
 
+class envelope_test(unittest.TestCase):
+    def setUp(self):
+        self.segments = [
+            [np.array([0.0, 1.0]), np.array([0.0, 1.0])],
+            [np.array([0.0, 1.0]), np.array([1.0, 0.0])],
+        ]
+
+    def test_upper_envelope(self):
+
+        # Compute
+        x_env, y_env, inds = dcegm.upper_envelope(self.segments)
+
+        # true envelope
+        true_x = np.array([0.0, 0.5, np.nextafter(0.5, 1), 1.0])
+        true_y = np.array([1.0, 0.5, 0.5, 1.0])
+        true_inds = np.array([1, 1, 0, 0])
+
+        self.assertTrue(np.allclose(x_env, true_x))
+        self.assertTrue(np.allclose(y_env, true_y))
+        self.assertTrue(np.allclose(inds, true_inds))
+
+
 class testsForDCEGM(unittest.TestCase):
     def setUp(self):
         self.commonM = np.linspace(0, 10.0, 30)
@@ -25,26 +47,26 @@ class testsForDCEGM(unittest.TestCase):
         slope_2 = (3.5 - 0.5) / (4.0 - 2.0)
         m_cross = 2.0 + (0.5 - 1.0) / (slope_1 - slope_2)
 
-        m_out, c_out, v_out = dcegm.calc_multiline_envelope(
-            self.m_in, self.c_in, self.v_in, self.commonM
-        )
+        # Now with EGM tools.
+        # 1. Find and form non-decreasing segments
+        starts, ends = dcegm.calc_nondecreasing_segments(self.m_in, self.v_in)
+        segments = [
+            [
+                self.m_in[range(starts[j], ends[j] + 1)],
+                self.v_in[range(starts[j], ends[j] + 1)],
+            ]
+            for j in range(len(starts))
+        ]
+        # 2. Find the upper envelope
+        m_env, v_env, inds = dcegm.upper_envelope(segments)
 
+        # Compare the crossings
         m_idx = 0
-        for m in m_out:
+        for m in m_env:
             if m > m_cross:
                 break
             m_idx += 1
 
         # Just right of the cross, the second segment is optimal
-        true_v = 0.5 + (m_out[m_idx] - 2.0) * slope_2
-        self.assertTrue(abs(v_out[m_idx] - true_v) < 1e-12)
-
-    # also test that first elements are 0 etc
-
-    # def test_crossing_in_grid(self):
-    #     # include crossing m in common grid
-    #     commonM_augmented = np.append(self.commonM, m_cross).sort()
-    #
-    #     m_out, c_out, v_out = calc_multiline_envelope(self.m_in, self.c_in, self.v_in, self.commonM)
-    #
-    #     self.assertTrue(
+        true_v = 0.5 + (m_env[m_idx] - 2.0) * slope_2
+        self.assertTrue(abs(v_env[m_idx] - true_v) < 1e-12)
