@@ -2718,7 +2718,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 "n_approx": PermShkCount_list,
                 "neutral_measure": neutral_measure_list,
             },
-            RNG = self.RNG,
         )
 
         TranShkDstn = IndexDistribution(
@@ -2729,7 +2728,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 "IncUnemp": IncUnemp_list,
                 "n_approx": TranShkCount_list,
             },
-            RNG = self.RNG,
         )
 
         return IncShkDstn, PermShkDstn, TranShkDstn
