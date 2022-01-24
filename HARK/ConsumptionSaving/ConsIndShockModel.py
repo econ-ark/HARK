@@ -47,7 +47,11 @@ from HARK.utilities import (
 from HARK import _log
 from HARK import set_verbosity_level
 
-from HARK.Calibration.Income.IncomeTools import parse_income_spec, parse_time_params, Cagetti_income
+from HARK.Calibration.Income.IncomeTools import (
+    parse_income_spec,
+    parse_time_params,
+    Cagetti_income,
+)
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 
