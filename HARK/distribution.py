@@ -30,7 +30,7 @@ class Distribution:
         self.RNG = np.random.RandomState(self.seed)
 
 
-class IndexDistribution():
+class IndexDistribution(Distribution):
     """
     This class provides a way to define a distribution that
     is conditional on an index.
@@ -62,24 +62,49 @@ class IndexDistribution():
     conditional = None
     engine = None
 
-    def __init__(self, engine, conditional, RNG):
-        # Set up the RNG
+    def __init__(self, engine, conditional, RNG = None, seed=0):
         
+        if RNG is None:
+            # Set up the RNG
+            super().__init__(seed)
+        else:
+            # If an RNG is received, use it in whatever state it is in.
+            self.RNG = RNG
+            # The seed will still be set, even if it is not used for the RNG,
+            # for whenever self.reset() is called.
+            # Note that self.reset() will stop using the RNG that was passed
+            # and create a new one.
+            self.seed = seed
+
         self.conditional = conditional
         self.engine = engine
-        self.RNG = RNG
+        
+        
         self.dstns = []
+        
+        # Test one item to determine case handling
         item0 = list(self.conditional.values())[0]
-
+        
         if type(item0) is list:
+            # Create and store all the conditional distributions
             for y in range(len(item0)):
                 cond = {key: val[y] for (key, val) in self.conditional.items()}
                 self.dstns.append(self.engine(seed=self.RNG.randint(0, 2 ** 31 - 1), **cond))
-        
+                
+        elif type(item0) is float:
+            
+            self.dstns = [self.engine(seed=self.RNG.randint(0, 2 ** 31 - 1), **conditional)]
+
+        else:
+            raise (
+                Exception(
+                    f"IndexDistribution: Unhandled case for __getitem__ access. y: {y}; conditional: {self.conditional}"
+                )
+            )
+            
     def __getitem__(self, y):
         
         return self.dstns[y]
-
 
     def approx(self, N, **kwds):
         """
@@ -112,9 +137,7 @@ class IndexDistribution():
 
         if type(item0) is float:
             # degenerate case. Treat the parameterization as constant.
-            return self.engine(
-                seed=self.RNG.randint(0, 2 ** 31 - 1), **self.conditional
-            ).approx(N, **kwds)
+            return self.dstns[0].approx(N, **kwds)
 
         if type(item0) is list:
             return TimeVaryingDiscreteDistribution(
@@ -144,6 +167,14 @@ class IndexDistribution():
 
         # test one item to determine case handling
         item0 = list(self.conditional.values())[0]
+
+        if type(item0) is float:
+            # degenerate case. Treat the parameterization as constant.
+            N = condition.size
+
+            return self.engine(
+                seed=self.RNG.randint(0, 2 ** 31 - 1), **self.conditional
+            ).draw(N)
 
         if type(item0) is list:
             # conditions are indices into list
