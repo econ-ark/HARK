@@ -430,7 +430,7 @@ class AgentType(Model):
         A method to check that elements of time_vary are lists.
         """
         for param in self.time_vary:
-            if isinstance(
+            if not isinstance(
                 getattr(self, param),
                 (TimeVaryingDiscreteDistribution, IndexDistribution),
             ):
