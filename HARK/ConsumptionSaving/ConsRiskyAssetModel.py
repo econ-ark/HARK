@@ -6,20 +6,26 @@ simulation methods. It is meant as a container of methods for dealing with
 risky assets that will be useful to models what will inherit from it.
 """
 from copy import deepcopy
+from dataclasses import dataclass
 
 import numpy as np
 
+from HARK import make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    ConsIndShockSolver,
+    ConsumerSolution,
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
     init_idiosyncratic_shocks,  # Baseline dictionary to build on
 )
 from HARK.distribution import (
+    DiscreteDistribution,
+    calc_expectation,
     combine_indep_dstns,
     IndexDistribution,
     Lognormal,
     Bernoulli,
 )
-from HARK.utilities import NullFunc
+from HARK.interpolation import LinearInterp, MargValueFuncCRRA, ValueFuncCRRA
 
 
 class RiskyAssetConsumerType(IndShockConsumerType):
@@ -47,7 +53,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
 
         # These method must be overwritten by classes that inherit from
         # RiskyAssetConsumerType
-        self.solve_one_period = NullFunc()
+        self.solve_one_period = make_one_period_oo_solver(ConsRiskySolver)
 
     def pre_solve(self):
         self.update_solution_terminal()
@@ -103,8 +109,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         # agent does *not* have age-varying beliefs about the risky asset (base case)
         else:
             self.RiskyDstn = Lognormal.from_mean_std(
-                self.RiskyAvg,
-                self.RiskyStd,
+                self.RiskyAvg, self.RiskyStd,
             ).approx(self.RiskyCount)
             self.add_to_time_inv("RiskyDstn")
 
@@ -237,6 +242,183 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         IndShockConsumerType.get_shocks(self)
         self.get_Risky()
         self.get_Adjust()
+
+
+####################################################################################################
+####################################################################################################
+
+
+@dataclass
+class ConsRiskySolver(ConsIndShockSolver):
+    solution_next: ConsumerSolution
+    IncShkDstn: DiscreteDistribution
+    TranShkDstn: DiscreteDistribution
+    PermShkDstn: DiscreteDistribution
+    RiskyDstn: DiscreteDistribution
+    LivPrb: float
+    DiscFac: float
+    CRRA: float
+    Rfree: float
+    PermGroFac: float
+    BoroCnstArt: float
+    aXtraGrid: np.array
+    vFuncBool: bool
+    CubicBool: bool
+
+    def __post_init__(self):
+        self.def_utility_funcs()
+
+        # Make sure the individual is liquidity constrained.  Allowing a consumer to
+        # borrow *and* invest in an asset with unbounded (negative) returns is a bad mix.
+        if self.BoroCnstArt != 0.0:
+            raise ValueError("RiskyAssetConsumerType must have BoroCnstArt=0.0!")
+
+        if self.CubicBool:
+            raise NotImplementedError(
+                "RiskyAssetConsumerType does not implement cubic interpolation yet!"
+            )
+
+    def def_BoroCnst(self, BoroCnstArt):
+
+        # Natural Borrowing Constraint is always 0.0 in risky return models
+        self.BoroCnstNat = 0.0
+        # minimum normalized cash on hand is 0.0
+        self.mNrmMinNow = 0.0
+
+        self.MPCmaxEff = self.MPCmaxNow
+
+        # Define the borrowing constraint (limiting consumption function)
+        self.cFuncNowCnst = LinearInterp(
+            np.array([self.mNrmMinNow, self.mNrmMinNow + 1]), np.array([0.0, 1.0])
+        )
+
+    def calc_EndOfPrdvP(self):
+        """
+        Calculate end-of-period marginal value of assets at each point in aNrmNow.
+        Does so by taking a weighted sum of next period marginal values across
+        income shocks (in a preconstructed grid self.mNrmNext).
+
+        Parameters
+        ----------
+        none
+
+        Returns
+        -------
+        EndOfPrdvP : np.array
+            A 1D array of end-of-period marginal value of assets
+        """
+
+        self.BoroCnstNat = 0.0
+        self.aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
+
+        self.agrid = self.aXtraGrid
+        self.bgrid = np.append(
+            self.agrid[0] * self.RiskyDstn.X.min(), self.agrid * self.RiskyDstn.X.max()
+        )
+        self.wgrid = np.append(
+            self.bgrid[0] / (self.PermGroFac * self.PermShkDstn.X.max()),
+            self.bgrid / (self.PermGroFac * self.PermShkDstn.X.min()),
+        )
+
+        # calculate expectation with respect to transitory shock
+
+        def preTranShkvPfunc(tran_shk, w_nrm):
+            return self.vPfuncNext(w_nrm + tran_shk)
+
+        preTranShkvP = calc_expectation(self.TranShkDstn, preTranShkvPfunc, self.wgrid)
+        preTranShkvPNvrs = self.uPinv(preTranShkvP)
+        # Need to add value of 0 at borrowing constraint
+        preTranShkvPNvrsFunc = LinearInterp(
+            np.append(0, self.wgrid), np.append(0, preTranShkvPNvrs)
+        )
+        self.preTranShkvPfunc = MargValueFuncCRRA(preTranShkvPNvrsFunc, self.CRRA)
+
+        # calculate expectation with respect to permanent shock
+
+        def prePermShkvPfunc(perm_shk, b_nrm):
+            shock = perm_shk * self.PermGroFac
+            return shock ** (-self.CRRA) * self.preTranShkvPfunc(b_nrm / shock)
+
+        prePermShkvP = calc_expectation(self.PermShkDstn, prePermShkvPfunc, self.bgrid)
+        prePermShkvPNvrs = self.uPinv(prePermShkvP)
+        # Need to add value of 0 at borrowing constraint
+        prePermShkvPNvrsFunc = LinearInterp(
+            np.append(0, self.bgrid), np.append(0, prePermShkvPNvrs)
+        )
+        self.prePermShkvPfunc = MargValueFuncCRRA(prePermShkvPNvrsFunc, self.CRRA)
+
+        # calculate expectation with respect to risky shock
+
+        def preRiskyShkvPfunc(risky_shk, a_nrm):
+            return risky_shk * self.prePermShkvPfunc(a_nrm * risky_shk)
+
+        preRiskyShkvP = self.DiscFacEff * calc_expectation(
+            self.RiskyDstn, preRiskyShkvPfunc, self.agrid
+        )
+        preRiskyShkvPNvrs = self.uPinv(preRiskyShkvP)
+        # Need to add value of 0 at borrowing constraint
+        preRiskyShkvPNvrsFunc = LinearInterp(
+            np.append(0, self.agrid), np.append(0, preRiskyShkvPNvrs)
+        )
+        self.preRiskyShkvPfunc = MargValueFuncCRRA(preRiskyShkvPNvrsFunc, self.CRRA)
+
+        EndOfPrdvP = preRiskyShkvP
+
+        return EndOfPrdvP
+
+    def make_EndOfPrdvFunc(self, EndOfPrdvP):
+        """
+        Construct the end-of-period value function for this period, storing it
+        as an attribute of self for use by other methods.
+
+        Parameters
+        ----------
+        EndOfPrdvP : np.array
+            Array of end-of-period marginal value of assets corresponding to the
+            asset values in self.aNrmNow.
+
+        Returns
+        -------
+        none
+        """
+
+        def preTranShkvFunc(tran_shk, w_nrm):
+            return self.vFuncNext(w_nrm + tran_shk)
+
+        preTranShkv = calc_expectation(self.TranShkDstn, preTranShkvFunc, self.wgrid)
+        # value transformed through inverse utility
+        preTranShkvNvrs = self.uinv(preTranShkv)
+        preTranShkvNvrsFunc = LinearInterp(
+            np.append(0, self.wgrid), np.append(0, preTranShkvNvrs)
+        )
+        self.preTranShkvFunc = ValueFuncCRRA(preTranShkvNvrsFunc, self.CRRA)
+
+        def prePermShkvFunc(perm_shk, b_nrm):
+            shock = perm_shk * self.PermGroFac
+            return shock ** (1.0 - self.CRRA) * self.preTranShkvFunc(b_nrm / shock)
+
+        prePermShkv = calc_expectation(self.PermShkDstn, prePermShkvFunc, self.bgrid)
+        # value transformed through inverse utility
+        prePermShkvNvrs = self.uinv(prePermShkv)
+        prePermShkvNvrsFunc = LinearInterp(
+            np.append(0, self.bgrid), np.append(0, prePermShkvNvrs)
+        )
+        self.prePermShkvFunc = ValueFuncCRRA(prePermShkvNvrsFunc, self.CRRA)
+
+        def preRiskyShkvFunc(risky_shk, a_nrm):
+            return self.prePermShkvFunc(risky_shk * a_nrm)
+
+        preRiskyShkv = self.DiscFacEff * calc_expectation(
+            self.RiskyDstn, preRiskyShkvFunc, self.agrid
+        )
+        # value transformed through inverse utility
+        preRiskyShkvNvrs = self.uinv(preRiskyShkv)
+        preRiksyShkNvrsFunc = LinearInterp(
+            np.append(0, self.agrid), np.append(0, preRiskyShkvNvrs)
+        )
+        self.preRiskyShkvFunc = ValueFuncCRRA(preRiksyShkNvrsFunc, self.CRRA)
+
+        self.EndOfPrdvFunc = self.preRiskyShkvFunc
 
 
 # %% Initial parameter sets
