@@ -522,7 +522,10 @@ class AgentType(Model):
             for var_name in self.state_now:
                 # Copy only array-like idiosyncratic states. Aggregates should
                 # not be set by newborns
-                idio = isinstance(self.state_now[var_name], np.ndarray) and len(self.state_now[var_name]) == self.AgentCount
+                idio = (
+                    isinstance(self.state_now[var_name], np.ndarray)
+                    and len(self.state_now[var_name]) == self.AgentCount
+                )
                 if idio:
                     self.state_now[var_name] = self.newborn_init_history[var_name][0]
 
@@ -617,7 +620,10 @@ class AgentType(Model):
         # initialize_sim -> sim_births
         for var_name in self.state_vars:
             # Check whether the state is idiosyncratic or an aggregate
-            idio = isinstance(self.state_now[var_name], np.ndarray) and len(self.state_now[var_name]) == self.AgentCount
+            idio = (
+                isinstance(self.state_now[var_name], np.ndarray)
+                and len(self.state_now[var_name]) == self.AgentCount
+            )
             if idio:
                 self.newborn_init_history[var_name][self.t_sim] = self.state_now[
                     var_name
@@ -638,7 +644,10 @@ class AgentType(Model):
             if np.sum(self.who_dies) > 0:
                 for var_name in self.state_vars:
                     # Check whether the state is idiosyncratic or an aggregate
-                    idio = isinstance(self.state_now[var_name], np.ndarray) and len(self.state_now[var_name]) == self.AgentCount
+                    idio = (
+                        isinstance(self.state_now[var_name], np.ndarray)
+                        and len(self.state_now[var_name]) == self.AgentCount
+                    )
                     if idio:
                         self.newborn_init_history[var_name][
                             self.t_sim, self.who_dies
@@ -686,7 +695,10 @@ class AgentType(Model):
                 for var_name in self.state_now:
                     # Copy only array-like idiosyncratic states. Aggregates should
                     # not be set by newborns
-                    idio = isinstance(self.state_now[var_name], np.ndarray) and len(self.state_now[var_name]) == self.AgentCount
+                    idio = (
+                        isinstance(self.state_now[var_name], np.ndarray)
+                        and len(self.state_now[var_name]) == self.AgentCount
+                    )
                     if idio:
                         self.state_now[var_name][who_dies] = self.newborn_init_history[
                             var_name
