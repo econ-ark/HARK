@@ -2617,6 +2617,106 @@ class IndShockConsumerType(PerfForesightConsumerType):
     #   simulated income shocks =
     # ========================================================
 
+    def PermShk_engine(self, sigma, n_approx, seed=0):
+        """
+        Constructs a one-period distribution for permanent income shock.
+    
+        Parameters
+        ----------
+        sigma : float
+            Standard deviation of the log-shock.
+        n_approx : int
+            Number of points to use in the discrete approximation.
+        seed : int, optional
+            Random seed. The default is 0.
+    
+        Returns
+        -------
+        PermShkDstn : DiscreteDistribution
+            Permanent income shock distribution.
+    
+        """
+        PermShkDstn = MeanOneLogNormal(sigma, seed=seed).approx(n_approx, tail_N=0)
+        if self.neutral_measure:
+            PermShkDstn.pmf = PermShkDstn.X * PermShkDstn.pmf
+
+        return PermShkDstn
+
+    def TranShk_engine(self, sigma, UnempPrb, IncUnemp, n_approx, seed=0):
+        """
+        Contructs a one-period distribution for transitory income
+    
+        Parameters
+        ----------
+        sigma : float
+            Standard deviation of the log-shock.
+        UnempPrb : float
+            Probability of the "unemployment" shock.
+        IncUnemp : float
+            Income shock in the "unemployment" state.
+        n_approx : int
+            Number of points to use in the discrete approximation.
+        seed : int, optional
+            Random seed. The default is 0.
+    
+        Returns
+        -------
+        TranShkDstn : DiscreteDistribution
+            Transitory income shock distribution.
+    
+        """
+        TranShkDstn = MeanOneLogNormal(sigma, seed=seed).approx(n_approx, tail_N=0)
+        if UnempPrb > 0:
+            TranShkDstn = add_discrete_outcome_constant_mean(
+                TranShkDstn, p=UnempPrb, x=IncUnemp
+            )
+
+        return TranShkDstn
+
+    def IncShk_engine(
+        self,
+        sigma_Perm,
+        sigma_Tran,
+        n_approx_Perm,
+        n_approx_Tran,
+        UnempPrb,
+        IncUnemp,
+        seed=0,
+    ):
+        """
+        Contructs a one-period distribution for the joint distribution of income
+        shocks (permanent and transitory).
+        
+        Parameters
+        ----------
+        sigma_Perm : float
+            Standard deviation of the log- permanent shock.
+        sigma_Tran : float
+            Standard deviation of the log- transitory shock.
+        n_approx_Perm : int
+            Number of points to use in the discrete approximation of the permanent shock.
+        n_approx_Tran : int
+            Number of points to use in the discrete approximation of the transitory shock.
+        UnempPrb : float
+            Probability of the "unemployment" shock.
+        IncUnemp : float
+            Income shock in the "unemployment" state.
+        seed : int, optional
+            Random seed. The default is 0.
+    
+        Returns
+        -------
+        IncShkDstn : DiscreteDistribution
+            Income shock distribution.
+    
+        """
+        PermShkDstn = self.PermShk_engine(sigma_Perm, n_approx_Perm)
+        TranShkDstn = self.TranShk_engine(sigma_Tran, UnempPrb, IncUnemp, n_approx_Tran)
+
+        IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn, seed=seed)
+
+        return IncShkDstn
+
     def construct_lognormal_income_process_unemployment(self):
         """
         Generates a list of discrete approximations to the income process for each
@@ -2702,7 +2802,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         neutral_measure_list = [self.neutral_measure] * len(PermShkCount_list)
 
         IncShkDstn = IndexDistribution(
-            engine=IncShk_engine,
+            engine=self.IncShk_engine,
             conditional={
                 "sigma_Perm": PermShkStd,
                 "sigma_Tran": TranShkStd,
@@ -2712,11 +2812,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 "UnempPrb": UnempPrb_list,
                 "IncUnemp": IncUnemp_list,
             },
-            RNG = self.RNG,
+            RNG=self.RNG,
         )
-        
+
         PermShkDstn = IndexDistribution(
-            engine=PermShk_engine,
+            engine=self.PermShk_engine,
             conditional={
                 "sigma": PermShkStd,
                 "n_approx": PermShkCount_list,
@@ -2725,7 +2825,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         )
 
         TranShkDstn = IndexDistribution(
-            engine=TranShk_engine,
+            engine=self.TranShk_engine,
             conditional={
                 "sigma": TranShkStd,
                 "UnempPrb": UnempPrb_list,
@@ -2735,113 +2835,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         )
 
         return IncShkDstn, PermShkDstn, TranShkDstn
-
-
-def PermShk_engine(sigma, n_approx, neutral_measure=False, seed=0):
-    """
-    Constructs a one-period distribution for permanent income shock.
-
-    Parameters
-    ----------
-    sigma : float
-        Standard deviation of the log-shock.
-    n_approx : int
-        Number of points to use in the discrete approximation.
-    neutral_measure : Bool, optional
-        Whether to use Hamenberg's permanent-income-neutral measure. The default is False.
-    seed : int, optional
-        Random seed. The default is 0.
-
-    Returns
-    -------
-    PermShkDstn : DiscreteDistribution
-        Permanent income shock distribution.
-
-    """
-    PermShkDstn = MeanOneLogNormal(sigma, seed=seed).approx(n_approx, tail_N=0)
-    if neutral_measure:
-        PermShkDstn.pmf = PermShkDstn.X * PermShkDstn.pmf
-
-    return PermShkDstn
-
-
-def TranShk_engine(sigma, UnempPrb, IncUnemp, n_approx, seed=0):
-    """
-    Contructs a one-period distribution for transitory income
-
-    Parameters
-    ----------
-    sigma : float
-        Standard deviation of the log-shock.
-    UnempPrb : float
-        Probability of the "unemployment" shock.
-    IncUnemp : float
-        Income shock in the "unemployment" state.
-    n_approx : int
-        Number of points to use in the discrete approximation.
-    seed : int, optional
-        Random seed. The default is 0.
-
-    Returns
-    -------
-    TranShkDstn : DiscreteDistribution
-        Transitory income shock distribution.
-
-    """
-    TranShkDstn = MeanOneLogNormal(sigma, seed=seed).approx(n_approx, tail_N=0)
-    if UnempPrb > 0:
-        TranShkDstn = add_discrete_outcome_constant_mean(
-            TranShkDstn, p=UnempPrb, x=IncUnemp
-        )
-
-    return TranShkDstn
-
-
-def IncShk_engine(
-    sigma_Perm,
-    sigma_Tran,
-    n_approx_Perm,
-    n_approx_Tran,
-    UnempPrb,
-    IncUnemp,
-    neutral_measure=False,
-    seed=0,
-):
-    """
-    Contructs a one-period distribution for the joint distribution of income
-    shocks (permanent and transitory).
-    
-    Parameters
-    ----------
-    sigma_Perm : float
-        Standard deviation of the log- permanent shock.
-    sigma_Tran : float
-        Standard deviation of the log- transitory shock.
-    n_approx_Perm : int
-        Number of points to use in the discrete approximation of the permanent shock.
-    n_approx_Tran : int
-        Number of points to use in the discrete approximation of the transitory shock.
-    UnempPrb : float
-        Probability of the "unemployment" shock.
-    IncUnemp : float
-        Income shock in the "unemployment" state.
-    neutral_measure : Bool, optional
-        Whether to use Hamenberg's permanent-income-neutral measure. The default is False.
-    seed : int, optional
-        Random seed. The default is 0.
-
-    Returns
-    -------
-    IncShkDstn : DiscreteDistribution
-        Income shock distribution.
-
-    """
-    PermShkDstn = PermShk_engine(sigma_Perm, n_approx_Perm, neutral_measure)
-    TranShkDstn = TranShk_engine(sigma_Tran, UnempPrb, IncUnemp, n_approx_Tran)
-
-    IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn, seed=seed)
-
-    return IncShkDstn
 
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
