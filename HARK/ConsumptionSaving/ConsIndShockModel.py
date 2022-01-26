@@ -2796,11 +2796,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PermShkCount_list = [PermShkCount] * normal_length + [1] * retire_length
         TranShkCount_list = [TranShkCount] * normal_length + [1] * retire_length
 
-        if not hasattr(self, "neutral_measure"):
-            self.neutral_measure = False
-
-        neutral_measure_list = [self.neutral_measure] * len(PermShkCount_list)
-
         IncShkDstn = IndexDistribution(
             engine=self.IncShk_engine,
             conditional={
@@ -2808,7 +2803,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 "sigma_Tran": TranShkStd,
                 "n_approx_Perm": PermShkCount_list,
                 "n_approx_Tran": TranShkCount_list,
-                "neutral_measure": neutral_measure_list,
                 "UnempPrb": UnempPrb_list,
                 "IncUnemp": IncUnemp_list,
             },
@@ -2820,7 +2814,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
             conditional={
                 "sigma": PermShkStd,
                 "n_approx": PermShkCount_list,
-                "neutral_measure": neutral_measure_list,
             },
         )
 
