@@ -520,14 +520,26 @@ class AgentType(Model):
         if self.read_shocks and bool(self.newborn_init_history):
 
             for var_name in self.state_now:
-                # Copy only array-like idiosyncratic states. Aggregates should
-                # not be set by newborns
-                idio = (
-                    isinstance(self.state_now[var_name], np.ndarray)
-                    and len(self.state_now[var_name]) == self.AgentCount
-                )
-                if idio:
-                    self.state_now[var_name] = self.newborn_init_history[var_name][0]
+                
+                # Check that we are actually given a value for the variable
+                if var_name in self.newborn_init_history.keys():
+                
+                    # Copy only array-like idiosyncratic states. Aggregates should
+                    # not be set by newborns
+                    idio = (
+                        isinstance(self.state_now[var_name], np.ndarray)
+                        and len(self.state_now[var_name]) == self.AgentCount
+                    )
+                    if idio:
+                        self.state_now[var_name] = self.newborn_init_history[var_name][0]
+                        
+                else:
+                    
+                    warn(
+                        'The option for reading shocks was activated but ' +
+                        'the model requires state ' + var_name + ', not contained in ' +
+                        'newborn_init_history.'
+                    )
 
         self.clear_history()
         return None
@@ -689,20 +701,33 @@ class AgentType(Model):
         None
         """
         if self.read_shocks:
+            
             who_dies = self.shock_history["who_dies"][self.t_sim, :]
             # Instead of simulating births, assign the saved newborn initial conditions
             if np.sum(who_dies) > 0:
                 for var_name in self.state_now:
-                    # Copy only array-like idiosyncratic states. Aggregates should
-                    # not be set by newborns
-                    idio = (
-                        isinstance(self.state_now[var_name], np.ndarray)
-                        and len(self.state_now[var_name]) == self.AgentCount
-                    )
-                    if idio:
-                        self.state_now[var_name][who_dies] = self.newborn_init_history[
-                            var_name
-                        ][self.t_sim, who_dies]
+                    
+                    if var_name in self.newborn_init_history.keys():
+                        # Copy only array-like idiosyncratic states. Aggregates should
+                        # not be set by newborns
+                        idio = (
+                            isinstance(self.state_now[var_name], np.ndarray)
+                            and len(self.state_now[var_name]) == self.AgentCount
+                        )
+                        if idio:
+                            
+                            self.state_now[var_name][who_dies] = self.newborn_init_history[
+                                var_name
+                            ][self.t_sim, who_dies]
+                            
+                    else:
+                        
+                        warn(
+                            'The option for reading shocks was activated but ' +
+                            'the model requires state ' + var_name + ', not contained in ' +
+                            'newborn_init_history.'
+                        )
+                        
                 # Reset ages of newborns
                 self.t_age[who_dies] = 0
         else:
