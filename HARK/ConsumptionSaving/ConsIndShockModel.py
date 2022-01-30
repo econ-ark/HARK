@@ -2702,7 +2702,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         neutral_measure_list = [self.neutral_measure] * len(PermShkCount_list)
 
         IncShkDstn = IndexDistribution(
-            engine=IncShk_engine,
+            engine=IncShk,
             conditional={
                 "sigma_Perm": PermShkStd,
                 "sigma_Tran": TranShkStd,
@@ -2712,11 +2712,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 "UnempPrb": UnempPrb_list,
                 "IncUnemp": IncUnemp_list,
             },
-            RNG = self.RNG,
+            RNG=self.RNG,
         )
-        
+
         PermShkDstn = IndexDistribution(
-            engine=PermShk_engine,
+            engine=PermShk,
             conditional={
                 "sigma": PermShkStd,
                 "n_approx": PermShkCount_list,
@@ -2725,7 +2725,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         )
 
         TranShkDstn = IndexDistribution(
-            engine=TranShk_engine,
+            engine=TranShk,
             conditional={
                 "sigma": TranShkStd,
                 "UnempPrb": UnempPrb_list,
@@ -2737,9 +2737,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         return IncShkDstn, PermShkDstn, TranShkDstn
 
 
-def PermShk_engine(sigma, n_approx, neutral_measure=False, seed=0):
+class PermShk(DiscreteDistribution):
     """
-    Constructs a one-period distribution for permanent income shock.
+    A one-period distribution of a multiplicative lognormal permanent income shock.
 
     Parameters
     ----------
@@ -2758,16 +2758,22 @@ def PermShk_engine(sigma, n_approx, neutral_measure=False, seed=0):
         Permanent income shock distribution.
 
     """
-    PermShkDstn = MeanOneLogNormal(sigma, seed=seed).approx(n_approx, tail_N=0)
-    if neutral_measure:
-        PermShkDstn.pmf = PermShkDstn.X * PermShkDstn.pmf
 
-    return PermShkDstn
+    def __init__(self, sigma, n_approx, neutral_measure=False, seed=0):
+
+        # Construct an auxiliary discretized normal
+        logn_approx = MeanOneLogNormal(sigma).approx(n_approx, tail_N=0)
+        # Change the pmf if necessary
+        if neutral_measure:
+            logn_approx.pmf = logn_approx.X * logn_approx.pmf
+
+        super().__init__(pmf=logn_approx.pmf, X=logn_approx.X, seed=seed)
 
 
-def TranShk_engine(sigma, UnempPrb, IncUnemp, n_approx, seed=0):
+class TranShk(DiscreteDistribution):
     """
-    Contructs a one-period distribution for transitory income
+    A one-period distribution for transitory income shocks that are a mixture
+    between a log-normal and a single-value unemployment shock.
 
     Parameters
     ----------
@@ -2788,27 +2794,22 @@ def TranShk_engine(sigma, UnempPrb, IncUnemp, n_approx, seed=0):
         Transitory income shock distribution.
 
     """
-    TranShkDstn = MeanOneLogNormal(sigma, seed=seed).approx(n_approx, tail_N=0)
-    if UnempPrb > 0:
-        TranShkDstn = add_discrete_outcome_constant_mean(
-            TranShkDstn, p=UnempPrb, x=IncUnemp
-        )
 
-    return TranShkDstn
+    def __init__(self, sigma, UnempPrb, IncUnemp, n_approx, seed=0):
+
+        dstn_approx = MeanOneLogNormal(sigma).approx(n_approx, tail_N=0)
+        if UnempPrb > 0:
+            dstn_approx = add_discrete_outcome_constant_mean(
+                dstn_approx, p=UnempPrb, x=IncUnemp
+            )
+
+        super().__init__(pmf=dstn_approx.pmf, X=dstn_approx.X, seed=seed)
 
 
-def IncShk_engine(
-    sigma_Perm,
-    sigma_Tran,
-    n_approx_Perm,
-    n_approx_Tran,
-    UnempPrb,
-    IncUnemp,
-    neutral_measure=False,
-    seed=0,
-):
+class IncShk(DiscreteDistribution):
+
     """
-    Contructs a one-period distribution for the joint distribution of income
+    A one-period distribution object for the joint distribution of income
     shocks (permanent and transitory).
     
     Parameters
@@ -2836,12 +2837,32 @@ def IncShk_engine(
         Income shock distribution.
 
     """
-    PermShkDstn = PermShk_engine(sigma_Perm, n_approx_Perm, neutral_measure)
-    TranShkDstn = TranShk_engine(sigma_Tran, UnempPrb, IncUnemp, n_approx_Tran)
 
-    IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn, seed=seed)
+    def __init__(
+        self,
+        sigma_Perm,
+        sigma_Tran,
+        n_approx_Perm,
+        n_approx_Tran,
+        UnempPrb,
+        IncUnemp,
+        neutral_measure=False,
+        seed=0,
+    ):
 
-    return IncShkDstn
+        perm_dstn = PermShk(
+            sigma=sigma_Perm, n_approx=n_approx_Perm, neutral_measure=neutral_measure
+        )
+        tran_dstn = TranShk(
+            sigma=sigma_Tran,
+            UnempPrb=UnempPrb,
+            IncUnemp=IncUnemp,
+            n_approx=n_approx_Tran,
+        )
+
+        joint_dstn = combine_indep_dstns(perm_dstn, tran_dstn)
+
+        super().__init__(pmf=joint_dstn.pmf, X=joint_dstn.X, seed=seed)
 
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
