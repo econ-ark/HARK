@@ -2702,7 +2702,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         neutral_measure_list = [self.neutral_measure] * len(PermShkCount_list)
 
         IncShkDstn = IndexDistribution(
-            engine=IncShk,
+            engine=BufferStockIncShkDstn,
             conditional={
                 "sigma_Perm": PermShkStd,
                 "sigma_Tran": TranShkStd,
@@ -2716,7 +2716,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         )
 
         PermShkDstn = IndexDistribution(
-            engine=PermShk,
+            engine=LognormPermIncShk,
             conditional={
                 "sigma": PermShkStd,
                 "n_approx": PermShkCount_list,
@@ -2725,7 +2725,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         )
 
         TranShkDstn = IndexDistribution(
-            engine=TranShk,
+            engine=MixtureTranIncShk,
             conditional={
                 "sigma": TranShkStd,
                 "UnempPrb": UnempPrb_list,
@@ -2737,7 +2737,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         return IncShkDstn, PermShkDstn, TranShkDstn
 
 
-class PermShk(DiscreteDistribution):
+class LognormPermIncShk(DiscreteDistribution):
     """
     A one-period distribution of a multiplicative lognormal permanent income shock.
 
@@ -2770,7 +2770,7 @@ class PermShk(DiscreteDistribution):
         super().__init__(pmf=logn_approx.pmf, X=logn_approx.X, seed=seed)
 
 
-class TranShk(DiscreteDistribution):
+class MixtureTranIncShk(DiscreteDistribution):
     """
     A one-period distribution for transitory income shocks that are a mixture
     between a log-normal and a single-value unemployment shock.
@@ -2806,11 +2806,16 @@ class TranShk(DiscreteDistribution):
         super().__init__(pmf=dstn_approx.pmf, X=dstn_approx.X, seed=seed)
 
 
-class IncShk(DiscreteDistribution):
+class BufferStockIncShkDstn(DiscreteDistribution):
 
     """
     A one-period distribution object for the joint distribution of income
-    shocks (permanent and transitory).
+    shocks (permanent and transitory), as modeled in the Buffer Stock Theory
+    paper:
+        - Lognormal, discretized permanent income shocks.
+        - Transitory shocks that are a mixture of:
+            - A lognormal distribution in normal times.
+            - An "unemployment" shock.
     
     Parameters
     ----------
@@ -2850,10 +2855,10 @@ class IncShk(DiscreteDistribution):
         seed=0,
     ):
 
-        perm_dstn = PermShk(
+        perm_dstn = LognormPermIncShk(
             sigma=sigma_Perm, n_approx=n_approx_Perm, neutral_measure=neutral_measure
         )
-        tran_dstn = TranShk(
+        tran_dstn = MixtureTranIncShk(
             sigma=sigma_Tran,
             UnempPrb=UnempPrb,
             IncUnemp=IncUnemp,
