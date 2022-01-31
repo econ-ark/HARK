@@ -1075,10 +1075,9 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution : ConsumerSolution
             The solution to the one period problem.
         """
-        self.aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
-        aNrm = self.aNrmNow
+        aNrmNow = self.prepare_to_calc_EndOfPrdvP()
         EndOfPrdvP = self.calc_EndOfPrdvP()
-        solution = self.make_basic_solution(EndOfPrdvP, aNrm, self.make_linear_cFunc)
+        solution = self.make_basic_solution(EndOfPrdvP, aNrmNow, self.make_linear_cFunc)
         solution = self.add_MPC_and_human_wealth(solution)
         solution = self.add_stable_points(solution)
 
