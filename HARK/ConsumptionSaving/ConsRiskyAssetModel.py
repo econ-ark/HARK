@@ -325,6 +325,29 @@ class ConsRiskySolver(ConsIndShockSolver):
             np.array([self.mNrmMinNow, self.mNrmMinNow + 1]), np.array([0.0, 1.0])
         )
 
+    def prepare_to_calc_EndOfPrdvP(self):
+
+        if self.zero_bound:
+            aNrmNow = self.aXtraGrid
+            bNrmNext = np.append(
+                aNrmNow[0] * self.RiskyDstn.X.min(),
+                aNrmNow * self.RiskyDstn.X.max(),
+            )
+            wNrmNext = np.append(
+                bNrmNext[0] / (self.PermGroFac * self.PermShkDstn.X.max()),
+                bNrmNext / (self.PermGroFac * self.PermShkDstn.X.min()),
+            )
+        else:
+            aNrmNow = np.append(self.BoroCnstNat, self.aXtraGrid)
+            bNrmNext = aNrmNow * self.RiskyDstn.X.max()
+            wNrmNext = bNrmNext / (self.PermGroFac * self.PermShkDstn.X.min())
+
+        self.aNrmNow = aNrmNow
+        self.bNrmNext = bNrmNext
+        self.wNrmNext = wNrmNext
+
+        return self.aNrmNow
+
     def calc_EndOfPrdvP(self):
         """
         Calculate end-of-period marginal value of assets at each point in aNrmNow.
