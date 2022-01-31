@@ -41,7 +41,15 @@ from HARK.interpolation import (
     LinearInterp,
     ValueFuncCRRA,
     MargValueFuncCRRA,
-    MargMargValueFuncCRRA,
+    MargMargValueFuncCRRA
+)
+from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
+from HARK.distribution import (
+    DiscreteDistribution,
+    add_discrete_outcome_constant_mean,
+    calc_expectation,
+    combine_indep_dstns,
+    IndexDistribution,
 )
 from HARK.utilities import (
     make_grid_exp_mult,
@@ -53,6 +61,16 @@ from HARK.utilities import (
     CRRAutility_inv,
     CRRAutilityP_invP,
 )
+from HARK import _log
+from HARK import set_verbosity_level
+
+from HARK.Calibration.Income.IncomeTools import (
+    parse_income_spec,
+    parse_time_params,
+    Cagetti_income,
+)
+from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
+from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 
 __all__ = [
     "ConsumerSolution",
@@ -255,7 +273,8 @@ class ConsPerfForesightSolver(MetricObject):
         None
         """
         self.u = lambda c: utility(c, gam=self.CRRA)  # utility function
-        self.uP = lambda c: utilityP(c, gam=self.CRRA)  # marginal utility function
+        # marginal utility function
+        self.uP = lambda c: utilityP(c, gam=self.CRRA)
         self.uPP = lambda c: utilityPP(
             c, gam=self.CRRA
         )  # marginal marginal utility function
@@ -311,10 +330,12 @@ class ConsPerfForesightSolver(MetricObject):
             BoroCnstArt = self.BoroCnstArt
 
         # Calculate human wealth this period
-        self.hNrmNow = (self.PermGroFac / self.Rfree) * (self.solution_next.hNrm + 1.0)
+        self.hNrmNow = (self.PermGroFac / self.Rfree) * \
+            (self.solution_next.hNrm + 1.0)
 
         # Calculate the lower bound of the marginal propensity to consume
-        PatFac = ((self.Rfree * self.DiscFacEff) ** (1.0 / self.CRRA)) / self.Rfree
+        PatFac = ((self.Rfree * self.DiscFacEff) **
+                  (1.0 / self.CRRA)) / self.Rfree
         self.MPCmin = 1.0 / (1.0 + PatFac / self.solution_next.MPCmin)
 
         # Extract the discrete kink points in next period's consumption function;
@@ -356,8 +377,9 @@ class ConsPerfForesightSolver(MetricObject):
 
                 # Adjust the grids of mNrm and cNrm to account for the borrowing constraint.
                 cCrit = mCrit - BoroCnstArt
-                mNrmNow = np.concatenate(([BoroCnstArt, mCrit], mNrmNow[(idx + 1) :]))
-                cNrmNow = np.concatenate(([0.0, cCrit], cNrmNow[(idx + 1) :]))
+                mNrmNow = np.concatenate(
+                    ([BoroCnstArt, mCrit], mNrmNow[(idx + 1):]))
+                cNrmNow = np.concatenate(([0.0, cCrit], cNrmNow[(idx + 1):]))
 
             else:
                 # If it *is* the very last index, then there are only three points
@@ -373,7 +395,8 @@ class ConsPerfForesightSolver(MetricObject):
         # kink point, being sure to adjust the extrapolation.
         if mNrmNow.size > self.MaxKinks:
             mNrmNow = np.concatenate((mNrmNow[:-2], [mNrmNow[-3] + 1.0]))
-            cNrmNow = np.concatenate((cNrmNow[:-2], [cNrmNow[-3] + self.MPCmin]))
+            cNrmNow = np.concatenate(
+                (cNrmNow[:-2], [cNrmNow[-3] + self.MPCmin]))
 
         # Construct the consumption function as a linear interpolation.
         self.cFunc = LinearInterp(mNrmNow, cNrmNow)
@@ -383,7 +406,8 @@ class ConsPerfForesightSolver(MetricObject):
 
         # Add two attributes to enable calculation of steady state market resources.
         self.Ex_IncNext = 1.0  # Perfect foresight income of 1
-        self.mNrmMinNow = mNrmNow[0]  # Relabeling for compatibility with add_mNrmStE
+        # Relabeling for compatibility with add_mNrmStE
+        self.mNrmMinNow = mNrmNow[0]
 
     def add_mNrmTrg(self, solution):
         """
@@ -433,7 +457,8 @@ class ConsPerfForesightSolver(MetricObject):
         # mNrmTrg solves Rcalbar*(m - c(m)) + E[inc_next] = m. Define a
         # rearranged version.
         Ex_m_tp1_minus_m_t = (
-            lambda m: Ex_RNrmFac * (m - solution.cFunc(m)) + self.Ex_IncNext - m
+            lambda m: Ex_RNrmFac *
+            (m - solution.cFunc(m)) + self.Ex_IncNext - m
         )
 
         # Minimum market resources plus next income is okay starting guess
@@ -499,7 +524,8 @@ class ConsPerfForesightSolver(MetricObject):
         # Minimum market resources plus next income is okay starting guess
         m_init_guess = self.mNrmMinNow + self.Ex_IncNext
         try:
-            mNrmStE = newton(Ex_PermShk_tp1_times_m_tp1_minus_m_t, m_init_guess)
+            mNrmStE = newton(
+                Ex_PermShk_tp1_times_m_tp1_minus_m_t, m_init_guess)
         except:
             mNrmStE = None
 
@@ -713,13 +739,15 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             self.vFuncNext = solution_next.vFunc
 
         # Update the bounding MPCs and PDV of human wealth:
-        self.PatFac = ((self.Rfree * self.DiscFacEff) ** (1.0 / self.CRRA)) / self.Rfree
+        self.PatFac = ((self.Rfree * self.DiscFacEff) **
+                       (1.0 / self.CRRA)) / self.Rfree
         self.MPCminNow = 1.0 / (1.0 + self.PatFac / solution_next.MPCmin)
         self.Ex_IncNext = np.dot(
             self.ShkPrbsNext, self.TranShkValsNext * self.PermShkValsNext
         )
         self.hNrmNow = (
-            self.PermGroFac / self.Rfree * (self.Ex_IncNext + solution_next.hNrm)
+            self.PermGroFac / self.Rfree *
+            (self.Ex_IncNext + solution_next.hNrm)
         )
         self.MPCmaxNow = 1.0 / (
             1.0
@@ -770,7 +798,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 
         # Define the borrowing constraint (limiting consumption function)
         self.cFuncNowCnst = LinearInterp(
-            np.array([self.mNrmMinNow, self.mNrmMinNow + 1]), np.array([0.0, 1.0])
+            np.array([self.mNrmMinNow, self.mNrmMinNow + 1]
+                     ), np.array([0.0, 1.0])
         )
 
     def prepare_to_solve(self):
@@ -940,7 +969,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         # Combine the constrained and unconstrained functions into the true consumption function
         # breakpoint()  # LowerEnvelope should only be used when BoroCnstArt is true
-        cFuncNow = LowerEnvelope(cFuncNowUnc, self.cFuncNowCnst, nan_bool=False)
+        cFuncNow = LowerEnvelope(
+            cFuncNowUnc, self.cFuncNowCnst, nan_bool=False)
 
         # Make the marginal value function and the marginal marginal value function
         vPfuncNow = MargValueFuncCRRA(cFuncNow, self.CRRA)
@@ -975,7 +1005,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             consumption function, marginal value function, and minimum m.
         """
         cNrm, mNrm = self.get_points_for_interpolation(EndOfPrdvP, aNrm)
-        solution_now = self.use_points_for_interpolation(cNrm, mNrm, interpolator)
+        solution_now = self.use_points_for_interpolation(
+            cNrm, mNrm, interpolator)
 
         return solution_now
 
@@ -1026,7 +1057,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         GPFRaw = thorn / self.PermGroFac
         self.GPFRaw = GPFRaw
         GPFNrm = (
-            thorn / self.PermGroFac / np.dot(1 / self.PermShkValsNext, self.ShkPrbsNext)
+            thorn / self.PermGroFac /
+            np.dot(1 / self.PermShkValsNext, self.ShkPrbsNext)
         )
         self.GPFNrm = GPFNrm
         GICRaw = 1 > thorn / self.PermGroFac
@@ -1035,9 +1067,11 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         self.GICNrm = GICNrm
 
         if GICRaw:
-            solution = self.add_mNrmStE(solution)  # find steady state m, if it exists
+            # find steady state m, if it exists
+            solution = self.add_mNrmStE(solution)
         if GICNrm:
-            solution = self.add_mNrmTrg(solution)  # find target m, if it exists
+            # find target m, if it exists
+            solution = self.add_mNrmTrg(solution)
 
         return solution
 
@@ -1077,7 +1111,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
         aNrmNow = self.prepare_to_calc_EndOfPrdvP()
         EndOfPrdvP = self.calc_EndOfPrdvP()
-        solution = self.make_basic_solution(EndOfPrdvP, aNrmNow, self.make_linear_cFunc)
+        solution = self.make_basic_solution(
+            EndOfPrdvP, aNrmNow, self.make_linear_cFunc)
         solution = self.add_MPC_and_human_wealth(solution)
         solution = self.add_stable_points(solution)
 
@@ -1152,7 +1187,8 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
 
         def v_lvl_next(shocks, a_nrm):
             return (
-                shocks[0] ** (1.0 - self.CRRA) * self.PermGroFac ** (1.0 - self.CRRA)
+                shocks[0] ** (1.0 - self.CRRA) *
+                self.PermGroFac ** (1.0 - self.CRRA)
             ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm))
 
         EndOfPrdv = self.DiscFacEff * calc_expectation(
@@ -1167,7 +1203,8 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0]
         )  # This is a very good approximation, vNvrsPP = 0 at the asset minimum
         aNrm_temp = np.insert(self.aNrmNow, 0, self.BoroCnstNat)
-        EndOfPrdvNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
+        EndOfPrdvNvrsFunc = CubicInterp(
+            aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
         self.EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
 
     def add_vFunc(self, solution, EndOfPrdvP):
@@ -1472,7 +1509,8 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         if KinkBool:
             aNrmNow = np.sort(
                 np.hstack(
-                    (np.asarray(self.aXtraGrid) + self.mNrmMinNow, np.array([0.0, 0.0]))
+                    (np.asarray(self.aXtraGrid) +
+                     self.mNrmMinNow, np.array([0.0, 0.0]))
                 )
             )
         else:
@@ -1482,8 +1520,10 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         # Make tiled versions of the assets grid and income shocks
         ShkCount = self.TranShkValsNext.size
         aNrm_temp = np.tile(aNrmNow, (ShkCount, 1))
-        PermShkVals_temp = (np.tile(self.PermShkValsNext, (aXtraCount, 1))).transpose()
-        TranShkVals_temp = (np.tile(self.TranShkValsNext, (aXtraCount, 1))).transpose()
+        PermShkVals_temp = (np.tile(self.PermShkValsNext,
+                            (aXtraCount, 1))).transpose()
+        TranShkVals_temp = (np.tile(self.TranShkValsNext,
+                            (aXtraCount, 1))).transpose()
         ShkPrbs_temp = (np.tile(self.ShkPrbsNext, (aXtraCount, 1))).transpose()
 
         # Make a 1D array of the interest factor at each asset gridpoint
@@ -1492,7 +1532,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
             self.i_kink = (
                 np.sum(aNrmNow <= 0) - 1
             )  # Save the index of the kink point as an attribute
-            Rfree_vec[0 : self.i_kink] = self.Rboro
+            Rfree_vec[0: self.i_kink] = self.Rboro
         self.Rfree = Rfree_vec
         Rfree_temp = np.tile(Rfree_vec, (ShkCount, 1))
 
@@ -1509,7 +1549,8 @@ class ConsKinkedRsolver(ConsIndShockSolver):
             PatFacTop = (
                 (self.Rsave * self.DiscFacEff) ** (1.0 / self.CRRA)
             ) / self.Rsave
-            self.MPCminNow = 1.0 / (1.0 + PatFacTop / self.solution_next.MPCmin)
+            self.MPCminNow = 1.0 / \
+                (1.0 + PatFacTop / self.solution_next.MPCmin)
             self.hNrmNow = (
                 self.PermGroFac
                 / self.Rsave
@@ -1542,11 +1583,16 @@ init_perfect_foresight = {
     "LivPrb": [0.98],  # Survival probability
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": None,  # Artificial borrowing constraint
-    "MaxKinks": 400,  # Maximum number of grid points to allow in cFunc (should be large)
-    "AgentCount": 10000,  # Number of agents of this type (only matters for simulation)
-    "aNrmInitMean": 0.0,  # Mean of log initial assets (only matters for simulation)
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets (only for simulation)
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income (only matters for simulation)
+    # Maximum number of grid points to allow in cFunc (should be large)
+    "MaxKinks": 400,
+    # Number of agents of this type (only matters for simulation)
+    "AgentCount": 10000,
+    # Mean of log initial assets (only matters for simulation)
+    "aNrmInitMean": 0.0,
+    # Standard deviation of log initial assets (only for simulation)
+    "aNrmInitStd": 1.0,
+    # Mean of log initial permanent income (only matters for simulation)
+    "pLvlInitMean": 0.0,
     # Standard deviation of log initial permanent income (only matters for simulation)
     "pLvlInitStd": 0.0,
     # Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
@@ -1571,8 +1617,10 @@ class PerfForesightConsumerType(AgentType):
     """
 
     # Define some universal values for all consumer types
-    cFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 1.0])  # c=m in terminal period
-    vFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 0.0])  # This is overwritten
+    cFunc_terminal_ = LinearInterp(
+        [0.0, 1.0], [0.0, 1.0])  # c=m in terminal period
+    vFunc_terminal_ = LinearInterp(
+        [0.0, 1.0], [0.0, 0.0])  # This is overwritten
     solution_terminal_ = ConsumerSolution(
         cFunc=cFunc_terminal_,
         vFunc=vFunc_terminal_,
@@ -1606,14 +1654,16 @@ class PerfForesightConsumerType(AgentType):
         self.shock_vars = deepcopy(self.shock_vars_)
         self.verbose = verbose
         self.quiet = quiet
-        self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolver)
+        self.solve_one_period = make_one_period_oo_solver(
+            ConsPerfForesightSolver)
         set_verbosity_level((4 - verbose) * 10)
 
     def pre_solve(self):
         self.update_solution_terminal()  # Solve the terminal period problem
 
         # Fill in BoroCnstArt and MaxKinks if they're not specified or are irrelevant.
-        if not hasattr(self, "BoroCnstArt"):  # If no borrowing constraint specified...
+        # If no borrowing constraint specified...
+        if not hasattr(self, "BoroCnstArt"):
             self.BoroCnstArt = None  # ...assume the user wanted none
         if not hasattr(self, "MaxKinks"):
             if self.cycles > 0:  # If it's not an infinite horizon model...
@@ -1632,7 +1682,8 @@ class PerfForesightConsumerType(AgentType):
         A method to check that various restrictions are met for the model class.
         """
         if self.DiscFac < 0:
-            raise Exception("DiscFac is below zero with value: " + str(self.DiscFac))
+            raise Exception(
+                "DiscFac is below zero with value: " + str(self.DiscFac))
 
         return
 
@@ -1649,7 +1700,8 @@ class PerfForesightConsumerType(AgentType):
         -------
         none
         """
-        self.solution_terminal.vFunc = ValueFuncCRRA(self.cFunc_terminal_, self.CRRA)
+        self.solution_terminal.vFunc = ValueFuncCRRA(
+            self.cFunc_terminal_, self.CRRA)
         self.solution_terminal.vPfunc = MargValueFuncCRRA(
             self.cFunc_terminal_, self.CRRA
         )
@@ -1709,9 +1761,11 @@ class PerfForesightConsumerType(AgentType):
             self.state_now["PlvlAgg"]
         )  # Account for newer cohorts having higher permanent income
         self.state_now["pLvl"][which_agents] = Lognormal(
-            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
+            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.randint(
+                0, 2 ** 31 - 1)
         ).draw(N)
-        self.t_age[which_agents] = 0  # How many periods since each agent was born
+        # How many periods since each agent was born
+        self.t_age[which_agents] = 0
         if (
             self.PerfMITShk == False
         ):  # If True, Newborns inherit t_cycle of agent they replaced (i.e. t_cycles are not reset).
@@ -1798,13 +1852,15 @@ class PerfForesightConsumerType(AgentType):
         RfreeNow = self.get_Rfree()
 
         # Calculate new states: normalized market resources and permanent income level
-        pLvlNow = pLvlPrev * self.shocks["PermShk"]  # Updated permanent income level
+        # Updated permanent income level
+        pLvlNow = pLvlPrev * self.shocks["PermShk"]
         # Updated aggregate permanent productivity level
         PlvlAggNow = self.state_prev["PlvlAgg"] * self.PermShkAggNow
         # "Effective" interest factor on normalized assets
         ReffNow = RfreeNow / self.shocks["PermShk"]
         bNrmNow = ReffNow * aNrmPrev  # Bank balances before labor income
-        mNrmNow = bNrmNow + self.shocks["TranShk"]  # Market resources after income
+        # Market resources after income
+        mNrmNow = bNrmNow + self.shocks["TranShk"]
 
         return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
 
@@ -1848,7 +1904,8 @@ class PerfForesightConsumerType(AgentType):
         # should this be "Now", or "Prev"?!?
         self.state_now["aNrm"] = self.state_now["mNrm"] - self.controls["cNrm"]
         # Useful in some cases to precalculate asset level
-        self.state_now["aLvl"] = self.state_now["aNrm"] * self.state_now["pLvl"]
+        self.state_now["aLvl"] = self.state_now["aNrm"] * \
+            self.state_now["pLvl"]
 
         # moves now to prev
         super().get_poststates()
@@ -2008,7 +2065,8 @@ class PerfForesightConsumerType(AgentType):
         if self.cycles != 0 or self.T_cycle > 1:
             return
 
-        self.thorn = (self.Rfree * self.DiscFac * self.LivPrb[0]) ** (1 / self.CRRA)
+        self.thorn = (self.Rfree * self.DiscFac *
+                      self.LivPrb[0]) ** (1 / self.CRRA)
 
         verbose = self.verbose if verbose is None else verbose
         self.check_AIC(verbose)
@@ -2029,25 +2087,30 @@ init_idiosyncratic_shocks = dict(
         # assets above grid parameters
         "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
         "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
-        "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
+        # Exponential nesting factor when constructing "assets above minimum" grid
+        "aXtraNestFac": 3,
         "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
         "aXtraExtra": [
             None
         ],  # Some other value of "assets above minimum" to add to the grid, not used
         # Income process variables
-        "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+        # Standard deviation of log permanent income shocks
+        "PermShkStd": [0.1],
         "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
-        "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+        # Standard deviation of log transitory income shocks
+        "TranShkStd": [0.1],
         "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
         "UnempPrb": 0.05,  # Probability of unemployment while working
         "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
         "IncUnemp": 0.3,  # Unemployment benefits replacement rate
         "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
-        "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
+        # Artificial borrowing constraint; imposed minimum level of end-of period assets
+        "BoroCnstArt": 0.0,
         "tax_rate": 0.0,  # Flat income tax rate
         "T_retire": 0,  # Period of retirement (0 --> no retirement)
         "vFuncBool": False,  # Whether to calculate the value function during solution
-        "CubicBool": False,  # Use cubic spline interpolation when True, linear interpolation when False
+        # Use cubic spline interpolation when True, linear interpolation when False
+        "CubicBool": False,
         "neutral_measure": False,
         # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
     }
@@ -2083,7 +2146,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         params.update(kwds)
 
         # Initialize a basic AgentType
-        PerfForesightConsumerType.__init__(self, verbose=verbose, quiet=quiet, **params)
+        PerfForesightConsumerType.__init__(
+            self, verbose=verbose, quiet=quiet, **params)
 
         # Add consumer-type specific objects, copying to create independent versions
         if (not self.CubicBool) and (not self.vFuncBool):
@@ -2196,8 +2260,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
             N = np.sum(these)
             if N > 0:
-                IncShkDstnNow = self.IncShkDstn[t]  # set current income distribution
-                PermGroFacNow = self.PermGroFac[t]  # and permanent growth factor
+                # set current income distribution
+                IncShkDstnNow = self.IncShkDstn[t]
+                # and permanent growth factor
+                PermGroFacNow = self.PermGroFac[t]
                 # Get random draws of income shocks from the discrete distribution
                 IncShks = IncShkDstnNow.draw(N)
 
@@ -2211,7 +2277,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         N = np.sum(newborn)
         if N > 0:
             these = newborn
-            IncShkDstnNow = self.IncShkDstn[0]  # set current income distribution
+            # set current income distribution
+            IncShkDstnNow = self.IncShkDstn[0]
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
             # Get random draws of income shocks from the discrete distribution
@@ -2351,7 +2418,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Calculate marginal value next period for each gridpoint and each shock
         mNextArray = (
-            self.Rfree / (self.PermGroFac[0] * PermShkVals_tiled) * aNowGrid_tiled
+            self.Rfree / (self.PermGroFac[0] *
+                          PermShkVals_tiled) * aNowGrid_tiled
             + TranShkVals_tiled
         )
         vPnextArray = vPfuncNext(mNextArray)
@@ -2528,7 +2596,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # would be referenced below as:
         # [url]/#Uncertainty-Modified-Conditions
 
-        self.Ex_PermShkInv = calc_expectation(self.PermShkDstn[0], lambda x: 1 / x)
+        self.Ex_PermShkInv = calc_expectation(
+            self.PermShkDstn[0], lambda x: 1 / x)
         # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
 
         # [url]/#Pat, adjusted to include mortality
@@ -2584,8 +2653,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         _log.warning("uInvEpShkuInv          = %2.6f " % (self.uInvEpShkuInv))
         _log.warning("VAF                    = %2.6f " % (self.VAF))
         _log.warning("WRPF                   = %2.6f " % (self.WRPF))
-        _log.warning("DiscFacGPFNrmMax       = %2.6f " % (self.DiscFacGPFNrmMax))
-        _log.warning("DiscFacGPFAggLivPrbMax = %2.6f " % (self.DiscFacGPFAggLivPrbMax))
+        _log.warning("DiscFacGPFNrmMax       = %2.6f " %
+                     (self.DiscFacGPFNrmMax))
+        _log.warning("DiscFacGPFAggLivPrbMax = %2.6f " %
+                     (self.DiscFacGPFAggLivPrbMax))
 
     def Ex_Mtp1_over_Ex_Ptp1(self, mNrm):
         cNrm = self.solution[-1].cFunc(mNrm)
@@ -2598,7 +2669,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
     def Ex_mtp1(self, mNrm):
         cNrm = self.solution[-1].cFunc(mNrm)
         aNrm = mNrm - cNrm
-        Ex_bNrm_tp1 = aNrm * self.Rfree * self.Ex_PermShkInv / self.PermGroFac[0]
+        Ex_bNrm_tp1 = aNrm * self.Rfree * \
+            self.Ex_PermShkInv / self.PermGroFac[0]
         Ex_Mtp1 = (Ex_bNrm_tp1 + 1) * Ex_Ptp1  # mean TranShk and PermShk are 1
         return Ex_Mtp1 / Ex_Ptp1
 
@@ -2684,82 +2756,205 @@ class IndShockConsumerType(PerfForesightConsumerType):
             a discrete approximation to the transitory income shocks.
         """
         # Unpack the parameters from the input
+        T_cycle = self.T_cycle
         PermShkStd = self.PermShkStd
         PermShkCount = self.PermShkCount
         TranShkStd = self.TranShkStd
         TranShkCount = self.TranShkCount
-        T_cycle = self.T_cycle
         T_retire = self.T_retire
         UnempPrb = self.UnempPrb
         IncUnemp = self.IncUnemp
         UnempPrbRet = self.UnempPrbRet
         IncUnempRet = self.IncUnempRet
 
-        IncShkDstn = []  # Discrete approximations to income process in each period
-        PermShkDstn = []  # Discrete approximations to permanent income shocks
-        TranShkDstn = []  # Discrete approximations to transitory income shocks
-
-        # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
-        # in normal times; value 0.0 in "unemployment" times with small prob.
         if T_retire > 0:
-            if UnempPrbRet > 0:
-                PermShkValsRet = np.array(
-                    [1.0, 1.0]
-                )  # Permanent income is deterministic in retirement (2 states for temp income shocks)
-                TranShkValsRet = np.array(
-                    [
-                        IncUnempRet,
-                        (1.0 - UnempPrbRet * IncUnempRet) / (1.0 - UnempPrbRet),
-                    ]
-                )
-                ShkPrbsRet = np.array([UnempPrbRet, 1.0 - UnempPrbRet])
-            else:
-                PermShkValsRet = np.array([1.0])
-                TranShkValsRet = np.array([1.0])
-                ShkPrbsRet = np.array([1.0])
-            IncShkDstnRet = DiscreteDistribution(
-                ShkPrbsRet,
-                [PermShkValsRet, TranShkValsRet],
-                seed=self.RNG.randint(0, 2 ** 31 - 1),
+            normal_length = T_retire
+            retire_length = T_cycle - T_retire
+        else:
+            normal_length = T_cycle
+            retire_length = 0
+
+        UnempPrb_list = [UnempPrb] * normal_length + \
+            [UnempPrbRet] * retire_length
+        IncUnemp_list = [IncUnemp] * normal_length + \
+            [IncUnempRet] * retire_length
+        PermShkCount_list = [PermShkCount] * \
+            normal_length + [1] * retire_length
+        TranShkCount_list = [TranShkCount] * \
+            normal_length + [1] * retire_length
+
+        if not hasattr(self, "neutral_measure"):
+            self.neutral_measure = False
+
+        neutral_measure_list = [self.neutral_measure] * len(PermShkCount_list)
+
+        IncShkDstn = IndexDistribution(
+            engine=BufferStockIncShkDstn,
+            conditional={
+                "sigma_Perm": PermShkStd,
+                "sigma_Tran": TranShkStd,
+                "n_approx_Perm": PermShkCount_list,
+                "n_approx_Tran": TranShkCount_list,
+                "neutral_measure": neutral_measure_list,
+                "UnempPrb": UnempPrb_list,
+                "IncUnemp": IncUnemp_list,
+            },
+            RNG=self.RNG,
+        )
+
+        PermShkDstn = IndexDistribution(
+            engine=LognormPermIncShk,
+            conditional={
+                "sigma": PermShkStd,
+                "n_approx": PermShkCount_list,
+                "neutral_measure": neutral_measure_list,
+            },
+        )
+
+        TranShkDstn = IndexDistribution(
+            engine=MixtureTranIncShk,
+            conditional={
+                "sigma": TranShkStd,
+                "UnempPrb": UnempPrb_list,
+                "IncUnemp": IncUnemp_list,
+                "n_approx": TranShkCount_list,
+            },
+        )
+
+        return IncShkDstn, PermShkDstn, TranShkDstn
+
+
+class LognormPermIncShk(DiscreteDistribution):
+    """
+    A one-period distribution of a multiplicative lognormal permanent income shock.
+
+    Parameters
+    ----------
+    sigma : float
+        Standard deviation of the log-shock.
+    n_approx : int
+        Number of points to use in the discrete approximation.
+    neutral_measure : Bool, optional
+        Whether to use Hamenberg's permanent-income-neutral measure. The default is False.
+    seed : int, optional
+        Random seed. The default is 0.
+
+    Returns
+    -------
+    PermShkDstn : DiscreteDistribution
+        Permanent income shock distribution.
+
+    """
+
+    def __init__(self, sigma, n_approx, neutral_measure=False, seed=0):
+
+        # Construct an auxiliary discretized normal
+        logn_approx = MeanOneLogNormal(sigma).approx(n_approx, tail_N=0)
+        # Change the pmf if necessary
+        if neutral_measure:
+            logn_approx.pmf = logn_approx.X * logn_approx.pmf
+
+        super().__init__(pmf=logn_approx.pmf, X=logn_approx.X, seed=seed)
+
+
+class MixtureTranIncShk(DiscreteDistribution):
+    """
+    A one-period distribution for transitory income shocks that are a mixture
+    between a log-normal and a single-value unemployment shock.
+
+    Parameters
+    ----------
+    sigma : float
+        Standard deviation of the log-shock.
+    UnempPrb : float
+        Probability of the "unemployment" shock.
+    IncUnemp : float
+        Income shock in the "unemployment" state.
+    n_approx : int
+        Number of points to use in the discrete approximation.
+    seed : int, optional
+        Random seed. The default is 0.
+
+    Returns
+    -------
+    TranShkDstn : DiscreteDistribution
+        Transitory income shock distribution.
+
+    """
+
+    def __init__(self, sigma, UnempPrb, IncUnemp, n_approx, seed=0):
+
+        dstn_approx = MeanOneLogNormal(sigma).approx(n_approx, tail_N=0)
+        if UnempPrb > 0:
+            dstn_approx = add_discrete_outcome_constant_mean(
+                dstn_approx, p=UnempPrb, x=IncUnemp
             )
 
-        # Loop to fill in the list of IncShkDstn random variables.
-        for t in range(T_cycle):  # Iterate over all periods, counting forward
+        super().__init__(pmf=dstn_approx.pmf, X=dstn_approx.X, seed=seed)
 
-            if T_retire > 0 and t >= T_retire:
-                # Then we are in the "retirement period" and add a retirement income object.
-                IncShkDstn.append(deepcopy(IncShkDstnRet))
-                PermShkDstn.append([np.array([1.0]), np.array([1.0])])
-                TranShkDstn.append([ShkPrbsRet, TranShkValsRet])
-            else:
-                # We are in the "working life" periods.
-                TranShkDstn_t = MeanOneLogNormal(sigma=TranShkStd[t]).approx(
-                    TranShkCount, tail_N=0
-                )
-                if UnempPrb > 0:
-                    TranShkDstn_t = add_discrete_outcome_constant_mean(
-                        TranShkDstn_t, p=UnempPrb, x=IncUnemp
-                    )
-                PermShkDstn_t = MeanOneLogNormal(sigma=PermShkStd[t]).approx(
-                    PermShkCount, tail_N=0
-                )
 
-                if not hasattr(self, "neutral_measure"):
-                    self.neutral_measure = False
+class BufferStockIncShkDstn(DiscreteDistribution):
 
-                if self.neutral_measure == True:
-                    PermShkDstn_t.pmf = PermShkDstn_t.X * PermShkDstn_t.pmf
+    """
+    A one-period distribution object for the joint distribution of income
+    shocks (permanent and transitory), as modeled in the Buffer Stock Theory
+    paper:
+        - Lognormal, discretized permanent income shocks.
+        - Transitory shocks that are a mixture of:
+            - A lognormal distribution in normal times.
+            - An "unemployment" shock.
 
-                IncShkDstn.append(
-                    combine_indep_dstns(
-                        PermShkDstn_t,
-                        TranShkDstn_t,
-                        seed=self.RNG.randint(0, 2 ** 31 - 1),
-                    )
-                )  # mix the independent distributions
-                PermShkDstn.append(PermShkDstn_t)
-                TranShkDstn.append(TranShkDstn_t)
-        return IncShkDstn, PermShkDstn, TranShkDstn
+    Parameters
+    ----------
+    sigma_Perm : float
+        Standard deviation of the log- permanent shock.
+    sigma_Tran : float
+        Standard deviation of the log- transitory shock.
+    n_approx_Perm : int
+        Number of points to use in the discrete approximation of the permanent shock.
+    n_approx_Tran : int
+        Number of points to use in the discrete approximation of the transitory shock.
+    UnempPrb : float
+        Probability of the "unemployment" shock.
+    IncUnemp : float
+        Income shock in the "unemployment" state.
+    neutral_measure : Bool, optional
+        Whether to use Hamenberg's permanent-income-neutral measure. The default is False.
+    seed : int, optional
+        Random seed. The default is 0.
+
+    Returns
+    -------
+    IncShkDstn : DiscreteDistribution
+        Income shock distribution.
+
+    """
+
+    def __init__(
+        self,
+        sigma_Perm,
+        sigma_Tran,
+        n_approx_Perm,
+        n_approx_Tran,
+        UnempPrb,
+        IncUnemp,
+        neutral_measure=False,
+        seed=0,
+    ):
+
+        perm_dstn = LognormPermIncShk(
+            sigma=sigma_Perm, n_approx=n_approx_Perm, neutral_measure=neutral_measure
+        )
+        tran_dstn = MixtureTranIncShk(
+            sigma=sigma_Tran,
+            UnempPrb=UnempPrb,
+            IncUnemp=IncUnemp,
+            n_approx=n_approx_Tran,
+        )
+
+        joint_dstn = combine_indep_dstns(perm_dstn, tran_dstn)
+
+        super().__init__(pmf=joint_dstn.pmf, X=joint_dstn.X, seed=seed)
 
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
@@ -2831,7 +3026,8 @@ class KinkedRconsumerType(IndShockConsumerType):
         PermShkValsNext = self.IncShkDstn[0][1]
         TranShkValsNext = self.IncShkDstn[0][2]
         ShkPrbsNext = self.IncShkDstn[0][0]
-        Ex_IncNext = calc_expectation(IncShkDstn, lambda trans, perm: trans * perm)
+        Ex_IncNext = calc_expectation(
+            IncShkDstn, lambda trans, perm: trans * perm)
         PermShkMinNext = np.min(PermShkValsNext)
         TranShkMinNext = np.min(TranShkValsNext)
         WorstIncNext = PermShkMinNext * TranShkMinNext
@@ -2965,7 +3161,8 @@ def apply_flat_income_tax(
         if t < T_retire:
             for j in range((IncShkDstn[t][i]).size):
                 if j not in unemployed_indices:
-                    IncShkDstn_new[t][i][j] = IncShkDstn[t][i][j] * (1 - tax_rate)
+                    IncShkDstn_new[t][i][j] = IncShkDstn[t][i][j] * \
+                        (1 - tax_rate)
     return IncShkDstn_new
 
 
@@ -3075,8 +3272,8 @@ init_lifecycle.update({"LivPrb": liv_prb})
 
 # Make a dictionary to specify an infinite consumer with a four period cycle
 init_cyclical = copy(init_idiosyncratic_shocks)
-init_cyclical["PermGroFac"] = [1.1, 1.082251, 2.8, 0.3]
-init_cyclical["PermShkStd"] = [0.1, 0.1, 0.1, 0.1]
-init_cyclical["TranShkStd"] = [0.1, 0.1, 0.1, 0.1]
-init_cyclical["LivPrb"] = 4 * [0.98]
-init_cyclical["T_cycle"] = 4
+init_cyclical['PermGroFac'] = [1.1, 1.082251, 2.8, 0.3]
+init_cyclical['PermShkStd'] = [0.1, 0.1, 0.1, 0.1]
+init_cyclical['TranShkStd'] = [0.1, 0.1, 0.1, 0.1]
+init_cyclical['LivPrb'] = 4*[0.98]
+init_cyclical['T_cycle'] = 4
