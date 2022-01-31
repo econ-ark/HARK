@@ -17,6 +17,7 @@ import numpy as np
 from scipy.optimize import newton
 from HARK import AgentType, NullFunc, MetricObject, make_one_period_oo_solver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
+from HARK.interpolation import CubicHermiteInterp as CubicInterp
 from HARK.interpolation import (
     CubicInterp,
     LowerEnvelope,
@@ -31,6 +32,7 @@ from HARK.distribution import (
     add_discrete_outcome_constant_mean,
     calc_expectation,
     combine_indep_dstns,
+    IndexDistribution,
 )
 from HARK.utilities import (
     make_grid_exp_mult,
@@ -45,7 +47,11 @@ from HARK.utilities import (
 from HARK import _log
 from HARK import set_verbosity_level
 
-from HARK.Calibration.Income.IncomeTools import parse_income_spec, parse_time_params, Cagetti_income
+from HARK.Calibration.Income.IncomeTools import (
+    parse_income_spec,
+    parse_time_params,
+    Cagetti_income,
+)
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 
@@ -1579,7 +1585,7 @@ class PerfForesightConsumerType(AgentType):
     )
     time_vary_ = ["LivPrb", "PermGroFac"]
     time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt" ]
-    state_vars = ['pLvl', 'PlvlAgg', 'bNrm', 'mNrm', "aNrm"]
+    state_vars = ['pLvl', 'PlvlAgg', 'bNrm', 'mNrm', "aNrm", 'aLvl']
     shock_vars_ = []
 
     def __init__(self, verbose=1, quiet=False, **kwds):
@@ -2671,82 +2677,201 @@ class IndShockConsumerType(PerfForesightConsumerType):
             a discrete approximation to the transitory income shocks.
         """
         # Unpack the parameters from the input
+        T_cycle = self.T_cycle
         PermShkStd = self.PermShkStd
         PermShkCount = self.PermShkCount
         TranShkStd = self.TranShkStd
         TranShkCount = self.TranShkCount
-        T_cycle = self.T_cycle
         T_retire = self.T_retire
         UnempPrb = self.UnempPrb
         IncUnemp = self.IncUnemp
         UnempPrbRet = self.UnempPrbRet
         IncUnempRet = self.IncUnempRet
 
-        IncShkDstn = []  # Discrete approximations to income process in each period
-        PermShkDstn = []  # Discrete approximations to permanent income shocks
-        TranShkDstn = []  # Discrete approximations to transitory income shocks
-
-        # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
-        # in normal times; value 0.0 in "unemployment" times with small prob.
         if T_retire > 0:
-            if UnempPrbRet > 0:
-                PermShkValsRet = np.array(
-                    [1.0, 1.0]
-                )  # Permanent income is deterministic in retirement (2 states for temp income shocks)
-                TranShkValsRet = np.array(
-                    [
-                        IncUnempRet,
-                        (1.0 - UnempPrbRet * IncUnempRet) / (1.0 - UnempPrbRet),
-                    ]
-                )
-                ShkPrbsRet = np.array([UnempPrbRet, 1.0 - UnempPrbRet])
-            else:
-                PermShkValsRet = np.array([1.0])
-                TranShkValsRet = np.array([1.0])
-                ShkPrbsRet = np.array([1.0])
-            IncShkDstnRet = DiscreteDistribution(
-                ShkPrbsRet,
-                [PermShkValsRet, TranShkValsRet],
-                seed=self.RNG.randint(0, 2 ** 31 - 1),
+            normal_length = T_retire
+            retire_length = T_cycle - T_retire
+        else:
+            normal_length = T_cycle
+            retire_length = 0
+
+        UnempPrb_list = [UnempPrb] * normal_length + [UnempPrbRet] * retire_length
+        IncUnemp_list = [IncUnemp] * normal_length + [IncUnempRet] * retire_length
+        PermShkCount_list = [PermShkCount] * normal_length + [1] * retire_length
+        TranShkCount_list = [TranShkCount] * normal_length + [1] * retire_length
+
+        if not hasattr(self, "neutral_measure"):
+            self.neutral_measure = False
+
+        neutral_measure_list = [self.neutral_measure] * len(PermShkCount_list)
+
+        IncShkDstn = IndexDistribution(
+            engine=BufferStockIncShkDstn,
+            conditional={
+                "sigma_Perm": PermShkStd,
+                "sigma_Tran": TranShkStd,
+                "n_approx_Perm": PermShkCount_list,
+                "n_approx_Tran": TranShkCount_list,
+                "neutral_measure": neutral_measure_list,
+                "UnempPrb": UnempPrb_list,
+                "IncUnemp": IncUnemp_list,
+            },
+            RNG=self.RNG,
+        )
+
+        PermShkDstn = IndexDistribution(
+            engine=LognormPermIncShk,
+            conditional={
+                "sigma": PermShkStd,
+                "n_approx": PermShkCount_list,
+                "neutral_measure": neutral_measure_list,
+            },
+        )
+
+        TranShkDstn = IndexDistribution(
+            engine=MixtureTranIncShk,
+            conditional={
+                "sigma": TranShkStd,
+                "UnempPrb": UnempPrb_list,
+                "IncUnemp": IncUnemp_list,
+                "n_approx": TranShkCount_list,
+            },
+        )
+
+        return IncShkDstn, PermShkDstn, TranShkDstn
+
+
+class LognormPermIncShk(DiscreteDistribution):
+    """
+    A one-period distribution of a multiplicative lognormal permanent income shock.
+
+    Parameters
+    ----------
+    sigma : float
+        Standard deviation of the log-shock.
+    n_approx : int
+        Number of points to use in the discrete approximation.
+    neutral_measure : Bool, optional
+        Whether to use Hamenberg's permanent-income-neutral measure. The default is False.
+    seed : int, optional
+        Random seed. The default is 0.
+
+    Returns
+    -------
+    PermShkDstn : DiscreteDistribution
+        Permanent income shock distribution.
+
+    """
+
+    def __init__(self, sigma, n_approx, neutral_measure=False, seed=0):
+
+        # Construct an auxiliary discretized normal
+        logn_approx = MeanOneLogNormal(sigma).approx(n_approx, tail_N=0)
+        # Change the pmf if necessary
+        if neutral_measure:
+            logn_approx.pmf = logn_approx.X * logn_approx.pmf
+
+        super().__init__(pmf=logn_approx.pmf, X=logn_approx.X, seed=seed)
+
+
+class MixtureTranIncShk(DiscreteDistribution):
+    """
+    A one-period distribution for transitory income shocks that are a mixture
+    between a log-normal and a single-value unemployment shock.
+
+    Parameters
+    ----------
+    sigma : float
+        Standard deviation of the log-shock.
+    UnempPrb : float
+        Probability of the "unemployment" shock.
+    IncUnemp : float
+        Income shock in the "unemployment" state.
+    n_approx : int
+        Number of points to use in the discrete approximation.
+    seed : int, optional
+        Random seed. The default is 0.
+
+    Returns
+    -------
+    TranShkDstn : DiscreteDistribution
+        Transitory income shock distribution.
+
+    """
+
+    def __init__(self, sigma, UnempPrb, IncUnemp, n_approx, seed=0):
+
+        dstn_approx = MeanOneLogNormal(sigma).approx(n_approx, tail_N=0)
+        if UnempPrb > 0:
+            dstn_approx = add_discrete_outcome_constant_mean(
+                dstn_approx, p=UnempPrb, x=IncUnemp
             )
 
-        # Loop to fill in the list of IncShkDstn random variables.
-        for t in range(T_cycle):  # Iterate over all periods, counting forward
+        super().__init__(pmf=dstn_approx.pmf, X=dstn_approx.X, seed=seed)
 
-            if T_retire > 0 and t >= T_retire:
-                # Then we are in the "retirement period" and add a retirement income object.
-                IncShkDstn.append(deepcopy(IncShkDstnRet))
-                PermShkDstn.append([np.array([1.0]), np.array([1.0])])
-                TranShkDstn.append([ShkPrbsRet, TranShkValsRet])
-            else:
-                # We are in the "working life" periods.
-                TranShkDstn_t = MeanOneLogNormal(sigma=TranShkStd[t]).approx(
-                    TranShkCount, tail_N=0
-                )
-                if UnempPrb > 0:
-                    TranShkDstn_t = add_discrete_outcome_constant_mean(
-                        TranShkDstn_t, p=UnempPrb, x=IncUnemp
-                    )
-                PermShkDstn_t = MeanOneLogNormal(sigma=PermShkStd[t]).approx(
-                    PermShkCount, tail_N=0
-                )
 
-                if not hasattr(self, "neutral_measure"):
-                    self.neutral_measure = False
-                    
-                if self.neutral_measure == True:
-                    PermShkDstn_t.pmf = PermShkDstn_t.X*PermShkDstn_t.pmf
-                
-                IncShkDstn.append(
-                    combine_indep_dstns(
-                        PermShkDstn_t,
-                        TranShkDstn_t,
-                        seed=self.RNG.randint(0, 2 ** 31 - 1),
-                    )
-                )  # mix the independent distributions
-                PermShkDstn.append(PermShkDstn_t)
-                TranShkDstn.append(TranShkDstn_t)
-        return IncShkDstn, PermShkDstn, TranShkDstn
+class BufferStockIncShkDstn(DiscreteDistribution):
+
+    """
+    A one-period distribution object for the joint distribution of income
+    shocks (permanent and transitory), as modeled in the Buffer Stock Theory
+    paper:
+        - Lognormal, discretized permanent income shocks.
+        - Transitory shocks that are a mixture of:
+            - A lognormal distribution in normal times.
+            - An "unemployment" shock.
+    
+    Parameters
+    ----------
+    sigma_Perm : float
+        Standard deviation of the log- permanent shock.
+    sigma_Tran : float
+        Standard deviation of the log- transitory shock.
+    n_approx_Perm : int
+        Number of points to use in the discrete approximation of the permanent shock.
+    n_approx_Tran : int
+        Number of points to use in the discrete approximation of the transitory shock.
+    UnempPrb : float
+        Probability of the "unemployment" shock.
+    IncUnemp : float
+        Income shock in the "unemployment" state.
+    neutral_measure : Bool, optional
+        Whether to use Hamenberg's permanent-income-neutral measure. The default is False.
+    seed : int, optional
+        Random seed. The default is 0.
+
+    Returns
+    -------
+    IncShkDstn : DiscreteDistribution
+        Income shock distribution.
+
+    """
+
+    def __init__(
+        self,
+        sigma_Perm,
+        sigma_Tran,
+        n_approx_Perm,
+        n_approx_Tran,
+        UnempPrb,
+        IncUnemp,
+        neutral_measure=False,
+        seed=0,
+    ):
+
+        perm_dstn = LognormPermIncShk(
+            sigma=sigma_Perm, n_approx=n_approx_Perm, neutral_measure=neutral_measure
+        )
+        tran_dstn = MixtureTranIncShk(
+            sigma=sigma_Tran,
+            UnempPrb=UnempPrb,
+            IncUnemp=IncUnemp,
+            n_approx=n_approx_Tran,
+        )
+
+        joint_dstn = combine_indep_dstns(perm_dstn, tran_dstn)
+
+        super().__init__(pmf=joint_dstn.pmf, X=joint_dstn.X, seed=seed)
 
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer

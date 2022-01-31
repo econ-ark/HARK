@@ -6,11 +6,14 @@ another instance; this is used in HARK.core's solve() method to check for soluti
 convergence.  The interpolator classes currently in this module inherit their
 distance method from MetricObject.
 """
-import numpy as np
-from .core import MetricObject
-from copy import deepcopy
-from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP
 import warnings
+from copy import deepcopy
+
+import numpy as np
+from scipy.interpolate import CubicHermiteSpline
+
+from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP
+from .core import MetricObject
 
 
 def _isscalar(x):
@@ -1041,8 +1044,8 @@ class CubicInterp(HARKinterpolator1D):
                     - self.coeffs[self.n, 2] * np.exp(alpha * self.coeffs[self.n, 3])
                 )
 
-                y[x == self.x_list.min()] = self.y_list.min()
-                
+                y[x == self.x_list[0]] = self.y_list[0]
+
         return y
 
     def _der(self, x):
@@ -1168,6 +1171,162 @@ class CubicInterp(HARKinterpolator1D):
                 dydx[out_top] = self.coeffs[self.n, 1] - self.coeffs[
                     self.n, 2
                 ] * self.coeffs[self.n, 3] * np.exp(alpha * self.coeffs[self.n, 3])
+        return y, dydx
+
+
+class CubicHermiteInterp(HARKinterpolator1D):
+    """
+    An interpolating function using piecewise cubic splines.  Matches level and
+    slope of 1D function at gridpoints, smoothly interpolating in between.
+    Extrapolation above highest gridpoint approaches a limiting linear function
+    if desired (linear extrapolation also enabled.)
+
+    NOTE: When no input is given for the limiting linear function, linear
+        extrapolation is used above the highest gridpoint.
+
+    Parameters
+    ----------
+    x_list : np.array
+        List of x values composing the grid.
+    y_list : np.array
+        List of y values, representing f(x) at the points in x_list.
+    dydx_list : np.array
+        List of dydx values, representing f'(x) at the points in x_list
+    intercept_limit : float
+        Intercept of limiting linear function.
+    slope_limit : float
+        Slope of limiting linear function.
+    lower_extrap : boolean
+        Indicator for whether lower extrapolation is allowed.  False means
+        f(x) = NaN for x < min(x_list); True means linear extrapolation.
+    """
+
+    distance_criteria = ["x_list", "y_list", "dydx_list"]
+
+    def __init__(
+        self,
+        x_list,
+        y_list,
+        dydx_list,
+        intercept_limit=None,
+        slope_limit=None,
+        lower_extrap=False,
+    ):
+        self.x_list = (
+            np.asarray(x_list)
+            if _check_flatten(1, x_list)
+            else np.array(x_list).flatten()
+        )
+        self.y_list = (
+            np.asarray(y_list)
+            if _check_flatten(1, y_list)
+            else np.array(y_list).flatten()
+        )
+        self.dydx_list = (
+            np.asarray(dydx_list)
+            if _check_flatten(1, dydx_list)
+            else np.array(dydx_list).flatten()
+        )
+        _check_grid_dimensions(1, self.y_list, self.x_list)
+        _check_grid_dimensions(1, self.dydx_list, self.x_list)
+
+        self.n = len(x_list)
+
+        self._chs = CubicHermiteSpline(
+            self.x_list, self.y_list, self.dydx_list, extrapolate=None
+        )
+        self.coeffs = np.flip(self._chs.c.T, 1)
+
+        # Define lower extrapolation as linear function (or just NaN)
+        if lower_extrap:
+            temp = np.array([y_list[0], dydx_list[0], 0, 0])
+        else:
+            temp = np.array([np.nan, np.nan, np.nan, np.nan])
+
+        self.coeffs = np.vstack((temp, self.coeffs))
+
+        x1 = x_list[self.n - 1]
+        y1 = y_list[self.n - 1]
+
+        # Calculate extrapolation coefficients as a decay toward limiting function y = mx+b
+        if slope_limit is None and intercept_limit is None:
+            slope_limit = dydx_list[-1]
+            intercept_limit = y_list[-1] - slope_limit * x_list[-1]
+        gap = slope_limit * x1 + intercept_limit - y1
+        slope = slope_limit - dydx_list[self.n - 1]
+        if (gap != 0) and (slope <= 0):
+            temp = np.array([intercept_limit, slope_limit, gap, slope / gap])
+        elif slope > 0:
+            # fixing a problem when slope is positive
+            temp = np.array([intercept_limit, slope_limit, 0, 0])
+        else:
+            temp = np.array([intercept_limit, slope_limit, gap, 0])
+        self.coeffs = np.vstack((self.coeffs, temp))
+
+    def out_of_bounds(self, x):
+        out_bot = x < self.x_list[0]
+        out_top = x > self.x_list[-1]
+        return out_bot, out_top
+
+    def _evaluate(self, x):
+        """
+        Returns the level of the interpolated function at each value in x.  Only
+        called internally by HARKinterpolator1D.__call__ (etc).
+        """
+        out_bot, out_top = self.out_of_bounds(x)
+
+        return self._eval_helper(x, out_bot, out_top)
+
+    def _eval_helper(self, x, out_bot, out_top):
+        y = self._chs(x)
+
+        # Do the "out of bounds" evaluation points
+        if any(out_bot):
+            y[out_bot] = self.coeffs[0, 0] + self.coeffs[0, 1] * (
+                x[out_bot] - self.x_list[0]
+            )
+
+        if any(out_top):
+            alpha = x[out_top] - self.x_list[self.n - 1]
+            y[out_top] = (
+                self.coeffs[self.n, 0]
+                + x[out_top] * self.coeffs[self.n, 1]
+                - self.coeffs[self.n, 2] * np.exp(alpha * self.coeffs[self.n, 3])
+            )
+
+        return y
+
+    def _der(self, x):
+        """
+        Returns the first derivative of the interpolated function at each value
+        in x. Only called internally by HARKinterpolator1D.derivative (etc).
+        """
+        out_bot, out_top = self.out_of_bounds(x)
+
+        return self._der_helper(x, out_bot, out_top)
+
+    def _der_helper(self, x, out_bot, out_top):
+        dydx = self._chs(x, nu=1)
+
+        # Do the "out of bounds" evaluation points
+        if any(out_bot):
+            dydx[out_bot] = self.coeffs[0, 1]
+        if any(out_top):
+            alpha = x[out_top] - self.x_list[self.n - 1]
+            dydx[out_top] = self.coeffs[self.n, 1] - self.coeffs[
+                self.n, 2
+            ] * self.coeffs[self.n, 3] * np.exp(alpha * self.coeffs[self.n, 3])
+
+        return dydx
+
+    def _evalAndDer(self, x):
+        """
+        Returns the level and first derivative of the function at each value in
+        x.  Only called internally by HARKinterpolator1D.eval_and_der (etc).
+        """
+        out_bot, out_top = self.out_of_bounds(x)
+        y = self._eval_helper(x, out_bot, out_top)
+        dydx = self._der_helper(x, out_bot, out_top)
         return y, dydx
 
 
@@ -1993,7 +2152,7 @@ class LowerEnvelope(HARKinterpolator1D):
     *functions : function
         Any number of real functions; often instances of HARKinterpolator1D
     nan_bool : boolean
-        An indicator for whether the solver should exclude NA's when 
+        An indicator for whether the solver should exclude NA's when
         forming the lower envelope
     """
 
@@ -2065,8 +2224,8 @@ class UpperEnvelope(HARKinterpolator1D):
     ----------
     *functions : function
         Any number of real functions; often instances of HARKinterpolator1D
-    nan_bool : boolean	
-        An indicator for whether the solver should exclude NA's when forming	
+    nan_bool : boolean
+        An indicator for whether the solver should exclude NA's when forming
         the lower envelope.
     """
 
@@ -2135,8 +2294,8 @@ class LowerEnvelope2D(HARKinterpolator2D):
     ----------
     *functions : function
         Any number of real functions; often instances of HARKinterpolator2D
-    nan_bool : boolean	
-        An indicator for whether the solver should exclude NA's when forming	
+    nan_bool : boolean
+        An indicator for whether the solver should exclude NA's when forming
         the lower envelope.
     """
 
@@ -2214,8 +2373,8 @@ class LowerEnvelope3D(HARKinterpolator3D):
     ----------
     *functions : function
         Any number of real functions; often instances of HARKinterpolator3D
-    nan_bool : boolean	
-        An indicator for whether the solver should exclude NA's when forming	
+    nan_bool : boolean
+        An indicator for whether the solver should exclude NA's when forming
         the lower envelope.
     """
 
@@ -3907,12 +4066,12 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         # Grab a point known to be inside each sector: the midway point between
         # the lower left and upper right vertex of each sector
         x_temp = 0.5 * (
-            self.x_values[0: (self.x_n - 1), 0: (self.y_n - 1)]
-            + self.x_values[1: self.x_n, 1: self.y_n]
+            self.x_values[0 : (self.x_n - 1), 0 : (self.y_n - 1)]
+            + self.x_values[1 : self.x_n, 1 : self.y_n]
         )
         y_temp = 0.5 * (
-            self.y_values[0: (self.x_n - 1), 0: (self.y_n - 1)]
-            + self.y_values[1: self.x_n, 1: self.y_n]
+            self.y_values[0 : (self.x_n - 1), 0 : (self.y_n - 1)]
+            + self.y_values[1 : self.x_n, 1 : self.y_n]
         )
         size = (self.x_n - 1) * (self.y_n - 1)
         x_temp = np.reshape(x_temp, size)
@@ -4229,16 +4388,15 @@ class DiscreteInterp(MetricObject):
         A 1D array containing the values in the range of the discrete function
         to be interpolated.
     """
+
     distance_criteria = ["index_interp"]
 
     def __init__(self, index_interp, discrete_vals):
-
         self.index_interp = index_interp
         self.discrete_vals = discrete_vals
         self.n_vals = len(self.discrete_vals)
 
     def __call__(self, *args):
-
         # Interpolate indices and round to integers
         inds = np.rint(self.index_interp(*args)).astype(int)
         if type(inds) is not np.ndarray:
@@ -4249,6 +4407,7 @@ class DiscreteInterp(MetricObject):
 
         # Get values from grid
         return self.discrete_vals[inds]
+
 
 ###############################################################################
 ## Functions used in discrete choice models with T1EV taste shocks ############
@@ -4359,6 +4518,7 @@ def calc_log_sum(Vals, sigma):
     LogSumV = maxV + sigma * LogSumV
     return LogSumV
 
+
 ###############################################################################
 # Tools for value and marginal-value functions in models where                #
 # - dvdm = u'(c).                                                             #
@@ -4402,7 +4562,7 @@ class ValueFuncCRRA(MetricObject):
             Lifetime value of beginning this period with the given states; has
             same size as the state inputs.
         """
-#        return CRRAutility(self.func(*vFuncArgs), gam=self.CRRA)
+        #        return CRRAutility(self.func(*vFuncArgs), gam=self.CRRA)
         return CRRAutility(self.vFuncNvrs(*vFuncArgs), self.CRRA)
 
 
@@ -4470,7 +4630,7 @@ class MargValueFuncCRRA(MetricObject):
         if isinstance(self.cFunc, (HARKinterpolator1D)):
             c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
 
-        elif hasattr(self.cFunc, 'derivativeX'):
+        elif hasattr(self.cFunc, "derivativeX"):
             c = self.cFunc(*cFuncArgs)
             MPC = self.cFunc.derivativeX(*cFuncArgs)
 
@@ -4528,7 +4688,7 @@ class MargMargValueFuncCRRA(MetricObject):
         if isinstance(self.cFunc, (HARKinterpolator1D)):
             c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
 
-        elif hasattr(self.cFunc, 'derivativeX'):
+        elif hasattr(self.cFunc, "derivativeX"):
             c = self.cFunc(*cFuncArgs)
             MPC = self.cFunc.derivativeX(*cFuncArgs)
 
@@ -4540,6 +4700,7 @@ class MargMargValueFuncCRRA(MetricObject):
 
         return MPC * CRRAutilityPP(c, gam=self.CRRA)
 
+
 ##############################################################################
 # Examples and tests
 ##############################################################################
@@ -4550,9 +4711,6 @@ def main():
     print("To see some examples of its interpolation methods in action, look at any")
     print("of the model modules in /ConsumptionSavingModel.  In the future, running")
     print("this module will show examples of each interpolation class.")
-
-    from time import time
-    import matplotlib.pyplot as plt
 
     RNG = np.random.RandomState(123)
 
@@ -4567,9 +4725,15 @@ def main():
         plt.show()
 
     if False:
-        def f(x, y): return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
-        def dfdx(x, y): return 6.0 * x + y
-        def dfdy(x, y): return x + 8.0 * y
+
+        def f(x, y):
+            return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
+
+        def dfdx(x, y):
+            return 6.0 * x + y
+
+        def dfdy(x, y):
+            return x + 8.0 * y
 
         y_list = np.linspace(0, 5, 100, dtype=float)
         xInterpolators = []
@@ -4621,9 +4785,15 @@ def main():
             - 5 * z ** 2.0
             + 1.5 * x * z
         )
-        def dfdx(x, y, z): return 6.0 * x + y + 1.5 * z
-        def dfdy(x, y, z): return x + 8.0 * y
-        def dfdz(x, y, z): return -10.0 * z + 1.5 * x
+
+        def dfdx(x, y, z):
+            return 6.0 * x + y + 1.5 * z
+
+        def dfdy(x, y, z):
+            return x + 8.0 * y
+
+        def dfdz(x, y, z):
+            return -10.0 * z + 1.5 * x
 
         y_list = np.linspace(0, 5, 51, dtype=float)
         z_list = np.linspace(0, 5, 51, dtype=float)
@@ -4674,10 +4844,18 @@ def main():
             + 2.0 * y
             - 5.0 * w
         )
-        def dfdw(w, x, y, z): return 4.0 * z - 2.5 * x + y - 5.0
-        def dfdx(w, x, y, z): return -2.5 * w + 6.0 * y - 10.0 * z + 4.0
-        def dfdy(w, x, y, z): return w + 6.0 * x + 3.0 * z + 2.0
-        def dfdz(w, x, y, z): return 4.0 * w - 10.0 * x + 3.0 * y - 7
+
+        def dfdw(w, x, y, z):
+            return 4.0 * z - 2.5 * x + y - 5.0
+
+        def dfdx(w, x, y, z):
+            return -2.5 * w + 6.0 * y - 10.0 * z + 4.0
+
+        def dfdy(w, x, y, z):
+            return w + 6.0 * x + 3.0 * z + 2.0
+
+        def dfdz(w, x, y, z):
+            return 4.0 * w - 10.0 * x + 3.0 * y - 7
 
         x_list = np.linspace(0, 5, 16, dtype=float)
         y_list = np.linspace(0, 5, 16, dtype=float)
@@ -4735,9 +4913,15 @@ def main():
         print(t_end - t_start)
 
     if False:
-        def f(x, y): return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
-        def dfdx(x, y): return 6.0 * x + y
-        def dfdy(x, y): return x + 8.0 * y
+
+        def f(x, y):
+            return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
+
+        def dfdx(x, y):
+            return 6.0 * x + y
+
+        def dfdy(x, y):
+            return x + 8.0 * y
 
         x_list = np.linspace(0, 5, 101, dtype=float)
         y_list = np.linspace(0, 5, 101, dtype=float)
@@ -4759,9 +4943,15 @@ def main():
             - 5 * z ** 2.0
             + 1.5 * x * z
         )
-        def dfdx(x, y, z): return 6.0 * x + y + 1.5 * z
-        def dfdy(x, y, z): return x + 8.0 * y
-        def dfdz(x, y, z): return -10.0 * z + 1.5 * x
+
+        def dfdx(x, y, z):
+            return 6.0 * x + y + 1.5 * z
+
+        def dfdy(x, y, z):
+            return x + 8.0 * y
+
+        def dfdz(x, y, z):
+            return -10.0 * z + 1.5 * x
 
         x_list = np.linspace(0, 5, 11, dtype=float)
         y_list = np.linspace(0, 5, 11, dtype=float)
@@ -4800,10 +4990,18 @@ def main():
             + 2.0 * y
             - 5.0 * w
         )
-        def dfdw(w, x, y, z): return 4.0 * z - 2.5 * x + y - 5.0
-        def dfdx(w, x, y, z): return -2.5 * w + 6.0 * y - 10.0 * z + 4.0
-        def dfdy(w, x, y, z): return w + 6.0 * x + 3.0 * z + 2.0
-        def dfdz(w, x, y, z): return 4.0 * w - 10.0 * x + 3.0 * y - 7
+
+        def dfdw(w, x, y, z):
+            return 4.0 * z - 2.5 * x + y - 5.0
+
+        def dfdx(w, x, y, z):
+            return -2.5 * w + 6.0 * y - 10.0 * z + 4.0
+
+        def dfdy(w, x, y, z):
+            return w + 6.0 * x + 3.0 * z + 2.0
+
+        def dfdz(w, x, y, z):
+            return 4.0 * w - 10.0 * x + 3.0 * y - 7
 
         w_list = np.linspace(0, 5, 16, dtype=float)
         x_list = np.linspace(0, 5, 16, dtype=float)
@@ -4812,7 +5010,10 @@ def main():
         w_temp, x_temp, y_temp, z_temp = np.meshgrid(
             w_list, x_list, y_list, z_list, indexing="ij"
         )
-        def mySearch(trash, x): return np.floor(x / 5 * 32).astype(int)
+
+        def mySearch(trash, x):
+            return np.floor(x / 5 * 32).astype(int)
+
         g = QuadlinearInterp(
             f(w_temp, x_temp, y_temp, z_temp), w_list, x_list, y_list, z_list
         )
@@ -4831,9 +5032,15 @@ def main():
         print(t_end - t_start)
 
     if False:
-        def f(x, y): return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
-        def dfdx(x, y): return 6.0 * x + y
-        def dfdy(x, y): return x + 8.0 * y
+
+        def f(x, y):
+            return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
+
+        def dfdx(x, y):
+            return 6.0 * x + y
+
+        def dfdy(x, y):
+            return x + 8.0 * y
 
         warp_factor = 0.01
         x_list = np.linspace(0, 5, 71, dtype=float)
@@ -4868,9 +5075,15 @@ def main():
             - 5 * z ** 2.0
             + 1.5 * x * z
         )
-        def dfdx(x, y, z): return 6.0 * x + y + 1.5 * z
-        def dfdy(x, y, z): return x + 8.0 * y
-        def dfdz(x, y, z): return -10.0 * z + 1.5 * x
+
+        def dfdx(x, y, z):
+            return 6.0 * x + y + 1.5 * z
+
+        def dfdy(x, y, z):
+            return x + 8.0 * y
+
+        def dfdz(x, y, z):
+            return -10.0 * z + 1.5 * x
 
         warp_factor = 0.01
         x_list = np.linspace(0, 5, 11, dtype=float)
@@ -4912,10 +5125,18 @@ def main():
             + 2.0 * y
             - 5.0 * w
         )
-        def dfdw(w, x, y, z): return 4.0 * z - 2.5 * x + y - 5.0
-        def dfdx(w, x, y, z): return -2.5 * w + 6.0 * y - 10.0 * z + 4.0
-        def dfdy(w, x, y, z): return w + 6.0 * x + 3.0 * z + 2.0
-        def dfdz(w, x, y, z): return 4.0 * w - 10.0 * x + 3.0 * y - 7
+
+        def dfdw(w, x, y, z):
+            return 4.0 * z - 2.5 * x + y - 5.0
+
+        def dfdx(w, x, y, z):
+            return -2.5 * w + 6.0 * y - 10.0 * z + 4.0
+
+        def dfdy(w, x, y, z):
+            return w + 6.0 * x + 3.0 * z + 2.0
+
+        def dfdz(w, x, y, z):
+            return 4.0 * w - 10.0 * x + 3.0 * y - 7
 
         warp_factor = 0.1
         w_list = np.linspace(0, 5, 16, dtype=float)

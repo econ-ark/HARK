@@ -63,7 +63,7 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
         self.agent = AggShockMarkovConsumerType()
         self.agent.cycles = 0
         self.agent.AgentCount = 1000  # Low number of simulated agents
-        self.agent.IncShkDstn[0] = 2 * [self.agent.IncShkDstn[0]]  ## see #557
+        self.agent.IncShkDstn = [2 * [self.agent.IncShkDstn[0]]]  ## see #557
         self.economy = CobbDouglasMarkovEconomy(agents=[self.agent])
 
     def test_agent(self):

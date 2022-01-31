@@ -704,10 +704,10 @@ class test_Harmenbergs_method(unittest.TestCase):
             M_list2.append(Magg)
         
         
-        c_std_ratio = np.std(Consumption_list2) / np.std( Consumption_list)
-
+        c_std2 = np.std(Consumption_list2)
+        c_std1 = np.std(Consumption_list)
+        c_std_ratio = c_std2 / c_std1
+        
+        self.assertAlmostEqual(c_std2, 0.03768819564871894)
+        self.assertAlmostEqual(c_std1, 0.004411745897568616)
         self.assertAlmostEqual(c_std_ratio, 8.542694099741672)
-        
-        
-        
-        
