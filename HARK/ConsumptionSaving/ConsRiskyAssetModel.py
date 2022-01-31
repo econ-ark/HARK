@@ -364,28 +364,18 @@ class ConsRiskySolver(ConsIndShockSolver):
             A 1D array of end-of-period marginal value of assets
         """
 
-        self.BoroCnstNat = 0.0
-        self.aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
-
-        self.agrid = self.aXtraGrid
-        self.bgrid = np.append(
-            self.agrid[0] * self.RiskyDstn.X.min(), self.agrid * self.RiskyDstn.X.max()
-        )
-        self.wgrid = np.append(
-            self.bgrid[0] / (self.PermGroFac * self.PermShkDstn.X.max()),
-            self.bgrid / (self.PermGroFac * self.PermShkDstn.X.min()),
-        )
-
         # calculate expectation with respect to transitory shock
 
         def preTranShkvPfunc(tran_shk, w_nrm):
             return self.vPfuncNext(w_nrm + tran_shk)
 
-        preTranShkvP = calc_expectation(self.TranShkDstn, preTranShkvPfunc, self.wgrid)
+        preTranShkvP = calc_expectation(
+            self.TranShkDstn, preTranShkvPfunc, self.wNrmNext
+        )
         preTranShkvPNvrs = self.uPinv(preTranShkvP)
         # Need to add value of 0 at borrowing constraint
         preTranShkvPNvrsFunc = LinearInterp(
-            np.append(0, self.wgrid), np.append(0, preTranShkvPNvrs)
+            np.append(0, self.wNrmNext), np.append(0, preTranShkvPNvrs)
         )
         self.preTranShkvPfunc = MargValueFuncCRRA(preTranShkvPNvrsFunc, self.CRRA)
 
@@ -395,11 +385,13 @@ class ConsRiskySolver(ConsIndShockSolver):
             shock = perm_shk * self.PermGroFac
             return shock ** (-self.CRRA) * self.preTranShkvPfunc(b_nrm / shock)
 
-        prePermShkvP = calc_expectation(self.PermShkDstn, prePermShkvPfunc, self.bgrid)
+        prePermShkvP = calc_expectation(
+            self.PermShkDstn, prePermShkvPfunc, self.bNrmNext
+        )
         prePermShkvPNvrs = self.uPinv(prePermShkvP)
         # Need to add value of 0 at borrowing constraint
         prePermShkvPNvrsFunc = LinearInterp(
-            np.append(0, self.bgrid), np.append(0, prePermShkvPNvrs)
+            np.append(0, self.bNrmNext), np.append(0, prePermShkvPNvrs)
         )
         self.prePermShkvPfunc = MargValueFuncCRRA(prePermShkvPNvrsFunc, self.CRRA)
 
@@ -409,12 +401,12 @@ class ConsRiskySolver(ConsIndShockSolver):
             return risky_shk * self.prePermShkvPfunc(a_nrm * risky_shk)
 
         preRiskyShkvP = self.DiscFacEff * calc_expectation(
-            self.RiskyDstn, preRiskyShkvPfunc, self.agrid
+            self.RiskyDstn, preRiskyShkvPfunc, self.aNrmNow
         )
         preRiskyShkvPNvrs = self.uPinv(preRiskyShkvP)
         # Need to add value of 0 at borrowing constraint
         preRiskyShkvPNvrsFunc = LinearInterp(
-            np.append(0, self.agrid), np.append(0, preRiskyShkvPNvrs)
+            np.append(0, self.aNrmNow), np.append(0, preRiskyShkvPNvrs)
         )
         self.preRiskyShkvPfunc = MargValueFuncCRRA(preRiskyShkvPNvrsFunc, self.CRRA)
 
@@ -441,11 +433,11 @@ class ConsRiskySolver(ConsIndShockSolver):
         def preTranShkvFunc(tran_shk, w_nrm):
             return self.vFuncNext(w_nrm + tran_shk)
 
-        preTranShkv = calc_expectation(self.TranShkDstn, preTranShkvFunc, self.wgrid)
+        preTranShkv = calc_expectation(self.TranShkDstn, preTranShkvFunc, self.wNrmNext)
         # value transformed through inverse utility
         preTranShkvNvrs = self.uinv(preTranShkv)
         preTranShkvNvrsFunc = LinearInterp(
-            np.append(0, self.wgrid), np.append(0, preTranShkvNvrs)
+            np.append(0, self.wNrmNext), np.append(0, preTranShkvNvrs)
         )
         self.preTranShkvFunc = ValueFuncCRRA(preTranShkvNvrsFunc, self.CRRA)
 
@@ -453,11 +445,11 @@ class ConsRiskySolver(ConsIndShockSolver):
             shock = perm_shk * self.PermGroFac
             return shock ** (1.0 - self.CRRA) * self.preTranShkvFunc(b_nrm / shock)
 
-        prePermShkv = calc_expectation(self.PermShkDstn, prePermShkvFunc, self.bgrid)
+        prePermShkv = calc_expectation(self.PermShkDstn, prePermShkvFunc, self.bNrmNext)
         # value transformed through inverse utility
         prePermShkvNvrs = self.uinv(prePermShkv)
         prePermShkvNvrsFunc = LinearInterp(
-            np.append(0, self.bgrid), np.append(0, prePermShkvNvrs)
+            np.append(0, self.bNrmNext), np.append(0, prePermShkvNvrs)
         )
         self.prePermShkvFunc = ValueFuncCRRA(prePermShkvNvrsFunc, self.CRRA)
 
@@ -465,12 +457,12 @@ class ConsRiskySolver(ConsIndShockSolver):
             return self.prePermShkvFunc(risky_shk * a_nrm)
 
         preRiskyShkv = self.DiscFacEff * calc_expectation(
-            self.RiskyDstn, preRiskyShkvFunc, self.agrid
+            self.RiskyDstn, preRiskyShkvFunc, self.aNrmNow
         )
         # value transformed through inverse utility
         preRiskyShkvNvrs = self.uinv(preRiskyShkv)
         preRiksyShkNvrsFunc = LinearInterp(
-            np.append(0, self.agrid), np.append(0, preRiskyShkvNvrs)
+            np.append(0, self.aNrmNow), np.append(0, preRiskyShkvNvrs)
         )
         self.preRiskyShkvFunc = ValueFuncCRRA(preRiksyShkNvrsFunc, self.CRRA)
 
