@@ -32,6 +32,7 @@ from HARK.distribution import (
     add_discrete_outcome_constant_mean,
     calc_expectation,
     combine_indep_dstns,
+    IndexDistribution,
 )
 from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
 from HARK.interpolation import CubicHermiteInterp as CubicInterp
@@ -41,15 +42,7 @@ from HARK.interpolation import (
     LinearInterp,
     ValueFuncCRRA,
     MargValueFuncCRRA,
-    MargMargValueFuncCRRA
-)
-from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
-from HARK.distribution import (
-    DiscreteDistribution,
-    add_discrete_outcome_constant_mean,
-    calc_expectation,
-    combine_indep_dstns,
-    IndexDistribution,
+    MargMargValueFuncCRRA,
 )
 from HARK.utilities import (
     make_grid_exp_mult,
@@ -61,16 +54,6 @@ from HARK.utilities import (
     CRRAutility_inv,
     CRRAutilityP_invP,
 )
-from HARK import _log
-from HARK import set_verbosity_level
-
-from HARK.Calibration.Income.IncomeTools import (
-    parse_income_spec,
-    parse_time_params,
-    Cagetti_income,
-)
-from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
-from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 
 __all__ = [
     "ConsumerSolution",
@@ -2847,7 +2830,6 @@ class LognormPermIncShk(DiscreteDistribution):
     """
 
     def __init__(self, sigma, n_approx, neutral_measure=False, seed=0):
-
         # Construct an auxiliary discretized normal
         logn_approx = MeanOneLogNormal(sigma).approx(n_approx, tail_N=0)
         # Change the pmf if necessary
@@ -2883,7 +2865,6 @@ class MixtureTranIncShk(DiscreteDistribution):
     """
 
     def __init__(self, sigma, UnempPrb, IncUnemp, n_approx, seed=0):
-
         dstn_approx = MeanOneLogNormal(sigma).approx(n_approx, tail_N=0)
         if UnempPrb > 0:
             dstn_approx = add_discrete_outcome_constant_mean(
@@ -2894,7 +2875,6 @@ class MixtureTranIncShk(DiscreteDistribution):
 
 
 class BufferStockIncShkDstn(DiscreteDistribution):
-
     """
     A one-period distribution object for the joint distribution of income
     shocks (permanent and transitory), as modeled in the Buffer Stock Theory
@@ -2941,7 +2921,6 @@ class BufferStockIncShkDstn(DiscreteDistribution):
         neutral_measure=False,
         seed=0,
     ):
-
         perm_dstn = LognormPermIncShk(
             sigma=sigma_Perm, n_approx=n_approx_Perm, neutral_measure=neutral_measure
         )
@@ -3272,8 +3251,8 @@ init_lifecycle.update({"LivPrb": liv_prb})
 
 # Make a dictionary to specify an infinite consumer with a four period cycle
 init_cyclical = copy(init_idiosyncratic_shocks)
-init_cyclical['PermGroFac'] = [1.1, 1.082251, 2.8, 0.3]
-init_cyclical['PermShkStd'] = [0.1, 0.1, 0.1, 0.1]
-init_cyclical['TranShkStd'] = [0.1, 0.1, 0.1, 0.1]
-init_cyclical['LivPrb'] = 4*[0.98]
-init_cyclical['T_cycle'] = 4
+init_cyclical["PermGroFac"] = [1.1, 1.082251, 2.8, 0.3]
+init_cyclical["PermShkStd"] = [0.1, 0.1, 0.1, 0.1]
+init_cyclical["TranShkStd"] = [0.1, 0.1, 0.1, 0.1]
+init_cyclical["LivPrb"] = 4 * [0.98]
+init_cyclical["T_cycle"] = 4
