@@ -109,7 +109,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         # agent does *not* have age-varying beliefs about the risky asset (base case)
         else:
             self.RiskyDstn = Lognormal.from_mean_std(
-                self.RiskyAvg, self.RiskyStd,
+                self.RiskyAvg, self.RiskyStd
             ).approx(self.RiskyCount)
             self.add_to_time_inv("RiskyDstn")
 
@@ -277,6 +277,33 @@ class ConsRiskySolver(ConsIndShockSolver):
             raise NotImplementedError(
                 "RiskyAssetConsumerType does not implement cubic interpolation yet!"
             )
+
+    def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
+        super().set_and_update_values(solution_next, IncShkDstn, LivPrb, DiscFac)
+
+        # overwrite PatFac
+
+        def pat_fac_func(shock):
+            return shock ** (1.0 - self.CRRA)
+
+        self.PatFac = (
+            calc_expectation(self.RiskyDstn, pat_fac_func) * self.DiscFacEff
+        ) ** (1.0 / self.CRRA)
+
+        self.MPCminNow = 1.0 / (1.0 + self.PatFac / solution_next.MPCmin)
+
+        self.hNrmNow = (
+            self.PermGroFac / self.Rfree * (self.Ex_IncNext + solution_next.hNrm)
+        )
+        self.MPCmaxNow = 1.0 / (
+            1.0
+            + (self.WorstIncPrb ** (1.0 / self.CRRA))
+            * self.PatFac
+            / solution_next.MPCmax
+        )
+
+        self.cFuncLimitIntercept = self.MPCminNow * self.hNrmNow
+        self.cFuncLimitSlope = self.MPCminNow
 
     def def_BoroCnst(self, BoroCnstArt):
 
