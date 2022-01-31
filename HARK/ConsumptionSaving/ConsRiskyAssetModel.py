@@ -308,11 +308,17 @@ class ConsRiskySolver(ConsIndShockSolver):
     def def_BoroCnst(self, BoroCnstArt):
 
         # Natural Borrowing Constraint is always 0.0 in risky return models
-        self.BoroCnstNat = 0.0
-        # minimum normalized cash on hand is 0.0
-        self.mNrmMinNow = 0.0
+        self.BoroCnstNat = -self.TranShkDstn.X.min()
+        # Flag for whether the natural borrowing constraint is zero
+        self.zero_bound = self.BoroCnstNat == BoroCnstArt
 
-        self.MPCmaxEff = self.MPCmaxNow
+        # minimum normalized cash on hand is 0.0
+        self.mNrmMinNow = BoroCnstArt
+
+        if self.BoroCnstNat < self.mNrmMinNow:
+            self.MPCmaxEff = 1.0  # If actually constrained, MPC near limit is 1
+        else:
+            self.MPCmaxEff = self.MPCmaxNow
 
         # Define the borrowing constraint (limiting consumption function)
         self.cFuncNowCnst = LinearInterp(
