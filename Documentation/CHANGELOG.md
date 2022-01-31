@@ -19,6 +19,8 @@ Release Date: TBD
 
 ### Minor Changes
 
+* Updates the lognormal-income-process constructor from `ConsIndShockModel.py` to use `IndexDistribution`. [#1024](https://github.com/econ-ark/HARK/pull/1024)
+
 ### 0.12.0
 
 Release Date: December 14, 2021
