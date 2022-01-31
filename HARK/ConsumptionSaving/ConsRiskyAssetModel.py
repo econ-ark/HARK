@@ -330,15 +330,14 @@ class ConsRiskySolver(ConsIndShockSolver):
         if self.zero_bound:
             aNrmNow = self.aXtraGrid
             bNrmNext = np.append(
-                aNrmNow[0] * self.RiskyDstn.X.min(),
-                aNrmNow * self.RiskyDstn.X.max(),
+                aNrmNow[0] * self.RiskyDstn.X.min(), aNrmNow * self.RiskyDstn.X.max(),
             )
             wNrmNext = np.append(
                 bNrmNext[0] / (self.PermGroFac * self.PermShkDstn.X.max()),
                 bNrmNext / (self.PermGroFac * self.PermShkDstn.X.min()),
             )
         else:
-            aNrmNow = np.append(self.BoroCnstNat, self.aXtraGrid)
+            aNrmNow = np.append(self.BoroCnstArt, self.aXtraGrid)
             bNrmNext = aNrmNow * self.RiskyDstn.X.max()
             wNrmNext = bNrmNext / (self.PermGroFac * self.PermShkDstn.X.min())
 
