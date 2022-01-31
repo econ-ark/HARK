@@ -7,7 +7,6 @@ risky assets that will be useful to models what will inherit from it.
 """
 from copy import deepcopy
 from dataclasses import dataclass
-from black import Line
 
 import numpy as np
 
