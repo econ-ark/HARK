@@ -73,7 +73,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         self.update_solution_terminal()
 
         if self.PortfolioBool:
-            self.solution_terminal.shareFunc = ConstantFunction(1.0)
+            self.solution_terminal.ShareFunc = ConstantFunction(1.0)
 
     def update(self):
 
@@ -83,6 +83,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         self.update_ShockDstn()
 
         if self.PortfolioBool:
+            self.update_ShareGrid()
             self.update_ShareLimit()
 
     def update_RiskyDstn(self):
@@ -120,7 +121,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
             self.RiskyDstn = IndexDistribution(
                 Lognormal.from_mean_std,
                 {"mean": self.RiskyAvg, "std": self.RiskyStd},
-                seed=self.RNG.randint(0, 2 ** 31 - 1),
+                seed=self.RNG.randint(0, 2**31 - 1),
             ).approx(self.RiskyCount)
 
             self.add_to_time_vary("RiskyDstn")
@@ -220,6 +221,22 @@ class RiskyAssetConsumerType(IndShockConsumerType):
             self.ShareLimit = SharePF
             self.add_to_time_inv("ShareLimit")
 
+    def update_ShareGrid(self):
+        """
+        Creates the attribute ShareGrid as an evenly spaced grid on [0.,1.], using
+        the primitive parameter ShareCount.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        self.ShareGrid = np.linspace(0.0, 1.0, self.ShareCount)
+        self.add_to_time_inv("ShareGrid")
+
     def get_Risky(self):
         """
         Sets the attribute Risky as a single draw from a lognormal distribution.
@@ -242,7 +259,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
             RiskyStd = self.RiskyStd
 
         self.shocks["Risky"] = Lognormal.from_mean_std(
-            RiskyAvg, RiskyStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
+            RiskyAvg, RiskyStd, seed=self.RNG.randint(0, 2**31 - 1)
         ).draw(1)
 
     def get_Adjust(self):
@@ -260,7 +277,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         None
         """
         self.shocks["Adjust"] = IndexDistribution(
-            Bernoulli, {"p": self.AdjustPrb}, seed=self.RNG.randint(0, 2 ** 31 - 1)
+            Bernoulli, {"p": self.AdjustPrb}, seed=self.RNG.randint(0, 2**31 - 1)
         ).draw(self.t_cycle)
 
     def initialize_sim(self):
@@ -387,7 +404,8 @@ class ConsRiskySolver(ConsIndShockSolver):
         if self.zero_bound:
             aNrmNow = self.aXtraGrid
             bNrmNext = np.append(
-                aNrmNow[0] * self.RiskyDstn.X.min(), aNrmNow * self.RiskyDstn.X.max(),
+                aNrmNow[0] * self.RiskyDstn.X.min(),
+                aNrmNow * self.RiskyDstn.X.max(),
             )
             wNrmNext = np.append(
                 bNrmNext[0] / (self.PermGroFac * self.PermShkDstn.X.max()),
@@ -552,6 +570,7 @@ class ConsRiskySolver(ConsIndShockSolver):
 
 @dataclass
 class ConsBasicPortfolioSolver(ConsRiskySolver):
+    ShareGrid: np.array
     ShareLimit: float
 
     def calc_EndOfPrdvP(self):
@@ -579,7 +598,7 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
 
             # Optimize portfolio share
 
-            self.opt_share_next = self.solution_next.shareFunc(self.aNrmNow)
+            aMat, sMat = np.meshgrid(self.aNrmNow, self.ShareGrid, indexing="ij")
 
             def endOfPrddvds(risky_shk, a_nrm, share):
                 r_diff = risky_shk - self.Rfree
@@ -587,26 +606,37 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
                 b_nrm = a_nrm * r_port
                 return a_nrm * r_diff * self.prePermShkvPfunc(b_nrm)
 
-            def objective_func(share, a_nrm):
-                return calc_expectation(self.RiskyDstn, endOfPrddvds, a_nrm, share)
+            EndOfPrddvds = calc_expectation(self.RiskyDstn, endOfPrddvds, aMat, sMat)
+            EndOfPrddvds = EndOfPrddvds[:, :, 0]
 
-            opt_share = np.empty_like(self.aNrmNow)
-            for ai in range(self.aNrmNow.size):
-                a_nrm = self.aNrmNow[ai]
-                if a_nrm == 0.0:
-                    opt_share[ai] = 1.0
-                elif objective_func(1.0, a_nrm) > 0.0:
-                    opt_share[ai] = 1.0
-                else:
-                    x0 = self.opt_share_next[ai]
-                    x1 = x0 - self.aXtraGrid[:2].min()
-                    sol = root_scalar(objective_func, x0=x0, x1=x1, args=(a_nrm,))
-                    if sol.converged:
-                        opt_share[ai] = sol.root
-                    else:
-                        opt_share[ai] = 1.0
+            # For each value of aNrm, find the value of Share such that FOC-Share == 0.
+            crossing = np.logical_and(
+                EndOfPrddvds[:, 1:] <= 0.0, EndOfPrddvds[:, :-1] >= 0.0
+            )
+            share_idx = np.argmax(crossing, axis=1)
+            a_idx = np.arange(self.aNrmNow.size)
+            bot_s = self.ShareGrid[share_idx]
+            top_s = self.ShareGrid[share_idx + 1]
+            bot_f = EndOfPrddvds[a_idx, share_idx]
+            top_f = EndOfPrddvds[a_idx, share_idx + 1]
 
-            self.opt_share = opt_share
+            alpha = 1.0 - top_f / (top_f - bot_f)
+
+            self.opt_share = (1.0 - alpha) * bot_s + alpha * top_s
+
+            # If agent wants to put more than 100% into risky asset, he is constrained
+            constrained_top = EndOfPrddvds[:, -1] > 0.0
+            # Likewise if he wants to put less than 0% into risky asset
+            constrained_bot = EndOfPrddvds[:, 0] < 0.0
+
+            # For values of aNrm at which the agent wants to put
+            # more than 100% into risky asset, constrain them
+            self.opt_share[constrained_top] = 1.0
+            self.opt_share[constrained_bot] = 0.0
+
+            if not self.zero_bound:
+                # aNrm=0, so there's no way to "optimize" the portfolio
+                self.opt_share[0] = 1.0
 
             def endOfPrddvda(risky_shk, a_nrm, share):
                 r_diff = risky_shk - self.Rfree
@@ -623,34 +653,42 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
 
             return EndOfPrddvda
 
-    def add_shareFunc(self, solution):
+    def add_ShareFunc(self, solution):
         """
         Construct the risky share function when the agent can adjust
         """
 
         if self.zero_bound:
-            self.shareFunc = LinearInterp(
+            self.EndOfPrdShareFunc = LinearInterp(
                 np.append(0.0, self.aNrmNow),
                 np.append(1.0, self.opt_share),
                 intercept_limit=self.ShareLimit,
                 slope_limit=0.0,
             )
         else:
-            self.shareFunc = LinearInterp(
+            self.EndOfPrdShareFunc = LinearInterp(
                 self.aNrmNow,
                 self.opt_share,
                 intercept_limit=self.ShareLimit,
                 slope_limit=0.0,
             )
 
-        solution.shareFunc = self.shareFunc
+        self.ShareFunc = LinearInterp(
+            np.append(0.0, self.mNrmNow),
+            np.append(1.0, self.opt_share),
+            intercept_limit=self.ShareLimit,
+            slope_limit=0.0,
+        )
+
+        solution.EndOfPrdShareFunc = self.EndOfPrdShareFunc
+        solution.ShareFunc = self.ShareFunc
 
         return solution
 
     def solve(self):
         solution = super().solve()
 
-        solution = self.add_shareFunc(solution)
+        solution = self.add_ShareFunc(solution)
 
         return solution
 
