@@ -255,6 +255,7 @@ class ConsRiskySolver(ConsIndShockSolver):
     TranShkDstn: DiscreteDistribution
     PermShkDstn: DiscreteDistribution
     RiskyDstn: DiscreteDistribution
+    ShockDstn: DiscreteDistribution
     LivPrb: float
     DiscFac: float
     CRRA: float
@@ -331,8 +332,7 @@ class ConsRiskySolver(ConsIndShockSolver):
         if self.zero_bound:
             aNrmNow = self.aXtraGrid
             bNrmNext = np.append(
-                aNrmNow[0] * self.RiskyDstn.X.min(),
-                aNrmNow * self.RiskyDstn.X.max(),
+                aNrmNow[0] * self.RiskyDstn.X.min(), aNrmNow * self.RiskyDstn.X.max(),
             )
             wNrmNext = np.append(
                 bNrmNext[0] / (self.PermGroFac * self.PermShkDstn.X.max()),
@@ -348,6 +348,24 @@ class ConsRiskySolver(ConsIndShockSolver):
         self.wNrmNext = wNrmNext
 
         return self.aNrmNow
+
+    def calc_ExpMargValueFunc(self, dstn, func, grid):
+
+        vals = calc_expectation(dstn, func, grid)
+        nvrs = self.uPinv(vals)
+        nvrsFunc = LinearInterp(grid, nvrs)
+        margValueFunc = MargValueFuncCRRA(nvrsFunc, self.CRRA)
+
+        return margValueFunc, vals
+
+    def calc_ExpValueFunc(self, dstn, func, grid):
+
+        vals = calc_expectation(dstn, func, grid)
+        nvrs = self.uinv(vals)
+        nvrsFunc = LinearInterp(grid, nvrs)
+        valueFunc = ValueFuncCRRA(nvrsFunc, self.CRRA)
+
+        return valueFunc, vals
 
     def calc_EndOfPrdvP(self):
         """
@@ -372,13 +390,9 @@ class ConsRiskySolver(ConsIndShockSolver):
             def preTranShkvPfunc(tran_shk, w_nrm):
                 return self.vPfuncNext(w_nrm + tran_shk)
 
-            preTranShkvP = calc_expectation(
+            self.preTranShkvPfunc, _ = self.calc_ExpMargValueFunc(
                 self.TranShkDstn, preTranShkvPfunc, self.wNrmNext
             )
-            preTranShkvPNvrs = self.uPinv(preTranShkvP)
-            # Need to add value of 0 at borrowing constraint
-            preTranShkvPNvrsFunc = LinearInterp(self.wNrmNext, preTranShkvPNvrs)
-            self.preTranShkvPfunc = MargValueFuncCRRA(preTranShkvPNvrsFunc, self.CRRA)
 
             # calculate expectation with respect to permanent shock
 
@@ -386,43 +400,40 @@ class ConsRiskySolver(ConsIndShockSolver):
                 shock = perm_shk * self.PermGroFac
                 return shock ** (-self.CRRA) * self.preTranShkvPfunc(b_nrm / shock)
 
-            prePermShkvP = calc_expectation(
+            self.prePermShkvPfunc, _ = self.calc_ExpMargValueFunc(
                 self.PermShkDstn, prePermShkvPfunc, self.bNrmNext
             )
-            prePermShkvPNvrs = self.uPinv(prePermShkvP)
-            # Need to add value of 0 at borrowing constraint
-            prePermShkvPNvrsFunc = LinearInterp(self.bNrmNext, prePermShkvPNvrs)
-            self.prePermShkvPfunc = MargValueFuncCRRA(prePermShkvPNvrsFunc, self.CRRA)
 
             # calculate expectation with respect to risky shock
 
             def preRiskyShkvPfunc(risky_shk, a_nrm):
-                return risky_shk * self.prePermShkvPfunc(a_nrm * risky_shk)
+                return (
+                    self.DiscFacEff
+                    * risky_shk
+                    * self.prePermShkvPfunc(a_nrm * risky_shk)
+                )
 
-            preRiskyShkvP = self.DiscFacEff * calc_expectation(
+            self.preRiskyShkvPfunc, EndOfPrdvP = self.calc_ExpMargValueFunc(
                 self.RiskyDstn, preRiskyShkvPfunc, self.aNrmNow
             )
-            preRiskyShkvPNvrs = self.uPinv(preRiskyShkvP)
-            # Need to add value of 0 at borrowing constraint
-            preRiskyShkvPNvrsFunc = LinearInterp(self.aNrmNow, preRiskyShkvPNvrs)
-            self.preRiskyShkvPfunc = MargValueFuncCRRA(preRiskyShkvPNvrsFunc, self.CRRA)
 
             self.EndOfPrdvPFunc = self.preRiskyShkvPfunc
-            EndOfPrdvP = preRiskyShkvP
 
         else:
 
             def vP_next(shocks, a_nrm):
                 perm_shk = shocks[0] * self.PermGroFac
                 mNrm_next = a_nrm * shocks[2] / perm_shk + shocks[1]
-                return shocks[2] * perm_shk ** (-self.CRRA) * self.vPfuncNext(mNrm_next)
+                return (
+                    self.DiscFacEff
+                    * shocks[2]
+                    * perm_shk ** (-self.CRRA)
+                    * self.vPfuncNext(mNrm_next)
+                )
 
-            EndOfPrdvP = self.DiscFacEff * calc_expectation(
-                self.ShocksDstn, vP_next, self.aNrmNow
+            self.EndOfPrdvPFunc, EndOfPrdvP = self.calc_ExpMargValueFunc(
+                self.ShockDstn, vP_next, self.aNrmNow
             )
-            EndOfPrdvPNvrs = self.uPinv(EndOfPrdvP)
-            EndOfPrdvPNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrdvPNvrs)
-            self.EndOfPrdvPFunc = MargValueFuncCRRA(EndOfPrdvPNvrsFunc, self.CRRA)
 
         return EndOfPrdvP
 
@@ -447,36 +458,24 @@ class ConsRiskySolver(ConsIndShockSolver):
             def preTranShkvFunc(tran_shk, w_nrm):
                 return self.vFuncNext(w_nrm + tran_shk)
 
-            preTranShkv = calc_expectation(
+            self.preTranShkvFunc, _ = self.calc_ExpValueFunc(
                 self.TranShkDstn, preTranShkvFunc, self.wNrmNext
             )
-            # value transformed through inverse utility
-            preTranShkvNvrs = self.uinv(preTranShkv)
-            preTranShkvNvrsFunc = LinearInterp(self.wNrmNext, preTranShkvNvrs)
-            self.preTranShkvFunc = ValueFuncCRRA(preTranShkvNvrsFunc, self.CRRA)
 
             def prePermShkvFunc(perm_shk, b_nrm):
                 shock = perm_shk * self.PermGroFac
                 return shock ** (1.0 - self.CRRA) * self.preTranShkvFunc(b_nrm / shock)
 
-            prePermShkv = calc_expectation(
+            self.prePermShkvFunc, _ = self.calc_ExpValueFunc(
                 self.PermShkDstn, prePermShkvFunc, self.bNrmNext
             )
-            # value transformed through inverse utility
-            prePermShkvNvrs = self.uinv(prePermShkv)
-            prePermShkvNvrsFunc = LinearInterp(self.bNrmNext, prePermShkvNvrs)
-            self.prePermShkvFunc = ValueFuncCRRA(prePermShkvNvrsFunc, self.CRRA)
 
             def preRiskyShkvFunc(risky_shk, a_nrm):
-                return self.prePermShkvFunc(risky_shk * a_nrm)
+                return self.DiscFacEff * self.prePermShkvFunc(risky_shk * a_nrm)
 
-            preRiskyShkv = self.DiscFacEff * calc_expectation(
+            self.preRiskyShkvFunc, EndOfPrdv = self.calc_ExpValueFunc(
                 self.RiskyDstn, preRiskyShkvFunc, self.aNrmNow
             )
-            # value transformed through inverse utility
-            preRiskyShkvNvrs = self.uinv(preRiskyShkv)
-            preRiksyShkNvrsFunc = LinearInterp(self.aNrmNow, preRiskyShkvNvrs)
-            self.preRiskyShkvFunc = ValueFuncCRRA(preRiksyShkNvrsFunc, self.CRRA)
 
             self.EndOfPrdvFunc = self.preRiskyShkvFunc
 
@@ -485,15 +484,18 @@ class ConsRiskySolver(ConsIndShockSolver):
             def v_next(shocks, a_nrm):
                 perm_shk = shocks[0] * self.PermGroFac
                 mNrm_next = a_nrm * shocks[2] / perm_shk + shocks[1]
-                return perm_shk ** (1 - self.CRRA) * self.vFuncNext(mNrm_next)
+                return (
+                    self.DiscFacEff
+                    * perm_shk ** (1 - self.CRRA)
+                    * self.vFuncNext(mNrm_next)
+                )
 
-            EndOfPrdv = self.DiscFacEff * calc_expectation(
-                self.ShocksDstn, v_next, self.aNrmNow
+            self.EndOfPrdvFunc, EndOfPrdv = self.calc_ExpValueFunc(
+                self.ShockDstn, v_next, self.aNrmNow
             )
-            # value transformed through inverse utility
-            EndOfPrdvNvrs = self.uinv(EndOfPrdv)
-            EndOfPrdvNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrdvNvrs)
-            self.EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
+
+
+            )
 
 
 # %% Initial parameter sets
