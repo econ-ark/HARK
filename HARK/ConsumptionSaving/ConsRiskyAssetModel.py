@@ -9,7 +9,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.optimize import root_scalar
+from scipy.optimize import root_scalar, minimize_scalar
 
 from HARK import make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -26,7 +26,12 @@ from HARK.distribution import (
     Lognormal,
     Bernoulli,
 )
-from HARK.interpolation import LinearInterp, MargValueFuncCRRA, ValueFuncCRRA
+from HARK.interpolation import (
+    LinearInterp,
+    MargValueFuncCRRA,
+    ValueFuncCRRA,
+    ConstantFunction,
+)
 
 
 class RiskyAssetConsumerType(IndShockConsumerType):
@@ -45,19 +50,30 @@ class RiskyAssetConsumerType(IndShockConsumerType):
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
 
     def __init__(self, verbose=False, quiet=False, **kwds):
-        params = init_portfolio.copy()
+        params = init_risky_asset.copy()
         params.update(kwds)
         kwds = params
 
         # Initialize a basic consumer type
         IndShockConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
 
+        if not hasattr(self, "PortfolioBool"):
+            self.PortfolioBool = False
+
         # These method must be overwritten by classes that inherit from
         # RiskyAssetConsumerType
-        self.solve_one_period = make_one_period_oo_solver(ConsBasicPortfolioSolver)
+        if self.PortfolioBool:
+            solver = ConsBasicPortfolioSolver
+        else:
+            solver = ConsRiskySolver
+
+        self.solve_one_period = make_one_period_oo_solver(solver)
 
     def pre_solve(self):
         self.update_solution_terminal()
+
+        if self.PortfolioBool:
+            self.solution_terminal.shareFunc = ConstantFunction(1.0)
 
     def update(self):
 
@@ -65,6 +81,9 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         self.update_AdjustPrb()
         self.update_RiskyDstn()
         self.update_ShockDstn()
+
+        if self.PortfolioBool:
+            self.update_ShareLimit()
 
     def update_RiskyDstn(self):
         """
@@ -165,6 +184,41 @@ class RiskyAssetConsumerType(IndShockConsumerType):
             )
         else:
             self.add_to_time_inv("AdjustPrb")
+
+    def update_ShareLimit(self):
+        """
+        Creates the attribute ShareLimit, representing the limiting lower bound of
+        risky portfolio share as mNrm goes to infinity.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        if "RiskyDstn" in self.time_vary:
+            self.ShareLimit = []
+            for t in range(self.T_cycle):
+                RiskyDstn = self.RiskyDstn[t]
+                temp_f = lambda s: -((1.0 - self.CRRA) ** -1) * np.dot(
+                    (self.Rfree + s * (RiskyDstn.X - self.Rfree)) ** (1.0 - self.CRRA),
+                    RiskyDstn.pmf,
+                )
+                SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
+                self.ShareLimit.append(SharePF)
+            self.add_to_time_vary("ShareLimit")
+
+        else:
+            RiskyDstn = self.RiskyDstn
+            temp_f = lambda s: -((1.0 - self.CRRA) ** -1) * np.dot(
+                (self.Rfree + s * (RiskyDstn.X - self.Rfree)) ** (1.0 - self.CRRA),
+                RiskyDstn.pmf,
+            )
+            SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
+            self.ShareLimit = SharePF
+            self.add_to_time_inv("ShareLimit")
 
     def get_Risky(self):
         """
@@ -498,6 +552,8 @@ class ConsRiskySolver(ConsIndShockSolver):
 
 @dataclass
 class ConsBasicPortfolioSolver(ConsRiskySolver):
+    ShareLimit: float
+
     def calc_EndOfPrdvP(self):
 
         if self.IndepDstnBool:
@@ -523,6 +579,8 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
 
             # Optimize portfolio share
 
+            self.opt_share_next = self.solution_next.shareFunc(self.aNrmNow)
+
             def endOfPrddvds(risky_shk, a_nrm, share):
                 r_diff = risky_shk - self.Rfree
                 r_port = self.Rfree + r_diff * share
@@ -540,7 +598,9 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
                 elif objective_func(1.0, a_nrm) > 0.0:
                     opt_share[ai] = 1.0
                 else:
-                    sol = root_scalar(objective_func, bracket=[0.0, 1.0], args=(a_nrm,))
+                    x0 = self.opt_share_next[ai]
+                    x1 = x0 - self.aXtraGrid[:2].min()
+                    sol = root_scalar(objective_func, x0=x0, x1=x1, args=(a_nrm,))
                     if sol.converged:
                         opt_share[ai] = sol.root
                     else:
@@ -563,6 +623,37 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
 
             return EndOfPrddvda
 
+    def add_shareFunc(self, solution):
+        """
+        Construct the risky share function when the agent can adjust
+        """
+
+        if self.zero_bound:
+            self.shareFunc = LinearInterp(
+                np.append(0.0, self.aNrmNow),
+                np.append(1.0, self.opt_share),
+                intercept_limit=self.ShareLimit,
+                slope_limit=0.0,
+            )
+        else:
+            self.shareFunc = LinearInterp(
+                self.aNrmNow,
+                self.opt_share,
+                intercept_limit=self.ShareLimit,
+                slope_limit=0.0,
+            )
+
+        solution.shareFunc = self.shareFunc
+
+        return solution
+
+    def solve(self):
+        solution = super().solve()
+
+        solution = self.add_shareFunc(solution)
+
+        return solution
+
 
 # Initial parameter sets
 
@@ -582,24 +673,4 @@ risky_asset_parms = {
 # Make a dictionary to specify a risky asset consumer type
 init_risky_asset = init_idiosyncratic_shocks.copy()
 init_risky_asset.update(risky_asset_parms)
-
-# Make a dictionary to specify a portfolio choice consumer type
-init_portfolio = init_idiosyncratic_shocks.copy()
-init_portfolio["RiskyAvg"] = 1.08  # Average return of the risky asset
-init_portfolio["RiskyStd"] = 0.20  # Standard deviation of (log) risky returns
-# Number of integration nodes to use in approximation of risky returns
-init_portfolio["RiskyCount"] = 5
-# Number of discrete points in the risky share approximation
-init_portfolio["ShareCount"] = 25
-# Probability that the agent can adjust their risky portfolio share each period
-init_portfolio["AdjustPrb"] = 1.0
-# Flag for whether to optimize risky share on a discrete grid only
-init_portfolio["DiscreteShareBool"] = False
-
-# Adjust some of the existing parameters in the dictionary
-init_portfolio["aXtraMax"] = 100  # Make the grid of assets go much higher...
-init_portfolio["aXtraCount"] = 200  # ...and include many more gridpoints...
-init_portfolio["aXtraNestFac"] = 1  # ...which aren't so clustered at the bottom
-init_portfolio["BoroCnstArt"] = 0.0  # Artificial borrowing constraint must be turned on
-init_portfolio["CRRA"] = 5.0  # Results are more interesting with higher risk aversion
-init_portfolio["DiscFac"] = 0.90  # And also lower patience
+init_risky_asset["PortfolioBool"] = False
