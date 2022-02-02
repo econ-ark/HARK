@@ -582,3 +582,24 @@ risky_asset_parms = {
 # Make a dictionary to specify a risky asset consumer type
 init_risky_asset = init_idiosyncratic_shocks.copy()
 init_risky_asset.update(risky_asset_parms)
+
+# Make a dictionary to specify a portfolio choice consumer type
+init_portfolio = init_idiosyncratic_shocks.copy()
+init_portfolio["RiskyAvg"] = 1.08  # Average return of the risky asset
+init_portfolio["RiskyStd"] = 0.20  # Standard deviation of (log) risky returns
+# Number of integration nodes to use in approximation of risky returns
+init_portfolio["RiskyCount"] = 5
+# Number of discrete points in the risky share approximation
+init_portfolio["ShareCount"] = 25
+# Probability that the agent can adjust their risky portfolio share each period
+init_portfolio["AdjustPrb"] = 1.0
+# Flag for whether to optimize risky share on a discrete grid only
+init_portfolio["DiscreteShareBool"] = False
+
+# Adjust some of the existing parameters in the dictionary
+init_portfolio["aXtraMax"] = 100  # Make the grid of assets go much higher...
+init_portfolio["aXtraCount"] = 200  # ...and include many more gridpoints...
+init_portfolio["aXtraNestFac"] = 1  # ...which aren't so clustered at the bottom
+init_portfolio["BoroCnstArt"] = 0.0  # Artificial borrowing constraint must be turned on
+init_portfolio["CRRA"] = 5.0  # Results are more interesting with higher risk aversion
+init_portfolio["DiscFac"] = 0.90  # And also lower patience
