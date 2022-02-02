@@ -9,6 +9,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 
 import numpy as np
+from scipy.optimize import root_scalar
 
 from HARK import make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -44,7 +45,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
 
     def __init__(self, verbose=False, quiet=False, **kwds):
-        params = init_risky_asset.copy()
+        params = init_portfolio.copy()
         params.update(kwds)
         kwds = params
 
@@ -53,7 +54,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
 
         # These method must be overwritten by classes that inherit from
         # RiskyAssetConsumerType
-        self.solve_one_period = make_one_period_oo_solver(ConsRiskySolver)
+        self.solve_one_period = make_one_period_oo_solver(ConsBasicPortfolioSolver)
 
     def pre_solve(self):
         self.update_solution_terminal()
@@ -495,12 +496,77 @@ class ConsRiskySolver(ConsIndShockSolver):
             )
 
 
+@dataclass
+class ConsBasicPortfolioSolver(ConsRiskySolver):
+    def calc_EndOfPrdvP(self):
+
+        if self.IndepDstnBool:
+
+            # calculate expectation with respect to transitory shock
+
+            def preTranShkvPfunc(tran_shk, w_nrm):
+                return self.vPfuncNext(w_nrm + tran_shk)
+
+            self.preTranShkvPfunc, _ = self.calc_ExpMargValueFunc(
+                self.TranShkDstn, preTranShkvPfunc, self.wNrmNext
             )
 
+            # calculate expectation with respect to permanent shock
 
-# %% Initial parameter sets
+            def prePermShkvPfunc(perm_shk, b_nrm):
+                shock = perm_shk * self.PermGroFac
+                return shock ** (-self.CRRA) * self.preTranShkvPfunc(b_nrm / shock)
 
-# %% Base risky asset dictionary
+            self.prePermShkvPfunc, _ = self.calc_ExpMargValueFunc(
+                self.PermShkDstn, prePermShkvPfunc, self.bNrmNext
+            )
+
+            # Optimize portfolio share
+
+            def endOfPrddvds(risky_shk, a_nrm, share):
+                r_diff = risky_shk - self.Rfree
+                r_port = self.Rfree + r_diff * share
+                b_nrm = a_nrm * r_port
+                return a_nrm * r_diff * self.prePermShkvPfunc(b_nrm)
+
+            def objective_func(share, a_nrm):
+                return calc_expectation(self.RiskyDstn, endOfPrddvds, a_nrm, share)
+
+            opt_share = np.empty_like(self.aNrmNow)
+            for ai in range(self.aNrmNow.size):
+                a_nrm = self.aNrmNow[ai]
+                if a_nrm == 0.0:
+                    opt_share[ai] = 1.0
+                elif objective_func(1.0, a_nrm) > 0.0:
+                    opt_share[ai] = 1.0
+                else:
+                    sol = root_scalar(objective_func, bracket=[0.0, 1.0], args=(a_nrm,))
+                    if sol.converged:
+                        opt_share[ai] = sol.root
+                    else:
+                        opt_share[ai] = 1.0
+
+            self.opt_share = opt_share
+
+            def endOfPrddvda(risky_shk, a_nrm, share):
+                r_diff = risky_shk - self.Rfree
+                r_port = self.Rfree + r_diff * share
+                b_nrm = a_nrm * r_port
+                return r_port * self.prePermShkvPfunc(b_nrm)
+
+            EndOfPrddvda = self.DiscFacEff * calc_expectation(
+                self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.opt_share
+            )
+            EndOfPrddvdaNvrs = self.uPinv(EndOfPrddvda)
+            EndOfPrddvdaNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrddvdaNvrs)
+            EndOfPrddvdaFunc = MargValueFuncCRRA(EndOfPrddvdaNvrsFunc, self.CRRA)
+
+            return EndOfPrddvda
+
+
+# Initial parameter sets
+
+# Base risky asset dictionary
 
 risky_asset_parms = {
     # Risky return factor moments. Based on SP500 real returns from Shiller's
