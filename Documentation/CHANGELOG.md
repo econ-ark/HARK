@@ -57,6 +57,7 @@ PR: [#832](https://github.com/econ-ark/HARK/pull/832). See [this forthcoming REM
 * Fix bug in `calc_normal_style_pars_from_lognormal_pars` due to math error. [#1076](https://github.com/econ-ark/HARK/pull/1076)
 * Fix bug in `distribute_params` so that `AgentCount` parameter is updated. [#1089](https://github.com/econ-ark/HARK/pull/1089)
 * Fix bug in 'vFuncBool' option for 'MarkovConsumerType' so that the value function may now be calculated. [#1095](https://github.com/econ-ark/HARK/pull/1095)
+* Fix bug in 'get_Rfree' to allow simuations with time varying interest rates. [#1110] (https://github.com/econ-ark/HARK/pull/1110)
 
 ### 0.11.0
 
