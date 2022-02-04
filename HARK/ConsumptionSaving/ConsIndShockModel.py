@@ -1791,7 +1791,7 @@ class PerfForesightConsumerType(AgentType):
         """
                 
         if self.PerfMITShk == True:
-            RfreeNow = self.Rfree[self.t_sim]*np.ones(self.AgentCount)
+            RfreeNow = self.Rfree[self.t_sim]*np.ones(self.AgentCount) # Allow for time varying and period dependent interest rates as self.PerfMITShk turns off the age dependency on time varying variables
         else: 
             RfreeNow = self.Rfree * np.ones(self.AgentCount)
             
