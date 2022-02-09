@@ -1056,7 +1056,7 @@ def setup_latex_env_notebook(pf, latexExists):
             r"\providecommand{\MNrm}{M}"
             r"\providecommand{\mNrm}{m}"
             r"\providecommand{\MPC}{\kappa}"
-            r"\providecommand{\PermGroFac}{\Gamma}"
+            r"\providecommand{\PermGroFac}{\Phi}"
             r"\providecommand{\PLvl}{{\mathbf{P}}}"
             r"\providecommand{\pLvl}{{\mathbf{p}}}"
             r"\providecommand{\Rfree}{\mathsf{R}}"
