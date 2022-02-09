@@ -649,7 +649,8 @@ class AgentType(Model):
                     var_name
                 ]
             else:
-                self.newborn_init_history[var_name][self.t_sim] = self.state_now[
+                # Aggregate state is a scalar. Assign it to every agent.
+                self.newborn_init_history[var_name][self.t_sim,:] = self.state_now[
                     var_name
                 ]
 
@@ -670,17 +671,17 @@ class AgentType(Model):
                     )
                     if idio:
                         self.newborn_init_history[var_name][
-                            self.t_sim, self.who_dies
+                            t, self.who_dies
                         ] = self.state_now[var_name][self.who_dies]
                     else:
                         self.newborn_init_history[var_name][
-                            self.t_sim, self.who_dies
+                            t, self.who_dies
                         ] = self.state_now[var_name]
 
             # Other Shocks
             self.get_shocks()
             for var_name in self.shock_vars:
-                self.shock_history[var_name][self.t_sim, :] = self.shocks[var_name]
+                self.shock_history[var_name][t, :] = self.shocks[var_name]
 
             self.t_sim += 1
             self.t_age = self.t_age + 1  # Age all consumers by one period
