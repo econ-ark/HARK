@@ -717,7 +717,8 @@ class test_Harmenbergs_method(unittest.TestCase):
 
 
 class testReadShock(unittest.TestCase):
-    """ Tests of the results of the BufferStock REMARK.
+    """ 
+    Tests the functionality for pre computing shocks and using them in simulations
     """
 
     def setUp(self):
