@@ -711,3 +711,67 @@ class test_Harmenbergs_method(unittest.TestCase):
         self.assertAlmostEqual(c_std2, 0.03768819564871894)
         self.assertAlmostEqual(c_std1, 0.004411745897568616)
         self.assertAlmostEqual(c_std_ratio, 8.542694099741672)
+
+
+# %% Shock pre-computing tests
+
+
+class testReadShock(unittest.TestCase):
+    """ Tests of the results of the BufferStock REMARK.
+    """
+
+    def setUp(self):
+
+        # Make a dictionary containing all parameters needed to solve the model
+        self.base_params = copy(init_idiosyncratic_shocks)
+
+        agent_count = 10
+        t_sim = 200
+        # Make agents die relatively often
+        LivPrb = [0.9]
+        # No interest or growth to facilitate computations
+        Rfree = 1.0
+        PermGroFac = 1.0
+
+        self.base_params.update(
+            {
+                "AgentCount": agent_count,
+                "T_sim": t_sim,
+                "LivPrb": LivPrb,
+                "PermGroFac": [PermGroFac],
+                "Rfree": Rfree,
+                "track_vars": ["bNrm", "t_age"],
+            }
+        )
+
+    def test_NewbornStatesAndShocks(self):
+
+        # Make agent, shock and initial condition histories
+        agent = IndShockConsumerType(**self.base_params)
+        agent.make_shock_history()
+
+        # Find indices of agents and time periods that correspond to deaths
+        # this will be non-nan indices of newborn_init_history for states
+        # that are used in initializing the agent. aNrm is one of them.
+        idx = np.logical_not(np.isnan(agent.newborn_init_history["aNrm"]))
+
+        # Change the values
+        a_init_newborns = 20
+        agent.newborn_init_history["aNrm"][idx] = a_init_newborns
+        # Also change the shocks of newborns
+        pshk_newborns = 0.5
+        agent.shock_history["PermShk"][idx] = pshk_newborns
+        agent.shock_history["TranShk"][idx] = 0.0
+
+        # Solve and simulate the agent
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+
+        # Given our manipulation of initial wealth and permanent shocks,
+        # agents of age == 1 should have starting resources a_init_newborns/pshk_newborns
+        # (no interest, no deterministic growth and no transitory shock)
+        age = agent.history["t_age"]
+        self.assertTrue(
+            np.all(agent.history["bNrm"][age == 1] == a_init_newborns / pshk_newborns)
+        )
