@@ -496,39 +496,9 @@ class ConsRiskySolver(ConsIndShockSolver):
 
         if self.IndepDstnBool:
 
-            # calculate expectation with respect to transitory shock
+            preIncShkvPfunc = self.calc_preIncShkvPfunc(self.vPfuncNext)
 
-            def preTranShkvPfunc(tran_shk, w_nrm):
-                return self.vPfuncNext(w_nrm + tran_shk)
-
-            self.preTranShkvPfunc, _ = self.calc_ExpMargValueFunc(
-                self.TranShkDstn, preTranShkvPfunc, self.wNrmNext
-            )
-
-            # calculate expectation with respect to permanent shock
-
-            def prePermShkvPfunc(perm_shk, b_nrm):
-                shock = perm_shk * self.PermGroFac
-                return shock ** (-self.CRRA) * self.preTranShkvPfunc(b_nrm / shock)
-
-            self.prePermShkvPfunc, _ = self.calc_ExpMargValueFunc(
-                self.PermShkDstn, prePermShkvPfunc, self.bNrmNext
-            )
-
-            # calculate expectation with respect to risky shock
-
-            def preRiskyShkvPfunc(risky_shk, a_nrm):
-                return (
-                    self.DiscFacEff
-                    * risky_shk
-                    * self.prePermShkvPfunc(a_nrm * risky_shk)
-                )
-
-            self.preRiskyShkvPfunc, EndOfPrdvP = self.calc_ExpMargValueFunc(
-                self.RiskyDstn, preRiskyShkvPfunc, self.aNrmNow
-            )
-
-            self.EndOfPrdvPFunc = self.preRiskyShkvPfunc
+            EndOfPrdvP = self.calc_preRiskyShkvPfunc(preIncShkvPfunc)
 
         else:
 
