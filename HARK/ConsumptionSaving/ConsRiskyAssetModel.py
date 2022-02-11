@@ -744,6 +744,7 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
         """
 
         if self.zero_bound:
+            # add zero back on agrid
             self.EndOfPrdShareFunc = LinearInterp(
                 np.append(0.0, self.aNrmNow),
                 np.append(1.0, self.opt_share),
@@ -778,6 +779,153 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
         return solution
 
 
+@dataclass
+class FixedPortfolioShareSolver(ConsIndShockSolver):
+    solution_next: ConsumerSolution
+    IncShkDstn: DiscreteDistribution
+    TranShkDstn: DiscreteDistribution
+    PermShkDstn: DiscreteDistribution
+    RiskyDstn: DiscreteDistribution
+    ShockDstn: DiscreteDistribution
+    LivPrb: float
+    DiscFac: float
+    CRRA: float
+    Rfree: float
+    ShareFixed: float
+    PermGroFac: float
+    BoroCnstArt: float
+    aXtraGrid: np.array
+    vFuncBool: bool
+    CubicBool: bool
+    IndepDstnBool: bool
+
+    def __post_init__(self):
+        self.def_utility_funcs()
+
+    def r_port(self, shock):
+        return self.Rfree + (shock - self.Rfree) * self.ShareFixed
+
+    def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
+        super().set_and_update_values(solution_next, IncShkDstn, LivPrb, DiscFac)
+
+        # overwrite PatFac
+
+        def pat_fac_func(shock):
+            r_port = self.r_port(shock)
+            return ((r_port * self.DiscFacEff) ** (1.0 / self.CRRA)) / r_port
+
+        self.PatFac = calc_expectation(self.RiskyDstn, pat_fac_func)
+
+        self.MPCminNow = 1.0 / (1.0 + self.PatFac / solution_next.MPCmin)
+
+        # overwrite human wealth
+
+        def h_nrm_func(shock):
+            r_port = self.r_port(shock)
+            return self.PermGroFac / r_port * (self.Ex_IncNext + solution_next.hNrm)
+
+        self.hNrmNow = calc_expectation(self.RiskyDstn, h_nrm_func)
+
+        self.MPCmaxNow = 1.0 / (
+            1.0
+            + (self.WorstIncPrb ** (1.0 / self.CRRA))
+            * self.PatFac
+            / solution_next.MPCmax
+        )
+
+        self.cFuncLimitIntercept = self.MPCminNow * self.hNrmNow
+        self.cFuncLimitSlope = self.MPCminNow
+
+    def def_BoroCnst(self, BoroCnstArt):
+
+        # in worst case scenario, debt gets highest return possible
+        self.RPortMax = (
+            self.Rfree + (self.RiskyDstn.X.max() - self.Rfree) * self.ShareFixed
+        )
+
+        # Calculate the minimum allowable value of money resources in this period
+        self.BoroCnstNat = (
+            (self.solution_next.mNrmMin - self.TranShkDstn.X.min())
+            * (self.PermGroFac * self.PermShkDstn.X.min())
+            / self.RPortMax
+        )
+
+        if BoroCnstArt is None:
+            self.mNrmMinNow = self.BoroCnstNat
+        else:
+            self.mNrmMinNow = np.max([self.BoroCnstNat, BoroCnstArt])
+        if self.BoroCnstNat < self.mNrmMinNow:
+            self.MPCmaxEff = 1.0  # If actually constrained, MPC near limit is 1
+        else:
+            self.MPCmaxEff = self.MPCmaxNow
+
+        # Define the borrowing constraint (limiting consumption function)
+        self.cFuncNowCnst = LinearInterp(
+            np.array([self.mNrmMinNow, self.mNrmMinNow + 1]), np.array([0.0, 1.0])
+        )
+
+    def calc_EndOfPrdvP(self):
+        """
+        Calculate end-of-period marginal value of assets at each point in aNrmNow.
+        Does so by taking a weighted sum of next period marginal values across
+        income shocks (in a preconstructed grid self.mNrmNext).
+
+        Parameters
+        ----------
+        none
+
+        Returns
+        -------
+        EndOfPrdvP : np.array
+            A 1D array of end-of-period marginal value of assets
+        """
+
+        def vp_next(shocks, a_nrm):
+            r_port = self.r_port(shocks[2])
+            m_nrm_next = r_port / (self.PermGroFac * shocks[0]) * a_nrm + shocks[1]
+            return r_port * shocks[0] ** (-self.CRRA) * self.vPfuncNext(m_nrm_next)
+
+        EndOfPrdvP = (
+            self.DiscFacEff
+            * self.PermGroFac ** (-self.CRRA)
+            * calc_expectation(self.ShockDstn, vp_next, self.aNrmNow)
+        )
+
+        return EndOfPrdvP
+
+    def make_EndOfPrdvFunc(self, EndOfPrdvP):
+        """
+        Construct the end-of-period value function for this period, storing it
+        as an attribute of self for use by other methods.
+
+        Parameters
+        ----------
+        EndOfPrdvP : np.array
+            Array of end-of-period marginal value of assets corresponding to the
+            asset values in self.aNrmNow.
+
+        Returns
+        -------
+        none
+        """
+
+        def v_next(shocks, a_nrm):
+            r_port = self.Rfree + (shocks[2] - self.Rfree) * self.ShareFixed
+            m_nrm_next = r_port / (self.PermGroFac * shocks[0]) * a_nrm + shocks[1]
+            return shocks[0] ** (1 - self.CRRA) * self.vFuncNext(m_nrm_next)
+
+        EndOfPrdv = (
+            self.DiscFacEff
+            * self.PermGroFac ** (1.0 - self.CRRA)
+            * calc_expectation(self.ShockDstn, v_next, self.aNrmNow)
+        )
+        # value transformed through inverse utility
+        EndOfPrdvNvrs = self.uinv(EndOfPrdv)
+        aNrm_temp = np.insert(self.aNrmNow, 0, self.BoroCnstNat)
+        EndOfPrdvNvrsFunc = LinearInterp(aNrm_temp, EndOfPrdvNvrs)
+        self.EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
+
+
 # Initial parameter sets
 
 # Base risky asset dictionary
@@ -797,3 +945,6 @@ risky_asset_parms = {
 init_risky_asset = init_idiosyncratic_shocks.copy()
 init_risky_asset.update(risky_asset_parms)
 init_risky_asset["PortfolioBool"] = False
+
+init_fixed_share = init_risky_asset.copy()
+init_fixed_share["ShareFixed"] = [0.0]
