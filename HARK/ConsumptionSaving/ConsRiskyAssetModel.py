@@ -518,6 +518,47 @@ class ConsRiskySolver(ConsIndShockSolver):
 
         return EndOfPrdvP
 
+    def calc_ExpValueFunc(self, dstn, func, grid):
+
+        vals = calc_expectation(dstn, func, grid)
+        nvrs = self.uinv(vals)
+        nvrsFunc = LinearInterp(grid, nvrs)
+        valueFunc = ValueFuncCRRA(nvrsFunc, self.CRRA)
+
+        return valueFunc, vals
+
+    def calc_preIncShkvFunc(self, vFuncNext):
+        def preTranShkvFunc(tran_shk, w_nrm):
+            return vFuncNext(w_nrm + tran_shk)
+
+        self.preTranShkvFunc, _ = self.calc_ExpValueFunc(
+            self.TranShkDstn, preTranShkvFunc, self.wNrmNext
+        )
+
+        def prePermShkvFunc(perm_shk, b_nrm):
+            shock = perm_shk * self.PermGroFac
+            return shock ** (1.0 - self.CRRA) * self.preTranShkvFunc(b_nrm / shock)
+
+        self.prePermShkvFunc, _ = self.calc_ExpValueFunc(
+            self.PermShkDstn, prePermShkvFunc, self.bNrmNext
+        )
+
+        preIncShkvFunc = self.prePermShkvFunc
+
+        return preIncShkvFunc
+
+    def calc_preRiskyShkvFunc(self, preIncShkvFunc):
+        def preRiskyShkvFunc(risky_shk, a_nrm):
+            return self.DiscFacEff * preIncShkvFunc(risky_shk * a_nrm)
+
+        self.preRiskyShkvFunc, EndOfPrdv = self.calc_ExpValueFunc(
+            self.RiskyDstn, preRiskyShkvFunc, self.aNrmNow
+        )
+
+        self.EndOfPrdvFunc = self.preRiskyShkvFunc
+
+        return EndOfPrdv
+
     def make_EndOfPrdvFunc(self, EndOfPrdvP):
         """
         Construct the end-of-period value function for this period, storing it
@@ -536,29 +577,9 @@ class ConsRiskySolver(ConsIndShockSolver):
 
         if self.IndepDstnBool:
 
-            def preTranShkvFunc(tran_shk, w_nrm):
-                return self.vFuncNext(w_nrm + tran_shk)
+            preIncShkvFunc = self.calc_preIncShkvFunc(self.vFuncNext)
 
-            self.preTranShkvFunc, _ = self.calc_ExpValueFunc(
-                self.TranShkDstn, preTranShkvFunc, self.wNrmNext
-            )
-
-            def prePermShkvFunc(perm_shk, b_nrm):
-                shock = perm_shk * self.PermGroFac
-                return shock ** (1.0 - self.CRRA) * self.preTranShkvFunc(b_nrm / shock)
-
-            self.prePermShkvFunc, _ = self.calc_ExpValueFunc(
-                self.PermShkDstn, prePermShkvFunc, self.bNrmNext
-            )
-
-            def preRiskyShkvFunc(risky_shk, a_nrm):
-                return self.DiscFacEff * self.prePermShkvFunc(risky_shk * a_nrm)
-
-            self.preRiskyShkvFunc, EndOfPrdv = self.calc_ExpValueFunc(
-                self.RiskyDstn, preRiskyShkvFunc, self.aNrmNow
-            )
-
-            self.EndOfPrdvFunc = self.preRiskyShkvFunc
+            EndOfPrdv = self.calc_preRiskyShkvFunc(preIncShkvFunc)
 
         else:
 
