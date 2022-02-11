@@ -602,85 +602,127 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
     ShareGrid: np.array
     ShareLimit: float
 
+    def prepare_to_calc_EndOfPrdvP(self):
+        super().prepare_to_calc_EndOfPrdvP()
+
+        self.aMat, self.sMat = np.meshgrid(self.aNrmNow, self.ShareGrid, indexing="ij")
+
+        return self.aNrmNow
+
+    def optimize_share(self, EndOfPrddvds):
+
+        # For each value of aNrm, find the value of Share such that FOC-Share == 0.
+        crossing = np.logical_and(
+            EndOfPrddvds[:, 1:] <= 0.0, EndOfPrddvds[:, :-1] >= 0.0
+        )
+        share_idx = np.argmax(crossing, axis=1)
+        a_idx = np.arange(self.aNrmNow.size)
+        bot_s = self.ShareGrid[share_idx]
+        top_s = self.ShareGrid[share_idx + 1]
+        bot_f = EndOfPrddvds[a_idx, share_idx]
+        top_f = EndOfPrddvds[a_idx, share_idx + 1]
+
+        alpha = 1.0 - top_f / (top_f - bot_f)
+
+        opt_share = (1.0 - alpha) * bot_s + alpha * top_s
+
+        # If agent wants to put more than 100% into risky asset, he is constrained
+        constrained_top = EndOfPrddvds[:, -1] > 0.0
+        # Likewise if he wants to put less than 0% into risky asset
+        constrained_bot = EndOfPrddvds[:, 0] < 0.0
+
+        # For values of aNrm at which the agent wants to put
+        # more than 100% into risky asset, constrain them
+        opt_share[constrained_top] = 1.0
+        opt_share[constrained_bot] = 0.0
+
+        if not self.zero_bound:
+            # aNrm=0, so there's no way to "optimize" the portfolio
+            opt_share[0] = 1.0
+
+        return opt_share
+
+    def calc_preRiskyShkvPfunc(self, preIncShkvPfunc):
+
+        # Optimize portfolio share
+
+        def endOfPrddvds(risky_shk, a_nrm, share):
+            r_diff = risky_shk - self.Rfree
+            r_port = self.Rfree + r_diff * share
+            b_nrm = a_nrm * r_port
+            return a_nrm * r_diff * preIncShkvPfunc(b_nrm)
+
+        EndOfPrddvds = calc_expectation(
+            self.RiskyDstn, endOfPrddvds, self.aMat, self.sMat
+        )
+        EndOfPrddvds = EndOfPrddvds[:, :, 0]
+
+        self.opt_share = self.optimize_share(EndOfPrddvds)
+
+        def endOfPrddvda(risky_shk, a_nrm, share):
+            r_diff = risky_shk - self.Rfree
+            r_port = self.Rfree + r_diff * share
+            b_nrm = a_nrm * r_port
+            return r_port * preIncShkvPfunc(b_nrm)
+
+        EndOfPrddvda = self.DiscFacEff * calc_expectation(
+            self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.opt_share
+        )
+        EndOfPrddvdaNvrs = self.uPinv(EndOfPrddvda)
+        EndOfPrddvdaNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrddvdaNvrs)
+        EndOfPrddvdaFunc = MargValueFuncCRRA(EndOfPrddvdaNvrsFunc, self.CRRA)
+
+        return EndOfPrddvda
+
     def calc_EndOfPrdvP(self):
 
         if self.IndepDstnBool:
 
-            # calculate expectation with respect to transitory shock
+            preIncShkvPfunc = self.calc_preIncShkvPfunc(self.vPfuncNext)
 
-            def preTranShkvPfunc(tran_shk, w_nrm):
-                return self.vPfuncNext(w_nrm + tran_shk)
+            EndOfPrdvP = self.calc_preRiskyShkvPfunc(preIncShkvPfunc)
 
-            self.preTranShkvPfunc, _ = self.calc_ExpMargValueFunc(
-                self.TranShkDstn, preTranShkvPfunc, self.wNrmNext
-            )
+        else:
 
-            # calculate expectation with respect to permanent shock
-
-            def prePermShkvPfunc(perm_shk, b_nrm):
-                shock = perm_shk * self.PermGroFac
-                return shock ** (-self.CRRA) * self.preTranShkvPfunc(b_nrm / shock)
-
-            self.prePermShkvPfunc, _ = self.calc_ExpMargValueFunc(
-                self.PermShkDstn, prePermShkvPfunc, self.bNrmNext
-            )
-
-            # Optimize portfolio share
-
-            aMat, sMat = np.meshgrid(self.aNrmNow, self.ShareGrid, indexing="ij")
-
-            def endOfPrddvds(risky_shk, a_nrm, share):
-                r_diff = risky_shk - self.Rfree
+            def endOfPrddvds(shocks, a_nrm, share):
+                r_diff = shocks[2] - self.Rfree
                 r_port = self.Rfree + r_diff * share
                 b_nrm = a_nrm * r_port
-                return a_nrm * r_diff * self.prePermShkvPfunc(b_nrm)
+                p_shk = self.PermGroFac * shocks[0]
+                m_nrm = b_nrm / p_shk + shocks[1]
 
-            EndOfPrddvds = calc_expectation(self.RiskyDstn, endOfPrddvds, aMat, sMat)
+                return (
+                    r_diff * a_nrm * p_shk ** (1.0 - self.CRRA) * self.vPfuncNext(m_nrm)
+                )
+
+            EndOfPrddvds = calc_expectation(
+                self.RiskyDstn, endOfPrddvds, self.aMat, self.sMat
+            )
             EndOfPrddvds = EndOfPrddvds[:, :, 0]
 
-            # For each value of aNrm, find the value of Share such that FOC-Share == 0.
-            crossing = np.logical_and(
-                EndOfPrddvds[:, 1:] <= 0.0, EndOfPrddvds[:, :-1] >= 0.0
-            )
-            share_idx = np.argmax(crossing, axis=1)
-            a_idx = np.arange(self.aNrmNow.size)
-            bot_s = self.ShareGrid[share_idx]
-            top_s = self.ShareGrid[share_idx + 1]
-            bot_f = EndOfPrddvds[a_idx, share_idx]
-            top_f = EndOfPrddvds[a_idx, share_idx + 1]
+            self.opt_share = self.optimize_share(EndOfPrddvds)
 
-            alpha = 1.0 - top_f / (top_f - bot_f)
-
-            self.opt_share = (1.0 - alpha) * bot_s + alpha * top_s
-
-            # If agent wants to put more than 100% into risky asset, he is constrained
-            constrained_top = EndOfPrddvds[:, -1] > 0.0
-            # Likewise if he wants to put less than 0% into risky asset
-            constrained_bot = EndOfPrddvds[:, 0] < 0.0
-
-            # For values of aNrm at which the agent wants to put
-            # more than 100% into risky asset, constrain them
-            self.opt_share[constrained_top] = 1.0
-            self.opt_share[constrained_bot] = 0.0
-
-            if not self.zero_bound:
-                # aNrm=0, so there's no way to "optimize" the portfolio
-                self.opt_share[0] = 1.0
-
-            def endOfPrddvda(risky_shk, a_nrm, share):
-                r_diff = risky_shk - self.Rfree
+            def endOfPrddvda(shocks, a_nrm, share):
+                r_diff = shocks[2] - self.Rfree
                 r_port = self.Rfree + r_diff * share
                 b_nrm = a_nrm * r_port
-                return r_port * self.prePermShkvPfunc(b_nrm)
+                p_shk = self.PermGroFac * shocks[0]
+                m_nrm = b_nrm / p_shk + shocks[1]
+
+                return r_port * p_shk ** (1.0 - self.CRRA) * self.vPfuncNext(m_nrm)
 
             EndOfPrddvda = self.DiscFacEff * calc_expectation(
                 self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.opt_share
             )
+            EndOfPrddvda = EndOfPrddvda[:, :, 0]
+
             EndOfPrddvdaNvrs = self.uPinv(EndOfPrddvda)
             EndOfPrddvdaNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrddvdaNvrs)
-            EndOfPrddvdaFunc = MargValueFuncCRRA(EndOfPrddvdaNvrsFunc, self.CRRA)
+            self.EndOfPrddvdaFunc = MargValueFuncCRRA(EndOfPrddvdaNvrsFunc, self.CRRA)
 
-            return EndOfPrddvda
+            EndOfPrdvP = EndOfPrddvda
+
+        return EndOfPrdvP
 
     def add_ShareFunc(self, solution):
         """
