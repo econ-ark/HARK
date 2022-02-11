@@ -314,6 +314,20 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         self.get_Adjust()
 
 
+class RiskyReturnGivenFixedPortfolioShareType(RiskyAssetConsumerType):
+    time_vary_ = RiskyAssetConsumerType.time_vary_ + ["ShareFixed"]
+
+    def __init__(self, verbose=False, quiet=False, **kwds):
+        params = init_fixed_share.copy()
+        params.update(kwds)
+        kwds = params
+
+        # Initialize a basic consumer type
+        RiskyAssetConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
+
+        self.solve_one_period = make_one_period_oo_solver(FixedPortfolioShareSolver)
+
+
 ####################################################################################################
 ####################################################################################################
 
