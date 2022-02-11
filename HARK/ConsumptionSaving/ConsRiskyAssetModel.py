@@ -356,17 +356,21 @@ class ConsRiskySolver(ConsIndShockSolver):
         # overwrite PatFac
 
         def pat_fac_func(shock):
-            return shock ** (1.0 - self.CRRA)
+            return ((shock * self.DiscFacEff) ** (1.0 / self.CRRA)) / shock
 
-        self.PatFac = (
-            calc_expectation(self.RiskyDstn, pat_fac_func) * self.DiscFacEff
-        ) ** (1.0 / self.CRRA)
+        self.PatFac = calc_expectation(self.RiskyDstn, pat_fac_func)
 
         self.MPCminNow = 1.0 / (1.0 + self.PatFac / solution_next.MPCmin)
 
-        self.hNrmNow = (
-            self.PermGroFac / self.Rfree * (self.Ex_IncNext + solution_next.hNrm)
-        )
+        def h_nrm_func(shocks):
+            return (
+                self.PermGroFac
+                / shocks[2]
+                * (shocks[0] * shocks[1] + solution_next.hNrm)
+            )
+
+        self.hNrmNow = calc_expectation(self.ShockDstn, h_nrm_func)
+
         self.MPCmaxNow = 1.0 / (
             1.0
             + (self.WorstIncPrb ** (1.0 / self.CRRA))
@@ -374,8 +378,8 @@ class ConsRiskySolver(ConsIndShockSolver):
             / solution_next.MPCmax
         )
 
-        self.cFuncLimitIntercept = self.MPCminNow * self.hNrmNow
-        self.cFuncLimitSlope = self.MPCminNow
+        self.cFuncLimitIntercept = None
+        self.cFuncLimitSlope = None
 
     def def_BoroCnst(self, BoroCnstArt):
 
