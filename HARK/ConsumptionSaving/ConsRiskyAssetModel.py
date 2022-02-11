@@ -409,7 +409,7 @@ class ConsRiskySolver(ConsIndShockSolver):
     def prepare_to_calc_EndOfPrdvP(self):
 
         if self.zero_bound:
-            aNrmNow = self.aXtraGrid
+            aNrmNow = np.append(self.BoroCnstNat, self.aXtraGrid)
             bNrmNext = np.append(
                 aNrmNow[0] * self.RiskyDstn.X.min(),
                 aNrmNow * self.RiskyDstn.X.max(),
@@ -438,14 +438,45 @@ class ConsRiskySolver(ConsIndShockSolver):
 
         return margValueFunc, vals
 
-    def calc_ExpValueFunc(self, dstn, func, grid):
+    def calc_preIncShkvPfunc(self, vPfuncNext):
 
-        vals = calc_expectation(dstn, func, grid)
-        nvrs = self.uinv(vals)
-        nvrsFunc = LinearInterp(grid, nvrs)
-        valueFunc = ValueFuncCRRA(nvrsFunc, self.CRRA)
+        # calculate expectation with respect to transitory shock
 
-        return valueFunc, vals
+        def preTranShkvPfunc(tran_shk, w_nrm):
+            return vPfuncNext(w_nrm + tran_shk)
+
+        self.preTranShkvPfunc, _ = self.calc_ExpMargValueFunc(
+            self.TranShkDstn, preTranShkvPfunc, self.wNrmNext
+        )
+
+        # calculate expectation with respect to permanent shock
+
+        def prePermShkvPfunc(perm_shk, b_nrm):
+            shock = perm_shk * self.PermGroFac
+            return shock ** (-self.CRRA) * self.preTranShkvPfunc(b_nrm / shock)
+
+        self.prePermShkvPfunc, _ = self.calc_ExpMargValueFunc(
+            self.PermShkDstn, prePermShkvPfunc, self.bNrmNext
+        )
+
+        preIncShkvPfunc = self.prePermShkvPfunc
+
+        return preIncShkvPfunc
+
+    def calc_preRiskyShkvPfunc(self, preIncShkvPfunc):
+
+        # calculate expectation with respect to risky shock
+
+        def preRiskyShkvPfunc(risky_shk, a_nrm):
+            return self.DiscFacEff * risky_shk * preIncShkvPfunc(a_nrm * risky_shk)
+
+        self.preRiskyShkvPfunc, EndOfPrdvP = self.calc_ExpMargValueFunc(
+            self.RiskyDstn, preRiskyShkvPfunc, self.aNrmNow
+        )
+
+        self.EndOfPrdvPFunc = self.preRiskyShkvPfunc
+
+        return EndOfPrdvP
 
     def calc_EndOfPrdvP(self):
         """
