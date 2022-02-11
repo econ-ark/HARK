@@ -289,6 +289,7 @@ class AgentType(Model):
         self.shocks = {}
         self.read_shocks = False  # NOQA
         self.shock_history = {}
+        self.newborn_init_history = {}
         self.history = {}
         self.assign_parameters(**kwds)  # NOQA
         self.reset_rng()  # NOQA
@@ -521,6 +522,37 @@ class AgentType(Model):
             self.AgentCount, dtype=int
         )  # Which cycle period each agent is on
         self.sim_birth(all_agents)
+
+        # If we are asked to use existing shocks and a set of initial conditions
+        # exist, use them
+        if self.read_shocks and bool(self.newborn_init_history):
+
+            for var_name in self.state_now:
+
+                # Check that we are actually given a value for the variable
+                if var_name in self.newborn_init_history.keys():
+
+                    # Copy only array-like idiosyncratic states. Aggregates should
+                    # not be set by newborns
+                    idio = (
+                        isinstance(self.state_now[var_name], np.ndarray)
+                        and len(self.state_now[var_name]) == self.AgentCount
+                    )
+                    if idio:
+                        self.state_now[var_name] = self.newborn_init_history[var_name][
+                            0
+                        ]
+
+                else:
+
+                    warn(
+                        "The option for reading shocks was activated but "
+                        + "the model requires state "
+                        + var_name
+                        + ", not contained in "
+                        + "newborn_init_history."
+                    )
+
         self.clear_history()
         return None
 
@@ -602,13 +634,58 @@ class AgentType(Model):
             (self.T_sim, self.AgentCount), dtype=bool
         )
 
+        # Also make blank arrays for the draws of newborns' initial conditions
+        for var_name in self.state_vars:
+            self.newborn_init_history[var_name] = (
+                np.zeros((self.T_sim, self.AgentCount)) + np.nan
+            )
+
+        # Record the initial condition of the newborns created by
+        # initialize_sim -> sim_births
+        for var_name in self.state_vars:
+            # Check whether the state is idiosyncratic or an aggregate
+            idio = (
+                isinstance(self.state_now[var_name], np.ndarray)
+                and len(self.state_now[var_name]) == self.AgentCount
+            )
+            if idio:
+                self.newborn_init_history[var_name][self.t_sim] = self.state_now[
+                    var_name
+                ]
+            else:
+                # Aggregate state is a scalar. Assign it to every agent.
+                self.newborn_init_history[var_name][self.t_sim, :] = self.state_now[
+                    var_name
+                ]
+
         # Make and store the history of shocks for each period
         for t in range(self.T_sim):
+
+            # Deaths
             self.get_mortality()
             self.shock_history["who_dies"][t, :] = self.who_dies
+
+            # Initial conditions of newborns
+            if np.sum(self.who_dies) > 0:
+                for var_name in self.state_vars:
+                    # Check whether the state is idiosyncratic or an aggregate
+                    idio = (
+                        isinstance(self.state_now[var_name], np.ndarray)
+                        and len(self.state_now[var_name]) == self.AgentCount
+                    )
+                    if idio:
+                        self.newborn_init_history[var_name][
+                            t, self.who_dies
+                        ] = self.state_now[var_name][self.who_dies]
+                    else:
+                        self.newborn_init_history[var_name][
+                            t, self.who_dies
+                        ] = self.state_now[var_name]
+
+            # Other Shocks
             self.get_shocks()
             for var_name in self.shock_vars:
-                self.shock_history[var_name][self.t_sim, :] = self.shocks[var_name]
+                self.shock_history[var_name][t, :] = self.shocks[var_name]
 
             self.t_sim += 1
             self.t_age = self.t_age + 1  # Age all consumers by one period
@@ -637,10 +714,42 @@ class AgentType(Model):
         None
         """
         if self.read_shocks:
+
             who_dies = self.shock_history["who_dies"][self.t_sim, :]
+            # Instead of simulating births, assign the saved newborn initial conditions
+            if np.sum(who_dies) > 0:
+                for var_name in self.state_now:
+
+                    if var_name in self.newborn_init_history.keys():
+                        # Copy only array-like idiosyncratic states. Aggregates should
+                        # not be set by newborns
+                        idio = (
+                            isinstance(self.state_now[var_name], np.ndarray)
+                            and len(self.state_now[var_name]) == self.AgentCount
+                        )
+                        if idio:
+
+                            self.state_now[var_name][
+                                who_dies
+                            ] = self.newborn_init_history[var_name][
+                                self.t_sim, who_dies
+                            ]
+
+                    else:
+
+                        warn(
+                            "The option for reading shocks was activated but "
+                            + "the model requires state "
+                            + var_name
+                            + ", not contained in "
+                            + "newborn_init_history."
+                        )
+
+                # Reset ages of newborns
+                self.t_age[who_dies] = 0
         else:
             who_dies = self.sim_death()
-        self.sim_birth(who_dies)
+            self.sim_birth(who_dies)
         self.who_dies = who_dies
         return None
 
@@ -845,9 +954,7 @@ class AgentType(Model):
 
                 for var_name in self.track_vars:
                     if var_name in self.state_now:
-                        self.history[var_name][self.t_sim, :] = self.state_now[
-                            var_name
-                        ]
+                        self.history[var_name][self.t_sim, :] = self.state_now[var_name]
                     elif var_name in self.shocks:
                         self.history[var_name][self.t_sim, :] = self.shocks[var_name]
                     elif var_name in self.controls:

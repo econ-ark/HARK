@@ -1626,6 +1626,7 @@ class PerfForesightConsumerType(AgentType):
         # If no borrowing constraint specified...
         if not hasattr(self, "BoroCnstArt"):
             self.BoroCnstArt = None  # ...assume the user wanted none
+
         if not hasattr(self, "MaxKinks"):
             if self.cycles > 0:  # If it's not an infinite horizon model...
                 self.MaxKinks = np.inf  # ...there's no need to set MaxKinks
@@ -1713,17 +1714,21 @@ class PerfForesightConsumerType(AgentType):
         self.state_now["aNrm"][which_agents] = Lognormal(
             mu=self.aNrmInitMean,
             sigma=self.aNrmInitStd,
-            seed=self.RNG.randint(0, 2 ** 31 - 1),
+            seed=self.RNG.randint(0, 2**31 - 1),
         ).draw(N)
         # why is a now variable set here? Because it's an aggregate.
         pLvlInitMeanNow = self.pLvlInitMean + np.log(
             self.state_now["PlvlAgg"]
         )  # Account for newer cohorts having higher permanent income
         self.state_now["pLvl"][which_agents] = Lognormal(
-            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
+            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.randint(0, 2**31 - 1)
         ).draw(N)
-        # How many periods since each agent was born
-        self.t_age[which_agents] = 0
+        self.t_age[which_agents] = 0  # How many periods since each agent was born
+
+        if not hasattr(
+            self, "PerfMITShk"
+        ):  # If PerfMITShk not specified, let it be False
+            self.PerfMITShk = False
         if (
             self.PerfMITShk == False
         ):  # If True, Newborns inherit t_cycle of agent they replaced (i.e. t_cycles are not reset).
@@ -1759,7 +1764,7 @@ class PerfForesightConsumerType(AgentType):
         # they die.
         # See: https://github.com/econ-ark/HARK/pull/981
 
-        DeathShks = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(
+        DeathShks = Uniform(seed=self.RNG.randint(0, 2**31 - 1)).draw(
             N=self.AgentCount
         )
         which_agents = DeathShks < DiePrb
