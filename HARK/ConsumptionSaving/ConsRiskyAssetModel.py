@@ -5,11 +5,11 @@ This class is not a fully specified model and therefore has no solution or
 simulation methods. It is meant as a container of methods for dealing with
 risky assets that will be useful to models what will inherit from it.
 """
-from copy import deepcopy
 from dataclasses import dataclass
+from mimetypes import init
 
 import numpy as np
-from scipy.optimize import root_scalar, minimize_scalar
+from scipy.optimize import minimize_scalar
 
 from HARK import make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -44,8 +44,6 @@ class RiskyAssetConsumerType(IndShockConsumerType):
     at any given period with an exogenously given probability.
     The meaning of "adjusting his portfolio" depends on the particular model.
     """
-
-    time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
 
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
 
@@ -83,8 +81,8 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         self.update_ShockDstn()
 
         if self.PortfolioBool:
-            self.update_ShareGrid()
             self.update_ShareLimit()
+            self.update_ShareGrid()
 
     def update_RiskyDstn(self):
         """
@@ -234,7 +232,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.ShareGrid = np.linspace(0.0, 1.0, self.ShareCount)
+        self.ShareGrid = np.linspace(self.ShareLimit, 1.0, self.ShareCount)
         self.add_to_time_inv("ShareGrid")
 
     def get_Risky(self):
