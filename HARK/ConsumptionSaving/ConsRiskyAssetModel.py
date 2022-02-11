@@ -383,14 +383,19 @@ class ConsRiskySolver(ConsIndShockSolver):
 
     def def_BoroCnst(self, BoroCnstArt):
 
-        # Natural Borrowing Constraint is always 0.0 in risky return models
-        self.BoroCnstNat = -self.TranShkDstn.X.min()
+        # Calculate the minimum allowable value of money resources in this period
+        self.BoroCnstNat = (
+            (self.solution_next.mNrmMin - self.TranShkDstn.X.min())
+            * (self.PermGroFac * self.PermShkDstn.X.min())
+            / self.RiskyDstn.X.max()
+        )
         # Flag for whether the natural borrowing constraint is zero
         self.zero_bound = self.BoroCnstNat == BoroCnstArt
 
-        # minimum normalized cash on hand is 0.0
-        self.mNrmMinNow = BoroCnstArt
-
+        if BoroCnstArt is None:
+            self.mNrmMinNow = self.BoroCnstNat
+        else:
+            self.mNrmMinNow = np.max([self.BoroCnstNat, BoroCnstArt])
         if self.BoroCnstNat < self.mNrmMinNow:
             self.MPCmaxEff = 1.0  # If actually constrained, MPC near limit is 1
         else:
