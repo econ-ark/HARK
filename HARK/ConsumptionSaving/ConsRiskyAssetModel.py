@@ -6,7 +6,6 @@ simulation methods. It is meant as a container of methods for dealing with
 risky assets that will be useful to models what will inherit from it.
 """
 from dataclasses import dataclass
-from mimetypes import init
 
 import numpy as np
 from scipy.optimize import minimize_scalar
@@ -52,11 +51,11 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         params.update(kwds)
         kwds = params
 
-        # Initialize a basic consumer type
-        IndShockConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
-
         if not hasattr(self, "PortfolioBool"):
             self.PortfolioBool = False
+
+        # Initialize a basic consumer type
+        IndShockConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
 
         # These method must be overwritten by classes that inherit from
         # RiskyAssetConsumerType
@@ -119,7 +118,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
             self.RiskyDstn = IndexDistribution(
                 Lognormal.from_mean_std,
                 {"mean": self.RiskyAvg, "std": self.RiskyStd},
-                seed=self.RNG.randint(0, 2**31 - 1),
+                seed=self.RNG.randint(0, 2 ** 31 - 1),
             ).approx(self.RiskyCount)
 
             self.add_to_time_vary("RiskyDstn")
@@ -257,7 +256,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
             RiskyStd = self.RiskyStd
 
         self.shocks["Risky"] = Lognormal.from_mean_std(
-            RiskyAvg, RiskyStd, seed=self.RNG.randint(0, 2**31 - 1)
+            RiskyAvg, RiskyStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(1)
 
     def get_Adjust(self):
@@ -275,7 +274,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         None
         """
         self.shocks["Adjust"] = IndexDistribution(
-            Bernoulli, {"p": self.AdjustPrb}, seed=self.RNG.randint(0, 2**31 - 1)
+            Bernoulli, {"p": self.AdjustPrb}, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(self.t_cycle)
 
     def initialize_sim(self):
@@ -334,6 +333,9 @@ class RiskyReturnGivenFixedPortfolioShareType(RiskyAssetConsumerType):
 
 @dataclass
 class ConsRiskySolver(ConsIndShockSolver):
+    """
+    Solver for an agent that can save in an asset that has a risky return.
+    """
     solution_next: ConsumerSolution
     IncShkDstn: DiscreteDistribution
     TranShkDstn: DiscreteDistribution
@@ -365,6 +367,32 @@ class ConsRiskySolver(ConsIndShockSolver):
             )
 
     def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
+        """
+        Unpacks some of the inputs (and calculates simple objects based on them),
+        storing the results in self for use by other methods.  These include:
+        income shocks and probabilities, next period's marginal value function
+        (etc), the probability of getting the worst income shock next period,
+        the patience factor, human wealth, and the bounding MPCs.
+
+        Parameters
+        ----------
+        solution_next : ConsumerSolution
+            The solution to next period's one period problem.
+        IncShkDstn : distribution.DiscreteDistribution
+            A DiscreteDistribution with a pmf
+            and two point value arrays in X, order:
+            permanent shocks, transitory shocks.
+        LivPrb : float
+            Survival probability; likelihood of being alive at the beginning of
+            the succeeding period.
+        DiscFac : float
+            Intertemporal discount factor for future utility.
+
+        Returns
+        -------
+        None
+        """
+
         super().set_and_update_values(solution_next, IncShkDstn, LivPrb, DiscFac)
 
         # overwrite PatFac
@@ -375,6 +403,8 @@ class ConsRiskySolver(ConsIndShockSolver):
         self.PatFac = calc_expectation(self.RiskyDstn, pat_fac_func)
 
         self.MPCminNow = 1.0 / (1.0 + self.PatFac / solution_next.MPCmin)
+
+        # overwrite human wealth function
 
         def h_nrm_func(shocks):
             return (
@@ -392,10 +422,28 @@ class ConsRiskySolver(ConsIndShockSolver):
             / solution_next.MPCmax
         )
 
+        # let upper extrapolation be linear for now
+
         self.cFuncLimitIntercept = None
         self.cFuncLimitSlope = None
 
     def def_BoroCnst(self, BoroCnstArt):
+        """
+        Defines the constrained portion of the consumption function as cFuncNowCnst,
+        an attribute of self.  Uses the artificial and natural borrowing constraints.
+
+        Parameters
+        ----------
+        BoroCnstArt : float or None
+            Borrowing constraint for the minimum allowable assets to end the
+            period with.  If it is less than the natural borrowing constraint,
+            then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+            rowing constraint.
+
+        Returns
+        -------
+        none
+        """
 
         # Calculate the minimum allowable value of money resources in this period
         self.BoroCnstNat = (
@@ -403,6 +451,7 @@ class ConsRiskySolver(ConsIndShockSolver):
             * (self.PermGroFac * self.PermShkDstn.X.min())
             / self.RiskyDstn.X.max()
         )
+
         # Flag for whether the natural borrowing constraint is zero
         self.zero_bound = self.BoroCnstNat == BoroCnstArt
 
@@ -421,18 +470,34 @@ class ConsRiskySolver(ConsIndShockSolver):
         )
 
     def prepare_to_calc_EndOfPrdvP(self):
+        """
+        Prepare to calculate end-of-period marginal value by creating an array
+        of market resources that the agent could have next period, considering
+        the grid of end-of-period assets and the distribution of shocks he might
+        experience next period.
+
+        Parameters
+        ----------
+        none
+
+        Returns
+        -------
+        aNrmNow : np.array
+            A 1D array of end-of-period assets; also stored as attribute of self.
+        """
 
         if self.zero_bound:
-            aNrmNow = np.append(self.BoroCnstNat, self.aXtraGrid)
+            # if zero is BoroCnstNat, do not evaluate at 0.0
+            aNrmNow = self.aXtraGrid
             bNrmNext = np.append(
-                aNrmNow[0] * self.RiskyDstn.X.min(),
-                aNrmNow * self.RiskyDstn.X.max(),
+                aNrmNow[0] * self.RiskyDstn.X.min(), aNrmNow * self.RiskyDstn.X.max(),
             )
             wNrmNext = np.append(
                 bNrmNext[0] / (self.PermGroFac * self.PermShkDstn.X.max()),
                 bNrmNext / (self.PermGroFac * self.PermShkDstn.X.min()),
             )
         else:
+            # add zero to aNrmNow
             aNrmNow = np.append(self.BoroCnstArt, self.aXtraGrid)
             bNrmNext = aNrmNow * self.RiskyDstn.X.max()
             wNrmNext = bNrmNext / (self.PermGroFac * self.PermShkDstn.X.min())
@@ -444,6 +509,10 @@ class ConsRiskySolver(ConsIndShockSolver):
         return self.aNrmNow
 
     def calc_ExpMargValueFunc(self, dstn, func, grid):
+        """
+        Calculate Expected Marginal Value Function given a distribution,
+        a function, and a set of interpolation nodes.
+        """
 
         vals = calc_expectation(dstn, func, grid)
         nvrs = self.uPinv(vals)
@@ -453,6 +522,10 @@ class ConsRiskySolver(ConsIndShockSolver):
         return margValueFunc, vals
 
     def calc_preIncShkvPfunc(self, vPfuncNext):
+        """
+        Calculate Expected Marginal Value Function before the
+        realization of income shocks.
+        """
 
         # calculate expectation with respect to transitory shock
 
@@ -478,6 +551,10 @@ class ConsRiskySolver(ConsIndShockSolver):
         return preIncShkvPfunc
 
     def calc_preRiskyShkvPfunc(self, preIncShkvPfunc):
+        """
+        Calculate Expected Marginal Value Function before
+        the realization of the risky return.
+        """
 
         # calculate expectation with respect to risky shock
 
@@ -488,7 +565,7 @@ class ConsRiskySolver(ConsIndShockSolver):
             self.RiskyDstn, preRiskyShkvPfunc, self.aNrmNow
         )
 
-        self.EndOfPrdvPFunc = self.preRiskyShkvPfunc
+        self.EndOfPrdvPfunc = self.preRiskyShkvPfunc
 
         return EndOfPrdvP
 
@@ -526,13 +603,17 @@ class ConsRiskySolver(ConsIndShockSolver):
                     * self.vPfuncNext(mNrm_next)
                 )
 
-            self.EndOfPrdvPFunc, EndOfPrdvP = self.calc_ExpMargValueFunc(
+            self.EndOfPrdvPfunc, EndOfPrdvP = self.calc_ExpMargValueFunc(
                 self.ShockDstn, vP_next, self.aNrmNow
             )
 
         return EndOfPrdvP
 
     def calc_ExpValueFunc(self, dstn, func, grid):
+        """
+        Calculate Expected Value Function given distribution,
+        function, and interpolating nodes.
+        """
 
         vals = calc_expectation(dstn, func, grid)
         nvrs = self.uinv(vals)
@@ -542,6 +623,11 @@ class ConsRiskySolver(ConsIndShockSolver):
         return valueFunc, vals
 
     def calc_preIncShkvFunc(self, vFuncNext):
+        """
+        Calculate Expected Value Function prior to realization
+        of income uncertainty.
+        """
+
         def preTranShkvFunc(tran_shk, w_nrm):
             return vFuncNext(w_nrm + tran_shk)
 
@@ -562,6 +648,11 @@ class ConsRiskySolver(ConsIndShockSolver):
         return preIncShkvFunc
 
     def calc_preRiskyShkvFunc(self, preIncShkvFunc):
+        """
+        Calculate Expected Value Function prior to
+        realization of risky return.
+        """
+
         def preRiskyShkvFunc(risky_shk, a_nrm):
             return self.DiscFacEff * preIncShkvFunc(risky_shk * a_nrm)
 
@@ -617,6 +708,22 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
     ShareLimit: float
 
     def prepare_to_calc_EndOfPrdvP(self):
+        """
+        Prepare to calculate end-of-period marginal value by creating an array
+        of market resources that the agent could have next period, considering
+        the grid of end-of-period assets and the distribution of shocks he might
+        experience next period.
+
+        Parameters
+        ----------
+        none
+
+        Returns
+        -------
+        aNrmNow : np.array
+            A 1D array of end-of-period assets; also stored as attribute of self.
+        """
+
         super().prepare_to_calc_EndOfPrdvP()
 
         self.aMat, self.sMat = np.meshgrid(self.aNrmNow, self.ShareGrid, indexing="ij")
@@ -624,6 +731,11 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
         return self.aNrmNow
 
     def optimize_share(self, EndOfPrddvds):
+        """
+        Optimize the risky share of portfolio given End of Period
+        Marginal Value wrt a given risky share. Returns optimal share
+        and End of Period Marginal Value of Liquid Assets at the optimal share.
+        """
 
         # For each value of aNrm, find the value of Share such that FOC-Share == 0.
         crossing = np.logical_and(
@@ -657,6 +769,10 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
         return opt_share
 
     def calc_preRiskyShkvPfunc(self, preIncShkvPfunc):
+        """
+        Calculate Expected Marginal Value Function before
+        the realization of the risky return.
+        """
 
         # Optimize portfolio share
 
@@ -689,6 +805,20 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
         return EndOfPrddvda
 
     def calc_EndOfPrdvP(self):
+        """
+        Calculate end-of-period marginal value of assets at each point in aNrmNow.
+        Does so by taking a weighted sum of next period marginal values across
+        income shocks (in a preconstructed grid self.mNrmNext).
+
+        Parameters
+        ----------
+        none
+
+        Returns
+        -------
+        EndOfPrdvP : np.array
+            A 1D array of end-of-period marginal value of assets
+        """
 
         if self.IndepDstnBool:
 
@@ -740,7 +870,9 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
 
     def add_ShareFunc(self, solution):
         """
-        Construct the risky share function when the agent can adjust
+        Construct the risky share function twice, once with respect
+        to End of Period which depends on Liquid assets, and another
+        with respect to Beginning of Period which depends on Cash on Hand.
         """
 
         if self.zero_bound:
@@ -806,6 +938,32 @@ class FixedPortfolioShareSolver(ConsIndShockSolver):
         return self.Rfree + (shock - self.Rfree) * self.ShareFixed
 
     def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
+        """
+        Unpacks some of the inputs (and calculates simple objects based on them),
+        storing the results in self for use by other methods.  These include:
+        income shocks and probabilities, next period's marginal value function
+        (etc), the probability of getting the worst income shock next period,
+        the patience factor, human wealth, and the bounding MPCs.
+
+        Parameters
+        ----------
+        solution_next : ConsumerSolution
+            The solution to next period's one period problem.
+        IncShkDstn : distribution.DiscreteDistribution
+            A DiscreteDistribution with a pmf
+            and two point value arrays in X, order:
+            permanent shocks, transitory shocks.
+        LivPrb : float
+            Survival probability; likelihood of being alive at the beginning of
+            the succeeding period.
+        DiscFac : float
+            Intertemporal discount factor for future utility.
+
+        Returns
+        -------
+        None
+        """
+
         super().set_and_update_values(solution_next, IncShkDstn, LivPrb, DiscFac)
 
         # overwrite PatFac
@@ -837,6 +995,22 @@ class FixedPortfolioShareSolver(ConsIndShockSolver):
         self.cFuncLimitSlope = self.MPCminNow
 
     def def_BoroCnst(self, BoroCnstArt):
+        """
+        Defines the constrained portion of the consumption function as cFuncNowCnst,
+        an attribute of self.  Uses the artificial and natural borrowing constraints.
+
+        Parameters
+        ----------
+        BoroCnstArt : float or None
+            Borrowing constraint for the minimum allowable assets to end the
+            period with.  If it is less than the natural borrowing constraint,
+            then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+            rowing constraint.
+
+        Returns
+        -------
+        none
+        """
 
         # in worst case scenario, debt gets highest return possible
         self.RPortMax = (
@@ -882,13 +1056,12 @@ class FixedPortfolioShareSolver(ConsIndShockSolver):
 
         def vp_next(shocks, a_nrm):
             r_port = self.r_port(shocks[2])
-            m_nrm_next = r_port / (self.PermGroFac * shocks[0]) * a_nrm + shocks[1]
-            return r_port * shocks[0] ** (-self.CRRA) * self.vPfuncNext(m_nrm_next)
+            p_shk = self.PermGroFac * shocks[0]
+            m_nrm_next = a_nrm * r_port / p_shk + shocks[1]
+            return r_port * p_shk ** (-self.CRRA) * self.vPfuncNext(m_nrm_next)
 
-        EndOfPrdvP = (
-            self.DiscFacEff
-            * self.PermGroFac ** (-self.CRRA)
-            * calc_expectation(self.ShockDstn, vp_next, self.aNrmNow)
+        EndOfPrdvP = self.DiscFacEff * calc_expectation(
+            self.ShockDstn, vp_next, self.aNrmNow
         )
 
         return EndOfPrdvP
@@ -944,7 +1117,9 @@ risky_asset_parms = {
 # Make a dictionary to specify a risky asset consumer type
 init_risky_asset = init_idiosyncratic_shocks.copy()
 init_risky_asset.update(risky_asset_parms)
-init_risky_asset["PortfolioBool"] = False
+
+# Number of discrete points in the risky share approximation
+init_risky_asset["ShareCount"] = 25
 
 init_fixed_share = init_risky_asset.copy()
 init_fixed_share["ShareFixed"] = [0.0]
