@@ -1,12 +1,18 @@
+# %% [markdown]
+# # Example Implementations of `HARK.ConsumptionSaving.ConsRiskyAssetModel`
+
 # %%
 from time import time
 
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
-    PortfolioConsumerType,
     init_portfolio,
+    PortfolioConsumerType,
 )
-from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyAssetConsumerType
+from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
+    RiskyAssetConsumerType,
+    RiskyReturnGivenFixedPortfolioShareType,
+)
 from HARK.utilities import plot_funcs_der, plot_funcs
 
 
@@ -14,9 +20,13 @@ from HARK.utilities import plot_funcs_der, plot_funcs
 mystr = lambda number: "{:.4f}".format(number)
 
 
+# %% [markdown]
+# ## Idiosyncratic Income Shocks Consumer Type
+
 # %%
 # Make and solve an example consumer with idiosyncratic income shocks
-IndShockExample = IndShockConsumerType()
+# Sse init_portfolio parameters to compare to results of PortfolioConsumerType
+IndShockExample = IndShockConsumerType(**init_portfolio)
 IndShockExample.cycles = 0  # Make this type have an infinite horizon
 
 
@@ -35,17 +45,19 @@ IndShockExample.unpack("cFunc")
 # %%
 # Plot the consumption function and MPC for the infinite horizon consumer
 print("Concave consumption function:")
-plot_funcs(IndShockExample.cFunc[0], IndShockExample.solution[0].mNrmMin, 5)
+plot_funcs(IndShockExample.cFunc[0], 0.0, 5.0)
 print("Marginal consumption function:")
-plot_funcs_der(IndShockExample.cFunc[0], IndShockExample.solution[0].mNrmMin, 5)
+plot_funcs_der(IndShockExample.cFunc[0], 0.0, 5.0)
 
 
+
+# %% [markdown]
+# ## Risky Return Consumer Type
 
 # %%
 # Make and solve an example consumer with risky returns to savings
-init_risky = init_portfolio.copy()
-init_risky["PortfolioBool"] = False
-RiskyReturnExample = RiskyAssetConsumerType(**init_risky)
+# Use init_portfolio parameters to compare to results of PortfolioConsumerType
+RiskyReturnExample = RiskyAssetConsumerType(**init_portfolio)
 RiskyReturnExample.cycles = 0  # Make this type have an infinite horizon
 
 
@@ -64,14 +76,33 @@ RiskyReturnExample.unpack("cFunc")
 # %%
 # Plot the consumption function and MPC for the risky asset consumer
 print("Concave consumption function:")
-plot_funcs(RiskyReturnExample.cFunc[0], RiskyReturnExample.solution[0].mNrmMin, 5)
+plot_funcs(RiskyReturnExample.cFunc[0], 0.0, 5.0)
 print("Marginal consumption function:")
-plot_funcs_der(RiskyReturnExample.cFunc[0], RiskyReturnExample.solution[0].mNrmMin, 5)
+plot_funcs_der(RiskyReturnExample.cFunc[0], 0.0, 5.0)
 
 
+
+# %% [markdown]
+# ## Compare Idiosyncratic Income Shocks with Risky Return
 
 # %%
-# Make and solve an example consumer with a portfolio choice
+# Compare the consumption functions for the various agents in this notebook.
+print("Consumption functions for idiosyncratic shocks vs risky returns:")
+plot_funcs(
+    [
+        IndShockExample.cFunc[0],  # blue
+        RiskyReturnExample.cFunc[0],  # orange
+    ],
+    0.0,
+    20.0,
+)
+
+
+# %% [markdown]
+# ## Risky Return Consumer Type with Portfolio Choice
+
+# %%
+# Make and solve an example risky consumer with a portfolio choice
 init_portfolio["PortfolioBool"] = True
 PortfolioChoiceExample = RiskyAssetConsumerType(**init_portfolio)
 PortfolioChoiceExample.cycles = 0  # Make this type have an infinite horizon
@@ -93,15 +124,14 @@ PortfolioChoiceExample.unpack("ShareFunc")
 # %%
 # Plot the consumption function and MPC for the portfolio choice consumer
 print("Concave consumption function:")
-plot_funcs(
-    PortfolioChoiceExample.cFunc[0], PortfolioChoiceExample.solution[0].mNrmMin, 5
-)
+plot_funcs(PortfolioChoiceExample.cFunc[0], 0.0, 5.0)
 print("Marginal consumption function:")
-plot_funcs_der(
-    PortfolioChoiceExample.cFunc[0], PortfolioChoiceExample.solution[0].mNrmMin, 5
-)
+plot_funcs_der(PortfolioChoiceExample.cFunc[0], 0.0, 5.0)
 
 
+
+# %% [markdown]
+# ## Compare Income Shocks, Risky Return, and RR w/ Portfolio Choice
 
 # %%
 # Compare the consumption functions for the various agents in this notebook.
@@ -110,19 +140,21 @@ print(
 )
 plot_funcs(
     [
-        IndShockExample.cFunc[0],
-        RiskyReturnExample.cFunc[0],
-        PortfolioChoiceExample.cFunc[0],
+        IndShockExample.cFunc[0],  # blue
+        RiskyReturnExample.cFunc[0],  # orange
+        PortfolioChoiceExample.cFunc[0],  # green
     ],
-    IndShockExample.solution[0].mNrmMin,
-    5,
+    0.0,
+    20.0,
 )
 
 
+# %% [markdown]
+# ## Portfolio Consumer Type
+
 # %%
-# Make and solve an example consumer with a portfolio choice
-init_portfolio["PortfolioBool"] = True
-PortfolioTypeExample = PortfolioConsumerType(**init_portfolio)
+# Make and solve an example portfolio choice consumer
+PortfolioTypeExample = PortfolioConsumerType()
 PortfolioTypeExample.cycles = 0  # Make this type have an infinite horizon
 
 
@@ -142,24 +174,128 @@ PortfolioTypeExample.unpack("ShareFuncAdj")
 # %%
 # Plot the consumption function and MPC for the portfolio choice consumer
 print("Concave consumption function:")
-plot_funcs(PortfolioTypeExample.cFuncAdj[0], 0, 5)
+plot_funcs(PortfolioTypeExample.cFuncAdj[0], 0.0, 5.0)
 print("Marginal consumption function:")
-plot_funcs_der(PortfolioTypeExample.cFuncAdj[0], 0, 5)
+plot_funcs_der(PortfolioTypeExample.cFuncAdj[0], 0.0, 5.0)
 
+
+# %% [markdown]
+# ## Compare RR w/ Portfolio Choice with Portfolio Choice Type
 
 # %%
 # Compare the consumption functions for the various portfolio choice types.
 print(
     "Consumption functions for portfolio choice type vs risky asset with portfolio choice:"
 )
-plot_funcs([PortfolioTypeExample.cFuncAdj[0], PortfolioChoiceExample.cFunc[0]], 0, 200)
+plot_funcs(
+    [
+        PortfolioTypeExample.cFuncAdj[0],  # blue
+        PortfolioChoiceExample.cFunc[0],  # orange
+    ],
+    0.0,
+    20.0,
+)
 
 
 # %%
 # Compare the share functions for the various portfolio choice types.
 print("Share functions for portfolio choice type vs risky asset with portfolio choice:")
 plot_funcs(
-    [PortfolioTypeExample.ShareFuncAdj[0], PortfolioChoiceExample.ShareFunc[0]], 0, 200
+    [
+        PortfolioTypeExample.ShareFuncAdj[0],  # blue
+        PortfolioChoiceExample.ShareFunc[0],  # orange
+    ],
+    0,
+    200,
+)
+
+
+# %% [markdown]
+# ## Risky Return Given Fixed Portfolio Share
+
+# %%
+FixedShareExample = RiskyReturnGivenFixedPortfolioShareType(**init_portfolio)
+FixedShareExample.cycles = 0
+
+
+# %%
+start_time = time()
+FixedShareExample.solve()
+end_time = time()
+print(
+    "Solving a consumer with fixed portfolio share took "
+    + mystr(end_time - start_time)
+    + " seconds."
+)
+FixedShareExample.unpack("cFunc")
+
+
+# %%
+# Plot the consumption function and MPC for the infinite horizon consumer
+print("Concave consumption function:")
+plot_funcs(FixedShareExample.cFunc[0], 0.0, 5.0)
+print("Marginal consumption function:")
+plot_funcs_der(FixedShareExample.cFunc[0], 0.0, 5.0)
+
+
+# %% [markdown]
+# ## Compare Idiosyncratic Shock Type with Fixed Share at 0.0 Type
+
+# %%
+# Compare the consumption functions for the various idiosyncratic shocks
+print("Consumption functions for idiosyncratic shocks vs fixed share at 0.0:")
+plot_funcs(
+    [
+        IndShockExample.cFunc[0],  # blue
+        FixedShareExample.cFunc[0],  # orange
+    ],
+    0.0,
+    20.0,
+)
+
+
+# %% [markdown]
+# ## Fixed Share at 1.0 Type
+
+# %%
+init_portfolio["ShareFixed"] = [1.0]
+RiskyFixedExample = RiskyReturnGivenFixedPortfolioShareType(**init_portfolio)
+RiskyFixedExample.cycles = 0
+
+
+# %%
+start_time = time()
+RiskyFixedExample.solve()
+end_time = time()
+print(
+    "Solving a consumer with share fixed at 1.0 took "
+    + mystr(end_time - start_time)
+    + " seconds."
+)
+RiskyFixedExample.unpack("cFunc")
+
+
+# %%
+# Plot the consumption function and MPC for the portfolio choice consumer
+print("Concave consumption function:")
+plot_funcs(RiskyFixedExample.cFunc[0], 0.0, 5.0)
+print("Marginal consumption function:")
+plot_funcs_der(RiskyFixedExample.cFunc[0], 0.0, 5.0)
+
+
+# %% [markdown]
+# ## Compare Fixed Share at 1.0 Type with Risky Return Type
+
+# %%
+# Compare the consumption functions for the various risky shocks
+print("Consumption functions for risky asset vs fixed share at 1.0:")
+plot_funcs(
+    [
+        RiskyReturnExample.cFunc[0],  # blue
+        RiskyFixedExample.cFunc[0],  # orange
+    ],
+    0.0,
+    20.0,
 )
 
 
