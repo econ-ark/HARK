@@ -172,6 +172,8 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         params.update(kwds)
         kwds = params
 
+        self.PortfolioBool = True
+
         # Initialize a basic consumer type
         RiskyAssetConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
 
@@ -1267,7 +1269,10 @@ class ConsSequentialPortfolioSolver(ConsPortfolioSolver):
             Share_now = self.Share_now
 
         self.SequentialShareFuncAdj_now = LinearInterp(
-            aNrm_temp, Share_now, intercept_limit=self.ShareLimit, slope_limit=0.0,
+            aNrm_temp,
+            Share_now,
+            intercept_limit=self.ShareLimit,
+            slope_limit=0.0,
         )
 
         solution.SequentialShareFuncAdj = self.SequentialShareFuncAdj_now
