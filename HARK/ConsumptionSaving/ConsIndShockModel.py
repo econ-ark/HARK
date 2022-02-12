@@ -1548,22 +1548,23 @@ init_perfect_foresight = {
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": None,  # Artificial borrowing constraint
     # Maximum number of grid points to allow in cFunc (should be large)
-    "MaxKinks": 400,
     # Number of agents of this type (only matters for simulation)
-    "AgentCount": 10000,
+    "MaxKinks": 400,
     # Mean of log initial assets (only matters for simulation)
-    "aNrmInitMean": 0.0,
+    "AgentCount": 10000,
     # Standard deviation of log initial assets (only for simulation)
-    "aNrmInitStd": 1.0,
+    "aNrmInitMean": 0.0,
     # Mean of log initial permanent income (only matters for simulation)
+    "aNrmInitStd": 1.0,
     "pLvlInitMean": 0.0,
     # Standard deviation of log initial permanent income (only matters for simulation)
     "pLvlInitStd": 0.0,
     # Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
     "PermGroFacAgg": 1.0,
-    "T_age": None,  # Age after which simulated agents are automatically killed
+    "T_age": None,
+    # Age after which simulated agents are automatically killed
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
-    "PerfMITShk": False
+    "PerfMITShk": False,
     # Do Perfect Foresight MIT Shock: Forces Newborns to follow solution path of the agent he/she replaced when True
 }
 
@@ -1714,16 +1715,17 @@ class PerfForesightConsumerType(AgentType):
         self.state_now["aNrm"][which_agents] = Lognormal(
             mu=self.aNrmInitMean,
             sigma=self.aNrmInitStd,
-            seed=self.RNG.randint(0, 2**31 - 1),
+            seed=self.RNG.randint(0, 2 ** 31 - 1),
         ).draw(N)
         # why is a now variable set here? Because it's an aggregate.
         pLvlInitMeanNow = self.pLvlInitMean + np.log(
             self.state_now["PlvlAgg"]
         )  # Account for newer cohorts having higher permanent income
         self.state_now["pLvl"][which_agents] = Lognormal(
-            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.randint(0, 2**31 - 1)
+            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
-        self.t_age[which_agents] = 0  # How many periods since each agent was born
+        # How many periods since each agent was born
+        self.t_age[which_agents] = 0
 
         if not hasattr(
             self, "PerfMITShk"
@@ -1764,7 +1766,7 @@ class PerfForesightConsumerType(AgentType):
         # they die.
         # See: https://github.com/econ-ark/HARK/pull/981
 
-        DeathShks = Uniform(seed=self.RNG.randint(0, 2**31 - 1)).draw(
+        DeathShks = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(
             N=self.AgentCount
         )
         which_agents = DeathShks < DiePrb
@@ -2044,8 +2046,7 @@ class PerfForesightConsumerType(AgentType):
 # Make a dictionary to specify an idiosyncratic income shocks consumer
 init_idiosyncratic_shocks = dict(
     init_perfect_foresight,
-    **{
-        # assets above grid parameters
+    **{  # assets above grid parameters
         "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
         "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
         # Exponential nesting factor when constructing "assets above minimum" grid
@@ -2071,9 +2072,9 @@ init_idiosyncratic_shocks = dict(
         "T_retire": 0,  # Period of retirement (0 --> no retirement)
         "vFuncBool": False,  # Whether to calculate the value function during solution
         # Use cubic spline interpolation when True, linear interpolation when False
+        # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
         "CubicBool": False,
         "neutral_measure": False,
-        # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
     }
 )
 
@@ -2447,8 +2448,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             False: "\nThe given parameter values violate the Mortality Adjusted Aggregate Growth Imatience Condition; the GPFAggLivPrb is: {0.GPFAggLivPrb}",
         }
 
-        verbose_messages = {
-            # (see {0.url}/#WRIC for more).',
+        verbose_messages = {  # (see {0.url}/#WRIC for more).',
             True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.\n",
             # (see {0.url}/#WRIC for more).'
             False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.\n",
@@ -2910,9 +2910,12 @@ init_kinked_R = dict(
     **{
         "Rboro": 1.20,  # Interest factor on assets when borrowing, a < 0
         "Rsave": 1.02,  # Interest factor on assets when saving, a > 0
-        "BoroCnstArt": None,  # kinked R is a bit silly if borrowing not allowed
-        "CubicBool": True,  # kinked R is now compatible with linear cFunc and cubic cFunc
-        "aXtraCount": 48,  # ...so need lots of extra gridpoints to make up for it
+        "BoroCnstArt": None,
+        # kinked R is a bit silly if borrowing not allowed
+        "CubicBool": True,
+        # kinked R is now compatible with linear cFunc and cubic cFunc
+        "aXtraCount": 48,
+        # ...so need lots of extra gridpoints to make up for it
     }
 )
 del init_kinked_R["Rfree"]  # get rid of constant interest factor

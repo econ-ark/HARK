@@ -6,7 +6,6 @@ asset (with a low return), and saving in a risky asset (with higher average retu
 from copy import deepcopy
 
 import numpy as np
-from scipy.optimize import minimize_scalar
 
 from HARK import (
     MetricObject,
@@ -243,57 +242,6 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
             dvdmFuncFxd=dvdmFuncFxd_terminal,
             dvdsFuncFxd=dvdsFuncFxd_terminal,
         )
-
-    def update_ShareGrid(self):
-        """
-        Creates the attribute ShareGrid as an evenly spaced grid on [0.,1.], using
-        the primitive parameter ShareCount.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.ShareGrid = np.linspace(0.0, 1.0, self.ShareCount)
-        self.add_to_time_inv("ShareGrid")
-
-    def update_ShareLimit(self):
-        """
-        Creates the attribute ShareLimit, representing the limiting lower bound of
-        risky portfolio share as mNrm goes to infinity.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        if "RiskyDstn" in self.time_vary:
-            self.ShareLimit = []
-            for t in range(self.T_cycle):
-                RiskyDstn = self.RiskyDstn[t]
-                temp_f = lambda s: -((1.0 - self.CRRA) ** -1) * np.dot(
-                    (self.Rfree + s * (RiskyDstn.X - self.Rfree)) ** (1.0 - self.CRRA),
-                    RiskyDstn.pmf,
-                )
-                SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
-                self.ShareLimit.append(SharePF)
-            self.add_to_time_vary("ShareLimit")
-
-        else:
-            RiskyDstn = self.RiskyDstn
-            temp_f = lambda s: -((1.0 - self.CRRA) ** -1) * np.dot(
-                (self.Rfree + s * (RiskyDstn.X - self.Rfree)) ** (1.0 - self.CRRA),
-                RiskyDstn.pmf,
-            )
-            SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
-            self.ShareLimit = SharePF
-            self.add_to_time_inv("ShareLimit")
 
     def get_Rfree(self):
         """
@@ -1319,10 +1267,7 @@ class ConsSequentialPortfolioSolver(ConsPortfolioSolver):
             Share_now = self.Share_now
 
         self.SequentialShareFuncAdj_now = LinearInterp(
-            aNrm_temp,
-            Share_now,
-            intercept_limit=self.ShareLimit,
-            slope_limit=0.0,
+            aNrm_temp, Share_now, intercept_limit=self.ShareLimit, slope_limit=0.0,
         )
 
         solution.SequentialShareFuncAdj = self.SequentialShareFuncAdj_now
