@@ -2694,9 +2694,28 @@ class IndShockConsumerType(PerfForesightConsumerType):
         else:
             normal_length = T_cycle
             retire_length = 0
-
-        UnempPrb_list = [UnempPrb] * normal_length + [UnempPrbRet] * retire_length
-        IncUnemp_list = [IncUnemp] * normal_length + [IncUnempRet] * retire_length
+        
+        # Unemployment parametrs can be given either as:
+        if all([isinstance(x, float) for x in [UnempPrb, IncUnemp, UnempPrbRet, IncUnempRet]]):
+            
+            UnempPrb_list = [UnempPrb] * normal_length + [UnempPrbRet] * retire_length
+            IncUnemp_list = [IncUnemp] * normal_length + [IncUnempRet] * retire_length
+            
+        elif all([isinstance(x, list) for x in [UnempPrb, IncUnemp]]):
+            
+            UnempPrb_list = UnempPrb
+            IncUnemp_list = IncUnemp
+            
+        else:
+            
+            raise Exception(
+                "Unemployment must be specified either using floats for UnempPrb," +
+                "IncUnemp, UnempPrbRet, and IncUnempRet, in which case the " +
+                "unemployment probability and income change only with retirement, or " +
+                "using lists of length T_cycle for UnempPrb and IncUnemp, specifying " +
+                "each feature at every age."
+            )
+            
         PermShkCount_list = [PermShkCount] * normal_length + [1] * retire_length
         TranShkCount_list = [TranShkCount] * normal_length + [1] * retire_length
 
