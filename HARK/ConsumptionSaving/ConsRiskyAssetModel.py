@@ -8,7 +8,7 @@ risky assets that will be useful to models what will inherit from it.
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.optimize import minimize_scalar
+from scipy.optimize import minimize_scalar, root_scalar
 
 from HARK import make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -118,7 +118,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
             self.RiskyDstn = IndexDistribution(
                 Lognormal.from_mean_std,
                 {"mean": self.RiskyAvg, "std": self.RiskyStd},
-                seed=self.RNG.randint(0, 2 ** 31 - 1),
+                seed=self.RNG.randint(0, 2**31 - 1),
             ).approx(self.RiskyCount)
 
             self.add_to_time_vary("RiskyDstn")
@@ -256,7 +256,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
             RiskyStd = self.RiskyStd
 
         self.shocks["Risky"] = Lognormal.from_mean_std(
-            RiskyAvg, RiskyStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
+            RiskyAvg, RiskyStd, seed=self.RNG.randint(0, 2**31 - 1)
         ).draw(1)
 
     def get_Adjust(self):
@@ -274,7 +274,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         None
         """
         self.shocks["Adjust"] = IndexDistribution(
-            Bernoulli, {"p": self.AdjustPrb}, seed=self.RNG.randint(0, 2 ** 31 - 1)
+            Bernoulli, {"p": self.AdjustPrb}, seed=self.RNG.randint(0, 2**31 - 1)
         ).draw(self.t_cycle)
 
     def initialize_sim(self):
@@ -336,6 +336,7 @@ class ConsRiskySolver(ConsIndShockSolver):
     """
     Solver for an agent that can save in an asset that has a risky return.
     """
+
     solution_next: ConsumerSolution
     IncShkDstn: DiscreteDistribution
     TranShkDstn: DiscreteDistribution
@@ -490,7 +491,8 @@ class ConsRiskySolver(ConsIndShockSolver):
             # if zero is BoroCnstNat, do not evaluate at 0.0
             aNrmNow = self.aXtraGrid
             bNrmNext = np.append(
-                aNrmNow[0] * self.RiskyDstn.X.min(), aNrmNow * self.RiskyDstn.X.max(),
+                aNrmNow[0] * self.RiskyDstn.X.min(),
+                aNrmNow * self.RiskyDstn.X.max(),
             )
             wNrmNext = np.append(
                 bNrmNext[0] / (self.PermGroFac * self.PermShkDstn.X.max()),
@@ -782,12 +784,41 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
             b_nrm = a_nrm * r_port
             return a_nrm * r_diff * preIncShkvPfunc(b_nrm)
 
-        EndOfPrddvds = calc_expectation(
-            self.RiskyDstn, endOfPrddvds, self.aMat, self.sMat
-        )
-        EndOfPrddvds = EndOfPrddvds[:, :, 0]
+        if True:
 
-        self.opt_share = self.optimize_share(EndOfPrddvds)
+            EndOfPrddvds = calc_expectation(
+                self.RiskyDstn, endOfPrddvds, self.aMat, self.sMat
+            )
+            EndOfPrddvds = EndOfPrddvds[:, :, 0]
+
+            self.opt_share = self.optimize_share(EndOfPrddvds)
+
+        else:
+
+            def obj(share, a_nrm):
+                return calc_expectation(self.RiskyDstn, endOfPrddvds, a_nrm, share)
+
+            opt_share = np.empty_like(self.aNrmNow)
+
+            for ai in range(self.aNrmNow.size):
+                a_nrm = self.aNrmNow[ai]
+                if a_nrm == 0:
+                    opt_share[ai] = 1.0
+                else:
+                    try:
+                        sol = root_scalar(
+                            obj, bracket=[self.ShareLimit, 1.0], args=(a_nrm,)
+                        )
+
+                        if sol.converged:
+                            opt_share[ai] = sol.root
+                        else:
+                            opt_share[ai] = 1.0
+
+                    except ValueError:
+                        opt_share[ai] = 1.0
+
+            self.opt_share = opt_share
 
         def endOfPrddvda(risky_shk, a_nrm, share):
             r_diff = risky_shk - self.Rfree
