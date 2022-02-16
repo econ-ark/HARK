@@ -21,6 +21,7 @@ Release Date: TBD
 ### Minor Changes
 
 * Updates the lognormal-income-process constructor from `ConsIndShockModel.py` to use `IndexDistribution`. [#1024](https://github.com/econ-ark/HARK/pull/1024)
+* Allows for age-varying unemployment probabilities and replacement incomes with the lognormal income process constructor. [#1112](https://github.com/econ-ark/HARK/pull/1112)
 
 ### 0.12.0
 
