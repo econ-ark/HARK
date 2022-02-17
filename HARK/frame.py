@@ -1,6 +1,23 @@
-from HARK import AgentType
+from collections import OrderedDict
+import copy
+from HARK import AgentType, Model
 from HARK.distribution import Distribution, TimeVaryingDiscreteDistribution
 import numpy as np
+
+from itertools import islice
+
+class SlicableOrderedDict(OrderedDict):
+    def __getitem__(self, k):
+        if not isinstance(k, slice):
+            return OrderedDict.__getitem__(self, k)
+        return SlicableOrderedDict(islice(self.items(), k.start, k.stop))
+
+
+    def k_index(self, key):
+        return list(self.keys()).index(key)
+
+    def v_index(self, value):
+        return list(self.keys()).index(value)
 
 class Frame():
     """
@@ -33,12 +50,170 @@ class Frame():
         self.control = control
         self.reward = reward
 
+        # to be filled with references to other frames
+        self.children = {}
+        self.parents = {}
+
     def __repr__(self):
         return f"<{self.__class__}, target:{self.target}, scope:{self.scope}>"
 
     def name(self):
         target = self.target
         return str(target[0]) if len(target) == 1 else str(self.target)
+
+    def clear_relations(self):
+        """
+        Empties the references to parents and children.
+        """
+        self.children = {}
+        self.parents = {}
+
+class FrameModel():
+    """
+    A class that represents a model, defined in terms of Frames.
+
+    Frames can be transitional/functional, or they can be control frames
+    (subject to an agent's policy), or a reward frame.
+
+    FrameModels can be composed with other FrameModels into new models.
+
+    Parameters
+    ------------
+
+    frames : [Frame]
+
+    infinite: bool
+        True if the model is an infinite model, such that state variables are assumed to be
+        available as scope for the next period's transitions.
+
+    Attributes
+    ----------
+
+    frames : SlicableOrderedDict[Frame]
+        #Keys are tuples of strings corresponding to model variables.
+        #Values are methods.
+        #Each frame method should update the the variables
+        #named in the key.
+        #Frame order is significant here.
+    """
+
+    def __init__(self, frames, infinite = True):
+        self.frames = SlicableOrderedDict([(fr.target, fr) for fr in frames])
+        self.infinite = infinite
+
+        for frame in self.frames.values():
+            # relations for the frame -- internal links to other frames -- are reset in model initiation
+            frame.clear_relations()
+
+        for frame_target in self.frames:
+
+            frame = self.frames[frame_target]
+
+            if frame.scope is not None:
+                for var in frame.scope:
+
+                    ## Should replace this with a new data structure that allows for multiple keys into the same frame
+                    scope_frames = [self.frames[frame_target] for frame_target in self.frames if var in frame_target]
+
+                    ## There should only be one frame in this list.
+                    for scope_frame in scope_frames:
+                        if self.frames.k_index(frame_target) > self.frames.k_index(scope_frame.target):
+                            if frame not in scope_frame.children:
+                                ## should probably use frame data structure here
+                                scope_frame.children[frame_target] = frame
+
+                            if scope_frame not in frame.parents:
+                                frame.parents[scope_frame.target] = scope_frame
+                        else:
+                            
+                            ## Do I need to keep backward references even in a finite model, because these
+                            ## are initial conditions?
+                            bfr = BackwardFrameReference(frame)
+                            frame.parents[scope_frame.target] = bfr
+
+                            # ignoring equivalence checks for now
+                            if infinite:
+                                ffr = ForwardFrameReference(frame)
+                                scope_frame.children[frame_target] = ffr
+
+    def prepend(self, model, suffix='_0'):
+        """
+        Combine this FrameModel with another FrameModel.
+
+        TODO: Checks to make sure the endpoints match.
+
+        Parameters
+        ------------
+
+        model: FrameModel
+
+        suffix: str
+            A suffix to add to any variables in the prepended model that have
+            a name conflict with the old model.
+
+
+        Returns
+        --------
+
+        FrameModel
+        """
+
+        pre_frames = list(copy.deepcopy(model.frames).values())
+
+        suffix = "_"
+
+        for frame in pre_frames:
+            frame.target = tuple((var + suffix for var in frame.target))
+
+            frame.scope = tuple((var 
+                                 if any(var in pa and isinstance(frame.parents[pa], BackwardFrameReference)
+                                        for pa in frame.parents)
+                                else var + suffix
+                                for var in frame.scope))
+    
+        frames = list(copy.deepcopy(self.frames).values())
+
+        for frame in frames:
+    
+            frame.scope = tuple((var + suffix 
+                            if any(var in pa and isinstance(frame.parents[pa], BackwardFrameReference)
+                            for pa in frame.parents)
+                            else var
+                            for var in frame.scope))
+
+        return FrameModel(pre_frames + frames, infinite = self.infinite)
+
+
+
+
+
+    def make_terminal(self):
+        """
+        Remove the forward references from the end of the model.
+
+        Returns
+        --------
+
+        FrameModel
+        """
+
+        # Is this copying the old frames right?
+        new_frames = copy.deepcopy(list(self.frames.values()))
+
+        for frame in new_frames:
+            forward_references = [child for child in frame.children if isinstance(child, ForwardFrameReference)]
+
+            for fref in forward_references:
+                #import pdb; pdb.set_trace()
+                frame.children.remove(fref)
+        
+        return FrameModel(new_frames, infinite = False)
+            
+
+    def repeat(self):
+        """
+        Returns a new FrameModel consisting of this model repeated N times.
+        """
 
 
 class FrameAgentType(AgentType):
@@ -50,63 +225,20 @@ class FrameAgentType(AgentType):
     in a specified order, rather than assuming that they
     are resolved as shocks -> states -> controls -> poststates.
 
-    Attributes
-    ----------
 
-    frames : [Frame]
-        #Keys are tuples of strings corresponding to model variables.
-        #Values are methods.
-        #Each frame method should update the the variables
-        #named in the key.
-        #Frame order is significant here.
     """
 
     cycles = 0 # for now, only infinite horizon models.
 
-    # frames property
-    frames = [
-        Frame(
-            ('y'),('x'),
-            transition = lambda x: x^2
-        )
-    ]
+    def __init__(self, model, **kwds):
+        self.model = model
 
-    def __init__(self, **kwds):
-
-        ## set up relationships between frames
-        for frame in self.frames:
-            frame.children = []
-            frame.parents = []
-
-        for frame in self.frames:
-            if frame.scope is not None:
-                for var in frame.scope:
-                    scope_frames = [frm for frm in self.frames if var in frm.target]
-
-                    for scope_frame in scope_frames:
-                        if self.frames.index(frame) > self.frames.index(scope_frame):
-                            if frame not in scope_frame.children:
-                                scope_frame.children.append(frame)
-
-                            if scope_frame not in frame.parents:
-                                frame.parents.append(scope_frame)
-                        else:
-                            ffr = ForwardFrameReference(frame)
-                            bfr = BackwardFrameReference(frame)
-
-                            # ignoring equivalence checks for now
-                            scope_frame.children.append(ffr)
-                            frame.parents.append(bfr)
-
-        # Initialize a basic AgentType
-        #AgentType.__init__(
-        #    self,
-        #    **kwds
-        #)
+        ### kludge?
+        self.frames = self.model.frames
 
     def initialize_sim(self):
 
-        for frame in self.frames:
+        for frame in self.frames.values():
             for var in frame.target:
 
                 if frame.aggregate:
@@ -152,7 +284,7 @@ class FrameAgentType(AgentType):
         self.get_mortality()  # Replace some agents with "newborns"
 
         # state_{t-1}
-        for frame in self.frames:
+        for frame in self.frames.values():
             for var in frame.target:
                 if var in self.state_now:
                     self.state_prev[var] = self.state_now[var]
@@ -163,7 +295,7 @@ class FrameAgentType(AgentType):
                         self.state_now[var] = np.empty(1)
 
         # transition the variables in the frame
-        for frame in self.frames:
+        for frame in self.frames.values():
             self.transition_frame(frame)
 
         # Advance time for all agents
@@ -193,7 +325,7 @@ class FrameAgentType(AgentType):
         """
         which_agents = which_agents.astype(bool)
 
-        for frame in self.frames:
+        for frame in self.frames.values():
             if not frame.aggregate:
                 for var in frame.target:
 
@@ -237,7 +369,7 @@ class FrameAgentType(AgentType):
         context.update(self.state_prev)
 
         # use the "now" version of variables that have already been targetted.
-        for pre_frame in self.frames[:self.frames.index(frame)]:
+        for pre_frame in self.frames[:self.frames.k_index(frame.target)].values():
             for var in pre_frame.target:
                 if var in self.state_now:
                     context.update({var : self.state_now[var]})
