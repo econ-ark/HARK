@@ -98,7 +98,7 @@ class IndexDistribution(Distribution):
         else:
             raise (
                 Exception(
-                    f"IndexDistribution: Unhandled case for __getitem__ access. y: {y}; conditional: {self.conditional}"
+                    f"IndexDistribution: Unhandled case for __getitem__ access. item0: {item0}; conditional: {self.conditional}"
                 )
             )
             
