@@ -2,6 +2,9 @@ from collections import OrderedDict
 import copy
 from HARK import AgentType, Model
 from HARK.distribution import Distribution, TimeVaryingDiscreteDistribution
+
+import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 
 from itertools import islice
@@ -453,3 +456,76 @@ class BackwardFrameReference():
 
     def __repr__(self):
         return f"<BFR:{self.frame.target}>"
+
+
+def draw_frame_model(frame_model: FrameModel, figsize = (8,8)):
+    """
+    Draws a FrameModel as an influence diagram.
+
+    Round nodes : chance variables
+    Square nodes: control variables
+    Rhombus nodes: reward variables
+    Hexagon nodes: aggregate variables
+    """
+    
+    g = nx.DiGraph()
+
+    g.add_nodes_from([
+        (frame.name(), 
+         {'control' : frame.control, 'reward' : frame.reward, 'aggregate' : frame.aggregate})
+        for frame in frame_model.frames.values()
+    ])
+
+    for frame in frame_model.frames.values():
+        for child_target in frame.children:
+            child = frame.children[child_target]
+            g.add_nodes_from([
+                (child.name(), 
+                 {
+                     'control' : child.control,
+                     'reward' : child.reward,
+                     'aggregate' : child.aggregate
+                 })])
+            g.add_edge(frame.name(), child.name())
+
+    pos = nx.drawing.nx_pydot.graphviz_layout(g, prog='dot')
+
+    node_options = {
+        "node_size": 2500,
+        "node_color": "white",
+        "edgecolors": "black",
+        "linewidths": 1,
+        "pos" : pos
+    }
+
+    edge_options = {
+        "node_size": 2500,
+        "width": 2,
+        "pos" : pos
+    }
+
+    label_options = {
+        "font_size": 12,
+         #"labels" : {node : str(node[0]) if len(node) == 1 else str(node) for node in g.nodes},
+        "pos" : pos
+    }
+
+    reward_nodes = [k for k,v in g.nodes(data = True) if v['reward']]
+    control_nodes = [k for k,v in g.nodes(data = True) if v['control']]
+    aggregate_nodes = [k for k,v in g.nodes(data = True) if v['aggregate']]
+
+    chance_nodes = [node for node in g.nodes() 
+                    if node not in reward_nodes 
+                    and node not in control_nodes
+                    and node not in aggregate_nodes
+                   ]
+
+    plt.figure(figsize=figsize)
+
+    nx.draw_networkx_nodes(g, nodelist = chance_nodes, node_shape = 'o', **node_options)
+    nx.draw_networkx_nodes(g, nodelist = reward_nodes, node_shape = 'd', **node_options)
+    nx.draw_networkx_nodes(g, nodelist = control_nodes, node_shape = 's', **node_options)
+    nx.draw_networkx_nodes(g, nodelist = aggregate_nodes, node_shape = 'h', **node_options)
+    nx.draw_networkx_edges(g, **edge_options)
+
+    nx.draw_networkx_labels(g, **label_options)
