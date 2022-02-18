@@ -23,7 +23,7 @@ class FrameSet(OrderedDict):
     def __getitem__(self, k):
         if not isinstance(k, slice):
             return OrderedDict.__getitem__(self, k)
-        return SlicableOrderedDict(itertools.islice(self.items(), k.start, k.stop))
+        return FrameSet(itertools.islice(self.items(), k.start, k.stop))
 
     def k_index(self, key):
         return list(self.keys()).index(key)
@@ -38,6 +38,9 @@ class FrameSet(OrderedDict):
                 return self[k]
         
         return None
+
+    def iloc(self, k):
+        return list(self.values())[k]
 
 class Frame():
     """
@@ -59,7 +62,8 @@ class Frame():
             objective = None,
             aggregate = False,
             control = False,
-            reward = False
+            reward = False,
+            context = None,
     ):
         """
         """
@@ -77,6 +81,8 @@ class Frame():
 
         # Context specific to this node
         self.context = {}
+        if context is not None:
+            self.context.update(context)
 
         # to be filled with references to other frames
         self.children = {}
@@ -459,6 +465,15 @@ class FrameAgentType(AgentType):
             for var
             in frame.scope
         } if frame.scope is not None else context.copy()
+
+        ## TODO
+        ## - A repeated model may have transition equations that do not reference the right "suffixes",
+        ##   so contextual lookup will require matching on the shared prefix
+        ##
+        ## - Local context can be loaded onto a node in the FrameModel.repeat() step with
+        ##   age-varying parameters
+        ##
+        ## - Consider relationship between AgentType simulation mechanics (here) and the FrameModel definition.
 
         if frame.transition is not None:
             if isinstance(frame.transition, Distribution):
