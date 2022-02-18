@@ -257,8 +257,8 @@ class FrameModel():
                parameter values. All time-varying values assumes to be of same length, N.
 
         """
-
-        repeat_n = 3 # this will be variable...
+        # getting length of first iterable thing passed to it.
+        repeat_n = len(list(list(tv_parameters.values())[0].values())[0])
 
         catalog = {}
 
