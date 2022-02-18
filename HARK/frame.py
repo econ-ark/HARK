@@ -1,20 +1,29 @@
 from collections import OrderedDict
 import copy
+from sre_constants import SRE_FLAG_ASCII
 from HARK import AgentType, Model
 from HARK.distribution import Distribution, TimeVaryingDiscreteDistribution
+import itertools
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
-from itertools import islice
 
-class SlicableOrderedDict(OrderedDict):
+class FrameSet(OrderedDict):
+    """
+    A data structure for a collection of frames.
+
+    Wraps an ordered dictionary, where keys are tuples of variable names,
+    and values are Frames.
+
+    Preserves order. Is sliceable and has index() functions like a list.
+    Supports lookup of frame by variable name.
+    """
     def __getitem__(self, k):
         if not isinstance(k, slice):
             return OrderedDict.__getitem__(self, k)
-        return SlicableOrderedDict(islice(self.items(), k.start, k.stop))
-
+        return SlicableOrderedDict(itertools.islice(self.items(), k.start, k.stop))
 
     def k_index(self, key):
         return list(self.keys()).index(key)
@@ -22,17 +31,29 @@ class SlicableOrderedDict(OrderedDict):
     def v_index(self, value):
         return list(self.keys()).index(value)
 
+    def var(self, var_name):
+        ## Can be sped up with a proper index.
+        for k in self:
+            if var_name in k:
+                return self[k]
+        
+        return None
+
 class Frame():
     """
     An object representing a single 'frame' of an optimization problem.
     A frame defines some variables of a model, including what other variables
     (if any) they depend on for their values.
+
+    Attributes
+    -----------
+
     """
 
     def __init__(
             self,
-            target,
-            scope,
+            target : tuple,
+            scope : tuple,
             default = None,
             transition = None,
             objective = None,
@@ -46,12 +67,16 @@ class Frame():
         self.target = target if isinstance(target, tuple) else (target,) # tuple of variables
         self.scope = scope # tuple of variables
         self.default = default # default value used in simBirth; a dict
+
         ## Careful! Transition functions need to return a tuple, even if there is only one state value
         self.transition = transition # for use in simulation
         self.objective = objective # for use in solver
         self.aggregate = aggregate
         self.control = control
         self.reward = reward
+
+        # Context specific to this node
+        self.context = {}
 
         # to be filled with references to other frames
         self.children = {}
@@ -67,10 +92,28 @@ class Frame():
     def clear_relations(self):
         """
         Empties the references to parents and children.
+
+        TODO: Better handling of this aspect of frame state
+              e.g. setters for the relations
         """
         self.children = {}
         self.parents = {}
 
+    def add_suffix(self, suffix :str):
+        self.target = tuple((var + suffix for var in self.target))
+
+        self.scope = tuple((var 
+                            if any(var in pa and isinstance(self.parents[pa], BackwardFrameReference)
+                                   for pa in self.parents)
+                            else var + suffix
+                            for var in self.scope))
+
+    def add_backwards_suffix(self, suffix : str):
+        self.scope = tuple((var + suffix 
+                        if any(var in pa and isinstance(self.parents[pa], BackwardFrameReference)
+                        for pa in self.parents)
+                        else var
+                        for var in self.scope))
 class FrameModel():
     """
     A class that represents a model, defined in terms of Frames.
@@ -101,7 +144,7 @@ class FrameModel():
     """
 
     def __init__(self, frames, infinite = True):
-        self.frames = SlicableOrderedDict([(fr.target, fr) for fr in frames])
+        self.frames = FrameSet([(fr.target, fr) for fr in frames])
         self.infinite = infinite
 
         for frame in self.frames.values():
@@ -166,33 +209,20 @@ class FrameModel():
         suffix = "_"
 
         for frame in pre_frames:
-            frame.target = tuple((var + suffix for var in frame.target))
-
-            frame.scope = tuple((var 
-                                 if any(var in pa and isinstance(frame.parents[pa], BackwardFrameReference)
-                                        for pa in frame.parents)
-                                else var + suffix
-                                for var in frame.scope))
+            frame.add_suffix(suffix)
     
         frames = list(copy.deepcopy(self.frames).values())
 
         for frame in frames:
     
-            frame.scope = tuple((var + suffix 
-                            if any(var in pa and isinstance(frame.parents[pa], BackwardFrameReference)
-                            for pa in frame.parents)
-                            else var
-                            for var in frame.scope))
+            frame.add_backwards_suffix(suffix)
 
         return FrameModel(pre_frames + frames, infinite = self.infinite)
 
-
-
-
-
     def make_terminal(self):
         """
-        Remove the forward references from the end of the model.
+        Remove the forward references from the end of the model,
+        making the model "finite".
 
         Returns
         --------
@@ -213,10 +243,51 @@ class FrameModel():
         return FrameModel(new_frames, infinite = False)
             
 
-    def repeat(self):
+    def repeat(self, tv_parameters):
         """
         Returns a new FrameModel consisting of this model repeated N times.
+
+        Parameters
+        -----------
+
+        tv_parameters : dict
+            A dictionary of 'time-varying' parameters.
+            Keys are (original) variable names. Values are dictionaries with:
+               Keys are parameter names. Values as iterable contain time-varying
+               parameter values. All time-varying values assumes to be of same length, N.
+
         """
+
+        repeat_n = 3 # this will be variable...
+
+        catalog = {}
+
+        new_frames = [copy.deepcopy(self.frames) for t in range(repeat_n)]
+
+        for frame in self.frames:
+            # catalog is a convenient alternative index of the new frames
+            catalog[frame] = [new_frames[t][frame] for t in range(repeat_n)]
+
+            # distribute any time-varying parameters.
+            for t, t_frame in enumerate(catalog[frame]):
+                t_frame.add_suffix(f"_{t}")
+
+                if t > 0:
+                    t_frame.add_backwards_suffix(f"_{t-1}")
+        
+        for var_name in tv_parameters:
+            for param in tv_parameters[var_name]:
+                for t, pv in enumerate(tv_parameters[var_name][param]):
+                    new_frames[t].var(var_name).context[param] = pv
+
+        return FrameModel(
+            itertools.chain.from_iterable([
+                frame_set.values()
+                for frame_set in 
+                new_frames
+                ]),
+            infinite = self.infinite
+            )
 
 
 class FrameAgentType(AgentType):
