@@ -2790,7 +2790,9 @@ class LognormPermIncShk(DiscreteDistribution):
     def __init__(self, sigma, n_approx, neutral_measure=False, seed=0):
 
         # Construct an auxiliary discretized normal
-        logn_approx = MeanOneLogNormal(sigma).approx(n_approx, tail_N=0)
+        logn_approx = MeanOneLogNormal(sigma).approx(
+            n_approx if sigma > 0.0 else 1, tail_N=0
+        )
         # Change the pmf if necessary
         if neutral_measure:
             logn_approx.pmf = logn_approx.X * logn_approx.pmf
@@ -2825,8 +2827,10 @@ class MixtureTranIncShk(DiscreteDistribution):
 
     def __init__(self, sigma, UnempPrb, IncUnemp, n_approx, seed=0):
 
-        dstn_approx = MeanOneLogNormal(sigma).approx(n_approx, tail_N=0)
-        if UnempPrb > 0:
+        dstn_approx = MeanOneLogNormal(sigma).approx(
+            n_approx if sigma > 0.0 else 1, tail_N=0
+        )
+        if UnempPrb > 0.0:
             dstn_approx = add_discrete_outcome_constant_mean(
                 dstn_approx, p=UnempPrb, x=IncUnemp
             )
