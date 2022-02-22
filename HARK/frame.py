@@ -361,6 +361,9 @@ class FrameAgentType(AgentType):
         ### kludge?
         self.frames = self.model.frames
 
+        # decision rules are added here which are then used in simulation.
+        self.decision_rules = {}
+
     def initialize_sim(self):
 
         for frame in self.frames.values():
