@@ -10,38 +10,6 @@ import networkx as nx
 import numpy as np
 
 
-class FrameSet(OrderedDict):
-    """
-    A data structure for a collection of frames.
-
-    Wraps an ordered dictionary, where keys are tuples of variable names,
-    and values are Frames.
-
-    Preserves order. Is sliceable and has index() functions like a list.
-    Supports lookup of frame by variable name.
-    """
-    def __getitem__(self, k):
-        if not isinstance(k, slice):
-            return OrderedDict.__getitem__(self, k)
-        return FrameSet(itertools.islice(self.items(), k.start, k.stop))
-
-    def k_index(self, key):
-        return list(self.keys()).index(key)
-
-    def v_index(self, value):
-        return list(self.keys()).index(value)
-
-    def var(self, var_name):
-        ## Can be sped up with a proper index.
-        for k in self:
-            if var_name in k:
-                return self[k]
-        
-        return None
-
-    def iloc(self, k):
-        return list(self.values())[k]
-
 class Frame():
     """
     An object representing a single 'frame' of an optimization problem.
@@ -120,7 +88,80 @@ class Frame():
                         for pa in self.parents)
                         else var
                         for var in self.scope))
-class FrameModel():
+
+class ForwardFrameReference():
+    """
+    A 'reference' to a frame that is in the next period
+    """
+
+    def __init__(self, frame):
+        self.frame = frame
+        self.target = frame.target
+
+        self.reward = frame.reward
+        self.control = frame.control
+        self.aggregate = frame.aggregate
+
+    def name(self):
+        return self.frame.name() + "'"
+
+    def __repr__(self):
+        return f"<FFR:{self.frame.target}>"
+
+class BackwardFrameReference():
+    """
+    A 'reference' to a frame that is in the previous period.
+    """
+
+    def __init__(self, frame):
+        self.frame = frame
+        self.target = frame.target
+
+        self.reward = frame.reward
+        self.control = frame.control
+        self.aggregate = frame.aggregate
+
+    def name(self):
+        return self.frame.name() + "-"
+
+    def __repr__(self):
+        return f"<BFR:{self.frame.target}>"
+
+
+class FrameSet(OrderedDict):
+    """
+    A data structure for a collection of frames.
+
+    Wraps an ordered dictionary, where keys are tuples of variable names,
+    and values are Frames.
+
+    Preserves order. Is sliceable and has index() functions like a list.
+    Supports lookup of frame by variable name.
+    """
+    def __getitem__(self, k):
+        if not isinstance(k, slice):
+            return OrderedDict.__getitem__(self, k)
+        return FrameSet(itertools.islice(self.items(), k.start, k.stop))
+
+    def k_index(self, key):
+        return list(self.keys()).index(key)
+
+    def v_index(self, value):
+        return list(self.keys()).index(value)
+
+    def var(self, var_name):
+        ## Can be sped up with a proper index.
+        for k in self:
+            if var_name in k:
+                return self[k]
+
+        return None
+
+    def iloc(self, k):
+        return list(self.values())[k]
+
+
+class FrameModel(Model):
     """
     A class that represents a model, defined in terms of Frames.
 
@@ -141,7 +182,7 @@ class FrameModel():
     Attributes
     ----------
 
-    frames : SlicableOrderedDict[Frame]
+    frames : FrameSet[Frame]
         #Keys are tuples of strings corresponding to model variables.
         #Values are methods.
         #Each frame method should update the the variables
@@ -149,9 +190,13 @@ class FrameModel():
         #Frame order is significant here.
     """
 
-    def __init__(self, frames, infinite = True):
+    def __init__(self, frames, parameters, infinite = True):
+        super().__init__()
+
         self.frames = FrameSet([(fr.target, fr) for fr in frames])
         self.infinite = infinite
+
+        self.assign_parameters(**parameters)
 
         for frame in self.frames.values():
             # relations for the frame -- internal links to other frames -- are reset in model initiation
@@ -223,7 +268,7 @@ class FrameModel():
     
             frame.add_backwards_suffix(suffix)
 
-        return FrameModel(pre_frames + frames, infinite = self.infinite)
+        return FrameModel(pre_frames + frames, self.parameters, infinite = self.infinite)
 
     def make_terminal(self):
         """
@@ -243,10 +288,9 @@ class FrameModel():
             forward_references = [child for child in frame.children if isinstance(child, ForwardFrameReference)]
 
             for fref in forward_references:
-                #import pdb; pdb.set_trace()
                 frame.children.remove(fref)
         
-        return FrameModel(new_frames, infinite = False)
+        return FrameModel(new_frames, self.parameters, infinite = False)
             
 
     def repeat(self, tv_parameters):
@@ -292,6 +336,7 @@ class FrameModel():
                 for frame_set in 
                 new_frames
                 ]),
+            self.parameters,
             infinite = self.infinite
             )
 
@@ -454,6 +499,8 @@ class FrameAgentType(AgentType):
                 if var in self.state_now:
                     context.update({var : self.state_now[var]})
 
+        ## Get these parameters from the FrameModel.parameters
+        ## ... Unless there are also _simulation_ parameters attached to the AgentType
         context.update(self.parameters)
 
         # The "most recently" computed value of the variable is used.
@@ -504,44 +551,6 @@ class FrameAgentType(AgentType):
                 context[t][:] = new_values[i]
             else:
                 raise Exception(f"From frame {frame.target}, target {t} is not in the context object.")
-
-class ForwardFrameReference():
-    """
-    A 'reference' to a frame that is in the next period
-    """
-
-    def __init__(self, frame):
-        self.frame = frame
-        self.target = frame.target
-
-        self.reward = frame.reward
-        self.control = frame.control
-        self.aggregate = frame.aggregate
-
-    def name(self):
-        return self.frame.name() + "'"
-
-    def __repr__(self):
-        return f"<FFR:{self.frame.target}>"
-
-class BackwardFrameReference():
-    """
-    A 'reference' to a frame that is in the previous period.
-    """
-
-    def __init__(self, frame):
-        self.frame = frame
-        self.target = frame.target
-
-        self.reward = frame.reward
-        self.control = frame.control
-        self.aggregate = frame.aggregate
-
-    def name(self):
-        return self.frame.name() + "-"
-
-    def __repr__(self):
-        return f"<BFR:{self.frame.target}>"
 
 
 def draw_frame_model(frame_model: FrameModel, figsize = (8,8)):

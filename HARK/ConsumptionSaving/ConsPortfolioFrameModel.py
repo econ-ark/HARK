@@ -9,7 +9,9 @@ This file also demonstrates a "frame" model architecture.
 import numpy as np
 from scipy.optimize import minimize_scalar
 from copy import deepcopy
-from HARK.frame import Frame, FrameAgentType
+from HARK.frame import Frame, FrameAgentType, FrameModel
+
+from HARK.ConsumptionSaving.ConsIndShockModel import LognormPermIncShk
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     init_portfolio,
     PortfolioConsumerType,
@@ -45,7 +47,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         )
         # Initialize a basic consumer type
         FrameAgentType.__init__(
-            self, **kwds
+            self, self.model, **kwds
         )
 
         self.shocks = {}
@@ -184,7 +186,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         return (self.state_now['aNrm'], self.state_now['aLvl'])
 
     # maybe replace reference to init_portfolio to self.parameters?
-    frames = [
+    model = FrameModel([
         # todo : make an aggegrate value
         Frame(('PermShkAgg',), ('PermGroFacAgg',),
             transition = lambda self, PermGroFacAgg : (PermGroFacAgg,),
@@ -259,8 +261,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         ),
         Frame(
             ('bNrm',),
-            ('aNrm', 'Rport', 'PermShk'),
-            default = {'pLvl' : birth_pLvlNow},
+            ('aNrm', 'Rport', 'PermShk'), 
             transition = transition_bNrm
         ),
         Frame(
@@ -293,4 +294,5 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             ('aLvl'), ('aNrm', 'pLvl'),
             transition = lambda self, aNrm, pLvl : (aNrm * pLvl,)
         )
-    ]
+    ],
+    init_portfolio)
