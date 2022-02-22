@@ -525,7 +525,10 @@ class FrameAgentType(AgentType):
         ##
         ## - Consider relationship between AgentType simulation mechanics (here) and the FrameModel definition.
 
-        if frame.transition is not None:
+        if frame.control:
+            new_values = self.control_transition_age_varying(frame.target, **local_context)
+
+        elif frame.transition is not None:
             if isinstance(frame.transition, Distribution):
                 # assume this is an IndexDistribution keyed to age (t_cycle)
                 # for now
@@ -554,6 +557,30 @@ class FrameAgentType(AgentType):
                 context[t][:] = new_values[i]
             else:
                 raise Exception(f"From frame {frame.target}, target {t} is not in the context object.")
+
+    def control_transition_age_varying(self, target, **context):
+        """
+        Generic transition method for a control frame for when the
+        variable has an age-varying decision rule.
+
+        """
+        frame = self.model.frames[target]
+        scope = frame.scope
+
+        target_values = tuple((np.zeros(self.AgentCount) + np.nan for var in scope))
+
+        # Loop over each period of the cycle, getting controls separately depending on "age"
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+
+            ## maybe scope instead of context here
+            ntv = self.decision_rules[target][t](**context)
+
+            # this is ugly because of the way ages are looped through. See #890
+            for i, tv in enumerate(target_values):
+                tv[these] = ntv[i]
+
+        return target_values
 
 
 def draw_frame_model(frame_model: FrameModel, figsize = (8,8)):

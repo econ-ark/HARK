@@ -54,6 +54,44 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         self.controls = {}
         self.state_now = {}
 
+    def solve(self):
+        # Some contortions are needed here to make decision rule shaped objects
+        # out of the HARK solution objects
+
+        super().solve(self)
+
+        ## TODO: make this a property of FrameAgentTypes or FrameModels?
+        self.decision_rules = {}
+
+        def decision_rule_Share_from_solution(solution_t):
+            def decision_rule_Share(Adjust, mNrm, Share):
+                Share = np.zeros(len(Adjust)) + np.nan
+
+                Share[Adjust] = solution_t.ShareFuncAdj(mNrm[Adjust])
+
+                Share[~Adjust] = solution_t.ShareFuncFxd(mNrm[~Adjust], Share[~Adjust])
+
+                return Share
+
+            return decision_rule_Share
+
+        def decision_rule_cNrm_from_solution(solution_t):
+            def decision_rule_cNrm(Adjust, mNrm, Share):
+                cNrm = np.zeros(len(Adjust)) + np.nan
+
+                cNrm[Adjust] = solution_t.cFuncAdj(mNrm[Adjust])
+
+                cNrm[~Adjust] = solution_t.cFuncFxd(
+                    mNrm[~Adjust], Share[~Adjust]
+                )
+
+                return cNrm
+
+            return decision_rule_cNrm
+
+        self.decision_rules[('Share',)] = [decision_rule_Share_from_solution(sol) for sol in self.solution]
+        self.decision_rules[('cNrm',)] = [decision_rule_cNrm_from_solution(sol) for sol in self.solution]
+
     # TODO: streamline this so it can draw the parameters from context
     def birth_aNrmNow(self, N):
         """
@@ -113,57 +151,6 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         mNrm = context['bNrm'] + context['TranShk']  # Market resources after income
 
         return mNrm
-
-    def transition_ShareNow(self, **context):
-        """
-        Transition method for ShareNow.
-        """
-        ## Changed from HARK. See #1049. Should be added to context.
-        ShareNow = self.controls['Share'].copy()
-
-        # Loop over each period of the cycle, getting controls separately depending on "age"
-        for t in range(self.T_cycle):
-            these = t == self.t_cycle
-
-            # Get controls for agents who *can* adjust their portfolio share
-            those = np.logical_and(these, context['Adjust'])
-
-            ShareNow[those] = self.solution[t].ShareFuncAdj(context['mNrm'][those])
-
-            # Get Controls for agents who *can't* adjust their portfolio share
-            those = np.logical_and(
-                these,
-                np.logical_not(context['Adjust']))
-            ShareNow[those] = self.solution[t].ShareFuncFxd(
-                context['mNrm'][those], ShareNow[those]
-            )
-
-        return ShareNow,
-
-    def transition_cNrmNow(self, **context):
-        """
-        Transition method for cNrmNow.
-        """
-        cNrmNow = np.zeros(self.AgentCount) + np.nan
-        ShareNow = context["Share"]
-
-        # Loop over each period of the cycle, getting controls separately depending on "age"
-        for t in range(self.T_cycle):
-            these = t == self.t_cycle
-
-            # Get controls for agents who *can* adjust their portfolio share
-            those = np.logical_and(these, context['Adjust'])
-            cNrmNow[those] = self.solution[t].cFuncAdj(context['mNrm'][those])
-
-            # Get Controls for agents who *can't* adjust their portfolio share
-            those = np.logical_and(
-                these,
-                np.logical_not(context['Adjust']))
-            cNrmNow[those] = self.solution[t].cFuncFxd(
-                context['mNrm'][those], ShareNow[those]
-            )
-        
-        return cNrmNow,
 
     def transition_poststates(self, **context):
         """
@@ -270,14 +257,12 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             transition = transition_mNrm
         ),
         Frame(
-            ('Share'), ('Adjust', 'mNrm'),
+            ('Share'), ('Adjust', 'mNrm', 'Share'),
             default = {'Share' : 0}, 
-            transition = transition_ShareNow,
             control = True
         ),
         Frame(
             ('cNrm'), ('Adjust','mNrm','Share'), 
-            transition = transition_cNrmNow,
             control = True
         ),
         Frame(
