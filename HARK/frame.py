@@ -583,7 +583,7 @@ class FrameAgentType(AgentType):
         return target_values
 
 
-def draw_frame_model(frame_model: FrameModel, figsize = (8,8)):
+def draw_frame_model(frame_model: FrameModel, figsize = (8,8), dot = False):
     """
     Draws a FrameModel as an influence diagram.
 
@@ -613,7 +613,10 @@ def draw_frame_model(frame_model: FrameModel, figsize = (8,8)):
                  })])
             g.add_edge(frame.name(), child.name())
 
-    pos = nx.drawing.nx_pydot.graphviz_layout(g, prog='dot')
+    if dot:
+        pos = nx.drawing.nx_pydot.graphviz_layout(g, prog='dot')
+    else:
+        pos = nx.drawing.layout.kamada_kawai_layout(g)
 
     node_options = {
         "node_size": 2500,
