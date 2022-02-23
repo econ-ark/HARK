@@ -32,8 +32,8 @@ from HARK.interpolation import (
     ConstantFunction,
 )
 
-
-class RiskyAssetConsumerType(IndShockConsumerType):
+# RiskyAssetIndShockConsumerType
+class RiskyAssetIndShockConsumerType(IndShockConsumerType):
     """
     A consumer type that has access to a risky asset for his savings. The
     risky asset has lognormal returns that are possibly correlated with his
@@ -45,6 +45,8 @@ class RiskyAssetConsumerType(IndShockConsumerType):
     """
 
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
+    
+    time_vary_ = IndShockConsumerType.time_vary_ + ["Rfree"]
 
     def __init__(self, verbose=False, quiet=False, **kwds):
         params = init_risky_asset.copy()
@@ -60,9 +62,9 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         # These method must be overwritten by classes that inherit from
         # RiskyAssetConsumerType
         if self.PortfolioBool:
-            solver = ConsBasicPortfolioSolver
+            solver = ConsPortfolioRiskyAssetIndShkSolver  # optimize over shares
         else:
-            solver = ConsRiskySolver
+            solver = ConsRiskyAssetIndShkSolver  # risky share of 1
 
         self.solve_one_period = make_one_period_oo_solver(solver)
 
@@ -313,18 +315,24 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         self.get_Adjust()
 
 
-class RiskyReturnGivenFixedPortfolioShareType(RiskyAssetConsumerType):
-    time_vary_ = RiskyAssetConsumerType.time_vary_ + ["ShareFixed"]
+# This is to preserve compatibility with old name
+RiskyAssetConsumerType = RiskyAssetIndShockConsumerType
+
+
+class RiskyReturnGivenFixedPortfolioShareConsumerType(RiskyAssetConsumerType):
+    time_vary_ = RiskyAssetConsumerType.time_vary_ + ["RiskyShareFixed"]
 
     def __init__(self, verbose=False, quiet=False, **kwds):
-        params = init_fixed_share.copy()
+        params = init_risky_share_fixed.copy()
         params.update(kwds)
         kwds = params
 
         # Initialize a basic consumer type
         RiskyAssetConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
 
-        self.solve_one_period = make_one_period_oo_solver(FixedPortfolioShareSolver)
+        self.solve_one_period = make_one_period_oo_solver(
+            ConsFixedPortfolioRiskyAssetIndShkSolver
+        )
 
 
 ####################################################################################################
@@ -332,7 +340,7 @@ class RiskyReturnGivenFixedPortfolioShareType(RiskyAssetConsumerType):
 
 
 @dataclass
-class ConsRiskySolver(ConsIndShockSolver):
+class ConsRiskyAssetIndShkSolver(ConsIndShockSolver):
     """
     Solver for an agent that can save in an asset that has a risky return.
     """
@@ -396,18 +404,23 @@ class ConsRiskySolver(ConsIndShockSolver):
 
         super().set_and_update_values(solution_next, IncShkDstn, LivPrb, DiscFac)
 
-        # overwrite PatFac
+        # Absolute Patience Factor for the model with risk free return is defined at
+        # https://econ-ark.github.io/BufferStockTheory/BufferStockTheory3.html#APFacDefn
 
-        def pat_fac_func(shock):
+        # overwrite APFac
+        # The corresponding Absolute Patience Factor when the return factor is risky is defined
+        # implicitly in #TODO add link
+
+        def APFac_func(shock):  # link to notes
             return ((shock * self.DiscFacEff) ** (1.0 / self.CRRA)) / shock
 
-        self.PatFac = calc_expectation(self.RiskyDstn, pat_fac_func)
+        self.APFac = calc_expectation(self.RiskyDstn, APFac_func)
 
-        self.MPCminNow = 1.0 / (1.0 + self.PatFac / solution_next.MPCmin)
+        self.MPCminNow = 1.0 / (1.0 + self.APFac / solution_next.MPCmin)
 
         # overwrite human wealth function
 
-        def h_nrm_func(shocks):
+        def h_nrm_func(shocks):  # link to notes
             return (
                 self.PermGroFac
                 / shocks[2]
@@ -419,7 +432,7 @@ class ConsRiskySolver(ConsIndShockSolver):
         self.MPCmaxNow = 1.0 / (
             1.0
             + (self.WorstIncPrb ** (1.0 / self.CRRA))
-            * self.PatFac
+            * self.APFac
             / solution_next.MPCmax
         )
 
@@ -705,7 +718,7 @@ class ConsRiskySolver(ConsIndShockSolver):
 
 
 @dataclass
-class ConsBasicPortfolioSolver(ConsRiskySolver):
+class ConsPortfolioRiskyAssetIndShkSolver(ConsRiskyAssetIndShkSolver):
     ShareGrid: np.array
     ShareLimit: float
 
@@ -752,7 +765,7 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
 
         alpha = 1.0 - top_f / (top_f - bot_f)
 
-        opt_share = (1.0 - alpha) * bot_s + alpha * top_s
+        risky_share_optimal = (1.0 - alpha) * bot_s + alpha * top_s
 
         # If agent wants to put more than 100% into risky asset, he is constrained
         constrained_top = EndOfPrddvds[:, -1] > 0.0
@@ -761,14 +774,14 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
 
         # For values of aNrm at which the agent wants to put
         # more than 100% into risky asset, constrain them
-        opt_share[constrained_top] = 1.0
-        opt_share[constrained_bot] = 0.0
+        risky_share_optimal[constrained_top] = 1.0
+        risky_share_optimal[constrained_bot] = 0.0
 
         if not self.zero_bound:
             # aNrm=0, so there's no way to "optimize" the portfolio
-            opt_share[0] = 1.0
+            risky_share_optimal[0] = 1.0
 
-        return opt_share
+        return risky_share_optimal
 
     def calc_preRiskyShkvPfunc(self, preIncShkvPfunc):
         """
@@ -791,19 +804,19 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
             )
             EndOfPrddvds = EndOfPrddvds[:, :, 0]
 
-            self.opt_share = self.optimize_share(EndOfPrddvds)
+            self.risky_share_optimal = self.optimize_share(EndOfPrddvds)
 
         else:
 
             def obj(share, a_nrm):
                 return calc_expectation(self.RiskyDstn, endOfPrddvds, a_nrm, share)
 
-            opt_share = np.empty_like(self.aNrmNow)
+            risky_share_optimal = np.empty_like(self.aNrmNow)
 
             for ai in range(self.aNrmNow.size):
                 a_nrm = self.aNrmNow[ai]
                 if a_nrm == 0:
-                    opt_share[ai] = 1.0
+                    risky_share_optimal[ai] = 1.0
                 else:
                     try:
                         sol = root_scalar(
@@ -811,14 +824,14 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
                         )
 
                         if sol.converged:
-                            opt_share[ai] = sol.root
+                            risky_share_optimal[ai] = sol.root
                         else:
-                            opt_share[ai] = 1.0
+                            risky_share_optimal[ai] = 1.0
 
                     except ValueError:
-                        opt_share[ai] = 1.0
+                        risky_share_optimal[ai] = 1.0
 
-            self.opt_share = opt_share
+            self.risky_share_optimal = risky_share_optimal
 
         def endOfPrddvda(risky_shk, a_nrm, share):
             r_diff = risky_shk - self.Rfree
@@ -827,7 +840,7 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
             return r_port * preIncShkvPfunc(b_nrm)
 
         EndOfPrddvda = self.DiscFacEff * calc_expectation(
-            self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.opt_share
+            self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.risky_share_optimal
         )
         EndOfPrddvdaNvrs = self.uPinv(EndOfPrddvda)
         EndOfPrddvdaNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrddvdaNvrs)
@@ -875,7 +888,7 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
             )
             EndOfPrddvds = EndOfPrddvds[:, :, 0]
 
-            self.opt_share = self.optimize_share(EndOfPrddvds)
+            self.risky_share_optimal = self.optimize_share(EndOfPrddvds)
 
             def endOfPrddvda(shocks, a_nrm, share):
                 r_diff = shocks[2] - self.Rfree
@@ -887,7 +900,7 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
                 return r_port * p_shk ** (1.0 - self.CRRA) * self.vPfuncNext(m_nrm)
 
             EndOfPrddvda = self.DiscFacEff * calc_expectation(
-                self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.opt_share
+                self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.risky_share_optimal
             )
             EndOfPrddvda = EndOfPrddvda[:, :, 0]
 
@@ -910,21 +923,21 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
             # add zero back on agrid
             self.EndOfPrdShareFunc = LinearInterp(
                 np.append(0.0, self.aNrmNow),
-                np.append(1.0, self.opt_share),
+                np.append(1.0, self.risky_share_optimal),
                 intercept_limit=self.ShareLimit,
                 slope_limit=0.0,
             )
         else:
             self.EndOfPrdShareFunc = LinearInterp(
                 self.aNrmNow,
-                self.opt_share,
+                self.risky_share_optimal,
                 intercept_limit=self.ShareLimit,
                 slope_limit=0.0,
             )
 
         self.ShareFunc = LinearInterp(
             np.append(0.0, self.mNrmNow),
-            np.append(1.0, self.opt_share),
+            np.append(1.0, self.risky_share_optimal),
             intercept_limit=self.ShareLimit,
             slope_limit=0.0,
         )
@@ -943,7 +956,7 @@ class ConsBasicPortfolioSolver(ConsRiskySolver):
 
 
 @dataclass
-class FixedPortfolioShareSolver(ConsIndShockSolver):
+class ConsFixedPortfolioRiskyAssetIndShkSolver(ConsIndShockSolver):
     solution_next: ConsumerSolution
     IncShkDstn: DiscreteDistribution
     TranShkDstn: DiscreteDistribution
@@ -954,7 +967,7 @@ class FixedPortfolioShareSolver(ConsIndShockSolver):
     DiscFac: float
     CRRA: float
     Rfree: float
-    ShareFixed: float
+    RiskyShareFixed: float
     PermGroFac: float
     BoroCnstArt: float
     aXtraGrid: np.array
@@ -966,7 +979,7 @@ class FixedPortfolioShareSolver(ConsIndShockSolver):
         self.def_utility_funcs()
 
     def r_port(self, shock):
-        return self.Rfree + (shock - self.Rfree) * self.ShareFixed
+        return self.Rfree + (shock - self.Rfree) * self.RiskyShareFixed
 
     def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
@@ -997,19 +1010,21 @@ class FixedPortfolioShareSolver(ConsIndShockSolver):
 
         super().set_and_update_values(solution_next, IncShkDstn, LivPrb, DiscFac)
 
-        # overwrite PatFac
+        # overwrite APFac
 
-        def pat_fac_func(shock):
+        def APFac_func(shock):
+            # link to lecture notes #TODO
             r_port = self.r_port(shock)
             return ((r_port * self.DiscFacEff) ** (1.0 / self.CRRA)) / r_port
 
-        self.PatFac = calc_expectation(self.RiskyDstn, pat_fac_func)
+        self.APFac = calc_expectation(self.RiskyDstn, APFac_func)
 
-        self.MPCminNow = 1.0 / (1.0 + self.PatFac / solution_next.MPCmin)
+        self.MPCminNow = 1.0 / (1.0 + self.APFac / solution_next.MPCmin)
 
         # overwrite human wealth
 
         def h_nrm_func(shock):
+            # link to lecture notes #TODO
             r_port = self.r_port(shock)
             return self.PermGroFac / r_port * (self.Ex_IncNext + solution_next.hNrm)
 
@@ -1018,7 +1033,7 @@ class FixedPortfolioShareSolver(ConsIndShockSolver):
         self.MPCmaxNow = 1.0 / (
             1.0
             + (self.WorstIncPrb ** (1.0 / self.CRRA))
-            * self.PatFac
+            * self.APFac
             / solution_next.MPCmax
         )
 
@@ -1045,7 +1060,7 @@ class FixedPortfolioShareSolver(ConsIndShockSolver):
 
         # in worst case scenario, debt gets highest return possible
         self.RPortMax = (
-            self.Rfree + (self.RiskyDstn.X.max() - self.Rfree) * self.ShareFixed
+            self.Rfree + (self.RiskyDstn.X.max() - self.Rfree) * self.RiskyShareFixed
         )
 
         # Calculate the minimum allowable value of money resources in this period
@@ -1114,7 +1129,7 @@ class FixedPortfolioShareSolver(ConsIndShockSolver):
         """
 
         def v_next(shocks, a_nrm):
-            r_port = self.Rfree + (shocks[2] - self.Rfree) * self.ShareFixed
+            r_port = self.Rfree + (shocks[2] - self.Rfree) * self.RiskyShareFixed
             m_nrm_next = r_port / (self.PermGroFac * shocks[0]) * a_nrm + shocks[1]
             return shocks[0] ** (1 - self.CRRA) * self.vFuncNext(m_nrm_next)
 
@@ -1152,5 +1167,5 @@ init_risky_asset.update(risky_asset_parms)
 # Number of discrete points in the risky share approximation
 init_risky_asset["ShareCount"] = 25
 
-init_fixed_share = init_risky_asset.copy()
-init_fixed_share["ShareFixed"] = [0.0]
+init_risky_share_fixed = init_risky_asset.copy()
+init_risky_share_fixed["RiskyShareFixed"] = [0.0]
