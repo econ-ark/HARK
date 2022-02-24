@@ -540,7 +540,7 @@ class FrameAgentType(AgentType):
 
             else: # transition is function of state variables not an exogenous shock
                 new_values = frame.transition(
-                    self,
+                    # self,
                     **local_context
                 )
 

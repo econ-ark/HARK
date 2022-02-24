@@ -118,65 +118,11 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
 
-    def transition_Rport(self, **context):
-
-        Rport = (
-            context["Share"] * context["Risky"]
-            + (1.0 - context["Share"]) * self.parameters['Rfree']
-        )
-        return Rport, 
-
-    def transition_pLvl(self, **context):
-        pLvlPrev = context['pLvl']
-        
-        # Calculate new states: normalized market resources and permanent income level
-        pLvlNow = pLvlPrev * context['PermShk']  # Updated permanent income level
-
-        return pLvlNow
-
-    def transition_bNrm(self, **context):
-        aNrmPrev = context['aNrm']
-
-        # This should be computed separately in its own transition
-        # Using IndShock get_Rfree instead of generic.
-        RfreeNow = context['Rport']
-
-        # "Effective" interest factor on normalized assets
-        ReffNow = RfreeNow / context['PermShk']
-        bNrmNow = ReffNow * aNrmPrev         # Bank balances before labor income
-
-        return bNrmNow
-
-    def transition_mNrm(self, **context):
-        mNrm = context['bNrm'] + context['TranShk']  # Market resources after income
-
-        return mNrm
-
-    def transition_poststates(self, **context):
-        """
-        Calculates end-of-period assets for each consumer of this type.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        # should this be "Now", or "Prev"?!?
-        # todo: don't store on self
-        self.state_now['aNrm'] = context['mNrm'] - context['cNrm']
-        # Useful in some cases to precalculate asset level
-        self.state_now['aLvl'] = context['aNrm'] * context['pLvl']
-
-        return (self.state_now['aNrm'], self.state_now['aLvl'])
-
     # maybe replace reference to init_portfolio to self.parameters?
     model = FrameModel([
         # todo : make an aggegrate value
         Frame(('PermShkAgg',), ('PermGroFacAgg',),
-            transition = lambda self, PermGroFacAgg : (PermGroFacAgg,),
+            transition = lambda PermGroFacAgg : (PermGroFacAgg,),
             aggregate = True
         ),
         Frame(
@@ -208,7 +154,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             )
         ),
         Frame( ## TODO: Handle Risky as an Aggregate value
-            ('Risky'),None, 
+            ('Risky'), None, 
             transition = IndexDistribution(
                 Lognormal.from_mean_std,
                 {
@@ -222,7 +168,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             aggregate = True
         ),
         Frame(
-            ('Adjust'),None, 
+            ('Adjust'), None, 
             default = {'Adjust' : False},
             transition = IndexDistribution(
                 Bernoulli,
@@ -231,30 +177,30 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             ) # self.t_cycle input implied
         ),
         Frame(
-            ('Rport'), ('Share', 'Risky'), 
-            transition = transition_Rport
+            ('Rport'), ('Share', 'Risky', 'Rfree'), 
+            transition = lambda Share, Risky, Rfree : (Share * Risky + (1.0 - Share) * Rfree,)
         ),
         Frame(
             ('PlvlAgg'), ('PlvlAgg', 'PermShkAgg'), 
             default = {'PlvlAgg' : 1.0},
-            transition = lambda self, PlvlAgg, PermShkAgg : PlvlAgg * PermShkAgg,
+            transition = lambda PlvlAgg, PermShkAgg : PlvlAgg * PermShkAgg,
             aggregate = True
         ),
         Frame(
             ('pLvl',),
             ('pLvl', 'PermShk'),
             default = {'pLvl' : birth_pLvlNow},
-            transition = transition_pLvl
+            transition = lambda pLvl, PermShk : (pLvl * PermShk,)
         ),
         Frame(
             ('bNrm',),
             ('aNrm', 'Rport', 'PermShk'), 
-            transition = transition_bNrm
+            transition = lambda aNrm, Rport, PermShk: (Rport / PermShk) * aNrm
         ),
         Frame(
             ('mNrm',),
             ('bNrm', 'TranShk'),
-            transition = transition_mNrm
+            transition = lambda bNrm, TranShk : (bNrm + TranShk,)
         ),
         Frame(
             ('Share'), ('Adjust', 'mNrm', 'Share'),
@@ -267,17 +213,17 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         ),
         Frame(
             ('U'), ('cNrm','CRRA'), ## Note CRRA here is a parameter not a state var
-            transition = lambda self, cNrm, CRRA : (CRRAutility(cNrm, CRRA),),
+            transition = lambda cNrm, CRRA : (CRRAutility(cNrm, CRRA),),
             reward = True
         ),
         Frame(
             ('aNrm'), ('mNrm', 'cNrm'),
             default = {'aNrm' : birth_aNrmNow},
-            transition = lambda self, mNrm, cNrm : (mNrm - cNrm,)
+            transition = lambda mNrm, cNrm : (mNrm - cNrm,)
         ),
         Frame(
             ('aLvl'), ('aNrm', 'pLvl'),
-            transition = lambda self, aNrm, pLvl : (aNrm * pLvl,)
+            transition = lambda aNrm, pLvl : (aNrm * pLvl,)
         )
     ],
     init_portfolio)
