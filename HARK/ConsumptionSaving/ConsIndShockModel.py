@@ -2697,7 +2697,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         if all(
             [
-                isinstance(x, float) or (x is None)
+                isinstance(x, (float, int)) or (x is None)
                 for x in [UnempPrb, IncUnemp, UnempPrbRet, IncUnempRet]
             ]
         ):
