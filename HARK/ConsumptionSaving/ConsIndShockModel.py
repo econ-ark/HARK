@@ -2650,16 +2650,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
         TranShkCount : int
             The number of approximation points to be used in the discrete approxima-
             tion to the permanent income shock distribution.
-        UnempPrb : float
+        UnempPrb : float or [float]
             The probability of becoming unemployed during the working period.
-        UnempPrbRet : float
+        UnempPrbRet : float or None
             The probability of not receiving typical retirement income when retired.
         T_retire : int
             The index value for the final working period in the agent's life.
             If T_retire <= 0 then there is no retirement.
-        IncUnemp : float
+        IncUnemp : float or [float]
             Transitory income received when unemployed.
-        IncUnempRet : float
+        IncUnempRet : float or None
             Transitory income received while "unemployed" when retired.
         T_cycle :  int
             Total number of non-terminal periods in the consumer's sequence of periods.
@@ -2695,10 +2695,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
             normal_length = T_cycle
             retire_length = 0
 
-        # Unemployment parametrs can be given either as:
         if all(
             [
-                isinstance(x, float)
+                isinstance(x, float) or (x is None)
                 for x in [UnempPrb, IncUnemp, UnempPrbRet, IncUnempRet]
             ]
         ):
