@@ -1034,8 +1034,8 @@ class ConsFixedPortfolioRiskyAssetIndShkSolver(ConsIndShockSolver):
             / solution_next.MPCmax
         )
 
-        self.cFuncLimitIntercept = self.MPCminNow * self.hNrmNow
-        self.cFuncLimitSlope = self.MPCminNow
+        self.cFuncLimitIntercept = None
+        self.cFuncLimitSlope = None
 
     def def_BoroCnst(self, BoroCnstArt):
         """
