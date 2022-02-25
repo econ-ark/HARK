@@ -708,7 +708,7 @@ class ConsRiskyAssetIndShkSolver(ConsIndShockSolver):
                 mNrm_next = a_nrm * shocks[2] / perm_shk + shocks[1]
                 return (
                     self.DiscFacEff
-                    * perm_shk ** (1 - self.CRRA)
+                    * perm_shk ** (1.0 - self.CRRA)
                     * self.vFuncNext(mNrm_next)
                 )
 
@@ -879,9 +879,7 @@ class ConsPortfolioRiskyAssetIndShkSolver(ConsRiskyAssetIndShkSolver):
                 p_shk = self.PermGroFac * shocks[0]
                 m_nrm = b_nrm / p_shk + shocks[1]
 
-                return (
-                    r_diff * a_nrm * p_shk ** (1.0 - self.CRRA) * self.vPfuncNext(m_nrm)
-                )
+                return r_diff * a_nrm * p_shk ** (-self.CRRA) * self.vPfuncNext(m_nrm)
 
             EndOfPrddvds = calc_expectation(
                 self.RiskyDstn, endOfPrddvds, self.aMat, self.sMat
@@ -897,12 +895,11 @@ class ConsPortfolioRiskyAssetIndShkSolver(ConsRiskyAssetIndShkSolver):
                 p_shk = self.PermGroFac * shocks[0]
                 m_nrm = b_nrm / p_shk + shocks[1]
 
-                return r_port * p_shk ** (1.0 - self.CRRA) * self.vPfuncNext(m_nrm)
+                return r_port * p_shk ** (-self.CRRA) * self.vPfuncNext(m_nrm)
 
             EndOfPrddvda = self.DiscFacEff * calc_expectation(
                 self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.risky_share_optimal
             )
-            EndOfPrddvda = EndOfPrddvda[:, :, 0]
 
             EndOfPrddvdaNvrs = self.uPinv(EndOfPrddvda)
             EndOfPrddvdaNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrddvdaNvrs)
@@ -1131,7 +1128,7 @@ class ConsFixedPortfolioRiskyAssetIndShkSolver(ConsIndShockSolver):
         def v_next(shocks, a_nrm):
             r_port = self.Rfree + (shocks[2] - self.Rfree) * self.RiskyShareFixed
             m_nrm_next = r_port / (self.PermGroFac * shocks[0]) * a_nrm + shocks[1]
-            return shocks[0] ** (1 - self.CRRA) * self.vFuncNext(m_nrm_next)
+            return shocks[0] ** (1.0 - self.CRRA) * self.vFuncNext(m_nrm_next)
 
         EndOfPrdv = (
             self.DiscFacEff
