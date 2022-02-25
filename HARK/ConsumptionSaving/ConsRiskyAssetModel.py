@@ -118,7 +118,7 @@ class RiskyAssetIndShockConsumerType(IndShockConsumerType):
             self.RiskyDstn = IndexDistribution(
                 Lognormal.from_mean_std,
                 {"mean": self.RiskyAvg, "std": self.RiskyStd},
-                seed=self.RNG.randint(0, 2 ** 31 - 1),
+                seed=self.RNG.randint(0, 2**31 - 1),
             ).approx(self.RiskyCount)
 
             self.add_to_time_vary("RiskyDstn")
@@ -231,7 +231,7 @@ class RiskyAssetIndShockConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.ShareGrid = np.linspace(self.ShareLimit, 1.0, self.ShareCount)
+        self.ShareGrid = np.linspace(0.0, 1.0, self.ShareCount)
         self.add_to_time_inv("ShareGrid")
 
     def get_Risky(self):
@@ -256,7 +256,7 @@ class RiskyAssetIndShockConsumerType(IndShockConsumerType):
             RiskyStd = self.RiskyStd
 
         self.shocks["Risky"] = Lognormal.from_mean_std(
-            RiskyAvg, RiskyStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
+            RiskyAvg, RiskyStd, seed=self.RNG.randint(0, 2**31 - 1)
         ).draw(1)
 
     def get_Adjust(self):
@@ -274,7 +274,7 @@ class RiskyAssetIndShockConsumerType(IndShockConsumerType):
         None
         """
         self.shocks["Adjust"] = IndexDistribution(
-            Bernoulli, {"p": self.AdjustPrb}, seed=self.RNG.randint(0, 2 ** 31 - 1)
+            Bernoulli, {"p": self.AdjustPrb}, seed=self.RNG.randint(0, 2**31 - 1)
         ).draw(self.t_cycle)
 
     def initialize_sim(self):
@@ -504,7 +504,8 @@ class ConsRiskyAssetIndShkSolver(ConsIndShockSolver):
             # if zero is BoroCnstNat, do not evaluate at 0.0
             aNrmNow = self.aXtraGrid
             bNrmNext = np.append(
-                aNrmNow[0] * self.RiskyDstn.X.min(), aNrmNow * self.RiskyDstn.X.max(),
+                aNrmNow[0] * self.RiskyDstn.X.min(),
+                aNrmNow * self.RiskyDstn.X.max(),
             )
             wNrmNext = np.append(
                 bNrmNext[0] / (self.PermGroFac * self.PermShkDstn.X.max()),
