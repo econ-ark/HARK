@@ -1803,6 +1803,20 @@ class PerfForesightConsumerType(AgentType):
 
         # Calculate new states: normalized market resources and permanent income level
         pLvlNow = pLvlPrev*self.shocks['PermShk']  # Updated permanent income level
+        # Asymptotically it can't hurt to impose true restrictions
+        # (at least if the GICRaw holds)
+        pLvlNowMean = 1.0
+        if not hasattr(self, "normalize_shocks"):
+            self.normalize_shocks = False
+            
+        if not hasattr(self, "normalize_levels"):
+            self.normalize_levels = False
+                    
+        if self.normalize_levels == True:
+            pLvlNowMean = np.mean(pLvlNow)
+
+        pLvlNow = pLvlNow / pLvlNowMean # Divide by 1.0 if normalize_levels=False
+        
         # Updated aggregate permanent productivity level
         PlvlAggNow = self.state_prev['PlvlAgg']*self.PermShkAggNow
         # "Effective" interest factor on normalized assets
@@ -2046,6 +2060,8 @@ init_idiosyncratic_shocks = dict(
         "vFuncBool": False,  # Whether to calculate the value function during solution
         "CubicBool": False,  # Use cubic spline interpolation when True, linear interpolation when False
         "neutral_measure": False,      # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
+        "normalize_shocks": False, # In sims, normalize mean of collection of shocks to population mean
+        "normalize_levels": False, # In sims, normalize mean of a level variable (like permanent income) to the population mean
     }
 )
 
@@ -2201,10 +2217,18 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 # Get random draws of income shocks from the discrete distribution
                 IncShks = IncShkDstnNow.draw(N)
 
+                # In the limit, it cannot hurt to impose "true" restrictions,
+                # like the fact that the mean value of the shocks should be one
+                PermShkMeanNow, TranShkMeanNow = 1.0, 1.0 # Dividing by 1 changes nothing 
+                if self.normalize_shocks == True:
+                    PermShkMeanNow = np.mean(IncShks[0])
+                    TranShkMeanNow = np.mean(IncShks[1])
+
                 PermShkNow[these] = (
-                    IncShks[0, :] * PermGroFacNow
+                    (IncShks[0, :] * PermGroFacNow
+                     / PermShkMeanNow) # Divide by 1.0 if normalize_shocks=False
                 )  # permanent "shock" includes expected growth
-                TranShkNow[these] = IncShks[1, :]
+                TranShkNow[these] = IncShks[1, :] / TranShkMeanNow 
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
@@ -2216,10 +2240,19 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
             # Get random draws of income shocks from the discrete distribution
             EventDraws = IncShkDstnNow.draw_events(N)
+            
+            # In the limit, it cannot hurt to impose "true" restrictions,
+            # like the fact that the mean value of the shocks should be one
+            PermShkMeanNow, TranShkMeanNow = 1.0, 1.0 # Dividing by 1 changes nothing 
+            if self.normalize_shocks == True:
+                PermShkMeanNow = np.mean(IncShkDstnNow.X[0][EventDraws])
+                TranShkMeanNow = np.mean(IncShkDstnNow.X[1][EventDraws])
+                    
             PermShkNow[these] = (
-                IncShkDstnNow.X[0][EventDraws] * PermGroFacNow
+                (IncShkDstnNow.X[0][EventDraws] * PermGroFacNow
+                 / PermShkMeanNow) # Divide by 1.0 if normalize_shocks=False
             )  # permanent "shock" includes expected growth
-            TranShkNow[these] = IncShkDstnNow.X[1][EventDraws]
+            TranShkNow[these] = IncShkDstnNow.X[1][EventDraws] / TranShkMeanNow
         #        PermShkNow[newborn] = 1.0
         TranShkNow[newborn] = 1.0
 
