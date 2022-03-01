@@ -1586,6 +1586,7 @@ class PerfForesightConsumerType(AgentType):
     time_vary_ = ["LivPrb", "PermGroFac"]
     time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt" ]
     state_vars = ['pLvl', 'PlvlAgg', 'bNrm', 'mNrm', "aNrm", 'aLvl']
+    newborn_init_vars = ["aNrm","pLvl"]
     shock_vars_ = []
 
     def __init__(self, verbose=1, quiet=False, **kwds):
@@ -1604,7 +1605,10 @@ class PerfForesightConsumerType(AgentType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(self.time_vary_)
         self.time_inv = deepcopy(self.time_inv_)
-
+        
+        # Distribution of newborns' initial conditions
+        self.newborn_state_dstn = None
+        
         self.shock_vars = deepcopy(self.shock_vars_)
         self.verbose = verbose
         self.quiet = quiet
@@ -1683,6 +1687,22 @@ class PerfForesightConsumerType(AgentType):
         self.state_now['PlvlAgg'] = 1.0
         AgentType.initialize_sim(self)
 
+    def draw_newborn_states_default(self, N):
+        
+        aNrm = Lognormal(
+            mu=self.aNrmInitMean,
+            sigma=self.aNrmInitStd,
+            seed=self.RNG.randint(0, 2 ** 31 - 1),
+        ).draw(N)
+        
+        pLvl = Lognormal(
+            self.pLvlInitMean,
+            self.pLvlInitStd,
+            seed=self.RNG.randint(0, 2 ** 31 - 1)
+        ).draw(N)
+ 
+        return np.vstack([aNrm,pLvl])
+
     def sim_birth(self, which_agents):
         """
         Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
@@ -1700,20 +1720,20 @@ class PerfForesightConsumerType(AgentType):
         """
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        self.state_now['aNrm'][which_agents] = Lognormal(
-            mu=self.aNrmInitMean,
-            sigma=self.aNrmInitStd,
-            seed=self.RNG.randint(0, 2 ** 31 - 1),
-        ).draw(N)
-        # why is a now variable set here? Because it's an aggregate.
-        pLvlInitMeanNow = self.pLvlInitMean + np.log(
-            self.state_now['PlvlAgg']
-        )  # Account for newer cohorts having higher permanent income
-        self.state_now['pLvl'][which_agents] = Lognormal(
-            pLvlInitMeanNow,
-            self.pLvlInitStd,
-            seed=self.RNG.randint(0, 2 ** 31 - 1)
-        ).draw(N)
+        
+        # Draw states
+        if self.newborn_state_dstn is None:
+            newborn_states = self.draw_newborn_states_default(N)
+        else:
+            newborn_states = self.newborn_state_dstn.draw(N)
+            
+        # Assign states
+        for i, state in enumerate(self.newborn_init_vars):
+            self.state_now[state][which_agents] = newborn_states[i,:]
+        
+        # Inflate newborns' permanent incomes by the aggregate level
+        self.state_now['pLvl'][which_agents] = self.state_now['pLvl'][which_agents] * self.state_now['PlvlAgg']
+        
         self.t_age[which_agents] = 0  # How many periods since each agent was born
         
         if not hasattr(self, "PerfMITShk"): # If PerfMITShk not specified, let it be False
