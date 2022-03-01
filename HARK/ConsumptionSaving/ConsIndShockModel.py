@@ -1586,8 +1586,11 @@ class PerfForesightConsumerType(AgentType):
     time_vary_ = ["LivPrb", "PermGroFac"]
     time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt" ]
     state_vars = ['pLvl', 'PlvlAgg', 'bNrm', 'mNrm', "aNrm", 'aLvl']
-    newborn_init_vars = ["aNrm","pLvl"]
     shock_vars_ = []
+    
+    # Names and distribution of the states required to initialize an agent.
+    newborn_init_vars = ["aNrm","pLvl"]
+    newborn_state_dstn = None
 
     def __init__(self, verbose=1, quiet=False, **kwds):
         params = init_perfect_foresight.copy()
@@ -1605,9 +1608,6 @@ class PerfForesightConsumerType(AgentType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(self.time_vary_)
         self.time_inv = deepcopy(self.time_inv_)
-        
-        # Distribution of newborns' initial conditions
-        self.newborn_state_dstn = None
         
         self.shock_vars = deepcopy(self.shock_vars_)
         self.verbose = verbose
