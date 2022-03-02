@@ -19,6 +19,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 from HARK.distribution import (
     DiscreteDistribution,
+    add_discrete_outcome_constant_mean,
     calc_expectation,
     combine_indep_dstns,
     IndexDistribution,
@@ -1166,3 +1167,91 @@ init_risky_asset["ShareCount"] = 25
 
 init_risky_share_fixed = init_risky_asset.copy()
 init_risky_share_fixed["RiskyShareFixed"] = [0.0]
+
+
+class RiskyAssetShkDiscrete(DiscreteDistribution):
+    pass
+
+
+class RiskyAssetShkLognorm(RiskyAssetShkDiscrete):
+    """
+    A one-period distribution of a multiplicative lognormal risky asset shock.
+
+    Parameters
+    ----------
+    mu : float
+        Mean of the lognormal distribution.
+    sigma : float
+        Standard deviation of the lognormal distribution.
+    n_approx : int
+        Number of points to use in the discrete approximation.
+    seed : int, optional
+        Random seed. The default is 0.
+
+    Returns
+    -------
+    RiskyShkDstn : DiscreteDistribution
+        Risky asset shock distribution.
+
+    """
+
+    def __init__(self, mu, sigma, n_approx, seed=0):
+        # Construct an auxiliary discretized normal
+        logn_approx = Lognormal.from_mean_std(mean=mu, std=sigma).approx(
+            n_approx if sigma > 0.0 else 1, tail_N=0
+        )
+
+        super().__init__(pmf=logn_approx.pmf, X=logn_approx.X, seed=seed)
+
+
+class RiskyAssetShkWithDisaster(RiskyAssetShkDiscrete):
+    def __init__(self, pmf, X, DisasterPrb, DisasterShk, seed=0):
+        super().__init__(pmf, X, seed)
+
+        if DisasterPrb > 0.0:
+            dstn_approx = add_discrete_outcome_constant_mean(
+                dstn_approx, p=DisasterPrb, x=DisasterShk
+            )
+
+
+class RiskyAssetShkLognormWithDisaster(RiskyAssetShkLognorm):
+    """
+    A one-period distribution for risky return shocks that are a mixture
+    between a log-normal and a single-value disaster shock.
+
+    Parameters
+    ----------
+    mu : float
+        Mean of the lognormal distribution.
+    sigma : float
+        Standard deviation of the log-shock.
+    DisasterPrb : float
+        Probability of the "disaster" shock.
+    DisasterShk : float
+        Return shock in the "disaster" state.
+    n_approx : int
+        Number of points to use in the discrete approximation.
+    seed : int, optional
+        Random seed. The default is 0.
+
+    Returns
+    -------
+    RiskyShkDstn : DiscreteDistribution
+        Risky asset shock distribution.
+
+    """
+
+    def __init__(self, mu, sigma, DisasterPrb, DisasterShk, n_approx, seed=0):
+
+        super().__init__(
+            mu, sigma, n_approx, pmf=dstn_approx.pmf, X=dstn_approx.X, seed=seed
+        )
+
+        if DisasterPrb > 0.0:
+            dstn_approx = add_discrete_outcome_constant_mean(
+                dstn_approx, p=DisasterPrb, x=DisasterShk
+            )
+
+
+class JointLognormalPermShkAndRiskyShk(DiscreteDistribution):
+    pass
