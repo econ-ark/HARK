@@ -1715,14 +1715,14 @@ class PerfForesightConsumerType(AgentType):
         self.state_now["aNrm"][which_agents] = Lognormal(
             mu=self.aNrmInitMean,
             sigma=self.aNrmInitStd,
-            seed=self.RNG.randint(0, 2 ** 31 - 1),
+            seed=self.RNG.randint(0, 2**31 - 1),
         ).draw(N)
         # why is a now variable set here? Because it's an aggregate.
         pLvlInitMeanNow = self.pLvlInitMean + np.log(
             self.state_now["PlvlAgg"]
         )  # Account for newer cohorts having higher permanent income
         self.state_now["pLvl"][which_agents] = Lognormal(
-            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
+            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.randint(0, 2**31 - 1)
         ).draw(N)
         # How many periods since each agent was born
         self.t_age[which_agents] = 0
@@ -1766,7 +1766,7 @@ class PerfForesightConsumerType(AgentType):
         # they die.
         # See: https://github.com/econ-ark/HARK/pull/981
 
-        DeathShks = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(
+        DeathShks = Uniform(seed=self.RNG.randint(0, 2**31 - 1)).draw(
             N=self.AgentCount
         )
         which_agents = DeathShks < DiePrb
@@ -2684,16 +2684,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
         TranShkCount : int
             The number of approximation points to be used in the discrete approxima-
             tion to the permanent income shock distribution.
-        UnempPrb : float
+        UnempPrb : float or [float]
             The probability of becoming unemployed during the working period.
-        UnempPrbRet : float
+        UnempPrbRet : float or None
             The probability of not receiving typical retirement income when retired.
         T_retire : int
             The index value for the final working period in the agent's life.
             If T_retire <= 0 then there is no retirement.
-        IncUnemp : float
+        IncUnemp : float or [float]
             Transitory income received when unemployed.
-        IncUnempRet : float
+        IncUnempRet : float or None
             Transitory income received while "unemployed" when retired.
         T_cycle :  int
             Total number of non-terminal periods in the consumer's sequence of periods.
@@ -2729,8 +2729,31 @@ class IndShockConsumerType(PerfForesightConsumerType):
             normal_length = T_cycle
             retire_length = 0
 
-        UnempPrb_list = [UnempPrb] * normal_length + [UnempPrbRet] * retire_length
-        IncUnemp_list = [IncUnemp] * normal_length + [IncUnempRet] * retire_length
+        if all(
+            [
+                isinstance(x, (float, int)) or (x is None)
+                for x in [UnempPrb, IncUnemp, UnempPrbRet, IncUnempRet]
+            ]
+        ):
+
+            UnempPrb_list = [UnempPrb] * normal_length + [UnempPrbRet] * retire_length
+            IncUnemp_list = [IncUnemp] * normal_length + [IncUnempRet] * retire_length
+
+        elif all([isinstance(x, list) for x in [UnempPrb, IncUnemp]]):
+
+            UnempPrb_list = UnempPrb
+            IncUnemp_list = IncUnemp
+
+        else:
+
+            raise Exception(
+                "Unemployment must be specified either using floats for UnempPrb,"
+                + "IncUnemp, UnempPrbRet, and IncUnempRet, in which case the "
+                + "unemployment probability and income change only with retirement, or "
+                + "using lists of length T_cycle for UnempPrb and IncUnemp, specifying "
+                + "each feature at every age."
+            )
+
         PermShkCount_list = [PermShkCount] * normal_length + [1] * retire_length
         TranShkCount_list = [TranShkCount] * normal_length + [1] * retire_length
 
@@ -2799,7 +2822,9 @@ class LognormPermIncShk(DiscreteDistribution):
 
     def __init__(self, sigma, n_approx, neutral_measure=False, seed=0):
         # Construct an auxiliary discretized normal
-        logn_approx = MeanOneLogNormal(sigma).approx(n_approx, tail_N=0)
+        logn_approx = MeanOneLogNormal(sigma).approx(
+            n_approx if sigma > 0.0 else 1, tail_N=0
+        )
         # Change the pmf if necessary
         if neutral_measure:
             logn_approx.pmf = logn_approx.X * logn_approx.pmf
@@ -2833,8 +2858,11 @@ class MixtureTranIncShk(DiscreteDistribution):
     """
 
     def __init__(self, sigma, UnempPrb, IncUnemp, n_approx, seed=0):
-        dstn_approx = MeanOneLogNormal(sigma).approx(n_approx, tail_N=0)
-        if UnempPrb > 0:
+
+        dstn_approx = MeanOneLogNormal(sigma).approx(
+            n_approx if sigma > 0.0 else 1, tail_N=0
+        )
+        if UnempPrb > 0.0:
             dstn_approx = add_discrete_outcome_constant_mean(
                 dstn_approx, p=UnempPrb, x=IncUnemp
             )
