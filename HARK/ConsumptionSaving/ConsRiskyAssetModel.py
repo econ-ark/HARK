@@ -82,10 +82,16 @@ class RiskyAssetIndShockConsumerType(IndShockConsumerType):
         self.update_AdjustPrb()
         self.update_RiskyDstn()
         self.update_ShockDstn()
+        self.update_Rfree()
 
         if self.PortfolioBool:
             self.update_ShareLimit()
             self.update_ShareGrid()
+
+    def update_Rfree(self):
+
+        if isinstance(self.Rfree, (int, float)):
+            self.Rfree = [self.Rfree] * self.T_cycle
 
     def update_RiskyDstn(self):
         """
@@ -1201,8 +1207,6 @@ risky_asset_parms = {
 # Make a dictionary to specify a risky asset consumer type
 init_risky_asset = init_idiosyncratic_shocks.copy()
 init_risky_asset.update(risky_asset_parms)
-# make time varying
-init_risky_asset["Rfree"] = [init_idiosyncratic_shocks["Rfree"]]
 # Number of discrete points in the risky share approximation
 init_risky_asset["ShareCount"] = 25
 
