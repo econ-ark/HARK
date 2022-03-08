@@ -824,7 +824,7 @@ class ConsPortfolioSolver(MetricObject):
         Construct the risky share function when the agent can adjust
         """
 
-        # Share function for aGrid
+        # Share function on aGrid
 
         if self.zero_bound:
             aNrm_temp = np.append(0.0, self.aNrmGrid)
@@ -837,12 +837,16 @@ class ConsPortfolioSolver(MetricObject):
             aNrm_temp, share_temp, intercept_limit=self.ShareLimit, slope_limit=0.0
         )
 
-        # alternative share functions from linearization
+        # alternative share functions from linear approximation
 
+        # get next period's consumption and share function
         cFunc_next = self.solution_next.cFuncAdj
         sFunc_next = self.solution_next.EndOfPrdShareFunc
 
         def premium(shock):
+            """
+            Used to evaluate mean and variance of equity premium.
+            """
             r_diff = shock - self.Rfree
 
             return r_diff, r_diff ** 2
@@ -850,6 +854,11 @@ class ConsPortfolioSolver(MetricObject):
         prem_mean, prem_var = calc_expectation(self.RiskyDstn, premium)
 
         def c_nrm_and_deriv(shocks, a_nrm):
+            """
+            Used to calculate expected consumption and MPC given today's savings,
+            assuming that today's risky share is the same as it would be tomorrow
+            with that same level of savings.
+            """
             p_shk = shocks[0] * self.PermGroFac
             share = sFunc_next(a_nrm)
             r_diff = shocks[2] - self.Rfree
@@ -869,6 +878,9 @@ class ConsPortfolioSolver(MetricObject):
         MPC = cP_next * self.aNrmGrid / c_next
 
         approx_share = prem_mean / (self.CRRA * MPC * prem_var)
+
+        # clip at 0 and 1, although we know the Share limit we
+        # want to see what the approximation would give us
         approx_share = np.clip(approx_share, 0, 1)
 
         self.ApproxShareFunc = LinearInterp(
