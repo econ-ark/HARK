@@ -213,7 +213,7 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         None
         """
         # Consume all market resources: c_T = m_T
-        cFuncAdj_terminal = cFuncAdj_terminal = LinearInterp([0.0, 1.0], [0.0, 1.0])
+        cFuncAdj_terminal = LinearInterp([0.0, 1.0], [0.0, 1.0])
         cFuncFxd_terminal = IdentityFunction(i_dim=0, n_dims=2)
 
         # Risky share is irrelevant-- no end-of-period assets; set to zero
