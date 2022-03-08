@@ -245,31 +245,6 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
             dvdsFuncFxd=dvdsFuncFxd_terminal,
         )
 
-    def get_Rfree(self):
-        """
-        Calculates realized return factor for each agent, using the attributes Rfree,
-        RiskyNow, and ShareNow.  This method is a bit of a misnomer, as the return
-        factor is not riskless, but would more accurately be labeled as Rport.  However,
-        this method makes the portfolio model compatible with its parent class.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        Rport : np.array
-            Array of size AgentCount with each simulated agent's realized portfolio
-            return factor.  Will be used by get_states() to calculate mNrmNow, where it
-            will be mislabeled as "Rfree".
-        """
-        Rport = (
-            self.controls["Share"] * self.shocks["Risky"]
-            + (1.0 - self.controls["Share"]) * self.Rfree
-        )
-        self.Rport = Rport
-        return Rport
-
     def initialize_sim(self):
         """
         Initialize the state of simulation attributes.  Simply calls the same method
@@ -1303,7 +1278,10 @@ init_portfolio["DiscreteShareBool"] = False
 # Adjust some of the existing parameters in the dictionary
 init_portfolio["aXtraMax"] = 100  # Make the grid of assets go much higher...
 init_portfolio["aXtraCount"] = 200  # ...and include many more gridpoints...
-init_portfolio["aXtraNestFac"] = 1  # ...which aren't so clustered at the bottom
-init_portfolio["BoroCnstArt"] = 0.0  # Artificial borrowing constraint must be turned on
-init_portfolio["CRRA"] = 5.0  # Results are more interesting with higher risk aversion
+# ...which aren't so clustered at the bottom
+init_portfolio["aXtraNestFac"] = 1
+# Artificial borrowing constraint must be turned on
+init_portfolio["BoroCnstArt"] = 0.0
+# Results are more interesting with higher risk aversion
+init_portfolio["CRRA"] = 5.0
 init_portfolio["DiscFac"] = 0.90  # And also lower patience

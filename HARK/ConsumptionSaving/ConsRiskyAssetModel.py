@@ -19,12 +19,12 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 from HARK.distribution import (
     DiscreteDistribution,
-    add_discrete_outcome_constant_mean,
-    calc_expectation,
-    combine_indep_dstns,
     IndexDistribution,
     Lognormal,
     Bernoulli,
+    add_discrete_outcome_constant_mean,
+    calc_expectation,
+    combine_indep_dstns,
 )
 from HARK.interpolation import (
     LinearInterp,
@@ -34,6 +34,8 @@ from HARK.interpolation import (
 )
 
 # RiskyAssetIndShockConsumerType
+
+
 class RiskyAssetIndShockConsumerType(IndShockConsumerType):
     """
     A consumer type that has access to a risky asset for his savings. The
@@ -45,6 +47,7 @@ class RiskyAssetIndShockConsumerType(IndShockConsumerType):
     The meaning of "adjusting his portfolio" depends on the particular model.
     """
 
+    time_vary_ = IndShockConsumerType.time_vary_ + ["Rfree"]
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
 
     def __init__(self, verbose=False, quiet=False, **kwds):
@@ -201,20 +204,28 @@ class RiskyAssetIndShockConsumerType(IndShockConsumerType):
             self.ShareLimit = []
             for t in range(self.T_cycle):
                 RiskyDstn = self.RiskyDstn[t]
-                temp_f = lambda s: -((1.0 - self.CRRA) ** -1) * np.dot(
-                    (self.Rfree + s * (RiskyDstn.X - self.Rfree)) ** (1.0 - self.CRRA),
-                    RiskyDstn.pmf,
-                )
+
+                def temp_f(s):
+                    return -((1.0 - self.CRRA) ** -1) * np.dot(
+                        (self.Rfree[t] + s * (RiskyDstn.X - self.Rfree[t]))
+                        ** (1.0 - self.CRRA),
+                        RiskyDstn.pmf,
+                    )
+
                 SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
                 self.ShareLimit.append(SharePF)
             self.add_to_time_vary("ShareLimit")
 
         else:
             RiskyDstn = self.RiskyDstn
-            temp_f = lambda s: -((1.0 - self.CRRA) ** -1) * np.dot(
-                (self.Rfree + s * (RiskyDstn.X - self.Rfree)) ** (1.0 - self.CRRA),
-                RiskyDstn.pmf,
-            )
+
+            def temp_f(s):
+                return -((1.0 - self.CRRA) ** -1) * np.dot(
+                    (self.Rfree[0] + s * (RiskyDstn.X - self.Rfree[0]))
+                    ** (1.0 - self.CRRA),
+                    RiskyDstn.pmf,
+                )
+
             SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
             self.ShareLimit = SharePF
             self.add_to_time_inv("ShareLimit")
@@ -234,6 +245,35 @@ class RiskyAssetIndShockConsumerType(IndShockConsumerType):
         """
         self.ShareGrid = np.linspace(0.0, 1.0, self.ShareCount)
         self.add_to_time_inv("ShareGrid")
+
+    def get_Rfree(self):
+        """
+        Calculates realized return factor for each agent, using the attributes Rfree,
+        RiskyNow, and ShareNow.  This method is a bit of a misnomer, as the return
+        factor is not riskless, but would more accurately be labeled as Rport.  However,
+        this method makes the portfolio model compatible with its parent class.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Rport : np.array
+            Array of size AgentCount with each simulated agent's realized portfolio
+            return factor.  Will be used by get_states() to calculate mNrmNow, where it
+            will be mislabeled as "Rfree".
+        """
+
+        Rfree = np.array(self.Rfree)
+        RfreeNow = Rfree[self.t_cycle - 1]
+
+        Rport = (
+            self.controls["Share"] * self.shocks["Risky"]
+            + (1.0 - self.controls["Share"]) * RfreeNow
+        )
+        self.Rport = Rport
+        return Rport
 
     def get_Risky(self):
         """
@@ -1161,7 +1201,8 @@ risky_asset_parms = {
 # Make a dictionary to specify a risky asset consumer type
 init_risky_asset = init_idiosyncratic_shocks.copy()
 init_risky_asset.update(risky_asset_parms)
-
+# make time varying
+init_risky_asset["Rfree"] = [init_idiosyncratic_shocks["Rfree"]]
 # Number of discrete points in the risky share approximation
 init_risky_asset["ShareCount"] = 25
 
