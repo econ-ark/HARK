@@ -1,5 +1,5 @@
 """
-This file implements unit tests for interpolation methods
+This file implements unit tests for core HARK functionality.
 """
 from HARK.core import Model, MetricObject, distance_metric, AgentType, distribute_params
 from HARK.distribution import Uniform
