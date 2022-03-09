@@ -16,9 +16,36 @@ class Frame():
     A frame defines some variables of a model, including what other variables
     (if any) they depend on for their values.
 
+    Parameters
+    ----------
+    target : tuple
+        A tuple of variable names
+    scope : tuple
+        A tuple of variable names. The variables this frame depends on for transitions.
+    default : Distribution
+        Default values for these target variables for simulation initialization.
+    transition : function
+        A function from scope variables to target variables.
+    objective : function
+        A function for use in the solver. [??]
+    aggregate : bool, default False
+        True if the frame is an aggregate state variable.
+    control : bool, default False
+        True if the frame targets are control variables.
+    reward : bool, default False
+        True if the frame targets are reward variables.
+    context : dict, Optional
+        A dictionary of additional values used by the transition function.
     Attributes
     -----------
 
+    parents : dict
+        A dictionary of frames on which these frames depend.
+        May include backward references.
+
+    children : dict
+        A dictionary of frames that depend on this frame.
+        May include forward references.
     """
 
     def __init__(
@@ -74,6 +101,12 @@ class Frame():
         self.parents = {}
 
     def add_suffix(self, suffix :str):
+        """
+        Change the names of all variables in this frame's target and scope
+        (except for backward references) to include an additional suffix.
+
+        This is used when copying or repreating frames.
+        """
         self.target = tuple((var + suffix for var in self.target))
 
         self.scope = tuple((var 
@@ -83,6 +116,10 @@ class Frame():
                             for var in self.scope))
 
     def add_backwards_suffix(self, suffix : str):
+        """
+        Change the names of any scope variables that are backward references to
+        include an additional suffix.
+        """
         self.scope = tuple((var + suffix 
                         if any(var in pa and isinstance(self.parents[pa], BackwardFrameReference)
                         for pa in self.parents)
@@ -91,7 +128,17 @@ class Frame():
 
 class ForwardFrameReference():
     """
-    A 'reference' to a frame that is in the next period
+    A 'reference' to a frame that is in the next period.
+
+    The graphical children of frames that are at the "end" of a period will have these
+    references pointing to frames that are at the begining of the next
+    period.
+
+    Parameters
+    ----------
+
+    frame : Frame
+        The frame to which this reference refers.
     """
 
     def __init__(self, frame):
@@ -111,6 +158,16 @@ class ForwardFrameReference():
 class BackwardFrameReference():
     """
     A 'reference' to a frame that is in the previous period.
+
+    The graphical parents of frames that are at the "beginning"
+    of a period will be these references to frames in the previous
+    period.
+
+    Parameters
+    ----------
+
+    frame : Frame
+        The frame to which this reference refers.
     """
 
     def __init__(self, frame):
@@ -150,6 +207,16 @@ class FrameSet(OrderedDict):
         return list(self.keys()).index(value)
 
     def var(self, var_name):
+        """
+        Returns the frame in this frame set that includes the
+        named variable as a target.
+
+        Parameters
+        ----------
+
+        var_name : str
+            The name of a variable
+        """
         ## Can be sped up with a proper index.
         for k in self:
             if var_name in k:
@@ -158,6 +225,16 @@ class FrameSet(OrderedDict):
         return None
 
     def iloc(self, k):
+        """
+        Returns the frame in this frame set that corresponds
+        to the given numerical index.
+
+        Parameters
+        ----------
+
+        k : int
+            The numerical index of the frame in the FrameSet
+        """
         return list(self.values())[k]
 
 
@@ -174,6 +251,9 @@ class FrameModel(Model):
     ------------
 
     frames : [Frame]
+        List of frames to include in the FrameSet.
+
+    parameters : dict
 
     infinite: bool
         True if the model is an infinite model, such that state variables are assumed to be
@@ -346,9 +426,21 @@ class FrameAgentType(AgentType):
     A variation of AgentType that uses Frames to organize
     its simulation steps.
 
-    Frames allow for state, control, and shock resolutions
-    in a specified order, rather than assuming that they
-    are resolved as shocks -> states -> controls -> poststates.
+    The FrameAgentType is initalizaed with a FrameModel,
+    which contains all the information needed to execute
+    generic simulation methods.
+
+    Parameters
+    -----------
+
+    model : FrameModel
+
+    Attributes
+    -----------
+
+    decision_rules : dict
+        A dictionary of decision rules used to determine the
+        transitions of control variables.
 
 
     """
