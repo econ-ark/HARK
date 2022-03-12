@@ -16,6 +16,7 @@ you might want to look at the `DemARK
 .. toctree::
    :maxdepth: 1
    :caption: Documentation
+   :ref:`Documentation`
 
    introduction
    quick-start
@@ -28,6 +29,7 @@ you might want to look at the `DemARK
 .. toctree::
    :maxdepth: 1
    :caption: Notebooks
+   :ref:`Notebooks`
 
    example_notebooks/Gentle-Intro-To-HARK.ipynb
    example_notebooks/PerfForesightConsumerType.ipynb
