@@ -1,4 +1,4 @@
-Utilites
+Utilities
 ----------
 
 .. automodule:: HARK.utilities
