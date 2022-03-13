@@ -1,0 +1,20 @@
+name: Copy metadata
+on:
+  push:
+    branches:
+      - master
+jobs:
+  copy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Copycat
+      uses: andstor/copycat-action@v3
+      with:
+        personal_token: ${{ secrets.HARK_EXAMPLES_TRIGGER }}
+        src_path: examples/.
+        file_filter: '*.md'
+        dst_path: /_materials/
+        dst_owner: econ-ark
+        dst_repo_name: econ-ark.org
+        dst_branch: master
+        src_branch: master

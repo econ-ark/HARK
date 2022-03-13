@@ -1,0 +1,1843 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>ConsIndShockModel &mdash; HARK latest documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> HARK
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                latest
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">ConsIndShockModel</a></li>
+</ul>
+</div>
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">HARK</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>ConsIndShockModel</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../_sources/reference/ConsumptionSaving/ConsIndShockModel.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="module-HARK.ConsumptionSaving.ConsIndShockModel">
+<span id="consindshockmodel"></span><h1>ConsIndShockModel<a class="headerlink" href="#module-HARK.ConsumptionSaving.ConsIndShockModel" title="Permalink to this headline">¶</a></h1>
+<p>Classes to solve canonical consumption-saving models with idiosyncratic shocks
+to income.  All models here assume CRRA utility with geometric discounting, no
+bequest motive, and income shocks that are fully transitory or fully permanent.</p>
+<dl class="simple">
+<dt>It currently solves three types of models:</dt><dd><ol class="arabic simple">
+<li><p>A very basic “perfect foresight” consumption-savings model with no uncertainty.</p></li>
+<li><p>A consumption-savings model with risk over transitory and permanent income shocks.</p></li>
+<li><p>The model described in (2), with an interest rate for debt that differs
+from the interest rate for savings.</p></li>
+</ol>
+</dd>
+</dl>
+<p>See NARK <a class="reference external" href="https://HARK.githhub.io/Documentation/NARK">https://HARK.githhub.io/Documentation/NARK</a> for information on variable naming conventions.
+See HARK documentation for mathematical descriptions of the models being solved.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSetup">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.</span></span><span class="sig-name descname"><span class="pre">ConsIndShockSetup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IncShkDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LivPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rfree</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PermGroFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">BoroCnstArt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aXtraGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFuncBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CubicBool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSetup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver</span></code></a></p>
+<p>A superclass for solvers of one period consumption-saving problems with
+constant relative risk aversion utility and permanent and transitory shocks
+to income.  Has methods to set up but not solve the one period problem.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solution_next</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><em>ConsumerSolution</em></a>) – The solution to next period’s one period problem.</p></li>
+<li><p><strong>IncShkDstn</strong> (<a class="reference internal" href="../tools/distribution.html#HARK.distribution.Distribution" title="HARK.distribution.Distribution"><em>distribution.Distribution</em></a>) – A discrete
+approximation to the income process between the period being solved
+and the one immediately following (in solution_next).</p></li>
+<li><p><strong>LivPrb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Survival probability; likelihood of being alive at the beginning of
+the succeeding period.</p></li>
+<li><p><strong>DiscFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Intertemporal discount factor for future utility.</p></li>
+<li><p><strong>CRRA</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Coefficient of relative risk aversion.</p></li>
+<li><p><strong>Rfree</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Risk free interest factor on end-of-period assets.</p></li>
+<li><p><strong>PermGroFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Expected permanent income growth factor at the end of this period.</p></li>
+<li><p><strong>BoroCnstArt</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – Borrowing constraint for the minimum allowable assets to end the
+period with.  If it is less than the natural borrowing constraint,
+then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+rowing constraint.</p></li>
+<li><p><strong>aXtraGrid</strong> (<em>np.array</em>) – Array of “extra” end-of-period asset values– assets above the
+absolute minimum acceptable level.</p></li>
+<li><p><strong>vFuncBool</strong> (<em>boolean</em>) – An indicator for whether the value function should be computed and
+included in the reported solution.</p></li>
+<li><p><strong>CubicBool</strong> (<em>boolean</em>) – An indicator for whether the solver should use cubic or linear inter-
+polation.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSetup.def_BoroCnst">
+<span class="sig-name descname"><span class="pre">def_BoroCnst</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">BoroCnstArt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSetup.def_BoroCnst" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the constrained portion of the consumption function as cFuncNowCnst,
+an attribute of self.  Uses the artificial and natural borrowing constraints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>BoroCnstArt</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – Borrowing constraint for the minimum allowable assets to end the
+period with.  If it is less than the natural borrowing constraint,
+then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+rowing constraint.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSetup.def_utility_funcs">
+<span class="sig-name descname"><span class="pre">def_utility_funcs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSetup.def_utility_funcs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines CRRA utility function for this period (and its derivatives,
+and their inverses), saving them as attributes of self for other methods
+to use.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSetup.prepare_to_solve">
+<span class="sig-name descname"><span class="pre">prepare_to_solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSetup.prepare_to_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform preparatory work before calculating the unconstrained consumption
+function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSetup.set_and_update_values">
+<span class="sig-name descname"><span class="pre">set_and_update_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IncShkDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LivPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscFac</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSetup.set_and_update_values" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unpacks some of the inputs (and calculates simple objects based on them),
+storing the results in self for use by other methods.  These include:
+income shocks and probabilities, next period’s marginal value function
+(etc), the probability of getting the worst income shock next period,
+the patience factor, human wealth, and the bounding MPCs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solution_next</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><em>ConsumerSolution</em></a>) – The solution to next period’s one period problem.</p></li>
+<li><p><strong>IncShkDstn</strong> (<a class="reference internal" href="../tools/distribution.html#HARK.distribution.DiscreteDistribution" title="HARK.distribution.DiscreteDistribution"><em>distribution.DiscreteDistribution</em></a>) – A DiscreteDistribution with a pmf
+and two point value arrays in X, order:
+permanent shocks, transitory shocks.</p></li>
+<li><p><strong>LivPrb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Survival probability; likelihood of being alive at the beginning of
+the succeeding period.</p></li>
+<li><p><strong>DiscFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Intertemporal discount factor for future utility.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.</span></span><span class="sig-name descname"><span class="pre">ConsIndShockSolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IncShkDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LivPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rfree</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PermGroFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">BoroCnstArt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aXtraGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFuncBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CubicBool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic</span></code></a></p>
+<p>This class solves a single period of a standard consumption-saving problem.
+It inherits from ConsIndShockSolverBasic, adding the ability to perform cubic
+interpolation and to calculate the value function.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver.add_vFunc">
+<span class="sig-name descname"><span class="pre">add_vFunc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">EndOfPrdvP</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver.add_vFunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the value function for this period and adds it to the solution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solution</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><em>ConsumerSolution</em></a>) – The solution to this single period problem, likely including the
+consumption function, marginal value function, etc.</p></li>
+<li><p><strong>EndOfPrdvP</strong> (<em>np.array</em>) – Array of end-of-period marginal value of assets corresponding to the
+asset values in self.aNrmNow.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>solution</strong> – The single period solution passed as an input, but now with the
+value function (defined over market resources m) as an attribute.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution">ConsumerSolution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver.add_vPPfunc">
+<span class="sig-name descname"><span class="pre">add_vPPfunc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver.add_vPPfunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the marginal marginal value function to an existing solution, so
+that the next solver can evaluate vPP and thus use cubic interpolation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>solution</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><em>ConsumerSolution</em></a>) – The solution to this single period problem, which must include the
+consumption function.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>solution</strong> – The same solution passed as input, but with the marginal marginal
+value function for this period added as the attribute vPPfunc.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution">ConsumerSolution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver.make_EndOfPrdvFunc">
+<span class="sig-name descname"><span class="pre">make_EndOfPrdvFunc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">EndOfPrdvP</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver.make_EndOfPrdvFunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the end-of-period value function for this period, storing it
+as an attribute of self for use by other methods.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>EndOfPrdvP</strong> (<em>np.array</em>) – Array of end-of-period marginal value of assets corresponding to the
+asset values in self.aNrmNow.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver.make_cubic_cFunc">
+<span class="sig-name descname"><span class="pre">make_cubic_cFunc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mNrm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cNrm</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver.make_cubic_cFunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes a cubic spline interpolation of the unconstrained consumption
+function for this period.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mNrm</strong> (<em>np.array</em>) – Corresponding market resource points for interpolation.</p></li>
+<li><p><strong>cNrm</strong> (<em>np.array</em>) – Consumption points for interpolation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>cFuncUnc</strong> – The unconstrained consumption function for this period.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="../tools/interpolation.html#HARK.interpolation.CubicInterp" title="HARK.interpolation.CubicInterp">CubicInterp</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver.make_vFunc">
+<span class="sig-name descname"><span class="pre">make_vFunc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver.make_vFunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the value function for this period, defined over market resources m.
+self must have the attribute EndOfPrdvFunc in order to execute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>solution</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><em>ConsumerSolution</em></a>) – The solution to this single period problem, which must include the
+consumption function.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>vFuncNow</strong> – A representation of the value function for this period, defined over
+normalized market resources m: v = vFuncNow(m).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="../tools/interpolation.html#HARK.interpolation.ValueFuncCRRA" title="HARK.interpolation.ValueFuncCRRA">ValueFuncCRRA</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver.solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solves the single period consumption-saving problem using the method of
+endogenous gridpoints.  Solution includes a consumption function cFunc
+(using cubic or linear splines), a marginal value function vPfunc, a min-
+imum acceptable level of normalized market resources mNrmMin, normalized
+human wealth hNrm, and bounding MPCs MPCmin and MPCmax.  It might also
+have a value function vFunc and marginal marginal value function vPPfunc.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>solution</strong> – The solution to the single period consumption-saving problem.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution">ConsumerSolution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.</span></span><span class="sig-name descname"><span class="pre">ConsIndShockSolverBasic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IncShkDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LivPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rfree</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PermGroFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">BoroCnstArt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aXtraGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFuncBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CubicBool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSetup" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSetup"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSetup</span></code></a></p>
+<p>This class solves a single period of a standard consumption-saving problem,
+using linear interpolation and without the ability to calculate the value
+function.  ConsIndShockSolver inherits from this class and adds the ability
+to perform cubic interpolation and to calculate the value function.</p>
+<p>Note that this class does not have its own initializing method.  It initial-
+izes the same problem in the same way as ConsIndShockSetup, from which it
+inherits.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.add_MPC_and_human_wealth">
+<span class="sig-name descname"><span class="pre">add_MPC_and_human_wealth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.add_MPC_and_human_wealth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Take a solution and add human wealth and the bounding MPCs to it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solution</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><em>ConsumerSolution</em></a>) – The solution to this period’s consumption-saving problem.</p></li>
+<li><p><strong>Returns</strong> – </p></li>
+<li><p><strong>----------</strong> – </p></li>
+<li><p><strong>solution</strong> – The solution to this period’s consumption-saving problem, but now
+with human wealth and the bounding MPCs.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.add_stable_points">
+<span class="sig-name descname"><span class="pre">add_stable_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.add_stable_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks necessary conditions for the existence of the individual steady
+state and target levels of market resources (see above).
+If the conditions are satisfied, computes and adds the stable points
+to the solution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>solution</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><em>ConsumerSolution</em></a>) – Solution to this period’s problem, which must have attribute cFunc.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>solution</strong> – Same solution that was passed, but now with attributes mNrmStE and
+mNrmTrg, if they exist.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution">ConsumerSolution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.calc_EndOfPrdvP">
+<span class="sig-name descname"><span class="pre">calc_EndOfPrdvP</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.calc_EndOfPrdvP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate end-of-period marginal value of assets at each point in aNrmNow.
+Does so by taking a weighted sum of next period marginal values across
+income shocks (in a preconstructed grid self.mNrmNext).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>EndOfPrdvP</strong> – A 1D array of end-of-period marginal value of assets</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.get_points_for_interpolation">
+<span class="sig-name descname"><span class="pre">get_points_for_interpolation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">EndOfPrdvP</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aNrmNow</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.get_points_for_interpolation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds interpolation points (c,m) for the consumption function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>EndOfPrdvP</strong> (<em>np.array</em>) – Array of end-of-period marginal values.</p></li>
+<li><p><strong>aNrmNow</strong> (<em>np.array</em>) – Array of end-of-period asset values that yield the marginal values
+in EndOfPrdvP.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>c_for_interpolation</strong> (<em>np.array</em>) – Consumption points for interpolation.</p></li>
+<li><p><strong>m_for_interpolation</strong> (<em>np.array</em>) – Corresponding market resource points for interpolation.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.m_nrm_next">
+<span class="sig-name descname"><span class="pre">m_nrm_next</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shocks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_nrm</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.m_nrm_next" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes normalized market resources of the next period
+from income shocks and current normalized market resources.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>shocks</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em>]</em>) – Permanent and transitory income shock levels.       a_nrm: float
+Normalized market assets this period</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>normalized market resources in the next period</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.make_basic_solution">
+<span class="sig-name descname"><span class="pre">make_basic_solution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">EndOfPrdvP</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aNrm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interpolator</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.make_basic_solution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given end of period assets and end of period marginal value, construct
+the basic solution for this period.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>EndOfPrdvP</strong> (<em>np.array</em>) – Array of end-of-period marginal values.</p></li>
+<li><p><strong>aNrm</strong> (<em>np.array</em>) – Array of end-of-period asset values that yield the marginal values
+in EndOfPrdvP.</p></li>
+<li><p><strong>interpolator</strong> (<em>function</em>) – A function that constructs and returns a consumption function.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>solution_now</strong> – The solution to this period’s consumption-saving problem, with a
+consumption function, marginal value function, and minimum m.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution">ConsumerSolution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.make_linear_cFunc">
+<span class="sig-name descname"><span class="pre">make_linear_cFunc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mNrm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cNrm</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.make_linear_cFunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes a linear interpolation to represent the (unconstrained) consumption function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mNrm</strong> (<em>np.array</em>) – Corresponding market resource points for interpolation.</p></li>
+<li><p><strong>cNrm</strong> (<em>np.array</em>) – Consumption points for interpolation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>cFuncUnc</strong> – The unconstrained consumption function for this period.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="../tools/interpolation.html#HARK.interpolation.LinearInterp" title="HARK.interpolation.LinearInterp">LinearInterp</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.prepare_to_calc_EndOfPrdvP">
+<span class="sig-name descname"><span class="pre">prepare_to_calc_EndOfPrdvP</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.prepare_to_calc_EndOfPrdvP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare to calculate end-of-period marginal value by creating an array
+of market resources that the agent could have next period, considering
+the grid of end-of-period assets and the distribution of shocks he might
+experience next period.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>aNrmNow</strong> – A 1D array of end-of-period assets; also stored as attribute of self.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solves a one period consumption saving problem with risky income.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>solution</strong> – The solution to the one period problem.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution">ConsumerSolution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.use_points_for_interpolation">
+<span class="sig-name descname"><span class="pre">use_points_for_interpolation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cNrm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mNrm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interpolator</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolverBasic.use_points_for_interpolation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs a basic solution for this period, including the consumption
+function and marginal value function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cNrm</strong> (<em>np.array</em>) – (Normalized) consumption points for interpolation.</p></li>
+<li><p><strong>mNrm</strong> (<em>np.array</em>) – (Normalized) corresponding market resource points for interpolation.</p></li>
+<li><p><strong>interpolator</strong> (<em>function</em>) – A function that constructs and returns a consumption function.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>solution_now</strong> – The solution to this period’s consumption-saving problem, with a
+consumption function, marginal value function, and minimum m.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution">ConsumerSolution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsKinkedRsolver">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.</span></span><span class="sig-name descname"><span class="pre">ConsKinkedRsolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IncShkDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LivPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rboro</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rsave</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PermGroFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">BoroCnstArt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aXtraGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFuncBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CubicBool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsKinkedRsolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.ConsIndShockSolver</span></code></a></p>
+<p>A class to solve a single period consumption-saving problem where the interest
+rate on debt differs from the interest rate on savings.  Inherits from
+ConsIndShockSolver, with nearly identical inputs and outputs.  The key diff-
+erence is that Rfree is replaced by Rsave (a&gt;0) and Rboro (a&lt;0).  The solver
+can handle Rboro == Rsave, which makes it identical to ConsIndShocksolver, but
+it terminates immediately if Rboro &lt; Rsave, as this has a different solution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solution_next</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><em>ConsumerSolution</em></a>) – The solution to next period’s one period problem.</p></li>
+<li><p><strong>IncShkDstn</strong> (<a class="reference internal" href="../tools/distribution.html#HARK.distribution.Distribution" title="HARK.distribution.Distribution"><em>distribution.Distribution</em></a>) – A discrete
+approximation to the income process between the period being solved
+and the one immediately following (in solution_next).</p></li>
+<li><p><strong>LivPrb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Survival probability; likelihood of being alive at the beginning of
+the succeeding period.</p></li>
+<li><p><strong>DiscFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Intertemporal discount factor for future utility.</p></li>
+<li><p><strong>CRRA</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Coefficient of relative risk aversion.</p></li>
+<li><p><strong>Rboro</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Interest factor on assets between this period and the succeeding
+period when assets are negative.</p></li>
+<li><p><strong>Rsave</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Interest factor on assets between this period and the succeeding
+period when assets are positive.</p></li>
+<li><p><strong>PermGroFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Expected permanent income growth factor at the end of this period.</p></li>
+<li><p><strong>BoroCnstArt</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – Borrowing constraint for the minimum allowable assets to end the
+period with.  If it is less than the natural borrowing constraint,
+then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+rowing constraint.</p></li>
+<li><p><strong>aXtraGrid</strong> (<em>np.array</em>) – Array of “extra” end-of-period asset values– assets above the
+absolute minimum acceptable level.</p></li>
+<li><p><strong>vFuncBool</strong> (<em>boolean</em>) – An indicator for whether the value function should be computed and
+included in the reported solution.</p></li>
+<li><p><strong>CubicBool</strong> (<em>boolean</em>) – An indicator for whether the solver should use cubic or linear inter-
+polation.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsKinkedRsolver.add_stable_points">
+<span class="sig-name descname"><span class="pre">add_stable_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsKinkedRsolver.add_stable_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>TODO:
+Placeholder method for a possible future implementation of stable
+points in the kinked R model. For now it simply serves to override
+ConsIndShock’s method, which does not apply here given the multiple
+interest rates.</p>
+<p>Discusson:
+- The target and steady state should exist under the same conditions</p>
+<blockquote>
+<div><p>as in ConsIndShock.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>The ConsIndShock code as it stands can not be directly applied
+because it assumes that R is a constant, and in this model R depends
+on the level of wealth.</p></li>
+<li><p>After allowing for wealth-depending interest rates, the existing</p></li>
+</ul>
+<blockquote>
+<div><p>code might work without modification to add the stable points. If not,
+it should be possible to find these values by checking within three
+distinct intervals:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>From h_min to the lower kink.</p></li>
+<li><p>From the lower kink to the upper kink</p></li>
+<li><p>From the upper kink to infinity.</p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+<p>the stable points must be in one of these regions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsKinkedRsolver.make_cubic_cFunc">
+<span class="sig-name descname"><span class="pre">make_cubic_cFunc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mNrm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cNrm</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsKinkedRsolver.make_cubic_cFunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes a cubic spline interpolation that contains the kink of the unconstrained
+consumption function for this period.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mNrm</strong> (<em>np.array</em>) – Corresponding market resource points for interpolation.</p></li>
+<li><p><strong>cNrm</strong> (<em>np.array</em>) – Consumption points for interpolation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>cFuncUnc</strong> – The unconstrained consumption function for this period.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="../tools/interpolation.html#HARK.interpolation.CubicInterp" title="HARK.interpolation.CubicInterp">CubicInterp</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsKinkedRsolver.prepare_to_calc_EndOfPrdvP">
+<span class="sig-name descname"><span class="pre">prepare_to_calc_EndOfPrdvP</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsKinkedRsolver.prepare_to_calc_EndOfPrdvP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare to calculate end-of-period marginal value by creating an array
+of market resources that the agent could have next period, considering
+the grid of end-of-period assets and the distribution of shocks he might
+experience next period.  This differs from the baseline case because
+different savings choices yield different interest rates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>aNrmNow</strong> – A 1D array of end-of-period assets; also stored as attribute of self.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.</span></span><span class="sig-name descname"><span class="pre">ConsPerfForesightSolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LivPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rfree</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PermGroFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">BoroCnstArt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MaxKinks</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../tools/core.html#HARK.core.MetricObject" title="HARK.core.MetricObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.core.MetricObject</span></code></a></p>
+<p>A class for solving a one period perfect foresight
+consumption-saving problem.
+An instance of this class is created by the function solvePerfForesight
+in each period.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solution_next</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><em>ConsumerSolution</em></a>) – The solution to next period’s one-period problem.</p></li>
+<li><p><strong>DiscFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Intertemporal discount factor for future utility.</p></li>
+<li><p><strong>LivPrb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Survival probability; likelihood of being alive at the beginning of
+the next period.</p></li>
+<li><p><strong>CRRA</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Coefficient of relative risk aversion.</p></li>
+<li><p><strong>Rfree</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Risk free interest factor on end-of-period assets.</p></li>
+<li><p><strong>PermGroFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Expected permanent income growth factor at the end of this period.</p></li>
+<li><p><strong>BoroCnstArt</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – Artificial borrowing constraint, as a multiple of permanent income.
+Can be None, indicating no artificial constraint.</p></li>
+<li><p><strong>MaxKinks</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Maximum number of kink points to allow in the consumption function;
+additional points will be thrown out.  Only relevant in infinite
+horizon model with artificial borrowing constraint.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver.add_mNrmStE">
+<span class="sig-name descname"><span class="pre">add_mNrmStE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver.add_mNrmStE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds market resources ratio at which ‘balanced growth’ is expected.
+This is the m ratio such that the expected growth rate of the M level
+matches the expected growth rate of permanent income. This value does
+not exist if the Growth Impatience Condition does not hold.</p>
+<p><a class="reference external" href="https://econ-ark.github.io/BufferStockTheory#Unique-Stable-Points">https://econ-ark.github.io/BufferStockTheory#Unique-Stable-Points</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>solution</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><em>ConsumerSolution</em></a>) – Solution to this period’s problem, which must have attribute cFunc.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>solution</strong> – Same solution that was passed, but now with the attribute mNrmStE</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution">ConsumerSolution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver.add_mNrmTrg">
+<span class="sig-name descname"><span class="pre">add_mNrmTrg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver.add_mNrmTrg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds value of (normalized) market resources m at which individual consumer
+expects m not to change.
+This will exist if the GICNrm holds.</p>
+<p><a class="reference external" href="https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints">https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>solution</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><em>ConsumerSolution</em></a>) – Solution to this period’s problem, which must have attribute cFunc.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>solution</strong> – Same solution that was passed, but now with the attribute mNrmStE.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution">ConsumerSolution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver.add_stable_points">
+<span class="sig-name descname"><span class="pre">add_stable_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver.add_stable_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks necessary conditions for the existence of the individual steady
+state and target levels of market resources (see above).
+If the conditions are satisfied, computes and adds the stable points
+to the solution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>solution</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><em>ConsumerSolution</em></a>) – Solution to this period’s problem, which must have attribute cFunc.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>solution</strong> – Same solution that was provided, augmented with attributes mNrmStE and
+mNrmTrg, if they exist.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution">ConsumerSolution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver.def_utility_funcs">
+<span class="sig-name descname"><span class="pre">def_utility_funcs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver.def_utility_funcs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines CRRA utility function for this period (and its derivatives),
+saving them as attributes of self for other methods to use.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver.def_value_funcs">
+<span class="sig-name descname"><span class="pre">def_value_funcs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver.def_value_funcs" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>Defines the value and marginal value functions for this period.
+Uses the fact that for a perfect foresight CRRA utility problem,
+if the MPC in period t is <span class="math notranslate nohighlight">\(\kappa_{t}\)</span>, and relative risk
+aversion :math:<a href="#id1"><span class="problematic" id="id2">`</span></a></p>
+</div></blockquote>
+<dl class="simple">
+<dt>ho`, then the inverse value vFuncNvrs has a</dt><dd><p>constant slope of :math:<a href="#id3"><span class="problematic" id="id4">`</span></a>kappa_{t}^{-</p>
+</dd>
+</dl>
+<p>ho/(1-
+ho)}` and</p>
+<blockquote>
+<div><p>vFuncNvrs has value of zero at the lower bound of market resources
+mNrmMin.  See PerfForesightConsumerType.ipynb documentation notebook
+for a brief explanation and the links below for a fuller treatment.</p>
+<p><a class="reference external" href="https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/#vFuncAnalytical">https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/#vFuncAnalytical</a>
+<a class="reference external" href="https://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/#vFuncPF">https://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/#vFuncPF</a></p>
+<p>None</p>
+<p>None</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver.make_cFunc_PF">
+<span class="sig-name descname"><span class="pre">make_cFunc_PF</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver.make_cFunc_PF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes the (linear) consumption function for this period.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsPerfForesightSolver.solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solves the one period perfect foresight consumption-saving problem.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>solution</strong> – The solution to this period’s problem.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution">ConsumerSolution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.</span></span><span class="sig-name descname"><span class="pre">ConsumerSolution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vPfunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vPPfunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mNrmMin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hNrm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MPCmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MPCmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../tools/core.html#HARK.core.MetricObject" title="HARK.core.MetricObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.core.MetricObject</span></code></a></p>
+<p>A class representing the solution of a single period of a consumption-saving
+problem.  The solution must include a consumption function and marginal
+value function.</p>
+<p>Here and elsewhere in the code, Nrm indicates that variables are normalized
+by permanent income.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cFunc</strong> (<em>function</em>) – The consumption function for this period, defined over market
+resources: c = cFunc(m).</p></li>
+<li><p><strong>vFunc</strong> (<em>function</em>) – The beginning-of-period value function for this period, defined over
+market resources: v = vFunc(m).</p></li>
+<li><p><strong>vPfunc</strong> (<em>function</em>) – The beginning-of-period marginal value function for this period,
+defined over market resources: vP = vPfunc(m).</p></li>
+<li><p><strong>vPPfunc</strong> (<em>function</em>) – The beginning-of-period marginal marginal value function for this
+period, defined over market resources: vPP = vPPfunc(m).</p></li>
+<li><p><strong>mNrmMin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – The minimum allowable market resources for this period; the consump-
+tion function (etc) are undefined for m &lt; mNrmMin.</p></li>
+<li><p><strong>hNrm</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Human wealth after receiving income this period: PDV of all future
+income, ignoring mortality.</p></li>
+<li><p><strong>MPCmin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Infimum of the marginal propensity to consume this period.
+MPC –&gt; MPCmin as m –&gt; infinity.</p></li>
+<li><p><strong>MPCmax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Supremum of the marginal propensity to consume this period.
+MPC –&gt; MPCmax as m –&gt; mNrmMin.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution.append_solution">
+<span class="sig-name descname"><span class="pre">append_solution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_solution</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution.append_solution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Appends one solution to another to create a ConsumerSolution whose
+attributes are lists.  Used in ConsMarkovModel, where we append solutions
+<em>conditional</em> on a particular value of a Markov state to each other in
+order to get the entire solution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>new_solution</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><em>ConsumerSolution</em></a>) – The solution to a consumption-saving problem; each attribute is a
+list representing state-conditional values or functions.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['vPfunc']</span></em><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution.distance_criteria" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.</span></span><span class="sig-name descname"><span class="pre">IndShockConsumerType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType" title="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType</span></code></a></p>
+<p>A consumer type with idiosyncratic shocks to permanent and transitory income.
+His problem is defined by a sequence of income distributions, survival prob-
+abilities, and permanent income growth rates, as well as time invariant values
+for risk aversion, discount factor, the interest rate, the grid of end-of-
+period assets, and an artificial borrowing constraint.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>cycles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of times the sequence of periods should be solved.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.Ex_Mtp1_over_Ex_Ptp1">
+<span class="sig-name descname"><span class="pre">Ex_Mtp1_over_Ex_Ptp1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mNrm</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.Ex_Mtp1_over_Ex_Ptp1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.Ex_mtp1">
+<span class="sig-name descname"><span class="pre">Ex_mtp1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mNrm</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.Ex_mtp1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.calc_bounding_values">
+<span class="sig-name descname"><span class="pre">calc_bounding_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.calc_bounding_values" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate human wealth plus minimum and maximum MPC in an infinite
+horizon model with only one period repeated indefinitely.  Store results
+as attributes of self.  Human wealth is the present discounted value of
+expected future income after receiving income this period, ignoring mort-
+ality (because your income matters to you only if you are still alive).
+The maximum MPC is the limit of the MPC as m –&gt; mNrmMin.  The
+minimum MPC is the limit of the MPC as m –&gt; infty.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.calc_stable_points">
+<span class="sig-name descname"><span class="pre">calc_stable_points</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.calc_stable_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>If the problem is one that satisfies the conditions required for target ratios of different
+variables to permanent income to exist, and has been solved to within the self-defined
+tolerance, this method calculates the target values of market resources, consumption,
+and assets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_FVAC">
+<span class="sig-name descname"><span class="pre">check_FVAC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_FVAC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluate and report on the Finite Value of Autarky Condition
+Hyperlink to paper: [url]/#Autarky-Value</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_GICAggLivPrb">
+<span class="sig-name descname"><span class="pre">check_GICAggLivPrb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_GICAggLivPrb" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_GICNrm">
+<span class="sig-name descname"><span class="pre">check_GICNrm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_GICNrm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check Individual Growth Patience Factor.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_WRIC">
+<span class="sig-name descname"><span class="pre">check_WRIC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_WRIC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluate and report on the Weak Return Impatience Condition
+[url]/#WRPF modified to incorporate LivPrb</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_conditions">
+<span class="sig-name descname"><span class="pre">check_conditions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_conditions" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method checks whether the instance’s type satisfies the Absolute Impatience Condition (AIC), Weak Return
+Impatience Condition (WRIC), Finite Human Wealth Condition (FHWC) and Finite Value of
+Autarky Condition (FVAC).  When combinations of these conditions are satisfied, the
+solution to the problem exhibits different characteristics.  (For an exposition of the
+conditions, see <a class="reference external" href="https://econ-ark.github.io/BufferStockTheory/">https://econ-ark.github.io/BufferStockTheory/</a>)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>verbose</strong> (<em>boolean</em>) – Specifies different levels of verbosity of feedback. When False, it only reports whether the
+instance’s type fails to satisfy a particular condition. When True, it reports all results, i.e.
+the factor values for all conditions.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.construct_lognormal_income_process_unemployment">
+<span class="sig-name descname"><span class="pre">construct_lognormal_income_process_unemployment</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.construct_lognormal_income_process_unemployment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a list of discrete approximations to the income process for each
+life period, from end of life to beginning of life.  Permanent shocks are mean
+one lognormally distributed with standard deviation PermShkStd[t] during the
+working life, and degenerate at 1 in the retirement period.  Transitory shocks
+are mean one lognormally distributed with a point mass at IncUnemp with
+probability UnempPrb while working; they are mean one with a point mass at
+IncUnempRet with probability UnempPrbRet.  Retirement occurs
+after t=T_retire periods of working.</p>
+<p>Note 1: All time in this function runs forward, from t=0 to t=T</p>
+<p>Note 2: All parameters are passed as attributes of the input parameters.</p>
+<dl class="simple">
+<dt>PermShkStd<span class="classifier">[float]</span></dt><dd><p>List of standard deviations in log permanent income uncertainty during
+the agent’s life.</p>
+</dd>
+<dt>PermShkCount<span class="classifier">int</span></dt><dd><p>The number of approximation points to be used in the discrete approxima-
+tion to the permanent income shock distribution.</p>
+</dd>
+<dt>TranShkStd<span class="classifier">[float]</span></dt><dd><p>List of standard deviations in log transitory income uncertainty during
+the agent’s life.</p>
+</dd>
+<dt>TranShkCount<span class="classifier">int</span></dt><dd><p>The number of approximation points to be used in the discrete approxima-
+tion to the permanent income shock distribution.</p>
+</dd>
+<dt>UnempPrb<span class="classifier">float or [float]</span></dt><dd><p>The probability of becoming unemployed during the working period.</p>
+</dd>
+<dt>UnempPrbRet<span class="classifier">float or None</span></dt><dd><p>The probability of not receiving typical retirement income when retired.</p>
+</dd>
+<dt>T_retire<span class="classifier">int</span></dt><dd><p>The index value for the final working period in the agent’s life.
+If T_retire &lt;= 0 then there is no retirement.</p>
+</dd>
+<dt>IncUnemp<span class="classifier">float or [float]</span></dt><dd><p>Transitory income received when unemployed.</p>
+</dd>
+<dt>IncUnempRet<span class="classifier">float or None</span></dt><dd><p>Transitory income received while “unemployed” when retired.</p>
+</dd>
+<dt>T_cycle<span class="classifier">int</span></dt><dd><p>Total number of non-terminal periods in the consumer’s sequence of periods.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>IncShkDstn</strong> (<em>[distribution.Distribution]</em>) – A list with T_cycle elements, each of which is a
+discrete approximation to the income process in a period.</p></li>
+<li><p><strong>PermShkDstn</strong> (<em>[[distribution.Distributiony]]</em>) – A list with T_cycle elements, each of which
+a discrete approximation to the permanent income shocks.</p></li>
+<li><p><strong>TranShkDstn</strong> (<em>[[distribution.Distribution]]</em>) – A list with T_cycle elements, each of which
+a discrete approximation to the transitory income shocks.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.get_shocks">
+<span class="sig-name descname"><span class="pre">get_shocks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.get_shocks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets permanent and transitory income shocks for this period.  Samples from IncShkDstn for
+each period in the cycle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.make_euler_error_func">
+<span class="sig-name descname"><span class="pre">make_euler_error_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mMax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">approx_inc_dstn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.make_euler_error_func" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a “normalized Euler error” function for this instance, mapping
+from market resources to “consumption error per dollar of consumption.”
+Stores result in attribute eulerErrorFunc as an interpolated function.
+Has option to use approximate income distribution stored in self.IncShkDstn
+or to use a (temporary) very dense approximation.</p>
+<p>Only works on (one period) infinite horizon models at this time, will
+be generalized later.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Maximum normalized market resources for the Euler error function.</p></li>
+<li><p><strong>approx_inc_dstn</strong> (<em>Boolean</em>) – Indicator for whether to use the approximate discrete income distri-
+bution stored in self.IncShkDstn[0], or to use a very accurate
+discrete approximation instead.  When True, uses approximation in
+IncShkDstn; when False, makes and uses a very dense approximation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This method is not used by any other code in the library. Rather, it is here
+for expository and benchmarking purposes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.pre_solve">
+<span class="sig-name descname"><span class="pre">pre_solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.pre_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method that is run immediately before the model is solved, to check inputs or to prepare
+the terminal solution, perhaps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.reset_rng">
+<span class="sig-name descname"><span class="pre">reset_rng</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.reset_rng" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset the RNG behavior of this type.  This method is called automatically
+by initialize_sim(), ensuring that each simulation run uses the same sequence
+of random shocks; this is necessary for structural estimation to work.
+This method extends AgentType.reset_rng() to also reset elements of IncShkDstn.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.shock_vars_">
+<span class="sig-name descname"><span class="pre">shock_vars_</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['PermShk',</span> <span class="pre">'TranShk']</span></em><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.shock_vars_" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.time_inv_">
+<span class="sig-name descname"><span class="pre">time_inv_</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['CRRA',</span> <span class="pre">'Rfree',</span> <span class="pre">'DiscFac',</span> <span class="pre">'BoroCnstArt',</span> <span class="pre">'BoroCnstArt',</span> <span class="pre">'vFuncBool',</span> <span class="pre">'CubicBool']</span></em><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.time_inv_" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the income process, the assets grid, and the terminal solution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.update_assets_grid">
+<span class="sig-name descname"><span class="pre">update_assets_grid</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.update_assets_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates this agent’s end-of-period assets grid by constructing a multi-
+exponentially spaced grid of aXtra values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.update_income_process">
+<span class="sig-name descname"><span class="pre">update_income_process</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.update_income_process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates this agent’s income process based on his own attributes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>none</strong> – </p></li>
+<li><p><strong>Returns</strong> – </p></li>
+<li><p><strong>-----------</strong> – </p></li>
+<li><p><strong>none</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.</span></span><span class="sig-name descname"><span class="pre">KinkedRconsumerType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType" title="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType</span></code></a></p>
+<p>A consumer type that faces idiosyncratic shocks to income and has a different
+interest factor on saving vs borrowing.  Extends IndShockConsumerType, with
+very small changes.  Solver for this class is currently only compatible with
+linear spline interpolation.</p>
+<p>Same parameters as AgentType.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.calc_bounding_values">
+<span class="sig-name descname"><span class="pre">calc_bounding_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.calc_bounding_values" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate human wealth plus minimum and maximum MPC in an infinite
+horizon model with only one period repeated indefinitely.  Store results
+as attributes of self.  Human wealth is the present discounted value of
+expected future income after receiving income this period, ignoring mort-
+ality.  The maximum MPC is the limit of the MPC as m –&gt; mNrmMin.  The
+minimum MPC is the limit of the MPC as m –&gt; infty.  This version deals
+with the different interest rates on borrowing vs saving.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.check_conditions">
+<span class="sig-name descname"><span class="pre">check_conditions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.check_conditions" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method checks whether the instance’s type satisfies the Absolute Impatience Condition (AIC),
+the Return Impatience Condition (RIC), the Growth Impatience Condition (GICRaw), the Normalized Growth Impatience Condition (GIC-Nrm), the Weak Return
+Impatience Condition (WRIC), the Finite Human Wealth Condition (FHWC) and the Finite Value of
+Autarky Condition (FVAC). To check which conditions are relevant to the model at hand, a
+reference to the relevant theoretical literature is made.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.get_Rfree">
+<span class="sig-name descname"><span class="pre">get_Rfree</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.get_Rfree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an array of size self.AgentCount with self.Rboro or self.Rsave in each entry, based
+on whether self.aNrmNow &gt;&lt; 0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>RfreeNow</strong> – Array of size self.AgentCount with risk free interest rate for each agent.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.make_euler_error_func">
+<span class="sig-name descname"><span class="pre">make_euler_error_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mMax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">approx_inc_dstn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.make_euler_error_func" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a “normalized Euler error” function for this instance, mapping
+from market resources to “consumption error per dollar of consumption.”
+Stores result in attribute eulerErrorFunc as an interpolated function.
+Has option to use approximate income distribution stored in self.IncShkDstn
+or to use a (temporary) very dense approximation.</p>
+<p>SHOULD BE INHERITED FROM ConsIndShockModel</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Maximum normalized market resources for the Euler error function.</p></li>
+<li><p><strong>approx_inc_dstn</strong> (<em>Boolean</em>) – Indicator for whether to use the approximate discrete income distri-
+bution stored in self.IncShkDstn[0], or to use a very accurate
+discrete approximation instead.  When True, uses approximation in
+IncShkDstn; when False, makes and uses a very dense approximation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This method is not used by any other code in the library. Rather, it is here
+for expository and benchmarking purposes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.pre_solve">
+<span class="sig-name descname"><span class="pre">pre_solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.pre_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method that is run immediately before the model is solved, to check inputs or to prepare
+the terminal solution, perhaps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.time_inv_">
+<span class="sig-name descname"><span class="pre">time_inv_</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['CRRA',</span> <span class="pre">'DiscFac',</span> <span class="pre">'BoroCnstArt',</span> <span class="pre">'BoroCnstArt',</span> <span class="pre">'vFuncBool',</span> <span class="pre">'CubicBool',</span> <span class="pre">'Rboro',</span> <span class="pre">'Rsave']</span></em><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.time_inv_" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.</span></span><span class="sig-name descname"><span class="pre">PerfForesightConsumerType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../tools/core.html#HARK.core.AgentType" title="HARK.core.AgentType"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.core.AgentType</span></code></a></p>
+<p>A perfect foresight consumer type who has no uncertainty other than mortality.
+His problem is defined by a coefficient of relative risk aversion, intertemporal
+discount factor, interest factor, an artificial borrowing constraint (maybe)
+and time sequences of the permanent income growth rate and survival probability.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.cFunc_terminal_">
+<span class="sig-name descname"><span class="pre">cFunc_terminal_</span></span><em class="property"> <span class="pre">=</span> <span class="pre">&lt;HARK.interpolation.LinearInterp</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.cFunc_terminal_" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_AIC">
+<span class="sig-name descname"><span class="pre">check_AIC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_AIC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluate and report on the Absolute Impatience Condition</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_FHWC">
+<span class="sig-name descname"><span class="pre">check_FHWC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_FHWC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluate and report on the Finite Human Wealth Condition</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_GICRaw">
+<span class="sig-name descname"><span class="pre">check_GICRaw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_GICRaw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluate and report on the Growth Impatience Condition for the Perfect Foresight model</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_RIC">
+<span class="sig-name descname"><span class="pre">check_RIC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_RIC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluate and report on the Return Impatience Condition</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_condition">
+<span class="sig-name descname"><span class="pre">check_condition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">messages</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose_messages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_condition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks one condition.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>string</em>) – Name for the condition.</p></li>
+<li><p><strong>test</strong> (<em>function</em><em>(</em><em>self -&gt; boolean</em><em>)</em>) – A function (of self) which tests the condition</p></li>
+<li><p><strong>messages</strong> (<em>dict{boolean : string}</em>) – A dictiomary with boolean keys containing values
+for messages to print if the condition is
+true or false.</p></li>
+<li><p><strong>verbose_messages</strong> (<em>dict{boolean : string}</em>) – (Optional) A dictiomary with boolean keys containing values
+for messages to print if the condition is
+true or false under verbose printing.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_conditions">
+<span class="sig-name descname"><span class="pre">check_conditions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_conditions" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method checks whether the instance’s type satisfies the
+Absolute Impatience Condition (AIC),
+the Return Impatience Condition (RIC),
+the Finite Human Wealth Condition (FHWC), the perfect foresight
+model’s Growth Impatience Condition (GICRaw) and
+Perfect Foresight Finite Value of Autarky Condition (FVACPF). Depending on the configuration of parameter values, some
+combination of these conditions must be satisfied in order for the problem to have
+a nondegenerate solution. To check which conditions are required, in the verbose mode
+a reference to the relevant theoretical literature is made.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>verbose</strong> (<em>boolean</em>) – Specifies different levels of verbosity of feedback. When False, it only reports whether the
+instance’s type fails to satisfy a particular condition. When True, it reports all results, i.e.
+the factor values for all conditions.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_restrictions">
+<span class="sig-name descname"><span class="pre">check_restrictions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_restrictions" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method to check that various restrictions are met for the model class.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_Rfree">
+<span class="sig-name descname"><span class="pre">get_Rfree</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_Rfree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an array of size self.AgentCount with self.Rfree in every entry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>RfreeNow</strong> – Array of size self.AgentCount with risk free interest rate for each agent.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_controls">
+<span class="sig-name descname"><span class="pre">get_controls</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_controls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates consumption for each consumer of this type using the consumption functions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_poststates">
+<span class="sig-name descname"><span class="pre">get_poststates</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_poststates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates end-of-period assets for each consumer of this type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_shocks">
+<span class="sig-name descname"><span class="pre">get_shocks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_shocks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds permanent and transitory income “shocks” for each agent this period.  As this is a
+perfect foresight model, there are no stochastic shocks: PermShkNow = PermGroFac for each
+agent (according to their t_cycle) and TranShkNow = 1.0 for all agents.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.initialize_sim">
+<span class="sig-name descname"><span class="pre">initialize_sim</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.initialize_sim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepares this AgentType for a new simulation.  Resets the internal random number generator,
+makes initial states for all agents (using sim_birth), clears histories of tracked variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.pre_solve">
+<span class="sig-name descname"><span class="pre">pre_solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.pre_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method that is run immediately before the model is solved, to check inputs or to prepare
+the terminal solution, perhaps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.shock_vars_">
+<span class="sig-name descname"><span class="pre">shock_vars_</span></span><em class="property"> <span class="pre">=</span> <span class="pre">[]</span></em><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.shock_vars_" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.sim_birth">
+<span class="sig-name descname"><span class="pre">sim_birth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">which_agents</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.sim_birth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
+well as time variables t_age and t_cycle.  Normalized assets and permanent income levels
+are drawn from lognormal distributions given by aNrmInitMean and aNrmInitStd (etc).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>which_agents</strong> (<em>np.array</em><em>(</em><em>Bool</em><em>)</em>) – Boolean array of size self.AgentCount indicating which agents should be “born”.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.sim_death">
+<span class="sig-name descname"><span class="pre">sim_death</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.sim_death" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines which agents die this period and must be replaced.  Uses the sequence in LivPrb
+to determine survival probabilities for each agent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>which_agents</strong> – Boolean array of size AgentCount indicating which agents die.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.array(<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)">bool</a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.solution_terminal_">
+<span class="sig-name descname"><span class="pre">solution_terminal_</span></span><em class="property"> <span class="pre">=</span> <span class="pre">&lt;HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.solution_terminal_" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.state_vars">
+<span class="sig-name descname"><span class="pre">state_vars</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['pLvl',</span> <span class="pre">'PlvlAgg',</span> <span class="pre">'bNrm',</span> <span class="pre">'mNrm',</span> <span class="pre">'aNrm',</span> <span class="pre">'aLvl']</span></em><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.state_vars" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.time_inv_">
+<span class="sig-name descname"><span class="pre">time_inv_</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['CRRA',</span> <span class="pre">'Rfree',</span> <span class="pre">'DiscFac',</span> <span class="pre">'MaxKinks',</span> <span class="pre">'BoroCnstArt']</span></em><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.time_inv_" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.time_vary_">
+<span class="sig-name descname"><span class="pre">time_vary_</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['LivPrb',</span> <span class="pre">'PermGroFac']</span></em><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.time_vary_" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.transition">
+<span class="sig-name descname"><span class="pre">transition</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.transition" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>None</strong> – </p></li>
+<li><p><strong>[</strong><strong>Eventually</strong> – </p></li>
+<li><p><strong>spec</strong> (<em>to match dolo</em>) – </p></li>
+<li><p><strong>exogenous_prev</strong> – </p></li>
+<li><p><strong>endogenous_prev</strong> – </p></li>
+<li><p><strong>controls</strong> – </p></li>
+<li><p><strong>exogenous</strong> – </p></li>
+<li><p><strong>parameters</strong><strong>]</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>endogenous_state</strong> – Tuple with new values of the endogenous states</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>()</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.unpack_cFunc">
+<span class="sig-name descname"><span class="pre">unpack_cFunc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.unpack_cFunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>DEPRECATED: Use solution.unpack(‘cFunc’) instead.
+“Unpacks” the consumption functions into their own field for easier access.
+After the model has been solved, the consumption functions reside in the
+attribute cFunc of each element of ConsumerType.solution.  This method
+creates a (time varying) attribute cFunc that contains a list of consumption
+functions.
+:param none:</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.update_solution_terminal">
+<span class="sig-name descname"><span class="pre">update_solution_terminal</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.update_solution_terminal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the terminal period solution.  This method should be run when a
+new AgentType is created or when CRRA changes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.vFunc_terminal_">
+<span class="sig-name descname"><span class="pre">vFunc_terminal_</span></span><em class="property"> <span class="pre">=</span> <span class="pre">&lt;HARK.interpolation.LinearInterp</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.vFunc_terminal_" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2020, Econ-ARK team.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

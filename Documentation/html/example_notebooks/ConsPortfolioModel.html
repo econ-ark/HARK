@@ -1,0 +1,1230 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>&lt;no title&gt; &mdash; HARK latest documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Permanent versus Persistent Income Shocks" href="GenIncProcessModel.html" />
+    <link rel="prev" title="KinkedRconsumerType: Consumption-saving model with idiosyncratic income shocks and different interest rates on borrowing and saving" href="KinkedRconsumerType.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> HARK
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                latest
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quick-start.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing/CONTRIBUTING.html">Contributing to Econ-ARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Notebooks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PerfForesightConsumerType.html">PerfForesightConsumerType: Perfect foresight consumption-saving</a></li>
+<li class="toctree-l1"><a class="reference internal" href="IndShockConsumerType.html">IndShockConsumerType Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KinkedRconsumerType.html">KinkedRconsumerType: Consumption-saving model with idiosyncratic income shocks and different interest rates on borrowing and saving</a></li>
+<li class="toctree-l1"><a class="reference internal" href="GenIncProcessModel.html">Permanent versus Persistent Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LifecycleModel.html">The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HowWeSolveIndShockConsumerType.html">How we solve a model defined by the <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Journey_1_PhD.html">Journey 1: 1st year PhD student</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">HARK</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>&lt;no title&gt;</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/example_notebooks/ConsPortfolioModel.ipynb.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt a.copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Example implementations of HARK.ConsumptionSaving.ConsPortfolioModel</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">copy</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">time</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">HARK.ConsumptionSaving.ConsIndShockModel</span> <span class="kn">import</span> <span class="n">init_lifecycle</span>
+<span class="kn">from</span> <span class="nn">HARK.ConsumptionSaving.ConsPortfolioModel</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PortfolioConsumerType</span><span class="p">,</span>
+    <span class="n">init_portfolio</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">HARK.utilities</span> <span class="kn">import</span> <span class="n">plot_funcs</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># Make and solve an example portfolio choice consumer type</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Now solving an example portfolio choice problem; this might take a moment...&quot;</span><span class="p">)</span>
+<span class="n">MyType</span> <span class="o">=</span> <span class="n">PortfolioConsumerType</span><span class="p">()</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">cycles</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">cFunc</span> <span class="o">=</span> <span class="p">[</span><span class="n">MyType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">cFuncAdj</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">T_cycle</span><span class="p">)]</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">ShareFunc</span> <span class="o">=</span> <span class="p">[</span><span class="n">MyType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">ShareFuncAdj</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">T_cycle</span><span class="p">)]</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Solving an infinite horizon portfolio choice problem took &quot;</span>
+    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Now solving an example portfolio choice problem; this might take a moment...
+Solving an infinite horizon portfolio choice problem took 10.72180986404419 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># Plot the consumption and risky-share functions</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Consumption function over market resources:&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">cFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Risky asset share as a function of market resources:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Optimal (blue) versus Theoretical Limit (orange)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Normalized Market Resources&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Portfolio Share&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="c1"># Since we are using a discretization of the lognormal distribution,</span>
+<span class="c1"># the limit is numerically computed and slightly different from</span>
+<span class="c1"># the analytical limit obtained by Merton and Samuelson for infinite wealth</span>
+<span class="n">plot_funcs</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="n">MyType</span><span class="o">.</span><span class="n">ShareFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="k">lambda</span> <span class="n">m</span><span class="p">:</span> <span class="n">MyType</span><span class="o">.</span><span class="n">ShareLimit</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">m</span><span class="p">),</span>
+    <span class="p">],</span>
+    <span class="mf">0.0</span><span class="p">,</span>
+    <span class="mf">200.0</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Consumption function over market resources:
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/example_notebooks_ConsPortfolioModel_2_1.png" src="../_images/example_notebooks_ConsPortfolioModel_2_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Risky asset share as a function of market resources:
+Optimal (blue) versus Theoretical Limit (orange)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/example_notebooks_ConsPortfolioModel_2_3.png" src="../_images/example_notebooks_ConsPortfolioModel_2_3.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># Now simulate this consumer type</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">track_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;cNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;Share&quot;</span><span class="p">,</span> <span class="s2">&quot;aNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;t_age&quot;</span><span class="p">]</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">T_sim</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;cNrm&#39;: array([[1.50746544, 1.00804051, 1.06173514, ..., 1.1337741 , 0.97563921,
+         0.89844339],
+        [1.40986731, 0.972063  , 1.05755593, ..., 1.05820018, 0.96080905,
+         0.92729845],
+        [1.40686433, 0.908755  , 1.09607755, ..., 1.09878779, 0.95347089,
+         0.948965  ],
+        ...,
+        [1.18728885, 1.03394204, 1.14514013, ..., 1.02585236, 1.00857822,
+         0.9148828 ],
+        [1.23573395, 1.0975886 , 1.21507636, ..., 1.08886964, 1.10262934,
+         0.95285755],
+        [1.22475386, 1.11667582, 1.22554884, ..., 1.12793892, 1.11527911,
+         0.99247758]]),
+ &#39;Share&#39;: array([[0.9929004, 1.       , 1.       , ..., 1.       , 1.       ,
+         1.       ],
+        [1.       , 1.       , 1.       , ..., 1.       , 1.       ,
+         1.       ],
+        [1.       , 1.       , 1.       , ..., 1.       , 1.       ,
+         1.       ],
+        ...,
+        [1.       , 1.       , 1.       , ..., 1.       , 1.       ,
+         1.       ],
+        [1.       , 1.       , 1.       , ..., 1.       , 1.       ,
+         1.       ],
+        [1.       , 1.       , 1.       , ..., 1.       , 1.       ,
+         1.       ]]),
+ &#39;aNrm&#39;: array([[5.83743542, 0.87502851, 1.2282834 , ..., 1.81486877, 0.70534632,
+         0.42311082],
+        [4.67649062, 0.68896667, 1.19778274, ..., 1.20239524, 0.63904208,
+         0.5118482 ],
+        [4.64188546, 0.45283361, 1.4944918 , ..., 1.51659186, 0.60857522,
+         0.59033605],
+        ...,
+        [2.30820383, 1.0349345 , 1.91620307, ..., 0.98285439, 0.87818388,
+         0.4716979 ],
+        [2.7850111 , 1.50681334, 2.57852755, ..., 1.43639191, 1.54823592,
+         0.60607991],
+        [2.67467838, 1.6663329 , 2.68264645, ..., 1.76359938, 1.65436202,
+         0.78933187]]),
+ &#39;t_age&#39;: array([[ 1.,  1.,  1., ...,  1.,  1.,  1.],
+        [ 2.,  2.,  2., ...,  2.,  2.,  2.],
+        [ 3.,  1.,  3., ...,  3.,  3.,  3.],
+        ...,
+        [24., 96., 15., ..., 17.,  4., 46.],
+        [25., 97., 16., ..., 18.,  5., 47.],
+        [26., 98., 17., ..., 19.,  6., 48.]])}
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;For derivation of the numerical limiting portfolio share&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;as market resources approach infinity, see&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/AssetPricing/Portfolio-CRRA/&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+
+
+
+For derivation of the numerical limiting portfolio share
+as market resources approach infinity, see
+http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/AssetPricing/Portfolio-CRRA/
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="s2">&quot;&quot;</span>
+<span class="c1"># Make another example type, but this one optimizes risky portfolio share only</span>
+<span class="c1"># on the discrete grid of values implicitly chosen by RiskyCount, using explicit</span>
+<span class="c1"># value maximization.</span>
+<span class="n">init_discrete_share</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">init_discrete_share</span><span class="p">[</span><span class="s2">&quot;DiscreteShareBool&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="c1"># Have to actually construct value function for this to work</span>
+<span class="n">init_discrete_share</span><span class="p">[</span><span class="s2">&quot;vFuncBool&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># Make and solve a discrete portfolio choice consumer type</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Now solving a discrete choice portfolio problem; this might take a minute...&quot;</span><span class="p">)</span>
+<span class="n">DiscreteType</span> <span class="o">=</span> <span class="n">PortfolioConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">init_discrete_share</span><span class="p">)</span>
+<span class="n">DiscreteType</span><span class="o">.</span><span class="n">cycles</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">DiscreteType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">DiscreteType</span><span class="o">.</span><span class="n">cFunc</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">DiscreteType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">cFuncAdj</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">DiscreteType</span><span class="o">.</span><span class="n">T_cycle</span><span class="p">)</span>
+<span class="p">]</span>
+<span class="n">DiscreteType</span><span class="o">.</span><span class="n">ShareFunc</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">DiscreteType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">ShareFuncAdj</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">DiscreteType</span><span class="o">.</span><span class="n">T_cycle</span><span class="p">)</span>
+<span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Solving an infinite horizon discrete portfolio choice problem took &quot;</span>
+    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Now solving a discrete choice portfolio problem; this might take a minute...
+Solving an infinite horizon discrete portfolio choice problem took 21.6518394947052 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># Plot the consumption and risky-share functions</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Consumption function over market resources:&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">DiscreteType</span><span class="o">.</span><span class="n">cFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">50.0</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Risky asset share as a function of market resources:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Optimal (blue) versus Theoretical Limit (orange)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Normalized Market Resources&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Portfolio Share&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="c1"># Since we are using a discretization of the lognormal distribution,</span>
+<span class="c1"># the limit is numerically computed and slightly different from</span>
+<span class="c1"># the analytical limit obtained by Merton and Samuelson for infinite wealth</span>
+<span class="n">plot_funcs</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">DiscreteType</span><span class="o">.</span><span class="n">ShareFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="k">lambda</span> <span class="n">m</span><span class="p">:</span> <span class="n">DiscreteType</span><span class="o">.</span><span class="n">ShareLimit</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">m</span><span class="p">)],</span>
+    <span class="mf">0.0</span><span class="p">,</span>
+    <span class="mf">200.0</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Consumption function over market resources:
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/example_notebooks_ConsPortfolioModel_7_1.png" src="../_images/example_notebooks_ConsPortfolioModel_7_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Risky asset share as a function of market resources:
+Optimal (blue) versus Theoretical Limit (orange)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/example_notebooks_ConsPortfolioModel_7_3.png" src="../_images/example_notebooks_ConsPortfolioModel_7_3.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+
+
+
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="s2">&quot;&quot;</span>
+<span class="c1"># Make another example type, but this one can only update their risky portfolio</span>
+<span class="c1"># share in any particular period with 15% probability.</span>
+<span class="n">init_sticky_share</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">init_sticky_share</span><span class="p">[</span><span class="s2">&quot;AdjustPrb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.15</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># Make and solve a discrete portfolio choice consumer type</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s1">&#39;Now solving a portfolio choice problem with &quot;sticky&quot; portfolio shares; this might take a moment...&#39;</span>
+<span class="p">)</span>
+<span class="n">StickyType</span> <span class="o">=</span> <span class="n">PortfolioConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">init_sticky_share</span><span class="p">)</span>
+<span class="n">StickyType</span><span class="o">.</span><span class="n">cycles</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">StickyType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">StickyType</span><span class="o">.</span><span class="n">cFuncAdj</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">StickyType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">cFuncAdj</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">StickyType</span><span class="o">.</span><span class="n">T_cycle</span><span class="p">)</span>
+<span class="p">]</span>
+<span class="n">StickyType</span><span class="o">.</span><span class="n">cFuncFxd</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">StickyType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">cFuncFxd</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">StickyType</span><span class="o">.</span><span class="n">T_cycle</span><span class="p">)</span>
+<span class="p">]</span>
+<span class="n">StickyType</span><span class="o">.</span><span class="n">ShareFunc</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">StickyType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">ShareFuncAdj</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">StickyType</span><span class="o">.</span><span class="n">T_cycle</span><span class="p">)</span>
+<span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Solving an infinite horizon sticky portfolio choice problem took &quot;</span>
+    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Now solving a portfolio choice problem with &#34;sticky&#34; portfolio shares; this might take a moment...
+Solving an infinite horizon sticky portfolio choice problem took 111.06221723556519 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># Plot the consumption and risky-share functions</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Consumption function over market resources when the agent can adjust his portfolio:&quot;</span>
+<span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">StickyType</span><span class="o">.</span><span class="n">cFuncAdj</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">50.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Consumption function over market resources when the agent can adjust his portfolio:
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/example_notebooks_ConsPortfolioModel_11_1.png" src="../_images/example_notebooks_ConsPortfolioModel_11_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Consumption function over market resources when the agent CAN&#39;T adjust, by current share:&quot;</span>
+<span class="p">)</span>
+<span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">50.0</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">21</span><span class="p">):</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">StickyType</span><span class="o">.</span><span class="n">cFuncFxd</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">M</span><span class="p">,</span> <span class="n">s</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">M</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">50.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Consumption function over market resources when the agent CAN&#39;T adjust, by current share:
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/example_notebooks_ConsPortfolioModel_12_1.png" src="../_images/example_notebooks_ConsPortfolioModel_12_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Risky asset share function over market resources (when possible to adjust):&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Optimal (blue) versus Theoretical Limit (orange)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Normalized Market Resources&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Portfolio Share&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">StickyType</span><span class="o">.</span><span class="n">ShareFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="k">lambda</span> <span class="n">m</span><span class="p">:</span> <span class="n">StickyType</span><span class="o">.</span><span class="n">ShareLimit</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">m</span><span class="p">)],</span>
+    <span class="mf">0.0</span><span class="p">,</span>
+    <span class="mf">200.0</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Risky asset share function over market resources (when possible to adjust):
+Optimal (blue) versus Theoretical Limit (orange)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/example_notebooks_ConsPortfolioModel_13_1.png" src="../_images/example_notebooks_ConsPortfolioModel_13_1.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="s2">&quot;&quot;</span>
+<span class="c1"># Make another example type, but this one has *age-varying* perceptions of risky asset returns.</span>
+<span class="c1"># Begin by making a lifecycle dictionary, but adjusted for the portfolio choice model.</span>
+<span class="n">init_age_varying_risk_perceptions</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">init_lifecycle</span><span class="p">)</span>
+<span class="n">init_age_varying_risk_perceptions</span><span class="p">[</span><span class="s2">&quot;RiskyCount&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="p">[</span><span class="s2">&quot;RiskyCount&quot;</span><span class="p">]</span>
+<span class="n">init_age_varying_risk_perceptions</span><span class="p">[</span><span class="s2">&quot;ShareCount&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="p">[</span><span class="s2">&quot;ShareCount&quot;</span><span class="p">]</span>
+<span class="n">init_age_varying_risk_perceptions</span><span class="p">[</span><span class="s2">&quot;aXtraMax&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="p">[</span><span class="s2">&quot;aXtraMax&quot;</span><span class="p">]</span>
+<span class="n">init_age_varying_risk_perceptions</span><span class="p">[</span><span class="s2">&quot;aXtraCount&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="p">[</span><span class="s2">&quot;aXtraCount&quot;</span><span class="p">]</span>
+<span class="n">init_age_varying_risk_perceptions</span><span class="p">[</span><span class="s2">&quot;aXtraNestFac&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="p">[</span><span class="s2">&quot;aXtraNestFac&quot;</span><span class="p">]</span>
+<span class="n">init_age_varying_risk_perceptions</span><span class="p">[</span><span class="s2">&quot;BoroCnstArt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="p">[</span><span class="s2">&quot;BoroCnstArt&quot;</span><span class="p">]</span>
+<span class="n">init_age_varying_risk_perceptions</span><span class="p">[</span><span class="s2">&quot;CRRA&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="p">[</span><span class="s2">&quot;CRRA&quot;</span><span class="p">]</span>
+<span class="n">init_age_varying_risk_perceptions</span><span class="p">[</span><span class="s2">&quot;DiscFac&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="p">[</span><span class="s2">&quot;DiscFac&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">init_age_varying_risk_perceptions</span><span class="p">[</span><span class="s2">&quot;RiskyAvg&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.08</span><span class="p">]</span> <span class="o">*</span> <span class="n">init_lifecycle</span><span class="p">[</span><span class="s2">&quot;T_cycle&quot;</span><span class="p">]</span>
+<span class="n">init_age_varying_risk_perceptions</span><span class="p">[</span><span class="s2">&quot;RiskyStd&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.30</span><span class="p">,</span> <span class="n">init_lifecycle</span><span class="p">[</span><span class="s2">&quot;T_cycle&quot;</span><span class="p">])</span>
+<span class="p">)</span>
+<span class="n">init_age_varying_risk_perceptions</span><span class="p">[</span><span class="s2">&quot;RiskyAvgTrue&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.08</span>
+<span class="n">init_age_varying_risk_perceptions</span><span class="p">[</span><span class="s2">&quot;RiskyStdTrue&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.20</span>
+<span class="n">AgeVaryingRiskPercType</span> <span class="o">=</span> <span class="n">PortfolioConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">init_age_varying_risk_perceptions</span><span class="p">)</span>
+<span class="n">AgeVaryingRiskPercType</span><span class="o">.</span><span class="n">cycles</span> <span class="o">=</span> <span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># Solve the agent type with age-varying risk perceptions</span>
+<span class="c1"># print(&#39;Now solving a portfolio choice problem with age-varying risk perceptions...&#39;)</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">AgeVaryingRiskPercType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">AgeVaryingRiskPercType</span><span class="o">.</span><span class="n">cFunc</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">AgeVaryingRiskPercType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">cFuncAdj</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">AgeVaryingRiskPercType</span><span class="o">.</span><span class="n">T_cycle</span><span class="p">)</span>
+<span class="p">]</span>
+<span class="n">AgeVaryingRiskPercType</span><span class="o">.</span><span class="n">ShareFunc</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">AgeVaryingRiskPercType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">ShareFuncAdj</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">AgeVaryingRiskPercType</span><span class="o">.</span><span class="n">T_cycle</span><span class="p">)</span>
+<span class="p">]</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Solving a &quot;</span>
+    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">AgeVaryingRiskPercType</span><span class="o">.</span><span class="n">T_cycle</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; period portfolio choice problem with age-varying risk perceptions took &quot;</span>
+    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Solving a 65 period portfolio choice problem with age-varying risk perceptions took 5.567425489425659 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># Plot the consumption and risky-share functions</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Consumption function over market resources in each lifecycle period:&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">AgeVaryingRiskPercType</span><span class="o">.</span><span class="n">cFunc</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Risky asset share function over market resources in each lifecycle period:&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">AgeVaryingRiskPercType</span><span class="o">.</span><span class="n">ShareFunc</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">200.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Consumption function over market resources in each lifecycle period:
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/example_notebooks_ConsPortfolioModel_17_1.png" src="../_images/example_notebooks_ConsPortfolioModel_17_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Risky asset share function over market resources in each lifecycle period:
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/example_notebooks_ConsPortfolioModel_17_3.png" src="../_images/example_notebooks_ConsPortfolioModel_17_3.png" />
+</div>
+</div>
+<p>The code below tests the mathematical limits of the model.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># Create a grid of market resources for the plots</span>
+<span class="n">mMin</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Minimum ratio of assets to income to plot</span>
+<span class="n">mMax</span> <span class="o">=</span> <span class="mi">5</span> <span class="o">*</span> <span class="mf">1e2</span>  <span class="c1"># Maximum ratio of assets to income to plot</span>
+<span class="n">mPts</span> <span class="o">=</span> <span class="mi">1000</span>  <span class="c1"># Number of points to plot</span>
+
+<span class="n">eevalgrid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">mMax</span><span class="p">,</span> <span class="n">mPts</span><span class="p">)</span>  <span class="c1"># range of values of assets for the plot</span>
+
+<span class="c1"># Number of points that will be used to approximate the risky distribution</span>
+<span class="n">risky_count_grid</span> <span class="o">=</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">200</span><span class="p">]</span>
+<span class="c1"># Plot by ages (time periods) at which to plot. We will use the default life-cycle calibration.</span>
+<span class="n">ages</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">]</span>
+
+<span class="c1"># Create lifecycle dictionary with portfolio choice parameters</span>
+<span class="n">merton_dict</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">init_lifecycle</span><span class="p">)</span>
+<span class="n">merton_dict</span><span class="p">[</span><span class="s2">&quot;RiskyCount&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="p">[</span><span class="s2">&quot;RiskyCount&quot;</span><span class="p">]</span>
+<span class="n">merton_dict</span><span class="p">[</span><span class="s2">&quot;ShareCount&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="p">[</span><span class="s2">&quot;ShareCount&quot;</span><span class="p">]</span>
+<span class="n">merton_dict</span><span class="p">[</span><span class="s2">&quot;aXtraMax&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="p">[</span><span class="s2">&quot;aXtraMax&quot;</span><span class="p">]</span>
+<span class="n">merton_dict</span><span class="p">[</span><span class="s2">&quot;aXtraCount&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="p">[</span><span class="s2">&quot;aXtraCount&quot;</span><span class="p">]</span>
+<span class="n">merton_dict</span><span class="p">[</span><span class="s2">&quot;aXtraNestFac&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="p">[</span><span class="s2">&quot;aXtraNestFac&quot;</span><span class="p">]</span>
+<span class="n">merton_dict</span><span class="p">[</span><span class="s2">&quot;BoroCnstArt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="p">[</span><span class="s2">&quot;BoroCnstArt&quot;</span><span class="p">]</span>
+<span class="n">merton_dict</span><span class="p">[</span><span class="s2">&quot;CRRA&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="p">[</span><span class="s2">&quot;CRRA&quot;</span><span class="p">]</span>
+<span class="n">merton_dict</span><span class="p">[</span><span class="s2">&quot;DiscFac&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="p">[</span><span class="s2">&quot;DiscFac&quot;</span><span class="p">]</span>
+<span class="n">merton_dict</span><span class="p">[</span><span class="s2">&quot;RiskyAvgTrue&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.08</span>
+<span class="n">merton_dict</span><span class="p">[</span><span class="s2">&quot;RiskyStdTrue&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.20</span>
+
+
+<span class="c1"># Create a function to compute the Merton-Samuelson limiting portfolio share.</span>
+<span class="k">def</span> <span class="nf">RiskyShareMertSamLogNormal</span><span class="p">(</span><span class="n">RiskPrem</span><span class="p">,</span> <span class="n">CRRA</span><span class="p">,</span> <span class="n">RiskyVar</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">RiskPrem</span> <span class="o">/</span> <span class="p">(</span><span class="n">CRRA</span> <span class="o">*</span> <span class="n">RiskyVar</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="k">for</span> <span class="n">rcount</span> <span class="ow">in</span> <span class="n">risky_count_grid</span><span class="p">:</span>
+
+    <span class="c1"># Create a new dictionary and replace the number of points that</span>
+    <span class="c1"># approximate the risky return distribution</span>
+
+    <span class="c1"># Create new dictionary copying the default</span>
+    <span class="n">merton_dict</span><span class="p">[</span><span class="s2">&quot;RiskyCount&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rcount</span>
+
+    <span class="c1"># Create and solve agent</span>
+    <span class="n">agent</span> <span class="o">=</span> <span class="n">PortfolioConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">merton_dict</span><span class="p">)</span>
+    <span class="n">agent</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+
+    <span class="c1"># Compute the analytical Merton-Samuelson limiting portfolio share</span>
+    <span class="n">RiskyVar</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">RiskyStd</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="n">RiskPrem</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">RiskyAvg</span> <span class="o">-</span> <span class="n">agent</span><span class="o">.</span><span class="n">Rfree</span>
+    <span class="n">MS_limit</span> <span class="o">=</span> <span class="n">RiskyShareMertSamLogNormal</span><span class="p">(</span><span class="n">RiskPrem</span><span class="p">,</span> <span class="n">agent</span><span class="o">.</span><span class="n">CRRA</span><span class="p">,</span> <span class="n">RiskyVar</span><span class="p">)</span>
+
+    <span class="c1"># Now compute the limiting share numerically, using the approximated</span>
+    <span class="c1"># distribution</span>
+    <span class="n">agent</span><span class="o">.</span><span class="n">update_ShareLimit</span><span class="p">()</span>
+    <span class="n">NU_limit</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">ShareLimit</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">ages</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="n">eevalgrid</span><span class="p">,</span> <span class="n">agent</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">.</span><span class="n">ShareFuncAdj</span><span class="p">(</span><span class="n">eevalgrid</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;t = </span><span class="si">%i</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span>
+        <span class="n">NU_limit</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;-.&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Exact limit as $m</span><span class="se">\\</span><span class="s2">rightarrow </span><span class="se">\\</span><span class="s2">infty$.&quot;</span>
+    <span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span>
+        <span class="n">MS_limit</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;M&amp;S Limit without returns discretization.&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="n">eevalgrid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">eevalgrid</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span>
+        <span class="s2">&quot;Risky Portfolio Share by Age</span><span class="se">\n</span><span class="s2"> Risky distribution with </span><span class="si">{points}</span><span class="s2"> equiprobable points&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">points</span><span class="o">=</span><span class="n">rcount</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Wealth (m)&quot;</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">ioff</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/example_notebooks_ConsPortfolioModel_20_0.png" src="../_images/example_notebooks_ConsPortfolioModel_20_0.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/example_notebooks_ConsPortfolioModel_20_1.png" src="../_images/example_notebooks_ConsPortfolioModel_20_1.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/example_notebooks_ConsPortfolioModel_20_2.png" src="../_images/example_notebooks_ConsPortfolioModel_20_2.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="GenIncProcessModel.html" class="btn btn-neutral float-right" title="Permanent versus Persistent Income Shocks" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="KinkedRconsumerType.html" class="btn btn-neutral float-left" title="KinkedRconsumerType: Consumption-saving model with idiosyncratic income shocks and different interest rates on borrowing and saving" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2020, Econ-ARK team.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

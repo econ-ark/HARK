@@ -1,0 +1,750 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Release Notes &mdash; HARK latest documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> HARK
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                latest
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">Release Notes</a><ul>
+<li><a class="reference internal" href="#introduction">Introduction</a></li>
+<li><a class="reference internal" href="#changes">Changes</a><ul>
+<li><a class="reference internal" href="#id1">0.13.0</a></li>
+<li><a class="reference internal" href="#major-changes">Major Changes</a></li>
+<li><a class="reference internal" href="#minor-changes">Minor Changes</a></li>
+<li><a class="reference internal" href="#id2">0.12.0</a><ul>
+<li><a class="reference internal" href="#id3">Major Changes</a></li>
+<li><a class="reference internal" href="#id4">Minor Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id5">0.11.0</a><ul>
+<li><a class="reference internal" href="#id6">Major Changes</a></li>
+<li><a class="reference internal" href="#id7">Minor Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id8">0.10.8</a><ul>
+<li><a class="reference internal" href="#id9">Major Changes</a></li>
+<li><a class="reference internal" href="#id10">Minor Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id11">0.10.7</a><ul>
+<li><a class="reference internal" href="#id12">Major Changes</a></li>
+<li><a class="reference internal" href="#id13">Minor Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id14">0.10.6</a><ul>
+<li><a class="reference internal" href="#id15">Major Changes</a></li>
+<li><a class="reference internal" href="#id16">Minor Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id17">0.10.5</a><ul>
+<li><a class="reference internal" href="#id18">Major Changes</a></li>
+<li><a class="reference internal" href="#id19">Minor Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id20">0.10.4</a><ul>
+<li><a class="reference internal" href="#id21">Major Changes</a></li>
+<li><a class="reference internal" href="#id22">Minor Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id23">0.10.3</a><ul>
+<li><a class="reference internal" href="#id24">Major Changes</a></li>
+<li><a class="reference internal" href="#id25">Minor Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id26">0.10.2</a><ul>
+<li><a class="reference internal" href="#id27">Minor Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dev5">0.10.1.dev5</a><ul>
+<li><a class="reference internal" href="#id28">Minor Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dev4">0.10.1.dev4</a><ul>
+<li><a class="reference internal" href="#id29">Minor Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dev3">0.10.1.dev3</a><ul>
+<li><a class="reference internal" href="#id30">Minor Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dev2">0.10.1.dev2</a><ul>
+<li><a class="reference internal" href="#id31">Minor Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dev1">0.10.1.dev1</a><ul>
+<li><a class="reference internal" href="#breaking-changes">Breaking Changes</a></li>
+<li><a class="reference internal" href="#id32">Major Changes</a></li>
+<li><a class="reference internal" href="#id33">Minor Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id34">0.10.1</a></li>
+<li><a class="reference internal" href="#id35">0.10.0.dev3</a><ul>
+<li><a class="reference internal" href="#id36">Major Changes</a></li>
+<li><a class="reference internal" href="#id37">Minor Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id38">0.10.0.dev2</a><ul>
+<li><a class="reference internal" href="#id39">Major Changes</a></li>
+<li><a class="reference internal" href="#id40">Minor Changes</a></li>
+<li><a class="reference internal" href="#other-changes">Other Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id41">0.10.0.dev1</a><ul>
+<li><a class="reference internal" href="#id42">Major Changes</a></li>
+<li><a class="reference internal" href="#id43">Minor Changes</a></li>
+<li><a class="reference internal" href="#other-notes">Other Notes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">HARK</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Release Notes</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/CHANGELOG.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="release-notes">
+<h1>Release Notes<a class="headerlink" href="#release-notes" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>This document contains the release notes of HARK. HARK aims to produce an open source repository of highly modular, easily interoperable code for solving, simulating, and estimating dynamic economic models with heterogeneous agents.</p>
+<p>For more information on HARK, see <a class="reference external" href="https://github.com/econ-ark">our Github organization</a>.</p>
+</div>
+<div class="section" id="changes">
+<h2>Changes<a class="headerlink" href="#changes" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id1">
+<h3>0.13.0<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: TBD</p>
+</div>
+<div class="section" id="major-changes">
+<h3>Major Changes<a class="headerlink" href="#major-changes" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Updates the DCEGM tools to address the flaws identified in <a class="reference external" href="https://github.com/econ-ark/HARK/issues/1062">issue #1062</a>. PR: <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1100">1100</a>.</p></li>
+<li><p>Updates <code class="docutils literal notranslate"><span class="pre">IndexDstn</span></code>, introducing the option to use an existing RNG instead of creating a new one, and creating and storing all the conditional distributions at initialization. <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1104">1104</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">make_shock_history</span></code> and <code class="docutils literal notranslate"><span class="pre">read_shocks</span> <span class="pre">==</span> <span class="pre">True</span></code> now store and use the random draws that determine newborn’s initial states <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1101">#1101</a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FrameModel</span></code> and <code class="docutils literal notranslate"><span class="pre">FrameSet</span></code> classes introduced for more modular construction of framed models. <code class="docutils literal notranslate"><span class="pre">FrameAgentType</span></code> dedicated to simulation. <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1117">#1117</a></p></li>
+<li><p>General control transitions based on decision rules in <code class="docutils literal notranslate"><span class="pre">FrameAgentType</span></code>. <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1117">#1117</a></p></li>
+</ul>
+</div>
+<div class="section" id="minor-changes">
+<h3>Minor Changes<a class="headerlink" href="#minor-changes" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Updates the lognormal-income-process constructor from <code class="docutils literal notranslate"><span class="pre">ConsIndShockModel.py</span></code> to use <code class="docutils literal notranslate"><span class="pre">IndexDistribution</span></code>. <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1024">#1024</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1115">#1115</a></p></li>
+<li><p>Allows for age-varying unemployment probabilities and replacement incomes with the lognormal income process constructor. <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1112">#1112</a></p></li>
+</ul>
+</div>
+<div class="section" id="id2">
+<h3>0.12.0<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: December 14, 2021</p>
+<div class="section" id="id3">
+<h4>Major Changes<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>FrameAgentType for modular definitions of agents <a class="reference external" href="https://github.com/econ-ark/HARK/pull/865">#865</a> <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1064">#1064</a></p></li>
+<li><p>Frame relationships with backward and forward references, with plotting example <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1071">#1071</a></p></li>
+<li><p>PortfolioConsumerFrameType, a port of PortfolioConsumerType to use Frames <a class="reference external" href="https://github.com/econ-ark/HARK/pull/865">#865</a></p></li>
+<li><p>Input parameters for cyclical models now indexed by t <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1039">#1039</a></p></li>
+<li><p>A IndexDistribution class for representing time-indexed probability distributions <a class="reference external" href="https://github.com/econ-ark/pull/1018/">#1018</a>.</p></li>
+<li><p>Adds new consumption-savings-portfolio model <code class="docutils literal notranslate"><span class="pre">RiskyContrib</span></code>, which represents an agent who can save in risky and risk-free assets but faces
+frictions to moving funds between them. To circumvent these frictions, he has access to an income-deduction scheme to accumulate risky assets.
+PR: <a class="reference external" href="https://github.com/econ-ark/HARK/pull/832">#832</a>. See <a class="reference external" href="https://github.com/Mv77/RiskyContrib">this forthcoming REMARK</a> for the model’s details.</p></li>
+<li><p>‘cycles’ agent property moved from constructor argument to parameter <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1031">#1031</a></p></li>
+<li><p>Uses iterated expectations to speed-up the solution of <code class="docutils literal notranslate"><span class="pre">RiskyContrib</span></code> when income and returns are independent <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1058">#1058</a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ConsPortfolioSolver</span></code> class for solving portfolio choice model replaces <code class="docutils literal notranslate"><span class="pre">solveConsPortfolio</span></code> method <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1047">#1047</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ConsPortfolioDiscreteSolver</span></code> class for solving portfolio choice model when allowed share is on a discrete grid <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1047">#1047</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ConsPortfolioJointDistSolver</span></code> class for solving portfolio chioce model when the income and risky return shocks are not independent <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1047">#1047</a></p></li>
+</ul>
+</div>
+<div class="section" id="id4">
+<h4>Minor Changes<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Using Lognormal.from_mean_std in the forward simulation of the RiskyAsset model <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1019">#1019</a></p></li>
+<li><p>Fix bug in DCEGM’s primary kink finder due to numpy no longer accepting NaN in integer arrays <a class="reference external" href="https://github.com/econ-ark/HARK/pull/990">#990</a>.</p></li>
+<li><p>Add a general class for consumers who can save using a risky asset <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1012/">#1012</a>.</p></li>
+<li><p>Add Boolean attribute ‘PerfMITShk’ to consumption models. When true, allows perfect foresight MIT shocks to be simulated. <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1013">#1013</a>.</p></li>
+<li><p>Track and update start-of-period (pre-income) risky and risk-free assets as states in the <code class="docutils literal notranslate"><span class="pre">RiskyContrib</span></code> model <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1046">1046</a>.</p></li>
+<li><p>distribute_params now uses assign_params to create consistent output <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1044">#1044</a></p></li>
+<li><p>The function that computes end-of-period derivatives of the value function was moved to the inside of <code class="docutils literal notranslate"><span class="pre">ConsRiskyContrib</span></code>’s solver <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1057">#1057</a></p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">np.fill(np.nan)</span></code> to clear or initialize the arrays that store simulations. <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1068">#1068</a></p></li>
+<li><p>Add Boolean attribute ‘neutral_measure’ to consumption models. When true, simulations are more precise by allowing permanent shocks to be drawn from a neutral measure (see Harmenberg 2021). <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1069">#1069</a></p></li>
+<li><p>Fix mathematical limits of model example in <code class="docutils literal notranslate"><span class="pre">example_ConsPortfolioModel.ipynb</span></code> <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1047">#1047</a></p></li>
+<li><p>Update <code class="docutils literal notranslate"><span class="pre">ConsGenIncProcessModel.py</span></code> to use <code class="docutils literal notranslate"><span class="pre">calc_expectation</span></code> method <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1072">#1072</a></p></li>
+<li><p>Fix bug in <code class="docutils literal notranslate"><span class="pre">calc_normal_style_pars_from_lognormal_pars</span></code> due to math error. <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1076">#1076</a></p></li>
+<li><p>Fix bug in <code class="docutils literal notranslate"><span class="pre">distribute_params</span></code> so that <code class="docutils literal notranslate"><span class="pre">AgentCount</span></code> parameter is updated. <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1089">#1089</a></p></li>
+<li><p>Fix bug in ‘vFuncBool’ option for ‘MarkovConsumerType’ so that the value function may now be calculated. <a class="reference external" href="https://github.com/econ-ark/HARK/pull/1095">#1095</a></p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="id5">
+<h3>0.11.0<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: March 4, 2021</p>
+<div class="section" id="id6">
+<h4>Major Changes<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Converts non-mathematical code to PEP8 compliant form <a class="reference external" href="https://github.com/econ-ark/HARK/pull/953">#953</a></p></li>
+<li><p>Adds a constructor for LogNormal distributions from mean and standard deviation <a class="reference external" href="https://github.com/econ-ark/HARK/pull/891/">#891</a></p></li>
+<li><p>Uses new LogNormal constructor in ConsPortfolioModel <a class="reference external" href="https://github.com/econ-ark/HARK/pull/891/">#891</a></p></li>
+<li><p>calcExpectations method for taking the expectation of a distribution over a function [#884](https://github.com/econ-ark/HARK/pull/884/] (#897)[https://github.com/econ-ark/HARK/pull/897/)</p></li>
+<li><p>Implements the multivariate normal as a supported distribution, with a discretization method. See <a class="reference external" href="https://github.com/econ-ark/HARK/pull/948">#948</a>.</p></li>
+<li><p>Centralizes the definition of value, marginal value, and marginal marginal value functions that use inverse-space
+interpolation for problems with CRRA utility. See <a class="reference external" href="https://github.com/econ-ark/HARK/pull/888">#888</a>.</p></li>
+<li><p>MarkovProcess class used in ConsMarkovModel, ConsRepAgentModel, ConsAggShockModel <a class="reference external" href="https://github.com/econ-ark/HARK/pull/902">#902</a> <a class="reference external" href="https://github.com/econ-ark/HARK/pull/929">#929</a></p></li>
+<li><p>replace HARKobject base class with MetricObject and Model classes <a class="reference external" href="https://github.com/econ-ark/HARK/pull/903/">#903</a></p></li>
+<li><p>Add <strong>repr</strong> and <strong>eq</strong> methods to Model class <a class="reference external" href="https://github.com/econ-ark/HARK/pull/903/">#903</a></p></li>
+<li><p>Adds SSA life tables and methods to extract survival probabilities from them <a class="reference external" href="https://github.com/econ-ark/HARK/pull/906">#986</a>.</p></li>
+<li><p>Adds the U.S. CPI research series and tools to extract inflation adjustments from it <a class="reference external" href="https://github.com/econ-ark/HARK/pull/930">#930</a>.</p></li>
+<li><p>Adds a module for extracting initial distributions of permanent income (<code class="docutils literal notranslate"><span class="pre">pLvl</span></code>) and normalized assets (<code class="docutils literal notranslate"><span class="pre">aNrm</span></code>) from the SCF <a class="reference external" href="https://github.com/econ-ark/HARK/pull/932">#932</a>.</p></li>
+<li><p>Fix the return fields of <code class="docutils literal notranslate"><span class="pre">dcegm/calcCrossPoints</span></code><a class="reference external" href="https://github.com/econ-ark/HARK/pull/909">#909</a>.</p></li>
+<li><p>Corrects location of constructor documentation to class string for Sphinx rendering <a class="reference external" href="https://github.com/econ-ark/HARK/pull/908">#908</a></p></li>
+<li><p>Adds a module with tools for parsing and using various income calibrations from the literature. It includes the option of using life-cycle profiles of income shock variances from <a class="reference external" href="https://www.sciencedirect.com/science/article/abs/pii/S0304393210000358">Sabelhaus and Song (2010)</a>. See <a class="reference external" href="https://github.com/econ-ark/HARK/pull/921">#921</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/941">#941</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/980">#980</a>.</p></li>
+<li><p>remove “Now” from model variable names <a class="reference external" href="https://github.com/econ-ark/HARK/pull/936">#936</a></p></li>
+<li><p>remove Model.<strong>call</strong>; use Model init in Market and AgentType init to standardize on parameters dictionary <a class="reference external" href="https://github.com/econ-ark/HARK/issues/947">#947</a></p></li>
+<li><p>Moves state MrkvNow to shocks[‘Mrkv’] in AggShockMarkov and KrusellSmith models <a class="reference external" href="https://github.com/econ-ark/HARK/pull/935">#935</a></p></li>
+<li><p>Replaces <code class="docutils literal notranslate"><span class="pre">ConsIndShock</span></code>’s <code class="docutils literal notranslate"><span class="pre">init_lifecycle</span></code> with an actual life-cycle calibration <a class="reference external" href="https://github.com/econ-ark/HARK/pull/951">#951</a>.</p></li>
+</ul>
+</div>
+<div class="section" id="id7">
+<h4>Minor Changes<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Move AgentType constructor parameters docs to class docstring so it is rendered by Sphinx.</p></li>
+<li><p>Remove uses of deprecated time.clock <a class="reference external" href="https://github.com/econ-ark/HARK/pull/887">#887</a></p></li>
+<li><p>Change internal representation of parameters to Distributions to ndarray type</p></li>
+<li><p>Rename IncomeDstn to IncShkDstn</p></li>
+<li><p>AgentType simulate() method now returns history. <a class="reference external" href="https://github.com/econ-ark/HARK/pull/916">#916</a></p></li>
+<li><p>Rename DiscreteDistribution.drawDiscrete() to draw()</p></li>
+<li><p>Update documentation and warnings around IncShkDstn <a class="reference external" href="https://github.com/econ-ark/HARK/pull/955">#955</a></p></li>
+<li><p>Adds csv files to <code class="docutils literal notranslate"><span class="pre">MANIFEST.in</span></code>. <a class="reference external" href="https://github.com/econ-ark/HARK/pull/957">957</a></p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="id8">
+<h3>0.10.8<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: Nov. 05 2020</p>
+<div class="section" id="id9">
+<h4>Major Changes<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Namespace variables for the Market class <a class="reference external" href="https://github.com/econ-ark/HARK/pull/765">#765</a></p></li>
+<li><p>We now have a Numba based implementation of PerfForesightConsumerType model available as PerfForesightConsumerTypeFast <a class="reference external" href="https://github.com/econ-ark/HARK/pull/774">#774</a></p></li>
+<li><p>Namespace for exogenous shocks <a class="reference external" href="https://github.com/econ-ark/HARK/pull/803">#803</a></p></li>
+<li><p>Namespace for controls <a class="reference external" href="https://github.com/econ-ark/HARK/pull/855">#855</a></p></li>
+<li><p>State and poststate attributes replaced with state_now and state_prev namespaces <a class="reference external" href="https://github.com/econ-ark/HARK/pull/836">#836</a></p></li>
+</ul>
+</div>
+<div class="section" id="id10">
+<h4>Minor Changes<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Use shock_history namespace for pre-evaluated shock history <a class="reference external" href="https://github.com/econ-ark/HARK/pull/812">#812</a></p></li>
+<li><p>Fixes seed of PrefShkDstn on initialization and add tests for simulation output</p></li>
+<li><p>Reformat code style using black</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="id11">
+<h3>0.10.7<a class="headerlink" href="#id11" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: 08-08-2020</p>
+<div class="section" id="id12">
+<h4>Major Changes<a class="headerlink" href="#id12" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Add a custom KrusellSmith Model <a class="reference external" href="https://github.com/econ-ark/HARK/pull/762">#762</a></p></li>
+<li><p>Simulations now uses a dictionary <code class="docutils literal notranslate"><span class="pre">history</span></code> to store state history instead of <code class="docutils literal notranslate"><span class="pre">_hist</span></code> attributes <a class="reference external" href="https://github.com/econ-ark/HARK/pull/674">#674</a></p></li>
+<li><p>Removed time flipping and time flow state, “forward/backward time” through data access <a class="reference external" href="https://github.com/econ-ark/HARK/pull/570">#570</a></p></li>
+<li><p>Simulation draw methods are now individual distributions like <code class="docutils literal notranslate"><span class="pre">Uniform</span></code>, <code class="docutils literal notranslate"><span class="pre">Lognormal</span></code>, <code class="docutils literal notranslate"><span class="pre">Weibull</span></code> <a class="reference external" href="https://github.com/econ-ark/HARK/pull/624">#624</a></p></li>
+</ul>
+</div>
+<div class="section" id="id13">
+<h4>Minor Changes<a class="headerlink" href="#id13" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>unpackcFunc is deprecated, use unpack(parameter) to unpack a parameter after solving the model <a class="reference external" href="https://github.com/econ-ark/HARK/pull/784">#784</a></p></li>
+<li><p>Remove deprecated Solution Class, use HARKObject across the codebase <a class="reference external" href="https://github.com/econ-ark/HARK/pull/772">#772</a></p></li>
+<li><p>Add option to find crossing points in the envelope step of DCEGM algorithm <a class="reference external" href="https://github.com/econ-ark/HARK/pull/758">#758</a></p></li>
+<li><p>Fix reset bug in the behaviour of AgentType.resetRNG(), implemented individual resetRNG methods for AgentTypes <a class="reference external" href="https://github.com/econ-ark/HARK/pull/757">#757</a></p></li>
+<li><p>Seeds are set at initialisation of a distribution object rather than draw method <a class="reference external" href="https://github.com/econ-ark/HARK/pull/691">#691</a> <a class="reference external" href="https://github.com/econ-ark/HARK/pull/750">#750</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/729">#729</a></p></li>
+<li><p>Deal with portfolio share of ‘bad’ assets <a class="reference external" href="https://github.com/econ-ark/HARK/pull/749">#749</a></p></li>
+<li><p>Fix bug in make_figs utilities function <a class="reference external" href="https://github.com/econ-ark/HARK/pull/755">#755</a></p></li>
+<li><p>Fix typo bug in Perfect Foresight Model solver <a class="reference external" href="https://github.com/econ-ark/HARK/pull/743">#743</a></p></li>
+<li><p>Add initial support for logging in ConsIndShockModel <a class="reference external" href="https://github.com/econ-ark/HARK/pull/714">#714</a></p></li>
+<li><p>Speed up simulation in AggShockMarkovConsumerType <a class="reference external" href="https://github.com/econ-ark/HARK/pull/702">#702</a></p></li>
+<li><p>Fix logic bug in DiscreteDistribution draw method <a class="reference external" href="https://github.com/econ-ark/HARK/pull/715">#715</a></p></li>
+<li><p>Implemented distributeParams to distributes heterogeneous values of one parameter to a set of agents <a class="reference external" href="https://github.com/econ-ark/HARK/pull/692">#692</a></p></li>
+<li><p>NelderMead is now part of estimation <a class="reference external" href="https://github.com/econ-ark/HARK/pull/693">#693</a></p></li>
+<li><p>Fix typo bug in parallel <a class="reference external" href="https://github.com/econ-ark/HARK/pull/682">#682</a></p></li>
+<li><p>Fix DiscreteDstn to make it work with multivariate distributions <a class="reference external" href="https://github.com/econ-ark/HARK/pull/646">#646</a></p></li>
+<li><p>BayerLuetticke removed from HARK, is now a REMARK <a class="reference external" href="https://github.com/econ-ark/HARK/pull/603">#603</a></p></li>
+<li><p>cstwMPC removed from HARK, is now a REMARK <a class="reference external" href="https://github.com/econ-ark/HARK/pull/666">#666</a></p></li>
+<li><p>SolvingMicroDSOPs removed from HARK, is now a REMARK <a class="reference external" href="https://github.com/econ-ark/HARK/pull/651">#651</a></p></li>
+<li><p>constructLogNormalIncomeProcess is now a method of IndShockConsumerType <a class="reference external" href="https://github.com/econ-ark/HARK/pull/661">#661</a></p></li>
+<li><p>Discretize continuous distributions <a class="reference external" href="https://github.com/econ-ark/HARK/pull/657">#657</a></p></li>
+<li><p>Data used in cstwMPC is now in HARK.datasets <a class="reference external" href="https://github.com/econ-ark/HARK/pull/622">#622</a></p></li>
+<li><p>Refactor checkConditions by adding a checkCondition method instead of writing custom checks for each condition <a class="reference external" href="https://github.com/econ-ark/HARK/pull/568">#568</a></p></li>
+<li><p>Examples update <a class="reference external" href="https://github.com/econ-ark/HARK/pull/768">#768</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/759">#759</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/756">#756</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/727">#727</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/698">#698</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/697">#697</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/561">#561</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/654">#654</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/633">#633</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/775">#775</a></p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="id14">
+<h3>0.10.6<a class="headerlink" href="#id14" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: 17-04-2020</p>
+<div class="section" id="id15">
+<h4>Major Changes<a class="headerlink" href="#id15" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Add Bellman equations for cyclical model example <a class="reference external" href="https://github.com/econ-ark/HARK/pull/600">#600</a></p></li>
+<li><p>read_shocks now reads mortality as well <a class="reference external" href="https://github.com/econ-ark/HARK/pull/613">#613</a></p></li>
+<li><p>Discrete probability distributions are now classes <a class="reference external" href="https://github.com/econ-ark/HARK/pull/610">#610</a></p></li>
+</ul>
+</div>
+<div class="section" id="id16">
+<h4>Minor Changes<a class="headerlink" href="#id16" title="Permalink to this headline">¶</a></h4>
+</div>
+</div>
+<div class="section" id="id17">
+<h3>0.10.5<a class="headerlink" href="#id17" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: 24-03-2020</p>
+<div class="section" id="id18">
+<h4>Major Changes<a class="headerlink" href="#id18" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Default parameters dictionaries for ConsumptionSaving models have been moved from ConsumerParameters to nearby the classes that use them. <a class="reference external" href="https://github.com/econ-ark/HARK/pull/527">#527</a></p></li>
+<li><p>Improvements and cleanup of ConsPortfolioModel, and adding the ability to specify an age-varying list of RiskyAvg and RiskyStd. <a class="reference external" href="https://github.com/econ-ark/HARK/pull/527">#577</a></p></li>
+<li><p>Rewrite and simplification of ConsPortfolioModel solver. <a class="reference external" href="https://github.com/econ-ark/HARK/pull/594">#594</a></p></li>
+</ul>
+</div>
+<div class="section" id="id19">
+<h4>Minor Changes<a class="headerlink" href="#id19" title="Permalink to this headline">¶</a></h4>
+</div>
+</div>
+<div class="section" id="id20">
+<h3>0.10.4<a class="headerlink" href="#id20" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: 05-03-2020</p>
+<div class="section" id="id21">
+<h4>Major Changes<a class="headerlink" href="#id21" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Last release to support Python 2.7, future releases of econ-ark will support Python 3.6+ <a class="reference external" href="https://github.com/econ-ark/HARK/pull/478">#478</a></p></li>
+<li><p>Move non-reusable model code to examples directory, BayerLuetticke, FashionVictim now in examples instead of in HARK code <a class="reference external" href="https://github.com/econ-ark/HARK/pull/442">#442</a></p></li>
+<li><p>Load default parameters for ConsumptionSaving models <a class="reference external" href="https://github.com/econ-ark/HARK/pull/466">#466</a></p></li>
+<li><p>Improved implementaion of parallelNelderMead <a class="reference external" href="https://github.com/econ-ark/HARK/pull/300">#300</a></p></li>
+</ul>
+</div>
+<div class="section" id="id22">
+<h4>Minor Changes<a class="headerlink" href="#id22" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Notebook utility functions for determining platform, GUI, latex (installation) are available in HARK.utilities <a class="reference external" href="https://github.com/econ-ark/HARK/pull/512">#512</a></p></li>
+<li><p>Few DemARKs moved to examples <a class="reference external" href="https://github.com/econ-ark/HARK/pull/472">#472</a></p></li>
+<li><p>MaxKinks available in ConsumerParameters again <a class="reference external" href="https://github.com/econ-ark/HARK/pull/486">#486</a></p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="id23">
+<h3>0.10.3<a class="headerlink" href="#id23" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: 12-12-2019</p>
+<div class="section" id="id24">
+<h4>Major Changes<a class="headerlink" href="#id24" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Added constrained perfect foresight model solution. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/299">#299</a></p></li>
+</ul>
+</div>
+<div class="section" id="id25">
+<h4>Minor Changes<a class="headerlink" href="#id25" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Fixed slicing error in minimizeNelderMead. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/460">#460</a>)</p></li>
+<li><p>Fixed matplotlib GUI error. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/444">#444</a>)</p></li>
+<li><p>Pinned sphinx dependency. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/436">#436</a>)</p></li>
+<li><p>Fixed bug in ConsPortfolioModel in which the same risky rate of return would be drawn over and over. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/433">#433</a>)</p></li>
+<li><p>Fixed sphinx dependency errors. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/411">#411</a>)</p></li>
+<li><p>Refactored simultation.py. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/408">#408</a>)</p></li>
+<li><p>AgentType.simulate() now throws informative errors if
+attributes required for simulation do not exist, or initializeSim() has
+never been called. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/320">#320</a>)</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="id26">
+<h3>0.10.2<a class="headerlink" href="#id26" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: 10-03-2019</p>
+<div class="section" id="id27">
+<h4>Minor Changes<a class="headerlink" href="#id27" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Add some bugfixes and unit tests to HARK.core. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/401">#401</a>)</p></li>
+<li><p>Fix error in discrete portfolio choice’s AdjustPrb. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/391">#391</a>)</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="dev5">
+<h3>0.10.1.dev5<a class="headerlink" href="#dev5" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: 09-25-2019</p>
+<div class="section" id="id28">
+<h4>Minor Changes<a class="headerlink" href="#id28" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Added portfolio choice between risky and safe assets (ConsPortfolioModel). (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/241">#241</a>)</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="dev4">
+<h3>0.10.1.dev4<a class="headerlink" href="#dev4" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: 09-19-2019</p>
+<div class="section" id="id29">
+<h4>Minor Changes<a class="headerlink" href="#id29" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Fixes cubic interpolation in KinkedRSolver. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/386">#386</a>)</p></li>
+<li><p>Documentes the procedure for constructing value function inverses and fixes bug in which survival rate was not included in absolute patience factor. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/383">#383</a>)</p></li>
+<li><p>Fixes problems that sometimes prevented multiprocessing from working. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/377">#377</a>)</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="dev3">
+<h3>0.10.1.dev3<a class="headerlink" href="#dev3" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: 07-23-2019</p>
+<div class="section" id="id30">
+<h4>Minor Changes<a class="headerlink" href="#id30" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Missed pre-solve fix (see <a class="reference external" href="https://github.com/econ-ark/HARK/pull/363">#363</a> for more context). (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/367">#367</a>)</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="dev2">
+<h3>0.10.1.dev2<a class="headerlink" href="#dev2" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: 07-22-2019</p>
+<div class="section" id="id31">
+<h4>Minor Changes<a class="headerlink" href="#id31" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Revert pre-solve commit due to bug.  (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/363">#363</a>)</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="dev1">
+<h3>0.10.1.dev1<a class="headerlink" href="#dev1" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: 07-20-2019</p>
+<div class="section" id="breaking-changes">
+<h4>Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>See #302 under minor changes.</p></li>
+</ul>
+</div>
+<div class="section" id="id32">
+<h4>Major Changes<a class="headerlink" href="#id32" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Adds BayerLuetticke notebooks and functionality. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/328">#328</a>)</p></li>
+</ul>
+</div>
+<div class="section" id="id33">
+<h4>Minor Changes<a class="headerlink" href="#id33" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Fixes one-asset HANK models for endowment economy (had MP wired in as the shock). (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/355">#355</a>)</p></li>
+<li><p>Removes jupytext *.py files. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/354">#354</a>)</p></li>
+<li><p>Reorganizes documentation and configures it to work with Read the Docs. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/353">#353</a>)</p></li>
+<li><p>Adds notebook illustrating dimensionality reduction in Bayer and Luetticke. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/345">#345</a>)</p></li>
+<li><p>Adds notebook illustrating how the Bayer &amp; Luetticke invoke the discrete cosine transformation(DCT) and fixed copula to reduce dimensions of the problem.(<a class="reference external" href="https://github.com/econ-ark/HARK/pull/344">#344</a>)</p></li>
+<li><p>Makes BayerLuetticke HANK tools importable as a module. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/342">#342</a>)</p></li>
+<li><p>Restores functionality of SGU_solver. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/341">#341</a>)</p></li>
+<li><p>Fixes datafile packaging issue. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/332">#332</a>)</p></li>
+<li><p>Deletes .py file from Bayer-Luetticke folder. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/329">#329</a>)</p></li>
+<li><p>Add an empty method for preSolve called checkRestrictions that can be overwritten in classes inheriting from AgentType to check for illegal parameter values. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/324">#324</a>)</p></li>
+<li><p>Adds a call to updateIncomeProcess() in preSolve() to avoid solutions being based on wrong income process specifications if some parameters change between two solve() calls. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/323">#323</a>)</p></li>
+<li><p>Makes checkConditions() less verbose when the checks are not actually performed by converting a print statement to an inline comment. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/321">#321</a>)</p></li>
+<li><p>Raises more readable exception when simultate() is called without solving first. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/315">#315</a>)</p></li>
+<li><p>Removes testing folder (part of ongoing test restructuring). (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/304">#304</a>)</p></li>
+<li><p>Fixes unintended behavior in default simDeath(). Previously, all agents would die off in the first period, but they were meant to always survive. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/302">#302</a>) <strong>Warning</strong>: Potentially breaking change.</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="id34">
+<h3>0.10.1<a class="headerlink" href="#id34" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: 05-30-2019</p>
+<p>No changes from 0.10.0.dev3.</p>
+</div>
+<div class="section" id="id35">
+<h3>0.10.0.dev3<a class="headerlink" href="#id35" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: 05-18-2019</p>
+<div class="section" id="id36">
+<h4>Major Changes<a class="headerlink" href="#id36" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Fixes multithreading problems by using Parallels(backend=’multiprocessing’). (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/287">287</a>)</p></li>
+<li><p>Fixes bug caused by misapplication of check_conditions. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/284">284</a>)</p></li>
+<li><p>Adds functions to calculate quadrature nodes and weights for numerically evaluating expectations in the presence of (log-)normally distributed random variables. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/258">258</a>)</p></li>
+</ul>
+</div>
+<div class="section" id="id37">
+<h4>Minor Changes<a class="headerlink" href="#id37" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Adds method decorator which validates that arguments passed in are not empty. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/282">282</a></p></li>
+<li><p>Lints a variety of files.  These PRs include some additional/related minor changes, like replacing an exec function, removing some lambdas, adding some files to .gitignore, etc. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/274">274</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/276">276</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/277">277</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/278">278</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/281">281</a>)</p></li>
+<li><p>Adds vim swp files to gitignore. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/269">269</a>)</p></li>
+<li><p>Adds version dunder in init. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/265">265</a>)</p></li>
+<li><p>Adds flake8 to requirements.txt and config. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/261">261</a>)</p></li>
+<li><p>Adds some unit tests for IndShockConsumerType. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/256">256</a>)</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="id38">
+<h3>0.10.0.dev2<a class="headerlink" href="#id38" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: 04-18-2019</p>
+<div class="section" id="id39">
+<h4>Major Changes<a class="headerlink" href="#id39" title="Permalink to this headline">¶</a></h4>
+<p>None</p>
+</div>
+<div class="section" id="id40">
+<h4>Minor Changes<a class="headerlink" href="#id40" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Fix verbosity check in ConsIndShockModel. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/250">250</a>)</p></li>
+</ul>
+</div>
+<div class="section" id="other-changes">
+<h4>Other Changes<a class="headerlink" href="#other-changes" title="Permalink to this headline">¶</a></h4>
+<p>None</p>
+</div>
+</div>
+<div class="section" id="id41">
+<h3>0.10.0.dev1<a class="headerlink" href="#id41" title="Permalink to this headline">¶</a></h3>
+<p>Release Date: 04-12-2019</p>
+<div class="section" id="id42">
+<h4>Major Changes<a class="headerlink" href="#id42" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Adds <a class="reference external" href="https://github.com/econ-ark/HARK/blob/master/HARK/dcegm.py">tools</a> to solve problems that arise from the interaction of discrete and continuous variables, using the <a class="reference external" href="https://github.com/econ-ark/DemARK/blob/master/notebooks/DCEGM-Upper-Envelope.ipynb">DCEGM</a> method of <a class="reference external" href="https://onlinelibrary.wiley.com/doi/abs/10.3982/QE643">Iskhakov et al.</a>, who apply the their discrete-continuous solution algorithm to the problem of optimal endogenous retirement; their results are replicated using our new tool <a class="reference external" href="https://github.com/econ-ark/REMARK/blob/master/REMARKs/EndogenousRetirement/Endogenous-Retirement.ipynb">here</a>. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/226">226</a>)</p></li>
+<li><p>Parameters of ConsAggShockModel.CobbDouglasEconomy.updateAFunc and ConsAggShockModel.CobbDouglasMarkovEconomy.updateAFunc that govern damping and the number of discarded ‘burn-in’ periods were previously hardcoded, now proper instance-level parameters. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/244">244</a>)</p></li>
+<li><p>Improve accuracy and performance of functions for evaluating the integrated value function and conditional choice probabilities for models with extreme value type I taste shocks. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/242">242</a>)</p></li>
+<li><p>Add calcLogSum, calcChoiceProbs, calcLogSumChoiceProbs to HARK.interpolation. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/209">209</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/217">217</a>)</p></li>
+<li><p>Create tool to produce an example “template” of a REMARK based on SolvingMicroDSOPs. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/176">176</a>)</p></li>
+</ul>
+</div>
+<div class="section" id="id43">
+<h4>Minor Changes<a class="headerlink" href="#id43" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Moved old utilities tests. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/245">245</a>)</p></li>
+<li><p>Deleted old files related to “cstwMPCold”. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/239">239</a>)</p></li>
+<li><p>Set numpy floating point error level to ignore. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/238">238</a>)</p></li>
+<li><p>Fixed miscellaneous imports. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/212">212</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/224">224</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/225">225</a>)</p></li>
+<li><p>Improve the tests of buffer stock model impatience conditions in IndShockConsumerType. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/219">219</a>)</p></li>
+<li><p>Add basic support for Travis continuous integration testing. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/208">208</a>)</p></li>
+<li><p>Add SciPy to requirements.txt. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/207">207</a>)</p></li>
+<li><p>Fix indexing bug in bilinear interpolation. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/194">194</a>)</p></li>
+<li><p>Update the build process to handle Python 2 and 3 compatibility. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/172">172</a>)</p></li>
+<li><p>Add MPCnow attribute to ConsGenIncProcessModel. (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/170">170</a>)</p></li>
+<li><p>All standalone demo files have been removed. The content that was in these files can now be found in similarly named Jupyter notebooks in the DEMARK repository. Some of these notebooks are also linked from econ-ark.org.  (<a class="reference external" href="https://github.com/econ-ark/HARK/pull/229">229</a>, <a class="reference external" href="https://github.com/econ-ark/HARK/pull/243">243</a>)</p></li>
+</ul>
+</div>
+<div class="section" id="other-notes">
+<h4>Other Notes<a class="headerlink" href="#other-notes" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li><p>Not all changes from 0.9.1 may be listed in these release notes.  If you are having trouble addressing a breaking change, please reach out to us.</p></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2020, Econ-ARK team.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,575 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>ConsLaborModel &mdash; HARK latest documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> HARK
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                latest
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">ConsLaborModel</a></li>
+</ul>
+</div>
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">HARK</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>ConsLaborModel</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../_sources/reference/ConsumptionSaving/ConsLaborModel.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="module-HARK.ConsumptionSaving.ConsLaborModel">
+<span id="conslabormodel"></span><h1>ConsLaborModel<a class="headerlink" href="#module-HARK.ConsumptionSaving.ConsLaborModel" title="Permalink to this headline">¶</a></h1>
+<p>Subclasses of AgentType representing consumers who make decisions about how much
+labor to supply, as well as a consumption-saving decision.</p>
+<p>It currently only has
+one model: labor supply on the intensive margin (unit interval) with CRRA utility
+from a composite good (of consumption and leisure), with transitory and permanent
+productivity shocks.  Agents choose their quantities of labor and consumption after
+observing both of these shocks, so the transitory shock is a state variable.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.ConsumerLaborSolution">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsLaborModel.</span></span><span class="sig-name descname"><span class="pre">ConsumerLaborSolution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LbrFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vPfunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bNrmMin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.ConsumerLaborSolution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../tools/core.html#HARK.core.MetricObject" title="HARK.core.MetricObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.core.MetricObject</span></code></a></p>
+<p>A class for representing one period of the solution to a Consumer Labor problem.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cFunc</strong> (<em>function</em>) – The consumption function for this period, defined over normalized
+bank balances and the transitory productivity shock: cNrm = cFunc(bNrm,TranShk).</p></li>
+<li><p><strong>LbrFunc</strong> (<em>function</em>) – The labor supply function for this period, defined over normalized
+bank balances 0.751784276198: Lbr = LbrFunc(bNrm,TranShk).</p></li>
+<li><p><strong>vFunc</strong> (<em>function</em>) – The beginning-of-period value function for this period, defined over
+normalized bank balances 0.751784276198: v = vFunc(bNrm,TranShk).</p></li>
+<li><p><strong>vPfunc</strong> (<em>function</em>) – The beginning-of-period marginal value (of bank balances) function for
+this period, defined over normalized bank balances 0.751784276198: vP = vPfunc(bNrm,TranShk).</p></li>
+<li><p><strong>bNrmMin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – The minimum allowable bank balances for this period, as a function of
+the transitory shock. cFunc, LbrFunc, etc are undefined for bNrm &lt; bNrmMin(TranShk).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.ConsumerLaborSolution.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['cFunc',</span> <span class="pre">'LbrFunc']</span></em><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.ConsumerLaborSolution.distance_criteria" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsLaborModel.</span></span><span class="sig-name descname"><span class="pre">LaborIntMargConsumerType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ConsIndShockModel.html#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType" title="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType</span></code></a></p>
+<p>A class representing agents who make a decision each period about how much
+to consume vs save and how much labor to supply (as a fraction of their time).
+They get CRRA utility from a composite good x_t = c_t*z_t^alpha, and discount
+future utility flows at a constant factor.</p>
+<p>See init_labor_intensive for a dictionary of
+the keywords that should be passed to the constructor.
+Same parameters as AgentType.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.calc_bounding_values">
+<span class="sig-name descname"><span class="pre">calc_bounding_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.calc_bounding_values" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate human wealth plus minimum and maximum MPC in an infinite
+horizon model with only one period repeated indefinitely.  Store results
+as attributes of self.  Human wealth is the present discounted value of
+expected future income after receiving income this period, ignoring mort-
+ality.  The maximum MPC is the limit of the MPC as m –&gt; mNrmMin.  The
+minimum MPC is the limit of the MPC as m –&gt; infty.</p>
+<p>NOT YET IMPLEMENTED FOR THIS CLASS</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.get_controls">
+<span class="sig-name descname"><span class="pre">get_controls</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.get_controls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates consumption and labor supply for each consumer of this type
+using the consumption and labor functions in each period of the cycle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.get_poststates">
+<span class="sig-name descname"><span class="pre">get_poststates</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.get_poststates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates end-of-period assets for each consumer of this type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.get_states">
+<span class="sig-name descname"><span class="pre">get_states</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.get_states" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates updated values of normalized bank balances and permanent income
+level for each agent.  Uses pLvlNow, aNrmNow, PermShkNow.  Calls the get_states
+method for the parent class, then erases mNrmNow, which cannot be calculated
+until after get_controls in this model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.make_euler_error_func">
+<span class="sig-name descname"><span class="pre">make_euler_error_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mMax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">approx_inc_dstn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.make_euler_error_func" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a “normalized Euler error” function for this instance, mapping
+from market resources to “consumption error per dollar of consumption.”
+Stores result in attribute eulerErrorFunc as an interpolated function.
+Has option to use approximate income distribution stored in self.IncShkDstn
+or to use a (temporary) very dense approximation.</p>
+<p>NOT YET IMPLEMENTED FOR THIS CLASS</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Maximum normalized market resources for the Euler error function.</p></li>
+<li><p><strong>approx_inc_dstn</strong> (<em>Boolean</em>) – Indicator for whether to use the approximate discrete income distri-
+bution stored in self.IncShkDstn[0], or to use a very accurate
+discrete approximation instead.  When True, uses approximation in
+IncShkDstn; when False, makes and uses a very dense approximation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This method is not used by any other code in the library. Rather, it is here
+for expository and benchmarking purposes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.plot_LbrFunc">
+<span class="sig-name descname"><span class="pre">plot_LbrFunc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bMin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bMax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShkSet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.plot_LbrFunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the labor supply function by bank balances at a given set of transitory shocks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Time index of the solution for which to plot the labor supply function.</p></li>
+<li><p><strong>bMin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – Minimum value of bNrm at which to begin the plot.  If None, defaults
+to the minimum allowable value of bNrm for each transitory shock.</p></li>
+<li><p><strong>bMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – Maximum value of bNrm at which to end the plot.  If None, defaults
+to bMin + 20.</p></li>
+<li><p><strong>ShkSet</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em>] or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – Array or list of transitory shocks at which to plot the labor supply
+function.  If None, defaults to the TranShkGrid for this time period.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.plot_cFunc">
+<span class="sig-name descname"><span class="pre">plot_cFunc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bMin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bMax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShkSet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.plot_cFunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the consumption function by bank balances at a given set of transitory shocks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Time index of the solution for which to plot the consumption function.</p></li>
+<li><p><strong>bMin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – Minimum value of bNrm at which to begin the plot.  If None, defaults
+to the minimum allowable value of bNrm for each transitory shock.</p></li>
+<li><p><strong>bMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – Maximum value of bNrm at which to end the plot.  If None, defaults
+to bMin + 20.</p></li>
+<li><p><strong>ShkSet</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em>] or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – Array or list of transitory shocks at which to plot the consumption
+function.  If None, defaults to the TranShkGrid for this time period.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.time_inv_">
+<span class="sig-name descname"><span class="pre">time_inv_</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['CRRA',</span> <span class="pre">'Rfree',</span> <span class="pre">'DiscFac',</span> <span class="pre">'BoroCnstArt',</span> <span class="pre">'BoroCnstArt',</span> <span class="pre">'vFuncBool',</span> <span class="pre">'CubicBool']</span></em><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.time_inv_" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.time_vary_">
+<span class="sig-name descname"><span class="pre">time_vary_</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['LivPrb',</span> <span class="pre">'PermGroFac',</span> <span class="pre">'WageRte']</span></em><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.time_vary_" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the income process, the assets grid, and the terminal solution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.update_LbrCost">
+<span class="sig-name descname"><span class="pre">update_LbrCost</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.update_LbrCost" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the age-varying cost of working LbrCost using the attribute LbrCostCoeffs.
+This attribute should be a 1D array of arbitrary length, representing polynomial
+coefficients (over t_cycle) for (log) LbrCost.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.update_TranShkGrid">
+<span class="sig-name descname"><span class="pre">update_TranShkGrid</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.update_TranShkGrid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a time-varying list of arrays for TranShkGrid using TranShkDstn,
+which is created by the method update_income_process().  Simply takes the
+transitory shock values and uses them as a state grid; can be improved.
+Creates the attribute TranShkGrid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.update_solution_terminal">
+<span class="sig-name descname"><span class="pre">update_solution_terminal</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.LaborIntMargConsumerType.update_solution_terminal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the terminal period solution and solves for optimal consumption
+and labor when there is no future.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsLaborModel.solve_ConsLaborIntMarg">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsLaborModel.</span></span><span class="sig-name descname"><span class="pre">solve_ConsLaborIntMarg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PermShkDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TranShkDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LivPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rfree</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PermGroFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">BoroCnstArt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aXtraGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TranShkGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFuncBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CubicBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">WageRte</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LbrCost</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsLaborModel.solve_ConsLaborIntMarg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solves one period of the consumption-saving model with endogenous labor supply
+on the intensive margin by using the endogenous grid method to invert the first
+order conditions for optimal composite consumption and between consumption and
+leisure, obviating any search for optimal controls.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solution_next</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsLaborModel.ConsumerLaborSolution" title="HARK.ConsumptionSaving.ConsLaborModel.ConsumerLaborSolution"><em>ConsumerLaborSolution</em></a>) – The solution to the next period’s problem; must have the attributes
+vPfunc and bNrmMinFunc representing marginal value of bank balances and
+minimum (normalized) bank balances as a function of the transitory shock.</p></li>
+<li><p><strong>PermShkDstn</strong> (<em>[</em><em>np.array</em><em>]</em>) – Discrete distribution of permanent productivity shocks.</p></li>
+<li><p><strong>TranShkDstn</strong> (<em>[</em><em>np.array</em><em>]</em>) – Discrete distribution of transitory productivity shocks.</p></li>
+<li><p><strong>LivPrb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Survival probability; likelihood of being alive at the beginning of
+the succeeding period.</p></li>
+<li><p><strong>DiscFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Intertemporal discount factor.</p></li>
+<li><p><strong>CRRA</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Coefficient of relative risk aversion over the composite good.</p></li>
+<li><p><strong>Rfree</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Risk free interest rate on assets retained at the end of the period.</p></li>
+<li><p><strong>PermGroFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Expected permanent income growth factor for next period.</p></li>
+<li><p><strong>BoroCnstArt</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – Borrowing constraint for the minimum allowable assets to end the
+period with.  Currently not handled, must be None.</p></li>
+<li><p><strong>aXtraGrid</strong> (<em>np.array</em>) – Array of “extra” end-of-period asset values– assets above the
+absolute minimum acceptable level.</p></li>
+<li><p><strong>TranShkGrid</strong> (<em>np.array</em>) – Grid of transitory shock values to use as a state grid for interpolation.</p></li>
+<li><p><strong>vFuncBool</strong> (<em>boolean</em>) – An indicator for whether the value function should be computed and
+included in the reported solution.  Not yet handled, must be False.</p></li>
+<li><p><strong>CubicBool</strong> (<em>boolean</em>) – An indicator for whether the solver should use cubic or linear interpolation.
+Cubic interpolation is not yet handled, must be False.</p></li>
+<li><p><strong>WageRte</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Wage rate per unit of labor supplied.</p></li>
+<li><p><strong>LbrCost</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Cost parameter for supplying labor: u_t = U(x_t), x_t = c_t*z_t^LbrCost,
+where z_t is leisure = 1 - Lbr_t.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>solution_now</strong> – The solution to this period’s problem, including a consumption function
+cFunc, a labor supply function LbrFunc, and a marginal value function vPfunc;
+each are defined over normalized bank balances and transitory prod shock.
+Also includes bNrmMinNow, the minimum permissible bank balances as a function
+of the transitory productivity shock.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.ConsumptionSaving.ConsLaborModel.ConsumerLaborSolution" title="HARK.ConsumptionSaving.ConsLaborModel.ConsumerLaborSolution">ConsumerLaborSolution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2020, Econ-ARK team.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

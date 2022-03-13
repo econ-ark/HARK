@@ -1,0 +1,1165 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Core &mdash; HARK latest documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> HARK
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                latest
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">Core</a></li>
+</ul>
+</div>
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">HARK</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Core</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../_sources/reference/tools/core.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="module-HARK.core">
+<span id="core"></span><h1>Core<a class="headerlink" href="#module-HARK.core" title="Permalink to this headline">¶</a></h1>
+<p>High-level functions and classes for solving a wide variety of economic models.
+The “core” of HARK is a framework for “microeconomic” and “macroeconomic”
+models.  A micro model concerns the dynamic optimization problem for some type
+of agents, where agents take the inputs to their problem as exogenous.  A macro
+model adds an additional layer, endogenizing some of the inputs to the micro
+problem by finding a general equilibrium dynamic rule.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.core.AgentType">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.core.</span></span><span class="sig-name descname"><span class="pre">AgentType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pseudo_terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.core.Model" title="HARK.core.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.core.Model</span></code></a></p>
+<p>A superclass for economic agents in the HARK framework. Each model should
+specify its own subclass of AgentType, inheriting its methods and overwriting
+as necessary.  Critically, every subclass of AgentType should define class-
+specific static values of the attributes time_vary and time_inv as lists of
+strings.  Each element of time_vary is the name of a field in AgentSubType
+that varies over time in the model.  Each element of time_inv is the name of
+a field in AgentSubType that is constant over time in the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solution_terminal</strong> (<em>Solution</em>) – A representation of the solution to the terminal period problem of
+this AgentType instance, or an initial guess of the solution if this
+is an infinite horizon problem.</p></li>
+<li><p><strong>cycles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The number of times the sequence of periods is experienced by this
+AgentType in their “lifetime”.  cycles=1 corresponds to a lifecycle
+model, with a certain sequence of one period problems experienced
+once before terminating.  cycles=0 corresponds to an infinite horizon
+model, with a sequence of one period problems repeating indefinitely.</p></li>
+<li><p><strong>pseudo_terminal</strong> (<em>boolean</em>) – Indicates whether solution_terminal isn’t actually part of the
+solution to the problem (as a known solution to the terminal period
+problem), but instead represents a “scrap value”-style termination.
+When True, solution_terminal is not included in the solution; when
+false, solution_terminal is the last element of the solution.</p></li>
+<li><p><strong>tolerance</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Maximum acceptable “distance” between successive solutions to the
+one period problem in an infinite horizon (cycles=0) model in order
+for the solution to be considered as having “converged”.  Inoperative
+when cycles&gt;0.</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – A seed for this instance’s random number generator.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.core.AgentType.AgentCount">
+<span class="sig-name descname"><span class="pre">AgentCount</span></span><a class="headerlink" href="#HARK.core.AgentType.AgentCount" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of agents of this type to use in simulation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.core.AgentType.state_vars">
+<span class="sig-name descname"><span class="pre">state_vars</span></span><a class="headerlink" href="#HARK.core.AgentType.state_vars" title="Permalink to this definition">¶</a></dt>
+<dd><p>The string labels for this AgentType’s model state variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>list of string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.add_to_time_inv">
+<span class="sig-name descname"><span class="pre">add_to_time_inv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.add_to_time_inv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds any number of parameters to time_inv for this instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>params</strong> (<em>string</em>) – Any number of strings naming attributes to be added to time_inv</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.add_to_time_vary">
+<span class="sig-name descname"><span class="pre">add_to_time_vary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.add_to_time_vary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds any number of parameters to time_vary for this instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>params</strong> (<em>string</em>) – Any number of strings naming attributes to be added to time_vary</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.check_elements_of_time_vary_are_lists">
+<span class="sig-name descname"><span class="pre">check_elements_of_time_vary_are_lists</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.check_elements_of_time_vary_are_lists" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method to check that elements of time_vary are lists.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.check_restrictions">
+<span class="sig-name descname"><span class="pre">check_restrictions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.check_restrictions" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method to check that various restrictions are met for the model class.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.clear_history">
+<span class="sig-name descname"><span class="pre">clear_history</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.clear_history" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clears the histories of the attributes named in self.track_vars.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.del_from_time_inv">
+<span class="sig-name descname"><span class="pre">del_from_time_inv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.del_from_time_inv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes any number of parameters from time_inv for this instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>params</strong> (<em>string</em>) – Any number of strings naming attributes to be removed from time_inv</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.del_from_time_vary">
+<span class="sig-name descname"><span class="pre">del_from_time_vary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.del_from_time_vary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes any number of parameters from time_vary for this instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>params</strong> (<em>string</em>) – Any number of strings naming attributes to be removed from time_vary</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.get_controls">
+<span class="sig-name descname"><span class="pre">get_controls</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.get_controls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets values of control variables for the current period, probably by using current states.
+Does nothing by default, but can be overwritten by subclasses of AgentType.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.get_mortality">
+<span class="sig-name descname"><span class="pre">get_mortality</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.get_mortality" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulates mortality or agent turnover according to some model-specific rules named sim_death
+and sim_birth (methods of an AgentType subclass).  sim_death takes no arguments and returns
+a Boolean array of size AgentCount, indicating which agents of this type have “died” and
+must be replaced.  sim_birth takes such a Boolean array as an argument and generates initial
+post-decision states for those agent indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.get_poststates">
+<span class="sig-name descname"><span class="pre">get_poststates</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.get_poststates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets values of post-decision state variables for the current period,
+probably by current
+states and controls and maybe market-level events or shock variables.
+Does nothing by
+default, but can be overwritten by subclasses of AgentType.</p>
+<p>DEPRECATED: New models should use the state now/previous rollover
+functionality instead of poststates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.get_shocks">
+<span class="sig-name descname"><span class="pre">get_shocks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.get_shocks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets values of shock variables for the current period.  Does nothing by default, but can
+be overwritten by subclasses of AgentType.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.get_states">
+<span class="sig-name descname"><span class="pre">get_states</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.get_states" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets values of state variables for the current period.
+By default, calls transition function and assigns values
+to the state_now dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.initialize_sim">
+<span class="sig-name descname"><span class="pre">initialize_sim</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.initialize_sim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepares this AgentType for a new simulation.  Resets the internal random number generator,
+makes initial states for all agents (using sim_birth), clears histories of tracked variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.make_shock_history">
+<span class="sig-name descname"><span class="pre">make_shock_history</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.make_shock_history" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes a pre-specified history of shocks for the simulation.  Shock variables should be named
+in self.shock_vars, a list of strings that is subclass-specific.  This method runs a subset
+of the standard simulation loop by simulating only mortality and shocks; each variable named
+in shock_vars is stored in a T_sim x AgentCount array in history dictionary self.history[X].
+Automatically sets self.read_shocks to True so that these pre-specified shocks are used for
+all subsequent calls to simulate().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.post_solve">
+<span class="sig-name descname"><span class="pre">post_solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.post_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method that is run immediately after the model is solved, to finalize
+the solution in some way.  Does nothing here.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.pre_solve">
+<span class="sig-name descname"><span class="pre">pre_solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.pre_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method that is run immediately before the model is solved, to check inputs or to prepare
+the terminal solution, perhaps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.read_shocks_from_history">
+<span class="sig-name descname"><span class="pre">read_shocks_from_history</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.read_shocks_from_history" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads values of shock variables for the current period from history arrays.
+For each variable X named in self.shock_vars, this attribute of self is
+set to self.history[X][self.t_sim,:].</p>
+<p>This method is only ever called if self.read_shocks is True.  This can
+be achieved by using the method make_shock_history() (or manually after
+storing a “handcrafted” shock history).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.reset_rng">
+<span class="sig-name descname"><span class="pre">reset_rng</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.reset_rng" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset the random number generator for this type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.sim_birth">
+<span class="sig-name descname"><span class="pre">sim_birth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">which_agents</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.sim_birth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes new agents for the simulation.  Takes a boolean array as an input, indicating which
+agent indices are to be “born”.  Does nothing by default, must be overwritten by a subclass.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>which_agents</strong> (<em>np.array</em><em>(</em><em>Bool</em><em>)</em>) – Boolean array of size self.AgentCount indicating which agents should be “born”.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.sim_death">
+<span class="sig-name descname"><span class="pre">sim_death</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.sim_death" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines which agents in the current population “die” or should be replaced.  Takes no
+inputs, returns a Boolean array of size self.AgentCount, which has True for agents who die
+and False for those that survive. Returns all False by default, must be overwritten by a
+subclass to have replacement events.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>who_dies</strong> – Boolean array of size self.AgentCount indicating which agents die and are replaced.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.sim_one_period">
+<span class="sig-name descname"><span class="pre">sim_one_period</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.sim_one_period" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulates one period for this type.  Calls the methods get_mortality(), get_shocks() or
+read_shocks, get_states(), get_controls(), and get_poststates().  These should be defined for
+AgentType subclasses, except get_mortality (define its components sim_death and sim_birth
+instead) and read_shocks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.simulate">
+<span class="sig-name descname"><span class="pre">simulate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_periods</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.simulate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulates this agent type for a given number of periods. Defaults to
+self.T_sim if no input.
+Records histories of attributes named in self.track_vars in
+self.history[varname].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>history</strong> – The history tracked during the simulation.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solve the model for this instance of an agent type by backward induction.
+Loops through the sequence of one period problems, passing the solution
+from period t+1 to the problem for period t.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>verbose</strong> (<em>boolean</em>) – If True, solution progress is printed to screen.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">state_vars</span></span><em class="property"> <span class="pre">=</span> <span class="pre">[]</span></em><a class="headerlink" href="#id0" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.transition">
+<span class="sig-name descname"><span class="pre">transition</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.transition" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>None</strong> – </p></li>
+<li><p><strong>[</strong><strong>Eventually</strong> – </p></li>
+<li><p><strong>spec</strong> (<em>to match dolo</em>) – </p></li>
+<li><p><strong>exogenous_prev</strong> – </p></li>
+<li><p><strong>endogenous_prev</strong> – </p></li>
+<li><p><strong>controls</strong> – </p></li>
+<li><p><strong>exogenous</strong> – </p></li>
+<li><p><strong>parameters</strong><strong>]</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>endogenous_state</strong> – Tuple with new values of the endogenous states</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>()</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.AgentType.unpack">
+<span class="sig-name descname"><span class="pre">unpack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameter</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.AgentType.unpack" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unpacks a parameter from a solution object for easier access.
+After the model has been solved, the parameters (like consumption function)
+reside in the attributes of each element of <cite>ConsumerType.solution</cite>
+(e.g. <cite>cFunc</cite>).  This method creates a (time varying) attribute of the given
+parameter name that contains a list of functions accessible by <cite>ConsumerType.parameter</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>parameter</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – Name of the function to unpack from the solution</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.core.Market">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.core.</span></span><span class="sig-name descname"><span class="pre">Market</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sow_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reap_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">const_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">track_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dyn_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mill_rule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calc_dynamics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_T</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.Market" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.core.Model" title="HARK.core.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.core.Model</span></code></a></p>
+<p>A superclass to represent a central clearinghouse of information.  Used for
+dynamic general equilibrium models to solve the “macroeconomic” model as a
+layer on top of the “microeconomic” models of one or more AgentTypes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agents</strong> (<em>[</em><a class="reference internal" href="#HARK.core.AgentType" title="HARK.core.AgentType"><em>AgentType</em></a><em>]</em>) – A list of all the AgentTypes in this market.</p></li>
+<li><p><strong>sow_vars</strong> (<em>[</em><em>string</em><em>]</em>) – Names of variables generated by the “aggregate market process” that should
+be “sown” to the agents in the market.  Aggregate state, etc.</p></li>
+<li><p><strong>reap_vars</strong> (<em>[</em><em>string</em><em>]</em>) – Names of variables to be collected (“reaped”) from agents in the market
+to be used in the “aggregate market process”.</p></li>
+<li><p><strong>const_vars</strong> (<em>[</em><em>string</em><em>]</em>) – Names of attributes of the Market instance that are used in the “aggregate
+market process” but do not come from agents– they are constant or simply
+parameters inherent to the process.</p></li>
+<li><p><strong>track_vars</strong> (<em>[</em><em>string</em><em>]</em>) – Names of variables generated by the “aggregate market process” that should
+be tracked as a “history” so that a new dynamic rule can be calculated.
+This is often a subset of sow_vars.</p></li>
+<li><p><strong>dyn_vars</strong> (<em>[</em><em>string</em><em>]</em>) – Names of variables that constitute a “dynamic rule”.</p></li>
+<li><p><strong>mill_rule</strong> (<em>function</em>) – A function that takes inputs named in reap_vars and returns a tuple the same size and order as sow_vars.  The “aggregate market process” that
+transforms individual agent actions/states/data into aggregate data to
+be sent back to agents.</p></li>
+<li><p><strong>calc_dynamics</strong> (<em>function</em>) – A function that takes inputs named in track_vars and returns an object
+with attributes named in dyn_vars.  Looks at histories of aggregate
+variables and generates a new “dynamic rule” for agents to believe and
+act on.</p></li>
+<li><p><strong>act_T</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The number of times that the “aggregate market process” should be run
+in order to generate a history of aggregate variables.</p></li>
+<li><p><strong>tolerance</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Minimum acceptable distance between “dynamic rules” to consider the
+Market solution process converged.  Distance is a user-defined metric.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.Market.cultivate">
+<span class="sig-name descname"><span class="pre">cultivate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.Market.cultivate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Has each AgentType in agents perform their market_action method, using
+variables sown from the market (and maybe also “private” variables).
+The market_action method should store new results in attributes named in
+reap_vars to be reaped later.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.Market.make_history">
+<span class="sig-name descname"><span class="pre">make_history</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.Market.make_history" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs a loop of sow–&gt;cultivate–&gt;reap–&gt;mill act_T times, tracking the
+evolution of variables X named in track_vars in dictionary fields
+history[X].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.Market.mill">
+<span class="sig-name descname"><span class="pre">mill</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.Market.mill" title="Permalink to this definition">¶</a></dt>
+<dd><p>Processes the variables collected from agents using the function mill_rule,
+storing the results in attributes named in aggr_sow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.Market.reap">
+<span class="sig-name descname"><span class="pre">reap</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.Market.reap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Collects attributes named in reap_vars from each AgentType in the market,
+storing them in respectively named attributes of self.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.Market.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.Market.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset the state of the market (attributes in sow_vars, etc) to some
+user-defined initial state, and erase the histories of tracked variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.Market.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.Market.solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>“Solves” the market by finding a “dynamic rule” that governs the aggregate
+market state such that when agents believe in these dynamics, their actions
+collectively generate the same dynamic rule.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.Market.solve_agents">
+<span class="sig-name descname"><span class="pre">solve_agents</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.Market.solve_agents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solves the microeconomic problem for all AgentTypes in this market.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.Market.sow">
+<span class="sig-name descname"><span class="pre">sow</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.Market.sow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Distributes attrributes named in sow_vars from self to each AgentType
+in the market, storing them in respectively named attributes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.Market.store">
+<span class="sig-name descname"><span class="pre">store</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.Market.store" title="Permalink to this definition">¶</a></dt>
+<dd><p>Record the current value of each variable X named in track_vars in an
+dictionary field named history[X].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.Market.update_dynamics">
+<span class="sig-name descname"><span class="pre">update_dynamics</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.Market.update_dynamics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates a new “aggregate dynamic rule” using the history of variables
+named in track_vars, and distributes this rule to AgentTypes in agents.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>dynamics</strong> – The new “aggregate dynamic rule” that agents believe in and act on.
+Should have attributes named in dyn_vars.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.core.MetricObject">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.core.</span></span><span class="sig-name descname"><span class="pre">MetricObject</span></span><a class="headerlink" href="#HARK.core.MetricObject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A superclass for object classes in HARK.  Comes with two useful methods:
+a generic/universal distance method and an attribute assignment method.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.MetricObject.distance">
+<span class="sig-name descname"><span class="pre">distance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.MetricObject.distance" title="Permalink to this definition">¶</a></dt>
+<dd><p>A generic distance method, which requires the existence of an attribute
+called distance_criteria, giving a list of strings naming the attributes
+to be considered by the distance metric.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>other</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><em>object</em></a>) – Another object to compare this instance to.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>(unnamed)</strong> – The distance between this object and another, using the “universal
+distance” metric.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.core.MetricObject.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><em class="property"> <span class="pre">=</span> <span class="pre">[]</span></em><a class="headerlink" href="#HARK.core.MetricObject.distance_criteria" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.core.Model">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.core.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><a class="headerlink" href="#HARK.core.Model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A class with special handling of parameters assignment.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.Model.assign_parameters">
+<span class="sig-name descname"><span class="pre">assign_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.Model.assign_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign an arbitrary number of attributes to this agent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>**kwds</strong> (<em>keyword arguments</em>) – Any number of keyword arguments of the form key=value.  Each value
+will be assigned to the attribute named in self.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.core.Model.get_parameter">
+<span class="sig-name descname"><span class="pre">get_parameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.Model.get_parameter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a parameter of this model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>string</em>) – The name of the parameter to get</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The value of the parameter</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>value</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.core.distance_metric">
+<span class="sig-prename descclassname"><span class="pre">HARK.core.</span></span><span class="sig-name descname"><span class="pre">distance_metric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thing_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thing_b</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.distance_metric" title="Permalink to this definition">¶</a></dt>
+<dd><p>A “universal distance” metric that can be used as a default in many settings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>thing_a</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><em>object</em></a>) – A generic object.</p></li>
+<li><p><strong>thing_b</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><em>object</em></a>) – Another generic object.</p></li>
+<li><p><strong>Returns</strong> – </p></li>
+<li><p><strong>------------</strong> – </p></li>
+<li><p><strong>distance</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – The “distance” between thing_a and thing_b.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.core.distribute_params">
+<span class="sig-prename descclassname"><span class="pre">HARK.core.</span></span><span class="sig-name descname"><span class="pre">distribute_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distribution</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.distribute_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Distributes heterogeneous values of one parameter to the AgentTypes in self.agents.
+:param agent: An agent to clone.
+:type agent: AgentType
+:param param_name: Name of the parameter to be assigned.
+:type param_name: string
+:param param_count: Number of different values the parameter will take on.
+:type param_count: int
+:param distribution: A distribution.
+:type distribution: Distribution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>agent_set</strong> – A list of param_count agents, ex ante heterogeneous with
+respect to param_name. The AgentCount of the original
+will be split between the agents of the returned
+list in proportion to the given distribution.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>[<a class="reference internal" href="#HARK.core.AgentType" title="HARK.core.AgentType">AgentType</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.core.make_one_period_oo_solver">
+<span class="sig-prename descclassname"><span class="pre">HARK.core.</span></span><span class="sig-name descname"><span class="pre">make_one_period_oo_solver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solver_class</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.make_one_period_oo_solver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a function that solves a single period consumption-saving
+problem.
+:param solver_class: A class of Solver to be used.
+:type solver_class: Solver
+:param ——-:
+:param solver_function: A function for solving one period of a problem.
+:type solver_function: function</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.core.solve_agent">
+<span class="sig-prename descclassname"><span class="pre">HARK.core.</span></span><span class="sig-name descname"><span class="pre">solve_agent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.solve_agent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solve the dynamic model for one agent type
+using backwards induction.
+This function iterates on “cycles”
+of an agent’s model either a given number of times
+or until solution convergence
+if an infinite horizon model is used
+(with agent.cycles = 0).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agent</strong> (<a class="reference internal" href="#HARK.core.AgentType" title="HARK.core.AgentType"><em>AgentType</em></a>) – The microeconomic AgentType whose dynamic problem
+is to be solved.</p></li>
+<li><p><strong>verbose</strong> (<em>boolean</em>) – If True, solution progress is printed to screen (when cycles != 1).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>solution</strong> – A list of solutions to the one period problems that the agent will
+encounter in his “lifetime”.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[Solution]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.core.solve_one_cycle">
+<span class="sig-prename descclassname"><span class="pre">HARK.core.</span></span><span class="sig-name descname"><span class="pre">solve_one_cycle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solution_last</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.core.solve_one_cycle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solve one “cycle” of the dynamic model for one agent type.  This function
+iterates over the periods within an agent’s cycle, updating the time-varying
+parameters and passing them to the single period solver(s).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agent</strong> (<a class="reference internal" href="#HARK.core.AgentType" title="HARK.core.AgentType"><em>AgentType</em></a>) – The microeconomic AgentType whose dynamic problem is to be solved.</p></li>
+<li><p><strong>solution_last</strong> (<em>Solution</em>) – A representation of the solution of the period that comes after the
+end of the sequence of one period problems.  This might be the term-
+inal period solution, a “pseudo terminal” solution, or simply the
+solution to the earliest period from the succeeding cycle.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>solution_cycle</strong> – A list of one period solutions for one “cycle” of the AgentType’s
+microeconomic model.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[Solution]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2020, Econ-ARK team.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

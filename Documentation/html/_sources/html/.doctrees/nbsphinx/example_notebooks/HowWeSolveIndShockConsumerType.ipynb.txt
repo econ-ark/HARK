@@ -1,0 +1,496 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# How we solve a model defined by the `IndShockConsumerType` class\n",
+    "The IndShockConsumerType reprents the work-horse consumption savings model with temporary and permanent shocks to income, finite or infinite horizons, CRRA utility and more. In this DemARK we take you through the steps involved in solving one period of such a model. The inheritance chains can be a little long, so figuring out where all the parameters and methods come from can be a bit confusing. Hence this map! The intention is to make it easier to know how to inheret from IndShockConsumerType in the sense that you know where to look for specific solver logic, but also so you know can figure out which methods to overwrite or supplement in your own `AgentType` and solver!\n",
+    "## The `solveConsIndShock` function\n",
+    "In HARK, a period's problem is always solved by the callable (function or callable object instance) stored in the field `solve_one_period`. In the case of `IndShockConsumerType`, this function is called `solveConsIndShock`. The function accepts a number of arguments, that it uses to construct an instance of either a `ConsIndShockSolverBasic` or a `ConsIndShockSolver`. These solvers both have the methods `prepare_to_solve` and `solve`, that we will have a closer look at in this notebook. This means, that the logic of `solveConsIndShock` is basically:\n",
+    "\n",
+    " 1. Check if cubic interpolation (`CubicBool`) or construction of the value function interpolant (`vFuncBool`) are requested. Construct an instance of `ConsIndShockSolverBasic` if neither are requested, else construct a `ConsIndShockSolver`. Call this `solver`.\n",
+    " 1. Call `solver.prepare_to_solve()`\n",
+    " 1. Call `solver.solve()` and return the output as the current solution."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Two types of solvers\n",
+    "As mentioned above, `solve_one_period` will construct an instance of the class `ConsIndShockSolverBasic`or `ConsIndShockSolver`. The main difference is whether it uses cubic interpolation or if it explicitly constructs a value function approximation. The choice and construction of a solver instance is bullet 1) from above.\n",
+    "\n",
+    "#### What happens in upon construction\n",
+    "Neither of the two solvers have their own `__init__`. `ConsIndShockSolver` inherits from `ConsIndShockSolverBasic` that in turn inherits from `ConsIndShockSetup`. `ConsIndShockSetup` inherits from `ConsPerfForesightSolver`, which itself is just an `Object`, so we get the inheritance structure\n",
+    "\n",
+    "- `ConsPerfForesightSolver` $\\leftarrow$ `ConsIndShockSetup` $\\leftarrow$ `ConsIndShockSolverBasic` $\\leftarrow$ `ConsIndShockSolver`\n",
+    "\n",
+    "When one of the two classes in the end of the inheritance chain is called, it will call `ConsIndShockSetup.__init__(args...)`. This takes a whole list of fixed inputs that then gets assigned to the object through a\n",
+    "```\n",
+    "ConsIndShockSetup.assign_parameters(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)\n",
+    "```\n",
+    "call, that then calls\n",
+    "```\n",
+    "ConsPerfForesightSolver.assign_parameters(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac)\n",
+    "```\n",
+    "We're getting kind of detailed here, but it is simply to help us understand the inheritance structure. The methods are quite straight forward, and simply assign the list of variables to self. The ones that do not get assigned by the `ConsPerfForesightSolver` method gets assign by the `ConsIndShockSetup` method instead.\n",
+    "\n",
+    "\n",
+    "After all the input parameters are set, we update the utility function definitions. Remember, that we restrict ourselves to CRRA utility functions, and these are parameterized with the scalar we call `CRRA` in HARK. We use the two-argument CRRA utility (and derivatives, inverses, etc) from `HARK.utilities`, so we need to create a `lambda` (an anonymous function) according to the fixed `CRRA` we have chosen. This gets done through a call to\n",
+    "\n",
+    "```\n",
+    "ConsIndShockSetup.defUtilityFuncs()\n",
+    "```\n",
+    "that itself calls\n",
+    "```\n",
+    "ConsPerfForesightSolver.defUtilityFuncs()\n",
+    "```\n",
+    "Again, we wish to emphasize the inheritance structure. The method in `ConsPerfForesightSolver` defines the most basic utility functions (utility, its marginal and its marginal marginal), and `ConsIndShockSolver` adds additional functions (marginal of inverse, inverse of marginal, marginal of inverse of marginal, and optionally inverse if `vFuncBool` is true).\n",
+    "\n",
+    "To sum up, the `__init__` method lives in `ConsIndShockSetup`, calls `assign_parameters` and `defUtilityFuncs` from `ConsPerfForesightSolver` and defines its own methods with the same names that adds some methods used to solve the `IndShockConsumerType` using EGM. The main things controlled by the end-user are whether cubic interpolation should be used, `CubicBool`, and if the value function should be explicitly formed, `vFuncBool`.\n",
+    "### Prepare to solve\n",
+    "We are now in bullet 2) from the list above. The `prepare_to_solve` method is all about grabbing relevant information from next period's solution, calculating some limiting solutions. It comes from `ConsIndShockSetup` and calls two methods:\n",
+    "\n",
+    "1. `ConsIndShockSetup.setAndUpdateValues(self.solution_next,self.IncomeDstn,self.LivPrb,self.DiscFac)`\n",
+    "2. `ConsIndShockSetup.defBoroCnst(self.BoroCnstArt)`\n",
+    "\n",
+    "First, we have `setAndUpdateValues`. The main purpose is to grab the relevant vectors that represent the shock distributions, the effective discount factor, and value function (marginal, level, marginal marginal depending on the options). It also calculates some limiting marginal propensities to consume and human wealth levels. Second, we have `defBoroCnst`. As the name indicates, it calculates the natural borrowing constraint, handles artificial borrowing constraints, and defines the consumption function where the constraint binds (`cFuncNowCnst`).\n",
+    "\n",
+    "To sum, `prepare_to_solve` sets up the stochastic environment an borrowing constraints the consumer might face. It also grabs interpolants from \"next period\"'s solution.\n",
+    "\n",
+    "### Solve it!\n",
+    "The last method `solveConsIndShock` will call from the `solver` is `solve`. This method essentially has four steps:\n",
+    " 1. Pre-processing for EGM: solver.prepare_to_calc_EndOfPrdvP\n",
+    " 1. First step of EGM: solver.calc_EndOfPrdvP\n",
+    " 1. Second step of EGM: solver.make_basic_solution\n",
+    " 1. Add MPC and human wealth: solver.add_MPC_and_human_wealth\n",
+    "\n",
+    "#### Pre-processing for EGM `prepare_to_calc_EndOfPrdvP`\n",
+    "Find relevant values of end-of-period asset values (according to `aXtraGrid` and natural borrowing constraint) and next period values implied by current period end-of-period assets and stochastic elements. The method stores the following in `self`:\n",
+    "\n",
+    " 1. values of permanent shocks in `PermShkVals_temp`\n",
+    " 1. shock probabilities in `ShkPrbs_temp`\n",
+    " 1. next period resources in `mNrmNext`\n",
+    " 1. current grid of end-of-period assets in `aNrmNow`\n",
+    "\n",
+    "The method also returns `aNrmNow`. The definition is in `ConsIndShockSolverBasic` and is not overwritten in `ConsIndShockSolver`.\n",
+    "\n",
+    "#### First step of EGM `calc_EndOfPrdvP`\n",
+    "Find the marginal value of having  some level of end-of-period assets today. End-of-period assets as well as stochastics imply next-period resources at the beginning of the period, calculated above. Return the result as `EndOfPrdvP`.\n",
+    "\n",
+    "#### Second step of EGM `make_basic_solution`\n",
+    "Apply inverse marginal utility function to nodes from about to find (m, c) pairs for the new consumption function in `get_points_for_interpolation` and create the interpolants in `use_points_for_interpolation`. The latter constructs the `ConsumerSolution` that contains the current consumption function `cFunc`, the current marginal value function `vPfunc`, and the smallest possible resource level `mNrmMinNow`.\n",
+    "\n",
+    "#### Add MPC and human wealth `add_MPC_and_human_wealth`\n",
+    "Add values calculated in `defBoroCnst` now that we have a solution object to put them in.\n",
+    "\n",
+    "#### Special to the non-Basic solver\n",
+    "We are now done, but in the `ConsIndShockSolver` (non-`Basic`!) solver there are a few extra steps. We add steady state m, and depending on the values of `vFuncBool` and `CubicBool` we also add the value function and the marginal marginal value function."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Let's try it in action!\n",
+    "First, we define a standard lifecycle model, solve it and then"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, init_lifecycle\n",
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "LifecycleExample = IndShockConsumerType(**init_lifecycle)\n",
+    "LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once\n",
+    "LifecycleExample.solve()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Let's have a look at the solution in time period second period. We should then be able to"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "from HARK.utilities import plot_funcs\n",
+    "plot_funcs([LifecycleExample.solution[0].cFunc],LifecycleExample.solution[0].mNrmMin,10)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Let us then create a solver for the first period."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolverBasic\n",
+    "solver = ConsIndShockSolverBasic(LifecycleExample.solution[1],\n",
+    "                                 LifecycleExample.IncShkDstn[0],\n",
+    "                                 LifecycleExample.LivPrb[0],\n",
+    "                                 LifecycleExample.DiscFac,\n",
+    "                                 LifecycleExample.CRRA,\n",
+    "                                 LifecycleExample.Rfree,\n",
+    "                                 LifecycleExample.PermGroFac[0],\n",
+    "                                 LifecycleExample.BoroCnstArt,\n",
+    "                                 LifecycleExample.aXtraGrid,\n",
+    "                                 LifecycleExample.vFuncBool,\n",
+    "                                 LifecycleExample.CubicBool)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "solver.prepare_to_solve()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Many important values are now calculated and stored in solver, such as the effective discount factor, the smallest permanent income shock, and more."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "0.9586233599999999"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "solver.DiscFacEff"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "0.6554858756904397"
+      ]
+     },
+     "execution_count": 6,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "solver.PermShkMinNext"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "These values were calculated in `setAndUpdateValues`. In `defBoroCnst` that was also called, several things were calculated, for example the consumption function defined by the borrowing constraint."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "plot_funcs([solver.cFuncNowCnst],solver.mNrmMinNow,10)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Then, we set up all the grids, grabs the discrete shock distributions, and state grids in `prepare_to_calc_EndOfPrdvP`."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([-1.97928710e-01, -1.78757337e-01, -1.58464113e-01, -1.36959776e-01,\n",
+       "       -1.14146021e-01, -8.99143874e-02, -6.41449810e-02, -3.67050128e-02,\n",
+       "       -7.44711582e-03,  2.37925970e-02,  5.71967790e-02,  9.29694545e-02,\n",
+       "        1.31339050e-01,  1.72561926e-01,  2.16926520e-01,  2.64758197e-01,\n",
+       "        3.16424968e-01,  3.72344255e-01,  4.32990903e-01,  4.98906718e-01,\n",
+       "        5.70711872e-01,  6.49118576e-01,  7.34947546e-01,  8.29147929e-01,\n",
+       "        9.32821508e-01,  1.04725224e+00,  1.17394250e+00,  1.31465773e+00,\n",
+       "        1.47148180e+00,  1.64688590e+00,  1.84381499e+00,  2.06579663e+00,\n",
+       "        2.31707906e+00,  2.60280747e+00,  2.92925051e+00,  3.30409357e+00,\n",
+       "        3.73682117e+00,  4.23921964e+00,  4.82604335e+00,  5.51590530e+00,\n",
+       "        6.33247875e+00,  7.30613392e+00,  8.47619016e+00,  9.89404831e+00,\n",
+       "        1.16275966e+01,  1.37674827e+01,  1.64361548e+01,  1.98010713e+01])"
+      ]
+     },
+     "execution_count": 8,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "solver.prepare_to_calc_EndOfPrdvP()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Then we calculate the marginal utility of next period's resources given the stochastic environment and current grids."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "EndOfPrdvP = solver.calc_EndOfPrdvP()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Then, we essentially just have to construct the (resource, consumption) pairs by completing the EGM step, and constructing the interpolants by using the knowledge that the limiting solutions are those of the perfect foresight model. This is done with `make_basic_solution` as discussed above."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "solution = solver.make_basic_solution(EndOfPrdvP,solver.aNrmNow,solver.make_linear_cFunc)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Lastly, we add the MPC and human wealth quantities we calculated in the method that prepared the solution of this period."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "<HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution at 0x7f2370525af0>"
+      ]
+     },
+     "execution_count": 11,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "solver.add_MPC_and_human_wealth(solution)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "All that is left is to verify that the solution in `solution` is identical to `LifecycleExample.solution[0]`. We can plot the against each other:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "plot_funcs([LifecycleExample.solution[0].cFunc, solution.cFunc],LifecycleExample.solution[0].mNrmMin,10)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Although, it's probably even clearer if we just subtract the function values from each other at some grid."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n",
+       "       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n",
+       "       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n",
+       "       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n",
+       "       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n",
+       "       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n",
+       "       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n",
+       "       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n",
+       "       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n",
+       "       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n",
+       "       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n",
+       "       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])"
+      ]
+     },
+     "execution_count": 13,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "eval_grid = np.linspace(0, 20, 200)\n",
+    "LifecycleExample.solution[0].cFunc(eval_grid) - solution.cFunc(eval_grid)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "@webio": {
+   "lastCommId": null,
+   "lastKernelId": null
+  },
+  "hide_input": false,
+  "jupytext": {
+   "formats": "ipynb,py:percent"
+  },
+  "kernelspec": {
+   "display_name": "econ-ark-3.8",
+   "language": "python",
+   "name": "econ-ark-3.8"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.8.10"
+  },
+  "latex_envs": {
+   "LaTeX_envs_menu_present": true,
+   "autoclose": false,
+   "autocomplete": true,
+   "bibliofile": "biblio.bib",
+   "cite_by": "apalike",
+   "current_citInitial": 1,
+   "eqLabelWithNumbers": true,
+   "eqNumInitial": 1,
+   "hotkeys": {
+    "equation": "Ctrl-E",
+    "itemize": "Ctrl-I"
+   },
+   "labels_anchors": false,
+   "latex_user_defs": false,
+   "report_style_numbering": false,
+   "user_envs_cfg": false
+  },
+  "toc": {
+   "base_numbering": 1,
+   "nav_menu": {},
+   "number_sections": true,
+   "sideBar": true,
+   "skip_h1_title": false,
+   "title_cell": "Table of Contents",
+   "title_sidebar": "Contents",
+   "toc_cell": false,
+   "toc_position": {},
+   "toc_section_display": true,
+   "toc_window_display": false
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}

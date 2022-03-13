@@ -1,0 +1,778 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>ConsPortfolioModel &mdash; HARK latest documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> HARK
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                latest
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">ConsPortfolioModel</a></li>
+</ul>
+</div>
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">HARK</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>ConsPortfolioModel</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../_sources/reference/ConsumptionSaving/ConsPortfolioModel.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="module-HARK.ConsumptionSaving.ConsPortfolioModel">
+<span id="consportfoliomodel"></span><h1>ConsPortfolioModel<a class="headerlink" href="#module-HARK.ConsumptionSaving.ConsPortfolioModel" title="Permalink to this headline">¶</a></h1>
+<p>This file contains classes and functions for representing, solving, and simulating
+agents who must allocate their resources among consumption, saving in a risk-free
+asset (with a low return), and saving in a risky asset (with higher average return).</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioDiscreteSolver">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsPortfolioModel.</span></span><span class="sig-name descname"><span class="pre">ConsPortfolioDiscreteSolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShockDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IncShkDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RiskyDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LivPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rfree</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PermGroFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">BoroCnstArt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aXtraGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFuncBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">AdjustPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscreteShareBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareLimit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IndepDstnBool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioDiscreteSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver" title="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver</span></code></a></p>
+<p>Define an object-oriented one period solver.
+Solve the one period problem for a portfolio-choice consumer.
+This solver is used when the income and risky return shocks
+are independent and the allowed optimal share is discrete
+over a finite set of points in ShareGrid.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioDiscreteSolver.make_ShareFuncAdj">
+<span class="sig-name descname"><span class="pre">make_ShareFuncAdj</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioDiscreteSolver.make_ShareFuncAdj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the risky share function when the agent can adjust</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioDiscreteSolver.optimize_share">
+<span class="sig-name descname"><span class="pre">optimize_share</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioDiscreteSolver.optimize_share" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optimization of Share on the discrete set ShareGrid</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioDiscreteSolver.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioDiscreteSolver.solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solve the one period problem for a portfolio-choice consumer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>solution_now</strong> (<em>PortfolioSolution</em>)</p></li>
+<li><p><em>The solution to the single period consumption-saving with portfolio choice</em></p></li>
+<li><p><strong>problem.  Includes two consumption and risky share functions</strong> (<em>one for when</em>)</p></li>
+<li><p><em>the agent can adjust his portfolio share (Adj) and when he can’t (Fxd).</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioJointDistSolver">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsPortfolioModel.</span></span><span class="sig-name descname"><span class="pre">ConsPortfolioJointDistSolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShockDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IncShkDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RiskyDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LivPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rfree</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PermGroFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">BoroCnstArt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aXtraGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFuncBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">AdjustPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscreteShareBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareLimit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IndepDstnBool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioJointDistSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioDiscreteSolver" title="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioDiscreteSolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioDiscreteSolver</span></code></a>, <a class="reference internal" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver" title="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver</span></code></a></p>
+<p>Define an object-oriented one period solver.
+Solve the one period problem for a portfolio-choice consumer.
+This solver is used when the income and risky return shocks
+are not independent. The optimal share can be continuous or
+discrete.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioJointDistSolver.calc_EndOfPrdvP">
+<span class="sig-name descname"><span class="pre">calc_EndOfPrdvP</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioJointDistSolver.calc_EndOfPrdvP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate end-of-period marginal value of assets and shares at each point
+in aNrm and ShareGrid. Does so by taking expectation of next period marginal
+values across income and risky return shocks.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioJointDistSolver.m_nrm_next">
+<span class="sig-name descname"><span class="pre">m_nrm_next</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shocks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_nrm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_port</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioJointDistSolver.m_nrm_next" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate future realizations of market resources</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioJointDistSolver.make_EndOfPrdvFunc">
+<span class="sig-name descname"><span class="pre">make_EndOfPrdvFunc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioJointDistSolver.make_EndOfPrdvFunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the end-of-period value function for this period, storing it
+as an attribute of self for use by other methods.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioJointDistSolver.prepare_to_calc_EndOfPrdvP">
+<span class="sig-name descname"><span class="pre">prepare_to_calc_EndOfPrdvP</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioJointDistSolver.prepare_to_calc_EndOfPrdvP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare to calculate end-of-period marginal values by creating an array
+of market resources that the agent could have next period, considering
+the grid of end-of-period assets and the distribution of shocks he might
+experience next period.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioJointDistSolver.r_port">
+<span class="sig-name descname"><span class="pre">r_port</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shocks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">share</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioJointDistSolver.r_port" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate future realizations of market resources</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioJointDistSolver.set_and_update_values">
+<span class="sig-name descname"><span class="pre">set_and_update_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioJointDistSolver.set_and_update_values" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unpacks some of the inputs (and calculates simple objects based on them),
+storing the results in self for use by other methods.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioJointDistSolver.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioJointDistSolver.solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solve the one period problem for a portfolio-choice consumer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>solution_now</strong> (<em>PortfolioSolution</em>)</p></li>
+<li><p><em>The solution to the single period consumption-saving with portfolio choice</em></p></li>
+<li><p><strong>problem.  Includes two consumption and risky share functions</strong> (<em>one for when</em>)</p></li>
+<li><p><em>the agent can adjust his portfolio share (Adj) and when he can’t (Fxd).</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsPortfolioModel.</span></span><span class="sig-name descname"><span class="pre">ConsPortfolioSolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShockDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IncShkDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RiskyDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LivPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rfree</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PermGroFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">BoroCnstArt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aXtraGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFuncBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">AdjustPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscreteShareBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareLimit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IndepDstnBool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../tools/core.html#HARK.core.MetricObject" title="HARK.core.MetricObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.core.MetricObject</span></code></a></p>
+<p>Define an object-oriented one period solver.
+Solve the one period problem for a portfolio-choice consumer.
+This solver is used when the income and risky return shocks
+are independent and the allowed optimal share is continuous.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solution_next</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioSolution" title="HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioSolution"><em>PortfolioSolution</em></a>) – Solution to next period’s problem.</p></li>
+<li><p><strong>ShockDstn</strong> (<em>[</em><em>np.array</em><em>]</em>) – List with four arrays: discrete probabilities, permanent income shocks,
+transitory income shocks, and risky returns.  This is only used if the
+input IndepDstnBool is False, indicating that income and return distributions
+can’t be assumed to be independent.</p></li>
+<li><p><strong>IncShkDstn</strong> (<a class="reference internal" href="../tools/distribution.html#HARK.distribution.Distribution" title="HARK.distribution.Distribution"><em>distribution.Distribution</em></a>) – Discrete distribution of permanent income shocks
+and transitory income shocks.  This is only used if the input IndepDsntBool
+is True, indicating that income and return distributions are independent.</p></li>
+<li><p><strong>RiskyDstn</strong> (<em>[</em><em>np.array</em><em>]</em>) – List with two arrays: discrete probabilities and risky asset returns. This
+is only used if the input IndepDstnBool is True, indicating that income
+and return distributions are independent.</p></li>
+<li><p><strong>LivPrb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Survival probability; likelihood of being alive at the beginning of
+the succeeding period.</p></li>
+<li><p><strong>DiscFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Intertemporal discount factor for future utility.</p></li>
+<li><p><strong>CRRA</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Coefficient of relative risk aversion.</p></li>
+<li><p><strong>Rfree</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Risk free interest factor on end-of-period assets.</p></li>
+<li><p><strong>PermGroFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Expected permanent income growth factor at the end of this period.</p></li>
+<li><p><strong>BoroCnstArt</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – Borrowing constraint for the minimum allowable assets to end the
+period with.  In this model, it is <em>required</em> to be zero.</p></li>
+<li><p><strong>aXtraGrid</strong> (<em>np.array</em>) – Array of “extra” end-of-period asset values– assets above the
+absolute minimum acceptable level.</p></li>
+<li><p><strong>ShareGrid</strong> (<em>np.array</em>) – Array of risky portfolio shares on which to define the interpolation
+of the consumption function when Share is fixed.</p></li>
+<li><p><strong>vFuncBool</strong> (<em>boolean</em>) – An indicator for whether the value function should be computed and
+included in the reported solution.</p></li>
+<li><p><strong>AdjustPrb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Probability that the agent will be able to update his portfolio share.</p></li>
+<li><p><strong>DiscreteShareBool</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Indicator for whether risky portfolio share should be optimized on the
+continuous [0,1] interval using the FOC (False), or instead only selected
+from the discrete set of values in ShareGrid (True).  If True, then
+vFuncBool must also be True.</p></li>
+<li><p><strong>ShareLimit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Limiting lower bound of risky portfolio share as mNrm approaches infinity.</p></li>
+<li><p><strong>IndepDstnBool</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Indicator for whether the income and risky return distributions are in-
+dependent of each other, which can speed up the expectations step.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.add_save_points">
+<span class="sig-name descname"><span class="pre">add_save_points</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.add_save_points" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.add_vFunc">
+<span class="sig-name descname"><span class="pre">add_vFunc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.add_vFunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the value function for this period and adds it to the solution.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.calc_EndOfPrdvP">
+<span class="sig-name descname"><span class="pre">calc_EndOfPrdvP</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.calc_EndOfPrdvP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate end-of-period marginal value of assets and shares at each point
+in aNrm and ShareGrid. Does so by taking expectation of next period marginal
+values across income and risky return shocks.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.def_utility_funcs">
+<span class="sig-name descname"><span class="pre">def_utility_funcs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.def_utility_funcs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define temporary functions for utility and its derivative and inverse</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.m_nrm_next">
+<span class="sig-name descname"><span class="pre">m_nrm_next</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shocks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b_nrm_next</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.m_nrm_next" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate future realizations of market resources</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.make_EndOfPrdvFunc">
+<span class="sig-name descname"><span class="pre">make_EndOfPrdvFunc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.make_EndOfPrdvFunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the end-of-period value function for this period, storing it
+as an attribute of self for use by other methods.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.make_ShareFuncAdj">
+<span class="sig-name descname"><span class="pre">make_ShareFuncAdj</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.make_ShareFuncAdj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the risky share function when the agent can adjust</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.make_basic_solution">
+<span class="sig-name descname"><span class="pre">make_basic_solution</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.make_basic_solution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given end of period assets and end of period marginal values, construct
+the basic solution for this period.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.make_porfolio_solution">
+<span class="sig-name descname"><span class="pre">make_porfolio_solution</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.make_porfolio_solution" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.make_vFunc">
+<span class="sig-name descname"><span class="pre">make_vFunc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.make_vFunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the value functions for this period, defined over market
+resources m when agent can adjust his portfolio, and over market
+resources and fixed share when agent can not adjust his portfolio.
+self must have the attribute EndOfPrdvFunc in order to execute.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.optimize_share">
+<span class="sig-name descname"><span class="pre">optimize_share</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.optimize_share" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optimization of Share on continuous interval [0,1]</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.prepare_to_calc_EndOfPrdvP">
+<span class="sig-name descname"><span class="pre">prepare_to_calc_EndOfPrdvP</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.prepare_to_calc_EndOfPrdvP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare to calculate end-of-period marginal values by creating an array
+of market resources that the agent could have next period, considering
+the grid of end-of-period assets and the distribution of shocks he might
+experience next period.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.prepare_to_solve">
+<span class="sig-name descname"><span class="pre">prepare_to_solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.prepare_to_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform preparatory work.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.set_and_update_values">
+<span class="sig-name descname"><span class="pre">set_and_update_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.set_and_update_values" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unpacks some of the inputs (and calculates simple objects based on them),
+storing the results in self for use by other methods.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver.solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solve the one period problem for a portfolio-choice consumer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>solution_now</strong> (<em>PortfolioSolution</em>)</p></li>
+<li><p><em>The solution to the single period consumption-saving with portfolio choice</em></p></li>
+<li><p><strong>problem.  Includes two consumption and risky share functions</strong> (<em>one for when</em>)</p></li>
+<li><p><em>the agent can adjust his portfolio share (Adj) and when he can’t (Fxd).</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsSequentialPortfolioSolver">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsPortfolioModel.</span></span><span class="sig-name descname"><span class="pre">ConsSequentialPortfolioSolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShockDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IncShkDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RiskyDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LivPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rfree</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PermGroFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">BoroCnstArt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aXtraGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFuncBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">AdjustPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscreteShareBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareLimit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IndepDstnBool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsSequentialPortfolioSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver" title="HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsPortfolioModel.ConsPortfolioSolver</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsSequentialPortfolioSolver.add_SequentialShareFuncAdj">
+<span class="sig-name descname"><span class="pre">add_SequentialShareFuncAdj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsSequentialPortfolioSolver.add_SequentialShareFuncAdj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the risky share function as a function of savings when the agent can adjust.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.ConsSequentialPortfolioSolver.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.ConsSequentialPortfolioSolver.solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solve the one period problem for a portfolio-choice consumer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>solution_now</strong> (<em>PortfolioSolution</em>)</p></li>
+<li><p><em>The solution to the single period consumption-saving with portfolio choice</em></p></li>
+<li><p><strong>problem.  Includes two consumption and risky share functions</strong> (<em>one for when</em>)</p></li>
+<li><p><em>the agent can adjust his portfolio share (Adj) and when he can’t (Fxd).</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsPortfolioModel.</span></span><span class="sig-name descname"><span class="pre">PortfolioConsumerType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsRiskyAssetModel.RiskyAssetConsumerType</span></code></p>
+<p>A consumer type with a portfolio choice. This agent type has log-normal return
+factors. Their problem is defined by a coefficient of relative risk aversion,
+intertemporal discount factor, risk-free interest factor, and time sequences of
+permanent income growth rate, survival probability, and permanent and transitory
+income shock standard deviations (in logs).  The agent may also invest in a risky
+asset, which has a higher average return than the risk-free asset.  He <em>might</em>
+have age-varying beliefs about the risky-return; if he does, then “true” values
+of the risky asset’s return distribution must also be specified.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.get_Rfree">
+<span class="sig-name descname"><span class="pre">get_Rfree</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.get_Rfree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates realized return factor for each agent, using the attributes Rfree,
+RiskyNow, and ShareNow.  This method is a bit of a misnomer, as the return
+factor is not riskless, but would more accurately be labeled as Rport.  However,
+this method makes the portfolio model compatible with its parent class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>Rport</strong> – Array of size AgentCount with each simulated agent’s realized portfolio
+return factor.  Will be used by get_states() to calculate mNrmNow, where it
+will be mislabeled as “Rfree”.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.get_controls">
+<span class="sig-name descname"><span class="pre">get_controls</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.get_controls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates consumption cNrmNow and risky portfolio share ShareNow using
+the policy functions in the attribute solution.  These are stored as attributes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.initialize_sim">
+<span class="sig-name descname"><span class="pre">initialize_sim</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.initialize_sim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize the state of simulation attributes.  Simply calls the same method
+for IndShockConsumerType, then sets the type of AdjustNow to bool.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.pre_solve">
+<span class="sig-name descname"><span class="pre">pre_solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.pre_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method that is run immediately before the model is solved, to check inputs or to prepare
+the terminal solution, perhaps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>none</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.sim_birth">
+<span class="sig-name descname"><span class="pre">sim_birth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">which_agents</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.sim_birth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create new agents to replace ones who have recently died; takes draws of
+initial aNrm and pLvl, as in ConsIndShockModel, then sets Share and Adjust
+to zero as initial values.
+:param which_agents: Boolean array of size AgentCount indicating which agents should be “born”.
+:type which_agents: np.array</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.time_inv_">
+<span class="sig-name descname"><span class="pre">time_inv_</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['CRRA',</span> <span class="pre">'Rfree',</span> <span class="pre">'DiscFac',</span> <span class="pre">'BoroCnstArt',</span> <span class="pre">'BoroCnstArt',</span> <span class="pre">'vFuncBool',</span> <span class="pre">'CubicBool',</span> <span class="pre">'AdjustPrb',</span> <span class="pre">'DiscreteShareBool']</span></em><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.time_inv_" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the income process, the assets grid, and the terminal solution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.update_ShareGrid">
+<span class="sig-name descname"><span class="pre">update_ShareGrid</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.update_ShareGrid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the attribute ShareGrid as an evenly spaced grid on [0.,1.], using
+the primitive parameter ShareCount.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.update_ShareLimit">
+<span class="sig-name descname"><span class="pre">update_ShareLimit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.update_ShareLimit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the attribute ShareLimit, representing the limiting lower bound of
+risky portfolio share as mNrm goes to infinity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.update_solution_terminal">
+<span class="sig-name descname"><span class="pre">update_solution_terminal</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType.update_solution_terminal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solves the terminal period of the portfolio choice problem.  The solution is
+trivial, as usual: consume all market resources, and put nothing in the risky
+asset (because you have nothing anyway).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioSolution">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsPortfolioModel.</span></span><span class="sig-name descname"><span class="pre">PortfolioSolution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cFuncAdj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareFuncAdj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFuncAdj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vPfuncAdj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cFuncFxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareFuncFxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFuncFxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dvdmFuncFxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dvdsFuncFxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aGrid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Share_adj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">EndOfPrddvda_adj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareGrid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">EndOfPrddvda_fxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">EndOfPrddvds_fxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">AdjPrb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioSolution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../tools/core.html#HARK.core.MetricObject" title="HARK.core.MetricObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.core.MetricObject</span></code></a></p>
+<p>A class for representing the single period solution of the portfolio choice model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cFuncAdj</strong> (<em>Interp1D</em>) – Consumption function over normalized market resources when the agent is able
+to adjust their portfolio shares.</p></li>
+<li><p><strong>ShareFuncAdj</strong> (<em>Interp1D</em>) – Risky share function over normalized market resources when the agent is able
+to adjust their portfolio shares.</p></li>
+<li><p><strong>vFuncAdj</strong> (<a class="reference internal" href="../tools/interpolation.html#HARK.interpolation.ValueFuncCRRA" title="HARK.interpolation.ValueFuncCRRA"><em>ValueFuncCRRA</em></a>) – Value function over normalized market resources when the agent is able to
+adjust their portfolio shares.</p></li>
+<li><p><strong>vPfuncAdj</strong> (<a class="reference internal" href="../tools/interpolation.html#HARK.interpolation.MargValueFuncCRRA" title="HARK.interpolation.MargValueFuncCRRA"><em>MargValueFuncCRRA</em></a>) – Marginal value function over normalized market resources when the agent is able
+to adjust their portfolio shares.</p></li>
+<li><p><strong>cFuncFxd</strong> (<em>Interp2D</em>) – Consumption function over normalized market resources and risky portfolio share
+when the agent is NOT able to adjust their portfolio shares, so they are fixed.</p></li>
+<li><p><strong>ShareFuncFxd</strong> (<em>Interp2D</em>) – Risky share function over normalized market resources and risky portfolio share
+when the agent is NOT able to adjust their portfolio shares, so they are fixed.
+This should always be an IdentityFunc, by definition.</p></li>
+<li><p><strong>vFuncFxd</strong> (<a class="reference internal" href="../tools/interpolation.html#HARK.interpolation.ValueFuncCRRA" title="HARK.interpolation.ValueFuncCRRA"><em>ValueFuncCRRA</em></a>) – Value function over normalized market resources and risky portfolio share when
+the agent is NOT able to adjust their portfolio shares, so they are fixed.</p></li>
+<li><p><strong>dvdmFuncFxd</strong> (<a class="reference internal" href="../tools/interpolation.html#HARK.interpolation.MargValueFuncCRRA" title="HARK.interpolation.MargValueFuncCRRA"><em>MargValueFuncCRRA</em></a>) – Marginal value of mNrm function over normalized market resources and risky
+portfolio share when the agent is NOT able to adjust their portfolio shares,
+so they are fixed.</p></li>
+<li><p><strong>dvdsFuncFxd</strong> (<a class="reference internal" href="../tools/interpolation.html#HARK.interpolation.MargValueFuncCRRA" title="HARK.interpolation.MargValueFuncCRRA"><em>MargValueFuncCRRA</em></a>) – Marginal value of Share function over normalized market resources and risky
+portfolio share when the agent is NOT able to adjust their portfolio shares,
+so they are fixed.</p></li>
+<li><p><strong>aGrid</strong> (<em>np.array</em>) – End-of-period-assets grid used to find the solution.</p></li>
+<li><p><strong>Share_adj</strong> (<em>np.array</em>) – Optimal portfolio share associated with each aGrid point.</p></li>
+<li><p><strong>EndOfPrddvda_adj</strong> (<em>np.array</em>) – Marginal value of end-of-period resources associated with each aGrid
+point.</p></li>
+<li><p><strong>ShareGrid</strong> (<em>np.array</em>) – Grid for the portfolio share that is used to solve the model.</p></li>
+<li><p><strong>EndOfPrddvda_fxd</strong> (<em>np.array</em>) – Marginal value of end-of-period resources associated with each
+(aGrid x sharegrid) combination, for the agent who can not adjust his
+portfolio.</p></li>
+<li><p><strong>AdjustPrb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Probability that the agent will be able to adjust his portfolio
+next period.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioSolution.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['vPfuncAdj']</span></em><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioSolution.distance_criteria" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsPortfolioModel.SequentialPortfolioConsumerType">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsPortfolioModel.</span></span><span class="sig-name descname"><span class="pre">SequentialPortfolioConsumerType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsPortfolioModel.SequentialPortfolioConsumerType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType" title="HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioConsumerType</span></code></a></p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2020, Econ-ARK team.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
