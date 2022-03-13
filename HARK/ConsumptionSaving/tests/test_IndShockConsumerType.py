@@ -7,7 +7,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 import numpy as np
 import unittest
 from copy import copy, deepcopy
-from HARK.distribution import MeanOneLogNormal,combine_indep_dstns
 
 
 class testIndShockConsumerType(unittest.TestCase):
