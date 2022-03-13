@@ -777,4 +777,3 @@ class testReadShock(unittest.TestCase):
         self.assertTrue(
             np.all(agent.history["bNrm"][age == 1] == a_init_newborns / pshk_newborns)
         )
-
