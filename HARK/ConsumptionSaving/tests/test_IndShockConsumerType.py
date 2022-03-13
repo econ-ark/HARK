@@ -779,6 +779,13 @@ class testReadShock(unittest.TestCase):
         )
 
 
+
+
+
+
+# %% Transition Matrix Tests
+
+
 TranMatTest_Dict={
     # Parameters shared with the perfect foresight model
     "CRRA":2,                             # Coefficient of relative risk aversion
@@ -942,3 +949,10 @@ class testCalcTransitionMatrix(unittest.TestCase):
 
         self.assertAlmostEqual(Agg_A[17], 0.650509440369095)
         self.assertAlmostEqual(Agg_A[24], 0.6471398863433487) 
+
+
+
+
+
+
+
