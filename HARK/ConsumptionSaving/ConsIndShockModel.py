@@ -2046,7 +2046,7 @@ init_idiosyncratic_shocks = dict(
         "vFuncBool": False,  # Whether to calculate the value function during solution
         "CubicBool": False,  # Use cubic spline interpolation when True, linear interpolation when False
         "neutral_measure": False,      # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
-        "NewbornTransShk":True, # Option if Newborns have no transitory shock. Default is True.
+        "NewbornTransShk":False, # Option if Newborns have transitory shock. Default is False.
     }
 )
 
@@ -2183,7 +2183,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
-        NewbornTransShk = self.NewbornTransShk #  Option if Newborns have no transitory shock. Default is True.
+        NewbornTransShk = self.NewbornTransShk #  Option if Newborns have transitory shock. Default is False.
 
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
@@ -2224,8 +2224,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
             )  # permanent "shock" includes expected growth
             TranShkNow[these] = IncShkDstnNow.X[1][EventDraws]
         #        PermShkNow[newborn] = 1.0
-        #  Option if Newborns have no transitory shock. Default is True.
-        if NewbornTransShk:
+        #  Option if Newborns have transitory shock. Default is False.
+        if not NewbornTransShk:
             TranShkNow[newborn] = 1.0
 
         # Store the shocks in self
