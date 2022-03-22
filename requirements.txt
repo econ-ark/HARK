@@ -14,3 +14,4 @@ interpolation
 numba
 quantecon
 pandas
+networkx

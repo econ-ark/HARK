@@ -9,23 +9,12 @@ This file also demonstrates a "frame" model architecture.
 import numpy as np
 from scipy.optimize import minimize_scalar
 from copy import deepcopy
-from HARK import NullFunc, Frame, FrameAgentType  # Basic HARK features
-from HARK.ConsumptionSaving.ConsIndShockModel import (
-    IndShockConsumerType,  # PortfolioConsumerType inherits from it
-    utility,  # CRRA utility function
-    utility_inv,  # Inverse CRRA utility function
-    utilityP,  # CRRA marginal utility function
-    utility_invP,  # Derivative of inverse CRRA utility function
-    utilityP_inv,  # Inverse CRRA marginal utility function
-    init_idiosyncratic_shocks,  # Baseline dictionary to build on
-)
-from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
-    RiskyAssetConsumerType
-)
+from HARK.frame import Frame, FrameAgentType, FrameModel
+
+from HARK.ConsumptionSaving.ConsIndShockModel import LognormPermIncShk
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     init_portfolio,
     PortfolioConsumerType,
-    PortfolioSolution
 )
 
 from HARK.distribution import combine_indep_dstns, add_discrete_outcome_constant_mean
@@ -35,17 +24,8 @@ from HARK.distribution import (
     MeanOneLogNormal,
     Bernoulli  # Random draws for simulating agents
 )
-from HARK.interpolation import (
-    
-    LinearInterp,  # Piecewise linear interpolation
-    CubicInterp,  # Piecewise cubic interpolation
-    LinearInterpOnInterp1D,  # Interpolator over 1D interpolations
-    BilinearInterp,  # 2D interpolator
-    ConstantFunction,  # Interpolator-like class that returns constant value
-    IdentityFunction,  # Interpolator-like class that returns one of its arguments
-    ValueFuncCRRA,
-    MargValueFuncCRRA,
-    MargMargValueFuncCRRA
+from HARK.utilities import (
+    CRRAutility,
 )
 
 class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
@@ -65,21 +45,52 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         PortfolioConsumerType.__init__(
             self, **kwds
         )
+        # Initialize a basic consumer type
+        FrameAgentType.__init__(
+            self, self.model, **kwds
+        )
 
+        self.shocks = {}
+        self.controls = {}
+        self.state_now = {}
 
-        ## TODO: Should be defined in the configuration.
-        self.aggs = {'PermShkAggNow' : None, 'PlvlAgg' : None, 'Risky' : None} # aggregate values
-                      # -- handled differently because only one value each per AgentType
-        self.shocks = {'Adjust' : None, 'PermShk' : None, 'TranShk' : None}
-        self.controls = {'cNrm' : None, 'Share' : None}
-        self.state_now = {
-            'Rport' : None,
-            'aLvl' : None,
-            'aNrm' : None,
-            'bNrm' : None,
-            'mNrm' : None,
-            'pLvl' : None
-            }
+    def solve(self):
+        # Some contortions are needed here to make decision rule shaped objects
+        # out of the HARK solution objects
+
+        super().solve(self)
+
+        ## TODO: make this a property of FrameAgentTypes or FrameModels?
+        self.decision_rules = {}
+
+        def decision_rule_Share_from_solution(solution_t):
+            def decision_rule_Share(Adjust, mNrm, Share):
+                Share = np.zeros(len(Adjust)) + np.nan
+
+                Share[Adjust] = solution_t.ShareFuncAdj(mNrm[Adjust])
+
+                Share[~Adjust] = solution_t.ShareFuncFxd(mNrm[~Adjust], Share[~Adjust])
+
+                return Share
+
+            return decision_rule_Share
+
+        def decision_rule_cNrm_from_solution(solution_t):
+            def decision_rule_cNrm(Adjust, mNrm, Share):
+                cNrm = np.zeros(len(Adjust)) + np.nan
+
+                cNrm[Adjust] = solution_t.cFuncAdj(mNrm[Adjust])
+
+                cNrm[~Adjust] = solution_t.cFuncFxd(
+                    mNrm[~Adjust], Share[~Adjust]
+                )
+
+                return cNrm
+
+            return decision_rule_cNrm
+
+        self.decision_rules[('Share',)] = [decision_rule_Share_from_solution(sol) for sol in self.solution]
+        self.decision_rules[('cNrm',)] = [decision_rule_cNrm_from_solution(sol) for sol in self.solution]
 
     # TODO: streamline this so it can draw the parameters from context
     def birth_aNrmNow(self, N):
@@ -98,7 +109,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         Birth value for pLvlNow
         """
         pLvlInitMeanNow = self.pLvlInitMean + np.log(
-            self.aggs["PlvlAgg"]
+            self.state_now["PlvlAgg"]
         )  # Account for newer cohorts having higher permanent income
 
         return Lognormal(
@@ -107,110 +118,12 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
 
-    def transition_Rport(self, **context):
-
-        Rport = (
-            context["Share"] * context["Risky"]
-            + (1.0 - context["Share"]) * self.parameters['Rfree']
-        )
-        return Rport
-
-    def transition(self, **context):
-        pLvlPrev = context['pLvl']
-        aNrmPrev = context['aNrm']
-
-        # This should be computed separately in its own transition
-        # Using IndShock get_Rfree instead of generic.
-        RfreeNow = context['Rport']
-
-        # Calculate new states: normalized market resources and permanent income level
-        pLvlNow = pLvlPrev * context['PermShk']  # Updated permanent income level
-
-        # Updated aggregate permanent productivity level
-        PlvlAggNow = context['PlvlAgg'] * context['PermShkAggNow']
-        # "Effective" interest factor on normalized assets
-        ReffNow = RfreeNow / context['PermShk']
-        bNrmNow = ReffNow * aNrmPrev         # Bank balances before labor income
-        mNrmNow = bNrmNow + context['TranShk']  # Market resources after income
-
-        return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow
-
-    def transition_ShareNow(self, **context):
-        """
-        Transition method for ShareNow.
-        """
-        ## Changed from HARK. See #1049. Should be added to context.
-        ShareNow = self.controls['Share'].copy()
-
-        # Loop over each period of the cycle, getting controls separately depending on "age"
-        for t in range(self.T_cycle):
-            these = t == self.t_cycle
-
-            # Get controls for agents who *can* adjust their portfolio share
-            those = np.logical_and(these, context['Adjust'])
-
-            ShareNow[those] = self.solution[t].ShareFuncAdj(context['mNrm'][those])
-
-            # Get Controls for agents who *can't* adjust their portfolio share
-            those = np.logical_and(
-                these,
-                np.logical_not(context['Adjust']))
-            ShareNow[those] = self.solution[t].ShareFuncFxd(
-                context['mNrm'][those], ShareNow[those]
-            )
-
-        return ShareNow,
-
-    def transition_cNrmNow(self, **context):
-        """
-        Transition method for cNrmNow.
-        """
-        cNrmNow = np.zeros(self.AgentCount) + np.nan
-        ShareNow = context["Share"]
-
-        # Loop over each period of the cycle, getting controls separately depending on "age"
-        for t in range(self.T_cycle):
-            these = t == self.t_cycle
-
-            # Get controls for agents who *can* adjust their portfolio share
-            those = np.logical_and(these, context['Adjust'])
-            cNrmNow[those] = self.solution[t].cFuncAdj(context['mNrm'][those])
-
-            # Get Controls for agents who *can't* adjust their portfolio share
-            those = np.logical_and(
-                these,
-                np.logical_not(context['Adjust']))
-            cNrmNow[those] = self.solution[t].cFuncFxd(
-                context['mNrm'][those], ShareNow[those]
-            )
-        
-        return cNrmNow,
-
-    def transition_poststates(self, **context):
-        """
-        Calculates end-of-period assets for each consumer of this type.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        # should this be "Now", or "Prev"?!?
-        # todo: don't store on self
-        self.state_now['aNrm'] = context['mNrm'] - context['cNrm']
-        # Useful in some cases to precalculate asset level
-        self.state_now['aLvl'] = context['aNrm'] * context['pLvl']
-
-        return (self.state_now['aNrm'], self.state_now['aLvl'])
-
     # maybe replace reference to init_portfolio to self.parameters?
-    frames = [
+    model = FrameModel([
         # todo : make an aggegrate value
-        Frame(('PermShkAggNow',), ('PermGroFacAgg',),
-            transition = lambda self, PermGroFacAgg : (PermGroFacAgg,)
+        Frame(('PermShkAgg',), ('PermGroFacAgg',),
+            transition = lambda PermGroFacAgg : (PermGroFacAgg,),
+            aggregate = True
         ),
         Frame(
             ('PermShk'), None,
@@ -241,7 +154,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             )
         ),
         Frame( ## TODO: Handle Risky as an Aggregate value
-            ('Risky'),None, 
+            ('Risky'), None, 
             transition = IndexDistribution(
                 Lognormal.from_mean_std,
                 {
@@ -251,10 +164,11 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                 # seed=self.RNG.randint(0, 2 ** 31 - 1) : TODO: Seed logic
             ).approx(
                 init_portfolio['RiskyCount']
-            )
+            ),
+            aggregate = True
         ),
         Frame(
-            ('Adjust'),None, 
+            ('Adjust'), None, 
             default = {'Adjust' : False},
             transition = IndexDistribution(
                 Bernoulli,
@@ -263,28 +177,53 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             ) # self.t_cycle input implied
         ),
         Frame(
-            ('Rport'), ('Share', 'Risky'), 
-            transition = transition_Rport
-        ),
-        ## TODO risk free return rate
-        Frame(
-            ('pLvl', 'PlvlAgg', 'bNrm', 'mNrm'),
-            ('pLvl', 'aNrm', 'Rport', 'PlvlAgg', 'PermShk', 'TranShk', 'PermShkAggNow'),
-            default = {'pLvl' : birth_pLvlNow, 'PlvlAgg' : 1.0},
-            transition = transition
+            ('Rport'), ('Share', 'Risky', 'Rfree'), 
+            transition = lambda Share, Risky, Rfree : (Share * Risky + (1.0 - Share) * Rfree,)
         ),
         Frame(
-            ('Share'), ('Adjust', 'mNrm'),
+            ('PlvlAgg'), ('PlvlAgg', 'PermShkAgg'), 
+            default = {'PlvlAgg' : 1.0},
+            transition = lambda PlvlAgg, PermShkAgg : PlvlAgg * PermShkAgg,
+            aggregate = True
+        ),
+        Frame(
+            ('pLvl',),
+            ('pLvl', 'PermShk'),
+            default = {'pLvl' : birth_pLvlNow},
+            transition = lambda pLvl, PermShk : (pLvl * PermShk,)
+        ),
+        Frame(
+            ('bNrm',),
+            ('aNrm', 'Rport', 'PermShk'), 
+            transition = lambda aNrm, Rport, PermShk: (Rport / PermShk) * aNrm
+        ),
+        Frame(
+            ('mNrm',),
+            ('bNrm', 'TranShk'),
+            transition = lambda bNrm, TranShk : (bNrm + TranShk,)
+        ),
+        Frame(
+            ('Share'), ('Adjust', 'mNrm', 'Share'),
             default = {'Share' : 0}, 
-            transition = transition_ShareNow
+            control = True
         ),
         Frame(
             ('cNrm'), ('Adjust','mNrm','Share'), 
-            transition = transition_cNrmNow
+            control = True
         ),
         Frame(
-            ('aNrm', 'aLvl'), ('aNrm', 'cNrm', 'mNrm', 'pLvl'),
-            default = {'aNrm' : birth_aNrmNow}, 
-            transition = transition_poststates
+            ('U'), ('cNrm','CRRA'), ## Note CRRA here is a parameter not a state var
+            transition = lambda cNrm, CRRA : (CRRAutility(cNrm, CRRA),),
+            reward = True
+        ),
+        Frame(
+            ('aNrm'), ('mNrm', 'cNrm'),
+            default = {'aNrm' : birth_aNrmNow},
+            transition = lambda mNrm, cNrm : (mNrm - cNrm,)
+        ),
+        Frame(
+            ('aLvl'), ('aNrm', 'pLvl'),
+            transition = lambda aNrm, pLvl : (aNrm * pLvl,)
         )
-    ]
+    ],
+    init_portfolio)

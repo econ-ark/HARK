@@ -1,5 +1,5 @@
 """
-This file implements unit tests for interpolation methods
+This file implements unit tests for core HARK functionality.
 """
 from HARK.core import Model, MetricObject, distance_metric, AgentType, distribute_params
 from HARK.distribution import Uniform
@@ -115,5 +115,6 @@ class test_distribute_params(unittest.TestCase):
 
         self.assertTrue(all(['DiscFac' in agent.parameters for agent in self.agents]))
         self.assertTrue(all([self.agents[i].parameters['DiscFac'] == dist.approx(3).X[i] for i in range(3)]))
+        self.assertEqual(self.agents[0].parameters['AgentCount'], 1)
 
 

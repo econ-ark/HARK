@@ -8,13 +8,32 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.13.0
+
+Release Date: TBD
+
+### Major Changes
+
+* Updates the DCEGM tools to address the flaws identified in [issue #1062](https://github.com/econ-ark/HARK/issues/1062). PR: [1100](https://github.com/econ-ark/HARK/pull/1100).
+* Updates `IndexDstn`, introducing the option to use an existing RNG instead of creating a new one, and creating and storing all the conditional distributions at initialization. [1104](https://github.com/econ-ark/HARK/pull/1104)
+* `make_shock_history` and `read_shocks == True` now store and use the random draws that determine newborn's initial states [#1101](https://github.com/econ-ark/HARK/pull/1101).
+* `FrameModel` and `FrameSet` classes introduced for more modular construction of framed models. `FrameAgentType` dedicated to simulation. [#1117](https://github.com/econ-ark/HARK/pull/1117)
+* General control transitions based on decision rules in `FrameAgentType`. [#1117](https://github.com/econ-ark/HARK/pull/1117)
+
+
+### Minor Changes
+
+* Updates the lognormal-income-process constructor from `ConsIndShockModel.py` to use `IndexDistribution`. [#1024](https://github.com/econ-ark/HARK/pull/1024), [#1115](https://github.com/econ-ark/HARK/pull/1115)
+* Allows for age-varying unemployment probabilities and replacement incomes with the lognormal income process constructor. [#1112](https://github.com/econ-ark/HARK/pull/1112)
+
 ### 0.12.0
 
-Release Data: TBD
+Release Date: December 14, 2021
 
 #### Major Changes
 
-* FrameAgentType for modular definitions of agents [#865](https://github.com/econ-ark/HARK/pull/865)
+* FrameAgentType for modular definitions of agents [#865](https://github.com/econ-ark/HARK/pull/865) [#1064](https://github.com/econ-ark/HARK/pull/1064)
+* Frame relationships with backward and forward references, with plotting example [#1071](https://github.com/econ-ark/HARK/pull/1071)	
 * PortfolioConsumerFrameType, a port of PortfolioConsumerType to use Frames [#865](https://github.com/econ-ark/HARK/pull/865)
 * Input parameters for cyclical models now indexed by t [#1039](https://github.com/econ-ark/HARK/pull/1039)
 * A IndexDistribution class for representing time-indexed probability distributions [#1018](https://github.com/econ-ark/pull/1018/).
@@ -41,10 +60,12 @@ PR: [#832](https://github.com/econ-ark/HARK/pull/832). See [this forthcoming REM
 * Fix mathematical limits of model example in `example_ConsPortfolioModel.ipynb` [#1047](https://github.com/econ-ark/HARK/pull/1047)
 * Update `ConsGenIncProcessModel.py` to use `calc_expectation` method [#1072](https://github.com/econ-ark/HARK/pull/1072)
 * Fix bug in `calc_normal_style_pars_from_lognormal_pars` due to math error. [#1076](https://github.com/econ-ark/HARK/pull/1076)
+* Fix bug in `distribute_params` so that `AgentCount` parameter is updated. [#1089](https://github.com/econ-ark/HARK/pull/1089)
+* Fix bug in 'vFuncBool' option for 'MarkovConsumerType' so that the value function may now be calculated. [#1095](https://github.com/econ-ark/HARK/pull/1095)
 
 ### 0.11.0
 
-Release Data: March 4, 2021
+Release Date: March 4, 2021
 
 #### Major Changes
 
@@ -82,7 +103,7 @@ interpolation for problems with CRRA utility. See [#888](https://github.com/econ
 
 ### 0.10.8
 
-Release Data: Nov. 05 2020
+Release Date: Nov. 05 2020
 
 #### Major Changes
 
