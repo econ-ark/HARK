@@ -214,7 +214,9 @@ plot_funcs(
 # ## Risky Return Given Fixed Portfolio Share
 
 # %%
-FixedShareExample = RiskyReturnGivenFixedPortfolioShareRiskyAssetConsumerType(**init_portfolio)
+FixedShareExample = RiskyReturnGivenFixedPortfolioShareRiskyAssetConsumerType(
+    **init_portfolio
+)
 FixedShareExample.cycles = 0
 
 
@@ -259,7 +261,9 @@ plot_funcs(
 
 # %%
 init_portfolio["RiskyShareFixed"] = [1.0]
-RiskyFixedExample = RiskyReturnGivenFixedPortfolioShareRiskyAssetConsumerType(**init_portfolio)
+RiskyFixedExample = RiskyReturnGivenFixedPortfolioShareRiskyAssetConsumerType(
+    **init_portfolio
+)
 RiskyFixedExample.cycles = 0
 
 
