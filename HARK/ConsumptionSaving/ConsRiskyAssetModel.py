@@ -33,10 +33,10 @@ from HARK.interpolation import (
     ConstantFunction,
 )
 
-# RiskyAssetIndShockConsumerType
+# IndShockRiskyAssetConsumerType
 
 
-class RiskyAssetIndShockConsumerType(IndShockConsumerType):
+class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     """
     A consumer type that has access to a risky asset for his savings. The
     risky asset has lognormal returns that are possibly correlated with his
@@ -361,11 +361,13 @@ class RiskyAssetIndShockConsumerType(IndShockConsumerType):
 
 
 # This is to preserve compatibility with old name
-RiskyAssetConsumerType = RiskyAssetIndShockConsumerType
+RiskyAssetConsumerType = IndShockRiskyAssetConsumerType
 
 
-class RiskyReturnGivenFixedPortfolioShareConsumerType(RiskyAssetIndShockConsumerType):
-    time_vary_ = RiskyAssetIndShockConsumerType.time_vary_ + ["RiskyShareFixed"]
+class RiskyReturnGivenFixedPortfolioShareRiskyAssetConsumerType(
+    IndShockRiskyAssetConsumerType
+):
+    time_vary_ = IndShockRiskyAssetConsumerType.time_vary_ + ["RiskyShareFixed"]
 
     def __init__(self, verbose=False, quiet=False, **kwds):
         params = init_risky_share_fixed.copy()
@@ -373,7 +375,7 @@ class RiskyReturnGivenFixedPortfolioShareConsumerType(RiskyAssetIndShockConsumer
         kwds = params
 
         # Initialize a basic consumer type
-        RiskyAssetIndShockConsumerType.__init__(
+        IndShockRiskyAssetConsumerType.__init__(
             self, verbose=verbose, quiet=quiet, **kwds
         )
 
