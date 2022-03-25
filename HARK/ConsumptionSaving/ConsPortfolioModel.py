@@ -849,9 +849,9 @@ class ConsPortfolioSolver(MetricObject):
             """
             r_diff = shock - self.Rfree
 
-            return r_diff, r_diff ** 2
+            return r_diff, r_diff ** 2, r_diff ** 3
 
-        prem_mean, prem_var = calc_expectation(self.RiskyDstn, premium)
+        prem_mean, prem_sqrd, prem_cube = calc_expectation(self.RiskyDstn, premium)
 
         def c_nrm_and_deriv(shocks, a_nrm):
             """
@@ -877,7 +877,8 @@ class ConsPortfolioSolver(MetricObject):
 
         MPC = cP_next * self.aNrmGrid / c_next
 
-        approx_share = prem_mean / (self.CRRA * MPC * prem_var)
+        # first order approximation
+        approx_share = prem_mean / (self.CRRA * MPC * prem_sqrd)
 
         # clip at 0 and 1, although we know the Share limit we
         # want to see what the approximation would give us
@@ -888,6 +889,25 @@ class ConsPortfolioSolver(MetricObject):
             approx_share,
             intercept_limit=self.ShareLimit,
             slope_limit=0.0,
+        )
+
+        # second order approximation
+
+        a = -self.CRRA * prem_cube * MPC ** 2 * (-self.CRRA - 1) / 2
+        b = -self.CRRA * MPC * prem_sqrd
+        c = prem_mean
+
+        temp = np.sqrt(b ** 2 - 4 * a * c)
+
+        roots = np.array([(-b + temp) / (2 * a), (-b - temp) / (2 * a)])
+        roots[:, 0] = 1.0
+        roots = np.where(
+            np.logical_and(roots[0] >= 0, roots[0] <= 1), roots[0], roots[1]
+        )
+        roots = np.clip(roots, 0, 1)
+
+        self.ApproxSecondOrderShareFunc = LinearInterp(
+            self.aNrmGrid, roots, intercept_limit=self.ShareLimit, slope_limit=0.0,
         )
 
         # Share function for mGrid
@@ -1050,6 +1070,7 @@ class ConsPortfolioSolver(MetricObject):
 
         self.solution.EndOfPrdShareFunc = self.EndOfPrdShareFunc
         self.solution.ApproxShareFunc = self.ApproxShareFunc
+        self.solution.ApproxSecondOrderShareFunc = self.ApproxSecondOrderShareFunc
 
     def solve(self):
         """
