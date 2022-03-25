@@ -13,6 +13,7 @@ import numpy as np  # Python's numeric library, abbreviated "np"
 #     import sys
 #     exception_type, value, traceback = sys.exc_info()
 #     raise ImportError('HARK must be used in a graphical environment.', exception_type, value, traceback)
+from numba import njit
 from scipy.interpolate import interp1d
 import warnings
 
@@ -108,6 +109,7 @@ class NullFunc(object):
 # ==============================================================================
 # ============== Define utility functions        ===============================
 # ==============================================================================
+@njit(fastmath=True, cache=True)
 def CRRAutility(c, gam):
     """
     Evaluates constant relative risk aversion (CRRA) utility of consumption c
@@ -132,11 +134,12 @@ def CRRAutility(c, gam):
     >>> utility(c=c, gam=gamma)
     -1.0
     """
-    
+
     if gam == 1:
         return np.log(c)
     else:
         return c ** (1.0 - gam) / (1.0 - gam)
+
 
 def uFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     """
@@ -165,9 +168,10 @@ def uFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     -1.0
     """
     if CRRA == 1:
-        return np.log( stone_geary + c)
+        return np.log(stone_geary + c)
     else:
-        return ( stone_geary + c ) ** (1.0 - CRRA) / (1.0 - CRRA)
+        return (stone_geary + c) ** (1.0 - CRRA) / (1.0 - CRRA)
+
 
 def uPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     """
@@ -189,7 +193,8 @@ def uPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
         marginal utility
 
     """
-    return ( stone_geary + c ) ** (- CRRA)
+    return (stone_geary + c) ** (-CRRA)
+
 
 def uPPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     """
@@ -210,9 +215,10 @@ def uPPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
         marginal utility
 
     """
-    return (- CRRA)*( stone_geary + c ) ** (- CRRA - 1)
+    return (-CRRA) * (stone_geary + c) ** (-CRRA - 1)
 
 
+@njit(fastmath=True, cache=True)
 def CRRAutilityP(c, gam):
     """
     Evaluates constant relative risk aversion (CRRA) marginal utility of consumption
@@ -232,11 +238,12 @@ def CRRAutilityP(c, gam):
     """
 
     if gam == 1:
-        return 1/c
-    
+        return 1 / c
+
     return c ** -gam
 
 
+@njit(fastmath=True, cache=True)
 def CRRAutilityPP(c, gam):
     """
     Evaluates constant relative risk aversion (CRRA) marginal marginal utility of
@@ -254,10 +261,11 @@ def CRRAutilityPP(c, gam):
     (unnamed) : float
         Marginal marginal utility
     """
-    
+
     return -gam * c ** (-gam - 1.0)
 
 
+@njit(fastmath=True, cache=True)
 def CRRAutilityPPP(c, gam):
     """
     Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
@@ -275,10 +283,11 @@ def CRRAutilityPPP(c, gam):
     (unnamed) : float
         Marginal marginal marginal utility
     """
-        
+
     return (gam + 1.0) * gam * c ** (-gam - 2.0)
 
 
+@njit(fastmath=True, cache=True)
 def CRRAutilityPPPP(c, gam):
     """
     Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
@@ -296,10 +305,11 @@ def CRRAutilityPPPP(c, gam):
     (unnamed) : float
         Marginal marginal marginal marginal utility
     """
-    
+
     return -(gam + 2.0) * (gam + 1.0) * gam * c ** (-gam - 3.0)
 
 
+@njit(fastmath=True, cache=True)
 def CRRAutility_inv(u, gam):
     """
     Evaluates the inverse of the CRRA utility function (with risk aversion para-
@@ -323,6 +333,7 @@ def CRRAutility_inv(u, gam):
         return ((1.0 - gam) * u) ** (1 / (1.0 - gam))
 
 
+@njit(fastmath=True, cache=True)
 def CRRAutilityP_inv(uP, gam):
     """
     Evaluates the inverse of the CRRA marginal utility function (with risk aversion
@@ -343,6 +354,7 @@ def CRRAutilityP_inv(uP, gam):
     return uP ** (-1.0 / gam)
 
 
+@njit(fastmath=True, cache=True)
 def CRRAutility_invP(u, gam):
     """
     Evaluates the derivative of the inverse of the CRRA utility function (with
@@ -366,6 +378,7 @@ def CRRAutility_invP(u, gam):
         return ((1.0 - gam) * u) ** (gam / (1.0 - gam))
 
 
+@njit(fastmath=True, cache=True)
 def CRRAutilityP_invP(uP, gam):
     """
     Evaluates the derivative of the inverse of the CRRA marginal utility function
@@ -1009,7 +1022,6 @@ def setup_latex_env_notebook(pf, latexExists):
         output of determine_platform()
     """
     import os
-    from matplotlib import rc
     import matplotlib.pyplot as plt
 
     plt.rc("font", family="serif")
@@ -1032,7 +1044,7 @@ def setup_latex_env_notebook(pf, latexExists):
         )
         # Latex expects paths to be separated by /. \ might result in pieces
         # being interpreted as commands.
-        latexdefs_path = os.getcwd().replace(os.path.sep, '/') + "/latexdefs.tex"
+        latexdefs_path = os.getcwd().replace(os.path.sep, "/") + "/latexdefs.tex"
         if os.path.isfile(latexdefs_path):
             latex_preamble = latex_preamble + r"\input{" + latexdefs_path + r"}"
         else:  # the required latex_envs package needs this file to exist even if it is empty
