@@ -16,7 +16,6 @@ you might want to look at the `DemARK
 .. toctree::
    :maxdepth: 1
    :caption: Documentation
-   :ref:`Documentation`
 
    introduction
    quick-start
