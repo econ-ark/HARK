@@ -2071,10 +2071,9 @@ init_idiosyncratic_shocks = dict(
         "tax_rate": 0.0,  # Flat income tax rate
         "T_retire": 0,  # Period of retirement (0 --> no retirement)
         "vFuncBool": False,  # Whether to calculate the value function during solution
-        # Use cubic spline interpolation when True, linear interpolation when False
-        # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
-        "CubicBool": False,
-        "neutral_measure": False,
+        "CubicBool": False,  # Use cubic spline interpolation when True, linear interpolation when False
+        "neutral_measure": False,  # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
+        "NewbornTransShk": False,  # Whether Newborns have transitory shock. The default is False.
     }
 )
 
@@ -2203,12 +2202,17 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         Parameters
         ----------
-        None
+        NewbornTransShk : boolean, optional
+            Whether Newborns have transitory shock. The default is False.
 
         Returns
         -------
         None
         """
+        NewbornTransShk = (
+            self.NewbornTransShk
+        )  #  Whether Newborns have transitory shock. The default is False.
+
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
         newborn = self.t_age == 0
@@ -2249,7 +2253,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
             )  # permanent "shock" includes expected growth
             TranShkNow[these] = IncShkDstnNow.X[1][EventDraws]
         #        PermShkNow[newborn] = 1.0
-        TranShkNow[newborn] = 1.0
+        #  Whether Newborns have transitory shock. The default is False.
+        if not NewbornTransShk:
+            TranShkNow[newborn] = 1.0
 
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount, dtype=bool)
