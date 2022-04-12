@@ -33,6 +33,7 @@ from HARK.interpolation import (
     ConstantFunction,
 )
 
+
 # IndShockRiskyAssetConsumerType
 
 
@@ -128,7 +129,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             self.RiskyDstn = IndexDistribution(
                 Lognormal.from_mean_std,
                 {"mean": self.RiskyAvg, "std": self.RiskyStd},
-                seed=self.RNG.randint(0, 2**31 - 1),
+                seed=self.RNG.randint(0, 2 ** 31 - 1),
             ).approx(self.RiskyCount)
 
             self.add_to_time_vary("RiskyDstn")
@@ -303,7 +304,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             RiskyStd = self.RiskyStd
 
         self.shocks["Risky"] = Lognormal.from_mean_std(
-            RiskyAvg, RiskyStd, seed=self.RNG.randint(0, 2**31 - 1)
+            RiskyAvg, RiskyStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(1)
 
     def get_Adjust(self):
@@ -321,7 +322,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         None
         """
         self.shocks["Adjust"] = IndexDistribution(
-            Bernoulli, {"p": self.AdjustPrb}, seed=self.RNG.randint(0, 2**31 - 1)
+            Bernoulli, {"p": self.AdjustPrb}, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(self.t_cycle)
 
     def initialize_sim(self):
@@ -456,39 +457,39 @@ class ConsRiskyAssetIndShkSolver(ConsIndShockSolver):
         # Absolute Patience Factor for the model with risk free return is defined at
         # https://econ-ark.github.io/BufferStockTheory/BufferStockTheory3.html#APFacDefn
 
-        # overwrite APFac
-        # The corresponding Absolute Patience Factor when the return factor is risky is defined
-        # implicitly in #TODO add link
+        # The corresponding Absolute Patience Factor when the
+        # return factor is risky is defined implicitly in
+        # https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/Consumption/CRRA-RateRisk/
 
-        def APFac_func(shock):  # link to notes
-            return ((shock * self.DiscFacEff) ** (1.0 / self.CRRA)) / shock
+        def abs_pat_fac(shock):
+            return shock ** (1.0 - self.CRRA)
 
-        self.APFac = calc_expectation(self.RiskyDstn, APFac_func)
+        self.AbsPatFac = (
+            self.DiscFacEff * calc_expectation(self.RiskyDstn, abs_pat_fac)
+        ) ** (1.0 / self.CRRA)
 
-        self.MPCminNow = 1.0 / (1.0 + self.APFac / solution_next.MPCmin)
+        self.MPCminNow = 1.0 / (1.0 + self.AbsPatFac / solution_next.MPCmin)
 
         # overwrite human wealth function
 
-        def h_nrm_func(shocks):  # link to notes
+        def h_nrm_now(shocks):  # link to notes
             return (
                 self.PermGroFac
                 / shocks[2]
                 * (shocks[0] * shocks[1] + solution_next.hNrm)
             )
 
-        self.hNrmNow = calc_expectation(self.ShockDstn, h_nrm_func)
+        self.hNrmNow = calc_expectation(self.ShockDstn, h_nrm_now)
 
         self.MPCmaxNow = 1.0 / (
             1.0
             + (self.WorstIncPrb ** (1.0 / self.CRRA))
-            * self.APFac
+            * self.AbsPatFac
             / solution_next.MPCmax
         )
 
-        # let upper extrapolation be linear for now
-
-        self.cFuncLimitIntercept = None
-        self.cFuncLimitSlope = None
+        self.cFuncLimitIntercept = self.MPCminNow * self.hNrmNow
+        self.cFuncLimitSlope = self.MPCminNow
 
     def def_BoroCnst(self, BoroCnstArt):
         """
@@ -553,8 +554,7 @@ class ConsRiskyAssetIndShkSolver(ConsIndShockSolver):
             # if zero is BoroCnstNat, do not evaluate at 0.0
             aNrmNow = self.aXtraGrid
             bNrmNext = np.append(
-                aNrmNow[0] * self.RiskyDstn.X.min(),
-                aNrmNow * self.RiskyDstn.X.max(),
+                aNrmNow[0] * self.RiskyDstn.X.min(), aNrmNow * self.RiskyDstn.X.max(),
             )
             wNrmNext = np.append(
                 bNrmNext[0] / (self.PermGroFac * self.PermShkDstn.X.max()),
@@ -770,6 +770,62 @@ class ConsRiskyAssetIndShkSolver(ConsIndShockSolver):
 class ConsPortfolioRiskyAssetIndShkSolver(ConsRiskyAssetIndShkSolver):
     ShareGrid: np.array
     ShareLimit: float
+
+    def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
+        """
+        Unpacks some of the inputs (and calculates simple objects based on them),
+        storing the results in self for use by other methods.  These include:
+        income shocks and probabilities, next period's marginal value function
+        (etc), the probability of getting the worst income shock next period,
+        the patience factor, human wealth, and the bounding MPCs.
+
+        Parameters
+        ----------
+        solution_next : ConsumerSolution
+            The solution to next period's one period problem.
+        IncShkDstn : distribution.DiscreteDistribution
+            A DiscreteDistribution with a pmf
+            and two point value arrays in X, order:
+            permanent shocks, transitory shocks.
+        LivPrb : float
+            Survival probability; likelihood of being alive at the beginning of
+            the succeeding period.
+        DiscFac : float
+            Intertemporal discount factor for future utility.
+
+        Returns
+        -------
+        None
+        """
+
+        super().set_and_update_values(solution_next, IncShkDstn, LivPrb, DiscFac)
+
+        # Absolute Patience Factor for the model with risk free return is defined at
+        # https://econ-ark.github.io/BufferStockTheory/BufferStockTheory3.html#APFacDefn
+
+        # The corresponding Absolute Patience Factor when the
+        # return factor is risky is defined implicitly in
+        # https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/Consumption/CRRA-RateRisk/
+
+        def abs_pat_fac(shock):
+            r_port = self.Rfree + (shock - self.Rfree) * self.ShareLimit
+            return r_port ** (1.0 - self.CRRA)
+
+        self.AbsPatFac = (
+            self.DiscFacEff * calc_expectation(self.RiskyDstn, abs_pat_fac)
+        ) ** (1.0 / self.CRRA)
+
+        self.MPCminNow = 1.0 / (1.0 + self.AbsPatFac / solution_next.MPCmin)
+
+        self.MPCmaxNow = 1.0 / (
+            1.0
+            + (self.WorstIncPrb ** (1.0 / self.CRRA))
+            * self.AbsPatFac
+            / solution_next.MPCmax
+        )
+
+        self.cFuncLimitIntercept = self.MPCminNow * self.hNrmNow
+        self.cFuncLimitSlope = self.MPCminNow
 
     def prepare_to_calc_EndOfPrdvP(self):
         """
@@ -1058,33 +1114,32 @@ class ConsFixedPortfolioRiskyAssetIndShkSolver(ConsIndShockSolver):
 
         # overwrite APFac
 
-        def APFac_func(shock):
-            # link to lecture notes #TODO
-            r_port = self.r_port(shock)
-            return ((r_port * self.DiscFacEff) ** (1.0 / self.CRRA)) / r_port
+        def abs_pat_fac(shock):
+            return self.r_port(shock) ** (1.0 - self.CRRA)
 
-        self.APFac = calc_expectation(self.RiskyDstn, APFac_func)
+        self.AbsPatFac = (
+            self.DiscFacEff * calc_expectation(self.RiskyDstn, abs_pat_fac)
+        ) ** (1.0 / self.CRRA)
 
-        self.MPCminNow = 1.0 / (1.0 + self.APFac / solution_next.MPCmin)
+        self.MPCminNow = 1.0 / (1.0 + self.AbsPatFac / solution_next.MPCmin)
 
         # overwrite human wealth
 
-        def h_nrm_func(shock):
-            # link to lecture notes #TODO
+        def h_nrm_now(shock):
             r_port = self.r_port(shock)
             return self.PermGroFac / r_port * (self.Ex_IncNext + solution_next.hNrm)
 
-        self.hNrmNow = calc_expectation(self.RiskyDstn, h_nrm_func)
+        self.hNrmNow = calc_expectation(self.RiskyDstn, h_nrm_now)
 
         self.MPCmaxNow = 1.0 / (
             1.0
             + (self.WorstIncPrb ** (1.0 / self.CRRA))
-            * self.APFac
+            * self.AbsPatFac
             / solution_next.MPCmax
         )
 
-        self.cFuncLimitIntercept = None
-        self.cFuncLimitSlope = None
+        self.cFuncLimitIntercept = self.MPCminNow * self.hNrmNow
+        self.cFuncLimitSlope = self.MPCminNow
 
     def def_BoroCnst(self, BoroCnstArt):
         """
@@ -1289,7 +1344,6 @@ class RiskyAssetShkLognormWithDisaster(RiskyAssetShkLognorm):
     """
 
     def __init__(self, mu, sigma, DisasterPrb, DisasterShk, n_approx, seed=0):
-
         super().__init__(
             mu, sigma, n_approx, pmf=dstn_approx.pmf, X=dstn_approx.X, seed=seed
         )

@@ -1715,14 +1715,14 @@ class PerfForesightConsumerType(AgentType):
         self.state_now["aNrm"][which_agents] = Lognormal(
             mu=self.aNrmInitMean,
             sigma=self.aNrmInitStd,
-            seed=self.RNG.randint(0, 2**31 - 1),
+            seed=self.RNG.randint(0, 2 ** 31 - 1),
         ).draw(N)
         # why is a now variable set here? Because it's an aggregate.
         pLvlInitMeanNow = self.pLvlInitMean + np.log(
             self.state_now["PlvlAgg"]
         )  # Account for newer cohorts having higher permanent income
         self.state_now["pLvl"][which_agents] = Lognormal(
-            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.randint(0, 2**31 - 1)
+            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
         # How many periods since each agent was born
         self.t_age[which_agents] = 0
@@ -1766,7 +1766,7 @@ class PerfForesightConsumerType(AgentType):
         # they die.
         # See: https://github.com/econ-ark/HARK/pull/981
 
-        DeathShks = Uniform(seed=self.RNG.randint(0, 2**31 - 1)).draw(
+        DeathShks = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(
             N=self.AgentCount
         )
         which_agents = DeathShks < DiePrb
@@ -2072,7 +2072,8 @@ init_idiosyncratic_shocks = dict(
         "T_retire": 0,  # Period of retirement (0 --> no retirement)
         "vFuncBool": False,  # Whether to calculate the value function during solution
         "CubicBool": False,  # Use cubic spline interpolation when True, linear interpolation when False
-        "neutral_measure": False,  # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
+        "neutral_measure": False,
+        # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
         "NewbornTransShk": False,  # Whether Newborns have transitory shock. The default is False.
     }
 )
@@ -2211,7 +2212,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
         NewbornTransShk = (
             self.NewbornTransShk
-        )  #  Whether Newborns have transitory shock. The default is False.
+        )  # Whether Newborns have transitory shock. The default is False.
 
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
@@ -2864,7 +2865,6 @@ class MixtureTranIncShk(DiscreteDistribution):
     """
 
     def __init__(self, sigma, UnempPrb, IncUnemp, n_approx, seed=0):
-
         dstn_approx = MeanOneLogNormal(sigma).approx(
             n_approx if sigma > 0.0 else 1, tail_N=0
         )
