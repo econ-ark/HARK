@@ -15,8 +15,8 @@ authors:
 github_repo_url: https://github.com/econ-ark/HARK
 notebooks:
   - 
-    examples/ConsIndShockModel/ConsLaborModel.ipynb
+    examples/ConsumptionSaving/example_ConsLaborModel.ipynb
 dashboards:
 ---
 
-Detailed description of the `ConsLaborModel` package
+Detailed description of `ConsLaborModel` 

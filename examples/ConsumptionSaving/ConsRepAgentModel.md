@@ -15,8 +15,8 @@ authors:
 github_repo_url: https://github.com/econ-ark/HARK
 notebooks:
   - 
-    examples/ConsIndShockModel/ConsRepAgentModel.ipynb
+    examples/ConsumptionSaving/example_ConsRepAgentModel.ipynb
 dashboards:
 ---
 
-Detailed description of the `ConsRepAgentModel` package
+Detailed description of `ConsRepAgentModel` 

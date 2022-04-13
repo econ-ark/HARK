@@ -15,8 +15,8 @@ authors:
 github_repo_url: https://github.com/econ-ark/HARK
 notebooks:
   - 
-    examples/ConsIndShockModel/ConsRiskyContribModel.ipynb
+    examples/ConsumptionSaving/example_ConsRiskyContribModel.ipynb
 dashboards:
 ---
 
-Detailed description of the `ConsRiskyContribModel` package
+Detailed description of `ConsRiskyContribModel` 

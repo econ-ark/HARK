@@ -1,5 +1,5 @@
 ---
-name: ConsSequentialPortfolioModel
+name: ConsGenIncProcessModel
 tags:
   - Example
   - Demonstration
@@ -15,8 +15,8 @@ authors:
 github_repo_url: https://github.com/econ-ark/HARK
 notebooks:
   - 
-    examples/ConsIndShockModel/ConsGenIncProcessModel.ipynb
+    examples/ConsumptionSaving/example_ConsGenIncProcessModel.ipynb
 dashboards:
 ---
 
-Detailed description of the `ConsGenIncProcessModel` package
+Detailed description of `ConsGenIncProcessModel` 

@@ -1,12 +1,12 @@
 ---
-name: ConsPrefShockModel
+name: ConsAggShockModel
 tags:
   - Example
   - Demonstration
   - Documentation
   - Notebook
   - Teaching
-abstract: 'ConsPrefShockModel Documentation'
+abstract: 'ConsAggShockModel Documentation'
 authors:
   -
     family-names: Carroll
@@ -15,8 +15,8 @@ authors:
 github_repo_url: https://github.com/econ-ark/HARK
 notebooks:
   - 
-    examples/ConsumptionSaving/example_ConsPrefShockModel.ipynb
+    examples/ConsumptionSaving/example_ConsAggShockModel.ipynb
 dashboards:
 ---
 
-Detailed description of `ConsPrefShockModel` 
+Detailed description of `ConsAggShockModel` 

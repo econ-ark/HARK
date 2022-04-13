@@ -15,8 +15,8 @@ authors:
 github_repo_url: https://github.com/econ-ark/HARK
 notebooks:
   - 
-    examples/ConsIndShockModel/TractableBufferStockModel.ipynb
+    examples/ConsumptionSaving/example_TractableBufferStockModel.ipynb
 dashboards:
 ---
 
-Detailed description of the `TractableBufferStockModel` package
+Detailed description of `TractableBufferStockModel` 

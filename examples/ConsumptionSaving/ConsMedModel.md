@@ -15,8 +15,8 @@ authors:
 github_repo_url: https://github.com/econ-ark/HARK
 notebooks:
   - 
-    examples/ConsIndShockModel/ConsMedModel.ipynb
+    examples/ConsumptionSaving/example_ConsMedModel.ipynb
 dashboards:
 ---
 
-Detailed description of the `ConsMedModel` package
+Detailed description of `ConsMedModel` 
