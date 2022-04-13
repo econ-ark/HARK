@@ -1116,6 +1116,9 @@ def benchmark(
     in terms of  `sort_by`. Optionally allows for saving a text copy of the profile
     as well as returning the `Stats` object for further inspection.
 
+    For more details on the python profilers, see
+    https://docs.python.org/3/library/profile.html#the-stats-class
+
     Parameters
     ----------
     agent_type: AgentType
@@ -1127,7 +1130,7 @@ def benchmark(
     filename: string
             Optional filename to save output.
     return_output: bool
-            Boolean to determine whether Stats object should be returned. 
+            Boolean to determine whether Stats object should be returned.
 
     Returns
     -------
