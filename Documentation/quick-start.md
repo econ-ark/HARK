@@ -93,8 +93,8 @@ The most broadly applicable advice is to go to [Econ-ARK](https://econ-ark.org) 
 #### [For Other Developers of Software for Computational Economics](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-other-developers-of-software-for-computational-economics)
 
 
-* Our workhorse module is [ConsIndShockModel.py](https://github.com/econ-ark/HARK/blob/master/HARK/ConsumptionSaving/ConsIndShockModel.py)
-   * which is explored and explained (a bit) in [this jupyter notebook](https://github.com/econ-ark/DemARK/blob/master/notebooks/ConsIndShockModel.ipynb)
+* Our workhorse module is [ConsIndShockModel.py](https://github.com/econ-ark/HARK/blob/master/HARK/ConsumptionSaving/ConsumptionSaving.py)
+   * which is explored and explained (a bit) in [this jupyter notebook](https://github.com/econ-ark/DemARK/blob/master/notebooks/ConsumptionSaving.ipynb)
 
 ## Making changes to HARK
 
