@@ -26,6 +26,7 @@ Release Date: TBD
 * Updates the lognormal-income-process constructor from `ConsIndShockModel.py` to use `IndexDistribution`. [#1024](https://github.com/econ-ark/HARK/pull/1024), [#1115](https://github.com/econ-ark/HARK/pull/1115)
 * Allows for age-varying unemployment probabilities and replacement incomes with the lognormal income process constructor. [#1112](https://github.com/econ-ark/HARK/pull/1112)
 * Option to have newborn IndShockConsumerType agents with a transitory income shock in the first period. Default is false, meaning they only have a permanent income shock in period 1 and permanent AND transitory in the following ones. [#1126](https://github.com/econ-ark/HARK/pull/1126)
+* Adds `benchmark` utility to profile the performance of `HARK` solvers. [#1131](https://github.com/econ-ark/HARK/pull/1131)
 
 ### 0.12.0
 

@@ -3,7 +3,9 @@ General purpose  / miscellaneous functions.  Includes functions to approximate
 continuous distributions with discrete ones, utility functions (and their
 derivatives), manipulation of discrete distributions, and basic plotting tools.
 """
+import cProfile
 import functools
+import pstats
 
 import numpy as np  # Python's numeric library, abbreviated "np"
 
@@ -132,11 +134,12 @@ def CRRAutility(c, gam):
     >>> utility(c=c, gam=gamma)
     -1.0
     """
-    
+
     if gam == 1:
         return np.log(c)
     else:
         return c ** (1.0 - gam) / (1.0 - gam)
+
 
 def uFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     """
@@ -165,9 +168,10 @@ def uFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     -1.0
     """
     if CRRA == 1:
-        return np.log( stone_geary + c)
+        return np.log(stone_geary + c)
     else:
-        return ( stone_geary + c ) ** (1.0 - CRRA) / (1.0 - CRRA)
+        return (stone_geary + c) ** (1.0 - CRRA) / (1.0 - CRRA)
+
 
 def uPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     """
@@ -189,7 +193,8 @@ def uPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
         marginal utility
 
     """
-    return ( stone_geary + c ) ** (- CRRA)
+    return (stone_geary + c) ** (-CRRA)
+
 
 def uPPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     """
@@ -210,7 +215,7 @@ def uPPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
         marginal utility
 
     """
-    return (- CRRA)*( stone_geary + c ) ** (- CRRA - 1)
+    return (-CRRA) * (stone_geary + c) ** (-CRRA - 1)
 
 
 def CRRAutilityP(c, gam):
@@ -232,8 +237,8 @@ def CRRAutilityP(c, gam):
     """
 
     if gam == 1:
-        return 1/c
-    
+        return 1 / c
+
     return c ** -gam
 
 
@@ -254,7 +259,7 @@ def CRRAutilityPP(c, gam):
     (unnamed) : float
         Marginal marginal utility
     """
-    
+
     return -gam * c ** (-gam - 1.0)
 
 
@@ -275,7 +280,7 @@ def CRRAutilityPPP(c, gam):
     (unnamed) : float
         Marginal marginal marginal utility
     """
-        
+
     return (gam + 1.0) * gam * c ** (-gam - 2.0)
 
 
@@ -296,7 +301,7 @@ def CRRAutilityPPPP(c, gam):
     (unnamed) : float
         Marginal marginal marginal marginal utility
     """
-    
+
     return -(gam + 2.0) * (gam + 1.0) * gam * c ** (-gam - 3.0)
 
 
@@ -1009,7 +1014,6 @@ def setup_latex_env_notebook(pf, latexExists):
         output of determine_platform()
     """
     import os
-    from matplotlib import rc
     import matplotlib.pyplot as plt
 
     plt.rc("font", family="serif")
@@ -1032,7 +1036,7 @@ def setup_latex_env_notebook(pf, latexExists):
         )
         # Latex expects paths to be separated by /. \ might result in pieces
         # being interpreted as commands.
-        latexdefs_path = os.getcwd().replace(os.path.sep, '/') + "/latexdefs.tex"
+        latexdefs_path = os.getcwd().replace(os.path.sep, "/") + "/latexdefs.tex"
         if os.path.isfile(latexdefs_path):
             latex_preamble = latex_preamble + r"\input{" + latexdefs_path + r"}"
         else:  # the required latex_envs package needs this file to exist even if it is empty
@@ -1101,3 +1105,44 @@ def find_gui():
     if plt.get_backend() == "Agg":
         return False
     return True
+
+
+def benchmark(
+    agent_type, sort_by="tottime", max_print=10, filename="restats", return_output=False
+):
+    """
+    Profiling tool for HARK models. Calling `benchmark` on agents calls the solver for
+    the agents and provides time to solve as well as the top `max_print` function calls
+    in terms of  `sort_by`. Optionally allows for saving a text copy of the profile
+    as well as returning the `Stats` object for further inspection.
+
+    For more details on the python profilers, see
+    https://docs.python.org/3/library/profile.html#the-stats-class
+
+    Parameters
+    ----------
+    agent_type: AgentType
+            A HARK AgentType with a solve() method.
+    sort_by: string
+            A string to sort the stats by.
+    max_print: int
+            Number of lines to print
+    filename: string
+            Optional filename to save output.
+    return_output: bool
+            Boolean to determine whether Stats object should be returned.
+
+    Returns
+    -------
+    stats: Stats (optional)
+          Profiling object with call statistics.
+    """
+
+    agent = agent_type
+    cProfile.run("agent.solve()", filename)
+    stats = pstats.Stats(filename)
+    stats.strip_dirs()
+    stats.sort_stats(sort_by)
+    stats.print_stats(max_print)
+    if return_output:
+        return stats
