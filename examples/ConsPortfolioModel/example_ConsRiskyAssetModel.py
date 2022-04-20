@@ -11,7 +11,7 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
 )
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     RiskyAssetConsumerType,
-    RiskyReturnGivenFixedPortfolioShareRiskyAssetConsumerType,
+    FixedPortfolioShareRiskyAssetConsumerType,
 )
 from HARK.utilities import plot_funcs_der, plot_funcs
 
@@ -214,7 +214,7 @@ plot_funcs(
 # ## Risky Return Given Fixed Portfolio Share
 
 # %%
-FixedShareExample = RiskyReturnGivenFixedPortfolioShareRiskyAssetConsumerType(
+FixedShareExample = FixedPortfolioShareRiskyAssetConsumerType(
     **init_portfolio
 )
 FixedShareExample.cycles = 0
@@ -261,7 +261,7 @@ plot_funcs(
 
 # %%
 init_portfolio["RiskyShareFixed"] = [1.0]
-RiskyFixedExample = RiskyReturnGivenFixedPortfolioShareRiskyAssetConsumerType(
+RiskyFixedExample = FixedPortfolioShareRiskyAssetConsumerType(
     **init_portfolio
 )
 RiskyFixedExample.cycles = 0

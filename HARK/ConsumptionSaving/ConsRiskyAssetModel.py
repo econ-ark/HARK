@@ -22,7 +22,6 @@ from HARK.distribution import (
     IndexDistribution,
     Lognormal,
     Bernoulli,
-    add_discrete_outcome_constant_mean,
     calc_expectation,
     combine_indep_dstns,
 )
@@ -32,9 +31,6 @@ from HARK.interpolation import (
     ValueFuncCRRA,
     ConstantFunction,
 )
-
-
-# IndShockRiskyAssetConsumerType
 
 
 class IndShockRiskyAssetConsumerType(IndShockConsumerType):
@@ -65,9 +61,9 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         # These method must be overwritten by classes that inherit from
         # RiskyAssetConsumerType
         if self.PortfolioBool:
-            solver = ConsPortfolioRiskyAssetIndShkSolver  # optimize over shares
+            solver = ConsPortfolioIndShkRiskyAssetSolver  # optimize over shares
         else:
-            solver = ConsRiskyAssetIndShkSolver  # risky share of 1
+            solver = ConsIndShkRiskyAssetSolver  # risky share of 1
 
         self.solve_one_period = make_one_period_oo_solver(solver)
 
@@ -365,9 +361,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 RiskyAssetConsumerType = IndShockRiskyAssetConsumerType
 
 
-class RiskyReturnGivenFixedPortfolioShareRiskyAssetConsumerType(
-    IndShockRiskyAssetConsumerType
-):
+class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
     time_vary_ = IndShockRiskyAssetConsumerType.time_vary_ + ["RiskyShareFixed"]
 
     def __init__(self, verbose=False, quiet=False, **kwds):
@@ -381,7 +375,7 @@ class RiskyReturnGivenFixedPortfolioShareRiskyAssetConsumerType(
         )
 
         self.solve_one_period = make_one_period_oo_solver(
-            ConsFixedPortfolioRiskyAssetIndShkSolver
+            ConsFixedPortfolioIndShkRiskyAssetSolver
         )
 
 
@@ -390,7 +384,7 @@ class RiskyReturnGivenFixedPortfolioShareRiskyAssetConsumerType(
 
 
 @dataclass
-class ConsRiskyAssetIndShkSolver(ConsIndShockSolver):
+class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
     """
     Solver for an agent that can save in an asset that has a risky return.
     """
@@ -472,7 +466,7 @@ class ConsRiskyAssetIndShkSolver(ConsIndShockSolver):
 
         # overwrite human wealth function
 
-        def h_nrm_now(shocks):  # link to notes
+        def h_nrm_now(shocks):
             return (
                 self.PermGroFac
                 / shocks[2]
@@ -488,8 +482,12 @@ class ConsRiskyAssetIndShkSolver(ConsIndShockSolver):
             / solution_next.MPCmax
         )
 
-        self.cFuncLimitIntercept = self.MPCminNow * self.hNrmNow
-        self.cFuncLimitSlope = self.MPCminNow
+        # The above attempts to pin down the limiting consumption function for this model
+        # however it is not clear why it creates bugs, so for now we allow for a
+        # linear extrapolation beyond the last asset point
+
+        self.cFuncLimitIntercept = None
+        self.cFuncLimitSlope = None
 
     def def_BoroCnst(self, BoroCnstArt):
         """
@@ -553,22 +551,31 @@ class ConsRiskyAssetIndShkSolver(ConsIndShockSolver):
         if self.zero_bound:
             # if zero is BoroCnstNat, do not evaluate at 0.0
             aNrmNow = self.aXtraGrid
-            bNrmNext = np.append(
-                aNrmNow[0] * self.RiskyDstn.X.min(), aNrmNow * self.RiskyDstn.X.max(),
-            )
-            wNrmNext = np.append(
-                bNrmNext[0] / (self.PermGroFac * self.PermShkDstn.X.max()),
-                bNrmNext / (self.PermGroFac * self.PermShkDstn.X.min()),
-            )
+
+            if self.IndepDstnBool:
+                bNrmNext = np.append(
+                    aNrmNow[0] * self.RiskyDstn.X.min(),
+                    aNrmNow * self.RiskyDstn.X.max(),
+                )
+                wNrmNext = np.append(
+                    bNrmNext[0] / (self.PermGroFac * self.PermShkDstn.X.max()),
+                    bNrmNext / (self.PermGroFac * self.PermShkDstn.X.min()),
+                )
         else:
             # add zero to aNrmNow
             aNrmNow = np.append(self.BoroCnstArt, self.aXtraGrid)
-            bNrmNext = aNrmNow * self.RiskyDstn.X.max()
-            wNrmNext = bNrmNext / (self.PermGroFac * self.PermShkDstn.X.min())
+
+            if self.IndepDstnBool:
+                bNrmNext = aNrmNow * self.RiskyDstn.X.max()
+                wNrmNext = bNrmNext / (self.PermGroFac * self.PermShkDstn.X.min())
 
         self.aNrmNow = aNrmNow
-        self.bNrmNext = bNrmNext
-        self.wNrmNext = wNrmNext
+
+        if self.IndepDstnBool:
+            # these grids are only used if the distributions of income and
+            # risky asset are independent
+            self.bNrmNext = bNrmNext
+            self.wNrmNext = wNrmNext
 
         return self.aNrmNow
 
@@ -650,6 +657,7 @@ class ConsRiskyAssetIndShkSolver(ConsIndShockSolver):
         """
 
         if self.IndepDstnBool:
+            # if distributions are independent we can use iterated expectations
 
             preIncShkvPfunc = self.calc_preIncShkvPfunc(self.vPfuncNext)
 
@@ -748,7 +756,7 @@ class ConsRiskyAssetIndShkSolver(ConsIndShockSolver):
 
             preIncShkvFunc = self.calc_preIncShkvFunc(self.vFuncNext)
 
-            EndOfPrdv = self.calc_preRiskyShkvFunc(preIncShkvFunc)
+            self.EndOfPrdv = self.calc_preRiskyShkvFunc(preIncShkvFunc)
 
         else:
 
@@ -761,13 +769,13 @@ class ConsRiskyAssetIndShkSolver(ConsIndShockSolver):
                     * self.vFuncNext(mNrm_next)
                 )
 
-            self.EndOfPrdvFunc, EndOfPrdv = self.calc_ExpValueFunc(
+            self.EndOfPrdvFunc, self.EndOfPrdv = self.calc_ExpValueFunc(
                 self.ShockDstn, v_next, self.aNrmNow
             )
 
 
 @dataclass
-class ConsPortfolioRiskyAssetIndShkSolver(ConsRiskyAssetIndShkSolver):
+class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
     ShareGrid: np.array
     ShareLimit: float
 
@@ -824,8 +832,12 @@ class ConsPortfolioRiskyAssetIndShkSolver(ConsRiskyAssetIndShkSolver):
             / solution_next.MPCmax
         )
 
-        self.cFuncLimitIntercept = self.MPCminNow * self.hNrmNow
-        self.cFuncLimitSlope = self.MPCminNow
+        # The above attempts to pin down the limiting consumption function for this model
+        # however it is not clear why it creates bugs, so for now we allow for a
+        # linear extrapolation beyond the last asset point
+
+        self.cFuncLimitIntercept = None
+        self.cFuncLimitSlope = None
 
     def prepare_to_calc_EndOfPrdvP(self):
         """
@@ -846,7 +858,9 @@ class ConsPortfolioRiskyAssetIndShkSolver(ConsRiskyAssetIndShkSolver):
 
         super().prepare_to_calc_EndOfPrdvP()
 
-        self.aMat, self.sMat = np.meshgrid(self.aNrmNow, self.ShareGrid, indexing="ij")
+        self.aNrmMat, self.shareMat = np.meshgrid(
+            self.aNrmNow, self.ShareGrid, indexing="ij"
+        )
 
         return self.aNrmNow
 
@@ -902,15 +916,18 @@ class ConsPortfolioRiskyAssetIndShkSolver(ConsRiskyAssetIndShkSolver):
             b_nrm = a_nrm * r_port
             return a_nrm * r_diff * preIncShkvPfunc(b_nrm)
 
+        # optimize share by discrete interpolation
         if True:
 
             EndOfPrddvds = calc_expectation(
-                self.RiskyDstn, endOfPrddvds, self.aMat, self.sMat
+                self.RiskyDstn, endOfPrddvds, self.aNrmMat, self.shareMat
             )
             EndOfPrddvds = EndOfPrddvds[:, :, 0]
 
             self.risky_share_optimal = self.optimize_share(EndOfPrddvds)
 
+        # this hidden option was used to find optimal share via root finding
+        # but it is much slower and not particularly more accurate
         else:
 
             def obj(share, a_nrm):
@@ -987,7 +1004,7 @@ class ConsPortfolioRiskyAssetIndShkSolver(ConsRiskyAssetIndShkSolver):
                 return r_diff * a_nrm * p_shk ** (-self.CRRA) * self.vPfuncNext(m_nrm)
 
             EndOfPrddvds = calc_expectation(
-                self.RiskyDstn, endOfPrddvds, self.aMat, self.sMat
+                self.RiskyDstn, endOfPrddvds, self.aNrmMat, self.shareMat
             )
             EndOfPrddvds = EndOfPrddvds[:, :, 0]
 
@@ -1058,7 +1075,7 @@ class ConsPortfolioRiskyAssetIndShkSolver(ConsRiskyAssetIndShkSolver):
 
 
 @dataclass
-class ConsFixedPortfolioRiskyAssetIndShkSolver(ConsIndShockSolver):
+class ConsFixedPortfolioIndShkRiskyAssetSolver(ConsIndShockSolver):
     solution_next: ConsumerSolution
     IncShkDstn: DiscreteDistribution
     TranShkDstn: DiscreteDistribution
@@ -1138,8 +1155,12 @@ class ConsFixedPortfolioRiskyAssetIndShkSolver(ConsIndShockSolver):
             / solution_next.MPCmax
         )
 
-        self.cFuncLimitIntercept = self.MPCminNow * self.hNrmNow
-        self.cFuncLimitSlope = self.MPCminNow
+        # The above attempts to pin down the limiting consumption function for this model
+        # however it is not clear why it creates bugs, so for now we allow for a
+        # linear extrapolation beyond the last asset point
+
+        self.cFuncLimitIntercept = None
+        self.cFuncLimitSlope = None
 
     def def_BoroCnst(self, BoroCnstArt):
         """
@@ -1269,90 +1290,3 @@ init_risky_asset["ShareCount"] = 25
 
 init_risky_share_fixed = init_risky_asset.copy()
 init_risky_share_fixed["RiskyShareFixed"] = [0.0]
-
-
-class RiskyAssetShkDiscrete(DiscreteDistribution):
-    pass
-
-
-class RiskyAssetShkLognorm(RiskyAssetShkDiscrete):
-    """
-    A one-period distribution of a multiplicative lognormal risky asset shock.
-
-    Parameters
-    ----------
-    mu : float
-        Mean of the lognormal distribution.
-    sigma : float
-        Standard deviation of the lognormal distribution.
-    n_approx : int
-        Number of points to use in the discrete approximation.
-    seed : int, optional
-        Random seed. The default is 0.
-
-    Returns
-    -------
-    RiskyShkDstn : DiscreteDistribution
-        Risky asset shock distribution.
-
-    """
-
-    def __init__(self, mu, sigma, n_approx, seed=0):
-        # Construct an auxiliary discretized normal
-        logn_approx = Lognormal.from_mean_std(mean=mu, std=sigma).approx(
-            n_approx if sigma > 0.0 else 1, tail_N=0
-        )
-
-        super().__init__(pmf=logn_approx.pmf, X=logn_approx.X, seed=seed)
-
-
-class RiskyAssetShkWithDisaster(RiskyAssetShkDiscrete):
-    def __init__(self, pmf, X, DisasterPrb, DisasterShk, seed=0):
-        super().__init__(pmf, X, seed)
-
-        if DisasterPrb > 0.0:
-            dstn_approx = add_discrete_outcome_constant_mean(
-                dstn_approx, p=DisasterPrb, x=DisasterShk
-            )
-
-
-class RiskyAssetShkLognormWithDisaster(RiskyAssetShkLognorm):
-    """
-    A one-period distribution for risky return shocks that are a mixture
-    between a log-normal and a single-value disaster shock.
-
-    Parameters
-    ----------
-    mu : float
-        Mean of the lognormal distribution.
-    sigma : float
-        Standard deviation of the log-shock.
-    DisasterPrb : float
-        Probability of the "disaster" shock.
-    DisasterShk : float
-        Return shock in the "disaster" state.
-    n_approx : int
-        Number of points to use in the discrete approximation.
-    seed : int, optional
-        Random seed. The default is 0.
-
-    Returns
-    -------
-    RiskyShkDstn : DiscreteDistribution
-        Risky asset shock distribution.
-
-    """
-
-    def __init__(self, mu, sigma, DisasterPrb, DisasterShk, n_approx, seed=0):
-        super().__init__(
-            mu, sigma, n_approx, pmf=dstn_approx.pmf, X=dstn_approx.X, seed=seed
-        )
-
-        if DisasterPrb > 0.0:
-            dstn_approx = add_discrete_outcome_constant_mean(
-                dstn_approx, p=DisasterPrb, x=DisasterShk
-            )
-
-
-class JointLognormalPermShkAndRiskyShk(DiscreteDistribution):
-    pass
