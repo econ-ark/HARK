@@ -816,9 +816,14 @@ class LinearInterp(HARKinterpolator1D):
         A list including the level and/or derivative of the interpolated function where requested.
         """
 
-        # econforge interpolation check
-        if _eval and not _Der and not self.decay_extrap and x[0] >= self.x_list[0]:
-            return fast_linear_1d_interp(x, self)
+        # ========== fast interpolation check for econ hark library ==========
+        # sometimes x is empty causing the below to error, so added a try except
+        # tested with an extra check to see if x is empty, but this added to the run time
+        try:
+            if _eval and not _Der and not self.decay_extrap and x[0] >= self.x_list[0]:
+                return fast_linear_1d_interp(x, self)
+        except:
+            print("empty x sent to LinearInterp")
 
         i = np.maximum(np.searchsorted(self.x_list[:-1], x), 1)
         alpha = (x - self.x_list[i - 1]) / (self.x_list[i] - self.x_list[i - 1])
@@ -995,11 +1000,6 @@ class CubicInterp(HARKinterpolator1D):
         self.coeffs.append(temp)
         self.coeffs = np.array(self.coeffs)
 
-        # cache scipy cubic spline if all x values are increasing
-        self.cs = None
-        if not np.any(np.diff(self.x_list) <= 0):
-            self.cs = get_cubic_spline(self)
-
     def _evaluate(self, x):
         """
         Returns the level of the interpolated function at each value in x.  Only
@@ -1025,10 +1025,6 @@ class CubicInterp(HARKinterpolator1D):
                     - self.coeffs[pos, 2] * np.exp(alpha * self.coeffs[pos, 3])
                 )
         else:
-
-            # use cubic scipy spline if cached
-            if self.cs is not None:
-                return self.cs(x)
 
             m = len(x)
             pos = np.searchsorted(self.x_list, x)
