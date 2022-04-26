@@ -527,14 +527,14 @@ class Normal(Distribution):
         )
 
     def approx_equiprobable(self, N):
+        
         CDF = np.linspace(0, 1, N + 1)
         lims = stats.norm.ppf(CDF)
-        scores = (lims - self.mu) / self.sigma
-        pdf = stats.norm.pdf(scores)
+        pdf = stats.norm.pdf(lims)
 
         # Find conditional means using Mills's ratio
         pmf = np.diff(CDF)
-        X = self.mu - np.diff(pdf) / pmf
+        X = self.mu - np.diff(pdf) / pmf * self.sigma
 
         return DiscreteDistribution(
             pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
