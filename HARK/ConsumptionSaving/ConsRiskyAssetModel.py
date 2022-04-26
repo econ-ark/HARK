@@ -52,6 +52,8 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         params.update(kwds)
         kwds = params
 
+        # Boolean determines whether agent will use portfolio
+        # optimization or only has access to risky asset
         if not hasattr(self, "PortfolioBool"):
             self.PortfolioBool = False
 
