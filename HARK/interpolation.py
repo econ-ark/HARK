@@ -16,6 +16,7 @@ from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP
 from .core import MetricObject
 
 from HARK.fast_interpolation import fast_linear_1d_interp, get_cubic_spline
+from interpolation.splines import CGrid, eval_linear
 
 
 def _isscalar(x):
@@ -1386,34 +1387,39 @@ class BilinearInterp(HARKinterpolator2D):
         self.xSearchFunc = xSearchFunc
         self.ySearchFunc = ySearchFunc
 
+        self.customgrid = CGrid(self.x_list, self.y_list)
+
     def _evaluate(self, x, y):
-        """
-        Returns the level of the interpolated function at each value in x,y.
-        Only called internally by HARKinterpolator2D.__call__ (etc).
-        """
-        if _isscalar(x):
-            x_pos = max(min(self.xSearchFunc(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(self.ySearchFunc(self.y_list, y), self.y_n - 1), 1)
-        else:
-            x_pos = self.xSearchFunc(self.x_list, x)
-            x_pos[x_pos < 1] = 1
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = self.ySearchFunc(self.y_list, y)
-            y_pos[y_pos < 1] = 1
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-        alpha = (x - self.x_list[x_pos - 1]) / (
-            self.x_list[x_pos] - self.x_list[x_pos - 1]
-        )
-        beta = (y - self.y_list[y_pos - 1]) / (
-            self.y_list[y_pos] - self.y_list[y_pos - 1]
-        )
-        f = (
-            (1 - alpha) * (1 - beta) * self.f_values[x_pos - 1, y_pos - 1]
-            + (1 - alpha) * beta * self.f_values[x_pos - 1, y_pos]
-            + alpha * (1 - beta) * self.f_values[x_pos, y_pos - 1]
-            + alpha * beta * self.f_values[x_pos, y_pos]
-        )
-        return f
+
+        return eval_linear(self.customgrid, self.f_values, np.column_stack((x,y)))
+
+        # """
+        # Returns the level of the interpolated function at each value in x,y.
+        # Only called internally by HARKinterpolator2D.__call__ (etc).
+        # """
+        # if _isscalar(x):
+        #     x_pos = max(min(self.xSearchFunc(self.x_list, x), self.x_n - 1), 1)
+        #     y_pos = max(min(self.ySearchFunc(self.y_list, y), self.y_n - 1), 1)
+        # else:
+        #     x_pos = self.xSearchFunc(self.x_list, x)
+        #     x_pos[x_pos < 1] = 1
+        #     x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        #     y_pos = self.ySearchFunc(self.y_list, y)
+        #     y_pos[y_pos < 1] = 1
+        #     y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        # alpha = (x - self.x_list[x_pos - 1]) / (
+        #     self.x_list[x_pos] - self.x_list[x_pos - 1]
+        # )
+        # beta = (y - self.y_list[y_pos - 1]) / (
+        #     self.y_list[y_pos] - self.y_list[y_pos - 1]
+        # )
+        # f = (
+        #     (1 - alpha) * (1 - beta) * self.f_values[x_pos - 1, y_pos - 1]
+        #     + (1 - alpha) * beta * self.f_values[x_pos - 1, y_pos]
+        #     + alpha * (1 - beta) * self.f_values[x_pos, y_pos - 1]
+        #     + alpha * beta * self.f_values[x_pos, y_pos]
+        # )
+        # return f
 
     def _derX(self, x, y):
         """
@@ -1544,57 +1550,62 @@ class TrilinearInterp(HARKinterpolator3D):
         self.ySearchFunc = ySearchFunc
         self.zSearchFunc = zSearchFunc
 
+        self.customgrid = CGrid(self.x_list, self.y_list, self.z_list)
+
     def _evaluate(self, x, y, z):
-        """
-        Returns the level of the interpolated function at each value in x,y,z.
-        Only called internally by HARKinterpolator3D.__call__ (etc).
-        """
-        if _isscalar(x):
-            x_pos = max(min(self.xSearchFunc(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(self.ySearchFunc(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(self.zSearchFunc(self.z_list, z), self.z_n - 1), 1)
-        else:
-            x_pos = self.xSearchFunc(self.x_list, x)
-            x_pos[x_pos < 1] = 1
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = self.ySearchFunc(self.y_list, y)
-            y_pos[y_pos < 1] = 1
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            z_pos = self.zSearchFunc(self.z_list, z)
-            z_pos[z_pos < 1] = 1
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-        alpha = (x - self.x_list[x_pos - 1]) / (
-            self.x_list[x_pos] - self.x_list[x_pos - 1]
-        )
-        beta = (y - self.y_list[y_pos - 1]) / (
-            self.y_list[y_pos] - self.y_list[y_pos - 1]
-        )
-        gamma = (z - self.z_list[z_pos - 1]) / (
-            self.z_list[z_pos] - self.z_list[z_pos - 1]
-        )
-        f = (
-            (1 - alpha)
-            * (1 - beta)
-            * (1 - gamma)
-            * self.f_values[x_pos - 1, y_pos - 1, z_pos - 1]
-            + (1 - alpha)
-            * (1 - beta)
-            * gamma
-            * self.f_values[x_pos - 1, y_pos - 1, z_pos]
-            + (1 - alpha)
-            * beta
-            * (1 - gamma)
-            * self.f_values[x_pos - 1, y_pos, z_pos - 1]
-            + (1 - alpha) * beta * gamma * self.f_values[x_pos - 1, y_pos, z_pos]
-            + alpha
-            * (1 - beta)
-            * (1 - gamma)
-            * self.f_values[x_pos, y_pos - 1, z_pos - 1]
-            + alpha * (1 - beta) * gamma * self.f_values[x_pos, y_pos - 1, z_pos]
-            + alpha * beta * (1 - gamma) * self.f_values[x_pos, y_pos, z_pos - 1]
-            + alpha * beta * gamma * self.f_values[x_pos, y_pos, z_pos]
-        )
-        return f
+
+        return eval_linear(self.customgrid, self.f_values, np.column_stack((x,y,z)))
+
+        # """
+        # Returns the level of the interpolated function at each value in x,y,z.
+        # Only called internally by HARKinterpolator3D.__call__ (etc).
+        # """
+        # if _isscalar(x):
+        #     x_pos = max(min(self.xSearchFunc(self.x_list, x), self.x_n - 1), 1)
+        #     y_pos = max(min(self.ySearchFunc(self.y_list, y), self.y_n - 1), 1)
+        #     z_pos = max(min(self.zSearchFunc(self.z_list, z), self.z_n - 1), 1)
+        # else:
+        #     x_pos = self.xSearchFunc(self.x_list, x)
+        #     x_pos[x_pos < 1] = 1
+        #     x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        #     y_pos = self.ySearchFunc(self.y_list, y)
+        #     y_pos[y_pos < 1] = 1
+        #     y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        #     z_pos = self.zSearchFunc(self.z_list, z)
+        #     z_pos[z_pos < 1] = 1
+        #     z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        # alpha = (x - self.x_list[x_pos - 1]) / (
+        #     self.x_list[x_pos] - self.x_list[x_pos - 1]
+        # )
+        # beta = (y - self.y_list[y_pos - 1]) / (
+        #     self.y_list[y_pos] - self.y_list[y_pos - 1]
+        # )
+        # gamma = (z - self.z_list[z_pos - 1]) / (
+        #     self.z_list[z_pos] - self.z_list[z_pos - 1]
+        # )
+        # f = (
+        #     (1 - alpha)
+        #     * (1 - beta)
+        #     * (1 - gamma)
+        #     * self.f_values[x_pos - 1, y_pos - 1, z_pos - 1]
+        #     + (1 - alpha)
+        #     * (1 - beta)
+        #     * gamma
+        #     * self.f_values[x_pos - 1, y_pos - 1, z_pos]
+        #     + (1 - alpha)
+        #     * beta
+        #     * (1 - gamma)
+        #     * self.f_values[x_pos - 1, y_pos, z_pos - 1]
+        #     + (1 - alpha) * beta * gamma * self.f_values[x_pos - 1, y_pos, z_pos]
+        #     + alpha
+        #     * (1 - beta)
+        #     * (1 - gamma)
+        #     * self.f_values[x_pos, y_pos - 1, z_pos - 1]
+        #     + alpha * (1 - beta) * gamma * self.f_values[x_pos, y_pos - 1, z_pos]
+        #     + alpha * beta * (1 - gamma) * self.f_values[x_pos, y_pos, z_pos - 1]
+        #     + alpha * beta * gamma * self.f_values[x_pos, y_pos, z_pos]
+        # )
+        # return f
 
     def _derX(self, x, y, z):
         """
