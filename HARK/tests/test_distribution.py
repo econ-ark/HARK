@@ -214,3 +214,14 @@ class LogNormalToNormalTests(unittest.TestCase):
 
         self.assertAlmostEqual(avg_n, avg_hat)
         self.assertAlmostEqual(std_n, std_hat)
+
+
+class NormalDistTest(unittest.TestCase):
+    def test_approx_equiprobable(self):
+
+        mu, sigma = 5.0, 27.0
+
+        points = Normal(mu, sigma).approx_equiprobable(701).X
+
+        self.assertAlmostEqual(np.mean(points), mu, places=7)
+        self.assertAlmostEqual(np.std(points), sigma, places=2)
