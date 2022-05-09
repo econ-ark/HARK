@@ -1346,6 +1346,41 @@ def calc_expectation(dstn, func=lambda x: x, *args):
 
     return f_exp
 
+def distr_of_function(dstn, func=lambda x: x, *args):
+    """
+    Finds the distribution of a random variable Y that is a function
+    of discrete random variable X, Y=f(X).
+
+    Parameters
+    ----------
+    dstn : DiscreteDistribution
+        The N-valued distribution over which the function is to be evaluated.
+    func : function
+        The function to be evaluated.
+        This function should take an array of size N x M.
+        It may also take other arguments *args
+        Please see numpy.apply_along_axis() for guidance on
+        design of func.
+        Defaults to identity function.
+    *args : scalar or np.array
+        One or more constants or arrays of input values for func,
+        representing the non-stochastic arguments.
+        The arrays must all have the same shape, and the function is computed
+        at f(dstn, args[0], args[1],...,args[M]).
+
+    Returns
+    -------
+    f_dstn : DiscreteDistribution
+        The distribution of func(dstn).
+    """
+    if dstn.dim() == 1:
+        f_of_X = np.array(list(map(func, np.array(dstn.X)))).T
+    else:
+        f_of_X = np.apply_along_axis(lambda x: func(*x), 0, np.array(dstn.X))
+
+    f_dstn = DiscreteDistribution(dstn.pmf, [f_of_X[i, :] for i in range(f_of_X.shape[0])])
+
+    return f_dstn
 
 class MarkovProcess(Distribution):
     """
