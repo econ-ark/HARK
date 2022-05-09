@@ -1346,6 +1346,7 @@ def calc_expectation(dstn, func=lambda x: x, *args):
 
     return f_exp
 
+
 def distr_of_function(dstn, func=lambda x: x, *args):
     """
     Finds the distribution of a random variable Y that is a function
@@ -1381,7 +1382,9 @@ def distr_of_function(dstn, func=lambda x: x, *args):
     if len(f_of_X.shape) == 1:
         f_dstn = DiscreteDistribution(dstn.pmf, f_of_X)
     else:
-        f_dstn = DiscreteDistribution(dstn.pmf, [f_of_X[i, :] for i in range(f_of_X.shape[0])])
+        f_dstn = DiscreteDistribution(
+            dstn.pmf, [f_of_X[i, :] for i in range(f_of_X.shape[0])]
+        )
 
     return f_dstn
 
