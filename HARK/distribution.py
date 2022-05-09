@@ -1374,11 +1374,14 @@ def distr_of_function(dstn, func=lambda x: x, *args):
         The distribution of func(dstn).
     """
     if dstn.dim() == 1:
-        f_of_X = np.array(list(map(func, np.array(dstn.X)))).T
+        f_of_X = np.array([func(x, *args) for x in dstn.X]).T
     else:
-        f_of_X = np.apply_along_axis(lambda x: func(*x), 0, np.array(dstn.X))
+        f_of_X = np.apply_along_axis(func, 0, np.array(dstn.X), *args)
 
-    f_dstn = DiscreteDistribution(dstn.pmf, [f_of_X[i, :] for i in range(f_of_X.shape[0])])
+    if len(f_of_X.shape) == 1:
+        f_dstn = DiscreteDistribution(dstn.pmf, f_of_X)
+    else:
+        f_dstn = DiscreteDistribution(dstn.pmf, [f_of_X[i, :] for i in range(f_of_X.shape[0])])
 
     return f_dstn
 
