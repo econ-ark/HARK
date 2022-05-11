@@ -2334,7 +2334,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 #Dist_pGrid is taken to cover most of the ergodic distribution
                 p_variance = self.PermShkStd[0]**2 #set variance of permanent income shocks
                 max_p = max_p_fac*(p_variance/(1-self.LivPrb[0]))**0.5 #Maximum Permanent income value
-                one_sided_grid = make_grid_exp_mult(1.0+1e-3, np.exp(max_p), num_points, 2)
+                one_sided_grid = make_grid_exp_mult(1.05+1e-3, np.exp(max_p), num_points, 2)
                 self.dist_pGrid = np.append(np.append(1.0/np.fliplr([one_sided_grid])[0],np.ones(1)),one_sided_grid) #Compute permanent income grid
             else:
                 self.dist_pGrid = dist_pGrid #If grid of permanent income prespecified then use it as pgrid
@@ -2376,7 +2376,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     #Dist_pGrid is taken to cover most of the ergodic distribution
                     p_variance = self.PermShkStd[i]**2 # set variance of permanent income shocks this period
                     max_p = 20.0*(p_variance/(1-self.LivPrb[i]))**0.5 # Consider probability of staying alive this period
-                    one_sided_grid = make_grid_exp_mult(1.0+1e-3, np.exp(max_p), num_points, 2) 
+                    one_sided_grid = make_grid_exp_mult(1.05+1e-3, np.exp(max_p), num_points, 2) 
                     
                     dist_pGrid = np.append(np.append(1.0/np.fliplr([one_sided_grid])[0],np.ones(1)),one_sided_grid) # Compute permanent income grid this period. Grid of permanent income may differ dependent on PermShkStd
                     self.dist_pGrid.append(dist_pGrid)
