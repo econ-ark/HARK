@@ -27,7 +27,6 @@ you might want to look at the `DemARK
 
 .. toctree::
    :maxdepth: 1
-   :caption: Notebooks
 
    example_notebooks/Gentle-Intro-To-HARK.ipynb
    example_notebooks/PerfForesightConsumerType.ipynb

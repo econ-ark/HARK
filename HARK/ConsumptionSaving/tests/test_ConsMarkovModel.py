@@ -54,7 +54,7 @@ class test_ConsMarkovSolver(unittest.TestCase):
         init_serial_unemployment["MrkvArray"] = [MrkvArray]
         init_serial_unemployment[
             "UnempPrb"
-        ] = 0  # to make income distribution when employed
+        ] = 0.0  # to make income distribution when employed
         init_serial_unemployment["global_markov"] = False
         self.model = MarkovConsumerType(**init_serial_unemployment)
         self.model.cycles = 0
