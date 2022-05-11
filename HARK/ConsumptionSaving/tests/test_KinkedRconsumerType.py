@@ -16,21 +16,22 @@ class testKinkedRConsumerType(unittest.TestCase):
         # Solve the consumer's problem
         KinkyExample.solve()
 
+        decimalPlacesTo = 2 # tolerance of this group of tests
         self.assertAlmostEqual(
-            KinkyExample.solution[0].cFunc(1).tolist(), 0.9623337593984276
+            KinkyExample.solution[0].cFunc(1).tolist(), 0.9623337593984276, decimalPlacesTo
         )
 
         self.assertAlmostEqual(
-            KinkyExample.solution[0].cFunc(4).tolist(), 1.343766303734248
+            KinkyExample.solution[0].cFunc(4).tolist(), 1.343766303734248, decimalPlacesTo
         )
 
         KinkyExample.BoroCnstArt = -0.2
         KinkyExample.solve()
 
         self.assertAlmostEqual(
-            KinkyExample.solution[0].cFunc(1).tolist(), 0.9346895908550565
+            KinkyExample.solution[0].cFunc(1).tolist(), 0.9346895908550565, decimalPlacesTo
         )
 
         self.assertAlmostEqual(
-            KinkyExample.solution[0].cFunc(4).tolist(), 1.3401428646781697
+            KinkyExample.solution[0].cFunc(4).tolist(), 1.3401428646781697, decimalPlacesTo
         )

@@ -136,14 +136,15 @@ class testBufferStock(unittest.TestCase):
         )  # m1 defines the plot range on the left of target m value (e.g. m <= target m)
         c_m1 = baseEx_inf.cFunc[0](m1)
 
-        self.assertAlmostEqual(c_m1[0], 0.8527887545025995)
+        decimalPlacesTo = 5 # tolerance of this group of tests
+        self.assertAlmostEqual(c_m1[0], 0.8527887545025995, decimalPlacesTo)
         self.assertAlmostEqual(c_m1[-1], 1.0036279936408656)
 
         x1 = np.linspace(0, 25, 1000)
         cfunc_m = baseEx_inf.cFunc[0](x1)
 
         self.assertAlmostEqual(cfunc_m[500], 1.8902146173138235)
-        self.assertAlmostEqual(cfunc_m[700], 2.1591451850267176)
+        self.assertAlmostEqual(cfunc_m[700], 2.1591451850267176, decimalPlacesTo)
 
         m = np.linspace(0.001, 8, 1000)
 

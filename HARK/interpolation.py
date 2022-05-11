@@ -15,6 +15,8 @@ from scipy.interpolate import CubicHermiteSpline
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP
 from .core import MetricObject
 
+from HARK.fast_interpolation import fast_linear_1d_interp, get_cubic_spline
+
 
 def _isscalar(x):
     """
@@ -989,6 +991,15 @@ class CubicInterp(HARKinterpolator1D):
         self.coeffs.append(temp)
         self.coeffs = np.array(self.coeffs)
 
+        # ========================================
+        # scipy cubic spline requires increasing x
+        # ========================================
+        self.cs = None
+        if not np.isnan(np.sum(self.y_list)):
+            if not np.any(np.diff(self.x_list) <= 0):
+                self.cs = get_cubic_spline(self)
+        # ========================================
+
     def _evaluate(self, x):
         """
         Returns the level of the interpolated function at each value in x.  Only
@@ -1014,6 +1025,15 @@ class CubicInterp(HARKinterpolator1D):
                     - self.coeffs[pos, 2] * np.exp(alpha * self.coeffs[pos, 3])
                 )
         else:
+
+            # ========= scipy test ===========
+            try:
+                if self.cs is not None:
+                    return self.cs(x)
+            except Exception as e:
+                print(e)
+            # ================================
+
             m = len(x)
             pos = np.searchsorted(self.x_list, x)
             y = np.zeros(m)

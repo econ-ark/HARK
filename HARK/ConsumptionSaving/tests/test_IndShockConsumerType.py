@@ -151,8 +151,9 @@ class testBufferStock(unittest.TestCase):
         m = np.linspace(0, 5, 1000)
         c_m = GICRawFailExample.cFunc[0](m)
 
-        self.assertAlmostEqual(c_m[500], 0.7772637042393458)
-        self.assertAlmostEqual(c_m[700], 0.8392649061916746)
+        decimalPlacesTo = 1 # tolerance of this group of tests
+        self.assertAlmostEqual(c_m[500], 0.7772637042393458, decimalPlacesTo)
+        self.assertAlmostEqual(c_m[700], 0.8392649061916746, decimalPlacesTo)
 
         self.assertFalse(GICRawFailExample.conditions["GICRaw"])
 
@@ -167,14 +168,15 @@ class testBufferStock(unittest.TestCase):
         )  # m1 defines the plot range on the left of target m value (e.g. m <= target m)
         c_m1 = baseEx_inf.cFunc[0](m1)
 
-        self.assertAlmostEqual(c_m1[0], 0.8527887545025995)
-        self.assertAlmostEqual(c_m1[-1], 1.0036279936408656)
+        decimalPlacesTo = 4 # tolerance of this group of tests
+        self.assertAlmostEqual(c_m1[0], 0.8527887545025995, decimalPlacesTo)
+        self.assertAlmostEqual(c_m1[-1], 1.0036279936408656, decimalPlacesTo)
 
         x1 = np.linspace(0, 25, 1000)
         cfunc_m = baseEx_inf.cFunc[0](x1)
 
-        self.assertAlmostEqual(cfunc_m[500], 1.8902146173138235)
-        self.assertAlmostEqual(cfunc_m[700], 2.1591451850267176)
+        self.assertAlmostEqual(cfunc_m[500], 1.8902146173138235, decimalPlacesTo)
+        self.assertAlmostEqual(cfunc_m[700], 2.1591451850267176, decimalPlacesTo)
 
         m = np.linspace(0.001, 8, 1000)
 
@@ -401,7 +403,7 @@ class testStablePoints(unittest.TestCase):
         mNrmTrg = baseAgent_Inf.solution[0].mNrmTrg
 
         # Check against pre-computed values
-        decimalPlacesTo = 10
+        decimalPlacesTo = 5
         self.assertAlmostEqual(mNrmStE, 1.37731133865, decimalPlacesTo)
         self.assertAlmostEqual(mNrmTrg, 1.39101653806, decimalPlacesTo)
 
@@ -415,7 +417,7 @@ JACDict={
     "PermGroFac" :[1.00],                 # Permanent income growth factor
 
     # Parameters that specify the income distribution over the lifecycle
-   
+
     "PermShkStd" :  [(0.01*4/11)**0.5],    # Standard deviation of log permanent shocks to income
     "PermShkCount" : 5,                    # Number of points in discrete approximation to permanent income shocks
     "TranShkStd" : [.2],                   # Standard deviation of log transitory shocks to income
@@ -449,20 +451,20 @@ JACDict={
     "pLvlInitStd"  : 0,                    # Standard deviation of log initial permanent income
     "PermGroFacAgg" : 1.0,                 # Aggregate permanent income growth factor
     "T_age" : None,                        # Age after which simulated agents are automatically killed
-  
+
 }
 
 
 class testPerfMITShk(unittest.TestCase):
-    
+
     def jacobian(self):
-        
+
         class Test_agent(IndShockConsumerType):
-            
+
             def __init__(self, cycles= 0, **kwds):
-                
+
                 IndShockConsumerType.__init__(self, cycles = 0, **kwds)
-            
+
             def get_Rfree(self):
                 """
                 Returns an array of size self.AgentCount with self.Rfree in every entry.
@@ -474,29 +476,29 @@ class testPerfMITShk(unittest.TestCase):
                 RfreeNow : np.array
                      Array of size self.AgentCount with risk free interest rate for each agent.
                 """
-                
+
                 if type(self.Rfree) == list:
                     RfreeNow = self.Rfree[self.t_sim]* np.ones(self.AgentCount)
                 else:
                     RfreeNow = ss.Rfree * np.ones(self.AgentCount)
-                    
+
                 return RfreeNow
-    
+
         ss = Test_agent(**JACDict )
         ss.cycles = 0
         ss.T_sim= 1200
         ss.solve()
         ss.initialize_sim()
         ss.simulate()
-        
+
         class Test_agent2(Test_agent):
-            
+
              def transition(self):
-                
+
                 pLvlPrev = self.state_prev['pLvl']
                 aNrmPrev = self.state_prev['aNrm']
                 RfreeNow = self.get_Rfree()
-            
+
                 # Calculate new states: normalized market resources and permanent income level
                 pLvlNow = pLvlPrev*self.shocks['PermShk']  # Updated permanent income level
                 # Updated aggregate permanent productivity level
@@ -505,17 +507,17 @@ class testPerfMITShk(unittest.TestCase):
                 ReffNow = RfreeNow/self.shocks['PermShk']
                 bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
                 mNrmNow = bNrmNow + self.shocks['TranShk']  # Market resources after income
-                
-            
+
+
                 if self.t_sim == 0:
-                        
+
                         mNrmNow = ss.state_now['mNrm']
                         pLvlNow = ss.state_now['pLvl']
-            
-                return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None        
-        
-        
-    
+
+                return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
+
+
+
         listA_g = []
         params = deepcopy(JACDict)
         params['T_cycle']= 200
@@ -524,7 +526,7 @@ class testPerfMITShk(unittest.TestCase):
         params['PermShkStd'] = params['T_cycle']*[(0.01*4/11)**0.5]
         params['TranShkStd']= params['T_cycle']*[.2]
         params['Rfree'] = params['T_cycle']*[ss.Rfree]
-        
+
         ss_dx = Test_agent2(**params )
         ss_dx.pseudo_terminal = False
         ss_dx.PerfMITShk = True
@@ -535,24 +537,24 @@ class testPerfMITShk(unittest.TestCase):
         ss_dx.IncShkDstn = params['T_cycle']*ss_dx.IncShkDstn
         ss_dx.del_from_time_inv('Rfree')
         ss_dx.add_to_time_vary('Rfree')
-        
+
         ss_dx.solve()
         ss_dx.initialize_sim()
         ss_dx.simulate()
-        
-        
+
+
         for j in range(ss_dx.T_sim):
-        
+
             Ag = np.mean(ss_dx.history['aLvl'][j,:])
             listA_g.append(Ag)
-        
+
         A_dx0 = np.array(listA_g)
-        
-        
+
+
         ##############################################################################
-        
+
         example = Test_agent2(**params )
-        example.pseudo_terminal=False 
+        example.pseudo_terminal=False
         example.cFunc_terminal_ = deepcopy(ss.solution[0].cFunc)
         example.T_sim = params['T_cycle']
         example.cycles = 1
@@ -561,38 +563,38 @@ class testPerfMITShk(unittest.TestCase):
         example.del_from_time_inv('Rfree')
         example.add_to_time_vary('Rfree')
         example.IncShkDstn = params['T_cycle']*example.IncShkDstn
-        
+
         AHist =[]
         listA = []
         dx = .001
         i = 50
-        
+
         example.Rfree = i *[ss.Rfree] + [ss.Rfree + dx] + (params['T_cycle']  - i - 1)*[ss.Rfree]
-         
+
         example.solve()
         example.initialize_sim()
         example.simulate()
-        
+
         for j in range(example.T_sim):
-         
+
             a = np.mean(example.history['aLvl'][j,:])
             listA.append(a)
-            
+
         AHist.append(np.array(listA))
         JACA = (AHist[0]-A_dx0)/(dx)
-        
-        self.assertAlmostEqual(JACA[175], 6.441930322509393e-06)
-        
-        
-        
-        
-        
-        
-        
-        
-        
 
-        
+        self.assertAlmostEqual(JACA[175], 6.441930322509393e-06)
+
+
+
+
+
+
+
+
+
+
+
 dict_harmenberg={
     # Parameters shared with the perfect foresight model
     "CRRA":2,                             # Coefficient of relative risk aversion
@@ -602,7 +604,7 @@ dict_harmenberg={
     "PermGroFac" :[1.00],                 # Permanent income growth factor
 
     # Parameters that specify the income distribution over the lifecycle
-   
+
     "PermShkStd" :  [.06], #[(0.01*4/11)**0.5],    # Standard deviation of log permanent shocks to income
     "PermShkCount" : 5,                    # Number of points in discrete approximation to permanent income shocks
     "TranShkStd" : [.3],                   # Standard deviation of log transitory shocks to income
@@ -641,30 +643,30 @@ dict_harmenberg={
 
 
 class test_Harmenbergs_method(unittest.TestCase):
-    
+
     def test_Harmenberg_mtd(self):
 
         example = IndShockConsumerType(**dict_harmenberg, verbose = 0)
         example.cycles = 0
         example.track_vars = [ 'aNrm', 'mNrm','cNrm','pLvl','aLvl']
         example.T_sim= 20000
-        
+
         example.solve()
-        
+
         example.neutral_measure = True
         example.update_income_process()
-        
+
         example.initialize_sim()
         example.simulate()
-        
-    
-        
-        
+
+
+
+
         Asset_list = []
         Consumption_list = []
         M_list =[]
-        
-        
+
+
         for i in range (example.T_sim):
             Assetagg =  np.mean(example.history['aNrm'][i])
             Asset_list.append(Assetagg)
@@ -672,29 +674,29 @@ class test_Harmenbergs_method(unittest.TestCase):
             Consumption_list.append(ConsAgg)
             Magg = np.mean(example.history['mNrm'][i])
             M_list.append(Magg)
-                
+
         #########################################################
-        
-        
-       
-        
+
+
+
+
         example2 = IndShockConsumerType(**dict_harmenberg, verbose = 0)
         example2.cycles = 0
         example2.track_vars = [ 'aNrm', 'mNrm','cNrm','pLvl','aLvl']
         example2.T_sim= 20000
-            
-        
+
+
         example2.solve()
         example2.initialize_sim()
         example2.simulate()
-        
-        
-        
+
+
+
         Asset_list2 = []
         Consumption_list2 = []
         M_list2 =[]
-        
-        
+
+
         for i in range (example2.T_sim):
             Assetagg =  np.mean(example2.history['aLvl'][i])
             Asset_list2.append(Assetagg)
@@ -702,12 +704,12 @@ class test_Harmenbergs_method(unittest.TestCase):
             Consumption_list2.append(ConsAgg)
             Magg = np.mean(example2.history['mNrm'][i] * example2.history['pLvl'][i])
             M_list2.append(Magg)
-        
-        
+
+
         c_std2 = np.std(Consumption_list2)
         c_std1 = np.std(Consumption_list)
         c_std_ratio = c_std2 / c_std1
-        
+
         self.assertAlmostEqual(c_std2, 0.03768819564871894)
         self.assertAlmostEqual(c_std1, 0.004411745897568616)
         self.assertAlmostEqual(c_std_ratio, 8.542694099741672)
@@ -717,7 +719,7 @@ class test_Harmenbergs_method(unittest.TestCase):
 
 
 class testReadShock(unittest.TestCase):
-    """ 
+    """
     Tests the functionality for pre computing shocks and using them in simulations
     """
 
