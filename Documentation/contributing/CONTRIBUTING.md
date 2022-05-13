@@ -17,7 +17,7 @@ See [details on our policy on Code of Conduct](./.github/CODE_OF_CONDUCT.md).
 
 Thank you for considering contributing to Econ-ARK!  We're a young project with a small but committed community that's hoping to grow while maintaining our friendly and responsive culture.  Whether you're an economist or a technologist, a writer or a coder, an undergrad or a full professor, a professional or a hobbyist, there's a place for you in the Econ-ARK community. 
 
-We're still creating our contribution infrastructure, so this document is a work in progress.  If you have any questions please feel free to @ or otherwise reach out project manager [Shauna](https://github.com/shaunagm), or lead developers [Chris](https://github.com/llorracc) and [Matt](https://github.com/mnwhite).  If you prefer to connect through email, you can send it to __econ-ark at jhuecon dot org__.
+We're still creating our contribution infrastructure, so this document is a work in progress.  If you have any questions please feel free to @ or otherwise reach out to project leaders [Chris](https://github.com/llorracc) and [Matt](https://github.com/mnwhite).  If you prefer to connect through email, you can send it to __econ-ark at jhuecon dot org__. We also have a [Gitter chat room](https://gitter.im/econ-ark/community) you are welcome to meet us in.
 
 ## How to Contribute
 
