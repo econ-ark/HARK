@@ -48,6 +48,10 @@ The Econ-ARK project uses an [open governance model](https://github.com/econ-ark
 
 **This project is bound by a [Code of Conduct](/.github/CODE_OF_CONDUCT.md).**
 
+# Questions/Comments/Help
+
+We have a [Gitter](https://gitter.im) Econ-ARK [community](https://gitter.im/econ-ark/community).
+
 # Table of Contents
 
 * [Install](#install)
@@ -81,11 +85,11 @@ Install from [PyPi](https://pypi.org/) by running:
 
 ## Usage
 
-We start with almost the simplest possible consumption model: A consumer with CRRA utility 
+We start with almost the simplest possible consumption model: A consumer with CRRA utility
 
 <div align="center">
   <img height="30px" src="https://github.com/econ-ark/HARK/blob/master/Documentation/images/usage-crra-utility-function.png">
-</div> 
+</div>
 
 has perfect foresight about everything except the (stochastic) date of death.
 
@@ -100,7 +104,7 @@ The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wi
 To model the above problem, start by importing the `PerfForesightConsumerType` model from the appropriate `HARK` module then create an agent instance using the appropriate paramaters:
 
 ```python
-import HARK 
+import HARK
 
 from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
 
@@ -116,7 +120,7 @@ PF_params = {
 }
 
 # Create an instance of a Perfect Foresight agent with the above paramaters
-PFexample = PerfForesightConsumerType(**PF_params) 
+PFexample = PerfForesightConsumerType(**PF_params)
 
 ```
 Once the model is created, ask the the agent to solve the problem with `.solve()`:
@@ -126,7 +130,7 @@ Once the model is created, ask the the agent to solve the problem with `.solve()
 PFexample.solve()
 ```
 
-Solving the problem populates the agent's `.solution` list attribute with solutions to each period of the problem. In the case of an infinite horizon model, there is just one element in the list, at **index-zero**. 
+Solving the problem populates the agent's `.solution` list attribute with solutions to each period of the problem. In the case of an infinite horizon model, there is just one element in the list, at **index-zero**.
 
 You can retrieve the solution's consumption function from the `.cFunc` attribute:
 
@@ -138,7 +142,7 @@ PFexample.solution[0].cFunc
 Or you can retrieve the solved value for human wealth normalized by permanent income from the solution's `.hNrm` attribute:
 
 ```python
-# Retrieve the solved value for human wealth normalized by permanent income 
+# Retrieve the solved value for human wealth normalized by permanent income
 PFexample.solution[0].hNrm
 ```
 For a detailed explanation of the above example please see the demo notebook [*A Gentle Introduction to HARK*](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks/Gentle-Intro-To-HARK-PerfForesightCRRA.ipynb).
@@ -188,7 +192,7 @@ Documentation for the latest release is at [HARK ReadTheDocs](https://hark.readt
 
 ### For Students: A Gentle Introduction to HARK
 
-Most of what economists have done so far with 'big data' has been like what Kepler did with astronomical data: Organizing the data, and finding patterns and regularities and interconnections. 
+Most of what economists have done so far with 'big data' has been like what Kepler did with astronomical data: Organizing the data, and finding patterns and regularities and interconnections.
 
 An alternative approach called 'structural modeling' aims to do, for economic data, what Newton did for astronomical data: Provide a deep and rigorous mathematical (or computational) framework that distills the essence of the underlying behavior that produces the 'big data.'
 
@@ -202,15 +206,15 @@ The same kinds of modeling techniques are also gaining popularity among microeco
 
 HARK provides a robust, well-designed, open-source toolkit for building such models much more efficiently than has been possible in the past.
 
-Our [*DCEGM Upper Envelope*](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks%2FDCEGM-Upper-Envelope.ipynb) notebook illustrates using HARK to replicate the [Iskhakov, Jørgensen, Rust, and Schjerning paper](https://onlinelibrary.wiley.com/doi/abs/10.3982/QE643) for solving the discrete-continuous retirement saving problem. 
+Our [*DCEGM Upper Envelope*](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks%2FDCEGM-Upper-Envelope.ipynb) notebook illustrates using HARK to replicate the [Iskhakov, Jørgensen, Rust, and Schjerning paper](https://onlinelibrary.wiley.com/doi/abs/10.3982/QE643) for solving the discrete-continuous retirement saving problem.
 
 The notebook [*Making Structural Estimates From Empirical Results*](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks%2FStructural-Estimates-From-Empirical-MPCs-Fagereng-et-al.ipynb) is another demonstration of using HARK to conduct a quick structural estimation based on Table 9 of [*MPC Heterogeneity and Household Balance Sheets* by Fagereng, Holm, and Natvik](https://www.ssb.no/en/forskning/discussion-papers/_attachment/286054?_ts=158af859c98).
 
 ### For Computational Economics Developers
 
-HARK provides a modular and extensible open-source toolkit for solving heterogeneous-agent partial-and general-equilibrium structural models. The code for such models has always been handcrafted, idiosyncratic, poorly documented, and sometimes not generously shared from leading researchers to outsiders. The result being that it can take years for a new researcher to become proficient. By building an integrated system from the bottom up using object-oriented programming techniques and other tools, we aim to provide a platform that will become a focal point for people using such models. 
+HARK provides a modular and extensible open-source toolkit for solving heterogeneous-agent partial-and general-equilibrium structural models. The code for such models has always been handcrafted, idiosyncratic, poorly documented, and sometimes not generously shared from leading researchers to outsiders. The result being that it can take years for a new researcher to become proficient. By building an integrated system from the bottom up using object-oriented programming techniques and other tools, we aim to provide a platform that will become a focal point for people using such models.
 
-HARK is written in Python, making significant use of libraries such as numpy and scipy which offer a wide array of mathematical and statistical functions and tools. Our modules are generally categorized into Tools (mathematical functions and techniques), Models (particular economic models and solvers) and Applications (use of tools to simulate an economic phenomenon). 
+HARK is written in Python, making significant use of libraries such as numpy and scipy which offer a wide array of mathematical and statistical functions and tools. Our modules are generally categorized into Tools (mathematical functions and techniques), Models (particular economic models and solvers) and Applications (use of tools to simulate an economic phenomenon).
 
 For more information on how you can create your own Models or use Tools and Model to create Applications please see the [HARK Manual](./_static/HARKmanual.pdf).
 
