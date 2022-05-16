@@ -47,7 +47,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         # Mean and variance of the normal
         norm = Normal(mu=0.0, sigma=1.0).approx(5)
         moments = distr_of_function(norm, lambda x: np.array([x, x ** 2]))
-        exp = calc_expectation(moments)
+        exp = calc_expectation(moments).flatten()
         self.assertAlmostEqual(exp[0], 0.0)
         self.assertAlmostEqual(exp[1], 1.0)
 
@@ -177,6 +177,19 @@ class MatrixDiscreteDistributionTests(unittest.TestCase):
         # Expectation of the sum
         exp = calc_expectation(self.mat_distr, func = np.sum)
         self.assertTrue(float(exp) == 0.0)
+
+    def test_distr_of_fun(self):
+
+        # A function that receives a (2,n,m) matrix
+        # and sums across n, getting a (2,1,m) matrix
+        def myfunc(mat):
+
+            return np.sum(mat, axis=1, keepdims = True)
+        
+        mydistr = distr_of_function(self.mat_distr, myfunc)
+
+        # Check the dimensions
+        self.assertTrue(mydistr.dim() == (2,1,3))
 
 class DistributionClassTests(unittest.TestCase):
     """
