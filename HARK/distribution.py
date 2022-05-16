@@ -527,7 +527,7 @@ class Normal(Distribution):
         )
 
     def approx_equiprobable(self, N):
-        
+
         CDF = np.linspace(0, 1, N + 1)
         lims = stats.norm.ppf(CDF)
         pdf = stats.norm.pdf(lims)
@@ -623,7 +623,7 @@ class MVNormal(Distribution):
         )
 
         # Discrete distribution wants X to be a list of arrays.
-        X = [X[:,i] for i in range(X.shape[1])]
+        X = [X[:, i] for i in range(X.shape[1])]
 
         # Construct and return discrete distribution
         return DiscreteDistribution(
@@ -925,8 +925,8 @@ class DiscreteDistribution(Distribution):
 
         # Create and fill in the output array of draws based on the output of event indices
         if isinstance(J, tuple):
-            
-            draws = X[...,indices]
+
+            draws = X[..., indices]
 
         else:
             if J > 1:
@@ -1341,15 +1341,14 @@ def calc_expectation(dstn, func=lambda x: x, *args):
     N = dstn.dim()
 
     if isinstance(N, tuple):
-        
+
         f_query = list(
             map(
-                lambda x: func(x, *args),
-                [dstn.X[...,i] for i in range(len(dstn.pmf))]
+                lambda x: func(x, *args), [dstn.X[..., i] for i in range(len(dstn.pmf))]
             )
         )
-        f_query = np.stack(f_query, axis = -1)
-        
+        f_query = np.stack(f_query, axis=-1)
+
         f_exp = np.dot(f_query, np.vstack(dstn.pmf))
 
     else:
@@ -1404,15 +1403,14 @@ def distr_of_function(dstn, func=lambda x: x, *args):
         # Apply function to every event realization
         f_query = list(
             map(
-                lambda x: func(x, *args),
-                [dstn.X[...,i] for i in range(len(dstn.pmf))]
+                lambda x: func(x, *args), [dstn.X[..., i] for i in range(len(dstn.pmf))]
             )
         )
         # Stack results along their last (new) axis
-        f_query = np.stack(f_query, axis = -1)
-        
+        f_query = np.stack(f_query, axis=-1)
+
         f_dstn = DiscreteDistribution(dstn.pmf, f_query)
-        
+
     else:
         if dstn.dim() == 1:
             f_of_X = np.array([func(x, *args) for x in dstn.X]).T
