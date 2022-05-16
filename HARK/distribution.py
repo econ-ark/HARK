@@ -622,6 +622,9 @@ class MVNormal(Distribution):
             Z, A.T
         )
 
+        # Discrete distribution wants X to be a list of arrays.
+        X = [X[:,i] for i in range(X.shape[1])]
+
         # Construct and return discrete distribution
         return DiscreteDistribution(
             pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
