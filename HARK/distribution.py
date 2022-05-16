@@ -1337,22 +1337,32 @@ def calc_expectation(dstn, func=lambda x: x, *args):
     """
     N = dstn.dim()
 
-    dstn_array = np.column_stack(dstn.X)
+    if isinstance(N, tuple):
+        
+        f_query = list(
+            map(func, [dstn.X[...,i] for i in range(len(dstn.pmf))])
+        )
+        f_query = np.stack(f_query, axis = -1)
+        
+        f_exp = np.dot(f_query, np.vstack(dstn.pmf))
 
-    if N > 1:
-        # numpy is weird about 1-D arrays.
-        dstn_array = dstn_array.T
+    else:
+        dstn_array = np.column_stack(dstn.X)
 
-    f_query = np.apply_along_axis(func, 0, dstn_array, *args)
+        if N > 1:
+            # numpy is weird about 1-D arrays.
+            dstn_array = dstn_array.T
 
-    # Compute expectations over the values
-    f_exp = np.dot(f_query, np.vstack(dstn.pmf))
+        f_query = np.apply_along_axis(func, 0, dstn_array, *args)
 
-    # a hack.
-    if f_exp.size == 1:
-        f_exp = f_exp.flat[0]
-    elif f_exp.shape[0] == f_exp.size:
-        f_exp = f_exp.flatten()
+        # Compute expectations over the values
+        f_exp = np.dot(f_query, np.vstack(dstn.pmf))
+
+        # a hack.
+        if f_exp.size == 1:
+            f_exp = f_exp.flat[0]
+        elif f_exp.shape[0] == f_exp.size:
+            f_exp = f_exp.flatten()
 
     return f_exp
 
