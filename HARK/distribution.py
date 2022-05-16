@@ -1343,7 +1343,10 @@ def calc_expectation(dstn, func=lambda x: x, *args):
     if isinstance(N, tuple):
         
         f_query = list(
-            map(func, [dstn.X[...,i] for i in range(len(dstn.pmf))])
+            map(
+                lambda x: func(x, *args),
+                [dstn.X[...,i] for i in range(len(dstn.pmf))]
+            )
         )
         f_query = np.stack(f_query, axis = -1)
         
