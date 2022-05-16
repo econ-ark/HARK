@@ -843,6 +843,11 @@ class DiscreteDistribution(Distribution):
     def dim(self):
         if isinstance(self.X, list):
             return len(self.X)
+        elif isinstance(self.X, np.ndarray):
+            if len(self.X.shape) > 1:
+                return self.X.shape[:-1]
+            else:
+                return 1
         else:
             return 1
 
@@ -916,12 +921,17 @@ class DiscreteDistribution(Distribution):
             indices = self.draw_events(N)
 
         # Create and fill in the output array of draws based on the output of event indices
-        if J > 1:
-            draws = np.zeros((J, N))
-            for j in range(J):
-                draws[j, :] = X[j][indices]
+        if isinstance(J, tuple):
+            
+            draws = X[...,indices]
+
         else:
-            draws = np.asarray(X)[indices]
+            if J > 1:
+                draws = np.zeros((J, N))
+                for j in range(J):
+                    draws[j, :] = X[j][indices]
+            else:
+                draws = np.asarray(X)[indices]
 
         return draws
 
