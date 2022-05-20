@@ -920,17 +920,12 @@ class DiscreteDistribution(Distribution):
             indices = self.draw_events(N)
 
         # Create and fill in the output array of draws based on the output of event indices
-        if isinstance(J, tuple):
+        draws = X[..., indices]
 
-            draws = X[..., indices]
-
-        else:
-            if J > 1:
-                draws = np.zeros((J, N))
-                for j in range(J):
-                    draws[j, :] = X[j][indices]
-            else:
-                draws = np.asarray(X)[indices]
+        # TODO: some models expect univariate draws to just be a 1d vector
+        # properly fix
+        if len(draws.shape) == 2 and draws.shape[0]==1:
+            draws = draws.flatten()
 
         return draws
 
@@ -1317,36 +1312,21 @@ def calc_expectation(dstn, func=lambda x: x, *args):
         The expectation of the function at the queried values.
         Scalar if only one value.
     """
-    N = dstn.dim()
-
-    if isinstance(N, tuple):
-
-        f_query = list(
-            map(
-                lambda x: func(x, *args), [dstn.X[..., i] for i in range(len(dstn.pmf))]
-            )
+    
+    f_query = list(
+        map(
+            lambda x: func(x, *args), [dstn.X[..., i] for i in range(len(dstn.pmf))]
         )
-        f_query = np.stack(f_query, axis=-1)
+    )
+    f_query = np.stack(f_query, axis=-1)
 
-        f_exp = np.dot(f_query, np.vstack(dstn.pmf))
-
-    else:
-        dstn_array = np.column_stack(dstn.X)
-
-        if N > 1:
-            # numpy is weird about 1-D arrays.
-            dstn_array = dstn_array.T
-
-        f_query = np.apply_along_axis(func, 0, dstn_array, *args)
-
-        # Compute expectations over the values
-        f_exp = np.dot(f_query, np.vstack(dstn.pmf))
+    f_exp = np.dot(f_query, np.vstack(dstn.pmf))
 
     if f_exp.size == 1:
         f_exp = f_exp.flat[0]
     elif f_exp.shape[0] == f_exp.size:
         f_exp = f_exp.flatten()
-        
+
     return f_exp
 
 def distr_of_function(dstn, func=lambda x: x, *args):
