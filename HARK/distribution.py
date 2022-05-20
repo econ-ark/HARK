@@ -1378,30 +1378,16 @@ def distr_of_function(dstn, func=lambda x: x, *args):
     f_dstn : DiscreteDistribution
         The distribution of func(dstn).
     """
-    if isinstance(dstn.X, np.ndarray):
-        # Apply function to every event realization
-        f_query = list(
-            map(
-                lambda x: func(x, *args), [dstn.X[..., i] for i in range(len(dstn.pmf))]
-            )
+    # Apply function to every event realization
+    f_query = list(
+        map(
+            lambda x: func(x, *args), [dstn.X[..., i] for i in range(len(dstn.pmf))]
         )
-        # Stack results along their last (new) axis
-        f_query = np.stack(f_query, axis=-1)
+    )
+    # Stack results along their last (new) axis
+    f_query = np.stack(f_query, axis=-1)
 
-        f_dstn = DiscreteDistribution(dstn.pmf, f_query)
-
-    else:
-        if dstn.dim() == 1:
-            f_of_X = np.array([func(x, *args) for x in dstn.X]).T
-        else:
-            f_of_X = np.apply_along_axis(func, 0, np.array(dstn.X), *args)
-
-        if len(f_of_X.shape) == 1:
-            f_dstn = DiscreteDistribution(dstn.pmf, f_of_X)
-        else:
-            f_dstn = DiscreteDistribution(
-                dstn.pmf, [f_of_X[i, :] for i in range(f_of_X.shape[0])]
-            )
+    f_dstn = DiscreteDistribution(dstn.pmf, f_query)
 
     return f_dstn
 
