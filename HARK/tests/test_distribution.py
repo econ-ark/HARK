@@ -95,12 +95,12 @@ class DiscreteDistributionTests(unittest.TestCase):
 
         self.assertAlmostEqual(ce5, 2.0)
 
-        ce6 = calc_expectation(dd_10_10_100, lambda x, y: 2 * x + y, 20)
+        ce6 = calc_expectation(dd_10_10_100, lambda x, y: 2 * x + y, False, 20)
 
         self.assertAlmostEqual(ce6, 40.0)
 
         ce7 = calc_expectation(
-            dd_0_1_20, lambda x, y: x + y, np.hstack(np.array([0, 1, 2, 3, 4, 5]))
+            dd_0_1_20, lambda x, y: x + y, False, np.hstack(np.array([0, 1, 2, 3, 4, 5]))
         )
 
         self.assertAlmostEqual(ce7.flat[3], 3.0)
@@ -116,6 +116,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         ce9 = calc_expectation(
             IncShkDstn,
             lambda X, a, r: r / X[0] * a + X[1],
+            False,
             np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
             1.05,  # an interest rate?
         )
@@ -263,7 +264,7 @@ class IndexDistributionClassTests(unittest.TestCase):
 
         draw = approx[2].draw(5)
 
-        self.assertAlmostEqual(draw[1], 2.93868620)
+        self.assertAlmostEqual(draw[0,1], 2.93868620)
 
     def test_IndexDistribution_seeds(self):
         cd = IndexDistribution(Lognormal, {"mu": [1, 1], "sigma": [1, 1]})

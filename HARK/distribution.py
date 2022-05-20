@@ -614,20 +614,15 @@ class MVNormal(Distribution):
             z_approx = Normal().approx(N)
 
         # Now create the multivariate grid and pmf
-        Z = np.array(list(product(*[z_approx.X] * self.M)))
+        Z = np.array(list(product(*[z_approx.X.flatten()] * self.M)))
         pmf = np.prod(np.array(list(product(*[z_approx.pmf] * self.M))), axis=1)
 
         # Apply mean and standard deviation to the Z grid
-        X = np.tile(np.reshape(self.mu, (1, self.M)), (N ** self.M, 1)) + np.matmul(
-            Z, A.T
-        )
-
-        # Discrete distribution wants X to be a list of arrays.
-        X = [X[:, i] for i in range(X.shape[1])]
+        X = self.mu[None,...] + np.matmul(Z, A.T)
 
         # Construct and return discrete distribution
         return DiscreteDistribution(
-            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+            pmf, X.T, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
         )
 
 

@@ -114,7 +114,7 @@ class test_distribute_params(unittest.TestCase):
         self.agents = distribute_params(self.agent, 'DiscFac', 3, dist)
 
         self.assertTrue(all(['DiscFac' in agent.parameters for agent in self.agents]))
-        self.assertTrue(all([self.agents[i].parameters['DiscFac'] == dist.approx(3).X[i] for i in range(3)]))
+        self.assertTrue(all([self.agents[i].parameters['DiscFac'] == dist.approx(3).X[0,i] for i in range(3)]))
         self.assertEqual(self.agents[0].parameters['AgentCount'], 1)
 
 
