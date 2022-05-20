@@ -1269,7 +1269,8 @@ def combine_indep_dstns(*distributions, seed=0):
     # We need the combinations of indices of realizations in all
     # distributions
     inds = np.meshgrid(
-        *[np.array(range(l), dtype=int) for l in dist_lengths]
+        *[np.array(range(l), dtype=int) for l in dist_lengths],
+        indexing='ij'
     )
     inds = [x.flatten() for x in inds]
 
