@@ -18,7 +18,7 @@ class testPrefShockConsumerType(unittest.TestCase):
         self.assertEqual(self.agent.solution[0].mNrmMin, 0)
         m = np.linspace(self.agent.solution[0].mNrmMin, 5, 200)
 
-        self.assertAlmostEqual(self.agent.PrefShkDstn[0].X[5], 0.69046812)
+        self.assertAlmostEqual(self.agent.PrefShkDstn[0].X[0,5], 0.69046812)
 
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc(m, np.ones_like(m))[35], 0.8123891603954809
@@ -58,7 +58,7 @@ class testKinkyPrefConsumerType(unittest.TestCase):
 
         m = np.linspace(self.agent.solution[0].mNrmMin, 5, 200)
 
-        self.assertAlmostEqual(self.agent.PrefShkDstn[0].X[5], 0.6904681186891202)
+        self.assertAlmostEqual(self.agent.PrefShkDstn[0].X[0,5], 0.6904681186891202)
 
         c = self.agent.solution[0].cFunc(m, np.ones_like(m))
         self.assertAlmostEqual(c[5], 0.13237946)

@@ -1206,7 +1206,7 @@ def solve_RiskyContrib_Cns(
 
         # Define grids
         b_aux_grid = np.concatenate([np.array([0.0]), Rfree * aXtraGrid])
-        g_aux_grid = np.concatenate([np.array([0.0]), max(RiskyDstn.X) * nNrmGrid])
+        g_aux_grid = np.concatenate([np.array([0.0]), max(RiskyDstn.X.flatten()) * nNrmGrid])
 
         # Create tiled arrays with conforming dimensions.
         b_aux_tiled, g_aux_tiled, Share_tiled = np.meshgrid(
