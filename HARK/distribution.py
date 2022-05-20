@@ -835,8 +835,14 @@ class DiscreteDistribution(Distribution):
     X = None
 
     def __init__(self, pmf, X, seed=0):
+        
         self.pmf = pmf
-        self.X = X
+        
+        if len(X.shape) < 2:
+            self.X = X[None,...]
+        else:
+            self.X = X
+
         # Set up the RNG
         super().__init__(seed)
 
@@ -844,15 +850,10 @@ class DiscreteDistribution(Distribution):
         # TODO: Check that pmf and X arrays have same length.
 
     def dim(self):
-        if isinstance(self.X, list):
-            return len(self.X)
-        elif isinstance(self.X, np.ndarray):
-            if len(self.X.shape) > 1:
-                return self.X.shape[:-1]
-            else:
-                return 1
-        else:
-            return 1
+
+        # Last dimension of self.X indexes "nature."
+        return self.X.shape[:-1]
+
 
     def draw_events(self, n):
         """
