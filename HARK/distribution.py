@@ -1288,7 +1288,7 @@ def combine_indep_dstns(*distributions, seed=0):
     return DiscreteDistribution(P_out, X_out, seed=seed)
 
 
-def calc_expectation(dstn, func=lambda x: x, keepdim=False, *args):
+def calc_expectation(dstn, func=lambda x: x, *args):
     """
     Expectation of a function, given an array of configurations of its inputs
     along with a DiscreteDistribution object that specifies the probability
@@ -1342,15 +1342,12 @@ def calc_expectation(dstn, func=lambda x: x, keepdim=False, *args):
         # Compute expectations over the values
         f_exp = np.dot(f_query, np.vstack(dstn.pmf))
 
-    # The dot product leaves the "nature" dimension along
-    # which we integrated in place, but it is of size 1.
-    if keepdim:
-        return f_exp
-    else:
-        if f_exp.size == 1:
-            return f_exp.flatten()[0]
-        else:
-            return f_exp[...,0]
+    if f_exp.size == 1:
+        f_exp = f_exp.flat[0]
+    elif f_exp.shape[0] == f_exp.size:
+        f_exp = f_exp.flatten()
+        
+    return f_exp
 
 def distr_of_function(dstn, func=lambda x: x, *args):
     """
