@@ -1260,57 +1260,39 @@ def combine_indep_dstns(*distributions, seed=0):
     dist_lengths = ()
     dist_dims = ()
     for dist in distributions:
-        dist_lengths += (len(dist.pmf),)
+
+        if len(dist.dim()) > 1:
+            raise NotImplementedError(
+                "We currently only support combining vector-valued distributions."
+            )
+
         dist_dims += (dist.dim(),)
+        dist_lengths += (len(dist.pmf),)
+        
     number_of_distributions = len(distributions)
 
-    # Initialize lists we will use
+    # We need the combinations of indices of realizations in all
+    # distributions
+    inds = np.meshgrid(
+        *[np.array(range(l), dtype=int) for l in dist_lengths]
+    )
+    inds = [x.flatten() for x in inds]
+
     X_out = []
     P_temp = []
-
-    # Now loop through the distributions, tiling and flattening as necessary.
-    for dd, dist in enumerate(distributions):
-
-        # The shape we want before we tile
-        dist_newshape = (
-            (1,) * dd + (len(dist.pmf),) + (1,) * (number_of_distributions - dd)
-        )
-
-        # The tiling we want to do
-        dist_tiles = dist_lengths[:dd] + (1,) + dist_lengths[dd + 1 :]
-
-        # Now we are ready to tile.
-        # We don't use the np.meshgrid commands, because they do not
-        # easily support non-symmetric grids.
-
-        # First deal with probabilities
-        Pmesh = np.tile(dist.pmf.reshape(dist_newshape), dist_tiles)  # Tiling
-        flatP = Pmesh.ravel()  # Flatten the tiled arrays
-        P_temp += [
-            flatP,
-        ]  # Add the flattened arrays to the output lists
-
-        # Then loop through each value variable
-        for n in range(dist_dims[dd]):
-            if dist.dim() > 1:
-                Xmesh = np.tile(dist.X[n].reshape(dist_newshape), dist_tiles)
-            else:
-                Xmesh = np.tile(dist.X.reshape(dist_newshape), dist_tiles)
-            flatX = Xmesh.ravel()
-            X_out += [
-                flatX,
-            ]
-
-    # We're done getting the flattened X_out arrays we wanted.
-    # However, we have a bunch of flattened P_temp arrays, and just want one
-    # probability array. So get the probability array, P_out, here.
-    P_out = np.prod(np.array(P_temp), axis=0)
+    for i, ind_vec in enumerate(inds):
+        X_out += [distributions[i].X[...,ind_vec]]
+        P_temp += [distributions[i].pmf[ind_vec]]
+        
+    X_out = np.concatenate(X_out, axis = 0)
+    P_temp = np.stack(P_temp, axis = 0)
+    P_out = np.prod(P_temp, axis=0)
 
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
     return DiscreteDistribution(P_out, X_out, seed=seed)
 
 
-def calc_expectation(dstn, func=lambda x: x, *args):
+def calc_expectation(dstn, func=lambda x: x, keepdim=False, *args):
     """
     Expectation of a function, given an array of configurations of its inputs
     along with a DiscreteDistribution object that specifies the probability
@@ -1364,14 +1346,15 @@ def calc_expectation(dstn, func=lambda x: x, *args):
         # Compute expectations over the values
         f_exp = np.dot(f_query, np.vstack(dstn.pmf))
 
-        # a hack.
+    # The dot product leaves the "nature" dimension along
+    # which we integrated in place, but it is of size 1.
+    if keepdim:
+        return f_exp
+    else:
         if f_exp.size == 1:
-            f_exp = f_exp.flat[0]
-        elif f_exp.shape[0] == f_exp.size:
-            f_exp = f_exp.flatten()
-
-    return f_exp
-
+            return f_exp.flatten()[0]
+        else:
+            return f_exp[...,0]
 
 def distr_of_function(dstn, func=lambda x: x, *args):
     """
