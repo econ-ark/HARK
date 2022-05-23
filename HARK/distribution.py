@@ -893,10 +893,10 @@ class DiscreteDistribution(Distribution):
             J = self.dim()
         elif isinstance(X, int):
             X = self.X[X]
-            J = 1
+            J = (1,)
         else:
             X = X
-            J = 1
+            J = (1,)
 
         if exact_match:
             events = np.arange(self.pmf.size)  # just a list of integers
