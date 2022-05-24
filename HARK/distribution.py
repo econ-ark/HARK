@@ -819,9 +819,11 @@ class DiscreteDistribution(Distribution):
     ----------
     pmf : np.array
         An array of floats representing a probability mass function.
-    X : np.array or [np.array]
+    X : np.array
         Discrete point values for each probability mass.
-        May be multivariate (list of arrays).
+        For multivariate distributions, the last dimension of X must index
+        "nature" or the random realization. For instance, if X.shape == (2,6,4),
+        the random variable has 4 possible realizations and each of them has shape (2,6).
     seed : int
         Seed for random number generator.
     """
@@ -841,8 +843,13 @@ class DiscreteDistribution(Distribution):
         # Set up the RNG
         super().__init__(seed)
 
-        # Very quick and incomplete parameter check:
-        # TODO: Check that pmf and X arrays have same length.
+        # Check that pmf and X have compatible dimensions.
+        same_dims = len(pmf) == X.shape[-1]
+        if not same_dims:
+            raise ValueError(
+                "Provided pmf and X arrays have incompatible dimensions. " +
+                "The length of the pmf must be equal to that of X's last dimension."
+            )
 
     def dim(self):
 
@@ -922,8 +929,7 @@ class DiscreteDistribution(Distribution):
         # Create and fill in the output array of draws based on the output of event indices
         draws = X[..., indices]
 
-        # TODO: some models expect univariate draws to just be a 1d vector
-        # properly fix
+        # TODO: some models expect univariate draws to just be a 1d vector. Fix those models.
         if len(draws.shape) == 2 and draws.shape[0]==1:
             draws = draws.flatten()
 
@@ -1153,7 +1159,7 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
     Parameters
     ----------
     distribution : DiscreteDistribution
-        A DiscreteDistribution
+        A one-dimensional DiscreteDistribution.
     x : float
         The new value to be added to the distribution.
     p : float
@@ -1196,8 +1202,8 @@ def add_discrete_outcome(distribution, x, p, sort=False):
 
     Parameters
     ----------
-    distribution : [np.array]
-        Two element list containing a list of probabilities and a list of outcomes.
+    distribution : DiscreteDistribution
+        One-dimensional distribution to which the outcome is to be added.
     x : float
         The new value to be added to the distribution.
     p : float
@@ -1223,28 +1229,19 @@ def add_discrete_outcome(distribution, x, p, sort=False):
 
 def combine_indep_dstns(*distributions, seed=0):
     """
-    Given n lists (or tuples) whose elements represent n independent, discrete
-    probability spaces (probabilities and values), construct a joint pmf over
-    all combinations of these independent points.  Can take multivariate discrete
-    distributions as inputs.
+    Given n independent vector-valued discrete distributions, construct their joint discrete distribution.
+    Can take multivariate discrete distributions as inputs.
 
     Parameters
     ----------
-    distributions : [np.array]
-        Arbitrary number of distributions (pmfs).  Each pmf is a list or tuple.
-        For each pmf, the first vector is probabilities and all subsequent vectors
-        are values.  For each pmf, this should be true:
-        len(X_pmf[0]) == len(X_pmf[j]) for j in range(1,len(distributions))
+    distributions : DiscreteDistribution
+        Arbitrary number of discrete distributionss to combine. Their realizations must be
+        vector-valued (for each D in distributions, it must be the case that len(D.dim())==1).
 
     Returns
     -------
-    A DiscreteDistribution, consisting of:
-
-    P_out: np.array
-        Probability associated with each point in X_out.
-
-    X_out: np.array (as many as in *distributions)
-        Discrete points for the joint discrete probability mass function.
+    A DiscreteDistribution representing the joint distribution of the given
+    random variables.
     """
     # Get information on the distributions
     dist_lengths = ()
@@ -1292,19 +1289,14 @@ def calc_expectation(dstn, func=lambda x: x, *args):
     Parameters
     ----------
     dstn : DiscreteDistribution
-        The N-valued distribution over which the function is to be evaluated.
+        The distribution over which the function is to be evaluated.
     func : function
         The function to be evaluated.
-        This function should take an array of size N x M.
-        It may also take other arguments *args
-        Please see numpy.apply_along_axis() for guidance on
-        design of func.
-        Defaults to identity function.
-    *args : scalar or np.array
-        One or more constants or arrays of input values for func,
-        representing the non-stochastic arguments.
-        The arrays must all have the same shape, and the expectation is computed
-        at f(dstn, args[0], args[1],...,args[M]).
+        This function should take an array of shape dstn.dim().
+        It may also take other arguments *args.
+    *args :
+        Other inputs for func, representing the non-stochastic arguments.
+        The the expectation is computed at f(dstn, *args).
 
     Returns
     -------
@@ -1322,6 +1314,11 @@ def calc_expectation(dstn, func=lambda x: x, *args):
 
     f_exp = np.dot(f_query, np.vstack(dstn.pmf))
 
+    # TODO: f_exp will have an extra dimension of length 1 at the end
+    # because of the way numpy handles dot products. It would be good
+    # either keep or eliminate that dimension _always_ and not only
+    # when the result has some particular shape as is done below. Keeping
+    # it as is because some models have come to expect it.
     if f_exp.size == 1:
         f_exp = f_exp.flat[0]
     elif f_exp.shape[0] == f_exp.size:
@@ -1337,19 +1334,14 @@ def distr_of_function(dstn, func=lambda x: x, *args):
     Parameters
     ----------
     dstn : DiscreteDistribution
-        The N-valued distribution over which the function is to be evaluated.
+        The distribution over which the function is to be evaluated.
     func : function
         The function to be evaluated.
-        This function should take an array of size N x M.
-        It may also take other arguments *args
-        Please see numpy.apply_along_axis() for guidance on
-        design of func.
-        Defaults to identity function.
-    *args : scalar or np.array
-        One or more constants or arrays of input values for func,
-        representing the non-stochastic arguments.
-        The arrays must all have the same shape, and the function is computed
-        at f(dstn, args[0], args[1],...,args[M]).
+        This function should take an array of shape dstn.dim().
+        It may also take other arguments *args.
+    *args :
+        Additional non-stochastic arguments for func,
+        The function is computed at f(dstn, *args).
 
     Returns
     -------
