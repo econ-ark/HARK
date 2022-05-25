@@ -1305,11 +1305,10 @@ def calc_expectation(dstn, func=lambda x: x, *args):
         Scalar if only one value.
     """
     
-    f_query = list(
-        map(
-            lambda x: func(x, *args), [dstn.X[..., i] for i in range(len(dstn.pmf))]
-        )
-    )
+    f_query = [
+        func(dstn.X[...,i], *args) for i in range(len(dstn.pmf))
+    ]
+    
     f_query = np.stack(f_query, axis=-1)
 
     f_exp = np.dot(f_query, np.vstack(dstn.pmf))
@@ -1349,11 +1348,10 @@ def distr_of_function(dstn, func=lambda x: x, *args):
         The distribution of func(dstn).
     """
     # Apply function to every event realization
-    f_query = list(
-        map(
-            lambda x: func(x, *args), [dstn.X[..., i] for i in range(len(dstn.pmf))]
-        )
-    )
+    f_query = [
+        func(dstn.X[...,i], *args) for i in range(len(dstn.pmf))
+    ]
+
     # Stack results along their last (new) axis
     f_query = np.stack(f_query, axis=-1)
 
