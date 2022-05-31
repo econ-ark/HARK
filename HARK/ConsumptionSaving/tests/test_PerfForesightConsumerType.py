@@ -65,13 +65,13 @@ class testPerfForesightConsumerType(unittest.TestCase):
         )  # This implicitly uses the assign_parameters method of AgentType
 
         # Create PFexample object
-        self.agent_infinite.track_vars = ["mNrm"]
+        self.agent_infinite.track_vars = ["bNrm", "mNrm", "TranShk"]
         self.agent_infinite.initialize_sim()
         self.agent_infinite.simulate()
 
         self.assertAlmostEqual(
             np.mean(self.agent_infinite.history["mNrm"], axis=1)[40],
-            -23.008063500363942,
+            np.mean(self.agent_infinite.history["bNrm"], axis=1)[40] + np.mean(self.agent_infinite.history["TranShk"], axis=1)[40]
         )
 
         self.assertAlmostEqual(
