@@ -47,7 +47,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         # Mean and variance of the normal
         norm = Normal(mu=0.0, sigma=1.0).approx(5)
         moments = distr_of_function(norm, lambda x: np.array([x, x ** 2]))
-        exp = calc_expectation(moments)
+        exp = calc_expectation(moments).flatten()
         self.assertAlmostEqual(exp[0], 0.0)
         self.assertAlmostEqual(exp[1], 1.0)
 
@@ -121,6 +121,63 @@ class DiscreteDistributionTests(unittest.TestCase):
         )
 
         self.assertAlmostEqual(ce9[3], 9.518015322143837)
+
+
+class MatrixDiscreteDistributionTests(unittest.TestCase):
+    """
+    Tests matrix-valued discrete distribution.
+    """
+
+    def setUp(self):
+
+        self.draw_1 = np.array(
+            [[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], [[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]],]
+        )
+
+        self.draw_2 = -1 * self.draw_1
+
+        X = np.stack([self.draw_1, self.draw_2], axis=-1)
+        pmf = np.array([0.5, 0.5])
+
+        self.mat_distr = DiscreteDistribution(pmf, X, seed=0)
+
+    def test_draw(self):
+        """
+        Check that the draws are the matrices we
+        want them to be
+        """
+
+        draw = self.mat_distr.draw(1)
+        self.assertTrue(np.allclose(draw[..., 0], self.draw_2))
+
+    def test_expected(self):
+
+        # Expectation without transformation
+        exp = calc_expectation(self.mat_distr)
+
+        # Check the expectation is of the shape we want
+        self.assertTrue(exp.shape[0] == self.draw_1.shape[0])
+        self.assertTrue(exp.shape[1] == self.draw_1.shape[1])
+
+        # Check that its value is what we expect
+        self.assertTrue(np.allclose(exp, 0.0))
+
+        # Expectation of the sum
+        exp = calc_expectation(self.mat_distr, func=np.sum)
+        self.assertTrue(float(exp) == 0.0)
+
+    def test_distr_of_fun(self):
+
+        # A function that receives a (2,n,m) matrix
+        # and sums across n, getting a (2,1,m) matrix
+        def myfunc(mat):
+
+            return np.sum(mat, axis=1, keepdims=True)
+
+        mydistr = distr_of_function(self.mat_distr, myfunc)
+
+        # Check the dimensions
+        self.assertTrue(mydistr.dim() == (2, 1, 3))
 
 
 class DistributionClassTests(unittest.TestCase):

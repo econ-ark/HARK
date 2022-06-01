@@ -2800,7 +2800,7 @@ class LognormPermIncShk(DiscreteDistribution):
         )
         # Change the pmf if necessary
         if neutral_measure:
-            logn_approx.pmf = logn_approx.X * logn_approx.pmf
+            logn_approx.pmf = (logn_approx.X * logn_approx.pmf).flatten()
 
         super().__init__(pmf=logn_approx.pmf, X=logn_approx.X, seed=seed)
 

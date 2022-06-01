@@ -159,9 +159,9 @@ def solve_ConsLaborIntMarg(
     # Unpack next period's solution and the productivity shock distribution, and define the inverse (marginal) utilty function
     vPfunc_next = solution_next.vPfunc
     TranShkPrbs = TranShkDstn.pmf
-    TranShkVals = TranShkDstn.X
+    TranShkVals = TranShkDstn.X.flatten()
     PermShkPrbs = PermShkDstn.pmf
-    PermShkVals = PermShkDstn.X
+    PermShkVals = PermShkDstn.X.flatten()
     TranShkCount = TranShkPrbs.size
     PermShkCount = PermShkPrbs.size
     uPinv = lambda X: CRRAutilityP_inv(X, gam=CRRA)
@@ -557,7 +557,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         TranShkGrid = []  # Create an empty list for TranShkGrid that will be updated
         for t in range(self.T_cycle):
             TranShkGrid.append(
-                self.TranShkDstn[t].X
+                self.TranShkDstn[t].X.flatten()
             )  # Update/ Extend the list of TranShkGrid with the TranShkVals for each TranShkPrbs
         self.TranShkGrid = TranShkGrid  # Save that list in self (time-varying)
         self.add_to_time_vary(
