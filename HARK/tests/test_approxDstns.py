@@ -66,10 +66,10 @@ class test_MVNormalApprox(unittest.TestCase):
 
         Sig_2D = distribution.calc_expectation(
             self.dist2D_approx, vcov_fun, self.mu2
-        )[...,0]
+        )
         self.assertTrue(np.allclose(Sig_2D, self.Sigma2, rtol=1e-5))
 
         Sig_3D = distribution.calc_expectation(
             self.dist3D_approx, vcov_fun, self.mu3
-        )[...,0]
+        )
         self.assertTrue(np.allclose(Sig_3D, self.Sigma3, rtol=1e-5))
