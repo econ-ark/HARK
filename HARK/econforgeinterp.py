@@ -15,7 +15,7 @@ class LinearFast(MetricObject):
 
     def __call__(self, *args):
 
-        array_args = list(map(np.asarray, args))
+        array_args = [np.asarray(x) for x in args]
 
         f = eval_linear(
             self.Grid,
