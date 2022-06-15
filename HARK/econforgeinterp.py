@@ -30,7 +30,9 @@ class LinearFast(MetricObject):
 
 
 class LinearFastDecay(LinearFast):
-    def __init__(self, f_val, grids, limit_func, decay_weights=None):
+    def __init__(
+        self, f_val, grids, limit_func, decay_weights=None, extrap_gradient=False
+    ):
 
         self.limit_func = limit_func
         self.upper_limits = np.array([x[-1] for x in grids])
@@ -39,6 +41,8 @@ class LinearFastDecay(LinearFast):
             self.decay_weights = np.ones(len(grids))
         else:
             self.decay_weights = decay_weights
+
+        self.extrap_gradient = extrap_gradient
 
         super().__init__(f_val, grids)
 
@@ -77,5 +81,12 @@ class LinearFastDecay(LinearFast):
         # Combine them
         decay = self.decay(upper_ex_points, upper_ex_nearest)
         f[upper_ex_inds] = decay * upper_ex_f_nearest + (1.0 - decay) * limit_f_ex
+
+        # Add gradient term if requested
+        if self.extrap_gradient:
+            grad = self.grad(upper_ex_nearest)
+            f[upper_ex_inds] += decay * np.dot(
+                upper_ex_points - upper_ex_f_nearest, grad
+            )
 
         return np.reshape(f, argshape)
