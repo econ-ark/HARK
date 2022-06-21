@@ -1,12 +1,14 @@
+import unittest
+from copy import copy, deepcopy
+
+import numpy as np
+
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     ConsIndShockSolverBasic,
     init_lifecycle,
     init_idiosyncratic_shocks,
 )
-import numpy as np
-import unittest
-from copy import copy, deepcopy
 
 
 class testIndShockConsumerType(unittest.TestCase):
@@ -23,9 +25,9 @@ class testIndShockConsumerType(unittest.TestCase):
 
         self.agent.get_shocks()
 
-        self.assertEqual(self.agent.shocks['PermShk'][0], 1.0427376294215103)
-        self.assertAlmostEqual(self.agent.shocks['PermShk'][1], 0.9278094171517413)
-        self.assertAlmostEqual(self.agent.shocks['TranShk'][0], 0.881761797501595)
+        self.assertEqual(self.agent.shocks["PermShk"][0], 1.0427376294215103)
+        self.assertAlmostEqual(self.agent.shocks["PermShk"][1], 0.9278094171517413)
+        self.assertAlmostEqual(self.agent.shocks["TranShk"][0], 0.881761797501595)
 
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerType(**init_lifecycle)
@@ -68,8 +70,12 @@ class testIndShockConsumerType(unittest.TestCase):
         self.assertAlmostEqual(solver.DiscFacEff, 0.9586233599999999)
         self.assertAlmostEqual(solver.PermShkMinNext, 0.6554858756904397)
         self.assertAlmostEqual(solver.cFuncNowCnst(4).tolist(), 4.0)
-        self.assertAlmostEqual(solver.prepare_to_calc_EndOfPrdvP()[0], -0.19792871012285213)
-        self.assertAlmostEqual(solver.prepare_to_calc_EndOfPrdvP()[-1], 19.801071289877118)
+        self.assertAlmostEqual(
+            solver.prepare_to_calc_EndOfPrdvP()[0], -0.19792871012285213
+        )
+        self.assertAlmostEqual(
+            solver.prepare_to_calc_EndOfPrdvP()[-1], 19.801071289877118
+        )
 
         EndOfPrdvP = solver.calc_EndOfPrdvP()
 
@@ -89,12 +95,11 @@ class testIndShockConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(self.agent.MPCnow[1], 0.5711503906043797)
 
-        self.assertAlmostEqual(self.agent.state_now['aLvl'][1], 0.18438326264597635)
+        self.assertAlmostEqual(self.agent.state_now["aLvl"][1], 0.18438326264597635)
 
 
 class testBufferStock(unittest.TestCase):
-    """ Tests of the results of the BufferStock REMARK.
-    """
+    """Tests of the results of the BufferStock REMARK."""
 
     def setUp(self):
         # Make a dictionary containing all parameters needed to solve the model
@@ -140,11 +145,11 @@ class testBufferStock(unittest.TestCase):
         GICRaw_fail_dictionary = dict(self.base_params)
         GICRaw_fail_dictionary["Rfree"] = 1.08
         GICRaw_fail_dictionary["PermGroFac"] = [1.00]
-        GICRaw_fail_dictionary["cycles"] = 0 # cycles=0 makes this an infinite horizon consumer
+        GICRaw_fail_dictionary[
+            "cycles"
+        ] = 0  # cycles=0 makes this an infinite horizon consumer
 
-        GICRawFailExample = IndShockConsumerType(
-            **GICRaw_fail_dictionary
-        )
+        GICRawFailExample = IndShockConsumerType(**GICRaw_fail_dictionary)
 
         GICRawFailExample.solve()
         GICRawFailExample.unpack("cFunc")
@@ -158,7 +163,7 @@ class testBufferStock(unittest.TestCase):
 
     def test_infinite_horizon(self):
         baseEx_inf = IndShockConsumerType(**self.base_params)
-        baseEx_inf.assign_parameters(cycles = 0)
+        baseEx_inf.assign_parameters(cycles=0)
         baseEx_inf.solve()
         baseEx_inf.unpack("cFunc")
 
@@ -229,7 +234,9 @@ IdiosyncDict = {
 class testIndShockConsumerTypeExample(unittest.TestCase):
     def test_infinite_horizon(self):
         IndShockExample = IndShockConsumerType(**IdiosyncDict)
-        IndShockExample.assign_parameters(cycles = 0)  # Make this type have an infinite horizon
+        IndShockExample.assign_parameters(
+            cycles=0
+        )  # Make this type have an infinite horizon
         IndShockExample.solve()
 
         self.assertAlmostEqual(IndShockExample.solution[0].mNrmStE, 1.5488165705077026)
@@ -237,7 +244,7 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
             IndShockExample.solution[0].cFunc.functions[0].x_list[0], -0.25017509
         )
 
-        IndShockExample.track_vars = ['aNrm', "mNrm", "cNrm", 'pLvl']
+        IndShockExample.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl"]
         IndShockExample.initialize_sim()
         IndShockExample.simulate()
 
@@ -307,6 +314,26 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
         )
 
 
+class testIndShockConsumerTypeLifecycleRfree(unittest.TestCase):
+    def test_lifecyleRfree(self):
+        Rfree = list(np.linspace(1.02, 1.04, 10))
+        LifeCycleRfreeDict = LifecycleDict.copy()
+        LifeCycleRfreeDict["RFree"] = Rfree
+
+        LifecycleRfreeExample = IndShockConsumerType(**LifeCycleRfreeDict)
+        LifecycleRfreeExample.cycles = 1
+        LifecycleRfreeExample.solve()
+
+        self.assertEqual(len(LifecycleRfreeExample.solution), 11)
+
+        mMin = np.min(
+            [
+                LifecycleRfreeExample.solution[t].mNrmMin
+                for t in range(LifecycleRfreeExample.T_cycle)
+            ]
+        )
+
+
 CyclicalDict = {
     # Parameters shared with the perfect foresight model
     "CRRA": 2.0,  # Coefficient of relative risk aversion
@@ -361,7 +388,8 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         CyclicalExample.initialize_sim()
         CyclicalExample.simulate()
 
-        self.assertAlmostEqual(CyclicalExample.state_now['aLvl'][1], 0.41839957)
+        self.assertAlmostEqual(CyclicalExample.state_now["aLvl"][1], 0.41839957)
+
 
 # %% Tests of 'stable points'
 
@@ -369,23 +397,22 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
 # Create the base infinite horizon parametrization from the "Buffer Stock
 # Theory" paper.
 bst_params = copy(init_idiosyncratic_shocks)
-bst_params['PermGroFac'] = [1.03]  # Permanent income growth factor
-bst_params['Rfree'] = 1.04  # Interest factor on assets
-bst_params['DiscFac'] = 0.96  # Time Preference Factor
-bst_params['CRRA'] = 2.00  # Coefficient of relative risk aversion
+bst_params["PermGroFac"] = [1.03]  # Permanent income growth factor
+bst_params["Rfree"] = 1.04  # Interest factor on assets
+bst_params["DiscFac"] = 0.96  # Time Preference Factor
+bst_params["CRRA"] = 2.00  # Coefficient of relative risk aversion
 # Probability of unemployment (e.g. Probability of Zero Income in the paper)
-bst_params['UnempPrb'] = 0.005
-bst_params['IncUnemp'] = 0.0   # Induces natural borrowing constraint
-bst_params['PermShkStd'] = [0.1]   # Standard deviation of log permanent income shocks
-bst_params['TranShkStd'] = [0.1]   # Standard deviation of log transitory income shocks
-bst_params['LivPrb'] = [1.0]   # 100 percent probability of living to next period
-bst_params['CubicBool'] = True    # Use cubic spline interpolation
-bst_params['T_cycle'] = 1       # No 'seasonal' cycles
-bst_params['BoroCnstArt'] = None    # No artificial borrowing constraint
+bst_params["UnempPrb"] = 0.005
+bst_params["IncUnemp"] = 0.0  # Induces natural borrowing constraint
+bst_params["PermShkStd"] = [0.1]  # Standard deviation of log permanent income shocks
+bst_params["TranShkStd"] = [0.1]  # Standard deviation of log transitory income shocks
+bst_params["LivPrb"] = [1.0]  # 100 percent probability of living to next period
+bst_params["CubicBool"] = True  # Use cubic spline interpolation
+bst_params["T_cycle"] = 1  # No 'seasonal' cycles
+bst_params["BoroCnstArt"] = None  # No artificial borrowing constraint
 
 
 class testStablePoints(unittest.TestCase):
-
     def test_IndShock_stable_points(self):
         # Test for the target and individual steady state of the infinite
         # horizon solution using the parametrization in the "Buffer Stock
@@ -393,7 +420,7 @@ class testStablePoints(unittest.TestCase):
 
         # Create and solve the agent
         baseAgent_Inf = IndShockConsumerType(verbose=0, **bst_params)
-        baseAgent_Inf.assign_parameters(cycles = 0)
+        baseAgent_Inf.assign_parameters(cycles=0)
         baseAgent_Inf.solve()
 
         # Extract stable points
@@ -406,63 +433,56 @@ class testStablePoints(unittest.TestCase):
         self.assertAlmostEqual(mNrmTrg, 1.39101653806, decimalPlacesTo)
 
 
-JACDict={
+JACDict = {
     # Parameters shared with the perfect foresight model
-    "CRRA":2,                             # Coefficient of relative risk aversion
-    "Rfree": 1.05**.25,                  # Interest factor on assets
-    "DiscFac": 0.972,                    # Intertemporal discount factor
-    "LivPrb" : [.99375],                    # Survival probability
-    "PermGroFac" :[1.00],                 # Permanent income growth factor
-
+    "CRRA": 2,  # Coefficient of relative risk aversion
+    "Rfree": 1.05**0.25,  # Interest factor on assets
+    "DiscFac": 0.972,  # Intertemporal discount factor
+    "LivPrb": [0.99375],  # Survival probability
+    "PermGroFac": [1.00],  # Permanent income growth factor
     # Parameters that specify the income distribution over the lifecycle
-   
-    "PermShkStd" :  [(0.01*4/11)**0.5],    # Standard deviation of log permanent shocks to income
-    "PermShkCount" : 5,                    # Number of points in discrete approximation to permanent income shocks
-    "TranShkStd" : [.2],                   # Standard deviation of log transitory shocks to income
-    "TranShkCount" : 5,                    # Number of points in discrete approximation to transitory income shocks
-    "UnempPrb" : 0.05,                     # Probability of unemployment while working
-    "IncUnemp" : 0.1,      # Unemployment benefits replacement rate
-    "UnempPrbRet" : 0.0005,                # Probability of "unemployment" while retired
-    "IncUnempRet" : 0.0,                   # "Unemployment" benefits when retired
-    "T_retire" : 0,                        # Period of retirement (0 --> no retirement)
-    "tax_rate" : 0.2,      # Flat income tax rate (legacy parameter, will be removed in future)
-
+    "PermShkStd": [
+        (0.01 * 4 / 11) ** 0.5
+    ],  # Standard deviation of log permanent shocks to income
+    "PermShkCount": 5,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.2],  # Standard deviation of log transitory shocks to income
+    "TranShkCount": 5,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.1,  # Unemployment benefits replacement rate
+    "UnempPrbRet": 0.0005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "tax_rate": 0.2,  # Flat income tax rate (legacy parameter, will be removed in future)
     # Parameters for constructing the "assets above minimum" grid
-    "aXtraMin" : 0.001,                    # Minimum end-of-period "assets above minimum" value
-    "aXtraMax" : 15,                       # Maximum end-of-period "assets above minimum" value
-    "aXtraCount" : 48,                     # Number of points in the base grid of "assets above minimum"
-    "aXtraNestFac" : 3,                    # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra" : [None],                 # Additional values to add to aXtraGrid
-
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 15,  # Maximum end-of-period "assets above minimum" value
+    "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
+    "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
     # A few other parameters
-    "BoroCnstArt" : 0.0,                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
-    "vFuncBool" : True,                    # Whether to calculate the value function during solution
-    "CubicBool" : False,                   # Preference shocks currently only compatible with linear cFunc
-    "T_cycle" : 1,                         # Number of periods in the cycle for this agent type
-
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "vFuncBool": True,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Preference shocks currently only compatible with linear cFunc
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
     # Parameters only used in simulation
-    "AgentCount" : 5000,                 # Number of agents of this type
-    "T_sim" : 100,                         # Number of periods to simulate
-    "aNrmInitMean" : np.log(2)-(.5**2)/2,# Mean of log initial assets
-    "aNrmInitStd"  : .5,                   # Standard deviation of log initial assets
-    "pLvlInitMean" : 0,                    # Mean of log initial permanent income
-    "pLvlInitStd"  : 0,                    # Standard deviation of log initial permanent income
-    "PermGroFacAgg" : 1.0,                 # Aggregate permanent income growth factor
-    "T_age" : None,                        # Age after which simulated agents are automatically killed
-  
+    "AgentCount": 5000,  # Number of agents of this type
+    "T_sim": 100,  # Number of periods to simulate
+    "aNrmInitMean": np.log(2) - (0.5**2) / 2,  # Mean of log initial assets
+    "aNrmInitStd": 0.5,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    "T_age": None,  # Age after which simulated agents are automatically killed
 }
 
 
 class testPerfMITShk(unittest.TestCase):
-    
     def jacobian(self):
-        
         class Test_agent(IndShockConsumerType):
-            
-            def __init__(self, cycles= 0, **kwds):
-                
-                IndShockConsumerType.__init__(self, cycles = 0, **kwds)
-            
+            def __init__(self, cycles=0, **kwds):
+
+                IndShockConsumerType.__init__(self, cycles=0, **kwds)
+
             def get_Rfree(self):
                 """
                 Returns an array of size self.AgentCount with self.Rfree in every entry.
@@ -474,240 +494,210 @@ class testPerfMITShk(unittest.TestCase):
                 RfreeNow : np.array
                      Array of size self.AgentCount with risk free interest rate for each agent.
                 """
-                
+
                 if type(self.Rfree) == list:
-                    RfreeNow = self.Rfree[self.t_sim]* np.ones(self.AgentCount)
+                    RfreeNow = self.Rfree[self.t_sim] * np.ones(self.AgentCount)
                 else:
                     RfreeNow = ss.Rfree * np.ones(self.AgentCount)
-                    
+
                 return RfreeNow
-    
-        ss = Test_agent(**JACDict )
+
+        ss = Test_agent(**JACDict)
         ss.cycles = 0
-        ss.T_sim= 1200
+        ss.T_sim = 1200
         ss.solve()
         ss.initialize_sim()
         ss.simulate()
-        
+
         class Test_agent2(Test_agent):
-            
-             def transition(self):
-                
-                pLvlPrev = self.state_prev['pLvl']
-                aNrmPrev = self.state_prev['aNrm']
+            def transition(self):
+                pLvlPrev = self.state_prev["pLvl"]
+                aNrmPrev = self.state_prev["aNrm"]
                 RfreeNow = self.get_Rfree()
-            
+
                 # Calculate new states: normalized market resources and permanent income level
-                pLvlNow = pLvlPrev*self.shocks['PermShk']  # Updated permanent income level
+                pLvlNow = (
+                    pLvlPrev * self.shocks["PermShk"]
+                )  # Updated permanent income level
                 # Updated aggregate permanent productivity level
-                PlvlAggNow = self.state_prev['PlvlAgg']*self.PermShkAggNow
+                PlvlAggNow = self.state_prev["PlvlAgg"] * self.PermShkAggNow
                 # "Effective" interest factor on normalized assets
-                ReffNow = RfreeNow/self.shocks['PermShk']
-                bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
-                mNrmNow = bNrmNow + self.shocks['TranShk']  # Market resources after income
-                
-            
+                ReffNow = RfreeNow / self.shocks["PermShk"]
+                bNrmNow = ReffNow * aNrmPrev  # Bank balances before labor income
+                mNrmNow = (
+                    bNrmNow + self.shocks["TranShk"]
+                )  # Market resources after income
+
                 if self.t_sim == 0:
-                        
-                        mNrmNow = ss.state_now['mNrm']
-                        pLvlNow = ss.state_now['pLvl']
-            
-                return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None        
-        
-        
-    
+                    mNrmNow = ss.state_now["mNrm"]
+                    pLvlNow = ss.state_now["pLvl"]
+
+                return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
+
         listA_g = []
         params = deepcopy(JACDict)
-        params['T_cycle']= 200
-        params['LivPrb']= params['T_cycle']*[ss.LivPrb[0]]
-        params['PermGroFac']=params['T_cycle']*[1]
-        params['PermShkStd'] = params['T_cycle']*[(0.01*4/11)**0.5]
-        params['TranShkStd']= params['T_cycle']*[.2]
-        params['Rfree'] = params['T_cycle']*[ss.Rfree]
-        
-        ss_dx = Test_agent2(**params )
+        params["T_cycle"] = 200
+        params["LivPrb"] = params["T_cycle"] * [ss.LivPrb[0]]
+        params["PermGroFac"] = params["T_cycle"] * [1]
+        params["PermShkStd"] = params["T_cycle"] * [(0.01 * 4 / 11) ** 0.5]
+        params["TranShkStd"] = params["T_cycle"] * [0.2]
+        params["Rfree"] = params["T_cycle"] * [ss.Rfree]
+
+        ss_dx = Test_agent2(**params)
         ss_dx.pseudo_terminal = False
         ss_dx.PerfMITShk = True
-        ss_dx.track_vars = ['aNrm','mNrm','cNrm','pLvl','aLvl']
+        ss_dx.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl", "aLvl"]
         ss_dx.cFunc_terminal_ = deepcopy(ss.solution[0].cFunc)
-        ss_dx.T_sim = params['T_cycle']
-        ss_dx.cycles= 1
-        ss_dx.IncShkDstn = params['T_cycle']*ss_dx.IncShkDstn
-        ss_dx.del_from_time_inv('Rfree')
-        ss_dx.add_to_time_vary('Rfree')
-        
+        ss_dx.T_sim = params["T_cycle"]
+        ss_dx.cycles = 1
+        ss_dx.IncShkDstn = params["T_cycle"] * ss_dx.IncShkDstn
+        ss_dx.del_from_time_inv("Rfree")
+        ss_dx.add_to_time_vary("Rfree")
+
         ss_dx.solve()
         ss_dx.initialize_sim()
         ss_dx.simulate()
-        
-        
+
         for j in range(ss_dx.T_sim):
-        
-            Ag = np.mean(ss_dx.history['aLvl'][j,:])
+            Ag = np.mean(ss_dx.history["aLvl"][j, :])
             listA_g.append(Ag)
-        
+
         A_dx0 = np.array(listA_g)
-        
-        
+
         ##############################################################################
-        
-        example = Test_agent2(**params )
-        example.pseudo_terminal=False 
+
+        example = Test_agent2(**params)
+        example.pseudo_terminal = False
         example.cFunc_terminal_ = deepcopy(ss.solution[0].cFunc)
-        example.T_sim = params['T_cycle']
+        example.T_sim = params["T_cycle"]
         example.cycles = 1
         example.PerfMITShk = True
-        example.track_vars = ['aNrm','mNrm','cNrm','pLvl','aLvl']
-        example.del_from_time_inv('Rfree')
-        example.add_to_time_vary('Rfree')
-        example.IncShkDstn = params['T_cycle']*example.IncShkDstn
-        
-        AHist =[]
+        example.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl", "aLvl"]
+        example.del_from_time_inv("Rfree")
+        example.add_to_time_vary("Rfree")
+        example.IncShkDstn = params["T_cycle"] * example.IncShkDstn
+
+        AHist = []
         listA = []
-        dx = .001
+        dx = 0.001
         i = 50
-        
-        example.Rfree = i *[ss.Rfree] + [ss.Rfree + dx] + (params['T_cycle']  - i - 1)*[ss.Rfree]
-         
+
+        example.Rfree = (
+            i * [ss.Rfree] + [ss.Rfree + dx] + (params["T_cycle"] - i - 1) * [ss.Rfree]
+        )
+
         example.solve()
         example.initialize_sim()
         example.simulate()
-        
+
         for j in range(example.T_sim):
-         
-            a = np.mean(example.history['aLvl'][j,:])
+            a = np.mean(example.history["aLvl"][j, :])
             listA.append(a)
-            
+
         AHist.append(np.array(listA))
-        JACA = (AHist[0]-A_dx0)/(dx)
-        
+        JACA = (AHist[0] - A_dx0) / (dx)
+
         self.assertAlmostEqual(JACA[175], 6.441930322509393e-06)
-        
-        
-        
-        
-        
-        
-        
-        
-        
 
-        
-dict_harmenberg={
+
+dict_harmenberg = {
     # Parameters shared with the perfect foresight model
-    "CRRA":2,                             # Coefficient of relative risk aversion
-    "Rfree": 1.04**.25,                  # Interest factor on assets
-    "DiscFac": 0.9735,                    # Intertemporal discount factor
-    "LivPrb" : [.99375],                    # Survival probability
-    "PermGroFac" :[1.00],                 # Permanent income growth factor
-
+    "CRRA": 2,  # Coefficient of relative risk aversion
+    "Rfree": 1.04**0.25,  # Interest factor on assets
+    "DiscFac": 0.9735,  # Intertemporal discount factor
+    "LivPrb": [0.99375],  # Survival probability
+    "PermGroFac": [1.00],  # Permanent income growth factor
     # Parameters that specify the income distribution over the lifecycle
-   
-    "PermShkStd" :  [.06], #[(0.01*4/11)**0.5],    # Standard deviation of log permanent shocks to income
-    "PermShkCount" : 5,                    # Number of points in discrete approximation to permanent income shocks
-    "TranShkStd" : [.3],                   # Standard deviation of log transitory shocks to income
-    "TranShkCount" : 5,                    # Number of points in discrete approximation to transitory income shocks
-    "UnempPrb" : 0.07,                     # Probability of unemployment while working
-    "IncUnemp" : 0.3,      # Unemployment benefits replacement rate
-    "UnempPrbRet" : 0.0005,                # Probability of "unemployment" while retired
-    "IncUnempRet" : 0.0,                   # "Unemployment" benefits when retired
-    "T_retire" : 0,                        # Period of retirement (0 --> no retirement)
-    "tax_rate" : 0.18,      # Flat income tax rate (legacy parameter, will be removed in future)
-
+    "PermShkStd": [
+        0.06
+    ],  # [(0.01*4/11)**0.5],    # Standard deviation of log permanent shocks to income
+    "PermShkCount": 5,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.3],  # Standard deviation of log transitory shocks to income
+    "TranShkCount": 5,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.07,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate
+    "UnempPrbRet": 0.0005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "tax_rate": 0.18,  # Flat income tax rate (legacy parameter, will be removed in future)
     # Parameters for constructing the "assets above minimum" grid
-    "aXtraMin" : 0.001,                    # Minimum end-of-period "assets above minimum" value
-    "aXtraMax" : 20,                       # Maximum end-of-period "assets above minimum" value
-    "aXtraCount" : 48,                     # Number of points in the base grid of "assets above minimum"
-    "aXtraNestFac" : 3,                    # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra" : [None],                 # Additional values to add to aXtraGrid
-
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
+    "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
+    "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
     # A few other parameters
-    "BoroCnstArt" : 0.0,                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
-    "vFuncBool" : True,                    # Whether to calculate the value function during solution
-    "CubicBool" : False,                   # Preference shocks currently only compatible with linear cFunc
-    "T_cycle" : 1,                         # Number of periods in the cycle for this agent type
-
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "vFuncBool": True,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Preference shocks currently only compatible with linear cFunc
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
     # Parameters only used in simulation
-    "AgentCount" : 500,                 # Number of agents of this type
-    "T_sim" : 100,                         # Number of periods to simulate
-    "aNrmInitMean" : np.log(1.3)-(.5**2)/2,# Mean of log initial assets
-    "aNrmInitStd"  : .5,                   # Standard deviation of log initial assets
-    "pLvlInitMean" : 0,                    # Mean of log initial permanent income
-    "pLvlInitStd"  : 0,                    # Standard deviation of log initial permanent income
-    "PermGroFacAgg" : 1.0,                 # Aggregate permanent income growth factor
-    "T_age" : None,                        # Age after which simulated agents are automatically killed
-
+    "AgentCount": 500,  # Number of agents of this type
+    "T_sim": 100,  # Number of periods to simulate
+    "aNrmInitMean": np.log(1.3) - (0.5**2) / 2,  # Mean of log initial assets
+    "aNrmInitStd": 0.5,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    "T_age": None,  # Age after which simulated agents are automatically killed
 }
 
 
 class test_Harmenbergs_method(unittest.TestCase):
-    
     def test_Harmenberg_mtd(self):
 
-        example = IndShockConsumerType(**dict_harmenberg, verbose = 0)
+        example = IndShockConsumerType(**dict_harmenberg, verbose=0)
         example.cycles = 0
-        example.track_vars = [ 'aNrm', 'mNrm','cNrm','pLvl','aLvl']
-        example.T_sim= 20000
-        
+        example.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl", "aLvl"]
+        example.T_sim = 20000
+
         example.solve()
-        
+
         example.neutral_measure = True
         example.update_income_process()
-        
+
         example.initialize_sim()
         example.simulate()
-        
-    
-        
-        
+
         Asset_list = []
         Consumption_list = []
-        M_list =[]
-        
-        
-        for i in range (example.T_sim):
-            Assetagg =  np.mean(example.history['aNrm'][i])
+        M_list = []
+
+        for i in range(example.T_sim):
+            Assetagg = np.mean(example.history["aNrm"][i])
             Asset_list.append(Assetagg)
-            ConsAgg =  np.mean(example.history['cNrm'][i] )
+            ConsAgg = np.mean(example.history["cNrm"][i])
             Consumption_list.append(ConsAgg)
-            Magg = np.mean(example.history['mNrm'][i])
+            Magg = np.mean(example.history["mNrm"][i])
             M_list.append(Magg)
-                
+
         #########################################################
-        
-        
-       
-        
-        example2 = IndShockConsumerType(**dict_harmenberg, verbose = 0)
+
+        example2 = IndShockConsumerType(**dict_harmenberg, verbose=0)
         example2.cycles = 0
-        example2.track_vars = [ 'aNrm', 'mNrm','cNrm','pLvl','aLvl']
-        example2.T_sim= 20000
-            
-        
+        example2.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl", "aLvl"]
+        example2.T_sim = 20000
+
         example2.solve()
         example2.initialize_sim()
         example2.simulate()
-        
-        
-        
+
         Asset_list2 = []
         Consumption_list2 = []
-        M_list2 =[]
-        
-        
-        for i in range (example2.T_sim):
-            Assetagg =  np.mean(example2.history['aLvl'][i])
+        M_list2 = []
+
+        for i in range(example2.T_sim):
+            Assetagg = np.mean(example2.history["aLvl"][i])
             Asset_list2.append(Assetagg)
-            ConsAgg =  np.mean(example2.history['cNrm'][i] * example2.history['pLvl'][i])
+            ConsAgg = np.mean(example2.history["cNrm"][i] * example2.history["pLvl"][i])
             Consumption_list2.append(ConsAgg)
-            Magg = np.mean(example2.history['mNrm'][i] * example2.history['pLvl'][i])
+            Magg = np.mean(example2.history["mNrm"][i] * example2.history["pLvl"][i])
             M_list2.append(Magg)
-        
-        
+
         c_std2 = np.std(Consumption_list2)
         c_std1 = np.std(Consumption_list)
         c_std_ratio = c_std2 / c_std1
-        
+
         self.assertAlmostEqual(c_std2, 0.03768819564871894)
         self.assertAlmostEqual(c_std1, 0.004411745897568616)
         self.assertAlmostEqual(c_std_ratio, 8.542694099741672)
@@ -717,12 +707,11 @@ class test_Harmenbergs_method(unittest.TestCase):
 
 
 class testReadShock(unittest.TestCase):
-    """ 
+    """
     Tests the functionality for pre computing shocks and using them in simulations
     """
 
     def setUp(self):
-
         # Make a dictionary containing all parameters needed to solve the model
         self.base_params = copy(init_idiosyncratic_shocks)
 
@@ -746,7 +735,6 @@ class testReadShock(unittest.TestCase):
         )
 
     def test_NewbornStatesAndShocks(self):
-
         # Make agent, shock and initial condition histories
         agent = IndShockConsumerType(**self.base_params)
         agent.make_shock_history()

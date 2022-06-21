@@ -1658,6 +1658,26 @@ class PerfForesightConsumerType(AgentType):
             self.cFunc_terminal_, self.CRRA
         )
 
+    def update_Rfree(self):
+        """
+        Determines whether Rfree is time-varying or fixed.
+        Returns
+        -------
+
+        """
+
+        if isinstance(self.Rfree, list):
+            if len(self.Rfree) == self.T_cycle:
+                self.add_to_time_vary("Rfree")
+            else:
+                raise AttributeError(
+                    "If Rfree is time-varying, it should have a length of T_cycle!"
+                )
+        elif isinstance(self.Rfree, (int, float)):
+            self.add_to_time_inv("Rfree")
+        else:  # temporary fix for MarkovConsumerType
+            self.add_to_time_inv("Rfree")
+
     def unpack_cFunc(self):
         """ DEPRECATED: Use solution.unpack('cFunc') instead.
         "Unpacks" the consumption functions into their own field for easier access.
