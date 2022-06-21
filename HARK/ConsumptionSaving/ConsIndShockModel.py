@@ -1815,7 +1815,13 @@ class PerfForesightConsumerType(AgentType):
         RfreeNow : np.array
              Array of size self.AgentCount with risk free interest rate for each agent.
         """
-        RfreeNow = self.Rfree * np.ones(self.AgentCount)
+        RfreeNow = np.ones(self.AgentCount)
+        if "Rfree" in self.time_inv:
+            RfreeNow = RfreeNow * self.Rfree
+        elif "Rfree" in self.time_vary:
+            for t in range(self.T_cycle):
+                these = t == self.t_cycle
+                RfreeNow[these] = self.Rfree[t]
         return RfreeNow
 
     def transition(self):
