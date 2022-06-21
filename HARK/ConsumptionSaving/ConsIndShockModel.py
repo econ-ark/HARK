@@ -1611,6 +1611,8 @@ class PerfForesightConsumerType(AgentType):
         self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolver)
         set_verbosity_level((4 - verbose) * 10)
 
+        self.update_Rfree()
+
     def pre_solve(self):
         self.update_solution_terminal()  # Solve the terminal period problem
 
