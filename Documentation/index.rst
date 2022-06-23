@@ -24,7 +24,6 @@ you might want to look at the `DemARK
    CHANGELOG
    license
 
-
 .. toctree::
    :maxdepth: 1
 
