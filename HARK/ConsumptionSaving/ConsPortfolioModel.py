@@ -658,9 +658,7 @@ class ConsPortfolioSolver(MetricObject):
         dvdb_intermed = calc_expectation(
             self.IncShkDstn, dvdb_dist, self.bNrmNext, self.ShareNext
         )
-        # calc_expectation returns one additional "empty" dimension, remove it
-        # this line can be deleted when calc_expectation is fixed
-        dvdb_intermed = dvdb_intermed[:, :, 0]
+        
         dvdbNvrs_intermed = self.uPinv(dvdb_intermed)
         dvdbNvrsFunc_intermed = BilinearInterp(
             dvdbNvrs_intermed, self.bNrmGrid, self.ShareGrid
@@ -671,9 +669,7 @@ class ConsPortfolioSolver(MetricObject):
         dvds_intermed = calc_expectation(
             self.IncShkDstn, dvds_dist, self.bNrmNext, self.ShareNext
         )
-        # calc_expectation returns one additional "empty" dimension, remove it
-        # this line can be deleted when calc_expectation is fixed
-        dvds_intermed = dvds_intermed[:, :, 0]
+        
         dvdsFunc_intermed = BilinearInterp(dvds_intermed, self.bNrmGrid, self.ShareGrid)
 
         # Make tiled arrays to calculate future realizations of bNrm and Share when integrating over RiskyDstn
@@ -711,9 +707,7 @@ class ConsPortfolioSolver(MetricObject):
                 self.RiskyDstn, EndOfPrddvda_dist, self.aNrm_tiled, self.ShareNext
             )
         )
-        # calc_expectation returns one additional "empty" dimension, remove it
-        # this line can be deleted when calc_expectation is fixed
-        self.EndOfPrddvda = self.EndOfPrddvda[:, :, 0]
+
         self.EndOfPrddvdaNvrs = self.uPinv(self.EndOfPrddvda)
 
         # Calculate end-of-period marginal value of risky portfolio share by taking expectations
@@ -724,9 +718,6 @@ class ConsPortfolioSolver(MetricObject):
                 self.RiskyDstn, EndOfPrddvds_dist, self.aNrm_tiled, self.ShareNext
             )
         )
-        # calc_expectation returns one additional "empty" dimension, remove it
-        # this line can be deleted when calc_expectation is fixed
-        self.EndOfPrddvds = self.EndOfPrddvds[:, :, 0]
 
     def optimize_share(self):
         """
@@ -877,9 +868,7 @@ class ConsPortfolioSolver(MetricObject):
         v_intermed = calc_expectation(
             self.IncShkDstn, v_intermed_dist, self.bNrmNext, self.ShareNext
         )
-        # calc_expectation returns one additional "empty" dimension, remove it
-        # this line can be deleted when calc_expectation is fixed
-        v_intermed = v_intermed[:, :, 0]
+
         vNvrs_intermed = self.uinv(v_intermed)
         vNvrsFunc_intermed = BilinearInterp(
             vNvrs_intermed, self.bNrmGrid, self.ShareGrid
@@ -903,9 +892,7 @@ class ConsPortfolioSolver(MetricObject):
                 self.RiskyDstn, EndOfPrdv_dist, self.aNrm_tiled, self.ShareNext
             )
         )
-        # calc_expectation returns one additional "empty" dimension, remove it
-        # this line can be deleted when calc_expectation is fixed
-        self.EndOfPrdv = self.EndOfPrdv[:, :, 0]
+
         self.EndOfPrdvNvrs = self.uinv(self.EndOfPrdv)
 
     def make_vFunc(self):
@@ -1218,7 +1205,7 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
                 self.ShockDstn, EndOfPrddvda_dists, self.aNrm_tiled, self.Share_tiled
             )
         )
-        self.EndOfPrddvda = self.EndOfPrddvda[:, :, 0]
+
         self.EndOfPrddvdaNvrs = self.uPinv(self.EndOfPrddvda)
 
         # Calculate end-of-period marginal value of risky portfolio share by taking expectations
@@ -1229,7 +1216,6 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
                 self.ShockDstn, EndOfPrddvds_dist, self.aNrm_tiled, self.Share_tiled
             )
         )
-        self.EndOfPrddvds = self.EndOfPrddvds[:, :, 0]
 
     def make_EndOfPrdvFunc(self):
         """
@@ -1257,7 +1243,7 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
                 self.ShockDstn, v_dist, self.aNrm_tiled, self.Share_tiled
             )
         )
-        self.EndOfPrdv = self.EndOfPrdv[:, :, 0]
+
         self.EndOfPrdvNvrs = self.uinv(self.EndOfPrdv)
 
     def solve(self):
