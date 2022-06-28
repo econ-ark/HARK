@@ -1610,7 +1610,7 @@ class PerfForesightConsumerType(AgentType):
         self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolver)
         set_verbosity_level((4 - verbose) * 10)
 
-        self.update_Rfree()
+        self.update_Rfree()  # update interest rate if time varying
 
     def pre_solve(self):
         self.update_solution_terminal()  # Solve the terminal period problem
@@ -1664,9 +1664,14 @@ class PerfForesightConsumerType(AgentType):
     def update_Rfree(self):
         """
         Determines whether Rfree is time-varying or fixed.
+
+        Parameters
+        ----------
+        None
+
         Returns
         -------
-
+        None
         """
 
         if isinstance(self.Rfree, list):
