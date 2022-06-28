@@ -2512,7 +2512,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
         EpShkuInv = calc_expectation(
             self.PermShkDstn[0], lambda x: x ** (1 - self.CRRA)
-        )
+        )[0]
 
         if self.CRRA != 1.0:
             uInvEpShkuInv = EpShkuInv ** (
@@ -2576,7 +2576,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # would be referenced below as:
         # [url]/#Uncertainty-Modified-Conditions
 
-        self.Ex_PermShkInv = calc_expectation(self.PermShkDstn[0], lambda x: 1 / x)
+        self.Ex_PermShkInv = calc_expectation(self.PermShkDstn[0], lambda x: 1 / x)[0]
         # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
 
         # [url]/#Pat, adjusted to include mortality

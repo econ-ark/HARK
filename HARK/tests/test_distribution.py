@@ -60,7 +60,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         binorm = combine_indep_dstns(norm_a, norm_b)
         mysum = distr_of_function(binorm, lambda x: np.sum(x))
         exp = calc_expectation(mysum)
-        self.assertAlmostEqual(exp, mu_a + mu_b)
+        self.assertAlmostEqual(exp[0], mu_a + mu_b)
 
         # Function n -> m
         # Mean and variance of two normals
@@ -83,21 +83,21 @@ class DiscreteDistributionTests(unittest.TestCase):
         ce2 = calc_expectation(dd_1_1_40)
         ce3 = calc_expectation(dd_10_10_100)
 
-        self.assertAlmostEqual(ce1, 0.0)
-        self.assertAlmostEqual(ce2, 1.0)
-        self.assertAlmostEqual(ce3, 10.0)
+        self.assertAlmostEqual(ce1[0], 0.0)
+        self.assertAlmostEqual(ce2[0], 1.0)
+        self.assertAlmostEqual(ce3[0], 10.0)
 
         ce4 = calc_expectation(dd_0_1_20, lambda x: 2 ** x)
 
-        self.assertAlmostEqual(ce4, 1.27153712)
+        self.assertAlmostEqual(ce4[0], 1.27153712)
 
         ce5 = calc_expectation(dd_1_1_40, lambda x: 2 * x)
 
-        self.assertAlmostEqual(ce5, 2.0)
+        self.assertAlmostEqual(ce5[0], 2.0)
 
         ce6 = calc_expectation(dd_10_10_100, lambda x, y: 2 * x + y, 20)
 
-        self.assertAlmostEqual(ce6, 40.0)
+        self.assertAlmostEqual(ce6[0], 40.0)
 
         ce7 = calc_expectation(
             dd_0_1_20, lambda x, y: x + y, np.hstack(np.array([0, 1, 2, 3, 4, 5]))
