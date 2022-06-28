@@ -649,7 +649,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         """
         # Take last period data, whichever way time is flowing
         MedPrice = self.MedPrice[-1]
-        MedShkVals = self.MedShkDstn[-1].X
+        MedShkVals = self.MedShkDstn[-1].X.flatten()
         MedShkPrbs = self.MedShkDstn[-1].pmf
 
         # Initialize grids of medical need shocks, market resources, and optimal consumption
@@ -993,7 +993,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
 
         # Also unpack the medical shock distribution
         self.MedShkPrbs = self.MedShkDstn.pmf
-        self.MedShkVals = self.MedShkDstn.X
+        self.MedShkVals = self.MedShkDstn.X.flatten()
 
     def def_utility_funcs(self):
         """

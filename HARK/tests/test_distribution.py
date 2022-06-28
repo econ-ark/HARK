@@ -5,6 +5,7 @@ import numpy as np
 from HARK.distribution import (
     Bernoulli,
     calc_expectation,
+    distr_of_function,
     calc_lognormal_style_pars_from_normal_pars,
     calc_normal_style_pars_from_lognormal_pars,
     combine_indep_dstns,
@@ -32,6 +33,47 @@ class DiscreteDistributionTests(unittest.TestCase):
             0,
         )
 
+    def test_distr_of_function(self):
+
+        # Function 1 -> 1
+        # Approximate the lognormal expectation
+        sig = 0.05
+        norm = Normal(mu=-(sig ** 2) / 2, sigma=sig).approx(131)
+        my_logn = distr_of_function(norm, func=lambda x: np.exp(x))
+        exp = calc_expectation(my_logn)
+        self.assertAlmostEqual(exp, 1.0)
+
+        # Function 1 -> n
+        # Mean and variance of the normal
+        norm = Normal(mu=0.0, sigma=1.0).approx(5)
+        moments = distr_of_function(norm, lambda x: np.array([x, x ** 2]))
+        exp = calc_expectation(moments).flatten()
+        self.assertAlmostEqual(exp[0], 0.0)
+        self.assertAlmostEqual(exp[1], 1.0)
+
+        # Function n -> 1
+        # Expectation of the sum of two independent normals
+        mu_a, mu_b = 1.0, 2.0
+        si_a, si_b = 3.0, 4.0
+        norm_a = Normal(mu=mu_a, sigma=si_a).approx(5)
+        norm_b = Normal(mu=mu_b, sigma=si_b).approx(5)
+        binorm = combine_indep_dstns(norm_a, norm_b)
+        mysum = distr_of_function(binorm, lambda x: np.sum(x))
+        exp = calc_expectation(mysum)
+        self.assertAlmostEqual(exp[0], mu_a + mu_b)
+
+        # Function n -> m
+        # Mean and variance of two normals
+        moments = distr_of_function(
+            binorm,
+            lambda x: np.array([x[0], (x[0] - mu_a) ** 2, x[1], (x[1] - mu_b) ** 2]),
+        )
+        exp = calc_expectation(moments)
+        self.assertAlmostEqual(exp[0], mu_a)
+        self.assertAlmostEqual(exp[1], si_a ** 2)
+        self.assertAlmostEqual(exp[2], mu_b)
+        self.assertAlmostEqual(exp[3], si_b ** 2)
+
     def test_calc_expectation(self):
         dd_0_1_20 = Normal().approx(20)
         dd_1_1_40 = Normal(mu=1).approx(40)
@@ -41,21 +83,21 @@ class DiscreteDistributionTests(unittest.TestCase):
         ce2 = calc_expectation(dd_1_1_40)
         ce3 = calc_expectation(dd_10_10_100)
 
-        self.assertAlmostEqual(ce1, 0.0)
-        self.assertAlmostEqual(ce2, 1.0)
-        self.assertAlmostEqual(ce3, 10.0)
+        self.assertAlmostEqual(ce1[0], 0.0)
+        self.assertAlmostEqual(ce2[0], 1.0)
+        self.assertAlmostEqual(ce3[0], 10.0)
 
         ce4 = calc_expectation(dd_0_1_20, lambda x: 2 ** x)
 
-        self.assertAlmostEqual(ce4, 1.27153712)
+        self.assertAlmostEqual(ce4[0], 1.27153712)
 
         ce5 = calc_expectation(dd_1_1_40, lambda x: 2 * x)
 
-        self.assertAlmostEqual(ce5, 2.0)
+        self.assertAlmostEqual(ce5[0], 2.0)
 
         ce6 = calc_expectation(dd_10_10_100, lambda x, y: 2 * x + y, 20)
 
-        self.assertAlmostEqual(ce6, 40.0)
+        self.assertAlmostEqual(ce6[0], 40.0)
 
         ce7 = calc_expectation(
             dd_0_1_20, lambda x, y: x + y, np.hstack(np.array([0, 1, 2, 3, 4, 5]))
@@ -79,6 +121,63 @@ class DiscreteDistributionTests(unittest.TestCase):
         )
 
         self.assertAlmostEqual(ce9[3], 9.518015322143837)
+
+
+class MatrixDiscreteDistributionTests(unittest.TestCase):
+    """
+    Tests matrix-valued discrete distribution.
+    """
+
+    def setUp(self):
+
+        self.draw_1 = np.array(
+            [[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], [[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]],]
+        )
+
+        self.draw_2 = -1 * self.draw_1
+
+        X = np.stack([self.draw_1, self.draw_2], axis=-1)
+        pmf = np.array([0.5, 0.5])
+
+        self.mat_distr = DiscreteDistribution(pmf, X, seed=0)
+
+    def test_draw(self):
+        """
+        Check that the draws are the matrices we
+        want them to be
+        """
+
+        draw = self.mat_distr.draw(1)
+        self.assertTrue(np.allclose(draw[..., 0], self.draw_2))
+
+    def test_expected(self):
+
+        # Expectation without transformation
+        exp = calc_expectation(self.mat_distr)
+
+        # Check the expectation is of the shape we want
+        self.assertTrue(exp.shape[0] == self.draw_1.shape[0])
+        self.assertTrue(exp.shape[1] == self.draw_1.shape[1])
+
+        # Check that its value is what we expect
+        self.assertTrue(np.allclose(exp, 0.0))
+
+        # Expectation of the sum
+        exp = calc_expectation(self.mat_distr, func=np.sum)
+        self.assertTrue(float(exp) == 0.0)
+
+    def test_distr_of_fun(self):
+
+        # A function that receives a (2,n,m) matrix
+        # and sums across n, getting a (2,1,m) matrix
+        def myfunc(mat):
+
+            return np.sum(mat, axis=1, keepdims=True)
+
+        mydistr = distr_of_function(self.mat_distr, myfunc)
+
+        # Check the dimensions
+        self.assertTrue(mydistr.dim() == (2, 1, 3))
 
 
 class DistributionClassTests(unittest.TestCase):
@@ -214,3 +313,14 @@ class LogNormalToNormalTests(unittest.TestCase):
 
         self.assertAlmostEqual(avg_n, avg_hat)
         self.assertAlmostEqual(std_n, std_hat)
+
+
+class NormalDistTest(unittest.TestCase):
+    def test_approx_equiprobable(self):
+
+        mu, sigma = 5.0, 27.0
+
+        points = Normal(mu, sigma).approx_equiprobable(701).X
+
+        self.assertAlmostEqual(np.mean(points), mu, places=7)
+        self.assertAlmostEqual(np.std(points), sigma, places=2)

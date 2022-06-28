@@ -369,7 +369,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
             CubicBool,
         )
         self.PrefShkPrbs = PrefShkDstn.pmf
-        self.PrefShkVals = PrefShkDstn.X
+        self.PrefShkVals = PrefShkDstn.X.flatten()
 
     def get_points_for_interpolation(self, EndOfPrdvP, aNrmNow):
         """
@@ -685,4 +685,4 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver, ConsKinkedRsolver):
             CubicBool,
         )
         self.PrefShkPrbs = PrefShkDstn.pmf
-        self.PrefShkVals = PrefShkDstn.X
+        self.PrefShkVals = PrefShkDstn.X.flatten()

@@ -1206,7 +1206,7 @@ def solve_RiskyContrib_Cns(
 
         # Define grids
         b_aux_grid = np.concatenate([np.array([0.0]), Rfree * aXtraGrid])
-        g_aux_grid = np.concatenate([np.array([0.0]), max(RiskyDstn.X) * nNrmGrid])
+        g_aux_grid = np.concatenate([np.array([0.0]), max(RiskyDstn.X.flatten()) * nNrmGrid])
 
         # Create tiled arrays with conforming dimensions.
         b_aux_tiled, g_aux_tiled, Share_tiled = np.meshgrid(
@@ -1217,7 +1217,7 @@ def solve_RiskyContrib_Cns(
         # next period's derivatives and value.
         pr_derivs = calc_expectation(
             IncShkDstn, post_return_derivs, b_aux_tiled, g_aux_tiled, Share_tiled
-        )[:, :, :, :, 0]
+        )
 
         # Unpack results and create interpolators
         pr_dvdb_func = MargValueFuncCRRA(
@@ -1363,7 +1363,7 @@ def solve_RiskyContrib_Cns(
         aNrm_tiled,
         nNrm_tiled,
         Share_tiled,
-    )[:, :, :, :, 0]
+    )
 
     # Unpack results
     eop_dvdaNvrs = uPinv(eop_derivs[0])

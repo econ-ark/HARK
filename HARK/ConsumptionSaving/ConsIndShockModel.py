@@ -1715,14 +1715,14 @@ class PerfForesightConsumerType(AgentType):
         self.state_now["aNrm"][which_agents] = Lognormal(
             mu=self.aNrmInitMean,
             sigma=self.aNrmInitStd,
-            seed=self.RNG.randint(0, 2 ** 31 - 1),
+            seed=self.RNG.randint(0, 2**31 - 1),
         ).draw(N)
         # why is a now variable set here? Because it's an aggregate.
         pLvlInitMeanNow = self.pLvlInitMean + np.log(
             self.state_now["PlvlAgg"]
         )  # Account for newer cohorts having higher permanent income
         self.state_now["pLvl"][which_agents] = Lognormal(
-            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
+            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.randint(0, 2**31 - 1)
         ).draw(N)
         # How many periods since each agent was born
         self.t_age[which_agents] = 0
@@ -1766,7 +1766,7 @@ class PerfForesightConsumerType(AgentType):
         # they die.
         # See: https://github.com/econ-ark/HARK/pull/981
 
-        DeathShks = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(
+        DeathShks = Uniform(seed=self.RNG.randint(0, 2**31 - 1)).draw(
             N=self.AgentCount
         )
         which_agents = DeathShks < DiePrb
@@ -2498,7 +2498,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
         EpShkuInv = calc_expectation(
             self.PermShkDstn[0], lambda x: x ** (1 - self.CRRA)
-        )
+        )[0]
 
         if self.CRRA != 1.0:
             uInvEpShkuInv = EpShkuInv ** (
@@ -2562,7 +2562,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # would be referenced below as:
         # [url]/#Uncertainty-Modified-Conditions
 
-        self.Ex_PermShkInv = calc_expectation(self.PermShkDstn[0], lambda x: 1 / x)
+        self.Ex_PermShkInv = calc_expectation(self.PermShkDstn[0], lambda x: 1 / x)[0]
         # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
 
         # [url]/#Pat, adjusted to include mortality
@@ -2834,7 +2834,7 @@ class LognormPermIncShk(DiscreteDistribution):
         )
         # Change the pmf if necessary
         if neutral_measure:
-            logn_approx.pmf = logn_approx.X * logn_approx.pmf
+            logn_approx.pmf = (logn_approx.X * logn_approx.pmf).flatten()
 
         super().__init__(pmf=logn_approx.pmf, X=logn_approx.X, seed=seed)
 

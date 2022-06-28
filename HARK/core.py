@@ -1549,7 +1549,7 @@ def distribute_params(agent, param_name, param_count, distribution):
     param_count : int
         Number of different values the parameter will take on.
     distribution : Distribution
-        A distribution.
+        A 1-D distribution.
 
     Returns
     -------
@@ -1567,7 +1567,7 @@ def distribute_params(agent, param_name, param_count, distribution):
         agent_set[j].assign_parameters(**{'AgentCount': int(agent.AgentCount * param_dist.pmf[j])})
         # agent_set[j].__dict__[param_name] = param_dist.X[j]
 
-        agent_set[j].assign_parameters(**{param_name: param_dist.X[j]})
+        agent_set[j].assign_parameters(**{param_name: param_dist.X[0,j]})
 
 
 
