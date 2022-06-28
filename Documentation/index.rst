@@ -19,6 +19,7 @@ you might want to look at the `DemARK
 
    introduction
    quick-start
+   ARKitecture
    contributing/CONTRIBUTING.md
    reference/index
    CHANGELOG
