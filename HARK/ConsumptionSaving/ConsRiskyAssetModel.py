@@ -44,6 +44,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     The meaning of "adjusting his portfolio" depends on the particular model.
     """
 
+    time_inv_ = IndShockConsumerType.time_inv_ + ["PortfolioBisect"]
     time_vary_ = IndShockConsumerType.time_vary_ + ["Rfree"]
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
 
@@ -786,6 +787,8 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
     PortfolioBisect: bool
 
     def __post_init__(self):
+
+        super().__post_init__()
 
         if self.PortfolioBisect:
             raise NotImplementedError(
