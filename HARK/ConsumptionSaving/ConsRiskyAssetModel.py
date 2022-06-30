@@ -57,6 +57,9 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         if not hasattr(self, "PortfolioBool"):
             self.PortfolioBool = False
 
+        if not hasattr(self, "PortfolioBisect"):
+            self.PortfolioBisect = False
+
         # Initialize a basic consumer type
         IndShockConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
 
@@ -780,6 +783,14 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
 class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
     ShareGrid: np.array
     ShareLimit: float
+    PortfolioBisect: bool
+
+    def __post_init__(self):
+
+        if self.PortfolioBisect:
+            raise NotImplementedError(
+                "RiskyAssetConsumerType does not implement optimization by bisection yet!"
+            )
 
     def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
