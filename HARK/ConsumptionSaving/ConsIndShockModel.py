@@ -1547,22 +1547,16 @@ init_perfect_foresight = {
     "LivPrb": [0.98],  # Survival probability
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": None,  # Artificial borrowing constraint
-    # Maximum number of grid points to allow in cFunc (should be large)
-    # Number of agents of this type (only matters for simulation)
-    "MaxKinks": 400,
-    # Mean of log initial assets (only matters for simulation)
-    "AgentCount": 10000,
-    # Standard deviation of log initial assets (only for simulation)
-    "aNrmInitMean": 0.0,
-    # Mean of log initial permanent income (only matters for simulation)
-    "aNrmInitStd": 1.0,
-    "pLvlInitMean": 0.0,
+    "MaxKinks": 400,  # Maximum number of grid points to allow in cFunc (should be large)
+    "AgentCount": 10000,  # Number of agents of this type (only matters for simulation)
+    "aNrmInitMean": 0.0,  # Mean of log initial assets (only matters for simulation)
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets (only for simulation)
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income (only matters for simulation)
     # Standard deviation of log initial permanent income (only matters for simulation)
     "pLvlInitStd": 0.0,
     # Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
     "PermGroFacAgg": 1.0,
-    "T_age": None,
-    # Age after which simulated agents are automatically killed
+    "T_age": None,  # Age after which simulated agents are automatically killed
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
     "PerfMITShk": False,
     # Do Perfect Foresight MIT Shock: Forces Newborns to follow solution path of the agent he/she replaced when True
@@ -1593,7 +1587,7 @@ class PerfForesightConsumerType(AgentType):
         MPCmax=1.0,
     )
     time_vary_ = ["LivPrb", "PermGroFac"]
-    time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt"]
+    time_inv_ = ["CRRA", "DiscFac", "MaxKinks", "BoroCnstArt"]
     state_vars = ["pLvl", "PlvlAgg", "bNrm", "mNrm", "aNrm", "aLvl"]
     shock_vars_ = []
 
@@ -1619,6 +1613,8 @@ class PerfForesightConsumerType(AgentType):
         self.quiet = quiet
         self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolver)
         set_verbosity_level((4 - verbose) * 10)
+
+        self.update_Rfree()  # update interest rate if time varying
 
     def pre_solve(self):
         self.update_solution_terminal()  # Solve the terminal period problem
@@ -1669,6 +1665,31 @@ class PerfForesightConsumerType(AgentType):
         self.solution_terminal.vPPfunc = MargMargValueFuncCRRA(
             self.cFunc_terminal_, self.CRRA
         )
+
+    def update_Rfree(self):
+        """
+        Determines whether Rfree is time-varying or fixed.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+
+        if isinstance(self.Rfree, list):
+            if len(self.Rfree) == self.T_cycle:
+                self.add_to_time_vary("Rfree")
+            else:
+                raise AttributeError(
+                    "If Rfree is time-varying, it should have a length of T_cycle!"
+                )
+        elif isinstance(self.Rfree, (int, float)):
+            self.add_to_time_inv("Rfree")
+        else:  # temporary fix for MarkovConsumerType
+            self.add_to_time_inv("Rfree")
 
     def unpack_cFunc(self):
         """DEPRECATED: Use solution.unpack('cFunc') instead.
@@ -1808,7 +1829,13 @@ class PerfForesightConsumerType(AgentType):
         RfreeNow : np.array
              Array of size self.AgentCount with risk free interest rate for each agent.
         """
-        RfreeNow = self.Rfree * np.ones(self.AgentCount)
+        RfreeNow = np.ones(self.AgentCount)
+        if "Rfree" in self.time_inv:
+            RfreeNow = RfreeNow * self.Rfree
+        elif "Rfree" in self.time_vary:
+            for t in range(self.T_cycle):
+                these = t == self.t_cycle
+                RfreeNow[these] = self.Rfree[t]
         return RfreeNow
 
     def transition(self):
@@ -2970,7 +2997,6 @@ class KinkedRconsumerType(IndShockConsumerType):
     """
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)
-    time_inv_.remove("Rfree")
     time_inv_ += ["Rboro", "Rsave"]
 
     def __init__(self, **kwds):
