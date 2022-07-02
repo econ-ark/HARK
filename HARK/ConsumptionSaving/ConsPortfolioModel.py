@@ -166,7 +166,7 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
     """
 
     time_inv_ = deepcopy(RiskyAssetConsumerType.time_inv_)
-    time_inv_ = time_inv_ + ["AdjustPrb", "DiscreteShareBool"]
+    time_inv_ = time_inv_ + ["AdjustPrb", "DiscreteShareBool", "ApproxShareBool"]
 
     def __init__(self, verbose=False, quiet=False, **kwds):
         params = init_portfolio.copy()
@@ -213,7 +213,7 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         None
         """
         # Consume all market resources: c_T = m_T
-        cFuncAdj_terminal = IdentityFunction()
+        cFuncAdj_terminal = LinearInterp([0.0, 1.0], [0.0, 1.0])
         cFuncFxd_terminal = IdentityFunction(i_dim=0, n_dims=2)
 
         # Risky share is irrelevant-- no end-of-period assets; set to zero
@@ -243,6 +243,8 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
             dvdmFuncFxd=dvdmFuncFxd_terminal,
             dvdsFuncFxd=dvdsFuncFxd_terminal,
         )
+
+        self.solution_terminal.ShareEndOfPrdFunc = ShareFuncAdj_terminal
 
     def update_ShareGrid(self):
         """
@@ -492,6 +494,7 @@ class ConsPortfolioSolver(MetricObject):
         DiscreteShareBool,
         ShareLimit,
         IndepDstnBool,
+        ApproxShareBool,
     ):
         """
         Constructor for portfolio choice problem solver.
@@ -514,6 +517,7 @@ class ConsPortfolioSolver(MetricObject):
         self.DiscreteShareBool = DiscreteShareBool
         self.ShareLimit = ShareLimit
         self.IndepDstnBool = IndepDstnBool
+        self.ApproxShareBool = ApproxShareBool
 
         # Make sure the individual is liquidity constrained.  Allowing a consumer to
         # borrow *and* invest in an asset with unbounded (negative) returns is a bad mix.
@@ -813,6 +817,8 @@ class ConsPortfolioSolver(MetricObject):
         Construct the risky share function when the agent can adjust
         """
 
+        # Share function for mGrid
+
         if self.zero_bound:
             Share_lower_bound = self.ShareLimit
         else:
@@ -823,6 +829,96 @@ class ConsPortfolioSolver(MetricObject):
             Share_now,
             intercept_limit=self.ShareLimit,
             slope_limit=0.0,
+        )
+
+        # Share function on aGrid
+
+        if self.zero_bound:
+            aNrm_temp = np.append(0.0, self.aNrmGrid)
+            share_temp = np.append(self.ShareLimit, self.Share_now)
+        else:
+            aNrm_temp = self.aNrmGrid
+            share_temp = self.Share_now
+
+        self.ShareEndOfPrdFunc = LinearInterp(
+            aNrm_temp, share_temp, intercept_limit=self.ShareLimit, slope_limit=0.0
+        )
+
+    def make_share_func_approx(self):
+        """
+        Alternative share functions from linear approximation.
+        """
+
+        # get next period's consumption and share function
+        cFunc_next = self.solution_next.cFuncAdj
+        sFunc_next = self.solution_next.ShareEndOfPrdFunc
+
+        def premium(shock):
+            """
+            Used to evaluate mean and variance of equity premium.
+            """
+            r_diff = shock - self.Rfree
+
+            return r_diff, r_diff ** 2, r_diff ** 3
+
+        prem_mean, prem_sqrd, prem_cube = calc_expectation(self.RiskyDstn, premium)
+
+        def c_nrm_and_deriv(shocks, a_nrm):
+            """
+            Used to calculate expected consumption and MPC given today's savings,
+            assuming that today's risky share is the same as it would be tomorrow
+            with that same level of savings.
+            """
+            p_shk = shocks[0] * self.PermGroFac
+            t_shk = shocks[1]
+            share = sFunc_next(a_nrm)
+            r_diff = shocks[2] - self.Rfree
+            r_port = self.Rfree + r_diff * share
+            m_nrm_next = a_nrm * r_port / p_shk + t_shk
+
+            c_next, cP_next = cFunc_next.eval_with_derivative(m_nrm_next)
+
+            return c_next, cP_next
+
+        exp_c_values = calc_expectation(self.ShockDstn, c_nrm_and_deriv, self.aNrmGrid)
+
+        exp_c_values = exp_c_values[:, :, 0]
+        exp_c_next = exp_c_values[0]
+        exp_cP_next = exp_c_values[1]
+
+        MPC = exp_cP_next * self.aNrmGrid / exp_c_next
+
+        # first order approximation
+        approx_share = prem_mean / (self.CRRA * MPC * prem_sqrd)
+
+        # clip at 0 and 1, although we know the Share limit we
+        # want to see what the approximation would give us
+        approx_share = np.clip(approx_share, 0, 1)
+
+        self.ApproxFirstOrderShareFunc = LinearInterp(
+            self.aNrmGrid,
+            approx_share,
+            intercept_limit=self.ShareLimit,
+            slope_limit=0.0,
+        )
+
+        # second order approximation
+
+        a = -self.CRRA * prem_cube * MPC ** 2 * (-self.CRRA - 1) / 2
+        b = -self.CRRA * MPC * prem_sqrd
+        c = prem_mean
+
+        temp = np.sqrt(b ** 2 - 4 * a * c)
+
+        roots = np.array([(-b + temp) / (2 * a), (-b - temp) / (2 * a)])
+        roots[:, 0] = 1.0
+        roots = np.where(
+            np.logical_and(roots[0] >= 0, roots[0] <= 1), roots[0], roots[1]
+        )
+        roots = np.clip(roots, 0, 1)
+
+        self.ApproxSecondOrderShareFunc = LinearInterp(
+            self.aNrmGrid, roots, intercept_limit=self.ShareLimit, slope_limit=0.0,
         )
 
     def add_save_points(self):
@@ -965,6 +1061,11 @@ class ConsPortfolioSolver(MetricObject):
             AdjPrb=self.AdjustPrb,
         )
 
+        if self.ApproxShareBool:
+            self.solution.ShareEndOfPrdFunc = self.ShareEndOfPrdFunc
+            self.solution.ApproxFirstOrderShareFunc = self.ApproxFirstOrderShareFunc
+            self.solution.ApproxSecondOrderShareFunc = self.ApproxSecondOrderShareFunc
+
     def solve(self):
         """
         Solve the one period problem for a portfolio-choice consumer.
@@ -985,6 +1086,9 @@ class ConsPortfolioSolver(MetricObject):
         self.optimize_share()
         self.make_basic_solution()
         self.make_ShareFuncAdj()
+
+        if self.ApproxShareBool:
+            self.make_share_func_approx()
 
         self.add_save_points()
 
@@ -1305,10 +1409,7 @@ class ConsSequentialPortfolioSolver(ConsPortfolioSolver):
             Share_now = self.Share_now
 
         self.SequentialShareFuncAdj_now = LinearInterp(
-            aNrm_temp,
-            Share_now,
-            intercept_limit=self.ShareLimit,
-            slope_limit=0.0,
+            aNrm_temp, Share_now, intercept_limit=self.ShareLimit, slope_limit=0.0,
         )
 
         solution.SequentialShareFuncAdj = self.SequentialShareFuncAdj_now
@@ -1335,6 +1436,8 @@ init_portfolio["ShareCount"] = 25
 init_portfolio["AdjustPrb"] = 1.0
 # Flag for whether to optimize risky share on a discrete grid only
 init_portfolio["DiscreteShareBool"] = False
+# Flat for wether to approximate risky share
+init_portfolio["ApproxShareBool"] = False
 
 # Adjust some of the existing parameters in the dictionary
 init_portfolio["aXtraMax"] = 100  # Make the grid of assets go much higher...
