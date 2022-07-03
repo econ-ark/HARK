@@ -1,8 +1,8 @@
 # ARKitecture of Econ-ark
 
-This document will tell you the structure of econ-ark and explain the main ingredients. Note that it does not explain *how* to use it. For this, please follow the example notebooks which you can find on the left.
+This document guides you through the structure of econ-ark and explain the main ingredients. Note that it does not explain *how* to use it. For this, please follow the example notebooks which you can find on the left.
 
-[Econ-ark](https://github.com/econ-ark) contains the three main repositories [HARK](https://github.com/econ-ark/HARK), [DemARK](https://github.com/econ-ark/DEMARK), and [RemARK](https://github.com/econ-ark/REMARK). 
+[Econ-ark](https://github.com/econ-ark) contains the three main repositories [HARK](https://github.com/econ-ark/HARK), [DemARK](https://github.com/econ-ark/DEMARK), and [RemARK](https://github.com/econ-ark/REMARK). On top of that, the [website](https://econ-ark.org/) combines all of them. Hence, if you want to find a notebook search them in [materials](https://econ-ark.org/materials).
 
 * [HARK](https://github.com/econ-ark/HARK): Includes the source code as well as some example notebooks.
 * [DemARK](https://github.com/econ-ark/DEMARK): Here you can find *Dem*onstrations of tools, AgentTypes, and ModelClasses.
@@ -198,4 +198,4 @@ If you want to run the notebooks on your own machine make sure to install the ne
 
 HARK can be used to replicate papers as well. For this purpose the *R*[eplications/eproductions] and *E*xplorations *M*ade using *ARK* (REMARK) [repository](https://github.com/econ-ark/REMARK) was created.
 
-Each replication has its own *requirement.txt* file with the necessary packages to run the notebooks.
+Each replication consists of a *metadata file* (.md) with an overview, a *notebook* which replicates the paper, and a *requirement.txt* file with the necessary packages to run the notebooks on your local mashine.
