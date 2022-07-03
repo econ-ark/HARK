@@ -256,7 +256,8 @@ class ConsPerfForesightSolver(MetricObject):
         None
         """
         self.u = lambda c: utility(c, gam=self.CRRA)  # utility function
-        self.uP = lambda c: utilityP(c, gam=self.CRRA)  # marginal utility function
+        # marginal utility function
+        self.uP = lambda c: utilityP(c, gam=self.CRRA)
         self.uPP = lambda c: utilityPP(
             c, gam=self.CRRA
         )  # marginal marginal utility function
@@ -384,7 +385,8 @@ class ConsPerfForesightSolver(MetricObject):
 
         # Add two attributes to enable calculation of steady state market resources.
         self.Ex_IncNext = 1.0  # Perfect foresight income of 1
-        self.mNrmMinNow = mNrmNow[0]  # Relabeling for compatibility with add_mNrmStE
+        # Relabeling for compatibility with add_mNrmStE
+        self.mNrmMinNow = mNrmNow[0]
 
     def add_mNrmTrg(self, solution):
         """
@@ -843,7 +845,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         Parameters
         ----------
         shocks: [float]
-            Permanent and transitory income shock levels.       a_nrm: float
+            Permanent and transitory income shock levels.
+        a_nrm: float
             Normalized market assets this period
 
         Returns
@@ -1035,9 +1038,11 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         self.GICNrm = GICNrm
 
         if GICRaw:
-            solution = self.add_mNrmStE(solution)  # find steady state m, if it exists
+            # find steady state m, if it exists
+            solution = self.add_mNrmStE(solution)
         if GICNrm:
-            solution = self.add_mNrmTrg(solution)  # find target m, if it exists
+            # find target m, if it exists
+            solution = self.add_mNrmTrg(solution)
 
         return solution
 
@@ -1075,10 +1080,9 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution : ConsumerSolution
             The solution to the one period problem.
         """
-        self.aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
-        aNrm = self.aNrmNow
+        aNrmNow = self.prepare_to_calc_EndOfPrdvP()
         EndOfPrdvP = self.calc_EndOfPrdvP()
-        solution = self.make_basic_solution(EndOfPrdvP, aNrm, self.make_linear_cFunc)
+        solution = self.make_basic_solution(EndOfPrdvP, aNrmNow, self.make_linear_cFunc)
         solution = self.add_MPC_and_human_wealth(solution)
         solution = self.add_stable_points(solution)
 
@@ -1616,7 +1620,8 @@ class PerfForesightConsumerType(AgentType):
         self.update_solution_terminal()  # Solve the terminal period problem
 
         # Fill in BoroCnstArt and MaxKinks if they're not specified or are irrelevant.
-        if not hasattr(self, "BoroCnstArt"):  # If no borrowing constraint specified...
+        # If no borrowing constraint specified...
+        if not hasattr(self, "BoroCnstArt"):
             self.BoroCnstArt = None  # ...assume the user wanted none
 
         if not hasattr(self, "MaxKinks"):
@@ -1740,7 +1745,8 @@ class PerfForesightConsumerType(AgentType):
         self.state_now["pLvl"][which_agents] = Lognormal(
             pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.randint(0, 2**31 - 1)
         ).draw(N)
-        self.t_age[which_agents] = 0  # How many periods since each agent was born
+        # How many periods since each agent was born
+        self.t_age[which_agents] = 0
 
         if not hasattr(
             self, "PerfMITShk"
@@ -1838,13 +1844,15 @@ class PerfForesightConsumerType(AgentType):
         RfreeNow = self.get_Rfree()
 
         # Calculate new states: normalized market resources and permanent income level
-        pLvlNow = pLvlPrev * self.shocks["PermShk"]  # Updated permanent income level
+        # Updated permanent income level
+        pLvlNow = pLvlPrev * self.shocks["PermShk"]
         # Updated aggregate permanent productivity level
         PlvlAggNow = self.state_prev["PlvlAgg"] * self.PermShkAggNow
         # "Effective" interest factor on normalized assets
         ReffNow = RfreeNow / self.shocks["PermShk"]
         bNrmNow = ReffNow * aNrmPrev  # Bank balances before labor income
-        mNrmNow = bNrmNow + self.shocks["TranShk"]  # Market resources after income
+        # Market resources after income
+        mNrmNow = bNrmNow + self.shocks["TranShk"]
 
         return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
 
@@ -2065,25 +2073,28 @@ class PerfForesightConsumerType(AgentType):
 # Make a dictionary to specify an idiosyncratic income shocks consumer
 init_idiosyncratic_shocks = dict(
     init_perfect_foresight,
-    **{
-        # assets above grid parameters
+    **{  # assets above grid parameters
         "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
         "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
-        "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
+        # Exponential nesting factor when constructing "assets above minimum" grid
+        "aXtraNestFac": 3,
         "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
         "aXtraExtra": [
             None
         ],  # Some other value of "assets above minimum" to add to the grid, not used
         # Income process variables
-        "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+        # Standard deviation of log permanent income shocks
+        "PermShkStd": [0.1],
         "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
-        "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+        # Standard deviation of log transitory income shocks
+        "TranShkStd": [0.1],
         "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
         "UnempPrb": 0.05,  # Probability of unemployment while working
         "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
         "IncUnemp": 0.3,  # Unemployment benefits replacement rate
         "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
-        "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
+        # Artificial borrowing constraint; imposed minimum level of end-of period assets
+        "BoroCnstArt": 0.0,
         "tax_rate": 0.0,  # Flat income tax rate
         "T_retire": 0,  # Period of retirement (0 --> no retirement)
         "vFuncBool": False,  # Whether to calculate the value function during solution
@@ -2242,8 +2253,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
             N = np.sum(these)
             if N > 0:
-                IncShkDstnNow = self.IncShkDstn[t]  # set current income distribution
-                PermGroFacNow = self.PermGroFac[t]  # and permanent growth factor
+                # set current income distribution
+                IncShkDstnNow = self.IncShkDstn[t]
+                # and permanent growth factor
+                PermGroFacNow = self.PermGroFac[t]
                 # Get random draws of income shocks from the discrete distribution
                 IncShks = IncShkDstnNow.draw(N)
 
@@ -2257,7 +2270,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         N = np.sum(newborn)
         if N > 0:
             these = newborn
-            IncShkDstnNow = self.IncShkDstn[0]  # set current income distribution
+            # set current income distribution
+            IncShkDstnNow = self.IncShkDstn[0]
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
             # Get random draws of income shocks from the discrete distribution
@@ -2468,8 +2482,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             False: "\nThe given parameter values violate the Mortality Adjusted Aggregate Growth Imatience Condition; the GPFAggLivPrb is: {0.GPFAggLivPrb}",
         }
 
-        verbose_messages = {
-            # (see {0.url}/#WRIC for more).',
+        verbose_messages = {  # (see {0.url}/#WRIC for more).',
             True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.\n",
             # (see {0.url}/#WRIC for more).'
             False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.\n",
@@ -2958,9 +2971,12 @@ init_kinked_R = dict(
     **{
         "Rboro": 1.20,  # Interest factor on assets when borrowing, a < 0
         "Rsave": 1.02,  # Interest factor on assets when saving, a > 0
-        "BoroCnstArt": None,  # kinked R is a bit silly if borrowing not allowed
-        "CubicBool": True,  # kinked R is now compatible with linear cFunc and cubic cFunc
-        "aXtraCount": 48,  # ...so need lots of extra gridpoints to make up for it
+        "BoroCnstArt": None,
+        # kinked R is a bit silly if borrowing not allowed
+        "CubicBool": True,
+        # kinked R is now compatible with linear cFunc and cubic cFunc
+        "aXtraCount": 48,
+        # ...so need lots of extra gridpoints to make up for it
     }
 )
 del init_kinked_R["Rfree"]  # get rid of constant interest factor
