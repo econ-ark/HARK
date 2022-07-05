@@ -15,6 +15,7 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
 )
 from HARK.utilities import plot_funcs
 
+
 # %%
 # Make and solve an example portfolio choice consumer type
 print("Now solving an example portfolio choice problem; this might take a moment...")
@@ -34,10 +35,12 @@ print(
     + " seconds."
 )
 
+
 # %%
 # Plot the consumption and risky-share functions
 print("Consumption function over market resources:")
 plot_funcs(MyType.cFunc[0], 0.0, 20.0)
+
 
 # %%
 # Since we are using a discretization of the lognormal distribution,
@@ -67,6 +70,7 @@ plot_funcs(
 # indistinguishable. This is expected, as deciding saving and risky share simultaneously
 # should give the same result as when doing it sequentially.
 
+
 # %%
 print("\n\n\n")
 print("For derivation of the numerical limiting portfolio share")
@@ -75,8 +79,10 @@ print(
     "http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/AssetPricing/Portfolio-CRRA/"
 )
 
+
 # %%
 print("\n\n\n")
+
 
 # %%
 ""
@@ -84,6 +90,7 @@ print("\n\n\n")
 # share in any particular period with 15% probability.
 init_sticky_share = init_portfolio.copy()
 init_sticky_share["AdjustPrb"] = 0.15
+
 
 # %%
 # Make and solve a discrete portfolio choice consumer type
@@ -113,12 +120,14 @@ print(
     + " seconds."
 )
 
+
 # %%
 # Plot the consumption and risky-share functions
 print(
     "Consumption function over market resources when the agent can adjust his portfolio:"
 )
 plot_funcs(StickyType.cFuncAdj[0], 0.0, 50.0)
+
 
 # %%
 print(
@@ -131,6 +140,7 @@ for s in np.linspace(0.0, 1.0, 5):
 plt.xlim(0.0, 50.0)
 plt.ylim(0.0, None)
 plt.show()
+
 
 # %%
 print("Risky asset share function over market resources (when possible to adjust):")
@@ -151,5 +161,6 @@ plot_funcs(
     0.0,
     100.0,
 )
+
 
 # %%
