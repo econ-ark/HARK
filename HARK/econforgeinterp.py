@@ -58,25 +58,29 @@ class LinearFast(MetricObject):
 
 class LinearFastDecay(LinearFast):
     def __init__(
-        self, f_val, grids, limit_func, decay_weights=None, extrap_option=xto.LINEAR
+        self, f_val, grids, limit_func, decay_weights=None, extrap_options=None
     ):
 
-        super().__init__(f_val, grids)
+        super().__init__(f_val, grids, extrap_options)
 
         self.limit_func = limit_func
         self.upper_limits = np.array([x[-1] for x in grids])
 
         if decay_weights is None:
-            self.decay_weights = np.ones(self.dim)
+            # By default, make weights the inverse of upper grid limits
+            # so that distances will be re-expressed as proportions of
+            # the upper limit
+            self.decay_weights = np.abs(1 / self.upper_limits)
         else:
             self.decay_weights = decay_weights
 
-        self.extrap_option = extrap_option
-
     def decay(self, x, closest_x):
 
-        dec = np.exp(-np.dot(x - closest_x, self.decay_weights))
-        return dec
+        dist = np.dot(np.abs(x - closest_x), self.decay_weights)
+
+        weight = 1 / (1 / dist + 1)
+
+        return weight
 
     def __call__(self, *args):
 
@@ -94,14 +98,14 @@ class LinearFastDecay(LinearFast):
         upper_ex_nearest = np.minimum(upper_ex_points, self.upper_limits[None, :])
 
         # Find function evaluations with regular extrapolation
-        f = eval_linear(self.Grid, self.f_val, col_args, self.extrap_option)
+        f = eval_linear(self.Grid, self.f_val, col_args, self.extrap_options)
 
         # Get base extrapolations and limiting function at the extrapolating points
         upper_f_ex = f[upper_ex_inds]
         limit_f_ex = self.limit_func(*[upper_ex_points[:, i] for i in range(len(args))])
 
         # Combine them
-        decay = self.decay(upper_ex_points, upper_ex_nearest)
-        f[upper_ex_inds] = decay * upper_f_ex + (1.0 - decay) * limit_f_ex
+        weight = self.decay(upper_ex_points, upper_ex_nearest)
+        f[upper_ex_inds] = (1.0 - weight) * upper_f_ex + weight * limit_f_ex
 
         return np.reshape(f, argshape)
