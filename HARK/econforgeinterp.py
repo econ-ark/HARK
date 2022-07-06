@@ -58,7 +58,7 @@ class LinearFast(MetricObject):
 
 class LinearFastDecay(LinearFast):
     def __init__(
-        self, f_val, grids, limit_func, decay_weights=None, extrap_gradient=False
+        self, f_val, grids, limit_func, decay_weights=None, extrap_option=xto.LINEAR
     ):
 
         super().__init__(f_val, grids)
@@ -71,40 +71,7 @@ class LinearFastDecay(LinearFast):
         else:
             self.decay_weights = decay_weights
 
-        self.extrap_gradient = extrap_gradient
-
-    def _grad(self, points):
-
-        # Save in a matrix: rows are points, columns are dimensions
-        col_args = copy(points)
-
-        # Preallocate gradient
-        grads = np.empty((col_args.shape[0], self.dim))
-
-        for i, grid in enumerate(self.grid_list):
-
-            col = copy(col_args[:, i])
-
-            lower_inds = np.searchsorted(grid, col) - 1
-            lower_inds = np.minimum(np.maximum(lower_inds, 0), len(grid) - 2)
-
-            x_low = grid[lower_inds]
-            x_upp = grid[lower_inds + 1]
-
-            # Lower values
-            col_args[:, i] = x_low
-            vals_low = eval_linear(self.Grid, self.f_val, col_args,)
-            # Upper values
-            col_args[:, i] = x_upp
-            vals_upp = eval_linear(self.Grid, self.f_val, col_args,)
-
-            # Restore column
-            col_args[:, i] = col
-
-            # Get gradient
-            grads[:, i] = (vals_upp - vals_low) / (x_upp - x_low)
-
-        return grads
+        self.extrap_option = extrap_option
 
     def decay(self, x, closest_x):
 
@@ -126,26 +93,15 @@ class LinearFastDecay(LinearFast):
         ]
         upper_ex_nearest = np.minimum(upper_ex_points, self.upper_limits[None, :])
 
-        # Replace extrapolations by their closest in-grid points and interpolate
-        col_args[upper_ex_inds,] = upper_ex_nearest
-        f = eval_linear(self.Grid, self.f_val, col_args,)
+        # Find function evaluations with regular extrapolation
+        f = eval_linear(self.Grid, self.f_val, col_args, self.extrap_option)
 
-        # Get interpolations at the closest points
-        upper_ex_f_nearest = f[upper_ex_inds]
-        # And limiting function at the extrapolating points
+        # Get base extrapolations and limiting function at the extrapolating points
+        upper_f_ex = f[upper_ex_inds]
         limit_f_ex = self.limit_func(*[upper_ex_points[:, i] for i in range(len(args))])
 
         # Combine them
         decay = self.decay(upper_ex_points, upper_ex_nearest)
-        f[upper_ex_inds] = decay * upper_ex_f_nearest + (1.0 - decay) * limit_f_ex
-
-        # Add gradient term if requested
-        if self.extrap_gradient:
-            grad = self._grad(upper_ex_nearest)
-            f[upper_ex_inds] += decay * np.sum(
-                (upper_ex_points - upper_ex_nearest) * grad,
-                axis = 1,
-                keepdims=False,
-            )
+        f[upper_ex_inds] = decay * upper_f_ex + (1.0 - decay) * limit_f_ex
 
         return np.reshape(f, argshape)
