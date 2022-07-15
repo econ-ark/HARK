@@ -49,8 +49,6 @@ plot_funcs(IndShockExample.cFunc[0], 0.0, 5.0)
 print("Marginal consumption function:")
 plot_funcs_der(IndShockExample.cFunc[0], 0.0, 5.0)
 
-
-
 # %% [markdown]
 # ## Risky Return Consumer Type
 
@@ -79,8 +77,6 @@ print("Concave consumption function:")
 plot_funcs(RiskyReturnExample.cFunc[0], 0.0, 5.0)
 print("Marginal consumption function:")
 plot_funcs_der(RiskyReturnExample.cFunc[0], 0.0, 5.0)
-
-
 
 # %% [markdown]
 # ## Compare Idiosyncratic Income Shocks with Risky Return
@@ -127,8 +123,6 @@ print("Concave consumption function:")
 plot_funcs(PortfolioChoiceExample.cFunc[0], 0.0, 5.0)
 print("Marginal consumption function:")
 plot_funcs_der(PortfolioChoiceExample.cFunc[0], 0.0, 5.0)
-
-
 
 # %% [markdown]
 # ## Compare Income Shocks, Risky Return, and RR w/ Portfolio Choice
@@ -214,9 +208,7 @@ plot_funcs(
 # ## Risky Return Given Fixed Portfolio Share
 
 # %%
-FixedShareExample = FixedPortfolioShareRiskyAssetConsumerType(
-    **init_portfolio
-)
+FixedShareExample = FixedPortfolioShareRiskyAssetConsumerType(**init_portfolio)
 FixedShareExample.cycles = 0
 
 
@@ -261,9 +253,7 @@ plot_funcs(
 
 # %%
 init_portfolio["RiskyShareFixed"] = [1.0]
-RiskyFixedExample = FixedPortfolioShareRiskyAssetConsumerType(
-    **init_portfolio
-)
+RiskyFixedExample = FixedPortfolioShareRiskyAssetConsumerType(**init_portfolio)
 RiskyFixedExample.cycles = 0
 
 
