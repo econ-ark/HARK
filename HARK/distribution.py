@@ -1579,7 +1579,7 @@ class MarkovProcess(Distribution):
 def Expectation(dstn, func=None, *args, labels=False):
 
     if isinstance(dstn, XRADiscreteDistribution):
-        return dstn.calc_expectation_labels(func, *args, labels=labels)
+        return dstn.calc_expectation(func, *args, labels=labels)
     elif isinstance(dstn, DiscreteDistribution):
         return dstn.calc_expectation(func, *args)
 
