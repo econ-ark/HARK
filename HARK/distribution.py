@@ -1009,6 +1009,35 @@ class DiscreteDistribution(Distribution):
         f_dstn = DiscreteDistribution(self.pmf, f_query, seed=self.seed)
 
         return f_dstn
+class XRADiscreteDistribution(DiscreteDistribution):
+    def __init__(
+        self,
+        pmf,
+        data,
+        seed=0,
+        coords=None,
+        dims=None,
+        name="XRADiscreteDistribution",
+        attrs=None,
+    ):
+
+        if data.ndim < 2:
+            data = data[np.newaxis, ...]
+
+        if attrs is None:
+            attrs = {}
+
+        attrs["pmf"] = np.asarray(pmf)
+        attrs["seed"] = seed
+        attrs["RNG"] = np.random.RandomState(seed)
+
+        self._xarray = DataArray(
+            data=data,
+            coords=coords,
+            dims=dims,
+            name=name,
+            attrs=attrs,
+        )
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
     return DiscreteDistribution(d.pmf, np.exp(d.X), seed=seed)
