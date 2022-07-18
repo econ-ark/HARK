@@ -1004,7 +1004,7 @@ class DiscreteDistribution(Distribution):
         ]
         f_query = func(self.X, *args)
 
-        f_dstn = DiscreteDistribution(self.pmf, f_query, seed=self.seed)
+        f_dstn = DiscreteDistribution(list(self.pmf), f_query, seed=self.seed)
 
         return f_dstn
 
