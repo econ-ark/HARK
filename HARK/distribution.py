@@ -1477,3 +1477,15 @@ class MarkovProcess(Distribution):
         array_sample = np.frompyfunc(sample, 1, 1)
 
         return array_sample(state)
+def Expectation(dstn, func=None, *args, labels=False):
+
+    if isinstance(dstn, XRADiscreteDistribution):
+        if labels:
+            return dstn.calc_expectation_labels(func, *args)
+        else:
+            return dstn.calc_expectation(func, *args)
+    elif isinstance(dstn, DiscreteDistribution):
+        return dstn.calc_expectation(func, *args)
+
+
+E = Expectation
