@@ -1038,6 +1038,57 @@ class XRADiscreteDistribution(DiscreteDistribution):
             name=name,
             attrs=attrs,
         )
+    @property
+    def xarray(self):
+        """
+        Returns the underlying xarray.DataArray object.
+        """
+        return self._xarray
+
+    @property
+    def X(self):
+        """
+        Returns the distribution's data as a numpy.ndarray.
+        """
+        return self._xarray.values
+
+    @property
+    def pmf(self):
+        """
+        Returns the distribution's probability mass function.
+        """
+        return self._xarray.pmf
+
+    @property
+    def RNG(self):
+        """
+        Returns the distribution's random number generator.
+        """
+        return self._xarray.RNG
+
+    @property
+    def data(self):
+        """
+        The distributions data as an array. The underlying
+        array type (e.g. dask, sparse, pint) is preserved.
+        """
+        return self._xarray.data
+
+    @property
+    def coords(self):
+        return self._xarray.coords
+
+    @property
+    def dims(self):
+        return self._xarray.dims
+
+    @property
+    def name(self):
+        return self._xarray.name
+
+    @property
+    def attrs(self):
+        return self._xarray.attrs
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
     return DiscreteDistribution(d.pmf, np.exp(d.X), seed=seed)
