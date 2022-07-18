@@ -122,6 +122,52 @@ class DiscreteDistributionTests(unittest.TestCase):
 
         self.assertAlmostEqual(ce9[3], 9.518015322143837)
 
+    def test_self_calc_expectation(self):
+        dd_0_1_20 = Normal().approx(20)
+        dd_1_1_40 = Normal(mu=1).approx(40)
+        dd_10_10_100 = Normal(mu=10, sigma=10).approx(100)
+
+        ce1 = dd_0_1_20.calc_expectation()
+        ce2 = dd_1_1_40.calc_expectation()
+        ce3 = dd_10_10_100.calc_expectation()
+
+        self.assertAlmostEqual(ce1[0], 0.0)
+        self.assertAlmostEqual(ce2[0], 1.0)
+        self.assertAlmostEqual(ce3[0], 10.0)
+
+        ce4 = dd_0_1_20.calc_expectation(lambda x: 2**x)
+
+        self.assertAlmostEqual(ce4[0], 1.27153712)
+
+        ce5 = dd_1_1_40.calc_expectation(lambda x: 2 * x)
+
+        self.assertAlmostEqual(ce5[0], 2.0)
+
+        ce6 = dd_10_10_100.calc_expectation(lambda x, y: 2 * x + y, 20)
+
+        self.assertAlmostEqual(ce6[0], 40.0)
+
+        ce7 = dd_0_1_20.calc_expectation(
+            lambda x, y: x + y, np.hstack(np.array([0, 1, 2, 3, 4, 5]))
+        )
+
+        self.assertAlmostEqual(ce7.flat[3], 3.0)
+
+        PermShkDstn = MeanOneLogNormal().approx(200)
+        TranShkDstn = MeanOneLogNormal().approx(200)
+        IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
+
+        ce8 = IncShkDstn.calc_expectation(lambda X: X[0] + X[1])
+
+        self.assertAlmostEqual(ce8, 2.0)
+
+        ce9 = IncShkDstn.calc_expectation(
+            lambda X, a, r: r / X[0] * a + X[1],
+            np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
+            1.05,  # an interest rate?
+        )
+
+        self.assertAlmostEqual(ce9[3], 9.518015322143837)
 
 class MatrixDiscreteDistributionTests(unittest.TestCase):
     """
