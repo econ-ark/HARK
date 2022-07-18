@@ -38,7 +38,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         # Function 1 -> 1
         # Approximate the lognormal expectation
         sig = 0.05
-        norm = Normal(mu=-(sig ** 2) / 2, sigma=sig).approx(131)
+        norm = Normal(mu=-(sig**2) / 2, sigma=sig).approx(131)
         my_logn = distr_of_function(norm, func=lambda x: np.exp(x))
         exp = calc_expectation(my_logn)
         self.assertAlmostEqual(exp, 1.0)
@@ -46,7 +46,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         # Function 1 -> n
         # Mean and variance of the normal
         norm = Normal(mu=0.0, sigma=1.0).approx(5)
-        moments = distr_of_function(norm, lambda x: np.array([x, x ** 2]))
+        moments = distr_of_function(norm, lambda x: np.array([x, x**2]))
         exp = calc_expectation(moments).flatten()
         self.assertAlmostEqual(exp[0], 0.0)
         self.assertAlmostEqual(exp[1], 1.0)
@@ -70,9 +70,9 @@ class DiscreteDistributionTests(unittest.TestCase):
         )
         exp = calc_expectation(moments)
         self.assertAlmostEqual(exp[0], mu_a)
-        self.assertAlmostEqual(exp[1], si_a ** 2)
+        self.assertAlmostEqual(exp[1], si_a**2)
         self.assertAlmostEqual(exp[2], mu_b)
-        self.assertAlmostEqual(exp[3], si_b ** 2)
+        self.assertAlmostEqual(exp[3], si_b**2)
 
     def test_calc_expectation(self):
         dd_0_1_20 = Normal().approx(20)
@@ -87,7 +87,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         self.assertAlmostEqual(ce2[0], 1.0)
         self.assertAlmostEqual(ce3[0], 10.0)
 
-        ce4 = calc_expectation(dd_0_1_20, lambda x: 2 ** x)
+        ce4 = calc_expectation(dd_0_1_20, lambda x: 2**x)
 
         self.assertAlmostEqual(ce4[0], 1.27153712)
 
@@ -169,6 +169,7 @@ class DiscreteDistributionTests(unittest.TestCase):
 
         self.assertAlmostEqual(ce9[3], 9.518015322143837)
 
+
 class MatrixDiscreteDistributionTests(unittest.TestCase):
     """
     Tests matrix-valued discrete distribution.
@@ -177,7 +178,10 @@ class MatrixDiscreteDistributionTests(unittest.TestCase):
     def setUp(self):
 
         self.draw_1 = np.array(
-            [[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], [[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]],]
+            [
+                [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
+                [[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]],
+            ]
         )
 
         self.draw_2 = -1 * self.draw_1
