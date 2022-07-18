@@ -1089,6 +1089,22 @@ class XRADiscreteDistribution(DiscreteDistribution):
     @property
     def attrs(self):
         return self._xarray.attrs
+    def calc_expectation(self, func=None, *args, labels=False):
+        def func_wrapper(x, *args):
+
+            dim_0 = self.dims[0]
+            idx = self.coords[dim_0].values
+
+            wraped = dict(zip(idx, x))
+
+            return func(wraped, *args)
+
+        if labels:
+            which_func = func_wrapper
+        else:
+            which_func = func
+
+        return super().calc_expectation(which_func, *args)
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
     return DiscreteDistribution(d.pmf, np.exp(d.X), seed=seed)
