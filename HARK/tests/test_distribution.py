@@ -169,6 +169,46 @@ class DiscreteDistributionTests(unittest.TestCase):
 
         self.assertAlmostEqual(ce9[3], 9.518015322143837)
 
+    def test_self_distr_of_function(self):
+
+        # Function 1 -> 1
+        # Approximate the lognormal expectation
+        sig = 0.05
+        norm = Normal(mu=-(sig**2) / 2, sigma=sig).approx(131)
+        my_logn = norm.distr_of_function(func=lambda x: np.exp(x))
+        exp = my_logn.calc_expectation()
+        self.assertAlmostEqual(exp, 1.0)
+
+        # Function 1 -> n
+        # Mean and variance of the normal
+        norm = Normal(mu=0.0, sigma=1.0).approx(5)
+        moments = norm.distr_of_function(lambda x: np.array([x, x**2]))
+        exp = moments.calc_expectation().flatten()
+        self.assertAlmostEqual(exp[0], 0.0)
+        self.assertAlmostEqual(exp[1], 1.0)
+
+        # Function n -> 1
+        # Expectation of the sum of two independent normals
+        mu_a, mu_b = 1.0, 2.0
+        si_a, si_b = 3.0, 4.0
+        norm_a = Normal(mu=mu_a, sigma=si_a).approx(5)
+        norm_b = Normal(mu=mu_b, sigma=si_b).approx(5)
+        binorm = combine_indep_dstns(norm_a, norm_b)
+        mysum = binorm.distr_of_function(lambda x: np.sum(x, axis=0))
+        exp = mysum.calc_expectation()
+        self.assertAlmostEqual(exp[0], mu_a + mu_b)
+
+        # Function n -> m
+        # Mean and variance of two normals
+        moments = binorm.distr_of_function(
+            lambda x: np.array([x[0], (x[0] - mu_a) ** 2, x[1], (x[1] - mu_b) ** 2]),
+        )
+        exp = moments.calc_expectation()
+        self.assertAlmostEqual(exp[0], mu_a)
+        self.assertAlmostEqual(exp[1], si_a**2)
+        self.assertAlmostEqual(exp[2], mu_b)
+        self.assertAlmostEqual(exp[3], si_b**2)
+
 
 class MatrixDiscreteDistributionTests(unittest.TestCase):
     """
