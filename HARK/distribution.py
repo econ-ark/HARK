@@ -4,6 +4,7 @@ from itertools import product
 import numpy as np
 import scipy.stats as stats
 from scipy.special import erf, erfc
+from xarray import DataArray
 
 
 class Distribution:
@@ -62,8 +63,8 @@ class IndexDistribution(Distribution):
     conditional = None
     engine = None
 
-    def __init__(self, engine, conditional, RNG = None, seed=0):
-        
+    def __init__(self, engine, conditional, RNG=None, seed=0):
+
         if RNG is None:
             # Set up the RNG
             super().__init__(seed)
@@ -78,22 +79,25 @@ class IndexDistribution(Distribution):
 
         self.conditional = conditional
         self.engine = engine
-        
-        
+
         self.dstns = []
-        
+
         # Test one item to determine case handling
         item0 = list(self.conditional.values())[0]
-        
+
         if type(item0) is list:
             # Create and store all the conditional distributions
             for y in range(len(item0)):
                 cond = {key: val[y] for (key, val) in self.conditional.items()}
-                self.dstns.append(self.engine(seed=self.RNG.randint(0, 2 ** 31 - 1), **cond))
-                
+                self.dstns.append(
+                    self.engine(seed=self.RNG.randint(0, 2**31 - 1), **cond)
+                )
+
         elif type(item0) is float:
-            
-            self.dstns = [self.engine(seed=self.RNG.randint(0, 2 ** 31 - 1), **conditional)]
+
+            self.dstns = [
+                self.engine(seed=self.RNG.randint(0, 2**31 - 1), **conditional)
+            ]
 
         else:
             raise (
@@ -101,9 +105,9 @@ class IndexDistribution(Distribution):
                     f"IndexDistribution: Unhandled case for __getitem__ access. item0: {item0}; conditional: {self.conditional}"
                 )
             )
-            
+
     def __getitem__(self, y):
-        
+
         return self.dstns[y]
 
     def approx(self, N, **kwds):
@@ -173,7 +177,7 @@ class IndexDistribution(Distribution):
             N = condition.size
 
             return self.engine(
-                seed=self.RNG.randint(0, 2 ** 31 - 1), **self.conditional
+                seed=self.RNG.randint(0, 2**31 - 1), **self.conditional
             ).draw(N)
 
         if type(item0) is list:
@@ -363,18 +367,18 @@ class Lognormal(Distribution):
             ]
             if inner_size < 1.0:
                 scale = 1.0 / tail_order
-                mag = (1.0 - scale ** tail_N) / (1.0 - scale)
+                mag = (1.0 - scale**tail_N) / (1.0 - scale)
             lower_CDF_vals = [0.0]
             if lo_cut > 0.0:
                 for x in range(tail_N - 1, -1, -1):
                     lower_CDF_vals.append(
-                        lower_CDF_vals[-1] + lo_cut * scale ** x / mag
+                        lower_CDF_vals[-1] + lo_cut * scale**x / mag
                     )
             upper_CDF_vals = [hi_cut]
             if hi_cut < 1.0:
                 for x in range(tail_N):
                     upper_CDF_vals.append(
-                        upper_CDF_vals[-1] + (1.0 - hi_cut) * scale ** x / mag
+                        upper_CDF_vals[-1] + (1.0 - hi_cut) * scale**x / mag
                     )
             CDF_vals = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
             temp_cutoffs = list(
@@ -396,23 +400,23 @@ class Lognormal(Distribution):
                 if zBot == 0:
                     tempBot = np.inf
                 else:
-                    tempBot = (self.mu + self.sigma ** 2 - np.log(zBot)) / (
+                    tempBot = (self.mu + self.sigma**2 - np.log(zBot)) / (
                         np.sqrt(2) * self.sigma
                     )
-                tempTop = (self.mu + self.sigma ** 2 - np.log(zTop)) / (
+                tempTop = (self.mu + self.sigma**2 - np.log(zTop)) / (
                     np.sqrt(2) * self.sigma
                 )
                 if tempBot <= 4:
                     X[i] = (
                         -0.5
-                        * np.exp(self.mu + (self.sigma ** 2) * 0.5)
+                        * np.exp(self.mu + (self.sigma**2) * 0.5)
                         * (erf(tempTop) - erf(tempBot))
                         / pmf[i]
                     )
                 else:
                     X[i] = (
                         -0.5
-                        * np.exp(self.mu + (self.sigma ** 2) * 0.5)
+                        * np.exp(self.mu + (self.sigma**2) * 0.5)
                         * (erfc(tempBot) - erfc(tempTop))
                         / pmf[i]
                     )
@@ -421,7 +425,7 @@ class Lognormal(Distribution):
             pmf = np.ones(N) / N
             X = np.exp(self.mu) * np.ones(N)
         return DiscreteDistribution(
-            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+            pmf, X, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
         )
 
     @classmethod
@@ -450,8 +454,8 @@ class Lognormal(Distribution):
         LogNormal
 
         """
-        mean_squared = mean ** 2
-        variance = std ** 2
+        mean_squared = mean**2
+        variance = std**2
         mu = np.log(mean / (np.sqrt(1.0 + variance / mean_squared)))
         sigma = np.sqrt(np.log(1.0 + variance / mean_squared))
 
@@ -460,7 +464,7 @@ class Lognormal(Distribution):
 
 class MeanOneLogNormal(Lognormal):
     def __init__(self, sigma=1.0, seed=0):
-        mu = -0.5 * sigma ** 2
+        mu = -0.5 * sigma**2
         super().__init__(mu=mu, sigma=sigma, seed=seed)
 
 
@@ -519,11 +523,11 @@ class Normal(Distribution):
         """
         x, w = np.polynomial.hermite.hermgauss(N)
         # normalize w
-        pmf = w * np.pi ** -0.5
+        pmf = w * np.pi**-0.5
         # correct x
         X = math.sqrt(2.0) * self.sigma * x + self.mu
         return DiscreteDistribution(
-            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+            pmf, X, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
         )
 
     def approx_equiprobable(self, N):
@@ -537,7 +541,7 @@ class Normal(Distribution):
         X = self.mu - np.diff(pdf) / pmf * self.sigma
 
         return DiscreteDistribution(
-            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+            pmf, X, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
         )
 
 
@@ -618,11 +622,11 @@ class MVNormal(Distribution):
         pmf = np.prod(np.array(list(product(*[z_approx.pmf] * self.M))), axis=1)
 
         # Apply mean and standard deviation to the Z grid
-        X = self.mu[None,...] + np.matmul(Z, A.T)
+        X = self.mu[None, ...] + np.matmul(Z, A.T)
 
         # Construct and return discrete distribution
         return DiscreteDistribution(
-            pmf, X.T, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+            pmf, X.T, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
         )
 
 
@@ -760,7 +764,7 @@ class Uniform(Distribution):
             N / 2.0
         )
         return DiscreteDistribution(
-            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+            pmf, X, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
         )
 
 
@@ -832,11 +836,11 @@ class DiscreteDistribution(Distribution):
     X = None
 
     def __init__(self, pmf, X, seed=0):
-        
+
         self.pmf = pmf
-        
+
         if len(X.shape) < 2:
-            self.X = X[None,...]
+            self.X = X[None, ...]
         else:
             self.X = X
 
@@ -847,15 +851,14 @@ class DiscreteDistribution(Distribution):
         same_dims = len(pmf) == X.shape[-1]
         if not same_dims:
             raise ValueError(
-                "Provided pmf and X arrays have incompatible dimensions. " +
-                "The length of the pmf must be equal to that of X's last dimension."
+                "Provided pmf and X arrays have incompatible dimensions. "
+                + "The length of the pmf must be equal to that of X's last dimension."
             )
 
     def dim(self):
 
         # Last dimension of self.X indexes "nature."
         return self.X.shape[:-1]
-
 
     def draw_events(self, n):
         """
@@ -897,13 +900,8 @@ class DiscreteDistribution(Distribution):
         """
         if X is None:
             X = self.X
-            J = self.dim()
         elif isinstance(X, int):
             X = self.X[X]
-            J = (1,)
-        else:
-            X = X
-            J = (1,)
 
         if exact_match:
             events = np.arange(self.pmf.size)  # just a list of integers
@@ -930,7 +928,7 @@ class DiscreteDistribution(Distribution):
         draws = X[..., indices]
 
         # TODO: some models expect univariate draws to just be a 1d vector. Fix those models.
-        if len(draws.shape) == 2 and draws.shape[0]==1:
+        if len(draws.shape) == 2 and draws.shape[0] == 1:
             draws = draws.flatten()
 
         return draws
@@ -1009,6 +1007,8 @@ class DiscreteDistribution(Distribution):
         f_dstn = DiscreteDistribution(self.pmf, f_query, seed=self.seed)
 
         return f_dstn
+
+
 class XRADiscreteDistribution(DiscreteDistribution):
     def __init__(
         self,
@@ -1038,6 +1038,7 @@ class XRADiscreteDistribution(DiscreteDistribution):
             name=name,
             attrs=attrs,
         )
+
     @property
     def xarray(self):
         """
@@ -1089,6 +1090,7 @@ class XRADiscreteDistribution(DiscreteDistribution):
     @property
     def attrs(self):
         return self._xarray.attrs
+
     def calc_expectation(self, func=None, *args, labels=False):
         def func_wrapper(x, *args):
 
@@ -1105,23 +1107,25 @@ class XRADiscreteDistribution(DiscreteDistribution):
             which_func = func
 
         return super().calc_expectation(which_func, *args)
+
+
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
     return DiscreteDistribution(d.pmf, np.exp(d.X), seed=seed)
 
 
 def calc_normal_style_pars_from_lognormal_pars(avg_lognormal, std_lognormal):
-    varLognormal = std_lognormal ** 2
-    varNormal = math.log(1 + varLognormal / avg_lognormal ** 2)
+    varLognormal = std_lognormal**2
+    varNormal = math.log(1 + varLognormal / avg_lognormal**2)
     avgNormal = math.log(avg_lognormal) - varNormal * 0.5
     std_normal = math.sqrt(varNormal)
     return avgNormal, std_normal
 
 
 def calc_lognormal_style_pars_from_normal_pars(mu_normal, std_normal):
-    varNormal = std_normal ** 2
+    varNormal = std_normal**2
     avg_lognormal = math.exp(mu_normal + varNormal * 0.5)
-    varLognormal = (math.exp(varNormal) - 1) * avg_lognormal ** 2
+    varLognormal = (math.exp(varNormal) - 1) * avg_lognormal**2
     std_lognormal = math.sqrt(varLognormal)
     return avg_lognormal, std_lognormal
 
@@ -1297,7 +1301,7 @@ def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0):
     trans_matrix: np.array
         Markov transition array for the discretized process
     """
-    yN = bound * sigma / ((1 - ar_1 ** 2) ** 0.5)
+    yN = bound * sigma / ((1 - ar_1**2) ** 0.5)
     y = np.linspace(-yN, yN, N)
     d = y[1] - y[0]
     trans_matrix = np.ones((N, N))
@@ -1424,25 +1428,24 @@ def combine_indep_dstns(*distributions, seed=0):
 
         dist_dims += (dist.dim(),)
         dist_lengths += (len(dist.pmf),)
-        
+
     number_of_distributions = len(distributions)
 
     # We need the combinations of indices of realizations in all
     # distributions
     inds = np.meshgrid(
-        *[np.array(range(l), dtype=int) for l in dist_lengths],
-        indexing='ij'
+        *[np.array(range(l), dtype=int) for l in dist_lengths], indexing="ij"
     )
     inds = [x.flatten() for x in inds]
 
     X_out = []
     P_temp = []
     for i, ind_vec in enumerate(inds):
-        X_out += [distributions[i].X[...,ind_vec]]
+        X_out += [distributions[i].X[..., ind_vec]]
         P_temp += [distributions[i].pmf[ind_vec]]
-        
-    X_out = np.concatenate(X_out, axis = 0)
-    P_temp = np.stack(P_temp, axis = 0)
+
+    X_out = np.concatenate(X_out, axis=0)
+    P_temp = np.stack(P_temp, axis=0)
     P_out = np.prod(P_temp, axis=0)
 
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
@@ -1474,11 +1477,9 @@ def calc_expectation(dstn, func=lambda x: x, *args):
         The expectation of the function at the queried values.
         Scalar if only one value.
     """
-    
-    f_query = [
-        func(dstn.X[...,i], *args) for i in range(len(dstn.pmf))
-    ]
-    
+
+    f_query = [func(dstn.X[..., i], *args) for i in range(len(dstn.pmf))]
+
     f_query = np.stack(f_query, axis=-1)
 
     # From the numpy.dot documentation:
@@ -1489,6 +1490,7 @@ def calc_expectation(dstn, func=lambda x: x, *args):
     f_exp = np.dot(f_query, dstn.pmf)
 
     return f_exp
+
 
 def distr_of_function(dstn, func=lambda x: x, *args):
     """
@@ -1513,9 +1515,7 @@ def distr_of_function(dstn, func=lambda x: x, *args):
         The distribution of func(dstn).
     """
     # Apply function to every event realization
-    f_query = [
-        func(dstn.X[...,i], *args) for i in range(len(dstn.pmf))
-    ]
+    f_query = [func(dstn.X[..., i], *args) for i in range(len(dstn.pmf))]
 
     # Stack results along their last (new) axis
     f_query = np.stack(f_query, axis=-1)
@@ -1523,6 +1523,7 @@ def distr_of_function(dstn, func=lambda x: x, *args):
     f_dstn = DiscreteDistribution(dstn.pmf, f_query)
 
     return f_dstn
+
 
 class MarkovProcess(Distribution):
     """
@@ -1573,13 +1574,11 @@ class MarkovProcess(Distribution):
         array_sample = np.frompyfunc(sample, 1, 1)
 
         return array_sample(state)
+
+
 def Expectation(dstn, func=None, *args, labels=False):
 
     if isinstance(dstn, XRADiscreteDistribution):
-        if labels:
-            return dstn.calc_expectation_labels(func, *args)
-        else:
-            return dstn.calc_expectation(func, *args)
         return dstn.calc_expectation_labels(func, *args, labels=labels)
     elif isinstance(dstn, DiscreteDistribution):
         return dstn.calc_expectation(func, *args)
