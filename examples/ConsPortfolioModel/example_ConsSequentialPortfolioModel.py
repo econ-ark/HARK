@@ -1,7 +1,9 @@
+# %% [markdown]
+#
+# # Example implementations of SequentialPortfolioConsumerType
+#
+
 # %%
-"""
-Example implementations of SequentialPortfolioConsumerType
-"""
 from copy import copy
 from time import time
 

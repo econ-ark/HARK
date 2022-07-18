@@ -8,11 +8,11 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.6.0
+#       jupytext_version: 1.13.8
 #   kernelspec:
-#     display_name: econ-ark-3.8
+#     display_name: Python 3 (ipykernel)
 #     language: python
-#     name: econ-ark-3.8
+#     name: python3
 # ---
 
 # %% [markdown]
@@ -102,8 +102,8 @@ mystr = lambda number : "{:.4f}".format(number)
 # | $N_\theta$| Number of discrete transitory income shocks | $\texttt{TranShkCount}$ | $7$ |  |
 # | $\mho$ | Probability of being unemployed and getting $\theta=\underline{\theta}$ | $\texttt{UnempPrb}$ | $0.05$ |  |
 # | $\underline{\theta}$| Transitory shock when unemployed | $\texttt{IncUnemp}$ | $0.3$ |  |
-# | $\mho^{Ret}$ | Probability of being "unemployed" when retired | $\texttt{UnempPrb}$ | $0.0005$ |  |
-# | $\underline{\theta}^{Ret}$| Transitory shock when "unemployed" and retired | $\texttt{IncUnemp}$ | $0.0$ |  |
+# | $\mho^{Ret}$ | Probability of being "unemployed" when retired | $\texttt{UnempPrbRet}$ | $0.0005$ |  |
+# | $\underline{\theta}^{Ret}$| Transitory shock when "unemployed" and retired | $\texttt{IncUnempRet}$ | $0.0$ |  |
 # | $(none)$ | Period of the lifecycle model when retirement begins | $\texttt{T_retire}$ | $0$ | |
 # | $(none)$ | Minimum value in assets-above-minimum grid | $\texttt{aXtraMin}$ | $0.001$ | |
 # | $(none)$ | Maximum value in assets-above-minimum grid | $\texttt{aXtraMax}$ | $20.0$ | |
@@ -415,6 +415,6 @@ mMin = min([X.mNrmMin for X in CyclicalExample.solution])
 plot_funcs(CyclicalExample.cFunc,mMin,5)
 
 # %% [markdown]
-# The very low green consumption function corresponds to the quarter in which the ski instructors make most of their income.  They know that they are about to experience a 70% drop in "permanent" income, so they do not consume much *relative to their income this quarter*.  In the other three quarters, *normalized* consumption is much higher, as current "permanent" income is low relative to future expectations.  In *level*, the consumption chosen in each quarter is much more similar
+# The very low green consumption function corresponds to the quarter in which the ski instructors make most of their income.  They know that they are about to experience a 70% drop in "permanent" income, so they do not consume much *relative to their income this quarter*.  In the other three quarters, *normalized* consumption is much higher, as current "permanent" income is low relative to future expectations.  In *level*, the consumption chosen in each quarter is much more similar.
 
 # %%
