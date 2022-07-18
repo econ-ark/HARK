@@ -978,6 +978,37 @@ class DiscreteDistribution(Distribution):
 
         return f_exp
 
+    def distr_of_function(self, func=lambda x: x, *args):
+        """
+        Finds the distribution of a random variable Y that is a function
+        of discrete random variable X, Y=f(X).
+
+        Parameters
+        ----------
+        func : function
+            The function to be evaluated.
+            This function should take an array of shape dstn.dim().
+            It may also take other arguments *args.
+        *args :
+            Additional non-stochastic arguments for func,
+            The function is computed at f(dstn, *args).
+
+        Returns
+        -------
+        f_dstn : DiscreteDistribution
+            The distribution of func(dstn).
+        """
+        # we need to add one more dimension,
+        # the nature dimension, to any inputs that are n-dim arrays.
+        # This allows numpy to easily broadcast the function's output.
+        args = [
+            arg[..., np.newaxis] if isinstance(arg, np.ndarray) else arg for arg in args
+        ]
+        f_query = func(self.X, *args)
+
+        f_dstn = DiscreteDistribution(self.pmf, f_query, seed=self.seed)
+
+        return f_dstn
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
     return DiscreteDistribution(d.pmf, np.exp(d.X), seed=seed)
