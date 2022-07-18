@@ -1484,6 +1484,7 @@ def Expectation(dstn, func=None, *args, labels=False):
             return dstn.calc_expectation_labels(func, *args)
         else:
             return dstn.calc_expectation(func, *args)
+        return dstn.calc_expectation_labels(func, *args, labels=labels)
     elif isinstance(dstn, DiscreteDistribution):
         return dstn.calc_expectation(func, *args)
 
