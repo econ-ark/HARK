@@ -1400,7 +1400,7 @@ def add_discrete_outcome(distribution, x, p, sort=False):
     return DiscreteDistribution(pmf, X)
 
 
-def combine_indep_dstns(*distributions, seed=0):
+def combine_indep_dstns(*distributions, seed=0, xarray=False, **kwargs):
     """
     Given n independent vector-valued discrete distributions, construct their joint discrete distribution.
     Can take multivariate discrete distributions as inputs.
@@ -1449,7 +1449,12 @@ def combine_indep_dstns(*distributions, seed=0):
     P_out = np.prod(P_temp, axis=0)
 
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
-    return DiscreteDistribution(P_out, X_out, seed=seed)
+
+    if xarray:
+        which_dist = XRADiscreteDistribution
+    else:
+        which_dist = DiscreteDistribution
+    return which_dist(P_out, X_out, seed=seed, **kwargs)
 
 
 def calc_expectation(dstn, func=lambda x: x, *args):
