@@ -1581,12 +1581,15 @@ class MarkovProcess(Distribution):
         return array_sample(state)
 
 
-def Expectation(dstn, func=None, *args, labels=False):
+def Expectation(func=None, dist=None, args=None, labels=False):
+    
+    if args is None:
+        args = []
 
-    if isinstance(dstn, XRADiscreteDistribution):
-        return dstn.calc_expectation(func, *args, labels=labels)
-    elif isinstance(dstn, DiscreteDistribution):
-        return dstn.calc_expectation(func, *args)
+    if isinstance(dist, XRADiscreteDistribution):
+        return dist.calc_expectation(func, *args, labels=labels)
+    elif isinstance(dist, DiscreteDistribution):
+        return dist.calc_expectation(func, *args)
 
 
 E = Expectation
