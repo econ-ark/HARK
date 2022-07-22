@@ -1,3 +1,7 @@
+# %% [markdown]
+# # Portfolio Models in HARK
+#
+
 # %%
 """
 Example implementations of HARK.ConsumptionSaving.ConsPortfolioModel
@@ -15,6 +19,7 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
 )
 from HARK.utilities import plot_funcs
 
+
 # %%
 # Make and solve an example portfolio choice consumer type
 print("Now solving an example portfolio choice problem; this might take a moment...")
@@ -30,6 +35,7 @@ print(
     + str(t1 - t0)
     + " seconds."
 )
+
 
 # %%
 # Plot the consumption and risky-share functions
@@ -52,12 +58,14 @@ plot_funcs(
     200.0,
 )
 
+
 # %%
 # Now simulate this consumer type
 MyType.track_vars = ["cNrm", "Share", "aNrm", "t_age"]
 MyType.T_sim = 100
 MyType.initialize_sim()
 MyType.simulate()
+
 
 # %%
 print("\n\n\n")
@@ -66,6 +74,7 @@ print("as market resources approach infinity, see")
 print(
     "http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/AssetPricing/Portfolio-CRRA/"
 )
+
 
 # %%
 ""
@@ -76,6 +85,7 @@ init_discrete_share = init_portfolio.copy()
 init_discrete_share["DiscreteShareBool"] = True
 # Have to actually construct value function for this to work
 init_discrete_share["vFuncBool"] = True
+
 
 # %%
 # Make and solve a discrete portfolio choice consumer type
@@ -97,6 +107,7 @@ print(
     + " seconds."
 )
 
+
 # %%
 # Plot the consumption and risky-share functions
 print("Consumption function over market resources:")
@@ -115,8 +126,10 @@ plot_funcs(
     200.0,
 )
 
+
 # %%
 print("\n\n\n")
+
 
 # %%
 ""
@@ -124,6 +137,7 @@ print("\n\n\n")
 # share in any particular period with 15% probability.
 init_sticky_share = init_portfolio.copy()
 init_sticky_share["AdjustPrb"] = 0.15
+
 
 # %%
 # Make and solve a discrete portfolio choice consumer type
@@ -150,12 +164,14 @@ print(
     + " seconds."
 )
 
+
 # %%
 # Plot the consumption and risky-share functions
 print(
     "Consumption function over market resources when the agent can adjust his portfolio:"
 )
 plot_funcs(StickyType.cFuncAdj[0], 0.0, 50.0)
+
 
 # %%
 print(
@@ -169,6 +185,7 @@ plt.xlim(0.0, 50.0)
 plt.ylim(0.0, None)
 plt.show()
 
+
 # %%
 print("Risky asset share function over market resources (when possible to adjust):")
 print("Optimal (blue) versus Theoretical Limit (orange)")
@@ -180,6 +197,13 @@ plot_funcs(
     0.0,
     200.0,
 )
+
+
+# %% [markdown]
+# Notice the wiggle in the blue line. This reflects the fact that the maximum grid point for which the solution is calculated is a=100 and the (incorrect) assumption built into the model that the portfolio share asymptotes to the frictionless analytical case. An alternative (not yet implemented) would be to calculate the implicit limit defined by the rate of geometric decay among the last grid points and assume that this is the limit.
+#
+# The difference between the two is likely due to the agent's inability to adjust their portfolio.
+#
 
 # %%
 ""
@@ -195,6 +219,7 @@ init_age_varying_risk_perceptions["BoroCnstArt"] = init_portfolio["BoroCnstArt"]
 init_age_varying_risk_perceptions["CRRA"] = init_portfolio["CRRA"]
 init_age_varying_risk_perceptions["DiscFac"] = init_portfolio["DiscFac"]
 
+
 # %%
 init_age_varying_risk_perceptions["RiskyAvg"] = [1.08] * init_lifecycle["T_cycle"]
 init_age_varying_risk_perceptions["RiskyStd"] = list(
@@ -204,6 +229,7 @@ init_age_varying_risk_perceptions["RiskyAvgTrue"] = 1.08
 init_age_varying_risk_perceptions["RiskyStdTrue"] = 0.20
 AgeVaryingRiskPercType = PortfolioConsumerType(**init_age_varying_risk_perceptions)
 AgeVaryingRiskPercType.cycles = 1
+
 
 # %%
 # Solve the agent type with age-varying risk perceptions
@@ -227,6 +253,7 @@ print(
     + " seconds."
 )
 
+
 # %%
 # Plot the consumption and risky-share functions
 print("Consumption function over market resources in each lifecycle period:")
@@ -234,14 +261,18 @@ plot_funcs(AgeVaryingRiskPercType.cFunc, 0.0, 20.0)
 print("Risky asset share function over market resources in each lifecycle period:")
 plot_funcs(AgeVaryingRiskPercType.ShareFunc, 0.0, 200.0)
 
+
 # %% [markdown]
 # The code below tests the mathematical limits of the model.
+#
 
 # %%
 # Create a grid of market resources for the plots
 mMin = 0  # Minimum ratio of assets to income to plot
 mMax = 5 * 1e2  # Maximum ratio of assets to income to plot
 mPts = 1000  # Number of points to plot
+plot_point_max = 1000
+aXtraMax = plot_point_max * 10  # Maximum asset level
 
 eevalgrid = np.linspace(0, mMax, mPts)  # range of values of assets for the plot
 
@@ -254,7 +285,7 @@ ages = [2, 4, 6, 8]
 merton_dict = copy(init_lifecycle)
 merton_dict["RiskyCount"] = init_portfolio["RiskyCount"]
 merton_dict["ShareCount"] = init_portfolio["ShareCount"]
-merton_dict["aXtraMax"] = init_portfolio["aXtraMax"]
+merton_dict["aXtraMax"] = aXtraMax
 merton_dict["aXtraCount"] = init_portfolio["aXtraCount"]
 merton_dict["aXtraNestFac"] = init_portfolio["aXtraNestFac"]
 merton_dict["BoroCnstArt"] = init_portfolio["BoroCnstArt"]
@@ -283,8 +314,8 @@ for rcount in risky_count_grid:
     agent.solve()
 
     # Compute the analytical Merton-Samuelson limiting portfolio share
-    RiskyVar = agent.RiskyStd ** 2
-    RiskPrem = agent.RiskyAvg - agent.Rfree
+    RiskyVar = agent.RiskyStd**2
+    RiskPrem = agent.RiskyAvg - agent.Rfree[0]
     MS_limit = RiskyShareMertSamLogNormal(RiskPrem, agent.CRRA, RiskyVar)
 
     # Now compute the limiting share numerically, using the approximated
@@ -318,6 +349,7 @@ for rcount in risky_count_grid:
 
     plt.ioff()
     plt.draw()
+
 
 # %%
 

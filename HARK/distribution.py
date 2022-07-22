@@ -1292,7 +1292,8 @@ def calc_expectation(dstn, func=lambda x: x, *args):
         The distribution over which the function is to be evaluated.
     func : function
         The function to be evaluated.
-        This function should take an array of shape dstn.dim().
+        This function should take an array of shape dstn.dim() and return
+        either arrays of arbitrary shape or scalars.
         It may also take other arguments *args.
     *args :
         Other inputs for func, representing the non-stochastic arguments.
@@ -1311,17 +1312,12 @@ def calc_expectation(dstn, func=lambda x: x, *args):
     
     f_query = np.stack(f_query, axis=-1)
 
-    f_exp = np.dot(f_query, np.vstack(dstn.pmf))
-
-    # TODO: f_exp will have an extra dimension of length 1 at the end
-    # because of the way numpy handles dot products. It would be good
-    # either keep or eliminate that dimension _always_ and not only
-    # when the result has some particular shape as is done below. Keeping
-    # it as is because some models have come to expect it.
-    if f_exp.size == 1:
-        f_exp = f_exp.flat[0]
-    elif f_exp.shape[0] == f_exp.size:
-        f_exp = f_exp.flatten()
+    # From the numpy.dot documentation:
+    # If both a and b are 1-D arrays, it is inner product of vectors (without complex conjugation).
+    # If a is an N-D array and b is a 1-D array, it is a sum product over the last axis of a and b.
+    # Thus, if func returns scalars, f_exp will be a scalar and if it returns arrays f_exp
+    # will be an array of the same shape.
+    f_exp = np.dot(f_query, dstn.pmf)
 
     return f_exp
 

@@ -1217,7 +1217,7 @@ def solve_RiskyContrib_Cns(
         # next period's derivatives and value.
         pr_derivs = calc_expectation(
             IncShkDstn, post_return_derivs, b_aux_tiled, g_aux_tiled, Share_tiled
-        )[:, :, :, :, 0]
+        )
 
         # Unpack results and create interpolators
         pr_dvdb_func = MargValueFuncCRRA(
@@ -1363,7 +1363,7 @@ def solve_RiskyContrib_Cns(
         aNrm_tiled,
         nNrm_tiled,
         Share_tiled,
-    )[:, :, :, :, 0]
+    )
 
     # Unpack results
     eop_dvdaNvrs = uPinv(eop_derivs[0])

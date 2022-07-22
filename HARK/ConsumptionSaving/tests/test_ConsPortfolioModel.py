@@ -48,7 +48,7 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
 
         self.assertAlmostEqual(self.pcct.state_now["aNrm"][0], 7.257027956)
 
-        self.assertAlmostEqual(self.pcct.Rfree, 1.03)
+        self.assertAlmostEqual(self.pcct.Rfree[0], 1.03)
 
         self.assertAlmostEqual(self.pcct.state_now["PlvlAgg"], 1.0)
 
