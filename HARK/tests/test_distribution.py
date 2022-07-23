@@ -1,14 +1,8 @@
 import unittest
 
 import numpy as np
-
 from HARK.distribution import (
     Bernoulli,
-    calc_expectation,
-    distr_of_function,
-    calc_lognormal_style_pars_from_normal_pars,
-    calc_normal_style_pars_from_lognormal_pars,
-    combine_indep_dstns,
     DiscreteDistribution,
     IndexDistribution,
     Lognormal,
@@ -18,6 +12,11 @@ from HARK.distribution import (
     Normal,
     Uniform,
     Weibull,
+    calc_expectation,
+    calc_lognormal_style_pars_from_normal_pars,
+    calc_normal_style_pars_from_lognormal_pars,
+    combine_indep_dstns,
+    distr_of_function,
 )
 
 

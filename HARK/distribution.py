@@ -1009,7 +1009,7 @@ class DiscreteDistribution(Distribution):
         return f_dstn
 
 
-class XRADiscreteDistribution(DiscreteDistribution):
+class DiscreteDistributionXRA(DiscreteDistribution):
     def __init__(
         self,
         pmf,
@@ -1017,7 +1017,7 @@ class XRADiscreteDistribution(DiscreteDistribution):
         seed=0,
         coords=None,
         dims=None,
-        name="XRADiscreteDistribution",
+        name="DiscreteDistributionXRA",
         attrs=None,
     ):
 
@@ -1451,7 +1451,7 @@ def combine_indep_dstns(*distributions, seed=0, xarray=False, **kwargs):
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
 
     if xarray:
-        which_dist = XRADiscreteDistribution
+        which_dist = DiscreteDistributionXRA
     else:
         which_dist = DiscreteDistribution
     return which_dist(P_out, X_out, seed=seed, **kwargs)
@@ -1581,15 +1581,9 @@ class MarkovProcess(Distribution):
         return array_sample(state)
 
 
-def Expectation(func=None, dist=None, args=None, labels=False):
-    
-    if args is None:
-        args = []
+def Expected(func=None, dist=None, args=(), labels=False):
 
-    if isinstance(dist, XRADiscreteDistribution):
+    if isinstance(dist, DiscreteDistributionXRA):
         return dist.calc_expectation(func, *args, labels=labels)
     elif isinstance(dist, DiscreteDistribution):
         return dist.calc_expectation(func, *args)
-
-
-E = Expectation
