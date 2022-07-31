@@ -1,3 +1,4 @@
+from operator import index
 from typing import no_type_check_decorator
 import unittest
 import numpy as np
@@ -137,3 +138,125 @@ class CompareBilinearInterp(unittest.TestCase):
         e_dist = distance_metric(LinearFast(z0, [x0, y0]), LinearFast(z1, [x1, y1]))
 
         self.assertAlmostEqual(h_dist, e_dist)
+
+
+# Derivative tests
+
+
+class Check1DDerivatives(unittest.TestCase):
+    """ 
+    Checks derivatives in a 1D interpolator
+    """
+
+    def setUp(self):
+
+        pass
+
+    def test_linear(self):
+
+        # A linear function on a non-uniform grid
+        x = np.exp(np.linspace(0, 2, 6))
+        y0 = 2
+        slope = 1.0
+        y = y0 + slope * x
+
+        interp = LinearFast(y, [x])
+
+        eval_points = np.array([1.5, 2.5, 3.5, 4.5])
+
+        grad = interp.gradient(eval_points)[0]
+        result = np.ones_like(eval_points) * slope
+
+        self.assertTrue(np.allclose(grad, result))
+
+    def test_nonlinear(self):
+
+        # A non linear function on uniform grid
+        x = np.linspace(-10, 10, 21) * (1 / 2) * np.pi
+        y = np.sin(x)
+        interp = LinearFast(y, [x])
+
+        eval_points = np.array([-1, -0.5, 0, 0.5, 1]) * np.pi
+        grad = interp.gradient(eval_points)[0]
+
+        # 1-order must be + or - pi/2
+        result = np.array([-1, -1, 1, 1, -1]) * 2 / np.pi
+
+        self.assertTrue(np.allclose(grad, result))
+
+    def test_nonlinear_approx(self):
+
+        # A non linear function on uniform grid
+        x = np.linspace(-10, 10, 10000)
+        y = np.power(x, 3)
+        interp = LinearFast(y, [x])
+        eval_points = np.linspace(-5, 5, 10)
+
+        grad = interp.gradient(eval_points)[0]
+        result = np.power(eval_points, 2) * 3.0
+
+        self.assertTrue(np.allclose(grad, result, atol=0.02))
+
+
+class Check2DDerivatives(unittest.TestCase):
+    """ 
+    Checks derivatives in a 2D interpolator
+    """
+
+    def setUp(self):
+
+        pass
+
+    def test_linear(self):
+
+        # A linear function on a non-uniform grid
+        x = np.exp(np.linspace(0, 2, 6))
+        y = np.power(np.linspace(0, 5, 10), 2)
+        x_tiled, y_tiled = np.meshgrid(x, y, indexing="ij")
+
+        inter = 1
+        slope_x = 2
+        slope_y = -3
+        z = inter + slope_x * x_tiled + slope_y * y_tiled
+
+        interp = LinearFast(z, [x, y])
+
+        # Evaluation points
+        n_eval = 7
+        x_ev, y_ev = np.meshgrid(
+            np.linspace(-20, 20, n_eval), np.linspace(5, -5, n_eval), indexing="ij"
+        )
+
+        # Gradient
+        grad = interp.gradient(x_ev, y_ev)
+
+        # (1,0) must be x slope
+        # (0,1) must be y slope
+        self.assertTrue(np.allclose(grad[0], np.ones_like(x_ev) * slope_x))
+        self.assertTrue(np.allclose(grad[1], np.ones_like(y_ev) * slope_y))
+
+    def test_nonlinear_approx(self):
+
+        # A non linear function on uniform grid
+        n_grid = 100
+        x = np.linspace(1, 5, n_grid)
+        y = np.linspace(1, 5, n_grid)
+
+        x_tiled, y_tiled = np.meshgrid(x, y, indexing="ij")
+        z = np.sin(x_tiled) * np.log(y_tiled)
+
+        interp = LinearFast(z, [x, y])
+
+        # Evaluation points
+        n_eval = 15
+        x_ev, y_ev = np.meshgrid(
+            np.linspace(2, 4, n_eval), np.linspace(4, 2, n_eval), indexing="ij",
+        )
+
+        # Get function and 1st derivatives
+        grad = interp.gradient(x_ev, y_ev)
+
+        # (1,0) must be cos(x) * ln(y)
+        self.assertTrue(np.allclose(grad[0], np.cos(x_ev) * np.log(y_ev), atol=0.02))
+        # (0,1) must be sin(x) / y
+        self.assertTrue(np.allclose(grad[1], np.sin(x_ev) * (1 / y_ev), atol=0.02))

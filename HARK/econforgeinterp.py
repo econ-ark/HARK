@@ -1,5 +1,5 @@
-from .core import MetricObject
-from interpolation.splines import eval_linear, CGrid
+from HARK.core import MetricObject
+from interpolation.splines import eval_linear, eval_spline, CGrid
 from interpolation.splines import extrap_options as xto
 
 import numpy as np
@@ -54,3 +54,31 @@ class LinearFast(MetricObject):
         )
 
         return np.reshape(f, array_args[0].shape)
+
+    def gradient(self, *args):
+
+        # Format arguments
+        array_args = [np.asarray(x) for x in args]
+
+        # Form a tuple that indicates which derivatives to get
+        # in the way eval_linear expects
+        deriv_tup = tuple(
+            tuple(1 if j == i else 0 for j in range(self.dim)) for i in range(self.dim)
+        )
+
+        # Find derivatives with respect to every dimension
+        grad = eval_spline(
+            self.Grid,
+            self.f_val,
+            np.column_stack([x.flatten() for x in array_args]),
+            out=None,
+            order=1,
+            diff=str(deriv_tup),
+            # TODO: use the same extrapolation method as self.__call__
+            extrap_mode="linear",
+        )
+
+        # Reshape
+        grad = [grad[:, j].reshape(args[0].shape) for j in range(self.dim)]
+
+        return grad
