@@ -56,7 +56,6 @@ class LinearFast(MetricObject):
         return np.reshape(f, array_args[0].shape)
 
 
-
 class DecayInterp(MetricObject):
 
     distance_criteria = ["interp_f_val", "grid_list"]
@@ -66,13 +65,12 @@ class DecayInterp(MetricObject):
         self.interp = interp
         self.limit_fun = limit_fun
 
-
         self.interp_f_val = self.interp.f_val
         self.grid_list = self.interp.grid_list
 
         self.upper_limits = np.array([x[-1] for x in self.grid_list])
         self.dim = len(self.grid_list)
-        
+
         if decay_weights is None:
             # By default, make weights the inverse of upper grid limits
             # so that distances will be re-expressed as proportions of
@@ -105,11 +103,11 @@ class DecayInterp(MetricObject):
         upper_ex_nearest = np.minimum(upper_ex_points, self.upper_limits[None, :])
 
         # Find function evaluations with regular extrapolation
-        f = self.interp(*[col_args[:,i] for i in range(self.dim)])
+        f = self.interp(*[col_args[:, i] for i in range(self.dim)])
 
         # Get base extrapolations and limiting function at the extrapolating points
         upper_f_ex = f[upper_ex_inds]
-        limit_f_ex = self.limit_func(*[upper_ex_points[:, i] for i in range(len(args))])
+        limit_f_ex = self.limit_fun(*[upper_ex_points[:, i] for i in range(len(args))])
 
         # Combine them
         weight = self.decay(upper_ex_points, upper_ex_nearest)
