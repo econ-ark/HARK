@@ -413,3 +413,106 @@ class NormalDistTest(unittest.TestCase):
 
         self.assertAlmostEqual(np.mean(points), mu, places=7)
         self.assertAlmostEqual(np.std(points), sigma, places=2)
+class DiscreteDistributionXRATests(unittest.TestCase):
+    """
+    Tests for distribution.py sampling distributions
+    with default seed.
+    """
+
+    def test_draw(self):
+        self.assertEqual(
+            DiscreteDistributionXRA(np.ones(1), np.zeros(1)).draw(1)[0],
+            0,
+        )
+
+    def test_self_dist_of_func(self):
+
+        # Function 1 -> 1
+        # Approximate the lognormal expectation
+        sig = 0.05
+        mu = -(sig**2) / 2
+        norm = Normal(mu=mu, sigma=sig).approx(131)
+        my_logn = norm.dist_of_func(
+            func=lambda x: np.exp(x),
+            xarray=True,  # return DDXRA object
+            name="Lognormal Approximation",  # name of the distribution
+            attrs={"limit": {"mu": mu, "sigma": sig}},  # assign limit properties
+        )
+        exp = my_logn.expected_value()
+        self.assertAlmostEqual(exp, 1.0)
+
+        # Function 1 -> n
+        # Mean and variance of the normal
+        norm = Normal(mu=0.0, sigma=1.0).approx(5)
+        moments = norm.dist_of_func(
+            lambda x: np.vstack([x, x**2]),
+            xarray=True,
+            name="Moments of Normal Distribution",
+            dims=("moments", "values"),
+            coords={"moments": ["mean", "variance"]},
+            attrs={"limit": {"name": "Normal", "mu": 0.0, "sigma": 1.0}},
+        )
+        exp = moments.expected_value().flatten()
+        self.assertAlmostEqual(exp[0], 0.0)
+        self.assertAlmostEqual(exp[1], 1.0)
+
+        # Function n -> 1
+        # Expectation of the sum of two independent normals
+        mu_a, mu_b = 1.0, 2.0
+        si_a, si_b = 3.0, 4.0
+        norm_a = Normal(mu=mu_a, sigma=si_a).approx(5)
+        norm_b = Normal(mu=mu_b, sigma=si_b).approx(5)
+        binorm = combine_indep_dstns(norm_a, norm_b)
+        mysum = binorm.dist_of_func(
+            lambda x: np.sum(x, axis=0),  # vectorized sum
+            xarray=True,
+            name="Sum of two independent normals",
+        )
+        exp = mysum.expected_value()
+        self.assertAlmostEqual(exp[0], mu_a + mu_b)
+
+        # Function n -> m
+        # Mean and variance of two normals
+        moments = binorm.dist_of_func(
+            lambda x: np.array([x[0], (x[0] - mu_a) ** 2, x[1], (x[1] - mu_b) ** 2]),
+            xarray=True,
+            name="Moments of two independent normals",
+            dims=("moments", "values"),
+            coords={"moments": ["mean_1", "variance_1", "mean_2", "variance_2"]},
+        )
+        exp = moments.expected_value()
+        self.assertAlmostEqual(exp[0], mu_a)
+        self.assertAlmostEqual(exp[1], si_a**2)
+        self.assertAlmostEqual(exp[2], mu_b)
+        self.assertAlmostEqual(exp[3], si_b**2)
+
+    def test_self_expected_value(self):
+
+        PermShkDstn = MeanOneLogNormal().approx(200)
+        TranShkDstn = MeanOneLogNormal().approx(200)
+        IncShkDstn = combine_indep_dstns(
+            PermShkDstn,
+            TranShkDstn,
+            xarray=True,
+            name="Distribution of shocks to Income",
+            dims=("shocks", "values"),
+            coords={"shocks": ["perm_shk", "tran_shk"]},
+        )
+
+        ce1 = ExpectedValue(
+            lambda x: 1 / x["perm_shk"] + x["tran_shk"], dist=IncShkDstn, labels=True
+        )
+
+        self.assertAlmostEqual(ce1, 3.7041318482996335)
+
+        ce2 = ExpectedValue(
+            func=lambda x, a, r: r / x["perm_shk"] * a + x["tran_shk"],
+            dist=IncShkDstn,
+            args=(
+                np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
+                1.05,  # an interest rate?
+            ),
+            labels=True,
+        )
+
+        self.assertAlmostEqual(ce2[3], 9.518015322143837)
