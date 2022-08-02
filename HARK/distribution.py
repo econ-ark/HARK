@@ -1001,7 +1001,7 @@ class DiscreteDistribution(Distribution):
 
         Returns
         -------
-        f_dstn : DiscreteDistribution
+        f_dstn : DiscreteDistribution or DiscreteDistributionXRA
             The distribution of func(dstn).
         """
         # we need to add one more dimension,
@@ -1012,7 +1012,12 @@ class DiscreteDistribution(Distribution):
         ]
         f_query = func(self.X, *args)
 
-        f_dstn = DiscreteDistribution(list(self.pmf), f_query, seed=self.seed)
+        if xarray:
+            f_dstn = DiscreteDistributionXRA(
+                list(self.pmf), f_query, seed=self.seed, **kwargs
+            )
+        else:
+            f_dstn = DiscreteDistribution(list(self.pmf), f_query, seed=self.seed)
 
         return f_dstn
 
