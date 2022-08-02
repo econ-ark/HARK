@@ -5,6 +5,12 @@ from interpolation.splines import extrap_options as xto
 import numpy as np
 from copy import copy
 
+extrap_opts = {
+    "linear": xto.LINEAR,
+    "nearest": xto.NEAREST,
+    "constant": xto.CONSTANT,
+}
+
 
 class LinearFast(MetricObject):
     """
@@ -15,7 +21,7 @@ class LinearFast(MetricObject):
 
     distance_criteria = ["f_val", "grid_list"]
 
-    def __init__(self, f_val, grids, extrap_options=None):
+    def __init__(self, f_val, grids, extrap_mode="linear"):
         """
         f_val: numpy.array
             An array containing the values of the function at the grid points.
@@ -24,8 +30,7 @@ class LinearFast(MetricObject):
         grids: [numpy.array]
             One-dimensional list of numpy arrays. It's i-th entry must be the grid
             to be used for the i-th independent variable.
-        extrap_options: None or one of xto.NEAREST, xto.LINEAR, or xto.CONSTANT from
-            the extrapolation options of econforge.interpolation.
+        extrap_mode: one of 'linear', 'nearest', or 'constant'
             Determines how to extrapolate, using either nearest point, multilinear, or 
             constant extrapolation. The default is multilinear.
         """
@@ -33,7 +38,15 @@ class LinearFast(MetricObject):
         self.f_val = f_val
         self.grid_list = grids
         self.Grid = CGrid(*grids)
-        self.extrap_options = xto.LINEAR if extrap_options is None else extrap_options
+
+        # Set up extrapolation options
+        self.extrap_mode = extrap_mode
+        try:
+            self.extrap_options = extrap_opts[self.extrap_mode]
+        except KeyError:
+            raise KeyError(
+                'extrap_mode must be one of "linear", "nearest", or "costant"'
+            )
 
     def __call__(self, *args):
         """
@@ -74,8 +87,7 @@ class LinearFast(MetricObject):
             out=None,
             order=1,
             diff=str(deriv_tup),
-            # TODO: use the same extrapolation method as self.__call__
-            extrap_mode="linear",
+            extrap_mode=self.extrap_mode,
         )
 
         # Reshape
