@@ -13,7 +13,7 @@ import numpy as np
 from scipy.interpolate import CubicHermiteSpline
 
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP
-from .core import MetricObject
+from HARK.core import MetricObject
 
 
 def _isscalar(x):
