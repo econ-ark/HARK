@@ -934,7 +934,7 @@ class DiscreteDistribution(Distribution):
 
         return draws
 
-    def calc_expectation(self, func=None, *args):
+    def expected_value(self, func=None, *args):
         """
         Expected value of a function, given an array of configurations of its
         inputs along with a DiscreteDistribution object that specifies the
@@ -984,7 +984,7 @@ class DiscreteDistribution(Distribution):
 
         return f_exp
 
-    def distr_of_function(self, func=lambda x: x, *args):
+    def dist_of_func(self, func=lambda x: x, xarray=False, *args, **kwargs):
         """
         Finds the distribution of a random variable Y that is a function
         of discrete random variable X, Y=f(X).
@@ -1141,7 +1141,7 @@ class DiscreteDistributionXRA(DiscreteDistribution):
         """
         return self._xarray.attrs
 
-    def calc_expectation(self, func=None, *args, labels=False):
+    def expected_value(self, func=None, *args, labels=False):
         """
         Expectation of a function, given an array of configurations of its inputs
         along with a DiscreteDistributionXRA object that specifies the probability
@@ -1176,7 +1176,7 @@ class DiscreteDistributionXRA(DiscreteDistribution):
         """
 
         def func_wrapper(x, *args):
-            """_summary_
+            """
             Wrapper function for `func` that handles labeled indexing.
             """
             dim_0 = self.dims[0]
@@ -1191,7 +1191,7 @@ class DiscreteDistributionXRA(DiscreteDistribution):
         else:
             which_func = func
 
-        return super().calc_expectation(which_func, *args)
+        return super().expected_value(which_func, *args)
 
 
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
@@ -1666,7 +1666,7 @@ class MarkovProcess(Distribution):
         return array_sample(state)
 
 
-def Expected(func=None, dist=None, args=(), labels=False):
+def ExpectedValue(func=None, dist=None, args=(), labels=False):
     """
     Expectation of a function, given an array of configurations of its inputs
     along with a DiscreteDistribution(XRA) object that specifies the probability
@@ -1706,6 +1706,6 @@ def Expected(func=None, dist=None, args=(), labels=False):
         args = (args,)
 
     if isinstance(dist, DiscreteDistributionXRA):
-        return dist.calc_expectation(func, *args, labels=labels)
+        return dist.expected_value(func, *args, labels=labels)
     elif isinstance(dist, DiscreteDistribution):
-        return dist.calc_expectation(func, *args)
+        return dist.expected_value(func, *args)
