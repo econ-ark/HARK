@@ -4546,6 +4546,11 @@ class ValueFuncCRRA(MetricObject):
         self.vFuncNvrs = deepcopy(vFuncNvrs)
         self.CRRA = CRRA
 
+        if hasattr(vFuncNvrs, 'grid_list'):
+            self.grid_list = vFuncNvrs.grid_list
+        else:
+            self.grid_list = None
+
     def __call__(self, *vFuncArgs):
         """
         Evaluate the value function at given levels of market resources m.
