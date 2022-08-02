@@ -3,9 +3,10 @@ import unittest
 import numpy as np
 
 from HARK.interpolation import LinearInterp, BilinearInterp
-from HARK.econforgeinterp import LinearFast
+from HARK.econforgeinterp import LinearFast, LinearFastDecay
 from HARK.core import distance_metric
 
+from interpolation.splines import extrap_options as xto
 
 class CompareLinearInterp(unittest.TestCase):
     """ 
@@ -137,3 +138,52 @@ class CompareBilinearInterp(unittest.TestCase):
         e_dist = distance_metric(LinearFast(z0, [x0, y0]), LinearFast(z1, [x1, y1]))
 
         self.assertAlmostEqual(h_dist, e_dist)
+
+
+class TestLinearDecay(unittest.TestCase):
+    """ 
+    Checks the linear interpolators with limiting extrapolators
+    """
+
+    def setUp(self):
+
+        # Set up a bilinear extrapolator for a simple function
+        self.x = np.linspace(0,10,11)
+        self.y = np.linspace(0,10,11)
+        x_t, y_t = np.meshgrid(self.x, self.y, indexing='ij')
+        z = 2*x_t + y_t
+
+        # And extrapolator that limits to the same function
+        self.interp_same = LinearFastDecay(
+            z,
+            [self.x, self.y],
+            limit_func=lambda x, y: 2*x + y,
+            extrap_options=xto.LINEAR,
+        )
+
+        # another that limits to a shifted function with different slopes
+        self.interp_shift = LinearFastDecay(
+            z,
+            [self.x, self.y],
+            limit_func=lambda x, y: np.sqrt(x),
+            extrap_options=xto.LINEAR,
+        )
+    
+    def test_extrap(self):
+
+        x = np.linspace(5,30,50)
+        y = np.linspace(5,30,50)
+        x_t, y_t = np.meshgrid(x,y,indexing='ij')
+
+        z_same = self.interp_same(x_t,y_t)
+        z_shift = self.interp_shift(x_t, y_t)
+
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+        ax.plot_surface(x_t, y_t, z_same)
+        plt.show()
+
+        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+        ax.plot_surface(x_t, y_t, z_shift)
+        plt.show()
+        print('hi!')
