@@ -4589,6 +4589,12 @@ class MargValueFuncCRRA(MetricObject):
         self.cFunc = deepcopy(cFunc)
         self.CRRA = CRRA
 
+        if hasattr(cFunc, 'grid_list'):
+            self.grid_list = cFunc.grid_list
+        else:
+            self.grid_list = None
+
+
     def __call__(self, *cFuncArgs):
         """
         Evaluate the marginal value function at given levels of market resources m.

@@ -123,7 +123,6 @@ class DecayInterp(MetricObject):
         self.interp = interp
         self.limit_fun = limit_fun
 
-        self.interp_f_val = self.interp.f_val
         self.grid_list = self.interp.grid_list
 
         self.upper_limits = np.array([x[-1] for x in self.grid_list])
