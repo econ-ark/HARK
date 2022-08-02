@@ -68,10 +68,28 @@ class LinearFast(MetricObject):
 
         return np.reshape(f, array_args[0].shape)
 
-    def gradient(self, *args):
+    def _derivs(self, deriv_tuple, *args):
 
         # Format arguments
         array_args = [np.asarray(x) for x in args]
+
+        # Find derivatives with respect to every dimension
+        derivs = eval_spline(
+            self.Grid,
+            self.f_val,
+            np.column_stack([x.flatten() for x in array_args]),
+            out=None,
+            order=1,
+            diff=str(deriv_tuple),
+            extrap_mode=self.extrap_mode,
+        )
+
+        # Reshape
+        derivs = [derivs[:, j].reshape(args[0].shape) for j in range(self.dim)]
+
+        return derivs
+
+    def gradient(self, *args):
 
         # Form a tuple that indicates which derivatives to get
         # in the way eval_linear expects
@@ -79,18 +97,18 @@ class LinearFast(MetricObject):
             tuple(1 if j == i else 0 for j in range(self.dim)) for i in range(self.dim)
         )
 
-        # Find derivatives with respect to every dimension
-        grad = eval_spline(
-            self.Grid,
-            self.f_val,
-            np.column_stack([x.flatten() for x in array_args]),
-            out=None,
-            order=1,
-            diff=str(deriv_tup),
-            extrap_mode=self.extrap_mode,
+        return self._derivs(deriv_tup, *args)
+
+    def _eval_and_grad(self, *args):
+
+        # (0,0,...,0) to get the function evaluation
+        eval_tup = tuple([tuple(0 for i in range(self.dim))])
+
+        # Tuple with indicators for all the derivatives
+        deriv_tup = tuple(
+            tuple(1 if j == i else 0 for j in range(self.dim)) for i in range(self.dim)
         )
 
-        # Reshape
-        grad = [grad[:, j].reshape(args[0].shape) for j in range(self.dim)]
+        results = self._derivs(eval_tup + deriv_tup, *args)
 
-        return grad
+        return (results[0], results[1:])
