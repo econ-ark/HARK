@@ -116,7 +116,7 @@ class LinearFast(MetricObject):
 
 class DecayInterp(MetricObject):
 
-    distance_criteria = ["interp_f_val", "grid_list"]
+    distance_criteria = ["interp"]
 
     def __init__(self, interp, limit_fun, decay_weights=None):
 
