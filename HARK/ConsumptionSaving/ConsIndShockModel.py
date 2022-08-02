@@ -32,7 +32,7 @@ from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.distribution import (
     DiscreteDistribution,
-    Expected,
+    ExpectedValue,
     IndexDistribution,
     Lognormal,
     MeanOneLogNormal,
@@ -887,7 +887,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             self.DiscFacEff
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA)
-            * Expected(vp_next, self.IncShkDstn, args=(self.aNrmNow, self.Rfree))
+            * ExpectedValue(vp_next, self.IncShkDstn, args=(self.aNrmNow, self.Rfree))
         )
 
         return EndOfPrdvP
@@ -1134,7 +1134,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             * self.Rfree
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA - 1.0)
-            * Expected(vpp_next, self.IncShkDstn, args=(self.aNrmNow, self.Rfree))
+            * ExpectedValue(vpp_next, self.IncShkDstn, args=(self.aNrmNow, self.Rfree))
         )
         dcda = EndOfPrdvPP / self.uPP(np.array(cNrm[1:]))
         MPC = dcda / (dcda + 1.0)
@@ -1166,7 +1166,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
                 shocks[0] ** (1.0 - self.CRRA) * self.PermGroFac ** (1.0 - self.CRRA)
             ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm, Rfree))
 
-        EndOfPrdv = self.DiscFacEff * Expected(
+        EndOfPrdv = self.DiscFacEff * ExpectedValue(
             v_lvl_next, self.IncShkDstn, args=(self.aNrmNow, self.Rfree)
         )
         EndOfPrdvNvrs = self.uinv(
@@ -2529,7 +2529,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Finite Value of Autarky Condition
         Hyperlink to paper: [url]/#Autarky-Value
         """
-        EpShkuInv = Expected(lambda x: x ** (1 - self.CRRA), self.PermShkDstn[0])[0]
+        EpShkuInv = ExpectedValue(lambda x: x ** (1 - self.CRRA), self.PermShkDstn[0])[
+            0
+        ]
 
         if self.CRRA != 1.0:
             uInvEpShkuInv = EpShkuInv ** (
@@ -2593,7 +2595,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # would be referenced below as:
         # [url]/#Uncertainty-Modified-Conditions
 
-        self.Ex_PermShkInv = Expected(lambda x: 1 / x, self.PermShkDstn[0])[0]
+        self.Ex_PermShkInv = ExpectedValue(lambda x: 1 / x, self.PermShkDstn[0])[0]
         # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
 
         # [url]/#Pat, adjusted to include mortality
@@ -3040,7 +3042,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         PermShkValsNext = self.IncShkDstn[0][1]
         TranShkValsNext = self.IncShkDstn[0][2]
         ShkPrbsNext = self.IncShkDstn[0][0]
-        Ex_IncNext = Expected(lambda trans, perm: trans * perm, IncShkDstn)
+        Ex_IncNext = ExpectedValue(lambda trans, perm: trans * perm, self.IncShkDstn)
         PermShkMinNext = np.min(PermShkValsNext)
         TranShkMinNext = np.min(TranShkValsNext)
         WorstIncNext = PermShkMinNext * TranShkMinNext
