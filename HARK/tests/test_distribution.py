@@ -4,6 +4,8 @@ import numpy as np
 from HARK.distribution import (
     Bernoulli,
     DiscreteDistribution,
+    DiscreteDistributionXRA,
+    ExpectedValue,
     IndexDistribution,
     Lognormal,
     MarkovProcess,
@@ -121,33 +123,35 @@ class DiscreteDistributionTests(unittest.TestCase):
 
         self.assertAlmostEqual(ce9[3], 9.518015322143837)
 
-    def test_self_calc_expectation(self):
+    def test_self_expected_value(self):
         dd_0_1_20 = Normal().approx(20)
         dd_1_1_40 = Normal(mu=1).approx(40)
         dd_10_10_100 = Normal(mu=10, sigma=10).approx(100)
 
-        ce1 = dd_0_1_20.calc_expectation()
-        ce2 = dd_1_1_40.calc_expectation()
-        ce3 = dd_10_10_100.calc_expectation()
+        ce1 = ExpectedValue(dist=dd_0_1_20)
+        ce2 = ExpectedValue(dist=dd_1_1_40)
+        ce3 = ExpectedValue(dist=dd_10_10_100)
 
         self.assertAlmostEqual(ce1[0], 0.0)
         self.assertAlmostEqual(ce2[0], 1.0)
         self.assertAlmostEqual(ce3[0], 10.0)
 
-        ce4 = dd_0_1_20.calc_expectation(lambda x: 2**x)
+        ce4 = ExpectedValue(lambda x: 2**x, dd_0_1_20)
 
         self.assertAlmostEqual(ce4[0], 1.27153712)
 
-        ce5 = dd_1_1_40.calc_expectation(lambda x: 2 * x)
+        ce5 = ExpectedValue(func=lambda x: 2 * x, dist=dd_1_1_40)
 
         self.assertAlmostEqual(ce5[0], 2.0)
 
-        ce6 = dd_10_10_100.calc_expectation(lambda x, y: 2 * x + y, 20)
+        ce6 = ExpectedValue(lambda x, y: 2 * x + y, dd_10_10_100, args=(20))
 
         self.assertAlmostEqual(ce6[0], 40.0)
 
-        ce7 = dd_0_1_20.calc_expectation(
-            lambda x, y: x + y, np.hstack(np.array([0, 1, 2, 3, 4, 5]))
+        ce7 = ExpectedValue(
+            func=lambda x, y: x + y,
+            dist=dd_0_1_20,
+            args=(np.hstack([0, 1, 2, 3, 4, 5])),
         )
 
         self.assertAlmostEqual(ce7.flat[3], 3.0)
@@ -156,33 +160,36 @@ class DiscreteDistributionTests(unittest.TestCase):
         TranShkDstn = MeanOneLogNormal().approx(200)
         IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
-        ce8 = IncShkDstn.calc_expectation(lambda X: X[0] + X[1])
+        ce8 = ExpectedValue(lambda X: X[0] + X[1], dist=IncShkDstn)
 
         self.assertAlmostEqual(ce8, 2.0)
 
-        ce9 = IncShkDstn.calc_expectation(
-            lambda X, a, r: r / X[0] * a + X[1],
-            np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
-            1.05,  # an interest rate?
+        ce9 = ExpectedValue(
+            func=lambda X, a, r: r / X[0] * a + X[1],
+            dist=IncShkDstn,
+            args=(
+                np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
+                1.05,  # an interest rate?
+            ),
         )
 
         self.assertAlmostEqual(ce9[3], 9.518015322143837)
 
-    def test_self_distr_of_function(self):
+    def test_self_dist_of_func(self):
 
         # Function 1 -> 1
         # Approximate the lognormal expectation
         sig = 0.05
         norm = Normal(mu=-(sig**2) / 2, sigma=sig).approx(131)
-        my_logn = norm.distr_of_function(func=lambda x: np.exp(x))
-        exp = my_logn.calc_expectation()
+        my_logn = norm.dist_of_func(lambda x: np.exp(x))
+        exp = my_logn.expected_value()
         self.assertAlmostEqual(exp, 1.0)
 
         # Function 1 -> n
         # Mean and variance of the normal
         norm = Normal(mu=0.0, sigma=1.0).approx(5)
-        moments = norm.distr_of_function(lambda x: np.array([x, x**2]))
-        exp = moments.calc_expectation().flatten()
+        moments = norm.dist_of_func(lambda x: np.array([x, x**2]))
+        exp = moments.expected_value().flatten()
         self.assertAlmostEqual(exp[0], 0.0)
         self.assertAlmostEqual(exp[1], 1.0)
 
@@ -193,16 +200,18 @@ class DiscreteDistributionTests(unittest.TestCase):
         norm_a = Normal(mu=mu_a, sigma=si_a).approx(5)
         norm_b = Normal(mu=mu_b, sigma=si_b).approx(5)
         binorm = combine_indep_dstns(norm_a, norm_b)
-        mysum = binorm.distr_of_function(lambda x: np.sum(x, axis=0))
-        exp = mysum.calc_expectation()
+        mysum = binorm.dist_of_func(func=lambda x: np.sum(x, axis=0))
+        exp = mysum.expected_value()
         self.assertAlmostEqual(exp[0], mu_a + mu_b)
 
         # Function n -> m
         # Mean and variance of two normals
-        moments = binorm.distr_of_function(
-            lambda x: np.array([x[0], (x[0] - mu_a) ** 2, x[1], (x[1] - mu_b) ** 2]),
+        moments = binorm.dist_of_func(
+            func=lambda x: np.array(
+                [x[0], (x[0] - mu_a) ** 2, x[1], (x[1] - mu_b) ** 2]
+            ),
         )
-        exp = moments.calc_expectation()
+        exp = moments.expected_value()
         self.assertAlmostEqual(exp[0], mu_a)
         self.assertAlmostEqual(exp[1], si_a**2)
         self.assertAlmostEqual(exp[2], mu_b)
@@ -413,6 +422,8 @@ class NormalDistTest(unittest.TestCase):
 
         self.assertAlmostEqual(np.mean(points), mu, places=7)
         self.assertAlmostEqual(np.std(points), sigma, places=2)
+
+
 class DiscreteDistributionXRATests(unittest.TestCase):
     """
     Tests for distribution.py sampling distributions
