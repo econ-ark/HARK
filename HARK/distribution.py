@@ -856,8 +856,9 @@ class DiscreteDistribution(Distribution):
             )
 
     def dim(self):
-
-        # Last dimension of self.X indexes "nature."
+        """
+        Last dimension of self.X indexes "nature."
+        """
         return self.X.shape[:-1]
 
     def draw_events(self, n):
@@ -935,17 +936,22 @@ class DiscreteDistribution(Distribution):
 
     def calc_expectation(self, func=None, *args):
         """
-        Expectation of a function, given an array of configurations of its inputs
-        along with a DiscreteDistribution object that specifies the probability
-        of each configuration.
+        Expected value of a function, given an array of configurations of its
+        inputs along with a DiscreteDistribution object that specifies the
+        probability of each configuration.
 
         Parameters
         ----------
         func : function
             The function to be evaluated.
-            This function should take an array of shape dstn.dim() and return
-            either arrays of arbitrary shape or scalars.
+            This function should take the full array of distribution values
+            and return either arrays of arbitrary shape or scalars.
             It may also take other arguments *args.
+            This function differs from the standalone `calc_expectation`
+            method in that it uses numpy's vectorization and broadcasting
+            rules to avoid costly iteration.
+            Note: If you need to use a function that acts on single outcomes
+            of the distribution, consier `distribution.calc_expectation`.
         *args :
             Other inputs for func, representing the non-stochastic arguments.
             The the expectation is computed at f(dstn, *args).
@@ -965,6 +971,8 @@ class DiscreteDistribution(Distribution):
             # if a function is provided, we need to add one more dimension,
             # the nature dimension, to any inputs that are n-dim arrays.
             # This allows numpy to easily broadcast the function's output.
+            # For more information on broadcasting, see:
+            # https://numpy.org/doc/stable/user/basics.broadcasting.html#general-broadcasting-rules
             args = [
                 arg[..., np.newaxis] if isinstance(arg, np.ndarray) else arg
                 for arg in args
@@ -985,11 +993,11 @@ class DiscreteDistribution(Distribution):
         ----------
         func : function
             The function to be evaluated.
-            This function should take an array of shape dstn.dim().
+            This function should take the full array of distribution values.
             It may also take other arguments *args.
         *args :
             Additional non-stochastic arguments for func,
-            The function is computed at f(dstn, *args).
+            The function is computed as f(dstn, *args).
 
         Returns
         -------
@@ -1010,6 +1018,31 @@ class DiscreteDistribution(Distribution):
 
 
 class DiscreteDistributionXRA(DiscreteDistribution):
+    """
+    A representation of a discrete probability distribution
+    stored in an underlying `xarray.DataArray` array.
+
+    Parameters
+    ----------
+    pmf : np.array
+        An array of floats representing a probability mass function.
+    data : np.array
+        Discrete point values for each probability mass.
+        For multivariate distributions, the last dimension of X must index
+        "nature" or the random realization. For instance, if X.shape == (2,6,4),
+        the random variable has 4 possible realizations and each of them has shape (2,6).
+    seed : int
+        Seed for random number generator.
+    coords : dict
+        Coordinate values/names for each dimension of the underlying array.
+    dims : tuple or list
+        Dimension names for each dimension of the underlying array.
+    name : str
+        Name of the distribution.
+    attrs: dict
+        Attributes for the distribution.
+    """
+
     def __init__(
         self,
         pmf,
@@ -1070,36 +1103,83 @@ class DiscreteDistributionXRA(DiscreteDistribution):
     @property
     def data(self):
         """
-        The distributions data as an array. The underlying
+        The distribution's data as an array. The underlying
         array type (e.g. dask, sparse, pint) is preserved.
         """
         return self._xarray.data
 
     @property
     def coords(self):
+        """
+        The distribution's coordinates.
+        """
         return self._xarray.coords
 
     @property
     def dims(self):
+        """
+        The distribution's dimensions.
+        """
         return self._xarray.dims
 
     @property
     def name(self):
+        """
+        The distribution's name.
+        """
         return self._xarray.name
 
     @property
     def attrs(self):
+        """
+        The distribution's attributes.
+        """
         return self._xarray.attrs
 
     def calc_expectation(self, func=None, *args, labels=False):
-        def func_wrapper(x, *args):
+        """
+        Expectation of a function, given an array of configurations of its inputs
+        along with a DiscreteDistributionXRA object that specifies the probability
+        of each configuration.
 
+        Parameters
+        ----------
+        func : function
+            The function to be evaluated.
+            This function should take the full array of distribution values
+            and return either arrays of arbitrary shape or scalars.
+            It may also take other arguments *args.
+            This function differs from the standalone `calc_expectation`
+            method in that it uses numpy's vectorization and broadcasting
+            rules to avoid costly iteration.
+            Note: If you need to use a function that acts on single outcomes
+            of the distribution, consier `distribution.calc_expectation`.
+        *args :
+            Other inputs for func, representing the non-stochastic arguments.
+            The the expectation is computed at f(dstn, *args).
+        labels : bool
+            If True, the function should use labeled indexing instead of integer
+            indexing using the distribution's underlying rv coordinates. For example,
+            if `dims = ('rv', 'x')` and `coords = {'rv': ['a', 'b'], }`, then
+            the function can be `lambda x: x["a"] + x["b"]`.
+
+        Returns
+        -------
+        f_exp : np.array or scalar
+            The expectation of the function at the queried values.
+            Scalar if only one value.
+        """
+
+        def func_wrapper(x, *args):
+            """_summary_
+            Wrapper function for `func` that handles labeled indexing.
+            """
             dim_0 = self.dims[0]
             idx = self.coords[dim_0].values
 
-            wraped = dict(zip(idx, x))
+            wrapped = dict(zip(idx, x))
 
-            return func(wraped, *args)
+            return func(wrapped, *args)
 
         if labels:
             which_func = func_wrapper
@@ -1582,6 +1662,43 @@ class MarkovProcess(Distribution):
 
 
 def Expected(func=None, dist=None, args=(), labels=False):
+    """
+    Expectation of a function, given an array of configurations of its inputs
+    along with a DiscreteDistribution(XRA) object that specifies the probability
+    of each configuration.
+
+    Parameters
+    ----------
+    func : function
+        The function to be evaluated.
+        This function should take the full array of distribution values
+        and return either arrays of arbitrary shape or scalars.
+        It may also take other arguments *args.
+        This function differs from the standalone `calc_expectation`
+        method in that it uses numpy's vectorization and broadcasting
+        rules to avoid costly iteration.
+        Note: If you need to use a function that acts on single outcomes
+        of the distribution, consier `distribution.calc_expectation`.
+    dist : DiscreteDistribution or DiscreteDistributionXRA
+        The distribution over which the function is to be evaluated.
+    args : tuple
+        Other inputs for func, representing the non-stochastic arguments.
+        The the expectation is computed at f(dstn, *args).
+    labels : bool
+        If True, the function should use labeled indexing instead of integer
+        indexing using the distribution's underlying rv coordinates. For example,
+        if `dims = ('rv', 'x')` and `coords = {'rv': ['a', 'b'], }`, then
+        the function can be `lambda x: x["a"] + x["b"]`.
+
+    Returns
+    -------
+    f_exp : np.array or scalar
+        The expectation of the function at the queried values.
+        Scalar if only one value.
+    """
+
+    if not isinstance(args, tuple):
+        args = (args,)
 
     if isinstance(dist, DiscreteDistributionXRA):
         return dist.calc_expectation(func, *args, labels=labels)
