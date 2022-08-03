@@ -587,9 +587,9 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
         none
         """
 
-        self.ShkPrbsNext = self.IncShkDstn.pmf
-        self.PermShkValsNext = self.IncShkDstn.X[0]
-        self.TranShkValsNext = self.IncShkDstn.X[1]
+        self.ShkPrbsNext = self.IncShkDstn.prob
+        self.PermShkValsNext = self.IncShkDstn.data[0]
+        self.TranShkValsNext = self.IncShkDstn.data[1]
 
         (
             self.DiscFacEff,

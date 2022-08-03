@@ -687,8 +687,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
         IncShkDstn : distribution.DiscreteDistribution
-            A DiscreteDistribution with a pmf
-            and two point value arrays in X, order:
+            A DiscreteDistribution with a prob
+            and two point value arrays in data, order:
             permanent shocks, transitory shocks.
         LivPrb : float
             Survival probability; likelihood of being alive at the beginning of
@@ -702,9 +702,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         """
         self.DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
         self.IncShkDstn = IncShkDstn
-        self.ShkPrbsNext = IncShkDstn.pmf
-        self.PermShkValsNext = IncShkDstn.X[0]
-        self.TranShkValsNext = IncShkDstn.X[1]
+        self.ShkPrbsNext = IncShkDstn.prob
+        self.PermShkValsNext = IncShkDstn.data[0]
+        self.TranShkValsNext = IncShkDstn.data[1]
         self.PermShkMinNext = np.min(self.PermShkValsNext)
         self.TranShkMinNext = np.min(self.TranShkValsNext)
         self.vPfuncNext = solution_next.vPfunc
@@ -2283,9 +2283,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
             # Get random draws of income shocks from the discrete distribution
             EventDraws = IncShkDstnNow.draw_events(N)
             PermShkNow[these] = (
-                IncShkDstnNow.X[0][EventDraws] * PermGroFacNow
+                IncShkDstnNow.data[0][EventDraws] * PermGroFacNow
             )  # permanent "shock" includes expected growth
-            TranShkNow[these] = IncShkDstnNow.X[1][EventDraws]
+            TranShkNow[these] = IncShkDstnNow.data[1][EventDraws]
         #        PermShkNow[newborn] = 1.0
         #  Whether Newborns have transitory shock. The default is False.
         if not NewbornTransShk:
@@ -2865,11 +2865,11 @@ class LognormPermIncShk(DiscreteDistribution):
         logn_approx = MeanOneLogNormal(sigma).approx(
             n_approx if sigma > 0.0 else 1, tail_N=0
         )
-        # Change the pmf if necessary
+        # Change the prob if necessary
         if neutral_measure:
-            logn_approx.pmf = (logn_approx.X * logn_approx.pmf).flatten()
+            logn_approx.prob = (logn_approx.data * logn_approx.prob).flatten()
 
-        super().__init__(pmf=logn_approx.pmf, X=logn_approx.X, seed=seed)
+        super().__init__(prob=logn_approx.prob, data=logn_approx.data, seed=seed)
 
 
 class MixtureTranIncShk(DiscreteDistribution):
@@ -2906,7 +2906,7 @@ class MixtureTranIncShk(DiscreteDistribution):
                 dstn_approx, p=UnempPrb, x=IncUnemp
             )
 
-        super().__init__(pmf=dstn_approx.pmf, X=dstn_approx.X, seed=seed)
+        super().__init__(prob=dstn_approx.prob, data=dstn_approx.data, seed=seed)
 
 
 class BufferStockIncShkDstn(DiscreteDistribution):
@@ -2968,7 +2968,7 @@ class BufferStockIncShkDstn(DiscreteDistribution):
 
         joint_dstn = combine_indep_dstns(perm_dstn, tran_dstn)
 
-        super().__init__(pmf=joint_dstn.pmf, X=joint_dstn.X, seed=seed)
+        super().__init__(prob=joint_dstn.prob, data=joint_dstn.data, seed=seed)
 
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer

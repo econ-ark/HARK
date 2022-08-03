@@ -216,9 +216,9 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 
                 def temp_f(s):
                     return -((1.0 - self.CRRA) ** -1) * np.dot(
-                        (self.Rfree[t] + s * (RiskyDstn.X - self.Rfree[t]))
+                        (self.Rfree[t] + s * (RiskyDstn.data - self.Rfree[t]))
                         ** (1.0 - self.CRRA),
-                        RiskyDstn.pmf,
+                        RiskyDstn.prob,
                     )
 
                 SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
@@ -230,9 +230,9 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 
             def temp_f(s):
                 return -((1.0 - self.CRRA) ** -1) * np.dot(
-                    (self.Rfree[0] + s * (RiskyDstn.X - self.Rfree[0]))
+                    (self.Rfree[0] + s * (RiskyDstn.data - self.Rfree[0]))
                     ** (1.0 - self.CRRA),
-                    RiskyDstn.pmf,
+                    RiskyDstn.prob,
                 )
 
             SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
@@ -515,9 +515,9 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
 
         # Calculate the minimum allowable value of money resources in this period
         self.BoroCnstNat = (
-            (self.solution_next.mNrmMin - self.TranShkDstn.X.min())
-            * (self.PermGroFac * self.PermShkDstn.X.min())
-            / self.RiskyDstn.X.max()
+            (self.solution_next.mNrmMin - self.TranShkDstn.data.min())
+            * (self.PermGroFac * self.PermShkDstn.data.min())
+            / self.RiskyDstn.data.max()
         )
 
         # Flag for whether the natural borrowing constraint is zero
@@ -560,20 +560,20 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
 
             if self.IndepDstnBool:
                 bNrmNext = np.append(
-                    aNrmNow[0] * self.RiskyDstn.X.min(),
-                    aNrmNow * self.RiskyDstn.X.max(),
+                    aNrmNow[0] * self.RiskyDstn.data.min(),
+                    aNrmNow * self.RiskyDstn.data.max(),
                 )
                 wNrmNext = np.append(
-                    bNrmNext[0] / (self.PermGroFac * self.PermShkDstn.X.max()),
-                    bNrmNext / (self.PermGroFac * self.PermShkDstn.X.min()),
+                    bNrmNext[0] / (self.PermGroFac * self.PermShkDstn.data.max()),
+                    bNrmNext / (self.PermGroFac * self.PermShkDstn.data.min()),
                 )
         else:
             # add zero to aNrmNow
             aNrmNow = np.append(self.BoroCnstArt, self.aXtraGrid)
 
             if self.IndepDstnBool:
-                bNrmNext = aNrmNow * self.RiskyDstn.X.max()
-                wNrmNext = bNrmNext / (self.PermGroFac * self.PermShkDstn.X.min())
+                bNrmNext = aNrmNow * self.RiskyDstn.data.max()
+                wNrmNext = bNrmNext / (self.PermGroFac * self.PermShkDstn.data.min())
 
         self.aNrmNow = aNrmNow
 
@@ -1196,13 +1196,13 @@ class ConsFixedPortfolioIndShkRiskyAssetSolver(ConsIndShockSolver):
 
         # in worst case scenario, debt gets highest return possible
         self.RPortMax = (
-            self.Rfree + (self.RiskyDstn.X.max() - self.Rfree) * self.RiskyShareFixed
+            self.Rfree + (self.RiskyDstn.data.max() - self.Rfree) * self.RiskyShareFixed
         )
 
         # Calculate the minimum allowable value of money resources in this period
         self.BoroCnstNat = (
-            (self.solution_next.mNrmMin - self.TranShkDstn.X.min())
-            * (self.PermGroFac * self.PermShkDstn.X.min())
+            (self.solution_next.mNrmMin - self.TranShkDstn.data.min())
+            * (self.PermGroFac * self.PermShkDstn.data.min())
             / self.RPortMax
         )
 

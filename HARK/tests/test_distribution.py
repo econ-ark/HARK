@@ -418,7 +418,7 @@ class NormalDistTest(unittest.TestCase):
 
         mu, sigma = 5.0, 27.0
 
-        points = Normal(mu, sigma).approx_equiprobable(701).X
+        points = Normal(mu, sigma).approx_equiprobable(701).data
 
         self.assertAlmostEqual(np.mean(points), mu, places=7)
         self.assertAlmostEqual(np.std(points), sigma, places=2)

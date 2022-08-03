@@ -15,7 +15,7 @@ from HARK.interpolation import (
     BilinearInterp,
     LowerEnvelope2D,
     UpperEnvelope,
-    MargValueFuncCRRA
+    MargValueFuncCRRA,
 )
 from HARK.utilities import (
     CRRAutility,
@@ -31,7 +31,7 @@ from HARK.distribution import (
     MeanOneLogNormal,
     Uniform,
     combine_indep_dstns,
-    calc_expectation
+    calc_expectation,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
@@ -64,6 +64,7 @@ utilityPP = CRRAutilityPP
 utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
+
 
 class MargValueFunc2D(MetricObject):
     """
@@ -164,8 +165,12 @@ class AggShockConsumerType(IndShockConsumerType):
         None
         """
         self.initialize_sim()
-        self.state_now['aLvlNow'] = self.kInit * np.ones(self.AgentCount)  # Start simulation near SS
-        self.state_now['aNrm'] = self.state_now['aLvlNow'] / self.state_now['pLvl'] # ???
+        self.state_now["aLvlNow"] = self.kInit * np.ones(
+            self.AgentCount
+        )  # Start simulation near SS
+        self.state_now["aNrm"] = (
+            self.state_now["aLvlNow"] / self.state_now["pLvl"]
+        )  # ???
 
     def pre_solve(self):
         #        AgentType.pre_solve()
@@ -254,7 +259,7 @@ class AggShockConsumerType(IndShockConsumerType):
         -------
         None
         """
-        if len(self.IncShkDstn[0].X) > 2:
+        if len(self.IncShkDstn[0].data) > 2:
             self.IncShkDstn = self.IncShkDstnWithoutAggShocks
         else:
             self.IncShkDstnWithoutAggShocks = self.IncShkDstn
@@ -279,12 +284,13 @@ class AggShockConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.sim_birth(self, which_agents)
-        if 'aLvl' in self.state_now and self.state_now['aLvl'] is not None:
-            self.state_now['aLvl'][which_agents] = (
-                self.state_now['aNrm'][which_agents] * self.state_now['pLvl'][which_agents]
+        if "aLvl" in self.state_now and self.state_now["aLvl"] is not None:
+            self.state_now["aLvl"][which_agents] = (
+                self.state_now["aNrm"][which_agents]
+                * self.state_now["pLvl"][which_agents]
             )
         else:
-            self.state_now['aLvl'] = self.state_now['aNrm'] * self.state_now['pLvl']
+            self.state_now["aLvl"] = self.state_now["aNrm"] * self.state_now["pLvl"]
 
     def sim_death(self):
         """
@@ -319,11 +325,15 @@ class AggShockConsumerType(IndShockConsumerType):
 
         # Divide up the wealth of those who die, giving it to those who survive
         who_lives = np.logical_not(who_dies)
-        wealth_living = np.sum(self.state_now['aLvl'][who_lives])
-        wealth_dead = np.sum(self.state_now['aLvl'][who_dies])
+        wealth_living = np.sum(self.state_now["aLvl"][who_lives])
+        wealth_dead = np.sum(self.state_now["aLvl"][who_dies])
         Ractuarial = 1.0 + wealth_dead / wealth_living
-        self.state_now['aNrm'][who_lives] = self.state_now['aNrm'][who_lives] * Ractuarial
-        self.state_now['aLvl'][who_lives] = self.state_now['aLvl'][who_lives] * Ractuarial
+        self.state_now["aNrm"][who_lives] = (
+            self.state_now["aNrm"][who_lives] * Ractuarial
+        )
+        self.state_now["aLvl"][who_lives] = (
+            self.state_now["aLvl"][who_lives] * Ractuarial
+        )
         return who_dies
 
     def get_Rfree(self):
@@ -356,10 +366,10 @@ class AggShockConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.get_shocks(self)  # Update idiosyncratic shocks
-        self.shocks['TranShk'] = (
-            self.shocks['TranShk'] * self.TranShkAggNow * self.wRteNow
+        self.shocks["TranShk"] = (
+            self.shocks["TranShk"] * self.TranShkAggNow * self.wRteNow
         )
-        self.shocks['PermShk'] = self.shocks['PermShk'] * self.PermShkAggNow
+        self.shocks["PermShk"] = self.shocks["PermShk"] * self.PermShkAggNow
 
     def get_controls(self):
         """
@@ -378,12 +388,14 @@ class AggShockConsumerType(IndShockConsumerType):
         MaggNow = self.get_MaggNow()
         for t in range(self.T_cycle):
             these = t == self.t_cycle
-            cNrmNow[these] = self.solution[t].cFunc(self.state_now['mNrm'][these], MaggNow[these])
+            cNrmNow[these] = self.solution[t].cFunc(
+                self.state_now["mNrm"][these], MaggNow[these]
+            )
             MPCnow[these] = self.solution[t].cFunc.derivativeX(
-                self.state_now['mNrm'][these], MaggNow[these]
+                self.state_now["mNrm"][these], MaggNow[these]
             )  # Marginal propensity to consume
 
-        self.controls['cNrm'] = cNrmNow
+        self.controls["cNrm"] = cNrmNow
         self.MPCnow = MPCnow
         return None
 
@@ -490,7 +502,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         kwds = params
         AggShockConsumerType.__init__(self, **kwds)
 
-        self.shocks['Mrkv'] = None
+        self.shocks["Mrkv"] = None
 
         self.add_to_time_inv("MrkvArray")
         self.solve_one_period = solve_ConsAggMarkov
@@ -501,7 +513,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         state. AggShkDstn is a list of aggregate productivity shock distributions
         for each Markov state.
         """
-        if len(self.IncShkDstn[0][0].X) > 2:
+        if len(self.IncShkDstn[0][0].data) > 2:
             self.IncShkDstn = self.IncShkDstnWithoutAggShocks
         else:
             self.IncShkDstnWithoutAggShocks = self.IncShkDstn
@@ -565,7 +577,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             N = np.sum(these)
             if N > 0:
                 IncShkDstnNow = self.IncShkDstn[t - 1][
-                    self.shocks['Mrkv']
+                    self.shocks["Mrkv"]
                 ]  # set current income distribution
                 PermGroFacNow = self.PermGroFac[t - 1]  # and permanent growth factor
 
@@ -581,7 +593,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         if N > 0:
             these = newborn
             IncShkDstnNow = self.IncShkDstn[0][
-                self.shocks['Mrkv']
+                self.shocks["Mrkv"]
             ]  # set current income distribution
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
@@ -595,8 +607,8 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount, dtype=bool)
         self.EmpNow[TranShkNow == self.IncUnemp] = False
-        self.shocks['TranShk'] = TranShkNow * self.TranShkAggNow * self.wRteNow
-        self.shocks['PermShk'] = PermShkNow * self.PermShkAggNow
+        self.shocks["TranShk"] = TranShkNow * self.TranShkAggNow * self.wRteNow
+        self.shocks["PermShk"] = PermShkNow * self.PermShkAggNow
 
     def get_controls(self):
         """
@@ -628,20 +640,20 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             for i in range(StateCount):
                 those = np.logical_and(these, MrkvBoolArray[i, :])
                 cNrmNow[those] = self.solution[t].cFunc[i](
-                    self.state_now['mNrm'][those], MaggNow[those]
+                    self.state_now["mNrm"][those], MaggNow[those]
                 )
                 # Marginal propensity to consume
                 MPCnow[those] = (
                     self.solution[t]
                     .cFunc[i]
-                    .derivativeX(self.state_now['mNrm'][those], MaggNow[those])
+                    .derivativeX(self.state_now["mNrm"][those], MaggNow[those])
                 )
-        self.controls['cNrm'] = cNrmNow
+        self.controls["cNrm"] = cNrmNow
         self.MPCnow = MPCnow
         return None
 
     def getMrkvNow(self):  # This function exists to be overwritten in StickyE model
-        return self.shocks['Mrkv'] * np.ones(self.AgentCount, dtype=int)
+        return self.shocks["Mrkv"] * np.ones(self.AgentCount, dtype=int)
 
 
 init_KS_agents = {
@@ -687,20 +699,10 @@ class KrusellSmithType(AgentType):
             "CRRA",
         ]
         # need better handling of this
-        self.state_now = {
-            "aNow" : None,
-            "mNow" : None,
-            "EmpNow" : None
-        }
-        self.state_prev = {
-            "aNow" : None,
-            "mNow" : None,
-            "EmpNow" : None
-        }
+        self.state_now = {"aNow": None, "mNow": None, "EmpNow": None}
+        self.state_prev = {"aNow": None, "mNow": None, "EmpNow": None}
 
-        self.shock_vars = {
-            "Mrkv" : None
-        }
+        self.shock_vars = {"Mrkv": None}
 
         self.solve_one_period = solve_KrusellSmith
         self.update()
@@ -772,7 +774,9 @@ class KrusellSmithType(AgentType):
         Construct the attribute aXtraGrid from the primitive attributes aMin,
         aMax, aCount, aNestFac.
         """
-        self.aGrid = make_grid_exp_mult(self.aMin, self.aMax, self.aCount, self.aNestFac)
+        self.aGrid = make_grid_exp_mult(
+            self.aMin, self.aMax, self.aCount, self.aNestFac
+        )
         self.add_to_time_inv("aGrid")
 
     def update_solution_terminal(self):
@@ -819,10 +823,10 @@ class KrusellSmithType(AgentType):
         # Calculate (net) interest factor and wage rate next period
         KtoLnext = Knext / Lnext
         Rnext = 1.0 + Znext * CapShare * KtoLnext ** (CapShare - 1.0) - DeprFac
-        Wnext = Znext * (1.0 - CapShare) * KtoLnext ** CapShare
+        Wnext = Znext * (1.0 - CapShare) * KtoLnext**CapShare
 
         # Calculate aggregate market resources next period
-        Ynext = Znext * Knext ** CapShare * Lnext ** (1.0 - CapShare)
+        Ynext = Znext * Knext**CapShare * Lnext ** (1.0 - CapShare)
         Mnext = (1.0 - DeprFac) * Knext + Ynext
 
         # Tile the interest, wage, and aggregate market resources arrays
@@ -973,7 +977,7 @@ class KrusellSmithType(AgentType):
         self.simulate(1)
 
     def initialize_sim(self):
-        self.shocks['Mrkv'] = self.MrkvInit
+        self.shocks["Mrkv"] = self.MrkvInit
         AgentType.initialize_sim(self)
         self.state_now["EmpNow"] = self.state_now["EmpNow"].astype(bool)
         self.make_emp_idx_arrays()
@@ -990,10 +994,10 @@ class KrusellSmithType(AgentType):
         if N == 0:
             return
 
-        if self.shocks['Mrkv'] == 0:
+        if self.shocks["Mrkv"] == 0:
             unemp_N = int(np.round(self.UrateB * N))
             emp_N = self.AgentCount - unemp_N
-        elif self.shocks['Mrkv'] == 1:
+        elif self.shocks["Mrkv"] == 1:
             unemp_N = int(np.round(self.UrateG * N))
             emp_N = self.AgentCount - unemp_N
         else:
@@ -1017,8 +1021,8 @@ class KrusellSmithType(AgentType):
         mrkv_prev = int((unemployed.sum() / float(self.AgentCount)) != self.UrateB)
 
         # Transition some agents between unemployment and employment
-        emp_permute = self.emp_permute[mrkv_prev][self.shocks['Mrkv']]
-        unemp_permute = self.unemp_permute[mrkv_prev][self.shocks['Mrkv']]
+        emp_permute = self.emp_permute[mrkv_prev][self.shocks["Mrkv"]]
+        unemp_permute = self.unemp_permute[mrkv_prev][self.shocks["Mrkv"]]
         # TODO: replace poststate_vars functionality with shocks here
         EmpNow = self.state_now["EmpNow"]
 
@@ -1031,7 +1035,10 @@ class KrusellSmithType(AgentType):
         """
         Get each agent's idiosyncratic state, their household market resources.
         """
-        self.state_now["mNow"] = self.Rnow * self.state_prev['aNow'] + self.Wnow * self.LbrInd * self.state_now["EmpNow"]
+        self.state_now["mNow"] = (
+            self.Rnow * self.state_prev["aNow"]
+            + self.Wnow * self.LbrInd * self.state_now["EmpNow"]
+        )
 
     def get_controls(self):
         """
@@ -1041,10 +1048,10 @@ class KrusellSmithType(AgentType):
         unemployed = np.logical_not(employed)
 
         # Get the discrete index for (un)employed agents
-        if self.shocks['Mrkv'] == 0:  # Bad macroeconomic conditions
+        if self.shocks["Mrkv"] == 0:  # Bad macroeconomic conditions
             unemp_idx = 0
             emp_idx = 1
-        elif self.shocks['Mrkv'] == 1:  # Good macroeconomic conditions
+        elif self.shocks["Mrkv"] == 1:  # Good macroeconomic conditions
             unemp_idx = 2
             emp_idx = 3
         else:
@@ -1065,7 +1072,7 @@ class KrusellSmithType(AgentType):
         """
         Gets each agent's retained assets after consumption.
         """
-        self.state_now['aNow'] = self.state_now["mNow"] - self.controls["cNow"]
+        self.state_now["aNow"] = self.state_now["mNow"] - self.controls["cNow"]
 
 
 ###############################################################################
@@ -1098,7 +1105,7 @@ def solveConsAggShock(
     IncShkDstn : distribution.Distribution
         A discrete
         approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: 
+        and the one immediately following (in solution_next). Order:
         idiosyncratic permanent shocks, idiosyncratic transitory
         shocks, aggregate permanent shocks, aggregate transitory shocks.
     LivPrb : float
@@ -1141,11 +1148,11 @@ def solveConsAggShock(
     mNrmMinNext = solution_next.mNrmMin
 
     # Unpack the income shocks
-    ShkPrbsNext = IncShkDstn.pmf
-    PermShkValsNext = IncShkDstn.X[0]
-    TranShkValsNext = IncShkDstn.X[1]
-    PermShkAggValsNext = IncShkDstn.X[2]
-    TranShkAggValsNext = IncShkDstn.X[3]
+    ShkPrbsNext = IncShkDstn.prob
+    PermShkValsNext = IncShkDstn.data[0]
+    TranShkValsNext = IncShkDstn.data[1]
+    PermShkAggValsNext = IncShkDstn.data[2]
+    TranShkAggValsNext = IncShkDstn.data[3]
     ShkCount = ShkPrbsNext.size
 
     # Make the grid of end-of-period asset values, and a tiled version
@@ -1273,9 +1280,23 @@ def solveConsAggShock(
     return solution_now
 
 
-def solve_ConsAggShock_new(solution_next, IncShkDstn, LivPrb, DiscFac, CRRA, PermGroFac,
-                      PermGroFacAgg, aXtraGrid, BoroCnstArt, Mgrid, AFunc, Rfunc, wFunc, DeprFac):
-    '''
+def solve_ConsAggShock_new(
+    solution_next,
+    IncShkDstn,
+    LivPrb,
+    DiscFac,
+    CRRA,
+    PermGroFac,
+    PermGroFacAgg,
+    aXtraGrid,
+    BoroCnstArt,
+    Mgrid,
+    AFunc,
+    Rfunc,
+    wFunc,
+    DeprFac,
+):
+    """
     Solve one period of a consumption-saving problem with idiosyncratic and
     aggregate shocks (transitory and permanent).  This is a basic solver that
     can't handle cubic splines, nor can it calculate a value function. This
@@ -1288,7 +1309,7 @@ def solve_ConsAggShock_new(solution_next, IncShkDstn, LivPrb, DiscFac, CRRA, Per
     IncShkDstn : distribution.Distribution
         A discrete
         approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: 
+        and the one immediately following (in solution_next). Order:
         idiosyncratic permanent shocks, idiosyncratic transitory
         shocks, aggregate permanent shocks, aggregate transitory shocks.
     LivPrb : float
@@ -1325,69 +1346,83 @@ def solve_ConsAggShock_new(solution_next, IncShkDstn, LivPrb, DiscFac, CRRA, Per
         The solution to the single period consumption-saving problem.  Includes
         a consumption function cFunc (linear interpolation over linear interpola-
         tions) and marginal value function vPfunc.
-    '''
+    """
     # Unpack the income shocks and get grid sizes
-    PermShkValsNext = IncShkDstn.X[0]
-    TranShkValsNext = IncShkDstn.X[1]
-    PermShkAggValsNext = IncShkDstn.X[2]
-    TranShkAggValsNext = IncShkDstn.X[3]
+    PermShkValsNext = IncShkDstn.data[0]
+    TranShkValsNext = IncShkDstn.data[1]
+    PermShkAggValsNext = IncShkDstn.data[2]
+    TranShkAggValsNext = IncShkDstn.data[3]
     aCount = aXtraGrid.size
     Mcount = Mgrid.size
-    
+
     # Define a function that calculates M_{t+1} from M_t and the aggregate shocks;
     # the function also returns the wage rate and effective interest factor
-    def calcAggObjects(M,Psi,Theta):
-        A = AFunc(M) # End-of-period aggregate assets (normalized)
-        kNext = A/(PermGroFacAgg*Psi) # Next period's aggregate capital/labor ratio
-        kNextEff = kNext/Theta  # Same thing, but account for *transitory* shock
-        R = Rfunc(kNextEff)     # Interest factor on aggregate assets
-        wEff = wFunc(kNextEff)*Theta  # Effective wage rate (accounts for labor supply)
-        Reff = R/LivPrb # Account for redistribution of decedents' wealth
-        Mnext = kNext*R + wEff # Next period's aggregate market resources
+    def calcAggObjects(M, Psi, Theta):
+        A = AFunc(M)  # End-of-period aggregate assets (normalized)
+        kNext = A / (PermGroFacAgg * Psi)  # Next period's aggregate capital/labor ratio
+        kNextEff = kNext / Theta  # Same thing, but account for *transitory* shock
+        R = Rfunc(kNextEff)  # Interest factor on aggregate assets
+        wEff = (
+            wFunc(kNextEff) * Theta
+        )  # Effective wage rate (accounts for labor supply)
+        Reff = R / LivPrb  # Account for redistribution of decedents' wealth
+        Mnext = kNext * R + wEff  # Next period's aggregate market resources
         return Mnext, Reff, wEff
-    
+
     # Define a function that evaluates R*v'(m_{t+1},M_{t+1}) from a_t, M_t, and the income shocks
-    def vPnextFunc(a,M,psi,theta,Psi,Theta):
-        Mnext, Reff, wEff = calcAggObjects(M,Psi,Theta)
-        PermShkTotal = PermGroFac * PermGroFacAgg * psi * Psi  # Total / combined permanent shock
-        mNext = Reff*a/PermShkTotal + theta*wEff # Idiosyncratic market resources
-        vPnext = Reff*PermShkTotal**(-CRRA)*solution_next.vPfunc(mNext, Mnext)
+    def vPnextFunc(a, M, psi, theta, Psi, Theta):
+        Mnext, Reff, wEff = calcAggObjects(M, Psi, Theta)
+        PermShkTotal = (
+            PermGroFac * PermGroFacAgg * psi * Psi
+        )  # Total / combined permanent shock
+        mNext = Reff * a / PermShkTotal + theta * wEff  # Idiosyncratic market resources
+        vPnext = Reff * PermShkTotal ** (-CRRA) * solution_next.vPfunc(mNext, Mnext)
         return vPnext
-    
+
     # Make an array of a_t values at which to calculate end-of-period marginal value of assets
-    BoroCnstNat_vec = np.zeros(Mcount) # Natural borrowing constraint at each M_t
-    aNrmNow = np.zeros((aCount,Mcount))
+    BoroCnstNat_vec = np.zeros(Mcount)  # Natural borrowing constraint at each M_t
+    aNrmNow = np.zeros((aCount, Mcount))
     for j in range(Mcount):
-        Mnext, Reff, wEff = calcAggObjects(Mgrid[j], PermShkAggValsNext, TranShkAggValsNext)
-        aNrmMin_cand = (PermGroFac*PermGroFacAgg*PermShkValsNext*PermShkAggValsNext/Reff) * \
-                    (solution_next.mNrmMin(Mnext) - wEff*TranShkValsNext)
-        aNrmMin = np.max(aNrmMin_cand) # Lowest valid a_t value for this M_t
-        aNrmNow[:,j] = aNrmMin + aXtraGrid
+        Mnext, Reff, wEff = calcAggObjects(
+            Mgrid[j], PermShkAggValsNext, TranShkAggValsNext
+        )
+        aNrmMin_cand = (
+            PermGroFac * PermGroFacAgg * PermShkValsNext * PermShkAggValsNext / Reff
+        ) * (solution_next.mNrmMin(Mnext) - wEff * TranShkValsNext)
+        aNrmMin = np.max(aNrmMin_cand)  # Lowest valid a_t value for this M_t
+        aNrmNow[:, j] = aNrmMin + aXtraGrid
         BoroCnstNat_vec[j] = aNrmMin
-    
+
     # Compute end-of-period marginal value of assets
-    MaggNow = np.tile(np.reshape(Mgrid,(1,Mcount)),(aCount,1)) # Tiled Mgrid
-    EndOfPrdvP = DiscFac*LivPrb*calc_expectation(IncShkDstn,vPnextFunc,[aNrmNow,MaggNow])
+    MaggNow = np.tile(np.reshape(Mgrid, (1, Mcount)), (aCount, 1))  # Tiled Mgrid
+    EndOfPrdvP = (
+        DiscFac * LivPrb * calc_expectation(IncShkDstn, vPnextFunc, [aNrmNow, MaggNow])
+    )
 
     # Calculate optimal consumption from each asset gridpoint and endogenous m_t gridpoint
-    cNrmNow = EndOfPrdvP**(-1.0/CRRA)
+    cNrmNow = EndOfPrdvP ** (-1.0 / CRRA)
     mNrmNow = aNrmNow + cNrmNow
 
     # Loop through the values in Mgrid and make a linear consumption function for each
     cFuncBaseByM_list = []
     for j in range(Mcount):
-        c_temp = np.insert(cNrmNow[:,j], 0, 0.0)  # Add point at bottom
-        m_temp = np.insert(mNrmNow[:,j] - BoroCnstNat_vec[j], 0, 0.0)
+        c_temp = np.insert(cNrmNow[:, j], 0, 0.0)  # Add point at bottom
+        m_temp = np.insert(mNrmNow[:, j] - BoroCnstNat_vec[j], 0, 0.0)
         cFuncBaseByM_list.append(LinearInterp(m_temp, c_temp))
 
     # Construct the overall unconstrained consumption function by combining the M-specific functions
-    BoroCnstNat = LinearInterp(np.insert(Mgrid, 0, 0.0), np.insert(BoroCnstNat_vec, 0, 0.0))
+    BoroCnstNat = LinearInterp(
+        np.insert(Mgrid, 0, 0.0), np.insert(BoroCnstNat_vec, 0, 0.0)
+    )
     cFuncBase = LinearInterpOnInterp1D(cFuncBaseByM_list, Mgrid)
     cFuncUnc = VariableLowerBoundFunc2D(cFuncBase, BoroCnstNat)
 
     # Make the constrained consumption function and combine it with the unconstrained component
-    cFuncCnst = BilinearInterp(np.array([[0.0, 0.0], [1.0, 1.0]]),
-                               np.array([BoroCnstArt, BoroCnstArt+1.0]), np.array([0.0, 1.0]))
+    cFuncCnst = BilinearInterp(
+        np.array([[0.0, 0.0], [1.0, 1.0]]),
+        np.array([BoroCnstArt, BoroCnstArt + 1.0]),
+        np.array([0.0, 1.0]),
+    )
     cFuncNow = LowerEnvelope2D(cFuncUnc, cFuncCnst)
 
     # Make the minimum m function as the greater of the natural and artificial constraints
@@ -1397,7 +1432,9 @@ def solve_ConsAggShock_new(solution_next, IncShkDstn, LivPrb, DiscFac, CRRA, Per
     vPfuncNow = MargValueFunc2D(cFuncNow, CRRA)
 
     # Pack up and return the solution
-    solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=mNrmMinNow)
+    solution_now = ConsumerSolution(
+        cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=mNrmMinNow
+    )
     return solution_now
 
 
@@ -1432,9 +1469,9 @@ def solve_ConsAggMarkov(
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
     IncShkDstn : [distribution.Distribution]
-        A list of 
+        A list of
         discrete approximations to the income process between the period being
-        solved and the one immediately following (in solution_next). Order: 
+        solved and the one immediately following (in solution_next). Order:
         idisyncratic permanent shocks, idiosyncratic transitory
         shocks, aggregate permanent shocks, aggregate transitory shocks.
     LivPrb : float
@@ -1493,11 +1530,11 @@ def solve_ConsAggMarkov(
         mNrmMinNext = solution_next.mNrmMin[j]
 
         # Unpack the income shocks
-        ShkPrbsNext = IncShkDstn[j].pmf
-        PermShkValsNext = IncShkDstn[j].X[0]
-        TranShkValsNext = IncShkDstn[j].X[1]
-        PermShkAggValsNext = IncShkDstn[j].X[2]
-        TranShkAggValsNext = IncShkDstn[j].X[3]
+        ShkPrbsNext = IncShkDstn[j].prob
+        PermShkValsNext = IncShkDstn[j].data[0]
+        TranShkValsNext = IncShkDstn[j].data[1]
+        PermShkAggValsNext = IncShkDstn[j].data[2]
+        TranShkAggValsNext = IncShkDstn[j].data[3]
         ShkCount = ShkPrbsNext.size
         aXtra_tiled = np.tile(
             np.reshape(aXtraGrid, (1, aCount, 1)), (Mcount, 1, ShkCount)
@@ -1706,7 +1743,7 @@ def solve_KrusellSmith(
     Because this model is so specialized and only intended to be used with a very narrow
     case, many arrays can be precomputed, making the code here very short.  See the
     method KrusellSmithType.precompute_arrays() for details.
-    
+
     Parameters
     ----------
     solution_next : ConsumerSolution
@@ -1868,7 +1905,7 @@ class CobbDouglasEconomy(Market):
         Market.__init__(
             self,
             agents=agents,
-            reap_vars=['aLvl', 'pLvl'],
+            reap_vars=["aLvl", "pLvl"],
             track_vars=["MaggNow", "AaggNow"],
             dyn_vars=["AFunc"],
             tolerance=tolerance,
@@ -2021,10 +2058,10 @@ class CobbDouglasEconomy(Market):
         None
         """
         sim_periods = self.act_T
-        Events = np.arange(self.AggShkDstn.pmf.size)  # just a list of integers
-        EventDraws = self.AggShkDstn.draw(N=sim_periods, X=Events)
-        PermShkAggHist = self.AggShkDstn.X[0][EventDraws]
-        TranShkAggHist = self.AggShkDstn.X[1][EventDraws]
+        Events = np.arange(self.AggShkDstn.prob.size)  # just a list of integers
+        EventDraws = self.AggShkDstn.draw(N=sim_periods, data=Events)
+        PermShkAggHist = self.AggShkDstn.data[0][EventDraws]
+        TranShkAggHist = self.AggShkDstn.data[1][EventDraws]
 
         # Store the histories
         self.PermShkAggHist = PermShkAggHist * self.PermGroFacAgg
@@ -2148,7 +2185,7 @@ class CobbDouglasEconomy(Market):
                 + ", slope="
                 + str(slope)
                 + ", r-sq="
-                + str(r_value ** 2)
+                + str(r_value**2)
             )
 
         return AggShocksDynamicRule(AFunc)
@@ -2292,10 +2329,10 @@ class SmallOpenEconomy(Market):
         None
         """
         sim_periods = self.act_T
-        Events = np.arange(self.AggShkDstn.pmf.size)  # just a list of integers
-        EventDraws = self.AggShkDstn.draw(N=sim_periods, X=Events)
-        PermShkAggHist = self.AggShkDstn.X[0][EventDraws]
-        TranShkAggHist = self.AggShkDstn.X[1][EventDraws]
+        Events = np.arange(self.AggShkDstn.prob.size)  # just a list of integers
+        EventDraws = self.AggShkDstn.draw(N=sim_periods, data=Events)
+        PermShkAggHist = self.AggShkDstn.data[0][EventDraws]
+        TranShkAggHist = self.AggShkDstn.data[1][EventDraws]
 
         # Store the histories
         self.PermShkAggHist = PermShkAggHist
@@ -2327,7 +2364,7 @@ class SmallOpenEconomy(Market):
             Transitory shock to aggregate labor productivity this period.
         KtoLnow : float
             Capital-to-labor ratio in the economy this period.
-        
+
         """
         # Get this period's aggregate shocks
         PermShkAggNow = self.PermShkAggHist[self.Shk_idx]
@@ -2497,7 +2534,9 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
                     N=self.PermShkAggCount
                 )
             )
-            AggShkDstn.append(combine_indep_dstns(PermShkAggDstn[-1], TranShkAggDstn[-1]))
+            AggShkDstn.append(
+                combine_indep_dstns(PermShkAggDstn[-1], TranShkAggDstn[-1])
+            )
 
         self.TranShkAggDstn = TranShkAggDstn
         self.PermShkAggDstn = PermShkAggDstn
@@ -2596,7 +2635,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         # Add histories until each state has been visited at least state_T_min times
         while go:
             draws = Uniform(seed=loops).draw(N=self.act_T_orig)
-            markov_process = MarkovProcess(self.MrkvArray,seed=loops)
+            markov_process = MarkovProcess(self.MrkvArray, seed=loops)
             for s in range(self.act_T_orig):  # Add act_T_orig more periods
                 MrkvNow_hist[t] = MrkvNow
                 MrkvNow = markov_process.draw(MrkvNow)
@@ -2728,7 +2767,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             AFunc_list.append(
                 AggregateSavingRule(intercept, slope)
             )  # Make a new next-period capital function
-            rSq_list.append(r_value ** 2)
+            rSq_list.append(r_value**2)
 
             # Save the new values as "previous" values for the next iteration
             self.intercept_prev[i] = intercept
@@ -2859,7 +2898,7 @@ class KrusellSmithEconomy(Market):
         ]
         self.AFunc = AFunc_all
         self.KtoLSS = (
-            (1.0 ** self.CRRA / self.DiscFac - (1.0 - self.DeprFac)) / self.CapShare
+            (1.0**self.CRRA / self.DiscFac - (1.0 - self.DeprFac)) / self.CapShare
         ) ** (1.0 / (self.CapShare - 1.0))
         self.KSS = self.KtoLSS * self.LbrInd
         self.KtoYSS = self.KtoLSS ** (1.0 - self.CapShare)
@@ -2952,11 +2991,10 @@ class KrusellSmithEconomy(Market):
         self.MrkvNow_hist = np.zeros(self.act_T, dtype=int)
         MrkvNow = self.MrkvNow_init
 
-        markov_process = MarkovProcess(self.MrkvArray, seed= 0)
+        markov_process = MarkovProcess(self.MrkvArray, seed=0)
         for s in range(self.act_T):  # Add act_T_orig more periods
             self.MrkvNow_hist[s] = MrkvNow
             MrkvNow = markov_process.draw(MrkvNow)
-
 
     def mill_rule(self, aNow, EmpNow):
         """
@@ -3096,7 +3134,7 @@ class KrusellSmithEconomy(Market):
             AFunc_list.append(
                 AggregateSavingRule(intercept, slope)
             )  # Make a new next-period capital function
-            rSq_list.append(r_value ** 2)
+            rSq_list.append(r_value**2)
 
             # Save the new values as "previous" values for the next iteration
             self.intercept_prev[i] = intercept

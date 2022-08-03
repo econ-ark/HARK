@@ -479,7 +479,7 @@ class ConsPortfolioSolver(MetricObject):
         self.vFuncFxd_next = self.solution_next.vFuncFxd
 
         # Unpack the shock distribution
-        TranShks_next = self.IncShkDstn.X[1]
+        TranShks_next = self.IncShkDstn.data[1]
 
         # Flag for whether the natural borrowing constraint is zero
         self.zero_bound = np.min(TranShks_next) == 0.0
@@ -500,7 +500,7 @@ class ConsPortfolioSolver(MetricObject):
         """
 
         # Unpack the shock distribution
-        Risky_next = self.RiskyDstn.X
+        Risky_next = self.RiskyDstn.data
         RiskyMax = np.max(Risky_next)
         RiskyMin = np.min(Risky_next)
 
@@ -583,7 +583,7 @@ class ConsPortfolioSolver(MetricObject):
         dvdb_intermed = calc_expectation(
             self.IncShkDstn, dvdb_dist, self.bNrmNext, self.ShareNext
         )
-        
+
         dvdbNvrs_intermed = self.uPinv(dvdb_intermed)
         dvdbNvrsFunc_intermed = BilinearInterp(
             dvdbNvrs_intermed, self.bNrmGrid, self.ShareGrid
@@ -594,7 +594,7 @@ class ConsPortfolioSolver(MetricObject):
         dvds_intermed = calc_expectation(
             self.IncShkDstn, dvds_dist, self.bNrmNext, self.ShareNext
         )
-        
+
         dvdsFunc_intermed = BilinearInterp(dvds_intermed, self.bNrmGrid, self.ShareGrid)
 
         # Make tiled arrays to calculate future realizations of bNrm and Share when integrating over RiskyDstn
@@ -1019,7 +1019,7 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
 
         # If the distributions are NOT independent...
         # Unpack the shock distribution
-        self.TranShks_next = self.ShockDstn.X[1]
+        self.TranShks_next = self.ShockDstn.data[1]
         # Flag for whether the natural borrowing constraint is zero
         self.zero_bound = np.min(self.TranShks_next) == 0.0
 

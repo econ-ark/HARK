@@ -45,8 +45,8 @@ IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
 # %%
 x_dist = DiscreteDistributionXRA(
-    IncShkDstn.pmf,
-    IncShkDstn.X,
+    IncShkDstn.prob,
+    IncShkDstn.data,
     name="Distribution of Shocks to Income",
     dims=("rv", "x"),
     coords={"rv": ["perm_shk", "tran_shk"]},
