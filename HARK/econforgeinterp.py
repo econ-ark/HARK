@@ -85,7 +85,9 @@ class LinearFast(MetricObject):
         )
 
         # Reshape
-        derivs = [derivs[:, j].reshape(args[0].shape) for j in range(self.dim)]
+        derivs = [
+            derivs[:, j].reshape(args[0].shape) for j, tup in enumerate(deriv_tuple)
+        ]
 
         return derivs
 
