@@ -1486,3 +1486,40 @@ class MarkovProcess(Distribution):
         array_sample = np.frompyfunc(sample, 1, 1)
 
         return array_sample(state)
+
+
+def expected(func=None, dist=None, args=()):
+    """
+    Expectation of a function, given an array of configurations of its inputs
+    along with a DiscreteDistribution object that specifies the probability
+    of each configuration.
+
+    Parameters
+    ----------
+    func : function
+        The function to be evaluated.
+        This function should take the full array of distribution values
+        and return either arrays of arbitrary shape or scalars.
+        It may also take other arguments *args.
+        This function differs from the standalone `calc_expectation`
+        method in that it uses numpy's vectorization and broadcasting
+        rules to avoid costly iteration.
+        Note: If you need to use a function that acts on single outcomes
+        of the distribution, consier `distribution.calc_expectation`.
+    dist : DiscreteDistribution
+        The distribution over which the function is to be evaluated.
+    args : tuple
+        Other inputs for func, representing the non-stochastic arguments.
+        The the expectation is computed at f(dstn, *args).
+
+    Returns
+    -------
+    f_exp : np.array or scalar
+        The expectation of the function at the queried values.
+        Scalar if only one value.
+    """
+
+    if not isinstance(args, tuple):
+        args = (args,)
+
+    return dist.expected(func, *args)
