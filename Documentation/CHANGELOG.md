@@ -23,7 +23,7 @@ Release Date: TBD
 * Changes the `DiscreteDistribution` class to allow for arbitrary array-valued random variables. [#1146](https://github.com/econ-ark/HARK/pull/1146)
 * Adds `IndShockRiskyAssetConsumerType` as agent which can invest savings all in safe asset, all in risky asset, a fixed share in risky asset, or optimize its portfolio. [#1107](https://github.com/econ-ark/HARK/issues/1107)
 * Updates all HARK models to allow for age-varying interest rates. [#1150](https://github.com/econ-ark/HARK/pull/1150)
-
+* Creates `DiscreteDistribution.expected` method which requires vectorized functions and is faster than `HARK.distribution.calc_expectation`. [#1160](https://github.com/econ-ark/HARK/pull/1160)
 
 ### Minor Changes
 
@@ -33,6 +33,8 @@ Release Date: TBD
 * Adds `benchmark` utility to profile the performance of `HARK` solvers. [#1131](https://github.com/econ-ark/HARK/pull/1131)
 * Fixes scaling bug in Normal equiprobable approximation method. [1139](https://github.com/econ-ark/HARK/pull/1139)
 * Removes the extra-dimension that was returned by `calc_expectations` in some instances. [#1149](https://github.com/econ-ark/HARK/pull/1149)
+* Adds `DiscreteDistribution.dist_of_func` method which expects vectorized functions and is faster than `HARK.distribution.distr_of_function`. [#1160](https://github.com/econ-ark/HARK/pull/1160)
+* Adds `HARK.distribution.expected` alias for `DiscreteDistribution.expected`. [#1160](https://github.com/econ-ark/HARK/pull/1160)
 
 ### 0.12.0
 
