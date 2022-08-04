@@ -4569,6 +4569,17 @@ class ValueFuncCRRA(MetricObject):
         """
         #        return CRRAutility(self.func(*vFuncArgs), gam=self.CRRA)
         return CRRAutility(self.vFuncNvrs(*vFuncArgs), self.CRRA)
+    
+    def gradient(self, *args):
+
+        NvrsGrad = self.vFuncNvrs.gradient(*args)
+        grad = [CRRAutilityP(g, self.CRRA) for g in NvrsGrad]
+
+        return grad
+
+    def _eval_and_grad(self, *args):
+
+        return (self.__call__(*args), self.gradient(*args))
 
 
 class MargValueFuncCRRA(MetricObject):
