@@ -935,6 +935,56 @@ class DiscreteDistribution(Distribution):
 
         return draws
 
+    def expected(self, func=None, *args):
+        """
+        Expected value of a function, given an array of configurations of its
+        inputs along with a DiscreteDistribution object that specifies the
+        probability of each configuration.
+
+        Parameters
+        ----------
+        func : function
+            The function to be evaluated.
+            This function should take the full array of distribution values
+            and return either arrays of arbitrary shape or scalars.
+            It may also take other arguments *args.
+            This function differs from the standalone `calc_expectation`
+            method in that it uses numpy's vectorization and broadcasting
+            rules to avoid costly iteration.
+            Note: If you need to use a function that acts on single outcomes
+            of the distribution, consier `distribution.calc_expectation`.
+        *args :
+            Other inputs for func, representing the non-stochastic arguments.
+            The the expectation is computed at f(dstn, *args).
+
+        Returns
+        -------
+        f_exp : np.array or scalar
+            The expectation of the function at the queried values.
+            Scalar if only one value.
+        """
+
+        if func is None:
+            # if no function is provided, it's much faster to go straight
+            # to dot product instead of calling the dummy function.
+            f_query = self.X
+        else:
+            # if a function is provided, we need to add one more dimension,
+            # the nature dimension, to any inputs that are n-dim arrays.
+            # This allows numpy to easily broadcast the function's output.
+            # For more information on broadcasting, see:
+            # https://numpy.org/doc/stable/user/basics.broadcasting.html#general-broadcasting-rules
+            args = [
+                arg[..., np.newaxis] if isinstance(arg, np.ndarray) else arg
+                for arg in args
+            ]
+
+            f_query = func(self.X, *args)
+
+        f_exp = np.dot(f_query, self.pmf)
+
+        return f_exp
+
 
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
