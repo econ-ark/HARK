@@ -15,45 +15,51 @@ See HARK documentation for mathematical descriptions of the models being solved.
 from copy import copy, deepcopy
 
 import numpy as np
-from scipy.optimize import newton
-
-from HARK import AgentType, NullFunc, MetricObject, make_one_period_oo_solver
-from HARK import _log
-from HARK import set_verbosity_level
+from HARK import (
+    AgentType,
+    MetricObject,
+    NullFunc,
+    _log,
+    make_one_period_oo_solver,
+    set_verbosity_level,
+)
 from HARK.Calibration.Income.IncomeTools import (
+    Cagetti_income,
     parse_income_spec,
     parse_time_params,
-    Cagetti_income,
 )
-from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
+from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.distribution import (
     DiscreteDistribution,
-    add_discrete_outcome_constant_mean,
-    calc_expectation,
-    combine_indep_dstns,
     IndexDistribution,
+    Lognormal,
+    MeanOneLogNormal,
+    Uniform,
+    add_discrete_outcome_constant_mean,
+    combine_indep_dstns,
+    expected,
 )
-from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
 from HARK.interpolation import CubicHermiteInterp as CubicInterp
 from HARK.interpolation import (
     CubicInterp,
-    LowerEnvelope,
     LinearInterp,
-    ValueFuncCRRA,
-    MargValueFuncCRRA,
+    LowerEnvelope,
     MargMargValueFuncCRRA,
+    MargValueFuncCRRA,
+    ValueFuncCRRA,
 )
 from HARK.utilities import (
-    make_grid_exp_mult,
     CRRAutility,
-    CRRAutilityP,
-    CRRAutilityPP,
-    CRRAutilityP_inv,
-    CRRAutility_invP,
     CRRAutility_inv,
+    CRRAutility_invP,
+    CRRAutilityP,
+    CRRAutilityP_inv,
     CRRAutilityP_invP,
+    CRRAutilityPP,
+    make_grid_exp_mult,
 )
+from scipy.optimize import newton
 
 __all__ = [
     "ConsumerSolution",
@@ -837,7 +843,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         return self.aNrmNow
 
-    def m_nrm_next(self, shocks, a_nrm):
+    def m_nrm_next(self, shocks, a_nrm, Rfree):
         """
         Computes normalized market resources of the next period
         from income shocks and current normalized market resources.
@@ -854,7 +860,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         float
            normalized market resources in the next period
         """
-        return self.Rfree / (self.PermGroFac * shocks[0]) * a_nrm + shocks[1]
+        return Rfree / (self.PermGroFac * shocks[0]) * a_nrm + shocks[1]
 
     def calc_EndOfPrdvP(self):
         """
@@ -872,16 +878,20 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             A 1D array of end-of-period marginal value of assets
         """
 
-        def vp_next(shocks, a_nrm):
+        def vp_next(shocks, a_nrm, Rfree):
             return shocks[0] ** (-self.CRRA) * self.vPfuncNext(
-                self.m_nrm_next(shocks, a_nrm)
+                self.m_nrm_next(shocks, a_nrm, Rfree)
             )
 
         EndOfPrdvP = (
             self.DiscFacEff
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA)
-            * calc_expectation(self.IncShkDstn, vp_next, self.aNrmNow)
+            * expected(
+                func=vp_next,
+                dist=self.IncShkDstn,
+                args=(self.aNrmNow, self.Rfree),
+            )
         )
 
         return EndOfPrdvP
@@ -1118,9 +1128,9 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             The unconstrained consumption function for this period.
         """
 
-        def vpp_next(shocks, a_nrm):
+        def vpp_next(shocks, a_nrm, Rfree):
             return shocks[0] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
-                self.m_nrm_next(shocks, a_nrm)
+                self.m_nrm_next(shocks, a_nrm, Rfree)
             )
 
         EndOfPrdvPP = (
@@ -1128,7 +1138,11 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             * self.Rfree
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA - 1.0)
-            * calc_expectation(self.IncShkDstn, vpp_next, self.aNrmNow)
+            * expected(
+                func=vpp_next,
+                dist=self.IncShkDstn,
+                args=(self.aNrmNow, self.Rfree),
+            )
         )
         dcda = EndOfPrdvPP / self.uPP(np.array(cNrm[1:]))
         MPC = dcda / (dcda + 1.0)
@@ -1155,13 +1169,15 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         none
         """
 
-        def v_lvl_next(shocks, a_nrm):
+        def v_lvl_next(shocks, a_nrm, Rfree):
             return (
                 shocks[0] ** (1.0 - self.CRRA) * self.PermGroFac ** (1.0 - self.CRRA)
-            ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm))
+            ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm, Rfree))
 
-        EndOfPrdv = self.DiscFacEff * calc_expectation(
-            self.IncShkDstn, v_lvl_next, self.aNrmNow
+        EndOfPrdv = self.DiscFacEff * expected(
+            func=v_lvl_next,
+            dist=self.IncShkDstn,
+            args=(self.aNrmNow, self.Rfree),
         )
         EndOfPrdvNvrs = self.uinv(
             EndOfPrdv
@@ -2523,9 +2539,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Finite Value of Autarky Condition
         Hyperlink to paper: [url]/#Autarky-Value
         """
-        EpShkuInv = calc_expectation(
-            self.PermShkDstn[0], lambda x: x ** (1 - self.CRRA)
-        )[0]
+        EpShkuInv = expected(lambda x: x ** (1 - self.CRRA), self.PermShkDstn[0])[0]
 
         if self.CRRA != 1.0:
             uInvEpShkuInv = EpShkuInv ** (
@@ -2589,7 +2603,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # would be referenced below as:
         # [url]/#Uncertainty-Modified-Conditions
 
-        self.Ex_PermShkInv = calc_expectation(self.PermShkDstn[0], lambda x: 1 / x)[0]
+        self.Ex_PermShkInv = expected(lambda x: 1 / x, dist=self.PermShkDstn[0])[0]
         # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
 
         # [url]/#Pat, adjusted to include mortality
@@ -3036,7 +3050,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         PermShkValsNext = self.IncShkDstn[0][1]
         TranShkValsNext = self.IncShkDstn[0][2]
         ShkPrbsNext = self.IncShkDstn[0][0]
-        Ex_IncNext = calc_expectation(IncShkDstn, lambda trans, perm: trans * perm)
+        Ex_IncNext = expected(lambda trans, perm: trans * perm, self.IncShkDstn)
         PermShkMinNext = np.min(PermShkValsNext)
         TranShkMinNext = np.min(TranShkValsNext)
         WorstIncNext = PermShkMinNext * TranShkMinNext
