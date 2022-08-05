@@ -282,16 +282,16 @@ class TestLinearDecay(unittest.TestCase):
         self.interp_same = DecayInterp(
             interp,
             limit_fun=lambda x, y: 2 * x + y,
-            limit_grad=lambda x, y: [np.ones_like(x)*2, np.ones_like(y)*1],
-            decay_method='prop'
+            limit_grad=lambda x, y: [np.ones_like(x) * 2, np.ones_like(y) * 1],
+            extrap_method="decay_prop",
         )
 
         # another that limits to a shifted function with different slopes
         self.interp_shift = DecayInterp(
             interp,
             limit_fun=lambda x, y: np.sqrt(x),
-            limit_grad=lambda x, y: [0.5*np.power(x,-0.5), np.zeros_like(y)],
-            decay_method='prop'
+            limit_grad=lambda x, y: [0.5 * np.power(x, -0.5), np.zeros_like(y)],
+            extrap_method="decay_prop",
         )
 
     def test_extrap(self):
@@ -320,19 +320,29 @@ class TestLinearDecay(unittest.TestCase):
         interp = LinearFast(np.sqrt(x), [x])
 
         limit_fun = lambda x: 1 + -2 * x
-        limit_grad = lambda x: [-2*np.ones_like(x)]
+        limit_grad = lambda x: [-2 * np.ones_like(x)]
 
-        dec_pr = DecayInterp(interp, limit_fun=limit_fun, limit_grad=limit_grad, decay_method='prop')
-        dec_sm = DecayInterp(interp, limit_fun=limit_fun, limit_grad=limit_grad, decay_method='smooth')
+        dec_pr = DecayInterp(
+            interp,
+            limit_fun=limit_fun,
+            limit_grad=limit_grad,
+            extrap_method="decay_prop",
+        )
+        dec_sm = DecayInterp(
+            interp,
+            limit_fun=limit_fun,
+            limit_grad=limit_grad,
+            extrap_method="decay_smooth",
+        )
 
         x_ev = np.linspace(0, 10, 200)
 
         import matplotlib.pyplot as plt
 
         plt.figure()
-        plt.plot(x_ev, dec_pr(x_ev), label = 'prop')
-        plt.plot(x_ev, dec_sm(x_ev), label = 'smoo')
-        plt.plot(x_ev, limit_fun(x_ev), '--',label = 'limit')
+        plt.plot(x_ev, dec_pr(x_ev), label="prop")
+        plt.plot(x_ev, dec_sm(x_ev), label="smoo")
+        plt.plot(x_ev, limit_fun(x_ev), "--", label="limit")
         plt.legend()
         plt.show()
         print("hi!")

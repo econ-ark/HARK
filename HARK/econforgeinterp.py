@@ -126,7 +126,7 @@ class DecayInterp(MetricObject):
         limit_fun,
         decay_weights=None,
         limit_grad=None,
-        decay_method="prop",
+        extrap_method="decay_prop",
     ):
 
         self.interp = interp
@@ -139,44 +139,17 @@ class DecayInterp(MetricObject):
         self.upper_limits = np.array([x[-1] for x in self.grid_list])
         self.dim = len(self.grid_list)
 
-        self.decay_method = decay_method
+        self.extrap_methods = {
+            "decay_prop": self.extrap_decay_prop,
+            "decay_smooth": self.extrap_decay_smooth,
+        }
 
-        if decay_weights is None:
-            # By default, make weights the inverse of upper grid limits
-            # so that distances will be re-expressed as proportions of
-            # the upper limit
-            self.decay_weights = np.abs(1 / self.upper_limits)
-        else:
-            self.decay_weights = decay_weights
-
-    def decay_prop(self, x, closest_x):
-
-        dist = np.dot(np.abs(x - closest_x), self.decay_weights)
-
-        weight = np.exp(-1 * dist)
-
-        return weight
-
-    def decay_smooth(self, x, closest_x):
-
-        closest_x_arglist = [closest_x[:, i][..., None] for i in range(self.dim)]
-
-        # Get gradients and values
-
-        # Interpolator
-        inter_val, inter_grad = self.interp._eval_and_grad(*closest_x_arglist)
-        inter_grad = np.hstack(inter_grad)
-        # Limit
-        lim_val = self.limit_fun(*closest_x_arglist)
-        lim_grad = self.limit_grad(*closest_x_arglist)
-        lim_grad = np.hstack(lim_grad)
-
-        # TODO: deal with zeros in the denominator
-        B = np.abs(np.divide(1, lim_val - inter_val) * (lim_grad - inter_grad))
-
-        weight = np.exp(np.sum(-B * (x - closest_x), axis=1))
-
-        return weight
+        try:
+            self.extrap_fun = self.extrap_methods[extrap_method]
+        except KeyError:
+            raise KeyError(
+                'extrap_method must be one of "decay_prop", "decay_smooth", or "paste"'
+            )
 
     def __call__(self, *args):
 
@@ -196,19 +169,46 @@ class DecayInterp(MetricObject):
         # Find function evaluations with regular extrapolation
         f = self.interp(*[col_args[:, i] for i in range(self.dim)])
 
-        # Get base extrapolations and limiting function at the extrapolating points
-        upper_f_ex = f[upper_ex_inds]
-        # upper_f_ex = self.interp(*[upper_ex_nearest[:, i] for i in range(self.dim)]).flatten()
-        limit_f_ex = self.limit_fun(
-            *[upper_ex_points[:, i] for i in range(len(args))]
-        ).flatten()
-
-        # Combine them
-        if self.decay_method == "prop":
-            weight = self.decay_prop(upper_ex_points, upper_ex_nearest)
-        elif self.decay_method == "smooth":
-            weight = self.decay_smooth(upper_ex_points, upper_ex_nearest)
-
-        f[upper_ex_inds] = weight * upper_f_ex + (1 - weight) * limit_f_ex
+        # Find extrapolated values with chosen method
+        f[upper_ex_inds] = self.extrap_fun(upper_ex_points, upper_ex_nearest)
 
         return np.reshape(f, argshape)
+
+    def extrap_decay_prop(self, x, closest_x):
+
+        # Evaluate base interpolator at x
+        f_val_x = self.interp(*[x[:, i] for i in range(self.dim)])
+        # Evaluate limiting function at x
+        g_val_x = self.limit_fun(*[x[:, i] for i in range(self.dim)])
+
+        # Find distance between points and closest in-grid point.
+        decay_weights = np.abs(1 / self.upper_limits)  # Rescale as proportions
+        dist = np.dot(np.abs(x - closest_x), decay_weights)
+        weight = np.exp(-1 * dist)
+
+        return weight * f_val_x + (1 - weight) * g_val_x
+
+    def extrap_decay_smooth(self, x, closest_x):
+
+        # Evaluate base interpolator at x
+        f_val_x = self.interp(*[x[:, i] for i in range(self.dim)])
+        # Evaluate limiting function at x
+        g_val_x = self.limit_fun(*[x[:, i] for i in range(self.dim)])
+
+        # Get gradients and values at the closest in-grid point
+        closest_x_arglist = [closest_x[:, i][..., None] for i in range(self.dim)]
+
+        # Interpolator
+        inter_val, inter_grad = self.interp._eval_and_grad(*closest_x_arglist)
+        inter_grad = np.hstack(inter_grad)
+        # Limit
+        lim_val = self.limit_fun(*closest_x_arglist)
+        lim_grad = self.limit_grad(*closest_x_arglist)
+        lim_grad = np.hstack(lim_grad)
+
+        # Construct weights
+        # TODO: deal with zeros in the denominator
+        B = np.abs(np.divide(1, lim_val - inter_val) * (lim_grad - inter_grad))
+        weight = np.exp(np.sum(-B * (x - closest_x), axis=1))
+
+        return weight * f_val_x + (1 - weight) * g_val_x
