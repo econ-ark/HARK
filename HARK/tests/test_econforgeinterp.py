@@ -334,6 +334,9 @@ class TestLinearDecay(unittest.TestCase):
             limit_grad=limit_grad,
             extrap_method="decay_smooth",
         )
+        dec_pa = DecayInterp(
+            interp, limit_fun=limit_fun, limit_grad=limit_grad, extrap_method="paste",
+        )
 
         x_ev = np.linspace(0, 10, 200)
 
@@ -342,6 +345,7 @@ class TestLinearDecay(unittest.TestCase):
         plt.figure()
         plt.plot(x_ev, dec_pr(x_ev), label="prop")
         plt.plot(x_ev, dec_sm(x_ev), label="smoo")
+        plt.plot(x_ev, dec_pa(x_ev), label="past")
         plt.plot(x_ev, limit_fun(x_ev), "--", label="limit")
         plt.legend()
         plt.show()

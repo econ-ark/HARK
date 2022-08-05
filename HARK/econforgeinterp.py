@@ -121,12 +121,7 @@ class DecayInterp(MetricObject):
     distance_criteria = ["interp"]
 
     def __init__(
-        self,
-        interp,
-        limit_fun,
-        decay_weights=None,
-        limit_grad=None,
-        extrap_method="decay_prop",
+        self, interp, limit_fun, limit_grad=None, extrap_method="decay_prop",
     ):
 
         self.interp = interp
@@ -142,6 +137,7 @@ class DecayInterp(MetricObject):
         self.extrap_methods = {
             "decay_prop": self.extrap_decay_prop,
             "decay_smooth": self.extrap_decay_smooth,
+            "paste": self.extrap_paste,
         }
 
         try:
@@ -199,16 +195,27 @@ class DecayInterp(MetricObject):
         closest_x_arglist = [closest_x[:, i][..., None] for i in range(self.dim)]
 
         # Interpolator
-        inter_val, inter_grad = self.interp._eval_and_grad(*closest_x_arglist)
-        inter_grad = np.hstack(inter_grad)
+        f_val, f_grad = self.interp._eval_and_grad(*closest_x_arglist)
+        f_grad = np.hstack(f_grad)
         # Limit
-        lim_val = self.limit_fun(*closest_x_arglist)
-        lim_grad = self.limit_grad(*closest_x_arglist)
-        lim_grad = np.hstack(lim_grad)
+        g_val = self.limit_fun(*closest_x_arglist)
+        g_grad = self.limit_grad(*closest_x_arglist)
+        g_grad = np.hstack(g_grad)
 
         # Construct weights
         # TODO: deal with zeros in the denominator
-        B = np.abs(np.divide(1, lim_val - inter_val) * (lim_grad - inter_grad))
+        B = np.abs(np.divide(1, g_val - f_val) * (g_grad - f_grad))
         weight = np.exp(np.sum(-B * (x - closest_x), axis=1))
 
         return weight * f_val_x + (1 - weight) * g_val_x
+
+    def extrap_paste(self, x, closest_x):
+
+        # Evaluate base interpolator and limit at closest x
+        f_val_closest = self.interp(*[closest_x[:, i] for i in range(self.dim)])
+        g_val_closest = self.limit_fun(*[closest_x[:, i] for i in range(self.dim)])
+
+        # Evaluate limit function at x
+        g_val_x = self.limit_fun(*[x[:, i] for i in range(self.dim)])
+
+        return f_val_closest + (g_val_x - g_val_closest)
