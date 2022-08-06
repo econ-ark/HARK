@@ -10,7 +10,7 @@ sphinx-rtd-theme
 nbsphinx
 seaborn
 recommonmark
-interpolation>=2.2.2
+interpolation>=2.2.3
 numba
 quantecon
 pandas
