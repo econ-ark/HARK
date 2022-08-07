@@ -48,44 +48,39 @@ x_dist = DiscreteDistributionXRA(
     IncShkDstn.pmf,
     IncShkDstn.X,
     name="Distribution of Shocks to Income",
-    dims=("rv", "x"),
-    coords={"rv": ["perm_shk", "tran_shk"]},
+    var_names=["perm_shk", "tran_shk"],
+    var_attrs=[
+        {
+            "name": "Permanent Shocks to Income",
+            "limit": {"type": "Lognormal", "mean": -0.5, "variance": 1.0},
+        },
+        {
+            "name": "Transitory Shocks to Income",
+            "limit": {"type": "Lognormal", "mean": -0.5, "variance": 1.0},
+        },
+    ],
 )
 
 # %% [markdown]
-# As a side note, we can also use set the boolean option `xarray = True` in `combine_indep_dstns` with the same attributes to create an `DDXRA` object in place.
+# The underlying object and metadata is stored in a `xarray.Dataset` object which can be accessed using the `.dataset` attribute.
 #
 
 # %%
-x_dist = combine_indep_dstns(
-    PermShkDstn,
-    TranShkDstn,
-    xarray=True,
-    name="Distribution of Shocks to Income",
-    dims=("rv", "x"),
-    coords={"rv": ["perm_shk", "tran_shk"]},
-)
-
-# %% [markdown]
-# The underlying object and metadata is stored in a `xarray.DataArray` object which can be accessed using the `.xarray` attribute.
-#
-
-# %%
-x_dist.xarray
+x_dist.dataset
 
 # %% [markdown]
 # ### Taking the Expected Value of `DDXRA` objects.
 #
 
 # %% [markdown]
-# Taking the expectation of a `DDXRA` object is straightforward using the own `expected_value()` method.
+# Taking the expectation of a `DDXRA` object is straightforward using the own `expected()` method.
 #
 
 # %%
-x_dist.expected_value()
+x_dist.expected()
 
 # %% [markdown]
-# As in the `DiscreteDistribution`, we can provide a function and arguments to the `expected_value()` method.
+# As in the `DiscreteDistribution`, we can provide a function and arguments to the `expected()` method.
 #
 
 # %%
@@ -94,7 +89,7 @@ R = 1.03
 
 # %%
 # %%timeit
-x_dist.expected_value(lambda x, a, R: R * a / x[0] + x[1], aGrid, R)
+x_dist.expected(lambda dist, a, R: R * a / dist[0] + dist[1], aGrid, R)
 
 # %% [markdown]
 # Compared to the old method of `calc_expectation` which takes a `DiscreteDistribution` object as input, the new method which takes a `DiscreteDistributionXRA` object remains significantly faster.
@@ -104,31 +99,35 @@ x_dist.expected_value(lambda x, a, R: R * a / x[0] + x[1], aGrid, R)
 
 # %%
 # %%timeit
-calc_expectation(IncShkDstn, lambda x, a, R: R * a / x[0] + x[1], aGrid, R)
+calc_expectation(IncShkDstn, lambda dist, a, R: R * a / dist[0] + dist[1], aGrid, R)
 
 # %% [markdown]
 # ### Using functions with labels to take expresive expectations.
 #
 
 # %% [markdown]
-# The main difference is that the `expected_value()` method of `DDXRA` objects can take a function that uses the labels of the `xarray.DataArray` object. This allows for clearer and more expresive mathematical functions and transition equations. Surprisingly, using a function with labels does not add much overhead to the function evaluation.
+# The main difference is that the `expected()` method of `DDXRA` objects can take a function that uses the labels of the `xarray.DataArray` object. This allows for clearer and more expresive mathematical functions and transition equations. Surprisingly, using a function with labels does not add much overhead to the function evaluation.
 #
 
 # %%
 # %%timeit
-x_dist.expected_value(
-    lambda x, a, R: R * a / x["perm_shk"] + x["tran_shk"], aGrid, R, labels=True
+x_dist.expected(
+    lambda dist, a, R: R * a / dist["perm_shk"] + dist["tran_shk"],
+    aGrid,
+    R,
+    labels=True,
 )
 
 # %% [markdown]
-# We can also use `HARK.distribution.ExpectedValue`.
+# We can also use `HARK.distribution.expected`.
+#
 
 # %%
-from HARK.distribution import ExpectedValue
+from HARK.distribution import expected
 
 # %%
-ExpectedValue(
-    lambda x, a, R: R * a / x["perm_shk"] + x["tran_shk"],
+expected(
+    func=lambda dist, a, R: R * a / dist["perm_shk"] + dist["tran_shk"],
     dist=x_dist,
     args=(aGrid, R),
     labels=True,
