@@ -4,7 +4,7 @@ from itertools import product
 import numpy as np
 import scipy.stats as stats
 from scipy.special import erf, erfc
-from xarray import DataArray
+from xarray import DataArray, Dataset
 
 
 class Distribution:
@@ -1038,12 +1038,10 @@ class DiscreteDistributionXRA(DiscreteDistribution):
         the random variable has 4 possible realizations and each of them has shape (2,6).
     seed : int
         Seed for random number generator.
-    coords : dict
-        Coordinate values/names for each dimension of the underlying array.
-    dims : tuple or list
-        Dimension names for each dimension of the underlying array.
     name : str
         Name of the distribution.
+    var_names : list of str
+        Names of the variables in the distribution.
     attrs: dict
         Attributes for the distribution.
     """
@@ -1053,93 +1051,87 @@ class DiscreteDistributionXRA(DiscreteDistribution):
         pmf,
         data,
         seed=0,
-        coords=None,
-        dims=None,
         name="DiscreteDistributionXRA",
+        var_names=None,
         attrs=None,
+        var_attrs=None,
     ):
 
+        # vector-value distributions
         if data.ndim < 2:
             data = data[np.newaxis, ...]
+        if data.ndim > 2:
+            raise NotImplementedError(
+                "Only vector-valued distributions are supported for now."
+            )
 
         if attrs is None:
             attrs = {}
 
+        attrs["name"] = name
         attrs["pmf"] = np.asarray(pmf)
         attrs["seed"] = seed
         attrs["RNG"] = np.random.RandomState(seed)
 
-        self._xarray = DataArray(
-            data=data,
-            coords=coords,
-            dims=dims,
-            name=name,
+        n_var = data.shape[0]
+
+        if var_names is None:
+            var_names = ["var_" + str(i) for i in range(n_var)]
+
+        assert (
+            len(var_names) == n_var
+        ), "Number of variable names does not match number of variables."
+
+        if var_attrs is None:
+            var_attrs = [None] * n_var
+
+        self.dataset = Dataset(
+            {
+                var_names[i]: DataArray(data[i], attrs=var_attrs[i])
+                for i in range(n_var)
+            },
             attrs=attrs,
         )
 
     @property
-    def xarray(self):
-        """
-        Returns the underlying xarray.DataArray object.
-        """
-        return self._xarray
+    def variables(self):
+        return self.dataset.data_vars
 
     @property
     def X(self):
         """
         Returns the distribution's data as a numpy.ndarray.
         """
-        return self._xarray.values
+        data_vars = self.variables
+        return np.vstack([data_vars[key].values for key in data_vars.keys()])
 
     @property
     def pmf(self):
         """
         Returns the distribution's probability mass function.
         """
-        return self._xarray.pmf
+        return self.dataset.pmf
 
     @property
     def RNG(self):
         """
         Returns the distribution's random number generator.
         """
-        return self._xarray.RNG
-
-    @property
-    def data(self):
-        """
-        The distribution's data as an array. The underlying
-        array type (e.g. dask, sparse, pint) is preserved.
-        """
-        return self._xarray.data
-
-    @property
-    def coords(self):
-        """
-        The distribution's coordinates.
-        """
-        return self._xarray.coords
-
-    @property
-    def dims(self):
-        """
-        The distribution's dimensions.
-        """
-        return self._xarray.dims
+        return self.dataset.RNG
 
     @property
     def name(self):
         """
         The distribution's name.
         """
-        return self._xarray.name
+        return self.dataset.name
 
     @property
     def attrs(self):
         """
         The distribution's attributes.
         """
-        return self._xarray.attrs
+        return self.dataset.attrs
 
     def expected_value(self, func=None, *args, labels=False):
         """
