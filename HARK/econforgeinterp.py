@@ -1,5 +1,5 @@
 from .core import MetricObject
-from interpolation.splines import eval_linear, UCGrid
+from interpolation.splines import eval_linear, CGrid
 from interpolation.splines import extrap_options as xto
 
 import numpy as np
@@ -32,7 +32,7 @@ class LinearFast(MetricObject):
         self.dim = len(grids)
         self.f_val = f_val
         self.grid_list = grids
-        self.Grid = UCGrid(*grids)
+        self.Grid = CGrid(*grids)
         self.extrap_options = xto.LINEAR if extrap_options is None else extrap_options
 
     def __call__(self, *args):
