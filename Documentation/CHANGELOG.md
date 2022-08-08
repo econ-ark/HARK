@@ -24,6 +24,10 @@ Release Date: TBD
 * Adds `IndShockRiskyAssetConsumerType` as agent which can invest savings all in safe asset, all in risky asset, a fixed share in risky asset, or optimize its portfolio. [#1107](https://github.com/econ-ark/HARK/issues/1107)
 * Updates all HARK models to allow for age-varying interest rates. [#1150](https://github.com/econ-ark/HARK/pull/1150)
 
+- Adds `DiscreteDistribution.expected_value` method which expects vectorized functions and is faster than `HARK.distribution.calc_expectation`. [#1156](https://github.com/econ-ark/HARK/pull/1156)
+- Adds `HARK.distribution.ExpectedValue` alias for `DiscreteDistribution.expected_value`. [#1156](https://github.com/econ-ark/HARK/pull/1156)
+- Adds `DiscreteDistributionXRA` class which extends `DiscreteDistribution` to allow for underlying data to be stored in a `xarray.DataArray` object. [#1156](https://github.com/econ-ark/HARK/pull/1156)
+- Adds keyword argument `labels` to `expected_value()` and `ExpectedValue()` when using `DiscreteDistributionXRA` to allow for expressive functions that use labeled xarrays. [#1156](https://github.com/econ-ark/HARK/pull/1156)
 
 ### Minor Changes
 
