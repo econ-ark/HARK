@@ -9,11 +9,11 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.6.0
+#       jupytext_version: 1.14.1
 #   kernelspec:
-#     display_name: econ-ark-3.8
+#     display_name: Python 3 (ipykernel)
 #     language: python
-#     name: econ-ark-3.8
+#     name: python3
 #   language_info:
 #     codemirror_mode:
 #       name: ipython
@@ -23,7 +23,7 @@
 #     name: python
 #     nbconvert_exporter: python
 #     pygments_lexer: ipython3
-#     version: 3.8.7
+#     version: 3.8.11
 #   latex_envs:
 #     LaTeX_envs_menu_present: true
 #     autoclose: false
@@ -398,5 +398,3 @@ plt.plot(np.mean(PersistentExample.history['mLvl'],axis=1))
 plt.xlabel('Simulated time period')
 plt.ylabel('Average market resources mLvl')
 plt.show()
-
-# %%
