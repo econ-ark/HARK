@@ -14,7 +14,7 @@
 # ---
 
 # %% [markdown]
-# # Demonstrations and Timings of HARK.ExpectedValue
+# # Demonstrations and Timings of HARK.expected
 #
 
 # %% [markdown]
@@ -42,18 +42,18 @@ dd_1_1_40 = Normal(mu=1).approx(40)
 dd_10_10_100 = Normal(mu=10, sigma=10).approx(100)
 
 # %% [markdown]
-# ### The **new** `DiscreteDistribution.expected_value()` method
+# ### The **new** `DiscreteDistribution.expected()` method
 #
 
 # %% [markdown]
-# There are two ways to get the expectation of a distribution. The first is to use the **new** `expected_value()` method of the distribution shown below.
+# There are two ways to get the expectation of a distribution. The first is to use the **new** `expected()` method of the distribution shown below.
 #
 
 # %%
 # %%timeit
-ce1 = dd_0_1_20.expected_value()
-ce2 = dd_1_1_40.expected_value()
-ce3 = dd_10_10_100.expected_value()
+ce1 = dd_0_1_20.expected()
+ce2 = dd_1_1_40.expected()
+ce3 = dd_10_10_100.expected()
 
 # %% [markdown]
 # The second is to use `HARK.distribution.calc_expectation()`. Comparing the timings, the first method is significantly faster.
@@ -75,8 +75,8 @@ ce3 = calc_expectation(dd_10_10_100)
 
 # %%
 # %%timeit
-ce4 = dd_0_1_20.expected_value(lambda x: 2**x)
-ce5 = dd_1_1_40.expected_value(lambda x: 2 * x)
+ce4 = dd_0_1_20.expected(lambda x: 2**x)
+ce5 = dd_1_1_40.expected(lambda x: 2 * x)
 
 # %% [markdown]
 # Using `HARK.distribution.calc_expectation()`, we first provide the distribution and then the function.
@@ -97,8 +97,8 @@ ce5 = calc_expectation(dd_1_1_40, lambda x: 2 * x)
 
 # %%
 # %%timeit
-ce6 = dd_10_10_100.expected_value(lambda x, y: 2 * x + y, 20)
-ce7 = dd_0_1_20.expected_value(lambda x, y: x + y, np.hstack([0, 1, 2, 3, 4, 5]))
+ce6 = dd_10_10_100.expected(lambda x, y: 2 * x + y, 20)
+ce7 = dd_0_1_20.expected(lambda x, y: x + y, np.hstack([0, 1, 2, 3, 4, 5]))
 
 # %%
 # %%timeit
@@ -127,8 +127,8 @@ def m_next(x, aGrid, R):
 
 # %%
 # %%timeit
-ce8 = IncShkDstn.expected_value(m_next, aGrid, R)
-ce9 = IncShkDstn.expected_value(m_next, aGrid.reshape((10, 10)), R)
+ce8 = IncShkDstn.expected(m_next, aGrid, R)
+ce9 = IncShkDstn.expected(m_next, aGrid.reshape((10, 10)), R)
 
 # %%
 # %%timeit
@@ -159,7 +159,7 @@ for n in size:
     R = 1.05
 
     start_self = time()
-    ce_self = IncShkDstn.expected_value(m_next, a_grid, R)
+    ce_self = IncShkDstn.expected(m_next, a_grid, R)
     time_self = time() - start_self
 
     start_dist = time()
@@ -181,22 +181,22 @@ plt.legend()
 plt.show()
 
 # %% [markdown]
-# ### Aliases for the new `expected_value()` method
+# ### Aliases for the new `expected()` method
 #
 
 # %% [markdown]
-# There are two aliases for the new `expected_value()` method to make it clearer as a mathematical expression. The way to access these is as follows:
+# There is a top-level alias for the new `expected()` method to make it clearer as a mathematical expression. The way to access it is as follows:
 #
-# `ExpectedValue(func, dstn, *args)`
+# `expected(func, dstn, *args)`
 #
 
 # %%
-from HARK.distribution import ExpectedValue
+from HARK.distribution import expected
 
 # %%
-ExpectedValue(func=m_next, dist=IncShkDstn, args=(aGrid, R))
+expected(func=m_next, dist=IncShkDstn, args=(aGrid, R))
 
 # %%
-ExpectedValue(func=lambda x: 1 / x[0] + x[1], dist=IncShkDstn)
+expected(func=lambda x: 1 / x[0] + x[1], dist=IncShkDstn)
 
 # %%

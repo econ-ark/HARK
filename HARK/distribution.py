@@ -4,7 +4,7 @@ from itertools import product
 import numpy as np
 import scipy.stats as stats
 from scipy.special import erf, erfc
-from xarray import DataArray
+from xarray import DataArray, Dataset
 
 
 class Distribution:
@@ -934,7 +934,7 @@ class DiscreteDistribution(Distribution):
 
         return draws
 
-    def expected_value(self, func=None, *args):
+    def expected(self, func=None, *args):
         """
         Expected value of a function, given an array of configurations of its
         inputs along with a DiscreteDistribution object that specifies the
@@ -1025,7 +1025,7 @@ class DiscreteDistribution(Distribution):
 class DiscreteDistributionXRA(DiscreteDistribution):
     """
     A representation of a discrete probability distribution
-    stored in an underlying `xarray.DataArray` array.
+    stored in an underlying `xarray.Dataset`.
 
     Parameters
     ----------
@@ -1038,12 +1038,10 @@ class DiscreteDistributionXRA(DiscreteDistribution):
         the random variable has 4 possible realizations and each of them has shape (2,6).
     seed : int
         Seed for random number generator.
-    coords : dict
-        Coordinate values/names for each dimension of the underlying array.
-    dims : tuple or list
-        Dimension names for each dimension of the underlying array.
     name : str
         Name of the distribution.
+    var_names : list of str
+        Names of the variables in the distribution.
     attrs: dict
         Attributes for the distribution.
     """
@@ -1053,95 +1051,90 @@ class DiscreteDistributionXRA(DiscreteDistribution):
         prob,
         data,
         seed=0,
-        coords=None,
-        dims=None,
         name="DiscreteDistributionXRA",
+        var_names=None,
         attrs=None,
+        var_attrs=None,
     ):
 
+        # vector-value distributions
         if data.ndim < 2:
             data = data[np.newaxis, ...]
+        if data.ndim > 2:
+            raise NotImplementedError(
+                "Only vector-valued distributions are supported for now."
+            )
 
         if attrs is None:
             attrs = {}
 
-        attrs["prob"] = np.asarray(prob)
+        attrs["name"] = name
+        attrs["pmf"] = np.asarray(pmf)
         attrs["seed"] = seed
         attrs["RNG"] = np.random.RandomState(seed)
 
-        self._xarray = DataArray(
-            data=data,
-            coords=coords,
-            dims=dims,
-            name=name,
+        n_var = data.shape[0]
+
+        if var_names is None:
+            var_names = ["var_" + str(i) for i in range(n_var)]
+
+        assert (
+            len(var_names) == n_var
+        ), "Number of variable names does not match number of variables."
+
+        if var_attrs is None:
+            var_attrs = [None] * n_var
+
+        self.dataset = Dataset(
+            {
+                var_names[i]: DataArray(data[i], attrs=var_attrs[i])
+                for i in range(n_var)
+            },
             attrs=attrs,
         )
 
     @property
-    def xarray(self):
-        """
-        Returns the underlying xarray.DataArray object.
-        """
-        return self._xarray
+    def variables(self):
+        return self.dataset.data_vars
 
     @property
     def values(self):
         """
         Returns the distribution's data as a numpy.ndarray.
         """
-        return self._xarray.values
+        data_vars = self.variables
+        return np.vstack([data_vars[key].values for key in data_vars.keys()])
 
     @property
     def prob(self):
         """
         Returns the distribution's probability mass function.
         """
-        return self._xarray.prob
+
+        return self.dataset.pmf
 
     @property
     def RNG(self):
         """
         Returns the distribution's random number generator.
         """
-        return self._xarray.RNG
-
-    @property
-    def data(self):
-        """
-        The distribution's data as an array. The underlying
-        array type (e.g. dask, sparse, pint) is preserved.
-        """
-        return self._xarray.data
-
-    @property
-    def coords(self):
-        """
-        The distribution's coordinates.
-        """
-        return self._xarray.coords
-
-    @property
-    def dims(self):
-        """
-        The distribution's dimensions.
-        """
-        return self._xarray.dims
+        return self.dataset.RNG
 
     @property
     def name(self):
         """
         The distribution's name.
         """
-        return self._xarray.name
+        return self.dataset.name
 
     @property
     def attrs(self):
         """
         The distribution's attributes.
         """
-        return self._xarray.attrs
+        return self.dataset.attrs
 
-    def expected_value(self, func=None, *args, labels=False):
+    def expected(self, func=None, *args, labels=False):
         """
         Expectation of a function, given an array of configurations of its inputs
         along with a DiscreteDistributionXRA object that specifies the probability
@@ -1179,9 +1172,8 @@ class DiscreteDistributionXRA(DiscreteDistribution):
             """
             Wrapper function for `func` that handles labeled indexing.
             """
-            dim_0 = self.dims[0]
-            idx = self.coords[dim_0].values
 
+            idx = self.variables.keys()
             wrapped = dict(zip(idx, x))
 
             return func(wrapped, *args)
@@ -1191,7 +1183,7 @@ class DiscreteDistributionXRA(DiscreteDistribution):
         else:
             which_func = func
 
-        return super().expected_value(which_func, *args)
+        return super().expected(which_func, *args)
 
 
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
@@ -1485,7 +1477,7 @@ def add_discrete_outcome(distribution, x, p, sort=False):
     return DiscreteDistribution(prob, data)
 
 
-def combine_indep_dstns(*distributions, seed=0, xarray=False, **kwargs):
+def combine_indep_dstns(*distributions, seed=0):
     """
     Given n independent vector-valued discrete distributions, construct their joint discrete distribution.
     Can take multivariate discrete distributions as inputs.
@@ -1535,11 +1527,7 @@ def combine_indep_dstns(*distributions, seed=0, xarray=False, **kwargs):
 
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
 
-    if xarray:
-        which_dist = DiscreteDistributionXRA
-    else:
-        which_dist = DiscreteDistribution
-    return which_dist(P_out, data_out, seed=seed, **kwargs)
+    return DiscreteDistribution(P_out, X_out, seed=seed)
 
 
 def calc_expectation(dstn, func=lambda x: x, *args):
@@ -1666,7 +1654,7 @@ class MarkovProcess(Distribution):
         return array_sample(state)
 
 
-def ExpectedValue(func=None, dist=None, args=(), labels=False):
+def expected(func=None, dist=None, args=(), labels=False):
     """
     Expectation of a function, given an array of configurations of its inputs
     along with a DiscreteDistribution(dataRA) object that specifies the probability
@@ -1706,6 +1694,6 @@ def ExpectedValue(func=None, dist=None, args=(), labels=False):
         args = (args,)
 
     if isinstance(dist, DiscreteDistributionXRA):
-        return dist.expected_value(func, *args, labels=labels)
+        return dist.expected(func, *args, labels=labels)
     elif isinstance(dist, DiscreteDistribution):
-        return dist.expected_value(func, *args)
+        return dist.expected(func, *args)
