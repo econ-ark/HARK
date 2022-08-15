@@ -23,11 +23,9 @@ Release Date: TBD
 * Changes the `DiscreteDistribution` class to allow for arbitrary array-valued random variables. [#1146](https://github.com/econ-ark/HARK/pull/1146)
 * Adds `IndShockRiskyAssetConsumerType` as agent which can invest savings all in safe asset, all in risky asset, a fixed share in risky asset, or optimize its portfolio. [#1107](https://github.com/econ-ark/HARK/issues/1107)
 * Updates all HARK models to allow for age-varying interest rates. [#1150](https://github.com/econ-ark/HARK/pull/1150)
-
-- Adds `DiscreteDistribution.expected_value` method which expects vectorized functions and is faster than `HARK.distribution.calc_expectation`. [#1156](https://github.com/econ-ark/HARK/pull/1156)
-- Adds `HARK.distribution.ExpectedValue` alias for `DiscreteDistribution.expected_value`. [#1156](https://github.com/econ-ark/HARK/pull/1156)
-- Adds `DiscreteDistributionXRA` class which extends `DiscreteDistribution` to allow for underlying data to be stored in a `xarray.DataArray` object. [#1156](https://github.com/econ-ark/HARK/pull/1156)
-- Adds keyword argument `labels` to `expected_value()` and `ExpectedValue()` when using `DiscreteDistributionXRA` to allow for expressive functions that use labeled xarrays. [#1156](https://github.com/econ-ark/HARK/pull/1156)
+* Adds `DiscreteDistribution.expected` method which expects vectorized functions and is faster than `HARK.distribution.calc_expectation`. [#1156](https://github.com/econ-ark/HARK/pull/1156)
+* Adds `DiscreteDistributionXRA` class which extends `DiscreteDistribution` to allow for underlying data to be stored in a `xarray.DataArray` object. [#1156](https://github.com/econ-ark/HARK/pull/1156)
+* Adds keyword argument `labels` to `expected()` when using `DiscreteDistributionXRA` to allow for expressive functions that use labeled xarrays. [#1156](https://github.com/econ-ark/HARK/pull/1156)
 
 ### Minor Changes
 
@@ -37,6 +35,7 @@ Release Date: TBD
 * Adds `benchmark` utility to profile the performance of `HARK` solvers. [#1131](https://github.com/econ-ark/HARK/pull/1131)
 * Fixes scaling bug in Normal equiprobable approximation method. [1139](https://github.com/econ-ark/HARK/pull/1139)
 * Removes the extra-dimension that was returned by `calc_expectations` in some instances. [#1149](https://github.com/econ-ark/HARK/pull/1149)
+* Adds `HARK.distribution.expected` alias for `DiscreteDistribution.expected`. [#1156](https://github.com/econ-ark/HARK/pull/1156)
 
 ### 0.12.0
 
