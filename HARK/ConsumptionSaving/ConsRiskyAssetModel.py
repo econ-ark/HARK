@@ -216,9 +216,9 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 
                 def temp_f(s):
                     return -((1.0 - self.CRRA) ** -1) * np.dot(
-                        (self.Rfree[t] + s * (RiskyDstn.X - self.Rfree[t]))
+                        (self.Rfree[t] + s * (RiskyDstn.atoms - self.Rfree[t]))
                         ** (1.0 - self.CRRA),
-                        RiskyDstn.pmf,
+                        RiskyDstn.pmv,
                     )
 
                 SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
@@ -230,9 +230,9 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 
             def temp_f(s):
                 return -((1.0 - self.CRRA) ** -1) * np.dot(
-                    (self.Rfree[0] + s * (RiskyDstn.X - self.Rfree[0]))
+                    (self.Rfree[0] + s * (RiskyDstn.atoms - self.Rfree[0]))
                     ** (1.0 - self.CRRA),
-                    RiskyDstn.pmf,
+                    RiskyDstn.pmv,
                 )
 
             SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
@@ -438,7 +438,7 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
         IncShkDstn : distribution.DiscreteDistribution
-            A DiscreteDistribution with a pmf
+            A DiscreteDistribution with a pmv
             and two point value arrays in X, order:
             permanent shocks, transitory shocks.
         LivPrb : float
@@ -515,9 +515,9 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
 
         # Calculate the minimum allowable value of money resources in this period
         self.BoroCnstNat = (
-            (self.solution_next.mNrmMin - self.TranShkDstn.X.min())
-            * (self.PermGroFac * self.PermShkDstn.X.min())
-            / self.RiskyDstn.X.max()
+            (self.solution_next.mNrmMin - self.TranShkDstn.atoms.min())
+            * (self.PermGroFac * self.PermShkDstn.atoms.min())
+            / self.RiskyDstn.atoms.max()
         )
 
         # Flag for whether the natural borrowing constraint is zero
@@ -560,20 +560,20 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
 
             if self.IndepDstnBool:
                 bNrmNext = np.append(
-                    aNrmNow[0] * self.RiskyDstn.X.min(),
-                    aNrmNow * self.RiskyDstn.X.max(),
+                    aNrmNow[0] * self.RiskyDstn.atoms.min(),
+                    aNrmNow * self.RiskyDstn.atoms.max(),
                 )
                 wNrmNext = np.append(
-                    bNrmNext[0] / (self.PermGroFac * self.PermShkDstn.X.max()),
-                    bNrmNext / (self.PermGroFac * self.PermShkDstn.X.min()),
+                    bNrmNext[0] / (self.PermGroFac * self.PermShkDstn.atoms.max()),
+                    bNrmNext / (self.PermGroFac * self.PermShkDstn.atoms.min()),
                 )
         else:
             # add zero to aNrmNow
             aNrmNow = np.append(self.BoroCnstArt, self.aXtraGrid)
 
             if self.IndepDstnBool:
-                bNrmNext = aNrmNow * self.RiskyDstn.X.max()
-                wNrmNext = bNrmNext / (self.PermGroFac * self.PermShkDstn.X.min())
+                bNrmNext = aNrmNow * self.RiskyDstn.atoms.max()
+                wNrmNext = bNrmNext / (self.PermGroFac * self.PermShkDstn.atoms.min())
 
         self.aNrmNow = aNrmNow
 
@@ -808,7 +808,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
         IncShkDstn : distribution.DiscreteDistribution
-            A DiscreteDistribution with a pmf
+            A DiscreteDistribution with a pmv
             and two point value arrays in X, order:
             permanent shocks, transitory shocks.
         LivPrb : float
@@ -1127,7 +1127,7 @@ class ConsFixedPortfolioIndShkRiskyAssetSolver(ConsIndShockSolver):
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
         IncShkDstn : distribution.DiscreteDistribution
-            A DiscreteDistribution with a pmf
+            A DiscreteDistribution with a pmv
             and two point value arrays in X, order:
             permanent shocks, transitory shocks.
         LivPrb : float
@@ -1196,13 +1196,14 @@ class ConsFixedPortfolioIndShkRiskyAssetSolver(ConsIndShockSolver):
 
         # in worst case scenario, debt gets highest return possible
         self.RPortMax = (
-            self.Rfree + (self.RiskyDstn.X.max() - self.Rfree) * self.RiskyShareFixed
+            self.Rfree
+            + (self.RiskyDstn.atoms.max() - self.Rfree) * self.RiskyShareFixed
         )
 
         # Calculate the minimum allowable value of money resources in this period
         self.BoroCnstNat = (
-            (self.solution_next.mNrmMin - self.TranShkDstn.X.min())
-            * (self.PermGroFac * self.PermShkDstn.X.min())
+            (self.solution_next.mNrmMin - self.TranShkDstn.atoms.min())
+            * (self.PermGroFac * self.PermShkDstn.atoms.min())
             / self.RPortMax
         )
 
