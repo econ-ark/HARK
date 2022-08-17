@@ -59,6 +59,7 @@ class LinearFast(MetricObject):
         """
         array_args = [np.asarray(x) for x in args]
 
+        # Call the econforge function
         f = eval_linear(
             self.Grid,
             self.f_val,
@@ -66,9 +67,35 @@ class LinearFast(MetricObject):
             self.extrap_options,
         )
 
+        # Reshape the output to the shape of inputs
         return np.reshape(f, array_args[0].shape)
 
     def _derivs(self, deriv_tuple, *args):
+        """
+        Evaluates derivatives of the interpolator.
+
+        Parameters
+        ----------
+        deriv_tuple : tuple of tuples of int
+            Indicates what are the derivatives to be computed.
+            It follows econforge's notation, where a derivative
+            to be calculated is a tuple of length equal to the
+            number of dimensions of the interpolator and entries
+            in that tuple represent the order of the derivative.
+            E.g. to calculate f(x,y) and df/dy(x,y) use
+            deriv_tuple = ((0,0),(0,1))
+
+        args: [numpy.array]
+            List of arrays. The i-th entry contains the i-th coordinate
+            of all the points to be evaluated. All entries must have the
+            same shape.
+
+        Returns
+        -------
+        [numpy.array]
+            List of the derivatives that were requested in the same order
+            as deriv_tuple. Each element has the shape of items in args.
+        """
 
         # Format arguments
         array_args = [np.asarray(x) for x in args]
@@ -92,7 +119,25 @@ class LinearFast(MetricObject):
         return derivs
 
     def gradient(self, *args):
+        """
+        Evaluates gradient of the interpolator.
 
+        Parameters
+        ----------
+        args: [numpy.array]
+            List of arrays. The i-th entry contains the i-th coordinate
+            of all the points to be evaluated. All entries must have the
+            same shape.
+
+        Returns
+        -------
+        [numpy.array]
+            List of the derivatives of the function with respect to each
+            input, evaluated at the given points. E.g. if the interpolator
+            represents 3D function f, f.gradient(x,y,z) will return
+            [df/dx(x,y,z), df/dy(x,y,z), df/dz(x,y,z)]. Each element has the
+            shape of items in args.
+        """
         # Form a tuple that indicates which derivatives to get
         # in the way eval_linear expects
         deriv_tup = tuple(
@@ -102,7 +147,27 @@ class LinearFast(MetricObject):
         return self._derivs(deriv_tup, *args)
 
     def _eval_and_grad(self, *args):
+        """
+        Evaluates interpolator and its gradient.
 
+        Parameters
+        ----------
+        args: [numpy.array]
+            List of arrays. The i-th entry contains the i-th coordinate
+            of all the points to be evaluated. All entries must have the
+            same shape.
+
+        Returns
+        -------
+        numpy.array
+            Value of the interpolator at given arguments.
+        [numpy.array]
+            List of the derivatives of the function with respect to each
+            input, evaluated at the given points. E.g. if the interpolator
+            represents 3D function f, f.gradient(x,y,z) will return
+            [df/dx(x,y,z), df/dy(x,y,z), df/dz(x,y,z)]. Each element has the
+            shape of items in args.
+        """
         # (0,0,...,0) to get the function evaluation
         eval_tup = tuple([tuple(0 for i in range(self.dim))])
 
