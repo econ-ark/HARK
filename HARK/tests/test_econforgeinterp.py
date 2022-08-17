@@ -314,6 +314,38 @@ class TestLinearDecay(unittest.TestCase):
         plt.show()
         print("hi!")
 
+    def test_compare_smooth_with_LinearInterp(self):
+
+        lim_slope = 0.1
+        lim_inter = 1.0
+
+        x = np.linspace(0, 10, 20)
+        y = lim_inter + lim_slope * x - 1 / (0.2 * x + 1)
+
+        base_lim_interp = LinearInterp(
+            x, y, intercept_limit=lim_inter, slope_limit=lim_slope
+        )
+        efor_lim_interp = DecayInterp(
+            LinearFast(y, [x]),
+            limit_fun=lambda x: lim_inter + lim_slope * x,
+            limit_grad=lambda x: [lim_slope * np.ones_like(x)],
+            extrap_method="decay_smooth",
+        )
+
+        x_eval = np.linspace(0, 20, 200)
+        base_vals = base_lim_interp(x_eval)
+        efor_vals = efor_lim_interp(x_eval)
+
+        import matplotlib.pyplot as plt
+
+        plt.figure()
+        plt.plot(x_eval, base_vals, label="base")
+        plt.plot(x_eval, efor_vals, label="efor")
+        plt.legend()
+        plt.show()
+
+        self.assertTrue(np.allclose(base_vals, efor_vals))
+
     def test_extrap_1D(self):
 
         x = np.linspace(0, 2, 50)
