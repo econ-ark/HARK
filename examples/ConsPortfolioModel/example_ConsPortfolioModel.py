@@ -1,3 +1,7 @@
+# %% [markdown]
+# # Portfolio Models in HARK
+#
+
 # %%
 """
 Example implementations of HARK.ConsumptionSaving.ConsPortfolioModel
@@ -195,6 +199,12 @@ plot_funcs(
 )
 
 
+# %% [markdown]
+# Notice the wiggle in the blue line. This reflects the fact that the maximum grid point for which the solution is calculated is a=100 and the (incorrect) assumption built into the model that the portfolio share asymptotes to the frictionless analytical case. An alternative (not yet implemented) would be to calculate the implicit limit defined by the rate of geometric decay among the last grid points and assume that this is the limit.
+#
+# The difference between the two is likely due to the agent's inability to adjust their portfolio.
+#
+
 # %%
 ""
 # Make another example type, but this one has *age-varying* perceptions of risky asset returns.
@@ -254,12 +264,15 @@ plot_funcs(AgeVaryingRiskPercType.ShareFunc, 0.0, 200.0)
 
 # %% [markdown]
 # The code below tests the mathematical limits of the model.
+#
 
 # %%
 # Create a grid of market resources for the plots
 mMin = 0  # Minimum ratio of assets to income to plot
 mMax = 5 * 1e2  # Maximum ratio of assets to income to plot
 mPts = 1000  # Number of points to plot
+plot_point_max = 1000
+aXtraMax = plot_point_max * 10  # Maximum asset level
 
 eevalgrid = np.linspace(0, mMax, mPts)  # range of values of assets for the plot
 
@@ -272,7 +285,7 @@ ages = [2, 4, 6, 8]
 merton_dict = copy(init_lifecycle)
 merton_dict["RiskyCount"] = init_portfolio["RiskyCount"]
 merton_dict["ShareCount"] = init_portfolio["ShareCount"]
-merton_dict["aXtraMax"] = init_portfolio["aXtraMax"]
+merton_dict["aXtraMax"] = aXtraMax
 merton_dict["aXtraCount"] = init_portfolio["aXtraCount"]
 merton_dict["aXtraNestFac"] = init_portfolio["aXtraNestFac"]
 merton_dict["BoroCnstArt"] = init_portfolio["BoroCnstArt"]
@@ -285,7 +298,6 @@ merton_dict["RiskyStdTrue"] = 0.20
 # Create a function to compute the Merton-Samuelson limiting portfolio share.
 def RiskyShareMertSamLogNormal(RiskPrem, CRRA, RiskyVar):
     return RiskPrem / (CRRA * RiskyVar)
-
 
 
 # %% Calibration and solution
