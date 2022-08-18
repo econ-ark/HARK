@@ -294,6 +294,66 @@ class TestLinearDecay(unittest.TestCase):
             extrap_method="decay_hark",
         )
 
+    def ndim_extrap_test(
+        self, ndim, f_interp, g_lim, g_lim_grad, extrap_method, atol=0.1
+    ):
+
+        # Create grids
+        grids = [np.linspace(0, 10, 11) for i in range(ndim)]
+        mesh = np.meshgrid(*grids, indexing="ij")
+
+        # Create interp
+        f_val = f_interp(*mesh)
+        interp = DecayInterp(
+            interp=LinearFast(f_val, grids),
+            limit_fun=g_lim,
+            limit_grad=g_lim_grad,
+            extrap_method=extrap_method,
+        )
+
+        # Test for values inside the grid
+        self.assertTrue(np.allclose(f_val, interp(*mesh)))
+
+        # Construct points far off grid in subsets of
+        # dimensions
+        off_points = np.meshgrid(*[np.array([5.0, 150.0]) for i in range(ndim)])
+        # Remove the first point, for which all the dimensions are in-grid
+        off_points = [ar.flatten()[1:] for ar in off_points]
+
+        extrap = interp(*off_points)
+        self.assertTrue(np.allclose(extrap, g_lim(*off_points), atol=atol))
+
+    def test_decay(self):
+
+        for method in ["decay_prop", "decay_hark"]:
+
+            # 1D
+            self.ndim_extrap_test(
+                1,
+                f_interp=lambda x: 3 * np.sqrt(x) + 1,
+                g_lim=lambda x: np.sin(x),
+                g_lim_grad=lambda x: [np.cos(x)],
+                extrap_method=method,
+            )
+
+            # 2D
+            self.ndim_extrap_test(
+                2,
+                f_interp=lambda x, y: 3 * x - 4 * y,
+                g_lim=lambda x, y: 3 * y - np.log(x + 1),
+                g_lim_grad=lambda x, y: [np.divide(1, x + 1), np.ones_like(y) * 3],
+                extrap_method=method,
+            )
+
+            # 3D
+            self.ndim_extrap_test(
+                3,
+                f_interp=lambda x, y, z: 3 * x - 2 * y + z,
+                g_lim=lambda x, y, z: np.zeros_like(z),
+                g_lim_grad=lambda x, y, z: [np.zeros_like(x)] * 3,
+                extrap_method=method,
+            )
+
     def test_extrap(self):
 
         x = np.linspace(5, 60, 100)
