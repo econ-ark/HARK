@@ -1,5 +1,3 @@
-from operator import index
-from typing import no_type_check_decorator
 import unittest
 import numpy as np
 
@@ -148,10 +146,6 @@ class Check1DDerivatives(unittest.TestCase):
     Checks derivatives in a 1D interpolator
     """
 
-    def setUp(self):
-
-        pass
-
     def test_linear(self):
 
         # A linear function on a non-uniform grid
@@ -202,10 +196,6 @@ class Check2DDerivatives(unittest.TestCase):
     """ 
     Checks derivatives in a 2D interpolator
     """
-
-    def setUp(self):
-
-        pass
 
     def test_linear(self):
 
