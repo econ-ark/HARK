@@ -283,7 +283,7 @@ class TestLinearDecay(unittest.TestCase):
             interp,
             limit_fun=lambda x, y: 2 * x + y,
             limit_grad=lambda x, y: [np.ones_like(x) * 2, np.ones_like(y) * 1],
-            extrap_method="decay_prop",
+            extrap_method="decay_hark",
         )
 
         # another that limits to a shifted function with different slopes
@@ -291,7 +291,7 @@ class TestLinearDecay(unittest.TestCase):
             interp,
             limit_fun=lambda x, y: np.sqrt(x),
             limit_grad=lambda x, y: [0.5 * np.power(x, -0.5), np.zeros_like(y)],
-            extrap_method="decay_prop",
+            extrap_method="decay_hark",
         )
 
     def test_extrap(self):
@@ -329,7 +329,7 @@ class TestLinearDecay(unittest.TestCase):
             LinearFast(y, [x]),
             limit_fun=lambda x: lim_inter + lim_slope * x,
             limit_grad=lambda x: [lim_slope * np.ones_like(x)],
-            extrap_method="hark_1d",
+            extrap_method="decay_hark",
         )
 
         x_eval = np.linspace(0, 20, 200)
@@ -360,24 +360,23 @@ class TestLinearDecay(unittest.TestCase):
             limit_grad=limit_grad,
             extrap_method="decay_prop",
         )
-        dec_sm = DecayInterp(
-            interp,
-            limit_fun=limit_fun,
-            limit_grad=limit_grad,
-            extrap_method="decay_smooth",
-        )
         dec_pa = DecayInterp(
             interp, limit_fun=limit_fun, limit_grad=limit_grad, extrap_method="paste",
         )
-
+        dec_ha = DecayInterp(
+            interp,
+            limit_fun=limit_fun,
+            limit_grad=limit_grad,
+            extrap_method="decay_hark",
+        )
         x_ev = np.linspace(0, 10, 200)
 
         import matplotlib.pyplot as plt
 
         plt.figure()
         plt.plot(x_ev, dec_pr(x_ev), label="prop")
-        plt.plot(x_ev, dec_sm(x_ev), label="smoo")
         plt.plot(x_ev, dec_pa(x_ev), label="past")
+        plt.plot(x_ev, dec_ha(x_ev), label="decay_hark")
         plt.plot(x_ev, limit_fun(x_ev), "--", label="limit")
         plt.legend()
         plt.show()
