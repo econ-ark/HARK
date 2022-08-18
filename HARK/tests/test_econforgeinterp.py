@@ -329,7 +329,7 @@ class TestLinearDecay(unittest.TestCase):
             LinearFast(y, [x]),
             limit_fun=lambda x: lim_inter + lim_slope * x,
             limit_grad=lambda x: [lim_slope * np.ones_like(x)],
-            extrap_method="decay_smooth",
+            extrap_method="hark_1d",
         )
 
         x_eval = np.linspace(0, 20, 200)

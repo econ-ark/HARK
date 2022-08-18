@@ -203,6 +203,7 @@ class DecayInterp(MetricObject):
             "decay_prop": self.extrap_decay_prop,
             "decay_smooth": self.extrap_decay_smooth,
             "paste": self.extrap_paste,
+            "hark_1d": self.extrap_decay_hark_1d,
         }
 
         try:
@@ -273,6 +274,31 @@ class DecayInterp(MetricObject):
         weight = np.exp(np.sum(-B * (x - closest_x), axis=1))
 
         return weight * f_val_x + (1 - weight) * g_val_x
+
+    def extrap_decay_hark_1d(self, x, closest_x):
+
+        # Evaluate limiting function at x
+        g_val_x = self.limit_fun(*[x[:, i] for i in range(self.dim)])
+
+        # Get gradients and values at the closest in-grid point
+        closest_x_arglist = [closest_x[:, i][..., None] for i in range(self.dim)]
+
+        # Interpolator
+        f_val, f_grad = self.interp._eval_and_grad(*closest_x_arglist)
+        f_grad = np.hstack(f_grad)
+        # Limit
+        g_val = self.limit_fun(*closest_x_arglist)
+        g_grad = self.limit_grad(*closest_x_arglist)
+        g_grad = np.hstack(g_grad)
+
+        # Construct weights
+        # TODO: deal with zeros in the denominator
+        B = np.abs(np.divide(1, g_val - f_val) * (g_grad - f_grad))
+        A = g_val - f_val
+
+        val = g_val_x[..., None] - A * np.exp(-B * (x - closest_x))
+
+        return val.flatten()
 
     def extrap_paste(self, x, closest_x):
 
