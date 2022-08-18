@@ -320,6 +320,8 @@ class TestLinearDecay(unittest.TestCase):
         # Remove the first point, for which all the dimensions are in-grid
         off_points = [ar.flatten()[1:] for ar in off_points]
 
+        # Check that the extrapolated values are close to the limit
+        # function
         extrap = interp(*off_points)
         self.assertTrue(np.allclose(extrap, g_lim(*off_points), atol=atol))
 
@@ -341,7 +343,7 @@ class TestLinearDecay(unittest.TestCase):
                 2,
                 f_interp=lambda x, y: 3 * x - 4 * y,
                 g_lim=lambda x, y: 3 * y - np.log(x + 1),
-                g_lim_grad=lambda x, y: [np.divide(1, x + 1), np.ones_like(y) * 3],
+                g_lim_grad=lambda x, y: [-1 * np.divide(1, x + 1), np.ones_like(y) * 3],
                 extrap_method=method,
             )
 
