@@ -1,5 +1,3 @@
-from operator import index
-from typing import no_type_check_decorator
 import unittest
 import numpy as np
 
@@ -23,9 +21,15 @@ class CompareLinearInterp(unittest.TestCase):
         h_interp = LinearInterp(x, y, lower_extrap=True)
         e_interp = LinearFast(y, [x])
 
+        # Function evaluation
         h_vals = h_interp(eval_points)
         e_vals = e_interp(eval_points)
         self.assertTrue(np.allclose(h_vals, e_vals))
+
+        # Derivative
+        h_der = h_interp._der(eval_points)
+        e_der = e_interp.gradient(eval_points)[0]
+        self.assertTrue(np.allclose(h_der, e_der))
 
     def test_outputs(self):
         """
@@ -81,9 +85,20 @@ class CompareBilinearInterp(unittest.TestCase):
         h_interp = BilinearInterp(z, x, y)
         e_interp = LinearFast(z, [x, y])
 
+        # Function value
         h_vals = h_interp(eval_x, eval_y)
         e_vals = e_interp(eval_x, eval_y)
         self.assertTrue(np.allclose(h_vals, e_vals))
+
+        # Derivatives
+        h_grad = [
+            h_interp.derivativeX(eval_x, eval_y),
+            h_interp.derivativeY(eval_x, eval_y),
+        ]
+        e_grad = e_interp.gradient(eval_x, eval_y)
+
+        for i, der in enumerate(h_grad):
+            self.assertTrue(np.allclose(der, e_grad[i]))
 
     def test_outputs(self):
         """
@@ -148,10 +163,6 @@ class Check1DDerivatives(unittest.TestCase):
     Checks derivatives in a 1D interpolator
     """
 
-    def setUp(self):
-
-        pass
-
     def test_linear(self):
 
         # A linear function on a non-uniform grid
@@ -202,10 +213,6 @@ class Check2DDerivatives(unittest.TestCase):
     """ 
     Checks derivatives in a 2D interpolator
     """
-
-    def setUp(self):
-
-        pass
 
     def test_linear(self):
 

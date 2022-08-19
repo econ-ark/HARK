@@ -164,7 +164,7 @@ class LinearFast(MetricObject):
         [numpy.array]
             List of the derivatives of the function with respect to each
             input, evaluated at the given points. E.g. if the interpolator
-            represents 3D function f, f.gradient(x,y,z) will return
+            represents 3D function f, the list will be
             [df/dx(x,y,z), df/dy(x,y,z), df/dz(x,y,z)]. Each element has the
             shape of items in args.
         """
