@@ -26,6 +26,8 @@ Release Date: TBD
 * Adds `DiscreteDistribution.expected` method which expects vectorized functions and is faster than `HARK.distribution.calc_expectation`. [#1156](https://github.com/econ-ark/HARK/pull/1156)
 * Adds `DiscreteDistributionXRA` class which extends `DiscreteDistribution` to allow for underlying data to be stored in a `xarray.DataArray` object. [#1156](https://github.com/econ-ark/HARK/pull/1156)
 * Adds keyword argument `labels` to `expected()` when using `DiscreteDistributionXRA` to allow for expressive functions that use labeled xarrays. [#1156](https://github.com/econ-ark/HARK/pull/1156)
+* Adds a wrapper for [`interpolation.py`](https://github.com/EconForge/interpolation.py) for fast multilinear interpolation. [#1151](https://github.com/econ-ark/HARK/pull/1151)
+* Adds support for the calculation of dreivatives in the `interpolation.py` wrappers. [#1157](https://github.com/econ-ark/HARK/pull/1157)
 
 ### Minor Changes
 
