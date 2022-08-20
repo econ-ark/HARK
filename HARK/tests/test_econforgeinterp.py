@@ -363,26 +363,6 @@ class TestLinearDecay(unittest.TestCase):
                 extrap_method=method,
             )
 
-    def test_extrap(self):
-
-        x = np.linspace(5, 60, 100)
-        y = np.linspace(5, 60, 100)
-        x_t, y_t = np.meshgrid(x, y, indexing="ij")
-
-        z_same = self.interp_same(x_t, y_t)
-        z_shift = self.interp_shift(x_t, y_t)
-
-        import matplotlib.pyplot as plt
-
-        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-        ax.plot_surface(x_t, y_t, z_same)
-        plt.show()
-
-        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-        ax.plot_surface(x_t, y_t, z_shift)
-        plt.show()
-        print("hi!")
-
     def test_compare_smooth_with_LinearInterp(self):
 
         lim_slope = 0.1
@@ -405,48 +385,4 @@ class TestLinearDecay(unittest.TestCase):
         base_vals = base_lim_interp(x_eval)
         efor_vals = efor_lim_interp(x_eval)
 
-        import matplotlib.pyplot as plt
-
-        plt.figure()
-        plt.plot(x_eval, base_vals, label="base")
-        plt.plot(x_eval, efor_vals, label="efor")
-        plt.legend()
-        plt.show()
-
         self.assertTrue(np.allclose(base_vals, efor_vals))
-
-    def test_extrap_1D(self):
-
-        x = np.linspace(0, 2, 50)
-        interp = LinearFast(np.sqrt(x), [x])
-
-        limit_fun = lambda x: 1 + -2 * x
-        limit_grad = lambda x: [-2 * np.ones_like(x)]
-
-        dec_pr = DecayInterp(
-            interp,
-            limit_fun=limit_fun,
-            limit_grad=limit_grad,
-            extrap_method="decay_prop",
-        )
-        dec_pa = DecayInterp(
-            interp, limit_fun=limit_fun, limit_grad=limit_grad, extrap_method="paste",
-        )
-        dec_ha = DecayInterp(
-            interp,
-            limit_fun=limit_fun,
-            limit_grad=limit_grad,
-            extrap_method="decay_hark",
-        )
-        x_ev = np.linspace(0, 10, 200)
-
-        import matplotlib.pyplot as plt
-
-        plt.figure()
-        plt.plot(x_ev, dec_pr(x_ev), label="prop")
-        plt.plot(x_ev, dec_pa(x_ev), label="past")
-        plt.plot(x_ev, dec_ha(x_ev), label="decay_hark")
-        plt.plot(x_ev, limit_fun(x_ev), "--", label="limit")
-        plt.legend()
-        plt.show()
-        print("hi!")
