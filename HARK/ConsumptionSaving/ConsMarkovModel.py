@@ -237,8 +237,8 @@ class ConsMarkovSolver(ConsIndShockSolver):
         self.BoroCnstNatAll = np.zeros(self.StateCount) + np.nan
         # Find the natural borrowing constraint conditional on next period's state
         for j in range(self.StateCount):
-            PermShkMinNext = np.min(self.IncShkDstn_list[j].X[0])
-            TranShkMinNext = np.min(self.IncShkDstn_list[j].X[1])
+            PermShkMinNext = np.min(self.IncShkDstn_list[j].atoms[0])
+            TranShkMinNext = np.min(self.IncShkDstn_list[j].atoms[1])
             self.BoroCnstNatAll[j] = (
                 (self.solution_next.mNrmMin[j] - TranShkMinNext)
                 * (self.PermGroFac_list[j] * PermShkMinNext)
@@ -1117,9 +1117,9 @@ class MarkovConsumerType(IndShockConsumerType):
                     # Get random draws of income shocks from the discrete distribution
                     EventDraws = IncShkDstnNow.draw_events(N)
                     PermShkNow[these] = (
-                        IncShkDstnNow.X[0][EventDraws] * PermGroFacNow
+                        IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
                     )  # permanent "shock" includes expected growth
-                    TranShkNow[these] = IncShkDstnNow.X[1][EventDraws]
+                    TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
         newborn = self.t_age == 0
         PermShkNow[newborn] = 1.0
         TranShkNow[newborn] = 1.0

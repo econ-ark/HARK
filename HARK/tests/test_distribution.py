@@ -110,13 +110,13 @@ class DiscreteDistributionTests(unittest.TestCase):
         TranShkDstn = MeanOneLogNormal().approx(200)
         IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
-        ce8 = calc_expectation(IncShkDstn, lambda X: X[0] + X[1])
+        ce8 = calc_expectation(IncShkDstn, lambda atoms: atoms[0] + atoms[1])
 
         self.assertAlmostEqual(ce8, 2.0)
 
         ce9 = calc_expectation(
             IncShkDstn,
-            lambda X, a, r: r / X[0] * a + X[1],
+            lambda atoms, a, r: r / atoms[0] * a + atoms[1],
             np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
             1.05,  # an interest rate?
         )
@@ -160,12 +160,12 @@ class DiscreteDistributionTests(unittest.TestCase):
         TranShkDstn = MeanOneLogNormal().approx(200)
         IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
-        ce8 = expected(lambda X: X[0] + X[1], dist=IncShkDstn)
+        ce8 = expected(lambda atoms: atoms[0] + atoms[1], dist=IncShkDstn)
 
         self.assertAlmostEqual(ce8, 2.0)
 
         ce9 = expected(
-            func=lambda X, a, r: r / X[0] * a + X[1],
+            func=lambda atoms, a, r: r / atoms[0] * a + atoms[1],
             dist=IncShkDstn,
             args=(
                 np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
@@ -234,10 +234,10 @@ class MatrixDiscreteDistributionTests(unittest.TestCase):
 
         self.draw_2 = -1 * self.draw_1
 
-        X = np.stack([self.draw_1, self.draw_2], axis=-1)
-        pmf = np.array([0.5, 0.5])
+        atoms = np.stack([self.draw_1, self.draw_2], axis=-1)
+        pmv = np.array([0.5, 0.5])
 
-        self.mat_distr = DiscreteDistribution(pmf, X, seed=0)
+        self.mat_distr = DiscreteDistribution(pmv, atoms, seed=0)
 
     def test_draw(self):
         """
@@ -418,7 +418,7 @@ class NormalDistTest(unittest.TestCase):
 
         mu, sigma = 5.0, 27.0
 
-        points = Normal(mu, sigma).approx_equiprobable(701).X
+        points = Normal(mu, sigma).approx_equiprobable(701).atoms
 
         self.assertAlmostEqual(np.mean(points), mu, places=7)
         self.assertAlmostEqual(np.std(points), sigma, places=2)
@@ -505,8 +505,8 @@ class DiscreteDistributionXRATests(unittest.TestCase):
         )
 
         IncShkDstn = DiscreteDistributionXRA(
-            IncShkDstn.pmf,
-            IncShkDstn.X,
+            IncShkDstn.pmv,
+            IncShkDstn.atoms,
             name="Distribution of shocks to Income",
             var_names=["perm_shk", "tran_shk"],
         )

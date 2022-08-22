@@ -38,6 +38,7 @@ Release Date: TBD
 * Fixes scaling bug in Normal equiprobable approximation method. [1139](https://github.com/econ-ark/HARK/pull/1139)
 * Removes the extra-dimension that was returned by `calc_expectations` in some instances. [#1149](https://github.com/econ-ark/HARK/pull/1149)
 * Adds `HARK.distribution.expected` alias for `DiscreteDistribution.expected`. [#1156](https://github.com/econ-ark/HARK/pull/1156)
+* Renames attributes in `DiscreteDistribution`: `X` to `atoms` and `pmf` to `pmv`. [#1164](https://github.com/econ-ark/HARK/pull/1164), [#1051](https://github.com/econ-ark/HARK/pull/1151), [#1159](https://github.com/econ-ark/HARK/pull/1159). 
 
 ### 0.12.0
 

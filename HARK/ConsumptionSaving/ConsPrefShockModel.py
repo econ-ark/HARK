@@ -24,7 +24,7 @@ from HARK.interpolation import (
     CubicInterp,
     LowerEnvelope,
     ValueFuncCRRA,
-    MargValueFuncCRRA
+    MargValueFuncCRRA,
 )
 
 
@@ -123,8 +123,11 @@ class PrefShockConsumerType(IndShockConsumerType):
         for t in range(len(self.PrefShkStd)):
             PrefShkStd = self.PrefShkStd[t]
             new_dstn = MeanOneLogNormal(
-                sigma=PrefShkStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
-            ).approx(N=self.PrefShkCount, tail_N=self.PrefShk_tail_N,)
+                sigma=PrefShkStd, seed=self.RNG.randint(0, 2**31 - 1)
+            ).approx(
+                N=self.PrefShkCount,
+                tail_N=self.PrefShk_tail_N,
+            )
             PrefShkDstn.append(new_dstn)
 
         # Store the preference shocks in self (time-varying) and restore time flow
@@ -193,9 +196,9 @@ class PrefShockConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cNrmNow[these] = self.solution[t].cFunc(
-                self.state_now['mNrm'][these], self.shocks["PrefShk"][these]
+                self.state_now["mNrm"][these], self.shocks["PrefShk"][these]
             )
-        self.controls['cNrm'] = cNrmNow
+        self.controls["cNrm"] = cNrmNow
         return None
 
     def calc_bounding_values(self):
@@ -368,8 +371,8 @@ class ConsPrefShockSolver(ConsIndShockSolver):
             vFuncBool,
             CubicBool,
         )
-        self.PrefShkPrbs = PrefShkDstn.pmf
-        self.PrefShkVals = PrefShkDstn.X.flatten()
+        self.PrefShkPrbs = PrefShkDstn.pmv
+        self.PrefShkVals = PrefShkDstn.atoms.flatten()
 
     def get_points_for_interpolation(self, EndOfPrdvP, aNrmNow):
         """
@@ -684,5 +687,5 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver, ConsKinkedRsolver):
             vFuncBool,
             CubicBool,
         )
-        self.PrefShkPrbs = PrefShkDstn.pmf
-        self.PrefShkVals = PrefShkDstn.X.flatten()
+        self.PrefShkPrbs = PrefShkDstn.pmv
+        self.PrefShkVals = PrefShkDstn.atoms.flatten()

@@ -3,7 +3,7 @@ Consumption-saving models that also include medical spending.
 """
 import numpy as np
 from scipy.optimize import brentq
-from HARK import  AgentType, MetricObject, make_one_period_oo_solver
+from HARK import AgentType, MetricObject, make_one_period_oo_solver
 from HARK.distribution import add_discrete_outcome_constant_mean, Lognormal
 from HARK.utilities import (
     CRRAutilityP_inv,
@@ -27,7 +27,7 @@ from HARK.interpolation import (
     VariableLowerBoundFunc3D,
     ValueFuncCRRA,
     MargValueFuncCRRA,
-    MargMargValueFuncCRRA
+    MargMargValueFuncCRRA,
 )
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     ConsGenIncProcessSolver,
@@ -569,7 +569,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
     """
 
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShk"]
-    state_vars = PersistentShockConsumerType.state_vars + ['mLvl']
+    state_vars = PersistentShockConsumerType.state_vars + ["mLvl"]
 
     def __init__(self, **kwds):
         params = init_medical_shocks.copy()
@@ -622,7 +622,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
             MedShkAvgNow = self.MedShkAvg[t]  # get shock distribution parameters
             MedShkStdNow = self.MedShkStd[t]
             MedShkDstnNow = Lognormal(
-                mu=np.log(MedShkAvgNow) - 0.5 * MedShkStdNow ** 2, sigma=MedShkStdNow
+                mu=np.log(MedShkAvgNow) - 0.5 * MedShkStdNow**2, sigma=MedShkStdNow
             ).approx(
                 N=self.MedShkCount, tail_N=self.MedShkCountTail, tail_bound=[0, 0.9]
             )
@@ -649,8 +649,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         """
         # Take last period data, whichever way time is flowing
         MedPrice = self.MedPrice[-1]
-        MedShkVals = self.MedShkDstn[-1].X.flatten()
-        MedShkPrbs = self.MedShkDstn[-1].pmf
+        MedShkVals = self.MedShkDstn[-1].atoms.flatten()
+        MedShkPrbs = self.MedShkDstn[-1].pmv
 
         # Initialize grids of medical need shocks, market resources, and optimal consumption
         MedShkGrid = MedShkVals
@@ -840,12 +840,12 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cLvlNow[these], MedNow[these] = self.solution[t].policyFunc(
-                self.state_now['mLvl'][these],
-                self.state_now['pLvl'][these],
+                self.state_now["mLvl"][these],
+                self.state_now["pLvl"][these],
                 self.shocks["MedShk"][these],
             )
-        self.controls['cLvl'] = cLvlNow
-        self.controls['Med'] = MedNow
+        self.controls["cLvl"] = cLvlNow
+        self.controls["Med"] = MedNow
         return None
 
     def get_poststates(self):
@@ -860,7 +860,11 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        self.state_now['aLvl'] = self.state_now['mLvl'] - self.controls['cLvl'] - self.shocks["MedPrice"] * self.controls['Med']
+        self.state_now["aLvl"] = (
+            self.state_now["mLvl"]
+            - self.controls["cLvl"]
+            - self.shocks["MedPrice"] * self.controls["Med"]
+        )
 
         # moves now to prev
         AgentType.get_poststates(self)
@@ -887,7 +891,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         and the one immediately following (in solution_next).
     MedShkDstn : distribution.Distribution
         Discrete distribution of the multiplicative utility shifter for med-
-        ical care. 
+        ical care.
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -992,8 +996,8 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         )
 
         # Also unpack the medical shock distribution
-        self.MedShkPrbs = self.MedShkDstn.pmf
-        self.MedShkVals = self.MedShkDstn.X.flatten()
+        self.MedShkPrbs = self.MedShkDstn.pmv
+        self.MedShkVals = self.MedShkDstn.atoms.flatten()
 
     def def_utility_funcs(self):
         """
