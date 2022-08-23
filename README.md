@@ -171,7 +171,7 @@ If using Econ-ARK in your work or research please [cite our Digital Object Ident
 }
 ```
 
-For more on acknowledging Econ-ARK [visit our website](https://econ-ark.org/acknowledging/).
+For more on acknowledging Econ-ARK [visit our website](https://econ-ark.org/acknowledging).
 
 ## Support
 
