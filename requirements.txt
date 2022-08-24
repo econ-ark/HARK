@@ -16,3 +16,5 @@ quantecon
 pandas
 networkx
 xarray
+jupyterlab
+jupytext
