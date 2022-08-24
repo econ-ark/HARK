@@ -7,9 +7,12 @@ Tools
    core
    dcegm
    distribution
+   econforgeinterp
    estimation
+   frame
    helpers
    interpolation
+   numba
    parallel
    simulation
    utilities

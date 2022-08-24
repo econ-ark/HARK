@@ -5,12 +5,12 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
-#       format_version: '1.2'
-#       jupytext_version: 1.2.4
+#       format_version: '1.3'
+#       jupytext_version: 1.14.1
 #   kernelspec:
-#     display_name: econ-ark-3.8
+#     display_name: Python 3 (ipykernel)
 #     language: python
-#     name: econ-ark-3.8
+#     name: python3
 # ---
 
 # %% [markdown]
@@ -184,7 +184,3 @@ plot_funcs([LifecycleExample.solution[0].cFunc, solution.cFunc],LifecycleExample
 # %%
 eval_grid = np.linspace(0, 20, 200)
 LifecycleExample.solution[0].cFunc(eval_grid) - solution.cFunc(eval_grid)
-
-# %%
-
-# %%

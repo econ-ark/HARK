@@ -8,10 +8,13 @@ Consumption Saving
    ConsGenIncProcessModel
    ConsIndShockModel
    ConsIndShockModelFast
+   ConsLaborModel
    ConsMarkovModel
    ConsMedModel
-   ConsLaborModel
+   ConsPortfolioFrameModel
    ConsPortfolioModel
    ConsPrefShochModel
    ConsRepAgentModel
+   ConsRiskyAssetModel
+   ConsRiskyContribModel
    TractableBufferStockModel

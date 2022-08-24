@@ -8,7 +8,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.13.8
+#       jupytext_version: 1.14.1
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -96,8 +96,8 @@ mystr = lambda number: "{:.4f}".format(number)
 # | $N_\theta $ | Number of discrete transitory income shocks | $\texttt{TranShkCount}$ | $7$ |  |
 # | $\mho$ | Probability of being unemployed and getting $\theta=\underline{\theta}$ | $\texttt{UnempPrb}$ | $0.05$ |  |
 # | $\underline{\theta} $ | Transitory shock when unemployed | $\texttt{IncUnemp}$ | $0.3$ |  |
-# | $\mho^{Ret}$ | Probability of being "unemployed" when retired | $\texttt{UnempPrbRet}$ | $0.0005$ |  |
-# | $\underline{\theta}^{Ret} $ | Transitory shock when "unemployed" and retired | $\texttt{IncUnempRet}$ | $0.0$ |  |
+# | $\mho^{Ret}$ | Probability of being "unemployed" when retired | $\texttt{UnempPrb}$ | $0.0005$ |  |
+# | $\underline{\theta}^{Ret} $ | Transitory shock when "unemployed" and retired | $\texttt{IncUnemp}$ | $0.0$ |  |
 # | $(none)$ | Period of the lifecycle model when retirement begins | $\texttt{T_retire}$ | $0$ | |
 # | $(none)$ | Minimum value in assets-above-minimum grid | $\texttt{aXtraMin}$ | $0.001$ | |
 # | $(none)$ | Maximum value in assets-above-minimum grid | $\texttt{aXtraMax}$ | $20.0$ | |
@@ -225,9 +225,3 @@ plt.show()
 # We can see there's a significant point mass of consumers with *exactly* $a_t=0$; these are consumers who do not find it worthwhile to give up a bit of consumption to begin saving (because $\Rfree_{save}$ is too low), and also are not willing to finance additional consumption by borrowing (because $\Rfree_{boro}$ is too high).
 #
 # The smaller point masses in this distribution are due to $\texttt{HARK}$ drawing simulated income shocks from the discretized distribution, rather than the "true" lognormal distributions of shocks.  For consumers who ended $t-1$ with $a_{t-1}=0$ in assets, there are only 8 values the transitory shock $\theta_{t}$ can take on, and thus only 8 values of $m_t$ thus $a_t$ they can achieve; the value of $\psi_t$ is immaterial to $m_t$ when $a_{t-1}=0$.  You can verify this by changing $\texttt{TranShkCount}$ to some higher value, like 25, in the dictionary above, then running the subsequent cells; the smaller point masses will not be visible to the naked eye.
-
-# %%
-
-# %%
-
-# %%

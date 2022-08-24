@@ -8,7 +8,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.13.8
+#       jupytext_version: 1.14.1
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -50,12 +50,12 @@ mystr = lambda number: "{:.4f}".format(number)
 # %% [markdown]
 # ## Statement of perfect foresight consumption-saving model
 #
-# The `PerfForesightConsumerType` class studies the problem of a consumer with Constant Relative Risk Aversion utility
+# The `PerfForesightConsumerType` class the problem of a consumer with Constant Relative Risk Aversion utility
 # ${\CRRA}$
 # \begin{equation}
 # U(C) = \frac{C^{1-\CRRA}}{1-\rho},
 # \end{equation}
-# who has perfect foresight about everything except whether he will die between the end of period $t$ and the beginning of period $t+1$, which occurs with probability $\DiePrb_{t+1}$.  Permanent labor income $P_t$ grows from period $t$ to period $t+1$ by factor $\PermGroFac_{t+1}$.
+# has perfect foresight about everything except whether he will die between the end of period $t$ and the beginning of period $t+1$, which occurs with probability $\DiePrb_{t+1}$.  Permanent labor income $P_t$ grows from period $t$ to period $t+1$ by factor $\PermGroFac_{t+1}$.
 #
 # At the beginning of period $t$, the consumer has an amount of market resources $M_t$ (which includes both market wealth and currrent income) and must choose how much of those resources to consume $C_t$ and how much to retain in a riskless asset $A_t$, which will earn return factor $\Rfree$.  The consumer cannot necessarily borrow arbitarily; instead, he might be constrained to have a wealth-to-income ratio at least as great as some "artificial borrowing constraint" $\underline{a} \leq 0$.
 #
