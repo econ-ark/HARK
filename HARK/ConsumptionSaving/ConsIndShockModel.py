@@ -886,7 +886,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         m_for_interpolation : np.array
             Corresponding market resource points for interpolation.
         """
-        cNrmNow = self.u.inv(EndOfPrdvP, order=(1, 0))
+        cNrmNow = self.u.derinv(EndOfPrdvP, order=(1, 0))
         mNrmNow = cNrmNow + aNrmNow
 
         # Limiting consumption is zero as m approaches mNrmMin
@@ -1147,7 +1147,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         EndOfPrdvNvrs = self.u.inv(
             EndOfPrdv
         )  # value transformed through inverse utility
-        EndOfPrdvNvrsP = EndOfPrdvP * self.u.inv(EndOfPrdv, order=(0, 1))
+        EndOfPrdvNvrsP = EndOfPrdvP * self.u.derinv(EndOfPrdv, order=(0, 1))
         EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
         EndOfPrdvNvrsP = np.insert(
             EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0]
@@ -1205,7 +1205,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
 
         # Construct the beginning-of-period value function
         vNvrs = self.u.inv(vNrmNow)  # value transformed through inverse utility
-        vNvrsP = vPnow * self.u.inv(vNrmNow, order=(0, 1))
+        vNvrsP = vPnow * self.u.derinv(vNrmNow, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, self.mNrmMinNow)
         vNvrs = np.insert(vNvrs, 0, 0.0)
         vNvrsP = np.insert(

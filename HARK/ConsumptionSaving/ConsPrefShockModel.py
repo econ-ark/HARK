@@ -393,7 +393,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         m_for_interpolation : np.array
             Corresponding market resource points for interpolation.
         """
-        c_base = self.u.inv(EndOfPrdvP, order=(1, 0))
+        c_base = self.u.derinv(EndOfPrdvP, order=(1, 0))
         PrefShkCount = self.PrefShkVals.size
         PrefShk_temp = np.tile(
             np.reshape(self.PrefShkVals ** (1.0 / self.CRRA), (PrefShkCount, 1)),
@@ -459,7 +459,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
                 * self.PrefShkPrbs[j]
                 * self.PrefShkVals[j]
             )
-        vPnvrs_vec = self.u.inv(vP_vec, order=(1, 0))
+        vPnvrs_vec = self.u.derinv(vP_vec, order=(1, 0))
         vPfuncNow = MargValueFuncCRRA(LinearInterp(m_grid, vPnvrs_vec), self.CRRA)
 
         # Store the results in a solution object and return it
@@ -502,7 +502,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
 
         # Construct the beginning-of-period value function
         vNvrs = self.u.inv(vNrmNow)  # value transformed through inverse utility
-        vNvrsP = vPnow * self.u.inv(vNrmNow, order=(0, 1))
+        vNvrsP = vPnow * self.u.derinv(vNrmNow, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, self.mNrmMinNow)
         vNvrs = np.insert(vNvrs, 0, 0.0)
         vNvrsP = np.insert(

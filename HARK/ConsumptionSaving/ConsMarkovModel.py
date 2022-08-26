@@ -362,7 +362,9 @@ class ConsMarkovSolver(ConsIndShockSolver):
         EndOfPrdvNvrs = self.u.inv(
             EndOfPrdv_cond
         )  # value transformed through inverse utility
-        EndOfPrdvNvrsP = self.EndOfPrdvP_cond * self.u.inv(EndOfPrdv_cond, order=(0, 1))
+        EndOfPrdvNvrsP = self.EndOfPrdvP_cond * self.u.derinv(
+            EndOfPrdv_cond, order=(0, 1)
+        )
         EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
         EndOfPrdvNvrsP = np.insert(
             EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0]
@@ -408,12 +410,12 @@ class ConsMarkovSolver(ConsIndShockSolver):
         # Get data to construct the end-of-period marginal value function (conditional on next state)
         self.aNrm_cond = self.prepare_to_calc_EndOfPrdvP()
         self.EndOfPrdvP_cond = self.calc_EndOfPrdvPcond()
-        EndOfPrdvPnvrs_cond = self.u.inv(
+        EndOfPrdvPnvrs_cond = self.u.derinv(
             self.EndOfPrdvP_cond, order=(1, 0)
         )  # "decurved" marginal value
         if self.CubicBool:
             EndOfPrdvPP_cond = self.calc_EndOfPrdvPP()
-            EndOfPrdvPnvrsP_cond = EndOfPrdvPP_cond * self.u.inv(
+            EndOfPrdvPnvrsP_cond = EndOfPrdvPP_cond * self.u.derinv(
                 self.EndOfPrdvP_cond, order=(1, 1)
             )  # "decurved" marginal marginal value
 
@@ -715,7 +717,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
 
             # Make a "decurved" value function with the inverse utility function
             vNvrs = self.u.inv(vNrmNow)  # value transformed through inverse utility
-            vNvrsP = vPnow * self.u.inv(vNrmNow, order=(0, 1))
+            vNvrsP = vPnow * self.u.derinv(vNrmNow, order=(0, 1))
             mNrm_temp = np.insert(mGrid, 0, mNrmMin)  # add the lower bound
             vNvrs = np.insert(vNvrs, 0, 0.0)
             vNvrsP = np.insert(

@@ -645,6 +645,12 @@ class UtilityFuncCRRA:
         """
         return self.inverse(c, order)
 
+    def derinv(self, u, order=(1, 0)):
+        """
+        Short alias for inverse. See `self.inverse`.
+        """
+        return self.inverse(u, order)
+
 
 # ==============================================================================
 # ============== Functions for generating state space grids  ===================

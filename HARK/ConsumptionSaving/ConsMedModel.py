@@ -1101,12 +1101,12 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
 
         # Calculate endogenous gridpoints and controls
         cLvlNow = np.tile(
-            np.reshape(self.u.inv(EndOfPrdvP, order=(1, 0)), (1, pCount, mCount)),
+            np.reshape(self.u.derinv(EndOfPrdvP, order=(1, 0)), (1, pCount, mCount)),
             (MedCount, 1, 1),
         )
         MedBaseNow = np.tile(
             np.reshape(
-                self.uMed.inv(self.MedPrice * EndOfPrdvP, order=(1, 0)),
+                self.uMed.derinv(self.MedPrice * EndOfPrdvP, order=(1, 0)),
                 (1, pCount, mCount),
             ),
             (MedCount, 1, 1),
@@ -1277,11 +1277,11 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             (np.reshape(self.mLvlMinNow(self.pLvlGrid), (1, pCount)), mGrid[:, :, 0])
         )
         vPnvrsNow = np.concatenate(
-            (np.zeros((1, pCount)), self.u.inv(vPnow, order=(1, 0)))
+            (np.zeros((1, pCount)), self.u.derinv(vPnow, order=(1, 0)))
         )
         if self.vFuncBool:
             vNvrsNow = np.concatenate((np.zeros((1, pCount)), self.u.inv(vNow)), axis=0)
-            vNvrsPnow = vPnow * self.u.inv(vNow, order=(0, 1))
+            vNvrsPnow = vPnow * self.u.derinv(vNow, order=(0, 1))
             vNvrsPnow = np.concatenate((np.zeros((1, pCount)), vNvrsPnow), axis=0)
 
         # Construct the pseudo-inverse value and marginal value functions over mLvl,pLvl

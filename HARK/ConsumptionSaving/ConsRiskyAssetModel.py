@@ -591,7 +591,7 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
         """
 
         vals = calc_expectation(dstn, func, grid)
-        nvrs = self.u.inv(vals, order=(1, 0))
+        nvrs = self.u.derinv(vals, order=(1, 0))
         nvrsFunc = LinearInterp(grid, nvrs)
         margValueFunc = MargValueFuncCRRA(nvrsFunc, self.CRRA)
 
@@ -978,7 +978,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
         EndOfPrddvda = self.DiscFacEff * calc_expectation(
             self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.risky_share_optimal
         )
-        EndOfPrddvdaNvrs = self.u.inv(EndOfPrddvda, order=(1, 0))
+        EndOfPrddvdaNvrs = self.u.derinv(EndOfPrddvda, order=(1, 0))
         EndOfPrddvdaNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrddvdaNvrs)
         EndOfPrddvdaFunc = MargValueFuncCRRA(EndOfPrddvdaNvrsFunc, self.CRRA)
 
@@ -1036,7 +1036,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
                 self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.risky_share_optimal
             )
 
-            EndOfPrddvdaNvrs = self.u.inv(EndOfPrddvda, order=(1, 0))
+            EndOfPrddvdaNvrs = self.u.derinv(EndOfPrddvda, order=(1, 0))
             EndOfPrddvdaNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrddvdaNvrs)
             self.EndOfPrddvdaFunc = MargValueFuncCRRA(EndOfPrddvdaNvrsFunc, self.CRRA)
 
