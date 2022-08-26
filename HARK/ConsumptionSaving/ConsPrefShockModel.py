@@ -8,25 +8,24 @@ It currently only two models:
 """
 import numpy as np
 from HARK import make_one_period_oo_solver
-from HARK.distribution import MeanOneLogNormal
 from HARK.ConsumptionSaving.ConsIndShockModel import (
-    IndShockConsumerType,
-    ConsumerSolution,
     ConsIndShockSolver,
-    KinkedRconsumerType,
     ConsKinkedRsolver,
+    ConsumerSolution,
+    IndShockConsumerType,
+    KinkedRconsumerType,
     init_idiosyncratic_shocks,
     init_kinked_R,
 )
+from HARK.distribution import MeanOneLogNormal
 from HARK.interpolation import (
-    LinearInterpOnInterp1D,
-    LinearInterp,
     CubicInterp,
+    LinearInterp,
+    LinearInterpOnInterp1D,
     LowerEnvelope,
-    ValueFuncCRRA,
     MargValueFuncCRRA,
+    ValueFuncCRRA,
 )
-
 
 # Make a dictionary to specify a preference shock consumer
 init_preference_shocks = dict(
@@ -394,7 +393,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         m_for_interpolation : np.array
             Corresponding market resource points for interpolation.
         """
-        c_base = self.uPinv(EndOfPrdvP)
+        c_base = self.u.inv(EndOfPrdvP, order=(1, 0))
         PrefShkCount = self.PrefShkVals.size
         PrefShk_temp = np.tile(
             np.reshape(self.PrefShkVals ** (1.0 / self.CRRA), (PrefShkCount, 1)),
@@ -456,11 +455,11 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         vP_vec = np.zeros_like(m_grid)
         for j in range(PrefShkCount):  # numeric integration over the preference shock
             vP_vec += (
-                self.uP(cFunc_list[j](m_grid))
+                self.u.der(cFunc_list[j](m_grid))
                 * self.PrefShkPrbs[j]
                 * self.PrefShkVals[j]
             )
-        vPnvrs_vec = self.uPinv(vP_vec)
+        vPnvrs_vec = self.u.inv(vP_vec, order=(1, 0))
         vPfuncNow = MargValueFuncCRRA(LinearInterp(m_grid, vPnvrs_vec), self.CRRA)
 
         # Store the results in a solution object and return it
@@ -499,11 +498,11 @@ class ConsPrefShockSolver(ConsIndShockSolver):
             vNrmNow += this_prob * (
                 this_shock * self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow)
             )
-            vPnow += this_prob * this_shock * self.uP(cNrmNow)
+            vPnow += this_prob * this_shock * self.u.der(cNrmNow)
 
         # Construct the beginning-of-period value function
-        vNvrs = self.uinv(vNrmNow)  # value transformed through inverse utility
-        vNvrsP = vPnow * self.uinvP(vNrmNow)
+        vNvrs = self.u.inv(vNrmNow)  # value transformed through inverse utility
+        vNvrsP = vPnow * self.u.inv(vNrmNow, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, self.mNrmMinNow)
         vNvrs = np.insert(vNvrs, 0, 0.0)
         vNvrsP = np.insert(
