@@ -32,13 +32,13 @@ from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.distribution import (
     DiscreteDistribution,
-    expected,
     IndexDistribution,
     Lognormal,
     MeanOneLogNormal,
     Uniform,
     add_discrete_outcome_constant_mean,
     combine_indep_dstns,
+    expected,
 )
 from HARK.interpolation import CubicHermiteInterp as CubicInterp
 from HARK.interpolation import (
@@ -57,6 +57,7 @@ from HARK.utilities import (
     CRRAutilityP_inv,
     CRRAutilityP_invP,
     CRRAutilityPP,
+    UtilityFuncCRRA,
     make_grid_exp_mult,
 )
 from scipy.optimize import newton
@@ -261,12 +262,7 @@ class ConsPerfForesightSolver(MetricObject):
         -------
         None
         """
-        self.u = lambda c: utility(c, gam=self.CRRA)  # utility function
-        # marginal utility function
-        self.uP = lambda c: utilityP(c, gam=self.CRRA)
-        self.uPP = lambda c: utilityPP(
-            c, gam=self.CRRA
-        )  # marginal marginal utility function
+        self.u = UtilityFuncCRRA(self.CRRA)
 
     def def_value_funcs(self):
         """
@@ -653,27 +649,6 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 
         self.def_utility_funcs()
 
-    def def_utility_funcs(self):
-        """
-        Defines CRRA utility function for this period (and its derivatives,
-        and their inverses), saving them as attributes of self for other methods
-        to use.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        """
-        ConsPerfForesightSolver.def_utility_funcs(self)
-        self.uPinv = lambda u: utilityP_inv(u, gam=self.CRRA)
-        self.uPinvP = lambda u: utilityP_invP(u, gam=self.CRRA)
-        self.uinvP = lambda u: utility_invP(u, gam=self.CRRA)
-        if self.vFuncBool:
-            self.uinv = lambda u: utility_inv(u, gam=self.CRRA)
-
     def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
@@ -911,7 +886,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         m_for_interpolation : np.array
             Corresponding market resource points for interpolation.
         """
-        cNrmNow = self.uPinv(EndOfPrdvP)
+        cNrmNow = self.u.inv(EndOfPrdvP, order=(1, 0))
         mNrmNow = cNrmNow + aNrmNow
 
         # Limiting consumption is zero as m approaches mNrmMin
@@ -1136,7 +1111,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             * self.PermGroFac ** (-self.CRRA - 1.0)
             * expected(vpp_next, self.IncShkDstn, args=(self.aNrmNow, self.Rfree))
         )
-        dcda = EndOfPrdvPP / self.uPP(np.array(cNrm[1:]))
+        dcda = EndOfPrdvPP / self.u.der(np.array(cNrm[1:]), order=2)
         MPC = dcda / (dcda + 1.0)
         MPC = np.insert(MPC, 0, self.MPCmaxNow)
 
@@ -1169,10 +1144,10 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         EndOfPrdv = self.DiscFacEff * expected(
             v_lvl_next, self.IncShkDstn, args=(self.aNrmNow, self.Rfree)
         )
-        EndOfPrdvNvrs = self.uinv(
+        EndOfPrdvNvrs = self.u.inv(
             EndOfPrdv
         )  # value transformed through inverse utility
-        EndOfPrdvNvrsP = EndOfPrdvP * self.uinvP(EndOfPrdv)
+        EndOfPrdvNvrsP = EndOfPrdvP * self.u.inv(EndOfPrdv, order=(0, 1))
         EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
         EndOfPrdvNvrsP = np.insert(
             EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0]
@@ -1226,11 +1201,11 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         cNrmNow = solution.cFunc(mNrm_temp)
         aNrmNow = mNrm_temp - cNrmNow
         vNrmNow = self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow)
-        vPnow = self.uP(cNrmNow)
+        vPnow = self.u.der(cNrmNow)
 
         # Construct the beginning-of-period value function
-        vNvrs = self.uinv(vNrmNow)  # value transformed through inverse utility
-        vNvrsP = vPnow * self.uinvP(vNrmNow)
+        vNvrs = self.u.inv(vNrmNow)  # value transformed through inverse utility
+        vNvrsP = vPnow * self.u.inv(vNrmNow, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, self.mNrmMinNow)
         vNvrs = np.insert(vNvrs, 0, 0.0)
         vNvrsP = np.insert(

@@ -6,6 +6,7 @@ derivatives), manipulation of discrete distributions, and basic plotting tools.
 import cProfile
 import functools
 import pstats
+import warnings
 
 import numpy as np  # Python's numeric library, abbreviated "np"
 
@@ -16,17 +17,16 @@ import numpy as np  # Python's numeric library, abbreviated "np"
 #     exception_type, value, traceback = sys.exc_info()
 #     raise ImportError('HARK must be used in a graphical environment.', exception_type, value, traceback)
 from scipy.interpolate import interp1d
-import warnings
 
 
 def memoize(obj):
     """
-   A decorator to (potentially) make functions more efficient.
+    A decorator to (potentially) make functions more efficient.
 
-   With this decorator, functions will "remember" if they have been evaluated with given inputs
-   before.  If they have, they will "remember" the outputs that have already been calculated
-   for those inputs, rather than calculating them again.
-   """
+    With this decorator, functions will "remember" if they have been evaluated with given inputs
+    before.  If they have, they will "remember" the outputs that have already been calculated
+    for those inputs, rather than calculating them again.
+    """
     cache = obj._cache = {}
 
     @functools.wraps(obj)
@@ -143,8 +143,8 @@ def CRRAutility(c, gam):
 
 def uFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     """
-    Evaluates Stone-Geary version of a constant relative risk aversion (CRRA) 
-    utility of consumption c wiht given risk aversion parameter CRRA and 
+    Evaluates Stone-Geary version of a constant relative risk aversion (CRRA)
+    utility of consumption c wiht given risk aversion parameter CRRA and
     Stone-Geary intercept parameter stone_geary
 
     Parameters
@@ -154,7 +154,7 @@ def uFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     CRRA : float
         Relative risk aversion
     stone_geary : float
-        Intercept in Stone-Geary utility 
+        Intercept in Stone-Geary utility
     Returns
     -------
     (unnamed) : float
@@ -163,7 +163,7 @@ def uFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     Tests
     -----
     Test a value which should pass:
-    >>> c, CRRA, stone_geary = 1.0, 2.0, 0.0    
+    >>> c, CRRA, stone_geary = 1.0, 2.0, 0.0
     >>> utility(c=c, CRRA=CRRA, stone_geary=stone_geary )
     -1.0
     """
@@ -175,8 +175,8 @@ def uFunc_CRRA_stone_geary(c, CRRA, stone_geary):
 
 def uPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     """
-    Marginal utility of Stone-Geary version of a constant relative risk aversion (CRRA) 
-    utility of consumption c wiht given risk aversion parameter CRRA and 
+    Marginal utility of Stone-Geary version of a constant relative risk aversion (CRRA)
+    utility of consumption c wiht given risk aversion parameter CRRA and
     Stone-Geary intercept parameter stone_geary
 
     Parameters
@@ -186,7 +186,7 @@ def uPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     CRRA : float
         Relative risk aversion
     stone_geary : float
-        Intercept in Stone-Geary utility 
+        Intercept in Stone-Geary utility
     Returns
     -------
     (unnamed) : float
@@ -198,7 +198,7 @@ def uPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
 
 def uPPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     """
-    Marginal marginal utility of Stone-Geary version of a CRRA utilty function 
+    Marginal marginal utility of Stone-Geary version of a CRRA utilty function
     with risk aversion parameter CRRA and Stone-Geary intercept parameter stone_geary
 
     Parameters
@@ -208,7 +208,7 @@ def uPPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     CRRA : float
         Relative risk aversion
     stone_geary : float
-        Intercept in Stone-Geary utility 
+        Intercept in Stone-Geary utility
     Returns
     -------
     (unnamed) : float
@@ -239,7 +239,7 @@ def CRRAutilityP(c, gam):
     if gam == 1:
         return 1 / c
 
-    return c ** -gam
+    return c**-gam
 
 
 def CRRAutilityPP(c, gam):
@@ -468,7 +468,7 @@ def CARAutilityPPP(c, alpha):
     (unnamed): float
         Marginal marginal marginal utility
     """
-    return alpha ** 2.0 * np.exp(-alpha * c)
+    return alpha**2.0 * np.exp(-alpha * c)
 
 
 def CARAutility_inv(u, alpha):
@@ -1031,7 +1031,7 @@ def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
 
 
 def determine_platform():
-    """ Untility function to return the platform currenlty in use.
+    """Untility function to return the platform currenlty in use.
 
     Returns
     ---------
@@ -1057,7 +1057,7 @@ def determine_platform():
 
 
 def test_latex_installation(pf):
-    """ Test to check if latex is installed on the machine.
+    """Test to check if latex is installed on the machine.
 
     Parameters
     -----------
@@ -1103,7 +1103,7 @@ def test_latex_installation(pf):
 
 
 def in_ipynb():
-    """ If the ipython process contains 'terminal' assume not in a notebook.
+    """If the ipython process contains 'terminal' assume not in a notebook.
 
     Returns
     --------
@@ -1120,7 +1120,7 @@ def in_ipynb():
 
 
 def setup_latex_env_notebook(pf, latexExists):
-    """ This is needed for use of the latex_envs notebook extension
+    """This is needed for use of the latex_envs notebook extension
     which allows the use of environments in Markdown.
 
     Parameters
@@ -1129,6 +1129,7 @@ def setup_latex_env_notebook(pf, latexExists):
         output of determine_platform()
     """
     import os
+
     import matplotlib.pyplot as plt
 
     plt.rc("font", family="serif")
@@ -1162,7 +1163,7 @@ def setup_latex_env_notebook(pf, latexExists):
 
 
 def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
-    """ Utility function to save figure in multiple formats and display the image.
+    """Utility function to save figure in multiple formats and display the image.
 
     Parameters
     ----------
@@ -1206,7 +1207,7 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
 
 
 def find_gui():
-    """ Quick fix to check if matplotlib is running in a GUI environment.
+    """Quick fix to check if matplotlib is running in a GUI environment.
 
     Returns
     -------
