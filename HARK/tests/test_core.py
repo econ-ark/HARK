@@ -79,7 +79,7 @@ class test_MetricObject(unittest.TestCase):
 
 class test_AgentType(unittest.TestCase):
     def setUp(self):
-        self.agent = AgentType(cycles = 1)
+        self.agent = AgentType(cycles=1)
 
     def test_solve(self):
         self.agent.time_vary = ["vary_1"]
@@ -94,27 +94,32 @@ class test_AgentType(unittest.TestCase):
         self.assertTrue(isinstance(self.agent.solution[0], MetricObject))
 
     def test___repr__(self):
-        self.assertTrue('Parameters' in self.agent.__repr__())
+        self.assertTrue("Parameters" in self.agent.__repr__())
 
     def test___eq__(self):
-        agent2 = AgentType(cycles = 1)
-        agent3 = AgentType(cycels = 2)
+        agent2 = AgentType(cycles=1)
+        agent3 = AgentType(cycels=2)
 
         self.assertEqual(self.agent, agent2)
         self.assertNotEqual(self.agent, agent3)
+
 
 class test_distribute_params(unittest.TestCase):
     def setUp(self):
         self.agent = AgentType(cycles=1, AgentCount=3)
 
-
     def test_distribute_params(self):
         dist = Uniform(bot=0.9, top=0.94)
 
-        self.agents = distribute_params(self.agent, 'DiscFac', 3, dist)
+        self.agents = distribute_params(self.agent, "DiscFac", 3, dist)
 
-        self.assertTrue(all(['DiscFac' in agent.parameters for agent in self.agents]))
-        self.assertTrue(all([self.agents[i].parameters['DiscFac'] == dist.approx(3).X[0,i] for i in range(3)]))
-        self.assertEqual(self.agents[0].parameters['AgentCount'], 1)
-
-
+        self.assertTrue(all(["DiscFac" in agent.parameters for agent in self.agents]))
+        self.assertTrue(
+            all(
+                [
+                    self.agents[i].parameters["DiscFac"] == dist.approx(3).atoms[0, i]
+                    for i in range(3)
+                ]
+            )
+        )
+        self.assertEqual(self.agents[0].parameters["AgentCount"], 1)

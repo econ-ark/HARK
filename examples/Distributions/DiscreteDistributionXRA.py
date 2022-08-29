@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.0
+#       jupytext_version: 1.14.1
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -45,8 +45,8 @@ IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
 # %%
 x_dist = DiscreteDistributionXRA(
-    IncShkDstn.pmf,
-    IncShkDstn.X,
+    IncShkDstn.pmv,
+    IncShkDstn.atoms,
     name="Distribution of Shocks to Income",
     var_names=["perm_shk", "tran_shk"],
     var_attrs=[
