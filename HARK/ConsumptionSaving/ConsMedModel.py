@@ -24,6 +24,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     TrilinearInterp,
     UpperEnvelope,
+    UtilityFuncCRRA,
     ValueFuncCRRA,
     VariableLowerBoundFunc3D,
 )
@@ -34,7 +35,6 @@ from HARK.utilities import (
     CRRAutilityP_inv,
     CRRAutilityPP,
     NullFunc,
-    UtilityFuncCRRA,
     make_grid_exp_mult,
 )
 from scipy.optimize import brentq

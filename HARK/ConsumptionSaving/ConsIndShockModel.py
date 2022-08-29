@@ -47,6 +47,7 @@ from HARK.interpolation import (
     LowerEnvelope,
     MargMargValueFuncCRRA,
     MargValueFuncCRRA,
+    UtilityFuncCRRA,
     ValueFuncCRRA,
 )
 from HARK.utilities import (
@@ -57,7 +58,6 @@ from HARK.utilities import (
     CRRAutilityP_inv,
     CRRAutilityP_invP,
     CRRAutilityPP,
-    UtilityFuncCRRA,
     make_grid_exp_mult,
 )
 from scipy.optimize import newton
