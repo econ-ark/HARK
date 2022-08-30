@@ -4617,7 +4617,9 @@ class UtilityFuncCRRA(MetricObject):
         order : tuple, optional
             Order of derivatives. For example, `order == (1,1)` represents
             the first derivative of utility, inversed, and then differenciated
-            once. By default (0, 0), which is just the inverse of utility.
+            once. For a simple mnemonic, order refers to the number of `P`s in
+            the function `CRRAutility[#1]_inv[#2]`. By default (0, 0),
+            which is just the inverse of utility.
 
         Returns
         -------
