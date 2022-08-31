@@ -15,6 +15,7 @@ import numpy as np  # Python's numeric library, abbreviated "np"
 #     import sys
 #     exception_type, value, traceback = sys.exc_info()
 #     raise ImportError('HARK must be used in a graphical environment.', exception_type, value, traceback)
+from numba import njit
 from scipy.interpolate import interp1d
 import warnings
 
@@ -110,6 +111,7 @@ class NullFunc(object):
 # ==============================================================================
 # ============== Define utility functions        ===============================
 # ==============================================================================
+@njit(fastmath=True, cache=True)
 def CRRAutility(c, gam):
     """
     Evaluates constant relative risk aversion (CRRA) utility of consumption c
@@ -218,6 +220,7 @@ def uPPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     return (-CRRA) * (stone_geary + c) ** (-CRRA - 1)
 
 
+@njit(fastmath=True, cache=True)
 def CRRAutilityP(c, gam):
     """
     Evaluates constant relative risk aversion (CRRA) marginal utility of consumption
@@ -242,6 +245,7 @@ def CRRAutilityP(c, gam):
     return c ** -gam
 
 
+@njit(fastmath=True, cache=True)
 def CRRAutilityPP(c, gam):
     """
     Evaluates constant relative risk aversion (CRRA) marginal marginal utility of
@@ -263,6 +267,7 @@ def CRRAutilityPP(c, gam):
     return -gam * c ** (-gam - 1.0)
 
 
+@njit(fastmath=True, cache=True)
 def CRRAutilityPPP(c, gam):
     """
     Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
@@ -284,6 +289,7 @@ def CRRAutilityPPP(c, gam):
     return (gam + 1.0) * gam * c ** (-gam - 2.0)
 
 
+@njit(fastmath=True, cache=True)
 def CRRAutilityPPPP(c, gam):
     """
     Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
@@ -305,6 +311,7 @@ def CRRAutilityPPPP(c, gam):
     return -(gam + 2.0) * (gam + 1.0) * gam * c ** (-gam - 3.0)
 
 
+@njit(fastmath=True, cache=True)
 def CRRAutility_inv(u, gam):
     """
     Evaluates the inverse of the CRRA utility function (with risk aversion para-
@@ -328,6 +335,7 @@ def CRRAutility_inv(u, gam):
         return ((1.0 - gam) * u) ** (1 / (1.0 - gam))
 
 
+@njit(fastmath=True, cache=True)
 def CRRAutilityP_inv(uP, gam):
     """
     Evaluates the inverse of the CRRA marginal utility function (with risk aversion
@@ -348,6 +356,7 @@ def CRRAutilityP_inv(uP, gam):
     return uP ** (-1.0 / gam)
 
 
+@njit(fastmath=True, cache=True)
 def CRRAutility_invP(u, gam):
     """
     Evaluates the derivative of the inverse of the CRRA utility function (with
@@ -371,6 +380,7 @@ def CRRAutility_invP(u, gam):
         return ((1.0 - gam) * u) ** (gam / (1.0 - gam))
 
 
+@njit(fastmath=True, cache=True)
 def CRRAutilityP_invP(uP, gam):
     """
     Evaluates the derivative of the inverse of the CRRA marginal utility function

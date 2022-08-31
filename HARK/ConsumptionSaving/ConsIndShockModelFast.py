@@ -36,7 +36,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     MargMargValueFuncCRRA,
 )
-from HARK.numba import (
+from HARK.utilities import (
     CRRAutility,
     CRRAutilityP,
     CRRAutilityPP,
