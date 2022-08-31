@@ -1125,10 +1125,17 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         return ldd
 
     @classmethod
-    def from_dataset(cls, dataset, pmf):
+    def from_dataset(cls, x_obj, pmf):
 
         ldd = cls.__new__(cls)
-        ldd.dataset = xr.Dataset(dataset)
+
+        if isinstance(x_obj, xr.Dataset):
+            ldd.dataset = x_obj
+        elif isinstance(x_obj, xr.DataArray):
+            ldd.dataset = xr.Dataset({x_obj.name: x_obj})
+        elif isinstance(x_obj, dict):
+            ldd.dataset = xr.Dataset(x_obj)
+
         ldd.pmf = pmf
 
         return ldd
@@ -1138,7 +1145,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         """
         Returns a DatasetWeighted object for the distribution.
         """
-        return self.dataset.weighted(self.pmv)
+        return self.dataset.weighted(self.pmf)
 
     @property
     def variables(self):
@@ -1271,8 +1278,8 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             return func(wrapped, *args)
 
         if len(kwargs):
-            f_query = func(self.dataset, **kwargs)
-            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.pmv)
+            f_query = func(self.dataset, *args, **kwargs)
+            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.pmf)
 
             return ldd._weighted.mean("nature")
         else:
