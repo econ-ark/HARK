@@ -2,9 +2,9 @@ import math
 from itertools import product
 
 import numpy as np
-import scipy.stats as stats
+import xarray as xr
+from scipy import stats
 from scipy.special import erf, erfc
-from xarray import DataArray, Dataset
 
 
 class Distribution:
@@ -984,7 +984,7 @@ class DiscreteDistribution(Distribution):
 
         return f_exp
 
-    def dist_of_func(self, func=lambda x: x, xarray=False, *args, **kwargs):
+    def dist_of_func(self, func=lambda x: x, *args):
         """
         Finds the distribution of a random variable Y that is a function
         of discrete random variable atoms, Y=f(atoms).
@@ -1001,7 +1001,7 @@ class DiscreteDistribution(Distribution):
 
         Returns
         -------
-        f_dstn : DiscreteDistribution or DiscreteDistributionXRA
+        f_dstn : DiscreteDistribution
             The distribution of func(dstn).
         """
         # we need to add one more dimension,
@@ -1012,17 +1012,12 @@ class DiscreteDistribution(Distribution):
         ]
         f_query = func(self.atoms, *args)
 
-        if xarray:
-            f_dstn = DiscreteDistributionXRA(
-                list(self.pmv), f_query, seed=self.seed, **kwargs
-            )
-        else:
-            f_dstn = DiscreteDistribution(list(self.pmv), f_query, seed=self.seed)
+        f_dstn = DiscreteDistribution(list(self.pmv), f_query, seed=self.seed)
 
         return f_dstn
 
 
-class DiscreteDistributionXRA(DiscreteDistribution):
+class DiscreteDistributionLabeled(DiscreteDistribution):
     """
     A representation of a discrete probability distribution
     stored in an underlying `xarray.Dataset`.
@@ -1030,7 +1025,7 @@ class DiscreteDistributionXRA(DiscreteDistribution):
     Parameters
     ----------
     pmv : np.array
-        An array of floats representing a probability mass function.
+        An array of values representing a probability mass function.
     data : np.array
         Discrete point values for each probability mass.
         For multivariate distributions, the last dimension of atoms must index
@@ -1040,27 +1035,30 @@ class DiscreteDistributionXRA(DiscreteDistribution):
         Seed for random number generator.
     name : str
         Name of the distribution.
+    attrs : dict
+        Attributes for the distribution.
     var_names : list of str
         Names of the variables in the distribution.
-    attrs: dict
-        Attributes for the distribution.
+    var_attrs : list of dict
+        Attributes of the variables in the distribution.
+
     """
 
     def __init__(
         self,
         pmv,
-        atoms,
+        data,
         seed=0,
-        name="DiscreteDistributionXRA",
-        var_names=None,
+        name="DiscreteDistributionLabeled",
         attrs=None,
+        var_names=None,
         var_attrs=None,
     ):
 
         # vector-value distributions
-        if atoms.ndim < 2:
-            atoms = atoms[np.newaxis, ...]
-        if atoms.ndim > 2:
+        if data.ndim < 2:
+            data = data[np.newaxis, ...]
+        if data.ndim > 2:
             raise NotImplementedError(
                 "Only vector-valued distributions are supported for now."
             )
@@ -1069,12 +1067,12 @@ class DiscreteDistributionXRA(DiscreteDistribution):
             attrs = {}
 
         attrs["name"] = name
-        attrs["pmv"] = np.asarray(pmv)
         attrs["seed"] = seed
         attrs["RNG"] = np.random.RandomState(seed)
 
-        n_var = atoms.shape[0]
+        n_var = data.shape[0]
 
+        # give dummy names to variables if none are provided
         if var_names is None:
             var_names = ["var_" + str(i) for i in range(n_var)]
 
@@ -1082,19 +1080,72 @@ class DiscreteDistributionXRA(DiscreteDistribution):
             len(var_names) == n_var
         ), "Number of variable names does not match number of variables."
 
+        # give dummy attributes to variables if none are provided
         if var_attrs is None:
             var_attrs = [None] * n_var
 
-        self.dataset = Dataset(
+        # a DiscreteDistributionLabeled is an xr.Dataset where the only
+        # dimension is "nature", which indexes the random realizations.
+        self.dataset = xr.Dataset(
             {
-                var_names[i]: DataArray(atoms[i], attrs=var_attrs[i])
+                var_names[i]: xr.DataArray(
+                    data[i],
+                    dims=("nature"),
+                    attrs=var_attrs[i],
+                )
                 for i in range(n_var)
             },
             attrs=attrs,
         )
 
+        # the probability mass values are stored in
+        # a DataArray with dimension "nature"
+        self.pmf = xr.DataArray(pmv, dims=("nature"))
+
+    @classmethod
+    def from_unlabeled(
+        cls,
+        dist,
+        name="DiscreteDistributionLabeled",
+        attrs=None,
+        var_names=None,
+        var_attrs=None,
+    ):
+
+        ldd = cls(
+            dist.pmv,
+            dist.atoms,
+            seed=dist.seed,
+            name=name,
+            attrs=attrs,
+            var_names=var_names,
+            var_attrs=var_attrs,
+        )
+
+        return ldd
+
+    @classmethod
+    def from_dataset(cls, dataset, pmf):
+
+        ldd = cls.__new__(cls)
+        ldd.dataset = xr.Dataset(dataset)
+        ldd.pmf = pmf
+
+        return ldd
+
+    @property
+    def _weighted(self):
+        """
+        Returns a DatasetWeighted object for the distribution.
+        """
+        return self.dataset.weighted(self.pmv)
+
     @property
     def variables(self):
+        """
+        A dict-like container of DataArrays corresponding to
+        the variables of the distribution.
+        """
         return self.dataset.data_vars
 
     @property
@@ -1110,7 +1161,7 @@ class DiscreteDistributionXRA(DiscreteDistribution):
         """
         Returns the distribution's probability mass function.
         """
-        return self.dataset.pmv
+        return self.pmf.values
 
     @property
     def RNG(self):
@@ -1133,10 +1184,52 @@ class DiscreteDistributionXRA(DiscreteDistribution):
         """
         return self.dataset.attrs
 
-    def expected(self, func=None, *args, labels=False):
+    def dist_of_func(self, func=lambda x: x, *args, **kwargs):
+        """
+        Finds the distribution of a random variable Y that is a function
+        of discrete random variable atoms, Y=f(atoms).
+
+        Parameters
+        ----------
+        func : function
+            The function to be evaluated.
+            This function should take the full array of distribution values.
+            It may also take other arguments *args.
+        *args :
+            Additional non-stochastic arguments for func,
+            The function is computed as f(dstn, *args).
+        **kwargs :
+            Additional keyword arguments for func. Must be xarray compatible
+            in order to work with xarray broadcasting.
+
+        Returns
+        -------
+        f_dstn : DiscreteDistribution or DiscreteDistributionLabeled
+            The distribution of func(dstn).
+        """
+
+        def func_wrapper(x, *args):
+            """
+            Wrapper function for `func` that handles labeled indexing.
+            """
+
+            idx = self.variables.keys()
+            wrapped = dict(zip(idx, x))
+
+            return func(wrapped, *args)
+
+        if len(kwargs):
+            f_query = func(self.dataset, **kwargs)
+            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.pmv)
+
+            return ldd
+        else:
+            return super().dist_of_func(func_wrapper, *args)
+
+    def expected(self, func=None, *args, **kwargs):
         """
         Expectation of a function, given an array of configurations of its inputs
-        along with a DiscreteDistributionXRA object that specifies the probability
+        along with a DiscreteDistributionLabeled object that specifies the probability
         of each configuration.
 
         Parameters
@@ -1177,12 +1270,16 @@ class DiscreteDistributionXRA(DiscreteDistribution):
 
             return func(wrapped, *args)
 
-        if labels:
-            which_func = func_wrapper
-        else:
-            which_func = func
+        if len(kwargs):
+            f_query = func(self.dataset, **kwargs)
+            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.pmv)
 
-        return super().expected(which_func, *args)
+            return ldd._weighted.mean("nature")
+        else:
+            if func is None:
+                return super().expected()
+            else:
+                return super().expected(func_wrapper, *args)
 
 
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
@@ -1653,7 +1750,7 @@ class MarkovProcess(Distribution):
         return array_sample(state)
 
 
-def expected(func=None, dist=None, args=(), labels=False):
+def expected(func=None, dist=None, args=(), **kwargs):
     """
     Expectation of a function, given an array of configurations of its inputs
     along with a DiscreteDistribution(atomsRA) object that specifies the probability
@@ -1671,7 +1768,7 @@ def expected(func=None, dist=None, args=(), labels=False):
         rules to avoid costly iteration.
         Note: If you need to use a function that acts on single outcomes
         of the distribution, consier `distribution.calc_expectation`.
-    dist : DiscreteDistribution or DiscreteDistributionXRA
+    dist : DiscreteDistribution or DiscreteDistributionLabeled
         The distribution over which the function is to be evaluated.
     args : tuple
         Other inputs for func, representing the non-stochastic arguments.
@@ -1692,7 +1789,7 @@ def expected(func=None, dist=None, args=(), labels=False):
     if not isinstance(args, tuple):
         args = (args,)
 
-    if isinstance(dist, DiscreteDistributionXRA):
-        return dist.expected(func, *args, labels=labels)
+    if isinstance(dist, DiscreteDistributionLabeled):
+        return dist.expected(func, *args, **kwargs)
     elif isinstance(dist, DiscreteDistribution):
         return dist.expected(func, *args)
