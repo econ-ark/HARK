@@ -119,4 +119,30 @@ expected(
     args=(aGrid, R),
 )
 
+# %% [markdown]
+# Additionally, we can use xarrays as inputs via keyword arguments.
+
 # %%
+from xarray import DataArray
+
+aNrm = DataArray(aGrid, name="aNrm", dims=("aNrm"))
+
+
+# %%
+def mNrm_next(dist, R, a=None):
+    variables = {}
+    variables["mNrm_next"] = R * a / dist["perm_shk"] + dist["tran_shk"]
+    return variables
+
+
+# %%
+# %%timeit
+expected(
+    func=mNrm_next,
+    dist=x_dist,
+    args=R,
+    a=aNrm,
+)
+
+# %% [markdown]
+# Taking the expectation with xarray inputs and labeled equations is still significantly faster than the old method.
