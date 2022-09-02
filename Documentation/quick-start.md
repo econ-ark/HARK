@@ -67,7 +67,7 @@ jupyter notebook
 ```
 and from there you can open the notebooks and execute them.
 
-# Learning HARK
+## Learning HARK
 
 We have a set of 30-second [Elevator Spiels](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#capsule-summaries-of-what-the-econ-ark-project-is) describing the project, tailored to people with several different kinds of background.  
 
