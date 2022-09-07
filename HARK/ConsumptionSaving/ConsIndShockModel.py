@@ -3202,7 +3202,8 @@ def construct_assets_grid(parameters):
     aXtraExtra:                [float]
         Extra values for the a-grid.
     exp_nest:               int
-        Level of nesting for the exponentially spaced grid
+        Level of nesting for the exponentially spaced grid.
+        If -1, the grid is linearly spaced.
 
     Returns
     -------
