@@ -32,13 +32,13 @@ from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.distribution import (
     DiscreteDistribution,
-    expected,
     IndexDistribution,
     Lognormal,
     MeanOneLogNormal,
     Uniform,
     add_discrete_outcome_constant_mean,
     combine_indep_dstns,
+    expected,
 )
 from HARK.interpolation import CubicHermiteInterp as CubicInterp
 from HARK.interpolation import (
@@ -3214,29 +3214,26 @@ def construct_assets_grid(parameters):
     aXtraMax = parameters.aXtraMax
     aXtraCount = parameters.aXtraCount
     aXtraExtra = parameters.aXtraExtra
-    grid_type = "exp_mult"
     exp_nest = parameters.aXtraNestFac
 
     # Set up post decision state grid:
-    aXtraGrid = None
-    if grid_type == "linear":
+    if exp_nest == -1:
         aXtraGrid = np.linspace(aXtraMin, aXtraMax, aXtraCount)
-    elif grid_type == "exp_mult":
+    elif exp_nest >= 0:
         aXtraGrid = make_grid_exp_mult(
             ming=aXtraMin, maxg=aXtraMax, ng=aXtraCount, timestonest=exp_nest
         )
     else:
-        raise Exception(
-            "grid_type not recognized in __init__."
-            + "Please ensure grid_type is 'linear' or 'exp_mult'"
+        raise ValueError(
+            "aXtraNestFac not recognized in __init__."
+            + "Please ensure aXtraNestFac is either -1 or a positive integer."
         )
 
     # Add in additional points for the grid:
     for a in aXtraExtra:
-        if a is not None:
-            if a not in aXtraGrid:
-                j = aXtraGrid.searchsorted(a)
-                aXtraGrid = np.insert(aXtraGrid, j, a)
+        if a is not None and a not in aXtraGrid:
+            j = aXtraGrid.searchsorted(a)
+            aXtraGrid = np.insert(aXtraGrid, j, a)
 
     return aXtraGrid
 
