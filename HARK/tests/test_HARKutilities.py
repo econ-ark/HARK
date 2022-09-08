@@ -1,10 +1,11 @@
 """
 This file implements unit tests to check HARK/utilities.py
 """
-import HARK.utilities
-
 # Bring in modules we need
 import unittest
+from types import SimpleNamespace
+
+import HARK.utilities
 import numpy as np
 
 
@@ -64,3 +65,22 @@ class testsForHARKutilities(unittest.TestCase):
         self.derivative_func_comparison(
             HARK.utilities.CRRAutilityPPPP, HARK.utilities.CRRAutilityPPP
         )
+
+    def test_asset_grid(self):
+        # test linear asset grid
+
+        params = {
+            "aXtraMin": 0.0,
+            "aXtraMax": 1.0,
+            "aXtraCount": 5,
+            "aXtraExtra": [None],
+            "aXtraNestFac": -1,
+        }
+
+        params = SimpleNamespace(**params)
+
+        aXtraGrid = HARK.utilities.construct_assets_grid(params)
+
+        test = np.unique(np.diff(aXtraGrid).round(decimals=3))
+
+        self.assertEqual(test.size, 1)
