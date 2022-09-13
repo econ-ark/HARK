@@ -28,6 +28,7 @@ Release Date: TBD
 * Adds keyword argument `labels` to `expected()` when using `DiscreteDistributionXRA` to allow for expressive functions that use labeled xarrays. [#1156](https://github.com/econ-ark/HARK/pull/1156)
 * Adds a wrapper for [`interpolation.py`](https://github.com/EconForge/interpolation.py) for fast multilinear interpolation. [#1151](https://github.com/econ-ark/HARK/pull/1151)
 * Adds support for the calculation of dreivatives in the `interpolation.py` wrappers. [#1157](https://github.com/econ-ark/HARK/pull/1157)
+* Adds class `DecayInterp` to `econforgeinterp.py`. It implements interpolators that "decay" to some limiting function when extrapolating. [#1165](https://github.com/econ-ark/HARK/pull/1165)
 * Creates `UtilityFuncCRRA` which is an object oriented utility function with a coefficient of constant relative risk aversion and includes derivatives and inverses. [#1168](https://github.com/econ-ark/HARK/pull/1168)
 
 ### Minor Changes
