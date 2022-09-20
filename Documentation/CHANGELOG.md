@@ -21,8 +21,6 @@ Release Date: TBD
 * General control transitions based on decision rules in `FrameAgentType`. [#1117](https://github.com/econ-ark/HARK/pull/1117)
 * Adds `distr_of_function` tool to calculate the distribution of a function of a discrete random variable. [#1144](https://github.com/econ-ark/HARK/pull/1144)
 * Changes the `DiscreteDistribution` class to allow for arbitrary array-valued random variables. [#1146](https://github.com/econ-ark/HARK/pull/1146)
-* Adds `IndShockRiskyAssetConsumerType` as agent which can invest savings all in safe asset, all in risky asset, a fixed share in risky asset, or optimize its portfolio. [#1107](https://github.com/econ-ark/HARK/issues/1107)
-* Updates all HARK models to allow for age-varying interest rates. [#1150](https://github.com/econ-ark/HARK/pull/1150)
 
 
 ### Minor Changes
@@ -32,7 +30,6 @@ Release Date: TBD
 * Option to have newborn IndShockConsumerType agents with a transitory income shock in the first period. Default is false, meaning they only have a permanent income shock in period 1 and permanent AND transitory in the following ones. [#1126](https://github.com/econ-ark/HARK/pull/1126)
 * Adds `benchmark` utility to profile the performance of `HARK` solvers. [#1131](https://github.com/econ-ark/HARK/pull/1131)
 * Fixes scaling bug in Normal equiprobable approximation method. [1139](https://github.com/econ-ark/HARK/pull/1139)
-* Removes the extra-dimension that was returned by `calc_expectations` in some instances. [#1149](https://github.com/econ-ark/HARK/pull/1149)
 
 ### 0.12.0
 

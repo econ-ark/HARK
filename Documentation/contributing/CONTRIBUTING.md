@@ -182,6 +182,89 @@ When using conda, you may find the following bash commands useful
     black path_to_changed_file.py
 ```
 
+### Naming Conventions
+Object naming conventions in HARK are fairly different than existing standards, and differ somewhat between tool modules vs model or application modules.  The following conventions apply throughout HARK:
+
+* Functions and methods are always in ''camel case'': no underscores, first letter is lower case, first letter of each subsequent word is capitalized.  E.g. ***approxLognormal***.
+
+* Function and method names should accurately and concisely describe what the function does; the first word in the name *must be a verb*
+
+* Variable and class names *should not* have a verb as their first word.
+
+* Class names should use no underscores and capitalize the first letter of each word; moreover, a class name *must include a noun*.  E.g. ***ConsPerfForesightSolver***.
+
+When naming variables in model modules, the HARK team strongly discourages using single letter names, like ***c*** for consumption.  Instead, we encourage contributors to use longer, more descriptive variable names using additional words and common abbreviations to specify the variable more precisely.  In [NARK](https://github.com/econ-ark/HARK/Documentation/NARK.pdf), we list standard single letter variable ''bases'' and an array of prefixes and suffixes to adjust them.  Economic variables in model modules should (usually) not use underscores, instead using camel case to the greatest extent possible. For ''non-economic'' variables that are only used temporarily, underscores are permissible.  The development team prefers this standard so that users can translate between Python code and LaTeX script with minimal work.
+
+Conventions for naming variables in HARK's tool modules are significantly closer to more commonly used standards.  Variable names should be in all lower case, with underscores between words, e.g. ***data\_to\_match***.  The functions and classes in these modules are more general and almost surely do not have any inherent ''economic content''; they are numerical or algorithmic objects, not variables that might appear in an equation in an article for a (non-computational) economics journal.  Variable names in application modules (e.g. the files that execute the ***cstwMPC*** estimations) are a mix of the conventions for tool and model files, as appropriate for each variable.  That is, variables that are directly related to ''economic variables'' in model modules should follow those conventions, while objects created solely for data manipulation or reporting should use the style of tool modules.
+
+### Documentation Convention
+The HARK team wants the toolKit to be as accessible to users as possible; our greatest fear (Other than spiders, of course) is that a new user will open up our code, get hopelessly confused trying to read it, and then never look at HARK again.  To prevent this tragic outcome, we have tried hard to provide comprehensive, accurate documentation and comments within the code describing our methods. Moreover, HARK uses the Sphinx utility to generate a website with [online documentation](https://econ-ark.github.io/HARK/) for all of our tool and model modules, so that users can learn about what's available in HARK without digging through the source code.  When making contributions to HARK, the development team asks users to format their inline documentation to work with Sphinx by following a few simple rules.
+
+* The top of every module should begin with a ''docsting'' providing a clear description of the contents of the module.  The first sentence should concisely summarize the file, as it may appear in an index or summary of all modules without the remaining sentences.  A docstring at the top of a module should be formatted as:
+
+```
+"""
+
+Specifies an economic model and provides methods for solving it. 
+
+More specific description of the key features of the model and variations of it in this module. 
+
+Maybe some comments about the solution method or limitations of the model. 
+
+Your bank account routing number.
+
+"""
+```
+
+* The line directly below the declaration of a function, method or class should begin a docstring describing that object.  As with modules, the first sentence should concisely summarize the function or class, as it might be included in an index or summary.  For functions and methods, the docstring should be formatted as:
+
+```
+def functionName(input1,input2):
+
+"""
+
+Concise description of the function.  More details about what
+
+the function does, options or modes available, and maybe mathematical
+
+methods used.  Credit to a source if you poached their algorithm.
+
+
+
+Parameters
+
+--------------------
+
+input1: type
+
+Description of what input1 represents.
+
+input2: type
+
+Description of what input2 represents.
+
+
+
+Returns
+
+--------------
+
+output_name: type
+
+Description of the output(s) of the function.  Might have
+
+multiple entries.  If no output, this is just "None".
+
+"""
+```
+
+* Provide ample comments within a function or method so that a relatively intelligent reader can follow along with your algorithm.  Short comments can follow at the end of a line, longer comments (or descriptions of the step or task about to be performed) should precede a block of code on the line(s) above it.
+
+Finally, if you write a new model module, the HARK team asks that you also provide a short mathematical writeup of the model as a PDF.  This document does not need to go into great detail about the solution method for the model or the functions and classes included in the module, merely specify the economic model and provide a summary of how it is solved.  See [ConsumptionSavingModels.pdf](https://github.com/econ-arl/Documentation/ConsumptionSavingModels.pdf) for an example of this.
+
+
+
+
 ### Testing
 
 ``HARK`` has a test suite that ensures correct
