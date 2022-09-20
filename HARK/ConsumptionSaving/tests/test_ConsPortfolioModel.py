@@ -69,16 +69,17 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         )
 
         self.assertAlmostEqual(
-            self.pcct.state_now["Share"][0],
+            self.pcct.controls["Share"][0],
             self.pcct.solution[0].ShareFuncAdj(self.pcct.state_now["mNrm"][0]),
         )
 
         self.assertAlmostEqual(
             self.pcct.state_now["aNrm"][0],
-            self.pcct.state_now["mNrm"][0] - self.pcct.state_now["cNrm"][0],
+            self.pcct.state_now["mNrm"][0] - self.pcct.controls["cNrm"][0],
         )
 
-        self.assertAlmostEqual(self.pcct.state_now["Adjust"][0][0], 1.0)
+        # a drawn shock ; may not be robust to RNG/disitrubition implementations
+        self.assertAlmostEqual(self.pcct.shocks["Adjust"][0], 1.0)
 
 
 class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
