@@ -60,12 +60,12 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     who can save in both a risk-free and a risky asset but faces frictions to
     moving funds between them. The agent can only consume out of his risk-free
     asset.
-    
+
     The frictions are:
         - A proportional tax on funds moved from the risky to the risk-free
          asset.
         - A stochastic inability to move funds between his accounts.
-    
+
     To partially avoid the second friction, the agent can commit to have a
     fraction of his labor income, which is usually deposited in his risk-free
     account, diverted to his risky account. He can change this fraction
@@ -121,12 +121,12 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             "Sha": self.get_controls_Sha,
             "Cns": self.get_controls_Cns,
         }
-        
+
         # The model can be solved more quickly if income and risky returns are
         # independent. However, people might want to use the general solver
         # even when they are independent for debugging and testing.
-        self.joint_dist_solver=joint_dist_solver
-        
+        self.joint_dist_solver = joint_dist_solver
+
         # Set the solver for the portfolio model, and update various constructed attributes
         self.solve_one_period = solveRiskyContrib
         self.update()
@@ -149,7 +149,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         Cns: agent will consume all of his liquid resources.
         Sha: irrelevant as there is no "next" period.
         Reb: agent will shift all of his resources to the risk-free asset.
-        
+
         Parameters
         ----------
         None
@@ -259,7 +259,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     def update_share_grid(self):
         """
         Creates grid for the income contribution share.
-        
+
         Parameters
         ----------
         None
@@ -290,11 +290,11 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         """
         Updates the agent's iliquid assets grid by constructing a
         multi-exponentially spaced grid of nNrm values.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None.
@@ -316,11 +316,11 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         """
         Updates the agent's liquid assets exogenous grid by constructing a
         multi-exponentially spaced grid of mNrm values.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None.
@@ -375,10 +375,10 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     def sim_one_period(self):
         """
         Simulates one period for this type.
-        
+
         Has to be re-defined instead of using AgentType.sim_one_period() because
         of the "stages" structure.
-        
+
         Parameters
         ----------
         None
@@ -501,7 +501,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
         # Limit dfrac to [-1,1] to prevent negative balances. Values outside
         # the range can come from extrapolation.
-        self.controls["dfrac"] = np.minimum(np.maximum(dfrac,-1),1.0)
+        self.controls["dfrac"] = np.minimum(np.maximum(dfrac, -1), 1.0)
 
     def get_states_Sha(self):
         """
@@ -636,7 +636,7 @@ class RiskyContribRebSolution(MetricObject):
     """
     A class for representing the solution to the asset-rebalancing stage of
     the 'RiskyContrib' model.
-    
+
     Parameters
     ----------
     vFunc_Adj : ValueFunc2D
@@ -728,7 +728,7 @@ class RiskyContribShaSolution(MetricObject):
     """
     A class for representing the solution to the contribution-share stage of
     the 'RiskyContrib' model.
-    
+
     Parameters
     ----------
     vFunc_Adj : ValueFunc2D
@@ -821,7 +821,7 @@ class RiskyContribCnsSolution(MetricObject):
     """
     A class for representing the solution to the consumption stage of the
     'RiskyContrib' model.
-    
+
     Parameters
     ----------
     vFunc : ValueFunc3D
@@ -873,7 +873,7 @@ class RiskyContribSolution(MetricObject):
     """
     A class for representing the solution to a full time-period of the
     'RiskyContrib' agent type's problem.
-    
+
     Parameters
     ----------
     Reb : RiskyContribRebSolution
@@ -1089,7 +1089,7 @@ def solve_RiskyContrib_Cns(
     joint_dist_solver: bool
         Should the general solver be used even if income and returns are
         independent?
-    
+
     Returns
     -------
     solution : RiskyContribCnsSolution
@@ -1154,7 +1154,6 @@ def solve_RiskyContrib_Cns(
         if vFuncBool:
             v_next = lambda m, n, s: vFunc_Reb_Adj_next(m, n)
 
-    
     if IndepDstnBool and not joint_dist_solver:
 
         # If income and returns are independent we can use the law of iterated
@@ -1206,7 +1205,9 @@ def solve_RiskyContrib_Cns(
 
         # Define grids
         b_aux_grid = np.concatenate([np.array([0.0]), Rfree * aXtraGrid])
-        g_aux_grid = np.concatenate([np.array([0.0]), max(RiskyDstn.X.flatten()) * nNrmGrid])
+        g_aux_grid = np.concatenate(
+            [np.array([0.0]), max(RiskyDstn.atoms.flatten()) * nNrmGrid]
+        )
 
         # Create tiled arrays with conforming dimensions.
         b_aux_tiled, g_aux_tiled, Share_tiled = np.meshgrid(
@@ -1221,17 +1222,20 @@ def solve_RiskyContrib_Cns(
 
         # Unpack results and create interpolators
         pr_dvdb_func = MargValueFuncCRRA(
-            TrilinearInterp(uPinv(pr_derivs[0]), b_aux_grid, g_aux_grid, ShareGrid), CRRA
+            TrilinearInterp(uPinv(pr_derivs[0]), b_aux_grid, g_aux_grid, ShareGrid),
+            CRRA,
         )
         pr_dvdg_func = MargValueFuncCRRA(
-            TrilinearInterp(uPinv(pr_derivs[1]), b_aux_grid, g_aux_grid, ShareGrid), CRRA
+            TrilinearInterp(uPinv(pr_derivs[1]), b_aux_grid, g_aux_grid, ShareGrid),
+            CRRA,
         )
         pr_dvds_func = TrilinearInterp(pr_derivs[2], b_aux_grid, g_aux_grid, ShareGrid)
 
         if vFuncBool:
 
             pr_vFunc = ValueFuncCRRA(
-                TrilinearInterp(uInv(pr_derivs[3]), b_aux_grid, g_aux_grid, ShareGrid), CRRA
+                TrilinearInterp(uInv(pr_derivs[3]), b_aux_grid, g_aux_grid, ShareGrid),
+                CRRA,
             )
 
         # Now construct a function that produces end-of-period derivatives
@@ -1241,7 +1245,7 @@ def solve_RiskyContrib_Cns(
             Computes the end-of-period derivatives (and optionally the value) of the
             continuation value function, conditional on risky returns. This is so that the
             expectations can be calculated by integrating over risky returns.
-        
+
             Parameters
             ----------
             risky_ret : float
@@ -1293,7 +1297,7 @@ def solve_RiskyContrib_Cns(
             Computes the end-of-period derivatives (and optionally the value) of the
             continuation value function, conditional on shocks. This is so that the
             expectations can be calculated by integrating over shocks.
-        
+
             Parameters
             ----------
             shocks : np.array
@@ -1462,7 +1466,10 @@ def solve_RiskyContrib_Cns(
                 dvds_vals[:, nInd, sInd] = LinearInterp(
                     m_ns,
                     np.concatenate(
-                        [np.array([eop_dvds[0, nInd, sInd]]), eop_dvds[:, nInd, sInd],]
+                        [
+                            np.array([eop_dvds[0, nInd, sInd]]),
+                            eop_dvds[:, nInd, sInd],
+                        ]
                     ),
                 )(mNrmGrid)
 
@@ -1706,7 +1713,7 @@ def solve_RiskyContrib_Reb(
         [-nNrm*dfracGrid, dfracGrid*mNrm].
     vFuncBool : bool
         Determines whether the level of th value function must be computed.
-    
+
     Returns
     -------
     solution : RiskyContribShaSolution
@@ -1775,7 +1782,14 @@ def solve_RiskyContrib_Reb(
     constrained_bot = dvdDNvrs[0, :, :] >= 0.0
     # If it is positive (inverse negative) at the highest d, then d[-1] = 1.0
     # is optimal
-    constrained_top = dvdDNvrs[-1, :, :,] <= 0.0
+    constrained_top = (
+        dvdDNvrs[
+            -1,
+            :,
+            :,
+        ]
+        <= 0.0
+    )
 
     # Find indices at which the derivative crosses 0 for the 1st time
     # will be 0 if it never does, but "constrained_top/bot" deals with that

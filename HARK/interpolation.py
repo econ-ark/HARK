@@ -13,7 +13,7 @@ import numpy as np
 from scipy.interpolate import CubicHermiteSpline
 
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP
-from .core import MetricObject
+from HARK.core import MetricObject
 
 
 def _isscalar(x):
@@ -4546,6 +4546,11 @@ class ValueFuncCRRA(MetricObject):
         self.vFuncNvrs = deepcopy(vFuncNvrs)
         self.CRRA = CRRA
 
+        if hasattr(vFuncNvrs, 'grid_list'):
+            self.grid_list = vFuncNvrs.grid_list
+        else:
+            self.grid_list = None
+
     def __call__(self, *vFuncArgs):
         """
         Evaluate the value function at given levels of market resources m.
@@ -4564,6 +4569,17 @@ class ValueFuncCRRA(MetricObject):
         """
         #        return CRRAutility(self.func(*vFuncArgs), gam=self.CRRA)
         return CRRAutility(self.vFuncNvrs(*vFuncArgs), self.CRRA)
+    
+    def gradient(self, *args):
+
+        NvrsGrad = self.vFuncNvrs.gradient(*args)
+        grad = [CRRAutilityP(g, self.CRRA) for g in NvrsGrad]
+
+        return grad
+
+    def _eval_and_grad(self, *args):
+
+        return (self.__call__(*args), self.gradient(*args))
 
 
 class MargValueFuncCRRA(MetricObject):
@@ -4588,6 +4604,12 @@ class MargValueFuncCRRA(MetricObject):
     def __init__(self, cFunc, CRRA):
         self.cFunc = deepcopy(cFunc)
         self.CRRA = CRRA
+
+        if hasattr(cFunc, 'grid_list'):
+            self.grid_list = cFunc.grid_list
+        else:
+            self.grid_list = None
+
 
     def __call__(self, *cFuncArgs):
         """
