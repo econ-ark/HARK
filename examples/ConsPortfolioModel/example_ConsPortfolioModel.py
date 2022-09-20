@@ -1,7 +1,7 @@
+# %% [markdown]
+# # ConsPortfolioModel: A Consumption-Savings model with risky assets
+
 # %%
-"""
-Example implementations of HARK.ConsumptionSaving.ConsPortfolioModel
-"""
 from copy import copy
 from time import time
 
@@ -318,7 +318,3 @@ for rcount in risky_count_grid:
 
     plt.ioff()
     plt.draw()
-
-# %%
-
-# %%

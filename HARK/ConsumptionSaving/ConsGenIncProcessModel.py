@@ -354,7 +354,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             * self.Rfree
             * calc_expectation(self.IncShkDstn, vp_next, self.aLvlNow, self.pLvlNow)
         )
-        EndOfPrdvP = EndOfPrdvP[:, :, 0]
+
         return EndOfPrdvP
 
     def make_EndOfPrdvFunc(self, EndOfPrdvP):
@@ -382,7 +382,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         vLvlNext = calc_expectation(
             self.IncShkDstn, v_lvl_next, self.aLvlNow, self.pLvlNow
         )
-        vLvlNext = vLvlNext[:, :, 0]
+
         # expected value, averaging across states
         EndOfPrdv = self.DiscFacEff * vLvlNext
         # value transformed through inverse utility
@@ -719,7 +719,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             * self.Rfree
             * calc_expectation(self.IncShkDstn, vpp_next, self.aLvlNow, self.pLvlNow)
         )
-        EndOfPrdvPP = EndOfPrdvPP[:, :, 0]
+
 
         dcda = EndOfPrdvPP / self.uPP(np.array(cLvl[1:, 1:]))
         MPC = dcda / (dcda + 1.0)

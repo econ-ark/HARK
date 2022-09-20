@@ -4,6 +4,7 @@ from itertools import product
 import numpy as np
 import scipy.stats as stats
 from scipy.special import erf, erfc
+from xarray import DataArray, Dataset
 
 
 class Distribution:
@@ -62,8 +63,8 @@ class IndexDistribution(Distribution):
     conditional = None
     engine = None
 
-    def __init__(self, engine, conditional, RNG = None, seed=0):
-        
+    def __init__(self, engine, conditional, RNG=None, seed=0):
+
         if RNG is None:
             # Set up the RNG
             super().__init__(seed)
@@ -78,32 +79,35 @@ class IndexDistribution(Distribution):
 
         self.conditional = conditional
         self.engine = engine
-        
-        
+
         self.dstns = []
-        
+
         # Test one item to determine case handling
         item0 = list(self.conditional.values())[0]
-        
+
         if type(item0) is list:
             # Create and store all the conditional distributions
             for y in range(len(item0)):
                 cond = {key: val[y] for (key, val) in self.conditional.items()}
-                self.dstns.append(self.engine(seed=self.RNG.randint(0, 2 ** 31 - 1), **cond))
-                
+                self.dstns.append(
+                    self.engine(seed=self.RNG.randint(0, 2**31 - 1), **cond)
+                )
+
         elif type(item0) is float:
-            
-            self.dstns = [self.engine(seed=self.RNG.randint(0, 2 ** 31 - 1), **conditional)]
+
+            self.dstns = [
+                self.engine(seed=self.RNG.randint(0, 2**31 - 1), **conditional)
+            ]
 
         else:
             raise (
                 Exception(
-                    f"IndexDistribution: Unhandled case for __getitem__ access. y: {y}; conditional: {self.conditional}"
+                    f"IndexDistribution: Unhandled case for __getitem__ access. item0: {item0}; conditional: {self.conditional}"
                 )
             )
-            
+
     def __getitem__(self, y):
-        
+
         return self.dstns[y]
 
     def approx(self, N, **kwds):
@@ -173,7 +177,7 @@ class IndexDistribution(Distribution):
             N = condition.size
 
             return self.engine(
-                seed=self.RNG.randint(0, 2 ** 31 - 1), **self.conditional
+                seed=self.RNG.randint(0, 2**31 - 1), **self.conditional
             ).draw(N)
 
         if type(item0) is list:
@@ -363,18 +367,18 @@ class Lognormal(Distribution):
             ]
             if inner_size < 1.0:
                 scale = 1.0 / tail_order
-                mag = (1.0 - scale ** tail_N) / (1.0 - scale)
+                mag = (1.0 - scale**tail_N) / (1.0 - scale)
             lower_CDF_vals = [0.0]
             if lo_cut > 0.0:
                 for x in range(tail_N - 1, -1, -1):
                     lower_CDF_vals.append(
-                        lower_CDF_vals[-1] + lo_cut * scale ** x / mag
+                        lower_CDF_vals[-1] + lo_cut * scale**x / mag
                     )
             upper_CDF_vals = [hi_cut]
             if hi_cut < 1.0:
                 for x in range(tail_N):
                     upper_CDF_vals.append(
-                        upper_CDF_vals[-1] + (1.0 - hi_cut) * scale ** x / mag
+                        upper_CDF_vals[-1] + (1.0 - hi_cut) * scale**x / mag
                     )
             CDF_vals = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
             temp_cutoffs = list(
@@ -386,8 +390,8 @@ class Lognormal(Distribution):
             CDF_vals = np.array(CDF_vals)
 
             K = CDF_vals.size - 1  # number of points in approximation
-            pmf = CDF_vals[1 : (K + 1)] - CDF_vals[0:K]
-            X = np.zeros(K)
+            pmv = CDF_vals[1 : (K + 1)] - CDF_vals[0:K]
+            atoms = np.zeros(K)
             for i in range(K):
                 zBot = cutoffs[i]
                 zTop = cutoffs[i + 1]
@@ -396,32 +400,32 @@ class Lognormal(Distribution):
                 if zBot == 0:
                     tempBot = np.inf
                 else:
-                    tempBot = (self.mu + self.sigma ** 2 - np.log(zBot)) / (
+                    tempBot = (self.mu + self.sigma**2 - np.log(zBot)) / (
                         np.sqrt(2) * self.sigma
                     )
-                tempTop = (self.mu + self.sigma ** 2 - np.log(zTop)) / (
+                tempTop = (self.mu + self.sigma**2 - np.log(zTop)) / (
                     np.sqrt(2) * self.sigma
                 )
                 if tempBot <= 4:
-                    X[i] = (
+                    atoms[i] = (
                         -0.5
-                        * np.exp(self.mu + (self.sigma ** 2) * 0.5)
+                        * np.exp(self.mu + (self.sigma**2) * 0.5)
                         * (erf(tempTop) - erf(tempBot))
-                        / pmf[i]
+                        / pmv[i]
                     )
                 else:
-                    X[i] = (
+                    atoms[i] = (
                         -0.5
-                        * np.exp(self.mu + (self.sigma ** 2) * 0.5)
+                        * np.exp(self.mu + (self.sigma**2) * 0.5)
                         * (erfc(tempBot) - erfc(tempTop))
-                        / pmf[i]
+                        / pmv[i]
                     )
 
         else:
-            pmf = np.ones(N) / N
-            X = np.exp(self.mu) * np.ones(N)
+            pmv = np.ones(N) / N
+            atoms = np.exp(self.mu) * np.ones(N)
         return DiscreteDistribution(
-            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+            pmv, atoms, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
         )
 
     @classmethod
@@ -450,8 +454,8 @@ class Lognormal(Distribution):
         LogNormal
 
         """
-        mean_squared = mean ** 2
-        variance = std ** 2
+        mean_squared = mean**2
+        variance = std**2
         mu = np.log(mean / (np.sqrt(1.0 + variance / mean_squared)))
         sigma = np.sqrt(np.log(1.0 + variance / mean_squared))
 
@@ -460,7 +464,7 @@ class Lognormal(Distribution):
 
 class MeanOneLogNormal(Lognormal):
     def __init__(self, sigma=1.0, seed=0):
-        mu = -0.5 * sigma ** 2
+        mu = -0.5 * sigma**2
         super().__init__(mu=mu, sigma=sigma, seed=seed)
 
 
@@ -519,25 +523,25 @@ class Normal(Distribution):
         """
         x, w = np.polynomial.hermite.hermgauss(N)
         # normalize w
-        pmf = w * np.pi ** -0.5
+        pmv = w * np.pi**-0.5
         # correct x
-        X = math.sqrt(2.0) * self.sigma * x + self.mu
+        atoms = math.sqrt(2.0) * self.sigma * x + self.mu
         return DiscreteDistribution(
-            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+            pmv, atoms, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
         )
 
     def approx_equiprobable(self, N):
+
         CDF = np.linspace(0, 1, N + 1)
         lims = stats.norm.ppf(CDF)
-        scores = (lims - self.mu) / self.sigma
-        pdf = stats.norm.pdf(scores)
+        pdf = stats.norm.pdf(lims)
 
         # Find conditional means using Mills's ratio
-        pmf = np.diff(CDF)
-        X = self.mu - np.diff(pdf) / pmf
+        pmv = np.diff(CDF)
+        atoms = self.mu - np.diff(pdf) / pmv * self.sigma
 
         return DiscreteDistribution(
-            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+            pmv, atoms, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
         )
 
 
@@ -613,18 +617,16 @@ class MVNormal(Distribution):
         else:
             z_approx = Normal().approx(N)
 
-        # Now create the multivariate grid and pmf
-        Z = np.array(list(product(*[z_approx.X] * self.M)))
-        pmf = np.prod(np.array(list(product(*[z_approx.pmf] * self.M))), axis=1)
+        # Now create the multivariate grid and pmv
+        Z = np.array(list(product(*[z_approx.atoms.flatten()] * self.M)))
+        pmv = np.prod(np.array(list(product(*[z_approx.pmv] * self.M))), axis=1)
 
         # Apply mean and standard deviation to the Z grid
-        X = np.tile(np.reshape(self.mu, (1, self.M)), (N ** self.M, 1)) + np.matmul(
-            Z, A.T
-        )
+        atoms = self.mu[None, ...] + np.matmul(Z, A.T)
 
         # Construct and return discrete distribution
         return DiscreteDistribution(
-            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+            pmv, atoms.T, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
         )
 
 
@@ -755,14 +757,14 @@ class Uniform(Distribution):
             Probability associated with each point in array of discrete
             points for discrete probability mass function.
         """
-        pmf = np.ones(N) / float(N)
+        pmv = np.ones(N) / float(N)
         center = (self.top + self.bot) / 2.0
         width = (self.top - self.bot) / 2.0
-        X = center + width * np.linspace(-(N - 1.0) / 2.0, (N - 1.0) / 2.0, N) / (
+        atoms = center + width * np.linspace(-(N - 1.0) / 2.0, (N - 1.0) / 2.0, N) / (
             N / 2.0
         )
         return DiscreteDistribution(
-            pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
+            pmv, atoms, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
         )
 
 
@@ -819,58 +821,71 @@ class DiscreteDistribution(Distribution):
 
     Parameters
     ----------
-    pmf : np.array
+    pmv : np.array
         An array of floats representing a probability mass function.
-    X : np.array or [np.array]
+    atoms : np.array
         Discrete point values for each probability mass.
-        May be multivariate (list of arrays).
+        For multivariate distributions, the last dimension of atoms must index
+        "nature" or the random realization. For instance, if atoms.shape == (2,6,4),
+        the random variable has 4 possible realizations and each of them has shape (2,6).
     seed : int
         Seed for random number generator.
     """
 
-    pmf = None
-    X = None
+    pmv = None
+    atoms = None
 
-    def __init__(self, pmf, X, seed=0):
-        self.pmf = pmf
-        self.X = X
+    def __init__(self, pmv, atoms, seed=0):
+
+        self.pmv = pmv
+
+        if len(atoms.shape) < 2:
+            self.atoms = atoms[None, ...]
+        else:
+            self.atoms = atoms
+
         # Set up the RNG
         super().__init__(seed)
 
-        # Very quick and incomplete parameter check:
-        # TODO: Check that pmf and X arrays have same length.
+        # Check that pmv and atoms have compatible dimensions.
+        same_dims = len(pmv) == atoms.shape[-1]
+        if not same_dims:
+            raise ValueError(
+                "Provided pmv and atoms arrays have incompatible dimensions. "
+                + "The length of the pmv must be equal to that of atoms's last dimension."
+            )
 
     def dim(self):
-        if isinstance(self.X, list):
-            return len(self.X)
-        else:
-            return 1
+        """
+        Last dimension of self.atoms indexes "nature."
+        """
+        return self.atoms.shape[:-1]
 
     def draw_events(self, n):
         """
         Draws N 'events' from the distribution PMF.
-        These events are indices into X.
+        These events are indices into atoms.
         """
         # Generate a cumulative distribution
         base_draws = self.RNG.uniform(size=n)
-        cum_dist = np.cumsum(self.pmf)
+        cum_dist = np.cumsum(self.pmv)
 
         # Convert the basic uniform draws into discrete draws
         indices = cum_dist.searchsorted(base_draws)
 
         return indices
 
-    def draw(self, N, X=None, exact_match=False):
+    def draw(self, N, atoms=None, exact_match=False):
         """
-        Simulates N draws from a discrete distribution with probabilities P and outcomes X.
+        Simulates N draws from a discrete distribution with probabilities P and outcomes atoms.
 
         Parameters
         ----------
         N : int
             Number of draws to simulate.
-        X : None, int, or np.array
-            If None, then use this distribution's X for point values.
-            If an int, then the index of X for the point values.
+        atoms : None, int, or np.array
+            If None, then use this distribution's atoms for point values.
+            If an int, then the index of atoms for the point values.
             If an np.array, use the array for the point values.
         exact_match : boolean
             Whether the draws should "exactly" match the discrete distribution (as
@@ -882,21 +897,16 @@ class DiscreteDistribution(Distribution):
         Returns
         -------
         draws : np.array
-            An array of draws from the discrete distribution; each element is a value in X.
+            An array of draws from the discrete distribution; each element is a value in atoms.
         """
-        if X is None:
-            X = self.X
-            J = self.dim()
-        elif isinstance(X, int):
-            X = self.X[X]
-            J = 1
-        else:
-            X = X
-            J = 1
+        if atoms is None:
+            atoms = self.atoms
+        elif isinstance(atoms, int):
+            atoms = self.atoms[atoms]
 
         if exact_match:
-            events = np.arange(self.pmf.size)  # just a list of integers
-            cutoffs = np.round(np.cumsum(self.pmf) * N).astype(
+            events = np.arange(self.pmv.size)  # just a list of integers
+            cutoffs = np.round(np.cumsum(self.pmv) * N).astype(
                 int
             )  # cutoff points between discrete outcomes
             top = 0
@@ -916,33 +926,282 @@ class DiscreteDistribution(Distribution):
             indices = self.draw_events(N)
 
         # Create and fill in the output array of draws based on the output of event indices
-        if J > 1:
-            draws = np.zeros((J, N))
-            for j in range(J):
-                draws[j, :] = X[j][indices]
-        else:
-            draws = np.asarray(X)[indices]
+        draws = atoms[..., indices]
+
+        # TODO: some models expect univariate draws to just be a 1d vector. Fix those models.
+        if len(draws.shape) == 2 and draws.shape[0] == 1:
+            draws = draws.flatten()
 
         return draws
+
+    def expected(self, func=None, *args):
+        """
+        Expected value of a function, given an array of configurations of its
+        inputs along with a DiscreteDistribution object that specifies the
+        probability of each configuration.
+
+        Parameters
+        ----------
+        func : function
+            The function to be evaluated.
+            This function should take the full array of distribution values
+            and return either arrays of arbitrary shape or scalars.
+            It may also take other arguments *args.
+            This function differs from the standalone `calc_expectation`
+            method in that it uses numpy's vectorization and broadcasting
+            rules to avoid costly iteration.
+            Note: If you need to use a function that acts on single outcomes
+            of the distribution, consier `distribution.calc_expectation`.
+        *args :
+            Other inputs for func, representing the non-stochastic arguments.
+            The the expectation is computed at f(dstn, *args).
+
+        Returns
+        -------
+        f_exp : np.array or scalar
+            The expectation of the function at the queried values.
+            Scalar if only one value.
+        """
+
+        if func is None:
+            # if no function is provided, it's much faster to go straight
+            # to dot product instead of calling the dummy function.
+            f_query = self.atoms
+        else:
+            # if a function is provided, we need to add one more dimension,
+            # the nature dimension, to any inputs that are n-dim arrays.
+            # This allows numpy to easily broadcast the function's output.
+            # For more information on broadcasting, see:
+            # https://numpy.org/doc/stable/user/basics.broadcasting.html#general-broadcasting-rules
+            args = [
+                arg[..., np.newaxis] if isinstance(arg, np.ndarray) else arg
+                for arg in args
+            ]
+
+            f_query = func(self.atoms, *args)
+
+        f_exp = np.dot(f_query, self.pmv)
+
+        return f_exp
+
+    def dist_of_func(self, func=lambda x: x, xarray=False, *args, **kwargs):
+        """
+        Finds the distribution of a random variable Y that is a function
+        of discrete random variable atoms, Y=f(atoms).
+
+        Parameters
+        ----------
+        func : function
+            The function to be evaluated.
+            This function should take the full array of distribution values.
+            It may also take other arguments *args.
+        *args :
+            Additional non-stochastic arguments for func,
+            The function is computed as f(dstn, *args).
+
+        Returns
+        -------
+        f_dstn : DiscreteDistribution or DiscreteDistributionXRA
+            The distribution of func(dstn).
+        """
+        # we need to add one more dimension,
+        # the nature dimension, to any inputs that are n-dim arrays.
+        # This allows numpy to easily broadcast the function's output.
+        args = [
+            arg[..., np.newaxis] if isinstance(arg, np.ndarray) else arg for arg in args
+        ]
+        f_query = func(self.atoms, *args)
+
+        if xarray:
+            f_dstn = DiscreteDistributionXRA(
+                list(self.pmv), f_query, seed=self.seed, **kwargs
+            )
+        else:
+            f_dstn = DiscreteDistribution(list(self.pmv), f_query, seed=self.seed)
+
+        return f_dstn
+
+
+class DiscreteDistributionXRA(DiscreteDistribution):
+    """
+    A representation of a discrete probability distribution
+    stored in an underlying `xarray.Dataset`.
+
+    Parameters
+    ----------
+    pmv : np.array
+        An array of floats representing a probability mass function.
+    data : np.array
+        Discrete point values for each probability mass.
+        For multivariate distributions, the last dimension of atoms must index
+        "nature" or the random realization. For instance, if atoms.shape == (2,6,4),
+        the random variable has 4 possible realizations and each of them has shape (2,6).
+    seed : int
+        Seed for random number generator.
+    name : str
+        Name of the distribution.
+    var_names : list of str
+        Names of the variables in the distribution.
+    attrs: dict
+        Attributes for the distribution.
+    """
+
+    def __init__(
+        self,
+        pmv,
+        atoms,
+        seed=0,
+        name="DiscreteDistributionXRA",
+        var_names=None,
+        attrs=None,
+        var_attrs=None,
+    ):
+
+        # vector-value distributions
+        if atoms.ndim < 2:
+            atoms = atoms[np.newaxis, ...]
+        if atoms.ndim > 2:
+            raise NotImplementedError(
+                "Only vector-valued distributions are supported for now."
+            )
+
+        if attrs is None:
+            attrs = {}
+
+        attrs["name"] = name
+        attrs["pmv"] = np.asarray(pmv)
+        attrs["seed"] = seed
+        attrs["RNG"] = np.random.RandomState(seed)
+
+        n_var = atoms.shape[0]
+
+        if var_names is None:
+            var_names = ["var_" + str(i) for i in range(n_var)]
+
+        assert (
+            len(var_names) == n_var
+        ), "Number of variable names does not match number of variables."
+
+        if var_attrs is None:
+            var_attrs = [None] * n_var
+
+        self.dataset = Dataset(
+            {
+                var_names[i]: DataArray(atoms[i], attrs=var_attrs[i])
+                for i in range(n_var)
+            },
+            attrs=attrs,
+        )
+
+    @property
+    def variables(self):
+        return self.dataset.data_vars
+
+    @property
+    def atoms(self):
+        """
+        Returns the distribution's data as a numpy.ndarray.
+        """
+        data_vars = self.variables
+        return np.vstack([data_vars[key].values for key in data_vars.keys()])
+
+    @property
+    def pmv(self):
+        """
+        Returns the distribution's probability mass function.
+        """
+        return self.dataset.pmv
+
+    @property
+    def RNG(self):
+        """
+        Returns the distribution's random number generator.
+        """
+        return self.dataset.RNG
+
+    @property
+    def name(self):
+        """
+        The distribution's name.
+        """
+        return self.dataset.name
+
+    @property
+    def attrs(self):
+        """
+        The distribution's attributes.
+        """
+        return self.dataset.attrs
+
+    def expected(self, func=None, *args, labels=False):
+        """
+        Expectation of a function, given an array of configurations of its inputs
+        along with a DiscreteDistributionXRA object that specifies the probability
+        of each configuration.
+
+        Parameters
+        ----------
+        func : function
+            The function to be evaluated.
+            This function should take the full array of distribution values
+            and return either arrays of arbitrary shape or scalars.
+            It may also take other arguments *args.
+            This function differs from the standalone `calc_expectation`
+            method in that it uses numpy's vectorization and broadcasting
+            rules to avoid costly iteration.
+            Note: If you need to use a function that acts on single outcomes
+            of the distribution, consier `distribution.calc_expectation`.
+        *args :
+            Other inputs for func, representing the non-stochastic arguments.
+            The the expectation is computed at f(dstn, *args).
+        labels : bool
+            If True, the function should use labeled indexing instead of integer
+            indexing using the distribution's underlying rv coordinates. For example,
+            if `dims = ('rv', 'x')` and `coords = {'rv': ['a', 'b'], }`, then
+            the function can be `lambda x: x["a"] + x["b"]`.
+
+        Returns
+        -------
+        f_exp : np.array or scalar
+            The expectation of the function at the queried values.
+            Scalar if only one value.
+        """
+
+        def func_wrapper(x, *args):
+            """
+            Wrapper function for `func` that handles labeled indexing.
+            """
+
+            idx = self.variables.keys()
+            wrapped = dict(zip(idx, x))
+
+            return func(wrapped, *args)
+
+        if labels:
+            which_func = func_wrapper
+        else:
+            which_func = func
+
+        return super().expected(which_func, *args)
 
 
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
-    return DiscreteDistribution(d.pmf, np.exp(d.X), seed=seed)
+    return DiscreteDistribution(d.pmv, np.exp(d.atoms), seed=seed)
 
 
 def calc_normal_style_pars_from_lognormal_pars(avg_lognormal, std_lognormal):
-    varLognormal = std_lognormal ** 2
-    varNormal = math.log(1 + varLognormal / avg_lognormal ** 2)
+    varLognormal = std_lognormal**2
+    varNormal = math.log(1 + varLognormal / avg_lognormal**2)
     avgNormal = math.log(avg_lognormal) - varNormal * 0.5
     std_normal = math.sqrt(varNormal)
     return avgNormal, std_normal
 
 
 def calc_lognormal_style_pars_from_normal_pars(mu_normal, std_normal):
-    varNormal = std_normal ** 2
+    varNormal = std_normal**2
     avg_lognormal = math.exp(mu_normal + varNormal * 0.5)
-    varLognormal = (math.exp(varNormal) - 1) * avg_lognormal ** 2
+    varLognormal = (math.exp(varNormal) - 1) * avg_lognormal**2
     std_lognormal = math.sqrt(varLognormal)
     return avg_lognormal, std_lognormal
 
@@ -970,9 +1229,9 @@ def approx_beta(N, a=1.0, b=1.0):
     """
     P = 1000
     vals = np.reshape(stats.beta.ppf(np.linspace(0.0, 1.0, N * P), a, b), (N, P))
-    X = np.mean(vals, axis=1)
-    pmf = np.ones(N) / float(N)
-    return DiscreteDistribution(pmf, X)
+    atoms = np.mean(vals, axis=1)
+    pmv = np.ones(N) / float(N)
+    return DiscreteDistribution(pmv, atoms)
 
 
 def make_markov_approx_to_normal(x_grid, mu, sigma, K=351, bound=3.5):
@@ -1118,7 +1377,7 @@ def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0):
     trans_matrix: np.array
         Markov transition array for the discretized process
     """
-    yN = bound * sigma / ((1 - ar_1 ** 2) ** 0.5)
+    yN = bound * sigma / ((1 - ar_1**2) ** 0.5)
     y = np.linspace(-yN, yN, N)
     d = y[1] - y[0]
     trans_matrix = np.ones((N, N))
@@ -1149,13 +1408,13 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
     Parameters
     ----------
     distribution : DiscreteDistribution
-        A DiscreteDistribution
+        A one-dimensional DiscreteDistribution.
     x : float
         The new value to be added to the distribution.
     p : float
         The probability of the discrete outcome x occuring.
     sort: bool
-        Whether or not to sort X before returning it
+        Whether or not to sort atoms before returning it
 
     Returns
     -------
@@ -1165,15 +1424,15 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
     """
 
     if type(distribution) != TimeVaryingDiscreteDistribution:
-        X = np.append(x, distribution.X * (1 - p * x) / (1 - p))
-        pmf = np.append(p, distribution.pmf * (1 - p))
+        atoms = np.append(x, distribution.atoms * (1 - p * x) / (1 - p))
+        pmv = np.append(p, distribution.pmv * (1 - p))
 
         if sort:
-            indices = np.argsort(X)
-            X = X[indices]
-            pmf = pmf[indices]
+            indices = np.argsort(atoms)
+            atoms = atoms[indices]
+            pmv = pmv[indices]
 
-        return DiscreteDistribution(pmf, X)
+        return DiscreteDistribution(pmv, atoms)
     elif type(distribution) == TimeVaryingDiscreteDistribution:
         # apply recursively on all the internal distributions
         return TimeVaryingDiscreteDistribution(
@@ -1192,8 +1451,8 @@ def add_discrete_outcome(distribution, x, p, sort=False):
 
     Parameters
     ----------
-    distribution : [np.array]
-        Two element list containing a list of probabilities and a list of outcomes.
+    distribution : DiscreteDistribution
+        One-dimensional distribution to which the outcome is to be added.
     x : float
         The new value to be added to the distribution.
     p : float
@@ -1206,94 +1465,68 @@ def add_discrete_outcome(distribution, x, p, sort=False):
         points for discrete probability mass function.
     """
 
-    X = np.append(x, distribution.X)
-    pmf = np.append(p, distribution.pmf * (1 - p))
+    atoms = np.append(x, distribution.atoms)
+    pmv = np.append(p, distribution.pmv * (1 - p))
 
     if sort:
-        indices = np.argsort(X)
-        X = X[indices]
-        pmf = pmf[indices]
+        indices = np.argsort(atoms)
+        atoms = atoms[indices]
+        pmv = pmv[indices]
 
-    return DiscreteDistribution(pmf, X)
+    return DiscreteDistribution(pmv, atoms)
 
 
 def combine_indep_dstns(*distributions, seed=0):
     """
-    Given n lists (or tuples) whose elements represent n independent, discrete
-    probability spaces (probabilities and values), construct a joint pmf over
-    all combinations of these independent points.  Can take multivariate discrete
-    distributions as inputs.
+    Given n independent vector-valued discrete distributions, construct their joint discrete distribution.
+    Can take multivariate discrete distributions as inputs.
 
     Parameters
     ----------
-    distributions : [np.array]
-        Arbitrary number of distributions (pmfs).  Each pmf is a list or tuple.
-        For each pmf, the first vector is probabilities and all subsequent vectors
-        are values.  For each pmf, this should be true:
-        len(X_pmf[0]) == len(X_pmf[j]) for j in range(1,len(distributions))
+    distributions : DiscreteDistribution
+        Arbitrary number of discrete distributionss to combine. Their realizations must be
+        vector-valued (for each D in distributions, it must be the case that len(D.dim())==1).
 
     Returns
     -------
-    A DiscreteDistribution, consisting of:
-
-    P_out: np.array
-        Probability associated with each point in X_out.
-
-    X_out: np.array (as many as in *distributions)
-        Discrete points for the joint discrete probability mass function.
+    A DiscreteDistribution representing the joint distribution of the given
+    random variables.
     """
     # Get information on the distributions
     dist_lengths = ()
     dist_dims = ()
     for dist in distributions:
-        dist_lengths += (len(dist.pmf),)
+
+        if len(dist.dim()) > 1:
+            raise NotImplementedError(
+                "We currently only support combining vector-valued distributions."
+            )
+
         dist_dims += (dist.dim(),)
+        dist_lengths += (len(dist.pmv),)
+
     number_of_distributions = len(distributions)
 
-    # Initialize lists we will use
-    X_out = []
+    # We need the combinations of indices of realizations in all
+    # distributions
+    inds = np.meshgrid(
+        *[np.array(range(l), dtype=int) for l in dist_lengths], indexing="ij"
+    )
+    inds = [x.flatten() for x in inds]
+
+    atoms_out = []
     P_temp = []
+    for i, ind_vec in enumerate(inds):
+        atoms_out += [distributions[i].atoms[..., ind_vec]]
+        P_temp += [distributions[i].pmv[ind_vec]]
 
-    # Now loop through the distributions, tiling and flattening as necessary.
-    for dd, dist in enumerate(distributions):
-
-        # The shape we want before we tile
-        dist_newshape = (
-            (1,) * dd + (len(dist.pmf),) + (1,) * (number_of_distributions - dd)
-        )
-
-        # The tiling we want to do
-        dist_tiles = dist_lengths[:dd] + (1,) + dist_lengths[dd + 1 :]
-
-        # Now we are ready to tile.
-        # We don't use the np.meshgrid commands, because they do not
-        # easily support non-symmetric grids.
-
-        # First deal with probabilities
-        Pmesh = np.tile(dist.pmf.reshape(dist_newshape), dist_tiles)  # Tiling
-        flatP = Pmesh.ravel()  # Flatten the tiled arrays
-        P_temp += [
-            flatP,
-        ]  # Add the flattened arrays to the output lists
-
-        # Then loop through each value variable
-        for n in range(dist_dims[dd]):
-            if dist.dim() > 1:
-                Xmesh = np.tile(dist.X[n].reshape(dist_newshape), dist_tiles)
-            else:
-                Xmesh = np.tile(dist.X.reshape(dist_newshape), dist_tiles)
-            flatX = Xmesh.ravel()
-            X_out += [
-                flatX,
-            ]
-
-    # We're done getting the flattened X_out arrays we wanted.
-    # However, we have a bunch of flattened P_temp arrays, and just want one
-    # probability array. So get the probability array, P_out, here.
-    P_out = np.prod(np.array(P_temp), axis=0)
+    atoms_out = np.concatenate(atoms_out, axis=0)
+    P_temp = np.stack(P_temp, axis=0)
+    P_out = np.prod(P_temp, axis=0)
 
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
-    return DiscreteDistribution(P_out, X_out, seed=seed)
+
+    return DiscreteDistribution(P_out, atoms_out, seed=seed)
 
 
 def calc_expectation(dstn, func=lambda x: x, *args):
@@ -1305,19 +1538,15 @@ def calc_expectation(dstn, func=lambda x: x, *args):
     Parameters
     ----------
     dstn : DiscreteDistribution
-        The N-valued distribution over which the function is to be evaluated.
+        The distribution over which the function is to be evaluated.
     func : function
         The function to be evaluated.
-        This function should take an array of size N x M.
-        It may also take other arguments *args
-        Please see numpy.apply_along_axis() for guidance on
-        design of func.
-        Defaults to identity function.
-    *args : scalar or np.array
-        One or more constants or arrays of input values for func,
-        representing the non-stochastic arguments.
-        The arrays must all have the same shape, and the expectation is computed
-        at f(dstn, args[0], args[1],...,args[M]).
+        This function should take an array of shape dstn.dim() and return
+        either arrays of arbitrary shape or scalars.
+        It may also take other arguments *args.
+    *args :
+        Other inputs for func, representing the non-stochastic arguments.
+        The the expectation is computed at f(dstn, *args).
 
     Returns
     -------
@@ -1325,26 +1554,52 @@ def calc_expectation(dstn, func=lambda x: x, *args):
         The expectation of the function at the queried values.
         Scalar if only one value.
     """
-    N = dstn.dim()
 
-    dstn_array = np.column_stack(dstn.X)
+    f_query = [func(dstn.atoms[..., i], *args) for i in range(len(dstn.pmv))]
 
-    if N > 1:
-        # numpy is weird about 1-D arrays.
-        dstn_array = dstn_array.T
+    f_query = np.stack(f_query, axis=-1)
 
-    f_query = np.apply_along_axis(func, 0, dstn_array, *args)
-
-    # Compute expectations over the values
-    f_exp = np.dot(f_query, np.vstack(dstn.pmf))
-
-    # a hack.
-    if f_exp.size == 1:
-        f_exp = f_exp.flat[0]
-    elif f_exp.shape[0] == f_exp.size:
-        f_exp = f_exp.flatten()
+    # From the numpy.dot documentation:
+    # If both a and b are 1-D arrays, it is inner product of vectors (without complex conjugation).
+    # If a is an N-D array and b is a 1-D array, it is a sum product over the last axis of a and b.
+    # Thus, if func returns scalars, f_exp will be a scalar and if it returns arrays f_exp
+    # will be an array of the same shape.
+    f_exp = np.dot(f_query, dstn.pmv)
 
     return f_exp
+
+
+def distr_of_function(dstn, func=lambda x: x, *args):
+    """
+    Finds the distribution of a random variable Y that is a function
+    of discrete random variable atoms, Y=f(atoms).
+
+    Parameters
+    ----------
+    dstn : DiscreteDistribution
+        The distribution over which the function is to be evaluated.
+    func : function
+        The function to be evaluated.
+        This function should take an array of shape dstn.dim().
+        It may also take other arguments *args.
+    *args :
+        Additional non-stochastic arguments for func,
+        The function is computed at f(dstn, *args).
+
+    Returns
+    -------
+    f_dstn : DiscreteDistribution
+        The distribution of func(dstn).
+    """
+    # Apply function to every event realization
+    f_query = [func(dstn.atoms[..., i], *args) for i in range(len(dstn.pmv))]
+
+    # Stack results along their last (new) axis
+    f_query = np.stack(f_query, axis=-1)
+
+    f_dstn = DiscreteDistribution(dstn.pmv, f_query)
+
+    return f_dstn
 
 
 class MarkovProcess(Distribution):
@@ -1396,3 +1651,48 @@ class MarkovProcess(Distribution):
         array_sample = np.frompyfunc(sample, 1, 1)
 
         return array_sample(state)
+
+
+def expected(func=None, dist=None, args=(), labels=False):
+    """
+    Expectation of a function, given an array of configurations of its inputs
+    along with a DiscreteDistribution(atomsRA) object that specifies the probability
+    of each configuration.
+
+    Parameters
+    ----------
+    func : function
+        The function to be evaluated.
+        This function should take the full array of distribution values
+        and return either arrays of arbitrary shape or scalars.
+        It may also take other arguments *args.
+        This function differs from the standalone `calc_expectation`
+        method in that it uses numpy's vectorization and broadcasting
+        rules to avoid costly iteration.
+        Note: If you need to use a function that acts on single outcomes
+        of the distribution, consier `distribution.calc_expectation`.
+    dist : DiscreteDistribution or DiscreteDistributionXRA
+        The distribution over which the function is to be evaluated.
+    args : tuple
+        Other inputs for func, representing the non-stochastic arguments.
+        The the expectation is computed at f(dstn, *args).
+    labels : bool
+        If True, the function should use labeled indexing instead of integer
+        indexing using the distribution's underlying rv coordinates. For example,
+        if `dims = ('rv', 'x')` and `coords = {'rv': ['a', 'b'], }`, then
+        the function can be `lambda x: x["a"] + x["b"]`.
+
+    Returns
+    -------
+    f_exp : np.array or scalar
+        The expectation of the function at the queried values.
+        Scalar if only one value.
+    """
+
+    if not isinstance(args, tuple):
+        args = (args,)
+
+    if isinstance(dist, DiscreteDistributionXRA):
+        return dist.expected(func, *args, labels=labels)
+    elif isinstance(dist, DiscreteDistribution):
+        return dist.expected(func, *args)

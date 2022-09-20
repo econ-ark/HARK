@@ -2,22 +2,22 @@
 
 * [Code of Conduct](#code-of-conduct)
 * [Contributing Guide](#contributing-guide)
-* [Developer's Certificate of Origin 1.1](#developers-certificate-of-origin-11)
+* [Developer's Certificate of Origin 1.1](#developer-s-certificate-of-origin-1-1)
 
 ## [Code of Conduct](./doc/guides/contributing/coc.md)
 
 The Econ-ARK project has a
-[Code of Conduct](./.github/CODE_OF_CONDUCT.md)
+[Code of Conduct](https://github.com/econ-ark/HARK/blob/master/.github/CODE_OF_CONDUCT.md)
 to which all contributors must adhere.
 
-See [details on our policy on Code of Conduct](./.github/CODE_OF_CONDUCT.md).
+See [details on our policy on Code of Conduct](https://github.com/econ-ark/HARK/blob/master/.github/CODE_OF_CONDUCT.md).
 
 
 ## Welcome!
 
 Thank you for considering contributing to Econ-ARK!  We're a young project with a small but committed community that's hoping to grow while maintaining our friendly and responsive culture.  Whether you're an economist or a technologist, a writer or a coder, an undergrad or a full professor, a professional or a hobbyist, there's a place for you in the Econ-ARK community. 
 
-We're still creating our contribution infrastructure, so this document is a work in progress.  If you have any questions please feel free to @ or otherwise reach out project manager [Shauna](https://github.com/shaunagm), or lead developers [Chris](https://github.com/llorracc) and [Matt](https://github.com/mnwhite).  If you prefer to connect through email, you can send it to __econ-ark at jhuecon dot org__.
+We're still creating our contribution infrastructure, so this document is a work in progress.  If you have any questions please feel free to @ or otherwise reach out to project leaders [Chris](https://github.com/llorracc) and [Matt](https://github.com/mnwhite).  If you prefer to connect through email, you can send it to __econ-ark at jhuecon dot org__. We also have a [Gitter chat room](https://gitter.im/econ-ark/community) you are welcome to meet us in.
 
 ## How to Contribute
 
@@ -117,7 +117,7 @@ Thanks again! We're so glad to have you in our community.
       If Travis fails, you can find out why by clicking on the "failed" icon (red
       cross) and inspecting the build and test log.
 
-    * [GitHub Actions](http://github.com), is another continuous integration
+    * [GitHub Actions](http://github.com/actions), is another continuous integration
       service, which we use.  You will also need to make sure that the GitHub Actions
       tests pass.
 
@@ -168,7 +168,7 @@ When using conda, you may find the following bash commands useful
 
 * All code should have tests.
 * All code should be documented, to the same
-  [standard](https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt#docstring-standard)
+  [standard](https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard)
   as NumPy and SciPy.
 * All changes are reviewed.
 

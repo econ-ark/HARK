@@ -159,10 +159,10 @@ class Compare_TBS_and_Markov(unittest.TestCase):
         MarkovType = MarkovConsumerType(**Markov_primitives)
         MarkovType.cycles = 0
         employed_income_dist = DiscreteDistribution(
-            np.ones(1), [np.ones(1), np.ones(1)]
+            np.ones(1), np.array([[1.0],[1.0]])
         )
         unemployed_income_dist = DiscreteDistribution(
-            np.ones(1), [np.ones(1), np.zeros(1)]
+            np.ones(1), np.array([[1.0],[0.0]])
         )
         MarkovType.IncShkDstn = [[employed_income_dist, unemployed_income_dist]]
 

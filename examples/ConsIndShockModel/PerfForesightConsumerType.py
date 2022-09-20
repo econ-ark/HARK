@@ -2,16 +2,17 @@
 # jupyter:
 #   jupytext:
 #     cell_metadata_filter: collapsed,code_folding,name,title,incorrectly_encoded_metadata,pycharm
+#     cell_metadata_json: true
 #     formats: ipynb,py:percent
 #     text_representation:
 #       extension: .py
 #       format_name: percent
-#       format_version: '1.2'
-#       jupytext_version: 1.2.4
+#       format_version: '1.3'
+#       jupytext_version: 1.14.1
 #   kernelspec:
-#     display_name: econ-ark-3.8
+#     display_name: Python 3 (ipykernel)
 #     language: python
-#     name: econ-ark-3.8
+#     name: python3
 # ---
 
 # %% [markdown]

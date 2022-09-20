@@ -19,15 +19,14 @@ you might want to look at the `DemARK
 
    introduction
    quick-start
+   ARKitecture
    contributing/CONTRIBUTING.md
    reference/index
    CHANGELOG
    license
 
-
 .. toctree::
    :maxdepth: 1
-   :caption: Notebooks
 
    example_notebooks/Gentle-Intro-To-HARK.ipynb
    example_notebooks/PerfForesightConsumerType.ipynb

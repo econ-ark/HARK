@@ -18,15 +18,17 @@ class testsForDCEGM(unittest.TestCase):
         for mu_normal in self.mu_normals:
             for std_normal in self.std_normals:
                 d = distribution.Normal(mu_normal).approx(40)
-                self.assertTrue(sum(d.pmf * d.X) - mu_normal < 1e-12)
+                self.assertTrue(sum(d.pmv * d.atoms[0, :]) - mu_normal < 1e-12)
 
     def test_mu_lognormal_from_normal(self):
         for mu_normal in self.mu_normals:
             for std_normal in self.std_normals:
-                d = distribution.approx_lognormal_gauss_hermite(40, mu_normal, std_normal)
+                d = distribution.approx_lognormal_gauss_hermite(
+                    40, mu_normal, std_normal
+                )
                 self.assertTrue(
                     abs(
-                        sum(d.pmf * d.X)
+                        sum(d.pmv * d.atoms[0, :])
                         - distribution.calc_lognormal_style_pars_from_normal_pars(
                             mu_normal, std_normal
                         )[0]
@@ -64,12 +66,8 @@ class test_MVNormalApprox(unittest.TestCase):
 
         vcov_fun = lambda X, mu: np.outer(X - mu, X - mu)
 
-        Sig_2D = distribution.calc_expectation(self.dist2D_approx, vcov_fun, self.mu2)[
-            :, :, 0
-        ]
+        Sig_2D = distribution.calc_expectation(self.dist2D_approx, vcov_fun, self.mu2)
         self.assertTrue(np.allclose(Sig_2D, self.Sigma2, rtol=1e-5))
 
-        Sig_3D = distribution.calc_expectation(self.dist3D_approx, vcov_fun, self.mu3)[
-            :, :, 0
-        ]
+        Sig_3D = distribution.calc_expectation(self.dist3D_approx, vcov_fun, self.mu3)
         self.assertTrue(np.allclose(Sig_3D, self.Sigma3, rtol=1e-5))

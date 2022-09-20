@@ -62,10 +62,10 @@ class test_ConsMarkovSolver(unittest.TestCase):
 
         # Replace the default (lognormal) income distribution with a custom one
         employed_income_dist = DiscreteDistribution(
-            np.ones(1), [np.ones(1), np.ones(1)]
+            np.ones(1), np.array([[1.0],[1.0]])
         )  # Definitely get income
         unemployed_income_dist = DiscreteDistribution(
-            np.ones(1), [np.ones(1), np.zeros(1)]
+            np.ones(1), np.array([[1.0],[0.0]])
         )  # Definitely don't
         self.model.IncShkDstn = [
             [

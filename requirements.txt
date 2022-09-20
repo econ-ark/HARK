@@ -1,4 +1,4 @@
-numpy==1.19.4
+numpy
 matplotlib
 sphinx
 future
@@ -10,8 +10,11 @@ sphinx-rtd-theme
 nbsphinx
 seaborn
 recommonmark
-interpolation
+interpolation>=2.2.3
 numba
 quantecon
 pandas
 networkx
+xarray
+jupyterlab
+jupytext
