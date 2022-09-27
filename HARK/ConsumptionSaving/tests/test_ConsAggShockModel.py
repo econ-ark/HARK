@@ -189,15 +189,16 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
 
         # testing update_solution_terminal()
         self.assertEqual(
-            self.agent.solution_terminal.cFunc[0](10, 13.32722),
+            self.agent.solution_terminal.cFunc[0](10, self.economy.MSS),
             10
         )
 
         self.assertAlmostEqual(
             self.economy.agents[0].solution[0].cFunc[0](
-                10, 13.32722
+                10, self.economy.MSS
             ).tolist(),
-            1.2386774
+            1.2386774,
+            places = 4
         )
 
         self.assertAlmostEqual(
