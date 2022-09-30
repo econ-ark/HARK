@@ -29,6 +29,7 @@ Release Date: TBD
 * Adds a wrapper for [`interpolation.py`](https://github.com/EconForge/interpolation.py) for fast multilinear interpolation. [#1151](https://github.com/econ-ark/HARK/pull/1151)
 * Adds support for the calculation of dreivatives in the `interpolation.py` wrappers. [#1157](https://github.com/econ-ark/HARK/pull/1157)
 * Adds class `DecayInterp` to `econforgeinterp.py`. It implements interpolators that "decay" to some limiting function when extrapolating. [#1165](https://github.com/econ-ark/HARK/pull/1165)
+* Add methods to non stochastically simulate an economy by computing transition matrices. Functions to compute transition matrices and ergodic distribution have been added [#1155](https://github.com/econ-ark/HARK/pull/1155).
 
 ### Minor Changes
 
