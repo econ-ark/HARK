@@ -30,7 +30,7 @@ While we're thrilled to receive all kinds of contributions, there are a few key 
 * creating demonstrations of how to use Econ-ARK (which we store in the [DemARK](https://github.com/econ-ark/DemARK) repository)
 * expanding test coverage of our existing code
 
-If you'd like to help with those or any other kind of contribution, reach out to us and we'll help you do so.  
+If you'd like to help with those or any other kind of contribution, reach out to us and we'll help you do so.
 
 We don't currently have guidelines for opening issues or pull requests, so include as much information as seems relevant to you, and we'll ask you if we need to know more.
 
@@ -40,7 +40,7 @@ We're trying to get better at managing our open issues and pull requests.  We've
 
 1. Initial response within one or two days.
 2. Substantive response within two weeks.
-3. Resolution of issue/pull request within three months.  
+3. Resolution of issue/pull request within three months.
 
 If you've been waiting on us for more than two weeks for any reason, please feel free to give us a nudge.  Correspondingly, we ask that you respond to any questions or requests from us within two weeks as well, even if it's just to say, "Sorry, I can't get to this for a while yet". If we don't hear back from you, we may close your issue or pull request.  If you want to re-open it, just ask - we're glad to do so.
 
@@ -198,9 +198,9 @@ When naming variables in model modules, the HARK team strongly discourages using
 Conventions for naming variables in HARK's tool modules are significantly closer to more commonly used standards.  Variable names should be in all lower case, with underscores between words, e.g. ***data\_to\_match***.  The functions and classes in these modules are more general and almost surely do not have any inherent ''economic content''; they are numerical or algorithmic objects, not variables that might appear in an equation in an article for a (non-computational) economics journal.  Variable names in application modules (e.g. the files that execute the ***cstwMPC*** estimations) are a mix of the conventions for tool and model files, as appropriate for each variable.  That is, variables that are directly related to ''economic variables'' in model modules should follow those conventions, while objects created solely for data manipulation or reporting should use the style of tool modules.
 
 ### Documentation Convention
-The HARK team wants the toolKit to be as accessible to users as possible; our greatest fear (Other than spiders, of course) is that a new user will open up our code, get hopelessly confused trying to read it, and then never look at HARK again.  To prevent this tragic outcome, we have tried hard to provide comprehensive, accurate documentation and comments within the code describing our methods. Moreover, HARK uses the Sphinx utility to generate a website with [online documentation](https://econ-ark.github.io/HARK/) for all of our tool and model modules, so that users can learn about what's available in HARK without digging through the source code.  When making contributions to HARK, the development team asks users to format their inline documentation to work with Sphinx by following a few simple rules.
+The HARK team wants the toolKit to be as accessible to users as possible; our greatest fear (Other than spiders, of course) is that a new user will open up our code, get hopelessly confused trying to read it, and then never look at HARK again.  To prevent this tragic outcome, we have tried hard to provide comprehensive, accurate documentation and comments within the code describing our methods. Moreover, HARK uses the Sphinx utility to generate a website with [online documentation](https://hark.readthedocs.io/en/latest/) for all of our tool and model modules, so that users can learn about what's available in HARK without digging through the source code.  When making contributions to HARK, the development team asks users to format their inline documentation to work with Sphinx by following a few simple rules.
 
-* The top of every module should begin with a ''docsting'' providing a clear description of the contents of the module.  The first sentence should concisely summarize the file, as it may appear in an index or summary of all modules without the remaining sentences.  A docstring at the top of a module should be formatted as:
+* The top of every module should begin with a ''docstring'' providing a clear description of the contents of the module.  The first sentence should concisely summarize the file, as it may appear in an index or summary of all modules without the remaining sentences.  A docstring at the top of a module should be formatted as:
 
 ```
 """
@@ -260,7 +260,7 @@ multiple entries.  If no output, this is just "None".
 
 * Provide ample comments within a function or method so that a relatively intelligent reader can follow along with your algorithm.  Short comments can follow at the end of a line, longer comments (or descriptions of the step or task about to be performed) should precede a block of code on the line(s) above it.
 
-Finally, if you write a new model module, the HARK team asks that you also provide a short mathematical writeup of the model as a PDF.  This document does not need to go into great detail about the solution method for the model or the functions and classes included in the module, merely specify the economic model and provide a summary of how it is solved.  See [ConsumptionSavingModels.pdf](https://github.com/econ-arl/Documentation/ConsumptionSavingModels.pdf) for an example of this.
+Finally, if you write a new model module, the HARK team asks that you also provide a short mathematical writeup of the model as a PDF.  This document does not need to go into great detail about the solution method for the model or the functions and classes included in the module, merely specify the economic model and provide a summary of how it is solved.  See [ConsumptionSavingModels.pdf](https://github.com/econ-ark/HARK/blob/master/Documentation/ConsumptionSavingModels.pdf) for an example of this.
 
 
 
