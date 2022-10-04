@@ -771,3 +771,43 @@ class testReadShock(unittest.TestCase):
         self.assertTrue(
             np.all(agent.history["bNrm"][age == 1] == a_init_newborns / pshk_newborns)
         )
+        
+        
+#%% Test Transition Matrix Methods
+
+
+
+class test_Transition_Matrix_Methods(unittest.TestCase):
+    def test_calc_tran_matrix(self):
+        
+        example1 = IndShockConsumerType(**dict_harmenberg)
+        example1.cycles= 0
+        example1.solve()
+        
+        example1.define_distribution_grid()
+        p = example1.dist_pGrid # Grid of permanent income levels
+        
+        example1.calc_transition_matrix() 
+        c = example1.cPol_Grid # Normalized Consumption Policy Grid
+        asset = example1.aPol_Grid # Normalized Asset Policy Grid
+        
+        example1.calc_ergodic_dist()
+        vecDstn = example1.vec_erg_dstn # Distribution of market resources and permanent income as a vector (m*p)x1 vector where 
+        
+        
+        #Compute Aggregate Consumption and Aggregate Assets
+        gridc = np.zeros( (len(c),len(p)) )
+        grida = np.zeros( (len(asset),len(p)) )
+        
+        for j in range(len(p)):
+            gridc[:,j] = p[j]*c # unnormalized Consumption policy grid
+            grida[:,j] = p[j]*asset # unnormalized Asset policy grid
+            
+        AggC = np.dot(gridc.flatten(), vecDstn) #Aggregate Consumption
+        AggA = np.dot(grida.flatten(), vecDstn) #Aggregate Assets
+        
+        
+              
+        self.assertAlmostEqual(AggA[0],  1.1951311747835132, places =4) 
+        self.assertAlmostEqual(AggC[0], 1.0041701073134557, places = 4)
+
