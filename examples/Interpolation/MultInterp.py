@@ -25,7 +25,7 @@ from time import time
 import matplotlib.pyplot as plt
 import numpy as np
 from HARK.econforgeinterp import LinearFast
-from HARK.gpuinterp import MultInterp
+from HARK.multinterp import MultInterp
 from matplotlib import colors
 from scipy.interpolate import RegularGridInterpolator
 
