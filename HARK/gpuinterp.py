@@ -1,6 +1,9 @@
 import numpy as np
 from scipy.ndimage import map_coordinates
 
+from HARK.core import MetricObject
+from numba import njit, prange, typed
+
 try:
     import cupy as cp
     from cupyx.scipy.ndimage import map_coordinates as cupy_map_coordinates
@@ -9,9 +12,6 @@ try:
 except ImportError:
     cupy_available = False
 
-
-from HARK.core import MetricObject
-from numba import njit, prange
 
 DIM_MESSAGE = "Dimension mismatch."
 
@@ -43,8 +43,13 @@ class MultInterp(MetricObject):
         elif target == "gpu":
             import cupy as xp
 
+        if target == "parallel":
+            self.grids = typed.List()
+            [self.grids.append(grid) for grid in grids]
+        else:
+            self.grids = [xp.asarray(grid) for grid in grids]
+
         self.input = xp.asarray(input)
-        self.grids = xp.asarray(grids)
         self.order = order
         self.mode = mode
         self.cval = cval
@@ -54,7 +59,9 @@ class MultInterp(MetricObject):
         self.ndim = input.ndim  # should match number of grids
         self.shape = input.shape  # should match points in each grid
 
-        assert self.ndim == self.grids.shape[0], DIM_MESSAGE
+        assert self.ndim == len(self.grids), DIM_MESSAGE
+        for i in range(self.ndim):
+            assert self.shape[i] == self.grids[i].size, DIM_MESSAGE
 
     def __call__(self, *args):
 
