@@ -32,13 +32,13 @@ from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.distribution import (
     DiscreteDistribution,
-    expected,
     IndexDistribution,
     Lognormal,
     MeanOneLogNormal,
     Uniform,
     add_discrete_outcome_constant_mean,
     combine_indep_dstns,
+    expected,
 )
 from HARK.interpolation import CubicHermiteInterp as CubicInterp
 from HARK.interpolation import (
@@ -57,7 +57,7 @@ from HARK.utilities import (
     CRRAutilityP_inv,
     CRRAutilityP_invP,
     CRRAutilityPP,
-    make_grid_exp_mult,
+    construct_assets_grid,
 )
 from scipy.optimize import newton
 
@@ -3176,69 +3176,6 @@ def apply_flat_income_tax(
                 if j not in unemployed_indices:
                     IncShkDstn_new[t][i][j] = IncShkDstn[t][i][j] * (1 - tax_rate)
     return IncShkDstn_new
-
-
-# =======================================================
-# ================ Other useful functions ===============
-# =======================================================
-
-
-def construct_assets_grid(parameters):
-    """
-    Constructs the base grid of post-decision states, representing end-of-period
-    assets above the absolute minimum.
-
-    All parameters are passed as attributes of the single input parameters.  The
-    input can be an instance of a ConsumerType, or a custom Parameters class.
-
-    Parameters
-    ----------
-    aXtraMin:                  float
-        Minimum value for the a-grid
-    aXtraMax:                  float
-        Maximum value for the a-grid
-    aXtraCount:                 int
-        Size of the a-grid
-    aXtraExtra:                [float]
-        Extra values for the a-grid.
-    exp_nest:               int
-        Level of nesting for the exponentially spaced grid
-
-    Returns
-    -------
-    aXtraGrid:     np.ndarray
-        Base array of values for the post-decision-state grid.
-    """
-    # Unpack the parameters
-    aXtraMin = parameters.aXtraMin
-    aXtraMax = parameters.aXtraMax
-    aXtraCount = parameters.aXtraCount
-    aXtraExtra = parameters.aXtraExtra
-    grid_type = "exp_mult"
-    exp_nest = parameters.aXtraNestFac
-
-    # Set up post decision state grid:
-    aXtraGrid = None
-    if grid_type == "linear":
-        aXtraGrid = np.linspace(aXtraMin, aXtraMax, aXtraCount)
-    elif grid_type == "exp_mult":
-        aXtraGrid = make_grid_exp_mult(
-            ming=aXtraMin, maxg=aXtraMax, ng=aXtraCount, timestonest=exp_nest
-        )
-    else:
-        raise Exception(
-            "grid_type not recognized in __init__."
-            + "Please ensure grid_type is 'linear' or 'exp_mult'"
-        )
-
-    # Add in additional points for the grid:
-    for a in aXtraExtra:
-        if a is not None:
-            if a not in aXtraGrid:
-                j = aXtraGrid.searchsorted(a)
-                aXtraGrid = np.insert(aXtraGrid, j, a)
-
-    return aXtraGrid
 
 
 # Make a dictionary to specify a lifecycle consumer with a finite horizon
