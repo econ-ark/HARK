@@ -5,12 +5,18 @@ from scipy.interpolate import (
     NearestNDInterpolator,
 )
 from scipy.ndimage import map_coordinates
-from skimage.transform import PiecewiseAffineTransform
 
 from HARK.core import MetricObject
 
+try:
+    from skimage.transform import PiecewiseAffineTransform
 
-class UnstrucInterp(MetricObject):
+    skimage_available = True
+except ImportError:
+    skimage_available = False
+
+
+class UnstructuredInterp(MetricObject):
 
     distance_criteria = ["input", "grids"]
 
@@ -78,10 +84,18 @@ class UnstrucInterp(MetricObject):
         return self.interp(*args)
 
 
-class PieceWiseAffineInterp(MetricObject):
+class PiecewiseAffineInterp(MetricObject):
     def __init__(self, input, grids):
+
+        if not skimage_available:
+            raise ImportError(
+                "PiecewiseAffineTransform requires scikit-image installed."
+            )
+
         self.input = np.asarray(input)
         self.grids = np.asarray(grids)
+
+        self.ndim = input.ndim
 
         src = np.vstack([grid.flat for grid in self.grids]).T
         coords = np.mgrid[[slice(0, dim) for dim in self.input.shape]]
@@ -97,8 +111,6 @@ class PieceWiseAffineInterp(MetricObject):
         args = np.asarray(args)
 
         src_new = np.vstack([arg.flat for arg in args]).T
-        output = self.tform(src_new)
+        coordinates = self.tform(src_new)
 
-        x_out = output.reshape((*args[0].shape, 2))
-
-        return map_coordinates(self.input, x_out)
+        return map_coordinates(self.input, coordinates.T).reshape(args[0].shape)

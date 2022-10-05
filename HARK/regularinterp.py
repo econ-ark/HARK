@@ -16,7 +16,7 @@ except ImportError:
 DIM_MESSAGE = "Dimension mismatch."
 
 
-class MultInterp(MetricObject):
+class MultivariateInterp(MetricObject):
 
     distance_criteria = ["input", "grids"]
 
