@@ -1,43 +1,41 @@
 """
 Consumption-saving models that also include medical spending.
 """
-from copy import deepcopy
-
 import numpy as np
+from scipy.optimize import brentq
 from HARK import AgentType, MetricObject, make_one_period_oo_solver
+from HARK.distribution import add_discrete_outcome_constant_mean, Lognormal
+from HARK.utilities import (
+    CRRAutilityP_inv,
+    CRRAutility,
+    CRRAutility_inv,
+    CRRAutility_invP,
+    CRRAutilityPP,
+    make_grid_exp_mult,
+    NullFunc,
+)
+from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
+from HARK.interpolation import (
+    BilinearInterpOnInterp1D,
+    TrilinearInterp,
+    BilinearInterp,
+    CubicInterp,
+    LinearInterp,
+    LowerEnvelope3D,
+    UpperEnvelope,
+    LinearInterpOnInterp1D,
+    VariableLowerBoundFunc3D,
+    ValueFuncCRRA,
+    MargValueFuncCRRA,
+    MargMargValueFuncCRRA,
+)
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     ConsGenIncProcessSolver,
     PersistentShockConsumerType,
     VariableLowerBoundFunc2D,
     init_persistent_shocks,
 )
-from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
-from HARK.distribution import Lognormal, add_discrete_outcome_constant_mean
-from HARK.interpolation import (
-    BilinearInterp,
-    BilinearInterpOnInterp1D,
-    CubicInterp,
-    LinearInterp,
-    LinearInterpOnInterp1D,
-    LowerEnvelope3D,
-    MargMargValueFuncCRRA,
-    MargValueFuncCRRA,
-    TrilinearInterp,
-    UpperEnvelope,
-    UtilityFuncCRRA,
-    ValueFuncCRRA,
-    VariableLowerBoundFunc3D,
-)
-from HARK.utilities import (
-    CRRAutility,
-    CRRAutility_inv,
-    CRRAutility_invP,
-    CRRAutilityP_inv,
-    CRRAutilityPP,
-    NullFunc,
-    make_grid_exp_mult,
-)
-from scipy.optimize import brentq
+from copy import deepcopy
 
 __all__ = [
     "MedShockPolicyFunc",
@@ -1017,7 +1015,9 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         none
         """
         ConsGenIncProcessSolver.def_utility_funcs(self)  # Do basic version
-        self.uMed = UtilityFuncCRRA(self.CRRAmed)
+        self.uMedPinv = lambda Med: utilityP_inv(Med, gam=self.CRRAmed)
+        self.uMed = lambda Med: utility(Med, gam=self.CRRAmed)
+        self.uMedPP = lambda Med: utilityPP(Med, gam=self.CRRAmed)
 
     def def_BoroCnst(self, BoroCnstArt):
         """
@@ -1101,14 +1101,10 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
 
         # Calculate endogenous gridpoints and controls
         cLvlNow = np.tile(
-            np.reshape(self.u.derinv(EndOfPrdvP, order=(1, 0)), (1, pCount, mCount)),
-            (MedCount, 1, 1),
+            np.reshape(self.uPinv(EndOfPrdvP), (1, pCount, mCount)), (MedCount, 1, 1)
         )
         MedBaseNow = np.tile(
-            np.reshape(
-                self.uMed.derinv(self.MedPrice * EndOfPrdvP, order=(1, 0)),
-                (1, pCount, mCount),
-            ),
+            np.reshape(self.uMedPinv(self.MedPrice * EndOfPrdvP), (1, pCount, mCount)),
             (MedCount, 1, 1),
         )
         MedShkVals_tiled = np.tile(
@@ -1269,19 +1265,17 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             vNow = np.sum(vGrid * probsGrid, axis=2)
 
         # Calculate expected marginal value by "integrating" across medical shocks
-        vPgrid = self.u.der(cGrid)
+        vPgrid = self.uP(cGrid)
         vPnow = np.sum(vPgrid * probsGrid, axis=2)
 
         # Add vPnvrs=0 at m=mLvlMin to close it off at the bottom (and vNvrs=0)
         mGrid_small = np.concatenate(
             (np.reshape(self.mLvlMinNow(self.pLvlGrid), (1, pCount)), mGrid[:, :, 0])
         )
-        vPnvrsNow = np.concatenate(
-            (np.zeros((1, pCount)), self.u.derinv(vPnow, order=(1, 0)))
-        )
+        vPnvrsNow = np.concatenate((np.zeros((1, pCount)), self.uPinv(vPnow)))
         if self.vFuncBool:
-            vNvrsNow = np.concatenate((np.zeros((1, pCount)), self.u.inv(vNow)), axis=0)
-            vNvrsPnow = vPnow * self.u.derinv(vNow, order=(0, 1))
+            vNvrsNow = np.concatenate((np.zeros((1, pCount)), self.uinv(vNow)), axis=0)
+            vNvrsPnow = vPnow * self.uinvP(vNow)
             vNvrsPnow = np.concatenate((np.zeros((1, pCount)), vNvrsPnow), axis=0)
 
         # Construct the pseudo-inverse value and marginal value functions over mLvl,pLvl
@@ -1405,10 +1399,8 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         EndOfPrdvPP = np.tile(
             np.reshape(EndOfPrdvPP, (1, pCount, EndOfPrdvPP.shape[1])), (MedCount, 1, 1)
         )
-        dcda = EndOfPrdvPP / self.u.der(np.array(self.cLvlNow), order=2)
-        dMedda = EndOfPrdvPP / (
-            self.MedShkVals_tiled * self.uMed.der(self.MedLvlNow, order=2)
-        )
+        dcda = EndOfPrdvPP / self.uPP(np.array(self.cLvlNow))
+        dMedda = EndOfPrdvPP / (self.MedShkVals_tiled * self.uMedPP(self.MedLvlNow))
         dMedda[0, :, :] = 0.0  # dMedda goes crazy when MedShk=0
         MPC = dcda / (1.0 + dcda + self.MedPrice * dMedda)
         MPM = dMedda / (1.0 + dcda + self.MedPrice * dMedda)

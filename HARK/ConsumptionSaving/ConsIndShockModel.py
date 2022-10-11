@@ -13,6 +13,7 @@ See NARK https://HARK.githhub.io/Documentation/NARK for information on variable 
 See HARK documentation for mathematical descriptions of the models being solved.
 """
 from copy import copy, deepcopy
+from scipy import sparse as sp
 
 import numpy as np
 from HARK import (
@@ -47,7 +48,6 @@ from HARK.interpolation import (
     LowerEnvelope,
     MargMargValueFuncCRRA,
     MargValueFuncCRRA,
-    UtilityFuncCRRA,
     ValueFuncCRRA,
 )
 from HARK.utilities import (
@@ -58,7 +58,12 @@ from HARK.utilities import (
     CRRAutilityP_inv,
     CRRAutilityP_invP,
     CRRAutilityPP,
+    construct_assets_grid,
     make_grid_exp_mult,
+    jump_to_grid_2D,
+    jump_to_grid_1D,
+    gen_tran_matrix_1D,
+    gen_tran_matrix_2D,
 )
 from scipy.optimize import newton
 
@@ -262,7 +267,12 @@ class ConsPerfForesightSolver(MetricObject):
         -------
         None
         """
-        self.u = UtilityFuncCRRA(self.CRRA)
+        self.u = lambda c: utility(c, gam=self.CRRA)  # utility function
+        # marginal utility function
+        self.uP = lambda c: utilityP(c, gam=self.CRRA)
+        self.uPP = lambda c: utilityPP(
+            c, gam=self.CRRA
+        )  # marginal marginal utility function
 
     def def_value_funcs(self):
         """
@@ -649,6 +659,27 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 
         self.def_utility_funcs()
 
+    def def_utility_funcs(self):
+        """
+        Defines CRRA utility function for this period (and its derivatives,
+        and their inverses), saving them as attributes of self for other methods
+        to use.
+
+        Parameters
+        ----------
+        none
+
+        Returns
+        -------
+        none
+        """
+        ConsPerfForesightSolver.def_utility_funcs(self)
+        self.uPinv = lambda u: utilityP_inv(u, gam=self.CRRA)
+        self.uPinvP = lambda u: utilityP_invP(u, gam=self.CRRA)
+        self.uinvP = lambda u: utility_invP(u, gam=self.CRRA)
+        if self.vFuncBool:
+            self.uinv = lambda u: utility_inv(u, gam=self.CRRA)
+
     def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
@@ -886,7 +917,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         m_for_interpolation : np.array
             Corresponding market resource points for interpolation.
         """
-        cNrmNow = self.u.derinv(EndOfPrdvP, order=(1, 0))
+        cNrmNow = self.uPinv(EndOfPrdvP)
         mNrmNow = cNrmNow + aNrmNow
 
         # Limiting consumption is zero as m approaches mNrmMin
@@ -1111,7 +1142,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             * self.PermGroFac ** (-self.CRRA - 1.0)
             * expected(vpp_next, self.IncShkDstn, args=(self.aNrmNow, self.Rfree))
         )
-        dcda = EndOfPrdvPP / self.u.der(np.array(cNrm[1:]), order=2)
+        dcda = EndOfPrdvPP / self.uPP(np.array(cNrm[1:]))
         MPC = dcda / (dcda + 1.0)
         MPC = np.insert(MPC, 0, self.MPCmaxNow)
 
@@ -1144,10 +1175,10 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         EndOfPrdv = self.DiscFacEff * expected(
             v_lvl_next, self.IncShkDstn, args=(self.aNrmNow, self.Rfree)
         )
-        EndOfPrdvNvrs = self.u.inv(
+        EndOfPrdvNvrs = self.uinv(
             EndOfPrdv
         )  # value transformed through inverse utility
-        EndOfPrdvNvrsP = EndOfPrdvP * self.u.derinv(EndOfPrdv, order=(0, 1))
+        EndOfPrdvNvrsP = EndOfPrdvP * self.uinvP(EndOfPrdv)
         EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
         EndOfPrdvNvrsP = np.insert(
             EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0]
@@ -1201,11 +1232,11 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         cNrmNow = solution.cFunc(mNrm_temp)
         aNrmNow = mNrm_temp - cNrmNow
         vNrmNow = self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow)
-        vPnow = self.u.der(cNrmNow)
+        vPnow = self.uP(cNrmNow)
 
         # Construct the beginning-of-period value function
-        vNvrs = self.u.inv(vNrmNow)  # value transformed through inverse utility
-        vNvrsP = vPnow * self.u.derinv(vNrmNow, order=(0, 1))
+        vNvrs = self.uinv(vNrmNow)  # value transformed through inverse utility
+        vNvrsP = vPnow * self.uinvP(vNrmNow)
         mNrm_temp = np.insert(mNrm_temp, 0, self.mNrmMinNow)
         vNvrs = np.insert(vNvrs, 0, 0.0)
         vNvrsP = np.insert(
@@ -2323,6 +2354,285 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
 
+
+  
+    def define_distribution_grid(self, dist_mGrid=None, dist_pGrid=None, m_density = 0, num_pointsM = None, timestonest = None,  num_pointsP = 55, max_p_fac = 30.0):
+        
+        '''
+        Defines the grid on which the distribution is defined. Stores the grid of market resources and permanent income as attributes of self.
+        Grid for normalized market resources and permanent income may be prespecified 
+        as dist_mGrid and dist_pGrid, respectively. If not then default grid is computed based off given parameters.
+        
+        Parameters
+        ----------
+        dist_mGrid : np.array
+                Prespecified grid for distribution over normalized market resources
+            
+        dist_pGrid : np.array
+                Prespecified grid for distribution over permanent income. 
+            
+        m_density: float
+                Density of normalized market resources grid. Default value is mdensity = 0.
+                Only affects grid of market resources if dist_mGrid=None.
+            
+        num_pointsM: float
+                Number of gridpoints for market resources grid.
+        
+        num_pointsP: float
+                 Number of gridpoints for permanent income. 
+                 This grid will be exponentiated by the function make_grid_exp_mult.
+                
+        max_p_fac : float
+                Factor that scales the maximum value of permanent income grid. 
+                Larger values increases the maximum value of permanent income grid.
+        
+        Returns
+        -------
+        None
+        '''  
+ 
+   
+        if not hasattr(self, "neutral_measure"): # If true Use Harmenberg 2021's Neutral Measure. For more information, see https://econ-ark.org/materials/harmenberg-aggregation?launch
+            self.neutral_measure = False
+            
+        if num_pointsM == None:
+            m_points = self.aXtraCount
+        else:
+            m_points = num_pointsM
+            
+        if not isinstance(timestonest,int):
+            timestonest = self.aXtraNestFac
+        else:
+            timestonest = timestonest
+          
+        if self.cycles == 0:
+            
+            if not hasattr(dist_mGrid,'__len__'):
+                
+                aXtra_Grid = make_grid_exp_mult(
+                        ming=self.aXtraMin, maxg=self.aXtraMax, ng = m_points, timestonest = timestonest) #Generate Market resources grid given density and number of points
+                
+                for i in range(m_density):
+                    axtra_shifted = np.delete(aXtra_Grid,-1) 
+                    axtra_shifted = np.insert(axtra_shifted, 0,1.00000000e-04)
+                    dist_betw_pts = aXtra_Grid - axtra_shifted
+                    dist_betw_pts_half = dist_betw_pts/2
+                    new_A_grid = axtra_shifted + dist_betw_pts_half
+                    aXtra_Grid = np.concatenate((aXtra_Grid,new_A_grid))
+                    aXtra_Grid = np.sort(aXtra_Grid)
+                    
+                self.dist_mGrid = aXtra_Grid
+            
+            else:
+                self.dist_mGrid = dist_mGrid #If grid of market resources prespecified then use as mgrid
+                
+            if not hasattr(dist_pGrid,'__len__'):
+                num_points = num_pointsP #Number of permanent income gridpoints
+                #Dist_pGrid is taken to cover most of the ergodic distribution
+                p_variance = self.PermShkStd[0]**2 #set variance of permanent income shocks
+                max_p = max_p_fac*(p_variance/(1-self.LivPrb[0]))**0.5 #Maximum Permanent income value
+                one_sided_grid = make_grid_exp_mult(1.05+1e-3, np.exp(max_p), num_points, 3)
+                self.dist_pGrid = np.append(np.append(1.0/np.fliplr([one_sided_grid])[0],np.ones(1)),one_sided_grid) #Compute permanent income grid
+            else:
+
+                self.dist_pGrid = dist_pGrid #If grid of permanent income prespecified then use it as pgrid
+                            
+            if self.neutral_measure == True: # If true Use Harmenberg 2021's Neutral Measure. For more information, see https://econ-ark.org/materials/harmenberg-aggregation?launch
+                
+                self.dist_pGrid = np.array([1])
+                
+        elif self.cycles > 1:
+            raise Exception('define_distribution_grid requires cycles = 0 or cycles = 1')
+        
+        elif self.T_cycle != 0:
+            if num_pointsM == None:
+                m_points = self.aXtraCount
+            else:
+                m_points = num_pointsM
+            
+            print(self.aXtraCount)
+            
+            if not hasattr(dist_mGrid,'__len__'):
+                aXtra_Grid = make_grid_exp_mult(
+                        ming=self.aXtraMin, maxg=self.aXtraMax, ng = m_points, timestonest = timestonest) #Generate Market resources grid given density and number of points
+                
+                for i in range(m_density):
+                    axtra_shifted = np.delete(aXtra_Grid,-1) 
+                    axtra_shifted = np.insert(axtra_shifted, 0,1.00000000e-04)
+                    dist_betw_pts = aXtra_Grid - axtra_shifted
+                    dist_betw_pts_half = dist_betw_pts/2
+                    new_A_grid = axtra_shifted + dist_betw_pts_half
+                    aXtra_Grid = np.concatenate((aXtra_Grid,new_A_grid))
+                    aXtra_Grid = np.sort(aXtra_Grid)
+                    
+                self.dist_mGrid =  aXtra_Grid
+            
+            else:
+                self.dist_mGrid = dist_mGrid #If grid of market resources prespecified then use as mgrid
+                    
+            if not hasattr(dist_pGrid,'__len__'):
+                
+                self.dist_pGrid = [] #list of grids of permanent income    
+                
+                for i in range(self.T_cycle):
+                    
+                    num_points = num_pointsP
+                    #Dist_pGrid is taken to cover most of the ergodic distribution
+                    p_variance = self.PermShkStd[i]**2 # set variance of permanent income shocks this period
+                    max_p = max_p_fac*(p_variance/(1-self.LivPrb[i]))**0.5 # Consider probability of staying alive this period
+                    one_sided_grid = make_grid_exp_mult(1.05+1e-3, np.exp(max_p), num_points, 2) 
+                    
+                    dist_pGrid = np.append(np.append(1.0/np.fliplr([one_sided_grid])[0],np.ones(1)),one_sided_grid) # Compute permanent income grid this period. Grid of permanent income may differ dependent on PermShkStd
+                    self.dist_pGrid.append(dist_pGrid)
+
+            else:
+                self.dist_pGrid = dist_pGrid #If grid of permanent income prespecified then use as pgrid
+                           
+            if self.neutral_measure == True: # If true Use Harmenberg 2021's Neutral Measure. For more information, see https://econ-ark.org/materials/harmenberg-aggregation?launch
+                
+                self.dist_pGrid = self.T_cycle*[np.array([1])]
+            
+                
+                
+    def calc_transition_matrix(self, shk_dstn = None):
+        '''
+        Calculates how the distribution of agents across market resources 
+        transitions from one period to the next. If finite horizon problem, then calculates
+        a list of transition matrices, consumption and asset policy grids for each period of the problem. 
+        The transition matrix/matrices and consumption and asset policy grid(s) are stored as attributes of self.
+        
+        
+        Parameters
+        ----------
+            shk_dstn: list 
+                list of income shock distributions. Each Income Shock Distribution should be a DiscreteDistribution Object (see Distribution.py)
+        Returns
+        -------
+        None
+        
+        ''' 
+        
+        
+        if self.cycles == 0:  # Infinite Horizon Problem
+            
+            if not hasattr(shk_dstn, 'pmv'):
+                shk_dstn = self.IncShkDstn
+            
+            dist_mGrid = self.dist_mGrid #Grid of market resources
+            dist_pGrid = self.dist_pGrid #Grid of permanent incomes
+            aNext = dist_mGrid - self.solution[0].cFunc(dist_mGrid)  #assets next period
+            
+            self.aPol_Grid = aNext # Steady State Asset Policy Grid
+            self.cPol_Grid = self.solution[0].cFunc(dist_mGrid) #Steady State Consumption Policy Grid
+            
+            # Obtain shock values and shock probabilities from income distribution
+            bNext = self.Rfree*aNext # Bank Balances next period (Interest rate * assets)
+            shk_prbs = shk_dstn[0].pmv  # Probability of shocks 
+            tran_shks = shk_dstn[0].atoms[1] # Transitory shocks
+            perm_shks = shk_dstn[0].atoms[0] # Permanent shocks
+            LivPrb = self.LivPrb[0] # Update probability of staying alive
+            
+            #New borns have this distribution (assumes start with no assets and permanent income=1)
+            NewBornDist = jump_to_grid_2D(tran_shks,np.ones_like(tran_shks),shk_prbs,dist_mGrid,dist_pGrid)
+            
+            
+            if len(dist_pGrid) == 1: 
+                NewBornDist = jump_to_grid_1D(np.ones_like(tran_shks),shk_prbs,dist_mGrid)
+                self.tran_matrix = gen_tran_matrix_1D(dist_mGrid,bNext, shk_prbs,perm_shks,tran_shks,LivPrb,NewBornDist) # Compute Transition Matrix given shocks and grids.
+                
+            else:
+                NewBornDist = jump_to_grid_2D( np.ones_like(tran_shks), np.ones_like(tran_shks),shk_prbs,dist_mGrid,dist_pGrid )
+                
+                # Generate Transition Matrix
+                self.tran_matrix = gen_tran_matrix_2D(dist_mGrid,dist_pGrid,bNext, shk_prbs,perm_shks,tran_shks,LivPrb,NewBornDist) # Compute Transition Matrix given shocks and grids.
+                
+            
+            
+        elif self.cycles > 1:
+            raise Exception('calc_transition_matrix requires cycles = 0 or cycles = 1')
+            
+        elif self.T_cycle!= 0 : # finite horizon problem
+            
+            if not hasattr(shk_dstn, 'pmv'):
+                shk_dstn = self.IncShkDstn
+            
+            self.cPol_Grid = [] # List of consumption policy grids for each period in T_cycle
+            self.aPol_Grid = [] # List of asset policy grids for each period in T_cycle
+            self.tran_matrix = [] # List of transition matrices
+            
+            dist_mGrid =  self.dist_mGrid
+            
+            for k in range(self.T_cycle):
+                           
+                if type(self.dist_pGrid) == list:
+                    dist_pGrid = self.dist_pGrid[k] #Permanent income grid this period
+                else:
+                    dist_pGrid = self.dist_pGrid #If here then use prespecified permanent income grid
+                
+                Cnow = self.solution[k].cFunc(dist_mGrid) #Consumption policy grid in period k
+                self.cPol_Grid.append(Cnow) #Add to list
+
+                aNext = dist_mGrid - Cnow # Asset policy grid in period k
+                self.aPol_Grid.append(aNext) # Add to list
+                
+                
+                if type(self.Rfree)==list:
+                    bNext = self.Rfree[k]*aNext
+                else:
+                    bNext = self.Rfree*aNext
+                    
+                #Obtain shocks and shock probabilities from income distribution this period
+                shk_prbs = shk_dstn[k].pmv  #Probability of shocks this period
+                tran_shks = shk_dstn[k].atoms[1] #Transitory shocks this period
+                perm_shks = shk_dstn[k].atoms[0] #Permanent shocks this period
+                LivPrb = self.LivPrb[k] # Update probability of staying alive this period
+                
+            
+                if len(dist_pGrid) == 1: 
+                                    
+                    #New borns have this distribution (assumes start with no assets and permanent income=1)
+                    NewBornDist = jump_to_grid_1D(np.ones_like(tran_shks),shk_prbs,dist_mGrid)
+                    TranMatrix_M = gen_tran_matrix_1D(dist_mGrid,bNext, shk_prbs,perm_shks,tran_shks,LivPrb,NewBornDist) # Compute Transition Matrix given shocks and grids.
+                    self.tran_matrix.append(TranMatrix_M)
+                    
+                else:
+                    
+                    NewBornDist = jump_to_grid_2D(np.ones_like(tran_shks),np.ones_like(tran_shks),shk_prbs,dist_mGrid,dist_pGrid)
+                    TranMatrix = gen_tran_matrix_2D(dist_mGrid,dist_pGrid,bNext, shk_prbs,perm_shks,tran_shks,LivPrb,NewBornDist) # Compute Transition Matrix given shocks and grids.
+                    self.tran_matrix.append(TranMatrix)         
+                
+                
+
+
+        
+    def calc_ergodic_dist(self, transition_matrix = None):
+        
+        '''
+        Calculates the ergodic distribution across normalized market resources and
+        permanent income as the eigenvector associated with the eigenvalue 1.
+        The distribution is stored as attributes of self both as a vector and as a reshaped array with the ij'th element representing
+        the probability of being at the i'th point on the mGrid and the j'th
+        point on the pGrid.
+        
+        Parameters
+        ----------
+        transition_matrix: List 
+                    list with one transition matrix whose ergordic distribution is to be solved
+        Returns
+        -------
+        None
+        '''
+        
+        if not isinstance(transition_matrix, list):
+            transition_matrix = [self.tran_matrix]
+        
+        eigen, ergodic_distr = sp.linalg.eigs(transition_matrix[0], v0 =  np.ones(len(transition_matrix[0])) , k=1 , which='LM')  # Solve for ergodic distribution
+        ergodic_distr = ergodic_distr.real/np.sum(ergodic_distr.real)
+
+        self.vec_erg_dstn = ergodic_distr #distribution as a vector
+        self.erg_dstn = ergodic_distr.reshape((len(self.dist_mGrid),len(self.dist_pGrid))) # distribution reshaped into len(mgrid) by len(pgrid) array
+        
+    
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
         Creates a "normalized Euler error" function for this instance, mapping
@@ -3151,69 +3461,6 @@ def apply_flat_income_tax(
                 if j not in unemployed_indices:
                     IncShkDstn_new[t][i][j] = IncShkDstn[t][i][j] * (1 - tax_rate)
     return IncShkDstn_new
-
-
-# =======================================================
-# ================ Other useful functions ===============
-# =======================================================
-
-
-def construct_assets_grid(parameters):
-    """
-    Constructs the base grid of post-decision states, representing end-of-period
-    assets above the absolute minimum.
-
-    All parameters are passed as attributes of the single input parameters.  The
-    input can be an instance of a ConsumerType, or a custom Parameters class.
-
-    Parameters
-    ----------
-    aXtraMin:                  float
-        Minimum value for the a-grid
-    aXtraMax:                  float
-        Maximum value for the a-grid
-    aXtraCount:                 int
-        Size of the a-grid
-    aXtraExtra:                [float]
-        Extra values for the a-grid.
-    exp_nest:               int
-        Level of nesting for the exponentially spaced grid
-
-    Returns
-    -------
-    aXtraGrid:     np.ndarray
-        Base array of values for the post-decision-state grid.
-    """
-    # Unpack the parameters
-    aXtraMin = parameters.aXtraMin
-    aXtraMax = parameters.aXtraMax
-    aXtraCount = parameters.aXtraCount
-    aXtraExtra = parameters.aXtraExtra
-    grid_type = "exp_mult"
-    exp_nest = parameters.aXtraNestFac
-
-    # Set up post decision state grid:
-    aXtraGrid = None
-    if grid_type == "linear":
-        aXtraGrid = np.linspace(aXtraMin, aXtraMax, aXtraCount)
-    elif grid_type == "exp_mult":
-        aXtraGrid = make_grid_exp_mult(
-            ming=aXtraMin, maxg=aXtraMax, ng=aXtraCount, timestonest=exp_nest
-        )
-    else:
-        raise Exception(
-            "grid_type not recognized in __init__."
-            + "Please ensure grid_type is 'linear' or 'exp_mult'"
-        )
-
-    # Add in additional points for the grid:
-    for a in aXtraExtra:
-        if a is not None:
-            if a not in aXtraGrid:
-                j = aXtraGrid.searchsorted(a)
-                aXtraGrid = np.insert(aXtraGrid, j, a)
-
-    return aXtraGrid
 
 
 # Make a dictionary to specify a lifecycle consumer with a finite horizon

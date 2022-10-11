@@ -8,28 +8,29 @@ risky assets that will be useful to models what will inherit from it.
 from dataclasses import dataclass
 
 import numpy as np
+from scipy.optimize import minimize_scalar, root_scalar
+
 from HARK import make_one_period_oo_solver
-from HARK.ConsumptionSaving.ConsIndShockModel import (  # PortfolioConsumerType inherits from it; Baseline dictionary to build on
+from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolver,
     ConsumerSolution,
-    IndShockConsumerType,
-    init_idiosyncratic_shocks,
+    IndShockConsumerType,  # PortfolioConsumerType inherits from it
+    init_idiosyncratic_shocks,  # Baseline dictionary to build on
 )
 from HARK.distribution import (
-    Bernoulli,
     DiscreteDistribution,
     IndexDistribution,
     Lognormal,
+    Bernoulli,
     calc_expectation,
     combine_indep_dstns,
 )
 from HARK.interpolation import (
-    ConstantFunction,
     LinearInterp,
     MargValueFuncCRRA,
     ValueFuncCRRA,
+    ConstantFunction,
 )
-from scipy.optimize import minimize_scalar, root_scalar
 
 
 class IndShockRiskyAssetConsumerType(IndShockConsumerType):
@@ -591,7 +592,7 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
         """
 
         vals = calc_expectation(dstn, func, grid)
-        nvrs = self.u.derinv(vals, order=(1, 0))
+        nvrs = self.uPinv(vals)
         nvrsFunc = LinearInterp(grid, nvrs)
         margValueFunc = MargValueFuncCRRA(nvrsFunc, self.CRRA)
 
@@ -693,7 +694,7 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
         """
 
         vals = calc_expectation(dstn, func, grid)
-        nvrs = self.u.inv(vals)
+        nvrs = self.uinv(vals)
         nvrsFunc = LinearInterp(grid, nvrs)
         valueFunc = ValueFuncCRRA(nvrsFunc, self.CRRA)
 
@@ -978,7 +979,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
         EndOfPrddvda = self.DiscFacEff * calc_expectation(
             self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.risky_share_optimal
         )
-        EndOfPrddvdaNvrs = self.u.derinv(EndOfPrddvda, order=(1, 0))
+        EndOfPrddvdaNvrs = self.uPinv(EndOfPrddvda)
         EndOfPrddvdaNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrddvdaNvrs)
         EndOfPrddvdaFunc = MargValueFuncCRRA(EndOfPrddvdaNvrsFunc, self.CRRA)
 
@@ -1036,7 +1037,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
                 self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.risky_share_optimal
             )
 
-            EndOfPrddvdaNvrs = self.u.derinv(EndOfPrddvda, order=(1, 0))
+            EndOfPrddvdaNvrs = self.uPinv(EndOfPrddvda)
             EndOfPrddvdaNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrddvdaNvrs)
             self.EndOfPrddvdaFunc = MargValueFuncCRRA(EndOfPrddvdaNvrsFunc, self.CRRA)
 
@@ -1275,7 +1276,7 @@ class ConsFixedPortfolioIndShkRiskyAssetSolver(ConsIndShockSolver):
             * calc_expectation(self.ShockDstn, v_next, self.aNrmNow)
         )
         # value transformed through inverse utility
-        EndOfPrdvNvrs = self.u.inv(EndOfPrdv)
+        EndOfPrdvNvrs = self.uinv(EndOfPrdv)
         aNrm_temp = np.insert(self.aNrmNow, 0, self.BoroCnstNat)
         EndOfPrdvNvrsFunc = LinearInterp(aNrm_temp, EndOfPrdvNvrs)
         self.EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)

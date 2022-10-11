@@ -5,6 +5,7 @@ ConsIndShockModel by explicitly tracking persistent income as a state variable,
 and allows (log) persistent income to follow an AR1 process rather than random walk.
 """
 import numpy as np
+
 from HARK import AgentType, MetricObject, make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSetup,
@@ -14,25 +15,25 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 from HARK.distribution import Lognormal, Uniform, calc_expectation
 from HARK.interpolation import (
-    BilinearInterp,
-    CubicInterp,
-    LinearInterp,
-    LinearInterpOnInterp1D,
     LowerEnvelope2D,
-    MargMargValueFuncCRRA,
-    MargValueFuncCRRA,
+    BilinearInterp,
+    VariableLowerBoundFunc2D,
+    LinearInterpOnInterp1D,
+    LinearInterp,
+    CubicInterp,
     UpperEnvelope,
     ValueFuncCRRA,
-    VariableLowerBoundFunc2D,
+    MargValueFuncCRRA,
+    MargMargValueFuncCRRA,
 )
 from HARK.utilities import (
     CRRAutility,
-    CRRAutility_inv,
-    CRRAutility_invP,
     CRRAutilityP,
-    CRRAutilityP_inv,
-    CRRAutilityP_invP,
     CRRAutilityPP,
+    CRRAutilityP_inv,
+    CRRAutility_invP,
+    CRRAutility_inv,
+    CRRAutilityP_invP,
     get_percentiles,
 )
 
@@ -385,8 +386,8 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         # expected value, averaging across states
         EndOfPrdv = self.DiscFacEff * vLvlNext
         # value transformed through inverse utility
-        EndOfPrdvNvrs = self.u.inv(EndOfPrdv)
-        EndOfPrdvNvrsP = EndOfPrdvP * self.u.derinv(EndOfPrdv, order=(0, 1))
+        EndOfPrdvNvrs = self.uinv(EndOfPrdv)
+        EndOfPrdvNvrsP = EndOfPrdvP * self.uinvP(EndOfPrdv)
 
         # Add points at mLvl=zero
         EndOfPrdvNvrs = np.concatenate(
@@ -452,7 +453,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         m_for_interpolation : np.array
             Corresponding market resource points for interpolation.
         """
-        cLvlNow = self.u.derinv(EndOfPrdvP, order=(1, 0))
+        cLvlNow = self.uPinv(EndOfPrdvP)
         mLvlNow = cLvlNow + aLvlNow
 
         # Limiting consumption is zero as m approaches mNrmMin
@@ -561,11 +562,11 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         cLvlNow = solution.cFunc(mLvl_temp, pLvl_temp)
         aLvlNow = mLvl_temp - cLvlNow
         vNow = self.u(cLvlNow) + self.EndOfPrdvFunc(aLvlNow, pLvl_temp)
-        vPnow = self.u.der(cLvlNow)
+        vPnow = self.uP(cLvlNow)
 
         # Calculate pseudo-inverse value and its first derivative (wrt mLvl)
-        vNvrs = self.u.inv(vNow)  # value transformed through inverse utility
-        vNvrsP = vPnow * self.u.derinv(vNow, order=(0, 1))
+        vNvrs = self.uinv(vNow)  # value transformed through inverse utility
+        vNvrsP = vPnow * self.uinvP(vNow)
 
         # Add data at the lower bound of m
         mLvl_temp = np.concatenate(
@@ -719,7 +720,8 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             * calc_expectation(self.IncShkDstn, vpp_next, self.aLvlNow, self.pLvlNow)
         )
 
-        dcda = EndOfPrdvPP / self.u.der(np.array(cLvl[1:, 1:]), order=2)
+
+        dcda = EndOfPrdvPP / self.uPP(np.array(cLvl[1:, 1:]))
         MPC = dcda / (dcda + 1.0)
         MPC = np.concatenate((np.reshape(MPC[:, 0], (MPC.shape[0], 1)), MPC), axis=1)
         # Stick an extra MPC value at bottom; MPCmax doesn't work
@@ -1079,10 +1081,10 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
         aNrmNow_new = Lognormal(
-            self.aNrmInitMean, self.aNrmInitStd, seed=self.RNG.randint(0, 2**31 - 1)
+            self.aNrmInitMean, self.aNrmInitStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
         self.state_now["pLvl"][which_agents] = Lognormal(
-            self.pLvlInitMean, self.pLvlInitStd, seed=self.RNG.randint(0, 2**31 - 1)
+            self.pLvlInitMean, self.pLvlInitStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
         self.state_now["aLvl"][which_agents] = (
             aNrmNow_new * self.state_now["pLvl"][which_agents]

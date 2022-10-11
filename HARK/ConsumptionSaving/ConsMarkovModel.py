@@ -359,12 +359,10 @@ class ConsMarkovSolver(ConsIndShockSolver):
         EndOfPrdv_cond = self.DiscFacEff * calc_expectation(
             self.IncShkDstn, v_lvl_next, self.aNrmNow, self.Rfree
         )
-        EndOfPrdvNvrs = self.u.inv(
+        EndOfPrdvNvrs = self.uinv(
             EndOfPrdv_cond
         )  # value transformed through inverse utility
-        EndOfPrdvNvrsP = self.EndOfPrdvP_cond * self.u.derinv(
-            EndOfPrdv_cond, order=(0, 1)
-        )
+        EndOfPrdvNvrsP = self.EndOfPrdvP_cond * self.uinvP(EndOfPrdv_cond)
         EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
         EndOfPrdvNvrsP = np.insert(
             EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0]
@@ -410,13 +408,13 @@ class ConsMarkovSolver(ConsIndShockSolver):
         # Get data to construct the end-of-period marginal value function (conditional on next state)
         self.aNrm_cond = self.prepare_to_calc_EndOfPrdvP()
         self.EndOfPrdvP_cond = self.calc_EndOfPrdvPcond()
-        EndOfPrdvPnvrs_cond = self.u.derinv(
-            self.EndOfPrdvP_cond, order=(1, 0)
+        EndOfPrdvPnvrs_cond = self.uPinv(
+            self.EndOfPrdvP_cond
         )  # "decurved" marginal value
         if self.CubicBool:
             EndOfPrdvPP_cond = self.calc_EndOfPrdvPP()
-            EndOfPrdvPnvrsP_cond = EndOfPrdvPP_cond * self.u.derinv(
-                self.EndOfPrdvP_cond, order=(1, 1)
+            EndOfPrdvPnvrsP_cond = EndOfPrdvPP_cond * self.uPinvP(
+                self.EndOfPrdvP_cond
             )  # "decurved" marginal marginal value
 
         # Construct the end-of-period marginal value function conditional on the next state.
@@ -582,7 +580,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         )  # An empty solution to which we'll add state-conditional solutions
         # Calculate the MPC at each market resource gridpoint in each state (if desired)
         if self.CubicBool:
-            dcda = self.EndOfPrdvPP / self.u.der(np.array(self.cNrmNow), order=2)
+            dcda = self.EndOfPrdvPP / self.uPP(np.array(self.cNrmNow))
             MPC = dcda / (dcda + 1.0)
             self.MPC_temp = np.hstack(
                 (np.reshape(self.MPCmaxNow, (self.StateCount, 1)), MPC)
@@ -713,11 +711,11 @@ class ConsMarkovSolver(ConsIndShockSolver):
 
             # Calculate (normalized) value and marginal value at each gridpoint
             vNrmNow = self.u(cGrid) + EndOfPrdv
-            vPnow = self.u.der(cGrid)
+            vPnow = self.uP(cGrid)
 
             # Make a "decurved" value function with the inverse utility function
-            vNvrs = self.u.inv(vNrmNow)  # value transformed through inverse utility
-            vNvrsP = vPnow * self.u.derinv(vNrmNow, order=(0, 1))
+            vNvrs = self.uinv(vNrmNow)  # value transformed through inverse utility
+            vNvrsP = vPnow * self.uinvP(vNrmNow)
             mNrm_temp = np.insert(mGrid, 0, mNrmMin)  # add the lower bound
             vNvrs = np.insert(vNvrs, 0, 0.0)
             vNvrsP = np.insert(
