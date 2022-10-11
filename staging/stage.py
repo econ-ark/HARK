@@ -129,7 +129,7 @@ class Stage:
                 
                 if pi_star_res.success:
                     pi_data.sel(**x_vals, **k_vals).variable.data.put(0, pi_star_res.x)
-                    q_data.sel(**x_vals, **k_vals).variable.data.put(0, pi_star_res.fun)
+                    q_data.sel(**x_vals, **k_vals).variable.data.put(0, -pi_star_res.fun) # flips it back
                 else:
                     pi_data.sel(**x_vals, **k_vals).variable.data.put(0, np.nan)
                     q_data.sel(**x_vals, **k_vals).variable.data.put(0, np.nan)
@@ -171,24 +171,61 @@ class Stage:
             in discretized_shocks
         }
 
-        try:
-            pi_star, q = self.optimal_policy(x_grid, k_grid, v_y)
-        except:
-            import pdb; pdb.set_trace()
+        pi_star, q = self.optimal_policy(x_grid, k_grid, v_y)
 
         ## Taking expectations over the generated k-grid, with p_k, of...
             ## Computing optimal policy pi* and q*_value for each x,k
 
         for x_point in itertools.product(*x_grid.values()):
             x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
-            
 
-            for k_point in itertools.product(*k_grid.values()):
-                k_vals = {k : v for k, v in zip(k_grid.keys() , k_point)}
-                                
+            ## This is a somewhat hacky way to take expectations
+            ## which could be done better with appropriate HARK distribution tools
+
+            # This assumes independent shocks
+            # ... but it might work for a properly constructed multivariate?
+            # it will need to better use array indexing to work.
+            
+            # as before but including the index now
+            k_grid_i = {
+                shock : list(enumerate(discretized_shocks[shock].atoms.flatten()))
+                for shock
+                in discretized_shocks
+            }
+
+            value_x = 0
+            
+            for k_point in itertools.product(*k_grid_i.values()):
+                k_pms = {
+                    k : discretized_shocks[k].pmv[v[0]]
+                    for k, v
+                    in zip(k_grid.keys() , k_point)
+                    }
+                k_atoms = {
+                    k : v[1]
+                    for k, v
+                    in zip(k_grid.keys(), k_point)
+                    }
+
+                if len(k_pms) > 0:
+                    total_pm = np.product(list(k_pms.values()))
+                else:
+                    total_pm = 1
+
+                q_xk = q.sel(**x_vals, **k_atoms).values
+
+                #import pdb; pdb.set_trace()
+                value_x += q_xk * total_pm
+
+            if np.isnan(value_x):
+                print("Oh no a nan!")
+                #import pdb; pdb.set_trace()
+
+            ## Need to take expectation                    
             v_x_values.sel(**x_vals).variable.data.put(
                 0, 
-                q.sel(**x_vals, **k_vals))
+                value_x
+                )
 
         return v_x_values
 
