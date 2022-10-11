@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 
 from HARK.interpolation import LinearInterp, BilinearInterp
-from HARK.econforgeinterp import LinearFast
+from HARK.econforgeinterp import LinearFast, DecayInterp
 from HARK.core import distance_metric
 
 
@@ -267,3 +267,122 @@ class Check2DDerivatives(unittest.TestCase):
         self.assertTrue(np.allclose(grad[0], np.cos(x_ev) * np.log(y_ev), atol=0.02))
         # (0,1) must be sin(x) / y
         self.assertTrue(np.allclose(grad[1], np.sin(x_ev) * (1 / y_ev), atol=0.02))
+
+
+class TestLinearDecay(unittest.TestCase):
+    """ 
+    Checks the linear interpolators with limiting extrapolators
+    """
+
+    def setUp(self):
+
+        # Set up a bilinear extrapolator for a simple function
+        self.x = np.linspace(0, 10, 11)
+        self.y = np.linspace(0, 10, 11)
+        x_t, y_t = np.meshgrid(self.x, self.y, indexing="ij")
+        z = 2 * x_t + y_t
+
+        # Base interpolator
+        interp = LinearFast(z, [self.x, self.y], extrap_mode="linear")
+
+        # An extrapolator that limits to the same function
+        self.interp_same = DecayInterp(
+            interp,
+            limit_fun=lambda x, y: 2 * x + y,
+            limit_grad=lambda x, y: [np.ones_like(x) * 2, np.ones_like(y) * 1],
+            extrap_method="decay_hark",
+        )
+
+        # another that limits to a shifted function with different slopes
+        self.interp_shift = DecayInterp(
+            interp,
+            limit_fun=lambda x, y: np.sqrt(x),
+            limit_grad=lambda x, y: [0.5 * np.power(x, -0.5), np.zeros_like(y)],
+            extrap_method="decay_hark",
+        )
+
+    def ndim_extrap_test(
+        self, ndim, f_interp, g_lim, g_lim_grad, extrap_method, atol=0.1
+    ):
+
+        # Create grids
+        grids = [np.linspace(0, 10, 11) for i in range(ndim)]
+        mesh = np.meshgrid(*grids, indexing="ij")
+
+        # Create interp
+        f_val = f_interp(*mesh)
+        interp = DecayInterp(
+            interp=LinearFast(f_val, grids),
+            limit_fun=g_lim,
+            limit_grad=g_lim_grad,
+            extrap_method=extrap_method,
+        )
+
+        # Test for values inside the grid
+        self.assertTrue(np.allclose(f_val, interp(*mesh)))
+
+        # Construct points far off grid in subsets of
+        # dimensions
+        off_points = np.meshgrid(*[np.array([5.0, 150.0]) for i in range(ndim)])
+        # Remove the first point, for which all the dimensions are in-grid
+        off_points = [ar.flatten()[1:] for ar in off_points]
+
+        # Check that the extrapolated values are close to the limit
+        # function
+        extrap = interp(*off_points)
+        self.assertTrue(np.allclose(extrap, g_lim(*off_points), atol=atol))
+
+    def test_decay(self):
+
+        for method in ["decay_prop", "decay_hark"]:
+
+            # 1D
+            self.ndim_extrap_test(
+                1,
+                f_interp=lambda x: 3 * np.sqrt(x) + 1,
+                g_lim=lambda x: np.sin(x),
+                g_lim_grad=lambda x: [np.cos(x)],
+                extrap_method=method,
+            )
+
+            # 2D
+            self.ndim_extrap_test(
+                2,
+                f_interp=lambda x, y: 3 * x - 4 * y,
+                g_lim=lambda x, y: 3 * y - np.log(x + 1),
+                g_lim_grad=lambda x, y: [-1 * np.divide(1, x + 1), np.ones_like(y) * 3],
+                extrap_method=method,
+            )
+
+            # 3D
+            self.ndim_extrap_test(
+                3,
+                f_interp=lambda x, y, z: 3 * x - 2 * y + z,
+                g_lim=lambda x, y, z: np.zeros_like(z),
+                g_lim_grad=lambda x, y, z: [np.zeros_like(x)] * 3,
+                extrap_method=method,
+            )
+
+    def test_compare_smooth_with_LinearInterp(self):
+
+        lim_slope = 0.1
+        lim_inter = 1.0
+
+        x = np.linspace(0, 10, 20)
+        y = lim_inter + lim_slope * x - 1 / (0.2 * x + 1)
+
+        base_lim_interp = LinearInterp(
+            x, y, intercept_limit=lim_inter, slope_limit=lim_slope
+        )
+        efor_lim_interp = DecayInterp(
+            LinearFast(y, [x]),
+            limit_fun=lambda x: lim_inter + lim_slope * x,
+            limit_grad=lambda x: [lim_slope * np.ones_like(x)],
+            extrap_method="decay_hark",
+        )
+
+        x_eval = np.linspace(0, 20, 200)
+        base_vals = base_lim_interp(x_eval)
+        efor_vals = efor_lim_interp(x_eval)
+
+        self.assertTrue(np.allclose(base_vals, efor_vals))
