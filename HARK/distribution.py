@@ -826,7 +826,7 @@ class DiscreteDistribution(Distribution):
     atoms : np.array
         Discrete point values for each probability mass.
         For multivariate distributions, the last dimension of atoms must index
-        "nature" or the random realization. For instance, if atoms.shape == (2,6,4),
+        "atom" or the random realization. For instance, if atoms.shape == (2,6,4),
         the random variable has 4 possible realizations and each of them has shape (2,6).
     seed : int
         Seed for random number generator.
@@ -857,7 +857,7 @@ class DiscreteDistribution(Distribution):
 
     def dim(self):
         """
-        Last dimension of self.atoms indexes "nature."
+        Last dimension of self.atoms indexes "atom."
         """
         return self.atoms.shape[:-1]
 
@@ -969,7 +969,7 @@ class DiscreteDistribution(Distribution):
             f_query = self.atoms
         else:
             # if a function is provided, we need to add one more dimension,
-            # the nature dimension, to any inputs that are n-dim arrays.
+            # the atom dimension, to any inputs that are n-dim arrays.
             # This allows numpy to easily broadcast the function's output.
             # For more information on broadcasting, see:
             # https://numpy.org/doc/stable/user/basics.broadcasting.html#general-broadcasting-rules
@@ -1005,7 +1005,7 @@ class DiscreteDistribution(Distribution):
             The distribution of func(dstn).
         """
         # we need to add one more dimension,
-        # the nature dimension, to any inputs that are n-dim arrays.
+        # the atom dimension, to any inputs that are n-dim arrays.
         # This allows numpy to easily broadcast the function's output.
         args = [
             arg[..., np.newaxis] if isinstance(arg, np.ndarray) else arg for arg in args
@@ -1029,7 +1029,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
     data : np.array
         Discrete point values for each probability mass.
         For multivariate distributions, the last dimension of atoms must index
-        "nature" or the random realization. For instance, if atoms.shape == (2,6,4),
+        "atom" or the random realization. For instance, if atoms.shape == (2,6,4),
         the random variable has 4 possible realizations and each of them has shape (2,6).
     seed : int
         Seed for random number generator.
@@ -1085,12 +1085,12 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             var_attrs = [None] * n_var
 
         # a DiscreteDistributionLabeled is an xr.Dataset where the only
-        # dimension is "nature", which indexes the random realizations.
+        # dimension is "atom", which indexes the random realizations.
         self.dataset = xr.Dataset(
             {
                 var_names[i]: xr.DataArray(
                     data[i],
-                    dims=("nature"),
+                    dims=("atom"),
                     attrs=var_attrs[i],
                 )
                 for i in range(n_var)
@@ -1099,8 +1099,8 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         )
 
         # the probability mass values are stored in
-        # a DataArray with dimension "nature"
-        self.pmf = xr.DataArray(pmv, dims=("nature"))
+        # a DataArray with dimension "atom"
+        self.pmf = xr.DataArray(pmv, dims=("atom"))
 
     @classmethod
     def from_unlabeled(
@@ -1281,7 +1281,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             f_query = func(self.dataset, *args, **kwargs)
             ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.pmf)
 
-            return ldd._weighted.mean("nature")
+            return ldd._weighted.mean("atom")
         else:
             if func is None:
                 return super().expected()
