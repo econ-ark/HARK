@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.1
+#       jupytext_version: 1.14.0
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -14,18 +14,18 @@
 # ---
 
 # %% [markdown]
-# # `DDXRA`: Using `xarray` in `DiscreteDistribution`
+# # `DDL`: Using `xarray` in `DiscreteDistribution`
 #
 
 # %% [markdown]
-# First we import relevant libraries and tools, including the new `DiscreteDistributionXRA` class.
+# First we import relevant libraries and tools, including the new `DiscreteDistributionLabeled` class.
 #
 
 # %%
 import numpy as np
 from HARK.distribution import (
     MeanOneLogNormal,
-    DiscreteDistributionXRA,
+    DiscreteDistributionLabeled,
     calc_expectation,
     combine_indep_dstns,
 )
@@ -40,13 +40,12 @@ TranShkDstn = MeanOneLogNormal().approx(200)
 IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
 # %% [markdown]
-# Taking the components of `IncShkDstn`, we can now create a `DiscreteDistributionXRA` object. As a demonstration of additional features, we can add a name attribute to the `DDXRA` object, as well as named dimensions and coordinates.
+# Taking the components of `IncShkDstn`, we can now create a `DiscreteDistributionLabeled` object. As a demonstration of additional features, we can add a name attribute to the `DDL` object, as well as named dimensions and coordinates.
 #
 
 # %%
-x_dist = DiscreteDistributionXRA(
-    IncShkDstn.pmv,
-    IncShkDstn.atoms,
+x_dist = DiscreteDistributionLabeled.from_unlabeled(
+    IncShkDstn,
     name="Distribution of Shocks to Income",
     var_names=["perm_shk", "tran_shk"],
     var_attrs=[
@@ -69,11 +68,11 @@ x_dist = DiscreteDistributionXRA(
 x_dist.dataset
 
 # %% [markdown]
-# ### Taking the Expected Value of `DDXRA` objects.
+# ### Using functions with labels to take expresive expectations.
 #
 
 # %% [markdown]
-# Taking the expectation of a `DDXRA` object is straightforward using the own `expected()` method.
+# Taking the expectation of a `DDL` object is straightforward using the own `expected()` method.
 #
 
 # %%
@@ -87,26 +86,8 @@ x_dist.expected()
 aGrid = np.linspace(0, 20, 100)
 R = 1.03
 
-# %%
-# %%timeit
-x_dist.expected(lambda dist, a, R: R * a / dist[0] + dist[1], aGrid, R)
-
 # %% [markdown]
-# Compared to the old method of `calc_expectation` which takes a `DiscreteDistribution` object as input, the new method which takes a `DiscreteDistributionXRA` object remains significantly faster.
-#
-# """
-#
-
-# %%
-# %%timeit
-calc_expectation(IncShkDstn, lambda dist, a, R: R * a / dist[0] + dist[1], aGrid, R)
-
-# %% [markdown]
-# ### Using functions with labels to take expresive expectations.
-#
-
-# %% [markdown]
-# The main difference is that the `expected()` method of `DDXRA` objects can take a function that uses the labels of the `xarray.DataArray` object. This allows for clearer and more expresive mathematical functions and transition equations. Surprisingly, using a function with labels does not add much overhead to the function evaluation.
+# The main difference is that the `expected()` method of `DDL` objects can take a function that uses the labels of the `xarray.DataArray` object. This allows for clearer and more expresive mathematical functions and transition equations. Surprisingly, using a function with labels does not add much overhead to the function evaluation.
 #
 
 # %%
@@ -115,8 +96,14 @@ x_dist.expected(
     lambda dist, a, R: R * a / dist["perm_shk"] + dist["tran_shk"],
     aGrid,
     R,
-    labels=True,
 )
+
+# %% [markdown]
+# Compared to the old method of `calc_expectation` which takes a `DiscreteDistribution` object as input, the new method which takes a `DiscreteDistributionLabeled` object is significantly faster.
+
+# %%
+# %%timeit
+calc_expectation(IncShkDstn, lambda dist, a, R: R * a / dist[0] + dist[1], aGrid, R)
 
 # %% [markdown]
 # We can also use `HARK.distribution.expected`.
@@ -130,5 +117,32 @@ expected(
     func=lambda dist, a, R: R * a / dist["perm_shk"] + dist["tran_shk"],
     dist=x_dist,
     args=(aGrid, R),
-    labels=True,
 )
+
+# %% [markdown]
+# Additionally, we can use xarrays as inputs via keyword arguments.
+
+# %%
+from xarray import DataArray
+
+aNrm = DataArray(aGrid, name="aNrm", dims=("aNrm"))
+
+
+# %%
+def mNrm_next(dist, R, a=None):
+    variables = {}
+    variables["mNrm_next"] = R * a / dist["perm_shk"] + dist["tran_shk"]
+    return variables
+
+
+# %%
+# %%timeit
+expected(
+    func=mNrm_next,
+    dist=x_dist,
+    args=R,
+    a=aNrm,
+)
+
+# %% [markdown]
+# Taking the expectation with xarray inputs and labeled equations is still significantly faster than the old method.

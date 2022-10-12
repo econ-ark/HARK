@@ -43,6 +43,7 @@ Release Date: TBD
 * Renames attributes in `DiscreteDistribution`: `X` to `atoms` and `pmf` to `pmv`. [#1164](https://github.com/econ-ark/HARK/pull/1164), [#1051](https://github.com/econ-ark/HARK/pull/1151), [#1159](https://github.com/econ-ark/HARK/pull/1159). 
 * Remove or replace automated tests that depend on brittle simulation results. [#1148](https://github.com/econ-ark/HARK/pull/1148)
 * Updates asset grid constructor from `ConsIndShockModel.py` to allow for linearly-spaced grids when `aXtraNestFac == -1`. [#1172](https://github.com/econ-ark/HARK/pull/1172)
+* Renames `DiscreteDistributionXRA` to `DiscreteDistributionLabeled` and updates methods [#1170](https://github.com/econ-ark/HARK/pull/1170)
 
 ### 0.12.0
 
