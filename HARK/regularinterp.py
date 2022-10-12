@@ -18,11 +18,11 @@ DIM_MESSAGE = "Dimension mismatch."
 
 class MultivariateInterp(MetricObject):
 
-    distance_criteria = ["input", "grids"]
+    distance_criteria = ["values", "grids"]
 
     def __init__(
         self,
-        input,
+        values,
         grids,
         order=1,
         mode="nearest",
@@ -49,15 +49,15 @@ class MultivariateInterp(MetricObject):
         else:
             self.grids = [xp.asarray(grid) for grid in grids]
 
-        self.input = xp.asarray(input)
+        self.values = xp.asarray(values)
         self.order = order
         self.mode = mode
         self.cval = cval
         self.prefilter = prefilter
         self.target = target
 
-        self.ndim = input.ndim  # should match number of grids
-        self.shape = input.shape  # should match points in each grid
+        self.ndim = values.ndim  # should match number of grids
+        self.shape = values.shape  # should match points in each grid
 
         assert self.ndim == len(self.grids), DIM_MESSAGE
         for i in range(self.ndim):
@@ -87,7 +87,7 @@ class MultivariateInterp(MetricObject):
     def _map_coordinates(self, args, coordinates):
 
         output = map_coordinates(
-            self.input,
+            self.values,
             coordinates.reshape(args.shape[0], -1),
             order=self.order,
             mode=self.mode,
@@ -125,7 +125,7 @@ class MultivariateInterp(MetricObject):
             coordinates[dim] = cp.interp(new_args, arg_grid, cp.arange(arg_grid.size))
 
         output = cupy_map_coordinates(
-            self.input,
+            self.values,
             coordinates.reshape(ndim, -1),
             order=self.order,
             mode=self.mode,
