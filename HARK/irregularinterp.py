@@ -15,10 +15,18 @@ try:
 except ImportError:
     skimage_available = False
 
+try:
+    import cupy as cp
+    from cupyx.scipy.ndimage import map_coordinates as cupy_map_coordinates
+
+    cupy_available = True
+except ImportError:
+    cupy_available = False
+
 
 class UnstructuredInterp(MetricObject):
 
-    distance_criteria = ["input", "grids"]
+    distance_criteria = ["values", "grids"]
 
     def __init__(
         self,
@@ -52,18 +60,20 @@ class UnstructuredInterp(MetricObject):
         self.maxiter = maxiter
         self.tree_options = tree_options
 
-        ndim = self.grids.shape[-1]
+        self.ndim = self.grids.shape[-1]
+
+        assert self.ndim == values.ndim, "Dimension mismatch."
 
         if method == "nearest":
-            interp = NearestNDInterpolator(
+            interpolator = NearestNDInterpolator(
                 self.grids, self.values, rescale=rescale, tree_options=tree_options
             )
         elif method == "linear":
-            interp = LinearNDInterpolator(
+            interpolator = LinearNDInterpolator(
                 self.grids, self.values, fill_value=fill_value, rescale=rescale
             )
-        elif method == "cubic" and ndim == 2:
-            interp = CloughTocher2DInterpolator(
+        elif method == "cubic" and self.ndim == 2:
+            interpolator = CloughTocher2DInterpolator(
                 self.grids,
                 self.values,
                 fill_value=fill_value,
@@ -74,31 +84,41 @@ class UnstructuredInterp(MetricObject):
         else:
             raise ValueError(
                 "Unknown interpolation method %r for "
-                "%d dimensional data" % (method, ndim)
+                "%d dimensional data" % (method, self.ndim)
             )
 
-        self.interp = interp
+        self.interpolator = interpolator
 
     def __call__(self, *args):
 
-        return self.interp(*args)
+        return self.interpolator(*args)
 
 
 class PiecewiseAffineInterp(MetricObject):
-    def __init__(self, input, grids):
+
+    distance_criteria = ["values", "grids"]
+
+    def __init__(self, values, grids, target="cpu"):
 
         if not skimage_available:
             raise ImportError(
                 "PiecewiseAffineTransform requires scikit-image installed."
             )
 
-        self.input = np.asarray(input)
+        available_targets = ["cpu"]
+
+        if cupy_available:
+            available_targets.append("gpu")
+
+        assert target in available_targets, "Invalid target."
+
+        self.values = np.asarray(values)
         self.grids = np.asarray(grids)
 
-        self.ndim = input.ndim
+        self.ndim = values.ndim
 
         src = np.vstack([grid.flat for grid in self.grids]).T
-        coords = np.mgrid[[slice(0, dim) for dim in self.input.shape]]
+        coords = np.mgrid[[slice(0, dim) for dim in self.values.shape]]
         dst = np.vstack([coord.flat for coord in coords]).T
 
         tform = PiecewiseAffineTransform()
@@ -111,6 +131,6 @@ class PiecewiseAffineInterp(MetricObject):
         args = np.asarray(args)
 
         src_new = np.vstack([arg.flat for arg in args]).T
-        coordinates = self.tform(src_new)
+        coordinates = self.tform(src_new).T
 
-        return map_coordinates(self.input, coordinates.T).reshape(args[0].shape)
+        return map_coordinates(self.values, coordinates).reshape(args[0].shape)
