@@ -17,6 +17,9 @@
 # # Using xarray to solve Heterogeneous Agent Models
 #
 
+# %%
+# !pip install --quiet estimagic
+
 # %% [markdown]
 # Import required libraries.
 #
