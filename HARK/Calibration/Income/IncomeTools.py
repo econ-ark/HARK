@@ -52,7 +52,7 @@ def parse_time_params(age_birth, age_death):
     T_cycle = age_death - age_birth
     # T_age is the age at which the agents are killed with certainty in
     # simulations (at the end of the T_age-th period)
-    T_age = age_death - age_birth + 1
+    T_age = age_death - age_birth
 
     return {"T_cycle": T_cycle, "T_age": T_age}
 
