@@ -5,6 +5,15 @@ from scipy.interpolate import (
     NearestNDInterpolator,
 )
 from scipy.ndimage import map_coordinates
+from sklearn.linear_model import (
+    ElasticNet,
+    ElasticNetCV,
+    Lasso,
+    LinearRegression,
+    Ridge,
+)
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import PolynomialFeatures, SplineTransformer
 
 from HARK.core import MetricObject
 
@@ -115,7 +124,7 @@ class PiecewiseAffineInterp(MetricObject):
         self.values = np.asarray(values)
         self.grids = np.asarray(grids)
 
-        self.ndim = values.ndim
+        self.ndim = self.values.ndim
 
         src = np.vstack([grid.flat for grid in self.grids]).T
         coords = np.mgrid[[slice(0, dim) for dim in self.values.shape]]
@@ -134,3 +143,78 @@ class PiecewiseAffineInterp(MetricObject):
         coordinates = self.tform(src_new).T
 
         return map_coordinates(self.values, coordinates).reshape(args[0].shape)
+
+
+class PolynomialInterp(MetricObject):
+
+    distance_criteria = ["values", "grids"]
+
+    def __init__(self, values, grids, degree):
+
+        self.values = np.asarray(values)
+        self.grids = np.asarray(grids)
+        self.degree = degree
+
+        self.ndim = self.values.ndim
+        self.shape = self.values.shape
+
+        self.models = self._set_models()
+
+        self.X_train = np.c_[tuple(grid.ravel() for grid in self.grids)]
+
+        y_train = np.mgrid[[slice(0, dim) for dim in self.shape]]
+
+        self.y_train = np.c_[[y.ravel() for y in y_train]]
+
+        for dim in range(self.ndim):
+            self.models[dim].fit(self.X_train, self.y_train[dim])
+
+    def _set_models(self):
+
+        models = [
+            make_pipeline(
+                PolynomialFeatures(degree=self.degree),
+                LinearRegression(),
+            )
+            for _ in range(self.ndim)
+        ]
+
+        return models
+
+    def __call__(self, *args):
+
+        args = np.asarray(args)
+
+        X_test = np.c_[tuple(arg.ravel() for arg in args)]
+
+        coordinates = np.empty_like(args)
+
+        for dim in range(self.ndim):
+            coordinates[dim] = self.models[dim].predict(X_test).reshape(args[0].shape)
+
+        output = map_coordinates(
+            self.values,
+            coordinates.reshape(args.shape[0], -1),
+        ).reshape(args[0].shape)
+
+        return output
+
+
+class SplineInterp(PolynomialInterp):
+    def __init__(self, values, grids, n_knots, degree):
+
+        self.n_knots = n_knots
+
+        super().__init__(values, grids, degree)
+
+    def _set_models(self):
+
+        models = [
+            make_pipeline(
+                SplineTransformer(n_knots=self.n_knots, degree=self.degree),
+                LinearRegression(),
+            )
+            for _ in range(self.ndim)
+        ]
+
+        return models
