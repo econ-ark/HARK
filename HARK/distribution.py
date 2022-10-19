@@ -761,14 +761,15 @@ class Uniform(Distribution):
         """
         pmv = np.ones(N) / float(N)
 
-        if endpoint:
-            atoms = np.linspace(self.bot, self.top, N)
-        else:
-            center = (self.top + self.bot) / 2.0
-            width = (self.top - self.bot) / 2.0
-            atoms = center + width * np.linspace(
-                -(N - 1.0) / 2.0, (N - 1.0) / 2.0, N
-            ) / (N / 2.0)
+        center = (self.top + self.bot) / 2.0
+        width = (self.top - self.bot) / 2.0
+        atoms = center + width * np.linspace(-(N - 1.0) / 2.0, (N - 1.0) / 2.0, N) / (
+            N / 2.0
+        )
+
+        if endpoint:  # insert endpoints with infinitesimally small mass
+            atoms = np.concatenate(([self.bot], atoms, [self.top]))
+            pmv = np.concatenate(([0.0], pmv, [0.0]))
 
         return DiscreteDistribution(
             pmv, atoms, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
