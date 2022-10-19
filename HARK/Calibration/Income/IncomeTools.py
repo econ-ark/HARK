@@ -31,7 +31,7 @@ __all__ = [
 def parse_time_params(age_birth, age_death):
     """
     Converts simple statements of the age at which an agent is born and the
-    age at which he dies with certaintiy into the parameters that HARK needs
+    age at which he dies with certainty into the parameters that HARK needs
     for figuring out the timing of the model.
 
     Parameters
