@@ -4,7 +4,7 @@ import numpy as np
 from HARK.distribution import (
     Bernoulli,
     DiscreteDistribution,
-    DiscreteDistributionXRA,
+    DiscreteDistributionLabeled,
     IndexDistribution,
     Lognormal,
     MarkovProcess,
@@ -432,7 +432,7 @@ class NormalDistTest(unittest.TestCase):
         self.assertAlmostEqual(np.std(points), sigma, places=2)
 
 
-class DiscreteDistributionXRATests(unittest.TestCase):
+class DiscreteDistributionLabeledTests(unittest.TestCase):
     """
     Tests for distribution.py sampling distributions
     with default seed.
@@ -440,7 +440,7 @@ class DiscreteDistributionXRATests(unittest.TestCase):
 
     def test_draw(self):
         self.assertEqual(
-            DiscreteDistributionXRA(np.ones(2) / 2, np.zeros(2)).draw(1)[0],
+            DiscreteDistributionLabeled(np.ones(2) / 2, np.zeros(2)).draw(1)[0],
             0,
         )
 
@@ -451,9 +451,8 @@ class DiscreteDistributionXRATests(unittest.TestCase):
         sig = 0.05
         mu = -(sig**2) / 2
         norm = Normal(mu=mu, sigma=sig).approx(131)
-        my_logn = norm.dist_of_func(
-            func=lambda x: np.exp(x),
-            xarray=True,  # return DDXRA object
+        my_logn = DiscreteDistributionLabeled.from_unlabeled(
+            norm.dist_of_func(func=lambda x: np.exp(x)),
             name="Lognormal Approximation",  # name of the distribution
             attrs={"limit": {"mu": mu, "sigma": sig}},  # assign limit properties
         )
@@ -463,9 +462,8 @@ class DiscreteDistributionXRATests(unittest.TestCase):
         # Function 1 -> n
         # Mean and variance of the normal
         norm = Normal(mu=0.0, sigma=1.0).approx(5)
-        moments = norm.dist_of_func(
-            lambda x: np.vstack([x, x**2]),
-            xarray=True,
+        moments = DiscreteDistributionLabeled.from_unlabeled(
+            norm.dist_of_func(lambda x: np.vstack([x, x**2])),
             name="Moments of Normal Distribution",
             var_names=["mean", "variance"],
             attrs={"limit": {"name": "Normal", "mu": 0.0, "sigma": 1.0}},
@@ -481,9 +479,8 @@ class DiscreteDistributionXRATests(unittest.TestCase):
         norm_a = Normal(mu=mu_a, sigma=si_a).approx(5)
         norm_b = Normal(mu=mu_b, sigma=si_b).approx(5)
         binorm = combine_indep_dstns(norm_a, norm_b)
-        mysum = binorm.dist_of_func(
-            lambda x: np.sum(x, axis=0),  # vectorized sum
-            xarray=True,
+        mysum = DiscreteDistributionLabeled.from_unlabeled(
+            binorm.dist_of_func(lambda x: np.sum(x, axis=0)),  # vectorized sum
             name="Sum of two independent normals",
         )
         exp = mysum.expected()
@@ -491,9 +488,10 @@ class DiscreteDistributionXRATests(unittest.TestCase):
 
         # Function n -> m
         # Mean and variance of two normals
-        moments = binorm.dist_of_func(
-            lambda x: np.array([x[0], (x[0] - mu_a) ** 2, x[1], (x[1] - mu_b) ** 2]),
-            xarray=True,
+        moments = DiscreteDistributionLabeled.from_unlabeled(
+            binorm.dist_of_func(
+                lambda x: np.array([x[0], (x[0] - mu_a) ** 2, x[1], (x[1] - mu_b) ** 2])
+            ),
             name="Moments of two independent normals",
             var_names=["mean_1", "variance_1", "mean_2", "variance_2"],
         )
@@ -512,9 +510,8 @@ class DiscreteDistributionXRATests(unittest.TestCase):
             TranShkDstn,
         )
 
-        IncShkDstn = DiscreteDistributionXRA(
-            IncShkDstn.pmv,
-            IncShkDstn.atoms,
+        IncShkDstn = DiscreteDistributionLabeled.from_unlabeled(
+            IncShkDstn,
             name="Distribution of shocks to Income",
             var_names=["perm_shk", "tran_shk"],
         )
@@ -522,7 +519,6 @@ class DiscreteDistributionXRATests(unittest.TestCase):
         ce1 = expected(
             func=lambda dist: 1 / dist["perm_shk"] + dist["tran_shk"],
             dist=IncShkDstn,
-            labels=True,
         )
 
         self.assertAlmostEqual(ce1, 3.7041318482996335)
@@ -534,7 +530,6 @@ class DiscreteDistributionXRATests(unittest.TestCase):
                 np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
                 1.05,  # an interest rate?
             ),
-            labels=True,
         )
 
         self.assertAlmostEqual(ce2[3], 9.518015322143837)
