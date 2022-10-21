@@ -1,11 +1,35 @@
 from dataclasses import dataclass, field
+import datetime
 from collections.abc import Callable, Mapping, Sequence
 import itertools
 import numpy as np
 from scipy.optimize import minimize
+from typing import Any
 import xarray as xr
 
 from HARK.distribution import Distribution
+
+class SolutionDataset(object):
+    def __init__(self, dataset: xr.Dataset, actions = {}):
+        self.actions = actions
+        self.dataset = dataset
+
+    def __repr__(self):
+        return self.dataset.__repr__()
+        
+    def v_x(self, x : Mapping[str, ...]) -> float:
+        return self.dataset['v_x'].interp(**x, kwargs={"fill_value": "extrapolate"})
+
+    def pi_star(self, x : Mapping[str, ...], k : Mapping[str, ...]):
+        """
+
+        TODO: Option to return a labelled map...
+        """
+        return self.dataset['pi*'].interp({**x, **k}, kwargs={"fill_value": "extrapolate"})
+    
+    def q(self, x : Mapping[str, ...], k : Mapping[str, ...], a : Mapping[str, ...]) -> float:
+        return self.dataset['q'].interp({**x, **k, **a}, kwargs={"fill_value": "extrapolate"})
+
 
 @dataclass
 class Stage:
@@ -17,7 +41,8 @@ class Stage:
     actions: Sequence[str] = field(default_factory=list)
     outputs: Sequence[str] = field(default_factory=list)
 
-    discount: float = 1.0 # might become more complicated, like a distribution
+    # Type hint is too loose: number or callable supported
+    discount: Any = 1.0 
     
     reward: Callable[[Mapping, Mapping, Mapping], ...] = lambda x, k, a : 0 # TODO: type signature # TODO: Defaults to no reward
     
@@ -35,18 +60,7 @@ class Stage:
                 assert constraint(x, k, a)
         
         return self.transition(x, k, a)
-    
-    def v_hat( ## replace with discouunt function...self.discount(x, k, a)
-        self,
-        x : Mapping[str, ...],
-        k : Mapping[str, ...],
-        a : Mapping[str, ...],
-        v_y : Callable[[Mapping, Mapping, Mapping], float]) -> Mapping:
-        """
-        Can be overridden.
-        """
-        return self.discount * v_y(self.T(x, k, a, constrain = False))
-    
+      
     def q(self,
           x : Mapping[str, ...],
           k : Mapping[str, ...],
@@ -54,9 +68,15 @@ class Stage:
           v_y : Callable[[Mapping, Mapping, Mapping], float]) -> Mapping:
         """
         The 'action-value function' Q.
-        Takes state, shock, action states and an end-of-stage value function v_y over domain Y."""
-        return self.reward(x, k, a) + self.v_hat(x, k, a, v_y) ## maybe substitute in ...
-    
+        Takes state, shock, action states and an end-of-stage value function v_y over domain Y.
+        """
+        if isinstance(self.discount, float) or isinstance(self.discount, int):
+            discount = self.discount
+        elif callable(self.discount):
+            discount = self.discount(x, k, a)
+
+        return self.reward(x, k, a) + discount * v_y(self.T(x, k, a, constrain = False)) 
+
     def optimal_policy(self,
                        x_grid : Mapping[str, Sequence] = {},
                        k_grid : Mapping[str, Sequence] = {},
@@ -86,61 +106,75 @@ class Stage:
                 a = {an : av for an,av in zip(self.actions, action_values)},
                 v_y = v_y
             )
-            
-        
+
+        ## What is happenign when there are _no_ actions?
+        ## Is the optimizer still running?
+        xk_grid_size = np.prod([len(xv) for xv in x_grid.values()]) * np.prod([len(kv) for kv in k_grid.values()])
+        print(f"Grid size: {xk_grid_size}")
         for x_point in itertools.product(*x_grid.values()):
             x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
             
             for k_point in itertools.product(*k_grid.values()):
                 k_vals = {k : v for k, v in zip(k_grid.keys() , k_point)}
-                
-                def scipy_constraint(constraint):
-                    def scipy_constraint_fun(action_values):
-                        """
-                        Expects a non-negative number if passing.
-                        Will take the minimum of any action condition value tested.
-                        """
-                        return np.array(constraint(
-                            x = x_vals,
-                            k = k_vals,
-                            a = {an : av for an,av in zip(self.actions, action_values)}
-                        ))
-                    
-                    return {
-                        'type' : 'ineq',
-                        'fun' : scipy_constraint_fun
-                    }
-                
-                pi_star_res = minimize(
-                    q_for_minimizer,
-                    np.zeros(len(self.actions)), # better default than 0?
-                    args = (x_vals, k_vals, v_y),
-                    constraints = [
-                        scipy_constraint(constraint)
-                        for constraint
-                        in self.constraints
-                    ],
-                    method="cobyla",
-                    options = {
-                        #'disp' : True, # for debugging
-                        'maxiter' : 200000
-                    }
-                )
-                
-                if pi_star_res.success:
-                    pi_data.sel(**x_vals, **k_vals).variable.data.put(0, pi_star_res.x)
-                    q_data.sel(**x_vals, **k_vals).variable.data.put(0, -pi_star_res.fun) # flips it back
-                else:
+
+                if len(self.actions) == 0:
+                    q_xk = self.q(
+                        x = x_vals,
+                        k = k_vals,
+                        a = {},
+                        v_y = v_y
+                    )
+
                     pi_data.sel(**x_vals, **k_vals).variable.data.put(0, np.nan)
-                    q_data.sel(**x_vals, **k_vals).variable.data.put(0, np.nan)
-                    print(pi_star_res)
+                    q_data.sel(**x_vals, **k_vals).variable.data.put(0, q_xk)
+                else:
+                    def scipy_constraint(constraint):
+                        def scipy_constraint_fun(action_values):
+                            """
+                            Expects a non-negative number if passing.
+                            Will take the minimum of any action condition value tested.
+                            """
+                            return np.array(constraint(
+                                x = x_vals,
+                                k = k_vals,
+                                a = {an : av for an,av in zip(self.actions, action_values)}
+                            ))
+                    
+                        return {
+                            'type' : 'ineq',
+                            'fun' : scipy_constraint_fun
+                        }
+                
+                    pi_star_res = minimize(
+                        q_for_minimizer,
+                        np.zeros(len(self.actions)), # better default than 0?
+                        args = (x_vals, k_vals, v_y),
+                        constraints = [
+                            scipy_constraint(constraint)
+                            for constraint
+                            in self.constraints
+                        ],
+                        method="cobyla",
+                        options = {
+                            #'disp' : True, # for debugging
+                            'maxiter' : 200000
+                        }
+                    )
+                
+                    if pi_star_res.success:
+                        pi_data.sel(**x_vals, **k_vals).variable.data.put(0, pi_star_res.x)
+                        q_data.sel(**x_vals, **k_vals).variable.data.put(0, -pi_star_res.fun) # flips it back
+                    else:
+                        pi_data.sel(**x_vals, **k_vals).variable.data.put(0, np.nan)
+                        q_data.sel(**x_vals, **k_vals).variable.data.put(0, np.nan)
+                        print(pi_star_res)
                     
         # TODO: Store these values on a grid, so it does not need to be recomputed
         #       when taking expectations
                 
         return pi_data, q_data
 
-    def v_x_expectations(
+    def solve(
         self,
         x_grid : Mapping[str, Sequence] = field(default_factory=dict),
         shock_approx_params : Mapping[str, int] = field(default_factory=dict),
@@ -171,7 +205,7 @@ class Stage:
             in discretized_shocks
         }
 
-        pi_star, q = self.optimal_policy(x_grid, k_grid, v_y)
+        pi_star_values, q_values = self.optimal_policy(x_grid, k_grid, v_y)
 
         ## Taking expectations over the generated k-grid, with p_k, of...
             ## Computing optimal policy pi* and q*_value for each x,k
@@ -212,14 +246,15 @@ class Stage:
                 else:
                     total_pm = 1
 
-                q_xk = q.sel(**x_vals, **k_atoms).values
+                q_xk = q_values.sel(**x_vals, **k_atoms).values
 
-                #import pdb; pdb.set_trace()
+                if np.isnan(q_xk):
+                    print('nan q_xk')
+
                 value_x += q_xk * total_pm
 
             if np.isnan(value_x):
                 print("Oh no a nan!")
-                #import pdb; pdb.set_trace()
 
             ## Need to take expectation                    
             v_x_values.sel(**x_vals).variable.data.put(
@@ -227,19 +262,48 @@ class Stage:
                 value_x
                 )
 
-        return v_x_values
+        return SolutionDataset(xr.Dataset({
+            'v_x' : v_x_values,
+            'pi*' : pi_star_values,
+            'q' : q_values, 
+        }), actions = self.actions)
 
-    def get_v_x(
-        self,
-        x_grid : Mapping[str, Sequence] = field(default_factory=dict),
-        shock_approx_params : Mapping[str, int] = field(default_factory=dict),
-        v_y : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0
-        ):
+def backwards_induction(stages_data, terminal_v_y):
+    """
+    Solve each stage starting from the terminal value function.
+    """
+    
+    v_y = terminal_v_y
 
-        v_x_values = self.v_x_expectations(x_grid, shock_approx_params, v_y)
+    sols = []
+    
+    for t in range(len(stages_data) - 1, -1, -1):
+        stage_data = stages_data[t]
+        stage = stage_data['stage']
 
-        def v_x(x : Mapping[str, ...]) -> float:
-            return v_x_values.interp(**x)
+        print(f"{t}: X: {stage.inputs}, K: {list[stage.shocks.keys()]}, A: {stage.actions}, Y: {stage.outputs}")
+        start_time = datetime.datetime.now()
+        
+        x_grid = stage_data['x_grid']
+        
+        if 'shock_approx_params' in stage_data:
+            shock_approx_params = stage_data['shock_approx_params']
+        else:
+            shock_approx_params = {}
 
-        return v_x
+        sol = stage.solve(
+            x_grid = x_grid,
+            shock_approx_params = shock_approx_params,
+            v_y = v_y
+        )
 
+        sols.insert(0, sol)
+
+        v_y = sol.v_x
+
+        end_time = datetime.datetime.now()
+
+        elapsed_time = end_time - start_time
+        print(f"Time to backwards induce v_x: {elapsed_time}")
+        
+    return sols
