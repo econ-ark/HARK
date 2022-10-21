@@ -771,3 +771,118 @@ class testReadShock(unittest.TestCase):
         self.assertTrue(
             np.all(agent.history["bNrm"][age == 1] == a_init_newborns / pshk_newborns)
         )
+        
+        
+class testLCMortalityReadShocks(unittest.TestCase):
+    """
+    Tests that mortality is working adequately when shocks are read
+    """
+
+    def setUp(self):
+        # Make a dictionary containing all parameters needed to solve the model
+        self.base_params = copy(init_lifecycle)
+
+        agent_count = 10
+        t_sim = 2000
+
+        self.base_params.update(
+            {
+                "AgentCount": agent_count,
+                "T_sim": t_sim,
+                "track_vars": ["t_age", "t_cycle"],
+            }
+        )
+
+    def test_compare_t_age_t_cycle(self):
+
+        # Make agent, shock and initial condition histories
+        agent = IndShockConsumerType(**self.base_params)
+        agent.make_shock_history()
+
+        # Solve and simulate the agent
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+
+        hist = copy(agent.history)
+        for key, array in hist.items():
+            hist[key] = array.flatten(order="F")
+
+        # Check that t_age is always t_cycle
+        # Except possibly in cases where the agent reach t_age = T_age. In this case,
+        # t_cycle is set to 0 at the end of the period, and the agent dies,
+        # But t_age is reset only at the start of next period and thus we can have
+        # t_age = T_age and t_cycle = 0
+        self.assertTrue(
+            np.all(
+                np.logical_or(
+                    hist["t_age"] == hist["t_cycle"],
+                    np.logical_and(
+                        hist["t_cycle"] == 0, hist["t_age"] == agent.T_cycle
+                    ),
+                )
+            )
+        )
+
+    def test_compare_t_age_t_cycle_premature_death(self):
+
+        # Re-do the previous test in an instance where we prematurely
+        # kill agents
+        par = copy(self.base_params)
+        par["T_age"] = par["T_age"] - 8
+        # Make agent, shock and initial condition histories
+        agent = IndShockConsumerType(**par)
+        agent.make_shock_history()
+
+        # Solve and simulate the agent
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+
+        hist = copy(agent.history)
+        for key, array in hist.items():
+            hist[key] = array.flatten(order="F")
+
+        # Check that t_age is always t_cycle
+        # (the exception from before should not happen
+        # because we are killing agents before T_cycle)
+        self.assertTrue(np.all(hist["t_age"] == hist["t_cycle"]))
+
+#%% Test Transition Matrix Methods
+
+
+
+class test_Transition_Matrix_Methods(unittest.TestCase):
+    def test_calc_tran_matrix(self):
+        
+        example1 = IndShockConsumerType(**dict_harmenberg)
+        example1.cycles= 0
+        example1.solve()
+        
+        example1.define_distribution_grid()
+        p = example1.dist_pGrid # Grid of permanent income levels
+        
+        example1.calc_transition_matrix() 
+        c = example1.cPol_Grid # Normalized Consumption Policy Grid
+        asset = example1.aPol_Grid # Normalized Asset Policy Grid
+        
+        example1.calc_ergodic_dist()
+        vecDstn = example1.vec_erg_dstn # Distribution of market resources and permanent income as a vector (m*p)x1 vector where 
+        
+        
+        #Compute Aggregate Consumption and Aggregate Assets
+        gridc = np.zeros( (len(c),len(p)) )
+        grida = np.zeros( (len(asset),len(p)) )
+        
+        for j in range(len(p)):
+            gridc[:,j] = p[j]*c # unnormalized Consumption policy grid
+            grida[:,j] = p[j]*asset # unnormalized Asset policy grid
+            
+        AggC = np.dot(gridc.flatten(), vecDstn) #Aggregate Consumption
+        AggA = np.dot(grida.flatten(), vecDstn) #Aggregate Assets
+        
+        
+              
+        self.assertAlmostEqual(AggA[0],  1.1951311747835132, places =4) 
+        self.assertAlmostEqual(AggC[0], 1.0041701073134557, places = 4)
+

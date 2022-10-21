@@ -29,6 +29,8 @@ Release Date: TBD
 * Adds a wrapper for [`interpolation.py`](https://github.com/EconForge/interpolation.py) for fast multilinear interpolation. [#1151](https://github.com/econ-ark/HARK/pull/1151)
 * Adds support for the calculation of dreivatives in the `interpolation.py` wrappers. [#1157](https://github.com/econ-ark/HARK/pull/1157)
 * Adds class `DecayInterp` to `econforgeinterp.py`. It implements interpolators that "decay" to some limiting function when extrapolating. [#1165](https://github.com/econ-ark/HARK/pull/1165)
+* Add methods to non stochastically simulate an economy by computing transition matrices. Functions to compute transition matrices and ergodic distribution have been added [#1155](https://github.com/econ-ark/HARK/pull/1155).
+* Fixes a bug that causes `t_age` and `t_cycle` to get out of sync when reading pre-computed mortality. [#1181](https://github.com/econ-ark/HARK/pull/1181)
 
 ### Minor Changes
 
@@ -42,6 +44,8 @@ Release Date: TBD
 * Renames attributes in `DiscreteDistribution`: `X` to `atoms` and `pmf` to `pmv`. [#1164](https://github.com/econ-ark/HARK/pull/1164), [#1051](https://github.com/econ-ark/HARK/pull/1151), [#1159](https://github.com/econ-ark/HARK/pull/1159). 
 * Remove or replace automated tests that depend on brittle simulation results. [#1148](https://github.com/econ-ark/HARK/pull/1148)
 * Updates asset grid constructor from `ConsIndShockModel.py` to allow for linearly-spaced grids when `aXtraNestFac == -1`. [#1172](https://github.com/econ-ark/HARK/pull/1172)
+* Renames `DiscreteDistributionXRA` to `DiscreteDistributionLabeled` and updates methods [#1170](https://github.com/econ-ark/HARK/pull/1170)
+* Renames `HARK.numba` to `HARK.numba_tools` [#1183](https://github.com/econ-ark/HARK/pull/1183)
 
 ### 0.12.0
 
