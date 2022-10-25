@@ -67,7 +67,7 @@ jupyter notebook
 ```
 and from there you can open the notebooks and execute them.
 
-# Learning HARK
+## Learning HARK
 
 We have a set of 30-second [Elevator Spiels](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#capsule-summaries-of-what-the-econ-ark-project-is) describing the project, tailored to people with several different kinds of background.  
 
@@ -135,7 +135,7 @@ We've done our best to give correct, thorough instructions on how to install HAR
 
 ## Next steps
 
-To learn more about how to use HARK, check out our [user manual](https://econ-ark.github.io/HARK-make/).
+To learn more about how to use HARK, check the next sections in this documentation, in particular the jupyter notebooks.
 
 For help making changes to HARK, check out our [contributing guide](contributing/CONTRIBUTING.md).
 

@@ -747,6 +747,7 @@ class AgentType(Model):
 
                 # Reset ages of newborns
                 self.t_age[who_dies] = 0
+                self.t_cycle[who_dies] = 0
         else:
             who_dies = self.sim_death()
             self.sim_birth(who_dies)
