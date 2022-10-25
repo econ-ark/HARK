@@ -8,9 +8,15 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_perfect_foresight,
 )
+from HARK.ConsumptionSaving.ConsPortfolioModel import (
+    PortfolioConsumerType,
+    init_portfolio,
+)
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
+    FixedPortfolioShareRiskyAssetConsumerType,
     RiskyAssetConsumerType,
     init_risky_asset,
+    init_risky_share_fixed,
 )
 from HARK.core import MetricObject, make_one_period_oo_solver
 from HARK.distribution import DiscreteDistributionLabeled
@@ -89,7 +95,7 @@ class ValueFuncCRRALabeled(MetricObject):
 
         result = self.dataset.interp(
             state_dict,
-            kwargs={"fill_value": "extrapolate"},
+            kwargs={"fill_value": None},
         )
         result.attrs = self.dataset["v"].attrs
 
@@ -265,34 +271,34 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
 
         self.post_state = post_state
 
-    def state_transition(self, s=None, a=None, params=None):
+    def state_transition(self, state=None, action=None, params=None):
         """
         state to post_state transition
         """
-        ps = {}  # pytree
-        ps["aNrm"] = s["mNrm"] - a["cNrm"]
-        return ps
+        post_state = {}  # pytree
+        post_state["aNrm"] = state["mNrm"] - action["cNrm"]
+        return post_state
 
-    def post_state_transition(self, ps=None, params=None):
+    def post_state_transition(self, post_state=None, params=None):
         """
         post_state to next_state transition
         """
         ns = {}  # pytree
-        ns["mNrm"] = ps["aNrm"] * params.Rfree / params.PermGroFac + 1
+        ns["mNrm"] = post_state["aNrm"] * params.Rfree / params.PermGroFac + 1
         return ns
 
-    def reverse_transition(self, ps=None, a=None, params=None):
+    def reverse_transition(self, post_state=None, action=None, params=None):
         """state from post_state and actions"""
         s = {}  # pytree
-        s["mNrm"] = ps["aNrm"] + a["cNrm"]
+        s["mNrm"] = post_state["aNrm"] + action["cNrm"]
 
         return s
 
-    def egm_transition(self, ps=None, continuation=None, params=None):
+    def egm_transition(self, post_state=None, continuation=None, params=None):
         """actions from post_state"""
 
         a = {}  # pytree
-        a["cNrm"] = self.uP_inv(params.Discount * continuation.derivative(ps))
+        a["cNrm"] = self.uP_inv(params.Discount * continuation.derivative(post_state))
 
         return a
 
@@ -301,11 +307,13 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
         value of action given state and continuation
         """
         variables = {}  # pytree
-        ps = self.state_transition(state, action, params)
-        variables.update(ps)
+        post_state = self.state_transition(state, action, params)
+        variables.update(post_state)
 
         variables["reward"] = self.u(action["cNrm"])
-        variables["v"] = variables["reward"] + params.Discount * continuation(ps)
+        variables["v"] = variables["reward"] + params.Discount * continuation(
+            post_state
+        )
         variables["v_inv"] = self.u_inv(variables["v"])
 
         variables["marginal_reward"] = self.uP(action["cNrm"])
@@ -399,7 +407,7 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
             value=vfunc,
             policy=pfunc,
             continuation=wfunc,
-            attrs={"m_nrm_min": self.m_nrm_min},
+            attrs={"m_nrm_min": self.m_nrm_min, "dataset": egm_dataset},
         )
 
     def solve(self):
@@ -481,23 +489,25 @@ class ConsIndShockLabeledSolver(ConsPerfForesightLabeledSolver):
                 data_vars={"cNrm": 0.0},
             )
 
-    def post_state_transition(self, ps=None, shocks=None, params=None):
+    def post_state_transition(self, post_state=None, shocks=None, params=None):
         """
         post_state to next_state transition
         """
         ns = {}  # pytree
         ns["mNrm"] = (
-            ps["aNrm"] * params.Rfree / (params.PermGroFac * shocks["perm"])
+            post_state["aNrm"] * params.Rfree / (params.PermGroFac * shocks["perm"])
             + shocks["tran"]
         )
         return ns
 
-    def continuation_transition(self, shocks=None, ps=None, v_next=None, params=None):
+    def continuation_transition(
+        self, shocks=None, post_state=None, v_next=None, params=None
+    ):
         """
         continuation value function of post_state
         """
         variables = {}  # pytree
-        ns = self.post_state_transition(ps, shocks, params)
+        ns = self.post_state_transition(post_state, shocks, params)
         variables.update(ns)
 
         variables["psi"] = params.PermGroFac * shocks["perm"]
@@ -522,7 +532,7 @@ class ConsIndShockLabeledSolver(ConsPerfForesightLabeledSolver):
 
         v_end = self.IncShkDstn.expected(
             func=self.continuation_transition,
-            ps=self.post_state,
+            post_state=self.post_state,
             v_next=vfunc_next,
             params=self.params,
         )
@@ -603,23 +613,25 @@ class ConsRiskyAssetLabeledSolver(ConsIndShockLabeledSolver):
         self.IncShkDstn = self.ShockDstn
         return super().define_boundary_constraint()
 
-    def post_state_transition(self, ps=None, shocks=None, params=None):
+    def post_state_transition(self, post_state=None, shocks=None, params=None):
         """
         post_state to next_state transition
         """
         ns = {}  # pytree
         ns["mNrm"] = (
-            ps["aNrm"] * shocks["risky"] / (params.PermGroFac * shocks["perm"])
+            post_state["aNrm"] * shocks["risky"] / (params.PermGroFac * shocks["perm"])
             + shocks["tran"]
         )
         return ns
 
-    def continuation_transition(self, shocks=None, ps=None, v_next=None, params=None):
+    def continuation_transition(
+        self, shocks=None, post_state=None, v_next=None, params=None
+    ):
         """
         continuation value function of post_state
         """
         variables = {}  # pytree
-        ns = self.post_state_transition(ps, shocks, params)
+        ns = self.post_state_transition(post_state, shocks, params)
         variables.update(ns)
 
         variables["psi"] = params.PermGroFac * shocks["perm"]
@@ -644,7 +656,7 @@ class ConsRiskyAssetLabeledSolver(ConsIndShockLabeledSolver):
 
         v_end = self.ShockDstn.expected(
             func=self.continuation_transition,
-            ps=self.post_state,
+            post_state=self.post_state,
             v_next=vfunc_next,
             params=self.params,
         )
@@ -655,6 +667,8 @@ class ConsRiskyAssetLabeledSolver(ConsIndShockLabeledSolver):
         borocnst = self.borocnst.drop(["mNrm"]).expand_dims("aNrm")
         if self.nat_boro_cnst:
             v_end = xr.merge([borocnst, v_end])
+
+        v_end = v_end.transpose("aNrm", ...)
 
         # need to drop m because it's next period's m
         # v_end = xr.Dataset(v_end).drop(["mNrm"])
