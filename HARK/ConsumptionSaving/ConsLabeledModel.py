@@ -732,3 +732,113 @@ class ConsFixedPortfolioLabeledSolver(ConsRiskyAssetLabeledSolver):
 
         return variables
 
+
+class PortfolioLabeledType(FixedPortfolioLabeledType, PortfolioConsumerType):
+    def __init__(self, verbose=1, quiet=False, **kwds):
+        params = init_portfolio.copy()
+        params.update(kwds)
+
+        self.RiskyShareFixed = [1.0]
+
+        # Initialize a basic AgentType
+        PortfolioConsumerType.__init__(self, verbose=verbose, quiet=quiet, **params)
+
+        self.solve_one_period = make_one_period_oo_solver(ConsPortfolioLabeledSolver)
+
+        self.update_labeled_type()
+
+
+@dataclass
+class ConsPortfolioLabeledSolver(ConsFixedPortfolioLabeledSolver):
+    ShareGrid: np.ndarray
+
+    def create_post_state(self):
+
+        super(ConsFixedPortfolioLabeledSolver, self).create_post_state()
+
+        self.post_state["stigma"] = xr.DataArray(
+            self.ShareGrid, dims=["stigma"], attrs={"long_name": "risky share"}
+        )
+
+    def post_state_transition(self, post_state=None, shocks=None, params=None):
+        """
+        post_state to next_state transition
+        """
+        ns = {}  # pytree
+        ns["rDiff"] = shocks["risky"] - params.Rfree
+        ns["rPort"] = params.Rfree + ns["rDiff"] * post_state["stigma"]
+        ns["mNrm"] = (
+            post_state["aNrm"] * ns["rPort"] / (params.PermGroFac * shocks["perm"])
+            + shocks["tran"]
+        )
+        return ns
+
+    def continuation_transition(
+        self, shocks=None, post_state=None, v_next=None, params=None
+    ):
+        """
+        continuation value function of post_state
+        """
+        variables = {}  # pytree
+        ns = self.post_state_transition(post_state, shocks, params)
+        variables.update(ns)
+
+        variables["psi"] = params.PermGroFac * shocks["perm"]
+
+        variables["v"] = variables["psi"] ** (1 - params.CRRA) * v_next(ns)
+
+        variables["v_der"] = variables["psi"] ** (-params.CRRA) * v_next.derivative(ns)
+
+        variables["dvda"] = ns["rPort"] * variables["v_der"]
+        variables["dvds"] = ns["rDiff"] * post_state["aNrm"] * variables["v_der"]
+
+        # for estimagic purposes
+
+        variables["contributions"] = variables["v"]
+        variables["value"] = np.sum(variables["v"])
+
+        return variables
+
+    def create_continuation_function(self):
+        wfunc = super().create_continuation_function()
+
+        dvds = wfunc.dataset["dvds"].values
+
+        # For each value of aNrm, find the value of Share such that FOC-Share == 0.
+        crossing = np.logical_and(dvds[:, 1:] <= 0.0, dvds[:, :-1] >= 0.0)
+        share_idx = np.argmax(crossing, axis=1)
+        a_idx = np.arange(self.post_state["aNrm"].size)
+        bot_s = self.ShareGrid[share_idx]
+        top_s = self.ShareGrid[share_idx + 1]
+        bot_f = dvds[a_idx, share_idx]
+        top_f = dvds[a_idx, share_idx + 1]
+        alpha = 1.0 - top_f / (top_f - bot_f)
+        opt_share = (1.0 - alpha) * bot_s + alpha * top_s
+
+        # If agent wants to put more than 100% into risky asset, he is constrained
+        # For values of aNrm at which the agent wants to put
+        # more than 100% into risky asset, constrain them
+        opt_share[dvds[:, -1] > 0.0] = 1.0
+        # Likewise if he wants to put less than 0% into risky asset
+        opt_share[dvds[:, 0] < 0.0] = 0.0
+
+        if not self.nat_boro_cnst:
+            # aNrm=0, so there's no way to "optimize" the portfolio
+            opt_share[0] = 1.0
+
+        opt_share = xr.DataArray(
+            opt_share,
+            coords={"aNrm": self.post_state["aNrm"].values},
+            dims=["aNrm"],
+            attrs={"long_name": "optimal risky share"},
+        )
+
+        v_end = wfunc.evaluate({"aNrm": self.post_state["aNrm"], "stigma": opt_share})
+
+        v_end = v_end.reset_coords(names="stigma")
+
+        wfunc = ValueFuncCRRALabeled(v_end, self.params.CRRA)
+
+        self.post_state = self.post_state.drop("stigma")
+
+        return wfunc
