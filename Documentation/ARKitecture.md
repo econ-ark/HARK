@@ -8,7 +8,31 @@ This document guides you through the structure of econ-ark and explain the main 
 * [DemARK](https://github.com/econ-ark/DEMARK): Here you can find *Dem*onstrations of tools, AgentTypes, and ModelClasses.
 * [RemARK](https://github.com/econ-ark/REMARK): Here you can find *R*[eplications/eproductions] and *E*xplorations *M*ade using *ARK*. 
 
-But let's describe each repository in detail.
+Before describing each repository in detail, some preliminary remarks.
+
+HARK is written in Python, an object-oriented programming (OOP) language that has experienced increasing popularity in the scientific community in the past several years.  A significant reason for the adoption of Python is the ***numpy*** and ***scipy*** packages, which offer a wide array of mathematical and statistical functions and tools; HARK makes liberal use of these libraries.  Python's object-oriented nature allows models in HARK to be easily extended: more complex models can inherit functions and methods from more fundamental ''parent'' models, eliminating the need to reproduce or repurpose code.
+
+As implied in the previous section, we strongly encourage HARK users to use the Anaconda distribution of Python, which includes all commonly used mathematical and scientific packages, an interactive development environment for iPython (Spyder), and a package manager that allows users to quickly install or update packages not included in the default distribution (conda).
+
+For users unfamiliar with OOP, we strongly encourage you to review the background material on OOP provided by the good people at [QuantEcon](https://python.quantecon.org/intro.html) (for more on them, see below) at this link: [Object Oriented Programming](https://python-programming.quantecon.org/oop_intro.html). Unlike non-OOP languages, OOP bundles together data and functions into *objects*. These can be accessed via: ***object\_name.data*** and ***object\_name.method\_name()***, respectively. For organizational purposes, definitions of multiple objects are stored in *modules*, which are simply files with a ***.py*** extension. Modules can be accessed in Python via:
+```
+import module_name as import_name
+```
+
+This imports the module and gives it a local name of ***import\_name***. We can access a function within this module by simply typing: ***import\_name.function\_name()***. The following example will illustrate the usage of these commands. ***CRRAutility*** is the function object for calculating CRRA utility supplied by ***HARK.utilities*** module. ***CRRAutility*** is called *attributes* of the module  ***HARK.utilities***. In order to calculate CRRA utility with a consumption of 1 and a coefficient of risk aversion of 2 we run:
+```
+import HARK.utilities as Hutil
+
+Hutil.CRRAutility(1,2)
+```
+
+Python modules in HARK can generally be categorized into three types: tools, models, and applications.  **Tool modules** contain functions and classes with general purpose tools that have no inherent ''economic content'', but that can be used in many economic models as building blocks or utilities; they could plausibly be useful in non-economic settings.  Tools might include functions for data analysis (e.g. calculating Lorenz shares from data, or constructing a non-parametric kernel regression), functions to create and manipulate discrete approximations to continuous distributions, or classes for constructing interpolated approximations to non-parametric functions.  Tool modules generally reside in HARK's root directory and have names like ***HARK.simulation*** and ***HARK.interpolation***; they do not necessarily do anything when run.
+
+**Model modules** specify particular economic models, including classes to represent agents in the model (and the ''market structure'' in which they interact) and functions for solving the ''one period problem'' of those models.  For example, **ConsIndShockModel.py** concerns consumption-saving models in which agents have CRRA utility over consumption and face idiosyncratic shocks to permanent and transitory income.  The module includes classes for representing ''types'' of consumers, along with functions for solving (several flavors of) the one period consumption-saving problem.  When run, model modules might demonstrate example specifications of their models, filling in the model parameters with arbitrary values.  When ***ConsIndShockModel.py*** is run, it specifies an infinite horizon consumer with a particular discount factor, permanent income growth rate, coefficient of relative risk aversion (etc), who faces lognormal shocks to permanent and transitory income each period with a particular standard deviation; it then solves this consumer's problem and graphically displays the results. Model modules generally have ***Model*** in their name.
+
+<!---
+**Application modules** use tool and model modules to solve, simulate, and/or estimate economic models *for a particular purpose*.  While tool modules have no particular economic content and model modules describe entire classes of economic models, applications are uses of a model for some research purpose.  For example, ***/Demos/SolvingMicroDSOPs/StructEstimation.py*** uses a consumption-saving model from ***ConsIndShockModel.py***, calibrating it with age-dependent sequences of permanent income growth, survival probabilities, and the standard deviation of income shocks (etc); it then estimates the coefficient of relative risk aversion and shifter for an age-varying sequence of discount factors that best fits simulated wealth profiles to empirical data from the Survey of Consumer Finance.  A particular application might have multiple modules associated with it, all of which generally reside in one directory.
+-->
 
 ## HARK 
 
@@ -42,7 +66,7 @@ The ***HARK.utilities*** module carries a double meaning in its name, as it cont
 
 The module also includes functions for constructing discrete approximations to continuous distributions (e.g. ***approxLognormal()*** to approximate a log-normal distribution) as well as manipulating these representations (e.g. appending one outcome to an existing distribution, or combining independent univariate distributions into one multivariate distribution).  As a convention in HARK, continuous distributions are approximated as finite discrete distributions when solving models; an *N*-dimensional random variable is formatted as a length *N+1* list of 1D arrays, with the first element representing event probabilities and all other elements are realizations of the *N* component RVs.  This both simplifies solution methods (reducing numeric integrals to simple dot products) and allows users to easily test whether their chosen degree of discretization yields a sufficient approximation to the full distribution.  See [here](https://hark.readthedocs.io/en/latest/reference/tools/utilities.html) for further documentation.
 
-### HARK.interpolation
+#### HARK.interpolation
 
 The ***HARK.interpolation*** module defines classes for representing interpolated function approximations.  Interpolation methods in HARK all inherit from a superclass such as ***HARKinterpolator1D*** or ***HARKinterpolator2D***, wrapper classes that ensures interoperability across interpolation methods.  For example, ***HARKinterpolator1D*** specifies the methods ***__call__*** and ***derivative*** to accept an arbitrary array as an input and return an identically shaped array with the interpolated function evaluated at the values in the array or its first derivative, respectively.  However, these methods do little on their own, merely reshaping arrays and referring to the ***_evaluate*** and ***_der*** methods, which are *not actually defined in* ***HARKinterpolator1D***.  Each subclass of ***HARKinterpolator1D*** specifies their own implementation of ***_evaluate*** and ***_der*** particular to that interpolation method, accepting and returning only 1D arrays.  In this way, subclasses of ***HARKinterpolator1D*** are easily interchangeable with each other, as all methods that the user interacts with are identical, varying only by ''internal'' methods.
 
