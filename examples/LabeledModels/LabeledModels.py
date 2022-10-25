@@ -17,9 +17,6 @@
 # # Using xarray to solve Heterogeneous Agent Models
 #
 
-# %%
-# !pip install --quiet estimagic
-
 # %% [markdown]
 # Import required libraries.
 #
@@ -565,3 +562,17 @@ agent.solve()
 agent.solution[0].policy["cNrm"].plot()
 agent.solution[0].value.dataset["v_inv"].plot()
 agent.solution[0].value.dataset["v_der_inv"].plot()
+
+# %%
+from HARK.ConsumptionSaving.ConsLabeledModel import PortfolioLabeledType
+
+agent = PortfolioLabeledType(cycles=0)
+agent.solve()
+
+# %%
+agent.solution[0].policy["cNrm"].plot()
+
+# %%
+agent.solution[0].continuation.dataset["stigma"].plot()
+
+# %%
