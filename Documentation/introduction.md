@@ -1,12 +1,15 @@
 # Introduction
 
-This document will tell you how to get HARK up and
-running on your machine, how to get started using it, and give you an
-overview of the main elements of the toolkit.
+If you are willing to risk some mild psychological trauma, conjure to mind your first experience of hand-coding a structural economic model.  Your clunky effort probably built on legacy code provided by an adviser or colleague -- which itself came from who-knows-what apocryphal sources.  Efforts to combine elements from one model with those from another were likely frustrated by the ''Tower of Babel'' problem: Code from one source could not ''speak'' to code from another without your own intermediation as a translator, possibly between two unfamiliar languages and aided only by oracular comments that, at best, made sense only in the context of other (now missing) code.
 
-Other useful resources are:
+After months of effort, you may have had the character-improving experience of proudly explaining to your adviser that not only had you grafted two ideas together, you also found a trick that speeded the solution by an order of magnitude, only to be told that your breathtaking insight had been understood for many years, as reflected in an appendix to a 2008 paper; or, worse, your discovery was something that ''everybody knows'' but did not exist at all in published form!
 
-   * Documentation: [ReadTheDocs](https://hark.readthedocs.io/) 
-   * User guide: [HARKmanual](https://econ-ark.github.io/HARK-make/)
-   * Demonstrations of HARK functionality: [DemARK](https://github.com/econ-ark/DemARK/)
-   * Replications and Explorations Made using the ARK : [REMARK](https://github.com/econ-ark/REMARK/)
+Learning by doing has value, but only within limits.  We do not require young drivers to design an internal combustion engine before driving a car, nor must graduate students write their own matrix inversion algorithms before running an OLS regression.
+
+In recent years, considerable progress has been made in addressing these kinds of problems in many areas of economic modeling.  Macroeconomists using representative agent models can send Dynare model files to each other; reduced form econometricians can choose from a host of econometric packages.  But modelers whose questions require explicit structural modeling involving nontrivial kinds of heterogeneity (that is, heterogeneity that cannot simply be aggregated away) are mostly still stuck in the bad old days.
+
+The ultimate goal of the HARK project is to fix these problems.  Specifically, our aim is to produce an open source repository of highly modular, easily interoperable code for solving, simulating, and estimating dynamic economic models with heterogeneous agents.<sup id = "intro1"> [1](#footnote_intro1)</sup> Further, we seek to establish (with input from the community) standards for the description and specification of objects like discrete approximations to continuous distributions and interpolated function approximations, so that numeric methods can be quickly swapped without ugly ''patching.''
+
+We hope that HARK will make it much easier and faster for researchers to develop solution and estimation methods for new models.  The open source nature of HARK will make it easier for other researchers to audit and verify new models and methods, and to collaborate on correcting deficiencies when found.  As HARK expands to include more canonical models and more tools and utilities, we can all spend less time managing numerical minutiae and more time fretting about identification arguments and data accuracy.
+
+<a name="footnote_intro1">1</a>: By ''heterogeneous,'' we mean that agents might differ before anything in the model has ''happened'' (*ex-ante* heterogeneity); and agents might experience different stochastic events during the model (*ex-post* heterogeneity). [↩](#intro1)

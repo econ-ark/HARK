@@ -36,7 +36,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     MargMargValueFuncCRRA,
 )
-from HARK.numba import (
+from HARK.numba_tools import (
     CRRAutility,
     CRRAutilityP,
     CRRAutilityPP,
@@ -45,7 +45,7 @@ from HARK.numba import (
     CRRAutility_inv,
     CRRAutilityP_invP,
 )
-from HARK.numba import linear_interp_fast, cubic_interp_fast, linear_interp_deriv_fast
+from HARK.numba_tools import linear_interp_fast, cubic_interp_fast, linear_interp_deriv_fast
 
 __all__ = [
     "PerfForesightSolution",

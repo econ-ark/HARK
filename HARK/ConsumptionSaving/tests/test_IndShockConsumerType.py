@@ -773,6 +773,81 @@ class testReadShock(unittest.TestCase):
         )
         
         
+class testLCMortalityReadShocks(unittest.TestCase):
+    """
+    Tests that mortality is working adequately when shocks are read
+    """
+
+    def setUp(self):
+        # Make a dictionary containing all parameters needed to solve the model
+        self.base_params = copy(init_lifecycle)
+
+        agent_count = 10
+        t_sim = 2000
+
+        self.base_params.update(
+            {
+                "AgentCount": agent_count,
+                "T_sim": t_sim,
+                "track_vars": ["t_age", "t_cycle"],
+            }
+        )
+
+    def test_compare_t_age_t_cycle(self):
+
+        # Make agent, shock and initial condition histories
+        agent = IndShockConsumerType(**self.base_params)
+        agent.make_shock_history()
+
+        # Solve and simulate the agent
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+
+        hist = copy(agent.history)
+        for key, array in hist.items():
+            hist[key] = array.flatten(order="F")
+
+        # Check that t_age is always t_cycle
+        # Except possibly in cases where the agent reach t_age = T_age. In this case,
+        # t_cycle is set to 0 at the end of the period, and the agent dies,
+        # But t_age is reset only at the start of next period and thus we can have
+        # t_age = T_age and t_cycle = 0
+        self.assertTrue(
+            np.all(
+                np.logical_or(
+                    hist["t_age"] == hist["t_cycle"],
+                    np.logical_and(
+                        hist["t_cycle"] == 0, hist["t_age"] == agent.T_cycle
+                    ),
+                )
+            )
+        )
+
+    def test_compare_t_age_t_cycle_premature_death(self):
+
+        # Re-do the previous test in an instance where we prematurely
+        # kill agents
+        par = copy(self.base_params)
+        par["T_age"] = par["T_age"] - 8
+        # Make agent, shock and initial condition histories
+        agent = IndShockConsumerType(**par)
+        agent.make_shock_history()
+
+        # Solve and simulate the agent
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+
+        hist = copy(agent.history)
+        for key, array in hist.items():
+            hist[key] = array.flatten(order="F")
+
+        # Check that t_age is always t_cycle
+        # (the exception from before should not happen
+        # because we are killing agents before T_cycle)
+        self.assertTrue(np.all(hist["t_age"] == hist["t_cycle"]))
+
 #%% Test Transition Matrix Methods
 
 
