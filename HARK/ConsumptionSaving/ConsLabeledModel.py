@@ -661,3 +661,74 @@ class ConsRiskyAssetLabeledSolver(ConsIndShockLabeledSolver):
         wfunc = ValueFuncCRRALabeled(v_end, self.params.CRRA)
 
         return wfunc
+
+
+class FixedPortfolioLabeledType(
+    RiskyAssetLabeledType, FixedPortfolioShareRiskyAssetConsumerType
+):
+    def __init__(self, verbose=1, quiet=False, **kwds):
+        params = init_risky_share_fixed.copy()
+        params.update(kwds)
+
+        # Initialize a basic AgentType
+        FixedPortfolioShareRiskyAssetConsumerType.__init__(
+            self, verbose=verbose, quiet=quiet, **params
+        )
+
+        self.solve_one_period = make_one_period_oo_solver(
+            ConsFixedPortfolioLabeledSolver
+        )
+
+        self.update_labeled_type()
+
+
+@dataclass
+class ConsFixedPortfolioLabeledSolver(ConsRiskyAssetLabeledSolver):
+    RiskyShareFixed: float
+
+    def create_post_state(self):
+
+        super().create_post_state()
+
+        self.post_state["stigma"] = self.RiskyShareFixed * xr.ones_like(
+            self.post_state["aNrm"]
+        )
+
+    def post_state_transition(self, post_state=None, shocks=None, params=None):
+        """
+        post_state to next_state transition
+        """
+        ns = {}  # pytree
+        ns["rDiff"] = params.Rfree - shocks["risky"]
+        ns["rPort"] = params.Rfree + ns["rDiff"] * post_state["stigma"]
+        ns["mNrm"] = (
+            post_state["aNrm"] * ns["rPort"] / (params.PermGroFac * shocks["perm"])
+            + shocks["tran"]
+        )
+        return ns
+
+    def continuation_transition(
+        self, shocks=None, post_state=None, v_next=None, params=None
+    ):
+        """
+        continuation value function of post_state
+        """
+        variables = {}  # pytree
+        ns = self.post_state_transition(post_state, shocks, params)
+        variables.update(ns)
+
+        variables["psi"] = params.PermGroFac * shocks["perm"]
+
+        variables["v"] = variables["psi"] ** (1 - params.CRRA) * v_next(ns)
+
+        variables["v_der"] = (
+            ns["rPort"] * variables["psi"] ** (-params.CRRA) * v_next.derivative(ns)
+        )
+
+        # for estimagic purposes
+
+        variables["contributions"] = variables["v"]
+        variables["value"] = np.sum(variables["v"])
+
+        return variables
+
