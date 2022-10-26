@@ -263,3 +263,112 @@ class SKImagePiecewiseAffineInterp(MetricObject):
         coordinates = self.tform(src_new).T
 
         return map_coordinates(self.values, coordinates).reshape(args[0].shape)
+class WarpedInterpOnInterp2D(MetricObject):
+
+    distance_criteria = ["values", "grids"]
+
+    def __init__(self, values: np.ndarray, grids, target="cpu"):
+
+        available_targets = ["cpu", "parallel"]
+
+        if cupy_available:
+            available_targets.append("gpu")
+
+        assert target in available_targets, "Invalid target."
+
+        if target == "cpu" or target == "parallel":
+            import numpy as xp
+        elif target == "gpu":
+            import cupy as xp
+
+        self.values = xp.asarray(values)
+        self.grids = xp.asarray(grids)
+        self.target = target
+
+        self.ndim = values.ndim
+        self.shape = values.shape
+
+    def __call__(self, *args):
+
+        if self.target == "cpu" or self.target == "parallel":
+            import numpy as xp
+        elif self.target == "gpu":
+            import cupy as xp
+
+        args = xp.asarray(args)
+        assert args.shape[0] == self.ndim, DIM_MESSAGE
+
+        if self.target == "cpu":
+            output = self._target_cpu(args)
+        elif self.target == "parallel":
+            output = self._target_parallel(args)
+        elif self.target == "gpu":
+            output = self._target_gpu(args)
+
+        return output
+
+    def _target_cpu(self, args):
+
+        shape = args[0].shape
+
+        args = args.reshape((self.ndim, -1))
+
+        y_intermed = np.empty((self.shape[0], args[0].size))
+        z_intermed = np.empty((self.shape[0], args[0].size))
+
+        for i in range(self.shape[0]):
+            y_intermed[i] = np.interp(args[0], self.grids[0][:, i], self.grids[1][:, i])
+            z_intermed[i] = np.interp(args[0], self.grids[0][:, i], self.values[:, i])
+
+        output = np.empty_like(args[0])
+
+        for j in range(args[0].size):
+            output[j] = np.interp(args[1][j], y_intermed[:, j], z_intermed[:, j])
+
+        return output.reshape(shape)
+
+    def _target_parallel(self, args):
+
+        return nb_interp_piecewise(args, self.grids, self.values)
+
+    def _target_gpu(self, args):
+
+        shape = args[0].shape
+
+        args = args.reshape((self.ndim, -1))
+
+        y_intermed = cp.empty((self.shape[0], args[0].size))
+        z_intermed = cp.empty((self.shape[0], args[0].size))
+
+        for i in range(self.shape[0]):
+            y_intermed[i] = cp.interp(args[0], self.grids[0][:, i], self.grids[1][:, i])
+            z_intermed[i] = cp.interp(args[0], self.grids[0][:, i], self.values[:, i])
+
+        output = cp.empty_like(args[0])
+
+        for j in range(args[0].size):
+            output[j] = cp.interp(args[1][j], y_intermed[:, j], z_intermed[:, j])
+
+        return output.reshape(shape)
+
+
+@njit(parallel=True, cache=True)
+def nb_interp_piecewise(args, grids, values):
+
+    shape = args[0].shape
+
+    args = args.reshape((values.ndim, -1))
+
+    y_intermed = np.empty((values.shape[0], args[0].size))
+    z_intermed = np.empty((values.shape[0], args[0].size))
+
+    for i in prange(values.shape[0]):
+        y_intermed[i] = np.interp(args[0], grids[0][:, i], grids[1][:, i])
+        z_intermed[i] = np.interp(args[0], grids[0][:, i], values[:, i])
+
+    output = np.empty_like(args[0])
+
+    for j in prange(args[0].size):
+        output[j] = np.interp(args[1][j], y_intermed[:, j], z_intermed[:, j])
+
+    return output.reshape(shape)
