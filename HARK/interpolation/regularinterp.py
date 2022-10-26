@@ -223,3 +223,43 @@ class RegularizedSplineInterp(RegularizedPolynomialInterp):
 
         return models
 
+class SKImagePiecewiseAffineInterp(MetricObject):
+
+    distance_criteria = ["values", "grids"]
+
+    def __init__(self, values, grids, target="cpu"):
+
+        if not skimage_available:
+            raise ImportError(
+                "PiecewiseAffineTransform requires scikit-image installed."
+            )
+
+        available_targets = ["cpu"]
+
+        if cupy_available:
+            available_targets.append("gpu")
+
+        assert target in available_targets, "Invalid target."
+
+        self.values = np.asarray(values)
+        self.grids = np.asarray(grids)
+
+        self.ndim = self.values.ndim
+
+        src = np.vstack([grid.flat for grid in self.grids]).T
+        coords = np.mgrid[[slice(0, dim) for dim in self.values.shape]]
+        dst = np.vstack([coord.flat for coord in coords]).T
+
+        tform = PiecewiseAffineTransform()
+        tform.estimate(src, dst)
+
+        self.tform = tform
+
+    def __call__(self, *args):
+
+        args = np.asarray(args)
+
+        src_new = np.vstack([arg.flat for arg in args]).T
+        coordinates = self.tform(src_new).T
+
+        return map_coordinates(self.values, coordinates).reshape(args[0].shape)
