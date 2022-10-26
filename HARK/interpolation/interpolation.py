@@ -10,10 +10,9 @@ import warnings
 from copy import deepcopy
 
 import numpy as np
-from scipy.interpolate import CubicHermiteSpline
-
-from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP
 from HARK.core import MetricObject
+from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP
+from scipy.interpolate import CubicHermiteSpline
 
 
 def _isscalar(x):
@@ -4241,7 +4240,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         zeta = a - x + c * tau
         eta = b + c * mu + d * tau
         theta = d * mu
-        alpha = (-eta + polarity * np.sqrt(eta ** 2.0 - 4.0 * zeta * theta)) / (
+        alpha = (-eta + polarity * np.sqrt(eta**2.0 - 4.0 * zeta * theta)) / (
             2.0 * theta
         )
         beta = mu * alpha + tau
@@ -4546,7 +4545,7 @@ class ValueFuncCRRA(MetricObject):
         self.vFuncNvrs = deepcopy(vFuncNvrs)
         self.CRRA = CRRA
 
-        if hasattr(vFuncNvrs, 'grid_list'):
+        if hasattr(vFuncNvrs, "grid_list"):
             self.grid_list = vFuncNvrs.grid_list
         else:
             self.grid_list = None
@@ -4569,7 +4568,7 @@ class ValueFuncCRRA(MetricObject):
         """
         #        return CRRAutility(self.func(*vFuncArgs), gam=self.CRRA)
         return CRRAutility(self.vFuncNvrs(*vFuncArgs), self.CRRA)
-    
+
     def gradient(self, *args):
 
         NvrsGrad = self.vFuncNvrs.gradient(*args)
@@ -4605,11 +4604,10 @@ class MargValueFuncCRRA(MetricObject):
         self.cFunc = deepcopy(cFunc)
         self.CRRA = CRRA
 
-        if hasattr(cFunc, 'grid_list'):
+        if hasattr(cFunc, "grid_list"):
             self.grid_list = cFunc.grid_list
         else:
             self.grid_list = None
-
 
     def __call__(self, *cFuncArgs):
         """
@@ -4749,7 +4747,7 @@ def main():
     if False:
 
         def f(x, y):
-            return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
+            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0
 
         def dfdx(x, y):
             return 6.0 * x + y
@@ -4801,10 +4799,10 @@ def main():
 
     if False:
         f = (
-            lambda x, y, z: 3.0 * x ** 2.0
+            lambda x, y, z: 3.0 * x**2.0
             + x * y
-            + 4.0 * y ** 2.0
-            - 5 * z ** 2.0
+            + 4.0 * y**2.0
+            - 5 * z**2.0
             + 1.5 * x * z
         )
 
@@ -4937,7 +4935,7 @@ def main():
     if False:
 
         def f(x, y):
-            return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
+            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0
 
         def dfdx(x, y):
             return 6.0 * x + y
@@ -4959,10 +4957,10 @@ def main():
 
     if False:
         f = (
-            lambda x, y, z: 3.0 * x ** 2.0
+            lambda x, y, z: 3.0 * x**2.0
             + x * y
-            + 4.0 * y ** 2.0
-            - 5 * z ** 2.0
+            + 4.0 * y**2.0
+            - 5 * z**2.0
             + 1.5 * x * z
         )
 
@@ -5056,7 +5054,7 @@ def main():
     if False:
 
         def f(x, y):
-            return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
+            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0
 
         def dfdx(x, y):
             return 6.0 * x + y
@@ -5091,10 +5089,10 @@ def main():
 
     if False:
         f = (
-            lambda x, y, z: 3.0 * x ** 2.0
+            lambda x, y, z: 3.0 * x**2.0
             + x * y
-            + 4.0 * y ** 2.0
-            - 5 * z ** 2.0
+            + 4.0 * y**2.0
+            - 5 * z**2.0
             + 1.5 * x * z
         )
 
