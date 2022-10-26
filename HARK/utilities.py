@@ -10,6 +10,7 @@ import warnings
 
 import numba
 import numpy as np  # Python's numeric library, abbreviated "np"
+from scipy.interpolate import interp1d
 
 # try:
 #     import matplotlib.pyplot as plt                 # Python's plotting library
@@ -17,7 +18,6 @@ import numpy as np  # Python's numeric library, abbreviated "np"
 #     import sys
 #     exception_type, value, traceback = sys.exc_info()
 #     raise ImportError('HARK must be used in a graphical environment.', exception_type, value, traceback)
-from scipy.interpolate import interp1d
 
 
 def memoize(obj):
@@ -591,6 +591,143 @@ def construct_assets_grid(parameters):
             aXtraGrid = np.insert(aXtraGrid, j, a)
 
     return aXtraGrid
+
+
+def cobb_douglas(x, alpha, factor):
+    """
+    Evaluates Cobb Douglas utility at quatitites of goods consumed `x`
+    given elasticity parameters `alpha` and efficiency parameter `factor`.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Quantities of goods consumed. Last axis must index goods.
+    alpha : np.ndarray
+        Elasticity parameters for each good. Must be consistent with `x`.
+    factor : float
+        Multiplicative efficiency parameter. (e.g. TFP in production function)
+
+    Returns
+    -------
+    (unnamed) : np.ndarray
+        Utility
+
+    """
+
+    return factor * np.sum(x**alpha, axis=-1)
+
+
+def cobb_douglas_p(x, alpha, factor, arg=0):
+    """
+    Evaluates the marginal utility of consumption indexed by `arg` good at
+    quantities of goods consumed `x` given elasticity parameters `alpha`
+    and efficiency parameter `factor`.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Quantities of goods consumed. Last axis must index goods.
+    alpha : np.ndarray
+        Elasticity parameters for each good. Must be consistent with `x`.
+    factor : float
+        Multiplicative efficiency parameter.
+    arg : int
+        Index of good to evaluate marginal utility.
+
+    Returns
+    -------
+    (unnamed) : np.ndarray
+        Utility
+    """
+
+    return cobb_douglas(x, alpha, factor) * alpha[arg] / x[..., arg]
+
+
+def cobb_douglas_pp(x, alpha, factor, args=(0, 1)):
+    """
+    Evaluates the marginal marginal utility of consumption indexed by `args`
+    at quantities of goods consumed `x` given elasticity parameters `alpha`
+    and efficiency parameter `factor`.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Quantities of goods consumed. Last axis must index goods.
+    alpha : np.ndarray
+        Elasticity parameters for each good. Must be consistent with `x`.
+    factor : float
+        Multiplicative efficiency parameter.
+    args : tuple(int)
+        Indexes of goods to evaluate marginal utility. `args[0]` is the
+        index of the first derivative taken, and `args[1]` is the index of
+        the second derivative taken.
+
+    Returns
+    -------
+    (unnamed) : np.ndarray
+        Utility
+    """
+
+    if args[0] == args[1]:
+        coeff = alpha[args[1]] - 1
+    else:
+        coeff = alpha[args[1]]
+
+    return cobb_douglas_p(x, alpha, factor, args[0]) * coeff / x[..., args[1]]
+
+
+def cobb_douglas_pn(x, alpha, factor, args=()):
+    """
+    Evaluates the nth marginal utility of consumption indexed by `args`
+    at quantities of goods consumed `x` given elasticity parameters `alpha`
+    and efficiency parameter `factor`.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Quantities of goods consumed. Last axis must index goods.
+    alpha : np.ndarray
+        Elasticity parameters for each good. Must be consistent with `x`.
+    factor : float
+        Multiplicative efficiency parameter.
+    args : tuple(int)
+        Indexes of goods to evaluate marginal utility. `args[0]` is the
+        index of the first derivative taken, and `args[1]` is the index of
+        the second derivative taken. This function works by recursively taking
+        derivatives, so `args` can be of any length.
+
+    Returns
+    -------
+    (unnamed) : np.ndarray
+        Utility
+    """
+
+    if isinstance(args, int):
+        args = (args,)
+
+    if len(args):
+        counts = dict(zip(*np.unique(args, return_counts=True)))
+        idx = args[-1]
+        coeff = alpha[idx] - counts[idx] + 1
+        new_args = tuple(list(args)[:-1])
+        return cobb_douglas_pn(x, alpha, factor, new_args) * coeff / x[..., idx]
+    else:
+        return cobb_douglas(x, alpha, factor)
+
+
+def const_elast_subs(x, alpha, subs, factor, power):
+
+    return factor * np.sum(alpha * x**subs, axis=-1) ** (power / subs)
+
+
+def const_elast_subs_p(x, alpha, subs, factor, power, arg=0):
+
+    return (
+        const_elast_subs(x, alpha, factor * power / subs, subs, power - subs)
+        * alpha[arg]
+        * subs
+        * x[..., arg] ** (subs - 1)
+    )
 
 
 # ==============================================================================
