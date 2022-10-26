@@ -1184,6 +1184,10 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         """
         return self.dataset.RNG
 
+    @RNG.setter
+    def RNG(self,value):
+        self.dataset.attrs['RNG'] = value
+
     @property
     def name(self):
         """

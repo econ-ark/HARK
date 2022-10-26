@@ -33,6 +33,7 @@ from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.distribution import (
     DiscreteDistribution,
+    DiscreteDistributionLabeled,
     IndexDistribution,
     Lognormal,
     MeanOneLogNormal,
@@ -866,7 +867,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         float
            normalized market resources in the next period
         """
-        return Rfree / (self.PermGroFac * shocks[0]) * a_nrm + shocks[1]
+        return Rfree / (self.PermGroFac * shocks['PermShk']) * a_nrm + shocks['TranShk']
 
     def calc_EndOfPrdvP(self):
         """
@@ -885,7 +886,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
 
         def vp_next(shocks, a_nrm, Rfree):
-            return shocks[0] ** (-self.CRRA) * self.vPfuncNext(
+            return shocks['PermShk'] ** (-self.CRRA) * self.vPfuncNext(
                 self.m_nrm_next(shocks, a_nrm, Rfree)
             )
 
@@ -1131,7 +1132,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         """
 
         def vpp_next(shocks, a_nrm, Rfree):
-            return shocks[0] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
+            return shocks['PermShk'] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
                 self.m_nrm_next(shocks, a_nrm, Rfree)
             )
 
@@ -1169,7 +1170,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
 
         def v_lvl_next(shocks, a_nrm, Rfree):
             return (
-                shocks[0] ** (1.0 - self.CRRA) * self.PermGroFac ** (1.0 - self.CRRA)
+                shocks['PermShk'] ** (1.0 - self.CRRA) * self.PermGroFac ** (1.0 - self.CRRA)
             ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm, Rfree))
 
         EndOfPrdv = self.DiscFacEff * expected(
@@ -3192,7 +3193,7 @@ class MixtureTranIncShk(DiscreteDistribution):
         super().__init__(pmv=dstn_approx.pmv, atoms=dstn_approx.atoms, seed=seed)
 
 
-class BufferStockIncShkDstn(DiscreteDistribution):
+class BufferStockIncShkDstn(DiscreteDistributionLabeled):
     """
     A one-period distribution object for the joint distribution of income
     shocks (permanent and transitory), as modeled in the Buffer Stock Theory
@@ -3251,7 +3252,13 @@ class BufferStockIncShkDstn(DiscreteDistribution):
 
         joint_dstn = combine_indep_dstns(perm_dstn, tran_dstn)
 
-        super().__init__(pmv=joint_dstn.pmv, atoms=joint_dstn.atoms, seed=seed)
+        super().__init__(
+            name='Joint distribution of permanent and transitory shocks to income',
+            var_names=['PermShk','TranShk'],
+            pmv=joint_dstn.pmv,
+            data=joint_dstn.atoms,
+            seed=seed
+        )
 
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
