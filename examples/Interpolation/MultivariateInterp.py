@@ -24,8 +24,8 @@ from time import time
 
 import matplotlib.pyplot as plt
 import numpy as np
-from HARK.econforgeinterp import LinearFast
-from HARK.regularinterp import MultivariateInterp
+from HARK.interpolation import LinearFast
+from HARK.interpolation import MultivariateInterp
 from matplotlib import colors
 from scipy.interpolate import RegularGridInterpolator
 
@@ -230,22 +230,23 @@ cbar.set_ticklabels(["0", "0.1", "0.5", "1", "2", "5", "10"])
 ax[0].set_ylabel("Data grid size (squared)")
 ax[1].set_xlabel("Approximation grid size (squared)")
 
-
-fig.savefig(platform.system() + ".pdf")
+# uncomment to save figure
+# fig.savefig(platform.system() + ".pdf")
 
 # %% [markdown]
 # As we can see from the results, `MultivariateInterp` is faster than `LinearFast` depending on the number of points and the target device. A value of 1 represents the same speed as `LinearFast`, while a value less than 1 is faster (in red) and a value greater than 1 is slower (in blue).
 #
 # [Windows]
 #
-# For CPU, `MultivariateInterp` is (much) slower when the number of approximation points that need to be interpolated is very small, as seen by the deep blue areas. When the number of approximation points is moderate to large, however, `MultivariateInterp` is about as fast as `LinearFast`. 
+# For CPU, `MultivariateInterp` is (much) slower when the number of approximation points that need to be interpolated is very small, as seen by the deep blue areas. When the number of approximation points is moderate to large, however, `MultivariateInterp` is about as fast as `LinearFast`.
 #
 # For Parallel, `MultivariateInterp` is slightly faster when the number of data points with known function value are greater than the number of approximation points that need to be interpolated. However, `target='parallel'` still suffers from the high overhead when the number of approximation points is small.
 #
-# For GPU, `MultivariateInterp` is much slower when the number of data points with known function value are small. This is because of the overhead of copying the data to the GPU. However, `target='gpu'` is significantly faster for any other case when the number of approximation points is large regardless of the number of data points. 
+# For GPU, `MultivariateInterp` is much slower when the number of data points with known function value are small. This is because of the overhead of copying the data to the GPU. However, `target='gpu'` is significantly faster for any other case when the number of approximation points is large regardless of the number of data points.
 #
 # [Linux]
 #
-# For CPU and Parallel, `MultivariateInterp` is faster when the number of data points with known function value are greater than the number of approximation points that need to be interpolated. Surprisingly, `target='parallel'` is not faster than `target='cpu'` which was the expected result. This is probably because the `target='cpu'` code uses highly specialized `numpy` and `scipy` code, so there may be few benefits to `just-in-time` compilation and parallelization. 
+# For CPU and Parallel, `MultivariateInterp` is faster when the number of data points with known function value are greater than the number of approximation points that need to be interpolated. Surprisingly, `target='parallel'` is not faster than `target='cpu'` which was the expected result. This is probably because the `target='cpu'` code uses highly specialized `numpy` and `scipy` code, so there may be few benefits to `just-in-time` compilation and parallelization.
 #
-# For GPU, `MultivariateInterp` is slower when the number of approximation points that need to be interpolated is very small. This is because of the overhead of copying the data to the GPU. However, `target='gpu'` is significantly faster for any other case when the number of approximation points is large regardless of the number of data points. 
+# For GPU, `MultivariateInterp` is slower when the number of approximation points that need to be interpolated is very small. This is because of the overhead of copying the data to the GPU. However, `target='gpu'` is significantly faster for any other case when the number of approximation points is large regardless of the number of data points.
+#

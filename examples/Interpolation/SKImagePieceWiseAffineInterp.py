@@ -26,7 +26,8 @@ from skimage import data
 from skimage.transform import PiecewiseAffineTransform, warp
 
 # %% [markdown]
-# We can download the astronaut image from `scikit-image` to learn how a piecewise affine transformation can be applied to a function as well as an image. 
+# We can download the astronaut image from `scikit-image` to learn how a piecewise affine transformation can be applied to a function as well as an image.
+#
 
 # %%
 image = np.asarray(data.astronaut())
@@ -35,6 +36,7 @@ plt.imshow(image)
 
 # %% [markdown]
 # It is clear that the image has a structured, regular, and rectilinear grid of pixels. For each x and y coordinate, the image has a corresponding color value (red, green, and blue). In this sense, the image is a function of x and y coordinates and returns an rgb triple. To see this, we can graph a sparser set of x and y values.
+#
 
 # %%
 src_cols = np.linspace(0, cols, 20)
@@ -45,6 +47,7 @@ plt.scatter(src_cols, src_rows)
 
 # %% [markdown]
 # In this example, the coordinates are modified by adding a sinusoidal oscillation to the row coordinates, which result in a wavy effect. We can see this when we plot the modified coordinates.
+#
 
 # %%
 # add sinusoidal oscillation to row coordinates
@@ -57,6 +60,7 @@ plt.scatter(dst_cols, dst_rows)
 
 # %% [markdown]
 # Using `PiecewiseAffineTransform` from `scikit-image`, we can estimate the transformation between the original and modified coordinates. Here, we find the best piecewise affine mapping that takes coordinates in the original image (source or src) to coordinates in the modified image (destination or dst).
+#
 
 # %%
 tform = PiecewiseAffineTransform()
@@ -64,6 +68,7 @@ tform.estimate(src, dst)
 
 # %% [markdown]
 # After estimating the transformation for this subset of points, we can apply the transformation to the entire image. This is done by calling `warp` from `scikit-image` and passing the image and the estimated transformation.
+#
 
 # %%
 out_rows = image.shape[0] - 1.5 * 50
@@ -77,7 +82,8 @@ ax.axis((0, out_cols, out_rows, 0))
 plt.show()
 
 # %% [markdown]
-# As we can see, the whole image is now transformed to have the same wavy effect as the subset of points. Using this example, we can see how a piecewise affine transformation can be applied to a function. 
+# As we can see, the whole image is now transformed to have the same wavy effect as the subset of points. Using this example, we can see how a piecewise affine transformation can be applied to a function.
+#
 
 # %% [markdown]
 # # Economics Example
@@ -205,7 +211,7 @@ plt.scatter(x_new, y_new, c=u_out)
 plt.imshow(u_out, origin="lower")
 
 # %%
-from HARK.irregularinterp import UnstructuredInterp
+from HARK.interpolation import UnstructuredInterp
 
 # %%
 unstructured_interp = UnstructuredInterp(u_mat, [x_mat, y_mat])
@@ -217,10 +223,10 @@ unstruc_out = unstructured_interp(x_new, y_new)
 plt.imshow(unstruc_out, origin="lower")
 
 # %%
-from HARK.irregularinterp import PiecewiseAffineInterp
+from HARK.interpolation import SKImagePiecewiseAffineInterp
 
 # %%
-painterp = PiecewiseAffineInterp(u_mat, [x_mat, y_mat])
+painterp = SKImagePiecewiseAffineInterp(u_mat, [x_mat, y_mat])
 
 # %%
 unstruc_out = painterp(x_new, y_new)

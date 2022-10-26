@@ -1,7 +1,10 @@
 import numpy as np
 from HARK.core import MetricObject
-from scipy.interpolate import (CloughTocher2DInterpolator,
-                               LinearNDInterpolator, NearestNDInterpolator)
+from scipy.interpolate import (
+    CloughTocher2DInterpolator,
+    LinearNDInterpolator,
+    NearestNDInterpolator,
+)
 from scipy.ndimage import map_coordinates
 
 try:
@@ -14,13 +17,15 @@ except ImportError:
 try:
     from sklearn.linear_model import RidgeCV
     from sklearn.pipeline import make_pipeline
-    from sklearn.preprocessing import (PolynomialFeatures, SplineTransformer,
-                                       StandardScaler)
+    from sklearn.preprocessing import (
+        PolynomialFeatures,
+        SplineTransformer,
+        StandardScaler,
+    )
 
     sklearn_available = True
 except ImportError:
     sklearn_available = False
-
 
 
 class UnstructuredInterp(MetricObject):
@@ -61,7 +66,7 @@ class UnstructuredInterp(MetricObject):
 
         self.ndim = self.grids.shape[-1]
 
-        assert self.ndim == values.ndim, "Dimension mismatch."
+        # assert self.ndim == values.ndim, "Dimension mismatch."
 
         if method == "nearest":
             interpolator = NearestNDInterpolator(
@@ -91,8 +96,6 @@ class UnstructuredInterp(MetricObject):
     def __call__(self, *args):
 
         return self.interpolator(*args)
-
-
 
 
 class UnstructuredPolynomialInterp(MetricObject):
