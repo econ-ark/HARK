@@ -24,10 +24,10 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     TrilinearInterp,
     UpperEnvelope,
-    UtilityFuncCRRA,
     ValueFuncCRRA,
     VariableLowerBoundFunc3D,
 )
+from HARK.utilfuncs import UtilityFuncCRRA
 from HARK.utilities import (
     CRRAutility,
     CRRAutility_inv,
