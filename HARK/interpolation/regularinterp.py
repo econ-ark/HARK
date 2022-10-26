@@ -1,8 +1,7 @@
 import numpy as np
-from scipy.ndimage import map_coordinates
-
 from HARK.core import MetricObject
 from numba import njit, prange, typed
+from scipy.ndimage import map_coordinates
 
 try:
     import cupy as cp
@@ -11,6 +10,27 @@ try:
     cupy_available = True
 except ImportError:
     cupy_available = False
+
+
+try:
+    from sklearn.linear_model import RidgeCV
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import (
+        PolynomialFeatures,
+        SplineTransformer,
+        StandardScaler,
+    )
+
+    sklearn_available = True
+except ImportError:
+    sklearn_available = False
+
+try:
+    from skimage.transform import PiecewiseAffineTransform
+
+    skimage_available = True
+except ImportError:
+    skimage_available = False
 
 
 DIM_MESSAGE = "Dimension mismatch."
@@ -145,6 +165,8 @@ def nb_interp(grids, args, coordinates):
         coordinates[dim] = np.interp(new_args, arg_grid, np.arange(arg_grid.size))
 
     return coordinates
+
+
 class RegularizedPolynomialInterp(MetricObject):
 
     distance_criteria = ["values", "grids"]
@@ -223,6 +245,7 @@ class RegularizedSplineInterp(RegularizedPolynomialInterp):
 
         return models
 
+
 class SKImagePiecewiseAffineInterp(MetricObject):
 
     distance_criteria = ["values", "grids"]
@@ -263,6 +286,8 @@ class SKImagePiecewiseAffineInterp(MetricObject):
         coordinates = self.tform(src_new).T
 
         return map_coordinates(self.values, coordinates).reshape(args[0].shape)
+
+
 class WarpedInterpOnInterp2D(MetricObject):
 
     distance_criteria = ["values", "grids"]
