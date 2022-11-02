@@ -27,6 +27,28 @@ try:
 except ImportError:
     sklearn_available = False
 
+LNDI_KWARGS = {"fill_value": np.nan, "rescale": False}  # linear
+NNDI_KWARGS = {"rescale": False, "tree_options": None}  # nearest
+CT2DI_KWARGS = {  # cubic
+    "fill_value": np.nan,
+    "tol": 1e-06,
+    "maxiter": 400,
+    "rescale": False,
+}
+RBFI_KWARGS = {  # rbf (radial basis function)
+    "neighbors": None,
+    "smoothing": 0.0,
+    "kernel": "thin_plate_spline",
+    "epsilon": None,
+    "degree": None,
+}
+I2D_KWARGS = {  # spline
+    "kind": "linear",
+    "copy": True,
+    "bounds_error": False,
+    "fill_value": None,
+}
+
 
 class UnstructuredInterp(MetricObject):
 
@@ -37,14 +59,11 @@ class UnstructuredInterp(MetricObject):
         values,
         grids,
         method="linear",
-        rescale=False,
-        fill_value=np.nan,
-        # CloughTocher2DInterpolator options
-        tol=1e-6,
-        maxiter=400,
-        # NearestNDInterpolator options
-        tree_options=None,
+        interp_kwargs=None,
     ):
+
+        if interp_kwargs is None:
+            interp_kwargs = dict()
 
         values = np.asarray(values)
         grids = np.asarray(grids)
@@ -56,42 +75,37 @@ class UnstructuredInterp(MetricObject):
 
         self.values = values[condition]
         self.grids = grids[:, condition].T
-
         self.method = method
-        self.rescale = rescale
-        self.fill_value = fill_value
-        self.tol = tol
-        self.maxiter = maxiter
-        self.tree_options = tree_options
 
         self.ndim = self.grids.shape[-1]
 
         # assert self.ndim == values.ndim, "Dimension mismatch."
 
         if method == "nearest":
-            interpolator = NearestNDInterpolator(
-                self.grids, self.values, rescale=rescale, tree_options=tree_options
+            self.interp_kwargs = NNDI_KWARGS.copy()
+            self.interp_kwargs.update(
+                (k, interp_kwargs[k]) for k in interp_kwargs if k in NNDI_KWARGS
             )
+            interpolator = NearestNDInterpolator
         elif method == "linear":
-            interpolator = LinearNDInterpolator(
-                self.grids, self.values, fill_value=fill_value, rescale=rescale
+            self.interp_kwargs = LNDI_KWARGS.copy()
+            self.interp_kwargs.update(
+                (k, interp_kwargs[k]) for k in interp_kwargs if k in LNDI_KWARGS
             )
+            interpolator = LinearNDInterpolator
         elif method == "cubic" and self.ndim == 2:
-            interpolator = CloughTocher2DInterpolator(
-                self.grids,
-                self.values,
-                fill_value=fill_value,
-                tol=tol,
-                maxiter=maxiter,
-                rescale=rescale,
+            self.interp_kwargs = CT2DI_KWARGS.copy()
+            self.interp_kwargs.update(
+                (k, interp_kwargs[k]) for k in interp_kwargs if k in CT2DI_KWARGS
             )
+            interpolator = CloughTocher2DInterpolator
         else:
             raise ValueError(
                 "Unknown interpolation method %r for "
                 "%d dimensional data" % (method, self.ndim)
             )
 
-        self.interpolator = interpolator
+        self.interpolator = interpolator(self.grids, self.values, **self.interp_kwargs)
 
     def __call__(self, *args):
 
