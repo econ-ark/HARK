@@ -1,5 +1,6 @@
 import numpy as np
 from HARK.core import MetricObject
+from HARK.interpolation.unstructuredinterp import UnstructuredInterp
 from numba import njit, prange, typed
 from scipy.ndimage import map_coordinates
 
@@ -142,46 +143,68 @@ def _nb_interp(grids, args, coordinates):
     return coordinates
 
 
+class RegularizedMultivariateInterp(MultivariateInterp):
 
-        return output
+    distance_criteria = ["values", "grids"]
 
-    def _target_parallel(self, args, coordinates):
+    def __init__(
+        self,
+        values,
+        grids,
+        target="cpu",
+        mc_kwargs=None,
+        ui_kwargs=None,
+    ):
 
-        nb_interp(self.grids, args, coordinates)
-        output = self._map_coordinates(args, coordinates)
+        if mc_kwargs is None:
+            mc_kwargs = dict()
+        self.mc_kwargs = MC_KWARGS.copy()
+        self.mc_kwargs.update((k, mc_kwargs[k]) for k in mc_kwargs if k in MC_KWARGS)
 
-        return output
+        self.values = np.asarray(values)
+        self.grids = np.asarray(grids)
+        self.target = target
 
-    def _target_gpu(self, args, coordinates):
+        self.ndim = self.values.ndim
+        self.shape = self.values.shape
 
-        ndim = args.shape[0]
+        assert self.ndim == self.grids.shape[0], DIM_MESSAGE
+        assert self.shape == self.grids[0].shape, DIM_MESSAGE
 
-        for dim in range(ndim):
-            arg_grid = self.grids[dim]
-            new_args = args[dim]
-            coordinates[dim] = cp.interp(new_args, arg_grid, cp.arange(arg_grid.size))
+        # mesh of coordinates for each dimension
+        coord_mesh = np.mgrid[[slice(0, dim) for dim in self.shape]]
 
-        output = cupy_map_coordinates(
-            self.values,
-            coordinates.reshape(ndim, -1),
-            order=self.order,
-            mode=self.mode,
-            cval=self.cval,
-            prefilter=self.prefilter,
-        ).reshape(args[0].shape)
+        # densified grid and mesh of all points in all dimensions
+        # this could be refined to include fewer points if it gets too big
+        dense_grid = [np.unique(grid) for grid in self.grids]
+        dense_mesh = np.meshgrid(*dense_grid, indexing="ij")
 
-        return output
+        # interpolator for each dimension, from grid space to coordinate space
+        coord_interp = [
+            UnstructuredInterp(coord_mesh[i], self.grids, interp_kwargs=ui_kwargs)
+            for i in range(self.ndim)
+        ]
 
+        # coordinates for all points in dense grid
+        input_coords = [coord_interp[i](*dense_mesh) for i in range(self.ndim)]
 
-@njit(parallel=True, cache=True, fastmath=True)
-def nb_interp(grids, args, coordinates):
+        self.coord_interp = [
+            MultivariateInterp(
+                input_coords[i],
+                dense_grid,
+                target=target,
+                mc_kwargs=mc_kwargs,
+            )
+            for i in range(self.ndim)
+        ]
 
-    for dim in prange(args.shape[0]):
-        arg_grid = grids[dim]
-        new_args = args[dim]
-        coordinates[dim] = np.interp(new_args, arg_grid, np.arange(arg_grid.size))
+    def _get_coordinates(self, args):
 
-    return coordinates
+        coordinates = np.asarray(
+            [self.coord_interp[i](*args) for i in range(self.ndim)]
+        )
+
+        return coordinates
 
 
 class RegularizedPolynomialInterp(MetricObject):
