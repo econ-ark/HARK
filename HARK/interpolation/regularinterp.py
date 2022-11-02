@@ -211,7 +211,7 @@ class RegularizedPolynomialInterp(MetricObject):
 
     distance_criteria = ["values", "grids"]
 
-    def __init__(self, values, grids, degree):
+    def __init__(self, values, grids, degree, normalize=True):
 
         assert sklearn_available, "scikit-learn is not installed."
 
@@ -222,29 +222,30 @@ class RegularizedPolynomialInterp(MetricObject):
         self.ndim = self.values.ndim
         self.shape = self.values.shape
 
-        self.models = self._set_models()
+        assert self.ndim == self.grids.shape[0], DIM_MESSAGE
+        assert self.shape == self.grids[0].shape, DIM_MESSAGE
 
         self.X_train = np.c_[tuple(grid.ravel() for grid in self.grids)]
-
         y_train = np.mgrid[[slice(0, dim) for dim in self.shape]]
-
         self.y_train = np.c_[[y.ravel() for y in y_train]]
 
+        self.models = self._set_models(normalize=normalize)
         for dim in range(self.ndim):
             self.models[dim].fit(self.X_train, self.y_train[dim])
 
-    def _set_models(self):
+    def _set_models(self, normalize=True):
 
-        models = [
-            make_pipeline(
-                StandardScaler(),
-                PolynomialFeatures(degree=self.degree),
-                RidgeCV(),
-            )
-            for _ in range(self.ndim)
+        if normalize:
+            pipeline = [StandardScaler()]
+        else:
+            pipeline = []
+
+        pipeline += [
+            PolynomialFeatures(degree=self.degree),
+            RidgeCV(alphas=np.logspace(-6, 6, 13)),
         ]
 
-        return models
+        return [make_pipeline(pipeline) for _ in range(self.ndim)]
 
     def __call__(self, *args):
 
@@ -266,24 +267,25 @@ class RegularizedPolynomialInterp(MetricObject):
 
 
 class RegularizedSplineInterp(RegularizedPolynomialInterp):
-    def __init__(self, values, grids, n_knots, degree):
+    def __init__(self, values, grids, n_knots, degree, normalize=True):
 
         self.n_knots = n_knots
 
         super().__init__(values, grids, degree)
 
-    def _set_models(self):
+    def _set_models(self, normalize=True):
 
-        models = [
-            make_pipeline(
-                StandardScaler(),
-                SplineTransformer(n_knots=self.n_knots, degree=self.degree),
-                RidgeCV(),
-            )
-            for _ in range(self.ndim)
+        if normalize:
+            pipeline = [StandardScaler()]
+        else:
+            pipeline = []
+
+        pipeline += [
+            SplineTransformer(n_knots=self.n_knots, degree=self.degree),
+            RidgeCV(alphas=np.logspace(-6, 6, 13)),
         ]
 
-        return models
+        return [make_pipeline(pipeline) for _ in range(self.ndim)]
 
 
 class SKImagePiecewiseAffineInterp(MetricObject):
