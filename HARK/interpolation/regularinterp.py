@@ -92,38 +92,56 @@ class MultivariateInterp(MetricObject):
         args = xp.asarray(args)
         assert args.shape[0] == self.ndim, DIM_MESSAGE
 
+        coordinates = self._get_coordinates(args)
+        output = self._map_coordinates(coordinates)
+
+        return output
+
+    def _get_coordinates(self, args):
+
+        if self.target == "cpu" or self.target == "parallel":
+            import numpy as xp
+        elif self.target == "gpu":
+            import cupy as xp
+
         coordinates = xp.empty_like(args)
 
-        if self.target == "cpu":
-            output = self._target_cpu(args, coordinates)
+        if self.target == "cpu" or self.target == "gpu":
+            for dim in range(self.ndim):  # for each dimension
+                coordinates[dim] = xp.interp(  # x, xp, fp (new x, x points, y values)
+                    args[dim], self.grids[dim], xp.arange(self.shape[dim])
+                )
+
         elif self.target == "parallel":
-            output = self._target_parallel(args, coordinates)
+            _nb_interp(self.grids, args, coordinates)
+
+        return coordinates
+
+    def _map_coordinates(self, coordinates):
+
+        if self.target == "cpu" or self.target == "parallel":
+            # there is no parallelization for scipy map_coordinates
+            output = map_coordinates(
+                self.values, coordinates.reshape(self.ndim, -1), **self.mc_kwargs
+            )
+
         elif self.target == "gpu":
-            output = self._target_gpu(args, coordinates)
+            output = cupy_map_coordinates(
+                self.values, coordinates.reshape(self.ndim, -1), **self.mc_kwargs
+            )
 
-        return output
+        return output.reshape(coordinates[0].shape)
 
-    def _map_coordinates(self, args, coordinates):
 
-        output = map_coordinates(
-            self.values,
-            coordinates.reshape(args.shape[0], -1),
-            order=self.order,
-            mode=self.mode,
-            cval=self.cval,
-            prefilter=self.prefilter,
-        ).reshape(args[0].shape)
+@njit(parallel=True, cache=True, fastmath=True)
+def _nb_interp(grids, args, coordinates):
 
-        return output
+    for dim in prange(args.shape[0]):
+        coordinates[dim] = np.interp(args[dim], grids[dim], np.arange(grids[dim].size))
 
-    def _target_cpu(self, args, coordinates):
+    return coordinates
 
-        for dim in range(args.shape[0]):
-            arg_grid = self.grids[dim]
-            new_args = args[dim]
-            coordinates[dim] = np.interp(new_args, arg_grid, np.arange(arg_grid.size))
 
-        output = self._map_coordinates(args, coordinates)
 
         return output
 
