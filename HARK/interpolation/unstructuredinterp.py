@@ -124,7 +124,7 @@ class UnstructuredPolynomialInterp(MetricObject):
         return make_pipeline(
             StandardScaler(),
             PolynomialFeatures(self.degree),
-            RidgeCV(),
+            RidgeCV(alphas=np.logspace(-6, 6, 13)),
         )
 
     def __call__(self, *args):
@@ -148,5 +148,5 @@ class UnstructuredSplineInterp(UnstructuredPolynomialInterp):
         return make_pipeline(
             StandardScaler(),
             SplineTransformer(n_knots=self.n_knots, degree=self.degree),
-            RidgeCV(),
+            RidgeCV(alphas=np.logspace(-6, 6, 13)),
         )
