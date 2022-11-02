@@ -292,24 +292,21 @@ class SKImagePiecewiseAffineInterp(MetricObject):
 
     distance_criteria = ["values", "grids"]
 
-    def __init__(self, values, grids, target="cpu"):
+    def __init__(self, values, grids):
 
         if not skimage_available:
             raise ImportError(
                 "PiecewiseAffineTransform requires scikit-image installed."
             )
 
-        available_targets = ["cpu"]
-
-        if cupy_available:
-            available_targets.append("gpu")
-
-        assert target in available_targets, "Invalid target."
-
         self.values = np.asarray(values)
         self.grids = np.asarray(grids)
 
         self.ndim = self.values.ndim
+        self.shape = self.values.shape
+
+        assert self.ndim == self.grids.shape[0], DIM_MESSAGE
+        assert self.shape == self.grids[0].shape, DIM_MESSAGE
 
         src = np.vstack([grid.flat for grid in self.grids]).T
         coords = np.mgrid[[slice(0, dim) for dim in self.values.shape]]
