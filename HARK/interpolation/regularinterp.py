@@ -35,21 +35,19 @@ except ImportError:
 
 DIM_MESSAGE = "Dimension mismatch."
 
+MC_KWARGS = {
+    "order": 1,  # order of interpolation
+    "mode": "constant",  # how to handle extrapolation
+    "cval": 0.0,  # value to use for extrapolation
+    "prefilter": False,  # whether to prefilter input
+}
+
 
 class MultivariateInterp(MetricObject):
 
     distance_criteria = ["values", "grids"]
 
-    def __init__(
-        self,
-        values,
-        grids,
-        order=1,
-        mode="nearest",
-        cval=0.0,
-        prefilter=False,
-        target="cpu",
-    ):
+    def __init__(self, values, grids, target="cpu", mc_kwargs=None):
 
         available_targets = ["cpu", "parallel"]
 
@@ -57,6 +55,11 @@ class MultivariateInterp(MetricObject):
             available_targets.append("gpu")
 
         assert target in available_targets, "Invalid target."
+
+        if mc_kwargs is None:
+            mc_kwargs = dict()
+        self.mc_kwargs = MC_KWARGS.copy()
+        self.mc_kwargs.update((k, mc_kwargs[k]) for k in mc_kwargs if k in MC_KWARGS)
 
         if target == "cpu" or target == "parallel":
             import numpy as xp
@@ -70,10 +73,6 @@ class MultivariateInterp(MetricObject):
             self.grids = [xp.asarray(grid) for grid in grids]
 
         self.values = xp.asarray(values)
-        self.order = order
-        self.mode = mode
-        self.cval = cval
-        self.prefilter = prefilter
         self.target = target
 
         self.ndim = values.ndim  # should match number of grids
