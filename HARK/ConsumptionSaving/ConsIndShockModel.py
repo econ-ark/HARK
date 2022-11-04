@@ -2631,7 +2631,171 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         self.vec_erg_dstn = ergodic_distr #distribution as a vector
         self.erg_dstn = ergodic_distr.reshape((len(self.dist_mGrid),len(self.dist_pGrid))) # distribution reshaped into len(mgrid) by len(pgrid) array
+
+       
+    def compute_steady_state(self):
         
+        # Compute steady state to perturb around
+        self.cycles = 0
+        self.solve()
+        
+        #Use Harmenberg Measure
+        self.neutral_measure = True 
+        self.update_income_process()
+        
+        #Non stochastic simuation
+        self.define_distribution_grid()
+        self.calc_transition_matrix()
+        
+        self.c_ss = self.cPol_Grid # Normalized Consumption Policy grid
+        self.a_ss = self.aPol_Grid #Normalized Asset Policy grid
+        
+        self.calc_ergodic_dist() #Calculate ergodic distribution
+        ss_dstn = self.vec_erg_dstn #Steady State Distribution as a vector (m*p x 1) where m is the number of gridpoints on the market resources grid 
+
+        
+        self.A_ss =  np.dot(self.a_ss,ss_dstn)[0]
+        self.C_ss =  np.dot(self.c_ss,ss_dstn)[0]
+
+        return self.A_ss, self.C_ss
+    
+        
+    def calc_jacobian(self,shk_param,T):
+        
+        """
+        Calculates the Jacobians of aggregate consumption and aggregate assets. Parameters that can be shocked are
+        LivPrb, PermShkStd,TranShkStd, DiscFac, UnempPrb, Rfree, IncUnemp, DiscFac . 
+        
+        Parameters:
+        ----------
+        
+        shk_param: string
+            name of variable to be shocked
+            
+        T: int
+            dimension of Jacobian Matrix. Jacobian Matrix ia TxT square Matrix
+        
+            
+        Returns
+        ----------
+        CJAC: numpy.array
+            TxT Jacobian Matrix of Aggregate Consumption with respect to shk_param
+        
+        AJAC: numpy.array
+            TxT Jacobian Matrix of Aggregate Assets with respect to shk_param
+        
+        """
+
+
+        # Set up finite Horizon dictionary
+        params = deepcopy(self.__dict__['parameters'])
+        params['T_cycle']= T # Dimension of Jacobian Matrix
+        
+        
+        # Specify a dictionary of lists because problem we are solving is technically finite horizon so variables can be time varying (see section on fake news algorithm in https://onlinelibrary.wiley.com/doi/abs/10.3982/ECTA17434 )
+        params['LivPrb']= params['T_cycle']*[self.LivPrb[0]] 
+        params['PermGroFac']=params['T_cycle']*[self.PermGroFac[0]]
+        params['PermShkStd'] = params['T_cycle']*[self.PermShkStd[0]]
+        params['TranShkStd']= params['T_cycle']*[self.TranShkStd[0]]
+        params['Rfree'] = params['T_cycle']*[self.Rfree]
+        params['UnempPrb'] = params['T_cycle']*[self.UnempPrb]
+        params['IncUnemp'] = params['T_cycle']*[self.IncUnemp]
+        #params['aXtraExtra'] = [None]
+        
+        # Create instance of a finite horizon agent
+        FinHorizonAgent = IndShockConsumerType(**params)
+        FinHorizonAgent.cycles = 1 # required
+        
+        FinHorizonAgent.del_from_time_inv('Rfree') #delete Rfree from time invariant list since it varies overtime
+        FinHorizonAgent.add_to_time_vary('Rfree') # Add Rfree to time varying list to be able to introduce time varying interest rates
+        
+        #FinHorizonAgent.solution_terminal = deepcopy(self.solution[0]) # Set Terminal Solution as Steady State Consumption Function
+        FinHorizonAgent.cFunc_terminal_ = deepcopy(self.solution[0].cFunc) # Set Terminal Solution as Steady State Consumption Function
+        
+        dx = .0001 # Size of perturbation
+        i = params['T_cycle'] - 1 # Period in which the change in the interest rate occurs (second to last period)
+        
+        FinHorizonAgent.IncShkDstn = params['T_cycle']*[ self.IncShkDstn[0] ]
+        
+        # If parameter is in time invariant list then add it to time vary list
+        FinHorizonAgent.del_from_time_inv(shk_param) 
+        FinHorizonAgent.add_to_time_vary(shk_param)
+        
+        if type(getattr(self,shk_param)) == list: # this condition is because some attributes are specified as lists while other as floats
+            peturbed_list = (i)*[getattr(self,shk_param)[0]] + [getattr(self,shk_param)[0] + dx] + (params['T_cycle'] - i -1 )*[getattr(self,shk_param)[0]] # Sequence of interest rates the agent faces
+        else:
+            peturbed_list = (i)*[getattr(self,shk_param)] + [getattr(self,shk_param) + dx] + (params['T_cycle'] - i -1 )*[getattr(self,shk_param)] # Sequence of interest rates the agent faces
+        setattr(FinHorizonAgent, shk_param, peturbed_list) 
+        
+        # Update income process if perturbed parameter enters the income shock distribution
+        FinHorizonAgent.update_income_process()
+
+        #Solve
+        FinHorizonAgent.solve()
+
+        # Use Harmenberg Neutral Measure
+        FinHorizonAgent.neutral_measure = True
+        FinHorizonAgent.update_income_process()
+        
+        # Calculate Transition Matrices
+        #FinHorizonAgent.aXtraExtra = self.aXtraExtra
+        FinHorizonAgent.define_distribution_grid()        
+        FinHorizonAgent.calc_transition_matrix()
+        
+        #Normalized consumption Policy Grids across time
+        c_t = FinHorizonAgent.cPol_Grid
+        a_t = FinHorizonAgent.aPol_Grid
+        
+        # Append steady state policy grid into list of policy grids as HARK does not provide the initial policy
+        c_t.append(self.c_ss)
+        a_t.append(self.a_ss)
+
+        # List of computed transition matrices for each period
+        Tran_matrices = FinHorizonAgent.tran_matrix
+            
+        #Fake News Trick (part of it) begins below
+        CJAC = []
+        AJAC = []
+        
+        # i is period in which shock occurs
+        for i in range(params['T_cycle']): # i is the period in which the perturbation occurs
+                    
+            consumptionA =[] # List of Aggregate Consumption Values
+            AssetsA = [] # list of Aggregate Assets values
+        
+            dstn = self.vec_erg_dstn
+        
+            for j in range(params['T_cycle']): # j is the period of the aggregates we are computing
+                
+            
+                if j <= i :#before the shock occurs
+                    
+                    dstn = np.dot(Tran_matrices[params['T_cycle'] - 1 - i + j],dstn) #Update Distribution
+
+                    consumption = np.dot(c_t[params['T_cycle']    - i + j],dstn) 
+                    consumptionA.append(consumption)
+                    
+                    Assets = np.dot(a_t[params['T_cycle']   - i + j],dstn) 
+                    AssetsA.append(Assets)
+                    
+                    
+                else:# after the shock occurs simply apply the steady state values
+                    
+                    dstn = np.dot(self.tran_matrix,dstn) #Update distribution
+
+                    consumption = np.dot(self.c_ss,dstn) 
+                    consumptionA.append(consumption)
+                    
+                    Assets = np.dot(self.a_ss,dstn) 
+                    AssetsA.append(Assets)
+                    
+                    
+            CJAC.append( (consumptionA -  self.C_ss)/dx ) #First differences to compute derivative
+            AJAC.append( (AssetsA - self.A_ss)/dx ) #First differences to compute derivative
+            
+        return np.array(CJAC)[:,:,0].T, np.array(AJAC)[:,:,0].T
+        
+
     
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
