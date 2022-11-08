@@ -17,6 +17,7 @@ class SolutionDataset(object):
     def __repr__(self):
         return self.dataset.__repr__()
         
+    ## TODO: Add in assume sorted to make it faster
     def v_x(self, x : Mapping[str, ...]) -> float:
         return self.dataset['v_x'].interp(**x, kwargs={"fill_value": "extrapolate"})
 
@@ -157,7 +158,7 @@ class Stage:
                         method="cobyla",
                         options = {
                             #'disp' : True, # for debugging
-                            'maxiter' : 200000
+                            'maxiter' : 1000000
                         }
                     )
                 
@@ -165,9 +166,13 @@ class Stage:
                         pi_data.sel(**x_vals, **k_vals).variable.data.put(0, pi_star_res.x)
                         q_data.sel(**x_vals, **k_vals).variable.data.put(0, -pi_star_res.fun) # flips it back
                     else:
+                        print(pi_star_res)
+                        print(x_vals)
+                        print(k_vals)
+                        raise Exception("Failed to optimize.")
                         pi_data.sel(**x_vals, **k_vals).variable.data.put(0, np.nan)
                         q_data.sel(**x_vals, **k_vals).variable.data.put(0, np.nan)
-                        print(pi_star_res)
+                        
                     
         # TODO: Store these values on a grid, so it does not need to be recomputed
         #       when taking expectations
