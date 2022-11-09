@@ -2,7 +2,7 @@
 This file implements unit tests for abstract Bellman stage code.
 """
 
-from collections.abc import Mapping
+from typing import Any, Mapping
 import HARK.distribution as distribution
 from HARK.utilities import CRRAutility
 from HARK.stage import Stage
@@ -62,7 +62,7 @@ class testPortfolioConsumptionStages(unittest.TestCase):
 
     def test_consumption_stage(self):
 
-        def consumption_v_y(y : Mapping[str,...]):
+        def consumption_v_y(y : Mapping[str,Any]):
             return CRRAutility(y['a'], CRRA)
 
         pi_star, q = self.consumption_stage.optimal_policy(
@@ -105,7 +105,7 @@ class testPortfolioConsumptionStages(unittest.TestCase):
 
     def test_allocation_stage(self):
 
-        def allocation_v_y(y : Mapping[str,...]):
+        def allocation_v_y(y : Mapping[str,Any]):
             return CRRAutility(y['alpha'] * y['a'] + 1,CRRA) \
                 + CRRAutility((1 - y['alpha']) * y['a'] + 1, CRRA * 0.9) 
 
@@ -133,7 +133,7 @@ class testPortfolioConsumptionStages(unittest.TestCase):
             {}
         )['m'] == 102.05882352941175
 
-        def growth_v_y(y : Mapping[str,...]):
+        def growth_v_y(y : Mapping[str,Any]):
             return CRRAutility(y['m'], CRRA)
 
         pi_star, q = self.growth_stage.optimal_policy(

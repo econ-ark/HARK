@@ -1,10 +1,9 @@
 from dataclasses import dataclass, field
 import datetime
-from collections.abc import Callable, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 import itertools
 import numpy as np
 from scipy.optimize import minimize
-from typing import Any
 import xarray as xr
 
 from HARK.distribution import Distribution
@@ -18,18 +17,18 @@ class SolutionDataset(object):
         return self.dataset.__repr__()
         
     ## TODO: Add in assume sorted to make it faster
-    def v_x(self, x : Mapping[str, ...]) -> float:
-        return self.dataset['v_x'].interp(**x, kwargs={"fill_value": "extrapolate"})
+    def v_x(self, x : Mapping[str, Any]) -> float:
+        return self.dataset['v_x'].interp(**x, kwargs={"fill_value": None}) # Python 3.8 None -> 'extrapolate'
 
-    def pi_star(self, x : Mapping[str, ...], k : Mapping[str, ...]):
+    def pi_star(self, x : Mapping[str, Any], k : Mapping[str, Any]):
         """
 
         TODO: Option to return a labelled map...
         """
-        return self.dataset['pi*'].interp({**x, **k}, kwargs={"fill_value": "extrapolate"})
+        return self.dataset['pi*'].interp({**x, **k}, kwargs={"fill_value": None}) # Python 3.8 None -> 'extrapolate'
     
-    def q(self, x : Mapping[str, ...], k : Mapping[str, ...], a : Mapping[str, ...]) -> float:
-        return self.dataset['q'].interp({**x, **k, **a}, kwargs={"fill_value": "extrapolate"})
+    def q(self, x : Mapping[str, Any], k : Mapping[str, Any], a : Mapping[str, Any]) -> float:
+        return self.dataset['q'].interp({**x, **k, **a}, kwargs={"fill_value": None}) # Python 3.8 None -> 'extrapolate'
 
 
 @dataclass
@@ -45,7 +44,7 @@ class Stage:
     # Type hint is too loose: number or callable supported
     discount: Any = 1.0 
     
-    reward: Callable[[Mapping, Mapping, Mapping], ...] = lambda x, k, a : 0 # TODO: type signature # TODO: Defaults to no reward
+    reward: Callable[[Mapping, Mapping, Mapping], Any] = lambda x, k, a : 0 # TODO: type signature # TODO: Defaults to no reward
     
     # Condition must be continuously valued, with a negative value if it fails
     constraints: Sequence[Callable[[Mapping, Mapping, Mapping], float]] = field(default_factory=list)
@@ -63,9 +62,9 @@ class Stage:
         return self.transition(x, k, a)
       
     def q(self,
-          x : Mapping[str, ...],
-          k : Mapping[str, ...],
-          a : Mapping[str, ...],
+          x : Mapping[str, Any],
+          k : Mapping[str, Any],
+          a : Mapping[str, Any],
           v_y : Callable[[Mapping, Mapping, Mapping], float]) -> Mapping:
         """
         The 'action-value function' Q.
@@ -99,7 +98,7 @@ class Stage:
             coords={**x_grid, **k_grid}
         )
         
-        def q_for_minimizer(action_values, x : Mapping[str, ...] , k : Mapping[str, ...], v_y):
+        def q_for_minimizer(action_values, x : Mapping[str, Any] , k : Mapping[str, Any], v_y):
             """Flips negative for the _minimizer_"""
             return -self.q(
                 x = x,
@@ -286,7 +285,7 @@ def backwards_induction(stages_data, terminal_v_y):
         stage_data = stages_data[t]
         stage = stage_data['stage']
 
-        print(f"{t}: X: {stage.inputs}, K: {list[stage.shocks.keys()]}, A: {stage.actions}, Y: {stage.outputs}")
+        print(f"{t}: X: {stage.inputs}, K: {list(stage.shocks.keys())}, A: {stage.actions}, Y: {stage.outputs}")
         start_time = datetime.datetime.now()
         
         x_grid = stage_data['x_grid']
