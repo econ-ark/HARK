@@ -1179,6 +1179,13 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         return self.pmf.values
 
     @property
+    def seed(self):
+        """
+        Returns the distribution's seed.
+        """
+        return self.dataset.seed
+
+    @property
     def RNG(self):
         """
         Returns the distribution's random number generator.
