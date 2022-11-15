@@ -4,6 +4,8 @@ Consumption-saving models that also include medical spending.
 from copy import deepcopy
 
 import numpy as np
+from scipy.optimize import brentq
+
 from HARK import AgentType, MetricObject, make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     ConsGenIncProcessSolver,
@@ -27,17 +29,15 @@ from HARK.interpolation import (
     ValueFuncCRRA,
     VariableLowerBoundFunc3D,
 )
-from HARK.utilfuncs import UtilityFuncCRRA
-from HARK.utilities import (
+from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
     CRRAutility_invP,
     CRRAutilityP_inv,
     CRRAutilityPP,
-    NullFunc,
-    make_grid_exp_mult,
+    UtilityFuncCRRA,
 )
-from scipy.optimize import brentq
+from HARK.utilities import NullFunc, make_grid_exp_mult
 
 __all__ = [
     "MedShockPolicyFunc",

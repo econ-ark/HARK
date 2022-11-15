@@ -4,9 +4,9 @@ stochastic Markov state.  The only solver here extends ConsIndShockModel to
 include a Markov state; the interest factor, permanent growth factor, and income
 distribution can vary with the discrete state.
 """
-from copy import deepcopy
 
 import numpy as np
+
 from HARK import AgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolver,
@@ -15,7 +15,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     PerfForesightConsumerType,
 )
 from HARK.distribution import (
-    DiscreteDistribution,
     MarkovProcess,
     Uniform,
     calc_expectation,
@@ -27,7 +26,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
-from HARK.utilities import (
+from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
     CRRAutility_invP,

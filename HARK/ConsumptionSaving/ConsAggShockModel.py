@@ -4,44 +4,46 @@ cratic income shocks.  Currently only contains one microeconomic model with a
 basic solver.  Also includes a subclass of Market called CobbDouglas economy,
 used for solving "macroeconomic" models with aggregate shocks.
 """
+from copy import deepcopy
+
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
-from HARK.interpolation import (
-    LinearInterp,
-    LinearInterpOnInterp1D,
-    ConstantFunction,
-    IdentityFunction,
-    VariableLowerBoundFunc2D,
-    BilinearInterp,
-    LowerEnvelope2D,
-    UpperEnvelope,
-    MargValueFuncCRRA,
-)
-from HARK.utilities import (
-    CRRAutility,
-    CRRAutilityP,
-    CRRAutilityPP,
-    CRRAutilityP_inv,
-    CRRAutility_invP,
-    CRRAutility_inv,
-    make_grid_exp_mult,
-)
-from HARK.distribution import (
-    MarkovProcess,
-    MeanOneLogNormal,
-    Uniform,
-    combine_indep_dstns,
-    calc_expectation,
-)
+
+from HARK import AgentType, Market, MetricObject
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     init_idiosyncratic_shocks,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-from HARK import MetricObject, Market, AgentType
-from copy import deepcopy
-import matplotlib.pyplot as plt
+from HARK.distribution import (
+    MarkovProcess,
+    MeanOneLogNormal,
+    Uniform,
+    calc_expectation,
+    combine_indep_dstns,
+)
+from HARK.interpolation import (
+    BilinearInterp,
+    ConstantFunction,
+    IdentityFunction,
+    LinearInterp,
+    LinearInterpOnInterp1D,
+    LowerEnvelope2D,
+    MargValueFuncCRRA,
+    UpperEnvelope,
+    VariableLowerBoundFunc2D,
+)
+from HARK.rewards import (
+    CRRAutility,
+    CRRAutility_inv,
+    CRRAutility_invP,
+    CRRAutilityP,
+    CRRAutilityP_inv,
+    CRRAutilityPP,
+)
+from HARK.utilities import make_grid_exp_mult
 
 __all__ = [
     "AggShockConsumerType",

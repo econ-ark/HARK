@@ -15,6 +15,9 @@ See HARK documentation for mathematical descriptions of the models being solved.
 from copy import copy, deepcopy
 
 import numpy as np
+from scipy import sparse as sp
+from scipy.optimize import newton
+
 from HARK import (
     AgentType,
     MetricObject,
@@ -49,8 +52,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
-from HARK.utilfuncs import UtilityFuncCRRA
-from HARK.utilities import (
+from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
     CRRAutility_invP,
@@ -58,6 +60,9 @@ from HARK.utilities import (
     CRRAutilityP_inv,
     CRRAutilityP_invP,
     CRRAutilityPP,
+    UtilityFuncCRRA,
+)
+from HARK.utilities import (
     construct_assets_grid,
     gen_tran_matrix_1D,
     gen_tran_matrix_2D,
@@ -65,8 +70,6 @@ from HARK.utilities import (
     jump_to_grid_2D,
     make_grid_exp_mult,
 )
-from scipy import sparse as sp
-from scipy.optimize import newton
 
 __all__ = [
     "ConsumerSolution",

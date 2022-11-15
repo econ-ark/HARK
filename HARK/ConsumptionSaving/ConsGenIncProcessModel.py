@@ -5,6 +5,7 @@ ConsIndShockModel by explicitly tracking persistent income as a state variable,
 and allows (log) persistent income to follow an AR1 process rather than random walk.
 """
 import numpy as np
+
 from HARK import AgentType, MetricObject, make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSetup,
@@ -25,7 +26,7 @@ from HARK.interpolation import (
     ValueFuncCRRA,
     VariableLowerBoundFunc2D,
 )
-from HARK.utilities import (
+from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
     CRRAutility_invP,
@@ -33,8 +34,8 @@ from HARK.utilities import (
     CRRAutilityP_inv,
     CRRAutilityP_invP,
     CRRAutilityPP,
-    get_percentiles,
 )
+from HARK.utilities import get_percentiles
 
 __all__ = [
     "pLvlFuncAR1",

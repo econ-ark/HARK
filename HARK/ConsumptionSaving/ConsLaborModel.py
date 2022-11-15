@@ -9,26 +9,26 @@ productivity shocks.  Agents choose their quantities of labor and consumption af
 observing both of these shocks, so the transitory shock is a state variable.
 """
 import sys
-
 from copy import copy
+
+import matplotlib.pyplot as plt
 import numpy as np
-from HARK.core import MetricObject
-from HARK.utilities import CRRAutilityP, CRRAutilityP_inv
-from HARK.interpolation import (
-    LinearInterp,
-    LinearInterpOnInterp1D,
-    VariableLowerBoundFunc2D,
-    BilinearInterp,
-    ConstantFunction,
-    ValueFuncCRRA,
-    MargValueFuncCRRA,
-)
+
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_idiosyncratic_shocks,
 )
-
-import matplotlib.pyplot as plt
+from HARK.core import MetricObject
+from HARK.interpolation import (
+    BilinearInterp,
+    ConstantFunction,
+    LinearInterp,
+    LinearInterpOnInterp1D,
+    MargValueFuncCRRA,
+    ValueFuncCRRA,
+    VariableLowerBoundFunc2D,
+)
+from HARK.rewards import CRRAutilityP, CRRAutilityP_inv
 
 
 class ConsumerLaborSolution(MetricObject):

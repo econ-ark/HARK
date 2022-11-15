@@ -1,14 +1,14 @@
 import numpy as np
 from numba import njit, vectorize
 
-from HARK.utilities import (
+from HARK.rewards import (
     CRRAutility,
-    CRRAutilityP,
-    CRRAutilityPP,
-    CRRAutilityP_inv,
-    CRRAutility_invP,
     CRRAutility_inv,
+    CRRAutility_invP,
+    CRRAutilityP,
+    CRRAutilityP_inv,
     CRRAutilityP_invP,
+    CRRAutilityPP,
 )
 
 CRRAutility = vectorize(CRRAutility, cache=True)
