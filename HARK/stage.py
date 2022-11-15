@@ -45,15 +45,31 @@ class Stage:
     discount: Any = 1.0 
     
     reward: Callable[[Mapping, Mapping, Mapping], Any] = lambda x, k, a : 0 # TODO: type signature # TODO: Defaults to no reward
-    
+
+    # Note the output type of these functions are sequences, to handle multiple actions
+    # If not provided, a new default is provided in post_init
+    action_upper_bound: Callable[[Mapping, Mapping], Sequence[float]] = field(default = None)
+    action_lower_bound: Callable[[Mapping, Mapping], Sequence[float]] = field(default = None)
+
     # Condition must be continuously valued, with a negative value if it fails
+    # Note: I've had problems with the optimizers that use constraints; switching to Bounds -- SB
     constraints: Sequence[Callable[[Mapping, Mapping, Mapping], float]] = field(default_factory=list)
+
+    def __post_init__(self):
+        if self.action_upper_bound is None:
+            self.action_upper_bound = lambda x, k : [None] * len(self.actions)
+
+        if self.action_lower_bound is None:
+            self.action_lower_bound = lambda x, k : [None] * len(self.actions)
         
     def T(self,
           x : Mapping,
           k : Mapping,
           a : Mapping,
           constrain = True) -> Mapping:
+
+        # TODO: if constrain, and action has upper lower bounds, test here.
+
         if constrain:
             # Do something besides assert in production -- an exception?
             for constraint in self.constraints:
@@ -144,21 +160,22 @@ class Stage:
                             'type' : 'ineq',
                             'fun' : scipy_constraint_fun
                         }
+
+                    bounds = [b for b in zip(
+                        self.action_lower_bound(x_vals, k_vals),
+                        self.action_upper_bound(x_vals, k_vals)
+                    )]
                 
                     pi_star_res = minimize(
                         q_for_minimizer,
-                        np.zeros(len(self.actions)), # better default than 0?
+                        np.ones(len(self.actions)), # JUST TESTING ones as alternative to 0; does this need to be configurable?
                         args = (x_vals, k_vals, v_y),
+                        bounds = bounds,
                         constraints = [
                             scipy_constraint(constraint)
                             for constraint
                             in self.constraints
-                        ],
-                        method="cobyla",
-                        options = {
-                            #'disp' : True, # for debugging
-                            'maxiter' : 1000000
-                        }
+                        ] if len(self.constraints) > 0 else None,
                     )
                 
                     if pi_star_res.success:
@@ -168,7 +185,8 @@ class Stage:
                         print(pi_star_res)
                         print(x_vals)
                         print(k_vals)
-                        raise Exception("Failed to optimize.")
+
+                        #raise Exception("Failed to optimize.")
                         pi_data.sel(**x_vals, **k_vals).variable.data.put(0, np.nan)
                         q_data.sel(**x_vals, **k_vals).variable.data.put(0, np.nan)
                         
