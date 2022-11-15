@@ -438,7 +438,7 @@ def cobb_douglas(x, alpha, factor):
     Parameters
     ----------
     x : np.ndarray
-        Quantities of goods consumed. Last axis must index goods.
+        Quantities of goods consumed. First axis must index goods.
     alpha : np.ndarray
         Elasticity parameters for each good. Must be consistent with `x`.
     factor : float
@@ -451,7 +451,10 @@ def cobb_douglas(x, alpha, factor):
 
     """
 
-    return factor * np.sum(x**alpha, axis=-1)
+    # move goods axis to the end
+    goods = np.moveaxis(x, 0, -1)
+
+    return factor * np.sum(goods**alpha, axis=-1)
 
 
 def cobb_douglas_p(x, alpha, factor, arg=0):
@@ -463,7 +466,7 @@ def cobb_douglas_p(x, alpha, factor, arg=0):
     Parameters
     ----------
     x : np.ndarray
-        Quantities of goods consumed. Last axis must index goods.
+        Quantities of goods consumed. First axis must index goods.
     alpha : np.ndarray
         Elasticity parameters for each good. Must be consistent with `x`.
     factor : float
@@ -477,7 +480,7 @@ def cobb_douglas_p(x, alpha, factor, arg=0):
         Utility
     """
 
-    return cobb_douglas(x, alpha, factor) * alpha[arg] / x[..., arg]
+    return cobb_douglas(x, alpha, factor) * alpha[arg] / x[arg]
 
 
 def cobb_douglas_pp(x, alpha, factor, args=(0, 1)):
@@ -489,7 +492,7 @@ def cobb_douglas_pp(x, alpha, factor, args=(0, 1)):
     Parameters
     ----------
     x : np.ndarray
-        Quantities of goods consumed. Last axis must index goods.
+        Quantities of goods consumed. First axis must index goods.
     alpha : np.ndarray
         Elasticity parameters for each good. Must be consistent with `x`.
     factor : float
@@ -506,11 +509,11 @@ def cobb_douglas_pp(x, alpha, factor, args=(0, 1)):
     """
 
     if args[0] == args[1]:
-        coeff = alpha[args[1]] - 1
+        coeff = alpha[args[0]] - 1
     else:
         coeff = alpha[args[1]]
 
-    return cobb_douglas_p(x, alpha, factor, args[0]) * coeff / x[..., args[1]]
+    return cobb_douglas_p(x, alpha, factor, args[0]) * coeff / x[args[1]]
 
 
 def cobb_douglas_pn(x, alpha, factor, args=()):
@@ -522,7 +525,7 @@ def cobb_douglas_pn(x, alpha, factor, args=()):
     Parameters
     ----------
     x : np.ndarray
-        Quantities of goods consumed. Last axis must index goods.
+        Quantities of goods consumed. First axis must index goods.
     alpha : np.ndarray
         Elasticity parameters for each good. Must be consistent with `x`.
     factor : float
@@ -543,18 +546,21 @@ def cobb_douglas_pn(x, alpha, factor, args=()):
         args = (args,)
 
     if len(args):
+        idx = args[-1]  # last index
         counts = dict(zip(*np.unique(args, return_counts=True)))
-        idx = args[-1]
         coeff = alpha[idx] - counts[idx] + 1
-        new_args = tuple(list(args)[:-1])
-        return cobb_douglas_pn(x, alpha, factor, new_args) * coeff / x[..., idx]
+        new_args = tuple(list(args)[:-1])  # remove last element
+        return cobb_douglas_pn(x, alpha, factor, new_args) * coeff / x[idx]
     else:
         return cobb_douglas(x, alpha, factor)
 
 
 def const_elast_subs(x, alpha, subs, factor, power):
 
-    return factor * np.sum(alpha * x**subs, axis=-1) ** (power / subs)
+    # move goods axis to the end
+    goods = np.moveaxis(x, 0, -1)
+
+    return factor * np.sum(alpha * goods**subs, axis=-1) ** (power / subs)
 
 
 def const_elast_subs_p(x, alpha, subs, factor, power, arg=0):
@@ -563,7 +569,7 @@ def const_elast_subs_p(x, alpha, subs, factor, power, arg=0):
         const_elast_subs(x, alpha, factor * power / subs, subs, power - subs)
         * alpha[arg]
         * subs
-        * x[..., arg] ** (subs - 1)
+        * x[arg] ** (subs - 1)
     )
 
 
