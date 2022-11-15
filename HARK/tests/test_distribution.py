@@ -312,16 +312,16 @@ class DistributionClassTests(unittest.TestCase):
         ## Are these tests generator/backend specific?
         dist = MVNormal()
 
-        #self.assertTrue(
+        # self.assertTrue(
         #    np.allclose(dist.draw(1)[0], np.array([2.76405235, 1.40015721]))
-        #)
+        # )
 
         dist.draw(100)
         dist.reset()
 
-        #self.assertTrue(
+        # self.assertTrue(
         #    np.allclose(dist.draw(1)[0], np.array([2.76405235, 1.40015721]))
-        #)
+        # )
 
     def test_Weibull(self):
         Weibull().draw(1)[0]
@@ -331,6 +331,12 @@ class DistributionClassTests(unittest.TestCase):
 
         Uniform().draw(1)[0]
 
+        self.assertEqual(calc_expectation(uni.approx(10)), 0.5)
+
+        uni_discrete = uni.approx(10, endpoint=True)
+
+        self.assertEqual(uni_discrete.atoms[0][0], 0.0)
+        self.assertEqual(uni_discrete.atoms[0][-1], 1.0)
         self.assertEqual(calc_expectation(uni.approx(10)), 0.5)
 
     def test_Bernoulli(self):
