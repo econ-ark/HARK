@@ -3,10 +3,10 @@ name: Test examples as a cron job
 on:
   push:
     branches:
-    - master
+      - master
   pull_request:
     branches:
-    - master
+      - master
   schedule:
     - cron: 0 0 * * *
 
@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.8', '3.9']
+        python-version: ["3.8", "3.9", "3.10"]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
@@ -31,4 +31,3 @@ jobs:
       - name: Run examples
         run: |
           pytest --nbval-lax --current-env examples/
-    
