@@ -751,6 +751,16 @@ class UtilityFuncCobbDouglas(UtilityFunction):
         return cobb_douglas_pn(x, self.EOS, self.factor, args)
 
 
+class UtilityFuncCobbDouglasCRRA(UtilityFuncCobbDouglas):
+    def __init__(self, EOS, factor, CRRA):
+
+        super().__init__(EOS, factor)
+        self.CRRA = CRRA
+
+    def __call__(self, x):
+        return CRRAutility(cobb_douglas(x, self.EOS, self.factor), self.CRRA)
+
+
 class UtilityFuncConstElastSubs(UtilityFunction):
     def __init__(self, shares, subs, homogeneity=1.0, factor=1.0):
 
