@@ -8,6 +8,9 @@ import xarray as xr
 
 from HARK.distribution import Distribution
 
+
+epsilon = 1e-4
+
 class SolutionDataset(object):
     def __init__(self, dataset: xr.Dataset, actions = {}):
         self.actions = actions
@@ -53,7 +56,9 @@ class Stage:
 
     # Condition must be continuously valued, with a negative value if it fails
     # Note: I've had problems with the optimizers that use constraints; switching to Bounds -- SB
-    constraints: Sequence[Callable[[Mapping, Mapping, Mapping], float]] = field(default_factory=list)
+    constraints: Sequence[Callable[[Mapping, Mapping, Mapping], float]] = field(default_factory=list)\
+    
+    optimizer_args : Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         if self.action_upper_bound is None:
@@ -96,11 +101,23 @@ class Stage:
     def optimal_policy(self,
                        x_grid : Mapping[str, Sequence] = {},
                        k_grid : Mapping[str, Sequence] = {},
-                       v_y : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0):
+                       v_y : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
+                       optimizer_args = None
+                       ):
         """
         Given a grid over input and shock state values, compute the optimal action.
         Optimizes over values of Q.
         """
+
+        all_optimizer_args = self.optimizer_args.copy()
+        if optimizer_args is not None:
+            all_optimizer_args.update(optimizer_args)
+
+        # For now assuming this has the same shape as the x_grid
+        a0f = lambda x : 0
+        if 'a0f' in all_optimizer_args:
+            a0f = all_optimizer_args['a0f']
+            del all_optimizer_args['a0f']
 
         pi_data = xr.DataArray(
             np.zeros([len(v) for v in x_grid.values()] + [len(v) for v in k_grid.values()]),
@@ -165,10 +182,12 @@ class Stage:
                         self.action_lower_bound(x_vals, k_vals),
                         self.action_upper_bound(x_vals, k_vals)
                     )]
+
+                    print(f'a0: {a0f(x_vals)}')
                 
                     pi_star_res = minimize(
                         q_for_minimizer,
-                        np.ones(len(self.actions)), # JUST TESTING ones as alternative to 0; does this need to be configurable?
+                        a0f(x_vals), # compute starting action from states
                         args = (x_vals, k_vals, v_y),
                         bounds = bounds,
                         constraints = [
@@ -176,6 +195,7 @@ class Stage:
                             for constraint
                             in self.constraints
                         ] if len(self.constraints) > 0 else None,
+                        **all_optimizer_args
                     )
                 
                     if pi_star_res.success:
@@ -200,7 +220,8 @@ class Stage:
         self,
         x_grid : Mapping[str, Sequence] = field(default_factory=dict),
         shock_approx_params : Mapping[str, int] = field(default_factory=dict),
-        v_y : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0
+        v_y : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
+        optimizer_args = None
         ):
         
         v_x_values = xr.DataArray(
@@ -227,7 +248,7 @@ class Stage:
             in discretized_shocks
         }
 
-        pi_star_values, q_values = self.optimal_policy(x_grid, k_grid, v_y)
+        pi_star_values, q_values = self.optimal_policy(x_grid, k_grid, v_y, optimizer_args = optimizer_args)
 
         ## Taking expectations over the generated k-grid, with p_k, of...
             ## Computing optimal policy pi* and q*_value for each x,k
@@ -271,12 +292,12 @@ class Stage:
                 q_xk = q_values.sel(**x_vals, **k_atoms).values
 
                 if np.isnan(q_xk):
-                    print('nan q_xk')
+                    print(f'nan q_xk at {x_point}, {k_point}')
 
                 value_x += q_xk * total_pm
 
             if np.isnan(value_x):
-                print("Oh no a nan!")
+                print(f"Computed value v_x at {x_point},{k_point} is nan.")
 
             ## Need to take expectation                    
             v_x_values.sel(**x_vals).variable.data.put(
@@ -313,10 +334,13 @@ def backwards_induction(stages_data, terminal_v_y):
         else:
             shock_approx_params = {}
 
+        optimizer_args = stage_data['optimizer_args'] if 'optimizer_args' in stage_data else None
+
         sol = stage.solve(
             x_grid = x_grid,
             shock_approx_params = shock_approx_params,
-            v_y = v_y
+            v_y = v_y,
+            optimizer_args = optimizer_args
         )
 
         sols.insert(0, sol)
