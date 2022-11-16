@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 from types import SimpleNamespace
+from typing import Mapping
 
 import numpy as np
 import xarray as xr
+
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSetup,
     IndShockConsumerType,
@@ -29,17 +31,12 @@ class ValueFuncCRRALabeled(MetricObject):
         self.dataset = dataset
         self.CRRA = CRRA
 
-    def __call__(self, state):
+    def __call__(self, state: Mapping[str, np.ndarray]) -> xr.Dataset:
         """
-        Interpolate inverse falue function then invert to get value function at given state.
+        Interpolate inverse value function then invert to get value function at given state.
         """
 
-        if isinstance(state, xr.Dataset):
-            state_dict = state.coords
-        else:
-            state_dict = {}
-            for coords in self.dataset.coords.keys():
-                state_dict[coords] = state[coords]
+        state_dict = self._validate_state(state)
 
         result = CRRAutility(
             self.dataset["v_inv"].interp(
@@ -60,12 +57,7 @@ class ValueFuncCRRALabeled(MetricObject):
         Interpolate inverse marginal value function then invert to get marginal value function at given state.
         """
 
-        if isinstance(state, xr.Dataset):
-            state_dict = state.coords
-        else:
-            state_dict = {}
-            for coords in self.dataset.coords.keys():
-                state_dict[coords] = state[coords]
+        state_dict = self._validate_state(state)
 
         result = CRRAutilityP(
             self.dataset["v_der_inv"].interp(
@@ -86,12 +78,7 @@ class ValueFuncCRRALabeled(MetricObject):
         Interpolate all data variables in the dataset.
         """
 
-        if isinstance(state, xr.Dataset):
-            state_dict = state.coords
-        else:
-            state_dict = {}
-            for coords in self.dataset.coords.keys():
-                state_dict[coords] = state[coords]
+        state_dict = self._validate_state(state)
 
         result = self.dataset.interp(
             state_dict,
@@ -100,6 +87,17 @@ class ValueFuncCRRALabeled(MetricObject):
         result.attrs = self.dataset["v"].attrs
 
         return result
+
+    def _validate_state(self, state):
+
+        if isinstance(state, (xr.Dataset, dict)):
+            state_dict = {}
+            for coords in self.dataset.coords.keys():
+                state_dict[coords] = state[coords]
+        else:
+            raise ValueError("state must be a dict or xr.Dataset")
+
+        return state_dict
 
 
 class ConsumerSolutionLabeled(MetricObject):
@@ -121,6 +119,7 @@ class ConsumerSolutionLabeled(MetricObject):
         self.attrs = attrs
 
     def distance(self, other):
+        # TODO: is there a faster way to compare two xr.Datasets?
 
         value = self.value.dataset
         other_value = other.value.dataset.interp_like(value)
@@ -196,7 +195,7 @@ class PerfForesightLabeledType(IndShockConsumerType):
             value=vfunc,
             policy=dataset[["cNrm"]],
             continuation=None,
-            attrs={"m_nrm_min": 0.0},
+            attrs={"m_nrm_min": 0.0},  # minimum normalized market resources
         )
 
 
@@ -217,18 +216,20 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
             PermGroFac=self.PermGroFac,
         )
 
-    def define_boundary_constraint(self):
+    def calculate_borrowing_constraint(self):
 
         # Calculate the minimum allowable value of money resources in this period
         self.BoroCnstNat = (
             self.solution_next.attrs["m_nrm_min"] - 1
         ) / self.params.Rfree
 
+    def define_boundary_constraint(self):
+
         # if natural borrowing constraint is binding constraint, then we can not
         # evaluate the value function at that point, so we must fill out the data
         if self.BoroCnstArt is None or self.BoroCnstArt <= self.BoroCnstNat:
             self.m_nrm_min = self.BoroCnstNat
-            self.nat_boro_cnst = True
+            self.nat_boro_cnst = True  # natural borrowing constraint is binding
 
             self.borocnst = xr.Dataset(
                 coords={"mNrm": self.m_nrm_min, "aNrm": self.m_nrm_min},
@@ -245,7 +246,7 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
 
         elif self.BoroCnstArt > self.BoroCnstNat:
             self.m_nrm_min = self.BoroCnstArt
-            self.nat_boro_cnst = False
+            self.nat_boro_cnst = False  # artificial borrowing constraint is binding
 
             self.borocnst = xr.Dataset(
                 coords={"mNrm": self.m_nrm_min, "aNrm": self.m_nrm_min},
@@ -283,24 +284,26 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
         """
         post_state to next_state transition
         """
-        ns = {}  # pytree
-        ns["mNrm"] = post_state["aNrm"] * params.Rfree / params.PermGroFac + 1
-        return ns
+        next_state = {}  # pytree
+        next_state["mNrm"] = post_state["aNrm"] * params.Rfree / params.PermGroFac + 1
+        return next_state
 
     def reverse_transition(self, post_state=None, action=None, params=None):
         """state from post_state and actions"""
-        s = {}  # pytree
-        s["mNrm"] = post_state["aNrm"] + action["cNrm"]
+        state = {}  # pytree
+        state["mNrm"] = post_state["aNrm"] + action["cNrm"]
 
-        return s
+        return state
 
     def egm_transition(self, post_state=None, continuation=None, params=None):
         """actions from post_state"""
 
-        a = {}  # pytree
-        a["cNrm"] = self.uP_inv(params.Discount * continuation.derivative(post_state))
+        action = {}  # pytree
+        action["cNrm"] = self.uP_inv(
+            params.Discount * continuation.derivative(post_state)
+        )
 
-        return a
+        return action
 
     def value_transition(self, action=None, state=None, continuation=None, params=None):
         """
@@ -331,13 +334,13 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
         continuation value function of post_state
         """
         variables = {}  # pytree
-        ns = self.post_state_transition(post_state, params)
-        variables.update(ns)
-        variables["v"] = params.PermGroFac ** (1 - params.CRRA) * value_next(ns)
+        next_state = self.post_state_transition(post_state, params)
+        variables.update(next_state)
+        variables["v"] = params.PermGroFac ** (1 - params.CRRA) * value_next(next_state)
         variables["v_der"] = (
             params.Rfree
             * params.PermGroFac ** (-params.CRRA)
-            * value_next.derivative(ns)
+            * value_next.derivative(next_state)
         )
 
         variables["v_inv"] = self.u_inv(variables["v"])
@@ -351,6 +354,7 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
 
     def prepare_to_solve(self):
         self.create_params_namespace()
+        self.calculate_borrowing_constraint()
         self.define_boundary_constraint()
         self.create_post_state()
 
@@ -451,7 +455,7 @@ class IndShockLabeledType(PerfForesightLabeledType):
 
 
 class ConsIndShockLabeledSolver(ConsPerfForesightLabeledSolver):
-    def define_boundary_constraint(self):
+    def calculate_borrowing_constraint(self):
 
         PermShkMinNext = np.min(self.IncShkDstn.atoms[0])
         TranShkMinNext = np.min(self.IncShkDstn.atoms[1])
@@ -463,42 +467,16 @@ class ConsIndShockLabeledSolver(ConsPerfForesightLabeledSolver):
             / self.params.Rfree
         )
 
-        if self.BoroCnstArt is None or self.BoroCnstArt <= self.BoroCnstNat:
-            self.m_nrm_min = self.BoroCnstNat
-            self.nat_boro_cnst = True
-
-            self.borocnst = xr.Dataset(
-                coords={"mNrm": self.m_nrm_min, "aNrm": self.m_nrm_min},
-                data_vars={
-                    "cNrm": 0.0,
-                    "v": -np.inf,
-                    "v_inv": 0.0,
-                    "reward": -np.inf,
-                    "marginal_reward": np.inf,
-                    "v_der": np.inf,
-                    "v_der_inv": 0.0,
-                },
-            )
-
-        elif self.BoroCnstArt > self.BoroCnstNat:
-            self.m_nrm_min = self.BoroCnstArt
-            self.nat_boro_cnst = False
-
-            self.borocnst = xr.Dataset(
-                coords={"mNrm": self.m_nrm_min, "aNrm": self.m_nrm_min},
-                data_vars={"cNrm": 0.0},
-            )
-
     def post_state_transition(self, post_state=None, shocks=None, params=None):
         """
         post_state to next_state transition
         """
-        ns = {}  # pytree
-        ns["mNrm"] = (
+        next_state = {}  # pytree
+        next_state["mNrm"] = (
             post_state["aNrm"] * params.Rfree / (params.PermGroFac * shocks["perm"])
             + shocks["tran"]
         )
-        return ns
+        return next_state
 
     def continuation_transition(
         self, shocks=None, post_state=None, v_next=None, params=None
@@ -507,15 +485,17 @@ class ConsIndShockLabeledSolver(ConsPerfForesightLabeledSolver):
         continuation value function of post_state
         """
         variables = {}  # pytree
-        ns = self.post_state_transition(post_state, shocks, params)
-        variables.update(ns)
+        next_state = self.post_state_transition(post_state, shocks, params)
+        variables.update(next_state)
 
         variables["psi"] = params.PermGroFac * shocks["perm"]
 
-        variables["v"] = variables["psi"] ** (1 - params.CRRA) * v_next(ns)
+        variables["v"] = variables["psi"] ** (1 - params.CRRA) * v_next(next_state)
 
         variables["v_der"] = (
-            params.Rfree * variables["psi"] ** (-params.CRRA) * v_next.derivative(ns)
+            params.Rfree
+            * variables["psi"] ** (-params.CRRA)
+            * v_next.derivative(next_state)
         )
 
         # for estimagic purposes
@@ -603,26 +583,26 @@ class ConsRiskyAssetLabeledSolver(ConsIndShockLabeledSolver):
     Rfree: float
     PermGroFac: float
     BoroCnstArt: float
-    aXtraGrid: np.array
+    aXtraGrid: np.ndarray
 
     def __post_init__(self):
         self.def_utility_funcs()
 
-    def define_boundary_constraint(self):
+    def calculate_borrowing_constraint(self):
         self.BoroCnstArt = 0.0
         self.IncShkDstn = self.ShockDstn
-        return super().define_boundary_constraint()
+        return super().calculate_borrowing_constraint()
 
     def post_state_transition(self, post_state=None, shocks=None, params=None):
         """
         post_state to next_state transition
         """
-        ns = {}  # pytree
-        ns["mNrm"] = (
+        next_state = {}  # pytree
+        next_state["mNrm"] = (
             post_state["aNrm"] * shocks["risky"] / (params.PermGroFac * shocks["perm"])
             + shocks["tran"]
         )
-        return ns
+        return next_state
 
     def continuation_transition(
         self, shocks=None, post_state=None, v_next=None, params=None
@@ -631,15 +611,17 @@ class ConsRiskyAssetLabeledSolver(ConsIndShockLabeledSolver):
         continuation value function of post_state
         """
         variables = {}  # pytree
-        ns = self.post_state_transition(post_state, shocks, params)
-        variables.update(ns)
+        next_state = self.post_state_transition(post_state, shocks, params)
+        variables.update(next_state)
 
         variables["psi"] = params.PermGroFac * shocks["perm"]
 
-        variables["v"] = variables["psi"] ** (1 - params.CRRA) * v_next(ns)
+        variables["v"] = variables["psi"] ** (1 - params.CRRA) * v_next(next_state)
 
         variables["v_der"] = (
-            shocks["risky"] * variables["psi"] ** (-params.CRRA) * v_next.derivative(ns)
+            shocks["risky"]
+            * variables["psi"] ** (-params.CRRA)
+            * v_next.derivative(next_state)
         )
 
         # for estimagic purposes
@@ -712,14 +694,16 @@ class ConsFixedPortfolioLabeledSolver(ConsRiskyAssetLabeledSolver):
         """
         post_state to next_state transition
         """
-        ns = {}  # pytree
-        ns["rDiff"] = params.Rfree - shocks["risky"]
-        ns["rPort"] = params.Rfree + ns["rDiff"] * post_state["stigma"]
-        ns["mNrm"] = (
-            post_state["aNrm"] * ns["rPort"] / (params.PermGroFac * shocks["perm"])
+        next_state = {}  # pytree
+        next_state["rDiff"] = params.Rfree - shocks["risky"]
+        next_state["rPort"] = params.Rfree + next_state["rDiff"] * post_state["stigma"]
+        next_state["mNrm"] = (
+            post_state["aNrm"]
+            * next_state["rPort"]
+            / (params.PermGroFac * shocks["perm"])
             + shocks["tran"]
         )
-        return ns
+        return next_state
 
     def continuation_transition(
         self, shocks=None, post_state=None, v_next=None, params=None
@@ -728,15 +712,17 @@ class ConsFixedPortfolioLabeledSolver(ConsRiskyAssetLabeledSolver):
         continuation value function of post_state
         """
         variables = {}  # pytree
-        ns = self.post_state_transition(post_state, shocks, params)
-        variables.update(ns)
+        next_state = self.post_state_transition(post_state, shocks, params)
+        variables.update(next_state)
 
         variables["psi"] = params.PermGroFac * shocks["perm"]
 
-        variables["v"] = variables["psi"] ** (1 - params.CRRA) * v_next(ns)
+        variables["v"] = variables["psi"] ** (1 - params.CRRA) * v_next(next_state)
 
         variables["v_der"] = (
-            ns["rPort"] * variables["psi"] ** (-params.CRRA) * v_next.derivative(ns)
+            next_state["rPort"]
+            * variables["psi"] ** (-params.CRRA)
+            * v_next.derivative(next_state)
         )
 
         # for estimagic purposes
@@ -778,14 +764,16 @@ class ConsPortfolioLabeledSolver(ConsFixedPortfolioLabeledSolver):
         """
         post_state to next_state transition
         """
-        ns = {}  # pytree
-        ns["rDiff"] = shocks["risky"] - params.Rfree
-        ns["rPort"] = params.Rfree + ns["rDiff"] * post_state["stigma"]
-        ns["mNrm"] = (
-            post_state["aNrm"] * ns["rPort"] / (params.PermGroFac * shocks["perm"])
+        next_state = {}  # pytree
+        next_state["rDiff"] = shocks["risky"] - params.Rfree
+        next_state["rPort"] = params.Rfree + next_state["rDiff"] * post_state["stigma"]
+        next_state["mNrm"] = (
+            post_state["aNrm"]
+            * next_state["rPort"]
+            / (params.PermGroFac * shocks["perm"])
             + shocks["tran"]
         )
-        return ns
+        return next_state
 
     def continuation_transition(
         self, shocks=None, post_state=None, v_next=None, params=None
@@ -794,17 +782,21 @@ class ConsPortfolioLabeledSolver(ConsFixedPortfolioLabeledSolver):
         continuation value function of post_state
         """
         variables = {}  # pytree
-        ns = self.post_state_transition(post_state, shocks, params)
-        variables.update(ns)
+        next_state = self.post_state_transition(post_state, shocks, params)
+        variables.update(next_state)
 
         variables["psi"] = params.PermGroFac * shocks["perm"]
 
-        variables["v"] = variables["psi"] ** (1 - params.CRRA) * v_next(ns)
+        variables["v"] = variables["psi"] ** (1 - params.CRRA) * v_next(next_state)
 
-        variables["v_der"] = variables["psi"] ** (-params.CRRA) * v_next.derivative(ns)
+        variables["v_der"] = variables["psi"] ** (-params.CRRA) * v_next.derivative(
+            next_state
+        )
 
-        variables["dvda"] = ns["rPort"] * variables["v_der"]
-        variables["dvds"] = ns["rDiff"] * post_state["aNrm"] * variables["v_der"]
+        variables["dvda"] = next_state["rPort"] * variables["v_der"]
+        variables["dvds"] = (
+            next_state["rDiff"] * post_state["aNrm"] * variables["v_der"]
+        )
 
         # for estimagic purposes
 
