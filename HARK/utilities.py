@@ -1126,7 +1126,7 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
             metadata={'CreationDate': None}
         )  # For web/html
         plt.savefig(os.path.join(target_dir, "{}.pdf".format(figure_name)),metadata={'CreationDate': None})  # For LaTeX
-        plt.savefig(os.path.join(target_dir, "{}.svg".format(figure_name)),metadata={'CreationDate': None})  # For html5
+        plt.savefig(os.path.join(target_dir, "{}.svg".format(figure_name)),metadata={'Date': None})  # For html5
     # Make sure it's possible to plot it by checking for GUI
     if drawFigs and find_gui():
         plt.ion()  # Counterintuitively, you want interactive mode on if you don't want to interact
