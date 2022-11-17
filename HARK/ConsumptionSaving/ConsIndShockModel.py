@@ -2700,7 +2700,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         params['Rfree'] = params['T_cycle']*[self.Rfree]
         params['UnempPrb'] = params['T_cycle']*[self.UnempPrb]
         params['IncUnemp'] = params['T_cycle']*[self.IncUnemp]
-        #params['aXtraExtra'] = [None]
         
         # Create instance of a finite horizon agent
         FinHorizonAgent = IndShockConsumerType(**params)
@@ -2738,7 +2737,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         FinHorizonAgent.update_income_process()
         
         # Calculate Transition Matrices
-        #FinHorizonAgent.aXtraExtra = self.aXtraExtra
         FinHorizonAgent.define_distribution_grid()        
         FinHorizonAgent.calc_transition_matrix()
         
@@ -2749,51 +2747,141 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Append steady state policy grid into list of policy grids as HARK does not provide the initial policy
         c_t.append(self.c_ss)
         a_t.append(self.a_ss)
-
-        # List of computed transition matrices for each period
-        Tran_matrices = FinHorizonAgent.tran_matrix
             
-        #Fake News Trick (part of it) begins below
-        CJAC = []
-        AJAC = []
+        #Fake News Trick  begins below
         
-        # i is period in which shock occurs
-        for i in range(params['T_cycle']): # i is the period in which the perturbation occurs
-                    
-            consumptionA =[] # List of Aggregate Consumption Values
-            AssetsA = [] # list of Aggregate Assets values
+        a_ss = self.aPol_Grid # steady state Asset Policy 
+        c_ss = self.cPol_Grid # steady state Consumption Policy 
+        tranmat_ss = self.tran_matrix # Steady State Transition Matrix
         
-            dstn = self.vec_erg_dstn
-        
-            for j in range(params['T_cycle']): # j is the period of the aggregates we are computing
-                
-            
-                if j <= i :#before the shock occurs
-                    
-                    dstn = np.dot(Tran_matrices[params['T_cycle'] - 1 - i + j],dstn) #Update Distribution
+        # Expectation Vectors
+        exp_vecs_a = []
+        exp_vecs_c = []
 
-                    consumption = np.dot(c_t[params['T_cycle']    - i + j],dstn) 
-                    consumptionA.append(consumption)
-                    
-                    Assets = np.dot(a_t[params['T_cycle']   - i + j],dstn) 
-                    AssetsA.append(Assets)
-                    
-                    
-                else:# after the shock occurs simply apply the steady state values
-                    
-                    dstn = np.dot(self.tran_matrix,dstn) #Update distribution
-
-                    consumption = np.dot(self.c_ss,dstn) 
-                    consumptionA.append(consumption)
-                    
-                    Assets = np.dot(self.a_ss,dstn) 
-                    AssetsA.append(Assets)
-                    
-                    
-            CJAC.append( (consumptionA -  self.C_ss)/dx ) #First differences to compute derivative
-            AJAC.append( (AssetsA - self.A_ss)/dx ) #First differences to compute derivative
+        # First expectation vector is the steady state policy
+        exp_vec_a = a_ss
+        exp_vec_c = c_ss
+        for i in range(T-1):
             
-        return np.array(CJAC)[:,:,0].T, np.array(AJAC)[:,:,0].T
+            exp_vecs_a.append(exp_vec_a)
+            exp_vec_a = np.dot( tranmat_ss.T, exp_vec_a )
+            
+            exp_vecs_c.append(exp_vec_c)
+            exp_vec_c = np.dot( tranmat_ss.T, exp_vec_c )
+        
+        # Turn expectation vectors into arrays
+        exp_vecs_a = np.array(exp_vecs_a)
+        exp_vecs_c = np.array(exp_vecs_c)
+        
+        
+        #List of asset policies grids where households expect the shock to occur in the second to last Period
+        a_t = FinHorizonAgent.aPol_Grid
+        a_t.append( self.a_ss )# add steady state assets to list as it does not get appended in calc_transition_matrix method
+        
+        #List of consumption policies grids where households expect the shock to occur in the second to last Period
+        c_t = FinHorizonAgent.cPol_Grid
+        c_t.append( self.c_ss ) # add steady state consumption to list as it does not get appended in calc_transition_matrix method
+        
+        da0_s = []
+        dc0_s = []
+        for i in range(T):
+            da0_s.append( a_t[T    - i ] - a_ss )
+            dc0_s.append( c_t[T    - i ] - c_ss )
+        
+            
+        da0_s = np.array(da0_s)
+        dc0_s = np.array(dc0_s)
+        
+        # Steady state distribution of market resources (permanent income weighted distribution)
+        D_ss = self.vec_erg_dstn.T[0]
+        dA0_s = []
+        dC0_s = []
+        for i in range(T):
+            dA0_s.append( np.dot(da0_s[i], D_ss))
+            dC0_s.append( np.dot(dc0_s[i], D_ss))
+        
+        dA0_s = np.array(dA0_s)
+        A_curl_s = dA0_s/dx # This is equivalent to the curly Y scalar detailed in the first step of the algorithm
+        
+        dC0_s = np.array(dC0_s)
+        C_curl_s = dC0_s/dx
+        
+        #List of computed transition matrices for each period
+        tranmat_t = FinHorizonAgent.tran_matrix
+        tranmat_t.append(tranmat_ss)
+        
+        # List of change in transition matrix relative to the steady state transition matrix
+        dlambda0_s = []
+        for i in range(T):
+            dlambda0_s.append( tranmat_t[T - i ] - tranmat_ss )
+            
+        dlambda0_s = np.array(dlambda0_s)
+        
+        dD0_s = []
+        
+        for i in range(T):
+            dD0_s.append( np.dot( dlambda0_s[i], D_ss )  )
+        
+        dD0_s = np.array(dD0_s)
+        D_curl_s = dD0_s/dx # Curly D in the sequence space jacobian
+        
+        # Fake news matrices
+        Curl_F_A = np.zeros( ( T , T ) ) # Fake news matrix for assets
+        Curl_F_C = np.zeros( ( T , T ) ) # Fake news matrix for consumption
+        
+        # First row of Fake News Matrix
+        Curl_F_A[0] = A_curl_s
+        Curl_F_C[0] = C_curl_s
+        
+        for i in range(T-1):
+            for j in range(T):
+                # This is the third step of the algorithm. In particular equation 26 of the published paper.
+                Curl_F_A[i+1][j] = np.dot(exp_vecs_a[i], D_curl_s[j])
+                Curl_F_C[i+1][j] = np.dot(exp_vecs_c[i], D_curl_s[j])
+        
+        # Jacobian Matrices
+        J_A = np.zeros((T,T)) # Asset Jacobian 
+        J_C = np.zeros((T,T)) # Consumption Jacobian
+        for t in range(T):
+            for s in range(T):
+                if (t ==0) or (s==0):
+                    J_A[t][s] = Curl_F_A[t][s]
+                    J_C[t][s] = Curl_F_C[t][s]
+                else:
+                    J_A[t][s] = J_A[t-1][s-1] + Curl_F_A[t][s]
+                    J_C[t][s] = J_C[t-1][s-1] + Curl_F_C[t][s]
+
+        # Compute zeroth column of jacobian
+        shock0_TM = [ tranmat_t[params['T_cycle'] - 1] ]  + (T - 1)*[self.tran_matrix] # List of transition matrices where the first transition matrix inherits the shock
+
+        C_list = [] # Aggrgate Consumption Values
+        A_list = [] # Aggregate Asset values
+        
+        A_ss = np.dot(self.a_ss,self.vec_erg_dstn)[0] # Steady State Assets
+        C_ss = np.dot(self.c_ss,self.vec_erg_dstn)[0] # Steady State Consumption
+        dstn = self.vec_erg_dstn
+        for i in range(T): # Period in which we are computing Aggregate Consumption
+            
+            dstn = np.dot(shock0_TM[i],dstn) #Update Distribution
+        
+            C_agg_0  = np.dot(self.c_ss,dstn)[0] # Aggregate Consumption
+            C_list.append(C_agg_0)
+            
+            A_agg_0  = np.dot(self.a_ss,dstn)[0] # Aggregate Assets
+            A_list.append(A_agg_0)
+        
+        A_list = np.array(A_list)
+        C_list = np.array(C_list)
+        
+        AJAC = (A_list - A_ss)/dx # Compute Impulse Response of Assets
+        CJAC = (C_list - C_ss)/dx# Compute Impulse Response of Consumption
+        
+        # Fill first column of jacobians with computed impulse response
+        J_C.T[0] = CJAC
+        J_A.T[0] = AJAC
+        
+        return J_C, J_A
+        
         
 
     
