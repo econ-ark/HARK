@@ -896,6 +896,6 @@ class test_Jacobian_methods(unittest.TestCase):
         CJAC_Perm,AJAC_Perm = Agent.calc_jacobian('PermShkStd',50)
 
               
-        self.assertAlmostEqual(CJAC_Perm.T[30][29],  -0.061180723891496314) 
-        self.assertAlmostEqual(CJAC_Perm.T[30][30],  0.05308804499781772) 
-        self.assertAlmostEqual(CJAC_Perm.T[30][31],  0.04675702789391778) 
+        self.assertAlmostEqual(CJAC_Perm.T[30][29],  -0.06119546439244016) 
+        self.assertAlmostEqual(CJAC_Perm.T[30][30],  0.05307403413575694) 
+        self.assertAlmostEqual(CJAC_Perm.T[30][31],  0.0467441811904044) 
