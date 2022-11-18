@@ -11,27 +11,38 @@ from HARK.distribution import Distribution
 
 epsilon = 1e-4
 
+@dataclass
 class SolutionDataset(object):
-    def __init__(self, dataset: xr.Dataset, actions = {}):
-        self.actions = actions
-        self.dataset = dataset
+    dataset : xr.Dataset
+    actions: Sequence[str] = field(default_factory=list)
+
+    # Used to tame unruly value functions between interpolations.
+    value_transform : Callable[float, float] = lambda v : v
+    value_transform_inv : Callable[float, float] = lambda v : v
 
     def __repr__(self):
         return self.dataset.__repr__()
         
     ## TODO: Add in assume sorted to make it faster
     def v_x(self, x : Mapping[str, Any]) -> float:
-        return self.dataset['v_x'].interp(**x, kwargs={"fill_value": None}) # Python 3.8 None -> 'extrapolate'
+        # Note: 'fill_value' expects None or 'extrapolate' based on software version?
+        return self.dataset.map(self.value_transform)['v_x'] \
+                           .interp(**x, kwargs={"fill_value": 'extrapolate'}) \
+                           .to_dataset().map(self.value_transform_inv)['v_x']
 
     def pi_star(self, x : Mapping[str, Any], k : Mapping[str, Any]):
         """
 
         TODO: Option to return a labelled map...
         """
-        return self.dataset['pi*'].interp({**x, **k}, kwargs={"fill_value": None}) # Python 3.8 None -> 'extrapolate'
+        # Note: 'fill_value' expects None or 'extrapolate' based on software version?
+        return self.dataset['pi*'].interp({**x, **k}, kwargs={"fill_value": 'extrapolate'})
     
     def q(self, x : Mapping[str, Any], k : Mapping[str, Any], a : Mapping[str, Any]) -> float:
-        return self.dataset['q'].interp({**x, **k, **a}, kwargs={"fill_value": None}) # Python 3.8 None -> 'extrapolate'
+        # Note: 'fill_value' expects None or 'extrapolate' based on software version?
+        return self.dataset['q'].map(self.value_transform) \
+                                .interp({**x, **k, **a}, kwargs={"fill_value": 'extrapolate'}) \
+                                .map(self.value_transform_inv)
 
 
 @dataclass
@@ -56,9 +67,16 @@ class Stage:
 
     # Condition must be continuously valued, with a negative value if it fails
     # Note: I've had problems with the optimizers that use constraints; switching to Bounds -- SB
-    constraints: Sequence[Callable[[Mapping, Mapping, Mapping], float]] = field(default_factory=list)\
+    constraints: Sequence[Callable[[Mapping, Mapping, Mapping], float]] = field(default_factory=list)
     
     optimizer_args : Mapping[str, Any] = field(default_factory=dict)
+
+    # Used to tame unruly value functions, such as those that go to -inf
+    value_transform : Callable[float, float] = lambda v : v
+    value_transform_inv : Callable[float, float] = lambda v : v
+
+    # used to provide a pi* value for binding states
+    pi_star_points : Mapping[tuple[Sequence[float], Sequence[float]], Sequence[float]] = field(default_factory=list)
 
     def __post_init__(self):
         if self.action_upper_bound is None:
@@ -96,7 +114,10 @@ class Stage:
         elif callable(self.discount):
             discount = self.discount(x, k, a)
 
-        return self.reward(x, k, a) + discount * v_y(self.T(x, k, a, constrain = False)) 
+        q = self.reward(x, k, a) + discount * v_y(self.T(x, k, a, constrain = False)) 
+
+        #print(f'q: {q}')
+        return q
 
     def optimal_policy(self,
                        x_grid : Mapping[str, Sequence] = {},
@@ -143,6 +164,21 @@ class Stage:
         ## What is happenign when there are _no_ actions?
         ## Is the optimizer still running?
         xk_grid_size = np.prod([len(xv) for xv in x_grid.values()]) * np.prod([len(kv) for kv in k_grid.values()])
+
+        for (x_point, k_point) in self.pi_star_points:
+            x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
+            k_vals = {k : v for k, v in zip(k_grid.keys() , k_point)}
+
+            acts = self.pi_star_points[(x_point, k_point)]
+
+            q = -q_for_minimizer(acts, x_vals, k_vals, v_y)
+
+            pi_data.sel(**x_vals, **k_vals).variable.data.put(0, acts)
+            q_data.sel(**x_vals, **k_vals).variable.data.put(
+                0, q
+            )
+
+
         print(f"Grid size: {xk_grid_size}")
         for x_point in itertools.product(*x_grid.values()):
             x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
@@ -183,7 +219,7 @@ class Stage:
                         self.action_upper_bound(x_vals, k_vals)
                     )]
 
-                    print(f'a0: {a0f(x_vals)}')
+                    #print(f'a0: {a0f(x_vals)}')
                 
                     pi_star_res = minimize(
                         q_for_minimizer,
@@ -200,15 +236,16 @@ class Stage:
                 
                     if pi_star_res.success:
                         pi_data.sel(**x_vals, **k_vals).variable.data.put(0, pi_star_res.x)
-                        q_data.sel(**x_vals, **k_vals).variable.data.put(0, -pi_star_res.fun) # flips it back
+                        q_data.sel(**x_vals, **k_vals).variable.data.put(
+                            0, -pi_star_res.fun # flips it back
+                            ) 
                     else:
+                        print(f"Optimization failure at {x_vals}, {k_vals}.")
                         print(pi_star_res)
-                        print(x_vals)
-                        print(k_vals)
 
                         #raise Exception("Failed to optimize.")
-                        pi_data.sel(**x_vals, **k_vals).variable.data.put(0, np.nan)
-                        q_data.sel(**x_vals, **k_vals).variable.data.put(0, np.nan)
+                        pi_data.sel(**x_vals, **k_vals).variable.data.put(0,  pi_star_res.x)
+                        q_data.sel(**x_vals, **k_vals).variable.data.put(0, pi_star_res.fun)
                         
                     
         # TODO: Store these values on a grid, so it does not need to be recomputed
@@ -305,11 +342,16 @@ class Stage:
                 value_x
                 )
 
-        return SolutionDataset(xr.Dataset({
-            'v_x' : v_x_values,
-            'pi*' : pi_star_values,
-            'q' : q_values, 
-        }), actions = self.actions)
+        return SolutionDataset(
+            xr.Dataset({
+                'v_x' : v_x_values,
+                'pi*' : pi_star_values,
+                'q' : q_values,
+            }), 
+            actions = self.actions,
+            value_transform = self.value_transform,
+            value_transform_inv = self.value_transform_inv
+            )
 
 def backwards_induction(stages_data, terminal_v_y):
     """
