@@ -18,17 +18,27 @@ sigma_theta = 1.15
 sigma_eta = 1.1
 p_live = 0.98
 
+# Replace this when CRRAutility can handle 0 as an input.
+CRRAutility_hack = lambda u, gam: float('-inf') if u == 0.0 else CRRAutility(u, gam)
+
 class testPortfolioConsumptionStages(unittest.TestCase):
     def setUp(self):
 
         self.consumption_stage = Stage(
             transition = lambda x, k, a : {'a' : x['m'] - a['c']}, 
-            reward = lambda x, k, a : CRRAutility(a['c'], CRRA), 
+            reward = lambda x, k, a : CRRAutility_hack(a['c'], CRRA), 
             inputs = ['m'], 
             actions = ['c'],
             outputs = ['a'],
-            constraints = [lambda x, k, a: x['m'] - a['c']], # has to be nonnegative to clear
-            discount = .96 # lambda x, k, a : .96 * k['psi']^(1 - CRRA) < --- 
+            action_upper_bound = lambda x, k: (x['m'],) , 
+            action_lower_bound = lambda x, k: (0,) , 
+            discount = .96, # lambda x, k, a : .96 * k['psi']^(1 - CRRA) < --- 
+            optimizer_args = {
+                'method' : 'Nelder-Mead',
+                'options' : {
+                    'maxiter': 75000,
+                }
+            },
         )
 
         self.allocation_stage = Stage(
@@ -63,18 +73,18 @@ class testPortfolioConsumptionStages(unittest.TestCase):
     def test_consumption_stage(self):
 
         def consumption_v_y(y : Mapping[str,Any]):
-            return CRRAutility(y['a'], CRRA)
+            return CRRAutility_hack(y['a'], CRRA) - 1
 
         pi_star, q = self.consumption_stage.optimal_policy(
-            {'m' : [9, 11, 20, 300, 4000, 5500]},
+            {'m' : [1, 3, 6, 12, 20, 26]},
             v_y = consumption_v_y
             )
 
         # q function has proper coords
-        assert q.coords['m'][4].data.tolist() == 4000
+        assert q.coords['m'][4].data.tolist() == 20
 
-        # Consumer over half the resources
-        assert (pi_star[5] > 2750).data.tolist()
+        # Consume over half the resources
+        assert (pi_star[5]).data.tolist() > 13
 
         assert self.consumption_stage.T({'m' : 100}, {}, {'c' : 50})['a'] == 50
 
