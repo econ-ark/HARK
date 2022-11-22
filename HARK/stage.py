@@ -119,6 +119,27 @@ class Stage:
         #print(f'q: {q}')
         return q
 
+    def coords_with_pi_star_points(self,
+                                   x_grid : Mapping[str, Sequence] = {},
+                                   k_grid : Mapping[str, Sequence] = {}):
+
+        new_x_grid = x_grid.copy()
+        new_k_grid = k_grid.copy()
+
+        ## Adding given pi* points to coords
+        for (x_point, k_point) in self.pi_star_points:
+            for xi, x_val in enumerate(x_point):
+                ii = np.searchsorted(new_x_grid[self.inputs[xi]], x_point)
+                new_x_grid[self.inputs[xi]] = np.insert(new_x_grid[self.inputs[xi]],ii,x_val)
+
+            for ki, k_val in enumerate(k_point):
+                ii = np.searchsorted(new_k_grid[self.shocks[ki]], k_point)
+                new_k_grid[self.shocks[ki]] = np.insert(new_k_grid[self.shocks[ki]],ii,k_val)
+
+        coords = {**new_x_grid, **new_k_grid}
+
+        return coords, new_x_grid, new_k_grid
+
     def optimal_policy(self,
                        x_grid : Mapping[str, Sequence] = {},
                        k_grid : Mapping[str, Sequence] = {},
@@ -140,18 +161,20 @@ class Stage:
             a0f = all_optimizer_args['a0f']
             del all_optimizer_args['a0f']
 
+        coords, _, _ = self.coords_with_pi_star_points(x_grid, k_grid)
+
         pi_data = xr.DataArray(
-            np.zeros([len(v) for v in x_grid.values()] + [len(v) for v in k_grid.values()]),
-            dims= {**x_grid, **k_grid}.keys(),
-            coords={**x_grid, **k_grid}
+            np.zeros([len(v) for v in coords.values()]),
+            dims = {**x_grid, **k_grid}.keys(),
+            coords = coords
         )
 
         q_data = xr.DataArray(
-            np.zeros([len(v) for v in x_grid.values()] + [len(v) for v in k_grid.values()]),
-            dims= {**x_grid, **k_grid}.keys(),
-            coords={**x_grid, **k_grid}
+            np.zeros([len(v) for v in coords.values()]),
+            dims = {**x_grid, **k_grid}.keys(),
+            coords = coords
         )
-        
+
         def q_for_minimizer(action_values, x : Mapping[str, Any] , k : Mapping[str, Any], v_y):
             """Flips negative for the _minimizer_"""
             return -self.q(
@@ -177,7 +200,6 @@ class Stage:
             q_data.sel(**x_vals, **k_vals).variable.data.put(
                 0, q
             )
-
 
         print(f"Grid size: {xk_grid_size}")
         for x_point in itertools.product(*x_grid.values()):
@@ -260,12 +282,6 @@ class Stage:
         v_y : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
         optimizer_args = None
         ):
-        
-        v_x_values = xr.DataArray(
-            np.zeros([len(v) for v in x_grid.values()]),
-            dims= {**x_grid}.keys(),
-            coords={**x_grid}
-        )
 
         discretized_shocks = {}
 
@@ -279,18 +295,28 @@ class Stage:
                     f"Warning: parameter {shock} is not a Distribution found in shocks {self.shocks}"
                 )
 
+        ## No pre-given pi* values here; maybe shouldn't be here.
         k_grid = {
             shock : discretized_shocks[shock].atoms.flatten()
             for shock
             in discretized_shocks
         }
 
+        ## These grids have the given pi* values added
+        _, new_x_grid, new_k_grid = self.coords_with_pi_star_points(x_grid, k_grid)
+
+        v_x_values = xr.DataArray(
+            np.zeros([len(v) for v in new_x_grid.values()]),
+            dims= {**new_x_grid}.keys(),
+            coords={**new_x_grid}
+        )
+
         pi_star_values, q_values = self.optimal_policy(x_grid, k_grid, v_y, optimizer_args = optimizer_args)
 
         ## Taking expectations over the generated k-grid, with p_k, of...
             ## Computing optimal policy pi* and q*_value for each x,k
 
-        for x_point in itertools.product(*x_grid.values()):
+        for x_point in itertools.product(*new_x_grid.values()):
             x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
 
             ## This is a somewhat hacky way to take expectations
@@ -301,6 +327,8 @@ class Stage:
             # it will need to better use array indexing to work.
             
             # as before but including the index now
+
+            ## Note: no preset pi* points show up here.
             k_grid_i = {
                 shock : list(enumerate(discretized_shocks[shock].atoms.flatten()))
                 for shock
@@ -308,7 +336,7 @@ class Stage:
             }
 
             value_x = 0
-            
+
             for k_point in itertools.product(*k_grid_i.values()):
                 k_pms = {
                     k : discretized_shocks[k].pmv[v[0]]
