@@ -742,14 +742,16 @@ class Uniform(Distribution):
             )
         return draws[0] if len(draws) == 1 else draws
 
-    def approx(self, N):
+    def approx(self, N, endpoint=False):
         """
         Makes a discrete approximation to this uniform distribution.
 
         Parameters
         ----------
         N : int
-            The number of points in the discrete approximation
+            The number of points in the discrete approximation.
+        endpoint : bool
+            Whether to include the endpoints in the approximation.
 
         Returns
         -------
@@ -758,11 +760,17 @@ class Uniform(Distribution):
             points for discrete probability mass function.
         """
         pmv = np.ones(N) / float(N)
+
         center = (self.top + self.bot) / 2.0
         width = (self.top - self.bot) / 2.0
         atoms = center + width * np.linspace(-(N - 1.0) / 2.0, (N - 1.0) / 2.0, N) / (
             N / 2.0
         )
+
+        if endpoint:  # insert endpoints with infinitesimally small mass
+            atoms = np.concatenate(([self.bot], atoms, [self.top]))
+            pmv = np.concatenate(([0.0], pmv, [0.0]))
+
         return DiscreteDistribution(
             pmv, atoms, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
         )
