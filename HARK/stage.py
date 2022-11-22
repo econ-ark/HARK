@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 import datetime
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence, Tuple
 import itertools
 import numpy as np
 from scipy.optimize import minimize
@@ -76,7 +76,8 @@ class Stage:
     value_transform_inv : Callable[[float], float] = lambda v : v
 
     # used to provide a pi* value for binding states
-    pi_star_points : Mapping[tuple[Sequence[float], Sequence[float]], Sequence[float]] = field(default_factory=list)
+    # Tuple deprecated in 3.9, but necessary for 3.8
+    pi_star_points : Mapping[Tuple[Sequence[float], Sequence[float]], Sequence[float]] = field(default_factory=list)
 
     def __post_init__(self):
         if self.action_upper_bound is None:
