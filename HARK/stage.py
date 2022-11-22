@@ -17,8 +17,8 @@ class SolutionDataset(object):
     actions: Sequence[str] = field(default_factory=list)
 
     # Used to tame unruly value functions between interpolations.
-    value_transform : Callable[float, float] = lambda v : v
-    value_transform_inv : Callable[float, float] = lambda v : v
+    value_transform : Callable[[float], float] = lambda v : v
+    value_transform_inv : Callable[[float], float] = lambda v : v
 
     def __repr__(self):
         return self.dataset.__repr__()
@@ -72,8 +72,8 @@ class Stage:
     optimizer_args : Mapping[str, Any] = field(default_factory=dict)
 
     # Used to tame unruly value functions, such as those that go to -inf
-    value_transform : Callable[float, float] = lambda v : v
-    value_transform_inv : Callable[float, float] = lambda v : v
+    value_transform : Callable[[float], float] = lambda v : v
+    value_transform_inv : Callable[[float], float] = lambda v : v
 
     # used to provide a pi* value for binding states
     pi_star_points : Mapping[tuple[Sequence[float], Sequence[float]], Sequence[float]] = field(default_factory=list)
