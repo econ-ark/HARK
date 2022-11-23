@@ -30,13 +30,16 @@ class SolutionDataset(object):
                            .interp(**x, kwargs={"fill_value": 'extrapolate'}) \
                            .to_dataset().map(self.value_transform_inv)['v_x']
 
-    def pi_star(self, x : Mapping[str, Any], k : Mapping[str, Any]):
+    def pi_star(self, x : Mapping[str, Any], k : Mapping[str, Any], ):
         """
 
         TODO: Option to return a labelled map...
         """
         # Note: 'fill_value' expects None or 'extrapolate' based on software version?
-        return self.dataset['pi*'].interp({**x, **k}, kwargs={"fill_value": 'extrapolate'})
+        ads = self.dataset['pi*'].interp({**x, **k}, kwargs={"fill_value": 'extrapolate'})
+
+        # use of flatten() here for when ads.values is 0 dimensional.
+        return {a : v for a,v in zip(self.actions, ads.values.flatten())}
     
     def q(self, x : Mapping[str, Any], k : Mapping[str, Any], a : Mapping[str, Any]) -> float:
         # Note: 'fill_value' expects None or 'extrapolate' based on software version?
@@ -424,3 +427,25 @@ def backwards_induction(stages_data, terminal_v_y):
         print(f"Time to backwards induce v_x: {elapsed_time}")
         
     return sols
+
+def simulate_stage(stage: Stage, x_values: Mapping[str, Any], policy):
+    """
+    Monte Carlo simulates a stage given input x and policy pi.
+
+    TODO: Multiple inputs at once (i.e. many data points/samples...)
+    """
+    #The stage can be Monte Carlo simulated forward by:
+    # - Sampling $\vec{k} \sim P_\vec{K}$
+    k_values = {shock : stage.shocks[shock].draw(1)[0] for shock in stage.shocks}
+
+    # - Determining actions $\vec{a} = \pi(\vec{x}, \vec{k})$
+    a_values = policy(x_values, k_values)
+
+    # - Computing reward $F(\vec{x}, \vec{k}, \vec{a})$ and discount factor $\beta(\vec{x}, \vec{k}, \vec{a})$
+    reward = stage.reward(x_values, k_values, a_values)
+    # TODO: Compute discount factor if it's a function
+
+    # - Transitioning to ouput state $\vec{y} = T(\vec{x}, \vec{k}, \vec{a})$
+    y_values = stage.transition(x_values, k_values, a_values)
+
+    return k_values, a_values, y_values, reward

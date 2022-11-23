@@ -5,7 +5,7 @@ This file implements unit tests for abstract Bellman stage code.
 from typing import Any, Mapping
 import HARK.distribution as distribution
 from HARK.utilities import CRRAutility
-from HARK.stage import Stage
+from HARK.stage import Stage, simulate_stage
 import unittest
 
 CRRA = 5
@@ -94,24 +94,14 @@ class testPortfolioConsumptionStages(unittest.TestCase):
 
         assert self.consumption_stage.q({'m' : 100}, {}, {'c' : 50}, v_y = consumption_v_y) < 0.000001
 
-        sol = self.consumption_stage.solve(
+        c_sol = self.consumption_stage.solve(
             {'m' : [0, 50, 100, 1000]},
             {},
             consumption_v_y
             )
 
-        ## tests for the consumption soluition...
-        """
-        <xarray.Dataset>
-        Dimensions:  (m: 4)
-        Coordinates:
-        * m        (m) int64 0 50 100 1000
-        Data variables:
-            v_x      (m) float64 -1.291e+17 -1.254e-06 -7.839e-08 -7.839e-12
-            pi*      (m) float64 4.414e-05 25.1 50.2 502.0
-            q        (m) float64 -1.291e+17 -1.254e-06 -7.839e-08 -7.839e-12
-        """
-
+        # simulate forward
+        simulate_stage(self.consumption_stage, {'m' : 5}, c_sol.pi_star)
 
     def test_allocation_stage(self):
 
@@ -129,7 +119,7 @@ class testPortfolioConsumptionStages(unittest.TestCase):
             v_y = allocation_v_y
             )
 
-        sol = self.allocation_stage.solve(
+        a_sol = self.allocation_stage.solve(
             {'a' : [0, 50, 100, 1000]},
             {},
             allocation_v_y
@@ -159,7 +149,7 @@ class testPortfolioConsumptionStages(unittest.TestCase):
 
         q
 
-        sol = self.growth_stage.solve(
+        g_sol = self.growth_stage.solve(
             {'a' : [0, 500, 1000], 'alpha' : [0, 0.5, 1.0]},
             {
                 'psi' : 4, 
@@ -168,4 +158,9 @@ class testPortfolioConsumptionStages(unittest.TestCase):
             # 'live' : [0, 1] 
             }, growth_v_y)
 
-        
+        # simulate forward
+        simulate_stage(
+            self.growth_stage,
+            {'a' : 5, 'alpha' : 0.5},
+            g_sol.pi_star
+            )
