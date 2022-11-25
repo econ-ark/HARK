@@ -2748,31 +2748,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
         c_t.append(self.c_ss)
         a_t.append(self.a_ss)
             
-        #Fake News Trick  begins below
+        #Fake News Algorithm begins below ( To find fake news algorithm See page 2388 of https://onlinelibrary.wiley.com/doi/abs/10.3982/ECTA17434  )
         
+        ##########
+        # STEP 1 # of fake news algorithm, As in the paper for Curly Y and Curly D. Here the policies are over assets and consumption so we denote them as curly C and curly D.
+        ##########
         a_ss = self.aPol_Grid # steady state Asset Policy 
         c_ss = self.cPol_Grid # steady state Consumption Policy 
         tranmat_ss = self.tran_matrix # Steady State Transition Matrix
-        
-        # Expectation Vectors
-        exp_vecs_a = []
-        exp_vecs_c = []
-
-        # First expectation vector is the steady state policy
-        exp_vec_a = a_ss
-        exp_vec_c = c_ss
-        for i in range(T-1):
-            
-            exp_vecs_a.append(exp_vec_a)
-            exp_vec_a = np.dot( tranmat_ss.T, exp_vec_a )
-            
-            exp_vecs_c.append(exp_vec_c)
-            exp_vec_c = np.dot( tranmat_ss.T, exp_vec_c )
-        
-        # Turn expectation vectors into arrays
-        exp_vecs_a = np.array(exp_vecs_a)
-        exp_vecs_c = np.array(exp_vecs_c)
-        
         
         #List of asset policies grids where households expect the shock to occur in the second to last Period
         a_t = FinHorizonAgent.aPol_Grid
@@ -2782,13 +2765,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         c_t = FinHorizonAgent.cPol_Grid
         c_t.append( self.c_ss ) # add steady state consumption to list as it does not get appended in calc_transition_matrix method
         
-        da0_s = []
-        dc0_s = []
+        da0_s = [] # Deviation of asset policy from steady state policy
+        dc0_s = [] # Deviation of Consumption policy from steady state policy
         for i in range(T):
             da0_s.append( a_t[T    - i ] - a_ss )
             dc0_s.append( c_t[T    - i ] - c_ss )
         
-            
         da0_s = np.array(da0_s)
         dc0_s = np.array(dc0_s)
         
@@ -2818,13 +2800,40 @@ class IndShockConsumerType(PerfForesightConsumerType):
         dlambda0_s = np.array(dlambda0_s)
         
         dD0_s = []
-        
         for i in range(T):
             dD0_s.append( np.dot( dlambda0_s[i], D_ss )  )
         
         dD0_s = np.array(dD0_s)
         D_curl_s = dD0_s/dx # Curly D in the sequence space jacobian
         
+        
+        ########
+        #STEP2 # of fake news algorithm
+        ########
+        
+        
+        # Expectation Vectors
+        exp_vecs_a = []
+        exp_vecs_c = []
+
+        # First expectation vector is the steady state policy
+        exp_vec_a = a_ss
+        exp_vec_c = c_ss
+        for i in range(T-1):
+            
+            exp_vecs_a.append(exp_vec_a)
+            exp_vec_a = np.dot( tranmat_ss.T, exp_vec_a )
+            
+            exp_vecs_c.append(exp_vec_c)
+            exp_vec_c = np.dot( tranmat_ss.T, exp_vec_c )
+        
+        # Turn expectation vectors into arrays
+        exp_vecs_a = np.array(exp_vecs_a)
+        exp_vecs_c = np.array(exp_vecs_c)
+        
+        #########
+        # STEP3 # of the algorithm. In particular equation 26 of the published paper.
+        #########
         # Fake news matrices
         Curl_F_A = np.zeros( ( T , T ) ) # Fake news matrix for assets
         Curl_F_C = np.zeros( ( T , T ) ) # Fake news matrix for consumption
@@ -2835,9 +2844,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         
         for i in range(T-1):
             for j in range(T):
-                # This is the third step of the algorithm. In particular equation 26 of the published paper.
                 Curl_F_A[i+1][j] = np.dot(exp_vecs_a[i], D_curl_s[j])
                 Curl_F_C[i+1][j] = np.dot(exp_vecs_c[i], D_curl_s[j])
+                
+                
+        ########
+        #STEP4 #  of the algorithm
+        ########
         
         # Jacobian Matrices
         J_A = np.zeros((T,T)) # Asset Jacobian 
