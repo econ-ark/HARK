@@ -15,6 +15,7 @@ epsilon = 1e-4
 class SolutionDataset(object):
     dataset : xr.Dataset
     actions: Sequence[str] = field(default_factory=list)
+    k_grid : Mapping[str, Sequence[float]] = field(default_factory=dict)
 
     # Used to tame unruly value functions between interpolations.
     value_transform : Callable[[float], float] = lambda v : v
@@ -129,6 +130,16 @@ class Stage:
 
         new_x_grid = x_grid.copy()
         new_k_grid = k_grid.copy()
+        """
+        self.pi_start_points is expected to be a dict, with:
+         - keys that are tuple
+           - first element, a tuple of input state values (unlabeled)
+           - second element, a tuple of shock state values, or None
+        - values are a tuple, each element the value of an action.
+
+        If the shock input is None, that indicates that this is a pi* value for
+        the given input states regardless of shocks.
+        """
 
         ## Adding given pi* points to coords
         for (x_point, k_point) in self.pi_star_points:
@@ -136,6 +147,7 @@ class Stage:
                 ii = np.searchsorted(new_x_grid[self.inputs[xi]], x_point)
                 new_x_grid[self.inputs[xi]] = np.insert(new_x_grid[self.inputs[xi]],ii,x_val)
 
+            k_point = k_point if k_point is not None else ()
             for ki, k_val in enumerate(k_point):
                 ii = np.searchsorted(new_k_grid[self.shocks[ki]], k_point)
                 new_k_grid[self.shocks[ki]] = np.insert(new_k_grid[self.shocks[ki]],ii,k_val)
@@ -194,9 +206,11 @@ class Stage:
 
         for (x_point, k_point) in self.pi_star_points:
             x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
-            k_vals = {k : v for k, v in zip(k_grid.keys() , k_point)}
 
             acts = self.pi_star_points[(x_point, k_point)]
+
+            k_point_tuple = k_point if k_point is not None else ()
+            k_vals = {k : v for k, v in zip(k_grid.keys() , k_point_tuple )}
 
             q = -q_for_minimizer(acts, x_vals, k_vals, v_y)
 
@@ -321,6 +335,7 @@ class Stage:
             ## Computing optimal policy pi* and q*_value for each x,k
 
         for x_point in itertools.product(*new_x_grid.values()):
+
             x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
 
             ## This is a somewhat hacky way to take expectations
@@ -382,7 +397,8 @@ class Stage:
             }), 
             actions = self.actions,
             value_transform = self.value_transform,
-            value_transform_inv = self.value_transform_inv
+            value_transform_inv = self.value_transform_inv,
+            k_grid = k_grid_i
             )
 
 def backwards_induction(stages_data, terminal_v_y):
