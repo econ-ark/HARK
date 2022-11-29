@@ -4,12 +4,24 @@ from typing import Any, Callable, Mapping, Sequence, Tuple
 import itertools
 import numpy as np
 from scipy.optimize import minimize
+import time
 import xarray as xr
 
 from HARK.distribution import Distribution
 
 
 epsilon = 1e-4
+
+
+def label_index_in_dataset(li, dataset):
+    """
+    There has got to be a better way to do this.
+    """
+    try:
+        dataset.sel(li)
+        return True
+    except:
+        return False
 
 @dataclass
 class SolutionDataset(object):
@@ -79,9 +91,8 @@ class Stage:
     value_transform : Callable[[float], float] = lambda v : v
     value_transform_inv : Callable[[float], float] = lambda v : v
 
-    # used to provide a pi* value for binding states
-    # Tuple deprecated in 3.9, but necessary for 3.8
-    pi_star_points : Mapping[Tuple[Sequence[float], Sequence[float]], Sequence[float]] = field(default_factory=list)
+    # Pre-computed points for the solution to this stage
+    solution_points : xr.Dataset = xr.Dataset()
 
     def __post_init__(self):
         if self.action_upper_bound is None:
@@ -124,38 +135,6 @@ class Stage:
         #print(f'q: {q}')
         return q
 
-    def coords_with_pi_star_points(self,
-                                   x_grid : Mapping[str, Sequence] = {},
-                                   k_grid : Mapping[str, Sequence] = {}):
-
-        new_x_grid = x_grid.copy()
-        new_k_grid = k_grid.copy()
-        """
-        self.pi_start_points is expected to be a dict, with:
-         - keys that are tuple
-           - first element, a tuple of input state values (unlabeled)
-           - second element, a tuple of shock state values, or None
-        - values are a tuple, each element the value of an action.
-
-        If the shock input is None, that indicates that this is a pi* value for
-        the given input states regardless of shocks.
-        """
-
-        ## Adding given pi* points to coords
-        for (x_point, k_point) in self.pi_star_points:
-            for xi, x_val in enumerate(x_point):
-                ii = np.searchsorted(new_x_grid[self.inputs[xi]], x_point)
-                new_x_grid[self.inputs[xi]] = np.insert(new_x_grid[self.inputs[xi]],ii,x_val)
-
-            k_point = k_point if k_point is not None else ()
-            for ki, k_val in enumerate(k_point):
-                ii = np.searchsorted(new_k_grid[self.shocks[ki]], k_point)
-                new_k_grid[self.shocks[ki]] = np.insert(new_k_grid[self.shocks[ki]],ii,k_val)
-
-        coords = {**new_x_grid, **new_k_grid}
-
-        return coords, new_x_grid, new_k_grid
-
     def optimal_policy(self,
                        x_grid : Mapping[str, Sequence] = {},
                        k_grid : Mapping[str, Sequence] = {},
@@ -177,17 +156,26 @@ class Stage:
             a0f = all_optimizer_args['a0f']
             del all_optimizer_args['a0f']
 
-        coords, _, _ = self.coords_with_pi_star_points(x_grid, k_grid)
+        ## Add solution points to the x_grid here.
+        new_x_grid = x_grid.copy()
+
+        for x_label in self.solution_points.coords:
+            for sol_x_val in self.solution_points.coords[x_label]:
+                if sol_x_val.values not in x_grid[x_label]:
+                    ii = np.searchsorted(new_x_grid[x_label], sol_x_val)
+                    new_x_grid[x_label] = np.insert(new_x_grid[x_label], ii, sol_x_val)
+
+        coords = {**new_x_grid, **k_grid}
 
         pi_data = xr.DataArray(
             np.zeros([len(v) for v in coords.values()]),
-            dims = {**x_grid, **k_grid}.keys(),
+            dims = coords.keys(),
             coords = coords
         )
 
         q_data = xr.DataArray(
             np.zeros([len(v) for v in coords.values()]),
-            dims = {**x_grid, **k_grid}.keys(),
+            dims = coords.keys(),
             coords = coords
         )
 
@@ -204,23 +192,8 @@ class Stage:
         ## Is the optimizer still running?
         xk_grid_size = np.prod([len(xv) for xv in x_grid.values()]) * np.prod([len(kv) for kv in k_grid.values()])
 
-        for (x_point, k_point) in self.pi_star_points:
-            x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
-
-            acts = self.pi_star_points[(x_point, k_point)]
-
-            k_point_tuple = k_point if k_point is not None else ()
-            k_vals = {k : v for k, v in zip(k_grid.keys() , k_point_tuple )}
-
-            q = -q_for_minimizer(acts, x_vals, k_vals, v_y)
-
-            pi_data.sel(**x_vals, **k_vals).variable.data.put(0, acts)
-            q_data.sel(**x_vals, **k_vals).variable.data.put(
-                0, q
-            )
-
         print(f"Grid size: {xk_grid_size}")
-        for x_point in itertools.product(*x_grid.values()):
+        for x_point in itertools.product(*new_x_grid.values()):
             x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
             
             for k_point in itertools.product(*k_grid.values()):
@@ -236,6 +209,19 @@ class Stage:
 
                     pi_data.sel(**x_vals, **k_vals).variable.data.put(0, np.nan)
                     q_data.sel(**x_vals, **k_vals).variable.data.put(0, q_xk)
+
+                elif 'pi*' in self.solution_points \
+                    and label_index_in_dataset(x_vals, self.solution_points['pi*']):
+                    acts = np.atleast_1d(self.solution_points['pi*'].sel(x_vals))
+
+                    if not np.any(np.isnan(acts)):
+                        ## k_vals is arbitrary here and is define in the previous large loop.
+                        q = -q_for_minimizer(acts, x_vals, k_vals, v_y)
+
+                        pi_data.sel(**x_vals, **k_vals).variable.data.put(0, acts)
+                        q_data.sel(**x_vals, **k_vals).variable.data.put(
+                            0, q
+                        ) 
                 else:
                     def scipy_constraint(constraint):
                         def scipy_constraint_fun(action_values):
@@ -286,8 +272,7 @@ class Stage:
                         #raise Exception("Failed to optimize.")
                         pi_data.sel(**x_vals, **k_vals).variable.data.put(0,  pi_star_res.x)
                         q_data.sel(**x_vals, **k_vals).variable.data.put(0, pi_star_res.fun)
-                        
-                    
+
         # TODO: Store these values on a grid, so it does not need to be recomputed
         #       when taking expectations
                 
@@ -313,15 +298,20 @@ class Stage:
                     f"Warning: parameter {shock} is not a Distribution found in shocks {self.shocks}"
                 )
 
-        ## No pre-given pi* values here; maybe shouldn't be here.
         k_grid = {
             shock : discretized_shocks[shock].atoms.flatten()
             for shock
             in discretized_shocks
         }
 
-        ## These grids have the given pi* values added
-        _, new_x_grid, new_k_grid = self.coords_with_pi_star_points(x_grid, k_grid)
+        ## Add solution points to the x_grid here.
+        new_x_grid = x_grid.copy()
+
+        for x_label in self.solution_points.coords:
+            for sol_x_val in np.atleast_1d(self.solution_points.coords[x_label]):
+                if sol_x_val not in x_grid[x_label]:
+                    ii = np.searchsorted(new_x_grid[x_label], sol_x_val)
+                    new_x_grid[x_label] = np.insert(new_x_grid[x_label], ii, sol_x_val)
 
         v_x_values = xr.DataArray(
             np.zeros([len(v) for v in new_x_grid.values()]),
@@ -338,47 +328,52 @@ class Stage:
 
             x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
 
-            ## This is a somewhat hacky way to take expectations
-            ## which could be done better with appropriate HARK distribution tools
+            if 'v_x' in self.solution_points \
+                and label_index_in_dataset(x_vals, self.solution_points['v_x']):
+                # v_x(x) given by a solution point already
+                value_x = np.atleast_1d(self.solution_points['v_x'].sel(x_vals))
 
-            # This assumes independent shocks
-            # ... but it might work for a properly constructed multivariate?
-            # it will need to better use array indexing to work.
+            else:
+                ## This is a somewhat hacky way to take expectations
+                ## which could be done better with appropriate HARK distribution tools
+
+                # This assumes independent shocks
+                # ... but it might work for a properly constructed multivariate?
+                # it will need to better use array indexing to work.
             
-            # as before but including the index now
+                # as before but including the index now
 
-            ## Note: no preset pi* points show up here.
-            k_grid_i = {
-                shock : list(enumerate(discretized_shocks[shock].atoms.flatten()))
-                for shock
-                in discretized_shocks
-            }
+                ## Note: no preset pi* points show up here.
+                k_grid_i = {
+                    shock : list(enumerate(discretized_shocks[shock].atoms.flatten()))
+                    for shock
+                    in discretized_shocks
+                }
 
-            value_x = 0
+                value_x = 0
 
-            for k_point in itertools.product(*k_grid_i.values()):
-                k_pms = {
-                    k : discretized_shocks[k].pmv[v[0]]
-                    for k, v
-                    in zip(k_grid.keys() , k_point)
+                for k_point in itertools.product(*k_grid_i.values()):
+                    k_pms = {
+                        k : discretized_shocks[k].pmv[v[0]]
+                        for k, v
+                        in zip(k_grid.keys() , k_point)
+                        }
+                    k_atoms = {
+                        k : v[1]
+                        for k, v
+                        in zip(k_grid.keys(), k_point)
                     }
-                k_atoms = {
-                    k : v[1]
-                    for k, v
-                    in zip(k_grid.keys(), k_point)
-                    }
 
-                if len(k_pms) > 0:
-                    total_pm = np.product(list(k_pms.values()))
-                else:
-                    total_pm = 1
+                    if len(k_pms) > 0:
+                        total_pm = np.product(list(k_pms.values()))
+                    else:
+                        total_pm = 1
 
-                q_xk = q_values.sel(**x_vals, **k_atoms).values
+                    q_xk = q_values.sel(**x_vals, **k_atoms).values
 
-                if np.isnan(q_xk):
-                    print(f'nan q_xk at {x_point}, {k_point}')
+                    #if np.isnan(q_xk) or np.isinf(q_xk):
 
-                value_x += q_xk * total_pm
+                    value_x += q_xk * total_pm
 
             if np.isnan(value_x):
                 print(f"Computed value v_x at {x_point},{k_point} is nan.")
