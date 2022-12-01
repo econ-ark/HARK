@@ -1185,6 +1185,13 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         """
         return self.dataset.seed
 
+    @seed.setter
+    def seed(self, value):
+        """
+        Set the distribution's seed
+        """
+        self.dataset.attrs["seed"] = value
+
     @property
     def RNG(self):
         """
@@ -1194,6 +1201,9 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
 
     @RNG.setter
     def RNG(self, value):
+        """
+        Sets the distribution's random number generator.
+        """
         if isinstance(value, np.random.RandomState):
             self.dataset.attrs["RNG"] = value
         else:
