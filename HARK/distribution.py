@@ -1188,9 +1188,12 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
     @seed.setter
     def seed(self, value):
         """
-        Set the distribution's seed
+        Set the distribution's seed and updates the RNG state
         """
+        # Update the seed
         self.dataset.attrs["seed"] = value
+        # With the seed having been updated, the RNG must be updated too
+        self.RNG = np.random.RandomState(self.seed)
 
     @property
     def RNG(self):
