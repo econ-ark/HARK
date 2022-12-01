@@ -1193,8 +1193,13 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         return self.dataset.RNG
 
     @RNG.setter
-    def RNG(self,value):
-        self.dataset.attrs['RNG'] = value
+    def RNG(self, value):
+        if isinstance(value, np.random.RandomState):
+            self.dataset.attrs["RNG"] = value
+        else:
+            raise ValueError(
+                "The RNG property must be an instance of numpy.random.RandomState"
+            )
 
     @property
     def name(self):
