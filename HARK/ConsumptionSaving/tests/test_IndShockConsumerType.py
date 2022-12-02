@@ -850,8 +850,6 @@ class testLCMortalityReadShocks(unittest.TestCase):
 
 #%% Test Transition Matrix Methods
 
-
-
 class test_Transition_Matrix_Methods(unittest.TestCase):
     def test_calc_tran_matrix(self):
         
@@ -886,3 +884,18 @@ class test_Transition_Matrix_Methods(unittest.TestCase):
         self.assertAlmostEqual(AggA[0],  1.1951311747835132, places =4) 
         self.assertAlmostEqual(AggC[0], 1.0041701073134557, places = 4)
 
+#%% Test Heterogenous Agent Jacobian Methods
+
+
+class test_Jacobian_methods(unittest.TestCase):
+    def test_calc_jacobian(self):
+        
+        Agent = IndShockConsumerType(**dict_harmenberg)
+        Agent.compute_steady_state()
+        
+        CJAC_Perm,AJAC_Perm = Agent.calc_jacobian('PermShkStd',50)
+
+              
+        self.assertAlmostEqual(CJAC_Perm.T[30][29],  -0.06119546439244016) 
+        self.assertAlmostEqual(CJAC_Perm.T[30][30],  0.05307403413575694) 
+        self.assertAlmostEqual(CJAC_Perm.T[30][31],  0.0467441811904044) 
