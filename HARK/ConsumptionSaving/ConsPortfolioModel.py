@@ -530,7 +530,7 @@ class ConsPortfolioSolver(MetricObject):
         Calculate future realizations of market resources
         """
 
-        return b_nrm_next / (shocks['PermShk'] * self.PermGroFac) + shocks['TranShk']
+        return b_nrm_next / (shocks["PermShk"] * self.PermGroFac) + shocks["TranShk"]
 
     def calc_EndOfPrdvP(self):
         """
@@ -557,7 +557,7 @@ class ConsPortfolioSolver(MetricObject):
             else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
                 dvdm_next = dvdmAdj_next
 
-            return (shocks['PermShk'] * self.PermGroFac) ** (-self.CRRA) * dvdm_next
+            return (shocks["PermShk"] * self.PermGroFac) ** (-self.CRRA) * dvdm_next
 
         def dvds_dist(shocks, b_nrm, Share_next):
             """
@@ -577,10 +577,14 @@ class ConsPortfolioSolver(MetricObject):
             else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
                 dvds_next = dvdsAdj_next
 
-            return (shocks['PermShk'] * self.PermGroFac) ** (1.0 - self.CRRA) * dvds_next
+            return (shocks["PermShk"] * self.PermGroFac) ** (
+                1.0 - self.CRRA
+            ) * dvds_next
 
         # Calculate intermediate marginal value of bank balances by taking expectations over income shocks
-        dvdb_intermed = self.IncShkDstn.expected(dvdb_dist, self.bNrmNext, self.ShareNext)
+        dvdb_intermed = self.IncShkDstn.expected(
+            dvdb_dist, self.bNrmNext, self.ShareNext
+        )
 
         dvdbNvrs_intermed = self.uPinv(dvdb_intermed)
         dvdbNvrsFunc_intermed = BilinearInterp(
@@ -589,7 +593,9 @@ class ConsPortfolioSolver(MetricObject):
         dvdbFunc_intermed = MargValueFuncCRRA(dvdbNvrsFunc_intermed, self.CRRA)
 
         # Calculate intermediate marginal value of risky portfolio share by taking expectations
-        dvds_intermed = self.IncShkDstn.expected(dvds_dist, self.bNrmNext, self.ShareNext)
+        dvds_intermed = self.IncShkDstn.expected(
+            dvds_dist, self.bNrmNext, self.ShareNext
+        )
 
         dvdsFunc_intermed = BilinearInterp(dvds_intermed, self.bNrmGrid, self.ShareGrid)
 
@@ -630,7 +636,9 @@ class ConsPortfolioSolver(MetricObject):
         self.EndOfPrddvda = (
             self.DiscFac
             * self.LivPrb
-            * self.RiskyDstn.expected(EndOfPrddvda_dist, self.aNrm_tiled, self.ShareNext)
+            * self.RiskyDstn.expected(
+                EndOfPrddvda_dist, self.aNrm_tiled, self.ShareNext
+            )
         )
 
         self.EndOfPrddvdaNvrs = self.uPinv(self.EndOfPrddvda)
@@ -639,7 +647,9 @@ class ConsPortfolioSolver(MetricObject):
         self.EndOfPrddvds = (
             self.DiscFac
             * self.LivPrb
-            * self.RiskyDstn.expected(EndOfPrddvds_dist, self.aNrm_tiled, self.ShareNext)
+            * self.RiskyDstn.expected(
+                EndOfPrddvds_dist, self.aNrm_tiled, self.ShareNext
+            )
         )
 
     def optimize_share(self):
@@ -785,10 +795,12 @@ class ConsPortfolioSolver(MetricObject):
             else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
                 v_next = vAdj_next
 
-            return (shocks['PermShk'] * self.PermGroFac) ** (1.0 - self.CRRA) * v_next
+            return (shocks["PermShk"] * self.PermGroFac) ** (1.0 - self.CRRA) * v_next
 
         # Calculate intermediate value by taking expectations over income shocks
-        v_intermed = self.IncShkDstn.expected(v_intermed_dist, self.bNrmNext, self.ShareNext)
+        v_intermed = self.IncShkDstn.expected(
+            v_intermed_dist, self.bNrmNext, self.ShareNext
+        )
 
         vNvrs_intermed = self.uinv(v_intermed)
         vNvrsFunc_intermed = BilinearInterp(
@@ -1048,14 +1060,16 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
         Calculate future realizations of market resources
         """
 
-        return (1.0 - share) * self.Rfree + share * shocks['Risky']
+        return (1.0 - share) * self.Rfree + share * shocks["Risky"]
 
     def m_nrm_next(self, shocks, a_nrm, r_port):
         """
         Calculate future realizations of market resources
         """
 
-        return r_port * a_nrm / (shocks['PermShk'] * self.PermGroFac) + shocks['TranShk']
+        return (
+            r_port * a_nrm / (shocks["PermShk"] * self.PermGroFac) + shocks["TranShk"]
+        )
 
     def calc_EndOfPrdvP(self):
         """
@@ -1109,17 +1123,19 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
             shares_expanded = shares + np.zeros_like(m_nrm_next)
 
             return (
-                r_port * self.uP(shocks['PermShk'] * self.PermGroFac) * dvdm(m_nrm_next, shares_expanded)
+                r_port
+                * self.uP(shocks["PermShk"] * self.PermGroFac)
+                * dvdm(m_nrm_next, shares_expanded)
             )
 
         def EndOfPrddvds_dist(shocks, a_nrm, shares):
-            Rxs = shocks['Risky'] - self.Rfree
+            Rxs = shocks["Risky"] - self.Rfree
             r_port = self.r_port(shocks, shares)
             m_nrm_next = self.m_nrm_next(shocks, a_nrm, r_port)
 
-            return Rxs * a_nrm * self.uP(shocks['PermShk'] * self.PermGroFac) * dvdm(
+            return Rxs * a_nrm * self.uP(shocks["PermShk"] * self.PermGroFac) * dvdm(
                 m_nrm_next, shares
-            ) + (shocks['PermShk'] * self.PermGroFac) ** (1.0 - self.CRRA) * dvds(
+            ) + (shocks["PermShk"] * self.PermGroFac) ** (1.0 - self.CRRA) * dvds(
                 m_nrm_next, shares
             )
 
@@ -1127,7 +1143,9 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
         self.EndOfPrddvda = (
             self.DiscFac
             * self.LivPrb
-            * self.ShockDstn.expected(EndOfPrddvda_dists, self.aNrm_tiled, self.Share_tiled)
+            * self.ShockDstn.expected(
+                EndOfPrddvda_dists, self.aNrm_tiled, self.Share_tiled
+            )
         )
 
         self.EndOfPrddvdaNvrs = self.uPinv(self.EndOfPrddvda)
@@ -1136,7 +1154,9 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
         self.EndOfPrddvds = (
             self.DiscFac
             * self.LivPrb
-            * self.ShockDstn.expected(EndOfPrddvds_dist, self.aNrm_tiled, self.Share_tiled)
+            * self.ShockDstn.expected(
+                EndOfPrddvds_dist, self.aNrm_tiled, self.Share_tiled
+            )
         )
 
     def make_EndOfPrdvFunc(self):
@@ -1156,7 +1176,7 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
             else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
                 v_next = vAdj_next
 
-            return (shocks['PermShk'] * self.PermGroFac) ** (1.0 - self.CRRA) * v_next
+            return (shocks["PermShk"] * self.PermGroFac) ** (1.0 - self.CRRA) * v_next
 
         self.EndOfPrdv = (
             self.DiscFac
