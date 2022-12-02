@@ -548,7 +548,9 @@ class ConsPortfolioSolver(MetricObject):
 
             dvdmAdj_next = self.vPfuncAdj_next(mNrm_next)
             if self.AdjustPrb < 1.0:
-                dvdmFxd_next = self.dvdmFuncFxd_next(mNrm_next, Share_next)
+                # Expand to the same dimensions as mNrm
+                Share_next_expanded = Share_next + np.zeros_like(mNrm_next)
+                dvdmFxd_next = self.dvdmFuncFxd_next(mNrm_next, Share_next_expanded)
                 # Combine by adjustment probability
                 dvdm_next = (
                     self.AdjustPrb * dvdmAdj_next
@@ -568,7 +570,9 @@ class ConsPortfolioSolver(MetricObject):
             # No marginal value of Share if it's a free choice!
             dvdsAdj_next = np.zeros_like(mNrm_next)
             if self.AdjustPrb < 1.0:
-                dvdsFxd_next = self.dvdsFuncFxd_next(mNrm_next, Share_next)
+                # Expand to the same dimensions as mNrm
+                Share_next_expanded = Share_next + np.zeros_like(mNrm_next)
+                dvdsFxd_next = self.dvdsFuncFxd_next(mNrm_next, Share_next_expanded)
                 # Combine by adjustment probability
                 dvds_next = (
                     self.AdjustPrb * dvdsAdj_next
