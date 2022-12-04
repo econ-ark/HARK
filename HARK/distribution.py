@@ -1614,6 +1614,7 @@ def combine_indep_dstns(*distributions, seed=0):
     # Get information on the distributions
     dist_lengths = ()
     dist_dims = ()
+    dist_is_labeled = ()
     for dist in distributions:
 
         if len(dist.dim()) > 1:
@@ -1623,6 +1624,7 @@ def combine_indep_dstns(*distributions, seed=0):
 
         dist_dims += (dist.dim(),)
         dist_lengths += (len(dist.pmv),)
+        dist_is_labeled += (isinstance(dist, DiscreteDistributionLabeled),)
 
     number_of_distributions = len(distributions)
 

@@ -533,3 +533,25 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         )
 
         self.assertAlmostEqual(ce2[3], 9.518015322143837)
+
+    def test_combine_labeled_dist(self):
+
+        # Create some dstns
+        a = DiscreteDistributionLabeled(
+            pmv = np.array([0.1, 0.9]),
+            data=np.array([-1.0,1.0]),
+            var_names='a'
+        )
+        b = DiscreteDistributionLabeled(
+            pmv = np.array([0.5, 0.5]),
+            data=np.array([0.0,1.0]),
+            var_names='b'
+        )
+        c = DiscreteDistributionLabeled(
+            pmv = np.array([0.3, 0.7]),
+            data=np.array([0.5,1.0]),
+            var_names='c'
+        )
+
+        # Test some combinations
+        abc = combine_indep_dstns(a,b,c)
