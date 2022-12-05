@@ -561,3 +561,12 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         self.assertAlmostEqual(
             abc.expected(lambda x: x["a"] * x["c"]), a.expected()[0] * c.expected()[0]
         )
+
+        # Combine labeled and non labeled distribution
+        x = DiscreteDistribution(pmv=np.array([0.5, 0.5]), atoms=np.array([1.0, 2.0]))
+
+        xa = combine_indep_dstns(x, a)
+        self.assertFalse(isinstance(xa, DiscreteDistributionLabeled))
+        self.assertTrue(
+            np.all(xa.expected() == np.concatenate([x.expected(), a.expected()]))
+        )

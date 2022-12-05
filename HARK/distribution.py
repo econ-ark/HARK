@@ -5,6 +5,7 @@ import numpy as np
 import xarray as xr
 from scipy import stats
 from scipy.special import erf, erfc
+from warnings import warn
 
 
 class Distribution:
@@ -1631,7 +1632,7 @@ def combine_indep_dstns(*distributions, seed=0):
         if labeled:
             var_labels += tuple(dist.dataset.data_vars.keys())
         else:
-            var_labels += ([""] * dist.dim()[0],)
+            var_labels += tuple([""] * dist.dim()[0])
 
     number_of_distributions = len(distributions)
 
