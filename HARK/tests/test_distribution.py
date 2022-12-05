@@ -538,20 +538,26 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
 
         # Create some dstns
         a = DiscreteDistributionLabeled(
-            pmv = np.array([0.1, 0.9]),
-            data=np.array([-1.0,1.0]),
-            var_names='a'
+            pmv=np.array([0.1, 0.9]), data=np.array([-1.0, 1.0]), var_names="a"
         )
         b = DiscreteDistributionLabeled(
-            pmv = np.array([0.5, 0.5]),
-            data=np.array([0.0,1.0]),
-            var_names='b'
+            pmv=np.array([0.5, 0.5]), data=np.array([0.0, 1.0]), var_names="b"
         )
         c = DiscreteDistributionLabeled(
-            pmv = np.array([0.3, 0.7]),
-            data=np.array([0.5,1.0]),
-            var_names='c'
+            pmv=np.array([0.3, 0.7]), data=np.array([0.5, 1.0]), var_names="c"
         )
 
         # Test some combinations
-        abc = combine_indep_dstns(a,b,c)
+        abc = combine_indep_dstns(a, b, c)
+        # Check the order
+        self.assertTrue(
+            np.all(
+                abc.expected()
+                == np.concatenate([a.expected(), b.expected(), c.expected()])
+            )
+        )
+        # Check by label
+        self.assertEqual(abc.expected(lambda x: x["b"]), b.expected()[0])
+        self.assertAlmostEqual(
+            abc.expected(lambda x: x["a"] * x["c"]), a.expected()[0] * c.expected()[0]
+        )
