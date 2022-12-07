@@ -3,7 +3,7 @@ import datetime
 from typing import Any, Callable, Mapping, Sequence, Tuple
 import itertools
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import minimize, brentq
 import time
 import xarray as xr
 
@@ -43,6 +43,10 @@ class SolutionDataset(object):
                            .interp(**x, kwargs={"fill_value": 'extrapolate'}) \
                            .to_dataset().map(self.value_transform_inv)['v_x']
 
+    def v_x_der(self, x : Mapping[str, Any]) -> float:
+        # Note: 'fill_value' expects None or 'extrapolate' based on software version?
+        return self.dataset['v_x_der'].interp(**x, kwargs={"fill_value": 'extrapolate'})
+
     def pi_star(self, x : Mapping[str, Any], k : Mapping[str, Any], ):
         """
 
@@ -75,6 +79,7 @@ class Stage:
     discount: Any = 1.0 
     
     reward: Callable[[Mapping, Mapping, Mapping], Any] = lambda x, k, a : 0 # TODO: type signature # TODO: Defaults to no reward
+    reward_der: Callable[[Mapping, Mapping, Mapping], Any] = lambda x, k, a : 0 # TODO: type signature # TODO: Defaults to no reward
 
     # Note the output type of these functions are sequences, to handle multiple actions
     # If not provided, a new default is provided in post_init
@@ -135,6 +140,45 @@ class Stage:
         #print(f'q: {q}')
         return q
 
+    def action_zip(self, a : Tuple):
+        """
+        Wraps a tuple of values for an action in a dictionary with labels.
+        Useful for converting between forms of model equations.
+        """
+        return {an : av for an,av in zip(self.actions, a)}
+
+    def q_for_minimizer(self, action_values, x : Mapping[str, Any] , k : Mapping[str, Any], v_y):
+        """Flips negative for the _minimizer_"""
+        return -self.q(
+            x = x,
+            k = k,
+            # Try: a = self.action_zip(action_values)
+            a = {an : av for an,av in zip(self.actions, action_values)},
+            v_y = v_y
+        )
+
+    def d_q_d_a(self, # Trying out this notation instead of q_der_a -- debatable.
+          x : Mapping[str, Any],
+          k : Mapping[str, Any],
+          a : Mapping[str, Any],
+          v_y_der : Callable[[Mapping, Mapping, Mapping], float]) -> Mapping:
+        """
+        The derivative of the action-value function Q with respect to the actions.
+
+        Takes state, shock, action states and an end-of-stage value function v_y over domain Y.
+        """
+        if isinstance(self.discount, float) or isinstance(self.discount, int):
+            discount = self.discount
+        elif callable(self.discount):
+            ## WARNING: discount_der never defined
+            print("discount_der for q_der_a is not implemented. Feature is missing!")
+            discount = self.discount_der(x, k, a)
+
+        ## WARNING: reward_der not defined yet
+        q_der = self.reward_der(x, k, a) + discount * v_y_der(self.T(x, k, a, constrain = False)) 
+
+        return q_der
+
     def optimal_policy(self,
                        x_grid : Mapping[str, Sequence] = {},
                        k_grid : Mapping[str, Sequence] = {},
@@ -179,15 +223,6 @@ class Stage:
             coords = coords
         )
 
-        def q_for_minimizer(action_values, x : Mapping[str, Any] , k : Mapping[str, Any], v_y):
-            """Flips negative for the _minimizer_"""
-            return -self.q(
-                x = x,
-                k = k,
-                a = {an : av for an,av in zip(self.actions, action_values)},
-                v_y = v_y
-            )
-
         ## What is happenign when there are _no_ actions?
         ## Is the optimizer still running?
         xk_grid_size = np.prod([len(xv) for xv in x_grid.values()]) * np.prod([len(kv) for kv in k_grid.values()])
@@ -216,7 +251,7 @@ class Stage:
 
                     if not np.any(np.isnan(acts)):
                         ## k_vals is arbitrary here and is define in the previous large loop.
-                        q = -q_for_minimizer(acts, x_vals, k_vals, v_y)
+                        q = -self.q_for_minimizer(acts, x_vals, k_vals, v_y)
 
                         pi_data.sel(**x_vals, **k_vals).variable.data.put(0, acts)
                         q_data.sel(**x_vals, **k_vals).variable.data.put(
@@ -248,7 +283,7 @@ class Stage:
                     #print(f'a0: {a0f(x_vals)}')
                 
                     pi_star_res = minimize(
-                        q_for_minimizer,
+                        self.q_for_minimizer,
                         a0f(x_vals), # compute starting action from states
                         args = (x_vals, k_vals, v_y),
                         bounds = bounds,
@@ -277,6 +312,151 @@ class Stage:
         #       when taking expectations
                 
         return pi_data, q_data
+
+    ## WORK IN PROGRESS
+    def optimal_policy_foc(self,
+                       x_grid : Mapping[str, Sequence] = {},
+                       k_grid : Mapping[str, Sequence] = {},
+                       v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
+                       optimizer_args = None # TODO: For brettq.
+                       ):
+        """
+        Given a grid over input and shock state values,
+        and marginal output value function,
+        compute the optimal action.
+
+        Uses root finding and the first order condition.
+
+        WORK IN PROGRESS
+
+        Note: Only works for scalar actions?
+        """
+
+        ## OPTIMIZER SETUP STEPS
+        ### Removed. Does brentq take options? Could it be passed optimizer_args?
+
+        ## Add solution points to the x_grid here.
+        new_x_grid = x_grid.copy()
+
+        for x_label in self.solution_points.coords:
+            for sol_x_val in self.solution_points.coords[x_label]:
+                if sol_x_val.values not in x_grid[x_label]:
+                    ii = np.searchsorted(new_x_grid[x_label], sol_x_val)
+                    new_x_grid[x_label] = np.insert(new_x_grid[x_label], ii, sol_x_val)
+
+        coords = {**new_x_grid, **k_grid}
+
+        pi_data = xr.DataArray(
+            np.zeros([len(v) for v in coords.values()]),
+            dims = coords.keys(),
+            coords = coords
+        )
+
+        # We don't get q_data from the rootfinding step.
+        # We DO get q_der data and should be tracking it...
+        # Legacy code:
+        #q_data = xr.DataArray(
+        #    np.zeros([len(v) for v in coords.values()]),
+        #    dims = coords.keys(),
+        #    coords = coords
+        #)
+
+        ## What is happenign when there are _no_ actions?
+        ## Is the optimizer still running?
+        xk_grid_size = np.prod([len(xv) for xv in x_grid.values()]) * np.prod([len(kv) for kv in k_grid.values()])
+
+        print(f"Grid size: {xk_grid_size}")
+
+        def foc(a):
+            a_vals = {an : av for an,av in zip(self.actions, (a,))}
+            return self.d_q_d_a(x_vals, k_vals, a_vals, v_y_der)
+
+        for x_point in itertools.product(*new_x_grid.values()):
+            x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
+
+            for k_point in itertools.product(*k_grid.values()):
+                k_vals = {k : v for k, v in zip(k_grid.keys() , k_point)}
+
+                # repeated code with the other optimizer -- can be functionalized out?
+                if len(self.actions) == 0:
+                    q_xk = self.q(
+                        x = x_vals,
+                        k = k_vals,
+                        a = {},
+                        v_y = v_y
+                    )
+
+                    pi_data.sel(**x_vals, **k_vals).variable.data.put(0, np.nan)
+
+                # This case too is perhaps boilerplate...
+                elif 'pi*' in self.solution_points \
+                    and label_index_in_dataset(x_vals, self.solution_points['pi*']):
+                    acts = np.atleast_1d(self.solution_points['pi*'].sel(x_vals))
+
+                    if not np.any(np.isnan(acts)):
+                        ## k_vals is arbitrary here and is define in the previous large loop.
+                        # EXCEPT FOR THIS...
+                        #q = -q_for_minimizer(acts, x_vals, k_vals, v_y)
+
+                        pi_data.sel(**x_vals, **k_vals).variable.data.put(0, acts)
+                        #q_data.sel(**x_vals, **k_vals).variable.data.put(
+                        #    0, q
+                        #) 
+                else:
+                    lower_bound = self.action_lower_bound(x_vals, k_vals)
+                    upper_bound = self.action_upper_bound(x_vals, k_vals)
+
+                    q_der_lower = self.d_q_d_a(
+                        x_vals,
+                        k_vals,
+                        self.action_zip(lower_bound),
+                        v_y_der
+                        )
+                    q_der_upper = self.d_q_d_a(
+                        x_vals,
+                        k_vals,
+                        self.action_zip(upper_bound),
+                        v_y_der
+                        )
+
+                    pi_star = None
+                    q_der = None
+
+                    ## TODO: Save and return the q_der values -- they will be useful later.
+                    if q_der_lower < 0 and q_der_upper < 0:
+                        a0 = lower_bound
+                        q_der = q_der_lower
+
+                        pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
+                    elif q_der_lower > 0 and q_der_upper > 0:
+                        a0 = upper_bound
+                        q_der = q_der_upper
+
+                        pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
+                    else:
+                        ## Better exception handling here
+                        ## asserting that Q is concave
+                        assert q_der_lower > 0 and q_der_upper < 0
+
+                        ## TODO: Replace this the Brentq
+                        a0, root_res = brentq(
+                            foc,
+                            lower_bound,
+                            upper_bound
+                        )
+
+                        print(root_res)
+
+                        if root_res.converged:
+                            pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
+                        else:
+                            print(f"Rootfinding failure at {x_vals}, {k_vals}.")
+                            print(root_res)
+
+                            #raise Exception("Failed to optimize.")
+                            pi_data.sel(**x_vals, **k_vals).variable.data.put(0,  root_res.root)
+
+        return pi_data
 
     def solve(
         self,
@@ -318,6 +498,11 @@ class Stage:
             dims= {**new_x_grid}.keys(),
             coords={**new_x_grid}
         )
+        v_x_der_values = xr.DataArray(
+            np.zeros([len(v) for v in new_x_grid.values()]),
+            dims= {**new_x_grid}.keys(),
+            coords={**new_x_grid}
+        )
 
         pi_star_values, q_values = self.optimal_policy(x_grid, k_grid, v_y, optimizer_args = optimizer_args)
 
@@ -332,6 +517,7 @@ class Stage:
                 and label_index_in_dataset(x_vals, self.solution_points['v_x']):
                 # v_x(x) given by a solution point already
                 value_x = np.atleast_1d(self.solution_points['v_x'].sel(x_vals))
+                value_der_x = np.atleast_1d(self.solution_points['v_x_der'].sel(x_vals))
 
             else:
                 ## This is a somewhat hacky way to take expectations
@@ -351,6 +537,7 @@ class Stage:
                 }
 
                 value_x = 0
+                value_der_x = 0
 
                 for k_point in itertools.product(*k_grid_i.values()):
                     k_pms = {
@@ -369,11 +556,21 @@ class Stage:
                     else:
                         total_pm = 1
 
+                    ### NOTE: This is currently doing lookup rather than computing with the q function.
                     q_xk = q_values.sel(**x_vals, **k_atoms).values
 
-                    #if np.isnan(q_xk) or np.isinf(q_xk):
+                    ## Computing it is straightforward!
+                    action_values_array = np.atleast_1d(pi_star_values.sel(**x_vals, **k_atoms))
+                    a_vals_dict = {an : av for an,av in zip(self.actions, action_values_array)}
+                    ## works, but redundant for now:
+                    computed_q_xk = self.q(x_vals, k_atoms, a_vals_dict, v_y)
+
+                    ### What we want is something like this:
+                    q_der_xk = 0 # <-- something meaningful.
 
                     value_x += q_xk * total_pm
+                    value_der_x += q_der_xk
+
 
             if np.isnan(value_x):
                 print(f"Computed value v_x at {x_point},{k_point} is nan.")
@@ -383,10 +580,15 @@ class Stage:
                 0, 
                 value_x
                 )
+            v_x_der_values.sel(**x_vals).variable.data.put(
+                0, 
+                value_der_x
+                )
 
         return SolutionDataset(
             xr.Dataset({
                 'v_x' : v_x_values,
+                'v_x_der' : v_x_der_values,
                 'pi*' : pi_star_values,
                 'q' : q_values,
             }), 
