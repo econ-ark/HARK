@@ -533,3 +533,59 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         )
 
         self.assertAlmostEqual(ce2[3], 9.518015322143837)
+
+    def test_combine_labeled_dist(self):
+
+        # Create some dstns
+        a = DiscreteDistributionLabeled(
+            pmv=np.array([0.1, 0.9]), data=np.array([-1.0, 1.0]), var_names="a"
+        )
+        b = DiscreteDistributionLabeled(
+            pmv=np.array([0.5, 0.5]), data=np.array([0.0, 1.0]), var_names="b"
+        )
+        c = DiscreteDistributionLabeled(
+            pmv=np.array([0.3, 0.7]), data=np.array([0.5, 1.0]), var_names="c"
+        )
+
+        # Test some combinations
+        abc = combine_indep_dstns(a, b, c)
+        # Check the order
+        self.assertTrue(
+            np.all(
+                abc.expected()
+                == np.concatenate([a.expected(), b.expected(), c.expected()])
+            )
+        )
+        # Check by label
+        self.assertEqual(abc.expected(lambda x: x["b"]), b.expected()[0])
+        self.assertAlmostEqual(
+            abc.expected(lambda x: x["a"] * x["c"]), a.expected()[0] * c.expected()[0]
+        )
+
+        # Combine labeled and non labeled distribution
+        x = DiscreteDistribution(pmv=np.array([0.5, 0.5]), atoms=np.array([1.0, 2.0]))
+
+        xa = combine_indep_dstns(x, a)
+        self.assertFalse(isinstance(xa, DiscreteDistributionLabeled))
+        self.assertTrue(
+            np.all(xa.expected() == np.concatenate([x.expected(), a.expected()]))
+        )
+
+        # Combine multidimensional labeled
+        d = DiscreteDistributionLabeled(
+            pmv=np.array([0.3, 0.7]), data=np.array([-0.5, -1.0]), var_names="d"
+        )
+        e = DiscreteDistributionLabeled(
+            pmv=np.array([0.3, 0.7]), data=np.array([0.0, -1.0]), var_names="e"
+        )
+        de = combine_indep_dstns(d, e)
+
+        abcde = combine_indep_dstns(abc, de)
+        self.assertTrue(
+            np.allclose(
+                abcde.expected(
+                    lambda x: np.array([x["d"], x["e"], x["a"], x["b"], x["c"]])
+                ),
+                np.concatenate([de.expected(), abc.expected()]),
+            )
+        )
