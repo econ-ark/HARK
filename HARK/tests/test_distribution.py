@@ -534,7 +534,7 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
 
         self.assertAlmostEqual(ce2[3], 9.518015322143837)
 
-	def test_getters_setters(self):
+    def test_getters_setters(self):
 
         # Create some dummy dsnt
         dist = DiscreteDistributionLabeled(
