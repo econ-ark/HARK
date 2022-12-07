@@ -5,6 +5,7 @@ import numpy as np
 import xarray as xr
 from scipy import stats
 from scipy.special import erf, erfc
+from warnings import warn
 
 
 class Distribution:
@@ -1636,6 +1637,8 @@ def combine_indep_dstns(*distributions, seed=0):
     # Get information on the distributions
     dist_lengths = ()
     dist_dims = ()
+    dist_is_labeled = ()
+    var_labels = ()
     for dist in distributions:
 
         if len(dist.dim()) > 1:
@@ -1646,7 +1649,17 @@ def combine_indep_dstns(*distributions, seed=0):
         dist_dims += (dist.dim(),)
         dist_lengths += (len(dist.pmv),)
 
+        labeled = isinstance(dist, DiscreteDistributionLabeled)
+        dist_is_labeled += (labeled,)
+        if labeled:
+            var_labels += tuple(dist.dataset.data_vars.keys())
+        else:
+            var_labels += tuple([""] * dist.dim()[0])
+
     number_of_distributions = len(distributions)
+
+    all_labeled = all(dist_is_labeled)
+    labels_are_unique = len(var_labels) == len(set(var_labels))
 
     # We need the combinations of indices of realizations in all
     # distributions
@@ -1667,7 +1680,18 @@ def combine_indep_dstns(*distributions, seed=0):
 
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
 
-    return DiscreteDistribution(P_out, atoms_out, seed=seed)
+    if all_labeled and labels_are_unique:
+        combined_dstn = DiscreteDistributionLabeled(
+            pmv=P_out, data=atoms_out, var_names=var_labels, seed=seed,
+        )
+    else:
+        if all_labeled and not labels_are_unique:
+            warn(
+                "There are duplicated labels in the provided distributions. Returning a non-labeled combination"
+            )
+        combined_dstn = DiscreteDistribution(P_out, atoms_out, seed=seed)
+
+    return combined_dstn
 
 
 def calc_expectation(dstn, func=lambda x: x, *args):
