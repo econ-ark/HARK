@@ -477,3 +477,60 @@ def nb_interp_piecewise(args, grids, values):
         output[j] = np.interp(args[1][j], y_intermed[:, j], z_intermed[:, j])
 
     return output.reshape(shape)
+
+
+class WarpedMultivariateInterp(MetricObject):
+    def __init__(self, values, grids):
+
+        self.values = np.asarray(values)
+        self.grids = np.asarray(grids)
+
+        self.ndim = self.values.ndim
+        self.shape = self.values.shape
+
+        # mesh of coordinates for each dimension
+        coord_mesh = np.mgrid[[slice(0, dim) for dim in self.shape]]
+
+        # densified grid and mesh of all points in all dimensions
+        # this could be refined to include fewer points if it gets too big
+        dense_grid = [np.unique(grid) for grid in self.grids]
+        dense_mesh = np.meshgrid(*dense_grid, indexing="ij")
+
+        y_intermed = np.empty((self.shape[0], 2, dense_mesh[0].size))
+        zy_intermed = np.empty((self.shape[0], 2, dense_mesh[0].size))
+
+        # for first dimension of values
+        for i in range(self.shape[0]):
+            y_intermed[i] = np.interp(dense_mesh[0], self.grids[0, i], self.grids[1, i])
+            zy_intermed[i] = np.interp(
+                dense_mesh[0], self.grids[0, i], coord_mesh[0, i]
+            )
+
+        for j in range(self.shape[1]):
+            y_intermed[j] = np.interp(
+                dense_mesh[0], self.grids[0, :, j], self.grids[1, :, j]
+            )
+            zy_intermed[j] = np.interp(
+                dense_mesh[0], self.grids[0, :, j], coord_mesh[0, :, j]
+            )
+
+        x_intermed = np.empty((self.shape[0], 2, dense_mesh[0].size))
+        zx_intermed = np.empty((self.shape[0], 2, dense_mesh[0].size))
+
+        for i in range(self.shape[1]):
+            x_intermed[i, 0] = np.interp(
+                dense_mesh[1], self.grids[0, i], self.grids[1, i]
+            )
+            x_intermed[i, 1] = np.interp(
+                dense_mesh[1], self.grids[0, :, i], self.grids[1, :, i]
+            )
+            zx_intermed[i, 0] = np.interp(
+                dense_mesh[1], self.grids[0, i], self.values[i]
+            )
+            zx_intermed[i, 1] = np.interp(
+                dense_mesh[1], self.grids[0, :, i], self.values[:, i]
+            )
+
+    def __call__(self, *args):
+
+        args = np.asarray(args)
