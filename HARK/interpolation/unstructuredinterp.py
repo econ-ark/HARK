@@ -1,11 +1,11 @@
 import numpy as np
-from HARK.core import MetricObject
 from scipy.interpolate import (
     CloughTocher2DInterpolator,
     LinearNDInterpolator,
     NearestNDInterpolator,
 )
-from scipy.ndimage import map_coordinates
+
+from HARK.core import MetricObject
 
 try:
     import cupy as cp
@@ -41,12 +41,6 @@ RBFI_KWARGS = {  # rbf (radial basis function)
     "kernel": "thin_plate_spline",
     "epsilon": None,
     "degree": None,
-}
-I2D_KWARGS = {  # spline
-    "kind": "linear",
-    "copy": True,
-    "bounds_error": False,
-    "fill_value": None,
 }
 
 
