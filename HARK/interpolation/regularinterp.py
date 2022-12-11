@@ -1,8 +1,9 @@
 import numpy as np
-from HARK.core import MetricObject
-from HARK.interpolation.unstructuredinterp import UnstructuredInterp
 from numba import njit, prange, typed
 from scipy.ndimage import map_coordinates
+
+from HARK.core import MetricObject
+from HARK.interpolation.unstructuredinterp import UnstructuredInterp
 
 try:
     import cupy as cp
@@ -38,7 +39,7 @@ DIM_MESSAGE = "Dimension mismatch."
 
 MC_KWARGS = {
     "order": 1,  # order of interpolation
-    "mode": "constant",  # how to handle extrapolation
+    "mode": "nearest",  # how to handle extrapolation
     "cval": 0.0,  # value to use for extrapolation
     "prefilter": False,  # whether to prefilter input
 }
@@ -151,6 +152,9 @@ class RegularizedMultivariateInterp(MultivariateInterp):
         self,
         values,
         grids,
+        method="linear",
+        atol=1e-8,
+        rtol=1e-5,
         target="cpu",
         mc_kwargs=None,
         ui_kwargs=None,
@@ -176,12 +180,20 @@ class RegularizedMultivariateInterp(MultivariateInterp):
 
         # densified grid and mesh of all points in all dimensions
         # this could be refined to include fewer points if it gets too big
-        dense_grid = [np.unique(grid) for grid in self.grids]
+        dense_grid = []
+        for i in range(self.ndim):
+            grid = np.unique(self.grids[i])
+            condition = np.isclose(grid[1:], grid[:-1], atol=atol, rtol=rtol)
+            grid = np.delete(grid, condition)
+            dense_grid.append(grid)
+
         dense_mesh = np.meshgrid(*dense_grid, indexing="ij")
 
         # interpolator for each dimension, from grid space to coordinate space
         coord_interp = [
-            UnstructuredInterp(coord_mesh[i], self.grids, interp_kwargs=ui_kwargs)
+            UnstructuredInterp(
+                coord_mesh[i], self.grids, method=method, interp_kwargs=ui_kwargs
+            )
             for i in range(self.ndim)
         ]
 
@@ -265,6 +277,24 @@ class RegularizedPolynomialInterp(MetricObject):
 
         return output
 
+    def _get_coordinates(self, args):
+
+        coordinates = np.empty_like(args)
+
+        X_test = np.c_[tuple(arg.ravel() for arg in args)]
+
+        for dim in range(self.ndim):
+            coordinates[dim] = self.models[dim].predict(X_test).reshape(args[0].shape)
+
+    def _map_coordinates(self, coordinates):
+
+        output = map_coordinates(
+            self.values,
+            coordinates.reshape(args.shape[0], -1),
+        ).reshape(args[0].shape)
+
+        return output
+
 
 class RegularizedSplineInterp(RegularizedPolynomialInterp):
     def __init__(self, values, grids, n_knots, degree, normalize=True):
@@ -323,6 +353,17 @@ class SKImagePiecewiseAffineInterp(MetricObject):
 
         src_new = np.vstack([arg.flat for arg in args]).T
         coordinates = self.tform(src_new).T
+
+        return map_coordinates(self.values, coordinates).reshape(args[0].shape)
+
+    def _get_coordinates(self, args):
+
+        src_new = np.vstack([arg.flat for arg in args]).T
+        coordinates = self.tform(src_new).T
+
+        return coordinates
+
+    def _map_coordinates(self, coordinates):
 
         return map_coordinates(self.values, coordinates).reshape(args[0].shape)
 
