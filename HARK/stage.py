@@ -64,6 +64,10 @@ class SolutionDataset(object):
                                 .interp({**x, **k, **a}, kwargs={"fill_value": 'extrapolate'}) \
                                 .map(self.value_transform_inv)
 
+    def q_der(self, x : Mapping[str, Any]) -> float:
+        # Note: 'fill_value' expects None or 'extrapolate' based on software version?
+        return self.dataset['q_der'].interp(**x, kwargs={"fill_value": 'extrapolate'})
+
 
 @dataclass(kw_only=True)
 class Stage:
@@ -79,7 +83,7 @@ class Stage:
     discount: Any = 1.0 
     
     reward: Callable[[Mapping, Mapping, Mapping], Any] = lambda x, k, a : 0 # TODO: type signature # TODO: Defaults to no reward
-    reward_der: Callable[[Mapping, Mapping, Mapping], Any] = lambda x, k, a : 0 # TODO: type signature # TODO: Defaults to no reward
+    reward_der: Callable[[Mapping, Mapping, Mapping], Any] = None # TODO: type signature # TODO: Defaults to no reward
 
     # Note the output type of these functions are sequences, to handle multiple actions
     # If not provided, a new default is provided in post_init
@@ -166,13 +170,15 @@ class Stage:
         The derivative of the action-value function Q with respect to the actions.
 
         Takes state, shock, action states and an end-of-stage value function v_y over domain Y.
+
+        WARNING: This will be inaccurate if discount is a function of actions.
         """
         if isinstance(self.discount, float) or isinstance(self.discount, int):
             discount = self.discount
         elif callable(self.discount):
             ## WARNING: discount_der never defined
-            print("discount_der for q_der_a is not implemented. Feature is missing!")
-            discount = self.discount_der(x, k, a)
+            ## ASSUMES that discount is not a function of 'a'!
+            discount = self.discount(x, k, a)
 
         ## WARNING: reward_der not defined yet
         q_der = self.reward_der(x, k, a) + discount * v_y_der(self.T(x, k, a, constrain = False)) 
@@ -421,9 +427,6 @@ class Stage:
                         v_y_der
                         )
 
-                    pi_star = None
-                    q_der = None
-
                     if q_der_lower < 0 and q_der_upper < 0:
                         a0 = lower_bound
 
@@ -630,14 +633,63 @@ class Stage:
 
         ## FIRST: Test for F inverse
 
+        if self.reward_der is None and len(self.actions) > 0:
+            raise Exception("Cannot solve for v_x_der because reward_der (derivative of" \
+                 + " reward function with respect to actions) has not been provided for" \
+                     + "this stage and the action space is not null.")
+
         ## THEN get optimal policy using foc
+
+        discretized_shocks, k_grid, k_grid_i = self.discretize_shocks(shock_approx_params)
+
+        new_x_grid = self.x_grid_with_solution_points(x_grid)
+
+        v_x_der_data = xr.DataArray(
+            np.zeros([len(v) for v in new_x_grid.values()]),
+            dims= {**new_x_grid}.keys(),
+            coords={**new_x_grid}
+        )
+
+        pi_star, q_der = self.optimal_policy_foc(x_grid, k_grid, v_y_der, optimizer_args = optimizer_args)
+
+        ## Taking expectations over the generated k-grid, with p_k, of...
+            ## Computing optimal policy pi* and q*_value for each x,k
+
+        for x_point in itertools.product(*new_x_grid.values()):
+
+            x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
+
+            if 'v_x' in self.solution_points \
+                and label_index_in_dataset(x_vals, self.solution_points['v_x_der']):
+
+                value_x_der = np.atleast_1d(self.solution_points['v_x_der'].sel(x_vals))
+            else:
+
+                value_x_der = self.xarray_expectations(x_vals, k_grid_i, discretized_shocks, pi_star, q_der)
+                
+            v_x_der_data.sel(**x_vals).variable.data.put(
+                0, 
+                value_x_der
+            )
 
         ## Create solution object with v_x_der and q_der
 
-        ## Do we recover q and v_x?
 
-        foo = 5
-        pass
+        ## Do we recover q and v_x? ?????
+
+        return SolutionDataset(
+            xr.Dataset({
+                #'v_x' : v_x_values,
+                'v_x_der' : v_x_der_data, 
+                'pi*' : pi_star,
+                'q_der' : q_der
+            }), 
+            actions = self.actions,
+            #value_transform = self.value_transform,
+            #value_transform_inv = self.value_transform_inv,
+            k_grid = k_grid_i
+            )
+
 
 
 def backwards_induction(stages_data, terminal_v_y):
