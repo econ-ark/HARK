@@ -65,10 +65,10 @@ class SolutionDataset(object):
                                 .map(self.value_transform_inv)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Stage:
     """A single Bellman problem stage."""
-    transition: Callable[[Mapping, Mapping, Mapping], Mapping] # TODO: type signature # TODO: Defaults to identity function
+    transition: Callable[[Mapping, Mapping, Mapping], Mapping] = lambda x, k, a : {}# TODO: type signature # TODO: Defaults to identity function
     
     inputs: Sequence[str] = field(default_factory=list)
     shocks: Mapping[str, Distribution] = field(default_factory=dict) # maybe becomes a dictionary, with shocks from a distribution?
@@ -313,7 +313,6 @@ class Stage:
                 
         return pi_data, q_data
 
-    ## WORK IN PROGRESS
     def optimal_policy_foc(self,
                        x_grid : Mapping[str, Sequence] = {},
                        k_grid : Mapping[str, Sequence] = {},
@@ -327,9 +326,11 @@ class Stage:
 
         Uses root finding and the first order condition.
 
-        WORK IN PROGRESS
+        This is written with the expectation that:
+          - Actions are scalar
+          - the Q function is concave over the action space.
 
-        Note: Only works for scalar actions?
+        Functionality is not guaranteed otherwise.
         """
 
         ## OPTIMIZER SETUP STEPS
@@ -352,14 +353,11 @@ class Stage:
             coords = coords
         )
 
-        # We don't get q_data from the rootfinding step.
-        # We DO get q_der data and should be tracking it...
-        # Legacy code:
-        #q_data = xr.DataArray(
-        #    np.zeros([len(v) for v in coords.values()]),
-        #    dims = coords.keys(),
-        #    coords = coords
-        #)
+        q_der_data = xr.DataArray(
+            np.zeros([len(v) for v in coords.values()]),
+            dims = coords.keys(),
+            coords = coords
+        )
 
         ## What is happenign when there are _no_ actions?
         ## Is the optimizer still running?
@@ -379,14 +377,15 @@ class Stage:
 
                 # repeated code with the other optimizer -- can be functionalized out?
                 if len(self.actions) == 0:
-                    q_xk = self.q(
-                        x = x_vals,
-                        k = k_vals,
-                        a = {},
-                        v_y = v_y
-                    )
+                    q_der_xk = self.d_q_d_a(
+                        x_vals,
+                        k_vals,
+                        {}, # no actions
+                        v_y_der
+                        )
 
                     pi_data.sel(**x_vals, **k_vals).variable.data.put(0, np.nan)
+                    q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_xk)
 
                 # This case too is perhaps boilerplate...
                 elif 'pi*' in self.solution_points \
@@ -396,12 +395,15 @@ class Stage:
                     if not np.any(np.isnan(acts)):
                         ## k_vals is arbitrary here and is define in the previous large loop.
                         # EXCEPT FOR THIS...
-                        #q = -q_for_minimizer(acts, x_vals, k_vals, v_y)
+                        q_der_xk = self.d_q_d_a(
+                            x_vals,
+                            k_vals,
+                            self.action_zip(acts),
+                            v_y_der
+                        )
 
                         pi_data.sel(**x_vals, **k_vals).variable.data.put(0, acts)
-                        #q_data.sel(**x_vals, **k_vals).variable.data.put(
-                        #    0, q
-                        #) 
+                        q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_xk)
                 else:
                     lower_bound = self.action_lower_bound(x_vals, k_vals)
                     upper_bound = self.action_upper_bound(x_vals, k_vals)
@@ -422,17 +424,17 @@ class Stage:
                     pi_star = None
                     q_der = None
 
-                    ## TODO: Save and return the q_der values -- they will be useful later.
                     if q_der_lower < 0 and q_der_upper < 0:
                         a0 = lower_bound
-                        q_der = q_der_lower
 
                         pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
+                        q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_lower)
                     elif q_der_lower > 0 and q_der_upper > 0:
                         a0 = upper_bound
                         q_der = q_der_upper
 
                         pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
+                        q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_upper)
                     else:
                         ## Better exception handling here
                         ## asserting that Q is concave
@@ -449,6 +451,15 @@ class Stage:
 
                         if root_res.converged:
                             pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
+
+                            q_der_xk = self.d_q_d_a(
+                                x_vals,
+                                k_vals,
+                                self.action_zip(a0),
+                                v_y_der
+                            )
+
+                            q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_xk)
                         else:
                             print(f"Rootfinding failure at {x_vals}, {k_vals}.")
                             print(root_res)
@@ -456,16 +467,18 @@ class Stage:
                             #raise Exception("Failed to optimize.")
                             pi_data.sel(**x_vals, **k_vals).variable.data.put(0,  root_res.root)
 
-        return pi_data
+                            q_der_xk = self.d_q_d_a(
+                                x_vals,
+                                k_vals,
+                                self.action_zip(root_res.root),
+                                v_y_der
+                            )
 
-    def solve(
-        self,
-        x_grid : Mapping[str, Sequence] = field(default_factory=dict),
-        shock_approx_params : Mapping[str, int] = field(default_factory=dict),
-        v_y : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
-        optimizer_args = None
-        ):
+                            q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_xk)
 
+        return pi_data, q_der_data
+
+    def discretize_shocks(self, shock_approx_params):
         discretized_shocks = {}
 
         for shock in shock_approx_params:
@@ -484,6 +497,16 @@ class Stage:
             in discretized_shocks
         }
 
+        # The grid with indices for each shock value
+        k_grid_i = {
+                    shock : list(enumerate(discretized_shocks[shock].atoms.flatten()))
+                    for shock
+                    in discretized_shocks
+                }
+
+        return discretized_shocks, k_grid, k_grid_i
+
+    def x_grid_with_solution_points(self, x_grid):
         ## Add solution points to the x_grid here.
         new_x_grid = x_grid.copy()
 
@@ -493,18 +516,75 @@ class Stage:
                     ii = np.searchsorted(new_x_grid[x_label], sol_x_val)
                     new_x_grid[x_label] = np.insert(new_x_grid[x_label], ii, sol_x_val)
 
+        return new_x_grid
+
+
+    def xarray_expectations(self, x_vals, k_grid_i, discretized_shocks, pi_star, data):
+
+        ## TODO: Replace with HARK.distribution.calc_expectations of some form.
+        ##       Problem: calculating expectation of join distribution over sevearl independent shocks.
+
+        ## This is a somewhat hacky way to take expectations
+        ## which could be done better with appropriate HARK distribution tools
+
+        # This assumes independent shocks
+        # ... but it might work for a properly constructed multivariate?
+        # it will need to better use array indexing to work.
+            
+        # as before but including the index now
+
+        ## Note: no preset pi* points show up here.
+        expected_d = 0
+        #value_der_x = 0
+
+        for k_point in itertools.product(*k_grid_i.values()):
+            k_pms = {
+                k : discretized_shocks[k].pmv[v[0]]
+                for k, v
+                in zip(k_grid_i.keys() , k_point)
+            }
+            k_atoms = {
+
+                k : v[1]
+                for k, v
+                in zip(k_grid_i.keys(), k_point)
+            }
+
+            if len(k_pms) > 0:
+                total_pm = np.product(list(k_pms.values()))
+            else:
+                total_pm = 1
+
+            ### NOTE: This is currently doing lookup rather than computing with the q function.
+            d_xk = data.sel(**x_vals, **k_atoms).values
+            
+            expected_d += d_xk * total_pm
+
+            if np.isnan(expected_d):
+                print(f"Computed value at {x_vals},{k_atoms} is nan.")
+        
+        return expected_d
+
+
+    def solve_v_x(
+        self,
+        x_grid : Mapping[str, Sequence] = field(default_factory=dict),
+        shock_approx_params : Mapping[str, int] = field(default_factory=dict),
+        v_y : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
+        optimizer_args = None
+        ):
+
+        discretized_shocks, k_grid, k_grid_i = self.discretize_shocks(shock_approx_params)
+
+        new_x_grid = self.x_grid_with_solution_points(x_grid)
+
         v_x_values = xr.DataArray(
             np.zeros([len(v) for v in new_x_grid.values()]),
             dims= {**new_x_grid}.keys(),
             coords={**new_x_grid}
         )
-        v_x_der_values = xr.DataArray(
-            np.zeros([len(v) for v in new_x_grid.values()]),
-            dims= {**new_x_grid}.keys(),
-            coords={**new_x_grid}
-        )
 
-        pi_star_values, q_values = self.optimal_policy(x_grid, k_grid, v_y, optimizer_args = optimizer_args)
+        pi_star, q_values = self.optimal_policy(x_grid, k_grid, v_y, optimizer_args = optimizer_args)
 
         ## Taking expectations over the generated k-grid, with p_k, of...
             ## Computing optimal policy pi* and q*_value for each x,k
@@ -515,81 +595,22 @@ class Stage:
 
             if 'v_x' in self.solution_points \
                 and label_index_in_dataset(x_vals, self.solution_points['v_x']):
-                # v_x(x) given by a solution point already
+
                 value_x = np.atleast_1d(self.solution_points['v_x'].sel(x_vals))
-                value_der_x = np.atleast_1d(self.solution_points['v_x_der'].sel(x_vals))
-
             else:
-                ## This is a somewhat hacky way to take expectations
-                ## which could be done better with appropriate HARK distribution tools
 
-                # This assumes independent shocks
-                # ... but it might work for a properly constructed multivariate?
-                # it will need to better use array indexing to work.
-            
-                # as before but including the index now
-
-                ## Note: no preset pi* points show up here.
-                k_grid_i = {
-                    shock : list(enumerate(discretized_shocks[shock].atoms.flatten()))
-                    for shock
-                    in discretized_shocks
-                }
-
-                value_x = 0
-                value_der_x = 0
-
-                for k_point in itertools.product(*k_grid_i.values()):
-                    k_pms = {
-                        k : discretized_shocks[k].pmv[v[0]]
-                        for k, v
-                        in zip(k_grid.keys() , k_point)
-                        }
-                    k_atoms = {
-                        k : v[1]
-                        for k, v
-                        in zip(k_grid.keys(), k_point)
-                    }
-
-                    if len(k_pms) > 0:
-                        total_pm = np.product(list(k_pms.values()))
-                    else:
-                        total_pm = 1
-
-                    ### NOTE: This is currently doing lookup rather than computing with the q function.
-                    q_xk = q_values.sel(**x_vals, **k_atoms).values
-
-                    ## Computing it is straightforward!
-                    action_values_array = np.atleast_1d(pi_star_values.sel(**x_vals, **k_atoms))
-                    a_vals_dict = {an : av for an,av in zip(self.actions, action_values_array)}
-                    ## works, but redundant for now:
-                    computed_q_xk = self.q(x_vals, k_atoms, a_vals_dict, v_y)
-
-                    ### What we want is something like this:
-                    q_der_xk = 0 # <-- something meaningful.
-
-                    value_x += q_xk * total_pm
-                    value_der_x += q_der_xk
-
-
-            if np.isnan(value_x):
-                print(f"Computed value v_x at {x_point},{k_point} is nan.")
-
-            ## Need to take expectation                    
+                value_x = self.xarray_expectations(x_vals, k_grid_i, discretized_shocks, pi_star, q_values)
+                
             v_x_values.sel(**x_vals).variable.data.put(
                 0, 
                 value_x
-                )
-            v_x_der_values.sel(**x_vals).variable.data.put(
-                0, 
-                value_der_x
-                )
+            )
 
         return SolutionDataset(
             xr.Dataset({
                 'v_x' : v_x_values,
-                'v_x_der' : v_x_der_values,
-                'pi*' : pi_star_values,
+                #'v_x_der' : v_x_der_values, -- 
+                'pi*' : pi_star,
                 'q' : q_values,
             }), 
             actions = self.actions,
@@ -597,6 +618,27 @@ class Stage:
             value_transform_inv = self.value_transform_inv,
             k_grid = k_grid_i
             )
+
+
+    def solve_v_x_der(
+        self,
+        x_grid : Mapping[str, Sequence] = field(default_factory=dict),
+        shock_approx_params : Mapping[str, int] = field(default_factory=dict),
+        v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
+        optimizer_args = None ## rootfinder_args?
+        ):
+
+        ## FIRST: Test for F inverse
+
+        ## THEN get optimal policy using foc
+
+        ## Create solution object with v_x_der and q_der
+
+        ## Do we recover q and v_x?
+
+        foo = 5
+        pass
+
 
 def backwards_induction(stages_data, terminal_v_y):
     """
@@ -623,7 +665,7 @@ def backwards_induction(stages_data, terminal_v_y):
 
         optimizer_args = stage_data['optimizer_args'] if 'optimizer_args' in stage_data else None
 
-        sol = stage.solve(
+        sol = stage.solve_v_x(
             x_grid = x_grid,
             shock_approx_params = shock_approx_params,
             v_y = v_y,

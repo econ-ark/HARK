@@ -94,7 +94,7 @@ class testPortfolioConsumptionStages(unittest.TestCase):
 
         assert self.consumption_stage.q({'m' : 100}, {}, {'c' : 50}, v_y = consumption_v_y) < 0.000001
 
-        c_sol = self.consumption_stage.solve(
+        c_sol = self.consumption_stage.solve_v_x(
             {'m' : [0, 50, 100, 1000]},
             {},
             consumption_v_y
@@ -119,7 +119,7 @@ class testPortfolioConsumptionStages(unittest.TestCase):
             v_y = allocation_v_y
             )
 
-        a_sol = self.allocation_stage.solve(
+        a_sol = self.allocation_stage.solve_v_x(
             {'a' : [0, 50, 100, 1000]},
             {},
             allocation_v_y
@@ -149,7 +149,7 @@ class testPortfolioConsumptionStages(unittest.TestCase):
 
         q
 
-        g_sol = self.growth_stage.solve(
+        g_sol = self.growth_stage.solve_v_x(
             {'a' : [0, 500, 1000], 'alpha' : [0, 0.5, 1.0]},
             {
                 'psi' : 4, 
