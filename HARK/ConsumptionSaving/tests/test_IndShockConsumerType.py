@@ -4,10 +4,10 @@ from copy import copy, deepcopy
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
-    IndShockConsumerType,
     ConsIndShockSolverBasic,
-    init_lifecycle,
+    IndShockConsumerType,
     init_idiosyncratic_shocks,
+    init_lifecycle,
 )
 
 
@@ -26,9 +26,9 @@ class testIndShockConsumerType(unittest.TestCase):
         self.agent.get_shocks()
 
         # simulation test -- seed/generator specific
-        #self.assertEqual(self.agent.shocks["PermShk"][0], 1.0427376294215103)
-        #self.assertAlmostEqual(self.agent.shocks["PermShk"][1], 0.9278094171517413)
-        #self.assertAlmostEqual(self.agent.shocks["TranShk"][0], 0.881761797501595)
+        # self.assertEqual(self.agent.shocks["PermShk"][0], 1.0427376294215103)
+        # self.assertAlmostEqual(self.agent.shocks["PermShk"][1], 0.9278094171517413)
+        # self.assertAlmostEqual(self.agent.shocks["TranShk"][0], 0.881761797501595)
 
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerType(**init_lifecycle)
@@ -95,10 +95,10 @@ class testIndShockConsumerType(unittest.TestCase):
         self.agent.simulate()
 
         # MPCnow depends on assets, which are stochastic
-        #self.assertAlmostEqual(self.agent.MPCnow[1], 0.5711503906043797)
-        
+        # self.assertAlmostEqual(self.agent.MPCnow[1], 0.5711503906043797)
+
         # simulation test -- seed/generator specific
-        #self.assertAlmostEqual(self.agent.state_now["aLvl"][1], 0.18438326264597635)
+        # self.assertAlmostEqual(self.agent.state_now["aLvl"][1], 0.18438326264597635)
 
 
 class testBufferStock(unittest.TestCase):
@@ -252,9 +252,9 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         IndShockExample.simulate()
 
         # simulation test -- seed/generator specific
-        #self.assertAlmostEqual(
+        # self.assertAlmostEqual(
         #    IndShockExample.history["mNrm"][0][0], 1.0170176090252379
-        #)
+        # )
 
 
 LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionary
@@ -392,7 +392,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         CyclicalExample.initialize_sim()
         CyclicalExample.simulate()
 
-        self.assertAlmostEqual(CyclicalExample.state_now["aLvl"][1], 0.41839957)
+        self.assertAlmostEqual(CyclicalExample.state_now["aLvl"][1], 2.4124261026801235)
 
 
 # %% Tests of 'stable points'
@@ -705,9 +705,9 @@ class test_Harmenbergs_method(unittest.TestCase):
         # simulation tests -- seed/generator specific
         # But these are based on aggregate population statistics.
         # WARNING: May fail stochastically, or based on specific RNG types.
-        #self.assertAlmostEqual(c_std2, 0.0376882, places = 2)
-        #self.assertAlmostEqual(c_std1, 0.0044117, places = 2)
-        #self.assertAlmostEqual(c_std_ratio, 8.5426941, places = 2)
+        # self.assertAlmostEqual(c_std2, 0.0376882, places = 2)
+        # self.assertAlmostEqual(c_std1, 0.0044117, places = 2)
+        # self.assertAlmostEqual(c_std_ratio, 8.5426941, places = 2)
 
 
 # %% Shock pre-computing tests
@@ -771,8 +771,8 @@ class testReadShock(unittest.TestCase):
         self.assertTrue(
             np.all(agent.history["bNrm"][age == 1] == a_init_newborns / pshk_newborns)
         )
-        
-        
+
+
 class testLCMortalityReadShocks(unittest.TestCase):
     """
     Tests that mortality is working adequately when shocks are read
@@ -848,54 +848,55 @@ class testLCMortalityReadShocks(unittest.TestCase):
         # because we are killing agents before T_cycle)
         self.assertTrue(np.all(hist["t_age"] == hist["t_cycle"]))
 
+
 #%% Test Transition Matrix Methods
+
 
 class test_Transition_Matrix_Methods(unittest.TestCase):
     def test_calc_tran_matrix(self):
-        
+
         example1 = IndShockConsumerType(**dict_harmenberg)
-        example1.cycles= 0
+        example1.cycles = 0
         example1.solve()
-        
+
         example1.define_distribution_grid()
-        p = example1.dist_pGrid # Grid of permanent income levels
-        
-        example1.calc_transition_matrix() 
-        c = example1.cPol_Grid # Normalized Consumption Policy Grid
-        asset = example1.aPol_Grid # Normalized Asset Policy Grid
-        
+        p = example1.dist_pGrid  # Grid of permanent income levels
+
+        example1.calc_transition_matrix()
+        c = example1.cPol_Grid  # Normalized Consumption Policy Grid
+        asset = example1.aPol_Grid  # Normalized Asset Policy Grid
+
         example1.calc_ergodic_dist()
-        vecDstn = example1.vec_erg_dstn # Distribution of market resources and permanent income as a vector (m*p)x1 vector where 
-        
-        
-        #Compute Aggregate Consumption and Aggregate Assets
-        gridc = np.zeros( (len(c),len(p)) )
-        grida = np.zeros( (len(asset),len(p)) )
-        
+        vecDstn = (
+            example1.vec_erg_dstn
+        )  # Distribution of market resources and permanent income as a vector (m*p)x1 vector where
+
+        # Compute Aggregate Consumption and Aggregate Assets
+        gridc = np.zeros((len(c), len(p)))
+        grida = np.zeros((len(asset), len(p)))
+
         for j in range(len(p)):
-            gridc[:,j] = p[j]*c # unnormalized Consumption policy grid
-            grida[:,j] = p[j]*asset # unnormalized Asset policy grid
-            
-        AggC = np.dot(gridc.flatten(), vecDstn) #Aggregate Consumption
-        AggA = np.dot(grida.flatten(), vecDstn) #Aggregate Assets
-        
-        
-              
-        self.assertAlmostEqual(AggA[0],  1.1951311747835132, places =4) 
-        self.assertAlmostEqual(AggC[0], 1.0041701073134557, places = 4)
+            gridc[:, j] = p[j] * c  # unnormalized Consumption policy grid
+            grida[:, j] = p[j] * asset  # unnormalized Asset policy grid
+
+        AggC = np.dot(gridc.flatten(), vecDstn)  # Aggregate Consumption
+        AggA = np.dot(grida.flatten(), vecDstn)  # Aggregate Assets
+
+        self.assertAlmostEqual(AggA[0], 1.1951311747835132, places=4)
+        self.assertAlmostEqual(AggC[0], 1.0041701073134557, places=4)
+
 
 #%% Test Heterogenous Agent Jacobian Methods
 
 
 class test_Jacobian_methods(unittest.TestCase):
     def test_calc_jacobian(self):
-        
+
         Agent = IndShockConsumerType(**dict_harmenberg)
         Agent.compute_steady_state()
-        
-        CJAC_Perm,AJAC_Perm = Agent.calc_jacobian('PermShkStd',50)
 
-              
-        self.assertAlmostEqual(CJAC_Perm.T[30][29],  -0.06119546439244016) 
-        self.assertAlmostEqual(CJAC_Perm.T[30][30],  0.05307403413575694) 
-        self.assertAlmostEqual(CJAC_Perm.T[30][31],  0.0467441811904044) 
+        CJAC_Perm, AJAC_Perm = Agent.calc_jacobian("PermShkStd", 50)
+
+        self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.06119546439244016)
+        self.assertAlmostEqual(CJAC_Perm.T[30][30], 0.05307403413575694)
+        self.assertAlmostEqual(CJAC_Perm.T[30][31], 0.0467441811904044)
