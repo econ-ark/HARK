@@ -19,7 +19,7 @@ class Distribution:
     """
 
     def __init__(self, seed=0):
-        self.RNG = np.random.RandomState(seed)
+        self.RNG = np.random.default_rng(seed)
         self.seed = seed
 
     def reset(self):
@@ -29,7 +29,7 @@ class Distribution:
         Parameters
         ----------
         """
-        self.RNG = np.random.RandomState(self.seed)
+        self.RNG = np.random.default_rng(self.seed)
 
 
 class IndexDistribution(Distribution):
@@ -91,13 +91,13 @@ class IndexDistribution(Distribution):
             for y in range(len(item0)):
                 cond = {key: val[y] for (key, val) in self.conditional.items()}
                 self.dstns.append(
-                    self.engine(seed=self.RNG.randint(0, 2**31 - 1), **cond)
+                    self.engine(seed=self.RNG.integers(0, 2**31 - 1), **cond)
                 )
 
         elif type(item0) is float:
 
             self.dstns = [
-                self.engine(seed=self.RNG.randint(0, 2**31 - 1), **conditional)
+                self.engine(seed=self.RNG.integers(0, 2**31 - 1), **conditional)
             ]
 
         else:
@@ -178,7 +178,7 @@ class IndexDistribution(Distribution):
             N = condition.size
 
             return self.engine(
-                seed=self.RNG.randint(0, 2**31 - 1), **self.conditional
+                seed=self.RNG.integers(0, 2**31 - 1), **self.conditional
             ).draw(N)
 
         if type(item0) is list:
@@ -426,7 +426,7 @@ class Lognormal(Distribution):
             pmv = np.ones(N) / N
             atoms = np.exp(self.mu) * np.ones(N)
         return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
+            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
         )
 
     @classmethod
@@ -514,7 +514,9 @@ class Normal(Distribution):
         """
         draws = []
         for t in range(self.sigma.size):
-            draws.append(self.sigma.item(t) * self.RNG.randn(N) + self.mu.item(t))
+            draws.append(
+                self.sigma.item(t) * self.RNG.standard_normal(N) + self.mu.item(t)
+            )
 
         return draws
 
@@ -528,7 +530,7 @@ class Normal(Distribution):
         # correct x
         atoms = math.sqrt(2.0) * self.sigma * x + self.mu
         return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
+            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
         )
 
     def approx_equiprobable(self, N):
@@ -542,7 +544,7 @@ class Normal(Distribution):
         atoms = self.mu - np.diff(pdf) / pmv * self.sigma
 
         return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
+            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
         )
 
 
@@ -627,7 +629,7 @@ class MVNormal(Distribution):
 
         # Construct and return discrete distribution
         return DiscreteDistribution(
-            pmv, atoms.T, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
+            pmv, atoms.T, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
         )
 
 
@@ -684,7 +686,7 @@ class Weibull(Distribution):
         for j in range(self.scale.size):
             draws.append(
                 self.scale.item(j)
-                * (-np.log(1.0 - self.RNG.rand(N))) ** (1.0 / self.shape.item(j))
+                * (-np.log(1.0 - self.RNG.random(N))) ** (1.0 / self.shape.item(j))
             )
         return draws[0] if len(draws) == 1 else draws
 
@@ -714,7 +716,7 @@ class Uniform(Distribution):
         self.bot = np.array(bot)
         self.top = np.array(top)
         # Set up the RNG
-        self.RNG = np.random.RandomState(seed)
+        self.RNG = np.random.default_rng(seed)
 
     def draw(self, N):
         """
@@ -739,7 +741,7 @@ class Uniform(Distribution):
         for j in range(self.bot.size):
             draws.append(
                 self.bot.item(j)
-                + (self.top.item(j) - self.bot.item(j)) * self.RNG.rand(N)
+                + (self.top.item(j) - self.bot.item(j)) * self.RNG.random(N)
             )
         return draws[0] if len(draws) == 1 else draws
 
@@ -773,7 +775,7 @@ class Uniform(Distribution):
             pmv = np.concatenate(([0.0], pmv, [0.0]))
 
         return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
+            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
         )
 
 
@@ -1077,7 +1079,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
 
         attrs["name"] = name
         attrs["seed"] = seed
-        attrs["RNG"] = np.random.RandomState(seed)
+        attrs["RNG"] = np.random.default_rng(seed)
 
         n_var = data.shape[0]
 

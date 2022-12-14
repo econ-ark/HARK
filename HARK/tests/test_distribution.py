@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+
 from HARK.distribution import (
     Bernoulli,
     DiscreteDistribution,
@@ -369,7 +370,7 @@ class IndexDistributionClassTests(unittest.TestCase):
 
         draw = approx[2].draw(5)
 
-        self.assertAlmostEqual(draw[1], 2.93868620)
+        self.assertAlmostEqual(draw[1], 2.7082604943974236)
 
     def test_IndexDistribution_seeds(self):
         cd = IndexDistribution(Lognormal, {"mu": [1, 1], "sigma": [1, 1]})
@@ -392,11 +393,11 @@ class MarkovProcessTests(unittest.TestCase):
 
         new_state = mp.draw(np.zeros(100).astype(int))
 
-        self.assertEqual(new_state.sum(), 20)
+        self.assertEqual(new_state.sum(), 31)
 
         new_state = mp.draw(new_state)
 
-        self.assertEqual(new_state.sum(), 39)
+        self.assertEqual(new_state.sum(), 45)
 
 
 class LogNormalToNormalTests(unittest.TestCase):
