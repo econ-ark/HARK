@@ -1,11 +1,11 @@
 import math
 from itertools import product
+from warnings import warn
 
 import numpy as np
 import xarray as xr
 from scipy import stats
 from scipy.special import erf, erfc
-from warnings import warn
 
 
 class Distribution:
@@ -1662,7 +1662,10 @@ def combine_indep_dstns(*distributions, seed=0):
 
     if all_labeled and labels_are_unique:
         combined_dstn = DiscreteDistributionLabeled(
-            pmv=P_out, data=atoms_out, var_names=var_labels, seed=seed,
+            pmv=P_out,
+            data=atoms_out,
+            var_names=var_labels,
+            seed=seed,
         )
     else:
         if all_labeled and not labels_are_unique:

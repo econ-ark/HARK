@@ -553,8 +553,10 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         # Check the order
         self.assertTrue(
             np.all(
-                abc.expected()
-                == np.concatenate([a.expected(), b.expected(), c.expected()])
+                np.isclose(
+                    abc.expected(),
+                    np.concatenate([a.expected(), b.expected(), c.expected()]),
+                )
             )
         )
         # Check by label
