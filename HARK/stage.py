@@ -69,7 +69,7 @@ class SolutionDataset(object):
         return self.dataset['q_der'].interp(**x, kwargs={"fill_value": 'extrapolate'})
 
 
-@dataclass(kw_only=True)
+@dataclass# it would be nice to have this, but requires Python 3.10: (kw_only=True)
 class Stage:
     """A single Bellman problem stage."""
     transition: Callable[[Mapping, Mapping, Mapping], Mapping] = lambda x, k, a : {}# TODO: type signature # TODO: Defaults to identity function
@@ -84,6 +84,7 @@ class Stage:
     
     reward: Callable[[Mapping, Mapping, Mapping], Any] = lambda x, k, a : 0 # TODO: type signature # TODO: Defaults to no reward
     reward_der: Callable[[Mapping, Mapping, Mapping], Any] = None # TODO: type signature # TODO: Defaults to no reward
+    reward_der_inv: Callable[[Mapping, Mapping, Mapping], Any] = None # TODO: type signature # TODO: Defaults to no reward
 
     # Note the output type of these functions are sequences, to handle multiple actions
     # If not provided, a new default is provided in post_init
@@ -480,6 +481,44 @@ class Stage:
                             q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_xk)
 
         return pi_data, q_der_data
+
+    def optimal_policy_egm(self,
+                       y_grid : Mapping[str, Sequence] = {},
+                       k_grid : Mapping[str, Sequence] = {},
+                       v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
+                       ):
+        """
+        Given a grid over output
+        and marginal output value function,
+        compute the optimal action.
+
+        This depends on the stage having an
+        *inverse marginal reward function*.
+
+        Does not use rootfinding!
+        The 'grid' over the input 
+        """
+
+        if self.reward_der_inv is None:
+            raise Exception("No inverse marginal reward function found. EGM requires reward_der_inv defined for this stage.")
+
+        pi_y_data = xr.DataArray(
+            np.zeros([len(v) for v in y_grid.values()]),
+            dims = y_grid.keys(),
+            coords = y_grid
+        )
+
+        for y_point in itertools.product(*y_grid.values()):
+            y_vals = {k : v for k, v in zip(y_grid.keys() , y_point)}
+
+            v_y_der_at_y_point = v_y_der(y_vals)
+
+            acts = self.reward_der_inv(v_y_der_at_y_point)
+
+            pi_y_data.sel(**y_vals).variable.data.put(0, acts)
+
+        return pi_y_data
+
 
     def discretize_shocks(self, shock_approx_params):
         discretized_shocks = {}
