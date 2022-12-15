@@ -101,17 +101,17 @@ If you want to make changes or contributions to HARK, you'll need to have access
 
 1.  Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/documentation)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: `git clone https://github.com/econ-ark/HARK.git`.
 
-2.  Then, create and activate a [virtual environment](https://virtualenv.pypa.io/en/latest/).
+2.  If you are familiar with [virtual environments](https://virtualenv.pypa.io/en/latest/), you can optionally create and activate a virtual environment which will isolate the econ-ark specific tools from the rest of your computer.
 
 For Mac or Linux:
 
-Install virtualenv if you need to and then type:
+* Install virtualenv if you need to and then type:
 
 ```
 virtualenv econ-ark
 source econ-ark/bin/activate
 ```
-For Windows:
+* For Windows:
 ```
 virtualenv econ-ark
 econ-ark\\Scripts\\activate.bat
