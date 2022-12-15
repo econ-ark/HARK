@@ -1,0 +1,1 @@
+HARK_PRECISION = 4
