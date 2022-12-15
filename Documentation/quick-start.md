@@ -99,9 +99,9 @@ The most broadly applicable advice is to go to [Econ-ARK](https://econ-ark.org) 
 
 If you want to make changes or contributions to HARK, you'll need to have access to the source files.  Installing HARK via `pip install econ-ark` (at the command line, or inside Spyder) makes it hard to access those files (and it's a bad idea to mess with the original code anyway because you'll likely forget what changes you made).  If you are adept at GitHub, you can [fork](https://help.github.com/en/articles/fork-a-repo) the repo.  If you are less experienced, you should download a personal copy of HARK again using `git clone` (see above) or the GitHub Desktop app.
 
-1.  Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/documentation)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: `git clone https://github.com/econ-ark/HARK.git`.
+###  Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/documentation)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: `git clone https://github.com/econ-ark/HARK.git`.
 
-2.  If you are familiar with [virtual environments](https://virtualenv.pypa.io/en/latest/), you can optionally create and activate a virtual environment which will isolate the econ-ark specific tools from the rest of your computer.
+###  If you are familiar with [virtual environments](https://virtualenv.pypa.io/en/latest/), you can optionally create and activate a virtual environment which will isolate the econ-ark specific tools from the rest of your computer.
 
 For Mac or Linux:
 
@@ -117,21 +117,11 @@ virtualenv econ-ark
 econ-ark\\Scripts\\activate.bat
 ```
 
-3.  Once the virtualenv is activated, you may see `(econ-ark)` in your command prompt (depending on how your machine is configured)
+###  Once the virtualenv is activated, you may see `(econ-ark)` in your command prompt (depending on how your machine is configured)
 
-3.  Make sure to change to HARK directory, and install HARK's requirements into the virtual environment with `pip install -r requirements.txt`.
+###  Make sure to change to HARK directory, and install HARK's requirements into the virtual environment with `pip install -r requirements.txt`.
 
-4.  To check that everything has been set up correctly, run HARK's tests with `python -m unittest`.
-
-## Trouble with installation?
-
-We've done our best to give correct, thorough instructions on how to install HARK but we know this information may be inaccurate or incomplete.  Please let us know if you run into trouble so we can update this guide!  Here's a list of platforms and versions this guide has been verified for:
-
-| Installation Type | Platform      | Python Version |  Date Tested  |  Tested By |
-| ------------- |:-------------:| -----:| -----:|-----:|
-| basic pip install | Linux (16.04) | 3 | 2019-04-24 | @shaunagm |
-| anaconda | Linux (16.04) | 3 | 2019-04-24 | @shaunagm |
-| basic pip install | MacOS 10.13.2 "High Sierra" | 2.7| 2019-04-26 | @llorracc |
+###  To check that everything has been set up correctly, run HARK's tests with `python -m unittest`.
 
 ## Next steps
 
