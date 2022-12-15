@@ -1,4 +1,4 @@
-# Quick Start
+hark.readthedocs# Quick Start
 
 ## Installing HARK
 
@@ -99,7 +99,7 @@ The most broadly applicable advice is to go to [Econ-ARK](https://econ-ark.org) 
 
 If you want to make changes or contributions to HARK, you'll need to have access to the source files.  Installing HARK via `pip install econ-ark` (at the command line, or inside Spyder) makes it hard to access those files (and it's a bad idea to mess with the original code anyway because you'll likely forget what changes you made).  If you are adept at GitHub, you can [fork](https://help.github.com/en/articles/fork-a-repo) the repo.  If you are less experienced, you should download a personal copy of HARK again using `git clone` (see above) or the GitHub Desktop app.
 
-1.  Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/documentation)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: 'git clone https://github.com/econ-ark/HARK.git'.
+1.  Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/documentation)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: `git clone https://github.com/econ-ark/HARK.git`.
 
 2.  Then, create and activate a [virtual environment](https://virtualenv.pypa.io/en/latest/).
 
