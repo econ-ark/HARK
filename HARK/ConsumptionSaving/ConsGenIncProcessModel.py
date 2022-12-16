@@ -720,7 +720,6 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             * calc_expectation(self.IncShkDstn, vpp_next, self.aLvlNow, self.pLvlNow)
         )
 
-
         dcda = EndOfPrdvPP / self.uPP(np.array(cLvl[1:, 1:]))
         MPC = dcda / (dcda + 1.0)
         MPC = np.concatenate((np.reshape(MPC[:, 0], (MPC.shape[0], 1)), MPC), axis=1)
@@ -1081,10 +1080,10 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
         aNrmNow_new = Lognormal(
-            self.aNrmInitMean, self.aNrmInitStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
+            self.aNrmInitMean, self.aNrmInitStd, seed=self.RNG.integers(0, 2**31 - 1)
         ).draw(N)
         self.state_now["pLvl"][which_agents] = Lognormal(
-            self.pLvlInitMean, self.pLvlInitStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
+            self.pLvlInitMean, self.pLvlInitStd, seed=self.RNG.integers(0, 2**31 - 1)
         ).draw(N)
         self.state_now["aLvl"][which_agents] = (
             aNrmNow_new * self.state_now["pLvl"][which_agents]

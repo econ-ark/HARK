@@ -131,7 +131,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             self.RiskyDstn = IndexDistribution(
                 Lognormal.from_mean_std,
                 {"mean": self.RiskyAvg, "std": self.RiskyStd},
-                seed=self.RNG.randint(0, 2**31 - 1),
+                seed=self.RNG.integers(0, 2**31 - 1),
             ).approx(self.RiskyCount)
 
             self.add_to_time_vary("RiskyDstn")
@@ -306,7 +306,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             RiskyStd = self.RiskyStd
 
         self.shocks["Risky"] = Lognormal.from_mean_std(
-            RiskyAvg, RiskyStd, seed=self.RNG.randint(0, 2**31 - 1)
+            RiskyAvg, RiskyStd, seed=self.RNG.integers(0, 2**31 - 1)
         ).draw(1)
 
     def get_Adjust(self):
@@ -324,7 +324,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         None
         """
         self.shocks["Adjust"] = IndexDistribution(
-            Bernoulli, {"p": self.AdjustPrb}, seed=self.RNG.randint(0, 2**31 - 1)
+            Bernoulli, {"p": self.AdjustPrb}, seed=self.RNG.integers(0, 2**31 - 1)
         ).draw(self.t_cycle)
 
     def initialize_sim(self):

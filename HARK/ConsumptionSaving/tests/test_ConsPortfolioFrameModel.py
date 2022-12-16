@@ -1,6 +1,8 @@
-import HARK.ConsumptionSaving.ConsPortfolioFrameModel as cpfm
-import numpy as np
 import unittest
+
+import numpy as np
+
+import HARK.ConsumptionSaving.ConsPortfolioFrameModel as cpfm
 
 
 class PortfolioConsumerTypeTestCase(unittest.TestCase):
@@ -45,10 +47,10 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         # self.assertAlmostEqual(self.pcct.shocks["PermShk"][0], 0.9692322)
 
         # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.pcct.shocks["TranShk"][0], 1.03172631)
+        # self.assertAlmostEqual(self.pcct.shocks["TranShk"][0], 1.03173, place = HARK_PRECISION)
 
         # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.pcct.shocks["Risky"][0], 0.96358739)
+        # self.assertAlmostEqual(self.pcct.shocks["Risky"][0], 0.96359, place = HARK_PRECISION)
 
         self.assertAlmostEqual(
             self.pcct.state_now["pLvl"][0],
@@ -66,12 +68,12 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         )
 
         # simulation test -- seed/generator specific
-        #self.assertAlmostEqual(
+        # self.assertAlmostEqual(
         #    # todo: more flexible test
         #    self.pcct.controls["Share"][0],
-        #    0.90256316,
-        #)
-        
+        #    0.90256,
+        # )
+
         self.assertAlmostEqual(
             self.pcct.controls["cNrm"][0],
             self.pcct.solution[0].cFuncAdj(self.pcct.state_now["mNrm"][0]),
