@@ -23,6 +23,16 @@ def label_index_in_dataset(li, dataset):
     except:
         return False
 
+def data_array_to_a_func(data_array, actions):
+    def func(x : Mapping[str, Any], k : Mapping[str, Any]):
+        # Note: 'fill_value' expects None or 'extrapolate' based on software version?
+        ads = data_array.interp({**x, **k}, kwargs={"fill_value": 'extrapolate'})
+
+        # use of flatten() here for when ads.values is 0 dimensional.
+        return {a : v for a,v in zip(actions, ads.values.flatten())}
+
+    return func
+
 @dataclass
 class SolutionDataset(object):
     dataset : xr.Dataset
@@ -51,6 +61,8 @@ class SolutionDataset(object):
         """
 
         TODO: Option to return a labelled map...
+
+        TODO: Use data_array_to_a_func
         """
         # Note: 'fill_value' expects None or 'extrapolate' based on software version?
         ads = self.dataset['pi*'].interp({**x, **k}, kwargs={"fill_value": 'extrapolate'})
@@ -73,7 +85,8 @@ class SolutionDataset(object):
 class Stage:
     """A single Bellman problem stage."""
     transition: Callable[[Mapping, Mapping, Mapping], Mapping] = lambda x, k, a : {}# TODO: type signature # TODO: Defaults to identity function
-    
+    transition_der: Callable[[Mapping, Mapping, Mapping], Mapping] = None
+
     inputs: Sequence[str] = field(default_factory=list)
     shocks: Mapping[str, Distribution] = field(default_factory=dict) # maybe becomes a dictionary, with shocks from a distribution?
     actions: Sequence[str] = field(default_factory=list)
@@ -174,6 +187,12 @@ class Stage:
 
         WARNING: This will be inaccurate if discount is a function of actions.
         """
+        if self.transition_der is None:
+            raise Exception("self.transition_der is None. Cannot compute dQ/da without derivative transition function.")
+
+        if self.reward_der is None:
+            raise Exception("self.reward_der is None. Cannot compute dQ/da without derivative reward function.")
+
         if isinstance(self.discount, float) or isinstance(self.discount, int):
             discount = self.discount
         elif callable(self.discount):
@@ -182,7 +201,8 @@ class Stage:
             discount = self.discount(x, k, a)
 
         ## WARNING: reward_der not defined yet
-        q_der = self.reward_der(x, k, a) + discount * v_y_der(self.T(x, k, a, constrain = False)) 
+        q_der = self.reward_der(x, k, a) + \
+            discount * v_y_der(self.T(x, k, a, constrain = False)) * self.transition_der(x, k, a)
 
         return q_der
 
@@ -366,6 +386,12 @@ class Stage:
             coords = coords
         )
 
+        y_data = xr.DataArray(
+            np.zeros([len(v) for v in coords.values()]), ## TODO: bigger for multivariate y?
+            dims = coords.keys(),
+            coords = coords
+        )
+
         ## What is happenign when there are _no_ actions?
         ## Is the optimizer still running?
         xk_grid_size = np.prod([len(xv) for xv in x_grid.values()]) * np.prod([len(kv) for kv in k_grid.values()])
@@ -394,6 +420,10 @@ class Stage:
                     pi_data.sel(**x_vals, **k_vals).variable.data.put(0, np.nan)
                     q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_xk)
 
+                    y = self.T(x_vals, k_vals, self.action_zip([np.nan]))
+                    y_n = np.array([y[k] for k in y])
+                    y_data.sel(**x_vals, **k_vals).variable.data.put(0, y_n)
+
                 # This case too is perhaps boilerplate...
                 elif 'pi*' in self.solution_points \
                     and label_index_in_dataset(x_vals, self.solution_points['pi*']):
@@ -411,47 +441,60 @@ class Stage:
 
                         pi_data.sel(**x_vals, **k_vals).variable.data.put(0, acts)
                         q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_xk)
+
+                        y = self.T(x_vals, k_vals, self.action_zip(acts))
+                        y_n = np.array([y[k] for k in y])
+                        y_data.sel(**x_vals, **k_vals).variable.data.put(0, y_n)
                 else:
                     lower_bound = self.action_lower_bound(x_vals, k_vals)
                     upper_bound = self.action_upper_bound(x_vals, k_vals)
 
-                    q_der_lower = self.d_q_d_a(
+                    ##  what if no lower bound?
+                    q_der_lower = None
+                    if lower_bound[0] is not None:
+                        q_der_lower = self.d_q_d_a(
                         x_vals,
                         k_vals,
                         self.action_zip(lower_bound),
                         v_y_der
                         )
-                    q_der_upper = self.d_q_d_a(
+                    else:
+                        lower_bound[0] = 1e-12 ## a really high number!
+
+                    q_der_upper = None
+                    if upper_bound[0] is not None:
+                        q_der_upper = self.d_q_d_a(
                         x_vals,
                         k_vals,
                         self.action_zip(upper_bound),
                         v_y_der
                         )
+                    else:
+                        upper_bound[0] =  1e12 ## a really high number!
 
-                    if q_der_lower < 0 and q_der_upper < 0:
+                    ## TODO: Better handling of case when there is a missing bound?
+                    if q_der_lower is not None and q_der_upper is not None and q_der_lower < 0 and q_der_upper < 0:
                         a0 = lower_bound
 
                         pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
                         q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_lower)
-                    elif q_der_lower > 0 and q_der_upper > 0:
+                    elif q_der_lower is not None and q_der_upper is not None and q_der_lower > 0 and q_der_upper > 0:
                         a0 = upper_bound
-                        q_der = q_der_upper
 
                         pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
                         q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_upper)
                     else:
                         ## Better exception handling here
                         ## asserting that Q is concave
-                        assert q_der_lower > 0 and q_der_upper < 0
+                        if q_der_lower is not None and q_der_upper is not None and not(q_der_lower > 0 and q_der_upper < 0):
+                            raise Exception("Cannot solve for optimal policy with FOC if Q is not concave!")
 
-                        ## TODO: Replace this the Brentq
                         a0, root_res = brentq(
                             foc,
-                            lower_bound,
-                            upper_bound
+                            lower_bound[0], # only works with scalar actions
+                            upper_bound[0], # only works with scalar actions
+                            full_output = True
                         )
-
-                        print(root_res)
 
                         if root_res.converged:
                             pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
@@ -459,7 +502,7 @@ class Stage:
                             q_der_xk = self.d_q_d_a(
                                 x_vals,
                                 k_vals,
-                                self.action_zip(a0),
+                                self.action_zip((a0,)), # actions are scalar
                                 v_y_der
                             )
 
@@ -474,13 +517,18 @@ class Stage:
                             q_der_xk = self.d_q_d_a(
                                 x_vals,
                                 k_vals,
-                                self.action_zip(root_res.root),
+                                self.action_zip((root_res.root,)), # actions are scalar
                                 v_y_der
                             )
 
                             q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_xk)
 
-        return pi_data, q_der_data
+                    acts =  np.atleast_1d(pi_data.sel(**x_vals, **k_vals).values)
+                    y = self.T(x_vals, k_vals, self.action_zip(acts))
+                    y_n = np.array([y[k] for k in y])
+                    y_data.sel(**x_vals, **k_vals).variable.data.put(0, y_n)
+
+        return pi_data, q_der_data, y_data
 
     def optimal_policy_egm(self,
                        y_grid : Mapping[str, Sequence] = {},
@@ -561,7 +609,7 @@ class Stage:
         return new_x_grid
 
 
-    def xarray_expectations(self, x_vals, k_grid_i, discretized_shocks, pi_star, data):
+    def xarray_expectations(self, func, x_vals, k_grid_i, discretized_shocks, pi_star, v_arg):
 
         ## TODO: Replace with HARK.distribution.calc_expectations of some form.
         ##       Problem: calculating expectation of join distribution over sevearl independent shocks.
@@ -598,7 +646,7 @@ class Stage:
                 total_pm = 1
 
             ### NOTE: This is currently doing lookup rather than computing with the q function.
-            d_xk = data.sel(**x_vals, **k_atoms).values
+            d_xk = func(x_vals, k_atoms, pi_star(x_vals, k_atoms), v_arg)
             
             expected_d += d_xk * total_pm
 
@@ -608,8 +656,9 @@ class Stage:
         return expected_d
 
 
-    def solve_v_x(
+    def value_backup(
         self,
+        pi_star,
         x_grid : Mapping[str, Sequence] = field(default_factory=dict),
         shock_approx_params : Mapping[str, int] = field(default_factory=dict),
         v_y : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
@@ -626,8 +675,6 @@ class Stage:
             coords={**new_x_grid}
         )
 
-        pi_star, q_values = self.optimal_policy(x_grid, k_grid, v_y, optimizer_args = optimizer_args)
-
         ## Taking expectations over the generated k-grid, with p_k, of...
             ## Computing optimal policy pi* and q*_value for each x,k
 
@@ -641,19 +688,30 @@ class Stage:
                 value_x = np.atleast_1d(self.solution_points['v_x'].sel(x_vals))
             else:
 
-                value_x = self.xarray_expectations(x_vals, k_grid_i, discretized_shocks, pi_star, q_values)
+                value_x = self.xarray_expectations(
+                    self.q,
+                    x_vals,
+                    k_grid_i,
+                    discretized_shocks,
+                    data_array_to_a_func(pi_star, self.actions),
+                    v_y
+                    )
                 
             v_x_values.sel(**x_vals).variable.data.put(
                 0, 
                 value_x
             )
 
+        ## TODO:
+        ## just return the raw data
+        ## build the solution object in SOLVE
+
         return SolutionDataset(
             xr.Dataset({
                 'v_x' : v_x_values,
                 #'v_x_der' : v_x_der_values, -- 
                 'pi*' : pi_star,
-                'q' : q_values,
+                #'q' : q_values,
             }), 
             actions = self.actions,
             value_transform = self.value_transform,
@@ -661,6 +719,59 @@ class Stage:
             k_grid = k_grid_i
             )
 
+
+    def solve(
+        self,
+        x_grid : Mapping[str, Sequence] = field(default_factory=dict),
+        shock_approx_params : Mapping[str, int] = field(default_factory=dict),
+        v_y :  Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
+    
+        policy_finder_method = 'opt', # opt, foc, egm
+        policy_finder_args = None ## rootfinder_args?
+        # in these args? v_y_der : Callable[[Mapping, Mapping, Mapping], float] = None,
+        ):
+
+        ## Build the grid
+
+        discretized_shocks, k_grid, k_grid_i = self.discretize_shocks(shock_approx_params)
+
+        ## Pick the policy optimizer and run it with the passed-in values
+        ## get pi_star
+
+        if policy_finder_method == 'opt':
+            pi_star, q_data = self.optimal_policy(
+                x_grid,
+                k_grid,
+                v_y
+            )
+
+            ## TODO: value backup can take the already discretized shocks,
+            ## or the other way around, to m
+            sol = self.value_backup(
+                pi_star,
+                x_grid,
+                shock_approx_params,
+                v_y
+            )
+
+            # TODO: better design Solution object to make this smoother
+            sol.dataset['q'] = q_data
+
+            return sol
+
+        elif policy_finder_method == 'foc':
+            pass
+        else:
+            print(f'Did not recognize policy finder method {policy_finder_method}')
+
+        ## do the value_update to get the value data
+
+        ## return the solution object.
+
+        pass
+
+"""
+TODO: Is there a way to do this marginal value backup? I don't think the following code is correct.
 
     def solve_v_x_der(
         self,
@@ -728,7 +839,7 @@ class Stage:
             #value_transform_inv = self.value_transform_inv,
             k_grid = k_grid_i
             )
-
+"""
 
 
 def backwards_induction(stages_data, terminal_v_y):
