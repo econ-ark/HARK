@@ -86,6 +86,8 @@ class Stage:
     """A single Bellman problem stage."""
     transition: Callable[[Mapping, Mapping, Mapping], Mapping] = lambda x, k, a : {}# TODO: type signature # TODO: Defaults to identity function
     transition_der: Callable[[Mapping, Mapping, Mapping], Mapping] = None
+    ## Y x A -> X
+    transition_inv: Callable[[Mapping, Mapping], Mapping] = None
 
     inputs: Sequence[str] = field(default_factory=list)
     shocks: Mapping[str, Distribution] = field(default_factory=dict) # maybe becomes a dictionary, with shocks from a distribution?
@@ -532,7 +534,6 @@ class Stage:
 
     def optimal_policy_egm(self,
                        y_grid : Mapping[str, Sequence] = {},
-                       k_grid : Mapping[str, Sequence] = {},
                        v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
                        ):
         """
@@ -540,15 +541,24 @@ class Stage:
         and marginal output value function,
         compute the optimal action.
 
+        ## NO SHOCKS ALLOWED ##
+
         This depends on the stage having an
-        *inverse marginal reward function*.
+        *inverse marginal reward function*
+        and *inverse transition function*.
 
         Does not use rootfinding!
         The 'grid' over the input 
+
+        ### ASSUMES: No discounting this phase,
+        ###           and... T' = -1 ???
         """
 
         if self.reward_der_inv is None:
             raise Exception("No inverse marginal reward function found. EGM requires reward_der_inv defined for this stage.")
+
+        if self.transition_inv is None:
+            raise Exception("No inverse transition function found. EGM requires transition_inv defined for this stage.")
 
         pi_y_data = xr.DataArray(
             np.zeros([len(v) for v in y_grid.values()]),
@@ -556,16 +566,48 @@ class Stage:
             coords = y_grid
         )
 
+        # Collecting data for the real optimal policy with respect to inputs
+        x_val_data = []
+        a_val_data = []
+
         for y_point in itertools.product(*y_grid.values()):
             y_vals = {k : v for k, v in zip(y_grid.keys() , y_point)}
 
+            ### ASSUMES: No discounting this phase,
+            ###           and... T' = -1 ???
             v_y_der_at_y_point = v_y_der(y_vals)
 
+            ## Problematic: Really, 
+            ##     $$\pi^*_y(\vec{y})  =  F'^{-1}(- B T' v_y'(\vec{y}))$$
             acts = self.reward_der_inv(v_y_der_at_y_point)
 
             pi_y_data.sel(**y_vals).variable.data.put(0, acts)
 
-        return pi_y_data
+            x_vals = self.transition_inv(y_vals, self.action_zip(acts))
+
+            x_val_data.append(x_vals)
+            a_val_data.append(self.action_zip(acts))
+
+        ## TODO is this dealing with repeated values?
+        x_coords = {
+            x : [xv[x] for xv in x_val_data]
+            for x
+            in self.inputs
+        }
+
+        pi_data = xr.DataArray(
+            np.zeros([len(v) for v in x_coords.values()]),
+            dims = x_coords.keys(),
+            coords = x_coords
+        )
+
+        for i, x_vals in enumerate(x_val_data):
+            x_vals = x_val_data[i]
+            a_vals = a_val_data[i]
+            acts = [a_vals[a] for a in a_vals]
+            pi_data.sel(**x_vals).variable.data.put(0, acts)
+
+        return pi_data, pi_y_data
 
 
     def discretize_shocks(self, shock_approx_params):
