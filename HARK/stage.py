@@ -590,16 +590,31 @@ class Stage:
 
         ## TODO is this dealing with repeated values?
         x_coords = {
-            x : [xv[x] for xv in x_val_data]
+            x : np.array([xv[x] for xv in x_val_data])
             for x
             in self.inputs
         }
+
+        for x_label in self.solution_points.coords:
+            for sol_x_val in self.solution_points.coords[x_label]:
+                if sol_x_val.values not in x_coords[x_label]:
+                    ii = np.searchsorted(x_coords[x_label], sol_x_val)
+                    x_coords[x_label] = np.insert(x_coords[x_label], ii, sol_x_val)
 
         pi_data = xr.DataArray(
             np.zeros([len(v) for v in x_coords.values()]),
             dims = x_coords.keys(),
             coords = x_coords
         )
+
+        if 'pi*' in self.solution_points:
+            for x_point in itertools.product(*x_coords.values()):
+                x_vals = {k : v for k, v in zip(x_coords.keys() , x_point)}
+
+                if label_index_in_dataset(x_vals, self.solution_points['pi*']):
+                    acts = np.atleast_1d(self.solution_points['pi*'].sel(x_vals))
+
+                    pi_data.sel(**x_vals, **{}).variable.data.put(0, acts)
 
         for i, x_vals in enumerate(x_val_data):
             x_vals = x_val_data[i]
