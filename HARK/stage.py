@@ -57,6 +57,12 @@ class SolutionDataset(object):
         # Note: 'fill_value' expects None or 'extrapolate' based on software version?
         return self.dataset['v_x_der'].interp(**x, kwargs={"fill_value": 'extrapolate'})
 
+    ## TODO: Should there be a standalone DecisionRule object?
+    ## Or is it any function from X x K -> A?
+    ## At least, it should be possible to pass this in directly.
+    ## Example from 2nd llorracc lecture on consumption and labor supply
+    ##         ConsLabor in HARK. has the analytic decision rule.
+    ##         https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/Consumption/ConsAndLaborSupply/
     def pi_star(self, x : Mapping[str, Any], k : Mapping[str, Any], ):
         """
 
@@ -85,7 +91,7 @@ class SolutionDataset(object):
 class Stage:
     """A single Bellman problem stage."""
     transition: Callable[[Mapping, Mapping, Mapping], Mapping] = lambda x, k, a : {}# TODO: type signature # TODO: Defaults to identity function
-    transition_der: Callable[[Mapping, Mapping, Mapping], Mapping] = None
+    transition_der: Any = None # Callable[[Mapping, Mapping, Mapping], Mapping] = None
     ## Y x A -> X
     transition_inv: Callable[[Mapping, Mapping], Mapping] = None
 
@@ -191,6 +197,10 @@ class Stage:
         """
         if self.transition_der is None:
             raise Exception("self.transition_der is None. Cannot compute dQ/da without derivative transition function.")
+        elif isinstance(self.transition_der, float) or isinstance(self.transition_der, int):
+            transition_der = self.transition_der
+        elif callable(self.transition_der):
+            transition_der = self.transition_der(x, k, a)
 
         if self.reward_der is None:
             raise Exception("self.reward_der is None. Cannot compute dQ/da without derivative reward function.")
@@ -204,7 +214,7 @@ class Stage:
 
         ## WARNING: reward_der not defined yet
         q_der = self.reward_der(x, k, a) + \
-            discount * v_y_der(self.T(x, k, a, constrain = False)) * self.transition_der(x, k, a)
+            discount * v_y_der(self.T(x, k, a, constrain = False)) * transition_der
 
         return q_der
 
@@ -530,7 +540,41 @@ class Stage:
                     y_n = np.array([y[k] for k in y])
                     y_data.sel(**x_vals, **k_vals).variable.data.put(0, y_n)
 
+        ## TODO: Generalize this.
+        ## Add y values as coordinate to pi.
+        ## Assumes invertible transition function.
+        ## pi_star = pi_star.assign_coords({'a' : ('m', y_data.values)})
+
         return pi_data, q_der_data, y_data
+
+    def analytic_pi_star_y(self,
+                        y,
+                        v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0
+                        ):
+        """
+        The optimal action that results in output values y.
+
+        Available only with reward_der_inv and transition_inv
+        are well-defined.
+        """
+        if self.reward_der_inv is None:
+            raise Exception("No inverse marginal reward function found.")
+
+        if self.transition_inv is None:
+            raise Exception("No inverse transition function found. ")
+
+        if self.transition_der is None or not(
+            isinstance(self.transition_der, float) or isinstance(self.transition_der, int)
+            ):
+            raise Exception(f"No constant transition derivative found. transition_der is {self.transition_der}")
+
+        if not isinstance(self.discount, float) or isinstance(self.discount, int):
+            raise Exception("Analytic pi_star_y requires constant discount factor (rendering B' = 0).")
+
+        ### TEST: available T_der as constant.
+
+        return self.reward_der_inv(- self.discount * self.transition_der * v_y_der(y))
+        
 
     def optimal_policy_egm(self,
                        y_grid : Mapping[str, Sequence] = {},
@@ -573,13 +617,7 @@ class Stage:
         for y_point in itertools.product(*y_grid.values()):
             y_vals = {k : v for k, v in zip(y_grid.keys() , y_point)}
 
-            ### ASSUMES: No discounting this phase,
-            ###           and... T' = -1 ???
-            v_y_der_at_y_point = v_y_der(y_vals)
-
-            ## Problematic: Really, 
-            ##     $$\pi^*_y(\vec{y})  =  F'^{-1}(- B T' v_y'(\vec{y}))$$
-            acts = self.reward_der_inv(v_y_der_at_y_point)
+            acts = self.analytic_pi_star_y(y_vals, v_y_der)
 
             pi_y_data.sel(**y_vals).variable.data.put(0, acts)
 
