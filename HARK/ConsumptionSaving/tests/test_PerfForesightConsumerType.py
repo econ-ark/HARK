@@ -1,13 +1,16 @@
-from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
-import numpy as np
 import unittest
+
+import numpy as np
+
+from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
+from HARK.tests import HARK_PRECISION
 
 
 class testPerfForesightConsumerType(unittest.TestCase):
     def setUp(self):
         self.agent = PerfForesightConsumerType()
         self.agent_infinite = PerfForesightConsumerType(cycles=0)
-        
+
         PF_dictionary = {
             "CRRA": 2.5,
             "DiscFac": 0.96,
@@ -24,17 +27,19 @@ class testPerfForesightConsumerType(unittest.TestCase):
         self.agent.solve()
         c = self.agent.solution[0].cFunc
 
-        self.assertEqual(c.x_list[0], -0.9805825242718447)
-        self.assertEqual(c.x_list[1], 0.01941747572815533)
+        self.assertAlmostEqual(c.x_list[0], -0.98058, places=HARK_PRECISION)
+        self.assertAlmostEqual(c.x_list[1], 0.01942, places=HARK_PRECISION)
         self.assertEqual(c.y_list[0], 0)
-        self.assertEqual(c.y_list[1], 0.511321002804608)
+        self.assertAlmostEqual(c.y_list[1], 0.51132, places=HARK_PRECISION)
         self.assertEqual(c.decay_extrap, False)
 
     def test_another_solution(self):
         self.agent_alt.DiscFac = 0.90
         self.agent_alt.solve()
         self.assertAlmostEqual(
-            self.agent_alt.solution[0].cFunc(10).tolist(), 3.9750093524820787
+            self.agent_alt.solution[0].cFunc(10).tolist(),
+            3.97501,
+            places=HARK_PRECISION,
         )
 
     def test_check_conditions(self):
@@ -71,14 +76,15 @@ class testPerfForesightConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(
             np.mean(self.agent_infinite.history["mNrm"], axis=1)[40],
-            np.mean(self.agent_infinite.history["bNrm"], axis=1)[40] + np.mean(self.agent_infinite.history["TranShk"], axis=1)[40]
+            np.mean(self.agent_infinite.history["bNrm"], axis=1)[40]
+            + np.mean(self.agent_infinite.history["TranShk"], axis=1)[40],
         )
 
         # simulation test -- seed/generator specific
-        #self.assertAlmostEqual(
+        # self.assertAlmostEqual(
         #    np.mean(self.agent_infinite.history["mNrm"], axis=1)[100],
-        #    -27.164608851546927,
-        #)
+        #    -27.16461,
+        # )
 
         ## Try now with the manipulation at time step 80
 
@@ -87,33 +93,32 @@ class testPerfForesightConsumerType(unittest.TestCase):
 
         # This actually does nothing because aNrmNow is
         # epiphenomenal. Probably should change mNrmNow instead
-        self.agent_infinite.state_now['aNrm'] += (
-            -5.0
-        )
+        self.agent_infinite.state_now["aNrm"] += -5.0
         self.agent_infinite.simulate(40)
 
         # simulation test -- seed/generator specific
-        #self.assertAlmostEqual(
+        # self.assertAlmostEqual(
         #    np.mean(self.agent_infinite.history["mNrm"], axis=1)[40],
-        #    -23.008063500363942,
-        #)
+        #    -23.00806,
+        # )
 
         # simulation test -- seed/generator specific
-        #self.assertAlmostEqual(
+        # self.assertAlmostEqual(
         #    np.mean(self.agent_infinite.history["mNrm"], axis=1)[100],
-        #    -29.140261331951606,
-        #)
-        
+        #    -29.14026,
+        # )
+
     def test_stable_points(self):
-        
+
         # Solve the constrained agent. Stable points exists only with a
         # borrowing constraint.
-        constrained_agent = PerfForesightConsumerType(cycles = 0, BoroCnstArt = 0.0)
-        
+        constrained_agent = PerfForesightConsumerType(cycles=0, BoroCnstArt=0.0)
+
         constrained_agent.solve()
-        
+
         # Check against pre-computed values.
-        self.assertEqual(constrained_agent.solution[0].mNrmStE , 1.0)
+        self.assertEqual(constrained_agent.solution[0].mNrmStE, 1.0)
         # Check that they are both the same, since the problem is deterministic
-        self.assertEqual(constrained_agent.solution[0].mNrmStE,
-                         constrained_agent.solution[0].mNrmTrg)
+        self.assertEqual(
+            constrained_agent.solution[0].mNrmStE, constrained_agent.solution[0].mNrmTrg
+        )

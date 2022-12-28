@@ -33,6 +33,7 @@ Release Date: TBD
 * Fixes a bug that causes `t_age` and `t_cycle` to get out of sync when reading pre-computed mortality. [#1181](https://github.com/econ-ark/HARK/pull/1181)
 * Adds Methods to calculate Heterogenous Agent Jacobian matrices. [#1185](https://github.com/econ-ark/HARK/pull/1185)
 * Enhances `combine_indep_dstns` to work with labeled distributions (`DiscreteDistributionLabeled`). [#1191](htttps://github.com/econ-ark/HARK/pull/1191)
+* Updates the `numpy` random generator from `RandomState` to `Generator`. [#1193](https://github.com/econ-ark/HARK/pull/1193)
 
 ### Minor Changes
 
@@ -50,6 +51,7 @@ Release Date: TBD
 * Renames `HARK.numba` to `HARK.numba_tools` [#1183](https://github.com/econ-ark/HARK/pull/1183)
 * Adds the RNG seed as a property of `DiscreteDistributionLabeled` [#1184](https://github.com/econ-ark/HARK/pull/1184)
 * Updates the `approx` method of `HARK.distributions.Uniform` to include the endpoints of the distribution with infinitesimally small (zero) probability mass. [#1180](https://github.com/econ-ark/HARK/pull/1180)
+* Refactors tests to incorporate custom precision `HARK_PRECISION = 4`. [#1193](https://github.com/econ-ark/HARK/pull/1193)
 
 ### 0.12.0
 
