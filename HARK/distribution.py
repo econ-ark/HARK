@@ -1057,7 +1057,7 @@ class IndexDistribution(Distribution):
 
     For example, an IndexDistribution can be defined as
     a Bernoulli distribution whose parameter p is a function of
-    a different inpute parameter.
+    a different input parameter.
 
     Parameters
     ----------
@@ -1085,7 +1085,7 @@ class IndexDistribution(Distribution):
             super().__init__(seed)
         else:
             # If an RNG is received, use it in whatever state it is in.
-            self.RNG = RNG
+            self._rng = RNG
             # The seed will still be set, even if it is not used for the RNG,
             # for whenever self.reset() is called.
             # Note that self.reset() will stop using the RNG that was passed
@@ -1105,13 +1105,13 @@ class IndexDistribution(Distribution):
             for y in range(len(item0)):
                 cond = {key: val[y] for (key, val) in self.conditional.items()}
                 self.dstns.append(
-                    self.engine(seed=self.RNG.integers(0, 2**31 - 1), **cond)
+                    self.engine(seed=self._rng.integers(0, 2**31 - 1), **cond)
                 )
 
         elif type(item0) is float:
 
             self.dstns = [
-                self.engine(seed=self.RNG.integers(0, 2**31 - 1), **conditional)
+                self.engine(seed=self._rng.integers(0, 2**31 - 1), **conditional)
             ]
 
         else:
@@ -1192,7 +1192,7 @@ class IndexDistribution(Distribution):
             N = condition.size
 
             return self.engine(
-                seed=self.RNG.integers(0, 2**31 - 1), **self.conditional
+                seed=self._rng.integers(0, 2**31 - 1), **self.conditional
             ).draw(N)
 
         if type(item0) is list:
