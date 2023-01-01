@@ -1761,7 +1761,7 @@ class MarkovProcess(Distribution):
         """
 
         def sample(s):
-            return self.RNG.choice(
+            return self._rng.choice(
                 self.transition_matrix.shape[1], p=self.transition_matrix[s, :]
             )
 
