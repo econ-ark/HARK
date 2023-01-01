@@ -1,13 +1,12 @@
 import math
 from itertools import product
-from typing import Optional
+from typing import Optional, Union
 from warnings import warn
 
 import numpy as np
 import xarray as xr
 from numpy import random
 from scipy import stats
-from scipy.special import erf, erfc
 from scipy.stats._distn_infrastructure import rv_continuous_frozen
 
 
@@ -215,7 +214,7 @@ class Normal(ContinuousFrozenDistribution):
         )
 
 
-class Lognormal(Distribution):
+class Lognormal(ContinuousFrozenDistribution):
     """
     A Lognormal distribution
 
@@ -231,50 +230,56 @@ class Lognormal(Distribution):
         Seed for random number generator.
     """
 
-    mu = None
-    sigma = None
+    def __new__(
+        cls,
+        mu: Union[float, np.ndarray] = 0.0,
+        sigma: Union[float, np.ndarray] = 1.0,
+        seed: Optional[int] = 0,
+    ):
+        """
+        Create a new Lognormal distribution. If sigma is zero, return a
+        DiscreteDistribution with a single atom at exp(mu).
 
-    def __init__(self, mu=0.0, sigma=1.0, seed=0):
-        self.mu = np.array(mu)
-        self.sigma = np.array(sigma)
-        # Set up the RNG
-        super().__init__(seed)
+        Parameters
+        ----------
+        mu : Union[float, np.ndarray], optional
+            Mean of underlying normal distribution, by default 0.0
+        sigma : Union[float, np.ndarray], optional
+            Standard deviation of underlying normal distribution, by default 1.0
+        seed : Optional[int], optional
+            Seed for random number generator, by default None
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+
+        if sigma == 0:
+            # If sigma is zero, return a DiscreteDistribution with a single atom
+            return DiscreteDistribution([1.0], [np.exp(mu)], seed=seed)
+
+        return super(Lognormal, cls).__new__(cls)
+
+    def __init__(
+        self,
+        mu: Union[float, np.ndarray] = 0.0,
+        sigma: Union[float, np.ndarray] = 1.0,
+        seed: Optional[int] = 0,
+    ):
+        self.mu = np.asarray(mu)
+        self.sigma = np.asarray(sigma)
 
         if self.mu.size != self.sigma.size:
-            raise Exception(
+            raise AttributeError(
                 "mu and sigma must be of same size, are %s, %s"
                 % ((self.mu.size), (self.sigma.size))
             )
 
-    def draw(self, N):
-        """
-        Generate arrays of lognormal draws. The sigma parameter can be a number
-        or list-like.  If a number, output is a length N array of draws from the
-        lognormal distribution with standard deviation sigma. If a list, output is
-        a length T list whose t-th entry is a length N array of draws from the
-        lognormal with standard deviation sigma[t].
-
-        Parameters
-        ----------
-        N : int
-            Number of draws in each row.
-
-        Returns:
-        ------------
-        draws : np.array or [np.array]
-            T-length list of arrays of mean one lognormal draws each of size N, or
-            a single array of size N (if sigma is a scalar).
-        """
-
-        draws = []
-        for j in range(self.mu.size):
-            draws.append(
-                self.RNG.lognormal(
-                    mean=self.mu.item(j), sigma=self.sigma.item(j), size=N
-                )
-            )
-        # TODO: change return type to np.array?
-        return draws[0] if len(draws) == 1 else draws
+        # Set up the RNG
+        super().__init__(
+            stats.lognorm, s=self.sigma, scale=np.exp(self.mu), loc=0, seed=seed
+        )
 
     def approx(self, N, tail_N=0, tail_bound=None, tail_order=np.e):
         """
@@ -361,14 +366,14 @@ class Lognormal(Distribution):
                     atoms[i] = (
                         -0.5
                         * np.exp(self.mu + (self.sigma**2) * 0.5)
-                        * (erf(tempTop) - erf(tempBot))
+                        * (math.erf(tempTop) - math.erf(tempBot))
                         / pmv[i]
                     )
                 else:
                     atoms[i] = (
                         -0.5
                         * np.exp(self.mu + (self.sigma**2) * 0.5)
-                        * (erfc(tempBot) - erfc(tempTop))
+                        * (math.erfc(tempBot) - math.erfc(tempTop))
                         / pmv[i]
                     )
 
@@ -376,7 +381,7 @@ class Lognormal(Distribution):
             pmv = np.ones(N) / N
             atoms = np.exp(self.mu) * np.ones(N)
         return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
+            pmv, atoms, seed=self._rng.integers(0, 2**31 - 1, dtype="int32")
         )
 
     @classmethod
