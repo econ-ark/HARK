@@ -1,35 +1,123 @@
 import math
 from itertools import product
+from typing import Optional
 from warnings import warn
 
 import numpy as np
 import xarray as xr
+from numpy import random
 from scipy import stats
 from scipy.special import erf, erfc
 
 
 class Distribution:
     """
-    Base class for all probability distributions.
+    Base class for all probability distributions
+    with seed and random number generator.
+
+    For discussion on random number generation and random seeds, see
+    https://docs.scipy.org/doc/scipy/tutorial/stats.html#random-number-generation
 
     Parameters
     ----------
-    seed : int
+    seed : Optional[int]
         Seed for random number generator.
     """
 
-    def __init__(self, seed=0):
-        self.RNG = np.random.default_rng(seed)
-        self.seed = seed
+    def __init__(self, seed: Optional[int] = 0):
+        """
+        Generic distribution class with seed management.
+
+        Parameters
+        ----------
+        seed : Optional[int], optional
+            Seed for random number generator, by default None
+            generates random seed based on entropy.
+
+        Raises
+        ------
+        ValueError
+            Seed must be an integer type.
+        """
+        if seed is None:
+            # generate random seed
+            _seed = random.SeedSequence().entropy
+        elif isinstance(seed, (int, np.integer)):
+            _seed = seed
+        else:
+            raise ValueError("seed must be an integer")
+
+        self._seed = _seed
+        self._rng = random.default_rng(self._seed)
+
+    @property
+    def seed(self) -> int:
+        """
+        Seed for random number generator.
+
+        Returns
+        -------
+        int
+            Seed.
+        """
+        return self._seed  # type: ignore
+
+    @seed.setter
+    def seed(self, seed):
+        """
+        Set seed for random number generator.
+
+        Parameters
+        ----------
+        seed : int
+            Seed for random number generator.
+        """
+
+        if isinstance(seed, (int, np.integer)):
+            self._seed = seed
+            self._rng = random.default_rng(seed)
+        else:
+            raise ValueError("seed must be an integer")
 
     def reset(self):
         """
         Reset the random number generator of this distribution.
+        Resetting the seed will result in the same sequence of
+        random numbers being generated.
 
         Parameters
         ----------
         """
-        self.RNG = np.random.default_rng(self.seed)
+        self._rng = random.default_rng(self.seed)
+
+    def random_seed(self):
+        """
+        Generate a new random seed for this distribution.
+        """
+        self.seed = random.SeedSequence().entropy
+
+    def draw(self, N):
+        """
+        Generate arrays of draws from this distribution.
+        If input N is a number, output is a length N array of draws from the
+        distribution. If N is a list, output is a length T list whose
+        t-th entry is a length N array of draws from the distribution[t].
+
+        Parameters
+        ----------
+        N : int
+            Number of draws in each row.
+
+        Returns:
+        ------------
+        draws : np.array or [np.array]
+            T-length list of arrays of random variable draws each of size N, or
+            a single array of size N (if sigma is a scalar).
+        """
+
+        mean = self.mean() if callable(self.mean) else self.mean
+        n = (N, mean.size) if mean.size != 1 else N
+        return self.rvs(size=n, random_state=self._rng)
 
 
 ### CONTINUOUS DISTRIBUTIONS
