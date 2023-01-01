@@ -827,7 +827,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
     def __init__(
         self,
         pmv,
-        data,
+        atoms,
         seed=0,
         name="DiscreteDistributionLabeled",
         attrs=None,
@@ -835,10 +835,11 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         var_attrs=None,
     ):
 
+        super().__init__(pmv, atoms, seed=seed)
+
         # vector-value distributions
-        if data.ndim < 2:
-            data = data[np.newaxis, ...]
-        if data.ndim > 2:
+
+        if self.atoms.ndim > 2:
             raise NotImplementedError(
                 "Only vector-valued distributions are supported for now."
             )
@@ -847,10 +848,8 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             attrs = {}
 
         attrs["name"] = name
-        attrs["seed"] = seed
-        attrs["RNG"] = np.random.default_rng(seed)
 
-        n_var = data.shape[0]
+        n_var = self.atoms.shape[0]
 
         # give dummy names to variables if none are provided
         if var_names is None:
@@ -869,7 +868,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         self.dataset = xr.Dataset(
             {
                 var_names[i]: xr.DataArray(
-                    data[i],
+                    self.atoms[i],
                     dims=("atom"),
                     attrs=var_attrs[i],
                 )
@@ -880,7 +879,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
 
         # the probability mass values are stored in
         # a DataArray with dimension "atom"
-        self.pmf = xr.DataArray(pmv, dims=("atom"))
+        self.probability = xr.DataArray(self.pmv, dims=("atom"))
 
     @classmethod
     def from_unlabeled(
@@ -925,7 +924,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         """
         Returns a DatasetWeighted object for the distribution.
         """
-        return self.dataset.weighted(self.pmf)
+        return self.dataset.weighted(self.probability)
 
     @property
     def variables(self):
@@ -934,35 +933,6 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         the variables of the distribution.
         """
         return self.dataset.data_vars
-
-    @property
-    def atoms(self):
-        """
-        Returns the distribution's data as a numpy.ndarray.
-        """
-        data_vars = self.variables
-        return np.vstack([data_vars[key].values for key in data_vars.keys()])
-
-    @property
-    def pmv(self):
-        """
-        Returns the distribution's probability mass function.
-        """
-        return self.pmf.values
-
-    @property
-    def seed(self):
-        """
-        Returns the distribution's seed.
-        """
-        return self.dataset.seed
-
-    @property
-    def RNG(self):
-        """
-        Returns the distribution's random number generator.
-        """
-        return self.dataset.RNG
 
     @property
     def name(self):
@@ -1066,7 +1036,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
 
         if len(kwargs):
             f_query = func(self.dataset, *args, **kwargs)
-            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.pmf)
+            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.probability)
 
             return ldd._weighted.mean("atom")
         else:
@@ -1662,7 +1632,7 @@ def combine_indep_dstns(*distributions, seed=0):
     if all_labeled and labels_are_unique:
         combined_dstn = DiscreteDistributionLabeled(
             pmv=P_out,
-            data=atoms_out,
+            atoms=atoms_out,
             var_names=var_labels,
             seed=seed,
         )

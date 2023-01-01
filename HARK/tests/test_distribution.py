@@ -540,13 +540,13 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
 
         # Create some dstns
         a = DiscreteDistributionLabeled(
-            pmv=np.array([0.1, 0.9]), data=np.array([-1.0, 1.0]), var_names="a"
+            pmv=np.array([0.1, 0.9]), atoms=np.array([-1.0, 1.0]), var_names="a"
         )
         b = DiscreteDistributionLabeled(
-            pmv=np.array([0.5, 0.5]), data=np.array([0.0, 1.0]), var_names="b"
+            pmv=np.array([0.5, 0.5]), atoms=np.array([0.0, 1.0]), var_names="b"
         )
         c = DiscreteDistributionLabeled(
-            pmv=np.array([0.3, 0.7]), data=np.array([0.5, 1.0]), var_names="c"
+            pmv=np.array([0.3, 0.7]), atoms=np.array([0.5, 1.0]), var_names="c"
         )
 
         # Test some combinations
@@ -577,10 +577,10 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
 
         # Combine multidimensional labeled
         d = DiscreteDistributionLabeled(
-            pmv=np.array([0.3, 0.7]), data=np.array([-0.5, -1.0]), var_names="d"
+            pmv=np.array([0.3, 0.7]), atoms=np.array([-0.5, -1.0]), var_names="d"
         )
         e = DiscreteDistributionLabeled(
-            pmv=np.array([0.3, 0.7]), data=np.array([0.0, -1.0]), var_names="e"
+            pmv=np.array([0.3, 0.7]), atoms=np.array([0.0, -1.0]), var_names="e"
         )
         de = combine_indep_dstns(d, e)
 
