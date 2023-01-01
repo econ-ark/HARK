@@ -7,7 +7,7 @@ import numpy as np
 import xarray as xr
 from numpy import random
 from scipy import stats
-from scipy.stats._distn_infrastructure import rv_continuous_frozen
+from scipy.stats._distn_infrastructure import rv_continuous_frozen, rv_discrete_frozen
 from scipy.stats._multivariate import multivariate_normal_frozen
 
 
@@ -576,6 +576,13 @@ class MVNormal(multivariate_normal_frozen, Distribution):
 
 
 ### DISCRETE DISTRIBUTIONS
+
+
+class DiscreteFrozenDistribution(rv_discrete_frozen, Distribution):
+    def __init__(self, dist, *args, seed=0, **kwds):
+
+        rv_discrete_frozen.__init__(self, dist, *args, **kwds)
+        Distribution.__init__(self, seed=seed)
 
 
 class Bernoulli(Distribution):
