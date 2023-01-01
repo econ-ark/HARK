@@ -32,237 +32,86 @@ class Distribution:
         self.RNG = np.random.default_rng(self.seed)
 
 
-class IndexDistribution(Distribution):
+### CONTINUOUS DISTRIBUTIONS
+
+
+class Normal(Distribution):
     """
-    This class provides a way to define a distribution that
-    is conditional on an index.
-
-    The current implementation combines a defined distribution
-    class (such as Bernoulli, LogNormal, etc.) with information
-    about the conditions on the parameters of the distribution.
-
-    For example, an IndexDistribution can be defined as
-    a Bernoulli distribution whose parameter p is a function of
-    a different inpute parameter.
+    A Normal distribution.
 
     Parameters
     ----------
-
-    engine : Distribution class
-        A Distribution subclass.
-
-    conditional: dict
-        Information about the conditional variation
-        on the input parameters of the engine distribution.
-        Keys should match the arguments to the engine class
-        constructor.
-
+    mu : float or [float]
+        One or more means.  Number of elements T in mu determines number
+        of rows of output.
+    sigma : float or [float]
+        One or more standard deviations. Number of elements T in sigma
+        determines number of rows of output.
     seed : int
         Seed for random number generator.
     """
 
-    conditional = None
-    engine = None
+    mu = None
+    sigma = None
 
-    def __init__(self, engine, conditional, RNG=None, seed=0):
-
-        if RNG is None:
-            # Set up the RNG
-            super().__init__(seed)
-        else:
-            # If an RNG is received, use it in whatever state it is in.
-            self.RNG = RNG
-            # The seed will still be set, even if it is not used for the RNG,
-            # for whenever self.reset() is called.
-            # Note that self.reset() will stop using the RNG that was passed
-            # and create a new one.
-            self.seed = seed
-
-        self.conditional = conditional
-        self.engine = engine
-
-        self.dstns = []
-
-        # Test one item to determine case handling
-        item0 = list(self.conditional.values())[0]
-
-        if type(item0) is list:
-            # Create and store all the conditional distributions
-            for y in range(len(item0)):
-                cond = {key: val[y] for (key, val) in self.conditional.items()}
-                self.dstns.append(
-                    self.engine(seed=self.RNG.integers(0, 2**31 - 1), **cond)
-                )
-
-        elif type(item0) is float:
-
-            self.dstns = [
-                self.engine(seed=self.RNG.integers(0, 2**31 - 1), **conditional)
-            ]
-
-        else:
-            raise (
-                Exception(
-                    f"IndexDistribution: Unhandled case for __getitem__ access. item0: {item0}; conditional: {self.conditional}"
-                )
-            )
-
-    def __getitem__(self, y):
-
-        return self.dstns[y]
-
-    def approx(self, N, **kwds):
-        """
-        Approximation of the distribution.
-
-        Parameters
-        ----------
-        N : init
-            Number of discrete points to approximate
-            continuous distribution into.
-
-        kwds: dict
-            Other keyword arguments passed to engine
-            distribution approx() method.
-
-        Returns:
-        ------------
-        dists : [DiscreteDistribution]
-            A list of DiscreteDistributions that are the
-            approximation of engine distribution under each condition.
-
-            TODO: It would be better if there were a conditional discrete
-            distribution representation. But that integrates with the
-            solution code. This implementation will return the list of
-            distributions representations expected by the solution code.
-        """
-
-        # test one item to determine case handling
-        item0 = list(self.conditional.values())[0]
-
-        if type(item0) is float:
-            # degenerate case. Treat the parameterization as constant.
-            return self.dstns[0].approx(N, **kwds)
-
-        if type(item0) is list:
-            return TimeVaryingDiscreteDistribution(
-                [self[i].approx(N, **kwds) for i, _ in enumerate(item0)]
-            )
-
-    def draw(self, condition):
-        """
-        Generate arrays of draws.
-        The input is an array containing the conditions.
-        The output is an array of the same length (axis 1 dimension)
-        as the conditions containing random draws of the conditional
-        distribution.
-
-        Parameters
-        ----------
-        condition : np.array
-            The input conditions to the distribution.
-
-        Returns:
-        ------------
-        draws : np.array
-        """
-        # for now, assume that all the conditionals
-        # are of the same type.
-        # this matches the HARK 'time-varying' model architecture.
-
-        # test one item to determine case handling
-        item0 = list(self.conditional.values())[0]
-
-        if type(item0) is float:
-            # degenerate case. Treat the parameterization as constant.
-            N = condition.size
-
-            return self.engine(
-                seed=self.RNG.integers(0, 2**31 - 1), **self.conditional
-            ).draw(N)
-
-        if type(item0) is list:
-            # conditions are indices into list
-            # somewhat convoluted sampling strategy retained
-            # for test backwards compatibility
-
-            draws = np.zeros(condition.size)
-
-            for c in np.unique(condition):
-                these = c == condition
-                N = np.sum(these)
-
-                cond = {key: val[c] for (key, val) in self.conditional.items()}
-                draws[these] = self[c].draw(N)
-
-            return draws
-
-
-class TimeVaryingDiscreteDistribution(Distribution):
-    """
-    This class provides a way to define a discrete distribution that
-    is conditional on an index.
-
-    Wraps a list of discrete distributions.
-
-    Parameters
-    ----------
-
-    distributions : [DiscreteDistribution]
-        A list of discrete distributions
-
-    seed : int
-        Seed for random number generator.
-    """
-
-    distributions = []
-
-    def __init__(self, distributions, seed=0):
-        # Set up the RNG
+    def __init__(self, mu=0.0, sigma=1.0, seed=0):
+        self.mu = np.array(mu)
+        self.sigma = np.array(sigma)
         super().__init__(seed)
 
-        self.distributions = distributions
-
-    def __getitem__(self, y):
-        return self.distributions[y]
-
-    def draw(self, condition):
+    def draw(self, N):
         """
-        Generate arrays of draws.
-        The input is an array containing the conditions.
-        The output is an array of the same length (axis 1 dimension)
-        as the conditions containing random draws of the conditional
-        distribution.
+        Generate arrays of normal draws.  The mu and sigma inputs can be numbers or
+        list-likes.  If a number, output is a length N array of draws from the normal
+        distribution with mean mu and standard deviation sigma. If a list, output is
+        a length T list whose t-th entry is a length N array with draws from the
+        normal distribution with mean mu[t] and standard deviation sigma[t].
 
         Parameters
         ----------
-        condition : np.array
-            The input conditions to the distribution.
+        N : int
+            Number of draws in each row.
 
-        Returns:
-        ------------
-        draws : np.array
+        Returns
+        -------
+        draws : np.array or [np.array]
+            T-length list of arrays of normal draws each of size N, or a single array
+            of size N (if sigma is a scalar).
         """
-        # for now, assume that all the conditionals
-        # are of the same type.
-        # this matches the HARK 'time-varying' model architecture.
-
-        # conditions are indices into list
-        # somewhat convoluted sampling strategy retained
-        # for test backwards compatibility
-
-        draws = np.zeros(condition.size)
-
-        for c in np.unique(condition):
-            these = c == condition
-            N = np.sum(these)
-
-            draws[these] = self.distributions[c].draw(N)
+        draws = []
+        for t in range(self.sigma.size):
+            draws.append(
+                self.sigma.item(t) * self.RNG.standard_normal(N) + self.mu.item(t)
+            )
 
         return draws
 
+    def approx(self, N):
+        """
+        Returns a discrete approximation of this distribution.
+        """
+        x, w = np.polynomial.hermite.hermgauss(N)
+        # normalize w
+        pmv = w * np.pi**-0.5
+        # correct x
+        atoms = math.sqrt(2.0) * self.sigma * x + self.mu
+        return DiscreteDistribution(
+            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
+        )
 
-### CONTINUOUS DISTRIBUTIONS
+    def approx_equiprobable(self, N):
+
+        CDF = np.linspace(0, 1, N + 1)
+        lims = stats.norm.ppf(CDF)
+        pdf = stats.norm.pdf(lims)
+
+        # Find conditional means using Mills's ratio
+        pmv = np.diff(CDF)
+        atoms = self.mu - np.diff(pdf) / pmv * self.sigma
+
+        return DiscreteDistribution(
+            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
+        )
 
 
 class Lognormal(Distribution):
@@ -469,228 +318,6 @@ class MeanOneLogNormal(Lognormal):
         super().__init__(mu=mu, sigma=sigma, seed=seed)
 
 
-class Normal(Distribution):
-    """
-    A Normal distribution.
-
-    Parameters
-    ----------
-    mu : float or [float]
-        One or more means.  Number of elements T in mu determines number
-        of rows of output.
-    sigma : float or [float]
-        One or more standard deviations. Number of elements T in sigma
-        determines number of rows of output.
-    seed : int
-        Seed for random number generator.
-    """
-
-    mu = None
-    sigma = None
-
-    def __init__(self, mu=0.0, sigma=1.0, seed=0):
-        self.mu = np.array(mu)
-        self.sigma = np.array(sigma)
-        super().__init__(seed)
-
-    def draw(self, N):
-        """
-        Generate arrays of normal draws.  The mu and sigma inputs can be numbers or
-        list-likes.  If a number, output is a length N array of draws from the normal
-        distribution with mean mu and standard deviation sigma. If a list, output is
-        a length T list whose t-th entry is a length N array with draws from the
-        normal distribution with mean mu[t] and standard deviation sigma[t].
-
-        Parameters
-        ----------
-        N : int
-            Number of draws in each row.
-
-        Returns
-        -------
-        draws : np.array or [np.array]
-            T-length list of arrays of normal draws each of size N, or a single array
-            of size N (if sigma is a scalar).
-        """
-        draws = []
-        for t in range(self.sigma.size):
-            draws.append(
-                self.sigma.item(t) * self.RNG.standard_normal(N) + self.mu.item(t)
-            )
-
-        return draws
-
-    def approx(self, N):
-        """
-        Returns a discrete approximation of this distribution.
-        """
-        x, w = np.polynomial.hermite.hermgauss(N)
-        # normalize w
-        pmv = w * np.pi**-0.5
-        # correct x
-        atoms = math.sqrt(2.0) * self.sigma * x + self.mu
-        return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
-        )
-
-    def approx_equiprobable(self, N):
-
-        CDF = np.linspace(0, 1, N + 1)
-        lims = stats.norm.ppf(CDF)
-        pdf = stats.norm.pdf(lims)
-
-        # Find conditional means using Mills's ratio
-        pmv = np.diff(CDF)
-        atoms = self.mu - np.diff(pdf) / pmv * self.sigma
-
-        return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
-        )
-
-
-class MVNormal(Distribution):
-    """
-    A Multivariate Normal distribution.
-
-    Parameters
-    ----------
-    mu : numpy array
-        Mean vector.
-    Sigma : 2-d numpy array. Each dimension must have length equal to that of
-            mu.
-        Variance-covariance matrix.
-    seed : int
-        Seed for random number generator.
-    """
-
-    mu = None
-    Sigma = None
-
-    def __init__(self, mu=np.array([1, 1]), Sigma=np.array([[1, 0], [0, 1]]), seed=0):
-        self.mu = mu
-        self.Sigma = Sigma
-        self.M = len(self.mu)
-        super().__init__(seed)
-
-    def draw(self, N):
-        """
-        Generate an array of multivariate normal draws.
-
-        Parameters
-        ----------
-        N : int
-            Number of multivariate draws.
-
-        Returns
-        -------
-        draws : np.array
-            Array of dimensions N x M containing the random draws, where M is
-            the dimension of the multivariate normal and N is the number of
-            draws. Each row represents a draw.
-        """
-        draws = self.RNG.multivariate_normal(self.mu, self.Sigma, N)
-
-        return draws
-
-    def approx(self, N, equiprobable=False):
-        """
-        Returns a discrete approximation of this distribution.
-
-        The discretization will have N**M points, where M is the dimension of
-        the multivariate normal.
-
-        It uses the fact that:
-            - Being positive definite, Sigma can be factorized as Sigma = QVQ',
-              with V diagonal. So, letting A=Q*sqrt(V), Sigma = A*A'.
-            - If Z is an N-dimensional multivariate standard normal, then
-              A*Z ~ N(0,A*A' = Sigma).
-
-        The idea therefore is to construct an equiprobable grid for a standard
-        normal and multiply it by matrix A.
-        """
-
-        # Start by computing matrix A.
-        v, Q = np.linalg.eig(self.Sigma)
-        sqrtV = np.diag(np.sqrt(v))
-        A = np.matmul(Q, sqrtV)
-
-        # Now find a discretization for a univariate standard normal.
-        if equiprobable:
-            z_approx = Normal().approx_equiprobable(N)
-        else:
-            z_approx = Normal().approx(N)
-
-        # Now create the multivariate grid and pmv
-        Z = np.array(list(product(*[z_approx.atoms.flatten()] * self.M)))
-        pmv = np.prod(np.array(list(product(*[z_approx.pmv] * self.M))), axis=1)
-
-        # Apply mean and standard deviation to the Z grid
-        atoms = self.mu[None, ...] + np.matmul(Z, A.T)
-
-        # Construct and return discrete distribution
-        return DiscreteDistribution(
-            pmv, atoms.T, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
-        )
-
-
-class Weibull(Distribution):
-    """
-    A Weibull distribution.
-
-    Parameters
-    ----------
-    scale : float or [float]
-        One or more scales.  Number of elements T in scale
-        determines number of
-        rows of output.
-    shape : float or [float]
-        One or more shape parameters. Number of elements T in scale
-        determines number of rows of output.
-    seed : int
-        Seed for random number generator.
-    """
-
-    scale = None
-    shape = None
-
-    def __init__(self, scale=1.0, shape=1.0, seed=0):
-        self.scale = np.array(scale)
-        self.shape = np.array(shape)
-        # Set up the RNG
-        super().__init__(seed)
-
-    def draw(self, N):
-        """
-        Generate arrays of Weibull draws.  The scale and shape inputs can be
-        numbers or list-likes.  If a number, output is a length N array of draws from
-        the Weibull distribution with the given scale and shape. If a list, output
-        is a length T list whose t-th entry is a length N array with draws from the
-        Weibull distribution with scale scale[t] and shape shape[t].
-
-        Note: When shape=1, the Weibull distribution is simply the exponential dist.
-
-        Mean: scale*Gamma(1 + 1/shape)
-
-        Parameters
-        ----------
-        N : int
-            Number of draws in each row.
-
-        Returns:
-        ------------
-        draws : np.array or [np.array]
-            T-length list of arrays of Weibull draws each of size N, or a single
-            array of size N (if sigma is a scalar).
-        """
-        draws = []
-        for j in range(self.scale.size):
-            draws.append(
-                self.scale.item(j)
-                * (-np.log(1.0 - self.RNG.random(N))) ** (1.0 / self.shape.item(j))
-            )
-        return draws[0] if len(draws) == 1 else draws
-
-
 class Uniform(Distribution):
     """
     A Uniform distribution.
@@ -776,6 +403,152 @@ class Uniform(Distribution):
 
         return DiscreteDistribution(
             pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
+        )
+
+
+class Weibull(Distribution):
+    """
+    A Weibull distribution.
+
+    Parameters
+    ----------
+    scale : float or [float]
+        One or more scales.  Number of elements T in scale
+        determines number of
+        rows of output.
+    shape : float or [float]
+        One or more shape parameters. Number of elements T in scale
+        determines number of rows of output.
+    seed : int
+        Seed for random number generator.
+    """
+
+    scale = None
+    shape = None
+
+    def __init__(self, scale=1.0, shape=1.0, seed=0):
+        self.scale = np.array(scale)
+        self.shape = np.array(shape)
+        # Set up the RNG
+        super().__init__(seed)
+
+    def draw(self, N):
+        """
+        Generate arrays of Weibull draws.  The scale and shape inputs can be
+        numbers or list-likes.  If a number, output is a length N array of draws from
+        the Weibull distribution with the given scale and shape. If a list, output
+        is a length T list whose t-th entry is a length N array with draws from the
+        Weibull distribution with scale scale[t] and shape shape[t].
+
+        Note: When shape=1, the Weibull distribution is simply the exponential dist.
+
+        Mean: scale*Gamma(1 + 1/shape)
+
+        Parameters
+        ----------
+        N : int
+            Number of draws in each row.
+
+        Returns:
+        ------------
+        draws : np.array or [np.array]
+            T-length list of arrays of Weibull draws each of size N, or a single
+            array of size N (if sigma is a scalar).
+        """
+        draws = []
+        for j in range(self.scale.size):
+            draws.append(
+                self.scale.item(j)
+                * (-np.log(1.0 - self.RNG.random(N))) ** (1.0 / self.shape.item(j))
+            )
+        return draws[0] if len(draws) == 1 else draws
+
+
+### MULTIVARIATE DISTRIBUTIONS
+
+
+class MVNormal(Distribution):
+    """
+    A Multivariate Normal distribution.
+
+    Parameters
+    ----------
+    mu : numpy array
+        Mean vector.
+    Sigma : 2-d numpy array. Each dimension must have length equal to that of
+            mu.
+        Variance-covariance matrix.
+    seed : int
+        Seed for random number generator.
+    """
+
+    mu = None
+    Sigma = None
+
+    def __init__(self, mu=np.array([1, 1]), Sigma=np.array([[1, 0], [0, 1]]), seed=0):
+        self.mu = mu
+        self.Sigma = Sigma
+        self.M = len(self.mu)
+        super().__init__(seed)
+
+    def draw(self, N):
+        """
+        Generate an array of multivariate normal draws.
+
+        Parameters
+        ----------
+        N : int
+            Number of multivariate draws.
+
+        Returns
+        -------
+        draws : np.array
+            Array of dimensions N x M containing the random draws, where M is
+            the dimension of the multivariate normal and N is the number of
+            draws. Each row represents a draw.
+        """
+        draws = self.RNG.multivariate_normal(self.mu, self.Sigma, N)
+
+        return draws
+
+    def approx(self, N, equiprobable=False):
+        """
+        Returns a discrete approximation of this distribution.
+
+        The discretization will have N**M points, where M is the dimension of
+        the multivariate normal.
+
+        It uses the fact that:
+            - Being positive definite, Sigma can be factorized as Sigma = QVQ',
+              with V diagonal. So, letting A=Q*sqrt(V), Sigma = A*A'.
+            - If Z is an N-dimensional multivariate standard normal, then
+              A*Z ~ N(0,A*A' = Sigma).
+
+        The idea therefore is to construct an equiprobable grid for a standard
+        normal and multiply it by matrix A.
+        """
+
+        # Start by computing matrix A.
+        v, Q = np.linalg.eig(self.Sigma)
+        sqrtV = np.diag(np.sqrt(v))
+        A = np.matmul(Q, sqrtV)
+
+        # Now find a discretization for a univariate standard normal.
+        if equiprobable:
+            z_approx = Normal().approx_equiprobable(N)
+        else:
+            z_approx = Normal().approx(N)
+
+        # Now create the multivariate grid and pmv
+        Z = np.array(list(product(*[z_approx.atoms.flatten()] * self.M)))
+        pmv = np.prod(np.array(list(product(*[z_approx.pmv] * self.M))), axis=1)
+
+        # Apply mean and standard deviation to the Z grid
+        atoms = self.mu[None, ...] + np.matmul(Z, A.T)
+
+        # Construct and return discrete distribution
+        return DiscreteDistribution(
+            pmv, atoms.T, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
         )
 
 
@@ -1305,6 +1078,236 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
                 return super().expected()
             else:
                 return super().expected(func_wrapper, *args)
+
+
+class IndexDistribution(Distribution):
+    """
+    This class provides a way to define a distribution that
+    is conditional on an index.
+
+    The current implementation combines a defined distribution
+    class (such as Bernoulli, LogNormal, etc.) with information
+    about the conditions on the parameters of the distribution.
+
+    For example, an IndexDistribution can be defined as
+    a Bernoulli distribution whose parameter p is a function of
+    a different inpute parameter.
+
+    Parameters
+    ----------
+
+    engine : Distribution class
+        A Distribution subclass.
+
+    conditional: dict
+        Information about the conditional variation
+        on the input parameters of the engine distribution.
+        Keys should match the arguments to the engine class
+        constructor.
+
+    seed : int
+        Seed for random number generator.
+    """
+
+    conditional = None
+    engine = None
+
+    def __init__(self, engine, conditional, RNG=None, seed=0):
+
+        if RNG is None:
+            # Set up the RNG
+            super().__init__(seed)
+        else:
+            # If an RNG is received, use it in whatever state it is in.
+            self.RNG = RNG
+            # The seed will still be set, even if it is not used for the RNG,
+            # for whenever self.reset() is called.
+            # Note that self.reset() will stop using the RNG that was passed
+            # and create a new one.
+            self.seed = seed
+
+        self.conditional = conditional
+        self.engine = engine
+
+        self.dstns = []
+
+        # Test one item to determine case handling
+        item0 = list(self.conditional.values())[0]
+
+        if type(item0) is list:
+            # Create and store all the conditional distributions
+            for y in range(len(item0)):
+                cond = {key: val[y] for (key, val) in self.conditional.items()}
+                self.dstns.append(
+                    self.engine(seed=self.RNG.integers(0, 2**31 - 1), **cond)
+                )
+
+        elif type(item0) is float:
+
+            self.dstns = [
+                self.engine(seed=self.RNG.integers(0, 2**31 - 1), **conditional)
+            ]
+
+        else:
+            raise (
+                Exception(
+                    f"IndexDistribution: Unhandled case for __getitem__ access. item0: {item0}; conditional: {self.conditional}"
+                )
+            )
+
+    def __getitem__(self, y):
+
+        return self.dstns[y]
+
+    def approx(self, N, **kwds):
+        """
+        Approximation of the distribution.
+
+        Parameters
+        ----------
+        N : init
+            Number of discrete points to approximate
+            continuous distribution into.
+
+        kwds: dict
+            Other keyword arguments passed to engine
+            distribution approx() method.
+
+        Returns:
+        ------------
+        dists : [DiscreteDistribution]
+            A list of DiscreteDistributions that are the
+            approximation of engine distribution under each condition.
+
+            TODO: It would be better if there were a conditional discrete
+            distribution representation. But that integrates with the
+            solution code. This implementation will return the list of
+            distributions representations expected by the solution code.
+        """
+
+        # test one item to determine case handling
+        item0 = list(self.conditional.values())[0]
+
+        if type(item0) is float:
+            # degenerate case. Treat the parameterization as constant.
+            return self.dstns[0].approx(N, **kwds)
+
+        if type(item0) is list:
+            return TimeVaryingDiscreteDistribution(
+                [self[i].approx(N, **kwds) for i, _ in enumerate(item0)]
+            )
+
+    def draw(self, condition):
+        """
+        Generate arrays of draws.
+        The input is an array containing the conditions.
+        The output is an array of the same length (axis 1 dimension)
+        as the conditions containing random draws of the conditional
+        distribution.
+
+        Parameters
+        ----------
+        condition : np.array
+            The input conditions to the distribution.
+
+        Returns:
+        ------------
+        draws : np.array
+        """
+        # for now, assume that all the conditionals
+        # are of the same type.
+        # this matches the HARK 'time-varying' model architecture.
+
+        # test one item to determine case handling
+        item0 = list(self.conditional.values())[0]
+
+        if type(item0) is float:
+            # degenerate case. Treat the parameterization as constant.
+            N = condition.size
+
+            return self.engine(
+                seed=self.RNG.integers(0, 2**31 - 1), **self.conditional
+            ).draw(N)
+
+        if type(item0) is list:
+            # conditions are indices into list
+            # somewhat convoluted sampling strategy retained
+            # for test backwards compatibility
+
+            draws = np.zeros(condition.size)
+
+            for c in np.unique(condition):
+                these = c == condition
+                N = np.sum(these)
+
+                cond = {key: val[c] for (key, val) in self.conditional.items()}
+                draws[these] = self[c].draw(N)
+
+            return draws
+
+
+class TimeVaryingDiscreteDistribution(Distribution):
+    """
+    This class provides a way to define a discrete distribution that
+    is conditional on an index.
+
+    Wraps a list of discrete distributions.
+
+    Parameters
+    ----------
+
+    distributions : [DiscreteDistribution]
+        A list of discrete distributions
+
+    seed : int
+        Seed for random number generator.
+    """
+
+    distributions = []
+
+    def __init__(self, distributions, seed=0):
+        # Set up the RNG
+        super().__init__(seed)
+
+        self.distributions = distributions
+
+    def __getitem__(self, y):
+        return self.distributions[y]
+
+    def draw(self, condition):
+        """
+        Generate arrays of draws.
+        The input is an array containing the conditions.
+        The output is an array of the same length (axis 1 dimension)
+        as the conditions containing random draws of the conditional
+        distribution.
+
+        Parameters
+        ----------
+        condition : np.array
+            The input conditions to the distribution.
+
+        Returns:
+        ------------
+        draws : np.array
+        """
+        # for now, assume that all the conditionals
+        # are of the same type.
+        # this matches the HARK 'time-varying' model architecture.
+
+        # conditions are indices into list
+        # somewhat convoluted sampling strategy retained
+        # for test backwards compatibility
+
+        draws = np.zeros(condition.size)
+
+        for c in np.unique(condition):
+            these = c == condition
+            N = np.sum(these)
+
+            draws[these] = self.distributions[c].draw(N)
+
+        return draws
 
 
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
