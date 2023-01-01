@@ -621,24 +621,15 @@ class DiscreteDistribution(Distribution):
         Seed for random number generator.
     """
 
-    pmv = None
-    atoms = None
-
     def __init__(self, pmv, atoms, seed=0):
 
-        self.pmv = pmv
+        super().__init__(seed=seed)
 
-        if len(atoms.shape) < 2:
-            self.atoms = atoms[None, ...]
-        else:
-            self.atoms = atoms
-
-        # Set up the RNG
-        super().__init__(seed)
+        self.pmv = np.asarray(pmv)
+        self.atoms = np.atleast_2d(atoms)
 
         # Check that pmv and atoms have compatible dimensions.
-        same_dims = len(pmv) == atoms.shape[-1]
-        if not same_dims:
+        if not self.pmv.size == self.atoms.shape[-1]:
             raise ValueError(
                 "Provided pmv and atoms arrays have incompatible dimensions. "
                 + "The length of the pmv must be equal to that of atoms's last dimension."
@@ -656,7 +647,7 @@ class DiscreteDistribution(Distribution):
         These events are indices into atoms.
         """
         # Generate a cumulative distribution
-        base_draws = self.RNG.uniform(size=n)
+        base_draws = self._rng.uniform(size=n)
         cum_dist = np.cumsum(self.pmv)
 
         # Convert the basic uniform draws into discrete draws
@@ -708,7 +699,7 @@ class DiscreteDistribution(Distribution):
                 event_list += (top - bot) * [events[j]]
 
             # Randomly permute the event indices
-            indices = self.RNG.permutation(event_list)
+            indices = self._rng.permutation(event_list)
 
         # Draw event indices randomly from the discrete distribution
         else:
