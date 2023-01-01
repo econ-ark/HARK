@@ -484,7 +484,7 @@ class Uniform(ContinuousFrozenDistribution):
         )
 
 
-class Weibull(Distribution):
+class Weibull(ContinuousFrozenDistribution):
     """
     A Weibull distribution.
 
@@ -501,45 +501,11 @@ class Weibull(Distribution):
         Seed for random number generator.
     """
 
-    scale = None
-    shape = None
-
     def __init__(self, scale=1.0, shape=1.0, seed=0):
-        self.scale = np.array(scale)
-        self.shape = np.array(shape)
+        self.scale = np.asarray(scale)
+        self.shape = np.asarray(shape)
         # Set up the RNG
-        super().__init__(seed)
-
-    def draw(self, N):
-        """
-        Generate arrays of Weibull draws.  The scale and shape inputs can be
-        numbers or list-likes.  If a number, output is a length N array of draws from
-        the Weibull distribution with the given scale and shape. If a list, output
-        is a length T list whose t-th entry is a length N array with draws from the
-        Weibull distribution with scale scale[t] and shape shape[t].
-
-        Note: When shape=1, the Weibull distribution is simply the exponential dist.
-
-        Mean: scale*Gamma(1 + 1/shape)
-
-        Parameters
-        ----------
-        N : int
-            Number of draws in each row.
-
-        Returns:
-        ------------
-        draws : np.array or [np.array]
-            T-length list of arrays of Weibull draws each of size N, or a single
-            array of size N (if sigma is a scalar).
-        """
-        draws = []
-        for j in range(self.scale.size):
-            draws.append(
-                self.scale.item(j)
-                * (-np.log(1.0 - self.RNG.random(N))) ** (1.0 / self.shape.item(j))
-            )
-        return draws[0] if len(draws) == 1 else draws
+        super().__init__(stats.weibull_min, c=shape, scale=scale, seed=seed)
 
 
 ### MULTIVARIATE DISTRIBUTIONS
