@@ -585,7 +585,7 @@ class DiscreteFrozenDistribution(rv_discrete_frozen, Distribution):
         Distribution.__init__(self, seed=seed)
 
 
-class Bernoulli(Distribution):
+class Bernoulli(DiscreteFrozenDistribution):
     """
     A Bernoulli distribution.
 
@@ -598,35 +598,10 @@ class Bernoulli(Distribution):
         Seed for random number generator.
     """
 
-    p = None
-
     def __init__(self, p=0.5, seed=0):
-        self.p = np.array(p)
+        self.p = np.asarray(p)
         # Set up the RNG
-        super().__init__(seed)
-
-    def draw(self, N):
-        """
-        Generates arrays of booleans drawn from a simple Bernoulli distribution.
-        The input p can be a float or a list-like of floats; its length T determines
-        the number of entries in the output.  The t-th entry of the output is an
-        array of N booleans which are True with probability p[t] and False otherwise.
-
-        Arguments
-        ---------
-        N : int
-            Number of draws in each row.
-
-        Returns
-        -------
-        draws : np.array or [np.array]
-            T-length list of arrays of Bernoulli draws each of size N, or a single
-        array of size N (if sigma is a scalar).
-        """
-        draws = []
-        for j in range(self.p.size):
-            draws.append(self.RNG.uniform(size=N) < self.p.item(j))
-        return draws[0] if len(draws) == 1 else draws
+        super().__init__(stats.bernoulli, p=self.p, seed=seed)
 
 
 class DiscreteDistribution(Distribution):
