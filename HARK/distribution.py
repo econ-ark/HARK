@@ -424,7 +424,7 @@ class MeanOneLogNormal(Lognormal):
         super().__init__(mu=mu, sigma=sigma, seed=seed)
 
 
-class Uniform(Distribution):
+class Uniform(ContinuousFrozenDistribution):
     """
     A Uniform distribution.
 
@@ -442,41 +442,13 @@ class Uniform(Distribution):
         Seed for random number generator.
     """
 
-    bot = None
-    top = None
-
     def __init__(self, bot=0.0, top=1.0, seed=0):
-        self.bot = np.array(bot)
-        self.top = np.array(top)
-        # Set up the RNG
-        self.RNG = np.random.default_rng(seed)
+        self.bot = np.asarray(bot)
+        self.top = np.asarray(top)
 
-    def draw(self, N):
-        """
-        Generate arrays of uniform draws.  The bot and top inputs can be numbers or
-        list-likes.  If a number, output is a length N array of draws from the
-        uniform distribution on [bot,top]. If a list, output is a length T list
-        whose t-th entry is a length N array with draws from the uniform distribution
-        on [bot[t],top[t]].
-
-        Parameters
-        ----------
-        N : int
-            Number of draws in each row.
-
-        Returns
-        -------
-        draws : np.array or [np.array]
-            T-length list of arrays of uniform draws each of size N, or a single
-            array of size N (if sigma is a scalar).
-        """
-        draws = []
-        for j in range(self.bot.size):
-            draws.append(
-                self.bot.item(j)
-                + (self.top.item(j) - self.bot.item(j)) * self.RNG.random(N)
-            )
-        return draws[0] if len(draws) == 1 else draws
+        super().__init__(
+            stats.uniform, loc=self.bot, scale=self.top - self.bot, seed=seed
+        )
 
     def approx(self, N, endpoint=False):
         """
@@ -508,7 +480,7 @@ class Uniform(Distribution):
             pmv = np.concatenate(([0.0], pmv, [0.0]))
 
         return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
+            pmv, atoms, seed=self._rng.integers(0, 2**31 - 1, dtype="int32")
         )
 
 
