@@ -8,6 +8,7 @@ import xarray as xr
 from numpy import random
 from scipy import stats
 from scipy.special import erf, erfc
+from scipy.stats._distn_infrastructure import rv_continuous_frozen
 
 
 class Distribution:
@@ -121,6 +122,26 @@ class Distribution:
 
 
 ### CONTINUOUS DISTRIBUTIONS
+
+
+class ContinuousFrozenDistribution(rv_continuous_frozen, Distribution):
+    """
+    Parametrized continuous distribution from scipy.stats with seed management.
+    """
+
+    def __init__(self, dist, *args, seed=0, **kwds):
+        """
+        Parametrized continuous distribution from scipy.stats with seed management.
+
+        Parameters
+        ----------
+        dist : rv_continuous
+            Continuous distribution from scipy.stats.
+        seed : int, optional
+            Seed for random number generator, by default 0
+        """
+        rv_continuous_frozen.__init__(self, dist, *args, **kwds)
+        Distribution.__init__(self, seed=seed)
 
 
 class Normal(Distribution):
