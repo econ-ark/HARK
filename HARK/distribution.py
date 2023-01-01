@@ -144,7 +144,7 @@ class ContinuousFrozenDistribution(rv_continuous_frozen, Distribution):
         Distribution.__init__(self, seed=seed)
 
 
-class Normal(Distribution):
+class Normal(ContinuousFrozenDistribution):
     """
     A Normal distribution.
 
@@ -160,44 +160,23 @@ class Normal(Distribution):
         Seed for random number generator.
     """
 
-    mu = None
-    sigma = None
-
     def __init__(self, mu=0.0, sigma=1.0, seed=0):
-        self.mu = np.array(mu)
-        self.sigma = np.array(sigma)
-        super().__init__(seed)
+        self.mu = np.asarray(mu)
+        self.sigma = np.asarray(sigma)
 
-    def draw(self, N):
-        """
-        Generate arrays of normal draws.  The mu and sigma inputs can be numbers or
-        list-likes.  If a number, output is a length N array of draws from the normal
-        distribution with mean mu and standard deviation sigma. If a list, output is
-        a length T list whose t-th entry is a length N array with draws from the
-        normal distribution with mean mu[t] and standard deviation sigma[t].
-
-        Parameters
-        ----------
-        N : int
-            Number of draws in each row.
-
-        Returns
-        -------
-        draws : np.array or [np.array]
-            T-length list of arrays of normal draws each of size N, or a single array
-            of size N (if sigma is a scalar).
-        """
-        draws = []
-        for t in range(self.sigma.size):
-            draws.append(
-                self.sigma.item(t) * self.RNG.standard_normal(N) + self.mu.item(t)
+        if self.mu.size != self.sigma.size:
+            raise AttributeError(
+                "mu and sigma must be of same size, are %s, %s"
+                % ((self.mu.size), (self.sigma.size))
             )
 
-        return draws
+        super().__init__(stats.norm, loc=mu, scale=sigma, seed=seed)
 
     def approx(self, N):
         """
         Returns a discrete approximation of this distribution.
+
+
         """
         x, w = np.polynomial.hermite.hermgauss(N)
         # normalize w
@@ -205,10 +184,23 @@ class Normal(Distribution):
         # correct x
         atoms = math.sqrt(2.0) * self.sigma * x + self.mu
         return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
+            pmv, atoms, seed=self._rng.integers(0, 2**31 - 1, dtype="int32")
         )
 
     def approx_equiprobable(self, N):
+        """
+        Returns a discrete equiprobable approximation of this distribution.
+
+        Parameters
+        ----------
+        N : int
+            Number of discrete points to approximate the distribution.
+
+        Returns
+        -------
+        DiscreteDistribution
+            Discrete approximation of this distribution.
+        """
 
         CDF = np.linspace(0, 1, N + 1)
         lims = stats.norm.ppf(CDF)
@@ -219,7 +211,7 @@ class Normal(Distribution):
         atoms = self.mu - np.diff(pdf) / pmv * self.sigma
 
         return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
+            pmv, atoms, seed=self._rng.integers(0, 2**31 - 1, dtype="int32")
         )
 
 
