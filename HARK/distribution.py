@@ -8,6 +8,7 @@ import xarray as xr
 from numpy import random
 from scipy import stats
 from scipy.stats._distn_infrastructure import rv_continuous_frozen
+from scipy.stats._multivariate import multivariate_normal_frozen
 
 
 class Distribution:
@@ -511,7 +512,7 @@ class Weibull(ContinuousFrozenDistribution):
 ### MULTIVARIATE DISTRIBUTIONS
 
 
-class MVNormal(Distribution):
+class MVNormal(multivariate_normal_frozen, Distribution):
     """
     A Multivariate Normal distribution.
 
@@ -526,34 +527,12 @@ class MVNormal(Distribution):
         Seed for random number generator.
     """
 
-    mu = None
-    Sigma = None
-
-    def __init__(self, mu=np.array([1, 1]), Sigma=np.array([[1, 0], [0, 1]]), seed=0):
-        self.mu = mu
-        self.Sigma = Sigma
-        self.M = len(self.mu)
-        super().__init__(seed)
-
-    def draw(self, N):
-        """
-        Generate an array of multivariate normal draws.
-
-        Parameters
-        ----------
-        N : int
-            Number of multivariate draws.
-
-        Returns
-        -------
-        draws : np.array
-            Array of dimensions N x M containing the random draws, where M is
-            the dimension of the multivariate normal and N is the number of
-            draws. Each row represents a draw.
-        """
-        draws = self.RNG.multivariate_normal(self.mu, self.Sigma, N)
-
-        return draws
+    def __init__(self, mu=[1, 1], Sigma=[[1, 0], [0, 1]], seed=0):
+        self.mu = np.asarray(mu)
+        self.Sigma = np.asarray(Sigma)
+        self.M = self.mu.size
+        multivariate_normal_frozen.__init__(self, mean=self.mu, cov=self.Sigma)
+        Distribution.__init__(self, seed=seed)
 
     def approx(self, N, equiprobable=False):
         """
@@ -592,7 +571,7 @@ class MVNormal(Distribution):
 
         # Construct and return discrete distribution
         return DiscreteDistribution(
-            pmv, atoms.T, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
+            pmv, atoms.T, seed=self._rng.integers(0, 2**31 - 1, dtype="int32")
         )
 
 
