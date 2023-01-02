@@ -120,6 +120,14 @@ class Distribution:
         n = (N, mean.size) if mean.size != 1 else N
         return self.rvs(size=n, random_state=self._rng)
 
+    def approx(self, N):
+        """
+        Returns a discrete approximation of this distribution.
+        """
+        raise NotImplementedError(
+            "approx() not implemented for {} class".format(self.__class__.__name__)
+        )
+
 
 ### CONTINUOUS DISTRIBUTIONS
 
@@ -795,6 +803,14 @@ class DiscreteDistribution(Distribution):
         f_dstn = DiscreteDistribution(list(self.pmv), f_query, seed=self.seed)
 
         return f_dstn
+
+    def approx(self, N):
+        """
+        `DiscreteDistribution` is already an approximation, so this method
+        returns a copy of the distribution.
+        """
+
+        return self
 
 
 class DiscreteDistributionLabeled(DiscreteDistribution):
