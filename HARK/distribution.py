@@ -915,7 +915,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         elif isinstance(x_obj, dict):
             ldd.dataset = xr.Dataset(x_obj)
 
-        ldd.pmf = pmf
+        ldd.probability = pmf
 
         return ldd
 
