@@ -1196,7 +1196,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         # Update the seed
         self.dataset.attrs["seed"] = value
         # With the seed having been updated, the RNG must be updated too
-        self.RNG = np.random.RandomState(self.seed)
+        self.RNG = np.random.default_rng(self.seed)
 
     @property
     def RNG(self):
@@ -1210,11 +1210,11 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         """
         Sets the distribution's random number generator.
         """
-        if isinstance(value, np.random.RandomState):
+        if isinstance(value, np.random._generator.Generator):
             self.dataset.attrs["RNG"] = value
         else:
             raise ValueError(
-                "The RNG property must be an instance of numpy.random.RandomState"
+                "The RNG property must be an instance of numpy.random._generator.Generator"
             )
 
     @property

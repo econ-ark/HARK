@@ -551,7 +551,7 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         self.assertTrue(my_seed == dist.seed)
 
         # RNG
-        my_rng = np.random.RandomState(5)
+        my_rng = np.random.default_rng(5)
         dist.RNG = my_rng
         self.assertTrue(my_rng == dist.RNG)
 
