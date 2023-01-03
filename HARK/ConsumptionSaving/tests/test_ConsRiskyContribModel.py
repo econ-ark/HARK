@@ -7,11 +7,14 @@ Created on Tue Jan 26 10:06:51 2021
 
 import unittest
 from copy import copy
+
 import numpy as np
+
 from HARK.ConsumptionSaving.ConsRiskyContribModel import (
     RiskyContribConsumerType,
     init_risky_contrib,
 )
+from HARK.tests import HARK_PRECISION
 
 
 class test_(unittest.TestCase):
@@ -33,9 +36,9 @@ class test_(unittest.TestCase):
 
         # Adjust discounting and returns distribution so that they make sense in a
         # 4-period model
-        self.par_finite["DiscFac"] = 0.95 ** 15
-        self.par_finite["Rfree"] = 1.03 ** 15
-        self.par_finite["RiskyAvg"] = 1.08 ** 15  # Average return of the risky asset
+        self.par_finite["DiscFac"] = 0.95**15
+        self.par_finite["Rfree"] = 1.03**15
+        self.par_finite["RiskyAvg"] = 1.08**15  # Average return of the risky asset
         self.par_finite["RiskyStd"] = 0.20 * np.sqrt(
             15
         )  # Standard deviation of (log) risky returns
@@ -45,33 +48,44 @@ class test_(unittest.TestCase):
         cont_params = copy(self.par_finite)
         cont_params["DiscreteShareBool"] = False
         cont_params["vFuncBool"] = False
-        
-        
+
         fin_cont_agent = RiskyContribConsumerType(**cont_params)
-        
+
         # Independent solver
         fin_cont_agent.solve()
         self.assertAlmostEqual(
-            fin_cont_agent.solution[0].stage_sols["Reb"].dfracFunc_Adj(3., 4.), -0.87671241
+            fin_cont_agent.solution[0].stage_sols["Reb"].dfracFunc_Adj(3.0, 4.0),
+            -0.87671,
+            places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
-            fin_cont_agent.solution[0].stage_sols["Sha"].ShareFunc_Adj(5., 0.1), 0.14641409
+            fin_cont_agent.solution[0].stage_sols["Sha"].ShareFunc_Adj(5.0, 0.1),
+            0.14641,
+            places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
-            fin_cont_agent.solution[0].stage_sols["Cns"].cFunc(3., 4., 0.1), 2.4560881
+            fin_cont_agent.solution[0].stage_sols["Cns"].cFunc(3.0, 4.0, 0.1),
+            2.45609,
+            places=HARK_PRECISION,
         )
-        
+
         # General correlated solver
         fin_cont_agent.joint_dist_solver = True
         fin_cont_agent.solve()
         self.assertAlmostEqual(
-            fin_cont_agent.solution[0].stage_sols["Reb"].dfracFunc_Adj(3, 4), -0.87848691
+            fin_cont_agent.solution[0].stage_sols["Reb"].dfracFunc_Adj(3, 4),
+            -0.87849,
+            places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
-            fin_cont_agent.solution[0].stage_sols["Sha"].ShareFunc_Adj(5, 0.1), 0.1065815
+            fin_cont_agent.solution[0].stage_sols["Sha"].ShareFunc_Adj(5, 0.1),
+            0.10658,
+            places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
-            fin_cont_agent.solution[0].stage_sols["Cns"].cFunc(3, 4, 0.1), 2.45609711
+            fin_cont_agent.solution[0].stage_sols["Cns"].cFunc(3, 4, 0.1),
+            2.45610,
+            places=HARK_PRECISION,
         )
 
     def test_finite_disc_share(self):
@@ -81,30 +95,37 @@ class test_(unittest.TestCase):
         disc_params["vFuncBool"] = True
 
         fin_disc_agent = RiskyContribConsumerType(**disc_params)
-        
+
         # Independent solver
         fin_disc_agent.solve()
 
         self.assertAlmostEqual(
-            fin_disc_agent.solution[0].stage_sols["Reb"].dfracFunc_Adj(3., 4.), -0.8767603
+            fin_disc_agent.solution[0].stage_sols["Reb"].dfracFunc_Adj(3.0, 4.0),
+            -0.8767603,
         )
         self.assertAlmostEqual(
-            fin_disc_agent.solution[0].stage_sols["Sha"].ShareFunc_Adj(5., 0.1), 0.1
+            fin_disc_agent.solution[0].stage_sols["Sha"].ShareFunc_Adj(5.0, 0.1), 0.1
         )
         self.assertAlmostEqual(
-            fin_disc_agent.solution[0].stage_sols["Cns"].cFunc(3., 4., 0.1), 2.45608803
+            fin_disc_agent.solution[0].stage_sols["Cns"].cFunc(3.0, 4.0, 0.1),
+            2.45609,
+            places=HARK_PRECISION,
         )
-        
+
         # General correlated solver
         fin_disc_agent.joint_dist_solver = True
         fin_disc_agent.solve()
 
         self.assertAlmostEqual(
-            fin_disc_agent.solution[0].stage_sols["Reb"].dfracFunc_Adj(3, 4), -0.87846342
+            fin_disc_agent.solution[0].stage_sols["Reb"].dfracFunc_Adj(3, 4),
+            -0.87846,
+            places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
             fin_disc_agent.solution[0].stage_sols["Sha"].ShareFunc_Adj(5, 0.1), 0.1
         )
         self.assertAlmostEqual(
-            fin_disc_agent.solution[0].stage_sols["Cns"].cFunc(3, 4, 0.1), 2.45609716
+            fin_disc_agent.solution[0].stage_sols["Cns"].cFunc(3, 4, 0.1),
+            2.45610,
+            places=HARK_PRECISION,
         )

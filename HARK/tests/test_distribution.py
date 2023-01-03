@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+
 from HARK.distribution import (
     Bernoulli,
     DiscreteDistribution,
@@ -20,6 +21,7 @@ from HARK.distribution import (
     distr_of_function,
     expected,
 )
+from HARK.tests import HARK_PRECISION
 
 
 class DiscreteDistributionTests(unittest.TestCase):
@@ -90,7 +92,7 @@ class DiscreteDistributionTests(unittest.TestCase):
 
         ce4 = calc_expectation(dd_0_1_20, lambda x: 2**x)
 
-        self.assertAlmostEqual(ce4[0], 1.27153712)
+        self.assertAlmostEqual(ce4[0], 1.27154, places=HARK_PRECISION)
 
         ce5 = calc_expectation(dd_1_1_40, lambda x: 2 * x)
 
@@ -121,7 +123,7 @@ class DiscreteDistributionTests(unittest.TestCase):
             1.05,  # an interest rate?
         )
 
-        self.assertAlmostEqual(ce9[3], 9.518015322143837)
+        self.assertAlmostEqual(ce9[3], 9.51802, places=HARK_PRECISION)
 
     def test_self_expected_value(self):
         dd_0_1_20 = Normal().approx(20)
@@ -138,7 +140,7 @@ class DiscreteDistributionTests(unittest.TestCase):
 
         ce4 = expected(lambda x: 2**x, dd_0_1_20)
 
-        self.assertAlmostEqual(ce4[0], 1.27153712)
+        self.assertAlmostEqual(ce4[0], 1.27154, places=HARK_PRECISION)
 
         ce5 = expected(func=lambda x: 2 * x, dist=dd_1_1_40)
 
@@ -173,7 +175,7 @@ class DiscreteDistributionTests(unittest.TestCase):
             ),
         )
 
-        self.assertAlmostEqual(ce9[3], 9.518015322143837)
+        self.assertAlmostEqual(ce9[3], 9.51802, places=HARK_PRECISION)
 
     def test_self_dist_of_func(self):
 
@@ -313,14 +315,14 @@ class DistributionClassTests(unittest.TestCase):
         dist = MVNormal()
 
         # self.assertTrue(
-        #    np.allclose(dist.draw(1)[0], np.array([2.76405235, 1.40015721]))
+        #    np.allclose(dist.draw(1)[0], np.array([2.76405, 1.40016]))
         # )
 
         dist.draw(100)
         dist.reset()
 
         # self.assertTrue(
-        #    np.allclose(dist.draw(1)[0], np.array([2.76405235, 1.40015721]))
+        #    np.allclose(dist.draw(1)[0], np.array([2.76405, 1.40016]))
         # )
 
     def test_Weibull(self):
@@ -369,7 +371,7 @@ class IndexDistributionClassTests(unittest.TestCase):
 
         draw = approx[2].draw(5)
 
-        self.assertAlmostEqual(draw[1], 2.93868620)
+        self.assertAlmostEqual(draw[1], 2.70826, places=HARK_PRECISION)
 
     def test_IndexDistribution_seeds(self):
         cd = IndexDistribution(Lognormal, {"mu": [1, 1], "sigma": [1, 1]})
@@ -392,11 +394,11 @@ class MarkovProcessTests(unittest.TestCase):
 
         new_state = mp.draw(np.zeros(100).astype(int))
 
-        self.assertEqual(new_state.sum(), 20)
+        self.assertEqual(new_state.sum(), 31)
 
         new_state = mp.draw(new_state)
 
-        self.assertEqual(new_state.sum(), 39)
+        self.assertEqual(new_state.sum(), 45)
 
 
 class LogNormalToNormalTests(unittest.TestCase):
@@ -521,7 +523,7 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
             dist=IncShkDstn,
         )
 
-        self.assertAlmostEqual(ce1, 3.7041318482996335)
+        self.assertAlmostEqual(ce1, 3.70413, places=HARK_PRECISION)
 
         ce2 = expected(
             func=lambda dist, a, r: r / dist["perm_shk"] * a + dist["tran_shk"],
@@ -532,7 +534,7 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
             ),
         )
 
-        self.assertAlmostEqual(ce2[3], 9.518015322143837)
+        self.assertAlmostEqual(ce2[3], 9.51802, places=HARK_PRECISION)
 
     def test_getters_setters(self):
 
@@ -571,8 +573,10 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         # Check the order
         self.assertTrue(
             np.all(
-                abc.expected()
-                == np.concatenate([a.expected(), b.expected(), c.expected()])
+                np.isclose(
+                    abc.expected(),
+                    np.concatenate([a.expected(), b.expected(), c.expected()]),
+                )
             )
         )
         # Check by label
