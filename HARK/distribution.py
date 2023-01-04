@@ -1188,12 +1188,34 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         """
         return self.dataset.seed
 
+    @seed.setter
+    def seed(self, value):
+        """
+        Set the distribution's seed and updates the RNG state
+        """
+        # Update the seed
+        self.dataset.attrs["seed"] = value
+        # With the seed having been updated, the RNG must be updated too
+        self.RNG = np.random.default_rng(self.seed)
+
     @property
     def RNG(self):
         """
         Returns the distribution's random number generator.
         """
         return self.dataset.RNG
+
+    @RNG.setter
+    def RNG(self, value):
+        """
+        Sets the distribution's random number generator.
+        """
+        if isinstance(value, np.random._generator.Generator):
+            self.dataset.attrs["RNG"] = value
+        else:
+            raise ValueError(
+                "The RNG property must be an instance of numpy.random._generator.Generator"
+            )
 
     @property
     def name(self):

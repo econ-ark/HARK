@@ -19,6 +19,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 from HARK.distribution import (
     DiscreteDistribution,
+    DiscreteDistributionLabeled,
     IndexDistribution,
     Lognormal,
     Bernoulli,
@@ -157,16 +158,38 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         """
+
+        # Create placeholder distributions
         if "RiskyDstn" in self.time_vary:
-            self.ShockDstn = [
+            dstn_list = [
                 combine_indep_dstns(self.IncShkDstn[t], self.RiskyDstn[t])
                 for t in range(self.T_cycle)
             ]
         else:
-            self.ShockDstn = [
+            dstn_list = [
                 combine_indep_dstns(self.IncShkDstn[t], self.RiskyDstn)
                 for t in range(self.T_cycle)
             ]
+
+        # Names of the variables (hedging for the unlikely case that in
+        # some index of IncShkDstn variables are in a switched order)
+        names_list = [
+            list(self.IncShkDstn[t].dataset.data_vars.keys()) + ["Risky"]
+            for t in range(self.T_cycle)
+        ]
+
+        conditional = {
+            "pmv": [x.pmv for x in dstn_list],
+            "data": [x.atoms for x in dstn_list],
+            "var_names": names_list,
+        }
+
+        # Now create the actual distribution using the index and labeled class
+        self.ShockDstn = IndexDistribution(
+            engine=DiscreteDistributionLabeled,
+            conditional=conditional,
+        )
+
         self.add_to_time_vary("ShockDstn")
 
         # Mark whether the risky returns and income shocks are independent (they are)

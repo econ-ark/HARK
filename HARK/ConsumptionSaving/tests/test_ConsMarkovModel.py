@@ -9,6 +9,7 @@ from HARK.distribution import (
     DiscreteDistribution,
     MeanOneLogNormal,
     combine_indep_dstns,
+    DiscreteDistributionLabeled,
 )
 
 
@@ -65,11 +66,15 @@ class test_ConsMarkovSolver(unittest.TestCase):
         self.model.vFuncBool = False  # for easy toggling here
 
         # Replace the default (lognormal) income distribution with a custom one
-        employed_income_dist = DiscreteDistribution(
-            np.ones(1), np.array([[1.0], [1.0]])
+        employed_income_dist = DiscreteDistributionLabeled(
+            pmv=np.ones(1),
+            data=np.array([[1.0], [1.0]]),
+            var_names=["PermShk", "TranShk"],
         )  # Definitely get income
-        unemployed_income_dist = DiscreteDistribution(
-            np.ones(1), np.array([[1.0], [0.0]])
+        unemployed_income_dist = DiscreteDistributionLabeled(
+            pmv=np.ones(1),
+            data=np.array([[1.0], [0.0]]),
+            var_names=["PermShk", "TranShk"],
         )  # Definitely don't
         self.model.IncShkDstn = [
             [
