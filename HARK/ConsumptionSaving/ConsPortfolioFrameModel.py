@@ -8,7 +8,6 @@ This file also demonstrates a "frame" model architecture.
 """
 
 import numpy as np
-from scipy.optimize import minimize_scalar
 
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     PortfolioConsumerType,

@@ -23,7 +23,7 @@ frames_A = [
     Frame(("cNrm"), ("mNrm",), control=True),
     Frame(
         ("U"),
-        ("cNrm", "CRRA"),  ## Note CRRA here is a parameter not a state var
+        ("cNrm", "CRRA"),  # Note CRRA here is a parameter not a state var
         transition=lambda cNrm, CRRA: (CRRAutility(cNrm, CRRA),),
         reward=True,
         context={"CRRA": 2.0},

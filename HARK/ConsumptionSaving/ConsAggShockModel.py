@@ -106,7 +106,8 @@ class MargValueFunc2D(MetricObject):
 
 # Make a dictionary to specify an aggregate shocks consumer
 init_agg_shocks = init_idiosyncratic_shocks.copy()
-del init_agg_shocks["Rfree"]  # Interest factor is endogenous in agg shocks model
+# Interest factor is endogenous in agg shocks model
+del init_agg_shocks["Rfree"]
 del init_agg_shocks["CubicBool"]  # Not supported yet for agg shocks model
 del init_agg_shocks["vFuncBool"]  # Not supported yet for agg shocks model
 init_agg_shocks["PermGroFac"] = [1.0]
@@ -581,7 +582,8 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
                 IncShkDstnNow = self.IncShkDstn[t - 1][
                     self.shocks["Mrkv"]
                 ]  # set current income distribution
-                PermGroFacNow = self.PermGroFac[t - 1]  # and permanent growth factor
+                # and permanent growth factor
+                PermGroFacNow = self.PermGroFac[t - 1]
 
                 # Get random draws of income shocks from the discrete distribution
                 ShockDraws = IncShkDstnNow.draw(N, exact_match=True)
@@ -746,7 +748,8 @@ class KrusellSmithType(AgentType):
         self.AFunc = Economy.AFunc  # Next period's aggregate savings function
         self.DeprFac = Economy.DeprFac  # Rate of capital depreciation
         self.CapShare = Economy.CapShare  # Capital's share of production
-        self.LbrInd = Economy.LbrInd  # Idiosyncratic labor supply (when employed)
+        # Idiosyncratic labor supply (when employed)
+        self.LbrInd = Economy.LbrInd
         self.UrateB = Economy.UrateB  # Unemployment rate in bad state
         self.UrateG = Economy.UrateG  # Unemployment rate in good state
         self.ProdB = Economy.ProdB  # Total factor productivity in bad state
@@ -1361,7 +1364,8 @@ def solve_ConsAggShock_new(
     # the function also returns the wage rate and effective interest factor
     def calcAggObjects(M, Psi, Theta):
         A = AFunc(M)  # End-of-period aggregate assets (normalized)
-        kNext = A / (PermGroFacAgg * Psi)  # Next period's aggregate capital/labor ratio
+        # Next period's aggregate capital/labor ratio
+        kNext = A / (PermGroFacAgg * Psi)
         kNextEff = kNext / Theta  # Same thing, but account for *transitory* shock
         R = Rfunc(kNextEff)  # Interest factor on aggregate assets
         wEff = (
@@ -1382,7 +1386,8 @@ def solve_ConsAggShock_new(
         return vPnext
 
     # Make an array of a_t values at which to calculate end-of-period marginal value of assets
-    BoroCnstNat_vec = np.zeros(Mcount)  # Natural borrowing constraint at each M_t
+    # Natural borrowing constraint at each M_t
+    BoroCnstNat_vec = np.zeros(Mcount)
     aNrmNow = np.zeros((aCount, Mcount))
     for j in range(Mcount):
         Mnext, Reff, wEff = calcAggObjects(
@@ -1842,7 +1847,8 @@ verbose_cobb_douglas = (
     True  # Whether to print solution progress to screen while solving
 )
 T_discard = 200  # Number of simulated "burn in" periods to discard when updating AFunc
-DampingFac = 0.5  # Damping factor when updating AFunc; puts DampingFac weight on old params, rest on new
+# Damping factor when updating AFunc; puts DampingFac weight on old params, rest on new
+DampingFac = 0.5
 max_loops = 20  # Maximum number of AFunc updating loops to allow
 
 
@@ -2835,7 +2841,8 @@ init_KS_economy = {
     "slope_prev": [1.0, 1.0],
     "DiscFac": 0.99,
     "CRRA": 1.0,
-    "LbrInd": 0.3271,  # Not listed in KS (1998), but Alan Lujan got this number indirectly from KS
+    # Not listed in KS (1998), but Alan Lujan got this number indirectly from KS
+    "LbrInd": 0.3271,
     "ProdB": 0.99,
     "ProdG": 1.01,
     "CapShare": 0.36,
@@ -3057,7 +3064,8 @@ class KrusellSmithEconomy(Market):
             Wage rate for labor in the economy this period.
         """
         # Calculate aggregate savings
-        Aprev = np.mean(np.array(aNow))  # End-of-period savings from last period
+        # End-of-period savings from last period
+        Aprev = np.mean(np.array(aNow))
         # Calculate aggregate capital this period
         AggK = Aprev  # ...becomes capital today
 

@@ -165,7 +165,9 @@ def solve_ConsLaborIntMarg(
     PermShkVals = PermShkDstn.atoms.flatten()
     TranShkCount = TranShkPrbs.size
     PermShkCount = PermShkPrbs.size
-    uPinv = lambda X: CRRAutilityP_inv(X, gam=CRRA)
+
+    def uPinv(X):
+        return CRRAutilityP_inv(X, gam=CRRA)
 
     # Make tiled versions of the grid of a_t values and the components of the shock distribution
     aXtraCount = aXtraGrid.size
@@ -480,7 +482,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.get_states(self)
-        self.state_now["mNrm"][:] = np.nan  # Delete market resource calculation
+        # Delete market resource calculation
+        self.state_now["mNrm"][:] = np.nan
 
     def get_controls(self):
         """

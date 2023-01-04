@@ -7,6 +7,7 @@ It currently only two models:
    by inheriting from multiple classes.
 """
 import numpy as np
+
 from HARK import make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolver,
@@ -501,7 +502,8 @@ class ConsPrefShockSolver(ConsIndShockSolver):
             vPnow += this_prob * this_shock * self.u.der(cNrmNow)
 
         # Construct the beginning-of-period value function
-        vNvrs = self.u.inv(vNrmNow)  # value transformed through inverse utility
+        # value transformed through inverse utility
+        vNvrs = self.u.inv(vNrmNow)
         vNvrsP = vPnow * self.u.derinv(vNrmNow, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, self.mNrmMinNow)
         vNvrs = np.insert(vNvrs, 0, 0.0)

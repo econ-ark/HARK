@@ -1,5 +1,6 @@
-from HARK.ConsumptionSaving.ConsMedModel import MedShockConsumerType
 import unittest
+
+from HARK.ConsumptionSaving.ConsMedModel import MedShockConsumerType
 
 
 class testMedShockConsumerType(unittest.TestCase):

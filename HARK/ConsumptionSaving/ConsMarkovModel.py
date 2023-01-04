@@ -14,11 +14,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     PerfForesightConsumerType,
 )
-from HARK.distribution import (
-    MarkovProcess,
-    Uniform,
-    calc_expectation,
-)
+from HARK.distribution import MarkovProcess, Uniform, calc_expectation
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
@@ -322,7 +318,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         """
 
         def vpp_next(shocks, a_nrm, Rfree):
-            return shocks['PermShk'] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
+            return shocks["PermShk"] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
                 self.m_nrm_next(shocks, a_nrm, Rfree)
             )
 
@@ -715,7 +711,8 @@ class ConsMarkovSolver(ConsIndShockSolver):
             vPnow = self.u.der(cGrid)
 
             # Make a "decurved" value function with the inverse utility function
-            vNvrs = self.u.inv(vNrmNow)  # value transformed through inverse utility
+            # value transformed through inverse utility
+            vNvrs = self.u.inv(vNrmNow)
             vNvrsP = vPnow * self.u.derinv(vNrmNow, order=(0, 1))
             mNrm_temp = np.insert(mGrid, 0, mNrmMin)  # add the lower bound
             vNvrs = np.insert(vNvrs, 0, 0.0)

@@ -1,5 +1,3 @@
-from typing import Callable, Optional
-
 import numpy as np
 
 from HARK.core import MetricObject
@@ -213,7 +211,7 @@ def CRRAutilityP_invP(uP, gam):
     return (-1.0 / gam) * uP ** (-1.0 / gam - 1.0)
 
 
-def uFunc_CRRA_stone_geary(c, CRRA, stone_geary):
+def StoneGearyCRRAutility(c, CRRA, stone_geary):
     """
     Evaluates Stone-Geary version of a constant relative risk aversion (CRRA)
     utility of consumption c wiht given risk aversion parameter CRRA and
@@ -245,7 +243,7 @@ def uFunc_CRRA_stone_geary(c, CRRA, stone_geary):
         return (stone_geary + c) ** (1.0 - CRRA) / (1.0 - CRRA)
 
 
-def uPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
+def StoneGearyCRRAutilityP(c, CRRA, stone_geary):
     """
     Marginal utility of Stone-Geary version of a constant relative risk aversion (CRRA)
     utility of consumption c wiht given risk aversion parameter CRRA and
@@ -268,7 +266,7 @@ def uPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
     return (stone_geary + c) ** (-CRRA)
 
 
-def uPPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
+def StoneGearyCRRAutilityPP(c, CRRA, stone_geary):
     """
     Marginal marginal utility of Stone-Geary version of a CRRA utilty function
     with risk aversion parameter CRRA and Stone-Geary intercept parameter stone_geary

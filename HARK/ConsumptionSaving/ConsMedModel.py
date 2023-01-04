@@ -118,7 +118,8 @@ class MedShockPolicyFunc(MetricObject):
                         * ((xLvl - c) / MedPrice) ** (CRRAmed / CRRAcon)
                         - c
                     )
-                    cLvl = brentq(optMedZeroFunc, 0.0, xLvl)  # Find solution to FOC
+                    # Find solution to FOC
+                    cLvl = brentq(optMedZeroFunc, 0.0, xLvl)
                 cLvlGrid[i, j] = cLvl
 
         # Construct the consumption function and medical care function
@@ -139,7 +140,8 @@ class MedShockPolicyFunc(MetricObject):
                     ** (CRRAmed / CRRAcon - 1.0)
                 )
                 dcdx = dfdx / (dfdx + 1.0)
-                dcdx[0, :] = dcdx[1, :]  # approximation; function goes crazy otherwise
+                # approximation; function goes crazy otherwise
+                dcdx[0, :] = dcdx[1, :]
                 dcdx[:, 0] = 1.0  # no Med when MedShk=0, so all x is c
                 cFromxFunc_by_MedShk = []
                 for j in range(MedShkGrid.size):
@@ -621,7 +623,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         """
         MedShkDstn = []  # empty list for medical shock distribution each period
         for t in range(self.T_cycle):
-            MedShkAvgNow = self.MedShkAvg[t]  # get shock distribution parameters
+            # get shock distribution parameters
+            MedShkAvgNow = self.MedShkAvg[t]
             MedShkStdNow = self.MedShkStd[t]
             MedShkDstnNow = Lognormal(
                 mu=np.log(MedShkAvgNow) - 0.5 * MedShkStdNow**2, sigma=MedShkStdNow
@@ -814,7 +817,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
             self
         )  # Get permanent and transitory income shocks
         MedShkNow = np.zeros(self.AgentCount)  # Initialize medical shock array
-        MedPriceNow = np.zeros(self.AgentCount)  # Initialize relative price array
+        # Initialize relative price array
+        MedPriceNow = np.zeros(self.AgentCount)
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             N = np.sum(these)
