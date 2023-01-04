@@ -2,22 +2,22 @@
 
 * [Code of Conduct](#code-of-conduct)
 * [Contributing Guide](#contributing-guide)
-* [Developer's Certificate of Origin 1.1](#developers-certificate-of-origin-11)
+* [Developer's Certificate of Origin 1.1](#developer-s-certificate-of-origin-1-1)
 
 ## [Code of Conduct](./doc/guides/contributing/coc.md)
 
 The Econ-ARK project has a
-[Code of Conduct](./.github/CODE_OF_CONDUCT.md)
+[Code of Conduct](https://github.com/econ-ark/HARK/blob/master/.github/CODE_OF_CONDUCT.md)
 to which all contributors must adhere.
 
-See [details on our policy on Code of Conduct](./.github/CODE_OF_CONDUCT.md).
+See [details on our policy on Code of Conduct](https://github.com/econ-ark/HARK/blob/master/.github/CODE_OF_CONDUCT.md).
 
 
 ## Welcome!
 
 Thank you for considering contributing to Econ-ARK!  We're a young project with a small but committed community that's hoping to grow while maintaining our friendly and responsive culture.  Whether you're an economist or a technologist, a writer or a coder, an undergrad or a full professor, a professional or a hobbyist, there's a place for you in the Econ-ARK community. 
 
-We're still creating our contribution infrastructure, so this document is a work in progress.  If you have any questions please feel free to @ or otherwise reach out project manager [Shauna](https://github.com/shaunagm), or lead developers [Chris](https://github.com/llorracc) and [Matt](https://github.com/mnwhite).  If you prefer to connect through email, you can send it to __econ-ark at jhuecon dot org__.
+We're still creating our contribution infrastructure, so this document is a work in progress.  If you have any questions please feel free to @ or otherwise reach out to project leaders [Chris](https://github.com/llorracc) and [Matt](https://github.com/mnwhite).  If you prefer to connect through email, you can send it to __econ-ark at jhuecon dot org__. We also have a [Gitter chat room](https://gitter.im/econ-ark/community) you are welcome to meet us in.
 
 ## How to Contribute
 
@@ -30,7 +30,7 @@ While we're thrilled to receive all kinds of contributions, there are a few key 
 * creating demonstrations of how to use Econ-ARK (which we store in the [DemARK](https://github.com/econ-ark/DemARK) repository)
 * expanding test coverage of our existing code
 
-If you'd like to help with those or any other kind of contribution, reach out to us and we'll help you do so.  
+If you'd like to help with those or any other kind of contribution, reach out to us and we'll help you do so.
 
 We don't currently have guidelines for opening issues or pull requests, so include as much information as seems relevant to you, and we'll ask you if we need to know more.
 
@@ -40,7 +40,7 @@ We're trying to get better at managing our open issues and pull requests.  We've
 
 1. Initial response within one or two days.
 2. Substantive response within two weeks.
-3. Resolution of issue/pull request within three months.  
+3. Resolution of issue/pull request within three months.
 
 If you've been waiting on us for more than two weeks for any reason, please feel free to give us a nudge.  Correspondingly, we ask that you respond to any questions or requests from us within two weeks as well, even if it's just to say, "Sorry, I can't get to this for a while yet". If we don't hear back from you, we may close your issue or pull request.  If you want to re-open it, just ask - we're glad to do so.
 
@@ -117,7 +117,7 @@ Thanks again! We're so glad to have you in our community.
       If Travis fails, you can find out why by clicking on the "failed" icon (red
       cross) and inspecting the build and test log.
 
-    * [GitHub Actions](http://github.com), is another continuous integration
+    * [GitHub Actions](http://github.com/actions), is another continuous integration
       service, which we use.  You will also need to make sure that the GitHub Actions
       tests pass.
 
@@ -168,7 +168,7 @@ When using conda, you may find the following bash commands useful
 
 * All code should have tests.
 * All code should be documented, to the same
-  [standard](https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt#docstring-standard)
+  [standard](https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard)
   as NumPy and SciPy.
 * All changes are reviewed.
 
@@ -181,6 +181,89 @@ When using conda, you may find the following bash commands useful
     # run black on the changed files
     black path_to_changed_file.py
 ```
+
+### Naming Conventions
+Object naming conventions in HARK are fairly different than existing standards, and differ somewhat between tool modules vs model or application modules.  The following conventions apply throughout HARK:
+
+* Functions and methods are always in ''camel case'': no underscores, first letter is lower case, first letter of each subsequent word is capitalized.  E.g. ***approxLognormal***.
+
+* Function and method names should accurately and concisely describe what the function does; the first word in the name *must be a verb*
+
+* Variable and class names *should not* have a verb as their first word.
+
+* Class names should use no underscores and capitalize the first letter of each word; moreover, a class name *must include a noun*.  E.g. ***ConsPerfForesightSolver***.
+
+When naming variables in model modules, the HARK team strongly discourages using single letter names, like ***c*** for consumption.  Instead, we encourage contributors to use longer, more descriptive variable names using additional words and common abbreviations to specify the variable more precisely.  In [NARK](https://github.com/econ-ark/HARK/Documentation/NARK.pdf), we list standard single letter variable ''bases'' and an array of prefixes and suffixes to adjust them.  Economic variables in model modules should (usually) not use underscores, instead using camel case to the greatest extent possible. For ''non-economic'' variables that are only used temporarily, underscores are permissible.  The development team prefers this standard so that users can translate between Python code and LaTeX script with minimal work.
+
+Conventions for naming variables in HARK's tool modules are significantly closer to more commonly used standards.  Variable names should be in all lower case, with underscores between words, e.g. ***data\_to\_match***.  The functions and classes in these modules are more general and almost surely do not have any inherent ''economic content''; they are numerical or algorithmic objects, not variables that might appear in an equation in an article for a (non-computational) economics journal.  Variable names in application modules (e.g. the files that execute the ***cstwMPC*** estimations) are a mix of the conventions for tool and model files, as appropriate for each variable.  That is, variables that are directly related to ''economic variables'' in model modules should follow those conventions, while objects created solely for data manipulation or reporting should use the style of tool modules.
+
+### Documentation Convention
+The HARK team wants the toolKit to be as accessible to users as possible; our greatest fear (Other than spiders, of course) is that a new user will open up our code, get hopelessly confused trying to read it, and then never look at HARK again.  To prevent this tragic outcome, we have tried hard to provide comprehensive, accurate documentation and comments within the code describing our methods. Moreover, HARK uses the Sphinx utility to generate a website with [online documentation](https://hark.readthedocs.io/en/latest/) for all of our tool and model modules, so that users can learn about what's available in HARK without digging through the source code.  When making contributions to HARK, the development team asks users to format their inline documentation to work with Sphinx by following a few simple rules.
+
+* The top of every module should begin with a ''docstring'' providing a clear description of the contents of the module.  The first sentence should concisely summarize the file, as it may appear in an index or summary of all modules without the remaining sentences.  A docstring at the top of a module should be formatted as:
+
+```
+"""
+
+Specifies an economic model and provides methods for solving it. 
+
+More specific description of the key features of the model and variations of it in this module. 
+
+Maybe some comments about the solution method or limitations of the model. 
+
+Your bank account routing number.
+
+"""
+```
+
+* The line directly below the declaration of a function, method or class should begin a docstring describing that object.  As with modules, the first sentence should concisely summarize the function or class, as it might be included in an index or summary.  For functions and methods, the docstring should be formatted as:
+
+```
+def functionName(input1,input2):
+
+"""
+
+Concise description of the function.  More details about what
+
+the function does, options or modes available, and maybe mathematical
+
+methods used.  Credit to a source if you poached their algorithm.
+
+
+
+Parameters
+
+--------------------
+
+input1: type
+
+Description of what input1 represents.
+
+input2: type
+
+Description of what input2 represents.
+
+
+
+Returns
+
+--------------
+
+output_name: type
+
+Description of the output(s) of the function.  Might have
+
+multiple entries.  If no output, this is just "None".
+
+"""
+```
+
+* Provide ample comments within a function or method so that a relatively intelligent reader can follow along with your algorithm.  Short comments can follow at the end of a line, longer comments (or descriptions of the step or task about to be performed) should precede a block of code on the line(s) above it.
+
+Finally, if you write a new model module, the HARK team asks that you also provide a short mathematical writeup of the model as a PDF.  This document does not need to go into great detail about the solution method for the model or the functions and classes included in the module, merely specify the economic model and provide a summary of how it is solved.  See [ConsumptionSavingModels.pdf](https://github.com/econ-ark/HARK/blob/master/Documentation/ConsumptionSavingModels.pdf) for an example of this.
+
+
+
 
 ### Testing
 

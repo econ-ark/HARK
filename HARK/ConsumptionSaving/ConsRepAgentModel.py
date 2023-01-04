@@ -6,7 +6,7 @@ time invariant or exist on a short cycle; models must be infinite horizon.
 """
 import numpy as np
 from HARK.interpolation import LinearInterp, MargValueFuncCRRA
-from HARK.distribution import (MarkovProcess, Uniform)
+from HARK.distribution import MarkovProcess, Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     ConsumerSolution,
@@ -34,7 +34,7 @@ def solve_ConsRepAgent(
     IncShkDstn : distribution.Distribution
         A discrete
         approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: 
+        and the one immediately following (in solution_next). Order:
         permanent shocks, transitory shocks.
     CapShare : float
         Capital's share of income in Cobb-Douglas production function.
@@ -54,9 +54,9 @@ def solve_ConsRepAgent(
     """
     # Unpack next period's solution and the income distribution
     vPfuncNext = solution_next.vPfunc
-    ShkPrbsNext = IncShkDstn.pmf
-    PermShkValsNext = IncShkDstn.X[0]
-    TranShkValsNext = IncShkDstn.X[1]
+    ShkPrbsNext = IncShkDstn.pmv
+    PermShkValsNext = IncShkDstn.atoms[0]
+    TranShkValsNext = IncShkDstn.atoms[1]
 
     # Make tiled versions of end-of-period assets, shocks, and probabilities
     aNrmNow = aXtraGrid
@@ -80,7 +80,7 @@ def solve_ConsRepAgent(
     # Calculate next period's market resources
     KtoLnext = kNrmNext / TranShkVals_tiled
     RfreeNext = 1.0 - DeprFac + CapShare * KtoLnext ** (CapShare - 1.0)
-    wRteNext = (1.0 - CapShare) * KtoLnext ** CapShare
+    wRteNext = (1.0 - CapShare) * KtoLnext**CapShare
     mNrmNext = RfreeNext * kNrmNext + wRteNext * TranShkVals_tiled
 
     # Calculate end-of-period marginal value of assets for the RA
@@ -163,9 +163,9 @@ def solve_ConsRepAgentMarkov(
     for j in range(StateCount):
         # Define next-period-state conditional objects
         vPfuncNext = solution_next.vPfunc[j]
-        ShkPrbsNext = IncShkDstn[j].pmf
-        PermShkValsNext = IncShkDstn[j].X[0]
-        TranShkValsNext = IncShkDstn[j].X[1]
+        ShkPrbsNext = IncShkDstn[j].pmv
+        PermShkValsNext = IncShkDstn[j].atoms[0]
+        TranShkValsNext = IncShkDstn[j].atoms[1]
 
         # Make tiled versions of end-of-period assets, shocks, and probabilities
         ShkCount = ShkPrbsNext.size
@@ -187,7 +187,7 @@ def solve_ConsRepAgentMarkov(
         # Calculate next period's market resources
         KtoLnext = kNrmNext / TranShkVals_tiled
         RfreeNext = 1.0 - DeprFac + CapShare * KtoLnext ** (CapShare - 1.0)
-        wRteNext = (1.0 - CapShare) * KtoLnext ** CapShare
+        wRteNext = (1.0 - CapShare) * KtoLnext**CapShare
         mNrmNext = RfreeNext * kNrmNext + wRteNext * TranShkVals_tiled
 
         # Calculate end-of-period marginal value of assets for the RA
@@ -260,30 +260,28 @@ class RepAgentConsumerType(IndShockConsumerType):
         -------
         None
         """
-        pLvlPrev = self.state_prev['pLvl']
-        aNrmPrev = self.state_prev['aNrm']
+        pLvlPrev = self.state_prev["pLvl"]
+        aNrmPrev = self.state_prev["aNrm"]
 
         # Calculate new states: normalized market resources and permanent income level
-        self.pLvlNow = (
-            pLvlPrev * self.shocks['PermShk']
-        )  # Same as in IndShockConsType
-        self.kNrmNow = aNrmPrev / self.shocks['PermShk']
-        self.yNrmNow = self.kNrmNow ** self.CapShare * self.shocks['TranShk'] ** (
+        self.pLvlNow = pLvlPrev * self.shocks["PermShk"]  # Same as in IndShockConsType
+        self.kNrmNow = aNrmPrev / self.shocks["PermShk"]
+        self.yNrmNow = self.kNrmNow**self.CapShare * self.shocks["TranShk"] ** (
             1.0 - self.CapShare
         )
         self.Rfree = (
             1.0
             + self.CapShare
             * self.kNrmNow ** (self.CapShare - 1.0)
-            * self.shocks['TranShk'] ** (1.0 - self.CapShare)
+            * self.shocks["TranShk"] ** (1.0 - self.CapShare)
             - self.DeprFac
         )
         self.wRte = (
             (1.0 - self.CapShare)
-            * self.kNrmNow ** self.CapShare
-            * self.shocks['TranShk'] ** (-self.CapShare)
+            * self.kNrmNow**self.CapShare
+            * self.shocks["TranShk"] ** (-self.CapShare)
         )
-        self.mNrmNow = self.Rfree * self.kNrmNow + self.wRte * self.shocks['TranShk']
+        self.mNrmNow = self.Rfree * self.kNrmNow + self.wRte * self.shocks["TranShk"]
 
 
 class RepAgentMarkovConsumerType(RepAgentConsumerType):
@@ -308,7 +306,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         self.update_solution_terminal()
 
     def initialize_sim(self):
-        #self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
+        # self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
         RepAgentConsumerType.initialize_sim(self)
         self.shocks["Mrkv"] = self.Mrkv
 
@@ -349,9 +347,8 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         None
         """
         self.shocks["Mrkv"] = MarkovProcess(
-            self.MrkvArray,
-            seed=self.RNG.randint(0, 2 ** 31 - 1)
-            ).draw(self.shocks["Mrkv"])
+            self.MrkvArray, seed=self.RNG.integers(0, 2**31 - 1)
+        ).draw(self.shocks["Mrkv"])
 
         t = self.t_cycle[0]
         i = self.shocks["Mrkv"]
@@ -360,11 +357,11 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         # Get random draws of income shocks from the discrete distribution
         EventDraw = IncShkDstnNow.draw_events(1)
         PermShkNow = (
-            IncShkDstnNow.X[0][EventDraw] * PermGroFacNow
+            IncShkDstnNow.atoms[0][EventDraw] * PermGroFacNow
         )  # permanent "shock" includes expected growth
-        TranShkNow = IncShkDstnNow.X[1][EventDraw]
-        self.shocks['PermShk'] = np.array(PermShkNow)
-        self.shocks['TranShk'] = np.array(TranShkNow)
+        TranShkNow = IncShkDstnNow.atoms[1][EventDraw]
+        self.shocks["PermShk"] = np.array(PermShkNow)
+        self.shocks["TranShk"] = np.array(TranShkNow)
 
     def get_controls(self):
         """
@@ -380,7 +377,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         """
         t = self.t_cycle[0]
         i = self.shocks["Mrkv"]
-        self.controls['cNrm'] = self.solution[t].cFunc[i](self.mNrmNow)
+        self.controls["cNrm"] = self.solution[t].cFunc[i](self.mNrmNow)
 
 
 # Define the default dictionary for a representative agent type

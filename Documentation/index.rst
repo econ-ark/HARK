@@ -16,15 +16,14 @@ you might want to look at the `DemARK
 .. toctree::
    :maxdepth: 1
    :caption: Documentation
-   :ref:`Documentation`
 
    introduction
    quick-start
+   ARKitecture
    contributing/CONTRIBUTING.md
    reference/index
    CHANGELOG
    license
-
 
 .. toctree::
    :maxdepth: 1

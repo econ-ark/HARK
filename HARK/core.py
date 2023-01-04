@@ -6,20 +6,23 @@ of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
-import sys
 import os
+import sys
+from copy import copy, deepcopy
+from distutils.dir_util import copy_tree
+from time import time
+from warnings import warn
+
+import numpy as np
+
 from HARK.distribution import (
     Distribution,
-    TimeVaryingDiscreteDistribution,
     IndexDistribution,
+    TimeVaryingDiscreteDistribution,
 )
-from distutils.dir_util import copy_tree
-from .utilities import get_arg_names, NullFunc
-from copy import copy, deepcopy
-import numpy as np
-from time import time
+
 from .parallel import multi_thread_commands, multi_thread_commands_fake
-from warnings import warn
+from .utilities import NullFunc, get_arg_names
 
 
 def distance_metric(thing_a, thing_b):
@@ -52,9 +55,9 @@ def distance_metric(thing_a, thing_b):
             distance = max(distance_temp)
         else:
             warn(
-                'Objects of different lengths are being compared. ' +
-                'Returning difference in lengths.'
-                )
+                "Objects of different lengths are being compared. "
+                + "Returning difference in lengths."
+            )
             distance = float(abs(len_a - len_b))
     # If both inputs are dictionaries, call distance on the list of its elements
     elif type_a is dict and type_b is dict:
@@ -71,20 +74,18 @@ def distance_metric(thing_a, thing_b):
             # If keys don't match, print a warning.
             if list(sorted_a.keys()) != list(sorted_b.keys()):
                 warn(
-                    'Dictionaries with keys that do not match are being ' + 
-                    'compared.'
+                    "Dictionaries with keys that do not match are being " + "compared."
                 )
 
-            distance = distance_metric(list(sorted_a.values()),
-                                      list(sorted_b.values()))
+            distance = distance_metric(list(sorted_a.values()), list(sorted_b.values()))
 
         else:
             # If they have different lengths, log a warning and return the
             # difference in lengths.
             warn(
-                'Objects of different lengths are being compared. ' + 
-                'Returning difference in lengths.'
-                )
+                "Objects of different lengths are being compared. "
+                + "Returning difference in lengths."
+            )
             distance = float(abs(len_a - len_b))
 
     # If both inputs are numbers, return their difference
@@ -150,10 +151,12 @@ class MetricObject(object):
                 )  # if either object lacks attribute, they are not the same
         return max(distance_list)
 
+
 class Model(object):
     """
     A class with special handling of parameters assignment.
     """
+
     def assign_parameters(self, **kwds):
         """
         Assign an arbitrary number of attributes to this agent.
@@ -195,7 +198,7 @@ class Model(object):
         return notImplemented
 
     def __init__(self):
-        if not hasattr(self, 'parameters'):
+        if not hasattr(self, "parameters"):
             self.parameters = {}
 
     def __str__(self):
@@ -270,7 +273,7 @@ class AgentType(Model):
         pseudo_terminal=True,
         tolerance=0.000001,
         seed=0,
-        **kwds
+        **kwds,
     ):
         super().__init__()
 
@@ -283,7 +286,7 @@ class AgentType(Model):
         self.tolerance = tolerance  # NOQA
         self.seed = seed  # NOQA
         self.track_vars = []  # NOQA
-        self.state_now = {sv : None for sv in self.state_vars}
+        self.state_now = {sv: None for sv in self.state_vars}
         self.state_prev = self.state_now.copy()
         self.controls = {}
         self.shocks = {}
@@ -424,7 +427,7 @@ class AgentType(Model):
         -------
         none
         """
-        self.RNG = np.random.RandomState(self.seed)
+        self.RNG = np.random.default_rng(self.seed)
 
     def check_elements_of_time_vary_are_lists(self):
         """
@@ -513,7 +516,7 @@ class AgentType(Model):
             if self.state_now[var] is None:
                 self.state_now[var] = copy(blank_array)
 
-            #elif self.state_prev[var] is None:
+            # elif self.state_prev[var] is None:
             #    self.state_prev[var] = copy(blank_array)
         self.t_age = np.zeros(
             self.AgentCount, dtype=int
@@ -747,6 +750,7 @@ class AgentType(Model):
 
                 # Reset ages of newborns
                 self.t_age[who_dies] = 0
+                self.t_cycle[who_dies] = 0
         else:
             who_dies = self.sim_death()
             self.sim_birth(who_dies)
@@ -854,7 +858,7 @@ class AgentType(Model):
         Parameters
         ----------
         None
- 
+
         [Eventually, to match dolo spec:
         exogenous_prev, endogenous_prev, controls, exogenous, parameters]
 
@@ -884,9 +888,9 @@ class AgentType(Model):
 
     def get_poststates(self):
         """
-        Gets values of post-decision state variables for the current period, 
+        Gets values of post-decision state variables for the current period,
         probably by current
-        states and controls and maybe market-level events or shock variables.  
+        states and controls and maybe market-level events or shock variables.
         Does nothing by
         default, but can be overwritten by subclasses of AgentType.
 
@@ -1123,9 +1127,9 @@ def solve_one_cycle(agent, solution_last):
     # Initialize the solution for this cycle, then iterate on periods
     solution_cycle = []
     solution_next = solution_last
-    
+
     cycles_range = [0] + list(range(T - 1, 0, -1))
-    for k in (range(T-1, -1, -1) if agent.cycles == 1 else cycles_range):
+    for k in range(T - 1, -1, -1) if agent.cycles == 1 else cycles_range:
         # Update which single period solver to use (if it depends on time)
         if hasattr(agent.solve_one_period, "__getitem__"):
             solve_one_period = agent.solve_one_period[k]
@@ -1244,7 +1248,7 @@ class Market(Model):
         calc_dynamics=None,
         act_T=1000,
         tolerance=0.000001,
-        **kwds
+        **kwds,
     ):
         super().__init__()
         self.agents = agents if agents is not None else list()  # NOQA
@@ -1446,11 +1450,7 @@ class Market(Model):
         none
         """
         # Reset the history of tracked variables
-        self.history = {
-            var_name: []
-            for var_name
-            in self.track_vars
-        }
+        self.history = {var_name: [] for var_name in self.track_vars}
 
         # Set the sow variables to their initial levels
         for var_name in self.sow_state:
@@ -1549,7 +1549,7 @@ def distribute_params(agent, param_name, param_count, distribution):
     param_count : int
         Number of different values the parameter will take on.
     distribution : Distribution
-        A distribution.
+        A 1-D distribution.
 
     Returns
     -------
@@ -1564,11 +1564,11 @@ def distribute_params(agent, param_name, param_count, distribution):
     agent_set = [deepcopy(agent) for i in range(param_count)]
 
     for j in range(param_count):
-        agent_set[j].assign_parameters(**{'AgentCount': int(agent.AgentCount * param_dist.pmf[j])})
-        # agent_set[j].__dict__[param_name] = param_dist.X[j]
+        agent_set[j].assign_parameters(
+            **{"AgentCount": int(agent.AgentCount * param_dist.pmv[j])}
+        )
+        # agent_set[j].__dict__[param_name] = param_dist.atoms[j]
 
-        agent_set[j].assign_parameters(**{param_name: param_dist.X[j]})
-
-
+        agent_set[j].assign_parameters(**{param_name: param_dist.atoms[0, j]})
 
     return agent_set
