@@ -848,7 +848,7 @@ class DiscreteDistribution(Distribution):
 
     def __init__(self, pmv, atoms, seed=0):
 
-        self.pmv = pmv
+        self.pmv = np.asarray(pmv)
 
         if len(atoms.shape) < 2:
             self.atoms = atoms[None, ...]
@@ -859,7 +859,7 @@ class DiscreteDistribution(Distribution):
         super().__init__(seed)
 
         # Check that pmv and atoms have compatible dimensions.
-        same_dims = len(pmv) == atoms.shape[-1]
+        same_dims = self.pmv.size == self.atoms.shape[-1]
         if not same_dims:
             raise ValueError(
                 "Provided pmv and atoms arrays have incompatible dimensions. "

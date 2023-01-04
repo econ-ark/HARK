@@ -53,6 +53,7 @@ Release Date: TBD
 * Adds the RNG seed as a property of `DiscreteDistributionLabeled` [#1184](https://github.com/econ-ark/HARK/pull/1184)
 * Updates the `approx` method of `HARK.distributions.Uniform` to include the endpoints of the distribution with infinitesimally small (zero) probability mass. [#1180](https://github.com/econ-ark/HARK/pull/1180)
 * Refactors tests to incorporate custom precision `HARK_PRECISION = 4`. [#1193](https://github.com/econ-ark/HARK/pull/1193)
+* Cast `DiscreteDistribution.pmv` attribute as a `np.ndarray`. [#1199](https://github.com/econ-ark/HARK/pull/1199)
 
 ### 0.12.0
 
