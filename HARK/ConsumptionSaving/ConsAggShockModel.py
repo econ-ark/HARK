@@ -312,7 +312,7 @@ class AggShockConsumerType(IndShockConsumerType):
         #        order = np.argsort(self.aLvlNow)
         #        how_many_die = int(self.AgentCount*(1.0-self.LivPrb[0]))
         #        group_size = self.AgentCount/how_many_die # This should be an integer
-        #        base_idx = self.RNG.randint(0,group_size,size=how_many_die)
+        #        base_idx = self.RNG.integers(0,group_size,size=how_many_die)
         #        kill_by_rank = np.arange(how_many_die,dtype=int)*group_size + base_idx
         #        who_dies = np.zeros(self.AgentCount,dtype=bool)
         #        who_dies[order[kill_by_rank]] = True

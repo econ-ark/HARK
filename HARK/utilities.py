@@ -5,7 +5,9 @@ derivatives), manipulation of discrete distributions, and basic plotting tools.
 """
 import cProfile
 import functools
+import os
 import pstats
+import re
 import warnings
 
 import numba
@@ -534,7 +536,6 @@ def jump_to_grid_1D(m_vals, probs, Dist_mGrid):
 
 @numba.njit
 def jump_to_grid_2D(m_vals, perm_vals, probs, dist_mGrid, dist_pGrid):
-
     """
     Distributes values onto a predefined grid, maintaining the means. m_vals and perm_vals are realizations of market resources and permanent income while
     dist_mGrid and dist_pGrid are the predefined grids of market resources and permanent income, respectively. That is, m_vals and perm_vals do not necesarily lie on their
@@ -653,7 +654,6 @@ def jump_to_grid_2D(m_vals, perm_vals, probs, dist_mGrid, dist_pGrid):
 def gen_tran_matrix_1D(
     dist_mGrid, bNext, shk_prbs, perm_shks, tran_shks, LivPrb, NewBornDist
 ):
-
     """
     Computes Transition Matrix across normalized market resources.
     This function is built to non-stochastic simulate the IndShockConsumerType.
@@ -707,7 +707,6 @@ def gen_tran_matrix_1D(
 def gen_tran_matrix_2D(
     dist_mGrid, dist_pGrid, bNext, shk_prbs, perm_shks, tran_shks, LivPrb, NewBornDist
 ):
-
     """
     Computes Transition Matrix over normalized market resources and permanent income.
     This function is built to non-stochastic simulate the IndShockConsumerType.
@@ -1006,13 +1005,21 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
         # Save the figures in several formats
         print("Saving figure {} in {}".format(figure_name, target_dir))
         plt.savefig(
-            os.path.join(target_dir, "{}.jpg".format(figure_name))
+            os.path.join(target_dir, "{}.jpg".format(figure_name)),
+            metadata={"CreationDate": None},
         )  # For web/html
         plt.savefig(
-            os.path.join(target_dir, "{}.png".format(figure_name))
+            os.path.join(target_dir, "{}.png".format(figure_name)),
+            metadata={"CreationDate": None},
         )  # For web/html
-        plt.savefig(os.path.join(target_dir, "{}.pdf".format(figure_name)))  # For LaTeX
-        plt.savefig(os.path.join(target_dir, "{}.svg".format(figure_name)))  # For html5
+        plt.savefig(
+            os.path.join(target_dir, "{}.pdf".format(figure_name)),
+            metadata={"CreationDate": None},
+        )  # For LaTeX
+        plt.savefig(
+            os.path.join(target_dir, "{}.svg".format(figure_name)),
+            metadata={"Date": None},
+        )  # For html5
     # Make sure it's possible to plot it by checking for GUI
     if drawFigs and find_gui():
         plt.ion()  # Counterintuitively, you want interactive mode on if you don't want to interact
@@ -1076,3 +1083,27 @@ def benchmark(
     stats.print_stats(max_print)
     if return_output:
         return stats
+
+
+simpledec = re.compile(r"\d*\.\d{8,20}")
+
+
+def mround(match):
+    return "{:.5f}".format(float(match.group()))
+
+
+def round_in_file(filename):
+    with open(filename, "r+") as file:
+        filetext = file.read()
+        filetext = re.sub(simpledec, mround, filetext)
+        file.seek(0)
+        file.write(filetext)
+        file.truncate()
+
+
+def files_in_dir(mypath):
+    return [
+        os.path.join(mypath, f)
+        for f in os.listdir(mypath)
+        if os.path.isfile(os.path.join(mypath, f))
+    ]

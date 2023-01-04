@@ -53,7 +53,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
 
         super().solve(self)
 
-        ## TODO: make this a property of FrameAgentTypes or FrameModels?
+        # TODO: make this a property of FrameAgentTypes or FrameModels?
         self.decision_rules = {}
 
         def decision_rule_Share_from_solution(solution_t):
@@ -95,7 +95,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         return Lognormal(
             mu=self.aNrmInitMean,
             sigma=self.aNrmInitStd,
-            seed=self.RNG.randint(0, 2**31 - 1),
+            seed=self.RNG.integers(0, 2**31 - 1),
         ).draw(N)
 
     # TODO: streamline this so it can draw the parameters from context
@@ -108,7 +108,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         )  # Account for newer cohorts having higher permanent income
 
         return Lognormal(
-            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.randint(0, 2**31 - 1)
+            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.integers(0, 2**31 - 1)
         ).draw(N)
 
     # maybe replace reference to init_portfolio to self.parameters?
@@ -150,7 +150,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                     x=init_portfolio["IncUnemp"],
                 ),
             ),
-            Frame(  ## TODO: Handle Risky as an Aggregate value
+            Frame(  # TODO: Handle Risky as an Aggregate value
                 ("Risky"),
                 None,
                 transition=IndexDistribution(
@@ -159,7 +159,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                         "mean": init_portfolio["RiskyAvg"],
                         "std": init_portfolio["RiskyStd"],
                     }
-                    # seed=self.RNG.randint(0, 2 ** 31 - 1) : TODO: Seed logic
+                    # seed=self.RNG.integers(0, 2 ** 31 - 1) : TODO: Seed logic
                 ).approx(init_portfolio["RiskyCount"]),
                 aggregate=True,
             ),
@@ -170,7 +170,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                 transition=IndexDistribution(
                     Bernoulli,
                     {"p": init_portfolio["AdjustPrb"]},
-                    # seed=self.RNG.randint(0, 2 ** 31 - 1) : TODO: Seed logic
+                    # seed=self.RNG.integers(0, 2 ** 31 - 1) : TODO: Seed logic
                 ),  # self.t_cycle input implied
             ),
             Frame(
@@ -212,7 +212,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             Frame(("cNrm"), ("Adjust", "mNrm", "Share"), control=True),
             Frame(
                 ("U"),
-                ("cNrm", "CRRA"),  ## Note CRRA here is a parameter not a state var
+                ("cNrm", "CRRA"),  # Note CRRA here is a parameter not a state var
                 transition=lambda cNrm, CRRA: (CRRAutility(cNrm, CRRA),),
                 reward=True,
             ),

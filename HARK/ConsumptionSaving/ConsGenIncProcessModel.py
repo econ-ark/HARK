@@ -554,7 +554,8 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         pSize = self.pLvlGrid.size
 
         # Compute expected value and marginal value on a grid of market resources
-        pLvl_temp = np.tile(self.pLvlGrid, (mSize, 1))  # Tile pLvl across m values
+        # Tile pLvl across m values
+        pLvl_temp = np.tile(self.pLvlGrid, (mSize, 1))
         mLvl_temp = (
             np.tile(self.mLvlMinNow(self.pLvlGrid), (mSize, 1))
             + np.tile(np.reshape(self.aXtraGrid, (mSize, 1)), (1, pSize)) * pLvl_temp
@@ -663,7 +664,8 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         for j in range(pLvl.shape[0]):
             pLvl_j = pLvl[j, 0]
             m_temp = mLvl[j, :] - self.BoroCnstNat(pLvl_j)
-            c_temp = cLvl[j, :]  # Make a linear consumption function for this pLvl
+            # Make a linear consumption function for this pLvl
+            c_temp = cLvl[j, :]
             if pLvl_j > 0:
                 cFunc_by_pLvl_list.append(
                     LinearInterp(
@@ -733,7 +735,8 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         for j in range(pLvl.shape[0]):
             pLvl_j = pLvl[j, 0]
             m_temp = mLvl[j, :] - self.BoroCnstNat(pLvl_j)
-            c_temp = cLvl[j, :]  # Make a cubic consumption function for this pLvl
+            # Make a cubic consumption function for this pLvl
+            c_temp = cLvl[j, :]
             MPC_temp = MPC[j, :]
             if pLvl_j > 0:
                 cFunc_by_pLvl_list.append(
@@ -1080,15 +1083,16 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
         aNrmNow_new = Lognormal(
-            self.aNrmInitMean, self.aNrmInitStd, seed=self.RNG.randint(0, 2**31 - 1)
+            self.aNrmInitMean, self.aNrmInitStd, seed=self.RNG.integers(0, 2**31 - 1)
         ).draw(N)
         self.state_now["pLvl"][which_agents] = Lognormal(
-            self.pLvlInitMean, self.pLvlInitStd, seed=self.RNG.randint(0, 2**31 - 1)
+            self.pLvlInitMean, self.pLvlInitStd, seed=self.RNG.integers(0, 2**31 - 1)
         ).draw(N)
         self.state_now["aLvl"][which_agents] = (
             aNrmNow_new * self.state_now["pLvl"][which_agents]
         )
-        self.t_age[which_agents] = 0  # How many periods since each agent was born
+        # How many periods since each agent was born
+        self.t_age[which_agents] = 0
         # Which period of the cycle each agent is currently in
         self.t_cycle[which_agents] = 0
 

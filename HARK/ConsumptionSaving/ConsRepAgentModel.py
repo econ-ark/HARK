@@ -347,7 +347,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         None
         """
         self.shocks["Mrkv"] = MarkovProcess(
-            self.MrkvArray, seed=self.RNG.randint(0, 2**31 - 1)
+            self.MrkvArray, seed=self.RNG.integers(0, 2**31 - 1)
         ).draw(self.shocks["Mrkv"])
 
         t = self.t_cycle[0]

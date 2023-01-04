@@ -152,7 +152,10 @@ def find_next_point(
     MPCnow : float
         Marginal propensity to consume this period.
     """
-    uPP = lambda x: utilityPP(x, gam=CRRA)
+
+    def uPP(x):
+        return utilityPP(x, gam=CRRA)
+
     cNow = (
         PermGroFacCmp
         * (DiscFac * Rfree) ** (-1.0 / CRRA)
@@ -343,9 +346,14 @@ class TractableConsumerType(AgentType):
         none
         """
         # Define utility functions
-        uPP = lambda x: utilityPP(x, gam=self.CRRA)
-        uPPP = lambda x: utilityPPP(x, gam=self.CRRA)
-        uPPPP = lambda x: utilityPPPP(x, gam=self.CRRA)
+        def uPP(x):
+            return utilityPP(x, gam=self.CRRA)
+
+        def uPPP(x):
+            return utilityPPP(x, gam=self.CRRA)
+
+        def uPPPP(x):
+            return utilityPPPP(x, gam=self.CRRA)
 
         # Define some useful constants from model primitives
         self.PermGroFacCmp = self.PermGroFac / (
@@ -387,10 +395,12 @@ class TractableConsumerType(AgentType):
         self.SSperturbance = self.mTarg * 0.1
 
         # Find the MPC, MMPC, and MMMPC at the target
-        mpcTargFixedPointFunc = lambda k: k * uPP(self.cTarg) - self.Beth * (
-            (1.0 - self.UnempPrb) * (1.0 - k) * k * self.Rnrm * uPP(self.cTarg)
-            + self.PFMPC * self.UnempPrb * (1.0 - k) * self.Rnrm * uPP(cTargU)
-        )
+        def mpcTargFixedPointFunc(k):
+            return k * uPP(self.cTarg) - self.Beth * (
+                (1.0 - self.UnempPrb) * (1.0 - k) * k * self.Rnrm * uPP(self.cTarg)
+                + self.PFMPC * self.UnempPrb * (1.0 - k) * self.Rnrm * uPP(cTargU)
+            )
+
         self.MPCtarg = newton(mpcTargFixedPointFunc, 0)
         mmpcTargFixedPointFunc = (
             lambda kk: kk * uPP(self.cTarg)
@@ -479,7 +489,10 @@ class TractableConsumerType(AgentType):
             * (self.PFMPC * self.Rnrm * ((1.0 - k) / k)) ** (-self.CRRA - 1.0)
             * self.PFMPC
         )
-        mpcAtZeroFixedPointFunc = lambda k: k - f_temp(k) / (1 + f_temp(k))
+
+        def mpcAtZeroFixedPointFunc(k):
+            return k - f_temp(k) / (1 + f_temp(k))
+
         # self.MPCmax = newton(mpcAtZeroFixedPointFunc,0.5)
         self.MPCmax = brentq(
             mpcAtZeroFixedPointFunc, self.PFMPC, 0.99, xtol=0.00000001, rtol=0.00000001
@@ -584,11 +597,13 @@ class TractableConsumerType(AgentType):
         self.state_now["aLvl"][which_agents] = Lognormal(
             self.aLvlInitMean,
             sigma=self.aLvlInitStd,
-            seed=self.RNG.randint(0, 2**31 - 1),
+            seed=self.RNG.integers(0, 2**31 - 1),
         ).draw(N)
         self.shocks["eStateNow"] = np.zeros(self.AgentCount)  # Initialize shock array
-        self.shocks["eStateNow"][which_agents] = 1.0  # Agents are born employed
-        self.t_age[which_agents] = 0  # How many periods since each agent was born
+        # Agents are born employed
+        self.shocks["eStateNow"][which_agents] = 1.0
+        # How many periods since each agent was born
+        self.t_age[which_agents] = 0
         self.t_cycle[
             which_agents
         ] = 0  # Which period of the cycle each agent is currently in
@@ -627,7 +642,7 @@ class TractableConsumerType(AgentType):
         employed = self.shocks["eStateNow"] == 1.0
         N = int(np.sum(employed))
         newly_unemployed = Bernoulli(
-            self.UnempPrb, seed=self.RNG.randint(0, 2**31 - 1)
+            self.UnempPrb, seed=self.RNG.integers(0, 2**31 - 1)
         ).draw(N)
         self.shocks["eStateNow"][employed] = 1.0 - newly_unemployed
 
