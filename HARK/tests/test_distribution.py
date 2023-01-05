@@ -311,7 +311,7 @@ class DistributionClassTests(unittest.TestCase):
 
     def test_MVNormal(self):
 
-        ## Are these tests generator/backend specific?
+        # Are these tests generator/backend specific?
         dist = MVNormal()
 
         # self.assertTrue(
@@ -456,7 +456,8 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         my_logn = DiscreteDistributionLabeled.from_unlabeled(
             norm.dist_of_func(func=lambda x: np.exp(x)),
             name="Lognormal Approximation",  # name of the distribution
-            attrs={"limit": {"mu": mu, "sigma": sig}},  # assign limit properties
+            # assign limit properties
+            attrs={"limit": {"mu": mu, "sigma": sig}},
         )
         exp = my_logn.expected()
         self.assertAlmostEqual(exp, 1.0)
@@ -540,9 +541,7 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
 
         # Create some dummy dsnt
         dist = DiscreteDistributionLabeled(
-            pmv = np.array([0.5,0.5]),
-            data = np.array([-1.0,1.0]),
-            var_names = ['my_var']
+            pmv=np.array([0.5, 0.5]), atoms=np.array([-1.0, 1.0]), var_names=["my_var"]
         )
 
         # Seed

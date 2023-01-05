@@ -12,25 +12,29 @@ from scipy.optimize import minimize_scalar, root_scalar
 
 from HARK import make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    IndShockConsumerType,
+)  # PortfolioConsumerType inherits from it
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    init_idiosyncratic_shocks,
+)  # Baseline dictionary to build on
+from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolver,
     ConsumerSolution,
-    IndShockConsumerType,  # PortfolioConsumerType inherits from it
-    init_idiosyncratic_shocks,  # Baseline dictionary to build on
 )
 from HARK.distribution import (
+    Bernoulli,
     DiscreteDistribution,
     DiscreteDistributionLabeled,
     IndexDistribution,
     Lognormal,
-    Bernoulli,
     calc_expectation,
     combine_indep_dstns,
 )
 from HARK.interpolation import (
+    ConstantFunction,
     LinearInterp,
     MargValueFuncCRRA,
     ValueFuncCRRA,
-    ConstantFunction,
 )
 
 
@@ -180,7 +184,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 
         conditional = {
             "pmv": [x.pmv for x in dstn_list],
-            "data": [x.atoms for x in dstn_list],
+            "atoms": [x.atoms for x in dstn_list],
             "var_names": names_list,
         }
 

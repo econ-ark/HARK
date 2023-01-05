@@ -868,7 +868,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         float
            normalized market resources in the next period
         """
-        return Rfree / (self.PermGroFac * shocks['PermShk']) * a_nrm + shocks['TranShk']
+        return Rfree / (self.PermGroFac * shocks["PermShk"]) * a_nrm + shocks["TranShk"]
 
     def calc_EndOfPrdvP(self):
         """
@@ -887,7 +887,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
 
         def vp_next(shocks, a_nrm, Rfree):
-            return shocks['PermShk'] ** (-self.CRRA) * self.vPfuncNext(
+            return shocks["PermShk"] ** (-self.CRRA) * self.vPfuncNext(
                 self.m_nrm_next(shocks, a_nrm, Rfree)
             )
 
@@ -1133,7 +1133,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         """
 
         def vpp_next(shocks, a_nrm, Rfree):
-            return shocks['PermShk'] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
+            return shocks["PermShk"] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
                 self.m_nrm_next(shocks, a_nrm, Rfree)
             )
 
@@ -1171,7 +1171,8 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
 
         def v_lvl_next(shocks, a_nrm, Rfree):
             return (
-                shocks['PermShk'] ** (1.0 - self.CRRA) * self.PermGroFac ** (1.0 - self.CRRA)
+                shocks["PermShk"] ** (1.0 - self.CRRA)
+                * self.PermGroFac ** (1.0 - self.CRRA)
             ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm, Rfree))
 
         EndOfPrdv = self.DiscFacEff * expected(
@@ -3630,11 +3631,11 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
         joint_dstn = combine_indep_dstns(perm_dstn, tran_dstn)
 
         super().__init__(
-            name='Joint distribution of permanent and transitory shocks to income',
-            var_names=['PermShk','TranShk'],
+            name="Joint distribution of permanent and transitory shocks to income",
+            var_names=["PermShk", "TranShk"],
             pmv=joint_dstn.pmv,
-            data=joint_dstn.atoms,
-            seed=seed
+            atoms=joint_dstn.atoms,
+            seed=seed,
         )
 
 
