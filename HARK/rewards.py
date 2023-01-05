@@ -430,7 +430,7 @@ def CARAutility_invP(u, alpha):
 
 def cobb_douglas(x, alpha, factor):
     """
-    Evaluates Cobb Douglas utility at quatitites of goods consumed `x`
+    Evaluates Cobb Douglas utility at quantities of goods consumed `x`
     given elasticity parameters `alpha` and efficiency parameter `factor`.
 
     Parameters
@@ -554,6 +554,28 @@ def cobb_douglas_pn(x, alpha, factor, args=()):
 
 
 def const_elast_subs(x, alpha, subs, factor, power):
+    """
+    Evaluates Constant Elasticity of Substitution utility at quantities of
+    goods consumed `x` given parameters `alpha`, 'subs', 'factor', and 'power'.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Quantities of goods consumed. First axis must index goods.
+    alpha : Sequence[float]
+        Share parameter for each good. Must be consistent with `x`.
+    subs : float
+        Substitution parameter.
+    factor : float
+        Factor productivity parameter. (e.g. TFP in production function)
+    power : float
+        degree of homogeneity of the utility function
+
+    Returns
+    -------
+    np.ndarray
+        CES utility.
+    """
 
     # move goods axis to the end
     goods = np.moveaxis(x, 0, -1)
@@ -562,6 +584,28 @@ def const_elast_subs(x, alpha, subs, factor, power):
 
 
 def const_elast_subs_p(x, alpha, subs, factor, power, arg=0):
+    """
+    Evaluates the marginal utility of consumption indexed by `arg` good at quantities
+    of goods consumed `x` given parameters `alpha`, 'subs', 'factor', and 'power'.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Quantities of goods consumed. First axis must index goods.
+    alpha : Sequence[float]
+        Share parameter for each good. Must be consistent with `x`.
+    subs : float
+        Substitution parameter.
+    factor : float
+        Factor productivity parameter. (e.g. TFP in production function)
+    power : float
+        degree of homogeneity of the utility function
+
+    Returns
+    -------
+    np.ndarray
+        CES marginal utility.
+    """
 
     return (
         const_elast_subs(x, alpha, factor * power / subs, subs, power - subs)
@@ -571,37 +615,7 @@ def const_elast_subs_p(x, alpha, subs, factor, power, arg=0):
     )
 
 
-class UtilityFunction(MetricObject):
-
-    distance_criteria = ["eval_func", "deriv_func", "inv_func"]
-
-    def __init__(self, eval_func, deriv_func=None, inv_func=None):
-        self.eval_func = eval_func
-        self.deriv_func = deriv_func
-        self.inv_func = inv_func
-
-    def __call__(self, *args):
-
-        return self.eval_func(*args)
-
-    def derivative(self, *args, **kwargs):
-
-        return self.deriv_func(*args, **kwargs)
-
-    def inverse(self, *args, **kwargs):
-
-        return self.inv_func(*args, **kwargs)
-
-    def der(self, *args, **kwargs):
-
-        return self.derivative(*args, **kwargs)
-
-    def inv(self, *args, **kwargs):
-
-        return self.inverse(*args, **kwargs)
-
-
-class UtilityFuncCRRA(UtilityFunction):
+class UtilityFuncCRRA(MetricObject):
     """
     A class for representing a CRRA utility function.
 
@@ -681,7 +695,7 @@ class UtilityFuncCRRA(UtilityFunction):
             Utility level(s).
         order : tuple, optional
             Order of derivatives. For example, `order == (1,1)` represents
-            the first derivative of utility, inversed, and then differenciated
+            the first derivative of utility, inverted, and then differentiated
             once. For a simple mnemonic, order refers to the number of `P`s in
             the function `CRRAutility[#1]_inv[#2]`. By default (0, 0),
             which is just the inverse of utility.
@@ -721,12 +735,25 @@ class UtilityFuncCRRA(UtilityFunction):
 
     def derinv(self, u, order=(1, 0)):
         """
-        Short alias for inverse. See `self.inverse`.
+        Short alias for inverse with default order = (1,0). See `self.inverse`.
         """
         return self.inverse(u, order)
 
 
-class UtilityFuncCobbDouglas(UtilityFunction):
+class UtilityFuncCobbDouglas(MetricObject):
+    """
+    A class for representing a Cobb-Douglas utility function.
+
+    TODO: Add inverse methods.
+
+    Parameters
+    ----------
+    EOS : float
+        The coefficient for elasticity of substitution.
+    factor : float
+        Factor productivity parameter. (e.g. TFP in production function)
+    """
+
     def __init__(self, EOS, factor=1.0):
         self.EOS = np.asarray(EOS)
         self.factor = factor
@@ -734,13 +761,16 @@ class UtilityFuncCobbDouglas(UtilityFunction):
         assert np.isclose(
             np.sum(self.EOS), 1.0
         ), """The sum of the elasticity of substitution 
-        parameteres must be less than or equal to 1."""
+        parameters must be less than or equal to 1."""
 
         assert factor > 0, "Factor must be positive."
 
         self.dim = len(self.EOS)  # number of goods
 
     def __call__(self, x):
+        """
+        Evaluate the utility function at a given level of consumption c.
+        """
         assert self.EOS.size == x.shape[-1], "x must be compatible with EOS"
         cobb_douglas(x, self.EOS, self.factor)
 
@@ -750,6 +780,21 @@ class UtilityFuncCobbDouglas(UtilityFunction):
 
 
 class UtilityFuncCobbDouglasCRRA(UtilityFuncCobbDouglas):
+    """
+    A class for representing a Cobb-Douglas aggregated CRRA utility function.
+
+    TODO: Add derivative and inverse methods.
+
+    Parameters
+    ----------
+    EOS : float
+        The coefficient for elasticity of substitution.
+    factor : float
+        Factor productivity parameter. (e.g. TFP in production function)
+    CRRA: float
+        Coefficient of relative risk aversion.
+    """
+
     def __init__(self, EOS, factor, CRRA):
 
         super().__init__(EOS, factor)
@@ -759,7 +804,24 @@ class UtilityFuncCobbDouglasCRRA(UtilityFuncCobbDouglas):
         return CRRAutility(cobb_douglas(x, self.EOS, self.factor), self.CRRA)
 
 
-class UtilityFuncConstElastSubs(UtilityFunction):
+class UtilityFuncConstElastSubs(MetricObject):
+    """
+    A class for representing a constant elasticity of substitution utility function.
+
+    TODO: Add derivative and inverse methods.
+
+    Parameters
+    ----------
+    shares : Sequence[float]
+        Share parameter for each good. Must be consistent with `x`.
+    subs : float
+        Substitution parameter.
+    factor : float
+        Factor productivity parameter. (e.g. TFP in production function)
+    homogeneity : float
+        degree of homogeneity of the utility function
+    """
+
     def __init__(self, shares, subs, homogeneity=1.0, factor=1.0):
 
         assert subs != 0.0, "Consider using a Cobb-Douglas utility function instead."
