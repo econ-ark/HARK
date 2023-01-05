@@ -91,7 +91,8 @@ class SolutionDataset(object):
 class Stage:
     """A single Bellman problem stage."""
     transition: Callable[[Mapping, Mapping, Mapping], Mapping] = lambda x, k, a : {}# TODO: type signature # TODO: Defaults to identity function
-    transition_der: Any = None # Callable[[Mapping, Mapping, Mapping], Mapping] = None
+    transition_der_a: Any = None # Callable[[Mapping, Mapping, Mapping], Mapping] = None
+    transition_der_x: Any = None # Callable[[Mapping, Mapping, Mapping], Mapping] = None
     ## Y x A -> X
     transition_inv: Callable[[Mapping, Mapping], Mapping] = None
 
@@ -195,12 +196,12 @@ class Stage:
 
         WARNING: This will be inaccurate if discount is a function of actions.
         """
-        if self.transition_der is None:
+        if self.transition_der_a is None:
             raise Exception("self.transition_der is None. Cannot compute dQ/da without derivative transition function.")
-        elif isinstance(self.transition_der, float) or isinstance(self.transition_der, int):
-            transition_der = self.transition_der
-        elif callable(self.transition_der):
-            transition_der = self.transition_der(x, k, a)
+        elif isinstance(self.transition_der_a, float) or isinstance(self.transition_der_a, int):
+            transition_der_a = self.transition_der_a
+        elif callable(self.transition_der_a):
+            transition_der_a = self.transition_der_a(x, k, a)
 
         if self.reward_der is None:
             raise Exception("self.reward_der is None. Cannot compute dQ/da without derivative reward function.")
@@ -214,7 +215,7 @@ class Stage:
 
         ## WARNING: reward_der not defined yet
         q_der = self.reward_der(x, k, a) + \
-            discount * v_y_der(self.T(x, k, a, constrain = False)) * transition_der
+            discount * v_y_der(self.T(x, k, a, constrain = False)) * transition_der_a
 
         return q_der
 
@@ -563,18 +564,17 @@ class Stage:
         if self.transition_inv is None:
             raise Exception("No inverse transition function found. ")
 
-        if self.transition_der is None or not(
-            isinstance(self.transition_der, float) or isinstance(self.transition_der, int)
+        if self.transition_der_a is None or not(
+            isinstance(self.transition_der_a, float) or isinstance(self.transition_der_a, int)
             ):
-            raise Exception(f"No constant transition derivative found. transition_der is {self.transition_der}")
+            raise Exception(f"No constant transition derivative found. transition_der_a is {self.transition_der_a}")
 
         if not isinstance(self.discount, float) or isinstance(self.discount, int):
             raise Exception("Analytic pi_star_y requires constant discount factor (rendering B' = 0).")
 
         ### TEST: available T_der as constant.
 
-        return self.reward_der_inv(- self.discount * self.transition_der * v_y_der(y))
-        
+        return self.reward_der_inv(- self.discount * self.transition_der_a * v_y_der(y))
 
     def optimal_policy_egm(self,
                        y_grid : Mapping[str, Sequence] = {},
@@ -704,7 +704,23 @@ class Stage:
         return new_x_grid
 
 
-    def xarray_expectations(self, func, x_vals, k_grid_i, discretized_shocks, pi_star, v_arg):
+    def xarray_expectations(self, func, x_vals, shock_approx_params, pi_star, func_arg):
+        """
+        Computes the expected value of FUNC over discretized shocks
+        assuming policy pi_star, given starting point x_vals.
+
+        Parameters:
+        
+        func - function over which to take expectations
+
+        x_vals - grid over x values at which to compute the expecation
+
+        shock_approx_params - parameters for the discretization of the shokcs
+
+        pi_star - optimal policy function
+
+        func_arg - additional arguments to func
+        """
 
         ## TODO: Replace with HARK.distribution.calc_expectations of some form.
         ##       Problem: calculating expectation of join distribution over sevearl independent shocks.
@@ -721,6 +737,8 @@ class Stage:
         ## Note: no preset pi* points show up here.
         expected_d = 0
         #value_der_x = 0
+
+        discretized_shocks, k_grid, k_grid_i = self.discretize_shocks(shock_approx_params)
 
         for k_point in itertools.product(*k_grid_i.values()):
             k_pms = {
@@ -741,7 +759,7 @@ class Stage:
                 total_pm = 1
 
             ### NOTE: This is currently doing lookup rather than computing with the q function.
-            d_xk = func(x_vals, k_atoms, pi_star(x_vals, k_atoms), v_arg)
+            d_xk = func(x_vals, k_atoms, pi_star(x_vals, k_atoms), func_arg)
             
             expected_d += d_xk * total_pm
 
@@ -749,6 +767,87 @@ class Stage:
                 print(f"Computed value at {x_vals},{k_atoms} is nan.")
         
         return expected_d
+
+    def analytic_marginal_value_backup(self, 
+        pi_star,
+        x_grid : Mapping[str, Sequence] = field(default_factory=dict),
+        shock_approx_params : Mapping[str, int] = field(default_factory=dict),
+    ):
+        """
+        Computes the beginning of stage marginal value function v'_x
+        analytically.
+
+        Takes an optimal policy pi_star as input.;
+        
+        Requires:
+         - transition_der_x. Marginal transition with respect to starting states x.
+         - transition_der_a. Marginal transition with respect to actions a.
+         - reward_der. Marginal reward with respect to actions a.
+
+        Assumes dF/dx = 0, and dB/dx = 0.        
+        """
+        if self.reward_der is None:
+            raise Exception("No inverse marginal reward function found.")
+
+        if self.transition_der_a is None or not(
+            isinstance(self.transition_der_a, float) or isinstance(self.transition_der_a, int)
+            ):
+            raise Exception(f"No constant transition derivative found. transition_der_a is {self.transition_der_a}")
+
+        if self.transition_der_x is None or not(
+            isinstance(self.transition_der_x, float) or isinstance(self.transition_der_x, int)
+            ):
+            raise Exception(f"No constant transition derivative found. transition_der_x is {self.transition_der_x}")
+
+        ### What if no marginal value function fiven?
+        new_x_grid = self.x_grid_with_solution_points(x_grid)
+
+        v_x_der_values = xr.DataArray(
+            np.zeros([len(v) for v in new_x_grid.values()]),
+            dims= {**new_x_grid}.keys(),
+            coords={**new_x_grid}
+        )
+
+        def v_xk_der_x_foc(x, k, a, args):
+            if isinstance(self.transition_der_x, float) or isinstance(self.transition_der_x, int):
+                transition_der_x = self.transition_der_x
+            elif callable(self.transition_der_x):
+                transition_der_x = self.transition_der_x(x, k, a)
+
+
+            if isinstance(self.transition_der_a, float) or isinstance(self.transition_der_a, int):
+                transition_der_a = self.transition_der_a
+            elif callable(self.transition_der_a):
+                transition_der_a = self.transition_der_a(x, k, a)
+
+
+            return - self.transition_der_x * self.reward_der(x, k, a) / self.transition_der_a
+
+        for x_point in itertools.product(*new_x_grid.values()):
+
+            x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
+
+            if "v'_x" in self.solution_points \
+                and label_index_in_dataset(x_vals, self.solution_points["v'_x"]):
+
+                value_x_der = np.atleast_1d(self.solution_points["v'_x"].sel(x_vals))
+            else:
+
+                value_x_der = self.xarray_expectations(
+                    v_xk_der_x_foc,
+                    x_vals,
+                    shock_approx_params,
+                    data_array_to_a_func(pi_star, self.actions),
+                    None
+                    )
+                
+            v_x_der_values.sel(**x_vals).variable.data.put(
+                0, 
+                value_x_der
+            )
+
+        return v_x_der_values
+        
 
 
     def value_backup(
@@ -759,8 +858,6 @@ class Stage:
         v_y : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
         optimizer_args = None
         ):
-
-        discretized_shocks, k_grid, k_grid_i = self.discretize_shocks(shock_approx_params)
 
         new_x_grid = self.x_grid_with_solution_points(x_grid)
 
@@ -786,8 +883,7 @@ class Stage:
                 value_x = self.xarray_expectations(
                     self.q,
                     x_vals,
-                    k_grid_i,
-                    discretized_shocks,
+                    shock_approx_params,
                     data_array_to_a_func(pi_star, self.actions),
                     v_y
                     )
@@ -811,7 +907,7 @@ class Stage:
             actions = self.actions,
             value_transform = self.value_transform,
             value_transform_inv = self.value_transform_inv,
-            k_grid = k_grid_i
+            #k_grid = k_grid_i
             )
 
 
@@ -856,6 +952,8 @@ class Stage:
 
         elif policy_finder_method == 'foc':
             pass
+        elif policy_finder_method == 'egm':
+            pass
         else:
             print(f'Did not recognize policy finder method {policy_finder_method}')
 
@@ -865,81 +963,116 @@ class Stage:
 
         pass
 
-"""
-TODO: Is there a way to do this marginal value backup? I don't think the following code is correct.
-
-    def solve_v_x_der(
+    def solve_egm(
         self,
+        y_grid : Mapping[str, Sequence] = field(default_factory=dict),
+        v_y_der :  Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
+        ):
+        """
+        THIS IS NOT COMPLETE YET
+        
+        See comments below.
+        """
+
+        ### NO SHOCKS
+        ### and many other analytic tools in the EGM solver
+
+        ### 1. Get optimal policy via EGM
+        ## TODO: Fix
+        pi_star, q_data = self.optimal_policy(
+                x_grid,
+                k_grid,
+                v_y
+        )
+
+        ## 2. Get value function data, including v_x_der, based on F_der(x)
+        ### TODO: Analyze
+        ### TODO: Code up here   
+        sol = self.value_backup(
+            pi_star,
+            x_grid,
+            v_y
+        )
+
+        # TODO: better design Solution object to make this smoother
+        sol.dataset['q'] = q_data
+
+        return sol
+
+    def marginal_value_backup(
+        self,
+        pi_star,
         x_grid : Mapping[str, Sequence] = field(default_factory=dict),
         shock_approx_params : Mapping[str, int] = field(default_factory=dict),
         v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
         optimizer_args = None ## rootfinder_args?
         ):
+        """
+        TODO
+        """
 
-        ## FIRST: Test for F inverse
+        ### ASSUME: dF/dx = 0
+        ### ASSUME: dB/dx = 0
 
-        if self.reward_der is None and len(self.actions) > 0:
-            raise Exception("Cannot solve for v_x_der because reward_der (derivative of" \
-                 + " reward function with respect to actions) has not been provided for" \
-                     + "this stage and the action space is not null.")
+        if self.transition_der_x is None or not(
+            isinstance(self.transition_der_x, float) or isinstance(self.transition_der_x, int)
+            ):
+            raise Exception(f"No constant transition derivative found. transition_der_x is {self.transition_der_x}")
 
-        ## THEN get optimal policy using foc
-
-        discretized_shocks, k_grid, k_grid_i = self.discretize_shocks(shock_approx_params)
-
+        ### What if no marginal value function fiven?
         new_x_grid = self.x_grid_with_solution_points(x_grid)
 
-        v_x_der_data = xr.DataArray(
+        v_x_der_values = xr.DataArray(
             np.zeros([len(v) for v in new_x_grid.values()]),
             dims= {**new_x_grid}.keys(),
             coords={**new_x_grid}
         )
 
-        pi_star, q_der = self.optimal_policy_foc(x_grid, k_grid, v_y_der, optimizer_args = optimizer_args)
+        def d_q_d_x(x, k, a, args):
+            if isinstance(self.transition_der_x, float) or isinstance(self.transition_der_x, int):
+                transition_der_x = self.transition_der_x
+            elif callable(self.transition_der_x):
+                transition_der_x = self.transition_der_x(x, k, a)
 
-        ## Taking expectations over the generated k-grid, with p_k, of...
-            ## Computing optimal policy pi* and q*_value for each x,k
+            if isinstance(self.discount, float) or isinstance(self.discount, int):
+                discount = self.discount
+            elif callable(self.discount):
+                discount = self.discount(x, k, a)
+
+            return discount * v_y_der(self.transition(x, k, a)) * self.transition_der_x
 
         for x_point in itertools.product(*new_x_grid.values()):
 
             x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
 
-            if 'v_x' in self.solution_points \
-                and label_index_in_dataset(x_vals, self.solution_points['v_x_der']):
+            if "v'_x" in self.solution_points \
+                and label_index_in_dataset(x_vals, self.solution_points["v'_x"]):
 
-                value_x_der = np.atleast_1d(self.solution_points['v_x_der'].sel(x_vals))
+                value_x_der = np.atleast_1d(self.solution_points["v'_x"].sel(x_vals))
             else:
 
-                value_x_der = self.xarray_expectations(x_vals, k_grid_i, discretized_shocks, pi_star, q_der)
+                value_x_der = self.xarray_expectations(
+                    d_q_d_x,
+                    x_vals,
+                    shock_approx_params,
+                    data_array_to_a_func(pi_star, self.actions),
+                    None
+                    )
                 
-            v_x_der_data.sel(**x_vals).variable.data.put(
+            v_x_der_values.sel(**x_vals).variable.data.put(
                 0, 
                 value_x_der
             )
 
-        ## Create solution object with v_x_der and q_der
+        return v_x_der_values
 
 
-        ## Do we recover q and v_x? ?????
 
-        return SolutionDataset(
-            xr.Dataset({
-                #'v_x' : v_x_values,
-                'v_x_der' : v_x_der_data, 
-                'pi*' : pi_star,
-                'q_der' : q_der
-            }), 
-            actions = self.actions,
-            #value_transform = self.value_transform,
-            #value_transform_inv = self.value_transform_inv,
-            k_grid = k_grid_i
-            )
-"""
 
 
 def backwards_induction(stages_data, terminal_v_y):
     """
-    Solve each stage starting from the terminal value function.
+    #Solve each stage starting from the terminal value function.
     """
     
     v_y = terminal_v_y
@@ -979,6 +1112,7 @@ def backwards_induction(stages_data, terminal_v_y):
         print(f"Time to backwards induce v_x: {elapsed_time}")
         
     return sols
+
 
 def simulate_stage(stage: Stage, x_values: Mapping[str, Any], policy):
     """
