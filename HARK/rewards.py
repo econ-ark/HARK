@@ -32,10 +32,11 @@ def CRRAutility(c, gam):
     -1.0
     """
 
+    c = np.asarray(c)
     if gam == 1:
         return np.log(c)
-    else:
-        return c ** (1.0 - gam) / (1.0 - gam)
+
+    return c ** (1.0 - gam) / (1.0 - gam)
 
 
 def CRRAutilityP(c, gam):
@@ -56,6 +57,7 @@ def CRRAutilityP(c, gam):
         Marginal utility
     """
 
+    c = np.asarray(c)
     if gam == 1:
         return 1 / c
 
@@ -80,6 +82,7 @@ def CRRAutilityPP(c, gam):
         Marginal marginal utility
     """
 
+    c = np.asarray(c)
     return -gam * c ** (-gam - 1.0)
 
 
@@ -101,6 +104,7 @@ def CRRAutilityPPP(c, gam):
         Marginal marginal marginal utility
     """
 
+    c = np.asarray(c)
     return (gam + 1.0) * gam * c ** (-gam - 2.0)
 
 
@@ -122,6 +126,7 @@ def CRRAutilityPPPP(c, gam):
         Marginal marginal marginal marginal utility
     """
 
+    c = np.asarray(c)
     return -(gam + 2.0) * (gam + 1.0) * gam * c ** (-gam - 3.0)
 
 
@@ -142,10 +147,12 @@ def CRRAutility_inv(u, gam):
     (unnamed) : float
         Consumption corresponding to given utility value
     """
+
+    u = np.asarray(u)
     if gam == 1:
         return np.exp(u)
-    else:
-        return ((1.0 - gam) * u) ** (1 / (1.0 - gam))
+
+    return ((1.0 - gam) * u) ** (1 / (1.0 - gam))
 
 
 def CRRAutilityP_inv(uP, gam):
@@ -165,6 +172,8 @@ def CRRAutilityP_inv(uP, gam):
     (unnamed) : float
         Consumption corresponding to given marginal utility value.
     """
+
+    uP = np.asarray(uP)
     return uP ** (-1.0 / gam)
 
 
@@ -185,10 +194,12 @@ def CRRAutility_invP(u, gam):
     (unnamed) : float
         Marginal consumption corresponding to given utility value
     """
+
+    u = np.asarray(u)
     if gam == 1:
         return np.exp(u)
-    else:
-        return ((1.0 - gam) * u) ** (gam / (1.0 - gam))
+
+    return ((1.0 - gam) * u) ** (gam / (1.0 - gam))
 
 
 def CRRAutilityP_invP(uP, gam):
@@ -208,6 +219,8 @@ def CRRAutilityP_invP(uP, gam):
     (unnamed) : float
         Consumption corresponding to given marginal utility value
     """
+
+    uP = np.asarray(uP)
     return (-1.0 / gam) * uP ** (-1.0 / gam - 1.0)
 
 
@@ -237,10 +250,12 @@ def StoneGearyCRRAutility(c, CRRA, stone_geary):
     >>> utility(c=c, CRRA=CRRA, stone_geary=stone_geary )
     -1.0
     """
+
+    c = np.asarray(c)
     if CRRA == 1:
         return np.log(stone_geary + c)
-    else:
-        return (stone_geary + c) ** (1.0 - CRRA) / (1.0 - CRRA)
+
+    return (stone_geary + c) ** (1.0 - CRRA) / (1.0 - CRRA)
 
 
 def StoneGearyCRRAutilityP(c, CRRA, stone_geary):
@@ -263,6 +278,8 @@ def StoneGearyCRRAutilityP(c, CRRA, stone_geary):
         marginal utility
 
     """
+
+    c = np.asarray(c)
     return (stone_geary + c) ** (-CRRA)
 
 
@@ -285,6 +302,8 @@ def StoneGearyCRRAutilityPP(c, CRRA, stone_geary):
         marginal utility
 
     """
+
+    c = np.asarray(c)
     return (-CRRA) * (stone_geary + c) ** (-CRRA - 1)
 
 
@@ -305,6 +324,8 @@ def CARAutility(c, alpha):
     (unnamed): float
         Utility
     """
+
+    c = np.asarray(c)
     return 1 - np.exp(-alpha * c) / alpha
 
 
@@ -325,6 +346,8 @@ def CARAutilityP(c, alpha):
     (unnamed): float
         Marginal utility
     """
+
+    c = np.asarray(c)
     return np.exp(-alpha * c)
 
 
@@ -345,6 +368,8 @@ def CARAutilityPP(c, alpha):
     (unnamed): float
         Marginal marginal utility
     """
+
+    c = np.asarray(c)
     return -alpha * np.exp(-alpha * c)
 
 
@@ -365,6 +390,8 @@ def CARAutilityPPP(c, alpha):
     (unnamed): float
         Marginal marginal marginal utility
     """
+
+    c = np.asarray(c)
     return alpha**2.0 * np.exp(-alpha * c)
 
 
@@ -385,6 +412,8 @@ def CARAutility_inv(u, alpha):
     (unnamed): float
         Consumption value corresponding to u
     """
+
+    u = np.asarray(u)
     return -1.0 / alpha * np.log(alpha * (1 - u))
 
 
@@ -405,6 +434,8 @@ def CARAutilityP_inv(u, alpha):
     (unnamed): float
         Consumption value corresponding to uP
     """
+
+    u = np.asarray(u)
     return -1.0 / alpha * np.log(u)
 
 
@@ -425,6 +456,8 @@ def CARAutility_invP(u, alpha):
     (unnamed): float
         Marginal onsumption value corresponding to u
     """
+
+    u = np.asarray(u)
     return 1.0 / (alpha * (1.0 - u))
 
 
