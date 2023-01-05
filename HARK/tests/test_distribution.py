@@ -536,6 +536,25 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
 
         self.assertAlmostEqual(ce2[3], 9.51802, places=HARK_PRECISION)
 
+    def test_getters_setters(self):
+
+        # Create some dummy dsnt
+        dist = DiscreteDistributionLabeled(
+            pmv = np.array([0.5,0.5]),
+            data = np.array([-1.0,1.0]),
+            var_names = ['my_var']
+        )
+
+        # Seed
+        my_seed = 3
+        dist.seed = my_seed
+        self.assertTrue(my_seed == dist.seed)
+
+        # RNG
+        my_rng = np.random.default_rng(5)
+        dist.RNG = my_rng
+        self.assertTrue(my_rng == dist.RNG)
+
     def test_combine_labeled_dist(self):
 
         # Create some dstns

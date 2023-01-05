@@ -323,7 +323,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         """
 
         def vpp_next(shocks, a_nrm, Rfree):
-            return shocks[0] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
+            return shocks['PermShk'] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
                 self.m_nrm_next(shocks, a_nrm, Rfree)
             )
 
@@ -332,7 +332,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             * self.Rfree
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA - 1.0)
-            * calc_expectation(self.IncShkDstn, vpp_next, self.aNrmNow, self.Rfree)
+            * self.IncShkDstn.expected(vpp_next, self.aNrmNow, self.Rfree)
         )
         return EndOfPrdvPP
 

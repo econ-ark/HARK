@@ -129,7 +129,7 @@ class Distribution:
         )
 
 
-### CONTINUOUS DISTRIBUTIONS
+# CONTINUOUS DISTRIBUTIONS
 
 
 class ContinuousFrozenDistribution(rv_continuous_frozen, Distribution):
@@ -517,7 +517,7 @@ class Weibull(ContinuousFrozenDistribution):
         super().__init__(stats.weibull_min, c=shape, scale=scale, seed=seed)
 
 
-### MULTIVARIATE DISTRIBUTIONS
+# MULTIVARIATE DISTRIBUTIONS
 
 
 class MVNormal(multivariate_normal_frozen, Distribution):
@@ -583,7 +583,7 @@ class MVNormal(multivariate_normal_frozen, Distribution):
         )
 
 
-### DISCRETE DISTRIBUTIONS
+# DISCRETE DISTRIBUTIONS
 
 
 class DiscreteFrozenDistribution(rv_discrete_frozen, Distribution):
