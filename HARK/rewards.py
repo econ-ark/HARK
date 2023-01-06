@@ -648,7 +648,36 @@ def const_elast_subs_p(x, zeta, subs, factor, power, arg=0):
     )
 
 
-class UtilityFuncCRRA(MetricObject):
+class UtilityFunction(MetricObject):
+
+    distance_criteria = ["eval_func"]
+
+    def __init__(self, eval_func, der_func=None, inv_func=None):
+        self.eval_func = eval_func
+        self.der_func = der_func
+        self.inv_func = inv_func
+
+    def __call__(self, *args, **kwargs):
+        return self.eval_func(*args, **kwargs)
+
+    def derivative(self, *args, **kwargs):
+        if not hasattr(self, "der_func") or self.der_func is None:
+            raise NotImplementedError("No derivative function available")
+        return self.der_func(*args, **kwargs)
+
+    def inverse(self, *args, **kwargs):
+        if not hasattr(self, "inv_func") or self.inv_func is None:
+            raise NotImplementedError("No inverse function available")
+        return self.inv_func(*args, **kwargs)
+
+    def der(self, *args, **kwargs):
+        return self.derivative(*args, **kwargs)
+
+    def inv(self, *args, **kwargs):
+        return self.inverse(*args, **kwargs)
+
+
+class UtilityFuncCRRA(UtilityFunction):
     """
     A class for representing a CRRA utility function.
 
@@ -754,18 +783,6 @@ class UtilityFuncCRRA(MetricObject):
         else:
             raise ValueError("Inverse of order {} not supported".format(order))
 
-    def der(self, c, order=1):
-        """
-        Short alias for derivative. See `self.derivative`.
-        """
-        return self.derivative(c, order)
-
-    def inv(self, c, order=(0, 0)):
-        """
-        Short alias for inverse. See `self.inverse`.
-        """
-        return self.inverse(c, order)
-
     def derinv(self, u, order=(1, 0)):
         """
         Short alias for inverse with default order = (1,0). See `self.inverse`.
@@ -773,7 +790,7 @@ class UtilityFuncCRRA(MetricObject):
         return self.inverse(u, order)
 
 
-class UtilityFuncCobbDouglas(MetricObject):
+class UtilityFuncCobbDouglas(UtilityFunction):
     """
     A class for representing a Cobb-Douglas utility function.
 
@@ -786,6 +803,8 @@ class UtilityFuncCobbDouglas(MetricObject):
     factor : float
         Factor productivity parameter. (e.g. TFP in production function)
     """
+
+    distance_criteria = ["EOS", "factor"]
 
     def __init__(self, EOS, factor=1.0):
         self.EOS = np.asarray(EOS)
@@ -828,6 +847,8 @@ class UtilityFuncCobbDouglasCRRA(UtilityFuncCobbDouglas):
         Coefficient of relative risk aversion.
     """
 
+    distance_criteria = ["EOS", "factor", "CRRA"]
+
     def __init__(self, EOS, factor, CRRA):
 
         super().__init__(EOS, factor)
@@ -837,7 +858,7 @@ class UtilityFuncCobbDouglasCRRA(UtilityFuncCobbDouglas):
         return CRRAutility(cobb_douglas(x, self.EOS, self.factor), self.CRRA)
 
 
-class UtilityFuncConstElastSubs(MetricObject):
+class UtilityFuncConstElastSubs(UtilityFunction):
     """
     A class for representing a constant elasticity of substitution utility function.
 
@@ -854,6 +875,8 @@ class UtilityFuncConstElastSubs(MetricObject):
     homogeneity : float
         degree of homogeneity of the utility function
     """
+
+    distance_criteria = ["shares", "subs", "factor", "homogeneity"]
 
     def __init__(self, shares, subs, homogeneity=1.0, factor=1.0):
 
