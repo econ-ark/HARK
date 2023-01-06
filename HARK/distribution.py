@@ -128,6 +128,14 @@ class Distribution:
             "approx() not implemented for {} class".format(self.__class__.__name__)
         )
 
+    def discretize(self, N, method="equiprobable", endpoints=True):
+
+        raise NotImplementedError(
+            "discretizer() with method = {} not implemented for {} class".format(
+                method, self.__class__.__name__
+            )
+        )
+
 
 # CONTINUOUS DISTRIBUTIONS
 
