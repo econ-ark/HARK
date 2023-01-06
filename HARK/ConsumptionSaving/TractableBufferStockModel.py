@@ -154,7 +154,7 @@ def find_next_point(
     """
 
     def uPP(x):
-        return utilityPP(x, gam=CRRA)
+        return utilityPP(x, rho=CRRA)
 
     cNow = (
         PermGroFacCmp
@@ -347,13 +347,13 @@ class TractableConsumerType(AgentType):
         """
         # Define utility functions
         def uPP(x):
-            return utilityPP(x, gam=self.CRRA)
+            return utilityPP(x, rho=self.CRRA)
 
         def uPPP(x):
-            return utilityPPP(x, gam=self.CRRA)
+            return utilityPPP(x, rho=self.CRRA)
 
         def uPPPP(x):
-            return utilityPPPP(x, gam=self.CRRA)
+            return utilityPPPP(x, rho=self.CRRA)
 
         # Define some useful constants from model primitives
         self.PermGroFacCmp = self.PermGroFac / (

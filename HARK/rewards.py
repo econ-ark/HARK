@@ -7,16 +7,16 @@ from HARK.core import MetricObject
 # ==============================================================================
 
 
-def CRRAutility(c, gam):
+def CRRAutility(c, rho):
     """
     Evaluates constant relative risk aversion (CRRA) utility of consumption c
-    given risk aversion parameter gam.
+    given risk aversion parameter rho.
 
     Parameters
     ----------
     c : float
         Consumption value
-    gam : float
+    rho : float
         Risk aversion
 
     Returns
@@ -27,28 +27,28 @@ def CRRAutility(c, gam):
     Tests
     -----
     Test a value which should pass:
-    >>> c, gamma = 1.0, 2.0    # Set two values at once with Python syntax
-    >>> utility(c=c, gam=gamma)
+    >>> c, CRRA = 1.0, 2.0    # Set two values at once with Python syntax
+    >>> CRRAutility(c=c, rho=CRRA)
     -1.0
     """
 
     c = np.asarray(c)
-    if gam == 1:
+    if rho == 1:
         return np.log(c)
 
-    return c ** (1.0 - gam) / (1.0 - gam)
+    return c ** (1.0 - rho) / (1.0 - rho)
 
 
-def CRRAutilityP(c, gam):
+def CRRAutilityP(c, rho):
     """
     Evaluates constant relative risk aversion (CRRA) marginal utility of consumption
-    c given risk aversion parameter gam.
+    c given risk aversion parameter rho.
 
     Parameters
     ----------
     c : float
         Consumption value
-    gam : float
+    rho : float
         Risk aversion
 
     Returns
@@ -58,22 +58,22 @@ def CRRAutilityP(c, gam):
     """
 
     c = np.asarray(c)
-    if gam == 1:
+    if rho == 1:
         return 1 / c
 
-    return c**-gam
+    return c**-rho
 
 
-def CRRAutilityPP(c, gam):
+def CRRAutilityPP(c, rho):
     """
     Evaluates constant relative risk aversion (CRRA) marginal marginal utility of
-    consumption c given risk aversion parameter gam.
+    consumption c given risk aversion parameter rho.
 
     Parameters
     ----------
     c : float
         Consumption value
-    gam : float
+    rho : float
         Risk aversion
 
     Returns
@@ -83,19 +83,19 @@ def CRRAutilityPP(c, gam):
     """
 
     c = np.asarray(c)
-    return -gam * c ** (-gam - 1.0)
+    return -rho * c ** (-rho - 1.0)
 
 
-def CRRAutilityPPP(c, gam):
+def CRRAutilityPPP(c, rho):
     """
     Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
-    utility of consumption c given risk aversion parameter gam.
+    utility of consumption c given risk aversion parameter rho.
 
     Parameters
     ----------
     c : float
         Consumption value
-    gam : float
+    rho : float
         Risk aversion
 
     Returns
@@ -105,19 +105,19 @@ def CRRAutilityPPP(c, gam):
     """
 
     c = np.asarray(c)
-    return (gam + 1.0) * gam * c ** (-gam - 2.0)
+    return (rho + 1.0) * rho * c ** (-rho - 2.0)
 
 
-def CRRAutilityPPPP(c, gam):
+def CRRAutilityPPPP(c, rho):
     """
     Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
-    marginal utility of consumption c given risk aversion parameter gam.
+    marginal utility of consumption c given risk aversion parameter rho.
 
     Parameters
     ----------
     c : float
         Consumption value
-    gam : float
+    rho : float
         Risk aversion
 
     Returns
@@ -127,19 +127,19 @@ def CRRAutilityPPPP(c, gam):
     """
 
     c = np.asarray(c)
-    return -(gam + 2.0) * (gam + 1.0) * gam * c ** (-gam - 3.0)
+    return -(rho + 2.0) * (rho + 1.0) * rho * c ** (-rho - 3.0)
 
 
-def CRRAutility_inv(u, gam):
+def CRRAutility_inv(u, rho):
     """
     Evaluates the inverse of the CRRA utility function (with risk aversion para-
-    meter gam) at a given utility level u.
+    meter rho) at a given utility level u.
 
     Parameters
     ----------
     u : float
         Utility value
-    gam : float
+    rho : float
         Risk aversion
 
     Returns
@@ -149,22 +149,22 @@ def CRRAutility_inv(u, gam):
     """
 
     u = np.asarray(u)
-    if gam == 1:
+    if rho == 1:
         return np.exp(u)
 
-    return ((1.0 - gam) * u) ** (1 / (1.0 - gam))
+    return ((1.0 - rho) * u) ** (1 / (1.0 - rho))
 
 
-def CRRAutilityP_inv(uP, gam):
+def CRRAutilityP_inv(uP, rho):
     """
     Evaluates the inverse of the CRRA marginal utility function (with risk aversion
-    parameter gam) at a given marginal utility level uP.
+    parameter rho) at a given marginal utility level uP.
 
     Parameters
     ----------
     uP : float
         Marginal utility value
-    gam : float
+    rho : float
         Risk aversion
 
     Returns
@@ -174,19 +174,19 @@ def CRRAutilityP_inv(uP, gam):
     """
 
     uP = np.asarray(uP)
-    return uP ** (-1.0 / gam)
+    return uP ** (-1.0 / rho)
 
 
-def CRRAutility_invP(u, gam):
+def CRRAutility_invP(u, rho):
     """
     Evaluates the derivative of the inverse of the CRRA utility function (with
-    risk aversion parameter gam) at a given utility level u.
+    risk aversion parameter rho) at a given utility level u.
 
     Parameters
     ----------
     u : float
         Utility value
-    gam : float
+    rho : float
         Risk aversion
 
     Returns
@@ -196,22 +196,22 @@ def CRRAutility_invP(u, gam):
     """
 
     u = np.asarray(u)
-    if gam == 1:
+    if rho == 1:
         return np.exp(u)
 
-    return ((1.0 - gam) * u) ** (gam / (1.0 - gam))
+    return ((1.0 - rho) * u) ** (rho / (1.0 - rho))
 
 
-def CRRAutilityP_invP(uP, gam):
+def CRRAutilityP_invP(uP, rho):
     """
     Evaluates the derivative of the inverse of the CRRA marginal utility function
-    (with risk aversion parameter gam) at a given marginal utility level uP.
+    (with risk aversion parameter rho) at a given marginal utility level uP.
 
     Parameters
     ----------
     uP : float
         Marginal utility value
-    gam : float
+    rho : float
         Risk aversion
 
     Returns
@@ -221,22 +221,22 @@ def CRRAutilityP_invP(uP, gam):
     """
 
     uP = np.asarray(uP)
-    return (-1.0 / gam) * uP ** (-1.0 / gam - 1.0)
+    return (-1.0 / rho) * uP ** (-1.0 / rho - 1.0)
 
 
-def StoneGearyCRRAutility(c, CRRA, stone_geary):
+def StoneGearyCRRAutility(c, rho, shifter):
     """
     Evaluates Stone-Geary version of a constant relative risk aversion (CRRA)
-    utility of consumption c wiht given risk aversion parameter CRRA and
-    Stone-Geary intercept parameter stone_geary
+    utility of consumption c with given risk aversion parameter rho and
+    Stone-Geary intercept parameter shifter
 
     Parameters
     ----------
     c : float
         Consumption value
-    CRRA : float
+    rho : float
         Relative risk aversion
-    stone_geary : float
+    shifter : float
         Intercept in Stone-Geary utility
     Returns
     -------
@@ -247,30 +247,30 @@ def StoneGearyCRRAutility(c, CRRA, stone_geary):
     -----
     Test a value which should pass:
     >>> c, CRRA, stone_geary = 1.0, 2.0, 0.0
-    >>> utility(c=c, CRRA=CRRA, stone_geary=stone_geary )
+    >>> StoneGearyCRRAutility(c=c, rho=CRRA, shifter=stone_geary)
     -1.0
     """
 
     c = np.asarray(c)
-    if CRRA == 1:
-        return np.log(stone_geary + c)
+    if rho == 1:
+        return np.log(shifter + c)
 
-    return (stone_geary + c) ** (1.0 - CRRA) / (1.0 - CRRA)
+    return (shifter + c) ** (1.0 - rho) / (1.0 - rho)
 
 
-def StoneGearyCRRAutilityP(c, CRRA, stone_geary):
+def StoneGearyCRRAutilityP(c, rho, shifter):
     """
     Marginal utility of Stone-Geary version of a constant relative risk aversion (CRRA)
-    utility of consumption c wiht given risk aversion parameter CRRA and
-    Stone-Geary intercept parameter stone_geary
+    utility of consumption c wiht given risk aversion parameter rho and
+    Stone-Geary intercept parameter shifter
 
     Parameters
     ----------
     c : float
         Consumption value
-    CRRA : float
+    rho : float
         Relative risk aversion
-    stone_geary : float
+    shifter : float
         Intercept in Stone-Geary utility
     Returns
     -------
@@ -280,21 +280,21 @@ def StoneGearyCRRAutilityP(c, CRRA, stone_geary):
     """
 
     c = np.asarray(c)
-    return (stone_geary + c) ** (-CRRA)
+    return (shifter + c) ** (-rho)
 
 
-def StoneGearyCRRAutilityPP(c, CRRA, stone_geary):
+def StoneGearyCRRAutilityPP(c, rho, shifter):
     """
     Marginal marginal utility of Stone-Geary version of a CRRA utilty function
-    with risk aversion parameter CRRA and Stone-Geary intercept parameter stone_geary
+    with risk aversion parameter rho and Stone-Geary intercept parameter shifter
 
     Parameters
     ----------
     c : float
         Consumption value
-    CRRA : float
+    rho : float
         Relative risk aversion
-    stone_geary : float
+    shifter : float
         Intercept in Stone-Geary utility
     Returns
     -------
@@ -304,7 +304,7 @@ def StoneGearyCRRAutilityPP(c, CRRA, stone_geary):
     """
 
     c = np.asarray(c)
-    return (-CRRA) * (stone_geary + c) ** (-CRRA - 1)
+    return (-rho) * (shifter + c) ** (-rho - 1)
 
 
 def CARAutility(c, alpha):
@@ -461,16 +461,16 @@ def CARAutility_invP(u, alpha):
     return 1.0 / (alpha * (1.0 - u))
 
 
-def cobb_douglas(x, alpha, factor):
+def cobb_douglas(x, zeta, factor):
     """
     Evaluates Cobb Douglas utility at quantities of goods consumed `x`
-    given elasticity parameters `alpha` and efficiency parameter `factor`.
+    given elasticity parameters `zeta` and efficiency parameter `factor`.
 
     Parameters
     ----------
     x : np.ndarray
         Quantities of goods consumed. First axis must index goods.
-    alpha : np.ndarray
+    zeta : np.ndarray
         Elasticity parameters for each good. Must be consistent with `x`.
     factor : float
         Multiplicative efficiency parameter. (e.g. TFP in production function)
@@ -485,20 +485,20 @@ def cobb_douglas(x, alpha, factor):
     # move goods axis to the end
     goods = np.moveaxis(x, 0, -1)
 
-    return factor * np.sum(goods**alpha, axis=-1)
+    return factor * np.sum(goods**zeta, axis=-1)
 
 
-def cobb_douglas_p(x, alpha, factor, arg=0):
+def cobb_douglas_p(x, zeta, factor, arg=0):
     """
     Evaluates the marginal utility of consumption indexed by `arg` good at
-    quantities of goods consumed `x` given elasticity parameters `alpha`
+    quantities of goods consumed `x` given elasticity parameters `zeta`
     and efficiency parameter `factor`.
 
     Parameters
     ----------
     x : np.ndarray
         Quantities of goods consumed. First axis must index goods.
-    alpha : np.ndarray
+    zeta : np.ndarray
         Elasticity parameters for each good. Must be consistent with `x`.
     factor : float
         Multiplicative efficiency parameter.
@@ -511,20 +511,20 @@ def cobb_douglas_p(x, alpha, factor, arg=0):
         Utility
     """
 
-    return cobb_douglas(x, alpha, factor) * alpha[arg] / x[arg]
+    return cobb_douglas(x, zeta, factor) * zeta[arg] / x[arg]
 
 
-def cobb_douglas_pp(x, alpha, factor, args=(0, 1)):
+def cobb_douglas_pp(x, zeta, factor, args=(0, 1)):
     """
     Evaluates the marginal marginal utility of consumption indexed by `args`
-    at quantities of goods consumed `x` given elasticity parameters `alpha`
+    at quantities of goods consumed `x` given elasticity parameters `zeta`
     and efficiency parameter `factor`.
 
     Parameters
     ----------
     x : np.ndarray
         Quantities of goods consumed. First axis must index goods.
-    alpha : np.ndarray
+    zeta : np.ndarray
         Elasticity parameters for each good. Must be consistent with `x`.
     factor : float
         Multiplicative efficiency parameter.
@@ -540,24 +540,24 @@ def cobb_douglas_pp(x, alpha, factor, args=(0, 1)):
     """
 
     if args[0] == args[1]:
-        coeff = alpha[args[0]] - 1
+        coeff = zeta[args[0]] - 1
     else:
-        coeff = alpha[args[1]]
+        coeff = zeta[args[1]]
 
-    return cobb_douglas_p(x, alpha, factor, args[0]) * coeff / x[args[1]]
+    return cobb_douglas_p(x, zeta, factor, args[0]) * coeff / x[args[1]]
 
 
-def cobb_douglas_pn(x, alpha, factor, args=()):
+def cobb_douglas_pn(x, zeta, factor, args=()):
     """
     Evaluates the nth marginal utility of consumption indexed by `args`
-    at quantities of goods consumed `x` given elasticity parameters `alpha`
+    at quantities of goods consumed `x` given elasticity parameters `zeta`
     and efficiency parameter `factor`.
 
     Parameters
     ----------
     x : np.ndarray
         Quantities of goods consumed. First axis must index goods.
-    alpha : np.ndarray
+    zeta : np.ndarray
         Elasticity parameters for each good. Must be consistent with `x`.
     factor : float
         Multiplicative efficiency parameter.
@@ -579,14 +579,14 @@ def cobb_douglas_pn(x, alpha, factor, args=()):
     if len(args):
         idx = args[-1]  # last index
         counts = dict(zip(*np.unique(args, return_counts=True)))
-        coeff = alpha[idx] - counts[idx] + 1
+        coeff = zeta[idx] - counts[idx] + 1
         new_args = tuple(list(args)[:-1])  # remove last element
-        return cobb_douglas_pn(x, alpha, factor, new_args) * coeff / x[idx]
+        return cobb_douglas_pn(x, zeta, factor, new_args) * coeff / x[idx]
     else:
-        return cobb_douglas(x, alpha, factor)
+        return cobb_douglas(x, zeta, factor)
 
 
-def const_elast_subs(x, alpha, subs, factor, power):
+def const_elast_subs(x, zeta, subs, factor, power):
     """
     Evaluates Constant Elasticity of Substitution utility at quantities of
     goods consumed `x` given parameters `alpha`, 'subs', 'factor', and 'power'.
@@ -595,7 +595,7 @@ def const_elast_subs(x, alpha, subs, factor, power):
     ----------
     x : np.ndarray
         Quantities of goods consumed. First axis must index goods.
-    alpha : Sequence[float]
+    zeta : Sequence[float]
         Share parameter for each good. Must be consistent with `x`.
     subs : float
         Substitution parameter.
@@ -613,10 +613,10 @@ def const_elast_subs(x, alpha, subs, factor, power):
     # move goods axis to the end
     goods = np.moveaxis(x, 0, -1)
 
-    return factor * np.sum(alpha * goods**subs, axis=-1) ** (power / subs)
+    return factor * np.sum(zeta * goods**subs, axis=-1) ** (power / subs)
 
 
-def const_elast_subs_p(x, alpha, subs, factor, power, arg=0):
+def const_elast_subs_p(x, zeta, subs, factor, power, arg=0):
     """
     Evaluates the marginal utility of consumption indexed by `arg` good at quantities
     of goods consumed `x` given parameters `alpha`, 'subs', 'factor', and 'power'.
@@ -625,7 +625,7 @@ def const_elast_subs_p(x, alpha, subs, factor, power, arg=0):
     ----------
     x : np.ndarray
         Quantities of goods consumed. First axis must index goods.
-    alpha : Sequence[float]
+    zeta : Sequence[float]
         Share parameter for each good. Must be consistent with `x`.
     subs : float
         Substitution parameter.
@@ -641,8 +641,8 @@ def const_elast_subs_p(x, alpha, subs, factor, power, arg=0):
     """
 
     return (
-        const_elast_subs(x, alpha, factor * power / subs, subs, power - subs)
-        * alpha[arg]
+        const_elast_subs(x, zeta, factor * power / subs, subs, power - subs)
+        * zeta[arg]
         * subs
         * x[arg] ** (subs - 1)
     )

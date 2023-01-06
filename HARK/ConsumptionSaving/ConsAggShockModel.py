@@ -6,7 +6,6 @@ used for solving "macroeconomic" models with aggregate shocks.
 """
 from copy import deepcopy
 
-import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
 
@@ -99,7 +98,7 @@ class MargValueFunc2D(MetricObject):
         self.CRRA = CRRA
 
     def __call__(self, m, M):
-        return utilityP(self.cFunc(m, M), gam=self.CRRA)
+        return utilityP(self.cFunc(m, M), rho=self.CRRA)
 
 
 ###############################################################################

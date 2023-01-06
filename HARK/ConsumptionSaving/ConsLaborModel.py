@@ -167,7 +167,7 @@ def solve_ConsLaborIntMarg(
     PermShkCount = PermShkPrbs.size
 
     def uPinv(X):
-        return CRRAutilityP_inv(X, gam=CRRA)
+        return CRRAutilityP_inv(X, rho=CRRA)
 
     # Make tiled versions of the grid of a_t values and the components of the shock distribution
     aXtraCount = aXtraGrid.size
@@ -623,9 +623,9 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         vFunc_terminal = ValueFuncCRRA(vNvrsFunc_terminal, self.CRRA)
 
         # Using the envelope condition at the terminal solution to estimate the marginal value function
-        vPterm = LsrTerm**LbrCost * CRRAutilityP(xEffTerm, gam=self.CRRA)
+        vPterm = LsrTerm**LbrCost * CRRAutilityP(xEffTerm, rho=self.CRRA)
         vPnvrsTerm = CRRAutilityP_inv(
-            vPterm, gam=self.CRRA
+            vPterm, rho=self.CRRA
         )  # Evaluate the inverse of the CRRA marginal utility function at a given marginal value, vP
 
         vPnvrsFunc_terminal = BilinearInterp(vPnvrsTerm, bNrmGrid, TranShkGrid)

@@ -720,20 +720,20 @@ class MedShockConsumerType(PersistentShockConsumerType):
         vPPfunc_terminal = MargMargValueFuncCRRA(vPnvrsFunc, self.CRRA)
 
         # Integrate value across shocks to get expected value
-        vGrid = utility(cLvlGrid, gam=self.CRRA) + MedShkGrid_tiled * utility(
-            MedGrid, gam=self.CRRAmed
+        vGrid = utility(cLvlGrid, rho=self.CRRA) + MedShkGrid_tiled * utility(
+            MedGrid, rho=self.CRRAmed
         )
         vGrid[:, 0] = utility(
-            cLvlGrid[:, 0], gam=self.CRRA
+            cLvlGrid[:, 0], rho=self.CRRA
         )  # correct for issue when MedShk=0
         vGrid[np.isinf(vGrid)] = 0.0  # correct for issue at bottom edges
         v_expected = np.sum(vGrid * PrbGrid, axis=1)
 
         # Construct the value function for the terminal period
-        vNvrs = utility_inv(v_expected, gam=self.CRRA)
+        vNvrs = utility_inv(v_expected, rho=self.CRRA)
         vNvrs[0] = 0.0
         vNvrsP = vP_expected * utility_invP(
-            v_expected, gam=self.CRRA
+            v_expected, rho=self.CRRA
         )  # NEED TO FIGURE OUT MPC MAX IN THIS MODEL
         vNvrsP[0] = 0.0
         tempFunc = CubicInterp(mLvlGrid, vNvrs, vNvrsP)
