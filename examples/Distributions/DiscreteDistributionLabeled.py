@@ -35,8 +35,8 @@ from HARK.distribution import (
 #
 
 # %%
-PermShkDstn = MeanOneLogNormal().approx(200)
-TranShkDstn = MeanOneLogNormal().approx(200)
+PermShkDstn = MeanOneLogNormal().discretize(200)
+TranShkDstn = MeanOneLogNormal().discretize(200)
 IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
 # %% [markdown]
