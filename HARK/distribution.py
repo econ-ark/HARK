@@ -1,6 +1,6 @@
 import math
 from itertools import product
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 from warnings import warn
 
 import numpy as np
@@ -858,11 +858,22 @@ class DiscreteDistribution(Distribution):
 
         return draws
 
-    def expected(self, func=None, *args):
+    def expected(
+        self, func: Optional[Callable] = None, *args: np.ndarray
+    ) -> np.ndarray:
         """
         Expected value of a function, given an array of configurations of its
         inputs along with a DiscreteDistribution object that specifies the
         probability of each configuration.
+
+        If no function is provided, it's much faster to go straight to dot
+        product instead of calling the dummy function.
+
+        If a function is provided, we need to add one more dimension,
+        the atom dimension, to any inputs that are n-dim arrays.
+        This allows numpy to easily broadcast the function's output.
+        For more information on broadcasting, see:
+        https://numpy.org/doc/stable/user/basics.broadcasting.html#general-broadcasting-rules
 
         Parameters
         ----------
@@ -875,7 +886,7 @@ class DiscreteDistribution(Distribution):
             method in that it uses numpy's vectorization and broadcasting
             rules to avoid costly iteration.
             Note: If you need to use a function that acts on single outcomes
-            of the distribution, consier `distribution.calc_expectation`.
+            of the distribution, consider `distribution.calc_expectation`.
         *args :
             Other inputs for func, representing the non-stochastic arguments.
             The the expectation is computed at f(dstn, *args).
@@ -888,17 +899,10 @@ class DiscreteDistribution(Distribution):
         """
 
         if func is None:
-            # if no function is provided, it's much faster to go straight
-            # to dot product instead of calling the dummy function.
             f_query = self.atoms
         else:
-            # if a function is provided, we need to add one more dimension,
-            # the atom dimension, to any inputs that are n-dim arrays.
-            # This allows numpy to easily broadcast the function's output.
-            # For more information on broadcasting, see:
-            # https://numpy.org/doc/stable/user/basics.broadcasting.html#general-broadcasting-rules
             args = [
-                arg[..., np.newaxis] if isinstance(arg, np.ndarray) else arg
+                np.expand_dims(arg, -1) if isinstance(arg, np.ndarray) else arg
                 for arg in args
             ]
 
@@ -932,7 +936,8 @@ class DiscreteDistribution(Distribution):
         # the atom dimension, to any inputs that are n-dim arrays.
         # This allows numpy to easily broadcast the function's output.
         args = [
-            arg[..., np.newaxis] if isinstance(arg, np.ndarray) else arg for arg in args
+            np.expand_dims(arg, -1) if isinstance(arg, np.ndarray) else arg
+            for arg in args
         ]
         f_query = func(self.atoms, *args)
 
@@ -1149,8 +1154,8 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.pmv)
 
             return ldd
-        else:
-            return super().dist_of_func(func_wrapper, *args)
+
+        return super().dist_of_func(func_wrapper, *args)
 
     def expected(self, func=None, *args, **kwargs):
         """
