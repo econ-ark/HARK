@@ -112,29 +112,49 @@ class Distribution:
         Returns:
         ------------
         draws : np.array or [np.array]
-            T-length list of arrays of random variable draws each of size N, or
+            T-length list of arrays of random variable draws each of size n, or
             a single array of size N (if sigma is a scalar).
         """
 
         mean = self.mean() if callable(self.mean) else self.mean
-        n = (N, mean.size) if mean.size != 1 else N
-        return self.rvs(size=n, random_state=self._rng)
+        size = (N, mean.size) if mean.size != 1 else N
+        return self.rvs(size=size, random_state=self._rng)
 
-    def approx(self, N):
+    def discretize(self, N, method="equiprobable", endpoints=False, **kwds):
         """
-        Returns a discrete approximation of this distribution.
+        Discretize the distribution into N points using the specified method.
+
+        Parameters
+        ----------
+        N : int
+            Number of points in the discretization.
+        method : str, optional
+            Method for discretization, by default "equiprobable"
+        endpoints : bool, optional
+            Whether to include endpoints in the discretization, by default False
+
+        Returns
+        -------
+        DiscreteDistribution
+            Discretized distribution.
+
+        Raises
+        ------
+        NotImplementedError
+            If method is not implemented for this distribution.
         """
-        raise NotImplementedError(
-            "approx() not implemented for {} class".format(self.__class__.__name__)
-        )
 
-    def discretize(self, N, method="equiprobable", endpoints=True):
+        approx_method = "_approx_" + method
 
-        raise NotImplementedError(
-            "discretizer() with method = {} not implemented for {} class".format(
-                method, self.__class__.__name__
+        if not hasattr(self, approx_method):
+            raise NotImplementedError(
+                "discretize() with method = {} not implemented for {} class".format(
+                    method, self.__class__.__name__
+                )
             )
-        )
+
+        approx = getattr(self, approx_method)
+        return approx(N, endpoints, **kwds)
 
 
 # CONTINUOUS DISTRIBUTIONS
@@ -188,24 +208,52 @@ class Normal(ContinuousFrozenDistribution):
 
         super().__init__(stats.norm, loc=mu, scale=sigma, seed=seed)
 
-    def approx(self, N):
+    def discretize(self, N, method="hermite", endpoints=False):
         """
-        Returns a discrete approximation of this distribution.
-
-
+        For normal distributions, the Gauss-Hermite quadrature rule is
+        used as the default method for discretization.
         """
+
+        return super().discretize(N, method, endpoints)
+
+    def _approx_hermite(self, N, endpoints=False):
+        """
+        Returns a discrete approximation of this distribution
+        using the Gauss-Hermite quadrature rule.
+
+        TODO: add endpoints option
+
+        Parameters
+        ----------
+        N : int
+            Number of discrete points to approximate the distribution.
+
+        Returns
+        -------
+        DiscreteDistribution
+            Discrete approximation of this distribution.
+        """
+
         x, w = np.polynomial.hermite.hermgauss(N)
         # normalize w
         pmv = w * np.pi**-0.5
         # correct x
         atoms = math.sqrt(2.0) * self.sigma * x + self.mu
+
+        limit = {"dist": self, "method": "hermite", "N": N, "endpoints": endpoints}
+
         return DiscreteDistribution(
-            pmv, atoms, seed=self._rng.integers(0, 2**31 - 1, dtype="int32")
+            pmv,
+            atoms,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
         )
 
-    def approx_equiprobable(self, N):
+    def _approx_equiprobable(self, N, endpoints=False):
         """
         Returns a discrete equiprobable approximation of this distribution.
+
+        TODO: add endpoints option
 
         Parameters
         ----------
@@ -226,8 +274,13 @@ class Normal(ContinuousFrozenDistribution):
         pmv = np.diff(CDF)
         atoms = self.mu - np.diff(pdf) / pmv * self.sigma
 
+        limit = {"dist": self, "method": "equiprobable", "N": N, "endpoints": endpoints}
+
         return DiscreteDistribution(
-            pmv, atoms, seed=self._rng.integers(0, 2**31 - 1, dtype="int32")
+            pmv,
+            atoms,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
         )
 
 
@@ -268,8 +321,8 @@ class Lognormal(ContinuousFrozenDistribution):
 
         Returns
         -------
-        _type_
-            _description_
+        Lognormal or DiscreteDistribution
+            Lognormal distribution or DiscreteDistribution with a single atom.
         """
 
         if sigma == 0:
@@ -298,12 +351,16 @@ class Lognormal(ContinuousFrozenDistribution):
             stats.lognorm, s=self.sigma, scale=np.exp(self.mu), loc=0, seed=seed
         )
 
-    def approx(self, N, tail_N=0, tail_bound=None, tail_order=np.e):
+    def _approx_equiprobable(
+        self, N, endpoints=False, tail_N=0, tail_bound=None, tail_order=np.e
+    ):
         """
         Construct a discrete approximation to a lognormal distribution with underlying
         normal distribution N(mu,sigma).  Makes an equiprobable distribution by
         default, but user can optionally request augmented tails with exponentially
         sized point masses.  This can improve solution accuracy in some models.
+
+        TODO: add endpoints option
 
         Parameters
         ----------
@@ -325,6 +382,7 @@ class Lognormal(ContinuousFrozenDistribution):
             Probability associated with each point in array of discrete
             points for discrete probability mass function.
         """
+
         tail_bound = tail_bound if tail_bound is not None else [0.02, 0.98]
         # Find the CDF boundaries of each segment
         if self.sigma > 0.0:
@@ -397,8 +455,22 @@ class Lognormal(ContinuousFrozenDistribution):
         else:
             pmv = np.ones(N) / N
             atoms = np.exp(self.mu) * np.ones(N)
+
+        limit = {
+            "dist": self,
+            "method": "equiprobable",
+            "N": N,
+            "endpoints": endpoints,
+            "tail_N": tail_N,
+            "tail_bound": tail_bound,
+            "tail_order": tail_order,
+        }
+
         return DiscreteDistribution(
-            pmv, atoms, seed=self._rng.integers(0, 2**31 - 1, dtype="int32")
+            pmv,
+            atoms,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
         )
 
     @classmethod
@@ -436,6 +508,10 @@ class Lognormal(ContinuousFrozenDistribution):
 
 
 class MeanOneLogNormal(Lognormal):
+    """
+    A Lognormal distribution with mean 1.
+    """
+
     def __init__(self, sigma=1.0, seed=0):
         mu = -0.5 * sigma**2
         super().__init__(mu=mu, sigma=sigma, seed=seed)
@@ -467,7 +543,7 @@ class Uniform(ContinuousFrozenDistribution):
             stats.uniform, loc=self.bot, scale=self.top - self.bot, seed=seed
         )
 
-    def approx(self, N, endpoint=False):
+    def _approx_equiprobable(self, N, endpoints=False):
         """
         Makes a discrete approximation to this uniform distribution.
 
@@ -475,7 +551,7 @@ class Uniform(ContinuousFrozenDistribution):
         ----------
         N : int
             The number of points in the discrete approximation.
-        endpoint : bool
+        endpoints : bool
             Whether to include the endpoints in the approximation.
 
         Returns
@@ -492,12 +568,17 @@ class Uniform(ContinuousFrozenDistribution):
             N / 2.0
         )
 
-        if endpoint:  # insert endpoints with infinitesimally small mass
+        if endpoints:  # insert endpoints with infinitesimally small mass
             atoms = np.concatenate(([self.bot], atoms, [self.top]))
             pmv = np.concatenate(([0.0], pmv, [0.0]))
 
+        limit = {"dist": self, "method": "equiprobable", "N": N, "endpoints": endpoints}
+
         return DiscreteDistribution(
-            pmv, atoms, seed=self._rng.integers(0, 2**31 - 1, dtype="int32")
+            pmv,
+            atoms,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
         )
 
 
@@ -550,7 +631,29 @@ class MVNormal(multivariate_normal_frozen, Distribution):
         multivariate_normal_frozen.__init__(self, mean=self.mu, cov=self.Sigma)
         Distribution.__init__(self, seed=seed)
 
-    def approx(self, N, equiprobable=False):
+    def discretize(self, N, method="hermite", endpoints=False):
+        """
+        For multivariate normal distributions, the Gauss-Hermite
+        quadrature rule is used as the default method for discretization.
+        """
+
+        return super().discretize(N, method, endpoints)
+
+    def _approx_equiprobable(self, N, endpoints=False):
+        """
+        Makes an equiprobable discrete approximation to this distribution.
+        """
+
+        return self._approx(N, endpoints=endpoints, equiprobable=True)
+
+    def _approx_hermite(self, N, endpoints=False):
+        """
+        Makes a Gauss-Hermite discrete approximation to this distribution.
+        """
+
+        return self._approx(N, endpoints=endpoints, equiprobable=False)
+
+    def _approx(self, N, endpoints=False, equiprobable=False):
         """
         Returns a discrete approximation of this distribution.
 
@@ -574,9 +677,9 @@ class MVNormal(multivariate_normal_frozen, Distribution):
 
         # Now find a discretization for a univariate standard normal.
         if equiprobable:
-            z_approx = Normal().approx_equiprobable(N)
+            z_approx = Normal().discretize(N, method="equiprobable")
         else:
-            z_approx = Normal().approx(N)
+            z_approx = Normal().discretize(N, method="hermite")
 
         # Now create the multivariate grid and pmv
         Z = np.array(list(product(*[z_approx.atoms.flatten()] * self.M)))
@@ -585,9 +688,19 @@ class MVNormal(multivariate_normal_frozen, Distribution):
         # Apply mean and standard deviation to the Z grid
         atoms = self.mu[None, ...] + np.matmul(Z, A.T)
 
+        limit = {
+            "dist": self,
+            "method": "equiprobable" if equiprobable else "hermite",
+            "N": N,
+            "endpoints": endpoints,
+        }
+
         # Construct and return discrete distribution
         return DiscreteDistribution(
-            pmv, atoms.T, seed=self._rng.integers(0, 2**31 - 1, dtype="int32")
+            pmv,
+            atoms.T,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
         )
 
 
@@ -595,7 +708,21 @@ class MVNormal(multivariate_normal_frozen, Distribution):
 
 
 class DiscreteFrozenDistribution(rv_discrete_frozen, Distribution):
+    """
+    Parametrized discrete distribution from scipy.stats with seed management.
+    """
+
     def __init__(self, dist, *args, seed=0, **kwds):
+        """
+        Parametrized discrete distribution from scipy.stats with seed management.
+
+        Parameters
+        ----------
+        dist : rv_discrete
+            Discrete distribution from scipy.stats.
+        seed : int, optional
+            Seed for random number generator, by default 0
+        """
 
         rv_discrete_frozen.__init__(self, dist, *args, **kwds)
         Distribution.__init__(self, seed=seed)
@@ -637,12 +764,13 @@ class DiscreteDistribution(Distribution):
         Seed for random number generator.
     """
 
-    def __init__(self, pmv, atoms, seed=0):
+    def __init__(self, pmv, atoms, seed=0, limit=None):
 
         super().__init__(seed=seed)
 
         self.pmv = np.asarray(pmv)
         self.atoms = np.atleast_2d(atoms)
+        self.limit = limit
 
         # Check that pmv and atoms have compatible dimensions.
         if not self.pmv.size == self.atoms.shape[-1]:
@@ -812,10 +940,12 @@ class DiscreteDistribution(Distribution):
 
         return f_dstn
 
-    def approx(self, N):
+    def discretize(self, N, *args, **kwargs):
         """
         `DiscreteDistribution` is already an approximation, so this method
         returns a copy of the distribution.
+
+        TODO: print warning message?
         """
 
         return self
@@ -853,13 +983,14 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         pmv,
         atoms,
         seed=0,
+        limit=None,
         name="DiscreteDistributionLabeled",
         attrs=None,
         var_names=None,
         var_attrs=None,
     ):
 
-        super().__init__(pmv, atoms, seed=seed)
+        super().__init__(pmv, atoms, seed=seed, limit=limit)
 
         # vector-value distributions
 
@@ -870,6 +1001,11 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
 
         if attrs is None:
             attrs = {}
+
+        if limit is None:
+            limit = {}
+
+        attrs.update(limit)
 
         attrs["name"] = name
 
@@ -919,6 +1055,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             dist.pmv,
             dist.atoms,
             seed=dist.seed,
+            limit=dist.limit,
             name=name,
             attrs=attrs,
             var_names=var_names,
@@ -970,6 +1107,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         """
         The distribution's attributes.
         """
+
         return self.dataset.attrs
 
     def dist_of_func(self, func=lambda x: x, *args, **kwargs):
@@ -1149,7 +1287,7 @@ class IndexDistribution(Distribution):
 
         return self.dstns[y]
 
-    def approx(self, N, **kwds):
+    def discretize(self, N, **kwds):
         """
         Approximation of the distribution.
 
@@ -1180,11 +1318,11 @@ class IndexDistribution(Distribution):
 
         if type(item0) is float:
             # degenerate case. Treat the parameterization as constant.
-            return self.dstns[0].approx(N, **kwds)
+            return self.dstns[0].discretize(N, **kwds)
 
         if type(item0) is list:
             return TimeVaryingDiscreteDistribution(
-                [self[i].approx(N, **kwds) for i, _ in enumerate(item0)]
+                [self[i].discretize(N, **kwds) for i, _ in enumerate(item0)]
             )
 
     def draw(self, condition):
@@ -1301,7 +1439,7 @@ class TimeVaryingDiscreteDistribution(Distribution):
 
 
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
-    d = Normal(mu, sigma).approx(N)
+    d = Normal(mu, sigma).discretize(N)
     return DiscreteDistribution(d.pmv, np.exp(d.atoms), seed=seed)
 
 
