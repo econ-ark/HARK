@@ -200,11 +200,11 @@ class test_make_EndOfPrdvFuncCond(unittest.TestCase):
 
         TranShkDstn_e = MeanOneLogNormal(
             Markov_vFuncBool_example.TranShkStd[0], 123
-        ).approx(Markov_vFuncBool_example.TranShkCount)
+        ).discretize(Markov_vFuncBool_example.TranShkCount)
         TranShkDstn_u = DiscreteDistribution(np.ones(1), np.ones(1) * 0.2)
         PermShkDstn = MeanOneLogNormal(
             Markov_vFuncBool_example.PermShkStd[0], 123
-        ).approx(Markov_vFuncBool_example.PermShkCount)
+        ).discretize(Markov_vFuncBool_example.PermShkCount)
 
         # employed Income shock distribution
         employed_IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn_e)

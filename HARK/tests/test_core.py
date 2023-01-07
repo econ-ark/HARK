@@ -117,7 +117,8 @@ class test_distribute_params(unittest.TestCase):
         self.assertTrue(
             all(
                 [
-                    self.agents[i].parameters["DiscFac"] == dist.approx(3).atoms[0, i]
+                    self.agents[i].parameters["DiscFac"]
+                    == dist.discretize(3).atoms[0, i]
                     for i in range(3)
                 ]
             )

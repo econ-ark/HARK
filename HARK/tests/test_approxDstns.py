@@ -17,7 +17,7 @@ class testsForDCEGM(unittest.TestCase):
     def test_mu_normal(self):
         for mu_normal in self.mu_normals:
             for std_normal in self.std_normals:
-                d = distribution.Normal(mu_normal).approx(40)
+                d = distribution.Normal(mu_normal).discretize(40)
                 self.assertTrue(sum(d.pmv * d.atoms[0, :]) - mu_normal < 1e-12)
 
     def test_mu_lognormal_from_normal(self):
@@ -46,13 +46,13 @@ class test_MVNormalApprox(unittest.TestCase):
         self.mu2 = np.array([5, -10])
         self.Sigma2 = np.array([[2, -0.6], [-0.6, 1]])
         self.dist2D = distribution.MVNormal(self.mu2, self.Sigma2)
-        self.dist2D_approx = self.dist2D.approx(N)
+        self.dist2D_approx = self.dist2D.discretize(N)
 
         # 3-D Distribution
         self.mu3 = np.array([5, -10, 0])
         self.Sigma3 = np.array([[2, -0.6, 0.1], [-0.6, 1, 0.2], [0.1, 0.2, 3]])
         self.dist3D = distribution.MVNormal(self.mu3, self.Sigma3)
-        self.dist3D_approx = self.dist3D.approx(N)
+        self.dist3D_approx = self.dist3D.discretize(N)
 
     def test_means(self):
 
