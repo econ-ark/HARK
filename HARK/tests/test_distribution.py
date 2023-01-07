@@ -41,14 +41,14 @@ class DiscreteDistributionTests(unittest.TestCase):
         # Function 1 -> 1
         # Approximate the lognormal expectation
         sig = 0.05
-        norm = Normal(mu=-(sig**2) / 2, sigma=sig).discretize(131)
+        norm = Normal(mu=-(sig**2) / 2, sigma=sig).discretize(131, method="hermite")
         my_logn = distr_of_function(norm, func=lambda x: np.exp(x))
         exp = calc_expectation(my_logn)
         self.assertAlmostEqual(exp, 1.0)
 
         # Function 1 -> n
         # Mean and variance of the normal
-        norm = Normal(mu=0.0, sigma=1.0).discretize(5)
+        norm = Normal(mu=0.0, sigma=1.0).discretize(5, method="hermite")
         moments = distr_of_function(norm, lambda x: np.array([x, x**2]))
         exp = calc_expectation(moments).flatten()
         self.assertAlmostEqual(exp[0], 0.0)
@@ -58,8 +58,8 @@ class DiscreteDistributionTests(unittest.TestCase):
         # Expectation of the sum of two independent normals
         mu_a, mu_b = 1.0, 2.0
         si_a, si_b = 3.0, 4.0
-        norm_a = Normal(mu=mu_a, sigma=si_a).discretize(5)
-        norm_b = Normal(mu=mu_b, sigma=si_b).discretize(5)
+        norm_a = Normal(mu=mu_a, sigma=si_a).discretize(5, method="hermite")
+        norm_b = Normal(mu=mu_b, sigma=si_b).discretize(5, method="hermite")
         binorm = combine_indep_dstns(norm_a, norm_b)
         mysum = distr_of_function(binorm, lambda x: np.sum(x))
         exp = calc_expectation(mysum)
@@ -78,9 +78,9 @@ class DiscreteDistributionTests(unittest.TestCase):
         self.assertAlmostEqual(exp[3], si_b**2)
 
     def test_calc_expectation(self):
-        dd_0_1_20 = Normal().discretize(20)
-        dd_1_1_40 = Normal(mu=1).discretize(40)
-        dd_10_10_100 = Normal(mu=10, sigma=10).discretize(100)
+        dd_0_1_20 = Normal().discretize(20, method="hermite")
+        dd_1_1_40 = Normal(mu=1).discretize(40, method="hermite")
+        dd_10_10_100 = Normal(mu=10, sigma=10).discretize(100, method="hermite")
 
         ce1 = calc_expectation(dd_0_1_20)
         ce2 = calc_expectation(dd_1_1_40)
@@ -108,8 +108,8 @@ class DiscreteDistributionTests(unittest.TestCase):
 
         self.assertAlmostEqual(ce7.flat[3], 3.0)
 
-        PermShkDstn = MeanOneLogNormal().discretize(200)
-        TranShkDstn = MeanOneLogNormal().discretize(200)
+        PermShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
+        TranShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
         IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
         ce8 = calc_expectation(IncShkDstn, lambda atoms: atoms[0] + atoms[1])
@@ -126,9 +126,9 @@ class DiscreteDistributionTests(unittest.TestCase):
         self.assertAlmostEqual(ce9[3], 9.51802, places=HARK_PRECISION)
 
     def test_self_expected_value(self):
-        dd_0_1_20 = Normal().discretize(20)
-        dd_1_1_40 = Normal(mu=1).discretize(40)
-        dd_10_10_100 = Normal(mu=10, sigma=10).discretize(100)
+        dd_0_1_20 = Normal().discretize(20, method="hermite")
+        dd_1_1_40 = Normal(mu=1).discretize(40, method="hermite")
+        dd_10_10_100 = Normal(mu=10, sigma=10).discretize(100, method="hermite")
 
         ce1 = expected(dist=dd_0_1_20)
         ce2 = expected(dist=dd_1_1_40)
@@ -158,8 +158,8 @@ class DiscreteDistributionTests(unittest.TestCase):
 
         self.assertAlmostEqual(ce7.flat[3], 3.0)
 
-        PermShkDstn = MeanOneLogNormal().discretize(200)
-        TranShkDstn = MeanOneLogNormal().discretize(200)
+        PermShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
+        TranShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
         IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
         ce8 = expected(lambda atoms: atoms[0] + atoms[1], dist=IncShkDstn)
@@ -182,14 +182,14 @@ class DiscreteDistributionTests(unittest.TestCase):
         # Function 1 -> 1
         # Approximate the lognormal expectation
         sig = 0.05
-        norm = Normal(mu=-(sig**2) / 2, sigma=sig).discretize(131)
+        norm = Normal(mu=-(sig**2) / 2, sigma=sig).discretize(131, method="hermite")
         my_logn = norm.dist_of_func(lambda x: np.exp(x))
         exp = my_logn.expected()
         self.assertAlmostEqual(exp, 1.0)
 
         # Function 1 -> n
         # Mean and variance of the normal
-        norm = Normal(mu=0.0, sigma=1.0).discretize(5)
+        norm = Normal(mu=0.0, sigma=1.0).discretize(5, method="hermite")
         moments = norm.dist_of_func(lambda x: np.array([x, x**2]))
         exp = moments.expected().flatten()
         self.assertAlmostEqual(exp[0], 0.0)
@@ -199,8 +199,8 @@ class DiscreteDistributionTests(unittest.TestCase):
         # Expectation of the sum of two independent normals
         mu_a, mu_b = 1.0, 2.0
         si_a, si_b = 3.0, 4.0
-        norm_a = Normal(mu=mu_a, sigma=si_a).discretize(5)
-        norm_b = Normal(mu=mu_b, sigma=si_b).discretize(5)
+        norm_a = Normal(mu=mu_a, sigma=si_a).discretize(5, method="hermite")
+        norm_b = Normal(mu=mu_b, sigma=si_b).discretize(5, method="hermite")
         binorm = combine_indep_dstns(norm_a, norm_b)
         mysum = binorm.dist_of_func(func=lambda x: np.sum(x, axis=0))
         exp = mysum.expected()
@@ -333,13 +333,17 @@ class DistributionClassTests(unittest.TestCase):
 
         Uniform().draw(1)[0]
 
-        self.assertEqual(calc_expectation(uni.discretize(10)), 0.5)
+        self.assertEqual(
+            calc_expectation(uni.discretize(10, method="equiprobable")), 0.5
+        )
 
-        uni_discrete = uni.discretize(10, endpoints=True)
+        uni_discrete = uni.discretize(10, method="equiprobable", endpoints=True)
 
         self.assertEqual(uni_discrete.atoms[0][0], 0.0)
         self.assertEqual(uni_discrete.atoms[0][-1], 1.0)
-        self.assertEqual(calc_expectation(uni.discretize(10)), 0.5)
+        self.assertEqual(
+            calc_expectation(uni.discretize(10, method="equiprobable")), 0.5
+        )
 
     def test_Bernoulli(self):
         Bernoulli().draw(1)[0]
@@ -452,7 +456,7 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         # Approximate the lognormal expectation
         sig = 0.05
         mu = -(sig**2) / 2
-        norm = Normal(mu=mu, sigma=sig).discretize(131)
+        norm = Normal(mu=mu, sigma=sig).discretize(131, method="hermite")
         my_logn = DiscreteDistributionLabeled.from_unlabeled(
             norm.dist_of_func(func=lambda x: np.exp(x)),
             name="Lognormal Approximation",  # name of the distribution
@@ -464,7 +468,7 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
 
         # Function 1 -> n
         # Mean and variance of the normal
-        norm = Normal(mu=0.0, sigma=1.0).discretize(5)
+        norm = Normal(mu=0.0, sigma=1.0).discretize(5, method="hermite")
         moments = DiscreteDistributionLabeled.from_unlabeled(
             norm.dist_of_func(lambda x: np.vstack([x, x**2])),
             name="Moments of Normal Distribution",
@@ -479,8 +483,8 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         # Expectation of the sum of two independent normals
         mu_a, mu_b = 1.0, 2.0
         si_a, si_b = 3.0, 4.0
-        norm_a = Normal(mu=mu_a, sigma=si_a).discretize(5)
-        norm_b = Normal(mu=mu_b, sigma=si_b).discretize(5)
+        norm_a = Normal(mu=mu_a, sigma=si_a).discretize(5, method="hermite")
+        norm_b = Normal(mu=mu_b, sigma=si_b).discretize(5, method="hermite")
         binorm = combine_indep_dstns(norm_a, norm_b)
         mysum = DiscreteDistributionLabeled.from_unlabeled(
             binorm.dist_of_func(lambda x: np.sum(x, axis=0)),  # vectorized sum
@@ -506,8 +510,8 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
 
     def test_self_expected_value(self):
 
-        PermShkDstn = MeanOneLogNormal().discretize(200)
-        TranShkDstn = MeanOneLogNormal().discretize(200)
+        PermShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
+        TranShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
         IncShkDstn = combine_indep_dstns(
             PermShkDstn,
             TranShkDstn,

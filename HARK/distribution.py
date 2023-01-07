@@ -799,13 +799,13 @@ class DiscreteDistribution(Distribution):
         """
         return self.atoms.shape[:-1]
 
-    def draw_events(self, n: int) -> np.ndarray:
+    def draw_events(self, N: int) -> np.ndarray:
         """
         Draws N 'events' from the distribution PMF.
         These events are indices into atoms.
         """
         # Generate a cumulative distribution
-        base_draws = self._rng.uniform(size=n)
+        base_draws = self._rng.uniform(size=N)
         cum_dist = np.cumsum(self.pmv)
 
         # Convert the basic uniform draws into discrete draws
@@ -1464,7 +1464,7 @@ class TimeVaryingDiscreteDistribution(Distribution):
 
 
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
-    d = Normal(mu, sigma).discretize(N)
+    d = Normal(mu, sigma).discretize(N, method="hermite")
     return DiscreteDistribution(d.pmv, np.exp(d.atoms), seed=seed)
 
 

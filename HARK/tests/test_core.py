@@ -1,11 +1,12 @@
 """
 This file implements unit tests for core HARK functionality.
 """
-from HARK.core import Model, MetricObject, distance_metric, AgentType, distribute_params
-from HARK.distribution import Uniform
+import unittest
 
 import numpy as np
-import unittest
+
+from HARK.core import AgentType, MetricObject, Model, distance_metric, distribute_params
+from HARK.distribution import Uniform
 
 
 class test_distance_metric(unittest.TestCase):
@@ -118,7 +119,7 @@ class test_distribute_params(unittest.TestCase):
             all(
                 [
                     self.agents[i].parameters["DiscFac"]
-                    == dist.discretize(3).atoms[0, i]
+                    == dist.discretize(3, method="equiprobable").atoms[0, i]
                     for i in range(3)
                 ]
             )

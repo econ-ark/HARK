@@ -3047,13 +3047,21 @@ class IndShockConsumerType(PerfForesightConsumerType):
             IncShkDstn = self.IncShkDstn[0]
         else:
             TranShkDstn = MeanOneLogNormal(sigma=self.TranShkStd[0]).discretize(
-                N=200, tail_N=50, tail_order=1.3, tail_bound=[0.05, 0.95]
+                N=200,
+                method="equiprobable",
+                tail_N=50,
+                tail_order=1.3,
+                tail_bound=[0.05, 0.95],
             )
             TranShkDstn = add_discrete_outcome_constant_mean(
                 TranShkDstn, self.UnempPrb, self.IncUnemp
             )
             PermShkDstn = MeanOneLogNormal(sigma=self.PermShkStd[0]).discretize(
-                N=200, tail_N=50, tail_order=1.3, tail_bound=[0.05, 0.95]
+                N=200,
+                method="equiprobable",
+                tail_N=50,
+                tail_order=1.3,
+                tail_bound=[0.05, 0.95],
             )
             IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
@@ -3525,7 +3533,7 @@ class LognormPermIncShk(DiscreteDistribution):
     def __init__(self, sigma, n_approx, neutral_measure=False, seed=0):
         # Construct an auxiliary discretized normal
         logn_approx = MeanOneLogNormal(sigma).discretize(
-            n_approx if sigma > 0.0 else 1, tail_N=0
+            n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
         # Change the pmv if necessary
         if neutral_measure:
@@ -3561,7 +3569,7 @@ class MixtureTranIncShk(DiscreteDistribution):
 
     def __init__(self, sigma, UnempPrb, IncUnemp, n_approx, seed=0):
         dstn_approx = MeanOneLogNormal(sigma).discretize(
-            n_approx if sigma > 0.0 else 1, tail_N=0
+            n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
         if UnempPrb > 0.0:
             dstn_approx = add_discrete_outcome_constant_mean(

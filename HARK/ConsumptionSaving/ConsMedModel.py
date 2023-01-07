@@ -1,41 +1,43 @@
 """
 Consumption-saving models that also include medical spending.
 """
+from copy import deepcopy
+
 import numpy as np
 from scipy.optimize import brentq
+
 from HARK import AgentType, MetricObject, make_one_period_oo_solver
-from HARK.distribution import add_discrete_outcome_constant_mean, Lognormal
-from HARK.utilities import (
-    CRRAutilityP_inv,
-    CRRAutility,
-    CRRAutility_inv,
-    CRRAutility_invP,
-    CRRAutilityPP,
-    make_grid_exp_mult,
-    NullFunc,
-)
-from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
-from HARK.interpolation import (
-    BilinearInterpOnInterp1D,
-    TrilinearInterp,
-    BilinearInterp,
-    CubicInterp,
-    LinearInterp,
-    LowerEnvelope3D,
-    UpperEnvelope,
-    LinearInterpOnInterp1D,
-    VariableLowerBoundFunc3D,
-    ValueFuncCRRA,
-    MargValueFuncCRRA,
-    MargMargValueFuncCRRA,
-)
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     ConsGenIncProcessSolver,
     PersistentShockConsumerType,
     VariableLowerBoundFunc2D,
     init_persistent_shocks,
 )
-from copy import deepcopy
+from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
+from HARK.distribution import Lognormal, add_discrete_outcome_constant_mean
+from HARK.interpolation import (
+    BilinearInterp,
+    BilinearInterpOnInterp1D,
+    CubicInterp,
+    LinearInterp,
+    LinearInterpOnInterp1D,
+    LowerEnvelope3D,
+    MargMargValueFuncCRRA,
+    MargValueFuncCRRA,
+    TrilinearInterp,
+    UpperEnvelope,
+    ValueFuncCRRA,
+    VariableLowerBoundFunc3D,
+)
+from HARK.utilities import (
+    CRRAutility,
+    CRRAutility_inv,
+    CRRAutility_invP,
+    CRRAutilityP_inv,
+    CRRAutilityPP,
+    NullFunc,
+    make_grid_exp_mult,
+)
 
 __all__ = [
     "MedShockPolicyFunc",
@@ -116,7 +118,8 @@ class MedShockPolicyFunc(MetricObject):
                         * ((xLvl - c) / MedPrice) ** (CRRAmed / CRRAcon)
                         - c
                     )
-                    cLvl = brentq(optMedZeroFunc, 0.0, xLvl)  # Find solution to FOC
+                    # Find solution to FOC
+                    cLvl = brentq(optMedZeroFunc, 0.0, xLvl)
                 cLvlGrid[i, j] = cLvl
 
         # Construct the consumption function and medical care function
@@ -137,7 +140,8 @@ class MedShockPolicyFunc(MetricObject):
                     ** (CRRAmed / CRRAcon - 1.0)
                 )
                 dcdx = dfdx / (dfdx + 1.0)
-                dcdx[0, :] = dcdx[1, :]  # approximation; function goes crazy otherwise
+                # approximation; function goes crazy otherwise
+                dcdx[0, :] = dcdx[1, :]
                 dcdx[:, 0] = 1.0  # no Med when MedShk=0, so all x is c
                 cFromxFunc_by_MedShk = []
                 for j in range(MedShkGrid.size):
@@ -619,12 +623,16 @@ class MedShockConsumerType(PersistentShockConsumerType):
         """
         MedShkDstn = []  # empty list for medical shock distribution each period
         for t in range(self.T_cycle):
-            MedShkAvgNow = self.MedShkAvg[t]  # get shock distribution parameters
+            # get shock distribution parameters
+            MedShkAvgNow = self.MedShkAvg[t]
             MedShkStdNow = self.MedShkStd[t]
             MedShkDstnNow = Lognormal(
                 mu=np.log(MedShkAvgNow) - 0.5 * MedShkStdNow**2, sigma=MedShkStdNow
             ).discretize(
-                N=self.MedShkCount, tail_N=self.MedShkCountTail, tail_bound=[0, 0.9]
+                N=self.MedShkCount,
+                method="equiprobable",
+                tail_N=self.MedShkCountTail,
+                tail_bound=[0, 0.9],
             )
             MedShkDstnNow = add_discrete_outcome_constant_mean(
                 MedShkDstnNow, 0.0, 0.0, sort=True
@@ -812,7 +820,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
             self
         )  # Get permanent and transitory income shocks
         MedShkNow = np.zeros(self.AgentCount)  # Initialize medical shock array
-        MedPriceNow = np.zeros(self.AgentCount)  # Initialize relative price array
+        # Initialize relative price array
+        MedPriceNow = np.zeros(self.AgentCount)
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             N = np.sum(these)

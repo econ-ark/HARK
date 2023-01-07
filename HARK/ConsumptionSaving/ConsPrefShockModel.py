@@ -7,26 +7,26 @@ It currently only two models:
    by inheriting from multiple classes.
 """
 import numpy as np
+
 from HARK import make_one_period_oo_solver
-from HARK.distribution import MeanOneLogNormal
 from HARK.ConsumptionSaving.ConsIndShockModel import (
-    IndShockConsumerType,
-    ConsumerSolution,
     ConsIndShockSolver,
-    KinkedRconsumerType,
     ConsKinkedRsolver,
+    ConsumerSolution,
+    IndShockConsumerType,
+    KinkedRconsumerType,
     init_idiosyncratic_shocks,
     init_kinked_R,
 )
+from HARK.distribution import MeanOneLogNormal
 from HARK.interpolation import (
-    LinearInterpOnInterp1D,
-    LinearInterp,
     CubicInterp,
+    LinearInterp,
+    LinearInterpOnInterp1D,
     LowerEnvelope,
-    ValueFuncCRRA,
     MargValueFuncCRRA,
+    ValueFuncCRRA,
 )
-
 
 # Make a dictionary to specify a preference shock consumer
 init_preference_shocks = dict(
@@ -126,6 +126,7 @@ class PrefShockConsumerType(IndShockConsumerType):
                 sigma=PrefShkStd, seed=self.RNG.integers(0, 2**31 - 1)
             ).discretize(
                 N=self.PrefShkCount,
+                method="equiprobable",
                 tail_N=self.PrefShk_tail_N,
             )
             PrefShkDstn.append(new_dstn)
