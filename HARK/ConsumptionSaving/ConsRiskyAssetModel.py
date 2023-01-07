@@ -137,7 +137,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
                 Lognormal.from_mean_std,
                 {"mean": self.RiskyAvg, "std": self.RiskyStd},
                 seed=self.RNG.integers(0, 2**31 - 1),
-            ).approx(self.RiskyCount)
+            ).discretize(self.RiskyCount)
 
             self.add_to_time_vary("RiskyDstn")
 
@@ -146,7 +146,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         else:
             self.RiskyDstn = Lognormal.from_mean_std(
                 self.RiskyAvg, self.RiskyStd
-            ).approx(self.RiskyCount)
+            ).discretize(self.RiskyCount)
             self.add_to_time_inv("RiskyDstn")
 
     def update_ShockDstn(self):
@@ -178,7 +178,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         # Names of the variables (hedging for the unlikely case that in
         # some index of IncShkDstn variables are in a switched order)
         names_list = [
-            list(self.IncShkDstn[t].dataset.data_vars.keys()) + ["Risky"]
+            list(self.IncShkDstn[t].variables.keys()) + ["Risky"]
             for t in range(self.T_cycle)
         ]
 
