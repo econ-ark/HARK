@@ -1,12 +1,14 @@
 import math
 from itertools import product
-from typing import Callable, Optional, Union
+from collections.abc import Callable
+from typing import Any, Dict, List, Optional, Union
 from warnings import warn
 
 import numpy as np
 import xarray as xr
 from numpy import random
 from scipy import stats
+from scipy.stats import rv_continuous, rv_discrete
 from scipy.stats._distn_infrastructure import rv_continuous_frozen, rv_discrete_frozen
 from scipy.stats._multivariate import multivariate_normal_frozen
 
@@ -25,7 +27,7 @@ class Distribution:
         Seed for random number generator.
     """
 
-    def __init__(self, seed: Optional[int] = 0):
+    def __init__(self, seed: Optional[int] = 0) -> None:
         """
         Generic distribution class with seed management.
 
@@ -42,14 +44,14 @@ class Distribution:
         """
         if seed is None:
             # generate random seed
-            _seed = random.SeedSequence().entropy
+            _seed: int = random.SeedSequence().entropy
         elif isinstance(seed, (int, np.integer)):
             _seed = seed
         else:
             raise ValueError("seed must be an integer")
 
-        self._seed = _seed
-        self._rng = random.default_rng(self._seed)
+        self._seed: int = _seed
+        self._rng: random.Generator = random.default_rng(self._seed)
 
     @property
     def seed(self) -> int:
@@ -64,7 +66,7 @@ class Distribution:
         return self._seed  # type: ignore
 
     @seed.setter
-    def seed(self, seed):
+    def seed(self, seed: int) -> None:
         """
         Set seed for random number generator.
 
@@ -80,7 +82,7 @@ class Distribution:
         else:
             raise ValueError("seed must be an integer")
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the random number generator of this distribution.
         Resetting the seed will result in the same sequence of
@@ -91,13 +93,13 @@ class Distribution:
         """
         self._rng = random.default_rng(self.seed)
 
-    def random_seed(self):
+    def random_seed(self) -> None:
         """
         Generate a new random seed for this distribution.
         """
         self.seed = random.SeedSequence().entropy
 
-    def draw(self, N):
+    def draw(self, N: int) -> np.ndarray:
         """
         Generate arrays of draws from this distribution.
         If input N is a number, output is a length N array of draws from the
@@ -120,7 +122,9 @@ class Distribution:
         size = (N, mean.size) if mean.size != 1 else N
         return self.rvs(size=size, random_state=self._rng)
 
-    def discretize(self, N, method="equiprobable", endpoints=False, **kwds):
+    def discretize(
+        self, N: int, method: str = "equiprobable", endpoints: bool = False, **kwds: Any
+    ) -> "DiscreteDistribution":
         """
         Discretize the distribution into N points using the specified method.
 
@@ -165,7 +169,9 @@ class ContinuousFrozenDistribution(rv_continuous_frozen, Distribution):
     Parametrized continuous distribution from scipy.stats with seed management.
     """
 
-    def __init__(self, dist, *args, seed=0, **kwds):
+    def __init__(
+        self, dist: rv_continuous, *args: Any, seed: int = 0, **kwds: Any
+    ) -> None:
         """
         Parametrized continuous distribution from scipy.stats with seed management.
 
@@ -712,7 +718,9 @@ class DiscreteFrozenDistribution(rv_discrete_frozen, Distribution):
     Parametrized discrete distribution from scipy.stats with seed management.
     """
 
-    def __init__(self, dist, *args, seed=0, **kwds):
+    def __init__(
+        self, dist: rv_discrete, *args: Any, seed: int = 0, **kwds: Any
+    ) -> None:
         """
         Parametrized discrete distribution from scipy.stats with seed management.
 
@@ -764,7 +772,13 @@ class DiscreteDistribution(Distribution):
         Seed for random number generator.
     """
 
-    def __init__(self, pmv, atoms, seed=0, limit=None):
+    def __init__(
+        self,
+        pmv: np.ndarray,
+        atoms: np.ndarray,
+        seed: int = 0,
+        limit: Optional[Dict[str, Any]] = None,
+    ) -> None:
 
         super().__init__(seed=seed)
 
@@ -779,13 +793,13 @@ class DiscreteDistribution(Distribution):
                 + "The length of the pmv must be equal to that of atoms's last dimension."
             )
 
-    def dim(self):
+    def dim(self) -> int:
         """
         Last dimension of self.atoms indexes "atom."
         """
         return self.atoms.shape[:-1]
 
-    def draw_events(self, n):
+    def draw_events(self, n: int) -> np.ndarray:
         """
         Draws N 'events' from the distribution PMF.
         These events are indices into atoms.
@@ -799,7 +813,12 @@ class DiscreteDistribution(Distribution):
 
         return indices
 
-    def draw(self, N, atoms=None, exact_match=False):
+    def draw(
+        self,
+        N: int,
+        atoms: Union[None, int, np.ndarray] = None,
+        exact_match: bool = False,
+    ) -> np.ndarray:
         """
         Simulates N draws from a discrete distribution with probabilities P and outcomes atoms.
 
@@ -912,7 +931,9 @@ class DiscreteDistribution(Distribution):
 
         return f_exp
 
-    def dist_of_func(self, func=lambda x: x, *args):
+    def dist_of_func(
+        self, func: Callable[..., float] = lambda x: x, *args: Any
+    ) -> "DiscreteDistribution":
         """
         Finds the distribution of a random variable Y that is a function
         of discrete random variable atoms, Y=f(atoms).
@@ -945,7 +966,7 @@ class DiscreteDistribution(Distribution):
 
         return f_dstn
 
-    def discretize(self, N, *args, **kwargs):
+    def discretize(self, N: int, *args: Any, **kwargs: Any) -> "DiscreteDistribution":
         """
         `DiscreteDistribution` is already an approximation, so this method
         returns a copy of the distribution.
@@ -985,14 +1006,14 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
 
     def __init__(
         self,
-        pmv,
-        atoms,
-        seed=0,
-        limit=None,
-        name="DiscreteDistributionLabeled",
-        attrs=None,
-        var_names=None,
-        var_attrs=None,
+        pmv: np.ndarray,
+        atoms: np.ndarray,
+        seed: int = 0,
+        limit: Optional[Dict[str, Any]] = None,
+        name: str = "DiscreteDistributionLabeled",
+        attrs: Optional[Dict[str, Any]] = None,
+        var_names: Optional[List[str]] = None,
+        var_attrs: Optional[List[Optional[Dict[str, Any]]]] = None,
     ):
 
         super().__init__(pmv, atoms, seed=seed, limit=limit)
@@ -1004,14 +1025,9 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
                 "Only vector-valued distributions are supported for now."
             )
 
-        if attrs is None:
-            attrs = {}
-
-        if limit is None:
-            limit = {}
-
+        attrs = {} if attrs is None else attrs
+        limit = {} if limit is None else limit
         attrs.update(limit)
-
         attrs["name"] = name
 
         n_var = self.atoms.shape[0]
@@ -1115,7 +1131,9 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
 
         return self.dataset.attrs
 
-    def dist_of_func(self, func=lambda x: x, *args, **kwargs):
+    def dist_of_func(
+        self, func: Callable = lambda x: x, *args, **kwargs
+    ) -> DiscreteDistribution:
         """
         Finds the distribution of a random variable Y that is a function
         of discrete random variable atoms, Y=f(atoms).
@@ -1139,7 +1157,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             The distribution of func(dstn).
         """
 
-        def func_wrapper(x, *args):
+        def func_wrapper(x: np.ndarray, *args: Any) -> np.ndarray:
             """
             Wrapper function for `func` that handles labeled indexing.
             """
@@ -1157,7 +1175,9 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
 
         return super().dist_of_func(func_wrapper, *args)
 
-    def expected(self, func=None, *args, **kwargs):
+    def expected(
+        self, func: Optional[Callable] = None, *args: Any, **kwargs: Any
+    ) -> Union[float, np.ndarray]:
         """
         Expectation of a function, given an array of configurations of its inputs
         along with a DiscreteDistributionLabeled object that specifies the probability
