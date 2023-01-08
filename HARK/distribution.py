@@ -478,6 +478,39 @@ class Lognormal(ContinuousFrozenDistribution):
             limit=limit,
         )
 
+    def _approx_hermite(self, N, endpoints=False):
+        """
+        Returns a discrete approximation of this distribution
+        using the Gauss-Hermite quadrature rule.
+
+        TODO: add endpoints option
+
+        Parameters
+        ----------
+        N : int
+            Number of discrete points to approximate the distribution.
+
+        Returns
+        -------
+        DiscreteDistribution
+            Discrete approximation of this distribution.
+        """
+
+        x, w = np.polynomial.hermite.hermgauss(N)
+        # normalize w
+        pmv = w * np.pi**-0.5
+        # correct x
+        atoms = np.exp(np.sqrt(2.0) * self.sigma * x + self.mu)
+
+        limit = {"dist": self, "method": "hermite", "N": N, "endpoints": endpoints}
+
+        return DiscreteDistribution(
+            pmv,
+            atoms,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
+        )
+
     @classmethod
     def from_mean_std(cls, mean, std, seed=0):
         """
