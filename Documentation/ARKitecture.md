@@ -132,7 +132,7 @@ Our universal solver is written in a very general way that should be applicable 
 
 #### The Flow of Time and Other Methods
 
-Because dynamic optimization problems are solved recursively in our framework, it is natural to list time-varying values in reverse chronological order-- the ***solve()*** method loops over the values in each time-varying list in the same direction that a human would read them.  When simulating agents after the solution has been obtained, however, it is much more convenient for time-varying parameters to be listed in ordinary chronological order-- the direction in which they will be experienced by simulated agents.  To allow the user to set the order in which ''time is flowing'' for an instance of ***AgentType***, the HARK framework includes functionality to easily change ordering of time-varying values.
+Because dynamic optimization problems are solved recursively in our framework, it is natural to list time-varying values in reverse chronological order-- the ***solve()*** method loops over the values in each time-varying list in the same direction that a human would read them.  When simulating agents after the solution has been obtained, however, it is much more convenient for time-varying parameters to be listed in ordinary chronological order-- the direction in which they will be experienced by simulated agents.  To allow the user to set the order in which ''time is flowing'' for an instance of ***AgentType, the HARK framework includes functionality to easily change ordering of time-varying values.
 
 The attribute ***time_flow*** is ***True*** if variables are listed in ordinary chronological order and ***False*** otherwise.  ***AgentType*** has the following methods for manipulating time:
 
