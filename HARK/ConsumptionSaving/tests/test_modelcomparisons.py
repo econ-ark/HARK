@@ -18,7 +18,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.ConsumptionSaving.TractableBufferStockModel import TractableConsumerType
-from HARK.distribution import DiscreteDistribution
+from HARK.distribution import DiscreteDistribution, DiscreteDistributionLabeled
 
 
 class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
@@ -158,11 +158,15 @@ class Compare_TBS_and_Markov(unittest.TestCase):
 
         MarkovType = MarkovConsumerType(**Markov_primitives)
         MarkovType.cycles = 0
-        employed_income_dist = DiscreteDistribution(
-            np.ones(1), np.array([[1.0],[1.0]])
+        employed_income_dist = DiscreteDistributionLabeled(
+            pmv=np.ones(1),
+            data=np.array([[1.0], [1.0]]),
+            var_names=["PermShk", "TranShk"],
         )
-        unemployed_income_dist = DiscreteDistribution(
-            np.ones(1), np.array([[1.0],[0.0]])
+        unemployed_income_dist = DiscreteDistributionLabeled(
+            pmv=np.ones(1),
+            data=np.array([[1.0], [0.0]]),
+            var_names=["PermShk", "TranShk"],
         )
         MarkovType.IncShkDstn = [[employed_income_dist, unemployed_income_dist]]
 

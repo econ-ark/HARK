@@ -300,7 +300,7 @@ class TractableConsumerType(AgentType):
     Same as AgentType
     """
 
-    state_vars = ['bLvl', 'mLvl', 'aLvl']
+    state_vars = ["bLvl", "mLvl", "aLvl"]
 
     def __init__(self, **kwds):
         params = init_tractable.copy()
@@ -323,7 +323,7 @@ class TractableConsumerType(AgentType):
             "mUpperBnd",
         ]
         self.shock_vars = ["eStateNow"]
-        self.poststate_vars = ['aLvl', "eStateNow"]  # For simulation
+        self.poststate_vars = ["aLvl", "eStateNow"]  # For simulation
         self.solve_one_period = add_to_stable_arm_points  # set correct solver
 
     def pre_solve(self):
@@ -393,25 +393,25 @@ class TractableConsumerType(AgentType):
         self.MPCtarg = newton(mpcTargFixedPointFunc, 0)
         mmpcTargFixedPointFunc = (
             lambda kk: kk * uPP(self.cTarg)
-            + self.MPCtarg ** 2.0 * uPPP(self.cTarg)
+            + self.MPCtarg**2.0 * uPPP(self.cTarg)
             - self.Beth
             * (
                 -(1.0 - self.UnempPrb) * self.MPCtarg * kk * self.Rnrm * uPP(self.cTarg)
                 + (1.0 - self.UnempPrb)
                 * (1.0 - self.MPCtarg) ** 2.0
                 * kk
-                * self.Rnrm ** 2.0
+                * self.Rnrm**2.0
                 * uPP(self.cTarg)
                 - self.PFMPC * self.UnempPrb * kk * self.Rnrm * uPP(cTargU)
                 + (1.0 - self.UnempPrb)
                 * (1.0 - self.MPCtarg) ** 2.0
-                * self.MPCtarg ** 2.0
-                * self.Rnrm ** 2.0
+                * self.MPCtarg**2.0
+                * self.Rnrm**2.0
                 * uPPP(self.cTarg)
-                + self.PFMPC ** 2.0
+                + self.PFMPC**2.0
                 * self.UnempPrb
                 * (1.0 - self.MPCtarg) ** 2.0
-                * self.Rnrm ** 2.0
+                * self.Rnrm**2.0
                 * uPPP(cTargU)
             )
         )
@@ -419,52 +419,52 @@ class TractableConsumerType(AgentType):
         mmmpcTargFixedPointFunc = (
             lambda kkk: kkk * uPP(self.cTarg)
             + 3 * self.MPCtarg * self.MMPCtarg * uPPP(self.cTarg)
-            + self.MPCtarg ** 3 * uPPPP(self.cTarg)
+            + self.MPCtarg**3 * uPPPP(self.cTarg)
             - self.Beth
             * (
                 -(1 - self.UnempPrb) * self.MPCtarg * kkk * self.Rnrm * uPP(self.cTarg)
                 - 3
                 * (1 - self.UnempPrb)
                 * (1 - self.MPCtarg)
-                * self.MMPCtarg ** 2
-                * self.Rnrm ** 2
+                * self.MMPCtarg**2
+                * self.Rnrm**2
                 * uPP(self.cTarg)
                 + (1 - self.UnempPrb)
                 * (1 - self.MPCtarg) ** 3
                 * kkk
-                * self.Rnrm ** 3
+                * self.Rnrm**3
                 * uPP(self.cTarg)
                 - self.PFMPC * self.UnempPrb * kkk * self.Rnrm * uPP(cTargU)
                 - 3
                 * (1 - self.UnempPrb)
                 * (1 - self.MPCtarg)
-                * self.MPCtarg ** 2
+                * self.MPCtarg**2
                 * self.MMPCtarg
-                * self.Rnrm ** 2
+                * self.Rnrm**2
                 * uPPP(self.cTarg)
                 + 3
                 * (1 - self.UnempPrb)
                 * (1 - self.MPCtarg) ** 3
                 * self.MPCtarg
                 * self.MMPCtarg
-                * self.Rnrm ** 3
+                * self.Rnrm**3
                 * uPPP(self.cTarg)
                 - 3
-                * self.PFMPC ** 2
+                * self.PFMPC**2
                 * self.UnempPrb
                 * (1 - self.MPCtarg)
                 * self.MMPCtarg
-                * self.Rnrm ** 2
+                * self.Rnrm**2
                 * uPPP(cTargU)
                 + (1 - self.UnempPrb)
                 * (1 - self.MPCtarg) ** 3
-                * self.MPCtarg ** 3
-                * self.Rnrm ** 3
+                * self.MPCtarg**3
+                * self.Rnrm**3
                 * uPPPP(self.cTarg)
-                + self.PFMPC ** 3
+                + self.PFMPC**3
                 * self.UnempPrb
                 * (1 - self.MPCtarg) ** 3
-                * self.Rnrm ** 3
+                * self.Rnrm**3
                 * uPPPP(cTargU)
             )
         )
@@ -493,25 +493,25 @@ class TractableConsumerType(AgentType):
         c_perturb_lo = (
             self.cTarg
             - self.SSperturbance * self.MPCtarg
-            + 0.5 * self.SSperturbance ** 2.0 * self.MMPCtarg
-            - (1.0 / 6.0) * self.SSperturbance ** 3.0 * self.MMMPCtarg
+            + 0.5 * self.SSperturbance**2.0 * self.MMPCtarg
+            - (1.0 / 6.0) * self.SSperturbance**3.0 * self.MMMPCtarg
         )
         c_perturb_hi = (
             self.cTarg
             + self.SSperturbance * self.MPCtarg
-            + 0.5 * self.SSperturbance ** 2.0 * self.MMPCtarg
-            + (1.0 / 6.0) * self.SSperturbance ** 3.0 * self.MMMPCtarg
+            + 0.5 * self.SSperturbance**2.0 * self.MMPCtarg
+            + (1.0 / 6.0) * self.SSperturbance**3.0 * self.MMMPCtarg
         )
         cNrm_list = [c_perturb_lo, self.cTarg, c_perturb_hi]
         MPC_perturb_lo = (
             self.MPCtarg
             - self.SSperturbance * self.MMPCtarg
-            + 0.5 * self.SSperturbance ** 2.0 * self.MMMPCtarg
+            + 0.5 * self.SSperturbance**2.0 * self.MMMPCtarg
         )
         MPC_perturb_hi = (
             self.MPCtarg
             + self.SSperturbance * self.MMPCtarg
-            + 0.5 * self.SSperturbance ** 2.0 * self.MMMPCtarg
+            + 0.5 * self.SSperturbance**2.0 * self.MMMPCtarg
         )
         MPC_list = [MPC_perturb_lo, self.MPCtarg, MPC_perturb_hi]
 
@@ -580,12 +580,12 @@ class TractableConsumerType(AgentType):
         """
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        self.state_now['aLvl'][which_agents] = Lognormal(
+        self.state_now["aLvl"][which_agents] = Lognormal(
             self.aLvlInitMean,
             sigma=self.aLvlInitStd,
-            seed=self.RNG.randint(0, 2 ** 31 - 1),
+            seed=self.RNG.integers(0, 2**31 - 1),
         ).draw(N)
-        self.shocks["eStateNow"] = np.zeros(self.AgentCount) # Initialize shock array
+        self.shocks["eStateNow"] = np.zeros(self.AgentCount)  # Initialize shock array
         self.shocks["eStateNow"][which_agents] = 1.0  # Agents are born employed
         self.t_age[which_agents] = 0  # How many periods since each agent was born
         self.t_cycle[
@@ -626,7 +626,7 @@ class TractableConsumerType(AgentType):
         employed = self.shocks["eStateNow"] == 1.0
         N = int(np.sum(employed))
         newly_unemployed = Bernoulli(
-            self.UnempPrb, seed=self.RNG.randint(0, 2 ** 31 - 1)
+            self.UnempPrb, seed=self.RNG.integers(0, 2**31 - 1)
         ).draw(N)
         self.shocks["eStateNow"][employed] = 1.0 - newly_unemployed
 
@@ -642,7 +642,7 @@ class TractableConsumerType(AgentType):
         -------
         None
         """
-        bLvlNow = self.Rfree * self.state_prev['aLvl']
+        bLvlNow = self.Rfree * self.state_prev["aLvl"]
         mLvlNow = bLvlNow + self.shocks["eStateNow"]
 
         return bLvlNow, mLvlNow
@@ -662,8 +662,10 @@ class TractableConsumerType(AgentType):
         employed = self.shocks["eStateNow"] == 1.0
         unemployed = np.logical_not(employed)
         cLvlNow = np.zeros(self.AgentCount)
-        cLvlNow[employed] = self.solution[0].cFunc(self.state_now['mLvl'][employed])
-        cLvlNow[unemployed] = self.solution[0].cFunc_U(self.state_now['mLvl'][unemployed])
+        cLvlNow[employed] = self.solution[0].cFunc(self.state_now["mLvl"][employed])
+        cLvlNow[unemployed] = self.solution[0].cFunc_U(
+            self.state_now["mLvl"][unemployed]
+        )
         self.controls["cLvlNow"] = cLvlNow
 
     def get_poststates(self):
@@ -678,12 +680,12 @@ class TractableConsumerType(AgentType):
         -------
         None
         """
-        self.state_now['aLvl'] = self.state_now['mLvl'] - self.controls["cLvlNow"]
+        self.state_now["aLvl"] = self.state_now["mLvl"] - self.controls["cLvlNow"]
         return None
 
 
 init_tractable = {
-    "cycles" : 0, # infinite horizon
+    "cycles": 0,  # infinite horizon
     "UnempPrb": 0.00625,  # Probability of becoming unemployed
     "DiscFac": 0.975,  # Intertemporal discount factor
     "Rfree": 1.01,  # Risk-free interest factor on assets

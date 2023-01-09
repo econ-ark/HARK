@@ -1,5 +1,6 @@
 import math
 from itertools import product
+from warnings import warn
 
 import numpy as np
 import xarray as xr
@@ -18,7 +19,7 @@ class Distribution:
     """
 
     def __init__(self, seed=0):
-        self.RNG = np.random.RandomState(seed)
+        self.RNG = np.random.default_rng(seed)
         self.seed = seed
 
     def reset(self):
@@ -28,7 +29,7 @@ class Distribution:
         Parameters
         ----------
         """
-        self.RNG = np.random.RandomState(self.seed)
+        self.RNG = np.random.default_rng(self.seed)
 
 
 class IndexDistribution(Distribution):
@@ -90,13 +91,13 @@ class IndexDistribution(Distribution):
             for y in range(len(item0)):
                 cond = {key: val[y] for (key, val) in self.conditional.items()}
                 self.dstns.append(
-                    self.engine(seed=self.RNG.randint(0, 2**31 - 1), **cond)
+                    self.engine(seed=self.RNG.integers(0, 2**31 - 1), **cond)
                 )
 
         elif type(item0) is float:
 
             self.dstns = [
-                self.engine(seed=self.RNG.randint(0, 2**31 - 1), **conditional)
+                self.engine(seed=self.RNG.integers(0, 2**31 - 1), **conditional)
             ]
 
         else:
@@ -177,7 +178,7 @@ class IndexDistribution(Distribution):
             N = condition.size
 
             return self.engine(
-                seed=self.RNG.randint(0, 2**31 - 1), **self.conditional
+                seed=self.RNG.integers(0, 2**31 - 1), **self.conditional
             ).draw(N)
 
         if type(item0) is list:
@@ -425,7 +426,7 @@ class Lognormal(Distribution):
             pmv = np.ones(N) / N
             atoms = np.exp(self.mu) * np.ones(N)
         return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
+            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
         )
 
     @classmethod
@@ -513,7 +514,9 @@ class Normal(Distribution):
         """
         draws = []
         for t in range(self.sigma.size):
-            draws.append(self.sigma.item(t) * self.RNG.randn(N) + self.mu.item(t))
+            draws.append(
+                self.sigma.item(t) * self.RNG.standard_normal(N) + self.mu.item(t)
+            )
 
         return draws
 
@@ -527,7 +530,7 @@ class Normal(Distribution):
         # correct x
         atoms = math.sqrt(2.0) * self.sigma * x + self.mu
         return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
+            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
         )
 
     def approx_equiprobable(self, N):
@@ -541,7 +544,7 @@ class Normal(Distribution):
         atoms = self.mu - np.diff(pdf) / pmv * self.sigma
 
         return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
+            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
         )
 
 
@@ -626,7 +629,7 @@ class MVNormal(Distribution):
 
         # Construct and return discrete distribution
         return DiscreteDistribution(
-            pmv, atoms.T, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
+            pmv, atoms.T, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
         )
 
 
@@ -683,7 +686,7 @@ class Weibull(Distribution):
         for j in range(self.scale.size):
             draws.append(
                 self.scale.item(j)
-                * (-np.log(1.0 - self.RNG.rand(N))) ** (1.0 / self.shape.item(j))
+                * (-np.log(1.0 - self.RNG.random(N))) ** (1.0 / self.shape.item(j))
             )
         return draws[0] if len(draws) == 1 else draws
 
@@ -713,7 +716,7 @@ class Uniform(Distribution):
         self.bot = np.array(bot)
         self.top = np.array(top)
         # Set up the RNG
-        self.RNG = np.random.RandomState(seed)
+        self.RNG = np.random.default_rng(seed)
 
     def draw(self, N):
         """
@@ -738,18 +741,20 @@ class Uniform(Distribution):
         for j in range(self.bot.size):
             draws.append(
                 self.bot.item(j)
-                + (self.top.item(j) - self.bot.item(j)) * self.RNG.rand(N)
+                + (self.top.item(j) - self.bot.item(j)) * self.RNG.random(N)
             )
         return draws[0] if len(draws) == 1 else draws
 
-    def approx(self, N):
+    def approx(self, N, endpoint=False):
         """
         Makes a discrete approximation to this uniform distribution.
 
         Parameters
         ----------
         N : int
-            The number of points in the discrete approximation
+            The number of points in the discrete approximation.
+        endpoint : bool
+            Whether to include the endpoints in the approximation.
 
         Returns
         -------
@@ -758,13 +763,19 @@ class Uniform(Distribution):
             points for discrete probability mass function.
         """
         pmv = np.ones(N) / float(N)
+
         center = (self.top + self.bot) / 2.0
         width = (self.top - self.bot) / 2.0
         atoms = center + width * np.linspace(-(N - 1.0) / 2.0, (N - 1.0) / 2.0, N) / (
             N / 2.0
         )
+
+        if endpoint:  # insert endpoints with infinitesimally small mass
+            atoms = np.concatenate(([self.bot], atoms, [self.top]))
+            pmv = np.concatenate(([0.0], pmv, [0.0]))
+
         return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.randint(0, 2**31 - 1, dtype="int32")
+            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
         )
 
 
@@ -837,7 +848,7 @@ class DiscreteDistribution(Distribution):
 
     def __init__(self, pmv, atoms, seed=0):
 
-        self.pmv = pmv
+        self.pmv = np.asarray(pmv)
 
         if len(atoms.shape) < 2:
             self.atoms = atoms[None, ...]
@@ -848,7 +859,7 @@ class DiscreteDistribution(Distribution):
         super().__init__(seed)
 
         # Check that pmv and atoms have compatible dimensions.
-        same_dims = len(pmv) == atoms.shape[-1]
+        same_dims = self.pmv.size == self.atoms.shape[-1]
         if not same_dims:
             raise ValueError(
                 "Provided pmv and atoms arrays have incompatible dimensions. "
@@ -1068,7 +1079,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
 
         attrs["name"] = name
         attrs["seed"] = seed
-        attrs["RNG"] = np.random.RandomState(seed)
+        attrs["RNG"] = np.random.default_rng(seed)
 
         n_var = data.shape[0]
 
@@ -1171,11 +1182,40 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         return self.pmf.values
 
     @property
+    def seed(self):
+        """
+        Returns the distribution's seed.
+        """
+        return self.dataset.seed
+
+    @seed.setter
+    def seed(self, value):
+        """
+        Set the distribution's seed and updates the RNG state
+        """
+        # Update the seed
+        self.dataset.attrs["seed"] = value
+        # With the seed having been updated, the RNG must be updated too
+        self.RNG = np.random.default_rng(self.seed)
+
+    @property
     def RNG(self):
         """
         Returns the distribution's random number generator.
         """
         return self.dataset.RNG
+
+    @RNG.setter
+    def RNG(self, value):
+        """
+        Sets the distribution's random number generator.
+        """
+        if isinstance(value, np.random._generator.Generator):
+            self.dataset.attrs["RNG"] = value
+        else:
+            raise ValueError(
+                "The RNG property must be an instance of numpy.random._generator.Generator"
+            )
 
     @property
     def name(self):
@@ -1599,6 +1639,8 @@ def combine_indep_dstns(*distributions, seed=0):
     # Get information on the distributions
     dist_lengths = ()
     dist_dims = ()
+    dist_is_labeled = ()
+    var_labels = ()
     for dist in distributions:
 
         if len(dist.dim()) > 1:
@@ -1609,7 +1651,17 @@ def combine_indep_dstns(*distributions, seed=0):
         dist_dims += (dist.dim(),)
         dist_lengths += (len(dist.pmv),)
 
+        labeled = isinstance(dist, DiscreteDistributionLabeled)
+        dist_is_labeled += (labeled,)
+        if labeled:
+            var_labels += tuple(dist.dataset.data_vars.keys())
+        else:
+            var_labels += tuple([""] * dist.dim()[0])
+
     number_of_distributions = len(distributions)
+
+    all_labeled = all(dist_is_labeled)
+    labels_are_unique = len(var_labels) == len(set(var_labels))
 
     # We need the combinations of indices of realizations in all
     # distributions
@@ -1630,7 +1682,21 @@ def combine_indep_dstns(*distributions, seed=0):
 
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
 
-    return DiscreteDistribution(P_out, atoms_out, seed=seed)
+    if all_labeled and labels_are_unique:
+        combined_dstn = DiscreteDistributionLabeled(
+            pmv=P_out,
+            data=atoms_out,
+            var_names=var_labels,
+            seed=seed,
+        )
+    else:
+        if all_labeled and not labels_are_unique:
+            warn(
+                "There are duplicated labels in the provided distributions. Returning a non-labeled combination"
+            )
+        combined_dstn = DiscreteDistribution(P_out, atoms_out, seed=seed)
+
+    return combined_dstn
 
 
 def calc_expectation(dstn, func=lambda x: x, *args):

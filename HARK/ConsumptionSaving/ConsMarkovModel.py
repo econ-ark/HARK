@@ -323,7 +323,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         """
 
         def vpp_next(shocks, a_nrm, Rfree):
-            return shocks[0] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
+            return shocks['PermShk'] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
                 self.m_nrm_next(shocks, a_nrm, Rfree)
             )
 
@@ -332,7 +332,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             * self.Rfree
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA - 1.0)
-            * calc_expectation(self.IncShkDstn, vpp_next, self.aNrmNow, self.Rfree)
+            * self.IncShkDstn.expected(vpp_next, self.aNrmNow, self.Rfree)
         )
         return EndOfPrdvPP
 
@@ -962,7 +962,7 @@ class MarkovConsumerType(IndShockConsumerType):
         if (
             self.global_markov
         ):  # Need to initialize markov state to be the same for all agents
-            base_draw = Uniform(seed=self.RNG.randint(0, 2**31 - 1)).draw(1)
+            base_draw = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(1)
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.shocks["Mrkv"] = np.ones(self.AgentCount) * np.searchsorted(
                 Cutoffs, base_draw
@@ -1011,7 +1011,7 @@ class MarkovConsumerType(IndShockConsumerType):
             self.t_cycle - 1, self.shocks["Mrkv"]
         ]  # Time has already advanced, so look back one
         DiePrb = 1.0 - LivPrb
-        DeathShks = Uniform(seed=self.RNG.randint(0, 2**31 - 1)).draw(
+        DeathShks = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(
             N=self.AgentCount
         )
         which_agents = DeathShks < DiePrb
@@ -1041,7 +1041,7 @@ class MarkovConsumerType(IndShockConsumerType):
             not self.global_markov
         ):  # Markov state is not changed if it is set at the global level
             N = np.sum(which_agents)
-            base_draws = Uniform(seed=self.RNG.randint(0, 2**31 - 1)).draw(N)
+            base_draws = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(N)
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.shocks["Mrkv"][which_agents] = np.searchsorted(
                 Cutoffs, base_draws
@@ -1074,7 +1074,7 @@ class MarkovConsumerType(IndShockConsumerType):
         # Draw new Markov states for each agent
         for t in range(self.T_cycle):
             markov_process = MarkovProcess(
-                self.MrkvArray[t], seed=self.RNG.randint(0, 2**31 - 1)
+                self.MrkvArray[t], seed=self.RNG.integers(0, 2**31 - 1)
             )
             right_age = self.t_cycle == t
             MrkvNow[right_age] = markov_process.draw(MrkvPrev[right_age])

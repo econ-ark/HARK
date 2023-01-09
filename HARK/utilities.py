@@ -6,9 +6,11 @@ derivatives), manipulation of discrete distributions, and basic plotting tools.
 import cProfile
 import functools
 import pstats
+import re
 import warnings
-import numba
+import os
 
+import numba
 import numpy as np  # Python's numeric library, abbreviated "np"
 
 # try:
@@ -895,22 +897,21 @@ def epanechnikov_kernel(x, ref_x, h=1.0):
     return out
 
 
-
-@numba.njit            
-def jump_to_grid_1D(m_vals, probs ,Dist_mGrid ):
-    '''
+@numba.njit
+def jump_to_grid_1D(m_vals, probs, Dist_mGrid):
+    """
     Distributes values onto a predefined grid, maintaining the means.
-    
-    
+
+
     Parameters
     ----------
     m_vals: np.array
-            Market resource values 
+            Market resource values
 
     probs: np.array
-            Shock probabilities associated with combinations of m_vals. 
+            Shock probabilities associated with combinations of m_vals.
             Can be thought of as the probability mass function  of (m_vals).
-    
+
     dist_mGrid : np.array
             Grid over normalized market resources
 
@@ -918,141 +919,163 @@ def jump_to_grid_1D(m_vals, probs ,Dist_mGrid ):
     -------
     probGrid.flatten(): np.array
              Probabilities of each gridpoint on the combined grid of market resources
-  
-    ''' 
+
+    """
 
     probGrid = np.zeros(len(Dist_mGrid))
-    mIndex = np.digitize(m_vals,Dist_mGrid) - 1
+    mIndex = np.digitize(m_vals, Dist_mGrid) - 1
     mIndex[m_vals <= Dist_mGrid[0]] = -1
-    mIndex[m_vals >= Dist_mGrid[-1]] = len(Dist_mGrid)-1
-    
- 
+    mIndex[m_vals >= Dist_mGrid[-1]] = len(Dist_mGrid) - 1
+
     for i in range(len(m_vals)):
-        if mIndex[i]==-1:
+        if mIndex[i] == -1:
             mlowerIndex = 0
             mupperIndex = 0
             mlowerWeight = 1.0
             mupperWeight = 0.0
-        elif mIndex[i]==len(Dist_mGrid)-1:
+        elif mIndex[i] == len(Dist_mGrid) - 1:
             mlowerIndex = -1
             mupperIndex = -1
             mlowerWeight = 1.0
             mupperWeight = 0.0
         else:
             mlowerIndex = mIndex[i]
-            mupperIndex = mIndex[i]+1
-            mlowerWeight = (Dist_mGrid[mupperIndex]-m_vals[i])/(Dist_mGrid[mupperIndex]-Dist_mGrid[mlowerIndex])
+            mupperIndex = mIndex[i] + 1
+            mlowerWeight = (Dist_mGrid[mupperIndex] - m_vals[i]) / (
+                Dist_mGrid[mupperIndex] - Dist_mGrid[mlowerIndex]
+            )
             mupperWeight = 1.0 - mlowerWeight
-            
-        probGrid[mlowerIndex] +=  probs[i]*mlowerWeight
-        probGrid[mupperIndex] +=  probs[i]*mupperWeight
-        
+
+        probGrid[mlowerIndex] += probs[i] * mlowerWeight
+        probGrid[mupperIndex] += probs[i] * mupperWeight
+
     return probGrid.flatten()
 
 
+@numba.njit
+def jump_to_grid_2D(m_vals, perm_vals, probs, dist_mGrid, dist_pGrid):
 
-@numba.njit            
-def jump_to_grid_2D( m_vals, perm_vals, probs, dist_mGrid, dist_pGrid ):
-
-    '''
-    Distributes values onto a predefined grid, maintaining the means. m_vals and perm_vals are realizations of market resources and permanent income while 
-    dist_mGrid and dist_pGrid are the predefined grids of market resources and permanent income, respectively. That is, m_vals and perm_vals do not necesarily lie on their 
+    """
+    Distributes values onto a predefined grid, maintaining the means. m_vals and perm_vals are realizations of market resources and permanent income while
+    dist_mGrid and dist_pGrid are the predefined grids of market resources and permanent income, respectively. That is, m_vals and perm_vals do not necesarily lie on their
     respective grids. Returns probabilities of each gridpoint on the combined grid of market resources and permanent income.
-    
-    
+
+
     Parameters
     ----------
     m_vals: np.array
-            Market resource values 
-    
+            Market resource values
+
     perm_vals: np.array
-            Permanent income values 
-    
+            Permanent income values
+
     probs: np.array
-            Shock probabilities associated with combinations of m_vals and perm_vals. 
+            Shock probabilities associated with combinations of m_vals and perm_vals.
             Can be thought of as the probability mass function  of (m_vals, perm_vals).
-    
+
     dist_mGrid : np.array
             Grid over normalized market resources
-        
+
     dist_pGrid : np.array
-            Grid over permanent income 
+            Grid over permanent income
     Returns
     -------
     probGrid.flatten(): np.array
              Probabilities of each gridpoint on the combined grid of market resources and permanent income
-    '''
-    
-    probGrid = np.zeros((len(dist_mGrid),len(dist_pGrid)))
-    
-    #Maybe use np.searchsorted as opposed to np.digitize
-    mIndex = np.digitize(m_vals,dist_mGrid) - 1 # Array indicating in which bin each values of m_vals lies in relative to dist_mGrid. Bins lie between between point of Dist_mGrid. 
-    #For instance, if mval lies between dist_mGrid[4] and dist_mGrid[5] it is in bin 4 (would be 5 if 1 was not subtracted in the previous line). 
-    mIndex[m_vals <= dist_mGrid[0]] = -1 # if the value is less than the smallest value on dist_mGrid assign it an index of -1
-    mIndex[m_vals >= dist_mGrid[-1]] = len(dist_mGrid)-1 # if value if greater than largest value on dist_mGrid assign it an index of the length of the grid minus 1
-    
-    #the following three lines hold the same intuition as above
-    pIndex = np.digitize(perm_vals,dist_pGrid) - 1
+    """
+
+    probGrid = np.zeros((len(dist_mGrid), len(dist_pGrid)))
+
+    # Maybe use np.searchsorted as opposed to np.digitize
+    mIndex = (
+        np.digitize(m_vals, dist_mGrid) - 1
+    )  # Array indicating in which bin each values of m_vals lies in relative to dist_mGrid. Bins lie between between point of Dist_mGrid.
+    # For instance, if mval lies between dist_mGrid[4] and dist_mGrid[5] it is in bin 4 (would be 5 if 1 was not subtracted in the previous line).
+    mIndex[
+        m_vals <= dist_mGrid[0]
+    ] = (
+        -1
+    )  # if the value is less than the smallest value on dist_mGrid assign it an index of -1
+    mIndex[m_vals >= dist_mGrid[-1]] = (
+        len(dist_mGrid) - 1
+    )  # if value if greater than largest value on dist_mGrid assign it an index of the length of the grid minus 1
+
+    # the following three lines hold the same intuition as above
+    pIndex = np.digitize(perm_vals, dist_pGrid) - 1
     pIndex[perm_vals <= dist_pGrid[0]] = -1
     pIndex[perm_vals >= dist_pGrid[-1]] = len(dist_pGrid) - 1
-    
+
     for i in range(len(m_vals)):
-        if mIndex[i]==-1: # if mval is below smallest gridpoint, then assign it a weight of 1.0 for lower weight. 
+        if (
+            mIndex[i] == -1
+        ):  # if mval is below smallest gridpoint, then assign it a weight of 1.0 for lower weight.
             mlowerIndex = 0
             mupperIndex = 0
             mlowerWeight = 1.0
             mupperWeight = 0.0
-        elif mIndex[i]==len(dist_mGrid)-1: # if mval is greater than maximum gridpoint, then assign the following weights
+        elif (
+            mIndex[i] == len(dist_mGrid) - 1
+        ):  # if mval is greater than maximum gridpoint, then assign the following weights
             mlowerIndex = -1
             mupperIndex = -1
             mlowerWeight = 1.0
             mupperWeight = 0.0
-        else: # Standard case where mval does not lie past any extremes
-        #identify which two points on the grid the mval is inbetween
-            mlowerIndex = mIndex[i] 
-            mupperIndex = mIndex[i]+1
-        #Assign weight to the indices that bound the m_vals point. Intuitively, an mval perfectly between two points on the mgrid will assign a weight of .5 to the gridpoint above and below
-            mlowerWeight = (dist_mGrid[mupperIndex]-m_vals[i])/(dist_mGrid[mupperIndex]-dist_mGrid[mlowerIndex]) #Metric to determine weight of gridpoint/index below. Intuitively, mvals that are close to gridpoint/index above are assigned a smaller mlowerweight.
-            mupperWeight = 1.0 - mlowerWeight # weight of gridpoint/ index above
-            
-        #Same logic as above except the weights here concern the permanent income grid
-        if pIndex[i]==-1: 
+        else:  # Standard case where mval does not lie past any extremes
+            # identify which two points on the grid the mval is inbetween
+            mlowerIndex = mIndex[i]
+            mupperIndex = mIndex[i] + 1
+            # Assign weight to the indices that bound the m_vals point. Intuitively, an mval perfectly between two points on the mgrid will assign a weight of .5 to the gridpoint above and below
+            mlowerWeight = (dist_mGrid[mupperIndex] - m_vals[i]) / (
+                dist_mGrid[mupperIndex] - dist_mGrid[mlowerIndex]
+            )  # Metric to determine weight of gridpoint/index below. Intuitively, mvals that are close to gridpoint/index above are assigned a smaller mlowerweight.
+            mupperWeight = 1.0 - mlowerWeight  # weight of gridpoint/ index above
+
+        # Same logic as above except the weights here concern the permanent income grid
+        if pIndex[i] == -1:
             plowerIndex = 0
             pupperIndex = 0
             plowerWeight = 1.0
             pupperWeight = 0.0
-        elif pIndex[i]==len(dist_pGrid)-1:
+        elif pIndex[i] == len(dist_pGrid) - 1:
             plowerIndex = -1
             pupperIndex = -1
             plowerWeight = 1.0
             pupperWeight = 0.0
         else:
             plowerIndex = pIndex[i]
-            pupperIndex = pIndex[i]+1
-            plowerWeight = (dist_pGrid[pupperIndex]-perm_vals[i])/(dist_pGrid[pupperIndex]-dist_pGrid[plowerIndex])
+            pupperIndex = pIndex[i] + 1
+            plowerWeight = (dist_pGrid[pupperIndex] - perm_vals[i]) / (
+                dist_pGrid[pupperIndex] - dist_pGrid[plowerIndex]
+            )
             pupperWeight = 1.0 - plowerWeight
-            
-        # Compute probabilities of each gridpoint on the combined market resources and permanent income grid by looping through each point on the combined market resources and permanent income grid, 
+
+        # Compute probabilities of each gridpoint on the combined market resources and permanent income grid by looping through each point on the combined market resources and permanent income grid,
         # assigning probabilities to each gridpoint based off the probabilities of the surrounding mvals and pvals and their respective weights placed on the gridpoint.
         # Note* probs[i] is the probability of mval AND pval occurring
-        
-        
-        probGrid[mlowerIndex][plowerIndex] += probs[i]*mlowerWeight*plowerWeight # probability of gridpoint below mval and pval 
-        probGrid[mlowerIndex][pupperIndex] += probs[i]*mlowerWeight*pupperWeight # probability of gridpoint below mval and above pval
-        probGrid[mupperIndex][plowerIndex] +=  probs[i]*mupperWeight*plowerWeight # probability of gridpoint above mval and below pval
-        probGrid[mupperIndex][pupperIndex] +=  probs[i]*mupperWeight*pupperWeight # probability of gridpoint above mval and above pval
 
-    
+        probGrid[mlowerIndex][plowerIndex] += (
+            probs[i] * mlowerWeight * plowerWeight
+        )  # probability of gridpoint below mval and pval
+        probGrid[mlowerIndex][pupperIndex] += (
+            probs[i] * mlowerWeight * pupperWeight
+        )  # probability of gridpoint below mval and above pval
+        probGrid[mupperIndex][plowerIndex] += (
+            probs[i] * mupperWeight * plowerWeight
+        )  # probability of gridpoint above mval and below pval
+        probGrid[mupperIndex][pupperIndex] += (
+            probs[i] * mupperWeight * pupperWeight
+        )  # probability of gridpoint above mval and above pval
+
     return probGrid.flatten()
 
 
-
 @numba.njit(parallel=True)
-def gen_tran_matrix_1D(dist_mGrid, bNext, shk_prbs,perm_shks,tran_shks,LivPrb,NewBornDist):
-    
-    
+def gen_tran_matrix_1D(
+    dist_mGrid, bNext, shk_prbs, perm_shks, tran_shks, LivPrb, NewBornDist
+):
+
     """
-    Computes Transition Matrix across normalized market resources. 
+    Computes Transition Matrix across normalized market resources.
     This function is built to non-stochastic simulate the IndShockConsumerType.
     This function is used exclusively when Harmenberg Neutral Measure is applied and/or if permanent income is not a state variable
     For more information, see https://econ-ark.org/materials/harmenberg-aggregation?launch
@@ -1061,25 +1084,25 @@ def gen_tran_matrix_1D(dist_mGrid, bNext, shk_prbs,perm_shks,tran_shks,LivPrb,Ne
     ----------
     dist_mGrid : np.array
         Grid over normalized market resources
-        
+
     bNext : np.array
         Grid over bank balances
-        
+
     shk_prbs : np.array
         Array of shock probabilities over combinations of permanent and transitory shocks
-        
+
     perm_shks : np.array
         Array of shocks to permanent income. Shocks should follow Harmenberg neutral measure
-        
+
     tran_shks : np.array
-        Array of shocks to transitory 
-        
+        Array of shocks to transitory
+
     LivPrb : float
         Probability of not dying
-        
+
     NewBornDist : np.array
         array representing distribution of newborns across grid of normalized market resources and grid of permanent income.
-        
+
     Returns
     -------
     TranMatrix : np.array
@@ -1087,44 +1110,51 @@ def gen_tran_matrix_1D(dist_mGrid, bNext, shk_prbs,perm_shks,tran_shks,LivPrb,Ne
 
 
     """
-                 
-    TranMatrix = np.zeros((len(dist_mGrid),len(dist_mGrid))) 
+
+    TranMatrix = np.zeros((len(dist_mGrid), len(dist_mGrid)))
     for i in numba.prange(len(dist_mGrid)):
-        mNext_ij = bNext[i]/perm_shks + tran_shks  # Compute next period's market resources given todays bank balances bnext[i]
-        TranMatrix[:,i] = LivPrb*jump_to_grid_1D(mNext_ij, shk_prbs,dist_mGrid) + (1.0-LivPrb)*NewBornDist # this is the transition matrix if given you are unemployed today and unemployed tomorrow so you assume the unemployed consumption policy
+        mNext_ij = (
+            bNext[i] / perm_shks + tran_shks
+        )  # Compute next period's market resources given todays bank balances bnext[i]
+        TranMatrix[:, i] = (
+            LivPrb * jump_to_grid_1D(mNext_ij, shk_prbs, dist_mGrid)
+            + (1.0 - LivPrb) * NewBornDist
+        )  # this is the transition matrix if given you are unemployed today and unemployed tomorrow so you assume the unemployed consumption policy
     return TranMatrix
 
 
 @numba.njit(parallel=True)
-def gen_tran_matrix_2D(dist_mGrid,dist_pGrid,bNext, shk_prbs,perm_shks,tran_shks,LivPrb,NewBornDist):
-    
+def gen_tran_matrix_2D(
+    dist_mGrid, dist_pGrid, bNext, shk_prbs, perm_shks, tran_shks, LivPrb, NewBornDist
+):
+
     """
-    Computes Transition Matrix over normalized market resources and permanent income. 
+    Computes Transition Matrix over normalized market resources and permanent income.
     This function is built to non-stochastic simulate the IndShockConsumerType.
 
     Parameters
     ----------
     dist_mGrid : np.array
         Grid over normalized market resources
-        
+
     dist_pGrid : np.array
-        Grid over permanent income 
+        Grid over permanent income
 
     bNext : np.array
         Grid over bank balances
-        
+
     shk_prbs : np.array
         Array of shock probabilities over combinations of perm and tran shocks
-        
+
     perm_shks : np.array
         Array of shocks to permanent income
-        
+
     tran_shks : np.array
         Array of shocks to transitory income
-        
+
     LivPrb : float
         Probability of not dying
-        
+
     NewBornDist : np.array
          array representing distribution of newborns across grid of normalized market resources and grid of permanent income.
 
@@ -1133,13 +1163,24 @@ def gen_tran_matrix_2D(dist_mGrid,dist_pGrid,bNext, shk_prbs,perm_shks,tran_shks
     TranMatrix : np.array
         Transition Matrix over normalized market resources grid and permanent income grid
     """
-    TranMatrix = np.zeros((len(dist_mGrid)*len(dist_pGrid),len(dist_mGrid)*len(dist_pGrid)))
+    TranMatrix = np.zeros(
+        (len(dist_mGrid) * len(dist_pGrid), len(dist_mGrid) * len(dist_pGrid))
+    )
     for i in numba.prange(len(dist_mGrid)):
         for j in numba.prange(len(dist_pGrid)):
-            mNext_ij = bNext[i]/perm_shks + tran_shks  # Compute next period's market resources given todays bank balances bnext[i]
-            pNext_ij = dist_pGrid[j]*perm_shks # Computes next period's permanent income level by applying permanent income shock
-            TranMatrix[:,i*len(dist_pGrid)+j] = LivPrb*jump_to_grid_2D(mNext_ij, pNext_ij, shk_prbs,dist_mGrid,dist_pGrid) + (1.0-LivPrb)*NewBornDist # this is the transition matrix if given you are unemployed today and unemployed tomorrow so you assume the unemployed consumption policy
+            mNext_ij = (
+                bNext[i] / perm_shks + tran_shks
+            )  # Compute next period's market resources given todays bank balances bnext[i]
+            pNext_ij = (
+                dist_pGrid[j] * perm_shks
+            )  # Computes next period's permanent income level by applying permanent income shock
+            TranMatrix[:, i * len(dist_pGrid) + j] = (
+                LivPrb
+                * jump_to_grid_2D(mNext_ij, pNext_ij, shk_prbs, dist_mGrid, dist_pGrid)
+                + (1.0 - LivPrb) * NewBornDist
+            )  # this is the transition matrix if given you are unemployed today and unemployed tomorrow so you assume the unemployed consumption policy
     return TranMatrix
+
 
 # ==============================================================================
 # ============== Some basic plotting tools  ====================================
@@ -1385,13 +1426,15 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
         # Save the figures in several formats
         print("Saving figure {} in {}".format(figure_name, target_dir))
         plt.savefig(
-            os.path.join(target_dir, "{}.jpg".format(figure_name))
+            os.path.join(target_dir, "{}.jpg".format(figure_name)),
+            metadata={'CreationDate': None}
         )  # For web/html
         plt.savefig(
-            os.path.join(target_dir, "{}.png".format(figure_name))
+            os.path.join(target_dir, "{}.png".format(figure_name)),
+            metadata={'CreationDate': None}
         )  # For web/html
-        plt.savefig(os.path.join(target_dir, "{}.pdf".format(figure_name)))  # For LaTeX
-        plt.savefig(os.path.join(target_dir, "{}.svg".format(figure_name)))  # For html5
+        plt.savefig(os.path.join(target_dir, "{}.pdf".format(figure_name)),metadata={'CreationDate': None})  # For LaTeX
+        plt.savefig(os.path.join(target_dir, "{}.svg".format(figure_name)),metadata={'Date': None})  # For html5
     # Make sure it's possible to plot it by checking for GUI
     if drawFigs and find_gui():
         plt.ion()  # Counterintuitively, you want interactive mode on if you don't want to interact
@@ -1455,3 +1498,27 @@ def benchmark(
     stats.print_stats(max_print)
     if return_output:
         return stats
+
+
+simpledec = re.compile(r"\d*\.\d{8,20}")
+
+
+def mround(match):
+    return "{:.5f}".format(float(match.group()))
+
+
+def round_in_file(filename):
+    with open(filename, "r+") as file:
+        filetext = file.read()
+        filetext = re.sub(simpledec, mround, filetext)
+        file.seek(0)
+        file.write(filetext)
+        file.truncate()
+
+
+def files_in_dir(mypath):
+    return [
+        os.path.join(mypath, f)
+        for f in os.listdir(mypath)
+        if os.path.isfile(os.path.join(mypath, f))
+    ]

@@ -1,6 +1,7 @@
-from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType
-import numpy as np
 import unittest
+
+from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType
+from HARK.tests import HARK_PRECISION
 
 
 class testKinkedRConsumerType(unittest.TestCase):
@@ -17,20 +18,20 @@ class testKinkedRConsumerType(unittest.TestCase):
         KinkyExample.solve()
 
         self.assertAlmostEqual(
-            KinkyExample.solution[0].cFunc(1).tolist(), 0.9623337593984276
+            KinkyExample.solution[0].cFunc(1).tolist(), 0.96233, places=HARK_PRECISION
         )
 
         self.assertAlmostEqual(
-            KinkyExample.solution[0].cFunc(4).tolist(), 1.343766303734248
+            KinkyExample.solution[0].cFunc(4).tolist(), 1.34377, places=HARK_PRECISION
         )
 
         KinkyExample.BoroCnstArt = -0.2
         KinkyExample.solve()
 
         self.assertAlmostEqual(
-            KinkyExample.solution[0].cFunc(1).tolist(), 0.9346895908550565
+            KinkyExample.solution[0].cFunc(1).tolist(), 0.93469, places=HARK_PRECISION
         )
 
         self.assertAlmostEqual(
-            KinkyExample.solution[0].cFunc(4).tolist(), 1.3401428646781697
+            KinkyExample.solution[0].cFunc(4).tolist(), 1.34014, places=HARK_PRECISION
         )
