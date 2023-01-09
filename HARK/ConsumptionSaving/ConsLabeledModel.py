@@ -140,9 +140,11 @@ class PerfForesightLabeledType(IndShockConsumerType):
         )
 
     def update_solution_terminal(self):
+        def u(c):
+            return CRRAutility(c, self.CRRA)  # utility
 
-        u = lambda c: CRRAutility(c, self.CRRA)  # utility
-        uP = lambda c: CRRAutilityP(c, self.CRRA)  # marginal utility
+        def uP(c):
+            return CRRAutilityP(c, self.CRRA)  # marginal utility
 
         mNrm = xr.DataArray(
             np.append(0.0, self.aXtraGrid),
@@ -555,7 +557,7 @@ class RiskyAssetLabeledType(IndShockLabeledType, RiskyAssetConsumerType):
 
         ShockDstn = []
 
-        for i in range(len(self.ShockDstn)):
+        for i in range(len(self.ShockDstn.dstns)):
 
             ShockDstn.append(
                 DiscreteDistributionLabeled.from_unlabeled(
