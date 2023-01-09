@@ -123,7 +123,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         for t in range(len(self.PrefShkStd)):
             PrefShkStd = self.PrefShkStd[t]
             new_dstn = MeanOneLogNormal(
-                sigma=PrefShkStd, seed=self.RNG.randint(0, 2**31 - 1)
+                sigma=PrefShkStd, seed=self.RNG.integers(0, 2**31 - 1)
             ).approx(
                 N=self.PrefShkCount,
                 tail_N=self.PrefShk_tail_N,

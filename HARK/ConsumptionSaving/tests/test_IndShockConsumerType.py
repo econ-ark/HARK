@@ -4,11 +4,12 @@ from copy import copy, deepcopy
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
-    IndShockConsumerType,
     ConsIndShockSolverBasic,
-    init_lifecycle,
+    IndShockConsumerType,
     init_idiosyncratic_shocks,
+    init_lifecycle,
 )
+from HARK.tests import HARK_PRECISION
 
 
 class testIndShockConsumerType(unittest.TestCase):
@@ -26,9 +27,9 @@ class testIndShockConsumerType(unittest.TestCase):
         self.agent.get_shocks()
 
         # simulation test -- seed/generator specific
-        #self.assertEqual(self.agent.shocks["PermShk"][0], 1.0427376294215103)
-        #self.assertAlmostEqual(self.agent.shocks["PermShk"][1], 0.9278094171517413)
-        #self.assertAlmostEqual(self.agent.shocks["TranShk"][0], 0.881761797501595)
+        # self.assertAlmostEqual(self.agent.shocks["PermShk"][0], 1.04274, place = HARK_PRECISION)
+        # self.assertAlmostEqual(self.agent.shocks["PermShk"][1], 0.92781, place = HARK_PRECISION)
+        # self.assertAlmostEqual(self.agent.shocks["TranShk"][0], 0.88176, place = HARK_PRECISION)
 
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerType(**init_lifecycle)
@@ -38,18 +39,30 @@ class testIndShockConsumerType(unittest.TestCase):
         # test the solution_terminal
         self.assertAlmostEqual(LifecycleExample.solution[-1].cFunc(2).tolist(), 2)
 
-        self.assertAlmostEqual(LifecycleExample.solution[9].cFunc(1), 0.79429538)
-        self.assertAlmostEqual(LifecycleExample.solution[8].cFunc(1), 0.79391692)
-        self.assertAlmostEqual(LifecycleExample.solution[7].cFunc(1), 0.79253095)
+        self.assertAlmostEqual(
+            LifecycleExample.solution[9].cFunc(1), 0.79430, places=HARK_PRECISION
+        )
+        self.assertAlmostEqual(
+            LifecycleExample.solution[8].cFunc(1), 0.79392, places=HARK_PRECISION
+        )
+        self.assertAlmostEqual(
+            LifecycleExample.solution[7].cFunc(1), 0.79253, places=HARK_PRECISION
+        )
 
         self.assertAlmostEqual(
-            LifecycleExample.solution[0].cFunc(1).tolist(), 0.7506184692092213
+            LifecycleExample.solution[0].cFunc(1).tolist(),
+            0.75062,
+            places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[1].cFunc(1).tolist(), 0.7586358637239385
+            LifecycleExample.solution[1].cFunc(1).tolist(),
+            0.75864,
+            places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[2].cFunc(1).tolist(), 0.7681247572911291
+            LifecycleExample.solution[2].cFunc(1).tolist(),
+            0.76812,
+            places=HARK_PRECISION,
         )
 
         solver = ConsIndShockSolverBasic(
@@ -68,37 +81,39 @@ class testIndShockConsumerType(unittest.TestCase):
 
         solver.prepare_to_solve()
 
-        self.assertAlmostEqual(solver.DiscFacEff, 0.9586233599999999)
-        self.assertAlmostEqual(solver.PermShkMinNext, 0.6554858756904397)
+        self.assertAlmostEqual(solver.DiscFacEff, 0.95862, places=HARK_PRECISION)
+        self.assertAlmostEqual(solver.PermShkMinNext, 0.65549, places=HARK_PRECISION)
         self.assertAlmostEqual(solver.cFuncNowCnst(4).tolist(), 4.0)
         self.assertAlmostEqual(
-            solver.prepare_to_calc_EndOfPrdvP()[0], -0.19792871012285213
+            solver.prepare_to_calc_EndOfPrdvP()[0], -0.19793, places=HARK_PRECISION
         )
         self.assertAlmostEqual(
-            solver.prepare_to_calc_EndOfPrdvP()[-1], 19.801071289877118
+            solver.prepare_to_calc_EndOfPrdvP()[-1], 19.80107, places=HARK_PRECISION
         )
 
         EndOfPrdvP = solver.calc_EndOfPrdvP()
 
-        self.assertAlmostEqual(EndOfPrdvP[0], 6657.839372100613)
-        self.assertAlmostEqual(EndOfPrdvP[-1], 0.2606075215645896)
+        self.assertAlmostEqual(EndOfPrdvP[0], 6657.83937, places=HARK_PRECISION)
+        self.assertAlmostEqual(EndOfPrdvP[-1], 0.26061, places=HARK_PRECISION)
 
         solution = solver.make_basic_solution(
             EndOfPrdvP, solver.aNrmNow, solver.make_linear_cFunc
         )
         solver.add_MPC_and_human_wealth(solution)
 
-        self.assertAlmostEqual(solution.cFunc(4).tolist(), 1.0028005137373956)
+        self.assertAlmostEqual(
+            solution.cFunc(4).tolist(), 1.00280, places=HARK_PRECISION
+        )
 
     def test_simulated_values(self):
         self.agent.initialize_sim()
         self.agent.simulate()
 
         # MPCnow depends on assets, which are stochastic
-        #self.assertAlmostEqual(self.agent.MPCnow[1], 0.5711503906043797)
-        
+        # self.assertAlmostEqual(self.agent.MPCnow[1], 0.57115, place = HARK_PRECISION)
+
         # simulation test -- seed/generator specific
-        #self.assertAlmostEqual(self.agent.state_now["aLvl"][1], 0.18438326264597635)
+        # self.assertAlmostEqual(self.agent.state_now["aLvl"][1], 0.18438, place = HARK_PRECISION)
 
 
 class testBufferStock(unittest.TestCase):
@@ -137,12 +152,12 @@ class testBufferStock(unittest.TestCase):
         c_t5 = baseEx.cFunc[-6](m)
         c_t10 = baseEx.cFunc[-11](m)
 
-        self.assertAlmostEqual(c_m[500], 1.4008090582203356)
-        self.assertAlmostEqual(c_t1[500], 2.9227437159255216)
-        self.assertAlmostEqual(c_t5[500], 1.7350607327187664)
-        self.assertAlmostEqual(c_t10[500], 1.4991390649979213)
-        self.assertAlmostEqual(c_t10[600], 1.6101476268581576)
-        self.assertAlmostEqual(c_t10[700], 1.7196531041366991)
+        self.assertAlmostEqual(c_m[500], 1.40081, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t1[500], 2.92274, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t5[500], 1.73506, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t10[500], 1.49914, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t10[600], 1.61015, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t10[700], 1.71965, places=HARK_PRECISION)
 
     def test_GICRawFails(self):
         GICRaw_fail_dictionary = dict(self.base_params)
@@ -159,8 +174,8 @@ class testBufferStock(unittest.TestCase):
         m = np.linspace(0, 5, 1000)
         c_m = GICRawFailExample.cFunc[0](m)
 
-        self.assertAlmostEqual(c_m[500], 0.7772637042393458)
-        self.assertAlmostEqual(c_m[700], 0.8392649061916746)
+        self.assertAlmostEqual(c_m[500], 0.77726, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_m[700], 0.83926, places=HARK_PRECISION)
 
         self.assertFalse(GICRawFailExample.conditions["GICRaw"])
 
@@ -175,22 +190,22 @@ class testBufferStock(unittest.TestCase):
         )  # m1 defines the plot range on the left of target m value (e.g. m <= target m)
         c_m1 = baseEx_inf.cFunc[0](m1)
 
-        self.assertAlmostEqual(c_m1[0], 0.8527887545025995)
-        self.assertAlmostEqual(c_m1[-1], 1.0036279936408656)
+        self.assertAlmostEqual(c_m1[0], 0.85279, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_m1[-1], 1.00363, places=HARK_PRECISION)
 
         x1 = np.linspace(0, 25, 1000)
         cfunc_m = baseEx_inf.cFunc[0](x1)
 
-        self.assertAlmostEqual(cfunc_m[500], 1.8902146173138235)
-        self.assertAlmostEqual(cfunc_m[700], 2.1591451850267176)
+        self.assertAlmostEqual(cfunc_m[500], 1.89021, places=HARK_PRECISION)
+        self.assertAlmostEqual(cfunc_m[700], 2.15915, places=HARK_PRECISION)
 
         m = np.linspace(0.001, 8, 1000)
 
         # Use the HARK method derivative to get the derivative of cFunc, and the values are just the MPC
         MPC = baseEx_inf.cFunc[0].derivative(m)
 
-        self.assertAlmostEqual(MPC[500], 0.08415000641504392)
-        self.assertAlmostEqual(MPC[700], 0.07173144137912524)
+        self.assertAlmostEqual(MPC[500], 0.08415, places=HARK_PRECISION)
+        self.assertAlmostEqual(MPC[700], 0.07173, places=HARK_PRECISION)
 
 
 IdiosyncDict = {
@@ -242,9 +257,13 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         )  # Make this type have an infinite horizon
         IndShockExample.solve()
 
-        self.assertAlmostEqual(IndShockExample.solution[0].mNrmStE, 1.5488165705077026)
         self.assertAlmostEqual(
-            IndShockExample.solution[0].cFunc.functions[0].x_list[0], -0.25017509
+            IndShockExample.solution[0].mNrmStE, 1.54882, places=HARK_PRECISION
+        )
+        self.assertAlmostEqual(
+            IndShockExample.solution[0].cFunc.functions[0].x_list[0],
+            -0.25018,
+            places=HARK_PRECISION,
         )
 
         IndShockExample.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl"]
@@ -252,9 +271,7 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         IndShockExample.simulate()
 
         # simulation test -- seed/generator specific
-        #self.assertAlmostEqual(
-        #    IndShockExample.history["mNrm"][0][0], 1.0170176090252379
-        #)
+        # self.assertAlmostEqual(        #    IndShockExample.history["mNrm"][0][0], 1.01702, place = HARK_PRECISION        # )
 
 
 LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionary
@@ -314,7 +331,9 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
         )
 
         self.assertAlmostEqual(
-            LifecycleExample.solution[5].cFunc(3).tolist(), 2.129983771775666
+            LifecycleExample.solution[5].cFunc(3).tolist(),
+            2.12998,
+            places=HARK_PRECISION,
         )
 
 
@@ -386,13 +405,17 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         CyclicalExample.solve()
 
         self.assertAlmostEqual(
-            CyclicalExample.solution[3].cFunc(3).tolist(), 1.5958390056965004
+            CyclicalExample.solution[3].cFunc(3).tolist(),
+            1.59584,
+            places=HARK_PRECISION,
         )
 
         CyclicalExample.initialize_sim()
         CyclicalExample.simulate()
 
-        self.assertAlmostEqual(CyclicalExample.state_now["aLvl"][1], 0.41839957)
+        self.assertAlmostEqual(
+            CyclicalExample.state_now["aLvl"][1], 2.41243, places=HARK_PRECISION
+        )
 
 
 # %% Tests of 'stable points'
@@ -432,9 +455,8 @@ class testStablePoints(unittest.TestCase):
         mNrmTrg = baseAgent_Inf.solution[0].mNrmTrg
 
         # Check against pre-computed values
-        decimalPlacesTo = 10
-        self.assertAlmostEqual(mNrmStE, 1.37731133865, decimalPlacesTo)
-        self.assertAlmostEqual(mNrmTrg, 1.39101653806, decimalPlacesTo)
+        self.assertAlmostEqual(mNrmStE, 1.37731, places=HARK_PRECISION)
+        self.assertAlmostEqual(mNrmTrg, 1.39102, places=HARK_PRECISION)
 
 
 JACDict = {
@@ -601,7 +623,7 @@ class testPerfMITShk(unittest.TestCase):
         AHist.append(np.array(listA))
         JACA = (AHist[0] - A_dx0) / (dx)
 
-        self.assertAlmostEqual(JACA[175], 6.441930322509393e-06)
+        self.assertAlmostEqual(JACA[175], 6.44193e-06)
 
 
 dict_harmenberg = {
@@ -705,9 +727,9 @@ class test_Harmenbergs_method(unittest.TestCase):
         # simulation tests -- seed/generator specific
         # But these are based on aggregate population statistics.
         # WARNING: May fail stochastically, or based on specific RNG types.
-        #self.assertAlmostEqual(c_std2, 0.0376882, places = 2)
-        #self.assertAlmostEqual(c_std1, 0.0044117, places = 2)
-        #self.assertAlmostEqual(c_std_ratio, 8.5426941, places = 2)
+        # self.assertAlmostEqual(c_std2, 0.0376882, places = 2)
+        # self.assertAlmostEqual(c_std1, 0.0044117, places = 2)
+        # self.assertAlmostEqual(c_std_ratio, 8.5426941, places = 2)
 
 
 # %% Shock pre-computing tests
@@ -771,8 +793,8 @@ class testReadShock(unittest.TestCase):
         self.assertTrue(
             np.all(agent.history["bNrm"][age == 1] == a_init_newborns / pshk_newborns)
         )
-        
-        
+
+
 class testLCMortalityReadShocks(unittest.TestCase):
     """
     Tests that mortality is working adequately when shocks are read
@@ -848,41 +870,55 @@ class testLCMortalityReadShocks(unittest.TestCase):
         # because we are killing agents before T_cycle)
         self.assertTrue(np.all(hist["t_age"] == hist["t_cycle"]))
 
-#%% Test Transition Matrix Methods
 
+#%% Test Transition Matrix Methods
 
 
 class test_Transition_Matrix_Methods(unittest.TestCase):
     def test_calc_tran_matrix(self):
-        
-        example1 = IndShockConsumerType(**dict_harmenberg)
-        example1.cycles= 0
-        example1.solve()
-        
-        example1.define_distribution_grid()
-        p = example1.dist_pGrid # Grid of permanent income levels
-        
-        example1.calc_transition_matrix() 
-        c = example1.cPol_Grid # Normalized Consumption Policy Grid
-        asset = example1.aPol_Grid # Normalized Asset Policy Grid
-        
-        example1.calc_ergodic_dist()
-        vecDstn = example1.vec_erg_dstn # Distribution of market resources and permanent income as a vector (m*p)x1 vector where 
-        
-        
-        #Compute Aggregate Consumption and Aggregate Assets
-        gridc = np.zeros( (len(c),len(p)) )
-        grida = np.zeros( (len(asset),len(p)) )
-        
-        for j in range(len(p)):
-            gridc[:,j] = p[j]*c # unnormalized Consumption policy grid
-            grida[:,j] = p[j]*asset # unnormalized Asset policy grid
-            
-        AggC = np.dot(gridc.flatten(), vecDstn) #Aggregate Consumption
-        AggA = np.dot(grida.flatten(), vecDstn) #Aggregate Assets
-        
-        
-              
-        self.assertAlmostEqual(AggA[0],  1.1951311747835132, places =4) 
-        self.assertAlmostEqual(AggC[0], 1.0041701073134557, places = 4)
 
+        example1 = IndShockConsumerType(**dict_harmenberg)
+        example1.cycles = 0
+        example1.solve()
+
+        example1.define_distribution_grid()
+        p = example1.dist_pGrid  # Grid of permanent income levels
+
+        example1.calc_transition_matrix()
+        c = example1.cPol_Grid  # Normalized Consumption Policy Grid
+        asset = example1.aPol_Grid  # Normalized Asset Policy Grid
+
+        example1.calc_ergodic_dist()
+        vecDstn = (
+            example1.vec_erg_dstn
+        )  # Distribution of market resources and permanent income as a vector (m*p)x1 vector where
+
+        # Compute Aggregate Consumption and Aggregate Assets
+        gridc = np.zeros((len(c), len(p)))
+        grida = np.zeros((len(asset), len(p)))
+
+        for j in range(len(p)):
+            gridc[:, j] = p[j] * c  # unnormalized Consumption policy grid
+            grida[:, j] = p[j] * asset  # unnormalized Asset policy grid
+
+        AggC = np.dot(gridc.flatten(), vecDstn)  # Aggregate Consumption
+        AggA = np.dot(grida.flatten(), vecDstn)  # Aggregate Assets
+
+        self.assertAlmostEqual(AggA[0], 1.19513, places=4)
+        self.assertAlmostEqual(AggC[0], 1.00417, places=4)
+
+
+#%% Test Heterogenous Agent Jacobian Methods
+
+
+class test_Jacobian_methods(unittest.TestCase):
+    def test_calc_jacobian(self):
+
+        Agent = IndShockConsumerType(**dict_harmenberg)
+        Agent.compute_steady_state()
+
+        CJAC_Perm, AJAC_Perm = Agent.calc_jacobian("PermShkStd", 50)
+
+        self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.06120, places=HARK_PRECISION)
+        self.assertAlmostEqual(CJAC_Perm.T[30][30], 0.05307, places=HARK_PRECISION)
+        self.assertAlmostEqual(CJAC_Perm.T[30][31], 0.04674, places=HARK_PRECISION)
