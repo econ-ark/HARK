@@ -35,6 +35,7 @@ Release Date: TBD
 * Enhances `combine_indep_dstns` to work with labeled distributions (`DiscreteDistributionLabeled`). [#1191](htttps://github.com/econ-ark/HARK/pull/1191)
 * Updates the `numpy` random generator from `RandomState` to `Generator`. [#1193](https://github.com/econ-ark/HARK/pull/1193)
 * Turns the income and income+return distributions into `DiscreteDistributionLabeled` objects. [#1189](https://github.com/econ-ark/HARK/pull/1189)
+* Creates `UtilityFuncCRRA` which is an object oriented utility function with a coefficient of constant relative risk aversion and includes derivatives and inverses. Also creates `UtilityFuncCobbDouglas`, `UtilityFuncCobbDouglasCRRA`, and `UtilityFuncConstElastSubs`. [#1168](https://github.com/econ-ark/HARK/pull/1168)
 
 ### Minor Changes
 

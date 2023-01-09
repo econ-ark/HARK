@@ -15,27 +15,27 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 from HARK.distribution import Lognormal, Uniform, calc_expectation
 from HARK.interpolation import (
-    LowerEnvelope2D,
     BilinearInterp,
-    VariableLowerBoundFunc2D,
-    LinearInterpOnInterp1D,
-    LinearInterp,
     CubicInterp,
+    LinearInterp,
+    LinearInterpOnInterp1D,
+    LowerEnvelope2D,
+    MargMargValueFuncCRRA,
+    MargValueFuncCRRA,
     UpperEnvelope,
     ValueFuncCRRA,
-    MargValueFuncCRRA,
-    MargMargValueFuncCRRA,
+    VariableLowerBoundFunc2D,
 )
-from HARK.utilities import (
+from HARK.rewards import (
     CRRAutility,
-    CRRAutilityP,
-    CRRAutilityPP,
-    CRRAutilityP_inv,
-    CRRAutility_invP,
     CRRAutility_inv,
+    CRRAutility_invP,
+    CRRAutilityP,
+    CRRAutilityP_inv,
     CRRAutilityP_invP,
-    get_percentiles,
+    CRRAutilityPP,
 )
+from HARK.utilities import get_percentiles
 
 __all__ = [
     "pLvlFuncAR1",
@@ -554,7 +554,8 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         pSize = self.pLvlGrid.size
 
         # Compute expected value and marginal value on a grid of market resources
-        pLvl_temp = np.tile(self.pLvlGrid, (mSize, 1))  # Tile pLvl across m values
+        # Tile pLvl across m values
+        pLvl_temp = np.tile(self.pLvlGrid, (mSize, 1))
         mLvl_temp = (
             np.tile(self.mLvlMinNow(self.pLvlGrid), (mSize, 1))
             + np.tile(np.reshape(self.aXtraGrid, (mSize, 1)), (1, pSize)) * pLvl_temp
@@ -663,7 +664,8 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         for j in range(pLvl.shape[0]):
             pLvl_j = pLvl[j, 0]
             m_temp = mLvl[j, :] - self.BoroCnstNat(pLvl_j)
-            c_temp = cLvl[j, :]  # Make a linear consumption function for this pLvl
+            # Make a linear consumption function for this pLvl
+            c_temp = cLvl[j, :]
             if pLvl_j > 0:
                 cFunc_by_pLvl_list.append(
                     LinearInterp(
@@ -720,7 +722,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             * calc_expectation(self.IncShkDstn, vpp_next, self.aLvlNow, self.pLvlNow)
         )
 
-        dcda = EndOfPrdvPP / self.uPP(np.array(cLvl[1:, 1:]))
+        dcda = EndOfPrdvPP / self.u.der(np.array(cLvl[1:, 1:]), order=2)
         MPC = dcda / (dcda + 1.0)
         MPC = np.concatenate((np.reshape(MPC[:, 0], (MPC.shape[0], 1)), MPC), axis=1)
         # Stick an extra MPC value at bottom; MPCmax doesn't work
@@ -733,7 +735,8 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         for j in range(pLvl.shape[0]):
             pLvl_j = pLvl[j, 0]
             m_temp = mLvl[j, :] - self.BoroCnstNat(pLvl_j)
-            c_temp = cLvl[j, :]  # Make a cubic consumption function for this pLvl
+            # Make a cubic consumption function for this pLvl
+            c_temp = cLvl[j, :]
             MPC_temp = MPC[j, :]
             if pLvl_j > 0:
                 cFunc_by_pLvl_list.append(
@@ -1088,7 +1091,8 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         self.state_now["aLvl"][which_agents] = (
             aNrmNow_new * self.state_now["pLvl"][which_agents]
         )
-        self.t_age[which_agents] = 0  # How many periods since each agent was born
+        # How many periods since each agent was born
+        self.t_age[which_agents] = 0
         # Which period of the cycle each agent is currently in
         self.t_cycle[which_agents] = 0
 

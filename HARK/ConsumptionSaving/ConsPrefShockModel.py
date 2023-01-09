@@ -7,26 +7,26 @@ It currently only two models:
    by inheriting from multiple classes.
 """
 import numpy as np
+
 from HARK import make_one_period_oo_solver
-from HARK.distribution import MeanOneLogNormal
 from HARK.ConsumptionSaving.ConsIndShockModel import (
-    IndShockConsumerType,
-    ConsumerSolution,
     ConsIndShockSolver,
-    KinkedRconsumerType,
     ConsKinkedRsolver,
+    ConsumerSolution,
+    IndShockConsumerType,
+    KinkedRconsumerType,
     init_idiosyncratic_shocks,
     init_kinked_R,
 )
+from HARK.distribution import MeanOneLogNormal
 from HARK.interpolation import (
-    LinearInterpOnInterp1D,
-    LinearInterp,
     CubicInterp,
+    LinearInterp,
+    LinearInterpOnInterp1D,
     LowerEnvelope,
-    ValueFuncCRRA,
     MargValueFuncCRRA,
+    ValueFuncCRRA,
 )
-
 
 # Make a dictionary to specify a preference shock consumer
 init_preference_shocks = dict(
@@ -502,8 +502,9 @@ class ConsPrefShockSolver(ConsIndShockSolver):
             vPnow += this_prob * this_shock * self.uP(cNrmNow)
 
         # Construct the beginning-of-period value function
-        vNvrs = self.uinv(vNrmNow)  # value transformed through inverse utility
-        vNvrsP = vPnow * self.uinvP(vNrmNow)
+        # value transformed through inverse utility
+        vNvrs = self.u.inv(vNrmNow)
+        vNvrsP = vPnow * self.u.derinv(vNrmNow, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, self.mNrmMinNow)
         vNvrs = np.insert(vNvrs, 0, 0.0)
         vNvrsP = np.insert(

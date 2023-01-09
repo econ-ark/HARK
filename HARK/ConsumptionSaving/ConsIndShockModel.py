@@ -53,7 +53,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
-from HARK.utilities import (
+from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
     CRRAutility_invP,
@@ -61,6 +61,9 @@ from HARK.utilities import (
     CRRAutilityP_inv,
     CRRAutilityP_invP,
     CRRAutilityPP,
+    UtilityFuncCRRA,
+)
+from HARK.utilities import (
     construct_assets_grid,
     gen_tran_matrix_1D,
     gen_tran_matrix_2D,
@@ -868,7 +871,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         float
            normalized market resources in the next period
         """
-        return Rfree / (self.PermGroFac * shocks['PermShk']) * a_nrm + shocks['TranShk']
+        return Rfree / (self.PermGroFac * shocks["PermShk"]) * a_nrm + shocks["TranShk"]
 
     def calc_EndOfPrdvP(self):
         """
@@ -887,7 +890,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
 
         def vp_next(shocks, a_nrm, Rfree):
-            return shocks['PermShk'] ** (-self.CRRA) * self.vPfuncNext(
+            return shocks["PermShk"] ** (-self.CRRA) * self.vPfuncNext(
                 self.m_nrm_next(shocks, a_nrm, Rfree)
             )
 
@@ -1133,7 +1136,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         """
 
         def vpp_next(shocks, a_nrm, Rfree):
-            return shocks['PermShk'] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
+            return shocks["PermShk"] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
                 self.m_nrm_next(shocks, a_nrm, Rfree)
             )
 
@@ -1171,7 +1174,8 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
 
         def v_lvl_next(shocks, a_nrm, Rfree):
             return (
-                shocks['PermShk'] ** (1.0 - self.CRRA) * self.PermGroFac ** (1.0 - self.CRRA)
+                shocks["PermShk"] ** (1.0 - self.CRRA)
+                * self.PermGroFac ** (1.0 - self.CRRA)
             ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm, Rfree))
 
         EndOfPrdv = self.DiscFacEff * expected(
@@ -1237,8 +1241,9 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         vPnow = self.uP(cNrmNow)
 
         # Construct the beginning-of-period value function
-        vNvrs = self.uinv(vNrmNow)  # value transformed through inverse utility
-        vNvrsP = vPnow * self.uinvP(vNrmNow)
+        # value transformed through inverse utility
+        vNvrs = self.u.inv(vNrmNow)
+        vNvrsP = vPnow * self.u.derinv(vNrmNow, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, self.mNrmMinNow)
         vNvrs = np.insert(vNvrs, 0, 0.0)
         vNvrsP = np.insert(
@@ -3630,11 +3635,11 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
         joint_dstn = combine_indep_dstns(perm_dstn, tran_dstn)
 
         super().__init__(
-            name='Joint distribution of permanent and transitory shocks to income',
-            var_names=['PermShk','TranShk'],
+            name="Joint distribution of permanent and transitory shocks to income",
+            var_names=["PermShk", "TranShk"],
             pmv=joint_dstn.pmv,
             data=joint_dstn.atoms,
-            seed=seed
+            seed=seed,
         )
 
 

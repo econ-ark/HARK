@@ -4,9 +4,9 @@ stochastic Markov state.  The only solver here extends ConsIndShockModel to
 include a Markov state; the interest factor, permanent growth factor, and income
 distribution can vary with the discrete state.
 """
-from copy import deepcopy
 
 import numpy as np
+
 from HARK import AgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolver,
@@ -14,12 +14,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     PerfForesightConsumerType,
 )
-from HARK.distribution import (
-    DiscreteDistribution,
-    MarkovProcess,
-    Uniform,
-    calc_expectation,
-)
+from HARK.distribution import MarkovProcess, Uniform, calc_expectation
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
@@ -27,7 +22,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
-from HARK.utilities import (
+from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
     CRRAutility_invP,
@@ -323,7 +318,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         """
 
         def vpp_next(shocks, a_nrm, Rfree):
-            return shocks['PermShk'] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
+            return shocks["PermShk"] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
                 self.m_nrm_next(shocks, a_nrm, Rfree)
             )
 
@@ -714,8 +709,9 @@ class ConsMarkovSolver(ConsIndShockSolver):
             vPnow = self.uP(cGrid)
 
             # Make a "decurved" value function with the inverse utility function
-            vNvrs = self.uinv(vNrmNow)  # value transformed through inverse utility
-            vNvrsP = vPnow * self.uinvP(vNrmNow)
+            # value transformed through inverse utility
+            vNvrs = self.u.inv(vNrmNow)
+            vNvrsP = vPnow * self.u.derinv(vNrmNow, order=(0, 1))
             mNrm_temp = np.insert(mGrid, 0, mNrmMin)  # add the lower bound
             vNvrs = np.insert(vNvrs, 0, 0.0)
             vNvrsP = np.insert(
