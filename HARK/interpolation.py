@@ -13,7 +13,7 @@ import numpy as np
 from scipy.interpolate import CubicHermiteSpline
 
 from HARK.core import MetricObject
-from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP
+from HARK.rewards import CRRAutility, CRRAutilityP, CRRAutilityPP
 
 
 def _isscalar(x):
@@ -4626,7 +4626,7 @@ class MargValueFuncCRRA(MetricObject):
             Marginal lifetime value of beginning this period with state
             cFuncArgs
         """
-        return CRRAutilityP(self.cFunc(*cFuncArgs), gam=self.CRRA)
+        return CRRAutilityP(self.cFunc(*cFuncArgs), rho=self.CRRA)
 
     def derivativeX(self, *cFuncArgs):
         """
@@ -4661,7 +4661,7 @@ class MargValueFuncCRRA(MetricObject):
                 + "marginal marginal value."
             )
 
-        return MPC * CRRAutilityPP(c, gam=self.CRRA)
+        return MPC * CRRAutilityPP(c, rho=self.CRRA)
 
 
 class MargMargValueFuncCRRA(MetricObject):
@@ -4719,7 +4719,7 @@ class MargMargValueFuncCRRA(MetricObject):
                 + "marginal marginal value."
             )
 
-        return MPC * CRRAutilityPP(c, gam=self.CRRA)
+        return MPC * CRRAutilityPP(c, rho=self.CRRA)
 
 
 ##############################################################################

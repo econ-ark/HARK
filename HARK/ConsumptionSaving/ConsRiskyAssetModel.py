@@ -615,7 +615,7 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
         """
 
         vals = calc_expectation(dstn, func, grid)
-        nvrs = self.uPinv(vals)
+        nvrs = self.u.derinv(vals, order=(1, 0))
         nvrsFunc = LinearInterp(grid, nvrs)
         margValueFunc = MargValueFuncCRRA(nvrsFunc, self.CRRA)
 
@@ -717,7 +717,7 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
         """
 
         vals = calc_expectation(dstn, func, grid)
-        nvrs = self.uinv(vals)
+        nvrs = self.u.inv(vals)
         nvrsFunc = LinearInterp(grid, nvrs)
         valueFunc = ValueFuncCRRA(nvrsFunc, self.CRRA)
 
@@ -1002,7 +1002,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
         EndOfPrddvda = self.DiscFacEff * calc_expectation(
             self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.risky_share_optimal
         )
-        EndOfPrddvdaNvrs = self.uPinv(EndOfPrddvda)
+        EndOfPrddvdaNvrs = self.u.derinv(EndOfPrddvda, order=(1, 0))
         EndOfPrddvdaNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrddvdaNvrs)
         EndOfPrddvdaFunc = MargValueFuncCRRA(EndOfPrddvdaNvrsFunc, self.CRRA)
 
@@ -1060,7 +1060,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
                 self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.risky_share_optimal
             )
 
-            EndOfPrddvdaNvrs = self.uPinv(EndOfPrddvda)
+            EndOfPrddvdaNvrs = self.u.derinv(EndOfPrddvda, order=(1, 0))
             EndOfPrddvdaNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrddvdaNvrs)
             self.EndOfPrddvdaFunc = MargValueFuncCRRA(EndOfPrddvdaNvrsFunc, self.CRRA)
 
@@ -1299,7 +1299,7 @@ class ConsFixedPortfolioIndShkRiskyAssetSolver(ConsIndShockSolver):
             * calc_expectation(self.ShockDstn, v_next, self.aNrmNow)
         )
         # value transformed through inverse utility
-        EndOfPrdvNvrs = self.uinv(EndOfPrdv)
+        EndOfPrdvNvrs = self.u.inv(EndOfPrdv)
         aNrm_temp = np.insert(self.aNrmNow, 0, self.BoroCnstNat)
         EndOfPrdvNvrsFunc = LinearInterp(aNrm_temp, EndOfPrdvNvrs)
         self.EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)

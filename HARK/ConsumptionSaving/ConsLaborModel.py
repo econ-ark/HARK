@@ -9,26 +9,26 @@ productivity shocks.  Agents choose their quantities of labor and consumption af
 observing both of these shocks, so the transitory shock is a state variable.
 """
 import sys
-
 from copy import copy
+
+import matplotlib.pyplot as plt
 import numpy as np
-from HARK.core import MetricObject
-from HARK.utilities import CRRAutilityP, CRRAutilityP_inv
-from HARK.interpolation import (
-    LinearInterp,
-    LinearInterpOnInterp1D,
-    VariableLowerBoundFunc2D,
-    BilinearInterp,
-    ConstantFunction,
-    ValueFuncCRRA,
-    MargValueFuncCRRA,
-)
+
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_idiosyncratic_shocks,
 )
-
-import matplotlib.pyplot as plt
+from HARK.core import MetricObject
+from HARK.interpolation import (
+    BilinearInterp,
+    ConstantFunction,
+    LinearInterp,
+    LinearInterpOnInterp1D,
+    MargValueFuncCRRA,
+    ValueFuncCRRA,
+    VariableLowerBoundFunc2D,
+)
+from HARK.rewards import CRRAutilityP, CRRAutilityP_inv
 
 
 class ConsumerLaborSolution(MetricObject):
@@ -165,7 +165,9 @@ def solve_ConsLaborIntMarg(
     PermShkVals = PermShkDstn.atoms.flatten()
     TranShkCount = TranShkPrbs.size
     PermShkCount = PermShkPrbs.size
-    uPinv = lambda X: CRRAutilityP_inv(X, gam=CRRA)
+
+    def uPinv(X):
+        return CRRAutilityP_inv(X, rho=CRRA)
 
     # Make tiled versions of the grid of a_t values and the components of the shock distribution
     aXtraCount = aXtraGrid.size
@@ -480,7 +482,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.get_states(self)
-        self.state_now["mNrm"][:] = np.nan  # Delete market resource calculation
+        # Delete market resource calculation
+        self.state_now["mNrm"][:] = np.nan
 
     def get_controls(self):
         """
@@ -620,9 +623,9 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         vFunc_terminal = ValueFuncCRRA(vNvrsFunc_terminal, self.CRRA)
 
         # Using the envelope condition at the terminal solution to estimate the marginal value function
-        vPterm = LsrTerm**LbrCost * CRRAutilityP(xEffTerm, gam=self.CRRA)
+        vPterm = LsrTerm**LbrCost * CRRAutilityP(xEffTerm, rho=self.CRRA)
         vPnvrsTerm = CRRAutilityP_inv(
-            vPterm, gam=self.CRRA
+            vPterm, rho=self.CRRA
         )  # Evaluate the inverse of the CRRA marginal utility function at a given marginal value, vP
 
         vPnvrsFunc_terminal = BilinearInterp(vPnvrsTerm, bNrmGrid, TranShkGrid)

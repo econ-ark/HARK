@@ -6,26 +6,22 @@ and saving in a risky asset (with higher average return).
 
 This file also demonstrates a "frame" model architecture.
 """
-from copy import deepcopy
 
 import numpy as np
-from scipy.optimize import minimize_scalar
 
-from HARK.ConsumptionSaving.ConsIndShockModel import LognormPermIncShk
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     PortfolioConsumerType,
     init_portfolio,
 )
-from HARK.distribution import Bernoulli  # Random draws for simulating agents
 from HARK.distribution import (
+    Bernoulli,
     IndexDistribution,
     Lognormal,
     MeanOneLogNormal,
     add_discrete_outcome_constant_mean,
-    combine_indep_dstns,
 )
 from HARK.frame import Frame, FrameAgentType, FrameModel
-from HARK.utilities import CRRAutility
+from HARK.rewards import CRRAutility
 
 
 class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):

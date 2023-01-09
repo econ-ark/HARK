@@ -6,7 +6,6 @@ used for solving "macroeconomic" models with aggregate shocks.
 """
 from copy import deepcopy
 
-import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
 
@@ -35,15 +34,15 @@ from HARK.interpolation import (
     UpperEnvelope,
     VariableLowerBoundFunc2D,
 )
-from HARK.utilities import (
+from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
     CRRAutility_invP,
     CRRAutilityP,
     CRRAutilityP_inv,
     CRRAutilityPP,
-    make_grid_exp_mult,
 )
+from HARK.utilities import make_grid_exp_mult
 
 __all__ = [
     "AggShockConsumerType",
@@ -99,7 +98,7 @@ class MargValueFunc2D(MetricObject):
         self.CRRA = CRRA
 
     def __call__(self, m, M):
-        return utilityP(self.cFunc(m, M), gam=self.CRRA)
+        return utilityP(self.cFunc(m, M), rho=self.CRRA)
 
 
 ###############################################################################
