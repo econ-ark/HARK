@@ -1,13 +1,12 @@
-from HARK.utilities import CRRAutility_inv
-import numpy as np
-from HARK.ConsumptionSaving.ConsMedModel import MedShockConsumerType
 import unittest
+
+from HARK.ConsumptionSaving.ConsMedModel import MedShockConsumerType
 
 
 class testMedShockConsumerType(unittest.TestCase):
     def setUp(self):
 
-        self.agent = MedicalExample = MedShockConsumerType()
+        self.agent = MedShockConsumerType()
 
     def test_solution(self):
 

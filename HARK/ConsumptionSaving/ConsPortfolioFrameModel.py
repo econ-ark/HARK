@@ -6,27 +6,22 @@ and saving in a risky asset (with higher average return).
 
 This file also demonstrates a "frame" model architecture.
 """
+
 import numpy as np
-from scipy.optimize import minimize_scalar
-from copy import deepcopy
-from HARK.frame import Frame, FrameAgentType, FrameModel
 
-from HARK.ConsumptionSaving.ConsIndShockModel import LognormPermIncShk
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
-    init_portfolio,
     PortfolioConsumerType,
+    init_portfolio,
 )
-
-from HARK.distribution import combine_indep_dstns, add_discrete_outcome_constant_mean
+from HARK.distribution import Bernoulli  # Random draws for simulating agents
 from HARK.distribution import (
     IndexDistribution,
     Lognormal,
     MeanOneLogNormal,
-    Bernoulli,  # Random draws for simulating agents
+    add_discrete_outcome_constant_mean,
 )
-from HARK.utilities import (
-    CRRAutility,
-)
+from HARK.frame import Frame, FrameAgentType, FrameModel
+from HARK.rewards import CRRAutility
 
 
 class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
@@ -57,7 +52,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
 
         super().solve(self)
 
-        ## TODO: make this a property of FrameAgentTypes or FrameModels?
+        # TODO: make this a property of FrameAgentTypes or FrameModels?
         self.decision_rules = {}
 
         def decision_rule_Share_from_solution(solution_t):
@@ -154,7 +149,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                     x=init_portfolio["IncUnemp"],
                 ),
             ),
-            Frame(  ## TODO: Handle Risky as an Aggregate value
+            Frame(  # TODO: Handle Risky as an Aggregate value
                 ("Risky"),
                 None,
                 transition=IndexDistribution(
@@ -216,7 +211,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             Frame(("cNrm"), ("Adjust", "mNrm", "Share"), control=True),
             Frame(
                 ("U"),
-                ("cNrm", "CRRA"),  ## Note CRRA here is a parameter not a state var
+                ("cNrm", "CRRA"),  # Note CRRA here is a parameter not a state var
                 transition=lambda cNrm, CRRA: (CRRAutility(cNrm, CRRA),),
                 reward=True,
             ),
