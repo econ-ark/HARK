@@ -36,6 +36,7 @@ Release Date: TBD
 * Updates the `numpy` random generator from `RandomState` to `Generator`. [#1193](https://github.com/econ-ark/HARK/pull/1193)
 * Turns the income and income+return distributions into `DiscreteDistributionLabeled` objects. [#1189](https://github.com/econ-ark/HARK/pull/1189)
 * Creates `UtilityFuncCRRA` which is an object oriented utility function with a coefficient of constant relative risk aversion and includes derivatives and inverses. Also creates `UtilityFuncCobbDouglas`, `UtilityFuncCobbDouglasCRRA`, and `UtilityFuncConstElastSubs`. [#1168](https://github.com/econ-ark/HARK/pull/1168)
+* Reorganizes `HARK.distribution`. All distributions now inherit all features from `scipy.stats`. New `ContinuousFrozenDistribution` and `DiscreteFrozenDistribution` to use `scipy.stats` distributions not yet implemented in HARK. New `Distribution.discretize(N, method = "***")` replaces `Distribution.approx(N)`. New `DiscreteDistribution.limit` attribute describes continuous origin and discretization method. [#1197](https://github.com/econ-ark/HARK/pull/1197).
 
 ### Minor Changes
 

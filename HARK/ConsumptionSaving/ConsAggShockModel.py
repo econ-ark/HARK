@@ -2026,11 +2026,11 @@ class CobbDouglasEconomy(Market):
         -------
         None
         """
-        self.TranShkAggDstn = MeanOneLogNormal(sigma=self.TranShkAggStd).approx(
-            N=self.TranShkAggCount
+        self.TranShkAggDstn = MeanOneLogNormal(sigma=self.TranShkAggStd).discretize(
+            N=self.TranShkAggCount, method="equiprobable"
         )
-        self.PermShkAggDstn = MeanOneLogNormal(sigma=self.PermShkAggStd).approx(
-            N=self.PermShkAggCount
+        self.PermShkAggDstn = MeanOneLogNormal(sigma=self.PermShkAggStd).discretize(
+            N=self.PermShkAggCount, method="equiprobable"
         )
         self.AggShkDstn = combine_indep_dstns(self.PermShkAggDstn, self.TranShkAggDstn)
 
@@ -2280,11 +2280,11 @@ class SmallOpenEconomy(Market):
         -------
         None
         """
-        self.TranShkAggDstn = MeanOneLogNormal(sigma=self.TranShkAggStd).approx(
-            N=self.TranShkAggCount
+        self.TranShkAggDstn = MeanOneLogNormal(sigma=self.TranShkAggStd).discretize(
+            N=self.TranShkAggCount, method="equiprobable"
         )
-        self.PermShkAggDstn = MeanOneLogNormal(sigma=self.PermShkAggStd).approx(
-            N=self.PermShkAggCount
+        self.PermShkAggDstn = MeanOneLogNormal(sigma=self.PermShkAggStd).discretize(
+            N=self.PermShkAggCount, method="equiprobable"
         )
         self.AggShkDstn = combine_indep_dstns(self.PermShkAggDstn, self.TranShkAggDstn)
 
@@ -2532,13 +2532,13 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
 
         for i in range(StateCount):
             TranShkAggDstn.append(
-                MeanOneLogNormal(sigma=self.TranShkAggStd[i]).approx(
-                    N=self.TranShkAggCount
+                MeanOneLogNormal(sigma=self.TranShkAggStd[i]).discretize(
+                    N=self.TranShkAggCount, method="equiprobable"
                 )
             )
             PermShkAggDstn.append(
-                MeanOneLogNormal(sigma=self.PermShkAggStd[i]).approx(
-                    N=self.PermShkAggCount
+                MeanOneLogNormal(sigma=self.PermShkAggStd[i]).discretize(
+                    N=self.PermShkAggCount, method="equiprobable"
                 )
             )
             AggShkDstn.append(

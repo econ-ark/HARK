@@ -1,35 +1,1252 @@
 import math
 from itertools import product
+from typing import Any, Callable, Dict, List, Optional, Union
 from warnings import warn
 
 import numpy as np
 import xarray as xr
+from numpy import random
 from scipy import stats
-from scipy.special import erf, erfc
+from scipy.stats import rv_continuous, rv_discrete
+from scipy.stats._distn_infrastructure import rv_continuous_frozen, rv_discrete_frozen
+from scipy.stats._multivariate import multivariate_normal_frozen
 
 
 class Distribution:
     """
-    Base class for all probability distributions.
+    Base class for all probability distributions
+    with seed and random number generator.
+
+    For discussion on random number generation and random seeds, see
+    https://docs.scipy.org/doc/scipy/tutorial/stats.html#random-number-generation
 
     Parameters
     ----------
-    seed : int
+    seed : Optional[int]
         Seed for random number generator.
     """
 
-    def __init__(self, seed=0):
-        self.RNG = np.random.default_rng(seed)
-        self.seed = seed
+    def __init__(self, seed: Optional[int] = 0) -> None:
+        """
+        Generic distribution class with seed management.
 
-    def reset(self):
+        Parameters
+        ----------
+        seed : Optional[int], optional
+            Seed for random number generator, by default None
+            generates random seed based on entropy.
+
+        Raises
+        ------
+        ValueError
+            Seed must be an integer type.
+        """
+        if seed is None:
+            # generate random seed
+            _seed: int = random.SeedSequence().entropy
+        elif isinstance(seed, (int, np.integer)):
+            _seed = seed
+        else:
+            raise ValueError("seed must be an integer")
+
+        self._seed: int = _seed
+        self._rng: random.Generator = random.default_rng(self._seed)
+
+    @property
+    def seed(self) -> int:
+        """
+        Seed for random number generator.
+
+        Returns
+        -------
+        int
+            Seed.
+        """
+        return self._seed  # type: ignore
+
+    @seed.setter
+    def seed(self, seed: int) -> None:
+        """
+        Set seed for random number generator.
+
+        Parameters
+        ----------
+        seed : int
+            Seed for random number generator.
+        """
+
+        if isinstance(seed, (int, np.integer)):
+            self._seed = seed
+            self._rng = random.default_rng(seed)
+        else:
+            raise ValueError("seed must be an integer")
+
+    def reset(self) -> None:
         """
         Reset the random number generator of this distribution.
+        Resetting the seed will result in the same sequence of
+        random numbers being generated.
 
         Parameters
         ----------
         """
-        self.RNG = np.random.default_rng(self.seed)
+        self._rng = random.default_rng(self.seed)
+
+    def random_seed(self) -> None:
+        """
+        Generate a new random seed for this distribution.
+        """
+        self.seed = random.SeedSequence().entropy
+
+    def draw(self, N: int) -> np.ndarray:
+        """
+        Generate arrays of draws from this distribution.
+        If input N is a number, output is a length N array of draws from the
+        distribution. If N is a list, output is a length T list whose
+        t-th entry is a length N array of draws from the distribution[t].
+
+        Parameters
+        ----------
+        N : int
+            Number of draws in each row.
+
+        Returns:
+        ------------
+        draws : np.array or [np.array]
+            T-length list of arrays of random variable draws each of size n, or
+            a single array of size N (if sigma is a scalar).
+        """
+
+        mean = self.mean() if callable(self.mean) else self.mean
+        size = (N, mean.size) if mean.size != 1 else N
+        return self.rvs(size=size, random_state=self._rng)
+
+    def discretize(
+        self, N: int, method: str = "equiprobable", endpoints: bool = False, **kwds: Any
+    ) -> "DiscreteDistribution":
+        """
+        Discretize the distribution into N points using the specified method.
+
+        Parameters
+        ----------
+        N : int
+            Number of points in the discretization.
+        method : str, optional
+            Method for discretization, by default "equiprobable"
+        endpoints : bool, optional
+            Whether to include endpoints in the discretization, by default False
+
+        Returns
+        -------
+        DiscreteDistribution
+            Discretized distribution.
+
+        Raises
+        ------
+        NotImplementedError
+            If method is not implemented for this distribution.
+        """
+
+        approx_method = "_approx_" + method
+
+        if not hasattr(self, approx_method):
+            raise NotImplementedError(
+                "discretize() with method = {} not implemented for {} class".format(
+                    method, self.__class__.__name__
+                )
+            )
+
+        approx = getattr(self, approx_method)
+        return approx(N, endpoints, **kwds)
+
+
+# CONTINUOUS DISTRIBUTIONS
+
+
+class ContinuousFrozenDistribution(rv_continuous_frozen, Distribution):
+    """
+    Parameterized continuous distribution from scipy.stats with seed management.
+    """
+
+    def __init__(
+        self, dist: rv_continuous, *args: Any, seed: int = 0, **kwds: Any
+    ) -> None:
+        """
+        Parameterized continuous distribution from scipy.stats with seed management.
+
+        Parameters
+        ----------
+        dist : rv_continuous
+            Continuous distribution from scipy.stats.
+        seed : int, optional
+            Seed for random number generator, by default 0
+        """
+        rv_continuous_frozen.__init__(self, dist, *args, **kwds)
+        Distribution.__init__(self, seed=seed)
+
+
+class Normal(ContinuousFrozenDistribution):
+    """
+    A Normal distribution.
+
+    Parameters
+    ----------
+    mu : float or [float]
+        One or more means.  Number of elements T in mu determines number
+        of rows of output.
+    sigma : float or [float]
+        One or more standard deviations. Number of elements T in sigma
+        determines number of rows of output.
+    seed : int
+        Seed for random number generator.
+    """
+
+    def __init__(self, mu=0.0, sigma=1.0, seed=0):
+        self.mu = np.asarray(mu)
+        self.sigma = np.asarray(sigma)
+
+        if self.mu.size != self.sigma.size:
+            raise AttributeError(
+                "mu and sigma must be of same size, are %s, %s"
+                % ((self.mu.size), (self.sigma.size))
+            )
+
+        super().__init__(stats.norm, loc=mu, scale=sigma, seed=seed)
+
+    def discretize(self, N, method="hermite", endpoints=False):
+        """
+        For normal distributions, the Gauss-Hermite quadrature rule is
+        used as the default method for discretization.
+        """
+
+        return super().discretize(N, method, endpoints)
+
+    def _approx_hermite(self, N, endpoints=False):
+        """
+        Returns a discrete approximation of this distribution
+        using the Gauss-Hermite quadrature rule.
+
+        TODO: add endpoints option
+
+        Parameters
+        ----------
+        N : int
+            Number of discrete points to approximate the distribution.
+
+        Returns
+        -------
+        DiscreteDistribution
+            Discrete approximation of this distribution.
+        """
+
+        x, w = np.polynomial.hermite.hermgauss(N)
+        # normalize w
+        pmv = w * np.pi**-0.5
+        # correct x
+        atoms = math.sqrt(2.0) * self.sigma * x + self.mu
+
+        limit = {"dist": self, "method": "hermite", "N": N, "endpoints": endpoints}
+
+        return DiscreteDistribution(
+            pmv,
+            atoms,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
+        )
+
+    def _approx_equiprobable(self, N, endpoints=False):
+        """
+        Returns a discrete equiprobable approximation of this distribution.
+
+        TODO: add endpoints option
+
+        Parameters
+        ----------
+        N : int
+            Number of discrete points to approximate the distribution.
+
+        Returns
+        -------
+        DiscreteDistribution
+            Discrete approximation of this distribution.
+        """
+
+        CDF = np.linspace(0, 1, N + 1)
+        lims = stats.norm.ppf(CDF)
+        pdf = stats.norm.pdf(lims)
+
+        # Find conditional means using Mills's ratio
+        pmv = np.diff(CDF)
+        atoms = self.mu - np.diff(pdf) / pmv * self.sigma
+
+        limit = {"dist": self, "method": "equiprobable", "N": N, "endpoints": endpoints}
+
+        return DiscreteDistribution(
+            pmv,
+            atoms,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
+        )
+
+
+class Lognormal(ContinuousFrozenDistribution):
+    """
+    A Lognormal distribution
+
+    Parameters
+    ----------
+    mu : float or [float]
+        One or more means of underlying normal distribution.
+        Number of elements T in mu determines number of rows of output.
+    sigma : float or [float]
+        One or more standard deviations of underlying normal distribution.
+        Number of elements T in sigma determines number of rows of output.
+    seed : int
+        Seed for random number generator.
+    """
+
+    def __new__(
+        cls,
+        mu: Union[float, np.ndarray] = 0.0,
+        sigma: Union[float, np.ndarray] = 1.0,
+        seed: Optional[int] = 0,
+    ):
+        """
+        Create a new Lognormal distribution. If sigma is zero, return a
+        DiscreteDistribution with a single atom at exp(mu).
+
+        Parameters
+        ----------
+        mu : Union[float, np.ndarray], optional
+            Mean of underlying normal distribution, by default 0.0
+        sigma : Union[float, np.ndarray], optional
+            Standard deviation of underlying normal distribution, by default 1.0
+        seed : Optional[int], optional
+            Seed for random number generator, by default None
+
+        Returns
+        -------
+        Lognormal or DiscreteDistribution
+            Lognormal distribution or DiscreteDistribution with a single atom.
+        """
+
+        if sigma == 0:
+            # If sigma is zero, return a DiscreteDistribution with a single atom
+            return DiscreteDistribution([1.0], [np.exp(mu)], seed=seed)
+
+        return super(Lognormal, cls).__new__(cls)
+
+    def __init__(
+        self,
+        mu: Union[float, np.ndarray] = 0.0,
+        sigma: Union[float, np.ndarray] = 1.0,
+        seed: Optional[int] = 0,
+    ):
+        self.mu = np.asarray(mu)
+        self.sigma = np.asarray(sigma)
+
+        if self.mu.size != self.sigma.size:
+            raise AttributeError(
+                "mu and sigma must be of same size, are %s, %s"
+                % ((self.mu.size), (self.sigma.size))
+            )
+
+        # Set up the RNG
+        super().__init__(
+            stats.lognorm, s=self.sigma, scale=np.exp(self.mu), loc=0, seed=seed
+        )
+
+    def _approx_equiprobable(
+        self, N, endpoints=False, tail_N=0, tail_bound=None, tail_order=np.e
+    ):
+        """
+        Construct a discrete approximation to a lognormal distribution with underlying
+        normal distribution N(mu,sigma).  Makes an equiprobable distribution by
+        default, but user can optionally request augmented tails with exponentially
+        sized point masses.  This can improve solution accuracy in some models.
+
+        TODO: add endpoints option
+
+        Parameters
+        ----------
+        N: int
+            Number of discrete points in the "main part" of the approximation.
+        tail_N: int
+            Number of points in each "tail part" of the approximation; 0 = no tail.
+        tail_bound: [float]
+            CDF boundaries of the tails vs main portion; tail_bound[0] is the lower
+            tail bound, tail_bound[1] is the upper tail bound.  Inoperative when
+            tail_N = 0.  Can make "one tailed" approximations with 0.0 or 1.0.
+        tail_order: float
+            Factor by which consecutive point masses in a "tail part" differ in
+            probability.  Should be >= 1 for sensible spacing.
+
+        Returns
+        -------
+        d : DiscreteDistribution
+            Probability associated with each point in array of discrete
+            points for discrete probability mass function.
+        """
+
+        tail_bound = tail_bound if tail_bound is not None else [0.02, 0.98]
+        # Find the CDF boundaries of each segment
+        if self.sigma > 0.0:
+            if tail_N > 0:
+                lo_cut = tail_bound[0]
+                hi_cut = tail_bound[1]
+            else:
+                lo_cut = 0.0
+                hi_cut = 1.0
+            inner_size = hi_cut - lo_cut
+            inner_CDF_vals = [
+                lo_cut + x * N ** (-1.0) * inner_size for x in range(1, N)
+            ]
+            if inner_size < 1.0:
+                scale = 1.0 / tail_order
+                mag = (1.0 - scale**tail_N) / (1.0 - scale)
+            lower_CDF_vals = [0.0]
+            if lo_cut > 0.0:
+                for x in range(tail_N - 1, -1, -1):
+                    lower_CDF_vals.append(
+                        lower_CDF_vals[-1] + lo_cut * scale**x / mag
+                    )
+            upper_CDF_vals = [hi_cut]
+            if hi_cut < 1.0:
+                for x in range(tail_N):
+                    upper_CDF_vals.append(
+                        upper_CDF_vals[-1] + (1.0 - hi_cut) * scale**x / mag
+                    )
+            CDF_vals = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
+            temp_cutoffs = list(
+                stats.lognorm.ppf(
+                    CDF_vals[1:-1], s=self.sigma, loc=0, scale=np.exp(self.mu)
+                )
+            )
+            cutoffs = [0] + temp_cutoffs + [np.inf]
+            CDF_vals = np.array(CDF_vals)
+
+            K = CDF_vals.size - 1  # number of points in approximation
+            pmv = CDF_vals[1 : (K + 1)] - CDF_vals[0:K]
+            atoms = np.zeros(K)
+            for i in range(K):
+                zBot = cutoffs[i]
+                zTop = cutoffs[i + 1]
+                # Manual check to avoid the RuntimeWarning generated by "divide by zero"
+                # with np.log(zBot).
+                if zBot == 0:
+                    tempBot = np.inf
+                else:
+                    tempBot = (self.mu + self.sigma**2 - np.log(zBot)) / (
+                        np.sqrt(2) * self.sigma
+                    )
+                tempTop = (self.mu + self.sigma**2 - np.log(zTop)) / (
+                    np.sqrt(2) * self.sigma
+                )
+                if tempBot <= 4:
+                    atoms[i] = (
+                        -0.5
+                        * np.exp(self.mu + (self.sigma**2) * 0.5)
+                        * (math.erf(tempTop) - math.erf(tempBot))
+                        / pmv[i]
+                    )
+                else:
+                    atoms[i] = (
+                        -0.5
+                        * np.exp(self.mu + (self.sigma**2) * 0.5)
+                        * (math.erfc(tempBot) - math.erfc(tempTop))
+                        / pmv[i]
+                    )
+
+        else:
+            pmv = np.ones(N) / N
+            atoms = np.exp(self.mu) * np.ones(N)
+
+        limit = {
+            "dist": self,
+            "method": "equiprobable",
+            "N": N,
+            "endpoints": endpoints,
+            "tail_N": tail_N,
+            "tail_bound": tail_bound,
+            "tail_order": tail_order,
+        }
+
+        return DiscreteDistribution(
+            pmv,
+            atoms,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
+        )
+
+    def _approx_hermite(self, N, endpoints=False):
+        """
+        Returns a discrete approximation of this distribution
+        using the Gauss-Hermite quadrature rule.
+
+        TODO: add endpoints option
+
+        Parameters
+        ----------
+        N : int
+            Number of discrete points to approximate the distribution.
+
+        Returns
+        -------
+        DiscreteDistribution
+            Discrete approximation of this distribution.
+        """
+
+        x, w = np.polynomial.hermite.hermgauss(N)
+        # normalize w
+        pmv = w * np.pi**-0.5
+        # correct x
+        atoms = np.exp(np.sqrt(2.0) * self.sigma * x + self.mu)
+
+        limit = {"dist": self, "method": "hermite", "N": N, "endpoints": endpoints}
+
+        return DiscreteDistribution(
+            pmv,
+            atoms,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
+        )
+
+    @classmethod
+    def from_mean_std(cls, mean, std, seed=0):
+        """
+        Construct a LogNormal distribution from its
+        mean and standard deviation.
+
+        This is unlike the normal constructor for the distribution,
+        which takes the mu and sigma for the normal distribution
+        that is the logarithm of the Log Normal distribution.
+
+        Parameters
+        ----------
+        mean : float or [float]
+            One or more means.  Number of elements T in mu determines number
+            of rows of output.
+        std : float or [float]
+            One or more standard deviations. Number of elements T in sigma
+            determines number of rows of output.
+        seed : int
+            Seed for random number generator.
+
+        Returns
+        ---------
+        LogNormal
+
+        """
+        mean_squared = mean**2
+        variance = std**2
+        mu = np.log(mean / (np.sqrt(1.0 + variance / mean_squared)))
+        sigma = np.sqrt(np.log(1.0 + variance / mean_squared))
+
+        return cls(mu=mu, sigma=sigma, seed=seed)
+
+
+class MeanOneLogNormal(Lognormal):
+    """
+    A Lognormal distribution with mean 1.
+    """
+
+    def __init__(self, sigma=1.0, seed=0):
+        mu = -0.5 * sigma**2
+        super().__init__(mu=mu, sigma=sigma, seed=seed)
+
+
+class Uniform(ContinuousFrozenDistribution):
+    """
+    A Uniform distribution.
+
+    Parameters
+    ----------
+    bot : float or [float]
+        One or more bottom values.
+        Number of elements T in mu determines number
+        of rows of output.
+    top : float or [float]
+        One or more top values.
+        Number of elements T in top determines number of
+        rows of output.
+    seed : int
+        Seed for random number generator.
+    """
+
+    def __init__(self, bot=0.0, top=1.0, seed=0):
+        self.bot = np.asarray(bot)
+        self.top = np.asarray(top)
+
+        super().__init__(
+            stats.uniform, loc=self.bot, scale=self.top - self.bot, seed=seed
+        )
+
+    def _approx_equiprobable(self, N, endpoints=False):
+        """
+        Makes a discrete approximation to this uniform distribution.
+
+        Parameters
+        ----------
+        N : int
+            The number of points in the discrete approximation.
+        endpoints : bool
+            Whether to include the endpoints in the approximation.
+
+        Returns
+        -------
+        d : DiscreteDistribution
+            Probability associated with each point in array of discrete
+            points for discrete probability mass function.
+        """
+        pmv = np.ones(N) / float(N)
+
+        center = (self.top + self.bot) / 2.0
+        width = (self.top - self.bot) / 2.0
+        atoms = center + width * np.linspace(-(N - 1.0) / 2.0, (N - 1.0) / 2.0, N) / (
+            N / 2.0
+        )
+
+        if endpoints:  # insert endpoints with infinitesimally small mass
+            atoms = np.concatenate(([self.bot], atoms, [self.top]))
+            pmv = np.concatenate(([0.0], pmv, [0.0]))
+
+        limit = {"dist": self, "method": "equiprobable", "N": N, "endpoints": endpoints}
+
+        return DiscreteDistribution(
+            pmv,
+            atoms,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
+        )
+
+
+class Weibull(ContinuousFrozenDistribution):
+    """
+    A Weibull distribution.
+
+    Parameters
+    ----------
+    scale : float or [float]
+        One or more scales.  Number of elements T in scale
+        determines number of
+        rows of output.
+    shape : float or [float]
+        One or more shape parameters. Number of elements T in scale
+        determines number of rows of output.
+    seed : int
+        Seed for random number generator.
+    """
+
+    def __init__(self, scale=1.0, shape=1.0, seed=0):
+        self.scale = np.asarray(scale)
+        self.shape = np.asarray(shape)
+        # Set up the RNG
+        super().__init__(stats.weibull_min, c=shape, scale=scale, seed=seed)
+
+
+# MULTIVARIATE DISTRIBUTIONS
+
+
+class MVNormal(multivariate_normal_frozen, Distribution):
+    """
+    A Multivariate Normal distribution.
+
+    Parameters
+    ----------
+    mu : numpy array
+        Mean vector.
+    Sigma : 2-d numpy array. Each dimension must have length equal to that of
+            mu.
+        Variance-covariance matrix.
+    seed : int
+        Seed for random number generator.
+    """
+
+    def __init__(self, mu=[1, 1], Sigma=[[1, 0], [0, 1]], seed=0):
+        self.mu = np.asarray(mu)
+        self.Sigma = np.asarray(Sigma)
+        self.M = self.mu.size
+        multivariate_normal_frozen.__init__(self, mean=self.mu, cov=self.Sigma)
+        Distribution.__init__(self, seed=seed)
+
+    def discretize(self, N, method="hermite", endpoints=False):
+        """
+        For multivariate normal distributions, the Gauss-Hermite
+        quadrature rule is used as the default method for discretization.
+        """
+
+        return self._approx(N, method=method, endpoints=endpoints)
+
+    def _approx(self, N, method="hermite", endpoints=False):
+        """
+        Returns a discrete approximation of this distribution.
+
+        The discretization will have N**M points, where M is the dimension of
+        the multivariate normal.
+
+        It uses the fact that:
+            - Being positive definite, Sigma can be factorized as Sigma = QVQ',
+              with V diagonal. So, letting A=Q*sqrt(V), Sigma = A*A'.
+            - If Z is an N-dimensional multivariate standard normal, then
+              A*Z ~ N(0,A*A' = Sigma).
+
+        The idea therefore is to construct an equiprobable grid for a standard
+        normal and multiply it by matrix A.
+        """
+
+        # Start by computing matrix A.
+        v, Q = np.linalg.eig(self.Sigma)
+        sqrtV = np.diag(np.sqrt(v))
+        A = np.matmul(Q, sqrtV)
+
+        # Now find a discretization for a univariate standard normal.
+
+        z_approx = Normal().discretize(N, method=method)
+
+        # Now create the multivariate grid and pmv
+        Z = np.array(list(product(*[z_approx.atoms.flatten()] * self.M)))
+        pmv = np.prod(np.array(list(product(*[z_approx.pmv] * self.M))), axis=1)
+
+        # Apply mean and standard deviation to the Z grid
+        atoms = self.mu[None, ...] + np.matmul(Z, A.T)
+
+        limit = {
+            "dist": self,
+            "method": method,
+            "N": N,
+            "endpoints": endpoints,
+        }
+
+        # Construct and return discrete distribution
+        return DiscreteDistribution(
+            pmv,
+            atoms.T,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
+        )
+
+
+# DISCRETE DISTRIBUTIONS
+
+
+class DiscreteFrozenDistribution(rv_discrete_frozen, Distribution):
+    """
+    Parameterized discrete distribution from scipy.stats with seed management.
+    """
+
+    def __init__(
+        self, dist: rv_discrete, *args: Any, seed: int = 0, **kwds: Any
+    ) -> None:
+        """
+        Parameterized discrete distribution from scipy.stats with seed management.
+
+        Parameters
+        ----------
+        dist : rv_discrete
+            Discrete distribution from scipy.stats.
+        seed : int, optional
+            Seed for random number generator, by default 0
+        """
+
+        rv_discrete_frozen.__init__(self, dist, *args, **kwds)
+        Distribution.__init__(self, seed=seed)
+
+
+class Bernoulli(DiscreteFrozenDistribution):
+    """
+    A Bernoulli distribution.
+
+    Parameters
+    ----------
+    p : float or [float]
+        Probability or probabilities of the event occurring (True).
+
+    seed : int
+        Seed for random number generator.
+    """
+
+    def __init__(self, p=0.5, seed=0):
+        self.p = np.asarray(p)
+        # Set up the RNG
+        super().__init__(stats.bernoulli, p=self.p, seed=seed)
+
+
+class DiscreteDistribution(Distribution):
+    """
+    A representation of a discrete probability distribution.
+
+    Parameters
+    ----------
+    pmv : np.array
+        An array of floats representing a probability mass function.
+    atoms : np.array
+        Discrete point values for each probability mass.
+        For multivariate distributions, the last dimension of atoms must index
+        "atom" or the random realization. For instance, if atoms.shape == (2,6,4),
+        the random variable has 4 possible realizations and each of them has shape (2,6).
+    seed : int
+        Seed for random number generator.
+    """
+
+    def __init__(
+        self,
+        pmv: np.ndarray,
+        atoms: np.ndarray,
+        seed: int = 0,
+        limit: Optional[Dict[str, Any]] = None,
+    ) -> None:
+
+        super().__init__(seed=seed)
+
+        self.pmv = np.asarray(pmv)
+        self.atoms = np.atleast_2d(atoms)
+        self.limit = limit
+
+        # Check that pmv and atoms have compatible dimensions.
+        if not self.pmv.size == self.atoms.shape[-1]:
+            raise ValueError(
+                "Provided pmv and atoms arrays have incompatible dimensions. "
+                + "The length of the pmv must be equal to that of atoms's last dimension."
+            )
+
+    def dim(self) -> int:
+        """
+        Last dimension of self.atoms indexes "atom."
+        """
+        return self.atoms.shape[:-1]
+
+    def draw_events(self, N: int) -> np.ndarray:
+        """
+        Draws N 'events' from the distribution PMF.
+        These events are indices into atoms.
+        """
+        # Generate a cumulative distribution
+        base_draws = self._rng.uniform(size=N)
+        cum_dist = np.cumsum(self.pmv)
+
+        # Convert the basic uniform draws into discrete draws
+        indices = cum_dist.searchsorted(base_draws)
+
+        return indices
+
+    def draw(
+        self,
+        N: int,
+        atoms: Union[None, int, np.ndarray] = None,
+        exact_match: bool = False,
+    ) -> np.ndarray:
+        """
+        Simulates N draws from a discrete distribution with probabilities P and outcomes atoms.
+
+        Parameters
+        ----------
+        N : int
+            Number of draws to simulate.
+        atoms : None, int, or np.array
+            If None, then use this distribution's atoms for point values.
+            If an int, then the index of atoms for the point values.
+            If an np.array, use the array for the point values.
+        exact_match : boolean
+            Whether the draws should "exactly" match the discrete distribution (as
+            closely as possible given finite draws).  When True, returned draws are
+            a random permutation of the N-length list that best fits the discrete
+            distribution.  When False (default), each draw is independent from the
+            others and the result could deviate from the input.
+
+        Returns
+        -------
+        draws : np.array
+            An array of draws from the discrete distribution; each element is a value in atoms.
+        """
+        if atoms is None:
+            atoms = self.atoms
+        elif isinstance(atoms, int):
+            atoms = self.atoms[atoms]
+
+        if exact_match:
+            events = np.arange(self.pmv.size)  # just a list of integers
+            cutoffs = np.round(np.cumsum(self.pmv) * N).astype(
+                int
+            )  # cutoff points between discrete outcomes
+            top = 0
+
+            # Make a list of event indices that closely matches the discrete distribution
+            event_list = []
+            for j in range(events.size):
+                bot = top
+                top = cutoffs[j]
+                event_list += (top - bot) * [events[j]]
+
+            # Randomly permute the event indices
+            indices = self._rng.permutation(event_list)
+
+        # Draw event indices randomly from the discrete distribution
+        else:
+            indices = self.draw_events(N)
+
+        # Create and fill in the output array of draws based on the output of event indices
+        draws = atoms[..., indices]
+
+        # TODO: some models expect univariate draws to just be a 1d vector. Fix those models.
+        if len(draws.shape) == 2 and draws.shape[0] == 1:
+            draws = draws.flatten()
+
+        return draws
+
+    def expected(
+        self, func: Optional[Callable] = None, *args: np.ndarray
+    ) -> np.ndarray:
+        """
+        Expected value of a function, given an array of configurations of its
+        inputs along with a DiscreteDistribution object that specifies the
+        probability of each configuration.
+
+        If no function is provided, it's much faster to go straight to dot
+        product instead of calling the dummy function.
+
+        If a function is provided, we need to add one more dimension,
+        the atom dimension, to any inputs that are n-dim arrays.
+        This allows numpy to easily broadcast the function's output.
+        For more information on broadcasting, see:
+        https://numpy.org/doc/stable/user/basics.broadcasting.html#general-broadcasting-rules
+
+        Parameters
+        ----------
+        func : function
+            The function to be evaluated.
+            This function should take the full array of distribution values
+            and return either arrays of arbitrary shape or scalars.
+            It may also take other arguments *args.
+            This function differs from the standalone `calc_expectation`
+            method in that it uses numpy's vectorization and broadcasting
+            rules to avoid costly iteration.
+            Note: If you need to use a function that acts on single outcomes
+            of the distribution, consider `distribution.calc_expectation`.
+        *args :
+            Other inputs for func, representing the non-stochastic arguments.
+            The the expectation is computed at f(dstn, *args).
+
+        Returns
+        -------
+        f_exp : np.array or scalar
+            The expectation of the function at the queried values.
+            Scalar if only one value.
+        """
+
+        if func is None:
+            f_query = self.atoms
+        else:
+            args = [
+                np.expand_dims(arg, -1) if isinstance(arg, np.ndarray) else arg
+                for arg in args
+            ]
+
+            f_query = func(self.atoms, *args)
+
+        f_exp = np.dot(f_query, self.pmv)
+
+        return f_exp
+
+    def dist_of_func(
+        self, func: Callable[..., float] = lambda x: x, *args: Any
+    ) -> "DiscreteDistribution":
+        """
+        Finds the distribution of a random variable Y that is a function
+        of discrete random variable atoms, Y=f(atoms).
+
+        Parameters
+        ----------
+        func : function
+            The function to be evaluated.
+            This function should take the full array of distribution values.
+            It may also take other arguments *args.
+        *args :
+            Additional non-stochastic arguments for func,
+            The function is computed as f(dstn, *args).
+
+        Returns
+        -------
+        f_dstn : DiscreteDistribution
+            The distribution of func(dstn).
+        """
+        # we need to add one more dimension,
+        # the atom dimension, to any inputs that are n-dim arrays.
+        # This allows numpy to easily broadcast the function's output.
+        args = [
+            np.expand_dims(arg, -1) if isinstance(arg, np.ndarray) else arg
+            for arg in args
+        ]
+        f_query = func(self.atoms, *args)
+
+        f_dstn = DiscreteDistribution(list(self.pmv), f_query, seed=self.seed)
+
+        return f_dstn
+
+    def discretize(self, N: int, *args: Any, **kwargs: Any) -> "DiscreteDistribution":
+        """
+        `DiscreteDistribution` is already an approximation, so this method
+        returns a copy of the distribution.
+
+        TODO: print warning message?
+        """
+
+        return self
+
+
+class DiscreteDistributionLabeled(DiscreteDistribution):
+    """
+    A representation of a discrete probability distribution
+    stored in an underlying `xarray.Dataset`.
+
+    Parameters
+    ----------
+    pmv : np.array
+        An array of values representing a probability mass function.
+    data : np.array
+        Discrete point values for each probability mass.
+        For multivariate distributions, the last dimension of atoms must index
+        "atom" or the random realization. For instance, if atoms.shape == (2,6,4),
+        the random variable has 4 possible realizations and each of them has shape (2,6).
+    seed : int
+        Seed for random number generator.
+    name : str
+        Name of the distribution.
+    attrs : dict
+        Attributes for the distribution.
+    var_names : list of str
+        Names of the variables in the distribution.
+    var_attrs : list of dict
+        Attributes of the variables in the distribution.
+
+    """
+
+    def __init__(
+        self,
+        pmv: np.ndarray,
+        atoms: np.ndarray,
+        seed: int = 0,
+        limit: Optional[Dict[str, Any]] = None,
+        name: str = "DiscreteDistributionLabeled",
+        attrs: Optional[Dict[str, Any]] = None,
+        var_names: Optional[List[str]] = None,
+        var_attrs: Optional[List[Optional[Dict[str, Any]]]] = None,
+    ):
+
+        super().__init__(pmv, atoms, seed=seed, limit=limit)
+
+        # vector-value distributions
+
+        if self.atoms.ndim > 2:
+            raise NotImplementedError(
+                "Only vector-valued distributions are supported for now."
+            )
+
+        attrs = {} if attrs is None else attrs
+        limit = {} if limit is None else limit
+        attrs.update(limit)
+        attrs["name"] = name
+
+        n_var = self.atoms.shape[0]
+
+        # give dummy names to variables if none are provided
+        if var_names is None:
+            var_names = ["var_" + str(i) for i in range(n_var)]
+
+        assert (
+            len(var_names) == n_var
+        ), "Number of variable names does not match number of variables."
+
+        # give dummy attributes to variables if none are provided
+        if var_attrs is None:
+            var_attrs = [None] * n_var
+
+        # a DiscreteDistributionLabeled is an xr.Dataset where the only
+        # dimension is "atom", which indexes the random realizations.
+        self.dataset = xr.Dataset(
+            {
+                var_names[i]: xr.DataArray(
+                    self.atoms[i],
+                    dims=("atom"),
+                    attrs=var_attrs[i],
+                )
+                for i in range(n_var)
+            },
+            attrs=attrs,
+        )
+
+        # the probability mass values are stored in
+        # a DataArray with dimension "atom"
+        self.probability = xr.DataArray(self.pmv, dims=("atom"))
+
+    @classmethod
+    def from_unlabeled(
+        cls,
+        dist,
+        name="DiscreteDistributionLabeled",
+        attrs=None,
+        var_names=None,
+        var_attrs=None,
+    ):
+
+        ldd = cls(
+            dist.pmv,
+            dist.atoms,
+            seed=dist.seed,
+            limit=dist.limit,
+            name=name,
+            attrs=attrs,
+            var_names=var_names,
+            var_attrs=var_attrs,
+        )
+
+        return ldd
+
+    @classmethod
+    def from_dataset(cls, x_obj, pmf):
+
+        ldd = cls.__new__(cls)
+
+        if isinstance(x_obj, xr.Dataset):
+            ldd.dataset = x_obj
+        elif isinstance(x_obj, xr.DataArray):
+            ldd.dataset = xr.Dataset({x_obj.name: x_obj})
+        elif isinstance(x_obj, dict):
+            ldd.dataset = xr.Dataset(x_obj)
+
+        ldd.probability = pmf
+
+        return ldd
+
+    @property
+    def _weighted(self):
+        """
+        Returns a DatasetWeighted object for the distribution.
+        """
+        return self.dataset.weighted(self.probability)
+
+    @property
+    def variables(self):
+        """
+        A dict-like container of DataArrays corresponding to
+        the variables of the distribution.
+        """
+        return self.dataset.data_vars
+
+    @property
+    def name(self):
+        """
+        The distribution's name.
+        """
+        return self.dataset.name
+
+    @property
+    def attrs(self):
+        """
+        The distribution's attributes.
+        """
+
+        return self.dataset.attrs
+
+    def dist_of_func(
+        self, func: Callable = lambda x: x, *args, **kwargs
+    ) -> DiscreteDistribution:
+        """
+        Finds the distribution of a random variable Y that is a function
+        of discrete random variable atoms, Y=f(atoms).
+
+        Parameters
+        ----------
+        func : function
+            The function to be evaluated.
+            This function should take the full array of distribution values.
+            It may also take other arguments *args.
+        *args :
+            Additional non-stochastic arguments for func,
+            The function is computed as f(dstn, *args).
+        **kwargs :
+            Additional keyword arguments for func. Must be xarray compatible
+            in order to work with xarray broadcasting.
+
+        Returns
+        -------
+        f_dstn : DiscreteDistribution or DiscreteDistributionLabeled
+            The distribution of func(dstn).
+        """
+
+        def func_wrapper(x: np.ndarray, *args: Any) -> np.ndarray:
+            """
+            Wrapper function for `func` that handles labeled indexing.
+            """
+
+            idx = self.variables.keys()
+            wrapped = dict(zip(idx, x))
+
+            return func(wrapped, *args)
+
+        if len(kwargs):
+            f_query = func(self.dataset, **kwargs)
+            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.pmv)
+
+            return ldd
+
+        return super().dist_of_func(func_wrapper, *args)
+
+    def expected(
+        self, func: Optional[Callable] = None, *args: Any, **kwargs: Any
+    ) -> Union[float, np.ndarray]:
+        """
+        Expectation of a function, given an array of configurations of its inputs
+        along with a DiscreteDistributionLabeled object that specifies the probability
+        of each configuration.
+
+        Parameters
+        ----------
+        func : function
+            The function to be evaluated.
+            This function should take the full array of distribution values
+            and return either arrays of arbitrary shape or scalars.
+            It may also take other arguments *args.
+            This function differs from the standalone `calc_expectation`
+            method in that it uses numpy's vectorization and broadcasting
+            rules to avoid costly iteration.
+            Note: If you need to use a function that acts on single outcomes
+            of the distribution, consier `distribution.calc_expectation`.
+        *args :
+            Other inputs for func, representing the non-stochastic arguments.
+            The the expectation is computed at f(dstn, *args).
+        labels : bool
+            If True, the function should use labeled indexing instead of integer
+            indexing using the distribution's underlying rv coordinates. For example,
+            if `dims = ('rv', 'x')` and `coords = {'rv': ['a', 'b'], }`, then
+            the function can be `lambda x: x["a"] + x["b"]`.
+
+        Returns
+        -------
+        f_exp : np.array or scalar
+            The expectation of the function at the queried values.
+            Scalar if only one value.
+        """
+
+        def func_wrapper(x, *args):
+            """
+            Wrapper function for `func` that handles labeled indexing.
+            """
+
+            idx = self.variables.keys()
+            wrapped = dict(zip(idx, x))
+
+            return func(wrapped, *args)
+
+        if len(kwargs):
+            f_query = func(self.dataset, *args, **kwargs)
+            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.probability)
+
+            return ldd._weighted.mean("atom")
+        else:
+            if func is None:
+                return super().expected()
+            else:
+                return super().expected(func_wrapper, *args)
 
 
 class IndexDistribution(Distribution):
@@ -43,7 +1260,7 @@ class IndexDistribution(Distribution):
 
     For example, an IndexDistribution can be defined as
     a Bernoulli distribution whose parameter p is a function of
-    a different inpute parameter.
+    a different input parameter.
 
     Parameters
     ----------
@@ -71,7 +1288,7 @@ class IndexDistribution(Distribution):
             super().__init__(seed)
         else:
             # If an RNG is received, use it in whatever state it is in.
-            self.RNG = RNG
+            self._rng = RNG
             # The seed will still be set, even if it is not used for the RNG,
             # for whenever self.reset() is called.
             # Note that self.reset() will stop using the RNG that was passed
@@ -91,13 +1308,13 @@ class IndexDistribution(Distribution):
             for y in range(len(item0)):
                 cond = {key: val[y] for (key, val) in self.conditional.items()}
                 self.dstns.append(
-                    self.engine(seed=self.RNG.integers(0, 2**31 - 1), **cond)
+                    self.engine(seed=self._rng.integers(0, 2**31 - 1), **cond)
                 )
 
         elif type(item0) is float:
 
             self.dstns = [
-                self.engine(seed=self.RNG.integers(0, 2**31 - 1), **conditional)
+                self.engine(seed=self._rng.integers(0, 2**31 - 1), **conditional)
             ]
 
         else:
@@ -111,7 +1328,7 @@ class IndexDistribution(Distribution):
 
         return self.dstns[y]
 
-    def approx(self, N, **kwds):
+    def discretize(self, N, **kwds):
         """
         Approximation of the distribution.
 
@@ -142,11 +1359,11 @@ class IndexDistribution(Distribution):
 
         if type(item0) is float:
             # degenerate case. Treat the parameterization as constant.
-            return self.dstns[0].approx(N, **kwds)
+            return self.dstns[0].discretize(N, **kwds)
 
         if type(item0) is list:
             return TimeVaryingDiscreteDistribution(
-                [self[i].approx(N, **kwds) for i, _ in enumerate(item0)]
+                [self[i].discretize(N, **kwds) for i, _ in enumerate(item0)]
             )
 
     def draw(self, condition):
@@ -178,7 +1395,7 @@ class IndexDistribution(Distribution):
             N = condition.size
 
             return self.engine(
-                seed=self.RNG.integers(0, 2**31 - 1), **self.conditional
+                seed=self._rng.integers(0, 2**31 - 1), **self.conditional
             ).draw(N)
 
         if type(item0) is list:
@@ -262,1075 +1479,8 @@ class TimeVaryingDiscreteDistribution(Distribution):
         return draws
 
 
-### CONTINUOUS DISTRIBUTIONS
-
-
-class Lognormal(Distribution):
-    """
-    A Lognormal distribution
-
-    Parameters
-    ----------
-    mu : float or [float]
-        One or more means of underlying normal distribution.
-        Number of elements T in mu determines number of rows of output.
-    sigma : float or [float]
-        One or more standard deviations of underlying normal distribution.
-        Number of elements T in sigma determines number of rows of output.
-    seed : int
-        Seed for random number generator.
-    """
-
-    mu = None
-    sigma = None
-
-    def __init__(self, mu=0.0, sigma=1.0, seed=0):
-        self.mu = np.array(mu)
-        self.sigma = np.array(sigma)
-        # Set up the RNG
-        super().__init__(seed)
-
-        if self.mu.size != self.sigma.size:
-            raise Exception(
-                "mu and sigma must be of same size, are %s, %s"
-                % ((self.mu.size), (self.sigma.size))
-            )
-
-    def draw(self, N):
-        """
-        Generate arrays of lognormal draws. The sigma parameter can be a number
-        or list-like.  If a number, output is a length N array of draws from the
-        lognormal distribution with standard deviation sigma. If a list, output is
-        a length T list whose t-th entry is a length N array of draws from the
-        lognormal with standard deviation sigma[t].
-
-        Parameters
-        ----------
-        N : int
-            Number of draws in each row.
-
-        Returns:
-        ------------
-        draws : np.array or [np.array]
-            T-length list of arrays of mean one lognormal draws each of size N, or
-            a single array of size N (if sigma is a scalar).
-        """
-
-        draws = []
-        for j in range(self.mu.size):
-            draws.append(
-                self.RNG.lognormal(
-                    mean=self.mu.item(j), sigma=self.sigma.item(j), size=N
-                )
-            )
-        # TODO: change return type to np.array?
-        return draws[0] if len(draws) == 1 else draws
-
-    def approx(self, N, tail_N=0, tail_bound=None, tail_order=np.e):
-        """
-        Construct a discrete approximation to a lognormal distribution with underlying
-        normal distribution N(mu,sigma).  Makes an equiprobable distribution by
-        default, but user can optionally request augmented tails with exponentially
-        sized point masses.  This can improve solution accuracy in some models.
-
-        Parameters
-        ----------
-        N: int
-            Number of discrete points in the "main part" of the approximation.
-        tail_N: int
-            Number of points in each "tail part" of the approximation; 0 = no tail.
-        tail_bound: [float]
-            CDF boundaries of the tails vs main portion; tail_bound[0] is the lower
-            tail bound, tail_bound[1] is the upper tail bound.  Inoperative when
-            tail_N = 0.  Can make "one tailed" approximations with 0.0 or 1.0.
-        tail_order: float
-            Factor by which consecutive point masses in a "tail part" differ in
-            probability.  Should be >= 1 for sensible spacing.
-
-        Returns
-        -------
-        d : DiscreteDistribution
-            Probability associated with each point in array of discrete
-            points for discrete probability mass function.
-        """
-        tail_bound = tail_bound if tail_bound is not None else [0.02, 0.98]
-        # Find the CDF boundaries of each segment
-        if self.sigma > 0.0:
-            if tail_N > 0:
-                lo_cut = tail_bound[0]
-                hi_cut = tail_bound[1]
-            else:
-                lo_cut = 0.0
-                hi_cut = 1.0
-            inner_size = hi_cut - lo_cut
-            inner_CDF_vals = [
-                lo_cut + x * N ** (-1.0) * inner_size for x in range(1, N)
-            ]
-            if inner_size < 1.0:
-                scale = 1.0 / tail_order
-                mag = (1.0 - scale**tail_N) / (1.0 - scale)
-            lower_CDF_vals = [0.0]
-            if lo_cut > 0.0:
-                for x in range(tail_N - 1, -1, -1):
-                    lower_CDF_vals.append(
-                        lower_CDF_vals[-1] + lo_cut * scale**x / mag
-                    )
-            upper_CDF_vals = [hi_cut]
-            if hi_cut < 1.0:
-                for x in range(tail_N):
-                    upper_CDF_vals.append(
-                        upper_CDF_vals[-1] + (1.0 - hi_cut) * scale**x / mag
-                    )
-            CDF_vals = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
-            temp_cutoffs = list(
-                stats.lognorm.ppf(
-                    CDF_vals[1:-1], s=self.sigma, loc=0, scale=np.exp(self.mu)
-                )
-            )
-            cutoffs = [0] + temp_cutoffs + [np.inf]
-            CDF_vals = np.array(CDF_vals)
-
-            K = CDF_vals.size - 1  # number of points in approximation
-            pmv = CDF_vals[1 : (K + 1)] - CDF_vals[0:K]
-            atoms = np.zeros(K)
-            for i in range(K):
-                zBot = cutoffs[i]
-                zTop = cutoffs[i + 1]
-                # Manual check to avoid the RuntimeWarning generated by "divide by zero"
-                # with np.log(zBot).
-                if zBot == 0:
-                    tempBot = np.inf
-                else:
-                    tempBot = (self.mu + self.sigma**2 - np.log(zBot)) / (
-                        np.sqrt(2) * self.sigma
-                    )
-                tempTop = (self.mu + self.sigma**2 - np.log(zTop)) / (
-                    np.sqrt(2) * self.sigma
-                )
-                if tempBot <= 4:
-                    atoms[i] = (
-                        -0.5
-                        * np.exp(self.mu + (self.sigma**2) * 0.5)
-                        * (erf(tempTop) - erf(tempBot))
-                        / pmv[i]
-                    )
-                else:
-                    atoms[i] = (
-                        -0.5
-                        * np.exp(self.mu + (self.sigma**2) * 0.5)
-                        * (erfc(tempBot) - erfc(tempTop))
-                        / pmv[i]
-                    )
-
-        else:
-            pmv = np.ones(N) / N
-            atoms = np.exp(self.mu) * np.ones(N)
-        return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
-        )
-
-    @classmethod
-    def from_mean_std(cls, mean, std, seed=0):
-        """
-        Construct a LogNormal distribution from its
-        mean and standard deviation.
-
-        This is unlike the normal constructor for the distribution,
-        which takes the mu and sigma for the normal distribution
-        that is the logarithm of the Log Normal distribution.
-
-        Parameters
-        ----------
-        mean : float or [float]
-            One or more means.  Number of elements T in mu determines number
-            of rows of output.
-        std : float or [float]
-            One or more standard deviations. Number of elements T in sigma
-            determines number of rows of output.
-        seed : int
-            Seed for random number generator.
-
-        Returns
-        ---------
-        LogNormal
-
-        """
-        mean_squared = mean**2
-        variance = std**2
-        mu = np.log(mean / (np.sqrt(1.0 + variance / mean_squared)))
-        sigma = np.sqrt(np.log(1.0 + variance / mean_squared))
-
-        return cls(mu=mu, sigma=sigma, seed=seed)
-
-
-class MeanOneLogNormal(Lognormal):
-    def __init__(self, sigma=1.0, seed=0):
-        mu = -0.5 * sigma**2
-        super().__init__(mu=mu, sigma=sigma, seed=seed)
-
-
-class Normal(Distribution):
-    """
-    A Normal distribution.
-
-    Parameters
-    ----------
-    mu : float or [float]
-        One or more means.  Number of elements T in mu determines number
-        of rows of output.
-    sigma : float or [float]
-        One or more standard deviations. Number of elements T in sigma
-        determines number of rows of output.
-    seed : int
-        Seed for random number generator.
-    """
-
-    mu = None
-    sigma = None
-
-    def __init__(self, mu=0.0, sigma=1.0, seed=0):
-        self.mu = np.array(mu)
-        self.sigma = np.array(sigma)
-        super().__init__(seed)
-
-    def draw(self, N):
-        """
-        Generate arrays of normal draws.  The mu and sigma inputs can be numbers or
-        list-likes.  If a number, output is a length N array of draws from the normal
-        distribution with mean mu and standard deviation sigma. If a list, output is
-        a length T list whose t-th entry is a length N array with draws from the
-        normal distribution with mean mu[t] and standard deviation sigma[t].
-
-        Parameters
-        ----------
-        N : int
-            Number of draws in each row.
-
-        Returns
-        -------
-        draws : np.array or [np.array]
-            T-length list of arrays of normal draws each of size N, or a single array
-            of size N (if sigma is a scalar).
-        """
-        draws = []
-        for t in range(self.sigma.size):
-            draws.append(
-                self.sigma.item(t) * self.RNG.standard_normal(N) + self.mu.item(t)
-            )
-
-        return draws
-
-    def approx(self, N):
-        """
-        Returns a discrete approximation of this distribution.
-        """
-        x, w = np.polynomial.hermite.hermgauss(N)
-        # normalize w
-        pmv = w * np.pi**-0.5
-        # correct x
-        atoms = math.sqrt(2.0) * self.sigma * x + self.mu
-        return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
-        )
-
-    def approx_equiprobable(self, N):
-
-        CDF = np.linspace(0, 1, N + 1)
-        lims = stats.norm.ppf(CDF)
-        pdf = stats.norm.pdf(lims)
-
-        # Find conditional means using Mills's ratio
-        pmv = np.diff(CDF)
-        atoms = self.mu - np.diff(pdf) / pmv * self.sigma
-
-        return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
-        )
-
-
-class MVNormal(Distribution):
-    """
-    A Multivariate Normal distribution.
-
-    Parameters
-    ----------
-    mu : numpy array
-        Mean vector.
-    Sigma : 2-d numpy array. Each dimension must have length equal to that of
-            mu.
-        Variance-covariance matrix.
-    seed : int
-        Seed for random number generator.
-    """
-
-    mu = None
-    Sigma = None
-
-    def __init__(self, mu=np.array([1, 1]), Sigma=np.array([[1, 0], [0, 1]]), seed=0):
-        self.mu = mu
-        self.Sigma = Sigma
-        self.M = len(self.mu)
-        super().__init__(seed)
-
-    def draw(self, N):
-        """
-        Generate an array of multivariate normal draws.
-
-        Parameters
-        ----------
-        N : int
-            Number of multivariate draws.
-
-        Returns
-        -------
-        draws : np.array
-            Array of dimensions N x M containing the random draws, where M is
-            the dimension of the multivariate normal and N is the number of
-            draws. Each row represents a draw.
-        """
-        draws = self.RNG.multivariate_normal(self.mu, self.Sigma, N)
-
-        return draws
-
-    def approx(self, N, equiprobable=False):
-        """
-        Returns a discrete approximation of this distribution.
-
-        The discretization will have N**M points, where M is the dimension of
-        the multivariate normal.
-
-        It uses the fact that:
-            - Being positive definite, Sigma can be factorized as Sigma = QVQ',
-              with V diagonal. So, letting A=Q*sqrt(V), Sigma = A*A'.
-            - If Z is an N-dimensional multivariate standard normal, then
-              A*Z ~ N(0,A*A' = Sigma).
-
-        The idea therefore is to construct an equiprobable grid for a standard
-        normal and multiply it by matrix A.
-        """
-
-        # Start by computing matrix A.
-        v, Q = np.linalg.eig(self.Sigma)
-        sqrtV = np.diag(np.sqrt(v))
-        A = np.matmul(Q, sqrtV)
-
-        # Now find a discretization for a univariate standard normal.
-        if equiprobable:
-            z_approx = Normal().approx_equiprobable(N)
-        else:
-            z_approx = Normal().approx(N)
-
-        # Now create the multivariate grid and pmv
-        Z = np.array(list(product(*[z_approx.atoms.flatten()] * self.M)))
-        pmv = np.prod(np.array(list(product(*[z_approx.pmv] * self.M))), axis=1)
-
-        # Apply mean and standard deviation to the Z grid
-        atoms = self.mu[None, ...] + np.matmul(Z, A.T)
-
-        # Construct and return discrete distribution
-        return DiscreteDistribution(
-            pmv, atoms.T, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
-        )
-
-
-class Weibull(Distribution):
-    """
-    A Weibull distribution.
-
-    Parameters
-    ----------
-    scale : float or [float]
-        One or more scales.  Number of elements T in scale
-        determines number of
-        rows of output.
-    shape : float or [float]
-        One or more shape parameters. Number of elements T in scale
-        determines number of rows of output.
-    seed : int
-        Seed for random number generator.
-    """
-
-    scale = None
-    shape = None
-
-    def __init__(self, scale=1.0, shape=1.0, seed=0):
-        self.scale = np.array(scale)
-        self.shape = np.array(shape)
-        # Set up the RNG
-        super().__init__(seed)
-
-    def draw(self, N):
-        """
-        Generate arrays of Weibull draws.  The scale and shape inputs can be
-        numbers or list-likes.  If a number, output is a length N array of draws from
-        the Weibull distribution with the given scale and shape. If a list, output
-        is a length T list whose t-th entry is a length N array with draws from the
-        Weibull distribution with scale scale[t] and shape shape[t].
-
-        Note: When shape=1, the Weibull distribution is simply the exponential dist.
-
-        Mean: scale*Gamma(1 + 1/shape)
-
-        Parameters
-        ----------
-        N : int
-            Number of draws in each row.
-
-        Returns:
-        ------------
-        draws : np.array or [np.array]
-            T-length list of arrays of Weibull draws each of size N, or a single
-            array of size N (if sigma is a scalar).
-        """
-        draws = []
-        for j in range(self.scale.size):
-            draws.append(
-                self.scale.item(j)
-                * (-np.log(1.0 - self.RNG.random(N))) ** (1.0 / self.shape.item(j))
-            )
-        return draws[0] if len(draws) == 1 else draws
-
-
-class Uniform(Distribution):
-    """
-    A Uniform distribution.
-
-    Parameters
-    ----------
-    bot : float or [float]
-        One or more bottom values.
-        Number of elements T in mu determines number
-        of rows of output.
-    top : float or [float]
-        One or more top values.
-        Number of elements T in top determines number of
-        rows of output.
-    seed : int
-        Seed for random number generator.
-    """
-
-    bot = None
-    top = None
-
-    def __init__(self, bot=0.0, top=1.0, seed=0):
-        self.bot = np.array(bot)
-        self.top = np.array(top)
-        # Set up the RNG
-        self.RNG = np.random.default_rng(seed)
-
-    def draw(self, N):
-        """
-        Generate arrays of uniform draws.  The bot and top inputs can be numbers or
-        list-likes.  If a number, output is a length N array of draws from the
-        uniform distribution on [bot,top]. If a list, output is a length T list
-        whose t-th entry is a length N array with draws from the uniform distribution
-        on [bot[t],top[t]].
-
-        Parameters
-        ----------
-        N : int
-            Number of draws in each row.
-
-        Returns
-        -------
-        draws : np.array or [np.array]
-            T-length list of arrays of uniform draws each of size N, or a single
-            array of size N (if sigma is a scalar).
-        """
-        draws = []
-        for j in range(self.bot.size):
-            draws.append(
-                self.bot.item(j)
-                + (self.top.item(j) - self.bot.item(j)) * self.RNG.random(N)
-            )
-        return draws[0] if len(draws) == 1 else draws
-
-    def approx(self, N, endpoint=False):
-        """
-        Makes a discrete approximation to this uniform distribution.
-
-        Parameters
-        ----------
-        N : int
-            The number of points in the discrete approximation.
-        endpoint : bool
-            Whether to include the endpoints in the approximation.
-
-        Returns
-        -------
-        d : DiscreteDistribution
-            Probability associated with each point in array of discrete
-            points for discrete probability mass function.
-        """
-        pmv = np.ones(N) / float(N)
-
-        center = (self.top + self.bot) / 2.0
-        width = (self.top - self.bot) / 2.0
-        atoms = center + width * np.linspace(-(N - 1.0) / 2.0, (N - 1.0) / 2.0, N) / (
-            N / 2.0
-        )
-
-        if endpoint:  # insert endpoints with infinitesimally small mass
-            atoms = np.concatenate(([self.bot], atoms, [self.top]))
-            pmv = np.concatenate(([0.0], pmv, [0.0]))
-
-        return DiscreteDistribution(
-            pmv, atoms, seed=self.RNG.integers(0, 2**31 - 1, dtype="int32")
-        )
-
-
-### DISCRETE DISTRIBUTIONS
-
-
-class Bernoulli(Distribution):
-    """
-    A Bernoulli distribution.
-
-    Parameters
-    ----------
-    p : float or [float]
-        Probability or probabilities of the event occurring (True).
-
-    seed : int
-        Seed for random number generator.
-    """
-
-    p = None
-
-    def __init__(self, p=0.5, seed=0):
-        self.p = np.array(p)
-        # Set up the RNG
-        super().__init__(seed)
-
-    def draw(self, N):
-        """
-        Generates arrays of booleans drawn from a simple Bernoulli distribution.
-        The input p can be a float or a list-like of floats; its length T determines
-        the number of entries in the output.  The t-th entry of the output is an
-        array of N booleans which are True with probability p[t] and False otherwise.
-
-        Arguments
-        ---------
-        N : int
-            Number of draws in each row.
-
-        Returns
-        -------
-        draws : np.array or [np.array]
-            T-length list of arrays of Bernoulli draws each of size N, or a single
-        array of size N (if sigma is a scalar).
-        """
-        draws = []
-        for j in range(self.p.size):
-            draws.append(self.RNG.uniform(size=N) < self.p.item(j))
-        return draws[0] if len(draws) == 1 else draws
-
-
-class DiscreteDistribution(Distribution):
-    """
-    A representation of a discrete probability distribution.
-
-    Parameters
-    ----------
-    pmv : np.array
-        An array of floats representing a probability mass function.
-    atoms : np.array
-        Discrete point values for each probability mass.
-        For multivariate distributions, the last dimension of atoms must index
-        "atom" or the random realization. For instance, if atoms.shape == (2,6,4),
-        the random variable has 4 possible realizations and each of them has shape (2,6).
-    seed : int
-        Seed for random number generator.
-    """
-
-    pmv = None
-    atoms = None
-
-    def __init__(self, pmv, atoms, seed=0):
-
-        self.pmv = np.asarray(pmv)
-
-        if len(atoms.shape) < 2:
-            self.atoms = atoms[None, ...]
-        else:
-            self.atoms = atoms
-
-        # Set up the RNG
-        super().__init__(seed)
-
-        # Check that pmv and atoms have compatible dimensions.
-        same_dims = self.pmv.size == self.atoms.shape[-1]
-        if not same_dims:
-            raise ValueError(
-                "Provided pmv and atoms arrays have incompatible dimensions. "
-                + "The length of the pmv must be equal to that of atoms's last dimension."
-            )
-
-    def dim(self):
-        """
-        Last dimension of self.atoms indexes "atom."
-        """
-        return self.atoms.shape[:-1]
-
-    def draw_events(self, n):
-        """
-        Draws N 'events' from the distribution PMF.
-        These events are indices into atoms.
-        """
-        # Generate a cumulative distribution
-        base_draws = self.RNG.uniform(size=n)
-        cum_dist = np.cumsum(self.pmv)
-
-        # Convert the basic uniform draws into discrete draws
-        indices = cum_dist.searchsorted(base_draws)
-
-        return indices
-
-    def draw(self, N, atoms=None, exact_match=False):
-        """
-        Simulates N draws from a discrete distribution with probabilities P and outcomes atoms.
-
-        Parameters
-        ----------
-        N : int
-            Number of draws to simulate.
-        atoms : None, int, or np.array
-            If None, then use this distribution's atoms for point values.
-            If an int, then the index of atoms for the point values.
-            If an np.array, use the array for the point values.
-        exact_match : boolean
-            Whether the draws should "exactly" match the discrete distribution (as
-            closely as possible given finite draws).  When True, returned draws are
-            a random permutation of the N-length list that best fits the discrete
-            distribution.  When False (default), each draw is independent from the
-            others and the result could deviate from the input.
-
-        Returns
-        -------
-        draws : np.array
-            An array of draws from the discrete distribution; each element is a value in atoms.
-        """
-        if atoms is None:
-            atoms = self.atoms
-        elif isinstance(atoms, int):
-            atoms = self.atoms[atoms]
-
-        if exact_match:
-            events = np.arange(self.pmv.size)  # just a list of integers
-            cutoffs = np.round(np.cumsum(self.pmv) * N).astype(
-                int
-            )  # cutoff points between discrete outcomes
-            top = 0
-
-            # Make a list of event indices that closely matches the discrete distribution
-            event_list = []
-            for j in range(events.size):
-                bot = top
-                top = cutoffs[j]
-                event_list += (top - bot) * [events[j]]
-
-            # Randomly permute the event indices
-            indices = self.RNG.permutation(event_list)
-
-        # Draw event indices randomly from the discrete distribution
-        else:
-            indices = self.draw_events(N)
-
-        # Create and fill in the output array of draws based on the output of event indices
-        draws = atoms[..., indices]
-
-        # TODO: some models expect univariate draws to just be a 1d vector. Fix those models.
-        if len(draws.shape) == 2 and draws.shape[0] == 1:
-            draws = draws.flatten()
-
-        return draws
-
-    def expected(self, func=None, *args):
-        """
-        Expected value of a function, given an array of configurations of its
-        inputs along with a DiscreteDistribution object that specifies the
-        probability of each configuration.
-
-        Parameters
-        ----------
-        func : function
-            The function to be evaluated.
-            This function should take the full array of distribution values
-            and return either arrays of arbitrary shape or scalars.
-            It may also take other arguments *args.
-            This function differs from the standalone `calc_expectation`
-            method in that it uses numpy's vectorization and broadcasting
-            rules to avoid costly iteration.
-            Note: If you need to use a function that acts on single outcomes
-            of the distribution, consier `distribution.calc_expectation`.
-        *args :
-            Other inputs for func, representing the non-stochastic arguments.
-            The the expectation is computed at f(dstn, *args).
-
-        Returns
-        -------
-        f_exp : np.array or scalar
-            The expectation of the function at the queried values.
-            Scalar if only one value.
-        """
-
-        if func is None:
-            # if no function is provided, it's much faster to go straight
-            # to dot product instead of calling the dummy function.
-            f_query = self.atoms
-        else:
-            # if a function is provided, we need to add one more dimension,
-            # the atom dimension, to any inputs that are n-dim arrays.
-            # This allows numpy to easily broadcast the function's output.
-            # For more information on broadcasting, see:
-            # https://numpy.org/doc/stable/user/basics.broadcasting.html#general-broadcasting-rules
-            args = [
-                arg[..., np.newaxis] if isinstance(arg, np.ndarray) else arg
-                for arg in args
-            ]
-
-            f_query = func(self.atoms, *args)
-
-        f_exp = np.dot(f_query, self.pmv)
-
-        return f_exp
-
-    def dist_of_func(self, func=lambda x: x, *args):
-        """
-        Finds the distribution of a random variable Y that is a function
-        of discrete random variable atoms, Y=f(atoms).
-
-        Parameters
-        ----------
-        func : function
-            The function to be evaluated.
-            This function should take the full array of distribution values.
-            It may also take other arguments *args.
-        *args :
-            Additional non-stochastic arguments for func,
-            The function is computed as f(dstn, *args).
-
-        Returns
-        -------
-        f_dstn : DiscreteDistribution
-            The distribution of func(dstn).
-        """
-        # we need to add one more dimension,
-        # the atom dimension, to any inputs that are n-dim arrays.
-        # This allows numpy to easily broadcast the function's output.
-        args = [
-            arg[..., np.newaxis] if isinstance(arg, np.ndarray) else arg for arg in args
-        ]
-        f_query = func(self.atoms, *args)
-
-        f_dstn = DiscreteDistribution(list(self.pmv), f_query, seed=self.seed)
-
-        return f_dstn
-
-
-class DiscreteDistributionLabeled(DiscreteDistribution):
-    """
-    A representation of a discrete probability distribution
-    stored in an underlying `xarray.Dataset`.
-
-    Parameters
-    ----------
-    pmv : np.array
-        An array of values representing a probability mass function.
-    data : np.array
-        Discrete point values for each probability mass.
-        For multivariate distributions, the last dimension of atoms must index
-        "atom" or the random realization. For instance, if atoms.shape == (2,6,4),
-        the random variable has 4 possible realizations and each of them has shape (2,6).
-    seed : int
-        Seed for random number generator.
-    name : str
-        Name of the distribution.
-    attrs : dict
-        Attributes for the distribution.
-    var_names : list of str
-        Names of the variables in the distribution.
-    var_attrs : list of dict
-        Attributes of the variables in the distribution.
-
-    """
-
-    def __init__(
-        self,
-        pmv,
-        data,
-        seed=0,
-        name="DiscreteDistributionLabeled",
-        attrs=None,
-        var_names=None,
-        var_attrs=None,
-    ):
-
-        # vector-value distributions
-        if data.ndim < 2:
-            data = data[np.newaxis, ...]
-        if data.ndim > 2:
-            raise NotImplementedError(
-                "Only vector-valued distributions are supported for now."
-            )
-
-        if attrs is None:
-            attrs = {}
-
-        attrs["name"] = name
-        attrs["seed"] = seed
-        attrs["RNG"] = np.random.default_rng(seed)
-
-        n_var = data.shape[0]
-
-        # give dummy names to variables if none are provided
-        if var_names is None:
-            var_names = ["var_" + str(i) for i in range(n_var)]
-
-        assert (
-            len(var_names) == n_var
-        ), "Number of variable names does not match number of variables."
-
-        # give dummy attributes to variables if none are provided
-        if var_attrs is None:
-            var_attrs = [None] * n_var
-
-        # a DiscreteDistributionLabeled is an xr.Dataset where the only
-        # dimension is "atom", which indexes the random realizations.
-        self.dataset = xr.Dataset(
-            {
-                var_names[i]: xr.DataArray(
-                    data[i],
-                    dims=("atom"),
-                    attrs=var_attrs[i],
-                )
-                for i in range(n_var)
-            },
-            attrs=attrs,
-        )
-
-        # the probability mass values are stored in
-        # a DataArray with dimension "atom"
-        self.pmf = xr.DataArray(pmv, dims=("atom"))
-
-    @classmethod
-    def from_unlabeled(
-        cls,
-        dist,
-        name="DiscreteDistributionLabeled",
-        attrs=None,
-        var_names=None,
-        var_attrs=None,
-    ):
-
-        ldd = cls(
-            dist.pmv,
-            dist.atoms,
-            seed=dist.seed,
-            name=name,
-            attrs=attrs,
-            var_names=var_names,
-            var_attrs=var_attrs,
-        )
-
-        return ldd
-
-    @classmethod
-    def from_dataset(cls, x_obj, pmf):
-
-        ldd = cls.__new__(cls)
-
-        if isinstance(x_obj, xr.Dataset):
-            ldd.dataset = x_obj
-        elif isinstance(x_obj, xr.DataArray):
-            ldd.dataset = xr.Dataset({x_obj.name: x_obj})
-        elif isinstance(x_obj, dict):
-            ldd.dataset = xr.Dataset(x_obj)
-
-        ldd.pmf = pmf
-
-        return ldd
-
-    @property
-    def _weighted(self):
-        """
-        Returns a DatasetWeighted object for the distribution.
-        """
-        return self.dataset.weighted(self.pmf)
-
-    @property
-    def variables(self):
-        """
-        A dict-like container of DataArrays corresponding to
-        the variables of the distribution.
-        """
-        return self.dataset.data_vars
-
-    @property
-    def atoms(self):
-        """
-        Returns the distribution's data as a numpy.ndarray.
-        """
-        data_vars = self.variables
-        return np.vstack([data_vars[key].values for key in data_vars.keys()])
-
-    @property
-    def pmv(self):
-        """
-        Returns the distribution's probability mass function.
-        """
-        return self.pmf.values
-
-    @property
-    def seed(self):
-        """
-        Returns the distribution's seed.
-        """
-        return self.dataset.seed
-
-    @seed.setter
-    def seed(self, value):
-        """
-        Set the distribution's seed and updates the RNG state
-        """
-        # Update the seed
-        self.dataset.attrs["seed"] = value
-        # With the seed having been updated, the RNG must be updated too
-        self.RNG = np.random.default_rng(self.seed)
-
-    @property
-    def RNG(self):
-        """
-        Returns the distribution's random number generator.
-        """
-        return self.dataset.RNG
-
-    @RNG.setter
-    def RNG(self, value):
-        """
-        Sets the distribution's random number generator.
-        """
-        if isinstance(value, np.random._generator.Generator):
-            self.dataset.attrs["RNG"] = value
-        else:
-            raise ValueError(
-                "The RNG property must be an instance of numpy.random._generator.Generator"
-            )
-
-    @property
-    def name(self):
-        """
-        The distribution's name.
-        """
-        return self.dataset.name
-
-    @property
-    def attrs(self):
-        """
-        The distribution's attributes.
-        """
-        return self.dataset.attrs
-
-    def dist_of_func(self, func=lambda x: x, *args, **kwargs):
-        """
-        Finds the distribution of a random variable Y that is a function
-        of discrete random variable atoms, Y=f(atoms).
-
-        Parameters
-        ----------
-        func : function
-            The function to be evaluated.
-            This function should take the full array of distribution values.
-            It may also take other arguments *args.
-        *args :
-            Additional non-stochastic arguments for func,
-            The function is computed as f(dstn, *args).
-        **kwargs :
-            Additional keyword arguments for func. Must be xarray compatible
-            in order to work with xarray broadcasting.
-
-        Returns
-        -------
-        f_dstn : DiscreteDistribution or DiscreteDistributionLabeled
-            The distribution of func(dstn).
-        """
-
-        def func_wrapper(x, *args):
-            """
-            Wrapper function for `func` that handles labeled indexing.
-            """
-
-            idx = self.variables.keys()
-            wrapped = dict(zip(idx, x))
-
-            return func(wrapped, *args)
-
-        if len(kwargs):
-            f_query = func(self.dataset, **kwargs)
-            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.pmv)
-
-            return ldd
-        else:
-            return super().dist_of_func(func_wrapper, *args)
-
-    def expected(self, func=None, *args, **kwargs):
-        """
-        Expectation of a function, given an array of configurations of its inputs
-        along with a DiscreteDistributionLabeled object that specifies the probability
-        of each configuration.
-
-        Parameters
-        ----------
-        func : function
-            The function to be evaluated.
-            This function should take the full array of distribution values
-            and return either arrays of arbitrary shape or scalars.
-            It may also take other arguments *args.
-            This function differs from the standalone `calc_expectation`
-            method in that it uses numpy's vectorization and broadcasting
-            rules to avoid costly iteration.
-            Note: If you need to use a function that acts on single outcomes
-            of the distribution, consier `distribution.calc_expectation`.
-        *args :
-            Other inputs for func, representing the non-stochastic arguments.
-            The the expectation is computed at f(dstn, *args).
-        labels : bool
-            If True, the function should use labeled indexing instead of integer
-            indexing using the distribution's underlying rv coordinates. For example,
-            if `dims = ('rv', 'x')` and `coords = {'rv': ['a', 'b'], }`, then
-            the function can be `lambda x: x["a"] + x["b"]`.
-
-        Returns
-        -------
-        f_exp : np.array or scalar
-            The expectation of the function at the queried values.
-            Scalar if only one value.
-        """
-
-        def func_wrapper(x, *args):
-            """
-            Wrapper function for `func` that handles labeled indexing.
-            """
-
-            idx = self.variables.keys()
-            wrapped = dict(zip(idx, x))
-
-            return func(wrapped, *args)
-
-        if len(kwargs):
-            f_query = func(self.dataset, *args, **kwargs)
-            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.pmf)
-
-            return ldd._weighted.mean("atom")
-        else:
-            if func is None:
-                return super().expected()
-            else:
-                return super().expected(func_wrapper, *args)
-
-
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
-    d = Normal(mu, sigma).approx(N)
+    d = Normal(mu, sigma).discretize(N, method="hermite")
     return DiscreteDistribution(d.pmv, np.exp(d.atoms), seed=seed)
 
 
@@ -1685,7 +1835,7 @@ def combine_indep_dstns(*distributions, seed=0):
     if all_labeled and labels_are_unique:
         combined_dstn = DiscreteDistributionLabeled(
             pmv=P_out,
-            data=atoms_out,
+            atoms=atoms_out,
             var_names=var_labels,
             seed=seed,
         )
@@ -1814,7 +1964,7 @@ class MarkovProcess(Distribution):
         """
 
         def sample(s):
-            return self.RNG.choice(
+            return self._rng.choice(
                 self.transition_matrix.shape[1], p=self.transition_matrix[s, :]
             )
 
