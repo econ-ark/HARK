@@ -13,8 +13,8 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
     PortfolioConsumerType,
     init_portfolio,
 )
-from HARK.distribution import Bernoulli  # Random draws for simulating agents
 from HARK.distribution import (
+    Bernoulli,
     IndexDistribution,
     Lognormal,
     MeanOneLogNormal,
@@ -133,7 +133,9 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                         "mean": init_portfolio["PermGroFac"],
                         "std": init_portfolio["PermShkStd"],
                     },
-                ).approx(init_portfolio["PermShkCount"], tail_N=0),
+                ).discretize(
+                    init_portfolio["PermShkCount"], method="equiprobable", tail_N=0
+                ),
             ),
             Frame(
                 ("TranShk"),
@@ -144,7 +146,9 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                 transition=add_discrete_outcome_constant_mean(
                     IndexDistribution(
                         MeanOneLogNormal, {"sigma": init_portfolio["TranShkStd"]}
-                    ).approx(init_portfolio["TranShkCount"], tail_N=0),
+                    ).discretize(
+                        init_portfolio["TranShkCount"], method="equiprobable", tail_N=0
+                    ),
                     p=init_portfolio["UnempPrb"],
                     x=init_portfolio["IncUnemp"],
                 ),
@@ -159,7 +163,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                         "std": init_portfolio["RiskyStd"],
                     }
                     # seed=self.RNG.integers(0, 2 ** 31 - 1) : TODO: Seed logic
-                ).approx(init_portfolio["RiskyCount"]),
+                ).discretize(init_portfolio["RiskyCount"], method="equiprobable"),
                 aggregate=True,
             ),
             Frame(

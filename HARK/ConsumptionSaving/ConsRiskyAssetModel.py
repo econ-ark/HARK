@@ -11,7 +11,7 @@ import numpy as np
 from scipy.optimize import minimize_scalar, root_scalar
 
 from HARK import make_one_period_oo_solver
-from HARK.ConsumptionSaving.ConsIndShockModel import (
+from HARK.ConsumptionSaving.ConsIndShockModel import (  # PortfolioConsumerType inherits from it; Baseline dictionary to build on
     ConsIndShockSolver,
     ConsumerSolution,
     IndShockConsumerType,
@@ -133,7 +133,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
                 Lognormal.from_mean_std,
                 {"mean": self.RiskyAvg, "std": self.RiskyStd},
                 seed=self.RNG.integers(0, 2**31 - 1),
-            ).approx(self.RiskyCount)
+            ).discretize(self.RiskyCount, method="equiprobable")
 
             self.add_to_time_vary("RiskyDstn")
 
@@ -142,7 +142,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         else:
             self.RiskyDstn = Lognormal.from_mean_std(
                 self.RiskyAvg, self.RiskyStd
-            ).approx(self.RiskyCount)
+            ).discretize(self.RiskyCount, method="equiprobable")
             self.add_to_time_inv("RiskyDstn")
 
     def update_ShockDstn(self):
@@ -174,13 +174,13 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         # Names of the variables (hedging for the unlikely case that in
         # some index of IncShkDstn variables are in a switched order)
         names_list = [
-            list(self.IncShkDstn[t].dataset.data_vars.keys()) + ["Risky"]
+            list(self.IncShkDstn[t].variables.keys()) + ["Risky"]
             for t in range(self.T_cycle)
         ]
 
         conditional = {
             "pmv": [x.pmv for x in dstn_list],
-            "data": [x.atoms for x in dstn_list],
+            "atoms": [x.atoms for x in dstn_list],
             "var_names": names_list,
         }
 
