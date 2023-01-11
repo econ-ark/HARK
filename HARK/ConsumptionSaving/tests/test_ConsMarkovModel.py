@@ -7,6 +7,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import init_idiosyncratic_shocks
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.distribution import (
     DiscreteDistribution,
+    DiscreteDistributionLabeled,
     MeanOneLogNormal,
     combine_indep_dstns,
 )
@@ -16,11 +17,11 @@ class test_ConsMarkovSolver(unittest.TestCase):
     def setUp(self):
 
         # Define the Markov transition matrix for serially correlated unemployment
-        unemp_length = 5        # Averange length of unemployment spell
-        urate_good = 0.05       # Unemployment rate when economy is in good state
-        urate_bad = 0.12        # Unemployment rate when economy is in bad state
-        bust_prob = 0.01        # Probability of economy switching from good to bad
-        recession_length = 20   # Averange length of bad state
+        unemp_length = 5  # Averange length of unemployment spell
+        urate_good = 0.05  # Unemployment rate when economy is in good state
+        urate_bad = 0.12  # Unemployment rate when economy is in bad state
+        bust_prob = 0.01  # Probability of economy switching from good to bad
+        recession_length = 20  # Averange length of bad state
         p_reemploy = 1.0 / unemp_length
         p_unemploy_good = p_reemploy * urate_good / (1 - urate_good)
         p_unemploy_bad = p_reemploy * urate_bad / (1 - urate_bad)
@@ -65,11 +66,15 @@ class test_ConsMarkovSolver(unittest.TestCase):
         self.model.vFuncBool = False  # for easy toggling here
 
         # Replace the default (lognormal) income distribution with a custom one
-        employed_income_dist = DiscreteDistribution(
-            np.ones(1), np.array([[1.0], [1.0]])
+        employed_income_dist = DiscreteDistributionLabeled(
+            pmv=np.ones(1),
+            atoms=np.array([[1.0], [1.0]]),
+            var_names=["PermShk", "TranShk"],
         )  # Definitely get income
-        unemployed_income_dist = DiscreteDistribution(
-            np.ones(1), np.array([[1.0], [0.0]])
+        unemployed_income_dist = DiscreteDistributionLabeled(
+            pmv=np.ones(1),
+            atoms=np.array([[1.0], [0.0]]),
+            var_names=["PermShk", "TranShk"],
         )  # Definitely don't
         self.model.IncShkDstn = [
             [
@@ -121,42 +126,68 @@ class test_ConsMarkovSolver(unittest.TestCase):
 
 Markov_Dict = {
     # Parameters shared with the perfect foresight model
-    "CRRA": 2,                                      # Coefficient of relative risk aversion
-    "Rfree": np.array([1.05**0.25] * 2),            # Interest factor on assets
-    "DiscFac": 0.985,                               # Intertemporal discount factor
-    "LivPrb": [np.array([0.99375] * 2)],            # Survival probability
-    "PermGroFac": [np.array([1.00] * 2)],           # Permanent income growth factor
+    # Coefficient of relative risk aversion
+    "CRRA": 2,
+    "Rfree": np.array([1.05**0.25] * 2),  # Interest factor on assets
+    "DiscFac": 0.985,  # Intertemporal discount factor
+    "LivPrb": [np.array([0.99375] * 2)],  # Survival probability
+    # Permanent income growth factor
+    "PermGroFac": [np.array([1.00] * 2)],
     # Parameters that specify the income distribution over the lifecycle
-    "PermShkStd": [0.06],                           # Standard deviation of log permanent shocks to income
-    "PermShkCount": 7,                              # Number of points in discrete approximation to permanent income shocks
-    "TranShkStd": [0.3],                            # Standard deviation of log transitory shocks to income
-    "TranShkCount": 7,                              # Number of points in discrete approximation to transitory income shocks
+    # Standard deviation of log permanent shocks to income
+    "PermShkStd": [0.06],
+    # Number of points in discrete approximation to permanent income shocks
+    "PermShkCount": 7,
+    # Standard deviation of log transitory shocks to income
+    "TranShkStd": [0.3],
+    # Number of points in discrete approximation to transitory income shocks
+    "TranShkCount": 7,
     "UnempPrb": 0.00,  # .08                        # Probability of unemployment while working
-    "IncUnemp": 0.0,                                # Unemployment benefits replacement rate
-    "UnempPrbRet": 0.0005,                          # Probability of "unemployment" while retired
-    "IncUnempRet": 0.0,                             # "Unemployment" benefits when retired
-    "T_retire": 0.0,                                # Period of retirement (0 --> no retirement)
-    "tax_rate": 0.0,                                # Flat income tax rate (legacy parameter, will be removed in future)
+    # Unemployment benefits replacement rate
+    "IncUnemp": 0.0,
+    # Probability of "unemployment" while retired
+    "UnempPrbRet": 0.0005,
+    # "Unemployment" benefits when retired
+    "IncUnempRet": 0.0,
+    # Period of retirement (0 --> no retirement)
+    "T_retire": 0.0,
+    # Flat income tax rate (legacy parameter, will be removed in future)
+    "tax_rate": 0.0,
     # Parameters for constructing the "assets above minimum" grid
-    "aXtraMin": 0.001,                              # Minimum end-of-period "assets above minimum" value
-    "aXtraMax": 60,                                 # Maximum end-of-period "assets above minimum" value
-    "aXtraCount": 60,                               # Number of points in the base grid of "assets above minimum"
-    "aXtraNestFac": 4,                              # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],                           # Additional values to add to aXtraGrid
+    # Minimum end-of-period "assets above minimum" value
+    "aXtraMin": 0.001,
+    # Maximum end-of-period "assets above minimum" value
+    "aXtraMax": 60,
+    # Number of points in the base grid of "assets above minimum"
+    "aXtraCount": 60,
+    # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraNestFac": 4,
+    # Additional values to add to aXtraGrid
+    "aXtraExtra": [None],
     # A few other parameters
-    "BoroCnstArt": 0.0,                             # Artificial borrowing constraint; imposed minimum level of end-of period assets
-    "vFuncBool": True,                              # Whether to calculate the value function during solution
-    "CubicBool": False,                             # Preference shocks currently only compatible with linear cFunc
-    "T_cycle": 1,                                   # Number of periods in the cycle for this agent type
+    # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "BoroCnstArt": 0.0,
+    # Whether to calculate the value function during solution
+    "vFuncBool": True,
+    # Preference shocks currently only compatible with linear cFunc
+    "CubicBool": False,
+    # Number of periods in the cycle for this agent type
+    "T_cycle": 1,
     # Parameters only used in simulation
-    "AgentCount": 100000,                           # Number of agents of this type
-    "T_sim": 200,                                   # Number of periods to simulate
-    "aNrmInitMean": np.log(0.8) - (0.5**2) / 2,     # Mean of log initial assets
-    "aNrmInitStd": 0.5,                             # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,                            # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,                             # Standard deviation of log initial permanent income
-    "PermGroFacAgg": 1.0,                           # Aggregate permanent income growth factor
-    "T_age": None,                                  # Age after which simulated agents are automatically killed
+    "AgentCount": 100000,  # Number of agents of this type
+    "T_sim": 200,  # Number of periods to simulate
+    # Mean of log initial assets
+    "aNrmInitMean": np.log(0.8) - (0.5**2) / 2,
+    # Standard deviation of log initial assets
+    "aNrmInitStd": 0.5,
+    # Mean of log initial permanent income
+    "pLvlInitMean": 0.0,
+    # Standard deviation of log initial permanent income
+    "pLvlInitStd": 0.0,
+    # Aggregate permanent income growth factor
+    "PermGroFacAgg": 1.0,
+    # Age after which simulated agents are automatically killed
+    "T_age": None,
     # markov array
     "MrkvArray": [np.array([[0.984, 0.856], [0.0152, 0.14328]]).T],
 }
@@ -169,11 +200,11 @@ class test_make_EndOfPrdvFuncCond(unittest.TestCase):
 
         TranShkDstn_e = MeanOneLogNormal(
             Markov_vFuncBool_example.TranShkStd[0], 123
-        ).approx(Markov_vFuncBool_example.TranShkCount)
+        ).discretize(Markov_vFuncBool_example.TranShkCount, method="equiprobable")
         TranShkDstn_u = DiscreteDistribution(np.ones(1), np.ones(1) * 0.2)
         PermShkDstn = MeanOneLogNormal(
             Markov_vFuncBool_example.PermShkStd[0], 123
-        ).approx(Markov_vFuncBool_example.PermShkCount)
+        ).discretize(Markov_vFuncBool_example.PermShkCount, method="equiprobable")
 
         # employed Income shock distribution
         employed_IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn_e)
