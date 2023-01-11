@@ -5,13 +5,14 @@ derivatives), manipulation of discrete distributions, and basic plotting tools.
 """
 import cProfile
 import functools
+import os
 import pstats
 import re
 import warnings
-import os
 
 import numba
 import numpy as np  # Python's numeric library, abbreviated "np"
+from scipy.interpolate import interp1d
 
 # try:
 #     import matplotlib.pyplot as plt                 # Python's plotting library
@@ -19,7 +20,6 @@ import numpy as np  # Python's numeric library, abbreviated "np"
 #     import sys
 #     exception_type, value, traceback = sys.exc_info()
 #     raise ImportError('HARK must be used in a graphical environment.', exception_type, value, traceback)
-from scipy.interpolate import interp1d
 
 
 def memoize(obj):
@@ -45,6 +45,8 @@ def memoize(obj):
 # ==============================================================================
 # ============== Some basic function tools  ====================================
 # ==============================================================================
+
+
 def get_arg_names(function):
     """
     Returns a list of strings naming all of the arguments for the passed function.
@@ -108,430 +110,6 @@ class NullFunc(object):
                 return 1000.0
         except:
             return 10000.0
-
-
-# ==============================================================================
-# ============== Define utility functions        ===============================
-# ==============================================================================
-def CRRAutility(c, gam):
-    """
-    Evaluates constant relative risk aversion (CRRA) utility of consumption c
-    given risk aversion parameter gam.
-
-    Parameters
-    ----------
-    c : float
-        Consumption value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Utility
-
-    Tests
-    -----
-    Test a value which should pass:
-    >>> c, gamma = 1.0, 2.0    # Set two values at once with Python syntax
-    >>> utility(c=c, gam=gamma)
-    -1.0
-    """
-
-    if gam == 1:
-        return np.log(c)
-    else:
-        return c ** (1.0 - gam) / (1.0 - gam)
-
-
-def uFunc_CRRA_stone_geary(c, CRRA, stone_geary):
-    """
-    Evaluates Stone-Geary version of a constant relative risk aversion (CRRA)
-    utility of consumption c wiht given risk aversion parameter CRRA and
-    Stone-Geary intercept parameter stone_geary
-
-    Parameters
-    ----------
-    c : float
-        Consumption value
-    CRRA : float
-        Relative risk aversion
-    stone_geary : float
-        Intercept in Stone-Geary utility
-    Returns
-    -------
-    (unnamed) : float
-        Utility
-
-    Tests
-    -----
-    Test a value which should pass:
-    >>> c, CRRA, stone_geary = 1.0, 2.0, 0.0
-    >>> utility(c=c, CRRA=CRRA, stone_geary=stone_geary )
-    -1.0
-    """
-    if CRRA == 1:
-        return np.log(stone_geary + c)
-    else:
-        return (stone_geary + c) ** (1.0 - CRRA) / (1.0 - CRRA)
-
-
-def uPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
-    """
-    Marginal utility of Stone-Geary version of a constant relative risk aversion (CRRA)
-    utility of consumption c wiht given risk aversion parameter CRRA and
-    Stone-Geary intercept parameter stone_geary
-
-    Parameters
-    ----------
-    c : float
-        Consumption value
-    CRRA : float
-        Relative risk aversion
-    stone_geary : float
-        Intercept in Stone-Geary utility
-    Returns
-    -------
-    (unnamed) : float
-        marginal utility
-
-    """
-    return (stone_geary + c) ** (-CRRA)
-
-
-def uPPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
-    """
-    Marginal marginal utility of Stone-Geary version of a CRRA utilty function
-    with risk aversion parameter CRRA and Stone-Geary intercept parameter stone_geary
-
-    Parameters
-    ----------
-    c : float
-        Consumption value
-    CRRA : float
-        Relative risk aversion
-    stone_geary : float
-        Intercept in Stone-Geary utility
-    Returns
-    -------
-    (unnamed) : float
-        marginal utility
-
-    """
-    return (-CRRA) * (stone_geary + c) ** (-CRRA - 1)
-
-
-def CRRAutilityP(c, gam):
-    """
-    Evaluates constant relative risk aversion (CRRA) marginal utility of consumption
-    c given risk aversion parameter gam.
-
-    Parameters
-    ----------
-    c : float
-        Consumption value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Marginal utility
-    """
-
-    if gam == 1:
-        return 1 / c
-
-    return c**-gam
-
-
-def CRRAutilityPP(c, gam):
-    """
-    Evaluates constant relative risk aversion (CRRA) marginal marginal utility of
-    consumption c given risk aversion parameter gam.
-
-    Parameters
-    ----------
-    c : float
-        Consumption value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Marginal marginal utility
-    """
-
-    return -gam * c ** (-gam - 1.0)
-
-
-def CRRAutilityPPP(c, gam):
-    """
-    Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
-    utility of consumption c given risk aversion parameter gam.
-
-    Parameters
-    ----------
-    c : float
-        Consumption value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Marginal marginal marginal utility
-    """
-
-    return (gam + 1.0) * gam * c ** (-gam - 2.0)
-
-
-def CRRAutilityPPPP(c, gam):
-    """
-    Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
-    marginal utility of consumption c given risk aversion parameter gam.
-
-    Parameters
-    ----------
-    c : float
-        Consumption value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Marginal marginal marginal marginal utility
-    """
-
-    return -(gam + 2.0) * (gam + 1.0) * gam * c ** (-gam - 3.0)
-
-
-def CRRAutility_inv(u, gam):
-    """
-    Evaluates the inverse of the CRRA utility function (with risk aversion para-
-    meter gam) at a given utility level u.
-
-    Parameters
-    ----------
-    u : float
-        Utility value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Consumption corresponding to given utility value
-    """
-    if gam == 1:
-        return np.exp(u)
-    else:
-        return ((1.0 - gam) * u) ** (1 / (1.0 - gam))
-
-
-def CRRAutilityP_inv(uP, gam):
-    """
-    Evaluates the inverse of the CRRA marginal utility function (with risk aversion
-    parameter gam) at a given marginal utility level uP.
-
-    Parameters
-    ----------
-    uP : float
-        Marginal utility value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Consumption corresponding to given marginal utility value.
-    """
-    return uP ** (-1.0 / gam)
-
-
-def CRRAutility_invP(u, gam):
-    """
-    Evaluates the derivative of the inverse of the CRRA utility function (with
-    risk aversion parameter gam) at a given utility level u.
-
-    Parameters
-    ----------
-    u : float
-        Utility value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Marginal consumption corresponding to given utility value
-    """
-    if gam == 1:
-        return np.exp(u)
-    else:
-        return ((1.0 - gam) * u) ** (gam / (1.0 - gam))
-
-
-def CRRAutilityP_invP(uP, gam):
-    """
-    Evaluates the derivative of the inverse of the CRRA marginal utility function
-    (with risk aversion parameter gam) at a given marginal utility level uP.
-
-    Parameters
-    ----------
-    uP : float
-        Marginal utility value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Consumption corresponding to given marginal utility value
-    """
-    return (-1.0 / gam) * uP ** (-1.0 / gam - 1.0)
-
-
-def CARAutility(c, alpha):
-    """
-    Evaluates constant absolute risk aversion (CARA) utility of consumption c
-    given risk aversion parameter alpha.
-
-    Parameters
-    ----------
-    c: float
-        Consumption value
-    alpha: float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed): float
-        Utility
-    """
-    return 1 - np.exp(-alpha * c) / alpha
-
-
-def CARAutilityP(c, alpha):
-    """
-    Evaluates constant absolute risk aversion (CARA) marginal utility of
-    consumption c given risk aversion parameter alpha.
-
-    Parameters
-    ----------
-    c: float
-        Consumption value
-    alpha: float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed): float
-        Marginal utility
-    """
-    return np.exp(-alpha * c)
-
-
-def CARAutilityPP(c, alpha):
-    """
-    Evaluates constant absolute risk aversion (CARA) marginal marginal utility
-    of consumption c given risk aversion parameter alpha.
-
-    Parameters
-    ----------
-    c: float
-        Consumption value
-    alpha: float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed): float
-        Marginal marginal utility
-    """
-    return -alpha * np.exp(-alpha * c)
-
-
-def CARAutilityPPP(c, alpha):
-    """
-    Evaluates constant absolute risk aversion (CARA) marginal marginal marginal
-    utility of consumption c given risk aversion parameter alpha.
-
-    Parameters
-    ----------
-    c: float
-        Consumption value
-    alpha: float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed): float
-        Marginal marginal marginal utility
-    """
-    return alpha**2.0 * np.exp(-alpha * c)
-
-
-def CARAutility_inv(u, alpha):
-    """
-    Evaluates inverse of constant absolute risk aversion (CARA) utility function
-    at utility level u given risk aversion parameter alpha.
-
-    Parameters
-    ----------
-    u: float
-        Utility value
-    alpha: float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed): float
-        Consumption value corresponding to u
-    """
-    return -1.0 / alpha * np.log(alpha * (1 - u))
-
-
-def CARAutilityP_inv(u, alpha):
-    """
-    Evaluates the inverse of constant absolute risk aversion (CARA) marginal
-    utility function at marginal utility uP given risk aversion parameter alpha.
-
-    Parameters
-    ----------
-    u: float
-        Utility value
-    alpha: float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed): float
-        Consumption value corresponding to uP
-    """
-    return -1.0 / alpha * np.log(u)
-
-
-def CARAutility_invP(u, alpha):
-    """
-    Evaluates the derivative of inverse of constant absolute risk aversion (CARA)
-    utility function at utility level u given risk aversion parameter alpha.
-
-    Parameters
-    ----------
-    u: float
-        Utility value
-    alpha: float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed): float
-        Marginal onsumption value corresponding to u
-    """
-    return 1.0 / (alpha * (1.0 - u))
 
 
 # =======================================================
@@ -598,6 +176,8 @@ def construct_assets_grid(parameters):
 # ==============================================================================
 # ============== Functions for generating state space grids  ===================
 # ==============================================================================
+
+
 def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     """
     Make a multi-exponentially spaced grid.
@@ -645,6 +225,8 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
 # ==============================================================================
 # ============== Uncategorized general functions  ===================
 # ==============================================================================
+
+
 def calc_weighted_avg(data, weights):
     """
     Generates a weighted average of simulated data.  The Nth row of data is averaged
@@ -954,7 +536,6 @@ def jump_to_grid_1D(m_vals, probs, Dist_mGrid):
 
 @numba.njit
 def jump_to_grid_2D(m_vals, perm_vals, probs, dist_mGrid, dist_pGrid):
-
     """
     Distributes values onto a predefined grid, maintaining the means. m_vals and perm_vals are realizations of market resources and permanent income while
     dist_mGrid and dist_pGrid are the predefined grids of market resources and permanent income, respectively. That is, m_vals and perm_vals do not necesarily lie on their
@@ -1073,7 +654,6 @@ def jump_to_grid_2D(m_vals, perm_vals, probs, dist_mGrid, dist_pGrid):
 def gen_tran_matrix_1D(
     dist_mGrid, bNext, shk_prbs, perm_shks, tran_shks, LivPrb, NewBornDist
 ):
-
     """
     Computes Transition Matrix across normalized market resources.
     This function is built to non-stochastic simulate the IndShockConsumerType.
@@ -1127,7 +707,6 @@ def gen_tran_matrix_1D(
 def gen_tran_matrix_2D(
     dist_mGrid, dist_pGrid, bNext, shk_prbs, perm_shks, tran_shks, LivPrb, NewBornDist
 ):
-
     """
     Computes Transition Matrix over normalized market resources and permanent income.
     This function is built to non-stochastic simulate the IndShockConsumerType.
@@ -1427,14 +1006,20 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
         print("Saving figure {} in {}".format(figure_name, target_dir))
         plt.savefig(
             os.path.join(target_dir, "{}.jpg".format(figure_name)),
-            metadata={'CreationDate': None}
+            metadata={"CreationDate": None},
         )  # For web/html
         plt.savefig(
             os.path.join(target_dir, "{}.png".format(figure_name)),
-            metadata={'CreationDate': None}
+            metadata={"CreationDate": None},
         )  # For web/html
-        plt.savefig(os.path.join(target_dir, "{}.pdf".format(figure_name)),metadata={'CreationDate': None})  # For LaTeX
-        plt.savefig(os.path.join(target_dir, "{}.svg".format(figure_name)),metadata={'Date': None})  # For html5
+        plt.savefig(
+            os.path.join(target_dir, "{}.pdf".format(figure_name)),
+            metadata={"CreationDate": None},
+        )  # For LaTeX
+        plt.savefig(
+            os.path.join(target_dir, "{}.svg".format(figure_name)),
+            metadata={"Date": None},
+        )  # For html5
     # Make sure it's possible to plot it by checking for GUI
     if drawFigs and find_gui():
         plt.ion()  # Counterintuitively, you want interactive mode on if you don't want to interact

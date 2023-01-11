@@ -4,9 +4,9 @@ stochastic Markov state.  The only solver here extends ConsIndShockModel to
 include a Markov state; the interest factor, permanent growth factor, and income
 distribution can vary with the discrete state.
 """
-from copy import deepcopy
 
 import numpy as np
+
 from HARK import AgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolver,
@@ -14,12 +14,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     PerfForesightConsumerType,
 )
-from HARK.distribution import (
-    DiscreteDistribution,
-    MarkovProcess,
-    Uniform,
-    calc_expectation,
-)
+from HARK.distribution import MarkovProcess, Uniform, calc_expectation
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
@@ -27,7 +22,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
-from HARK.utilities import (
+from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
     CRRAutility_invP,
@@ -323,7 +318,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         """
 
         def vpp_next(shocks, a_nrm, Rfree):
-            return shocks['PermShk'] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
+            return shocks["PermShk"] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
                 self.m_nrm_next(shocks, a_nrm, Rfree)
             )
 
@@ -359,10 +354,12 @@ class ConsMarkovSolver(ConsIndShockSolver):
         EndOfPrdv_cond = self.DiscFacEff * calc_expectation(
             self.IncShkDstn, v_lvl_next, self.aNrmNow, self.Rfree
         )
-        EndOfPrdvNvrs = self.uinv(
+        EndOfPrdvNvrs = self.u.inv(
             EndOfPrdv_cond
         )  # value transformed through inverse utility
-        EndOfPrdvNvrsP = self.EndOfPrdvP_cond * self.uinvP(EndOfPrdv_cond)
+        EndOfPrdvNvrsP = self.EndOfPrdvP_cond * self.u.derinv(
+            EndOfPrdv_cond, order=(0, 1)
+        )
         EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
         EndOfPrdvNvrsP = np.insert(
             EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0]
@@ -408,13 +405,13 @@ class ConsMarkovSolver(ConsIndShockSolver):
         # Get data to construct the end-of-period marginal value function (conditional on next state)
         self.aNrm_cond = self.prepare_to_calc_EndOfPrdvP()
         self.EndOfPrdvP_cond = self.calc_EndOfPrdvPcond()
-        EndOfPrdvPnvrs_cond = self.uPinv(
-            self.EndOfPrdvP_cond
+        EndOfPrdvPnvrs_cond = self.u.derinv(
+            self.EndOfPrdvP_cond, order=(1, 0)
         )  # "decurved" marginal value
         if self.CubicBool:
             EndOfPrdvPP_cond = self.calc_EndOfPrdvPP()
-            EndOfPrdvPnvrsP_cond = EndOfPrdvPP_cond * self.uPinvP(
-                self.EndOfPrdvP_cond
+            EndOfPrdvPnvrsP_cond = EndOfPrdvPP_cond * self.u.derinv(
+                self.EndOfPrdvP_cond, order=(1, 1)
             )  # "decurved" marginal marginal value
 
         # Construct the end-of-period marginal value function conditional on the next state.
@@ -580,7 +577,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         )  # An empty solution to which we'll add state-conditional solutions
         # Calculate the MPC at each market resource gridpoint in each state (if desired)
         if self.CubicBool:
-            dcda = self.EndOfPrdvPP / self.uPP(np.array(self.cNrmNow))
+            dcda = self.EndOfPrdvPP / self.u.der(np.array(self.cNrmNow), order=2)
             MPC = dcda / (dcda + 1.0)
             self.MPC_temp = np.hstack(
                 (np.reshape(self.MPCmaxNow, (self.StateCount, 1)), MPC)
@@ -711,11 +708,12 @@ class ConsMarkovSolver(ConsIndShockSolver):
 
             # Calculate (normalized) value and marginal value at each gridpoint
             vNrmNow = self.u(cGrid) + EndOfPrdv
-            vPnow = self.uP(cGrid)
+            vPnow = self.u.der(cGrid)
 
             # Make a "decurved" value function with the inverse utility function
-            vNvrs = self.uinv(vNrmNow)  # value transformed through inverse utility
-            vNvrsP = vPnow * self.uinvP(vNrmNow)
+            # value transformed through inverse utility
+            vNvrs = self.u.inv(vNrmNow)
+            vNvrsP = vPnow * self.u.derinv(vNrmNow, order=(0, 1))
             mNrm_temp = np.insert(mGrid, 0, mNrmMin)  # add the lower bound
             vNvrs = np.insert(vNvrs, 0, 0.0)
             vNvrsP = np.insert(

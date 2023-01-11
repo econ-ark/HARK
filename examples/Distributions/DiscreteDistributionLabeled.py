@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.0
+#       jupytext_version: 1.14.4
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -35,8 +35,8 @@ from HARK.distribution import (
 #
 
 # %%
-PermShkDstn = MeanOneLogNormal().approx(200)
-TranShkDstn = MeanOneLogNormal().approx(200)
+PermShkDstn = MeanOneLogNormal().discretize(200)
+TranShkDstn = MeanOneLogNormal().discretize(200)
 IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
 # %% [markdown]
