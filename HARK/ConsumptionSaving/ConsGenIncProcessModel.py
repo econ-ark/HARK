@@ -386,8 +386,8 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         # expected value, averaging across states
         EndOfPrdv = self.DiscFacEff * vLvlNext
         # value transformed through inverse utility
-        EndOfPrdvNvrs = self.uinv(EndOfPrdv)
-        EndOfPrdvNvrsP = EndOfPrdvP * self.uinvP(EndOfPrdv)
+        EndOfPrdvNvrs = self.u.inv(EndOfPrdv)
+        EndOfPrdvNvrsP = EndOfPrdvP * self.u.derinv(EndOfPrdv, order=(0, 1))
 
         # Add points at mLvl=zero
         EndOfPrdvNvrs = np.concatenate(
@@ -453,7 +453,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         m_for_interpolation : np.array
             Corresponding market resource points for interpolation.
         """
-        cLvlNow = self.uPinv(EndOfPrdvP)
+        cLvlNow = self.u.derinv(EndOfPrdvP, order=(1, 0))
         mLvlNow = cLvlNow + aLvlNow
 
         # Limiting consumption is zero as m approaches mNrmMin
@@ -563,11 +563,11 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         cLvlNow = solution.cFunc(mLvl_temp, pLvl_temp)
         aLvlNow = mLvl_temp - cLvlNow
         vNow = self.u(cLvlNow) + self.EndOfPrdvFunc(aLvlNow, pLvl_temp)
-        vPnow = self.uP(cLvlNow)
+        vPnow = self.u.der(cLvlNow)
 
         # Calculate pseudo-inverse value and its first derivative (wrt mLvl)
-        vNvrs = self.uinv(vNow)  # value transformed through inverse utility
-        vNvrsP = vPnow * self.uinvP(vNow)
+        vNvrs = self.u.inv(vNow)  # value transformed through inverse utility
+        vNvrsP = vPnow * self.u.derinv(vNow, order=(0, 1))
 
         # Add data at the lower bound of m
         mLvl_temp = np.concatenate(

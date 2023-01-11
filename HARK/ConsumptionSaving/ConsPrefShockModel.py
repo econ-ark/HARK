@@ -395,7 +395,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         m_for_interpolation : np.array
             Corresponding market resource points for interpolation.
         """
-        c_base = self.uPinv(EndOfPrdvP)
+        c_base = self.u.derinv(EndOfPrdvP, order=(1, 0))
         PrefShkCount = self.PrefShkVals.size
         PrefShk_temp = np.tile(
             np.reshape(self.PrefShkVals ** (1.0 / self.CRRA), (PrefShkCount, 1)),
@@ -457,11 +457,11 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         vP_vec = np.zeros_like(m_grid)
         for j in range(PrefShkCount):  # numeric integration over the preference shock
             vP_vec += (
-                self.uP(cFunc_list[j](m_grid))
+                self.u.der(cFunc_list[j](m_grid))
                 * self.PrefShkPrbs[j]
                 * self.PrefShkVals[j]
             )
-        vPnvrs_vec = self.uPinv(vP_vec)
+        vPnvrs_vec = self.u.derinv(vP_vec, order=(1, 0))
         vPfuncNow = MargValueFuncCRRA(LinearInterp(m_grid, vPnvrs_vec), self.CRRA)
 
         # Store the results in a solution object and return it
@@ -500,7 +500,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
             vNrmNow += this_prob * (
                 this_shock * self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow)
             )
-            vPnow += this_prob * this_shock * self.uP(cNrmNow)
+            vPnow += this_prob * this_shock * self.u.der(cNrmNow)
 
         # Construct the beginning-of-period value function
         # value transformed through inverse utility

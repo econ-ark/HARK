@@ -272,12 +272,7 @@ class ConsPerfForesightSolver(MetricObject):
         -------
         None
         """
-        self.u = lambda c: utility(c, gam=self.CRRA)  # utility function
-        # marginal utility function
-        self.uP = lambda c: utilityP(c, gam=self.CRRA)
-        self.uPP = lambda c: utilityPP(
-            c, gam=self.CRRA
-        )  # marginal marginal utility function
+        self.u = UtilityFuncCRRA(self.CRRA)
 
     def def_value_funcs(self):
         """
@@ -664,27 +659,6 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 
         self.def_utility_funcs()
 
-    def def_utility_funcs(self):
-        """
-        Defines CRRA utility function for this period (and its derivatives,
-        and their inverses), saving them as attributes of self for other methods
-        to use.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        """
-        ConsPerfForesightSolver.def_utility_funcs(self)
-        self.uPinv = lambda u: utilityP_inv(u, gam=self.CRRA)
-        self.uPinvP = lambda u: utilityP_invP(u, gam=self.CRRA)
-        self.uinvP = lambda u: utility_invP(u, gam=self.CRRA)
-        if self.vFuncBool:
-            self.uinv = lambda u: utility_inv(u, gam=self.CRRA)
-
     def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
@@ -922,7 +896,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         m_for_interpolation : np.array
             Corresponding market resource points for interpolation.
         """
-        cNrmNow = self.uPinv(EndOfPrdvP)
+        cNrmNow = self.u.derinv(EndOfPrdvP, order=(1, 0))
         mNrmNow = cNrmNow + aNrmNow
 
         # Limiting consumption is zero as m approaches mNrmMin
@@ -1147,7 +1121,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             * self.PermGroFac ** (-self.CRRA - 1.0)
             * expected(vpp_next, self.IncShkDstn, args=(self.aNrmNow, self.Rfree))
         )
-        dcda = EndOfPrdvPP / self.uPP(np.array(cNrm[1:]))
+        dcda = EndOfPrdvPP / self.u.der(np.array(cNrm[1:]), order=2)
         MPC = dcda / (dcda + 1.0)
         MPC = np.insert(MPC, 0, self.MPCmaxNow)
 
@@ -1181,10 +1155,10 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         EndOfPrdv = self.DiscFacEff * expected(
             v_lvl_next, self.IncShkDstn, args=(self.aNrmNow, self.Rfree)
         )
-        EndOfPrdvNvrs = self.uinv(
+        EndOfPrdvNvrs = self.u.inv(
             EndOfPrdv
         )  # value transformed through inverse utility
-        EndOfPrdvNvrsP = EndOfPrdvP * self.uinvP(EndOfPrdv)
+        EndOfPrdvNvrsP = EndOfPrdvP * self.u.derinv(EndOfPrdv, order=(0, 1))
         EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
         EndOfPrdvNvrsP = np.insert(
             EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0]
@@ -1238,7 +1212,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         cNrmNow = solution.cFunc(mNrm_temp)
         aNrmNow = mNrm_temp - cNrmNow
         vNrmNow = self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow)
-        vPnow = self.uP(cNrmNow)
+        vPnow = self.u.der(cNrmNow)
 
         # Construct the beginning-of-period value function
         # value transformed through inverse utility
