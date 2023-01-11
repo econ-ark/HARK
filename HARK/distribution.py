@@ -165,14 +165,14 @@ class Distribution:
 
 class ContinuousFrozenDistribution(rv_continuous_frozen, Distribution):
     """
-    Parametrized continuous distribution from scipy.stats with seed management.
+    Parameterized continuous distribution from scipy.stats with seed management.
     """
 
     def __init__(
         self, dist: rv_continuous, *args: Any, seed: int = 0, **kwds: Any
     ) -> None:
         """
-        Parametrized continuous distribution from scipy.stats with seed management.
+        Parameterized continuous distribution from scipy.stats with seed management.
 
         Parameters
         ----------
@@ -675,23 +675,9 @@ class MVNormal(multivariate_normal_frozen, Distribution):
         quadrature rule is used as the default method for discretization.
         """
 
-        return super().discretize(N, method, endpoints)
+        return self._approx(N, method=method, endpoints=endpoints)
 
-    def _approx_equiprobable(self, N, endpoints=False):
-        """
-        Makes an equiprobable discrete approximation to this distribution.
-        """
-
-        return self._approx(N, endpoints=endpoints, equiprobable=True)
-
-    def _approx_hermite(self, N, endpoints=False):
-        """
-        Makes a Gauss-Hermite discrete approximation to this distribution.
-        """
-
-        return self._approx(N, endpoints=endpoints, equiprobable=False)
-
-    def _approx(self, N, endpoints=False, equiprobable=False):
+    def _approx(self, N, method="hermite", endpoints=False):
         """
         Returns a discrete approximation of this distribution.
 
@@ -714,10 +700,8 @@ class MVNormal(multivariate_normal_frozen, Distribution):
         A = np.matmul(Q, sqrtV)
 
         # Now find a discretization for a univariate standard normal.
-        if equiprobable:
-            z_approx = Normal().discretize(N, method="equiprobable")
-        else:
-            z_approx = Normal().discretize(N, method="hermite")
+
+        z_approx = Normal().discretize(N, method=method)
 
         # Now create the multivariate grid and pmv
         Z = np.array(list(product(*[z_approx.atoms.flatten()] * self.M)))
@@ -728,7 +712,7 @@ class MVNormal(multivariate_normal_frozen, Distribution):
 
         limit = {
             "dist": self,
-            "method": "equiprobable" if equiprobable else "hermite",
+            "method": method,
             "N": N,
             "endpoints": endpoints,
         }
@@ -747,14 +731,14 @@ class MVNormal(multivariate_normal_frozen, Distribution):
 
 class DiscreteFrozenDistribution(rv_discrete_frozen, Distribution):
     """
-    Parametrized discrete distribution from scipy.stats with seed management.
+    Parameterized discrete distribution from scipy.stats with seed management.
     """
 
     def __init__(
         self, dist: rv_discrete, *args: Any, seed: int = 0, **kwds: Any
     ) -> None:
         """
-        Parametrized discrete distribution from scipy.stats with seed management.
+        Parameterized discrete distribution from scipy.stats with seed management.
 
         Parameters
         ----------
