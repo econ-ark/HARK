@@ -9,9 +9,8 @@ from HARK.ConsumptionSaving.ConsRiskyContribModel import (
 from time import time
 import numpy as np
 
+
 # %% Define a plotting function
-
-
 def plot_slices_3d(
     functions, bot_x, top_x, y_slices, N=300, y_name=None, titles=None, ax_labs=None
 ):
@@ -214,9 +213,9 @@ par_finite["T_age"] = 4
 
 # Adjust discounting and returns distribution so that they make sense in a
 # 4-period model
-par_finite["DiscFac"] = 0.95 ** 15
-par_finite["Rfree"] = 1.03 ** 15
-par_finite["RiskyAvg"] = 1.08 ** 15  # Average return of the risky asset
+par_finite["DiscFac"] = 0.95**15
+par_finite["Rfree"] = 1.03**15
+par_finite["RiskyAvg"] = 1.08**15  # Average return of the risky asset
 par_finite["RiskyStd"] = 0.20 * np.sqrt(15)  # Standard deviation of (log) risky returns
 
 
@@ -267,7 +266,7 @@ plot_slices_4d(
     ax_labs=["m_til", "c"],
 )
 
-# %%  Simulate the finite horizon consumer
+# %% Simulate the finite horizon consumer
 contrib_agent.track_vars = [
     "pLvl",
     "t_age",
@@ -287,7 +286,6 @@ contrib_agent.initialize_sim()
 contrib_agent.simulate()
 
 # %% Format simulation results
-
 import pandas as pd
 
 df = contrib_agent.history

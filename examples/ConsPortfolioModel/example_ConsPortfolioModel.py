@@ -1,3 +1,19 @@
+# ---
+# jupyter:
+#   jupytext:
+#     cell_metadata_filter: title,-all
+#     formats: ipynb,py:percent
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.14.4
+#   kernelspec:
+#     display_name: Python 3 (ipykernel)
+#     language: python
+#     name: python3
+# ---
+
 # %% [markdown]
 # # ConsPortfolioModel: A Consumption-Savings model with risky assets
 
@@ -283,8 +299,8 @@ for rcount in risky_count_grid:
     agent.solve()
 
     # Compute the analytical Merton-Samuelson limiting portfolio share
-    RiskyVar = agent.RiskyStd ** 2
-    RiskPrem = agent.RiskyAvg - agent.Rfree
+    RiskyVar = agent.RiskyStd**2
+    RiskPrem = agent.RiskyAvg - agent.Rfree[0]
     MS_limit = RiskyShareMertSamLogNormal(RiskPrem, agent.CRRA, RiskyVar)
 
     # Now compute the limiting share numerically, using the approximated
