@@ -83,7 +83,7 @@ mystr = lambda number: "{:.4f}".format(number)
 # \mathfrak{v}'_t(a_t) = \DiscFac (1-\DiePrb_{t+1})  \mathbb{E}_{t} \left[ \Rfree (\PermGroFac_{t+1}\psi_{t+1})^{-\CRRA} v'_{t+1}(\Rfree/(\PermGroFac_{t+1} \psi_{t+1}) a_t + \theta_{t+1}) \right].
 # \end{eqnarray*}
 #
-# To solve the model, we choose an exogenous grid of $a_t$ values that spans the range of values that could plausibly be achieved, compute $\mathfrak{v}'_t(a_t)$ at each of these points, calculate the value of consumption $c_t$ whose marginal utility is consistent with the marginal value of assets, then find the endogenous $m_t$ gridpoint as $m_t = a_t + c_t$.  The set of $(m_t,c_t)$ gridpoints is then interpolated to construct the consumption function.
+# To solve the model, we choose an exogenous grid of $a_t$ values that span the range of values that could plausibly be achieved, compute $\mathfrak{v}'_t(a_t)$ at each of these points, calculate the value of consumption $c_t$ whose marginal utility is consistent with the marginal value of assets, then find the endogenous $m_t$ gridpoint as $m_t = a_t + c_t$.  The set of $(m_t,c_t)$ gridpoints is then interpolated to construct the consumption function.
 
 # %% [markdown]
 # ## Example parameter values to construct an instance of IndShockConsumerType
@@ -237,7 +237,7 @@ plot_funcs(IndShockExample.solution[0].cFunc.functions, -0.25, 5.0)
 # %% [markdown]
 # ## Simulating the idiosyncratic income shocks model
 #
-# In order to generate simulated data, an instance of `IndShockConsumerType` needs to know how many agents there are that share these particular parameters (and are thus *ex ante* homogeneous), the distribution of states for newly "born" agents, and how many periods to simulated.  These simulation parameters are described in the table below, along with example values.
+# In order to generate simulated data, an instance of `IndShockConsumerType` needs to know how many agents there are that share these particular parameters (and are thus *ex ante* homogeneous), the distribution of states for newly "born" agents, and how many periods to simulate.  These simulation parameters are described in the table below, along with example values.
 #
 # | Description | Code | Example value |
 # | :---: | --- | --- |

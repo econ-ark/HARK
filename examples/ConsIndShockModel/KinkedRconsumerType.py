@@ -110,7 +110,7 @@ mystr = lambda number: "{:.4f}".format(number)
 # |$T$| Number of periods in this type's "cycle" |$\texttt{T_cycle}$| $1$ | |
 # |(none)| Number of times the "cycle" occurs |$\texttt{cycles}$| $0$ | |
 #
-# These example parameters are almostidentical to those used for `IndShockExample` in the prior notebook, except that the interest rate on borrowing is 20% (like a credit card), and the interest rate on saving is 1%. Moreover, the artificial borrowing constraint has been set to `None`.  The cell below defines a parameter dictionary with these example values.
+# These example parameters are almost identical to those used for `IndShockExample` in the prior notebook, except that the interest rate on borrowing is 20% (like a credit card), and the interest rate on saving is 1%. Moreover, the artificial borrowing constraint has been set to `None`.  The cell below defines a parameter dictionary with these example values.
 
 # %% {"code_folding": [0]}
 KinkedRdict = {  # Click the arrow to expand this parameter dictionary
