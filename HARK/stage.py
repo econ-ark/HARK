@@ -914,22 +914,28 @@ class Stage:
     def solve(
         self,
         x_grid : Mapping[str, Sequence] = field(default_factory=dict),
+        y_grid : Mapping[str, Sequence] = field(default_factory=dict),
         shock_approx_params : Mapping[str, int] = field(default_factory=dict),
         v_y :  Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
-    
+        v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
+        next_sol : SolutionDataset = None,
         policy_finder_method = 'opt', # opt, foc, egm
         policy_finder_args = None ## rootfinder_args?
         # in these args? v_y_der : Callable[[Mapping, Mapping, Mapping], float] = None,
         ):
 
-        ## Build the grid
-
-        discretized_shocks, k_grid, k_grid_i = self.discretize_shocks(shock_approx_params)
+        if next_sol is not None:
+            v_y = next_sol.v_x
+            v_y_der = next_sol.v_x_der
 
         ## Pick the policy optimizer and run it with the passed-in values
-        ## get pi_star
 
         if policy_finder_method == 'opt':
+
+            ## Build the grid
+
+            discretized_shocks, k_grid, k_grid_i = self.discretize_shocks(shock_approx_params)
+
             pi_star, q_data = self.optimal_policy(
                 x_grid,
                 k_grid,
@@ -953,7 +959,12 @@ class Stage:
         elif policy_finder_method == 'foc':
             pass
         elif policy_finder_method == 'egm':
-            pass
+            #if not isinstance(shock_approx_params, Field) and len(shock_approx_params) > 0:
+            #    raise Exception("EGM cannot be used in stages with exogenous shocks.")
+
+            return self.solve_egm(y_grid, v_y_der)
+            
+
         else:
             print(f'Did not recognize policy finder method {policy_finder_method}')
 
@@ -977,27 +988,24 @@ class Stage:
         ### NO SHOCKS
         ### and many other analytic tools in the EGM solver
 
-        ### 1. Get optimal policy via EGM
-        ## TODO: Fix
-        pi_star, q_data = self.optimal_policy(
-                x_grid,
-                k_grid,
-                v_y
+        pi, pi_y = self.optimal_policy_egm(y_grid, v_y_der)
+
+        v_x_der_values = self.analytic_marginal_value_backup(
+            pi,
+            dict(pi.coords.items()),
+            {} # NO SHOCKS
         )
-
-        ## 2. Get value function data, including v_x_der, based on F_der(x)
-        ### TODO: Analyze
-        ### TODO: Code up here   
-        sol = self.value_backup(
-            pi_star,
-            x_grid,
-            v_y
-        )
-
-        # TODO: better design Solution object to make this smoother
-        sol.dataset['q'] = q_data
-
-        return sol
+        
+        return SolutionDataset(
+            xr.Dataset({
+                #'v_x' : v_x_values,
+                'v_x_der' : v_x_der_values,
+                'pi*' : pi,
+                #'q' : q_values,
+            }), 
+            actions = self.actions,
+            #k_grid = k_grid_i
+            )
 
     def marginal_value_backup(
         self,
@@ -1070,12 +1078,24 @@ class Stage:
 
 
 
-def backwards_induction(stages_data, terminal_v_y):
+def backwards_induction(
+    stages_data,
+    terminal_v_y: Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
+    terminal_v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,):
     """
     #Solve each stage starting from the terminal value function.
     """
     
-    v_y = terminal_v_y
+    last_stage = stages_data[-1]['stage']
+    terminal_solution = SolutionDataset(
+            xr.Dataset({
+                'v_x' : terminal_v_y,
+                'v_x_der' : terminal_v_y_der,
+            }), 
+            actions = last_stage.actions,
+            )
+
+    sol = terminal_solution
 
     sols = []
     
@@ -1093,13 +1113,20 @@ def backwards_induction(stages_data, terminal_v_y):
         else:
             shock_approx_params = {}
 
+        if 'method' in stage_data:
+            method = stage_data['method']
+        else:
+            method = 'opt'
+
         optimizer_args = stage_data['optimizer_args'] if 'optimizer_args' in stage_data else None
 
-        sol = stage.solve_v_x(
+        sol = stage.solve(
             x_grid = x_grid,
             shock_approx_params = shock_approx_params,
-            v_y = v_y,
-            optimizer_args = optimizer_args
+            next_sol = sol,
+            policy_finder_method = method
+            #
+            # optimizer_args = optimizer_args
         )
 
         sols.insert(0, sol)
