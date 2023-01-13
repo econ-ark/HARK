@@ -6,20 +6,23 @@ of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
-import sys
 import os
+import sys
+from copy import copy, deepcopy
+from distutils.dir_util import copy_tree
+from time import time
+from warnings import warn
+
+import numpy as np
+
 from HARK.distribution import (
     Distribution,
-    TimeVaryingDiscreteDistribution,
     IndexDistribution,
+    TimeVaryingDiscreteDistribution,
 )
-from distutils.dir_util import copy_tree
-from .utilities import get_arg_names, NullFunc
-from copy import copy, deepcopy
-import numpy as np
-from time import time
+
 from .parallel import multi_thread_commands, multi_thread_commands_fake
-from warnings import warn
+from .utilities import NullFunc, get_arg_names
 
 
 def distance_metric(thing_a, thing_b):
@@ -424,7 +427,7 @@ class AgentType(Model):
         -------
         none
         """
-        self.RNG = np.random.RandomState(self.seed)
+        self.RNG = np.random.default_rng(self.seed)
 
     def check_elements_of_time_vary_are_lists(self):
         """
@@ -1556,7 +1559,7 @@ def distribute_params(agent, param_name, param_count, distribution):
         will be split between the agents of the returned
         list in proportion to the given distribution.
     """
-    param_dist = distribution.approx(N=param_count)
+    param_dist = distribution.discretize(N=param_count)
 
     agent_set = [deepcopy(agent) for i in range(param_count)]
 
