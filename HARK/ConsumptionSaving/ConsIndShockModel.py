@@ -3302,21 +3302,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         _log.warning("DiscFacGPFNrmMax       = %2.6f " % (self.DiscFacGPFNrmMax))
         _log.warning("DiscFacGPFAggLivPrbMax = %2.6f " % (self.DiscFacGPFAggLivPrbMax))
 
-    def Ex_Mtp1_over_Ex_Ptp1(self, mNrm):
-        cNrm = self.solution[-1].cFunc(mNrm)
-        aNrm = mNrm - cNrm
-        Ex_Ptp1 = PermGroFac[0]
-        Ex_bLev_tp1 = aNrm * self.Rfree
-        Ex_Mtp1 = Ex_bLev_tp1
-        return Ex_Mtp1 / Ex_Ptp1
-
-    def Ex_mtp1(self, mNrm):
-        cNrm = self.solution[-1].cFunc(mNrm)
-        aNrm = mNrm - cNrm
-        Ex_bNrm_tp1 = aNrm * self.Rfree * self.Ex_PermShkInv / self.PermGroFac[0]
-        Ex_Mtp1 = (Ex_bNrm_tp1 + 1) * Ex_Ptp1  # mean TranShk and PermShk are 1
-        return Ex_Mtp1 / Ex_Ptp1
-
     def calc_stable_points(self):
         """
         If the problem is one that satisfies the conditions required for target ratios of different
