@@ -8,17 +8,18 @@ should yield the same output.  The code will pass these tests if and only if the
 # Bring in modules we need
 import unittest
 from copy import deepcopy
+
 import numpy as np
 
 # Bring in the HARK models we want to test
 from HARK.ConsumptionSaving.ConsIndShockModel import (
-    PerfForesightConsumerType,
     IndShockConsumerType,
+    PerfForesightConsumerType,
     init_idiosyncratic_shocks,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.ConsumptionSaving.TractableBufferStockModel import TractableConsumerType
-from HARK.distribution import DiscreteDistribution
+from HARK.distribution import DiscreteDistribution, DiscreteDistributionLabeled
 
 
 class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
@@ -66,7 +67,7 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
         self.PerfectForesightType = PerfectForesightType
 
     def test_consumption(self):
-        """"
+        """ "
         Now compare the consumption functions and make sure they are "close"
         """
         mNrmMinInf = self.InfiniteType.solution[0].mNrmMin  # mNrm min in inf hor model
@@ -78,7 +79,7 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
                 m
             ) - self.InfiniteType.cFunc[0](m)
 
-        points = np.arange(0.5, mNrmMinInf+aXtraMin, mNrmMinInf+aXtraMax)
+        points = np.arange(0.5, mNrmMinInf + aXtraMin, mNrmMinInf + aXtraMax)
         difference = diffFunc(points)
         max_difference = np.max(np.abs(difference))
 
@@ -143,7 +144,9 @@ class Compare_TBS_and_Markov(unittest.TestCase):
             "aXtraCount": 48,
             "aXtraExtra": [None],
             "aXtraNestFac": 3,
-            "LivPrb": [np.array([1.0, 1.0]), ],
+            "LivPrb": [
+                np.array([1.0, 1.0]),
+            ],
             "DiscFac": base_primitives["DiscFac"],
             "Nagents": 1,
             "psi_seed": 0,
@@ -158,11 +161,15 @@ class Compare_TBS_and_Markov(unittest.TestCase):
 
         MarkovType = MarkovConsumerType(**Markov_primitives)
         MarkovType.cycles = 0
-        employed_income_dist = DiscreteDistribution(
-            np.ones(1), np.array([[1.0],[1.0]])
+        employed_income_dist = DiscreteDistributionLabeled(
+            pmv=np.ones(1),
+            atoms=np.array([[1.0], [1.0]]),
+            var_names=["PermShk", "TranShk"],
         )
-        unemployed_income_dist = DiscreteDistribution(
-            np.ones(1), np.array([[1.0],[0.0]])
+        unemployed_income_dist = DiscreteDistributionLabeled(
+            pmv=np.ones(1),
+            atoms=np.array([[1.0], [0.0]]),
+            var_names=["PermShk", "TranShk"],
         )
         MarkovType.IncShkDstn = [[employed_income_dist, unemployed_income_dist]]
 

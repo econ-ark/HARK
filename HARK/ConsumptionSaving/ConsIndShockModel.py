@@ -35,6 +35,7 @@ from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.distribution import (
     DiscreteDistribution,
+    DiscreteDistributionLabeled,
     IndexDistribution,
     Lognormal,
     MeanOneLogNormal,
@@ -52,7 +53,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
-from HARK.utilities import (
+from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
     CRRAutility_invP,
@@ -60,6 +61,9 @@ from HARK.utilities import (
     CRRAutilityP_inv,
     CRRAutilityP_invP,
     CRRAutilityPP,
+    UtilityFuncCRRA,
+)
+from HARK.utilities import (
     construct_assets_grid,
     gen_tran_matrix_1D,
     gen_tran_matrix_2D,
@@ -268,12 +272,7 @@ class ConsPerfForesightSolver(MetricObject):
         -------
         None
         """
-        self.u = lambda c: utility(c, gam=self.CRRA)  # utility function
-        # marginal utility function
-        self.uP = lambda c: utilityP(c, gam=self.CRRA)
-        self.uPP = lambda c: utilityPP(
-            c, gam=self.CRRA
-        )  # marginal marginal utility function
+        self.u = UtilityFuncCRRA(self.CRRA)
 
     def def_value_funcs(self):
         """
@@ -660,27 +659,6 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 
         self.def_utility_funcs()
 
-    def def_utility_funcs(self):
-        """
-        Defines CRRA utility function for this period (and its derivatives,
-        and their inverses), saving them as attributes of self for other methods
-        to use.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        """
-        ConsPerfForesightSolver.def_utility_funcs(self)
-        self.uPinv = lambda u: utilityP_inv(u, gam=self.CRRA)
-        self.uPinvP = lambda u: utilityP_invP(u, gam=self.CRRA)
-        self.uinvP = lambda u: utility_invP(u, gam=self.CRRA)
-        if self.vFuncBool:
-            self.uinv = lambda u: utility_inv(u, gam=self.CRRA)
-
     def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
@@ -867,7 +845,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         float
            normalized market resources in the next period
         """
-        return Rfree / (self.PermGroFac * shocks[0]) * a_nrm + shocks[1]
+        return Rfree / (self.PermGroFac * shocks["PermShk"]) * a_nrm + shocks["TranShk"]
 
     def calc_EndOfPrdvP(self):
         """
@@ -886,7 +864,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         """
 
         def vp_next(shocks, a_nrm, Rfree):
-            return shocks[0] ** (-self.CRRA) * self.vPfuncNext(
+            return shocks["PermShk"] ** (-self.CRRA) * self.vPfuncNext(
                 self.m_nrm_next(shocks, a_nrm, Rfree)
             )
 
@@ -918,7 +896,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         m_for_interpolation : np.array
             Corresponding market resource points for interpolation.
         """
-        cNrmNow = self.uPinv(EndOfPrdvP)
+        cNrmNow = self.u.derinv(EndOfPrdvP, order=(1, 0))
         mNrmNow = cNrmNow + aNrmNow
 
         # Limiting consumption is zero as m approaches mNrmMin
@@ -955,7 +933,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         cFuncNowUnc = interpolator(mNrm, cNrm)
 
         # Combine the constrained and unconstrained functions into the true consumption function
-        # breakpoint()  # LowerEnvelope should only be used when BoroCnstArt is true
+        # LowerEnvelope should only be used when BoroCnstArt is true
         cFuncNow = LowerEnvelope(cFuncNowUnc, self.cFuncNowCnst, nan_bool=False)
 
         # Make the marginal value function and the marginal marginal value function
@@ -1132,7 +1110,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         """
 
         def vpp_next(shocks, a_nrm, Rfree):
-            return shocks[0] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
+            return shocks["PermShk"] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
                 self.m_nrm_next(shocks, a_nrm, Rfree)
             )
 
@@ -1143,7 +1121,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             * self.PermGroFac ** (-self.CRRA - 1.0)
             * expected(vpp_next, self.IncShkDstn, args=(self.aNrmNow, self.Rfree))
         )
-        dcda = EndOfPrdvPP / self.uPP(np.array(cNrm[1:]))
+        dcda = EndOfPrdvPP / self.u.der(np.array(cNrm[1:]), order=2)
         MPC = dcda / (dcda + 1.0)
         MPC = np.insert(MPC, 0, self.MPCmaxNow)
 
@@ -1170,16 +1148,17 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
 
         def v_lvl_next(shocks, a_nrm, Rfree):
             return (
-                shocks[0] ** (1.0 - self.CRRA) * self.PermGroFac ** (1.0 - self.CRRA)
+                shocks["PermShk"] ** (1.0 - self.CRRA)
+                * self.PermGroFac ** (1.0 - self.CRRA)
             ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm, Rfree))
 
         EndOfPrdv = self.DiscFacEff * expected(
             v_lvl_next, self.IncShkDstn, args=(self.aNrmNow, self.Rfree)
         )
-        EndOfPrdvNvrs = self.uinv(
+        EndOfPrdvNvrs = self.u.inv(
             EndOfPrdv
         )  # value transformed through inverse utility
-        EndOfPrdvNvrsP = EndOfPrdvP * self.uinvP(EndOfPrdv)
+        EndOfPrdvNvrsP = EndOfPrdvP * self.u.derinv(EndOfPrdv, order=(0, 1))
         EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
         EndOfPrdvNvrsP = np.insert(
             EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0]
@@ -1233,11 +1212,12 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         cNrmNow = solution.cFunc(mNrm_temp)
         aNrmNow = mNrm_temp - cNrmNow
         vNrmNow = self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow)
-        vPnow = self.uP(cNrmNow)
+        vPnow = self.u.der(cNrmNow)
 
         # Construct the beginning-of-period value function
-        vNvrs = self.uinv(vNrmNow)  # value transformed through inverse utility
-        vNvrsP = vPnow * self.uinvP(vNrmNow)
+        # value transformed through inverse utility
+        vNvrs = self.u.inv(vNrmNow)
+        vNvrsP = vPnow * self.u.derinv(vNrmNow, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, self.mNrmMinNow)
         vNvrs = np.insert(vNvrs, 0, 0.0)
         vNvrsP = np.insert(
@@ -1754,14 +1734,14 @@ class PerfForesightConsumerType(AgentType):
         self.state_now["aNrm"][which_agents] = Lognormal(
             mu=self.aNrmInitMean,
             sigma=self.aNrmInitStd,
-            seed=self.RNG.randint(0, 2**31 - 1),
+            seed=self.RNG.integers(0, 2**31 - 1),
         ).draw(N)
         # why is a now variable set here? Because it's an aggregate.
         pLvlInitMeanNow = self.pLvlInitMean + np.log(
             self.state_now["PlvlAgg"]
         )  # Account for newer cohorts having higher permanent income
         self.state_now["pLvl"][which_agents] = Lognormal(
-            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.randint(0, 2**31 - 1)
+            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.integers(0, 2**31 - 1)
         ).draw(N)
         # How many periods since each agent was born
         self.t_age[which_agents] = 0
@@ -1805,7 +1785,7 @@ class PerfForesightConsumerType(AgentType):
         # they die.
         # See: https://github.com/econ-ark/HARK/pull/981
 
-        DeathShks = Uniform(seed=self.RNG.randint(0, 2**31 - 1)).draw(
+        DeathShks = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(
             N=self.AgentCount
         )
         which_agents = DeathShks < DiePrb
@@ -3044,14 +3024,22 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if approx_inc_dstn:
             IncShkDstn = self.IncShkDstn[0]
         else:
-            TranShkDstn = MeanOneLogNormal(sigma=self.TranShkStd[0]).approx(
-                N=200, tail_N=50, tail_order=1.3, tail_bound=[0.05, 0.95]
+            TranShkDstn = MeanOneLogNormal(sigma=self.TranShkStd[0]).discretize(
+                N=200,
+                method="equiprobable",
+                tail_N=50,
+                tail_order=1.3,
+                tail_bound=[0.05, 0.95],
             )
             TranShkDstn = add_discrete_outcome_constant_mean(
                 TranShkDstn, self.UnempPrb, self.IncUnemp
             )
-            PermShkDstn = MeanOneLogNormal(sigma=self.PermShkStd[0]).approx(
-                N=200, tail_N=50, tail_order=1.3, tail_bound=[0.05, 0.95]
+            PermShkDstn = MeanOneLogNormal(sigma=self.PermShkStd[0]).discretize(
+                N=200,
+                method="equiprobable",
+                tail_N=50,
+                tail_order=1.3,
+                tail_bound=[0.05, 0.95],
             )
             IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
@@ -3314,21 +3302,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         _log.warning("DiscFacGPFNrmMax       = %2.6f " % (self.DiscFacGPFNrmMax))
         _log.warning("DiscFacGPFAggLivPrbMax = %2.6f " % (self.DiscFacGPFAggLivPrbMax))
 
-    def Ex_Mtp1_over_Ex_Ptp1(self, mNrm):
-        cNrm = self.solution[-1].cFunc(mNrm)
-        aNrm = mNrm - cNrm
-        Ex_Ptp1 = PermGroFac[0]
-        Ex_bLev_tp1 = aNrm * self.Rfree
-        Ex_Mtp1 = Ex_bLev_tp1
-        return Ex_Mtp1 / Ex_Ptp1
-
-    def Ex_mtp1(self, mNrm):
-        cNrm = self.solution[-1].cFunc(mNrm)
-        aNrm = mNrm - cNrm
-        Ex_bNrm_tp1 = aNrm * self.Rfree * self.Ex_PermShkInv / self.PermGroFac[0]
-        Ex_Mtp1 = (Ex_bNrm_tp1 + 1) * Ex_Ptp1  # mean TranShk and PermShk are 1
-        return Ex_Mtp1 / Ex_Ptp1
-
     def calc_stable_points(self):
         """
         If the problem is one that satisfies the conditions required for target ratios of different
@@ -3522,8 +3495,8 @@ class LognormPermIncShk(DiscreteDistribution):
 
     def __init__(self, sigma, n_approx, neutral_measure=False, seed=0):
         # Construct an auxiliary discretized normal
-        logn_approx = MeanOneLogNormal(sigma).approx(
-            n_approx if sigma > 0.0 else 1, tail_N=0
+        logn_approx = MeanOneLogNormal(sigma).discretize(
+            n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
         # Change the pmv if necessary
         if neutral_measure:
@@ -3558,8 +3531,8 @@ class MixtureTranIncShk(DiscreteDistribution):
     """
 
     def __init__(self, sigma, UnempPrb, IncUnemp, n_approx, seed=0):
-        dstn_approx = MeanOneLogNormal(sigma).approx(
-            n_approx if sigma > 0.0 else 1, tail_N=0
+        dstn_approx = MeanOneLogNormal(sigma).discretize(
+            n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
         if UnempPrb > 0.0:
             dstn_approx = add_discrete_outcome_constant_mean(
@@ -3569,7 +3542,7 @@ class MixtureTranIncShk(DiscreteDistribution):
         super().__init__(pmv=dstn_approx.pmv, atoms=dstn_approx.atoms, seed=seed)
 
 
-class BufferStockIncShkDstn(DiscreteDistribution):
+class BufferStockIncShkDstn(DiscreteDistributionLabeled):
     """
     A one-period distribution object for the joint distribution of income
     shocks (permanent and transitory), as modeled in the Buffer Stock Theory
@@ -3628,7 +3601,13 @@ class BufferStockIncShkDstn(DiscreteDistribution):
 
         joint_dstn = combine_indep_dstns(perm_dstn, tran_dstn)
 
-        super().__init__(pmv=joint_dstn.pmv, atoms=joint_dstn.atoms, seed=seed)
+        super().__init__(
+            name="Joint distribution of permanent and transitory shocks to income",
+            var_names=["PermShk", "TranShk"],
+            pmv=joint_dstn.pmv,
+            atoms=joint_dstn.atoms,
+            seed=seed,
+        )
 
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer

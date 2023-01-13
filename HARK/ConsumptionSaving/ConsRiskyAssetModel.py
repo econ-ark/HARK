@@ -11,25 +11,26 @@ import numpy as np
 from scipy.optimize import minimize_scalar, root_scalar
 
 from HARK import make_one_period_oo_solver
-from HARK.ConsumptionSaving.ConsIndShockModel import (
+from HARK.ConsumptionSaving.ConsIndShockModel import (  # PortfolioConsumerType inherits from it; Baseline dictionary to build on
     ConsIndShockSolver,
     ConsumerSolution,
-    IndShockConsumerType,  # PortfolioConsumerType inherits from it
-    init_idiosyncratic_shocks,  # Baseline dictionary to build on
+    IndShockConsumerType,
+    init_idiosyncratic_shocks,
 )
 from HARK.distribution import (
+    Bernoulli,
     DiscreteDistribution,
+    DiscreteDistributionLabeled,
     IndexDistribution,
     Lognormal,
-    Bernoulli,
     calc_expectation,
     combine_indep_dstns,
 )
 from HARK.interpolation import (
+    ConstantFunction,
     LinearInterp,
     MargValueFuncCRRA,
     ValueFuncCRRA,
-    ConstantFunction,
 )
 
 
@@ -131,8 +132,8 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             self.RiskyDstn = IndexDistribution(
                 Lognormal.from_mean_std,
                 {"mean": self.RiskyAvg, "std": self.RiskyStd},
-                seed=self.RNG.randint(0, 2**31 - 1),
-            ).approx(self.RiskyCount)
+                seed=self.RNG.integers(0, 2**31 - 1),
+            ).discretize(self.RiskyCount, method="equiprobable")
 
             self.add_to_time_vary("RiskyDstn")
 
@@ -141,7 +142,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         else:
             self.RiskyDstn = Lognormal.from_mean_std(
                 self.RiskyAvg, self.RiskyStd
-            ).approx(self.RiskyCount)
+            ).discretize(self.RiskyCount, method="equiprobable")
             self.add_to_time_inv("RiskyDstn")
 
     def update_ShockDstn(self):
@@ -157,16 +158,38 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         """
+
+        # Create placeholder distributions
         if "RiskyDstn" in self.time_vary:
-            self.ShockDstn = [
+            dstn_list = [
                 combine_indep_dstns(self.IncShkDstn[t], self.RiskyDstn[t])
                 for t in range(self.T_cycle)
             ]
         else:
-            self.ShockDstn = [
+            dstn_list = [
                 combine_indep_dstns(self.IncShkDstn[t], self.RiskyDstn)
                 for t in range(self.T_cycle)
             ]
+
+        # Names of the variables (hedging for the unlikely case that in
+        # some index of IncShkDstn variables are in a switched order)
+        names_list = [
+            list(self.IncShkDstn[t].variables.keys()) + ["Risky"]
+            for t in range(self.T_cycle)
+        ]
+
+        conditional = {
+            "pmv": [x.pmv for x in dstn_list],
+            "atoms": [x.atoms for x in dstn_list],
+            "var_names": names_list,
+        }
+
+        # Now create the actual distribution using the index and labeled class
+        self.ShockDstn = IndexDistribution(
+            engine=DiscreteDistributionLabeled,
+            conditional=conditional,
+        )
+
         self.add_to_time_vary("ShockDstn")
 
         # Mark whether the risky returns and income shocks are independent (they are)
@@ -306,7 +329,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             RiskyStd = self.RiskyStd
 
         self.shocks["Risky"] = Lognormal.from_mean_std(
-            RiskyAvg, RiskyStd, seed=self.RNG.randint(0, 2**31 - 1)
+            RiskyAvg, RiskyStd, seed=self.RNG.integers(0, 2**31 - 1)
         ).draw(1)
 
     def get_Adjust(self):
@@ -324,7 +347,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         None
         """
         self.shocks["Adjust"] = IndexDistribution(
-            Bernoulli, {"p": self.AdjustPrb}, seed=self.RNG.randint(0, 2**31 - 1)
+            Bernoulli, {"p": self.AdjustPrb}, seed=self.RNG.integers(0, 2**31 - 1)
         ).draw(self.t_cycle)
 
     def initialize_sim(self):
@@ -592,7 +615,7 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
         """
 
         vals = calc_expectation(dstn, func, grid)
-        nvrs = self.uPinv(vals)
+        nvrs = self.u.derinv(vals, order=(1, 0))
         nvrsFunc = LinearInterp(grid, nvrs)
         margValueFunc = MargValueFuncCRRA(nvrsFunc, self.CRRA)
 
@@ -694,7 +717,7 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
         """
 
         vals = calc_expectation(dstn, func, grid)
-        nvrs = self.uinv(vals)
+        nvrs = self.u.inv(vals)
         nvrsFunc = LinearInterp(grid, nvrs)
         valueFunc = ValueFuncCRRA(nvrsFunc, self.CRRA)
 
@@ -979,7 +1002,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
         EndOfPrddvda = self.DiscFacEff * calc_expectation(
             self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.risky_share_optimal
         )
-        EndOfPrddvdaNvrs = self.uPinv(EndOfPrddvda)
+        EndOfPrddvdaNvrs = self.u.derinv(EndOfPrddvda, order=(1, 0))
         EndOfPrddvdaNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrddvdaNvrs)
         EndOfPrddvdaFunc = MargValueFuncCRRA(EndOfPrddvdaNvrsFunc, self.CRRA)
 
@@ -1037,7 +1060,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
                 self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.risky_share_optimal
             )
 
-            EndOfPrddvdaNvrs = self.uPinv(EndOfPrddvda)
+            EndOfPrddvdaNvrs = self.u.derinv(EndOfPrddvda, order=(1, 0))
             EndOfPrddvdaNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrddvdaNvrs)
             self.EndOfPrddvdaFunc = MargValueFuncCRRA(EndOfPrddvdaNvrsFunc, self.CRRA)
 
@@ -1276,7 +1299,7 @@ class ConsFixedPortfolioIndShkRiskyAssetSolver(ConsIndShockSolver):
             * calc_expectation(self.ShockDstn, v_next, self.aNrmNow)
         )
         # value transformed through inverse utility
-        EndOfPrdvNvrs = self.uinv(EndOfPrdv)
+        EndOfPrdvNvrs = self.u.inv(EndOfPrdv)
         aNrm_temp = np.insert(self.aNrmNow, 0, self.BoroCnstNat)
         EndOfPrdvNvrsFunc = LinearInterp(aNrm_temp, EndOfPrdvNvrs)
         self.EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)

@@ -4,9 +4,9 @@ stochastic Markov state.  The only solver here extends ConsIndShockModel to
 include a Markov state; the interest factor, permanent growth factor, and income
 distribution can vary with the discrete state.
 """
-from copy import deepcopy
 
 import numpy as np
+
 from HARK import AgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolver,
@@ -14,12 +14,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     PerfForesightConsumerType,
 )
-from HARK.distribution import (
-    DiscreteDistribution,
-    MarkovProcess,
-    Uniform,
-    calc_expectation,
-)
+from HARK.distribution import MarkovProcess, Uniform, calc_expectation
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
@@ -27,7 +22,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
-from HARK.utilities import (
+from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
     CRRAutility_invP,
@@ -323,7 +318,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         """
 
         def vpp_next(shocks, a_nrm, Rfree):
-            return shocks[0] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
+            return shocks["PermShk"] ** (-self.CRRA - 1.0) * self.vPPfuncNext(
                 self.m_nrm_next(shocks, a_nrm, Rfree)
             )
 
@@ -332,7 +327,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             * self.Rfree
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA - 1.0)
-            * calc_expectation(self.IncShkDstn, vpp_next, self.aNrmNow, self.Rfree)
+            * self.IncShkDstn.expected(vpp_next, self.aNrmNow, self.Rfree)
         )
         return EndOfPrdvPP
 
@@ -359,10 +354,12 @@ class ConsMarkovSolver(ConsIndShockSolver):
         EndOfPrdv_cond = self.DiscFacEff * calc_expectation(
             self.IncShkDstn, v_lvl_next, self.aNrmNow, self.Rfree
         )
-        EndOfPrdvNvrs = self.uinv(
+        EndOfPrdvNvrs = self.u.inv(
             EndOfPrdv_cond
         )  # value transformed through inverse utility
-        EndOfPrdvNvrsP = self.EndOfPrdvP_cond * self.uinvP(EndOfPrdv_cond)
+        EndOfPrdvNvrsP = self.EndOfPrdvP_cond * self.u.derinv(
+            EndOfPrdv_cond, order=(0, 1)
+        )
         EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
         EndOfPrdvNvrsP = np.insert(
             EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0]
@@ -408,13 +405,13 @@ class ConsMarkovSolver(ConsIndShockSolver):
         # Get data to construct the end-of-period marginal value function (conditional on next state)
         self.aNrm_cond = self.prepare_to_calc_EndOfPrdvP()
         self.EndOfPrdvP_cond = self.calc_EndOfPrdvPcond()
-        EndOfPrdvPnvrs_cond = self.uPinv(
-            self.EndOfPrdvP_cond
+        EndOfPrdvPnvrs_cond = self.u.derinv(
+            self.EndOfPrdvP_cond, order=(1, 0)
         )  # "decurved" marginal value
         if self.CubicBool:
             EndOfPrdvPP_cond = self.calc_EndOfPrdvPP()
-            EndOfPrdvPnvrsP_cond = EndOfPrdvPP_cond * self.uPinvP(
-                self.EndOfPrdvP_cond
+            EndOfPrdvPnvrsP_cond = EndOfPrdvPP_cond * self.u.derinv(
+                self.EndOfPrdvP_cond, order=(1, 1)
             )  # "decurved" marginal marginal value
 
         # Construct the end-of-period marginal value function conditional on the next state.
@@ -580,7 +577,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         )  # An empty solution to which we'll add state-conditional solutions
         # Calculate the MPC at each market resource gridpoint in each state (if desired)
         if self.CubicBool:
-            dcda = self.EndOfPrdvPP / self.uPP(np.array(self.cNrmNow))
+            dcda = self.EndOfPrdvPP / self.u.der(np.array(self.cNrmNow), order=2)
             MPC = dcda / (dcda + 1.0)
             self.MPC_temp = np.hstack(
                 (np.reshape(self.MPCmaxNow, (self.StateCount, 1)), MPC)
@@ -711,11 +708,12 @@ class ConsMarkovSolver(ConsIndShockSolver):
 
             # Calculate (normalized) value and marginal value at each gridpoint
             vNrmNow = self.u(cGrid) + EndOfPrdv
-            vPnow = self.uP(cGrid)
+            vPnow = self.u.der(cGrid)
 
             # Make a "decurved" value function with the inverse utility function
-            vNvrs = self.uinv(vNrmNow)  # value transformed through inverse utility
-            vNvrsP = vPnow * self.uinvP(vNrmNow)
+            # value transformed through inverse utility
+            vNvrs = self.u.inv(vNrmNow)
+            vNvrsP = vPnow * self.u.derinv(vNrmNow, order=(0, 1))
             mNrm_temp = np.insert(mGrid, 0, mNrmMin)  # add the lower bound
             vNvrs = np.insert(vNvrs, 0, 0.0)
             vNvrsP = np.insert(
@@ -962,7 +960,7 @@ class MarkovConsumerType(IndShockConsumerType):
         if (
             self.global_markov
         ):  # Need to initialize markov state to be the same for all agents
-            base_draw = Uniform(seed=self.RNG.randint(0, 2**31 - 1)).draw(1)
+            base_draw = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(1)
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.shocks["Mrkv"] = np.ones(self.AgentCount) * np.searchsorted(
                 Cutoffs, base_draw
@@ -1011,7 +1009,7 @@ class MarkovConsumerType(IndShockConsumerType):
             self.t_cycle - 1, self.shocks["Mrkv"]
         ]  # Time has already advanced, so look back one
         DiePrb = 1.0 - LivPrb
-        DeathShks = Uniform(seed=self.RNG.randint(0, 2**31 - 1)).draw(
+        DeathShks = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(
             N=self.AgentCount
         )
         which_agents = DeathShks < DiePrb
@@ -1041,7 +1039,7 @@ class MarkovConsumerType(IndShockConsumerType):
             not self.global_markov
         ):  # Markov state is not changed if it is set at the global level
             N = np.sum(which_agents)
-            base_draws = Uniform(seed=self.RNG.randint(0, 2**31 - 1)).draw(N)
+            base_draws = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(N)
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.shocks["Mrkv"][which_agents] = np.searchsorted(
                 Cutoffs, base_draws
@@ -1074,7 +1072,7 @@ class MarkovConsumerType(IndShockConsumerType):
         # Draw new Markov states for each agent
         for t in range(self.T_cycle):
             markov_process = MarkovProcess(
-                self.MrkvArray[t], seed=self.RNG.randint(0, 2**31 - 1)
+                self.MrkvArray[t], seed=self.RNG.integers(0, 2**31 - 1)
             )
             right_age = self.t_cycle == t
             MrkvNow[right_age] = markov_process.draw(MrkvPrev[right_age])
