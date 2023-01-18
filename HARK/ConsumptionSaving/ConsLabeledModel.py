@@ -22,7 +22,7 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
 )
 from HARK.core import MetricObject, make_one_period_oo_solver
 from HARK.distribution import DiscreteDistributionLabeled
-from HARK.utilities import CRRAutility, CRRAutility_inv, CRRAutilityP, CRRAutilityP_inv
+from HARK.rewards import CRRAutility, CRRAutility_inv, CRRAutilityP, CRRAutilityP_inv
 
 
 class ValueFuncCRRALabeled(MetricObject):
