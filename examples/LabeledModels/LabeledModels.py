@@ -29,13 +29,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
-from HARK.utilities import (
+from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
     CRRAutilityP,
     CRRAutilityP_inv,
-    plot_funcs,
 )
+from HARK.utilities import plot_funcs
+
 from xarray import DataArray, Dataset
 
 # %% [markdown]
@@ -49,10 +50,22 @@ DiscFac = 0.96  # discounting factor
 Rfree = 1.03  # risk free interest rate
 params = SimpleNamespace(CRRA=CRRA, DiscFac=DiscFac, Rfree=Rfree)
 
-u = lambda c: CRRAutility(c, CRRA)  # utility
-mu = lambda c: CRRAutilityP(c, CRRA)  # marginal utility
-u_inv = lambda c: CRRAutility_inv(c, CRRA)  # inverse utility
-mu_inv = lambda c: CRRAutilityP_inv(c, CRRA)  # inverse marginal utility
+
+def u(c):
+    return CRRAutility(c, CRRA)  # utility
+
+
+def mu(c):
+    return CRRAutilityP(c, CRRA)  # marginal utility
+
+
+def u_inv(c):
+    return CRRAutility_inv(c, CRRA)  # inverse utility
+
+
+def mu_inv(c):
+    return CRRAutilityP_inv(c, CRRA)  # inverse marginal utility
+
 
 # %% [markdown]
 # ### The Problem
