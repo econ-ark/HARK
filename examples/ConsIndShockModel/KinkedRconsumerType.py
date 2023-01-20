@@ -28,7 +28,10 @@ import numpy as np
 from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType
 from HARK.utilities import plot_funcs_der, plot_funcs
 
-mystr = lambda number: "{:.4f}".format(number)
+
+def mystr(number):
+    return "{:.4f}".format(number)
+
 
 # %% [markdown]
 # The module `HARK.ConsumptionSaving.ConsIndShockModel` concerns consumption-saving models with idiosyncratic shocks to (non-capital) income.  All of the models assume CRRA utility with geometric discounting, no bequest motive, and income shocks are fully transitory or fully permanent.
@@ -112,6 +115,7 @@ mystr = lambda number: "{:.4f}".format(number)
 #
 # These example parameters are almost identical to those used for `IndShockExample` in the prior notebook, except that the interest rate on borrowing is 20% (like a credit card), and the interest rate on saving is 1%. Moreover, the artificial borrowing constraint has been set to `None`.  The cell below defines a parameter dictionary with these example values.
 
+
 # %% {"code_folding": [0]}
 KinkedRdict = {  # Click the arrow to expand this parameter dictionary
     # Parameters shared with the perfect foresight model
@@ -119,26 +123,31 @@ KinkedRdict = {  # Click the arrow to expand this parameter dictionary
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability
     "PermGroFac": [1.01],  # Permanent income growth factor
-    "BoroCnstArt": None,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "BoroCnstArt": None,
     # New parameters unique to the "kinked R" model
     "Rboro": 1.20,  # Interest factor on borrowing (a < 0)
     "Rsave": 1.01,  # Interest factor on saving (a > 0)
     # Parameters that specify the income distribution over the lifecycle (shared with IndShockConsumerType)
-    "PermShkStd": [0.1],  # Standard deviation of log permanent shocks to income
+    # Standard deviation of log permanent shocks to income
+    "PermShkStd": [0.1],
     "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
-    "TranShkStd": [0.2],  # Standard deviation of log transitory shocks to income
+    # Standard deviation of log transitory shocks to income
+    "TranShkStd": [0.2],
     "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
     "UnempPrb": 0.05,  # Probability of unemployment while working
     "IncUnemp": 0.3,  # Unemployment benefits replacement rate
     "UnempPrbRet": 0.0005,  # Probability of "unemployment" while retired
     "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
     "T_retire": 0,  # Period of retirement (0 --> no retirement)
-    "tax_rate": 0.0,  # Flat income tax rate (legacy parameter, will be removed in future)
+    # Flat income tax rate (legacy parameter, will be removed in future)
+    "tax_rate": 0.0,
     # Parameters for constructing the "assets above minimum" grid (shared with IndShockConsumerType)
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
-    "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
+    # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraNestFac": 3,
     "aXtraExtra": [None],  # Additional values to add to aXtraGrid
     # A few other paramaters (shared with IndShockConsumerType)
     "vFuncBool": True,  # Whether to calculate the value function during solution

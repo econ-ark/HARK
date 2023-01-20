@@ -24,7 +24,11 @@ from HARK.ConsumptionSaving.ConsIndShockModel import init_idiosyncratic_shocks
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.distribution import DiscreteDistributionLabeled
 
-mystr = lambda number: "{:.4f}".format(number)
+
+def mystr(number):
+    return "{:.4f}".format(number)
+
+
 do_simulation = True
 
 # %% [markdown]
@@ -129,7 +133,8 @@ MrkvArray = np.array(
 # Make a consumer with serially correlated unemployment, subject to boom and bust cycles
 init_serial_unemployment = copy(init_idiosyncratic_shocks)
 init_serial_unemployment["MrkvArray"] = [MrkvArray]
-init_serial_unemployment["UnempPrb"] = 0.0  # to make income distribution when employed
+# to make income distribution when employed
+init_serial_unemployment["UnempPrb"] = 0.0
 init_serial_unemployment["global_markov"] = False
 SerialUnemploymentExample = MarkovConsumerType(**init_serial_unemployment)
 SerialUnemploymentExample.cycles = 0
@@ -238,11 +243,13 @@ init_unemployment_immunity = copy(init_idiosyncratic_shocks)
 init_unemployment_immunity["MrkvArray"] = [MrkvArray]
 ImmunityExample = MarkovConsumerType(**init_unemployment_immunity)
 ImmunityExample.assign_parameters(
-    Rfree=np.array(np.array(StateCount * [1.03])),  # Interest factor same in all states
+    # Interest factor same in all states
+    Rfree=np.array(np.array(StateCount * [1.03])),
     PermGroFac=[
         np.array(StateCount * [1.01])
     ],  # Permanent growth factor same in all states
-    LivPrb=[np.array(StateCount * [0.98])],  # Same survival probability in all states
+    # Same survival probability in all states
+    LivPrb=[np.array(StateCount * [0.98])],
     BoroCnstArt=None,  # No artificial borrowing constraint
     cycles=0,
 )  # Infinite horizon
@@ -302,7 +309,8 @@ SerialGroExample.assign_parameters(
     PermGroFac=[
         np.array([0.97, 0.99, 1.01, 1.03, 1.05])
     ],  # Different permanent growth factor in each Markov state
-    LivPrb=[np.array(StateCount * [0.98])],  # Same survival probability in all states
+    # Same survival probability in all states
+    LivPrb=[np.array(StateCount * [0.98])],
     cycles=0,
 )
 SerialGroExample.IncShkDstn = [IncomeDstn]

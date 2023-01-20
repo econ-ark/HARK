@@ -33,7 +33,8 @@ from HARK.utilities import plot_funcs_der, plot_funcs
 
 
 # %%
-mystr = lambda number: "{:.4f}".format(number)
+def mystr(number):
+    return "{:.4f}".format(number)
 
 
 # %% [markdown]

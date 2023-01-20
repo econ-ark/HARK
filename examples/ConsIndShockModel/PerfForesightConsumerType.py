@@ -30,7 +30,10 @@ import numpy as np
 from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
 from HARK.utilities import plot_funcs
 
-mystr = lambda number: "{:.4f}".format(number)
+
+def mystr(number):
+    return "{:.4f}".format(number)
+
 
 # %% [markdown]
 # The module `HARK.ConsumptionSaving.ConsIndShockModel` concerns consumption-saving models with idiosyncratic shocks to (non-capital) income.  All of the models assume CRRA utility with geometric discounting, no bequest motive, and income shocks are fully transitory or fully permanent.
@@ -119,6 +122,7 @@ mystr = lambda number: "{:.4f}".format(number)
 #
 # The cell below defines a dictionary that can be passed to the constructor method for `PerfForesightConsumerType`, with the values from the table here.
 
+
 # %% {"code_folding": []}
 PerfForesightDict = {
     # Parameters actually used in the solution method
@@ -131,7 +135,8 @@ PerfForesightDict = {
     "aXtraCount": 200,  # Maximum number of gridpoints in consumption function
     # Parameters that characterize the nature of time
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
-    "cycles": 0,  # Number of times the cycle occurs (0 --> infinitely repeated)
+    # Number of times the cycle occurs (0 --> infinitely repeated)
+    "cycles": 0,
 }
 
 # %% [markdown]
@@ -179,7 +184,8 @@ plot_funcs(PFexample.solution[0].vFunc, mMin + 0.1, mMin + 10.1)
 
 # %% {"pycharm": {"name": "#%%\n"}}
 LiqConstrDict = copy(PerfForesightDict)
-LiqConstrDict["BoroCnstArt"] = 0.0  # Set the artificial borrowing constraint to zero
+# Set the artificial borrowing constraint to zero
+LiqConstrDict["BoroCnstArt"] = 0.0
 
 LiqConstrExample = PerfForesightConsumerType(**LiqConstrDict)
 LiqConstrExample.cycles = 0  # Make this type be infinite horizon

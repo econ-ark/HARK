@@ -22,7 +22,11 @@ import numpy as np
 from HARK.ConsumptionSaving.ConsMedModel import MedShockConsumerType
 
 # %%
-mystr = lambda number: "{:.4f}".format(number)
+
+
+def mystr(number):
+    return "{:.4f}".format(number)
+
 
 # %%
 do_simulation = True

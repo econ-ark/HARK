@@ -99,6 +99,8 @@
 # First, we define a standard lifecycle model, solve it and then
 
 # %%
+from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolverBasic
+from HARK.utilities import plot_funcs
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_lifecycle,
@@ -116,7 +118,6 @@ LifecycleExample.solve()
 # Let's have a look at the solution in time period second period. We should then be able to
 
 # %%
-from HARK.utilities import plot_funcs
 
 plot_funcs(
     [LifecycleExample.solution[0].cFunc], LifecycleExample.solution[0].mNrmMin, 10
@@ -126,7 +127,6 @@ plot_funcs(
 # Let us then create a solver for the first period.
 
 # %%
-from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolverBasic
 
 solver = ConsIndShockSolverBasic(
     LifecycleExample.solution[1],

@@ -62,7 +62,11 @@ z = 2 * x + y
 interp = LinearFast(z, [x_grid, y_grid])
 
 # Limit function
-lim_fun = lambda x, y: np.sqrt(x) - np.sin(y)
+
+
+def lim_fun(x, y):
+    return np.sqrt(x) - np.sin(y)
+
 
 # Construct the interpolator with decay extrapolation (h function)
 my_decay_interp = DecayInterp(
@@ -166,8 +170,15 @@ plt.show()
 
 x = np.linspace(0, 1, 20)
 interp = LinearFast(np.sqrt(x), [x])
-limit_fun = lambda x: 1 + 0.3 * x
-limit_grad = lambda x: [0.3 * np.ones_like(x)]
+
+
+def limit_fun(x):
+    return 1 + 0.3 * x
+
+
+def limit_grad(x):
+    return [0.3 * np.ones_like(x)]
+
 
 dec_pr = DecayInterp(
     interp,

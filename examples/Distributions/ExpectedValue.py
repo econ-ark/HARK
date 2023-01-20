@@ -22,6 +22,8 @@
 #
 
 # %%
+from HARK.distribution import expected
+import matplotlib.pyplot as plt
 from time import time
 
 import numpy as np
@@ -154,7 +156,9 @@ for n in size:
     TranShkDstn = MeanOneLogNormal().discretize(n)
     IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
-    m_next = lambda X, a, r: r * a / X[0] + X[1]
+    def m_next(X, a, r):
+        return r * a / X[0] + X[1]
+
     a_grid = np.linspace(0, 20, 100).reshape((10, 10))
     R = 1.05
 
@@ -170,7 +174,6 @@ for n in size:
     t_dist.append(time_dist)
 
 # %%
-import matplotlib.pyplot as plt
 
 plt.plot(size, t_self, label="dist.ev(f)")
 plt.plot(size, t_dist, label="ce(dist, f)")
@@ -191,7 +194,6 @@ plt.show()
 #
 
 # %%
-from HARK.distribution import expected
 
 # %%
 expected(func=m_next, dist=IncShkDstn, args=(aGrid, R))

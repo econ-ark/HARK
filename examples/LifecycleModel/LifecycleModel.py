@@ -51,8 +51,13 @@
 # %% code_folding=[0]
 # Initial imports and notebook setup, click arrow to show
 
-import HARK.ConsumptionSaving.ConsIndShockModel as Model  # The consumption-saving micro model
-import EstimationParameters as Params  # Parameters for the consumer type and the estimation
+# The consumption-saving micro model
+from matplotlib import pyplot as plt
+import warnings
+import HARK.ConsumptionSaving.ConsIndShockModel as Model
+
+# Parameters for the consumer type and the estimation
+import EstimationParameters as Params
 from HARK.utilities import plot_funcs_der, plot_funcs  # Some tools
 
 import numpy as np
@@ -95,7 +100,8 @@ LifeCyclePop.unpack("cFunc")  # Expose the consumption rules
 LifeCyclePop.track_vars = ["aNrm", "pLvl", "mNrm", "cNrm", "TranShk"]
 
 LifeCyclePop.T_sim = 120  # Nobody lives to be older than 145 years (=25+120)
-LifeCyclePop.initialize_sim()  # Construct the age-25 distribution of income and assets
+# Construct the age-25 distribution of income and assets
+LifeCyclePop.initialize_sim()
 LifeCyclePop.simulate()  # Simulate a population behaving according to this model
 
 
@@ -137,9 +143,9 @@ w, h = 1, LifeCyclePop.T_cycle
 giant_list = [[0 for x in range(w)] for y in range(h)]
 SavingRate_list = []
 
-import warnings
 
-warnings.filterwarnings("ignore")  # Suppress some disturbing but harmless warnings
+# Suppress some disturbing but harmless warnings
+warnings.filterwarnings("ignore")
 
 for t in range(1, LifeCyclePop.T_cycle + 1):
     # aLvlGro_hist[0] = 0 # set the first growth rate to 0, since there is no data for period 0
@@ -179,6 +185,5 @@ aGro41NoU = aGro41[aGro41[:] > 0.2]  # Throw out extreme outliers
 
 # %% code_folding=[0]
 # Plot the distribution of growth rates of wealth between age 65 and 66 (=25 + 41)
-from matplotlib import pyplot as plt
 
 n, bins, patches = plt.hist(aGro41NoU, 50, density=True)

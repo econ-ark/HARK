@@ -14,6 +14,7 @@
 # ---
 
 # %%
+import matplotlib.pyplot as plt
 import HARK.ConsumptionSaving.ConsPortfolioFrameModel as cpfm
 import HARK.ConsumptionSaving.ConsPortfolioModel as cpm
 
@@ -86,7 +87,6 @@ pcft.initialize_sim()
 pcft.simulate()
 
 # %%
-import matplotlib.pyplot as plt
 
 plt.plot(range(5000), pct.history["PermShk"].mean(axis=1), label="original")
 plt.plot(range(5000), pcft.history["PermShk"].mean(axis=1), label="frames", alpha=0.5)
@@ -193,12 +193,12 @@ def get_expected_return_function(control: Frame):
     rewards = [child for child in control.children if child.reward]
     expected_values = []  # TODO
 
-    ## note: function signature is what's needed for scipy.optimize
+    # note: function signature is what's needed for scipy.optimize
     def expected_return_function(x, *args):
-        ##   returns the sum of
-        ##     the reward functions evaluated in context of
-        ##       - parameters
-        ##       - the control variable input
+        # returns the sum of
+        # the reward functions evaluated in context of
+        # - parameters
+        # - the control variable input
 
         # x - array of inputs, here the control frame target
         # args - a tuple of other parameters needed to complete the function
@@ -206,7 +206,7 @@ def get_expected_return_function(control: Frame):
         expected_return = 0
 
         for reward in rewards:
-            ## TODO: figuring out the ordering of `x` and `args` needed for multiple downstream scopes
+            # TODO: figuring out the ordering of `x` and `args` needed for multiple downstream scopes
 
             local_context = {}
 
@@ -241,19 +241,19 @@ def optimal_policy_function(control: Frame):
     erf = get_expected_return_function(control)
     constraints = (
         control.constraints
-    )  ## these will reference the context of the control transition, including scope
+    )  # these will reference the context of the control transition, including scope
 
-    ## Returns function:
-    ##   input: control frame scope
-    ##   output: result of scipy.optimize of the erf with respect to constraints
-    ##           getting the optimal input (control variable) value
+    # Returns function:
+    # input: control frame scope
+    # output: result of scipy.optimize of the erf with respect to constraints
+    # getting the optimal input (control variable) value
     return func
 
 
 # %%
 def approximate_optimal_policy_function(control, grid):
-    ## returns a new function:
-    ##   that is an interpolation over optimal_policy_function
-    ##   over the grid
+    # returns a new function:
+    # that is an interpolation over optimal_policy_function
+    # over the grid
 
     return func

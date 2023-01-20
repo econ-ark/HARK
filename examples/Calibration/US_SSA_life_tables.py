@@ -28,13 +28,13 @@ years = [1900, 1950]
 plt.figure()
 for cohort in years:
     for s in ['male', 'female']:
-    
+
         fem = s == 'female'
-        LivPrb = parse_ssa_life_table(female = fem, cohort = cohort,
-                                      min_age = min_age, max_age = max_age)
-    
-        plt.plot(ages, LivPrb, label = s + ' born in ' + str(cohort))
-    
+        LivPrb = parse_ssa_life_table(female=fem, cohort=cohort,
+                                      min_age=min_age, max_age=max_age)
+
+        plt.plot(ages, LivPrb, label=s + ' born in ' + str(cohort))
+
 plt.legend()
 plt.title('Longitudinal survival probabilities')
 
@@ -45,12 +45,12 @@ plt.title('Longitudinal survival probabilities')
 plt.figure()
 for year in years:
     for s in ['male', 'female']:
-    
+
         fem = s == 'female'
-        LivPrb = parse_ssa_life_table(female = fem, year = year, cross_sec= True,
-                                      min_age = min_age, max_age = max_age)
-    
-        plt.plot(ages, LivPrb, label = s + 's in ' + str(year))
-    
+        LivPrb = parse_ssa_life_table(female=fem, year=year, cross_sec=True,
+                                      min_age=min_age, max_age=max_age)
+
+        plt.plot(ages, LivPrb, label=s + 's in ' + str(year))
+
 plt.legend()
 plt.title('Cross-sectional survival probabilities')

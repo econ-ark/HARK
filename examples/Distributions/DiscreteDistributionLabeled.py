@@ -22,6 +22,8 @@
 #
 
 # %%
+from xarray import DataArray
+from HARK.distribution import expected
 import numpy as np
 from HARK.distribution import (
     MeanOneLogNormal,
@@ -110,7 +112,6 @@ calc_expectation(IncShkDstn, lambda dist, a, R: R * a / dist[0] + dist[1], aGrid
 #
 
 # %%
-from HARK.distribution import expected
 
 # %%
 expected(
@@ -123,7 +124,6 @@ expected(
 # Additionally, we can use xarrays as inputs via keyword arguments.
 
 # %%
-from xarray import DataArray
 
 aNrm = DataArray(aGrid, name="aNrm", dims=("aNrm"))
 

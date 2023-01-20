@@ -28,13 +28,18 @@
 #   The most common problem beginners have is to execute a cell before all its predecessors
 #   If you do this, you can restart the kernel (see the "Kernel" menu above) and start over
 
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
+from HARK.utilities import plot_funcs
 import matplotlib.pyplot as plt
 import numpy as np
 import HARK
 from copy import deepcopy
 
-mystr = lambda number: "{:.4f}".format(number)
-from HARK.utilities import plot_funcs
+
+def mystr(number):
+    return "{:.4f}".format(number)
+
 
 # %% [markdown]
 # ## Your First HARK Model: Perfect Foresight
@@ -64,7 +69,6 @@ from HARK.utilities import plot_funcs
 # HARK represents agents solving this type of problem as $\textbf{instances}$ of the $\textbf{class}$ $\texttt{PerfForesightConsumerType}$, a $\textbf{subclass}$ of $\texttt{AgentType}$.  To make agents of this class, we must import the class itself into our workspace.  (Run the cell below in order to do this).
 
 # %%
-from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
 
 # %% [markdown]
 # The $\texttt{PerfForesightConsumerType}$ class contains within itself the python code that constructs the solution for the perfect foresight model we are studying here, as specifically articulated in [these lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/).
@@ -81,6 +85,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
 #
 #
 # For now, don't worry about the specifics of dictionaries.  All you need to know is that a dictionary lets us pass many arguments wrapped up in one simple data structure.
+
 
 # %% code_folding=[]
 # This cell defines a parameter dictionary. You can expand it if you want to see what that looks like.
@@ -250,21 +255,28 @@ IndShockDictionary = {
     "UnempPrb": 0.05,
     "IncUnemp": 0.3,
     "BoroCnstArt": 0.0,
-    "aXtraMin": 0.001,  # aXtra parameters specify how to construct the grid of assets.
+    # aXtra parameters specify how to construct the grid of assets.
+    "aXtraMin": 0.001,
     "aXtraMax": 50.0,  # Don't worry about these for now
     "aXtraNestFac": 3,
     "aXtraCount": 48,
     "aXtraExtra": [None],
-    "vFuncBool": False,  # These booleans indicate whether the value function should be calculated
-    "CubicBool": False,  # and whether to use cubic spline interpolation. You can ignore them.
+    # These booleans indicate whether the value function should be calculated
+    "vFuncBool": False,
+    # and whether to use cubic spline interpolation. You can ignore them.
+    "CubicBool": False,
     "aNrmInitMean": -10.0,
-    "aNrmInitStd": 0.0,  # These parameters specify the (log) distribution of normalized assets
-    "pLvlInitMean": 0.0,  # and permanent income for agents at "birth". They are only relevant in
+    # These parameters specify the (log) distribution of normalized assets
+    "aNrmInitStd": 0.0,
+    # and permanent income for agents at "birth". They are only relevant in
+    "pLvlInitMean": 0.0,
     "pLvlInitStd": 0.0,  # simulation and you don't need to worry about them.
     "PermGroFacAgg": 1.0,
     "T_retire": 0,  # What's this about retirement? ConsIndShock is set up to be able to
-    "UnempPrbRet": 0.0,  # handle lifecycle models as well as infinite horizon problems. Swapping
-    "IncUnempRet": 0.0,  # out the structure of the income process is easy, but ignore for now.
+    # handle lifecycle models as well as infinite horizon problems. Swapping
+    "UnempPrbRet": 0.0,
+    # out the structure of the income process is easy, but ignore for now.
+    "IncUnempRet": 0.0,
     "T_age": None,
     "T_cycle": 1,
     "cycles": 0,
@@ -279,7 +291,6 @@ IndShockDictionary = {
 # As before, we need to import the relevant subclass of $\texttt{AgentType}$ into our workspace, then create an instance by passing the dictionary to the class as if the class were a function.
 
 # %%
-from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 
 IndShockExample = IndShockConsumerType(**IndShockDictionary)
 
@@ -306,7 +317,8 @@ OtherExample = deepcopy(
 OtherExample.assign_parameters(
     PermShkStd=[0.2]
 )  # Double permanent income risk (note that it's a one element list)
-OtherExample.update_income_process()  # Call the method to reconstruct the representation of F_t
+# Call the method to reconstruct the representation of F_t
+OtherExample.update_income_process()
 OtherExample.solve()
 
 # %% [markdown]

@@ -63,18 +63,22 @@ Dict = {
     "LivPrb": [0.99375],  # Survival probability
     "PermGroFac": [1.00],  # Permanent income growth factor
     # Parameters that specify the income distribution over the lifecycle
-    "PermShkStd": [0.06],  # Standard deviation of log permanent shocks to income
+    # Standard deviation of log permanent shocks to income
+    "PermShkStd": [0.06],
     "PermShkCount": 5,  # Number of points in discrete approximation to permanent income shocks
-    "TranShkStd": [0.2],  # Standard deviation of log transitory shocks to income
+    # Standard deviation of log transitory shocks to income
+    "TranShkStd": [0.2],
     "TranShkCount": 5,  # Number of points in discrete approximation to transitory income shocks
     "UnempPrb": 0.00,  # Probability of unemployment while working
     "IncUnemp": 0.0,  # Unemployment benefits replacement rate
     "UnempPrbRet": 0.0000,  # Probability of "unemployment" while retired
     "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
     "T_retire": 0,  # Period of retirement (0 --> no retirement)
-    "tax_rate": 0.0,  # Flat income tax rate (legacy parameter, will be removed in future)
+    # Flat income tax rate (legacy parameter, will be removed in future)
+    "tax_rate": 0.0,
     # A few other parameters
-    "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "BoroCnstArt": 0.0,
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Preference shocks currently only compatible with linear cFunc
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
@@ -93,7 +97,8 @@ Dict = {
     "aXtraMin": 0.0001,  # Minimum end-of-period "assets above minimum" value
     "aXtraMax": 500,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 90,  # Number of points in the base grid of "assets above minimum"
-    "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
+    # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraNestFac": 3,
     "aXtraExtra": [None],  # Additional values to add to aXtraGrid
 }
 
@@ -323,7 +328,6 @@ aLvl_vals = np.array(aLvl_vals)
 
 # %%
 def jump_to_grid_fast(m_vals, probs, Dist_mGrid):
-
     """
     Distributes values onto a predefined grid, maintaining the means.
 
@@ -413,7 +417,8 @@ plt.show()
 
 # %%
 
-asset_Lvl = example1.state_now["aLvl"]  # market resources from Monte Carlo Simulations
+# market resources from Monte Carlo Simulations
+asset_Lvl = example1.state_now["aLvl"]
 pmf = jump_to_grid_fast(
     aLvl_vals, vecDstn, example1.aPol_Grid
 )  # probabilities/distribution from transition matrix methods

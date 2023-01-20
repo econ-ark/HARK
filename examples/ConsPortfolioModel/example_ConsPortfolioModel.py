@@ -287,7 +287,8 @@ mPts = 1000  # Number of points to plot
 plot_point_max = 1000
 aXtraMax = plot_point_max * 10  # Maximum asset level
 
-eevalgrid = np.linspace(0, mMax, mPts)  # range of values of assets for the plot
+# range of values of assets for the plot
+eevalgrid = np.linspace(0, mMax, mPts)
 
 # Number of points that will be used to approximate the risky distribution
 risky_count_grid = [5, 50, 200]

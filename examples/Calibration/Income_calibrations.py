@@ -43,7 +43,8 @@ plt.title(
 )
 plt.xlabel("Age")
 plt.ylabel(
-    "Mean Permanent Income,\n" + "Thousands of {} U.S. dollars".format(adjust_infl_to)
+    "Mean Permanent Income,\n" +
+    "Thousands of {} U.S. dollars".format(adjust_infl_to)
 )
 plt.legend()
 plt.show()
@@ -77,7 +78,8 @@ for spec in Cagetti_income.items():
 plt.title("Mean paths of permanent income calibrations in\n" + "Cagetti (2003)")
 plt.xlabel("Age")
 plt.ylabel(
-    "Mean Permanent Income,\n" + "Thousands of {} U.S. dollars".format(adjust_infl_to)
+    "Mean Permanent Income,\n" +
+    "Thousands of {} U.S. dollars".format(adjust_infl_to)
 )
 plt.legend()
 plt.show()

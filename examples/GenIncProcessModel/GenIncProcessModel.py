@@ -189,12 +189,18 @@ GenIncDictionary = {
     "Rfree": 1.03,  # Interest factor on assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability
-    "AgentCount": 10000,  # Number of agents of this type (only matters for simulation)
-    "aNrmInitMean": 0.0,  # Mean of log initial assets (only matters for simulation)
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets (only for simulation)
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income (only matters for simulation)
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income (only matters for simulation)
-    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor (only matters for simulation)
+    # Number of agents of this type (only matters for simulation)
+    "AgentCount": 10000,
+    # Mean of log initial assets (only matters for simulation)
+    "aNrmInitMean": 0.0,
+    # Standard deviation of log initial assets (only for simulation)
+    "aNrmInitStd": 1.0,
+    # Mean of log initial permanent income (only matters for simulation)
+    "pLvlInitMean": 0.0,
+    # Standard deviation of log initial permanent income (only matters for simulation)
+    "pLvlInitStd": 0.0,
+    # Aggregate permanent income growth factor (only matters for simulation)
+    "PermGroFacAgg": 1.0,
     "T_age": None,  # Age after which simulated agents are automatically killed
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
     # Parameters for constructing the "assets above minimum" grid
@@ -204,7 +210,8 @@ GenIncDictionary = {
         0.005,
         0.01,
     ],  # Some other value of "assets above minimum" to add to the grid
-    "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
+    # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraNestFac": 3,
     "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
     # Parameters describing the income process
     "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
@@ -217,8 +224,10 @@ GenIncDictionary = {
     "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
     "tax_rate": 0.0,  # Flat income tax rate
     "T_retire": 0,  # Period of retirement (0 --> no retirement)
-    "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
-    "CubicBool": False,  # Use cubic spline interpolation when True, linear interpolation when False
+    # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "BoroCnstArt": 0.0,
+    # Use cubic spline interpolation when True, linear interpolation when False
+    "CubicBool": False,
     "vFuncBool": True,  # Whether to calculate the value function during solution
     # More parameters specific to "Explicit Permanent income" shock model
     "cycles": 0,

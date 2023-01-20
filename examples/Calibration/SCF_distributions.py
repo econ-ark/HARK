@@ -37,6 +37,7 @@ frame["variable"] = aux[0]
 frame["stat"] = aux[1]
 
 # Plot
-g = sns.FacetGrid(frame, col="stat", row="variable", hue="education", sharey=True)
+g = sns.FacetGrid(frame, col="stat", row="variable",
+                  hue="education", sharey=True)
 g.map(sns.scatterplot, "wave", "value", alpha=0.7)
 g.add_legend()

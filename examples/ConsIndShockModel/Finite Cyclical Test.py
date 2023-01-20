@@ -20,7 +20,10 @@ from HARK.utilities import plot_funcs_der, plot_funcs
 import matplotlib.pyplot as plt
 import numpy as np
 
-mystr = lambda number: "{:.4f}".format(number)
+
+def mystr(number):
+    return "{:.4f}".format(number)
+
 
 # %%
 CyclicalDict = {  # Click the arrow to expand this parameter dictionary
@@ -40,15 +43,18 @@ CyclicalDict = {  # Click the arrow to expand this parameter dictionary
     "UnempPrbRet": 0.0005,  # Probability of "unemployment" while retired
     "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
     "T_retire": 0,  # Period of retirement (0 --> no retirement)
-    "tax_rate": 0.0,  # Flat income tax rate (legacy parameter, will be removed in future)
+    # Flat income tax rate (legacy parameter, will be removed in future)
+    "tax_rate": 0.0,
     # Parameters for constructing the "assets above minimum" grid
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
-    "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
+    # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraNestFac": 3,
     "aXtraExtra": [None],  # Additional values to add to aXtraGrid
     # A few other paramaters
-    "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "BoroCnstArt": 0.0,
     "vFuncBool": True,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Preference shocks currently only compatible with linear cFunc
     "T_cycle": 4,  # Number of periods in the cycle for this agent type

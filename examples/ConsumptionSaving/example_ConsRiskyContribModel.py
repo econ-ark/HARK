@@ -2,6 +2,7 @@
 """
 Example implementations of HARK.ConsumptionSaving.ConsPortfolioModel
 """
+import pandas as pd
 from HARK.ConsumptionSaving.ConsRiskyContribModel import (
     RiskyContribConsumerType,
     init_risky_contrib,
@@ -109,7 +110,8 @@ def plot_slices_4d(
                         + str(w)
                     )
 
-                z = function_list[k](x, np.ones_like(x) * y, np.ones_like(x) * w)
+                z = function_list[k](x, np.ones_like(
+                    x) * y, np.ones_like(x) * w)
                 ax.plot(x, z, label=lab)
 
             if ax_labs is not None:
@@ -158,8 +160,10 @@ periods = [0]
 n_slices = [0, 2, 6]
 mMax = 20
 
-dfracFunc = [inf_agent.solution[t].stage_sols["Reb"].dfracFunc_Adj for t in periods]
-ShareFunc = [inf_agent.solution[t].stage_sols["Sha"].ShareFunc_Adj for t in periods]
+dfracFunc = [
+    inf_agent.solution[t].stage_sols["Reb"].dfracFunc_Adj for t in periods]
+ShareFunc = [
+    inf_agent.solution[t].stage_sols["Sha"].ShareFunc_Adj for t in periods]
 cFuncFxd = [inf_agent.solution[t].stage_sols["Cns"].cFunc for t in periods]
 
 # Rebalancing
@@ -216,7 +220,8 @@ par_finite["T_age"] = 4
 par_finite["DiscFac"] = 0.95**15
 par_finite["Rfree"] = 1.03**15
 par_finite["RiskyAvg"] = 1.08**15  # Average return of the risky asset
-par_finite["RiskyStd"] = 0.20 * np.sqrt(15)  # Standard deviation of (log) risky returns
+# Standard deviation of (log) risky returns
+par_finite["RiskyStd"] = 0.20 * np.sqrt(15)
 
 
 # Create and solve
@@ -230,8 +235,10 @@ print("Solving took " + str(t1 - t0) + " seconds.")
 # Plot Policy functions
 periods = [0, 2, 3]
 
-dfracFunc = [contrib_agent.solution[t].stage_sols["Reb"].dfracFunc_Adj for t in periods]
-ShareFunc = [contrib_agent.solution[t].stage_sols["Sha"].ShareFunc_Adj for t in periods]
+dfracFunc = [
+    contrib_agent.solution[t].stage_sols["Reb"].dfracFunc_Adj for t in periods]
+ShareFunc = [
+    contrib_agent.solution[t].stage_sols["Sha"].ShareFunc_Adj for t in periods]
 cFuncFxd = [contrib_agent.solution[t].stage_sols["Cns"].cFunc for t in periods]
 
 # Rebalancing
@@ -286,7 +293,6 @@ contrib_agent.initialize_sim()
 contrib_agent.simulate()
 
 # %% Format simulation results
-import pandas as pd
 
 df = contrib_agent.history
 

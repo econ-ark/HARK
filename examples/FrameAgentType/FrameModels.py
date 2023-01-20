@@ -96,7 +96,7 @@ def birth_aNrmNow(N, **context):
     return Lognormal(
         mu=context["aNrmInitMean"],
         sigma=context["aNrmInitStd"],
-        ## TODO -- where does this seed come from? The AgentType?
+        # TODO -- where does this seed come from? The AgentType?
         seed=self.RNG.integers(0, 2**31 - 1),
     ).draw(N)
 
@@ -108,7 +108,7 @@ frame_model_A = FrameModel(
         Frame(("cNrm"), ("mNrm",), control=True),
         Frame(
             ("U"),
-            ("cNrm", "CRRA"),  ## Note CRRA here is a parameter not a state var
+            ("cNrm", "CRRA"),  # Note CRRA here is a parameter not a state var
             transition=lambda cNrm, CRRA: (CRRAutility(cNrm, CRRA),),
             reward=True,
             context={"CRRA": 2.0},
@@ -323,7 +323,7 @@ frame_agent_A = FrameAgentType(
 # frame_agent_A.simulate()
 
 # %%
-## TODO: Forward simulate
+# TODO: Forward simulate
 
 # %% [markdown]
 # ## Progressively more complex models
@@ -385,7 +385,7 @@ frame_model_B = FrameModel(
             (
                 "cNrm",
                 "CRRA",
-            ),  ## Note CRRA here is a parameter not a state var            transition = lambda self, cNrm, CRRA : (CRRAutility(cNrm, CRRA),),
+            ),  # Note CRRA here is a parameter not a state var            transition = lambda self, cNrm, CRRA : (CRRAutility(cNrm, CRRA),),
             reward=True,
         ),
         Frame(
@@ -449,7 +449,7 @@ frame_model_C = FrameModel(
                 init_parameters["TranShkCount"], method="equiprobable", tail_N=0
             ),
         ),
-        Frame(  ## TODO: Handle Risky as an Aggregate value
+        Frame(  # TODO: Handle Risky as an Aggregate value
             ("Risky"),
             None,
             transition=IndexDistribution(
@@ -483,7 +483,7 @@ frame_model_C = FrameModel(
         Frame(("cNrm"), ("Adjust", "mNrm", "Share"), control=True),
         Frame(
             ("U"),
-            ("cNrm", "CRRA"),  ## Note CRRA here is a parameter not a state var
+            ("cNrm", "CRRA"),  # Note CRRA here is a parameter not a state var
             transition=lambda cNrm, CRRA: (CRRAutility(cNrm, CRRA),),
             reward=True,
         ),

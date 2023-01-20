@@ -26,7 +26,10 @@ from HARK.utilities import plot_funcs_der, plot_funcs
 from time import time
 
 # %%
-mystr = lambda number: "{:.4f}".format(number)
+
+
+def mystr(number):
+    return "{:.4f}".format(number)
 
 
 # %%
@@ -110,7 +113,8 @@ if IndShockExample.vFuncBool:
 if do_simulation:
     IndShockExample.T_sim = 120
     IndShockExample.track_vars = ["mNrm", "cNrm", "pLvl"]
-    IndShockExample.make_shock_history()  # This is optional, simulation will draw shocks on the fly if it isn't run.
+    # This is optional, simulation will draw shocks on the fly if it isn't run.
+    IndShockExample.make_shock_history()
     IndShockExample.initialize_sim()
     IndShockExample.simulate()
 

@@ -49,7 +49,10 @@ import numpy as np
 from HARK.ConsumptionSaving.ConsIndShockModelFast import IndShockConsumerTypeFast
 from HARK.utilities import plot_funcs_der, plot_funcs
 
-mystr = lambda number: "{:.4f}".format(number)
+
+def mystr(number):
+    return "{:.4f}".format(number)
+
 
 # %% [markdown]
 # The module `HARK.ConsumptionSaving.ConsIndShockModelFast` concerns consumption-saving models with idiosyncratic shocks to (non-capital) income.  All of the models assume CRRA utility with geometric discounting, no bequest motive, and income shocks are fully transitory or fully permanent.
@@ -81,6 +84,7 @@ mystr = lambda number: "{:.4f}".format(number)
 # ## Solving and examining the solution of the idiosyncratic income shocks model
 #
 # The cell below creates an infinite horizon instance of `IndShockConsumerTypeFast` and solves its model by calling its `solve` method.
+
 
 # %% {"collapsed": false, "pycharm": {"name": "#%%\n"}, "jupyter": {"outputs_hidden": false}}
 IndShockExample = IndShockConsumerTypeFast()

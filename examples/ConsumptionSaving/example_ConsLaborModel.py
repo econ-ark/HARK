@@ -2,12 +2,12 @@
 # jupyter:
 #   jupytext:
 #     cell_metadata_filter: -all
-#     formats: ipynb,py:percent
+#     formats: ipynb,py:light
 #     notebook_metadata_filter: all
 #     text_representation:
 #       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
+#       format_name: light
+#       format_version: '1.5'
 #       jupytext_version: 1.14.4
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
@@ -25,7 +25,6 @@
 #     version: 3.9.15
 # ---
 
-# %%
 from HARK.ConsumptionSaving.ConsLaborModel import (
     LaborIntMargConsumerType,
     init_labor_lifecycle,
@@ -34,18 +33,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 from time import process_time
 
-# %%
-mystr = lambda number: "{:.4f}".format(number)  # Format numbers as strings
+# +
 
-# %%
+
+def mystr(number):
+    return "{:.4f}".format(number)  # Format numbers as strings
+
+
+# -
+
 do_simulation = True
 
-# %%
 # Make and solve a labor intensive margin consumer i.e. a consumer with utility for leisure
 LaborIntMargExample = LaborIntMargConsumerType(verbose=0)
 LaborIntMargExample.cycles = 0
 
-# %%
 t_start = process_time()
 LaborIntMargExample.solve()
 t_end = process_time()
@@ -55,12 +57,10 @@ print(
     + " seconds."
 )
 
-# %%
 t = 0
 bMin_orig = 0.0
 bMax = 100.0
 
-# %%
 # Plot the consumption function at various transitory productivity shocks
 TranShkSet = LaborIntMargExample.TranShkGrid[t]
 bMin = bMin_orig
@@ -77,7 +77,6 @@ plt.xlim(bMin, bMax - bMin_orig + bMin)
 plt.ylim(0.0, None)
 plt.show()
 
-# %%
 # Plot the marginal consumption function at various transitory productivity shocks
 TranShkSet = LaborIntMargExample.TranShkGrid[t]
 bMin = bMin_orig
@@ -95,7 +94,6 @@ plt.xlim(bMin, bMax - bMin_orig + bMin)
 plt.ylim(0.0, 1.0)
 plt.show()
 
-# %%
 # Plot the labor function at various transitory productivity shocks
 TranShkSet = LaborIntMargExample.TranShkGrid[t]
 bMin = bMin_orig
@@ -111,7 +109,6 @@ plt.xlim(bMin, bMax - bMin_orig + bMin)
 plt.ylim(0.0, 1.0)
 plt.show()
 
-# %%
 # Plot the marginal value function at various transitory productivity shocks
 pseudo_inverse = True
 TranShkSet = LaborIntMargExample.TranShkGrid[t]
@@ -136,7 +133,6 @@ plt.xlim(bMin, bMax - bMin_orig + bMin)
 plt.ylim(0.0, None)
 plt.show()
 
-# %%
 if do_simulation:
     t_start = process_time()
     LaborIntMargExample.T_sim = 120  # Set number of simulation periods
@@ -186,14 +182,12 @@ if do_simulation:
     plt.ylim(0.0, 1.0)
     plt.show()
 
-# %%
 # Make and solve a labor intensive margin consumer with a finite lifecycle
 LifecycleExample = LaborIntMargConsumerType(**init_labor_lifecycle)
 LifecycleExample.cycles = (
     1  # Make this consumer live a sequence of periods exactly once
 )
 
-# %%
 start_time = process_time()
 LifecycleExample.solve()
 end_time = process_time()
@@ -204,17 +198,16 @@ print(
 )
 LifecycleExample.unpack("cFunc")
 
-# %%
 bMax = 20.0
 
-# %%
 # Plot the consumption function in each period of the lifecycle, using median shock
 B = np.linspace(0.0, bMax, 300)
 b_min = np.inf
 b_max = -np.inf
 for t in range(LifecycleExample.T_cycle):
     TranShkSet = LifecycleExample.TranShkGrid[t]
-    Shk = TranShkSet[int(len(TranShkSet) // 2)]  # Use the median shock, more or less
+    # Use the median shock, more or less
+    Shk = TranShkSet[int(len(TranShkSet) // 2)]
     B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
     C = LifecycleExample.solution[t].cFunc(B_temp, Shk * np.ones_like(B_temp))
     plt.plot(B_temp, C)
@@ -227,14 +220,14 @@ plt.xlim(b_min, b_max)
 plt.ylim(0.0, None)
 plt.show()
 
-# %%
 # Plot the marginal consumption function in each period of the lifecycle, using median shock
 B = np.linspace(0.0, bMax, 300)
 b_min = np.inf
 b_max = -np.inf
 for t in range(LifecycleExample.T_cycle):
     TranShkSet = LifecycleExample.TranShkGrid[t]
-    Shk = TranShkSet[int(len(TranShkSet) // 2)]  # Use the median shock, more or less
+    # Use the median shock, more or less
+    Shk = TranShkSet[int(len(TranShkSet) // 2)]
     B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
     MPC = LifecycleExample.solution[t].cFunc.derivativeX(
         B_temp, Shk * np.ones_like(B_temp)
@@ -249,14 +242,14 @@ plt.xlim(b_min, b_max)
 plt.ylim(0.0, 1.0)
 plt.show()
 
-# %%
 # Plot the labor supply function in each period of the lifecycle, using median shock
 B = np.linspace(0.0, bMax, 300)
 b_min = np.inf
 b_max = -np.inf
 for t in range(LifecycleExample.T_cycle):
     TranShkSet = LifecycleExample.TranShkGrid[t]
-    Shk = TranShkSet[int(len(TranShkSet) // 2)]  # Use the median shock, more or less
+    # Use the median shock, more or less
+    Shk = TranShkSet[int(len(TranShkSet) // 2)]
     B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
     L = LifecycleExample.solution[t].LbrFunc(B_temp, Shk * np.ones_like(B_temp))
     plt.plot(B_temp, L)
@@ -269,7 +262,6 @@ plt.xlim(b_min, b_max)
 plt.ylim(0.0, 1.01)
 plt.show()
 
-# %%
 # Plot the marginal value function at various transitory productivity shocks
 pseudo_inverse = True
 TranShkSet = LifecycleExample.TranShkGrid[t]
@@ -278,7 +270,8 @@ b_min = np.inf
 b_max = -np.inf
 for t in range(LifecycleExample.T_cycle):
     TranShkSet = LifecycleExample.TranShkGrid[t]
-    Shk = TranShkSet[int(len(TranShkSet) / 2)]  # Use the median shock, more or less
+    # Use the median shock, more or less
+    Shk = TranShkSet[int(len(TranShkSet) / 2)]
     B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
     if pseudo_inverse:
         vP = LifecycleExample.solution[t].vPfunc.cFunc(
@@ -299,4 +292,4 @@ plt.xlim(b_min, b_max)
 plt.ylim(0.0, None)
 plt.show()
 
-# %%
+

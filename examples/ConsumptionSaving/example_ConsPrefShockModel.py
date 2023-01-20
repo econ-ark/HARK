@@ -24,7 +24,11 @@ from HARK.ConsumptionSaving.ConsPrefShockModel import (
     KinkyPrefConsumerType,
 )
 
-mystr = lambda number: "{:.4f}".format(number)
+
+def mystr(number):
+    return "{:.4f}".format(number)
+
+
 do_simulation = True
 
 # %% [markdown]

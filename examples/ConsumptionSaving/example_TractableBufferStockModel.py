@@ -66,7 +66,12 @@ print(
 # %%
 # Plot the consumption function and whatnot
 m_upper = 1.5 * ExampleType.mTarg
-conFunc_PF = lambda m: ExampleType.h * ExampleType.PFMPC + ExampleType.PFMPC * m
+
+
+def conFunc_PF(m):
+    return ExampleType.h * ExampleType.PFMPC + ExampleType.PFMPC * m
+
+
 # plot_funcs([ExampleType.solution[0].cFunc,ExampleType.mSSfunc,ExampleType.cSSfunc],0,m_upper)
 plot_funcs([ExampleType.solution[0].cFunc, ExampleType.solution[0].cFunc_U], 0, m_upper)
 
@@ -103,13 +108,16 @@ init_consumer_objects = {
     "TranShkStd": [0.0],  # Transitory shock standard deviation
     "TranShkCount": 1,  # Number of shocks in discrete permanent shock distribution
     "T_cycle": 1,  # Number of periods in cycle
-    "UnempPrb": 0.0,  # Unemployment probability (not used, as the unemployment here is *permanent*, not transitory)
-    "UnempPrbRet": 0.0,  # Unemployment probability when retired (irrelevant here)
+    # Unemployment probability (not used, as the unemployment here is *permanent*, not transitory)
+    "UnempPrb": 0.0,
+    # Unemployment probability when retired (irrelevant here)
+    "UnempPrbRet": 0.0,
     "T_retire": 0,  # Age at retirement (turned off)
     "IncUnemp": 0.0,  # Income when unemployed (irrelevant)
     "IncUnempRet": 0.0,  # Income when unemployed and retired (irrelevant)
     "aXtraMin": 0.001,  # Minimum value of assets above minimum in grid
-    "aXtraMax": ExampleType.mUpperBnd,  # Maximum value of assets above minimum in grid
+    # Maximum value of assets above minimum in grid
+    "aXtraMax": ExampleType.mUpperBnd,
     "aXtraCount": 48,  # Number of points in assets grid
     "aXtraExtra": [None],  # Additional points to include in assets grid
     "aXtraNestFac": 3,  # Degree of exponential nesting when constructing assets grid
@@ -118,7 +126,8 @@ init_consumer_objects = {
     "AgentCount": 1,  # Number of agents in a simulation (irrelevant)
     "tax_rate": 0.0,  # Tax rate on labor income (irrelevant)
     "vFuncBool": False,  # Whether to calculate the value function
-    "CubicBool": True,  # Whether to use cubic splines (False --> linear splines)
+    # Whether to use cubic splines (False --> linear splines)
+    "CubicBool": True,
     "MrkvArray": [MrkvArray],  # State transition probabilities
 }
 MarkovType = MarkovConsumerType(**init_consumer_objects)  # Make a basic consumer type
@@ -150,7 +159,12 @@ print(
 )
 # plot_funcs([ExampleType.solution[0].cFunc,ExampleType.solution[0].cFunc_U],0,m_upper)
 plot_funcs(MarkovType.cFunc[0], 0, m_upper)
-diffFunc = lambda m: ExampleType.solution[0].cFunc(m) - MarkovType.cFunc[0][0](m)
+
+
+def diffFunc(m):
+    return ExampleType.solution[0].cFunc(m) - MarkovType.cFunc[0][0](m)
+
+
 print("Difference between the (employed) consumption functions:")
 plot_funcs(diffFunc, 0, m_upper)
 
