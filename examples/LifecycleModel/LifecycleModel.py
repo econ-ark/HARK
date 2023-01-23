@@ -34,9 +34,9 @@
 #
 # But as of this writing (in March of 2019), the data are so new that there do not seem to be any published attempts to compare the data to the implications a standard life cycle model with income uncertainty, constraints, and other modern features.
 #
-# This notebook is an example of how one could counstruct a life cycle model with the HARK toolkit that would make predictions about the model analogues of the raw data statistics that are available.  
+# This notebook is an example of how one could counstruct a life cycle model with the HARK toolkit that would make predictions about the model analogues of the raw data statistics that are available.
 #
-# For example, the papers have shown information about the growth rate of assets at different ages over the life cycle.  Here, we show how (under a given parameterization) we could produce the life cycle model's prediction about the distribution of assets at age 65 and age 66, and the growth rate between 65 and 66. 
+# For example, the papers have shown information about the growth rate of assets at different ages over the life cycle.  Here, we show how (under a given parameterization) we could produce the life cycle model's prediction about the distribution of assets at age 65 and age 66, and the growth rate between 65 and 66.
 #
 # The parameters of the model have not been optmized to match features of the Norwegian data; a first step in "structural" estimation would be to calibrate the inputs to the model (like the profile of income over the life cycle, and the magnitude of income shocks), and then to find the values of parameters like the time preference rate that allow the model to fit the data best.
 #
@@ -182,4 +182,3 @@ aGro41NoU = aGro41[aGro41[:] > 0.2]  # Throw out extreme outliers
 from matplotlib import pyplot as plt
 
 n, bins, patches = plt.hist(aGro41NoU, 50, density=True)
-

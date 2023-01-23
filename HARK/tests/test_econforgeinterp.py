@@ -7,7 +7,7 @@ from HARK.core import distance_metric
 
 
 class CompareLinearInterp(unittest.TestCase):
-    """ 
+    """
     Compares output and properties with the basic linearinterp
     """
 
@@ -71,7 +71,7 @@ class CompareLinearInterp(unittest.TestCase):
 
 
 class CompareBilinearInterp(unittest.TestCase):
-    """ 
+    """
     Compares output and properties with the basic linearinterp
     """
 
@@ -159,7 +159,7 @@ class CompareBilinearInterp(unittest.TestCase):
 
 
 class Check1DDerivatives(unittest.TestCase):
-    """ 
+    """
     Checks derivatives in a 1D interpolator
     """
 
@@ -210,7 +210,7 @@ class Check1DDerivatives(unittest.TestCase):
 
 
 class Check2DDerivatives(unittest.TestCase):
-    """ 
+    """
     Checks derivatives in a 2D interpolator
     """
 
@@ -257,7 +257,9 @@ class Check2DDerivatives(unittest.TestCase):
         # Evaluation points
         n_eval = 15
         x_ev, y_ev = np.meshgrid(
-            np.linspace(2, 4, n_eval), np.linspace(4, 2, n_eval), indexing="ij",
+            np.linspace(2, 4, n_eval),
+            np.linspace(4, 2, n_eval),
+            indexing="ij",
         )
 
         # Get function and 1st derivatives
@@ -270,7 +272,7 @@ class Check2DDerivatives(unittest.TestCase):
 
 
 class TestLinearDecay(unittest.TestCase):
-    """ 
+    """
     Checks the linear interpolators with limiting extrapolators
     """
 

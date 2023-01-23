@@ -214,9 +214,9 @@ par_finite["T_age"] = 4
 
 # Adjust discounting and returns distribution so that they make sense in a
 # 4-period model
-par_finite["DiscFac"] = 0.95 ** 15
-par_finite["Rfree"] = 1.03 ** 15
-par_finite["RiskyAvg"] = 1.08 ** 15  # Average return of the risky asset
+par_finite["DiscFac"] = 0.95**15
+par_finite["Rfree"] = 1.03**15
+par_finite["RiskyAvg"] = 1.08**15  # Average return of the risky asset
 par_finite["RiskyStd"] = 0.20 * np.sqrt(15)  # Standard deviation of (log) risky returns
 
 
