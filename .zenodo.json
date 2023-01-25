@@ -13,13 +13,13 @@
   }, {
       "name": "Kaufman, Alexander"
   }],
-  "access_right": "open", 
+  "access_right": "open",
   "license": "apache2.0",
-  "upload_type": "software", 
+  "upload_type": "software",
     "related_identifiers": [
         {
-            "scheme": "url", 
-            "identifier": "https://github.com/econ-ark/HARK/", 
+            "scheme": "url",
+            "identifier": "https://github.com/econ-ark/HARK/",
             "relation": "isSupplementTo"
         }
     ]

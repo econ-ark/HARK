@@ -10,7 +10,7 @@ https://econ-ark.org/materials/riskycontrib
 
 @software{mateo_velasquez_giraldo_2021_4977915,
   author       = {Mateo Velásquez-Giraldo},
-  title        = {{Mv77/RiskyContrib: A Two-Asset Savings Model with 
+  title        = {{Mv77/RiskyContrib: A Two-Asset Savings Model with
                    an Income-Contribution Scheme}},
   month        = jun,
   year         = 2021,

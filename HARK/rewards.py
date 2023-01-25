@@ -745,7 +745,7 @@ class UtilityFuncCRRA(UtilityFunction):
         elif order == 4:
             return CRRAutilityPPPP(c, self.CRRA)
         else:
-            raise ValueError("Derivative of order {} not supported".format(order))
+            raise ValueError(f"Derivative of order {order} not supported")
 
     def inverse(self, u, order=(0, 0)):
         """
@@ -781,7 +781,7 @@ class UtilityFuncCRRA(UtilityFunction):
         elif order == (1, 1):
             return CRRAutilityP_invP(u, self.CRRA)
         else:
-            raise ValueError("Inverse of order {} not supported".format(order))
+            raise ValueError(f"Inverse of order {order} not supported")
 
     def derinv(self, u, order=(1, 0)):
         """
@@ -812,7 +812,7 @@ class UtilityFuncCobbDouglas(UtilityFunction):
 
         assert np.isclose(
             np.sum(self.EOS), 1.0
-        ), """The sum of the elasticity of substitution 
+        ), """The sum of the elasticity of substitution
         parameters must be less than or equal to 1."""
 
         assert factor > 0, "Factor must be positive."

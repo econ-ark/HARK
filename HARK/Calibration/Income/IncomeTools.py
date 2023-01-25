@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Sat Dec 19 15:08:54 2020
 
@@ -96,7 +95,7 @@ def age_log_poly_to_growth_rates(coefs, age_min, age_max):
 
     # Create age matrices
     age_10 = np.arange(age_min, age_max + 1).reshape(age_max - age_min + 1, 1) / 10
-    age_mat = np.hstack(list(map(lambda n: age_10 ** n, range(deg + 1))))
+    age_mat = np.hstack(list(map(lambda n: age_10**n, range(deg + 1))))
 
     # Fing the value of the polynomial
     lnYDet = np.dot(age_mat, np.array(coefs))
@@ -113,7 +112,7 @@ def age_log_poly_to_growth_rates(coefs, age_min, age_max):
 
 
 def find_PermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
-    """
+    r"""
     Finds initial income and sequence of growth factors from a polynomial
     specification of log-income, an optional retirement age and a replacement
     rate.
@@ -493,7 +492,7 @@ def parse_income_spec(
     SabelhausSong=False,
     adjust_infl_to=None,
 ):
-    """
+    r"""
     A function that produces income growth rates and income shock volatilities
 
     Parameters

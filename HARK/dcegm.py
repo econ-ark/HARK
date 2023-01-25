@@ -21,7 +21,7 @@ def calc_linear_crossing(x, left_y, right_y):
     Parameters
     ----------
     x : np.array, length 2
-        The two common x coordinates. x[0] < x[1] is assumed 
+        The two common x coordinates. x[0] < x[1] is assumed
     left_y : np.array, length 2
         y values of the two segments at x[0]
     right_y : np.array, length 2
@@ -67,15 +67,15 @@ def calc_cross_points(x_grid, cond_ys, opt_idx):
     evaluated on the x grid, and a vector indicating the choice of a segment
     at each grid point, this function computes the coordinates of the
     crossing points that happen when the choice of segment changes.
-    
+
     The purpose of the function is to take (x,y) lines that are defined piece-
     wise, and at every gap in x where the "piece" changes, find the point where
     the two "pieces" involved in the change would intercept.
-    
+
     Adding these points to our piece-wise approximation will improve it, since
     it will eliminate interpolation between points that belong to different
     "pieces".
-    
+
     Parameters
     ----------
     x_grid : np.array
@@ -87,7 +87,7 @@ def calc_cross_points(x_grid, cond_ys, opt_idx):
     opt_idx : np.array of indices, must have length len(x_grid).
             Indicates what segment is to be used at each x gridpoint. The value
             of the piecewise function at x_grid[k] is cond_ys[opt_idx[k],k].
-    
+
     Returns
     -------
     xing_points: 2D np.array
@@ -174,7 +174,7 @@ def calc_nondecreasing_segments(x, y):
     """
     Given a sequence of (x,y) points, this function finds the start and end
     indices of its largest non-decreasing segments.
-    
+
     A non-decreasing segment is a sub-sequence of points
     {(x_0, y_0),...,(x_n,y_n)} such that for all 0 <= i,j <= n,
     If j>=i then x_j >= x_i and y_j >= y_i

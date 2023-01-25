@@ -3,7 +3,6 @@ from interpolation.splines import eval_linear, eval_spline, CGrid
 from interpolation.splines import extrap_options as xto
 
 import numpy as np
-from copy import copy
 
 extrap_opts = {
     "linear": xto.LINEAR,
@@ -31,7 +30,7 @@ class LinearFast(MetricObject):
             One-dimensional list of numpy arrays. It's i-th entry must be the grid
             to be used for the i-th independent variable.
         extrap_mode: one of 'linear', 'nearest', or 'constant'
-            Determines how to extrapolate, using either nearest point, multilinear, or 
+            Determines how to extrapolate, using either nearest point, multilinear, or
             constant extrapolation. The default is multilinear.
         """
         self.dim = len(grids)
@@ -51,7 +50,7 @@ class LinearFast(MetricObject):
     def __call__(self, *args):
         """
         Calls the interpolator.
-        
+
         args: [numpy.array]
             List of arrays. The i-th entry contains the i-th coordinate
             of all the points to be evaluated. All entries must have the
@@ -194,7 +193,11 @@ class DecayInterp(MetricObject):
     distance_criteria = ["interp"]
 
     def __init__(
-        self, interp, limit_fun, limit_grad=None, extrap_method="decay_prop",
+        self,
+        interp,
+        limit_fun,
+        limit_grad=None,
+        extrap_method="decay_prop",
     ):
         """
 
@@ -240,7 +243,7 @@ class DecayInterp(MetricObject):
     def __call__(self, *args):
         """
         Calls the interpolator with decay extrapolation.
-        
+
         args: [numpy.array]
             List of arrays. The i-th entry contains the i-th coordinate
             of all the points to be evaluated. All entries must have the

@@ -542,7 +542,7 @@ def load_nelder_mead_data(name):
         The cumulative number of function evaluations in the search process.
     """
     # Open the Nelder-Mead progress file
-    with open(name + ".txt", "r") as f:
+    with open(name + ".txt") as f:
         my_reader = csv.reader(f, delimiter=",")
 
         # Get the shape of the simplex and initialize it

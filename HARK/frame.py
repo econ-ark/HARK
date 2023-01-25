@@ -1,6 +1,5 @@
 from collections import OrderedDict
 import copy
-from sre_constants import SRE_FLAG_ASCII
 from HARK import AgentType, Model
 from HARK.distribution import Distribution, TimeVaryingDiscreteDistribution
 import itertools
@@ -10,7 +9,7 @@ import networkx as nx
 import numpy as np
 
 
-class Frame():
+class Frame:
     """
     An object representing a single 'frame' of an optimization problem.
     A frame defines some variables of a model, including what other variables
@@ -49,27 +48,28 @@ class Frame():
     """
 
     def __init__(
-            self,
-            target : tuple,
-            scope : tuple,
-            default = None,
-            transition = None,
-            objective = None,
-            aggregate = False,
-            control = False,
-            reward = False,
-            context = None,
+        self,
+        target: tuple,
+        scope: tuple,
+        default=None,
+        transition=None,
+        objective=None,
+        aggregate=False,
+        control=False,
+        reward=False,
+        context=None,
     ):
-        """
-        """
+        """ """
 
-        self.target = target if isinstance(target, tuple) else (target,) # tuple of variables
-        self.scope = scope # tuple of variables
-        self.default = default # default value used in simBirth; a dict
+        self.target = (
+            target if isinstance(target, tuple) else (target,)
+        )  # tuple of variables
+        self.scope = scope  # tuple of variables
+        self.default = default  # default value used in simBirth; a dict
 
         ## Careful! Transition functions need to return a tuple, even if there is only one state value
-        self.transition = transition # for use in simulation
-        self.objective = objective # for use in solver
+        self.transition = transition  # for use in simulation
+        self.objective = objective  # for use in solver
         self.aggregate = aggregate
         self.control = control
         self.reward = reward
@@ -100,33 +100,42 @@ class Frame():
         self.children = {}
         self.parents = {}
 
-    def add_suffix(self, suffix :str):
+    def add_suffix(self, suffix: str):
         """
         Change the names of all variables in this frame's target and scope
         (except for backward references) to include an additional suffix.
 
         This is used when copying or repreating frames.
         """
-        self.target = tuple((var + suffix for var in self.target))
+        self.target = tuple(var + suffix for var in self.target)
 
-        self.scope = tuple((var 
-                            if any(var in pa and isinstance(self.parents[pa], BackwardFrameReference)
-                                   for pa in self.parents)
-                            else var + suffix
-                            for var in self.scope))
+        self.scope = tuple(
+            var
+            if any(
+                var in pa and isinstance(self.parents[pa], BackwardFrameReference)
+                for pa in self.parents
+            )
+            else var + suffix
+            for var in self.scope
+        )
 
-    def add_backwards_suffix(self, suffix : str):
+    def add_backwards_suffix(self, suffix: str):
         """
         Change the names of any scope variables that are backward references to
         include an additional suffix.
         """
-        self.scope = tuple((var + suffix 
-                        if any(var in pa and isinstance(self.parents[pa], BackwardFrameReference)
-                        for pa in self.parents)
-                        else var
-                        for var in self.scope))
+        self.scope = tuple(
+            var + suffix
+            if any(
+                var in pa and isinstance(self.parents[pa], BackwardFrameReference)
+                for pa in self.parents
+            )
+            else var
+            for var in self.scope
+        )
 
-class ForwardFrameReference():
+
+class ForwardFrameReference:
     """
     A 'reference' to a frame that is in the next period.
 
@@ -155,7 +164,8 @@ class ForwardFrameReference():
     def __repr__(self):
         return f"<FFR:{self.frame.target}>"
 
-class BackwardFrameReference():
+
+class BackwardFrameReference:
     """
     A 'reference' to a frame that is in the previous period.
 
@@ -195,6 +205,7 @@ class FrameSet(OrderedDict):
     Preserves order. Is sliceable and has index() functions like a list.
     Supports lookup of frame by variable name.
     """
+
     def __getitem__(self, k):
         if not isinstance(k, slice):
             return OrderedDict.__getitem__(self, k)
@@ -270,7 +281,7 @@ class FrameModel(Model):
         #Frame order is significant here.
     """
 
-    def __init__(self, frames, parameters, infinite = True):
+    def __init__(self, frames, parameters, infinite=True):
         super().__init__()
 
         self.frames = FrameSet([(fr.target, fr) for fr in frames])
@@ -290,11 +301,17 @@ class FrameModel(Model):
                 for var in frame.scope:
 
                     ## Should replace this with a new data structure that allows for multiple keys into the same frame
-                    scope_frames = [self.frames[frame_target] for frame_target in self.frames if var in frame_target]
+                    scope_frames = [
+                        self.frames[frame_target]
+                        for frame_target in self.frames
+                        if var in frame_target
+                    ]
 
                     ## There should only be one frame in this list.
                     for scope_frame in scope_frames:
-                        if self.frames.k_index(frame_target) > self.frames.k_index(scope_frame.target):
+                        if self.frames.k_index(frame_target) > self.frames.k_index(
+                            scope_frame.target
+                        ):
                             if frame not in scope_frame.children:
                                 ## should probably use frame data structure here
                                 scope_frame.children[frame_target] = frame
@@ -302,7 +319,7 @@ class FrameModel(Model):
                             if scope_frame not in frame.parents:
                                 frame.parents[scope_frame.target] = scope_frame
                         else:
-                            
+
                             ## Do I need to keep backward references even in a finite model, because these
                             ## are initial conditions?
                             bfr = BackwardFrameReference(frame)
@@ -313,7 +330,7 @@ class FrameModel(Model):
                                 ffr = ForwardFrameReference(frame)
                                 scope_frame.children[frame_target] = ffr
 
-    def prepend(self, model, suffix='_0'):
+    def prepend(self, model, suffix="_0"):
         """
         Combine this FrameModel with another FrameModel.
 
@@ -341,14 +358,14 @@ class FrameModel(Model):
 
         for frame in pre_frames:
             frame.add_suffix(suffix)
-    
+
         frames = list(copy.deepcopy(self.frames).values())
 
         for frame in frames:
-    
+
             frame.add_backwards_suffix(suffix)
 
-        return FrameModel(pre_frames + frames, self.parameters, infinite = self.infinite)
+        return FrameModel(pre_frames + frames, self.parameters, infinite=self.infinite)
 
     def make_terminal(self):
         """
@@ -365,13 +382,16 @@ class FrameModel(Model):
         new_frames = copy.deepcopy(list(self.frames.values()))
 
         for frame in new_frames:
-            forward_references = [child for child in frame.children if isinstance(child, ForwardFrameReference)]
+            forward_references = [
+                child
+                for child in frame.children
+                if isinstance(child, ForwardFrameReference)
+            ]
 
             for fref in forward_references:
                 frame.children.remove(fref)
-        
-        return FrameModel(new_frames, self.parameters, infinite = False)
-            
+
+        return FrameModel(new_frames, self.parameters, infinite=False)
 
     def repeat(self, tv_parameters):
         """
@@ -404,21 +424,19 @@ class FrameModel(Model):
 
                 if t > 0:
                     t_frame.add_backwards_suffix(f"_{t-1}")
-        
+
         for var_name in tv_parameters:
             for param in tv_parameters[var_name]:
                 for t, pv in enumerate(tv_parameters[var_name][param]):
                     new_frames[t].var(var_name).context[param] = pv
 
         return FrameModel(
-            itertools.chain.from_iterable([
-                frame_set.values()
-                for frame_set in 
-                new_frames
-                ]),
+            itertools.chain.from_iterable(
+                [frame_set.values() for frame_set in new_frames]
+            ),
             self.parameters,
-            infinite = self.infinite
-            )
+            infinite=self.infinite,
+        )
 
 
 class FrameAgentType(AgentType):
@@ -445,7 +463,7 @@ class FrameAgentType(AgentType):
 
     """
 
-    cycles = 0 # for now, only infinite horizon models.
+    cycles = 0  # for now, only infinite horizon models.
 
     def __init__(self, model, **kwds):
         self.model = model
@@ -470,11 +488,11 @@ class FrameAgentType(AgentType):
 
                 if frame.control:
                     self.controls[var] = val
-                elif  isinstance(frame.transition, Distribution):
+                elif isinstance(frame.transition, Distribution):
                     self.shocks[var] = val
                 else:
                     self.state_now[var] = val
-    
+
         super().initialize_sim()
 
     def sim_one_period(self):
@@ -508,7 +526,7 @@ class FrameAgentType(AgentType):
             for var in frame.target:
                 if var in self.state_now:
                     self.state_prev[var] = self.state_now[var]
-                
+
                     if not frame.aggregate:
                         self.state_now[var] = np.empty(self.AgentCount)
                     else:
@@ -559,12 +577,12 @@ class FrameAgentType(AgentType):
 
                         if var in self.state_now:
                             ## need to check in case of aggregate variables.. PlvlAgg
-                            if hasattr(self.state_now[var],'__getitem__'):
+                            if hasattr(self.state_now[var], "__getitem__"):
                                 self.state_now[var][which_agents] = value
                         elif var in self.controls:
                             self.controls[var][which_agents] = value
                         elif var in self.shocks:
-                            ## assuming no aggregate shocks... 
+                            ## assuming no aggregate shocks...
                             self.shocks[var][which_agents] = value
 
         # from ConsIndShockModel. Needed???
@@ -574,6 +592,7 @@ class FrameAgentType(AgentType):
         ] = 0  # Which period of the cycle each agent is currently in
 
         ## simplest version of this.
+
     def transition_frame(self, frame):
         """
         Updates the model variables in `target`
@@ -583,16 +602,16 @@ class FrameAgentType(AgentType):
         """
         # build a context object based on model state variables
         # and 'self' reference for 'global' variables
-        context = {} # 'self' : self}
+        context = {}  # 'self' : self}
         context.update(self.shocks)
         context.update(self.controls)
         context.update(self.state_prev)
 
         # use the "now" version of variables that have already been targetted.
-        for pre_frame in self.frames[:self.frames.k_index(frame.target)].values():
+        for pre_frame in self.frames[: self.frames.k_index(frame.target)].values():
             for var in pre_frame.target:
                 if var in self.state_now:
-                    context.update({var : self.state_now[var]})
+                    context.update({var: self.state_now[var]})
 
         ## Get these parameters from the FrameModel.parameters
         ## ... Unless there are also _simulation_ parameters attached to the AgentType
@@ -602,11 +621,11 @@ class FrameAgentType(AgentType):
         # This could be the value from the 'previous' time step.
 
         # limit context to scope of frame
-        local_context = {
-            var : context[var]
-            for var
-            in frame.scope
-        } if frame.scope is not None else context.copy()
+        local_context = (
+            {var: context[var] for var in frame.scope}
+            if frame.scope is not None
+            else context.copy()
+        )
 
         ## TODO
         ## - A repeated model may have transition equations that do not reference the right "suffixes",
@@ -618,7 +637,9 @@ class FrameAgentType(AgentType):
         ## - Consider relationship between AgentType simulation mechanics (here) and the FrameModel definition.
 
         if frame.control:
-            new_values = self.control_transition_age_varying(frame.target, **local_context)
+            new_values = self.control_transition_age_varying(
+                frame.target, **local_context
+            )
 
         elif frame.transition is not None:
             if isinstance(frame.transition, Distribution):
@@ -627,10 +648,10 @@ class FrameAgentType(AgentType):
                 # later, t_cycle should be included in local context, etc.
                 if frame.aggregate:
                     new_values = (frame.transition.draw(1),)
-                else:    
+                else:
                     new_values = (frame.transition.draw(self.t_cycle),)
 
-            else: # transition is function of state variables not an exogenous shock
+            else:  # transition is function of state variables not an exogenous shock
                 new_values = frame.transition(
                     # self,
                     **local_context
@@ -644,11 +665,13 @@ class FrameAgentType(AgentType):
 
         # because the context was a shallow update,
         # the model values can be modified directly(?)
-        for i,t in enumerate(frame.target):
+        for i, t in enumerate(frame.target):
             if t in context:
                 context[t][:] = new_values[i]
             else:
-                raise Exception(f"From frame {frame.target}, target {t} is not in the context object.")
+                raise Exception(
+                    f"From frame {frame.target}, target {t} is not in the context object."
+                )
 
     def control_transition_age_varying(self, target, **context):
         """
@@ -659,7 +682,7 @@ class FrameAgentType(AgentType):
         frame = self.model.frames[target]
         scope = frame.scope
 
-        target_values = tuple((np.zeros(self.AgentCount) + np.nan for var in scope))
+        target_values = tuple(np.zeros(self.AgentCount) + np.nan for var in scope)
 
         # Loop over each period of the cycle, getting controls separately depending on "age"
         for t in range(self.T_cycle):
@@ -675,7 +698,7 @@ class FrameAgentType(AgentType):
         return target_values
 
 
-def draw_frame_model(frame_model: FrameModel, figsize = (8,8), dot = False):
+def draw_frame_model(frame_model: FrameModel, figsize=(8, 8), dot=False):
     """
     Draws a FrameModel as an influence diagram.
 
@@ -684,29 +707,42 @@ def draw_frame_model(frame_model: FrameModel, figsize = (8,8), dot = False):
     Rhombus nodes: reward variables
     Hexagon nodes: aggregate variables
     """
-    
+
     g = nx.DiGraph()
 
-    g.add_nodes_from([
-        (frame.name(), 
-         {'control' : frame.control, 'reward' : frame.reward, 'aggregate' : frame.aggregate})
-        for frame in frame_model.frames.values()
-    ])
+    g.add_nodes_from(
+        [
+            (
+                frame.name(),
+                {
+                    "control": frame.control,
+                    "reward": frame.reward,
+                    "aggregate": frame.aggregate,
+                },
+            )
+            for frame in frame_model.frames.values()
+        ]
+    )
 
     for frame in frame_model.frames.values():
         for child_target in frame.children:
             child = frame.children[child_target]
-            g.add_nodes_from([
-                (child.name(), 
-                 {
-                     'control' : child.control,
-                     'reward' : child.reward,
-                     'aggregate' : child.aggregate
-                 })])
+            g.add_nodes_from(
+                [
+                    (
+                        child.name(),
+                        {
+                            "control": child.control,
+                            "reward": child.reward,
+                            "aggregate": child.aggregate,
+                        },
+                    )
+                ]
+            )
             g.add_edge(frame.name(), child.name())
 
     if dot:
-        pos = nx.drawing.nx_pydot.graphviz_layout(g, prog='dot')
+        pos = nx.drawing.nx_pydot.graphviz_layout(g, prog="dot")
     else:
         pos = nx.drawing.layout.kamada_kawai_layout(g)
 
@@ -715,37 +751,35 @@ def draw_frame_model(frame_model: FrameModel, figsize = (8,8), dot = False):
         "node_color": "white",
         "edgecolors": "black",
         "linewidths": 1,
-        "pos" : pos
+        "pos": pos,
     }
 
-    edge_options = {
-        "node_size": 2500,
-        "width": 2,
-        "pos" : pos
-    }
+    edge_options = {"node_size": 2500, "width": 2, "pos": pos}
 
     label_options = {
         "font_size": 12,
-         #"labels" : {node : str(node[0]) if len(node) == 1 else str(node) for node in g.nodes},
-        "pos" : pos
+        # "labels" : {node : str(node[0]) if len(node) == 1 else str(node) for node in g.nodes},
+        "pos": pos,
     }
 
-    reward_nodes = [k for k,v in g.nodes(data = True) if v['reward']]
-    control_nodes = [k for k,v in g.nodes(data = True) if v['control']]
-    aggregate_nodes = [k for k,v in g.nodes(data = True) if v['aggregate']]
+    reward_nodes = [k for k, v in g.nodes(data=True) if v["reward"]]
+    control_nodes = [k for k, v in g.nodes(data=True) if v["control"]]
+    aggregate_nodes = [k for k, v in g.nodes(data=True) if v["aggregate"]]
 
-    chance_nodes = [node for node in g.nodes() 
-                    if node not in reward_nodes 
-                    and node not in control_nodes
-                    and node not in aggregate_nodes
-                   ]
+    chance_nodes = [
+        node
+        for node in g.nodes()
+        if node not in reward_nodes
+        and node not in control_nodes
+        and node not in aggregate_nodes
+    ]
 
     plt.figure(figsize=figsize)
 
-    nx.draw_networkx_nodes(g, nodelist = chance_nodes, node_shape = 'o', **node_options)
-    nx.draw_networkx_nodes(g, nodelist = reward_nodes, node_shape = 'd', **node_options)
-    nx.draw_networkx_nodes(g, nodelist = control_nodes, node_shape = 's', **node_options)
-    nx.draw_networkx_nodes(g, nodelist = aggregate_nodes, node_shape = 'h', **node_options)
+    nx.draw_networkx_nodes(g, nodelist=chance_nodes, node_shape="o", **node_options)
+    nx.draw_networkx_nodes(g, nodelist=reward_nodes, node_shape="d", **node_options)
+    nx.draw_networkx_nodes(g, nodelist=control_nodes, node_shape="s", **node_options)
+    nx.draw_networkx_nodes(g, nodelist=aggregate_nodes, node_shape="h", **node_options)
     nx.draw_networkx_edges(g, **edge_options)
 
     nx.draw_networkx_labels(g, **label_options)

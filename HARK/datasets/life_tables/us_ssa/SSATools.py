@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Fri Jan  8 15:36:14 2021
 
@@ -161,7 +160,7 @@ def parse_ssa_life_table(
 
     # Warn the user if projections are used.
     if max(years) > max_hist:
-        message = "Survival probabilities beyond {} are projections.".format(max_hist)
+        message = f"Survival probabilities beyond {max_hist} are projections."
         _log.debug(message)
 
     # Concatenate them
