@@ -1,7 +1,67 @@
+exclude: Documentation/example_notebooks/
+
 repos:
+  - repo: https://github.com/mwouts/jupytext
+    rev: v1.14.4
+    hooks:
+      - id: jupytext
+        args:
+          [--sync, --set-formats, "ipynb,py:percent", --pipe, black, --execute]
+        additional_dependencies: [black, nbconvert]
+        files: ^examples/.*\.ipynb$
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: check-json
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        exclude: ^examples/
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.3.1
+    hooks:
+      - id: pyupgrade
+        args: ["--py38-plus"]
+        exclude: ^examples/
+
+  - repo: https://github.com/myint/autoflake
+    rev: v2.0.0
+    hooks:
+      - id: autoflake
+        args:
+          [
+            "--in-place",
+            "--remove-all-unused-imports",
+            "--remove-unused-variable",
+          ]
+        exclude: ^examples/
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.11.4
+    hooks:
+      - id: isort
+        args: ["--profile", "black", "--filter-files"]
+        exclude: ^examples/
+
+  - repo: https://github.com/asottile/blacken-docs
+    rev: 1.13.0
+    hooks:
+      - id: blacken-docs
+        exclude: ^examples/
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.0-alpha.4
+    hooks:
+      - id: prettier
+        files: \.(html|md|yml|yaml)
+        args: [--prose-wrap=preserve]
+        exclude: ^examples/
+
   - repo: https://github.com/psf/black
-    rev: stable
+    rev: 22.12.0
     hooks:
       - id: black
-        exclude: ^examples/
         language_version: python3
+        exclude: ^examples/
