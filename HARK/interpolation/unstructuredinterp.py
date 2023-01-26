@@ -7,25 +7,6 @@ from scipy.interpolate import (
 
 from HARK.core import MetricObject
 
-try:
-    import cupy as cp
-
-    cupy_available = True
-except ImportError:
-    cupy_available = False
-
-try:
-    from sklearn.linear_model import RidgeCV
-    from sklearn.pipeline import make_pipeline
-    from sklearn.preprocessing import (
-        PolynomialFeatures,
-        SplineTransformer,
-        StandardScaler,
-    )
-
-    sklearn_available = True
-except ImportError:
-    sklearn_available = False
 
 LNDI_KWARGS = {"fill_value": np.nan, "rescale": False}  # linear
 NNDI_KWARGS = {"rescale": False, "tree_options": None}  # nearest
@@ -104,57 +85,3 @@ class UnstructuredInterp(MetricObject):
     def __call__(self, *args):
 
         return self.interpolator(*args)
-
-
-class UnstructuredPolynomialInterp(MetricObject):
-
-    distance_criteria = ["values", "grids"]
-
-    def __init__(self, values, grids, degree):
-
-        self.values = np.asarray(values)
-        self.grids = np.asarray(grids)
-        self.degree = degree
-
-        self.ndim = self.values.ndim
-        self.shape = self.values.shape
-
-        self.model = self._set_model()
-
-        self.X_train = np.c_[tuple(grid.ravel() for grid in self.grids)]
-
-        self.y_train = self.values.ravel()
-
-        self.model.fit(self.X_train, self.y_train)
-
-    def _set_model(self):
-
-        return make_pipeline(
-            StandardScaler(),
-            PolynomialFeatures(self.degree),
-            RidgeCV(alphas=np.logspace(-6, 6, 13)),
-        )
-
-    def __call__(self, *args):
-
-        args = np.asarray(args)
-
-        X_test = np.c_[tuple(arg.ravel() for arg in args)]
-
-        return self.model.predict(X_test).reshape(args[0].shape)
-
-
-class UnstructuredSplineInterp(UnstructuredPolynomialInterp):
-    def __init__(self, values, grids, degree, n_knots=10):
-
-        self.n_knots = n_knots
-
-        super().__init__(values, grids, degree)
-
-    def _set_model(self):
-
-        return make_pipeline(
-            StandardScaler(),
-            SplineTransformer(n_knots=self.n_knots, degree=self.degree),
-            RidgeCV(alphas=np.logspace(-6, 6, 13)),
-        )
