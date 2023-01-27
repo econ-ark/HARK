@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.0
+#       jupytext_version: 1.14.4
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -14,14 +14,13 @@
 # ---
 
 # %%
-import numpy as np
 import matplotlib.pyplot as plt
-
-from sklearn.linear_model import Ridge
-from sklearn.preprocessing import PolynomialFeatures, SplineTransformer
-from sklearn.pipeline import make_pipeline
-
+import numpy as np
+from HARK.interpolation import RegularizedPolynomialInterp
 from scipy.ndimage import map_coordinates
+from sklearn.linear_model import RidgeCV
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import PolynomialFeatures, SplineTransformer, StandardScaler
 
 # %%
 n = 50
@@ -40,25 +39,24 @@ for i in range(u_mat.shape[1]):
     y_mat[:, i] = u_mat[:, i] / x_mat[:, i]
 
 # %%
-x_new = np.linspace(1, 10, 100)
-y_new = np.linspace(1, 10, 100)
-
+x_new = np.linspace(5, 10, 100)
+y_new = np.linspace(5, 10, 100)
 x_new, y_new = np.meshgrid(x_new, y_new, indexing="ij")
 
 # %%
-degree = 10
+degree = 3
 
 X_train = np.c_[x_mat.ravel(), y_mat.ravel()]
-
 coords = np.mgrid[[slice(0, dim) for dim in x_mat.shape]]
-
 y_train = coords[0].ravel()
 
 # %%
 X_train.shape
 
 # %%
-model = make_pipeline(PolynomialFeatures(degree), Ridge(alpha=1e-3))
+model = make_pipeline(
+    StandardScaler(), PolynomialFeatures(degree), RidgeCV(alphas=np.logspace(-6, 6, 13))
+)
 model.fit(X_train, y_train)
 x_idx = model.predict(np.c_[x_new.ravel(), y_new.ravel()])
 
@@ -69,25 +67,12 @@ y_idx = model.predict(np.c_[x_new.ravel(), y_new.ravel()])
 
 # %%
 u_interp = map_coordinates(u_mat, [x_idx, y_idx], order=1)
-
-# %%
 plt.imshow(u_interp.reshape(x_new.shape), origin="lower")
 
 # %%
-from HARK.interpolation import RegularizedPolynomialInterp
-
-# %%
-poly_interp = RegularizedPolynomialInterp(u_mat, [x_mat, y_mat], degree=3)
-
-# %%
+poly_interp = RegularizedPolynomialInterp(u_mat, [x_mat, y_mat], degree=degree)
 u_poly = poly_interp(x_new, y_new)
-
-# %%
 plt.imshow(u_poly, origin="lower")
 
 # %%
 plt.imshow(x_new * y_new, origin="lower")
-
-# %%
-
-# %%
