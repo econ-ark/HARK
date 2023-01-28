@@ -880,7 +880,12 @@ class test_Transition_Matrix_Methods(unittest.TestCase):
         example1 = IndShockConsumerType(**dict_harmenberg)
         example1.cycles = 0
         example1.solve()
-
+        
+        example1.mMax = example1.aXtraMax
+        example1.mmMin = example1.aXtraMin
+        example1.mCount = example1.aXtraCount
+        example1.mFac = example1.aXtraNestFac
+        
         example1.define_distribution_grid()
         p = example1.dist_pGrid  # Grid of permanent income levels
 
@@ -915,6 +920,12 @@ class test_Jacobian_methods(unittest.TestCase):
     def test_calc_jacobian(self):
 
         Agent = IndShockConsumerType(**dict_harmenberg)
+        
+        Agent.mMax = Agent.aXtraMax
+        Agent.mmMin = Agent.aXtraMin
+        Agent.mCount = Agent.aXtraCount
+        Agent.mFac = Agent.aXtraNestFac
+        
         Agent.compute_steady_state()
 
         CJAC_Perm, AJAC_Perm = Agent.calc_jacobian("PermShkStd", 50)

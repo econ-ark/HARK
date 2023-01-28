@@ -2390,12 +2390,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
             self.neutral_measure = False
 
         if num_pointsM == None:
-            m_points = self.aXtraCount
+            m_points = self.mCount
         else:
             m_points = num_pointsM
 
         if not isinstance(timestonest, int):
-            timestonest = self.aXtraNestFac
+            timestonest = self.mFac
         else:
             timestonest = timestonest
 
@@ -2403,23 +2403,23 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
             if not hasattr(dist_mGrid, "__len__"):
 
-                aXtra_Grid = make_grid_exp_mult(
-                    ming=self.aXtraMin,
-                    maxg=self.aXtraMax,
+                mGrid = make_grid_exp_mult(
+                    ming=self.mMin,
+                    maxg=self.mMax,
                     ng=m_points,
                     timestonest=timestonest,
                 )  # Generate Market resources grid given density and number of points
 
                 for i in range(m_density):
-                    axtra_shifted = np.delete(aXtra_Grid, -1)
-                    axtra_shifted = np.insert(axtra_shifted, 0, 1.00000000e-04)
-                    dist_betw_pts = aXtra_Grid - axtra_shifted
+                    m_shifted = np.delete(mGrid, -1)
+                    m_shifted = np.insert(m_shifted, 0, 1.00000000e-04)
+                    dist_betw_pts = mGrid - m_shifted
                     dist_betw_pts_half = dist_betw_pts / 2
-                    new_A_grid = axtra_shifted + dist_betw_pts_half
-                    aXtra_Grid = np.concatenate((aXtra_Grid, new_A_grid))
-                    aXtra_Grid = np.sort(aXtra_Grid)
+                    new_A_grid = m_shifted + dist_betw_pts_half
+                    mGrid = np.concatenate((mGrid, new_A_grid))
+                    mGrid = np.sort(mGrid)
 
-                self.dist_mGrid = aXtra_Grid
+                self.dist_mGrid = mGrid
 
             else:
                 # If grid of market resources prespecified then use as mgrid
@@ -2457,30 +2457,30 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         elif self.T_cycle != 0:
             if num_pointsM == None:
-                m_points = self.aXtraCount
+                m_points = self.mCount
             else:
                 m_points = num_pointsM
 
             print(self.aXtraCount)
 
             if not hasattr(dist_mGrid, "__len__"):
-                aXtra_Grid = make_grid_exp_mult(
-                    ming=self.aXtraMin,
-                    maxg=self.aXtraMax,
+                mGrid = make_grid_exp_mult(
+                    ming=self.mMin,
+                    maxg=self.mMax,
                     ng=m_points,
                     timestonest=timestonest,
                 )  # Generate Market resources grid given density and number of points
 
                 for i in range(m_density):
-                    axtra_shifted = np.delete(aXtra_Grid, -1)
-                    axtra_shifted = np.insert(axtra_shifted, 0, 1.00000000e-04)
-                    dist_betw_pts = aXtra_Grid - axtra_shifted
+                    m_shifted = np.delete(mGrid, -1)
+                    m_shifted = np.insert(m_shifted, 0, 1.00000000e-04)
+                    dist_betw_pts = mGrid - m_shifted
                     dist_betw_pts_half = dist_betw_pts / 2
-                    new_A_grid = axtra_shifted + dist_betw_pts_half
-                    aXtra_Grid = np.concatenate((aXtra_Grid, new_A_grid))
-                    aXtra_Grid = np.sort(aXtra_Grid)
+                    new_A_grid = m_shifted + dist_betw_pts_half
+                    mGrid = np.concatenate((mGrid, new_A_grid))
+                    mGrid = np.sort(mGrid)
 
-                self.dist_mGrid = aXtra_Grid
+                self.dist_mGrid = mGrid
 
             else:
                 # If grid of market resources prespecified then use as mgrid
