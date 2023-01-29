@@ -2461,8 +2461,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
             else:
                 m_points = num_pointsM
 
-            print(self.aXtraCount)
-
             if not hasattr(dist_mGrid, "__len__"):
                 mGrid = make_grid_exp_mult(
                     ming=self.mMin,
@@ -2964,24 +2962,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
         
         D_curl_0_0 = dD_0_0/dx
         
-        c_first_col_without_0_0 = []
-        a_first_col_without_0_0 = []
-        
+        c_first_col_0 = []
+        a_first_col_0 = []
         for i in range(params['T_cycle'] ):
             
-            c_first_col_without_0_0.append(np.dot(exp_vec_c[i],D_curl_0_0))
-            a_first_col_without_0_0.append(np.dot(exp_vec_a[i],D_curl_0_0))
+            c_first_col_0.append(np.dot(exp_vecs_c[i],D_curl_0_0))
+            a_first_col_0.append(np.dot(exp_vecs_a[i],D_curl_0_0))
         
-        c_first_col_without_0_0 = np.array(c_first_col_without_0_0)
-        a_first_col_without_0_0 = np.array(a_first_col_without_0_0)
+        c_first_col_0 = np.array(c_first_col_0)
+        a_first_col_0 = np.array(a_first_col_0)
         
-
-        c_first_col_0 = np.zeros(T)
-        a_first_col_0 = np.zeros(T)
-        
-
-        c_first_col_0 = c_first_col_without_0_0
-        a_first_col_0 = a_first_col_without_0_0
 
         #Fill zeroth column of jacobian matrix
         J_A.T[0] = a_first_col_0
