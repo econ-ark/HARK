@@ -882,7 +882,7 @@ class test_Transition_Matrix_Methods(unittest.TestCase):
         example1.solve()
         
         example1.mMax = example1.aXtraMax
-        example1.mmMin = example1.aXtraMin
+        example1.mMin = example1.aXtraMin
         example1.mCount = example1.aXtraCount
         example1.mFac = example1.aXtraNestFac
         
@@ -922,7 +922,7 @@ class test_Jacobian_methods(unittest.TestCase):
         Agent = IndShockConsumerType(**dict_harmenberg)
         
         Agent.mMax = Agent.aXtraMax
-        Agent.mmMin = Agent.aXtraMin
+        Agent.mMin = Agent.aXtraMin
         Agent.mCount = Agent.aXtraCount
         Agent.mFac = Agent.aXtraNestFac
         
