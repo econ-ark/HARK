@@ -696,7 +696,7 @@ def gen_tran_matrix_1D(
         mNext_ij = (
             bNext[i] / perm_shks + tran_shks
         )  # Compute next period's market resources given todays bank balances bnext[i]
-        TranMatrix[:, i] = (
+        TranMatrix[:, i] += (
             LivPrb * jump_to_grid_1D(mNext_ij, shk_prbs, dist_mGrid)
             + (1.0 - LivPrb) * NewBornDist
         )  # this is the transition matrix if given you are unemployed today and unemployed tomorrow so you assume the unemployed consumption policy
@@ -753,7 +753,7 @@ def gen_tran_matrix_2D(
             pNext_ij = (
                 dist_pGrid[j] * perm_shks
             )  # Computes next period's permanent income level by applying permanent income shock
-            TranMatrix[:, i * len(dist_pGrid) + j] = (
+            TranMatrix[:, i * len(dist_pGrid) + j] += (
                 LivPrb
                 * jump_to_grid_2D(mNext_ij, pNext_ij, shk_prbs, dist_mGrid, dist_pGrid)
                 + (1.0 - LivPrb) * NewBornDist

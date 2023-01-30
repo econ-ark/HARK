@@ -26,39 +26,41 @@
 # LivPrb, PermShkStd,TranShkStd, DiscFac,UnempPrb, Rfree, IncUnemp.
 
 # %%
-
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
+
 
 import time
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy, deepcopy
 
-
 # %% [markdown]
 # ## Create Agent
 
 # %%
 # Dictionary for Agent
+
 Dict = {
+    # Solving Parameters
     "aXtraMax": 1000,
     "aXtraCount": 200,
+    # Transition Matrix Simulations Parameters
+    "mMax": 10000,
+    "mMin": 1e-6,
+    "mCount": 300,
+    "mFac": 3,
 }
 
 # %%
-
 Agent = IndShockConsumerType(**Dict)
-
 
 # %% [markdown]
 # ## Compute Steady State
 
 # %%
-
 start = time.time()
 Agent.compute_steady_state()
 print("Seconds to compute steady state", time.time() - start)
-
 
 # %% [markdown]
 # ## Compute Jacobians
@@ -69,61 +71,51 @@ print("Seconds to compute steady state", time.time() - start)
 # ### Shock to Standard Deviation to Permanent Income Shocks
 
 # %%
-
 start = time.time()
 
-CJAC_Perm, AJAC_Perm = Agent.calc_jacobian("PermShkStd", 200)
+CJAC_Perm, AJAC_Perm = Agent.calc_jacobian("PermShkStd", 300)
 
 print("Seconds to calculate Jacobian", time.time() - start)
-
 
 # %% [markdown]
 # #### Consumption Jacobians
 
 # %%
-
 plt.plot(CJAC_Perm.T[0])
 plt.plot(CJAC_Perm.T[10])
 plt.plot(CJAC_Perm.T[30])
 plt.show()
 
-
 # %% [markdown]
 # #### Asset Jacobians
 
 # %%
-
 plt.plot(AJAC_Perm.T[0])
 plt.plot(AJAC_Perm.T[10])
 plt.plot(AJAC_Perm.T[30])
 plt.plot(AJAC_Perm.T[60])
 plt.show()
 
-
 # %% [markdown]
 # ## Shock to Real Interest Rate
 
 # %%
-CJAC_Rfree, AJAC_Rfree = Agent.calc_jacobian("Rfree", 200)
-
+CJAC_Rfree, AJAC_Rfree = Agent.calc_jacobian("Rfree", 300)
 
 # %% [markdown]
 # #### Consumption Jacobians
 
 # %%
-
 plt.plot(CJAC_Rfree.T[0])
 plt.plot(CJAC_Rfree.T[10])
 plt.plot(CJAC_Rfree.T[30])
 plt.plot(CJAC_Rfree.T[60])
 plt.show()
 
-
 # %% [markdown]
 # #### Asset Jacobians
 
 # %%
-
 plt.plot(AJAC_Rfree.T[0])
 plt.plot(AJAC_Rfree.T[10])
 plt.plot(AJAC_Rfree.T[30])
@@ -134,8 +126,7 @@ plt.show()
 # ## Shock to Unemployment Probability
 
 # %%
-CJAC_UnempPrb, AJAC_UnempPrb = Agent.calc_jacobian("UnempPrb", 200)
-
+CJAC_UnempPrb, AJAC_UnempPrb = Agent.calc_jacobian("UnempPrb", 300)
 
 # %%
 plt.plot(CJAC_UnempPrb.T[0])
@@ -155,8 +146,7 @@ plt.show()
 # ## Shock to Discount Factor
 
 # %%
-CJAC_DiscFac, AJAC_DiscFac = Agent.calc_jacobian("DiscFac", 200)
-
+CJAC_DiscFac, AJAC_DiscFac = Agent.calc_jacobian("DiscFac", 300)
 
 # %%
 plt.plot(CJAC_DiscFac.T[0])

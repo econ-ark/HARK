@@ -666,6 +666,11 @@ dict_harmenberg = {
     "pLvlInitStd": 0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     "T_age": None,  # Age after which simulated agents are automatically killed
+    # Parameters for Transition Matrix Simulation
+    "mMin": 0.001,
+    "mMax": 20,
+    "mCount": 48,
+    "mFac": 3,
 }
 
 
@@ -915,6 +920,7 @@ class test_Jacobian_methods(unittest.TestCase):
     def test_calc_jacobian(self):
 
         Agent = IndShockConsumerType(**dict_harmenberg)
+
         Agent.compute_steady_state()
 
         CJAC_Perm, AJAC_Perm = Agent.calc_jacobian("PermShkStd", 50)

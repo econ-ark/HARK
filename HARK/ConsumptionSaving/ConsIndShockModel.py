@@ -2390,12 +2390,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
             self.neutral_measure = False
 
         if num_pointsM == None:
-            m_points = self.aXtraCount
+            m_points = self.mCount
         else:
             m_points = num_pointsM
 
         if not isinstance(timestonest, int):
-            timestonest = self.aXtraNestFac
+            timestonest = self.mFac
         else:
             timestonest = timestonest
 
@@ -2403,23 +2403,23 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
             if not hasattr(dist_mGrid, "__len__"):
 
-                aXtra_Grid = make_grid_exp_mult(
-                    ming=self.aXtraMin,
-                    maxg=self.aXtraMax,
+                mGrid = make_grid_exp_mult(
+                    ming=self.mMin,
+                    maxg=self.mMax,
                     ng=m_points,
                     timestonest=timestonest,
                 )  # Generate Market resources grid given density and number of points
 
                 for i in range(m_density):
-                    axtra_shifted = np.delete(aXtra_Grid, -1)
-                    axtra_shifted = np.insert(axtra_shifted, 0, 1.00000000e-04)
-                    dist_betw_pts = aXtra_Grid - axtra_shifted
+                    m_shifted = np.delete(mGrid, -1)
+                    m_shifted = np.insert(m_shifted, 0, 1.00000000e-04)
+                    dist_betw_pts = mGrid - m_shifted
                     dist_betw_pts_half = dist_betw_pts / 2
-                    new_A_grid = axtra_shifted + dist_betw_pts_half
-                    aXtra_Grid = np.concatenate((aXtra_Grid, new_A_grid))
-                    aXtra_Grid = np.sort(aXtra_Grid)
+                    new_A_grid = m_shifted + dist_betw_pts_half
+                    mGrid = np.concatenate((mGrid, new_A_grid))
+                    mGrid = np.sort(mGrid)
 
-                self.dist_mGrid = aXtra_Grid
+                self.dist_mGrid = mGrid
 
             else:
                 # If grid of market resources prespecified then use as mgrid
@@ -2457,30 +2457,28 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         elif self.T_cycle != 0:
             if num_pointsM == None:
-                m_points = self.aXtraCount
+                m_points = self.mCount
             else:
                 m_points = num_pointsM
 
-            print(self.aXtraCount)
-
             if not hasattr(dist_mGrid, "__len__"):
-                aXtra_Grid = make_grid_exp_mult(
-                    ming=self.aXtraMin,
-                    maxg=self.aXtraMax,
+                mGrid = make_grid_exp_mult(
+                    ming=self.mMin,
+                    maxg=self.mMax,
                     ng=m_points,
                     timestonest=timestonest,
                 )  # Generate Market resources grid given density and number of points
 
                 for i in range(m_density):
-                    axtra_shifted = np.delete(aXtra_Grid, -1)
-                    axtra_shifted = np.insert(axtra_shifted, 0, 1.00000000e-04)
-                    dist_betw_pts = aXtra_Grid - axtra_shifted
+                    m_shifted = np.delete(mGrid, -1)
+                    m_shifted = np.insert(m_shifted, 0, 1.00000000e-04)
+                    dist_betw_pts = mGrid - m_shifted
                     dist_betw_pts_half = dist_betw_pts / 2
-                    new_A_grid = axtra_shifted + dist_betw_pts_half
-                    aXtra_Grid = np.concatenate((aXtra_Grid, new_A_grid))
-                    aXtra_Grid = np.sort(aXtra_Grid)
+                    new_A_grid = m_shifted + dist_betw_pts_half
+                    mGrid = np.concatenate((mGrid, new_A_grid))
+                    mGrid = np.sort(mGrid)
 
-                self.dist_mGrid = aXtra_Grid
+                self.dist_mGrid = mGrid
 
             else:
                 # If grid of market resources prespecified then use as mgrid
@@ -2914,7 +2912,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # First expectation vector is the steady state policy
         exp_vec_a = a_ss
         exp_vec_c = c_ss
-        for i in range(T - 1):
+        for i in range(T):
 
             exp_vecs_a.append(exp_vec_a)
             exp_vec_a = np.dot(tranmat_ss.T, exp_vec_a)
@@ -2958,35 +2956,24 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     J_A[t][s] = J_A[t - 1][s - 1] + Curl_F_A[t][s]
                     J_C[t][s] = J_C[t - 1][s - 1] + Curl_F_C[t][s]
 
-        # Compute zeroth column of jacobian
-        # List of transition matrices where the first transition matrix inherits the shock
-        shock0_TM = [tranmat_t[params["T_cycle"] - 1]] + (T - 1) * [self.tran_matrix]
+        # Zeroth Column of the Jacobian
+        dD_0_0 = np.dot(tranmat_t[-2] - tranmat_ss, D_ss)
 
-        C_list = []  # Aggrgate Consumption Values
-        A_list = []  # Aggregate Asset values
+        D_curl_0_0 = dD_0_0 / dx
 
-        A_ss = np.dot(self.a_ss, self.vec_erg_dstn)[0]  # Steady State Assets
-        C_ss = np.dot(self.c_ss, self.vec_erg_dstn)[0]  # Steady State Consumption
-        dstn = self.vec_erg_dstn
-        for i in range(T):  # Period in which we are computing Aggregate Consumption
+        c_first_col_0 = []
+        a_first_col_0 = []
+        for i in range(params["T_cycle"]):
 
-            dstn = np.dot(shock0_TM[i], dstn)  # Update Distribution
+            c_first_col_0.append(np.dot(exp_vecs_c[i], D_curl_0_0))
+            a_first_col_0.append(np.dot(exp_vecs_a[i], D_curl_0_0))
 
-            C_agg_0 = np.dot(self.c_ss, dstn)[0]  # Aggregate Consumption
-            C_list.append(C_agg_0)
+        c_first_col_0 = np.array(c_first_col_0)
+        a_first_col_0 = np.array(a_first_col_0)
 
-            A_agg_0 = np.dot(self.a_ss, dstn)[0]  # Aggregate Assets
-            A_list.append(A_agg_0)
-
-        A_list = np.array(A_list)
-        C_list = np.array(C_list)
-
-        AJAC = (A_list - A_ss) / dx  # Compute Impulse Response of Assets
-        CJAC = (C_list - C_ss) / dx  # Compute Impulse Response of Consumption
-
-        # Fill first column of jacobians with computed impulse response
-        J_C.T[0] = CJAC
-        J_A.T[0] = AJAC
+        # Fill zeroth column of jacobian matrix
+        J_A.T[0] = a_first_col_0
+        J_C.T[0] = c_first_col_0
 
         return J_C, J_A
 

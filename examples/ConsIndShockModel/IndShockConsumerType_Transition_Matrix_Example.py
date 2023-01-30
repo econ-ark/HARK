@@ -38,7 +38,6 @@
 # ## Set up Computational Environment
 
 # %%
-
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 
 
@@ -49,12 +48,10 @@ import matplotlib.pyplot as plt
 
 import time
 
-
 # %% [markdown]
 # ## Set up the Dictionary
 
 # %%
-
 Dict = {
     # Parameters shared with the perfect foresight model
     "CRRA": 2,  # Coefficient of relative risk aversion
@@ -75,11 +72,9 @@ Dict = {
     "tax_rate": 0.0,  # Flat income tax rate (legacy parameter, will be removed in future)
     # A few other parameters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
-    "vFuncBool": False,  # Whether to calculate the value function during solution
-    "CubicBool": False,  # Preference shocks currently only compatible with linear cFunc
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
     # Parameters only used in simulation
-    "AgentCount": 98000,  # Number of agents of this type
+    "AgentCount": 200000,  # Number of agents of this type
     "T_sim": 1100,  # Number of periods to simulate
     "aNrmInitMean": np.log(0.0),  # Mean of log initial assets ,
     # The value of np.log(0.0) causes the code to ensure newborns have have exactly 1.0 in market resources.
@@ -91,18 +86,21 @@ Dict = {
     "T_age": None,  # Age after which simulated agents are automatically killed
     # Parameters for constructing the "assets above minimum" grid
     "aXtraMin": 0.0001,  # Minimum end-of-period "assets above minimum" value
-    "aXtraMax": 500,  # Maximum end-of-period "assets above minimum" value
-    "aXtraCount": 90,  # Number of points in the base grid of "assets above minimum"
+    "aXtraMax": 10000,  # Maximum end-of-period "assets above minimum" value
+    "aXtraCount": 130,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
     "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    # Parameters for Transition Matrix Simulation
+    "mCount": 90,
+    "mFac": 3,
+    "mMin": 1e-4,
+    "mMax": 10000,
 }
-
 
 # %% [markdown]
 # ## Create an Instance of IndShockConsumerType and Solve
 
 # %%
-
 example1 = IndShockConsumerType(**Dict)
 example1.cycles = 0
 example1.solve()
@@ -117,7 +115,6 @@ example1.solve()
 # ## Method 1: Monte Carlo
 
 # %%
-
 # Simulation Parameters
 
 # Simulate
@@ -134,13 +131,11 @@ Monte_Carlo_Assets = np.mean(
     example1.state_now["aNrm"] * example1.state_now["pLvl"]
 )  # Aggregate Assets
 
-
 # %% [markdown]
 # ## Method 2: Transition Matrices
 
 # %%
-
-example1.define_distribution_grid(num_pointsP=70, timestonest=3)
+example1.define_distribution_grid(num_pointsP=110, timestonest=3)
 p = example1.dist_pGrid  # Grid of permanent income levels
 
 start = time.time()
@@ -161,9 +156,7 @@ print(
     time.time() - start,
 )
 
-
 # %%
-
 # Compute Aggregate Consumption and Aggregate Assets
 gridc = np.zeros((len(c), len(p)))
 grida = np.zeros((len(asset), len(p)))
@@ -175,18 +168,15 @@ for j in range(len(p)):
 AggC = np.dot(gridc.flatten(), vecDstn)  # Aggregate Consumption
 AggA = np.dot(grida.flatten(), vecDstn)  # Aggregate Assets
 
-
 # %% [markdown]
 # ### Comparing Steady State Outputs of Both Methods
 
 # %%
-
 print("TranMatrix Assets = " + str(AggA))
 print("Simulated Assets = " + str(Monte_Carlo_Assets))
 
 print("TranMatrix Consumption = " + str(AggC))
 print("Simulated Consumption = " + str(Monte_Carlo_Consumption))
-
 
 # %% [markdown]
 # ### Comparing Simulated Path of Aggregate Assets
@@ -194,8 +184,6 @@ print("Simulated Consumption = " + str(Monte_Carlo_Consumption))
 # The following code plots the path of aggregate assets simulate from both Monte Carlo methods and transition matrix methods.
 
 # %%
-
-
 aLvls = []  # Time series of aggregate assets
 
 for i in range(example1.T_sim):
@@ -213,7 +201,6 @@ for i in range(example1.T_sim - 400):
     aLvl_tran_mat.append(A_val)
     dstn = np.dot(example1.tran_matrix, dstn)
 
-
 # %%
 plt.rcParams["figure.figsize"] = (20, 10)
 plt.plot(
@@ -226,7 +213,6 @@ plt.legend(prop={"size": 15})
 plt.ylim([0.37, 0.46])
 plt.show()
 
-
 # %% [markdown]
 # ### Precision vs Accuracy
 #
@@ -236,7 +222,6 @@ plt.show()
 # ## Distribution of Normalized Market Resources
 
 # %%
-
 num_pts = len(example1.dist_mGrid)
 mdstn = np.zeros(num_pts)
 
@@ -266,12 +251,10 @@ plt.legend(prop={"size": 15})
 plt.xlim([-0.5, 10])
 plt.show()
 
-
 # %% [markdown]
 # ## Distributions of Permanent Income
 
 # %%
-
 dstn = example1.erg_dstn
 
 pdstn = np.zeros(len(dstn[0]))
@@ -291,7 +274,6 @@ plt.title("Distribution of Permanent Income")
 plt.legend(prop={"size": 15})
 plt.xlim([-0.1, 4])
 plt.show()
-
 
 # %% [markdown]
 # ## Distribution of Wealth
@@ -378,7 +360,6 @@ def jump_to_grid_fast(m_vals, probs, Dist_mGrid):
 
 
 # %%
-
 mLvl = (
     example1.state_now["mNrm"] * example1.state_now["pLvl"]
 )  # market resources from Monte Carlo Simulations
@@ -407,12 +388,10 @@ plt.legend(prop={"size": 15})
 plt.xlim([-0.5, 20])
 plt.show()
 
-
 # %% [markdown]
 # ## Distribution of Liquid Assets
 
 # %%
-
 asset_Lvl = example1.state_now["aLvl"]  # market resources from Monte Carlo Simulations
 pmf = jump_to_grid_fast(
     aLvl_vals, vecDstn, example1.aPol_Grid
@@ -452,11 +431,9 @@ plt.show()
 # We will want the simulation to begin at the economy's steady state. Therefore first we will compute the steady state distribution over market resources and permanent income. This will be the distribution for which the computed transition matrices will be applied/multiplied to.
 
 # %%
-
 ss = IndShockConsumerType(**Dict)
 ss.cycles = 0
 ss.solve()
-
 
 # %% [markdown]
 # ## Simulating With Harmenberg (2021) Method
@@ -468,17 +445,14 @@ ss.solve()
 #
 
 # %%
-
 # Change the income process to use Neutral Measure
 ss.neutral_measure = True
 ss.update_income_process()
 
-ss.aXtraCount = 1000
-ss.aXtraMax = 3000
-
+ss.mCount = 1000
+ss.mMax = 3000
 
 # %%
-
 # Set up grid and calculate steady state transition Matrices
 
 start = time.time()
@@ -502,13 +476,10 @@ print(
 
 AggA_fast = np.dot(ss.aPol_Grid, vecDstn_fast)
 
-
 # %% [markdown]
 # Computing the transition matrix and ergodic distribution with the harmenberg measure is significantly faster. (Note the number of gridpoints on the market resources grid is 1000 instead of 90.
 
 # %%
-
-
 plt.plot(
     aLvls[100:], label="Monte Carlo", linewidth=2.0
 )  # Plot time series path of aggregate assets using Monte Carlo simulation methods
@@ -525,7 +496,6 @@ plt.legend(prop={"size": 15})
 plt.rcParams["figure.figsize"] = (20, 10)
 plt.show()
 
-
 # %% [markdown]
 # ### Note* Increasing the number of gridpoints increases the accuracy of the transition matrix method
 
@@ -535,7 +505,7 @@ Agg_AVals = []
 mpoints = [100, 150, 200, 500, 3000]
 for i in mpoints:
 
-    ss.aXtraCount = i
+    ss.mCount = i
 
     ss.define_distribution_grid()
     ss.calc_transition_matrix()
@@ -547,7 +517,6 @@ for i in mpoints:
     Asset_val = np.dot(ss.aPol_Grid, vecDstn_fast)
 
     Agg_AVals.append(Asset_val)
-
 
 # %%
 for i in range(len(Agg_AVals)):
@@ -573,12 +542,10 @@ plt.show()
 # ### Monte Carlo Simulation with Harmenberg Trick
 
 # %%
-
 ss.AgentCount = 25000
 ss.T_sim = 700
 ss.initialize_sim()
 ss.simulate()
-
 
 # %% [markdown]
 # ## Solve an Agent who Anticipates a Change in the Real Interest Rate
@@ -586,7 +553,6 @@ ss.simulate()
 # Now that we have the steady state distributions of which simulations will begin from, we will now solve an agent who anticipates a change in the real rate in period t=10. I first solve the agent's problem provide the consumption policies to be used to calculate the transition matrices of this economy.
 
 # %%
-
 # We will solve a finite horizon problem that begins at the steady state computed above.
 # Therefore parameters must be specified as lists, each item's index indicating the period of the horizon.
 
@@ -620,12 +586,10 @@ FinHorizonAgent.track_vars = ["cNrm", "pLvl", "aNrm"]
 FinHorizonAgent.T_sim = params["T_cycle"]
 FinHorizonAgent.AgentCount = ss.AgentCount
 
-
 # %% [markdown]
 # ### Implement perturbation in Real Interest Rate
 
 # %%
-
 dx = -0.05  # Change in the Interest Rate
 i = 10  # Period in which the change in the interest rate occurs
 
@@ -635,20 +599,16 @@ FinHorizonAgent.Rfree = (
 
 # FinHorizonAgent.DiscFac = (i)*[ss.DiscFac] + [ss.DiscFac + dx] + (params['T_cycle'] - i -1 )*[ss.DiscFac] # Sequence of interest rates the agent faces
 
-
 # %% [markdown]
 # ### Solve Agent
 
 # %%
-
 FinHorizonAgent.solve()
-
 
 # %% [markdown]
 # ### Simulate with Monte Carlo with Harmenberg Trick
 
 # %%
-
 # Simulate with Monte Carlo
 
 FinHorizonAgent.PerfMITShk = True
@@ -690,7 +650,6 @@ for i in range(FinHorizonAgent.T_sim):
 
     alvl.append(A)
 
-
 # %% [markdown]
 # ### Calculate Transition Matrices with Neutral Measure (Harmenberg 2021)
 # After the agent solves his problem, the consumption policies are stored in the solution attribute of self. calc_transition_matrix() will automatically call these attributes to compute the transition matrices.
@@ -698,10 +657,9 @@ for i in range(FinHorizonAgent.T_sim):
 # In the cell below we calculate the transition matrix while utilizing the neutral measure for speed efficiency.
 
 # %%
-
 # Change Income Process to allow permanent income shocks to be drawn from neutral measure
-FinHorizonAgent.aXtraCount = ss.aXtraCount
-FinHorizonAgent.aXtraMax = ss.aXtraMax
+FinHorizonAgent.mCount = ss.mCount
+FinHorizonAgent.mMax = ss.mMax
 
 # Calculate Transition Matrices
 FinHorizonAgent.define_distribution_grid()
@@ -709,7 +667,6 @@ FinHorizonAgent.define_distribution_grid()
 start = time.time()
 FinHorizonAgent.calc_transition_matrix()
 print("Seconds to calc_transition_matrix", time.time() - start)
-
 
 # %% [markdown]
 # ### Compute Path of Aggregate Consumption
@@ -742,13 +699,11 @@ AggC_fast = AggC_fast.T
 AggA_fast = np.array(AggA_fast)
 AggA_fast = AggA_fast.T
 
-
 # %% [markdown]
 # ### Path of Aggregate Consumption given an anticipated interest rate shock at $t=10$
 #
 
 # %%
-
 # plt.plot(AggC, label = 'without Harmenberg') #Without Neutral Measure
 plt.plot(
     AggC_fast, label=" Transition Matrices", linewidth=3.0
@@ -759,7 +714,6 @@ plt.plot(
 plt.legend(prop={"size": 15})
 plt.ylim([0.95, 1.08])
 plt.show()
-
 
 # %% [markdown]
 # ### Path of Aggregate Assets given an anticipated interest rate shock at $t=10$
@@ -772,6 +726,5 @@ plt.plot(
 plt.plot(alvl, label="Monte Carlo", linewidth=3.0)
 plt.legend(prop={"size": 15})
 plt.show()
-
 
 # %%
