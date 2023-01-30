@@ -3,7 +3,7 @@ from numba import njit, prange, typed
 from scipy.ndimage import map_coordinates
 
 from HARK.core import MetricObject
-from HARK.interpolation.unstructuredinterp import UnstructuredInterp
+from HARK.interpolation.scipyinterp import UnstructuredInterp
 
 try:
     import cupy as cp
