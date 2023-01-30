@@ -29,12 +29,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
-from HARK.rewards import (
-    CRRAutility,
-    CRRAutility_inv,
-    CRRAutilityP,
-    CRRAutilityP_inv,
-)
+from HARK.rewards import UtilityFuncCRRA
 from HARK.utilities import plot_funcs
 
 from xarray import DataArray, Dataset
@@ -51,21 +46,7 @@ Rfree = 1.03  # risk free interest rate
 params = SimpleNamespace(CRRA=CRRA, DiscFac=DiscFac, Rfree=Rfree)
 
 
-def u(c):
-    return CRRAutility(c, CRRA)  # utility
-
-
-def mu(c):
-    return CRRAutilityP(c, CRRA)  # marginal utility
-
-
-def u_inv(c):
-    return CRRAutility_inv(c, CRRA)  # inverse utility
-
-
-def mu_inv(c):
-    return CRRAutilityP_inv(c, CRRA)  # inverse marginal utility
-
+util = UtilityFuncCRRA(CRRA)
 
 # %% [markdown]
 # ### The Problem
@@ -175,11 +156,11 @@ cNrm
 #
 
 # %%
-v = u(cNrm)
+v = util(cNrm)
 v.name = "v"
 v.attrs = {"long_name": "Value Function"}
 
-v_der = mu(cNrm)
+v_der = util.der(cNrm)
 v_der.name = "v_der"
 v_der.attrs = {"long_name": "Marginal Value Function"}
 
@@ -240,19 +221,19 @@ class ValueFunctionCRRA(object):
 
         self.dataset = dataset
         self.CRRA = CRRA
+        self.u = UtilityFuncCRRA(CRRA)
 
     def __call__(self, state):
         """
         Interpolate inverse falue function then invert to get value function at given state.
         """
 
-        result = CRRAutility(
+        result = self.u(
             self.dataset["v_inv"].interp(
                 state,
                 assume_sorted=True,
                 kwargs={"fill_value": "extrapolate"},
-            ),
-            self.CRRA,
+            )
         )
 
         result.name = "v"
@@ -264,13 +245,12 @@ class ValueFunctionCRRA(object):
         """
         Interpolate inverse marginal value function then invert to get marginal value function at given state.
         """
-        result = CRRAutilityP(
+        result = self.u.der(
             self.dataset["v_der_inv"].interp(
                 state,
                 assume_sorted=True,
                 kwargs={"fill_value": "extrapolate"},
-            ),
-            self.CRRA,
+            )
         )
 
         result.name = "v_der"
@@ -350,13 +330,13 @@ def value_transition(a=None, s=None, continuation=None, params=None):
     ps = state_transition(s, a, params)
     variables.update(ps)
 
-    variables["reward"] = u(a["cNrm"])
+    variables["reward"] = util(a["cNrm"])
     variables["v"] = variables["reward"] + params.DiscFac * continuation(ps)
-    variables["v_inv"] = u_inv(variables["v"])
+    variables["v_inv"] = util.inv(variables["v"])
 
-    variables["marginal_reward"] = mu(a["cNrm"])
+    variables["marginal_reward"] = util.der(a["cNrm"])
     variables["v_der"] = variables["marginal_reward"]  # envelope condition
-    variables["v_der_inv"] = mu_inv(variables["v_der"])
+    variables["v_der_inv"] = util.derinv(variables["v_der"])
 
     # for estimagic purposes
     variables["contributions"] = variables["v_inv"]
@@ -374,10 +354,10 @@ def continuation_transition(ps=None, value_next=None, params=None):
     variables.update(ns)
 
     variables["v"] = value_next(ns)
-    variables["v_inv"] = u_inv(variables["v"])
+    variables["v_inv"] = util.inv(variables["v"])
 
     variables["v_der"] = params.Rfree * value_next.derivative(ns)
-    variables["v_der_inv"] = mu_inv(variables["v_der"])
+    variables["v_der_inv"] = util.derinv(variables["v_der"])
 
     # for estimagic purposes
     variables["contributions"] = variables["v_inv"]
@@ -458,7 +438,7 @@ def egm_transition(ps=None, continuation=None, params=None):
     """actions from post_states"""
 
     actions = {}  # pytree
-    actions["cNrm"] = mu_inv(params.DiscFac * continuation.derivative(ps))
+    actions["cNrm"] = util.derinv(params.DiscFac * continuation.derivative(ps))
 
     return actions
 

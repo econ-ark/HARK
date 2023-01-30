@@ -22,7 +22,7 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
 )
 from HARK.core import MetricObject, make_one_period_oo_solver
 from HARK.distribution import DiscreteDistributionLabeled
-from HARK.rewards import CRRAutility, CRRAutility_inv, CRRAutilityP, CRRAutilityP_inv
+from HARK.rewards import UtilityFuncCRRA
 
 
 class ValueFuncCRRALabeled(MetricObject):
@@ -30,6 +30,7 @@ class ValueFuncCRRALabeled(MetricObject):
 
         self.dataset = dataset
         self.CRRA = CRRA
+        self.u = UtilityFuncCRRA(CRRA)
 
     def __call__(self, state: Mapping[str, np.ndarray]) -> xr.Dataset:
         """
@@ -38,13 +39,12 @@ class ValueFuncCRRALabeled(MetricObject):
 
         state_dict = self._validate_state(state)
 
-        result = CRRAutility(
+        result = self.u(
             self.dataset["v_inv"].interp(
                 state_dict,
                 assume_sorted=True,
                 kwargs={"fill_value": "extrapolate"},
-            ),
-            self.CRRA,
+            )
         )
 
         result.name = "v"
@@ -59,13 +59,12 @@ class ValueFuncCRRALabeled(MetricObject):
 
         state_dict = self._validate_state(state)
 
-        result = CRRAutilityP(
+        result = self.u.der(
             self.dataset["v_der_inv"].interp(
                 state_dict,
                 assume_sorted=True,
                 kwargs={"fill_value": "extrapolate"},
-            ),
-            self.CRRA,
+            )
         )
 
         result.name = "v_der"
@@ -140,11 +139,8 @@ class PerfForesightLabeledType(IndShockConsumerType):
         )
 
     def update_solution_terminal(self):
-        def u(c):
-            return CRRAutility(c, self.CRRA)  # utility
 
-        def uP(c):
-            return CRRAutilityP(c, self.CRRA)  # marginal utility
+        u = UtilityFuncCRRA(self.CRRA)
 
         mNrm = xr.DataArray(
             np.append(0.0, self.aXtraGrid),
@@ -167,7 +163,7 @@ class PerfForesightLabeledType(IndShockConsumerType):
         v.name = "v"
         v.attrs = {"long_name": "value function"}
 
-        v_der = uP(cNrm)
+        v_der = u.der(cNrm)
         v_der.name = "v_der"
         v_der.attrs = {"long_name": "marginal value function"}
 
@@ -202,13 +198,6 @@ class PerfForesightLabeledType(IndShockConsumerType):
 
 
 class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
-    def def_utility_funcs(self):
-
-        self.u = lambda c: CRRAutility(c, self.CRRA)
-        self.uP = lambda c: CRRAutilityP(c, self.CRRA)
-        self.u_inv = lambda u: CRRAutility_inv(u, self.CRRA)
-        self.uP_inv = lambda uP: CRRAutilityP_inv(uP, self.CRRA)
-
     def create_params_namespace(self):
 
         self.params = SimpleNamespace(
@@ -301,7 +290,7 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
         """actions from post_state"""
 
         action = {}  # pytree
-        action["cNrm"] = self.uP_inv(
+        action["cNrm"] = self.u.derinv(
             params.Discount * continuation.derivative(post_state)
         )
 
@@ -319,9 +308,9 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
         variables["v"] = variables["reward"] + params.Discount * continuation(
             post_state
         )
-        variables["v_inv"] = self.u_inv(variables["v"])
+        variables["v_inv"] = self.u.inv(variables["v"])
 
-        variables["marginal_reward"] = self.uP(action["cNrm"])
+        variables["marginal_reward"] = self.u.der(action["cNrm"])
         variables["v_der"] = variables["marginal_reward"]
         variables["v_der_inv"] = action["cNrm"]
 
@@ -345,8 +334,8 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
             * value_next.derivative(next_state)
         )
 
-        variables["v_inv"] = self.u_inv(variables["v"])
-        variables["v_der_inv"] = self.uP_inv(variables["v_der"])
+        variables["v_inv"] = self.u.inv(variables["v"])
+        variables["v_der_inv"] = self.u.derinv(variables["v_der"])
 
         # for estimagic purposes
         variables["contributions"] = variables["v"]
@@ -519,8 +508,8 @@ class ConsIndShockLabeledSolver(ConsPerfForesightLabeledSolver):
             params=self.params,
         )
 
-        v_end["v_inv"] = self.u_inv(v_end["v"])
-        v_end["v_der_inv"] = self.uP_inv(v_end["v_der"])
+        v_end["v_inv"] = self.u.inv(v_end["v"])
+        v_end["v_der_inv"] = self.u.derinv(v_end["v_der"])
 
         borocnst = self.borocnst.drop(["mNrm"]).expand_dims("aNrm")
         if self.nat_boro_cnst:
@@ -645,8 +634,8 @@ class ConsRiskyAssetLabeledSolver(ConsIndShockLabeledSolver):
             params=self.params,
         )
 
-        v_end["v_inv"] = self.u_inv(v_end["v"])
-        v_end["v_der_inv"] = self.uP_inv(v_end["v_der"])
+        v_end["v_inv"] = self.u.inv(v_end["v"])
+        v_end["v_der_inv"] = self.u.derinv(v_end["v_der"])
 
         borocnst = self.borocnst.drop(["mNrm"]).expand_dims("aNrm")
         if self.nat_boro_cnst:
