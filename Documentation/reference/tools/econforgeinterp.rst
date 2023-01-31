@@ -1,7 +1,7 @@
 Econforgeinterp
 -------------
 
-.. automodule:: HARK.econforgeinterp
+.. automodule:: HARK.interpolation.econforgeinterp
    :members:
    :undoc-members:
    :show-inheritance:
