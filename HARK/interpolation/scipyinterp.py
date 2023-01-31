@@ -3,10 +3,10 @@ from scipy.interpolate import (
     CloughTocher2DInterpolator,
     LinearNDInterpolator,
     NearestNDInterpolator,
+    RBFInterpolator,
 )
 
 from HARK.core import MetricObject
-
 
 LNDI_KWARGS = {"fill_value": np.nan, "rescale": False}  # linear
 NNDI_KWARGS = {"rescale": False, "tree_options": None}  # nearest
@@ -34,11 +34,11 @@ class UnstructuredInterp(MetricObject):
         values,
         grids,
         method="linear",
-        interp_kwargs=None,
+        **kwargs,
     ):
 
-        if interp_kwargs is None:
-            interp_kwargs = dict()
+        if kwargs is None:
+            kwargs = {}
 
         values = np.asarray(values)
         grids = np.asarray(grids)
@@ -47,41 +47,37 @@ class UnstructuredInterp(MetricObject):
         # sequential endogenous grid method
         condition = np.logical_and.reduce([np.isfinite(grid) for grid in grids])
         condition = np.logical_and(condition, np.isfinite(values))
-
         self.values = values[condition]
-        self.grids = grids[:, condition].T
+        self.grids = np.moveaxis(grids[:, condition], -1, 0)
         self.method = method
-
         self.ndim = self.grids.shape[-1]
 
         # assert self.ndim == values.ndim, "Dimension mismatch."
 
-        if method == "nearest":
-            self.interp_kwargs = NNDI_KWARGS.copy()
-            self.interp_kwargs.update(
-                (k, interp_kwargs[k]) for k in interp_kwargs if k in NNDI_KWARGS
-            )
-            interpolator = NearestNDInterpolator
-        elif method == "linear":
-            self.interp_kwargs = LNDI_KWARGS.copy()
-            self.interp_kwargs.update(
-                (k, interp_kwargs[k]) for k in interp_kwargs if k in LNDI_KWARGS
-            )
-            interpolator = LinearNDInterpolator
-        elif method == "cubic" and self.ndim == 2:
-            self.interp_kwargs = CT2DI_KWARGS.copy()
-            self.interp_kwargs.update(
-                (k, interp_kwargs[k]) for k in interp_kwargs if k in CT2DI_KWARGS
-            )
-            interpolator = CloughTocher2DInterpolator
-        else:
+        interpolator_mapping = {
+            "nearest": (NNDI_KWARGS, NearestNDInterpolator),
+            "linear": (LNDI_KWARGS, LinearNDInterpolator),
+            "cubic": (CT2DI_KWARGS, CloughTocher2DInterpolator)
+            if self.ndim == 2
+            else (None, None),
+            "rbf": (RBFI_KWARGS, RBFInterpolator),
+        }
+
+        self.kwargs, interpolator_class = interpolator_mapping.get(method, (None, None))
+
+        if not self.kwargs:
             raise ValueError(
-                "Unknown interpolation method %r for "
-                "%d dimensional data" % (method, self.ndim)
+                f"Unknown interpolation method {method} for {self.ndim} dimensional data"
             )
 
-        self.interpolator = interpolator(self.grids, self.values, **self.interp_kwargs)
+        self.kwargs = self.kwargs.copy()
+        self.kwargs.update((k, kwargs[k]) for k in kwargs if k in self.kwargs)
+        self.interpolator = interpolator_class(self.grids, self.values, **self.kwargs)
 
     def __call__(self, *args):
+
+        if self.method == "rbf":
+            coords = np.asarray(args).reshape(self.ndim, -1).T
+            return self.interpolator(coords).reshape(args[0].shape)
 
         return self.interpolator(*args)
