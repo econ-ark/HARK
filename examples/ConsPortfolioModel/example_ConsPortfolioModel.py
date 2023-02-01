@@ -52,7 +52,6 @@ from HARK.utilities import plot_funcs
 
 ConsPortfolioDict = {
     # Parameters shared with the Perfect foresight consumer type
-    "cycles": 1,  # Finite, non-cyclic model
     "CRRA": 5.0,  # Coefficient of relative risk aversion,
     "Rfree": 1.03,  # Interest factor on assets
     "DiscFac": 0.90,  # Intertemporal discount factor
