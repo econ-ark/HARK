@@ -1,7 +1,44 @@
+exclude: Documentation/example_notebooks/
+
 repos:
+  # jupytext --sync --set-formats "ipynb,py:percent" --pipe black --set-kernel - --execute examples\*\*.ipynb
+  - repo: https://github.com/mwouts/jupytext
+    rev: v1.14.4
+    hooks:
+      - id: jupytext
+        args:
+          [--sync, --set-formats, "ipynb,py:percent", --pipe, black, --execute]
+        additional_dependencies: [black, nbconvert]
+        files: ^examples/.*\.ipynb$
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.3.1
+    hooks:
+      - id: pyupgrade
+        args: ["--py38-plus"]
+
+  - repo: https://github.com/myint/autoflake
+    rev: v2.0.1
+    hooks:
+      - id: autoflake
+
+  - repo: https://github.com/asottile/blacken-docs
+    rev: 1.13.0
+    hooks:
+      - id: blacken-docs
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.0-alpha.4
+    hooks:
+      - id: prettier
+
   - repo: https://github.com/psf/black
-    rev: stable
+    rev: 23.1.0
     hooks:
       - id: black
-        exclude: ^examples/
-        language_version: python3
