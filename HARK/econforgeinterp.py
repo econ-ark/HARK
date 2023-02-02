@@ -3,7 +3,6 @@ from interpolation.splines import eval_linear, eval_spline, CGrid
 from interpolation.splines import extrap_options as xto
 
 import numpy as np
-from copy import copy
 
 extrap_opts = {
     "linear": xto.LINEAR,
@@ -259,9 +258,7 @@ class DecayInterp(MetricObject):
         # Get indices, points, and closest in-grid point to points that
         # require extrapolation.
         upper_ex_inds = np.any(col_args > self.upper_limits[None, :], axis=1)
-        upper_ex_points = col_args[
-            upper_ex_inds,
-        ]
+        upper_ex_points = col_args[upper_ex_inds,]
         upper_ex_nearest = np.minimum(upper_ex_points, self.upper_limits[None, :])
 
         # Find function evaluations with regular extrapolation

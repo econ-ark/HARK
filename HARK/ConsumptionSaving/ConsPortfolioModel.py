@@ -112,7 +112,6 @@ class PortfolioSolution(MetricObject):
         EndOfPrddvds_fxd=None,
         AdjPrb=None,
     ):
-
         # Change any missing function inputs to NullFunc
         if cFuncAdj is None:
             cFuncAdj = NullFunc()
@@ -194,7 +193,6 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         self.update_solution_terminal()
 
     def update(self):
-
         RiskyAssetConsumerType.update(self)
         self.update_ShareGrid()
         self.update_ShareLimit()
@@ -611,7 +609,6 @@ class ConsPortfolioSolver(MetricObject):
         # Evaluate realizations of value and marginal value after asset returns are realized
 
         def EndOfPrddvda_dist(shock, a_nrm, Share_next):
-
             # Calculate future realizations of bank balances bNrm
             Rxs = shock - self.Rfree
             Rport = self.Rfree + Share_next * Rxs
@@ -623,7 +620,6 @@ class ConsPortfolioSolver(MetricObject):
             return Rport * dvdbFunc_intermed(b_nrm_next, Share_next_rep)
 
         def EndOfPrddvds_dist(shock, a_nrm, Share_next):
-
             # Calculate future realizations of bank balances bNrm
             Rxs = shock - self.Rfree
             Rport = self.Rfree + Share_next * Rxs
@@ -813,7 +809,6 @@ class ConsPortfolioSolver(MetricObject):
         vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, self.CRRA)
 
         def EndOfPrdv_dist(shock, a_nrm, Share_next):
-
             # Calculate future realizations of bank balances bNrm
             Rxs = shock - self.Rfree
             Rport = self.Rfree + Share_next * Rxs
@@ -884,7 +879,6 @@ class ConsPortfolioSolver(MetricObject):
         self.vFuncFxd_now = ValueFuncCRRA(vNvrsFuncFxd, self.CRRA)
 
     def make_porfolio_solution(self):
-
         self.solution = PortfolioSolution(
             cFuncAdj=self.cFuncAdj_now,
             ShareFuncAdj=self.ShareFuncAdj_now,

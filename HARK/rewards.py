@@ -649,7 +649,6 @@ def const_elast_subs_p(x, zeta, subs, factor, power, arg=0):
 
 
 class UtilityFunction(MetricObject):
-
     distance_criteria = ["eval_func"]
 
     def __init__(self, eval_func, der_func=None, inv_func=None):
@@ -745,7 +744,7 @@ class UtilityFuncCRRA(UtilityFunction):
         elif order == 4:
             return CRRAutilityPPPP(c, self.CRRA)
         else:
-            raise ValueError("Derivative of order {} not supported".format(order))
+            raise ValueError(f"Derivative of order {order} not supported")
 
     def inverse(self, u, order=(0, 0)):
         """
@@ -781,7 +780,7 @@ class UtilityFuncCRRA(UtilityFunction):
         elif order == (1, 1):
             return CRRAutilityP_invP(u, self.CRRA)
         else:
-            raise ValueError("Inverse of order {} not supported".format(order))
+            raise ValueError(f"Inverse of order {order} not supported")
 
     def derinv(self, u, order=(1, 0)):
         """
@@ -812,7 +811,7 @@ class UtilityFuncCobbDouglas(UtilityFunction):
 
         assert np.isclose(
             np.sum(self.EOS), 1.0
-        ), """The sum of the elasticity of substitution 
+        ), """The sum of the elasticity of substitution
         parameters must be less than or equal to 1."""
 
         assert factor > 0, "Factor must be positive."
@@ -850,7 +849,6 @@ class UtilityFuncCobbDouglasCRRA(UtilityFuncCobbDouglas):
     distance_criteria = ["EOS", "factor", "CRRA"]
 
     def __init__(self, EOS, factor, CRRA):
-
         super().__init__(EOS, factor)
         self.CRRA = CRRA
 
@@ -879,7 +877,6 @@ class UtilityFuncConstElastSubs(UtilityFunction):
     distance_criteria = ["shares", "subs", "factor", "homogeneity"]
 
     def __init__(self, shares, subs, homogeneity=1.0, factor=1.0):
-
         assert subs != 0.0, "Consider using a Cobb-Douglas utility function instead."
         assert subs != 1.0, "Linear utility is not implemented."
 

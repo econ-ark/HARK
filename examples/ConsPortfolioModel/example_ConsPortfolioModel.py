@@ -1,3 +1,19 @@
+# ---
+# jupyter:
+#   jupytext:
+#     cell_metadata_filter: title,-all
+#     formats: ipynb,py:percent
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.14.4
+#   kernelspec:
+#     display_name: journey_1
+#     language: python
+#     name: python3
+# ---
+
 # %% [markdown]
 # # ConsPortfolioModel: A Consumption-Savings model with risky assets
 
@@ -271,7 +287,6 @@ def RiskyShareMertSamLogNormal(RiskPrem, CRRA, RiskyVar):
 
 # %% Calibration and solution
 for rcount in risky_count_grid:
-
     # Create a new dictionary and replace the number of points that
     # approximate the risky return distribution
 
@@ -283,7 +298,7 @@ for rcount in risky_count_grid:
     agent.solve()
 
     # Compute the analytical Merton-Samuelson limiting portfolio share
-    RiskyVar = agent.RiskyStd ** 2
+    RiskyVar = agent.RiskyStd**2
     RiskPrem = agent.RiskyAvg - agent.Rfree
     MS_limit = RiskyShareMertSamLogNormal(RiskPrem, agent.CRRA, RiskyVar)
 

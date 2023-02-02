@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Thu Jan 21 15:04:24 2021
 
@@ -16,10 +15,10 @@ from HARK.Calibration.Income.IncomeTools import (
     Cagetti_income,
 )
 
+
 # %% Mean income profile tests
 class test_income_paths(unittest.TestCase):
     def setUp(self):
-
         # Assign a result from Cocco, Gomes, Maenhout
         self.cgm_hs_mean_p = np.array(
             [
@@ -180,7 +179,6 @@ class test_income_paths(unittest.TestCase):
         )
 
     def test_CGM(self):
-
         adjust_infl_to = 1992
         age_min = 21
         age_max = 100
@@ -193,7 +191,6 @@ class test_income_paths(unittest.TestCase):
         self.assertTrue(np.allclose(self.cgm_hs_mean_p, MeanP, atol=1e-03))
 
     def test_Cagetti(self):
-
         adjust_infl_to = 1992
         age_min = 25
         age_max = 91
@@ -214,7 +211,6 @@ class test_income_paths(unittest.TestCase):
 # %% Volatility profile tests
 class test_SabelhausSongProfiles(unittest.TestCase):
     def setUp(self):
-
         # Write results from Figure 6 in the original paper
         self.Fig6Coh1940Tran = np.array(
             [

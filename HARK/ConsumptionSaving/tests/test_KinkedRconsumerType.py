@@ -6,7 +6,6 @@ from HARK.tests import HARK_PRECISION
 
 class testKinkedRConsumerType(unittest.TestCase):
     def test_liquidity_constraint(self):
-
         KinkyExample = KinkedRconsumerType()
         KinkyExample.cycles = 0
 

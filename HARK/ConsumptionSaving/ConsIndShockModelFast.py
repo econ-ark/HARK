@@ -1029,7 +1029,6 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
             )
 
         if self.vFuncBool:
-
             if self.CubicBool:
                 self.cFuncNow, self.mNrmGrid = _cFuncCubic(
                     self.aXtraGrid,
@@ -1138,9 +1137,9 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
             """
             Defines the value and marginal value functions for this period.
             Uses the fact that for a perfect foresight CRRA utility problem,
-            if the MPC in period t is :math:`\kappa_{t}`, and relative risk
+            if the MPC in period t is :math:`\\kappa_{t}`, and relative risk
             aversion :math:`\rho`, then the inverse value vFuncNvrs has a
-            constant slope of :math:`\kappa_{t}^{-\rho/(1-\rho)}` and
+            constant slope of :math:`\\kappa_{t}^{-\rho/(1-\rho)}` and
             vFuncNvrs has value of zero at the lower bound of market resources
             mNrmMin.  See PerfForesightConsumerType.ipynb documentation notebook
             for a brief explanation and the links below for a fuller treatment.

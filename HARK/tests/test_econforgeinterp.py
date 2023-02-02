@@ -12,12 +12,10 @@ class CompareLinearInterp(unittest.TestCase):
     """
 
     def setUp(self):
-
         self.n_grid_points = 100
         self.n_eval_points = 3
 
     def compare_output(self, x, y, eval_points):
-
         h_interp = LinearInterp(x, y, lower_extrap=True)
         e_interp = LinearFast(y, [x])
 
@@ -76,12 +74,10 @@ class CompareBilinearInterp(unittest.TestCase):
     """
 
     def setUp(self):
-
         self.n_grid_points = 100
         self.n_eval_points = 3
 
     def compare_output(self, x, y, z, eval_x, eval_y):
-
         h_interp = BilinearInterp(z, x, y)
         e_interp = LinearFast(z, [x, y])
 
@@ -164,7 +160,6 @@ class Check1DDerivatives(unittest.TestCase):
     """
 
     def test_linear(self):
-
         # A linear function on a non-uniform grid
         x = np.exp(np.linspace(0, 2, 6))
         y0 = 2
@@ -181,7 +176,6 @@ class Check1DDerivatives(unittest.TestCase):
         self.assertTrue(np.allclose(grad, result))
 
     def test_nonlinear(self):
-
         # A non linear function on uniform grid
         x = np.linspace(-10, 10, 21) * (1 / 2) * np.pi
         y = np.sin(x)
@@ -196,7 +190,6 @@ class Check1DDerivatives(unittest.TestCase):
         self.assertTrue(np.allclose(grad, result))
 
     def test_nonlinear_approx(self):
-
         # A non linear function on uniform grid
         x = np.linspace(-10, 10, 10000)
         y = np.power(x, 3)
@@ -215,7 +208,6 @@ class Check2DDerivatives(unittest.TestCase):
     """
 
     def test_linear(self):
-
         # A linear function on a non-uniform grid
         x = np.exp(np.linspace(0, 2, 6))
         y = np.power(np.linspace(0, 5, 10), 2)
@@ -243,7 +235,6 @@ class Check2DDerivatives(unittest.TestCase):
         self.assertTrue(np.allclose(grad[1], np.ones_like(y_ev) * slope_y))
 
     def test_nonlinear_approx(self):
-
         # A non linear function on uniform grid
         n_grid = 100
         x = np.linspace(1, 5, n_grid)
@@ -277,7 +268,6 @@ class TestLinearDecay(unittest.TestCase):
     """
 
     def setUp(self):
-
         # Set up a bilinear extrapolator for a simple function
         self.x = np.linspace(0, 10, 11)
         self.y = np.linspace(0, 10, 11)
@@ -306,7 +296,6 @@ class TestLinearDecay(unittest.TestCase):
     def ndim_extrap_test(
         self, ndim, f_interp, g_lim, g_lim_grad, extrap_method, atol=0.1
     ):
-
         # Create grids
         grids = [np.linspace(0, 10, 11) for i in range(ndim)]
         mesh = np.meshgrid(*grids, indexing="ij")
@@ -335,9 +324,7 @@ class TestLinearDecay(unittest.TestCase):
         self.assertTrue(np.allclose(extrap, g_lim(*off_points), atol=atol))
 
     def test_decay(self):
-
         for method in ["decay_prop", "decay_hark"]:
-
             # 1D
             self.ndim_extrap_test(
                 1,
@@ -366,7 +353,6 @@ class TestLinearDecay(unittest.TestCase):
             )
 
     def test_compare_smooth_with_LinearInterp(self):
-
         lim_slope = 0.1
         lim_inter = 1.0
 

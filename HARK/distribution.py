@@ -334,7 +334,7 @@ class Lognormal(ContinuousFrozenDistribution):
             # If sigma is zero, return a DiscreteDistribution with a single atom
             return DiscreteDistribution([1.0], [np.exp(mu)], seed=seed)
 
-        return super(Lognormal, cls).__new__(cls)
+        return super().__new__(cls)
 
     def __init__(
         self,
@@ -795,7 +795,6 @@ class DiscreteDistribution(Distribution):
         seed: int = 0,
         limit: Optional[Dict[str, Any]] = None,
     ) -> None:
-
         super().__init__(seed=seed)
 
         self.pmv = np.asarray(pmv)
@@ -1031,7 +1030,6 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         var_names: Optional[List[str]] = None,
         var_attrs: Optional[List[Optional[Dict[str, Any]]]] = None,
     ):
-
         super().__init__(pmv, atoms, seed=seed, limit=limit)
 
         # vector-value distributions
@@ -1087,7 +1085,6 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         var_names=None,
         var_attrs=None,
     ):
-
         ldd = cls(
             dist.pmv,
             dist.atoms,
@@ -1103,7 +1100,6 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
 
     @classmethod
     def from_dataset(cls, x_obj, pmf):
-
         ldd = cls.__new__(cls)
 
         if isinstance(x_obj, xr.Dataset):
@@ -1282,7 +1278,6 @@ class IndexDistribution(Distribution):
     engine = None
 
     def __init__(self, engine, conditional, RNG=None, seed=0):
-
         if RNG is None:
             # Set up the RNG
             super().__init__(seed)
@@ -1312,7 +1307,6 @@ class IndexDistribution(Distribution):
                 )
 
         elif type(item0) is float:
-
             self.dstns = [
                 self.engine(seed=self._rng.integers(0, 2**31 - 1), **conditional)
             ]
@@ -1325,7 +1319,6 @@ class IndexDistribution(Distribution):
             )
 
     def __getitem__(self, y):
-
         return self.dstns[y]
 
     def discretize(self, N, **kwds):
@@ -1792,7 +1785,6 @@ def combine_indep_dstns(*distributions, seed=0):
     dist_is_labeled = ()
     var_labels = ()
     for dist in distributions:
-
         if len(dist.dim()) > 1:
             raise NotImplementedError(
                 "We currently only support combining vector-valued distributions."
@@ -1808,7 +1800,7 @@ def combine_indep_dstns(*distributions, seed=0):
         else:
             var_labels += tuple([""] * dist.dim()[0])
 
-    number_of_distributions = len(distributions)
+    len(distributions)
 
     all_labeled = all(dist_is_labeled)
     labels_are_unique = len(var_labels) == len(set(var_labels))

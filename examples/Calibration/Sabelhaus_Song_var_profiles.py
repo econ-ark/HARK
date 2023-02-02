@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Thu Jan 14 16:44:09 2021
 
@@ -33,12 +32,11 @@ variances = [
 # Plot transitory shock variances
 plt.figure()
 for i in range(len(cohorts)):
-
     coh_label = "aggregate" if cohorts[i] is None else cohorts[i]
     plt.plot(
         variances[i]["Age"],
-        np.power(variances[i]["TranShkStd"],2),
-        label="Tran. {} cohort".format(coh_label),
+        np.power(variances[i]["TranShkStd"], 2),
+        label=f"Tran. {coh_label} cohort",
     )
 
 plt.legend()
@@ -46,12 +44,11 @@ plt.legend()
 # Plot permanent shock variances
 plt.figure()
 for i in range(len(cohorts)):
-
     coh_label = "aggregate" if cohorts[i] is None else cohorts[i]
     plt.plot(
         variances[i]["Age"],
-        np.power(variances[i]["PermShkStd"],2),
-        label="Perm. {} cohort".format(coh_label),
+        np.power(variances[i]["PermShkStd"], 2),
+        label=f"Perm. {coh_label} cohort",
     )
 
 plt.legend()

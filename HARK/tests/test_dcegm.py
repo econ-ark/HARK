@@ -16,7 +16,6 @@ class envelope_test(unittest.TestCase):
         ]
 
     def test_upper_envelope(self):
-
         # Compute
         x_env, y_env, inds = dcegm.upper_envelope(self.segments)
 

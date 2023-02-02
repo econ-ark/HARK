@@ -15,7 +15,6 @@ import numpy as np
 def plot_slices_3d(
     functions, bot_x, top_x, y_slices, N=300, y_name=None, titles=None, ax_labs=None
 ):
-
     import matplotlib.pyplot as plt
 
     if type(functions) == list:
@@ -35,7 +34,6 @@ def plot_slices_3d(
         ax = fig.add_subplot(1, nfunc, k + 1)
 
         for y in y_slices:
-
             if y_name is None:
                 lab = ""
             else:
@@ -72,7 +70,6 @@ def plot_slices_4d(
     titles=None,
     ax_labs=None,
 ):
-
     import matplotlib.pyplot as plt
 
     if type(functions) == list:
@@ -96,7 +93,6 @@ def plot_slices_4d(
             ax = fig.add_subplot(nws, nfunc, j * nfunc + k + 1)
 
             for y in y_slices:
-
                 if slice_names is None:
                     lab = ""
                 else:
@@ -214,9 +210,9 @@ par_finite["T_age"] = 4
 
 # Adjust discounting and returns distribution so that they make sense in a
 # 4-period model
-par_finite["DiscFac"] = 0.95 ** 15
-par_finite["Rfree"] = 1.03 ** 15
-par_finite["RiskyAvg"] = 1.08 ** 15  # Average return of the risky asset
+par_finite["DiscFac"] = 0.95**15
+par_finite["Rfree"] = 1.03**15
+par_finite["RiskyAvg"] = 1.08**15  # Average return of the risky asset
 par_finite["RiskyStd"] = 0.20 * np.sqrt(15)  # Standard deviation of (log) risky returns
 
 

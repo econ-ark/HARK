@@ -37,7 +37,6 @@ class test_FrameModel(unittest.TestCase):
         self.model = FrameModel(frames_A, init_parameters)
 
     def test_init(self):
-
         self.model.frames.var("aNrm")
 
         self.assertTrue(
@@ -55,19 +54,16 @@ class test_FrameModel(unittest.TestCase):
         )
 
     def test_make_terminal(self):
-
-        terminal_model = self.model.make_terminal()
+        self.model.make_terminal()
 
         self.assertEqual(len(self.model.make_terminal().frames.var("aNrm").children), 0)
 
     def test_prepend(self):
-
         double_model = self.model.prepend(self.model)
 
         self.assertEqual(len(double_model.frames), 10)
 
     def test_repeat(self):
-
         repeat_model = self.model.repeat({"bNrm": {"Rfree": [1.01, 1.03, 1.02]}})
 
         self.assertEqual(len(repeat_model.frames), 15)

@@ -41,7 +41,6 @@ class testsForDCEGM(unittest.TestCase):
 
 class test_MVNormalApprox(unittest.TestCase):
     def setUp(self):
-
         N = 5
 
         # 2-D distribution
@@ -57,7 +56,6 @@ class test_MVNormalApprox(unittest.TestCase):
         self.dist3D_approx = self.dist3D.discretize(N, method="hermite")
 
     def test_means(self):
-
         mu_2D = distribution.calc_expectation(self.dist2D_approx)
         self.assertTrue(np.allclose(mu_2D, self.mu2, rtol=1e-5))
 

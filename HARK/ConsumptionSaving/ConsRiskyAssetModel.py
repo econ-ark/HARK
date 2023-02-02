@@ -81,7 +81,6 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             self.solution_terminal.ShareFunc = ConstantFunction(1.0)
 
     def update(self):
-
         IndShockConsumerType.update(self)
         self.update_AdjustPrb()
         self.update_RiskyDstn()
@@ -93,7 +92,6 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             self.update_ShareGrid()
 
     def update_Rfree(self):
-
         if isinstance(self.Rfree, (int, float)):
             self.Rfree = [self.Rfree] * self.T_cycle
 
@@ -782,7 +780,6 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
         """
 
         if self.IndepDstnBool:
-
             preIncShkvFunc = self.calc_preIncShkvFunc(self.vFuncNext)
 
             self.EndOfPrdv = self.calc_preRiskyShkvFunc(preIncShkvFunc)
@@ -810,7 +807,6 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
     PortfolioBisect: bool
 
     def __post_init__(self):
-
         super().__post_init__()
 
         if self.PortfolioBisect:
@@ -957,7 +953,6 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
 
         # optimize share by discrete interpolation
         if True:
-
             EndOfPrddvds = calc_expectation(
                 self.RiskyDstn, endOfPrddvds, self.aNrmMat, self.shareMat
             )
@@ -1004,7 +999,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
         )
         EndOfPrddvdaNvrs = self.u.derinv(EndOfPrddvda, order=(1, 0))
         EndOfPrddvdaNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrddvdaNvrs)
-        EndOfPrddvdaFunc = MargValueFuncCRRA(EndOfPrddvdaNvrsFunc, self.CRRA)
+        MargValueFuncCRRA(EndOfPrddvdaNvrsFunc, self.CRRA)
 
         return EndOfPrddvda
 
@@ -1025,7 +1020,6 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
         """
 
         if self.IndepDstnBool:
-
             preIncShkvPfunc = self.calc_preIncShkvPfunc(self.vPfuncNext)
 
             EndOfPrdvP = self.calc_preRiskyShkvPfunc(preIncShkvPfunc)

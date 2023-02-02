@@ -2159,7 +2159,6 @@ class LowerEnvelope(HARKinterpolator1D):
     distance_criteria = ["functions"]
 
     def __init__(self, *functions, nan_bool=True):
-
         if nan_bool:
             self.compare = np.nanmin
             self.argcompare = np.nanargmin
@@ -4571,14 +4570,12 @@ class ValueFuncCRRA(MetricObject):
         return CRRAutility(self.vFuncNvrs(*vFuncArgs), self.CRRA)
 
     def gradient(self, *args):
-
         NvrsGrad = self.vFuncNvrs.gradient(*args)
         grad = [CRRAutilityP(g, self.CRRA) for g in NvrsGrad]
 
         return grad
 
     def _eval_and_grad(self, *args):
-
         return (self.__call__(*args), self.gradient(*args))
 
 
@@ -4760,7 +4757,7 @@ def main():
         xInterpolators = []
         xInterpolators_alt = []
         for y in y_list:
-            this_x_list = np.sort((RNG.random(100) * 5.0))
+            this_x_list = np.sort(RNG.random(100) * 5.0)
             this_interpolation = LinearInterp(
                 this_x_list, f(this_x_list, y * np.ones(this_x_list.size))
             )
@@ -4772,7 +4769,7 @@ def main():
             xInterpolators.append(this_interpolation)
             xInterpolators_alt.append(that_interpolation)
         g = LinearInterpOnInterp1D(xInterpolators, y_list)
-        h = LinearInterpOnInterp1D(xInterpolators_alt, y_list)
+        LinearInterpOnInterp1D(xInterpolators_alt, y_list)
 
         rand_x = RNG.random(100) * 5.0
         rand_y = RNG.random(100) * 5.0
@@ -4822,7 +4819,7 @@ def main():
         for y in y_list:
             temp = []
             for z in z_list:
-                this_x_list = np.sort((RNG.random(100) * 5.0))
+                this_x_list = np.sort(RNG.random(100) * 5.0)
                 this_interpolation = LinearInterp(
                     this_x_list,
                     f(
@@ -4887,7 +4884,7 @@ def main():
             for y in y_list:
                 temptemp = []
                 for z in z_list:
-                    this_w_list = np.sort((RNG.random(16) * 5.0))
+                    this_w_list = np.sort(RNG.random(16) * 5.0)
                     this_interpolation = LinearInterp(
                         this_w_list,
                         f(

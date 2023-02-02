@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Sat Dec 19 15:08:54 2020
 
@@ -113,7 +112,7 @@ def age_log_poly_to_growth_rates(coefs, age_min, age_max):
 
 
 def find_PermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
-    """
+    r"""
     Finds initial income and sequence of growth factors from a polynomial
     specification of log-income, an optional retirement age and a replacement
     rate.
@@ -147,13 +146,11 @@ def find_PermGroFacs(age_min, age_max, age_ret, AgePolyCoefs, ReplRate):
     """
 
     if age_ret is None:
-
         # If there is no retirement, the age polynomial applies for the whole
         # lifetime
         GroFacs, Y0 = age_log_poly_to_growth_rates(AgePolyCoefs, age_min, age_max)
 
     else:
-
         # First find working age growth rates and starting income
         WrkGroFacs, Y0 = age_log_poly_to_growth_rates(AgePolyCoefs, age_min, age_ret)
 
@@ -399,13 +396,11 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None, smooth=True)
     # Determine which set of estimates to use based on wether a cohort is
     # provided or not.
     if cohort is None:
-
         spec = Sabelhaus_Song_all_years
         cohort = 0
         _log.debug("No cohort was provided. Using aggregate specification.")
 
     else:
-
         spec = Sabelhaus_Song_cohort_trend
 
     # Extract coefficients
@@ -416,7 +411,6 @@ def sabelhaus_song_var_profile(age_min=27, age_max=54, cohort=None, smooth=True)
 
     # Smooth out dummies using a 3rd degree polynomial if requested
     if smooth:
-
         # Fit polynomials
         tran_poly = np.poly1d(np.polyfit(spec["Ages"], tran_age_dummies, deg=3))
         perm_poly = np.poly1d(np.polyfit(spec["Ages"], perm_age_dummies, deg=3))
@@ -493,7 +487,7 @@ def parse_income_spec(
     SabelhausSong=False,
     adjust_infl_to=None,
 ):
-    """
+    r"""
     A function that produces income growth rates and income shock volatilities
 
     Parameters
@@ -578,15 +572,12 @@ def parse_income_spec(
 
     # Growth factors
     if AgePolyCoefs is not None:
-
         if AgePolyRetir is None:
-
             PermGroFac, P0 = find_PermGroFacs(
                 age_min, age_max, age_ret, AgePolyCoefs, ReplRate
             )
 
         else:
-
             # Working period
             PermGroWrk, P0 = find_PermGroFacs(
                 age_min, age_ret, None, AgePolyCoefs, ReplRate
@@ -609,7 +600,6 @@ def parse_income_spec(
 
         # Apply the yearly trend if it is given
         if YearTrend is not None:
-
             # Compute and apply the compounding yearly growth factor
             YearGroFac = np.exp(YearTrend["Coef"])
             PermGroFac = [x * YearGroFac for x in PermGroFac]
@@ -624,7 +614,6 @@ def parse_income_spec(
         income_params["PermGroFac"] = PermGroFac
 
     else:
-
         # Placeholder for future ways of storing income calibrations
         raise NotImplementedError()
 
@@ -636,9 +625,7 @@ def parse_income_spec(
     # IncomeDstn[3] would contain the distribution of income shocks that occur
     # at the start of age 4.
     if SabelhausSong:
-
         if age_ret is None:
-
             IncShkStds = sabelhaus_song_var_profile(
                 cohort=1950, age_min=age_min + 1, age_max=age_max
             )
@@ -646,7 +633,6 @@ def parse_income_spec(
             TranShkStd = IncShkStds["TranShkStd"]
 
         else:
-
             IncShkStds = sabelhaus_song_var_profile(
                 cohort=1950, age_min=age_min + 1, age_max=age_ret
             )
@@ -654,16 +640,12 @@ def parse_income_spec(
             TranShkStd = IncShkStds["TranShkStd"] + [0.0] * (N_ret_periods + 1)
 
     else:
-
         if isinstance(PermShkStd, float) and isinstance(TranShkStd, float):
-
             if age_ret is None:
-
                 PermShkStd = [PermShkStd] * N_periods
                 TranShkStd = [TranShkStd] * N_periods
 
             else:
-
                 PermShkStd = [PermShkStd] * (N_work_periods - 1) + [0.0] * (
                     N_ret_periods + 1
                 )
@@ -672,7 +654,6 @@ def parse_income_spec(
                 )
 
         else:
-
             # Placeholder for future ways of specifying volatilities
             raise NotImplementedError()
 
@@ -681,7 +662,6 @@ def parse_income_spec(
 
     # Apply inflation adjustment if requested
     if adjust_infl_to is not None:
-
         # Deflate using the CPI september measurement, which is what the SCF
         # uses.
         defl = cpi_deflator(
@@ -689,7 +669,6 @@ def parse_income_spec(
         )[0]
 
     else:
-
         defl = 1
 
     P0 = P0 * defl

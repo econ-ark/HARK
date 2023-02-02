@@ -1,6 +1,5 @@
 from collections import OrderedDict
 import copy
-from sre_constants import SRE_FLAG_ASCII
 from HARK import AgentType, Model
 from HARK.distribution import Distribution, TimeVaryingDiscreteDistribution
 import itertools
@@ -108,18 +107,16 @@ class Frame:
 
         This is used when copying or repreating frames.
         """
-        self.target = tuple((var + suffix for var in self.target))
+        self.target = tuple(var + suffix for var in self.target)
 
         self.scope = tuple(
-            (
-                var
-                if any(
-                    var in pa and isinstance(self.parents[pa], BackwardFrameReference)
-                    for pa in self.parents
-                )
-                else var + suffix
-                for var in self.scope
+            var
+            if any(
+                var in pa and isinstance(self.parents[pa], BackwardFrameReference)
+                for pa in self.parents
             )
+            else var + suffix
+            for var in self.scope
         )
 
     def add_backwards_suffix(self, suffix: str):
@@ -128,15 +125,13 @@ class Frame:
         include an additional suffix.
         """
         self.scope = tuple(
-            (
-                var + suffix
-                if any(
-                    var in pa and isinstance(self.parents[pa], BackwardFrameReference)
-                    for pa in self.parents
-                )
-                else var
-                for var in self.scope
+            var + suffix
+            if any(
+                var in pa and isinstance(self.parents[pa], BackwardFrameReference)
+                for pa in self.parents
             )
+            else var
+            for var in self.scope
         )
 
 
@@ -299,12 +294,10 @@ class FrameModel(Model):
             frame.clear_relations()
 
         for frame_target in self.frames:
-
             frame = self.frames[frame_target]
 
             if frame.scope is not None:
                 for var in frame.scope:
-
                     ## Should replace this with a new data structure that allows for multiple keys into the same frame
                     scope_frames = [
                         self.frames[frame_target]
@@ -324,7 +317,6 @@ class FrameModel(Model):
                             if scope_frame not in frame.parents:
                                 frame.parents[scope_frame.target] = scope_frame
                         else:
-
                             ## Do I need to keep backward references even in a finite model, because these
                             ## are initial conditions?
                             bfr = BackwardFrameReference(frame)
@@ -367,7 +359,6 @@ class FrameModel(Model):
         frames = list(copy.deepcopy(self.frames).values())
 
         for frame in frames:
-
             frame.add_backwards_suffix(suffix)
 
         return FrameModel(pre_frames + frames, self.parameters, infinite=self.infinite)
@@ -480,10 +471,8 @@ class FrameAgentType(AgentType):
         self.decision_rules = {}
 
     def initialize_sim(self):
-
         for frame in self.frames.values():
             for var in frame.target:
-
                 if frame.aggregate:
                     val = np.empty(1)
                     if frame.default is not None and var in frame.default:
@@ -571,7 +560,6 @@ class FrameAgentType(AgentType):
         for frame in self.frames.values():
             if not frame.aggregate:
                 for var in frame.target:
-
                     N = np.sum(which_agents)
 
                     if frame.default is not None and var in frame.default:
@@ -687,7 +675,7 @@ class FrameAgentType(AgentType):
         frame = self.model.frames[target]
         scope = frame.scope
 
-        target_values = tuple((np.zeros(self.AgentCount) + np.nan for var in scope))
+        target_values = tuple(np.zeros(self.AgentCount) + np.nan for var in scope)
 
         # Loop over each period of the cycle, getting controls separately depending on "age"
         for t in range(self.T_cycle):

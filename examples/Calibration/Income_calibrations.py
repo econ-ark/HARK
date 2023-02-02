@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Sun Jan  3 10:50:02 2021
 
@@ -27,7 +26,6 @@ ages = np.arange(age_min, age_max + 1)
 
 plt.figure()
 for spec in CGM_income.items():
-
     label = spec[0]
 
     params = parse_income_spec(
@@ -42,9 +40,7 @@ plt.title(
     + "Cocco, Gomes & Maenhout (2005)"
 )
 plt.xlabel("Age")
-plt.ylabel(
-    "Mean Permanent Income,\n" + "Thousands of {} U.S. dollars".format(adjust_infl_to)
-)
+plt.ylabel("Mean Permanent Income,\n" + f"Thousands of {adjust_infl_to} U.S. dollars")
 plt.legend()
 plt.show()
 
@@ -60,7 +56,6 @@ ages = np.arange(age_min, age_max + 1)
 
 plt.figure()
 for spec in Cagetti_income.items():
-
     label = spec[0]
 
     params = parse_income_spec(
@@ -68,7 +63,7 @@ for spec in Cagetti_income.items():
         age_max=age_max,
         adjust_infl_to=adjust_infl_to,
         start_year=start_year,
-        **spec[1]
+        **spec[1],
     )
     MeanY = find_profile(params["PermGroFac"], params["P0"])
 
@@ -76,8 +71,6 @@ for spec in Cagetti_income.items():
 
 plt.title("Mean paths of permanent income calibrations in\n" + "Cagetti (2003)")
 plt.xlabel("Age")
-plt.ylabel(
-    "Mean Permanent Income,\n" + "Thousands of {} U.S. dollars".format(adjust_infl_to)
-)
+plt.ylabel("Mean Permanent Income,\n" + f"Thousands of {adjust_infl_to} U.S. dollars")
 plt.legend()
 plt.show()

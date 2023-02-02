@@ -18,7 +18,6 @@ class PortfolioConsumerTypeTestCase(unittest.TestCase):
 
 class FramesTestCase(PortfolioConsumerTypeTestCase):
     def test_frames(self):
-
         cNrm_frame = self.pcct.frames.iloc(11)
 
         self.assertTrue(cNrm_frame.control)
@@ -32,7 +31,6 @@ class FramesTestCase(PortfolioConsumerTypeTestCase):
 
 class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
     def test_simOnePeriod(self):
-
         self.pcct.T_sim = 30
         self.pcct.AgentCount = 10
         self.pcct.track_vars += ["aNrm"]
@@ -87,7 +85,6 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
 
 class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
     def test_simulation(self):
-
         self.pcct.T_sim = 30
         self.pcct.AgentCount = 10
         self.pcct.track_vars += [

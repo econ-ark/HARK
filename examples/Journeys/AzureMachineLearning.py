@@ -8,7 +8,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.13.3
+#       jupytext_version: 1.14.4
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -49,7 +49,7 @@ import numpy as np
 from HARK.ConsumptionSaving.ConsIndShockModelFast import IndShockConsumerTypeFast
 from HARK.utilities import plot_funcs_der, plot_funcs
 
-mystr = lambda number: "{:.4f}".format(number)
+mystr = lambda number: f"{number:.4f}"
 
 # %% [markdown]
 # The module `HARK.ConsumptionSaving.ConsIndShockModelFast` concerns consumption-saving models with idiosyncratic shocks to (non-capital) income.  All of the models assume CRRA utility with geometric discounting, no bequest motive, and income shocks are fully transitory or fully permanent.

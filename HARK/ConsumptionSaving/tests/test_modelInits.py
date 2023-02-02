@@ -24,7 +24,7 @@ class testInitialization(unittest.TestCase):
     # methods.
     def test_PerfForesightConsumerType(self):
         try:
-            model = PerfForesightConsumerType()
+            PerfForesightConsumerType()
         except:
             self.fail(
                 "PerfForesightConsumerType failed to initialize with Params.init_perfect_foresight."
@@ -32,7 +32,7 @@ class testInitialization(unittest.TestCase):
 
     def test_IndShockConsumerType(self):
         try:
-            model = IndShockConsumerType(**init_lifecycle)
+            IndShockConsumerType(**init_lifecycle)
         except:
             self.fail(
                 "IndShockConsumerType failed to initialize with Params.init_lifecycle."
@@ -40,7 +40,7 @@ class testInitialization(unittest.TestCase):
 
     def test_KinkedRconsumerType(self):
         try:
-            model = KinkedRconsumerType(**init_kinked_R)
+            KinkedRconsumerType(**init_kinked_R)
         except:
             self.fail(
                 "KinkedRconsumerType failed to initialize with Params.init_kinked_R."
@@ -93,7 +93,7 @@ class testInitialization(unittest.TestCase):
                 "UnempPrb"
             ] = 0.0  # to make income distribution when employed
             init_serial_unemployment["global_markov"] = False
-            SerialUnemploymentExample = MarkovConsumerType(**init_serial_unemployment)
+            MarkovConsumerType(**init_serial_unemployment)
         except:
             self.fail(
                 "MarkovConsumerType failed to initialize with boom/bust unemployment."

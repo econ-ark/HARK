@@ -8,7 +8,6 @@ import functools
 import os
 import pstats
 import re
-import warnings
 
 import numba
 import numpy as np  # Python's numeric library, abbreviated "np"
@@ -66,7 +65,7 @@ def get_arg_names(function):
     return argNames
 
 
-class NullFunc(object):
+class NullFunc:
     """
     A trivial class that acts as a placeholder "do nothing" function.
     """
@@ -998,26 +997,26 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
         # Where to put any figures that the user wants to save
         my_file_path = os.getcwd()  # Find pathname to this file:
         Figures_dir = os.path.join(
-            my_file_path, "{}".format(target_dir)
+            my_file_path, f"{target_dir}"
         )  # LaTeX document assumes figures will be here
         if not os.path.exists(Figures_dir):
             os.makedirs(Figures_dir)  # If dir does not exist, create it
         # Save the figures in several formats
-        print("Saving figure {} in {}".format(figure_name, target_dir))
+        print(f"Saving figure {figure_name} in {target_dir}")
         plt.savefig(
-            os.path.join(target_dir, "{}.jpg".format(figure_name)),
+            os.path.join(target_dir, f"{figure_name}.jpg"),
             metadata={"CreationDate": None},
         )  # For web/html
         plt.savefig(
-            os.path.join(target_dir, "{}.png".format(figure_name)),
+            os.path.join(target_dir, f"{figure_name}.png"),
             metadata={"CreationDate": None},
         )  # For web/html
         plt.savefig(
-            os.path.join(target_dir, "{}.pdf".format(figure_name)),
+            os.path.join(target_dir, f"{figure_name}.pdf"),
             metadata={"CreationDate": None},
         )  # For LaTeX
         plt.savefig(
-            os.path.join(target_dir, "{}.svg".format(figure_name)),
+            os.path.join(target_dir, f"{figure_name}.svg"),
             metadata={"Date": None},
         )  # For html5
     # Make sure it's possible to plot it by checking for GUI
@@ -1075,7 +1074,6 @@ def benchmark(
           Profiling object with call statistics.
     """
 
-    agent = agent_type
     cProfile.run("agent.solve()", filename)
     stats = pstats.Stats(filename)
     stats.strip_dirs()
@@ -1089,7 +1087,7 @@ simpledec = re.compile(r"\d*\.\d{8,20}")
 
 
 def mround(match):
-    return "{:.5f}".format(float(match.group()))
+    return f"{float(match.group()):.5f}"
 
 
 def round_in_file(filename):

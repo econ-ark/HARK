@@ -16,7 +16,6 @@ class test_load_SCF_wealth_weights(unittest.TestCase):
 # %% US CPI tests
 class test_cpi_deflators(unittest.TestCase):
     def test_month_deflators(self):
-
         # Same year test
         defl_same_year = cpi_deflator(2000, 2000, "SEP")
         self.assertEqual(defl_same_year[0], 1.0)
@@ -26,7 +25,6 @@ class test_cpi_deflators(unittest.TestCase):
         self.assertAlmostEqual(defl_diff_year[0], 1.57279534)
 
     def test_avg_deflators(self):
-
         # Same year test
         defl_same_year = cpi_deflator(2000, 2000)
         self.assertEqual(defl_same_year[0], 1.0)
@@ -42,7 +40,6 @@ class test_SCF_dists(unittest.TestCase):
         self.BaseYear = 1992
 
     def test_at_21(self):
-
         # Get stats for various groups and test them
         NoHS = income_wealth_dists_from_scf(
             self.BaseYear, age=21, education="NoHS", wave=1995
@@ -69,7 +66,6 @@ class test_SCF_dists(unittest.TestCase):
         self.assertAlmostEqual(Coll["pLvlInitStd"], 0.746362502979793)
 
     def test_at_60(self):
-
         # Get stats for various groups and test them
         NoHS = income_wealth_dists_from_scf(
             self.BaseYear, age=60, education="NoHS", wave=1995

@@ -44,7 +44,7 @@ income_params = parse_income_spec(
     age_max=death_age,
     adjust_infl_to=adjust_infl_to,
     **income_calib[education],
-    SabelhausSong=True
+    SabelhausSong=True,
 )
 
 # Initial distribution of wealth and permanent income
@@ -106,6 +106,6 @@ plt.plot(AgeMeans.Age, AgeMeans.M, label="Market resources")
 plt.plot(AgeMeans.Age, AgeMeans.Cons, label="Consumption")
 plt.legend()
 plt.xlabel("Age")
-plt.ylabel("Thousands of {} USD".format(adjust_infl_to))
+plt.ylabel(f"Thousands of {adjust_infl_to} USD")
 plt.title("Variable Medians Conditional on Survival")
 plt.grid()

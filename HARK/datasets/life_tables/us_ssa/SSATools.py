@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Fri Jan  8 15:36:14 2021
 
@@ -30,7 +29,6 @@ def get_ssa_life_tables():
     dsets = []
     for sex in ["M", "F"]:
         for method in ["Historical", "Projected"]:
-
             # Construct file name
             infix = "Hist" if method == "Historical" else "Alt2"
             filename = os.path.join(
@@ -107,7 +105,6 @@ def parse_ssa_life_table(
     ages = np.arange(min_age, max_age + 1)
 
     if cross_sec:
-
         if year is None:
             raise (
                 TypeError(
@@ -119,7 +116,6 @@ def parse_ssa_life_table(
         years = np.repeat(year, ages.shape)
 
     else:
-
         if cohort is None:
             raise (
                 TypeError(
@@ -161,7 +157,7 @@ def parse_ssa_life_table(
 
     # Warn the user if projections are used.
     if max(years) > max_hist:
-        message = "Survival probabilities beyond {} are projections.".format(max_hist)
+        message = f"Survival probabilities beyond {max_hist} are projections."
         _log.debug(message)
 
     # Concatenate them
@@ -174,11 +170,9 @@ def parse_ssa_life_table(
         + "age-year combinations."
     )
     try:
-
         DeathPrb = tab.loc[zip(years, ages)].sort_values(by="x")
 
     except KeyError as e:
-
         raise Exception(message).with_traceback(e.__traceback__)
 
     # Transform to numpy survival probabilities

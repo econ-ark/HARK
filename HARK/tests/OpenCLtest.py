@@ -13,7 +13,6 @@ os.environ[
 from time import time
 
 if __name__ == "__main__":
-
     N = 20000000  # Size of vectors to work with
     use_DP = True  # Whether to use double precision floating point
 
@@ -52,7 +51,7 @@ if __name__ == "__main__":
     double_code = """
         #pragma OPENCL EXTENSION cl_khr_fp64 : enable
         #pragma OPENCL EXTENSION cl_amd_fp64 : enable
-        
+
         __kernel void test(__global const double *a, __global const double *b,
                            __global double *c, const double k) {
           size_t i = get_global_id(0);

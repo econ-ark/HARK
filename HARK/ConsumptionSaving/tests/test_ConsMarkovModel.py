@@ -15,7 +15,6 @@ from HARK.distribution import (
 
 class test_ConsMarkovSolver(unittest.TestCase):
     def setUp(self):
-
         # Define the Markov transition matrix for serially correlated unemployment
         unemp_length = 5  # Averange length of unemployment spell
         urate_good = 0.05  # Unemployment rate when economy is in good state
@@ -195,7 +194,6 @@ Markov_Dict = {
 
 class test_make_EndOfPrdvFuncCond(unittest.TestCase):
     def main_test(self):
-
         Markov_vFuncBool_example = MarkovConsumerType(**Markov_Dict)
 
         TranShkDstn_e = MeanOneLogNormal(

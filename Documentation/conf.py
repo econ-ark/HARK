@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # HARK documentation build configuration file, created by
 # sphinx-quickstart on Sat Jun  4 15:22:52 2016.

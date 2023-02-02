@@ -506,7 +506,6 @@ class testPerfMITShk(unittest.TestCase):
     def jacobian(self):
         class Test_agent(IndShockConsumerType):
             def __init__(self, cycles=0, **kwds):
-
                 IndShockConsumerType.__init__(self, cycles=0, **kwds)
 
             def get_Rfree(self):
@@ -676,7 +675,6 @@ dict_harmenberg = {
 
 class test_Harmenbergs_method(unittest.TestCase):
     def test_Harmenberg_mtd(self):
-
         example = IndShockConsumerType(**dict_harmenberg, verbose=0)
         example.cycles = 0
         example.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl", "aLvl"]
@@ -727,7 +725,7 @@ class test_Harmenbergs_method(unittest.TestCase):
 
         c_std2 = np.std(Consumption_list2)
         c_std1 = np.std(Consumption_list)
-        c_std_ratio = c_std2 / c_std1
+        c_std2 / c_std1
 
         # simulation tests -- seed/generator specific
         # But these are based on aggregate population statistics.
@@ -821,7 +819,6 @@ class testLCMortalityReadShocks(unittest.TestCase):
         )
 
     def test_compare_t_age_t_cycle(self):
-
         # Make agent, shock and initial condition histories
         agent = IndShockConsumerType(**self.base_params)
         agent.make_shock_history()
@@ -852,7 +849,6 @@ class testLCMortalityReadShocks(unittest.TestCase):
         )
 
     def test_compare_t_age_t_cycle_premature_death(self):
-
         # Re-do the previous test in an instance where we prematurely
         # kill agents
         par = copy(self.base_params)
@@ -876,12 +872,11 @@ class testLCMortalityReadShocks(unittest.TestCase):
         self.assertTrue(np.all(hist["t_age"] == hist["t_cycle"]))
 
 
-#%% Test Transition Matrix Methods
+# %% Test Transition Matrix Methods
 
 
 class test_Transition_Matrix_Methods(unittest.TestCase):
     def test_calc_tran_matrix(self):
-
         example1 = IndShockConsumerType(**dict_harmenberg)
         example1.cycles = 0
         example1.solve()
@@ -913,12 +908,11 @@ class test_Transition_Matrix_Methods(unittest.TestCase):
         self.assertAlmostEqual(AggC[0], 1.00417, places=4)
 
 
-#%% Test Heterogenous Agent Jacobian Methods
+# %% Test Heterogenous Agent Jacobian Methods
 
 
 class test_Jacobian_methods(unittest.TestCase):
     def test_calc_jacobian(self):
-
         Agent = IndShockConsumerType(**dict_harmenberg)
 
         Agent.compute_steady_state()

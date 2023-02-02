@@ -10,7 +10,6 @@ class testTractableBufferStock(unittest.TestCase):
         self.tct.solve()
 
     def test_simulation(self):
-
         self.tct.T_sim = 30  # Number of periods to simulate
         self.tct.AgentCount = 10  # Number of agents to simulate
         self.tct.aLvlInitMean = 0.0  # Mean of log initial assets for new agents
