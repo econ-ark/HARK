@@ -334,7 +334,7 @@ class Lognormal(ContinuousFrozenDistribution):
             # If sigma is zero, return a DiscreteDistribution with a single atom
             return DiscreteDistribution([1.0], [np.exp(mu)], seed=seed)
 
-        return super().__new__(cls)
+        return super(Lognormal, cls).__new__(cls)
 
     def __init__(
         self,

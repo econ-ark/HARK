@@ -8,7 +8,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.4
+#       jupytext_version: 1.14.1
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -25,8 +25,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 from HARK.utilities import plot_funcs_der, plot_funcs
 import matplotlib.pyplot as plt
 import numpy as np
-
-mystr = lambda number: "{:.4f}".format(number)
+mystr = lambda number : "{:.4f}".format(number)
 
 # %% [markdown]
 # The module `HARK.ConsumptionSaving.ConsIndShockModel` concerns consumption-saving models with idiosyncratic shocks to (non-capital) income.  All of the models assume CRRA utility with geometric discounting, no bequest motive, and income shocks are fully transitory or fully permanent.
@@ -83,7 +82,7 @@ mystr = lambda number: "{:.4f}".format(number)
 # \mathfrak{v}'_t(a_t) = \DiscFac (1-\DiePrb_{t+1})  \mathbb{E}_{t} \left[ \Rfree (\PermGroFac_{t+1}\psi_{t+1})^{-\CRRA} v'_{t+1}(\Rfree/(\PermGroFac_{t+1} \psi_{t+1}) a_t + \theta_{t+1}) \right].
 # \end{eqnarray*}
 #
-# To solve the model, we choose an exogenous grid of $a_t$ values that span the range of values that could plausibly be achieved, compute $\mathfrak{v}'_t(a_t)$ at each of these points, calculate the value of consumption $c_t$ whose marginal utility is consistent with the marginal value of assets, then find the endogenous $m_t$ gridpoint as $m_t = a_t + c_t$.  The set of $(m_t,c_t)$ gridpoints is then interpolated to construct the consumption function.
+# To solve the model, we choose an exogenous grid of $a_t$ values that spans the range of values that could plausibly be achieved, compute $\mathfrak{v}'_t(a_t)$ at each of these points, calculate the value of consumption $c_t$ whose marginal utility is consistent with the marginal value of assets, then find the endogenous $m_t$ gridpoint as $m_t = a_t + c_t$.  The set of $(m_t,c_t)$ gridpoints is then interpolated to construct the consumption function.
 
 # %% [markdown]
 # ## Example parameter values to construct an instance of IndShockConsumerType
@@ -118,44 +117,48 @@ mystr = lambda number: "{:.4f}".format(number)
 # |(none)| Number of times the "cycle" occurs |$\texttt{cycles}$| $0$ | |
 
 # %% {"code_folding": [0]}
-IdiosyncDict = {
+IdiosyncDict={
     # Parameters shared with the perfect foresight model
-    "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Interest factor on assets
-    "DiscFac": 0.96,  # Intertemporal discount factor
-    "LivPrb": [0.98],  # Survival probability
-    "PermGroFac": [1.01],  # Permanent income growth factor
+    "CRRA": 2.0,                           # Coefficient of relative risk aversion
+    "Rfree": 1.03,                         # Interest factor on assets
+    "DiscFac": 0.96,                       # Intertemporal discount factor
+    "LivPrb" : [0.98],                     # Survival probability
+    "PermGroFac" :[1.01],                  # Permanent income growth factor
+    
     # Parameters that specify the income distribution over the lifecycle
-    "PermShkStd": [0.1],  # Standard deviation of log permanent shocks to income
-    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
-    "TranShkStd": [0.2],  # Standard deviation of log transitory shocks to income
-    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
-    "UnempPrb": 0.05,  # Probability of unemployment while working
-    "IncUnemp": 0.3,  # Unemployment benefits replacement rate
-    "UnempPrbRet": 0.0005,  # Probability of "unemployment" while retired
-    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
-    "T_retire": 0,  # Period of retirement (0 --> no retirement)
-    "tax_rate": 0.0,  # Flat income tax rate (legacy parameter, will be removed in future)
+    "PermShkStd" : [0.1],                  # Standard deviation of log permanent shocks to income
+    "PermShkCount" : 7,                    # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd" : [0.2],                  # Standard deviation of log transitory shocks to income
+    "TranShkCount" : 7,                    # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb" : 0.05,                     # Probability of unemployment while working
+    "IncUnemp" : 0.3,                      # Unemployment benefits replacement rate
+    "UnempPrbRet" : 0.0005,                # Probability of "unemployment" while retired
+    "IncUnempRet" : 0.0,                   # "Unemployment" benefits when retired
+    "T_retire" : 0,                        # Period of retirement (0 --> no retirement)
+    "tax_rate" : 0.0,                      # Flat income tax rate (legacy parameter, will be removed in future)
+    
     # Parameters for constructing the "assets above minimum" grid
-    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
-    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
-    "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
-    "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    "aXtraMin" : 0.001,                    # Minimum end-of-period "assets above minimum" value
+    "aXtraMax" : 20,                       # Maximum end-of-period "assets above minimum" value
+    "aXtraCount" : 48,                     # Number of points in the base grid of "assets above minimum"
+    "aXtraNestFac" : 3,                    # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraExtra" : [None],                 # Additional values to add to aXtraGrid
+    
     # A few other paramaters
-    "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
-    "vFuncBool": True,  # Whether to calculate the value function during solution
-    "CubicBool": False,  # Preference shocks currently only compatible with linear cFunc
-    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "BoroCnstArt" : 0.0,                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "vFuncBool" : True,                    # Whether to calculate the value function during solution   
+    "CubicBool" : False,                   # Preference shocks currently only compatible with linear cFunc
+    "T_cycle" : 1,                         # Number of periods in the cycle for this agent type        
+    
     # Parameters only used in simulation
-    "AgentCount": 10000,  # Number of agents of this type
-    "T_sim": 120,  # Number of periods to simulate
-    "aNrmInitMean": -6.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
-    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
-    "T_age": None,  # Age after which simulated agents are automatically killed
+    "AgentCount" : 10000,                  # Number of agents of this type
+    "T_sim" : 120,                         # Number of periods to simulate
+    "aNrmInitMean" : -6.0,                 # Mean of log initial assets
+    "aNrmInitStd"  : 1.0,                  # Standard deviation of log initial assets
+    "pLvlInitMean" : 0.0,                  # Mean of log initial permanent income
+    "pLvlInitStd"  : 0.0,                  # Standard deviation of log initial permanent income
+    "PermGroFacAgg" : 1.0,                 # Aggregate permanent income growth factor
+    "T_age" : None,                        # Age after which simulated agents are automatically killed
 }
 
 # %% [markdown]
@@ -176,7 +179,7 @@ IdiosyncDict = {
 
 # %% {"hidden": true}
 IndShockExample = IndShockConsumerType(**IdiosyncDict)
-IndShockExample.cycles = 0  # Make this type have an infinite horizon
+IndShockExample.cycles = 0 # Make this type have an infinite horizon
 IndShockExample.solve()
 
 
@@ -194,12 +197,10 @@ print(vars(IndShockExample.solution[0]))
 # Let's take a look at the consumption function by plotting it, along with its derivative (the MPC):
 
 # %% {"hidden": true}
-print("Consumption function for an idiosyncratic shocks consumer type:")
-plot_funcs(IndShockExample.solution[0].cFunc, IndShockExample.solution[0].mNrmMin, 5)
-print("Marginal propensity to consume for an idiosyncratic shocks consumer type:")
-plot_funcs_der(
-    IndShockExample.solution[0].cFunc, IndShockExample.solution[0].mNrmMin, 5
-)
+print('Consumption function for an idiosyncratic shocks consumer type:')
+plot_funcs(IndShockExample.solution[0].cFunc,IndShockExample.solution[0].mNrmMin,5)
+print('Marginal propensity to consume for an idiosyncratic shocks consumer type:')
+plot_funcs_der(IndShockExample.solution[0].cFunc,IndShockExample.solution[0].mNrmMin,5)
 
 # %% [markdown] {"hidden": true}
 # The lower part of the consumption function is linear with a slope of 1, representing the *constrained* part of the consumption function where the consumer *would like* to consume more by borrowing-- his marginal utility of consumption exceeds the marginal value of assets-- but he is prevented from doing so by the artificial borrowing constraint.
@@ -209,35 +210,23 @@ plot_funcs_der(
 # If you want to look at the interpolation nodes for the consumption function, these can be found by "digging into" attributes of $\texttt{cFunc}$:
 
 # %% {"hidden": true}
-print(
-    "mNrmGrid for unconstrained cFunc is ",
-    IndShockExample.solution[0].cFunc.functions[0].x_list,
-)
-print(
-    "cNrmGrid for unconstrained cFunc is ",
-    IndShockExample.solution[0].cFunc.functions[0].y_list,
-)
-print(
-    "mNrmGrid for borrowing constrained cFunc is ",
-    IndShockExample.solution[0].cFunc.functions[1].x_list,
-)
-print(
-    "cNrmGrid for borrowing constrained cFunc is ",
-    IndShockExample.solution[0].cFunc.functions[1].y_list,
-)
+print('mNrmGrid for unconstrained cFunc is ',IndShockExample.solution[0].cFunc.functions[0].x_list)
+print('cNrmGrid for unconstrained cFunc is ',IndShockExample.solution[0].cFunc.functions[0].y_list)
+print('mNrmGrid for borrowing constrained cFunc is ',IndShockExample.solution[0].cFunc.functions[1].x_list)
+print('cNrmGrid for borrowing constrained cFunc is ',IndShockExample.solution[0].cFunc.functions[1].y_list)
 
 # %% [markdown] {"hidden": true}
-# The consumption function in this model is an instance of `LowerEnvelope1D`, a class that takes an arbitrary number of 1D interpolants as arguments to its initialization method.  When called, a `LowerEnvelope1D` evaluates each of its component functions and returns the lowest value.  Here, the two component functions are the *unconstrained* consumption function-- how the agent would consume if the artificial borrowing constraint did not exist for *just this period*-- and the *borrowing constrained* consumption function-- how much he would consume if the artificial borrowing constraint is binding.
+# The consumption function in this model is an instance of `LowerEnvelope1D`, a class that takes an arbitrary number of 1D interpolants as arguments to its initialization method.  When called, a `LowerEnvelope1D` evaluates each of its component functions and returns the lowest value.  Here, the two component functions are the *unconstrained* consumption function-- how the agent would consume if the artificial borrowing constraint did not exist for *just this period*-- and the *borrowing constrained* consumption function-- how much he would consume if the artificial borrowing constraint is binding.  
 #
 # The *actual* consumption function is the lower of these two functions, pointwise.  We can see this by plotting the component functions on the same figure:
 
 # %% {"hidden": true}
-plot_funcs(IndShockExample.solution[0].cFunc.functions, -0.25, 5.0)
+plot_funcs(IndShockExample.solution[0].cFunc.functions,-0.25,5.)
 
 # %% [markdown]
 # ## Simulating the idiosyncratic income shocks model
 #
-# In order to generate simulated data, an instance of `IndShockConsumerType` needs to know how many agents there are that share these particular parameters (and are thus *ex ante* homogeneous), the distribution of states for newly "born" agents, and how many periods to simulate.  These simulation parameters are described in the table below, along with example values.
+# In order to generate simulated data, an instance of `IndShockConsumerType` needs to know how many agents there are that share these particular parameters (and are thus *ex ante* homogeneous), the distribution of states for newly "born" agents, and how many periods to simulated.  These simulation parameters are described in the table below, along with example values.
 #
 # | Description | Code | Example value |
 # | :---: | --- | --- |
@@ -255,7 +244,7 @@ plot_funcs(IndShockExample.solution[0].cFunc.functions, -0.25, 5.0)
 # These example parameter values were already passed as part of the parameter dictionary that we used to create `IndShockExample`, so it is ready to simulate.  We need to set the `track_vars` attribute to indicate the variables for which we want to record a *history*.
 
 # %%
-IndShockExample.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl"]
+IndShockExample.track_vars = ['aNrm','mNrm','cNrm','pLvl']
 IndShockExample.initialize_sim()
 IndShockExample.simulate()
 
@@ -263,21 +252,168 @@ IndShockExample.simulate()
 # We can now look at the simulated data in aggregate or at the individual consumer level.  Like in the perfect foresight model, we can plot average (normalized) market resources over time, as well as average consumption:
 
 # %%
-plt.plot(np.mean(IndShockExample.history["mNrm"], axis=1))
-plt.xlabel("Time")
-plt.ylabel("Mean market resources")
+plt.plot(np.mean(IndShockExample.history['mNrm'],axis=1))
+plt.xlabel('Time')
+plt.ylabel('Mean market resources')
 plt.show()
 
-plt.plot(np.mean(IndShockExample.history["cNrm"], axis=1))
-plt.xlabel("Time")
-plt.ylabel("Mean consumption")
+plt.plot(np.mean(IndShockExample.history['cNrm'],axis=1))
+plt.xlabel('Time')
+plt.ylabel('Mean consumption')
 plt.show()
 
 # %% [markdown]
 # We could also plot individual consumption paths for some of the consumers-- say, the first five:
 
 # %%
-plt.plot(IndShockExample.history["cNrm"][:, 0:5])
-plt.xlabel("Time")
-plt.ylabel("Individual consumption paths")
+plt.plot(IndShockExample.history['cNrm'][:,0:5])
+plt.xlabel('Time')
+plt.ylabel('Individual consumption paths')
 plt.show()
+
+# %% [markdown]
+# ## Other example specifications of idiosyncratic income shocks consumers
+#
+# $\texttt{IndShockConsumerType}$-- and $\texttt{HARK}$ in general-- can also represent models that are not infinite horizon.  
+#
+# ### Lifecycle example
+#
+# Suppose we wanted to represent consumers with a *lifecycle*-- parameter values that differ by age, with a finite end point beyond which the individual cannot surive.  This can be done very easily by simply specifying the time-varying attributes $\texttt{PermGroFac}$, $\texttt{LivPrb}$, $\texttt{PermShkStd}$, and $\texttt{TranShkStd}$ as Python *lists* specifying the sequence of periods these agents will experience, from beginning to end.
+#
+# In the cell below, we define a parameter dictionary for a rather short ten period lifecycle, with arbitrarily chosen parameters.  For a more realistically calibrated (and much longer) lifecycle model, see the [SolvingMicroDSOPs REMARK](https://github.com/econ-ark/REMARK/blob/master/REMARKs/SolvingMicroDSOPs.md).
+
+# %% {"code_folding": [0]}
+LifecycleDict={ # Click arrow to expand this fairly large parameter dictionary
+    # Parameters shared with the perfect foresight model
+    "CRRA": 2.0,                           # Coefficient of relative risk aversion
+    "Rfree": 1.03,                         # Interest factor on assets
+    "DiscFac": 0.96,                       # Intertemporal discount factor
+    "LivPrb" : [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1],
+    "PermGroFac" : [1.01,1.01,1.01,1.02,1.02,1.02,0.7,1.0,1.0,1.0],
+    
+    # Parameters that specify the income distribution over the lifecycle
+    "PermShkStd" : [0.1,0.2,0.1,0.2,0.1,0.2,0.1,0,0,0],
+    "PermShkCount" : 7,                    # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd" : [0.3,0.2,0.1,0.3,0.2,0.1,0.3,0,0,0],
+    "TranShkCount" : 7,                    # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb" : 0.05,                     # Probability of unemployment while working
+    "IncUnemp" : 0.3,                      # Unemployment benefits replacement rate
+    "UnempPrbRet" : 0.0005,                # Probability of "unemployment" while retired
+    "IncUnempRet" : 0.0,                   # "Unemployment" benefits when retired
+    "T_retire" : 7,                        # Period of retirement (0 --> no retirement)
+    "tax_rate" : 0.0,                      # Flat income tax rate (legacy parameter, will be removed in future)
+    
+    # Parameters for constructing the "assets above minimum" grid
+    "aXtraMin" : 0.001,                    # Minimum end-of-period "assets above minimum" value
+    "aXtraMax" : 20,                       # Maximum end-of-period "assets above minimum" value
+    "aXtraCount" : 48,                     # Number of points in the base grid of "assets above minimum"
+    "aXtraNestFac" : 3,                    # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraExtra" : [None],                 # Additional values to add to aXtraGrid
+    
+    # A few other paramaters
+    "BoroCnstArt" : 0.0,                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "vFuncBool" : True,                    # Whether to calculate the value function during solution   
+    "CubicBool" : False,                   # Preference shocks currently only compatible with linear cFunc
+    "T_cycle" : 10,                        # Number of periods in the cycle for this agent type        
+    
+    # Parameters only used in simulation
+    "AgentCount" : 10000,                  # Number of agents of this type
+    "T_sim" : 120,                         # Number of periods to simulate
+    "aNrmInitMean" : -6.0,                 # Mean of log initial assets
+    "aNrmInitStd"  : 1.0,                  # Standard deviation of log initial assets
+    "pLvlInitMean" : 0.0,                  # Mean of log initial permanent income
+    "pLvlInitStd"  : 0.0,                  # Standard deviation of log initial permanent income
+    "PermGroFacAgg" : 1.0,                 # Aggregate permanent income growth factor
+    "T_age" : 11,                          # Age after which simulated agents are automatically killed     
+}
+
+# %% [markdown]
+# In this case, we have specified a ten period model in which retirement happens in period $t=7$.  Agents in this model are more likely to die as they age, and their permanent income drops by 30\% at retirement.  Let's make and solve this lifecycle example, then look at the $\texttt{solution}$ attribute.
+
+# %%
+LifecycleExample = IndShockConsumerType(**LifecycleDict)
+LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods -- a lifetime -- exactly once
+LifecycleExample.solve()
+print('First element of solution is',LifecycleExample.solution[0])
+print('Solution has', len(LifecycleExample.solution),'elements.')
+
+# %% [markdown]
+# This was supposed to be a *ten* period lifecycle model-- why does our consumer type have *eleven* elements in its $\texttt{solution}$?  It would be more precise to say that this specification has ten *non-terminal* periods. The solution to the 11th and final period in the model would be the same for every set of parameters: consume $c_t = m_t$, because there is no future.  In a lifecycle model, the terminal period is assumed to exist; the $\texttt{LivPrb}$ parameter does not need to end with a $0.0$ in order to guarantee that survivors die.
+#
+# We can quickly plot the consumption functions in each period of the model:
+
+# %%
+print('Consumption functions across the lifecycle:')
+mMin = np.min([LifecycleExample.solution[t].mNrmMin for t in range(LifecycleExample.T_cycle)])
+LifecycleExample.unpack('cFunc') # This makes all of the cFuncs accessible in the attribute cFunc
+plot_funcs(LifecycleExample.cFunc,mMin,5)
+
+# %% [markdown]
+# ### "Cyclical" example
+#
+# We can also model consumers who face an infinite horizon, but who do *not* face the same problem in every period.  Consider someone who works as a ski instructor: they make most of their income for the year in the winter, and make very little money in the other three seasons.
+#
+# We can represent this type of individual as a four period, infinite horizon model in which expected "permanent" income growth varies greatly across seasons.
+
+# %% {"code_folding": [0]}
+CyclicalDict = { # Click the arrow to expand this parameter dictionary
+    # Parameters shared with the perfect foresight model
+    "CRRA": 2.0,                           # Coefficient of relative risk aversion
+    "Rfree": 1.03,                         # Interest factor on assets
+    "DiscFac": 0.96,                       # Intertemporal discount factor
+    "LivPrb" : 4*[0.98],                   # Survival probability
+    "PermGroFac" : [1.082251, 2.8, 0.3, 1.1],
+    
+    # Parameters that specify the income distribution over the lifecycle
+    "PermShkStd" : [0.1,0.1,0.1,0.1],
+    "PermShkCount" : 7,                    # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd" : [0.2,0.2,0.2,0.2],
+    "TranShkCount" : 7,                    # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb" : 0.05,                     # Probability of unemployment while working
+    "IncUnemp" : 0.3,                      # Unemployment benefits replacement rate
+    "UnempPrbRet" : 0.0005,                # Probability of "unemployment" while retired
+    "IncUnempRet" : 0.0,                   # "Unemployment" benefits when retired
+    "T_retire" : 0,                        # Period of retirement (0 --> no retirement)
+    "tax_rate" : 0.0,                      # Flat income tax rate (legacy parameter, will be removed in future)
+    
+    # Parameters for constructing the "assets above minimum" grid
+    "aXtraMin" : 0.001,                    # Minimum end-of-period "assets above minimum" value
+    "aXtraMax" : 20,                       # Maximum end-of-period "assets above minimum" value
+    "aXtraCount" : 48,                     # Number of points in the base grid of "assets above minimum"
+    "aXtraNestFac" : 3,                    # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraExtra" : [None],                 # Additional values to add to aXtraGrid
+    
+    # A few other paramaters
+    "BoroCnstArt" : 0.0,                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "vFuncBool" : True,                    # Whether to calculate the value function during solution   
+    "CubicBool" : False,                   # Preference shocks currently only compatible with linear cFunc
+    "T_cycle" : 4,                         # Number of periods in the cycle for this agent type        
+    
+    # Parameters only used in simulation
+    "AgentCount" : 10000,                  # Number of agents of this type
+    "T_sim" : 120,                         # Number of periods to simulate
+    "aNrmInitMean" : -6.0,                 # Mean of log initial assets
+    "aNrmInitStd"  : 1.0,                  # Standard deviation of log initial assets
+    "pLvlInitMean" : 0.0,                  # Mean of log initial permanent income
+    "pLvlInitStd"  : 0.0,                  # Standard deviation of log initial permanent income
+    "PermGroFacAgg" : 1.0,                 # Aggregate permanent income growth factor
+    "T_age" : None,                        # Age after which simulated agents are automatically killed     
+}
+
+# %% [markdown]
+# This consumer type's parameter dictionary is nearly identical to the original infinite horizon type we made, except that each of the time-varying parameters now have *four* values, rather than just one.  Most of these have the same value in each period *except* for $\texttt{PermGroFac}$, which varies greatly over the four seasons.  Note that the product of the four "permanent" income growth factors is almost exactly 1.0-- this type's income does not grow on average in the long run!
+#
+# Let's make and solve this consumer type, then plot his quarterly consumption functions:
+
+# %%
+CyclicalExample = IndShockConsumerType(**CyclicalDict)
+CyclicalExample.cycles = 0 # Make this consumer type have an infinite horizon
+CyclicalExample.solve()
+
+CyclicalExample.unpack('cFunc')
+print('Quarterly consumption functions:')
+mMin = min([X.mNrmMin for X in CyclicalExample.solution])
+plot_funcs(CyclicalExample.cFunc,mMin,5)
+
+# %% [markdown]
+# The very low green consumption function corresponds to the quarter in which the ski instructors make most of their income.  They know that they are about to experience a 70% drop in "permanent" income, so they do not consume much *relative to their income this quarter*.  In the other three quarters, *normalized* consumption is much higher, as current "permanent" income is low relative to future expectations.  In *level*, the consumption chosen in each quarter is much more similar

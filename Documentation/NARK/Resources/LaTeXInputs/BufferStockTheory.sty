@@ -6,7 +6,7 @@
 \newcommand{\onlyinsubfile}[1]{#1}\newcommand{\notinsubfile}[1]{}
 
 % https://tex.stackexchange.com/questions/463699/proper-reference-numbers-with-subfiles
-\newcommand\labelprefix{}
+\newcommand\labelprefix{} 
 \newcommand\localorexternallabel[1]{%
   \expandafter\ifx\csname r@#1\endcsname\relax
   \labelprefix
@@ -23,10 +23,10 @@
 % Implement a standard setup and shortcuts, e.g. for the \CRRA
 \usepackage{\econtexSetup}
 \usepackage{econtexShortcuts}
-\usepackage{makecell}
+\usepackage{makecell} 
 
 \usepackage{rotating}\usepackage{subfigure}
-% Embed metadata
+% Embed metadata 
 \hypersetup{pdfauthor={Christopher D. Carroll <ccarroll@jhu.edu>},
   pdftitle={Theoretical Foundations of Buffer Stock Saving},
   pdfkeywords={Precautionary saving, buffer-stock saving, consumption, marginal propensity to consume, permanent income hypothesis, income fluctuation problem},
@@ -37,3 +37,4 @@
 
 \newtheorem{defn}{Definition}
 \newtheorem{theorem}{Theorem}
+

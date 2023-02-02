@@ -14,3 +14,4 @@ echo cp `kpsewhich svg-math-and-subfigures.cfg` $handoutName.cfg
 echo cp `kpsewhich svg-set-size-to-1p0.mk4` $handoutName.mk4
 cp `kpsewhich svg-math-and-subfigures.cfg` $handoutName.cfg
 cp `kpsewhich svg-set-size-to-1p0.mk4` $handoutName.mk4
+

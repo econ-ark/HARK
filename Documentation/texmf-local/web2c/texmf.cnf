@@ -17,7 +17,7 @@ max_print_line = 255
 TEXMFHOME = ~/.texmf
 
 % The default is for each user to have a separate location for the junk variables that are created on-the-fly; this can result in a hard-to-find pileup of junk across multiple users, so let's have a common location for all users:
-TEXMFVAR     = /usr/local/texlive/texmf-var
+TEXMFVAR     = /usr/local/texlive/texmf-var 
 TEXMFCONFIG  = /usr/local/texlive/texmf-config
 TEXMFLOCAL   = /usr/local/texlive/texmf-local
 

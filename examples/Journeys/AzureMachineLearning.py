@@ -8,7 +8,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.4
+#       jupytext_version: 1.13.3
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -41,7 +41,7 @@
 # # IndShockConsumerTypeFast Documentation
 # ## Consumption-Saving model with Idiosyncratic Income Shocks
 
-# %% {"collapsed": false, "jupyter": {"outputs_hidden": false}, "pycharm": {"name": "#%%\n"}}
+# %% {"collapsed": false, "pycharm": {"name": "#%%\n"}, "jupyter": {"outputs_hidden": false}}
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -82,7 +82,7 @@ mystr = lambda number: "{:.4f}".format(number)
 #
 # The cell below creates an infinite horizon instance of `IndShockConsumerTypeFast` and solves its model by calling its `solve` method.
 
-# %% {"collapsed": false, "jupyter": {"outputs_hidden": false}, "pycharm": {"name": "#%%\n"}}
+# %% {"collapsed": false, "pycharm": {"name": "#%%\n"}, "jupyter": {"outputs_hidden": false}}
 IndShockExample = IndShockConsumerTypeFast()
 IndShockExample.cycles = 0  # Make this type have an infinite horizon
 # %time IndShockExample.solve()
@@ -90,13 +90,13 @@ IndShockExample.cycles = 0  # Make this type have an infinite horizon
 # %% [markdown]
 # Because numba just-in-time compiles, we can see the effect of calling the solve method again on run-time.
 
-# %% {"collapsed": false, "jupyter": {"outputs_hidden": false}, "pycharm": {"name": "#%%\n"}}
+# %% {"collapsed": false, "pycharm": {"name": "#%%\n"}, "jupyter": {"outputs_hidden": false}}
 # %time IndShockExample.solve()
 
 # %% [markdown]
 # After solving the model, we can examine an element of this type's $\texttt{solution}$:
 
-# %% {"collapsed": false, "jupyter": {"outputs_hidden": false}, "pycharm": {"name": "#%%\n"}}
+# %% {"collapsed": false, "pycharm": {"name": "#%%\n"}, "jupyter": {"outputs_hidden": false}}
 print(vars(IndShockExample.solution[0]))
 
 # %% [markdown]
@@ -106,7 +106,7 @@ print(vars(IndShockExample.solution[0]))
 #
 # Let's take a look at the consumption function by plotting it, along with its derivative (the MPC):
 
-# %% {"collapsed": false, "jupyter": {"outputs_hidden": false}, "pycharm": {"name": "#%%\n"}}
+# %% {"collapsed": false, "pycharm": {"name": "#%%\n"}, "jupyter": {"outputs_hidden": false}}
 print("Consumption function for an idiosyncratic shocks consumer type:")
 plot_funcs(IndShockExample.solution[0].cFunc, IndShockExample.solution[0].mNrmMin, 5)
 print("Marginal propensity to consume for an idiosyncratic shocks consumer type:")
@@ -126,7 +126,7 @@ plot_funcs_der(
 #
 # The *actual* consumption function is the lower of these two functions, pointwise.  We can see this by plotting the component functions on the same figure:
 
-# %% {"collapsed": false, "jupyter": {"outputs_hidden": false}, "pycharm": {"name": "#%%\n"}}
+# %% {"collapsed": false, "pycharm": {"name": "#%%\n"}, "jupyter": {"outputs_hidden": false}}
 plot_funcs(IndShockExample.solution[0].cFunc.functions, -0.25, 5.0)
 
-# %% {"collapsed": false, "jupyter": {"outputs_hidden": false}, "pycharm": {"name": "#%%\n"}}
+# %% {"collapsed": false, "pycharm": {"name": "#%%\n"}, "jupyter": {"outputs_hidden": false}}

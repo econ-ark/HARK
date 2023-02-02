@@ -6,9 +6,9 @@
 %%% revised version, April 8, 2011
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%% Uses moreverb.sty, Rainer Schopf author,
+%%% Uses moreverb.sty, Rainer Schopf author, 
 %%% as method to send verbatim text to
-%%% another file,
+%%% another file, 
 
 %%% These commands allow user to type in text or math and
 %%% have it print in more than one document,
@@ -18,7 +18,7 @@
 %%% Each fragment will have a unique name given as an argument
 %%% to writetofile.
 
-%%%
+%%% 
 \usepackage{moreverb}
 
 \newwrite\verbatimout
@@ -54,10 +54,10 @@
 \vskip1sp
 \ifnum\definitionnumber=0
 \expandafter\openin1 \jobname.vrb
-\ifeof1
+\ifeof1 
 \else
 \input \jobname.vrb
-\fi%% to get the previous definitions
+\fi%% to get the previous definitions 
 \immediate\openout\verbatimout=\jobname.vrb
 \fi
 %%
@@ -91,7 +91,7 @@ file one more time!\else
 %%% Using fragments in new file:
 
 %%% \input jobname.vrb will bring in the definitions
-%%% for the fragments.
+%%% for the fragments. 
 %%% (jobname is the same as the filename of the source document)
 
 %%% \namesinmargin will make names print as well as as printing
@@ -100,7 +100,7 @@ file one more time!\else
 %%% \printfrag{name} will bring in fragment defined in source file,
 %%% and sent to jobname.vrb.
 
-%%% \printfrag will save the problem of remembering to use
+%%% \printfrag will save the problem of remembering to use 
 %%% \csname ...\endcsname, and will check to see if fragment is defined
 
 \def\printfrag#1{\expandafter\ifx\csname #1\endcsname\relax\vskip12pt

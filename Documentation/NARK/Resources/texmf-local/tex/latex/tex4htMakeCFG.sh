@@ -19,3 +19,5 @@ cmd="cp `kpsewhich svg-set-size-to-1p0.mk4` $handoutName.mk4"
 #cmd="cp `kpsewhich svg-set-size-to-1p2x1p0.mk4` $handoutName.mk4"
 #cmd="cp `kpsewhich svg-set-size-to-1p1x1p0.mk4` $handoutName.mk4"  # Tried this to achieve bold; does not look good
 echo "$cmd" ; eval "$cmd"
+
+

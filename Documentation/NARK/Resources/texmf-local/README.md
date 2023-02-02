@@ -17,3 +17,5 @@ Then you have two options:
 1. Windows does not allow symbolic links. So on Windows machines you will need
    to modify the texmf.cnf configuration file so that it knows to look in the
    right place (your Dropbox path) for the texmf-local config files
+   
+   

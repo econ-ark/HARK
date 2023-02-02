@@ -1,11 +1,11 @@
 %%% LaTeX class for economics
 %%%
 %%% author: Christopher Carroll
-%%% license: LaTeX Project Public License
+%%% license: LaTeX Project Public License 
 %%%
 %%% Modified from style itaxpf by Arne Henningsen
 %%% version: 1.0 (09 July 2007)
-%%% license: LaTeX Project Public License
+%%% license: LaTeX Project Public License 
 %%%
 %%% Further information is available at
 %%% http://www.uni-kiel.de/agrarpol/ahenningsen/latex-bibtex.html
@@ -73,8 +73,8 @@
 
 %% Added the above info to the definition of normalsize
 \def\normalsize{\@setfontsize \normalsize \@xiipt {14.5}
-\abovedisplayskip 6\p@ \@plus 3\p@ \@minus 3\p@
-\belowdisplayskip \abovedisplayskip
+\abovedisplayskip 6\p@ \@plus 3\p@ \@minus 3\p@ 
+\belowdisplayskip \abovedisplayskip 
 \abovedisplayshortskip 6pt \belowdisplayshortskip 6pt
 \let \@listi \@listI}
 \normalsize
@@ -126,8 +126,8 @@ amsmath,amssymb,amsfonts,amsthm
 
 %---------------Custom Definitions--------------
 
-\def\liminf{\mathop{\rm lim\, inf}\limits}
-\DeclareMathOperator{\Ex}{\mathbb{E}} % Expectations operator
+\def\liminf{\mathop{\rm lim\, inf}\limits} 
+\DeclareMathOperator{\Ex}{\mathbb{E}} % Expectations operator 
 \def\var{\operatorname{var}} % variance
 \def\cov{\operatorname{cov}} % covariance
 \def\std{\operatorname{std}} % standard deviation
@@ -150,7 +150,7 @@ amsmath,amssymb,amsfonts,amsthm
 %To prevent breaking math formula
 \relpenalty=4000 %from 0 to 10000, default is 500
 
-%To prevent breaking math formula after binary operator
+%To prevent breaking math formula after binary operator 
 \binoppenalty=10000 %from 0 to 10000, default is 700
 
 %--------------------------------------------------------
@@ -215,13 +215,13 @@ amsmath,amssymb,amsfonts,amsthm
 % titlepage with title, author(s), and date
 
 \renewcommand{\maketitle}{
-\ifthenelse{ \isundefined\@forcedate }{
+\ifthenelse{ \isundefined\@forcedate }{ 
    \ClassWarningNoLine{econtex}{{\protect\forcedate} is undefined in the .tex file; please define it and rerun}}{}
    \ifthenelse{\equal{\theIncludeTitlePage}{1}}{
       \let\footnotesize\scriptsize
       \thispagestyle{empty}
       \vspace*{0mm}
-      \enlargethispage{0.4in}
+      \enlargethispage{0.4in} 
    }{}
    \begin{center}
    \begin{LARGE}
@@ -229,7 +229,7 @@ amsmath,amssymb,amsfonts,amsthm
    \textbf{\@title}
    \end{spacing}
    \end{LARGE}\medskip\medskip\medskip
-   {\normalsize \@date \par}
+   {\normalsize \@date \par}       
    {\tiny{~}\par}
    \ifthenelse{\equal{\theIncludeTitlePage}{1}}{
       \vspace*{3mm}
@@ -250,7 +250,7 @@ amsmath,amssymb,amsfonts,amsthm
       \let\footnotesize\scriptsize
       \thispagestyle{empty}
       \vspace*{0mm}
-      \enlargethispage{0.4in}
+      \enlargethispage{0.4in} 
    }{}
    \begin{center}
    \begin{LARGE}
@@ -258,7 +258,7 @@ amsmath,amssymb,amsfonts,amsthm
    \textbf{\@title}
    \end{spacing}
    \end{LARGE}\medskip\medskip\medskip
-   {\normalsize #1 \par}
+   {\normalsize #1 \par}       
    {\tiny{~}\par}
    \ifthenelse{\equal{\theIncludeTitlePage}{1}}{
       \vspace*{3mm}
@@ -284,7 +284,7 @@ amsmath,amssymb,amsfonts,amsthm
    \vspace*{4mm}
    \abstractSizeDefault
    \noindent \textbf{Abstract}\\
-   \indent
+   \indent 
 }{%
    \noindent {\tiny \phantom{.}} \\  % Trick to get proper spacing in html
    \noindent \hrule height 0.4pt depth 0.0pt width \textwidth \relax
@@ -333,7 +333,7 @@ amsmath,amssymb,amsfonts,amsthm
 \pagestyle{plain}
 \thispagestyle{empty}
 
-\newcommand{\titlepagefinish}{\newpage
+\newcommand{\titlepagefinish}{\newpage 
 \renewcommand\@makefnmark
   {\mbox{\textsuperscript{\tiny\@thefnmark}}}
 }
@@ -354,11 +354,11 @@ amsmath,amssymb,amsfonts,amsthm
 %%% the original code.
 
 %% Sample use:
-%% \author{Christopher D. Carroll\authNum \\
+%% \author{Christopher D. Carroll\authNum \\ 
 %% \and
-%% Jiri Slacalek\authNum \\
+%% Jiri Slacalek\authNum \\ 
 %% \and
-%% Martin Sommer\authNum \\
+%% Martin Sommer\authNum \\ 
 %% \and
 %% Another Name\authNum
 %% \and

@@ -1,8 +1,8 @@
 \usepackage{handoutShortcuts}
 \RequirePackage{wasysym
-,psibycus % Greek language package, including koppa
+,psibycus % Greek language package, including koppa 
 ,ushort
-%,lscape % Pages in landscape mode go inside \begin{landscape}\end{landscape} % CONFLICTS WITH EPSTOPDF
+%,lscape % Pages in landscape mode go inside \begin{landscape}\end{landscape} % CONFLICTS WITH EPSTOPDF 
 }
 
 \newenvironment{CDCPrivate} % Environment for extra material not wanted in the public document
@@ -23,7 +23,7 @@
 \setboolean{BigAndWide}{true}
 \setboolean{BigAndWide}{false}
 
-% Options to set if being run from the shell (so autocompiled)
+% Options to set if being run from the shell (so autocompiled) 
 \opt{FromShell}{
 \setboolean{bigPrint}{false}
 \setboolean{wideMargins}{false}
@@ -61,7 +61,7 @@
 }
 
 % Keep the elements in the argument #1 together on the same page
-\newcommand{\together}[1]{\noindent\parbox{\linewidth}{#1}}
+\newcommand{\together}[1]{\noindent\parbox{\linewidth}{#1}} 
 
 % html version of document must be constructed by running pdflatex in
 % dvi output mode; code below creates an ifdvi construct that detects
@@ -75,7 +75,7 @@
 
 % dvi compilation only occurs if making the html version
 \ifdvi
-    \setboolean{Web}{true}
+    \setboolean{Web}{true}   
     \RequirePackage{tex4ht}
     \RequirePackage{graphicx}
     \RequirePackage[tex4ht]{hyperref}
@@ -144,7 +144,7 @@
 \definecolor{darkred}{rgb}{0.6,0,0}
 \hypersetup{colorlinks=true,           % put a box around links
    linkbordercolor = {1 0 0}, % the box will be red
-   pdfborder = {1 0 0},       %
+   pdfborder = {1 0 0},       % 
 %   bookmarks=true,            % PDF will contain an index on the RHS
    urlcolor=darkred,
    citecolor=darkblue,
@@ -179,7 +179,7 @@
 \newcommand{\Aggregation}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/MathFacts/Aggregation.pdf}{\texttt{Aggregation}}}
 
 
-% If doing a web version, renewcommands link to the html versions of handouts
+% If doing a web version, renewcommands link to the html versions of handouts 
 \ifdvi
 \renewcommand{\handoutC}[1]{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/#1}{\texttt{#1}}}
 \renewcommand{\handoutA}[1]{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/AssetPricing/#1}{\texttt{#1}}}

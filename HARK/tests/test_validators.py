@@ -19,7 +19,7 @@ class ValidatorsTests(unittest.TestCase):
             self.fail()
 
         if sys.version[0] == "2":
-            with self.assertRaisesRegex(
+            with self.assertRaisesRegexp(
                 TypeError,
                 "Expected non-empty argument for parameter list_a",
             ):
@@ -36,12 +36,12 @@ class ValidatorsTests(unittest.TestCase):
             pass
 
         if sys.version[0] == "2":
-            with self.assertRaisesRegex(
+            with self.assertRaisesRegexp(
                 TypeError,
                 "Expected non-empty argument for parameter list_b",
             ):
                 foo([1], [])
-            with self.assertRaisesRegex(
+            with self.assertRaisesRegexp(
                 TypeError,
                 "Expected non-empty argument for parameter list_a",
             ):

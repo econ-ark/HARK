@@ -6,8 +6,10 @@ of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
+import os
 import sys
 from copy import copy, deepcopy
+from distutils.dir_util import copy_tree
 from time import time
 from warnings import warn
 
@@ -112,7 +114,7 @@ def distance_metric(thing_a, thing_b):
     return distance
 
 
-class MetricObject:
+class MetricObject(object):
     """
     A superclass for object classes in HARK.  Comes with two useful methods:
     a generic/universal distance method and an attribute assignment method.
@@ -150,7 +152,7 @@ class MetricObject:
         return max(distance_list)
 
 
-class Model:
+class Model(object):
     """
     A class with special handling of parameters assignment.
     """
@@ -1252,16 +1254,16 @@ class Market(Model):
         self.agents = agents if agents is not None else list()  # NOQA
 
         reap_vars = reap_vars if reap_vars is not None else list()  # NOQA
-        self.reap_state = {var: [] for var in reap_vars}
+        self.reap_state = dict([(var, []) for var in reap_vars])
 
         self.sow_vars = sow_vars if sow_vars is not None else list()  # NOQA
         # dictionaries for tracking initial and current values
         # of the sow variables.
-        self.sow_init = {var: None for var in self.sow_vars}
-        self.sow_state = {var: None for var in self.sow_vars}
+        self.sow_init = dict([(var, None) for var in self.sow_vars])
+        self.sow_state = dict([(var, None) for var in self.sow_vars])
 
         const_vars = const_vars if const_vars is not None else list()  # NOQA
-        self.const_vars = {var: None for var in const_vars}
+        self.const_vars = dict([(var, None) for var in const_vars])
 
         self.track_vars = track_vars if track_vars is not None else list()  # NOQA
         self.dyn_vars = dyn_vars if dyn_vars is not None else list()  # NOQA

@@ -4760,7 +4760,7 @@ def main():
         xInterpolators = []
         xInterpolators_alt = []
         for y in y_list:
-            this_x_list = np.sort(RNG.random(100) * 5.0)
+            this_x_list = np.sort((RNG.random(100) * 5.0))
             this_interpolation = LinearInterp(
                 this_x_list, f(this_x_list, y * np.ones(this_x_list.size))
             )
@@ -4822,7 +4822,7 @@ def main():
         for y in y_list:
             temp = []
             for z in z_list:
-                this_x_list = np.sort(RNG.random(100) * 5.0)
+                this_x_list = np.sort((RNG.random(100) * 5.0))
                 this_interpolation = LinearInterp(
                     this_x_list,
                     f(
@@ -4887,7 +4887,7 @@ def main():
             for y in y_list:
                 temptemp = []
                 for z in z_list:
-                    this_w_list = np.sort(RNG.random(16) * 5.0)
+                    this_w_list = np.sort((RNG.random(16) * 5.0))
                     this_interpolation = LinearInterp(
                         this_w_list,
                         f(

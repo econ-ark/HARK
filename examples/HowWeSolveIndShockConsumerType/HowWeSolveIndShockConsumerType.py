@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.4
+#       jupytext_version: 1.14.1
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -99,17 +99,11 @@
 # First, we define a standard lifecycle model, solve it and then
 
 # %%
-from HARK.ConsumptionSaving.ConsIndShockModel import (
-    IndShockConsumerType,
-    init_lifecycle,
-)
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, init_lifecycle
 import numpy as np
 import matplotlib.pyplot as plt
-
 LifecycleExample = IndShockConsumerType(**init_lifecycle)
-LifecycleExample.cycles = (
-    1  # Make this consumer live a sequence of periods exactly once
-)
+LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once
 LifecycleExample.solve()
 
 # %% [markdown]
@@ -117,30 +111,24 @@ LifecycleExample.solve()
 
 # %%
 from HARK.utilities import plot_funcs
-
-plot_funcs(
-    [LifecycleExample.solution[0].cFunc], LifecycleExample.solution[0].mNrmMin, 10
-)
+plot_funcs([LifecycleExample.solution[0].cFunc],LifecycleExample.solution[0].mNrmMin,10)
 
 # %% [markdown]
 # Let us then create a solver for the first period.
 
 # %%
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolverBasic
-
-solver = ConsIndShockSolverBasic(
-    LifecycleExample.solution[1],
-    LifecycleExample.IncShkDstn[0],
-    LifecycleExample.LivPrb[0],
-    LifecycleExample.DiscFac,
-    LifecycleExample.CRRA,
-    LifecycleExample.Rfree,
-    LifecycleExample.PermGroFac[0],
-    LifecycleExample.BoroCnstArt,
-    LifecycleExample.aXtraGrid,
-    LifecycleExample.vFuncBool,
-    LifecycleExample.CubicBool,
-)
+solver = ConsIndShockSolverBasic(LifecycleExample.solution[1],
+                                 LifecycleExample.IncShkDstn[0],
+                                 LifecycleExample.LivPrb[0],
+                                 LifecycleExample.DiscFac,
+                                 LifecycleExample.CRRA,
+                                 LifecycleExample.Rfree,
+                                 LifecycleExample.PermGroFac[0],
+                                 LifecycleExample.BoroCnstArt,
+                                 LifecycleExample.aXtraGrid,
+                                 LifecycleExample.vFuncBool,
+                                 LifecycleExample.CubicBool)
 
 # %%
 solver.prepare_to_solve()
@@ -158,7 +146,7 @@ solver.PermShkMinNext
 # These values were calculated in `setAndUpdateValues`. In `defBoroCnst` that was also called, several things were calculated, for example the consumption function defined by the borrowing constraint.
 
 # %%
-plot_funcs([solver.cFuncNowCnst], solver.mNrmMinNow, 10)
+plot_funcs([solver.cFuncNowCnst],solver.mNrmMinNow,10)
 
 # %% [markdown]
 # Then, we set up all the grids, grabs the discrete shock distributions, and state grids in `prepare_to_calc_EndOfPrdvP`.
@@ -176,9 +164,7 @@ EndOfPrdvP = solver.calc_EndOfPrdvP()
 # Then, we essentially just have to construct the (resource, consumption) pairs by completing the EGM step, and constructing the interpolants by using the knowledge that the limiting solutions are those of the perfect foresight model. This is done with `make_basic_solution` as discussed above.
 
 # %%
-solution = solver.make_basic_solution(
-    EndOfPrdvP, solver.aNrmNow, solver.make_linear_cFunc
-)
+solution = solver.make_basic_solution(EndOfPrdvP,solver.aNrmNow,solver.make_linear_cFunc)
 
 # %% [markdown]
 # Lastly, we add the MPC and human wealth quantities we calculated in the method that prepared the solution of this period.
@@ -190,11 +176,7 @@ solver.add_MPC_and_human_wealth(solution)
 # All that is left is to verify that the solution in `solution` is identical to `LifecycleExample.solution[0]`. We can plot the against each other:
 
 # %%
-plot_funcs(
-    [LifecycleExample.solution[0].cFunc, solution.cFunc],
-    LifecycleExample.solution[0].mNrmMin,
-    10,
-)
+plot_funcs([LifecycleExample.solution[0].cFunc, solution.cFunc],LifecycleExample.solution[0].mNrmMin,10)
 
 # %% [markdown]
 # Although, it's probably even clearer if we just subtract the function values from each other at some grid.

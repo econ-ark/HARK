@@ -7,11 +7,11 @@ You will likely need the "full" distribution of TeXLive, as many obscure tex pac
 openout_any = a
 shell_escape = t
 
-to your local texmf.cnf configuration file.  On a standard MacTeX TeXLive distribution, this file is at
+to your local texmf.cnf configuration file.  On a standard MacTeX TeXLive distribution, this file is at 
 
 /usr/local/texlive/[year]/texmf.cnf
 
-while on a standard Windows 7 installation it is at
+while on a standard Windows 7 installation it is at 
 
 C:\texlive\[year]\texmf.cnf
 

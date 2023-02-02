@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import copy
+from sre_constants import SRE_FLAG_ASCII
 from HARK import AgentType, Model
 from HARK.distribution import Distribution, TimeVaryingDiscreteDistribution
 import itertools
@@ -107,16 +108,18 @@ class Frame:
 
         This is used when copying or repreating frames.
         """
-        self.target = tuple(var + suffix for var in self.target)
+        self.target = tuple((var + suffix for var in self.target))
 
         self.scope = tuple(
-            var
-            if any(
-                var in pa and isinstance(self.parents[pa], BackwardFrameReference)
-                for pa in self.parents
+            (
+                var
+                if any(
+                    var in pa and isinstance(self.parents[pa], BackwardFrameReference)
+                    for pa in self.parents
+                )
+                else var + suffix
+                for var in self.scope
             )
-            else var + suffix
-            for var in self.scope
         )
 
     def add_backwards_suffix(self, suffix: str):
@@ -125,13 +128,15 @@ class Frame:
         include an additional suffix.
         """
         self.scope = tuple(
-            var + suffix
-            if any(
-                var in pa and isinstance(self.parents[pa], BackwardFrameReference)
-                for pa in self.parents
+            (
+                var + suffix
+                if any(
+                    var in pa and isinstance(self.parents[pa], BackwardFrameReference)
+                    for pa in self.parents
+                )
+                else var
+                for var in self.scope
             )
-            else var
-            for var in self.scope
         )
 
 
@@ -682,7 +687,7 @@ class FrameAgentType(AgentType):
         frame = self.model.frames[target]
         scope = frame.scope
 
-        target_values = tuple(np.zeros(self.AgentCount) + np.nan for var in scope)
+        target_values = tuple((np.zeros(self.AgentCount) + np.nan for var in scope))
 
         # Loop over each period of the cycle, getting controls separately depending on "age"
         for t in range(self.T_cycle):

@@ -29,6 +29,6 @@ class testParallel(unittest.TestCase):
         )
 
     def test_run_commands(self):
-        self.assertEqual(run_commands(self.agent, ["solve()"]), self.agent)
+        self.assertEquals(run_commands(self.agent, ["solve()"]), self.agent)
         # check if an undefined method of agent is called
         self.assertRaises(AttributeError, run_commands, self.agent, ["foobar()"])

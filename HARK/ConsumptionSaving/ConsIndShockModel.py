@@ -278,9 +278,9 @@ class ConsPerfForesightSolver(MetricObject):
         """
         Defines the value and marginal value functions for this period.
         Uses the fact that for a perfect foresight CRRA utility problem,
-        if the MPC in period t is :math:`\\kappa_{t}`, and relative risk
+        if the MPC in period t is :math:`\kappa_{t}`, and relative risk
         aversion :math:`\rho`, then the inverse value vFuncNvrs has a
-        constant slope of :math:`\\kappa_{t}^{-\rho/(1-\rho)}` and
+        constant slope of :math:`\kappa_{t}^{-\rho/(1-\rho)}` and
         vFuncNvrs has value of zero at the lower bound of market resources
         mNrmMin.  See PerfForesightConsumerType.ipynb documentation notebook
         for a brief explanation and the links below for a fuller treatment.
@@ -3242,7 +3242,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             self.PermGroFac[0] * self.InvEx_PermShkInv
         )  # [url]/#PGroAdj
 
-        self.thorn = (self.Rfree * self.DiscFac) ** (1 / self.CRRA)
+        self.thorn = ((self.Rfree * self.DiscFac)) ** (1 / self.CRRA)
 
         # self.Ex_RNrm           = self.Rfree*Ex_PermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
         self.GPFRaw = self.thorn / (self.PermGroFac[0])  # [url]/#GPF
