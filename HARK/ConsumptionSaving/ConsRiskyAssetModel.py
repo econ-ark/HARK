@@ -289,10 +289,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             will be mislabeled as "Rfree".
         """
 
-        if "Rfree" in self.time_vary:
-            RfreeNow = Rfree[self.t_cycle - 1]
-        else:
-            RfreeNow = self.Rfree
+        RfreeNow = super().get_Rfree()
 
         Rport = (
             self.controls["Share"] * self.shocks["Risky"]
