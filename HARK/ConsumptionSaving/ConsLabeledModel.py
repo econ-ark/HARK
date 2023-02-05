@@ -26,7 +26,23 @@ from HARK.rewards import UtilityFuncCRRA
 
 
 class ValueFuncCRRALabeled(MetricObject):
+    """
+    Class to allow for value function interpolation using xarray.
+    """
+
     def __init__(self, dataset: xr.Dataset, CRRA: float):
+        """
+        Initialize a value function.
+
+        Parameters
+        ----------
+        dataset : xr.Dataset
+            Underlying dataset that should include a  variable named
+            "v_inv" that is the inverse of the value function.
+
+        CRRA : float
+            Coefficient of relative risk aversion.
+        """
 
         self.dataset = dataset
         self.CRRA = CRRA
@@ -35,6 +51,15 @@ class ValueFuncCRRALabeled(MetricObject):
     def __call__(self, state: Mapping[str, np.ndarray]) -> xr.Dataset:
         """
         Interpolate inverse value function then invert to get value function at given state.
+
+        Parameters
+        ----------
+        state : Mapping[str, np.ndarray]
+            State to evaluate value function at.
+
+        Returns
+        -------
+        result : xr.Dataset
         """
 
         state_dict = self._validate_state(state)
@@ -55,6 +80,15 @@ class ValueFuncCRRALabeled(MetricObject):
     def derivative(self, state):
         """
         Interpolate inverse marginal value function then invert to get marginal value function at given state.
+
+        Parameters
+        ----------
+        state : Mapping[str, np.ndarray]
+            State to evaluate marginal value function at.
+
+        Returns
+        -------
+        result : xr.Dataset
         """
 
         state_dict = self._validate_state(state)
@@ -75,6 +109,15 @@ class ValueFuncCRRALabeled(MetricObject):
     def evaluate(self, state):
         """
         Interpolate all data variables in the dataset.
+
+        Parameters
+        ----------
+        state : Mapping[str, np.ndarray]
+            State to evaluate all data variables at.
+
+        Returns
+        -------
+        result : xr.Dataset
         """
 
         state_dict = self._validate_state(state)
@@ -88,6 +131,20 @@ class ValueFuncCRRALabeled(MetricObject):
         return result
 
     def _validate_state(self, state):
+        """
+        Allowed states are either a dict or an xr.Dataset.
+        This methods keeps only the coordinates of the dataset
+        if they are both in the dataset and the input state.
+
+        Parameters
+        ----------
+        state : Mapping[str, np.ndarray]
+            State to validate.
+
+        Returns
+        -------
+        state_dict : dict
+        """
 
         if isinstance(state, (xr.Dataset, dict)):
             state_dict = {}
@@ -100,6 +157,11 @@ class ValueFuncCRRALabeled(MetricObject):
 
 
 class ConsumerSolutionLabeled(MetricObject):
+    """
+    Class to allow for solution interpolation using xarray.
+    Represents a solution object for labeled models.
+    """
+
     def __init__(
         self,
         value: ValueFuncCRRALabeled,
@@ -107,6 +169,20 @@ class ConsumerSolutionLabeled(MetricObject):
         continuation: ValueFuncCRRALabeled,
         attrs=None,
     ):
+        """
+        Consumer Solution for labeled models.
+
+        Parameters
+        ----------
+        value : ValueFuncCRRALabeled
+            Value function and marginal value function.
+        policy : xr.Dataset
+            Policy function.
+        continuation : ValueFuncCRRALabeled
+            Continuation value function and marginal value function.
+        attrs : _type_, optional
+            Attributes of the solution. The default is None.
+        """
 
         if attrs is None:
             attrs = dict()
@@ -117,7 +193,21 @@ class ConsumerSolutionLabeled(MetricObject):
 
         self.attrs = attrs
 
-    def distance(self, other):
+    def distance(self, other: "ConsumerSolutionLabeled"):
+        """
+        Compute the distance between two solutions.
+
+        Parameters
+        ----------
+        other : ConsumerSolutionLabeled
+            Other solution to compare to.
+
+        Returns
+        -------
+        float
+            Distance between the two solutions.
+        """
+
         # TODO: is there a faster way to compare two xr.Datasets?
 
         value = self.value.dataset
@@ -127,7 +217,19 @@ class ConsumerSolutionLabeled(MetricObject):
 
 
 class PerfForesightLabeledType(IndShockConsumerType):
+    """
+    A labeled perfect foresight consumer type. This class is a subclass of
+    IndShockConsumerType, and inherits all of its methods and attributes.
+
+    Perfect foresight consumers have no uncertainty about income or interest
+    rates, and so the only state variable is market resources m.
+    """
+
     def __init__(self, verbose=1, quiet=False, **kwds):
+        """
+        Initialize a new instance of a perfect foresight consumer type.
+        """
+
         params = init_perfect_foresight.copy()
         params.update(kwds)
 
@@ -139,6 +241,11 @@ class PerfForesightLabeledType(IndShockConsumerType):
         )
 
     def update_solution_terminal(self):
+        """
+        Update the terminal solution of the model by creating a terminal
+        value function and terminal marginal value function along with
+        a terminal policy function.
+        """
 
         u = UtilityFuncCRRA(self.CRRA)
 
@@ -198,7 +305,14 @@ class PerfForesightLabeledType(IndShockConsumerType):
 
 
 class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
+    """
+    Solver for PerfForeshightLabeledType.
+    """
+
     def create_params_namespace(self):
+        """
+        Create a namespace for parameters.
+        """
 
         self.params = SimpleNamespace(
             Discount=self.DiscFac * self.LivPrb,
@@ -208,16 +322,21 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
         )
 
     def calculate_borrowing_constraint(self):
+        """
+        Calculate the minimum allowable value of money resources in this period.
+        """
 
-        # Calculate the minimum allowable value of money resources in this period
         self.BoroCnstNat = (
             self.solution_next.attrs["m_nrm_min"] - 1
         ) / self.params.Rfree
 
     def define_boundary_constraint(self):
+        """
+        If the natural borrowing constraint is a binding constraint,
+        then we can not evaluate the value function at that point,
+        so we must fill out the data by hand.
+        """
 
-        # if natural borrowing constraint is binding constraint, then we can not
-        # evaluate the value function at that point, so we must fill out the data
         if self.BoroCnstArt is None or self.BoroCnstArt <= self.BoroCnstNat:
             self.m_nrm_min = self.BoroCnstNat
             self.nat_boro_cnst = True  # natural borrowing constraint is binding
@@ -245,6 +364,10 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
             )
 
     def create_post_state(self):
+        """
+        Create the post state variable, which in this case is
+        the normalized assets saved this period.
+        """
 
         if self.nat_boro_cnst:
             # don't include natural borrowing constraint
@@ -265,29 +388,88 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
 
     def state_transition(self, state=None, action=None, params=None):
         """
-        state to post_state transition
+        State to post_state transition.
+
+        Parameters
+        ----------
+        state : xr.Dataset
+            State variables.
+        action : xr.Dataset
+            Action variables.
+        params : SimpleNamespace
+            Parameters.
+
+        Returns
+        -------
+        post_state : xr.Dataset
+            Post state variables.
         """
+
         post_state = {}  # pytree
         post_state["aNrm"] = state["mNrm"] - action["cNrm"]
         return post_state
 
     def post_state_transition(self, post_state=None, params=None):
         """
-        post_state to next_state transition
+        Post_state to next_state transition.
+
+        Parameters
+        ----------
+        post_state : xr.Dataset
+            Post state variables.
+        params : SimpleNamespace
+            Parameters.
+
+        Returns
+        -------
+        next_state : xr.Dataset
+            Next period's state variables.
         """
+
         next_state = {}  # pytree
         next_state["mNrm"] = post_state["aNrm"] * params.Rfree / params.PermGroFac + 1
         return next_state
 
     def reverse_transition(self, post_state=None, action=None, params=None):
-        """state from post_state and actions"""
+        """
+        State from post state and actions.
+
+        Parameters
+        ----------
+        post_state : xr.Dataset
+            Post state variables.
+        action : xr.Dataset
+            Action variables.
+        params : SimpleNamespace
+
+        Returns
+        -------
+        state : xr.Dataset
+            State variables.
+        """
+
         state = {}  # pytree
         state["mNrm"] = post_state["aNrm"] + action["cNrm"]
 
         return state
 
     def egm_transition(self, post_state=None, continuation=None, params=None):
-        """actions from post_state"""
+        """
+        Actions from post state using the endogenous grid method.
+
+        Parameters
+        ----------
+        post_state : xr.Dataset
+            Post state variables.
+        continuation : ValueFuncCRRALabeled
+            Continuation value function, next period's value function.
+        params : SimpleNamespace
+
+        Returns
+        -------
+        action : xr.Dataset
+            Action variables.
+        """
 
         action = {}  # pytree
         action["cNrm"] = self.u.derinv(
@@ -298,8 +480,25 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
 
     def value_transition(self, action=None, state=None, continuation=None, params=None):
         """
-        value of action given state and continuation
+        Value of action given state and continuation
+
+        Parameters
+        ----------
+        action : xr.Dataset
+            Action variables.
+        state : xr.Dataset
+            State variables.
+        continuation : ValueFuncCRRALabeled
+            Continuation value function, next period's value function.
+        params : SimpleNamespace
+            Parameters
+
+        Returns
+        -------
+        variables : xr.Dataset
+            Value, marginal value, reward, marginal reward, and contributions.
         """
+
         variables = {}  # pytree
         post_state = self.state_transition(state, action, params)
         variables.update(post_state)
@@ -322,8 +521,23 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
 
     def continuation_transition(self, post_state=None, value_next=None, params=None):
         """
-        continuation value function of post_state
+        Continuation value function of post state.
+
+        Parameters
+        ----------
+        post_state : xr.Dataset
+            Post state variables.
+        value_next : ValueFuncCRRALabeled
+            Next period's value function.
+        params : SimpleNamespace
+            Parameters.
+
+        Returns
+        -------
+        variables : xr.Dataset
+            Value, marginal value, inverse value, and inverse marginal value.
         """
+
         variables = {}  # pytree
         next_state = self.post_state_transition(post_state, params)
         variables.update(next_state)
@@ -344,12 +558,27 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
         return variables
 
     def prepare_to_solve(self):
+        """
+        Prepare to solve the model by creating the parameters namespace,
+        calculating the borrowing constraint, defining the boundary constraint,
+        and creating the post state.
+        """
+
         self.create_params_namespace()
         self.calculate_borrowing_constraint()
         self.define_boundary_constraint()
         self.create_post_state()
 
     def create_continuation_function(self):
+        """
+        Create the continuation function, or the value function
+        of every possible post state.
+
+        Returns
+        -------
+        wfunc : ValueFuncCRRALabeled
+            Continuation function.
+        """
 
         # unpack next period's solution
         vfunc_next = self.solution_next.value
@@ -366,7 +595,22 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
         return wfunc
 
     def endogenous_grid_method(self):
+        """
+        Solve the model using the endogenous grid method, which consists of
+        solving the model backwards in time using the following steps:
 
+        1. Create the continuation function, or the value function of every
+            possible post state.
+        2. Get the optimal actions/decisions from the endogenous grid transition.
+        3. Get the state from the actions and post state using the reverse transition.
+        4. EGM requires swapping dimensions; make actions and state functions of state.
+        5. Merge the actions and state into a single dataset.
+        6. If the natural borrowing constraint is not used, concatenate the
+            borrowing constraint to the dataset.
+        7. Create the value function from the variables in the dataset.
+        8. Create the policy function from the variables in the dataset.
+        9. Create the solution from the value and policy functions.
+        """
         wfunc = self.create_continuation_function()
 
         # get optimal actions/decisions from egm
@@ -406,6 +650,9 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
         )
 
     def solve(self):
+        """
+        Solve the model by endogenous grid method.
+        """
 
         self.endogenous_grid_method()
 
@@ -413,7 +660,16 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
 
 
 class IndShockLabeledType(PerfForesightLabeledType):
+    """
+    A labeled version of IndShockConsumerType. This class inherits from
+    PerfForesightLabeledType and adds income uncertainty.
+    """
+
     def __init__(self, verbose=1, quiet=False, **kwds):
+        """
+        Initialize an instance of IndShockLabeledType.
+        """
+
         params = init_perfect_foresight.copy()
         params.update(kwds)
 
@@ -425,15 +681,21 @@ class IndShockLabeledType(PerfForesightLabeledType):
         self.update_labeled_type()
 
     def update_labeled_type(self):
+        """
+        Update the labeled type by creating labeled versions
+        of the distributions.
+        """
 
         self.update_distributions()
 
     def update_distributions(self):
+        """
+        Create labeled versions of the distributions.
+        """
 
         IncShkDstn = []
 
         for i in range(len(self.IncShkDstn.dstns)):
-
             IncShkDstn.append(
                 DiscreteDistributionLabeled.from_unlabeled(
                     self.IncShkDstn[i],
@@ -446,12 +708,20 @@ class IndShockLabeledType(PerfForesightLabeledType):
 
 
 class ConsIndShockLabeledSolver(ConsPerfForesightLabeledSolver):
+    """
+    Solver for IndShockLabeledType.
+    """
+
     def calculate_borrowing_constraint(self):
+        """
+        Calculate the minimum allowable value of money resources in this period.
+        This is different from the perfect foresight natural borrowing constraint
+        because of the presence of income uncertainty.
+        """
 
         PermShkMinNext = np.min(self.IncShkDstn.atoms[0])
         TranShkMinNext = np.min(self.IncShkDstn.atoms[1])
 
-        # Calculate the minimum allowable value of money resources in this period
         self.BoroCnstNat = (
             (self.solution_next.attrs["m_nrm_min"] - TranShkMinNext)
             * (self.params.PermGroFac * PermShkMinNext)
@@ -460,8 +730,23 @@ class ConsIndShockLabeledSolver(ConsPerfForesightLabeledSolver):
 
     def post_state_transition(self, post_state=None, shocks=None, params=None):
         """
-        post_state to next_state transition
+        Post state to next state transition now depends on income shocks.
+
+        Parameters
+        ----------
+        post_state : dict
+            Post state variables.
+        shocks : dict
+            Shocks to income.
+        params : dict
+            Parameters.
+
+        Returns
+        -------
+        next_state : dict
+            Next period's state variables.
         """
+
         next_state = {}  # pytree
         next_state["mNrm"] = (
             post_state["aNrm"] * params.Rfree / (params.PermGroFac * shocks["perm"])
@@ -473,8 +758,25 @@ class ConsIndShockLabeledSolver(ConsPerfForesightLabeledSolver):
         self, shocks=None, post_state=None, v_next=None, params=None
     ):
         """
-        continuation value function of post_state
+        Continuation value function of post state.
+
+        Parameters
+        ----------
+        shocks : dict
+            Shocks to income.
+        post_state : dict
+            Post state variables.
+        v_next : ValueFuncCRRALabeled
+            Next period's value function.
+        params : dict
+            Parameters.
+
+        Returns
+        -------
+        variables : dict
+            Continuation value function and its derivative.
         """
+
         variables = {}  # pytree
         next_state = self.post_state_transition(post_state, shocks, params)
         variables.update(next_state)
@@ -497,6 +799,17 @@ class ConsIndShockLabeledSolver(ConsPerfForesightLabeledSolver):
         return variables
 
     def create_continuation_function(self):
+        """
+        Create the continuation function. Because of the income uncertainty
+        in this model, we need to integrate over the income shocks to get the
+        continuation value function. Depending on the natural borrowing constraint,
+        we may also have to append the minimum allowable value of money resources.
+
+        Returns
+        -------
+        wfunc : ValueFuncCRRALabeled
+            Continuation value function.
+        """
 
         # unpack next period's solution
         vfunc_next = self.solution_next.value
@@ -523,7 +836,19 @@ class ConsIndShockLabeledSolver(ConsPerfForesightLabeledSolver):
 
 
 class RiskyAssetLabeledType(IndShockLabeledType, RiskyAssetConsumerType):
+    """
+    A labeled RiskyAssetConsumerType. This class is a subclass of
+    RiskyAssetConsumerType, and inherits all of its methods and attributes.
+
+    Risky asset consumers can only save on a risky asset that
+    pays a stochastic return.
+    """
+
     def __init__(self, verbose=1, quiet=False, **kwds):
+        """
+        Initialize a labeled RiskyAssetConsumerType.
+        """
+
         params = init_risky_asset.copy()
         params.update(kwds)
 
@@ -535,6 +860,9 @@ class RiskyAssetLabeledType(IndShockLabeledType, RiskyAssetConsumerType):
         self.update_labeled_type()
 
     def update_distributions(self):
+        """
+        Update the labeled distributions including the Risky distribution.
+        """
 
         super().update_distributions()
 
@@ -547,7 +875,6 @@ class RiskyAssetLabeledType(IndShockLabeledType, RiskyAssetConsumerType):
         ShockDstn = []
 
         for i in range(len(self.ShockDstn.dstns)):
-
             ShockDstn.append(
                 DiscreteDistributionLabeled.from_unlabeled(
                     self.ShockDstn[i],
@@ -561,33 +888,55 @@ class RiskyAssetLabeledType(IndShockLabeledType, RiskyAssetConsumerType):
 
 @dataclass
 class ConsRiskyAssetLabeledSolver(ConsIndShockLabeledSolver):
-
     """
     Solver for an agent that can save in an asset that has a risky return.
     """
 
-    solution_next: ConsumerSolutionLabeled
-    ShockDstn: DiscreteDistributionLabeled
-    LivPrb: float
-    DiscFac: float
-    CRRA: float
-    Rfree: float
-    PermGroFac: float
-    BoroCnstArt: float
-    aXtraGrid: np.ndarray
+    solution_next: ConsumerSolutionLabeled  # solution to next period's problem
+    ShockDstn: DiscreteDistributionLabeled  #  distribution of shocks to income and returns
+    LivPrb: float  # survival probability
+    DiscFac: float  # intertemporal discount factor
+    CRRA: float  # coefficient of relative risk aversion
+    Rfree: float  # interest factor on assets
+    PermGroFac: float  # permanent income growth factor
+    BoroCnstArt: float  # artificial borrowing constraint
+    aXtraGrid: np.ndarray  # grid of end-of-period assets
 
     def __post_init__(self):
+        """
+        Define utility functions.
+        """
+
         self.def_utility_funcs()
 
     def calculate_borrowing_constraint(self):
+        """
+        Calculate the borrowing constraint by enforcing a 0.0 artificial borrowing
+        constraint and setting the shocks to income to come from the shock distribution.
+        """
         self.BoroCnstArt = 0.0
         self.IncShkDstn = self.ShockDstn
         return super().calculate_borrowing_constraint()
 
     def post_state_transition(self, post_state=None, shocks=None, params=None):
         """
-        post_state to next_state transition
+        Post_state to next_state transition with risky asset return.
+
+        Parameters
+        ----------
+        post_state : dict
+            Post-state variables.
+        shocks : dict
+            Shocks to income and risky asset return.
+        params : dict
+            Parameters of the model.
+
+        Returns
+        -------
+        next_state : dict
+            Next period's state variables.
         """
+
         next_state = {}  # pytree
         next_state["mNrm"] = (
             post_state["aNrm"] * shocks["risky"] / (params.PermGroFac * shocks["perm"])
@@ -599,8 +948,25 @@ class ConsRiskyAssetLabeledSolver(ConsIndShockLabeledSolver):
         self, shocks=None, post_state=None, v_next=None, params=None
     ):
         """
-        continuation value function of post_state
+        Continuation value function of post_state with risky asset return.
+
+        Parameters
+        ----------
+        shocks : dict
+            Shocks to income and risky asset return.
+        post_state : dict
+            Post-state variables.
+        v_next : function
+            Value function of next period.
+        params : dict
+            Parameters of the model.
+
+        Returns
+        -------
+        variables : dict
+            Variables of the continuation value function.
         """
+
         variables = {}  # pytree
         next_state = self.post_state_transition(post_state, shocks, params)
         variables.update(next_state)
@@ -623,7 +989,16 @@ class ConsRiskyAssetLabeledSolver(ConsIndShockLabeledSolver):
         return variables
 
     def create_continuation_function(self):
+        """
+        Create the continuation value function taking expectation
+        over the shock distribution which includes shocks to income and
+        the risky asset return.
 
+        Returns
+        -------
+        wfunc : ValueFuncCRRALabeled
+            Continuation value function.
+        """
         # unpack next period's solution
         vfunc_next = self.solution_next.value
 
@@ -653,7 +1028,19 @@ class ConsRiskyAssetLabeledSolver(ConsIndShockLabeledSolver):
 class FixedPortfolioLabeledType(
     RiskyAssetLabeledType, FixedPortfolioShareRiskyAssetConsumerType
 ):
+    """
+    A labeled FixedPortfolioShareRiskyAssetConsumerType. This class is a subclass of
+    FixedPortfolioShareRiskyAssetConsumerType, and inherits all of its methods and attributes.
+
+    Fixed portfolio share consumers can save on a risk-free and
+    risky asset at a fixed proportion.
+    """
+
     def __init__(self, verbose=1, quiet=False, **kwds):
+        """
+        Initialize a new instance of FixedPortfolioLabeledType.
+        """
+
         params = init_risky_share_fixed.copy()
         params.update(kwds)
 
@@ -671,23 +1058,50 @@ class FixedPortfolioLabeledType(
 
 @dataclass
 class ConsFixedPortfolioLabeledSolver(ConsRiskyAssetLabeledSolver):
-    RiskyShareFixed: float
+    """
+    Solver for an agent that can save in a risk-free and risky asset
+    at a fixed proportion.
+    """
 
-    def create_post_state(self):
+    RiskyShareFixed: float  # share of risky assets in portfolio
 
-        super().create_post_state()
+    def create_params_namespace(self):
+        """
+        Create a namespace for parameters.
+        """
 
-        self.post_state["stigma"] = self.RiskyShareFixed * xr.ones_like(
-            self.post_state["aNrm"]
+        self.params = SimpleNamespace(
+            Discount=self.DiscFac * self.LivPrb,
+            CRRA=self.CRRA,
+            Rfree=self.Rfree,
+            PermGroFac=self.PermGroFac,
+            RiskyShareFixed=self.RiskyShareFixed,
         )
 
     def post_state_transition(self, post_state=None, shocks=None, params=None):
         """
-        post_state to next_state transition
+        Post_state to next_state transition with fixed portfolio share.
+
+        Parameters
+        ----------
+        post_state : dict
+            Post-state variables.
+        shocks : dict
+            Shocks to income and risky asset return.
+        params : dict
+            Parameters of the model.
+
+        Returns
+        -------
+        next_state : dict
+            Next period's state variables.
         """
+
         next_state = {}  # pytree
         next_state["rDiff"] = params.Rfree - shocks["risky"]
-        next_state["rPort"] = params.Rfree + next_state["rDiff"] * post_state["stigma"]
+        next_state["rPort"] = (
+            params.Rfree + next_state["rDiff"] * params.RiskyShareFixed
+        )
         next_state["mNrm"] = (
             post_state["aNrm"]
             * next_state["rPort"]
@@ -700,8 +1114,25 @@ class ConsFixedPortfolioLabeledSolver(ConsRiskyAssetLabeledSolver):
         self, shocks=None, post_state=None, v_next=None, params=None
     ):
         """
-        continuation value function of post_state
+        Continuation value function of post_state with fixed portfolio share.
+
+        Parameters
+        ----------
+        shocks : dict
+            Shocks to income and risky asset return.
+        post_state : dict
+            Post-state variables.
+        v_next : ValueFuncCRRALabeled
+            Continuation value function.
+        params : dict
+            Parameters of the model.
+
+        Returns
+        -------
+        variables : dict
+            Variables of the model.
         """
+
         variables = {}  # pytree
         next_state = self.post_state_transition(post_state, shocks, params)
         variables.update(next_state)
@@ -725,7 +1156,18 @@ class ConsFixedPortfolioLabeledSolver(ConsRiskyAssetLabeledSolver):
 
 
 class PortfolioLabeledType(FixedPortfolioLabeledType, PortfolioConsumerType):
+    """
+    A labeled PortfolioConsumerType. This class is a subclass of
+    PortfolioConsumerType, and inherits all of its methods and attributes.
+
+    Portfolio consumers can save on a risk-free and
+    risky asset at an optimal proportion.
+    """
+
     def __init__(self, verbose=1, quiet=False, **kwds):
+        """
+        Initialize a new instance of PortfolioLabeledType.
+        """
         params = init_portfolio.copy()
         params.update(kwds)
 
@@ -741,11 +1183,20 @@ class PortfolioLabeledType(FixedPortfolioLabeledType, PortfolioConsumerType):
 
 @dataclass
 class ConsPortfolioLabeledSolver(ConsFixedPortfolioLabeledSolver):
-    ShareGrid: np.ndarray
+    """
+    Solver for an agent that can save in a risk-free and risky asset
+    at an optimal proportion.
+    """
+
+    ShareGrid: np.ndarray  # grid of risky shares
 
     def create_post_state(self):
+        """
+        Create post-state variables by adding risky share, called
+        stigma, to the post-state variables.
+        """
 
-        super(ConsFixedPortfolioLabeledSolver, self).create_post_state()
+        super().create_post_state()
 
         self.post_state["stigma"] = xr.DataArray(
             self.ShareGrid, dims=["stigma"], attrs={"long_name": "risky share"}
@@ -753,8 +1204,23 @@ class ConsPortfolioLabeledSolver(ConsFixedPortfolioLabeledSolver):
 
     def post_state_transition(self, post_state=None, shocks=None, params=None):
         """
-        post_state to next_state transition
+        Post_state to next_state transition with optimal portfolio share.
+
+        Parameters
+        ----------
+        post_state : dict
+            Post-state variables.
+        shocks : dict
+            Shocks to income and risky asset return.
+        params : dict
+            Parameters of the model.
+
+        Returns
+        -------
+        next_state : dict
+            Next period's state variables.
         """
+
         next_state = {}  # pytree
         next_state["rDiff"] = shocks["risky"] - params.Rfree
         next_state["rPort"] = params.Rfree + next_state["rDiff"] * post_state["stigma"]
@@ -770,8 +1236,25 @@ class ConsPortfolioLabeledSolver(ConsFixedPortfolioLabeledSolver):
         self, shocks=None, post_state=None, v_next=None, params=None
     ):
         """
-        continuation value function of post_state
+        Continuation value function of post_state with optimal portfolio share.
+
+        Parameters
+        ----------
+        shocks : dict
+            Shocks to income and risky asset return.
+        post_state : dict
+            Post-state variables.
+        v_next : ValueFuncCRRALabeled
+            Continuation value function.
+        params : dict
+            Parameters of the model.
+
+        Returns
+        -------
+        variables : dict
+            Variables of the model.
         """
+
         variables = {}  # pytree
         next_state = self.post_state_transition(post_state, shocks, params)
         variables.update(next_state)
@@ -797,6 +1280,23 @@ class ConsPortfolioLabeledSolver(ConsFixedPortfolioLabeledSolver):
         return variables
 
     def create_continuation_function(self):
+        """
+        Create continuation function with optimal portfolio share.
+        The continuation function is a function of the post-state before
+        the growth period, but only a function of assets in the
+        allocation period.
+
+        Therefore, the first continuation function is a function of
+        assets and stigma. Given this, the agent makes an optimal
+        choice of risky share of portfolio, and the second continuation
+        function is a function of assets only.
+
+        Returns
+        -------
+        wfunc : ValueFuncCRRALabeled
+            Continuation value function.
+        """
+
         wfunc = super().create_continuation_function()
 
         dvds = wfunc.dataset["dvds"].values
