@@ -15,8 +15,8 @@ import unittest
 
 
 class testsLinearInterp(unittest.TestCase):
-    """ tests for LinearInterp, currently tests for uneven length of
-    x and y with user input as lists, arrays, arrays with column orientation 
+    """tests for LinearInterp, currently tests for uneven length of
+    x and y with user input as lists, arrays, arrays with column orientation
     """
 
     def setUp(self):
@@ -45,8 +45,8 @@ class testsLinearInterp(unittest.TestCase):
 
 
 class testsCubicInterp(unittest.TestCase):
-    """ tests for CubicInterp, currently tests for uneven length of
-    x, y and derivative with user input as lists, arrays, arrays with column orientation 
+    """tests for CubicInterp, currently tests for uneven length of
+    x, y and derivative with user input as lists, arrays, arrays with column orientation
     """
 
     def setUp(self):
@@ -84,8 +84,8 @@ class testsCubicInterp(unittest.TestCase):
 
 
 class testsBilinearInterp(unittest.TestCase):
-    """ tests for BilinearInterp, currently tests for uneven length of
-    x, y, f(x,y) with user input as arrays, arrays with column orientation 
+    """tests for BilinearInterp, currently tests for uneven length of
+    x, y, f(x,y) with user input as arrays, arrays with column orientation
     """
 
     def setUp(self):
@@ -112,8 +112,8 @@ class testsBilinearInterp(unittest.TestCase):
 
 
 class testsTrilinearInterp(unittest.TestCase):
-    """ tests for TrilinearInterp, currently tests for uneven length of
-    x, y, z, f(x, y, z) with user input as arrays, arrays with column orientation 
+    """tests for TrilinearInterp, currently tests for uneven length of
+    x, y, z, f(x, y, z) with user input as arrays, arrays with column orientation
     """
 
     def setUp(self):
@@ -155,8 +155,8 @@ class testsTrilinearInterp(unittest.TestCase):
 
 
 class testsQuadlinearInterp(unittest.TestCase):
-    """ tests for TrilinearInterp, currently tests for uneven length of
-    w, x, y, z, f(w, x, y, z) with user input as arrays, arrays with column orientation 
+    """tests for TrilinearInterp, currently tests for uneven length of
+    w, x, y, z, f(w, x, y, z) with user input as arrays, arrays with column orientation
     """
 
     def setUp(self):

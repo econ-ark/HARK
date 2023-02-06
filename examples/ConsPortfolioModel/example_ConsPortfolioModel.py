@@ -392,7 +392,7 @@ for rcount in risky_count_grid:
 
     # Compute the analytical Merton-Samuelson limiting portfolio share
     RiskyVar = agent.RiskyStd**2
-    RiskPrem = agent.RiskyAvg - agent.Rfree[0]
+    RiskPrem = agent.RiskyAvg - agent.Rfree
     MS_limit = RiskyShareMertSamLogNormal(RiskPrem, agent.CRRA, RiskyVar)
 
     # Now compute the limiting share numerically, using the approximated
