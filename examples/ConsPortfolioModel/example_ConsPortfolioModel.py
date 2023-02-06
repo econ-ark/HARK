@@ -1,24 +1,109 @@
+# ---
+# jupyter:
+#   jupytext:
+#     cell_metadata_filter: title,-all
+#     formats: ipynb,py:percent
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.14.4
+#   kernelspec:
+#     display_name: Python 3 (ipykernel)
+#     language: python
+#     name: python3
+# ---
+
 # %% [markdown]
-# # ConsPortfolioModel: A Consumption-Savings model with risky assets
+# # Portfolio Models in HARK
+#
+# In this notebook, we consider the solution and simulation of a number of microeconomic problems in the context of optimal portfolio choice. 
+#
+# The agents in this model are first defined using the dictionary from the `PerfForesightConsumerType` class and additional attributes are added using the `IndShockConsumerType` class. 
+#
+# From there, the `ConsPortfolioDict` dictionary is introduced to create the `PortfolioConsumerType` and each of the subseqeunt agent types using it. 
 
 # %%
-from copy import copy
+from copy import copy, deepcopy
 from time import time
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from HARK.ConsumptionSaving.ConsIndShockModel import init_lifecycle
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    init_lifecycle,
+    time_params,
+    dist_params,
+    income_params,
+    liv_prb,
+)
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     PortfolioConsumerType,
     init_portfolio,
 )
 from HARK.utilities import plot_funcs
 
+
+# %% [markdown]
+# ## 1. The baseline model of optimal portfolio choice
+
+# %%
+# Initial attempt for defining a dictionary for the Portfolio consumer type -- needs to be tested!
+
+ConsPortfolioDict = {
+    # Parameters shared with the Perfect foresight consumer type
+    "CRRA": 5.0,  # Coefficient of relative risk aversion,
+    "Rfree": 1.03,  # Interest factor on assets
+    "DiscFac": 0.90,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability
+    "PermGroFac": [1.01],  # Permanent income growth factor
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "MaxKinks": 400,  # Maximum number of grid points to allow in cFunc (should be large)
+    "AgentCount": 10000,  # Number of agents of this type (only matters for simulation)
+    "aNrmInitMean": 0.0,  # Mean of log initial assets (only matters for simulation)
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets (only for simulation)
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income (only matters for simulation)
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income (only matters for simulation)
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock: Forces Newborns to follow solution path of the agent he/she replaced when True
+    # assets above grid parameters
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 100,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 1,  # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraCount": 200,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": [
+        None
+    ],  # Some other value of "assets above minimum" to add to the grid, not used
+    # Income process variables
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+    "tax_rate": 0.0,  # Flat income tax rate
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Use cubic spline interpolation when True, linear interpolation when False
+    "neutral_measure": False,  # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock. The default is False.
+    # Attributes specific to the Portfolio consumer
+    "RiskyAvg": 1.08,  # Average return of the risky asset
+    "RiskyStd": 0.20,  # Standard deviation of (log) risky returns
+    "RiskyCount": 5,  # Number of integration nodes to use in approximation of risky returns
+    "ShareCount": 25,  # Number of discrete points in the risky share approximation
+    "AdjustPrb": 1.0,  # Probability that the agent can adjust their risky portfolio share each period
+    "DiscreteShareBool": False,  # Flag for whether to optimize risky share on a discrete grid only
+}
+
 # %%
 # Make and solve an example portfolio choice consumer type
 print("Now solving an example portfolio choice problem; this might take a moment...")
-MyType = PortfolioConsumerType()
+MyType = PortfolioConsumerType(**ConsPortfolioDict)
 MyType.cycles = 0
 t0 = time()
 MyType.solve()
@@ -52,12 +137,14 @@ plot_funcs(
     200.0,
 )
 
+
 # %%
 # Now simulate this consumer type
 MyType.track_vars = ["cNrm", "Share", "aNrm", "t_age"]
 MyType.T_sim = 100
 MyType.initialize_sim()
 MyType.simulate()
+
 
 # %%
 print("\n\n\n")
@@ -67,21 +154,26 @@ print(
     "http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/AssetPricing/Portfolio-CRRA/"
 )
 
+
+# %% [markdown]
+# ## 2. Discrete portfolio choice
+
 # %%
-""
 # Make another example type, but this one optimizes risky portfolio share only
 # on the discrete grid of values implicitly chosen by RiskyCount, using explicit
 # value maximization.
-init_discrete_share = init_portfolio.copy()
-init_discrete_share["DiscreteShareBool"] = True
+DiscConsPortfolioDict = ConsPortfolioDict.copy()
+DiscConsPortfolioDict["DiscreteShareBool"] = True
 # Have to actually construct value function for this to work
-init_discrete_share["vFuncBool"] = True
+DiscConsPortfolioDict["vFuncBool"] = True
 
 # %%
-# Make and solve a discrete portfolio choice consumer type
-print("Now solving a discrete choice portfolio problem; this might take a minute...")
-DiscreteType = PortfolioConsumerType(**init_discrete_share)
+# Create the discrete type using the dictionary, then change relevant attributes
+DiscreteType = PortfolioConsumerType(**DiscConsPortfolioDict)
 DiscreteType.cycles = 0
+
+print("Now solving a discrete choice portfolio problem; this might take a minute...")
+
 t0 = time()
 DiscreteType.solve()
 t1 = time()
@@ -96,6 +188,7 @@ print(
     + str(t1 - t0)
     + " seconds."
 )
+
 
 # %%
 # Plot the consumption and risky-share functions
@@ -115,22 +208,27 @@ plot_funcs(
     200.0,
 )
 
+
 # %%
 print("\n\n\n")
 
+
+# %% [markdown]
+# ## 3. A model of "sticky" portfolio choice 
+
 # %%
-""
 # Make another example type, but this one can only update their risky portfolio
 # share in any particular period with 15% probability.
-init_sticky_share = init_portfolio.copy()
-init_sticky_share["AdjustPrb"] = 0.15
+StickyConsPortfolioDict = ConsPortfolioDict.copy()
+StickyConsPortfolioDict["AdjustPrb"] = 0.15
+
 
 # %%
 # Make and solve a discrete portfolio choice consumer type
 print(
     'Now solving a portfolio choice problem with "sticky" portfolio shares; this might take a moment...'
 )
-StickyType = PortfolioConsumerType(**init_sticky_share)
+StickyType = PortfolioConsumerType(**StickyConsPortfolioDict)
 StickyType.cycles = 0
 t0 = time()
 StickyType.solve()
@@ -150,12 +248,14 @@ print(
     + " seconds."
 )
 
+
 # %%
 # Plot the consumption and risky-share functions
 print(
     "Consumption function over market resources when the agent can adjust his portfolio:"
 )
 plot_funcs(StickyType.cFuncAdj[0], 0.0, 50.0)
+
 
 # %%
 print(
@@ -169,6 +269,7 @@ plt.xlim(0.0, 50.0)
 plt.ylim(0.0, None)
 plt.show()
 
+
 # %%
 print("Risky asset share function over market resources (when possible to adjust):")
 print("Optimal (blue) versus Theoretical Limit (orange)")
@@ -181,28 +282,31 @@ plot_funcs(
     200.0,
 )
 
-# %%
-""
-# Make another example type, but this one has *age-varying* perceptions of risky asset returns.
-# Begin by making a lifecycle dictionary, but adjusted for the portfolio choice model.
-init_age_varying_risk_perceptions = copy(init_lifecycle)
-init_age_varying_risk_perceptions["RiskyCount"] = init_portfolio["RiskyCount"]
-init_age_varying_risk_perceptions["ShareCount"] = init_portfolio["ShareCount"]
-init_age_varying_risk_perceptions["aXtraMax"] = init_portfolio["aXtraMax"]
-init_age_varying_risk_perceptions["aXtraCount"] = init_portfolio["aXtraCount"]
-init_age_varying_risk_perceptions["aXtraNestFac"] = init_portfolio["aXtraNestFac"]
-init_age_varying_risk_perceptions["BoroCnstArt"] = init_portfolio["BoroCnstArt"]
-init_age_varying_risk_perceptions["CRRA"] = init_portfolio["CRRA"]
-init_age_varying_risk_perceptions["DiscFac"] = init_portfolio["DiscFac"]
+
+# %% [markdown]
+# Notice the wiggle in the blue line. This reflects the fact that the maximum grid point for which the solution is calculated is $a=100$ and the (incorrect) assumption built into the model that the portfolio share asymptotes to the frictionless analytical case. An alternative (not yet implemented) would be to calculate the implicit limit defined by the rate of geometric decay among the last grid points and assume that this is the limit.
+#
+# The difference between the two is likely due to the agent's inability to adjust their portfolio.
+#
+
+# %% [markdown]
+# ## 4. Life-cycle model of portfolio choice 
 
 # %%
-init_age_varying_risk_perceptions["RiskyAvg"] = [1.08] * init_lifecycle["T_cycle"]
-init_age_varying_risk_perceptions["RiskyStd"] = list(
+LC_ConsPortfolioDict = copy(ConsPortfolioDict)
+LC_ConsPortfolioDict.update(time_params)
+LC_ConsPortfolioDict.update(dist_params)
+# Note the income specification overrides the pLvlInitMean from the SCF.
+LC_ConsPortfolioDict.update(income_params)
+LC_ConsPortfolioDict.update({"LivPrb": liv_prb})
+
+LC_ConsPortfolioDict["RiskyAvg"] = [1.08] * init_lifecycle["T_cycle"]
+LC_ConsPortfolioDict["RiskyStd"] = list(
     np.linspace(0.20, 0.30, init_lifecycle["T_cycle"])
 )
-init_age_varying_risk_perceptions["RiskyAvgTrue"] = 1.08
-init_age_varying_risk_perceptions["RiskyStdTrue"] = 0.20
-AgeVaryingRiskPercType = PortfolioConsumerType(**init_age_varying_risk_perceptions)
+LC_ConsPortfolioDict["RiskyAvgTrue"] = 1.08
+LC_ConsPortfolioDict["RiskyStdTrue"] = 0.20
+AgeVaryingRiskPercType = PortfolioConsumerType(**LC_ConsPortfolioDict)
 AgeVaryingRiskPercType.cycles = 1
 
 # %%
@@ -227,6 +331,7 @@ print(
     + " seconds."
 )
 
+
 # %%
 # Plot the consumption and risky-share functions
 print("Consumption function over market resources in each lifecycle period:")
@@ -234,14 +339,19 @@ plot_funcs(AgeVaryingRiskPercType.cFunc, 0.0, 20.0)
 print("Risky asset share function over market resources in each lifecycle period:")
 plot_funcs(AgeVaryingRiskPercType.ShareFunc, 0.0, 200.0)
 
+
 # %% [markdown]
-# The code below tests the mathematical limits of the model.
+# ## 5. Portfolio choice with Merton-Samuelson limiting shares
+#
+# The code below tests the mathematical limits of the model and features the definition of a Merton-Samuelson type consumer.
 
 # %%
 # Create a grid of market resources for the plots
 mMin = 0  # Minimum ratio of assets to income to plot
 mMax = 5 * 1e2  # Maximum ratio of assets to income to plot
 mPts = 1000  # Number of points to plot
+plot_point_max = 1000
+aXtraMax = plot_point_max * 10  # Maximum asset level
 
 eevalgrid = np.linspace(0, mMax, mPts)  # range of values of assets for the plot
 
@@ -250,18 +360,17 @@ risky_count_grid = [5, 50, 200]
 # Plot by ages (time periods) at which to plot. We will use the default life-cycle calibration.
 ages = [2, 4, 6, 8]
 
-# Create lifecycle dictionary with portfolio choice parameters
-merton_dict = copy(init_lifecycle)
-merton_dict["RiskyCount"] = init_portfolio["RiskyCount"]
-merton_dict["ShareCount"] = init_portfolio["ShareCount"]
-merton_dict["aXtraMax"] = init_portfolio["aXtraMax"]
-merton_dict["aXtraCount"] = init_portfolio["aXtraCount"]
-merton_dict["aXtraNestFac"] = init_portfolio["aXtraNestFac"]
-merton_dict["BoroCnstArt"] = init_portfolio["BoroCnstArt"]
-merton_dict["CRRA"] = init_portfolio["CRRA"]
-merton_dict["DiscFac"] = init_portfolio["DiscFac"]
-merton_dict["RiskyAvgTrue"] = 1.08
-merton_dict["RiskyStdTrue"] = 0.20
+# %%
+# Creating the dictionary for the Merton-Samuelson consumer type
+MertonPortfolioDict = copy(ConsPortfolioDict)
+MertonPortfolioDict.update(time_params)
+MertonPortfolioDict.update(dist_params)
+# Note the income specification overrides the pLvlInitMean from the SCF.
+MertonPortfolioDict.update(income_params)
+MertonPortfolioDict.update({"LivPrb": liv_prb})
+
+MertonPortfolioDict["RiskyAvgTrue"] = 1.08
+MertonPortfolioDict["RiskyStdTrue"] = 0.20
 
 
 # Create a function to compute the Merton-Samuelson limiting portfolio share.
@@ -271,20 +380,19 @@ def RiskyShareMertSamLogNormal(RiskPrem, CRRA, RiskyVar):
 
 # %% Calibration and solution
 for rcount in risky_count_grid:
-
     # Create a new dictionary and replace the number of points that
     # approximate the risky return distribution
 
-    # Create new dictionary copying the default
-    merton_dict["RiskyCount"] = rcount
+    # Create new dictionary copying the default.
+    MertonPortfolioDict["RiskyCount"] = rcount
 
     # Create and solve agent
-    agent = PortfolioConsumerType(**merton_dict)
+    agent = PortfolioConsumerType(**MertonPortfolioDict)
     agent.solve()
 
     # Compute the analytical Merton-Samuelson limiting portfolio share
-    RiskyVar = agent.RiskyStd ** 2
-    RiskPrem = agent.RiskyAvg - agent.Rfree
+    RiskyVar = agent.RiskyStd**2
+    RiskPrem = agent.RiskyAvg - agent.Rfree[0]
     MS_limit = RiskyShareMertSamLogNormal(RiskPrem, agent.CRRA, RiskyVar)
 
     # Now compute the limiting share numerically, using the approximated
@@ -318,3 +426,6 @@ for rcount in risky_count_grid:
 
     plt.ioff()
     plt.draw()
+
+
+# %%
