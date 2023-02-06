@@ -151,7 +151,7 @@ PFexample.solve()
 print(PFexample.solution)
 
 # %% [markdown]
-# Each element of `solution` has a few attributes. To see all of them, we can use the \texttt{vars} built in function:
+# Each element of `solution` has a few attributes. To see all of them, we can use the $\texttt{vars}$ built in function:
 #
 # the consumption functions reside in the attribute $\texttt{cFunc}$ of each element of `ConsumerType.solution`.  This method creates a (time varying) attribute $\texttt{cFunc}$ that contains a list of consumption functions.
 

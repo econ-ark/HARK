@@ -10,9 +10,9 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.14.4
 #   kernelspec:
-#     display_name: econ-ark-3.8
+#     display_name: Python 3 (ipykernel)
 #     language: python
-#     name: econ-ark-3.8
+#     name: python3
 #   language_info:
 #     codemirror_mode:
 #       name: ipython

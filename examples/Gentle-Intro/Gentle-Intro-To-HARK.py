@@ -197,7 +197,7 @@ plot_funcs([PFexample.solution[0].cFunc, NewExample.solution[0].cFunc], 0.0, 10.
 # %% [markdown]
 # Now $\texttt{NewExample}$'s consumption function has the same slope (MPC) as $\texttt{PFexample}$, but it emanates from (almost) zero-- he has basically no future income to borrow against!
 #
-# If you'd like, use the cell above to alter $\texttt{NewExample}$'s other attributes (relative risk aversion, etc) and see how the consumption function changes.  However, keep in mind that \textit{no solution exists} for some combinations of parameters.  HARK should let you know if this is the case if you try to solve such a model.
+# If you'd like, use the cell above to alter $\texttt{NewExample}$'s other attributes (relative risk aversion, etc) and see how the consumption function changes.  However, keep in mind that *no solution exists* for some combinations of parameters.  HARK should let you know if this is the case if you try to solve such a model.
 #
 #
 # ## Your Second HARK Model: Adding Income Shocks
@@ -224,7 +224,7 @@ plot_funcs([PFexample.solution[0].cFunc, NewExample.solution[0].cFunc], 0.0, 10.
 #
 # | Param | Description | Code | Value |
 # | :---: | --- | --- |  :---: |
-# | \underline{a} | Artificial borrowing constraint | $\texttt{BoroCnstArt}$ | 0.0 |
+# | $\underline{a}$ | Artificial borrowing constraint | $\texttt{BoroCnstArt}$ | 0.0 |
 # | $\sigma_\psi$ | Underlying stdev of permanent income shocks | $\texttt{PermShkStd}$ | 0.1 |
 # | $\sigma_\theta$ | Underlying stdev of transitory income shocks | $\texttt{TranShkStd}$ | 0.1 |
 # | $N_\psi$ | Number of discrete permanent income shocks | $\texttt{PermShkCount}$ | 7 |
