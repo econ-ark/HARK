@@ -1800,7 +1800,7 @@ def combine_indep_dstns(*distributions, seed=0):
         else:
             var_labels += tuple([""] * dist.dim()[0])
 
-    len(distributions)
+    number_of_distributions = len(distributions)
 
     all_labeled = all(dist_is_labeled)
     labels_are_unique = len(var_labels) == len(set(var_labels))

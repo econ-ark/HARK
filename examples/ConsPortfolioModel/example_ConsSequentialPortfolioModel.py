@@ -18,6 +18,7 @@
 """
 Example implementations of SequentialPortfolioConsumerType
 """
+from copy import copy
 from time import time
 
 import matplotlib.pyplot as plt

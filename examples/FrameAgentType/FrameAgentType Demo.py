@@ -237,7 +237,7 @@ def get_expected_return_function(control: Frame):
 
 # %%
 def optimal_policy_function(control: Frame):
-    get_expected_return_function(control)
+    erf = get_expected_return_function(control)
     constraints = (
         control.constraints
     )  ## these will reference the context of the control transition, including scope

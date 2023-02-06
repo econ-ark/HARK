@@ -725,7 +725,7 @@ class test_Harmenbergs_method(unittest.TestCase):
 
         c_std2 = np.std(Consumption_list2)
         c_std1 = np.std(Consumption_list)
-        c_std2 / c_std1
+        c_std_ratio = c_std2 / c_std1
 
         # simulation tests -- seed/generator specific
         # But these are based on aggregate population statistics.

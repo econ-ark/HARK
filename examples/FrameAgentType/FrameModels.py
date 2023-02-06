@@ -193,7 +193,7 @@ model.frames
 # %%
 def make_decision_rule(control_frame: Frame):
     # get scope
-    control_frame.scope
+    scope = control_frame.scope
 
     # get objective function
 
@@ -202,6 +202,8 @@ def make_decision_rule(control_frame: Frame):
     # get optimal action for each scope point given objective
 
     # interpolate from (s, a*) into decision rule
+
+    pass
 
 
 # %%

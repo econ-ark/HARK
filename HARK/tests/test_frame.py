@@ -54,7 +54,7 @@ class test_FrameModel(unittest.TestCase):
         )
 
     def test_make_terminal(self):
-        self.model.make_terminal()
+        terminal_model = self.model.make_terminal()
 
         self.assertEqual(len(self.model.make_terminal().frames.var("aNrm").children), 0)
 

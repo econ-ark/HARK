@@ -999,7 +999,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
         )
         EndOfPrddvdaNvrs = self.u.derinv(EndOfPrddvda, order=(1, 0))
         EndOfPrddvdaNvrsFunc = LinearInterp(self.aNrmNow, EndOfPrddvdaNvrs)
-        MargValueFuncCRRA(EndOfPrddvdaNvrsFunc, self.CRRA)
+        EndOfPrddvdaFunc = MargValueFuncCRRA(EndOfPrddvdaNvrsFunc, self.CRRA)
 
         return EndOfPrddvda
 

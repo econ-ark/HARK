@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import copy
+from sre_constants import SRE_FLAG_ASCII
 from HARK import AgentType, Model
 from HARK.distribution import Distribution, TimeVaryingDiscreteDistribution
 import itertools

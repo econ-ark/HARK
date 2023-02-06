@@ -8,6 +8,7 @@ import functools
 import os
 import pstats
 import re
+import warnings  # isort : skip
 
 import numba
 import numpy as np  # Python's numeric library, abbreviated "np"
@@ -1074,6 +1075,7 @@ def benchmark(
           Profiling object with call statistics.
     """
 
+    agent = agent_type
     cProfile.run("agent.solve()", filename)
     stats = pstats.Stats(filename)
     stats.strip_dirs()

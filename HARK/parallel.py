@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import List, Type, Any
 from joblib import Parallel, delayed
 import multiprocessing
 

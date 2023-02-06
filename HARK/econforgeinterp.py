@@ -3,6 +3,7 @@ from interpolation.splines import eval_linear, eval_spline, CGrid
 from interpolation.splines import extrap_options as xto
 
 import numpy as np
+from copy import copy
 
 extrap_opts = {
     "linear": xto.LINEAR,

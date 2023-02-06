@@ -32,6 +32,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+from copy import copy, deepcopy
 
 
 # %% [markdown]

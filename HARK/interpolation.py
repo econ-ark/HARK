@@ -4769,7 +4769,7 @@ def main():
             xInterpolators.append(this_interpolation)
             xInterpolators_alt.append(that_interpolation)
         g = LinearInterpOnInterp1D(xInterpolators, y_list)
-        LinearInterpOnInterp1D(xInterpolators_alt, y_list)
+        h = LinearInterpOnInterp1D(xInterpolators_alt, y_list)
 
         rand_x = RNG.random(100) * 5.0
         rand_y = RNG.random(100) * 5.0

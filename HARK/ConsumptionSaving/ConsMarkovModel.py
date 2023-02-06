@@ -1065,7 +1065,7 @@ class MarkovConsumerType(IndShockConsumerType):
             dont_change[:] = True
 
         # Determine which agents are in which states right now
-        self.MrkvArray[0].shape[0]
+        J = self.MrkvArray[0].shape[0]
         MrkvPrev = self.shocks["Mrkv"]
         MrkvNow = np.zeros(self.AgentCount, dtype=int)
 

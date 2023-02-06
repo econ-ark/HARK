@@ -43,7 +43,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 
 
 import time
-from copy import deepcopy
+from copy import copy, deepcopy
 import numpy as np
 import matplotlib.pyplot as plt
 
