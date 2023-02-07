@@ -1,7 +1,52 @@
+exclude: Documentation/example_notebooks/
+
 repos:
+  - repo: https://github.com/mwouts/jupytext
+    rev: v1.14.4
+    hooks:
+      - id: jupytext
+        args:
+          [--sync, --set-formats, "ipynb,py:percent", --pipe, black, --execute]
+        additional_dependencies: [jupytext, black, nbconvert]
+        files: ^examples/.*\.ipynb$
+
   - repo: https://github.com/psf/black
-    rev: stable
+    rev: 23.1.0
     hooks:
       - id: black
         exclude: ^examples/
-        language_version: python3
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.3.1
+    hooks:
+      - id: pyupgrade
+        args: ["--py38-plus"]
+        exclude: ^examples/
+
+  - repo: https://github.com/asottile/blacken-docs
+    rev: 1.13.0
+    hooks:
+      - id: blacken-docs
+        exclude: ^examples/
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.11.5
+    hooks:
+      - id: isort
+        name: isort (python)
+        args: ["--profile", "black", "--filter-files", "--skip", "__init__.py"]
+        exclude: ^examples/
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.0-alpha.4
+    hooks:
+      - id: prettier
+        exclude: ^examples/
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: requirements-txt-fixer
+        exclude: ^examples/
