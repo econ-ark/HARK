@@ -23,7 +23,7 @@
 #     name: python
 #     nbconvert_exporter: python
 #     pygments_lexer: ipython3
-#     version: 3.8.11
+#     version: 3.9.16
 #   latex_envs:
 #     LaTeX_envs_menu_present: true
 #     autoclose: false
