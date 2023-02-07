@@ -8,7 +8,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.1
+#       jupytext_version: 1.14.4
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -151,7 +151,7 @@ PFexample.solve()
 print(PFexample.solution)
 
 # %% [markdown]
-# Each element of `solution` has a few attributes. To see all of them, we can use the \texttt{vars} built in function:
+# Each element of `solution` has a few attributes. To see all of them, we can use the $\texttt{vars}$ built in function:
 #
 # the consumption functions reside in the attribute $\texttt{cFunc}$ of each element of `ConsumerType.solution`.  This method creates a (time varying) attribute $\texttt{cFunc}$ that contains a list of consumption functions.
 
@@ -245,7 +245,7 @@ PFexample.assign_parameters(**SimulationParams)
 # Finally, the `simulate` method can be called.
 
 # %% {"pycharm": {"name": "#%%\n"}}
-PFexample.track_vars = ['mNrm']
+PFexample.track_vars = ["mNrm"]
 PFexample.initialize_sim()
 PFexample.simulate()
 
@@ -253,7 +253,7 @@ PFexample.simulate()
 # Each simulation variable $\texttt{X}$ named in $\texttt{track_vars}$ will have the *history* of that variable for each agent stored in the attribute $\texttt{X_hist}$ as an array of shape $(\texttt{T_sim},\texttt{AgentCount})$.  To see that the simulation worked as intended, we can plot the mean of $m_t$ in each simulated period:
 
 # %% {"pycharm": {"name": "#%%\n"}}
-plt.plot(np.mean(PFexample.history['mNrm'], axis=1))
+plt.plot(np.mean(PFexample.history["mNrm"], axis=1))
 plt.xlabel("Time")
 plt.ylabel("Mean normalized market resources")
 plt.show()
@@ -285,10 +285,12 @@ plt.show()
 # %% {"pycharm": {"name": "#%%\n"}}
 PFexample.initialize_sim()
 PFexample.simulate(80)
-PFexample.state_prev['aNrm'] += -5.0  # Adjust all simulated consumers' assets downward by 5
+PFexample.state_prev[
+    "aNrm"
+] += -5.0  # Adjust all simulated consumers' assets downward by 5
 PFexample.simulate(40)
 
-plt.plot(np.mean(PFexample.history['mNrm'], axis=1))
+plt.plot(np.mean(PFexample.history["mNrm"], axis=1))
 plt.xlabel("Time")
 plt.ylabel("Mean normalized market resources")
 plt.show()

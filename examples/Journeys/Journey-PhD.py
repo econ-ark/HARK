@@ -54,7 +54,7 @@
 # ---
 
 # %% [markdown]
-# Journey: Economics PhD Student 
+# Journey: Economics PhD Student
 # ====
 #
 
@@ -81,7 +81,7 @@
 # U(C)=\frac{C^{1-\rho}}{1-\rho}.
 # $$
 #
-# Now assume that every consumer faces some uncertainty on her income which is subject to idiosyncratic shocks - the realizations of each shock is (potentially) different for each agent. In this setting, it follows an AR (1) process, so that the current value of $Y$ is a state variable that predicts future values of $Y$. 
+# Now assume that every consumer faces some uncertainty on her income which is subject to idiosyncratic shocks - the realizations of each shock is (potentially) different for each agent. In this setting, it follows an AR (1) process, so that the current value of $Y$ is a state variable that predicts future values of $Y$.
 #
 # Then, the Bellman equation looks like:
 #
@@ -105,16 +105,16 @@
 # HARK was designed to help you avoid similar experiences. We see two main uses of this package and its tools:
 #
 # - To simulate the standard heterogeneous agent models without learning all the numerical methods
-# - To solve your own models building-on the already implemented algorithms   
+# - To solve your own models building-on the already implemented algorithms
 #
-# This journey will help you mostly with using HARK in the first way. We do not elaborate here the numerical methods; however, in the last sections you can find some guidance on which methods were used and how the source code is structured.      
+# This journey will help you mostly with using HARK in the first way. We do not elaborate here the numerical methods; however, in the last sections you can find some guidance on which methods were used and how the source code is structured.
 #
 # Although using the prepared package is easier than writing your own solution (what you will need to do sooner or later if you create an original heterogeneous agent model), there is much effort in comprehending the main classes and functionalities of HARK. We hope that this journey will make it easier! We believe that it also  will be your first step into the world of the heterogeneous agents modeling.
 #
 # ---
 # NOTE
 # ***
-# We will be very happy to see your feedback. If you have any questions regarding this tutorial or HARK as a whole please see our [Github page](https://github.com/econ-ark/HARK).   
+# We will be very happy to see your feedback. If you have any questions regarding this tutorial or HARK as a whole please see our [Github page](https://github.com/econ-ark/HARK).
 #
 # ---
 
@@ -127,12 +127,12 @@
 # - A little longer introduction (if you want to learn something about used numerical methods):
 #     - Start with the basic Python [tutorial](https://docs.python.org/3/tutorial)
 #     - Get some knowledge about [Numpy](https://docs.scipy.org/doc/numpy/user/quickstart.html)
-# - You can also learn Python by learning Machine learning, as there are many tutorials constructed in that way (one example is [scikit-learn tutorials](https://scikit-learn.org/stable/tutorial/index.html)).   
+# - You can also learn Python by learning Machine learning, as there are many tutorials constructed in that way (one example is [scikit-learn tutorials](https://scikit-learn.org/stable/tutorial/index.html)).
 
 # %% [markdown]
 # ## 3 Few words about HARK structure
 #
-# HARK was written using OOP (we hope that you skimmed the tutorials and have some understanding of this). This means that different parts of the model, like different types of consumers, firms, and general equilibrium conditions (if you have these components in the model), are implemented as different *objects*. Such structure enables you to build your own models with different consumer-type distributions / company structure (if you want some). Importantly, learning the package with such structure implies learning the different types of objects (classes). 
+# HARK was written using OOP (we hope that you skimmed the tutorials and have some understanding of this). This means that different parts of the model, like different types of consumers, firms, and general equilibrium conditions (if you have these components in the model), are implemented as different *objects*. Such structure enables you to build your own models with different consumer-type distributions / company structure (if you want some). Importantly, learning the package with such structure implies learning the different types of objects (classes).
 #
 # In HARK there are two main classes: `AgentType` (think consumers, microeconomic models) and `Market` (think general equilibrium, macroeconomic models). As AgentType objects are the attributes of the Market, we first present this type (additionally, if you are interested only in microeconomic research, you may not want to study the Market class).
 #
@@ -141,26 +141,26 @@
 # ---
 # NOTE
 # ***
-# In OOP, objects are organized in **classes** (the general structure of the objects) and more specific **subclasses**. The subclass inherits the methods and attributes from the its parent class. Thus, everything which you can do with the object from a general class can be done with the object from its subclass. In case of the economic models, the basic one are always the parent classes of the more sophisticated ones. 
+# In OOP, objects are organized in **classes** (the general structure of the objects) and more specific **subclasses**. The subclass inherits the methods and attributes from the its parent class. Thus, everything which you can do with the object from a general class can be done with the object from its subclass. In case of the economic models, the basic one are always the parent classes of the more sophisticated ones.
 #
 # ---
 #
 
 # %% [markdown]
-# ## 4 Agent-type class 
+# ## 4 Agent-type class
 # Agent-type class enables you to build microeconomic models (such as the one presented in the introduction). It is also the essential part of the macroeconomic model in HARK. So remember: *to use HARK, you always need to use agent-type classes!*
 #
 # ### 4.1 Introductory example
-# As an example, let's solve the stochastic model from the introduction. Assume the income process of the agent $i$ in the period t, $Y_{i,t}$, is given by: 
+# As an example, let's solve the stochastic model from the introduction. Assume the income process of the agent $i$ in the period t, $Y_{i,t}$, is given by:
 #
-# \begin{eqnarray*} 
+# \begin{eqnarray*}
 # Y_{i,t}  &=& \varepsilon_t(\theta_{i,t} p_{i,t}) \\
 # p_{i,t+1} &=& p_{i,t}\psi_{i,t+1}\\
 # \psi_{i,t} & \sim & N(1,\sigma_{\varrho})\\
 # \theta_{i,t} & \sim & N(1,\sigma_{\theta})\\
 # \end{eqnarray*}
 #
-# To get a universal solution of this problem, we need to find a policy function (in this case consumption function). This can be done easily using the HARK `solve` function. 
+# To get a universal solution of this problem, we need to find a policy function (in this case consumption function). This can be done easily using the HARK `solve` function.
 #
 # Before doing this, we need to declare our model (we assume standard parametrization: R= 1.03, $\rho = 2$, $\beta = 0.96$, $P(\varepsilon=0)= 0.005$, $P(\varepsilon=1)= 0.995$, $\sigma_{\psi}= \sigma_{\theta}=0.1)$:
 #
@@ -194,7 +194,7 @@ plot_funcs([Example.solution[0].cFunc], min_v, max_v)
 
 # %% [markdown]
 # ### 4.2 The Agent-Type structure
-# To understand the microeconomic models in HARK, you need to have some concept of the Agent-type class structure. As it was mentioned, in HARK more advanced models are subclasses of the more primitive ones. The following diagram illustrates this structure: the deterministic class `PerfForesightConsumerType` is the parent for the class of the consumers with idiosyncratic income shocks `IndShockConsumerType`. Subsequently, there is a class defined with both idiosyncratic and aggregate income shocks `𝙼𝚊𝚛𝚔𝚘𝚟ConsumerType`. 
+# To understand the microeconomic models in HARK, you need to have some concept of the Agent-type class structure. As it was mentioned, in HARK more advanced models are subclasses of the more primitive ones. The following diagram illustrates this structure: the deterministic class `PerfForesightConsumerType` is the parent for the class of the consumers with idiosyncratic income shocks `IndShockConsumerType`. Subsequently, there is a class defined with both idiosyncratic and aggregate income shocks `𝙼𝚊𝚛𝚔𝚘𝚟ConsumerType`.
 #
 # ![HARK structure](HARK-struct-2.png)
 #
@@ -209,7 +209,7 @@ plot_funcs([Example.solution[0].cFunc], min_v, max_v)
 # |Number | Tutorial | Description|
 # | :---- |  :---- |  :---- |
 # |1 |[Quickstart](https://github.com/econ-ark/HARK/blob/master/examples/Journeys/Quickstart_tutorial/Quick_start_with_solution.ipynb) |This tutorial familiarize you with the basic HARK objects and functionalities.<br /> You will learn how to create, solve, plot and simulate the deterministic<br /> microeconomic models ($\texttt{PerfForesightConsumerType}$ class).|
-# |2 |[Idiosyncratic consumers](https://github.com/econ-ark/HARK/blob/master/examples/ConsIndShockModel/IndShockConsumerType.ipynb) |In this tutorial you will learn how to deal<br /> with the microeconomic models with agents with idiosyncratic shocks:<br /> individual productivity shocks ($\texttt{IndShockConsumerType}$ class).  It builds on the Quickstart. | 
+# |2 |[Idiosyncratic consumers](https://github.com/econ-ark/HARK/blob/master/examples/ConsIndShockModel/IndShockConsumerType.ipynb) |In this tutorial you will learn how to deal<br /> with the microeconomic models with agents with idiosyncratic shocks:<br /> individual productivity shocks ($\texttt{IndShockConsumerType}$ class).  It builds on the Quickstart. |
 # |3|[Nondurables during great recession](https://github.com/econ-ark/DemARK/blob/master/notebooks/Nondurables-During-Great-Recession.ipynb)| Use you knowledge about HARK to conduct a few economic experiments!<br /> You will examine the effects of the uncertinity increase on the heterogenous<br /> agents with idiosyncratic income risk.|
 # |4|[Chinese-Growth](https://github.com/econ-ark/DemARK/blob/master/notebooks/Chinese-Growth.ipynb)|Learn how to dealt with models with idiosyncratic <br /> and aggregate risk ($\texttt{𝙼𝚊𝚛𝚔𝚘𝚟ConsumerType}$ class). <br />Next build advanced simulation with many agent types.|
 #
@@ -222,7 +222,7 @@ plot_funcs([Example.solution[0].cFunc], min_v, max_v)
 # |Number | Tutorial | Description|
 # | :---- |  :---- |  :---- |
 # |1* |[Kinked consumer](https://github.com/econ-ark/HARK/blob/master/examples/ConsIndShockModel/KinkedRconsumerType.ipynb) | $\texttt{KinkedRconsumerType}$ is a subclass of $\texttt{IndShockConsumerType}$. <br /> In enables to set different borrowing and lending interest rate. |
-# |2* |[Buffer-stock consumer](https://github.com/econ-ark/DemARK/blob/master/notebooks/Gentle-Intro-To-HARK-Buffer-Stock-Model.ipynb) | In the Buffer Stock model, the unemployment state (zero income stat) is irreversible.<br /> This framework is implemented by $\texttt{TractableConsumerType}$ class.<br /> For the analytical properties of buffer stock model check this [lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/Consumption/TractableBufferStock/).| 
+# |2* |[Buffer-stock consumer](https://github.com/econ-ark/DemARK/blob/master/notebooks/Gentle-Intro-To-HARK-Buffer-Stock-Model.ipynb) | In the Buffer Stock model, the unemployment state (zero income stat) is irreversible.<br /> This framework is implemented by $\texttt{TractableConsumerType}$ class.<br /> For the analytical properties of buffer stock model check this [lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/Consumption/TractableBufferStock/).|
 # |3*|[Generalized income process](https://github.com/econ-ark/HARK/blob/master/examples/GenIncProcessModel/GenIncProcessModel.ipynb)| In $\texttt{IndShockConsumerType}$ class, the idiosyncratic income shocks<br /> were assumed to be or purely permanent or purely transitory. In the similar class <br /> $\texttt{PersistentShockConsumerType}$ the income shocks follows AR(1) process with parameter <1,<br /> thus there are not full permanent nor transitory <br />(it was called generalized income process).|
 #
 #
@@ -230,7 +230,7 @@ plot_funcs([Example.solution[0].cFunc], min_v, max_v)
 # %% [markdown]
 # ## 5 Market class
 #
-# In macroeconomic models, the consumers are only one possible type of agent. In such models, the economy contains also firms and a government (or other types of agents). In HARK, several standard macro models were implemented using the **Market** class and its subclasses.     
+# In macroeconomic models, the consumers are only one possible type of agent. In such models, the economy contains also firms and a government (or other types of agents). In HARK, several standard macro models were implemented using the **Market** class and its subclasses.
 #
 #
 
@@ -244,10 +244,10 @@ plot_funcs([Example.solution[0].cFunc], min_v, max_v)
 # \end{eqnarray*}
 # Thus, the producers' problem is:
 # \begin{eqnarray*}
-# \max_{k_t, n_t} &\: k_t^{\alpha} n_t^{1-\alpha} - (R_t +\delta)k_t-w_t n_t 
+# \max_{k_t, n_t} &\: k_t^{\alpha} n_t^{1-\alpha} - (R_t +\delta)k_t-w_t n_t
 # \end{eqnarray*}
 #
-# Where $k_t$ is capital, $n_t$ is labour, $\delta$ is a depreciation rate.  
+# Where $k_t$ is capital, $n_t$ is labour, $\delta$ is a depreciation rate.
 #
 # In this case, consumers' incomes are determined by the wage:
 #
@@ -267,7 +267,7 @@ plot_funcs([Example.solution[0].cFunc], min_v, max_v)
 # k_{t+1}+ \int C_{i,t} d\Gamma_t &= y_t+(1-\delta)k_t
 # \end{eqnarray*}
 #
-# In HARK, you can solve this basic case by using the `CobbDouglasEconomy` class. However, to add the consumers to the economy you need the `AggShockConsumerType` class, which is a subclass of `IndShockConsumerType` Let's declare the economy (assuming depreciation rate $\delta = 0.025$): 
+# In HARK, you can solve this basic case by using the `CobbDouglasEconomy` class. However, to add the consumers to the economy you need the `AggShockConsumerType` class, which is a subclass of `IndShockConsumerType` Let's declare the economy (assuming depreciation rate $\delta = 0.025$):
 #
 
 # %%
@@ -283,7 +283,7 @@ EconomyExample = CobbDouglasEconomy(
 )
 
 # %% [markdown]
-# Now, you can solve the economy and plot the aggregate savings function: 
+# Now, you can solve the economy and plot the aggregate savings function:
 
 # %%
 EconomyExample.make_AggShkHist()  # Simulate a history of aggregate shocks
@@ -308,16 +308,16 @@ plot_funcs(
 #
 # Nevertheless, both basic classes enable the aggregate fluctuation in the economy, that is:
 #
-# \begin{eqnarray*} 
+# \begin{eqnarray*}
 # Y_{i,t}  &=& \varepsilon_t(\epsilon_{i,t}p_{i,t}\Theta_t P_t )\\
 # P_{t+1} &=& P_{t}\Psi_{t+1}\\
 # \Psi_{t}  &\sim & {N}(1,\sigma_{\Psi})\\
 # \Theta_t  &\sim &{N}(1,\sigma_{\Theta})\\
 # \end{eqnarray*}
 #
-# The consumers, which are attributes of such market classes, need to include the aggregate fluctuations of the whole economy in their optimization problem. This is the reason why the `AggShockConsumerType` class (and their subclasses) must be used to construct the macro-model. 
+# The consumers, which are attributes of such market classes, need to include the aggregate fluctuations of the whole economy in their optimization problem. This is the reason why the `AggShockConsumerType` class (and their subclasses) must be used to construct the macro-model.
 #
-# The subclass of `CobbDouglasEconomy` is `CobbDouglasMarkovEconomy`. In this setting, there exists an additional aggregate fluctuation in the economy (the distribution of which is given by the finite Markov matrix). 
+# The subclass of `CobbDouglasEconomy` is `CobbDouglasMarkovEconomy`. In this setting, there exists an additional aggregate fluctuation in the economy (the distribution of which is given by the finite Markov matrix).
 #
 #
 # ![HARK_struct_2](HARK-struct-4.png)
@@ -328,16 +328,16 @@ plot_funcs(
 # %% [markdown]
 # ### 5.3 Tutorial
 #
-# To learn the functionalities of the market-type classes in HARK we suggest studying the following notebook devoted to [Krussel-Smith economy](https://github.com/econ-ark/REMARK/blob/master/REMARKs/KrusellSmith.md). In this notebook, the classical [Krussell-Smith model](https://www.journals.uchicago.edu/doi/abs/10.1086/250034?journalCode=jpe) is implemented (with some extensions) using the `CobbDouglasMarkovEconomy` class. 
+# To learn the functionalities of the market-type classes in HARK we suggest studying the following notebook devoted to [Krussel-Smith economy](https://github.com/econ-ark/REMARK/blob/master/REMARKs/KrusellSmith.md). In this notebook, the classical [Krussell-Smith model](https://www.journals.uchicago.edu/doi/abs/10.1086/250034?journalCode=jpe) is implemented (with some extensions) using the `CobbDouglasMarkovEconomy` class.
 #
-# Before that, you may want to check the main function from [ConsAggShockModel module](https://github.com/econ-ark/HARK/blob/master/examples/ConsumptionSaving/example_ConsAggShockModel.ipynb) or its [source code](https://github.com/econ-ark/HARK/blob/master//HARK/ConsumptionSaving/ConsAggShockModel.py) to see the basic steps to create the market type objects.   
+# Before that, you may want to check the main function from [ConsAggShockModel module](https://github.com/econ-ark/HARK/blob/master/examples/ConsumptionSaving/example_ConsAggShockModel.ipynb) or its [source code](https://github.com/econ-ark/HARK/blob/master//HARK/ConsumptionSaving/ConsAggShockModel.py) to see the basic steps to create the market type objects.
 #
 #
 
 # %% [markdown]
 # #### 5.3.1 If you want to learn (a little) how the Market class works
 #
-# The Market class was designed to be a general framework for many different macro models. It involves a procedure of aggregating the agents' choices: eg. aggregating consumption and savings (`reap_vars` in the code) and then transforming the aggregated variables (`mill_rule` in the code). 
+# The Market class was designed to be a general framework for many different macro models. It involves a procedure of aggregating the agents' choices: eg. aggregating consumption and savings (`reap_vars` in the code) and then transforming the aggregated variables (`mill_rule` in the code).
 #
 # If you would like to get better knowledge about this structure, first take a look at the [Hark documentation](https://hark.readthedocs.io/en/latest/ARKitecture.html). Next, to understand how the HARK Market class works in less standard setting, look at the [Fashion victim model](../notebooks/Fashion-Victim-Model.ipynb).
 #
@@ -347,22 +347,22 @@ plot_funcs(
 #
 # In the previous sections we saw an example of how to solve different models using HARK. However, we know that you may also need to work with the source code for a few reasons (e.g. to learn used numerical methods, write your own code).
 #
-# Working directly with code (even if well-written) is a much more complicated tasks than just working with finished functions, and no tutorial will let you go through this painlessly. However, we hope that this partelaborating on the HARK structure and numerical methods will help you with this task. 
+# Working directly with code (even if well-written) is a much more complicated tasks than just working with finished functions, and no tutorial will let you go through this painlessly. However, we hope that this partelaborating on the HARK structure and numerical methods will help you with this task.
 #
-# ### 6.1 A few more words on HARK structure 
-#  
-# When you look at the [HARK](https://github.com/econ-ark/HARK) sources, you will find the subdirectory called HARK. Next there is a script called "core. py". Surprisingly, you will not find this code in many of the subclasses which you learned during this journey! 
+# ### 6.1 A few more words on HARK structure
+#
+# When you look at the [HARK](https://github.com/econ-ark/HARK) sources, you will find the subdirectory called HARK. Next there is a script called "core. py". Surprisingly, you will not find this code in many of the subclasses which you learned during this journey!
 #
 # The reason for this is that HARK.core.py is a core of the package: a framework  for all models which can be coded in HARK. It contains the general framework of the agent-type classes (AgentType class) and for the market. The exact structure of modules in the HARK core you can find in the [Hark documentation](https://hark.readthedocs.io/en/latest/ARKitecture.html#general-purpose-tools). Here, you can also find the general structure of the [AgentType](https://hark.readthedocs.io/en/latest/ARKitecture.html#agenttype-class) and [Market classes](https://hark.readthedocs.io/en/latest/ARKitecture.html#market-class).
 #
-# Where are the subclasses which you'v learned during the journey? In HARK, the subclasses are located in the separate directories. For the AgentType subclasses, you need to look at HARK.ConsumptionSaving directory. For example, `PerfForesightConsumerType` and `IndShockConsumerType` can be found in ConsIndShockModel.py. Nevertheless, if you want to understand any of the HARK modules, you must first understand `HARK.core`. 
+# Where are the subclasses which you'v learned during the journey? In HARK, the subclasses are located in the separate directories. For the AgentType subclasses, you need to look at HARK.ConsumptionSaving directory. For example, `PerfForesightConsumerType` and `IndShockConsumerType` can be found in ConsIndShockModel.py. Nevertheless, if you want to understand any of the HARK modules, you must first understand `HARK.core`.
 #
 #
-# ### 6.2 HARK solution 
+# ### 6.2 HARK solution
 #
 # For the consumer problems, solutions of the one-period consumer's problem are found using the attribute function `solve_one_period`. The inputs passed to this function also include data from the subsequent periods. Before solve_one_period is called, the function pre_solve() is applied, which prepare the solution (eg. transmit the solution of the sub-sequent period as an input).
 #
-# The structure of the functions which are used as solve_one_period reflects the agent-type class structures. Thus, when you will study the source code, you will first read the solve classes. 
+# The structure of the functions which are used as solve_one_period reflects the agent-type class structures. Thus, when you will study the source code, you will first read the solve classes.
 #
 # ![Hark_struct3](HARK-struct-3.png)
 #
@@ -373,7 +373,7 @@ plot_funcs(
 # The method of endogenous gridpoints is now widely used in macroeconomic simulations. There are a few resources to learn it; here, we suggest Professor Carroll's [lecture notes](http://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/). If you prefer a very quick version, we suggest appendix to the Kruger and Kindermann [paper](https://www.nber.org/papers/w20601.pdf) (they develop a slightly bigger model with a different notation, but the idea is the same).
 #
 # #### 6.2.2 Finding general equilibrium
-# In general, the rational expectations general equilibrium is found by updating the agents' expectations and the aggregate choices up to the point at which the actual aggregated variables (like interest rate or capital) are equal to the expected ones. However, one may need to refer to the papers cited in the notebooks to understand the exact methods used.    
+# In general, the rational expectations general equilibrium is found by updating the agents' expectations and the aggregate choices up to the point at which the actual aggregated variables (like interest rate or capital) are equal to the expected ones. However, one may need to refer to the papers cited in the notebooks to understand the exact methods used.
 #
 #
 # ### 6.3 How to study HARK codes
@@ -381,7 +381,7 @@ plot_funcs(
 # We hope that this section gave you some idea how the HARK library works. However, HARK contains much more than is discussed here. Here is some more guidance on how to continue your journey:
 #
 # - Before you start make sure that you understand the endogenous grid method, as well as the general framework structure for AgentType and Market from [HARK documentation](https://hark.readthedocs.io/en/latest/ARKitecture.html#agenttype-class).
-# - When working through HARK.core, make sure that you see the connection between the structure in the documentation and the code (check autodoc from the [HARK documentation](https://hark.readthedocs.io/en/latest/reference/tools/core.html) webpage). 
+# - When working through HARK.core, make sure that you see the connection between the structure in the documentation and the code (check autodoc from the [HARK documentation](https://hark.readthedocs.io/en/latest/reference/tools/core.html) webpage).
 # - Proceed to the ConsumptionSaving/ConsIndShockModel.py and compare the tutorials with the source code.
 # - Proceed to the ConsumptionSaving/ConsAggShockModel.py and compare the tutorial on the Market class with the source code, check [autodoc](https://hark.readthedocs.io/en/latest/reference/ConsumptionSaving/ConsAggShockModel.html).
 #
