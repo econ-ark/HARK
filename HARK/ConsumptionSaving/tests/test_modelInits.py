@@ -5,17 +5,20 @@ This file tests whether HARK's models are initialized correctly.
 
 # Bring in modules we need
 import unittest
+from copy import copy
+
 import numpy as np
-from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
-from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType, init_kinked_R
+
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
+    KinkedRconsumerType,
+    PerfForesightConsumerType,
     init_idiosyncratic_shocks,
+    init_kinked_R,
     init_lifecycle,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-from HARK.utilities import plot_funcs_der, plot_funcs
-from copy import copy
+from HARK.utilities import plot_funcs, plot_funcs_der
 
 
 class testInitialization(unittest.TestCase):

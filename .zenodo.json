@@ -1,26 +1,33 @@
 {
   "title": "Heterogeneous Agents Resources and toolKit (HARK)",
-  "creators": [{
+  "creators": [
+    {
       "name": "Carroll, Christopher D"
-  }, {
+    },
+    {
       "name": "Palmer, Nathan"
-  }, {
+    },
+    {
       "name": "White, Matthew N."
-  }, {
+    },
+    {
       "name": "Kazil, Jacqueline"
-  }, {
+    },
+    {
       "name": "Low, David C"
-  }, {
+    },
+    {
       "name": "Kaufman, Alexander"
-  }],
-  "access_right": "open", 
+    }
+  ],
+  "access_right": "open",
   "license": "apache2.0",
-  "upload_type": "software", 
-    "related_identifiers": [
-        {
-            "scheme": "url", 
-            "identifier": "https://github.com/econ-ark/HARK/", 
-            "relation": "isSupplementTo"
-        }
-    ]
+  "upload_type": "software",
+  "related_identifiers": [
+    {
+      "scheme": "url",
+      "identifier": "https://github.com/econ-ark/HARK/",
+      "relation": "isSupplementTo"
+    }
+  ]
 }

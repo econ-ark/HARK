@@ -61,12 +61,10 @@ def distance_metric(thing_a, thing_b):
             distance = float(abs(len_a - len_b))
     # If both inputs are dictionaries, call distance on the list of its elements
     elif type_a is dict and type_b is dict:
-
         len_a = len(thing_a)
         len_b = len(thing_b)
 
         if len_a == len_b:
-
             # Create versions sorted by key
             sorted_a = dict(sorted(thing_a.items()))
             sorted_b = dict(sorted(thing_b.items()))
@@ -114,7 +112,7 @@ def distance_metric(thing_a, thing_b):
     return distance
 
 
-class MetricObject(object):
+class MetricObject:
     """
     A superclass for object classes in HARK.  Comes with two useful methods:
     a generic/universal distance method and an attribute assignment method.
@@ -152,7 +150,7 @@ class MetricObject(object):
         return max(distance_list)
 
 
-class Model(object):
+class Model:
     """
     A class with special handling of parameters assignment.
     """
@@ -202,7 +200,6 @@ class Model(object):
             self.parameters = {}
 
     def __str__(self):
-
         type_ = type(self)
         module = type_.__module__
         qualname = type_.__qualname__
@@ -529,12 +526,9 @@ class AgentType(Model):
         # If we are asked to use existing shocks and a set of initial conditions
         # exist, use them
         if self.read_shocks and bool(self.newborn_init_history):
-
             for var_name in self.state_now:
-
                 # Check that we are actually given a value for the variable
                 if var_name in self.newborn_init_history.keys():
-
                     # Copy only array-like idiosyncratic states. Aggregates should
                     # not be set by newborns
                     idio = (
@@ -547,7 +541,6 @@ class AgentType(Model):
                         ]
 
                 else:
-
                     warn(
                         "The option for reading shocks was activated but "
                         + "the model requires state "
@@ -663,7 +656,6 @@ class AgentType(Model):
 
         # Make and store the history of shocks for each period
         for t in range(self.T_sim):
-
             # Deaths
             self.get_mortality()
             self.shock_history["who_dies"][t, :] = self.who_dies
@@ -717,12 +709,10 @@ class AgentType(Model):
         None
         """
         if self.read_shocks:
-
             who_dies = self.shock_history["who_dies"][self.t_sim, :]
             # Instead of simulating births, assign the saved newborn initial conditions
             if np.sum(who_dies) > 0:
                 for var_name in self.state_now:
-
                     if var_name in self.newborn_init_history.keys():
                         # Copy only array-like idiosyncratic states. Aggregates should
                         # not be set by newborns
@@ -731,7 +721,6 @@ class AgentType(Model):
                             and len(self.state_now[var_name]) == self.AgentCount
                         )
                         if idio:
-
                             self.state_now[var_name][
                                 who_dies
                             ] = self.newborn_init_history[var_name][
@@ -739,7 +728,6 @@ class AgentType(Model):
                             ]
 
                     else:
-
                         warn(
                             "The option for reading shocks was activated but "
                             + "the model requires state "
@@ -1254,16 +1242,16 @@ class Market(Model):
         self.agents = agents if agents is not None else list()  # NOQA
 
         reap_vars = reap_vars if reap_vars is not None else list()  # NOQA
-        self.reap_state = dict([(var, []) for var in reap_vars])
+        self.reap_state = {var: [] for var in reap_vars}
 
         self.sow_vars = sow_vars if sow_vars is not None else list()  # NOQA
         # dictionaries for tracking initial and current values
         # of the sow variables.
-        self.sow_init = dict([(var, None) for var in self.sow_vars])
-        self.sow_state = dict([(var, None) for var in self.sow_vars])
+        self.sow_init = {var: None for var in self.sow_vars}
+        self.sow_state = {var: None for var in self.sow_vars}
 
         const_vars = const_vars if const_vars is not None else list()  # NOQA
-        self.const_vars = dict([(var, None) for var in const_vars])
+        self.const_vars = {var: None for var in const_vars}
 
         self.track_vars = track_vars if track_vars is not None else list()  # NOQA
         self.dyn_vars = dyn_vars if dyn_vars is not None else list()  # NOQA

@@ -1,17 +1,13 @@
 """
 This file implements unit tests for interpolation methods
 """
-from HARK.interpolation import (
-    LinearInterp,
-    BilinearInterp,
-    TrilinearInterp,
-    QuadlinearInterp,
-)
-
-from HARK.interpolation import CubicHermiteInterp as CubicInterp
+import unittest
 
 import numpy as np
-import unittest
+
+from HARK.interpolation import BilinearInterp
+from HARK.interpolation import CubicHermiteInterp as CubicInterp
+from HARK.interpolation import LinearInterp, QuadlinearInterp, TrilinearInterp
 
 
 class testsLinearInterp(unittest.TestCase):

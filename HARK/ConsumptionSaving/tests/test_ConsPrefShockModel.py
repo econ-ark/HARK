@@ -11,13 +11,11 @@ from HARK.tests import HARK_PRECISION
 
 class testPrefShockConsumerType(unittest.TestCase):
     def setUp(self):
-
         self.agent = PrefShockConsumerType()
         self.agent.cycles = 0
         self.agent.solve()
 
     def test_solution(self):
-
         self.assertEqual(self.agent.solution[0].mNrmMin, 0)
         m = np.linspace(self.agent.solution[0].mNrmMin, 5, 200)
 
@@ -58,7 +56,6 @@ class testPrefShockConsumerType(unittest.TestCase):
 
 class testKinkyPrefConsumerType(unittest.TestCase):
     def setUp(self):
-
         self.agent = KinkyPrefConsumerType()
         self.agent.cycles = 0  # Infinite horizon
         self.agent.solve()

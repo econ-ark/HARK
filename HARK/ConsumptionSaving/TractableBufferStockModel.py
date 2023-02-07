@@ -345,6 +345,7 @@ class TractableConsumerType(AgentType):
         -------
         none
         """
+
         # Define utility functions
         def uPP(x):
             return utilityPP(x, rho=self.CRRA)

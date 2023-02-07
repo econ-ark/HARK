@@ -1,4 +1,5 @@
-import unittest, sys
+import sys
+import unittest
 
 from HARK.validators import non_empty
 
@@ -19,7 +20,7 @@ class ValidatorsTests(unittest.TestCase):
             self.fail()
 
         if sys.version[0] == "2":
-            with self.assertRaisesRegexp(
+            with self.assertRaisesRegex(
                 TypeError,
                 "Expected non-empty argument for parameter list_a",
             ):
@@ -36,12 +37,12 @@ class ValidatorsTests(unittest.TestCase):
             pass
 
         if sys.version[0] == "2":
-            with self.assertRaisesRegexp(
+            with self.assertRaisesRegex(
                 TypeError,
                 "Expected non-empty argument for parameter list_b",
             ):
                 foo([1], [])
-            with self.assertRaisesRegexp(
+            with self.assertRaisesRegex(
                 TypeError,
                 "Expected non-empty argument for parameter list_a",
             ):

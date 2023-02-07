@@ -5,11 +5,9 @@ from HARK.ConsumptionSaving.ConsMedModel import MedShockConsumerType
 
 class testMedShockConsumerType(unittest.TestCase):
     def setUp(self):
-
         self.agent = MedShockConsumerType()
 
     def test_solution(self):
-
         self.agent.solve()
 
         self.agent.T_sim = 10

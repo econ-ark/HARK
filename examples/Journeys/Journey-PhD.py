@@ -1,7 +1,7 @@
 # ---
 # jupyter:
 #   jupytext:
-#     cell_metadata_filter: ExecuteTime,-autoscroll,collapsed
+#     cell_metadata_filter: ExecuteTime,collapsed,-autoscroll
 #     formats: ipynb,py:percent
 #     notebook_metadata_filter: all,-widgets,-varInspector
 #     text_representation:

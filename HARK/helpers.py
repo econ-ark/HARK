@@ -6,6 +6,7 @@ Functions for manipulating the file system or environment.
 # Code to copy entire modules to a local directory
 # ------------------------------------------------------------------------------
 
+
 #  Define a function to run the copying:
 def copy_module(target_path, my_directory_full_path, my_module):
     """
@@ -69,7 +70,6 @@ def copy_module(target_path, my_directory_full_path, my_module):
 
 
 def print_helper():
-
     my_directory_full_path = os.path.dirname(os.path.realpath(__file__))
 
     print(my_directory_full_path)

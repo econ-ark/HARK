@@ -1,8 +1,8 @@
+cite2c
+git+https://github.com/econ-ark/hark@master
+ipywidgets
+jupyter_contrib_nbextensions
 matplotlib
 numpy
-ipywidgets
 scipy
-jupyter_contrib_nbextensions
-cite2c
 seaborn
-git+https://github.com/econ-ark/hark@master

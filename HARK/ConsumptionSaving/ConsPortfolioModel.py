@@ -7,33 +7,46 @@ from copy import deepcopy
 
 import numpy as np
 
-from HARK import (
+from HARK import (  # Basic HARK features
+    AgentType,
     MetricObject,
     NullFunc,
-    AgentType,
     make_one_period_oo_solver,
-)  # Basic HARK features
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
-    utility,  # CRRA utility function
-    utility_inv,  # Inverse CRRA utility function
-    utilityP,  # CRRA marginal utility function
-    utility_invP,  # Derivative of inverse CRRA utility function
-    utilityP_inv,  # Inverse CRRA marginal utility function
+)
+from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks,  # Baseline dictionary to build on
+)
+from HARK.ConsumptionSaving.ConsIndShockModel import utility  # CRRA utility function
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    utility_inv,  # Inverse CRRA utility function
+)
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    utility_invP,  # Derivative of inverse CRRA utility function
+)
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    utilityP,  # CRRA marginal utility function
+)
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    utilityP_inv,  # Inverse CRRA marginal utility function
 )
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyAssetConsumerType
 from HARK.distribution import calc_expectation
+from HARK.interpolation import BilinearInterp  # 2D interpolator
 from HARK.interpolation import (
-    LinearInterp,  # Piecewise linear interpolation
-    CubicInterp,  # Piecewise cubic interpolation
-    LinearInterpOnInterp1D,  # Interpolator over 1D interpolations
-    BilinearInterp,  # 2D interpolator
     ConstantFunction,  # Interpolator-like class that returns constant value
-    IdentityFunction,  # Interpolator-like class that returns one of its arguments
-    ValueFuncCRRA,
-    MargValueFuncCRRA,
 )
+from HARK.interpolation import CubicInterp  # Piecewise cubic interpolation
+from HARK.interpolation import (
+    IdentityFunction,  # Interpolator-like class that returns one of its arguments
+)
+from HARK.interpolation import LinearInterp  # Piecewise linear interpolation
+from HARK.interpolation import (
+    LinearInterpOnInterp1D,  # Interpolator over 1D interpolations
+)
+from HARK.interpolation import MargValueFuncCRRA, ValueFuncCRRA
 
 
 # Define a class to represent the single period solution of the portfolio choice problem
@@ -112,7 +125,6 @@ class PortfolioSolution(MetricObject):
         EndOfPrddvds_fxd=None,
         AdjPrb=None,
     ):
-
         # Change any missing function inputs to NullFunc
         if cFuncAdj is None:
             cFuncAdj = NullFunc()
@@ -194,7 +206,6 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         self.update_solution_terminal()
 
     def update(self):
-
         RiskyAssetConsumerType.update(self)
         self.update_ShareGrid()
         self.update_ShareLimit()
@@ -611,7 +622,6 @@ class ConsPortfolioSolver(MetricObject):
         # Evaluate realizations of value and marginal value after asset returns are realized
 
         def EndOfPrddvda_dist(shock, a_nrm, Share_next):
-
             # Calculate future realizations of bank balances bNrm
             Rxs = shock - self.Rfree
             Rport = self.Rfree + Share_next * Rxs
@@ -623,7 +633,6 @@ class ConsPortfolioSolver(MetricObject):
             return Rport * dvdbFunc_intermed(b_nrm_next, Share_next_rep)
 
         def EndOfPrddvds_dist(shock, a_nrm, Share_next):
-
             # Calculate future realizations of bank balances bNrm
             Rxs = shock - self.Rfree
             Rport = self.Rfree + Share_next * Rxs
@@ -813,7 +822,6 @@ class ConsPortfolioSolver(MetricObject):
         vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, self.CRRA)
 
         def EndOfPrdv_dist(shock, a_nrm, Share_next):
-
             # Calculate future realizations of bank balances bNrm
             Rxs = shock - self.Rfree
             Rport = self.Rfree + Share_next * Rxs
@@ -884,7 +892,6 @@ class ConsPortfolioSolver(MetricObject):
         self.vFuncFxd_now = ValueFuncCRRA(vNvrsFuncFxd, self.CRRA)
 
     def make_porfolio_solution(self):
-
         self.solution = PortfolioSolution(
             cFuncAdj=self.cFuncAdj_now,
             ShareFuncAdj=self.ShareFuncAdj_now,

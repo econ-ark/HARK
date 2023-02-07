@@ -1,11 +1,12 @@
 """
 This file implements unit tests to check discrete choice functions
 """
-from HARK import interpolation
-
 # Bring in modules we need
 import unittest
+
 import numpy as np
+
+from HARK import interpolation
 
 
 class testsForDiscreteChoice(unittest.TestCase):
