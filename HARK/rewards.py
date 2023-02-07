@@ -32,7 +32,8 @@ def CRRAutility(c, rho):
     -1.0
     """
 
-    c = np.asarray(c)
+    if np.isscalar(c):
+        c = np.asarray(c)
     if rho == 1:
         return np.log(c)
 
@@ -57,7 +58,8 @@ def CRRAutilityP(c, rho):
         Marginal utility
     """
 
-    c = np.asarray(c)
+    if np.isscalar(c):
+        c = np.asarray(c)
     if rho == 1:
         return 1 / c
 
@@ -82,7 +84,8 @@ def CRRAutilityPP(c, rho):
         Marginal marginal utility
     """
 
-    c = np.asarray(c)
+    if np.isscalar(c):
+        c = np.asarray(c)
     return -rho * c ** (-rho - 1.0)
 
 
@@ -104,7 +107,8 @@ def CRRAutilityPPP(c, rho):
         Marginal marginal marginal utility
     """
 
-    c = np.asarray(c)
+    if np.isscalar(c):
+        c = np.asarray(c)
     return (rho + 1.0) * rho * c ** (-rho - 2.0)
 
 
@@ -126,7 +130,8 @@ def CRRAutilityPPPP(c, rho):
         Marginal marginal marginal marginal utility
     """
 
-    c = np.asarray(c)
+    if np.isscalar(c):
+        c = np.asarray(c)
     return -(rho + 2.0) * (rho + 1.0) * rho * c ** (-rho - 3.0)
 
 
@@ -148,7 +153,8 @@ def CRRAutility_inv(u, rho):
         Consumption corresponding to given utility value
     """
 
-    u = np.asarray(u)
+    if np.isscalar(u):
+        u = np.asarray(u)
     if rho == 1:
         return np.exp(u)
 
@@ -173,7 +179,8 @@ def CRRAutilityP_inv(uP, rho):
         Consumption corresponding to given marginal utility value.
     """
 
-    uP = np.asarray(uP)
+    if np.isscalar(uP):
+        uP = np.asarray(uP)
     return uP ** (-1.0 / rho)
 
 
@@ -195,7 +202,8 @@ def CRRAutility_invP(u, rho):
         Marginal consumption corresponding to given utility value
     """
 
-    u = np.asarray(u)
+    if np.isscalar(u):
+        u = np.asarray(u)
     if rho == 1:
         return np.exp(u)
 
@@ -220,7 +228,8 @@ def CRRAutilityP_invP(uP, rho):
         Consumption corresponding to given marginal utility value
     """
 
-    uP = np.asarray(uP)
+    if np.isscalar(uP):
+        uP = np.asarray(uP)
     return (-1.0 / rho) * uP ** (-1.0 / rho - 1.0)
 
 
@@ -251,7 +260,8 @@ def StoneGearyCRRAutility(c, rho, shifter):
     -1.0
     """
 
-    c = np.asarray(c)
+    if np.isscalar(c):
+        c = np.asarray(c)
     if rho == 1:
         return np.log(shifter + c)
 
@@ -279,7 +289,8 @@ def StoneGearyCRRAutilityP(c, rho, shifter):
 
     """
 
-    c = np.asarray(c)
+    if np.isscalar(c):
+        c = np.asarray(c)
     return (shifter + c) ** (-rho)
 
 
@@ -303,7 +314,8 @@ def StoneGearyCRRAutilityPP(c, rho, shifter):
 
     """
 
-    c = np.asarray(c)
+    if np.isscalar(c):
+        c = np.asarray(c)
     return (-rho) * (shifter + c) ** (-rho - 1)
 
 
@@ -325,7 +337,8 @@ def CARAutility(c, alpha):
         Utility
     """
 
-    c = np.asarray(c)
+    if np.isscalar(c):
+        c = np.asarray(c)
     return 1 - np.exp(-alpha * c) / alpha
 
 
@@ -347,7 +360,8 @@ def CARAutilityP(c, alpha):
         Marginal utility
     """
 
-    c = np.asarray(c)
+    if np.isscalar(c):
+        c = np.asarray(c)
     return np.exp(-alpha * c)
 
 
@@ -369,7 +383,8 @@ def CARAutilityPP(c, alpha):
         Marginal marginal utility
     """
 
-    c = np.asarray(c)
+    if np.isscalar(c):
+        c = np.asarray(c)
     return -alpha * np.exp(-alpha * c)
 
 
@@ -391,7 +406,8 @@ def CARAutilityPPP(c, alpha):
         Marginal marginal marginal utility
     """
 
-    c = np.asarray(c)
+    if np.isscalar(c):
+        c = np.asarray(c)
     return alpha**2.0 * np.exp(-alpha * c)
 
 
@@ -413,7 +429,8 @@ def CARAutility_inv(u, alpha):
         Consumption value corresponding to u
     """
 
-    u = np.asarray(u)
+    if np.isscalar(u):
+        u = np.asarray(u)
     return -1.0 / alpha * np.log(alpha * (1 - u))
 
 
@@ -435,7 +452,8 @@ def CARAutilityP_inv(u, alpha):
         Consumption value corresponding to uP
     """
 
-    u = np.asarray(u)
+    if np.isscalar(u):
+        u = np.asarray(u)
     return -1.0 / alpha * np.log(u)
 
 
@@ -457,7 +475,8 @@ def CARAutility_invP(u, alpha):
         Marginal onsumption value corresponding to u
     """
 
-    u = np.asarray(u)
+    if np.isscalar(u):
+        u = np.asarray(u)
     return 1.0 / (alpha * (1.0 - u))
 
 
