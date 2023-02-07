@@ -53,8 +53,10 @@ consumption_stage = Stage(
         }
     },
     
-    value_transform = np.exp, # lambda c: CRRAutility_inv(c, CRRA),
-    value_transform_inv = np.log, # lambda c : CRRAutility_inv(c, CRRA),
+    v_transform = np.exp, # lambda c: CRRAutility_inv(c, CRRA),
+    v_transform_inv = np.log, # lambda c : CRRAutility_inv(c, CRRA),
+    v_der_transform = lambda u: u ** -1 , #  CRRAutilityP_inv
+    v_der_transform_inv = lambda u : u ** -1, # u ** - rho
     
     # Pre-computed points for the solution to this stage
     solution_points = xr.Dataset(
@@ -81,8 +83,12 @@ allocation_stage = Stage(
     # Using bounds instead of constraints will result in a different optimizer
     action_upper_bound = lambda x, k: (1,) , 
     action_lower_bound = lambda x, k: (0,) ,
-    value_transform = np.exp,
-    value_transform_inv = np.log,
+
+    v_transform = np.exp, # lambda c: CRRAutility_inv(c, CRRA),
+    v_transform_inv = np.log, # lambda c : CRRAutility_inv(c, CRRA),
+    v_der_transform = lambda u: u ** -1 , #  CRRAutilityP_inv
+    v_der_transform_inv = lambda u : u ** -1, # u ** - rho
+
     optimizer_args = {
         'method' : "trust-constr",
         'options' : {"gtol": 1e-12, "disp": False, "maxiter" : 1e10}
@@ -117,8 +123,11 @@ income_stage = Stage(
         # 'live' : distribution.Bernoulli(p_live) ## Not implemented for now
     },
     outputs = ['m'],
-    value_transform = np.exp,
-    value_transform_inv = np.log,
+
+    v_transform = np.exp, # lambda c: CRRAutility_inv(c, CRRA),
+    v_transform_inv = np.log, # lambda c : CRRAutility_inv(c, CRRA),
+    v_der_transform = lambda u: u ** -1 , #  CRRAutilityP_inv
+    v_der_transform_inv = lambda u : u ** -1, # u ** - rho
 )
 
 
@@ -137,6 +146,11 @@ investing_stage = Stage(
         'eta' : distribution.Lognormal(0, sigma_eta),
     },
     outputs = ['b'],
+
+    v_transform = np.exp, # lambda c: CRRAutility_inv(c, CRRA),
+    v_transform_inv = np.log, # lambda c : CRRAutility_inv(c, CRRA),
+    v_der_transform = lambda u: u ** -1 , #  CRRAutilityP_inv
+    v_der_transform_inv = lambda u : u ** -1, # u ** - rho
 )
 
 def labor_transition(x, k, a):
@@ -144,6 +158,7 @@ def labor_transition(x, k, a):
 
 labor_stage = Stage(
     transition = labor_transition,
+    transition_der_x = lambda x, k, a: 1 / (k["psi"] * G),
     inputs = ['b'],
     shocks = {
         'theta' : distribution.Lognormal(0, sigma_theta),
@@ -151,6 +166,11 @@ labor_stage = Stage(
         # 'live' : distribution.Bernoulli(p_live) ## Not implemented for now
     },
     outputs = ['m'],
-    discount = lambda x, k, a: k['psi'] ** (1 - CRRA),
-    reward_der = lambda x, k, a : 0
+    discount = lambda x, k, a: (G * k['psi']) ** (CRRA - 1), # Check with CDC about G use here.
+    reward_der = lambda x, k, a : 0,
+
+    v_transform = np.exp, # lambda c: CRRAutility_inv(c, CRRA),
+    v_transform_inv = np.log, # lambda c : CRRAutility_inv(c, CRRA),
+    v_der_transform = lambda u: u ** (- 1 / CRRA) , #  CRRAutilityP_inv
+    v_der_transform_inv = lambda u : u ** (- CRRA), # u ** - rho
 )

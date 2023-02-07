@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import Field, dataclass, field
 import datetime
 from typing import Any, Callable, Mapping, Sequence, Tuple
 import itertools
@@ -40,22 +40,29 @@ class SolutionDataset(object):
     k_grid : Mapping[str, Sequence[float]] = field(default_factory=dict)
 
     # Used to tame unruly value functions between interpolations.
-    value_transform : Callable[[float], float] = lambda v : v
-    value_transform_inv : Callable[[float], float] = lambda v : v
+    v_transform : Callable[[float], float] = lambda v : v
+    v_transform_inv : Callable[[float], float] = lambda v : v
+
+    # Used to tame unruly value functions between interpolations.
+    v_der_transform : Callable[[float], float] = lambda v : v
+    v_der_transform_inv : Callable[[float], float] = lambda v : v
 
     def __repr__(self):
         return self.dataset.__repr__()
         
     ## TODO: Add in assume sorted to make it faster
     def v_x(self, x : Mapping[str, Any]) -> float:
+
         # Note: 'fill_value' expects None or 'extrapolate' based on software version?
-        return self.dataset.map(self.value_transform)['v_x'] \
+        return self.dataset.map(self.v_transform)['v_x'] \
                            .interp(**x, kwargs={"fill_value": 'extrapolate'}) \
-                           .to_dataset().map(self.value_transform_inv)['v_x']
+                           .to_dataset().map(self.v_transform_inv)['v_x']
 
     def v_x_der(self, x : Mapping[str, Any]) -> float:
         # Note: 'fill_value' expects None or 'extrapolate' based on software version?
-        return self.dataset['v_x_der'].interp(**x, kwargs={"fill_value": 'extrapolate'})
+        return self.dataset.map(self.v_der_transform)['v_x_der'] \
+                           .interp(**x, kwargs={"fill_value": 'extrapolate'}) \
+                           .to_dataset().map(self.v_der_transform_inv)['v_x_der']
 
     ## TODO: Should there be a standalone DecisionRule object?
     ## Or is it any function from X x K -> A?
@@ -120,8 +127,12 @@ class Stage:
     optimizer_args : Mapping[str, Any] = field(default_factory=dict)
 
     # Used to tame unruly value functions, such as those that go to -inf
-    value_transform : Callable[[float], float] = lambda v : v
-    value_transform_inv : Callable[[float], float] = lambda v : v
+    v_transform : Callable[[float], float] = lambda v : v
+    v_transform_inv : Callable[[float], float] = lambda v : v
+
+    # Used to tame unruly value functions, such as those that go to -inf
+    v_der_transform : Callable[[float], float] = lambda v : v
+    v_der_transform_inv : Callable[[float], float] = lambda v : v
 
     # Pre-computed points for the solution to this stage
     solution_points : xr.Dataset = xr.Dataset()
@@ -574,7 +585,16 @@ class Stage:
 
         ### TEST: available T_der as constant.
 
-        return self.reward_der_inv(- self.discount * self.transition_der_a * v_y_der(y))
+        v_y_der_at_y = v_y_der(y)
+        
+        if isinstance(v_y_der_at_y, xr.DataArray):
+            v_y_der_at_y = v_y_der_at_y.values # np.atleast1darray() ?
+
+
+        if 0 > v_y_der_at_y:
+            raise Exception(f"Negative marginal value {v_y_der_at_y} computes at y value of {y}. Reward is {- self.discount * self.transition_der_a * v_y_der_at_y}")
+
+        return self.reward_der_inv(- self.discount * self.transition_der_a * v_y_der_at_y)
 
     def optimal_policy_egm(self,
                        y_grid : Mapping[str, Sequence] = {},
@@ -658,6 +678,7 @@ class Stage:
             x_vals = x_val_data[i]
             a_vals = a_val_data[i]
             acts = [a_vals[a] for a in a_vals]
+  
             pi_data.sel(**x_vals).variable.data.put(0, acts)
 
         return pi_data, pi_y_data
@@ -822,7 +843,8 @@ class Stage:
 
 
             return - self.transition_der_x * self.reward_der(x, k, a) / self.transition_der_a
-
+        
+        print(f"pi_star.coords: {pi_star.coords}")
         for x_point in itertools.product(*new_x_grid.values()):
 
             x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
@@ -893,22 +915,7 @@ class Stage:
                 value_x
             )
 
-        ## TODO:
-        ## just return the raw data
-        ## build the solution object in SOLVE
-
-        return SolutionDataset(
-            xr.Dataset({
-                'v_x' : v_x_values,
-                #'v_x_der' : v_x_der_values, -- 
-                'pi*' : pi_star,
-                #'q' : q_values,
-            }), 
-            actions = self.actions,
-            value_transform = self.value_transform,
-            value_transform_inv = self.value_transform_inv,
-            #k_grid = k_grid_i
-            )
+        return v_x_values
 
 
     def solve(
@@ -916,63 +923,113 @@ class Stage:
         x_grid : Mapping[str, Sequence] = field(default_factory=dict),
         y_grid : Mapping[str, Sequence] = field(default_factory=dict),
         shock_approx_params : Mapping[str, int] = field(default_factory=dict),
-        v_y :  Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
-        v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
+        v_y :  Callable[[Mapping, Mapping, Mapping], float] = None, ##lambda x : 0,
+        v_y_der : Callable[[Mapping, Mapping, Mapping], float] = None, #lambda x : 0,
         next_sol : SolutionDataset = None,
         policy_finder_method = 'opt', # opt, foc, egm
         policy_finder_args = None ## rootfinder_args?
         # in these args? v_y_der : Callable[[Mapping, Mapping, Mapping], float] = None,
         ):
 
+        print(f"solve: X: {self.inputs}, K: {list(self.shocks.keys())}, A: {self.actions}, Y: {self.outputs}")
+        print(x_grid, y_grid, shock_approx_params, v_y, v_y_der, next_sol, policy_finder_method)
+
         if next_sol is not None:
-            v_y = next_sol.v_x
-            v_y_der = next_sol.v_x_der
+            if "v_x" in next_sol.dataset:
+                v_y = next_sol.v_x
+            if "v_x_der" in next_sol.dataset:
+                v_y_der = next_sol.v_x_der
 
-        ## Pick the policy optimizer and run it with the passed-in values
+        if isinstance(shock_approx_params, Field):
+            shock_approx_params = {}
+        discretized_shocks, k_grid, k_grid_i = self.discretize_shocks(shock_approx_params)
 
-        if policy_finder_method == 'opt':
+        ## If this stage has actions, run a policy optimizer
 
-            ## Build the grid
+        sol_data = {}
 
-            discretized_shocks, k_grid, k_grid_i = self.discretize_shocks(shock_approx_params)
+        if len(self.actions) > 0:
+            
+            if policy_finder_method == 'opt':
 
-            pi_star, q_data = self.optimal_policy(
-                x_grid,
-                k_grid,
-                v_y
+                pi_star, q_data = self.optimal_policy(
+                    x_grid,
+                    k_grid,
+                    v_y
+                )
+
+                sol_data["pi*"] = pi_star
+
+                sol_data["q"] = q_data
+
+            elif policy_finder_method == 'foc':
+                pass
+            elif policy_finder_method == 'egm':
+                #if not isinstance(shock_approx_params, Field) and len(shock_approx_params) > 0:
+                #    raise Exception("EGM cannot be used in stages with exogenous shocks.")
+
+                # probably shouldn't return here -- refactor...
+                return self.solve_egm(y_grid, v_y_der)
+            
+
+            else:
+                print(f'Did not recognize policy finder method {policy_finder_method}')
+        else:
+            new_x_grid = x_grid.copy()
+
+            for x_label in self.solution_points.coords:
+                for sol_x_val in self.solution_points.coords[x_label]:
+                    if sol_x_val.values not in x_grid[x_label]:
+                        ii = np.searchsorted(new_x_grid[x_label], sol_x_val)
+                        new_x_grid[x_label] = np.insert(new_x_grid[x_label], ii, sol_x_val)
+
+            coords = {**new_x_grid, **k_grid}
+
+
+            pi_star = xr.DataArray(
+                np.zeros([len(v) for v in coords.values()]),
+                dims = coords.keys(),
+                coords = coords
             )
+            print("No actions for this stage. Skipping to value backup.")
 
-            ## TODO: value backup can take the already discretized shocks,
-            ## or the other way around, to m
-            sol = self.value_backup(
+        ## do the value_update to get the value data
+
+        print(v_y)
+        if v_y is not None:
+            v_x_values = self.value_backup(
                 pi_star,
                 x_grid,
                 shock_approx_params,
                 v_y
             )
 
-            # TODO: better design Solution object to make this smoother
-            sol.dataset['q'] = q_data
+            sol_data["v_x"] = v_x_values
 
-            return sol
+        if v_y_der is not None:
+            v_x_der_values = self.marginal_value_backup(
+                pi_star,
+                x_grid,
+                shock_approx_params,
+                v_y_der
+            )
 
-        elif policy_finder_method == 'foc':
-            pass
-        elif policy_finder_method == 'egm':
-            #if not isinstance(shock_approx_params, Field) and len(shock_approx_params) > 0:
-            #    raise Exception("EGM cannot be used in stages with exogenous shocks.")
+            sol_data["v_x_der"] = v_x_der_values
 
-            return self.solve_egm(y_grid, v_y_der)
-            
+        ## TODO: If marginal value is there, do 
+        ## marginal_value_backup()
 
-        else:
-            print(f'Did not recognize policy finder method {policy_finder_method}')
+        sol = SolutionDataset(
+            xr.Dataset(sol_data), 
+            actions = self.actions,
+            v_transform = self.v_transform,
+            v_transform_inv = self.v_transform_inv,
+            v_der_transform = self.v_der_transform,
+            v_der_transform_inv = self.v_der_transform_inv,
+            #k_grid = k_grid_i
+            )
 
-        ## do the value_update to get the value data
-
-        ## return the solution object.
-
-        pass
+        return sol
 
     def solve_egm(
         self,
@@ -1022,10 +1079,8 @@ class Stage:
         ### ASSUME: dF/dx = 0
         ### ASSUME: dB/dx = 0
 
-        if self.transition_der_x is None or not(
-            isinstance(self.transition_der_x, float) or isinstance(self.transition_der_x, int)
-            ):
-            raise Exception(f"No constant transition derivative found. transition_der_x is {self.transition_der_x}")
+        if self.transition_der_x is None:
+            raise Exception(f"No transition derivative found. transition_der_x is {self.transition_der_x}")
 
         ### What if no marginal value function fiven?
         new_x_grid = self.x_grid_with_solution_points(x_grid)
@@ -1047,7 +1102,7 @@ class Stage:
             elif callable(self.discount):
                 discount = self.discount(x, k, a)
 
-            return discount * v_y_der(self.transition(x, k, a)) * self.transition_der_x
+            return discount * v_y_der(self.transition(x, k, a)) * transition_der_x
 
         for x_point in itertools.product(*new_x_grid.values()):
 
@@ -1076,22 +1131,34 @@ class Stage:
 
 
 
-
-
 def backwards_induction(
     stages_data,
-    terminal_v_y: Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
-    terminal_v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,):
+    y_grid,
+    terminal_v_y: Callable[[Mapping, Mapping, Mapping], float] = None,
+    terminal_v_y_der : Callable[[Mapping, Mapping, Mapping], float] = None):
     """
     #Solve each stage starting from the terminal value function.
     """
     
     last_stage = stages_data[-1]['stage']
+
+    ## This part is very hacky, not generalized well,
+    ## and should be moved into a factory method on the Solution class
+    sol_data = {}
+    if terminal_v_y is not None:
+        sol_data["v_x"] = xr.DataArray(
+            data = [terminal_v_y({last_stage.outputs[0] : y}) for y in y_grid],
+            coords = {last_stage.outputs[0] : y_grid} # hacky
+            )
+    if terminal_v_y_der is not None:
+        sol_data["v_x_der"] = xr.DataArray(
+            data = [terminal_v_y_der({last_stage.outputs[0] : y}) for y in y_grid],
+            coords = {last_stage.outputs[0] : y_grid} # hacky
+            )
+
+
     terminal_solution = SolutionDataset(
-            xr.Dataset({
-                'v_x' : terminal_v_y,
-                'v_x_der' : terminal_v_y_der,
-            }), 
+            xr.Dataset(sol_data), 
             actions = last_stage.actions,
             )
 
@@ -1106,7 +1173,8 @@ def backwards_induction(
         print(f"{t}: X: {stage.inputs}, K: {list(stage.shocks.keys())}, A: {stage.actions}, Y: {stage.outputs}")
         start_time = datetime.datetime.now()
         
-        x_grid = stage_data['x_grid']
+        x_grid = stage_data["x_grid"] if "x_grid" in stage_data else None
+        y_grid = stage_data["y_grid"] if "y_grid" in stage_data else None
         
         if 'shock_approx_params' in stage_data:
             shock_approx_params = stage_data['shock_approx_params']
@@ -1122,6 +1190,7 @@ def backwards_induction(
 
         sol = stage.solve(
             x_grid = x_grid,
+            y_grid = y_grid,
             shock_approx_params = shock_approx_params,
             next_sol = sol,
             policy_finder_method = method
@@ -1131,12 +1200,12 @@ def backwards_induction(
 
         sols.insert(0, sol)
 
-        v_y = sol.v_x
-
         end_time = datetime.datetime.now()
 
         elapsed_time = end_time - start_time
         print(f"Time to backwards induce v_x: {elapsed_time}")
+
+        print(sol)
         
     return sols
 
