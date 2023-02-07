@@ -96,7 +96,7 @@ def age_log_poly_to_growth_rates(coefs, age_min, age_max):
 
     # Create age matrices
     age_10 = np.arange(age_min, age_max + 1).reshape(age_max - age_min + 1, 1) / 10
-    age_mat = np.hstack(list(map(lambda n: age_10 ** n, range(deg + 1))))
+    age_mat = np.hstack(list(map(lambda n: age_10**n, range(deg + 1))))
 
     # Fing the value of the polynomial
     lnYDet = np.dot(age_mat, np.array(coefs))

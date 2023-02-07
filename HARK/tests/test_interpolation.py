@@ -4,6 +4,7 @@ This file implements unit tests for interpolation methods
 import unittest
 
 import numpy as np
+
 from HARK.interpolation import BilinearInterp
 from HARK.interpolation import CubicHermiteInterp as CubicInterp
 from HARK.interpolation import LinearInterp, QuadlinearInterp, TrilinearInterp

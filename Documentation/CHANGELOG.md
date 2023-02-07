@@ -56,6 +56,7 @@ Release Date: TBD
 * Updates the `approx` method of `HARK.distributions.Uniform` to include the endpoints of the distribution with infinitesimally small (zero) probability mass. [#1180](https://github.com/econ-ark/HARK/pull/1180)
 * Refactors tests to incorporate custom precision `HARK_PRECISION = 4`. [#1193](https://github.com/econ-ark/HARK/pull/1193)
 * Cast `DiscreteDistribution.pmv` attribute as a `np.ndarray`. [#1199](https://github.com/econ-ark/HARK/pull/1199)
+* Update structure of dynamic interest rate. [#1221](https://github.com/econ-ark/HARK/pull/1221)
 
 ### 0.12.0
 

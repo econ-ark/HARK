@@ -1677,16 +1677,20 @@ class PerfForesightConsumerType(AgentType):
         None
         """
 
-        if isinstance(self.Rfree, list):
+        if isinstance(self.Rfree, (int, float)):
+            self.add_to_time_inv("Rfree")
+        elif isinstance(self.Rfree, list):
             if len(self.Rfree) == self.T_cycle:
-                self.add_to_time_vary("Rfree")
+                if len(self.Rfree) == 1:
+                    self.Rfree = self.Rfree[0]
+                    self.add_to_time_inv("Rfree")
+                else:
+                    self.add_to_time_vary("Rfree")
             else:
                 raise AttributeError(
                     "If Rfree is time-varying, it should have a length of T_cycle!"
                 )
-        elif isinstance(self.Rfree, (int, float)):
-            self.add_to_time_inv("Rfree")
-        else:  # temporary fix for MarkovConsumerType
+        elif isinstance(self.Rfree, np.ndarray):
             self.add_to_time_inv("Rfree")
 
     def unpack_cFunc(self):
@@ -2400,9 +2404,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             timestonest = timestonest
 
         if self.cycles == 0:
-
             if not hasattr(dist_mGrid, "__len__"):
-
                 mGrid = make_grid_exp_mult(
                     ming=self.mMin,
                     maxg=self.mMax,
@@ -2440,14 +2442,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     one_sided_grid,
                 )  # Compute permanent income grid
             else:
-
                 # If grid of permanent income prespecified then use it as pgrid
                 self.dist_pGrid = dist_pGrid
 
             if (
                 self.neutral_measure == True
             ):  # If true Use Harmenberg 2021's Neutral Measure. For more information, see https://econ-ark.org/materials/harmenberg-aggregation?launch
-
                 self.dist_pGrid = np.array([1])
 
         elif self.cycles > 1:
@@ -2485,11 +2485,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 self.dist_mGrid = dist_mGrid
 
             if not hasattr(dist_pGrid, "__len__"):
-
                 self.dist_pGrid = []  # list of grids of permanent income
 
                 for i in range(self.T_cycle):
-
                     num_points = num_pointsP
                     # Dist_pGrid is taken to cover most of the ergodic distribution
                     # set variance of permanent income shocks this period
@@ -2514,7 +2512,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
             if (
                 self.neutral_measure == True
             ):  # If true Use Harmenberg 2021's Neutral Measure. For more information, see https://econ-ark.org/materials/harmenberg-aggregation?launch
-
                 self.dist_pGrid = self.T_cycle * [np.array([1])]
 
     def calc_transition_matrix(self, shk_dstn=None):
@@ -2536,7 +2533,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
 
         if self.cycles == 0:  # Infinite Horizon Problem
-
             if not hasattr(shk_dstn, "pmv"):
                 shk_dstn = self.IncShkDstn
 
@@ -2603,7 +2599,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
             raise Exception("calc_transition_matrix requires cycles = 0 or cycles = 1")
 
         elif self.T_cycle != 0:  # finite horizon problem
-
             if not hasattr(shk_dstn, "pmv"):
                 shk_dstn = self.IncShkDstn
 
@@ -2616,7 +2611,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
             dist_mGrid = self.dist_mGrid
 
             for k in range(self.T_cycle):
-
                 if type(self.dist_pGrid) == list:
                     # Permanent income grid this period
                     dist_pGrid = self.dist_pGrid[k]
@@ -2647,7 +2641,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 LivPrb = self.LivPrb[k]
 
                 if len(dist_pGrid) == 1:
-
                     # New borns have this distribution (assumes start with no assets and permanent income=1)
                     NewBornDist = jump_to_grid_1D(
                         np.ones_like(tran_shks), shk_prbs, dist_mGrid
@@ -2665,7 +2658,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     self.tran_matrix.append(TranMatrix_M)
 
                 else:
-
                     NewBornDist = jump_to_grid_2D(
                         np.ones_like(tran_shks),
                         np.ones_like(tran_shks),
@@ -2718,7 +2710,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         )
 
     def compute_steady_state(self):
-
         # Compute steady state to perturb around
         self.cycles = 0
         self.solve()
@@ -2912,8 +2903,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # First expectation vector is the steady state policy
         exp_vec_a = a_ss
         exp_vec_c = c_ss
-        for i in range(T ):
-
+        for i in range(T):
             exp_vecs_a.append(exp_vec_a)
             exp_vec_a = np.dot(tranmat_ss.T, exp_vec_a)
 
@@ -2956,27 +2946,23 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     J_A[t][s] = J_A[t - 1][s - 1] + Curl_F_A[t][s]
                     J_C[t][s] = J_C[t - 1][s - 1] + Curl_F_C[t][s]
 
-        
-        #Zeroth Column of the Jacobian
+        # Zeroth Column of the Jacobian
         dD_0_0 = np.dot(tranmat_t[-2] - tranmat_ss, D_ss)
-        
-        D_curl_0_0 = dD_0_0/dx
-        
+
+        D_curl_0_0 = dD_0_0 / dx
+
         c_first_col_0 = []
         a_first_col_0 = []
-        for i in range(params['T_cycle'] ):
-            
-            c_first_col_0.append(np.dot(exp_vecs_c[i],D_curl_0_0))
-            a_first_col_0.append(np.dot(exp_vecs_a[i],D_curl_0_0))
-        
+        for i in range(params["T_cycle"]):
+            c_first_col_0.append(np.dot(exp_vecs_c[i], D_curl_0_0))
+            a_first_col_0.append(np.dot(exp_vecs_a[i], D_curl_0_0))
+
         c_first_col_0 = np.array(c_first_col_0)
         a_first_col_0 = np.array(a_first_col_0)
-        
 
-        #Fill zeroth column of jacobian matrix
+        # Fill zeroth column of jacobian matrix
         J_A.T[0] = a_first_col_0
         J_C.T[0] = c_first_col_0
-
 
         return J_C, J_A
 
@@ -3398,17 +3384,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 for x in [UnempPrb, IncUnemp, UnempPrbRet, IncUnempRet]
             ]
         ):
-
             UnempPrb_list = [UnempPrb] * normal_length + [UnempPrbRet] * retire_length
             IncUnemp_list = [IncUnemp] * normal_length + [IncUnempRet] * retire_length
 
         elif all([isinstance(x, list) for x in [UnempPrb, IncUnemp]]):
-
             UnempPrb_list = UnempPrb
             IncUnemp_list = IncUnemp
 
         else:
-
             raise Exception(
                 "Unemployment must be specified either using floats for UnempPrb,"
                 + "IncUnemp, UnempPrbRet, and IncUnempRet, in which case the "
