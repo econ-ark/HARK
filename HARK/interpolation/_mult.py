@@ -3,7 +3,7 @@ from numba import njit, prange, typed
 from scipy.ndimage import map_coordinates
 
 from HARK.core import MetricObject
-from HARK.interpolation.interp_scipy import UnstructuredInterp
+from HARK.interpolation._scipy import UnstructuredInterp
 
 try:
     import cupy as cp
@@ -25,11 +25,9 @@ MC_KWARGS = {
 
 
 class MultivariateInterp(MetricObject):
-
     distance_criteria = ["values", "grids"]
 
     def __init__(self, values, grids, target="cpu", mc_kwargs=None):
-
         available_targets = ["cpu", "parallel"]
 
         if cupy_available:
@@ -64,7 +62,6 @@ class MultivariateInterp(MetricObject):
             assert self.shape[i] == self.grids[i].size, DIM_MESSAGE
 
     def __call__(self, *args):
-
         if self.target == "cpu" or self.target == "parallel":
             import numpy as xp
         elif self.target == "gpu":
@@ -79,7 +76,6 @@ class MultivariateInterp(MetricObject):
         return output
 
     def _get_coordinates(self, args):
-
         if self.target == "cpu" or self.target == "parallel":
             import numpy as xp
         elif self.target == "gpu":
@@ -99,7 +95,6 @@ class MultivariateInterp(MetricObject):
         return coordinates
 
     def _map_coordinates(self, coordinates):
-
         if self.target == "cpu" or self.target == "parallel":
             # there is no parallelization for scipy map_coordinates
             output = map_coordinates(
@@ -116,7 +111,6 @@ class MultivariateInterp(MetricObject):
 
 @njit(parallel=True, cache=True, fastmath=True)
 def _nb_interp(grids, args, coordinates):
-
     for dim in prange(args.shape[0]):
         coordinates[dim] = np.interp(args[dim], grids[dim], np.arange(grids[dim].size))
 
@@ -124,7 +118,6 @@ def _nb_interp(grids, args, coordinates):
 
 
 class RegularizedMultivariateInterp(MultivariateInterp):
-
     distance_criteria = ["values", "grids"]
 
     def __init__(
@@ -138,7 +131,6 @@ class RegularizedMultivariateInterp(MultivariateInterp):
         mc_kwargs=None,
         ui_kwargs=None,
     ):
-
         if mc_kwargs is None:
             mc_kwargs = dict()
         self.mc_kwargs = MC_KWARGS.copy()
@@ -190,7 +182,6 @@ class RegularizedMultivariateInterp(MultivariateInterp):
         ]
 
     def _get_coordinates(self, args):
-
         coordinates = np.asarray(
             [self.coord_interp[i](*args) for i in range(self.ndim)]
         )
@@ -199,11 +190,9 @@ class RegularizedMultivariateInterp(MultivariateInterp):
 
 
 class WarpedInterpOnInterp2D(MetricObject):
-
     distance_criteria = ["values", "grids"]
 
     def __init__(self, values: np.ndarray, grids, target="cpu"):
-
         available_targets = ["cpu", "parallel"]
 
         if cupy_available:
@@ -224,7 +213,6 @@ class WarpedInterpOnInterp2D(MetricObject):
         self.shape = values.shape
 
     def __call__(self, *args):
-
         if self.target == "cpu" or self.target == "parallel":
             import numpy as xp
         elif self.target == "gpu":
@@ -243,7 +231,6 @@ class WarpedInterpOnInterp2D(MetricObject):
         return output
 
     def _target_cpu(self, args):
-
         shape = args[0].shape
 
         args = args.reshape((self.ndim, -1))
@@ -263,11 +250,9 @@ class WarpedInterpOnInterp2D(MetricObject):
         return output.reshape(shape)
 
     def _target_parallel(self, args):
-
         return nb_interp_piecewise(args, self.grids, self.values)
 
     def _target_gpu(self, args):
-
         shape = args[0].shape
 
         args = args.reshape((self.ndim, -1))
@@ -289,7 +274,6 @@ class WarpedInterpOnInterp2D(MetricObject):
 
 @njit(parallel=True, cache=True)
 def nb_interp_piecewise(args, grids, values):
-
     shape = args[0].shape
 
     args = args.reshape((values.ndim, -1))
@@ -311,7 +295,6 @@ def nb_interp_piecewise(args, grids, values):
 
 class WarpedMultivariateInterp(MetricObject):
     def __init__(self, values, grids):
-
         self.values = np.asarray(values)
         self.grids = np.asarray(grids)
 
@@ -362,5 +345,4 @@ class WarpedMultivariateInterp(MetricObject):
             )
 
     def __call__(self, *args):
-
         args = np.asarray(args)
