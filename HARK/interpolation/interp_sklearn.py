@@ -137,7 +137,9 @@ class GeneralizedRegressionCurvilinearInterp(_PreprocessingCurvilinearInterp):
         elif model == "gaussian-process":
             pipeline = [GaussianProcessRegressor(**model_kwargs)]
         else:
-            raise AttributeError(f"Model {model} not implemented.")
+            raise AttributeError(
+                f"Model {model} not implemented. Consider using `PipelineCurvilinearInterp`."
+            )
 
         super().__init__(values, grids, pipeline, **kwargs)
 
@@ -248,11 +250,8 @@ class PipelineUnstructuredInterp(_UnstructuredInterp):
         self.model = make_pipeline(*self.pipeline)
         self.model.fit(self.X_train, self.y_train)
 
-    def __call__(self, *args):
-        args = np.asarray(args)
-
+    def __call__(self, *args: np.ndarray):
         X_test = np.c_[tuple(arg.ravel() for arg in args)]
-
         return self.model.predict(X_test).reshape(args[0].shape)
 
 
@@ -297,6 +296,35 @@ class _PreprocessingUnstructuredInterp(PipelineUnstructuredInterp):
             pipeline = [Normalizer()] + pipeline
 
         super().__init__(values, grids, pipeline)
+
+
+class GeneralizedRegressionUnstructuredInterp(_PreprocessingUnstructuredInterp):
+    def __init__(self, values, grids, model="elastic-net", model_kwargs=None, **kwargs):
+
+        if model_kwargs is None:
+            model_kwargs = {}
+
+        self.model = model
+        self.model_kwargs = model_kwargs
+
+        if model == "elastic-net":
+            pipeline = [ElasticNet(**model_kwargs)]
+        elif model == "elastic-net-cv":
+            pipeline = [ElasticNetCV(**model_kwargs)]
+        elif model == "kernel-ridge":
+            pipeline = [KernelRidge(**model_kwargs)]
+        elif model == "svr":
+            pipeline = [SVR(**model_kwargs)]
+        elif model == "sgd":
+            pipeline = [SGDRegressor(**model_kwargs)]
+        elif model == "gaussian-process":
+            pipeline = [GaussianProcessRegressor(**model_kwargs)]
+        else:
+            raise AttributeError(
+                f"Model {model} not implemented. Consider using `PipelineUnstructuredInterp`."
+            )
+
+        super().__init__(values, grids, pipeline, **kwargs)
 
 
 class UnstructuredPolynomialInterp(MetricObject):
