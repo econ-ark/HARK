@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.0
+#       jupytext_version: 1.14.4
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -33,6 +33,7 @@ from scipy.interpolate import RegularGridInterpolator
 # %% [markdown]
 # Suppose we are trying to approximate the following function at a set of points:
 #
+
 
 # %%
 def squared_coords(x, y):
@@ -152,6 +153,7 @@ jax = np.empty_like(fast)
 # We will use the following function to time the execution of the interpolation.
 #
 
+
 # %%
 def timeit(interp, x, y, min=1e-6):
     start = time()
@@ -165,7 +167,6 @@ def timeit(interp, x, y, min=1e-6):
 
 # %%
 for i, j in product(range(n), repeat=2):
-
     data_grid = np.linspace(0, 10, grid[i])
     x_cross, y_cross = np.meshgrid(data_grid, data_grid, indexing="ij")
     z_cross = squared_coords(x_cross, y_cross)

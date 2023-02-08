@@ -14,7 +14,7 @@
 # ---
 
 # %%
-from HARK.interpolation import UnstructuredInterp
+from HARK.interpolation import UnstructuredInterp, RegularizedMultivariateInterp
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -66,3 +66,11 @@ ax.plot_surface(x_new, y_new, z_rand_interp)
 plt.show()
 
 # %%
+reg_interp = RegularizedMultivariateInterp(z_mat, [x_mat, y_mat])
+
+# %%
+z_reg_interp = reg_interp(x_new, y_new)
+
+fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+ax.plot_surface(x_new, y_new, z_reg_interp)
+plt.show()

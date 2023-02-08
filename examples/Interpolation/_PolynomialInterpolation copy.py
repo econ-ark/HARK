@@ -17,19 +17,21 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from sklearn.linear_model import Ridge, LinearRegression, Lasso
+from sklearn.linear_model import Ridge
 from sklearn.preprocessing import PolynomialFeatures, SplineTransformer
 from sklearn.pipeline import make_pipeline
+
+from sklearn.kernel_ridge import KernelRidge
 
 from scipy.ndimage import map_coordinates
 
 # %%
 n = 50
-m = 50
-x_grid = np.linspace(1, 11, n)
-y_grid = np.empty(m)
+m = 60
 
-x_mat, y_mat = np.meshgrid(x_grid, y_grid, indexing="ij")
+x_mat = np.sort(np.random.random(size=(n, m)) * 11, axis=0)
+
+y_mat = np.empty_like(x_mat)
 u_mat = np.empty_like(x_mat)
 
 u_mat.shape
@@ -40,13 +42,13 @@ for i in range(u_mat.shape[1]):
     y_mat[:, i] = u_mat[:, i] / x_mat[:, i]
 
 # %%
-x_new = np.linspace(5, 10, 100)
-y_new = np.linspace(5, 10, 100)
+x_new = np.linspace(1, 10, 100)
+y_new = np.linspace(1, 10, 100)
 
 x_new, y_new = np.meshgrid(x_new, y_new, indexing="ij")
 
 # %%
-n_knots = 50
+degree = 10
 
 X_train = np.c_[x_mat.ravel(), y_mat.ravel()]
 
@@ -55,7 +57,10 @@ coords = np.mgrid[[slice(0, dim) for dim in x_mat.shape]]
 y_train = coords[0].ravel()
 
 # %%
-model = make_pipeline(SplineTransformer(n_knots=n_knots, degree=5), Lasso(alpha=1e-3))
+X_train.shape
+
+# %%
+model = make_pipeline(PolynomialFeatures(degree), KernelRidge(alpha=1e-3))
 model.fit(X_train, y_train)
 x_idx = model.predict(np.c_[x_new.ravel(), y_new.ravel()])
 
@@ -71,18 +76,20 @@ u_interp = map_coordinates(u_mat, [x_idx, y_idx], order=1)
 plt.imshow(u_interp.reshape(x_new.shape), origin="lower")
 
 # %%
-from HARK.interpolation import UnstructuredSplineInterp
+from HARK.interpolation import RegularizedPolynomialInterp
 
 # %%
-spline_interp = UnstructuredSplineInterp(u_mat, [x_mat, y_mat], 3, 3)
+poly_interp = RegularizedPolynomialInterp(u_mat, [x_mat, y_mat], degree=3)
 
 # %%
-u_spline = spline_interp(x_new, y_new)
+u_poly = poly_interp(x_new, y_new)
 
 # %%
-plt.imshow(u_spline, origin="lower")
+plt.imshow(u_poly, origin="lower")
 
 # %%
 plt.imshow(x_new * y_new, origin="lower")
+
+# %%
 
 # %%
