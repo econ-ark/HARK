@@ -1,12 +1,12 @@
-\Preamble{charset="latin1",p-width,pic-align,pic-tabular} 
+\Preamble{charset="latin1",p-width,pic-align,pic-tabular}
 \DeclareGraphicsExtensions{.svg,.png,.jpg} % change to %\DeclareGraphicsExtensions{.png,.svg,.jpg} to prefer png pix
 
-%\Configure{Picture}{.svg} 
+%\Configure{Picture}{.svg}
 
-\Configure{VERSION}{} 
+\Configure{VERSION}{}
 
 \DeclareGraphicsRule{.png}{bmp}{.xbb}{}
-%\DeclareGraphicsRule{.svg}{svg}{.xbb}{} % Uncomment if you want to use the commented-out method of configuring svg files to get the size from a boundingbox created by ebb -x *.png 
+%\DeclareGraphicsRule{.svg}{svg}{.xbb}{} % Uncomment if you want to use the commented-out method of configuring svg files to get the size from a boundingbox created by ebb -x *.png
 
 \ConfigureEnv{figure}
    {\ifvmode\IgnorePar\fi\EndP\HCode{<div class="figure"\Hnewline>}%
@@ -41,16 +41,16 @@
 \Css{.subfigure img{display:block; margin-left:auto; margin-right:auto}} % Should, but does not seem to, center captions
 
 % This is for figures in png format
-\Configure{graphics*} 
-        {png} 
-        {%the special command below so it will copy the png over 
-           \special{t4ht+@File: \csname Gin@base\endcsname.png} 
-           \Picture[pict]{\csname Gin@base\endcsname .png 
-              \space width="\expandafter\the\csname Gin@req@width\endcsname" 
-}% 
-}% 
+\Configure{graphics*}
+        {png}
+        {%the special command below so it will copy the png over
+           \special{t4ht+@File: \csname Gin@base\endcsname.png}
+           \Picture[pict]{\csname Gin@base\endcsname .png
+              \space width="\expandafter\the\csname Gin@req@width\endcsname"
+}%
+}%
 
-\Configure{Picture}{.svg} 
+\Configure{Picture}{.svg}
 
 \makeatletter
 \Configure{graphics*}
@@ -68,11 +68,11 @@
 % https://tex.stackexchange.com/questions/563276/graphics-scaling-in-tex4ht
 
 
-%These to tell tex4ht to make inline math images also 
+%These to tell tex4ht to make inline math images also
 \begin{document}
 
-\Configure{$}{\PicMath}{\EndPicMath}{} 
-\Configure{PicMath}{}{}{}{class="math";align="absmiddle"} 
+\Configure{$}{\PicMath}{\EndPicMath}{}
+\Configure{PicMath}{}{}{}{class="math";align="absmiddle"}
 
 
 \EndPreamble

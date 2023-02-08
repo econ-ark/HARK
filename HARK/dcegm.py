@@ -105,13 +105,11 @@ def calc_cross_points(x_grid, cond_ys, opt_idx):
 
     # If no changes, return empty arrays
     if len(idx_change) == 0:
-
         points = np.zeros((0, 2), dtype=np.float64)
         segments = np.zeros((0, 2), dtype=np.int64)
         return points, segments
 
     else:
-
         # To find the crossing points we need the extremes of the intervals in
         # which they happen, and the two candidate segments evaluated in both
         # extremes. switch_interv[0] has the left points and switch_interv[1]
@@ -128,7 +126,6 @@ def calc_cross_points(x_grid, cond_ys, opt_idx):
         right_y = np.zeros_like(segments, dtype=np.float64)
 
         for i, idx in enumerate(idx_change):
-
             left_y[i, 0] = cond_ys[segments[i, 0], idx]
             left_y[i, 1] = cond_ys[segments[i, 1], idx]
 
@@ -144,14 +141,12 @@ def calc_cross_points(x_grid, cond_ys, opt_idx):
             )
 
         if not np.any(valid):
-
             # If there are no valid crossings, return empty arrays.
             points = np.zeros((0, 2), dtype=np.float64)
             segments = np.zeros((0, 2), dtype=np.int64)
             return points, segments
 
         else:
-
             # Otherwise, subset valid crossings
             segments = segments[valid, :]
             switch_interv = switch_interv[valid, :]
@@ -247,7 +242,6 @@ def upper_envelope(segments, calc_crossings=True):
     # Interpolate all segments on every x point, without extrapolating.
     y_cond = np.zeros((n_seg, len(x)))
     for i in range(n_seg):
-
         if len(segments[i][0]) == 1:
             # If the segment is a single point, we can only know its value
             # at the observed point.
@@ -268,11 +262,9 @@ def upper_envelope(segments, calc_crossings=True):
 
     # Get crossing points if needed
     if calc_crossings:
-
         xing_points, xing_lines = calc_cross_points(x, y_cond, env_inds)
 
         if len(xing_points) > 0:
-
             # Extract x and y coordinates
             xing_x = np.array([p[0] for p in xing_points])
             xing_y = np.array([p[1] for p in xing_points])

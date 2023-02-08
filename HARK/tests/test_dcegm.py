@@ -1,11 +1,12 @@
 """
 This file implements unit tests to check discrete choice functions
 """
-from HARK import dcegm
-
 # Bring in modules we need
 import unittest
+
 import numpy as np
+
+from HARK import dcegm
 
 
 class envelope_test(unittest.TestCase):
@@ -16,7 +17,6 @@ class envelope_test(unittest.TestCase):
         ]
 
     def test_upper_envelope(self):
-
         # Compute
         x_env, y_env, inds = dcegm.upper_envelope(self.segments)
 

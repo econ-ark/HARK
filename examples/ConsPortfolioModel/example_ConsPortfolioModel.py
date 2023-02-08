@@ -17,11 +17,11 @@
 # %% [markdown]
 # # Portfolio Models in HARK
 #
-# In this notebook, we consider the solution and simulation of a number of microeconomic problems in the context of optimal portfolio choice. 
+# In this notebook, we consider the solution and simulation of a number of microeconomic problems in the context of optimal portfolio choice.
 #
-# The agents in this model are first defined using the dictionary from the `PerfForesightConsumerType` class and additional attributes are added using the `IndShockConsumerType` class. 
+# The agents in this model are first defined using the dictionary from the `PerfForesightConsumerType` class and additional attributes are added using the `IndShockConsumerType` class.
 #
-# From there, the `ConsPortfolioDict` dictionary is introduced to create the `PortfolioConsumerType` and each of the subseqeunt agent types using it. 
+# From there, the `ConsPortfolioDict` dictionary is introduced to create the `PortfolioConsumerType` and each of the subseqeunt agent types using it.
 
 # %%
 from copy import copy, deepcopy
@@ -214,7 +214,7 @@ print("\n\n\n")
 
 
 # %% [markdown]
-# ## 3. A model of "sticky" portfolio choice 
+# ## 3. A model of "sticky" portfolio choice
 
 # %%
 # Make another example type, but this one can only update their risky portfolio
@@ -290,7 +290,7 @@ plot_funcs(
 #
 
 # %% [markdown]
-# ## 4. Life-cycle model of portfolio choice 
+# ## 4. Life-cycle model of portfolio choice
 
 # %%
 LC_ConsPortfolioDict = copy(ConsPortfolioDict)

@@ -1,19 +1,19 @@
-% tikz is very finicky and so let's pull in a minimal set of needed packages 
+% tikz is very finicky and so let's pull in a minimal set of needed packages
 \RequirePackage{wasysym
-  ,psibycus % Greek language package, including koppa 
+  ,psibycus % Greek language package, including koppa
   ,ushort
   ,ifthen
   ,tipa
   ,cancel
 }
 
-\usepackage{econtexShortcuts} % Lots of macros 
+\usepackage{econtexShortcuts} % Lots of macros
 
 % Math mode Pat does not play nicely with tikz for some reason
 \renewcommand{\Pat}{\textbf{\Thorn}}
 
-% Special underlining 
-\usepackage[normalem]{ulem}   
+% Special underlining
+\usepackage[normalem]{ulem}
 
 \makeatletter
 \newcommand*{\saved@uline}{}
@@ -30,7 +30,7 @@
 }
 
 \renewcommand*{\uline}{%
-  \relax  
+  \relax
   \ifmmode
   \expandafter\mathuline
   \else

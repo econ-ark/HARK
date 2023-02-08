@@ -35,7 +35,7 @@ from HARK.utilities import plot_funcs
 from xarray import DataArray, Dataset
 
 # %% [markdown]
-# Here are some basic parameters that we'll use to construct the model. `CRRA` is the coefficient of constant relative risk aversion, `DiscFac` is the intertemporal discount factor, and `Rfree` is the interest rate on savings. 
+# Here are some basic parameters that we'll use to construct the model. `CRRA` is the coefficient of constant relative risk aversion, `DiscFac` is the intertemporal discount factor, and `Rfree` is the interest rate on savings.
 #
 
 # %%
@@ -66,7 +66,7 @@ util = UtilityFuncCRRA(CRRA)
 # %% [markdown]
 # This problem can be disected into two stages and two transitions:
 #
-# First, the agent chooses consumption $c_t$ to maximize their utility given their current cash-on-hand $m_t$ and is left with liquid assets $a_t$. This problem must obey their budget constraint, such that assets is equal to cash-on-hand minus consumption. 
+# First, the agent chooses consumption $c_t$ to maximize their utility given their current cash-on-hand $m_t$ and is left with liquid assets $a_t$. This problem must obey their budget constraint, such that assets is equal to cash-on-hand minus consumption.
 #
 # $$
 # v_t(m_t) = \max_{c_t} u(c_t) + \beta w_{t}(a_{t}) \\
@@ -74,7 +74,7 @@ util = UtilityFuncCRRA(CRRA)
 #  a_t = m_t - c_t \\
 # $$
 #
-# Second, the agent receives a constant income and the liquid assets accrue interest, which results in next period's cash-on-hand $m_{t+1}$. 
+# Second, the agent receives a constant income and the liquid assets accrue interest, which results in next period's cash-on-hand $m_{t+1}$.
 #
 # $$
 # w_t(a_t) = v_{t+1}(m_{t+1}) \\
@@ -132,7 +132,7 @@ post_state = Dataset({"aNrm": aNrm})
 print(post_state)
 
 # %% [markdown]
-# We can now define functions over the state space. In this basic model, we need an action/policy/decision to represent consumption. Starting from the last period, we know that the solution is for the agent to consume all of its resources `mNrm`, which induces a linear function. Defining it as a function of the state space is easy, notice in the expression below that the dimension for `cNrm` is `mNrm`. 
+# We can now define functions over the state space. In this basic model, we need an action/policy/decision to represent consumption. Starting from the last period, we know that the solution is for the agent to consume all of its resources `mNrm`, which induces a linear function. Defining it as a function of the state space is easy, notice in the expression below that the dimension for `cNrm` is `mNrm`.
 #
 
 # %%
@@ -178,7 +178,7 @@ v_der_inv.name = "v_der_inv"
 v_der_inv.attrs = {"long_name": "Inverse Marginal Value Function"}
 
 # %% [markdown]
-# We can now create a xr.Dataset to store all of the variables/functions we have created. Datasets are useful containers of variables that are defined over the same dimensions, or in our case states. As we can see, every variable in the dataset shares the same dimension of `mNrm`. 
+# We can now create a xr.Dataset to store all of the variables/functions we have created. Datasets are useful containers of variables that are defined over the same dimensions, or in our case states. As we can see, every variable in the dataset shares the same dimension of `mNrm`.
 #
 
 # %%
@@ -214,6 +214,7 @@ dataset.interp({"mNrm": np.sort(np.random.uniform(epsilon, 20, 10))})
 # %% [markdown]
 # Because of the curvature of the value and marginal value functions, it'll be useful to use the inverse value and marginal value functions instead and re-curve them. For this, I create a new class `ValueFunctionCRRA` that returns the appropriate value and marginal value functions.
 #
+
 
 # %%
 class ValueFunctionCRRA(object):
@@ -289,7 +290,7 @@ rand_ds = vfunc.evaluate({"mNrm": rand_states})
 rand_ds
 
 # %% [markdown]
-# However, if we use the inverse value and marginal value functions to interpolate and then re-curve, the results are slightly different. 
+# However, if we use the inverse value and marginal value functions to interpolate and then re-curve, the results are slightly different.
 
 # %%
 rand_v = vfunc({"mNrm": rand_states})
@@ -307,6 +308,7 @@ rand_v - util(rand_states)
 #
 # Another useful feature of `xarray` is that we can easily define the state transitions. Using labels, we can define expresive equations that are easy to read and understand.
 #
+
 
 # %%
 def state_transition(state=None, action=None, params=None):
@@ -337,7 +339,7 @@ Dataset(state_transition(state, policy_function, params))
 Dataset(post_state_transition(post_state, params))
 
 # %% [markdown]
-# These transitions can also be composed. 
+# These transitions can also be composed.
 
 # %%
 Dataset(post_state_transition(state_transition(state, dataset, params), params))
@@ -346,7 +348,8 @@ Dataset(post_state_transition(state_transition(state, dataset, params), params))
 # %% [markdown]
 # We can even define more complex transitions where several variables are created along the way. In the example below, we define the value of an action given some initial state and continuation function, which is the value of having taken that action.
 #
-# The continuation value function is then the value of some initial post-decision state, which is the value of having taken that action and ending up with next period's state. 
+# The continuation value function is then the value of some initial post-decision state, which is the value of having taken that action and ending up with next period's state.
+
 
 # %%
 def value_transition(action=None, state=None, continuation=None, params=None):
@@ -394,7 +397,7 @@ def continuation_transition(post_state=None, value_next=None, params=None):
 
 
 # %% [markdown]
-# From these transitions, we can easily calculate the continuation value function as follows. 
+# From these transitions, we can easily calculate the continuation value function as follows.
 
 # %%
 v_end = Dataset(continuation_transition(post_state, vfunc, params))
@@ -444,7 +447,7 @@ grid_search
 grid_search["cNrm"].plot()
 
 # %% [markdown]
-# For comparison, we can also check these results against `HARK`'s traditional model solution. 
+# For comparison, we can also check these results against `HARK`'s traditional model solution.
 
 # %%
 hark_agent = PerfForesightConsumerType(
@@ -463,13 +466,14 @@ np.max(np.abs(hark_agent.solution[0].cFunc(mVec) - grid_search["cNrm"]))
 # %% [markdown]
 # ## Endogenous Grid Method
 #
-# As we can see above, the differences are very small. This is because `HARK` uses the endogenous grid method instead of a grid search method to find an optimal solution. To see the endogenous grid method in action, we can instead do the following. 
+# As we can see above, the differences are very small. This is because `HARK` uses the endogenous grid method instead of a grid search method to find an optimal solution. To see the endogenous grid method in action, we can instead do the following.
 #
-# The endogenous grid method consists of starting from the post-decision state and deriving the optimal action that rationalizes ending up at that state. 
+# The endogenous grid method consists of starting from the post-decision state and deriving the optimal action that rationalizes ending up at that state.
 #
 # To do this, the endogenous grid method uses the first order condition of the problem, as can be seen in the `egm_transition` function. Having obtained the optimal consumption from a given post-decision state, we can now back out the starting cash-on-hand that would have induced that consumption.
 #
 #
+
 
 # %%
 def reverse_transition(post_state=None, action=None, params=None):
@@ -501,7 +505,7 @@ values = value_transition(actions, states, wfunc, params)
 egm_dataset.update(values)
 
 # %% [markdown]
-# Because we have imposed an artificial borrowing constraint of 0, we can not optimize our problem at `aNrm` = 0 using the first order condition. Instead, we have to plug in these values. 
+# Because we have imposed an artificial borrowing constraint of 0, we can not optimize our problem at `aNrm` = 0 using the first order condition. Instead, we have to plug in these values.
 
 # %%
 borocnst = Dataset(
@@ -524,7 +528,7 @@ egm = xr.concat([borocnst, egm_dataset], dim="mNrm", combine_attrs="no_conflicts
 egm
 
 # %% [markdown]
-# Now, we can compare the endogenous grid method approach with `HARK`'s solution, and see that the difference is now much smaller and numerically trivial. 
+# Now, we can compare the endogenous grid method approach with `HARK`'s solution, and see that the difference is now much smaller and numerically trivial.
 
 # %%
 np.max(np.abs(egm["cNrm"].interp({"mNrm": mVec}) - hark_agent.solution[0].cFunc(mVec)))
@@ -537,7 +541,7 @@ np.max(np.abs(egm["cNrm"].interp({"mNrm": mVec}) - hark_agent.solution[0].cFunc(
 # %% [markdown]
 # ### PerfForesightLabeledType
 #
-# The `PerfForesightLabeledType` is a perfect foresight model with a constant interest rate and a constant income, so the agent experiences no uncertainty. 
+# The `PerfForesightLabeledType` is a perfect foresight model with a constant interest rate and a constant income, so the agent experiences no uncertainty.
 
 # %%
 from HARK.ConsumptionSaving.ConsLabeledModel import (
@@ -551,7 +555,7 @@ agent.solve()
 agent.solution[0].policy["cNrm"].plot()
 
 # %% [markdown]
-# The model is equivalent to `PerfForesightConsumerType` presented below. 
+# The model is equivalent to `PerfForesightConsumerType` presented below.
 
 # %%
 hark_agent = PerfForesightConsumerType(cycles=0, BoroCnstArt=-1.0)
@@ -561,7 +565,7 @@ hark_agent.solve()
 plot_funcs(hark_agent.solution[0].cFunc, hark_agent.solution[0].mNrmMin - 1, 25)
 
 # %% [markdown]
-# The difference in the two models is small. 
+# The difference in the two models is small.
 
 # %%
 np.max(
@@ -624,7 +628,7 @@ agent.solution[0].value.dataset["v_der_inv"].plot()
 # %% [markdown]
 # ### PortfolioLabeledType
 #
-# The `PortfolioLabeledType` is a model with idiosyncratic shocks to income and a risky asset and a portfolio choice. The model is equivalent to `PortfolioConsumerType`. First we see the consumption function. 
+# The `PortfolioLabeledType` is a model with idiosyncratic shocks to income and a risky asset and a portfolio choice. The model is equivalent to `PortfolioConsumerType`. First we see the consumption function.
 
 # %%
 from HARK.ConsumptionSaving.ConsLabeledModel import PortfolioLabeledType
@@ -634,7 +638,7 @@ agent.solve()
 agent.solution[0].policy["cNrm"].plot()
 
 # %% [markdown]
-# Now we can plot the optimal risky share of portfolio conditional on the initial state of market resources. 
+# Now we can plot the optimal risky share of portfolio conditional on the initial state of market resources.
 
 # %%
 agent.solution[0].continuation.dataset["stigma"].plot()
