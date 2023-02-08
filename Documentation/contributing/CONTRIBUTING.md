@@ -309,6 +309,43 @@ Or tests from a specific file
     $ pytest HARK/ConsumptionSaving/tests/test_ConsAggShockModel.py
 ```
 
+### Pre-commit hooks
+
+`HARK` uses [pre-commit](https://pre-commit.com/) to ensure that all code is well organized and formatted, as well as to ensure the integrity of example notebooks. To install pre-commit, run
+
+```
+    $ pip install pre-commit
+    $ pre-commit install
+```
+
+Once you do this, it will run the pre-commit hooks on every commit while only affecting modified files. If you want to run the pre-commit hooks manually on every file, run
+
+```
+    $ pre-commit run --all-files
+```
+
+Because this is an optional feature, it does not come installed with `HARK` by default. This is to avoid overhead for new users and contributors who might be new to github and software development in general.
+
+If you are having issues with pre-commit, and just want to commit your changes, you can use the `--no-verify` flag to bypass the pre-commit hooks.
+
+```
+    $ git commit -m "commit message" --no-verify
+```
+
+If you do this, please alert one of the core developers so that we can review your changes to make sure that there are no issues and that your code is formatted correctly.
+
+The following pre-commit hooks are currently configured:
+
+- [jupytext] sync, clean up, and execute jupyter notebooks
+- [black] format code
+- [pyupgrade] update small python snippets as we drop older versions of python
+- [blacken-docs] format documentation
+- [isort] sort imports on .py files
+- [mirrors-prettier] clean up and format other types of files in codebase
+- [pre-commit-hooks] other small clean-up/formatting
+
+If you are interested in using pre-commit, please see the [pre-commit documentation](https://pre-commit.com/) for more information.
+
 ### Pull request codes
 
 When you submit a pull request to GitHub, GitHub will ask you for a summary. If
