@@ -16,29 +16,23 @@ from HARK.interpolation._multi import _CurvilinearGridInterp, _UnstructuredGridI
 
 
 class PipelineCurvilinearInterp(_CurvilinearGridInterp):
-    def __init__(self, values, grids, pipeline):
+    def __init__(self, values, grids, pipeline, **kwargs):
         # for now, only support cpu
-        super().__init__(values, grids, target="cpu")
+        super().__init__(values, grids, target="cpu", **kwargs)
 
         self.pipeline = pipeline
 
-        self.X_train = np.c_[tuple(grid.ravel() for grid in self.grids)]
+        X_train = np.reshape(self.grids, (self.ndim, -1))
         y_train = np.mgrid[[slice(0, dim) for dim in self.shape]]
-        self.y_train = np.c_[[y.ravel() for y in y_train]]
+        y_train = np.reshape(y_train, (self.ndim, -1))
 
         self.models = [make_pipeline(*pipeline) for _ in range(self.ndim)]
         for dim in range(self.ndim):
-            self.models[dim].fit(self.X_train, self.y_train[dim])
+            self.models[dim].fit(X_train, y_train[dim])
 
     def _get_coordinates(self, args):
-        X_test = np.c_[tuple(arg.ravel() for arg in args)]
+        X_test = np.reshape(args, (self.ndim, -1))
         return np.array([m.predict(X_test).reshape(args[0].shape) for m in self.models])
-
-    def _map_coordinates(self, coordinates):
-        return np.reshape(
-            map_coordinates(self.values, coordinates.reshape(coordinates.shape[0], -1)),
-            coordinates[0].shape,
-        )
 
 
 class _PreprocessingCurvilinearInterp(PipelineCurvilinearInterp):
@@ -187,11 +181,11 @@ class PipelineUnstructuredInterp(_UnstructuredGridInterp):
     def __init__(self, values, grids, pipeline):
         # for now, only support cpu
         super().__init__(values, grids, target="cpu")
-        self.X_train = np.moveaxis(self.grids, -1, 0)
-        self.y_train = self.values
+        X_train = np.moveaxis(self.grids, -1, 0)
+        y_train = self.values
         self.pipeline = pipeline
         self.model = make_pipeline(*self.pipeline)
-        self.model.fit(self.X_train, self.y_train)
+        self.model.fit(X_train, y_train)
 
     def __call__(self, *args: np.ndarray):
         X_test = np.c_[tuple(arg.ravel() for arg in args)]

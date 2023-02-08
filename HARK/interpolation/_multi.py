@@ -27,9 +27,13 @@ MC_KWARGS = {
 class _RegularGridInterp(MetricObject):
     distance_criteria = ["values"]
 
-    def __init__(self, values, target="cpu"):
+    def __init__(self, values, target="cpu", **kwargs):
         assert target in AVAILABLE_TARGETS, "Invalid target."
         self.target = target
+
+        self.mc_kwargs = MC_KWARGS.copy()
+        # update mc_kwargs with any kwargs that are in MC_KWARGS
+        self.mc_kwargs.update((k, v) for k, v in kwargs.items() if k in MC_KWARGS)
 
         if target in ["cpu", "parallel"]:
             self.values = np.asarray(values)
@@ -56,16 +60,23 @@ class _RegularGridInterp(MetricObject):
         raise NotImplementedError("Must be implemented by subclass.")
 
     def _map_coordinates(self, coordinates):
-        raise NotImplementedError("Must be implemented by subclass.")
+        if self.target in ["cpu", "parallel"]:
+            # there is no parallelization for scipy map_coordinates
+            output = map_coordinates(
+                self.values, coordinates.reshape(self.ndim, -1), **self.mc_kwargs
+            )
+
+        elif self.target == "gpu":
+            output = cupy_map_coordinates(
+                self.values, coordinates.reshape(self.ndim, -1), **self.mc_kwargs
+            )
+
+        return output.reshape(coordinates[0].shape)
 
 
 class MultivariateInterp(_RegularGridInterp):
     def __init__(self, values, grids, target="cpu", **kwargs):
-        super().__init__(values, target=target)
-
-        self.mc_kwargs = MC_KWARGS.copy()
-        # update mc_kwargs with any kwargs that are in MC_KWARGS
-        self.mc_kwargs.update((k, v) for k, v in kwargs.items() if k in MC_KWARGS)
+        super().__init__(values, target=target, **kwargs)
 
         if target == "cpu":
             self.grids = [np.asarray(grid) for grid in grids]
@@ -99,20 +110,6 @@ class MultivariateInterp(_RegularGridInterp):
                 )
 
         return coordinates
-
-    def _map_coordinates(self, coordinates):
-        if self.target in ["cpu", "parallel"]:
-            # there is no parallelization for scipy map_coordinates
-            output = map_coordinates(
-                self.values, coordinates.reshape(self.ndim, -1), **self.mc_kwargs
-            )
-
-        elif self.target == "gpu":
-            output = cupy_map_coordinates(
-                self.values, coordinates.reshape(self.ndim, -1), **self.mc_kwargs
-            )
-
-        return output.reshape(coordinates[0].shape)
 
 
 @njit(parallel=True, cache=True, fastmath=True)

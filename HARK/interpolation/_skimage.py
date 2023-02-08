@@ -1,7 +1,6 @@
 import numpy as np
-from scipy.ndimage import map_coordinates
 
-from HARK.interpolation._multi import MC_KWARGS, _CurvilinearGridInterp
+from HARK.interpolation._multi import _CurvilinearGridInterp
 
 try:
     from skimage.transform import PiecewiseAffineTransform
@@ -22,11 +21,7 @@ class PiecewiseAffineInterp(_CurvilinearGridInterp):
                 "PiecewiseAffineTransform requires scikit-image installed."
             )
 
-        self.mc_kwargs = MC_KWARGS.copy()
-        # update mc_kwargs with any kwargs that are in MC_KWARGS
-        self.mc_kwargs.update((k, v) for k, v in kwargs.items() if k in MC_KWARGS)
-
-        super().__init__(values, grids, target="cpu")
+        super().__init__(values, grids, target="cpu", **kwargs)
 
         source = np.reshape(self.grids, (self.ndim, -1)).T
         coordinates = np.mgrid[[slice(0, dim) for dim in self.shape]]
@@ -41,8 +36,3 @@ class PiecewiseAffineInterp(_CurvilinearGridInterp):
         input = np.reshape(args, (self.ndim, -1)).T
         output = self.interpolator(input).T
         return output.reshape(args.shape)
-
-    def _map_coordinates(self, coordinates):
-        return map_coordinates(
-            self.values, coordinates.reshape(self.ndim, -1), **self.mc_kwargs
-        ).reshape(coordinates[0].shape)
