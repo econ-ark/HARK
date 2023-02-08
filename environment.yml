@@ -1,4 +1,4 @@
-name: hark-dev-test
+name: hark-dev
 channels:
   - conda-forge
   - defaults
