@@ -6,7 +6,7 @@ from scipy.interpolate import (
     RBFInterpolator,
 )
 
-from HARK.core import MetricObject
+from HARK.interpolation._multi import _UnstructuredGridInterp
 
 LNDI_KWARGS = {"fill_value": np.nan, "rescale": False}  # linear
 NNDI_KWARGS = {"rescale": False, "tree_options": None}  # nearest
@@ -24,9 +24,10 @@ RBFI_KWARGS = {  # rbf (radial basis function)
     "degree": None,
 }
 
+AVAILABLE_METHODS = ["nearest", "linear", "cubic", "rbf"]
 
-class UnstructuredInterp(MetricObject):
 
+class UnstructuredInterp(_UnstructuredGridInterp):
     distance_criteria = ["values", "grids"]
 
     def __init__(
@@ -36,23 +37,10 @@ class UnstructuredInterp(MetricObject):
         method="linear",
         **kwargs,
     ):
+        super().__init__(values, grids, target="cpu")
 
-        if kwargs is None:
-            kwargs = {}
-
-        values = np.asarray(values)
-        grids = np.asarray(grids)
-
-        # remove non finite values that might result from
-        # sequential endogenous grid method
-        condition = np.logical_and.reduce([np.isfinite(grid) for grid in grids])
-        condition = np.logical_and(condition, np.isfinite(values))
-        self.values = values[condition]
-        self.grids = np.moveaxis(grids[:, condition], -1, 0)
+        assert method in AVAILABLE_METHODS, "Invalid interpolation method."
         self.method = method
-        self.ndim = self.grids.shape[-1]
-
-        # assert self.ndim == values.ndim, "Dimension mismatch."
 
         interpolator_mapping = {
             "nearest": (NNDI_KWARGS, NearestNDInterpolator),
@@ -63,19 +51,24 @@ class UnstructuredInterp(MetricObject):
             "rbf": (RBFI_KWARGS, RBFInterpolator),
         }
 
-        self.kwargs, interpolator_class = interpolator_mapping.get(method, (None, None))
+        interp_kwargs, interpolator_class = interpolator_mapping.get(
+            method, (None, None)
+        )
 
-        if not self.kwargs:
+        if not interp_kwargs:
             raise ValueError(
                 f"Unknown interpolation method {method} for {self.ndim} dimensional data"
             )
 
-        self.kwargs = self.kwargs.copy()
-        self.kwargs.update((k, kwargs[k]) for k in kwargs if k in self.kwargs)
-        self.interpolator = interpolator_class(self.grids, self.values, **self.kwargs)
+        self.interp_kwargs = interp_kwargs.copy()
+        self.interp_kwargs.update(
+            (k, v) for k, v in kwargs.items() if k in interp_kwargs
+        )
+        self.interpolator = interpolator_class(
+            np.moveaxis(self.grids, -1, 0), self.values, **self.interp_kwargs
+        )
 
     def __call__(self, *args):
-
         if self.method == "rbf":
             coords = np.asarray(args).reshape(self.ndim, -1).T
             return self.interpolator(coords).reshape(args[0].shape)
