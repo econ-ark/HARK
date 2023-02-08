@@ -1,63 +1,48 @@
 import numpy as np
 from scipy.ndimage import map_coordinates
 
-from HARK.core import MetricObject
+from HARK.interpolation._multi import MC_KWARGS, _CurvilinearGridInterp
 
 try:
     from skimage.transform import PiecewiseAffineTransform
 
-    skimage_available = True
+    SKIMAGE_AVAILABLE = True
 except ImportError:
-    skimage_available = False
+    SKIMAGE_AVAILABLE = False
 
 DIM_MESSAGE = "Dimension mismatch."
 
 
-class SKImagePiecewiseAffineInterp(MetricObject):
-
+class PiecewiseAffineInterp(_CurvilinearGridInterp):
     distance_criteria = ["values", "grids"]
 
-    def __init__(self, values, grids):
-
-        if not skimage_available:
+    def __init__(self, values, grids, **kwargs):
+        if not SKIMAGE_AVAILABLE:
             raise ImportError(
                 "PiecewiseAffineTransform requires scikit-image installed."
             )
 
-        self.values = np.asarray(values)
-        self.grids = np.asarray(grids)
+        self.mc_kwargs = MC_KWARGS.copy()
+        # update mc_kwargs with any kwargs that are in MC_KWARGS
+        self.mc_kwargs.update((k, v) for k, v in kwargs.items() if k in MC_KWARGS)
 
-        self.ndim = self.values.ndim
-        self.shape = self.values.shape
+        super().__init__(values, grids, target="cpu")
 
-        assert self.ndim == self.grids.shape[0], DIM_MESSAGE
-        assert self.shape == self.grids[0].shape, DIM_MESSAGE
+        source = np.reshape(self.grids, (self.ndim, -1)).T
+        coordinates = np.mgrid[[slice(0, dim) for dim in self.shape]]
+        destination = np.reshape(coordinates, (self.ndim, -1)).T
 
-        src = np.vstack([grid.flat for grid in self.grids]).T
-        coords = np.mgrid[[slice(0, dim) for dim in self.values.shape]]
-        dst = np.vstack([coord.flat for coord in coords]).T
+        interpolator = PiecewiseAffineTransform()
+        interpolator.estimate(source, destination)
 
-        tform = PiecewiseAffineTransform()
-        tform.estimate(src, dst)
-
-        self.tform = tform
-
-    def __call__(self, *args):
-
-        args = np.asarray(args)
-
-        src_new = np.vstack([arg.flat for arg in args]).T
-        coordinates = self.tform(src_new).T
-
-        return map_coordinates(self.values, coordinates).reshape(args[0].shape)
+        self.interpolator = interpolator
 
     def _get_coordinates(self, args):
-
-        src_new = np.vstack([arg.flat for arg in args]).T
-        coordinates = self.tform(src_new).T
-
-        return coordinates
+        input = np.reshape(args, (self.ndim, -1)).T
+        output = self.interpolator(input).T
+        return output.reshape(args.shape)
 
     def _map_coordinates(self, coordinates):
-
-        return map_coordinates(self.values, coordinates).reshape(args[0].shape)
+        return map_coordinates(
+            self.values, coordinates.reshape(self.ndim, -1), **self.mc_kwargs
+        ).reshape(coordinates[0].shape)

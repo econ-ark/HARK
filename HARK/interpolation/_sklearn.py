@@ -6,15 +6,12 @@ from sklearn.linear_model import ElasticNet, ElasticNetCV, SGDRegressor
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import (
     Normalizer,
-)  # scaling individual samples to have unit norm
-from sklearn.preprocessing import (
     PolynomialFeatures,
-)  # features’ high-order and interaction terms
-from sklearn.preprocessing import SplineTransformer  # B-spline basis functions
-from sklearn.preprocessing import StandardScaler  # mean removal and variance scaling
+    SplineTransformer,
+    StandardScaler,
+)
 from sklearn.svm import SVR
 
-from HARK.core import MetricObject
 from HARK.interpolation._multi import _CurvilinearGridInterp, _UnstructuredGridInterp
 
 
