@@ -1,8 +1,9 @@
+import unittest
+
 from HARK.ConsumptionSaving.ConsLaborModel import (
     LaborIntMargConsumerType,
     init_labor_lifecycle,
 )
-import unittest
 
 
 class test_LaborIntMargConsumerType(unittest.TestCase):

@@ -1,15 +1,16 @@
-# -*- coding: utf-8 -*-
 """
 Created on Fri Jan  8 15:36:14 2021
 
 @author: Mateo
 """
 
+import os
+
 import numpy as np
 import pandas as pd
-from HARK.datasets.cpi.us.CPITools import cpi_deflator
-import os
+
 from HARK import _log
+from HARK.datasets.cpi.us.CPITools import cpi_deflator
 
 scf_sumstats_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -71,7 +72,6 @@ def parse_scf_distr_stats(age=None, education=None, wave=None):
 
     # Pre-process year to make it a five-year bracket as in the table
     if age is not None:
-
         u_bound = int(np.ceil(age / 5) * 5)
         l_bound = u_bound - 5
         age_bracket = "(" + str(l_bound) + "," + str(u_bound) + "]"
@@ -79,13 +79,11 @@ def parse_scf_distr_stats(age=None, education=None, wave=None):
         _log.debug("Returning SCF summary statistics for ages " + age_bracket + ".")
 
     else:
-
         # If no age is given, use all age brackets.
         age_bracket = "All"
 
     # Check whether education is in one of the allowed categories
     if education is not None:
-
         message = (
             "If an education level is provided, it must be one of "
             + "'NoHS', 'HS', or 'College'."
@@ -93,7 +91,6 @@ def parse_scf_distr_stats(age=None, education=None, wave=None):
         assert education in ["NoHS", "HS", "College"], message
 
     else:
-
         education = "All"
 
     # Parse the wave
@@ -112,11 +109,9 @@ def parse_scf_distr_stats(age=None, education=None, wave=None):
 
     # Try to access the requested combination
     try:
-
         row = table.loc[(education, wave_str, age_bracket)]
 
     except KeyError as e:
-
         message = (
             "The summary statistics do not contain the "
             + "Age/Wave/Education combination that was requested."
