@@ -18,9 +18,6 @@
 #
 
 # %%
-# %pip install -q git+https://github.com/alanlujan91/HARK.git@map_coordinates
-
-# %%
 import numpy as np
 import matplotlib.pyplot as plt
 

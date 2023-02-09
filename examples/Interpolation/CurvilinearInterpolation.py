@@ -14,17 +14,16 @@
 # ---
 
 # %% [markdown]
-# # Unstructured Interpolation using `scipy`
-#
+# # Curvilinear Interpolation using `HARK`'s `CurvilinearInterp` class
 
 # %% [markdown]
-# This notebook uses examples from `scipy` documentation to demonstrate `HARK`'s `UnstructuredInterp` class.
+# This notebook uses examples from `scipy` documentation to demonstrate `HARK`'s `WarpedInterpOnInterp2D` class.
 #
 
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
-from HARK.interpolation import UnstructuredInterp
+from HARK.interpolation import WarpedInterpOnInterp2D
 from mpl_toolkits import mplot3d
 
 
@@ -44,7 +43,12 @@ def function_1(x, y):
 
 # %%
 rng = np.random.default_rng(0)
-rand_x, rand_y = rng.random((2, 1000))
+warp_factor = 0.01
+x_list = np.linspace(0, 1, 20)
+y_list = np.linspace(0, 1, 20)
+x_temp, y_temp = np.meshgrid(x_list, y_list, indexing="ij")
+rand_x = x_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
+rand_y = y_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
 values = function_1(rand_x, rand_y)
 
 # %% [markdown]
@@ -57,28 +61,22 @@ grid_x, grid_y = np.meshgrid(
 )
 
 # %% [markdown]
-# To do this, we use `HARK`'s `UnstructuredInterp` class. The class takes the following arguments:
+# To do this, we use `HARK`'s `WarpedInterpOnInterp2D` class. The class takes the following arguments:
 #
 # - `values`: an ND-array of values for the function at the points
 # - `grids`: a list of ND-arrays of coordinates for the points
-# - `method`: the interpolation method to use, with options "nearest", "linear", "cubic" (for 2D only), and "rbf". The default is `'linear'`.
+# - `method`: the interpolation method to use, with options WarpedInterp, "linear", "cubic" (for 2D only), and "rbf". The default is `'linear'`.
 #
 
 # %%
-nearest_interp = UnstructuredInterp(values, (rand_x, rand_y), method="nearest")
-linear_interp = UnstructuredInterp(values, (rand_x, rand_y), method="linear")
-cubic_interp = UnstructuredInterp(values, (rand_x, rand_y), method="cubic")
-rbf_interp = UnstructuredInterp(values, (rand_x, rand_y), method="rbf")
+warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y))
 
 # %% [markdown]
 # Once we create the interpolator objects, we can use them using the `__call__` method which takes as many arguments as there are dimensions.
 #
 
 # %%
-nearest_grid = nearest_interp(grid_x, grid_y)
-linear_grid = linear_interp(grid_x, grid_y)
-cubic_grid = cubic_interp(grid_x, grid_y)
-rbf_grid = rbf_interp(grid_x, grid_y)
+warped_grid = warped_interp(grid_x, grid_y)
 
 # %% [markdown]
 # Now we can compare the results of the interpolation with the original function. Below we plot the original function and the sample points that are known.
@@ -86,7 +84,7 @@ rbf_grid = rbf_interp(grid_x, grid_y)
 
 # %%
 plt.imshow(function_1(grid_x, grid_y).T, extent=(0, 1, 0, 1), origin="lower")
-plt.plot(rand_x, rand_y, "ok", ms=2, label="input points")
+plt.plot(rand_x.flat, rand_y.flat, "ok", ms=2, label="input points")
 plt.title("Original")
 plt.legend(loc="lower right")
 
@@ -95,9 +93,9 @@ plt.legend(loc="lower right")
 #
 
 # %%
-fig, axs = plt.subplots(2, 2, figsize=(6, 6))
-titles = ["Nearest", "Linear", "Cubic", "Radial basis function"]
-grids = [nearest_grid, linear_grid, cubic_grid, rbf_grid]
+fig, axs = plt.subplots(1, 2, figsize=(6, 6))
+titles = ["Original", "WarpedInterp"]
+grids = [function_1(grid_x, grid_y), warped_grid]
 
 for ax, title, grid in zip(axs.flat, titles, grids):
     im = ax.imshow(grid.T, extent=(0, 1, 0, 1), origin="lower")
@@ -119,42 +117,39 @@ def function_2(x, y):
 
 # %%
 rng = np.random.default_rng(0)
-rand_x = rng.random(20) - 0.5
-rand_y = rng.random(20) - 0.5
+warp_factor = 0.05
+x_list = np.linspace(-0.5, 0.5, 10)
+y_list = np.linspace(-0.5, 0.5, 10)
+x_temp, y_temp = np.meshgrid(x_list, y_list, indexing="ij")
+rand_x = x_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
+rand_y = y_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
 values = function_2(rand_x, rand_y)
-grid_x = np.linspace(min(rand_x), max(rand_x))
-grid_y = np.linspace(min(rand_y), max(rand_y))
-grid_x, grid_y = np.meshgrid(grid_x, grid_y)
 
 # %%
-nearest_interp = UnstructuredInterp(values, (rand_x, rand_y), method="nearest")
-linear_interp = UnstructuredInterp(values, (rand_x, rand_y), method="linear")
-cubic_interp = UnstructuredInterp(values, (rand_x, rand_y), method="cubic")
-rbf_interp = UnstructuredInterp(values, (rand_x, rand_y), method="rbf")
+grid_x, grid_y = np.meshgrid(
+    np.linspace(-0.5, 0.5, 100), np.linspace(-0.5, 0.5, 100), indexing="ij"
+)
 
 # %%
-nearest_grid = nearest_interp(grid_x, grid_y)
-linear_grid = linear_interp(grid_x, grid_y)
-cubic_grid = cubic_interp(grid_x, grid_y)
-rbf_grid = rbf_interp(grid_x, grid_y)
+warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y))
+warped_grid = warped_interp(grid_x, grid_y)
+
 
 # %%
-plt.imshow(function_2(grid_x, grid_y).T, extent=(-0.5, 0.5, -0.5, 0.5), origin="lower")
-plt.plot(rand_x, rand_y, "ok", label="input points")
+plt.imshow(function_2(grid_x, grid_y), extent=(-0.5, 0.5, -0.5, 0.5), origin="lower")
+plt.plot(rand_x.flat, rand_y.flat, "ok", ms=2, label="input points")
 plt.title("Original")
 plt.legend(loc="lower right")
 
 # %%
-fig, axs = plt.subplots(2, 2, figsize=(7, 6))
-titles = ["Nearest", "Linear", "Cubic", "Radial basis function"]
-grids = [nearest_grid, linear_grid, cubic_grid, rbf_grid]
+fig, axs = plt.subplots(1, 2, figsize=(7, 3))
+titles = ["Original", "WarpedInterp"]
+grids = [function_2(grid_x, grid_y), warped_grid]
 
 for i, (ax, title, grid) in enumerate(zip(axs.flat, titles, grids)):
     im = ax.pcolormesh(grid_x, grid_y, grid, shading="auto")
-    pts = ax.plot(rand_x, rand_y, "ok", label="input points")
     ax.set_title(title)
 
-fig.legend(handles=pts, loc="lower center")
 cbar = fig.colorbar(im, ax=axs)
 for ax in axs.flat:
     ax.axis("equal")
@@ -188,31 +183,26 @@ grid_x, grid_y = np.meshgrid(
 )
 
 # %%
-methods = ["nearest", "linear", "cubic", "rbf"]
-nearest_interp, linear_interp, cubic_interp, rbf_interp = [
-    UnstructuredInterp(values, (rand_x, rand_y), method=method) for method in methods
-]
+warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y))
+
 
 # %%
-interp_funcs = [nearest_interp, linear_interp, cubic_interp, rbf_interp]
-nearest_grid, linear_grid, cubic_grid, rbf_grid = [
-    interp_func(grid_x, grid_y) for interp_func in interp_funcs
-]
+warped_grid = warped_interp(grid_x, grid_y)
+
 
 # %%
 plt.imshow(function_3(grid_x, grid_y).T, extent=(0, 3, 0, 3), origin="lower")
-plt.plot(rand_x.flat, rand_y.flat, "ok", ms=2, label="input points")
+plt.plot(rand_x.flat, rand_y.flat, "ok", ms=2)
 plt.title("Original")
 plt.legend(loc="lower right")
 
-
 # %%
-fig, axs = plt.subplots(2, 2, figsize=(6, 6))
-titles = ["Nearest", "Linear", "Cubic", "Radial basis function"]
-grids = [nearest_grid, linear_grid, cubic_grid, rbf_grid]
+fig, axs = plt.subplots(1, 2, figsize=(6, 3))
+titles = ["Original", "WarpedInterp"]
+grids = [function_3(grid_x, grid_y), warped_grid]
 
 for ax, title, grid in zip(axs.flat, titles, grids):
-    im = ax.imshow(grid.T, extent=(0, 3, 0, 3), origin="lower")
+    im = ax.imshow(grid, extent=(0, 3, 0, 3), origin="lower")
     ax.set_title(title)
 
 plt.tight_layout()
@@ -227,8 +217,8 @@ def function_4(x, y):
 # %%
 rng = np.random.default_rng(0)
 warp_factor = 0.2
-x_list = np.linspace(0, 5, 20)
-y_list = np.linspace(0, 5, 20)
+x_list = np.linspace(0, 5, 10)
+y_list = np.linspace(0, 5, 10)
 x_temp, y_temp = np.meshgrid(x_list, y_list, indexing="ij")
 rand_x = x_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
 rand_y = y_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
@@ -242,38 +232,30 @@ grid_x, grid_y = np.meshgrid(
 
 
 # %%
-methods = ["nearest", "linear", "cubic", "rbf"]
-nearest_interp, linear_interp, cubic_interp, rbf_interp = [
-    UnstructuredInterp(values, (rand_x, rand_y), method=method) for method in methods
-]
+warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y))
 
 
 # %%
-interp_funcs = [nearest_interp, linear_interp, cubic_interp, rbf_interp]
-nearest_grid, linear_grid, cubic_grid, rbf_grid = [
-    interp_func(grid_x, grid_y) for interp_func in interp_funcs
-]
+warped_grid = warped_interp(grid_x, grid_y)
 
 
 # %%
 plt.imshow(function_4(grid_x, grid_y).T, extent=(0, 5, 0, 5), origin="lower")
-plt.plot(rand_x.flat, rand_y.flat, "ok", ms=2, label="input points")
+plt.plot(rand_x, rand_y, "ok", ms=2)
 plt.title("Original")
-plt.legend(loc="lower right")
 
 
 # %%
-fig, axs = plt.subplots(2, 2, figsize=(6, 6))
-titles = ["Nearest", "Linear", "Cubic", "Radial basis function"]
-grids = [nearest_grid, linear_grid, cubic_grid, rbf_grid]
+fig, axs = plt.subplots(1, 2, figsize=(6, 3))
+titles = ["Original", "WarpedInterp"]
+grids = [function_4(grid_x, grid_y), warped_grid]
 
 for ax, title, grid in zip(axs.flat, titles, grids):
-    im = ax.imshow(grid.T, extent=(0, 5, 0, 5), origin="lower")
+    im = ax.imshow(grid, extent=(0, 3, 0, 3), origin="lower")
     ax.set_title(title)
 
 plt.tight_layout()
 plt.show()
-
 
 # %% [markdown]
 # # More complex functions
@@ -291,7 +273,12 @@ def function_5(*args):
 
 # %%
 rng = np.random.default_rng(0)
-rand_x, rand_y = rng.random((2, 1000))
+warp_factor = 0.05
+x_list = np.linspace(0, 1, 25)
+y_list = np.linspace(0, 1, 25)
+x_temp, y_temp = np.meshgrid(x_list, y_list, indexing="ij")
+rand_x = x_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
+rand_y = y_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
 values = function_5(rand_x, rand_y)
 
 # %%
@@ -300,16 +287,12 @@ grid_x, grid_y = np.meshgrid(
 )
 
 # %%
-nearest_interp = UnstructuredInterp(values, (rand_x, rand_y), method="nearest")
-linear_interp = UnstructuredInterp(values, (rand_x, rand_y), method="linear")
-cubic_interp = UnstructuredInterp(values, (rand_x, rand_y), method="cubic")
-rbf_interp = UnstructuredInterp(values, (rand_x, rand_y), method="rbf")
+warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y))
+
 
 # %%
-nearest_grid = nearest_interp(grid_x, grid_y)
-linear_grid = linear_interp(grid_x, grid_y)
-cubic_grid = cubic_interp(grid_x, grid_y)
-rbf_grid = rbf_interp(grid_x, grid_y)
+warped_grid = warped_interp(grid_x, grid_y)
+
 
 # %%
 ax = plt.axes(projection="3d")
@@ -327,9 +310,9 @@ plt.title("Original")
 plt.legend(loc="lower right")
 
 # %%
-fig, axs = plt.subplots(2, 2, figsize=(6, 6), subplot_kw={"projection": "3d"})
-titles = ["Nearest", "Linear", "Cubic", "Radial basis function"]
-grids = [nearest_grid, linear_grid, cubic_grid, rbf_grid]
+fig, axs = plt.subplots(1, 2, figsize=(6, 3), subplot_kw={"projection": "3d"})
+titles = ["Original", "WarpedInterp"]
+grids = [function_5(grid_x, grid_y), warped_grid]
 
 for ax, title, grid in zip(axs.flat, titles, grids):
     im = ax.plot_surface(
@@ -348,7 +331,12 @@ def function_6(x, y):
 
 # %%
 rng = np.random.default_rng(0)
-rand_x, rand_y = rng.random((2, 1000))
+warp_factor = 0.05
+x_list = np.linspace(0, 1, 25)
+y_list = np.linspace(0, 1, 25)
+x_temp, y_temp = np.meshgrid(x_list, y_list, indexing="ij")
+rand_x = x_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
+rand_y = y_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
 values = function_6(rand_x, rand_y)
 
 # %%
@@ -357,16 +345,12 @@ grid_x, grid_y = np.meshgrid(
 )
 
 # %%
-nearest_interp = UnstructuredInterp(values, (rand_x, rand_y), method="nearest")
-linear_interp = UnstructuredInterp(values, (rand_x, rand_y), method="linear")
-cubic_interp = UnstructuredInterp(values, (rand_x, rand_y), method="cubic")
-rbf_interp = UnstructuredInterp(values, (rand_x, rand_y), method="rbf")
+warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y))
+
 
 # %%
-nearest_grid = nearest_interp(grid_x, grid_y)
-linear_grid = linear_interp(grid_x, grid_y)
-cubic_grid = cubic_interp(grid_x, grid_y)
-rbf_grid = rbf_interp(grid_x, grid_y)
+warped_grid = warped_interp(grid_x, grid_y)
+
 
 # %%
 ax = plt.axes(projection="3d")
@@ -385,9 +369,9 @@ plt.title("Original")
 plt.legend(loc="lower right")
 
 # %%
-fig, axs = plt.subplots(2, 2, figsize=(6, 6), subplot_kw={"projection": "3d"})
-titles = ["Nearest", "Linear", "Cubic", "Radial basis function"]
-grids = [nearest_grid, linear_grid, cubic_grid, rbf_grid]
+fig, axs = plt.subplots(1, 2, figsize=(6, 3), subplot_kw={"projection": "3d"})
+titles = ["Original", "WarpedInterp"]
+grids = [function_6(grid_x, grid_y), warped_grid]
 
 for ax, title, grid in zip(axs.flat, titles, grids):
     im = ax.plot_surface(
@@ -395,7 +379,6 @@ for ax, title, grid in zip(axs.flat, titles, grids):
     )
     ax.set_title(title)
     ax.view_init(30, 150)
-
 
 plt.tight_layout()
 plt.show()
