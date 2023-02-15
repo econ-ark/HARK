@@ -15,6 +15,7 @@
 
 # %% [markdown]
 # # Curvilinear Interpolation using `HARK`'s `CurvilinearInterp` class
+#
 
 # %% [markdown]
 # This notebook uses examples from `scipy` documentation to demonstrate `HARK`'s `WarpedInterpOnInterp2D` class.
@@ -23,8 +24,9 @@
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
-from HARK.interpolation import WarpedInterpOnInterp2D
+from HARK.interpolation import WarpedInterpOnInterp2D, Curvilinear2DInterp
 from mpl_toolkits import mplot3d
+from time import time
 
 
 # %% [markdown]
@@ -69,14 +71,23 @@ grid_x, grid_y = np.meshgrid(
 #
 
 # %%
-warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y))
+warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y), target="parallel")
+warped_interp([0], [0])
 
 # %% [markdown]
 # Once we create the interpolator objects, we can use them using the `__call__` method which takes as many arguments as there are dimensions.
 #
 
 # %%
+start = time()
 warped_grid = warped_interp(grid_x, grid_y)
+print(f"Warped interpolation took {time() - start:.5f} seconds")
+
+# %%
+curvilinear_interp = Curvilinear2DInterp(values, rand_x, rand_y)
+start = time()
+curvilinear_grid = curvilinear_interp(grid_x, grid_y)
+print(f"Curvilinear interpolation took {time() - start:.5f} seconds")
 
 # %% [markdown]
 # Now we can compare the results of the interpolation with the original function. Below we plot the original function and the sample points that are known.
@@ -93,9 +104,9 @@ plt.legend(loc="lower right")
 #
 
 # %%
-fig, axs = plt.subplots(1, 2, figsize=(6, 6))
-titles = ["Original", "WarpedInterp"]
-grids = [function_1(grid_x, grid_y), warped_grid]
+fig, axs = plt.subplots(1, 3, figsize=(9, 6))
+titles = ["Original", "WarpedInterp", "CurvilinearInterp"]
+grids = [function_1(grid_x, grid_y), warped_grid, curvilinear_grid]
 
 for ax, title, grid in zip(axs.flat, titles, grids):
     im = ax.imshow(grid.T, extent=(0, 1, 0, 1), origin="lower")
@@ -131,8 +142,18 @@ grid_x, grid_y = np.meshgrid(
 )
 
 # %%
-warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y))
+warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y), target="parallel")
+warped_interp([0], [0])
+start = time()
 warped_grid = warped_interp(grid_x, grid_y)
+print(f"Warped interpolation took {time() - start:.5f} seconds")
+
+
+# %%
+curvilinear_interp = Curvilinear2DInterp(values, rand_x, rand_y)
+start = time()
+curvilinear_grid = curvilinear_interp(grid_x, grid_y)
+print(f"Curvilinear interpolation took {time() - start:.5f} seconds")
 
 
 # %%
@@ -142,9 +163,9 @@ plt.title("Original")
 plt.legend(loc="lower right")
 
 # %%
-fig, axs = plt.subplots(1, 2, figsize=(7, 3))
-titles = ["Original", "WarpedInterp"]
-grids = [function_2(grid_x, grid_y), warped_grid]
+fig, axs = plt.subplots(1, 3, figsize=(10, 3))
+titles = ["Original", "WarpedInterp", "CurvilinearInterp"]
+grids = [function_2(grid_x, grid_y), warped_grid, curvilinear_grid]
 
 for i, (ax, title, grid) in enumerate(zip(axs.flat, titles, grids)):
     im = ax.pcolormesh(grid_x, grid_y, grid, shading="auto")
@@ -183,11 +204,21 @@ grid_x, grid_y = np.meshgrid(
 )
 
 # %%
-warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y))
+warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y), target="parallel")
+warped_interp([0], [0])
 
 
 # %%
+start = time()
 warped_grid = warped_interp(grid_x, grid_y)
+print(f"Warped interpolation took {time() - start:.5f} seconds")
+
+
+# %%
+curvilinear_interp = Curvilinear2DInterp(values, rand_x, rand_y)
+start = time()
+curvilinear_grid = curvilinear_interp(grid_x, grid_y)
+print(f"Curvilinear interpolation took {time() - start:.5f} seconds")
 
 
 # %%
@@ -197,9 +228,9 @@ plt.title("Original")
 plt.legend(loc="lower right")
 
 # %%
-fig, axs = plt.subplots(1, 2, figsize=(6, 3))
-titles = ["Original", "WarpedInterp"]
-grids = [function_3(grid_x, grid_y), warped_grid]
+fig, axs = plt.subplots(1, 3, figsize=(9, 3))
+titles = ["Original", "WarpedInterp", "CurvilinearInterp"]
+grids = [function_3(grid_x, grid_y), warped_grid, curvilinear_grid]
 
 for ax, title, grid in zip(axs.flat, titles, grids):
     im = ax.imshow(grid, extent=(0, 3, 0, 3), origin="lower")
@@ -232,12 +263,21 @@ grid_x, grid_y = np.meshgrid(
 
 
 # %%
-warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y))
+warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y), target="parallel")
+warped_interp([0], [0])
 
 
 # %%
+start = time()
 warped_grid = warped_interp(grid_x, grid_y)
+print(f"Warped interpolation took {time() - start:.5f} seconds")
 
+
+# %%
+curvilinear_interp = Curvilinear2DInterp(values, rand_x, rand_y)
+start = time()
+curvilinear_grid = curvilinear_interp(grid_x, grid_y)
+print(f"Curvilinear interpolation took {time() - start:.5f} seconds")
 
 # %%
 plt.imshow(function_4(grid_x, grid_y).T, extent=(0, 5, 0, 5), origin="lower")
@@ -246,9 +286,9 @@ plt.title("Original")
 
 
 # %%
-fig, axs = plt.subplots(1, 2, figsize=(6, 3))
-titles = ["Original", "WarpedInterp"]
-grids = [function_4(grid_x, grid_y), warped_grid]
+fig, axs = plt.subplots(1, 3, figsize=(9, 3))
+titles = ["Original", "WarpedInterp", "CurvilinearInterp"]
+grids = [function_4(grid_x, grid_y), warped_grid, curvilinear_grid]
 
 for ax, title, grid in zip(axs.flat, titles, grids):
     im = ax.imshow(grid, extent=(0, 3, 0, 3), origin="lower")
@@ -287,12 +327,21 @@ grid_x, grid_y = np.meshgrid(
 )
 
 # %%
-warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y))
+warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y), target="parallel")
+warped_interp([0], [0])
 
 
 # %%
+start = time()
 warped_grid = warped_interp(grid_x, grid_y)
+print(f"Warped interpolation took {time() - start:.5f} seconds")
 
+
+# %%
+curvilinear_interp = Curvilinear2DInterp(values, rand_x, rand_y)
+start = time()
+curvilinear_grid = curvilinear_interp(grid_x, grid_y)
+print(f"Curvilinear interpolation took {time() - start:.5f} seconds")
 
 # %%
 ax = plt.axes(projection="3d")
@@ -310,9 +359,9 @@ plt.title("Original")
 plt.legend(loc="lower right")
 
 # %%
-fig, axs = plt.subplots(1, 2, figsize=(6, 3), subplot_kw={"projection": "3d"})
-titles = ["Original", "WarpedInterp"]
-grids = [function_5(grid_x, grid_y), warped_grid]
+fig, axs = plt.subplots(1, 3, figsize=(9, 3), subplot_kw={"projection": "3d"})
+titles = ["Original", "WarpedInterp", "CurvilinearInterp"]
+grids = [function_5(grid_x, grid_y), warped_grid, curvilinear_grid]
 
 for ax, title, grid in zip(axs.flat, titles, grids):
     im = ax.plot_surface(
@@ -345,12 +394,21 @@ grid_x, grid_y = np.meshgrid(
 )
 
 # %%
-warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y))
+warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y), target="parallel")
+warped_interp([0], [0])
 
 
 # %%
+start = time()
 warped_grid = warped_interp(grid_x, grid_y)
+print(f"Warped interpolation took {time() - start:.5f} seconds")
 
+
+# %%
+curvilinear_interp = Curvilinear2DInterp(values, rand_x, rand_y)
+start = time()
+curvilinear_grid = curvilinear_interp(grid_x, grid_y)
+print(f"Curvilinear interpolation took {time() - start:.5f} seconds")
 
 # %%
 ax = plt.axes(projection="3d")
@@ -363,15 +421,15 @@ ax.plot_surface(
     cmap="viridis",
     edgecolor="none",
 )
-ax.scatter(rand_x, rand_y, values, c=values, cmap="viridis", label="input points")
+ax.scatter(rand_x, rand_y, values, c=values, cmap="viridis", label="input points", s=1)
 ax.view_init(30, 150)
 plt.title("Original")
 plt.legend(loc="lower right")
 
 # %%
-fig, axs = plt.subplots(1, 2, figsize=(6, 3), subplot_kw={"projection": "3d"})
-titles = ["Original", "WarpedInterp"]
-grids = [function_6(grid_x, grid_y), warped_grid]
+fig, axs = plt.subplots(1, 3, figsize=(9, 3), subplot_kw={"projection": "3d"})
+titles = ["Original", "WarpedInterp", "CurvilinearInterp"]
+grids = [function_6(grid_x, grid_y), warped_grid, curvilinear_grid]
 
 for ax, title, grid in zip(axs.flat, titles, grids):
     im = ax.plot_surface(
