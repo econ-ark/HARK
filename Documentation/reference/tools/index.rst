@@ -14,6 +14,7 @@ Tools
    interpolation
    numba
    parallel
+   rewards
    simulation
    utilities
    validators
