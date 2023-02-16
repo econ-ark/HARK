@@ -1,0 +1,27 @@
+name: hark-dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - dill>=0.3
+  - flake8
+  - future
+  - interpolation>=2.2.3
+  - joblib>=1.2
+  - jupyterlab>=3.6
+  - jupytext>=1.14
+  - quantecon
+  - matplotlib>=3.6
+  - nbsphinx>=0.8
+  - networkx>=3
+  - numba>=0.56
+  - numpy>=1.23
+  - pandas>=1.5
+  - recommonmark>=0.7
+  - scipy>=1.10
+  - seaborn>=0.12
+  - sphinx>=6.1
+  - xarray>=2023
+  - pip>=23
+  - pip:
+      - sphinx-rtd-theme
