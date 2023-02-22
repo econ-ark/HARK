@@ -19,7 +19,7 @@ CT2DI_KWARGS = {  # cubic
 RBFI_KWARGS = {  # rbf (radial basis function)
     "neighbors": None,
     "smoothing": 0.0,
-    "kernel": "thin_plate_spline",
+    "kernel": "linear",
     "epsilon": None,
     "degree": None,
 }
