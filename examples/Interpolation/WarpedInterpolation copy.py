@@ -94,6 +94,24 @@ plt.plot(coord_points[0], coord_points[1], "g")
 plt.plot(coord_points[0].T, coord_points[1].T, "r")
 plt.grid()
 
+# %%
+fig = plt.subplots(1, 2, figsize=(10, 5))
+
+plt.subplot(1, 2, 1)
+plt.scatter(points[0], points[1], c="b")
+plt.plot(points[0], points[1], "g")
+plt.plot(points[0].T, points[1].T, "r")
+plt.grid()
+
+plt.subplot(1, 2, 2)
+coord_points = np.mgrid[0:3, 0:3]
+plt.scatter(coord_points[0], coord_points[1], c="b")
+plt.plot(coord_points[0], coord_points[1], "g")
+plt.plot(coord_points[0].T, coord_points[1].T, "r")
+plt.grid()
+
+plt.savefig("Homotopy.pdf")
+
 # %% [markdown]
 # Below we graph values of the function at their index coordinate points in the matrix.
 
@@ -170,6 +188,30 @@ plt.scatter([3, 3], [3, 8], s=150, facecolors="none", edgecolors="m")
 plt.axvline(x=3, color="c", linestyle="--")
 plt.hlines(y=[3, 5, 8], xmin=1, xmax=3, color="c", linestyle="--")
 plt.grid()
+
+# %%
+fig = plt.subplots(1, 2, figsize=(10, 5))
+
+plt.subplot(1, 2, 1)
+plt.scatter(points[0], points[1], c="b")
+plt.plot(points[0], points[1], "g")
+plt.plot(points[0].T, points[1].T, "r")
+plt.scatter(3, 5, c="m")
+plt.scatter([3, 3], [3, 8], s=150, facecolors="none", edgecolors="m")
+plt.axvline(x=3, color="c", linestyle="--")
+plt.hlines(y=[3, 5, 8], xmin=1, xmax=3, color="c", linestyle="--")
+plt.grid()
+
+plt.subplot(1, 2, 2)
+
+
+plt.scatter(points[0], coord_points[1], c="b")
+plt.plot(points[0], coord_points[1], "g")
+plt.axvline(x=3, color="c", linestyle="--")
+plt.scatter([3, 3], [0, 1], s=150, facecolors="none", edgecolors="m")
+plt.grid()
+
+plt.savefig("Mapping.pdf")
 
 # %% [markdown]
 # We can do the same by connecting the points on the red line, and interpolating $(y, z)$ values for the point's x-coordinate.

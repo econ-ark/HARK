@@ -171,7 +171,7 @@ class WarpedInterpOnInterp2D(_CurvilinearGridInterp):
         y_intermed = np.empty((self.shape[0], args[0].size))
         z_intermed = np.empty((self.shape[0], args[0].size))
 
-        for i in range(self.shape[0]):
+        for i in range(self.shape[1]):
             # for each dimension, interpolate the first argument
             y_intermed[i] = np.interp(args[0], self.grids[0][:, i], self.grids[1][:, i])
             z_intermed[i] = np.interp(args[0], self.grids[0][:, i], self.values[:, i])
