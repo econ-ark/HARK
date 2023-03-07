@@ -1,9 +1,10 @@
-from HARK.core import MetricObject
-from interpolation.splines import eval_linear, eval_spline, CGrid
-from interpolation.splines import extrap_options as xto
+from copy import copy
 
 import numpy as np
-from copy import copy
+from interpolation.splines import CGrid, eval_linear, eval_spline
+from interpolation.splines import extrap_options as xto
+
+from HARK.core import MetricObject
 
 extrap_opts = {
     "linear": xto.LINEAR,
@@ -31,7 +32,7 @@ class LinearFast(MetricObject):
             One-dimensional list of numpy arrays. It's i-th entry must be the grid
             to be used for the i-th independent variable.
         extrap_mode: one of 'linear', 'nearest', or 'constant'
-            Determines how to extrapolate, using either nearest point, multilinear, or 
+            Determines how to extrapolate, using either nearest point, multilinear, or
             constant extrapolation. The default is multilinear.
         """
         self.dim = len(grids)
@@ -51,7 +52,7 @@ class LinearFast(MetricObject):
     def __call__(self, *args):
         """
         Calls the interpolator.
-        
+
         args: [numpy.array]
             List of arrays. The i-th entry contains the i-th coordinate
             of all the points to be evaluated. All entries must have the
@@ -194,7 +195,11 @@ class DecayInterp(MetricObject):
     distance_criteria = ["interp"]
 
     def __init__(
-        self, interp, limit_fun, limit_grad=None, extrap_method="decay_prop",
+        self,
+        interp,
+        limit_fun,
+        limit_grad=None,
+        extrap_method="decay_prop",
     ):
         """
 
@@ -240,7 +245,7 @@ class DecayInterp(MetricObject):
     def __call__(self, *args):
         """
         Calls the interpolator with decay extrapolation.
-        
+
         args: [numpy.array]
             List of arrays. The i-th entry contains the i-th coordinate
             of all the points to be evaluated. All entries must have the
@@ -255,9 +260,7 @@ class DecayInterp(MetricObject):
         # Get indices, points, and closest in-grid point to points that
         # require extrapolation.
         upper_ex_inds = np.any(col_args > self.upper_limits[None, :], axis=1)
-        upper_ex_points = col_args[
-            upper_ex_inds,
-        ]
+        upper_ex_points = col_args[upper_ex_inds,]
         upper_ex_nearest = np.minimum(upper_ex_points, self.upper_limits[None, :])
 
         # Find function evaluations with regular extrapolation

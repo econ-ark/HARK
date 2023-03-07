@@ -17,6 +17,7 @@ additional column labeled `AVG` which corresponds to the average of CPI measurem
 ## Tools
 
 `CPITools.py` contains functions to:
+
 - Download the latest series file from the BLS to the working directory.
 - Read and format the CPI series as a Pandas DataFrame.
 - Produce CPI deflators using the series for any given pair of years (between 1977 and 2019) and taking any month as base.

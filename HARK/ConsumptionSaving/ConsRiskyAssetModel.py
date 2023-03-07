@@ -46,7 +46,6 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     """
 
     time_inv_ = IndShockConsumerType.time_inv_ + ["PortfolioBisect"]
-    time_vary_ = IndShockConsumerType.time_vary_ + ["Rfree"]
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
 
     def __init__(self, verbose=False, quiet=False, **kwds):
@@ -81,21 +80,14 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             self.solution_terminal.ShareFunc = ConstantFunction(1.0)
 
     def update(self):
-
         IndShockConsumerType.update(self)
         self.update_AdjustPrb()
         self.update_RiskyDstn()
         self.update_ShockDstn()
-        self.update_Rfree()
 
         if self.PortfolioBool:
             self.update_ShareLimit()
             self.update_ShareGrid()
-
-    def update_Rfree(self):
-
-        if isinstance(self.Rfree, (int, float)):
-            self.Rfree = [self.Rfree] * self.T_cycle
 
     def update_RiskyDstn(self):
         """
@@ -239,7 +231,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 
                 def temp_f(s):
                     return -((1.0 - self.CRRA) ** -1) * np.dot(
-                        (self.Rfree[t] + s * (RiskyDstn.atoms - self.Rfree[t]))
+                        (self.Rfree + s * (RiskyDstn.atoms - self.Rfree))
                         ** (1.0 - self.CRRA),
                         RiskyDstn.pmv,
                     )
@@ -253,7 +245,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 
             def temp_f(s):
                 return -((1.0 - self.CRRA) ** -1) * np.dot(
-                    (self.Rfree[0] + s * (RiskyDstn.atoms - self.Rfree[0]))
+                    (self.Rfree + s * (RiskyDstn.atoms - self.Rfree))
                     ** (1.0 - self.CRRA),
                     RiskyDstn.pmv,
                 )
@@ -297,8 +289,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             will be mislabeled as "Rfree".
         """
 
-        Rfree = np.array(self.Rfree)
-        RfreeNow = Rfree[self.t_cycle - 1]
+        RfreeNow = super().get_Rfree()
 
         Rport = (
             self.controls["Share"] * self.shocks["Risky"]
@@ -782,7 +773,6 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
         """
 
         if self.IndepDstnBool:
-
             preIncShkvFunc = self.calc_preIncShkvFunc(self.vFuncNext)
 
             self.EndOfPrdv = self.calc_preRiskyShkvFunc(preIncShkvFunc)
@@ -810,7 +800,6 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
     PortfolioBisect: bool
 
     def __post_init__(self):
-
         super().__post_init__()
 
         if self.PortfolioBisect:
@@ -957,7 +946,6 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
 
         # optimize share by discrete interpolation
         if True:
-
             EndOfPrddvds = calc_expectation(
                 self.RiskyDstn, endOfPrddvds, self.aNrmMat, self.shareMat
             )
@@ -1025,7 +1013,6 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
         """
 
         if self.IndepDstnBool:
-
             preIncShkvPfunc = self.calc_preIncShkvPfunc(self.vPfuncNext)
 
             EndOfPrdvP = self.calc_preRiskyShkvPfunc(preIncShkvPfunc)

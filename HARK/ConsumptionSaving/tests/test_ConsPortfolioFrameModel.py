@@ -18,7 +18,6 @@ class PortfolioConsumerTypeTestCase(unittest.TestCase):
 
 class FramesTestCase(PortfolioConsumerTypeTestCase):
     def test_frames(self):
-
         cNrm_frame = self.pcct.frames.iloc(11)
 
         self.assertTrue(cNrm_frame.control)
@@ -32,7 +31,6 @@ class FramesTestCase(PortfolioConsumerTypeTestCase):
 
 class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
     def test_simOnePeriod(self):
-
         self.pcct.T_sim = 30
         self.pcct.AgentCount = 10
         self.pcct.track_vars += ["aNrm"]
@@ -62,7 +60,7 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         self.assertAlmostEqual(
             self.pcct.state_now["mNrm"][0],
             self.pcct.state_prev["aNrm"][0]
-            * self.pcct.Rfree[0]
+            * self.pcct.Rfree
             / self.pcct.shocks["PermShk"][0]
             + self.pcct.shocks["TranShk"][0],
         )
@@ -87,7 +85,6 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
 
 class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
     def test_simulation(self):
-
         self.pcct.T_sim = 30
         self.pcct.AgentCount = 10
         self.pcct.track_vars += [

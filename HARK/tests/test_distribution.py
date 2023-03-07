@@ -37,7 +37,6 @@ class DiscreteDistributionTests(unittest.TestCase):
         )
 
     def test_distr_of_function(self):
-
         # Function 1 -> 1
         # Approximate the lognormal expectation
         sig = 0.05
@@ -178,7 +177,6 @@ class DiscreteDistributionTests(unittest.TestCase):
         self.assertAlmostEqual(ce9[3], 9.51802, places=HARK_PRECISION)
 
     def test_self_dist_of_func(self):
-
         # Function 1 -> 1
         # Approximate the lognormal expectation
         sig = 0.05
@@ -226,7 +224,6 @@ class MatrixDiscreteDistributionTests(unittest.TestCase):
     """
 
     def setUp(self):
-
         self.draw_1 = np.array(
             [
                 [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
@@ -251,7 +248,6 @@ class MatrixDiscreteDistributionTests(unittest.TestCase):
         self.assertTrue(np.allclose(draw[..., 0], self.draw_2))
 
     def test_expected(self):
-
         # Expectation without transformation
         exp = calc_expectation(self.mat_distr)
 
@@ -267,11 +263,9 @@ class MatrixDiscreteDistributionTests(unittest.TestCase):
         self.assertTrue(float(exp) == 0.0)
 
     def test_distr_of_fun(self):
-
         # A function that receives a (2,n,m) matrix
         # and sums across n, getting a (2,1,m) matrix
         def myfunc(mat):
-
             return np.sum(mat, axis=1, keepdims=True)
 
         mydistr = distr_of_function(self.mat_distr, myfunc)
@@ -310,7 +304,6 @@ class DistributionClassTests(unittest.TestCase):
         dist.draw(1)[0]
 
     def test_MVNormal(self):
-
         # Are these tests generator/backend specific?
         dist = MVNormal()
 
@@ -429,7 +422,6 @@ class LogNormalToNormalTests(unittest.TestCase):
 
 class NormalDistTest(unittest.TestCase):
     def test_approx_equiprobable(self):
-
         mu, sigma = 5.0, 27.0
 
         points = Normal(mu, sigma).discretize(701, method="equiprobable").atoms
@@ -451,7 +443,6 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         )
 
     def test_self_dist_of_func(self):
-
         # Function 1 -> 1
         # Approximate the lognormal expectation
         sig = 0.05
@@ -509,7 +500,6 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         self.assertAlmostEqual(exp[3], si_b**2)
 
     def test_self_expected_value(self):
-
         PermShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
         TranShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
         IncShkDstn = combine_indep_dstns(
@@ -542,7 +532,6 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         self.assertAlmostEqual(ce2[3], 9.51802, places=HARK_PRECISION)
 
     def test_getters_setters(self):
-
         # Create some dummy dsnt
         dist = DiscreteDistributionLabeled(
             pmv=np.array([0.5, 0.5]), atoms=np.array([-1.0, 1.0]), var_names=["my_var"]
@@ -559,7 +548,6 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         self.assertTrue(my_rng == dist.RNG)
 
     def test_combine_labeled_dist(self):
-
         # Create some dstns
         a = DiscreteDistributionLabeled(
             pmv=np.array([0.1, 0.9]), atoms=np.array([-1.0, 1.0]), var_names="a"

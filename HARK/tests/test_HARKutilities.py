@@ -40,7 +40,6 @@ class testsForHARKutilities(unittest.TestCase):
         for c in self.c_vals:
             # Loop through different values of risk aversion
             for CRRA in self.CRRA_vals:
-
                 # Calculate the difference between the derivative of the function and the
                 # first difference approximation to that derivative.
                 diff = abs(

@@ -50,7 +50,6 @@ class testPerfForesightConsumerType(unittest.TestCase):
         self.assertTrue(self.agent_infinite.conditions["FHWC"])
 
     def test_simulation(self):
-
         self.agent_infinite.solve()
 
         # Create parameter values necessary for simulation
@@ -109,7 +108,6 @@ class testPerfForesightConsumerType(unittest.TestCase):
         # )
 
     def test_stable_points(self):
-
         # Solve the constrained agent. Stable points exists only with a
         # borrowing constraint.
         constrained_agent = PerfForesightConsumerType(cycles=0, BoroCnstArt=0.0)

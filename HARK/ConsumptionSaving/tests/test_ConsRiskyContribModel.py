@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Tue Jan 26 10:06:51 2021
 
@@ -19,7 +18,6 @@ from HARK.tests import HARK_PRECISION
 
 class test_(unittest.TestCase):
     def setUp(self):
-
         # A set of finite parameters
         self.par_finite = init_risky_contrib.copy()
 
