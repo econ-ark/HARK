@@ -6,23 +6,25 @@ of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
-import os
 import sys
 from copy import copy, deepcopy
-from distutils.dir_util import copy_tree
+from dataclasses import dataclass
 from time import time
+from typing import NewType
 from warnings import warn
 
 import numpy as np
+import pandas as pd
+from xarray import DataArray
 
 from HARK.distribution import (
     Distribution,
     IndexDistribution,
     TimeVaryingDiscreteDistribution,
+    combine_indep_dstns,
 )
-
-from .parallel import multi_thread_commands, multi_thread_commands_fake
-from .utilities import NullFunc, get_arg_names
+from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
+from HARK.utilities import NullFunc, get_arg_names
 
 
 def distance_metric(thing_a, thing_b):
@@ -193,7 +195,7 @@ class Model:
         if isinstance(other, type(self)):
             return self.parameters == other.parameters
 
-        return notImplemented
+        return NotImplemented
 
     def __init__(self):
         if not hasattr(self, "parameters"):
@@ -1511,7 +1513,6 @@ class Market(Model):
             Should have attributes named in dyn_vars.
         """
         # Make a dictionary of inputs for the dynamics calculator
-        history_vars_string = ""
         arg_names = list(get_arg_names(self.calc_dynamics))
         if "self" in arg_names:
             arg_names.remove("self")
@@ -1560,3 +1561,161 @@ def distribute_params(agent, param_name, param_count, distribution):
         agent_set[j].assign_parameters(**{param_name: param_dist.atoms[0, j]})
 
     return agent_set
+
+
+Parameters = NewType("ParameterDict", dict)
+
+
+@dataclass
+class AgentPopulation:
+    agent_type: AgentType  # type of agent in the population
+    parameters: Parameters  # dictionary of parameters
+    term_age: int = None  # terminal age of population
+    agent_type_count: int = None  # total number of agents in the population
+    rng: np.random.Generator = None  # random number generator
+
+    def __post_init__(self):
+        # create a dummy agent and obtain its time-varying
+        # and time-invariant attributes
+        dummy_agent = self.agent_type.__class__()
+        self.time_var = dummy_agent.time_vary
+        self.time_inv = dummy_agent.time_inv
+
+        # create list of distributed parameters
+        # these are parameters that differ across agents
+        self.distributed_params = []
+        for key, param in self.parameters.items():
+            if (
+                (isinstance(param, DataArray) and param.dims[0] == "agent")
+                or isinstance(param, Distribution)
+                or (isinstance(param, list) and isinstance(param[0], list))
+            ):
+                self.distributed_params.append(key)
+
+        self._infer_counts()
+
+    def _infer_counts(self):
+        # if agent_type_count is not specified, infer from parameters
+        if self.agent_type_count is None:
+            agent_type_count = 1
+            for param in self.parameters.values():
+                if isinstance(param, DataArray) and param.dims[0] == "agent":
+                    agent_type_count = max(agent_type_count, param.shape[0])
+                elif isinstance(param, (Distribution, IndexDistribution)):
+                    agent_type_count = None
+                    break
+
+            self.agent_type_count = agent_type_count
+
+        if self.term_age is None:
+            t_age = 1
+            for param in self.parameters.values():
+                if isinstance(param, DataArray) and param.dims[-1] == "age":
+                    t_age = max(t_age, param.shape[-1])
+                    # there may not be a good use for this feature yet
+                    # as time varying distributions
+                    # are entered as list of moments (Avg, Std, Count, etc)
+                elif isinstance(param, (Distribution, IndexDistribution)):
+                    t_age = None
+                    break
+            self.term_age = t_age
+
+    def approx_distributions(self, approx_params: dict):
+        param_dict = self.parameters
+
+        self.continuous_distributions = {}
+
+        self.discrete_distributions = {}
+
+        for key, points in approx_params.items():
+            if key in param_dict and isinstance(param_dict[key], Distribution):
+                discrete_distribution = param_dict[key].discretize(points)
+                self.continuous_distributions[key] = param_dict[key]
+                self.discrete_distributions[key] = discrete_distribution
+            else:
+                raise ValueError(
+                    f"Warning: parameter {key} is not a Distribution found in agent type {self.agent_type}"
+                )
+
+        if len(self.discrete_distributions) > 1:
+            joint_dist = combine_indep_dstns(
+                *list(self.discrete_distributions.values())
+            )
+
+        keys = list(self.discrete_distributions.keys())
+        for i in range(len(self.discrete_distributions)):
+            param_dict[keys[i]] = DataArray(joint_dist.atoms[i], dims=("agent"))
+
+        self._infer_counts()
+
+    def _parase_parameters_(self):
+        population_parameters = []  # container for dictionaries of each agent subgroup
+        for agent in range(self.agent_type_count):
+            agent_parameters = {}
+
+            for key, param in self.parameters.items():
+                if key in self.time_var:
+                    # parameters that vary over time have to be repeated
+                    parameter_per_t = []
+                    for t in range(self.term_age):
+                        if isinstance(param, DataArray):
+                            if param.dims[0] == "agent":
+                                if param.dims[-1] == "age":
+                                    # if the parameter is a list, it's agent and time
+                                    parameter_per_t.append(param[agent][t].item())
+                                else:
+                                    parameter_per_t.append(param[agent].item())
+                            elif param.dims[0] == "age":
+                                # if kind is time, it applies to all agents but varies over time
+                                parameter_per_t.append(param[t].item())
+                        elif isinstance(param, (int, float)):
+                            # if kind is fixed, it applies to all agents at all times
+                            parameter_per_t.append(param)
+
+                    agent_parameters[key] = parameter_per_t
+
+                elif key in self.time_inv:
+                    if isinstance(param, DataArray) and param.dims[0] == "agent":
+                        agent_parameters[key] = param[agent].item()
+                    elif isinstance(param, (int, float)):
+                        agent_parameters[key] = param
+
+                else:
+                    if isinstance(param, DataArray):
+                        if param.dims[0] == "agent":
+                            if param.dims[-1] == "age":
+                                # if the parameter is a list, it's agent and time
+                                agent_parameters[key] = list(param[agent].item())
+                            else:
+                                agent_parameters[key] = list(param[agent].item())
+                        elif param.dims[0] == "age":
+                            agent_parameters[key] = [param.item()]
+                    elif isinstance(param, (int, float)):
+                        agent_parameters[key] = param
+
+            population_parameters.append(agent_parameters)
+
+        self.population_parameters = population_parameters
+
+    def create_distributed_agents(self):
+        rng = self.rng if self.rng is not None else np.random.default_rng()
+
+        self.agents = [
+            self.agent_type.__class__(seed=rng.integers(0, 2**31 - 1), **agent_dict)
+            for agent_dict in self.population_parameters
+        ]
+
+    def create_database(self):
+        database = pd.DataFrame(self.population_parameters)
+        database["agents"] = self.agents
+
+        self.agent_database = database
+
+    def solve(self):
+        # see Market class for an example of how to solve distributed agents in parallel
+
+        for agent in self.agents:
+            agent.solve()
+
+    def unpack_solutions(self):
+        self.solution = [agent.solution for agent in self.agents]
