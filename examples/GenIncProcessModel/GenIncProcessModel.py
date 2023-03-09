@@ -200,10 +200,8 @@ GenIncDictionary = {
     # Parameters for constructing the "assets above minimum" grid
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
     "aXtraMax": 30,  # Maximum end-of-period "assets above minimum" value
-    "aXtraExtra": [
-        0.005,
-        0.01,
-    ],  # Some other value of "assets above minimum" to add to the grid
+    # Some other value of "assets above minimum" to add to the grid
+    "aXtraExtra": np.array([0.005, 0.01]),
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
     "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
     # Parameters describing the income process

@@ -165,10 +165,11 @@ def construct_assets_grid(parameters):
         )
 
     # Add in additional points for the grid:
-    for a in aXtraExtra:
-        if a is not None and a not in aXtraGrid:
-            j = aXtraGrid.searchsorted(a)
-            aXtraGrid = np.insert(aXtraGrid, j, a)
+    if aXtraExtra is not None:
+        for a in aXtraExtra:
+            if a is not None and a not in aXtraGrid:
+                j = aXtraGrid.searchsorted(a)
+                aXtraGrid = np.insert(aXtraGrid, j, a)
 
     return aXtraGrid
 

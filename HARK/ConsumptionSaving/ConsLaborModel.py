@@ -787,10 +787,8 @@ init_labor_lifecycle["WageRte"] = [
     1.0,
     1.0,
 ]  # Wage rate in a lifecycle
-init_labor_lifecycle["LbrCostCoeffs"] = [
-    -2.0,
-    0.4,
-]  # Assume labor cost coeffs is a polynomial of degree 1
+# Assume labor cost coeffs is a polynomial of degree 1
+init_labor_lifecycle["LbrCostCoeffs"] = np.array([-2.0, 0.4])
 init_labor_lifecycle["T_cycle"] = 10
 # init_labor_lifecycle['T_retire']   = 7 # IndexError at line 774 in interpolation.py.
 init_labor_lifecycle[
