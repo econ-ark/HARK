@@ -6,23 +6,17 @@ of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
-import os
 import sys
+from collections import namedtuple
 from copy import copy, deepcopy
-from distutils.dir_util import copy_tree
 from time import time
 from warnings import warn
 
 import numpy as np
 
-from HARK.distribution import (
-    Distribution,
-    IndexDistribution,
-    TimeVaryingDiscreteDistribution,
-)
-
-from .parallel import multi_thread_commands, multi_thread_commands_fake
-from .utilities import NullFunc, get_arg_names
+from HARK.distribution import IndexDistribution, TimeVaryingDiscreteDistribution
+from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
+from HARK.utilities import NullFunc, get_arg_names
 
 
 def distance_metric(thing_a, thing_b):
@@ -150,10 +144,108 @@ class MetricObject:
         return max(distance_list)
 
 
+class Parameters:
+    def __init__(self, parameters):
+        self._parameters = parameters.copy()
+        self._term_age = parameters.get("T_cycle", None)
+        self._time_inv = []
+        self._time_var = []
+
+        # Infer which parameters are time varying
+        for key, value in parameters.items():
+            self._parameters[key] = self.__infer_dims__(key, value)
+
+    def __infer_dims__(self, key, value):
+        if isinstance(value, (int, float, np.ndarray, type(None))):
+            self.__add_to_time_inv(key)
+            return value
+        if isinstance(value, (list, tuple)):
+            if len(value) == 1:
+                self.__add_to_time_inv(key)
+                return value[0]
+            if self._term_age is None:
+                self._term_age = len(value)
+            if len(value) == self._term_age:
+                self.__add_to_time_vary(key)
+                return np.asarray(value)
+            raise ValueError(f"Parameter {key} must be of length 1 or {self._term_age}")
+        raise ValueError(f"Parameter {key} has type {type(value)}")
+
+    def __add_to_time_inv(self, key):
+        if key in self._time_var:
+            self._time_var.remove(key)
+        if key not in self._time_inv:
+            self._time_inv.append(key)
+
+    def __add_to_time_vary(self, key):
+        if key in self._time_inv:
+            self._time_inv.remove(key)
+        if key not in self._time_var:
+            self._time_var.append(key)
+
+    def __getitem__(self, key):
+        return self._parameters[key]
+
+    def __getattr__(self, key):
+        return self._parameters[key]
+
+    def __setitem__(self, key, value):
+        self._parameters[key] = value
+
+    def __setattr__(self, key, value):
+        if key.startswith("_"):
+            # Handle setting internal attributes normally
+            super().__setattr__(key, value)
+        else:
+            # Handle setting parameters as dictionary items
+            self._parameters[key] = value
+
+    def keys(self):
+        return self._parameters.keys()
+
+    def values(self):
+        return self._parameters.values()
+
+    def items(self):
+        return self._parameters.items()
+
+    def __iter__(self):
+        return iter(self._parameters)
+
+    def __deepcopy__(self, memo):
+        return deepcopy(self._parameters, memo)
+
+    def to_dict(self, keys=None):
+        if keys is None:
+            keys = self._parameters.keys()
+        return {key: self[key] for key in keys}
+
+    def to_namedtuple(self, keys=None):
+        if keys is None:
+            keys = self._parameters.keys()
+        return namedtuple("Parameters", keys)(**{key: self[key] for key in keys})
+
+    def update(self, other):
+        self._parameters.update(other)
+        self.__init__(self._parameters)
+
+    def __repr__(self):
+        return (
+            f"Parameters:\n"
+            f"term_age={self._term_age}\n"
+            f"time_inv={self._time_inv}\n"
+            f"time_var={self._time_var}\n"
+            f"\n{self._parameters}"
+        )
+
+
 class Model:
     """
     A class with special handling of parameters assignment.
     """
+
+    def __init__(self, **kwds):
+        self.parameters = Parameters(kwds)
 
     def assign_parameters(self, **kwds):
         """
@@ -170,8 +262,8 @@ class Model:
         none
         """
         self.parameters.update(kwds)
-        for key in kwds:
-            setattr(self, key, kwds[key])
+        for key, value in kwds.items():
+            setattr(self, key, value)
 
     def get_parameter(self, name):
         """
@@ -191,13 +283,9 @@ class Model:
 
     def __eq__(self, other):
         if isinstance(other, type(self)):
-            return self.parameters == other.parameters
+            return self.parameters.to_dict() == other.parameters.to_dict()
 
-        return notImplemented
-
-    def __init__(self):
-        if not hasattr(self, "parameters"):
-            self.parameters = {}
+        return NotImplemented
 
     def __str__(self):
         type_ = type(self)
@@ -1511,7 +1599,6 @@ class Market(Model):
             Should have attributes named in dyn_vars.
         """
         # Make a dictionary of inputs for the dynamics calculator
-        history_vars_string = ""
         arg_names = list(get_arg_names(self.calc_dynamics))
         if "self" in arg_names:
             arg_names.remove("self")
