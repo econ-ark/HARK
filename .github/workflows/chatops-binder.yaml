@@ -12,7 +12,7 @@ jobs:
       #  (1) Get the branch name of the PR that has been commented on with "/binder"
       #  (2) make a comment on the PR with the binder badge
       - name: comment on PR with Binder link
-        uses: actions/github-script@v1
+        uses: actions/github-script@v6
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
