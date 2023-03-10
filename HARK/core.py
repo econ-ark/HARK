@@ -163,7 +163,7 @@ class Parameters:
             if len(value) == 1:
                 self.__add_to_time_inv(key)
                 return value[0]
-            if self._term_age is None:
+            if self._term_age is None or self._term_age == 1:
                 self._term_age = len(value)
             if len(value) == self._term_age:
                 self.__add_to_time_vary(key)

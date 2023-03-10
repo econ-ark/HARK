@@ -713,10 +713,10 @@ prob_dead = np.genfromtxt("life_table.csv", delimiter=",", skip_header=1)
 prob_surv = 1 - prob_dead
 
 # The HARK argument need to be a list, thus convert it from numpy array
-prob_surv_list = np.ndarray.tolist(prob_surv[:80])
+prob_surv_list = np.ndarray.tolist(prob_surv[:79])
 
 income_profile = np.genfromtxt("productivity_profile.csv", delimiter=",", skip_header=1)
-income_profile_list = np.ndarray.tolist(income_profile[:80])
+income_profile_list = np.ndarray.tolist(income_profile[:79])
 
 # Continue your solution
 
@@ -733,10 +733,10 @@ sys.path.insert(0, os.path.abspath(".."))
 
 prob_dead = np.genfromtxt("life_table.csv", delimiter=",", skip_header=1)
 prob_surv = 1 - prob_dead
-prob_surv_list = np.ndarray.tolist(prob_surv[:80])
+prob_surv_list = np.ndarray.tolist(prob_surv[:79])
 
 income_profile = np.genfromtxt("productivity_profile.csv", delimiter=",", skip_header=1)
-income_profile_list = np.ndarray.tolist(income_profile[:80])
+income_profile_list = np.ndarray.tolist(income_profile[:79])
 
 Ex_dictionary = {
     "CRRA": 2.0,
@@ -745,7 +745,7 @@ Ex_dictionary = {
     "LivPrb": prob_surv_list,
     "PermGroFac": income_profile_list,
     "cycles": 1,
-    "T_cycle": 1,
+    "T_cycle": 79,
 }
 
 Ex_agent = PerfForesightConsumerType(**Ex_dictionary)
@@ -766,7 +766,7 @@ Simulation_dictionary = {
     "pLvlInitMean": 0.0,
     "pLvlInitStd": 0.05,
     "PermGroFacAgg": 1.0,
-    "T_cycle": 1,
+    "T_cycle": 79,
     "T_sim": 2000,
     "T_age": 80,
     "BoroCnstArt": 0.0,
