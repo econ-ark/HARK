@@ -13,8 +13,6 @@ DIM_MESSAGE = "Dimension mismatch."
 
 
 class PiecewiseAffineInterp(_CurvilinearGridInterp):
-    distance_criteria = ["values", "grids"]
-
     def __init__(self, values, grids, **kwargs):
         if not SKIMAGE_AVAILABLE:
             raise ImportError(
@@ -24,7 +22,7 @@ class PiecewiseAffineInterp(_CurvilinearGridInterp):
         super().__init__(values, grids, target="cpu", **kwargs)
 
         source = np.reshape(self.grids, (self.ndim, -1)).T
-        coordinates = np.mgrid[[slice(0, dim) for dim in self.shape]]
+        coordinates = np.mgrid[tuple(slice(0, dim) for dim in self.shape)]
         destination = np.reshape(coordinates, (self.ndim, -1)).T
 
         interpolator = PiecewiseAffineTransform()

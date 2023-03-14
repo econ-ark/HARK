@@ -37,9 +37,13 @@ class UnstructuredInterp(_UnstructuredGridInterp):
         method="linear",
         **kwargs,
     ):
+        # scipy can only do target = cpu
         super().__init__(values, grids, target="cpu")
 
-        assert method in AVAILABLE_METHODS, "Invalid interpolation method."
+        # Check for valid interpolation method
+        if method not in AVAILABLE_METHODS:
+            raise ValueError("Invalid interpolation method.")
+
         self.method = method
 
         interpolator_mapping = {
@@ -57,7 +61,7 @@ class UnstructuredInterp(_UnstructuredGridInterp):
 
         if not interp_kwargs:
             raise ValueError(
-                f"Unknown interpolation method {method} for {self.ndim} dimensional data"
+                f"Unknown interpolation method {method} for {self.ndim} dimensional data."
             )
 
         self.interp_kwargs = interp_kwargs.copy()

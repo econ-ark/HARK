@@ -4119,13 +4119,13 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         # boundary defined by (x_bound_1,y_bound_1) and (x_bound_2,y_bound_2),
         # where the latter is *COUNTER CLOCKWISE* from the former.  Returns
         # 1 if the point is outside the boundary and 0 otherwise.
-        violation_check = (
-            lambda x_check, y_check, x_bound_1, y_bound_1, x_bound_2, y_bound_2: (
+        def violation_check(
+            x_check, y_check, x_bound_1, y_bound_1, x_bound_2, y_bound_2
+        ):
+            return (
                 (y_bound_2 - y_bound_1) * x_check - (x_bound_2 - x_bound_1) * y_check
                 > x_bound_1 * y_bound_2 - y_bound_1 * x_bound_2
-            )
-            + 0
-        )
+            ) + 0
 
         # Identify the correct sector for each point to be evaluated
         these = np.ones(m, dtype=bool)
@@ -4769,7 +4769,7 @@ def main():
             xInterpolators.append(this_interpolation)
             xInterpolators_alt.append(that_interpolation)
         g = LinearInterpOnInterp1D(xInterpolators, y_list)
-        h = LinearInterpOnInterp1D(xInterpolators_alt, y_list)
+        LinearInterpOnInterp1D(xInterpolators_alt, y_list)
 
         rand_x = RNG.random(100) * 5.0
         rand_y = RNG.random(100) * 5.0
@@ -4796,13 +4796,9 @@ def main():
         # print(r)
 
     if False:
-        f = (
-            lambda x, y, z: 3.0 * x**2.0
-            + x * y
-            + 4.0 * y**2.0
-            - 5 * z**2.0
-            + 1.5 * x * z
-        )
+
+        def f(x, y, z):
+            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0 - 5 * z**2.0 + 1.5 * x * z
 
         def dfdx(x, y, z):
             return 6.0 * x + y + 1.5 * z
@@ -4850,18 +4846,20 @@ def main():
         z.sort()
 
     if False:
-        f = (
-            lambda w, x, y, z: 4.0 * w * z
-            - 2.5 * w * x
-            + w * y
-            + 6.0 * x * y
-            - 10.0 * x * z
-            + 3.0 * y * z
-            - 7.0 * z
-            + 4.0 * x
-            + 2.0 * y
-            - 5.0 * w
-        )
+
+        def f(w, x, y, z):
+            return (
+                4.0 * w * z
+                - 2.5 * w * x
+                + w * y
+                + 6.0 * x * y
+                - 10.0 * x * z
+                + 3.0 * y * z
+                - 7.0 * z
+                + 4.0 * x
+                + 2.0 * y
+                - 5.0 * w
+            )
 
         def dfdw(w, x, y, z):
             return 4.0 * z - 2.5 * x + y - 5.0
@@ -4920,7 +4918,7 @@ def main():
             dfdy(rand_w, rand_x, rand_y, rand_z)
             - g.derivativeY(rand_w, rand_x, rand_y, rand_z)
         ) / dfdy(rand_w, rand_x, rand_y, rand_z)
-        s = (
+        (
             dfdz(rand_w, rand_x, rand_y, rand_z)
             - g.derivativeZ(rand_w, rand_x, rand_y, rand_z)
         ) / dfdz(rand_w, rand_x, rand_y, rand_z)
@@ -4954,13 +4952,9 @@ def main():
         # print(q)
 
     if False:
-        f = (
-            lambda x, y, z: 3.0 * x**2.0
-            + x * y
-            + 4.0 * y**2.0
-            - 5 * z**2.0
-            + 1.5 * x * z
-        )
+
+        def f(x, y, z):
+            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0 - 5 * z**2.0 + 1.5 * x * z
 
         def dfdx(x, y, z):
             return 6.0 * x + y + 1.5 * z
@@ -4996,18 +4990,20 @@ def main():
         plt.plot(p)
 
     if False:
-        f = (
-            lambda w, x, y, z: 4.0 * w * z
-            - 2.5 * w * x
-            + w * y
-            + 6.0 * x * y
-            - 10.0 * x * z
-            + 3.0 * y * z
-            - 7.0 * z
-            + 4.0 * x
-            + 2.0 * y
-            - 5.0 * w
-        )
+
+        def f(w, x, y, z):
+            return (
+                4.0 * w * z
+                - 2.5 * w * x
+                + w * y
+                + 6.0 * x * y
+                - 10.0 * x * z
+                + 3.0 * y * z
+                - 7.0 * z
+                + 4.0 * x
+                + 2.0 * y
+                - 5.0 * w
+            )
 
         def dfdw(w, x, y, z):
             return 4.0 * z - 2.5 * x + y - 5.0
@@ -5086,13 +5082,9 @@ def main():
         print(t_end - t_start)
 
     if False:
-        f = (
-            lambda x, y, z: 3.0 * x**2.0
-            + x * y
-            + 4.0 * y**2.0
-            - 5 * z**2.0
-            + 1.5 * x * z
-        )
+
+        def f(x, y, z):
+            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0 - 5 * z**2.0 + 1.5 * x * z
 
         def dfdx(x, y, z):
             return 6.0 * x + y + 1.5 * z
@@ -5131,18 +5123,20 @@ def main():
         plt.plot(p)
 
     if False:
-        f = (
-            lambda w, x, y, z: 4.0 * w * z
-            - 2.5 * w * x
-            + w * y
-            + 6.0 * x * y
-            - 10.0 * x * z
-            + 3.0 * y * z
-            - 7.0 * z
-            + 4.0 * x
-            + 2.0 * y
-            - 5.0 * w
-        )
+
+        def f(w, x, y, z):
+            return (
+                4.0 * w * z
+                - 2.5 * w * x
+                + w * y
+                + 6.0 * x * y
+                - 10.0 * x * z
+                + 3.0 * y * z
+                - 7.0 * z
+                + 4.0 * x
+                + 2.0 * y
+                - 5.0 * w
+            )
 
         def dfdw(w, x, y, z):
             return 4.0 * z - 2.5 * x + y - 5.0

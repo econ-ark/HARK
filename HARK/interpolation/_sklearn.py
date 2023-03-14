@@ -1,15 +1,9 @@
 import numpy as np
-from scipy.ndimage import map_coordinates
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.linear_model import ElasticNet, ElasticNetCV, SGDRegressor
 from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import (
-    Normalizer,
-    PolynomialFeatures,
-    SplineTransformer,
-    StandardScaler,
-)
+from sklearn.preprocessing import PolynomialFeatures, SplineTransformer, StandardScaler
 from sklearn.svm import SVR
 
 from HARK.interpolation._multi import _CurvilinearGridInterp, _UnstructuredGridInterp
@@ -42,37 +36,33 @@ class _PreprocessingCurvilinearInterp(PipelineCurvilinearInterp):
         grids,
         pipeline,
         std=False,
-        norm=False,
-        feature=None,
-        degree=3,
-        n_knots=5,
+        preprocessing_options=None,
     ):
         self.std = std
-        self.norm = norm
-        self.feature = feature
-        self.degree = degree
-        self.n_knots = n_knots
 
-        if feature is None:
-            pass
-        elif isinstance(feature, str):
+        if preprocessing_options is None:
+            preprocessing_options = {}
+
+        self.preprocessing_options = preprocessing_options
+
+        feature = preprocessing_options.get("feature", None)
+
+        if feature and isinstance(feature, str):
+            degree = preprocessing_options.get("degree", 3)
             assert isinstance(degree, int), "Degree must be an integer."
             if feature.startswith("pol"):
-                pipeline = [PolynomialFeatures(degree=degree)] + pipeline
+                pipeline.insert(0, PolynomialFeatures(degree))
             elif feature.startswith("spl"):
+                n_knots = preprocessing_options.get("n_knots", 5)
                 assert isinstance(n_knots, int), "n_knots must be an integer."
-                pipeline = [
-                    SplineTransformer(n_knots=n_knots, degree=degree)
-                ] + pipeline
+                pipeline.insert(0, SplineTransformer(n_knots=n_knots, degree=degree))
             else:
                 raise AttributeError(f"Feature {feature} not recognized.")
         else:
             raise AttributeError(f"Feature {feature} not recognized.")
 
         if std:
-            pipeline = [StandardScaler()] + pipeline
-        if norm:
-            pipeline = [Normalizer()] + pipeline
+            pipeline.insert(0, StandardScaler())
 
         super().__init__(values, grids, pipeline)
 
@@ -199,13 +189,11 @@ class _PreprocessingUnstructuredInterp(PipelineUnstructuredInterp):
         grids,
         pipeline,
         std=False,
-        norm=False,
         feature=None,
         degree=3,
         n_knots=5,
     ):
         self.std = std
-        self.norm = norm
         self.feature = feature
         self.degree = degree
         self.n_knots = n_knots
@@ -228,8 +216,6 @@ class _PreprocessingUnstructuredInterp(PipelineUnstructuredInterp):
 
         if std:
             pipeline = [StandardScaler()] + pipeline
-        if norm:
-            pipeline = [Normalizer()] + pipeline
 
         super().__init__(values, grids, pipeline)
 
