@@ -53,6 +53,7 @@ rand_x = x_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
 rand_y = y_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
 values = function_1(rand_x, rand_y)
 
+
 # %% [markdown]
 # Now suppose we would like to interpolate this function on a rectilinear grid, which is known as "regridding".
 #
@@ -61,6 +62,7 @@ values = function_1(rand_x, rand_y)
 grid_x, grid_y = np.meshgrid(
     np.linspace(0, 1, 100), np.linspace(0, 1, 100), indexing="ij"
 )
+
 
 # %% [markdown]
 # To do this, we use `HARK`'s `WarpedInterpOnInterp2D` class. The class takes the following arguments:
@@ -72,7 +74,7 @@ grid_x, grid_y = np.meshgrid(
 
 # %%
 warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y), target="parallel")
-warped_interp([0], [0])
+warped_interp.warmup()
 
 # %% [markdown]
 # Once we create the interpolator objects, we can use them using the `__call__` method which takes as many arguments as there are dimensions.
@@ -83,11 +85,13 @@ start = time()
 warped_grid = warped_interp(grid_x, grid_y)
 print(f"Warped interpolation took {time() - start:.5f} seconds")
 
+
 # %%
 curvilinear_interp = Curvilinear2DInterp(values, rand_x, rand_y)
 start = time()
 curvilinear_grid = curvilinear_interp(grid_x, grid_y)
 print(f"Curvilinear interpolation took {time() - start:.5f} seconds")
+
 
 # %% [markdown]
 # Now we can compare the results of the interpolation with the original function. Below we plot the original function and the sample points that are known.
@@ -98,6 +102,7 @@ plt.imshow(function_1(grid_x, grid_y).T, extent=(0, 1, 0, 1), origin="lower")
 plt.plot(rand_x.flat, rand_y.flat, "ok", ms=2, label="input points")
 plt.title("Original")
 plt.legend(loc="lower right")
+
 
 # %% [markdown]
 # Then, we can look at the result for each method of interpolation and compare it to the original function.
@@ -136,14 +141,16 @@ rand_x = x_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
 rand_y = y_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
 values = function_2(rand_x, rand_y)
 
+
 # %%
 grid_x, grid_y = np.meshgrid(
     np.linspace(-0.5, 0.5, 100), np.linspace(-0.5, 0.5, 100), indexing="ij"
 )
 
+
 # %%
 warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y), target="parallel")
-warped_interp([0], [0])
+
 start = time()
 warped_grid = warped_interp(grid_x, grid_y)
 print(f"Warped interpolation took {time() - start:.5f} seconds")
@@ -198,14 +205,15 @@ rand_x = x_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
 rand_y = y_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
 values = function_3(rand_x, rand_y)
 
+
 # %%
 grid_x, grid_y = np.meshgrid(
     np.linspace(0, 3, 100), np.linspace(0, 3, 100), indexing="ij"
 )
 
+
 # %%
 warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y), target="parallel")
-warped_interp([0], [0])
 
 
 # %%
@@ -226,6 +234,7 @@ plt.imshow(function_3(grid_x, grid_y).T, extent=(0, 3, 0, 3), origin="lower")
 plt.plot(rand_x.flat, rand_y.flat, "ok", ms=2)
 plt.title("Original")
 plt.legend(loc="lower right")
+
 
 # %%
 fig, axs = plt.subplots(1, 3, figsize=(9, 3))
@@ -264,7 +273,6 @@ grid_x, grid_y = np.meshgrid(
 
 # %%
 warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y), target="parallel")
-warped_interp([0], [0])
 
 
 # %%
@@ -278,6 +286,7 @@ curvilinear_interp = Curvilinear2DInterp(values, rand_x, rand_y)
 start = time()
 curvilinear_grid = curvilinear_interp(grid_x, grid_y)
 print(f"Curvilinear interpolation took {time() - start:.5f} seconds")
+
 
 # %%
 plt.imshow(function_4(grid_x, grid_y).T, extent=(0, 5, 0, 5), origin="lower")
@@ -296,6 +305,7 @@ for ax, title, grid in zip(axs.flat, titles, grids):
 
 plt.tight_layout()
 plt.show()
+
 
 # %% [markdown]
 # # More complex functions
@@ -321,14 +331,15 @@ rand_x = x_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
 rand_y = y_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
 values = function_5(rand_x, rand_y)
 
+
 # %%
 grid_x, grid_y = np.meshgrid(
     np.linspace(0, 1, 100), np.linspace(0, 1, 100), indexing="ij"
 )
 
+
 # %%
 warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y), target="parallel")
-warped_interp([0], [0])
 
 
 # %%
@@ -342,6 +353,7 @@ curvilinear_interp = Curvilinear2DInterp(values, rand_x, rand_y)
 start = time()
 curvilinear_grid = curvilinear_interp(grid_x, grid_y)
 print(f"Curvilinear interpolation took {time() - start:.5f} seconds")
+
 
 # %%
 ax = plt.axes(projection="3d")
@@ -388,14 +400,15 @@ rand_x = x_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
 rand_y = y_temp + warp_factor * (rng.random((x_list.size, y_list.size)) - 0.5)
 values = function_6(rand_x, rand_y)
 
+
 # %%
 grid_x, grid_y = np.meshgrid(
     np.linspace(0, 1, 100), np.linspace(0, 1, 100), indexing="ij"
 )
 
+
 # %%
 warped_interp = WarpedInterpOnInterp2D(values, (rand_x, rand_y), target="parallel")
-warped_interp([0], [0])
 
 
 # %%
@@ -409,6 +422,7 @@ curvilinear_interp = Curvilinear2DInterp(values, rand_x, rand_y)
 start = time()
 curvilinear_grid = curvilinear_interp(grid_x, grid_y)
 print(f"Curvilinear interpolation took {time() - start:.5f} seconds")
+
 
 # %%
 ax = plt.axes(projection="3d")
