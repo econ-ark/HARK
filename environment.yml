@@ -19,6 +19,7 @@ dependencies:
   - pandas>=1.5
   - recommonmark>=0.7
   - scipy>=1.10
+  - scikit-learn
   - seaborn>=0.12
   - sphinx>=6.1
   - xarray>=2023

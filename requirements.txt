@@ -13,6 +13,7 @@ numpy>=1.23
 pandas>=1.5
 quantecon>=0.6
 recommonmark>=0.7
+scikit-learn
 scipy>=1.10
 seaborn>=0.12
 sphinx>=6.1
