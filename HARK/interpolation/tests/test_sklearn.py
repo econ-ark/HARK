@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from HARK.interpolation._sklearn import GeneralizedRegressionUnstructuredInterp
+from HARK.interpolation import GeneralizedRegressionUnstructuredInterp
 
 
 def function(*args):
