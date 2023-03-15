@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from HARK.interpolation import MultivariateInterp, WarpedInterpOnInterp2D
+from HARK.interpolation import MultivariateInterp
 
 
 def function(*args):
