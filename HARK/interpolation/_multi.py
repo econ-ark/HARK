@@ -25,9 +25,34 @@ MC_KWARGS = {
 
 
 class _RegularGridInterp(MetricObject):
+    """
+    Abstract class for interpolating on a regular grid. Sets up
+    structure for using different targets (cpu, parallel, gpu).
+    Takes in arguments to be used by `map_coordinates`.
+    """
+
     distance_criteria = ["values"]
 
     def __init__(self, values, target="cpu", **kwargs):
+        """
+        Initialize a regular grid interpolator.
+
+        Parameters
+        ----------
+        values : np.ndarray
+            Functional values on a regular grid.
+        target : str, optional
+            Determines which target to use for interpolation.
+            Options are "cpu", "parallel", and "gpu".
+            If "cpu", uses numpy and scipy.
+            If "parallel", uses numba and scipy.
+            If "gpu", uses cupy.
+
+        Raises
+        ------
+        ValueError
+            Target is invalid.
+        """
         if target not in AVAILABLE_TARGETS:
             raise ValueError("Invalid target.")
         self.target = target
@@ -45,6 +70,19 @@ class _RegularGridInterp(MetricObject):
         self.shape = self.values.shape  # should match points in each grid
 
     def __call__(self, *args):
+        """
+        Interpolates arguments on the regular grid.
+
+        Returns
+        -------
+        np.ndarray
+            Interpolated functional values for each argument.
+
+        Raises
+        ------
+        ValueError
+            Number of argumets does not match number of dimensions.
+        """
         if self.target in ["cpu", "parallel"]:
             args = np.asarray(args)
         elif self.target == "gpu":
@@ -57,9 +95,36 @@ class _RegularGridInterp(MetricObject):
         return self._map_coordinates(coordinates)
 
     def _get_coordinates(self, args):
+        """
+        Abstract method for getting coordinates for interpolation.
+
+        Parameters
+        ----------
+        args : np.ndarray
+            Arguments to be interpolated.
+
+        Raises
+        ------
+        NotImplementedError
+            Must be implemented by subclass.
+        """
         raise NotImplementedError("Must be implemented by subclass.")
 
     def _map_coordinates(self, coordinates):
+        """
+        Uses coordinates to interpolate on the regular grid with
+        `map_coordinates` from scipy or cupy, depending on target.
+
+        Parameters
+        ----------
+        coordinates : np.ndarray
+            Index coordinates for interpolation.
+
+        Returns
+        -------
+        np.ndarray
+            Interpolated functional values for each coordinate.
+        """
         if self.target in ["cpu", "parallel"]:
             # there is no parallelization for scipy map_coordinates
             output = map_coordinates(
@@ -75,9 +140,28 @@ class _RegularGridInterp(MetricObject):
 
 
 class MultivariateInterp(_RegularGridInterp):
+    """
+    Multivariate Interpolator on a regular grid. Maps functional coordinates
+    to index coordinates and uses `map_coordinates` from scipy or cupy.
+    """
+
     distance_criteria = ["values", "grids"]
 
     def __init__(self, values, grids, target="cpu", **kwargs):
+        """
+        Initialize a multivariate interpolator.
+
+        Parameters
+        ----------
+        values : np.ndarray
+            Functional values on a regular grid.
+        grids : _type_
+            1D grids for each dimension.
+        target : str, optional
+            One of "cpu", "parallel", or "gpu". Determines
+            hardware to use for interpolation.
+        """
+
         super().__init__(values, target=target, **kwargs)
 
         if target == "cpu":
@@ -94,6 +178,20 @@ class MultivariateInterp(_RegularGridInterp):
             raise ValueError("Values shape must match points in each grid.")
 
     def _get_coordinates(self, args):
+        """
+        For each argument, finds the index coordinates for interpolation.
+
+        Parameters
+        ----------
+        args : np.ndarray
+            Arguments to be interpolated.
+
+        Returns
+        -------
+        np.ndarray
+            Index coordinates for interpolation.
+        """
+
         if self.target == "cpu":
             coordinates = np.empty_like(args)
             for dim, grid in enumerate(self.grids):  # for each dimension
@@ -114,6 +212,22 @@ class MultivariateInterp(_RegularGridInterp):
 
 @njit(parallel=True, cache=True, fastmath=True)
 def _nb_interp(grids, args):
+    """
+    Just-in-time compiled function for interpolating on a regular grid.
+
+    Parameters
+    ----------
+    grids : np.ndarray
+        1D grids for each dimension.
+    args : np.ndarray
+        Arguments to be interpolated.
+
+    Returns
+    -------
+    np.ndarray
+        Index coordinates for each argument.
+    """
+
     coordinates = np.empty_like(args)
     for dim in prange(args.shape[0]):
         coordinates[dim] = np.interp(args[dim], grids[dim], np.arange(grids[dim].size))
@@ -122,9 +236,26 @@ def _nb_interp(grids, args):
 
 
 class _CurvilinearGridInterp(_RegularGridInterp):
+    """
+    Abstract class for interpolating on a curvilinear grid.
+    """
+
     distance_criteria = ["values", "grids"]
 
     def __init__(self, values, grids, target="cpu"):
+        """
+        Initialize a curvilinear grid interpolator.
+
+        Parameters
+        ----------
+        values : np.ndarray
+            Functional values on a curvilinear grid.
+        grids : np.ndarray
+            ND curvilinear grids for each dimension
+        target : str, optional
+            One of "cpu", "parallel", or "gpu".
+        """
+
         super().__init__(values, target=target)
 
         if target in ["cpu", "parallel"]:
@@ -141,12 +272,32 @@ class _CurvilinearGridInterp(_RegularGridInterp):
 
 
 class WarpedInterpOnInterp2D(_CurvilinearGridInterp):
-    def warmup(self):
-        self(*self.grids)
-
-        return None
+    """
+    Warped Grid Interpolation on a 2D grid.
+    """
 
     def __call__(self, *args, axis=1):
+        """
+        Interpolate on a warped grid using the Warped Grid Interpolation
+        method described in `EGM$^n$`.
+
+        Parameters
+        ----------
+        axis : int, 0 or 1
+            Determines which axis to use for linear interpolators.
+            Setting to 0 may fix some issues where interpolation fails.
+
+        Returns
+        -------
+        np.ndarray
+            Interpolated values on a warped grid.
+
+        Raises
+        ------
+        ValueError
+            Number of arguments doesn't match number of dimensions.
+        """
+
         if self.target in ["cpu", "parallel"]:
             args = np.asarray(args)
         elif self.target == "gpu":
@@ -165,6 +316,22 @@ class WarpedInterpOnInterp2D(_CurvilinearGridInterp):
         return output
 
     def _target_cpu(self, args, axis):
+        """
+        Uses numpy to interpolate on a warped grid.
+
+        Parameters
+        ----------
+        args : np.ndarray
+            Coordinates to be interpolated.
+        axis : int, 0 or 1
+            See `WarpedInterpOnInterp2D.__call__`.
+
+        Returns
+        -------
+        np.ndarray
+            Interpolated values on arguments.
+        """
+
         shape = args[0].shape  # original shape of arguments
         size = args[0].size  # number of points in arguments
         shape_axis = self.shape[axis]  # number of points in axis
@@ -199,9 +366,41 @@ class WarpedInterpOnInterp2D(_CurvilinearGridInterp):
         return output.reshape(shape)
 
     def _target_parallel(self, args, axis):
+        """
+        Uses numba to interpolate on a warped grid.
+
+        Parameters
+        ----------
+        args : np.ndarray
+            Coordinates to be interpolated.
+        axis : int, 0 or 1
+            See `WarpedInterpOnInterp2D.__call__`.
+
+        Returns
+        -------
+        np.ndarray
+            Interpolated values on arguments.
+        """
+
         return nb_interp_piecewise(args, self.grids, self.values, axis)
 
     def _target_gpu(self, args, axis):
+        """
+        Uses cupy to interpolate on a warped grid.
+
+        Parameters
+        ----------
+        args : np.ndarray
+            Coordinates to be interpolated.
+        axis : int, 0 or 1
+            See `WarpedInterpOnInterp2D.__call__`.
+
+        Returns
+        -------
+        np.ndarray
+            Interpolated values on arguments.
+        """
+
         shape = args[0].shape  # original shape of arguments
         size = args[0].size  # number of points in arguments
         shape_axis = self.shape[axis]  # number of points in axis
@@ -234,9 +433,35 @@ class WarpedInterpOnInterp2D(_CurvilinearGridInterp):
 
         return output.reshape(shape)
 
+    def warmup(self):
+        self(*self.grids)
+
+        return None
+
 
 @njit(parallel=True, cache=True, fastmath=True)
 def nb_interp_piecewise(args, grids, values, axis):
+    """
+    Just-in-time compiled function to interpolate on a warped grid.
+
+    Parameters
+    ----------
+    args : np.ndarray
+        Arguments to be interpolated.
+    grids : np.ndarray
+        Curvilinear grids for each dimension.
+    values : np.ndarray
+        Functional values on a curvilinear grid.
+    axis : int, 0 or 1
+        See `WarpedInterpOnInterp2D.__call__`.
+
+
+    Returns
+    -------
+    np.ndarray
+        Interpolated values on arguments.
+    """
+
     shape = args[0].shape  # original shape of arguments
     size = args[0].size  # number of points in arguments
     shape_axis = values.shape[axis]  # number of points in axis
@@ -272,7 +497,24 @@ def nb_interp_piecewise(args, grids, values, axis):
 
 
 class _UnstructuredGridInterp(_CurvilinearGridInterp):
+    """
+    Abstract class for interpolation on unstructured grids.
+    """
+
     def __init__(self, values, grids, target="cpu"):
+        """
+        Initialize interpolation on unstructured grids.
+
+        Parameters
+        ----------
+        values : np.ndarray
+            Functional values on an unstructured grid.
+        grids : np.ndarray
+            ND unstructured grids for each dimension.
+        target : str, optional
+            One of "cpu", "parallel", or "gpu".
+        """
+
         super().__init__(values, grids, target=target)
         # remove non finite values that might result from
         # sequential endogenous grid method
