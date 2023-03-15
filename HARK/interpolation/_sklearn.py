@@ -10,7 +10,23 @@ from HARK.interpolation._multi import _CurvilinearGridInterp, _UnstructuredGridI
 
 
 class PipelineCurvilinearInterp(_CurvilinearGridInterp):
+    """
+    Curvilinear Interpolator using a pipeline of sklearn models.
+    """
+
     def __init__(self, values, grids, pipeline, **kwargs):
+        """
+        Initialize a PipelineCurvilinearInterp object.
+
+        Parameters
+        ----------
+        values : np.ndarray
+            Functional values on a curvilinear grid.
+        grids : np.ndarray
+            Functional coordinates on a curvilinear grid.
+        pipeline : sklearn.pipeline.Pipeline
+            Pipeline of sklearn models.
+        """
         # for now, only support cpu
         super().__init__(values, grids, target="cpu", **kwargs)
 
@@ -25,11 +41,28 @@ class PipelineCurvilinearInterp(_CurvilinearGridInterp):
             self.models[dim].fit(X_train, y_train[dim])
 
     def _get_coordinates(self, args):
+        """
+        Apply the sklearn pipeline to each dimension of arguments.
+
+        Parameters
+        ----------
+        args : np.ndarray
+            Values to interpolate for each dimension.
+
+        Returns
+        -------
+        np.ndarray
+            Interpolated values.
+        """
         X_test = np.reshape(args, (self.ndim, -1))
         return np.array([m.predict(X_test).reshape(args[0].shape) for m in self.models])
 
 
 class _PreprocessingCurvilinearInterp(PipelineCurvilinearInterp):
+    """
+    Abstract class for PipelineCurvilinearInterp with preprocessing.
+    """
+
     def __init__(
         self,
         values,
@@ -38,6 +71,31 @@ class _PreprocessingCurvilinearInterp(PipelineCurvilinearInterp):
         std=False,
         preprocessing_options=None,
     ):
+        """
+        Initialize a _PreprocessingCurvilinearInterp object. Preprocessing options
+        includes standardization, polynomial features, and spline features.
+
+        Parameters
+        ----------
+        values : np.ndarray
+            Functional values on a curvilinear grid.
+        grids : np.ndarray
+            Functional coordinates on a curvilinear grid.
+        pipeline : sklearn.pipeline.Pipeline
+            Pipeline of sklearn models.
+        std : bool, optional
+            Standardize data by removing the mean and scaling to unit variance,
+            by default False
+        preprocessing_options : dict, optional
+            Can be None, or a dictionary with key "feature".
+            If "feature" is "pol", then "degree" must be specified.
+            If "feature" is "spl", then "degree" and "n_knots" must be specified.
+
+        Raises
+        ------
+        AttributeError
+            Feature not recognized.
+        """
         self.std = std
 
         if preprocessing_options is None:
@@ -68,7 +126,34 @@ class _PreprocessingCurvilinearInterp(PipelineCurvilinearInterp):
 
 
 class GeneralizedRegressionCurvilinearInterp(_PreprocessingCurvilinearInterp):
+    """
+    Generalized Regression for each dimension of the curvilinear grid.
+    Use regression to map from the curvilinear grid to an index grid.
+    Then use map_coordinates to interpolate on the index grid.
+    """
+
     def __init__(self, values, grids, model="elastic-net", model_kwargs=None, **kwargs):
+        """
+        Initialize a GeneralizedRegressionCurvilinearInterp object.
+        The model determines the regression used for each dimension.
+
+        Parameters
+        ----------
+        values : np.ndarray
+            Functional values on a curvilinear grid.
+        grids : np.ndarray
+            Functional coordinates on a curvilinear grid.
+        model : str, optional
+            One of "elastic-net", "elastic-net-cv", "kernel-ridge", "svr", "sgd",
+            "gaussian-process", by default "elastic-net".
+        model_kwargs : dict, optional
+            Options for the model, by default None.
+
+        Raises
+        ------
+        AttributeError
+            Model is not implemented.
+        """
         if model_kwargs is None:
             model_kwargs = {}
 
@@ -96,7 +181,23 @@ class GeneralizedRegressionCurvilinearInterp(_PreprocessingCurvilinearInterp):
 
 
 class PipelineUnstructuredInterp(_UnstructuredGridInterp):
+    """
+    Unstructured Interpolator using a pipeline of sklearn models.
+    """
+
     def __init__(self, values, grids, pipeline):
+        """
+        Initialize a PipelineUnstructuredInterp object.
+
+        Parameters
+        ----------
+        values : np.ndarray
+            Functional values on an unstructured grid.
+        grids : np.ndarray
+            Functional coordinates on an unstructured grid.
+        pipeline : sklearn.pipeline.Pipeline
+            Pipeline of sklearn models.
+        """
         # for now, only support cpu
         super().__init__(values, grids, target="cpu")
         X_train = np.moveaxis(self.grids, -1, 0)
@@ -106,11 +207,24 @@ class PipelineUnstructuredInterp(_UnstructuredGridInterp):
         self.model.fit(X_train, y_train)
 
     def __call__(self, *args: np.ndarray):
+        """
+        Interpolate on the unstructured grid.
+
+        Returns
+        -------
+        np.ndarray
+            Interpolated values.
+        """
+
         X_test = np.c_[tuple(arg.ravel() for arg in args)]
         return self.model.predict(X_test).reshape(args[0].shape)
 
 
 class _PreprocessingUnstructuredInterp(PipelineUnstructuredInterp):
+    """
+    Abstract class for PipelineUnstructuredInterp with preprocessing.
+    """
+
     def __init__(
         self,
         values,
@@ -121,6 +235,32 @@ class _PreprocessingUnstructuredInterp(PipelineUnstructuredInterp):
         degree=3,
         n_knots=5,
     ):
+        """
+        Initialize a _PreprocessingUnstructuredInterp object. Preprocessing options
+        includes standardization, polynomial features, and spline features.
+
+        Parameters
+        ----------
+        values : np.ndarray
+            Functional values on an unstructured grid.
+        grids : np.ndarray
+            Functional coordinates on an unstructured grid.
+        pipeline : sklearn.pipeline.Pipeline
+            Pipeline of sklearn models.
+        std : bool, optional
+            Standardize data by removing the mean and scaling to unit variance,
+            by default False
+        preprocessing_options : dict, optional
+            Can be None, or a dictionary with key "feature".
+            If "feature" is "pol", then "degree" must be specified.
+            If "feature" is "spl", then "degree" and "n_knots" must be specified.
+
+        Raises
+        ------
+        AttributeError
+            Feature not recognized.
+        """
+
         self.std = std
         self.feature = feature
         self.degree = degree
@@ -149,7 +289,32 @@ class _PreprocessingUnstructuredInterp(PipelineUnstructuredInterp):
 
 
 class GeneralizedRegressionUnstructuredInterp(_PreprocessingUnstructuredInterp):
+    """
+    Generalized Regression for an unstructured grid.
+    """
+
     def __init__(self, values, grids, model="elastic-net", model_kwargs=None, **kwargs):
+        """
+        Initialize a GeneralizedRegressionUnstructuredInterp object.
+        The model determines the regression used.
+
+        Parameters
+        ----------
+        values : np.ndarray
+            Functional values on an unstructured grid.
+        grids : np.ndarray
+            Functional coordinates on an unstructured grid.
+        model : str, optional
+            One of "elastic-net", "elastic-net-cv", "kernel-ridge", "svr", "sgd",
+            "gaussian-process", by default "elastic-net".
+        model_kwargs : dict, optional
+            Options for the model, by default None.
+
+        Raises
+        ------
+        AttributeError
+            Model is not implemented.
+        """
         if model_kwargs is None:
             model_kwargs = {}
 
