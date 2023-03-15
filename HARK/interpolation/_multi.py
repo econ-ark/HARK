@@ -434,6 +434,9 @@ class WarpedInterpOnInterp2D(_CurvilinearGridInterp):
         return output.reshape(shape)
 
     def warmup(self):
+        """
+        Warms up the JIT compiler.
+        """
         self(*self.grids)
 
         return None

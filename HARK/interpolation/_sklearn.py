@@ -132,7 +132,9 @@ class GeneralizedRegressionCurvilinearInterp(_PreprocessingCurvilinearInterp):
     Then use map_coordinates to interpolate on the index grid.
     """
 
-    def __init__(self, values, grids, model="elastic-net", model_kwargs=None, **kwargs):
+    def __init__(
+        self, values, grids, model="elastic-net-cv", model_kwargs=None, **kwargs
+    ):
         """
         Initialize a GeneralizedRegressionCurvilinearInterp object.
         The model determines the regression used for each dimension.
@@ -293,7 +295,9 @@ class GeneralizedRegressionUnstructuredInterp(_PreprocessingUnstructuredInterp):
     Generalized Regression for an unstructured grid.
     """
 
-    def __init__(self, values, grids, model="elastic-net", model_kwargs=None, **kwargs):
+    def __init__(
+        self, values, grids, model="elastic-net-cv", model_kwargs=None, **kwargs
+    ):
         """
         Initialize a GeneralizedRegressionUnstructuredInterp object.
         The model determines the regression used.
