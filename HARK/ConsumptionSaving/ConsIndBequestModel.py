@@ -2,7 +2,11 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_lifecycle,
 )
-from HARK.rewards import StoneGearyCRRAutility, StoneGearyCRRAutilityPP
+from HARK.rewards import (
+    StoneGearyCRRAutility,
+    StoneGearyCRRAutilityP,
+    StoneGearyCRRAutilityPP,
+)
 
 
 class TerminalBequestConsumerType(IndShockConsumerType):
@@ -20,7 +24,7 @@ class TerminalBequestConsumerType(IndShockConsumerType):
         )
         self.solution_terminal.vPfunc = (
             lambda m: self.BeqDiscFac
-            * StoneGearyCRRAutilityPP(m, self.BeqCRRA, self.BeqShifter)
+            * StoneGearyCRRAutilityP(m, self.BeqCRRA, self.BeqShifter)
         )
         self.solution_terminal.vPPfunc = (
             lambda m: self.BeqDiscFac

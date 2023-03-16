@@ -14,22 +14,24 @@
 # ---
 
 # %%
+from copy import copy
+from time import time
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+from HARK.Calibration.Income.IncomeTools import (
+    CGM_income,
+    parse_income_spec,
+    parse_time_params,
+)
 from HARK.ConsumptionSaving.ConsIndBequestModel import (
     TerminalBequestConsumerType,
     init_lifecycle,
 )
-
-from HARK.Calibration.Income.IncomeTools import (
-    parse_income_spec,
-    parse_time_params,
-    CGM_income,
-)
-
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
-import matplotlib.pyplot as plt
-import pandas as pd
-from copy import copy
+from HARK.utilities import plot_funcs
 
 # %% Alter calibration
 birth_age = 25
@@ -44,7 +46,7 @@ income_params = parse_income_spec(
     age_max=death_age,
     adjust_infl_to=adjust_infl_to,
     **income_calib[education],
-    SabelhausSong=True
+    SabelhausSong=True,
 )
 
 # Initial distribution of wealth and permanent income
@@ -69,27 +71,50 @@ params.update(income_params)
 params.update({"LivPrb": liv_prb})
 
 # %% Create and solve agent
-Agent = TerminalBequestConsumerType(**params)
-Agent.solve()
+# Make and solve an idiosyncratic shocks consumer with a finite lifecycle
+LifecycleExample = TerminalBequestConsumerType(**params)
+# Make this consumer live a sequence of periods exactly once
+LifecycleExample.cycles = 1
+
+# %%
+start_time = time()
+LifecycleExample.solve()
+end_time = time()
+print(f"Solving a lifecycle consumer took {end_time - start_time} seconds.")
+LifecycleExample.unpack("cFunc")
+
+# %%
+# Plot the consumption functions during working life
+print("Consumption functions while working:")
+mMin = min(
+    [LifecycleExample.solution[t].mNrmMin for t in range(LifecycleExample.T_cycle)]
+)
+plot_funcs(LifecycleExample.cFunc[: LifecycleExample.T_retire], mMin, 5)
+
+# %%
+# Plot the consumption functions during retirement
+print("Consumption functions while retired:")
+plot_funcs(LifecycleExample.cFunc[LifecycleExample.T_retire :], 0, 5)
 
 # %% Simulation
-# Number of agents and periods in the simulation.
-Agent.AgentCount = 500
-Agent.T_sim = 200
+# Number of LifecycleExamples and periods in the simulation.
+LifecycleExample.LifecycleExampleCount = 500
+LifecycleExample.T_sim = 200
 
 # Set up the variables we want to keep track of.
-Agent.track_vars = ["aNrm", "cNrm", "pLvl", "t_age", "mNrm"]
+LifecycleExample.track_vars = ["aNrm", "cNrm", "pLvl", "t_age", "mNrm"]
 
 # Run the simulations
-Agent.initialize_sim()
-Agent.simulate()
+LifecycleExample.initialize_sim()
+LifecycleExample.simulate()
+
 
 # %% Extract and format simulation results
 raw_data = {
-    "Age": Agent.history["t_age"].flatten() + birth_age - 1,
-    "pIncome": Agent.history["pLvl"].flatten(),
-    "nrmM": Agent.history["mNrm"].flatten(),
-    "nrmC": Agent.history["cNrm"].flatten(),
+    "Age": LifecycleExample.history["t_age"].flatten() + birth_age - 1,
+    "pIncome": LifecycleExample.history["pLvl"].flatten(),
+    "nrmM": LifecycleExample.history["mNrm"].flatten(),
+    "nrmC": LifecycleExample.history["cNrm"].flatten(),
 }
 
 Data = pd.DataFrame(raw_data)
