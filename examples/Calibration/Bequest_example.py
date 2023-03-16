@@ -14,8 +14,8 @@
 # ---
 
 # %%
-from HARK.ConsumptionSaving.ConsIndShockModel import (
-    IndShockConsumerType,
+from HARK.ConsumptionSaving.ConsIndBequestModel import (
+    TerminalBequestConsumerType,
     init_lifecycle,
 )
 
@@ -69,7 +69,7 @@ params.update(income_params)
 params.update({"LivPrb": liv_prb})
 
 # %% Create and solve agent
-Agent = IndShockConsumerType(**params)
+Agent = TerminalBequestConsumerType(**params)
 Agent.solve()
 
 # %% Simulation
