@@ -1,3 +1,5 @@
+import numpy as np
+
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_lifecycle,
@@ -17,22 +19,23 @@ class TerminalBequestConsumerType(IndShockConsumerType):
         super().__init__(**params)
 
     def update_solution_terminal(self):
+        DiscFacEff = self.BeqDiscFac / self.DiscFac
+        ShifterEff = self.BeqShifter - 1.0
+
         self.solution_terminal.cFunc = lambda m: m
-        self.solution_terminal.vFunc = (
-            lambda m: self.BeqDiscFac
-            * StoneGearyCRRAutility(m, self.BeqCRRA, self.BeqShifter)
+        self.solution_terminal.vFunc = lambda m: DiscFacEff * StoneGearyCRRAutility(
+            m, self.BeqCRRA, ShifterEff
         )
-        self.solution_terminal.vPfunc = (
-            lambda m: self.BeqDiscFac
-            * StoneGearyCRRAutilityP(m, self.BeqCRRA, self.BeqShifter)
+        self.solution_terminal.vPfunc = lambda m: DiscFacEff * StoneGearyCRRAutilityP(
+            m, self.BeqCRRA, ShifterEff
         )
-        self.solution_terminal.vPPfunc = (
-            lambda m: self.BeqDiscFac
-            * StoneGearyCRRAutilityPP(m, self.BeqCRRA, self.BeqShifter)
+        self.solution_terminal.vPPfunc = lambda m: DiscFacEff * StoneGearyCRRAutilityPP(
+            m, self.BeqCRRA, ShifterEff
         )
+        self.solution_terminal.mNrmMin = np.maximum(1.0, -ShifterEff)
 
 
 init_terminal_bequest = init_lifecycle.copy()
 init_terminal_bequest["BeqDiscFac"] = 1.0
 init_terminal_bequest["BeqShifter"] = 0.0
-init_terminal_bequest["BeqCRRA"] = init_terminal_bequest["CRRA"]
+init_terminal_bequest["BeqCRRA"] = init_lifecycle["CRRA"]

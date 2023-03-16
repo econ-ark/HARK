@@ -85,7 +85,7 @@ LifecycleExample.unpack("cFunc")
 
 # %%
 # Plot the consumption functions
-print("Consumption functions while retired:")
+print("Consumption functions")
 plot_funcs(LifecycleExample.cFunc, 0, 5)
 
 # %% Simulation
