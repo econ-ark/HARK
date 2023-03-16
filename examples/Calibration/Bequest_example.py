@@ -68,7 +68,7 @@ params = copy(init_lifecycle)
 params.update(time_params)
 params.update(dist_params)
 params.update(income_params)
-params.update({"LivPrb": liv_prb})
+params.update({"LivPrb": [1.0] * len(liv_prb)})
 
 # %% Create and solve agent
 # Make and solve an idiosyncratic shocks consumer with a finite lifecycle
@@ -84,21 +84,13 @@ print(f"Solving a lifecycle consumer took {end_time - start_time} seconds.")
 LifecycleExample.unpack("cFunc")
 
 # %%
-# Plot the consumption functions during working life
-print("Consumption functions while working:")
-mMin = min(
-    [LifecycleExample.solution[t].mNrmMin for t in range(LifecycleExample.T_cycle)]
-)
-plot_funcs(LifecycleExample.cFunc[: LifecycleExample.T_retire], mMin, 5)
-
-# %%
-# Plot the consumption functions during retirement
+# Plot the consumption functions
 print("Consumption functions while retired:")
-plot_funcs(LifecycleExample.cFunc[LifecycleExample.T_retire :], 0, 5)
+plot_funcs(LifecycleExample.cFunc, 0, 5)
 
 # %% Simulation
 # Number of LifecycleExamples and periods in the simulation.
-LifecycleExample.LifecycleExampleCount = 500
+LifecycleExample.AgentCount = 500
 LifecycleExample.T_sim = 200
 
 # Set up the variables we want to keep track of.
