@@ -375,3 +375,39 @@ class TestLinearDecay(unittest.TestCase):
         efor_vals = efor_lim_interp(x_eval)
 
         self.assertTrue(np.allclose(base_vals, efor_vals))
+
+
+class Test2Dto2DInterp(unittest.TestCase):
+    def f1(self, x, y):
+        return 2 * x + y
+
+    def f2(self, x, y):
+        return 3 * x + 2 * y
+
+    def setUp(self):
+        self.x = np.linspace(0, 10, 11)
+        self.y = np.linspace(0, 10, 11)
+        x_t, y_t = np.meshgrid(self.x, self.y, indexing="ij")
+
+        # Create interpolator
+        self.interp = LinearFast(
+            [self.f1(x_t, y_t), self.f2(x_t, y_t)],
+            [self.x, self.y],
+            extrap_mode="linear",
+        )
+
+    def test_outputs(self):
+        # Create random x-y points
+        x_eval = np.random.rand(100) * 10
+        y_eval = np.random.rand(100) * 10
+
+        # Evaluete functions
+        f1_eval = self.f1(x_eval, y_eval)
+        f2_eval = self.f2(x_eval, y_eval)
+
+        # Evaluate interpolator
+        f1_inter, f2_inter = self.interp(x_eval, y_eval)
+
+        # Compare outputs
+        self.assertTrue(np.allclose(f1_eval, f1_inter))
+        self.assertTrue(np.allclose(f2_eval, f2_inter))

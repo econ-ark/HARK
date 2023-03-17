@@ -24,10 +24,12 @@ class LinearFast(MetricObject):
 
     def __init__(self, f_val, grids, extrap_mode="linear"):
         """
-        f_val: numpy.array
-            An array containing the values of the function at the grid points.
-            It's i-th dimension must be of the same lenght as the i-th grid.
+        f_val: numpy.array, or [numpy.array]
+            An array or list of arrays containing the values of the function(s) at the grid points.
+            If it is an array, it's i-th dimension must be of the same lenght as the i-th grid.
             f_val[i,j,k] must be f(grids[0][i], grids[1][j], grids[2][k]).
+            If it is a list of arrays, each array must have the same shape, and
+            f_val[n][i,j,k] must be f[n](grids[0][i], grids[1][j], grids[2][k]).
         grids: [numpy.array]
             One-dimensional list of numpy arrays. It's i-th entry must be the grid
             to be used for the i-th independent variable.
@@ -36,7 +38,18 @@ class LinearFast(MetricObject):
             constant extrapolation. The default is multilinear.
         """
         self.dim = len(grids)
-        self.f_val = f_val
+
+        if isinstance(f_val, list):
+            # First check that all arrays have the same shape
+            if not all([x.shape == f_val[0].shape for x in f_val]):
+                raise ValueError("All arrays must have the same shape.")
+            # Stack arrays in the list across a new dimension
+            self.f_val = np.stack(f_val, axis=-1)
+            self.output_dim = len(f_val)
+        else:
+            self.f_val = f_val
+            self.output_dim = 1
+
         self.grid_list = grids
         self.Grid = CGrid(*grids)
 
@@ -69,7 +82,12 @@ class LinearFast(MetricObject):
         )
 
         # Reshape the output to the shape of inputs
-        return np.reshape(f, array_args[0].shape)
+        if self.output_dim == 1:
+            return np.reshape(f, array_args[0].shape)
+        else:
+            return (
+                np.reshape(f[:, j], array_args[0].shape) for j in range(self.output_dim)
+            )
 
     def _derivs(self, deriv_tuple, *args):
         """
