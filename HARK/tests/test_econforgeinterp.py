@@ -401,13 +401,9 @@ class Test2Dto2DInterp(unittest.TestCase):
         self.y_eval = np.random.rand(100) * 10
 
     def test_outputs(self):
-        # Create random x-y points
-        x_eval = np.random.rand(100) * 10
-        y_eval = np.random.rand(100) * 10
-
         # Evaluete functions
-        f1_eval = self.f1(x_eval, y_eval)
-        f2_eval = self.f2(x_eval, y_eval)
+        f1_eval = self.f1(self.x_eval, self.y_eval)
+        f2_eval = self.f2(self.x_eval, self.y_eval)
 
         # Evaluate interpolator
         f1_inter, f2_inter = self.interp(self.x_eval, self.y_eval)
