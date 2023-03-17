@@ -111,9 +111,12 @@ class LinearFast(MetricObject):
 
         Returns
         -------
-        [numpy.array]
+        [numpy.array] or [[numpy.array]]
             List of the derivatives that were requested in the same order
             as deriv_tuple. Each element has the shape of items in args.
+            If the interpolator represents a function of n variables, the
+            output is a list of length n, where the i-th element has the
+            requested derivatives of the i-th output.
         """
 
         # Format arguments
@@ -131,9 +134,18 @@ class LinearFast(MetricObject):
         )
 
         # Reshape
-        derivs = [
-            derivs[:, j].reshape(args[0].shape) for j, tup in enumerate(deriv_tuple)
-        ]
+        if self.output_dim == 1:
+            derivs = [
+                derivs[:, j].reshape(args[0].shape) for j, tup in enumerate(deriv_tuple)
+            ]
+        else:
+            derivs = [
+                [
+                    derivs[:, i, j].reshape(args[0].shape)
+                    for j, tup in enumerate(deriv_tuple)
+                ]
+                for i in range(self.output_dim)
+            ]
 
         return derivs
 
@@ -150,12 +162,14 @@ class LinearFast(MetricObject):
 
         Returns
         -------
-        [numpy.array]
+        [numpy.array] or [[numpy.array]]
             List of the derivatives of the function with respect to each
             input, evaluated at the given points. E.g. if the interpolator
             represents 3D function f, f.gradient(x,y,z) will return
             [df/dx(x,y,z), df/dy(x,y,z), df/dz(x,y,z)]. Each element has the
             shape of items in args.
+            If the fundtion has multiple outputs, the output will be a list
+            that will have the gradient for the ith output as the ith element.
         """
         # Form a tuple that indicates which derivatives to get
         # in the way eval_linear expects
@@ -197,7 +211,12 @@ class LinearFast(MetricObject):
 
         results = self._derivs(eval_tup + deriv_tup, *args)
 
-        return (results[0], results[1:])
+        if self.output_dim == 1:
+            return (results[0], results[1:])
+        else:
+            levels = [x[0] for x in results]
+            grads = [x[1:] for x in results]
+            return (levels, grads)
 
 
 class DecayInterp(MetricObject):

@@ -396,6 +396,10 @@ class Test2Dto2DInterp(unittest.TestCase):
             extrap_mode="linear",
         )
 
+        # Create points for evaluation
+        self.x_eval = np.random.rand(100) * 10
+        self.y_eval = np.random.rand(100) * 10
+
     def test_outputs(self):
         # Create random x-y points
         x_eval = np.random.rand(100) * 10
@@ -406,8 +410,36 @@ class Test2Dto2DInterp(unittest.TestCase):
         f2_eval = self.f2(x_eval, y_eval)
 
         # Evaluate interpolator
-        f1_inter, f2_inter = self.interp(x_eval, y_eval)
+        f1_inter, f2_inter = self.interp(self.x_eval, self.y_eval)
 
         # Compare outputs
         self.assertTrue(np.allclose(f1_eval, f1_inter))
         self.assertTrue(np.allclose(f2_eval, f2_inter))
+
+    def test_derivatives(self):
+        # Evaluate interpolator
+        gradient = self.interp.gradient(self.x_eval, self.y_eval)
+
+        f1_derivs = gradient[0]
+        f2_derivs = gradient[1]
+
+        # Compare outputs
+        self.assertTrue(np.allclose(f1_derivs[0], 2 * np.ones_like(self.x_eval)))
+        self.assertTrue(np.allclose(f1_derivs[1], np.ones_like(self.x_eval)))
+        self.assertTrue(np.allclose(f2_derivs[0], 3 * np.ones_like(self.x_eval)))
+        self.assertTrue(np.allclose(f2_derivs[1], 2 * np.ones_like(self.x_eval)))
+
+    def test_eval_and_derivs(self):
+        levels, gradients = self.interp._eval_and_grad(self.x_eval, self.y_eval)
+        f1 = levels[0]
+        f2 = levels[1]
+        f1_derivs = gradients[0]
+        f2_derivs = gradients[1]
+
+        # Compare outputs
+        self.assertTrue(np.allclose(f1, self.f1(self.x_eval, self.y_eval)))
+        self.assertTrue(np.allclose(f2, self.f2(self.x_eval, self.y_eval)))
+        self.assertTrue(np.allclose(f1_derivs[0], 2 * np.ones_like(self.x_eval)))
+        self.assertTrue(np.allclose(f1_derivs[1], np.ones_like(self.x_eval)))
+        self.assertTrue(np.allclose(f2_derivs[0], 3 * np.ones_like(self.x_eval)))
+        self.assertTrue(np.allclose(f2_derivs[1], 2 * np.ones_like(self.x_eval)))
