@@ -85,7 +85,7 @@ class LinearFast(MetricObject):
         if self.output_dim == 1:
             return np.reshape(f, array_args[0].shape)
         else:
-            return (
+            return tuple(
                 np.reshape(f[:, j], array_args[0].shape) for j in range(self.output_dim)
             )
 
@@ -262,6 +262,7 @@ class DecayInterp(MetricObject):
         self.limit_grad = limit_grad
 
         self.grid_list = self.interp.grid_list
+        self.output_dim = self.interp.output_dim
 
         self.upper_limits = np.array([x[-1] for x in self.grid_list])
         self.dim = len(self.grid_list)
@@ -300,13 +301,19 @@ class DecayInterp(MetricObject):
         upper_ex_points = col_args[upper_ex_inds,]
         upper_ex_nearest = np.minimum(upper_ex_points, self.upper_limits[None, :])
 
-        # Find function evaluations with regular extrapolation
+        # Find function evaluations with regular interpolator
         f = self.interp(*[col_args[:, i] for i in range(self.dim)])
 
         # Find extrapolated values with chosen method
-        f[upper_ex_inds] = self.extrap_fun(upper_ex_points, upper_ex_nearest)
+        if self.output_dim == 1:
+            f[upper_ex_inds] = self.extrap_fun(upper_ex_points, upper_ex_nearest)
+            return np.reshape(f, argshape)
+        else:
+            extrap_vals = self.extrap_fun(upper_ex_points, upper_ex_nearest)
+            for i in range(self.output_dim):
+                f[i][upper_ex_inds] = extrap_vals[i]
 
-        return np.reshape(f, argshape)
+            return tuple(np.reshape(f[i], argshape) for i in range(self.output_dim))
 
     def extrap_decay_prop(self, x, closest_x):
         """
@@ -330,7 +337,13 @@ class DecayInterp(MetricObject):
         dist = np.dot(np.abs(x - closest_x), decay_weights)
         weight = np.exp(-1 * dist)
 
-        return weight * f_val_x + (1 - weight) * g_val_x
+        if self.output_dim == 1:
+            return weight * f_val_x + (1 - weight) * g_val_x
+        else:
+            return tuple(
+                weight * f_val_x[i] + (1 - weight) * g_val_x[i]
+                for i in range(self.output_dim)
+            )
 
     def extrap_decay_hark(self, x, closest_x):
         """
@@ -344,6 +357,9 @@ class DecayInterp(MetricObject):
         closest_x : for each of the inputs that require extrapolation, contains
             the closest point that falls inside the grid.
         """
+
+        if self.output_dim > 1:
+            raise NotImplementedError("extrap_decay_hark only works for 1D outputs")
 
         # Evaluate limiting function at x
         g_val_x = self.limit_fun(*[x[:, i] for i in range(self.dim)])
@@ -393,4 +409,10 @@ class DecayInterp(MetricObject):
         # Evaluate limit function at x
         g_val_x = self.limit_fun(*[x[:, i] for i in range(self.dim)])
 
-        return f_val_closest + (g_val_x - g_val_closest)
+        if self.output_dim == 1:
+            return g_val_x + (f_val_closest - g_val_closest)
+        else:
+            return tuple(
+                g_val_x[i] + (f_val_closest[i] - g_val_closest[i])
+                for i in range(self.output_dim)
+            )

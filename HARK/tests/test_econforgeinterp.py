@@ -439,3 +439,66 @@ class Test2Dto2DInterp(unittest.TestCase):
         self.assertTrue(np.allclose(f1_derivs[1], np.ones_like(self.x_eval)))
         self.assertTrue(np.allclose(f2_derivs[0], 3 * np.ones_like(self.x_eval)))
         self.assertTrue(np.allclose(f2_derivs[1], 2 * np.ones_like(self.x_eval)))
+
+
+class TestMultiouputDecay(unittest.TestCase):
+    def limit_fun(self, x):
+        return (np.sqrt(x), np.zeros_like(x))
+
+    def setUp(self):
+        # Create grid
+        self.x = np.linspace(0, 10, 11)
+        # Values for the two interpolated functions
+        y = self.x * 3 - 2
+        z = -5 * self.x + 3
+        # Create interpolator with prop method
+        self.prop_interp = DecayInterp(
+            LinearFast([y, z], [self.x], extrap_mode="linear"),
+            limit_fun=self.limit_fun,
+            extrap_method="decay_prop",
+        )
+        # Create interpolator with paste method
+        self.paste_interp = DecayInterp(
+            LinearFast([y, z], [self.x], extrap_mode="linear"),
+            limit_fun=self.limit_fun,
+            extrap_method="paste",
+        )
+
+    def test_interpolation(self):
+        # Create points for evaluation
+        x_eval = np.array([0.5, 3.5, 5.5, 7.5, 9.5])
+        # Evaluate interpolator
+        prop_vals = self.prop_interp(x_eval)
+        paste_vals = self.paste_interp(x_eval)
+        # Compare outputs
+        self.assertTrue(np.allclose(prop_vals[0], 3 * x_eval - 2))
+        self.assertTrue(np.allclose(prop_vals[1], -5 * x_eval + 3))
+        self.assertTrue(np.allclose(paste_vals[0], 3 * x_eval - 2))
+        self.assertTrue(np.allclose(paste_vals[1], -5 * x_eval + 3))
+
+    def test_extrapolation(self):
+        # Two points outside the grid, one far away and one close
+        x = np.array([10.001, 200.0])
+
+        # Evaluate interpolators
+        prop_vals = self.prop_interp(x)
+        paste_vals = self.paste_interp(x)
+
+        # Compare outputs
+
+        # Near points
+        self.assertAlmostEqual(prop_vals[0][0], 3 * x[0] - 2, places=2)
+        self.assertAlmostEqual(paste_vals[0][0], 3 * x[0] - 2, places=2)
+        self.assertAlmostEqual(prop_vals[1][0], -5 * x[0] + 3, places=2)
+        self.assertAlmostEqual(paste_vals[1][0], -5 * x[0] + 3, places=2)
+        # Far points
+        self.assertAlmostEqual(prop_vals[0][1], self.limit_fun(x[1])[0], places=2)
+        self.assertAlmostEqual(prop_vals[1][1], self.limit_fun(x[1])[1], places=2)
+
+        # The limit changes for paste
+        step_0 = self.limit_fun(x[1])[0] - self.limit_fun(10.0)[0]
+        step_1 = self.limit_fun(x[1])[1] - self.limit_fun(10.0)[1]
+        f_0 = 3 * 10.0 - 2
+        f_1 = -5 * 10.0 + 3
+        self.assertAlmostEqual(paste_vals[0][1], f_0 + step_0)
+        self.assertAlmostEqual(paste_vals[1][1], f_1 + step_1)
