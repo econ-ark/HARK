@@ -1789,9 +1789,20 @@ class PerfForesightConsumerType(AgentType):
         # they die.
         # See: https://github.com/econ-ark/HARK/pull/981
 
-        DeathShks = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(
-            N=self.AgentCount
-        )
+        if self.reshuffle ==True:
+            
+            DeathShks_dstn = Uniform(seed=self.RNG.integers(0, 2**31 - 1))._approx_equiprobable(
+                N=self.AgentCount
+            )
+            
+            DeathShks = DeathShks_dstn.draw(
+                N=self.AgentCount, exact_match = self.reshuffle
+            )
+        else:
+            
+            DeathShks = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(
+                N=self.AgentCount
+            )
         which_agents = DeathShks < DiePrb
         if self.T_age is not None:  # Kill agents that have lived for too many periods
             too_old = self.t_age >= self.T_age
@@ -2106,6 +2117,7 @@ init_idiosyncratic_shocks = dict(
         # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
         # Whether Newborns have transitory shock. The default is False.
         "NewbornTransShk": False,
+        "reshuffle": False, # Whether to use reshuffling method for Monte Carlo Simulation
     }
 )
 
@@ -2248,46 +2260,122 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
         newborn = self.t_age == 0
-        for t in range(self.T_cycle):
-            these = t == self.t_cycle
-
-            # temporary, see #1022
-            if self.cycles == 1:
-                t = t - 1
-
-            N = np.sum(these)
+        
+        
+        if self.reshuffle == False:
+            
+            for t in range(self.T_cycle):
+                these = t == self.t_cycle
+    
+                # temporary, see #1022
+                if self.cycles == 1:
+                    t = t - 1
+    
+                N = np.sum(these)
+                if N > 0:
+                    # set current income distribution
+                    IncShkDstnNow = self.IncShkDstn[t]
+                    # and permanent growth factor
+                    PermGroFacNow = self.PermGroFac[t]
+                    # Get random draws of income shocks from the discrete distribution
+                    IncShks = IncShkDstnNow.draw(N)
+    
+                    PermShkNow[these] = (
+                        IncShks[0, :] * PermGroFacNow
+                    )  # permanent "shock" includes expected growth
+                    TranShkNow[these] = IncShks[1, :]
+    
+            # That procedure used the *last* period in the sequence for newborns, but that's not right
+            # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
+            N = np.sum(newborn)
             if N > 0:
+                these = newborn
                 # set current income distribution
-                IncShkDstnNow = self.IncShkDstn[t]
-                # and permanent growth factor
-                PermGroFacNow = self.PermGroFac[t]
+                IncShkDstnNow = self.IncShkDstn[0]
+                PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
+    
                 # Get random draws of income shocks from the discrete distribution
-                IncShks = IncShkDstnNow.draw(N)
-
+                EventDraws = IncShkDstnNow.draw_events(N)
                 PermShkNow[these] = (
-                    IncShks[0, :] * PermGroFacNow
+                    IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
                 )  # permanent "shock" includes expected growth
-                TranShkNow[these] = IncShks[1, :]
-
-        # That procedure used the *last* period in the sequence for newborns, but that's not right
-        # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
-        N = np.sum(newborn)
-        if N > 0:
-            these = newborn
-            # set current income distribution
-            IncShkDstnNow = self.IncShkDstn[0]
-            PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
-
-            # Get random draws of income shocks from the discrete distribution
-            EventDraws = IncShkDstnNow.draw_events(N)
-            PermShkNow[these] = (
-                IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
+            #        PermShkNow[newborn] = 1.0
+            #  Whether Newborns have transitory shock. The default is False.
+            if not NewbornTransShk:
+                TranShkNow[newborn] = 1.0
+        else:
+            
+            not_newborn = self.t_age != 0
+            
+            def get_mult_fac(prb):
+                i = 0
+                while isinstance(prb,float):
+                    prb = prb*10
+                    i += 1
+                    if (abs(prb - round(prb)))<(1e-10):
+                        break
+                        
+                return i
+            
+            if self.UnempPrb>0:
+                potential_fac = 1/self.UnempPrb
+            else:
+                potential_fac = 1.0
+                
+            if (potential_fac).is_integer() ==True:
+                fac = potential_fac
+            else:
+                i_1 = get_mult_fac(self.UnempPrb)
+                fac = 10**i_1
+            
+            def check_and_convert_to_int(val):
+            
+                if abs(round(val) - val) < 1e-6:
+                    return abs(round(val))
+                
+            lcm = (self.PermShkCount * self.TranShkCount) * fac # minimum multiple for both the newborns and and oldborns individuals
+            
+            Min_AgentCount = check_and_convert_to_int(lcm/(1-self.LivPrb[0])) # total number of agents
+            #if ((self.AgentCount * (1-self.LivPrb[0]) / lcm).is_integer() == False) or ((self.AgentCount * (self.LivPrb[0]) / lcm).is_integer() == False) :
+            if (self.AgentCount/Min_AgentCount).is_integer() == False:
+                raise Exception("AgentCount must be a multiple ", Min_AgentCount)
+        
+            for t in range(self.T_cycle):
+                these = t == self.t_cycle
+    
+                # temporary, see #1022
+                if self.cycles == 1:
+                    t = t - 1
+                    
+                not_newborn_and_t = np.logical_and(not_newborn, these)
+    
+                N = np.sum(not_newborn_and_t)
+    
+                if N > 0:
+                    # set current income distribution
+                    IncShkDstnNow = self.IncShkDstn[t]
+                    # and permanent growth factor
+                    PermGroFacNow = self.PermGroFac[t]
+                    # Get random draws of income shocks from the discrete distribution
+                    IncShks = IncShkDstnNow.draw(N , exact_match = self.reshuffle)
+                 
+                    PermShkNow[not_newborn_and_t] = (
+                        IncShks[0, :] * PermGroFacNow
+                    )  # permanent "shock" includes expected growth
+                    TranShkNow[not_newborn_and_t] = IncShks[1, :]
+                    
+            # That procedure used the *last* period in the sequence for newborns, but that's not right
+            # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
+            N = np.sum(newborn)
+           
+            IncShks_newborn = IncShkDstnNow.draw(N , exact_match = self.reshuffle)
+    
+            PermShkNow[newborn] = (
+                IncShks_newborn[0, :] * PermGroFacNow
             )  # permanent "shock" includes expected growth
-            TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
-        #        PermShkNow[newborn] = 1.0
-        #  Whether Newborns have transitory shock. The default is False.
-        if not NewbornTransShk:
-            TranShkNow[newborn] = 1.0
+            TranShkNow[newborn] = IncShks_newborn[1, :]
+
 
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount, dtype=bool)
