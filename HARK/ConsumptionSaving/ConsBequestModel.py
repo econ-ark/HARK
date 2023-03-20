@@ -10,15 +10,16 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
     init_portfolio,
 )
 from HARK.core import make_one_period_oo_solver
-from HARK.rewards import (
-    StoneGearyCRRAutility,
-    StoneGearyCRRAutilityP,
-    StoneGearyCRRAutilityPP,
-    UtilityFuncStoneGeary,
-)
+from HARK.rewards import UtilityFuncStoneGeary
 
 
 class TerminalBequestWarmGlowConsumerType(IndShockConsumerType):
+    time_inv_ = IndShockConsumerType.time_inv_ + [
+        "BeqCRRA",
+        "BeqRelVal",
+        "BeqStoneGeary",
+    ]
+
     def __init__(self, **kwds):
         params = init_warm_glow.copy()
         params.update(kwds)
@@ -52,7 +53,7 @@ class TerminalBequestWarmGlowPortfolioType(
 
 
 class AccidentalBequestWarmGlowConsumerType(TerminalBequestWarmGlowConsumerType):
-    def __init_(self, **kwds):
+    def __init__(self, **kwds):
         super().__init__(**kwds)
 
         self.solve_one_period = make_one_period_oo_solver(
@@ -65,7 +66,52 @@ class AccidentalBequestWarmGlowPortfolioType:
 
 
 class AccidentalBequestWarmGlowSolver(ConsIndShockSolver):
-    pass
+    def __init__(
+        self,
+        solution_next,
+        IncShkDstn,
+        LivPrb,
+        DiscFac,
+        CRRA,
+        Rfree,
+        PermGroFac,
+        BoroCnstArt,
+        aXtraGrid,
+        BeqCRRA,
+        BeqRelVal,
+        BeqStoneGeary,
+    ):
+        self.BeqCRRA = BeqCRRA
+        self.BeqRelVal = BeqRelVal
+        self.BeqStoneGeary = BeqStoneGeary
+        vFuncBool = False
+        CubicBool = False
+
+        super().__init__(
+            solution_next,
+            IncShkDstn,
+            LivPrb,
+            DiscFac,
+            CRRA,
+            Rfree,
+            PermGroFac,
+            BoroCnstArt,
+            aXtraGrid,
+            vFuncBool,
+            CubicBool,
+        )
+
+    def def_utility_funcs(self):
+        super().def_utility_funcs()
+
+        self.warm_glow = UtilityFuncStoneGeary(
+            self.BeqCRRA, self.BeqRelVal, self.BeqStoneGeary
+        )
+
+    def calc_EndOfPrdvP(self):
+        EndofPrdvP = super().calc_EndOfPrdvP()
+
+        return EndofPrdvP + self.warm_glow.der(self.aNrmNow)
 
 
 init_warm_glow = init_lifecycle.copy()

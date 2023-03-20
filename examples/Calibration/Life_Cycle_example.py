@@ -30,6 +30,7 @@ from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_
 import matplotlib.pyplot as plt
 import pandas as pd
 from copy import copy
+from HARK.utilities import plot_funcs
 
 # %% Alter calibration
 birth_age = 25
@@ -71,6 +72,12 @@ params.update({"LivPrb": liv_prb})
 # %% Create and solve agent
 Agent = IndShockConsumerType(**params)
 Agent.solve()
+
+# %%
+Agent.unpack("cFunc")
+# Plot the consumption functions
+print("Consumption functions")
+plot_funcs(Agent.cFunc, 0, 5)
 
 # %% Simulation
 # Number of agents and periods in the simulation.
