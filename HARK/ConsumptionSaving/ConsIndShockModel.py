@@ -1558,6 +1558,8 @@ init_perfect_foresight = {
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
     "PerfMITShk": False,
     # Do Perfect Foresight MIT Shock: Forces Newborns to follow solution path of the agent he/she replaced when True
+    "reshuffle": False, # Whether to use reshuffling method for Monte Carlo Simulation
+
 }
 
 
@@ -2117,7 +2119,6 @@ init_idiosyncratic_shocks = dict(
         # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
         # Whether Newborns have transitory shock. The default is False.
         "NewbornTransShk": False,
-        "reshuffle": False, # Whether to use reshuffling method for Monte Carlo Simulation
     }
 )
 
