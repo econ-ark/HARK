@@ -26,7 +26,6 @@ from HARK.Calibration.Income.IncomeTools import (
     parse_time_params,
 )
 from HARK.ConsumptionSaving.ConsBequestModel import (
-    AccidentalBequestWarmGlowConsumerType,
     TerminalBequestWarmGlowConsumerType,
     init_lifecycle,
 )
@@ -115,63 +114,6 @@ Data["Cons"] = Data.nrmC * Data.pIncome
 Data["M"] = Data.nrmM * Data.pIncome
 
 # %% Plots
-# Find the mean of each variable at every age
-AgeMeans = Data.groupby(["Age"]).median().reset_index()
-
-plt.figure()
-plt.plot(AgeMeans.Age, AgeMeans.pIncome, label="Permanent Income")
-plt.plot(AgeMeans.Age, AgeMeans.M, label="Market resources")
-plt.plot(AgeMeans.Age, AgeMeans.Cons, label="Consumption")
-plt.legend()
-plt.xlabel("Age")
-plt.ylabel("Thousands of {} USD".format(adjust_infl_to))
-plt.title("Variable Medians Conditional on Survival")
-plt.grid()
-
-# %%
-params.update({"LivPrb": liv_prb})
-# Make and solve an idiosyncratic shocks consumer with a finite lifecycle
-AccidentalExample = AccidentalBequestWarmGlowConsumerType(**params)
-# Make this consumer live a sequence of periods exactly once
-AccidentalExample.cycles = 1
-
-# %%
-start_time = time()
-AccidentalExample.solve()
-end_time = time()
-print(f"Solving a lifecycle consumer took {end_time - start_time} seconds.")
-AccidentalExample.unpack("cFunc")
-
-# %%
-# Plot the consumption functions
-print("Consumption functions")
-plot_funcs(AccidentalExample.cFunc, 0, 5)
-
-# %%
-# Number of LifecycleExamples and periods in the simulation.
-AccidentalExample.AgentCount = 500
-AccidentalExample.T_sim = 200
-
-# Set up the variables we want to keep track of.
-AccidentalExample.track_vars = ["aNrm", "cNrm", "pLvl", "t_age", "mNrm"]
-
-# Run the simulations
-AccidentalExample.initialize_sim()
-AccidentalExample.simulate()
-
-# %%
-raw_data = {
-    "Age": AccidentalExample.history["t_age"].flatten() + birth_age - 1,
-    "pIncome": AccidentalExample.history["pLvl"].flatten(),
-    "nrmM": AccidentalExample.history["mNrm"].flatten(),
-    "nrmC": AccidentalExample.history["cNrm"].flatten(),
-}
-
-Data = pd.DataFrame(raw_data)
-Data["Cons"] = Data.nrmC * Data.pIncome
-Data["M"] = Data.nrmM * Data.pIncome
-
-# %%
 # Find the mean of each variable at every age
 AgeMeans = Data.groupby(["Age"]).median().reset_index()
 
