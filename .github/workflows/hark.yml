@@ -29,4 +29,4 @@ jobs:
           pip install ".[dev]"
       - name: Test with pytest
         run: |
-          pytest -n logical
+          pytest -n auto
