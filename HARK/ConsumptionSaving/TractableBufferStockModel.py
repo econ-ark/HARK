@@ -25,10 +25,12 @@ from copy import copy
 import numpy as np
 from scipy.optimize import brentq, newton
 
-# Import the HARK library.
-from HARK import AgentType, MetricObject, NullFunc
+from HARK import AgentType, NullFunc
 from HARK.distribution import Bernoulli, Lognormal
 from HARK.interpolation import CubicInterp
+
+# Import the HARK library.
+from HARK.metric import MetricObject
 from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
@@ -39,7 +41,6 @@ from HARK.rewards import (
     CRRAutilityPPP,
     CRRAutilityPPPP,
 )
-from HARK.utilities import warnings  # Because of "patch" to warnings modules
 
 __all__ = ["TractableConsumerSolution", "TractableConsumerType"]
 
@@ -403,93 +404,108 @@ class TractableConsumerType(AgentType):
             )
 
         self.MPCtarg = newton(mpcTargFixedPointFunc, 0)
-        mmpcTargFixedPointFunc = (
-            lambda kk: kk * uPP(self.cTarg)
-            + self.MPCtarg**2.0 * uPPP(self.cTarg)
-            - self.Beth
-            * (
-                -(1.0 - self.UnempPrb) * self.MPCtarg * kk * self.Rnrm * uPP(self.cTarg)
-                + (1.0 - self.UnempPrb)
-                * (1.0 - self.MPCtarg) ** 2.0
-                * kk
-                * self.Rnrm**2.0
-                * uPP(self.cTarg)
-                - self.PFMPC * self.UnempPrb * kk * self.Rnrm * uPP(cTargU)
-                + (1.0 - self.UnempPrb)
-                * (1.0 - self.MPCtarg) ** 2.0
-                * self.MPCtarg**2.0
-                * self.Rnrm**2.0
-                * uPPP(self.cTarg)
-                + self.PFMPC**2.0
-                * self.UnempPrb
-                * (1.0 - self.MPCtarg) ** 2.0
-                * self.Rnrm**2.0
-                * uPPP(cTargU)
+
+        def mmpcTargFixedPointFunc(kk):
+            return (
+                kk * uPP(self.cTarg)
+                + self.MPCtarg**2.0 * uPPP(self.cTarg)
+                - self.Beth
+                * (
+                    -(1.0 - self.UnempPrb)
+                    * self.MPCtarg
+                    * kk
+                    * self.Rnrm
+                    * uPP(self.cTarg)
+                    + (1.0 - self.UnempPrb)
+                    * (1.0 - self.MPCtarg) ** 2.0
+                    * kk
+                    * self.Rnrm**2.0
+                    * uPP(self.cTarg)
+                    - self.PFMPC * self.UnempPrb * kk * self.Rnrm * uPP(cTargU)
+                    + (1.0 - self.UnempPrb)
+                    * (1.0 - self.MPCtarg) ** 2.0
+                    * self.MPCtarg**2.0
+                    * self.Rnrm**2.0
+                    * uPPP(self.cTarg)
+                    + self.PFMPC**2.0
+                    * self.UnempPrb
+                    * (1.0 - self.MPCtarg) ** 2.0
+                    * self.Rnrm**2.0
+                    * uPPP(cTargU)
+                )
             )
-        )
+
         self.MMPCtarg = newton(mmpcTargFixedPointFunc, 0)
-        mmmpcTargFixedPointFunc = (
-            lambda kkk: kkk * uPP(self.cTarg)
-            + 3 * self.MPCtarg * self.MMPCtarg * uPPP(self.cTarg)
-            + self.MPCtarg**3 * uPPPP(self.cTarg)
-            - self.Beth
-            * (
-                -(1 - self.UnempPrb) * self.MPCtarg * kkk * self.Rnrm * uPP(self.cTarg)
-                - 3
-                * (1 - self.UnempPrb)
-                * (1 - self.MPCtarg)
-                * self.MMPCtarg**2
-                * self.Rnrm**2
-                * uPP(self.cTarg)
-                + (1 - self.UnempPrb)
-                * (1 - self.MPCtarg) ** 3
-                * kkk
-                * self.Rnrm**3
-                * uPP(self.cTarg)
-                - self.PFMPC * self.UnempPrb * kkk * self.Rnrm * uPP(cTargU)
-                - 3
-                * (1 - self.UnempPrb)
-                * (1 - self.MPCtarg)
-                * self.MPCtarg**2
-                * self.MMPCtarg
-                * self.Rnrm**2
-                * uPPP(self.cTarg)
-                + 3
-                * (1 - self.UnempPrb)
-                * (1 - self.MPCtarg) ** 3
-                * self.MPCtarg
-                * self.MMPCtarg
-                * self.Rnrm**3
-                * uPPP(self.cTarg)
-                - 3
-                * self.PFMPC**2
-                * self.UnempPrb
-                * (1 - self.MPCtarg)
-                * self.MMPCtarg
-                * self.Rnrm**2
-                * uPPP(cTargU)
-                + (1 - self.UnempPrb)
-                * (1 - self.MPCtarg) ** 3
-                * self.MPCtarg**3
-                * self.Rnrm**3
-                * uPPPP(self.cTarg)
-                + self.PFMPC**3
-                * self.UnempPrb
-                * (1 - self.MPCtarg) ** 3
-                * self.Rnrm**3
-                * uPPPP(cTargU)
+
+        def mmmpcTargFixedPointFunc(kkk):
+            return (
+                kkk * uPP(self.cTarg)
+                + 3 * self.MPCtarg * self.MMPCtarg * uPPP(self.cTarg)
+                + self.MPCtarg**3 * uPPPP(self.cTarg)
+                - self.Beth
+                * (
+                    -(1 - self.UnempPrb)
+                    * self.MPCtarg
+                    * kkk
+                    * self.Rnrm
+                    * uPP(self.cTarg)
+                    - 3
+                    * (1 - self.UnempPrb)
+                    * (1 - self.MPCtarg)
+                    * self.MMPCtarg**2
+                    * self.Rnrm**2
+                    * uPP(self.cTarg)
+                    + (1 - self.UnempPrb)
+                    * (1 - self.MPCtarg) ** 3
+                    * kkk
+                    * self.Rnrm**3
+                    * uPP(self.cTarg)
+                    - self.PFMPC * self.UnempPrb * kkk * self.Rnrm * uPP(cTargU)
+                    - 3
+                    * (1 - self.UnempPrb)
+                    * (1 - self.MPCtarg)
+                    * self.MPCtarg**2
+                    * self.MMPCtarg
+                    * self.Rnrm**2
+                    * uPPP(self.cTarg)
+                    + 3
+                    * (1 - self.UnempPrb)
+                    * (1 - self.MPCtarg) ** 3
+                    * self.MPCtarg
+                    * self.MMPCtarg
+                    * self.Rnrm**3
+                    * uPPP(self.cTarg)
+                    - 3
+                    * self.PFMPC**2
+                    * self.UnempPrb
+                    * (1 - self.MPCtarg)
+                    * self.MMPCtarg
+                    * self.Rnrm**2
+                    * uPPP(cTargU)
+                    + (1 - self.UnempPrb)
+                    * (1 - self.MPCtarg) ** 3
+                    * self.MPCtarg**3
+                    * self.Rnrm**3
+                    * uPPPP(self.cTarg)
+                    + self.PFMPC**3
+                    * self.UnempPrb
+                    * (1 - self.MPCtarg) ** 3
+                    * self.Rnrm**3
+                    * uPPPP(cTargU)
+                )
             )
-        )
+
         self.MMMPCtarg = newton(mmmpcTargFixedPointFunc, 0)
 
         # Find the MPC at m=0
-        f_temp = (
-            lambda k: self.Beth
-            * self.Rnrm
-            * self.UnempPrb
-            * (self.PFMPC * self.Rnrm * ((1.0 - k) / k)) ** (-self.CRRA - 1.0)
-            * self.PFMPC
-        )
+        def f_temp(k):
+            return (
+                self.Beth
+                * self.Rnrm
+                * self.UnempPrb
+                * (self.PFMPC * self.Rnrm * ((1.0 - k) / k)) ** (-self.CRRA - 1.0)
+                * self.PFMPC
+            )
 
         def mpcAtZeroFixedPointFunc(k):
             return k - f_temp(k) / (1 + f_temp(k))
