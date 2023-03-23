@@ -8,7 +8,6 @@ import functools
 import os
 import pstats
 import re
-import warnings  # isort : skip
 
 import numba
 import numpy as np  # Python's numeric library, abbreviated "np"

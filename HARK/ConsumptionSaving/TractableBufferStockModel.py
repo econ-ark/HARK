@@ -39,7 +39,6 @@ from HARK.rewards import (
     CRRAutilityPPP,
     CRRAutilityPPPP,
 )
-from HARK.utilities import warnings  # Because of "patch" to warnings modules
 
 __all__ = ["TractableConsumerSolution", "TractableConsumerType"]
 
