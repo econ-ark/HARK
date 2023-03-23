@@ -8,7 +8,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.4
+#       jupytext_version: 1.14.5
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -22,12 +22,12 @@
 #     name: python
 #     nbconvert_exporter: python
 #     pygments_lexer: ipython3
-#     version: 3.9.16
+#     version: 3.8.16
 # ---
 
 # %% [markdown]
 #
-# # A LifecycleModel: The Distribution of Assets By Age
+# # A Lifecycle Model: The Distribution of Assets By Age
 #
 # National registry data on income and wealth from Scandinavian countries has recently become available (with a lot of security) to some (lucky!) researchers.   These data offer a uniquely powerful tool for testing (and improving) our models of consumption and saving behavior over the life cycle.
 #
