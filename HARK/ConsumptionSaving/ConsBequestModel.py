@@ -1,3 +1,17 @@
+"""
+Classes to solve consumption-saving models with a bequest motive and
+idiosyncratic shocks to income and wealth. All models here assume
+separable CRRA utility of consumption and Stone-Geary utility of
+savings with geometric discounting of the continuation value and
+shocks to income that have transitory and/or permanent components.
+
+It currently solves 4 types of models:
+    1) A standard lifecycle model with a terminal bequest motive.
+    2) A standard lifecycle model with an accidental bequest motive.
+    3) A portfolio choice model with a terminal bequest motive.
+    4) A portfolio choice model with an accidental bequest motive.
+"""
+
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -48,12 +62,8 @@ class TerminalBequestWarmGlowConsumerType(IndShockConsumerType):
 class TerminalBequestWarmGlowPortfolioType(
     PortfolioConsumerType, TerminalBequestWarmGlowConsumerType
 ):
-    def __init__(self, **kwds):
-        super().__init__(**kwds)
-
-        self.solve_one_period = make_one_period_oo_solver(
-            TerminalBequestWarmGlowPortfolioSolver
-        )
+    def update_solution_terminal(self):
+        return TerminalBequestWarmGlowConsumerType.update_solution_terminal()
 
 
 class AccidentalBequestWarmGlowConsumerType(TerminalBequestWarmGlowConsumerType):
@@ -66,7 +76,12 @@ class AccidentalBequestWarmGlowConsumerType(TerminalBequestWarmGlowConsumerType)
 
 
 class AccidentalBequestWarmGlowPortfolioType:
-    pass
+    def __init__(self, **kwds):
+        super().__init__(**kwds)
+
+        self.solve_one_period = make_one_period_oo_solver(
+            AccidentalBequestWarmGlowPortfolioSolver
+        )
 
 
 class AccidentalBequestWarmGlowSolver(ConsIndShockSolver):
@@ -108,8 +123,10 @@ class AccidentalBequestWarmGlowSolver(ConsIndShockSolver):
     def def_utility_funcs(self):
         super().def_utility_funcs()
 
+        BeqRelValEff = (1.0 - self.LivPrb) * self.BeqRelVal
+
         self.warm_glow = UtilityFuncStoneGeary(
-            self.BeqCRRA, self.BeqRelVal, self.BeqStoneGeary
+            self.BeqCRRA, BeqRelValEff, self.BeqStoneGeary
         )
 
     def calc_EndOfPrdvP(self):
@@ -118,7 +135,7 @@ class AccidentalBequestWarmGlowSolver(ConsIndShockSolver):
         return EndofPrdvP + self.warm_glow.der(self.aNrmNow)
 
 
-class TerminalBequestWarmGlowPortfolioSolver(ConsPortfolioSolver):
+class AccidentalBequestWarmGlowPortfolioSolver(ConsPortfolioSolver):
     def __init__(
         self,
         solution_next,
