@@ -1406,8 +1406,6 @@ class MarkovConsumerType(IndShockConsumerType):
          
                     if len(dist_pGrid) == 1: 
                         
-                        
-                        
                         dstn_0 = np.dot(self.MrkvArray[k].T, dstn_0) #transposed to have columns sum up to one , I think this is the distribution of employed vs unemployed
                         
                         tran_matrix_t = []
@@ -1505,11 +1503,10 @@ class MarkovConsumerType(IndShockConsumerType):
 
         self.A_ss = A
         self.C_ss = C
-
-        
-
         
         return C , A 
+    
+    
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
         Creates a "normalized Euler error" function for this instance, mapping
