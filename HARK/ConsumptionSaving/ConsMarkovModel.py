@@ -1316,9 +1316,9 @@ class MarkovConsumerType(IndShockConsumerType):
                         TranMatrix_i =  np.zeros( (len(dist_mGrid),len(dist_mGrid)) ) 
 
                         for j in range(self.state_num):
-                            NewBornDist = jump_to_grid_1D(tran_shks[i],shk_prbs[i],dist_mGrid)
+                            NewBornDist = jump_to_grid_1D(tran_shks[j],shk_prbs[j],dist_mGrid)
 
-                            TranMatrix_i +=  gen_tran_matrix_1D(dist_mGrid,bNext[i],self.MrkvArray[0][i][j]*shk_prbs[i],perm_shks[i],tran_shks[i], LivPrb,NewBornDist)
+                            TranMatrix_i +=  gen_tran_matrix_1D(dist_mGrid,bNext[i],self.MrkvArray[0][i][j]*shk_prbs[j],perm_shks[j],tran_shks[j], LivPrb,NewBornDist)
                         self.tran_matrix.append(TranMatrix_i)
                     
                     self.prb_dstn = ss_dstn.real
@@ -1333,9 +1333,9 @@ class MarkovConsumerType(IndShockConsumerType):
                         TranMatrix_i =  np.zeros( (len(dist_mGrid),len(dist_mGrid)) ) 
 
                         for j in range(self.state_num):
-                            NewBornDist = jump_to_grid_2D(tran_shks[i],np.ones_like(tran_shks[i]),shk_prbs[i],dist_mGrid,dist_pGrid,(1-LivPrb))
+                            NewBornDist = jump_to_grid_2D(tran_shks[j],np.ones_like(tran_shks[i]),shk_prbs[j],dist_mGrid,dist_pGrid)
 
-                            TranMatrix_i +=  gen_tran_matrix_2D(dist_mGrid,dist_pGrid,bNext[i],self.MrkvArray[0][i][j]*shk_prbs[i],perm_shks[i],tran_shks[i], LivPrb,NewBornDist)
+                            TranMatrix_i +=  gen_tran_matrix_2D(dist_mGrid,dist_pGrid,bNext[i],self.MrkvArray[0][i][j]*shk_prbs[j],perm_shks[j],tran_shks[j], LivPrb,NewBornDist)
                         self.tran_matrix.append(TranMatrix_i)
                     
                     self.prb_dstn = ss_dstn.real
@@ -1416,9 +1416,9 @@ class MarkovConsumerType(IndShockConsumerType):
 
                             for j in range(self.state_num):
                                 
-                                NewBornDist = jump_to_grid_1D(tran_shks[i],shk_prbs[i],dist_mGrid)
+                                NewBornDist = jump_to_grid_1D(tran_shks[j],self.MrkvArray[k][i][j]*shk_prbs[j],dist_mGrid)
 
-                                TranMatrix_i +=  gen_tran_matrix_1D(dist_mGrid,bNext[i],self.MrkvArray[k][i][j]*shk_prbs[i],perm_shks[i],tran_shks[i], LivPrb,NewBornDist)
+                                TranMatrix_i +=  gen_tran_matrix_1D(dist_mGrid,bNext[i],self.MrkvArray[k][i][j]*shk_prbs[j],perm_shks[j],tran_shks[j], LivPrb,NewBornDist)
                             tran_matrix_t.append(TranMatrix_i)
                         
                         self.tran_matrix.append(deepcopy(tran_matrix_t))
@@ -1428,18 +1428,29 @@ class MarkovConsumerType(IndShockConsumerType):
                   
                     else:
                         
-                        NewBornDist = jump_to_grid(tran_shks,np.ones_like(tran_shks),shk_prbs,dist_mGrid,dist_pGrid)
+                        
+                        dstn_0 = np.dot(self.MrkvArray[k].T, dstn_0) #transposed to have columns sum up to one , I think this is the distribution of employed vs unemployed
+                        
+                        tran_matrix_t = []
 
-                        # Generate Transition Matrix this period
-                        TranMatrix = np.zeros((len(dist_mGrid)*len(dist_pGrid),len(dist_mGrid)*len(dist_pGrid))) 
-                        for i in range(len(dist_mGrid)):
-                            for j in range(len(dist_pGrid)):
-                                mNext_ij = bNext[i]/perm_shks + tran_shks # Compute next period's market resources given todays bank balances bnext[i]
-                                pNext_ij = dist_pGrid[j]*perm_shks # Computes next period's permanent income level by applying permanent income shock
-                                TranMatrix[:,i*len(dist_pGrid)+j] = LivPrb*jump_to_grid(mNext_ij, pNext_ij, shk_prbs, dist_mGrid, dist_pGrid) + (1.0-LivPrb)*NewBornDist #generate transition probabilities
-                        TranMatrix = TranMatrix #columns represent the current state while rows represent the next state
-                        #the 4th row , 6th column entry represents the probability of transitioning from the 6th element of the combined perm and m grid (grid of market resources multiplied by grid of perm income) to the 4th element of the combined perm and m grid
-                        self.tran_matrix.append(TranMatrix)         
+                        for i in range(self.state_num):
+                            
+                            TranMatrix_i =  np.zeros( (len(dist_mGrid),len(dist_mGrid)) ) 
+
+                            for j in range(self.state_num):
+                                
+                                NewBornDist = jump_to_grid_2D(tran_shks[j],np.ones_like(tran_shks[i]),self.MrkvArray[k][i][j]*shk_prbs[j],dist_mGrid,dist_pGrid)
+
+                                TranMatrix_i +=  gen_tran_matrix_2D(dist_mGrid,dist_pGrid,bNext[i],self.MrkvArray[k][i][j]*shk_prbs[j],perm_shks[j],tran_shks[j], LivPrb,NewBornDist)
+                            tran_matrix_t.append(TranMatrix_i)
+                        
+                        self.tran_matrix.append(deepcopy(tran_matrix_t))
+                   
+                        self.prb_dstn.append(dstn_0)
+                        
+                        
+                    
+                               
                     
 
         
