@@ -8,9 +8,9 @@ problem by finding a general equilibrium dynamic rule.
 """
 import sys
 from copy import copy, deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from time import time
-from typing import NewType
+from typing import Any, Dict, List, NewType, Optional, Union
 from warnings import warn
 
 import numpy as np
@@ -1570,6 +1570,20 @@ Parameters = NewType("ParameterDict", dict)
 class AgentPopulation:
     agent_type: AgentType  # type of agent in the population
     parameters: Parameters  # dictionary of parameters
+    seed: int = 0  # random seed
+    time_var: List[str] = field(init=False)
+    time_inv: List[str] = field(init=False)
+    distributed_params: List[str] = field(init=False)
+    agent_type_count: Optional[int] = field(init=False)
+    term_age: Optional[int] = field(init=False)
+    continuous_distributions: Dict[str, Distribution] = field(init=False)
+    discrete_distributions: Dict[str, Distribution] = field(init=False)
+    population_parameters: List[Dict[str, Union[List[float], float]]] = field(
+        init=False
+    )
+    agents: List[AgentType] = field(init=False)
+    agent_database: pd.DataFrame = field(init=False)
+    solution: List[Any] = field(init=False)
 
     def __post_init__(self):
         # create a dummy agent and obtain its time-varying
@@ -1580,18 +1594,13 @@ class AgentPopulation:
 
         # create list of distributed parameters
         # these are parameters that differ across agents
-        self.distributed_params = []
-        for key, param in self.parameters.items():
-            if (
-                (
-                    isinstance(param, list) and isinstance(param[0], list)
-                )  # if list within list
-                or isinstance(param, Distribution)  # if Distribution
-                or (
-                    isinstance(param, DataArray) and param.dims[0] == "agent"
-                )  # if DataArray with agent dimension
-            ):
-                self.distributed_params.append(key)
+        self.distributed_params = [
+            key
+            for key, param in self.parameters.items()
+            if (isinstance(param, list) and isinstance(param[0], list))
+            or isinstance(param, Distribution)
+            or (isinstance(param, DataArray) and param.dims[0] == "agent")
+        ]
 
         self.__infer_counts__()
 
@@ -1633,7 +1642,6 @@ class AgentPopulation:
 
     def approx_distributions(self, approx_params: dict):
         self.continuous_distributions = {}
-
         self.discrete_distributions = {}
 
         for key, points in approx_params.items():
@@ -1652,16 +1660,15 @@ class AgentPopulation:
         else:
             joint_dist = self.discrete_distributions.values()[0]
 
-        for i, key in self.discrete_distributions:
+        for i, key in enumerate(self.discrete_distributions):
             self.parameters[key] = DataArray(joint_dist.atoms[i], dims=("agent"))
 
         self.__infer_counts__()
 
-    def __parse_parameters__(self):
+    def __parse_parameters__(self) -> None:
         population_parameters = []  # container for dictionaries of each agent subgroup
         for agent in range(self.agent_type_count):
             agent_parameters = {}
-
             for key, param in self.parameters.items():
                 if key in self.time_var:
                     # parameters that vary over time have to be repeated
@@ -1695,23 +1702,29 @@ class AgentPopulation:
                         agent_parameters[key] = param[agent].item()
 
                 else:
-                    if isinstance(param, DataArray):
+                    if isinstance(param, (int, float)):
+                        agent_parameters[key] = param  # assume time inv
+                    elif isinstance(param, list):
+                        if isinstance(param[0], list):
+                            agent_parameters[key] = param[agent]  # assume agent vary
+                        else:
+                            agent_parameters[key] = param  # assume time vary
+                    elif isinstance(param, DataArray):
                         if param.dims[0] == "agent":
                             if param.dims[-1] == "age":
-                                # if the parameter is a list, it's agent and time
-                                agent_parameters[key] = list(param[agent].item())
+                                agent_parameters[key] = param[
+                                    agent
+                                ].item()  # assume agent vary
                             else:
-                                agent_parameters[key] = list(param[agent].item())
+                                agent_parameters[key] = param.item()  # assume time vary
                         elif param.dims[0] == "age":
-                            agent_parameters[key] = [param.item()]
-                    elif isinstance(param, (int, float)):
-                        agent_parameters[key] = param
+                            agent_parameters[key] = param.item()  # assume time vary
 
             population_parameters.append(agent_parameters)
 
-        self.population_parameters = population_parameters
-
     def create_distributed_agents(self):
+        rng = np.random.default_rng(self.seed)
+
         self.agents = [
             self.agent_type.__class__(seed=rng.integers(0, 2**31 - 1), **agent_dict)
             for agent_dict in self.population_parameters
@@ -1731,3 +1744,14 @@ class AgentPopulation:
 
     def unpack_solutions(self):
         self.solution = [agent.solution for agent in self.agents]
+
+    def initialize_sim(self):
+        for agent in self.agents:
+            agent.initialize_sim()
+
+    def simulate(self):
+        for agent in self.agents:
+            agent.simulate()
+
+    def __iter__(self):
+        return iter(self.agents)
