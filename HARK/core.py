@@ -1588,7 +1588,7 @@ class AgentPopulation:
     def __post_init__(self):
         # create a dummy agent and obtain its time-varying
         # and time-invariant attributes
-        dummy_agent = self.agent_type.__class__()
+        dummy_agent = self.agent_type()
         self.time_var = dummy_agent.time_vary
         self.time_inv = dummy_agent.time_inv
 
@@ -1658,7 +1658,7 @@ class AgentPopulation:
         if len(self.discrete_distributions) > 1:
             joint_dist = combine_indep_dstns(*self.discrete_distributions.values())
         else:
-            joint_dist = self.discrete_distributions.values()[0]
+            joint_dist = list(self.discrete_distributions.values())[0]
 
         for i, key in enumerate(self.discrete_distributions):
             self.parameters[key] = DataArray(joint_dist.atoms[i], dims=("agent"))
@@ -1722,11 +1722,13 @@ class AgentPopulation:
 
             population_parameters.append(agent_parameters)
 
+        self.population_parameters = population_parameters
+
     def create_distributed_agents(self):
         rng = np.random.default_rng(self.seed)
 
         self.agents = [
-            self.agent_type.__class__(seed=rng.integers(0, 2**31 - 1), **agent_dict)
+            self.agent_type(seed=rng.integers(0, 2**31 - 1), **agent_dict)
             for agent_dict in self.population_parameters
         ]
 
