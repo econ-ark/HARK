@@ -1570,9 +1570,6 @@ Parameters = NewType("ParameterDict", dict)
 class AgentPopulation:
     agent_type: AgentType  # type of agent in the population
     parameters: Parameters  # dictionary of parameters
-    term_age: int = None  # terminal age of population
-    agent_type_count: int = None  # total number of agents in the population
-    rng: np.random.Generator = None  # random number generator
 
     def __post_init__(self):
         # create a dummy agent and obtain its time-varying
@@ -1586,69 +1583,81 @@ class AgentPopulation:
         self.distributed_params = []
         for key, param in self.parameters.items():
             if (
-                (isinstance(param, DataArray) and param.dims[0] == "agent")
-                or isinstance(param, Distribution)
-                or (isinstance(param, list) and isinstance(param[0], list))
+                (
+                    isinstance(param, list) and isinstance(param[0], list)
+                )  # if list within list
+                or isinstance(param, Distribution)  # if Distribution
+                or (
+                    isinstance(param, DataArray) and param.dims[0] == "agent"
+                )  # if DataArray with agent dimension
             ):
                 self.distributed_params.append(key)
 
-        self._infer_counts()
+        self.__infer_counts__()
 
-    def _infer_counts(self):
-        # if agent_type_count is not specified, infer from parameters
-        if self.agent_type_count is None:
-            agent_type_count = 1
-            for param in self.parameters.values():
-                if isinstance(param, DataArray) and param.dims[0] == "agent":
-                    agent_type_count = max(agent_type_count, param.shape[0])
-                elif isinstance(param, (Distribution, IndexDistribution)):
-                    agent_type_count = None
-                    break
+    def __infer_counts__(self):
+        # infer agent_type_count from distributed parameters
+        agent_type_count = 1
+        for key in self.distributed_params:
+            param = self.parameters[key]
+            if isinstance(param, Distribution):
+                agent_type_count = None
+                warn(
+                    "Cannot infer agent_type_count from a Distribution. "
+                    "Please provide approximation parameters."
+                )
+                break
+            elif isinstance(param, list):
+                agent_type_count = max(agent_type_count, len(param))
+            elif isinstance(param, DataArray) and param.dims[0] == "agent":
+                agent_type_count = max(agent_type_count, param.shape[0])
 
-            self.agent_type_count = agent_type_count
+        self.agent_type_count = agent_type_count
 
-        if self.term_age is None:
-            t_age = 1
-            for param in self.parameters.values():
-                if isinstance(param, DataArray) and param.dims[-1] == "age":
-                    t_age = max(t_age, param.shape[-1])
-                    # there may not be a good use for this feature yet
-                    # as time varying distributions
-                    # are entered as list of moments (Avg, Std, Count, etc)
-                elif isinstance(param, (Distribution, IndexDistribution)):
-                    t_age = None
-                    break
-            self.term_age = t_age
+        # infer term_age from all parameters
+        term_age = 1
+        for param in self.parameters.values():
+            if isinstance(param, Distribution):
+                term_age = None
+                warn(
+                    "Cannot infer term_age from a Distribution. "
+                    "Please provide approximation parameters."
+                )
+                break
+            elif isinstance(param, list) and isinstance(param[0], list):
+                term_age = max(term_age, len(param[0]))
+            elif isinstance(param, DataArray) and param.dims[-1] == "age":
+                term_age = max(term_age, param.shape[-1])
+
+        self.term_age = term_age
 
     def approx_distributions(self, approx_params: dict):
-        param_dict = self.parameters
-
         self.continuous_distributions = {}
 
         self.discrete_distributions = {}
 
         for key, points in approx_params.items():
-            if key in param_dict and isinstance(param_dict[key], Distribution):
-                discrete_distribution = param_dict[key].discretize(points)
-                self.continuous_distributions[key] = param_dict[key]
-                self.discrete_distributions[key] = discrete_distribution
+            param = self.parameters[key]
+            if key in self.distributed_params and isinstance(param, Distribution):
+                self.continuous_distributions[key] = param
+                self.discrete_distributions[key] = param.discretize(points)
             else:
                 raise ValueError(
-                    f"Warning: parameter {key} is not a Distribution found in agent type {self.agent_type}"
+                    f"Warning: parameter {key} is not a Distribution found "
+                    f"in agent type {self.agent_type}"
                 )
 
         if len(self.discrete_distributions) > 1:
-            joint_dist = combine_indep_dstns(
-                *list(self.discrete_distributions.values())
-            )
+            joint_dist = combine_indep_dstns(*self.discrete_distributions.values())
+        else:
+            joint_dist = self.discrete_distributions.values()[0]
 
-        keys = list(self.discrete_distributions.keys())
-        for i in range(len(self.discrete_distributions)):
-            param_dict[keys[i]] = DataArray(joint_dist.atoms[i], dims=("agent"))
+        for i, key in self.discrete_distributions:
+            self.parameters[key] = DataArray(joint_dist.atoms[i], dims=("agent"))
 
-        self._infer_counts()
+        self.__infer_counts__()
 
-    def _parase_parameters_(self):
+    def __parse_parameters__(self):
         population_parameters = []  # container for dictionaries of each agent subgroup
         for agent in range(self.agent_type_count):
             agent_parameters = {}
@@ -1656,29 +1665,34 @@ class AgentPopulation:
             for key, param in self.parameters.items():
                 if key in self.time_var:
                     # parameters that vary over time have to be repeated
-                    parameter_per_t = []
-                    for t in range(self.term_age):
-                        if isinstance(param, DataArray):
-                            if param.dims[0] == "agent":
-                                if param.dims[-1] == "age":
-                                    # if the parameter is a list, it's agent and time
-                                    parameter_per_t.append(param[agent][t].item())
-                                else:
-                                    parameter_per_t.append(param[agent].item())
-                            elif param.dims[0] == "age":
-                                # if kind is time, it applies to all agents but varies over time
-                                parameter_per_t.append(param[t].item())
-                        elif isinstance(param, (int, float)):
-                            # if kind is fixed, it applies to all agents at all times
-                            parameter_per_t.append(param)
+                    if isinstance(param, (int, float)):
+                        parameter_per_t = [param] * self.term_age
+                    elif isinstance(param, list):
+                        if isinstance(param[0], list):
+                            parameter_per_t = param[agent]
+                        else:
+                            parameter_per_t = param
+                    elif isinstance(param, DataArray):
+                        if param.dims[0] == "agent":
+                            if param.dims[-1] == "age":
+                                parameter_per_t = param[agent].item()
+                            else:
+                                parameter_per_t = param.item()
+                        elif param.dims[0] == "age":
+                            parameter_per_t = param.item()
 
                     agent_parameters[key] = parameter_per_t
 
                 elif key in self.time_inv:
-                    if isinstance(param, DataArray) and param.dims[0] == "agent":
-                        agent_parameters[key] = param[agent].item()
-                    elif isinstance(param, (int, float)):
+                    if isinstance(param, (int, float)):
                         agent_parameters[key] = param
+                    elif isinstance(param, list):
+                        if isinstance(param[0], list):
+                            agent_parameters[key] = param[agent]
+                        else:
+                            agent_parameters[key] = param
+                    elif isinstance(param, DataArray) and param.dims[0] == "agent":
+                        agent_parameters[key] = param[agent].item()
 
                 else:
                     if isinstance(param, DataArray):
@@ -1698,8 +1712,6 @@ class AgentPopulation:
         self.population_parameters = population_parameters
 
     def create_distributed_agents(self):
-        rng = self.rng if self.rng is not None else np.random.default_rng()
-
         self.agents = [
             self.agent_type.__class__(seed=rng.integers(0, 2**31 - 1), **agent_dict)
             for agent_dict in self.population_parameters
