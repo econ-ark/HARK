@@ -1725,6 +1725,8 @@ class AgentPopulation:
         self.population_parameters = population_parameters
 
     def create_distributed_agents(self):
+        self.__parse_parameters__()
+
         rng = np.random.default_rng(self.seed)
 
         self.agents = [
