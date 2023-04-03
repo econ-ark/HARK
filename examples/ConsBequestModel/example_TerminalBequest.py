@@ -26,7 +26,7 @@ from HARK.Calibration.Income.IncomeTools import (
     parse_time_params,
 )
 from HARK.ConsumptionSaving.ConsBequestModel import (
-    TerminalBequestWarmGlowConsumerType,
+    BequestWarmGlowConsumerType,
     init_lifecycle,
 )
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
@@ -72,7 +72,7 @@ params.update({"LivPrb": [1.0] * len(liv_prb)})
 
 # %% Create and solve agent
 # Make and solve an idiosyncratic shocks consumer with a finite lifecycle
-TerminalExample = TerminalBequestWarmGlowConsumerType(**params)
+TerminalExample = BequestWarmGlowConsumerType(**params)
 # Make this consumer live a sequence of periods exactly once
 TerminalExample.cycles = 1
 
