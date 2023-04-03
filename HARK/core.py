@@ -17,7 +17,11 @@ import numpy as np
 import pandas as pd
 from xarray import DataArray
 
-from HARK.distribution import IndexDistribution, TimeVaryingDiscreteDistribution
+from HARK.distribution import (
+    Distribution,
+    IndexDistribution,
+    TimeVaryingDiscreteDistribution,
+)
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
 
