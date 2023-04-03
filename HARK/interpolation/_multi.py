@@ -2,7 +2,7 @@ import numpy as np
 from numba import njit, prange, typed
 from scipy.ndimage import map_coordinates
 
-from HARK.core import MetricObject
+from HARK.metric import MetricObject
 
 AVAILABLE_TARGETS = ["cpu", "parallel"]
 
