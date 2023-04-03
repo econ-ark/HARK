@@ -9,7 +9,7 @@ from copy import deepcopy
 import numpy as np
 import scipy.stats as stats
 
-from HARK import AgentType, Market, MetricObject
+from HARK import AgentType, Market
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
@@ -34,6 +34,7 @@ from HARK.interpolation import (
     UpperEnvelope,
     VariableLowerBoundFunc2D,
 )
+from HARK.metric import MetricObject
 from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
