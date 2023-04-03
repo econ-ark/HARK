@@ -6,7 +6,7 @@ from copy import deepcopy
 import numpy as np
 from scipy.optimize import brentq
 
-from HARK import AgentType, MetricObject, make_one_period_oo_solver
+from HARK import AgentType, make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     ConsGenIncProcessSolver,
     PersistentShockConsumerType,
@@ -29,6 +29,7 @@ from HARK.interpolation import (
     ValueFuncCRRA,
     VariableLowerBoundFunc3D,
 )
+from HARK.metric import MetricObject
 from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
@@ -113,11 +114,12 @@ class MedShockPolicyFunc(MetricObject):
                 elif MedShk == 0:  # All consumption when MedShk = 0
                     cLvl = xLvl
                 else:
-                    optMedZeroFunc = (
-                        lambda c: (MedShk / MedPrice) ** (-1.0 / CRRAcon)
-                        * ((xLvl - c) / MedPrice) ** (CRRAmed / CRRAcon)
-                        - c
-                    )
+
+                    def optMedZeroFunc(c):
+                        return (MedShk / MedPrice) ** (-1.0 / CRRAcon) * (
+                            (xLvl - c) / MedPrice
+                        ) ** (CRRAmed / CRRAcon) - c
+
                     # Find solution to FOC
                     cLvl = brentq(optMedZeroFunc, 0.0, xLvl)
                 cLvlGrid[i, j] = cLvl

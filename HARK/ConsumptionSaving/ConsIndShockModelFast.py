@@ -20,7 +20,7 @@ from interpolation import interp
 from numba import njit
 from quantecon.optimize import newton_secant
 
-from HARK import MetricObject, make_one_period_oo_solver
+from HARK import make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolverBasic,
     ConsPerfForesightSolver,
@@ -36,6 +36,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
+from HARK.metric import MetricObject
 from HARK.numba_tools import (
     CRRAutility,
     CRRAutility_inv,
