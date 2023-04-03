@@ -1,6 +1,6 @@
 import numpy as np
 
-from HARK.core import MetricObject
+from HARK.metric import MetricObject
 
 # ==============================================================================
 # ============== Define utility functions        ===============================

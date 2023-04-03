@@ -25,7 +25,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from HARK import MetricObject, NullFunc  # Basic HARK features
+from HARK import NullFunc  # Basic HARK features
 from HARK.ConsumptionSaving.ConsIndShockModel import utility  # CRRA utility function
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     utility_inv,  # Inverse CRRA utility function
@@ -53,6 +53,7 @@ from HARK.interpolation import (
 from HARK.interpolation import LinearInterp  # Piecewise linear interpolation
 from HARK.interpolation import TrilinearInterp  # 3D interpolator
 from HARK.interpolation import DiscreteInterp, MargValueFuncCRRA, ValueFuncCRRA
+from HARK.metric import MetricObject
 from HARK.utilities import make_grid_exp_mult
 
 
