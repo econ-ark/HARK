@@ -12,7 +12,7 @@ from copy import deepcopy
 import numpy as np
 from scipy.interpolate import CubicHermiteSpline
 
-from HARK.core import MetricObject
+from HARK.metric import MetricObject
 from HARK.rewards import CRRAutility, CRRAutilityP, CRRAutilityPP
 
 

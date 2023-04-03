@@ -6,7 +6,7 @@ and allows (log) persistent income to follow an AR1 process rather than random w
 """
 import numpy as np
 
-from HARK import AgentType, MetricObject, make_one_period_oo_solver
+from HARK import AgentType, make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSetup,
     ConsumerSolution,
@@ -26,6 +26,7 @@ from HARK.interpolation import (
     ValueFuncCRRA,
     VariableLowerBoundFunc2D,
 )
+from HARK.metric import MetricObject
 from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,

@@ -2,8 +2,8 @@ import unittest
 
 import numpy as np
 
-from HARK.core import distance_metric
 from HARK.interpolation import BilinearInterp, DecayInterp, LinearFast, LinearInterp
+from HARK.metric import distance_metric
 
 
 class CompareLinearInterp(unittest.TestCase):
