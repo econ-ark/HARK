@@ -20,8 +20,9 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     init_risky_asset,
     init_risky_share_fixed,
 )
-from HARK.core import MetricObject, make_one_period_oo_solver
+from HARK.core import make_one_period_oo_solver
 from HARK.distribution import DiscreteDistributionLabeled
+from HARK.metric import MetricObject
 from HARK.rewards import UtilityFuncCRRA
 
 

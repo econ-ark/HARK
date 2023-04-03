@@ -18,7 +18,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_idiosyncratic_shocks,
 )
-from HARK.core import MetricObject
 from HARK.interpolation import (
     BilinearInterp,
     ConstantFunction,
@@ -28,6 +27,7 @@ from HARK.interpolation import (
     ValueFuncCRRA,
     VariableLowerBoundFunc2D,
 )
+from HARK.metric import MetricObject
 from HARK.rewards import CRRAutilityP, CRRAutilityP_inv
 
 

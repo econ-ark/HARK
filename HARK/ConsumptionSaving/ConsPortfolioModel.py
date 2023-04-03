@@ -7,7 +7,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from HARK import AgentType, MetricObject, NullFunc, make_one_period_oo_solver
+from HARK import AgentType, NullFunc, make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_idiosyncratic_shocks,
@@ -28,6 +28,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
+from HARK.metric import MetricObject
 
 
 # Define a class to represent the single period solution of the portfolio choice problem
