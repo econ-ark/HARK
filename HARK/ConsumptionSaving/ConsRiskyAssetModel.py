@@ -61,6 +61,11 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         if not hasattr(self, "PortfolioBisect"):
             self.PortfolioBisect = False
 
+        # Boolean determines whether, when simulating a given time period,
+        # all agents will draw the same risky return factor (true by default)
+        if not hasattr(self, "sim_common_Rriksy"):
+            self.sim_common_Rriksy = True
+
         # Initialize a basic consumer type
         IndShockConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
 
@@ -319,9 +324,15 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             RiskyAvg = self.RiskyAvg
             RiskyStd = self.RiskyStd
 
-        self.shocks["Risky"] = Lognormal.from_mean_std(
-            RiskyAvg, RiskyStd, seed=self.RNG.integers(0, 2**31 - 1)
-        ).draw(1)
+        # Draw either a common economy-wide return, or one for each agent
+        if self.sim_common_Rriksy:
+            self.shocks["Risky"] = Lognormal.from_mean_std(
+                RiskyAvg, RiskyStd, seed=self.RNG.integers(0, 2**31 - 1)
+            ).draw(1)
+        else:
+            self.shocks["Risky"] = Lognormal.from_mean_std(
+                RiskyAvg, RiskyStd, seed=self.RNG.integers(0, 2**31 - 1)
+            ).draw(self.AgentCount)
 
     def get_Adjust(self):
         """
@@ -1305,6 +1316,9 @@ risky_asset_parms = {
     "RiskyCount": 5,
     # Probability that the agent can adjust their portfolio each period
     "AdjustPrb": 1.0,
+    # When simulating the model, should all agents get the same risky return in
+    # a given period?
+    "sim_common_Rriksy": True,
 }
 
 # Make a dictionary to specify a risky asset consumer type

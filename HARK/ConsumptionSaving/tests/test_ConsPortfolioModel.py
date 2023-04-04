@@ -222,3 +222,36 @@ class testPortfolioConsumerTypeDiscreteAndJoint(unittest.TestCase):
 
         # Solve model under given parameters
         self.discrete_and_joint.solve()
+
+
+class testRiskyReturnDim(PortfolioConsumerTypeTestCase):
+    def test_simulation(self):
+        # Setup
+        self.pcct.T_sim = 30
+        self.pcct.AgentCount = 10
+        self.pcct.track_vars += [
+            "mNrm",
+            "cNrm",
+            "Risky",
+        ]
+        # Common (default) simulation
+        self.pcct.initialize_sim()
+        self.pcct.simulate()
+        # Assety that all columns of Risky are the same
+        self.assertTrue(
+            np.all(
+                self.pcct.history["Risky"]
+                == self.pcct.history["Risky"][:, 0][:, np.newaxis]
+            )
+        )
+        # Agent specific simulation
+        self.pcct.sim_common_Rriksy = False
+        self.pcct.initialize_sim()
+        self.pcct.simulate()
+        # Assety that all columns of Risky are not the same
+        self.assertFalse(
+            np.all(
+                self.pcct.history["Risky"]
+                == self.pcct.history["Risky"][:, 0][:, np.newaxis]
+            )
+        )
