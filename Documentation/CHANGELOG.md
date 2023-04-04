@@ -15,7 +15,7 @@ Release Date: TBD
 ### Major Changes
 
 ### Minor Changes
-- Adds option `sim_common_Rriksy` to control whether risky-asset models draw common or idiosyncratic returns in simulation. [#1250](https://github.com/econ-ark/HARK/pull/1250)
+- Adds option `sim_common_Rrisky` to control whether risky-asset models draw common or idiosyncratic returns in simulation. [#1250](https://github.com/econ-ark/HARK/pull/1250),[#1253](https://github.com/econ-ark/HARK/pull/1253)
 
 ### 0.13.0
 
