@@ -1305,6 +1305,9 @@ risky_asset_parms = {
     "RiskyCount": 5,
     # Probability that the agent can adjust their portfolio each period
     "AdjustPrb": 1.0,
+    # When simulating the model, should all agents get the same risky return in
+    # a given period?
+    "sim_common_Rriksy": True, 
 }
 
 # Make a dictionary to specify a risky asset consumer type
