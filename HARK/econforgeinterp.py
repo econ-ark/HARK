@@ -1,10 +1,8 @@
-from copy import copy
-
 import numpy as np
 from interpolation.splines import CGrid, eval_linear, eval_spline
 from interpolation.splines import extrap_options as xto
 
-from HARK.core import MetricObject
+from HARK.metric import MetricObject
 
 extrap_opts = {
     "linear": xto.LINEAR,

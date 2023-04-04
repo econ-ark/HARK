@@ -7,46 +7,28 @@ from copy import deepcopy
 
 import numpy as np
 
-from HARK import (  # Basic HARK features
-    AgentType,
-    MetricObject,
-    NullFunc,
-    make_one_period_oo_solver,
-)
+from HARK import AgentType, NullFunc, make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
-    IndShockConsumerType,  # PortfolioConsumerType inherits from it
-)
-from HARK.ConsumptionSaving.ConsIndShockModel import (
-    init_idiosyncratic_shocks,  # Baseline dictionary to build on
-)
-from HARK.ConsumptionSaving.ConsIndShockModel import utility  # CRRA utility function
-from HARK.ConsumptionSaving.ConsIndShockModel import (
-    utility_inv,  # Inverse CRRA utility function
-)
-from HARK.ConsumptionSaving.ConsIndShockModel import (
-    utility_invP,  # Derivative of inverse CRRA utility function
-)
-from HARK.ConsumptionSaving.ConsIndShockModel import (
-    utilityP,  # CRRA marginal utility function
-)
-from HARK.ConsumptionSaving.ConsIndShockModel import (
-    utilityP_inv,  # Inverse CRRA marginal utility function
+    IndShockConsumerType,
+    init_idiosyncratic_shocks,
+    utility,
+    utility_inv,
+    utility_invP,
+    utilityP,
+    utilityP_inv,
 )
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyAssetConsumerType
-from HARK.distribution import calc_expectation
-from HARK.interpolation import BilinearInterp  # 2D interpolator
 from HARK.interpolation import (
-    ConstantFunction,  # Interpolator-like class that returns constant value
+    BilinearInterp,
+    ConstantFunction,
+    CubicInterp,
+    IdentityFunction,
+    LinearInterp,
+    LinearInterpOnInterp1D,
+    MargValueFuncCRRA,
+    ValueFuncCRRA,
 )
-from HARK.interpolation import CubicInterp  # Piecewise cubic interpolation
-from HARK.interpolation import (
-    IdentityFunction,  # Interpolator-like class that returns one of its arguments
-)
-from HARK.interpolation import LinearInterp  # Piecewise linear interpolation
-from HARK.interpolation import (
-    LinearInterpOnInterp1D,  # Interpolator over 1D interpolations
-)
-from HARK.interpolation import MargValueFuncCRRA, ValueFuncCRRA
+from HARK.metric import MetricObject
 
 
 # Define a class to represent the single period solution of the portfolio choice problem
