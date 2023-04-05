@@ -245,7 +245,7 @@ class testRiskyReturnDim(PortfolioConsumerTypeTestCase):
             )
         )
         # Agent specific simulation
-        self.pcct.sim_common_Rriksy = False
+        self.pcct.sim_common_Rrisky = False
         self.pcct.initialize_sim()
         self.pcct.simulate()
         # Assety that all columns of Risky are not the same
