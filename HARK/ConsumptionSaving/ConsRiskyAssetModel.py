@@ -63,8 +63,8 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 
         # Boolean determines whether, when simulating a given time period,
         # all agents will draw the same risky return factor (true by default)
-        if not hasattr(self, "sim_common_Rriksy"):
-            self.sim_common_Rriksy = True
+        if not hasattr(self, "sim_common_Rrisky"):
+            self.sim_common_Rrisky = True
 
         # Initialize a basic consumer type
         IndShockConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
@@ -325,7 +325,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             RiskyStd = self.RiskyStd
 
         # Draw either a common economy-wide return, or one for each agent
-        if self.sim_common_Rriksy:
+        if self.sim_common_Rrisky:
             self.shocks["Risky"] = Lognormal.from_mean_std(
                 RiskyAvg, RiskyStd, seed=self.RNG.integers(0, 2**31 - 1)
             ).draw(1)
@@ -1318,7 +1318,7 @@ risky_asset_parms = {
     "AdjustPrb": 1.0,
     # When simulating the model, should all agents get the same risky return in
     # a given period?
-    "sim_common_Rriksy": True,
+    "sim_common_Rrisky": True,
 }
 
 # Make a dictionary to specify a risky asset consumer type
