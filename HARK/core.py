@@ -20,15 +20,13 @@ from HARK.utilities import NullFunc, get_arg_names
 
 
 class Parameters:
-    def __init__(self, parameters):
-        self._parameters = parameters.copy()
+    def __init__(self, **parameters):
         self._term_age = parameters.get("T_cycle", None)
-        self._time_inv = []
-        self._time_var = []
+        self._age_inv = []
+        self._age_var = []
 
-        # Infer which parameters are time varying
         for key, value in parameters.items():
-            self._parameters[key] = self.__infer_dims__(key, value)
+            setattr(self, key, value)
 
     def __infer_dims__(self, key, value):
         if isinstance(value, (int, float, np.ndarray, type(None))):
@@ -42,30 +40,41 @@ class Parameters:
                 self._term_age = len(value)
             if len(value) == self._term_age:
                 self.__add_to_time_vary(key)
-                return np.asarray(value)
+                return value
             raise ValueError(f"Parameter {key} must be of length 1 or {self._term_age}")
         raise ValueError(f"Parameter {key} has type {type(value)}")
 
     def __add_to_time_inv(self, key):
-        if key in self._time_var:
-            self._time_var.remove(key)
-        if key not in self._time_inv:
-            self._time_inv.append(key)
+        if key in self._age_var:
+            self._age_var.remove(key)
+        if key not in self._age_inv:
+            self._age_inv.append(key)
 
     def __add_to_time_vary(self, key):
-        if key in self._time_inv:
-            self._time_inv.remove(key)
-        if key not in self._time_var:
-            self._time_var.append(key)
+        if key in self._age_inv:
+            self._age_inv.remove(key)
+        if key not in self._age_var:
+            self._age_var.append(key)
 
-    def __getitem__(self, key):
-        return self._parameters[key]
+    def __getitem__(self, age):
+        if isinstance(age, int):
+            # return parameters at age
+            assert age < self._term_age
 
-    def __getattr__(self, key):
-        return self._parameters[key]
+            params = {}
+            for key in self._age_inv:
+                params[key] = getattr(self, key)
+            for key in self._age_var:
+                params[key] = getattr(self, key)[age]
+            return Parameters(**params)
+
+        elif isinstance(age, str):
+            return getattr(self, age)
 
     def __setitem__(self, key, value):
-        self._parameters[key] = value
+        if not isinstance(key, str):
+            raise ValueError("Parameters must be set with a string key")
+        self.__setattr__(key, value)
 
     def __setattr__(self, key, value):
         if key.startswith("_"):
@@ -73,45 +82,39 @@ class Parameters:
             super().__setattr__(key, value)
         else:
             # Handle setting parameters as dictionary items
-            self._parameters[key] = value
+            new_value = self.__infer_dims__(key, value)
+            super().__setattr__(key, new_value)
 
     def keys(self):
-        return self._parameters.keys()
+        return self._age_inv + self._age_var
 
     def values(self):
-        return self._parameters.values()
+        return [getattr(self, key) for key in self.keys()]
 
     def items(self):
-        return self._parameters.items()
+        return [(key, getattr(self, key)) for key in self.keys()]
 
     def __iter__(self):
-        return iter(self._parameters)
+        return iter(self.keys())
 
     def __deepcopy__(self, memo):
-        return deepcopy(self._parameters, memo)
+        return Parameters(**deepcopy(self.to_dict(), memo))
 
-    def to_dict(self, keys=None):
-        if keys is None:
-            keys = self._parameters.keys()
-        return {key: self[key] for key in keys}
+    def to_dict(self):
+        return {key: getattr(self, key) for key in self.keys()}
 
-    def to_namedtuple(self, keys=None):
-        if keys is None:
-            keys = self._parameters.keys()
-        return namedtuple("Parameters", keys)(**{key: self[key] for key in keys})
+    def to_namedtuple(self):
+        return namedtuple("Parameters", self.keys())(**self.to_dict())
 
-    def update(self, other):
-        self._parameters.update(other)
-        self.__init__(self._parameters)
-
-    def __repr__(self):
-        return (
-            f"Parameters:\n"
-            f"term_age={self._term_age}\n"
-            f"time_inv={self._time_inv}\n"
-            f"time_var={self._time_var}\n"
-            f"\n{self._parameters}"
-        )
+    def update(self, other_params):
+        if isinstance(other_params, Parameters):
+            for key, value in other_params:
+                setattr(self, key, value)
+        elif isinstance(other_params, dict):
+            for key, value in other_params.items():
+                setattr(self, key, value)
+        else:
+            raise ValueError("Parameters must be a dict or a Parameters object")
 
 
 class Model:
@@ -120,7 +123,7 @@ class Model:
     """
 
     def __init__(self, **kwds):
-        self.parameters = Parameters(kwds)
+        self.parameters = Parameters(**kwds)
 
     def assign_parameters(self, **kwds):
         """
@@ -167,14 +170,14 @@ class Model:
         module = type_.__module__
         qualname = type_.__qualname__
 
-        s = f"<{module}.{qualname} object at {hex(id(self))}.\n"
-        s += "Parameters:"
+        string = f"<{module}.{qualname} object at {hex(id(self))}.\n"
+        string += "Parameters:"
 
         for p in self.parameters:
-            s += f"\n{p}: {self.parameters[p]}"
+            string += f"\n{p}: {self.parameters[p]}"
 
-        s += ">"
-        return s
+        string += ">"
+        return string
 
     def __repr__(self):
         return self.__str__()
