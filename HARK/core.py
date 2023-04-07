@@ -20,7 +20,34 @@ from HARK.utilities import NullFunc, get_arg_names
 
 
 class Parameters:
+    """
+    This class defines an object that stores all of the parameters for a model
+    as attributes of itself. It is designed to also handle the age-varying
+    dynamics of parameters.
+
+    Attributes
+    ----------
+
+    _term_age : int
+        The terminal age of the agents in the model.
+    _age_inv : list
+        A list of the names of the parameters that are invariant over time.
+    _age_var : list
+        A list of the names of the parameters that vary over time.
+    """
+
     def __init__(self, **parameters):
+        """
+        Initializes a Parameters object and parses the age-varying
+        dynamics of the parameters.
+
+        Parameters
+        ----------
+
+        parameters : keyword arguments
+            Any number of keyword arguments of the form key=value.
+            To parse a dictionary of parameters, use the ** operator.
+        """
         self._term_age = parameters.get("T_cycle", None)
         self._age_inv = []
         self._age_var = []
@@ -29,6 +56,23 @@ class Parameters:
             setattr(self, key, value)
 
     def __infer_dims__(self, key, value):
+        """
+        Infers the age-varying dimensions of a parameter.
+
+        If the parameter is a scalar, numpy array, or None, it is assumed to be
+        invariant over time. If the parameter is a list or tuple, it is assumed
+        to be varying over time. If the parameter is a list or tuple of length
+        greater than 1, the length of the list or tuple must match the
+        `_term_age` attribute of the Parameters object.
+
+        Parameters
+        ----------
+        key : str
+            name of parameter
+        value : Any
+            value of parameter
+
+        """
         if isinstance(value, (int, float, np.ndarray, type(None))):
             self.__add_to_time_inv(key)
             return value
@@ -45,33 +89,78 @@ class Parameters:
         raise ValueError(f"Parameter {key} has type {type(value)}")
 
     def __add_to_time_inv(self, key):
+        """
+        Adds parameter name to invariant list and removes from varying list.
+
+        Parameters
+        ----------
+        key : str
+            parameter name
+        """
         if key in self._age_var:
             self._age_var.remove(key)
         if key not in self._age_inv:
             self._age_inv.append(key)
 
     def __add_to_time_vary(self, key):
+        """
+        Adds parameter name to varying list and removes from invariant list.
+
+        Parameters
+        ----------
+        key : str
+            parameter name
+        """
         if key in self._age_inv:
             self._age_inv.remove(key)
         if key not in self._age_var:
             self._age_var.append(key)
 
-    def __getitem__(self, age):
-        if isinstance(age, int):
+    def __getitem__(self, age_or_key):
+        """
+        If age_or_key is an integer, returns a Parameters object with the parameters
+        that apply to that age. This includes all invariant parameters and the
+        `age_or_key`th element of all age-varying parameters. If age_or_key is a string,
+        it returns the value of the parameter with that name.
+
+        Parameters
+        ----------
+        age_or_key : int or str
+            Age or key of parameter(s)
+
+
+        Returns
+        -------
+        Parameters or value
+            Parameters object with parameters that apply to age `age_or_key` or value of
+            parameter with name `age_or_key`.
+        """
+        if isinstance(age_or_key, int):
             # return parameters at age
-            assert age < self._term_age
+            assert age_or_key < self._term_age
 
             params = {}
             for key in self._age_inv:
                 params[key] = getattr(self, key)
             for key in self._age_var:
-                params[key] = getattr(self, key)[age]
+                params[key] = getattr(self, key)[age_or_key]
             return Parameters(**params)
 
-        elif isinstance(age, str):
-            return getattr(self, age)
+        elif isinstance(age_or_key, str):
+            return getattr(self, age_or_key)
 
     def __setitem__(self, key, value):
+        """
+        Sets the value of a parameter.
+
+        Parameters
+        ----------
+        key : str
+            name of parameter
+        value : Any
+            value of parameter
+
+        """
         if not isinstance(key, str):
             raise ValueError("Parameters must be set with a string key")
         self.__setattr__(key, value)
