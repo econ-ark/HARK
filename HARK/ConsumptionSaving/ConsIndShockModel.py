@@ -20,7 +20,6 @@ from scipy.optimize import newton
 
 from HARK import (
     AgentType,
-    MetricObject,
     NullFunc,
     _log,
     make_one_period_oo_solver,
@@ -53,6 +52,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
+from HARK.metric import MetricObject
 from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
@@ -447,9 +447,8 @@ class ConsPerfForesightSolver(MetricObject):
 
         # mNrmTrg solves Rcalbar*(m - c(m)) + E[inc_next] = m. Define a
         # rearranged version.
-        Ex_m_tp1_minus_m_t = (
-            lambda m: Ex_RNrmFac * (m - solution.cFunc(m)) + self.Ex_IncNext - m
-        )
+        def Ex_m_tp1_minus_m_t(m):
+            return Ex_RNrmFac * (m - solution.cFunc(m)) + self.Ex_IncNext - m
 
         # Minimum market resources plus next income is okay starting guess
         m_init_guess = self.mNrmMinNow + self.Ex_IncNext
@@ -507,9 +506,8 @@ class ConsPerfForesightSolver(MetricObject):
                     solution.mNrmTrg = float("inf")
                 return solution
 
-        Ex_PermShk_tp1_times_m_tp1_minus_m_t = (
-            lambda mStE: PF_RNrm * (mStE - solution.cFunc(mStE)) + 1.0 - mStE
-        )
+        def Ex_PermShk_tp1_times_m_tp1_minus_m_t(mStE):
+            return PF_RNrm * (mStE - solution.cFunc(mStE)) + 1.0 - mStE
 
         # Minimum market resources plus next income is okay starting guess
         m_init_guess = self.mNrmMinNow + self.Ex_IncNext
@@ -1757,7 +1755,7 @@ class PerfForesightConsumerType(AgentType):
         ):  # If PerfMITShk not specified, let it be False
             self.PerfMITShk = False
         if (
-            self.PerfMITShk == False
+            self.PerfMITShk is False
         ):  # If True, Newborns inherit t_cycle of agent they replaced (i.e. t_cycles are not reset).
             self.t_cycle[
                 which_agents
@@ -2031,10 +2029,6 @@ class PerfForesightConsumerType(AgentType):
             False: "The given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value is {0.FHWF}",
         }
 
-        verbose_messages = {
-            True: "  Therefore, the limiting consumption function is not c(m)=Infinity\nand human wealth normalized by permanent income is {0.hNrm}\nand the PDV of future consumption growth is {0.cNrmPDV}",
-            False: "  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0.  (https://econ-ark.github.io/BufferStockTheory#PFGICRawHoldsFHWCFailsRICFailsDiscuss)",
-        }
         verbose = self.verbose if verbose is None else verbose
         self.check_condition(name, test, messages, verbose)
 
@@ -2482,7 +2476,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if not hasattr(self, "neutral_measure"):
             self.neutral_measure = False
 
-        if num_pointsM == None:
+        if num_pointsM is None:
             m_points = self.mCount
         else:
             m_points = num_pointsM
@@ -2535,7 +2529,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 self.dist_pGrid = dist_pGrid
 
             if (
-                self.neutral_measure == True
+                self.neutral_measure is True
             ):  # If true Use Harmenberg 2021's Neutral Measure. For more information, see https://econ-ark.org/materials/harmenberg-aggregation?launch
                 self.dist_pGrid = np.array([1])
 
@@ -2545,7 +2539,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             )
 
         elif self.T_cycle != 0:
-            if num_pointsM == None:
+            if num_pointsM is None:
                 m_points = self.mCount
             else:
                 m_points = num_pointsM
@@ -2599,7 +2593,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 self.dist_pGrid = dist_pGrid
 
             if (
-                self.neutral_measure == True
+                self.neutral_measure is True
             ):  # If true Use Harmenberg 2021's Neutral Measure. For more information, see https://econ-ark.org/materials/harmenberg-aggregation?launch
                 self.dist_pGrid = self.T_cycle * [np.array([1])]
 

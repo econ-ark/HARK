@@ -6,148 +6,16 @@ of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
-import os
 import sys
 from copy import copy, deepcopy
-from distutils.dir_util import copy_tree
 from time import time
 from warnings import warn
 
 import numpy as np
 
-from HARK.distribution import (
-    Distribution,
-    IndexDistribution,
-    TimeVaryingDiscreteDistribution,
-)
-
-from .parallel import multi_thread_commands, multi_thread_commands_fake
-from .utilities import NullFunc, get_arg_names
-
-
-def distance_metric(thing_a, thing_b):
-    """
-    A "universal distance" metric that can be used as a default in many settings.
-
-    Parameters
-    ----------
-    thing_a : object
-        A generic object.
-    thing_b : object
-        Another generic object.
-
-    Returns:
-    ------------
-    distance : float
-        The "distance" between thing_a and thing_b.
-    """
-    # Get the types of the two inputs
-    type_a = type(thing_a)
-    type_b = type(thing_b)
-
-    if type_a is list and type_b is list:
-        len_a = len(thing_a)  # If both inputs are lists, then the distance between
-        len_b = len(thing_b)  # them is the maximum distance between corresponding
-        if len_a == len_b:  # elements in the lists.  If they differ in length,
-            distance_temp = []  # the distance is the difference in lengths.
-            for n in range(len_a):
-                distance_temp.append(distance_metric(thing_a[n], thing_b[n]))
-            distance = max(distance_temp)
-        else:
-            warn(
-                "Objects of different lengths are being compared. "
-                + "Returning difference in lengths."
-            )
-            distance = float(abs(len_a - len_b))
-    # If both inputs are dictionaries, call distance on the list of its elements
-    elif type_a is dict and type_b is dict:
-        len_a = len(thing_a)
-        len_b = len(thing_b)
-
-        if len_a == len_b:
-            # Create versions sorted by key
-            sorted_a = dict(sorted(thing_a.items()))
-            sorted_b = dict(sorted(thing_b.items()))
-
-            # If keys don't match, print a warning.
-            if list(sorted_a.keys()) != list(sorted_b.keys()):
-                warn(
-                    "Dictionaries with keys that do not match are being " + "compared."
-                )
-
-            distance = distance_metric(list(sorted_a.values()), list(sorted_b.values()))
-
-        else:
-            # If they have different lengths, log a warning and return the
-            # difference in lengths.
-            warn(
-                "Objects of different lengths are being compared. "
-                + "Returning difference in lengths."
-            )
-            distance = float(abs(len_a - len_b))
-
-    # If both inputs are numbers, return their difference
-    elif isinstance(thing_a, (int, float)) and isinstance(thing_b, (int, float)):
-        distance = float(abs(thing_a - thing_b))
-    # If both inputs are array-like, return the maximum absolute difference b/w
-    # corresponding elements (if same shape); return largest difference in dimensions
-    # if shapes do not align.
-    elif hasattr(thing_a, "shape") and hasattr(thing_b, "shape"):
-        if thing_a.shape == thing_b.shape:
-            distance = np.max(abs(thing_a - thing_b))
-        else:
-            # Flatten arrays so they have the same dimensions
-            distance = np.max(
-                abs(thing_a.flatten().shape[0] - thing_b.flatten().shape[0])
-            )
-    # If none of the above cases, but the objects are of the same class, call
-    # the distance method of one on the other
-    elif thing_a.__class__.__name__ == thing_b.__class__.__name__:
-        if thing_a.__class__.__name__ == "function":
-            distance = 0.0
-        else:
-            distance = thing_a.distance(thing_b)
-    else:  # Failsafe: the inputs are very far apart
-        distance = 1000.0
-    return distance
-
-
-class MetricObject:
-    """
-    A superclass for object classes in HARK.  Comes with two useful methods:
-    a generic/universal distance method and an attribute assignment method.
-    """
-
-    distance_criteria = []  # This should be overwritten by subclasses.
-
-    def distance(self, other):
-        """
-        A generic distance method, which requires the existence of an attribute
-        called distance_criteria, giving a list of strings naming the attributes
-        to be considered by the distance metric.
-
-        Parameters
-        ----------
-        other : object
-            Another object to compare this instance to.
-
-        Returns
-        -------
-        (unnamed) : float
-            The distance between this object and another, using the "universal
-            distance" metric.
-        """
-        distance_list = [0.0]
-        for attr_name in self.distance_criteria:
-            try:
-                obj_a = getattr(self, attr_name)
-                obj_b = getattr(other, attr_name)
-                distance_list.append(distance_metric(obj_a, obj_b))
-            except AttributeError:
-                distance_list.append(
-                    1000.0
-                )  # if either object lacks attribute, they are not the same
-        return max(distance_list)
+from HARK.distribution import IndexDistribution, TimeVaryingDiscreteDistribution
+from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
+from HARK.utilities import NullFunc, get_arg_names
 
 
 class Model:
@@ -193,7 +61,7 @@ class Model:
         if isinstance(other, type(self)):
             return self.parameters == other.parameters
 
-        return notImplemented
+        return NotImplemented
 
     def __init__(self):
         if not hasattr(self, "parameters"):
@@ -1511,7 +1379,6 @@ class Market(Model):
             Should have attributes named in dyn_vars.
         """
         # Make a dictionary of inputs for the dynamics calculator
-        history_vars_string = ""
         arg_names = list(get_arg_names(self.calc_dynamics))
         if "self" in arg_names:
             arg_names.remove("self")
