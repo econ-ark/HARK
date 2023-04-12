@@ -1118,8 +1118,8 @@ class Market(Model):
         self.sow_init = {var: None for var in self.sow_vars}
         self.sow_state = {var: None for var in self.sow_vars}
 
-        self.const_vars = const_vars if const_vars is not None else list()  # NOQA
-        self.const_vars = {var: None for var in self.const_vars}
+        const_vars = const_vars if const_vars is not None else list()  # NOQA
+        self.const_vars = {var: None for var in const_vars}
 
         self.track_vars = track_vars if track_vars is not None else list()  # NOQA
         self.dyn_vars = dyn_vars if dyn_vars is not None else list()  # NOQA
