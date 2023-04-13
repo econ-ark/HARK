@@ -8,6 +8,15 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.13.1
+
+Release Date: TBD
+
+### Major Changes
+
+### Minor Changes
+- Adds option `sim_common_Rrisky` to control whether risky-asset models draw common or idiosyncratic returns in simulation. [#1250](https://github.com/econ-ark/HARK/pull/1250),[#1253](https://github.com/econ-ark/HARK/pull/1253)
+
 ### 0.13.0
 
 Release Date: February, 16, 2023
