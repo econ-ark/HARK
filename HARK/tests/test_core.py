@@ -155,6 +155,7 @@ class test_agent_population(unittest.TestCase):
         self.assertEqual(self.agent_pop.agent_type_count, 12)
 
     def test_create_agents(self):
+        self.agent_pop.approx_distributions({"CRRA": 3, "DiscFac": 4})
         self.agent_pop.create_distributed_agents()
 
         self.assertEqual(len(self.agent_pop.agents), 12)
