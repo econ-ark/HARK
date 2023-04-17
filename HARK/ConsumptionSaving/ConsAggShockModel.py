@@ -1908,18 +1908,12 @@ class CobbDouglasEconomy(Market):
             "TranShkAggNow",
             "KtoLnow",
         ]
+        params["reap_vars"] = ["aLvl", "pLvl"]
+        params["track_vars"] = ["MaggNow", "AaggNow"]
+        params["dyn_vars"] = ["AFunc"]
         params.update(kwds)
 
-        Market.__init__(
-            self,
-            agents=agents,
-            reap_vars=["aLvl", "pLvl"],
-            track_vars=["MaggNow", "AaggNow"],
-            dyn_vars=["AFunc"],
-            tolerance=tolerance,
-            act_T=act_T,
-            **params
-        )
+        Market.__init__(self, agents=agents, tolerance=tolerance, act_T=act_T, **params)
         self.update()
 
         # Use previously hardcoded values for AFunc updating if not passed
