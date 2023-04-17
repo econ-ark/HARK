@@ -21,6 +21,7 @@ from HARK.distribution import (
     Distribution,
     IndexDistribution,
     TimeVaryingDiscreteDistribution,
+    combine_indep_dstns,
 )
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
@@ -1442,6 +1443,10 @@ Parameters = NewType("ParameterDict", dict)
 
 @dataclass
 class AgentPopulation:
+    """
+    A class for representing a population of ex-ante heterogeneous agents.
+    """
+
     agent_type: AgentType  # type of agent in the population
     parameters: Parameters  # dictionary of parameters
     seed: int = 0  # random seed
@@ -1460,6 +1465,10 @@ class AgentPopulation:
     solution: List[Any] = field(init=False)
 
     def __post_init__(self):
+        """
+        Initialize the population of agents, determine distributed parameters,
+        and infer `agent_type_count` and `term_age`.
+        """
         # create a dummy agent and obtain its time-varying
         # and time-invariant attributes
         dummy_agent = self.agent_type()
@@ -1479,6 +1488,13 @@ class AgentPopulation:
         self.__infer_counts__()
 
     def __infer_counts__(self):
+        """
+        Infer `agent_type_count` and `term_age` from the parameters.
+        If parameters include a `Distribution` type, a list of lists,
+        or a `DataArray` with `agent` as the first dimension, then
+        the AgentPopulation contains ex-ante heterogenous agents.
+        """
+
         # infer agent_type_count from distributed parameters
         agent_type_count = 1
         for key in self.distributed_params:
@@ -1515,6 +1531,14 @@ class AgentPopulation:
         self.term_age = term_age
 
     def approx_distributions(self, approx_params: dict):
+        """
+        Approximate continuous distributions with discrete ones. If the initial
+        parameters include a `Distribution` type, then the AgentPopulation is
+        not ready to solve, and stands for an abstract population. To solve the
+        AgentPopulation, we need discretization parameters for each continuous
+        distribution. This method approximates the continuous distributions with
+        discrete ones, and updates the parameters dictionary.
+        """
         self.continuous_distributions = {}
         self.discrete_distributions = {}
 
@@ -1540,6 +1564,14 @@ class AgentPopulation:
         self.__infer_counts__()
 
     def __parse_parameters__(self) -> None:
+        """
+        Creates distributed dictionaries of parameters for each ex-ante
+        heterogeneous agent in the parameterized population. The parameters
+        are stored in a list of dictionaries, where each dictionary contains
+        the parameters for one agent. Expands parameters that vary over time
+        to a list of length `term_age`.
+        """
+
         population_parameters = []  # container for dictionaries of each agent subgroup
         for agent in range(self.agent_type_count):
             agent_parameters = {}
@@ -1599,6 +1631,11 @@ class AgentPopulation:
         self.population_parameters = population_parameters
 
     def create_distributed_agents(self):
+        """
+        Parses the parameters dictionary and creates a list of agents with the
+        appropriate parameters. Also sets the seed for each agent.
+        """
+
         self.__parse_parameters__()
 
         rng = np.random.default_rng(self.seed)
@@ -1609,30 +1646,52 @@ class AgentPopulation:
         ]
 
     def create_database(self):
+        """
+        Optionally creates a pandas DataFrame with the parameters for each agent.
+        """
         database = pd.DataFrame(self.population_parameters)
         database["agents"] = self.agents
 
         self.agent_database = database
 
     def solve(self):
+        """
+        Solves each agent of the population serially.
+        """
+
         # see Market class for an example of how to solve distributed agents in parallel
 
         for agent in self.agents:
             agent.solve()
 
     def unpack_solutions(self):
+        """
+        Unpacks the solutions of each agent into an attribute of the population.
+        """
         self.solution = [agent.solution for agent in self.agents]
 
     def initialize_sim(self):
+        """
+        Initializes the simulation for each agent.
+        """
         for agent in self.agents:
             agent.initialize_sim()
 
     def simulate(self):
+        """
+        Simulates each agent of the population serially.
+        """
         for agent in self.agents:
             agent.simulate()
 
     def __iter__(self):
+        """
+        Allows for iteration over the agents in the population.
+        """
         return iter(self.agents)
 
     def __getitem__(self, idx):
+        """
+        Allows for indexing into the population.
+        """
         return self.agents[idx]
