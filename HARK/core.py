@@ -137,7 +137,8 @@ class Parameters:
         """
         if isinstance(age_or_key, int):
             # return parameters at age
-            assert age_or_key < self._term_age
+            if age_or_key >= self._term_age:
+                raise ValueError("Age or key is greater than or equal to term age.")
 
             params = {}
             for key in self._age_inv:
@@ -204,6 +205,12 @@ class Parameters:
                 setattr(self, key, value)
         else:
             raise ValueError("Parameters must be a dict or a Parameters object")
+
+    def __str__(self):
+        return f"Parameters({str(self.to_dict())})"
+
+    def __repr__(self):
+        return f"Parameters( _age_inv = {str(self._age_inv)}, _age_var = {str(self._age_var)}, | {str(self.to_dict())})"
 
 
 class Model:
