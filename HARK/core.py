@@ -1296,8 +1296,8 @@ class Market(Model):
         super().__init__()
         self.agents = agents if agents is not None else list()  # NOQA
 
-        reap_vars = reap_vars if reap_vars is not None else list()  # NOQA
-        self.reap_state = {var: [] for var in reap_vars}
+        self.reap_vars = reap_vars if reap_vars is not None else list()  # NOQA
+        self.reap_state = {var: [] for var in self.reap_vars}
 
         self.sow_vars = sow_vars if sow_vars is not None else list()  # NOQA
         # dictionaries for tracking initial and current values
