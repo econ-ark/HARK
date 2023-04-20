@@ -1017,6 +1017,10 @@ class ConsPortfolioDiscreteSolver(ConsPortfolioSolver):
 
         self.make_porfolio_solution()
 
+        self.solution = self.add_MPC_and_human_wealth(self.solution)
+        self.solution.mNrmMin = self.mNrmMinNow
+        self.solution = self.add_stable_points(self.solution)
+
         return self.solution
 
 
@@ -1245,6 +1249,10 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
         self.add_save_points()
 
         self.make_porfolio_solution()
+
+        self.solution = self.add_MPC_and_human_wealth(self.solution)
+        self.solution.mNrmMin = self.mNrmMinNow
+        self.solution = self.add_stable_points(self.solution)
 
         return self.solution
 
