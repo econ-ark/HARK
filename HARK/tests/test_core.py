@@ -5,7 +5,11 @@ import unittest
 
 import numpy as np
 
-from HARK.core import AgentType, distribute_params
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    IndShockConsumerType,
+    init_idiosyncratic_shocks,
+)
+from HARK.core import AgentPopulation, AgentType, distribute_params
 from HARK.distribution import Uniform
 from HARK.metric import MetricObject, distance_metric
 
@@ -126,3 +130,32 @@ class test_distribute_params(unittest.TestCase):
             )
         )
         self.assertEqual(self.agents[0].parameters["AgentCount"], 1)
+
+
+class test_agent_population(unittest.TestCase):
+    def setUp(self):
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = Uniform(2.0, 10)
+        params["DiscFac"] = Uniform(0.9, 0.99)
+
+        self.agent_pop = AgentPopulation(IndShockConsumerType, params)
+
+    def test_distributed_params(self):
+        self.assertTrue("CRRA" in self.agent_pop.distributed_params)
+        self.assertTrue("DiscFac" in self.agent_pop.distributed_params)
+
+    def test_approx_agents(self):
+        self.agent_pop.approx_distributions({"CRRA": 3, "DiscFac": 4})
+
+        self.assertTrue("CRRA" in self.agent_pop.continuous_distributions)
+        self.assertTrue("DiscFac" in self.agent_pop.continuous_distributions)
+        self.assertTrue("CRRA" in self.agent_pop.discrete_distributions)
+        self.assertTrue("DiscFac" in self.agent_pop.discrete_distributions)
+
+        self.assertEqual(self.agent_pop.agent_type_count, 12)
+
+    def test_create_agents(self):
+        self.agent_pop.approx_distributions({"CRRA": 3, "DiscFac": 4})
+        self.agent_pop.create_distributed_agents()
+
+        self.assertEqual(len(self.agent_pop.agents), 12)
