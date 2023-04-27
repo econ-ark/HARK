@@ -356,7 +356,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         """
-        if "AdjustDstn" in self.time_vary:
+        if "AdjustPrb" in self.time_vary:
             self.shocks["Adjust"] = self.AdjustDstn.draw(self.t_cycle)
         else:
             self.shocks["Adjust"] = self.AdjustDstn.draw(self.AgentCount)

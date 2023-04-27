@@ -255,3 +255,33 @@ class testRiskyReturnDim(PortfolioConsumerTypeTestCase):
                 == self.pcct.history["Risky"][:, 0][:, np.newaxis]
             )
         )
+
+
+class test_time_varying_Risky_and_Adj(unittest.TestCase):
+    def setUp(self):
+        # Create a parameter dictionary for a three period problem
+        self.params = cpm.init_portfolio.copy()
+        # Update time varying parameters
+        self.params.update(
+            {
+                "T_cycle": 3,
+                "RiskyAvg": [1.08, 1.04, 1.02],
+                "RiskyStd": [0.20, 0.15, 0.10],
+                "AdjustPrb": [0.0, 0.0, 0.0],
+                "PermGroFac": [1.0, 1.0, 1.0],
+                "LivPrb": [1.0, 1.0, 1.0],
+                "PermShkStd": [0.0, 0.0, 0.0],
+                "TranShkStd": [0.0, 0.0, 0.0],
+                "T_sim": 30,
+                "sim_common_Rrisky": False,
+                "AgentCount": 10,
+            }
+        )
+
+        # Create and solve agent
+        self.agent = cpm.PortfolioConsumerType(**self.params)
+        self.agent.solve()
+
+    def test_draws(self):
+        self.agent.initialize_sim()
+        self.agent.simulate()
