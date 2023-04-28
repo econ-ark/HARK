@@ -333,7 +333,9 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 
             else:
                 # Make use of the IndexDistribution.draw() method
-                self.shocks["Risky"] = self.RiskyDstn.draw(self.t_cycle)
+                self.shocks["Risky"] = self.RiskyDstn.draw(
+                    np.maximum(self.t_cycle - 1,0) if self.cycles == 1 else self.t_cycle
+                )
 
         else:
             # Draw either a common economy-wide return, or one for each agent
@@ -357,7 +359,9 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         None
         """
         if "AdjustPrb" in self.time_vary:
-            self.shocks["Adjust"] = self.AdjustDstn.draw(self.t_cycle)
+            self.shocks["Adjust"] = self.AdjustDstn.draw(
+                 np.maximum(self.t_cycle - 1,0) if self.cycles == 1 else self.t_cycle
+            )
         else:
             self.shocks["Adjust"] = self.AdjustDstn.draw(self.AgentCount)
 

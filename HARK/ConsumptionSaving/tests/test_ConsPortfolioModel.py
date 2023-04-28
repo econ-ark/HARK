@@ -264,15 +264,16 @@ class test_time_varying_Risky_and_Adj(unittest.TestCase):
         # Update time varying parameters
         self.params.update(
             {
+                "cycles": 1,
                 "T_cycle": 3,
                 "T_age": 3,
-                "Rfree" : 1.0,
+                "Rfree": 1.0,
                 "RiskyAvg": [1.01, 1.02, 1.03],
                 "RiskyStd": [0.0, 0.0, 0.0],
                 "RiskyCount": 1,
                 "AdjustPrb": [0.0, 1.0, 0.0],
                 "PermGroFac": [1.0, 1.0, 1.0],
-                "LivPrb": [0.5, 0.5, 0.5],
+                "LivPrb": [1.0, 1.0, 1.0],
                 "PermShkStd": [0.0, 0.0, 0.0],
                 "TranShkStd": [0.0, 0.0, 0.0],
                 "T_sim": 30,
@@ -286,9 +287,8 @@ class test_time_varying_Risky_and_Adj(unittest.TestCase):
         self.agent.solve()
 
     def test_draws(self):
-
         # Simulate the agent
-        self.agent.track_vars = ["t_age","Adjust", "Risky"]
+        self.agent.track_vars = ["t_age", "t_cycle", "Adjust", "Risky"]
         self.agent.initialize_sim()
         self.agent.simulate()
 
@@ -296,25 +296,11 @@ class test_time_varying_Risky_and_Adj(unittest.TestCase):
         Rrisky_draws = self.agent.history["Risky"]
         Adjust_draws = self.agent.history["Adjust"]
         # t_age is increased before being recorded
-        t_age = self.agent.history["t_age"] - 1 
+        t_age = self.agent.history["t_age"] - 1
 
         # Check that the draws are correct
-        self.assertTrue(
-            np.all(Rrisky_draws[t_age==0] == 1.01)
-        )
-        self.assertTrue(
-            np.all(Rrisky_draws[t_age==1] == 1.02)
-        )
-        self.assertTrue(
-            np.all(Rrisky_draws[t_age==2] == 1.03)
-        )
+        self.assertTrue(np.all(Rrisky_draws[t_age == 1] == 1.01))
+        self.assertTrue(np.all(Rrisky_draws[t_age == 2] == 1.02))
         # Adjust
-        self.assertTrue(
-            np.all(Adjust_draws[t_age==0] == 0)
-        )
-        self.assertTrue(
-            np.all(Adjust_draws[t_age==1] == 1)
-        )
-        self.assertTrue(
-            np.all(Adjust_draws[t_age==2] == 0)
-        )
+        self.assertTrue(np.all(Adjust_draws[t_age == 1] == 0))
+        self.assertTrue(np.all(Adjust_draws[t_age == 2] == 1))
