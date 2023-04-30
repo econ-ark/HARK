@@ -22,6 +22,9 @@ class test_distance_metric(unittest.TestCase):
         self.obj_a = MetricObject()
         self.obj_b = MetricObject()
         self.obj_c = MetricObject()
+        self.dict_a = {"a": 1, "b": 2}
+        self.dict_b = {"a": 3, "b": 4}
+        self.dict_c = {"a": 5, "f": 6}
 
     def test_list(self):
         # same length
@@ -45,6 +48,12 @@ class test_distance_metric(unittest.TestCase):
         self.assertEqual(
             distance_metric(np.array(self.list_b), np.array(self.list_b)), 0.0
         )
+
+    def test_dict(self):
+        # Same keys (max of diffs across keys)
+        self.assertEqual(distance_metric(self.dict_a, self.dict_b), 2.0)
+        # Different keys
+        self.assertEqual(distance_metric(self.dict_a, self.dict_c), 1000.0)
 
     def test_hark_object_distance(self):
         self.obj_a.distance_criteria = ["var_1", "var_2", "var_3"]
