@@ -1255,12 +1255,12 @@ class CubicHermiteInterp(HARKinterpolator1D):
         gap = slope_limit * x1 + intercept_limit - y1
         slope = slope_limit - dydx_list[self.n - 1]
         if (gap != 0) and (slope <= 0):
-            temp = np.array([intercept_limit, slope_limit, gap, slope / gap])
+            temp = np.array([intercept_limit, slope_limit, gap, slope / gap], dtype=object)
         elif slope > 0:
             # fixing a problem when slope is positive
-            temp = np.array([intercept_limit, slope_limit, 0, 0])
+            temp = np.array([intercept_limit, slope_limit, 0, 0], dtype=object)
         else:
-            temp = np.array([intercept_limit, slope_limit, gap, 0])
+            temp = np.array([intercept_limit, slope_limit, gap, 0], dtype=object)
         self.coeffs = np.vstack((self.coeffs, temp))
 
     def out_of_bounds(self, x):
