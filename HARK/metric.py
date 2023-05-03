@@ -29,7 +29,7 @@ def distance_dicts(dict_a, dict_b):
     len_b = len(dict_b)
 
     if len_a == len_b:
-        if set(dict_a.keys()) == set(dict_b.keys()):
+        if set(dict_a.keys()) != set(dict_b.keys()):
             warn("Dictionaries with keys that do not match are being compared.")
             return 1000.0
         return np.max(

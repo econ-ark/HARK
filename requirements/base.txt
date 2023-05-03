@@ -1,8 +1,5 @@
-estimagic
 interpolation>=2.2.3
 joblib>=1.2
-jupyterlab>=3.6
-jupytext>=1.14
 matplotlib>=3.6
 networkx>=3
 numba>=0.56
