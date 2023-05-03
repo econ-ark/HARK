@@ -1680,9 +1680,6 @@ def distribute_params(agent, param_name, param_count, distribution):
     return agent_set
 
 
-Parameters = NewType("ParameterDict", dict)
-
-
 @dataclass
 class AgentPopulation:
     """
@@ -1690,7 +1687,7 @@ class AgentPopulation:
     """
 
     agent_type: AgentType  # type of agent in the population
-    parameters: Parameters  # dictionary of parameters
+    parameters: dict  # dictionary of parameters
     seed: int = 0  # random seed
     time_var: List[str] = field(init=False)
     time_inv: List[str] = field(init=False)
