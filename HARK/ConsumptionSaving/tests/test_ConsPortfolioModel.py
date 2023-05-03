@@ -273,10 +273,10 @@ class test_time_varying_Risky_and_Adj(unittest.TestCase):
                 "RiskyCount": 1,
                 "AdjustPrb": [0.0, 1.0, 0.0],
                 "PermGroFac": [1.0, 1.0, 1.0],
-                "LivPrb": [1.0, 1.0, 1.0],
+                "LivPrb": [0.5, 0.5, 0.5],
                 "PermShkStd": [0.0, 0.0, 0.0],
                 "TranShkStd": [0.0, 0.0, 0.0],
-                "T_sim": 30,
+                "T_sim": 50,
                 "sim_common_Rrisky": False,
                 "AgentCount": 10,
             }
