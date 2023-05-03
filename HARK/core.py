@@ -176,6 +176,18 @@ class Parameters:
         self.__setattr__(key, value)
 
     def __setattr__(self, key, value):
+        """
+        Sets attribute depending on key. If key starts with an underscore, it is
+        assumed to be an internal attribute and is set normally. Otherwise, we
+        infer its age-varying dimensions and set it as an attribute.
+
+        Parameters
+        ----------
+        key : str
+            Name of parameter
+        value : Any
+            Value of parameter
+        """
         if key.startswith("_"):
             # Handle setting internal attributes normally
             super().__setattr__(key, value)
@@ -185,27 +197,57 @@ class Parameters:
             super().__setattr__(key, new_value)
 
     def keys(self):
+        """
+        Returns a list of the names of the parameters.
+        """
         return self._age_inv + self._age_var
 
     def values(self):
+        """
+        Returns a list of the values of the parameters.
+        """
         return [getattr(self, key) for key in self.keys()]
 
     def items(self):
+        """
+        Returns a list of tuples of the form (name, value) for each parameter.
+        """
         return [(key, getattr(self, key)) for key in self.keys()]
 
     def __iter__(self):
+        """
+        Allows for iterating over the parameter names.
+        """
         return iter(self.keys())
 
     def __deepcopy__(self, memo):
+        """
+        Returns a deep copy of the Parameters object.
+        """
         return Parameters(**deepcopy(self.to_dict(), memo))
 
     def to_dict(self):
+        """
+        Returns a dictionary of the parameters.
+        """
         return {key: getattr(self, key) for key in self.keys()}
 
     def to_namedtuple(self):
+        """
+        Returns a namedtuple of the parameters.
+        """
         return namedtuple("Parameters", self.keys())(**self.to_dict())
 
     def update(self, other_params):
+        """
+        Updates the parameters with the values from another
+        Parameters object or a dictionary.
+
+        Parameters
+        ----------
+        other_params : Parameters or dict
+            Parameters object or dictionary of parameters to update with.
+        """
         if isinstance(other_params, Parameters):
             for key, value in other_params:
                 setattr(self, key, value)
@@ -216,9 +258,15 @@ class Parameters:
             raise ValueError("Parameters must be a dict or a Parameters object")
 
     def __str__(self):
+        """
+        Returns a simple string representation of the Parameters object.
+        """
         return f"Parameters({str(self.to_dict())})"
 
     def __repr__(self):
+        """
+        Returns a detailed string representation of the Parameters object.
+        """
         return f"Parameters( _age_inv = {str(self._age_inv)}, _age_var = {str(self._age_var)}, | {str(self.to_dict())})"
 
 
