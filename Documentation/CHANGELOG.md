@@ -14,8 +14,12 @@ Release Date: TBD
 
 ### Major Changes
 
+- Adds `HARK.core.AgentPopulation` class to represent a population of agents with ex-ante heterogeneous parametrizations as distributions. [#1237](https://github.com/econ-ark/HARK/pull/1237)
+
 ### Minor Changes
+
 - Adds option `sim_common_Rrisky` to control whether risky-asset models draw common or idiosyncratic returns in simulation. [#1250](https://github.com/econ-ark/HARK/pull/1250),[#1253](https://github.com/econ-ark/HARK/pull/1253)
+- Fixes bug in the metric that compares dictionaries with the same keys. [#1260](https://github.com/econ-ark/HARK/pull/1260)
 
 ### 0.13.0
 
