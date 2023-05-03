@@ -9,7 +9,7 @@ from copy import deepcopy
 import numpy as np
 import scipy.stats as stats
 
-from HARK import AgentType, Market, MetricObject
+from HARK import AgentType, Market
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
@@ -34,6 +34,7 @@ from HARK.interpolation import (
     UpperEnvelope,
     VariableLowerBoundFunc2D,
 )
+from HARK.metric import MetricObject
 from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
@@ -1907,18 +1908,12 @@ class CobbDouglasEconomy(Market):
             "TranShkAggNow",
             "KtoLnow",
         ]
+        params["reap_vars"] = ["aLvl", "pLvl"]
+        params["track_vars"] = ["MaggNow", "AaggNow"]
+        params["dyn_vars"] = ["AFunc"]
         params.update(kwds)
 
-        Market.__init__(
-            self,
-            agents=agents,
-            reap_vars=["aLvl", "pLvl"],
-            track_vars=["MaggNow", "AaggNow"],
-            dyn_vars=["AFunc"],
-            tolerance=tolerance,
-            act_T=act_T,
-            **params
-        )
+        Market.__init__(self, agents=agents, tolerance=tolerance, act_T=act_T, **params)
         self.update()
 
         # Use previously hardcoded values for AFunc updating if not passed
