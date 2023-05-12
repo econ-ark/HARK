@@ -1,0 +1,47 @@
+name: Documentation
+
+# Run on all pushes and pull requests, and on demand
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# Limit workflow permissions
+permissions:
+  contents: read
+
+# Limit simultaneous workflow runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: "1"
+
+jobs:
+  render:
+    name: Render
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.9"  # Numba doesn't support Python 3.11 [2023-05]
+
+    - name: Install Pandoc
+      run: sudo apt-get install --yes pandoc
+
+    - name: Update pip
+      run: python -m pip install --upgrade pip
+
+    - name: Install HARK
+      run: python -m pip install .[dev]
+
+    - name: Run Sphinx
+      run: >
+        sphinx-build
+        -M html Documentation HARK-docs
+        -T
