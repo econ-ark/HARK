@@ -1,6 +1,8 @@
-import HARK.ConsumptionSaving.ConsPortfolioFrameModel as cpfm
-import numpy as np
 import unittest
+
+import numpy as np
+
+import HARK.ConsumptionSaving.ConsPortfolioFrameModel as cpfm
 
 
 class PortfolioConsumerTypeTestCase(unittest.TestCase):
@@ -16,7 +18,6 @@ class PortfolioConsumerTypeTestCase(unittest.TestCase):
 
 class FramesTestCase(PortfolioConsumerTypeTestCase):
     def test_frames(self):
-
         cNrm_frame = self.pcct.frames.iloc(11)
 
         self.assertTrue(cNrm_frame.control)
@@ -30,7 +31,6 @@ class FramesTestCase(PortfolioConsumerTypeTestCase):
 
 class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
     def test_simOnePeriod(self):
-
         self.pcct.T_sim = 30
         self.pcct.AgentCount = 10
         self.pcct.track_vars += ["aNrm"]
@@ -45,10 +45,10 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         # self.assertAlmostEqual(self.pcct.shocks["PermShk"][0], 0.9692322)
 
         # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.pcct.shocks["TranShk"][0], 1.03172631)
+        # self.assertAlmostEqual(self.pcct.shocks["TranShk"][0], 1.03173, place = HARK_PRECISION)
 
         # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.pcct.shocks["Risky"][0], 0.96358739)
+        # self.assertAlmostEqual(self.pcct.shocks["Risky"][0], 0.96359, place = HARK_PRECISION)
 
         self.assertAlmostEqual(
             self.pcct.state_now["pLvl"][0],
@@ -60,18 +60,18 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         self.assertAlmostEqual(
             self.pcct.state_now["mNrm"][0],
             self.pcct.state_prev["aNrm"][0]
-            * self.pcct.Rfree[0]
+            * self.pcct.Rfree
             / self.pcct.shocks["PermShk"][0]
             + self.pcct.shocks["TranShk"][0],
         )
 
         # simulation test -- seed/generator specific
-        #self.assertAlmostEqual(
+        # self.assertAlmostEqual(
         #    # todo: more flexible test
         #    self.pcct.controls["Share"][0],
-        #    0.90256316,
-        #)
-        
+        #    0.90256,
+        # )
+
         self.assertAlmostEqual(
             self.pcct.controls["cNrm"][0],
             self.pcct.solution[0].cFuncAdj(self.pcct.state_now["mNrm"][0]),
@@ -85,7 +85,6 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
 
 class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
     def test_simulation(self):
-
         self.pcct.T_sim = 30
         self.pcct.AgentCount = 10
         self.pcct.track_vars += [

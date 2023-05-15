@@ -1,23 +1,23 @@
 import numpy as np
-from numba import njit, vectorize
+from numba import njit
 
-from HARK.utilities import (
+from HARK.rewards import (
     CRRAutility,
-    CRRAutilityP,
-    CRRAutilityPP,
-    CRRAutilityP_inv,
-    CRRAutility_invP,
     CRRAutility_inv,
+    CRRAutility_invP,
+    CRRAutilityP,
+    CRRAutilityP_inv,
     CRRAutilityP_invP,
+    CRRAutilityPP,
 )
 
-CRRAutility = vectorize(CRRAutility, cache=True)
-CRRAutilityP = vectorize(CRRAutilityP, cache=True)
-CRRAutilityPP = vectorize(CRRAutilityPP, cache=True)
-CRRAutilityP_inv = vectorize(CRRAutilityP_inv, cache=True)
-CRRAutility_invP = vectorize(CRRAutility_invP, cache=True)
-CRRAutility_inv = vectorize(CRRAutility_inv, cache=True)
-CRRAutilityP_invP = vectorize(CRRAutilityP_invP, cache=True)
+CRRAutility = njit(CRRAutility, cache=True)
+CRRAutilityP = njit(CRRAutilityP, cache=True)
+CRRAutilityPP = njit(CRRAutilityPP, cache=True)
+CRRAutilityP_inv = njit(CRRAutilityP_inv, cache=True)
+CRRAutility_invP = njit(CRRAutility_invP, cache=True)
+CRRAutility_inv = njit(CRRAutility_inv, cache=True)
+CRRAutilityP_invP = njit(CRRAutilityP_invP, cache=True)
 
 
 @njit(cache=True, error_model="numpy")

@@ -1,9 +1,10 @@
+import unittest
+
 from HARK.ConsumptionSaving.ConsRepAgentModel import (
     RepAgentConsumerType,
     RepAgentMarkovConsumerType,
 )
-import numpy as np
-import unittest
+from HARK.tests import HARK_PRECISION
 
 
 class testRepAgentConsumerType(unittest.TestCase):
@@ -13,13 +14,13 @@ class testRepAgentConsumerType(unittest.TestCase):
 
     def test_solution(self):
         self.assertAlmostEqual(
-            self.agent.solution[0].cFunc(10).tolist(), 1.7130553407923501
+            self.agent.solution[0].cFunc(10).tolist(), 1.71306, places=HARK_PRECISION
         )
 
     def test_simulation(self):
         # Simulate the representative agent model
         self.agent.T_sim = 100
-        self.agent.track_vars = ['cNrm', "mNrm", "Rfree", "wRte"]
+        self.agent.track_vars = ["cNrm", "mNrm", "Rfree", "wRte"]
         self.agent.initialize_sim()
         self.agent.simulate()
 
@@ -32,12 +33,12 @@ class testRepAgentMarkovConsumerType(unittest.TestCase):
 
     def test_solution(self):
         self.assertAlmostEqual(
-            self.agent.solution[0].cFunc[0](10).tolist(), 1.3829466326248048
+            self.agent.solution[0].cFunc[0](10).tolist(), 1.38295, places=HARK_PRECISION
         )
 
     def test_simulation(self):
         # Simulate the representative agent model
         self.agent.T_sim = 100
-        self.agent.track_vars = ['cNrm', "mNrm", "Rfree", "wRte", "Mrkv"]
+        self.agent.track_vars = ["cNrm", "mNrm", "Rfree", "wRte", "Mrkv"]
         self.agent.initialize_sim()
         self.agent.simulate()

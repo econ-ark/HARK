@@ -5,8 +5,16 @@ This file implements unit tests to check HARK/utilities.py
 import unittest
 from types import SimpleNamespace
 
-import HARK.utilities
 import numpy as np
+
+from HARK.rewards import (
+    CRRAutility,
+    CRRAutilityP,
+    CRRAutilityPP,
+    CRRAutilityPPP,
+    CRRAutilityPPPP,
+)
+from HARK.utilities import construct_assets_grid
 
 
 class testsForHARKutilities(unittest.TestCase):
@@ -32,7 +40,6 @@ class testsForHARKutilities(unittest.TestCase):
         for c in self.c_vals:
             # Loop through different values of risk aversion
             for CRRA in self.CRRA_vals:
-
                 # Calculate the difference between the derivative of the function and the
                 # first difference approximation to that derivative.
                 diff = abs(
@@ -44,27 +51,19 @@ class testsForHARKutilities(unittest.TestCase):
 
     def test_CRRAutilityP(self):
         # Test the first derivative of the utility function
-        self.derivative_func_comparison(
-            HARK.utilities.CRRAutilityP, HARK.utilities.CRRAutility
-        )
+        self.derivative_func_comparison(CRRAutilityP, CRRAutility)
 
     def test_CRRAutilityPP(self):
         # Test the second derivative of the utility function
-        self.derivative_func_comparison(
-            HARK.utilities.CRRAutilityPP, HARK.utilities.CRRAutilityP
-        )
+        self.derivative_func_comparison(CRRAutilityPP, CRRAutilityP)
 
     def test_CRRAutilityPPP(self):
         # Test the third derivative of the utility function
-        self.derivative_func_comparison(
-            HARK.utilities.CRRAutilityPPP, HARK.utilities.CRRAutilityPP
-        )
+        self.derivative_func_comparison(CRRAutilityPPP, CRRAutilityPP)
 
     def test_CRRAutilityPPPP(self):
         # Test the fourth derivative of the utility function
-        self.derivative_func_comparison(
-            HARK.utilities.CRRAutilityPPPP, HARK.utilities.CRRAutilityPPP
-        )
+        self.derivative_func_comparison(CRRAutilityPPPP, CRRAutilityPPP)
 
     def test_asset_grid(self):
         # test linear asset grid
@@ -79,7 +78,7 @@ class testsForHARKutilities(unittest.TestCase):
 
         params = SimpleNamespace(**params)
 
-        aXtraGrid = HARK.utilities.construct_assets_grid(params)
+        aXtraGrid = construct_assets_grid(params)
 
         test = np.unique(np.diff(aXtraGrid).round(decimals=3))
 

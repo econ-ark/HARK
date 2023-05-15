@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed Jan 20 18:07:41 2021
 
@@ -7,8 +6,9 @@ Created on Wed Jan 20 18:07:41 2021
 
 import os
 import urllib.request
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 
 from HARK import _log
 
@@ -88,7 +88,6 @@ def cpi_deflator(from_year, to_year, base_month=None):
 
     # Check month is conforming
     if base_month is not None:
-
         months = [
             "JAN",
             "FEB",
@@ -119,13 +118,11 @@ def cpi_deflator(from_year, to_year, base_month=None):
     cpi_series = cpi[[column]].dropna()
 
     try:
-
         deflator = np.divide(
             cpi_series.loc[to_year].to_numpy(), cpi_series.loc[from_year].to_numpy()
         )
 
     except KeyError as e:
-
         message = (
             "Could not find a CPI value for the requested " + "year-month combinations."
         )

@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.0
+#       jupytext_version: 1.14.4
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -37,9 +37,9 @@ from HARK.distribution import (
 #
 
 # %%
-dd_0_1_20 = Normal().approx(20)
-dd_1_1_40 = Normal(mu=1).approx(40)
-dd_10_10_100 = Normal(mu=10, sigma=10).approx(100)
+dd_0_1_20 = Normal().discretize(20)
+dd_1_1_40 = Normal(mu=1).discretize(40)
+dd_10_10_100 = Normal(mu=10, sigma=10).discretize(100)
 
 # %% [markdown]
 # ### The **new** `DiscreteDistribution.expected()` method
@@ -114,8 +114,8 @@ ce7 = calc_expectation(dd_0_1_20, lambda x, y: x + y, np.hstack([0, 1, 2, 3, 4, 
 #
 
 # %%
-PermShkDstn = MeanOneLogNormal().approx(200)
-TranShkDstn = MeanOneLogNormal().approx(200)
+PermShkDstn = MeanOneLogNormal().discretize(200)
+TranShkDstn = MeanOneLogNormal().discretize(200)
 IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 aGrid = np.linspace(0, 20, 100)  # aNrm grid
 R = 1.05  # interest rate
@@ -150,8 +150,8 @@ t_self = []
 t_dist = []
 
 for n in size:
-    PermShkDstn = MeanOneLogNormal().approx(n)
-    TranShkDstn = MeanOneLogNormal().approx(n)
+    PermShkDstn = MeanOneLogNormal().discretize(n)
+    TranShkDstn = MeanOneLogNormal().discretize(n)
     IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
     m_next = lambda X, a, r: r * a / X[0] + X[1]

@@ -7,7 +7,7 @@
 %% natbst.mbs  (with options: `name-full,atit-lower,month-full,jour-full')
 %% ----------------------------------------
 %% *** Version of `abbrv.bst' for use with natbib package ***
-%% 
+%%
  % The original source file contains the following version information:
  % \ProvidesFile{natbst.mbs}[1997/03/19 1.4 (PWD)]
 
@@ -244,7 +244,7 @@ FUNCTION {format.editors}
 % Got the following code from document called btex101.pdf
 
 FUNCTION {format.title}
-{ 
+{
   title "``" swap$ * ".'' " * % Put article title in quotes
 }
 

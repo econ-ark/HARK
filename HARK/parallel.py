@@ -1,6 +1,7 @@
-from typing import List, Type, Any
-from joblib import Parallel, delayed
 import multiprocessing
+from typing import Any, List, Type
+
+from joblib import Parallel, delayed
 
 
 def multi_thread_commands_fake(
