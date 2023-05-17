@@ -689,7 +689,7 @@ class Stage:
 
         for shock in shock_approx_params:
             if shock in self.shocks:
-                discretized_shocks[shock] = self.shocks[shock].approx(
+                discretized_shocks[shock] = self.shocks[shock].discretize(
                     shock_approx_params[shock]
                     )
             else:

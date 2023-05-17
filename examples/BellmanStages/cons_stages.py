@@ -8,7 +8,7 @@ from typing import Any, Callable, Mapping, Sequence
 import xarray as xr
 
 from HARK import distribution
-from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutility_inv, CRRAutilityP_inv
+from HARK.rewards import CRRAutility, CRRAutilityP, CRRAutility_inv, CRRAutilityP_inv
 
 from HARK.stage import Stage, backwards_induction, simulate_stage
 
