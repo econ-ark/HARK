@@ -3,15 +3,15 @@ needs_sphinx = "6.1"
 
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.doctest",
-    "sphinx.ext.intersphinx",
-    "sphinx.ext.todo",
-    "sphinx.ext.coverage",
-    "sphinx.ext.mathjax",
     "sphinx.ext.autosummary",
-    "sphinx.ext.imgconverter",
-    "sphinx.ext.napoleon",
+    "sphinx.ext.coverage",
+    "sphinx.ext.doctest",
     "sphinx.ext.githubpages",
+    "sphinx.ext.imgconverter",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.todo"
     "nbsphinx",
     "recommonmark",
 ]
