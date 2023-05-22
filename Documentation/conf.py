@@ -39,6 +39,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.imgconverter",
     "sphinx.ext.napoleon",
+    "sphinx.ext.githubpages",
     "nbsphinx",
     "recommonmark",
 ]
