@@ -932,7 +932,7 @@ class Stage:
         ):
 
         print(f"solve: X: {self.inputs}, K: {list(self.shocks.keys())}, A: {self.actions}, Y: {self.outputs}")
-        print(x_grid, y_grid, shock_approx_params, v_y, v_y_der, next_sol, policy_finder_method)
+        #print(x_grid, y_grid, shock_approx_params, v_y, v_y_der, next_sol, policy_finder_method)
 
         if next_sol is not None:
             if "v_x" in next_sol.dataset:
@@ -1061,6 +1061,8 @@ class Stage:
                 #'q' : q_values,
             }), 
             actions = self.actions,
+            v_der_transform = self.v_der_transform,
+            v_der_transform_inv = self.v_der_transform_inv,
             #k_grid = k_grid_i
             )
 
@@ -1160,6 +1162,9 @@ def backwards_induction(
     terminal_solution = SolutionDataset(
             xr.Dataset(sol_data), 
             actions = last_stage.actions,
+            # Will need to include other transforms for value update (non-marginal)
+            v_der_transform = stages_data[0]['stage'].v_der_transform,
+            v_der_transform_inv = stages_data[0]['stage'].v_der_transform_inv,
             )
 
     sol = terminal_solution

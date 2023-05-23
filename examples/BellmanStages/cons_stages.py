@@ -26,7 +26,7 @@ CRRAutility_hack = lambda c, gam: float('-inf') if c == 0.0 else CRRAutility(c, 
 CRRAutilityP_hack = lambda c, gam: float('inf') if c == 0.0 else CRRAutilityP(c, gam)
 
 
-CRRA = 5.0
+CRRA = 2.0
 
 consumption_stage = Stage(
     ##### Stage Definition -- math!
@@ -99,11 +99,11 @@ allocation_stage = Stage(
 
 ### INCOME STAGE
 
-R = 1.01
-G = 1.02
+R = 1.03
+G = 1.01
 
-sigma_psi = 1.05
-sigma_theta = 1.15
+sigma_psi = 0.1
+sigma_theta = 0.1
 sigma_eta = 1.1
 p_live = 0.98
 
@@ -166,11 +166,29 @@ labor_stage = Stage(
         # 'live' : distribution.Bernoulli(p_live) ## Not implemented for now
     },
     outputs = ['m'],
-    discount = lambda x, k, a: (G * k['psi']) ** (CRRA - 1), # Check with CDC about G use here.
+    discount = lambda x, k, a: (G * k['psi']) ** (1 - CRRA), # Check with CDC about G use here. CDC: ^(1 - rho); Seb: ^(rho - 1)
     reward_der = lambda x, k, a : 0,
 
     v_transform = np.exp, # lambda c: CRRAutility_inv(c, CRRA),
     v_transform_inv = np.log, # lambda c : CRRAutility_inv(c, CRRA),
-    v_der_transform = lambda u: u ** (- 1 / CRRA) , #  CRRAutilityP_inv
-    v_der_transform_inv = lambda u : u ** (- CRRA), # u ** - rho
+    v_der_transform = lambda u: u ** (- 1 / CRRA) , # lambda u : u ** -1, #   CRRAutilityP_inv
+    v_der_transform_inv = lambda u : u ** (- CRRA), # lambda u: u ** -1 #  u ** - rho
+)
+
+def rfree_transition(x, k, a): 
+    return {'b' : R * x['a']}
+
+rfree_stage = Stage(
+    transition = rfree_transition,
+    transition_der_x = lambda x, k, a: R,
+    inputs = ['a'],
+    discount = p_live,
+    reward_der = lambda x, k, a : 0,
+
+    outputs = ['b'],
+
+    v_transform = np.exp, # lambda c: CRRAutility_inv(c, CRRA),
+    v_transform_inv = np.log, # lambda c : CRRAutility_inv(c, CRRA),
+    v_der_transform = lambda u: u ** -1 , #  CRRAutilityP_inv
+    v_der_transform_inv = lambda u : u ** -1, # u ** - rho
 )
