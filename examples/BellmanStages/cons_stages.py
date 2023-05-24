@@ -55,8 +55,8 @@ consumption_stage = Stage(
     
     v_transform = np.exp, # lambda c: CRRAutility_inv(c, CRRA),
     v_transform_inv = np.log, # lambda c : CRRAutility_inv(c, CRRA),
-    v_der_transform = lambda u: u ** -1 , #  CRRAutilityP_inv
-    v_der_transform_inv = lambda u : u ** -1, # u ** - rho
+    v_der_transform = lambda u: u ** (- 1 / CRRA) , # lambda u : u ** -1, #   CRRAutilityP_inv
+    v_der_transform_inv = lambda u : u ** (- CRRA), # lambda u: u ** -1 #  u ** - rho
     
     # Pre-computed points for the solution to this stage
     solution_points = xr.Dataset(
@@ -86,8 +86,8 @@ allocation_stage = Stage(
 
     v_transform = np.exp, # lambda c: CRRAutility_inv(c, CRRA),
     v_transform_inv = np.log, # lambda c : CRRAutility_inv(c, CRRA),
-    v_der_transform = lambda u: u ** -1 , #  CRRAutilityP_inv
-    v_der_transform_inv = lambda u : u ** -1, # u ** - rho
+    v_der_transform = lambda u: u ** (- 1 / CRRA) , # lambda u : u ** -1, #   CRRAutilityP_inv
+    v_der_transform_inv = lambda u : u ** (- CRRA), # lambda u: u ** -1 #  u ** - rho
 
     optimizer_args = {
         'method' : "trust-constr",
@@ -126,8 +126,8 @@ income_stage = Stage(
 
     v_transform = np.exp, # lambda c: CRRAutility_inv(c, CRRA),
     v_transform_inv = np.log, # lambda c : CRRAutility_inv(c, CRRA),
-    v_der_transform = lambda u: u ** -1 , #  CRRAutilityP_inv
-    v_der_transform_inv = lambda u : u ** -1, # u ** - rho
+    v_der_transform = lambda u: u ** (- 1 / CRRA) , # lambda u : u ** -1, #   CRRAutilityP_inv
+    v_der_transform_inv = lambda u : u ** (- CRRA), # lambda u: u ** -1 #  u ** - rho
 )
 
 
@@ -149,8 +149,8 @@ investing_stage = Stage(
 
     v_transform = np.exp, # lambda c: CRRAutility_inv(c, CRRA),
     v_transform_inv = np.log, # lambda c : CRRAutility_inv(c, CRRA),
-    v_der_transform = lambda u: u ** -1 , #  CRRAutilityP_inv
-    v_der_transform_inv = lambda u : u ** -1, # u ** - rho
+    v_der_transform = lambda u: u ** (- 1 / CRRA) , # lambda u : u ** -1, #   CRRAutilityP_inv
+    v_der_transform_inv = lambda u : u ** (- CRRA), # lambda u: u ** -1 #  u ** - rho
 )
 
 def labor_transition(x, k, a):
@@ -166,7 +166,7 @@ labor_stage = Stage(
         # 'live' : distribution.Bernoulli(p_live) ## Not implemented for now
     },
     outputs = ['m'],
-    discount = lambda x, k, a: (G * k['psi']) ** (1 - CRRA), # Check with CDC about G use here. CDC: ^(1 - rho); Seb: ^(rho - 1)
+    discount = lambda x, k, a:  (G * k['psi']) ** (1 - CRRA), # Check with CDC about G use here. CDC: ^(1 - rho); Seb: ^(rho - 1)
     reward_der = lambda x, k, a : 0,
 
     v_transform = np.exp, # lambda c: CRRAutility_inv(c, CRRA),
@@ -189,6 +189,6 @@ rfree_stage = Stage(
 
     v_transform = np.exp, # lambda c: CRRAutility_inv(c, CRRA),
     v_transform_inv = np.log, # lambda c : CRRAutility_inv(c, CRRA),
-    v_der_transform = lambda u: u ** -1 , #  CRRAutilityP_inv
-    v_der_transform_inv = lambda u : u ** -1, # u ** - rho
+    v_der_transform = lambda u: u ** (- 1 / CRRA) , # lambda u : u ** -1, #   CRRAutilityP_inv
+    v_der_transform_inv = lambda u : u ** (- CRRA), # lambda u: u ** -1 #  u ** - rho
 )
