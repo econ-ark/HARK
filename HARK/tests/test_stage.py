@@ -4,7 +4,7 @@ This file implements unit tests for abstract Bellman stage code.
 
 from typing import Any, Mapping
 import HARK.distribution as distribution
-from HARK.utilities import CRRAutility
+from HARK.rewards import CRRAutility
 from HARK.stage import Stage, simulate_stage
 import unittest
 
@@ -94,8 +94,9 @@ class testPortfolioConsumptionStages(unittest.TestCase):
 
         assert self.consumption_stage.q({'m' : 100}, {}, {'c' : 50}, v_y = consumption_v_y) < 0.000001
 
-        c_sol = self.consumption_stage.solve_v_x(
+        c_sol = self.consumption_stage.solve(
             {'m' : [0, 50, 100, 1000]},
+            {},
             {},
             consumption_v_y
             )
@@ -119,8 +120,9 @@ class testPortfolioConsumptionStages(unittest.TestCase):
             v_y = allocation_v_y
             )
 
-        a_sol = self.allocation_stage.solve_v_x(
+        a_sol = self.allocation_stage.solve(
             {'a' : [0, 50, 100, 1000]},
+            {},
             {},
             allocation_v_y
             )
@@ -149,18 +151,19 @@ class testPortfolioConsumptionStages(unittest.TestCase):
 
         q
 
-        g_sol = self.growth_stage.solve_v_x(
+        g_sol = self.growth_stage.solve(
             {'a' : [0, 500, 1000], 'alpha' : [0, 0.5, 1.0]},
+            {},
             {
                 'psi' : 4, 
                 'theta' : 4, 
                 'eta' : 4,
             # 'live' : [0, 1] 
             }, growth_v_y)
-
+        
         # simulate forward
         simulate_stage(
             self.growth_stage,
             {'a' : 5, 'alpha' : 0.5},
-            g_sol.pi_star
+            lambda x, k : None
             )
