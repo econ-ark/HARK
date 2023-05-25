@@ -171,7 +171,7 @@ labor_stage = Stage(
 
     v_transform = np.exp, # lambda c: CRRAutility_inv(c, CRRA),
     v_transform_inv = np.log, # lambda c : CRRAutility_inv(c, CRRA),
-    v_der_transform = lambda u: u ** (- 1 / CRRA) , # lambda u : u ** -1, #   CRRAutilityP_inv
+    v_der_transform = lambda u: u ** (- 1 / CRRA ) , # lambda u : u ** -1, #   CRRAutilityP_inv
     v_der_transform_inv = lambda u : u ** (- CRRA), # lambda u: u ** -1 #  u ** - rho
 )
 
