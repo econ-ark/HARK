@@ -15,6 +15,7 @@ import numpy as np
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolver,
     IndShockConsumerType,
+    init_idiosyncratic_shocks,
     init_lifecycle,
 )
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
@@ -23,23 +24,29 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
     init_portfolio,
 )
 from HARK.core import make_one_period_oo_solver
-from HARK.rewards import UtilityFuncStoneGeary
+from HARK.interpolation import (
+    LinearInterp,
+    MargMargValueFuncCRRA,
+    MargValueFuncCRRA,
+    ValueFuncCRRA,
+)
+from HARK.rewards import UtilityFuncCRRA, UtilityFuncStoneGeary
 
 
 class BequestWarmGlowConsumerType(IndShockConsumerType):
-    time_inv_ = IndShockConsumerType.time_inv_ + [
-        "TermBeqCRRA",
-        "TermBeqRelVal",
-        "TermBeqStoneGeary",
-    ]
+    # time_inv_ = IndShockConsumerType.time_inv_ + [
+    #     "TermBeqCRRA",
+    #     "TermBeqFac",
+    #     "TermBeqShift",
+    # ]
     time_vary_ = IndShockConsumerType.time_vary_ + [
         "BeqCRRA",
-        "BeqRelVal",
-        "BeqStoneGeary",
+        "BeqFac",
+        "BeqShift",
     ]
 
     def __init__(self, **kwds):
-        params = init_warm_glow.copy()
+        params = init_wealth_in_utility.copy()
         params.update(kwds)
 
         super().__init__(**params)
@@ -60,47 +67,64 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
                 "Bequest CRRA parameter must be a single value or a list of length T_cycle"
             )
 
-        if isinstance(self.BeqRelVal, (int, float)):
-            self.BeqRelVal = [self.BeqRelVal] * self.T_cycle
-        elif len(self.BeqRelVal) == 1:
-            self.BeqRelVal *= self.T_cycle
-        elif len(self.BeqRelVal) != self.T_cycle:
+        if isinstance(self.BeqFac, (int, float)):
+            self.BeqFac = [self.BeqFac] * self.T_cycle
+        elif len(self.BeqFac) == 1:
+            self.BeqFac *= self.T_cycle
+        elif len(self.BeqFac) != self.T_cycle:
             raise ValueError(
                 "Bequest relative value parameter must be a single value or a list of length T_cycle"
             )
 
-        if isinstance(self.BeqStoneGeary, (int, float)):
-            self.BeqStoneGeary = [self.BeqStoneGeary] * self.T_cycle
-        elif len(self.BeqStoneGeary) == 1:
-            self.BeqStoneGeary *= self.T_cycle
-        elif len(self.BeqStoneGeary) != self.T_cycle:
+        if isinstance(self.BeqShift, (int, float)):
+            self.BeqShift = [self.BeqShift] * self.T_cycle
+        elif len(self.BeqShift) == 1:
+            self.BeqShift *= self.T_cycle
+        elif len(self.BeqShift) != self.T_cycle:
             raise ValueError(
                 "Bequest Stone-Geary parameter must be a single value or a list of length T_cycle"
             )
 
     def update_solution_terminal(self):
-        if self.TermBeqRelVal == 0.0:  # No terminal bequest
+        if self.TermBeqFac == 0.0:  # No terminal bequest
             super().update_solution_terminal()
         else:
-            self.pseudo_terminal = True
-            DiscFacEff = self.TermBeqRelVal / self.DiscFac
-            TranShkMin = np.min(self.TranShkDstn[0].atoms)
-            StoneGearyEff = self.TermBeqStoneGeary - TranShkMin
+            utility = UtilityFuncCRRA(self.CRRA)
 
             warm_glow = UtilityFuncStoneGeary(
-                self.TermBeqCRRA, factor=DiscFacEff, shifter=StoneGearyEff
+                self.TermBeqCRRA, factor=self.TermBeqFac, shifter=self.TermBeqShift
             )
 
-            self.solution_terminal.cFunc = lambda m: m - TranShkMin
-            self.solution_terminal.vFunc = lambda m: warm_glow(m)
-            self.solution_terminal.vPfunc = lambda m: warm_glow.der(m)
-            self.solution_terminal.vPPfunc = lambda m: warm_glow.der(m, order=2)
-            self.solution_terminal.mNrmMin = np.maximum(TranShkMin, -StoneGearyEff)
+            aNrmGrid = (
+                np.append(0.0, self.aXtraGrid)
+                if self.TermBeqShift != 0.0
+                else self.aXtraGrid
+            )
+            cNrmGrid = utility.derinv(warm_glow.der(aNrmGrid))
+            vGrid = utility(cNrmGrid) + warm_glow(aNrmGrid)
+            cNrmGridW0 = np.append(0.0, cNrmGrid)
+            mNrmGridW0 = np.append(0.0, aNrmGrid + cNrmGrid)
+            vNvrsGridW0 = np.append(0.0, utility.inv(vGrid))
+
+            cFunc_term = LinearInterp(mNrmGridW0, cNrmGridW0)
+            vNvrsFunc_term = LinearInterp(mNrmGridW0, vNvrsGridW0)
+            vFunc_term = ValueFuncCRRA(vNvrsFunc_term, self.CRRA)
+            vPfunc_term = MargValueFuncCRRA(cFunc_term, self.CRRA)
+            vPPfunc_term = MargMargValueFuncCRRA(cFunc_term, self.CRRA)
+
+            self.solution_terminal.cFunc = cFunc_term
+            self.solution_terminal.vFunc = vFunc_term
+            self.solution_terminal.vPfunc = vPfunc_term
+            self.solution_terminal.vPPfunc = vPPfunc_term
+            self.solution_terminal.mNrmMin = 0.0
 
 
 class BequestWarmGlowPortfolioType(PortfolioConsumerType, BequestWarmGlowConsumerType):
     def __init__(self, **kwds):
-        super().__init__(**kwds)
+        params = init_portfolio_bequest.copy()
+        params.update(kwds)
+
+        super().__init__(**params)
 
         self.solve_one_period = make_one_period_oo_solver(
             BequestWarmGlowPortfolioSolver
@@ -126,12 +150,12 @@ class BequestWarmGlowConsumerSolver(ConsIndShockSolver):
         BoroCnstArt,
         aXtraGrid,
         BeqCRRA,
-        BeqRelVal,
-        BeqStoneGeary,
+        BeqFac,
+        BeqShift,
     ):
         self.BeqCRRA = BeqCRRA
-        self.BeqRelVal = BeqRelVal
-        self.BeqStoneGeary = BeqStoneGeary
+        self.BeqFac = BeqFac
+        self.BeqShift = BeqShift
         vFuncBool = False
         CubicBool = False
 
@@ -152,11 +176,9 @@ class BequestWarmGlowConsumerSolver(ConsIndShockSolver):
     def def_utility_funcs(self):
         super().def_utility_funcs()
 
-        BeqRelValEff = (1.0 - self.LivPrb) * self.BeqRelVal
+        BeqFacEff = (1.0 - self.LivPrb) * self.BeqFac
 
-        self.warm_glow = UtilityFuncStoneGeary(
-            self.BeqCRRA, BeqRelValEff, self.BeqStoneGeary
-        )
+        self.warm_glow = UtilityFuncStoneGeary(self.BeqCRRA, BeqFacEff, self.BeqShift)
 
     def calc_EndOfPrdvP(self):
         EndofPrdvP = super().calc_EndOfPrdvP()
@@ -182,12 +204,12 @@ class BequestWarmGlowPortfolioSolver(ConsPortfolioSolver):
         AdjustPrb,
         ShareLimit,
         BeqCRRA,
-        BeqRelVal,
-        BeqStoneGeary,
+        BeqFac,
+        BeqShift,
     ):
         self.BeqCRRA = BeqCRRA
-        self.BeqRelVal = BeqRelVal
-        self.BeqStoneGeary = BeqStoneGeary
+        self.BeqFac = BeqFac
+        self.BeqShift = BeqShift
         vFuncBool = False
         DiscreteShareBool = False
         IndepDstnBool = True
@@ -215,9 +237,7 @@ class BequestWarmGlowPortfolioSolver(ConsPortfolioSolver):
     def def_utility_funcs(self):
         super().def_utility_funcs()
 
-        self.warm_glow = UtilityFuncStoneGeary(
-            self.BeqCRRA, self.BeqRelVal, self.BeqStoneGeary
-        )
+        self.warm_glow = UtilityFuncStoneGeary(self.BeqCRRA, self.BeqFac, self.BeqShift)
 
     def calc_EndOfPrdvP(self):
         super().calc_EndOfPrdvP()
@@ -226,14 +246,21 @@ class BequestWarmGlowPortfolioSolver(ConsPortfolioSolver):
         self.EndOfPrddvdaNvrs = self.uPinv(self.EndOfPrddvda)
 
 
+init_wealth_in_utility = init_idiosyncratic_shocks.copy()
+init_wealth_in_utility["BeqCRRA"] = init_idiosyncratic_shocks["CRRA"]
+init_wealth_in_utility["BeqFac"] = 1.0
+init_wealth_in_utility["BeqShift"] = 0.0
+# init_wealth_in_utility["TermBeqCRRA"] = init_idiosyncratic_shocks["CRRA"]
+
 init_warm_glow = init_lifecycle.copy()
 init_warm_glow["TermBeqCRRA"] = init_lifecycle["CRRA"]
-init_warm_glow["TermBeqRelVal"] = 1.0
-init_warm_glow["TermBeqStoneGeary"] = 0.0
-init_warm_glow["BeqRelVal"] = 1.0  # Value of bequest relative to consumption
-init_warm_glow["BeqStoneGeary"] = 0.0  # Shifts the utility function
-init_warm_glow["BeqCRRA"] = init_lifecycle["CRRA"]
+init_warm_glow["TermBeqFac"] = 1.0
+init_warm_glow["TermBeqShift"] = 0.0
 
+init_accidental_bequest = init_warm_glow.copy()
+init_accidental_bequest["BeqFac"] = 1.0  # Value of bequest relative to consumption
+init_accidental_bequest["BeqShift"] = 0.0  # Shifts the utility function
+init_accidental_bequest["BeqCRRA"] = init_lifecycle["CRRA"]
 
-init_portfolio_bequest = init_warm_glow.copy()
+init_portfolio_bequest = init_accidental_bequest.copy()
 init_portfolio_bequest.update(init_portfolio)

@@ -27,7 +27,7 @@ from HARK.Calibration.Income.IncomeTools import (
 )
 from HARK.ConsumptionSaving.ConsBequestModel import (
     BequestWarmGlowConsumerType,
-    init_lifecycle,
+    init_warm_glow,
 )
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
@@ -64,7 +64,7 @@ liv_prb = parse_ssa_life_table(
 time_params = parse_time_params(age_birth=birth_age, age_death=death_age)
 
 # Update all the new parameters
-params = copy(init_lifecycle)
+params = copy(init_warm_glow)
 params.update(time_params)
 params.update(dist_params)
 params.update(income_params)
