@@ -43,6 +43,9 @@ source_suffix = [
 # HTML writer configuration
 html_theme = "pydata_sphinx_theme"
 
+# Use Econ-ARK URL to host the website
+html_baseurl = "https://docs.econ-ark.org"
+
 # sphinx.ext.intersphinx configuration
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
