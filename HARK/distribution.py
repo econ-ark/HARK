@@ -814,18 +814,39 @@ class DiscreteDistribution(Distribution):
         """
         return self.atoms.shape[:-1]
 
-    def draw_events(self, N: int) -> np.ndarray:
+    def draw_events(self, N: int,
+                    exact_match: bool = False):
         """
         Draws N 'events' from the distribution PMF.
         These events are indices into atoms.
         """
-        # Generate a cumulative distribution
-        base_draws = self._rng.uniform(size=N)
-        cum_dist = np.cumsum(self.pmv)
+     
+        if exact_match == True :            
+            
+            events = np.arange(self.pmv.size)  # just a list of integers
+            cutoffs = np.round(np.cumsum(self.pmv) * N).astype(
+                int
+            )  # cutoff points between discrete outcomes
+            top = 0
 
-        # Convert the basic uniform draws into discrete draws
-        indices = cum_dist.searchsorted(base_draws)
+            # Make a list of event indices that closely matches the discrete distribution
+            event_list = []
+            for j in range(events.size):
+                bot = top
+                top = cutoffs[j]
+                event_list += (top - bot) * [events[j]]
 
+            # Randomly permute the event indices
+            indices = self._rng.permutation(event_list)
+            
+        else:
+            # Generate a cumulative distribution
+            base_draws = self._rng.uniform(size=N)
+            cum_dist = np.cumsum(self.pmv)
+
+            # Convert the basic uniform draws into discrete draws
+            indices = cum_dist.searchsorted(base_draws)
+            
         return indices
 
     def draw(

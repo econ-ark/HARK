@@ -2235,6 +2235,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 dstn.reset()
 
     def get_shocks(self):
+        
         """
         Gets permanent and transitory income shocks for this period.  Samples from IncShkDstn for
         each period in the cycle.
@@ -2248,144 +2249,114 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
+        
         NewbornTransShk = (
             self.NewbornTransShk
         )  # Whether Newborns have transitory shock. The default is False.
 
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
+        
         newborn = self.t_age == 0
         
+        if self.reshuffle ==True: # when true permanent, transitory, and  unemployment shocks are perfectly distributed across population
         
-        if self.reshuffle == False:
-            
-            for t in range(self.T_cycle):
-                these = t == self.t_cycle
-    
-                # temporary, see #1022
-                if self.cycles == 1:
-                    t = t - 1
-    
-                N = np.sum(these)
-                if N > 0:
-                    # set current income distribution
-                    IncShkDstnNow = self.IncShkDstn[t]
-                    # and permanent growth factor
-                    PermGroFacNow = self.PermGroFac[t]
-                    # Get random draws of income shocks from the discrete distribution
-                    IncShks = IncShkDstnNow.draw(N)
-    
-                    PermShkNow[these] = (
-                        IncShks[0, :] * PermGroFacNow
-                    )  # permanent "shock" includes expected growth
-                    TranShkNow[these] = IncShks[1, :]
-    
-            # That procedure used the *last* period in the sequence for newborns, but that's not right
-            # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
-            N = np.sum(newborn)
-            if N > 0:
-                these = newborn
-                # set current income distribution
-                IncShkDstnNow = self.IncShkDstn[0]
-                PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
-    
-                # Get random draws of income shocks from the discrete distribution
-                EventDraws = IncShkDstnNow.draw_events(N)
-                PermShkNow[these] = (
-                    IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
-                )  # permanent "shock" includes expected growth
-                TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
-            #        PermShkNow[newborn] = 1.0
-            #  Whether Newborns have transitory shock. The default is False.
-            if not NewbornTransShk:
-                TranShkNow[newborn] = 1.0
-        else:
-            
-            not_newborn = self.t_age != 0
-            
             def get_mult_fac(prb):
                 i = 0
                 while isinstance(prb,float):
                     prb = prb*10
                     i += 1
-                    if (abs(prb - round(prb)))<(1e-10):
+                    if ( abs(prb - round(prb)) )<(1e-10):
                         break
-                        
                 return i
             
             if self.UnempPrb>0:
-                potential_fac = 1/self.UnempPrb
-            else:
-                potential_fac = 1.0
                 
-            if (potential_fac).is_integer() ==True:
-                fac = potential_fac
+                potential_fac = 1/self.UnempPrb
+                
+                if (potential_fac).is_integer() ==True:
+                    fac = potential_fac
+                else:
+                    i_1 = get_mult_fac(self.UnempPrb)
+                    fac = 10**i_1
             else:
-                i_1 = get_mult_fac(self.UnempPrb)
-                fac = 10**i_1
+                fac = 1.0
+                
+                
+            lcm = (self.PermShkCount * self.TranShkCount) * fac # minimum multiple for both the newborns and and oldborns individuals
+            if (self.AgentCount/lcm).is_integer() == False: # check if Agentcount is appropriate to implement reshuffling
+                raise Exception("AgentCount must be a multiple of " + str( lcm))
+                
             
             def check_and_convert_to_int(val):
             
                 if abs(round(val) - val) < 1e-6:
                     return abs(round(val))
-                
-            lcm = (self.PermShkCount * self.TranShkCount) * fac # minimum multiple for both the newborns and and oldborns individuals
-            
-            
-            
-            if (self.AgentCount/lcm).is_integer() == False: # check if Agentcount is appropriate to implement reshuffling
-                raise Exception("AgentCount must be a multiple of " + str( lcm))
-                
-        
+                    
             if self.perf_reshuffle == True: # when true, permanent and transitory shocks are evenly distributed across newborns, and non newborns.
                 Min_AgentCount = check_and_convert_to_int(lcm/(1-self.LivPrb[0])) # total number of agents
                 if (self.AgentCount/Min_AgentCount).is_integer() == False: # check if Agentcount is appropriate to implement perfect reshuffling
                     raise Exception("AgentCount must be a multiple of" +str(Min_AgentCount))
         
-        
-        
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
 
-            for t in range(self.T_cycle):
-                these = t == self.t_cycle
-    
-                # temporary, see #1022
-                if self.cycles == 1:
-                    t = t - 1
-                    
-                not_newborn_and_t = np.logical_and(not_newborn, these)
-    
-                N = np.sum(not_newborn_and_t)
-    
-                if N > 0:
-                    # set current income distribution
-                    IncShkDstnNow = self.IncShkDstn[t]
-                    # and permanent growth factor
-                    PermGroFacNow = self.PermGroFac[t]
-                    # Get random draws of income shocks from the discrete distribution
-                    IncShks = IncShkDstnNow.draw(N , exact_match = self.reshuffle)
-                 
-                    PermShkNow[not_newborn_and_t] = (
-                        IncShks[0, :] * PermGroFacNow
-                    )  # permanent "shock" includes expected growth
-                    TranShkNow[not_newborn_and_t] = IncShks[1, :]
-                    
-            # That procedure used the *last* period in the sequence for newborns, but that's not right
-            # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
-            N = np.sum(newborn)
+            # temporary, see #1022
+            if self.cycles == 1:
+                t = t - 1
+                
+                
+            if self.reshuffle ==True:
+                not_newborn = self.t_age != 0
+                these = np.logical_and(not_newborn, these) 
+        
+            N = np.sum(these)
+
+            if N > 0:
+                # set current income distribution
+                IncShkDstnNow = self.IncShkDstn[t]
+                # and permanent growth factor
+                PermGroFacNow = self.PermGroFac[t]
+                # Get random draws of income shocks from the discrete distribution
+                IncShks = IncShkDstnNow.draw(N , exact_match = self.reshuffle)
            
-            IncShks_newborn = IncShkDstnNow.draw(N , exact_match = self.reshuffle)
-    
-            PermShkNow[newborn] = (
-                IncShks_newborn[0, :] * PermGroFacNow
+                PermShkNow[these] = (
+                    IncShks[0, :] * PermGroFacNow
+                )  # permanent "shock" includes expected growth
+                TranShkNow[these] = IncShks[1, :]
+                
+        # That procedure used the *last* period in the sequence for newborns, but that's not right
+        # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
+        N = np.sum(newborn)
+        if N > 0:
+            these = newborn
+            # set current income distribution
+            IncShkDstnNow= self.IncShkDstn[0]
+
+            PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
+            
+            # Get random draws of income shocks from the discrete distribution
+            EventDraws = IncShkDstnNow.draw_events(N,exact_match = self.reshuffle)
+            #EventDraws = IncShkDstnNow.draw(N,exact_match = self.reshuffle)
+            
+            PermShkNow[these] = (
+                IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
             )  # permanent "shock" includes expected growth
-            TranShkNow[newborn] = IncShks_newborn[1, :]
-
-
+            TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
+            
+            
+        #        PermShkNow[newborn] = 1.0
+        #  Whether Newborns have transitory shock. The default is False.
+        if not NewbornTransShk:
+            TranShkNow[newborn] = 1.0
+        
+        
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount, dtype=bool)
         self.EmpNow[TranShkNow == self.IncUnemp] = False
         self.shocks["PermShk"] = PermShkNow
         self.shocks["TranShk"] = TranShkNow
+    
 
     def calc_bounding_values(self):
         """
