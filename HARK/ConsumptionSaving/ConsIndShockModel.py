@@ -1557,7 +1557,7 @@ init_perfect_foresight = {
     "PerfMITShk": False,
     # Do Perfect Foresight MIT Shock: Forces Newborns to follow solution path of the agent he/she replaced when True
     "reshuffle": False, # Whether to use reshuffling method for Monte Carlo Simulation
-
+    "perf_reshuffle": False, #reshuffle must be set to true to use this. Whether to have reshuffling method be perfectly across both newborns and nonnewborns. 
 }
 
 
@@ -2293,7 +2293,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 if abs(round(val) - val) < 1e-6:
                     return abs(round(val))
                     
-            if self.perf_reshuffle == True: # when true, permanent and transitory shocks are evenly distributed across newborns, and non newborns.
+            if self.perf_reshuffle == True: # when true, permanent and transitory shocks are evenly distributed across both newborns and non newborns.
                 Min_AgentCount = check_and_convert_to_int(lcm/(1-self.LivPrb[0])) # total number of agents
                 if (self.AgentCount/Min_AgentCount).is_integer() == False: # check if Agentcount is appropriate to implement perfect reshuffling
                     raise Exception("AgentCount must be a multiple of" +str(Min_AgentCount))
@@ -2331,8 +2331,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if N > 0:
             these = newborn
             # set current income distribution
-            IncShkDstnNow= self.IncShkDstn[0]
-
+            IncShkDstnNow = self.IncShkDstn[0]
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
             
             # Get random draws of income shocks from the discrete distribution
@@ -2345,7 +2344,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
             
             
-        #        PermShkNow[newborn] = 1.0
+        # PermShkNow[newborn] = 1.0
         #  Whether Newborns have transitory shock. The default is False.
         if not NewbornTransShk:
             TranShkNow[newborn] = 1.0
