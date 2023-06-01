@@ -922,3 +922,32 @@ class test_Jacobian_methods(unittest.TestCase):
         self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.06120, places=HARK_PRECISION)
         self.assertAlmostEqual(CJAC_Perm.T[30][30], 0.05307, places=HARK_PRECISION)
         self.assertAlmostEqual(CJAC_Perm.T[30][31], 0.04674, places=HARK_PRECISION)
+
+#%%  Test Reshuffling Monte Carlo Simulation Methods
+
+
+class test_reshuffling_methods(unittest.TestCase):
+    def test_reshuffling(self):
+        
+        dict_harmenberg['UnempPrb'] = .1
+        dict_harmenberg['T_sim'] = 500
+        dict_harmenberg['reshuffle'] = True
+        Agent = IndShockConsumerType(**dict_harmenberg)
+        Agent.solve()
+        
+        Agent.neutral_measure = True
+        Agent.update_income_process()
+      
+        Agent.initialize_sim()
+        Agent.simulate()
+        
+        Agg_A = []
+        for t in range(Agent.T_sim):
+            A = np.mean(Agent.history['aNrm'][t])
+        
+            Agg_A.append(A)
+            
+        Agg_A = np.array(Agg_A) 
+        
+
+        self.assertAlmostEqual(np.var(Agg_A[100:]),2.338245625592009e-06, places=HARK_PRECISION)
