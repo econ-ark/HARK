@@ -933,6 +933,7 @@ class test_reshuffling_methods(unittest.TestCase):
         dict_harmenberg['T_sim'] = 500
         dict_harmenberg['reshuffle'] = True
         Agent = IndShockConsumerType(**dict_harmenberg)
+        Agent.track_vars = ['aNrm']
         Agent.solve()
         
         Agent.neutral_measure = True
