@@ -2293,10 +2293,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 if abs(round(val) - val) < 1e-6:
                     return abs(round(val))
                     
-            if self.perf_reshuffle == True: # when true, permanent and transitory shocks are evenly distributed across both newborns and non newborns.
+            if self.perf_reshuffle == True:# when true, permanent and transitory shocks are evenly distributed across both newborns and non newborns.
                 Min_AgentCount = check_and_convert_to_int(lcm/(1-self.LivPrb[0])) # total number of agents
                 if (self.AgentCount/Min_AgentCount).is_integer() == False: # check if Agentcount is appropriate to implement perfect reshuffling
-                    raise Exception("AgentCount must be a multiple of" +str(Min_AgentCount))
+                    raise Exception("AgentCount must be a multiple of " +str(Min_AgentCount))
         
         for t in range(self.T_cycle):
             these = t == self.t_cycle
@@ -2306,7 +2306,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 t = t - 1
                 
                 
-            if self.reshuffle ==True:
+            if self.reshuffle == True:
                 not_newborn = self.t_age != 0
                 these = np.logical_and(not_newborn, these) 
         

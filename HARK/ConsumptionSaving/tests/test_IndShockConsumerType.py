@@ -939,6 +939,7 @@ class test_reshuffling_methods(unittest.TestCase):
         Agent.neutral_measure = True
         Agent.update_income_process()
       
+        Agent.perf_reshuffle = False
         Agent.initialize_sim()
         Agent.simulate()
         
@@ -958,11 +959,12 @@ class test_reshuffling_methods(unittest.TestCase):
         dict_harmenberg['UnempPrb'] = .1
         dict_harmenberg['T_sim'] = 500
         dict_harmenberg['reshuffle'] = True
-        dict_harmenberg['perf_reshuffle'] = True
+        
         Agent = IndShockConsumerType(**dict_harmenberg)
         Agent.track_vars = ['aNrm']
         Agent.solve()
         
+        Agent.perf_reshuffle = True
         Agent.AgentCount  = 40000
 
 
