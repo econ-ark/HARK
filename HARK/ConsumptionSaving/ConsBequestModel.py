@@ -21,10 +21,13 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     ConsPortfolioSolver,
     PortfolioConsumerType,
+    PortfolioSolution,
     init_portfolio,
 )
 from HARK.core import make_one_period_oo_solver
 from HARK.interpolation import (
+    ConstantFunction,
+    IdentityFunction,
     LinearInterp,
     MargMargValueFuncCRRA,
     MargValueFuncCRRA,
@@ -34,11 +37,6 @@ from HARK.rewards import UtilityFuncCRRA, UtilityFuncStoneGeary
 
 
 class BequestWarmGlowConsumerType(IndShockConsumerType):
-    # time_inv_ = IndShockConsumerType.time_inv_ + [
-    #     "TermBeqCRRA",
-    #     "TermBeqFac",
-    #     "TermBeqShift",
-    # ]
     time_vary_ = IndShockConsumerType.time_vary_ + [
         "BeqCRRA",
         "BeqFac",
@@ -124,6 +122,8 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType, BequestWarmGlowConsume
         params = init_portfolio_bequest.copy()
         params.update(kwds)
 
+        self.IndepDstnBool = True
+
         super().__init__(**params)
 
         self.solve_one_period = make_one_period_oo_solver(
@@ -131,10 +131,42 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType, BequestWarmGlowConsume
         )
 
     def update(self):
-        return BequestWarmGlowConsumerType.update(self)
+        PortfolioConsumerType.update(self)
+        self.update_parameters()
 
     def update_solution_terminal(self):
-        return BequestWarmGlowConsumerType.update_solution_terminal(self)
+        BequestWarmGlowConsumerType.update_solution_terminal(self)
+
+        # Consume all market resources: c_T = m_T
+        cFuncAdj_terminal = self.solution_terminal.cFunc
+        cFuncFxd_terminal = lambda m, s: self.solution_terminal.cFunc(m)
+
+        # Risky share is irrelevant-- no end-of-period assets; set to zero
+        ShareFuncAdj_terminal = ConstantFunction(0.0)
+        ShareFuncFxd_terminal = IdentityFunction(i_dim=1, n_dims=2)
+
+        # Value function is simply utility from consuming market resources
+        vFuncAdj_terminal = self.solution_terminal.vFunc
+        vFuncFxd_terminal = lambda m, s: self.solution_terminal.vFunc(m)
+
+        # Marginal value of market resources is marg utility at the consumption function
+        vPfuncAdj_terminal = self.solution_terminal.vPfunc
+        dvdmFuncFxd_terminal = lambda m, s: self.solution_terminal.vPfunc(m)
+        # No future, no marg value of Share
+        dvdsFuncFxd_terminal = ConstantFunction(0.0)
+
+        # Construct the terminal period solution
+        self.solution_terminal = PortfolioSolution(
+            cFuncAdj=cFuncAdj_terminal,
+            ShareFuncAdj=ShareFuncAdj_terminal,
+            vFuncAdj=vFuncAdj_terminal,
+            vPfuncAdj=vPfuncAdj_terminal,
+            cFuncFxd=cFuncFxd_terminal,
+            ShareFuncFxd=ShareFuncFxd_terminal,
+            vFuncFxd=vFuncFxd_terminal,
+            dvdmFuncFxd=dvdmFuncFxd_terminal,
+            dvdsFuncFxd=dvdsFuncFxd_terminal,
+        )
 
 
 class BequestWarmGlowConsumerSolver(ConsIndShockSolver):
@@ -250,7 +282,9 @@ init_wealth_in_utility = init_idiosyncratic_shocks.copy()
 init_wealth_in_utility["BeqCRRA"] = init_idiosyncratic_shocks["CRRA"]
 init_wealth_in_utility["BeqFac"] = 1.0
 init_wealth_in_utility["BeqShift"] = 0.0
-# init_wealth_in_utility["TermBeqCRRA"] = init_idiosyncratic_shocks["CRRA"]
+init_wealth_in_utility["TermBeqCRRA"] = init_idiosyncratic_shocks["CRRA"]
+init_wealth_in_utility["TermBeqFac"] = 0.0  # ignore bequest motive in terminal period
+init_wealth_in_utility["TermBeqShift"] = 0.0
 
 init_warm_glow = init_lifecycle.copy()
 init_warm_glow["TermBeqCRRA"] = init_lifecycle["CRRA"]
