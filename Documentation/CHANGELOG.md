@@ -15,6 +15,7 @@ Release Date: TBD
 ### Major Changes
 
 - Adds `HARK.core.AgentPopulation` class to represent a population of agents with ex-ante heterogeneous parametrizations as distributions. [#1237](https://github.com/econ-ark/HARK/pull/1237)
+- Adds methods to improve efficiency of Monte Carlo simulations. [#1244] (https://github.com/econ-ark/HARK/pull/1244)
 
 ### Minor Changes
 
