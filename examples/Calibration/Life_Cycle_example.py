@@ -5,10 +5,10 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
-#       format_version: '1.2'
-#       jupytext_version: 1.2.4
+#       format_version: '1.3'
+#       jupytext_version: 1.14.5
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: Python 3 (ipykernel)
 #     language: python
 #     name: python3
 # ---
@@ -30,6 +30,7 @@ from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_
 import matplotlib.pyplot as plt
 import pandas as pd
 from copy import copy
+from HARK.utilities import plot_funcs
 
 # %% Alter calibration
 birth_age = 25
@@ -72,8 +73,13 @@ params.update({"LivPrb": liv_prb})
 Agent = IndShockConsumerType(**params)
 Agent.solve()
 
-# %% Simulation
+# %%
+Agent.unpack("cFunc")
+# Plot the consumption functions
+print("Consumption functions")
+plot_funcs(Agent.cFunc, 0, 5)
 
+# %% Simulation
 # Number of agents and periods in the simulation.
 Agent.AgentCount = 500
 Agent.T_sim = 200
@@ -86,7 +92,6 @@ Agent.initialize_sim()
 Agent.simulate()
 
 # %% Extract and format simulation results
-
 raw_data = {
     "Age": Agent.history["t_age"].flatten() + birth_age - 1,
     "pIncome": Agent.history["pLvl"].flatten(),
@@ -99,7 +104,6 @@ Data["Cons"] = Data.nrmC * Data.pIncome
 Data["M"] = Data.nrmM * Data.pIncome
 
 # %% Plots
-
 # Find the mean of each variable at every age
 AgeMeans = Data.groupby(["Age"]).median().reset_index()
 

@@ -1,41 +1,44 @@
 """
 Consumption-saving models that also include medical spending.
 """
+from copy import deepcopy
+
 import numpy as np
 from scipy.optimize import brentq
-from HARK import  AgentType, MetricObject, make_one_period_oo_solver
-from HARK.distribution import add_discrete_outcome_constant_mean, Lognormal
-from HARK.utilities import (
-    CRRAutilityP_inv,
-    CRRAutility,
-    CRRAutility_inv,
-    CRRAutility_invP,
-    CRRAutilityPP,
-    make_grid_exp_mult,
-    NullFunc,
-)
-from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
-from HARK.interpolation import (
-    BilinearInterpOnInterp1D,
-    TrilinearInterp,
-    BilinearInterp,
-    CubicInterp,
-    LinearInterp,
-    LowerEnvelope3D,
-    UpperEnvelope,
-    LinearInterpOnInterp1D,
-    VariableLowerBoundFunc3D,
-    ValueFuncCRRA,
-    MargValueFuncCRRA,
-    MargMargValueFuncCRRA
-)
+
+from HARK import AgentType, make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     ConsGenIncProcessSolver,
     PersistentShockConsumerType,
     VariableLowerBoundFunc2D,
     init_persistent_shocks,
 )
-from copy import deepcopy
+from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
+from HARK.distribution import Lognormal, add_discrete_outcome_constant_mean
+from HARK.interpolation import (
+    BilinearInterp,
+    BilinearInterpOnInterp1D,
+    CubicInterp,
+    LinearInterp,
+    LinearInterpOnInterp1D,
+    LowerEnvelope3D,
+    MargMargValueFuncCRRA,
+    MargValueFuncCRRA,
+    TrilinearInterp,
+    UpperEnvelope,
+    ValueFuncCRRA,
+    VariableLowerBoundFunc3D,
+)
+from HARK.metric import MetricObject
+from HARK.rewards import (
+    CRRAutility,
+    CRRAutility_inv,
+    CRRAutility_invP,
+    CRRAutilityP_inv,
+    CRRAutilityPP,
+    UtilityFuncCRRA,
+)
+from HARK.utilities import NullFunc, make_grid_exp_mult
 
 __all__ = [
     "MedShockPolicyFunc",
@@ -111,12 +114,14 @@ class MedShockPolicyFunc(MetricObject):
                 elif MedShk == 0:  # All consumption when MedShk = 0
                     cLvl = xLvl
                 else:
-                    optMedZeroFunc = (
-                        lambda c: (MedShk / MedPrice) ** (-1.0 / CRRAcon)
-                        * ((xLvl - c) / MedPrice) ** (CRRAmed / CRRAcon)
-                        - c
-                    )
-                    cLvl = brentq(optMedZeroFunc, 0.0, xLvl)  # Find solution to FOC
+
+                    def optMedZeroFunc(c):
+                        return (MedShk / MedPrice) ** (-1.0 / CRRAcon) * (
+                            (xLvl - c) / MedPrice
+                        ) ** (CRRAmed / CRRAcon) - c
+
+                    # Find solution to FOC
+                    cLvl = brentq(optMedZeroFunc, 0.0, xLvl)
                 cLvlGrid[i, j] = cLvl
 
         # Construct the consumption function and medical care function
@@ -137,7 +142,8 @@ class MedShockPolicyFunc(MetricObject):
                     ** (CRRAmed / CRRAcon - 1.0)
                 )
                 dcdx = dfdx / (dfdx + 1.0)
-                dcdx[0, :] = dcdx[1, :]  # approximation; function goes crazy otherwise
+                # approximation; function goes crazy otherwise
+                dcdx[0, :] = dcdx[1, :]
                 dcdx[:, 0] = 1.0  # no Med when MedShk=0, so all x is c
                 cFromxFunc_by_MedShk = []
                 for j in range(MedShkGrid.size):
@@ -569,7 +575,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
     """
 
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShk"]
-    state_vars = PersistentShockConsumerType.state_vars + ['mLvl']
+    state_vars = PersistentShockConsumerType.state_vars + ["mLvl"]
 
     def __init__(self, **kwds):
         params = init_medical_shocks.copy()
@@ -619,12 +625,16 @@ class MedShockConsumerType(PersistentShockConsumerType):
         """
         MedShkDstn = []  # empty list for medical shock distribution each period
         for t in range(self.T_cycle):
-            MedShkAvgNow = self.MedShkAvg[t]  # get shock distribution parameters
+            # get shock distribution parameters
+            MedShkAvgNow = self.MedShkAvg[t]
             MedShkStdNow = self.MedShkStd[t]
             MedShkDstnNow = Lognormal(
-                mu=np.log(MedShkAvgNow) - 0.5 * MedShkStdNow ** 2, sigma=MedShkStdNow
-            ).approx(
-                N=self.MedShkCount, tail_N=self.MedShkCountTail, tail_bound=[0, 0.9]
+                mu=np.log(MedShkAvgNow) - 0.5 * MedShkStdNow**2, sigma=MedShkStdNow
+            ).discretize(
+                N=self.MedShkCount,
+                method="equiprobable",
+                tail_N=self.MedShkCountTail,
+                tail_bound=[0, 0.9],
             )
             MedShkDstnNow = add_discrete_outcome_constant_mean(
                 MedShkDstnNow, 0.0, 0.0, sort=True
@@ -649,8 +659,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         """
         # Take last period data, whichever way time is flowing
         MedPrice = self.MedPrice[-1]
-        MedShkVals = self.MedShkDstn[-1].X
-        MedShkPrbs = self.MedShkDstn[-1].pmf
+        MedShkVals = self.MedShkDstn[-1].atoms.flatten()
+        MedShkPrbs = self.MedShkDstn[-1].pmv
 
         # Initialize grids of medical need shocks, market resources, and optimal consumption
         MedShkGrid = MedShkVals
@@ -715,20 +725,20 @@ class MedShockConsumerType(PersistentShockConsumerType):
         vPPfunc_terminal = MargMargValueFuncCRRA(vPnvrsFunc, self.CRRA)
 
         # Integrate value across shocks to get expected value
-        vGrid = utility(cLvlGrid, gam=self.CRRA) + MedShkGrid_tiled * utility(
-            MedGrid, gam=self.CRRAmed
+        vGrid = utility(cLvlGrid, rho=self.CRRA) + MedShkGrid_tiled * utility(
+            MedGrid, rho=self.CRRAmed
         )
         vGrid[:, 0] = utility(
-            cLvlGrid[:, 0], gam=self.CRRA
+            cLvlGrid[:, 0], rho=self.CRRA
         )  # correct for issue when MedShk=0
         vGrid[np.isinf(vGrid)] = 0.0  # correct for issue at bottom edges
         v_expected = np.sum(vGrid * PrbGrid, axis=1)
 
         # Construct the value function for the terminal period
-        vNvrs = utility_inv(v_expected, gam=self.CRRA)
+        vNvrs = utility_inv(v_expected, rho=self.CRRA)
         vNvrs[0] = 0.0
         vNvrsP = vP_expected * utility_invP(
-            v_expected, gam=self.CRRA
+            v_expected, rho=self.CRRA
         )  # NEED TO FIGURE OUT MPC MAX IN THIS MODEL
         vNvrsP[0] = 0.0
         tempFunc = CubicInterp(mLvlGrid, vNvrs, vNvrsP)
@@ -812,7 +822,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
             self
         )  # Get permanent and transitory income shocks
         MedShkNow = np.zeros(self.AgentCount)  # Initialize medical shock array
-        MedPriceNow = np.zeros(self.AgentCount)  # Initialize relative price array
+        # Initialize relative price array
+        MedPriceNow = np.zeros(self.AgentCount)
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             N = np.sum(these)
@@ -840,12 +851,12 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cLvlNow[these], MedNow[these] = self.solution[t].policyFunc(
-                self.state_now['mLvl'][these],
-                self.state_now['pLvl'][these],
+                self.state_now["mLvl"][these],
+                self.state_now["pLvl"][these],
                 self.shocks["MedShk"][these],
             )
-        self.controls['cLvl'] = cLvlNow
-        self.controls['Med'] = MedNow
+        self.controls["cLvl"] = cLvlNow
+        self.controls["Med"] = MedNow
         return None
 
     def get_poststates(self):
@@ -860,7 +871,11 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        self.state_now['aLvl'] = self.state_now['mLvl'] - self.controls['cLvl'] - self.shocks["MedPrice"] * self.controls['Med']
+        self.state_now["aLvl"] = (
+            self.state_now["mLvl"]
+            - self.controls["cLvl"]
+            - self.shocks["MedPrice"] * self.controls["Med"]
+        )
 
         # moves now to prev
         AgentType.get_poststates(self)
@@ -887,7 +902,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         and the one immediately following (in solution_next).
     MedShkDstn : distribution.Distribution
         Discrete distribution of the multiplicative utility shifter for med-
-        ical care. 
+        ical care.
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -992,8 +1007,8 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         )
 
         # Also unpack the medical shock distribution
-        self.MedShkPrbs = self.MedShkDstn.pmf
-        self.MedShkVals = self.MedShkDstn.X
+        self.MedShkPrbs = self.MedShkDstn.pmv
+        self.MedShkVals = self.MedShkDstn.atoms.flatten()
 
     def def_utility_funcs(self):
         """
@@ -1011,9 +1026,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         none
         """
         ConsGenIncProcessSolver.def_utility_funcs(self)  # Do basic version
-        self.uMedPinv = lambda Med: utilityP_inv(Med, gam=self.CRRAmed)
-        self.uMed = lambda Med: utility(Med, gam=self.CRRAmed)
-        self.uMedPP = lambda Med: utilityPP(Med, gam=self.CRRAmed)
+        self.uMed = UtilityFuncCRRA(self.CRRAmed)
 
     def def_BoroCnst(self, BoroCnstArt):
         """
@@ -1097,10 +1110,14 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
 
         # Calculate endogenous gridpoints and controls
         cLvlNow = np.tile(
-            np.reshape(self.uPinv(EndOfPrdvP), (1, pCount, mCount)), (MedCount, 1, 1)
+            np.reshape(self.u.derinv(EndOfPrdvP, order=(1, 0)), (1, pCount, mCount)),
+            (MedCount, 1, 1),
         )
         MedBaseNow = np.tile(
-            np.reshape(self.uMedPinv(self.MedPrice * EndOfPrdvP), (1, pCount, mCount)),
+            np.reshape(
+                self.uMed.derinv(self.MedPrice * EndOfPrdvP, order=(1, 0)),
+                (1, pCount, mCount),
+            ),
             (MedCount, 1, 1),
         )
         MedShkVals_tiled = np.tile(
@@ -1261,17 +1278,19 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             vNow = np.sum(vGrid * probsGrid, axis=2)
 
         # Calculate expected marginal value by "integrating" across medical shocks
-        vPgrid = self.uP(cGrid)
+        vPgrid = self.u.der(cGrid)
         vPnow = np.sum(vPgrid * probsGrid, axis=2)
 
         # Add vPnvrs=0 at m=mLvlMin to close it off at the bottom (and vNvrs=0)
         mGrid_small = np.concatenate(
             (np.reshape(self.mLvlMinNow(self.pLvlGrid), (1, pCount)), mGrid[:, :, 0])
         )
-        vPnvrsNow = np.concatenate((np.zeros((1, pCount)), self.uPinv(vPnow)))
+        vPnvrsNow = np.concatenate(
+            (np.zeros((1, pCount)), self.u.derinv(vPnow, order=(1, 0)))
+        )
         if self.vFuncBool:
-            vNvrsNow = np.concatenate((np.zeros((1, pCount)), self.uinv(vNow)), axis=0)
-            vNvrsPnow = vPnow * self.uinvP(vNow)
+            vNvrsNow = np.concatenate((np.zeros((1, pCount)), self.u.inv(vNow)), axis=0)
+            vNvrsPnow = vPnow * self.u.derinv(vNow, order=(0, 1))
             vNvrsPnow = np.concatenate((np.zeros((1, pCount)), vNvrsPnow), axis=0)
 
         # Construct the pseudo-inverse value and marginal value functions over mLvl,pLvl
@@ -1395,8 +1414,10 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         EndOfPrdvPP = np.tile(
             np.reshape(EndOfPrdvPP, (1, pCount, EndOfPrdvPP.shape[1])), (MedCount, 1, 1)
         )
-        dcda = EndOfPrdvPP / self.uPP(np.array(self.cLvlNow))
-        dMedda = EndOfPrdvPP / (self.MedShkVals_tiled * self.uMedPP(self.MedLvlNow))
+        dcda = EndOfPrdvPP / self.u.der(np.array(self.cLvlNow), order=2)
+        dMedda = EndOfPrdvPP / (
+            self.MedShkVals_tiled * self.uMed.der(self.MedLvlNow, order=2)
+        )
         dMedda[0, :, :] = 0.0  # dMedda goes crazy when MedShk=0
         MPC = dcda / (1.0 + dcda + self.MedPrice * dMedda)
         MPM = dMedda / (1.0 + dcda + self.MedPrice * dMedda)

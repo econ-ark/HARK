@@ -1,4 +1,8 @@
 import copy
+import unittest
+
+import numpy as np
+
 from HARK import distribute_params
 from HARK.ConsumptionSaving.ConsAggShockModel import (
     AggShockConsumerType,
@@ -6,8 +10,6 @@ from HARK.ConsumptionSaving.ConsAggShockModel import (
     init_cobb_douglas,
 )
 from HARK.distribution import Uniform
-import numpy as np
-import unittest
 
 
 class testSmallOpenEconomy(unittest.TestCase):

@@ -9,25 +9,26 @@ productivity shocks.  Agents choose their quantities of labor and consumption af
 observing both of these shocks, so the transitory shock is a state variable.
 """
 import sys
-
 from copy import copy
+
+import matplotlib.pyplot as plt
 import numpy as np
-from HARK.core import MetricObject
-from HARK.utilities import CRRAutilityP, CRRAutilityP_inv
-from HARK.interpolation import (
-    LinearInterp,
-    LinearInterpOnInterp1D,
-    VariableLowerBoundFunc2D,
-    BilinearInterp,
-    ConstantFunction,
-    ValueFuncCRRA, MargValueFuncCRRA
-)
+
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_idiosyncratic_shocks,
 )
-
-import matplotlib.pyplot as plt
+from HARK.interpolation import (
+    BilinearInterp,
+    ConstantFunction,
+    LinearInterp,
+    LinearInterpOnInterp1D,
+    MargValueFuncCRRA,
+    ValueFuncCRRA,
+    VariableLowerBoundFunc2D,
+)
+from HARK.metric import MetricObject
+from HARK.rewards import CRRAutilityP, CRRAutilityP_inv
 
 
 class ConsumerLaborSolution(MetricObject):
@@ -158,13 +159,15 @@ def solve_ConsLaborIntMarg(
 
     # Unpack next period's solution and the productivity shock distribution, and define the inverse (marginal) utilty function
     vPfunc_next = solution_next.vPfunc
-    TranShkPrbs = TranShkDstn.pmf
-    TranShkVals = TranShkDstn.X
-    PermShkPrbs = PermShkDstn.pmf
-    PermShkVals = PermShkDstn.X
+    TranShkPrbs = TranShkDstn.pmv
+    TranShkVals = TranShkDstn.atoms.flatten()
+    PermShkPrbs = PermShkDstn.pmv
+    PermShkVals = PermShkDstn.atoms.flatten()
     TranShkCount = TranShkPrbs.size
     PermShkCount = PermShkPrbs.size
-    uPinv = lambda X: CRRAutilityP_inv(X, gam=CRRA)
+
+    def uPinv(X):
+        return CRRAutilityP_inv(X, rho=CRRA)
 
     # Make tiled versions of the grid of a_t values and the components of the shock distribution
     aXtraCount = aXtraGrid.size
@@ -232,7 +235,7 @@ def solve_ConsLaborIntMarg(
     TranShkScaleFac_temp = (
         frac
         * (WageRte * TranShkGrid) ** (LbrCost * frac)
-        * (LbrCost ** (-LbrCost * frac) + LbrCost ** frac)
+        * (LbrCost ** (-LbrCost * frac) + LbrCost**frac)
     )
 
     # Flip it to be a row vector
@@ -245,7 +248,7 @@ def solve_ConsLaborIntMarg(
     TranShkGrid_rep = np.tile(
         np.reshape(TranShkGrid, (1, TranShkGrid.size)), (aXtraCount, 1)
     )
-    xNowPow = xNow ** frac  # Will use this object multiple times in math below
+    xNowPow = xNow**frac  # Will use this object multiple times in math below
 
     # Find optimal consumption from optimal composite good
     cNrmNow = (((WageRte * TranShkGrid_rep) / LbrCost) ** (LbrCost * frac)) * xNowPow
@@ -406,7 +409,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         age_vec = np.arange(self.T_cycle)
         LbrCostBase = np.zeros(self.T_cycle)
         for n in range(N):
-            LbrCostBase += Coeffs[n] * age_vec ** n
+            LbrCostBase += Coeffs[n] * age_vec**n
         LbrCost = np.exp(LbrCostBase)
         self.LbrCost = LbrCost.tolist()
         self.add_to_time_vary("LbrCost")
@@ -479,7 +482,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.get_states(self)
-        self.state_now['mNrm'][:] = np.nan  # Delete market resource calculation
+        # Delete market resource calculation
+        self.state_now["mNrm"][:] = np.nan
 
     def get_controls(self):
         """
@@ -500,17 +504,17 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cNrmNow[these] = self.solution[t].cFunc(
-                self.state_now['bNrm'][these], self.shocks['TranShk'][these]
+                self.state_now["bNrm"][these], self.shocks["TranShk"][these]
             )  # Assign consumption values
             MPCnow[these] = self.solution[t].cFunc.derivativeX(
-                self.state_now['bNrm'][these], self.shocks['TranShk'][these]
+                self.state_now["bNrm"][these], self.shocks["TranShk"][these]
             )  # Assign marginal propensity to consume values (derivative)
             LbrNow[these] = self.solution[t].LbrFunc(
-                self.state_now['bNrm'][these], self.shocks['TranShk'][these]
+                self.state_now["bNrm"][these], self.shocks["TranShk"][these]
             )  # Assign labor supply
-        self.controls['cNrm'] = cNrmNow
+        self.controls["cNrm"] = cNrmNow
         self.MPCnow = MPCnow
-        self.controls['Lbr'] = LbrNow
+        self.controls["Lbr"] = LbrNow
 
     def get_poststates(self):
         """
@@ -529,12 +533,14 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             mNrmNow[these] = (
-                self.state_now['bNrm'][these]
-                + self.controls['Lbr'][these] * self.shocks['TranShk'][these]
+                self.state_now["bNrm"][these]
+                + self.controls["Lbr"][these] * self.shocks["TranShk"][these]
             )  # mNrm = bNrm + yNrm
-            aNrmNow[these] = mNrmNow[these] - self.controls['cNrm'][these]  # aNrm = mNrm - cNrm
-        self.state_now['mNrm'] = mNrmNow
-        self.state_now['aNrm'] = aNrmNow
+            aNrmNow[these] = (
+                mNrmNow[these] - self.controls["cNrm"][these]
+            )  # aNrm = mNrm - cNrm
+        self.state_now["mNrm"] = mNrmNow
+        self.state_now["aNrm"] = aNrmNow
 
         # moves now to prev
         super().get_poststates()
@@ -557,7 +563,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         TranShkGrid = []  # Create an empty list for TranShkGrid that will be updated
         for t in range(self.T_cycle):
             TranShkGrid.append(
-                self.TranShkDstn[t].X
+                self.TranShkDstn[t].atoms.flatten()
             )  # Update/ Extend the list of TranShkGrid with the TranShkVals for each TranShkPrbs
         self.TranShkGrid = TranShkGrid  # Save that list in self (time-varying)
         self.add_to_time_vary(
@@ -612,14 +618,14 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         cFunc_terminal = BilinearInterp(cNrmTerm, bNrmGrid, TranShkGrid)
 
         # Compute the effective consumption value using consumption value and labor value at the terminal solution
-        xEffTerm = LsrTerm ** LbrCost * cNrmTerm
+        xEffTerm = LsrTerm**LbrCost * cNrmTerm
         vNvrsFunc_terminal = BilinearInterp(xEffTerm, bNrmGrid, TranShkGrid)
         vFunc_terminal = ValueFuncCRRA(vNvrsFunc_terminal, self.CRRA)
 
         # Using the envelope condition at the terminal solution to estimate the marginal value function
-        vPterm = LsrTerm ** LbrCost * CRRAutilityP(xEffTerm, gam=self.CRRA)
+        vPterm = LsrTerm**LbrCost * CRRAutilityP(xEffTerm, rho=self.CRRA)
         vPnvrsTerm = CRRAutilityP_inv(
-            vPterm, gam=self.CRRA
+            vPterm, rho=self.CRRA
         )  # Evaluate the inverse of the CRRA marginal utility function at a given marginal value, vP
 
         vPnvrsFunc_terminal = BilinearInterp(vPnvrsTerm, bNrmGrid, TranShkGrid)

@@ -14,12 +14,14 @@ on January 7, 2021.
 ## Format
 
 There are four `.csv` files:
+
 - `PerLifeTables_F_Hist_TR2020.csv` contains historical (1900-2017) information for females.
 - `PerLifeTables_F_Alt2_TR2020.csv` contains projected (2018-2095) information for females.
 - `PerLifeTables_M_Hist_TR2020.csv` contains historical (1900-2017) information for males.
 - `PerLifeTables_M_Alt2_TR2020.csv` contains projected (2018-2095) information for males.
 
 All the tables have the same format. There are three columns of interest for our purposes:
+
 - `Year`.
 - `x`: age.
 - `q(x)`: probability of death.

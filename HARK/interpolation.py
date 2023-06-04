@@ -12,8 +12,8 @@ from copy import deepcopy
 import numpy as np
 from scipy.interpolate import CubicHermiteSpline
 
-from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP
-from .core import MetricObject
+from HARK.metric import MetricObject
+from HARK.rewards import CRRAutility, CRRAutilityP, CRRAutilityPP
 
 
 def _isscalar(x):
@@ -1230,7 +1230,7 @@ class CubicHermiteInterp(HARKinterpolator1D):
         _check_grid_dimensions(1, self.y_list, self.x_list)
         _check_grid_dimensions(1, self.dydx_list, self.x_list)
 
-        self.n = len(x_list)
+        self.n = self.x_list.size
 
         self._chs = CubicHermiteSpline(
             self.x_list, self.y_list, self.dydx_list, extrapolate=None
@@ -1239,21 +1239,21 @@ class CubicHermiteInterp(HARKinterpolator1D):
 
         # Define lower extrapolation as linear function (or just NaN)
         if lower_extrap:
-            temp = np.array([y_list[0], dydx_list[0], 0, 0])
+            temp = np.array([self.y_list[0], self.dydx_list[0], 0, 0])
         else:
             temp = np.array([np.nan, np.nan, np.nan, np.nan])
 
         self.coeffs = np.vstack((temp, self.coeffs))
 
-        x1 = x_list[self.n - 1]
-        y1 = y_list[self.n - 1]
+        x1 = self.x_list[self.n - 1]
+        y1 = self.y_list[self.n - 1]
 
         # Calculate extrapolation coefficients as a decay toward limiting function y = mx+b
         if slope_limit is None and intercept_limit is None:
-            slope_limit = dydx_list[-1]
-            intercept_limit = y_list[-1] - slope_limit * x_list[-1]
+            slope_limit = self.dydx_list[-1]
+            intercept_limit = self.y_list[-1] - slope_limit * self.x_list[-1]
         gap = slope_limit * x1 + intercept_limit - y1
-        slope = slope_limit - dydx_list[self.n - 1]
+        slope = slope_limit - self.dydx_list[self.n - 1]
         if (gap != 0) and (slope <= 0):
             temp = np.array([intercept_limit, slope_limit, gap, slope / gap])
         elif slope > 0:
@@ -2159,7 +2159,6 @@ class LowerEnvelope(HARKinterpolator1D):
     distance_criteria = ["functions"]
 
     def __init__(self, *functions, nan_bool=True):
-
         if nan_bool:
             self.compare = np.nanmin
             self.argcompare = np.nanargmin
@@ -4120,13 +4119,13 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         # boundary defined by (x_bound_1,y_bound_1) and (x_bound_2,y_bound_2),
         # where the latter is *COUNTER CLOCKWISE* from the former.  Returns
         # 1 if the point is outside the boundary and 0 otherwise.
-        violation_check = (
-            lambda x_check, y_check, x_bound_1, y_bound_1, x_bound_2, y_bound_2: (
+        def violation_check(
+            x_check, y_check, x_bound_1, y_bound_1, x_bound_2, y_bound_2
+        ):
+            return (
                 (y_bound_2 - y_bound_1) * x_check - (x_bound_2 - x_bound_1) * y_check
                 > x_bound_1 * y_bound_2 - y_bound_1 * x_bound_2
-            )
-            + 0
-        )
+            ) + 0
 
         # Identify the correct sector for each point to be evaluated
         these = np.ones(m, dtype=bool)
@@ -4241,7 +4240,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         zeta = a - x + c * tau
         eta = b + c * mu + d * tau
         theta = d * mu
-        alpha = (-eta + polarity * np.sqrt(eta ** 2.0 - 4.0 * zeta * theta)) / (
+        alpha = (-eta + polarity * np.sqrt(eta**2.0 - 4.0 * zeta * theta)) / (
             2.0 * theta
         )
         beta = mu * alpha + tau
@@ -4546,6 +4545,11 @@ class ValueFuncCRRA(MetricObject):
         self.vFuncNvrs = deepcopy(vFuncNvrs)
         self.CRRA = CRRA
 
+        if hasattr(vFuncNvrs, "grid_list"):
+            self.grid_list = vFuncNvrs.grid_list
+        else:
+            self.grid_list = None
+
     def __call__(self, *vFuncArgs):
         """
         Evaluate the value function at given levels of market resources m.
@@ -4564,6 +4568,15 @@ class ValueFuncCRRA(MetricObject):
         """
         #        return CRRAutility(self.func(*vFuncArgs), gam=self.CRRA)
         return CRRAutility(self.vFuncNvrs(*vFuncArgs), self.CRRA)
+
+    def gradient(self, *args):
+        NvrsGrad = self.vFuncNvrs.gradient(*args)
+        grad = [CRRAutilityP(g, self.CRRA) for g in NvrsGrad]
+
+        return grad
+
+    def _eval_and_grad(self, *args):
+        return (self.__call__(*args), self.gradient(*args))
 
 
 class MargValueFuncCRRA(MetricObject):
@@ -4589,6 +4602,11 @@ class MargValueFuncCRRA(MetricObject):
         self.cFunc = deepcopy(cFunc)
         self.CRRA = CRRA
 
+        if hasattr(cFunc, "grid_list"):
+            self.grid_list = cFunc.grid_list
+        else:
+            self.grid_list = None
+
     def __call__(self, *cFuncArgs):
         """
         Evaluate the marginal value function at given levels of market resources m.
@@ -4605,7 +4623,7 @@ class MargValueFuncCRRA(MetricObject):
             Marginal lifetime value of beginning this period with state
             cFuncArgs
         """
-        return CRRAutilityP(self.cFunc(*cFuncArgs), gam=self.CRRA)
+        return CRRAutilityP(self.cFunc(*cFuncArgs), rho=self.CRRA)
 
     def derivativeX(self, *cFuncArgs):
         """
@@ -4640,7 +4658,7 @@ class MargValueFuncCRRA(MetricObject):
                 + "marginal marginal value."
             )
 
-        return MPC * CRRAutilityPP(c, gam=self.CRRA)
+        return MPC * CRRAutilityPP(c, rho=self.CRRA)
 
 
 class MargMargValueFuncCRRA(MetricObject):
@@ -4698,7 +4716,7 @@ class MargMargValueFuncCRRA(MetricObject):
                 + "marginal marginal value."
             )
 
-        return MPC * CRRAutilityPP(c, gam=self.CRRA)
+        return MPC * CRRAutilityPP(c, rho=self.CRRA)
 
 
 ##############################################################################
@@ -4712,7 +4730,7 @@ def main():
     print("of the model modules in /ConsumptionSavingModel.  In the future, running")
     print("this module will show examples of each interpolation class.")
 
-    RNG = np.random.RandomState(123)
+    RNG = np.random.default_rng(123)
 
     if False:
         x = np.linspace(1, 20, 39)
@@ -4727,7 +4745,7 @@ def main():
     if False:
 
         def f(x, y):
-            return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
+            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0
 
         def dfdx(x, y):
             return 6.0 * x + y
@@ -4739,7 +4757,7 @@ def main():
         xInterpolators = []
         xInterpolators_alt = []
         for y in y_list:
-            this_x_list = np.sort((RNG.rand(100) * 5.0))
+            this_x_list = np.sort(RNG.random(100) * 5.0)
             this_interpolation = LinearInterp(
                 this_x_list, f(this_x_list, y * np.ones(this_x_list.size))
             )
@@ -4751,10 +4769,10 @@ def main():
             xInterpolators.append(this_interpolation)
             xInterpolators_alt.append(that_interpolation)
         g = LinearInterpOnInterp1D(xInterpolators, y_list)
-        h = LinearInterpOnInterp1D(xInterpolators_alt, y_list)
+        LinearInterpOnInterp1D(xInterpolators_alt, y_list)
 
-        rand_x = RNG.rand(100) * 5.0
-        rand_y = RNG.rand(100) * 5.0
+        rand_x = RNG.random(100) * 5.0
+        rand_y = RNG.random(100) * 5.0
         z = (f(rand_x, rand_y) - g(rand_x, rand_y)) / f(rand_x, rand_y)
         q = (dfdx(rand_x, rand_y) - g.derivativeX(rand_x, rand_y)) / dfdx(
             rand_x, rand_y
@@ -4778,13 +4796,9 @@ def main():
         # print(r)
 
     if False:
-        f = (
-            lambda x, y, z: 3.0 * x ** 2.0
-            + x * y
-            + 4.0 * y ** 2.0
-            - 5 * z ** 2.0
-            + 1.5 * x * z
-        )
+
+        def f(x, y, z):
+            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0 - 5 * z**2.0 + 1.5 * x * z
 
         def dfdx(x, y, z):
             return 6.0 * x + y + 1.5 * z
@@ -4801,7 +4815,7 @@ def main():
         for y in y_list:
             temp = []
             for z in z_list:
-                this_x_list = np.sort((RNG.rand(100) * 5.0))
+                this_x_list = np.sort(RNG.random(100) * 5.0)
                 this_interpolation = LinearInterp(
                     this_x_list,
                     f(
@@ -4814,9 +4828,9 @@ def main():
             xInterpolators.append(deepcopy(temp))
         g = BilinearInterpOnInterp1D(xInterpolators, y_list, z_list)
 
-        rand_x = RNG.rand(1000) * 5.0
-        rand_y = RNG.rand(1000) * 5.0
-        rand_z = RNG.rand(1000) * 5.0
+        rand_x = RNG.random(1000) * 5.0
+        rand_y = RNG.random(1000) * 5.0
+        rand_z = RNG.random(1000) * 5.0
         z = (f(rand_x, rand_y, rand_z) - g(rand_x, rand_y, rand_z)) / f(
             rand_x, rand_y, rand_z
         )
@@ -4832,18 +4846,20 @@ def main():
         z.sort()
 
     if False:
-        f = (
-            lambda w, x, y, z: 4.0 * w * z
-            - 2.5 * w * x
-            + w * y
-            + 6.0 * x * y
-            - 10.0 * x * z
-            + 3.0 * y * z
-            - 7.0 * z
-            + 4.0 * x
-            + 2.0 * y
-            - 5.0 * w
-        )
+
+        def f(w, x, y, z):
+            return (
+                4.0 * w * z
+                - 2.5 * w * x
+                + w * y
+                + 6.0 * x * y
+                - 10.0 * x * z
+                + 3.0 * y * z
+                - 7.0 * z
+                + 4.0 * x
+                + 2.0 * y
+                - 5.0 * w
+            )
 
         def dfdw(w, x, y, z):
             return 4.0 * z - 2.5 * x + y - 5.0
@@ -4866,7 +4882,7 @@ def main():
             for y in y_list:
                 temptemp = []
                 for z in z_list:
-                    this_w_list = np.sort((RNG.rand(16) * 5.0))
+                    this_w_list = np.sort(RNG.random(16) * 5.0)
                     this_interpolation = LinearInterp(
                         this_w_list,
                         f(
@@ -4882,10 +4898,10 @@ def main():
         g = TrilinearInterpOnInterp1D(wInterpolators, x_list, y_list, z_list)
 
         N = 20000
-        rand_w = RNG.rand(N) * 5.0
-        rand_x = RNG.rand(N) * 5.0
-        rand_y = RNG.rand(N) * 5.0
-        rand_z = RNG.rand(N) * 5.0
+        rand_w = RNG.random(N) * 5.0
+        rand_x = RNG.random(N) * 5.0
+        rand_y = RNG.random(N) * 5.0
+        rand_z = RNG.random(N) * 5.0
         t_start = time()
         z = (f(rand_w, rand_x, rand_y, rand_z) - g(rand_w, rand_x, rand_y, rand_z)) / f(
             rand_w, rand_x, rand_y, rand_z
@@ -4902,7 +4918,7 @@ def main():
             dfdy(rand_w, rand_x, rand_y, rand_z)
             - g.derivativeY(rand_w, rand_x, rand_y, rand_z)
         ) / dfdy(rand_w, rand_x, rand_y, rand_z)
-        s = (
+        (
             dfdz(rand_w, rand_x, rand_y, rand_z)
             - g.derivativeZ(rand_w, rand_x, rand_y, rand_z)
         ) / dfdz(rand_w, rand_x, rand_y, rand_z)
@@ -4915,7 +4931,7 @@ def main():
     if False:
 
         def f(x, y):
-            return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
+            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0
 
         def dfdx(x, y):
             return 6.0 * x + y
@@ -4928,21 +4944,17 @@ def main():
         x_temp, y_temp = np.meshgrid(x_list, y_list, indexing="ij")
         g = BilinearInterp(f(x_temp, y_temp), x_list, y_list)
 
-        rand_x = RNG.rand(100) * 5.0
-        rand_y = RNG.rand(100) * 5.0
+        rand_x = RNG.random(100) * 5.0
+        rand_y = RNG.random(100) * 5.0
         z = (f(rand_x, rand_y) - g(rand_x, rand_y)) / f(rand_x, rand_y)
         q = (f(x_temp, y_temp) - g(x_temp, y_temp)) / f(x_temp, y_temp)
         # print(z)
         # print(q)
 
     if False:
-        f = (
-            lambda x, y, z: 3.0 * x ** 2.0
-            + x * y
-            + 4.0 * y ** 2.0
-            - 5 * z ** 2.0
-            + 1.5 * x * z
-        )
+
+        def f(x, y, z):
+            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0 - 5 * z**2.0 + 1.5 * x * z
 
         def dfdx(x, y, z):
             return 6.0 * x + y + 1.5 * z
@@ -4959,9 +4971,9 @@ def main():
         x_temp, y_temp, z_temp = np.meshgrid(x_list, y_list, z_list, indexing="ij")
         g = TrilinearInterp(f(x_temp, y_temp, z_temp), x_list, y_list, z_list)
 
-        rand_x = RNG.rand(1000) * 5.0
-        rand_y = RNG.rand(1000) * 5.0
-        rand_z = RNG.rand(1000) * 5.0
+        rand_x = RNG.random(1000) * 5.0
+        rand_y = RNG.random(1000) * 5.0
+        rand_z = RNG.random(1000) * 5.0
         z = (f(rand_x, rand_y, rand_z) - g(rand_x, rand_y, rand_z)) / f(
             rand_x, rand_y, rand_z
         )
@@ -4978,18 +4990,20 @@ def main():
         plt.plot(p)
 
     if False:
-        f = (
-            lambda w, x, y, z: 4.0 * w * z
-            - 2.5 * w * x
-            + w * y
-            + 6.0 * x * y
-            - 10.0 * x * z
-            + 3.0 * y * z
-            - 7.0 * z
-            + 4.0 * x
-            + 2.0 * y
-            - 5.0 * w
-        )
+
+        def f(w, x, y, z):
+            return (
+                4.0 * w * z
+                - 2.5 * w * x
+                + w * y
+                + 6.0 * x * y
+                - 10.0 * x * z
+                + 3.0 * y * z
+                - 7.0 * z
+                + 4.0 * x
+                + 2.0 * y
+                - 5.0 * w
+            )
 
         def dfdw(w, x, y, z):
             return 4.0 * z - 2.5 * x + y - 5.0
@@ -5019,10 +5033,10 @@ def main():
         )
 
         N = 1000000
-        rand_w = RNG.rand(N) * 5.0
-        rand_x = RNG.rand(N) * 5.0
-        rand_y = RNG.rand(N) * 5.0
-        rand_z = RNG.rand(N) * 5.0
+        rand_w = RNG.random(N) * 5.0
+        rand_x = RNG.random(N) * 5.0
+        rand_y = RNG.random(N) * 5.0
+        rand_z = RNG.random(N) * 5.0
         t_start = time()
         z = (f(rand_w, rand_x, rand_y, rand_z) - g(rand_w, rand_x, rand_y, rand_z)) / f(
             rand_w, rand_x, rand_y, rand_z
@@ -5034,7 +5048,7 @@ def main():
     if False:
 
         def f(x, y):
-            return 3.0 * x ** 2.0 + x * y + 4.0 * y ** 2.0
+            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0
 
         def dfdx(x, y):
             return 6.0 * x + y
@@ -5046,12 +5060,12 @@ def main():
         x_list = np.linspace(0, 5, 71, dtype=float)
         y_list = np.linspace(0, 5, 51, dtype=float)
         x_temp, y_temp = np.meshgrid(x_list, y_list, indexing="ij")
-        x_adj = x_temp + warp_factor * (RNG.rand(x_list.size, y_list.size) - 0.5)
-        y_adj = y_temp + warp_factor * (RNG.rand(x_list.size, y_list.size) - 0.5)
+        x_adj = x_temp + warp_factor * (RNG.random(x_list.size, y_list.size) - 0.5)
+        y_adj = y_temp + warp_factor * (RNG.random(x_list.size, y_list.size) - 0.5)
         g = Curvilinear2DInterp(f(x_adj, y_adj), x_adj, y_adj)
 
-        rand_x = RNG.rand(1000) * 5.0
-        rand_y = RNG.rand(1000) * 5.0
+        rand_x = RNG.random(1000) * 5.0
+        rand_y = RNG.random(1000) * 5.0
         t_start = time()
         z = (f(rand_x, rand_y) - g(rand_x, rand_y)) / f(rand_x, rand_y)
         q = (dfdx(rand_x, rand_y) - g.derivativeX(rand_x, rand_y)) / dfdx(
@@ -5068,13 +5082,9 @@ def main():
         print(t_end - t_start)
 
     if False:
-        f = (
-            lambda x, y, z: 3.0 * x ** 2.0
-            + x * y
-            + 4.0 * y ** 2.0
-            - 5 * z ** 2.0
-            + 1.5 * x * z
-        )
+
+        def f(x, y, z):
+            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0 - 5 * z**2.0 + 1.5 * x * z
 
         def dfdx(x, y, z):
             return 6.0 * x + y + 1.5 * z
@@ -5092,17 +5102,17 @@ def main():
         x_temp, y_temp = np.meshgrid(x_list, y_list, indexing="ij")
         xyInterpolators = []
         for j in range(z_list.size):
-            x_adj = x_temp + warp_factor * (RNG.rand(x_list.size, y_list.size) - 0.5)
-            y_adj = y_temp + warp_factor * (RNG.rand(x_list.size, y_list.size) - 0.5)
+            x_adj = x_temp + warp_factor * (RNG.random(x_list.size, y_list.size) - 0.5)
+            y_adj = y_temp + warp_factor * (RNG.random(x_list.size, y_list.size) - 0.5)
             z_temp = z_list[j] * np.ones(x_adj.shape)
             thisInterp = Curvilinear2DInterp(f(x_adj, y_adj, z_temp), x_adj, y_adj)
             xyInterpolators.append(thisInterp)
         g = LinearInterpOnInterp2D(xyInterpolators, z_list)
 
         N = 1000
-        rand_x = RNG.rand(N) * 5.0
-        rand_y = RNG.rand(N) * 5.0
-        rand_z = RNG.rand(N) * 5.0
+        rand_x = RNG.random(N) * 5.0
+        rand_y = RNG.random(N) * 5.0
+        rand_z = RNG.random(N) * 5.0
         z = (f(rand_x, rand_y, rand_z) - g(rand_x, rand_y, rand_z)) / f(
             rand_x, rand_y, rand_z
         )
@@ -5113,18 +5123,20 @@ def main():
         plt.plot(p)
 
     if False:
-        f = (
-            lambda w, x, y, z: 4.0 * w * z
-            - 2.5 * w * x
-            + w * y
-            + 6.0 * x * y
-            - 10.0 * x * z
-            + 3.0 * y * z
-            - 7.0 * z
-            + 4.0 * x
-            + 2.0 * y
-            - 5.0 * w
-        )
+
+        def f(w, x, y, z):
+            return (
+                4.0 * w * z
+                - 2.5 * w * x
+                + w * y
+                + 6.0 * x * y
+                - 10.0 * x * z
+                + 3.0 * y * z
+                - 7.0 * z
+                + 4.0 * x
+                + 2.0 * y
+                - 5.0 * w
+            )
 
         def dfdw(w, x, y, z):
             return 4.0 * z - 2.5 * x + y - 5.0
@@ -5149,10 +5161,10 @@ def main():
             temp = []
             for j in range(z_list.size):
                 w_adj = w_temp + warp_factor * (
-                    RNG.rand(w_list.size, x_list.size) - 0.5
+                    RNG.random(w_list.size, x_list.size) - 0.5
                 )
                 x_adj = x_temp + warp_factor * (
-                    RNG.rand(w_list.size, x_list.size) - 0.5
+                    RNG.random(w_list.size, x_list.size) - 0.5
                 )
                 y_temp = y_list[i] * np.ones(w_adj.shape)
                 z_temp = z_list[j] * np.ones(w_adj.shape)
@@ -5164,10 +5176,10 @@ def main():
         g = BilinearInterpOnInterp2D(wxInterpolators, y_list, z_list)
 
         N = 1000000
-        rand_w = RNG.rand(N) * 5.0
-        rand_x = RNG.rand(N) * 5.0
-        rand_y = RNG.rand(N) * 5.0
-        rand_z = RNG.rand(N) * 5.0
+        rand_w = RNG.random(N) * 5.0
+        rand_x = RNG.random(N) * 5.0
+        rand_y = RNG.random(N) * 5.0
+        rand_z = RNG.random(N) * 5.0
 
         t_start = time()
         z = (f(rand_w, rand_x, rand_y, rand_z) - g(rand_w, rand_x, rand_y, rand_z)) / f(

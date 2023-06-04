@@ -3,9 +3,15 @@ General purpose  / miscellaneous functions.  Includes functions to approximate
 continuous distributions with discrete ones, utility functions (and their
 derivatives), manipulation of discrete distributions, and basic plotting tools.
 """
+import cProfile
 import functools
+import os
+import pstats
+import re
 
+import numba
 import numpy as np  # Python's numeric library, abbreviated "np"
+from scipy.interpolate import interp1d
 
 # try:
 #     import matplotlib.pyplot as plt                 # Python's plotting library
@@ -13,18 +19,16 @@ import numpy as np  # Python's numeric library, abbreviated "np"
 #     import sys
 #     exception_type, value, traceback = sys.exc_info()
 #     raise ImportError('HARK must be used in a graphical environment.', exception_type, value, traceback)
-from scipy.interpolate import interp1d
-import warnings
 
 
 def memoize(obj):
     """
-   A decorator to (potentially) make functions more efficient.
+    A decorator to (potentially) make functions more efficient.
 
-   With this decorator, functions will "remember" if they have been evaluated with given inputs
-   before.  If they have, they will "remember" the outputs that have already been calculated
-   for those inputs, rather than calculating them again.
-   """
+    With this decorator, functions will "remember" if they have been evaluated with given inputs
+    before.  If they have, they will "remember" the outputs that have already been calculated
+    for those inputs, rather than calculating them again.
+    """
     cache = obj._cache = {}
 
     @functools.wraps(obj)
@@ -40,6 +44,8 @@ def memoize(obj):
 # ==============================================================================
 # ============== Some basic function tools  ====================================
 # ==============================================================================
+
+
 def get_arg_names(function):
     """
     Returns a list of strings naming all of the arguments for the passed function.
@@ -59,7 +65,7 @@ def get_arg_names(function):
     return argNames
 
 
-class NullFunc(object):
+class NullFunc:
     """
     A trivial class that acts as a placeholder "do nothing" function.
     """
@@ -105,430 +111,72 @@ class NullFunc(object):
             return 10000.0
 
 
-# ==============================================================================
-# ============== Define utility functions        ===============================
-# ==============================================================================
-def CRRAutility(c, gam):
+# =======================================================
+# ================ Other useful functions ===============
+# =======================================================
+
+
+def construct_assets_grid(parameters):
     """
-    Evaluates constant relative risk aversion (CRRA) utility of consumption c
-    given risk aversion parameter gam.
+    Constructs the base grid of post-decision states, representing end-of-period
+    assets above the absolute minimum.
+
+    All parameters are passed as attributes of the single input parameters.  The
+    input can be an instance of a ConsumerType, or a custom Parameters class.
 
     Parameters
     ----------
-    c : float
-        Consumption value
-    gam : float
-        Risk aversion
+    aXtraMin:                  float
+        Minimum value for the a-grid
+    aXtraMax:                  float
+        Maximum value for the a-grid
+    aXtraCount:                 int
+        Size of the a-grid
+    aXtraExtra:                [float]
+        Extra values for the a-grid.
+    exp_nest:               int
+        Level of nesting for the exponentially spaced grid.
+        If -1, the grid is linearly spaced.
 
     Returns
     -------
-    (unnamed) : float
-        Utility
-
-    Tests
-    -----
-    Test a value which should pass:
-    >>> c, gamma = 1.0, 2.0    # Set two values at once with Python syntax
-    >>> utility(c=c, gam=gamma)
-    -1.0
+    aXtraGrid:     np.ndarray
+        Base array of values for the post-decision-state grid.
     """
-    
-    if gam == 1:
-        return np.log(c)
+    # Unpack the parameters
+    aXtraMin = parameters.aXtraMin
+    aXtraMax = parameters.aXtraMax
+    aXtraCount = parameters.aXtraCount
+    aXtraExtra = parameters.aXtraExtra
+    exp_nest = parameters.aXtraNestFac
+
+    # Set up post decision state grid:
+    if exp_nest == -1:
+        aXtraGrid = np.linspace(aXtraMin, aXtraMax, aXtraCount)
+    elif exp_nest >= 0:
+        aXtraGrid = make_grid_exp_mult(
+            ming=aXtraMin, maxg=aXtraMax, ng=aXtraCount, timestonest=exp_nest
+        )
     else:
-        return c ** (1.0 - gam) / (1.0 - gam)
-
-def uFunc_CRRA_stone_geary(c, CRRA, stone_geary):
-    """
-    Evaluates Stone-Geary version of a constant relative risk aversion (CRRA) 
-    utility of consumption c wiht given risk aversion parameter CRRA and 
-    Stone-Geary intercept parameter stone_geary
-
-    Parameters
-    ----------
-    c : float
-        Consumption value
-    CRRA : float
-        Relative risk aversion
-    stone_geary : float
-        Intercept in Stone-Geary utility 
-    Returns
-    -------
-    (unnamed) : float
-        Utility
-
-    Tests
-    -----
-    Test a value which should pass:
-    >>> c, CRRA, stone_geary = 1.0, 2.0, 0.0    
-    >>> utility(c=c, CRRA=CRRA, stone_geary=stone_geary )
-    -1.0
-    """
-    if CRRA == 1:
-        return np.log( stone_geary + c)
-    else:
-        return ( stone_geary + c ) ** (1.0 - CRRA) / (1.0 - CRRA)
-
-def uPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
-    """
-    Marginal utility of Stone-Geary version of a constant relative risk aversion (CRRA) 
-    utility of consumption c wiht given risk aversion parameter CRRA and 
-    Stone-Geary intercept parameter stone_geary
-
-    Parameters
-    ----------
-    c : float
-        Consumption value
-    CRRA : float
-        Relative risk aversion
-    stone_geary : float
-        Intercept in Stone-Geary utility 
-    Returns
-    -------
-    (unnamed) : float
-        marginal utility
-
-    """
-    return ( stone_geary + c ) ** (- CRRA)
-
-def uPPFunc_CRRA_stone_geary(c, CRRA, stone_geary):
-    """
-    Marginal marginal utility of Stone-Geary version of a CRRA utilty function 
-    with risk aversion parameter CRRA and Stone-Geary intercept parameter stone_geary
-
-    Parameters
-    ----------
-    c : float
-        Consumption value
-    CRRA : float
-        Relative risk aversion
-    stone_geary : float
-        Intercept in Stone-Geary utility 
-    Returns
-    -------
-    (unnamed) : float
-        marginal utility
-
-    """
-    return (- CRRA)*( stone_geary + c ) ** (- CRRA - 1)
-
-
-def CRRAutilityP(c, gam):
-    """
-    Evaluates constant relative risk aversion (CRRA) marginal utility of consumption
-    c given risk aversion parameter gam.
-
-    Parameters
-    ----------
-    c : float
-        Consumption value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Marginal utility
-    """
-
-    if gam == 1:
-        return 1/c
-    
-    return c ** -gam
-
-
-def CRRAutilityPP(c, gam):
-    """
-    Evaluates constant relative risk aversion (CRRA) marginal marginal utility of
-    consumption c given risk aversion parameter gam.
-
-    Parameters
-    ----------
-    c : float
-        Consumption value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Marginal marginal utility
-    """
-    
-    return -gam * c ** (-gam - 1.0)
-
-
-def CRRAutilityPPP(c, gam):
-    """
-    Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
-    utility of consumption c given risk aversion parameter gam.
-
-    Parameters
-    ----------
-    c : float
-        Consumption value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Marginal marginal marginal utility
-    """
-        
-    return (gam + 1.0) * gam * c ** (-gam - 2.0)
-
-
-def CRRAutilityPPPP(c, gam):
-    """
-    Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
-    marginal utility of consumption c given risk aversion parameter gam.
-
-    Parameters
-    ----------
-    c : float
-        Consumption value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Marginal marginal marginal marginal utility
-    """
-    
-    return -(gam + 2.0) * (gam + 1.0) * gam * c ** (-gam - 3.0)
-
-
-def CRRAutility_inv(u, gam):
-    """
-    Evaluates the inverse of the CRRA utility function (with risk aversion para-
-    meter gam) at a given utility level u.
-
-    Parameters
-    ----------
-    u : float
-        Utility value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Consumption corresponding to given utility value
-    """
-    if gam == 1:
-        return np.exp(u)
-    else:
-        return ((1.0 - gam) * u) ** (1 / (1.0 - gam))
-
-
-def CRRAutilityP_inv(uP, gam):
-    """
-    Evaluates the inverse of the CRRA marginal utility function (with risk aversion
-    parameter gam) at a given marginal utility level uP.
-
-    Parameters
-    ----------
-    uP : float
-        Marginal utility value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Consumption corresponding to given marginal utility value.
-    """
-    return uP ** (-1.0 / gam)
-
-
-def CRRAutility_invP(u, gam):
-    """
-    Evaluates the derivative of the inverse of the CRRA utility function (with
-    risk aversion parameter gam) at a given utility level u.
-
-    Parameters
-    ----------
-    u : float
-        Utility value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Marginal consumption corresponding to given utility value
-    """
-    if gam == 1:
-        return np.exp(u)
-    else:
-        return ((1.0 - gam) * u) ** (gam / (1.0 - gam))
-
-
-def CRRAutilityP_invP(uP, gam):
-    """
-    Evaluates the derivative of the inverse of the CRRA marginal utility function
-    (with risk aversion parameter gam) at a given marginal utility level uP.
-
-    Parameters
-    ----------
-    uP : float
-        Marginal utility value
-    gam : float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed) : float
-        Consumption corresponding to given marginal utility value
-    """
-    return (-1.0 / gam) * uP ** (-1.0 / gam - 1.0)
-
-
-def CARAutility(c, alpha):
-    """
-    Evaluates constant absolute risk aversion (CARA) utility of consumption c
-    given risk aversion parameter alpha.
-
-    Parameters
-    ----------
-    c: float
-        Consumption value
-    alpha: float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed): float
-        Utility
-    """
-    return 1 - np.exp(-alpha * c) / alpha
-
-
-def CARAutilityP(c, alpha):
-    """
-    Evaluates constant absolute risk aversion (CARA) marginal utility of
-    consumption c given risk aversion parameter alpha.
-
-    Parameters
-    ----------
-    c: float
-        Consumption value
-    alpha: float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed): float
-        Marginal utility
-    """
-    return np.exp(-alpha * c)
-
-
-def CARAutilityPP(c, alpha):
-    """
-    Evaluates constant absolute risk aversion (CARA) marginal marginal utility
-    of consumption c given risk aversion parameter alpha.
-
-    Parameters
-    ----------
-    c: float
-        Consumption value
-    alpha: float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed): float
-        Marginal marginal utility
-    """
-    return -alpha * np.exp(-alpha * c)
-
-
-def CARAutilityPPP(c, alpha):
-    """
-    Evaluates constant absolute risk aversion (CARA) marginal marginal marginal
-    utility of consumption c given risk aversion parameter alpha.
-
-    Parameters
-    ----------
-    c: float
-        Consumption value
-    alpha: float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed): float
-        Marginal marginal marginal utility
-    """
-    return alpha ** 2.0 * np.exp(-alpha * c)
-
-
-def CARAutility_inv(u, alpha):
-    """
-    Evaluates inverse of constant absolute risk aversion (CARA) utility function
-    at utility level u given risk aversion parameter alpha.
-
-    Parameters
-    ----------
-    u: float
-        Utility value
-    alpha: float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed): float
-        Consumption value corresponding to u
-    """
-    return -1.0 / alpha * np.log(alpha * (1 - u))
-
-
-def CARAutilityP_inv(u, alpha):
-    """
-    Evaluates the inverse of constant absolute risk aversion (CARA) marginal
-    utility function at marginal utility uP given risk aversion parameter alpha.
-
-    Parameters
-    ----------
-    u: float
-        Utility value
-    alpha: float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed): float
-        Consumption value corresponding to uP
-    """
-    return -1.0 / alpha * np.log(u)
-
-
-def CARAutility_invP(u, alpha):
-    """
-    Evaluates the derivative of inverse of constant absolute risk aversion (CARA)
-    utility function at utility level u given risk aversion parameter alpha.
-
-    Parameters
-    ----------
-    u: float
-        Utility value
-    alpha: float
-        Risk aversion
-
-    Returns
-    -------
-    (unnamed): float
-        Marginal onsumption value corresponding to u
-    """
-    return 1.0 / (alpha * (1.0 - u))
+        raise ValueError(
+            "aXtraNestFac not recognized in __init__."
+            + "Please ensure aXtraNestFac is either -1 or a positive integer."
+        )
+
+    # Add in additional points for the grid:
+    for a in aXtraExtra:
+        if a is not None and a not in aXtraGrid:
+            j = aXtraGrid.searchsorted(a)
+            aXtraGrid = np.insert(aXtraGrid, j, a)
+
+    return aXtraGrid
 
 
 # ==============================================================================
 # ============== Functions for generating state space grids  ===================
 # ==============================================================================
+
+
 def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     """
     Make a multi-exponentially spaced grid.
@@ -576,6 +224,8 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
 # ==============================================================================
 # ============== Uncategorized general functions  ===================
 # ==============================================================================
+
+
 def calc_weighted_avg(data, weights):
     """
     Generates a weighted average of simulated data.  The Nth row of data is averaged
@@ -828,6 +478,288 @@ def epanechnikov_kernel(x, ref_x, h=1.0):
     return out
 
 
+@numba.njit
+def jump_to_grid_1D(m_vals, probs, Dist_mGrid):
+    """
+    Distributes values onto a predefined grid, maintaining the means.
+
+
+    Parameters
+    ----------
+    m_vals: np.array
+            Market resource values
+
+    probs: np.array
+            Shock probabilities associated with combinations of m_vals.
+            Can be thought of as the probability mass function  of (m_vals).
+
+    dist_mGrid : np.array
+            Grid over normalized market resources
+
+    Returns
+    -------
+    probGrid.flatten(): np.array
+             Probabilities of each gridpoint on the combined grid of market resources
+
+    """
+
+    probGrid = np.zeros(len(Dist_mGrid))
+    mIndex = np.digitize(m_vals, Dist_mGrid) - 1
+    mIndex[m_vals <= Dist_mGrid[0]] = -1
+    mIndex[m_vals >= Dist_mGrid[-1]] = len(Dist_mGrid) - 1
+
+    for i in range(len(m_vals)):
+        if mIndex[i] == -1:
+            mlowerIndex = 0
+            mupperIndex = 0
+            mlowerWeight = 1.0
+            mupperWeight = 0.0
+        elif mIndex[i] == len(Dist_mGrid) - 1:
+            mlowerIndex = -1
+            mupperIndex = -1
+            mlowerWeight = 1.0
+            mupperWeight = 0.0
+        else:
+            mlowerIndex = mIndex[i]
+            mupperIndex = mIndex[i] + 1
+            mlowerWeight = (Dist_mGrid[mupperIndex] - m_vals[i]) / (
+                Dist_mGrid[mupperIndex] - Dist_mGrid[mlowerIndex]
+            )
+            mupperWeight = 1.0 - mlowerWeight
+
+        probGrid[mlowerIndex] += probs[i] * mlowerWeight
+        probGrid[mupperIndex] += probs[i] * mupperWeight
+
+    return probGrid.flatten()
+
+
+@numba.njit
+def jump_to_grid_2D(m_vals, perm_vals, probs, dist_mGrid, dist_pGrid):
+    """
+    Distributes values onto a predefined grid, maintaining the means. m_vals and perm_vals are realizations of market resources and permanent income while
+    dist_mGrid and dist_pGrid are the predefined grids of market resources and permanent income, respectively. That is, m_vals and perm_vals do not necesarily lie on their
+    respective grids. Returns probabilities of each gridpoint on the combined grid of market resources and permanent income.
+
+
+    Parameters
+    ----------
+    m_vals: np.array
+            Market resource values
+
+    perm_vals: np.array
+            Permanent income values
+
+    probs: np.array
+            Shock probabilities associated with combinations of m_vals and perm_vals.
+            Can be thought of as the probability mass function  of (m_vals, perm_vals).
+
+    dist_mGrid : np.array
+            Grid over normalized market resources
+
+    dist_pGrid : np.array
+            Grid over permanent income
+    Returns
+    -------
+    probGrid.flatten(): np.array
+             Probabilities of each gridpoint on the combined grid of market resources and permanent income
+    """
+
+    probGrid = np.zeros((len(dist_mGrid), len(dist_pGrid)))
+
+    # Maybe use np.searchsorted as opposed to np.digitize
+    mIndex = (
+        np.digitize(m_vals, dist_mGrid) - 1
+    )  # Array indicating in which bin each values of m_vals lies in relative to dist_mGrid. Bins lie between between point of Dist_mGrid.
+    # For instance, if mval lies between dist_mGrid[4] and dist_mGrid[5] it is in bin 4 (would be 5 if 1 was not subtracted in the previous line).
+    mIndex[
+        m_vals <= dist_mGrid[0]
+    ] = (
+        -1
+    )  # if the value is less than the smallest value on dist_mGrid assign it an index of -1
+    mIndex[m_vals >= dist_mGrid[-1]] = (
+        len(dist_mGrid) - 1
+    )  # if value if greater than largest value on dist_mGrid assign it an index of the length of the grid minus 1
+
+    # the following three lines hold the same intuition as above
+    pIndex = np.digitize(perm_vals, dist_pGrid) - 1
+    pIndex[perm_vals <= dist_pGrid[0]] = -1
+    pIndex[perm_vals >= dist_pGrid[-1]] = len(dist_pGrid) - 1
+
+    for i in range(len(m_vals)):
+        if (
+            mIndex[i] == -1
+        ):  # if mval is below smallest gridpoint, then assign it a weight of 1.0 for lower weight.
+            mlowerIndex = 0
+            mupperIndex = 0
+            mlowerWeight = 1.0
+            mupperWeight = 0.0
+        elif (
+            mIndex[i] == len(dist_mGrid) - 1
+        ):  # if mval is greater than maximum gridpoint, then assign the following weights
+            mlowerIndex = -1
+            mupperIndex = -1
+            mlowerWeight = 1.0
+            mupperWeight = 0.0
+        else:  # Standard case where mval does not lie past any extremes
+            # identify which two points on the grid the mval is inbetween
+            mlowerIndex = mIndex[i]
+            mupperIndex = mIndex[i] + 1
+            # Assign weight to the indices that bound the m_vals point. Intuitively, an mval perfectly between two points on the mgrid will assign a weight of .5 to the gridpoint above and below
+            mlowerWeight = (dist_mGrid[mupperIndex] - m_vals[i]) / (
+                dist_mGrid[mupperIndex] - dist_mGrid[mlowerIndex]
+            )  # Metric to determine weight of gridpoint/index below. Intuitively, mvals that are close to gridpoint/index above are assigned a smaller mlowerweight.
+            mupperWeight = 1.0 - mlowerWeight  # weight of gridpoint/ index above
+
+        # Same logic as above except the weights here concern the permanent income grid
+        if pIndex[i] == -1:
+            plowerIndex = 0
+            pupperIndex = 0
+            plowerWeight = 1.0
+            pupperWeight = 0.0
+        elif pIndex[i] == len(dist_pGrid) - 1:
+            plowerIndex = -1
+            pupperIndex = -1
+            plowerWeight = 1.0
+            pupperWeight = 0.0
+        else:
+            plowerIndex = pIndex[i]
+            pupperIndex = pIndex[i] + 1
+            plowerWeight = (dist_pGrid[pupperIndex] - perm_vals[i]) / (
+                dist_pGrid[pupperIndex] - dist_pGrid[plowerIndex]
+            )
+            pupperWeight = 1.0 - plowerWeight
+
+        # Compute probabilities of each gridpoint on the combined market resources and permanent income grid by looping through each point on the combined market resources and permanent income grid,
+        # assigning probabilities to each gridpoint based off the probabilities of the surrounding mvals and pvals and their respective weights placed on the gridpoint.
+        # Note* probs[i] is the probability of mval AND pval occurring
+
+        probGrid[mlowerIndex][plowerIndex] += (
+            probs[i] * mlowerWeight * plowerWeight
+        )  # probability of gridpoint below mval and pval
+        probGrid[mlowerIndex][pupperIndex] += (
+            probs[i] * mlowerWeight * pupperWeight
+        )  # probability of gridpoint below mval and above pval
+        probGrid[mupperIndex][plowerIndex] += (
+            probs[i] * mupperWeight * plowerWeight
+        )  # probability of gridpoint above mval and below pval
+        probGrid[mupperIndex][pupperIndex] += (
+            probs[i] * mupperWeight * pupperWeight
+        )  # probability of gridpoint above mval and above pval
+
+    return probGrid.flatten()
+
+
+@numba.njit(parallel=True)
+def gen_tran_matrix_1D(
+    dist_mGrid, bNext, shk_prbs, perm_shks, tran_shks, LivPrb, NewBornDist
+):
+    """
+    Computes Transition Matrix across normalized market resources.
+    This function is built to non-stochastic simulate the IndShockConsumerType.
+    This function is used exclusively when Harmenberg Neutral Measure is applied and/or if permanent income is not a state variable
+    For more information, see https://econ-ark.org/materials/harmenberg-aggregation?launch
+
+    Parameters
+    ----------
+    dist_mGrid : np.array
+        Grid over normalized market resources
+
+    bNext : np.array
+        Grid over bank balances
+
+    shk_prbs : np.array
+        Array of shock probabilities over combinations of permanent and transitory shocks
+
+    perm_shks : np.array
+        Array of shocks to permanent income. Shocks should follow Harmenberg neutral measure
+
+    tran_shks : np.array
+        Array of shocks to transitory
+
+    LivPrb : float
+        Probability of not dying
+
+    NewBornDist : np.array
+        array representing distribution of newborns across grid of normalized market resources and grid of permanent income.
+
+    Returns
+    -------
+    TranMatrix : np.array
+        Transition Matrix over normalized market resources grid.
+
+
+    """
+
+    TranMatrix = np.zeros((len(dist_mGrid), len(dist_mGrid)))
+    for i in numba.prange(len(dist_mGrid)):
+        mNext_ij = (
+            bNext[i] / perm_shks + tran_shks
+        )  # Compute next period's market resources given todays bank balances bnext[i]
+        TranMatrix[:, i] += (
+            LivPrb * jump_to_grid_1D(mNext_ij, shk_prbs, dist_mGrid)
+            + (1.0 - LivPrb) * NewBornDist
+        )  # this is the transition matrix if given you are unemployed today and unemployed tomorrow so you assume the unemployed consumption policy
+    return TranMatrix
+
+
+@numba.njit(parallel=True)
+def gen_tran_matrix_2D(
+    dist_mGrid, dist_pGrid, bNext, shk_prbs, perm_shks, tran_shks, LivPrb, NewBornDist
+):
+    """
+    Computes Transition Matrix over normalized market resources and permanent income.
+    This function is built to non-stochastic simulate the IndShockConsumerType.
+
+    Parameters
+    ----------
+    dist_mGrid : np.array
+        Grid over normalized market resources
+
+    dist_pGrid : np.array
+        Grid over permanent income
+
+    bNext : np.array
+        Grid over bank balances
+
+    shk_prbs : np.array
+        Array of shock probabilities over combinations of perm and tran shocks
+
+    perm_shks : np.array
+        Array of shocks to permanent income
+
+    tran_shks : np.array
+        Array of shocks to transitory income
+
+    LivPrb : float
+        Probability of not dying
+
+    NewBornDist : np.array
+         array representing distribution of newborns across grid of normalized market resources and grid of permanent income.
+
+    Returns
+    -------
+    TranMatrix : np.array
+        Transition Matrix over normalized market resources grid and permanent income grid
+    """
+    TranMatrix = np.zeros(
+        (len(dist_mGrid) * len(dist_pGrid), len(dist_mGrid) * len(dist_pGrid))
+    )
+    for i in numba.prange(len(dist_mGrid)):
+        for j in numba.prange(len(dist_pGrid)):
+            mNext_ij = (
+                bNext[i] / perm_shks + tran_shks
+            )  # Compute next period's market resources given todays bank balances bnext[i]
+            pNext_ij = (
+                dist_pGrid[j] * perm_shks
+            )  # Computes next period's permanent income level by applying permanent income shock
+            TranMatrix[:, i * len(dist_pGrid) + j] += (
+                LivPrb
+                * jump_to_grid_2D(mNext_ij, pNext_ij, shk_prbs, dist_mGrid, dist_pGrid)
+                + (1.0 - LivPrb) * NewBornDist
+            )  # this is the transition matrix if given you are unemployed today and unemployed tomorrow so you assume the unemployed consumption policy
+    return TranMatrix
+
+
 # ==============================================================================
 # ============== Some basic plotting tools  ====================================
 # ==============================================================================
@@ -911,7 +843,7 @@ def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
 
 
 def determine_platform():
-    """ Untility function to return the platform currenlty in use.
+    """Untility function to return the platform currenlty in use.
 
     Returns
     ---------
@@ -937,7 +869,7 @@ def determine_platform():
 
 
 def test_latex_installation(pf):
-    """ Test to check if latex is installed on the machine.
+    """Test to check if latex is installed on the machine.
 
     Parameters
     -----------
@@ -983,7 +915,7 @@ def test_latex_installation(pf):
 
 
 def in_ipynb():
-    """ If the ipython process contains 'terminal' assume not in a notebook.
+    """If the ipython process contains 'terminal' assume not in a notebook.
 
     Returns
     --------
@@ -1000,7 +932,7 @@ def in_ipynb():
 
 
 def setup_latex_env_notebook(pf, latexExists):
-    """ This is needed for use of the latex_envs notebook extension
+    """This is needed for use of the latex_envs notebook extension
     which allows the use of environments in Markdown.
 
     Parameters
@@ -1009,7 +941,7 @@ def setup_latex_env_notebook(pf, latexExists):
         output of determine_platform()
     """
     import os
-    from matplotlib import rc
+
     import matplotlib.pyplot as plt
 
     plt.rc("font", family="serif")
@@ -1032,7 +964,7 @@ def setup_latex_env_notebook(pf, latexExists):
         )
         # Latex expects paths to be separated by /. \ might result in pieces
         # being interpreted as commands.
-        latexdefs_path = os.getcwd().replace(os.path.sep, '/') + "/latexdefs.tex"
+        latexdefs_path = os.getcwd().replace(os.path.sep, "/") + "/latexdefs.tex"
         if os.path.isfile(latexdefs_path):
             latex_preamble = latex_preamble + r"\input{" + latexdefs_path + r"}"
         else:  # the required latex_envs package needs this file to exist even if it is empty
@@ -1043,7 +975,7 @@ def setup_latex_env_notebook(pf, latexExists):
 
 
 def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
-    """ Utility function to save figure in multiple formats and display the image.
+    """Utility function to save figure in multiple formats and display the image.
 
     Parameters
     ----------
@@ -1065,20 +997,28 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
         # Where to put any figures that the user wants to save
         my_file_path = os.getcwd()  # Find pathname to this file:
         Figures_dir = os.path.join(
-            my_file_path, "{}".format(target_dir)
+            my_file_path, f"{target_dir}"
         )  # LaTeX document assumes figures will be here
         if not os.path.exists(Figures_dir):
             os.makedirs(Figures_dir)  # If dir does not exist, create it
         # Save the figures in several formats
-        print("Saving figure {} in {}".format(figure_name, target_dir))
+        print(f"Saving figure {figure_name} in {target_dir}")
         plt.savefig(
-            os.path.join(target_dir, "{}.jpg".format(figure_name))
+            os.path.join(target_dir, f"{figure_name}.jpg"),
+            metadata={"CreationDate": None},
         )  # For web/html
         plt.savefig(
-            os.path.join(target_dir, "{}.png".format(figure_name))
+            os.path.join(target_dir, f"{figure_name}.png"),
+            metadata={"CreationDate": None},
         )  # For web/html
-        plt.savefig(os.path.join(target_dir, "{}.pdf".format(figure_name)))  # For LaTeX
-        plt.savefig(os.path.join(target_dir, "{}.svg".format(figure_name)))  # For html5
+        plt.savefig(
+            os.path.join(target_dir, f"{figure_name}.pdf"),
+            metadata={"CreationDate": None},
+        )  # For LaTeX
+        plt.savefig(
+            os.path.join(target_dir, f"{figure_name}.svg"),
+            metadata={"Date": None},
+        )  # For html5
     # Make sure it's possible to plot it by checking for GUI
     if drawFigs and find_gui():
         plt.ion()  # Counterintuitively, you want interactive mode on if you don't want to interact
@@ -1087,7 +1027,7 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
 
 
 def find_gui():
-    """ Quick fix to check if matplotlib is running in a GUI environment.
+    """Quick fix to check if matplotlib is running in a GUI environment.
 
     Returns
     -------
@@ -1101,3 +1041,68 @@ def find_gui():
     if plt.get_backend() == "Agg":
         return False
     return True
+
+
+def benchmark(
+    agent_type, sort_by="tottime", max_print=10, filename="restats", return_output=False
+):
+    """
+    Profiling tool for HARK models. Calling `benchmark` on agents calls the solver for
+    the agents and provides time to solve as well as the top `max_print` function calls
+    in terms of  `sort_by`. Optionally allows for saving a text copy of the profile
+    as well as returning the `Stats` object for further inspection.
+
+    For more details on the python profilers, see
+    https://docs.python.org/3/library/profile.html#the-stats-class
+
+    Parameters
+    ----------
+    agent_type: AgentType
+            A HARK AgentType with a solve() method.
+    sort_by: string
+            A string to sort the stats by.
+    max_print: int
+            Number of lines to print
+    filename: string
+            Optional filename to save output.
+    return_output: bool
+            Boolean to determine whether Stats object should be returned.
+
+    Returns
+    -------
+    stats: Stats (optional)
+          Profiling object with call statistics.
+    """
+
+    agent = agent_type
+    cProfile.run("agent.solve()", filename)
+    stats = pstats.Stats(filename)
+    stats.strip_dirs()
+    stats.sort_stats(sort_by)
+    stats.print_stats(max_print)
+    if return_output:
+        return stats
+
+
+simpledec = re.compile(r"\d*\.\d{8,20}")
+
+
+def mround(match):
+    return f"{float(match.group()):.5f}"
+
+
+def round_in_file(filename):
+    with open(filename, "r+") as file:
+        filetext = file.read()
+        filetext = re.sub(simpledec, mround, filetext)
+        file.seek(0)
+        file.write(filetext)
+        file.truncate()
+
+
+def files_in_dir(mypath):
+    return [
+        os.path.join(mypath, f)
+        for f in os.listdir(mypath)
+        if os.path.isfile(os.path.join(mypath, f))
+    ]

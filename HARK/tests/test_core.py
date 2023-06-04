@@ -1,11 +1,17 @@
 """
 This file implements unit tests for core HARK functionality.
 """
-from HARK.core import Model, MetricObject, distance_metric, AgentType, distribute_params
-from HARK.distribution import Uniform
+import unittest
 
 import numpy as np
-import unittest
+
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    IndShockConsumerType,
+    init_idiosyncratic_shocks,
+)
+from HARK.core import AgentPopulation, AgentType, distribute_params
+from HARK.distribution import Uniform
+from HARK.metric import MetricObject, distance_metric
 
 
 class test_distance_metric(unittest.TestCase):
@@ -16,6 +22,9 @@ class test_distance_metric(unittest.TestCase):
         self.obj_a = MetricObject()
         self.obj_b = MetricObject()
         self.obj_c = MetricObject()
+        self.dict_a = {"a": 1, "b": 2}
+        self.dict_b = {"a": 3, "b": 4}
+        self.dict_c = {"a": 5, "f": 6}
 
     def test_list(self):
         # same length
@@ -39,6 +48,12 @@ class test_distance_metric(unittest.TestCase):
         self.assertEqual(
             distance_metric(np.array(self.list_b), np.array(self.list_b)), 0.0
         )
+
+    def test_dict(self):
+        # Same keys (max of diffs across keys)
+        self.assertEqual(distance_metric(self.dict_a, self.dict_b), 2.0)
+        # Different keys
+        self.assertEqual(distance_metric(self.dict_a, self.dict_c), 1000.0)
 
     def test_hark_object_distance(self):
         self.obj_a.distance_criteria = ["var_1", "var_2", "var_3"]
@@ -79,7 +94,7 @@ class test_MetricObject(unittest.TestCase):
 
 class test_AgentType(unittest.TestCase):
     def setUp(self):
-        self.agent = AgentType(cycles = 1)
+        self.agent = AgentType(cycles=1)
 
     def test_solve(self):
         self.agent.time_vary = ["vary_1"]
@@ -94,27 +109,62 @@ class test_AgentType(unittest.TestCase):
         self.assertTrue(isinstance(self.agent.solution[0], MetricObject))
 
     def test___repr__(self):
-        self.assertTrue('Parameters' in self.agent.__repr__())
+        self.assertTrue("Parameters" in self.agent.__repr__())
 
     def test___eq__(self):
-        agent2 = AgentType(cycles = 1)
-        agent3 = AgentType(cycels = 2)
+        agent2 = AgentType(cycles=1)
+        agent3 = AgentType(cycels=2)
 
         self.assertEqual(self.agent, agent2)
         self.assertNotEqual(self.agent, agent3)
+
 
 class test_distribute_params(unittest.TestCase):
     def setUp(self):
         self.agent = AgentType(cycles=1, AgentCount=3)
 
-
     def test_distribute_params(self):
         dist = Uniform(bot=0.9, top=0.94)
 
-        self.agents = distribute_params(self.agent, 'DiscFac', 3, dist)
+        self.agents = distribute_params(self.agent, "DiscFac", 3, dist)
 
-        self.assertTrue(all(['DiscFac' in agent.parameters for agent in self.agents]))
-        self.assertTrue(all([self.agents[i].parameters['DiscFac'] == dist.approx(3).X[i] for i in range(3)]))
-        self.assertEqual(self.agents[0].parameters['AgentCount'], 1)
+        self.assertTrue(all(["DiscFac" in agent.parameters for agent in self.agents]))
+        self.assertTrue(
+            all(
+                [
+                    self.agents[i].parameters["DiscFac"]
+                    == dist.discretize(3, method="equiprobable").atoms[0, i]
+                    for i in range(3)
+                ]
+            )
+        )
+        self.assertEqual(self.agents[0].parameters["AgentCount"], 1)
 
 
+class test_agent_population(unittest.TestCase):
+    def setUp(self):
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = Uniform(2.0, 10)
+        params["DiscFac"] = Uniform(0.9, 0.99)
+
+        self.agent_pop = AgentPopulation(IndShockConsumerType, params)
+
+    def test_distributed_params(self):
+        self.assertTrue("CRRA" in self.agent_pop.distributed_params)
+        self.assertTrue("DiscFac" in self.agent_pop.distributed_params)
+
+    def test_approx_agents(self):
+        self.agent_pop.approx_distributions({"CRRA": 3, "DiscFac": 4})
+
+        self.assertTrue("CRRA" in self.agent_pop.continuous_distributions)
+        self.assertTrue("DiscFac" in self.agent_pop.continuous_distributions)
+        self.assertTrue("CRRA" in self.agent_pop.discrete_distributions)
+        self.assertTrue("DiscFac" in self.agent_pop.discrete_distributions)
+
+        self.assertEqual(self.agent_pop.agent_type_count, 12)
+
+    def test_create_agents(self):
+        self.agent_pop.approx_distributions({"CRRA": 3, "DiscFac": 4})
+        self.agent_pop.create_distributed_agents()
+
+        self.assertEqual(len(self.agent_pop.agents), 12)

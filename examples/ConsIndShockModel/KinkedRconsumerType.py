@@ -8,11 +8,11 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.6.0
+#       jupytext_version: 1.14.4
 #   kernelspec:
-#     display_name: econ-ark-3.8
+#     display_name: Python 3 (ipykernel)
 #     language: python
-#     name: econ-ark-3.8
+#     name: python3
 # ---
 
 # %% [markdown]
@@ -110,7 +110,7 @@ mystr = lambda number: "{:.4f}".format(number)
 # |$T$| Number of periods in this type's "cycle" |$\texttt{T_cycle}$| $1$ | |
 # |(none)| Number of times the "cycle" occurs |$\texttt{cycles}$| $0$ | |
 #
-# These example parameters are almostidentical to those used for `IndShockExample` in the prior notebook, except that the interest rate on borrowing is 20% (like a credit card), and the interest rate on saving is 1%. Moreover, the artificial borrowing constraint has been set to `None`.  The cell below defines a parameter dictionary with these example values.
+# These example parameters are almost identical to those used for `IndShockExample` in the prior notebook, except that the interest rate on borrowing is 20% (like a credit card), and the interest rate on saving is 1%. Moreover, the artificial borrowing constraint has been set to `None`.  The cell below defines a parameter dictionary with these example values.
 
 # %% {"code_folding": [0]}
 KinkedRdict = {  # Click the arrow to expand this parameter dictionary
@@ -198,7 +198,7 @@ plot_funcs_der(KinkyExample.solution[0].cFunc, KinkyExample.solution[0].mNrmMin,
 # These example parameter values were already passed as part of the parameter dictionary that we used to create `KinkyExample`, so it is ready to simulate.  We need to set the `track_vars` attribute to indicate the variables for which we want to record a *history*.
 
 # %%
-KinkyExample.track_vars = ['mNrm', 'cNrm', 'pLvl']
+KinkyExample.track_vars = ["mNrm", "cNrm", "pLvl"]
 KinkyExample.initialize_sim()
 KinkyExample.simulate()
 
@@ -206,7 +206,7 @@ KinkyExample.simulate()
 # We can plot the average (normalized) market resources in each simulated period:
 
 # %%
-plt.plot(np.mean(KinkyExample.history['mNrm'], axis=1))
+plt.plot(np.mean(KinkyExample.history["mNrm"], axis=1))
 plt.xlabel("Time")
 plt.ylabel("Mean market resources")
 plt.show()
@@ -215,7 +215,10 @@ plt.show()
 # Now let's plot the distribution of (normalized) assets $a_t$ for the current population, after simulating for $500$ periods; this should be fairly close to the long run distribution:
 
 # %%
-plt.plot(np.sort(KinkyExample.state_now['aNrm']), np.linspace(0.0, 1.0, KinkyExample.AgentCount))
+plt.plot(
+    np.sort(KinkyExample.state_now["aNrm"]),
+    np.linspace(0.0, 1.0, KinkyExample.AgentCount),
+)
 plt.xlabel("End-of-period assets")
 plt.ylabel("Cumulative distribution")
 plt.ylim(-0.01, 1.01)
@@ -225,9 +228,3 @@ plt.show()
 # We can see there's a significant point mass of consumers with *exactly* $a_t=0$; these are consumers who do not find it worthwhile to give up a bit of consumption to begin saving (because $\Rfree_{save}$ is too low), and also are not willing to finance additional consumption by borrowing (because $\Rfree_{boro}$ is too high).
 #
 # The smaller point masses in this distribution are due to $\texttt{HARK}$ drawing simulated income shocks from the discretized distribution, rather than the "true" lognormal distributions of shocks.  For consumers who ended $t-1$ with $a_{t-1}=0$ in assets, there are only 8 values the transitory shock $\theta_{t}$ can take on, and thus only 8 values of $m_t$ thus $a_t$ they can achieve; the value of $\psi_t$ is immaterial to $m_t$ when $a_{t-1}=0$.  You can verify this by changing $\texttt{TranShkCount}$ to some higher value, like 25, in the dictionary above, then running the subsequent cells; the smaller point masses will not be visible to the naked eye.
-
-# %%
-
-# %%
-
-# %%
