@@ -815,7 +815,7 @@ class DiscreteDistribution(Distribution):
         return self.atoms.shape[:-1]
 
     def draw_events(self, N: int,
-                    exact_match: bool = False):
+                    exact_match: bool = False) -> np.ndarray:
         """
         Draws N 'events' from the distribution PMF.
         These events are indices into atoms.
