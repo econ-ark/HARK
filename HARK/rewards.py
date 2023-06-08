@@ -233,7 +233,7 @@ def CRRAutilityP_invP(uP, rho):
     return (-1.0 / rho) * uP ** (-1.0 / rho - 1.0)
 
 
-def StoneGearyCRRAutility(c, rho, shifter):
+def StoneGearyCRRAutility(c, rho, shifter, factor=1.0):
     """
     Evaluates Stone-Geary version of a constant relative risk aversion (CRRA)
     utility of consumption c with given risk aversion parameter rho and
@@ -263,12 +263,12 @@ def StoneGearyCRRAutility(c, rho, shifter):
     if np.isscalar(c):
         c = np.asarray(c)
     if rho == 1:
-        return np.log(shifter + c)
+        return factor * np.log(shifter + c)
 
-    return (shifter + c) ** (1.0 - rho) / (1.0 - rho)
+    return factor * (shifter + c) ** (1.0 - rho) / (1.0 - rho)
 
 
-def StoneGearyCRRAutilityP(c, rho, shifter):
+def StoneGearyCRRAutilityP(c, rho, shifter, factor=1.0):
     """
     Marginal utility of Stone-Geary version of a constant relative risk aversion (CRRA)
     utility of consumption c wiht given risk aversion parameter rho and
@@ -291,10 +291,10 @@ def StoneGearyCRRAutilityP(c, rho, shifter):
 
     if np.isscalar(c):
         c = np.asarray(c)
-    return (shifter + c) ** (-rho)
+    return factor * (shifter + c) ** (-rho)
 
 
-def StoneGearyCRRAutilityPP(c, rho, shifter):
+def StoneGearyCRRAutilityPP(c, rho, shifter, factor=1.0):
     """
     Marginal marginal utility of Stone-Geary version of a CRRA utilty function
     with risk aversion parameter rho and Stone-Geary intercept parameter shifter
@@ -316,7 +316,35 @@ def StoneGearyCRRAutilityPP(c, rho, shifter):
 
     if np.isscalar(c):
         c = np.asarray(c)
-    return (-rho) * (shifter + c) ** (-rho - 1)
+    return factor * (-rho) * (shifter + c) ** (-rho - 1)
+
+
+def StoneGearyCRRAutility_inv(u, rho, shifter, factor=1.0):
+    if np.isscalar(u):
+        u = np.asarray(u)
+
+    return (u * (1.0 - rho) / factor) ** (1.0 / (1.0 - rho)) - shifter
+
+
+def StoneGearyCRRAutilityP_inv(uP, rho, shifter, factor=1.0):
+    if np.isscalar(uP):
+        uP = np.asarray(uP)
+
+    return (uP / factor) ** (-1.0 / rho) - shifter
+
+
+def StoneGearyCRRAutility_invP(u, rho, shifter, factor=1.0):
+    if np.isscalar(u):
+        u = np.asarray(u)
+
+    return (1.0 / (1.0 - rho)) * (u * (1.0 - rho) / factor) ** (1.0 / (1.0 - rho) - 1.0)
+
+
+def StoneGearyCRRAutilityP_invP(uP, rho, shifter, factor=1.0):
+    if np.isscalar(uP):
+        uP = np.asarray(uP)
+
+    return (-1.0 / rho) * (uP / factor) ** (-1.0 / rho - 1.0)
 
 
 def CARAutility(c, alpha):
@@ -806,6 +834,39 @@ class UtilityFuncCRRA(UtilityFunction):
         Short alias for inverse with default order = (1,0). See `self.inverse`.
         """
         return self.inverse(u, order)
+
+
+class UtilityFuncStoneGeary(UtilityFuncCRRA):
+    def __init__(self, CRRA, factor=1.0, shifter=0.0):
+        self.CRRA = CRRA
+        self.factor = factor
+        self.shifter = shifter
+
+    def __call__(self, c, order=0):
+        if order == 0:
+            return StoneGearyCRRAutility(c, self.CRRA, self.shifter, self.factor)
+        else:  # order >= 1
+            return self.derivative(c, order)
+
+    def derivative(self, c, order=1):
+        if order == 1:
+            return StoneGearyCRRAutilityP(c, self.CRRA, self.shifter, self.factor)
+        elif order == 2:
+            return StoneGearyCRRAutilityPP(c, self.CRRA, self.shifter, self.factor)
+        else:
+            raise ValueError(f"Derivative of order {order} not supported")
+
+    def inverse(self, u, order=(0, 0)):
+        if order == (0, 0):
+            return StoneGearyCRRAutility_inv(u, self.CRRA, self.shifter, self.factor)
+        elif order == (1, 0):
+            return StoneGearyCRRAutilityP_inv(u, self.CRRA, self.shifter, self.factor)
+        elif order == (0, 1):
+            return StoneGearyCRRAutility_invP(u, self.CRRA, self.shifter, self.factor)
+        elif order == (1, 1):
+            return StoneGearyCRRAutilityP_invP(u, self.CRRA, self.shifter, self.factor)
+        else:
+            raise ValueError(f"Inverse of order {order} not supported")
 
 
 class UtilityFuncCobbDouglas(UtilityFunction):

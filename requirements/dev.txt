@@ -6,4 +6,4 @@ pytest
 pytest-xdist
 recommonmark>=0.7
 sphinx>=6.1
-sphinx-rtd-theme
+pydata-sphinx-theme
