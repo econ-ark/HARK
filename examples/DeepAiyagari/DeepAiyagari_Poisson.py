@@ -4,24 +4,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Aiyagari problem parameters
-gamma = 2
-r = 0.03
-rho = 0.05
-Var = 0.07
-Corr = 0.9
-the = -np.log(Corr)
-sig2 = 2*the*Var
+gamma = 2 # CRRA Utility Parameter
+r = 0.03 # Stationary Interest Rate 
+rho = 0.05 # Discount Rate
 
-z1 = .1
+
+z1 = .1 
 z2 = .2
-z = np.array([z1, z2])
+z = np.array([z1, z2]) # Income State
 la1 = 0.02
 la2 = 0.03
-la = np.array([la1, la2])
+la = np.array([la1, la2]) # Poisson Intensity of Income State
 
-eps = tf.constant(1e-10, dtype=tf.float32)
+eps = tf.constant(1e-10, dtype=tf.float32) # Small Constant
 
-X_low = np.array([-0.02])  # wealth lower bound
+X_low = np.array([-0.02])       # wealth lower bound
 X_high = np.array([2])          # wealth upper bound
 
 
@@ -36,7 +33,6 @@ def u_deriv(c):
 
 def u_deriv_inv(c):
     return c**(-1/gamma)
-
 
 # Define model architecture
 class DCGMNet(tf.keras.Model):
@@ -81,29 +77,25 @@ class DCGMNet(tf.keras.Model):
 
 
 # neural network parameters
-num_layers_FFNN = 4
-num_layers_RNN = 0
-nodes_per_layer = 50
-starting_learning_rate = 0.001
-shrinkstep = 20000
-shrinkcoef = 0.95
-activation_FFNN = 'tanh'
+num_layers_FFNN = 4    # Depth of Neural Network
+nodes_per_layer = 50   # Width of Neural Network
+starting_learning_rate = 0.001  # Learning Rate of Optimizer
+activation_FFNN = 'tanh' # Activation Function in Neural Network
 # Training parameters
 sampling_stages  = 6000   # number of times to resample new time-space domain points
-steps_per_sample = 10    # number of SGD steps to take before re-sampling
+steps_per_sample = 10    # number of SGD steps to take before re-sampling, avoiding trapp in local minimum 
 
 # Sampling parameters
-nSim_interior = 128
-nSim_boundary = 1
+nSim_interior = 128  # Number of Points sampled in Interior of State Space
+nSim_boundary = 1    # Number of Points sampled in Boundary of State Space
 
-dim_input = 1
-dim_output = 2
+dim_input = 1        # Dimensionality of Input, wealth as a single state variable
+dim_output = 2       # Dimensionality of output, since we have two Poisson state, each represented by one value function.
  
 model = DCGMNet(X_low, X_high,  
                  dim_input, dim_output, 
                  num_layers_FFNN, nodes_per_layer,
                  activation_FFNN)
-
 
 
 def sampler(nSim_interior, nSim_boundary):
