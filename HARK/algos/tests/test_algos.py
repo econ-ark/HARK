@@ -4,6 +4,7 @@ This file implements unit tests to check discrete choice functions
 # Bring in modules we need
 import unittest
 
+import HARK.algos.foc
 import numpy as np
 
 class foc_test(unittest.TestCase):
