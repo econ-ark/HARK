@@ -4,8 +4,41 @@ This file implements unit tests to check discrete choice functions
 # Bring in modules we need
 import unittest
 
-import HARK.algos.foc
+from HARK.algos.foc import optimal_policy_foc
+from gothic_class import gothic
+from rewards import CRRAutilityP_inv
 import numpy as np
+
+
+"""
+
+
+g = lambda x, k, a : {'a' : x['m'] - a['c']},
+dg_dx = 1,  ## Used in FOC method, step 5
+dg_da = -1,  ## Used in FOC method, step 5
+g_inv = lambda y, a : {'m' : y['a'] + a['c']},  ## Used in EGM method, step 8
+r = lambda x, k, a : u(a['c']),
+dr_da = lambda x, k, a: u.prime(a['c']),
+dr_inv = lambda uP : (CRRAutilityP_inv(uP, rho),),
+
+x = ['m'], 
+a = ['c'],
+y = ['a'],
+
+TODO: Where are the constants from?
+action_upper_bound = lambda x, k: (x['m'] + gamma[0] * theta.X[0] / R,),
+
+#discount = beta, <-- Removed because beta is in gothic V!
+    
+##### Inputs to optimizers, interpolators, solvers...
+optimizer_args = {
+    'method' : 'Nelder-Mead',
+    'options' : {
+        'maxiter': 1e3,
+        #'disp' : True
+    }
+},
+"""
 
 class foc_test(unittest.TestCase):
     """
@@ -22,7 +55,38 @@ class foc_test(unittest.TestCase):
 
     def test_x(self):
 
-        self.assertTrue(np.all(self.cVec2 > 0))
+        g = lambda x, k, a : {'a' : x['m'] - a['c']},
+        dg_dx = 1,  ## Used in FOC method, step 5
+        dg_da = -1,  ## Used in FOC method, step 5
+        g_inv = lambda y, a : {'m' : y['a'] + a['c']},  ## Used in EGM method, step 8
+        r = lambda x, k, a : u(a['c']),
+        dr_da = lambda x, k, a: u.prime(a['c']),
+        dr_inv = lambda uP : (CRRAutilityP_inv(uP, rho),),
+
+        action_upper_bound = lambda x, k: (x['m'] + gamma[0] * theta.X[0] / R,),
+
+        #discount = beta, <-- Removed because beta is in gothic V!
+    
+        ##### Inputs to optimizers, interpolators, solvers...
+        ## TODO: Is this used?
+        optimizer_args = {
+            'method' : 'Nelder-Mead',
+            'options' : {
+                'maxiter': 1e3,
+                #'disp' : True
+            }
+        }
+
+        def consumption_v_y_der(y : Mapping[str,Any]):
+            return gothic.VP_Tminus1(y['a'])
+
+        
+        pi_star, q_der, y_data = optimal_policy_foc(
+            {'m' : self.mVec},
+            v_y_der = consumption_v_y_der
+        )
+
+        self.assertTrue(np.all(self.cVec2 == pi_star.values))
 
 class egm_test(unittest.TestCase):
     """
@@ -35,5 +99,19 @@ class egm_test(unittest.TestCase):
         self.mVec_egm = np.load("smdsops_mVec_egm.npy")
 
     def test_egm(self):
+
+        """
+
+        ### EGM test from SolvingMicroDSOPs with stages
+        def consumption_v_y_der(y : Mapping[str,Any]):
+            return gothic.VP_Tminus1(y['a'])
+
+        pi, pi_y = stage.optimal_policy_egm(
+            y_grid = {'a' : aVec},
+            v_y_der = consumption_v_y_der
+        )
+                                    
+        pi.interp({'m' : mVec_egm}) -  cFunc_egm(mVec_egm) == 0
+        """
 
         self.assertTrue(np.all(self.aVec + self.cVec_egm == self.mVec_egm))

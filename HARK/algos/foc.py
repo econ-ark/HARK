@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize, brentq
+from typing import Callable, Mapping, Sequence
 import xarray as xr
 
 """
@@ -55,8 +56,9 @@ def xz_grids_to_data_array(
         np.zeros([len(v) for v in coords.values()]),
         dims = coords.keys(),
         coords = coords
+    )
 
-    return 
+    return da
 
 
 def optimal_policy_foc(self,
