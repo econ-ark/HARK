@@ -5,10 +5,14 @@ This file implements unit tests to check discrete choice functions
 import unittest
 
 from HARK.algos.foc import optimal_policy_foc
-from gothic_class import gothic
-from rewards import CRRAutilityP_inv
+from HARK.gothic.gothic_class import gothic
+from HARK.rewards import CRRAutilityP_inv
 import numpy as np
+import os
+from typing import Any, Mapping
 
+__location__ = os.path.realpath(
+    os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 """
 
@@ -49,8 +53,8 @@ class foc_test(unittest.TestCase):
 
     def setUp(self):
 
-        self.mVec = np.load("smdsops_mVec.npy")
-        self.cVec2 = np.load("smdsops_cVec2.npy")
+        self.mVec = np.load(os.path.join(__location__, "smdsops_mVec.npy")) 
+        self.cVec2 = np.load(os.path.join(__location__, "smdsops_cVec2.npy")) 
 
 
     def test_x(self):
@@ -94,9 +98,9 @@ class egm_test(unittest.TestCase):
     pi(mVec_egm) == cVec_egm
     """
     def setUp(self):
-        self.aVec = np.load("smdsops_aVec.npy")
-        self.cVec_egm = np.load("smdsops_cVec_egm.npy")
-        self.mVec_egm = np.load("smdsops_mVec_egm.npy")
+        self.aVec = np.load(os.path.join(__location__, "smdsops_aVec.npy")) 
+        self.cVec_egm = np.load(os.path.join(__location__, "smdsops_cVec_egm.npy")) 
+        self.mVec_egm = np.load(os.path.join(__location__, "smdsops_mVec_egm.npy")) 
 
     def test_egm(self):
 

@@ -1,3 +1,4 @@
+import itertools
 import numpy as np
 from scipy.optimize import minimize, brentq
 from typing import Callable, Mapping, Sequence
@@ -47,10 +48,10 @@ def xndindex(ds, dims=None):
 
 def xz_grids_to_data_array(
         x_grid : Mapping[str, Sequence] = {}, ## TODO: Better data structure here.
-        k_grid : Mapping[str, Sequence] = {}
+        z_grid : Mapping[str, Sequence] = {}
     ):
 
-    coords = {**x_grid, **k_grid}
+    coords = {**x_grid, **z_grid}
 
     da = xr.DataArray(
         np.zeros([len(v) for v in coords.values()]),
@@ -61,7 +62,7 @@ def xz_grids_to_data_array(
     return da
 
 
-def optimal_policy_foc(self,
+def optimal_policy_foc(
                        x_grid : Mapping[str, Sequence] = {}, ## TODO: Better data structure here.
                        z_grid : Mapping[str, Sequence] = {},
                        v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
@@ -100,7 +101,7 @@ def optimal_policy_foc(self,
 
     """
     # Set up data arrays with coordinates based on the grid.
-    pi_data = xz_grids_to_data_array(x_grid, z_grid)
+    pi_data = xz_grids_to_data_array(x_grid, z_grid) ## TODO: Default value for pi should be nan.
     q_der_data = xz_grids_to_data_array(x_grid, z_grid)
     ## May need to expand this for multivariate y
     y_data = xz_grids_to_data_array(x_grid, z_grid)
@@ -125,9 +126,10 @@ def optimal_policy_foc(self,
         x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
 
         for z_point in itertools.product(*z_grid.values()):
-            z_vals = {k : v for k, v in zip(k_grid.keys() , k_point)}
+            z_vals = {k : v for k, v in zip(z_grid.keys() , z_point)}
 
             # repeated code with the other optimizer -- can be functionalized out?
+            """
             if len(self.actions) == 0:
                 q_der_xz = self.d_q_d_a(
                     x_vals,
@@ -146,87 +148,85 @@ def optimal_policy_foc(self,
                 y = g(x_vals, z_vals, self.action_zip([np.nan]))
                 y_n = np.array([y[k] for k in y])
                 y_data.sel(**x_vals, **z_vals).variable.data.put(0, y_n)
+            """
+            
+            # these lower bounds as arugments to the 
+            lower_bound = self.action_lower_bound(x_vals, k_vals)
+            upper_bound = self.action_upper_bound(x_vals, k_vals)
 
-
+            ##  what if no lower bound?
+            q_der_lower = None
+            if lower_bound[0] is not None:
+                q_der_lower = self.d_q_d_a(
+                x_vals,
+                k_vals,
+                self.action_zip(lower_bound),
+                v_y_der
+                )
             else:
+                lower_bound[0] = 1e-12 ## a really high number!
 
-                # these lower bounds as arugments to the 
-                lower_bound = self.action_lower_bound(x_vals, k_vals)
-                upper_bound = self.action_upper_bound(x_vals, k_vals)
+            q_der_upper = None
+            if upper_bound[0] is not None:
+                q_der_upper = self.d_q_d_a(
+                x_vals,
+                k_vals,
+                self.action_zip(upper_bound),
+                v_y_der
+                )
+            else:
+                upper_bound[0] =  1e12 ## a really high number!
 
-                ##  what if no lower bound?
-                q_der_lower = None
-                if lower_bound[0] is not None:
-                    q_der_lower = self.d_q_d_a(
-                    x_vals,
-                    k_vals,
-                    self.action_zip(lower_bound),
-                    v_y_der
-                    )
-                else:
-                    lower_bound[0] = 1e-12 ## a really high number!
+            ## TODO: Better handling of case when there is a missing bound?
+            if q_der_lower is not None and q_der_upper is not None and q_der_lower < 0 and q_der_upper < 0:
+                a0 = lower_bound
 
-                q_der_upper = None
-                if upper_bound[0] is not None:
-                    q_der_upper = self.d_q_d_a(
-                    x_vals,
-                    k_vals,
-                    self.action_zip(upper_bound),
-                    v_y_der
-                    )
-                else:
-                    upper_bound[0] =  1e12 ## a really high number!
+                pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
+                q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_lower)
+            elif q_der_lower is not None and q_der_upper is not None and q_der_lower > 0 and q_der_upper > 0:
+                a0 = upper_bound
 
-                ## TODO: Better handling of case when there is a missing bound?
-                if q_der_lower is not None and q_der_upper is not None and q_der_lower < 0 and q_der_upper < 0:
-                    a0 = lower_bound
+                pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
+                q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_upper)
+            else:
+                ## Better exception handling here
+                ## asserting that Q is concave
+                if q_der_lower is not None and q_der_upper is not None and not(q_der_lower > 0 and q_der_upper < 0):
+                    raise Exception("Cannot solve for optimal policy with FOC if Q is not concave!")
 
+                a0, root_res = brentq(
+                    foc,
+                    lower_bound[0], # only works with scalar actions
+                    upper_bound[0], # only works with scalar actions
+                    full_output = True
+                )
+
+                if root_res.converged:
                     pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
-                    q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_lower)
-                elif q_der_lower is not None and q_der_upper is not None and q_der_lower > 0 and q_der_upper > 0:
-                    a0 = upper_bound
 
-                    pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
-                    q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_upper)
-                else:
-                    ## Better exception handling here
-                    ## asserting that Q is concave
-                    if q_der_lower is not None and q_der_upper is not None and not(q_der_lower > 0 and q_der_upper < 0):
-                        raise Exception("Cannot solve for optimal policy with FOC if Q is not concave!")
-
-                    a0, root_res = brentq(
-                        foc,
-                        lower_bound[0], # only works with scalar actions
-                        upper_bound[0], # only works with scalar actions
-                        full_output = True
+                    q_der_xz = self.dq_da(
+                        x_vals,
+                        z_vals,
+                        self.action_zip((a0,)), # actions are scalar
+                        v_y_der
                     )
 
-                    if root_res.converged:
-                        pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
+                    q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_xk)
+                else:
+                    print(f"Rootfinding failure at {x_vals}, {z_vals}.")
+                    print(root_res)
 
-                        q_der_xz = self.dq_da(
-                            x_vals,
-                            z_vals,
-                            self.action_zip((a0,)), # actions are scalar
-                            v_y_der
-                        )
+                    #raise Exception("Failed to optimize.")
+                    pi_data.sel(**x_vals, **z_vals).variable.data.put(0,  root_res.root)
 
-                        q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_xk)
-                    else:
-                        print(f"Rootfinding failure at {x_vals}, {z_vals}.")
-                        print(root_res)
+                    q_der_xz = dq_da(
+                        x_vals,
+                        z_vals,
+                        self.action_zip((root_res.root,)), # actions are scalar
+                        v_y_der
+                    )
 
-                        #raise Exception("Failed to optimize.")
-                        pi_data.sel(**x_vals, **z_vals).variable.data.put(0,  root_res.root)
-
-                        q_der_xz = dq_da(
-                            x_vals,
-                            z_vals,
-                            self.action_zip((root_res.root,)), # actions are scalar
-                            v_y_der
-                        )
-
-                        q_der_data.sel(**x_vals, **z_vals).variable.data.put(0, q_der_xz)
+                    q_der_data.sel(**x_vals, **z_vals).variable.data.put(0, q_der_xz)
 
                 acts =  np.atleast_1d(pi_data.sel(**x_vals, **z_vals).values)
                 y = g(x_vals, z_vals, self.action_zip(acts))

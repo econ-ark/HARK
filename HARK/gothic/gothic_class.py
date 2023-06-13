@@ -245,7 +245,7 @@ import scipy.stats as stats
 import pylab as plt
 from scipy.optimize import brentq
 ## TODO Need these resources here also?
-from resources import DiscreteApproximation, Utility, DiscreteApproximationTwoMeanOneIndependentLognormalDistribs, DiscreteApproximationToTwoMeanOneIndependentLognormalDistribsWithDiscreteProb_Z_Event
+from HARK.gothic.resources import DiscreteApproximation, Utility, DiscreteApproximationTwoMeanOneIndependentLognormalDistribs, DiscreteApproximationToTwoMeanOneIndependentLognormalDistribsWithDiscreteProb_Z_Event
     
 # General parameters:
 rho = 2.0
