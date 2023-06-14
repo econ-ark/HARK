@@ -6,14 +6,45 @@ import unittest
 
 from HARK.algos.foc import optimal_policy_foc
 from HARK.gothic.gothic_class import gothic
-from HARK.rewards import CRRAutilityP_inv
+from HARK.gothic.resources import (
+    Utility,
+    DiscreteApproximation,
+    DiscreteApproximationTwoIndependentDistribs,
+)
+
+from HARK.rewards import CRRAutilityP, CRRAutilityP_inv
 import numpy as np
 import os
+from scipy import stats
 from typing import Any, Mapping
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
+
+# From SolvingMicroDSOPS
+# Set up general parameters:
+
+rho = 2.0  ### CRRA coefficient
+beta = 0.96  ### discount factor
+gamma = Gamma = np.array([1.0])  # permanent income growth factor
+# A one-element "time series" array
+# (the array structure needed for gothic class below)
+R = 1.02  ## Risk free interest factor
+
+# Define utility:
+u = Utility(rho)
+
+theta_sigma = 0.5
+theta_mu = -0.5 * (theta_sigma**2)
+theta_z = stats.lognorm(
+    theta_sigma, 0, np.exp(theta_mu)
+)  # Create "frozen" distribution instance
+theta_grid_N = 7  ### how many grid points to approximate this continuous distribution
+
+theta = DiscreteApproximation(
+    N=theta_grid_N, cdf=theta_z.cdf, pdf=theta_z.pdf, invcdf=theta_z.ppf
+)
 """
 
 
@@ -57,15 +88,15 @@ class foc_test(unittest.TestCase):
         self.cVec2 = np.load(os.path.join(__location__, "smdsops_cVec2.npy")) 
 
 
-    def test_x(self):
+    def test_optimal_policy_foc(self):
 
-        g = lambda x, k, a : {'a' : x['m'] - a['c']},
-        dg_dx = 1,  ## Used in FOC method, step 5
-        dg_da = -1,  ## Used in FOC method, step 5
-        g_inv = lambda y, a : {'m' : y['a'] + a['c']},  ## Used in EGM method, step 8
-        r = lambda x, k, a : u(a['c']),
-        dr_da = lambda x, k, a: u.prime(a['c']),
-        dr_inv = lambda uP : (CRRAutilityP_inv(uP, rho),),
+        g = lambda x, k, a : {'a' : x['m'] - a['c']}
+        dg_dx = 1  ## Used in FOC method, step 5
+        dg_da = -1  ## Used in FOC method, step 5
+        g_inv = lambda y, a : {'m' : y['a'] + a['c']}  ## Used in EGM method, step 8
+        r = lambda x, k, a : u(a['c'])
+        dr_da = lambda x, k, a: (CRRAutilityP(a['c'], rho),) # u.prime(a['c'])
+        dr_inv = lambda uP : (CRRAutilityP_inv(uP, rho),)
 
         action_upper_bound = lambda x, k: (x['m'] + gamma[0] * theta.X[0] / R,),
 
@@ -87,7 +118,7 @@ class foc_test(unittest.TestCase):
         
         pi_star, q_der, y_data = optimal_policy_foc(
             g,
-            ['a'],
+            ['c'],
             r,
             dr_da,
             dr_inv,
@@ -95,8 +126,8 @@ class foc_test(unittest.TestCase):
             dg_da,
             {'m' : self.mVec},
             v_y_der = consumption_v_y_der,
-            action_upper_bound = None, # = lambda x, z: (x['m'] + gamma[0] * theta.X[0] / R,),
-            action_lower_bound = lambda x, z: 0,
+            action_upper_bound = lambda x, z: (x['m'] + gamma[0] * theta.X[0] / R,),
+            action_lower_bound = lambda x, z: (0,),
         )
 
         self.assertTrue(np.all(self.cVec2 == pi_star.values))
