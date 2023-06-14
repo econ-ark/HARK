@@ -5,7 +5,7 @@ This file implements unit tests to check discrete choice functions
 import unittest
 
 from HARK.algos.foc import optimal_policy_foc
-from HARK.gothic.gothic_class import gothic
+from HARK.gothic.gothic_class import Gothic
 from HARK.gothic.resources import (
     Utility,
     DiscreteApproximation,
@@ -45,9 +45,10 @@ theta_grid_N = 7  ### how many grid points to approximate this continuous distri
 theta = DiscreteApproximation(
     N=theta_grid_N, cdf=theta_z.cdf, pdf=theta_z.pdf, invcdf=theta_z.ppf
 )
+
+gothic = Gothic(u, beta, rho, gamma, R, theta)
+
 """
-
-
 g = lambda x, k, a : {'a' : x['m'] - a['c']},
 dg_dx = 1,  ## Used in FOC method, step 5
 dg_da = -1,  ## Used in FOC method, step 5
@@ -130,7 +131,7 @@ class foc_test(unittest.TestCase):
             action_lower_bound = lambda x, z: (0,),
         )
 
-        self.assertTrue(np.all(self.cVec2 == pi_star.values))
+        self.assertTrue(np.all(abs(self.cVec2 - pi_star.values) < 1e-12))
 
 class egm_test(unittest.TestCase):
     """

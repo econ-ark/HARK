@@ -122,7 +122,6 @@ def optimal_policy_foc(
     xz_grid_size = np.prod([len(xv) for xv in x_grid.values()]) * np.prod([len(zv) for zv in z_grid.values()])
 
     def dq_da(x,z,a, v_y_der):
-        print(dr_da, x, z, a, discount, v_y_der)
         return dr_da(x,z,a) + discount * v_y_der(g(x,z,a)) * dg_da # could optionally be dg_da(x,z,a)
 
     # TODO: replace these with iterators....
@@ -249,7 +248,7 @@ def optimal_policy_foc(
                     q_der_data.sel(**x_vals, **z_vals).variable.data.put(0, q_der_xz)
 
                 acts =  np.atleast_1d(pi_data.sel(**x_vals, **z_vals).values)
-                y = g(x_vals, z_vals, self.action_zip(acts))
+                y = g(x_vals, z_vals, action_zip(acts))
                 y_n = np.array([y[k] for k in y])
                 y_data.sel(**x_vals, **z_vals).variable.data.put(0, y_n)
 
