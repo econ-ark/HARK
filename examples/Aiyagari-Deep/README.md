@@ -1,8 +1,6 @@
 # Aiyagari Model - Deep Learning based Algorithm
 
-We solve Aiyagri model with Poisson income process with a neural network.  (It takes around 4 minutes to finish training)
-
-The pertinent file for step-by-step illustration is "Aiyagari-Deep_Poisson.ipynb".
+1. We solve Aiyagri model with Poisson income process with a neural network.  (It takes around 4 minutes to finish training)
 
 For results only, run the following commands
 1. Set current directory as working directory with 
@@ -15,4 +13,23 @@ For results only, run the following commands
 
 Or simply execute 
 
-* ./reproduce.sh
+* bash ./reproduce.sh
+
+
+2. The following graph contains main files and shows how this folder is structured.
+
+   ```mermaid
+   graph LR;
+      Parent-->Aiyagari-Deep_Poisson.ipynb
+      Parent-->Tex
+      Parent-->Aiyagari-Deep_Poisson.py
+      Parent-->README.md
+      Parent-->reproduce.sh
+     
+      Tex--> Figures
+      <!-- Tex--> Tables
+      Tex--> Slides
+      Tex--> main.tex
+      Tex--> Appendix -->
+   
+   ```
