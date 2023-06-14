@@ -23,6 +23,8 @@ Question:
 
 """
 
+## TODO: Action handling
+
 def xndindex(ds, dims=None):
     """
     There is currently no integrated way to iterate over an xarray.DataArray with its coordinate labels.
@@ -63,11 +65,20 @@ def xz_grids_to_data_array(
 
 
 def optimal_policy_foc(
-                       x_grid : Mapping[str, Sequence] = {}, ## TODO: Better data structure here.
-                       z_grid : Mapping[str, Sequence] = {},
-                       v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
-                       optimizer_args = None # TODO: For brettq.
-                       ):
+        g : Callable[[Mapping, Mapping, Mapping], float],  #= lambda x, z, a : {'a' : x['m'] - a['c']},
+        r, # = lambda x, z, a : u(a['c']),
+        dr_da, # = lambda x, z, a: u.prime(a['c']),
+        dr_inv, # = lambda uP : (CRRAutilityP_inv(uP, rho),),
+        dg_dx = 1,  ## Used in FOC method, step 5
+        dg_da = -1,  ## Used in FOC method, step 5
+        x_grid : Mapping[str, Sequence] = {}, ## TODO: Better data structure here.
+        z_grid : Mapping[str, Sequence] = {},
+        v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
+        discount = 1,
+        action_upper_bound = None, # = lambda x, z: (x['m'] + gamma[0] * theta.X[0] / R,),
+        action_lower_bound = None, ## TODO: What are the default bounds?
+        optimizer_args = None # TODO: For brettq.
+    ):
     """
     Given a grid over input and shock state values,
     and marginal output value function,
@@ -108,13 +119,8 @@ def optimal_policy_foc(
 
     xz_grid_size = np.prod([len(xv) for xv in x_grid.values()]) * np.prod([len(zv) for zv in z_grid.values()])
 
-    "dq_da(x,z,a) = dr_da(x,z,a) + discount * v_y_der(g(x,z,a)) * dg_da(x,z,a)"
-
-    def foc(a):
-        a_vals = {an : av for an,av in zip(self.actions, (a,))}
-        return self.dq_da(x_vals, k_vals, a_vals, v_y_der)
-
-
+    def dq_da(x,z,a):
+        return dr_da(x,z,a) + discount * v_y_der(g(x,z,a)) * dg_da(x,z,a)
 
     # TODO: replace these with iterators....
     #xz_iterator = xndindex(pi_data)
@@ -150,30 +156,34 @@ def optimal_policy_foc(
                 y_data.sel(**x_vals, **z_vals).variable.data.put(0, y_n)
             """
             
+            def foc(a):
+                a_vals = {an : av for an,av in zip(self.actions, (a,))}
+                return dq_da(x_vals, z_vals, a_vals, v_y_der)
+
             # these lower bounds as arugments to the 
-            lower_bound = self.action_lower_bound(x_vals, k_vals)
-            upper_bound = self.action_upper_bound(x_vals, k_vals)
+            lower_bound = action_lower_bound(x_vals, z_vals)
+            upper_bound = action_upper_bound(x_vals, z_vals)
 
             ##  what if no lower bound?
             q_der_lower = None
             if lower_bound[0] is not None:
-                q_der_lower = self.d_q_d_a(
-                x_vals,
-                k_vals,
-                self.action_zip(lower_bound),
-                v_y_der
-                )
+                q_der_lower = dq_da(
+                    x_vals,
+                    k_vals,
+                    self.action_zip(lower_bound),
+                    v_y_der
+                    )
             else:
                 lower_bound[0] = 1e-12 ## a really high number!
 
             q_der_upper = None
             if upper_bound[0] is not None:
-                q_der_upper = self.d_q_d_a(
-                x_vals,
-                k_vals,
-                self.action_zip(upper_bound),
-                v_y_der
-                )
+                q_der_upper = dq_da(
+                    x_vals,
+                    z_vals,
+                    self.action_zip(upper_bound),
+                    v_y_der
+                    )
             else:
                 upper_bound[0] =  1e12 ## a really high number!
 
@@ -181,13 +191,13 @@ def optimal_policy_foc(
             if q_der_lower is not None and q_der_upper is not None and q_der_lower < 0 and q_der_upper < 0:
                 a0 = lower_bound
 
-                pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
-                q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_lower)
+                pi_data.sel(**x_vals, **z_vals).variable.data.put(0, a0)
+                q_der_data.sel(**x_vals, **z_vals).variable.data.put(0, q_der_lower)
             elif q_der_lower is not None and q_der_upper is not None and q_der_lower > 0 and q_der_upper > 0:
                 a0 = upper_bound
 
-                pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
-                q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_upper)
+                pi_data.sel(**x_vals, **z_vals).variable.data.put(0, a0)
+                q_der_data.sel(**x_vals, **z_vals).variable.data.put(0, q_der_upper)
             else:
                 ## Better exception handling here
                 ## asserting that Q is concave
@@ -202,7 +212,7 @@ def optimal_policy_foc(
                 )
 
                 if root_res.converged:
-                    pi_data.sel(**x_vals, **k_vals).variable.data.put(0, a0)
+                    pi_data.sel(**x_vals, **z_vals).variable.data.put(0, a0)
 
                     q_der_xz = self.dq_da(
                         x_vals,
@@ -211,7 +221,7 @@ def optimal_policy_foc(
                         v_y_der
                     )
 
-                    q_der_data.sel(**x_vals, **k_vals).variable.data.put(0, q_der_xk)
+                    q_der_data.sel(**x_vals, **z_vals).variable.data.put(0, q_der_xz)
                 else:
                     print(f"Rootfinding failure at {x_vals}, {z_vals}.")
                     print(root_res)

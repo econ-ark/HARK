@@ -86,8 +86,16 @@ class foc_test(unittest.TestCase):
 
         
         pi_star, q_der, y_data = optimal_policy_foc(
+            g,
+            r,
+            dr_da,
+            dr_inv,
+            dg_dx,
+            dg_da,
             {'m' : self.mVec},
-            v_y_der = consumption_v_y_der
+            v_y_der = consumption_v_y_der,
+            action_upper_bound = None, # = lambda x, z: (x['m'] + gamma[0] * theta.X[0] / R,),
+            action_lower_bound = None,
         )
 
         self.assertTrue(np.all(self.cVec2 == pi_star.values))
