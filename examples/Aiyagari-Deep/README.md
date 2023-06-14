@@ -1,6 +1,6 @@
 # Aiyagari Model - Deep Learning based Algorithm
 
-1. We solve Aiyagri model with Poisson income process with a neural network.  (It takes around 4 minutes to finish training)
+1. We solve Aiyagri model with Poisson income process by a neural network.  (It takes around 4 minutes to finish training)
 
 For results only, run the following commands
 1. Set current directory as working directory with 
