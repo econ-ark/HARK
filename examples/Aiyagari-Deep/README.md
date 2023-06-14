@@ -27,9 +27,5 @@ Or simply execute
       Parent-->reproduce.sh
      
       Tex--> Figures
-      <!-- Tex--> Tables
-      Tex--> Slides
-      Tex--> main.tex
-      Tex--> Appendix -->
    
    ```
