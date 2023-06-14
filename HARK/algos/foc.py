@@ -1,7 +1,8 @@
+from dataclasses import field
 import itertools
 import numpy as np
 from scipy.optimize import minimize, brentq
-from typing import Callable, Mapping, Sequence
+from typing import Callable, Mapping, Sequence, Tuple
 import xarray as xr
 
 """
@@ -66,6 +67,7 @@ def xz_grids_to_data_array(
 
 def optimal_policy_foc(
         g : Callable[[Mapping, Mapping, Mapping], float],  #= lambda x, z, a : {'a' : x['m'] - a['c']},
+        actions,
         r, # = lambda x, z, a : u(a['c']),
         dr_da, # = lambda x, z, a: u.prime(a['c']),
         dr_inv, # = lambda uP : (CRRAutilityP_inv(uP, rho),),
@@ -75,8 +77,8 @@ def optimal_policy_foc(
         z_grid : Mapping[str, Sequence] = {},
         v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
         discount = 1,
-        action_upper_bound = None, # = lambda x, z: (x['m'] + gamma[0] * theta.X[0] / R,),
-        action_lower_bound = None, ## TODO: What are the default bounds?
+        action_upper_bound : Callable[[Mapping, Mapping], Sequence[float]] = field(default = None), # = lambda x, z: (x['m'] + gamma[0] * theta.X[0] / R,),
+        action_lower_bound : Callable[[Mapping, Mapping], Sequence[float]] = field(default = None),
         optimizer_args = None # TODO: For brettq.
     ):
     """
@@ -126,7 +128,12 @@ def optimal_policy_foc(
     #xz_iterator = xndindex(pi_data)
     #import pdb; pdb.set_trace()
 
-
+    def action_zip(self, a : Tuple):
+        """
+        Wraps a tuple of values for an action in a dictionary with labels.
+        Useful for converting between forms of model equations.
+        """
+        return {an : av for an,av in zip(self.actions, a)}
 
     for x_point in itertools.product(*x_grid.values()):
         x_vals = {k : v for k, v in zip(x_grid.keys() , x_point)}
@@ -157,7 +164,7 @@ def optimal_policy_foc(
             """
             
             def foc(a):
-                a_vals = {an : av for an,av in zip(self.actions, (a,))}
+                a_vals = action_zip((a,))
                 return dq_da(x_vals, z_vals, a_vals, v_y_der)
 
             # these lower bounds as arugments to the 
@@ -169,8 +176,8 @@ def optimal_policy_foc(
             if lower_bound[0] is not None:
                 q_der_lower = dq_da(
                     x_vals,
-                    k_vals,
-                    self.action_zip(lower_bound),
+                    z_vals,
+                    action_zip(lower_bound),
                     v_y_der
                     )
             else:
@@ -181,7 +188,7 @@ def optimal_policy_foc(
                 q_der_upper = dq_da(
                     x_vals,
                     z_vals,
-                    self.action_zip(upper_bound),
+                    action_zip(upper_bound),
                     v_y_der
                     )
             else:
@@ -214,10 +221,10 @@ def optimal_policy_foc(
                 if root_res.converged:
                     pi_data.sel(**x_vals, **z_vals).variable.data.put(0, a0)
 
-                    q_der_xz = self.dq_da(
+                    q_der_xz = dq_da(
                         x_vals,
                         z_vals,
-                        self.action_zip((a0,)), # actions are scalar
+                        action_zip((a0,)), # actions are scalar
                         v_y_der
                     )
 
@@ -232,7 +239,7 @@ def optimal_policy_foc(
                     q_der_xz = dq_da(
                         x_vals,
                         z_vals,
-                        self.action_zip((root_res.root,)), # actions are scalar
+                        action_zip((root_res.root,)), # actions are scalar
                         v_y_der
                     )
 
