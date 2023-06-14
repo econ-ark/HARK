@@ -29,3 +29,12 @@ Or simply execute
       Tex--> Figures
    
    ```
+
+   Where:
+   
+   * "Aiyagari-Deep_Poisson.ipynb" is the Jupyter Notebook file, for key features of the paper and step-by-step python codes implementing to solve the HJB equation;
+   * "Tex" is a folder where the .tex file is located. It includes figures.
+    * "Aiyagari-Deep_Poisson.py"  is the file which contains all codes for solving the model, generating figures.
+* "reproduce.sh" is a bash shell script which calls "Aiyagari-Deep_Poisson.py" to run. In other words, it runs everything in Linux System. 
+   
+   
