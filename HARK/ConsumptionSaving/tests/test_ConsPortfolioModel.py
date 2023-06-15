@@ -5,6 +5,7 @@ import numpy as np
 import HARK.ConsumptionSaving.ConsPortfolioModel as cpm
 from HARK import make_one_period_oo_solver
 from HARK.tests import HARK_PRECISION
+from copy import copy
 
 
 class PortfolioConsumerTypeTestCase(unittest.TestCase):
@@ -304,3 +305,45 @@ class test_time_varying_Risky_and_Adj(unittest.TestCase):
         # Adjust
         self.assertTrue(np.all(Adjust_draws[t_age == 1] == 0))
         self.assertTrue(np.all(Adjust_draws[t_age == 2] == 1))
+
+
+
+class test_transition_mat(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_adjust(self):
+
+        # Create agent
+        agent = cpm.PortfolioConsumerType(**cpm.init_portfolio)
+        agent.make_shock_distributions()
+        agent.make_state_grid(
+            PLvlGrid=None,
+            mNrmGrid=np.linspace(0, 30, 50),
+            ShareGrid=None,
+            AdjustGrid=None,
+        )
+        agent.solve()
+        agent.find_transition_matrices()
+        self.assertTrue(agent.trans_mats[0].size == np.power(50,2))
+
+    def test_calvo(self):
+
+        # Create agent that has some chance of not being able to
+        # adjust
+        params = copy(cpm.init_portfolio)
+        params["AdjustPrb"] = 0.5
+        
+        agent = cpm.PortfolioConsumerType(**params)
+        agent.make_shock_distributions()
+        # Share and adjust become states, so we need grids for them
+        agent.make_state_grid(
+            PLvlGrid=None,
+            mNrmGrid=np.linspace(0, 30, 50),
+            ShareGrid=np.linspace(0, 1, 10),
+            AdjustGrid=np.array([False, True]),
+        )
+        agent.solve()
+        agent.find_transition_matrices()
+        self.assertTrue(agent.trans_mats[0].size == np.power(50*10*2,2))
