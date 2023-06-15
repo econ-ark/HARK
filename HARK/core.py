@@ -26,6 +26,8 @@ from HARK.distribution import (
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
 
+from HARK.mat_methods import mass_to_grid
+
 
 class Model:
     """
@@ -913,6 +915,12 @@ class AgentType(Model):
         exclude_args = ["self", "shocks_next", "state", "solution"]
         these_args = tuple(filter(lambda x: x not in exclude_args, these_args))
 
+        # Extract state grid data
+        meshpoints = self.state_grid["points"]
+        grids = [
+            self.state_grid["grids"][x].astype(float) for x in self.state_grid["order"]
+        ]
+
         # Initialize the list transition matrices
         trans_mats = []
 
@@ -934,10 +942,17 @@ class AgentType(Model):
                 )
 
             state_dstn = shock_dstn.dist_of_func(
-                trans_wrapper, self.solution[k], self.state_grid
+                trans_wrapper, self.solution[k], meshpoints
             )
 
-            # TODO: construct transition matrix from the object above
+            # Construct transition matrix from the object above
+            tmat = np.zeros((meshpoints.shape[1], meshpoints.shape[1]))
+            for i in range(meshpoints.shape[1]):
+                tmat[i, :] = mass_to_grid(
+                    points=state_dstn.atoms[:, i, :].T, mass=state_dstn.pmv, grids=grids
+                )
+            # Prepend
+            trans_mats.insert(0, tmat)
 
         # Save matrices
         self.trans_mats = trans_mats
