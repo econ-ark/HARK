@@ -1903,166 +1903,218 @@ class PerfForesightConsumerType(AgentType):
 
         return None
 
-    def check_condition(self, name, test, messages, verbose, verbose_messages=None):
+    def log_condition_result(self, name, result, message, verbose):
         """
-        Checks one condition.
+        Records the result of one condition check in the attribute condition_report
+        and in the message log.
 
         Parameters
         ----------
-        name : string
-             Name for the condition.
-
-        test : function(self -> boolean)
-             A function (of self) which tests the condition
-
-        messages : dict{boolean : string}
-            A dictiomary with boolean keys containing values
-            for messages to print if the condition is
-            true or false.
-
-        verbose_messages : dict{boolean : string}
-            (Optional) A dictiomary with boolean keys containing values
-            for messages to print if the condition is
-            true or false under verbose printing.
+        name : string or None
+             Name for the condition; if None, no test result is added to conditions.
+        result : bool
+             An indicator for whether the condition was passed.
+        message : str
+            The messages to record about the condition check.
+        verbose : bool
+            Indicator for whether verbose messages should be included in the report.
         """
-        self.conditions[name] = test(self)
+        if name is not None:
+            self.conditions[name] = result
         set_verbosity_level((4 - verbose) * 10)
-        _log.info(messages[self.conditions[name]].format(self))
-        if verbose_messages:
-            _log.debug(verbose_messages[self.conditions[name]].format(self))
+        _log.info(message)
+        self.conditions_report += message + '\n'
 
     def check_AIC(self, verbose=None):
         """
-        Evaluate and report on the Absolute Impatience Condition
+        Evaluate and report on the Absolute Impatience Condition.
         """
         name = "AIC"
-
-        def test(agent):
-            return agent.thorn < 1
+        result = self.APFac < 1.
 
         messages = {
-            True: "The value of the Absolute Patience Factor (APF) for the supplied parameter values satisfies the Absolute Impatience Condition.",
-            False: "The given type violates the Absolute Impatience Condition with the supplied parameter values; the APF is {0.thorn}",
-        }
-        verbose_messages = {
-            True: "  Because the APF < 1, the absolute amount of consumption is expected to fall over time.",
-            False: "  Because the APF > 1, the absolute amount of consumption is expected to grow over time.",
+            True: f"The Absolute Patience Factor APFac={self.APFac:.5f} satisfies the Absolute Impatience Condition (AIC) APFac < 1.",
+            False: f"The Absolute Patience Factor APFac={self.APFac:.5f} violates the Absolute Impatience Condition (AIC) APFac < 1."
         }
         verbose = self.verbose if verbose is None else verbose
-        self.check_condition(name, test, messages, verbose, verbose_messages)
+        self.log_condition_result(name, result, messages[result], verbose)
 
     def check_GICRaw(self, verbose=None):
         """
-        Evaluate and report on the Growth Impatience Condition for the Perfect Foresight model
+        Evaluate and report on the Growth Impatience Condition for the Perfect Foresight model.
         """
         name = "GICRaw"
-
-        self.GPFRaw = self.thorn / self.PermGroFac[0]
-
-        def test(agent):
-            return agent.GPFRaw < 1
+        result = self.GPFacRaw < 1.
 
         messages = {
-            True: "The value of the Growth Patience Factor for the supplied parameter values satisfies the Perfect Foresight Growth Impatience Condition.",
-            False: "The value of the Growth Patience Factor for the supplied parameter values fails the Perfect Foresight Growth Impatience Condition; the GPFRaw is: {0.GPFRaw}",
-        }
-
-        verbose_messages = {
-            True: "  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income will fall indefinitely.",
-            False: "  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to grow toward infinity.",
+            True: f"The Growth Patience Factor GPFac={self.GPFacRaw:.5f} satisfies the Growth Impatience Condition (GICRaw) GPFac < 1.",
+            False: f"The Growth Patience Factor GPFac={self.GPFacRaw:.5f} violates the Growth Impatience Condition (GICRaw) GPFac < 1."
+            
         }
         verbose = self.verbose if verbose is None else verbose
-        self.check_condition(name, test, messages, verbose, verbose_messages)
+        self.log_condition_result(name, result, messages[result], verbose)
 
     def check_RIC(self, verbose=None):
         """
-        Evaluate and report on the Return Impatience Condition
+        Evaluate and report on the Return Impatience Condition.
         """
-
-        self.RPF = self.thorn / self.Rfree
-
         name = "RIC"
-
-        def test(agent):
-            return self.RPF < 1
+        result = self.RPFac < 1.
 
         messages = {
-            True: "The value of the Return Patience Factor for the supplied parameter values satisfies the Return Impatience Condition.",
-            False: "The value of the Return Patience Factor for the supplied parameter values fails the Return Impatience Condition; the factor is {0.RPF}",
-        }
-
+            True: f"The Return Patience Factor RPFac={self.RPFac:.5f} satisfies the Return Impatience Condition (RIC) RPFac < 1.",
+            False: f"The Return Patience Factor RPFac={self.RPFac:.5f} violates the Return Impatience Condition (RIC) RPFac < 1."
+            }
         verbose_messages = {
-            True: "  Therefore, the limiting consumption function is not c(m)=0 for all m",
-            False: "  Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.",
+            True: "Therefore, the limiting consumption function is not c(m)=0 for all m.",
+            False: "Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.",
         }
         verbose = self.verbose if verbose is None else verbose
-        self.check_condition(name, test, messages, verbose, verbose_messages)
+        self.log_condition_result(name, result, messages[result], verbose)
 
     def check_FHWC(self, verbose=None):
         """
-        Evaluate and report on the Finite Human Wealth Condition
+        Evaluate and report on the Finite Human Wealth Condition.
         """
-
-        self.FHWF = self.PermGroFac[0] / self.Rfree
-        self.cNrmPDV = 1.0 / (1.0 - self.thorn / self.Rfree)
-
         name = "FHWC"
-
-        def test(agent):
-            return self.FHWF < 1
+        result = self.FHWFac < 1.
 
         messages = {
-            True: "The Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.",
-            False: "The given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value is {0.FHWF}",
+            True: f"The Finite Human Wealth Factor FHWFac={self.FHWFac:.5f} satisfies the Finite Human Wealth Condition (FHWC) FHWFac < 1.",
+            False: f"The Finite Human Wealth Factor, FHWFac={self.FHWFac:.5f} violates the Finite Human Wealth Condition (FHWC) FHWFac < 1."
+        }
+        verbose_messages = {
+            True: "Therefore, the limiting consumption function is not c(m)=Infinity.",
+            False: "Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated."
         }
 
         verbose = self.verbose if verbose is None else verbose
-        self.check_condition(name, test, messages, verbose)
+        self.log_condition_result(name, result, messages[result], verbose)
+        
+    def check_FVAC(self, verbose=None):
+        """
+        Evaluate and report on the Finite Value of Autarky Condition.
+        """
+        name = "FVAC"
+        result = self.VAFac < 1.
+
+        messages = {
+            True: f"The Finite Value of Autarky Factor VAFac={self.VAFac:.5f} satisfies the Finite Value of Autarky Condition VAFac < 1.",
+            False: f"The Finite Value of Autarky Factor, VAFac={self.VAFac:.5f} violates the Finite Value of Autarky Condition VAFac."
+        }
+        verbose = self.verbose if verbose is None else verbose
+        self.log_condition_result(name, result, messages[result], verbose)
 
     def check_conditions(self, verbose=None):
         """
         This method checks whether the instance's type satisfies the
-        Absolute Impatience Condition (AIC),
-        the Return Impatience Condition (RIC),
-        the Finite Human Wealth Condition (FHWC), the perfect foresight
-        model's Growth Impatience Condition (GICRaw) and
-        Perfect Foresight Finite Value of Autarky Condition (FVACPF). Depending on the configuration of parameter values, some
-        combination of these conditions must be satisfied in order for the problem to have
-        a nondegenerate solution. To check which conditions are required, in the verbose mode
-        a reference to the relevant theoretical literature is made.
+        Absolute Impatience Condition (AIC), the Return Impatience Condition (RIC),
+        the Finite Human Wealth Condition (FHWC), the perfect foresight model's
+        Growth Impatience Condition (GICRaw) and Perfect Foresight Finite Value
+        of Autarky Condition (FVACPF). Depending on the configuration of parameter
+        values, somecombination of these conditions must be satisfied in order
+        for the problem to have a nondegenerate solution. To check which conditions
+        are required, in the verbose mode a reference to the relevant theoretical
+        literature is made.
 
         Parameters
         ----------
         verbose : boolean
-            Specifies different levels of verbosity of feedback. When False, it only reports whether the
-            instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
-            the factor values for all conditions.
+            Specifies different levels of verbosity of feedback. When False, it
+            only reports whether the instance's type fails to satisfy a particular
+            condition. When True, it reports all results, i.e. the factor values
+            for all conditions.
 
         Returns
         -------
         None
         """
         self.conditions = {}
-
-        self.violated = False
+        self.conditions_report = ''
+        self.degenerate = False
+        verbose = self.verbose if verbose is None else verbose
 
         # This method only checks for the conditions for infinite horizon models
         # with a 1 period cycle. If these conditions are not met, we exit early.
         if self.cycles != 0 or self.T_cycle > 1:
+            trivial_message = 'No conditions report was produced because this functionality is only supported for infinite horizon models with a cycle length of 1.'
+            self.log_condition_result(None, None, trivial_message, verbose)
             return
 
-        self.thorn = (self.Rfree * self.DiscFac * self.LivPrb[0]) ** (1 / self.CRRA)
+        # Calculate some useful quantities
+        self.APFac = (self.Rfree * self.DiscFac * self.LivPrb[0]) ** (1 / self.CRRA)
+        self.GPFacRaw = self.APFac / self.PermGroFac[0]
+        self.FHWFac = self.PermGroFac[0] / self.Rfree
+        self.RPFac = self.APFac / self.Rfree
+        self.VAFac = (self.DiscFac * self.LivPrb[0]) * self.PermGroFac[0]**(1. - self.CRRA)
+        self.cNrmPDV = 1. / (1. - self.APFac / self.Rfree)
 
-        verbose = self.verbose if verbose is None else verbose
+        # Check individual conditions and add their results to the report
         self.check_AIC(verbose)
-        self.check_GICRaw(verbose)
         self.check_RIC(verbose)
+        self.check_GICRaw(verbose)
+        self.check_FVAC(verbose)
         self.check_FHWC(verbose)
-
+        constrained = hasattr(self, "BoroCnstArt") and (self.BoroCnstArt is not None) and (self.BoroCnstArt > -np.inf)
+        
+        # Check whether the solution to the model will be degenerate
         if hasattr(self, "BoroCnstArt") and self.BoroCnstArt is not None:
-            self.violated = not self.conditions["RIC"]
+            self.degenerate = not self.conditions["RIC"]
         else:
-            self.violated = not self.conditions["RIC"] or not self.conditions["FHWC"]
+            self.degenerate = not self.conditions["RIC"] or not self.conditions["FHWC"]
+            
+        # Exit now if verbose output was not requested.
+        if not verbose:
+            return
+        
+        # Report on the degeneracy of the consumption function solution
+        if not constrained:
+            if self.conditions['FHWC']:
+                RIC_message = '\nBecause the FHWC is satisfied, the solution is not c(m)=Infinity.'
+                if self.conditions['RIC']:
+                    RIC_message += "  Because the RIC is also satisfied, the solution is also not c(m)=0 for all m, so a non-degenerate linear solution exists."
+                    degenerate = False
+                else:
+                    RIC_message += "  However, because the RIC is violated, the solution is degenerate at c(m) = 0 for all m."
+                    degenerate = True
+            else:
+                RIC_message = '\nBecause the FHWC condition is violated and the consumer is not constrained, the solution is degenerate at c(m)=Infinity.'
+                degenerate = True
+        else:
+            if self.conditions['RIC']:
+                RIC_message = "\nBecause the RIC is satisfied and the consumer is constrained, the solution is not c(m)=0 for all m."
+                if self.conditions['GICRaw']:
+                    RIC_message += "  Because the GIC is also satisfied, the solution non-degenerate. It is piecewise linear with an infinite number of kinks, approaching the unconstrained solution as m goes to infinity."
+                    degenerate = False
+                else:
+                    RIC_message += "  Because the GIC is violated, the solution is non-degenerate. It is piecewise linear with a single kink at some 0 < m < 1; it equals the unconstrained solution above that kink point and has c(m) = m below it."
+                    degenerate = False
+            else:
+                if self.conditions['GICRaw']:
+                    RIC_message = "\nBecause the RIC is violated but the GIC is satisfied, the FHWC is necessarily also violated. In this case, the consumer's pathological patience is offset by his infinite human wealth, against which he cannot borrow arbitrarily; a non-degenerate solution exists."
+                    degenerate = False
+                else:
+                    RIC_message = '\nBecause the RIC is violated but the FHWC is satisfied, the solution is degenerate at c(m)=0 for all m.'
+                    degenerate = True
+        self.log_condition_result(None, None, RIC_message, verbose)
+        if degenerate:
+            return # All of the other checks are meaningless if the solution is degenerate
+                    
+        # Report on the consequences of the Absolute Impatience Condition
+        if self.conditions['AIC']:
+            AIC_message = "\nBecause the AIC is satisfied, the absolute amount of consumption is expected to fall over time."
+        else:
+            AIC_message = "\nBecause the AIC is violated, the absolute amount of consumption is expected to grow over time."
+        self.log_condition_result(None, None, AIC_message, verbose)
+            
+        # Report on the consequences of the Growth Impatience Condition
+        if self.conditions['GICRaw']:
+            GIC_message = "\nBecause the GICRaw is satisfed, the ratio of individual wealth to permanent income is expected to fall indefinitely."
+        elif self.conditions['FHWC']:
+            "\nBecause the GICRaw is violated but the FHWC is satisfied, the ratio of individual wealth to permanent income is expected to rise toward infinity."
+        self.log_condition_result(None, None, GIC_message, verbose)
+        
+        
 
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
