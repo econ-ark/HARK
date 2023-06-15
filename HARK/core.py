@@ -920,6 +920,8 @@ class AgentType(Model):
         grids = [
             self.state_grid["grids"][x].astype(float) for x in self.state_grid["order"]
         ]
+        # Find values and indices of non-trivial grids
+        nt_inds, nt_grids = zip(*[[i, x] for i, x in enumerate(grids) if len(x) > 1])
 
         # Initialize the list transition matrices
         trans_mats = []
@@ -949,7 +951,9 @@ class AgentType(Model):
             tmat = np.zeros((meshpoints.shape[1], meshpoints.shape[1]))
             for i in range(meshpoints.shape[1]):
                 tmat[i, :] = mass_to_grid(
-                    points=state_dstn.atoms[:, i, :].T, mass=state_dstn.pmv, grids=grids
+                    points=state_dstn.atoms[nt_inds, i, :].T,
+                    mass=state_dstn.pmv,
+                    grids=nt_grids,
                 )
             # Prepend
             trans_mats.insert(0, tmat)
