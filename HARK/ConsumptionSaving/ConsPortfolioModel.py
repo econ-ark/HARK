@@ -28,6 +28,11 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
+from HARK.distribution import (
+    combine_indep_dstns,
+    DiscreteDistribution,
+    DiscreteDistributionLabeled,
+)
 from HARK.metric import MetricObject
 
 
@@ -315,6 +320,32 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         # Store controls as attributes of self
         self.controls["cNrm"] = cNrmNow
         self.controls["Share"] = ShareNow
+
+    def shock_dstn_engine(self, ShockDstn, AdjustPrb):
+        """
+        Creates a joint labeled distribution of all the shocks in the model
+        """
+
+        # ShockDstn is created by RiskyAssetConsumerType and it contains, in order:
+        # PermShk, TranShk, and Risky
+
+        # Create a distribution for the Adjust shock.
+        # TODO: self.AdjustDstn already exists, but it is a FrozenDist type of object
+        # that does not work with combine_indep_dstns.  This should be fixed.
+        if AdjustPrb < 1.0:
+            AdjustDstn = DiscreteDistribution(
+                np.array([1.0 - AdjustPrb, AdjustPrb]), [False, True]
+            )
+        else:
+            AdjustDstn = DiscreteDistribution(np.array([1.0]), [True])
+
+        LabeledShkDstn = DiscreteDistributionLabeled.from_unlabeled(
+            dist=combine_indep_dstns(ShockDstn, AdjustDstn),
+            name="Full shock distribution",
+            var_names=["PermShk", "TranShk", "Risky", "Adjust"],
+        )
+
+        return LabeledShkDstn
 
 
 class SequentialPortfolioConsumerType(PortfolioConsumerType):
