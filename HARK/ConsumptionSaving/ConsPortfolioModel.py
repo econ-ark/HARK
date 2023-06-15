@@ -346,6 +346,38 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         )
 
         return LabeledShkDstn
+    
+    def make_state_grid(
+        self,
+        PLvlGrid=None,
+        mNrmGrid=None,
+        ShareGrid=None,
+        AdjustGrid=None,
+    ):
+        if PLvlGrid is None:
+            PLvlGrid = np.array([1.0])
+        if mNrmGrid is None:
+            mNrmGrid = np.array([1.0])
+        if ShareGrid is None:
+            ShareGrid = np.array([1.0])
+        if AdjustGrid is None:
+            AdjustGrid = np.array([True])
+
+        # Create a mesh
+        points = np.meshgrid(PLvlGrid, mNrmGrid, ShareGrid, AdjustGrid, indexing="ij")
+        points = np.stack([x.flatten() for x in points], axis=0)
+
+        # Store a dictionary with individual grids, mesh points and order
+        self.state_grid = {
+            "grids": {
+                "PLvl": PLvlGrid,
+                "mNrm": mNrmGrid,
+                "Share": ShareGrid,
+                "Adjust": AdjustGrid,
+            },
+            "points": points,
+            "order": ["PLvl", "mNrm", "Share", "Adjust"],
+        }
 
 
 class SequentialPortfolioConsumerType(PortfolioConsumerType):
