@@ -2031,7 +2031,6 @@ class PerfForesightConsumerType(AgentType):
         a nondegenerate solution. To check which conditions are required, in the verbose mode
         a reference to the relevant theoretical literature is made.
 
-
         Parameters
         ----------
         verbose : boolean
@@ -2136,12 +2135,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PerfForesightConsumerType.__init__(self, verbose=verbose, quiet=quiet, **params)
 
         # Add consumer-type specific objects, copying to create independent versions
-        if (not self.CubicBool) and (not self.vFuncBool):
-            solver = ConsIndShockSolverBasic
-        else:  # Use the "advanced" solver if either is requested
-            solver = ConsIndShockSolver
+        solver = ConsIndShockSolver
         self.solve_one_period = make_one_period_oo_solver(solver)
-
         self.update()  # Make assets grid, income process, terminal solution
 
     def update_income_process(self):
@@ -2308,9 +2303,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         None
         """
         # Unpack the income distribution and get average and worst outcomes
-        PermShkValsNext = self.IncShkDstn[0][1]
-        TranShkValsNext = self.IncShkDstn[0][2]
-        ShkPrbsNext = self.IncShkDstn[0][0]
+        PermShkValsNext = self.IncShkDstn[0].atoms[0]
+        TranShkValsNext = self.IncShkDstn[0].atoms[1]
+        ShkPrbsNext = self.IncShkDstn[0].pmv
         Ex_IncNext = np.dot(ShkPrbsNext, PermShkValsNext * TranShkValsNext)
         PermShkMinNext = np.min(PermShkValsNext)
         TranShkMinNext = np.min(TranShkValsNext)
@@ -3287,7 +3282,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
-        infinite_horizon = cycles_left == 0
+        infinite_horizon = self.cycles == 0
         if not infinite_horizon:
             _log.warning(
                 "The calc_stable_points method works only for infinite horizon models."
