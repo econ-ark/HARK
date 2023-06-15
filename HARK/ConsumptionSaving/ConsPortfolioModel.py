@@ -379,6 +379,50 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
             "order": ["PLvl", "mNrm", "Share", "Adjust"],
         }
 
+    def state_to_state_trans(self, shocks_next, solution, state, PermGroFac, Rfree):
+        # TODO:
+        # Would be good to have transitions receive
+        # state as a labeled xarray and return a labeled xarray
+        # Also define dist_of_func for labeled distributions that returns a labeled distribution
+
+        # Unpack next period's states
+        PLvl, mNrm, Share, Adjust = state[0], state[1], state[2], state[3]
+        Adjust = Adjust.astype(bool)
+
+        # Consumption
+        cNrm = np.empty_like(mNrm)
+        cNrm[Adjust] = solution.cFuncAdj(mNrm[Adjust])
+        cNrm[~Adjust] = solution.cFuncFxd(mNrm[~Adjust], Share[~Adjust])
+        # Savings
+        aNrm = mNrm - cNrm
+        # Share
+        Share_next = np.empty_like(Share)
+        Share_next[Adjust] = solution.ShareFuncAdj(mNrm[Adjust])
+        Share_next[~Adjust] = solution.ShareFuncFxd(mNrm[~Adjust], Share[~Adjust])
+     
+        PLvl_next, mNrm_next, Share_next, Adjust_next = post_state_transition(
+            shocks_next,
+            PLvl,
+            aNrm,
+            Share_next,
+            PermGroFac,
+            Rfree,
+        )
+
+        return np.stack([PLvl_next, mNrm_next, Share_next, Adjust_next], axis=0)
+
+def post_state_transition(shocks_next, PLvl, aNrm, Share_next, PermGroFac, Rfree):
+
+    PermGroShk = shocks_next['PermShk'] * PermGroFac
+    PLvl_next = PLvl * PermGroShk
+    Rport = Rfree + Share_next * (shocks_next['Risky'] - Rfree)
+    mNrm_next = aNrm * Rport / PermGroShk + shocks_next['TranShk']
+
+    # Augment dimensions if needed
+    Share_next = Share_next * np.ones_like(PLvl_next)
+    Adjust_next = shocks_next['Adjust'] * np.ones_like(PLvl_next, dtype=bool)
+
+    return PLvl_next, mNrm_next, Share_next, Adjust_next
 
 class SequentialPortfolioConsumerType(PortfolioConsumerType):
     def __init__(self, verbose=False, quiet=False, **kwds):
