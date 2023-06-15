@@ -346,7 +346,7 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         )
 
         return LabeledShkDstn
-    
+
     def make_state_grid(
         self,
         PLvlGrid=None,
@@ -399,7 +399,7 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         Share_next = np.empty_like(Share)
         Share_next[Adjust] = solution.ShareFuncAdj(mNrm[Adjust])
         Share_next[~Adjust] = solution.ShareFuncFxd(mNrm[~Adjust], Share[~Adjust])
-     
+
         PLvl_next, mNrm_next, Share_next, Adjust_next = post_state_transition(
             shocks_next,
             PLvl,
@@ -411,18 +411,19 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
 
         return np.stack([PLvl_next, mNrm_next, Share_next, Adjust_next], axis=0)
 
-def post_state_transition(shocks_next, PLvl, aNrm, Share_next, PermGroFac, Rfree):
 
-    PermGroShk = shocks_next['PermShk'] * PermGroFac
+def post_state_transition(shocks_next, PLvl, aNrm, Share_next, PermGroFac, Rfree):
+    PermGroShk = shocks_next["PermShk"] * PermGroFac
     PLvl_next = PLvl * PermGroShk
-    Rport = Rfree + Share_next * (shocks_next['Risky'] - Rfree)
-    mNrm_next = aNrm * Rport / PermGroShk + shocks_next['TranShk']
+    Rport = Rfree + Share_next * (shocks_next["Risky"] - Rfree)
+    mNrm_next = aNrm * Rport / PermGroShk + shocks_next["TranShk"]
 
     # Augment dimensions if needed
     Share_next = Share_next * np.ones_like(PLvl_next)
-    Adjust_next = shocks_next['Adjust'] * np.ones_like(PLvl_next, dtype=bool)
+    Adjust_next = shocks_next["Adjust"] * np.ones_like(PLvl_next, dtype=bool)
 
     return PLvl_next, mNrm_next, Share_next, Adjust_next
+
 
 class SequentialPortfolioConsumerType(PortfolioConsumerType):
     def __init__(self, verbose=False, quiet=False, **kwds):
