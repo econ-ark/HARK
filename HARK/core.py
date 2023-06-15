@@ -850,6 +850,98 @@ class AgentType(Model):
             self.history[var_name] = np.empty((self.T_sim, self.AgentCount))
             self.history[var_name].fill(np.nan)
 
+    def make_shock_distributions(self):
+        # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
+        if len(self.time_vary) > 0:
+            # name = agent.time_vary[0]
+            # T = len(eval('agent.' + name))
+            T = len(self.__dict__[self.time_vary[0]])
+        else:
+            T = 1
+
+        dstn_dict = {parameter: self.__dict__[parameter] for parameter in self.time_inv}
+        dstn_dict.update({parameter: None for parameter in self.time_vary})
+
+        if hasattr(self.shock_dstn_engine, "dstn_args"):
+            these_args = self.shock_dstn_engine.dstn_args
+        else:
+            these_args = get_arg_names(self.shock_dstn_engine)
+
+        these_args = tuple(filter(lambda x: x != "self", these_args))
+
+        # Initialize the list of shock distributions for this cycle,
+        # then iterate on periods
+        shock_dstns = []
+
+        cycles_range = [0] + list(range(T - 1, 0, -1))
+        for k in range(T - 1, -1, -1) if self.cycles == 1 else cycles_range:
+            # Update time-varying single period inputs
+            for name in self.time_vary:
+                if name in these_args:
+                    dstn_dict[name] = self.__dict__[name][k]
+
+            # Make a temporary dictionary for this period
+            temp_dict = {name: dstn_dict[name] for name in these_args}
+
+            # Construct this period's shock distribution one period
+            # Add it to the solution, and move to the next period
+            dstn_t = self.shock_dstn_engine(**temp_dict)
+            shock_dstns.insert(0, dstn_t)
+
+        # Save list of shock distributions
+        self.full_shock_dstns = shock_dstns
+
+    def find_transition_matrices(self):
+        # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
+        if len(self.time_vary) > 0:
+            # name = agent.time_vary[0]
+            # T = len(eval('agent.' + name))
+            T = len(self.__dict__[self.time_vary[0]])
+        else:
+            T = 1
+
+        trans_dict = {
+            parameter: self.__dict__[parameter] for parameter in self.time_inv
+        }
+        trans_dict.update({parameter: None for parameter in self.time_vary})
+
+        if hasattr(self.state_to_state_trans, "trans_args"):
+            these_args = self.state_to_state_trans.trans_args
+        else:
+            these_args = get_arg_names(self.state_to_state_trans)
+
+        exclude_args = ["self", "shocks_next", "state", "solution"]
+        these_args = tuple(filter(lambda x: x not in exclude_args, these_args))
+
+        # Initialize the list transition matrices
+        trans_mats = []
+
+        cycles_range = [0] + list(range(T - 1, 0, -1))
+        for k in range(T - 1, -1, -1) if self.cycles == 1 else cycles_range:
+            # Update time-varying single period inputs
+            for name in self.time_vary:
+                if name in these_args:
+                    trans_dict[name] = self.__dict__[name][k]
+
+            # Make a temporary dictionary for this period
+            temp_dict = {name: trans_dict[name] for name in these_args}
+
+            shock_dstn = self.full_shock_dstns[k]
+
+            def trans_wrapper(shocks_next, solution, state_points):
+                return self.state_to_state_trans(
+                    shocks_next, solution, state_points, **temp_dict
+                )
+
+            state_dstn = shock_dstn.dist_of_func(
+                trans_wrapper, self.solution[k], self.state_grid
+            )
+
+            # TODO: construct transition matrix from the object above
+
+        # Save matrices
+        self.trans_mats = trans_mats
+
 
 def solve_agent(agent, verbose):
     """
@@ -1052,53 +1144,6 @@ def make_one_period_oo_solver(solver_class):
     one_period_solver.solver_args = get_arg_names(solver_class.__init__)[1:]
 
     return one_period_solver
-
-
-# ========================================================================
-# Transition matrix methods
-# ========================================================================
-
-
-def make_shock_distributions(agent):
-    # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
-    if len(agent.time_vary) > 0:
-        # name = agent.time_vary[0]
-        # T = len(eval('agent.' + name))
-        T = len(agent.__dict__[agent.time_vary[0]])
-    else:
-        T = 1
-
-    dstn_dict = {parameter: agent.__dict__[parameter] for parameter in agent.time_inv}
-    dstn_dict.update({parameter: None for parameter in agent.time_vary})
-
-    if hasattr(agent.shock_dstn_engine, "dstn_args"):
-        these_args = agent.shock_dstn_engine.dstn_args
-    else:
-        these_args = get_arg_names(agent.shock_dstn_engine)
-
-    these_args = tuple(filter(lambda x: x != "self", these_args))
-
-    # Initialize the list of shock distributions for this cycle,
-    # then iterate on periods
-    shock_dstns = []
-
-    cycles_range = [0] + list(range(T - 1, 0, -1))
-    for k in range(T - 1, -1, -1) if agent.cycles == 1 else cycles_range:
-        # Update time-varying single period inputs
-        for name in agent.time_vary:
-            if name in these_args:
-                dstn_dict[name] = agent.__dict__[name][k]
-
-        # Make a temporary dictionary for this period
-        temp_dict = {name: dstn_dict[name] for name in these_args}
-
-        # Construct this period's shock distribution one period
-        # Add it to the solution, and move to the next period
-        dstn_t = agent.shock_dstn_engine(**temp_dict)
-        shock_dstns.insert(0, dstn_t)
-
-    # Return the list of distributions
-    return shock_dstns
 
 
 # ========================================================================
