@@ -4,6 +4,7 @@ This file implements unit tests to check discrete choice functions
 # Bring in modules we need
 import unittest
 
+from HARK.algos.egm import egm
 from HARK.algos.foc import optimal_policy_foc
 from HARK.gothic.gothic_class import Gothic
 from HARK.gothic.resources import (
@@ -97,7 +98,7 @@ class foc_test(unittest.TestCase):
         g_inv = lambda y, a : {'m' : y['a'] + a['c']}  ## Used in EGM method, step 8
         r = lambda x, k, a : u(a['c'])
         dr_da = lambda x, k, a: (CRRAutilityP(a['c'], rho),) # u.prime(a['c'])
-        dr_inv = lambda uP : (CRRAutilityP_inv(uP, rho),)
+        dr_da_inv = lambda uP : (CRRAutilityP_inv(uP, rho),)
 
         action_upper_bound = lambda x, k: (x['m'] + gamma[0] * theta.X[0] / R,),
 
@@ -115,14 +116,13 @@ class foc_test(unittest.TestCase):
 
         def consumption_v_y_der(y : Mapping[str,Any]):
             return gothic.VP_Tminus1(y['a'])
-
         
         pi_star, q_der, y_data = optimal_policy_foc(
             g,
             ['c'],
             r,
             dr_da,
-            dr_inv,
+            dr_da_inv,
             dg_dx,
             dg_da,
             {'m' : self.mVec},
@@ -159,4 +159,26 @@ class egm_test(unittest.TestCase):
         pi.interp({'m' : mVec_egm}) -  cFunc_egm(mVec_egm) == 0
         """
 
-        self.assertTrue(np.all(self.aVec + self.cVec_egm == self.mVec_egm))
+        g = lambda x, k, a : {'a' : x['m'] - a['c']}
+        dg_dx = 1  ## Used in FOC method, step 5
+        dg_da = -1  ## Used in FOC method, step 5
+        g_inv = lambda y, a : {'m' : y['a'] + a['c']}  ## Used in EGM method, step 8
+        r = lambda x, k, a : u(a['c'])
+        dr_da = lambda x, k, a: (CRRAutilityP(a['c'], rho),) # u.prime(a['c'])
+        dr_da_inv = lambda uP : (CRRAutilityP_inv(uP, rho),)
+
+        def consumption_v_y_der(y : Mapping[str,Any]):
+            return gothic.VP_Tminus1(y['a'])
+
+        pi_data, pi_y_data = egm(
+            ['m'],
+            ['c'],
+            g_inv,
+            dr_da_inv,
+            dg_da,
+            y_grid = {'a' : self.aVec},
+            v_y_der = consumption_v_y_der,
+        )
+
+        self.assertTrue(np.all(self.cVec_egm == pi_y_data.values))
+        self.assertTrue(np.all(self.mVec_egm == pi_data.coords['m'].values))

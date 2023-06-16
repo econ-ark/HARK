@@ -1,52 +1,59 @@
+from dataclasses import field
+import itertools
+import numpy as np
+from scipy.optimize import minimize, brentq
+from typing import Callable, Mapping, Sequence, Tuple
+import xarray as xr
 
-
-def analytic_pi_star_y(self,
-                        y,
-                        v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0
-                        ):
+def analytic_pi_y_star(
+        y,
+        v_y_der : Callable[[Mapping, Mapping, Mapping], float],
+        dr_da_inv : Callable[[float], float],
+        dg_da = -1.0,
+        discount = 1.0
+        ):
     """
     The optimal action that results in output values y.
 
-    Available only with reward_der_inv and transition_inv
-    are well-defined.
+    Assumes:
+     - dg_da is a constant
+     - discount factor is constant
+
+    Params
+    ------
     """
-    if self.reward_der_inv is None:
-        raise Exception("No inverse marginal reward function found.")
-
-    if self.transition_inv is None:
-        raise Exception("No inverse transition function found. ")
-
-    if self.transition_der_a is None or not(
-        isinstance(self.transition_der_a, float) or isinstance(self.transition_der_a, int)
+    if dg_da is None or not(
+        isinstance(dg_da, float) or isinstance(dg_da, int)
         ):
-        raise Exception(f"No constant transition derivative found. transition_der_a is {self.transition_der_a}")
+        raise Exception(f"No constant transition derivative found. transition_der_a is {dg_da}")
 
-    if not isinstance(self.discount, float) or isinstance(self.discount, int):
+    if not (isinstance(discount, float) or isinstance(discount, int)):
         raise Exception("Analytic pi_star_y requires constant discount factor (rendering B' = 0).")
-
-    ### TEST: available T_der as constant.
 
     v_y_der_at_y = v_y_der(y)
         
     if isinstance(v_y_der_at_y, xr.DataArray):
         v_y_der_at_y = v_y_der_at_y.values # np.atleast1darray() ?
 
-
     if 0 > v_y_der_at_y:
-        raise Exception(f"Negative marginal value {v_y_der_at_y} computes at y value of {y}. Reward is {- self.discount * self.transition_der_a * v_y_der_at_y}")
+        raise Exception(f"Negative marginal value {v_y_der_at_y} computes at y value of {y}. Reward is {- discount * dg_da * v_y_der_at_y}")
 
-    return self.reward_der_inv(- self.discount * self.transition_der_a * v_y_der_at_y)
+    return dr_da_inv(- discount * dg_da * v_y_der_at_y)
 
-def optimal_policy_egm(self,
-                       y_grid : Mapping[str, Sequence] = {},
-                       v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
-                       ):
+def egm(
+        inputs,
+        actions,
+        g_inv : Callable[[Mapping, Mapping, Mapping], float],
+        dr_da_inv, # = lambda uP : (CRRAutilityP_inv(uP, rho),),
+        dg_da = -1,
+        y_grid : Mapping[str, Sequence] = {}, ## TODO: Better data structure here.
+        v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
+        discount = 1,
+    ):
     """
     Given a grid over output
     and marginal output value function,
     compute the optimal action.
-
-    ## NO SHOCKS ALLOWED ##
 
     This depends on the stage having an
     *inverse marginal reward function*
@@ -59,12 +66,8 @@ def optimal_policy_egm(self,
     ###           and... T' = -1 ???
     """
 
-    if self.reward_der_inv is None:
-        raise Exception("No inverse marginal reward function found. EGM requires reward_der_inv defined for this stage.")
-
-    if self.transition_inv is None:
-        raise Exception("No inverse transition function found. EGM requires transition_inv defined for this stage.")
-
+    ## can be functionalized out once we settle
+    ## on grid-to-DataArray conversions
     pi_y_data = xr.DataArray(
         np.zeros([len(v) for v in y_grid.values()]),
         dims = y_grid.keys(),
@@ -75,45 +78,47 @@ def optimal_policy_egm(self,
     x_val_data = []
     a_val_data = []
 
+    ## duplicated from foc.py; move to a shared helper library?
+    def action_zip(a : Tuple):
+        """
+        Wraps a tuple of values for an action in a dictionary with labels.
+        Useful for converting between forms of model equations.
+
+        References 'actions' argument of optimal_policy_foc()
+        """
+        return {an : av for an,av in zip(actions, a)}
+
+    # can I pass in the grid, rather than iterate?
     for y_point in itertools.product(*y_grid.values()):
         y_vals = {k : v for k, v in zip(y_grid.keys() , y_point)}
 
-        acts = self.analytic_pi_star_y(y_vals, v_y_der)
+        acts = analytic_pi_y_star(
+            y_vals,
+            v_y_der,
+            dr_da_inv,
+            dg_da,
+            discount
+            )
 
         pi_y_data.sel(**y_vals).variable.data.put(0, acts)
 
-        x_vals = self.transition_inv(y_vals, self.action_zip(acts))
+        x_vals = g_inv(y_vals, action_zip(acts))
 
         x_val_data.append(x_vals)
-        a_val_data.append(self.action_zip(acts))
+        a_val_data.append(action_zip(acts))
 
     ## TODO is this dealing with repeated values?
     x_coords = {
         x : np.array([xv[x] for xv in x_val_data])
         for x
-        in self.inputs
+        in inputs
     }
-
-    for x_label in self.solution_points.coords:
-        for sol_x_val in self.solution_points.coords[x_label]:
-            if sol_x_val.values not in x_coords[x_label]:
-                ii = np.searchsorted(x_coords[x_label], sol_x_val)
-                x_coords[x_label] = np.insert(x_coords[x_label], ii, sol_x_val)
 
     pi_data = xr.DataArray(
         np.zeros([len(v) for v in x_coords.values()]),
         dims = x_coords.keys(),
         coords = x_coords
     )
-
-    if 'pi*' in self.solution_points:
-        for x_point in itertools.product(*x_coords.values()):
-            x_vals = {k : v for k, v in zip(x_coords.keys() , x_point)}
-
-            if label_index_in_dataset(x_vals, self.solution_points['pi*']):
-                acts = np.atleast_1d(self.solution_points['pi*'].sel(x_vals))
-
-                pi_data.sel(**x_vals, **{}).variable.data.put(0, acts)
 
     for i, x_vals in enumerate(x_val_data):
         x_vals = x_val_data[i]
