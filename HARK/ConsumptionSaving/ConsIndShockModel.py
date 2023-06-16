@@ -1933,8 +1933,8 @@ class PerfForesightConsumerType(AgentType):
         result = self.APFac < 1.
 
         messages = {
-            True: f"The Absolute Patience Factor APFac={self.APFac:.5f} satisfies the Absolute Impatience Condition (AIC) APFac < 1.",
-            False: f"The Absolute Patience Factor APFac={self.APFac:.5f} violates the Absolute Impatience Condition (AIC) APFac < 1."
+            True: f"APFac={self.APFac:.5f} : The Absolute Patience Factor satisfies the Absolute Impatience Condition (AIC) Þ < 1.",
+            False: f"APFac={self.APFac:.5f} : The Absolute Patience Factor violates the Absolute Impatience Condition (AIC) Þ < 1."
         }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
@@ -1947,8 +1947,8 @@ class PerfForesightConsumerType(AgentType):
         result = self.GPFacRaw < 1.
 
         messages = {
-            True: f"The Growth Patience Factor GPFac={self.GPFacRaw:.5f} satisfies the Growth Impatience Condition (GICRaw) GPFac < 1.",
-            False: f"The Growth Patience Factor GPFac={self.GPFacRaw:.5f} violates the Growth Impatience Condition (GICRaw) GPFac < 1."
+            True: f"GPFac={self.GPFacRaw:.5f} : The Growth Patience Factor satisfies the Growth Impatience Condition (GICRaw) Þ/G < 1.",
+            False: f"GPFac={self.GPFacRaw:.5f} : The Growth Patience Factor violates the Growth Impatience Condition (GICRaw) Þ/G < 1."
             
         }
         verbose = self.verbose if verbose is None else verbose
@@ -1962,13 +1962,9 @@ class PerfForesightConsumerType(AgentType):
         result = self.RPFac < 1.
 
         messages = {
-            True: f"The Return Patience Factor RPFac={self.RPFac:.5f} satisfies the Return Impatience Condition (RIC) RPFac < 1.",
-            False: f"The Return Patience Factor RPFac={self.RPFac:.5f} violates the Return Impatience Condition (RIC) RPFac < 1."
+            True: f"RPFac={self.RPFac:.5f} : The Return Patience Factor satisfies the Return Impatience Condition (RIC) Þ/R < 1.",
+            False: f"RPFac={self.RPFac:.5f} : The Return Patience Factor violates the Return Impatience Condition (RIC) Þ/R < 1."
             }
-        verbose_messages = {
-            True: "Therefore, the limiting consumption function is not c(m)=0 for all m.",
-            False: "Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.",
-        }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
 
@@ -1980,14 +1976,9 @@ class PerfForesightConsumerType(AgentType):
         result = self.FHWFac < 1.
 
         messages = {
-            True: f"The Finite Human Wealth Factor FHWFac={self.FHWFac:.5f} satisfies the Finite Human Wealth Condition (FHWC) FHWFac < 1.",
-            False: f"The Finite Human Wealth Factor, FHWFac={self.FHWFac:.5f} violates the Finite Human Wealth Condition (FHWC) FHWFac < 1."
+            True: f"FHWFac={self.FHWFac:.5f} : The Finite Human Wealth Factor satisfies the Finite Human Wealth Condition (FHWC) G/R < 1.",
+            False: f"FHWFac={self.FHWFac:.5f} : The Finite Human Wealth Factor violates the Finite Human Wealth Condition (FHWC) G/R < 1."
         }
-        verbose_messages = {
-            True: "Therefore, the limiting consumption function is not c(m)=Infinity.",
-            False: "Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated."
-        }
-
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
         
@@ -1999,11 +1990,81 @@ class PerfForesightConsumerType(AgentType):
         result = self.VAFac < 1.
 
         messages = {
-            True: f"The Finite Value of Autarky Factor VAFac={self.VAFac:.5f} satisfies the Finite Value of Autarky Condition VAFac < 1.",
-            False: f"The Finite Value of Autarky Factor, VAFac={self.VAFac:.5f} violates the Finite Value of Autarky Condition VAFac."
+            True: f"VAFac={self.VAFac:.5f} : The Finite Value of Autarky Factor satisfies the Finite Value of Autarky Condition βG^(1-ρ) < 1.",
+            False: f"VAFac={self.VAFac:.5f} : The Finite Value of Autarky Factor violates the Finite Value of Autarky Condition βG^(1-ρ) < 1."
         }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
+        
+    def describe_parameters(self):
+        '''
+        Make a string describing this instance's parameter values, including their
+        representation in code and symbolically.
+
+        Returns
+        -------
+        param_desc : str
+            Description of parameters as a unicode string.
+        '''
+        params_to_describe = [
+            #[name, description, symbol, time varying]
+            ['DiscFac', 'intertemporal discount factor', 'β',False],
+            ['Rfree', 'risk free interest factor', 'R',False],
+            ['PermGroFac', 'permanent income growth factor', 'G',True],
+            ['CRRA', 'coefficient of relative risk aversion','ρ',False],
+            ['LivPrb', 'survival probability','ℒ',True],
+            ['APFac', 'absolute patience factor', 'Þ=(βR)^(1/ρ)',False]
+        ]
+        
+        param_desc = ''
+        for j in range(len(params_to_describe)):
+            this_entry = params_to_describe[j]
+            if this_entry[3]:
+                val = getattr(self,this_entry[0])[0]
+            else:
+                val = getattr(self,this_entry[0])
+            this_line = this_entry[2] + f'={val:.5f} : ' + this_entry[1] + ' (' + this_entry[0] + ')\n'
+            param_desc += this_line
+            
+        return param_desc
+            
+    def calc_limiting_values(self):
+        '''
+        Compute various scalar values that are relevant to characterizing the
+        solution to an infinite horizon problem. This method should only be called
+        when T_cycle=1 and cycles=0, otherwise the values generated are meaningless.
+        This method adds the following attributes to the instance:
+            
+        APFac : Absolute Patience Factor
+        GPFacRaw : Growth Patience Factor
+        FHWFac : Finite Human Wealth Factor
+        RPFac : Return Patience Factor
+        VAFac : Value of Autarky Factor
+        cNrmPDV : Present Discounted Value of Autarky Consumption
+        MPCmin : Limiting minimum MPC as market resources go to infinity
+        MPCmax : Limiting maximum MPC as market resources approach minimum level.
+        hNrm : Human wealth divided by permanent income.
+
+        Returns
+        -------
+        None
+        '''
+        self.APFac = (self.Rfree * self.DiscFac * self.LivPrb[0]) ** (1 / self.CRRA)
+        self.GPFacRaw = self.APFac / self.PermGroFac[0]
+        self.FHWFac = self.PermGroFac[0] / self.Rfree
+        self.RPFac = self.APFac / self.Rfree
+        self.VAFac = (self.DiscFac * self.LivPrb[0]) * self.PermGroFac[0]**(1. - self.CRRA)
+        self.cNrmPDV = 1. / (1. - self.APFac / self.Rfree)
+        self.MPCmin = np.maximum(1. - self.APFac, 0.)
+        constrained = hasattr(self, "BoroCnstArt") and (self.BoroCnstArt is not None) and (self.BoroCnstArt > -np.inf)
+        if constrained:
+            self.MPCmax = 1.
+        else:
+            self.MPCmax = self.MPCmin
+        if self.FHWFac < 1.:
+            self.hNrm = 1. / (1. - self.FHWFac)
+        else:
+            self.hNrm = np.inf
 
     def check_conditions(self, verbose=None):
         """
@@ -2041,13 +2102,10 @@ class PerfForesightConsumerType(AgentType):
             self.log_condition_result(None, None, trivial_message, verbose)
             return
 
-        # Calculate some useful quantities
-        self.APFac = (self.Rfree * self.DiscFac * self.LivPrb[0]) ** (1 / self.CRRA)
-        self.GPFacRaw = self.APFac / self.PermGroFac[0]
-        self.FHWFac = self.PermGroFac[0] / self.Rfree
-        self.RPFac = self.APFac / self.Rfree
-        self.VAFac = (self.DiscFac * self.LivPrb[0]) * self.PermGroFac[0]**(1. - self.CRRA)
-        self.cNrmPDV = 1. / (1. - self.APFac / self.Rfree)
+        # Calculate some useful quantities that will be used in the condition checks
+        self.calc_limiting_values()
+        param_desc = self.describe_parameters()
+        self.log_condition_result(None, None, param_desc, verbose)
 
         # Check individual conditions and add their results to the report
         self.check_AIC(verbose)
@@ -2072,10 +2130,10 @@ class PerfForesightConsumerType(AgentType):
             if self.conditions['FHWC']:
                 RIC_message = '\nBecause the FHWC is satisfied, the solution is not c(m)=Infinity.'
                 if self.conditions['RIC']:
-                    RIC_message += "  Because the RIC is also satisfied, the solution is also not c(m)=0 for all m, so a non-degenerate linear solution exists."
+                    RIC_message += " Because the RIC is also satisfied, the solution is also not c(m)=0 for all m, so a non-degenerate linear solution exists."
                     degenerate = False
                 else:
-                    RIC_message += "  However, because the RIC is violated, the solution is degenerate at c(m) = 0 for all m."
+                    RIC_message += " However, because the RIC is violated, the solution is degenerate at c(m) = 0 for all m."
                     degenerate = True
             else:
                 RIC_message = '\nBecause the FHWC condition is violated and the consumer is not constrained, the solution is degenerate at c(m)=Infinity.'
@@ -2084,10 +2142,10 @@ class PerfForesightConsumerType(AgentType):
             if self.conditions['RIC']:
                 RIC_message = "\nBecause the RIC is satisfied and the consumer is constrained, the solution is not c(m)=0 for all m."
                 if self.conditions['GICRaw']:
-                    RIC_message += "  Because the GIC is also satisfied, the solution non-degenerate. It is piecewise linear with an infinite number of kinks, approaching the unconstrained solution as m goes to infinity."
+                    RIC_message += " Because the GIC is also satisfied, the solution is non-degenerate. It is piecewise linear with an infinite number of kinks, approaching the unconstrained solution as m goes to infinity."
                     degenerate = False
                 else:
-                    RIC_message += "  Because the GIC is violated, the solution is non-degenerate. It is piecewise linear with a single kink at some 0 < m < 1; it equals the unconstrained solution above that kink point and has c(m) = m below it."
+                    RIC_message += " Because the GIC is violated, the solution is non-degenerate. It is piecewise linear with a single kink at some 0 < m < 1; it equals the unconstrained solution above that kink point and has c(m) = m below it."
                     degenerate = False
             else:
                 if self.conditions['GICRaw']:
@@ -2115,8 +2173,6 @@ class PerfForesightConsumerType(AgentType):
         self.log_condition_result(None, None, GIC_message, verbose)
         
         
-
-
 # Make a dictionary to specify an idiosyncratic income shocks consumer
 init_idiosyncratic_shocks = dict(
     init_perfect_foresight,
@@ -2336,7 +2392,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.shocks["PermShk"] = PermShkNow
         self.shocks["TranShk"] = TranShkNow
 
-    def calc_bounding_values(self):
+    def calc_limiting_values(self):
         """
         Calculate human wealth plus minimum and maximum MPC in an infinite
         horizon model with only one period repeated indefinitely.  Store results
