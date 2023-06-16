@@ -180,9 +180,11 @@ class egm_test(unittest.TestCase):
             v_y_der = consumption_v_y_der,
         )
 
-        if not np.all(self.cVec_egm == pi_y_data.values):
-            print(self.cVec_egm)
-            print(pi_y_data.values)
-        
-        self.assertTrue(np.all(self.cVec_egm == pi_y_data.values))
-        self.assertTrue(np.all(self.mVec_egm == pi_data.coords['m'].values))
+        self.assertTrue(
+            np.all(abs(self.cVec_egm - pi_y_data.values < 1e-12)),
+            f"Target values: {[x for x in self.cVec_egm]}; Test values: {[x for x in pi_y_data.values]}"
+            )
+        self.assertTrue(
+            np.all(abs(self.mVec_egm - pi_data.coords['m'].values < 1e-12 )),
+            f"Target values: {self.mVec_egm}; Test values: {pi_data.coords['m'].values}"
+            )
