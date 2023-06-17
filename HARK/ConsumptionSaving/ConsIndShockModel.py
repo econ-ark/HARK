@@ -2013,7 +2013,7 @@ class PerfForesightConsumerType(AgentType):
             ['PermGroFac', 'permanent income growth factor', 'G',True],
             ['CRRA', 'coefficient of relative risk aversion','ρ',False],
             ['LivPrb', 'survival probability','ℒ',True],
-            ['APFac', 'absolute patience factor', 'Þ=(βR)^(1/ρ)',False]
+            ['APFac', 'absolute patience factor', 'Þ=(βℒR)^(1/ρ)',False]
         ]
         
         param_desc = ''
@@ -2054,8 +2054,8 @@ class PerfForesightConsumerType(AgentType):
         self.FHWFac = self.PermGroFac[0] / self.Rfree
         self.RPFac = self.APFac / self.Rfree
         self.VAFac = (self.DiscFac * self.LivPrb[0]) * self.PermGroFac[0]**(1. - self.CRRA)
-        self.cNrmPDV = 1. / (1. - self.APFac / self.Rfree)
-        self.MPCmin = np.maximum(1. - self.APFac, 0.)
+        self.cNrmPDV = 1. / (1. - self.RPFac)
+        self.MPCmin = np.maximum(1. - self.RPFac, 0.)
         constrained = hasattr(self, "BoroCnstArt") and (self.BoroCnstArt is not None) and (self.BoroCnstArt > -np.inf)
         if constrained:
             self.MPCmax = 1.
@@ -2170,6 +2170,8 @@ class PerfForesightConsumerType(AgentType):
             GIC_message = "\nBecause the GICRaw is satisfed, the ratio of individual wealth to permanent income is expected to fall indefinitely."
         elif self.conditions['FHWC']:
             "\nBecause the GICRaw is violated but the FHWC is satisfied, the ratio of individual wealth to permanent income is expected to rise toward infinity."
+        else:
+            "\nBecause both the GICRaw and FHWC are violated, [I need to figure out what happens here]."
         self.log_condition_result(None, None, GIC_message, verbose)
         
         
@@ -2392,56 +2394,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.shocks["PermShk"] = PermShkNow
         self.shocks["TranShk"] = TranShkNow
 
-    def calc_limiting_values(self):
-        """
-        Calculate human wealth plus minimum and maximum MPC in an infinite
-        horizon model with only one period repeated indefinitely.  Store results
-        as attributes of self.  Human wealth is the present discounted value of
-        expected future income after receiving income this period, ignoring mort-
-        ality (because your income matters to you only if you are still alive).
-        The maximum MPC is the limit of the MPC as m --> mNrmMin.  The
-        minimum MPC is the limit of the MPC as m --> infty.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        # Unpack the income distribution and get average and worst outcomes
-        PermShkValsNext = self.IncShkDstn[0].atoms[0]
-        TranShkValsNext = self.IncShkDstn[0].atoms[1]
-        ShkPrbsNext = self.IncShkDstn[0].pmv
-        Ex_IncNext = np.dot(ShkPrbsNext, PermShkValsNext * TranShkValsNext)
-        PermShkMinNext = np.min(PermShkValsNext)
-        TranShkMinNext = np.min(TranShkValsNext)
-        WorstIncNext = PermShkMinNext * TranShkMinNext
-        WorstIncPrb = np.sum(
-            ShkPrbsNext[(PermShkValsNext * TranShkValsNext) == WorstIncNext]
-        )
-
-        # Calculate human wealth and the infinite horizon natural borrowing constraint
-        hNrm = (Ex_IncNext * self.PermGroFac[0] / self.Rfree) / (
-            1.0 - self.PermGroFac[0] / self.Rfree
-        )
-        temp = self.PermGroFac[0] * PermShkMinNext / self.Rfree
-        BoroCnstNat = -TranShkMinNext * temp / (1.0 - temp)
-
-        PatFac = (self.DiscFac * self.LivPrb[0] * self.Rfree) ** (
-            1.0 / self.CRRA
-        ) / self.Rfree
-        if BoroCnstNat < self.BoroCnstArt:
-            MPCmax = 1.0  # if natural borrowing constraint is overridden by artificial one, MPCmax is 1
-        else:
-            MPCmax = 1.0 - WorstIncPrb ** (1.0 / self.CRRA) * PatFac
-        MPCmin = 1.0 - PatFac
-
-        # Store the results as attributes of self
-        self.hNrm = hNrm
-        self.MPCmin = MPCmin
-        self.MPCmax = MPCmax
 
     def define_distribution_grid(
         self,
@@ -3174,113 +3126,90 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.update_solution_terminal()
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
+            
+    
+    def calc_limiting_values(self):
+        '''
+        Compute various scalar values that are relevant to characterizing the
+        solution to an infinite horizon problem. This method should only be called
+        when T_cycle=1 and cycles=0, otherwise the values generated are meaningless.
+        This method adds the following attributes to the instance:
+            
+        APFac : Absolute Patience Factor
+        GPFacRaw : Growth Patience Factor
+        GPFacMod : Risk-Modified Growth Patience Factor
+        FHWFac : Finite Human Wealth Factor
+        RPFac : Return Patience Factor
+        VAFac : Value of Autarky Factor
+        cNrmPDV : Present Discounted Value of Autarky Consumption
+        MPCmin : Limiting minimum MPC as market resources go to infinity
+        MPCmax : Limiting maximum MPC as market resources approach minimum level.
+        hNrm : Human wealth divided by permanent income.
 
-    def check_GICNrm(self, verbose=None):
-        """
-        Check Individual Growth Patience Factor.
-        """
-        self.GPFNrm = self.thorn / (
-            self.PermGroFac[0] * self.InvEx_PermShkInv
-        )  # [url]/#GICRawI
-
-        name = "GICRaw"
-
-        def test(agent):
-            return agent.GPFNrm <= 1
-
-        messages = {
-            True: "\nThe value of the Individual Growth Patience Factor for the supplied parameter values satisfies the Growth Impatience Condition; the value of the GPFNrm is: {0.GPFNrm}",
-            False: "\nThe given parameter values violate the Normalized Growth Impatience Condition; the GPFNrm is: {0.GPFNrm}",
-        }
-
-        verbose_messages = {
-            True: " Therefore, a target level of the individual market resources ratio m exists (see {0.url}/#onetarget for more).\n",
-            False: " Therefore, a target ratio of individual market resources to individual permanent income does not exist.  (see {0.url}/#onetarget for more).\n",
-        }
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condition(name, test, messages, verbose, verbose_messages)
-
-    def check_GICAggLivPrb(self, verbose=None):
-        name = "GICAggLivPrb"
-
-        def test(agent):
-            return agent.GPFAggLivPrb <= 1
-
-        messages = {
-            True: "\nThe value of the Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values satisfies the Mortality Adjusted Aggregate Growth Imatience Condition; the value of the GPFAggLivPrb is: {0.GPFAggLivPrb}",
-            False: "\nThe given parameter values violate the Mortality Adjusted Aggregate Growth Imatience Condition; the GPFAggLivPrb is: {0.GPFAggLivPrb}",
-        }
-
-        verbose_messages = {  # (see {0.url}/#WRIC for more).',
-            True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.\n",
-            # (see {0.url}/#WRIC for more).'
-            False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.\n",
-        }
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condition(name, test, messages, verbose, verbose_messages)
-
-    def check_WRIC(self, verbose=None):
-        """
-        Evaluate and report on the Weak Return Impatience Condition
-        [url]/#WRPF modified to incorporate LivPrb
-        """
-        self.WRPF = (
-            (self.UnempPrb ** (1 / self.CRRA))
-            * (self.Rfree * self.DiscFac * self.LivPrb[0]) ** (1 / self.CRRA)
-            / self.Rfree
+        Returns
+        -------
+        None
+        '''
+        PerfForesightConsumerType.calc_limiting_values(self)
+        
+        # Calculate the risk-modified growth impatience factor
+        PermShkDstn = self.PermShkDstn[0]
+        inv_func = lambda x : x**(-1.)
+        GroCompPermShk = expected(inv_func, PermShkDstn)[0]**(-1.)
+        self.GPFacMod = self.APFac / (self.PermGroFac[0] * GroCompPermShk)
+        
+        # Calculate the risk-modified value of autarky factor
+        CRRAfunc = lambda x : x**(1.-self.CRRA)
+        UtilCompPermShk = expected(CRRAfunc, PermShkDstn)[0]**(1/(1.-self.CRRA))
+        self.VAFac = self.DiscFac*(self.PermGroFac[0]*UtilCompPermShk)**(1.-self.CRRA)
+        
+        # Calculate the probability of the worst income shock realization
+        PermShkValsNext = self.IncShkDstn[0].atoms[0]
+        TranShkValsNext = self.IncShkDstn[0].atoms[1]
+        ShkPrbsNext = self.IncShkDstn[0].pmv
+        Ex_IncNext = np.dot(ShkPrbsNext, PermShkValsNext * TranShkValsNext)
+        PermShkMinNext = np.min(PermShkValsNext)
+        TranShkMinNext = np.min(TranShkValsNext)
+        WorstIncNext = PermShkMinNext * TranShkMinNext
+        WorstIncPrb = np.sum(
+            ShkPrbsNext[(PermShkValsNext * TranShkValsNext) == WorstIncNext]
         )
-
-        name = "WRIC"
-
-        def test(agent):
-            return agent.WRPF <= 1
-
-        messages = {
-            True: "\nThe Weak Return Patience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition; the WRPF is {0.WRPF}.",
-            False: "\nThe Weak Return Patience Factor value for the supplied parameter values fails     the Weak Return Impatience Condition; the WRPF is {0.WRPF} (see {0.url}/#WRIC for more).",
-        }
-
-        verbose_messages = {
-            True: "  Therefore, a nondegenerate solution exists if the FVAC is also satisfied.  (see {0.url}/#WRIC for more) \n",
-            False: "  Therefore, a nondegenerate solution is not available (see {0.url}/#WRIC for more). \n",
-        }
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condition(name, test, messages, verbose, verbose_messages)
-
-    def check_FVAC(self, verbose=None):
-        """
-        Evaluate and report on the Finite Value of Autarky Condition
-        Hyperlink to paper: [url]/#Autarky-Value
-        """
-        EpShkuInv = expected(lambda x: x ** (1 - self.CRRA), self.PermShkDstn[0])[0]
-
-        if self.CRRA != 1.0:
-            uInvEpShkuInv = EpShkuInv ** (
-                1 / (1 - self.CRRA)
-            )  # The term that gives a utility-consequence-adjusted utility growth
+        
+        # Calculate human wealth and the infinite horizon natural borrowing constraint
+        if self.FHWFac < 1.:
+            hNrm = Ex_IncNext / (1. - self.FHWFac)
         else:
-            uInvEpShkuInv = 1.0
+            hNrm = np.inf
+        temp = PermShkMinNext * self.FHWFac
+        BoroCnstNat = -TranShkMinNext * temp / (1.0 - temp)
 
-        self.uInvEpShkuInv = uInvEpShkuInv
+        # Find the upper bound of the MPC as market resources approach the minimum
+        BoroCnstArt = -np.inf if self.BoroCnstArt is None else self.BoroCnstArt
+        if BoroCnstNat < BoroCnstArt:
+            MPCmax = 1.0  # if natural borrowing constraint is overridden by artificial one, MPCmax is 1
+        else:
+            MPCmax = 1.0 - WorstIncPrb ** (1.0 / self.CRRA) * self.APFac
+            
+        # Store maximum MPC and human wealth
+        self.hNrm = hNrm
+        self.MPCmax = MPCmax
 
-        self.VAF = self.LivPrb[0] * self.DiscFac * self.uInvEpShkuInv
 
-        name = "FVAC"
-
-        def test(agent):
-            return agent.VAF <= 1
+    def check_GICMod(self, verbose=None):
+        """
+        Evaluate and report on the Risk-Modified Growth Impatience Condition.
+        """
+        name = "GICMod"
+        result = self.GPFacMod < 1.
 
         messages = {
-            True: "\nThe Value of Autarky Factor (VAF) for the supplied parameter values satisfies the Finite Value of Autarky Condition; the VAF is {0.VAF}",
-            False: "\nThe Value of Autarky Factor (VAF) for the supplied parameter values fails     the Finite Value of Autarky Condition; the VAF is {0.VAF}",
-        }
-
-        verbose_messages = {
-            True: "  Therefore, a nondegenerate solution exists if the WRIC also holds; see {0.url}/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping\n",
-            False: "  Therefore, a nondegenerate solution is not available (see {0.url}/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping\n",
+            True: f"GPFac={self.GPFacMod:.5f} : The Risk-Modified Growth Patience Factor satisfies the Risk-Modified Growth Impatience Condition (GICMod) Þ/(G‖Ψ‖_(-1)) < 1.",
+            False: f"GPFac={self.GPFacMod:.5f} : The Risk-Modified Growth Patience Factor violates the Risk-Modified Growth Impatience Condition (GICMod) Þ/(G‖Ψ‖_(-1)) < 1."
+            
         }
         verbose = self.verbose if verbose is None else verbose
-        self.check_condition(name, test, messages, verbose, verbose_messages)
+        self.log_condition_result(name, result, messages[result], verbose)
+    
 
     def check_conditions(self, verbose=None):
         """
@@ -3303,77 +3232,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
         self.conditions = {}
 
-        # PerfForesightConsumerType.check_conditions(self, verbose=False, verbose_reference=False)
-        self.violated = False
-
-        if self.cycles != 0 or self.T_cycle > 1:
-            return
-
-        # For theory, see hyperlink targets to expressions in
-        # url=https://econ-ark.github.io/BufferStockTheory
-        # For example, the hyperlink to the relevant section of the paper
-        self.url = "https://econ-ark.github.io/BufferStockTheory"
-        # would be referenced below as:
-        # [url]/#Uncertainty-Modified-Conditions
-
-        self.Ex_PermShkInv = expected(lambda x: 1 / x, self.PermShkDstn[0])[0]
-        # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
-
-        # [url]/#Pat, adjusted to include mortality
-
-        self.InvEx_PermShkInv = (
-            1 / self.Ex_PermShkInv
-        )  # $\underline{\psi}$ in the paper (\bar{\isp} in private version)
-        self.PermGroFacAdj = (
-            self.PermGroFac[0] * self.InvEx_PermShkInv
-        )  # [url]/#PGroAdj
-
-        self.thorn = (self.Rfree * self.DiscFac) ** (1 / self.CRRA)
-
-        # self.Ex_RNrm           = self.Rfree*Ex_PermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
-        self.GPFRaw = self.thorn / (self.PermGroFac[0])  # [url]/#GPF
-        # Lower bound of aggregate wealth growth if all inheritances squandered
-
-        self.GPFAggLivPrb = self.thorn * self.LivPrb[0] / self.PermGroFac[0]
-
-        self.DiscFacGPFRawMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
-            self.Rfree
-        )  # DiscFac at growth impatience knife edge
-        self.DiscFacGPFNrmMax = (
-            (self.PermGroFac[0] * self.InvEx_PermShkInv) ** (self.CRRA)
-        ) / (
-            self.Rfree
-        )  # DiscFac at growth impatience knife edge
-        self.DiscFacGPFAggLivPrbMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
-            self.Rfree * self.LivPrb[0]
-        )  # DiscFac at growth impatience knife edge
-        verbose = self.verbose if verbose is None else verbose
-
-        #        self.check_GICRaw(verbose)
-        self.check_GICNrm(verbose)
-        self.check_GICAggLivPrb(verbose)
-        self.check_WRIC(verbose)
-        self.check_FVAC(verbose)
-
-        self.violated = not self.conditions["WRIC"] or not self.conditions["FVAC"]
-
-        if self.violated:
-            _log.warning(
-                '\n[!] For more information on the conditions, see Tables 3 and 4 in "Theoretical Foundations of Buffer Stock Saving" at '
-                + self.url
-                + "/#Factors-Defined-And-Compared"
-            )
-
-        _log.warning("GPFRaw                 = %2.6f " % (self.GPFRaw))
-        _log.warning("GPFNrm                 = %2.6f " % (self.GPFNrm))
-        _log.warning("GPFAggLivPrb           = %2.6f " % (self.GPFAggLivPrb))
-        _log.warning("Thorn = APF            = %2.6f " % (self.thorn))
-        _log.warning("PermGroFacAdj          = %2.6f " % (self.PermGroFacAdj))
-        _log.warning("uInvEpShkuInv          = %2.6f " % (self.uInvEpShkuInv))
-        _log.warning("VAF                    = %2.6f " % (self.VAF))
-        _log.warning("WRPF                   = %2.6f " % (self.WRPF))
-        _log.warning("DiscFacGPFNrmMax       = %2.6f " % (self.DiscFacGPFNrmMax))
-        _log.warning("DiscFacGPFAggLivPrbMax = %2.6f " % (self.DiscFacGPFAggLivPrbMax))
 
     def calc_stable_points(self):
         """
