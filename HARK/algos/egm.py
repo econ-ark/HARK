@@ -13,14 +13,32 @@ def analytic_pi_y_star(
         discount = 1.0
         ):
     """
-    The optimal action that results in output values y.
+    The action which, when chosen, results in the post-state value Y.
 
-    Assumes:
-     - dg_da is a constant
-     - discount factor is constant
+    Parameters
+    -----------
+    y:
+        The post-state value Y.
+        TODO: type signature of input y
 
-    Params
-    ------
+    v_y_der:
+        Derivative post-value function over post-states Y.
+
+    dr_da_inv:
+        Derivative of the reward function r with respect to actions A, inverted.
+
+    dg_da:
+        Derivateive of the transition function g with respect to actions A. Must be a constant.
+
+    discount:
+        Discount factor. Must be a constant.
+
+    Returns
+    -------
+
+    The actions chosen that result in post-state Y.
+
+    TODO: Type signature of output
     """
     if dg_da is None or not(
         isinstance(dg_da, float) or isinstance(dg_da, int)
@@ -41,8 +59,8 @@ def analytic_pi_y_star(
     return dr_da_inv(- discount * dg_da * v_y_der_at_y)
 
 def egm(
-        inputs,
-        actions,
+        inputs : Sequence[str],
+        actions : Sequence[str],
         g_inv : Callable[[Mapping, Mapping, Mapping], float],
         dr_da_inv, # = lambda uP : (CRRAutilityP_inv(uP, rho),),
         dg_da = -1,
@@ -51,19 +69,44 @@ def egm(
         discount = 1,
     ):
     """
-    Given a grid over output
-    and marginal output value function,
-    compute the optimal action.
+    Given post-states Y and information about an agent's problem,
+    compute the actions which, if chosen, result in those post-states,
+    and the corresponding states X.
+    
+    This is a method of computing data about the optimal policy of an
+    agent that does not use rootfinding.
 
-    This depends on the stage having an
-    *inverse marginal reward function*
-    and *inverse transition function*.
+    Parameters
+    ------------
+    inputs:
+        Ordered labels of the state variables.
 
-    Does not use rootfinding!
-    The 'grid' over the input 
+    actions:
+        Ordered labels of the action variables.
 
-    ### ASSUMES: No discounting this phase,
-    ###           and... T' = -1 ???
+    g_inv:
+        Inverse of the transition function g.
+
+    dr_da_inv:
+        Derivative of the reward function r with respect to actions A, inverted.
+
+    dg_da:
+        Derivative of the transition function g with respect to action A.
+
+    y_grid:
+
+    v_y_der:
+        Derivative of post-value function v_y over post states Y
+
+    discount:
+        A discount fact. Scalar.
+
+    Returns
+    --------
+
+    pi_data:
+
+    pi_y_data:
     """
 
     ## can be functionalized out once we settle

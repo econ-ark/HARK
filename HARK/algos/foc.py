@@ -45,13 +45,15 @@ def xndindex(ds, dims=None):
             raise ValueError("Invalid dimension '{}'. Available dimensions {}".format(d, ds.dims))
             
     iter_dict = {k:v for k,v in ds.sizes.items() if k in dims}
-    for d,k in zip(repeat(tuple(iter_dict.keys())),zip(np.ndindex(tuple(iter_dict.values())))):
+    for d,k in zip(itertools.repeat(tuple(iter_dict.keys())),zip(np.ndindex(tuple(iter_dict.values())))):
         yield {k:l for k,l in zip(d,k[0])}
 
 
+Grid = Mapping[str, Sequence]
+
 def xz_grids_to_data_array(
-        x_grid : Mapping[str, Sequence] = {}, ## TODO: Better data structure here.
-        z_grid : Mapping[str, Sequence] = {}
+        x_grid : Grid = {}, ## TODO: Better data structure here.
+        z_grid : Grid = {}
     ):
 
     coords = {**x_grid, **z_grid}
@@ -66,20 +68,19 @@ def xz_grids_to_data_array(
 
 
 def optimal_policy_foc(
-        g : Callable[[Mapping, Mapping, Mapping], float],  #= lambda x, z, a : {'a' : x['m'] - a['c']},
-        actions,
-        r, # = lambda x, z, a : u(a['c']),
-        dr_da, # = lambda x, z, a: u.prime(a['c']),
-        dr_inv, # = lambda uP : (CRRAutilityP_inv(uP, rho),),
-        dg_dx = 1,  ## Used in FOC method, step 5
-        dg_da = -1,  ## Used in FOC method, step 5
-        x_grid : Mapping[str, Sequence] = {}, ## TODO: Better data structure here.
-        z_grid : Mapping[str, Sequence] = {},
-        v_y_der : Callable[[Mapping, Mapping, Mapping], float] = lambda x : 0,
+        g : Callable[[Grid, Grid, Grid], float], 
+        actions: Sequence[str],
+        r : Callable[[Grid, Grid, Grid], float], 
+        dr_da, 
+        dr_inv, 
+        dg_dx = 1, 
+        dg_da = -1, 
+        x_grid : Grid = {},
+        z_grid : Grid = {},
+        v_y_der : Callable[[Grid, Grid, Grid], float] = lambda x : 0,
         discount = 1,
-        action_upper_bound : Callable[[Mapping, Mapping], Sequence[float]] = field(default = None), # = lambda x, z: (x['m'] + gamma[0] * theta.X[0] / R,),
-        action_lower_bound : Callable[[Mapping, Mapping], Sequence[float]] = field(default = None),
-        optimizer_args = None # TODO: For brettq.
+        action_upper_bound : Callable[[Grid, Grid], Sequence[float]] = field(default = None),
+        action_lower_bound : Callable[[Grid, Grid], Sequence[float]] = field(default = None),
     ):
     """
     Given a grid over input and shock state values,
@@ -105,23 +106,62 @@ def optimal_policy_foc(
     Parameters
     -----------
 
-    x_grid : Mapping[str, Sequence]
-        A mapping of state variable names to a sequence of grid values
-    
-    z_grid: Mapping[str, Sequence]
-        A mapping of shock variable names to grid values
+    g :
+        Transition functiong g.
 
+    actions:
+        Ordered labels of action variables.
+
+    r :
+        Reward function r.
+
+    dr_da :
+        Derivative of reward function r with respect to actions A.
+
+    dr_inv : 
+        Inverse of derivative of reward function
+
+    dg_dx:
+        Derivative of transition function g with respect to states X.
+
+    dg_da:
+        Derivative of transition function g with respect to actions A.
+
+    x_grid:
+
+    z_grid:
+
+    v_y_der:
+        Derivative of the post-value function v_y with respect to post-states Y.
+
+    discount:
+
+    action_upper_bound:
+
+    action_lower_bound:
+
+    Returns
+    --------
+
+    pi_star_data:
+        Data for the optimal policy pi_star.
+     
+    q_der_data:
+        Data for the derivative of the action value function function q.
+     
+    y_data:
 
     """
     # Set up data arrays with coordinates based on the grid.
-    pi_data = xz_grids_to_data_array(x_grid, z_grid) ## TODO: Default value for pi should be nan.
+    pi_star_data = xz_grids_to_data_array(x_grid, z_grid) ## TODO: Default value for pi should be nan.
     q_der_data = xz_grids_to_data_array(x_grid, z_grid)
     ## May need to expand this for multivariate y
     y_data = xz_grids_to_data_array(x_grid, z_grid)
 
-    xz_grid_size = np.prod([len(xv) for xv in x_grid.values()]) * np.prod([len(zv) for zv in z_grid.values()])
-
     def dq_da(x,z,a, v_y_der):
+        """
+        Derivative of the action-value function q with respect to actions a
+        """
         return dr_da(x,z,a) + discount * v_y_der(g(x,z,a)) * dg_da # could optionally be dg_da(x,z,a)
 
     # TODO: replace these with iterators....
@@ -142,40 +182,15 @@ def optimal_policy_foc(
 
         for z_point in itertools.product(*z_grid.values()):
             z_vals = {k : v for k, v in zip(z_grid.keys() , z_point)}
-
-            # repeated code with the other optimizer -- can be functionalized out?
-            """
-            if len(self.actions) == 0:
-                q_der_xz = self.d_q_d_a(
-                    x_vals,
-                    z_vals,
-                    {}, # no actions
-                    v_y_der
-                    )
-
-                # this should just be the default value for pi
-                pi_data.sel(**x_vals, **z_vals).variable.data.put(0, np.nan)
-
-                # then this can be looped in differently.
-                q_der_data.sel(**x_vals, **z_vals).variable.data.put(0, q_der_xz)
-
-                ## TODO: define g
-                y = g(x_vals, z_vals, self.action_zip([np.nan]))
-                y_n = np.array([y[k] for k in y])
-                y_data.sel(**x_vals, **z_vals).variable.data.put(0, y_n)
-            """
-            
+           
             def foc(a):
                 a_vals = action_zip((a,))
                 return dq_da(x_vals, z_vals, a_vals, v_y_der)
 
-            # these lower bounds as arugments to the 
-            lower_bound = action_lower_bound(x_vals, z_vals)
-            upper_bound = action_upper_bound(x_vals, z_vals)
-
             ##  what if no lower bound?
             q_der_lower = None
-            if lower_bound[0] is not None:
+            if action_lower_bound is not None:
+                lower_bound = action_lower_bound(x_vals, z_vals)
                 q_der_lower = dq_da(
                     x_vals,
                     z_vals,
@@ -183,10 +198,11 @@ def optimal_policy_foc(
                     v_y_der
                     )
             else:
-                lower_bound[0] = 1e-12 ## a really high number!
+                lower_bound = np.array([-1e-12]) ## a really low number!
 
             q_der_upper = None
-            if upper_bound[0] is not None:
+            if action_upper_bound is not None:
+                upper_bound = action_upper_bound(x_vals, z_vals)
                 q_der_upper = dq_da(
                     x_vals,
                     z_vals,
@@ -194,62 +210,47 @@ def optimal_policy_foc(
                     v_y_der
                     )
             else:
-                upper_bound[0] =  1e12 ## a really high number!
+                upper_bound =  np.array([1e12]) ## a really high number!
+     
+            if q_der_lower is not None and q_der_upper is not None and not(q_der_lower > 0 and q_der_upper < 0):
+                raise Exception("Cannot solve for optimal policy with FOC if Q is not concave!")
 
-            ## TODO: Better handling of case when there is a missing bound?
-            if q_der_lower is not None and q_der_upper is not None and q_der_lower < 0 and q_der_upper < 0:
-                a0 = lower_bound
+            a0, root_res = brentq(
+                foc,
+                lower_bound[0], # only works with scalar actions
+                upper_bound[0], # only works with scalar actions
+                full_output = True
+            )
 
-                pi_data.sel(**x_vals, **z_vals).variable.data.put(0, a0)
-                q_der_data.sel(**x_vals, **z_vals).variable.data.put(0, q_der_lower)
-            elif q_der_lower is not None and q_der_upper is not None and q_der_lower > 0 and q_der_upper > 0:
-                a0 = upper_bound
+            if root_res.converged:
+                pi_star_data.sel(**x_vals, **z_vals).variable.data.put(0, a0)
 
-                pi_data.sel(**x_vals, **z_vals).variable.data.put(0, a0)
-                q_der_data.sel(**x_vals, **z_vals).variable.data.put(0, q_der_upper)
+                q_der_xz = dq_da(
+                    x_vals,
+                    z_vals,
+                    action_zip((a0,)), # actions are scalar
+                    v_y_der
+                )
+                q_der_data.sel(**x_vals, **z_vals).variable.data.put(0, q_der_xz)
             else:
-                ## Better exception handling here
-                ## asserting that Q is concave
-                if q_der_lower is not None and q_der_upper is not None and not(q_der_lower > 0 and q_der_upper < 0):
-                    raise Exception("Cannot solve for optimal policy with FOC if Q is not concave!")
+                print(f"Rootfinding failure at {x_vals}, {z_vals}.")
+                print(root_res)
 
-                a0, root_res = brentq(
-                    foc,
-                    lower_bound[0], # only works with scalar actions
-                    upper_bound[0], # only works with scalar actions
-                    full_output = True
+                #raise Exception("Failed to optimize.")
+                pi_star_data.sel(**x_vals, **z_vals).variable.data.put(0,  root_res.root)
+
+                q_der_xz = dq_da(
+                    x_vals,
+                    z_vals,
+                    action_zip((root_res.root,)), # actions are scalar
+                    v_y_der
                 )
 
-                if root_res.converged:
-                    pi_data.sel(**x_vals, **z_vals).variable.data.put(0, a0)
+                q_der_data.sel(**x_vals, **z_vals).variable.data.put(0, q_der_xz)
 
-                    q_der_xz = dq_da(
-                        x_vals,
-                        z_vals,
-                        action_zip((a0,)), # actions are scalar
-                        v_y_der
-                    )
+            acts =  np.atleast_1d(pi_star_data.sel(**x_vals, **z_vals).values)
+            y = g(x_vals, z_vals, action_zip(acts))
+            y_n = np.array([y[k] for k in y])
+            y_data.sel(**x_vals, **z_vals).variable.data.put(0, y_n)
 
-                    q_der_data.sel(**x_vals, **z_vals).variable.data.put(0, q_der_xz)
-                else:
-                    print(f"Rootfinding failure at {x_vals}, {z_vals}.")
-                    print(root_res)
-
-                    #raise Exception("Failed to optimize.")
-                    pi_data.sel(**x_vals, **z_vals).variable.data.put(0,  root_res.root)
-
-                    q_der_xz = dq_da(
-                        x_vals,
-                        z_vals,
-                        action_zip((root_res.root,)), # actions are scalar
-                        v_y_der
-                    )
-
-                    q_der_data.sel(**x_vals, **z_vals).variable.data.put(0, q_der_xz)
-
-                acts =  np.atleast_1d(pi_data.sel(**x_vals, **z_vals).values)
-                y = g(x_vals, z_vals, action_zip(acts))
-                y_n = np.array([y[k] for k in y])
-                y_data.sel(**x_vals, **z_vals).variable.data.put(0, y_n)
-
-    return pi_data, q_der_data, y_data
+    return pi_star_data, q_der_data, y_data

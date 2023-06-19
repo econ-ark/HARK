@@ -4,6 +4,7 @@ Tools
 .. toctree::
    :maxdepth: 3
 
+   algos
    core
    dcegm
    distribution
