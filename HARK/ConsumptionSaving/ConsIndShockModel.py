@@ -1947,8 +1947,8 @@ class PerfForesightConsumerType(AgentType):
         result = self.GPFacRaw < 1.
 
         messages = {
-            True: f"GPFac={self.GPFacRaw:.5f} : The Growth Patience Factor satisfies the Growth Impatience Condition (GICRaw) Þ/G < 1.",
-            False: f"GPFac={self.GPFacRaw:.5f} : The Growth Patience Factor violates the Growth Impatience Condition (GICRaw) Þ/G < 1."
+            True: f"GPFacRaw={self.GPFacRaw:.5f} : The Growth Patience Factor satisfies the Growth Impatience Condition (GICRaw) Þ/G < 1.",
+            False: f"GPFacRaw={self.GPFacRaw:.5f} : The Growth Patience Factor violates the Growth Impatience Condition (GICRaw) Þ/G < 1."
             
         }
         verbose = self.verbose if verbose is None else verbose
@@ -2114,12 +2114,6 @@ class PerfForesightConsumerType(AgentType):
         self.check_FVAC(verbose)
         self.check_FHWC(verbose)
         constrained = hasattr(self, "BoroCnstArt") and (self.BoroCnstArt is not None) and (self.BoroCnstArt > -np.inf)
-        
-        # Check whether the solution to the model will be degenerate
-        if hasattr(self, "BoroCnstArt") and self.BoroCnstArt is not None:
-            self.degenerate = not self.conditions["RIC"]
-        else:
-            self.degenerate = not self.conditions["RIC"] or not self.conditions["FHWC"]
             
         # Exit now if verbose output was not requested.
         if not verbose:
@@ -3252,8 +3246,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         result = self.GPFacMod < 1.
 
         messages = {
-            True: f"GPFac={self.GPFacMod:.5f} : The Risk-Modified Growth Patience Factor satisfies the Risk-Modified Growth Impatience Condition (GICMod) Þ/(G‖Ψ‖_(-1)) < 1.",
-            False: f"GPFac={self.GPFacMod:.5f} : The Risk-Modified Growth Patience Factor violates the Risk-Modified Growth Impatience Condition (GICMod) Þ/(G‖Ψ‖_(-1)) < 1."
+            True: f"GPFacMod={self.GPFacMod:.5f} : The Risk-Modified Growth Patience Factor satisfies the Risk-Modified Growth Impatience Condition (GICMod) Þ/(G‖Ψ‖_(-1)) < 1.",
+            False: f"GPFacMod={self.GPFacMod:.5f} : The Risk-Modified Growth Patience Factor violates the Risk-Modified Growth Impatience Condition (GICMod) Þ/(G‖Ψ‖_(-1)) < 1."
         }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
@@ -3382,7 +3376,66 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PerfForesightConsumerType.check_FVAC(self, verbose)
         self.check_FVAC(verbose)
         self.check_FHWC(verbose)
-        #constrained = hasattr(self, "BoroCnstArt") and (self.BoroCnstArt is not None) and (self.BoroCnstArt > -np.inf)
+        constrained = hasattr(self, "BoroCnstArt") and (self.BoroCnstArt is not None) and (self.BoroCnstArt > -np.inf)
+        
+        # Exit now if verbose output was not requested.
+        if not verbose:
+            return
+        
+        # Report on the degeneracy of the consumption function solution
+        if self.conditions['WRIC'] and self.conditions['FVAC']:
+            degen_message = '\nBecause both the WRIC and FVAC are satisfied, the recursive solution to the infinite horizon problem represents a contraction mapping on the consumption function. Thus a non-degenerate solution exists.'
+            degenerate = False
+        elif not self.conditions['WRIC']:
+            degen_message = '\nBecause the WRIC is violated, the consumer is so pathologically patient that they will never consume at all. Thus the solution will be degenerate at c(m) = 0 for all m.\n'
+            degenerate = True
+        elif not self.conditions['FVAC']:
+            degen_message = "\nBecause the FVAC is violated... I don't know what will happen."
+            degenerate = True
+        self.log_condition_result(None, None, degen_message, verbose)
+        self.degenerate = True
+        
+        # Stop here if the solution is degenerate
+        if degenerate:
+            return
+        
+        # Report on the limiting behavior of the consumption function as m goes to infinity
+        if self.conditions['RIC']:
+            if self.conditions['FHWC']:
+                RIC_message = '\nBecause both the RIC and FHWC condition are satisfied, the consumption function will approach the linear perfect foresight solution as m becomes arbitrarily large.'
+            else:
+                RIC_message = '\nBecause the RIC is satisfied but the FHWC is violated, the GIC is satisfied.' 
+        else:
+            RIC_message = '\nBecause the RIC is violated, the FHWC condition is also violated. The consumer is pathologically impatient but has infinite expected future earnings. Thus the consumption function will not approach any linear limit as m becomes arbitrarily large, and the MPC will asymptote to zero.'
+        self.log_condition_result(None, None, RIC_message, verbose)
+        
+        # Report on whether a pseudo steady-state exists at the individual level
+        if self.conditions['GICRaw']:
+            GIC_message = '\nBecause the GICRaw is satisfied, there exists a pseudo-steady state wealth ratio at which the level of wealth is expected to grow at the same rate as permanent income.'
+        else:
+            GIC_message = '\nBecause the GICRaw is violated, there might not exist a pseudo-steady state wealth ratio at which the level of wealth is expected to grow at the same rate as permanent income.'
+        self.log_condition_result(None, None, GIC_message, verbose)
+        
+        # Report on whether a target wealth ratio exists at the individual level
+        if self.conditions['GICMod']:
+            GICMod_message = '\nBecause the GICMod is satisfied, expected growth of the ratio of market resources to permanent income is less than one as market resources become arbitrarily large. Hence the consumer has a "target ratio" of market resources to permanent income.'
+        else:
+            GICMod_message = '\nBecause the GICMod is violated, expected growth of the ratio of market resources to permanent income exceeds one for all levels of market resources. Hence the consumer does not have a "target ratio" of market resources to permanent income.'
+        self.log_condition_result(None, None, GICMod_message, verbose)
+        
+        # Report on whether a target level of wealth exists at the aggregate level
+        if self.conditions['GICLiv']:
+            GICLiv_message = '\nBecause the GICLiv is satisfied, a target ratio of aggregate market resources to aggregate permanent income exists.'
+        else:
+            GICLiv_message = '\nBecause the GICLiv is violated, a target ratio of aggregate market resources to aggregate permanent income might not exist.'
+        self.log_condition_result(None, None, GICLiv_message, verbose)
+        
+        # Report on whether invariant distributions exist
+        if self.conditions['GICSdl']:
+            GICSdl_message = '\nBecause the GICSdl is satisfied, there exist invariant distributions of permanent income-normalized variables.'
+        else:
+            GICSdl_message = '\nBecause the GICSdl is violated, there do not exist invariant distributions of permanent income-normalized variables.'
+        self.log_condition_result(None, None, GICSdl_message, verbose)
         
 
     def calc_stable_points(self):
