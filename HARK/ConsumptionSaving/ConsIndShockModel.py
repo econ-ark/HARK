@@ -706,7 +706,10 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 
         # Update the bounding MPCs and PDV of human wealth:
         self.PatFac = ((self.Rfree * self.DiscFacEff) ** (1.0 / self.CRRA)) / self.Rfree
-        self.MPCminNow = 1.0 / (1.0 + self.PatFac / solution_next.MPCmin)
+        try:
+            self.MPCminNow = 1.0 / (1.0 + self.PatFac / solution_next.MPCmin)
+        except:
+            self.MPCminNow = 0.0    
         self.Ex_IncNext = np.dot(
             self.ShkPrbsNext, self.TranShkValsNext * self.PermShkValsNext
         )
@@ -3202,6 +3205,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # for the Szeidl variation of the Growth Impatience condition
         self.ELogPermShk = expected(np.log, PermShkDstn)[0]
         
+        # Calculate the Harmenberg permanent income neutral expected log permanent
+        # shock and the Harmenberg Growth Patience Factor
+        Hrm_func = lambda x : x * np.log(x)
+        PermShk_Hrm = np.exp(expected(Hrm_func, PermShkDstn)[0])
+        self.GPFacHrm = self.GPFacRaw / PermShk_Hrm
+        
         # Calculate the probability of the worst income shock realization
         PermShkValsNext = self.IncShkDstn[0].atoms[0]
         TranShkValsNext = self.IncShkDstn[0].atoms[1]
@@ -3232,6 +3241,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             MPCmax = 1.0  # if natural borrowing constraint is overridden by artificial one, MPCmax is 1
         else:
             MPCmax = 1.0 - WorstIncPrb ** (1.0 / self.CRRA) * self.RPFac
+            MPCmax = np.maximum(MPCmax, 0.0)
             
         # Store maximum MPC and human wealth
         self.hNrm = hNrm
@@ -3255,7 +3265,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def check_GICSdl(self, verbose=None):
         """
-        Evaluate and report on the Szeidel variation of the Growth Impatience Condition.
+        Evaluate and report on the Szeidl variation of the Growth Impatience Condition.
         """
         name = "GICSdl"
         result = np.log(self.GPFacRaw) < self.ELogPermShk
@@ -3263,6 +3273,21 @@ class IndShockConsumerType(PerfForesightConsumerType):
         messages = {
             True: f"E[log Ψ]={self.ELogPermShk:.5f} : The expected log permanent income shock satisfies the Szeidl Growth Impatience Condition (GICSdl) log(Þ/G) < E[log Ψ].",
             False: f"E[log Ψ]={self.ELogPermShk:.5f} : The expected log permanent income shock violates the Szeidl Growth Impatience Condition (GICSdl) log(Þ/G) < E[log Ψ]."
+        }
+        verbose = self.verbose if verbose is None else verbose
+        self.log_condition_result(name, result, messages[result], verbose)
+        
+        
+    def check_GICHrm(self, verbose=None):
+        """
+        Evaluate and report on the Harmenberg variation of the Growth Impatience Condition.
+        """
+        name = "GICHrm"
+        result = self.GPFacHrm < 1.
+
+        messages = {
+            True: f"GPFacHrm={self.GPFacHrm:.5f} : The Harmenberg Expected Growth Patience Factor satisfies the Harmenberg Growth Normalized Impatience Condition (GICHrm) Þ/G < exp(E[Ψlog Ψ]).",
+            False: f"GPFacHrm={self.GPFacHrm:.5f} : The Harmenberg Expected Growth Patience Factor violates the Harmenberg Growth Normalized Impatience Condition (GICHrm) Þ/G < exp(E[Ψlog Ψ])."
         }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
@@ -3283,22 +3308,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.log_condition_result(name, result, messages[result], verbose)
         
         
-    def check_GICLivMod(self, verbose=None):
-        """
-        Evaluate and report on the Mortality-Adjusted Growth Impatience Condition
-        with Modigliani-style bequests
-        """
-        name = "GICLivMod"
-        result = self.GPFacLivMod < 1.
-
-        messages = {
-            True: f"GPFacLivMod={self.GPFacLivMod:.5f} : The Modigliani Mortality-Adjusted Growth Patience Factor satisfies the Modigliani Mortality-Adjusted Growth Impatience Condition (GICLivMod) ℒℒÞ/G < 1.",
-            False: f"GPFacLifMod={self.GPFacLivMod:.5f} : The Modigliani Mortality-Adjusted Growth Patience Factor violates the Modigliani Mortality-Adjusted Growth Impatience Condition (GICLivMod) ℒℒÞ/G < 1."
-        }
-        verbose = self.verbose if verbose is None else verbose
-        self.log_condition_result(name, result, messages[result], verbose)
-        
-        
     def check_FVAC(self, verbose=None):
         """
         Evaluate and report on the Finite Value of Autarky condition in the presence of income risk.
@@ -3307,8 +3316,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         result = self.VAFac < 1.
 
         messages = {
-            True: f"VAFac={self.VAFac:.5f} : The Finite Value of Autarky Factor satisfies the Risk-Modified Finite Value of Autarky Condition β(G‖Ψ‖_(1-ρ))^(1-ρ) < 1.",
-            False: f"VAFac={self.VAFac:.5f} : The Finite Value of Autarky Factor violates the Risk-Modified Finite Value of Autarky Condition β(G‖Ψ‖_(1-ρ))^(1-ρ) < 1."
+            True: f"VAFac={self.VAFac:.5f} : The Risk-Modified Finite Value of Autarky Factor satisfies the Risk-Modified Finite Value of Autarky Condition β(G‖Ψ‖_(1-ρ))^(1-ρ) < 1.",
+            False: f"VAFac={self.VAFac:.5f} : The Risk-Modified Finite Value of Autarky Factor violates the Risk-Modified Finite Value of Autarky Condition β(G‖Ψ‖_(1-ρ))^(1-ρ) < 1."
         }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
@@ -3371,8 +3380,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.check_GICRaw(verbose)
         self.check_GICMod(verbose)
         self.check_GICLiv(verbose)
-        self.check_GICLivMod(verbose)
-        self.check_GICSdl()
+        self.check_GICSdl(verbose)
+        self.check_GICHrm(verbose)
         PerfForesightConsumerType.check_FVAC(self, verbose)
         self.check_FVAC(verbose)
         self.check_FHWC(verbose)
@@ -3390,10 +3399,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
             degen_message = '\nBecause the WRIC is violated, the consumer is so pathologically patient that they will never consume at all. Thus the solution will be degenerate at c(m) = 0 for all m.\n'
             degenerate = True
         elif not self.conditions['FVAC']:
-            degen_message = "\nBecause the FVAC is violated... I don't know what will happen."
-            degenerate = True
+            degen_message = "\nBecause the FVAC is violated, the recursive solution to the infinite horizon problem might not be a contraction mapping, so the produced solution might not be valid. Proceed with caution."
+            degenerate = False
         self.log_condition_result(None, None, degen_message, verbose)
-        self.degenerate = True
+        self.degenerate = degenerate
         
         # Stop here if the solution is degenerate
         if degenerate:
@@ -3418,9 +3427,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         
         # Report on whether a target wealth ratio exists at the individual level
         if self.conditions['GICMod']:
-            GICMod_message = '\nBecause the GICMod is satisfied, expected growth of the ratio of market resources to permanent income is less than one as market resources become arbitrarily large. Hence the consumer has a "target ratio" of market resources to permanent income.'
+            GICMod_message = '\nBecause the GICMod is satisfied, expected growth of the ratio of market resources to permanent income is less than one as market resources become arbitrarily large. Hence the consumer has a target ratio of market resources to permanent income.'
         else:
-            GICMod_message = '\nBecause the GICMod is violated, expected growth of the ratio of market resources to permanent income exceeds one for all levels of market resources. Hence the consumer does not have a "target ratio" of market resources to permanent income.'
+            GICMod_message = '\nBecause the GICMod is violated, expected growth of the ratio of market resources to permanent income exceeds one for all levels of market resources. Hence the consumer does not have a target ratio of market resources to permanent income.'
         self.log_condition_result(None, None, GICMod_message, verbose)
         
         # Report on whether a target level of wealth exists at the aggregate level
@@ -3436,6 +3445,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         else:
             GICSdl_message = '\nBecause the GICSdl is violated, there do not exist invariant distributions of permanent income-normalized variables.'
         self.log_condition_result(None, None, GICSdl_message, verbose)
+        
+        # Report on whether blah blah
+        if self.conditions['GICHrm']:
+            GICHrm_message = '\nBecause the GICHrm is satisfied, there exists a target ratio of the individual market resources to permanent income, under the permanent-income-neutral measure.'
+        else:
+            GICHrm_message = '\nBecause the GICHrm is violated, there does not exist a target ratio of the individual market resources to permanent income, under the permanent-income-neutral measure..'
+        self.log_condition_result(None, None, GICHrm_message, verbose)
         
 
     def calc_stable_points(self):
