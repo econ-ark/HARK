@@ -400,155 +400,6 @@ class ConsPerfForesightSolver(MetricObject):
         # Relabeling for compatibility with add_mNrmStE
         self.mNrmMinNow = mNrmNow[0]
 
-    def add_mNrmTrg(self, solution):
-        """
-        Finds value of (normalized) market resources m at which individual consumer
-        expects m not to change.
-        This will exist if the GICNrm holds.
-
-        https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
-
-        Parameters
-        ----------
-        solution : ConsumerSolution
-            Solution to this period's problem, which must have attribute cFunc.
-        Returns
-        -------
-        solution : ConsumerSolution
-            Same solution that was passed, but now with the attribute mNrmStE.
-        """
-
-        # If no uncertainty, return the degenerate targets for the PF model
-        if hasattr(self, "TranShkMinNext"):  # Then it has transitory shocks
-            # Handle the degenerate case where shocks are of size zero
-            if (self.TranShkMinNext == 1.0) and (self.PermShkMinNext == 1.0):
-                # but they are of zero size (and also permanent are zero)
-                if self.GICRaw:  # max of nat and art boro cnst
-                    if type(self.BoroCnstArt) == type(None):
-                        solution.mNrmStE = -self.hNrmNow
-                        solution.mNrmTrg = -self.hNrmNow
-                    else:
-                        bNrmNxt = -self.BoroCnstArt * self.Rfree / self.PermGroFac
-                        solution.mNrmStE = bNrmNxt + 1.0
-                        solution.mNrmTrg = bNrmNxt + 1.0
-                else:  # infinity
-                    solution.mNrmStE = float("inf")
-                    solution.mNrmTrg = float("inf")
-                return solution
-
-        # First find
-        # \bar{\mathcal{R}} = E_t[R/Gamma_{t+1}] = R/Gamma E_t[1/psi_{t+1}]
-        if type(self) == ConsPerfForesightSolver:
-            Ex_PermShkInv = 1.0
-        else:
-            Ex_PermShkInv = np.dot(1 / self.PermShkValsNext, self.ShkPrbsNext)
-
-        Ex_RNrmFac = (self.Rfree / self.PermGroFac) * Ex_PermShkInv
-
-        # mNrmTrg solves Rcalbar*(m - c(m)) + E[inc_next] = m. Define a
-        # rearranged version.
-        def Ex_m_tp1_minus_m_t(m):
-            return Ex_RNrmFac * (m - solution.cFunc(m)) + self.Ex_IncNext - m
-
-        # Minimum market resources plus next income is okay starting guess
-        m_init_guess = self.mNrmMinNow + self.Ex_IncNext
-        try:
-            mNrmTrg = newton(Ex_m_tp1_minus_m_t, m_init_guess)
-        except:
-            mNrmTrg = None
-
-        # Add mNrmTrg to the solution and return it
-        solution.mNrmTrg = mNrmTrg
-        return solution
-
-    def add_mNrmStE(self, solution):
-        """
-        Finds market resources ratio at which 'balanced growth' is expected.
-        This is the m ratio such that the expected growth rate of the M level
-        matches the expected growth rate of permanent income. This value does
-        not exist if the Growth Impatience Condition does not hold.
-
-        https://econ-ark.github.io/BufferStockTheory#Unique-Stable-Points
-
-        Parameters
-        ----------
-        solution : ConsumerSolution
-            Solution to this period's problem, which must have attribute cFunc.
-        Returns
-        -------
-        solution : ConsumerSolution
-            Same solution that was passed, but now with the attribute mNrmStE
-        """
-        # Probably should test whether GICRaw holds and log error if it does not
-        # using check_conditions
-        # All combinations of c and m that yield E[PermGroFac PermShkVal mNext] = mNow
-        # https://econ-ark.github.io/BufferStockTheory/#The-Individual-Steady-State
-
-        PF_RNrm = self.Rfree / self.PermGroFac
-        # If we are working with a model that permits uncertainty but that
-        # uncertainty has been set to zero, return the correct answer
-        # by hand because in this degenerate case numerical search may
-        # have trouble
-        if hasattr(self, "TranShkMinNext"):  # Then it has transitory shocks
-            if (self.TranShkMinNext == 1.0) and (self.PermShkMinNext == 1.0):
-                # but they are of zero size (and permanent shocks also not there)
-                if self.GICRaw:  # max of nat and art boro cnst
-                    #                    breakpoint()
-                    if type(self.BoroCnstArt) == type(None):
-                        solution.mNrmStE = -self.hNrmNow
-                        solution.mNrmTrg = -self.hNrmNow
-                    else:
-                        bNrmNxt = -self.BoroCnstArt * self.Rfree / self.PermGroFac
-                        solution.mNrmStE = bNrmNxt + 1.0
-                        solution.mNrmTrg = bNrmNxt + 1.0
-                else:  # infinity
-                    solution.mNrmStE = float("inf")
-                    solution.mNrmTrg = float("inf")
-                return solution
-
-        def Ex_PermShk_tp1_times_m_tp1_minus_m_t(mStE):
-            return PF_RNrm * (mStE - solution.cFunc(mStE)) + 1.0 - mStE
-
-        # Minimum market resources plus next income is okay starting guess
-        m_init_guess = self.mNrmMinNow + self.Ex_IncNext
-        try:
-            mNrmStE = newton(Ex_PermShk_tp1_times_m_tp1_minus_m_t, m_init_guess)
-        except:
-            mNrmStE = None
-
-        solution.mNrmStE = mNrmStE
-        return solution
-
-    def add_stable_points(self, solution):
-        """
-        Checks necessary conditions for the existence of the individual steady
-        state and target levels of market resources (see above).
-        If the conditions are satisfied, computes and adds the stable points
-        to the solution.
-
-        Parameters
-        ----------
-        solution : ConsumerSolution
-            Solution to this period's problem, which must have attribute cFunc.
-        Returns
-        -------
-        solution : ConsumerSolution
-            Same solution that was provided, augmented with attributes mNrmStE and
-            mNrmTrg, if they exist.
-
-        """
-
-        # 0. There is no non-degenerate steady state for any unconstrained PF model.
-        # 1. There is a non-degenerate SS for constrained PF model if GICRaw holds.
-        # Therefore
-        # Check if  (GICRaw and BoroCnstArt) and if so compute them both
-        thorn = (self.Rfree * self.DiscFacEff) ** (1 / self.CRRA)
-        GICRaw = 1 > thorn / self.PermGroFac
-        if self.BoroCnstArt is not None and GICRaw:
-            solution = self.add_mNrmStE(solution)
-            solution = self.add_mNrmTrg(solution)
-        return solution
-
     def solve(self):
         """
         Solves the one period perfect foresight consumption-saving problem.
@@ -576,9 +427,6 @@ class ConsPerfForesightSolver(MetricObject):
             MPCmin=self.MPCmin,
             MPCmax=self.MPCmax,
         )
-
-        solution = self.add_stable_points(solution)
-
         return solution
 
 
@@ -994,50 +842,6 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution.MPCmax = self.MPCmaxEff
         return solution
 
-    def add_stable_points(self, solution):
-        """
-        Checks necessary conditions for the existence of the individual steady
-        state and target levels of market resources (see above).
-        If the conditions are satisfied, computes and adds the stable points
-        to the solution.
-
-        Parameters
-        ----------
-        solution : ConsumerSolution
-            Solution to this period's problem, which must have attribute cFunc.
-        Returns
-        -------
-        solution : ConsumerSolution
-            Same solution that was passed, but now with attributes mNrmStE and
-            mNrmTrg, if they exist.
-
-        """
-
-        # 0. Check if GICRaw holds. If so, then mNrmStE will exist. So, compute it.
-        # 1. Check if GICNrm holds. If so, then mNrmTrg will exist. So, compute it.
-
-        thorn = (self.Rfree * self.DiscFacEff) ** (1 / self.CRRA)
-
-        GPFRaw = thorn / self.PermGroFac
-        self.GPFRaw = GPFRaw
-        GPFNrm = (
-            thorn / self.PermGroFac / np.dot(1 / self.PermShkValsNext, self.ShkPrbsNext)
-        )
-        self.GPFNrm = GPFNrm
-        GICRaw = 1 > thorn / self.PermGroFac
-        self.GICRaw = GICRaw
-        GICNrm = 1 > GPFNrm
-        self.GICNrm = GICNrm
-
-        if GICRaw:
-            # find steady state m, if it exists
-            solution = self.add_mNrmStE(solution)
-        if GICNrm:
-            # find target m, if it exists
-            solution = self.add_mNrmTrg(solution)
-
-        return solution
-
     def make_linear_cFunc(self, mNrm, cNrm):
         """
         Makes a linear interpolation to represent the (unconstrained) consumption function.
@@ -1285,7 +1089,6 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             )
 
         solution = self.add_MPC_and_human_wealth(solution)  # add a few things
-        solution = self.add_stable_points(solution)
 
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used (to prepare for next period)
@@ -3178,6 +2981,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         hNrm : Human wealth divided by permanent income.
         ELogPermShk : Expected log permanent income shock
         WorstPrb : Probability of worst income shock realization
+        Delta_mNrm_ZeroFunc : Linear consumption function where expected change in market resource ratio is zero
+        BalGroFunc : Linear consumption function where the level of market resources grows at the same rate as permanent income
 
         Returns
         -------
@@ -3188,7 +2993,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Calculate the risk-modified growth impatience factor
         PermShkDstn = self.PermShkDstn[0]
         inv_func = lambda x : x**(-1.)
-        GroCompPermShk = expected(inv_func, PermShkDstn)[0]**(-1.)
+        Ex_PermShkInv = expected(inv_func, PermShkDstn)[0]
+        GroCompPermShk = Ex_PermShkInv**(-1.)
         self.GPFacMod = self.APFac / (self.PermGroFac[0] * GroCompPermShk)
         
         # Calculate the mortality-adjusted growth impatience factor (and version
@@ -3246,6 +3052,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Store maximum MPC and human wealth
         self.hNrm = hNrm
         self.MPCmax = MPCmax
+        
+        # Generate the "Delta m = 0" function, which is used to find target market resources
+        Ex_Rnrm = self.Rfree / self.PermGroFac[0] * Ex_PermShkInv
+        self.Delta_mNrm_ZeroFunc = lambda m : (1. - 1./Ex_Rnrm) * m + 1./Ex_Rnrm
+        
+        # Generate the "E[M_tp1 / M_t] = G" function, which is used to find balanced growth market resources
+        PF_Rnrm = self.Rfree / self.PermGroFac[0]
+        self.BalGroFunc = lambda m : (1. - 1./PF_Rnrm) * m + 1./PF_Rnrm
 
 
     def check_GICMod(self, verbose=None):
@@ -3470,11 +3284,50 @@ class IndShockConsumerType(PerfForesightConsumerType):
         None
         """
         infinite_horizon = self.cycles == 0
+        single_period = self.T_cycle = 1
         if not infinite_horizon:
-            _log.warning(
-                "The calc_stable_points method works only for infinite horizon models."
-            )
+            _log.warning("The calc_stable_points method works only for infinite horizon models.")
             return
+        if not single_period:
+            _log.warning("The calc_stable_points method works only with a single infinitely repeated period.")
+            return
+        if not hasattr(self, 'conditions'):
+            _log.warning("The calc_limiting_values method must be run before the calc_stable_points method.")
+            return
+        if not hasattr(self, 'solution'):
+            _log.warning("The solve method must be run before the calc_stable_points method.")
+            return
+        
+        # If the GICRaw holds, then there is a balanced growth market resources ratio
+        if self.conditions['GICRaw']:
+            cFunc = self.solution[0].cFunc
+            func_to_zero = lambda m : self.BalGroFunc(m) - cFunc(m)
+            m0 = 1.0
+            try:
+                mNrmBal = newton(func_to_zero, m0)
+            except:
+                mNrmBal = np.nan
+        else:
+            mNrmBal = np.nan
+        self.solution[0].mNrmBal = mNrmBal
+        
+        # If the GICMod holds, then there should be a target market resources ratio
+        if self.conditions['GICMod']:
+            # The GICMod can only hold if the GICRaw holds
+            func_to_zero = lambda m : self.Delta_mNrm_ZeroFunc(m) - cFunc(m)
+            if not np.isnan(mNrmBal):
+                m0 = mNrmBal
+            else:
+                m0 = 1.0
+            try:
+                mNrmTrg = newton(func_to_zero, m0)
+            except:
+                mNrmTrg = np.nan
+        else:
+            mNrmTrg = np.nan
+        self.solution[0].mNrmTrg = mNrmTrg
+        
+            
 
     # = Functions for generating discrete income processes and
     #   simulated income shocks =
