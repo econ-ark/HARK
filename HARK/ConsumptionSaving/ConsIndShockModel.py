@@ -443,9 +443,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
     IncShkDstn : distribution.Distribution
-        A discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next).
+        A discrete approximation to the income process between the period being
+        solved and the one immediately following (in solution_next).
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -671,7 +670,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # We define aNrmNow all the way from BoroCnstNat up to max(self.aXtraGrid)
         # even if BoroCnstNat < BoroCnstArt, so we can construct the consumption
         # function as the lower envelope of the (by the artificial borrowing con-
-        # straint) uconstrained consumption function, and the artificially con-
+        # straint) unconstrained consumption function, and the artificially con-
         # strained consumption function.
         self.aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
 
@@ -3243,7 +3242,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if self.conditions['GICMod']:
             GICMod_message = '\nBecause the GICMod is satisfied, expected growth of the ratio of market resources to permanent income is less than one as market resources become arbitrarily large. Hence the consumer has a target ratio of market resources to permanent income.'
         else:
-            GICMod_message = '\nBecause the GICMod is violated, expected growth of the ratio of market resources to permanent income exceeds one for all levels of market resources. Hence the consumer does not have a target ratio of market resources to permanent income.'
+            GICMod_message = '\nBecause the GICMod is violated, expected growth of the ratio of market resources to permanent income exceeds one as market resources go to infinity. Hence the consumer might not have a target ratio of market resources to permanent income.'
         self.log_condition_result(None, None, GICMod_message, verbose)
         
         # Report on whether a target level of wealth exists at the aggregate level
@@ -3272,8 +3271,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
         If the problem is one that satisfies the conditions required for target ratios of different
         variables to permanent income to exist, and has been solved to within the self-defined
-        tolerance, this method calculates the target values of market resources, consumption,
-        and assets.
+        tolerance, this method calculates the target values of market resources.
 
         Parameters
         ----------
@@ -3307,25 +3305,22 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 mNrmBal = newton(func_to_zero, m0)
             except:
                 mNrmBal = np.nan
-        else:
-            mNrmBal = np.nan
-        self.solution[0].mNrmBal = mNrmBal
-        
-        # If the GICMod holds, then there should be a target market resources ratio
-        if self.conditions['GICMod']:
-            # The GICMod can only hold if the GICRaw holds
+                
+            # A target level of assets *might* exist even if the GICMod fails, so check no matter what
             func_to_zero = lambda m : self.Delta_mNrm_ZeroFunc(m) - cFunc(m)
-            if not np.isnan(mNrmBal):
-                m0 = mNrmBal
-            else:
-                m0 = 1.0
+            m0 = 1.0 if np.isnan(mNrmBal) else mNrmBal
             try:
-                mNrmTrg = newton(func_to_zero, m0)
+                mNrmTrg = newton(func_to_zero, m0, maxiter=200)
             except:
                 mNrmTrg = np.nan
         else:
+            mNrmBal = np.nan
             mNrmTrg = np.nan
+            
+        self.solution[0].mNrmBal = mNrmBal
         self.solution[0].mNrmTrg = mNrmTrg
+        self.mNrmBal = mNrmBal
+        self.mNrmTrg = mNrmTrg
         
             
 
