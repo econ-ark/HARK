@@ -1,5 +1,5 @@
 algos.foc
---------
+----------
 
 .. automodule:: HARK.algos.foc
    :members:

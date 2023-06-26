@@ -117,7 +117,7 @@ class foc_test(unittest.TestCase):
         def consumption_v_y_der(y : Mapping[str,Any]):
             return gothic.VP_Tminus1(y['a'])
         
-        pi_star, q_der, y_data = optimal_policy_foc(
+        pi_star, q_der = optimal_policy_foc(
             g,
             ['c'],
             r,

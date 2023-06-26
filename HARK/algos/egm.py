@@ -1,7 +1,56 @@
-from dataclasses import field
+"""
+This algorithm solves for an agent's policy given:
+
+- a state space :math:`X`
+- a shock space :math:`Z`
+- an action space :math:`A`
+- a post-state space :math:`Y`
+- a deterministic transition function :math:`g`
+
+The agent chooses their action after shocks have been realized:
+
+.. math:: g: X \\times Z \\times A \\rightarrow Y
+
+- a reward function :math:`r`
+- a post-value function :math:`v_y`
+- constraints on the action :math:`\Gamma`
+- a scalar discount factor :math:`\\beta`
+
+The problem it solves is of the form:
+
+.. math:: \pi^*(x, z) = \\textrm{argmax}_{a \in \Gamma(x, z)} r(x, z, a) + \\beta v_y(g(x, z, a))]
+
+However, this algorithm uses the Endogenous Gridpoints Method (EGM) [1]_,
+which solves this problem only indirectly.
+
+It starts with a grid over post-states :math:`\\bar{Y}`.
+
+For each value of :math:`\hat{y}` in the grid, it analytically determines
+the action which, when chosen as an optimal solution to the problem,
+results in that post-state.
+
+.. math::
+
+    \pi_y(y) = \\frac{\partial r}{\partial a}^{-1}(\\beta \\frac{\partial g}{\partial a} \\frac{\partial v_y}{\partial y}(\hat{y})
+
+It then computes the state that corresponds to that action using
+the inverse transition function:
+
+.. math::
+
+    \hat{x} = g^{-1}(\hat{y}, \pi_y(\hat{y}))
+
+The pairs :math:`(\hat{x}, \pi_y(\hat{y}))` then are data points for
+the grid for the optimal policy :math:`\pi^*`.
+    
+.. [1] Carroll, C. D. (2006). The method of endogenous gridpoints for solving dynamic stochastic
+   optimization problems. Economics letters, 91(3), 312-320.
+
+"""
+
+
 import itertools
 import numpy as np
-from scipy.optimize import minimize, brentq
 from typing import Callable, Mapping, Sequence, Tuple
 import xarray as xr
 
@@ -37,8 +86,6 @@ def analytic_pi_y_star(
     -------
 
     The actions chosen that result in post-state Y.
-
-    TODO: Type signature of output
     """
     if dg_da is None or not(
         isinstance(dg_da, float) or isinstance(dg_da, int)

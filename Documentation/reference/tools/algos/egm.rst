@@ -1,5 +1,5 @@
 algos.egm
---------
+----------
 
 .. automodule:: HARK.algos.egm
    :members:

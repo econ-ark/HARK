@@ -59,3 +59,9 @@ autosummary_generate = True
 
 # nbsphinx configuration
 nbsphinx_execute = "never"  # This is currently not working
+
+latex_elements = {
+    'preamble': r'''
+\usepackage{amsmath} 
+''',
+}
