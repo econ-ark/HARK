@@ -1894,7 +1894,7 @@ class PerfForesightConsumerType(AgentType):
         None
         """
         # should this be "Now", or "Prev"?!?
-        self.state_now["aNrm"] = self.state_now["mNrm"] - self.controls["cNrm"]
+        self.state_now["aNrm"] = self.equations['aNrm'](self.state_now, self.controls)
         # Useful in some cases to precalculate asset level
         self.state_now["aLvl"] = self.state_now["aNrm"] * self.state_now["pLvl"]
 
@@ -2103,6 +2103,11 @@ init_idiosyncratic_shocks = dict(
     }
 )
 
+equations = {
+    'aNrm' : lambda x, a: x['mNrm'] - a['cNrm'] ,
+    'thorn' : lambda p : (p['Rfree'] * p['DiscFac']) ** (1 / p['CRRA'])
+}
+
 
 class IndShockConsumerType(PerfForesightConsumerType):
     """
@@ -2143,6 +2148,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.solve_one_period = make_one_period_oo_solver(solver)
 
         self.update()  # Make assets grid, income process, terminal solution
+
+        self.equations.update(equations)
 
     def update_income_process(self):
         """
@@ -3225,7 +3232,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             self.PermGroFac[0] * self.InvEx_PermShkInv
         )  # [url]/#PGroAdj
 
-        self.thorn = (self.Rfree * self.DiscFac) ** (1 / self.CRRA)
+        self.thorn = self.equations['thorn'](self.parameters)
 
         # self.Ex_RNrm           = self.Rfree*Ex_PermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
         self.GPFRaw = self.thorn / (self.PermGroFac[0])  # [url]/#GPF

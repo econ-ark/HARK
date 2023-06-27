@@ -72,9 +72,12 @@ class Model:
 
         return NotImplemented
 
-    def __init__(self):
+    def __init__(self, equations = {}, parameters = {}, options = {}):
+
+        self.equations = equations
+        self.options = options
         if not hasattr(self, "parameters"):
-            self.parameters = {}
+            self.parameters = parameters
 
     def __str__(self):
         type_ = type(self)
