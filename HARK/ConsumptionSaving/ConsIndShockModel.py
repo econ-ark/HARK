@@ -1905,6 +1905,8 @@ class PerfForesightConsumerType(AgentType):
         if self.cycles != 0 or self.T_cycle > 1:
             trivial_message = 'No conditions report was produced because this functionality is only supported for infinite horizon models with a cycle length of 1.'
             self.log_condition_result(None, None, trivial_message, verbose)
+            if not self.quiet:
+                _log.info(self.conditions_report)
             return
 
         # Calculate some useful quantities that will be used in the condition checks
@@ -1922,6 +1924,8 @@ class PerfForesightConsumerType(AgentType):
             
         # Exit now if verbose output was not requested.
         if not verbose:
+            if not self.quiet:
+                _log.info(self.conditions_report)
             return
         
         # Report on the degeneracy of the consumption function solution
@@ -1954,8 +1958,11 @@ class PerfForesightConsumerType(AgentType):
                     RIC_message = '\nBecause the RIC is violated but the FHWC is satisfied, the solution is degenerate at c(m)=0 for all m.'
                     degenerate = True
         self.log_condition_result(None, None, RIC_message, verbose)
-        if degenerate:
-            return # All of the other checks are meaningless if the solution is degenerate
+        
+        if degenerate: # All of the other checks are meaningless if the solution is degenerate
+            if not self.quiet:
+                _log.info(self.conditions_report)
+            return 
                     
         # Report on the consequences of the Absolute Impatience Condition
         if self.conditions['AIC']:
@@ -1972,6 +1979,9 @@ class PerfForesightConsumerType(AgentType):
         else:
             "\nBecause both the GICRaw and FHWC are violated, [I need to figure out what happens here]."
         self.log_condition_result(None, None, GIC_message, verbose)
+        
+        if not self.quiet:
+            _log.info(self.conditions_report)
         
         
 # Make a dictionary to specify an idiosyncratic income shocks consumer
@@ -2124,6 +2134,23 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if hasattr(self, "IncShkDstn"):
             for dstn in self.IncShkDstn:
                 dstn.reset()
+                
+    def post_solve(self):
+        """
+        Method that is run automatically at the end of a call to solve. Here, it
+        simply calls calc_stable_points() if appropriate: an infinite horizon
+        problem with a single repeated period in its cycle.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        """
+        if (self.cycles == 0) and (self.T_cycle == 1):
+            self.calc_stable_points()
 
     def get_shocks(self):
         """
@@ -3179,6 +3206,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if self.cycles != 0 or self.T_cycle > 1:
             trivial_message = 'No conditions report was produced because this functionality is only supported for infinite horizon models with a cycle length of 1.'
             self.log_condition_result(None, None, trivial_message, verbose)
+            if not self.quiet:
+                _log.info(self.conditions_report)
             return
 
         # Calculate some useful quantities that will be used in the condition checks
@@ -3198,10 +3227,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PerfForesightConsumerType.check_FVAC(self, verbose)
         self.check_FVAC(verbose)
         self.check_FHWC(verbose)
-        constrained = hasattr(self, "BoroCnstArt") and (self.BoroCnstArt is not None) and (self.BoroCnstArt > -np.inf)
         
         # Exit now if verbose output was not requested.
         if not verbose:
+            if not self.quiet:
+                _log.info(self.conditions_report)
             return
         
         # Report on the degeneracy of the consumption function solution
@@ -3219,6 +3249,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         
         # Stop here if the solution is degenerate
         if degenerate:
+            if not self.quiet:
+                _log.info(self.conditions_report)
             return
         
         # Report on the limiting behavior of the consumption function as m goes to infinity
@@ -3265,6 +3297,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         else:
             GICHrm_message = '\nBecause the GICHrm is violated, there does not exist a target ratio of the individual market resources to permanent income, under the permanent-income-neutral measure..'
         self.log_condition_result(None, None, GICHrm_message, verbose)
+        
+        if not self.quiet:
+            _log.info(self.conditions_report)
         
 
     def calc_stable_points(self):
