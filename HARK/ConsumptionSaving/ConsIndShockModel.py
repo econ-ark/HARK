@@ -52,6 +52,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
+from HARK.model import Control
 from HARK.metric import MetricObject
 from HARK.rewards import (
     CRRAutility,
@@ -1850,9 +1851,9 @@ class PerfForesightConsumerType(AgentType):
         PlvlAggNow = self.state_prev["PlvlAgg"] * self.PermShkAggNow
         # "Effective" interest factor on normalized assets
         ReffNow = RfreeNow / self.shocks["PermShk"]
-        bNrmNow = ReffNow * aNrmPrev  # Bank balances before labor income
+        bNrmNow = self.equations['bNrm'](ReffNow, aNrmPrev)  # Bank balances before labor income
         # Market resources after income
-        mNrmNow = bNrmNow + self.shocks["TranShk"]
+        mNrmNow = self.equations['mNrm'](bNrmNow, self.shocks["TranShk"])
 
         return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
 
@@ -1894,7 +1895,7 @@ class PerfForesightConsumerType(AgentType):
         None
         """
         # should this be "Now", or "Prev"?!?
-        self.state_now["aNrm"] = self.equations['aNrm'](self.state_now, self.controls)
+        self.state_now["aNrm"] = self.equations['aNrm'](self.state_now['mNrm'], self.controls['cNrm'])
         # Useful in some cases to precalculate asset level
         self.state_now["aLvl"] = self.state_now["aNrm"] * self.state_now["pLvl"]
 
@@ -2103,9 +2104,13 @@ init_idiosyncratic_shocks = dict(
     }
 )
 
-equations = {
-    'aNrm' : lambda x, a: x['mNrm'] - a['cNrm'] ,
-    'thorn' : lambda p : (p['Rfree'] * p['DiscFac']) ** (1 / p['CRRA'])
+dynamics = {
+    'G' : lambda gamma, psi : gamma * psi,
+    'Rnrm' : lambda R, G : R / G,
+    'bNrm' : lambda Rnrm, aNrm : Rnrm * aNrm,
+    'mNrm' : lambda bNrm, theta : bNrm + theta,
+    'cNrm' : Control(['mNrm']),
+    'aNrm' : lambda mNrm, cNrm : mNrm - cNrm
 }
 
 
@@ -2149,7 +2154,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         self.update()  # Make assets grid, income process, terminal solution
 
-        self.equations.update(equations)
+        self.equations.update(dynamics)
 
     def update_income_process(self):
         """
@@ -3232,7 +3237,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             self.PermGroFac[0] * self.InvEx_PermShkInv
         )  # [url]/#PGroAdj
 
-        self.thorn = self.equations['thorn'](self.parameters)
+        self.thorn =  (self.parameters['Rfree'] * self.parameters['DiscFac']) ** (1 / self.parameters['CRRA'])
 
         # self.Ex_RNrm           = self.Rfree*Ex_PermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
         self.GPFRaw = self.thorn / (self.PermGroFac[0])  # [url]/#GPF
