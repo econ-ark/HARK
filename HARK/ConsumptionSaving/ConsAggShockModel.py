@@ -140,12 +140,7 @@ class AggShockConsumerType(IndShockConsumerType):
         params = init_agg_shocks.copy()
         params.update(kwds)
 
-        AgentType.__init__(
-            self,
-            solution_terminal=deepcopy(IndShockConsumerType.solution_terminal_),
-            pseudo_terminal=False,
-            **params
-        )
+        super().__init__( **params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(IndShockConsumerType.time_vary_)
