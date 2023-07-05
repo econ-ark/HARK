@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import xarray as xr
 
 from HARK.distribution import (
     Bernoulli,
@@ -605,25 +606,23 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         )
 
 
-import xarray as xr
-
 class labeled_transition_tests(unittest.TestCase):
-
     def setUp(self) -> None:
         return super().setUp()
-    
-    def test_mytest(self):
 
+    def test_expectation_transformation(self):
         # Create a basic labeled distribution
         base_dist = DiscreteDistributionLabeled(
-            pmv=np.array([0.5, 0.5]), atoms=np.array([[1.0, 2.0], [3.0, 4.0]]), var_names=["a", "b"]
+            pmv=np.array([0.5, 0.5]),
+            atoms=np.array([[1.0, 2.0], [3.0, 4.0]]),
+            var_names=["a", "b"],
         )
 
         # Define a transition function
         def transition(shocks, state):
             state_new = {}
-            state_new["m"] = state["m"]*shocks["a"]
-            state_new["n"] = state["n"]*shocks["b"]
+            state_new["m"] = state["m"] * shocks["a"]
+            state_new["n"] = state["n"] * shocks["b"]
             return state_new
 
         m = xr.DataArray(np.linspace(0, 10, 11), name="m", dims=("grid",))
@@ -632,8 +631,14 @@ class labeled_transition_tests(unittest.TestCase):
 
         # Evaluate labeled transformation
 
-        # This works
-        new_state_dstn = base_dist.expected(transition, state=state_grid)
-        # This does not work
+        # Direct expectation
+        exp1 = base_dist.expected(transition, state=state_grid)
+        # Expectation after transformation
         new_state_dstn = base_dist.dist_of_func(transition, state=state_grid)
-        new_state_dstn.expected()
+        # TODO: needs a cluncky identity function with an extra argument because
+        # DDL.expected() behavior is very different with and without kwargs.
+        # Fix!
+        exp2 = new_state_dstn.expected(lambda x, unused: x, unused=0)
+
+        assert np.all(exp1["m"] == exp2["m"]).item()
+        assert np.all(exp1["n"] == exp2["n"]).item()
