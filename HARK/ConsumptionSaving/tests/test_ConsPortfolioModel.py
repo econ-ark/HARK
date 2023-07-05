@@ -307,9 +307,38 @@ class test_time_varying_Risky_and_Adj(unittest.TestCase):
         self.assertTrue(np.all(Adjust_draws[t_age == 2] == 1))
 
 
+from HARK.ConsumptionSaving.ConsIndShockModel import init_lifecycle
+from HARK.ConsumptionSaving.ConsRiskyAssetModel import risky_asset_parms
+
+
 class test_transition_mat(unittest.TestCase):
     def setUp(self):
         pass
+
+    def test_LC(self):
+        # Create an lc agent
+        lc_pars = copy(init_lifecycle)
+        lc_pars.update(risky_asset_parms)
+        agent = cpm.PortfolioConsumerType(**lc_pars)
+        agent.solve()
+
+        # Make shock distribution and grid
+        agent.make_shock_distributions()
+        agent.make_state_grid(
+            PLvlGrid=None,
+            # Low number of points, else RAM reqs are high
+            mNrmGrid=np.linspace(0, 10, 5),
+            ShareGrid=None,
+            AdjustGrid=None,
+        )
+        # Solve
+        agent.solve()
+        # Check that it is indeed an LC model
+        assert len(agent.solution) > 10
+
+        # Get transition matrices
+        agent.find_transition_matrices()
+        assert len(agent.solution) - 1 == len(agent.trans_mats)
 
     def test_adjust(self):
         # Create agent
