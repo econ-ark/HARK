@@ -1235,6 +1235,8 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
 
         if len(kwargs):
             f_query = func(self.dataset, *args, **kwargs)
+            # TODO: seems like the issue is that self.probability has to be a dataarray with
+            # dimension atom. But it is sometimes a numpy array. Need to figure out why.
             ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.probability)
 
             return ldd._weighted.mean("atom")

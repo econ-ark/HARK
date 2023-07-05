@@ -603,3 +603,37 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
                 np.concatenate([de.expected(), abc.expected()]),
             )
         )
+
+
+import xarray as xr
+
+class labeled_transition_tests(unittest.TestCase):
+
+    def setUp(self) -> None:
+        return super().setUp()
+    
+    def test_mytest(self):
+
+        # Create a basic labeled distribution
+        base_dist = DiscreteDistributionLabeled(
+            pmv=np.array([0.5, 0.5]), atoms=np.array([[1.0, 2.0], [3.0, 4.0]]), var_names=["a", "b"]
+        )
+
+        # Define a transition function
+        def transition(shocks, state):
+            state_new = {}
+            state_new["m"] = state["m"]*shocks["a"]
+            state_new["n"] = state["n"]*shocks["b"]
+            return state_new
+
+        m = xr.DataArray(np.linspace(0, 10, 11), name="m", dims=("grid",))
+        n = xr.DataArray(np.linspace(0, -10, 11), name="n", dims=("grid",))
+        state_grid = xr.Dataset({"m": m, "n": n})
+
+        # Evaluate labeled transformation
+
+        # This works
+        new_state_dstn = base_dist.expected(transition, state=state_grid)
+        # This does not work
+        new_state_dstn = base_dist.dist_of_func(transition, state=state_grid)
+        new_state_dstn.expected()
