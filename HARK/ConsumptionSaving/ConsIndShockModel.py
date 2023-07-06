@@ -2927,36 +2927,92 @@ class IndShockConsumerType(PerfForesightConsumerType):
         ########
         # STEP4 #  of the algorithm
         ########
+        
+        # Function to compute jacobian matrix from fake news matrix
+        def J_from_F(F):
+            J = F.copy()
+            for t in range(1, F.shape[0]):
+                J[1:, t] += J[:-1, t-1]
+            return J
+        
+        J_A = J_from_F(Curl_F_A)
+        J_C = J_from_F(Curl_F_C)
+        
+        ########
+        # Additional step due to compute Zeroth Column of the Jacobian
+        ########   
+         
+        params = deepcopy(self.__dict__["parameters"])
+        params["T_cycle"] = 2 # Dimension of Jacobian Matrix
+        
+        params["LivPrb"] = params["T_cycle"] * [self.LivPrb[0]]
+        params["PermGroFac"] = params["T_cycle"] * [self.PermGroFac[0]]
+        params["PermShkStd"] = params["T_cycle"] * [self.PermShkStd[0]]
+        params["TranShkStd"] = params["T_cycle"] * [self.TranShkStd[0]]
+        params["Rfree"] = params["T_cycle"] * [self.Rfree]
+        params["UnempPrb"] = params["T_cycle"] * [self.UnempPrb]
+        params["IncUnemp"] = params["T_cycle"] * [self.IncUnemp]
+        params['wage'] = params['T_cycle']*[self.wage[0]]
+        params['taxrate'] = params['T_cycle']*[self.taxrate[0]]
+        params['labor'] = params['T_cycle']*[self.labor[0]]
+        params['TranShkMean_Func'] = params['T_cycle']*[self.TranShkMean_Func[0]]
+        params['IncShkDstn'] = params['T_cycle']* [self.IncShkDstn[0]]
+        params['cFunc_terminal_'] = deepcopy(self.solution[0].cFunc)
+        
+        # Create instance of a finite horizon agent for calculation of zeroth
+        ZerothColAgent = IndShockConsumerType(**params)
+        ZerothColAgent.cycles = 1  # required
+        
+        # If parameter is in time invariant list then add it to time vary list
+        ZerothColAgent.del_from_time_inv(shk_param)
+        ZerothColAgent.add_to_time_vary(shk_param)
 
-        # Jacobian Matrices
-        J_A = np.zeros((T, T))  # Asset Jacobian
-        J_C = np.zeros((T, T))  # Consumption Jacobian
-        for t in range(T):
-            for s in range(T):
-                if (t == 0) or (s == 0):
-                    J_A[t][s] = Curl_F_A[t][s]
-                    J_C[t][s] = Curl_F_C[t][s]
-                else:
-                    J_A[t][s] = J_A[t - 1][s - 1] + Curl_F_A[t][s]
-                    J_C[t][s] = J_C[t - 1][s - 1] + Curl_F_C[t][s]
+        # Update income process if perturbed parameter enters the income shock distribution
+        ZerothColAgent.update_income_process()
 
-        # Zeroth Column of the Jacobian
-        dD_0_0 = np.dot(tranmat_t[-2] - tranmat_ss, D_ss)
+        # Solve
+        ZerothColAgent.solve()
+        
+        # this condition is because some attributes are specified as lists while other as floats
+        if type(getattr(self, shk_param)) == list:
+            peturbed_list = (
+                 [getattr(self, shk_param)[0] + dx]
+                + (params["T_cycle"]  - 1) * [getattr(self, shk_param)[0]]
+            )  # Sequence of interest rates the agent faces
+        else:
+            peturbed_list = (
+                 [getattr(self, shk_param) + dx]
+                + (params["T_cycle"]  - 1) * [getattr(self, shk_param)]
+            )  # Sequence of interest rates the agent 
+            
+        setattr(ZerothColAgent, shk_param, peturbed_list) # Set attribute to agent
 
-        D_curl_0_0 = dD_0_0 / dx
+        # Use Harmenberg Neutral Measure
+        ZerothColAgent.neutral_measure = True
+        ZerothColAgent.update_income_process()
 
-        c_first_col_0 = []
-        a_first_col_0 = []
-        for i in range(params["T_cycle"]):
-            c_first_col_0.append(np.dot(exp_vecs_c[i], D_curl_0_0))
-            a_first_col_0.append(np.dot(exp_vecs_a[i], D_curl_0_0))
+        # Calculate Transition Matrices
+        ZerothColAgent.define_distribution_grid()
+        ZerothColAgent.calc_transition_matrix()
+        
+        tranmat_t_zeroth_col = ZerothColAgent.tran_matrix
+        dstn_t_zeroth_col = self.vec_erg_dstn.T[0]
+        
+        C_t_no_sim = np.zeros(T)
+        A_t_no_sim = np.zeros(T)
 
-        c_first_col_0 = np.array(c_first_col_0)
-        a_first_col_0 = np.array(a_first_col_0)
+        for i in range(T):
+            if i ==0:
+                dstn_t_zeroth_col = np.dot(tranmat_t_zeroth_col[i],dstn_t_zeroth_col)
+            else:
+                dstn_t_zeroth_col = np.dot(tranmat_ss,dstn_t_zeroth_col)
+                
+            C_t_no_sim[i] =  np.dot(self.cPol_Grid ,dstn_t_zeroth_col) 
+            A_t_no_sim[i] =  np.dot( self.aPol_Grid ,dstn_t_zeroth_col) 
 
-        # Fill zeroth column of jacobian matrix
-        J_A.T[0] = a_first_col_0
-        J_C.T[0] = c_first_col_0
+        J_A.T[0] = (A_t_no_sim - self.A_ss)/dx
+        J_C.T[0] = (C_t_no_sim - self.C_ss)/dx
+        
 
         return J_C, J_A
 
