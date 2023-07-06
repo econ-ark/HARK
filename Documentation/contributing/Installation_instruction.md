@@ -215,5 +215,3 @@ If for some reason you want to switch back to the PyPI version:
 pip uninstall econ-ark
 pip install econ-ark (options)
 ```
-
----

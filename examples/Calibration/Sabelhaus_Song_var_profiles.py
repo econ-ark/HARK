@@ -1,4 +1,21 @@
 # -*- coding: utf-8 -*-
+# ---
+# jupyter:
+#   jupytext:
+#     cell_metadata_filter: title,-all
+#     formats: ipynb,py:percent
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.14.5
+#   kernelspec:
+#     display_name: Python 3 (ipykernel)
+#     language: python
+#     name: python3
+# ---
+
+# %%
 """
 Created on Thu Jan 14 16:44:09 2021
 
@@ -33,11 +50,10 @@ variances = [
 # Plot transitory shock variances
 plt.figure()
 for i in range(len(cohorts)):
-
     coh_label = "aggregate" if cohorts[i] is None else cohorts[i]
     plt.plot(
         variances[i]["Age"],
-        np.power(variances[i]["TranShkStd"],2),
+        np.power(variances[i]["TranShkStd"], 2),
         label="Tran. {} cohort".format(coh_label),
     )
 
@@ -46,11 +62,10 @@ plt.legend()
 # Plot permanent shock variances
 plt.figure()
 for i in range(len(cohorts)):
-
     coh_label = "aggregate" if cohorts[i] is None else cohorts[i]
     plt.plot(
         variances[i]["Age"],
-        np.power(variances[i]["PermShkStd"],2),
+        np.power(variances[i]["PermShkStd"], 2),
         label="Perm. {} cohort".format(coh_label),
     )
 
