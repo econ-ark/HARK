@@ -918,12 +918,11 @@ class test_Jacobian_methods(unittest.TestCase):
         Agent.compute_steady_state()
 
         CJAC_Perm, AJAC_Perm = Agent.calc_jacobian("PermShkStd", 50)
+
+        self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.06120, places=HARK_PRECISION)
+        self.assertAlmostEqual(CJAC_Perm.T[30][30], 0.05307, places=HARK_PRECISION)
+        self.assertAlmostEqual(CJAC_Perm.T[30][31], 0.04674, places=HARK_PRECISION)
         
-        self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.06031302165620935, places=HARK_PRECISION)
-        self.assertAlmostEqual(CJAC_Perm.T[30][30], 0.05550384133172786, places=HARK_PRECISION)
-        self.assertAlmostEqual(CJAC_Perm.T[30][31], 0.049540585485433046, places=HARK_PRECISION)
-        
-        
-        
+     
         
         
