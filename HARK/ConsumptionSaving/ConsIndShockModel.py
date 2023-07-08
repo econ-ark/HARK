@@ -2962,7 +2962,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # If parameter is in time invariant list then add it to time vary list
         ZerothColAgent.del_from_time_inv(shk_param)
         ZerothColAgent.add_to_time_vary(shk_param)
-
+        
         # Update income process if perturbed parameter enters the income shock distribution
         ZerothColAgent.update_income_process()
 
@@ -3003,7 +3003,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             else:
                 dstn_t_zeroth_col = np.dot(tranmat_ss,dstn_t_zeroth_col)
                 
-            C_t_no_sim[i] =  np.dot(self.cPol_Grid ,dstn_t_zeroth_col) 
+            C_t_no_sim[i] =  np.dot(self.cPol_Grid ,dstn_t_zeroth_col) # Use steady state policies as household do not anticipate the shock to occur
             A_t_no_sim[i] =  np.dot( self.aPol_Grid ,dstn_t_zeroth_col) 
 
         J_A.T[0] = (A_t_no_sim - self.A_ss)/dx
