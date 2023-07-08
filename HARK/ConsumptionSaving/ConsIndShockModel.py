@@ -2952,10 +2952,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         params["Rfree"] = params["T_cycle"] * [self.Rfree]
         params["UnempPrb"] = params["T_cycle"] * [self.UnempPrb]
         params["IncUnemp"] = params["T_cycle"] * [self.IncUnemp]
-        params['wage'] = params['T_cycle']*[self.wage[0]]
-        params['taxrate'] = params['T_cycle']*[self.taxrate[0]]
-        params['labor'] = params['T_cycle']*[self.labor[0]]
-        params['TranShkMean_Func'] = params['T_cycle']*[self.TranShkMean_Func[0]]
         params['IncShkDstn'] = params['T_cycle']* [self.IncShkDstn[0]]
         params['cFunc_terminal_'] = deepcopy(self.solution[0].cFunc)
         
