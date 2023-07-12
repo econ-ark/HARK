@@ -12,7 +12,7 @@ Tools
    frame
    helpers
    interpolation
-   numba
+   numba_tools
    parallel
    rewards
    simulation

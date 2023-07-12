@@ -21,6 +21,7 @@ you might want to look at the `DemARK
    quick-start
    ARKitecture
    contributing/CONTRIBUTING.md
+   contributing/Installation_instruction.md
    reference/index
    CHANGELOG
    license
@@ -36,7 +37,7 @@ you might want to look at the `DemARK
    example_notebooks/GenIncProcessModel.ipynb
    example_notebooks/LifecycleModel.ipynb
    example_notebooks/HowWeSolveIndShockConsumerType.ipynb
-   example_notebooks/Journey_1_PhD.ipynb
+   example_notebooks/Journey-PhD.ipynb
 
 Indices and tables
 ==================
