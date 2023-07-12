@@ -1559,6 +1559,14 @@ init_perfect_foresight = {
     # Do Perfect Foresight MIT Shock: Forces Newborns to follow solution path of the agent he/she replaced when True
 }
 
+PerfForesightConsumerType_dynamics = {
+    # need dynamic equation for Rnrm here. It's going to get overwritten in downstream models
+    'bNrm' : lambda Rnrm, aNrm : Rnrm * aNrm,
+    'mNrm' : lambda bNrm, theta : bNrm + theta,
+    'cNrm' : Control(['mNrm']),
+    'aNrm' : lambda mNrm, cNrm : mNrm - cNrm
+}
+
 
 class PerfForesightConsumerType(AgentType):
     """
@@ -1612,6 +1620,7 @@ class PerfForesightConsumerType(AgentType):
         set_verbosity_level((4 - verbose) * 10)
 
         self.update_Rfree()  # update interest rate if time varying
+        self.equations.update(PerfForesightConsumerType_dynamics)
 
     def pre_solve(self):
         self.update_solution_terminal()  # Solve the terminal period problem
@@ -2104,7 +2113,8 @@ init_idiosyncratic_shocks = dict(
     }
 )
 
-dynamics = {
+IndShockConsumerType_dynamics = {
+    **PerfForesightConsumerType_dynamics,
     'G' : lambda gamma, psi : gamma * psi,
     'Rnrm' : lambda R, G : R / G,
     'bNrm' : lambda Rnrm, aNrm : Rnrm * aNrm,
@@ -2112,7 +2122,6 @@ dynamics = {
     'cNrm' : Control(['mNrm']),
     'aNrm' : lambda mNrm, cNrm : mNrm - cNrm
 }
-
 
 class IndShockConsumerType(PerfForesightConsumerType):
     """
@@ -2154,7 +2163,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         self.update()  # Make assets grid, income process, terminal solution
 
-        self.equations.update(dynamics)
+        self.equations.update(IndShockConsumerType_dynamics)
 
     def update_income_process(self):
         """
@@ -3628,7 +3637,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         params.update(kwds)
 
         # Initialize a basic AgentType
-        PerfForesightConsumerType.__init__(self, **params)
+        super().__init__(**params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solve_one_period = make_one_period_oo_solver(ConsKinkedRsolver)
