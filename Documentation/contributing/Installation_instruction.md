@@ -173,7 +173,7 @@ If you want to make changes or contributions (yay!) to HARK, you'll need to have
 
 1.  Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/documentation)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: 'git clone https://github.com/econ-ark/HARK.git'.
 
-2.  Then, create and activate a [virtual environment](<[virtualenv]((https://virtualenv.pypa.io/en/latest/))>).
+2.  Then, create and activate a [virtual environment](https://virtualenv.pypa.io/en/latest/).
 
 Install virtualenv if you need to and then type:
 
