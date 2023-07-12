@@ -17,7 +17,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
     "nbsphinx",
-    "recommonmark",
+    "myst_parser",
 ]
 
 exclude_patterns = [
