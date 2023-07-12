@@ -2142,10 +2142,10 @@ class PerfForesightConsumerType(AgentType):
             if self.conditions['RIC']:
                 RIC_message = "\nBecause the RIC is satisfied and the consumer is constrained, the solution is not c(m)=0 for all m."
                 if self.conditions['GICRaw']:
-                    RIC_message += " Because the GIC is also satisfied, the solution is non-degenerate. It is piecewise linear with an infinite number of kinks, approaching the unconstrained solution as m goes to infinity."
+                    RIC_message += " Because the GICRaw is also satisfied, the solution is non-degenerate. It is piecewise linear with an infinite number of kinks, approaching the unconstrained solution as m goes to infinity."
                     degenerate = False
                 else:
-                    RIC_message += " Because the GIC is violated, the solution is non-degenerate. It is piecewise linear with a single kink at some 0 < m < 1; it equals the unconstrained solution above that kink point and has c(m) = m below it."
+                    RIC_message += " Because the GICRaw is violated, the solution is non-degenerate. It is piecewise linear with a single kink at some 0 < m < 1; it equals the unconstrained solution above that kink point and has c(m) = m below it."
                     degenerate = False
             else:
                 if self.conditions['GICRaw']:
@@ -2174,7 +2174,8 @@ class PerfForesightConsumerType(AgentType):
         elif self.conditions['FHWC']:
             "\nBecause the GICRaw is violated but the FHWC is satisfied, the ratio of individual wealth to permanent income is expected to rise toward infinity."
         else:
-            "\nBecause both the GICRaw and FHWC are violated, [I need to figure out what happens here]."
+            pass
+            # This can never be reached! If GICRaw and FHWC both fail, then the RIC also fails, and we would have exited by this point.
         self.log_condition_result(None, None, GIC_message, verbose)
         
         if not self.quiet:
