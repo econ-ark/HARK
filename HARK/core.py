@@ -72,12 +72,15 @@ class Model:
 
         return NotImplemented
 
-    def __init__(self, equations = {}, parameters = {}, options = {}):
+    def __init__(self, equations = {}, parameters = None, options = {}):
 
         self.equations = equations
         self.options = options
         if not hasattr(self, "parameters"):
-            self.parameters = parameters
+            self.parameters = {}
+            if parameters is not None:
+                self.assign_parameters(**parameters)
+
 
     def __str__(self):
         type_ = type(self)
