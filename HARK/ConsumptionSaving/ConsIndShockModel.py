@@ -3450,11 +3450,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
             RIC_message = '\nBecause the RIC is violated, the FHWC condition is also violated. The consumer is pathologically impatient but has infinite expected future earnings. Thus the consumption function will not approach any linear limit as m becomes arbitrarily large, and the MPC will asymptote to zero.'
         self.log_condition_result(None, None, RIC_message, verbose)
         
-        # Report on whether a pseudo steady-state exists at the individual level
+        # Report on whether a pseudo-steady-state exists at the individual level
         if self.conditions['GICRaw']:
-            GIC_message = '\nBecause the GICRaw is satisfied, there exists a pseudo-steady state wealth ratio at which the level of wealth is expected to grow at the same rate as permanent income.'
+            GIC_message = '\nBecause the GICRaw is satisfied, there exists a pseudo-steady-state wealth ratio at which the level of wealth is expected to grow at the same rate as permanent income.'
         else:
-            GIC_message = '\nBecause the GICRaw is violated, there might not exist a pseudo-steady state wealth ratio at which the level of wealth is expected to grow at the same rate as permanent income.'
+            GIC_message = '\nBecause the GICRaw is violated, there might not exist a pseudo-steady-state wealth ratio at which the level of wealth is expected to grow at the same rate as permanent income.'
         self.log_condition_result(None, None, GIC_message, verbose)
         
         # Report on whether a target wealth ratio exists at the individual level
