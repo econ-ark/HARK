@@ -67,9 +67,10 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     asset.
 
     The frictions are:
-        - A proportional tax on funds moved from the risky to the risk-free
-         asset.
-        - A stochastic inability to move funds between his accounts.
+
+    - A proportional tax on funds moved from the risky to the risk-free
+      asset.
+    - A stochastic inability to move funds between his accounts.
 
     To partially avoid the second friction, the agent can commit to have a
     fraction of his labor income, which is usually deposited in his risk-free
