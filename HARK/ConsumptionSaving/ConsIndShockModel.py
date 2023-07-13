@@ -530,6 +530,7 @@ class ConsPerfForesightSolver(MetricObject):
         ----------
         solution : ConsumerSolution
             Solution to this period's problem, which must have attribute cFunc.
+
         Returns
         -------
         solution : ConsumerSolution
@@ -1002,6 +1003,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         ----------
         solution : ConsumerSolution
             Solution to this period's problem, which must have attribute cFunc.
+
         Returns
         -------
         solution : ConsumerSolution
