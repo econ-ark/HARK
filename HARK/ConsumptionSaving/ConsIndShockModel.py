@@ -2734,7 +2734,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         LivPrb, PermShkStd,TranShkStd, DiscFac, UnempPrb, Rfree, IncUnemp, DiscFac .
 
         Parameters:
-        ----------
+        -----------
 
         shk_param: string
             name of variable to be shocked
@@ -3314,7 +3314,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Note 2: All parameters are passed as attributes of the input parameters.
 
         Parameters (passed as attributes of the input parameters)
-        ----------
+        ---------------------------------------------------------
         PermShkStd : [float]
             List of standard deviations in log permanent income uncertainty during
             the agent's life.

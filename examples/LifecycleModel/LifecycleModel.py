@@ -112,7 +112,7 @@ plot_funcs(LifeCyclePop.cFunc[: LifeCyclePop.T_retire], mMin, 5)
 def savingRateFunc(SomeType, m):
     """
     Parameters:
-    ----------
+    -----------
         SomeType:
              Agent type that has been solved and simulated.
 
