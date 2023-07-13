@@ -1,3 +1,17 @@
+import warnings
+
+try:
+    import numba
+except ImportError:
+    pass
+else:
+    warnings.filterwarnings("ignore",
+                            message="numba.generated_jit.*",
+                            category=numba.NumbaDeprecationWarning)
+    warnings.filterwarnings("ignore",
+                            message=".* 'nopython' .*",
+                            category=numba.NumbaDeprecationWarning)
+
 # Project information
 project = "HARK"
 copyright = "2020, Econ-ARK team"
