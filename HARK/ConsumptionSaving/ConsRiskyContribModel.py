@@ -899,7 +899,7 @@ def rebalance_assets(d, m, n, tau):
     ----------
     d : np.array
         Array with rebalancing decisions. d > 0 represents depositing d*m into
-        the risky asset account. d<0 represents withdrawing |d|*n (pre-tax)
+        the risky asset account. d<0 represents withdrawing ``|d|*n`` (pre-tax)
         from the risky account into the risky account.
     m : np.array
         Initial risk-free assets.
