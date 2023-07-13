@@ -1,4 +1,4 @@
-# Introduction
+# Introduction to HARK
 
 If you are willing to risk some mild psychological trauma, conjure to mind your first experience of hand-coding a structural economic model. Your clunky effort probably built on legacy code provided by an adviser or colleague -- which itself came from who-knows-what apocryphal sources. Efforts to combine elements from one model with those from another were likely frustrated by the ''Tower of Babel'' problem: Code from one source could not ''speak'' to code from another without your own intermediation as a translator, possibly between two unfamiliar languages and aided only by oracular comments that, at best, made sense only in the context of other (now missing) code.
 

@@ -1,7 +1,18 @@
-Welcome to HARK's documentation!
-================================
+Econ-ARK documentation -- HARK
+===============================
 
-Heterogenous Agents Resources & toolKit (HARK) is a toolkit for the structural modeling of economic choices of optimizing and non-optimizing heterogeneous agents.
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   Overview & Examples <overview/index>
+   Reference <reference/index>
+   Guides <guides/index>
+
+
+Heterogenous Agents Resources & toolKit (HARK)
+is a toolkit for the structural modeling of economic choices
+of optimizing and non-optimizing heterogeneous agents.
 
 HARK is software written in Python.
 This is the documentation for that software.
@@ -12,36 +23,3 @@ or are contributing to the core software.
 If you are a student trying to learn economics concepts,
 you might want to look at the `DemARK
 <https://github.com/econ-ark/DemARK/>`_ project.
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Documentation
-
-   introduction
-   quick-start
-   ARKitecture
-   contributing/CONTRIBUTING.md
-   contributing/Installation_instruction.md
-   reference/index
-   CHANGELOG
-   license
-
-.. toctree::
-   :maxdepth: 1
-
-   example_notebooks/Gentle-Intro-To-HARK.ipynb
-   example_notebooks/PerfForesightConsumerType.ipynb
-   example_notebooks/IndShockConsumerType.ipynb
-   example_notebooks/KinkedRconsumerType.ipynb
-   example_notebooks/ConsPortfolioModel.ipynb
-   example_notebooks/GenIncProcessModel.ipynb
-   example_notebooks/LifecycleModel.ipynb
-   example_notebooks/HowWeSolveIndShockConsumerType.ipynb
-   example_notebooks/Journey-PhD.ipynb
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

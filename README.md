@@ -238,11 +238,10 @@ If you are worried or don’t know how to start, you can always reach out to the
 
 **After your first contribution please let us know and we will add you to the Contributors list below!**
 
-To install for development see the [Quickstart Guide](https://github.com/econ-ark/HARK/blob/master/Documentation/quick-start.md).
+To install for development see the [Quickstart Guide](https://docs.econ-ark.org/guides/quick_start.html).
 
-For more information on contributing to HARK please see [CONTRIBUTING.md](https://github.com/econ-ark/HARK/blob/master/Documentation/contributing/CONTRIBUTING.md).
-
-Collaborators follow the [COLLABORATOR_GUIDE](https://github.com/econ-ark/HARK/blob/master/Documentation/contributing/CONTRIBUTING.md#contributing-guide) in maintaining the Econ-ARK project.
+For more information on contributing to HARK please see [the contributing guide](https://docs.econ-ark.org/guides/contributing.html).
+This is the guide that collaborators follow in maintaining the Econ-ARK project.
 
 ## Disclaimer
 
