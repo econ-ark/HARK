@@ -46,7 +46,7 @@ But, because brevity is a virtue, a single letter
 ('``hMin``' as the value of minimum human wealth, say)
 is fine – so long as the reader has some reason to expect
 that the lower-case letter ``h`` signifies human wealth
-(as they will, if they consult :ref:`Table 1 <table:RomanLetters>`).
+(as they will, if they consult `Table 1 <table-RomanLetters_>`__).
 
 That is the spirit in which we offer preferred interpretations
 for the Roman letters below.
@@ -72,8 +72,8 @@ these are based on many years of experience
 which have shown that use of the prohibited variable name
 generates more confusion than clarity.
 
-.. table:: **Table 1** Preferred Usages of Roman Letters
-   :name: table:RomanLetters
+.. table:: Preferred Usages of Roman Letters
+   :name: table-RomanLetters
 
    ===============   =========================================================
     Letter            Meaning
@@ -138,8 +138,8 @@ There are more objects that are likely to be used extensively
 in ARK projects than there are Roman letters.
 We present preferred usages for some of those commonly-needed variables here.
 
-.. table:: **Table 2** String Variables
-   :name: table:Standard-Variable-Names
+.. table:: String Variables
+   :name: table-Standard-Variable-Names
 
    =========  ===============================================================
     Name          Description
@@ -168,13 +168,13 @@ Factors and Rates
 
 When measuring change over time, lower-case variables reflect rates
 while the corresponding upper-case variable connects adjacent discrete
-periods. [1]_\ :sup:`,`\ [2]_ So, for example, if the time interval
-is a year and the annual interest rate is
-:math:`{\mathsf{r}}=0.03` or three percent, then the annual
-interest factor is :math:`{\mathsf{R}}=1.03`. [3]_
+periods. [1]_ [2]_
+So, for example, if the time interval is a year
+and the annual interest rate is :math:`{\mathsf{r}}=0.03` or three percent,
+then the annual interest factor is :math:`{\mathsf{R}}=1.03`. [3]_
 
-.. table:: **Table 3** Factors and Rates
-   :name: table:Factors
+.. table:: Factors and Rates
+   :name: table-Factors
 
    ==========  ===============================  =============================
     Code        Output                           Description
@@ -207,8 +207,8 @@ we use the archaic Gothic font for the death rate;
 and the probability of survival is the cancellation
 of the probability of death:
 
-.. table:: **Table 4** Special Cases: Factors and Rates
-   :name: table:SpecialFactors
+.. table:: Special Cases: Factors and Rates
+   :name: table-SpecialFactors
 
    ===========  ============================  ========================
     Code         LaTeX                         Description
@@ -234,8 +234,8 @@ as the name of the corresponding object in their code.
 For example, the Coefficient of Relative Risk Aversion is
 ``\CRRA`` in a LaTeX document and ``CRRA`` in a software module.
 
-.. list-table:: **Table 5** Parameters
-   :name: table:Parameters
+.. list-table:: Parameters
+   :name: table-Parameters
    :header-rows: 1
 
    * - Name           
@@ -389,8 +389,8 @@ Operators
 
 A few operators are so universally used that it will be useful to define them.
 
-.. list-table:: **Table 6** Operators
-   :name: table:Operators
+.. list-table:: Operators
+   :name: table-Operators
 
    * - Name     
      - LaTeX         
@@ -411,8 +411,8 @@ A few operators are so universally used that it will be useful to define them.
 Modifiers
 =========
 
-.. table:: **Table 7** General Purpose Modifiers
-   :name: table:General
+.. table:: General Purpose Modifiers
+   :name: table-General
 
    =====================  ====================================================
    *[object]*\ ``P``      "Prime" means derivative, e.g. ``vPP``
@@ -451,8 +451,8 @@ Shocks will generally be represented by finite vectors of outcomes and
 their probabilities. For example, permanent income is called ``Perm``
 and shocks are designated ``PermShk``
 
-.. table:: **Table 8** Probabilities
-   :name: table:Probabilities
+.. table:: Probabilities
+   :name: table-Probabilities
 
    =====================  ====================================================
    *[object]*\ ``Dstn``   Representation of a probability distribution
@@ -468,8 +468,8 @@ within a 'period.' We will use ``Prev``, ``Curr``, ``Next`` to refer to
 steps relative to the local moment within a period, and :math:`t`
 variables to refer to succeeding periods:
 
-.. table:: **Table 9** Timing
-   :name: table:Timing
+.. table:: Timing
+   :name: table-Timing
 
    =================  ========================================================
    *[object]*\ tmn    object in period :math:`t` minus :math:`n`
