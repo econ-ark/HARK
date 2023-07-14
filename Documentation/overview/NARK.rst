@@ -185,9 +185,9 @@ interest factor is :math:`{\mathsf{R}}=1.03`. [3]_
                                                 a risky asset
    ``risky``   :math:`\mathbf{r}`               The return rate on
                                                 a risky asset
-   ``Rport``   :math:`\mathbb{R}`            The return factor on
+   ``Rport``   :math:`\mathbb{R}`               The return factor on
                                                 the entire portfolio
-   ``rport``   :math:`\mathbb{r}`            The return rate on
+   ``rport``   :math:`\mathbb{r}`               The return rate on
                                                 the entire portfolio
    ``RSave``   :math:`\underline{\mathsf{R}}`   Return factor earned on
                                                 positive end-of-period assets
