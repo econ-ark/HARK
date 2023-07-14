@@ -197,7 +197,6 @@ interest factor is :math:`{\mathsf{R}}=1.03`. [3]_
    ``rboro``   :math:`\bar{\mathsf{r}}`         Return rate paid on debts
    ==========  ===============================  =============================
 
-
 We depart from the upper-lower case scheme when the natural letter to
 use has an even more urgent use elsewhere in our scheme.
 A particularly common example occurs in the case of models like
