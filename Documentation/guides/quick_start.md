@@ -1,4 +1,4 @@
-# Quick Start
+# Quick Start Guide
 
 ## Installing HARK
 
@@ -143,4 +143,4 @@ To check that everything has been set up correctly, run HARK's tests with `pytho
 
 To learn more about how to use HARK, check the next sections in this documentation, in particular the jupyter notebooks.
 
-For help making changes to HARK, check out our [contributing guide](contributing/CONTRIBUTING.md).
+For help making changes to HARK, check out our [contributing guide](contributing.md).

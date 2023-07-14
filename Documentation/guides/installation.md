@@ -1,4 +1,4 @@
-# Installing HARK
+# HARK installation guide
 
 HARK is an open source project written in Python. It's compatible with both Python
 2 and 3, and with the Anaconda distributions of python 2 and 3.
