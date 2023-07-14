@@ -401,8 +401,10 @@ class FrameModel(Model):
         tv_parameters : dict
             A dictionary of 'time-varying' parameters.
             Keys are (original) variable names. Values are dictionaries with:
-               Keys are parameter names. Values as iterable contain time-varying
-               parameter values. All time-varying values assumes to be of same length, N.
+
+            - Keys are parameter names.
+            - Values as iterable contain time-varying parameter values.
+              All time-varying values assumes to be of same length, N.
 
         """
         # getting length of first iterable thing passed to it.
