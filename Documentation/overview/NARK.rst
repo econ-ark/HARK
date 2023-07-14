@@ -277,22 +277,22 @@ For example, the Coefficient of Relative Risk Aversion is
    * - ``\TranShkAgg``
      - :math:`\Theta`
      - Transitory shock (aggregate)
-     - :math:`\mathbb{E}   _t[\Theta_{t+n}]=1` if :math:`\Theta` iid
+     - :math:`\mathbb{E}_t[\Theta_{t+n}]=1` if :math:`\Theta` iid
 
    * - ``\tranShkInd``
      - :math:`\theta`
      - Transitory shock (individual)
-     - :math:`\mathbb{E}   _t[\theta_{t+n}]=1` if :math:`\theta` iid
+     - :math:`\mathbb{E}_t[\theta_{t+n}]=1` if :math:`\theta` iid
 
    * - ``\PermShkAgg``
      - :math:`\Psi`
      - Permanent shock (aggregate)
-     - :math:`\mathbb{E}   _t[\Psi_{t+n}]=1` if :math:`\Psi` iid
+     - :math:`\mathbb{E}_t[\Psi_{t+n}]=1` if :math:`\Psi` iid
 
    * - ``\permShkInd``
      - :math:`\psi`
      - Permanent shock (individual)
-     - :math:`\mathbb{E}   _t[\psi_{t+n}]=1` if :math:`\psi` iid
+     - :math:`\mathbb{E}_t[\psi_{t+n}]=1` if :math:`\psi` iid
 
    * - ``\PopGro``
      - :math:`\Xi`
@@ -399,10 +399,10 @@ A few operators are so universally used that it will be useful to define them.
      - Description   
      - Illustration
    * - ``\Ex``  
-     - :math:`\mathbb{E}   `
+     - :math:`\mathbb{E}`
      - ``Ex_``  
      - The expectation as of date :math:`t`          
-     - :math:`\mathbb{E}   _t[\mathrm{u}^\prime(c_{t+1})]`
+     - :math:`\mathbb{E}_t[\mathrm{u}^\prime(c_{t+1})]`
    * - ``\PDV`` 
      - :math:`\mathbb{P}`
      - ``PDV_`` 
