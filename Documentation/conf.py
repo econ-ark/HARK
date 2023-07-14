@@ -61,6 +61,8 @@ html_theme = "pydata_sphinx_theme"
 # Use Econ-ARK URL to host the website
 html_baseurl = "https://docs.econ-ark.org"
 
+html_favicon = "images/econ-ark-logo.png"
+
 # sphinx.ext.intersphinx configuration
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
