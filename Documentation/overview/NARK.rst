@@ -185,9 +185,9 @@ interest factor is :math:`{\mathsf{R}}=1.03`. [3]_
                                                 a risky asset
    ``risky``   :math:`\mathbf{r}`               The return rate on
                                                 a risky asset
-   ``Rport``   :math:`\mathbbmss{R}`            The return factor on
+   ``Rport``   :math:`\mathbb{R}`            The return factor on
                                                 the entire portfolio
-   ``rport``   :math:`\mathbbmss{r}`            The return rate on
+   ``rport``   :math:`\mathbb{r}`            The return rate on
                                                 the entire portfolio
    ``RSave``   :math:`\underline{\mathsf{R}}`   Return factor earned on
                                                 positive end-of-period assets
@@ -357,7 +357,7 @@ For example, the Coefficient of Relative Risk Aversion is
    * - ``\riskyshare``
      - :math:`\varsigma`
      - Portfolio share in risky assets
-     - :math:`\mathbbmss{R}_{t+1}=(1-\varsigma)\mathsf{R}+\varsigma\mathbf{R}_{t+1}`
+     - :math:`\mathbb{R}_{t+1}=(1-\varsigma)\mathsf{R}+\varsigma\mathbf{R}_{t+1}`
 
 Mnemonics:
 
