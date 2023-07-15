@@ -44,7 +44,7 @@ the many possible meanings of :math:`\delta` you had in mind.
 But, because brevity is a virtue, a single letter
 *in combination with a modifier or two*
 ('``hMin``' as the value of minimum human wealth, say)
-is fine – so long as the reader has some reason to expect
+is fine -- so long as the reader has some reason to expect
 that the lower-case letter ``h`` signifies human wealth
 (as they will, if they consult `Table 1 <table-RomanLetters_>`__).
 
@@ -157,7 +157,7 @@ We present preferred usages for some of those commonly-needed variables here.
    ``Lbr``    Quantity of labor (hours)
    ``Pop``    Size of population
    ``Sav``    Saving (=Income Minus Consumption)
-   ``Tax``    Tax – should be modified by ``Rte`` or ``Amt``
+   ``Tax``    Tax -- should be modified by ``Rte`` or ``Amt``
               articulated below
    ``Perm``   Permanent (labor; or at least, noncapital) income
    ``Tran``   Transitory (labor; or at least, noncapital) income
@@ -185,9 +185,9 @@ then the annual interest factor is :math:`{\mathsf{R}}=1.03`. [3]_
                                                 a risky asset
    ``risky``   :math:`\mathbf{r}`               The return rate on
                                                 a risky asset
-   ``Rport``   :math:`\mathbb{R}`               The return factor on
+   ``Rport``   |blackbord_sans_serif_R|         The return factor on
                                                 the entire portfolio
-   ``rport``   :math:`\mathbb{r}`               The return rate on
+   ``rport``   |blackbord_sans_serif_r|         The return rate on
                                                 the entire portfolio
    ``RSave``   :math:`\underline{\mathsf{R}}`   Return factor earned on
                                                 positive end-of-period assets
@@ -196,6 +196,9 @@ then the annual interest factor is :math:`{\mathsf{R}}=1.03`. [3]_
    ``RBoro``   :math:`\bar{\mathsf{R}}`         Return factor paid on debts
    ``rboro``   :math:`\bar{\mathsf{r}}`         Return rate paid on debts
    ==========  ===============================  =============================
+
+.. |blackbord_sans_serif_R| unicode:: U+0211D
+.. |blackbord_sans_serif_r| unicode:: U+1D563
 
 We depart from the upper-lower case scheme when the natural letter to
 use has an even more urgent use elsewhere in our scheme.
@@ -238,17 +241,17 @@ For example, the Coefficient of Relative Risk Aversion is
    :name: table-Parameters
    :header-rows: 1
 
-   * - Name           
-     - LaTeX          
-     - Description    
-     - Illustration   
+   * - Name
+     - LaTeX
+     - Description
+     - Illustration
 
-   * - ``\CARA``    
+   * - ``\CARA``
      - :math:`\alpha`
      - Coefficient of Absolute Risk Aversion
      - :math:`\mathrm{u}(\bullet)=-\alpha^{-1}e^{-\alpha\bullet}`
 
-   * - ``\CRRA``    
+   * - ``\CRRA``
      - :math:`\rho`
      - Coefficient of Relative Risk Aversion
      - :math:`\mathrm{u}(\bullet)=(1-\rho)^{-1}\bullet^{1-\rho}`
@@ -392,20 +395,20 @@ A few operators are so universally used that it will be useful to define them.
 .. list-table:: Operators
    :name: table-Operators
 
-   * - Name     
-     - LaTeX         
-     - Code     
-     - Description   
+   * - Name
+     - LaTeX
+     - Code
+     - Description
      - Illustration
-   * - ``\Ex``  
+   * - ``\Ex``
      - :math:`\mathbb{E}`
-     - ``Ex_``  
-     - The expectation as of date :math:`t`          
+     - ``Ex_``
+     - The expectation as of date :math:`t`
      - :math:`\mathbb{E}_t[\mathrm{u}^\prime(c_{t+1})]`
-   * - ``\PDV`` 
+   * - ``\PDV``
      - :math:`\mathbb{P}`
-     - ``PDV_`` 
-     - Present Discounted Value       
+     - ``PDV_``
+     - Present Discounted Value
      - :math:`\mathbb{P}_t^T(y)` is human wealth
 
 Modifiers
@@ -415,33 +418,33 @@ Modifiers
    :name: table-General
 
    =====================  ====================================================
-   *[object]*\ ``P``      "Prime" means derivative, e.g. ``vPP``
+   *[object]*\ ``P``      "Prime" means derivative, e.g. ``vPP``
                           is the second derivative of value:
                           :math:`\mathrm{v}^{\prime\prime}`
    *[object]*\ ``Agg``    Value of something at the aggregate level
                           (as opposed to ``Ind``)
    *[object]*\ ``Ind``    Value of something at the level of an individual
                           (as opposed to ``Agg``)
-   *[object]*\ ``Lvl``    Level                         
-   *[object]*\ ``Rto``    Ratio                         
-   *[object]*\ ``Bot``    Lower value in some range     
-   *[object]*\ ``Top``    Upper value in some range     
-   *[object]*\ ``Min``    Minimum possible value        
-   *[object]*\ ``Max``    Maximum possible value        
-   *[object]*\ ``Cnt``    Continuous-time value         
-   *[object]*\ ``Dsc``    Discrete-time value           
-   *[object]*\ ``Shk``    Shock                         
-   *[object]*\ ``StE``    Steady-state Equilibrium value of a variable           
-   *[object]*\ ``Trg``    The 'target' value of a variable                      
+   *[object]*\ ``Lvl``    Level
+   *[object]*\ ``Rto``    Ratio
+   *[object]*\ ``Bot``    Lower value in some range
+   *[object]*\ ``Top``    Upper value in some range
+   *[object]*\ ``Min``    Minimum possible value
+   *[object]*\ ``Max``    Maximum possible value
+   *[object]*\ ``Cnt``    Continuous-time value
+   *[object]*\ ``Dsc``    Discrete-time value
+   *[object]*\ ``Shk``    Shock
+   *[object]*\ ``StE``    Steady-state Equilibrium value of a variable
+   *[object]*\ ``Trg``    The 'target' value of a variable
    *[object]*\ ``Rte``    A 'rate' variable like the discount rate
                           :math:`\vartheta`
    *[object]*\ ``Fac``    A factor variable like the discount factor
                           :math:`\beta`
-   *[object]*\ ``Amt``    An amount, like ``TaxAmt`` which might be lump-sum       
+   *[object]*\ ``Amt``    An amount, like ``TaxAmt`` which might be lump-sum
    *[object]*\ ``Nrm``    A normalized quantity; ex:
                           ``RNrm``\ =\ :math:`\mathsf{R}/\Gamma`
-   *[object]*\ ``Abve``   Range of points ABOvE some boundary                      
-   *[object]*\ ``Belw``   Range of points BELoW some boundary                      
+   *[object]*\ ``Abve``   Range of points ABOvE some boundary
+   *[object]*\ ``Belw``   Range of points BELoW some boundary
    *[object]*\ ``Grid``   Points to be used as a grid for interpolations
    *[object]*\ ``Xtra``   An "extra" set of points to be
                           added to some existing set
@@ -459,7 +462,7 @@ and shocks are designated ``PermShk``
                           (includes both Prbs and Vals)
    *[object]*\ ``Prbs``   Probabilities of outcomes
                           (e.g. ``PermShkPrbs`` for permanent shocks)
-   *[object]*\ ``Vals``   Values (e.g., for mean one shock 
+   *[object]*\ ``Vals``   Values (e.g., for mean one shock
                           ``PermShkVals`` . ``PermShkPrbs`` = 1)
    =====================  ====================================================
 
@@ -511,13 +514,13 @@ Footnotes and Citations
 
 .. [3]
    In the rare cases where it is necessary to distinguish between a
-   continuous-time rate and a discrete-time rate – for example, when
-   there is an analytical result available in continuous time – the
+   continuous-time rate and a discrete-time rate -- for example, when
+   there is an analytical result available in continuous time -- the
    variable in question can be modified by ``Cnt`` or ``Dsc``.
 
 .. [#blanchardFinite]
     Blanchard, Olivier J. 1985. "Debt, Deficits, and Finite Horizons."
-    Journal of Political Economy 93 (2): 223–47.
+    Journal of Political Economy 93 (2): 223--47.
     `doi:10.1086/261312 <https://doi.org/10.1086/261312>`__.
 
 .. [#carrollTractable]
