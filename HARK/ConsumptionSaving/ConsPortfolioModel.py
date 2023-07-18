@@ -34,6 +34,7 @@ from HARK.distribution import (
     DiscreteDistributionLabeled,
 )
 from HARK.metric import MetricObject
+import xarray as xr
 
 
 # Define a class to represent the single period solution of the portfolio choice problem
@@ -367,17 +368,30 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         points = np.meshgrid(PLvlGrid, mNrmGrid, ShareGrid, AdjustGrid, indexing="ij")
         points = np.stack([x.flatten() for x in points], axis=0)
 
-        # Store a dictionary with individual grids, mesh points and order
-        self.state_grid = {
-            "grids": {
-                "PLvl": PLvlGrid,
-                "mNrm": mNrmGrid,
-                "Share": ShareGrid,
-                "Adjust": AdjustGrid,
+        mesh = xr.DataArray(
+            points,
+            dims=['var', 'mesh'],
+            coords = {'var': ["PLvl", "mNrm", "Share", "Adjust"]}
+        )
+
+        self.state_grid = xr.Dataset(
+            data_vars={
+                "PLvl": ('mesh', points[0]),
+                "mNrm": ('mesh', points[1]),
+                'Share': ('mesh', points[2]),
+                'Adjust': ('mesh', points[3].astype(bool))
             },
-            "points": points,
-            "order": ["PLvl", "mNrm", "Share", "Adjust"],
-        }
+            coords={'mesh': np.arange(points.shape[1])},
+            attrs= {
+                "grids": {
+                    "PLvl": PLvlGrid,
+                    "mNrm": mNrmGrid,
+                    "Share": ShareGrid,
+                    "Adjust": AdjustGrid,
+                },
+                "mesh_order": ["PLvl", "mNrm", "Share", "Adjust"],
+            }
+        )
 
     def state_to_state_trans(self, shocks_next, solution, state, PermGroFac, Rfree):
         # TODO:
@@ -385,24 +399,20 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         # state as a labeled xarray and return a labeled xarray
         # Also define dist_of_func for labeled distributions that returns a labeled distribution
 
-        # Unpack next period's states
-        PLvl, mNrm, Share, Adjust = state[0], state[1], state[2], state[3]
-        Adjust = Adjust.astype(bool)
-
         # Consumption
-        cNrm = np.empty_like(mNrm)
-        cNrm[Adjust] = solution.cFuncAdj(mNrm[Adjust])
-        cNrm[~Adjust] = solution.cFuncFxd(mNrm[~Adjust], Share[~Adjust])
+        cNrm = np.empty_like(state['mNrm'])
+        cNrm[state['Adjust']] = solution.cFuncAdj(state['mNrm'][state['Adjust']])
+        cNrm[~state['Adjust']] = solution.cFuncFxd(state['mNrm'][~state['Adjust']], state['Share'][~state['Adjust']])
         # Savings
-        aNrm = mNrm - cNrm
+        aNrm = state['mNrm'] - cNrm
         # Share
-        Share_next = np.empty_like(Share)
-        Share_next[Adjust] = solution.ShareFuncAdj(mNrm[Adjust])
-        Share_next[~Adjust] = solution.ShareFuncFxd(mNrm[~Adjust], Share[~Adjust])
+        Share_next = np.empty_like(state['Share'])
+        Share_next[state['Adjust']] = solution.ShareFuncAdj(state['mNrm'][state['Adjust']])
+        Share_next[~state['Adjust']] = solution.ShareFuncFxd(state['mNrm'][~state['Adjust']], state['Share'][~state['Adjust']])
 
         PLvl_next, mNrm_next, Share_next, Adjust_next = post_state_transition(
             shocks_next,
-            PLvl,
+            state['PLvl'],
             aNrm,
             Share_next,
             PermGroFac,

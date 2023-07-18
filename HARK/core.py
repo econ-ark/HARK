@@ -916,9 +916,8 @@ class AgentType(Model):
         these_args = tuple(filter(lambda x: x not in exclude_args, these_args))
 
         # Extract state grid data
-        meshpoints = self.state_grid["points"]
         grids = [
-            self.state_grid["grids"][x].astype(float) for x in self.state_grid["order"]
+            self.state_grid.attrs["grids"][x].astype(float) for x in self.state_grid.attrs["mesh_order"]
         ]
         # Find values and indices of non-trivial grids
         nt_inds, nt_grids = zip(*[[i, x] for i, x in enumerate(grids) if len(x) > 1])
@@ -944,7 +943,7 @@ class AgentType(Model):
                 )
 
             state_dstn = shock_dstn.dist_of_func(
-                trans_wrapper, self.solution[k], meshpoints
+                trans_wrapper, self.solution[k], self.state_grid
             )
 
             # Construct transition matrix from the object above
