@@ -1,3 +1,17 @@
+import warnings
+
+try:
+    import numba
+except ImportError:
+    pass
+else:
+    warnings.filterwarnings("ignore",
+                            message="numba.generated_jit.*",
+                            category=numba.NumbaDeprecationWarning)
+    warnings.filterwarnings("ignore",
+                            message=".* 'nopython' .*",
+                            category=numba.NumbaDeprecationWarning)
+
 # Project information
 project = "HARK"
 copyright = "2020, Econ-ARK team"
@@ -17,13 +31,14 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
     "nbsphinx",
-    "recommonmark",
+    "myst_parser",
 ]
 
 exclude_patterns = [
     "_build",
     "Thumbs.db",
     ".DS_Store",
+    "NARK",
 ]
 
 language = "en"
@@ -46,6 +61,8 @@ html_theme = "pydata_sphinx_theme"
 # Use Econ-ARK URL to host the website
 html_baseurl = "https://docs.econ-ark.org"
 
+html_favicon = "images/econ-ark-logo.png"
+
 # sphinx.ext.intersphinx configuration
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
@@ -56,6 +73,9 @@ autodoc_default_flags = ["members"]  # must add outside ']' bracket
 
 # sphinx.ext.autosummary configuration
 autosummary_generate = True
+
+# sphinx.ext.napoleon configuration
+napoleon_use_ivar = True  # solves duplicate object description warning
 
 # nbsphinx configuration
 nbsphinx_execute = "never"  # This is currently not working

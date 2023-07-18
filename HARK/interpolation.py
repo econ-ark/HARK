@@ -588,7 +588,7 @@ class IdentityFunction(MetricObject):
     Parameters
     ----------
     i_dim : int
-        Index of the dimension on which the identity is defined.  f(*x) = x[i]
+        Index of the dimension on which the identity is defined.  ``f(*x) = x[i]``
     n_dims : int
         Total number of input dimensions for this function.
     """
