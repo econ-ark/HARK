@@ -42,11 +42,11 @@ After you [installed](https://hark.readthedocs.io/en/latest/quick-start.html) an
 
 ### General Purpose Tools
 
-HARK's root directory contains six tool modules,<sup id = "a1"> [1](#myfootnote1)</sup> each containing a variety of functions and classes that can be used in many economic models-- or even for mathematical purposes that have nothing to do with economics. Some of the tool modules are very sparely populated at this time, while others are quite large. We expect that all of these modules will grow considerably in the near future, as new tools are ''low hanging fruit'' for contribution to the project.<sup id = "a2"> [2](#myfootnote2)</sup>
+HARK's root directory contains six tool modules, [^1] each containing a variety of functions and classes that can be used in many economic models-- or even for mathematical purposes that have nothing to do with economics. Some of the tool modules are very sparely populated at this time, while others are quite large. We expect that all of these modules will grow considerably in the near future, as new tools are ''low hanging fruit'' for contribution to the project. [^2]
 
-<a name="myfootnote1">1</a>: The ''taxonomy'' of these modules is in flux; the functions described here could be combined into fewer modules or further divided by purpose. [↩](#a1)
+[^1]: The ''taxonomy'' of these modules is in flux; the functions described here could be combined into fewer modules or further divided by purpose.
 
-<a name="myfootnote2">2</a>: That is, as the foundational, building-block elements of HARK, new tools are not difficult to program and do not require extensive integration with many moving parts. [↩](#a2)
+[^2]: That is, as the foundational, building-block elements of HARK, new tools are not difficult to program and do not require extensive integration with many moving parts.
 
 #### HARK.core
 
@@ -56,9 +56,9 @@ Microeconomic models in HARK use the **_AgentType_** class to represent agents w
 
 Macroeconomic models in HARK use the **_Market_** class to represent a market (or other aggregator) that combines the actions, states, and/or shocks (generally, outcomes) of individual agents in the model into aggregate outcomes that are ''passed back'' to the agents. For example, the market in a consumption-saving model might combine the individual asset holdings of all agents in the market to generate aggregate capital in the economy, yielding the interest rate on assets (as the marginal product of capital); the individual agents then learn the aggregate capital level and interest rate, conditioning their next action on this information. Objects that microeconomic agents treat as exogenous when solving (or simulating) their model are thus endogenous at the macroeconomic level. Like **_AgentType_**, the **_Market_** class also has a **_solve_** method, which seeks out a dynamic general equilibrium: a ''rule'' governing the dynamic evolution of macroeconomic objects such that if agents believe this rule and act accordingly, then their collective actions generate a sequence of macroeconomic outcomes that justify the belief in that rule. For a more complete description, see section [Market Class](#market-class).
 
-Beyond the model frameworks, **_HARK.core_** also defines a ''supersuperclass'' called **_HARKobject_**. When solving a dynamic microeconomic model with an infinite horizon (or searching for a dynamic general equilibrium), it is often required to consider whether two solutions are sufficiently close to each other to warrant stopping the process (i.e. approximate convergence). It is thus necessary to calculate the ''distance'' between two solutions, so HARK specifies that classes should have a **_distance_** method that takes a single input and returns a non-negative value representing the (generally dimensionless) distance between the object in question and the input to the method. As a convenient default, **_HARKobject_** provides a ''universal distance metric'' that should be useful in many contexts.<sup id = "a3"> [3](#myfootnote3)</sup> When defining a new subclass of **_HARKobject_**, the user simply defines the attribute **_distance_criteria_** as a list of strings naming the attributes of the class that should be compared when calculating the distance between two instances of that class. For example, the class **_ConsumerSolution_** has **_distance_criteria = ['cFunc']_**, indicating that only the consumption function attribute of the solution matters when comparing the distance between two instances of **_ConsumerSolution_**. See [here](https://hark.readthedocs.io/en/latest/reference/tools/core.html) for further documentation.
+Beyond the model frameworks, **_HARK.core_** also defines a ''supersuperclass'' called **_HARKobject_**. When solving a dynamic microeconomic model with an infinite horizon (or searching for a dynamic general equilibrium), it is often required to consider whether two solutions are sufficiently close to each other to warrant stopping the process (i.e. approximate convergence). It is thus necessary to calculate the ''distance'' between two solutions, so HARK specifies that classes should have a **_distance_** method that takes a single input and returns a non-negative value representing the (generally dimensionless) distance between the object in question and the input to the method. As a convenient default, **_HARKobject_** provides a ''universal distance metric'' that should be useful in many contexts. [^3] When defining a new subclass of **_HARKobject_**, the user simply defines the attribute **_distance_criteria_** as a list of strings naming the attributes of the class that should be compared when calculating the distance between two instances of that class. For example, the class **_ConsumerSolution_** has **_distance_criteria = ['cFunc']_**, indicating that only the consumption function attribute of the solution matters when comparing the distance between two instances of **_ConsumerSolution_**. See [here](https://hark.readthedocs.io/en/latest/reference/tools/core.html) for further documentation.
 
-<a name="myfootnote3">3</a>: Roughly speaking, the universal distance metric is a recursive supnorm, returning the largest distance between two instances, among attributes named in **_distance_criteria_**. Those attributes might be complex objects themselves rather than real numbers, generating a recursive call to the universal distance metric. [↩](#a3)
+[^3]: Roughly speaking, the universal distance metric is a recursive supnorm, returning the largest distance between two instances, among attributes named in **_distance_criteria_**. Those attributes might be complex objects themselves rather than real numbers, generating a recursive call to the universal distance metric.
 
 #### HARK.utilities
 
@@ -84,11 +84,11 @@ Methods for optimizing an objective function for the purposes of estimating a mo
 
 #### HARK.parallel
 
-By default, processes in Python are single-threaded, using only a single CPU core. The **_HARK.parallel_** module provides basic tools for using multiple CPU cores simultaneously, with minimal effort.<sup id = "a4"> [4](#myfootnote4)</sup> In particular, it provides the function **_multiThreadCommands_**, which takes two arguments: a list of **_AgentType_**s and a list of commands as strings; each command should be a method of the **_AgentType_**s. The function simply distributes the **_AgentType_**s across threads on different cores and executes each command in order, returning no output (the **_AgentType_**s themselves are changed by running the commands). Equivalent results would be achieved by simply looping over each type and running each method in the list. Indeed, **_HARK.parallel_** also has a function called **_multiThreadCommandsFake_** that does just that, with identical syntax to **_multiThreadCommands_**; multithreading in HARK can thus be easily turned on and off.<sup id = "a5"> [5](#myfootnote5)</sup> The module also has functions for a parallel implementation of the Nelder-Mead simplex algorithm, as described in Wiswall and Lee (2011). See [here](https://hark.readthedocs.io/en/latest/reference/tools/parallel.html) for full documentation.
+By default, processes in Python are single-threaded, using only a single CPU core. The **_HARK.parallel_** module provides basic tools for using multiple CPU cores simultaneously, with minimal effort. [^4] In particular, it provides the function **_multiThreadCommands_**, which takes two arguments: a list of **_AgentType_**s and a list of commands as strings; each command should be a method of the **_AgentType_**s. The function simply distributes the **_AgentType_**s across threads on different cores and executes each command in order, returning no output (the **_AgentType_**s themselves are changed by running the commands). Equivalent results would be achieved by simply looping over each type and running each method in the list. Indeed, **_HARK.parallel_** also has a function called **_multiThreadCommandsFake_** that does just that, with identical syntax to **_multiThreadCommands_**; multithreading in HARK can thus be easily turned on and off. [^5] The module also has functions for a parallel implementation of the Nelder-Mead simplex algorithm, as described in Wiswall and Lee (2011). See [here](https://hark.readthedocs.io/en/latest/reference/tools/parallel.html) for full documentation.
 
-<a name="myfootnote4">4</a>: **_HARK.parallel_** uses two packages that aren't included in the default distribution of Anaconda: **_joblib_** and **_dill_**; see [here](https://hark.readthedocs.io/en/latest/quick-start.html#using-hark-with-anaconda) for instructions on how to install them. [↩](#a4)
+[^4]: **_HARK.parallel_** uses two packages that aren't included in the default distribution of Anaconda: **_joblib_** and **_dill_**; see [here](https://hark.readthedocs.io/en/latest/quick-start.html#using-hark-with-anaconda) for instructions on how to install them.
 
-<a name="myfootnote5">5</a>: In the future, **_HARK.parallel_** might be absorbed into **_HARK.core_** and **_HARK.estimation_**, particularly if **_joblib_** and **_dill_** become part of the standard Anaconda distribution. [↩](#a5)
+[^5]: In the future, **_HARK.parallel_** might be absorbed into **_HARK.core_** and **_HARK.estimation_**, particularly if **_joblib_** and **_dill_** become part of the standard Anaconda distribution.
 
 ### AgentType Class
 
@@ -102,7 +102,7 @@ A discrete time model in our framework is characterized by a sequence of ''perio
 
 - **_time_inv_**: A list of strings containing all of the variable names that are passed to at least one function in **_solveOnePeriod_** but do _not_ vary across periods. Each of these variables resides in a correspondingly named attribute of the **_AgentType_** instance.
 
-- **_time_vary_**: A list of strings naming the attributes of this instance that vary across periods. Each of these attributes is a list of period-specific values, which should be of the same length. If the solution method varies across periods, then **_'solveOnePeriod'_** is an element of **_time_vary_**.<sup id = "b1"> [6](#myfootnote6)</sup>
+- **_time_vary_**: A list of strings naming the attributes of this instance that vary across periods. Each of these attributes is a list of period-specific values, which should be of the same length. If the solution method varies across periods, then **_'solveOnePeriod'_** is an element of **_time_vary_**. [^6]
 
 - **_solution_terminal_**: An object representing the solution to the ''terminal'' period of the model. This might represent a known trivial solution that does not require numeric methods, the solution to some previously solved ''next phase'' of the model, a scrap value function, or an initial guess of the solution to an infinite horizon model.
 
@@ -116,7 +116,7 @@ A discrete time model in our framework is characterized by a sequence of ''perio
 
 An instance of **_AgentType_** also has the attributes named in **_time_vary_** and **_time_inv_**, and may have other attributes that are not included in either (e.g. values not used in the model solution, but instead to construct objects used in the solution).
 
-<a name="myfootnote6">6</a>: **_time_vary_** may include attributes that are never used by a function in **_solveOnePeriod_**. Most saliently, the attribute **_solution_** is time-varying but is not used to solve individual periods. [↩](#b1)
+[^6]: **_time_vary_** may include attributes that are never used by a function in **_solveOnePeriod_**. Most saliently, the attribute **_solution_** is time-varying but is not used to solve individual periods.
 
 #### A Universal Solver
 
@@ -144,9 +144,9 @@ The attribute **_time_flow_** is **_True_** if variables are listed in ordinary 
 
 These methods are invoked to more conveniently access time-varying objects. When a new time-varying attribute is added, its name should be appended to **_time_vary_**, particularly if its values are used in the solution of the model (or is part of the solution itself). For example, the **_solve()_** method automatically adds the string **_'solution'_** to **_time_vary_** if it is not already present. Note that attributes listed in **_time_vary_** _must_ be lists if **_solve()_** or **_timeFlip()_** are used. Some values that could be considered ''time varying'' but are never used to solve the model are more conveniently represented as a **_numpy.array_** object (e.g. the history of a state or control variable from a simulation); because the **_numpy.array_** class does not have a **_reverse()_** method, these attributes should not be listed in **_time_vary_**.
 
-The base **_AgentType_** is sparsely defined, as most ''real'' methods will be application-specific. Two final methods bear mentioning. First, the **\_**call**\_** method points to **_assignParameters()_**, a convenience method for adding or adjusting attributes (inherited from **_HARKobject_**). This method takes any number of keyword arguments, so that code can be parsimoniously written as, for example, **_AgentInstance(attribute1 = value1, attribute2 = value2)_**. Using Python's dictionary capabilities, many attributes can be conveniently set with minimal code. Second, the **_resetRNG_** method simply resets the **_AgentType_**'s random number generator (as the attribute **_RNG_**) using the value in the attribute **_seed_**.<sup id = "b2"> [7](#myfootnote7)</sup> This method is useful for (_inter alia_) ensuring that the same underlying sequence of shocks is used for every simulation run when a model is solved or estimated.
+The base **_AgentType_** is sparsely defined, as most ''real'' methods will be application-specific. Two final methods bear mentioning. First, the **\_**call**\_** method points to **_assignParameters()_**, a convenience method for adding or adjusting attributes (inherited from **_HARKobject_**). This method takes any number of keyword arguments, so that code can be parsimoniously written as, for example, **_AgentInstance(attribute1 = value1, attribute2 = value2)_**. Using Python's dictionary capabilities, many attributes can be conveniently set with minimal code. Second, the **_resetRNG_** method simply resets the **_AgentType_**'s random number generator (as the attribute **_RNG_**) using the value in the attribute **_seed_**. [^7] This method is useful for (_inter alia_) ensuring that the same underlying sequence of shocks is used for every simulation run when a model is solved or estimated.
 
-<a name="myfootnote7">7</a>: Every instance of **_AgentType_** is created with a random number generator as an instance of the class **_numpy.random.RandomState_**, with a default **_seed_** of zero. [↩](#b2)
+[^7]: Every instance of **_AgentType_** is created with a random number generator as an instance of the class **_numpy.random.RandomState_**, with a default **_seed_** of zero.
 
 ### Market Class
 
@@ -174,7 +174,7 @@ This procedure is conducted by the **_makeHistory_** method of **_Market_** as a
 
 #### Attributes of a Market
 
-To specify a complete instance of **_Market_**, the user should give it the following attributes:<sup id = "c1"> [8](#myfootnote8)</sup>
+To specify a complete instance of **_Market_**, the user should give it the following attributes: [^8]
 
 - **_agents_**: A list of **_AgentType_**s, representing the agents in the market. Each element in **_agents_** represents an _ex-ante_ heterogeneous type; each type could have many _ex-post_ heterogeneous agents.
 
@@ -204,7 +204,7 @@ Further, each **_AgentType_** in **_agents_** must have two methods not necessar
 
 When solving macroeconomic models in HARK, the user should also define classes to represent the output from the aggregate market process in **_millRule_** and for the model-specific dynamic rule. The latter should have a **_distance_** method to test for solution convergence; if the class inherits from **_HARKobject_**, the user need only list relevant attributes in **_distance_criteria_**.
 
-<a name="myfootnote8">8</a>: For some purposes, it might be useful to specify a subclass of **_Market_**, defining **_millRule_** and/or **_calcDynamics_** as methods rather than functions. [↩](#c1)
+[^8]: For some purposes, it might be useful to specify a subclass of **_Market_**, defining **_millRule_** and/or **_calcDynamics_** as methods rather than functions.
 
 ## DemARK
 
