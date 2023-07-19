@@ -151,6 +151,20 @@ class PortfolioSolution(MetricObject):
         self.EndOfPrddvds_fxd = EndOfPrddvds_fxd
         self.AdjPrb = AdjPrb
 
+    def cFunc(self, mNrm, Share, Adjust):
+        cNrm = xr.full_like(mNrm, np.nan)
+        cNrm[Adjust] = self.cFuncAdj(mNrm[Adjust])
+        no_adj = ~Adjust
+        cNrm[no_adj] = self.cFuncFxd(mNrm[no_adj], Share[no_adj])
+        return cNrm
+
+    def ShareFunc(self, mNrm, Share, Adjust):
+        ShareNext = xr.full_like(mNrm, np.nan)
+        ShareNext[Adjust] = self.ShareFuncAdj(mNrm[Adjust])
+        no_adj = ~Adjust
+        ShareNext[no_adj] = self.ShareFuncFxd(mNrm[no_adj], Share[no_adj])
+        return ShareNext
+
 
 class PortfolioConsumerType(RiskyAssetConsumerType):
     """
@@ -394,28 +408,13 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         )
 
     def state_to_state_trans(self, shocks_next, solution, state, PermGroFac, Rfree):
-        # TODO:
-        # Would be good to have transitions receive
-        # state as a labeled xarray and return a labeled xarray
-        # Also define dist_of_func for labeled distributions that returns a labeled distribution
-
         # Consumption
-        cNrm = xr.full_like(state["mNrm"], np.nan)
-        cNrm[state["Adjust"]] = solution.cFuncAdj(state["mNrm"][state["Adjust"]])
-        cNrm[~state["Adjust"]] = solution.cFuncFxd(
-            state["mNrm"][~state["Adjust"]], state["Share"][~state["Adjust"]]
-        )
+        cNrm = solution.cFunc(state["mNrm"], state["Share"], state["Adjust"])
         # Savings
         aNrm = state["mNrm"] - cNrm
         # Share
-        Share_next = xr.full_like(state["Share"], np.nan)
-        Share_next[state["Adjust"]] = solution.ShareFuncAdj(
-            state["mNrm"][state["Adjust"]]
-        )
-        Share_next[~state["Adjust"]] = solution.ShareFuncFxd(
-            state["mNrm"][~state["Adjust"]], state["Share"][~state["Adjust"]]
-        )
-
+        Share_next = solution.ShareFunc(state["mNrm"], state["Share"], state["Adjust"])
+        # Shock transition
         state_next = post_state_transition(
             shocks_next,
             state["PLvl"],
