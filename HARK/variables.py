@@ -33,7 +33,7 @@ class State(Variable):
     yaml_tag: str = "!State"
 
     def assign_values(self, values):
-        return make_state(values, self.name, self.attrs)
+        return make_state_array(values, self.name, self.attrs)
 
     def discretize(self, min, max, N, method):
         # linear for now
@@ -59,9 +59,8 @@ class Action(Variable):
         Variable (_type_): _description_
     """
 
-    yaml_tag: str = "!Action"
-
     is_optimal: bool = True
+    yaml_tag: str = "!Action"
 
     def discretize(self, *args, **kwargs):
         warn("Actions cannot be discretized.")
@@ -104,7 +103,7 @@ class Auxilliary(Variable):
     yaml_tag: str = "!Auxilliary"
 
 
-def make_state(
+def make_state_array(
     values: np.ndarray,
     name: Optional[str] = None,
     attrs: Optional[dict] = None,
@@ -136,7 +135,7 @@ def make_state(
     )
 
 
-def make_states(
+def make_states_array(
     values: Union[np.ndarray, list],
     names: Optional[list[str]] = None,
     attrs: Optional[list[dict]] = None,
@@ -162,7 +161,8 @@ def make_states(
     attrs = attrs or [{}] * values_len
 
     states = [
-        make_state(value, name, attr) for value, name, attr in zip(values, names, attrs)
+        make_state_array(value, name, attr)
+        for value, name, attr in zip(values, names, attrs)
     ]
 
     return xr.merge(states)
