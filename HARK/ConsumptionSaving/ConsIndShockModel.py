@@ -2981,6 +2981,54 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Add in the new entry and return it
         param_desc += this_line
         return param_desc
+    
+    
+    def makePFboundingFunc(self):
+        '''
+        Construct the attribute cFuncPFbound, representing the experimental upper
+        bound of the consumption function based on the analytic continuation of
+        the perfect foresight consumption function to continuous time.
+        '''
+        if (self.cycles > 0) or (self.T_cycle > 1):
+            print('The makePFboundingFunc method is only compatible with infinite horizon problems with a single repeated period.')
+            return
+        
+        PermShkDstn = self.PermShkDstn[0]
+        
+        beta = self.DiscFac*self.LivPrb[0]
+        rho = self.CRRA
+        gamma = self.PermGroFac[0]
+        R = self.Rfree
+        thorn = (beta*R)**(1./rho)
+        thornR = thorn / R
+        GdivR = gamma / R
+        
+        uP = lambda x : x**(-rho)
+        AdjPow = expected(uP, PermShkDstn)[0]**(1./(-rho))
+        self.AdjPow = AdjPow
+        
+        GdivRalt = GdivR*AdjPow
+        print(GdivR, GdivRalt)
+        
+        hNrm = lambda t : GdivRalt * (1. - GdivRalt**t) / (1. - GdivRalt)
+        hNrm_P = lambda t : -GdivRalt * np.log(GdivRalt) * GdivRalt**t / (1. - GdivRalt)
+        
+        PFMPC = lambda t : (1. - thornR) / (1. - thornR**(t+1))
+        PFMPC_P = lambda t : PFMPC(t) * np.log(thornR) * thornR**(t+1) / (1. - thornR**(t+1))
+        
+        mBoundFunc = lambda t : -PFMPC(t) * hNrm_P(t) / PFMPC_P(t) - hNrm(t)
+        cBoundFunc = lambda t : PFMPC(t) * (mBoundFunc(t) + hNrm(t))
+        
+        T = 500
+        K = 3
+        t_vec = np.linspace(0., T, K*T+1)
+        m_vec = np.insert(mBoundFunc(t_vec), 0, 0.)
+        c_vec = np.insert(cBoundFunc(t_vec), 0, 0.)
+        MPC_vec = np.insert(PFMPC(t_vec), 0, 1.)
+        
+        cFuncPFbound = CubicInterp(m_vec, c_vec, MPC_vec)
+        self.cFuncPFbound = cFuncPFbound
+        return
             
     
     def calc_limiting_values(self):
