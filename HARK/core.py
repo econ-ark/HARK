@@ -917,10 +917,14 @@ class AgentType(Model):
 
         # Extract state grid data
         grids = [
-            self.state_grid.attrs["grids"][x].astype(float) for x in self.state_grid.attrs["mesh_order"]
+            self.state_grid.attrs["grids"][x].astype(float)
+            for x in self.state_grid.attrs["mesh_order"]
         ]
         # Find values and indices of non-trivial grids
         nt_inds, nt_grids = zip(*[[i, x] for i, x in enumerate(grids) if len(x) > 1])
+
+        # Number of points in full grid
+        mesh_size = self.state_grid.coords["mesh"].size
 
         # Initialize the list transition matrices
         trans_mats = []
@@ -943,15 +947,18 @@ class AgentType(Model):
                 )
 
             state_dstn = shock_dstn.dist_of_func(
-                trans_wrapper, self.solution[k], self.state_grid
+                trans_wrapper, solution=self.solution[k], state_points=self.state_grid
             )
 
+            state_points = state_dstn.dataset.to_array().values[nt_inds, :, :]
+            pmv = state_dstn.probability.values
+
             # Construct transition matrix from the object above
-            tmat = np.zeros((meshpoints.shape[1], meshpoints.shape[1]))
-            for i in range(meshpoints.shape[1]):
+            tmat = np.zeros((mesh_size, mesh_size))
+            for i in range(mesh_size):
                 tmat[i, :] = mass_to_grid(
-                    points=state_dstn.atoms[nt_inds, i, :].T,
-                    mass=state_dstn.pmv,
+                    points=state_points[:, i, :].T,
+                    mass=pmv,
                     grids=nt_grids,
                 )
             # Prepend

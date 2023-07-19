@@ -370,19 +370,19 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
 
         mesh = xr.DataArray(
             points,
-            dims=['var', 'mesh'],
-            coords = {'var': ["PLvl", "mNrm", "Share", "Adjust"]}
+            dims=["var", "mesh"],
+            coords={"var": ["PLvl", "mNrm", "Share", "Adjust"]},
         )
 
         self.state_grid = xr.Dataset(
             data_vars={
-                "PLvl": ('mesh', points[0]),
-                "mNrm": ('mesh', points[1]),
-                'Share': ('mesh', points[2]),
-                'Adjust': ('mesh', points[3].astype(bool))
+                "PLvl": ("mesh", points[0]),
+                "mNrm": ("mesh", points[1]),
+                "Share": ("mesh", points[2]),
+                "Adjust": ("mesh", points[3].astype(bool)),
             },
-            coords={'mesh': np.arange(points.shape[1])},
-            attrs= {
+            coords={"mesh": np.arange(points.shape[1])},
+            attrs={
                 "grids": {
                     "PLvl": PLvlGrid,
                     "mNrm": mNrmGrid,
@@ -390,7 +390,7 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
                     "Adjust": AdjustGrid,
                 },
                 "mesh_order": ["PLvl", "mNrm", "Share", "Adjust"],
-            }
+            },
         )
 
     def state_to_state_trans(self, shocks_next, solution, state, PermGroFac, Rfree):
@@ -400,26 +400,32 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         # Also define dist_of_func for labeled distributions that returns a labeled distribution
 
         # Consumption
-        cNrm = np.empty_like(state['mNrm'])
-        cNrm[state['Adjust']] = solution.cFuncAdj(state['mNrm'][state['Adjust']])
-        cNrm[~state['Adjust']] = solution.cFuncFxd(state['mNrm'][~state['Adjust']], state['Share'][~state['Adjust']])
+        cNrm = xr.full_like(state["mNrm"], np.nan)
+        cNrm[state["Adjust"]] = solution.cFuncAdj(state["mNrm"][state["Adjust"]])
+        cNrm[~state["Adjust"]] = solution.cFuncFxd(
+            state["mNrm"][~state["Adjust"]], state["Share"][~state["Adjust"]]
+        )
         # Savings
-        aNrm = state['mNrm'] - cNrm
+        aNrm = state["mNrm"] - cNrm
         # Share
-        Share_next = np.empty_like(state['Share'])
-        Share_next[state['Adjust']] = solution.ShareFuncAdj(state['mNrm'][state['Adjust']])
-        Share_next[~state['Adjust']] = solution.ShareFuncFxd(state['mNrm'][~state['Adjust']], state['Share'][~state['Adjust']])
+        Share_next = xr.full_like(state["Share"], np.nan)
+        Share_next[state["Adjust"]] = solution.ShareFuncAdj(
+            state["mNrm"][state["Adjust"]]
+        )
+        Share_next[~state["Adjust"]] = solution.ShareFuncFxd(
+            state["mNrm"][~state["Adjust"]], state["Share"][~state["Adjust"]]
+        )
 
-        PLvl_next, mNrm_next, Share_next, Adjust_next = post_state_transition(
+        state_next = post_state_transition(
             shocks_next,
-            state['PLvl'],
+            state["PLvl"],
             aNrm,
             Share_next,
             PermGroFac,
             Rfree,
         )
 
-        return np.stack([PLvl_next, mNrm_next, Share_next, Adjust_next], axis=0)
+        return state_next
 
 
 def post_state_transition(shocks_next, PLvl, aNrm, Share_next, PermGroFac, Rfree):
@@ -429,10 +435,15 @@ def post_state_transition(shocks_next, PLvl, aNrm, Share_next, PermGroFac, Rfree
     mNrm_next = aNrm * Rport / PermGroShk + shocks_next["TranShk"]
 
     # Augment dimensions if needed
-    Share_next = Share_next * np.ones_like(PLvl_next)
-    Adjust_next = shocks_next["Adjust"] * np.ones_like(PLvl_next, dtype=bool)
+    Share_next = Share_next * xr.ones_like(PLvl_next)
+    Adjust_next = shocks_next["Adjust"] * xr.ones_like(PLvl_next, dtype=bool)
 
-    return PLvl_next, mNrm_next, Share_next, Adjust_next
+    return {
+        "PLvl": PLvl_next,
+        "mNrm": mNrm_next,
+        "Share": Share_next,
+        "Adjust": Adjust_next,
+    }
 
 
 class SequentialPortfolioConsumerType(PortfolioConsumerType):
