@@ -34,6 +34,7 @@ from HARK.distribution import (
     DiscreteDistributionLabeled,
 )
 from HARK.metric import MetricObject
+import xarray as xr
 
 
 # Define a class to represent the single period solution of the portfolio choice problem
@@ -149,6 +150,20 @@ class PortfolioSolution(MetricObject):
         self.EndOfPrddvda_fxd = EndOfPrddvda_fxd
         self.EndOfPrddvds_fxd = EndOfPrddvds_fxd
         self.AdjPrb = AdjPrb
+
+    def cFunc(self, mNrm, Share, Adjust):
+        cNrm = xr.full_like(mNrm, np.nan)
+        cNrm[Adjust] = self.cFuncAdj(mNrm[Adjust])
+        no_adj = ~Adjust
+        cNrm[no_adj] = self.cFuncFxd(mNrm[no_adj], Share[no_adj])
+        return cNrm
+
+    def ShareFunc(self, mNrm, Share, Adjust):
+        ShareNext = xr.full_like(mNrm, np.nan)
+        ShareNext[Adjust] = self.ShareFuncAdj(mNrm[Adjust])
+        no_adj = ~Adjust
+        ShareNext[no_adj] = self.ShareFuncFxd(mNrm[no_adj], Share[no_adj])
+        return ShareNext
 
 
 class PortfolioConsumerType(RiskyAssetConsumerType):
@@ -367,49 +382,49 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         points = np.meshgrid(PLvlGrid, mNrmGrid, ShareGrid, AdjustGrid, indexing="ij")
         points = np.stack([x.flatten() for x in points], axis=0)
 
-        # Store a dictionary with individual grids, mesh points and order
-        self.state_grid = {
-            "grids": {
-                "PLvl": PLvlGrid,
-                "mNrm": mNrmGrid,
-                "Share": ShareGrid,
-                "Adjust": AdjustGrid,
+        mesh = xr.DataArray(
+            points,
+            dims=["var", "mesh"],
+            coords={"var": ["PLvl", "mNrm", "Share", "Adjust"]},
+        )
+
+        self.state_grid = xr.Dataset(
+            data_vars={
+                "PLvl": ("mesh", points[0]),
+                "mNrm": ("mesh", points[1]),
+                "Share": ("mesh", points[2]),
+                "Adjust": ("mesh", points[3].astype(bool)),
             },
-            "points": points,
-            "order": ["PLvl", "mNrm", "Share", "Adjust"],
-        }
+            coords={"mesh": np.arange(points.shape[1])},
+            attrs={
+                "grids": {
+                    "PLvl": PLvlGrid,
+                    "mNrm": mNrmGrid,
+                    "Share": ShareGrid,
+                    "Adjust": AdjustGrid,
+                },
+                "mesh_order": ["PLvl", "mNrm", "Share", "Adjust"],
+            },
+        )
 
     def state_to_state_trans(self, shocks_next, solution, state, PermGroFac, Rfree):
-        # TODO:
-        # Would be good to have transitions receive
-        # state as a labeled xarray and return a labeled xarray
-        # Also define dist_of_func for labeled distributions that returns a labeled distribution
-
-        # Unpack next period's states
-        PLvl, mNrm, Share, Adjust = state[0], state[1], state[2], state[3]
-        Adjust = Adjust.astype(bool)
-
         # Consumption
-        cNrm = np.empty_like(mNrm)
-        cNrm[Adjust] = solution.cFuncAdj(mNrm[Adjust])
-        cNrm[~Adjust] = solution.cFuncFxd(mNrm[~Adjust], Share[~Adjust])
+        cNrm = solution.cFunc(state["mNrm"], state["Share"], state["Adjust"])
         # Savings
-        aNrm = mNrm - cNrm
+        aNrm = state["mNrm"] - cNrm
         # Share
-        Share_next = np.empty_like(Share)
-        Share_next[Adjust] = solution.ShareFuncAdj(mNrm[Adjust])
-        Share_next[~Adjust] = solution.ShareFuncFxd(mNrm[~Adjust], Share[~Adjust])
-
-        PLvl_next, mNrm_next, Share_next, Adjust_next = post_state_transition(
+        Share_next = solution.ShareFunc(state["mNrm"], state["Share"], state["Adjust"])
+        # Shock transition
+        state_next = post_state_transition(
             shocks_next,
-            PLvl,
+            state["PLvl"],
             aNrm,
             Share_next,
             PermGroFac,
             Rfree,
         )
 
-        return np.stack([PLvl_next, mNrm_next, Share_next, Adjust_next], axis=0)
+        return state_next
 
 
 def post_state_transition(shocks_next, PLvl, aNrm, Share_next, PermGroFac, Rfree):
@@ -419,10 +434,15 @@ def post_state_transition(shocks_next, PLvl, aNrm, Share_next, PermGroFac, Rfree
     mNrm_next = aNrm * Rport / PermGroShk + shocks_next["TranShk"]
 
     # Augment dimensions if needed
-    Share_next = Share_next * np.ones_like(PLvl_next)
-    Adjust_next = shocks_next["Adjust"] * np.ones_like(PLvl_next, dtype=bool)
+    Share_next = Share_next * xr.ones_like(PLvl_next)
+    Adjust_next = shocks_next["Adjust"] * xr.ones_like(PLvl_next, dtype=bool)
 
-    return PLvl_next, mNrm_next, Share_next, Adjust_next
+    return {
+        "PLvl": PLvl_next,
+        "mNrm": mNrm_next,
+        "Share": Share_next,
+        "Adjust": Adjust_next,
+    }
 
 
 class SequentialPortfolioConsumerType(PortfolioConsumerType):
