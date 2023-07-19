@@ -1,5 +1,5 @@
 Econforgeinterp
--------------
+---------------
 
 .. automodule:: HARK.econforgeinterp
    :members:

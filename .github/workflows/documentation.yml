@@ -51,6 +51,7 @@ jobs:
         sphinx-build
         -M html Documentation HARK-docs
         -T
+        -W
 
     - name: Set up git for deployment
       run: |

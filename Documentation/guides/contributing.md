@@ -4,7 +4,7 @@
 - [Contributing Guide](#contributing-guide)
 - [Developer's Certificate of Origin 1.1](#developer-s-certificate-of-origin-1-1)
 
-## [Code of Conduct](./doc/guides/contributing/coc.md)
+## Code of Conduct
 
 The Econ-ARK project has a
 [Code of Conduct](https://github.com/econ-ark/HARK/blob/master/.github/CODE_OF_CONDUCT.md)
