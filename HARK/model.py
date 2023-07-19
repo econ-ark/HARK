@@ -1,8 +1,7 @@
 """
 Models in the abstract.
 """
-from collections.abc import Callable, Mapping, Sequence
-from typing import Any, Optional, Union
+from typing import Any, Callable, Mapping, Optional, Sequence, Union
 
 class Control():
     """
