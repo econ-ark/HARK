@@ -152,10 +152,14 @@ def make_states(
     Returns:
     States: An arrayray Dataset representing the states.
     """
+    if isinstance(values, list):
+        values_len = len(values)
+    elif isinstance(values, np.ndarray):
+        values_len = values.shape[0]
 
     # Use default names and attrs only when they are not provided
-    names = names or [f"state{rng.integers(0, 100)}" for _ in range(len(values))]
-    attrs = attrs or [{}] * len(values)
+    names = names or [f"state{rng.integers(0, 100)}" for _ in range(values_len)]
+    attrs = attrs or [{}] * values_len
 
     states = [
         make_state(value, name, attr) for value, name, attr in zip(values, names, attrs)
