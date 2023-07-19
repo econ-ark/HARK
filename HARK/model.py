@@ -1,18 +1,41 @@
 """
 Models in the abstract.
 """
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any, Optional
 
 class Control():
     """
     A class used to indicate that a variable is a control variable.
+
+    Parameters
+    -----------
+    policy_args : Sequence[str]
+        A sequence of variable names, which refer to the values that are the arguments
+        to decision rules for this control variable.
+
     """
 
-    def __init__(self, policy_args):
+    def __init__(
+            self,
+            policy_args : Sequence[str]
+            ):
         self.policy_args = policy_args
 
 class Model:
     """
-    A class with special handling of parameters assignment.
+    An economic model.
+    This object should contain the information about an environment's dynamics.
+
+    Parameters
+    ----------
+    equations : Mapping(str, Union[Callable, Control])
+        A mapping from model variable names (as strings) to transition equations governing
+        these variables.
+    parameters : Optional[Mapping(str, Any)]
+        A mapping from parameters names (strings) to parameter values.
+    options : Mapping(str, Any)
+        A mapping from options (str) to option values.
     """
 
     def assign_parameters(self, **kwds):
@@ -33,7 +56,7 @@ class Model:
         for key in kwds:
             setattr(self, key, kwds[key])
 
-    def get_parameter(self, name):
+    def get_parameter(self, name: str):
         """
         Returns a parameter of this model
 
@@ -51,11 +74,16 @@ class Model:
 
     def __eq__(self, other):
         if isinstance(other, type(self)):
-            return self.parameters == other.parameters
+            return (self.parameters == other.parameters) and (self.equations == other.equations)
 
         return NotImplemented
 
-    def __init__(self, equations = {}, parameters = None, options = {}):
+    def __init__(
+            self,
+            equations : Mapping[str, Union[Callable, Control]] = {},
+            parameters : Optional[Mapping[str, Any]] = None,
+            options : Mapping[str, Any] = {}
+            ):
 
         self.equations = equations
         self.options = options
