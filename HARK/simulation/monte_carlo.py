@@ -2,7 +2,7 @@
 Functions to support Monte Carlo simulation of models.
 """
 
-from distribution import Distribution
+from HARK.distribution import Distribution
 from inspect import signature
 from typing import Any, Callable, Mapping, Union
 

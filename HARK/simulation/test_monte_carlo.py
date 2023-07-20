@@ -3,8 +3,14 @@ This file implements unit tests for the Monte Carlo simulation module
 """
 import unittest
 
+from HARK.distribution import MeanOneLogNormal
 from HARK.simulation.monte_carlo import *
 
+shocks = {
+    'psi' : MeanOneLogNormal(1),
+    'theta' : MeanOneLogNormal(1)
+
+}
 
 pre = {
     'R' : 1.05,
@@ -27,6 +33,12 @@ dr = {
     'cNrm' : lambda mNrm : mNrm / 2
 }
 
+class test_draw_shocks(unittest.TestCase):
+    def test_draw_shocks(self):
+
+        drawn = draw_shocks(shocks, 2)
+
+        self.assertEqual(len(drawn['psi']), 2)
 
 class test_sim_one_period(unittest.TestCase):
     def test_sim_one_period(self):
