@@ -15,6 +15,7 @@ See HARK documentation for mathematical descriptions of the models being solved.
 from copy import copy, deepcopy
 
 import numpy as np
+import xarray as xr
 from scipy import sparse as sp
 from scipy.optimize import newton
 
@@ -3441,6 +3442,58 @@ class IndShockConsumerType(PerfForesightConsumerType):
         )
 
         return IncShkDstn, PermShkDstn, TranShkDstn
+    
+    def make_state_grid(
+        self,
+        PLvlGrid=None,
+        mNrmGrid=None,
+    ):
+        if PLvlGrid is None:
+            PLvlGrid = np.array([1.0])
+        if mNrmGrid is None:
+            mNrmGrid = np.array([1.0])
+
+        # Create a mesh
+        points = np.meshgrid(PLvlGrid, mNrmGrid, indexing="ij")
+        points = np.stack([x.flatten() for x in points], axis=0)
+
+        mesh = xr.DataArray(
+            points,
+            dims=["var", "mesh"],
+            coords={"var": ["PLvl", "mNrm"]},
+        )
+
+        self.state_grid = xr.Dataset(
+            data_vars={
+                "PLvl": ("mesh", points[0]),
+                "mNrm": ("mesh", points[1]),
+            },
+            coords={"mesh": np.arange(points.shape[1])},
+            attrs={
+                "grids": {
+                    "PLvl": PLvlGrid,
+                    "mNrm": mNrmGrid,
+                },
+                "mesh_order": ["PLvl", "mNrm"],
+            },
+        )
+
+    def state_to_state_trans(self, shocks_next, solution, state, PermGroFac, Rfree):
+
+        # Consumption
+        cNrm = solution.cFunc(state["mNrm"])
+        # Savings
+        aNrm = state["mNrm"] - cNrm
+
+        # Shock realization
+        PermGroShk = shocks_next["PermShk"] * PermGroFac
+        PLvl_next = state["PLvl"] * PermGroShk
+        mNrm_next = aNrm * Rfree / PermGroShk + shocks_next["TranShk"]
+        
+        return {
+            "PLvl": PLvl_next,
+            "mNrm": mNrm_next,
+        }
 
 
 class LognormPermIncShk(DiscreteDistribution):

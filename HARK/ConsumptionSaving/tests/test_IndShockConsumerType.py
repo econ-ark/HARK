@@ -922,3 +922,38 @@ class test_Jacobian_methods(unittest.TestCase):
         self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.06120, places=HARK_PRECISION)
         self.assertAlmostEqual(CJAC_Perm.T[30][30], 0.05307, places=HARK_PRECISION)
         self.assertAlmostEqual(CJAC_Perm.T[30][31], 0.04674, places=HARK_PRECISION)
+
+
+# %% Compare with newer transition matrix methods
+
+
+class test_compare_trans_mats(unittest.TestCase):
+    def test_compare_will_mateo(self):
+        # No deaths for now in Mateo's method
+        # but Will's requires LivPrb < 1
+        params = deepcopy(dict_harmenberg)
+        params["LivPrb"] = [0.999]
+
+        # Create and solve agent
+        agent = IndShockConsumerType(**params)
+        agent.cycles = 0
+        agent.solve()
+        # Activate harmenberg
+        agent.neutral_measure = True
+        agent.update_income_process()
+
+        m_grid = np.linspace(0, 20, 10)
+
+        # Will's methods
+        agent.define_distribution_grid(dist_mGrid=m_grid)
+        agent.calc_transition_matrix()
+        tm_will = agent.tran_matrix
+
+        # Mateo's methods
+        agent.make_state_grid(mNrmGrid=m_grid)
+        agent.full_shock_dstns = agent.IncShkDstn
+        agent.find_transition_matrices()
+        tm_mateo = agent.trans_mats[0]
+
+        # Compare
+        self.assertTrue(np.allclose(tm_will, tm_mateo.T, atol=5e-3))
