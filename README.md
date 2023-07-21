@@ -185,7 +185,7 @@ Current releases follow [Semantic Versioning](https://semver.org/). For more inf
 
 ## API Documentation
 
-Documentation for the latest release is at [HARK ReadTheDocs](https://docs.econ-ark.org/). Version-specific documentation is available from the same source.
+Documentation for the latest release is at [docs.econ-ark.org](https://docs.econ-ark.org/reference/).
 
 ## Introduction
 
