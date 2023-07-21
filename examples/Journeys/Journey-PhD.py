@@ -126,7 +126,7 @@
 # - Quick introduction to Python and OOP: chapters five to seven from [Quantecon](https://python-programming.quantecon.org/intro.html) should familiarize you with everything what you need for the first tutorials.
 # - A little longer introduction (if you want to learn something about used numerical methods):
 #     - Start with the basic Python [tutorial](https://docs.python.org/3/tutorial)
-#     - Get some knowledge about [Numpy](https://docs.scipy.org/doc/numpy/user/quickstart.html)
+#     - Get some knowledge about [Numpy](https://numpy.org/doc/stable/user/quickstart.html)
 # - You can also learn Python by learning Machine learning, as there are many tutorials constructed in that way (one example is [scikit-learn tutorials](https://scikit-learn.org/stable/tutorial/index.html)).
 
 # %% [markdown]
