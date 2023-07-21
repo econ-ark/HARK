@@ -893,7 +893,7 @@ class AgentType(Model):
         # Save list of shock distributions
         self.full_shock_dstns = shock_dstns
 
-    def find_transition_matrices(self):
+    def find_transition_matrices(self, newborn_dstn=None):
         # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
         if len(self.time_vary) > 0:
             # name = agent.time_vary[0]
@@ -916,15 +916,29 @@ class AgentType(Model):
         these_args = tuple(filter(lambda x: x not in exclude_args, these_args))
 
         # Extract state grid data
-        grids = [
-            self.state_grid.attrs["grids"][x].astype(float)
-            for x in self.state_grid.attrs["mesh_order"]
-        ]
-        # Find values and indices of non-trivial grids
-        nt_inds, nt_grids = zip(*[[i, x] for i, x in enumerate(grids) if len(x) > 1])
+        grids = {}
+        for x in self.state_grid.attrs["mesh_order"]:
+            grids[x] = self.state_grid.attrs["grids"][x].astype(float)
+
+        # Find names and values of non-trivial grids
+        nt_states = [x for x, grid in grids.items() if grid.size > 1]
+        nt_grids = [grids[x] for x in nt_states]
 
         # Number of points in full grid
         mesh_size = self.state_grid.coords["mesh"].size
+
+        # Find newborn distribution
+        if newborn_dstn is not None:
+            nb_points = newborn_dstn.dataset[nt_states].to_array().values.T
+            nb_pmv = newborn_dstn.probability.values
+
+            newborn_mass = mass_to_grid(
+                points=nb_points,
+                mass=nb_pmv,
+                grids=nt_grids,
+            )[
+                np.newaxis, :
+            ]  # Add dimension for broadcasting
 
         # Initialize the list transition matrices
         trans_mats = []
@@ -950,7 +964,7 @@ class AgentType(Model):
                 trans_wrapper, solution=self.solution[k], state_points=self.state_grid
             )
 
-            state_points = state_dstn.dataset.to_array().values[nt_inds, :, :]
+            state_points = state_dstn.dataset[nt_states].to_array().values
             pmv = state_dstn.probability.values
 
             # Construct transition matrix from the object above
@@ -961,6 +975,11 @@ class AgentType(Model):
                     mass=pmv,
                     grids=nt_grids,
                 )
+
+            # Add newborns to transition matrix if needed
+            if newborn_dstn is not None and hasattr(self, "LivPrb"):
+                tmat = self.LivPrb[k] * tmat + (1.0 - self.LivPrb[k]) * newborn_mass
+
             # Prepend
             trans_mats.insert(0, tmat)
 

@@ -3,6 +3,7 @@ from copy import copy, deepcopy
 
 import numpy as np
 
+from HARK.distribution import DiscreteDistributionLabeled
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolverBasic,
     IndShockConsumerType,
@@ -928,6 +929,20 @@ class test_Jacobian_methods(unittest.TestCase):
 
 
 class test_compare_trans_mats(unittest.TestCase):
+
+    def setUp(self):
+        
+        # Grid
+        self.m_grid = np.linspace(0, 20, 10)
+
+        # Newborn distribution. Will's method assumes everyone starts
+        # at m=1.
+        self.newborn_dstn = DiscreteDistributionLabeled(
+            pmv=np.array([1.0]),
+            atoms=np.array([[1.0],[1.0]]),
+            var_names=['PLvl','mNrm']
+        )
+
     def test_compare_will_mateo(self):
         # No deaths for now in Mateo's method
         # but Will's requires LivPrb < 1
@@ -942,17 +957,15 @@ class test_compare_trans_mats(unittest.TestCase):
         agent.neutral_measure = True
         agent.update_income_process()
 
-        m_grid = np.linspace(0, 20, 10)
-
         # Will's methods
-        agent.define_distribution_grid(dist_mGrid=m_grid)
+        agent.define_distribution_grid(dist_mGrid=self.m_grid)
         agent.calc_transition_matrix()
         tm_will = agent.tran_matrix
 
         # Mateo's methods
-        agent.make_state_grid(mNrmGrid=m_grid)
+        agent.make_state_grid(mNrmGrid=self.m_grid)
         agent.full_shock_dstns = agent.IncShkDstn
-        agent.find_transition_matrices()
+        agent.find_transition_matrices(newborn_dstn=self.newborn_dstn)
         tm_mateo = agent.trans_mats[0]
 
         # Compare
