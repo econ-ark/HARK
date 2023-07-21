@@ -944,10 +944,10 @@ class test_compare_trans_mats(unittest.TestCase):
         )
 
     def test_compare_will_mateo(self):
-        # No deaths for now in Mateo's method
-        # but Will's requires LivPrb < 1
+        
+        # Deaths
         params = deepcopy(dict_harmenberg)
-        params["LivPrb"] = [0.999]
+        params["LivPrb"] = [0.9]
 
         # Create and solve agent
         agent = IndShockConsumerType(**params)
@@ -969,4 +969,5 @@ class test_compare_trans_mats(unittest.TestCase):
         tm_mateo = agent.trans_mats[0]
 
         # Compare
-        self.assertTrue(np.allclose(tm_will, tm_mateo.T, atol=5e-3))
+        self.assertTrue(np.allclose(tm_will, tm_mateo.T, atol=1e-10))
+        

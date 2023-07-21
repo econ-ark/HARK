@@ -922,7 +922,7 @@ class AgentType(Model):
 
         # Find names and values of non-trivial grids
         nt_states = [x for x, grid in grids.items() if grid.size > 1]
-        nt_grids = [grids[x] for x in nt_states]
+        nt_grids = tuple(grids[x] for x in nt_states)
 
         # Number of points in full grid
         mesh_size = self.state_grid.coords["mesh"].size
@@ -978,7 +978,11 @@ class AgentType(Model):
 
             # Add newborns to transition matrix if needed
             if newborn_dstn is not None and hasattr(self, "LivPrb"):
-                tmat = self.LivPrb[k] * tmat + (1.0 - self.LivPrb[k]) * newborn_mass
+                if T==1:
+                    tmat = self.LivPrb[k] * tmat + (1.0 - self.LivPrb[k]) * newborn_mass
+                else:
+                    # TODO: Life-cycle treatment of death to be defined
+                    pass
 
             # Prepend
             trans_mats.insert(0, tmat)
