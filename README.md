@@ -7,7 +7,7 @@
 
 [![Anaconda Cloud](https://anaconda.org/conda-forge/econ-ark/badges/version.svg?style=flat)](https://anaconda.org/conda-forge/econ-ark)
 [![PyPi](https://img.shields.io/pypi/v/econ-ark.png?style=flat)](https://pypi.org/project/econ-ark/)
-[![Documentation Status](https://readthedocs.org/projects/hark/badge/?style=flat&version=latest)](https://hark.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/hark/badge/?style=flat&version=latest)](https://docs.econ-ark.org/?badge=latest)
 [![Code Coverage](https://codecov.io/gh/econ-ark/hark/branch/master/graph/badge.svg)](https://app.codecov.io/gh/econ-ark/hark/branch/master)
 [![GitHub Good First Issues](https://img.shields.io/github/issues/econ-ark/HARK/good%20first%20issue.svg)](https://github.com/econ-ark/HARK/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 [![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)
@@ -185,7 +185,7 @@ Current releases follow [Semantic Versioning](https://semver.org/). For more inf
 
 ## API Documentation
 
-Documentation for the latest release is at [HARK ReadTheDocs](https://hark.readthedocs.io/en/latest/). Version-specific documentation is available from the same source.
+Documentation for the latest release is at [HARK ReadTheDocs](https://docs.econ-ark.org/). Version-specific documentation is available from the same source.
 
 ## Introduction
 
