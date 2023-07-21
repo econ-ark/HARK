@@ -88,7 +88,7 @@ print("\n\n\n")
 print("For derivation of the numerical limiting portfolio share")
 print("as market resources approach infinity, see")
 print(
-    "http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/AssetPricing/Portfolio-CRRA/"
+    "https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/AssetPricing/Portfolio-CRRA/"
 )
 
 # %%

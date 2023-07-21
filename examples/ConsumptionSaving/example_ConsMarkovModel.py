@@ -72,7 +72,7 @@ do_simulation = True
 #
 # For example, in a model with 4 discrete states, each the $\texttt{cFunc}$ attribute of each element of $\texttt{solution}$ is a length-4 list whose elements are state-conditional consumption functions. That is, $\texttt{cFunc[2]}$ is the consumption function when $s_t = 2$.
 #
-# $\texttt{ConsMarkovModel}$ is compatible with cubic spline interpolation for the consumption functions, so $\texttt{CubicBool = True}$ will not generate an exception. The problem is solved using the [method of endogenous gridpoints](http://www.econ2.jhu.edu/people/ccarroll/EndogenousGridpoints.pdf), which is moderately more complicated than in the basic $\texttt{ConsPrefShockModel}$.
+# $\texttt{ConsMarkovModel}$ is compatible with cubic spline interpolation for the consumption functions, so $\texttt{CubicBool = True}$ will not generate an exception. The problem is solved using the [method of endogenous gridpoints](https://www.econ2.jhu.edu/people/ccarroll/EndogenousGridpoints.pdf), which is moderately more complicated than in the basic $\texttt{ConsPrefShockModel}$.
 
 # %%
 # Define the Markov transition matrix for serially correlated unemployment
