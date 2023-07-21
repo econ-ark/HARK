@@ -40,10 +40,10 @@ class test_draw_shocks(unittest.TestCase):
 
         self.assertEqual(len(drawn['psi']), 2)
 
-class test_sim_one_period(unittest.TestCase):
-    def test_sim_one_period(self):
+class test_simulate_dynamics(unittest.TestCase):
+    def test_simulate_dynamics(self):
 
-        post = sim_one_period(dynamics, pre, dr)
+        post = simulate_dynamics(dynamics, pre, dr)
 
         self.assertAlmostEqual(post['cNrm'], 0.98388429)
 
