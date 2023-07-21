@@ -38,7 +38,7 @@ Python modules in HARK can generally be categorized into three types: tools, mod
 
 ## HARK
 
-After you [installed](https://docs.econ-ark.org/quick-start.html) and [cloned the repository of](https://github.com/econ-ark/HARK) HARK, you can explore the content of it. In the subfolder HARK, you can find a range of [general purpose tools](#general-purpose-tools), as well as the next subfolder ConsumptionSaving which has [AgentType Classes](#agenttype-class) and [Market Classes](#market-class).
+After you [installed](https://docs.econ-ark.org/guides/quick_start.html) and [cloned the repository of](https://github.com/econ-ark/HARK) HARK, you can explore the content of it. In the subfolder HARK, you can find a range of [general purpose tools](#general-purpose-tools), as well as the next subfolder ConsumptionSaving which has [AgentType Classes](#agenttype-class) and [Market Classes](#market-class).
 
 ### General Purpose Tools
 
@@ -86,7 +86,7 @@ Methods for optimizing an objective function for the purposes of estimating a mo
 
 By default, processes in Python are single-threaded, using only a single CPU core. The **_HARK.parallel_** module provides basic tools for using multiple CPU cores simultaneously, with minimal effort. [^4] In particular, it provides the function **_multiThreadCommands_**, which takes two arguments: a list of **_AgentType_**s and a list of commands as strings; each command should be a method of the **_AgentType_**s. The function simply distributes the **_AgentType_**s across threads on different cores and executes each command in order, returning no output (the **_AgentType_**s themselves are changed by running the commands). Equivalent results would be achieved by simply looping over each type and running each method in the list. Indeed, **_HARK.parallel_** also has a function called **_multiThreadCommandsFake_** that does just that, with identical syntax to **_multiThreadCommands_**; multithreading in HARK can thus be easily turned on and off. [^5] The module also has functions for a parallel implementation of the Nelder-Mead simplex algorithm, as described in Wiswall and Lee (2011). See [here](https://docs.econ-ark.org/reference/tools/parallel.html) for full documentation.
 
-[^4]: **_HARK.parallel_** uses two packages that aren't included in the default distribution of Anaconda: **_joblib_** and **_dill_**; see [here](https://docs.econ-ark.org/quick-start.html#using-hark-with-anaconda) for instructions on how to install them.
+[^4]: **_HARK.parallel_** uses two packages that aren't included in the default distribution of Anaconda: **_joblib_** and **_dill_**; see [here](https://docs.econ-ark.org/guides/quick_start.html#using-hark-with-anaconda) for instructions on how to install them.
 
 [^5]: In the future, **_HARK.parallel_** might be absorbed into **_HARK.core_** and **_HARK.estimation_**, particularly if **_joblib_** and **_dill_** become part of the standard Anaconda distribution.
 
