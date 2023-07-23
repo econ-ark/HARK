@@ -4,6 +4,7 @@ sphinx>=6.1
 pydata-sphinx-theme
 
 # extension requirements
+ipython  # for the Pygments lexer
 myst-parser>=2
 nbsphinx>=0.8
 sphinx-copybutton
