@@ -20,6 +20,7 @@ version = release = "latest"
 
 # General configuration
 extensions = [
+    # built-in extensions
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
@@ -30,8 +31,11 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
+    # third-party extensions
     "nbsphinx",
     "myst_parser",
+    "sphinx_copybutton",
+    "sphinx_design",
 ]
 
 exclude_patterns = [
