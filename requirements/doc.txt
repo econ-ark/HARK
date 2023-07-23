@@ -1,0 +1,10 @@
+sphinx>=6.1
+
+# theme requirements
+pydata-sphinx-theme
+
+# extension requirements
+myst-parser>=2
+nbsphinx>=0.8
+sphinx-copybutton
+sphinx-design

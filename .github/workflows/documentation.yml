@@ -44,7 +44,7 @@ jobs:
       run: python -m pip install --upgrade pip
 
     - name: Install HARK
-      run: python -m pip install .[dev]
+      run: python -m pip install .[doc]
 
     - name: Run Sphinx
       run: >
