@@ -62,6 +62,10 @@ source_suffix = [
 
 # HTML writer configuration
 html_theme = "pydata_sphinx_theme"
+html_static_path = ["_static"]
+html_css_files = [
+    'override-nbsphinx-gallery.css',
+]
 
 html_theme_options = {
     "use_edit_page_button": True,
