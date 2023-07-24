@@ -57,7 +57,8 @@ class Parameters:
             Any number of keyword arguments of the form key=value.
             To parse a dictionary of parameters, use the ** operator.
         """
-        self._term_age = parameters.pop("T_cycle", None)
+        params = parameters.copy()
+        self._term_age = params.pop("T_cycle", None)
         self._age_inv = set()
         self._age_var = set()
         self._parameters = {}
