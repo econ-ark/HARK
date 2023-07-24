@@ -63,7 +63,7 @@ class Parameters:
         self._age_var = set()
         self._parameters = {}
 
-        for key, value in parameters.items():
+        for key, value in params.items():
             self._parameters[key] = self.__infer_dims__(key, value)
 
     def __infer_dims__(self, key, value):
