@@ -31,7 +31,7 @@ from HARK.utilities import NullFunc, get_arg_names
 class Parameters:
     """
     This class defines an object that stores all of the parameters for a model
-    as attributes of itself. It is designed to also handle the age-varying
+    as an internal dictionary. It is designed to also handle the age-varying
     dynamics of parameters.
 
     Attributes
@@ -57,12 +57,13 @@ class Parameters:
             Any number of keyword arguments of the form key=value.
             To parse a dictionary of parameters, use the ** operator.
         """
-        self._term_age = parameters.get("T_cycle", None)
-        self._age_inv = []
-        self._age_var = []
+        self._term_age = parameters.pop("T_cycle", None)
+        self._age_inv = set()
+        self._age_var = set()
+        self._parameters = {}
 
         for key, value in parameters.items():
-            setattr(self, key, value)
+            self._parameters[key] = self.__infer_dims__(key, value)
 
     def __infer_dims__(self, key, value):
         """
@@ -99,31 +100,17 @@ class Parameters:
 
     def __add_to_time_inv(self, key):
         """
-        Adds parameter name to invariant list and removes from varying list.
-
-        Parameters
-        ----------
-        key : str
-            parameter name
+        Adds parameter name to invariant set and removes from varying set.
         """
-        if key in self._age_var:
-            self._age_var.remove(key)
-        if key not in self._age_inv:
-            self._age_inv.append(key)
+        self._age_var.discard(key)
+        self._age_inv.add(key)
 
     def __add_to_time_vary(self, key):
         """
-        Adds parameter name to varying list and removes from invariant list.
-
-        Parameters
-        ----------
-        key : str
-            parameter name
+        Adds parameter name to varying set and removes from invariant set.
         """
-        if key in self._age_inv:
-            self._age_inv.remove(key)
-        if key not in self._age_var:
-            self._age_var.append(key)
+        self._age_inv.discard(key)
+        self._age_var.add(key)
 
     def __getitem__(self, age_or_key):
         """
@@ -131,33 +118,19 @@ class Parameters:
         that apply to that age. This includes all invariant parameters and the
         `age_or_key`th element of all age-varying parameters. If age_or_key is a string,
         it returns the value of the parameter with that name.
-
-        Parameters
-        ----------
-        age_or_key : int or str
-            Age or key of parameter(s)
-
-
-        Returns
-        -------
-        Parameters or value
-            Parameters object with parameters that apply to age `age_or_key` or value of
-            parameter with name `age_or_key`.
         """
         if isinstance(age_or_key, int):
-            # return parameters at age
             if age_or_key >= self._term_age:
-                raise ValueError("Age or key is greater than or equal to term age.")
+                raise ValueError("Age is greater than or equal to terminal age.")
 
-            params = {}
-            for key in self._age_inv:
-                params[key] = getattr(self, key)
-            for key in self._age_var:
-                params[key] = getattr(self, key)[age_or_key]
+            params = {key: self._parameters[key] for key in self._age_inv}
+            params.update(
+                {key: self._parameters[key][age_or_key] for key in self._age_var}
+            )
             return Parameters(**params)
 
         elif isinstance(age_or_key, str):
-            return getattr(self, age_or_key)
+            return self._parameters[age_or_key]
 
     def __setitem__(self, key, value):
         """
@@ -173,28 +146,7 @@ class Parameters:
         """
         if not isinstance(key, str):
             raise ValueError("Parameters must be set with a string key")
-        self.__setattr__(key, value)
-
-    def __setattr__(self, key, value):
-        """
-        Sets attribute depending on key. If key starts with an underscore, it is
-        assumed to be an internal attribute and is set normally. Otherwise, we
-        infer its age-varying dimensions and set it as an attribute.
-
-        Parameters
-        ----------
-        key : str
-            Name of parameter
-        value : Any
-            Value of parameter
-        """
-        if key.startswith("_"):
-            # Handle setting internal attributes normally
-            super().__setattr__(key, value)
-        else:
-            # Handle setting parameters as dictionary items
-            new_value = self.__infer_dims__(key, value)
-            super().__setattr__(key, new_value)
+        self._parameters[key] = value
 
     def keys(self):
         """
@@ -206,13 +158,13 @@ class Parameters:
         """
         Returns a list of the values of the parameters.
         """
-        return [getattr(self, key) for key in self.keys()]
+        return [self._parameters[key] for key in self.keys()]
 
     def items(self):
         """
         Returns a list of tuples of the form (name, value) for each parameter.
         """
-        return [(key, getattr(self, key)) for key in self.keys()]
+        return [(key, self._parameters[key]) for key in self.keys()]
 
     def __iter__(self):
         """
@@ -230,7 +182,7 @@ class Parameters:
         """
         Returns a dictionary of the parameters.
         """
-        return {key: getattr(self, key) for key in self.keys()}
+        return {key: self._parameters[key] for key in self.keys()}
 
     def to_namedtuple(self):
         """
@@ -250,10 +202,10 @@ class Parameters:
         """
         if isinstance(other_params, Parameters):
             for key, value in other_params:
-                setattr(self, key, value)
+                self._parameters[key] = value
         elif isinstance(other_params, dict):
             for key, value in other_params.items():
-                setattr(self, key, value)
+                self._parameters[key] = value
         else:
             raise ValueError("Parameters must be a dict or a Parameters object")
 
@@ -267,7 +219,7 @@ class Parameters:
         """
         Returns a detailed string representation of the Parameters object.
         """
-        return f"Parameters( _age_inv = {str(self._age_inv)}, _age_var = {str(self._age_var)}, | {str(self.to_dict())})"
+        return f"Parameters( _age_inv = {self._age_inv}, _age_var = {self._age_var}, | {self.to_dict()})"
 
 
 class Model:
@@ -294,7 +246,7 @@ class Model:
         """
         self.parameters.update(kwds)
         for key, value in kwds.items():
-            setattr(self, key, value)
+            self._parameters[key] = value
 
     def get_parameter(self, name):
         """
