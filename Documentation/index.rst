@@ -10,7 +10,7 @@ Econ-ARK documentation -- HARK
    Guides <guides/index>
 
 
-Heterogenous Agents Resources & toolKit (HARK)
+**HARK**, the *Heterogenous Agents Resources & toolKit*,
 is a toolkit for the structural modeling of economic choices
 of optimizing and non-optimizing heterogeneous agents.
 
@@ -20,7 +20,7 @@ It is aimed at computational researchers and other
 software developers who are building new models with HARK,
 or are contributing to the core software.
 
-If you are a student trying to learn economics concepts,
+If you are a student trying to learn economic concepts,
 you might want to look at the `DemARK
 <https://github.com/econ-ark/DemARK/>`_ project.
 
