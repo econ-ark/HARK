@@ -227,8 +227,9 @@ class Model:
     A class with special handling of parameters assignment.
     """
 
-    def __init__(self, **kwds):
-        self.parameters = Parameters(**kwds)
+    def __init__(self):
+        if not hasattr(self, "parameters"):
+            self.parameters = {}
 
     def assign_parameters(self, **kwds):
         """
@@ -245,8 +246,8 @@ class Model:
         none
         """
         self.parameters.update(kwds)
-        for key, value in kwds.items():
-            self._parameters[key] = value
+        for key in kwds:
+            setattr(self, key, kwds[key])
 
     def get_parameter(self, name):
         """
@@ -266,7 +267,7 @@ class Model:
 
     def __eq__(self, other):
         if isinstance(other, type(self)):
-            return self.parameters.to_dict() == other.parameters.to_dict()
+            return self.parameters == other.parameters
 
         return NotImplemented
 
@@ -275,14 +276,14 @@ class Model:
         module = type_.__module__
         qualname = type_.__qualname__
 
-        string = f"<{module}.{qualname} object at {hex(id(self))}.\n"
-        string += "Parameters:"
+        s = f"<{module}.{qualname} object at {hex(id(self))}.\n"
+        s += "Parameters:"
 
         for p in self.parameters:
-            string += f"\n{p}: {self.parameters[p]}"
+            s += f"\n{p}: {self.parameters[p]}"
 
-        string += ">"
-        return string
+        s += ">"
+        return s
 
     def __repr__(self):
         return self.__str__()
