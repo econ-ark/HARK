@@ -185,7 +185,7 @@ Current releases follow [Semantic Versioning](https://semver.org/). For more inf
 
 ## Documentation
 
-Documentation for the latest release is at [docs.econ-ark.org](https://docs.econ-ark.org/index.html).
+Documentation for the latest release is at [docs.econ-ark.org](https://docs.econ-ark.org/).
 
 ## Introduction
 
