@@ -18,7 +18,6 @@ Overview
    ../example_notebooks/KinkedRconsumerType.ipynb
    ../example_notebooks/ConsPortfolioModel.ipynb
    ../example_notebooks/GenIncProcessModel.ipynb
-   ../example_notebooks/LifecycleModel.ipynb
    ../example_notebooks/HowWeSolveIndShockConsumerType.ipynb
    ../example_notebooks/Journey-PhD.ipynb
 
