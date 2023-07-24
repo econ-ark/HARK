@@ -54,10 +54,52 @@ class test_simulate_dynamics(unittest.TestCase):
         self.assertAlmostEqual(post['cNrm'], 0.98388429)
 
 
+class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
+    def setUp(self):
 
+        self.shocks = {
+            ## TODO: Add an aggregate shock
+            ## TODO: Add a time varying shock.
+            'theta' : MeanOneLogNormal(1),
+            'agg_R' : Aggregate(MeanOneLogNormal(1))
+        }
 
+        self.initial = {
+            'a' : MeanOneLogNormal(1)
+        }
 
+        self.parameters = { # TODO
+            'G' : 1.05,
+        }
 
+        self.dynamics = {
+            'b' : lambda agg_R, G, a : agg_R * G * a,
+            'm' : lambda b, theta : b + theta,
+            'c' : Control(['m']),
+            'a' : lambda m, c : m - c
+        }
+
+        self.dr = {
+            'c' : lambda m : m / 2
+        }
+
+    def test_AgentTypeMonteCarloSimulator(self):
+        self.simulator = AgentTypeMonteCarloSimulator(
+            self.parameters,
+            self.shocks,
+            self.dynamics,
+            self.dr,
+            self.initial,
+            agent_count = 3
+        )
+
+        self.simulator.initialize_sim()
+        history = self.simulator.simulate()
+
+        a1 = history['a'][5]
+        b1 = history['a'][4] * history['agg_R'][5] * self.parameters['G'] + history['theta'][5]  - history['c'][5]
+
+        self.assertTrue((a1 == b1).all())
 
 
 
@@ -89,43 +131,4 @@ frames_A = [
     ),
     Frame(("aNrm"), ("mNrm", "cNrm"), transition=lambda mNrm, cNrm: (mNrm - cNrm,)),
 ]
-
-
-class test_FrameModel(unittest.TestCase):
-    def setUp(self):
-        self.model = FrameModel(frames_A, init_parameters)
-
-    def test_init(self):
-        self.model.frames.var("aNrm")
-
-        self.assertTrue(
-            isinstance(
-                list(self.model.frames.var("bNrm").parents.values())[0],
-                BackwardFrameReference,
-            )
-        )
-
-        self.assertTrue(
-            isinstance(
-                list(self.model.frames.var("aNrm").children.values())[0],
-                ForwardFrameReference,
-            )
-        )
-
-    def test_make_terminal(self):
-        terminal_model = self.model.make_terminal()
-
-        self.assertEqual(len(self.model.make_terminal().frames.var("aNrm").children), 0)
-
-    def test_prepend(self):
-        double_model = self.model.prepend(self.model)
-
-        self.assertEqual(len(double_model.frames), 10)
-
-    def test_repeat(self):
-        repeat_model = self.model.repeat({"bNrm": {"Rfree": [1.01, 1.03, 1.02]}})
-
-        self.assertEqual(len(repeat_model.frames), 15)
-
-        self.assertEqual(repeat_model.frames.var("bNrm_1").context["Rfree"], 1.03)
 '''

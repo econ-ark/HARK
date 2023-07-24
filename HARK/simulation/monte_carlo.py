@@ -1,7 +1,7 @@
 """
 Functions to support Monte Carlo simulation of models.
 """
-
+from copy import copy
 from HARK.distribution import Distribution, IndexDistribution, TimeVaryingDiscreteDistribution
 from inspect import signature
 import numpy as np
@@ -47,6 +47,7 @@ def draw_shocks(
             draws[shock_var] = shock.dist.draw(1)[0]
         elif isinstance(shock, IndexDistribution) \
             or isinstance(shock, TimeVaryingDiscreteDistribution):
+            ## TODO  his type test is awkward. They should share a superclass.
             draws[shock_var] = shock.draw(conditions)
         else:
             draws[shock_var] = shock.draw(len(conditions))
@@ -111,16 +112,16 @@ class AgentTypeMonteCarloSimulator(Simulator):
     
     Parameters
     ----------
+    TODO
+
     seed : int
         A seed for this instance's random number generator.
 
     Attributes
     ----------
-    AgentCount : int
+    agent_count : int
         The number of agents of this type to use in simulation.
 
-    state_vars : list of string
-        The string labels for this AgentType's model state variables.
     """
 
     state_vars = []
@@ -131,6 +132,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
         shocks,
         dynamics,
         dr,
+        initial,
         seed=0,
         agent_count = 1,
         T_sim = 10
@@ -141,6 +143,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
         self.shocks = shocks
         self.dynamics = dynamics
         self.dr = dr
+        self.initial = initial
 
         self.seed = seed  # NOQA
         self.agent_count = agent_count
@@ -150,7 +153,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
         self.vars = list(shocks.keys()) + list(dynamics.keys())
 
         self.vars_now = {v: None for v in self.vars}
-        self.vars_prev = self.state_now.copy()
+        self.vars_prev = self.vars_now.copy()
 
         self.read_shocks = False  # NOQA
         self.shock_history = {}
@@ -228,7 +231,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
                     # not be set by newborns
                     idio = (
                         isinstance(self.state_now[var_name], np.ndarray)
-                        and len(self.state_now[var_name]) == self.AgentCount
+                        and len(self.state_now[var_name]) == self.agent_count
                     )
                     if idio:
                         self.state_now[var_name] = self.newborn_init_history[var_name][
@@ -262,12 +265,6 @@ class AgentTypeMonteCarloSimulator(Simulator):
         -------
         None
         """
-        if not hasattr(self, "solution"):
-            raise Exception(
-                "Model instance does not have a solution stored. To simulate, it is necessary"
-                " to run the `solve()` method of the class first."
-            )
-
         # Mortality adjusts the agent population
         self.get_mortality()  # Replace some agents with "newborns"
 
@@ -276,7 +273,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
             self.vars_prev[var] = self.vars_now[var]
 
             if isinstance(self.vars_now[var], np.ndarray):
-                self.vars_now[var] = np.empty(self.AgentCount)
+                self.vars_now[var] = np.empty(self.agent_count)
             else:
                 # Probably an aggregate variable. It may be getting set by the Market.
                 pass
@@ -288,10 +285,10 @@ class AgentTypeMonteCarloSimulator(Simulator):
                 shocks_now[var_name] = self.shock_history[var_name][self.t_sim, :]
         else:  # Otherwise, draw shocks as usual according to subclass-specific method
             ### BIG CHANGES HERE from HARK.core.AgentType
-            shocks_now = draw_shocks(self.shocks)
+            shocks_now = draw_shocks(self.shocks, self.t_age)
 
         # maybe need to time index the parameters here somehow?
-        pre = self.parameters + shocks_now + self.vars_prev
+        pre = self.parameters | self.vars_prev | shocks_now
         
         post = simulate_dynamics(self.dynamics, pre, self.dr)
         
@@ -300,17 +297,19 @@ class AgentTypeMonteCarloSimulator(Simulator):
 
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
-        self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-        self.t_cycle[
-            self.t_cycle == self.T_cycle
-        ] = 0  # Resetting to zero for those who have reached the end
+
+        # What will we do with cycles?
+        #self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
+        #self.t_cycle[
+        #    self.t_cycle == self.T_cycle
+        #] = 0  # Resetting to zero for those who have reached the end
 
     def make_shock_history(self):
         """
         Makes a pre-specified history of shocks for the simulation.  Shock variables should be named
         in self.shock_vars, a list of strings that is subclass-specific.  This method runs a subset
         of the standard simulation loop by simulating only mortality and shocks; each variable named
-        in shock_vars is stored in a T_sim x AgentCount array in history dictionary self.history[X].
+        in shock_vars is stored in a T_sim x agent_count array in history dictionary self.history[X].
         Automatically sets self.read_shocks to True so that these pre-specified shocks are used for
         all subsequent calls to simulate().
 
@@ -402,7 +401,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
         """
         Simulates mortality or agent turnover according to some model-specific rules named sim_death
         and sim_birth (methods of an AgentType subclass).  sim_death takes no arguments and returns
-        a Boolean array of size AgentCount, indicating which agents of this type have "died" and
+        a Boolean array of size agent_count, indicating which agents of this type have "died" and
         must be replaced.  sim_birth takes such a Boolean array as an argument and generates initial
         post-decision states for those agent indices.
 
@@ -424,7 +423,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
                         # not be set by newborns
                         idio = (
                             isinstance(self.state_now[var_name], np.ndarray)
-                            and len(self.state_now[var_name]) == self.AgentCount
+                            and len(self.state_now[var_name]) == self.agent_count
                         )
                         if idio:
                             self.state_now[var_name][
@@ -454,7 +453,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
     def sim_death(self):
         """
         Determines which agents in the current population "die" or should be replaced.  Takes no
-        inputs, returns a Boolean array of size self.AgentCount, which has True for agents who die
+        inputs, returns a Boolean array of size self.agent_count, which has True for agents who die
         and False for those that survive. Returns all False by default, must be overwritten by a
         subclass to have replacement events.
 
@@ -465,7 +464,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
         Returns
         -------
         who_dies : np.array
-            Boolean array of size self.AgentCount indicating which agents die and are replaced.
+            Boolean array of size self.agent_count indicating which agents die and are replaced.
         """
         who_dies = np.zeros(self.agent_count, dtype=bool)
         return who_dies
@@ -478,14 +477,20 @@ class AgentTypeMonteCarloSimulator(Simulator):
         Parameters
         ----------
         which_agents : np.array(Bool)
-            Boolean array of size self.AgentCount indicating which agents should be "born".
+            Boolean array of size self.agent_count indicating which agents should be "born".
 
         Returns
         -------
         None
         """
-        print("AgentType subclass must define method sim_birth!")
-        return None      
+
+        initial_vals = draw_shocks(
+            self.initial,
+            np.zeros(which_agents.sum())
+        )
+
+        for varn in initial_vals:
+            self.vars_now[varn][which_agents] = initial_vals[varn]
 
     def simulate(self, sim_periods=None):
         """
@@ -556,5 +561,5 @@ class AgentTypeMonteCarloSimulator(Simulator):
         None
         """
         for var_name in self.vars:
-            self.history[var_name] = np.empty((self.T_sim, self.AgentCount))
+            self.history[var_name] = np.empty((self.T_sim, self.agent_count))
             self.history[var_name].fill(np.nan)
