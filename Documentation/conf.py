@@ -58,6 +58,36 @@ source_suffix = [
 # HTML writer configuration
 html_theme = "pydata_sphinx_theme"
 
+html_theme_options = {
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/Econ-ARK/HARK",
+            "icon": "fa-brands fa-square-github",
+            "type": "fontawesome",
+        },
+        {
+            "name": "Twitter",
+            "url": "https://twitter.com/econ_ark",
+            "icon": "fa-brands fa-square-twitter",
+            "type": "fontawesome",
+        },
+        {
+            "name": "PyPI",
+            "url": "https://pypi.org/project/econ-ark/",
+            "icon": "fa-solid fa-box",
+            "type": "fontawesome",
+        },
+        {
+            "name": "Econ-ARK",
+            "url": "https://econ-ark.org",
+            "icon": "_static/econ-ark-logo.png",
+            "type": "local",
+            "attributes": {"target": "_blank"},
+        },
+    ]
+}
+
 # Use Econ-ARK URL to host the website
 html_baseurl = "https://docs.econ-ark.org"
 
