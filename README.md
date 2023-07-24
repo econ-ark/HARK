@@ -183,7 +183,7 @@ Looking for help? Please open a [GitHub issue](https://github.com/econ-ark/HARK/
 
 Current releases follow [Semantic Versioning](https://semver.org/). For more information please see the [Release documentation](https://github.com/econ-ark/OverARK/wiki/Release-Management).
 
-## API Documentation
+## Documentation
 
 Documentation for the latest release is at [docs.econ-ark.org](https://docs.econ-ark.org/index.html).
 
