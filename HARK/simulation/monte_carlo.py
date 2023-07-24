@@ -2,11 +2,19 @@
 Functions to support Monte Carlo simulation of models.
 """
 
-from HARK.distribution import Distribution
+from HARK.distribution import Distribution, IndexDistribution, TimeVaryingDiscreteDistribution
 from inspect import signature
 import numpy as np
-from typing import Any, Callable, Mapping, Union
+from typing import Any, Callable, Mapping, Sequence, Union
 
+class Aggregate:
+    """
+    Used to designate a shock as an aggregate shock.
+    If so designated, draws from the shock will be scalar rather
+    than array valued.
+    """
+    def __init__(self, dist: Distribution):
+        self.dist = dist
 
 class Control:
     """
@@ -16,7 +24,10 @@ class Control:
     def __init__(self, args):
         pass
 
-def draw_shocks(shocks: Mapping[str, Distribution], N: int):
+def draw_shocks(
+        shocks: Mapping[str, Distribution],
+        conditions: Sequence[int]
+        ):
     """
 
     Parameters
@@ -24,15 +35,23 @@ def draw_shocks(shocks: Mapping[str, Distribution], N: int):
     shocks Mapping[str, Distribution]
         A dictionary-like mapping from shock names to distributions from which to draw
 
-    N: int
-        Number of draws from each shock
+    conditions: Sequence[int]
+        An array of conditions, one for each agent.
+        Typically these will be agent ages.
     """
-    return {
-        shock : shocks[shock].draw(N)
-        for shock in shocks
-    }
-    ## TODO: Use time-varying distributions properly with conditions.
+    draws = {}
 
+    for shock_var in shocks:
+        shock = shocks[shock_var]
+        if isinstance(shock, Aggregate):
+            draws[shock_var] = shock.dist.draw(1)[0]
+        elif isinstance(shock, IndexDistribution) \
+            or isinstance(shock, TimeVaryingDiscreteDistribution):
+            draws[shock_var] = shock.draw(conditions)
+        else:
+            draws[shock_var] = shock.draw(len(conditions))
+
+    return draws
 
 def simulate_dynamics(
         dynamics : Mapping[str, Union[Callable, Control]],

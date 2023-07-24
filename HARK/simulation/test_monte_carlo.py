@@ -3,16 +3,20 @@ This file implements unit tests for the Monte Carlo simulation module
 """
 import unittest
 
-from HARK.distribution import MeanOneLogNormal
+from HARK.distribution import MeanOneLogNormal, IndexDistribution
 from HARK.simulation.monte_carlo import *
 
-shocks = {
-    'psi' : MeanOneLogNormal(1),
+cons_shocks = {
+    'agg_gro' : Aggregate(MeanOneLogNormal(1)),
+    'psi' : IndexDistribution(
+        MeanOneLogNormal,
+        {
+            'sigma' : [1.0, 1.1]
+        }),
     'theta' : MeanOneLogNormal(1)
-
 }
 
-pre = {
+cons_pre = {
     'R' : 1.05,
     'aNrm' : 1,
     'gamma' : 1.1,
@@ -20,7 +24,7 @@ pre = {
     'theta' : 1.1 # TODO: draw this from a shock
 }
 
-dynamics = {
+cons_dynamics = {
     'G' : lambda gamma, psi : gamma * psi,
     'Rnrm' : lambda R, G : R / G,
     'bNrm' : lambda Rnrm, aNrm : Rnrm * aNrm,
@@ -29,21 +33,23 @@ dynamics = {
     'aNrm' : lambda mNrm, cNrm : mNrm - cNrm
 }
 
-dr = {
+cons_dr = {
     'cNrm' : lambda mNrm : mNrm / 2
 }
 
 class test_draw_shocks(unittest.TestCase):
     def test_draw_shocks(self):
 
-        drawn = draw_shocks(shocks, 2)
+        drawn = draw_shocks(cons_shocks, np.array([0,1]))
 
+        self.assertEqual(len(drawn['theta']), 2)
         self.assertEqual(len(drawn['psi']), 2)
+        self.assertTrue(isinstance(drawn['agg_gro'], float))
 
 class test_simulate_dynamics(unittest.TestCase):
     def test_simulate_dynamics(self):
 
-        post = simulate_dynamics(dynamics, pre, dr)
+        post = simulate_dynamics(cons_dynamics, cons_pre, cons_dr)
 
         self.assertAlmostEqual(post['cNrm'], 0.98388429)
 
