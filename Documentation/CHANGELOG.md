@@ -19,6 +19,7 @@ Release Date: TBD
 ### Minor Changes
 
 - Adds option `sim_common_Rrisky` to control whether risky-asset models draw common or idiosyncratic returns in simulation. [#1250](https://github.com/econ-ark/HARK/pull/1250),[#1253](https://github.com/econ-ark/HARK/pull/1253)
+- Addresses [#1255](https://github.com/econ-ark/HARK/issues/1255). Makes age-varying stochastic returns possible and draws from their discretized version. [#1262](https://github.com/econ-ark/HARK/pull/1262)
 - Fixes bug in the metric that compares dictionaries with the same keys. [#1260](https://github.com/econ-ark/HARK/pull/1260)
 
 ### 0.13.0
@@ -45,7 +46,7 @@ Release Date: February, 16, 2023
 - Add methods to non stochastically simulate an economy by computing transition matrices. Functions to compute transition matrices and ergodic distribution have been added [#1155](https://github.com/econ-ark/HARK/pull/1155).
 - Fixes a bug that causes `t_age` and `t_cycle` to get out of sync when reading pre-computed mortality. [#1181](https://github.com/econ-ark/HARK/pull/1181)
 - Adds Methods to calculate Heterogenous Agent Jacobian matrices. [#1185](https://github.com/econ-ark/HARK/pull/1185)
-- Enhances `combine_indep_dstns` to work with labeled distributions (`DiscreteDistributionLabeled`). [#1191](htttps://github.com/econ-ark/HARK/pull/1191)
+- Enhances `combine_indep_dstns` to work with labeled distributions (`DiscreteDistributionLabeled`). [#1191](https://github.com/econ-ark/HARK/pull/1191)
 - Updates the `numpy` random generator from `RandomState` to `Generator`. [#1193](https://github.com/econ-ark/HARK/pull/1193)
 - Turns the income and income+return distributions into `DiscreteDistributionLabeled` objects. [#1189](https://github.com/econ-ark/HARK/pull/1189)
 - Creates `UtilityFuncCRRA` which is an object oriented utility function with a coefficient of constant relative risk aversion and includes derivatives and inverses. Also creates `UtilityFuncCobbDouglas`, `UtilityFuncCobbDouglasCRRA`, and `UtilityFuncConstElastSubs`. [#1168](https://github.com/econ-ark/HARK/pull/1168)

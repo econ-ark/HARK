@@ -1,4 +1,4 @@
-hark.readthedocs# Quick Start
+# Quick Start Guide
 
 ## Installing HARK
 
@@ -77,13 +77,13 @@ and from there you can open the notebooks and execute them.
 
 We have a set of 30-second [Elevator Spiels](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#capsule-summaries-of-what-the-econ-ark-project-is) describing the project, tailored to people with several different kinds of background.
 
-The most broadly applicable advice is to go to [Econ-ARK](https://econ-ark.org) and click on "Notebooks", and choose [A Gentle Introduction to HARK](https://hark.readthedocs.io/en/latest/search.html?q=%22A+Gentle+Introduction+to+HARK%22&check_keywords=yes&area=default#) which will launch as a [jupyter notebook](https://jupyter.org/).
+The most broadly applicable advice is to go to [Econ-ARK](https://econ-ark.org) and click on "Notebooks", and choose [A Gentle Introduction to HARK](https://docs.econ-ark.org/example_notebooks/Gentle-Intro-To-HARK.html) which will launch as a [jupyter notebook](https://jupyter.org/).
 
-#### [For people with a technical/scientific/computing background but little economics background](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-people-with-a-technicalscientificcomputing-background-but-no-economics-background)
+### [For people with a technical/scientific/computing background but little economics background](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-people-with-a-technicalscientificcomputing-background-but-no-economics-background)
 
-- A good starting point is [A Gentle Introduction to HARK](https://hark.readthedocs.io/en/latest/search.html?q=%22A+Gentle+Introduction+to+HARK%22&check_keywords=yes&area=default#) which provides a light economic intuition.
+- A good starting point is [A Gentle Introduction to HARK](https://docs.econ-ark.org/example_notebooks/Gentle-Intro-To-HARK.html) which provides a light economic intuition.
 
-#### [For economists who have done some structural modeling](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-economists-who-have-done-some-structural-modeling)
+### [For economists who have done some structural modeling](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-economists-who-have-done-some-structural-modeling)
 
 - A full replication of the [Iskhakov, Jørgensen, Rust, and Schjerning](https://onlinelibrary.wiley.com/doi/abs/10.3982/QE643) paper for solving the discrete-continuous retirement saving problem
 
@@ -91,25 +91,25 @@ The most broadly applicable advice is to go to [Econ-ARK](https://econ-ark.org) 
 
 - [Structural-Estimates-From-Empirical-MPCs](https://github.com/econ-ark/DemARK/blob/master/notebooks/Structural-Estimates-From-Empirical-MPCs-Fagereng-et-al.ipynb) is an example of the use of the toolkit in a discussion of a well known paper. (Yes, it is easy enough to use that you can estimate a structural model on somebody else's data in the limited time available for writing a discussion)
 
-#### [For economists who have not yet done any structural modeling but might be persuadable to start](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-economists-who-have-not-yet-done-any-structural-modeling-but-might-be-persuadable-to-start)
+### [For economists who have not yet done any structural modeling but might be persuadable to start](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-economists-who-have-not-yet-done-any-structural-modeling-but-might-be-persuadable-to-start)
 
-- Start with [A Gentle Introduction to HARK](https://hark.readthedocs.io/en/latest/search.html?q=%22A+Gentle+Introduction+to+HARK%22&check_keywords=yes&area=default#) to get your feet wet
+- Start with [A Gentle Introduction to HARK](https://docs.econ-ark.org/example_notebooks/Gentle-Intro-To-HARK.html) to get your feet wet
 
-- A simple indirect inference/simulated method of moments structural estimation along the lines of Gourinchas and Parker's 2002 Econometrica paper or Cagetti's 2003 paper is performed by the [SolvingMicroDSOPs](https://github.com/econ-ark/REMARK/tree/master/REMARKs/SolvingMicroDSOPs) [REMARK](https://github.com/econ-ark/REMARK); this code implements the solution methods described in the corresponding section of [these lecture notes](http://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/)
+- A simple indirect inference/simulated method of moments structural estimation along the lines of Gourinchas and Parker's 2002 Econometrica paper or Cagetti's 2003 paper is performed by the [SolvingMicroDSOPs](https://github.com/econ-ark/SolvingMicroDSOPs/) [REMARK](https://github.com/econ-ark/REMARK); this code implements the solution methods described in the corresponding section of [these lecture notes](https://llorracc.github.io/SolvingMicroDSOPs/).
 
-#### [For Other Developers of Software for Computational Economics](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-other-developers-of-software-for-computational-economics)
+### [For Other Developers of Software for Computational Economics](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-other-developers-of-software-for-computational-economics)
 
-- Our workhorse module is [ConsIndShockModel.py](https://github.com/econ-ark/HARK/blob/master/HARK/ConsumptionSaving/ConsIndShockModel.py) which includes the IndShockConsumerType. A short explanation about the Agent Type can be found [here](https://hark.readthedocs.io/en/latest/search.html?q=%22IndShockConsumerType+Documentation%22&check_keywords=yes&area=default#) and an introduction how it is solved [here](https://hark.readthedocs.io/en/latest/search.html?q=%22How+we+solve+a+model+defined+by+the+IndShockConsumerType+class%22&check_keywords=yes&area=default#).
+- Our workhorse module is [ConsIndShockModel.py](https://github.com/econ-ark/HARK/blob/master/HARK/ConsumptionSaving/ConsIndShockModel.py) which includes the IndShockConsumerType. A short explanation about the Agent Type can be found [here](https://docs.econ-ark.org/example_notebooks/IndShockConsumerType.html) and an introduction how it is solved [here](https://docs.econ-ark.org/example_notebooks/HowWeSolveIndShockConsumerType.html).
 
 ## Making changes to HARK
 
 If you want to make changes or contributions to HARK, you'll need to have access to the source files. Installing HARK via `pip install econ-ark` (at the command line, or inside Spyder) makes it hard to access those files (and it's a bad idea to mess with the original code anyway because you'll likely forget what changes you made). If you are adept at GitHub, you can [fork](https://help.github.com/en/articles/fork-a-repo) the repo. If you are less experienced, you should download a personal copy of HARK again using `git clone` (see above) or the GitHub Desktop app.
 
-#### Clone HARK
+### Clone HARK
 
 Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/documentation)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: `git clone https://github.com/econ-ark/HARK.git`.
 
-#### (Optionally) Create a virtual environment
+### (Optionally) Create a virtual environment
 
 If you are familiar with [virtual environments](https://virtualenv.pypa.io/en/latest/), you can optionally create and activate a virtual environment which will isolate the econ-ark specific tools from the rest of your computer.
 
@@ -131,11 +131,11 @@ econ-ark\\Scripts\\activate.bat
 
 Once the virtualenv is activated, you may see `(econ-ark)` in your command prompt (depending on how your machine is configured)
 
-#### Install requirements
+### Install requirements
 
 Make sure to change to HARK directory, and install HARK's requirements into the virtual environment with `pip install -r requirements.txt`.
 
-#### Test your installation
+### Test your installation
 
 To check that everything has been set up correctly, run HARK's tests with `python -m unittest`.
 
@@ -143,4 +143,4 @@ To check that everything has been set up correctly, run HARK's tests with `pytho
 
 To learn more about how to use HARK, check the next sections in this documentation, in particular the jupyter notebooks.
 
-For help making changes to HARK, check out our [contributing guide](contributing/CONTRIBUTING.md).
+For help making changes to HARK, check out our [contributing guide](contributing.md).
