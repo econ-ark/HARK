@@ -288,7 +288,10 @@ class AgentTypeMonteCarloSimulator(Simulator):
             shocks_now = draw_shocks(self.shocks, self.t_age)
 
         # maybe need to time index the parameters here somehow?
-        pre = self.parameters | self.vars_prev | shocks_now
+        pre = copy(self.parameters)
+        pre.update(self.vars_prev)
+        pre.update(shocks_now)
+        #Won't work for 3.8: self.parameters | self.vars_prev | shocks_now
         
         post = simulate_dynamics(self.dynamics, pre, self.dr)
         
