@@ -9,7 +9,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_idiosyncratic_shocks,
 )
-from HARK.core import AgentPopulation, AgentType, distribute_params
+from HARK.core import AgentPopulation, AgentType, Parameters, distribute_params
 from HARK.distribution import Uniform
 from HARK.metric import MetricObject, distance_metric
 
@@ -168,3 +168,27 @@ class test_agent_population(unittest.TestCase):
         self.agent_pop.create_distributed_agents()
 
         self.assertEqual(len(self.agent_pop.agents), 12)
+
+
+class test_parameters(unittest.TestCase):
+    def setUp(self):
+        self.params = Parameters(T_cycle=3, a=1, b=[2, 3, 4], c=np.array([5, 6, 7]))
+
+    def test_init(self):
+        self.assertEqual(self.params._term_age, 3)
+        self.assertEqual(self.params._age_inv, {"a", "c"})
+        self.assertEqual(self.params._age_var, {"b"})
+
+    def test_getitem(self):
+        self.assertEqual(self.params["a"], 1)
+        self.assertEqual(self.params[0]["b"], 2)
+        self.assertEqual(self.params["c"][1], 6)
+
+    def test_setitem(self):
+        self.params["d"] = 8
+        self.assertEqual(self.params["d"], 8)
+
+    def test_update(self):
+        self.params.update({"a": 9, "b": [10, 11, 12]})
+        self.assertEqual(self.params["a"], 9)
+        self.assertEqual(self.params[0]["b"], 10)
