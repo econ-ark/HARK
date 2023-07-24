@@ -10,6 +10,11 @@ Econ-ARK documentation -- HARK
    Guides <guides/index>
 
 
+**Useful links**:
+:doc:`Install HARK <guides/installation>` |
+`Source Repository <https://github.com/Econ-ARK/HARK>`__ |
+`Issues & Ideas <https://github.com/Econ-ARK/HARK/issues>`__
+
 **HARK**, the *Heterogenous Agents Resources & toolKit*,
 is a toolkit for the structural modeling of economic choices
 of optimizing and non-optimizing heterogeneous agents.
