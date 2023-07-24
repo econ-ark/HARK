@@ -1,3 +1,4 @@
+from datetime import date
 import warnings
 
 try:
@@ -14,7 +15,7 @@ else:
 
 # Project information
 project = "HARK"
-copyright = "2020, Econ-ARK team"
+copyright = f"{date.today().year}, Econ-ARK team"
 author = "Econ-ARK team"
 version = release = "latest"
 
