@@ -66,6 +66,8 @@ html_theme = "pydata_sphinx_theme"
 html_baseurl = "https://docs.econ-ark.org"
 
 html_favicon = "images/econ-ark-logo.png"
+html_domain_indices = False
+html_copy_source = False
 
 # sphinx.ext.intersphinx configuration
 intersphinx_mapping = {
