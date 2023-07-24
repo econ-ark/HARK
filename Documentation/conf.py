@@ -20,6 +20,7 @@ version = release = "latest"
 
 # General configuration
 extensions = [
+    # built-in extensions
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
@@ -30,8 +31,11 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
+    # third-party extensions
     "nbsphinx",
     "myst_parser",
+    "sphinx_copybutton",
+    "sphinx_design",
 ]
 
 exclude_patterns = [
@@ -93,6 +97,8 @@ html_baseurl = "https://docs.econ-ark.org"
 
 html_logo = "images/econ-ark-logo.png"
 html_favicon = "images/econ-ark-logo.png"
+html_domain_indices = False
+html_copy_source = False
 
 # sphinx.ext.intersphinx configuration
 intersphinx_mapping = {
