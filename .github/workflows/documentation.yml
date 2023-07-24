@@ -35,7 +35,7 @@ jobs:
         cache: 'pip'
         cache-dependency-path: |
           requirements/base.txt
-          requirements/dev.txt
+          requirements/doc.txt
 
     - name: Install Pandoc
       run: sudo apt-get install --yes pandoc
