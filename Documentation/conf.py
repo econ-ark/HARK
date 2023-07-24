@@ -64,6 +64,7 @@ source_suffix = [
 html_theme = "pydata_sphinx_theme"
 
 html_theme_options = {
+    "use_edit_page_button": True,
     "icon_links": [
         {
             "name": "GitHub",
@@ -91,6 +92,15 @@ html_theme_options = {
             "attributes": {"target": "_blank"},
         },
     ]
+}
+
+# Point to Econ-ARK repo for edit buttons
+html_context = {
+    "github_url": "https://github.com",
+    "github_user": "econ-ark",
+    "github_repo": "hark",
+    "github_version": "master",
+    "doc_path": "Documentation/",
 }
 
 # Use Econ-ARK URL to host the website
