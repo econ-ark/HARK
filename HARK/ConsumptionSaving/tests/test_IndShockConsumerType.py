@@ -929,9 +929,7 @@ class test_Jacobian_methods(unittest.TestCase):
 
 
 class test_compare_trans_mats(unittest.TestCase):
-
     def setUp(self):
-        
         # Grid
         self.m_grid = np.linspace(0, 20, 10)
 
@@ -939,12 +937,11 @@ class test_compare_trans_mats(unittest.TestCase):
         # at m=1.
         self.newborn_dstn = DiscreteDistributionLabeled(
             pmv=np.array([1.0]),
-            atoms=np.array([[1.0],[1.0]]),
-            var_names=['PLvl','mNrm']
+            atoms=np.array([[1.0], [1.0]]),
+            var_names=["PLvl", "mNrm"],
         )
 
     def test_compare_will_mateo(self):
-        
         # Deaths
         params = deepcopy(dict_harmenberg)
         params["LivPrb"] = [0.9]
@@ -966,8 +963,7 @@ class test_compare_trans_mats(unittest.TestCase):
         agent.make_state_grid(mNrmGrid=self.m_grid)
         agent.full_shock_dstns = agent.IncShkDstn
         agent.find_transition_matrices(newborn_dstn=self.newborn_dstn)
-        tm_mateo = agent.trans_mats[0]
+        tm_mateo = agent.trans_mat.get_full_tmat()
 
         # Compare
         self.assertTrue(np.allclose(tm_will, tm_mateo.T, atol=1e-10))
-        

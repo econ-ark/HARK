@@ -338,7 +338,7 @@ class test_transition_mat(unittest.TestCase):
 
         # Get transition matrices
         agent.find_transition_matrices()
-        assert len(agent.solution) - 1 == len(agent.trans_mats)
+        assert len(agent.solution) - 1 == len(agent.trans_mat.living_transitions)
 
     def test_adjust(self):
         # Create agent
@@ -352,7 +352,7 @@ class test_transition_mat(unittest.TestCase):
         )
         agent.solve()
         agent.find_transition_matrices()
-        self.assertTrue(agent.trans_mats[0].size == np.power(50, 2))
+        self.assertTrue(agent.trans_mat.living_transitions[0].size == np.power(50, 2))
 
     def test_calvo(self):
         # Create agent that has some chance of not being able to
@@ -371,4 +371,6 @@ class test_transition_mat(unittest.TestCase):
         )
         agent.solve()
         agent.find_transition_matrices()
-        self.assertTrue(agent.trans_mats[0].size == np.power(50 * 10 * 2, 2))
+        self.assertTrue(
+            agent.trans_mat.living_transitions[0].size == np.power(50 * 10 * 2, 2)
+        )

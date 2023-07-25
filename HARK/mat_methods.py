@@ -254,3 +254,46 @@ def mass_to_grid(
     distr = sum_weights(weights, dims, add_inds)
 
     return distr
+
+
+class transition_mat:
+    def __init__(
+        self,
+        living_transitions: list,
+        surv_probs: list,
+        newborn_dstn: np.ndarray,
+        life_cycle: bool,
+    ) -> None:
+        self.living_transitions = living_transitions
+        self.surv_probs = surv_probs
+        self.newborn_dstn = newborn_dstn
+        self.life_cycle = life_cycle
+
+        if self.life_cycle:
+            assert len(self.living_transitions) == len(
+                self.surv_probs
+            ), "living_transitions must be a list of length len(surv_probs) + 1 if life_cycle is True"
+        else:
+            assert (
+                len(self.living_transitions) == 1
+            ), "living_transitions must be a list of length 1 if life_cycle is False"
+            assert (
+                len(self.surv_probs) == 1
+            ), "surv_probs must be a list of length 1 if life_cycle is False"
+
+        self.T = len(self.living_transitions) + 1
+
+        self.grid_len = self.living_transitions[0].shape[0]
+
+    def get_full_tmat(self):
+        if self.life_cycle:
+            # Life cycle
+            pass
+        else:
+            # Infinite horizon
+            full_mat = (
+                self.surv_probs[0] * self.living_transitions[0]
+                + (1 - self.surv_probs[0]) * self.newborn_dstn[np.newaxis, :]
+            )
+
+        return full_mat

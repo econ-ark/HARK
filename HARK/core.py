@@ -26,7 +26,7 @@ from HARK.distribution import (
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
 
-from HARK.mat_methods import mass_to_grid
+from HARK.mat_methods import mass_to_grid, transition_mat
 
 
 class Model:
@@ -936,12 +936,12 @@ class AgentType(Model):
                 points=nb_points,
                 mass=nb_pmv,
                 grids=nt_grids,
-            )[
-                np.newaxis, :
-            ]  # Add dimension for broadcasting
+            )
+        else:
+            newborn_mass = None
 
-        # Initialize the list transition matrices
-        trans_mats = []
+        # Initialize the list of matrices conditional on survival
+        surv_mats = []
 
         cycles_range = [0] + list(range(T - 1, 0, -1))
         for k in range(T - 1, -1, -1) if self.cycles == 1 else cycles_range:
@@ -976,19 +976,16 @@ class AgentType(Model):
                     grids=nt_grids,
                 )
 
-            # Add newborns to transition matrix if needed
-            if newborn_dstn is not None and hasattr(self, "LivPrb"):
-                if T==1:
-                    tmat = self.LivPrb[k] * tmat + (1.0 - self.LivPrb[k]) * newborn_mass
-                else:
-                    # TODO: Life-cycle treatment of death to be defined
-                    pass
-
             # Prepend
-            trans_mats.insert(0, tmat)
+            surv_mats.insert(0, tmat)
 
         # Save matrices
-        self.trans_mats = trans_mats
+        self.trans_mat = transition_mat(
+            living_transitions=surv_mats,
+            surv_probs=self.LivPrb,
+            newborn_dstn=newborn_mass,
+            life_cycle= T > 1,
+        )
 
 
 def solve_agent(agent, verbose):
