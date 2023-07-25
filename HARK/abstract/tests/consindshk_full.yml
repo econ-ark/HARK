@@ -37,3 +37,16 @@ post_states: !PostStateSpace
       short_name: *short_name
       long_name: *long_name
       latex_repr: *latex_repr
+
+parameters: !Parameters
+  variables:
+    - !Parameter
+      name: DiscFac
+      short_name: discount factor
+      long_name: discount factor
+      latex_repr: \beta
+    - !Parameter
+      name: CRRA
+      short_name: risk aversion
+      long_name: coefficient of relative risk aversion
+      latex_repr: \rho
