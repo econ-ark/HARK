@@ -92,7 +92,7 @@
 # M_{t+1} &=& R (M_{t}-C_{t}) + Y_t, \\
 # \end{eqnarray*}
 #
-# Finding a distribution of agent assets (consumption, savings) must involve much more advanced numerical tools than in the representative agent setting. This is more demanding task to accomplish and master. Moreover, the knowledge about involved numerical methods is less systematic, and often hard to find. To quote the HARK [Documentation](https://hark.readthedocs.io/en/latest/introduction.html):
+# Finding a distribution of agent assets (consumption, savings) must involve much more advanced numerical tools than in the representative agent setting. This is more demanding task to accomplish and master. Moreover, the knowledge about involved numerical methods is less systematic, and often hard to find. To quote the HARK [Documentation](https://docs.econ-ark.org/overview/introduction.html):
 #
 # *"After months of effort, you may have had the character-improving experience of
 # proudly explaining to your adviser that not only had you grafted two ideas
@@ -339,7 +339,7 @@ plot_funcs(
 #
 # The Market class was designed to be a general framework for many different macro models. It involves a procedure of aggregating the agents' choices: eg. aggregating consumption and savings (`reap_vars` in the code) and then transforming the aggregated variables (`mill_rule` in the code).
 #
-# If you would like to get better knowledge about this structure, first take a look at the [Hark documentation](https://hark.readthedocs.io/en/latest/ARKitecture.html). Next, to understand how the HARK Market class works in less standard setting, look at the [Fashion victim model](../notebooks/Fashion-Victim-Model.ipynb).
+# If you would like to get better knowledge about this structure, first take a look at the [Hark documentation](https://docs.econ-ark.org/overview/ARKitecture.html). Next, to understand how the HARK Market class works in less standard setting, look at the [Fashion victim model](../notebooks/Fashion-Victim-Model.ipynb).
 #
 
 # %% [markdown]
@@ -353,7 +353,7 @@ plot_funcs(
 #
 # When you look at the [HARK](https://github.com/econ-ark/HARK) sources, you will find the subdirectory called HARK. Next there is a script called "core. py". Surprisingly, you will not find this code in many of the subclasses which you learned during this journey!
 #
-# The reason for this is that HARK.core.py is a core of the package: a framework  for all models which can be coded in HARK. It contains the general framework of the agent-type classes (AgentType class) and for the market. The exact structure of modules in the HARK core you can find in the [Hark documentation](https://hark.readthedocs.io/en/latest/ARKitecture.html#general-purpose-tools). Here, you can also find the general structure of the [AgentType](https://hark.readthedocs.io/en/latest/ARKitecture.html#agenttype-class) and [Market classes](https://hark.readthedocs.io/en/latest/ARKitecture.html#market-class).
+# The reason for this is that HARK.core.py is a core of the package: a framework  for all models which can be coded in HARK. It contains the general framework of the agent-type classes (AgentType class) and for the market. The exact structure of modules in the HARK core you can find in the [Hark documentation](https://docs.econ-ark.org/overview/ARKitecture.html#general-purpose-tools). Here, you can also find the general structure of the [AgentType](https://docs.econ-ark.org/overview/ARKitecture.html#agenttype-class) and [Market classes](https://docs.econ-ark.org/overview/ARKitecture.html#market-class).
 #
 # Where are the subclasses which you'v learned during the journey? In HARK, the subclasses are located in the separate directories. For the AgentType subclasses, you need to look at HARK.ConsumptionSaving directory. For example, `PerfForesightConsumerType` and `IndShockConsumerType` can be found in ConsIndShockModel.py. Nevertheless, if you want to understand any of the HARK modules, you must first understand `HARK.core`.
 #
@@ -380,10 +380,10 @@ plot_funcs(
 #
 # We hope that this section gave you some idea how the HARK library works. However, HARK contains much more than is discussed here. Here is some more guidance on how to continue your journey:
 #
-# - Before you start make sure that you understand the endogenous grid method, as well as the general framework structure for AgentType and Market from [HARK documentation](https://hark.readthedocs.io/en/latest/ARKitecture.html#agenttype-class).
-# - When working through HARK.core, make sure that you see the connection between the structure in the documentation and the code (check autodoc from the [HARK documentation](https://hark.readthedocs.io/en/latest/reference/tools/core.html) webpage).
+# - Before you start make sure that you understand the endogenous grid method, as well as the general framework structure for AgentType and Market from [HARK documentation](https://docs.econ-ark.org/overview/ARKitecture.html#agenttype-class).
+# - When working through HARK.core, make sure that you see the connection between the structure in the documentation and the code (check autodoc from the [HARK documentation](https://docs.econ-ark.org/reference/tools/core.html) webpage).
 # - Proceed to the ConsumptionSaving/ConsIndShockModel.py and compare the tutorials with the source code.
-# - Proceed to the ConsumptionSaving/ConsAggShockModel.py and compare the tutorial on the Market class with the source code, check [autodoc](https://hark.readthedocs.io/en/latest/reference/ConsumptionSaving/ConsAggShockModel.html).
+# - Proceed to the ConsumptionSaving/ConsAggShockModel.py and compare the tutorial on the Market class with the source code, check [autodoc](https://docs.econ-ark.org/reference/ConsumptionSaving/ConsAggShockModel.html).
 #
-# So in general, when you want to learn any of the modules in the HARK toolkit, first check autodoc from the [HARK documentation](https://hark.readthedocs.io/en/latest/reference/index.html) webpage.
+# So in general, when you want to learn any of the modules in the HARK toolkit, first check autodoc from the [HARK documentation](https://docs.econ-ark.org/reference/index.html) webpage.
 #

@@ -34,7 +34,8 @@ dynamic = ["dependencies", "optional-dependencies"]
 file = "requirements/base.txt"
 
 [tool.setuptools.dynamic.optional-dependencies]
-dev = {"file" = "requirements/dev.txt"}
+dev.file = "requirements/dev.txt"
+doc.file = "requirements/doc.txt"
 
 [project.urls]
 Homepage = "https://github.com/econ-ark/HARK"
