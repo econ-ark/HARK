@@ -6,6 +6,7 @@ import HARK.ConsumptionSaving.ConsPortfolioModel as cpm
 from HARK import make_one_period_oo_solver
 from HARK.tests import HARK_PRECISION
 from copy import copy
+from HARK.distribution import DiscreteDistributionLabeled
 
 
 class PortfolioConsumerTypeTestCase(unittest.TestCase):
@@ -316,6 +317,9 @@ class test_transition_mat(unittest.TestCase):
         pass
 
     def test_LC(self):
+        # Low number of points, else RAM reqs are high
+        npoints = 3
+
         # Create an lc agent
         lc_pars = copy(init_lifecycle)
         lc_pars.update(risky_asset_parms)
@@ -326,8 +330,7 @@ class test_transition_mat(unittest.TestCase):
         agent.make_shock_distributions()
         agent.make_state_grid(
             PLvlGrid=None,
-            # Low number of points, else RAM reqs are high
-            mNrmGrid=np.linspace(0, 10, 5),
+            mNrmGrid=np.linspace(0, 10, npoints),
             ShareGrid=None,
             AdjustGrid=None,
         )
@@ -336,23 +339,37 @@ class test_transition_mat(unittest.TestCase):
         # Check that it is indeed an LC model
         assert len(agent.solution) > 10
 
+        # Define some default newborn distribution
+        newborn_dstn = DiscreteDistributionLabeled(
+            pmv=np.array([1.0]),
+            atoms=np.array([[1.0], [1.0]]),
+            var_names=["PLvl", "mNrm"],
+        )
+
         # Get transition matrices
-        agent.find_transition_matrices()
+        agent.find_transition_matrices(newborn_dstn=newborn_dstn)
         assert len(agent.solution) - 1 == len(agent.trans_mat.living_transitions)
+
+        full_mat = agent.trans_mat.get_full_tmat()
+        # Rows of valid transition matrix sum to 1.0
+        self.assertTrue(np.allclose(np.sum(full_mat, 1), 1.0))
 
     def test_adjust(self):
         # Create agent
+        npoints = 5
         agent = cpm.PortfolioConsumerType(**cpm.init_portfolio)
         agent.make_shock_distributions()
         agent.make_state_grid(
             PLvlGrid=None,
-            mNrmGrid=np.linspace(0, 30, 50),
+            mNrmGrid=np.linspace(0, 10, npoints),
             ShareGrid=None,
             AdjustGrid=None,
         )
         agent.solve()
         agent.find_transition_matrices()
-        self.assertTrue(agent.trans_mat.living_transitions[0].size == np.power(50, 2))
+        self.assertTrue(
+            agent.trans_mat.living_transitions[0].size == np.power(npoints, 2)
+        )
 
     def test_calvo(self):
         # Create agent that has some chance of not being able to

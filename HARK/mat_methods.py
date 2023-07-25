@@ -288,7 +288,27 @@ class transition_mat:
     def get_full_tmat(self):
         if self.life_cycle:
             # Life cycle
-            pass
+            dim = self.T * self.grid_len
+            full_mat = np.zeros((dim, dim))
+            for k in range(self.T - 1):
+                row_init = k * self.grid_len
+                row_end = row_init + self.grid_len
+                # Living-to-newborn
+                full_mat[row_init:row_end, : self.grid_len] += (
+                    1 - self.surv_probs[k]
+                ) * self.newborn_dstn[np.newaxis, :]
+                # Living-to-age+1
+                col_init = row_init + self.grid_len
+                col_end = col_init + self.grid_len
+                full_mat[row_init:row_end, col_init:col_end] += (
+                    self.surv_probs[k] * self.living_transitions[k]
+                )
+
+            # In at the end of the last age, everyone turns into a newborn
+            full_mat[
+                (self.T - 1) * self.grid_len :, : self.grid_len
+            ] += self.newborn_dstn[np.newaxis, :]
+
         else:
             # Infinite horizon
             full_mat = (
