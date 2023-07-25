@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Optional, Union
+from typing import Mapping, Optional, Union
 from warnings import warn
 
 import numpy as np
@@ -27,6 +27,9 @@ class Variable(YAMLObject):
     def __post_init__(self):
         for key in ["long_name", "short_name", "latex_repr"]:
             self.attrs.setdefault(key, None)
+        self.name = self.name.strip()
+        if not self.name:
+            raise ValueError("Empty variable name")
 
     @classmethod
     def from_yaml(cls, loader, node):
@@ -59,6 +62,11 @@ class VariableSpace(YAMLObject):
         """
         self.variables = {var.name: var for var in self.variables}
 
+    @classmethod
+    def from_yaml(cls, loader, node):
+        fields = loader.construct_mapping(node, deep=True)
+        return cls(**fields)
+
 
 @dataclass
 class Parameter(Variable):
@@ -68,6 +76,7 @@ class Parameter(Variable):
 
     value: Union[int, float] = 0
     yaml_tag: str = field(default="!Parameter", kw_only=True)
+    yaml_loader = SafeLoader
 
     def __repr__(self):
         """
@@ -134,7 +143,7 @@ class StateSpace(AuxiliarySpace):
 
     def __post_init__(self):
         super().__post_init__()
-        self.states = xr.merge([self.variables])
+        self.states = self.variables
 
 
 @dataclass(kw_only=True)
@@ -148,7 +157,8 @@ class PostStateSpace(StateSpace):
     yaml_tag: str = "!PostStateSpace"
 
     def __post_init__(self):
-        self.post_states = xr.merge(self.variables)
+        super().__post_init__()
+        self.post_states = self.variables
 
 
 @dataclass(kw_only=True)
@@ -174,7 +184,8 @@ class ActionSpace(AuxiliarySpace):
     yaml_tag: str = "!ActionSpace"
 
     def __post_init__(self):
-        self.actions = xr.merge(self.variables)
+        super().__post_init__()
+        self.actions = self.variables
 
 
 @dataclass(kw_only=True)
@@ -197,7 +208,8 @@ class ShockSpace(VariableSpace):
     yaml_tag: str = "!ShockSpace"
 
     def __post_init__(self):
-        self.shocks = xr.merge(self.shocks)
+        super().__post_init__()
+        self.shocks = self.variables
 
 
 def make_state_array(
@@ -262,4 +274,4 @@ def make_states_array(
         for value, name, attr in zip(values, names, attrs)
     ]
 
-    return xr.merge(states)
+    return xr.merge([states])
