@@ -193,14 +193,45 @@ class Normal(ContinuousFrozenDistribution):
         Seed for random number generator.
     """
 
-    def __init__(self, mu=0.0, sigma=1.0, seed=0):
+    def __new__(
+        cls,
+        mu: Union[float, np.ndarray] = 0.0,
+        sigma: Union[float, np.ndarray] = 1.0,
+        seed: Optional[int] = None,
+    ):
+        """
+        Create a new Normal distribution. If sigma is zero, return a
+        DiscreteDistribution with a single atom at mu.
+
+        Parameters
+        ----------
+        mu : Union[float, np.ndarray], optional
+            Mean of normal distribution, by default 0.0
+        sigma : Union[float, np.ndarray], optional
+            Standard deviation of normal distribution, by default 1.0
+        seed : Optional[int], optional
+            Seed for random number generator, by default None
+
+        Returns
+        -------
+        Normal or DiscreteDistribution
+            Normal distribution or DiscreteDistribution with a single atom.
+        """
+
+        if sigma == 0:
+            # If sigma is zero, return a DiscreteDistribution with a single atom
+            return DiscreteDistribution([1.0], mu, seed=seed)
+
+        return super().__new__(cls)
+
+    def __init__(self, mu=0.0, sigma=1.0, seed=None):
         self.mu = np.asarray(mu)
         self.sigma = np.asarray(sigma)
 
         if self.mu.size != self.sigma.size:
             raise AttributeError(
-                "mu and sigma must be of same size, are %s, %s"
-                % ((self.mu.size), (self.sigma.size))
+                f"'mu' and 'sigma' must be of the same size. Instead 'mu' is of "
+                f"size {self.mu.size} and 'sigma' is of size {self.sigma.size}."
             )
 
         super().__init__(stats.norm, loc=mu, scale=sigma, seed=seed)
@@ -217,8 +248,6 @@ class Normal(ContinuousFrozenDistribution):
         """
         Returns a discrete approximation of this distribution
         using the Gauss-Hermite quadrature rule.
-
-        TODO: add endpoints option
 
         Parameters
         ----------
@@ -237,12 +266,16 @@ class Normal(ContinuousFrozenDistribution):
         # correct x
         atoms = math.sqrt(2.0) * self.sigma * x + self.mu
 
+        if endpoints:
+            atoms = np.r_[-np.inf, atoms, np.inf]
+            pmv = np.r_[0.0, pmv, 0.0]
+
         limit = {"dist": self, "method": "hermite", "N": N, "endpoints": endpoints}
 
         return DiscreteDistribution(
             pmv,
             atoms,
-            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            seed=self.random_seed(),
             limit=limit,
         )
 
@@ -271,12 +304,16 @@ class Normal(ContinuousFrozenDistribution):
         pmv = np.diff(CDF)
         atoms = self.mu - np.diff(pdf) / pmv * self.sigma
 
+        if endpoints:
+            atoms = np.r_[-np.inf, atoms, np.inf]
+            pmv = np.r_[0.0, pmv, 0.0]
+
         limit = {"dist": self, "method": "equiprobable", "N": N, "endpoints": endpoints}
 
         return DiscreteDistribution(
             pmv,
             atoms,
-            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            seed=self.random_seed(),
             limit=limit,
         )
 
