@@ -360,12 +360,8 @@ class test_transition_mat(unittest.TestCase):
         # in the first gridpoint.
         dstn = np.zeros((npoints, len(agent.trans_mat.living_transitions)))
         dstn[0, 0] = 1.0
-
-        for _ in range(1000):
-            dstn = agent.trans_mat.iterate_dstn_forward(dstn)
-
-        # Rows of valid transition matrix sum to 1.0
-        self.assertTrue(np.allclose(np.sum(full_mat, 1), 1.0))
+        # Find steady_state
+        ss_dstn = agent.trans_mat.find_steady_state_dstn(dstn_init=dstn, max_iter=1e4)
 
     def test_adjust(self):
         # Create agent

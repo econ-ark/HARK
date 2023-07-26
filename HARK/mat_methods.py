@@ -285,36 +285,6 @@ class transition_mat:
 
         self.grid_len = self.living_transitions[0].shape[0]
 
-    def iterate_dstn_forward(self, dstn_init: np.ndarray) -> np.ndarray:
-        # Initialize final distribution
-        dstn_final = np.zeros_like(dstn_init)
-
-        if self.life_cycle:
-            for k in range(self.T - 2):
-                # Living-to-age+1
-                dstn_final[:, k + 1] += self.surv_probs[k] * np.dot(
-                    dstn_init[:, k], self.living_transitions[k]
-                )
-                # Living-to-newborn
-                dstn_final[:, 0] += (
-                    (1 - self.surv_probs[k])
-                    * np.sum(dstn_init[:, k])
-                    * self.newborn_dstn
-                )
-
-            # In at the end of the last age, everyone turns into a newborn
-            dstn_final[:, 0] += np.sum(dstn_init[:, -1]) * self.newborn_dstn
-
-        else:
-            # Living-to-age+1
-            dstn_final += self.surv_probs[0] * np.dot(
-                self.living_transitions[0].T, dstn_init
-            )
-            # Living-to-newborn
-            dstn_final[:, 0] += (1 - self.surv_probs[0]) * self.newborn_dstn
-
-        return dstn_final
-
     def get_full_tmat(self):
         if self.life_cycle:
             # Life cycle
@@ -347,3 +317,51 @@ class transition_mat:
             )
 
         return full_mat
+
+    def iterate_dstn_forward(self, dstn_init: np.ndarray) -> np.ndarray:
+        # Initialize final distribution
+        dstn_final = np.zeros_like(dstn_init)
+
+        if self.life_cycle:
+            for k in range(self.T - 2):
+                # Living-to-age+1
+                dstn_final[:, k + 1] += self.surv_probs[k] * np.dot(
+                    dstn_init[:, k], self.living_transitions[k]
+                )
+                # Living-to-newborn
+                dstn_final[:, 0] += (
+                    (1 - self.surv_probs[k])
+                    * np.sum(dstn_init[:, k])
+                    * self.newborn_dstn
+                )
+
+            # In at the end of the last age, everyone turns into a newborn
+            dstn_final[:, 0] += np.sum(dstn_init[:, -1]) * self.newborn_dstn
+
+        else:
+            # Living-to-age+1
+            dstn_final += self.surv_probs[0] * np.dot(
+                self.living_transitions[0].T, dstn_init
+            )
+            # Living-to-newborn
+            dstn_final[:, 0] += (1 - self.surv_probs[0]) * self.newborn_dstn
+
+        return dstn_final
+
+    def find_steady_state_dstn(
+        self, dstn_init, tol=1e-10, max_iter=1000, check_every=10, normalize_every=20
+    ):
+        # Initialize
+        dstn = dstn_init
+        err = tol + 1
+        i = 0
+        while err > tol and i < max_iter:
+            dstn_new = self.iterate_dstn_forward(dstn)
+            if i % normalize_every == 0:
+                dstn_new /= np.sum(dstn_new)
+            if i % check_every == 0:
+                err = np.max(np.abs(dstn_new - dstn))
+            dstn = dstn_new
+            i += 1
+
+        return dstn
