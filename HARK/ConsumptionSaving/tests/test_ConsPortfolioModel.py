@@ -318,11 +318,12 @@ class test_transition_mat(unittest.TestCase):
 
     def test_LC(self):
         # Low number of points, else RAM reqs are high
-        npoints = 3
+        npoints = 50
 
         # Create an lc agent
         lc_pars = copy(init_lifecycle)
         lc_pars.update(risky_asset_parms)
+        lc_pars["DiscFac"] = 0.9
         agent = cpm.PortfolioConsumerType(**lc_pars)
         agent.solve()
 
@@ -330,7 +331,7 @@ class test_transition_mat(unittest.TestCase):
         agent.make_shock_distributions()
         agent.make_state_grid(
             PLvlGrid=None,
-            mNrmGrid=np.linspace(0, 10, npoints),
+            mNrmGrid=np.linspace(0, 20, npoints),
             ShareGrid=None,
             AdjustGrid=None,
         )
@@ -350,7 +351,21 @@ class test_transition_mat(unittest.TestCase):
         agent.find_transition_matrices(newborn_dstn=newborn_dstn)
         assert len(agent.solution) - 1 == len(agent.trans_mat.living_transitions)
 
+        # Check the bruteforce representation that treats age as a state.
         full_mat = agent.trans_mat.get_full_tmat()
+        # Rows of valid transition matrix sum to 1.0
+        self.assertTrue(np.allclose(np.sum(full_mat, 1), 1.0))
+
+        # Check iterating distributions forward
+
+        # Set an initial distribution where everyone starts at the youngest age,
+        # in the first gridpoint.
+        dstn = np.zeros((npoints, len(agent.trans_mat.living_transitions)))
+        dstn[0, 0] = 1.0
+
+        for _ in range(1000):
+            dstn = agent.trans_mat.iterate_dstn_forward(dstn)
+
         # Rows of valid transition matrix sum to 1.0
         self.assertTrue(np.allclose(np.sum(full_mat, 1), 1.0))
 
