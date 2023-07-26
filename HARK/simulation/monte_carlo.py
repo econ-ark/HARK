@@ -218,34 +218,18 @@ class AgentTypeMonteCarloSimulator(Simulator):
         self.t_cycle = np.zeros(
             self.agent_count, dtype=int
         )  # Which cycle period each agent is on
-        self.sim_birth(all_agents)
 
-        # If we are asked to use existing shocks and a set of initial conditions
-        # exist, use them
-        ### TODO what to do with this?
+        # Get recorded newborn conditions or initialize blank history.
         if self.read_shocks and bool(self.newborn_init_history):
-            for var_name in self.state_now:
-                # Check that we are actually given a value for the variable
-                if var_name in self.newborn_init_history.keys():
-                    # Copy only array-like idiosyncratic states. Aggregates should
-                    # not be set by newborns
-                    idio = (
-                        isinstance(self.state_now[var_name], np.ndarray)
-                        and len(self.state_now[var_name]) == self.agent_count
-                    )
-                    if idio:
-                        self.state_now[var_name] = self.newborn_init_history[var_name][
-                            0
-                        ]
+            for init_var_name in self.initial:
+                self.vars_now[init_var_name] = self.newborn_init_history[init_var_name][self.t_sim, :]
+        else:
+            for var_name in self.initial:
+                self.newborn_init_history[var_name] = (
+                    np.zeros((self.T_sim, self.agent_count)) + np.nan
+                )
 
-                else:
-                    warn(
-                        "The option for reading shocks was activated but "
-                        + "the model requires state "
-                        + var_name
-                        + ", not contained in "
-                        + "newborn_init_history."
-                    )
+        self.sim_birth(all_agents)
 
         self.clear_history()
         return None
@@ -283,7 +267,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
         if self.read_shocks:  # If shock histories have been pre-specified, use those
             for var_name in self.shocks:
                 shocks_now[var_name] = self.shock_history[var_name][self.t_sim, :]
-        else:  # Otherwise, draw shocks as usual according to subclass-specific method
+        else:
             ### BIG CHANGES HERE from HARK.core.AgentType
             shocks_now = draw_shocks(self.shocks, self.t_age)
 
@@ -356,45 +340,31 @@ class AgentTypeMonteCarloSimulator(Simulator):
         -------
         None
         """
+        who_dies = self.sim_death()
+
         if self.read_shocks:
-            who_dies = self.shock_history["who_dies"][self.t_sim, :]
             # Instead of simulating births, assign the saved newborn initial conditions
             if np.sum(who_dies) > 0:
-                for var_name in self.state_now:
-                    if var_name in self.newborn_init_history.keys():
-                        # Copy only array-like idiosyncratic states. Aggregates should
-                        # not be set by newborns
-                        idio = (
-                            isinstance(self.state_now[var_name], np.ndarray)
-                            and len(self.state_now[var_name]) == self.agent_count
-                        )
-                        if idio:
-                            self.state_now[var_name][
-                                who_dies
-                            ] = self.newborn_init_history[var_name][
-                                self.t_sim, who_dies
-                            ]
-
-                    else:
-                        warn(
-                            "The option for reading shocks was activated but "
-                            + "the model requires state "
-                            + var_name
-                            + ", not contained in "
-                            + "newborn_init_history."
-                        )
+                for var_name in self.initial:
+                    self.state_now[var_name][
+                        who_dies
+                    ] = self.newborn_init_history[var_name][
+                        self.t_sim, who_dies
+                    ]
 
                 # Reset ages of newborns
                 self.t_age[who_dies] = 0
                 self.t_cycle[who_dies] = 0
         else:
-            who_dies = self.sim_death()
             self.sim_birth(who_dies)
+
         self.who_dies = who_dies
         return None
 
     def sim_death(self):
         """
+        # TODO: This should mainly just track the 'who_dies' var, which can be a shock or endogenous.
+
         Determines which agents in the current population "die" or should be replaced.  Takes no
         inputs, returns a Boolean array of size self.agent_count, which has True for agents who die
         and False for those that survive. Returns all False by default, must be overwritten by a
@@ -409,6 +379,10 @@ class AgentTypeMonteCarloSimulator(Simulator):
         who_dies : np.array
             Boolean array of size self.agent_count indicating which agents die and are replaced.
         """
+
+        #if self.read_shocks:
+        #    who_dies = self.shock_history["who_dies"][self.t_sim, :]
+
         who_dies = np.zeros(self.agent_count, dtype=bool)
         return who_dies
 
@@ -426,14 +400,21 @@ class AgentTypeMonteCarloSimulator(Simulator):
         -------
         None
         """
-
-        initial_vals = draw_shocks(
-            self.initial,
-            np.zeros(which_agents.sum())
-        )
+        if self.read_shocks:
+            initial_vals = {
+                init_var: self.newborn_init_history[init_var][self.t_sim, :]
+                for init_var
+                in self.initial
+                }
+        else:
+            initial_vals = draw_shocks(
+                self.initial,
+                np.zeros(which_agents.sum())
+            )
 
         for varn in initial_vals:
             self.vars_now[varn][which_agents] = initial_vals[varn]
+            self.newborn_init_history[varn][self.t_sim, which_agents] = initial_vals[varn]
 
     def simulate(self, sim_periods=None):
         """

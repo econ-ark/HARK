@@ -113,6 +113,17 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
 
         self.simulator.make_shock_history()
 
+        newborn_init_1 = self.simulator.newborn_init_history.copy()
+        shocks_1 = self.simulator.shock_history.copy()
+
+        self.simulator.initialize_sim()
+        self.simulator.simulate()
+
+        self.assertEqual(newborn_init_1, self.simulator.newborn_init_history)
+        self.assertTrue(
+            np.all(self.simulator.history['theta'] == shocks_1['theta'])
+            )
+
 
 ###############################################################3
 
