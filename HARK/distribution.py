@@ -138,8 +138,8 @@ class ContinuousFrozenDistribution(rv_continuous_frozen, Distribution):
         seed : int, optional
             Seed for random number generator, by default 0
         """
-        super(rv_continuous_frozen, self).__init__(dist, *args, **kwds)
-        super(Distribution, self).__init__(seed=seed)
+        rv_continuous_frozen.__init__(self, dist, *args, **kwds)
+        Distribution.__init__(self, seed=seed)
 
     def discretize(
         self, N: int, method: str = "equiprobable", endpoints: bool = False, **kwds: Any
@@ -768,8 +768,8 @@ class DiscreteFrozenDistribution(rv_discrete_frozen, Distribution):
             Seed for random number generator, by default 0
         """
 
-        super(rv_discrete_frozen, self).__init__(dist, *args, **kwds)
-        super(Distribution, self).__init__(seed=seed)
+        rv_discrete_frozen.__init__(self, dist, *args, **kwds)
+        Distribution.__init__(self, seed=seed)
 
 
 class Bernoulli(DiscreteFrozenDistribution):
