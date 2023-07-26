@@ -11,14 +11,13 @@ from scipy.stats import rv_continuous, rv_discrete
 from scipy.stats._distn_infrastructure import rv_continuous_frozen, rv_discrete_frozen
 from scipy.stats._multivariate import multivariate_normal_frozen
 
+MAX_INT32 = 2**31 - 1
+
 
 class Distribution:
     """
     Base class for all probability distributions
     with seed and random number generator.
-
-    For discussion on random number generation and random seeds, see
-    https://docs.scipy.org/doc/scipy/tutorial/stats.html#random-number-generation
 
     Parameters
     ----------
@@ -26,7 +25,7 @@ class Distribution:
         Seed for random number generator.
     """
 
-    def __init__(self, seed: Optional[int] = 0) -> None:
+    def __init__(self, seed: Optional[int] = None) -> None:
         """
         Generic distribution class with seed management.
 
@@ -41,16 +40,7 @@ class Distribution:
         ValueError
             Seed must be an integer type.
         """
-        if seed is None:
-            # generate random seed
-            _seed: int = random.SeedSequence().entropy
-        elif isinstance(seed, (int, np.integer)):
-            _seed = seed
-        else:
-            raise ValueError("seed must be an integer")
-
-        self._seed: int = _seed
-        self._rng: random.Generator = random.default_rng(self._seed)
+        self.seed = seed
 
     @property
     def seed(self) -> int:
@@ -62,7 +52,7 @@ class Distribution:
         int
             Seed.
         """
-        return self._seed  # type: ignore
+        return self._seed
 
     @seed.setter
     def seed(self, seed: int) -> None:
@@ -74,12 +64,16 @@ class Distribution:
         seed : int
             Seed for random number generator.
         """
-
-        if isinstance(seed, (int, np.integer)):
+        if seed is None:
+            # random seed from entropy
+            self._seed = random_seed()
+        elif isinstance(seed, (int, np.integer)):
             self._seed = seed
-            self._rng = random.default_rng(seed)
         else:
             raise ValueError("seed must be an integer")
+
+        # set random number generator with seed
+        self._rng = random.default_rng(self._seed)
 
     def reset(self) -> None:
         """
@@ -94,9 +88,10 @@ class Distribution:
 
     def random_seed(self) -> None:
         """
-        Generate a new random seed for this distribution.
+        Generate a new random seed derived from the random seed
+        in this distribution.
         """
-        self.seed = random.SeedSequence().entropy
+        return self._rng.integers(0, MAX_INT32, dtype=np.int32)
 
     def draw(self, N: int) -> np.ndarray:
         """
