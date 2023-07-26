@@ -116,6 +116,31 @@ class Distribution:
         size = (N, mean.size) if mean.size != 1 else N
         return self.rvs(size=size, random_state=self._rng)
 
+
+# CONTINUOUS DISTRIBUTIONS
+
+
+class ContinuousFrozenDistribution(rv_continuous_frozen, Distribution):
+    """
+    Parameterized continuous distribution from scipy.stats with seed management.
+    """
+
+    def __init__(
+        self, dist: rv_continuous, *args: Any, seed: int = 0, **kwds: Any
+    ) -> None:
+        """
+        Parameterized continuous distribution from scipy.stats with seed management.
+
+        Parameters
+        ----------
+        dist : rv_continuous
+            Continuous distribution from scipy.stats.
+        seed : int, optional
+            Seed for random number generator, by default 0
+        """
+        super(rv_continuous_frozen, self).__init__(dist, *args, **kwds)
+        super(Distribution, self).__init__(seed=seed)
+
     def discretize(
         self, N: int, method: str = "equiprobable", endpoints: bool = False, **kwds: Any
     ) -> "DiscreteDistribution":
@@ -143,41 +168,13 @@ class Distribution:
         """
 
         approx_method = "_approx_" + method
-
         if not hasattr(self, approx_method):
             raise NotImplementedError(
-                "discretize() with method = {} not implemented for {} class".format(
-                    method, self.__class__.__name__
-                )
+                f"discretize() with method = {method} not implemented"
+                f"for {self.__class__.__name__} class"
             )
-
         approx = getattr(self, approx_method)
         return approx(N, endpoints, **kwds)
-
-
-# CONTINUOUS DISTRIBUTIONS
-
-
-class ContinuousFrozenDistribution(rv_continuous_frozen, Distribution):
-    """
-    Parameterized continuous distribution from scipy.stats with seed management.
-    """
-
-    def __init__(
-        self, dist: rv_continuous, *args: Any, seed: int = 0, **kwds: Any
-    ) -> None:
-        """
-        Parameterized continuous distribution from scipy.stats with seed management.
-
-        Parameters
-        ----------
-        dist : rv_continuous
-            Continuous distribution from scipy.stats.
-        seed : int, optional
-            Seed for random number generator, by default 0
-        """
-        rv_continuous_frozen.__init__(self, dist, *args, **kwds)
-        Distribution.__init__(self, seed=seed)
 
 
 class Normal(ContinuousFrozenDistribution):
