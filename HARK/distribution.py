@@ -1181,7 +1181,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
 
         if len(kwargs):
             f_query = func(self.dataset, **kwargs)
-            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.pmv)
+            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.probability)
 
             return ldd
 
