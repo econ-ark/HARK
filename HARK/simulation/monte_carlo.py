@@ -189,13 +189,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
         -------
         None
         """
-        if not hasattr(self, "T_sim"):
-            raise Exception(
-                "To initialize simulation variables it is necessary to first "
-                + "set the attribute T_sim to the largest number of observations "
-                + "you plan to simulate for each agent including re-births."
-            )
-        elif self.T_sim <= 0:
+        if self.T_sim <= 0:
             raise Exception(
                 "T_sim represents the largest number of observations "
                 + "that can be simulated for an agent, and must be a positive number."
@@ -437,14 +431,6 @@ class AgentTypeMonteCarloSimulator(Simulator):
                 "It seems that the simulation variables were not initialize before calling "
                 + "simulate(). Call initialize_sim() to initialize the variables before calling simulate() again."
             )
-
-        if not hasattr(self, "T_sim"):
-            raise Exception(
-                "This agent type instance must have the attribute T_sim set to a positive integer."
-                + "Set T_sim to match the largest dataset you might simulate, and run this agent's"
-                + "initalizeSim() method before running simulate() again."
-            )
-
         if sim_periods is not None and self.T_sim < sim_periods:
             raise Exception(
                 "To simulate, sim_periods has to be larger than the maximum data set size "
