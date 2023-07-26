@@ -314,7 +314,12 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import risky_asset_parms
 
 class test_transition_mat(unittest.TestCase):
     def setUp(self):
-        pass
+        # Define some default newborn distribution over all states
+        self.newborn_dstn = DiscreteDistributionLabeled(
+            pmv=np.array([1.0]),
+            atoms=np.array([[1.0], [1.0], [0.5], [1.0]]),
+            var_names=["PLvl", "mNrm", "Share", "Adjust"],
+        )
 
     def test_LC(self):
         # Low number of points, else RAM reqs are high
@@ -340,15 +345,8 @@ class test_transition_mat(unittest.TestCase):
         # Check that it is indeed an LC model
         assert len(agent.solution) > 10
 
-        # Define some default newborn distribution
-        newborn_dstn = DiscreteDistributionLabeled(
-            pmv=np.array([1.0]),
-            atoms=np.array([[1.0], [1.0]]),
-            var_names=["PLvl", "mNrm"],
-        )
-
         # Get transition matrices
-        agent.find_transition_matrices(newborn_dstn=newborn_dstn)
+        agent.find_transition_matrices(newborn_dstn=self.newborn_dstn)
         assert len(agent.solution) - 1 == len(agent.trans_mat.living_transitions)
 
         # Check the bruteforce representation that treats age as a state.
@@ -381,7 +379,7 @@ class test_transition_mat(unittest.TestCase):
             AdjustGrid=None,
         )
         agent.solve()
-        agent.find_transition_matrices()
+        agent.find_transition_matrices(newborn_dstn=self)
         self.assertTrue(
             agent.trans_mat.living_transitions[0].size == np.power(npoints, 2)
         )
@@ -402,7 +400,14 @@ class test_transition_mat(unittest.TestCase):
             AdjustGrid=np.array([False, True]),
         )
         agent.solve()
-        agent.find_transition_matrices()
+        agent.find_transition_matrices(newborn_dstn=self.newborn_dstn)
         self.assertTrue(
             agent.trans_mat.living_transitions[0].size == np.power(50 * 10 * 2, 2)
         )
+
+        # Check that we can simulate it
+        dstn = np.zeros((len(agent.state_grid.coords["mesh"]), 1))
+        dstn[0, 0] = 1.0
+
+        for _ in range(1000):
+            dstn = agent.trans_mat.iterate_dstn_forward(dstn)

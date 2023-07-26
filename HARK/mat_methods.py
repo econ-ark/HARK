@@ -308,10 +308,10 @@ class transition_mat:
         else:
             # Living-to-age+1
             dstn_final += self.surv_probs[0] * np.dot(
-                self.living_transitions[0], dstn_init
+                self.living_transitions[0].T, dstn_init
             )
             # Living-to-newborn
-            dstn_final += (1 - self.surv_probs[0]) * self.newborn_dstn
+            dstn_final[:, 0] += (1 - self.surv_probs[0]) * self.newborn_dstn
 
         return dstn_final
 
