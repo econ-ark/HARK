@@ -324,81 +324,21 @@ class AgentTypeMonteCarloSimulator(Simulator):
 
         Returns
         -------
-        None
+        shock_history: dict
+            The subset of simulation history that are the shocks for each agent and time.
         """
         # Re-initialize the simulation
         self.initialize_sim()
+        self.simulate()
 
-        # Make blank history arrays for each shock variable (and mortality)
-        for var_name in self.shock_vars:
-            self.shock_history[var_name] = (
-                np.zeros((self.T_sim, self.agent_count)) + np.nan
-            )
-        self.shock_history["who_dies"] = np.zeros(
-            (self.T_sim, self.agent_count), dtype=bool
-        )
-
-        # Also make blank arrays for the draws of newborns' initial conditions
-        for var_name in self.state_vars:
-            self.newborn_init_history[var_name] = (
-                np.zeros((self.T_sim, self.agent_count)) + np.nan
-            )
-
-        # Record the initial condition of the newborns created by
-        # initialize_sim -> sim_births
-        for var_name in self.state_vars:
-            # Check whether the state is idiosyncratic or an aggregate
-            idio = (
-                isinstance(self.state_now[var_name], np.ndarray)
-                and len(self.state_now[var_name]) == self.agent_count
-            )
-            if idio:
-                self.newborn_init_history[var_name][self.t_sim] = self.state_now[
-                    var_name
-                ]
-            else:
-                # Aggregate state is a scalar. Assign it to every agent.
-                self.newborn_init_history[var_name][self.t_sim, :] = self.state_now[
-                    var_name
-                ]
-
-        # Make and store the history of shocks for each period
-        for t in range(self.T_sim):
-            # Deaths
-            self.get_mortality()
-            self.shock_history["who_dies"][t, :] = self.who_dies
-
-            # Initial conditions of newborns
-            if np.sum(self.who_dies) > 0:
-                for var_name in self.state_vars:
-                    # Check whether the state is idiosyncratic or an aggregate
-                    idio = (
-                        isinstance(self.state_now[var_name], np.ndarray)
-                        and len(self.state_now[var_name]) == self.agent_count
-                    )
-                    if idio:
-                        self.newborn_init_history[var_name][
-                            t, self.who_dies
-                        ] = self.state_now[var_name][self.who_dies]
-                    else:
-                        self.newborn_init_history[var_name][
-                            t, self.who_dies
-                        ] = self.state_now[var_name]
-
-            # Other Shocks
-            self.get_shocks()
-            for var_name in self.shock_vars:
-                self.shock_history[var_name][t, :] = self.shocks[var_name]
-
-            self.t_sim += 1
-            self.t_age = self.t_age + 1  # Age all consumers by one period
-            self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-            self.t_cycle[
-                self.t_cycle == self.T_cycle
-            ] = 0  # Resetting to zero for those who have reached the end
+        for shock_name in self.shocks:
+            self.shock_history[shock_name] = self.history[shock_name]
 
         # Flag that shocks can be read rather than simulated
         self.read_shocks = True
+        self.clear_history()
+
+        return self.shock_history
 
     def get_mortality(self):
         """

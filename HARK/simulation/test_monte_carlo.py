@@ -83,7 +83,7 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
             'c' : lambda m : m / 2
         }
 
-    def test_AgentTypeMonteCarloSimulator(self):
+    def test_simulate(self):
         self.simulator = AgentTypeMonteCarloSimulator(
             self.parameters,
             self.shocks,
@@ -101,7 +101,17 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
 
         self.assertTrue((a1 == b1).all())
 
+    def test_make_shock_history(self):
+        self.simulator = AgentTypeMonteCarloSimulator(
+            self.parameters,
+            self.shocks,
+            self.dynamics,
+            self.dr,
+            self.initial,
+            agent_count = 3
+        )
 
+        self.simulator.make_shock_history()
 
 
 ###############################################################3
