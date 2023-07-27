@@ -1932,11 +1932,12 @@ class PerfForesightConsumerType(AgentType):
         Evaluate and report on the Absolute Impatience Condition.
         """
         name = "AIC"
-        result = self.APFac < 1.
+        APFac = self.auxiliary['APFac']
+        result = APFac < 1.
 
         messages = {
-            True: f"APFac={self.APFac:.5f} : The Absolute Patience Factor satisfies the Absolute Impatience Condition (AIC) Þ < 1.",
-            False: f"APFac={self.APFac:.5f} : The Absolute Patience Factor violates the Absolute Impatience Condition (AIC) Þ < 1."
+            True: f"APFac={APFac:.5f} : The Absolute Patience Factor satisfies the Absolute Impatience Condition (AIC) Þ < 1.",
+            False: f"APFac={APFac:.5f} : The Absolute Patience Factor violates the Absolute Impatience Condition (AIC) Þ < 1."
         }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
@@ -1946,11 +1947,12 @@ class PerfForesightConsumerType(AgentType):
         Evaluate and report on the Growth Impatience Condition for the Perfect Foresight model.
         """
         name = "GICRaw"
-        result = self.GPFacRaw < 1.
+        GPFacRaw = self.auxiliary['GPFacRaw']
+        result = GPFacRaw < 1.
 
         messages = {
-            True: f"GPFacRaw={self.GPFacRaw:.5f} : The Growth Patience Factor satisfies the Growth Impatience Condition (GICRaw) Þ/G < 1.",
-            False: f"GPFacRaw={self.GPFacRaw:.5f} : The Growth Patience Factor violates the Growth Impatience Condition (GICRaw) Þ/G < 1."
+            True: f"GPFacRaw={GPFacRaw:.5f} : The Growth Patience Factor satisfies the Growth Impatience Condition (GICRaw) Þ/G < 1.",
+            False: f"GPFacRaw={GPFacRaw:.5f} : The Growth Patience Factor violates the Growth Impatience Condition (GICRaw) Þ/G < 1."
             
         }
         verbose = self.verbose if verbose is None else verbose
@@ -1961,11 +1963,12 @@ class PerfForesightConsumerType(AgentType):
         Evaluate and report on the Return Impatience Condition.
         """
         name = "RIC"
-        result = self.RPFac < 1.
+        RPFac = self.auxiliary['RPFac']
+        result = RPFac < 1.
 
         messages = {
-            True: f"RPFac={self.RPFac:.5f} : The Return Patience Factor satisfies the Return Impatience Condition (RIC) Þ/R < 1.",
-            False: f"RPFac={self.RPFac:.5f} : The Return Patience Factor violates the Return Impatience Condition (RIC) Þ/R < 1."
+            True: f"RPFac={RPFac:.5f} : The Return Patience Factor satisfies the Return Impatience Condition (RIC) Þ/R < 1.",
+            False: f"RPFac={RPFac:.5f} : The Return Patience Factor violates the Return Impatience Condition (RIC) Þ/R < 1."
             }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
@@ -1975,11 +1978,12 @@ class PerfForesightConsumerType(AgentType):
         Evaluate and report on the Finite Human Wealth Condition.
         """
         name = "FHWC"
-        result = self.FHWFac < 1.
+        FHWFac = self.auxiliary['FHWFac']
+        result = FHWFac < 1.
 
         messages = {
-            True: f"FHWFac={self.FHWFac:.5f} : The Finite Human Wealth Factor satisfies the Finite Human Wealth Condition (FHWC) G/R < 1.",
-            False: f"FHWFac={self.FHWFac:.5f} : The Finite Human Wealth Factor violates the Finite Human Wealth Condition (FHWC) G/R < 1."
+            True: f"FHWFac={FHWFac:.5f} : The Finite Human Wealth Factor satisfies the Finite Human Wealth Condition (FHWC) G/R < 1.",
+            False: f"FHWFac={FHWFac:.5f} : The Finite Human Wealth Factor violates the Finite Human Wealth Condition (FHWC) G/R < 1."
         }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
@@ -1989,11 +1993,12 @@ class PerfForesightConsumerType(AgentType):
         Evaluate and report on the Finite Value of Autarky Condition under perfect foresight.
         """
         name = "PFFVAC"
-        result = self.PFVAFac < 1.
+        PFVAFac = self.auxiliary['PFVAFac']
+        result = PFVAFac < 1.
 
         messages = {
-            True: f"PFVAFac={self.PFVAFac:.5f} : The Finite Value of Autarky Factor satisfies the Finite Value of Autarky Condition βG^(1-ρ) < 1.",
-            False: f"PFVAFac={self.PFVAFac:.5f} : The Finite Value of Autarky Factor violates the Finite Value of Autarky Condition βG^(1-ρ) < 1."
+            True: f"PFVAFac={PFVAFac:.5f} : The Finite Value of Autarky Factor satisfies the Finite Value of Autarky Condition βG^(1-ρ) < 1.",
+            False: f"PFVAFac={PFVAFac:.5f} : The Finite Value of Autarky Factor violates the Finite Value of Autarky Condition βG^(1-ρ) < 1."
         }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
@@ -2024,7 +2029,10 @@ class PerfForesightConsumerType(AgentType):
             if this_entry[3]:
                 val = getattr(self,this_entry[0])[0]
             else:
-                val = getattr(self,this_entry[0])
+                try:
+                    val = getattr(self,this_entry[0])
+                except:
+                    val = self.auxiliary[this_entry[0]]
             this_line = this_entry[2] + f'={val:.5f} : ' + this_entry[1] + ' (' + this_entry[0] + ')\n'
             param_desc += this_line
             
@@ -2035,7 +2043,8 @@ class PerfForesightConsumerType(AgentType):
         Compute various scalar values that are relevant to characterizing the
         solution to an infinite horizon problem. This method should only be called
         when T_cycle=1 and cycles=0, otherwise the values generated are meaningless.
-        This method adds the following attributes to the instance:
+        This method adds the following values to the instance in the dictionary
+        attribute auxiliary.
             
         APFac : Absolute Patience Factor
         GPFacRaw : Growth Patience Factor
@@ -2051,22 +2060,26 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         '''
-        self.APFac = (self.Rfree * self.DiscFac * self.LivPrb[0]) ** (1 / self.CRRA)
-        self.GPFacRaw = self.APFac / self.PermGroFac[0]
-        self.FHWFac = self.PermGroFac[0] / self.Rfree
-        self.RPFac = self.APFac / self.Rfree
-        self.PFVAFac = (self.DiscFac * self.LivPrb[0]) * self.PermGroFac[0]**(1. - self.CRRA)
-        self.cNrmPDV = 1. / (1. - self.RPFac)
-        self.MPCmin = np.maximum(1. - self.RPFac, 0.)
+        aux_dict = {}
+        aux_dict['APFac'] = (self.Rfree * self.DiscFac * self.LivPrb[0]) ** (1 / self.CRRA)
+        aux_dict['GPFacRaw'] = aux_dict['APFac'] / self.PermGroFac[0]
+        aux_dict['FHWFac'] = self.PermGroFac[0] / self.Rfree
+        aux_dict['RPFac'] = aux_dict['APFac'] / self.Rfree
+        aux_dict['PFVAFac'] = (self.DiscFac * self.LivPrb[0]) * self.PermGroFac[0]**(1. - self.CRRA)
+        aux_dict['cNrmPDV'] = 1. / (1. - aux_dict['RPFac'])
+        aux_dict['MPCmin'] = np.maximum(1. - aux_dict['RPFac'], 0.)
         constrained = hasattr(self, "BoroCnstArt") and (self.BoroCnstArt is not None) and (self.BoroCnstArt > -np.inf)
+        
         if constrained:
-            self.MPCmax = 1.
+            aux_dict['MPCmax'] = 1.
         else:
-            self.MPCmax = self.MPCmin
-        if self.FHWFac < 1.:
-            self.hNrm = 1. / (1. - self.FHWFac)
+            aux_dict['MPCmax'] = aux_dict['MPCmin']
+        if aux_dict['FHWFac'] < 1.:
+            aux_dict['hNrm'] = 1. / (1. - aux_dict['FHWFac'])
         else:
-            self.hNrm = np.inf
+            aux_dict['hNrm'] = np.inf
+            
+        self.auxiliary = aux_dict
 
     def check_conditions(self, verbose=None):
         """
@@ -3173,7 +3186,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # make it easier to adapt into the style of the superclass if we add more
         # parameter reports later)
         this_entry = ['WorstPrb', 'probability of worst income shock realization', '℘', False]
-        val = getattr(self,this_entry[0])
+        try:
+            val = getattr(self,this_entry[0])
+        except:
+            val = self.auxiliary[this_entry[0]]    
         this_line = this_entry[2] + f'={val:.5f} : ' + this_entry[1] + ' (' + this_entry[0] + ')\n'
         
         # Add in the new entry and return it
@@ -3186,7 +3202,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Compute various scalar values that are relevant to characterizing the
         solution to an infinite horizon problem. This method should only be called
         when T_cycle=1 and cycles=0, otherwise the values generated are meaningless.
-        This method adds the following attributes to the instance:
+        This method adds the following values to this instance in the dictionary
+        attribute auxiliary.
             
         APFac : Absolute Patience Factor
         GPFacRaw : Growth Patience Factor
@@ -3211,32 +3228,33 @@ class IndShockConsumerType(PerfForesightConsumerType):
         None
         '''
         PerfForesightConsumerType.calc_limiting_values(self)
+        aux_dict = self.auxiliary
         
         # Calculate the risk-modified growth impatience factor
         PermShkDstn = self.PermShkDstn[0]
         inv_func = lambda x : x**(-1.)
         GroCompPermShk = expected(inv_func, PermShkDstn)[0]**(-1.)
-        self.GPFacMod = self.APFac / (self.PermGroFac[0] * GroCompPermShk)
+        aux_dict['GPFacMod'] = aux_dict['APFac'] / (self.PermGroFac[0] * GroCompPermShk)
         
         # Calculate the mortality-adjusted growth impatience factor (and version
         # with Modigiliani bequests)
-        self.GPFacLiv = self.GPFacRaw * self.LivPrb[0]
-        self.GPFacLivMod = self.GPFacLiv * self.LivPrb[0]
+        aux_dict['GPFacLiv'] = aux_dict['GPFacRaw'] * self.LivPrb[0]
+        aux_dict['GPFacLivMod'] = aux_dict['GPFacLiv'] * self.LivPrb[0]
         
         # Calculate the risk-modified value of autarky factor
         CRRAfunc = lambda x : x**(1.-self.CRRA)
         UtilCompPermShk = expected(CRRAfunc, PermShkDstn)[0]**(1/(1.-self.CRRA))
-        self.VAFac = self.DiscFac*(self.PermGroFac[0]*UtilCompPermShk)**(1.-self.CRRA)
+        aux_dict['VAFac'] = self.DiscFac*(self.PermGroFac[0]*UtilCompPermShk)**(1.-self.CRRA)
         
         # Calculate the expected log permanent income shock, which will be used
         # for the Szeidl variation of the Growth Impatience condition
-        self.ELogPermShk = expected(np.log, PermShkDstn)[0]
+        aux_dict['ELogPermShk'] = expected(np.log, PermShkDstn)[0]
         
         # Calculate the Harmenberg permanent income neutral expected log permanent
         # shock and the Harmenberg Growth Patience Factor
         Hrm_func = lambda x : x * np.log(x)
         PermShk_Hrm = np.exp(expected(Hrm_func, PermShkDstn)[0])
-        self.GPFacHrm = self.GPFacRaw / PermShk_Hrm
+        aux_dict['GPFacHrm'] = aux_dict['GPFacRaw'] / PermShk_Hrm
         
         # Calculate the probability of the worst income shock realization
         PermShkValsNext = self.IncShkDstn[0].atoms[0]
@@ -3249,17 +3267,17 @@ class IndShockConsumerType(PerfForesightConsumerType):
         WorstIncPrb = np.sum(
             ShkPrbsNext[(PermShkValsNext * TranShkValsNext) == WorstIncNext]
         )
-        self.WorstPrb = WorstIncPrb
+        aux_dict['WorstPrb'] = WorstIncPrb
         
         # Calculate the weak return patience factor
-        self.WRPFac = WorstIncPrb**(1./self.CRRA) * self.RPFac
+        aux_dict['WRPFac'] = WorstIncPrb**(1./self.CRRA) * aux_dict['RPFac']
         
         # Calculate human wealth and the infinite horizon natural borrowing constraint
-        if self.FHWFac < 1.:
-            hNrm = Ex_IncNext / (1. - self.FHWFac)
+        if aux_dict['FHWFac'] < 1.:
+            hNrm = Ex_IncNext / (1. - aux_dict['FHWFac'])
         else:
             hNrm = np.inf
-        temp = PermShkMinNext * self.FHWFac
+        temp = PermShkMinNext * aux_dict['FHWFac']
         BoroCnstNat = -TranShkMinNext * temp / (1.0 - temp)
 
         # Find the upper bound of the MPC as market resources approach the minimum
@@ -3267,12 +3285,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if BoroCnstNat < BoroCnstArt:
             MPCmax = 1.0  # if natural borrowing constraint is overridden by artificial one, MPCmax is 1
         else:
-            MPCmax = 1.0 - WorstIncPrb ** (1.0 / self.CRRA) * self.RPFac
+            MPCmax = 1.0 - WorstIncPrb ** (1.0 / self.CRRA) * aux_dict['RPFac']
             MPCmax = np.maximum(MPCmax, 0.0)
             
         # Store maximum MPC and human wealth
-        self.hNrm = hNrm
-        self.MPCmax = MPCmax
+        aux_dict['hNrm'] = hNrm
+        aux_dict['MPCmax'] = MPCmax
+        
+        self.auxiliary = aux_dict
 
 
     def check_GICMod(self, verbose=None):
@@ -3280,11 +3300,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Risk-Modified Growth Impatience Condition.
         """
         name = "GICMod"
-        result = self.GPFacMod < 1.
+        GPFacMod = self.auxiliary['GPFacMod']
+        result = GPFacMod < 1.
 
         messages = {
-            True: f"GPFacMod={self.GPFacMod:.5f} : The Risk-Modified Growth Patience Factor satisfies the Risk-Modified Growth Impatience Condition (GICMod) Þ/(G‖Ψ‖_(-1)) < 1.",
-            False: f"GPFacMod={self.GPFacMod:.5f} : The Risk-Modified Growth Patience Factor violates the Risk-Modified Growth Impatience Condition (GICMod) Þ/(G‖Ψ‖_(-1)) < 1."
+            True: f"GPFacMod={GPFacMod:.5f} : The Risk-Modified Growth Patience Factor satisfies the Risk-Modified Growth Impatience Condition (GICMod) Þ/(G‖Ψ‖_(-1)) < 1.",
+            False: f"GPFacMod={GPFacMod:.5f} : The Risk-Modified Growth Patience Factor violates the Risk-Modified Growth Impatience Condition (GICMod) Þ/(G‖Ψ‖_(-1)) < 1."
         }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
@@ -3295,11 +3316,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Szeidl variation of the Growth Impatience Condition.
         """
         name = "GICSdl"
-        result = np.log(self.GPFacRaw) < self.ELogPermShk
+        ELogPermShk = self.auxiliary['ELogPermShk']
+        result = np.log(self.auxiliary['GPFacRaw']) < ELogPermShk
 
         messages = {
-            True: f"E[log Ψ]={self.ELogPermShk:.5f} : The expected log permanent income shock satisfies the Szeidl Growth Impatience Condition (GICSdl) log(Þ/G) < E[log Ψ].",
-            False: f"E[log Ψ]={self.ELogPermShk:.5f} : The expected log permanent income shock violates the Szeidl Growth Impatience Condition (GICSdl) log(Þ/G) < E[log Ψ]."
+            True: f"E[log Ψ]={ELogPermShk:.5f} : The expected log permanent income shock satisfies the Szeidl Growth Impatience Condition (GICSdl) log(Þ/G) < E[log Ψ].",
+            False: f"E[log Ψ]={ELogPermShk:.5f} : The expected log permanent income shock violates the Szeidl Growth Impatience Condition (GICSdl) log(Þ/G) < E[log Ψ]."
         }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
@@ -3310,11 +3332,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Harmenberg variation of the Growth Impatience Condition.
         """
         name = "GICHrm"
-        result = self.GPFacHrm < 1.
+        GPFacHrm = self.auxiliary['GPFacHrm']
+        result = GPFacHrm < 1.
 
         messages = {
-            True: f"GPFacHrm={self.GPFacHrm:.5f} : The Harmenberg Expected Growth Patience Factor satisfies the Harmenberg Growth Normalized Impatience Condition (GICHrm) Þ/G < exp(E[Ψlog Ψ]).",
-            False: f"GPFacHrm={self.GPFacHrm:.5f} : The Harmenberg Expected Growth Patience Factor violates the Harmenberg Growth Normalized Impatience Condition (GICHrm) Þ/G < exp(E[Ψlog Ψ])."
+            True: f"GPFacHrm={GPFacHrm:.5f} : The Harmenberg Expected Growth Patience Factor satisfies the Harmenberg Growth Normalized Impatience Condition (GICHrm) Þ/G < exp(E[Ψlog Ψ]).",
+            False: f"GPFacHrm={GPFacHrm:.5f} : The Harmenberg Expected Growth Patience Factor violates the Harmenberg Growth Normalized Impatience Condition (GICHrm) Þ/G < exp(E[Ψlog Ψ])."
         }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
@@ -3325,11 +3348,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Mortality-Adjusted Growth Impatience Condition.
         """
         name = "GICLiv"
-        result = self.GPFacLiv < 1.
+        GPFacLiv = self.auxiliary['GPFacLiv']
+        result = GPFacLiv < 1.
 
         messages = {
-            True: f"GPFacLiv={self.GPFacLiv:.5f} : The Mortality-Adjusted Growth Patience Factor satisfies the Mortality-Adjusted Growth Impatience Condition (GICLiv) ℒÞ/G < 1.",
-            False: f"GPFacLiv={self.GPFacLiv:.5f} : The Mortality-Adjusted Growth Patience Factor violates the Mortality-Adjusted Growth Impatience Condition (GICLiv) ℒÞ/G < 1."
+            True: f"GPFacLiv={GPFacLiv:.5f} : The Mortality-Adjusted Growth Patience Factor satisfies the Mortality-Adjusted Growth Impatience Condition (GICLiv) ℒÞ/G < 1.",
+            False: f"GPFacLiv={GPFacLiv:.5f} : The Mortality-Adjusted Growth Patience Factor violates the Mortality-Adjusted Growth Impatience Condition (GICLiv) ℒÞ/G < 1."
         }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
@@ -3340,11 +3364,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Finite Value of Autarky condition in the presence of income risk.
         """
         name = "FVAC"
-        result = self.VAFac < 1.
+        VAFac = self.auxiliary['VAFac']
+        result = VAFac < 1.
 
         messages = {
-            True: f"VAFac={self.VAFac:.5f} : The Risk-Modified Finite Value of Autarky Factor satisfies the Risk-Modified Finite Value of Autarky Condition β(G‖Ψ‖_(1-ρ))^(1-ρ) < 1.",
-            False: f"VAFac={self.VAFac:.5f} : The Risk-Modified Finite Value of Autarky Factor violates the Risk-Modified Finite Value of Autarky Condition β(G‖Ψ‖_(1-ρ))^(1-ρ) < 1."
+            True: f"VAFac={VAFac:.5f} : The Risk-Modified Finite Value of Autarky Factor satisfies the Risk-Modified Finite Value of Autarky Condition β(G‖Ψ‖_(1-ρ))^(1-ρ) < 1.",
+            False: f"VAFac={VAFac:.5f} : The Risk-Modified Finite Value of Autarky Factor violates the Risk-Modified Finite Value of Autarky Condition β(G‖Ψ‖_(1-ρ))^(1-ρ) < 1."
         }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
@@ -3355,11 +3380,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Weak Return Impatience Condition.
         """
         name = "WRIC"
-        result = self.WRPFac < 1.
+        WRPFac = self.auxiliary['WRPFac']
+        result = WRPFac < 1.
 
         messages = {
-            True: f"WRPFac={self.WRPFac:.5f} : The Weak Return Patience Factor satisfies the Weak Return Impatience Condition (WRIC) ℘ Þ/R < 1.",
-            False: f"WRPFac={self.WRPFac:.5f} : The Weak Return Patience Factor violates the Weak Return Impatience Condition (WRIC) ℘ Þ/R < 1."
+            True: f"WRPFac={WRPFac:.5f} : The Weak Return Patience Factor satisfies the Weak Return Impatience Condition (WRIC) ℘ Þ/R < 1.",
+            False: f"WRPFac={WRPFac:.5f} : The Weak Return Patience Factor violates the Weak Return Impatience Condition (WRIC) ℘ Þ/R < 1."
             }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
