@@ -3,7 +3,7 @@ This file implements unit tests for the Monte Carlo simulation module
 """
 import unittest
 
-from HARK.distribution import MeanOneLogNormal, IndexDistribution
+from HARK.distribution import Bernoulli, MeanOneLogNormal, IndexDistribution
 from HARK.simulation.monte_carlo import *
 
 cons_shocks = {
@@ -13,7 +13,8 @@ cons_shocks = {
         {
             'sigma' : [1.0, 1.1]
         }),
-    'theta' : MeanOneLogNormal(1)
+    'theta' : MeanOneLogNormal(1),
+    'live' : Bernoulli(p=0.98)
 }
 
 cons_pre = {
@@ -61,11 +62,13 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
             ## TODO: Add an aggregate shock
             ## TODO: Add a time varying shock.
             'theta' : MeanOneLogNormal(1),
-            'agg_R' : Aggregate(MeanOneLogNormal(1))
+            'agg_R' : Aggregate(MeanOneLogNormal(1)),
+            'live' : Bernoulli(p=0.98)
         }
 
         self.initial = {
-            'a' : MeanOneLogNormal(1)
+            'a' : MeanOneLogNormal(1),
+            'live' : 1
         }
 
         self.parameters = { # TODO

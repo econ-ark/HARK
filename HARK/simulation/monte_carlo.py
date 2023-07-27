@@ -43,7 +43,10 @@ def draw_shocks(
 
     for shock_var in shocks:
         shock = shocks[shock_var]
-        if isinstance(shock, Aggregate):
+
+        if isinstance(shock, (int, float)):
+            draws[shock_var] = np.ones(len(conditions)) * shock
+        elif isinstance(shock, Aggregate):
             draws[shock_var] = shock.dist.draw(1)[0]
         elif isinstance(shock, IndexDistribution) \
             or isinstance(shock, TimeVaryingDiscreteDistribution):
@@ -321,10 +324,15 @@ class AgentTypeMonteCarloSimulator(Simulator):
     def get_mortality(self):
         """
         Simulates mortality or agent turnover according to some model-specific rules named sim_death
-        and sim_birth (methods of an AgentType subclass).  sim_death takes no arguments and returns
+        and sim_birth (methods of an AgentType subclass).
+
+        Agents die when their states `live` is less than or equal to zero.
+
         a Boolean array of size agent_count, indicating which agents of this type have "died" and
-        must be replaced.  sim_birth takes such a Boolean array as an argument and generates initial
-        post-decision states for those agent indices.
+        must be replaced.
+
+        sim_birth takes such a Boolean array as an argument and generates initial
+        states for those agent indices.
 
         Parameters
         ----------
@@ -334,13 +342,13 @@ class AgentTypeMonteCarloSimulator(Simulator):
         -------
         None
         """
-        who_dies = self.sim_death()
+        who_dies = self.vars_now['live'] <= 0
 
         if self.read_shocks:
             # Instead of simulating births, assign the saved newborn initial conditions
             if np.sum(who_dies) > 0:
                 for var_name in self.initial:
-                    self.state_now[var_name][
+                    self.vars_now[var_name][
                         who_dies
                     ] = self.newborn_init_history[var_name][
                         self.t_sim, who_dies
@@ -354,31 +362,6 @@ class AgentTypeMonteCarloSimulator(Simulator):
 
         self.who_dies = who_dies
         return None
-
-    def sim_death(self):
-        """
-        # TODO: This should mainly just track the 'who_dies' var, which can be a shock or endogenous.
-
-        Determines which agents in the current population "die" or should be replaced.  Takes no
-        inputs, returns a Boolean array of size self.agent_count, which has True for agents who die
-        and False for those that survive. Returns all False by default, must be overwritten by a
-        subclass to have replacement events.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        who_dies : np.array
-            Boolean array of size self.agent_count indicating which agents die and are replaced.
-        """
-
-        #if self.read_shocks:
-        #    who_dies = self.shock_history["who_dies"][self.t_sim, :]
-
-        who_dies = np.zeros(self.agent_count, dtype=bool)
-        return who_dies
 
     def sim_birth(self, which_agents):
         """
