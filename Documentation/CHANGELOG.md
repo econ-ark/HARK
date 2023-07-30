@@ -14,6 +14,7 @@ Release Date: TBD
 
 ### Major Changes
 
+- Adds `HARK.algos.foc` and `HARK.algos.egm` modules for general algorithms for solving the optimization step of an agent's problem. Tests validate behavior against gold-standard implemented, contained in `HARK.gothic`. [#1283](https://github.com/econ-ark/HARK/pull/1283)
 - Adds `HARK.core.AgentPopulation` class to represent a population of agents with ex-ante heterogeneous parametrizations as distributions. [#1237](https://github.com/econ-ark/HARK/pull/1237)
 
 ### Minor Changes
