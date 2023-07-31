@@ -50,6 +50,7 @@ jobs:
       with:
         author: "Econ-ARK Bot <noreply@econ-ark.org>"
         branch: "bot/update-notebooks"
+        token: ${{ secrets.NB_EXEC }}
         commit-message: "[bot] updated notebooks"
         delete-branch: true
         title: "[bot] Execute example notebooks"
