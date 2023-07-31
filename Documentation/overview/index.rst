@@ -7,6 +7,7 @@ Overview
 
    introduction
    ARKitecture
+   NARK
 
 .. toctree::
    :caption: Examples
