@@ -130,4 +130,4 @@ autosummary_generate = True
 napoleon_use_ivar = True  # solves duplicate object description warning
 
 # nbsphinx configuration
-nbsphinx_execute = "never"  # This is currently not working
+nbsphinx_execute = "never"  # notebooks are executed via ``nb_exec.py``

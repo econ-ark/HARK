@@ -1,0 +1,64 @@
+name: Execute notebooks
+
+# Run on all pushes and pull requests, and on demand
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/execute-notebooks.yml"
+      - "examples/**"
+  workflow_dispatch:
+
+# Limit workflow permissions
+permissions:
+  contents: read
+
+# Limit simultaneous workflow runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: "1"
+
+jobs:
+  execute:
+    name: Execute
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"  # Numba doesn't support Python 3.11 [2023-05]
+        cache: 'pip'
+        cache-dependency-path: |
+          requirements/base.txt
+
+    - name: Install HARK
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install .
+        python -m pip install nbformat nbclient nbstripout 
+
+    - name: Strip output
+      run: nbstripout examples/**/*.ipynb
+
+    - name: Execute notebooks
+      run: python tools/nb_exec.py examples/**/*.ipynb
+
+    - name: Open PR
+      uses: peter-evans/create-pull-request@v5
+      with:
+        author: "Econ-ARK Bot <noreply@econ-ark.org>"
+        branch: "bot/update-notebooks"
+        commit-message: "[bot] updated notebooks"
+        delete-branch: true
+        title: "[bot] Execute example notebooks"
+        body: |
+          This PR was automatically generated to re-execute
+          the example notebooks for use in the documentation.
