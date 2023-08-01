@@ -16,6 +16,7 @@ from warnings import warn
 import numpy as np
 import pandas as pd
 from xarray import DataArray
+from inspect import signature
 
 from HARK.distribution import (
     Distribution,
@@ -893,6 +894,41 @@ class AgentType(Model):
         # Save list of shock distributions
         self.full_shock_dstns = shock_dstns
 
+    def eval_outcomes_on_mesh(self, outcomes):
+        # TODO: stuff that depends on time varying parameters
+
+        T = len(self.solution)
+        M = len(self.state_grid.coords["mesh"])
+
+        outcome_mesh = {}
+
+        for out_name, out_fn in outcomes.items():
+            # Initialize
+            outcome_mesh[out_name] = np.zeros((M, T))
+
+            # Parse args
+            args = list(signature(out_fn).parameters)
+            if len(args) > 0 and args[0] == "solution":
+                uses_sol = True
+                state_args = args[1:]
+            else:
+                uses_sol = False
+                state_args = args
+
+            if uses_sol:
+                for t in range(T):
+                    outcome_mesh[out_name][:, t] = out_fn(
+                        *([self.solution[t]] + [self.state_grid[x] for x in state_args])
+                    )
+            else:
+                # TODO: this could change with time-varying parameters
+                for t in range(T):
+                    outcome_mesh[out_name][:, t] = out_fn(
+                        *[self.state_grid[x] for x in state_args]
+                    )
+
+        return outcome_mesh
+
     def find_transition_matrices(self, newborn_dstn=None):
         # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
         if len(self.time_vary) > 0:
@@ -984,7 +1020,7 @@ class AgentType(Model):
             living_transitions=surv_mats,
             surv_probs=self.LivPrb,
             newborn_dstn=newborn_mass,
-            life_cycle= T > 1,
+            life_cycle=T > 1,
         )
 
 
