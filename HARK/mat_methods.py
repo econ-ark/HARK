@@ -349,8 +349,17 @@ class transition_mat:
         return dstn_final
 
     def find_steady_state_dstn(
-        self, dstn_init, tol=1e-10, max_iter=1000, check_every=10, normalize_every=20
+        self, dstn_init=None, tol=1e-10, max_iter=1000, check_every=10, normalize_every=20
     ):
+        
+        if dstn_init is None:
+            # Create an initial distribution that concentrates
+            # on the first gridpoint of the first age
+            dstn_init = dstn = np.zeros(
+                (len(self.newborn_dstn), len(self.living_transitions))
+            )
+            dstn[0, 0] = 1.0
+
         # Initialize
         dstn = dstn_init
         err = tol + 1
