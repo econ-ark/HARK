@@ -375,7 +375,7 @@ class test_transition_mat(unittest.TestCase):
             AdjustGrid=None,
         )
         agent.solve()
-        agent.find_transition_matrices(newborn_dstn=self)
+        agent.find_transition_matrices(newborn_dstn=self.newborn_dstn)
         self.assertTrue(
             agent.trans_mat.living_transitions[0].size == np.power(npoints, 2)
         )
