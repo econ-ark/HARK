@@ -30,14 +30,14 @@
 # Setup
 import numpy as np
 import matplotlib.pyplot as plt
-from HARK.econforgeinterp import LinearFast, DecayInterp
+from HARK.interpolation import LinearFast, DecayInterp
 from HARK.interpolation import LinearInterp
 
 # %% [markdown]
 # ## Basic use of the `DecayInterp` class
 #
 # `DecayInterp` requires two basic inputs:
-# - `interp`, which is the interpolator $f(\cdot)$. It must be an instance of the `HARK.econforgeinterp.LinearFast` class.
+# - `interp`, which is the interpolator $f(\cdot)$. It must be an instance of the `HARK.interpolation.LinearFast` class.
 # - `limit_fun`, which is the limiting function $g(\cdot)$. It must receive the same number of inputs as `interp` and be able to take `numpy` arrays as inputs.
 #
 # And that's it!

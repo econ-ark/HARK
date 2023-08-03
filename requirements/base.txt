@@ -5,7 +5,9 @@ networkx>=3
 numba>=0.56
 numpy>=1.23
 pandas>=1.5
-quantecon
+quantecon>=0.6
+recommonmark>=0.7
+scikit-learn
 scipy>=1.10
 seaborn>=0.12
 xarray>=2023

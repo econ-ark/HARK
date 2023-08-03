@@ -2,8 +2,7 @@ import unittest
 
 import numpy as np
 
-from HARK.econforgeinterp import DecayInterp, LinearFast
-from HARK.interpolation import BilinearInterp, LinearInterp
+from HARK.interpolation import BilinearInterp, DecayInterp, LinearFast, LinearInterp
 from HARK.metric import distance_metric
 
 
