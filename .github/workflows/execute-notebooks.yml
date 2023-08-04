@@ -1,8 +1,11 @@
 name: Execute notebooks
 
-# Run on demand
 on:
+  # Run on demand
   workflow_dispatch:
+  # 6.49 am (GMT) every Monday; time chosen at random
+  schedule:
+  - cron: "49 6 * * MON"
 
 # Limit workflow permissions
 permissions:
@@ -18,10 +21,12 @@ env:
 
 jobs:
   execute:
-    name: Execute
+    name: Update notebooks
+    if: github.repository_owner == 'Econ-ARK'
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
     - uses: actions/checkout@v3
@@ -32,28 +37,39 @@ jobs:
         cache: 'pip'
         cache-dependency-path: |
           requirements/base.txt
+          .github/workflows/execute-notebooks.yml
 
-    - name: Install HARK
+    - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install .
-        python -m pip install nbformat nbclient nbstripout 
+        # For LabeledModels.ipynb
+        python -m pip install estimagic
+        # For nbstripout
+        python -m pip install nbstripout
+        # For nb_exec.py
+        python -m pip install ipykernel nbclient nbformat
 
     - name: Strip output
       run: nbstripout examples/**/*.ipynb
 
+    # This step takes c. 20 minutes
     - name: Execute notebooks
       run: python tools/nb_exec.py examples/**/*.ipynb
+      env:
+        PYTHONUNBUFFERED: "1"
 
     - name: Open PR
       uses: peter-evans/create-pull-request@v5
       with:
         author: "Econ-ARK Bot <noreply@econ-ark.org>"
         branch: "bot/update-notebooks"
-        token: ${{ secrets.GITHUB_TOKEN }}
         commit-message: "[bot] updated notebooks"
         delete-branch: true
         title: "[bot] Execute example notebooks"
-        body: |
-          This PR was automatically generated to re-execute
+        # language=Markdown
+        body: >
+          This PR was [automatically generated] to re-execute
           the example notebooks for use in the documentation.
+          
+          [automatically generated]: https://github.com/Econ-ARK/HARK/actions/workflows/execute-notebooks.yml
