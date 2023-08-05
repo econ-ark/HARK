@@ -51,8 +51,8 @@ mystr = lambda number: "{:.4f}".format(number)
 # Consider a small extension to the model faced by `IndShockConsumerType`s: that the interest rate on borrowing $a_t < 0$ is greater than the interest rate on saving $a_t > 0$.  Consumers who face this kind of problem are represented by the $\texttt{KinkedRconsumerType}$ class.
 #
 # For a full theoretical treatment, this model analyzed in [A Theory of the Consumption Function, With
-# and Without Liquidity Constraints](http://www.econ2.jhu.edu/people/ccarroll/ATheoryv3JEP.pdf)
-# and its [expanded edition](http://www.econ2.jhu.edu/people/ccarroll/ATheoryv3NBER.pdf).
+# and Without Liquidity Constraints](https://www.econ2.jhu.edu/people/ccarroll/ATheoryv3JEP.pdf)
+# and its [expanded edition](https://www.econ2.jhu.edu/people/ccarroll/ATheoryv3NBER.pdf).
 #
 # Continuing to work with *normalized* variables (e.g. $m_t$ represents the level of market resources divided by permanent income), the "kinked R" model can be stated as:
 #
