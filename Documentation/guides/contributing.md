@@ -125,7 +125,7 @@ Thanks again! We're so glad to have you in our community.
      If Travis fails, you can find out why by clicking on the "failed" icon (red
      cross) and inspecting the build and test log.
 
-   - [GitHub Actions](http://github.com/actions), is another continuous integration
+   - [GitHub Actions](https://github.com/actions), is another continuous integration
      service, which we use. You will also need to make sure that the GitHub Actions
      tests pass.
 

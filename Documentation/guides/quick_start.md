@@ -45,7 +45,7 @@ conda install -c conda-forge econ-ark
 
    - If that doesn't work, you will need to manually add HARK to your Spyder environment. To do this, you'll need to get the code from Github and import it into Spyder. To get the code from Github, you can either clone it or download a zipped file.
 
-   - If you have `git` installed on the command line, type `git clone git@github.com:econ-ark/HARK.git` in your chosen directory ([more details here](https://git-scm.com/documentation)).
+   - If you have `git` installed on the command line, type `git clone git@github.com:econ-ark/HARK.git` in your chosen directory ([more details here](https://git-scm.com/doc)).
 
      - If you do not have `git` available on your computer, you can download the [GitHub Desktop app](https://desktop.github.com/) and use it to make a local clone
 
@@ -107,7 +107,7 @@ If you want to make changes or contributions to HARK, you'll need to have access
 
 ### Clone HARK
 
-Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/documentation)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: `git clone https://github.com/econ-ark/HARK.git`.
+Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/doc)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: `git clone https://github.com/econ-ark/HARK.git`.
 
 ### (Optionally) Create a virtual environment
 

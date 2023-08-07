@@ -150,7 +150,7 @@ For more examples please visit the [econ-ark/DemARK](https://github.com/econ-ark
 
 ## Citation
 
-If using Econ-ARK in your work or research please [cite our Digital Object Identifier](http://doi.org/10.5281/zenodo.1332015) or copy the BibTex below.
+If using Econ-ARK in your work or research please [cite our Digital Object Identifier](https://doi.org/10.5281/zenodo.1332015) or copy the BibTex below.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1332015.svg)](https://doi.org/10.5281/zenodo.1332015)
 
@@ -183,9 +183,9 @@ Looking for help? Please open a [GitHub issue](https://github.com/econ-ark/HARK/
 
 Current releases follow [Semantic Versioning](https://semver.org/). For more information please see the [Release documentation](https://github.com/econ-ark/OverARK/wiki/Release-Management).
 
-## API Documentation
+## Documentation
 
-Documentation for the latest release is at [docs.econ-ark.org](https://docs.econ-ark.org/reference/).
+Documentation for the latest release is at [docs.econ-ark.org](https://docs.econ-ark.org/).
 
 ## Introduction
 
