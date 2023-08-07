@@ -68,14 +68,14 @@ class VariableSpace(YAMLObject):
         return cls(**fields)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Parameter(Variable):
     """
     A `Parameter` is a variable that has a fixed value.
     """
 
     value: Union[int, float] = 0
-    yaml_tag: str = field(default="!Parameter", kw_only=True)
+    yaml_tag: str = "!Parameter"
     yaml_loader = SafeLoader
 
     def __repr__(self):
