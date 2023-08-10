@@ -1611,7 +1611,7 @@ class PerfForesightConsumerType(AgentType):
         self.quiet = quiet
         self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolver)
         set_verbosity_level((4 - verbose) * 10)
-
+        self.bilt = {}
         self.update_Rfree()  # update interest rate if time varying
 
     def pre_solve(self):
@@ -1908,7 +1908,7 @@ class PerfForesightConsumerType(AgentType):
     def log_condition_result(self, name, result, message, verbose):
         """
         Records the result of one condition check in the attribute condition_report
-        and in the message log.
+        of the bilt dictionary, and in the message log.
 
         Parameters
         ----------
@@ -1925,14 +1925,14 @@ class PerfForesightConsumerType(AgentType):
             self.conditions[name] = result
         set_verbosity_level((4 - verbose) * 10)
         _log.info(message)
-        self.conditions_report += message + '\n'
+        self.bilt['conditions_report'] += message + '\n'
 
     def check_AIC(self, verbose=None):
         """
         Evaluate and report on the Absolute Impatience Condition.
         """
         name = "AIC"
-        APFac = self.auxiliary['APFac']
+        APFac = self.bilt['APFac']
         result = APFac < 1.
 
         messages = {
@@ -1947,7 +1947,7 @@ class PerfForesightConsumerType(AgentType):
         Evaluate and report on the Growth Impatience Condition for the Perfect Foresight model.
         """
         name = "GICRaw"
-        GPFacRaw = self.auxiliary['GPFacRaw']
+        GPFacRaw = self.bilt['GPFacRaw']
         result = GPFacRaw < 1.
 
         messages = {
@@ -1963,7 +1963,7 @@ class PerfForesightConsumerType(AgentType):
         Evaluate and report on the Return Impatience Condition.
         """
         name = "RIC"
-        RPFac = self.auxiliary['RPFac']
+        RPFac = self.bilt['RPFac']
         result = RPFac < 1.
 
         messages = {
@@ -1978,7 +1978,7 @@ class PerfForesightConsumerType(AgentType):
         Evaluate and report on the Finite Human Wealth Condition.
         """
         name = "FHWC"
-        FHWFac = self.auxiliary['FHWFac']
+        FHWFac = self.bilt['FHWFac']
         result = FHWFac < 1.
 
         messages = {
@@ -1993,7 +1993,7 @@ class PerfForesightConsumerType(AgentType):
         Evaluate and report on the Finite Value of Autarky Condition under perfect foresight.
         """
         name = "PFFVAC"
-        PFVAFac = self.auxiliary['PFVAFac']
+        PFVAFac = self.bilt['PFVAFac']
         result = PFVAFac < 1.
 
         messages = {
@@ -2032,7 +2032,7 @@ class PerfForesightConsumerType(AgentType):
                 try:
                     val = getattr(self,this_entry[0])
                 except:
-                    val = self.auxiliary[this_entry[0]]
+                    val = self.bilt[this_entry[0]]
             this_line = this_entry[2] + f'={val:.5f} : ' + this_entry[1] + ' (' + this_entry[0] + ')\n'
             param_desc += this_line
             
@@ -2060,7 +2060,7 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         '''
-        aux_dict = {}
+        aux_dict = self.bilt
         aux_dict['APFac'] = (self.Rfree * self.DiscFac * self.LivPrb[0]) ** (1 / self.CRRA)
         aux_dict['GPFacRaw'] = aux_dict['APFac'] / self.PermGroFac[0]
         aux_dict['FHWFac'] = self.PermGroFac[0] / self.Rfree
@@ -2079,7 +2079,7 @@ class PerfForesightConsumerType(AgentType):
         else:
             aux_dict['hNrm'] = np.inf
             
-        self.auxiliary = aux_dict
+        self.bilt = aux_dict
 
     def check_conditions(self, verbose=None):
         """
@@ -2106,7 +2106,7 @@ class PerfForesightConsumerType(AgentType):
         None
         """
         self.conditions = {}
-        self.conditions_report = ''
+        self.bilt['conditions_report'] = ''
         self.degenerate = False
         verbose = self.verbose if verbose is None else verbose
 
@@ -2116,7 +2116,7 @@ class PerfForesightConsumerType(AgentType):
             trivial_message = 'No conditions report was produced because this functionality is only supported for infinite horizon models with a cycle length of 1.'
             self.log_condition_result(None, None, trivial_message, verbose)
             if not self.quiet:
-                _log.info(self.conditions_report)
+                _log.info(self.bilt['conditions_report'])
             return
 
         # Calculate some useful quantities that will be used in the condition checks
@@ -2135,7 +2135,7 @@ class PerfForesightConsumerType(AgentType):
         # Exit now if verbose output was not requested.
         if not verbose:
             if not self.quiet:
-                _log.info(self.conditions_report)
+                _log.info(self.bilt['conditions_report'])
             return
         
         # Report on the degeneracy of the consumption function solution
@@ -2171,7 +2171,7 @@ class PerfForesightConsumerType(AgentType):
         
         if degenerate: # All of the other checks are meaningless if the solution is degenerate
             if not self.quiet:
-                _log.info(self.conditions_report)
+                _log.info(self.bilt['conditions_report'])
             return 
                     
         # Report on the consequences of the Absolute Impatience Condition
@@ -2192,7 +2192,7 @@ class PerfForesightConsumerType(AgentType):
         self.log_condition_result(None, None, GIC_message, verbose)
         
         if not self.quiet:
-            _log.info(self.conditions_report)
+            _log.info(self.bilt['conditions_report'])
         
         
 # Make a dictionary to specify an idiosyncratic income shocks consumer
@@ -3189,7 +3189,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         try:
             val = getattr(self,this_entry[0])
         except:
-            val = self.auxiliary[this_entry[0]]    
+            val = self.bilt[this_entry[0]]    
         this_line = this_entry[2] + f'={val:.5f} : ' + this_entry[1] + ' (' + this_entry[0] + ')\n'
         
         # Add in the new entry and return it
@@ -3228,7 +3228,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         None
         '''
         PerfForesightConsumerType.calc_limiting_values(self)
-        aux_dict = self.auxiliary
+        aux_dict = self.bilt
         
         # Calculate the risk-modified growth impatience factor
         PermShkDstn = self.PermShkDstn[0]
@@ -3292,7 +3292,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         aux_dict['hNrm'] = hNrm
         aux_dict['MPCmax'] = MPCmax
         
-        self.auxiliary = aux_dict
+        self.bilt = aux_dict
 
 
     def check_GICMod(self, verbose=None):
@@ -3300,7 +3300,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Risk-Modified Growth Impatience Condition.
         """
         name = "GICMod"
-        GPFacMod = self.auxiliary['GPFacMod']
+        GPFacMod = self.bilt['GPFacMod']
         result = GPFacMod < 1.
 
         messages = {
@@ -3316,8 +3316,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Szeidl variation of the Growth Impatience Condition.
         """
         name = "GICSdl"
-        ELogPermShk = self.auxiliary['ELogPermShk']
-        result = np.log(self.auxiliary['GPFacRaw']) < ELogPermShk
+        ELogPermShk = self.bilt['ELogPermShk']
+        result = np.log(self.bilt['GPFacRaw']) < ELogPermShk
 
         messages = {
             True: f"E[log Ψ]={ELogPermShk:.5f} : The expected log permanent income shock satisfies the Szeidl Growth Impatience Condition (GICSdl) log(Þ/G) < E[log Ψ].",
@@ -3332,7 +3332,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Harmenberg variation of the Growth Impatience Condition.
         """
         name = "GICHrm"
-        GPFacHrm = self.auxiliary['GPFacHrm']
+        GPFacHrm = self.bilt['GPFacHrm']
         result = GPFacHrm < 1.
 
         messages = {
@@ -3348,7 +3348,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Mortality-Adjusted Growth Impatience Condition.
         """
         name = "GICLiv"
-        GPFacLiv = self.auxiliary['GPFacLiv']
+        GPFacLiv = self.bilt['GPFacLiv']
         result = GPFacLiv < 1.
 
         messages = {
@@ -3364,7 +3364,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Finite Value of Autarky condition in the presence of income risk.
         """
         name = "FVAC"
-        VAFac = self.auxiliary['VAFac']
+        VAFac = self.bilt['VAFac']
         result = VAFac < 1.
 
         messages = {
@@ -3380,7 +3380,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Weak Return Impatience Condition.
         """
         name = "WRIC"
-        WRPFac = self.auxiliary['WRPFac']
+        WRPFac = self.bilt['WRPFac']
         result = WRPFac < 1.
 
         messages = {
@@ -3410,7 +3410,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         None
         """
         self.conditions = {}
-        self.conditions_report = ''
+        self.bilt['conditions_report'] = ''
         self.degenerate = False
         verbose = self.verbose if verbose is None else verbose
 
@@ -3420,7 +3420,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             trivial_message = 'No conditions report was produced because this functionality is only supported for infinite horizon models with a cycle length of 1.'
             self.log_condition_result(None, None, trivial_message, verbose)
             if not self.quiet:
-                _log.info(self.conditions_report)
+                _log.info(self.bilt['conditions_report'])
             return
 
         # Calculate some useful quantities that will be used in the condition checks
@@ -3444,7 +3444,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Exit now if verbose output was not requested.
         if not verbose:
             if not self.quiet:
-                _log.info(self.conditions_report)
+                _log.info(self.bilt['conditions_report'])
             return
         
         # Report on the degeneracy of the consumption function solution
@@ -3463,7 +3463,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Stop here if the solution is degenerate
         if degenerate:
             if not self.quiet:
-                _log.info(self.conditions_report)
+                _log.info(self.bilt['conditions_report'])
             return
         
         # Report on the limiting behavior of the consumption function as m goes to infinity
@@ -3512,7 +3512,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.log_condition_result(None, None, GICHrm_message, verbose)
         
         if not self.quiet:
-            _log.info(self.conditions_report)
+            _log.info(self.bilt['conditions_report'])
         
 
     def calc_stable_points(self):
