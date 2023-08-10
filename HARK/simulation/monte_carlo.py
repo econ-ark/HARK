@@ -97,6 +97,45 @@ def simulate_dynamics(
 
     return vals
 
+def parameters_by_age(ages, parameters):
+    """
+    Returns parameters for this model, but with vectorized
+    values which map age-varying values to agent ages.
+
+    Parameters
+    ----------
+    ages: np.array
+        An array of agent ages.
+
+    parameters: dict
+        A parameters dictionary
+
+    Returns
+    --------
+    aged_parameters: dict
+        A dictionary of parameter values.
+        If a parameter is age-varying, the value is a vector
+        corresponding to the values for each input age.
+    """
+    def aged_param(ages, p_value):
+        if isinstance(p_value, float) or isinstance(p_value, int):
+            return p_value
+        elif isinstance(p_value, list) and len(p_value) > 1:
+            pv_array = np.array(p_value)
+            return np.apply_along_axis(
+                lambda a: pv_array[a],
+                0,
+                ages
+            )
+        else:
+            return np.empty(ages.size)
+
+    return {
+        p : aged_param(ages, parameters[p])
+        for p
+        in parameters
+    }
+
 class Simulator():
     pass
 
@@ -207,8 +246,6 @@ class AgentTypeMonteCarloSimulator(Simulator):
             if self.vars_now[var] is None:
                 self.vars_now[var] = copy(blank_array)
 
-            # elif self.state_prev[var] is None:
-            #    self.state_prev[var] = copy(blank_array)
         self.t_age = np.zeros(
             self.agent_count, dtype=int
         )  # Number of periods since agent entry
@@ -268,8 +305,8 @@ class AgentTypeMonteCarloSimulator(Simulator):
             ### BIG CHANGES HERE from HARK.core.AgentType
             shocks_now = draw_shocks(self.shocks, self.t_age)
 
-        # maybe need to time index the parameters here somehow?
-        pre = copy(self.parameters)
+        pre = parameters_by_age(self.t_age, self.parameters)
+
         pre.update(self.vars_prev)
         pre.update(shocks_now)
         #Won't work for 3.8: self.parameters | self.vars_prev | shocks_now
