@@ -936,15 +936,15 @@ class DiscreteDistribution(Distribution):
             The function to be evaluated.
             This function should take the full array of distribution values
             and return either arrays of arbitrary shape or scalars.
-            It may also take other arguments *args.
+            It may also take other arguments \\*args.
             This function differs from the standalone `calc_expectation`
             method in that it uses numpy's vectorization and broadcasting
             rules to avoid costly iteration.
             Note: If you need to use a function that acts on single outcomes
             of the distribution, consider `distribution.calc_expectation`.
-        *args :
+        \\*args :
             Other inputs for func, representing the non-stochastic arguments.
-            The the expectation is computed at f(dstn, *args).
+            The the expectation is computed at ``f(dstn, *args)``.
 
         Returns
         -------
@@ -979,10 +979,10 @@ class DiscreteDistribution(Distribution):
         func : function
             The function to be evaluated.
             This function should take the full array of distribution values.
-            It may also take other arguments *args.
-        *args :
+            It may also take other arguments \\*args.
+        \\*args :
             Additional non-stochastic arguments for func,
-            The function is computed as f(dstn, *args).
+            The function is computed as ``f(dstn, *args)``.
 
         Returns
         -------
@@ -1176,11 +1176,11 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         func : function
             The function to be evaluated.
             This function should take the full array of distribution values.
-            It may also take other arguments *args.
-        *args :
+            It may also take other arguments \\*args.
+        \\*args :
             Additional non-stochastic arguments for func,
-            The function is computed as f(dstn, *args).
-        **kwargs :
+            The function is computed as ``f(dstn, *args)``.
+        \\*\\*kwargs :
             Additional keyword arguments for func. Must be xarray compatible
             in order to work with xarray broadcasting.
 
@@ -1202,7 +1202,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
 
         if len(kwargs):
             f_query = func(self.dataset, **kwargs)
-            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.pmv)
+            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.probability)
 
             return ldd
 
@@ -1222,15 +1222,15 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             The function to be evaluated.
             This function should take the full array of distribution values
             and return either arrays of arbitrary shape or scalars.
-            It may also take other arguments *args.
+            It may also take other arguments \\*args.
             This function differs from the standalone `calc_expectation`
             method in that it uses numpy's vectorization and broadcasting
             rules to avoid costly iteration.
             Note: If you need to use a function that acts on single outcomes
             of the distribution, consier `distribution.calc_expectation`.
-        *args :
+        \\*args :
             Other inputs for func, representing the non-stochastic arguments.
-            The the expectation is computed at f(dstn, *args).
+            The the expectation is computed at ``f(dstn, *args)``.
         labels : bool
             If True, the function should use labeled indexing instead of integer
             indexing using the distribution's underlying rv coordinates. For example,
@@ -1664,7 +1664,7 @@ def make_markov_approx_to_normal_by_monte_carlo(x_grid, mu, sigma, N_draws=10000
 def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0):
     """
     Function to return a discretized version of an AR1 process.
-    See http://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
+    See https://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
 
     Parameters
     ----------
@@ -1876,10 +1876,10 @@ def calc_expectation(dstn, func=lambda x: x, *args):
         The function to be evaluated.
         This function should take an array of shape dstn.dim() and return
         either arrays of arbitrary shape or scalars.
-        It may also take other arguments *args.
-    *args :
+        It may also take other arguments \\*args.
+    \\*args :
         Other inputs for func, representing the non-stochastic arguments.
-        The the expectation is computed at f(dstn, *args).
+        The the expectation is computed at ``f(dstn, *args)``.
 
     Returns
     -------
@@ -1914,10 +1914,10 @@ def distr_of_function(dstn, func=lambda x: x, *args):
     func : function
         The function to be evaluated.
         This function should take an array of shape dstn.dim().
-        It may also take other arguments *args.
-    *args :
+        It may also take other arguments \\*args.
+    \\*args :
         Additional non-stochastic arguments for func,
-        The function is computed at f(dstn, *args).
+        The function is computed at ``f(dstn, *args)``.
 
     Returns
     -------
@@ -1998,7 +1998,7 @@ def expected(func=None, dist=None, args=(), **kwargs):
         The function to be evaluated.
         This function should take the full array of distribution values
         and return either arrays of arbitrary shape or scalars.
-        It may also take other arguments *args.
+        It may also take other arguments ``*args``.
         This function differs from the standalone `calc_expectation`
         method in that it uses numpy's vectorization and broadcasting
         rules to avoid costly iteration.
@@ -2008,7 +2008,7 @@ def expected(func=None, dist=None, args=(), **kwargs):
         The distribution over which the function is to be evaluated.
     args : tuple
         Other inputs for func, representing the non-stochastic arguments.
-        The the expectation is computed at f(dstn, *args).
+        The the expectation is computed at ``f(dstn, *args)``.
     labels : bool
         If True, the function should use labeled indexing instead of integer
         indexing using the distribution's underlying rv coordinates. For example,
