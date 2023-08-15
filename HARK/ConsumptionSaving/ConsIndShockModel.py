@@ -9,7 +9,7 @@ It currently solves three types of models:
    3) The model described in (2), with an interest rate for debt that differs
       from the interest rate for savings.
 
-See NARK https://HARK.githhub.io/Documentation/NARK for information on variable naming conventions.
+See NARK https://github.com/econ-ark/HARK/blob/master/Documentation/NARK/NARK.pdf for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.
 """
 from copy import copy, deepcopy
@@ -407,7 +407,7 @@ class ConsPerfForesightSolver(MetricObject):
         expects m not to change.
         This will exist if the GICNrm holds.
 
-        https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
+        https://econ-ark.github.io/BufferStockTheory#Unique-Stable-Points
 
         Parameters
         ----------

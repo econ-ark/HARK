@@ -1322,7 +1322,7 @@ class ConsFixedPortfolioIndShkRiskyAssetSolver(ConsIndShockSolver):
 
 risky_asset_parms = {
     # Risky return factor moments. Based on SP500 real returns from Shiller's
-    # "chapter 26" data, which can be found at http://www.econ.yale.edu/~shiller/data.htm
+    # "chapter 26" data, which can be found at https://www.econ.yale.edu/~shiller/data.htm
     "RiskyAvg": 1.080370891,
     "RiskyStd": 0.177196585,
     # Number of integration nodes to use in approximation of risky returns
