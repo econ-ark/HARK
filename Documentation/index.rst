@@ -1,7 +1,23 @@
-Welcome to HARK's documentation!
-================================
+Econ-ARK documentation -- HARK
+===============================
 
-Heterogenous Agents Resources & toolKit (HARK) is a toolkit for the structural modeling of economic choices of optimizing and non-optimizing heterogeneous agents.
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   Overview & Examples <overview/index>
+   Reference <reference/index>
+   Guides <guides/index>
+
+
+**Useful links**:
+:doc:`Install HARK <guides/installation>` |
+`Source Repository <https://github.com/Econ-ARK/HARK>`__ |
+`Issues & Ideas <https://github.com/Econ-ARK/HARK/issues>`__
+
+**HARK**, the *Heterogenous Agents Resources & toolKit*,
+is a toolkit for the structural modeling of economic choices
+of optimizing and non-optimizing heterogeneous agents.
 
 HARK is software written in Python.
 This is the documentation for that software.
@@ -9,39 +25,90 @@ It is aimed at computational researchers and other
 software developers who are building new models with HARK,
 or are contributing to the core software.
 
-If you are a student trying to learn economics concepts,
+If you are a student trying to learn economic concepts,
 you might want to look at the `DemARK
 <https://github.com/econ-ark/DemARK/>`_ project.
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Documentation
+.. grid:: 2
 
-   introduction
-   quick-start
-   ARKitecture
-   contributing/CONTRIBUTING.md
-   contributing/Installation_instruction.md
-   reference/index
-   CHANGELOG
-   license
+   .. grid-item-card::
+      :padding: 2
+      :text-align: center
 
-.. toctree::
-   :maxdepth: 1
+      **Quick-start guide**
+      ^^^^^^^^^^^^^^^^^^^^^
 
-   example_notebooks/Gentle-Intro-To-HARK.ipynb
-   example_notebooks/PerfForesightConsumerType.ipynb
-   example_notebooks/IndShockConsumerType.ipynb
-   example_notebooks/KinkedRconsumerType.ipynb
-   example_notebooks/ConsPortfolioModel.ipynb
-   example_notebooks/GenIncProcessModel.ipynb
-   example_notebooks/LifecycleModel.ipynb
-   example_notebooks/HowWeSolveIndShockConsumerType.ipynb
-   example_notebooks/Journey-PhD.ipynb
+      To get up-and-running with HARK, see the quick-start guide
+      for a brief overview
+      and guidance on further resources.
 
-Indices and tables
-==================
+      +++
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+      .. button-ref:: guides/quick_start
+         :ref-type: doc
+         :color: info
+         :click-parent:
+         :expand:
+
+         Quick Start Guide
+
+   .. grid-item-card::
+      :padding: 2
+      :text-align: center
+
+      **API reference**
+      ^^^^^^^^^^^^^^^^^
+
+      The reference guide contains a detailed description of the HARK API,
+      and assumes an understanding of HARK's key concepts.
+
+      +++
+
+      .. button-ref:: reference/index
+         :ref-type: doc
+         :color: info
+         :click-parent:
+         :expand:
+
+         Tools & Models Reference Guide
+
+   .. grid-item-card::
+      :padding: 2
+      :text-align: center
+
+      **ARKitecture**
+      ^^^^^^^^^^^^^^^
+
+      For a high-level overview of Econ-ARK's structure and design, see the ARKitecture.
+
+      +++
+
+      .. button-ref:: overview/ARKitecture
+         :ref-type: doc
+         :color: info
+         :click-parent:
+         :expand:
+
+         The ARKitecture
+
+   .. grid-item-card::
+      :padding: 2
+      :text-align: center
+
+      **Developer's guide**
+      ^^^^^^^^^^^^^^^^^^^^^
+
+      Saw a typo in the documentation?
+      Want to improve existing functionalities?
+      The contributing guidelines will guide you through
+      the process of improving Econ-ARK.
+
+      +++
+
+      .. button-ref:: guides/contributing
+         :ref-type: doc
+         :color: info
+         :click-parent:
+         :expand:
+
+         Contributing Guide

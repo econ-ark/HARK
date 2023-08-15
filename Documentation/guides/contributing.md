@@ -125,7 +125,7 @@ Thanks again! We're so glad to have you in our community.
      If Travis fails, you can find out why by clicking on the "failed" icon (red
      cross) and inspecting the build and test log.
 
-   - [GitHub Actions](http://github.com/actions), is another continuous integration
+   - [GitHub Actions](https://github.com/actions), is another continuous integration
      service, which we use. You will also need to make sure that the GitHub Actions
      tests pass.
 
@@ -210,7 +210,7 @@ Conventions for naming variables in HARK's tool modules are significantly closer
 
 ### Documentation Convention
 
-The HARK team wants the toolKit to be as accessible to users as possible; our greatest fear (other than spiders, of course) is that a new user will open up our code, get hopelessly confused trying to read it, and then never look at HARK again. To prevent this tragic outcome, we have tried hard to provide comprehensive, accurate documentation and comments within the code describing our methods. Moreover, HARK uses the Sphinx utility to generate a website with [online documentation](https://hark.readthedocs.io/en/latest/) for all of our tool and model modules, so that users can learn about what's available in HARK without digging through the source code. When making contributions to HARK, the development team asks users to format their inline documentation to work with Sphinx by following a few simple rules.
+The HARK team wants the toolKit to be as accessible to users as possible; our greatest fear (other than spiders, of course) is that a new user will open up our code, get hopelessly confused trying to read it, and then never look at HARK again. To prevent this tragic outcome, we have tried hard to provide comprehensive, accurate documentation and comments within the code describing our methods. Moreover, HARK uses the Sphinx utility to generate a website with [online documentation](https://docs.econ-ark.org/) for all of our tool and model modules, so that users can learn about what's available in HARK without digging through the source code. When making contributions to HARK, the development team asks users to format their inline documentation to work with Sphinx by following a few simple rules.
 
 - The top of every module should begin with a ''docstring'' providing a clear description of the contents of the module. The first sentence should concisely summarize the file, as it may appear in an index or summary of all modules without the remaining sentences. A docstring at the top of a module should be formatted as:
 

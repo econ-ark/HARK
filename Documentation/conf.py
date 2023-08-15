@@ -1,3 +1,4 @@
+from datetime import date
 import warnings
 
 try:
@@ -14,12 +15,13 @@ else:
 
 # Project information
 project = "HARK"
-copyright = "2020, Econ-ARK team"
+copyright = f"{date.today().year}, Econ-ARK team"
 author = "Econ-ARK team"
 version = release = "latest"
 
 # General configuration
 extensions = [
+    # built-in extensions
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
@@ -30,8 +32,11 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
+    # third-party extensions
     "nbsphinx",
     "myst_parser",
+    "sphinx_copybutton",
+    "sphinx_design",
 ]
 
 exclude_patterns = [
@@ -57,9 +62,58 @@ source_suffix = [
 
 # HTML writer configuration
 html_theme = "pydata_sphinx_theme"
+html_static_path = ["_static"]
+html_css_files = [
+    'override-nbsphinx-gallery.css',
+]
+
+html_theme_options = {
+    "use_edit_page_button": True,
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/Econ-ARK/HARK",
+            "icon": "fa-brands fa-square-github",
+            "type": "fontawesome",
+        },
+        {
+            "name": "Twitter",
+            "url": "https://twitter.com/econ_ark",
+            "icon": "fa-brands fa-square-twitter",
+            "type": "fontawesome",
+        },
+        {
+            "name": "PyPI",
+            "url": "https://pypi.org/project/econ-ark/",
+            "icon": "fa-solid fa-box",
+            "type": "fontawesome",
+        },
+        {
+            "name": "Econ-ARK",
+            "url": "https://econ-ark.org",
+            "icon": "_static/econ-ark-logo.png",
+            "type": "local",
+            "attributes": {"target": "_blank"},
+        },
+    ]
+}
+
+# Point to Econ-ARK repo for edit buttons
+html_context = {
+    "github_url": "https://github.com",
+    "github_user": "econ-ark",
+    "github_repo": "hark",
+    "github_version": "master",
+    "doc_path": "Documentation/",
+}
 
 # Use Econ-ARK URL to host the website
 html_baseurl = "https://docs.econ-ark.org"
+
+html_logo = "images/econ-ark-logo.png"
+html_favicon = "images/econ-ark-logo.png"
+html_domain_indices = False
+html_copy_source = False
 
 # sphinx.ext.intersphinx configuration
 intersphinx_mapping = {
@@ -76,4 +130,4 @@ autosummary_generate = True
 napoleon_use_ivar = True  # solves duplicate object description warning
 
 # nbsphinx configuration
-nbsphinx_execute = "never"  # This is currently not working
+nbsphinx_execute = "never"  # notebooks are executed via ``nb_exec.py``
