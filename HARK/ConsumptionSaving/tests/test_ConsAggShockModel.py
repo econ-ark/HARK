@@ -17,17 +17,17 @@ from HARK.tests import HARK_PRECISION
 
 class testAggShockConsumerType(unittest.TestCase):
     def setUp(self):
-        agent = AggShockConsumerType()
+        agent = AggShockConsumerType(seed=0)
         agent.AgentCount = 900  # Very low number of agents for the sake of speed
         agent.cycles = 0
 
         # Make agents heterogeneous in their discount factor
         self.agents = distribute_params(
-            agent, "DiscFac", 3, Uniform(bot=0.90, top=0.94)  # Impatient agents
+            agent, "DiscFac", 3, Uniform(bot=0.90, top=0.94, seed=0)  # Impatient agents
         )
 
         # Make an economy with those agents living in it
-        self.economy = CobbDouglasEconomy(agents=self.agents)
+        self.economy = CobbDouglasEconomy(agents=self.agents, seed=0)
 
     def test_distribute_params(self):
         self.assertEqual(self.agents[1].AgentCount, 300)
@@ -64,11 +64,11 @@ class testAggShockConsumerType(unittest.TestCase):
 class testAggShockMarkovConsumerType(unittest.TestCase):
     def setUp(self):
         # Make one agent type and an economy for it to live in
-        self.agent = AggShockMarkovConsumerType()
+        self.agent = AggShockMarkovConsumerType(seed=0)
         self.agent.cycles = 0
         self.agent.AgentCount = 1000  # Low number of simulated agents
         self.agent.IncShkDstn = [2 * [self.agent.IncShkDstn[0]]]  ## see #557
-        self.economy = CobbDouglasMarkovEconomy(agents=[self.agent])
+        self.economy = CobbDouglasMarkovEconomy(agents=[self.agent], seed=0)
 
     def test_agent(self):
         # Have one consumer type inherit relevant objects from the economy,

@@ -362,7 +362,7 @@ class IndexDistributionClassTests(unittest.TestCase):
 
     def test_IndexDistribution_approx(self):
         cd = IndexDistribution(
-            Lognormal, {"mu": [0.01, 0.5, 0.99], "sigma": [0.05, 0.05, 0.05]}
+            Lognormal, {"mu": [0.01, 0.5, 0.99], "sigma": [0.05, 0.05, 0.05]}, seed=0
         )
 
         approx = cd.discretize(10)
@@ -388,7 +388,7 @@ class MarkovProcessTests(unittest.TestCase):
     def test_draw(self):
         mrkv_array = np.array([[0.75, 0.25], [0.1, 0.9]])
 
-        mp = MarkovProcess(mrkv_array)
+        mp = MarkovProcess(mrkv_array, seed=0)
 
         new_state = mp.draw(np.zeros(100).astype(int))
 
