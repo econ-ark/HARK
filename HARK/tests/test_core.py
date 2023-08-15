@@ -4,6 +4,7 @@ This file implements unit tests for core HARK functionality.
 import unittest
 
 import numpy as np
+import pytest
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
@@ -175,9 +176,9 @@ class test_parameters(unittest.TestCase):
         self.params = Parameters(T_cycle=3, a=1, b=[2, 3, 4], c=np.array([5, 6, 7]))
 
     def test_init(self):
-        self.assertEqual(self.params._term_age, 3)
-        self.assertEqual(self.params._age_inv, {"a", "c"})
-        self.assertEqual(self.params._age_var, {"b"})
+        self.assertEqual(self.params._length, 3)
+        self.assertEqual(self.params._invariant_params, {"a", "c"})
+        self.assertEqual(self.params._varying_params, {"b"})
 
     def test_getitem(self):
         self.assertEqual(self.params["a"], 1)
@@ -192,3 +193,73 @@ class test_parameters(unittest.TestCase):
         self.params.update({"a": 9, "b": [10, 11, 12]})
         self.assertEqual(self.params["a"], 9)
         self.assertEqual(self.params[0]["b"], 10)
+
+    def test_initialization(self):
+        params = Parameters(a=1, b=[1, 2], T_cycle=2)
+        assert params._length == 2
+        assert params._invariant_params == {"a"}
+        assert params._varying_params == {"b"}
+
+    def test_infer_dims_scalar(self):
+        params = Parameters(a=1)
+        assert params["a"] == 1
+
+    def test_infer_dims_array(self):
+        params = Parameters(b=np.array([1, 2]))
+        assert all(params["b"] == np.array([1, 2]))
+
+    def test_infer_dims_list_varying(self):
+        params = Parameters(b=[1, 2], T_cycle=2)
+        assert params["b"] == [1, 2]
+
+    def test_infer_dims_list_invariant(self):
+        params = Parameters(b=[1])
+        assert params["b"] == 1
+
+    def test_setitem(self):
+        params = Parameters(a=1)
+        params["b"] = 2
+        assert params["b"] == 2
+
+    def test_keys_values_items(self):
+        params = Parameters(a=1, b=2)
+        assert set(params.keys()) == {"a", "b"}
+        assert set(params.values()) == {1, 2}
+        assert set(params.items()) == {("a", 1), ("b", 2)}
+
+    def test_to_dict(self):
+        params = Parameters(a=1, b=2)
+        assert params.to_dict() == {"a": 1, "b": 2}
+
+    def test_to_namedtuple(self):
+        params = Parameters(a=1, b=2)
+        named_tuple = params.to_namedtuple()
+        assert named_tuple.a == 1
+        assert named_tuple.b == 2
+
+    def test_update_params(self):
+        params1 = Parameters(a=1, b=2)
+        params2 = Parameters(a=3, c=4)
+        params1.update(params2)
+        assert params1["a"] == 3
+        assert params1["c"] == 4
+
+    def test_unsupported_type_error(self):
+        with pytest.raises(ValueError):
+            Parameters(b={1, 2})
+
+    def test_get_item_dimension_error(self):
+        params = Parameters(b=[1, 2], T_cycle=2)
+        with pytest.raises(ValueError):
+            params[2]
+
+    def test_getitem_with_key(self):
+        params = Parameters(a=1, b=[2, 3], T_cycle=2)
+        assert params["a"] == 1
+        assert params["b"] == [2, 3]
+
+    def test_getitem_with_item(self):
+        params = Parameters(a=1, b=[2, 3], T_cycle=2)
+        age_params = params[1]
+        assert age_params["a"] == 1
+        assert age_params["b"] == 3
