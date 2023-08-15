@@ -5,6 +5,8 @@ import numpy as np
 import HARK.ConsumptionSaving.ConsPortfolioModel as cpm
 from HARK import make_one_period_oo_solver
 from HARK.tests import HARK_PRECISION
+from copy import copy
+from HARK.distribution import DiscreteDistributionLabeled
 
 
 class PortfolioConsumerTypeTestCase(unittest.TestCase):
@@ -304,3 +306,104 @@ class test_time_varying_Risky_and_Adj(unittest.TestCase):
         # Adjust
         self.assertTrue(np.all(Adjust_draws[t_age == 1] == 0))
         self.assertTrue(np.all(Adjust_draws[t_age == 2] == 1))
+
+
+from HARK.ConsumptionSaving.ConsIndShockModel import init_lifecycle
+from HARK.ConsumptionSaving.ConsRiskyAssetModel import risky_asset_parms
+
+
+class test_transition_mat(unittest.TestCase):
+    def setUp(self):
+        # Define some default newborn distribution over all states
+        self.newborn_dstn = DiscreteDistributionLabeled(
+            pmv=np.array([1.0]),
+            atoms=np.array([[1.0], [1.0], [0.5], [1.0]]),
+            var_names=["PLvl", "mNrm", "Share", "Adjust"],
+        )
+
+    def test_LC(self):
+        # Low number of points, else RAM reqs are high
+        npoints = 50
+
+        # Create an lc agent
+        lc_pars = copy(init_lifecycle)
+        lc_pars.update(risky_asset_parms)
+        lc_pars["DiscFac"] = 0.9
+        agent = cpm.PortfolioConsumerType(**lc_pars)
+        agent.solve()
+
+        # Make shock distribution and grid
+        agent.make_shock_distributions()
+        agent.make_state_grid(
+            PLvlGrid=None,
+            mNrmGrid=np.linspace(0, 20, npoints),
+            ShareGrid=None,
+            AdjustGrid=None,
+        )
+        # Solve
+        agent.solve()
+        # Check that it is indeed an LC model
+        assert len(agent.solution) > 10
+
+        # Get transition matrices
+        agent.find_transition_matrices(newborn_dstn=self.newborn_dstn)
+        assert len(agent.solution) - 1 == len(agent.trans_mat.living_transitions)
+
+        # Check the bruteforce representation that treats age as a state.
+        full_mat = agent.trans_mat.get_full_tmat()
+        # Rows of valid transition matrix sum to 1.0
+        self.assertTrue(np.allclose(np.sum(full_mat, 1), 1.0))
+
+        # Check iterating distributions forward
+
+        # Set an initial distribution where everyone starts at the youngest age,
+        # in the first gridpoint.
+        dstn = np.zeros((npoints, len(agent.trans_mat.living_transitions)))
+        dstn[0, 0] = 1.0
+        # Find steady_state
+        ss_dstn = agent.trans_mat.find_steady_state_dstn(dstn_init=dstn, max_iter=1e4)
+
+    def test_adjust(self):
+        # Create agent
+        npoints = 5
+        agent = cpm.PortfolioConsumerType(**cpm.init_portfolio)
+        agent.make_shock_distributions()
+        agent.make_state_grid(
+            PLvlGrid=None,
+            mNrmGrid=np.linspace(0, 10, npoints),
+            ShareGrid=None,
+            AdjustGrid=None,
+        )
+        agent.solve()
+        agent.find_transition_matrices(newborn_dstn=self.newborn_dstn)
+        self.assertTrue(
+            agent.trans_mat.living_transitions[0].size == np.power(npoints, 2)
+        )
+
+    def test_calvo(self):
+        # Create agent that has some chance of not being able to
+        # adjust
+        params = copy(cpm.init_portfolio)
+        params["AdjustPrb"] = 0.5
+
+        agent = cpm.PortfolioConsumerType(**params)
+        agent.make_shock_distributions()
+        # Share and adjust become states, so we need grids for them
+        agent.make_state_grid(
+            PLvlGrid=None,
+            mNrmGrid=np.linspace(0, 30, 50),
+            ShareGrid=np.linspace(0, 1, 10),
+            AdjustGrid=np.array([False, True]),
+        )
+        agent.solve()
+        agent.find_transition_matrices(newborn_dstn=self.newborn_dstn)
+        self.assertTrue(
+            agent.trans_mat.living_transitions[0].size == np.power(50 * 10 * 2, 2)
+        )
+
+        # Check that we can simulate it
+        dstn = np.zeros((len(agent.state_grid.coords["mesh"]), 1))
+        dstn[0, 0] = 1.0
+
+        for _ in range(1000):
+            dstn = agent.trans_mat.iterate_dstn_forward(dstn)

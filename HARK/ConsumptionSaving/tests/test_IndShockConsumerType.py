@@ -3,6 +3,7 @@ from copy import copy, deepcopy
 
 import numpy as np
 
+from HARK.distribution import DiscreteDistributionLabeled
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolverBasic,
     IndShockConsumerType,
@@ -922,3 +923,76 @@ class test_Jacobian_methods(unittest.TestCase):
         self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.06120, places=HARK_PRECISION)
         self.assertAlmostEqual(CJAC_Perm.T[30][30], 0.05307, places=HARK_PRECISION)
         self.assertAlmostEqual(CJAC_Perm.T[30][31], 0.04674, places=HARK_PRECISION)
+
+
+# %% Compare with newer transition matrix methods
+
+
+class test_compare_trans_mats(unittest.TestCase):
+    def setUp(self):
+        # Grid
+        self.m_grid = np.linspace(0, 20, 10)
+
+        # Newborn distribution. Will's method assumes everyone starts
+        # at m=1.
+        self.newborn_dstn = DiscreteDistributionLabeled(
+            pmv=np.array([1.0]),
+            atoms=np.array([[1.0], [1.0]]),
+            var_names=["PLvl", "mNrm"],
+        )
+
+    def test_compare_will_mateo(self):
+        # Create and solve agents
+        will = IndShockConsumerType(**dict_harmenberg)
+        mateo = IndShockConsumerType(**dict_harmenberg)
+        for agent in [will, mateo]:
+            agent.cycles = 0
+            agent.solve()
+            # Activate harmenberg
+            agent.neutral_measure = True
+            agent.update_income_process()
+
+        # %% 1. Transition matrices
+
+        # Define grids (Will)
+        will.define_distribution_grid()
+        m_grid = will.dist_mGrid
+        # Define grids and shock distributions (Mateo)
+        mateo.make_state_grid(mNrmGrid=m_grid)
+        mateo.full_shock_dstns = mateo.IncShkDstn
+
+        # Calculate transition matrix (Will)
+        will.calc_transition_matrix()
+        tm_will = will.tran_matrix
+        # Calculate transition matrix (Mateo)
+        mateo.find_transition_matrices(newborn_dstn=self.newborn_dstn)
+        tm_mateo = mateo.trans_mat.get_full_tmat()
+        # Compare
+        self.assertTrue(np.allclose(tm_will, tm_mateo.T, atol=1e-10))
+
+        # %% 2. Ergodic distributions
+
+        # Steady state distribution (Will)
+        will.calc_ergodic_dist()
+        will_ss = will.vec_erg_dstn
+        # Steady state distribution (Mateo)
+        mateo_ss = mateo.trans_mat.find_steady_state_dstn(tol=1e-14, max_iter=1e4)
+        # Compare
+        self.assertTrue(np.allclose(will_ss, mateo_ss, atol=1e-14))
+
+        # Outcome grids (Will)
+        a_points_will = will.aPol_Grid
+        c_points_will = will.cPol_Grid
+        # Outcome grids (Mateo)
+        out_fns = {
+            "c": lambda solution, mNrm: solution.cFunc(mNrm),
+            "a": lambda solution, mNrm: mNrm - solution.cFunc(mNrm),
+        }
+        points_mateo = mateo.eval_outcomes_on_mesh(out_fns)
+        # Compare
+        self.assertTrue(
+            np.allclose(a_points_will, points_mateo["a"].flatten(), atol=1e-14)
+        )
+        self.assertTrue(
+            np.allclose(c_points_will, points_mateo["c"].flatten(), atol=1e-14)
+        )

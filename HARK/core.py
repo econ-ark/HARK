@@ -16,6 +16,7 @@ from warnings import warn
 import numpy as np
 import pandas as pd
 from xarray import DataArray
+from inspect import signature
 
 from HARK.distribution import (
     Distribution,
@@ -25,6 +26,8 @@ from HARK.distribution import (
 )
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
+
+from HARK.mat_methods import mass_to_grid, transition_mat
 
 
 class Model:
@@ -849,6 +852,176 @@ class AgentType(Model):
         for var_name in self.track_vars:
             self.history[var_name] = np.empty((self.T_sim, self.AgentCount))
             self.history[var_name].fill(np.nan)
+
+    def make_shock_distributions(self):
+        # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
+        if len(self.time_vary) > 0:
+            # name = agent.time_vary[0]
+            # T = len(eval('agent.' + name))
+            T = len(self.__dict__[self.time_vary[0]])
+        else:
+            T = 1
+
+        dstn_dict = {parameter: self.__dict__[parameter] for parameter in self.time_inv}
+        dstn_dict.update({parameter: None for parameter in self.time_vary})
+
+        if hasattr(self.shock_dstn_engine, "dstn_args"):
+            these_args = self.shock_dstn_engine.dstn_args
+        else:
+            these_args = get_arg_names(self.shock_dstn_engine)
+
+        these_args = tuple(filter(lambda x: x != "self", these_args))
+
+        # Initialize the list of shock distributions for this cycle,
+        # then iterate on periods
+        shock_dstns = []
+
+        cycles_range = [0] + list(range(T - 1, 0, -1))
+        for k in range(T - 1, -1, -1) if self.cycles == 1 else cycles_range:
+            # Update time-varying single period inputs
+            for name in self.time_vary:
+                if name in these_args:
+                    dstn_dict[name] = self.__dict__[name][k]
+
+            # Make a temporary dictionary for this period
+            temp_dict = {name: dstn_dict[name] for name in these_args}
+
+            # Construct this period's shock distribution one period
+            # Add it to the solution, and move to the next period
+            dstn_t = self.shock_dstn_engine(**temp_dict)
+            shock_dstns.insert(0, dstn_t)
+
+        # Save list of shock distributions
+        self.full_shock_dstns = shock_dstns
+
+    def eval_outcomes_on_mesh(self, outcomes):
+        # TODO: stuff that depends on time varying parameters
+
+        T = len(self.solution)
+        M = len(self.state_grid.coords["mesh"])
+
+        outcome_mesh = {}
+
+        for out_name, out_fn in outcomes.items():
+            # Initialize
+            outcome_mesh[out_name] = np.zeros((M, T))
+
+            # Parse args
+            args = list(signature(out_fn).parameters)
+            if len(args) > 0 and args[0] == "solution":
+                uses_sol = True
+                state_args = args[1:]
+            else:
+                uses_sol = False
+                state_args = args
+
+            if uses_sol:
+                for t in range(T):
+                    outcome_mesh[out_name][:, t] = out_fn(
+                        *([self.solution[t]] + [self.state_grid[x] for x in state_args])
+                    )
+            else:
+                # TODO: this could change with time-varying parameters
+                for t in range(T):
+                    outcome_mesh[out_name][:, t] = out_fn(
+                        *[self.state_grid[x] for x in state_args]
+                    )
+
+        return outcome_mesh
+
+    def find_transition_matrices(self, newborn_dstn=None):
+        # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
+        if len(self.time_vary) > 0:
+            # name = agent.time_vary[0]
+            # T = len(eval('agent.' + name))
+            T = len(self.__dict__[self.time_vary[0]])
+        else:
+            T = 1
+
+        trans_dict = {
+            parameter: self.__dict__[parameter] for parameter in self.time_inv
+        }
+        trans_dict.update({parameter: None for parameter in self.time_vary})
+
+        if hasattr(self.state_to_state_trans, "trans_args"):
+            these_args = self.state_to_state_trans.trans_args
+        else:
+            these_args = get_arg_names(self.state_to_state_trans)
+
+        exclude_args = ["self", "shocks_next", "state", "solution"]
+        these_args = tuple(filter(lambda x: x not in exclude_args, these_args))
+
+        # Extract state grid data
+        grids = {}
+        for x in self.state_grid.attrs["mesh_order"]:
+            grids[x] = self.state_grid.attrs["grids"][x].astype(float)
+
+        # Find names and values of non-trivial grids
+        nt_states = [x for x, grid in grids.items() if grid.size > 1]
+        nt_grids = tuple(grids[x] for x in nt_states)
+
+        # Number of points in full grid
+        mesh_size = self.state_grid.coords["mesh"].size
+
+        # Find newborn distribution
+        if newborn_dstn is not None:
+            nb_points = newborn_dstn.dataset[nt_states].to_array().values.T
+            nb_pmv = newborn_dstn.probability.values
+
+            newborn_mass = mass_to_grid(
+                points=nb_points,
+                mass=nb_pmv,
+                grids=nt_grids,
+            )
+        else:
+            newborn_mass = None
+
+        # Initialize the list of matrices conditional on survival
+        surv_mats = []
+
+        cycles_range = [0] + list(range(T - 1, 0, -1))
+        for k in range(T - 1, -1, -1) if self.cycles == 1 else cycles_range:
+            # Update time-varying single period inputs
+            for name in self.time_vary:
+                if name in these_args:
+                    trans_dict[name] = self.__dict__[name][k]
+
+            # Make a temporary dictionary for this period
+            temp_dict = {name: trans_dict[name] for name in these_args}
+
+            shock_dstn = self.full_shock_dstns[k]
+
+            def trans_wrapper(shocks_next, solution, state_points):
+                return self.state_to_state_trans(
+                    shocks_next, solution, state_points, **temp_dict
+                )
+
+            state_dstn = shock_dstn.dist_of_func(
+                trans_wrapper, solution=self.solution[k], state_points=self.state_grid
+            )
+
+            state_points = state_dstn.dataset[nt_states].to_array().values
+            pmv = state_dstn.probability.values
+
+            # Construct transition matrix from the object above
+            tmat = np.zeros((mesh_size, mesh_size))
+            for i in range(mesh_size):
+                tmat[i, :] = mass_to_grid(
+                    points=state_points[:, i, :].T,
+                    mass=pmv,
+                    grids=nt_grids,
+                )
+
+            # Prepend
+            surv_mats.insert(0, tmat)
+
+        # Save matrices
+        self.trans_mat = transition_mat(
+            living_transitions=surv_mats,
+            surv_probs=self.LivPrb,
+            newborn_dstn=newborn_mass,
+            life_cycle=T > 1,
+        )
 
 
 def solve_agent(agent, verbose):

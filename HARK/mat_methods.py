@@ -254,3 +254,123 @@ def mass_to_grid(
     distr = sum_weights(weights, dims, add_inds)
 
     return distr
+
+
+class transition_mat:
+    def __init__(
+        self,
+        living_transitions: list,
+        surv_probs: list,
+        newborn_dstn: np.ndarray,
+        life_cycle: bool,
+    ) -> None:
+        self.living_transitions = living_transitions
+        self.surv_probs = surv_probs
+        self.newborn_dstn = newborn_dstn
+        self.life_cycle = life_cycle
+
+        if self.life_cycle:
+            assert len(self.living_transitions) == len(
+                self.surv_probs
+            ), "living_transitions must be a list of length len(surv_probs) + 1 if life_cycle is True"
+        else:
+            assert (
+                len(self.living_transitions) == 1
+            ), "living_transitions must be a list of length 1 if life_cycle is False"
+            assert (
+                len(self.surv_probs) == 1
+            ), "surv_probs must be a list of length 1 if life_cycle is False"
+
+        self.T = len(self.living_transitions) + 1
+
+        self.grid_len = self.living_transitions[0].shape[0]
+
+    def get_full_tmat(self):
+        if self.life_cycle:
+            # Life cycle
+            dim = self.T * self.grid_len
+            full_mat = np.zeros((dim, dim))
+            for k in range(self.T - 1):
+                row_init = k * self.grid_len
+                row_end = row_init + self.grid_len
+                # Living-to-newborn
+                full_mat[row_init:row_end, : self.grid_len] += (
+                    1 - self.surv_probs[k]
+                ) * self.newborn_dstn[np.newaxis, :]
+                # Living-to-age+1
+                col_init = row_init + self.grid_len
+                col_end = col_init + self.grid_len
+                full_mat[row_init:row_end, col_init:col_end] += (
+                    self.surv_probs[k] * self.living_transitions[k]
+                )
+
+            # In at the end of the last age, everyone turns into a newborn
+            full_mat[
+                (self.T - 1) * self.grid_len :, : self.grid_len
+            ] += self.newborn_dstn[np.newaxis, :]
+
+        else:
+            # Infinite horizon
+            full_mat = (
+                self.surv_probs[0] * self.living_transitions[0]
+                + (1 - self.surv_probs[0]) * self.newborn_dstn[np.newaxis, :]
+            )
+
+        return full_mat
+
+    def iterate_dstn_forward(self, dstn_init: np.ndarray) -> np.ndarray:
+        # Initialize final distribution
+        dstn_final = np.zeros_like(dstn_init)
+
+        if self.life_cycle:
+            for k in range(self.T - 2):
+                # Living-to-age+1
+                dstn_final[:, k + 1] += self.surv_probs[k] * np.dot(
+                    dstn_init[:, k], self.living_transitions[k]
+                )
+                # Living-to-newborn
+                dstn_final[:, 0] += (
+                    (1 - self.surv_probs[k])
+                    * np.sum(dstn_init[:, k])
+                    * self.newborn_dstn
+                )
+
+            # In at the end of the last age, everyone turns into a newborn
+            dstn_final[:, 0] += np.sum(dstn_init[:, -1]) * self.newborn_dstn
+
+        else:
+            # Living-to-age+1
+            dstn_final += self.surv_probs[0] * np.dot(
+                self.living_transitions[0].T, dstn_init
+            )
+            # Living-to-newborn
+            dstn_final[:, 0] += (1 - self.surv_probs[0]) * self.newborn_dstn
+
+        return dstn_final
+
+    def find_steady_state_dstn(
+        self, dstn_init=None, tol=1e-10, max_iter=1000, check_every=10, normalize_every=20
+    ):
+        
+        if dstn_init is None:
+            # Create an initial distribution that concentrates
+            # on the first gridpoint of the first age
+            dstn_init = dstn = np.zeros(
+                (len(self.newborn_dstn), len(self.living_transitions))
+            )
+            dstn[0, 0] = 1.0
+
+        # Initialize
+        dstn = dstn_init
+        err = tol + 1
+        i = 0
+        while err > tol and i < max_iter:
+            dstn_new = self.iterate_dstn_forward(dstn)
+            if i % normalize_every == 0:
+                dstn_new /= np.sum(dstn_new)
+            if i % check_every == 0:
+                err = np.max(np.abs(dstn_new - dstn))
+            dstn = dstn_new
+            i += 1
+
+        return dstn

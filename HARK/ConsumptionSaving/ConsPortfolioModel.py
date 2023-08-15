@@ -28,7 +28,13 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
+from HARK.distribution import (
+    combine_indep_dstns,
+    DiscreteDistribution,
+    DiscreteDistributionLabeled,
+)
 from HARK.metric import MetricObject
+import xarray as xr
 
 
 # Define a class to represent the single period solution of the portfolio choice problem
@@ -144,6 +150,20 @@ class PortfolioSolution(MetricObject):
         self.EndOfPrddvda_fxd = EndOfPrddvda_fxd
         self.EndOfPrddvds_fxd = EndOfPrddvds_fxd
         self.AdjPrb = AdjPrb
+
+    def cFunc(self, mNrm, Share, Adjust):
+        cNrm = xr.full_like(mNrm, np.nan)
+        cNrm[Adjust] = self.cFuncAdj(mNrm[Adjust])
+        no_adj = ~Adjust
+        cNrm[no_adj] = self.cFuncFxd(mNrm[no_adj], Share[no_adj])
+        return cNrm
+
+    def ShareFunc(self, mNrm, Share, Adjust):
+        ShareNext = xr.full_like(mNrm, np.nan)
+        ShareNext[Adjust] = self.ShareFuncAdj(mNrm[Adjust])
+        no_adj = ~Adjust
+        ShareNext[no_adj] = self.ShareFuncFxd(mNrm[no_adj], Share[no_adj])
+        return ShareNext
 
 
 class PortfolioConsumerType(RiskyAssetConsumerType):
@@ -315,6 +335,114 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         # Store controls as attributes of self
         self.controls["cNrm"] = cNrmNow
         self.controls["Share"] = ShareNow
+
+    def shock_dstn_engine(self, ShockDstn, AdjustPrb):
+        """
+        Creates a joint labeled distribution of all the shocks in the model
+        """
+
+        # ShockDstn is created by RiskyAssetConsumerType and it contains, in order:
+        # PermShk, TranShk, and Risky
+
+        # Create a distribution for the Adjust shock.
+        # TODO: self.AdjustDstn already exists, but it is a FrozenDist type of object
+        # that does not work with combine_indep_dstns.  This should be fixed.
+        if AdjustPrb < 1.0:
+            AdjustDstn = DiscreteDistribution(
+                np.array([1.0 - AdjustPrb, AdjustPrb]), [False, True]
+            )
+        else:
+            AdjustDstn = DiscreteDistribution(np.array([1.0]), [True])
+
+        LabeledShkDstn = DiscreteDistributionLabeled.from_unlabeled(
+            dist=combine_indep_dstns(ShockDstn, AdjustDstn),
+            name="Full shock distribution",
+            var_names=["PermShk", "TranShk", "Risky", "Adjust"],
+        )
+
+        return LabeledShkDstn
+
+    def make_state_grid(
+        self,
+        PLvlGrid=None,
+        mNrmGrid=None,
+        ShareGrid=None,
+        AdjustGrid=None,
+    ):
+        if PLvlGrid is None:
+            PLvlGrid = np.array([1.0])
+        if mNrmGrid is None:
+            mNrmGrid = np.array([1.0])
+        if ShareGrid is None:
+            ShareGrid = np.array([1.0])
+        if AdjustGrid is None:
+            AdjustGrid = np.array([True])
+
+        # Create a mesh
+        points = np.meshgrid(PLvlGrid, mNrmGrid, ShareGrid, AdjustGrid, indexing="ij")
+        points = np.stack([x.flatten() for x in points], axis=0)
+
+        mesh = xr.DataArray(
+            points,
+            dims=["var", "mesh"],
+            coords={"var": ["PLvl", "mNrm", "Share", "Adjust"]},
+        )
+
+        self.state_grid = xr.Dataset(
+            data_vars={
+                "PLvl": ("mesh", points[0]),
+                "mNrm": ("mesh", points[1]),
+                "Share": ("mesh", points[2]),
+                "Adjust": ("mesh", points[3].astype(bool)),
+            },
+            coords={"mesh": np.arange(points.shape[1])},
+            attrs={
+                "grids": {
+                    "PLvl": PLvlGrid,
+                    "mNrm": mNrmGrid,
+                    "Share": ShareGrid,
+                    "Adjust": AdjustGrid,
+                },
+                "mesh_order": ["PLvl", "mNrm", "Share", "Adjust"],
+            },
+        )
+
+    def state_to_state_trans(self, shocks_next, solution, state, PermGroFac, Rfree):
+        # Consumption
+        cNrm = solution.cFunc(state["mNrm"], state["Share"], state["Adjust"])
+        # Savings
+        aNrm = state["mNrm"] - cNrm
+        # Share
+        Share_next = solution.ShareFunc(state["mNrm"], state["Share"], state["Adjust"])
+        # Shock transition
+        state_next = post_state_transition(
+            shocks_next,
+            state["PLvl"],
+            aNrm,
+            Share_next,
+            PermGroFac,
+            Rfree,
+        )
+
+        return state_next
+
+
+def post_state_transition(shocks_next, PLvl, aNrm, Share_next, PermGroFac, Rfree):
+    PermGroShk = shocks_next["PermShk"] * PermGroFac
+    PLvl_next = PLvl * PermGroShk
+    Rport = Rfree + Share_next * (shocks_next["Risky"] - Rfree)
+    mNrm_next = aNrm * Rport / PermGroShk + shocks_next["TranShk"]
+
+    # Augment dimensions if needed
+    Share_next = Share_next * xr.ones_like(PLvl_next)
+    Adjust_next = shocks_next["Adjust"] * xr.ones_like(PLvl_next, dtype=bool)
+
+    return {
+        "PLvl": PLvl_next,
+        "mNrm": mNrm_next,
+        "Share": Share_next,
+        "Adjust": Adjust_next,
+    }
 
 
 class SequentialPortfolioConsumerType(PortfolioConsumerType):
