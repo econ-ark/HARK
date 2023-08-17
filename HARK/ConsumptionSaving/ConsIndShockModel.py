@@ -3018,8 +3018,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         J_A.T[0] = (A_t_no_sim - self.A_ss)/dx
         J_C.T[0] = (C_t_no_sim - self.C_ss)/dx
         
-
         return J_C, J_A
+
+
 
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
