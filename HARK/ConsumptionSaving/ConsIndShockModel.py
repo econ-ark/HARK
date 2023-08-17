@@ -9,7 +9,7 @@ It currently solves three types of models:
    3) The model described in (2), with an interest rate for debt that differs
       from the interest rate for savings.
 
-See NARK https://HARK.githhub.io/Documentation/NARK for information on variable naming conventions.
+See NARK https://github.com/econ-ark/HARK/blob/master/Documentation/NARK/NARK.pdf for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.
 """
 from copy import copy, deepcopy
@@ -279,8 +279,8 @@ class ConsPerfForesightSolver(MetricObject):
         Defines the value and marginal value functions for this period.
         Uses the fact that for a perfect foresight CRRA utility problem,
         if the MPC in period t is :math:`\\kappa_{t}`, and relative risk
-        aversion :math:`\rho`, then the inverse value vFuncNvrs has a
-        constant slope of :math:`\\kappa_{t}^{-\rho/(1-\rho)}` and
+        aversion :math:`\\rho`, then the inverse value vFuncNvrs has a
+        constant slope of :math:`\\kappa_{t}^{-\\rho/(1-\\rho)}` and
         vFuncNvrs has value of zero at the lower bound of market resources
         mNrmMin.  See PerfForesightConsumerType.ipynb documentation notebook
         for a brief explanation and the links below for a fuller treatment.
@@ -406,7 +406,7 @@ class ConsPerfForesightSolver(MetricObject):
         expects m not to change.
         This will exist if the GICNrm holds.
 
-        https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
+        https://econ-ark.github.io/BufferStockTheory#Unique-Stable-Points
 
         Parameters
         ----------
@@ -530,6 +530,7 @@ class ConsPerfForesightSolver(MetricObject):
         ----------
         solution : ConsumerSolution
             Solution to this period's problem, which must have attribute cFunc.
+
         Returns
         -------
         solution : ConsumerSolution
@@ -1002,6 +1003,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         ----------
         solution : ConsumerSolution
             Solution to this period's problem, which must have attribute cFunc.
+
         Returns
         -------
         solution : ConsumerSolution
@@ -1424,19 +1426,22 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         interest rates.
 
         Discusson:
+
         - The target and steady state should exist under the same conditions
           as in ConsIndShock.
         - The ConsIndShock code as it stands can not be directly applied
           because it assumes that R is a constant, and in this model R depends
           on the level of wealth.
         - After allowing for wealth-depending interest rates, the existing
-         code might work without modification to add the stable points. If not,
-         it should be possible to find these values by checking within three
-         distinct intervals:
-             - From h_min to the lower kink.
-             - From the lower kink to the upper kink
-             - From the upper kink to infinity.
-        the stable points must be in one of these regions.
+          code might work without modification to add the stable points. If not,
+          it should be possible to find these values by checking within three
+          distinct intervals:
+
+          - From h_min to the lower kink.
+          - From the lower kink to the upper kink
+          - From the upper kink to infinity.
+
+          the stable points must be in one of these regions.
 
         """
         return solution
@@ -2734,7 +2739,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         LivPrb, PermShkStd,TranShkStd, DiscFac, UnempPrb, Rfree, IncUnemp, DiscFac .
 
         Parameters:
-        ----------
+        -----------
 
         shk_param: string
             name of variable to be shocked
@@ -3370,7 +3375,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Note 2: All parameters are passed as attributes of the input parameters.
 
         Parameters (passed as attributes of the input parameters)
-        ----------
+        ---------------------------------------------------------
         PermShkStd : [float]
             List of standard deviations in log permanent income uncertainty during
             the agent's life.
