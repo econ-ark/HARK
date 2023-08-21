@@ -257,7 +257,7 @@ class testRiskyReturnDim(PortfolioConsumerTypeTestCase):
         )
 
 
-class test_time_varying_Risky_and_Adj(unittest.TestCase):
+class test_time_varying_Risky_Rfree_and_Adj(unittest.TestCase):
     def setUp(self):
         # Create a parameter dictionary for a three period problem
         self.params = cpm.init_portfolio.copy()
@@ -267,7 +267,7 @@ class test_time_varying_Risky_and_Adj(unittest.TestCase):
                 "cycles": 1,
                 "T_cycle": 3,
                 "T_age": 3,
-                "Rfree": 1.0,
+                "Rfree": [1.0, 0.99, 0.98],
                 "RiskyAvg": [1.01, 1.02, 1.03],
                 "RiskyStd": [0.0, 0.0, 0.0],
                 "RiskyCount": 1,
