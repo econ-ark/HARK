@@ -366,7 +366,6 @@ class transition_mat:
             return prod
 
     def pre_multiply(self, mat):
-        
         # Check dimension compatibility
         n_rows, n_cols = mat.shape
         if self.life_cycle:
@@ -400,7 +399,7 @@ class transition_mat:
                 # Living contribute to other columns
                 if k < self.T - 1:
                     prod[:, col_end : (col_end + self.grid_len)] += sp * np.dot(
-                        mat[:, col_init:col_end], self.living_transitions[k].T
+                        mat[:, col_init:col_end], self.living_transitions[k]
                     )
 
             return prod

@@ -88,16 +88,14 @@ class Test3DMassToGrid(unittest.TestCase):
 
 
 class TestTransMatMultiplication(unittest.TestCase):
-
     def setUp(self):
-        
         # Create dummy 2-gridpoint problems
-        
+
         # A newborn "distribution"
-        self.newborn_dstn = np.array([0.7, 0.3])
+        self.newborn_dstn = np.array([0.5, 0.3, 0.2])
 
         # Infinite horizon transition
-        inf_h_trans = np.array([[0.9, 0.1], [0.1, 0.9]])
+        inf_h_trans = np.array([[0.9, 0.1, 0.0], [0.1, 0.8, 0.1], [0.0, 0.1, 0.9]])
         self.inf_horizon_mat = transition_mat(
             living_transitions=[inf_h_trans],
             surv_probs=[0.9],
@@ -109,8 +107,9 @@ class TestTransMatMultiplication(unittest.TestCase):
         lc_trans = [
             np.array(
                 [
-                    [x, 1-x],
-                    [1-x, x],
+                    [x, 1 - x, 0],
+                    [x / 2, 1 - x / 2, 0],
+                    [0, 1 - x, x],
                 ]
             )
             for x in [0.1, 0.2, 0.3, 0.4, 0.5]
@@ -123,7 +122,6 @@ class TestTransMatMultiplication(unittest.TestCase):
         )
 
     def test_post_multiply(self):
-        
         # Infinite horizon
         nrows = self.inf_horizon_mat.grid_len
         mat = np.random.rand(nrows, 3)
@@ -139,12 +137,11 @@ class TestTransMatMultiplication(unittest.TestCase):
         self.assertTrue(np.allclose(res, res2))
 
     def test_pre_multiply(self):
-        
         # Infinite horizon
         ncols = self.inf_horizon_mat.grid_len
         mat = np.random.rand(3, ncols)
         res = self.inf_horizon_mat.pre_multiply(mat)
-        res2 = np.dot(mat,self.inf_horizon_mat.get_full_tmat())
+        res2 = np.dot(mat, self.inf_horizon_mat.get_full_tmat())
         self.assertTrue(np.allclose(res, res2))
 
         # Life cycle
