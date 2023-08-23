@@ -318,6 +318,103 @@ class transition_mat:
 
         return full_mat
 
+    def post_multiply(self, mat):
+        # Check dimension compatibility
+        n_rows, n_cols = mat.shape
+        if self.life_cycle:
+            ncols_fullmat = self.T * self.grid_len
+        else:
+            ncols_fullmat = self.grid_len
+
+        if n_rows != ncols_fullmat:
+            raise Exception(
+                "Matrix has {} rows, but should have {}".format(n_rows, ncols_fullmat)
+            )
+
+        if self.life_cycle:
+            full_mat_dim = self.T * self.grid_len
+            prod = np.zeros((full_mat_dim, n_cols))
+
+            for k in range(self.T):
+                row_init = k * self.grid_len
+                row_end = row_init + self.grid_len
+                if k < self.T - 1:
+                    sp = self.surv_probs[k]
+                else:
+                    sp = 0.0
+
+                for j in range(n_cols):
+                    # From the newborn dstn
+                    prod[row_init:row_end, j] += (1 - sp) * np.dot(
+                        self.newborn_dstn[np.newaxis, :], mat[: self.grid_len, j]
+                    )
+                    if k < self.T - 1:
+                        # From the living dstn
+                        prod[row_init:row_end, j] += sp * np.dot(
+                            self.living_transitions[k],
+                            mat[row_end : (row_end + self.grid_len), j],
+                        )
+
+            return prod
+
+        else:
+            # Infinite horizon
+            prod = self.surv_probs[0] * np.dot(self.living_transitions[0], mat)
+            prod += (1 - self.surv_probs[0]) * np.dot(
+                self.newborn_dstn[np.newaxis, :], mat
+            )
+            return prod
+
+    def pre_multiply(self, mat):
+        
+        # Check dimension compatibility
+        n_rows, n_cols = mat.shape
+        if self.life_cycle:
+            nrows_fullmat = self.T * self.grid_len
+        else:
+            nrows_fullmat = self.grid_len
+
+        if n_cols != nrows_fullmat:
+            raise Exception(
+                "Matrix has {} cols, but should have {}".format(n_cols, nrows_fullmat)
+            )
+
+        if self.life_cycle:
+            full_mat_dim = self.T * self.grid_len
+            prod = np.zeros((n_rows, nrows_fullmat))
+
+            for k in range(self.T):
+                col_init = k * self.grid_len
+                col_end = col_init + self.grid_len
+                if k < self.T - 1:
+                    sp = self.surv_probs[k]
+                else:
+                    sp = 0.0
+
+                # Newborns contribute to first block of
+                # cols
+                nb_mat = np.tile(self.newborn_dstn, (self.grid_len, 1))
+                prod[:, : self.grid_len] += (1 - sp) * np.dot(
+                    mat[:, col_init:col_end], nb_mat
+                )
+                # Living contribute to other columns
+                if k < self.T - 1:
+                    prod[:, col_end : (col_end + self.grid_len)] += sp * np.dot(
+                        mat[:, col_init:col_end], self.living_transitions[k].T
+                    )
+
+            return prod
+
+        else:
+            # Infinite horizon
+            prod = np.dot(
+                mat,
+                self.surv_probs[0] * self.living_transitions[0]
+                + (1 - self.surv_probs[0]) * self.newborn_dstn[np.newaxis, :],
+            )
+
+            return prod
+
     def iterate_dstn_forward(self, dstn_init: np.ndarray) -> np.ndarray:
         # Initialize final distribution
         dstn_final = np.zeros_like(dstn_init)
@@ -349,9 +446,13 @@ class transition_mat:
         return dstn_final
 
     def find_steady_state_dstn(
-        self, dstn_init=None, tol=1e-10, max_iter=1000, check_every=10, normalize_every=20
+        self,
+        dstn_init=None,
+        tol=1e-10,
+        max_iter=1000,
+        check_every=10,
+        normalize_every=20,
     ):
-        
         if dstn_init is None:
             # Create an initial distribution that concentrates
             # on the first gridpoint of the first age
