@@ -415,32 +415,7 @@ class transition_mat:
             return prod
 
     def iterate_dstn_forward(self, dstn_init: np.ndarray) -> np.ndarray:
-        # Initialize final distribution
-        dstn_final = np.zeros_like(dstn_init)
-
-        if self.life_cycle:
-            for k in range(self.T - 2):
-                # Living-to-age+1
-                dstn_final[:, k + 1] += self.surv_probs[k] * np.dot(
-                    dstn_init[:, k], self.living_transitions[k]
-                )
-                # Living-to-newborn
-                dstn_final[:, 0] += (
-                    (1 - self.surv_probs[k])
-                    * np.sum(dstn_init[:, k])
-                    * self.newborn_dstn
-                )
-
-            # In at the end of the last age, everyone turns into a newborn
-            dstn_final[:, 0] += np.sum(dstn_init[:, -1]) * self.newborn_dstn
-
-        else:
-            # Living-to-age+1
-            dstn_final += self.surv_probs[0] * np.dot(
-                self.living_transitions[0].T, dstn_init
-            )
-            # Living-to-newborn
-            dstn_final[:, 0] += (1 - self.surv_probs[0]) * self.newborn_dstn
+        dstn_final = self.pre_multiply(dstn_init.T).T
 
         return dstn_final
 
