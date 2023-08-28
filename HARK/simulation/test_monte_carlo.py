@@ -59,8 +59,6 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
     def setUp(self):
 
         self.shocks = {
-            ## TODO: Add an aggregate shock
-            ## TODO: Add a time varying shock.
             'theta' : MeanOneLogNormal(1),
             'agg_R' : Aggregate(MeanOneLogNormal(1)),
             'live' : Bernoulli(p=0.98)
@@ -126,33 +124,56 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
         self.assertTrue(
             np.all(self.simulator.history['theta'] == shocks_1['theta'])
             )
+        
 
+class test_AgentTypeMonteCarloSimulatorAgeVariance(unittest.TestCase):
+    def setUp(self):
 
-###############################################################3
+        self.shocks = {
+            'theta' : MeanOneLogNormal(1),
+            'agg_R' : Aggregate(MeanOneLogNormal(1)),
+            'live' : Bernoulli(p=0.98),
+            'psi' : IndexDistribution(
+                MeanOneLogNormal,
+                {
+                'sigma' : [1.0, 1.1]
+                })
+        }
 
-'''
-init_parameters = {}
-init_parameters["PermGroFac"] = 1.05
-init_parameters["PermShkStd"] = 1.5
-init_parameters["PermShkCount"] = 5
-init_parameters["TranShkStd"] = 3.0
-init_parameters["TranShkCount"] = 5
-init_parameters["RiskyAvg"] = 1.05
-init_parameters["RiskyStd"] = 1.5
-init_parameters["RiskyCount"] = 5
-init_parameters["Rfree"] = 1.03
+        self.initial = {
+            'a' : MeanOneLogNormal(1),
+            'live' : 1
+        }
 
-frames_A = [
-    Frame(("bNrm",), ("aNrm",), transition=lambda Rfree, aNrm: Rfree * aNrm),
-    Frame(("mNrm",), ("bNrm", "TranShk"), transition=lambda bNrm: mNrm),
-    Frame(("cNrm"), ("mNrm",), control=True),
-    Frame(
-        ("U"),
-        ("cNrm", "CRRA"),  # Note CRRA here is a parameter not a state var
-        transition=lambda cNrm, CRRA: (CRRAutility(cNrm, CRRA),),
-        reward=True,
-        context={"CRRA": 2.0},
-    ),
-    Frame(("aNrm"), ("mNrm", "cNrm"), transition=lambda mNrm, cNrm: (mNrm - cNrm,)),
-]
-'''
+        self.parameters = { # TODO
+            'G' : 1.05,
+        }
+
+        self.dynamics = {
+            'b' : lambda agg_R, G, a : agg_R * G * a,
+            'm' : lambda b, theta : b + theta,
+            'c' : Control(['m']),
+            'a' : lambda m, c : m - c
+        }
+
+        self.dr = {
+            'c' : [lambda m : m * 0.5, lambda m : m * 0.9]
+        }
+
+    def test_simulate(self):
+        self.simulator = AgentTypeMonteCarloSimulator(
+            self.parameters,
+            self.shocks,
+            self.dynamics,
+            self.dr,
+            self.initial,
+            agent_count = 3
+        )
+
+        self.simulator.initialize_sim()
+        history = self.simulator.simulate(sim_periods=2)
+
+        a1 = history['a'][1]
+        b1 = history['m'][1] - self.dr['c'][1](history['m'][1])
+
+        self.assertTrue((a1 == b1).all())

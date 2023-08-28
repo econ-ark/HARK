@@ -88,10 +88,24 @@ def simulate_dynamics(
         feq = dynamics[varn]
 
         if isinstance(feq, Control):
-            vals[varn] = dr[varn](*[
-                vals[var]
-                for var 
-                in signature(dr[varn]).parameters]) # TODO: test for signature match with Control
+            # This tests if the decision rule is age varying.
+            # If it is, this will be a vector with the decision rule for each agent.
+            if isinstance(dr[varn], np.ndarray):
+                ## Now we have to loop through each agent, and apply the decision rule.
+                ## This is quite slow.
+                for i in range(dr[varn].size):
+                    vals_i = {var : vals[var][i] if isinstance(vals[var], np.ndarray) else vals[var]
+                              for var in vals
+                              }
+                    vals[varn][i] = dr[varn][i](*[
+                        vals_i[var]
+                        for var
+                        in signature(dr[varn][i]).parameters])
+            else:
+                vals[varn] = dr[varn](*[
+                    vals[var]
+                    for var
+                    in signature(dr[varn]).parameters]) # TODO: test for signature match with Control
         else:
             vals[varn] = feq(*[vals[var] for var in signature(feq).parameters])
 
@@ -118,10 +132,11 @@ def parameters_by_age(ages, parameters):
         corresponding to the values for each input age.
     """
     def aged_param(ages, p_value):
-        if isinstance(p_value, float) or isinstance(p_value, int):
+        if isinstance(p_value, (float, int)) or callable(p_value):
             return p_value
         elif isinstance(p_value, list) and len(p_value) > 1:
             pv_array = np.array(p_value)
+
             return np.apply_along_axis(
                 lambda a: pv_array[a],
                 0,
@@ -310,8 +325,11 @@ class AgentTypeMonteCarloSimulator(Simulator):
         pre.update(self.vars_prev)
         pre.update(shocks_now)
         #Won't work for 3.8: self.parameters | self.vars_prev | shocks_now
+
+        # Age-varying decision rules captured here
+        dr = parameters_by_age(self.t_age, self.dr)
         
-        post = simulate_dynamics(self.dynamics, pre, self.dr)
+        post = simulate_dynamics(self.dynamics, pre, dr)
         
         self.vars_now = post
         ### BIG CHANGES HERE
