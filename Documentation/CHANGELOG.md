@@ -14,6 +14,7 @@ Release Date: TBD
 
 ### Major Changes
 
+- Moves `HARK.core.Model` to new `HARK.model` submodule, and allow `Model` object to be configured with equations, which are dictionaries of callables that take model variables as arguments. [#1292](https://github.com/econ-ark/HARK/pull/1292)
 - Adds `HARK.core.AgentPopulation` class to represent a population of agents with ex-ante heterogeneous parametrizations as distributions. [#1237](https://github.com/econ-ark/HARK/pull/1237)
 
 ### Minor Changes

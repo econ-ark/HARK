@@ -13,6 +13,7 @@ API Reference
    tools/frame
    tools/helpers
    tools/interpolation
+   tools/model
    tools/numba_tools
    tools/parallel
    tools/rewards

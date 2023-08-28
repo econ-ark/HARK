@@ -52,6 +52,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
+from HARK.model import Control
 from HARK.metric import MetricObject
 from HARK.rewards import (
     CRRAutility,
@@ -1563,6 +1564,14 @@ init_perfect_foresight = {
     # Do Perfect Foresight MIT Shock: Forces Newborns to follow solution path of the agent he/she replaced when True
 }
 
+PerfForesightConsumerType_dynamics = {
+    # need dynamic equation for Rnrm here. It's going to get overwritten in downstream models
+    'bNrm' : lambda Rnrm, aNrm : Rnrm * aNrm,
+    'mNrm' : lambda bNrm, theta : bNrm + theta,
+    'cNrm' : Control(['mNrm']),
+    'aNrm' : lambda mNrm, cNrm : mNrm - cNrm
+}
+
 
 class PerfForesightConsumerType(AgentType):
     """
@@ -1616,6 +1625,7 @@ class PerfForesightConsumerType(AgentType):
         set_verbosity_level((4 - verbose) * 10)
 
         self.update_Rfree()  # update interest rate if time varying
+        self.equations.update(PerfForesightConsumerType_dynamics)
 
     def pre_solve(self):
         self.update_solution_terminal()  # Solve the terminal period problem
@@ -1855,9 +1865,9 @@ class PerfForesightConsumerType(AgentType):
         PlvlAggNow = self.state_prev["PlvlAgg"] * self.PermShkAggNow
         # "Effective" interest factor on normalized assets
         ReffNow = RfreeNow / self.shocks["PermShk"]
-        bNrmNow = ReffNow * aNrmPrev  # Bank balances before labor income
+        bNrmNow = self.equations['bNrm'](ReffNow, aNrmPrev)  # Bank balances before labor income
         # Market resources after income
-        mNrmNow = bNrmNow + self.shocks["TranShk"]
+        mNrmNow = self.equations['mNrm'](bNrmNow, self.shocks["TranShk"])
 
         return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
 
@@ -1899,7 +1909,7 @@ class PerfForesightConsumerType(AgentType):
         None
         """
         # should this be "Now", or "Prev"?!?
-        self.state_now["aNrm"] = self.state_now["mNrm"] - self.controls["cNrm"]
+        self.state_now["aNrm"] = self.equations['aNrm'](self.state_now['mNrm'], self.controls['cNrm'])
         # Useful in some cases to precalculate asset level
         self.state_now["aLvl"] = self.state_now["aNrm"] * self.state_now["pLvl"]
 
@@ -2108,6 +2118,15 @@ init_idiosyncratic_shocks = dict(
     }
 )
 
+IndShockConsumerType_dynamics = {
+    **PerfForesightConsumerType_dynamics,
+    'G' : lambda gamma, psi : gamma * psi,
+    'Rnrm' : lambda R, G : R / G,
+    'bNrm' : lambda Rnrm, aNrm : Rnrm * aNrm,
+    'mNrm' : lambda bNrm, theta : bNrm + theta,
+    'cNrm' : Control(['mNrm']),
+    'aNrm' : lambda mNrm, cNrm : mNrm - cNrm
+}
 
 class IndShockConsumerType(PerfForesightConsumerType):
     """
@@ -2148,6 +2167,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.solve_one_period = make_one_period_oo_solver(solver)
 
         self.update()  # Make assets grid, income process, terminal solution
+
+        self.equations.update(IndShockConsumerType_dynamics)
 
     def update_income_process(self):
         """
@@ -3283,7 +3304,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             self.PermGroFac[0] * self.InvEx_PermShkInv
         )  # [url]/#PGroAdj
 
-        self.thorn = (self.Rfree * self.DiscFac) ** (1 / self.CRRA)
+        self.thorn =  (self.parameters['Rfree'] * self.parameters['DiscFac']) ** (1 / self.parameters['CRRA'])
 
         # self.Ex_RNrm           = self.Rfree*Ex_PermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
         self.GPFRaw = self.thorn / (self.PermGroFac[0])  # [url]/#GPF
@@ -3674,7 +3695,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         params.update(kwds)
 
         # Initialize a basic AgentType
-        PerfForesightConsumerType.__init__(self, **params)
+        super().__init__(**params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solve_one_period = make_one_period_oo_solver(ConsKinkedRsolver)
