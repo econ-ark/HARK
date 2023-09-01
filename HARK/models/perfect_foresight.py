@@ -1,15 +1,5 @@
-
-
-class Control:
-    """
-    Should go in different model support module.
-    """
-
-    def __init__(self, args):
-        pass
-
-
 from HARK.distribution import Bernoulli
+from HARK.model import Control
 
 # This way of distributing parameters across the scope is clunky
 # Can be handled better if parsed from a YAML file, probably
