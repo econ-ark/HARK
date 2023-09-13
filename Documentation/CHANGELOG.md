@@ -21,7 +21,8 @@ Release Date: TBD
 - Adds option `sim_common_Rrisky` to control whether risky-asset models draw common or idiosyncratic returns in simulation. [#1250](https://github.com/econ-ark/HARK/pull/1250),[#1253](https://github.com/econ-ark/HARK/pull/1253)
 - Addresses [#1255](https://github.com/econ-ark/HARK/issues/1255). Makes age-varying stochastic returns possible and draws from their discretized version. [#1262](https://github.com/econ-ark/HARK/pull/1262)
 - Fixes bug in the metric that compares dictionaries with the same keys. [#1260](https://github.com/econ-ark/HARK/pull/1260)
-
+- Fixes bug in the calc_jacobian method. [#1342](https://github.com/econ-ark/HARK/pull/1342)
+- Fixes bug that prevented risky-asset consumer types from working with time-varying interest rates `Rfree`. [1343](https://github.com/econ-ark/HARK/pull/1343)
 ### 0.13.0
 
 Release Date: February, 16, 2023
