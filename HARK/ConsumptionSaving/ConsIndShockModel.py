@@ -3300,8 +3300,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         aux_dict['GPFacLivMod'] = aux_dict['GPFacLiv'] * self.LivPrb[0]
         
         # Calculate the risk-modified value of autarky factor
-        CRRAfunc = lambda x : x**(1.-self.CRRA)
-        UtilCompPermShk = expected(CRRAfunc, PermShkDstn)[0]**(1/(1.-self.CRRA))
+        if self.CRRA == 1.:
+            UtilCompPermShk = np.exp(expected(np.log, PermShkDstn)[0])
+        else:
+            CRRAfunc = lambda x : x**(1.-self.CRRA)
+            UtilCompPermShk = expected(CRRAfunc, PermShkDstn)[0]**(1/(1.-self.CRRA))
         aux_dict['VAFac'] = self.DiscFac*(self.PermGroFac[0]*UtilCompPermShk)**(1.-self.CRRA)
         
         # Calculate the expected log permanent income shock, which will be used
