@@ -237,15 +237,21 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         """
-        if "RiskyDstn" in self.time_vary:
+        if "RiskyDstn" in self.time_vary or "Rfree" in self.time_vary:
             self.ShareLimit = []
             for t in range(self.T_cycle):
-                RiskyDstn = self.RiskyDstn[t]
+                if "RiskyDstn" in self.time_vary:
+                    RiskyDstn = self.RiskyDstn[t]
+                else:
+                    RiskyDstn = self.RiskyDstn
+                if "Rfree" in self.time_vary:
+                    Rfree = self.Rfree[t]
+                else:
+                    Rfree = self.Rfree
 
                 def temp_f(s):
                     return -((1.0 - self.CRRA) ** -1) * np.dot(
-                        (self.Rfree + s * (RiskyDstn.atoms - self.Rfree))
-                        ** (1.0 - self.CRRA),
+                        (Rfree + s * (RiskyDstn.atoms - Rfree)) ** (1.0 - self.CRRA),
                         RiskyDstn.pmv,
                     )
 
@@ -334,7 +340,9 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             else:
                 # Make use of the IndexDistribution.draw() method
                 self.shocks["Risky"] = self.RiskyDstn.draw(
-                    np.maximum(self.t_cycle - 1,0) if self.cycles == 1 else self.t_cycle
+                    np.maximum(self.t_cycle - 1, 0)
+                    if self.cycles == 1
+                    else self.t_cycle
                 )
 
         else:
@@ -360,7 +368,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         """
         if "AdjustPrb" in self.time_vary:
             self.shocks["Adjust"] = self.AdjustDstn.draw(
-                 np.maximum(self.t_cycle - 1,0) if self.cycles == 1 else self.t_cycle
+                np.maximum(self.t_cycle - 1, 0) if self.cycles == 1 else self.t_cycle
             )
         else:
             self.shocks["Adjust"] = self.AdjustDstn.draw(self.AgentCount)
@@ -1322,7 +1330,7 @@ class ConsFixedPortfolioIndShkRiskyAssetSolver(ConsIndShockSolver):
 
 risky_asset_parms = {
     # Risky return factor moments. Based on SP500 real returns from Shiller's
-    # "chapter 26" data, which can be found at http://www.econ.yale.edu/~shiller/data.htm
+    # "chapter 26" data, which can be found at https://www.econ.yale.edu/~shiller/data.htm
     "RiskyAvg": 1.080370891,
     "RiskyStd": 0.177196585,
     # Number of integration nodes to use in approximation of risky returns
