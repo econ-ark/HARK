@@ -1401,6 +1401,8 @@ class PerfForesightConsumerType(AgentType):
         horizon problems).
         '''
         self.update_solution_terminal()  # Solve the terminal period problem
+        if not self.quiet:
+            self.check_conditions(verbose=self.verbose)
 
         # Fill in BoroCnstArt and MaxKinks if they're not specified or are irrelevant.
         # If no borrowing constraint specified...
