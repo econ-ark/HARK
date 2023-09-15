@@ -428,8 +428,6 @@ class ConsPerfForesightSolver(MetricObject):
             MPCmax=self.MPCmax,
         )
 
-        solution = self.add_stable_points(solution)
-
         return solution
 
 
@@ -1223,34 +1221,6 @@ class ConsKinkedRsolver(ConsIndShockSolver):
 
         return cFuncNowUncKink
 
-    def add_stable_points(self, solution):
-        """
-        TODO:
-        Placeholder method for a possible future implementation of stable
-        points in the kinked R model. For now it simply serves to override
-        ConsIndShock's method, which does not apply here given the multiple
-        interest rates.
-
-        Discusson:
-
-        - The target and steady state should exist under the same conditions
-          as in ConsIndShock.
-        - The ConsIndShock code as it stands can not be directly applied
-          because it assumes that R is a constant, and in this model R depends
-          on the level of wealth.
-        - After allowing for wealth-depending interest rates, the existing
-          code might work without modification to add the stable points. If not,
-          it should be possible to find these values by checking within three
-          distinct intervals:
-
-          - From h_min to the lower kink.
-          - From the lower kink to the upper kink
-          - From the upper kink to infinity.
-
-          the stable points must be in one of these regions.
-
-        """
-        return solution
 
     def prepare_to_calc_EndOfPrdvP(self):
         """
