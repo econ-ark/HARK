@@ -1394,6 +1394,12 @@ class PerfForesightConsumerType(AgentType):
         self.update_Rfree()  # update interest rate if time varying
 
     def pre_solve(self):
+        '''
+        Method that is run automatically just before solution by backward iteration.
+        Solves the (trivial) terminal period and does a quick check on the borrowing
+        constraint and MaxKinks attribute (only relevant in constrained, infinite
+        horizon problems).
+        '''
         self.update_solution_terminal()  # Solve the terminal period problem
 
         # Fill in BoroCnstArt and MaxKinks if they're not specified or are irrelevant.
@@ -1412,6 +1418,23 @@ class PerfForesightConsumerType(AgentType):
                         "PerfForesightConsumerType requires the attribute MaxKinks to be specified when BoroCnstArt is not None and cycles == 0."
                     )
                 )
+                
+    def post_solve(self):
+        """
+        Method that is run automatically at the end of a call to solve. Here, it
+        simply calls calc_stable_points() if appropriate: an infinite horizon
+        problem with a single repeated period in its cycle.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        """
+        if (self.cycles == 0) and (self.T_cycle == 1):
+            self.calc_stable_points()
 
     def check_restrictions(self):
         """
@@ -1834,6 +1857,8 @@ class PerfForesightConsumerType(AgentType):
         MPCmin : Limiting minimum MPC as market resources go to infinity
         MPCmax : Limiting maximum MPC as market resources approach minimum level.
         hNrm : Human wealth divided by permanent income.
+        Delta_mNrm_ZeroFunc : Linear consumption function where expected change in market resource ratio is zero
+        BalGroFunc : Linear consumption function where the level of market resources grows at the same rate as permanent income
 
         Returns
         -------
@@ -1857,6 +1882,14 @@ class PerfForesightConsumerType(AgentType):
             aux_dict['hNrm'] = 1. / (1. - aux_dict['FHWFac'])
         else:
             aux_dict['hNrm'] = np.inf
+            
+        # Generate the "Delta m = 0" function, which is used to find target market resources
+        Ex_Rnrm = self.Rfree / self.PermGroFac[0]
+        aux_dict['Delta_mNrm_ZeroFunc'] = lambda m : (1. - 1./Ex_Rnrm) * m + 1./Ex_Rnrm
+            
+        # Generate the "E[M_tp1 / M_t] = G" function, which is used to find balanced growth market resources
+        PF_Rnrm = self.Rfree / self.PermGroFac[0]
+        aux_dict['BalGroFunc'] = lambda m : (1. - 1./PF_Rnrm) * m + 1./PF_Rnrm
             
         self.bilt = aux_dict
 
@@ -1972,6 +2005,66 @@ class PerfForesightConsumerType(AgentType):
         
         if not self.quiet:
             _log.info(self.bilt['conditions_report'])
+
+
+    def calc_stable_points(self):
+            """
+            If the problem is one that satisfies the conditions required for target ratios of different
+            variables to permanent income to exist, and has been solved to within the self-defined
+            tolerance, this method calculates the target values of market resources.
+
+            Parameters
+            ----------
+            None
+
+            Returns
+            -------
+            None
+            """
+            infinite_horizon = self.cycles == 0
+            single_period = self.T_cycle = 1
+            if not infinite_horizon:
+                _log.warning("The calc_stable_points method works only for infinite horizon models.")
+                return
+            if not single_period:
+                _log.warning("The calc_stable_points method works only with a single infinitely repeated period.")
+                return
+            if not hasattr(self, 'conditions'):
+                _log.warning("The calc_limiting_values method must be run before the calc_stable_points method.")
+                return
+            if not hasattr(self, 'solution'):
+                _log.warning("The solve method must be run before the calc_stable_points method.")
+                return
+            
+            # Extract balanced growth and delta m_t+1 = 0 functions
+            BalGroFunc = self.bilt['BalGroFunc']
+            Delta_mNrm_ZeroFunc = self.bilt['Delta_mNrm_ZeroFunc']
+            
+            # If the GICRaw holds, then there is a balanced growth market resources ratio
+            if self.conditions['GICRaw']:
+                cFunc = self.solution[0].cFunc
+                func_to_zero = lambda m : BalGroFunc(m) - cFunc(m)
+                m0 = 1.0
+                try:
+                    mNrmStE = newton(func_to_zero, m0)
+                except:
+                    mNrmStE = np.nan
+                    
+                # A target level of assets *might* exist even if the GICMod fails, so check no matter what
+                func_to_zero = lambda m : Delta_mNrm_ZeroFunc(m) - cFunc(m)
+                m0 = 1.0 if np.isnan(mNrmStE) else mNrmStE
+                try:
+                    mNrmTrg = newton(func_to_zero, m0, maxiter=200)
+                except:
+                    mNrmTrg = np.nan
+            else:
+                mNrmStE = np.nan
+                mNrmTrg = np.nan
+                
+            self.solution[0].mNrmStE = mNrmStE
+            self.solution[0].mNrmTrg = mNrmTrg
+            self.bilt['mNrmStE'] = mNrmStE
+            self.bilt['mNrmTrg'] = mNrmTrg
         
         
 # Make a dictionary to specify an idiosyncratic income shocks consumer
@@ -2124,23 +2217,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if hasattr(self, "IncShkDstn"):
             for dstn in self.IncShkDstn:
                 dstn.reset()
-                
-    def post_solve(self):
-        """
-        Method that is run automatically at the end of a call to solve. Here, it
-        simply calls calc_stable_points() if appropriate: an infinite horizon
-        problem with a single repeated period in its cycle.
-        
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        None
-        """
-        if (self.cycles == 0) and (self.T_cycle == 1):
-            self.calc_stable_points()
 
     def get_shocks(self):
         """
@@ -2883,7 +2959,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         return J_C, J_A
 
 
-
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
         Creates a "normalized Euler error" function for this instance, mapping
@@ -3054,7 +3129,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         hNrm : Human wealth divided by permanent income.
         ELogPermShk : Expected log permanent income shock
         WorstPrb : Probability of worst income shock realization
-        Delta_mNrm_ZeroFunc : Linear consumption function where expected change in market resource ratio is zero
+        Delta_mNrm_ZeroFunc : Linear locus where expected change in market resource ratio is zero
         BalGroFunc : Linear consumption function where the level of market resources grows at the same rate as permanent income
 
         Returns
@@ -3131,12 +3206,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         aux_dict['MPCmax'] = MPCmax
         
         # Generate the "Delta m = 0" function, which is used to find target market resources
+        # This overwrites the function generated by the perfect foresight version
         Ex_Rnrm = self.Rfree / self.PermGroFac[0] * Ex_PermShkInv
         aux_dict['Delta_mNrm_ZeroFunc'] = lambda m : (1. - 1./Ex_Rnrm) * m + 1./Ex_Rnrm
-        
-        # Generate the "E[M_tp1 / M_t] = G" function, which is used to find balanced growth market resources
-        PF_Rnrm = self.Rfree / self.PermGroFac[0]
-        aux_dict['BalGroFunc'] = lambda m : (1. - 1./PF_Rnrm) * m + 1./PF_Rnrm
         
         self.bilt = aux_dict
 
@@ -3360,66 +3432,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if not self.quiet:
             _log.info(self.bilt['conditions_report'])
         
-
-    def calc_stable_points(self):
-        """
-        If the problem is one that satisfies the conditions required for target ratios of different
-        variables to permanent income to exist, and has been solved to within the self-defined
-        tolerance, this method calculates the target values of market resources.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        infinite_horizon = self.cycles == 0
-        single_period = self.T_cycle = 1
-        if not infinite_horizon:
-            _log.warning("The calc_stable_points method works only for infinite horizon models.")
-            return
-        if not single_period:
-            _log.warning("The calc_stable_points method works only with a single infinitely repeated period.")
-            return
-        if not hasattr(self, 'conditions'):
-            _log.warning("The calc_limiting_values method must be run before the calc_stable_points method.")
-            return
-        if not hasattr(self, 'solution'):
-            _log.warning("The solve method must be run before the calc_stable_points method.")
-            return
-        
-        # Extract balanced growth and delta m_t+1 = 0 functions
-        BalGroFunc = self.bilt['BalGroFunc']
-        Delta_mNrm_ZeroFunc = self.bilt['Delta_mNrm_ZeroFunc']
-        
-        # If the GICRaw holds, then there is a balanced growth market resources ratio
-        if self.conditions['GICRaw']:
-            cFunc = self.solution[0].cFunc
-            func_to_zero = lambda m : BalGroFunc(m) - cFunc(m)
-            m0 = 1.0
-            try:
-                mNrmStE = newton(func_to_zero, m0)
-            except:
-                mNrmStE = np.nan
-                
-            # A target level of assets *might* exist even if the GICMod fails, so check no matter what
-            func_to_zero = lambda m : Delta_mNrm_ZeroFunc(m) - cFunc(m)
-            m0 = 1.0 if np.isnan(mNrmStE) else mNrmStE
-            try:
-                mNrmTrg = newton(func_to_zero, m0, maxiter=200)
-            except:
-                mNrmTrg = np.nan
-        else:
-            mNrmStE = np.nan
-            mNrmTrg = np.nan
-            
-        self.solution[0].mNrmStE = mNrmStE
-        self.solution[0].mNrmTrg = mNrmTrg
-        self.bilt['mNrmStE'] = mNrmStE
-        self.bilt['mNrmTrg'] = mNrmTrg
-
 
     # = Functions for generating discrete income processes and
     #   simulated income shocks =
