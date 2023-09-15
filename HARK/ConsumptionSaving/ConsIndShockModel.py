@@ -3764,6 +3764,8 @@ class KinkedRconsumerType(IndShockConsumerType):
     def pre_solve(self):
         #        AgentType.pre_solve(self)
         self.update_solution_terminal()
+        if not self.quiet:
+            self.check_conditions(verbose=self.verbose)
 
     def calc_bounding_values(self):
         """
