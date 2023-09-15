@@ -3766,8 +3766,6 @@ class KinkedRconsumerType(IndShockConsumerType):
     def pre_solve(self):
         #        AgentType.pre_solve(self)
         self.update_solution_terminal()
-        if not self.quiet:
-            self.check_conditions(verbose=self.verbose)
 
     def calc_bounding_values(self):
         """
@@ -3874,11 +3872,9 @@ class KinkedRconsumerType(IndShockConsumerType):
 
     def check_conditions(self):
         """
-        This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC),
-        the Return Impatience Condition (RIC), the Growth Impatience Condition (GICRaw), the Normalized Growth Impatience Condition (GIC-Nrm), the Weak Return
-        Impatience Condition (WRIC), the Finite Human Wealth Condition (FHWC) and the Finite Value of
-        Autarky Condition (FVAC). To check which conditions are relevant to the model at hand, a
-        reference to the relevant theoretical literature is made.
+        This empty method overwrites the version inherited from its parent class,
+        IndShockConsumerType. The condition checks are not appropriate when Rfree
+        has multiple values.
 
         Parameters
         ----------
