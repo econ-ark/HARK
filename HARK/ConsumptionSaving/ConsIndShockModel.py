@@ -1999,7 +1999,7 @@ class PerfForesightConsumerType(AgentType):
         if self.conditions['GICRaw']:
             GIC_message = "\nBecause the GICRaw is satisfed, the ratio of individual wealth to permanent income is expected to fall indefinitely."
         elif self.conditions['FHWC']:
-            "\nBecause the GICRaw is violated but the FHWC is satisfied, the ratio of individual wealth to permanent income is expected to rise toward infinity."
+            GIC_message = "\nBecause the GICRaw is violated but the FHWC is satisfied, the ratio of individual wealth to permanent income is expected to rise toward infinity."
         else:
             pass
             # This can never be reached! If GICRaw and FHWC both fail, then the RIC also fails, and we would have exited by this point.
