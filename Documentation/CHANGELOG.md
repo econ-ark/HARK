@@ -24,6 +24,7 @@ Release Date: TBD
 - Fixes bug in the calc_jacobian method. [#1342](https://github.com/econ-ark/HARK/pull/1342)
 - Fixes bug that prevented risky-asset consumer types from working with time-varying interest rates `Rfree`. [1343](https://github.com/econ-ark/HARK/pull/1343)
 - Overhauls and expands condition checking for the ConsIndShock model [#1294](https://github.com/econ-ark/HARK/pull/1294). Condition values and a description of their interpretation is stored in the bilt dictionary of IndShockConsumerType.
+- Moves calculation of stable points out of ConsIndShock solver, into method called by post_solve [#1349](https://github.com/econ-ark/HARK/pull/1349)
 
 ### 0.13.0
 
