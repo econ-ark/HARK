@@ -303,6 +303,9 @@ class PerfForesightLabeledType(IndShockConsumerType):
             continuation=None,
             attrs={"m_nrm_min": 0.0},  # minimum normalized market resources
         )
+        
+    def post_solve(self):
+        pass # Do nothing, rather than try to run calc_stable_points
 
 
 class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
