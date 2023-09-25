@@ -27,6 +27,36 @@ from HARK.distribution import (
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
 
+# Set logging and define basic functions
+import logging
+logging.basicConfig(format="%(message)s")
+_log = logging.getLogger("HARK")
+_log.setLevel(logging.ERROR)
+
+
+def disable_logging():
+    _log.disabled = True
+
+
+def enable_logging():
+    _log.disabled = False
+
+
+def warnings():
+    _log.setLevel(logging.WARNING)
+
+
+def quiet():
+    _log.setLevel(logging.ERROR)
+
+
+def verbose():
+    _log.setLevel(logging.INFO)
+
+
+def set_verbosity_level(level):
+    _log.setLevel(level)
+
 
 class Parameters:
     """

@@ -24,6 +24,7 @@ Release Date: TBD
 - Fixes bug in the metric that compares dictionaries with the same keys. [#1260](https://github.com/econ-ark/HARK/pull/1260)
 - Fixes bug in the calc_jacobian method. [#1342](https://github.com/econ-ark/HARK/pull/1342)
 - Fixes bug that prevented risky-asset consumer types from working with time-varying interest rates `Rfree`. [1343](https://github.com/econ-ark/HARK/pull/1343)
+- Overhauls and expands condition checking for the ConsIndShock model [#1294](https://github.com/econ-ark/HARK/pull/1294). Condition values and a description of their interpretation is stored in the bilt dictionary of IndShockConsumerType.
 
 ### 0.13.0
 
