@@ -9,7 +9,7 @@ It currently solves three types of models:
    3) The model described in (2), with an interest rate for debt that differs
       from the interest rate for savings.
 
-See NARK https://HARK.githhub.io/Documentation/NARK for information on variable naming conventions.
+See NARK https://github.com/econ-ark/HARK/blob/master/Documentation/NARK/NARK.pdf for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.
 """
 from copy import copy, deepcopy
@@ -279,8 +279,8 @@ class ConsPerfForesightSolver(MetricObject):
         Defines the value and marginal value functions for this period.
         Uses the fact that for a perfect foresight CRRA utility problem,
         if the MPC in period t is :math:`\\kappa_{t}`, and relative risk
-        aversion :math:`\rho`, then the inverse value vFuncNvrs has a
-        constant slope of :math:`\\kappa_{t}^{-\rho/(1-\rho)}` and
+        aversion :math:`\\rho`, then the inverse value vFuncNvrs has a
+        constant slope of :math:`\\kappa_{t}^{-\\rho/(1-\\rho)}` and
         vFuncNvrs has value of zero at the lower bound of market resources
         mNrmMin.  See PerfForesightConsumerType.ipynb documentation notebook
         for a brief explanation and the links below for a fuller treatment.
@@ -406,7 +406,7 @@ class ConsPerfForesightSolver(MetricObject):
         expects m not to change.
         This will exist if the GICNrm holds.
 
-        https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
+        https://econ-ark.github.io/BufferStockTheory#Unique-Stable-Points
 
         Parameters
         ----------
@@ -530,6 +530,7 @@ class ConsPerfForesightSolver(MetricObject):
         ----------
         solution : ConsumerSolution
             Solution to this period's problem, which must have attribute cFunc.
+
         Returns
         -------
         solution : ConsumerSolution
@@ -595,9 +596,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
     IncShkDstn : distribution.Distribution
-        A discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next).
+        A discrete approximation to the income process between the period being
+        solved and the one immediately following (in solution_next).
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -706,7 +706,10 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
 
         # Update the bounding MPCs and PDV of human wealth:
         self.PatFac = ((self.Rfree * self.DiscFacEff) ** (1.0 / self.CRRA)) / self.Rfree
-        self.MPCminNow = 1.0 / (1.0 + self.PatFac / solution_next.MPCmin)
+        try:
+            self.MPCminNow = 1.0 / (1.0 + self.PatFac / solution_next.MPCmin)
+        except:
+            self.MPCminNow = 0.0    
         self.Ex_IncNext = np.dot(
             self.ShkPrbsNext, self.TranShkValsNext * self.PermShkValsNext
         )
@@ -820,7 +823,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         # We define aNrmNow all the way from BoroCnstNat up to max(self.aXtraGrid)
         # even if BoroCnstNat < BoroCnstArt, so we can construct the consumption
         # function as the lower envelope of the (by the artificial borrowing con-
-        # straint) uconstrained consumption function, and the artificially con-
+        # straint) unconstrained consumption function, and the artificially con-
         # strained consumption function.
         self.aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
 
@@ -1002,6 +1005,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         ----------
         solution : ConsumerSolution
             Solution to this period's problem, which must have attribute cFunc.
+
         Returns
         -------
         solution : ConsumerSolution
@@ -1424,19 +1428,22 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         interest rates.
 
         Discusson:
+
         - The target and steady state should exist under the same conditions
           as in ConsIndShock.
         - The ConsIndShock code as it stands can not be directly applied
           because it assumes that R is a constant, and in this model R depends
           on the level of wealth.
         - After allowing for wealth-depending interest rates, the existing
-         code might work without modification to add the stable points. If not,
-         it should be possible to find these values by checking within three
-         distinct intervals:
-             - From h_min to the lower kink.
-             - From the lower kink to the upper kink
-             - From the upper kink to infinity.
-        the stable points must be in one of these regions.
+          code might work without modification to add the stable points. If not,
+          it should be possible to find these values by checking within three
+          distinct intervals:
+
+          - From h_min to the lower kink.
+          - From the lower kink to the upper kink
+          - From the upper kink to infinity.
+
+          the stable points must be in one of these regions.
 
         """
         return solution
@@ -1609,7 +1616,7 @@ class PerfForesightConsumerType(AgentType):
         self.quiet = quiet
         self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolver)
         set_verbosity_level((4 - verbose) * 10)
-
+        self.bilt = {}
         self.update_Rfree()  # update interest rate if time varying
 
     def pre_solve(self):
@@ -1811,9 +1818,9 @@ class PerfForesightConsumerType(AgentType):
         None
         """
         PermGroFac = np.array(self.PermGroFac)
-        self.shocks["PermShk"] = PermGroFac[
-            self.t_cycle - 1
-        ]  # cycle time has already been advanced
+        # Cycle time has already been advanced
+        self.shocks["PermShk"] = PermGroFac[self.t_cycle - 1]
+        #self.shocks["PermShk"][self.t_cycle == 0] = 1. # Add this at some point
         self.shocks["TranShk"] = np.ones(self.AgentCount)
 
     def get_Rfree(self):
@@ -1903,169 +1910,296 @@ class PerfForesightConsumerType(AgentType):
 
         return None
 
-    def check_condition(self, name, test, messages, verbose, verbose_messages=None):
+    def log_condition_result(self, name, result, message, verbose):
         """
-        Checks one condition.
+        Records the result of one condition check in the attribute condition_report
+        of the bilt dictionary, and in the message log.
 
         Parameters
         ----------
-        name : string
-             Name for the condition.
-
-        test : function(self -> boolean)
-             A function (of self) which tests the condition
-
-        messages : dict{boolean : string}
-            A dictiomary with boolean keys containing values
-            for messages to print if the condition is
-            true or false.
-
-        verbose_messages : dict{boolean : string}
-            (Optional) A dictiomary with boolean keys containing values
-            for messages to print if the condition is
-            true or false under verbose printing.
+        name : string or None
+             Name for the condition; if None, no test result is added to conditions.
+        result : bool
+             An indicator for whether the condition was passed.
+        message : str
+            The messages to record about the condition check.
+        verbose : bool
+            Indicator for whether verbose messages should be included in the report.
         """
-        self.conditions[name] = test(self)
+        if name is not None:
+            self.conditions[name] = result
         set_verbosity_level((4 - verbose) * 10)
-        _log.info(messages[self.conditions[name]].format(self))
-        if verbose_messages:
-            _log.debug(verbose_messages[self.conditions[name]].format(self))
+        _log.info(message)
+        self.bilt['conditions_report'] += message + '\n'
 
     def check_AIC(self, verbose=None):
         """
-        Evaluate and report on the Absolute Impatience Condition
+        Evaluate and report on the Absolute Impatience Condition.
         """
         name = "AIC"
-
-        def test(agent):
-            return agent.thorn < 1
+        APFac = self.bilt['APFac']
+        result = APFac < 1.
 
         messages = {
-            True: "The value of the Absolute Patience Factor (APF) for the supplied parameter values satisfies the Absolute Impatience Condition.",
-            False: "The given type violates the Absolute Impatience Condition with the supplied parameter values; the APF is {0.thorn}",
-        }
-        verbose_messages = {
-            True: "  Because the APF < 1, the absolute amount of consumption is expected to fall over time.",
-            False: "  Because the APF > 1, the absolute amount of consumption is expected to grow over time.",
+            True: f"APFac={APFac:.5f} : The Absolute Patience Factor satisfies the Absolute Impatience Condition (AIC) Þ < 1.",
+            False: f"APFac={APFac:.5f} : The Absolute Patience Factor violates the Absolute Impatience Condition (AIC) Þ < 1."
         }
         verbose = self.verbose if verbose is None else verbose
-        self.check_condition(name, test, messages, verbose, verbose_messages)
+        self.log_condition_result(name, result, messages[result], verbose)
 
     def check_GICRaw(self, verbose=None):
         """
-        Evaluate and report on the Growth Impatience Condition for the Perfect Foresight model
+        Evaluate and report on the Growth Impatience Condition for the Perfect Foresight model.
         """
         name = "GICRaw"
-
-        self.GPFRaw = self.thorn / self.PermGroFac[0]
-
-        def test(agent):
-            return agent.GPFRaw < 1
+        GPFacRaw = self.bilt['GPFacRaw']
+        result = GPFacRaw < 1.
 
         messages = {
-            True: "The value of the Growth Patience Factor for the supplied parameter values satisfies the Perfect Foresight Growth Impatience Condition.",
-            False: "The value of the Growth Patience Factor for the supplied parameter values fails the Perfect Foresight Growth Impatience Condition; the GPFRaw is: {0.GPFRaw}",
-        }
-
-        verbose_messages = {
-            True: "  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income will fall indefinitely.",
-            False: "  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to grow toward infinity.",
+            True: f"GPFacRaw={GPFacRaw:.5f} : The Growth Patience Factor satisfies the Growth Impatience Condition (GICRaw) Þ/G < 1.",
+            False: f"GPFacRaw={GPFacRaw:.5f} : The Growth Patience Factor violates the Growth Impatience Condition (GICRaw) Þ/G < 1."
+            
         }
         verbose = self.verbose if verbose is None else verbose
-        self.check_condition(name, test, messages, verbose, verbose_messages)
+        self.log_condition_result(name, result, messages[result], verbose)
 
     def check_RIC(self, verbose=None):
         """
-        Evaluate and report on the Return Impatience Condition
+        Evaluate and report on the Return Impatience Condition.
         """
-
-        self.RPF = self.thorn / self.Rfree
-
         name = "RIC"
-
-        def test(agent):
-            return self.RPF < 1
+        RPFac = self.bilt['RPFac']
+        result = RPFac < 1.
 
         messages = {
-            True: "The value of the Return Patience Factor for the supplied parameter values satisfies the Return Impatience Condition.",
-            False: "The value of the Return Patience Factor for the supplied parameter values fails the Return Impatience Condition; the factor is {0.RPF}",
-        }
-
-        verbose_messages = {
-            True: "  Therefore, the limiting consumption function is not c(m)=0 for all m",
-            False: "  Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.",
-        }
+            True: f"RPFac={RPFac:.5f} : The Return Patience Factor satisfies the Return Impatience Condition (RIC) Þ/R < 1.",
+            False: f"RPFac={RPFac:.5f} : The Return Patience Factor violates the Return Impatience Condition (RIC) Þ/R < 1."
+            }
         verbose = self.verbose if verbose is None else verbose
-        self.check_condition(name, test, messages, verbose, verbose_messages)
+        self.log_condition_result(name, result, messages[result], verbose)
 
     def check_FHWC(self, verbose=None):
         """
-        Evaluate and report on the Finite Human Wealth Condition
+        Evaluate and report on the Finite Human Wealth Condition.
         """
-
-        self.FHWF = self.PermGroFac[0] / self.Rfree
-        self.cNrmPDV = 1.0 / (1.0 - self.thorn / self.Rfree)
-
         name = "FHWC"
-
-        def test(agent):
-            return self.FHWF < 1
+        FHWFac = self.bilt['FHWFac']
+        result = FHWFac < 1.
 
         messages = {
-            True: "The Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.",
-            False: "The given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value is {0.FHWF}",
+            True: f"FHWFac={FHWFac:.5f} : The Finite Human Wealth Factor satisfies the Finite Human Wealth Condition (FHWC) G/R < 1.",
+            False: f"FHWFac={FHWFac:.5f} : The Finite Human Wealth Factor violates the Finite Human Wealth Condition (FHWC) G/R < 1."
         }
-
         verbose = self.verbose if verbose is None else verbose
-        self.check_condition(name, test, messages, verbose)
+        self.log_condition_result(name, result, messages[result], verbose)
+        
+    def check_FVAC(self, verbose=None):
+        """
+        Evaluate and report on the Finite Value of Autarky Condition under perfect foresight.
+        """
+        name = "PFFVAC"
+        PFVAFac = self.bilt['PFVAFac']
+        result = PFVAFac < 1.
+
+        messages = {
+            True: f"PFVAFac={PFVAFac:.5f} : The Finite Value of Autarky Factor satisfies the Finite Value of Autarky Condition βG^(1-ρ) < 1.",
+            False: f"PFVAFac={PFVAFac:.5f} : The Finite Value of Autarky Factor violates the Finite Value of Autarky Condition βG^(1-ρ) < 1."
+        }
+        verbose = self.verbose if verbose is None else verbose
+        self.log_condition_result(name, result, messages[result], verbose)
+        
+    def describe_parameters(self):
+        '''
+        Make a string describing this instance's parameter values, including their
+        representation in code and symbolically.
+
+        Returns
+        -------
+        param_desc : str
+            Description of parameters as a unicode string.
+        '''
+        params_to_describe = [
+            #[name, description, symbol, time varying]
+            ['DiscFac', 'intertemporal discount factor', 'β',False],
+            ['Rfree', 'risk free interest factor', 'R',False],
+            ['PermGroFac', 'permanent income growth factor', 'G',True],
+            ['CRRA', 'coefficient of relative risk aversion','ρ',False],
+            ['LivPrb', 'survival probability','ℒ',True],
+            ['APFac', 'absolute patience factor', 'Þ=(βℒR)^(1/ρ)',False]
+        ]
+        
+        param_desc = ''
+        for j in range(len(params_to_describe)):
+            this_entry = params_to_describe[j]
+            if this_entry[3]:
+                val = getattr(self,this_entry[0])[0]
+            else:
+                try:
+                    val = getattr(self,this_entry[0])
+                except:
+                    val = self.bilt[this_entry[0]]
+            this_line = this_entry[2] + f'={val:.5f} : ' + this_entry[1] + ' (' + this_entry[0] + ')\n'
+            param_desc += this_line
+            
+        return param_desc
+            
+    def calc_limiting_values(self):
+        '''
+        Compute various scalar values that are relevant to characterizing the
+        solution to an infinite horizon problem. This method should only be called
+        when T_cycle=1 and cycles=0, otherwise the values generated are meaningless.
+        This method adds the following values to the instance in the dictionary
+        attribute auxiliary.
+            
+        APFac : Absolute Patience Factor
+        GPFacRaw : Growth Patience Factor
+        FHWFac : Finite Human Wealth Factor
+        RPFac : Return Patience Factor
+        PFVAFac : Perfect Foresight Value of Autarky Factor
+        cNrmPDV : Present Discounted Value of Autarky Consumption
+        MPCmin : Limiting minimum MPC as market resources go to infinity
+        MPCmax : Limiting maximum MPC as market resources approach minimum level.
+        hNrm : Human wealth divided by permanent income.
+
+        Returns
+        -------
+        None
+        '''
+        aux_dict = self.bilt
+        aux_dict['APFac'] = (self.Rfree * self.DiscFac * self.LivPrb[0]) ** (1 / self.CRRA)
+        aux_dict['GPFacRaw'] = aux_dict['APFac'] / self.PermGroFac[0]
+        aux_dict['FHWFac'] = self.PermGroFac[0] / self.Rfree
+        aux_dict['RPFac'] = aux_dict['APFac'] / self.Rfree
+        aux_dict['PFVAFac'] = (self.DiscFac * self.LivPrb[0]) * self.PermGroFac[0]**(1. - self.CRRA)
+        aux_dict['cNrmPDV'] = 1. / (1. - aux_dict['RPFac'])
+        aux_dict['MPCmin'] = np.maximum(1. - aux_dict['RPFac'], 0.)
+        constrained = hasattr(self, "BoroCnstArt") and (self.BoroCnstArt is not None) and (self.BoroCnstArt > -np.inf)
+        
+        if constrained:
+            aux_dict['MPCmax'] = 1.
+        else:
+            aux_dict['MPCmax'] = aux_dict['MPCmin']
+        if aux_dict['FHWFac'] < 1.:
+            aux_dict['hNrm'] = 1. / (1. - aux_dict['FHWFac'])
+        else:
+            aux_dict['hNrm'] = np.inf
+            
+        self.bilt = aux_dict
 
     def check_conditions(self, verbose=None):
         """
         This method checks whether the instance's type satisfies the
-        Absolute Impatience Condition (AIC),
-        the Return Impatience Condition (RIC),
-        the Finite Human Wealth Condition (FHWC), the perfect foresight
-        model's Growth Impatience Condition (GICRaw) and
-        Perfect Foresight Finite Value of Autarky Condition (FVACPF). Depending on the configuration of parameter values, some
-        combination of these conditions must be satisfied in order for the problem to have
-        a nondegenerate solution. To check which conditions are required, in the verbose mode
-        a reference to the relevant theoretical literature is made.
-
+        Absolute Impatience Condition (AIC), the Return Impatience Condition (RIC),
+        the Finite Human Wealth Condition (FHWC), the perfect foresight model's
+        Growth Impatience Condition (GICRaw) and Perfect Foresight Finite Value
+        of Autarky Condition (FVACPF). Depending on the configuration of parameter
+        values, somecombination of these conditions must be satisfied in order
+        for the problem to have a nondegenerate solution. To check which conditions
+        are required, in the verbose mode a reference to the relevant theoretical
+        literature is made.
 
         Parameters
         ----------
         verbose : boolean
-            Specifies different levels of verbosity of feedback. When False, it only reports whether the
-            instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
-            the factor values for all conditions.
+            Specifies different levels of verbosity of feedback. When False, it
+            only reports whether the instance's type fails to satisfy a particular
+            condition. When True, it reports all results, i.e. the factor values
+            for all conditions.
 
         Returns
         -------
         None
         """
         self.conditions = {}
-
-        self.violated = False
+        self.bilt['conditions_report'] = ''
+        self.degenerate = False
+        verbose = self.verbose if verbose is None else verbose
 
         # This method only checks for the conditions for infinite horizon models
         # with a 1 period cycle. If these conditions are not met, we exit early.
         if self.cycles != 0 or self.T_cycle > 1:
+            trivial_message = 'No conditions report was produced because this functionality is only supported for infinite horizon models with a cycle length of 1.'
+            self.log_condition_result(None, None, trivial_message, verbose)
+            if not self.quiet:
+                _log.info(self.bilt['conditions_report'])
             return
 
-        self.thorn = (self.Rfree * self.DiscFac * self.LivPrb[0]) ** (1 / self.CRRA)
+        # Calculate some useful quantities that will be used in the condition checks
+        self.calc_limiting_values()
+        param_desc = self.describe_parameters()
+        self.log_condition_result(None, None, param_desc, verbose)
 
-        verbose = self.verbose if verbose is None else verbose
+        # Check individual conditions and add their results to the report
         self.check_AIC(verbose)
-        self.check_GICRaw(verbose)
         self.check_RIC(verbose)
+        self.check_GICRaw(verbose)
+        self.check_FVAC(verbose)
         self.check_FHWC(verbose)
-
-        if hasattr(self, "BoroCnstArt") and self.BoroCnstArt is not None:
-            self.violated = not self.conditions["RIC"]
+        constrained = hasattr(self, "BoroCnstArt") and (self.BoroCnstArt is not None) and (self.BoroCnstArt > -np.inf)
+            
+        # Exit now if verbose output was not requested.
+        if not verbose:
+            if not self.quiet:
+                _log.info(self.bilt['conditions_report'])
+            return
+        
+        # Report on the degeneracy of the consumption function solution
+        if not constrained:
+            if self.conditions['FHWC']:
+                RIC_message = '\nBecause the FHWC is satisfied, the solution is not c(m)=Infinity.'
+                if self.conditions['RIC']:
+                    RIC_message += " Because the RIC is also satisfied, the solution is also not c(m)=0 for all m, so a non-degenerate linear solution exists."
+                    degenerate = False
+                else:
+                    RIC_message += " However, because the RIC is violated, the solution is degenerate at c(m) = 0 for all m."
+                    degenerate = True
+            else:
+                RIC_message = '\nBecause the FHWC condition is violated and the consumer is not constrained, the solution is degenerate at c(m)=Infinity.'
+                degenerate = True
         else:
-            self.violated = not self.conditions["RIC"] or not self.conditions["FHWC"]
-
-
+            if self.conditions['RIC']:
+                RIC_message = "\nBecause the RIC is satisfied and the consumer is constrained, the solution is not c(m)=0 for all m."
+                if self.conditions['GICRaw']:
+                    RIC_message += " Because the GICRaw is also satisfied, the solution is non-degenerate. It is piecewise linear with an infinite number of kinks, approaching the unconstrained solution as m goes to infinity."
+                    degenerate = False
+                else:
+                    RIC_message += " Because the GICRaw is violated, the solution is non-degenerate. It is piecewise linear with a single kink at some 0 < m < 1; it equals the unconstrained solution above that kink point and has c(m) = m below it."
+                    degenerate = False
+            else:
+                if self.conditions['GICRaw']:
+                    RIC_message = "\nBecause the RIC is violated but the GIC is satisfied, the FHWC is necessarily also violated. In this case, the consumer's pathological patience is offset by his infinite human wealth, against which he cannot borrow arbitrarily; a non-degenerate solution exists."
+                    degenerate = False
+                else:
+                    RIC_message = '\nBecause the RIC is violated but the FHWC is satisfied, the solution is degenerate at c(m)=0 for all m.'
+                    degenerate = True
+        self.log_condition_result(None, None, RIC_message, verbose)
+        
+        if degenerate: # All of the other checks are meaningless if the solution is degenerate
+            if not self.quiet:
+                _log.info(self.bilt['conditions_report'])
+            return 
+                    
+        # Report on the consequences of the Absolute Impatience Condition
+        if self.conditions['AIC']:
+            AIC_message = "\nBecause the AIC is satisfied, the absolute amount of consumption is expected to fall over time."
+        else:
+            AIC_message = "\nBecause the AIC is violated, the absolute amount of consumption is expected to grow over time."
+        self.log_condition_result(None, None, AIC_message, verbose)
+            
+        # Report on the consequences of the Growth Impatience Condition
+        if self.conditions['GICRaw']:
+            GIC_message = "\nBecause the GICRaw is satisfed, the ratio of individual wealth to permanent income is expected to fall indefinitely."
+        elif self.conditions['FHWC']:
+            "\nBecause the GICRaw is violated but the FHWC is satisfied, the ratio of individual wealth to permanent income is expected to rise toward infinity."
+        else:
+            pass
+            # This can never be reached! If GICRaw and FHWC both fail, then the RIC also fails, and we would have exited by this point.
+        self.log_condition_result(None, None, GIC_message, verbose)
+        
+        if not self.quiet:
+            _log.info(self.bilt['conditions_report'])
+        
+        
 # Make a dictionary to specify an idiosyncratic income shocks consumer
 init_idiosyncratic_shocks = dict(
     init_perfect_foresight,
@@ -2136,12 +2270,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PerfForesightConsumerType.__init__(self, verbose=verbose, quiet=quiet, **params)
 
         # Add consumer-type specific objects, copying to create independent versions
-        if (not self.CubicBool) and (not self.vFuncBool):
-            solver = ConsIndShockSolverBasic
-        else:  # Use the "advanced" solver if either is requested
-            solver = ConsIndShockSolver
+        solver = ConsIndShockSolver
         self.solve_one_period = make_one_period_oo_solver(solver)
-
         self.update()  # Make assets grid, income process, terminal solution
 
     def update_income_process(self):
@@ -2220,6 +2350,23 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if hasattr(self, "IncShkDstn"):
             for dstn in self.IncShkDstn:
                 dstn.reset()
+                
+    def post_solve(self):
+        """
+        Method that is run automatically at the end of a call to solve. Here, it
+        simply calls calc_stable_points() if appropriate: an infinite horizon
+        problem with a single repeated period in its cycle.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        """
+        if (self.cycles == 0) and (self.T_cycle == 1):
+            self.calc_stable_points()
 
     def get_shocks(self):
         """
@@ -2289,56 +2436,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.shocks["PermShk"] = PermShkNow
         self.shocks["TranShk"] = TranShkNow
 
-    def calc_bounding_values(self):
-        """
-        Calculate human wealth plus minimum and maximum MPC in an infinite
-        horizon model with only one period repeated indefinitely.  Store results
-        as attributes of self.  Human wealth is the present discounted value of
-        expected future income after receiving income this period, ignoring mort-
-        ality (because your income matters to you only if you are still alive).
-        The maximum MPC is the limit of the MPC as m --> mNrmMin.  The
-        minimum MPC is the limit of the MPC as m --> infty.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        # Unpack the income distribution and get average and worst outcomes
-        PermShkValsNext = self.IncShkDstn[0][1]
-        TranShkValsNext = self.IncShkDstn[0][2]
-        ShkPrbsNext = self.IncShkDstn[0][0]
-        Ex_IncNext = np.dot(ShkPrbsNext, PermShkValsNext * TranShkValsNext)
-        PermShkMinNext = np.min(PermShkValsNext)
-        TranShkMinNext = np.min(TranShkValsNext)
-        WorstIncNext = PermShkMinNext * TranShkMinNext
-        WorstIncPrb = np.sum(
-            ShkPrbsNext[(PermShkValsNext * TranShkValsNext) == WorstIncNext]
-        )
-
-        # Calculate human wealth and the infinite horizon natural borrowing constraint
-        hNrm = (Ex_IncNext * self.PermGroFac[0] / self.Rfree) / (
-            1.0 - self.PermGroFac[0] / self.Rfree
-        )
-        temp = self.PermGroFac[0] * PermShkMinNext / self.Rfree
-        BoroCnstNat = -TranShkMinNext * temp / (1.0 - temp)
-
-        PatFac = (self.DiscFac * self.LivPrb[0] * self.Rfree) ** (
-            1.0 / self.CRRA
-        ) / self.Rfree
-        if BoroCnstNat < self.BoroCnstArt:
-            MPCmax = 1.0  # if natural borrowing constraint is overridden by artificial one, MPCmax is 1
-        else:
-            MPCmax = 1.0 - WorstIncPrb ** (1.0 / self.CRRA) * PatFac
-        MPCmin = 1.0 - PatFac
-
-        # Store the results as attributes of self
-        self.hNrm = hNrm
-        self.MPCmin = MPCmin
-        self.MPCmax = MPCmax
 
     def define_distribution_grid(
         self,
@@ -2734,7 +2831,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         LivPrb, PermShkStd,TranShkStd, DiscFac, UnempPrb, Rfree, IncUnemp, DiscFac .
 
         Parameters:
-        ----------
+        -----------
 
         shk_param: string
             name of variable to be shocked
@@ -2927,38 +3024,91 @@ class IndShockConsumerType(PerfForesightConsumerType):
         ########
         # STEP4 #  of the algorithm
         ########
+        
+        # Function to compute jacobian matrix from fake news matrix
+        def J_from_F(F):
+            J = F.copy()
+            for t in range(1, F.shape[0]):
+                J[1:, t] += J[:-1, t-1]
+            return J
+        
+        J_A = J_from_F(Curl_F_A)
+        J_C = J_from_F(Curl_F_C)
+        
+        ########
+        # Additional step due to compute Zeroth Column of the Jacobian
+        ########   
+         
+        params = deepcopy(self.__dict__["parameters"])
+        params["T_cycle"] = 2 # Dimension of Jacobian Matrix
+        
+        params["LivPrb"] = params["T_cycle"] * [self.LivPrb[0]]
+        params["PermGroFac"] = params["T_cycle"] * [self.PermGroFac[0]]
+        params["PermShkStd"] = params["T_cycle"] * [self.PermShkStd[0]]
+        params["TranShkStd"] = params["T_cycle"] * [self.TranShkStd[0]]
+        params["Rfree"] = params["T_cycle"] * [self.Rfree]
+        params["UnempPrb"] = params["T_cycle"] * [self.UnempPrb]
+        params["IncUnemp"] = params["T_cycle"] * [self.IncUnemp]
+        params['IncShkDstn'] = params['T_cycle']* [self.IncShkDstn[0]]
+        params['cFunc_terminal_'] = deepcopy(self.solution[0].cFunc)
+        
+        # Create instance of a finite horizon agent for calculation of zeroth
+        ZerothColAgent = IndShockConsumerType(**params)
+        ZerothColAgent.cycles = 1  # required
+        
+        # If parameter is in time invariant list then add it to time vary list
+        ZerothColAgent.del_from_time_inv(shk_param)
+        ZerothColAgent.add_to_time_vary(shk_param)
 
-        # Jacobian Matrices
-        J_A = np.zeros((T, T))  # Asset Jacobian
-        J_C = np.zeros((T, T))  # Consumption Jacobian
-        for t in range(T):
-            for s in range(T):
-                if (t == 0) or (s == 0):
-                    J_A[t][s] = Curl_F_A[t][s]
-                    J_C[t][s] = Curl_F_C[t][s]
-                else:
-                    J_A[t][s] = J_A[t - 1][s - 1] + Curl_F_A[t][s]
-                    J_C[t][s] = J_C[t - 1][s - 1] + Curl_F_C[t][s]
+        # Update income process if perturbed parameter enters the income shock distribution
+        ZerothColAgent.update_income_process()
 
-        # Zeroth Column of the Jacobian
-        dD_0_0 = np.dot(tranmat_t[-2] - tranmat_ss, D_ss)
+        # Solve
+        ZerothColAgent.solve()
+        
+        # this condition is because some attributes are specified as lists while other as floats
+        if type(getattr(self, shk_param)) == list:
+            peturbed_list = (
+                 [getattr(self, shk_param)[0] + dx]
+                + (params["T_cycle"]  - 1) * [getattr(self, shk_param)[0]]
+            )  # Sequence of interest rates the agent faces
+        else:
+            peturbed_list = (
+                 [getattr(self, shk_param) + dx]
+                + (params["T_cycle"]  - 1) * [getattr(self, shk_param)]
+            )  # Sequence of interest rates the agent 
+            
+        setattr(ZerothColAgent, shk_param, peturbed_list) # Set attribute to agent
 
-        D_curl_0_0 = dD_0_0 / dx
+        # Use Harmenberg Neutral Measure
+        ZerothColAgent.neutral_measure = True
+        ZerothColAgent.update_income_process()
 
-        c_first_col_0 = []
-        a_first_col_0 = []
-        for i in range(params["T_cycle"]):
-            c_first_col_0.append(np.dot(exp_vecs_c[i], D_curl_0_0))
-            a_first_col_0.append(np.dot(exp_vecs_a[i], D_curl_0_0))
+        # Calculate Transition Matrices
+        ZerothColAgent.define_distribution_grid()
+        ZerothColAgent.calc_transition_matrix()
+        
+        tranmat_t_zeroth_col = ZerothColAgent.tran_matrix
+        dstn_t_zeroth_col = self.vec_erg_dstn.T[0]
+        
+        C_t_no_sim = np.zeros(T)
+        A_t_no_sim = np.zeros(T)
 
-        c_first_col_0 = np.array(c_first_col_0)
-        a_first_col_0 = np.array(a_first_col_0)
+        for i in range(T):
+            if i ==0:
+                dstn_t_zeroth_col = np.dot(tranmat_t_zeroth_col[i],dstn_t_zeroth_col)
+            else:
+                dstn_t_zeroth_col = np.dot(tranmat_ss,dstn_t_zeroth_col)
+                
+            C_t_no_sim[i] =  np.dot(self.cPol_Grid ,dstn_t_zeroth_col) 
+            A_t_no_sim[i] =  np.dot( self.aPol_Grid ,dstn_t_zeroth_col) 
 
-        # Fill zeroth column of jacobian matrix
-        J_A.T[0] = a_first_col_0
-        J_C.T[0] = c_first_col_0
-
+        J_A.T[0] = (A_t_no_sim - self.A_ss)/dx
+        J_C.T[0] = (C_t_no_sim - self.C_ss)/dx
+        
         return J_C, J_A
+
+
 
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
@@ -3071,120 +3221,242 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.update_solution_terminal()
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
+            
+            
+    def describe_parameters(self):
+        '''
+        Generate a string describing the primitive model parameters that will
+        be used to calculating limiting values and factors.
+        
+        Parameters
+        ----------
+        None
 
-    def check_GICNrm(self, verbose=None):
-        """
-        Check Individual Growth Patience Factor.
-        """
-        self.GPFNrm = self.thorn / (
-            self.PermGroFac[0] * self.InvEx_PermShkInv
-        )  # [url]/#GICRawI
+        Returns
+        -------
+        param_desc : str
+            Description of primitive parameters.
+        '''
+        # Get parameter description from the perfect foresight model
+        param_desc = PerfForesightConsumerType.describe_parameters(self)
+        
+        # Make a new entry for weierstrass-p (the weird formatting here is to
+        # make it easier to adapt into the style of the superclass if we add more
+        # parameter reports later)
+        this_entry = ['WorstPrb', 'probability of worst income shock realization', '℘', False]
+        try:
+            val = getattr(self,this_entry[0])
+        except:
+            val = self.bilt[this_entry[0]]    
+        this_line = this_entry[2] + f'={val:.5f} : ' + this_entry[1] + ' (' + this_entry[0] + ')\n'
+        
+        # Add in the new entry and return it
+        param_desc += this_line
+        return param_desc
+            
+    
+    def calc_limiting_values(self):
+        '''
+        Compute various scalar values that are relevant to characterizing the
+        solution to an infinite horizon problem. This method should only be called
+        when T_cycle=1 and cycles=0, otherwise the values generated are meaningless.
+        This method adds the following values to this instance in the dictionary
+        attribute auxiliary.
+            
+        APFac : Absolute Patience Factor
+        GPFacRaw : Growth Patience Factor
+        GPFacMod : Risk-Modified Growth Patience Factor
+        GPFacLiv : Mortality-Adjusted Growth Patience Factor
+        GPFacLivMod : Modigliani Mortality-Adjusted Growth Patience Factor
+        GPFacSdl : Szeidl Growth Patience Factor
+        FHWFac : Finite Human Wealth Factor
+        RPFac : Return Patience Factor
+        WRPFac : Weak Return Patience Factor
+        PFVAFac : Perfect Foresight Value of Autarky Factor
+        VAFac : Value of Autarky Factor
+        cNrmPDV : Present Discounted Value of Autarky Consumption
+        MPCmin : Limiting minimum MPC as market resources go to infinity
+        MPCmax : Limiting maximum MPC as market resources approach minimum level
+        hNrm : Human wealth divided by permanent income.
+        ELogPermShk : Expected log permanent income shock
+        WorstPrb : Probability of worst income shock realization
 
-        name = "GICRaw"
-
-        def test(agent):
-            return agent.GPFNrm <= 1
-
-        messages = {
-            True: "\nThe value of the Individual Growth Patience Factor for the supplied parameter values satisfies the Growth Impatience Condition; the value of the GPFNrm is: {0.GPFNrm}",
-            False: "\nThe given parameter values violate the Normalized Growth Impatience Condition; the GPFNrm is: {0.GPFNrm}",
-        }
-
-        verbose_messages = {
-            True: " Therefore, a target level of the individual market resources ratio m exists (see {0.url}/#onetarget for more).\n",
-            False: " Therefore, a target ratio of individual market resources to individual permanent income does not exist.  (see {0.url}/#onetarget for more).\n",
-        }
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condition(name, test, messages, verbose, verbose_messages)
-
-    def check_GICAggLivPrb(self, verbose=None):
-        name = "GICAggLivPrb"
-
-        def test(agent):
-            return agent.GPFAggLivPrb <= 1
-
-        messages = {
-            True: "\nThe value of the Mortality Adjusted Aggregate Growth Patience Factor for the supplied parameter values satisfies the Mortality Adjusted Aggregate Growth Imatience Condition; the value of the GPFAggLivPrb is: {0.GPFAggLivPrb}",
-            False: "\nThe given parameter values violate the Mortality Adjusted Aggregate Growth Imatience Condition; the GPFAggLivPrb is: {0.GPFAggLivPrb}",
-        }
-
-        verbose_messages = {  # (see {0.url}/#WRIC for more).',
-            True: "  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.\n",
-            # (see {0.url}/#WRIC for more).'
-            False: "  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.\n",
-        }
-        verbose = self.verbose if verbose is None else verbose
-        self.check_condition(name, test, messages, verbose, verbose_messages)
-
-    def check_WRIC(self, verbose=None):
-        """
-        Evaluate and report on the Weak Return Impatience Condition
-        [url]/#WRPF modified to incorporate LivPrb
-        """
-        self.WRPF = (
-            (self.UnempPrb ** (1 / self.CRRA))
-            * (self.Rfree * self.DiscFac * self.LivPrb[0]) ** (1 / self.CRRA)
-            / self.Rfree
+        Returns
+        -------
+        None
+        '''
+        PerfForesightConsumerType.calc_limiting_values(self)
+        aux_dict = self.bilt
+        
+        # Calculate the risk-modified growth impatience factor
+        PermShkDstn = self.PermShkDstn[0]
+        inv_func = lambda x : x**(-1.)
+        GroCompPermShk = expected(inv_func, PermShkDstn)[0]**(-1.)
+        aux_dict['GPFacMod'] = aux_dict['APFac'] / (self.PermGroFac[0] * GroCompPermShk)
+        
+        # Calculate the mortality-adjusted growth impatience factor (and version
+        # with Modigiliani bequests)
+        aux_dict['GPFacLiv'] = aux_dict['GPFacRaw'] * self.LivPrb[0]
+        aux_dict['GPFacLivMod'] = aux_dict['GPFacLiv'] * self.LivPrb[0]
+        
+        # Calculate the risk-modified value of autarky factor
+        if self.CRRA == 1.:
+            UtilCompPermShk = np.exp(expected(np.log, PermShkDstn)[0])
+        else:
+            CRRAfunc = lambda x : x**(1.-self.CRRA)
+            UtilCompPermShk = expected(CRRAfunc, PermShkDstn)[0]**(1/(1.-self.CRRA))
+        aux_dict['VAFac'] = self.DiscFac*(self.PermGroFac[0]*UtilCompPermShk)**(1.-self.CRRA)
+        
+        # Calculate the expected log permanent income shock, which will be used
+        # for the Szeidl variation of the Growth Impatience condition
+        aux_dict['ELogPermShk'] = expected(np.log, PermShkDstn)[0]
+        
+        # Calculate the Harmenberg permanent income neutral expected log permanent
+        # shock and the Harmenberg Growth Patience Factor
+        Hrm_func = lambda x : x * np.log(x)
+        PermShk_Hrm = np.exp(expected(Hrm_func, PermShkDstn)[0])
+        aux_dict['GPFacHrm'] = aux_dict['GPFacRaw'] / PermShk_Hrm
+        
+        # Calculate the probability of the worst income shock realization
+        PermShkValsNext = self.IncShkDstn[0].atoms[0]
+        TranShkValsNext = self.IncShkDstn[0].atoms[1]
+        ShkPrbsNext = self.IncShkDstn[0].pmv
+        Ex_IncNext = np.dot(ShkPrbsNext, PermShkValsNext * TranShkValsNext)
+        PermShkMinNext = np.min(PermShkValsNext)
+        TranShkMinNext = np.min(TranShkValsNext)
+        WorstIncNext = PermShkMinNext * TranShkMinNext
+        WorstIncPrb = np.sum(
+            ShkPrbsNext[(PermShkValsNext * TranShkValsNext) == WorstIncNext]
         )
+        aux_dict['WorstPrb'] = WorstIncPrb
+        
+        # Calculate the weak return patience factor
+        aux_dict['WRPFac'] = WorstIncPrb**(1./self.CRRA) * aux_dict['RPFac']
+        
+        # Calculate human wealth and the infinite horizon natural borrowing constraint
+        if aux_dict['FHWFac'] < 1.:
+            hNrm = Ex_IncNext / (1. - aux_dict['FHWFac'])
+        else:
+            hNrm = np.inf
+        temp = PermShkMinNext * aux_dict['FHWFac']
+        BoroCnstNat = -TranShkMinNext * temp / (1.0 - temp)
 
-        name = "WRIC"
+        # Find the upper bound of the MPC as market resources approach the minimum
+        BoroCnstArt = -np.inf if self.BoroCnstArt is None else self.BoroCnstArt
+        if BoroCnstNat < BoroCnstArt:
+            MPCmax = 1.0  # if natural borrowing constraint is overridden by artificial one, MPCmax is 1
+        else:
+            MPCmax = 1.0 - WorstIncPrb ** (1.0 / self.CRRA) * aux_dict['RPFac']
+            MPCmax = np.maximum(MPCmax, 0.0)
+            
+        # Store maximum MPC and human wealth
+        aux_dict['hNrm'] = hNrm
+        aux_dict['MPCmax'] = MPCmax
+        
+        self.bilt = aux_dict
 
-        def test(agent):
-            return agent.WRPF <= 1
+
+    def check_GICMod(self, verbose=None):
+        """
+        Evaluate and report on the Risk-Modified Growth Impatience Condition.
+        """
+        name = "GICMod"
+        GPFacMod = self.bilt['GPFacMod']
+        result = GPFacMod < 1.
 
         messages = {
-            True: "\nThe Weak Return Patience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition; the WRPF is {0.WRPF}.",
-            False: "\nThe Weak Return Patience Factor value for the supplied parameter values fails     the Weak Return Impatience Condition; the WRPF is {0.WRPF} (see {0.url}/#WRIC for more).",
-        }
-
-        verbose_messages = {
-            True: "  Therefore, a nondegenerate solution exists if the FVAC is also satisfied.  (see {0.url}/#WRIC for more) \n",
-            False: "  Therefore, a nondegenerate solution is not available (see {0.url}/#WRIC for more). \n",
+            True: f"GPFacMod={GPFacMod:.5f} : The Risk-Modified Growth Patience Factor satisfies the Risk-Modified Growth Impatience Condition (GICMod) Þ/(G‖Ψ‖_(-1)) < 1.",
+            False: f"GPFacMod={GPFacMod:.5f} : The Risk-Modified Growth Patience Factor violates the Risk-Modified Growth Impatience Condition (GICMod) Þ/(G‖Ψ‖_(-1)) < 1."
         }
         verbose = self.verbose if verbose is None else verbose
-        self.check_condition(name, test, messages, verbose, verbose_messages)
+        self.log_condition_result(name, result, messages[result], verbose)
 
+
+    def check_GICSdl(self, verbose=None):
+        """
+        Evaluate and report on the Szeidl variation of the Growth Impatience Condition.
+        """
+        name = "GICSdl"
+        ELogPermShk = self.bilt['ELogPermShk']
+        result = np.log(self.bilt['GPFacRaw']) < ELogPermShk
+
+        messages = {
+            True: f"E[log Ψ]={ELogPermShk:.5f} : The expected log permanent income shock satisfies the Szeidl Growth Impatience Condition (GICSdl) log(Þ/G) < E[log Ψ].",
+            False: f"E[log Ψ]={ELogPermShk:.5f} : The expected log permanent income shock violates the Szeidl Growth Impatience Condition (GICSdl) log(Þ/G) < E[log Ψ]."
+        }
+        verbose = self.verbose if verbose is None else verbose
+        self.log_condition_result(name, result, messages[result], verbose)
+        
+        
+    def check_GICHrm(self, verbose=None):
+        """
+        Evaluate and report on the Harmenberg variation of the Growth Impatience Condition.
+        """
+        name = "GICHrm"
+        GPFacHrm = self.bilt['GPFacHrm']
+        result = GPFacHrm < 1.
+
+        messages = {
+            True: f"GPFacHrm={GPFacHrm:.5f} : The Harmenberg Expected Growth Patience Factor satisfies the Harmenberg Growth Normalized Impatience Condition (GICHrm) Þ/G < exp(E[Ψlog Ψ]).",
+            False: f"GPFacHrm={GPFacHrm:.5f} : The Harmenberg Expected Growth Patience Factor violates the Harmenberg Growth Normalized Impatience Condition (GICHrm) Þ/G < exp(E[Ψlog Ψ])."
+        }
+        verbose = self.verbose if verbose is None else verbose
+        self.log_condition_result(name, result, messages[result], verbose)
+        
+        
+    def check_GICLiv(self, verbose=None):
+        """
+        Evaluate and report on the Mortality-Adjusted Growth Impatience Condition.
+        """
+        name = "GICLiv"
+        GPFacLiv = self.bilt['GPFacLiv']
+        result = GPFacLiv < 1.
+
+        messages = {
+            True: f"GPFacLiv={GPFacLiv:.5f} : The Mortality-Adjusted Growth Patience Factor satisfies the Mortality-Adjusted Growth Impatience Condition (GICLiv) ℒÞ/G < 1.",
+            False: f"GPFacLiv={GPFacLiv:.5f} : The Mortality-Adjusted Growth Patience Factor violates the Mortality-Adjusted Growth Impatience Condition (GICLiv) ℒÞ/G < 1."
+        }
+        verbose = self.verbose if verbose is None else verbose
+        self.log_condition_result(name, result, messages[result], verbose)
+        
+        
     def check_FVAC(self, verbose=None):
         """
-        Evaluate and report on the Finite Value of Autarky Condition
-        Hyperlink to paper: [url]/#Autarky-Value
+        Evaluate and report on the Finite Value of Autarky condition in the presence of income risk.
         """
-        EpShkuInv = expected(lambda x: x ** (1 - self.CRRA), self.PermShkDstn[0])[0]
-
-        if self.CRRA != 1.0:
-            uInvEpShkuInv = EpShkuInv ** (
-                1 / (1 - self.CRRA)
-            )  # The term that gives a utility-consequence-adjusted utility growth
-        else:
-            uInvEpShkuInv = 1.0
-
-        self.uInvEpShkuInv = uInvEpShkuInv
-
-        self.VAF = self.LivPrb[0] * self.DiscFac * self.uInvEpShkuInv
-
         name = "FVAC"
-
-        def test(agent):
-            return agent.VAF <= 1
+        VAFac = self.bilt['VAFac']
+        result = VAFac < 1.
 
         messages = {
-            True: "\nThe Value of Autarky Factor (VAF) for the supplied parameter values satisfies the Finite Value of Autarky Condition; the VAF is {0.VAF}",
-            False: "\nThe Value of Autarky Factor (VAF) for the supplied parameter values fails     the Finite Value of Autarky Condition; the VAF is {0.VAF}",
-        }
-
-        verbose_messages = {
-            True: "  Therefore, a nondegenerate solution exists if the WRIC also holds; see {0.url}/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping\n",
-            False: "  Therefore, a nondegenerate solution is not available (see {0.url}/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping\n",
+            True: f"VAFac={VAFac:.5f} : The Risk-Modified Finite Value of Autarky Factor satisfies the Risk-Modified Finite Value of Autarky Condition β(G‖Ψ‖_(1-ρ))^(1-ρ) < 1.",
+            False: f"VAFac={VAFac:.5f} : The Risk-Modified Finite Value of Autarky Factor violates the Risk-Modified Finite Value of Autarky Condition β(G‖Ψ‖_(1-ρ))^(1-ρ) < 1."
         }
         verbose = self.verbose if verbose is None else verbose
-        self.check_condition(name, test, messages, verbose, verbose_messages)
+        self.log_condition_result(name, result, messages[result], verbose)
+        
+        
+    def check_WRIC(self, verbose=None):
+        """
+        Evaluate and report on the Weak Return Impatience Condition.
+        """
+        name = "WRIC"
+        WRPFac = self.bilt['WRPFac']
+        result = WRPFac < 1.
+
+        messages = {
+            True: f"WRPFac={WRPFac:.5f} : The Weak Return Patience Factor satisfies the Weak Return Impatience Condition (WRIC) ℘ Þ/R < 1.",
+            False: f"WRPFac={WRPFac:.5f} : The Weak Return Patience Factor violates the Weak Return Impatience Condition (WRIC) ℘ Þ/R < 1."
+            }
+        verbose = self.verbose if verbose is None else verbose
+        self.log_condition_result(name, result, messages[result], verbose)
+    
 
     def check_conditions(self, verbose=None):
         """
-        This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC), Weak Return
-        Impatience Condition (WRIC), Finite Human Wealth Condition (FHWC) and Finite Value of
-        Autarky Condition (FVAC).  When combinations of these conditions are satisfied, the
-        solution to the problem exhibits different characteristics.  (For an exposition of the
+        This method checks whether the instance's type satisfies various conditions.
+        When combinations of these conditions are satisfied, the solution to the
+        problem exhibits different characteristics.  (For an exposition of the
         conditions, see https://econ-ark.github.io/BufferStockTheory/)
 
         Parameters
@@ -3199,85 +3471,116 @@ class IndShockConsumerType(PerfForesightConsumerType):
         None
         """
         self.conditions = {}
-
-        # PerfForesightConsumerType.check_conditions(self, verbose=False, verbose_reference=False)
-        self.violated = False
-
-        if self.cycles != 0 or self.T_cycle > 1:
-            return
-
-        # For theory, see hyperlink targets to expressions in
-        # url=https://econ-ark.github.io/BufferStockTheory
-        # For example, the hyperlink to the relevant section of the paper
-        self.url = "https://econ-ark.github.io/BufferStockTheory"
-        # would be referenced below as:
-        # [url]/#Uncertainty-Modified-Conditions
-
-        self.Ex_PermShkInv = expected(lambda x: 1 / x, self.PermShkDstn[0])[0]
-        # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
-
-        # [url]/#Pat, adjusted to include mortality
-
-        self.InvEx_PermShkInv = (
-            1 / self.Ex_PermShkInv
-        )  # $\underline{\psi}$ in the paper (\bar{\isp} in private version)
-        self.PermGroFacAdj = (
-            self.PermGroFac[0] * self.InvEx_PermShkInv
-        )  # [url]/#PGroAdj
-
-        self.thorn = (self.Rfree * self.DiscFac) ** (1 / self.CRRA)
-
-        # self.Ex_RNrm           = self.Rfree*Ex_PermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
-        self.GPFRaw = self.thorn / (self.PermGroFac[0])  # [url]/#GPF
-        # Lower bound of aggregate wealth growth if all inheritances squandered
-
-        self.GPFAggLivPrb = self.thorn * self.LivPrb[0] / self.PermGroFac[0]
-
-        self.DiscFacGPFRawMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
-            self.Rfree
-        )  # DiscFac at growth impatience knife edge
-        self.DiscFacGPFNrmMax = (
-            (self.PermGroFac[0] * self.InvEx_PermShkInv) ** (self.CRRA)
-        ) / (
-            self.Rfree
-        )  # DiscFac at growth impatience knife edge
-        self.DiscFacGPFAggLivPrbMax = ((self.PermGroFac[0]) ** (self.CRRA)) / (
-            self.Rfree * self.LivPrb[0]
-        )  # DiscFac at growth impatience knife edge
+        self.bilt['conditions_report'] = ''
+        self.degenerate = False
         verbose = self.verbose if verbose is None else verbose
 
-        #        self.check_GICRaw(verbose)
-        self.check_GICNrm(verbose)
-        self.check_GICAggLivPrb(verbose)
+        # This method only checks for the conditions for infinite horizon models
+        # with a 1 period cycle. If these conditions are not met, we exit early.
+        if self.cycles != 0 or self.T_cycle > 1:
+            trivial_message = 'No conditions report was produced because this functionality is only supported for infinite horizon models with a cycle length of 1.'
+            self.log_condition_result(None, None, trivial_message, verbose)
+            if not self.quiet:
+                _log.info(self.bilt['conditions_report'])
+            return
+
+        # Calculate some useful quantities that will be used in the condition checks
+        self.calc_limiting_values()
+        param_desc = self.describe_parameters()
+        self.log_condition_result(None, None, param_desc, verbose)
+
+        # Check individual conditions and add their results to the report
+        self.check_AIC(verbose)
+        self.check_RIC(verbose)
         self.check_WRIC(verbose)
+        self.check_GICRaw(verbose)
+        self.check_GICMod(verbose)
+        self.check_GICLiv(verbose)
+        self.check_GICSdl(verbose)
+        self.check_GICHrm(verbose)
+        PerfForesightConsumerType.check_FVAC(self, verbose)
         self.check_FVAC(verbose)
-
-        self.violated = not self.conditions["WRIC"] or not self.conditions["FVAC"]
-
-        if self.violated:
-            _log.warning(
-                '\n[!] For more information on the conditions, see Tables 3 and 4 in "Theoretical Foundations of Buffer Stock Saving" at '
-                + self.url
-                + "/#Factors-Defined-And-Compared"
-            )
-
-        _log.warning("GPFRaw                 = %2.6f " % (self.GPFRaw))
-        _log.warning("GPFNrm                 = %2.6f " % (self.GPFNrm))
-        _log.warning("GPFAggLivPrb           = %2.6f " % (self.GPFAggLivPrb))
-        _log.warning("Thorn = APF            = %2.6f " % (self.thorn))
-        _log.warning("PermGroFacAdj          = %2.6f " % (self.PermGroFacAdj))
-        _log.warning("uInvEpShkuInv          = %2.6f " % (self.uInvEpShkuInv))
-        _log.warning("VAF                    = %2.6f " % (self.VAF))
-        _log.warning("WRPF                   = %2.6f " % (self.WRPF))
-        _log.warning("DiscFacGPFNrmMax       = %2.6f " % (self.DiscFacGPFNrmMax))
-        _log.warning("DiscFacGPFAggLivPrbMax = %2.6f " % (self.DiscFacGPFAggLivPrbMax))
+        self.check_FHWC(verbose)
+        
+        # Exit now if verbose output was not requested.
+        if not verbose:
+            if not self.quiet:
+                _log.info(self.bilt['conditions_report'])
+            return
+        
+        # Report on the degeneracy of the consumption function solution
+        if self.conditions['WRIC'] and self.conditions['FVAC']:
+            degen_message = '\nBecause both the WRIC and FVAC are satisfied, the recursive solution to the infinite horizon problem represents a contraction mapping on the consumption function. Thus a non-degenerate solution exists.'
+            degenerate = False
+        elif not self.conditions['WRIC']:
+            degen_message = '\nBecause the WRIC is violated, the consumer is so pathologically patient that they will never consume at all. Thus the solution will be degenerate at c(m) = 0 for all m.\n'
+            degenerate = True
+        elif not self.conditions['FVAC']:
+            degen_message = "\nBecause the FVAC is violated, the recursive solution to the infinite horizon problem might not be a contraction mapping, so the produced solution might not be valid. Proceed with caution."
+            degenerate = False
+        self.log_condition_result(None, None, degen_message, verbose)
+        self.degenerate = degenerate
+        
+        # Stop here if the solution is degenerate
+        if degenerate:
+            if not self.quiet:
+                _log.info(self.bilt['conditions_report'])
+            return
+        
+        # Report on the limiting behavior of the consumption function as m goes to infinity
+        if self.conditions['RIC']:
+            if self.conditions['FHWC']:
+                RIC_message = '\nBecause both the RIC and FHWC condition are satisfied, the consumption function will approach the linear perfect foresight solution as m becomes arbitrarily large.'
+            else:
+                RIC_message = '\nBecause the RIC is satisfied but the FHWC is violated, the GIC is satisfied.' 
+        else:
+            RIC_message = '\nBecause the RIC is violated, the FHWC condition is also violated. The consumer is pathologically impatient but has infinite expected future earnings. Thus the consumption function will not approach any linear limit as m becomes arbitrarily large, and the MPC will asymptote to zero.'
+        self.log_condition_result(None, None, RIC_message, verbose)
+        
+        # Report on whether a pseudo-steady-state exists at the individual level
+        if self.conditions['GICRaw']:
+            GIC_message = '\nBecause the GICRaw is satisfied, there exists a pseudo-steady-state wealth ratio at which the level of wealth is expected to grow at the same rate as permanent income.'
+        else:
+            GIC_message = '\nBecause the GICRaw is violated, there might not exist a pseudo-steady-state wealth ratio at which the level of wealth is expected to grow at the same rate as permanent income.'
+        self.log_condition_result(None, None, GIC_message, verbose)
+        
+        # Report on whether a target wealth ratio exists at the individual level
+        if self.conditions['GICMod']:
+            GICMod_message = '\nBecause the GICMod is satisfied, expected growth of the ratio of market resources to permanent income is less than one as market resources become arbitrarily large. Hence the consumer has a target ratio of market resources to permanent income.'
+        else:
+            GICMod_message = '\nBecause the GICMod is violated, expected growth of the ratio of market resources to permanent income exceeds one as market resources go to infinity. Hence the consumer might not have a target ratio of market resources to permanent income.'
+        self.log_condition_result(None, None, GICMod_message, verbose)
+        
+        # Report on whether a target level of wealth exists at the aggregate level
+        if self.conditions['GICLiv']:
+            GICLiv_message = '\nBecause the GICLiv is satisfied, a target ratio of aggregate market resources to aggregate permanent income exists.'
+        else:
+            GICLiv_message = '\nBecause the GICLiv is violated, a target ratio of aggregate market resources to aggregate permanent income might not exist.'
+        self.log_condition_result(None, None, GICLiv_message, verbose)
+        
+        # Report on whether invariant distributions exist
+        if self.conditions['GICSdl']:
+            GICSdl_message = '\nBecause the GICSdl is satisfied, there exist invariant distributions of permanent income-normalized variables.'
+        else:
+            GICSdl_message = '\nBecause the GICSdl is violated, there do not exist invariant distributions of permanent income-normalized variables.'
+        self.log_condition_result(None, None, GICSdl_message, verbose)
+        
+        # Report on whether blah blah
+        if self.conditions['GICHrm']:
+            GICHrm_message = '\nBecause the GICHrm is satisfied, there exists a target ratio of the individual market resources to permanent income, under the permanent-income-neutral measure.'
+        else:
+            GICHrm_message = '\nBecause the GICHrm is violated, there does not exist a target ratio of the individual market resources to permanent income, under the permanent-income-neutral measure..'
+        self.log_condition_result(None, None, GICHrm_message, verbose)
+        
+        if not self.quiet:
+            _log.info(self.bilt['conditions_report'])
+        
 
     def calc_stable_points(self):
         """
         If the problem is one that satisfies the conditions required for target ratios of different
         variables to permanent income to exist, and has been solved to within the self-defined
-        tolerance, this method calculates the target values of market resources, consumption,
-        and assets.
+        tolerance, this method calculates the target values of market resources.
 
         Parameters
         ----------
@@ -3287,12 +3590,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
-        infinite_horizon = cycles_left == 0
+        infinite_horizon = self.cycles == 0
         if not infinite_horizon:
             _log.warning(
                 "The calc_stable_points method works only for infinite horizon models."
             )
             return
+
 
     # = Functions for generating discrete income processes and
     #   simulated income shocks =
@@ -3314,7 +3618,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Note 2: All parameters are passed as attributes of the input parameters.
 
         Parameters (passed as attributes of the input parameters)
-        ----------
+        ---------------------------------------------------------
         PermShkStd : [float]
             List of standard deviations in log permanent income uncertainty during
             the agent's life.

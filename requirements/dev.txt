@@ -1,9 +1,5 @@
 estimagic
-nbsphinx>=0.8
 nbval
 pre-commit
 pytest
 pytest-xdist
-recommonmark>=0.7
-sphinx>=6.1
-pydata-sphinx-theme

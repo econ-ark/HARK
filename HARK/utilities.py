@@ -164,10 +164,11 @@ def construct_assets_grid(parameters):
         )
 
     # Add in additional points for the grid:
-    for a in aXtraExtra:
-        if a is not None and a not in aXtraGrid:
-            j = aXtraGrid.searchsorted(a)
-            aXtraGrid = np.insert(aXtraGrid, j, a)
+    if aXtraExtra is not None:
+        for a in aXtraExtra:
+            if a is not None and a not in aXtraGrid:
+                j = aXtraGrid.searchsorted(a)
+                aXtraGrid = np.insert(aXtraGrid, j, a)
 
     return aXtraGrid
 
@@ -199,7 +200,7 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
 
     Original Matab code can be found in Chris Carroll's
     [Solution Methods for Microeconomic Dynamic Optimization Problems]
-    (http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
+    (https://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
     Latest update: 01 May 2015
     """
     if timestonest > 0:

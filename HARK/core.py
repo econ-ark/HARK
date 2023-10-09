@@ -7,6 +7,7 @@ model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
 import sys
+from collections import defaultdict, namedtuple
 from copy import copy, deepcopy
 from dataclasses import dataclass, field
 from time import time
@@ -26,11 +27,246 @@ from HARK.distribution import (
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
 
+# Set logging and define basic functions
+import logging
+logging.basicConfig(format="%(message)s")
+_log = logging.getLogger("HARK")
+_log.setLevel(logging.ERROR)
+
+
+def disable_logging():
+    _log.disabled = True
+
+
+def enable_logging():
+    _log.disabled = False
+
+
+def warnings():
+    _log.setLevel(logging.WARNING)
+
+
+def quiet():
+    _log.setLevel(logging.ERROR)
+
+
+def verbose():
+    _log.setLevel(logging.INFO)
+
+
+def set_verbosity_level(level):
+    _log.setLevel(level)
+
+
+class Parameters:
+    """
+    This class defines an object that stores all of the parameters for a model
+    as an internal dictionary. It is designed to also handle the age-varying
+    dynamics of parameters.
+
+    Attributes
+    ----------
+
+    _length : int
+        The terminal age of the agents in the model.
+    _invariant_params : list
+        A list of the names of the parameters that are invariant over time.
+    _varying_params : list
+        A list of the names of the parameters that vary over time.
+    """
+
+    def __init__(self, **parameters: Any):
+        """
+        Initializes a Parameters object and parses the age-varying
+        dynamics of the parameters.
+
+        Parameters
+        ----------
+
+        parameters : keyword arguments
+            Any number of keyword arguments of the form key=value.
+            To parse a dictionary of parameters, use the ** operator.
+        """
+        params = parameters.copy()
+        self._length = params.pop("T_cycle", None)
+        self._invariant_params = set()
+        self._varying_params = set()
+        self._parameters: Dict[str, Union[int, float, np.ndarray, list, tuple]] = {}
+
+        for key, value in params.items():
+            self._parameters[key] = self.__infer_dims__(key, value)
+
+    def __infer_dims__(
+        self, key: str, value: Union[int, float, np.ndarray, list, tuple, None]
+    ) -> Union[int, float, np.ndarray, list, tuple]:
+        """
+        Infers the age-varying dimensions of a parameter.
+
+        If the parameter is a scalar, numpy array, or None, it is assumed to be
+        invariant over time. If the parameter is a list or tuple, it is assumed
+        to be varying over time. If the parameter is a list or tuple of length
+        greater than 1, the length of the list or tuple must match the
+        `_term_age` attribute of the Parameters object.
+
+        Parameters
+        ----------
+        key : str
+            name of parameter
+        value : Any
+            value of parameter
+
+        """
+        if isinstance(value, (int, float, np.ndarray, type(None))):
+            self.__add_to_invariant__(key)
+            return value
+        if isinstance(value, (list, tuple)):
+            if len(value) == 1:
+                self.__add_to_invariant__(key)
+                return value[0]
+            if self._length is None or self._length == 1:
+                self._length = len(value)
+            if len(value) == self._length:
+                self.__add_to_varying__(key)
+                return value
+            raise ValueError(
+                f"Parameter {key} must be of length 1 or {self._length}, not {len(value)}"
+            )
+        raise ValueError(f"Parameter {key} has unsupported type {type(value)}")
+
+    def __add_to_invariant__(self, key: str):
+        """
+        Adds parameter name to invariant set and removes from varying set.
+        """
+        self._varying_params.discard(key)
+        self._invariant_params.add(key)
+
+    def __add_to_varying__(self, key: str):
+        """
+        Adds parameter name to varying set and removes from invariant set.
+        """
+        self._invariant_params.discard(key)
+        self._varying_params.add(key)
+
+    def __getitem__(self, item_or_key: Union[int, str]):
+        """
+        If item_or_key is an integer, returns a Parameters object with the parameters
+        that apply to that age. This includes all invariant parameters and the
+        `item_or_key`th element of all age-varying parameters. If item_or_key is a string,
+        it returns the value of the parameter with that name.
+        """
+        if isinstance(item_or_key, int):
+            if item_or_key >= self._length:
+                raise ValueError(
+                    f"Age {item_or_key} is greater than or equal to terminal age {self._length}."
+                )
+
+            params = {key: self._parameters[key] for key in self._invariant_params}
+            params.update(
+                {
+                    key: self._parameters[key][item_or_key]
+                    for key in self._varying_params
+                }
+            )
+            return Parameters(**params)
+        elif isinstance(item_or_key, str):
+            return self._parameters[item_or_key]
+
+    def __setitem__(self, key: str, value: Any):
+        """
+        Sets the value of a parameter.
+
+        Parameters
+        ----------
+        key : str
+            name of parameter
+        value : Any
+            value of parameter
+
+        """
+        if not isinstance(key, str):
+            raise ValueError("Parameters must be set with a string key")
+        self._parameters[key] = self.__infer_dims__(key, value)
+
+    def keys(self):
+        """
+        Returns a list of the names of the parameters.
+        """
+        return self._invariant_params | self._varying_params
+
+    def values(self):
+        """
+        Returns a list of the values of the parameters.
+        """
+        return list(self._parameters.values())
+
+    def items(self):
+        """
+        Returns a list of tuples of the form (name, value) for each parameter.
+        """
+        return list(self._parameters.items())
+
+    def __iter__(self):
+        """
+        Allows for iterating over the parameter names.
+        """
+        return iter(self.keys())
+
+    def __deepcopy__(self, memo):
+        """
+        Returns a deep copy of the Parameters object.
+        """
+        return Parameters(**deepcopy(self.to_dict(), memo))
+
+    def to_dict(self):
+        """
+        Returns a dictionary of the parameters.
+        """
+        return {key: self._parameters[key] for key in self.keys()}
+
+    def to_namedtuple(self):
+        """
+        Returns a namedtuple of the parameters.
+        """
+        return namedtuple("Parameters", self.keys())(**self.to_dict())
+
+    def update(self, other_params):
+        """
+        Updates the parameters with the values from another
+        Parameters object or a dictionary.
+
+        Parameters
+        ----------
+        other_params : Parameters or dict
+            Parameters object or dictionary of parameters to update with.
+        """
+        if isinstance(other_params, Parameters):
+            self._parameters.update(other_params.to_dict())
+        elif isinstance(other_params, dict):
+            self._parameters.update(other_params)
+        else:
+            raise ValueError("Parameters must be a dict or a Parameters object")
+
+    def __str__(self):
+        """
+        Returns a simple string representation of the Parameters object.
+        """
+        return f"Parameters({str(self.to_dict())})"
+
+    def __repr__(self):
+        """
+        Returns a detailed string representation of the Parameters object.
+        """
+        return f"Parameters( _age_inv = {self._invariant_params}, _age_var = {self._varying_params}, | {self.to_dict()})"
+
 
 class Model:
     """
     A class with special handling of parameters assignment.
     """
+
+    def __init__(self):
+        if not hasattr(self, "parameters"):
+            self.parameters = {}
 
     def assign_parameters(self, **kwds):
         """
@@ -71,10 +307,6 @@ class Model:
             return self.parameters == other.parameters
 
         return NotImplemented
-
-    def __init__(self):
-        if not hasattr(self, "parameters"):
-            self.parameters = {}
 
     def __str__(self):
         type_ = type(self)
@@ -1438,9 +1670,6 @@ def distribute_params(agent, param_name, param_count, distribution):
     return agent_set
 
 
-Parameters = NewType("ParameterDict", dict)
-
-
 @dataclass
 class AgentPopulation:
     """
@@ -1448,7 +1677,7 @@ class AgentPopulation:
     """
 
     agent_type: AgentType  # type of agent in the population
-    parameters: Parameters  # dictionary of parameters
+    parameters: dict  # dictionary of parameters
     seed: int = 0  # random seed
     time_var: List[str] = field(init=False)
     time_inv: List[str] = field(init=False)
