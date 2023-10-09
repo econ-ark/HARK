@@ -16,6 +16,7 @@ Release Date: TBD
 
 - Adds `HARK.core.AgentPopulation` class to represent a population of agents with ex-ante heterogeneous parametrizations as distributions. [#1237](https://github.com/econ-ark/HARK/pull/1237)
 - Adds `HARK.core.Parameters` class to represent a collection of time varying and time invariant parameters in a model. [#1240](https://github.com/econ-ark/HARK/pull/1240)
+- Adds `HARK.simulation.monte_carlo` module for generic Monte Carlo simulation functions using Python model configurations. [1296](https://github.com/econ-ark/HARK/pull/1296)
 
 ### Minor Changes
 
