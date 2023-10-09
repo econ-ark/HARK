@@ -3,26 +3,10 @@ Functions to support Monte Carlo simulation of models.
 """
 from copy import copy
 from HARK.distribution import Distribution, IndexDistribution, TimeVaryingDiscreteDistribution
+from HARK.model import Aggregate, Control
 from inspect import signature
 import numpy as np
 from typing import Any, Callable, Mapping, Sequence, Union
-
-class Aggregate:
-    """
-    Used to designate a shock as an aggregate shock.
-    If so designated, draws from the shock will be scalar rather
-    than array valued.
-    """
-    def __init__(self, dist: Distribution):
-        self.dist = dist
-
-class Control:
-    """
-    Should go in HARK.model
-    """
-
-    def __init__(self, args):
-        pass
 
 def draw_shocks(
         shocks: Mapping[str, Distribution],
