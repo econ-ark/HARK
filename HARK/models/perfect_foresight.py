@@ -20,9 +20,9 @@ model = {
         'BoroCnstArt' : None,
     },
     'dynamics' : {
+        'y' : lambda p : p,
         'm' : lambda Rfree, a, y : Rfree * a + y,
         'c' : Control(['m']),
-        'y' : lambda p : p,
         'p' : lambda PermGroFac, p: PermGroFac * p,
         'a' : lambda m, c : m - c
     },
