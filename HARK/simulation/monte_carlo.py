@@ -291,6 +291,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
 
             if isinstance(self.vars_now[var], np.ndarray):
                 self.vars_now[var] = np.empty(self.agent_count)
+                self.vars_now[var][:] = np.nan
             else:
                 # Probably an aggregate variable. It may be getting set by the Market.
                 pass
