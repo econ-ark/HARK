@@ -384,21 +384,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
         """
         who_dies = self.vars_now['live'] <= 0
 
-        if self.read_shocks:
-            # Instead of simulating births, assign the saved newborn initial conditions
-            if np.sum(who_dies) > 0:
-                for var_name in self.initial:
-                    self.vars_now[var_name][
-                        who_dies
-                    ] = self.newborn_init_history[var_name][
-                        self.t_sim, who_dies
-                    ]
-
-                # Reset ages of newborns
-                self.t_age[who_dies] = 0
-                self.t_cycle[who_dies] = 0
-        else:
-            self.sim_birth(who_dies)
+        self.sim_birth(who_dies)
 
         self.who_dies = who_dies
         return None
@@ -418,20 +404,26 @@ class AgentTypeMonteCarloSimulator(Simulator):
         None
         """
         if self.read_shocks:
+            t = self.t_sim - 1 if self.t_sim > 0 else 0
             initial_vals = {
-                init_var: self.newborn_init_history[init_var][self.t_sim, :]
+                init_var: self.newborn_init_history[init_var][t, which_agents]
                 for init_var
                 in self.initial
-                }
+            }
+
         else:
             initial_vals = draw_shocks(
                 self.initial,
                 np.zeros(which_agents.sum())
             )
 
-        for varn in initial_vals:
-            self.vars_now[varn][which_agents] = initial_vals[varn]
-            self.newborn_init_history[varn][self.t_sim, which_agents] = initial_vals[varn]
+        if np.sum(which_agents) > 0:
+            for varn in initial_vals:
+                self.vars_now[varn][which_agents] = initial_vals[varn]
+                self.newborn_init_history[varn][self.t_sim, which_agents] = initial_vals[varn]
+
+        self.t_age[which_agents] = 0
+        self.t_cycle[which_agents] = 0
 
     def simulate(self, sim_periods=None):
         """
