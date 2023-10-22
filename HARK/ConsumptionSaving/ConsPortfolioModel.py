@@ -9,6 +9,7 @@ import numpy as np
 
 from HARK import AgentType, NullFunc, make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    ConsIndShockSolver,
     IndShockConsumerType,
     init_idiosyncratic_shocks,
     utility,
@@ -238,6 +239,11 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
             dvdsFuncFxd=dvdsFuncFxd_terminal,
         )
 
+        self.solution_terminal.mNrmMin = 0.0
+        self.solution_terminal.hNrm = 0.0
+        self.solution_terminal.MPCmin = 1.0
+        self.solution_terminal.MPCmax = 1.0
+
     def initialize_sim(self):
         """
         Initialize the state of simulation attributes.  Simply calls the same method
@@ -330,7 +336,7 @@ class SequentialPortfolioConsumerType(PortfolioConsumerType):
         self.solve_one_period = make_one_period_oo_solver(ConsSequentialPortfolioSolver)
 
 
-class ConsPortfolioSolver(MetricObject):
+class ConsPortfolioSolver(ConsIndShockSolver):
     """
     Define an object-oriented one period solver.
     Solve the one period problem for a portfolio-choice consumer.
@@ -433,6 +439,8 @@ class ConsPortfolioSolver(MetricObject):
         self.ShareLimit = ShareLimit
         self.IndepDstnBool = IndepDstnBool
 
+        self.CubicBool = False  # This solver doesn't use cubic interpolation
+
         # Make sure the individual is liquidity constrained.  Allowing a consumer to
         # borrow *and* invest in an asset with unbounded (negative) returns is a bad mix.
         if BoroCnstArt != 0.0:
@@ -447,6 +455,9 @@ class ConsPortfolioSolver(MetricObject):
 
         self.def_utility_funcs()
 
+        self.solution_next.vFunc = self.solution_next.vFuncAdj  # this is a hack
+        self.solution_next.vPfunc = self.solution_next.vPfuncAdj  # this is a hack
+
     def def_utility_funcs(self):
         """
         Define temporary functions for utility and its derivative and inverse
@@ -458,11 +469,15 @@ class ConsPortfolioSolver(MetricObject):
         self.uinv = lambda x: utility_inv(x, self.CRRA)
         self.uinvP = lambda x: utility_invP(x, self.CRRA)
 
-    def set_and_update_values(self):
+    def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.
         """
+
+        super().set_and_update_values(
+            self.solution_next, self.IncShkDstn, self.LivPrb, self.DiscFac
+        )
 
         # Unpack next period's solution
         self.vPfuncAdj_next = self.solution_next.vPfuncAdj
@@ -482,7 +497,10 @@ class ConsPortfolioSolver(MetricObject):
         Perform preparatory work.
         """
 
-        self.set_and_update_values()
+        self.set_and_update_values(
+            self.solution_next, self.IncShkDstn, self.LivPrb, self.DiscFac
+        )
+        self.def_BoroCnst(self.BoroCnstArt)
 
     def prepare_to_calc_EndOfPrdvP(self):
         """
@@ -925,6 +943,10 @@ class ConsPortfolioSolver(MetricObject):
 
         self.make_porfolio_solution()
 
+        self.solution = self.add_MPC_and_human_wealth(self.solution)
+        self.solution.mNrmMin = self.mNrmMinNow
+        self.solution = self.add_stable_points(self.solution)
+
         return self.solution
 
 
@@ -995,6 +1017,10 @@ class ConsPortfolioDiscreteSolver(ConsPortfolioSolver):
 
         self.make_porfolio_solution()
 
+        self.solution = self.add_MPC_and_human_wealth(self.solution)
+        self.solution.mNrmMin = self.mNrmMinNow
+        self.solution = self.add_stable_points(self.solution)
+
         return self.solution
 
 
@@ -1007,11 +1033,15 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
     discrete.
     """
 
-    def set_and_update_values(self):
+    def set_and_update_values(self, solution_next, IncShkDstn, LivPrb, DiscFac):
         """
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.
         """
+
+        super().set_and_update_values(
+            self.solution_next, self.IncShkDstn, self.LivPrb, self.DiscFac
+        )
 
         # Unpack next period's solution
         self.vPfuncAdj_next = self.solution_next.vPfuncAdj
@@ -1219,6 +1249,10 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
         self.add_save_points()
 
         self.make_porfolio_solution()
+
+        self.solution = self.add_MPC_and_human_wealth(self.solution)
+        self.solution.mNrmMin = self.mNrmMinNow
+        self.solution = self.add_stable_points(self.solution)
 
         return self.solution
 

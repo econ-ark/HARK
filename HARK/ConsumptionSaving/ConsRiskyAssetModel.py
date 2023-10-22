@@ -11,7 +11,7 @@ import numpy as np
 from scipy.optimize import minimize_scalar, root_scalar
 
 from HARK import make_one_period_oo_solver
-from HARK.ConsumptionSaving.ConsIndShockModel import (  # PortfolioConsumerType inherits from it; Baseline dictionary to build on
+from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolver,
     ConsumerSolution,
     IndShockConsumerType,
