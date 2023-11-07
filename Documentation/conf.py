@@ -1,17 +1,19 @@
-from datetime import date
 import warnings
+from datetime import date
 
 try:
     import numba
 except ImportError:
     pass
 else:
-    warnings.filterwarnings("ignore",
-                            message="numba.generated_jit.*",
-                            category=numba.NumbaDeprecationWarning)
-    warnings.filterwarnings("ignore",
-                            message=".* 'nopython' .*",
-                            category=numba.NumbaDeprecationWarning)
+    warnings.filterwarnings(
+        "ignore",
+        message="numba.generated_jit.*",
+        category=numba.NumbaDeprecationWarning,
+    )
+    warnings.filterwarnings(
+        "ignore", message=".* 'nopython' .*", category=numba.NumbaDeprecationWarning
+    )
 
 # Project information
 project = "HARK"
@@ -64,7 +66,7 @@ source_suffix = [
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_css_files = [
-    'override-nbsphinx-gallery.css',
+    "override-nbsphinx-gallery.css",
 ]
 
 html_theme_options = {
@@ -95,7 +97,7 @@ html_theme_options = {
             "type": "local",
             "attributes": {"target": "_blank"},
         },
-    ]
+    ],
 }
 
 # Point to Econ-ARK repo for edit buttons

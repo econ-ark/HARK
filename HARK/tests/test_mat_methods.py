@@ -1,7 +1,9 @@
 import unittest
+
 import numpy as np
-from HARK.utilities import jump_to_grid_1D, jump_to_grid_2D
+
 from HARK.mat_methods import mass_to_grid
+from HARK.utilities import jump_to_grid_1D, jump_to_grid_2D
 
 
 # Compare general mass_to_grid with jump_to_grid_1D
