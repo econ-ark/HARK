@@ -2,15 +2,17 @@
 Functions to support Monte Carlo simulation of models.
 """
 from copy import copy
+from inspect import signature
+from typing import Any, Callable, Mapping, Sequence, Union
+
+import numpy as np
+
 from HARK.distribution import (
     Distribution,
     IndexDistribution,
     TimeVaryingDiscreteDistribution,
 )
 from HARK.model import Aggregate, Control
-from inspect import signature
-import numpy as np
-from typing import Any, Callable, Mapping, Sequence, Union
 
 
 def draw_shocks(shocks: Mapping[str, Distribution], conditions: Sequence[int]):

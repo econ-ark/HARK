@@ -7,6 +7,7 @@ model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
 # Set logging and define basic functions
+# Set logging and define basic functions
 import logging
 import sys
 from collections import defaultdict, namedtuple
@@ -29,8 +30,6 @@ from HARK.distribution import (
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
 
-# Set logging and define basic functions
-import logging
 logging.basicConfig(format="%(message)s")
 _log = logging.getLogger("HARK")
 _log.setLevel(logging.ERROR)
@@ -1063,7 +1062,7 @@ class AgentType(Model):
                     elif var_name in self.controls:
                         self.history[var_name][self.t_sim, :] = self.controls[var_name]
                     else:
-                        if var_name is "who_dies" and self.t_sim > 1:
+                        if var_name == "who_dies" and self.t_sim > 1:
                             self.history[var_name][self.t_sim - 1, :] = getattr(
                                 self, var_name
                             )

@@ -3,7 +3,7 @@ This file implements unit tests for the Monte Carlo simulation module
 """
 import unittest
 
-from HARK.distribution import Bernoulli, MeanOneLogNormal, IndexDistribution
+from HARK.distribution import Bernoulli, IndexDistribution, MeanOneLogNormal
 from HARK.model import Aggregate, Control
 from HARK.simulation.monte_carlo import *
 
@@ -36,7 +36,6 @@ cons_dr = {"cNrm": lambda mNrm: mNrm / 2}
 
 class test_draw_shocks(unittest.TestCase):
     def test_draw_shocks(self):
-
         drawn = draw_shocks(cons_shocks, np.array([0, 1]))
 
         self.assertEqual(len(drawn["theta"]), 2)
@@ -46,7 +45,6 @@ class test_draw_shocks(unittest.TestCase):
 
 class test_simulate_dynamics(unittest.TestCase):
     def test_simulate_dynamics(self):
-
         post = simulate_dynamics(cons_dynamics, cons_pre, cons_dr)
 
         self.assertAlmostEqual(post["cNrm"], 0.98388429)
@@ -54,7 +52,6 @@ class test_simulate_dynamics(unittest.TestCase):
 
 class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
     def setUp(self):
-
         self.shocks = {
             "theta": MeanOneLogNormal(1),
             "agg_R": Aggregate(MeanOneLogNormal(1)),
@@ -122,7 +119,6 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
 
 class test_AgentTypeMonteCarloSimulatorAgeVariance(unittest.TestCase):
     def setUp(self):
-
         self.shocks = {
             "theta": MeanOneLogNormal(1),
             "agg_R": Aggregate(MeanOneLogNormal(1)),
