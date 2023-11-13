@@ -29,7 +29,7 @@ class testSmallOpenEconomy(unittest.TestCase):
             Rfree=1.03,
             wRte=1.0,
             KtoLnow=1.0,
-            **copy.copy(init_cobb_douglas)
+            **copy.copy(init_cobb_douglas),
         )
 
         small_economy.act_T = 400  # Short simulation history

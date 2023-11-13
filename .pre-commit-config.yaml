@@ -1,13 +1,14 @@
 exclude: Documentation/example_notebooks/
 
 repos:
-  - repo: https://github.com/mwouts/jupytext
-    rev: v1.15.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.4
     hooks:
-      - id: jupytext
-        args: [--sync, --set-formats, "ipynb", --pipe, black, --execute]
-        additional_dependencies: [jupytext, black, nbconvert]
-        files: ^examples/.*\.ipynb$
+      - id: ruff
+        types_or: [jupyter]
+      - id: ruff-format
+        args: [--check]
+        types_or: [jupyter]
 
   - repo: https://github.com/psf/black
     rev: 23.7.0

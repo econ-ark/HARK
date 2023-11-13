@@ -15,7 +15,6 @@ class Aggregate:
         self.dist = dist
 
 
-
 class Control:
     """
     Used to designate a variabel that is a control variable.

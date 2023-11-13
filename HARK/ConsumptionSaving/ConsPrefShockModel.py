@@ -37,7 +37,7 @@ init_preference_shocks = dict(
         "PrefShkStd": [0.30],  # Standard deviation of utility shocks
         "aXtraCount": 48,
         "CubicBool": False,  # pref shocks currently only compatible with linear cFunc
-    }
+    },
 )
 
 # Make a dictionary to specify a "kinky preference" consumer
@@ -49,7 +49,7 @@ init_kinky_pref = dict(
         "PrefShkStd": [0.30],  # Standard deviation of utility shocks
         "aXtraCount": 48,
         "CubicBool": False,  # pref shocks currently only compatible with linear cFunc
-    }
+    },
 )
 init_kinky_pref["BoroCnstArt"] = None
 
