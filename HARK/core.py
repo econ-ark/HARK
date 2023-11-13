@@ -1061,7 +1061,10 @@ class AgentType(Model):
                     elif var_name in self.controls:
                         self.history[var_name][self.t_sim, :] = self.controls[var_name]
                     else:
-                        self.history[var_name][self.t_sim, :] = getattr(self, var_name)
+                        if var_name is 'who_dies' and self.t_sim > 1:
+                            self.history[var_name][self.t_sim - 1, :] = getattr(self, var_name)
+                        else:
+                            self.history[var_name][self.t_sim, :] = getattr(self, var_name)
                 self.t_sim += 1
 
             return self.history

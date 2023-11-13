@@ -404,7 +404,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
         None
         """
         if self.read_shocks:
-            t = self.t_sim - 1 if self.t_sim > 0 else 0
+            t = self.t_sim
             initial_vals = {
                 init_var: self.newborn_init_history[init_var][t, which_agents]
                 for init_var
