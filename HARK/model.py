@@ -11,6 +11,7 @@ class Aggregate:
     If so designated, draws from the shock will be scalar rather
     than array valued.
     """
+
     def __init__(self, dist: Distribution):
         self.dist = dist
 

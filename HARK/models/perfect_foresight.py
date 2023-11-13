@@ -19,12 +19,12 @@ model = {
         "PermGroFac": 1.01,
         "BoroCnstArt": None,
     },
-    'dynamics' : {
-        'y' : lambda p : p,
-        'm' : lambda Rfree, a, y : Rfree * a + y,
-        'c' : Control(['m']),
-        'p' : lambda PermGroFac, p: PermGroFac * p,
-        'a' : lambda m, c : m - c
+    "dynamics": {
+        "y": lambda p: p,
+        "m": lambda Rfree, a, y: Rfree * a + y,
+        "c": Control(["m"]),
+        "p": lambda PermGroFac, p: PermGroFac * p,
+        "a": lambda m, c: m - c,
     },
     "reward": {"u": lambda c: c ** (1 - CRRA) / (1 - CRRA)},
 }

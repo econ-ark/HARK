@@ -2,16 +2,18 @@
 Functions to support Monte Carlo simulation of models.
 """
 from copy import copy
-from HARK.distribution import Distribution, IndexDistribution, TimeVaryingDiscreteDistribution
+from HARK.distribution import (
+    Distribution,
+    IndexDistribution,
+    TimeVaryingDiscreteDistribution,
+)
 from HARK.model import Aggregate, Control
 from inspect import signature
 import numpy as np
 from typing import Any, Callable, Mapping, Sequence, Union
 
-def draw_shocks(
-        shocks: Mapping[str, Distribution],
-        conditions: Sequence[int]
-        ):
+
+def draw_shocks(shocks: Mapping[str, Distribution], conditions: Sequence[int]):
     """
 
     Parameters
@@ -32,8 +34,9 @@ def draw_shocks(
             draws[shock_var] = np.ones(len(conditions)) * shock
         elif isinstance(shock, Aggregate):
             draws[shock_var] = shock.dist.draw(1)[0]
-        elif isinstance(shock, IndexDistribution) \
-            or isinstance(shock, TimeVaryingDiscreteDistribution):
+        elif isinstance(shock, IndexDistribution) or isinstance(
+            shock, TimeVaryingDiscreteDistribution
+        ):
             ## TODO  his type test is awkward. They should share a superclass.
             draws[shock_var] = shock.draw(conditions)
         else:
@@ -41,10 +44,11 @@ def draw_shocks(
 
     return draws
 
+
 def simulate_dynamics(
-        dynamics : Mapping[str, Union[Callable, Control]],
-        pre : Mapping[str, Any],
-        dr : Mapping[str, Callable]
+    dynamics: Mapping[str, Union[Callable, Control]],
+    pre: Mapping[str, Any],
+    dr: Mapping[str, Callable],
 ):
     """
 
@@ -78,22 +82,24 @@ def simulate_dynamics(
                 ## Now we have to loop through each agent, and apply the decision rule.
                 ## This is quite slow.
                 for i in range(dr[varn].size):
-                    vals_i = {var : vals[var][i] if isinstance(vals[var], np.ndarray) else vals[var]
-                              for var in vals
-                              }
-                    vals[varn][i] = dr[varn][i](*[
-                        vals_i[var]
-                        for var
-                        in signature(dr[varn][i]).parameters])
+                    vals_i = {
+                        var: vals[var][i]
+                        if isinstance(vals[var], np.ndarray)
+                        else vals[var]
+                        for var in vals
+                    }
+                    vals[varn][i] = dr[varn][i](
+                        *[vals_i[var] for var in signature(dr[varn][i]).parameters]
+                    )
             else:
-                vals[varn] = dr[varn](*[
-                    vals[var]
-                    for var
-                    in signature(dr[varn]).parameters]) # TODO: test for signature match with Control
+                vals[varn] = dr[varn](
+                    *[vals[var] for var in signature(dr[varn]).parameters]
+                )  # TODO: test for signature match with Control
         else:
             vals[varn] = feq(*[vals[var] for var in signature(feq).parameters])
 
     return vals
+
 
 def parameters_by_age(ages, parameters):
     """
@@ -115,28 +121,23 @@ def parameters_by_age(ages, parameters):
         If a parameter is age-varying, the value is a vector
         corresponding to the values for each input age.
     """
+
     def aged_param(ages, p_value):
         if isinstance(p_value, (float, int)) or callable(p_value):
             return p_value
         elif isinstance(p_value, list) and len(p_value) > 1:
             pv_array = np.array(p_value)
 
-            return np.apply_along_axis(
-                lambda a: pv_array[a],
-                0,
-                ages
-            )
+            return np.apply_along_axis(lambda a: pv_array[a], 0, ages)
         else:
             return np.empty(ages.size)
 
-    return {
-        p : aged_param(ages, parameters[p])
-        for p
-        in parameters
-    }
+    return {p: aged_param(ages, parameters[p]) for p in parameters}
 
-class Simulator():
+
+class Simulator:
     pass
+
 
 class AgentTypeMonteCarloSimulator(Simulator):
     """
@@ -150,7 +151,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
 
     This simulator makes assumptions about population birth and mortality which
     are not generic. They are: TODO.
-    
+
     Parameters
     ----------
     TODO
@@ -168,15 +169,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
     state_vars = []
 
     def __init__(
-        self,
-        parameters,
-        shocks,
-        dynamics,
-        dr,
-        initial,
-        seed=0,
-        agent_count = 1,
-        T_sim = 10
+        self, parameters, shocks, dynamics, dr, initial, seed=0, agent_count=1, T_sim=10
     ):
         super().__init__()
 
@@ -255,7 +248,9 @@ class AgentTypeMonteCarloSimulator(Simulator):
         # Get recorded newborn conditions or initialize blank history.
         if self.read_shocks and bool(self.newborn_init_history):
             for init_var_name in self.initial:
-                self.vars_now[init_var_name] = self.newborn_init_history[init_var_name][self.t_sim, :]
+                self.vars_now[init_var_name] = self.newborn_init_history[init_var_name][
+                    self.t_sim, :
+                ]
         else:
             for var_name in self.initial:
                 self.newborn_init_history[var_name] = (
@@ -309,13 +304,13 @@ class AgentTypeMonteCarloSimulator(Simulator):
 
         pre.update(self.vars_prev)
         pre.update(shocks_now)
-        #Won't work for 3.8: self.parameters | self.vars_prev | shocks_now
+        # Won't work for 3.8: self.parameters | self.vars_prev | shocks_now
 
         # Age-varying decision rules captured here
         dr = parameters_by_age(self.t_age, self.dr)
-        
+
         post = simulate_dynamics(self.dynamics, pre, dr)
-        
+
         self.vars_now = post
         ### BIG CHANGES HERE
 
@@ -323,10 +318,10 @@ class AgentTypeMonteCarloSimulator(Simulator):
         self.t_age = self.t_age + 1  # Age all consumers by one period
 
         # What will we do with cycles?
-        #self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-        #self.t_cycle[
+        # self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
+        # self.t_cycle[
         #    self.t_cycle == self.T_cycle
-        #] = 0  # Resetting to zero for those who have reached the end
+        # ] = 0  # Resetting to zero for those who have reached the end
 
     def make_shock_history(self):
         """
@@ -382,7 +377,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
         -------
         None
         """
-        who_dies = self.vars_now['live'] <= 0
+        who_dies = self.vars_now["live"] <= 0
 
         self.sim_birth(who_dies)
 
@@ -407,20 +402,18 @@ class AgentTypeMonteCarloSimulator(Simulator):
             t = self.t_sim
             initial_vals = {
                 init_var: self.newborn_init_history[init_var][t, which_agents]
-                for init_var
-                in self.initial
+                for init_var in self.initial
             }
 
         else:
-            initial_vals = draw_shocks(
-                self.initial,
-                np.zeros(which_agents.sum())
-            )
+            initial_vals = draw_shocks(self.initial, np.zeros(which_agents.sum()))
 
         if np.sum(which_agents) > 0:
             for varn in initial_vals:
                 self.vars_now[varn][which_agents] = initial_vals[varn]
-                self.newborn_init_history[varn][self.t_sim, which_agents] = initial_vals[varn]
+                self.newborn_init_history[varn][
+                    self.t_sim, which_agents
+                ] = initial_vals[varn]
 
         self.t_age[which_agents] = 0
         self.t_cycle[which_agents] = 0
@@ -468,7 +461,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
                 # track all the vars -- shocks and dynamics
                 for var_name in self.vars:
                     self.history[var_name][self.t_sim, :] = self.vars_now[var_name]
-                    
+
                 self.t_sim += 1
 
             return self.history
