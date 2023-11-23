@@ -723,6 +723,40 @@ class UtilityFunction(MetricObject):
         return self.inverse(*args, **kwargs)
 
 
+def CDutility(c, d, c_share, d_bar):
+    return c**c_share * (d + d_bar) ** (1 - c_share)
+
+
+def CDutilityPc(c, d, c_share, d_bar):
+    return c_share * ((d + d_bar) / c) ** (1 - c_share)
+
+
+def CDutilityPd(c, d, c_share, d_bar):
+    return (1 - c_share) * (c / (d + d_bar)) ** c_share
+
+
+def CDutilityPc_inv(uc, d, c_share, d_bar):
+    return (d + d_bar) * (uc / c_share) ** (1 / (1 - c_share))
+
+
+def CRRACDutility(c, d, c_share, d_bar, CRRA):
+    return CDutility(c, d, c_share, d_bar) ** (1 - CRRA) / (1 - CRRA)
+
+
+def CRRACDutilityPc(c, d, c_share, d_bar, CRRA):
+    return c_share / c * CDutility(c, d, c_share, d_bar) ** (1 - CRRA)
+
+
+def CRRACDutilityPd(c, d, c_share, d_bar, CRRA):
+    return (1 - c_share) / (d + d_bar) * CDutility(c, d, c_share, d_bar) ** (1 - CRRA)
+
+
+def CRRACDutilityPc_inv(uc, d, c_share, d_bar, CRRA):
+    return (c_share / uc * (d + d_bar) ** (c_share * CRRA - c_share - CRRA + 1)) ** (
+        1 / (c_share * CRRA - c_share + 1)
+    )
+
+
 class UtilityFuncCRRA(UtilityFunction):
     """
     A class for representing a CRRA utility function.
@@ -889,9 +923,7 @@ class UtilityFuncCobbDouglas(UtilityFunction):
         self.EOS = np.asarray(EOS)
         self.factor = factor
 
-        assert np.isclose(
-            np.sum(self.EOS), 1.0
-        ), """The sum of the elasticity of substitution
+        assert np.isclose(np.sum(self.EOS), 1.0), """The sum of the elasticity of substitution
         parameters must be less than or equal to 1."""
 
         assert factor > 0, "Factor must be positive."
