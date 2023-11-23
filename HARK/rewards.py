@@ -911,35 +911,36 @@ class UtilityFuncCobbDouglas(UtilityFunction):
 
     Parameters
     ----------
-    EOS : float
-        The coefficient for elasticity of substitution.
-    factor : float
-        Factor productivity parameter. (e.g. TFP in production function)
+    c_share : float
+        Share parameter for consumption. Must be between 0 and 1.
+    d_bar : float
+        Intercept parameter for durable consumption. Must be non-negative.
     """
 
-    distance_criteria = ["EOS", "factor"]
+    distance_criteria = ["c_share", "d_bar"]
 
-    def __init__(self, EOS, factor=1.0):
-        self.EOS = np.asarray(EOS)
-        self.factor = factor
+    def __init__(self, c_share, d_bar=0):
+        self.c_share = c_share
+        self.d_bar = d_bar
 
-        assert np.isclose(np.sum(self.EOS), 1.0), """The sum of the elasticity of substitution
-        parameters must be less than or equal to 1."""
+        assert 0 <= c_share <= 1, "Share parameter must be between 0 and 1."
 
-        assert factor > 0, "Factor must be positive."
-
-        self.dim = len(self.EOS)  # number of goods
-
-    def __call__(self, x):
+    def __call__(self, c, d):
         """
         Evaluate the utility function at a given level of consumption c.
         """
-        assert self.EOS.size == x.shape[-1], "x must be compatible with EOS"
-        cobb_douglas(x, self.EOS, self.factor)
+        return CDutility(c, d, self.c_share, self.d_bar)
 
-    def derivative(self, x, args=()):
-        assert self.EOS.size == x.shape[-1], "x must be compatible with EOS"
-        return cobb_douglas_pn(x, self.EOS, self.factor, args)
+    def derivative(self, c, d, axis=0):
+        if axis == 0:
+            return CDutilityPc(c, d, self.c_share, self.d_bar)
+        elif axis == 1:
+            return CDutilityPd(c, d, self.c_share, self.d_bar)
+        else:
+            raise ValueError(f"Axis must be 0 or 1, not {axis}")
+
+    def inverse(self, uc, d):
+        return CDutilityPc_inv(uc, d, self.c_share, self.d_bar)
 
 
 class UtilityFuncCobbDouglasCRRA(UtilityFuncCobbDouglas):
@@ -950,22 +951,33 @@ class UtilityFuncCobbDouglasCRRA(UtilityFuncCobbDouglas):
 
     Parameters
     ----------
-    EOS : float
-        The coefficient for elasticity of substitution.
-    factor : float
-        Factor productivity parameter. (e.g. TFP in production function)
+    c_share : float
+        Share parameter for consumption. Must be between 0 and 1.
+    d_bar : float
+        Intercept parameter for durable consumption. Must be non-negative.
     CRRA: float
         Coefficient of relative risk aversion.
     """
 
-    distance_criteria = ["EOS", "factor", "CRRA"]
+    distance_criteria = ["c_share", "d_bar", "CRRA"]
 
-    def __init__(self, EOS, factor, CRRA):
-        super().__init__(EOS, factor)
+    def __init__(self, c_share, CRRA, d_bar=0):
+        super().__init__(c_share, d_bar)
         self.CRRA = CRRA
 
-    def __call__(self, x):
-        return CRRAutility(cobb_douglas(x, self.EOS, self.factor), self.CRRA)
+    def __call__(self, c, d):
+        return CRRACDutility(c, d, self.c_share, self.d_bar, self.CRRA)
+
+    def derivative(self, c, d, axis=0):
+        if axis == 0:
+            return CRRACDutilityPc(c, d, self.c_share, self.d_bar, self.CRRA)
+        elif axis == 1:
+            return CRRACDutilityPd(c, d, self.c_share, self.d_bar, self.CRRA)
+        else:
+            raise ValueError(f"Axis must be 0 or 1, not {axis}")
+
+    def inverse(self, uc, d):
+        return CRRACDutilityPc_inv(uc, d, self.c_share, self.d_bar, self.CRRA)
 
 
 class UtilityFuncConstElastSubs(UtilityFunction):
