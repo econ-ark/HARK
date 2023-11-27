@@ -1,6 +1,7 @@
 """
 Functions to support Monte Carlo simulation of models.
 """
+
 from copy import copy
 from inspect import signature
 from typing import Any, Callable, Mapping, Sequence, Union
@@ -17,6 +18,7 @@ from HARK.model import Aggregate, Control
 
 def draw_shocks(shocks: Mapping[str, Distribution], conditions: Sequence[int]):
     """
+    Draw from each shock distribution values, subject to given conditions.
 
     Parameters
     ------------
@@ -26,6 +28,11 @@ def draw_shocks(shocks: Mapping[str, Distribution], conditions: Sequence[int]):
     conditions: Sequence[int]
         An array of conditions, one for each agent.
         Typically these will be agent ages.
+
+    Parameters
+    ------------
+    draws : Mapping[str, Sequence]
+        A mapping from shock names to drawn shock values.
     """
     draws = {}
 
@@ -53,6 +60,8 @@ def simulate_dynamics(
     dr: Mapping[str, Callable],
 ):
     """
+    From the beginning-of-period state (pre), follow the dynamics,
+    including any decision rules, to compute the end-of-period state.
 
     Parameters
     ------------
@@ -144,19 +153,27 @@ class Simulator:
 class AgentTypeMonteCarloSimulator(Simulator):
     """
     A Monte Carlo simulation engine based on the HARK.core.AgentType framework.
-    Unlike HARK.core.AgentType, this class:
-      * does not do any model solving
-      * depends on dynamic equations, shocks, and decision rules paased into it
+
+    Unlike HARK.core.AgentType, this class does not do any model solving,
+    and depends on dynamic equations, shocks, and decision rules paased into it.
 
     The purpose of this class is to provide a way to simulate models without
     relying on inheritance from the AgentType class.
 
     This simulator makes assumptions about population birth and mortality which
-    are not generic. They are: TODO.
+    are not generic. All agents are replaced with newborns when they expire.
 
     Parameters
-    ----------
-    TODO
+    ------------
+    parameters: Mapping[str, Any]
+
+    shocks: Mapping[str, Distribution]
+
+    dynamics: Mapping[str, Union[Callable, Control]]
+
+    dr: Mapping[str, Callable]
+
+    initial: dict
 
     seed : int
         A seed for this instance's random number generator.
@@ -166,6 +183,8 @@ class AgentTypeMonteCarloSimulator(Simulator):
     agent_count : int
         The number of agents of this type to use in simulation.
 
+    T_sim : int
+        The number of periods to simulate.
     """
 
     state_vars = []
@@ -201,14 +220,6 @@ class AgentTypeMonteCarloSimulator(Simulator):
     def reset_rng(self):
         """
         Reset the random number generator for this type.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
         """
         self.RNG = np.random.default_rng(self.seed)
 
@@ -216,14 +227,6 @@ class AgentTypeMonteCarloSimulator(Simulator):
         """
         Prepares for a new simulation.  Resets the internal random number generator,
         makes initial states for all agents (using sim_birth), clears histories of tracked variables.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
         """
         if self.T_sim <= 0:
             raise Exception(
@@ -270,14 +273,6 @@ class AgentTypeMonteCarloSimulator(Simulator):
         read_shocks, get_states(), get_controls(), and get_poststates().  These should be defined for
         AgentType subclasses, except get_mortality (define its components sim_death and sim_birth
         instead) and read_shocks.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
         """
         # Mortality adjusts the agent population
         self.get_mortality()  # Replace some agents with "newborns"
@@ -328,17 +323,11 @@ class AgentTypeMonteCarloSimulator(Simulator):
     def make_shock_history(self):
         """
         Makes a pre-specified history of shocks for the simulation.  Shock variables should be named
-        in self.shock_vars, a list of strings that is subclass-specific.  This method runs a subset
+        in self.shock, a mapping from shock names to distributions.  This method runs a subset
         of the standard simulation loop by simulating only mortality and shocks; each variable named
-        in shock_vars is stored in a T_sim x agent_count array in history dictionary self.history[X].
+        in shocks is stored in a T_sim x agent_count array in history dictionary self.history[X].
         Automatically sets self.read_shocks to True so that these pre-specified shocks are used for
         all subsequent calls to simulate().
-
-        ### TODO: Rethink this for when shocks are passed in.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -360,24 +349,8 @@ class AgentTypeMonteCarloSimulator(Simulator):
 
     def get_mortality(self):
         """
-        Simulates mortality or agent turnover according to some model-specific rules named sim_death
-        and sim_birth (methods of an AgentType subclass).
-
+        Simulates mortality or agent turnover.
         Agents die when their states `live` is less than or equal to zero.
-
-        a Boolean array of size agent_count, indicating which agents of this type have "died" and
-        must be replaced.
-
-        sim_birth takes such a Boolean array as an argument and generates initial
-        states for those agent indices.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
         """
         who_dies = self.vars_now["live"] <= 0
 
@@ -471,14 +444,6 @@ class AgentTypeMonteCarloSimulator(Simulator):
     def clear_history(self):
         """
         Clears the histories.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
         """
         for var_name in self.vars:
             self.history[var_name] = np.empty((self.T_sim, self.agent_count))
