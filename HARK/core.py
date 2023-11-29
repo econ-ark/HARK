@@ -7,6 +7,7 @@ model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
 # Set logging and define basic functions
+# Set logging and define basic functions
 import logging
 import sys
 from collections import defaultdict, namedtuple
@@ -1061,7 +1062,14 @@ class AgentType(Model):
                     elif var_name in self.controls:
                         self.history[var_name][self.t_sim, :] = self.controls[var_name]
                     else:
-                        self.history[var_name][self.t_sim, :] = getattr(self, var_name)
+                        if var_name == "who_dies" and self.t_sim > 1:
+                            self.history[var_name][self.t_sim - 1, :] = getattr(
+                                self, var_name
+                            )
+                        else:
+                            self.history[var_name][self.t_sim, :] = getattr(
+                                self, var_name
+                            )
                 self.t_sim += 1
 
             return self.history
