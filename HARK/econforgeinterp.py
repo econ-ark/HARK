@@ -22,10 +22,12 @@ class LinearFast(MetricObject):
 
     def __init__(self, f_val, grids, extrap_mode="linear"):
         """
-        f_val: numpy.array
-            An array containing the values of the function at the grid points.
-            It's i-th dimension must be of the same lenght as the i-th grid.
+        f_val: numpy.array, or [numpy.array]
+            An array or list of arrays containing the values of the function(s) at the grid points.
+            If it is an array, it's i-th dimension must be of the same lenght as the i-th grid.
             f_val[i,j,k] must be f(grids[0][i], grids[1][j], grids[2][k]).
+            If it is a list of arrays, each array must have the same shape, and
+            f_val[n][i,j,k] must be f[n](grids[0][i], grids[1][j], grids[2][k]).
         grids: [numpy.array]
             One-dimensional list of numpy arrays. It's i-th entry must be the grid
             to be used for the i-th independent variable.
@@ -34,7 +36,18 @@ class LinearFast(MetricObject):
             constant extrapolation. The default is multilinear.
         """
         self.dim = len(grids)
-        self.f_val = f_val
+
+        if isinstance(f_val, list):
+            # First check that all arrays have the same shape
+            if not all([x.shape == f_val[0].shape for x in f_val]):
+                raise ValueError("All arrays must have the same shape.")
+            # Stack arrays in the list across a new dimension
+            self.f_val = np.stack(f_val, axis=-1)
+            self.output_dim = len(f_val)
+        else:
+            self.f_val = f_val
+            self.output_dim = 1
+
         self.grid_list = grids
         self.Grid = CGrid(*grids)
 
@@ -67,7 +80,12 @@ class LinearFast(MetricObject):
         )
 
         # Reshape the output to the shape of inputs
-        return np.reshape(f, array_args[0].shape)
+        if self.output_dim == 1:
+            return np.reshape(f, array_args[0].shape)
+        else:
+            return tuple(
+                np.reshape(f[:, j], array_args[0].shape) for j in range(self.output_dim)
+            )
 
     def _derivs(self, deriv_tuple, *args):
         """
@@ -91,9 +109,12 @@ class LinearFast(MetricObject):
 
         Returns
         -------
-        [numpy.array]
+        [numpy.array] or [[numpy.array]]
             List of the derivatives that were requested in the same order
             as deriv_tuple. Each element has the shape of items in args.
+            If the interpolator represents a function of n variables, the
+            output is a list of length n, where the i-th element has the
+            requested derivatives of the i-th output.
         """
 
         # Format arguments
@@ -111,9 +132,18 @@ class LinearFast(MetricObject):
         )
 
         # Reshape
-        derivs = [
-            derivs[:, j].reshape(args[0].shape) for j, tup in enumerate(deriv_tuple)
-        ]
+        if self.output_dim == 1:
+            derivs = [
+                derivs[:, j].reshape(args[0].shape) for j, tup in enumerate(deriv_tuple)
+            ]
+        else:
+            derivs = [
+                [
+                    derivs[:, i, j].reshape(args[0].shape)
+                    for j, tup in enumerate(deriv_tuple)
+                ]
+                for i in range(self.output_dim)
+            ]
 
         return derivs
 
@@ -130,12 +160,14 @@ class LinearFast(MetricObject):
 
         Returns
         -------
-        [numpy.array]
+        [numpy.array] or [[numpy.array]]
             List of the derivatives of the function with respect to each
             input, evaluated at the given points. E.g. if the interpolator
             represents 3D function f, f.gradient(x,y,z) will return
             [df/dx(x,y,z), df/dy(x,y,z), df/dz(x,y,z)]. Each element has the
             shape of items in args.
+            If the fundtion has multiple outputs, the output will be a list
+            that will have the gradient for the ith output as the ith element.
         """
         # Form a tuple that indicates which derivatives to get
         # in the way eval_linear expects
@@ -177,7 +209,12 @@ class LinearFast(MetricObject):
 
         results = self._derivs(eval_tup + deriv_tup, *args)
 
-        return (results[0], results[1:])
+        if self.output_dim == 1:
+            return (results[0], results[1:])
+        else:
+            levels = [x[0] for x in results]
+            grads = [x[1:] for x in results]
+            return (levels, grads)
 
 
 class DecayInterp(MetricObject):
@@ -223,6 +260,7 @@ class DecayInterp(MetricObject):
         self.limit_grad = limit_grad
 
         self.grid_list = self.interp.grid_list
+        self.output_dim = self.interp.output_dim
 
         self.upper_limits = np.array([x[-1] for x in self.grid_list])
         self.dim = len(self.grid_list)
@@ -261,13 +299,19 @@ class DecayInterp(MetricObject):
         upper_ex_points = col_args[upper_ex_inds,]
         upper_ex_nearest = np.minimum(upper_ex_points, self.upper_limits[None, :])
 
-        # Find function evaluations with regular extrapolation
+        # Find function evaluations with regular interpolator
         f = self.interp(*[col_args[:, i] for i in range(self.dim)])
 
         # Find extrapolated values with chosen method
-        f[upper_ex_inds] = self.extrap_fun(upper_ex_points, upper_ex_nearest)
+        if self.output_dim == 1:
+            f[upper_ex_inds] = self.extrap_fun(upper_ex_points, upper_ex_nearest)
+            return np.reshape(f, argshape)
+        else:
+            extrap_vals = self.extrap_fun(upper_ex_points, upper_ex_nearest)
+            for i in range(self.output_dim):
+                f[i][upper_ex_inds] = extrap_vals[i]
 
-        return np.reshape(f, argshape)
+            return tuple(np.reshape(f[i], argshape) for i in range(self.output_dim))
 
     def extrap_decay_prop(self, x, closest_x):
         """
@@ -291,7 +335,13 @@ class DecayInterp(MetricObject):
         dist = np.dot(np.abs(x - closest_x), decay_weights)
         weight = np.exp(-1 * dist)
 
-        return weight * f_val_x + (1 - weight) * g_val_x
+        if self.output_dim == 1:
+            return weight * f_val_x + (1 - weight) * g_val_x
+        else:
+            return tuple(
+                weight * f_val_x[i] + (1 - weight) * g_val_x[i]
+                for i in range(self.output_dim)
+            )
 
     def extrap_decay_hark(self, x, closest_x):
         """
@@ -305,6 +355,9 @@ class DecayInterp(MetricObject):
         closest_x : for each of the inputs that require extrapolation, contains
             the closest point that falls inside the grid.
         """
+
+        if self.output_dim > 1:
+            raise NotImplementedError("extrap_decay_hark only works for 1D outputs")
 
         # Evaluate limiting function at x
         g_val_x = self.limit_fun(*[x[:, i] for i in range(self.dim)])
@@ -354,4 +407,10 @@ class DecayInterp(MetricObject):
         # Evaluate limit function at x
         g_val_x = self.limit_fun(*[x[:, i] for i in range(self.dim)])
 
-        return f_val_closest + (g_val_x - g_val_closest)
+        if self.output_dim == 1:
+            return g_val_x + (f_val_closest - g_val_closest)
+        else:
+            return tuple(
+                g_val_x[i] + (f_val_closest[i] - g_val_closest[i])
+                for i in range(self.output_dim)
+            )
