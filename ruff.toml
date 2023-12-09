@@ -1,0 +1,3 @@
+include = ["*.ipynb"]
+# ignore F401 for now: https://github.com/astral-sh/ruff/issues/8354
+ignore = ["E731", "E721", "E402", "F841", "F821", "F405", "F403", "F401"]

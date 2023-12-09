@@ -6,6 +6,9 @@ of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
+# Set logging and define basic functions
+# Set logging and define basic functions
+import logging
 import sys
 from collections import defaultdict, namedtuple
 from copy import copy, deepcopy
@@ -27,8 +30,6 @@ from HARK.distribution import (
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
 
-# Set logging and define basic functions
-import logging
 logging.basicConfig(format="%(message)s")
 _log = logging.getLogger("HARK")
 _log.setLevel(logging.ERROR)
@@ -1061,7 +1062,14 @@ class AgentType(Model):
                     elif var_name in self.controls:
                         self.history[var_name][self.t_sim, :] = self.controls[var_name]
                     else:
-                        self.history[var_name][self.t_sim, :] = getattr(self, var_name)
+                        if var_name == "who_dies" and self.t_sim > 1:
+                            self.history[var_name][self.t_sim - 1, :] = getattr(
+                                self, var_name
+                            )
+                        else:
+                            self.history[var_name][self.t_sim, :] = getattr(
+                                self, var_name
+                            )
                 self.t_sim += 1
 
             return self.history
