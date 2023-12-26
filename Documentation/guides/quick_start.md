@@ -41,10 +41,9 @@ pip install econ-ark
 
 ### Demonstrations on using HARK
 
-Most of the modules in HARK are just collections of tools. There are a few demonstration
-   applications that use the tools that you automatically get when you install HARK -- they are available in [Overview & Examples](https://docs.econ-ark.org/overview/index.html). A much larger set of uses of HARK can be found at two repositories:
-   - [DemARK](https://github.com/econ-ark/DemARK): Demonstrations of the use of HARK
-   - [REMARK](https://github.com/econ-ark/REMARK): Replications of existing papers made using HARK
+Most of the modules in HARK are just collections of tools. There are a few demonstrations/applications that use the tools that you automatically get when you install HARK -- they are available in [Overview & Examples](https://docs.econ-ark.org/overview/index.html). A much larger set of uses of HARK can be found at two repositories:
+- [DemARK](https://github.com/econ-ark/DemARK): Demonstrations of the use of HARK
+- [REMARK](https://github.com/econ-ark/REMARK): Replications of existing papers made using HARK
 
 You will want to obtain your own local copy of these repos using:
 
@@ -53,12 +52,12 @@ git clone https://github.com/econ-ark/DemARK.git
 git clone https://github.com/econ-ark/REMARK.git
 ```
 
- Once you have downloaded them, you will find that each repo contains a `notebooks` directory that contains a number of [jupyter notebooks](https://jupyter.org/). You can either view them in your integrated development environment (IDE) -- such as [VS Code](https://code.visualstudio.com/) or [PyCharm](https://www.jetbrains.com/pycharm/) -- or if you have `jupyter` installed, launch the Jupyter notebook tool using the command line:
+Once you have downloaded them, you will find that each repo contains a `notebooks` directory that contains a number of [jupyter notebooks](https://jupyter.org/). You can either view them in your integrated development environment (IDE) -- such as [VS Code](https://code.visualstudio.com/) or [PyCharm](https://www.jetbrains.com/pycharm/) -- or if you have `jupyter` installed, launch the Jupyter notebook tool using the command line:
 
- ```
- cd [directory containing the repository]
- jupyter notebook
- ```
+```
+cd [directory containing the repository]
+jupyter notebook
+```
 
 ## Learning HARK
 
