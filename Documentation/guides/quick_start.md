@@ -42,8 +42,8 @@ pip install econ-ark
 ### Demonstrations on using HARK
 
 Most of the modules in HARK are just collections of tools. There are a few demonstrations/applications that use the tools that you automatically get when you install HARK -- they are available in [Overview & Examples](https://docs.econ-ark.org/overview/index.html). A much larger set of uses of HARK can be found at two repositories:
-- [DemARK](https://github.com/econ-ark/DemARK): Demonstrations of the use of HARK
-- [REMARK](https://github.com/econ-ark/REMARK): Replications of existing papers made using HARK
+  - [DemARK](https://github.com/econ-ark/DemARK): Demonstrations of the use of HARK
+  - [REMARK](https://github.com/econ-ark/REMARK): Replications of existing papers made using HARK
 
 You will want to obtain your own local copy of these repos using:
 
