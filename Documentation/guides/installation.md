@@ -19,7 +19,7 @@ for Python, we recommend [PyCharm] or [Visual Studio Code].
 After installing Python and the text editor, you can install HARK package.
 The simplest way is to use [conda].
 
-1. We first set up a Conda 'environment' for HARK. 
+1. We first set up a Conda 'environment' for HARK.
    This is a way of isolating the installation of HARK so that it does not interfere
    with any other Python scripts or modules on your computer.
    To do so, at a command line type:
@@ -85,13 +85,13 @@ To explore the [REMARK]s, enter the `REMARK` directory that contains the cloned
 repository from the step above. The root level is mostly descriptive.
 
 The main content is in the `REMARKs` subdirectory,
-so `cd REMARKs` to  have a look at what is there.
+so `cd REMARKs` to have a look at what is there.
 Each REMARK is contained in a directory with the handle of the REMARK;
 for example, `BufferStockTheory` is the handle for the REMARK on
-'*The Theoretical Foundations of Buffer Stock Saving*'.
+'_The Theoretical Foundations of Buffer Stock Saving_'.
 
 At the top level of the directory for each REMARK we have some meta-information
-(title, authors, etc) and an eponymous Jupyter notebook,  e.g. `BufferStockTheory.ipynb.`
+(title, authors, etc) and an eponymous Jupyter notebook, e.g. `BufferStockTheory.ipynb.`
 In most cases there will also be a subdirectory, e.g. `BufferStockTheory`
 which is a placeholder for the substantive content of the project (like, the original paper).
 
@@ -101,10 +101,9 @@ In this case, the REMARK repo uses a `submodule` version,
 which is sort of like a link to the original material.
 To save space, a regular 'clone' of the REMARK repo does not incorporate all the submodules;
 therefore you may find those folders empty when you first use them.
-In order to obtain the **real** content, in the root directory of the repo in question 
+In order to obtain the **real** content, in the root directory of the repo in question
 (e.g., in `REMARKs/BufferStockTheory`), you need execute the command
 `git submodule update --recursive --remote`.
-
 
 [Python 3]: https://www.python.org/downloads/
 [PyCharm]: https://www.jetbrains.com/help/pycharm/quick-start-guide.html
