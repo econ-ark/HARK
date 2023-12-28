@@ -307,7 +307,6 @@ to format their inline documentation to work with Sphinx by following a few simp
 
 ```python
 """
-
 Specifies an economic model and provides methods for solving it.
 
 More specific description of the key features of the model and variations of it in this module.
@@ -315,7 +314,6 @@ More specific description of the key features of the model and variations of it 
 Maybe some comments about the solution method or limitations of the model.
 
 Your bank account routing number.
-
 """
 ```
 
@@ -325,43 +323,26 @@ Your bank account routing number.
   For functions and methods, the docstring should be formatted as:
 
 ```python
-def functionName(input1,input2):
+def functionName(input1, input2):
+    """
+    Concise description of the function.  More details about what
+    the function does, options or modes available, and maybe mathematical
+    methods used.  Credit to a source if you poached their algorithm.
 
-"""
+    Parameters
+    --------------------
 
-Concise description of the function.  More details about what
+    input1: type
+    Description of what input1 represents.
+    input2: type
+    Description of what input2 represents.
 
-the function does, options or modes available, and maybe mathematical
-
-methods used.  Credit to a source if you poached their algorithm.
-
-
-
-Parameters
-
---------------------
-
-input1: type
-
-Description of what input1 represents.
-
-input2: type
-
-Description of what input2 represents.
-
-
-
-Returns
-
---------------
-
-output_name: type
-
-Description of the output(s) of the function.  Might have
-
-multiple entries.  If no output, this is just "None".
-
-"""
+    Returns
+    --------------
+    output_name: type
+    Description of the output(s) of the function.  Might have
+    multiple entries.  If no output, this is just "None".
+    """
 ```
 
 - Provide ample comments within a function or method
@@ -386,7 +367,7 @@ The documentation is written in [reStructuredText](https://www.restructuredtext.
 Contributing to documentation involves editing the file you want to change,
 and creating a pull request in the usual fashion above.
 All changes to documentation are automatically rendered and deployed to
-``docs.econ-ark.org`` by our automated infrastructure.
+`docs.econ-ark.org` by our automated infrastructure.
 
 To test your changes to the documentation locally, you can render as follows:
 
@@ -396,11 +377,13 @@ To test your changes to the documentation locally, you can render as follows:
    $ pip install -e .[doc]
    $ sudo apt-get install --yes pandoc
    ```
+
 2. Run `sphinx-build`:
 
    ```bash
    $ sphinx-build -M html Documentation HARK-docs -T -W
    ```
+
 3. View the rendered HTML by opening the
    `./HARK-docs/html/index.html` file.
 
