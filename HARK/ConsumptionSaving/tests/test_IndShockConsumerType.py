@@ -762,13 +762,13 @@ class testReadShock(unittest.TestCase):
                 "LivPrb": LivPrb,
                 "PermGroFac": [PermGroFac],
                 "Rfree": Rfree,
-                "track_vars": ["bNrm", "t_age"],
             }
         )
 
     def test_NewbornStatesAndShocks(self):
         # Make agent, shock and initial condition histories
         agent = IndShockConsumerType(**self.base_params)
+        agent.track_vars = ["bNrm", "t_age"]
         agent.make_shock_history()
 
         # Find indices of agents and time periods that correspond to deaths
@@ -814,13 +814,13 @@ class testLCMortalityReadShocks(unittest.TestCase):
             {
                 "AgentCount": agent_count,
                 "T_sim": t_sim,
-                "track_vars": ["t_age", "t_cycle"],
             }
         )
 
     def test_compare_t_age_t_cycle(self):
         # Make agent, shock and initial condition histories
         agent = IndShockConsumerType(**self.base_params)
+        agent.track_vars = ["t_age", "t_cycle"]
         agent.make_shock_history()
 
         # Solve and simulate the agent
@@ -855,6 +855,7 @@ class testLCMortalityReadShocks(unittest.TestCase):
         par["T_age"] = par["T_age"] - 8
         # Make agent, shock and initial condition histories
         agent = IndShockConsumerType(**par)
+        agent.track_vars = ["t_age", "t_cycle"]
         agent.make_shock_history()
 
         # Solve and simulate the agent

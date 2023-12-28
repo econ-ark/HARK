@@ -1,17 +1,19 @@
-from datetime import date
 import warnings
+from datetime import date
 
 try:
     import numba
 except ImportError:
     pass
 else:
-    warnings.filterwarnings("ignore",
-                            message="numba.generated_jit.*",
-                            category=numba.NumbaDeprecationWarning)
-    warnings.filterwarnings("ignore",
-                            message=".* 'nopython' .*",
-                            category=numba.NumbaDeprecationWarning)
+    warnings.filterwarnings(
+        "ignore",
+        message="numba.generated_jit.*",
+        category=numba.NumbaDeprecationWarning,
+    )
+    warnings.filterwarnings(
+        "ignore", message=".* 'nopython' .*", category=numba.NumbaDeprecationWarning
+    )
 
 # Project information
 project = "HARK"
@@ -62,6 +64,10 @@ source_suffix = [
 
 # HTML writer configuration
 html_theme = "pydata_sphinx_theme"
+html_static_path = ["_static"]
+html_css_files = [
+    "override-nbsphinx-gallery.css",
+]
 
 html_theme_options = {
     "use_edit_page_button": True,
@@ -91,7 +97,7 @@ html_theme_options = {
             "type": "local",
             "attributes": {"target": "_blank"},
         },
-    ]
+    ],
 }
 
 # Point to Econ-ARK repo for edit buttons
@@ -126,4 +132,4 @@ autosummary_generate = True
 napoleon_use_ivar = True  # solves duplicate object description warning
 
 # nbsphinx configuration
-nbsphinx_execute = "never"  # This is currently not working
+nbsphinx_execute = "never"  # notebooks are executed via ``nb_exec.py``

@@ -1643,7 +1643,7 @@ def make_markov_approx_to_normal_by_monte_carlo(x_grid, mu, sigma, N_draws=10000
 def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0):
     """
     Function to return a discretized version of an AR1 process.
-    See http://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
+    See https://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
 
     Parameters
     ----------

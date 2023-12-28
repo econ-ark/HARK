@@ -112,7 +112,7 @@ About the differences between conda and pip check https://www.anaconda.com/under
 
    - If that doesn't work, you will need to manually add HARK to your Spyder environment. To do this, you'll need to get the code from Github and import it into Spyder. To get the code from Github, you can either clone it or download a zipped file.
 
-   - If you have `git` installed on the command line, type `git clone git@github.com:econ-ark/HARK.git` in your chosen directory ([more details here](https://git-scm.com/documentation)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: 'git clone https://github.com/econ-ark/HARK.git'.
+   - If you have `git` installed on the command line, type `git clone git@github.com:econ-ark/HARK.git` in your chosen directory ([more details here](https://git-scm.com/doc)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: 'git clone https://github.com/econ-ark/HARK.git'.
 
      - If you do not have `git` available on your computer, you can download the [GitHub Desktop app](https://desktop.github.com/) and use it to make a local clone.
 
@@ -171,7 +171,7 @@ If you installed the econ-ark into the particular environment, activate it first
 
 If you want to make changes or contributions (yay!) to HARK, you'll need to have access to the source files. Installing HARK via pip (either at the command line, or inside Spyder) makes it hard to access those files (and it's a bad idea to mess with the original code anyway because you'll likely forget what changes you made). If you are adept at GitHub, you can [fork](https://help.github.com/en/articles/fork-a-repo) the repo. If you are less experienced, you should download a personal copy of HARK again using `git clone` (see part for a new user) or the GitHub Desktop app.
 
-1.  Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/documentation)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: 'git clone https://github.com/econ-ark/HARK.git'.
+1.  Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/doc)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: 'git clone https://github.com/econ-ark/HARK.git'.
 
 2.  Then, create and activate a [virtual environment](https://virtualenv.pypa.io/en/latest/).
 

@@ -1,11 +1,11 @@
-sphinx>=6.1
-
-# theme requirements
-pydata-sphinx-theme
 
 # extension requirements
 ipython  # for the Pygments lexer
 myst-parser>=2
 nbsphinx>=0.8
+
+# theme requirements
+pydata-sphinx-theme
+sphinx>=6.1
 sphinx-copybutton
 sphinx-design
