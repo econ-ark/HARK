@@ -17,48 +17,33 @@ for Python, we recommend [PyCharm] or [Visual Studio Code].
 ## Install HARK
 
 After installing Python and the text editor, you can install HARK package.
-The simplest way is to use [pip].
+The simplest way is to use [conda].
 
-1. We first set up a 'virtual environment' for HARK. 
+1. We first set up a Conda 'environment' for HARK. 
    This is a way of isolating the installation of HARK so that it does not interfere
    with any other Python scripts or modules on your computer.
    To do so, at a command line type:
 
    ```console
-   cd [directory where you want to store the econ-ark virtual environment]
-   python -m venv econ-ark
-   ```
-   
-2. If you get an error, and you use Debian or Ubuntu,
-   install the full Python package:
-
-   ```console
-   sudo apt-get install --yes python3-full
+   $ conda create -n econ-ark
    ```
 
-3. Activate the virtual environment:
-
-   1. On Unix:
-      ```console
-      source econ-ark/bin/activate
-      ```
-
-   2. On Windows:
-
-      ```console
-      .\econ-ark\Scripts\activate
-      ```
-
-4. Install HARK into the virtual environment:
+2. Activate the environment:
 
    ```console
-   pip install econ-ark
+   $ conda activate econ-ark
+   ```
+
+3. Install HARK into the environment:
+
+   ```console
+   (econ-ark) $ conda install econ-ark
    ```
 
 ## Run your script
 
 Every time you run an Econ-ARK script,
-you need to activate the virtual environment first, as described above.
+you need to activate the environment first, as described above.
 
 Then, you can run your script from the command line:
 
@@ -87,7 +72,7 @@ git clone https://github.com/econ-ark/REMARK
 
 Once downloaded, you will find that the repo contains a `notebooks` directory
 that contains a number of [jupyter notebooks].
-If you have the jupyter notebook tool installed (`pip install jupyter`),
+If you have the jupyter notebook tool installed (`conda install jupyter`),
 you should be able to launch the jupyter notebook app from the command line with the command:
 
 ```console
@@ -124,7 +109,7 @@ In order to obtain the **real** content, in the root directory of the repo in qu
 [Python 3]: https://www.python.org/downloads/
 [PyCharm]: https://www.jetbrains.com/help/pycharm/quick-start-guide.html
 [Visual Studio Code]: https://code.visualstudio.com/learn/get-started/basics
-[pip]: https://pip.pypa.io/en/stable/installing/
+[conda]: https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html
 [DemARK]: https://github.com/econ-ark/DemARK
 [jupyter notebooks]: https://jupyter.org/
 [REMARK]: https://github.com/econ-ark/REMARK/#readme
