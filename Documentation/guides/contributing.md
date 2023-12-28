@@ -401,11 +401,8 @@ To test your changes to the documentation locally, you can render as follows:
    ```bash
    $ sphinx-build -M html Documentation HARK-docs -T -W
    ```
-3. View the HTML files
-
-   ```bash
-   $ firefox HARK-docs/html/index.html
-   ```
+3. View the rendered HTML by opening the
+   `./HARK-docs/html/index.html` file.
 
 ### Testing
 
