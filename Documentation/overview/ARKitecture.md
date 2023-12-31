@@ -1,8 +1,11 @@
 # ARKitecture of Econ-ARK
 
-This document guides you through the structure of econ-ark and explain the main ingredients. Note that it does not explain _how_ to use it. For this, please follow the example notebooks which you can find on the left.
+This document guides you through the structure of Econ-ARK,
+and explains the main ingredients.
+Note that it does not explain _how_ to use it---for this,
+please follow the example notebooks which you can find on the left.
 
-[Econ-ark](https://github.com/econ-ark) contains the three main repositories [HARK](https://github.com/econ-ark/HARK), [DemARK](https://github.com/econ-ark/DEMARK), and [REMARK](https://github.com/econ-ark/REMARK). On top of that, the [website](https://econ-ark.org/) combines all of them. Hence, if you want to find a notebook search them in [materials](https://econ-ark.org/materials).
+[Econ-ARK](https://github.com/econ-ark) contains the three main repositories [HARK](https://github.com/econ-ark/HARK), [DemARK](https://github.com/econ-ark/DEMARK), and [REMARK](https://github.com/econ-ark/REMARK). On top of that, the [website](https://econ-ark.org/) combines all of them. Hence, if you want to find a notebook search them in [materials](https://econ-ark.org/materials).
 
 - [HARK](https://github.com/econ-ark/HARK): Includes the source code as well as some example notebooks.
 - [DemARK](https://github.com/econ-ark/DemARK): Here you can find *Dem*onstrations of tools, AgentTypes, and ModelClasses.
