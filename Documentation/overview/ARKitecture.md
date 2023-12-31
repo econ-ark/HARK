@@ -20,7 +20,7 @@ which includes all commonly used mathematical and scientific Python packages.
 
 For users unfamiliar with OOP, we strongly encourage you to review the background material on OOP provided by the good people at [QuantEcon](https://python.quantecon.org/intro.html) (for more on them, see below) at this link: [Object Oriented Programming](https://python-programming.quantecon.org/oop_intro.html). Unlike non-OOP languages, OOP bundles together data and functions into _objects_. These can be accessed via: **_object_name.data_** and **_object_name.method_name()_**, respectively. For organizational purposes, definitions of multiple objects are stored in _modules_, which are simply files with a **_.py_** extension. Modules can be accessed in Python via:
 
-```
+```python
 import module_name as import_name
 ```
 
