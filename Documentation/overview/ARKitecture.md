@@ -15,7 +15,8 @@ Before describing each repository in detail, some preliminary remarks.
 
 HARK is written in Python, an object-oriented programming (OOP) language that has experienced increasing popularity in the scientific community in the past several years. A significant reason for the adoption of Python is the **_numpy_** and **_scipy_** packages, which offer a wide array of mathematical and statistical functions and tools; HARK makes liberal use of these libraries. Python's object-oriented nature allows models in HARK to be easily extended: more complex models can inherit functions and methods from more fundamental ''parent'' models, eliminating the need to reproduce or repurpose code.
 
-As implied in the previous section, we strongly encourage HARK users to use the Anaconda distribution of Python, which includes all commonly used mathematical and scientific packages, an interactive development environment for iPython (Spyder), and a package manager that allows users to quickly install or update packages not included in the default distribution (conda).
+We strongly encourage HARK users to use the `conda` or `mamba` package managers,
+which includes all commonly used mathematical and scientific Python packages.
 
 For users unfamiliar with OOP, we strongly encourage you to review the background material on OOP provided by the good people at [QuantEcon](https://python.quantecon.org/intro.html) (for more on them, see below) at this link: [Object Oriented Programming](https://python-programming.quantecon.org/oop_intro.html). Unlike non-OOP languages, OOP bundles together data and functions into _objects_. These can be accessed via: **_object_name.data_** and **_object_name.method_name()_**, respectively. For organizational purposes, definitions of multiple objects are stored in _modules_, which are simply files with a **_.py_** extension. Modules can be accessed in Python via:
 
