@@ -29,7 +29,7 @@ This imports the module and gives it a local name of **_import_name_**. We can a
 ```python
 from HARK.rewards import CRRAutility
 
-CRRAutility(1,2)
+CRRAutility(1, 2)
 ```
 
 Python modules in HARK can generally be categorized into three types: tools, models, and applications. **Tool modules** contain functions and classes with general purpose tools that have no inherent ''economic content'', but that can be used in many economic models as building blocks or utilities; they could plausibly be useful in non-economic settings. Tools might include functions for data analysis (e.g. calculating Lorenz shares from data, or constructing a non-parametric kernel regression), functions to create and manipulate discrete approximations to continuous distributions, or classes for constructing interpolated approximations to non-parametric functions. Tool modules generally reside in HARK's root directory and have names like **_HARK.simulation_** and **_HARK.interpolation_**; they do not necessarily do anything when run.
