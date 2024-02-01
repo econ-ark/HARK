@@ -8,9 +8,9 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.13.1
+### 0.14.0
 
-Release Date: TBD
+Release Date: February 1, 2024
 
 ### Major Changes
 
@@ -27,12 +27,12 @@ Release Date: TBD
 - Fixes bug that prevented risky-asset consumer types from working with time-varying interest rates `Rfree`. [1343](https://github.com/econ-ark/HARK/pull/1343)
 - Overhauls and expands condition checking for the ConsIndShock model [#1294](https://github.com/econ-ark/HARK/pull/1294). Condition values and a description of their interpretation is stored in the bilt dictionary of IndShockConsumerType.
 - Creates a `models/` directory with Python model configurations for perfect foresight and Fisher 2-period models. [1347](https://github.com/econ-ark/HARK/pull/1347)
-- Fixes bug in AgentType simulations where 'who_dies' for period t was being recorded in period t-1in the history Carlo simulation functions using Python model configurations.[1296](https://github.com/econ-ark/HARK/pull/1296)
+- Fixes bug in AgentType simulations where 'who_dies' for period t was being recorded in period t-1 in the history Carlo simulation functions using Python model configurations.[1296](https://github.com/econ-ark/HARK/pull/1296)
 - Removes unused `simulation.py` .[1296](https://github.com/econ-ark/HARK/pull/1296)
 
 ### 0.13.0
 
-Release Date: February, 16, 2023
+Release Date: February 16, 2023
 
 ### Major Changes
 
