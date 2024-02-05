@@ -1,4 +1,4 @@
-interpolation>=2.2.3
+interpolation
 joblib>=1.2
 matplotlib>=3.6
 networkx>=3
