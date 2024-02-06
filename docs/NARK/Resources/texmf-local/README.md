@@ -1,7 +1,7 @@
 # texmf-local contains customizations of LaTeX
 
-If you use TeXLive on more than one system, or under more than one username,
-it is useful to have a set of customizations that are shared across all your
+If you use TeXLive on more than one system, or under more than one username, it
+is useful to have a set of customizations that are shared across all your
 identities and machines.
 
 This can be accomplished in a number of ways.
