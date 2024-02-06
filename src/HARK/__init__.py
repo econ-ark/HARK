@@ -1,6 +1,15 @@
+"""
+Copyright (c) 2024 Econ-ARK Team.. All rights reserved.
+
+HARK: A great package.
+"""
+
+from __future__ import annotations
+
+from ._version import version as __version__
 from .core import *
 
-__version__ = "0.13.0"
+__all__ = ["__version__"]
 
 """
 Logging tools for HARK.

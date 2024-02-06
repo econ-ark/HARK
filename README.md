@@ -31,11 +31,44 @@
 
 </div>
 
+[![Actions Status][actions-badge]][actions-link]
+[![Documentation Status][rtd-badge]][rtd-link]
+
+[![PyPI version][pypi-version]][pypi-link]
+[![Conda-Forge][conda-badge]][conda-link]
+[![PyPI platforms][pypi-platforms]][pypi-link]
+
+[![GitHub Discussion][github-discussions-badge]][github-discussions-link]
+
+<!-- SPHINX-START -->
+
+<!-- prettier-ignore-start -->
+[actions-badge]:            https://github.com/econ-ark/HARK/workflows/CI/badge.svg
+[actions-link]:             https://github.com/econ-ark/HARK/actions
+[conda-badge]:              https://img.shields.io/conda/vn/conda-forge/HARK
+[conda-link]:               https://github.com/conda-forge/HARK-feedstock
+[github-discussions-badge]: https://img.shields.io/static/v1?label=Discussions&message=Ask&color=blue&logo=github
+[github-discussions-link]:  https://github.com/econ-ark/HARK/discussions
+[pypi-link]:                https://pypi.org/project/HARK/
+[pypi-platforms]:           https://img.shields.io/pypi/pyversions/HARK
+[pypi-version]:             https://img.shields.io/pypi/v/HARK
+[rtd-badge]:                https://readthedocs.org/projects/HARK/badge/?version=latest
+[rtd-link]:                 https://HARK.readthedocs.io/en/latest/?badge=latest
+
+<!-- prettier-ignore-end -->
+
 # Heterogeneous Agents Resources and toolKit (HARK)
 
-HARK is a toolkit for the structural modeling of economic choices of optimizing and non-optimizing heterogeneous agents. For more information on using HARK, see the [Econ-ARK Website](https://econ-ark.org).
+HARK is a toolkit for the structural modeling of economic choices of optimizing
+and non-optimizing heterogeneous agents. For more information on using HARK, see
+the [Econ-ARK Website](https://econ-ark.org).
 
-The Econ-ARK project uses an [open governance model](https://github.com/econ-ark/governance) and is fiscally sponsored by [NumFOCUS](https://numfocus.org/). Consider making a [tax-deductible donation](https://numfocus.salsalabs.org/donate-to-econ-ark/index.html) to help the project pay for developer time, professional services, travel, workshops, and a variety of other needs.
+The Econ-ARK project uses an
+[open governance model](https://github.com/econ-ark/governance) and is fiscally
+sponsored by [NumFOCUS](https://numfocus.org/). Consider making a
+[tax-deductible donation](https://numfocus.salsalabs.org/donate-to-econ-ark/index.html)
+to help the project pay for developer time, professional services, travel,
+workshops, and a variety of other needs.
 
 <div align="center">
   <a href="https://numfocus.org/project/econ-ark">
@@ -48,7 +81,8 @@ The Econ-ARK project uses an [open governance model](https://github.com/econ-ark
 
 # Questions/Comments/Help
 
-We have a [Gitter](https://gitter.im) Econ-ARK [community](https://gitter.im/econ-ark/community).
+We have a [Gitter](https://gitter.im) Econ-ARK
+[community](https://gitter.im/econ-ark/community).
 
 # Table of Contents
 
@@ -73,7 +107,8 @@ We have a [Gitter](https://gitter.im) Econ-ARK [community](https://gitter.im/eco
 
 ## Install
 
-Install from [Anaconda Cloud](https://docs.anaconda.com/anaconda/install/) by running:
+Install from [Anaconda Cloud](https://docs.anaconda.com/anaconda/install/) by
+running:
 
 `conda install -c conda-forge econ-ark`
 
@@ -83,7 +118,8 @@ Install from [PyPi](https://pypi.org/) by running:
 
 ## Usage
 
-We start with almost the simplest possible consumption model: A consumer with CRRA utility
+We start with almost the simplest possible consumption model: A consumer with
+CRRA utility
 
 <div align="center">
   <img height="30px" src="https://github.com/econ-ark/HARK/blob/master/Documentation/images/usage-crra-utility-function.png">
@@ -91,7 +127,8 @@ We start with almost the simplest possible consumption model: A consumer with CR
 
 has perfect foresight about everything except the (stochastic) date of death.
 
-The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wiki/Bellman_equation) as:
+The agent's problem can be written in
+[Bellman form](https://en.wikipedia.org/wiki/Bellman_equation) as:
 
 <div align="center">
   <img height="80px" src="https://github.com/econ-ark/HARK/blob/master/Documentation/images/usage-agent-problem-bellman-form.png">
@@ -99,7 +136,9 @@ The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wi
 
 <br>
 
-To model the above problem, start by importing the `PerfForesightConsumerType` model from the appropriate `HARK` module then create an agent instance using the appropriate paramaters:
+To model the above problem, start by importing the `PerfForesightConsumerType`
+model from the appropriate `HARK` module then create an agent instance using the
+appropriate paramaters:
 
 ```python
 import HARK
@@ -121,40 +160,51 @@ PF_params = {
 PFexample = PerfForesightConsumerType(**PF_params)
 ```
 
-Once the model is created, ask the the agent to solve the problem with `.solve()`:
+Once the model is created, ask the the agent to solve the problem with
+`.solve()`:
 
 ```python
 # Tell the agent to solve the problem
 PFexample.solve()
 ```
 
-Solving the problem populates the agent's `.solution` list attribute with solutions to each period of the problem. In the case of an infinite horizon model, there is just one element in the list, at **index-zero**.
+Solving the problem populates the agent's `.solution` list attribute with
+solutions to each period of the problem. In the case of an infinite horizon
+model, there is just one element in the list, at **index-zero**.
 
-You can retrieve the solution's consumption function from the `.cFunc` attribute:
+You can retrieve the solution's consumption function from the `.cFunc`
+attribute:
 
 ```python
 # Retrieve the consumption function of the solution
 PFexample.solution[0].cFunc
 ```
 
-Or you can retrieve the solved value for human wealth normalized by permanent income from the solution's `.hNrm` attribute:
+Or you can retrieve the solved value for human wealth normalized by permanent
+income from the solution's `.hNrm` attribute:
 
 ```python
 # Retrieve the solved value for human wealth normalized by permanent income
 PFexample.solution[0].hNrm
 ```
 
-For a detailed explanation of the above example please see the demo notebook [_A Gentle Introduction to HARK_](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks/Gentle-Intro-To-HARK-PerfForesightCRRA.ipynb).
+For a detailed explanation of the above example please see the demo notebook
+[_A Gentle Introduction to HARK_](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks/Gentle-Intro-To-HARK-PerfForesightCRRA.ipynb).
 
-For more examples please visit the [econ-ark/DemARK](https://github.com/econ-ark/DemARK) repository.
+For more examples please visit the
+[econ-ark/DemARK](https://github.com/econ-ark/DemARK) repository.
 
 ## Citation
 
-If using Econ-ARK in your work or research please [cite our Digital Object Identifier](https://doi.org/10.5281/zenodo.1332015) or copy the BibTex below.
+If using Econ-ARK in your work or research please
+[cite our Digital Object Identifier](https://doi.org/10.5281/zenodo.1332015) or
+copy the BibTex below.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1332015.svg)](https://doi.org/10.5281/zenodo.1332015)
 
-[1] Carroll, Christopher D, Palmer, Nathan, White, Matthew N., Kazil, Jacqueline, Low, David C, & Kaufman, Alexander. (2017, October 3). _econ-ark/HARK_
+[1] Carroll, Christopher D, Palmer, Nathan, White, Matthew N., Kazil,
+Jacqueline, Low, David C, & Kaufman, Alexander. (2017, October 3).
+_econ-ark/HARK_
 
 **BibText**
 
@@ -170,79 +220,147 @@ If using Econ-ARK in your work or research please [cite our Digital Object Ident
 }
 ```
 
-For more on acknowledging Econ-ARK [visit our website](https://econ-ark.org/acknowledging).
+For more on acknowledging Econ-ARK
+[visit our website](https://econ-ark.org/acknowledging).
 
 ## Support
 
-Looking for help? Please open a [GitHub issue](https://github.com/econ-ark/HARK/issues/new) or reach out to the [TSC](#tsc-technical-steering-committee).
+Looking for help? Please open a
+[GitHub issue](https://github.com/econ-ark/HARK/issues/new) or reach out to the
+[TSC](#tsc-technical-steering-committee).
 
 ## Release Types
 
-- **Current**: Under active development. Code for the Current release is in the branch for its major version number (for example, v0.10.x).
-- **Development**: Under active development. Code for the Current release is in the development.
+- **Current**: Under active development. Code for the Current release is in the
+  branch for its major version number (for example, v0.10.x).
+- **Development**: Under active development. Code for the Current release is in
+  the development.
 
-Current releases follow [Semantic Versioning](https://semver.org/). For more information please see the [Release documentation](https://github.com/econ-ark/OverARK/wiki/Release-Management).
+Current releases follow [Semantic Versioning](https://semver.org/). For more
+information please see the
+[Release documentation](https://github.com/econ-ark/OverARK/wiki/Release-Management).
 
 ## Documentation
 
-Documentation for the latest release is at [docs.econ-ark.org](https://docs.econ-ark.org/).
+Documentation for the latest release is at
+[docs.econ-ark.org](https://docs.econ-ark.org/).
 
 ## Introduction
 
 ### For Students: A Gentle Introduction to HARK
 
-Most of what economists have done so far with 'big data' has been like what Kepler did with astronomical data: Organizing the data, and finding patterns and regularities and interconnections.
+Most of what economists have done so far with 'big data' has been like what
+Kepler did with astronomical data: Organizing the data, and finding patterns and
+regularities and interconnections.
 
-An alternative approach called 'structural modeling' aims to do, for economic data, what Newton did for astronomical data: Provide a deep and rigorous mathematical (or computational) framework that distills the essence of the underlying behavior that produces the 'big data.'
+An alternative approach called 'structural modeling' aims to do, for economic
+data, what Newton did for astronomical data: Provide a deep and rigorous
+mathematical (or computational) framework that distills the essence of the
+underlying behavior that produces the 'big data.'
 
-The notebook [_A Gentle Introduction to HARK_](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks/Gentle-Intro-To-HARK-PerfForesightCRRA.ipynb) details how you can easily utilize our toolkit for structural modeling. Starting with a simple [Perfect Foresight Model](https://en.wikipedia.org/wiki/Rational_expectations) we solve an agent problem, then experiment with adding [income shocks](<https://en.wikipedia.org/wiki/Shock_(economics)>) and changing constructed attributes.
+The notebook
+[_A Gentle Introduction to HARK_](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks/Gentle-Intro-To-HARK-PerfForesightCRRA.ipynb)
+details how you can easily utilize our toolkit for structural modeling. Starting
+with a simple
+[Perfect Foresight Model](https://en.wikipedia.org/wiki/Rational_expectations)
+we solve an agent problem, then experiment with adding
+[income shocks](<https://en.wikipedia.org/wiki/Shock_(economics)>) and changing
+constructed attributes.
 
 ### For Economists: Structural Modeling with HARK
 
-Dissatisfaction with the ability of Representative Agent models to answer important questions raised by the Great Recession has led to a strong movement in the macroeconomics literature toward 'Heterogeneous Agent' models, in which microeconomic agents (consumers; firms) solve a structural problem calibrated to match microeconomic data; aggregate outcomes are derived by explicitly simulating the equilibrium behavior of populations solving such models.
+Dissatisfaction with the ability of Representative Agent models to answer
+important questions raised by the Great Recession has led to a strong movement
+in the macroeconomics literature toward 'Heterogeneous Agent' models, in which
+microeconomic agents (consumers; firms) solve a structural problem calibrated to
+match microeconomic data; aggregate outcomes are derived by explicitly
+simulating the equilibrium behavior of populations solving such models.
 
-The same kinds of modeling techniques are also gaining popularity among microeconomists, in areas ranging from labor economics to industrial organization. In both macroeconomics and structural micro, the chief barrier to the wide adoption of these techniques has been that programming a structural model has, until now, required a great deal of specialized knowledge and custom software development.
+The same kinds of modeling techniques are also gaining popularity among
+microeconomists, in areas ranging from labor economics to industrial
+organization. In both macroeconomics and structural micro, the chief barrier to
+the wide adoption of these techniques has been that programming a structural
+model has, until now, required a great deal of specialized knowledge and custom
+software development.
 
-HARK provides a robust, well-designed, open-source toolkit for building such models much more efficiently than has been possible in the past.
+HARK provides a robust, well-designed, open-source toolkit for building such
+models much more efficiently than has been possible in the past.
 
-Our [_DCEGM Upper Envelope_](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks%2FDCEGM-Upper-Envelope.ipynb) notebook illustrates using HARK to replicate the [Iskhakov, Jørgensen, Rust, and Schjerning paper](https://onlinelibrary.wiley.com/doi/abs/10.3982/QE643) for solving the discrete-continuous retirement saving problem.
+Our
+[_DCEGM Upper Envelope_](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks%2FDCEGM-Upper-Envelope.ipynb)
+notebook illustrates using HARK to replicate the
+[Iskhakov, Jørgensen, Rust, and Schjerning paper](https://onlinelibrary.wiley.com/doi/abs/10.3982/QE643)
+for solving the discrete-continuous retirement saving problem.
 
-The notebook [_Making Structural Estimates From Empirical Results_](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks%2FStructural-Estimates-From-Empirical-MPCs-Fagereng-et-al.ipynb) is another demonstration of using HARK to conduct a quick structural estimation based on Table 9 of [_MPC Heterogeneity and Household Balance Sheets_ by Fagereng, Holm, and Natvik](https://www.ssb.no/en/forskning/discussion-papers/_attachment/286054?_ts=158af859c98).
+The notebook
+[_Making Structural Estimates From Empirical Results_](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks%2FStructural-Estimates-From-Empirical-MPCs-Fagereng-et-al.ipynb)
+is another demonstration of using HARK to conduct a quick structural estimation
+based on Table 9 of
+[_MPC Heterogeneity and Household Balance Sheets_ by Fagereng, Holm, and Natvik](https://www.ssb.no/en/forskning/discussion-papers/_attachment/286054?_ts=158af859c98).
 
 ### For Computational Economics Developers
 
-HARK provides a modular and extensible open-source toolkit for solving heterogeneous-agent partial-and general-equilibrium structural models. The code for such models has always been handcrafted, idiosyncratic, poorly documented, and sometimes not generously shared from leading researchers to outsiders. The result being that it can take years for a new researcher to become proficient. By building an integrated system from the bottom up using object-oriented programming techniques and other tools, we aim to provide a platform that will become a focal point for people using such models.
+HARK provides a modular and extensible open-source toolkit for solving
+heterogeneous-agent partial-and general-equilibrium structural models. The code
+for such models has always been handcrafted, idiosyncratic, poorly documented,
+and sometimes not generously shared from leading researchers to outsiders. The
+result being that it can take years for a new researcher to become proficient.
+By building an integrated system from the bottom up using object-oriented
+programming techniques and other tools, we aim to provide a platform that will
+become a focal point for people using such models.
 
-HARK is written in Python, making significant use of libraries such as numpy and scipy which offer a wide array of mathematical and statistical functions and tools. Our modules are generally categorized into Tools (mathematical functions and techniques), Models (particular economic models and solvers) and Applications (use of tools to simulate an economic phenomenon).
+HARK is written in Python, making significant use of libraries such as numpy and
+scipy which offer a wide array of mathematical and statistical functions and
+tools. Our modules are generally categorized into Tools (mathematical functions
+and techniques), Models (particular economic models and solvers) and
+Applications (use of tools to simulate an economic phenomenon).
 
-For more information on how you can create your own Models or use Tools and Model to create Applications please see the [HARK Manual](./_static/HARKmanual.pdf).
+For more information on how you can create your own Models or use Tools and
+Model to create Applications please see the
+[HARK Manual](./_static/HARKmanual.pdf).
 
 ### Contributing to HARK
 
-**We want contributing to Econ-ARK to be fun, enjoyable, and educational for anyone, and everyone.**
+**We want contributing to Econ-ARK to be fun, enjoyable, and educational for
+anyone, and everyone.**
 
-Contributions go far beyond pull requests and commits. Although we love giving you the opportunity to put your stamp on HARK, we are also thrilled to receive a variety of other contributions including:
+Contributions go far beyond pull requests and commits. Although we love giving
+you the opportunity to put your stamp on HARK, we are also thrilled to receive a
+variety of other contributions including:
 
 - Documentation updates, enhancements, designs, or bugfixes
 - Spelling or grammar fixes
 - REAME.md corrections or redesigns
 - Adding unit, or functional tests
-- [Triaging GitHub issues](https://github.com/econ-ark/HARK/issues?utf8=%E2%9C%93&q=label%3A%E2%80%9DTag%3A+Triage+Needed%E2%80%9D+) -- e.g. pointing out the relevant files, checking for reproducibility
-- [Searching for #econ-ark on twitter](https://twitter.com/search?q=econ-ark) and helping someone else who needs help
-- Answering questions from StackOverflow tagged with [econ-ark](https://stackoverflow.com/questions/tagged/econ-ark)
+- [Triaging GitHub issues](https://github.com/econ-ark/HARK/issues?utf8=%E2%9C%93&q=label%3A%E2%80%9DTag%3A+Triage+Needed%E2%80%9D+)
+  -- e.g. pointing out the relevant files, checking for reproducibility
+- [Searching for #econ-ark on twitter](https://twitter.com/search?q=econ-ark)
+  and helping someone else who needs help
+- Answering questions from StackOverflow tagged with
+  [econ-ark](https://stackoverflow.com/questions/tagged/econ-ark)
 - Teaching others how to contribute to HARK
 - Blogging, speaking about, or creating tutorials about HARK
 - Helping others in our mailing list
 
-If you are worried or don’t know how to start, you can always reach out to the [TSC](#tsc-technical-steering-committee) or simply submit [an issue](https://github.com/econ-ark/HARK/issues/new) and a member can help give you guidance!
+If you are worried or don’t know how to start, you can always reach out to the
+[TSC](#tsc-technical-steering-committee) or simply submit
+[an issue](https://github.com/econ-ark/HARK/issues/new) and a member can help
+give you guidance!
 
-**After your first contribution please let us know and we will add you to the Contributors list below!**
+**After your first contribution please let us know and we will add you to the
+Contributors list below!**
 
-To install for development see the [Quickstart Guide](https://docs.econ-ark.org/guides/quick_start.html).
+To install for development see the
+[Quickstart Guide](https://docs.econ-ark.org/guides/quick_start.html).
 
-For more information on contributing to HARK please see [the contributing guide](https://docs.econ-ark.org/guides/contributing.html).
+For more information on contributing to HARK please see
+[the contributing guide](https://docs.econ-ark.org/guides/contributing.html).
 This is the guide that collaborators follow in maintaining the Econ-ARK project.
 
 ## Disclaimer
 
-This is a beta version of HARK. The code has not been extensively tested as it should be. We hope it is useful, but there are absolutely no guarantees (expressed or implied) that it works or will do what you want. Use at your own risk. And please, let us know if you find bugs by posting an issue to [the GitHub page](https://github.com/econ-ark/HARK)!
+This is a beta version of HARK. The code has not been extensively tested as it
+should be. We hope it is useful, but there are absolutely no guarantees
+(expressed or implied) that it works or will do what you want. Use at your own
+risk. And please, let us know if you find bugs by posting an issue to
+[the GitHub page](https://github.com/econ-ark/HARK)!

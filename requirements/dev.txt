@@ -1,6 +1,7 @@
 estimagic
 nbval
 pre-commit
-pytest
+pytest >=6
+pytest-cov >=3
 pytest-xdist
 ruff

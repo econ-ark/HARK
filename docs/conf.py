@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import importlib.metadata
 import warnings
 from datetime import date
 
@@ -12,14 +15,16 @@ else:
         category=numba.NumbaDeprecationWarning,
     )
     warnings.filterwarnings(
-        "ignore", message=".* 'nopython' .*", category=numba.NumbaDeprecationWarning
+        "ignore",
+        message=".* 'nopython' .*",
+        category=numba.NumbaDeprecationWarning,
     )
 
 # Project information
 project = "HARK"
-copyright = f"{date.today().year}, Econ-ARK team"
-author = "Econ-ARK team"
-version = release = "latest"
+copyright = f"{date.today().year}, Econ-ARK Team."
+author = "Econ-ARK Team."
+version = release = importlib.metadata.version("HARK")
 
 # General configuration
 extensions = [
@@ -39,12 +44,17 @@ extensions = [
     "myst_parser",
     "sphinx_copybutton",
     "sphinx_design",
+    "sphinx_autodoc_typehints",
 ]
 
+source_suffix = [".rst", ".md"]
 exclude_patterns = [
     "_build",
+    "**.ipynb_checkpoints",
     "Thumbs.db",
     ".DS_Store",
+    ".env",
+    ".venv",
     "NARK",
 ]
 
@@ -133,3 +143,14 @@ napoleon_use_ivar = True  # solves duplicate object description warning
 
 # nbsphinx configuration
 nbsphinx_execute = "never"  # notebooks are executed via ``nb_exec.py``
+
+myst_enable_extensions = [
+    "colon_fence",
+]
+
+nitpick_ignore = [
+    ("py:class", "_io.StringIO"),
+    ("py:class", "_io.BytesIO"),
+]
+
+always_document_param_types = True
