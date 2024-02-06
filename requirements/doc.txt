@@ -6,6 +6,7 @@ nbsphinx>=0.8
 
 # theme requirements
 pydata-sphinx-theme
-sphinx>=6.1
+sphinx>=7.0
 sphinx-copybutton
 sphinx-design
+sphinx_autodoc_typehints
