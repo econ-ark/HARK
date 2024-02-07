@@ -116,8 +116,8 @@ class testIndShockConsumerType(unittest.TestCase):
         # self.assertAlmostEqual(self.agent.state_now["aLvl"][1], 0.18438, place = HARK_PRECISION)
 
     def test_income_dist_random_seeds(self):
-        a1 = IndShockConsumerType(seed = 1000)
-        a2 = IndShockConsumerType(seed = 200)
+        a1 = IndShockConsumerType(seed=1000)
+        a2 = IndShockConsumerType(seed=200)
 
         self.assertFalse(a1.PermShkDstn.seed == a2.PermShkDstn.seed)
 
