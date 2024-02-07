@@ -115,6 +115,12 @@ class testIndShockConsumerType(unittest.TestCase):
         # simulation test -- seed/generator specific
         # self.assertAlmostEqual(self.agent.state_now["aLvl"][1], 0.18438, place = HARK_PRECISION)
 
+    def test_income_dist_random_seeds(self):
+        a1 = IndShockConsumerType(seed=1000)
+        a2 = IndShockConsumerType(seed=200)
+
+        self.assertFalse(a1.PermShkDstn.seed == a2.PermShkDstn.seed)
+
 
 class testBufferStock(unittest.TestCase):
     """Tests of the results of the BufferStock REMARK."""
@@ -414,7 +420,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         CyclicalExample.simulate()
 
         self.assertAlmostEqual(
-            CyclicalExample.state_now["aLvl"][1], 2.41243, places=HARK_PRECISION
+            CyclicalExample.state_now["aLvl"][1], 3.32431, places=HARK_PRECISION
         )
 
 
