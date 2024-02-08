@@ -52,7 +52,7 @@ jobs:
           -M html Documentation HARK-docs
           -T
           -W
-          -j auto
+          -j 1
 
       - name: Set up git for deployment
         run: |
