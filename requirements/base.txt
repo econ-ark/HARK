@@ -2,7 +2,7 @@ interpolation>=2.2.3
 joblib>=1.2
 matplotlib>=3.6
 networkx>=3
-numba>=0.56
+numba<0.59
 numpy>=1.23
 pandas>=1.5
 quantecon
