@@ -89,5 +89,5 @@ class testsForHARKutilities(unittest.TestCase):
         # Test the make_figs() function with a trivial output
         plt.figure()
         plt.plot(np.linspace(1, 5, 40), np.linspace(4, 8, 40))
-        make_figs("test", True , False, target_dir="")
+        make_figs("test", True, False, target_dir="")
         plt.clf()
