@@ -3,9 +3,9 @@ This file implements unit tests to check HARK/utilities.py
 """
 # Bring in modules we need
 import unittest
-import matplotlib.pyplot as plt
 from types import SimpleNamespace
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from HARK.rewards import (
@@ -84,10 +84,10 @@ class testsForHARKutilities(unittest.TestCase):
         test = np.unique(np.diff(aXtraGrid).round(decimals=3))
 
         self.assertEqual(test.size, 1)
-        
+
     def test_make_figs(self):
         # Test the make_figs() function with a trivial output
         plt.figure()
-        plt.plot(np.linspace(1,5,40),np.linspace(4,8,40) )
-        make_figs('test', True , False, target_dir='')
+        plt.plot(np.linspace(1, 5, 40), np.linspace(4, 8, 40))
+        make_figs("test", True , False, target_dir="")
         plt.clf()
