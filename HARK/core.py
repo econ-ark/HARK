@@ -103,7 +103,7 @@ class Parameters:
         """
         Infers the age-varying dimensions of a parameter.
 
-        If the parameter is a scalar, numpy array, booleanm callable or None,
+        If the parameter is a scalar, numpy array, boolean, distribution, callable or None,
         it is assumed to be invariant over time. If the parameter is a list or
         tuple, it is assumed to be varying over time. If the parameter is a list
         or tuple of length greater than 1, the length of the list or tuple must match
