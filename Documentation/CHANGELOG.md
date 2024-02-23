@@ -8,6 +8,16 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.15.0
+
+Release Date: TBA
+
+### Major Changes
+
+### Minor Changes
+
+- Add option to pass pre-built grid to `LinearFast`. [1388](https://github.com/econ-ark/HARK/pull/1388)
+
 ### 0.14.0
 
 Release Date: February 12, 2024
