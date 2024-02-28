@@ -8,9 +8,9 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.14.1 (IN DEVELOPMENT)
+### 0.14.1
 
-Release date: ???
+Release date: February 28, 2024
 
 #### Major Changes
 
