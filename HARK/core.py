@@ -323,7 +323,7 @@ class Model:
         s += ">"
         return s
 
-    def __repr__(self):
+    def describe(self):
         return self.__str__()
 
 

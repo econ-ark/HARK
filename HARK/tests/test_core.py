@@ -109,8 +109,8 @@ class test_AgentType(unittest.TestCase):
         self.assertEqual(len(self.agent.solution), 4)
         self.assertTrue(isinstance(self.agent.solution[0], MetricObject))
 
-    def test___repr__(self):
-        self.assertTrue("Parameters" in self.agent.__repr__())
+    def test_describe(self):
+        self.assertTrue("Parameters" in self.agent.describe())
 
     def test___eq__(self):
         agent2 = AgentType(cycles=1)
