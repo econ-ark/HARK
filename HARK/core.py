@@ -14,13 +14,11 @@ from collections import defaultdict, namedtuple
 from copy import copy, deepcopy
 from dataclasses import dataclass, field
 from time import time
-from typing import Any, Dict, List, NewType, Optional, Union, Callable
+from typing import Any, Callable, Dict, List, NewType, Optional, Union
 from warnings import warn
 
 import numpy as np
 import pandas as pd
-from xarray import DataArray
-
 from HARK.distribution import (
     Distribution,
     IndexDistribution,
@@ -29,6 +27,7 @@ from HARK.distribution import (
 )
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
+from xarray import DataArray
 
 logging.basicConfig(format="%(message)s")
 _log = logging.getLogger("HARK")
