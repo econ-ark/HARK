@@ -110,7 +110,16 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
             self.solution_terminal.mNrmMin = 0.0
 
 
-class BequestWarmGlowPortfolioType(PortfolioConsumerType, BequestWarmGlowConsumerType):
+class BequestWarmGlowPortfolioType(PortfolioConsumerType):
+    time_inv_ = IndShockConsumerType.time_inv_ + [
+        "BeqCRRA",
+        "BeqShift",
+    ]
+
+    time_vary_ = IndShockConsumerType.time_vary_ + [
+        "BeqFac",
+    ]
+
     def __init__(self, **kwds):
         params = init_portfolio_bequest.copy()
         params.update(kwds)
@@ -124,42 +133,90 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType, BequestWarmGlowConsume
         )
 
     def update(self):
-        PortfolioConsumerType.update(self)
+        super().update()
         self.update_parameters()
 
+    def update_parameters(self):
+        if not isinstance(self.BeqCRRA, (int, float)):
+            raise ValueError("Bequest CRRA parameter must be a single value.")
+
+        if isinstance(self.BeqFac, (int, float)):
+            self.BeqFac = [self.BeqFac] * self.T_cycle
+        elif len(self.BeqFac) == 1:
+            self.BeqFac *= self.T_cycle
+        elif len(self.BeqFac) != self.T_cycle:
+            raise ValueError(
+                "Bequest relative value parameter must be a single value or a list of length T_cycle",
+            )
+
+        if not isinstance(self.BeqShift, (int, float)):
+            raise ValueError("Bequest Stone-Geary parameter must be a single value.")
+
     def update_solution_terminal(self):
-        BequestWarmGlowConsumerType.update_solution_terminal(self)
+        if self.TermBeqFac == 0.0:  # No terminal bequest
+            super().update_solution_terminal()
+        else:
+            utility = UtilityFuncCRRA(self.CRRA)
 
-        # Consume all market resources: c_T = m_T
-        cFuncAdj_terminal = self.solution_terminal.cFunc
-        cFuncFxd_terminal = lambda m, s: self.solution_terminal.cFunc(m)
+            warm_glow = UtilityFuncStoneGeary(
+                self.TermBeqCRRA,
+                factor=self.TermBeqFac,
+                shifter=self.TermBeqShift,
+            )
 
-        # Risky share is irrelevant-- no end-of-period assets; set to zero
-        ShareFuncAdj_terminal = ConstantFunction(0.0)
-        ShareFuncFxd_terminal = IdentityFunction(i_dim=1, n_dims=2)
+            aNrmGrid = (
+                np.append(0.0, self.aXtraGrid)
+                if self.TermBeqShift != 0.0
+                else self.aXtraGrid
+            )
+            cNrmGrid = utility.derinv(warm_glow.der(aNrmGrid))
+            vGrid = utility(cNrmGrid) + warm_glow(aNrmGrid)
+            cNrmGridW0 = np.append(0.0, cNrmGrid)
+            mNrmGridW0 = np.append(0.0, aNrmGrid + cNrmGrid)
+            vNvrsGridW0 = np.append(0.0, utility.inv(vGrid))
 
-        # Value function is simply utility from consuming market resources
-        vFuncAdj_terminal = self.solution_terminal.vFunc
-        vFuncFxd_terminal = lambda m, s: self.solution_terminal.vFunc(m)
+            cFunc_term = LinearInterp(mNrmGridW0, cNrmGridW0)
+            vNvrsFunc_term = LinearInterp(mNrmGridW0, vNvrsGridW0)
+            vFunc_term = ValueFuncCRRA(vNvrsFunc_term, self.CRRA)
+            vPfunc_term = MargValueFuncCRRA(cFunc_term, self.CRRA)
+            vPPfunc_term = MargMargValueFuncCRRA(cFunc_term, self.CRRA)
 
-        # Marginal value of market resources is marg utility at the consumption function
-        vPfuncAdj_terminal = self.solution_terminal.vPfunc
-        dvdmFuncFxd_terminal = lambda m, s: self.solution_terminal.vPfunc(m)
-        # No future, no marg value of Share
-        dvdsFuncFxd_terminal = ConstantFunction(0.0)
+            self.solution_terminal.cFunc = cFunc_term
+            self.solution_terminal.vFunc = vFunc_term
+            self.solution_terminal.vPfunc = vPfunc_term
+            self.solution_terminal.vPPfunc = vPPfunc_term
+            self.solution_terminal.mNrmMin = 0.0
 
-        # Construct the terminal period solution
-        self.solution_terminal = PortfolioSolution(
-            cFuncAdj=cFuncAdj_terminal,
-            ShareFuncAdj=ShareFuncAdj_terminal,
-            vFuncAdj=vFuncAdj_terminal,
-            vPfuncAdj=vPfuncAdj_terminal,
-            cFuncFxd=cFuncFxd_terminal,
-            ShareFuncFxd=ShareFuncFxd_terminal,
-            vFuncFxd=vFuncFxd_terminal,
-            dvdmFuncFxd=dvdmFuncFxd_terminal,
-            dvdsFuncFxd=dvdsFuncFxd_terminal,
-        )
+            # Consume all market resources: c_T = m_T
+            cFuncAdj_terminal = self.solution_terminal.cFunc
+            cFuncFxd_terminal = lambda m, s: self.solution_terminal.cFunc(m)
+
+            # Risky share is irrelevant-- no end-of-period assets; set to zero
+            ShareFuncAdj_terminal = ConstantFunction(0.0)
+            ShareFuncFxd_terminal = IdentityFunction(i_dim=1, n_dims=2)
+
+            # Value function is simply utility from consuming market resources
+            vFuncAdj_terminal = self.solution_terminal.vFunc
+            vFuncFxd_terminal = lambda m, s: self.solution_terminal.vFunc(m)
+
+            # Marginal value of market resources is marg utility at the consumption function
+            vPfuncAdj_terminal = self.solution_terminal.vPfunc
+            dvdmFuncFxd_terminal = lambda m, s: self.solution_terminal.vPfunc(m)
+            # No future, no marg value of Share
+            dvdsFuncFxd_terminal = ConstantFunction(0.0)
+
+            # Construct the terminal period solution
+            self.solution_terminal = PortfolioSolution(
+                cFuncAdj=cFuncAdj_terminal,
+                ShareFuncAdj=ShareFuncAdj_terminal,
+                vFuncAdj=vFuncAdj_terminal,
+                vPfuncAdj=vPfuncAdj_terminal,
+                cFuncFxd=cFuncFxd_terminal,
+                ShareFuncFxd=ShareFuncFxd_terminal,
+                vFuncFxd=vFuncFxd_terminal,
+                dvdmFuncFxd=dvdmFuncFxd_terminal,
+                dvdsFuncFxd=dvdsFuncFxd_terminal,
+            )
 
 
 class BequestWarmGlowConsumerSolver(ConsIndShockSolver):

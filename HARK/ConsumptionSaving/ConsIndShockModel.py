@@ -36,7 +36,6 @@ from HARK.distribution import (
 )
 from HARK.interpolation import CubicHermiteInterp as CubicInterp
 from HARK.interpolation import (
-    CubicInterp,
     LinearInterp,
     LowerEnvelope,
     MargMargValueFuncCRRA,
