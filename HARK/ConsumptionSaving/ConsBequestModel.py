@@ -1,5 +1,4 @@
-"""
-Classes to solve consumption-saving models with a bequest motive and
+"""Classes to solve consumption-saving models with a bequest motive and
 idiosyncratic shocks to income and wealth. All models here assume
 separable CRRA utility of consumption and Stone-Geary utility of
 savings with geometric discounting of the continuation value and
@@ -11,7 +10,6 @@ It currently solves 2 types of models:
 """
 
 import numpy as np
-
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolver,
     IndShockConsumerType,
@@ -37,10 +35,13 @@ from HARK.rewards import UtilityFuncCRRA, UtilityFuncStoneGeary
 
 
 class BequestWarmGlowConsumerType(IndShockConsumerType):
-    time_vary_ = IndShockConsumerType.time_vary_ + [
+    time_inv_ = IndShockConsumerType.time_inv_ + [
         "BeqCRRA",
-        "BeqFac",
         "BeqShift",
+    ]
+
+    time_vary_ = IndShockConsumerType.time_vary_ + [
+        "BeqFac",
     ]
 
     def __init__(self, **kwds):
@@ -49,21 +50,17 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
 
         super().__init__(**params)
 
-        self.solve_one_period = make_one_period_oo_solver(BequestWarmGlowConsumerSolver)
+        self.solve_one_period = make_one_period_oo_solver(
+            BequestWarmGlowConsumerSolver,
+        )
 
     def update(self):
         super().update()
         self.update_parameters()
 
     def update_parameters(self):
-        if isinstance(self.BeqCRRA, (int, float)):
-            self.BeqCRRA = [self.BeqCRRA] * self.T_cycle
-        elif len(self.BeqCRRA) == 1:
-            self.BeqCRRA *= self.T_cycle
-        elif len(self.BeqCRRA) != self.T_cycle:
-            raise ValueError(
-                "Bequest CRRA parameter must be a single value or a list of length T_cycle"
-            )
+        if not isinstance(self.BeqCRRA, (int, float)):
+            raise ValueError("Bequest CRRA parameter must be a single value.")
 
         if isinstance(self.BeqFac, (int, float)):
             self.BeqFac = [self.BeqFac] * self.T_cycle
@@ -71,17 +68,11 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
             self.BeqFac *= self.T_cycle
         elif len(self.BeqFac) != self.T_cycle:
             raise ValueError(
-                "Bequest relative value parameter must be a single value or a list of length T_cycle"
+                "Bequest relative value parameter must be a single value or a list of length T_cycle",
             )
 
-        if isinstance(self.BeqShift, (int, float)):
-            self.BeqShift = [self.BeqShift] * self.T_cycle
-        elif len(self.BeqShift) == 1:
-            self.BeqShift *= self.T_cycle
-        elif len(self.BeqShift) != self.T_cycle:
-            raise ValueError(
-                "Bequest Stone-Geary parameter must be a single value or a list of length T_cycle"
-            )
+        if not isinstance(self.BeqShift, (int, float)):
+            raise ValueError("Bequest Stone-Geary parameter must be a single value.")
 
     def update_solution_terminal(self):
         if self.TermBeqFac == 0.0:  # No terminal bequest
@@ -90,7 +81,9 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
             utility = UtilityFuncCRRA(self.CRRA)
 
             warm_glow = UtilityFuncStoneGeary(
-                self.TermBeqCRRA, factor=self.TermBeqFac, shifter=self.TermBeqShift
+                self.TermBeqCRRA,
+                factor=self.TermBeqFac,
+                shifter=self.TermBeqShift,
             )
 
             aNrmGrid = (
@@ -127,7 +120,7 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType, BequestWarmGlowConsume
         super().__init__(**params)
 
         self.solve_one_period = make_one_period_oo_solver(
-            BequestWarmGlowPortfolioSolver
+            BequestWarmGlowPortfolioSolver,
         )
 
     def update(self):
@@ -211,6 +204,28 @@ class BequestWarmGlowConsumerSolver(ConsIndShockSolver):
         BeqFacEff = (1.0 - self.LivPrb) * self.BeqFac
 
         self.warm_glow = UtilityFuncStoneGeary(self.BeqCRRA, BeqFacEff, self.BeqShift)
+
+    def def_BoroCnst(self, BoroCnstArt):
+        self.BoroCnstNat = (
+            (self.solution_next.mNrmMin - self.TranShkMinNext)
+            * (self.PermGroFac * self.PermShkMinNext)
+            / self.Rfree
+        )
+
+        self.BoroCnstNat = np.max([self.BoroCnstNat, -self.BeqShift])
+
+        if BoroCnstArt is None:
+            self.mNrmMinNow = self.BoroCnstNat
+        else:
+            self.mNrmMinNow = np.max([self.BoroCnstNat, BoroCnstArt])
+        if self.BoroCnstNat < self.mNrmMinNow:
+            self.MPCmaxEff = 1.0
+        else:
+            self.MPCmaxEff = self.MPCmaxNow
+
+        self.cFuncNowCnst = LinearInterp(
+            np.array([self.mNrmMinNow, self.mNrmMinNow + 1]), np.array([0.0, 1.0])
+        )
 
     def calc_EndOfPrdvP(self):
         EndofPrdvP = super().calc_EndOfPrdvP()
