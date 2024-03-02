@@ -2,7 +2,8 @@
 
 ## Installing HARK
 
-HARK is an open source project that is compatible with Python 3. Currently, we recommend using version 3.10 or lower.
+HARK is an open source project that is compatible with Python 3.
+We recommend using Python 3.10 or earlier with HARK.
 
 The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/installation/).
 
