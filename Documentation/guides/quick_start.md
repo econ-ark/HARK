@@ -7,7 +7,8 @@ We recommend using Python 3.10 or earlier with HARK.
 
 The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/installation/).
 
-Before installing HARK, we recommend creating a new virtual environment, which isolates the installation of `econ-ark` from the installations of any other Python tools and packages, thus avoiding conflicts.
+Before installing HARK, we recommend creating a new 'environment',
+which isolates any other installed Python tools and packages, avoiding dependency conflicts.
 
 To create a new virtual environment, enter this in your command line:
 
