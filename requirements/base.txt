@@ -5,6 +5,7 @@ networkx>=3
 numba<0.59
 numpy>=1.23
 pandas>=1.5
+pyyaml
 quantecon
 scipy>=1.10
 seaborn>=0.12

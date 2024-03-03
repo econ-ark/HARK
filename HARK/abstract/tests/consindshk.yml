@@ -1,0 +1,39 @@
+---
+states: !StateSpace
+  variables:
+    - !State
+      name: m
+      short_name: money
+      long_name: market resources
+      latex_repr: \mNrm
+    - !State
+      name: &name stigma
+      short_name: &short_name risky share
+      long_name: &long_name risky share of portfolio
+      latex_repr: &latex_repr \stigma
+
+actions: !ActionSpace
+  variables:
+    - !Action
+      name: c
+      short_name: consumption
+      long_name: consumption
+      latex_repr: \cNrm
+    - !Action
+      name: *name
+      short_name: *short_name
+      long_name: *long_name
+      latex_repr: *latex_repr
+
+post_states: !PostStateSpace
+  variables:
+    - !PostState
+      name: a
+      short_name: assets
+      long_name: savings
+      latex_repr: \aNrm
+    - !PostState
+      name: *name
+      short_name: *short_name
+      long_name: *long_name
+      latex_repr: *latex_repr
