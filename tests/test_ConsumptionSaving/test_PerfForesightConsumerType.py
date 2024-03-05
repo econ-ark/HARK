@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
-from HARK.tests import HARK_PRECISION
+from tests import HARK_PRECISION
 
 
 class testPerfForesightConsumerType(unittest.TestCase):

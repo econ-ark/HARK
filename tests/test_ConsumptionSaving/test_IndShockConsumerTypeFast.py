@@ -8,12 +8,12 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_lifecycle,
 )
 from HARK.ConsumptionSaving.ConsIndShockModelFast import IndShockConsumerTypeFast
-from HARK.ConsumptionSaving.tests.test_IndShockConsumerType import (
+from HARK.ConsumptionSavingtest_HARK.test_IndShockConsumerType import (
     CyclicalDict,
     IdiosyncDict,
     LifecycleDict,
 )
-from HARK.tests import HARK_PRECISION
+from tests import HARK_PRECISION
 
 
 class testIndShockConsumerTypeFast(unittest.TestCase):
@@ -127,9 +127,9 @@ class testBufferStock(unittest.TestCase):
         GICRaw_fail_dictionary = dict(self.base_params)
         GICRaw_fail_dictionary["Rfree"] = 1.08
         GICRaw_fail_dictionary["PermGroFac"] = [1.00]
-        GICRaw_fail_dictionary[
-            "cycles"
-        ] = 0  # cycles=0 makes this an infinite horizon consumer
+        GICRaw_fail_dictionary["cycles"] = (
+            0  # cycles=0 makes this an infinite horizon consumer
+        )
 
         GICRawFailExample = IndShockConsumerTypeFast(**GICRaw_fail_dictionary)
 

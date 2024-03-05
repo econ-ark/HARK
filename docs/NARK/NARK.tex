@@ -32,7 +32,7 @@
   by using names consistent with our guidelines.
 \end{abstract}
 
-\centerline{html version at \url{https://econ-ark.github.io/HARK/Documentation/NARK}}
+\centerline{html version at \url{https://econ-ark.github.io/HARK/docs/NARK}}
 
 % \thanks{The \texttt{NARK} repo that generates this document also contains \LaTeX~configuration files that permit you to use the same name for an object in your writing (your \texttt{paper.tex} file) and in your code (helping to minimize confusion in translating between paper and code).}
 
@@ -42,11 +42,11 @@
 \section{Principles}
 Our aim has been to balance:
 \begin{itemize}
-\item Brevity
-\item Mnemonic quality
-\item Uniqueness (enabling global search-and-replace)
-\item Ubiquity (definitions useful for many projects)
-\item Combinatoriality (which encourages mashups)
+  \item Brevity
+  \item Mnemonic quality
+  \item Uniqueness (enabling global search-and-replace)
+  \item Ubiquity (definitions useful for many projects)
+  \item Combinatoriality (which encourages mashups)
 \end{itemize}
 
 
@@ -74,9 +74,9 @@ Finally, a few of the definitions below are actually prohibitions; these are bas
 \begin{table}[ht]
   \centering
   \begin{tabular}{|lcl|}   \hline
-    Letter & & Meaning
+    Letter &  & Meaning
     \\ \hline
-    \ALev & & \textit{A}ssets \textit{A}fter \textit{A}ll \textit{A}ctions \textit{A}re \textit{A}ccomplished (end of period)
+    \ALev  &  & \textit{A}ssets \textit{A}fter \textit{A}ll \textit{A}ctions \textit{A}re \textit{A}ccomplished (end of period)
     \\  \BLev & & \textit{B}eginning \textit{B}ank \textit{B}alances \textit{B}efore any \textit{B}ehavior (\textit{b}eginning-of-period)
     \\  \CLev & & \textit{C}onsumption \textit{C}hoice \textit{C}onnects $B$ to $A$
     \\  \DLev & & \textit{D}ebt
@@ -125,9 +125,9 @@ There are more objects that are likely to be used extensively in ARK projects th
   \centering
   \begin{tabular}{|rcl|}
     \hline
-    Name & - & Description
+    Name         & - & Description
     \\ \hline
-    \texttt{CND}    & - & Consumption of Nondurable Good
+    \texttt{CND} & - & Consumption of Nondurable Good
     \\   \texttt{CNS}    & - & Consumption of Nondurables and Services
     \\  \texttt{Cst}    & - & Cost of something
     \\  \texttt{Dgd}    & - & Stock of durable good
@@ -165,9 +165,9 @@ the annual interest factor is $\Rfree=1.03$.\footnote{In the rare cases where it
   \centering
   \begin{tabular}{|ccc|}
     \hline
-    Code    & Output & Description
+    Code          & Output   & Description
     \\ \hline
-    \verb|\Rfree| & $\Rfree$     & Riskfree interest factor
+    \verb|\Rfree| & $\Rfree$ & Riskfree interest factor
     \\ \verb|\rfree| & $\rfree$     & Riskfree interest rate
     \\ \verb|\Risky| & $\Risky$     & The return factor on a risky asset
     \\ \verb|\risky| & $\risky$     & The return rate on a risky asset
@@ -191,9 +191,9 @@ middle ages, we use the archaic Gothic font for the death rate; and the probabil
   \centering
   \begin{tabular}{|>{\ttfamily}cccl|}
     \hline
-    Code & \LaTeX & Description &  \\
+    Code           & \LaTeX    & Description         & \\
     \hline
-    \verb|\DiePrb|     & $\DiePrb$     & Probabilty of death &
+    \verb|\DiePrb| & $\DiePrb$ & Probabilty of death &
     \\ \verb|\LivPrb|     & $\LivPrb$     & Probability to not die $=(1-\DiePrb)$ &
     \\	\hline
   \end{tabular}
@@ -217,9 +217,9 @@ document and \texttt{CRRA} in a software module.
   \centering
   \begin{tabular}{|>{\ttfamily}rcll|}
     \hline
-    Name    & \LaTeX         & Description & Illustration
+    Name         & \LaTeX  & Description                           & Illustration
     \\ \hline
-    \verb|\CARA|        & $\CARA$       & Coefficient of Absolute Risk Aversion &$\uFunc(\bullet)=-\CARA^{-1} e^{-\CARA \bullet}$
+    \verb|\CARA| & $\CARA$ & Coefficient of Absolute Risk Aversion & $\uFunc(\bullet)=-\CARA^{-1} e^{-\CARA \bullet}$
     \\ \verb|\CRRA|        & $\CRRA$       & Coefficient of Relative Risk Aversion & $\uFunc(\bullet)=(1-\CRRA)^{-1}\bullet^{1-\CRRA}$
     \\ \verb|\DiscFac|     & $\DiscFac$    & Time Discount Factor & $\uFunc^{\prime}(\cLev_{t}) =  \Rfree \DiscFac \uFunc^{\prime}(\cLev_{t+1})$
     \\ \verb|\discRte|     & $\discRte$    & Time Discount rate & $\discRte=\DiscFac^{-1}-1$
@@ -250,10 +250,10 @@ document and \texttt{CRRA} in a software module.
 
 Mnemonics:
 \begin{itemize}
-\item Hebrew \texttt{daleth} is the fourth letter of the Hebrew alphabet (as d and $\delta$ are of the Roman and Greek) and is an etymological and linguistic cousin of those letters
-\item $\discRte$ is the lower case Greek letter \texttt{omega}, because people say ``OMG, I've got to think about the future.''
-\item You are invited to scrutinize $\Xi$ yourself to imagine reasons it could represent something to do with population growth.
-\item The glorious letter $\Pat$ (pronounced `\href{https://en.wikipedia.org/wiki/Thorn_(letter)}{thorn}') enriched Old English, Gothic, and some other defunct alphabets; sadly, it remains in use today only in Iceland.  It is useful because having to type the many symbols in the object $(\Rfree \DiscFac)^{1/\CRRA}$ over and over again is a \textit{thorn} in the side of economists working with dynamic models!  (It is the `absolute patience factor' because if it is less than one the consumer wants to bring resources from the future to the present and is therefore absolutely impatient; for a fuller discussion of this terminology, see \cite{carrollTractable}.)
+  \item Hebrew \texttt{daleth} is the fourth letter of the Hebrew alphabet (as d and $\delta$ are of the Roman and Greek) and is an etymological and linguistic cousin of those letters
+  \item $\discRte$ is the lower case Greek letter \texttt{omega}, because people say ``OMG, I've got to think about the future.''
+  \item You are invited to scrutinize $\Xi$ yourself to imagine reasons it could represent something to do with population growth.
+  \item The glorious letter $\Pat$ (pronounced `\href{https://en.wikipedia.org/wiki/Thorn_(letter)}{thorn}') enriched Old English, Gothic, and some other defunct alphabets; sadly, it remains in use today only in Iceland.  It is useful because having to type the many symbols in the object $(\Rfree \DiscFac)^{1/\CRRA}$ over and over again is a \textit{thorn} in the side of economists working with dynamic models!  (It is the `absolute patience factor' because if it is less than one the consumer wants to bring resources from the future to the present and is therefore absolutely impatient; for a fuller discussion of this terminology, see \cite{carrollTractable}.)
 \end{itemize}
 
 
@@ -265,9 +265,9 @@ A few operators are so universally used that it will be useful to define them.
   \centering
   \begin{tabular}{|>{\ttfamily}rccll|}
     \hline
-    Name    & \LaTeX         & Code & Description & Illustration
+    Name       & \LaTeX & Code          & Description                    & Illustration
     \\ \hline
-    \verb|\Ex|        & $\Ex$       & \texttt{Ex\_} & The expectation as of date $t$ & $\Ex_{t}[\uFunc^{\prime}(\cRat_{t+1})]$
+    \verb|\Ex| & $\Ex$  & \texttt{Ex\_} & The expectation as of date $t$ & $\Ex_{t}[\uFunc^{\prime}(\cRat_{t+1})]$
     \\   \verb|\PDV|        & $\PDV$       & \texttt{PDV\_} & Present Discounted Value & $\PDV_{t}^{T}(y)$ is human wealth
     \\	\hline
   \end{tabular}
@@ -283,8 +283,8 @@ A few operators are so universally used that it will be useful to define them.
   \centering
   \begin{tabular}{|>{\ttfamily}lcl|}
     \hline
- \textit{[object]}\texttt{P} & - & ``Prime'' means derivative, e.g.\ \texttt{vPP} is the second derivative of value: $\vFunc^{\prime\prime}$
-\\    \hline
+    \textit{[object]}\texttt{P}   & - & ``Prime'' means derivative, e.g.\ \texttt{vPP} is the second derivative of value: $\vFunc^{\prime\prime}$
+    \\    \hline
     \textit{[object]}\texttt{Agg} & - & Value of something at the aggregate level (as opposed to \texttt{Ind})
     \\ \textit{[object]}\texttt{Ind} & - & Value of something at the level of an individual (as opposed to \texttt{Agg})
     \\ \textit{[object]}\texttt{Lvl} & - & Level

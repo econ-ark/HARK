@@ -110,7 +110,7 @@ html_context = {
     "github_user": "econ-ark",
     "github_repo": "HARK",
     "github_version": "master",
-    "doc_path": "Documentation/",
+    "doc_path": "docs/",
 }
 
 # Use Econ-ARK URL to host the website

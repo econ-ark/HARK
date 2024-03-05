@@ -22,7 +22,7 @@ from HARK.distribution import (
     distr_of_function,
     expected,
 )
-from HARK.tests import HARK_PRECISION
+from tests import HARK_PRECISION
 
 
 class DiscreteDistributionTests(unittest.TestCase):

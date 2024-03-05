@@ -12,7 +12,7 @@ from HARK.ConsumptionSaving.ConsAggShockModel import (
     KrusellSmithType,
 )
 from HARK.distribution import Uniform
-from HARK.tests import HARK_PRECISION
+from tests import HARK_PRECISION
 
 
 class testAggShockConsumerType(unittest.TestCase):

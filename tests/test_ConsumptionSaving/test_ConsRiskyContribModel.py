@@ -13,7 +13,7 @@ from HARK.ConsumptionSaving.ConsRiskyContribModel import (
     RiskyContribConsumerType,
     init_risky_contrib,
 )
-from HARK.tests import HARK_PRECISION
+from tests import HARK_PRECISION
 
 
 class test_(unittest.TestCase):
