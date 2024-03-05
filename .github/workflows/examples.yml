@@ -6,13 +6,13 @@ on:
       - master
     paths-ignore:
       - ".github/workflows/documentation.yml"
-      - "Documentation/**"
+      - "docs/**"
   pull_request:
     branches:
       - master
     paths-ignore:
       - ".github/workflows/documentation.yml"
-      - "Documentation/**"
+      - "docs/**"
   schedule:
     - cron: 0 0 * * *
 
