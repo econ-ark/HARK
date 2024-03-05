@@ -9,3 +9,6 @@ pydata-sphinx-theme
 sphinx>=6.1
 sphinx-copybutton
 sphinx-design
+sphinx_autodoc_typehints
+
+

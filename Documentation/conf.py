@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import importlib.metadata
 import warnings
 from datetime import date
 
@@ -12,14 +15,16 @@ else:
         category=numba.NumbaDeprecationWarning,
     )
     warnings.filterwarnings(
-        "ignore", message=".* 'nopython' .*", category=numba.NumbaDeprecationWarning
+        "ignore",
+        message=".* 'nopython' .*",
+        category=numba.NumbaDeprecationWarning,
     )
 
 # Project information
 project = "HARK"
-copyright = f"{date.today().year}, Econ-ARK team"
-author = "Econ-ARK team"
-version = release = "latest"
+copyright = f"{date.today().year}, Econ-ARK Team"
+author = "Econ-ARK Team"
+version = release = importlib.metadata.version("HARK")
 
 # General configuration
 extensions = [
@@ -37,14 +42,18 @@ extensions = [
     # third-party extensions
     "nbsphinx",
     "myst_parser",
+    "sphinx_autodoc_typehints",
     "sphinx_copybutton",
     "sphinx_design",
 ]
 
 exclude_patterns = [
     "_build",
+    "**.ipynb_checkpoints",
     "Thumbs.db",
     ".DS_Store",
+    ".env",
+    ".venv",
     "NARK",
 ]
 
@@ -57,17 +66,12 @@ needs_sphinx = "6.1"
 
 pygments_style = "sphinx"
 
-source_suffix = [
-    ".rst",
-    ".md",
-]
+source_suffix = [".rst", ".md"]
 
 # HTML writer configuration
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
-html_css_files = [
-    "override-nbsphinx-gallery.css",
-]
+html_css_files = ["override-nbsphinx-gallery.css"]
 
 html_theme_options = {
     "use_edit_page_button": True,
@@ -104,7 +108,7 @@ html_theme_options = {
 html_context = {
     "github_url": "https://github.com",
     "github_user": "econ-ark",
-    "github_repo": "hark",
+    "github_repo": "HARK",
     "github_version": "master",
     "doc_path": "Documentation/",
 }
@@ -118,9 +122,7 @@ html_domain_indices = False
 html_copy_source = False
 
 # sphinx.ext.intersphinx configuration
-intersphinx_mapping = {
-    "python": ("https://docs.python.org/3/", None),
-}
+intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 
 # sphinx.ext.autodoc configuration
 autodoc_default_flags = ["members"]  # must add outside ']' bracket
@@ -133,3 +135,9 @@ napoleon_use_ivar = True  # solves duplicate object description warning
 
 # nbsphinx configuration
 nbsphinx_execute = "never"  # notebooks are executed via ``nb_exec.py``
+
+myst_enable_extensions = ["colon_fence"]
+
+nitpick_ignore = [("py:class", "_io.StringIO"), ("py:class", "_io.BytesIO")]
+
+always_document_param_types = True

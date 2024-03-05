@@ -1,7 +1,15 @@
+"""
+Copyright (c) 2024 Econ-ARK Team. All rights reserved.
+
+HARK: Heterogenous Agents Resources & toolKit.
+"""
+
+from __future__ import annotations
+
+from ._version import version as __version__
 from .core import *
 
-__version__ = "0.14.1"
-
+__all__ = ["__version__"]
 """
 Logging tools for HARK.
 
