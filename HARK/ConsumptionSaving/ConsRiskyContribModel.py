@@ -1033,7 +1033,7 @@ def solve_RiskyContrib_Cns(
     AdjustPrb,
     DiscreteShareBool,
     joint_dist_solver,
-    **unused_params
+    **unused_params,
 ):
     """
     Solves the consumption stage of the agent's problem
@@ -1504,7 +1504,7 @@ def solve_RiskyContrib_Sha(
     ShareGrid,
     DiscreteShareBool,
     vFuncBool,
-    **unused_params
+    **unused_params,
 ):
     """
     Solves the income-contribution-share stag of the agent's problem

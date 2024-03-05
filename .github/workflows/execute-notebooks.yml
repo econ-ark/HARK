@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
   # 6.49 am (GMT) every Monday; time chosen at random
   schedule:
-  - cron: "49 6 * * MON"
+    - cron: "49 6 * * MON"
 
 # Limit workflow permissions
 permissions:
@@ -29,47 +29,47 @@ jobs:
       pull-requests: write
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.10"  # Numba doesn't support Python 3.11 [2023-05]
-        cache: 'pip'
-        cache-dependency-path: |
-          requirements/base.txt
-          .github/workflows/execute-notebooks.yml
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10" # Numba doesn't support Python 3.11 [2023-05]
+          cache: "pip"
+          cache-dependency-path: |
+            requirements/base.txt
+            .github/workflows/execute-notebooks.yml
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install .
-        # For LabeledModels.ipynb
-        python -m pip install estimagic
-        # For nbstripout
-        python -m pip install nbstripout
-        # For nb_exec.py
-        python -m pip install ipykernel nbclient nbformat
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+          # For LabeledModels.ipynb
+          python -m pip install estimagic
+          # For nbstripout
+          python -m pip install nbstripout
+          # For nb_exec.py
+          python -m pip install ipykernel nbclient nbformat
 
-    - name: Strip output
-      run: nbstripout examples/**/*.ipynb
+      - name: Strip output
+        run: nbstripout examples/**/*.ipynb
 
-    # This step takes c. 20 minutes
-    - name: Execute notebooks
-      run: python tools/nb_exec.py examples/**/*.ipynb
-      env:
-        PYTHONUNBUFFERED: "1"
+      # This step takes c. 20 minutes
+      - name: Execute notebooks
+        run: python tools/nb_exec.py examples/**/*.ipynb
+        env:
+          PYTHONUNBUFFERED: "1"
 
-    - name: Open PR
-      uses: peter-evans/create-pull-request@v5
-      with:
-        author: "Econ-ARK Bot <noreply@econ-ark.org>"
-        branch: "bot/update-notebooks"
-        commit-message: "[bot] updated notebooks"
-        delete-branch: true
-        title: "[bot] Execute example notebooks"
-        # language=Markdown
-        body: >
-          This PR was [automatically generated] to re-execute
-          the example notebooks for use in the documentation.
-          
-          [automatically generated]: https://github.com/Econ-ARK/HARK/actions/workflows/execute-notebooks.yml
+      - name: Open PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          author: "Econ-ARK Bot <noreply@econ-ark.org>"
+          branch: "bot/update-notebooks"
+          commit-message: "[bot] updated notebooks"
+          delete-branch: true
+          title: "[bot] Execute example notebooks"
+          # language=Markdown
+          body: >
+            This PR was [automatically generated] to re-execute
+            the example notebooks for use in the documentation.
+
+            [automatically generated]: https://github.com/Econ-ARK/HARK/actions/workflows/execute-notebooks.yml

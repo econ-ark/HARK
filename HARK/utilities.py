@@ -164,10 +164,11 @@ def construct_assets_grid(parameters):
         )
 
     # Add in additional points for the grid:
-    for a in aXtraExtra:
-        if a is not None and a not in aXtraGrid:
-            j = aXtraGrid.searchsorted(a)
-            aXtraGrid = np.insert(aXtraGrid, j, a)
+    if aXtraExtra is not None:
+        for a in aXtraExtra:
+            if a is not None and a not in aXtraGrid:
+                j = aXtraGrid.searchsorted(a)
+                aXtraGrid = np.insert(aXtraGrid, j, a)
 
     return aXtraGrid
 
@@ -1005,7 +1006,7 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
         print(f"Saving figure {figure_name} in {target_dir}")
         plt.savefig(
             os.path.join(target_dir, f"{figure_name}.jpg"),
-            metadata={"CreationDate": None},
+            # metadata is not supported for jpg
         )  # For web/html
         plt.savefig(
             os.path.join(target_dir, f"{figure_name}.png"),

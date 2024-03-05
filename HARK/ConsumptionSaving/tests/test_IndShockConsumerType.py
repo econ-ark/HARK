@@ -115,6 +115,12 @@ class testIndShockConsumerType(unittest.TestCase):
         # simulation test -- seed/generator specific
         # self.assertAlmostEqual(self.agent.state_now["aLvl"][1], 0.18438, place = HARK_PRECISION)
 
+    def test_income_dist_random_seeds(self):
+        a1 = IndShockConsumerType(seed=1000)
+        a2 = IndShockConsumerType(seed=200)
+
+        self.assertFalse(a1.PermShkDstn.seed == a2.PermShkDstn.seed)
+
 
 class testBufferStock(unittest.TestCase):
     """Tests of the results of the BufferStock REMARK."""
@@ -414,7 +420,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         CyclicalExample.simulate()
 
         self.assertAlmostEqual(
-            CyclicalExample.state_now["aLvl"][1], 2.41243, places=HARK_PRECISION
+            CyclicalExample.state_now["aLvl"][1], 3.32431, places=HARK_PRECISION
         )
 
 
@@ -762,13 +768,13 @@ class testReadShock(unittest.TestCase):
                 "LivPrb": LivPrb,
                 "PermGroFac": [PermGroFac],
                 "Rfree": Rfree,
-                "track_vars": ["bNrm", "t_age"],
             }
         )
 
     def test_NewbornStatesAndShocks(self):
         # Make agent, shock and initial condition histories
         agent = IndShockConsumerType(**self.base_params)
+        agent.track_vars = ["bNrm", "t_age"]
         agent.make_shock_history()
 
         # Find indices of agents and time periods that correspond to deaths
@@ -814,13 +820,13 @@ class testLCMortalityReadShocks(unittest.TestCase):
             {
                 "AgentCount": agent_count,
                 "T_sim": t_sim,
-                "track_vars": ["t_age", "t_cycle"],
             }
         )
 
     def test_compare_t_age_t_cycle(self):
         # Make agent, shock and initial condition histories
         agent = IndShockConsumerType(**self.base_params)
+        agent.track_vars = ["t_age", "t_cycle"]
         agent.make_shock_history()
 
         # Solve and simulate the agent
@@ -855,6 +861,7 @@ class testLCMortalityReadShocks(unittest.TestCase):
         par["T_age"] = par["T_age"] - 8
         # Make agent, shock and initial condition histories
         agent = IndShockConsumerType(**par)
+        agent.track_vars = ["t_age", "t_cycle"]
         agent.make_shock_history()
 
         # Solve and simulate the agent

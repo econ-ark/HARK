@@ -144,7 +144,7 @@ class AggShockConsumerType(IndShockConsumerType):
             self,
             solution_terminal=deepcopy(IndShockConsumerType.solution_terminal_),
             pseudo_terminal=False,
-            **params
+            **params,
         )
 
         # Add consumer-type specific objects, copying to create independent versions
@@ -2441,7 +2441,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             "KtoLnow",
             "Mrkv",  # This one is new
         ],
-        **kwds
+        **kwds,
     ):
         agents = agents if agents is not None else list()
         params = init_mrkv_cobb_douglas.copy()
@@ -2453,7 +2453,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             tolerance=tolerance,
             act_T=act_T,
             sow_vars=sow_vars,
-            **params
+            **params,
         )
 
         self.sow_init["Mrkv"] = params["MrkvNow_init"]
@@ -2885,7 +2885,7 @@ class KrusellSmithEconomy(Market):
             reap_vars=["aNow", "EmpNow"],
             track_vars=["Mrkv", "Aprev", "Mnow", "Urate"],
             dyn_vars=["AFunc"],
-            **params
+            **params,
         )
         self.update()
 

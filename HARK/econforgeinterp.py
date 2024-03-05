@@ -20,10 +20,10 @@ class LinearFast(MetricObject):
 
     distance_criteria = ["f_val", "grid_list"]
 
-    def __init__(self, f_val, grids, extrap_mode="linear"):
+    def __init__(self, f_val, grids, extrap_mode="linear", prebuilt_grid=None):
         """
         f_val: numpy.array
-            An array containing the values of the function at the grid points.
+        An array containing the values of the function at the grid points.
             It's i-th dimension must be of the same lenght as the i-th grid.
             f_val[i,j,k] must be f(grids[0][i], grids[1][j], grids[2][k]).
         grids: [numpy.array]
@@ -32,11 +32,17 @@ class LinearFast(MetricObject):
         extrap_mode: one of 'linear', 'nearest', or 'constant'
             Determines how to extrapolate, using either nearest point, multilinear, or
             constant extrapolation. The default is multilinear.
+        prebuilt_grid: CGrid, optional
+            A prebuilt CGrid object to be used as the grid. If None, a new one
+            will be created using the grids provided. By default None.
         """
         self.dim = len(grids)
         self.f_val = f_val
         self.grid_list = grids
-        self.Grid = CGrid(*grids)
+        if prebuilt_grid is None:
+            self.Grid = CGrid(*grids)
+        else:
+            self.Grid = prebuilt_grid
 
         # Set up extrapolation options
         self.extrap_mode = extrap_mode

@@ -1,8 +1,11 @@
 # ARKitecture of Econ-ARK
 
-This document guides you through the structure of econ-ark and explain the main ingredients. Note that it does not explain _how_ to use it. For this, please follow the example notebooks which you can find on the left.
+This document guides you through the structure of Econ-ARK,
+and explains the main ingredients.
+Note that it does not explain _how_ to use it---for this,
+please follow the example notebooks which you can find on the left.
 
-[Econ-ark](https://github.com/econ-ark) contains the three main repositories [HARK](https://github.com/econ-ark/HARK), [DemARK](https://github.com/econ-ark/DEMARK), and [REMARK](https://github.com/econ-ark/REMARK). On top of that, the [website](https://econ-ark.org/) combines all of them. Hence, if you want to find a notebook search them in [materials](https://econ-ark.org/materials).
+[Econ-ARK](https://github.com/econ-ark) contains the three main repositories [HARK](https://github.com/econ-ark/HARK), [DemARK](https://github.com/econ-ark/DEMARK), and [REMARK](https://github.com/econ-ark/REMARK). On top of that, the [website](https://econ-ark.org/) combines all of them. Hence, if you want to find a notebook search them in [materials](https://econ-ark.org/materials).
 
 - [HARK](https://github.com/econ-ark/HARK): Includes the source code as well as some example notebooks.
 - [DemARK](https://github.com/econ-ark/DemARK): Here you can find *Dem*onstrations of tools, AgentTypes, and ModelClasses.
@@ -12,20 +15,21 @@ Before describing each repository in detail, some preliminary remarks.
 
 HARK is written in Python, an object-oriented programming (OOP) language that has experienced increasing popularity in the scientific community in the past several years. A significant reason for the adoption of Python is the **_numpy_** and **_scipy_** packages, which offer a wide array of mathematical and statistical functions and tools; HARK makes liberal use of these libraries. Python's object-oriented nature allows models in HARK to be easily extended: more complex models can inherit functions and methods from more fundamental ''parent'' models, eliminating the need to reproduce or repurpose code.
 
-As implied in the previous section, we strongly encourage HARK users to use the Anaconda distribution of Python, which includes all commonly used mathematical and scientific packages, an interactive development environment for iPython (Spyder), and a package manager that allows users to quickly install or update packages not included in the default distribution (conda).
+We strongly encourage HARK users to use the `conda` or `mamba` package managers,
+which includes all commonly used mathematical and scientific Python packages.
 
 For users unfamiliar with OOP, we strongly encourage you to review the background material on OOP provided by the good people at [QuantEcon](https://python.quantecon.org/intro.html) (for more on them, see below) at this link: [Object Oriented Programming](https://python-programming.quantecon.org/oop_intro.html). Unlike non-OOP languages, OOP bundles together data and functions into _objects_. These can be accessed via: **_object_name.data_** and **_object_name.method_name()_**, respectively. For organizational purposes, definitions of multiple objects are stored in _modules_, which are simply files with a **_.py_** extension. Modules can be accessed in Python via:
 
-```
+```python
 import module_name as import_name
 ```
 
-This imports the module and gives it a local name of **_import_name_**. We can access a function within this module by simply typing: **_import_name.function_name()_**. The following example will illustrate the usage of these commands. **_CRRAutility_** is the function object for calculating CRRA utility supplied by **_HARK.utilities_** module. **_CRRAutility_** is called _attributes_ of the module **_HARK.utilities_**. In order to calculate CRRA utility with a consumption of 1 and a coefficient of risk aversion of 2 we run:
+This imports the module and gives it a local name of **_import_name_**. We can access a function within this module by simply typing: **_import_name.function_name()_**. The following example will illustrate the usage of these commands. **_CRRAutility_** is the function object for calculating CRRA utility supplied by the **_HARK.rewards_** module. **_CRRAutility_** is called _attributes_ of the module **_HARK.rewards_**. In order to calculate CRRA utility with a consumption of 1 and a coefficient of risk aversion of 2 we run:
 
-```
-import HARK.utilities as Hutil
+```python
+from HARK.rewards import CRRAutility
 
-Hutil.CRRAutility(1,2)
+CRRAutility(1, 2)
 ```
 
 Python modules in HARK can generally be categorized into three types: tools, models, and applications. **Tool modules** contain functions and classes with general purpose tools that have no inherent ''economic content'', but that can be used in many economic models as building blocks or utilities; they could plausibly be useful in non-economic settings. Tools might include functions for data analysis (e.g. calculating Lorenz shares from data, or constructing a non-parametric kernel regression), functions to create and manipulate discrete approximations to continuous distributions, or classes for constructing interpolated approximations to non-parametric functions. Tool modules generally reside in HARK's root directory and have names like **_HARK.simulation_** and **_HARK.interpolation_**; they do not necessarily do anything when run.
@@ -45,7 +49,6 @@ After you [installed](https://docs.econ-ark.org/guides/quick_start.html) and [cl
 HARK's root directory contains six tool modules, [^1] each containing a variety of functions and classes that can be used in many economic models-- or even for mathematical purposes that have nothing to do with economics. Some of the tool modules are very sparely populated at this time, while others are quite large. We expect that all of these modules will grow considerably in the near future, as new tools are ''low hanging fruit'' for contribution to the project. [^2]
 
 [^1]: The ''taxonomy'' of these modules is in flux; the functions described here could be combined into fewer modules or further divided by purpose.
-
 [^2]: That is, as the foundational, building-block elements of HARK, new tools are not difficult to program and do not require extensive integration with many moving parts.
 
 #### HARK.core
@@ -87,7 +90,6 @@ Methods for optimizing an objective function for the purposes of estimating a mo
 By default, processes in Python are single-threaded, using only a single CPU core. The **_HARK.parallel_** module provides basic tools for using multiple CPU cores simultaneously, with minimal effort. [^4] In particular, it provides the function **_multiThreadCommands_**, which takes two arguments: a list of **_AgentType_**s and a list of commands as strings; each command should be a method of the **_AgentType_**s. The function simply distributes the **_AgentType_**s across threads on different cores and executes each command in order, returning no output (the **_AgentType_**s themselves are changed by running the commands). Equivalent results would be achieved by simply looping over each type and running each method in the list. Indeed, **_HARK.parallel_** also has a function called **_multiThreadCommandsFake_** that does just that, with identical syntax to **_multiThreadCommands_**; multithreading in HARK can thus be easily turned on and off. [^5] The module also has functions for a parallel implementation of the Nelder-Mead simplex algorithm, as described in Wiswall and Lee (2011). See [here](https://docs.econ-ark.org/reference/tools/parallel.html) for full documentation.
 
 [^4]: **_HARK.parallel_** uses two packages that aren't included in the default distribution of Anaconda: **_joblib_** and **_dill_**; see [here](https://docs.econ-ark.org/guides/quick_start.html#using-hark-with-anaconda) for instructions on how to install them.
-
 [^5]: In the future, **_HARK.parallel_** might be absorbed into **_HARK.core_** and **_HARK.estimation_**, particularly if **_joblib_** and **_dill_** become part of the standard Anaconda distribution.
 
 ### AgentType Class
