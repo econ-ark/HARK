@@ -1556,12 +1556,10 @@ class PerfForesightConsumerType(AgentType):
             self, "PerfMITShk"
         ):  # If PerfMITShk not specified, let it be False
             self.PerfMITShk = False
-        if (
-            self.PerfMITShk is False
-        ):  # If True, Newborns inherit t_cycle of agent they replaced (i.e. t_cycles are not reset).
-            self.t_cycle[which_agents] = (
-                0  # Which period of the cycle each agent is currently in
-            )
+        if not self.PerfMITShk:
+            # If True, Newborns inherit t_cycle of agent they replaced (i.e. t_cycles are not reset).
+            self.t_cycle[which_agents] = 0
+            # Which period of the cycle each agent is currently in
 
         return None
 

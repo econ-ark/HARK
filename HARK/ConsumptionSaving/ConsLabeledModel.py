@@ -305,7 +305,7 @@ class PerfForesightLabeledType(IndShockConsumerType):
         )
         
     def post_solve(self):
-        pass # Do nothing, rather than try to run calc_stable_points
+        pass  # Do nothing, rather than try to run calc_stable_points
 
 
 class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
