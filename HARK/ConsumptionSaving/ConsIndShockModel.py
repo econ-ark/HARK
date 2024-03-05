@@ -208,6 +208,168 @@ class ConsumerSolution(MetricObject):
 # === Classes and functions that solve consumption-saving models ===
 # =====================================================================
 
+def solve_one_period_ConsPF( solution_next,
+                                    DiscFac,
+                                    LivPrb,
+                                    CRRA,
+                                    Rfree,
+                                    PermGroFac,
+                                    BoroCnstArt,
+                                    MaxKinks):
+    """
+    Solves one period of a basic perfect foresight consumption-saving model with
+    a single risk free asset and permanent income growth.
+    
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to next period's one-period problem.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the next period.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    PermGroFac : float
+        Expected permanent income growth factor at the end of this period.
+    BoroCnstArt : float or None
+        Artificial borrowing constraint, as a multiple of permanent income.
+        Can be None, indicating no artificial constraint.
+    MaxKinks : int
+        Maximum number of kink points to allow in the consumption function;
+        additional points will be thrown out.  Only relevant in infinite
+        horizon model with artificial borrowing constraint.
+        
+    Returns
+    -------
+    solution_now : ConsumerSolution
+        Solution to the current period of a perfect foresight consumption-saving
+        problem.
+    """
+    # Define the utility function and effective discount factor
+    uFunc = UtilityFuncCRRA(CRRA)
+    DiscFacEff = DiscFac * LivPrb  # Effective = pure x LivPrb
+    
+    # Prevent comparing None and float if there is no borrowing constraint
+    if BoroCnstArt is None:
+        BoroCnstArt = -np.inf # Can borrow as much as we want
+
+    # Calculate human wealth this period
+    hNrmNow = (PermGroFac / Rfree) * (solution_next.hNrm + 1.0)
+
+    # Calculate the lower bound of the marginal propensity to consume
+    PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
+    MPCmin = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
+
+    # Extract the discrete kink points in next period's consumption function;
+    # don't take the last one, as it only defines the extrapolation and is not a kink.
+    mNrmNext = solution_next.cFunc.x_list[:-1]
+    cNrmNext = solution_next.cFunc.y_list[:-1]
+    vNext = PermGroFac**(1.0-CRRA) * uFunc(solution_next.vFunc.vFuncNvrs.y_list[:-1])
+    EndOfPrdv = DiscFacEff * vNext
+
+    # Calculate the end-of-period asset values that would reach those kink points
+    # next period, then invert the first order condition to get consumption. Then
+    # find the endogenous gridpoint (kink point) today that corresponds to each kink
+    aNrmNow = (PermGroFac / Rfree) * (mNrmNext - 1.0)
+    cNrmNow = (DiscFacEff * Rfree) ** (-1.0 / CRRA) * (PermGroFac * cNrmNext)
+    mNrmNow = aNrmNow + cNrmNow
+    
+    # Calculate (pseudo-inverse) value at each consumption kink point
+    vNow     = uFunc(cNrmNow) + EndOfPrdv
+    vNvrsNow = uFunc.inverse(vNow)
+    vNvrsSlopeMin = MPCmin ** (-CRRA / (1.0 - CRRA))
+
+    # Add an additional point to the list of gridpoints for the extrapolation,
+    # using the new value of the lower bound of the MPC.
+    mNrmNow = np.append(mNrmNow, mNrmNow[-1] + 1.0)
+    cNrmNow = np.append(cNrmNow, cNrmNow[-1] + MPCmin)
+    vNvrsNow = np.append(vNvrsNow, vNvrsNow[-1] + vNvrsSlopeMin)
+
+    # If the artificial borrowing constraint binds, combine the constrained and
+    # unconstrained consumption functions.
+    if BoroCnstArt > mNrmNow[0]:
+        # Find the highest index where constraint binds
+        cNrmCnst = mNrmNow - BoroCnstArt
+        CnstBinds = cNrmCnst < cNrmNow
+        idx = np.where(CnstBinds)[0][-1]
+
+        if idx < (mNrmNow.size - 1):
+            # If it is not the *very last* index, find the the critical level
+            # of mNrm where the artificial borrowing contraint begins to bind.
+            d0 = cNrmNow[idx] - cNrmCnst[idx]
+            d1 = cNrmCnst[idx + 1] - cNrmNow[idx + 1]
+            m0 = mNrmNow[idx]
+            m1 = mNrmNow[idx + 1]
+            alpha = d0 / (d0 + d1)
+            mCrit = m0 + alpha * (m1 - m0)
+
+            # Adjust the grids of mNrm and cNrm to account for the borrowing constraint.
+            cCrit = mCrit - BoroCnstArt
+            mNrmNow = np.concatenate(([BoroCnstArt, mCrit], mNrmNow[(idx + 1) :]))
+            cNrmNow = np.concatenate(([0.0, cCrit], cNrmNow[(idx + 1) :]))
+            
+            # Adjust the vNvrs grid to account for the borrowing constraint
+            v0 = vNvrsNow[idx]
+            v1 = vNvrsNow[idx + 1]
+            vNvrsCrit = v0 + alpha * (v1 - v0)
+            vNvrsNow = np.concatenate(([0.0, vNvrsCrit], vNvrsNow[(idx + 1) :]))
+
+        else:
+            # If it *is* the very last index, then there are only three points
+            # that characterize the consumption function: the artificial borrowing
+            # constraint, the constraint kink, and the extrapolation point.
+            mXtra = (cNrmNow[-1] - cNrmCnst[-1]) / (1.0 - MPCmin)
+            mCrit = mNrmNow[-1] + mXtra
+            cCrit = mCrit - BoroCnstArt
+            mNrmNow = np.array([BoroCnstArt, mCrit, mCrit + 1.0])
+            cNrmNow = np.array([0.0, cCrit, cCrit + MPCmin])
+            
+            # Adjust vNvrs grid for this three node structure
+            mNextCrit = BoroCnstArt*Rfree + 1.0
+            vNextCrit = PermGroFac**(1.0-CRRA) * solution_next.vFunc(mNextCrit)
+            vCrit     = uFunc(cCrit) + DiscFacEff * vNextCrit
+            vNvrsCrit = uFunc.inverse(vCrit)
+            vNvrsNow = np.array([0.0, vNvrsCrit, vNvrsCrit + vNvrsSlopeMin])
+
+    # If the mNrm and cNrm grids have become too large, throw out the last
+    # kink point, being sure to adjust the extrapolation.
+    if mNrmNow.size > MaxKinks:
+        mNrmNow  = np.concatenate((mNrmNow[:-2], [mNrmNow[-3] + 1.0]))
+        cNrmNow  = np.concatenate((cNrmNow[:-2], [cNrmNow[-3] + MPCmin]))
+        vNvrsNow = np.concatenate((vNvrsNow[:-2], [vNvrsNow[-3] + vNvrsSlopeMin]))
+
+    # Construct the consumption function as a linear interpolation.
+    cFunc = LinearInterp(mNrmNow, cNrmNow)
+
+    # Calculate the upper bound of the MPC as the slope of the bottom segment.
+    MPCmax = (cNrmNow[1] - cNrmNow[0]) / (mNrmNow[1] - mNrmNow[0])
+
+    # Enable calculation of steady state market resources
+    Ex_IncNext = 1.0  # Perfect foresight income of 1
+    mNrmMinNow = mNrmNow[0] # Relabeling for compatibility with add_mNrmStE
+    
+    # Construct the (marginal) value function for this period
+    # See the PerfForesightConsumerType.ipynb documentation notebook for the derivations
+    vFuncNvrs = LinearInterp(mNrmNow, vNvrsNow)
+    vFunc = ValueFuncCRRA(vFuncNvrs, CRRA)
+    vPfunc = MargValueFuncCRRA(cFunc, CRRA)
+
+    # Construct and return the solution
+    solution = ConsumerSolution(
+        cFunc=cFunc,
+        vFunc=vFunc,
+        vPfunc=vPfunc,
+        mNrmMin=mNrmMinNow,
+        hNrm=hNrmNow,
+        MPCmin=MPCmin,
+        MPCmax=MPCmax,
+    )
+    return solution
+
 
 class ConsPerfForesightSolver(MetricObject):
     """
@@ -1386,7 +1548,7 @@ class PerfForesightConsumerType(AgentType):
         self.shock_vars = deepcopy(self.shock_vars_)
         self.verbose = verbose
         self.quiet = quiet
-        self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolver)
+        self.solve_one_period = solve_one_period_ConsPF
         set_verbosity_level((4 - verbose) * 10)
         self.bilt = {}
         self.update_Rfree()  # update interest rate if time varying
