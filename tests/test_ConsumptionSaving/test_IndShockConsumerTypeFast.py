@@ -8,7 +8,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_lifecycle,
 )
 from HARK.ConsumptionSaving.ConsIndShockModelFast import IndShockConsumerTypeFast
-from HARK.ConsumptionSavingtest_HARK.test_IndShockConsumerType import (
+from tests.test_ConsumptionSaving.test_IndShockConsumerType import (
     CyclicalDict,
     IdiosyncDict,
     LifecycleDict,
