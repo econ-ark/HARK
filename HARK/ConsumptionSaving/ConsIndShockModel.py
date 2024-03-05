@@ -12,6 +12,7 @@ It currently solves three types of models:
 See NARK https://github.com/econ-ark/HARK/blob/master/Documentation/NARK/NARK.pdf for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.
 """
+
 from copy import copy, deepcopy
 
 import numpy as np
@@ -398,7 +399,6 @@ class ConsPerfForesightSolver(MetricObject):
         # Add two attributes to enable calculation of steady state market resources.
         self.Ex_IncNext = 1.0  # Perfect foresight income of 1
         self.mNrmMinNow = mNrmNow[0]
-
 
     def solve(self):
         """
@@ -841,7 +841,6 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution.MPCmin = self.MPCminNow
         solution.MPCmax = self.MPCmaxEff
         return solution
-    
 
     def make_linear_cFunc(self, mNrm, cNrm):
         """
@@ -1221,7 +1220,6 @@ class ConsKinkedRsolver(ConsIndShockSolver):
 
         return cFuncNowUncKink
 
-
     def prepare_to_calc_EndOfPrdvP(self):
         """
         Prepare to calculate end-of-period marginal value by creating an array
@@ -1394,12 +1392,12 @@ class PerfForesightConsumerType(AgentType):
         self.update_Rfree()  # update interest rate if time varying
 
     def pre_solve(self):
-        '''
+        """
         Method that is run automatically just before solution by backward iteration.
         Solves the (trivial) terminal period and does a quick check on the borrowing
         constraint and MaxKinks attribute (only relevant in constrained, infinite
         horizon problems).
-        '''
+        """
         self.update_solution_terminal()  # Solve the terminal period problem
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
@@ -1420,17 +1418,17 @@ class PerfForesightConsumerType(AgentType):
                         "PerfForesightConsumerType requires the attribute MaxKinks to be specified when BoroCnstArt is not None and cycles == 0."
                     )
                 )
-                
+
     def post_solve(self):
         """
         Method that is run automatically at the end of a call to solve. Here, it
         simply calls calc_stable_points() if appropriate: an infinite horizon
         problem with a single repeated period in its cycle.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -1561,9 +1559,9 @@ class PerfForesightConsumerType(AgentType):
         if (
             self.PerfMITShk is False
         ):  # If True, Newborns inherit t_cycle of agent they replaced (i.e. t_cycles are not reset).
-            self.t_cycle[
-                which_agents
-            ] = 0  # Which period of the cycle each agent is currently in
+            self.t_cycle[which_agents] = (
+                0  # Which period of the cycle each agent is currently in
+            )
 
         return None
 
@@ -1897,16 +1895,18 @@ class PerfForesightConsumerType(AgentType):
         if aux_dict["FHWFac"] < 1.0:
             aux_dict["hNrm"] = 1.0 / (1.0 - aux_dict["FHWFac"])
         else:
-            aux_dict['hNrm'] = np.inf
-            
+            aux_dict["hNrm"] = np.inf
+
         # Generate the "Delta m = 0" function, which is used to find target market resources
         Ex_Rnrm = self.Rfree / self.PermGroFac[0]
-        aux_dict['Delta_mNrm_ZeroFunc'] = lambda m : (1. - 1./Ex_Rnrm) * m + 1./Ex_Rnrm
-            
+        aux_dict["Delta_mNrm_ZeroFunc"] = (
+            lambda m: (1.0 - 1.0 / Ex_Rnrm) * m + 1.0 / Ex_Rnrm
+        )
+
         # Generate the "E[M_tp1 / M_t] = G" function, which is used to find balanced growth market resources
         PF_Rnrm = self.Rfree / self.PermGroFac[0]
-        aux_dict['BalGroFunc'] = lambda m : (1. - 1./PF_Rnrm) * m + 1./PF_Rnrm
-            
+        aux_dict["BalGroFunc"] = lambda m: (1.0 - 1.0 / PF_Rnrm) * m + 1.0 / PF_Rnrm
+
         self.bilt = aux_dict
 
     def check_conditions(self, verbose=None):
@@ -2018,7 +2018,7 @@ class PerfForesightConsumerType(AgentType):
         # Report on the consequences of the Growth Impatience Condition
         if self.conditions["GICRaw"]:
             GIC_message = "\nBecause the GICRaw is satisfed, the ratio of individual wealth to permanent income is expected to fall indefinitely."
-        elif self.conditions['FHWC']:
+        elif self.conditions["FHWC"]:
             GIC_message = "\nBecause the GICRaw is violated but the FHWC is satisfied, the ratio of individual wealth to permanent income is expected to rise toward infinity."
         else:
             pass
@@ -2026,69 +2026,76 @@ class PerfForesightConsumerType(AgentType):
         self.log_condition_result(None, None, GIC_message, verbose)
 
         if not self.quiet:
-            _log.info(self.bilt['conditions_report'])
-
+            _log.info(self.bilt["conditions_report"])
 
     def calc_stable_points(self):
-            """
-            If the problem is one that satisfies the conditions required for target ratios of different
-            variables to permanent income to exist, and has been solved to within the self-defined
-            tolerance, this method calculates the target values of market resources.
+        """
+        If the problem is one that satisfies the conditions required for target ratios of different
+        variables to permanent income to exist, and has been solved to within the self-defined
+        tolerance, this method calculates the target values of market resources.
 
-            Parameters
-            ----------
-            None
+        Parameters
+        ----------
+        None
 
-            Returns
-            -------
-            None
-            """
-            infinite_horizon = self.cycles == 0
-            single_period = self.T_cycle = 1
-            if not infinite_horizon:
-                _log.warning("The calc_stable_points method works only for infinite horizon models.")
-                return
-            if not single_period:
-                _log.warning("The calc_stable_points method works only with a single infinitely repeated period.")
-                return
-            if not hasattr(self, 'conditions'):
-                _log.warning("The calc_limiting_values method must be run before the calc_stable_points method.")
-                return
-            if not hasattr(self, 'solution'):
-                _log.warning("The solve method must be run before the calc_stable_points method.")
-                return
-            
-            # Extract balanced growth and delta m_t+1 = 0 functions
-            BalGroFunc = self.bilt['BalGroFunc']
-            Delta_mNrm_ZeroFunc = self.bilt['Delta_mNrm_ZeroFunc']
-            
-            # If the GICRaw holds, then there is a balanced growth market resources ratio
-            if self.conditions['GICRaw']:
-                cFunc = self.solution[0].cFunc
-                func_to_zero = lambda m : BalGroFunc(m) - cFunc(m)
-                m0 = 1.0
-                try:
-                    mNrmStE = newton(func_to_zero, m0)
-                except:
-                    mNrmStE = np.nan
-                    
-                # A target level of assets *might* exist even if the GICMod fails, so check no matter what
-                func_to_zero = lambda m : Delta_mNrm_ZeroFunc(m) - cFunc(m)
-                m0 = 1.0 if np.isnan(mNrmStE) else mNrmStE
-                try:
-                    mNrmTrg = newton(func_to_zero, m0, maxiter=200)
-                except:
-                    mNrmTrg = np.nan
-            else:
+        Returns
+        -------
+        None
+        """
+        infinite_horizon = self.cycles == 0
+        single_period = self.T_cycle = 1
+        if not infinite_horizon:
+            _log.warning(
+                "The calc_stable_points method works only for infinite horizon models."
+            )
+            return
+        if not single_period:
+            _log.warning(
+                "The calc_stable_points method works only with a single infinitely repeated period."
+            )
+            return
+        if not hasattr(self, "conditions"):
+            _log.warning(
+                "The calc_limiting_values method must be run before the calc_stable_points method."
+            )
+            return
+        if not hasattr(self, "solution"):
+            _log.warning(
+                "The solve method must be run before the calc_stable_points method."
+            )
+            return
+
+        # Extract balanced growth and delta m_t+1 = 0 functions
+        BalGroFunc = self.bilt["BalGroFunc"]
+        Delta_mNrm_ZeroFunc = self.bilt["Delta_mNrm_ZeroFunc"]
+
+        # If the GICRaw holds, then there is a balanced growth market resources ratio
+        if self.conditions["GICRaw"]:
+            cFunc = self.solution[0].cFunc
+            func_to_zero = lambda m: BalGroFunc(m) - cFunc(m)
+            m0 = 1.0
+            try:
+                mNrmStE = newton(func_to_zero, m0)
+            except:
                 mNrmStE = np.nan
+
+            # A target level of assets *might* exist even if the GICMod fails, so check no matter what
+            func_to_zero = lambda m: Delta_mNrm_ZeroFunc(m) - cFunc(m)
+            m0 = 1.0 if np.isnan(mNrmStE) else mNrmStE
+            try:
+                mNrmTrg = newton(func_to_zero, m0, maxiter=200)
+            except:
                 mNrmTrg = np.nan
-                
-            self.solution[0].mNrmStE = mNrmStE
-            self.solution[0].mNrmTrg = mNrmTrg
-            self.bilt['mNrmStE'] = mNrmStE
-            self.bilt['mNrmTrg'] = mNrmTrg
-        
-        
+        else:
+            mNrmStE = np.nan
+            mNrmTrg = np.nan
+
+        self.solution[0].mNrmStE = mNrmStE
+        self.solution[0].mNrmTrg = mNrmTrg
+        self.bilt["mNrmStE"] = mNrmStE
+        self.bilt["mNrmTrg"] = mNrmTrg
+
+
 # Make a dictionary to specify an idiosyncratic income shocks consumer
 init_idiosyncratic_shocks = dict(
     init_perfect_foresight,
@@ -2981,7 +2988,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         return J_C, J_A
 
-    
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
         Creates a "normalized Euler error" function for this instance, mapping
@@ -3174,11 +3180,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Calculate the risk-modified growth impatience factor
         PermShkDstn = self.PermShkDstn[0]
-        inv_func = lambda x : x**(-1.)
+        inv_func = lambda x: x ** (-1.0)
         Ex_PermShkInv = expected(inv_func, PermShkDstn)[0]
-        GroCompPermShk = Ex_PermShkInv**(-1.)
-        aux_dict['GPFacMod'] = aux_dict['APFac'] / (self.PermGroFac[0] * GroCompPermShk)
-        
+        GroCompPermShk = Ex_PermShkInv ** (-1.0)
+        aux_dict["GPFacMod"] = aux_dict["APFac"] / (self.PermGroFac[0] * GroCompPermShk)
+
         # Calculate the mortality-adjusted growth impatience factor (and version
         # with Modigiliani bequests)
         aux_dict["GPFacLiv"] = aux_dict["GPFacRaw"] * self.LivPrb[0]
@@ -3239,14 +3245,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
             MPCmax = np.maximum(MPCmax, 0.0)
 
         # Store maximum MPC and human wealth
-        aux_dict['hNrm'] = hNrm
-        aux_dict['MPCmax'] = MPCmax
-        
+        aux_dict["hNrm"] = hNrm
+        aux_dict["MPCmax"] = MPCmax
+
         # Generate the "Delta m = 0" function, which is used to find target market resources
         # This overwrites the function generated by the perfect foresight version
         Ex_Rnrm = self.Rfree / self.PermGroFac[0] * Ex_PermShkInv
-        aux_dict['Delta_mNrm_ZeroFunc'] = lambda m : (1. - 1./Ex_Rnrm) * m + 1./Ex_Rnrm
-        
+        aux_dict["Delta_mNrm_ZeroFunc"] = (
+            lambda m: (1.0 - 1.0 / Ex_Rnrm) * m + 1.0 / Ex_Rnrm
+        )
+
         self.bilt = aux_dict
 
         self.bilt = aux_dict
