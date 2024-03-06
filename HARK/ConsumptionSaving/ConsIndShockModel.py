@@ -426,17 +426,14 @@ def solve_one_period_ConsIndShock(solution_next, IncShkDstn, LivPrb, DiscFac, CR
     # Calculate the probability that we get the worst possible income draw
     IncNext = PermShkValsNext * TranShkValsNext
     WorstIncNext = PermShkMinNext * TranShkMinNext
-    WorstIncPrb = np.sum(
-        ShkPrbsNext[IncNext == WorstIncNext]
-    )
+    WorstIncPrb = np.sum(ShkPrbsNext[IncNext == WorstIncNext])
     # WorstIncPrb is the "Weierstrass p" concept: the odds we get the WORST thing
     
     # Unpack next period's (marginal) value function
-    vFuncNext = solution_next.vFunc  # This might be None
+    vFuncNext = solution_next.vFunc  # This is None when vFuncBool is False
     vPfuncNext = solution_next.vPfunc
-    vPPfuncNext = solution_next.vPPfunc  # This might be None
+    vPPfuncNext = solution_next.vPPfunc  # This is None when CubicBool is False
     
-
     # Update the bounding MPCs and PDV of human wealth:
     PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
     try:
@@ -479,10 +476,13 @@ def solve_one_period_ConsIndShock(solution_next, IncShkDstn, LivPrb, DiscFac, CR
     # Define local functions for taking future expectations
     def calc_mNrmNext(S, a, R):
         return R / (PermGroFac * S["PermShk"]) * a + S["TranShk"]
+    def calc_vNext(S, a, R):
+        return (S["PermShk"]**(1.0 - CRRA) * PermGroFac**(1.0 - CRRA)) * vFuncNext(calc_mNrmNext(S, a, R))
     def calc_vPnext(S, a, R):
-        return S["PermShk"] ** (-CRRA) * vPfuncNext(calc_mNrmNext(S, a, R))
+        return S["PermShk"]**(-CRRA) * vPfuncNext(calc_mNrmNext(S, a, R))
     def calc_vPPnext(S, a, R):
-        return S["PermShk"] ** (-CRRA - 1.0) * vPPfuncNext(calc_mNrmNext(S, a, R))
+        return S["PermShk"]**(-CRRA - 1.0) * vPPfuncNext(calc_mNrmNext(S, a, R))
+
     
     # Calculate end-of-period marginal value of assets at each gridpoint
     vPfacEff = DiscFacEff * Rfree * PermGroFac**(-CRRA)
@@ -496,8 +496,9 @@ def solve_one_period_ConsIndShock(solution_next, IncShkDstn, LivPrb, DiscFac, CR
     c_for_interpolation = np.insert(cNrmNow, 0, 0.0)
     m_for_interpolation = np.insert(mNrmNow, 0, BoroCnstNat)
     
-    # Calculate end-of-period marginal marginal value of assets at each gridpoint
+    # Construct the consumption function as a cubic or linear spline interpolation
     if CubicBool:
+        # Calculate end-of-period marginal marginal value of assets at each gridpoint
         vPPfacEff = DiscFacEff * Rfree * Rfree * PermGroFac ** (-CRRA - 1.0)
         EndOfPrdvPP = vPPfacEff * expected(calc_vPPnext, IncShkDstn, args=(aNrmNow, Rfree))
         dcda = EndOfPrdvPP / uFunc.der(np.array(cNrmNow), order=2)
@@ -528,11 +529,50 @@ def solve_one_period_ConsIndShock(solution_next, IncShkDstn, LivPrb, DiscFac, CR
     if CubicBool:
         vPPfuncNow = MargMargValueFuncCRRA(cFuncNow, CRRA)
     else:
-        vPPfuncNow = None
+        vPPfuncNow = None  # Dummy object
+    
+    # Construct this period's value function if requested
+    if vFuncBool:
+        # Calculate end-of-period value, its derivative, and their pseudo-inverse
+        EndOfPrdv = DiscFacEff * expected(calc_vNext, IncShkDstn, args=(aNrmNow, Rfree))
+        EndOfPrdvNvrs = uFunc.inv(EndOfPrdv)  # value transformed through inverse utility
+        EndOfPrdvNvrsP = EndOfPrdvP * uFunc.derinv(EndOfPrdv, order=(0, 1))
+        EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
+        EndOfPrdvNvrsP = np.insert(EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0])
+        # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+        
+        # Construct the end-of-period value function
+        aNrm_temp = np.insert(aNrmNow, 0, BoroCnstNat)
+        EndOfPrdvNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
+        EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, CRRA)
+        
+        # Compute expected value and marginal value on a grid of market resources
+        mNrm_temp = mNrmMinNow + aXtraGrid
+        cNrm_temp = cFuncNow(mNrm_temp)
+        aNrm_temp = mNrm_temp - cNrm_temp
+        v_temp = uFunc(cNrm_temp) + EndOfPrdvFunc(aNrm_temp)
+        vP_temp = uFunc.der(cNrm_temp)
 
-    # Create this period's solution
+        # Construct the beginning-of-period value function
+        vNvrs_temp = uFunc.inv(v_temp)  # value transformed through inv utility
+        vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
+        mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
+        vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
+        vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff**(-CRRA / (1.0 - CRRA)))
+        MPCminNvrs = MPCminNow**(-CRRA / (1.0 - CRRA))
+        vNvrsFuncNow = CubicInterp(mNrm_temp,
+                                   vNvrs_temp,
+                                   vNvrsP_temp,
+                                   MPCminNvrs * hNrmNow,
+                                   MPCminNvrs)
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
+    else:
+        vFuncNow = None  # Dummy object
+
+    # Create and return this period's solution
     solution_now = ConsumerSolution(
                         cFunc = cFuncNow,
+                        vFunc = vFuncNow,
                         vPfunc = vPfuncNow,
                         vPPfunc = vPPfuncNow,
                         mNrmMin = mNrmMinNow,
@@ -540,7 +580,6 @@ def solve_one_period_ConsIndShock(solution_next, IncShkDstn, LivPrb, DiscFac, CR
                         MPCmin = MPCminNow,
                         MPCmax = MPCmaxEff
     )
-    
     return solution_now
 
 
