@@ -710,13 +710,14 @@ def solve_one_period_ConsKinkedR(
 
     # Update the bounding MPCs and PDV of human wealth:
     PatFac = ((Rsave * DiscFacEff) ** (1.0 / CRRA)) / Rsave
+    PatFacAlt = ((Rsave * DiscFacEff) ** (1.0 / CRRA)) / Rboro
     try:
         MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
     except:
         MPCminNow = 0.0
     Ex_IncNext = np.dot(ShkPrbsNext, TranShkValsNext * PermShkValsNext)
     hNrmNow = (PermGroFac / Rsave) * (Ex_IncNext + solution_next.hNrm)
-    temp_fac = (WorstIncPrb ** (1.0 / CRRA)) * PatFac
+    temp_fac = (WorstIncPrb ** (1.0 / CRRA)) * PatFacAlt
     MPCmaxNow = 1.0 / (1.0 + temp_fac / solution_next.MPCmax)
     cFuncLimitIntercept = MPCminNow * hNrmNow
     cFuncLimitSlope = MPCminNow
@@ -4460,7 +4461,6 @@ class KinkedRconsumerType(IndShockConsumerType):
     Parameters
     ----------
     """
-
     time_inv_ = copy(IndShockConsumerType.time_inv_)
     time_inv_ += ["Rboro", "Rsave"]
 
