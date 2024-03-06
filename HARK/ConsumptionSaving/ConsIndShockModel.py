@@ -665,24 +665,27 @@ def solve_one_period_ConsKinkedR(
         Solution to this period's consumption-saving problem with income risk.
     """
     # Verifiy that there is actually a kink in the interest factor
-    assert Rboro >= Rsave, "Interest factor on debt less than interest factor on savings!"
+    assert (
+        Rboro >= Rsave
+    ), "Interest factor on debt less than interest factor on savings!"
     # If the kink is in the wrong direction, code should break here. If there's
     # no kink at all, then just use the ConsIndShockModel solver.
-    if (Rboro == Rsave):
+    if Rboro == Rsave:
         solution_now = solve_one_period_ConsIndShock(
-                                        solution_next,
-                                        IncShkDstn,
-                                        LivPrb,
-                                        DiscFac,
-                                        CRRA,
-                                        Rboro,
-                                        PermGroFac,
-                                        BoroCnstArt,
-                                        aXtraGrid,
-                                        vFuncBool,
-                                        CubicBool)
+            solution_next,
+            IncShkDstn,
+            LivPrb,
+            DiscFac,
+            CRRA,
+            Rboro,
+            PermGroFac,
+            BoroCnstArt,
+            aXtraGrid,
+            vFuncBool,
+            CubicBool,
+        )
         return solution_now
-    
+
     # Define the current period utility function and effective discount factor
     uFunc = UtilityFuncCRRA(CRRA)
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
@@ -706,7 +709,7 @@ def solve_one_period_ConsKinkedR(
     vPPfuncNext = solution_next.vPPfunc  # This is None when CubicBool is False
 
     # Update the bounding MPCs and PDV of human wealth:
-    PatFac = ((Rsave * DiscFacEff)**(1.0 / CRRA)) / Rsave
+    PatFac = ((Rsave * DiscFacEff) ** (1.0 / CRRA)) / Rsave
     try:
         MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
     except:
@@ -742,14 +745,15 @@ def solve_one_period_ConsKinkedR(
     )
 
     # Construct the assets grid by adjusting aXtra by the natural borrowing constraint
-    aNrmNow = np.sort(np.hstack((np.asarray(aXtraGrid) + mNrmMinNow, np.array([0.0, 0.0]))))
-                                
+    aNrmNow = np.sort(
+        np.hstack((np.asarray(aXtraGrid) + mNrmMinNow, np.array([0.0, 0.0])))
+    )
+
     # Make a 1D array of the interest factor at each asset gridpoint
     Rfree = Rsave * np.ones_like(aNrmNow)
     Rfree[aNrmNow < 0] = Rboro
-    i_kink = np.argwhere(aNrmNow == 0.)[0][0]
+    i_kink = np.argwhere(aNrmNow == 0.0)[0][0]
     Rfree[i_kink] = Rboro
-    #print(i_kink)
 
     # Define local functions for taking future expectations
     def calc_mNrmNext(S, a, R):
@@ -798,10 +802,12 @@ def solve_one_period_ConsKinkedR(
             cFuncLimitSlope,
         )
         # Adjust the coefficients on the kinked portion of the cFunc
-        cFuncNowUnc.coeffs[i_kink+2] = [c_for_interpolation[i_kink+1],
-                                          m_for_interpolation[i_kink + 1] - m_for_interpolation[i_kink],
-                                          0.0,
-                                          0.0,]
+        cFuncNowUnc.coeffs[i_kink + 2] = [
+            c_for_interpolation[i_kink + 1],
+            m_for_interpolation[i_kink + 1] - m_for_interpolation[i_kink],
+            0.0,
+            0.0,
+        ]
     else:
         # Construct the unconstrained consumption function as a linear interpolation
         cFuncNowUnc = LinearInterp(
