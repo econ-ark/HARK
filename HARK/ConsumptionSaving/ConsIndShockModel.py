@@ -710,7 +710,7 @@ def solve_one_period_ConsKinkedR(
 
     # Update the bounding MPCs and PDV of human wealth:
     PatFac = ((Rsave * DiscFacEff) ** (1.0 / CRRA)) / Rsave
-    PatFacAlt = ((Rsave * DiscFacEff) ** (1.0 / CRRA)) / Rboro
+    PatFacAlt = ((Rboro * DiscFacEff) ** (1.0 / CRRA)) / Rboro
     try:
         MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
     except:
@@ -4461,6 +4461,7 @@ class KinkedRconsumerType(IndShockConsumerType):
     Parameters
     ----------
     """
+
     time_inv_ = copy(IndShockConsumerType.time_inv_)
     time_inv_ += ["Rboro", "Rsave"]
 
