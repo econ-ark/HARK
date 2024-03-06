@@ -432,11 +432,10 @@ def solve_one_period_ConsIndShock(solution_next, IncShkDstn, LivPrb, DiscFac, CR
     # WorstIncPrb is the "Weierstrass p" concept: the odds we get the WORST thing
     
     # Unpack next period's (marginal) value function
+    vFuncNext = solution_next.vFunc  # This might be None
     vPfuncNext = solution_next.vPfunc
-    if CubicBool:
-        vPPfuncNext = solution_next.vPPfunc
-    if vFuncBool:
-        vFuncNext = solution_next.vFunc
+    vPPfuncNext = solution_next.vPPfunc  # This might be None
+    
 
     # Update the bounding MPCs and PDV of human wealth:
     PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
@@ -482,6 +481,8 @@ def solve_one_period_ConsIndShock(solution_next, IncShkDstn, LivPrb, DiscFac, CR
         return R / (PermGroFac * S["PermShk"]) * a + S["TranShk"]
     def calc_vPnext(S, a, R):
         return S["PermShk"] ** (-CRRA) * vPfuncNext(calc_mNrmNext(S, a, R))
+    def calc_vPPnext(S, a, R):
+        return S["PermShk"] ** (-CRRA - 1.0) * vPPfuncNext(calc_mNrmNext(S, a, R))
     
     # Calculate end-of-period marginal value of assets at each gridpoint
     vPfacEff = DiscFacEff * Rfree * PermGroFac**(-CRRA)
@@ -490,32 +491,54 @@ def solve_one_period_ConsIndShock(solution_next, IncShkDstn, LivPrb, DiscFac, CR
     # Invert the first order condition to find optimal cNrm from each aNrm gridpoint
     cNrmNow = uFunc.derinv(EndOfPrdvP, order=(1, 0))
     mNrmNow = cNrmNow + aNrmNow  # Endogenous mNrm gridpoints
-
+    
     # Limiting consumption is zero as m approaches mNrmMin
     c_for_interpolation = np.insert(cNrmNow, 0, 0.0)
     m_for_interpolation = np.insert(mNrmNow, 0, BoroCnstNat)
-
-    # Construct the unconstrained consumption function
-    cFuncNowUnc = LinearInterp(m_for_interpolation,
-                               c_for_interpolation,
-                               cFuncLimitIntercept,
-                               cFuncLimitSlope)
-
+    
+    # Calculate end-of-period marginal marginal value of assets at each gridpoint
+    if CubicBool:
+        vPPfacEff = DiscFacEff * Rfree * Rfree * PermGroFac ** (-CRRA - 1.0)
+        EndOfPrdvPP = vPPfacEff * expected(calc_vPPnext, IncShkDstn, args=(aNrmNow, Rfree))
+        dcda = EndOfPrdvPP / uFunc.der(np.array(cNrmNow), order=2)
+        MPC = dcda / (dcda + 1.0)
+        MPC_for_interpolation = np.insert(MPC, 0, MPCmaxNow)
+        
+        # Construct the unconstrained consumption function as a cubic interpolation
+        cFuncNowUnc = CubicInterp(m_for_interpolation,
+                                  c_for_interpolation,
+                                  MPC_for_interpolation,
+                                  cFuncLimitIntercept,
+                                  cFuncLimitSlope)
+    else:
+         # Construct the unconstrained consumption function as a linear interpolation
+         cFuncNowUnc = LinearInterp(m_for_interpolation,
+                                    c_for_interpolation,
+                                    cFuncLimitIntercept,
+                                    cFuncLimitSlope)
+    
     # Combine the constrained and unconstrained functions into the true consumption function.
     # LowerEnvelope should only be used when BoroCnstArt is True
     cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst, nan_bool=False)
 
     # Make the marginal value function and the marginal marginal value function
     vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)
+    
+    # Define this period's marginal marginal value function
+    if CubicBool:
+        vPPfuncNow = MargMargValueFuncCRRA(cFuncNow, CRRA)
+    else:
+        vPPfuncNow = None
 
     # Create this period's solution
     solution_now = ConsumerSolution(
                         cFunc = cFuncNow,
                         vPfunc = vPfuncNow,
+                        vPPfunc = vPPfuncNow,
                         mNrmMin = mNrmMinNow,
                         hNrm = hNrmNow,
                         MPCmin = MPCminNow,
-                        MPCmax = MPCmaxNow
+                        MPCmax = MPCmaxEff
     )
     
     return solution_now
