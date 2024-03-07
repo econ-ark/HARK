@@ -805,7 +805,7 @@ def solve_one_period_ConsKinkedR(
         # Adjust the coefficients on the kinked portion of the cFunc
         cFuncNowUnc.coeffs[i_kink + 2] = [
             c_for_interpolation[i_kink + 1],
-            m_for_interpolation[i_kink + 1] - m_for_interpolation[i_kink],
+            m_for_interpolation[i_kink + 2] - m_for_interpolation[i_kink + 1],
             0.0,
             0.0,
         ]
