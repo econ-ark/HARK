@@ -1206,7 +1206,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             method in that it uses numpy's vectorization and broadcasting
             rules to avoid costly iteration.
             Note: If you need to use a function that acts on single outcomes
-            of the distribution, consier `distribution.calc_expectation`.
+            of the distribution, consider `distribution.calc_expectation`.
         \\*args :
             Other inputs for func, representing the non-stochastic arguments.
             The the expectation is computed at ``f(dstn, *args)``.
