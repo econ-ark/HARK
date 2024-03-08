@@ -16,16 +16,6 @@ See HARK documentation for mathematical descriptions of the models being solved.
 from copy import copy, deepcopy
 
 import numpy as np
-from scipy import sparse as sp
-from scipy.optimize import newton
-
-from HARK import (
-    AgentType,
-    NullFunc,
-    _log,
-    make_one_period_oo_solver,
-    set_verbosity_level,
-)
 from HARK.Calibration.Income.IncomeTools import (
     Cagetti_income,
     parse_income_spec,
@@ -71,6 +61,16 @@ from HARK.utilities import (
     jump_to_grid_1D,
     jump_to_grid_2D,
     make_grid_exp_mult,
+)
+from scipy import sparse as sp
+from scipy.optimize import newton
+
+from HARK import (
+    AgentType,
+    NullFunc,
+    _log,
+    make_one_period_oo_solver,
+    set_verbosity_level,
 )
 
 __all__ = [
@@ -209,11 +209,29 @@ class ConsumerSolution(MetricObject):
 # =====================================================================
 
 
+def calc_human_wealth(h_nrm_next, perm_gro_fac, rfree, ex_inc_next):
+    return (perm_gro_fac / rfree) * (h_nrm_next + ex_inc_next)
+
+
+def calc_pat_fac(rfree, disc_fac_eff, crra):
+    return ((rfree * disc_fac_eff) ** (1.0 / crra)) / rfree
+
+
+def calc_mpc_min(mpc_min_next, pat_fac):
+    return 1.0 / (1.0 + pat_fac / mpc_min_next)
+
+
 def solve_one_period_ConsPF(
-    solution_next, DiscFac, LivPrb, CRRA, Rfree, PermGroFac, BoroCnstArt, MaxKinks
+    solution_next,
+    DiscFac,
+    LivPrb,
+    CRRA,
+    Rfree,
+    PermGroFac,
+    BoroCnstArt,
+    MaxKinks,
 ):
-    """
-    Solves one period of a basic perfect foresight consumption-saving model with
+    """Solves one period of a basic perfect foresight consumption-saving model with
     a single risk free asset and permanent income growth.
 
     Parameters
@@ -244,30 +262,29 @@ def solve_one_period_ConsPF(
     solution_now : ConsumerSolution
         Solution to the current period of a perfect foresight consumption-saving
         problem.
+
     """
     # Define the utility function and effective discount factor
     uFunc = UtilityFuncCRRA(CRRA)
     DiscFacEff = DiscFac * LivPrb  # Effective = pure x LivPrb
 
     # Prevent comparing None and float if there is no borrowing constraint
-    if BoroCnstArt is None:
-        BoroCnstArt = -np.inf  # Can borrow as much as we want
+    # Can borrow as much as we want
+    BoroCnstArt = -np.inf if BoroCnstArt is None else BoroCnstArt
 
     # Calculate human wealth this period
-    hNrmNow = (PermGroFac / Rfree) * (solution_next.hNrm + 1.0)
+    hNrmNow = calc_human_wealth(solution_next.hNrm, PermGroFac, Rfree, 1.0)
 
     # Calculate the lower bound of the marginal propensity to consume
-    PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
-    MPCmin = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
+    PatFac = calc_pat_fac(Rfree, DiscFacEff, CRRA)
+    MPCmin = calc_mpc_min(solution_next.MPCmin, PatFac)
 
     # Extract the discrete kink points in next period's consumption function;
     # don't take the last one, as it only defines the extrapolation and is not a kink.
     mNrmNext = solution_next.cFunc.x_list[:-1]
     cNrmNext = solution_next.cFunc.y_list[:-1]
-    vNext = PermGroFac ** (1.0 - CRRA) * uFunc(
-        solution_next.vFunc.vFuncNvrs.y_list[:-1]
-    )
-    EndOfPrdv = DiscFacEff * vNext
+    vFuncNvrsNext = solution_next.vFunc.vFuncNvrs.y_list[:-1]
+    EndOfPrdv = DiscFacEff * PermGroFac ** (1.0 - CRRA) * uFunc(vFuncNvrsNext)
 
     # Calculate the end-of-period asset values that would reach those kink points
     # next period, then invert the first order condition to get consumption. Then
@@ -366,6 +383,52 @@ def solve_one_period_ConsPF(
     return solution_now
 
 
+def calc_worst_inc_prob(inc_shk_dstn):
+    probs = inc_shk_dstn.pmv
+    perm, tran = inc_shk_dstn.atoms
+    income = perm * tran
+    worst_inc = np.min(income)
+    return np.sum(probs[income == worst_inc])
+
+
+def calc_mpc_max(mpc_max_next, worst_inc_prob, crra, pat_fac):
+    temp_fac = (worst_inc_prob ** (1.0 / crra)) * pat_fac
+    return 1.0 / (1.0 + temp_fac / mpc_max_next)
+
+
+def calc_boro_const_nat(
+    m_nrm_min_next,
+    inc_shk_dstn,
+    rfree,
+    perm_gro_fac,
+):
+    perm, tran = inc_shk_dstn.atoms
+    temp_fac = (perm_gro_fac * np.min(perm)) / rfree
+    return (m_nrm_min_next - np.min(tran)) * temp_fac
+
+
+def calc_m_nrm_next(shock, a, rfree, perm_gro_fac):
+    return rfree / (perm_gro_fac * shock["PermShk"]) * a + shock["TranShk"]
+
+
+def calc_v_next(shock, a, rfree, crra, perm_gro_fac, vfunc_next):
+    return (
+        shock["PermShk"] ** (1.0 - crra) * perm_gro_fac ** (1.0 - crra)
+    ) * vfunc_next(calc_m_nrm_next(shock, a, rfree, perm_gro_fac))
+
+
+def calc_vp_next(shock, a, rfree, crra, perm_gro_fac, vp_func_next):
+    return shock["PermShk"] ** (-crra) * vp_func_next(
+        calc_m_nrm_next(shock, a, rfree, perm_gro_fac),
+    )
+
+
+def calc_vpp_next(shock, a, rfree, crra, perm_gro_fac, vppfunc_next):
+    return shock["PermShk"] ** (-crra - 1.0) * vppfunc_next(
+        calc_m_nrm_next(shock, a, rfree, perm_gro_fac),
+    )
+
+
 def solve_one_period_ConsIndShock(
     solution_next,
     IncShkDstn,
@@ -379,8 +442,7 @@ def solve_one_period_ConsIndShock(
     vFuncBool,
     CubicBool,
 ):
-    """
-    Solves one period of a consumption-saving model with idiosyncratic shocks to
+    """Solves one period of a consumption-saving model with idiosyncratic shocks to
     permanent and transitory income, with one risk free asset and CRRA utility.
 
     Parameters
@@ -420,23 +482,14 @@ def solve_one_period_ConsIndShock(
     -------
     solution_now : ConsumerSolution
         Solution to this period's consumption-saving problem with income risk.
+
     """
     # Define the current period utility function and effective discount factor
     uFunc = UtilityFuncCRRA(CRRA)
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
 
-    # Unpack next period's income shock distribution
-    ShkPrbsNext = IncShkDstn.pmv
-    PermShkValsNext = IncShkDstn.atoms[0]
-    TranShkValsNext = IncShkDstn.atoms[1]
-    PermShkMinNext = np.min(PermShkValsNext)
-    TranShkMinNext = np.min(TranShkValsNext)
-
     # Calculate the probability that we get the worst possible income draw
-    IncNext = PermShkValsNext * TranShkValsNext
-    WorstIncNext = PermShkMinNext * TranShkMinNext
-    WorstIncPrb = np.sum(ShkPrbsNext[IncNext == WorstIncNext])
-    # WorstIncPrb is the "Weierstrass p" concept: the odds we get the WORST thing
+    WorstIncPrb = calc_worst_inc_prob(IncShkDstn)
 
     # Unpack next period's (marginal) value function
     vFuncNext = solution_next.vFunc  # This is None when vFuncBool is False
@@ -444,21 +497,19 @@ def solve_one_period_ConsIndShock(
     vPPfuncNext = solution_next.vPPfunc  # This is None when CubicBool is False
 
     # Update the bounding MPCs and PDV of human wealth:
-    PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
-    try:
-        MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
-    except:
-        MPCminNow = 0.0
-    Ex_IncNext = np.dot(ShkPrbsNext, TranShkValsNext * PermShkValsNext)
-    hNrmNow = PermGroFac / Rfree * (Ex_IncNext + solution_next.hNrm)
-    temp_fac = (WorstIncPrb ** (1.0 / CRRA)) * PatFac
-    MPCmaxNow = 1.0 / (1.0 + temp_fac / solution_next.MPCmax)
-    cFuncLimitIntercept = MPCminNow * hNrmNow
-    cFuncLimitSlope = MPCminNow
+    PatFac = calc_pat_fac(Rfree, DiscFacEff, CRRA)
+    MPCmin = calc_mpc_min(solution_next.MPCmin, PatFac)
+    Ex_IncNext = expected(lambda x: x["PermShk"] * x["TranShk"], IncShkDstn)
+    hNrm = calc_human_wealth(solution_next.hNrm, PermGroFac, Rfree, Ex_IncNext)
+    MPCmax = calc_mpc_max(solution_next.MPCmax, WorstIncPrb, CRRA, PatFac)
+
+    cFuncLimitIntercept = MPCmin * hNrm
+    cFuncLimitSlope = MPCmin
 
     # Calculate the minimum allowable value of money resources in this period
-    PermGroFacEffMin = (PermGroFac * PermShkMinNext) / Rfree
-    BoroCnstNat = (solution_next.mNrmMin - TranShkMinNext) * PermGroFacEffMin
+    BoroCnstNat = calc_boro_const_nat(
+        solution_next.mNrmMin, IncShkDstn, Rfree, PermGroFac
+    )
 
     # Set the minimum allowable (normalized) market resources based on the natural
     # and artificial borrowing constraints
@@ -472,34 +523,24 @@ def solve_one_period_ConsIndShock(
     if BoroCnstNat < mNrmMinNow:
         MPCmaxEff = 1.0  # If actually constrained, MPC near limit is 1
     else:
-        MPCmaxEff = MPCmaxNow  # Otherwise, it's the MPC calculated above
+        MPCmaxEff = MPCmax  # Otherwise, it's the MPC calculated above
 
     # Define the borrowing-constrained consumption function
     cFuncNowCnst = LinearInterp(
-        np.array([mNrmMinNow, mNrmMinNow + 1.0]), np.array([0.0, 1.0])
+        np.array([mNrmMinNow, mNrmMinNow + 1.0]),
+        np.array([0.0, 1.0]),
     )
 
     # Construct the assets grid by adjusting aXtra by the natural borrowing constraint
     aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
 
-    # Define local functions for taking future expectations
-    def calc_mNrmNext(S, a, R):
-        return R / (PermGroFac * S["PermShk"]) * a + S["TranShk"]
-
-    def calc_vNext(S, a, R):
-        return (S["PermShk"] ** (1.0 - CRRA) * PermGroFac ** (1.0 - CRRA)) * vFuncNext(
-            calc_mNrmNext(S, a, R)
-        )
-
-    def calc_vPnext(S, a, R):
-        return S["PermShk"] ** (-CRRA) * vPfuncNext(calc_mNrmNext(S, a, R))
-
-    def calc_vPPnext(S, a, R):
-        return S["PermShk"] ** (-CRRA - 1.0) * vPPfuncNext(calc_mNrmNext(S, a, R))
-
     # Calculate end-of-period marginal value of assets at each gridpoint
     vPfacEff = DiscFacEff * Rfree * PermGroFac ** (-CRRA)
-    EndOfPrdvP = vPfacEff * expected(calc_vPnext, IncShkDstn, args=(aNrmNow, Rfree))
+    EndOfPrdvP = vPfacEff * expected(
+        calc_vp_next,
+        IncShkDstn,
+        args=(aNrmNow, Rfree, CRRA, PermGroFac, vPfuncNext),
+    )
 
     # Invert the first order condition to find optimal cNrm from each aNrm gridpoint
     cNrmNow = uFunc.derinv(EndOfPrdvP, order=(1, 0))
@@ -514,11 +555,13 @@ def solve_one_period_ConsIndShock(
         # Calculate end-of-period marginal marginal value of assets at each gridpoint
         vPPfacEff = DiscFacEff * Rfree * Rfree * PermGroFac ** (-CRRA - 1.0)
         EndOfPrdvPP = vPPfacEff * expected(
-            calc_vPPnext, IncShkDstn, args=(aNrmNow, Rfree)
+            calc_vpp_next,
+            IncShkDstn,
+            args=(aNrmNow, Rfree, CRRA, PermGroFac, vPPfuncNext),
         )
         dcda = EndOfPrdvPP / uFunc.der(np.array(cNrmNow), order=2)
         MPC = dcda / (dcda + 1.0)
-        MPC_for_interpolation = np.insert(MPC, 0, MPCmaxNow)
+        MPC_for_interpolation = np.insert(MPC, 0, MPCmax)
 
         # Construct the unconstrained consumption function as a cubic interpolation
         cFuncNowUnc = CubicInterp(
@@ -553,9 +596,13 @@ def solve_one_period_ConsIndShock(
     # Construct this period's value function if requested
     if vFuncBool:
         # Calculate end-of-period value, its derivative, and their pseudo-inverse
-        EndOfPrdv = DiscFacEff * expected(calc_vNext, IncShkDstn, args=(aNrmNow, Rfree))
+        EndOfPrdv = DiscFacEff * expected(
+            calc_v_next,
+            IncShkDstn,
+            args=(aNrmNow, Rfree, CRRA, PermGroFac, vFuncNext),
+        )
         EndOfPrdvNvrs = uFunc.inv(
-            EndOfPrdv
+            EndOfPrdv,
         )  # value transformed through inverse utility
         EndOfPrdvNvrsP = EndOfPrdvP * uFunc.derinv(EndOfPrdv, order=(0, 1))
         EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
@@ -580,9 +627,13 @@ def solve_one_period_ConsIndShock(
         mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
         vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
         vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
-        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+        MPCminNvrs = MPCmin ** (-CRRA / (1.0 - CRRA))
         vNvrsFuncNow = CubicInterp(
-            mNrm_temp, vNvrs_temp, vNvrsP_temp, MPCminNvrs * hNrmNow, MPCminNvrs
+            mNrm_temp,
+            vNvrs_temp,
+            vNvrsP_temp,
+            MPCminNvrs * hNrm,
+            MPCminNvrs,
         )
         vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
     else:
@@ -595,8 +646,8 @@ def solve_one_period_ConsIndShock(
         vPfunc=vPfuncNow,
         vPPfunc=vPPfuncNow,
         mNrmMin=mNrmMinNow,
-        hNrm=hNrmNow,
-        MPCmin=MPCminNow,
+        hNrm=hNrm,
+        MPCmin=MPCmin,
         MPCmax=MPCmaxEff,
     )
     return solution_now
@@ -616,8 +667,7 @@ def solve_one_period_ConsKinkedR(
     vFuncBool,
     CubicBool,
 ):
-    """
-    Solves one period of a consumption-saving model with idiosyncratic shocks to
+    """Solves one period of a consumption-saving model with idiosyncratic shocks to
     permanent and transitory income, with a risk free asset and CRRA utility.
     In this variation, the interest rate on borrowing Rboro exceeds the interest
     rate on saving Rsave.
@@ -663,6 +713,7 @@ def solve_one_period_ConsKinkedR(
     -------
     solution_now : ConsumerSolution
         Solution to this period's consumption-saving problem with income risk.
+
     """
     # Verifiy that there is actually a kink in the interest factor
     assert (
@@ -690,17 +741,8 @@ def solve_one_period_ConsKinkedR(
     uFunc = UtilityFuncCRRA(CRRA)
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
 
-    # Unpack next period's income shock distribution
-    ShkPrbsNext = IncShkDstn.pmv
-    PermShkValsNext = IncShkDstn.atoms[0]
-    TranShkValsNext = IncShkDstn.atoms[1]
-    PermShkMinNext = np.min(PermShkValsNext)
-    TranShkMinNext = np.min(TranShkValsNext)
-
     # Calculate the probability that we get the worst possible income draw
-    IncNext = PermShkValsNext * TranShkValsNext
-    WorstIncNext = PermShkMinNext * TranShkMinNext
-    WorstIncPrb = np.sum(ShkPrbsNext[IncNext == WorstIncNext])
+    WorstIncPrb = calc_worst_inc_prob(IncShkDstn)
     # WorstIncPrb is the "Weierstrass p" concept: the odds we get the WORST thing
 
     # Unpack next period's (marginal) value function
@@ -709,22 +751,20 @@ def solve_one_period_ConsKinkedR(
     vPPfuncNext = solution_next.vPPfunc  # This is None when CubicBool is False
 
     # Update the bounding MPCs and PDV of human wealth:
-    PatFac = ((Rsave * DiscFacEff) ** (1.0 / CRRA)) / Rsave
-    PatFacAlt = ((Rboro * DiscFacEff) ** (1.0 / CRRA)) / Rboro
-    try:
-        MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
-    except:
-        MPCminNow = 0.0
-    Ex_IncNext = np.dot(ShkPrbsNext, TranShkValsNext * PermShkValsNext)
-    hNrmNow = (PermGroFac / Rsave) * (Ex_IncNext + solution_next.hNrm)
-    temp_fac = (WorstIncPrb ** (1.0 / CRRA)) * PatFacAlt
-    MPCmaxNow = 1.0 / (1.0 + temp_fac / solution_next.MPCmax)
+    PatFacSave = calc_pat_fac(Rsave, DiscFacEff, CRRA)
+    PatFacBoro = calc_pat_fac(Rboro, DiscFacEff, CRRA)
+    MPCminNow = calc_mpc_min(solution_next.MPCmin, PatFacSave)
+    Ex_IncNext = expected(lambda x: x["PermShk"] * x["TranShk"], IncShkDstn)
+    hNrmNow = calc_human_wealth(solution_next.hNrm, PermGroFac, Rsave, Ex_IncNext)
+    MPCmaxNow = calc_mpc_max(solution_next.MPCmax, WorstIncPrb, CRRA, PatFacBoro)
+
     cFuncLimitIntercept = MPCminNow * hNrmNow
     cFuncLimitSlope = MPCminNow
 
     # Calculate the minimum allowable value of money resources in this period
-    PermGroFacEffMin = (PermGroFac * PermShkMinNext) / Rboro
-    BoroCnstNat = (solution_next.mNrmMin - TranShkMinNext) * PermGroFacEffMin
+    BoroCnstNat = calc_boro_const_nat(
+        solution_next.mNrmMin, IncShkDstn, Rboro, PermGroFac
+    )
 
     # Set the minimum allowable (normalized) market resources based on the natural
     # and artificial borrowing constraints
@@ -742,12 +782,13 @@ def solve_one_period_ConsKinkedR(
 
     # Define the borrowing-constrained consumption function
     cFuncNowCnst = LinearInterp(
-        np.array([mNrmMinNow, mNrmMinNow + 1.0]), np.array([0.0, 1.0])
+        np.array([mNrmMinNow, mNrmMinNow + 1.0]),
+        np.array([0.0, 1.0]),
     )
 
     # Construct the assets grid by adjusting aXtra by the natural borrowing constraint
     aNrmNow = np.sort(
-        np.hstack((np.asarray(aXtraGrid) + mNrmMinNow, np.array([0.0, 0.0])))
+        np.hstack((np.asarray(aXtraGrid) + mNrmMinNow, np.array([0.0, 0.0]))),
     )
 
     # Make a 1D array of the interest factor at each asset gridpoint
@@ -756,24 +797,13 @@ def solve_one_period_ConsKinkedR(
     i_kink = np.argwhere(aNrmNow == 0.0)[0][0]
     Rfree[i_kink] = Rboro
 
-    # Define local functions for taking future expectations
-    def calc_mNrmNext(S, a, R):
-        return R / (PermGroFac * S["PermShk"]) * a + S["TranShk"]
-
-    def calc_vNext(S, a, R):
-        return (S["PermShk"] ** (1.0 - CRRA) * PermGroFac ** (1.0 - CRRA)) * vFuncNext(
-            calc_mNrmNext(S, a, R)
-        )
-
-    def calc_vPnext(S, a, R):
-        return S["PermShk"] ** (-CRRA) * vPfuncNext(calc_mNrmNext(S, a, R))
-
-    def calc_vPPnext(S, a, R):
-        return S["PermShk"] ** (-CRRA - 1.0) * vPPfuncNext(calc_mNrmNext(S, a, R))
-
     # Calculate end-of-period marginal value of assets at each gridpoint
     vPfacEff = DiscFacEff * Rfree * PermGroFac ** (-CRRA)
-    EndOfPrdvP = vPfacEff * expected(calc_vPnext, IncShkDstn, args=(aNrmNow, Rfree))
+    EndOfPrdvP = vPfacEff * expected(
+        calc_vp_next,
+        IncShkDstn,
+        args=(aNrmNow, Rfree, CRRA, PermGroFac, vPfuncNext),
+    )
 
     # Invert the first order condition to find optimal cNrm from each aNrm gridpoint
     cNrmNow = uFunc.derinv(EndOfPrdvP, order=(1, 0))
@@ -788,7 +818,9 @@ def solve_one_period_ConsKinkedR(
         # Calculate end-of-period marginal marginal value of assets at each gridpoint
         vPPfacEff = DiscFacEff * Rfree * Rfree * PermGroFac ** (-CRRA - 1.0)
         EndOfPrdvPP = vPPfacEff * expected(
-            calc_vPPnext, IncShkDstn, args=(aNrmNow, Rfree)
+            calc_vpp_next,
+            IncShkDstn,
+            args=(aNrmNow, Rfree, CRRA, PermGroFac, vPPfuncNext),
         )
         dcda = EndOfPrdvPP / uFunc.der(np.array(cNrmNow), order=2)
         MPC = dcda / (dcda + 1.0)
@@ -834,9 +866,13 @@ def solve_one_period_ConsKinkedR(
     # Construct this period's value function if requested
     if vFuncBool:
         # Calculate end-of-period value, its derivative, and their pseudo-inverse
-        EndOfPrdv = DiscFacEff * expected(calc_vNext, IncShkDstn, args=(aNrmNow, Rfree))
+        EndOfPrdv = DiscFacEff * expected(
+            calc_v_next,
+            IncShkDstn,
+            args=(aNrmNow, Rfree, CRRA, PermGroFac, vFuncNext),
+        )
         EndOfPrdvNvrs = uFunc.inv(
-            EndOfPrdv
+            EndOfPrdv,
         )  # value transformed through inverse utility
         EndOfPrdvNvrsP = EndOfPrdvP * uFunc.derinv(EndOfPrdv, order=(0, 1))
         EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
@@ -863,7 +899,11 @@ def solve_one_period_ConsKinkedR(
         vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
         MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
         vNvrsFuncNow = CubicInterp(
-            mNrm_temp, vNvrs_temp, vNvrsP_temp, MPCminNvrs * hNrmNow, MPCminNvrs
+            mNrm_temp,
+            vNvrs_temp,
+            vNvrsP_temp,
+            MPCminNvrs * hNrmNow,
+            MPCminNvrs,
         )
         vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
     else:
