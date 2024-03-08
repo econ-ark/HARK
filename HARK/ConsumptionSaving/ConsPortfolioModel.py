@@ -679,8 +679,92 @@ def solve_one_period_ConsPortfolio( solution_next,
 
     # Add the value function if requested TODO
     if vFuncBool:
-        vFuncAdj_now = NullFunc()
-        vFuncFxd_now = NullFunc()
+        # Create the value functions for this period, defined over market resources
+        # mNrm when agent can adjust his portfolio, and over market resources and
+        # fixed share when agent can not adjust his portfolio.
+        
+        def calc_v_intermed(S, b, z):
+            '''
+            Calculate "intermediate" value from next period's bank balances, the
+            income shocks S, and the risky asset share.
+            '''
+            mNrm_next = calc_mNrm_next(S, b)
+
+            vAdj_next = vFuncAdj_next(mNrm_next)
+            if AdjustPrb < 1.0:
+                vFxd_next = vFuncFxd_next(mNrm_next, z)
+                # Combine by adjustment probability
+                v_next = AdjustPrb * vAdj_next + (1.0 - AdjustPrb) * vFxd_next
+            else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
+                v_next = vAdj_next
+                
+            v_intermed = (S["PermShk"] * PermGroFac) ** (1.0 - CRRA) * v_next
+            return v_intermed
+
+        # Calculate intermediate value by taking expectations over income shocks
+        v_intermed = expected(calc_v_intermed, IncShkDstn, args=(bNrmNext, ShareNext))
+
+        # Construct the "intermediate value function" for this period
+        vNvrs_intermed = uFunc.inv(v_intermed)
+        vNvrsFunc_intermed = BilinearInterp(vNvrs_intermed, bNrmGrid, ShareGrid)
+        vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, CRRA)
+        
+        def calc_EndOfPrd_v(S, a, z):
+            # Calculate future realizations of bank balances bNrm
+            Rxs = S - Rfree
+            Rport = Rfree + z * Rxs
+            bNrm_next = Rport * a
+
+            # Make an extended share_next of the same dimension as b_nrm so
+            # that the function can be vectorized
+            z_rep = z + np.zeros_like(bNrm_next)
+
+            EndOfPrd_v = vFunc_intermed(bNrm_next, z_rep)
+            return EndOfPrd_v
+
+        # Calculate end-of-period value by taking expectations
+        EndOfPrd_v = DiscFacEff * expected(calc_EndOfPrd_v, RiskyDstn, args=(aNrmNow, ShareNext))
+        EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v)
+
+        # Now make an end-of-period value function over aNrm and Share
+        EndOfPrd_vNvrsFunc = BilinearInterp(EndOfPrd_vNvrs, aNrmGrid, ShareGrid)
+        EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+
+        # Construct the value function when the agent can adjust his portfolio
+        mNrm_temp = aXtraGrid  # Just use aXtraGrid as our grid of mNrm values
+        cNrm_temp = cFuncAdj_now(mNrm_temp)
+        aNrm_temp = mNrm_temp - cNrm_temp
+        Share_temp = ShareFuncAdj_now(mNrm_temp)
+        v_temp = uFunc(cNrm_temp) + EndOfPrd_vFunc(aNrm_temp, Share_temp)
+        vNvrs_temp = uFunc.inv(v_temp)
+        vNvrsP_temp = uFunc.der(cNrm_temp) * uFunc.inverse(v_temp, order=(0, 1))
+        vNvrsFuncAdj = CubicInterp(
+            np.insert(mNrm_temp, 0, 0.0),  # x_list
+            np.insert(vNvrs_temp, 0, 0.0),  # f_list
+            np.insert(vNvrsP_temp, 0, vNvrsP_temp[0]),  # dfdx_list
+        )
+        # Re-curve the pseudo-inverse value function
+        vFuncAdj_now = ValueFuncCRRA(vNvrsFuncAdj, CRRA)
+
+        # Construct the value function when the agent *can't* adjust his portfolio
+        mNrm_temp, Share_temp = np.meshgrid(aXtraGrid, ShareGrid)
+        cNrm_temp = cFuncFxd_now(mNrm_temp, Share_temp)
+        aNrm_temp = mNrm_temp - cNrm_temp
+        v_temp = uFunc(cNrm_temp) + EndOfPrd_vFunc(aNrm_temp, Share_temp)
+        vNvrs_temp = uFunc.inv(v_temp)
+        vNvrsP_temp = uFunc.der(cNrm_temp) * uFunc.inverse(v_temp, order=(0, 1))
+        vNvrsFuncFxd_by_Share = []
+        for j in range(ShareCount):
+            vNvrsFuncFxd_by_Share.append(
+                CubicInterp(
+                    np.insert(mNrm_temp[:, 0], 0, 0.0),  # x_list
+                    np.insert(vNvrs_temp[:, j], 0, 0.0),  # f_list
+                    np.insert(vNvrsP_temp[:, j], 0, vNvrsP_temp[j, 0]),  # dfdx_list
+                )
+            )
+        vNvrsFuncFxd = LinearInterpOnInterp1D(vNvrsFuncFxd_by_Share, ShareGrid)
+        vFuncFxd_now = ValueFuncCRRA(vNvrsFuncFxd, CRRA)
+    
     else:  # If vFuncBool is False, fill in dummy values
         vFuncAdj_now = NullFunc()
         vFuncFxd_now = NullFunc()
