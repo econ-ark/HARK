@@ -1,6 +1,7 @@
 """
 This file implements unit tests to check HARK/utilities.py
 """
+
 # Bring in modules we need
 import unittest
 from types import SimpleNamespace

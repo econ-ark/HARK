@@ -2,7 +2,6 @@
 A model file for a Fisher 2-period consumption problem.
 """
 
-from HARK.distribution import Bernoulli
 from HARK.model import Control
 
 # This way of distributing parameters across the scope is clunky

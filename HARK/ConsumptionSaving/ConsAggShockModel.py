@@ -4,6 +4,7 @@ cratic income shocks.  Currently only contains one microeconomic model with a
 basic solver.  Also includes a subclass of Market called CobbDouglas economy,
 used for solving "macroeconomic" models with aggregate shocks.
 """
+
 from copy import deepcopy
 
 import numpy as np

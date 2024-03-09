@@ -1,6 +1,7 @@
 """
 This file implements unit tests for core HARK functionality.
 """
+
 import unittest
 
 import numpy as np
