@@ -9,7 +9,7 @@ It currently only two models:
 
 import numpy as np
 
-from HARK import make_one_period_oo_solver, NullFunc
+from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolver,
     ConsKinkedRsolver,
@@ -276,7 +276,7 @@ class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
         params.update(kwds)
         kwds = params
         IndShockConsumerType.__init__(self, **kwds)
-        self.solve_one_period = make_one_period_oo_solver(ConsKinkyPrefSolver)
+        self.solve_one_period = solve_one_period_ConsKinkyPref
         self.add_to_time_inv("Rboro", "Rsave")
         self.del_from_time_inv("Rfree")
 
