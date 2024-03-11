@@ -34,8 +34,8 @@ from HARK.distribution import (
     combine_indep_dstns,
     expected,
 )
-from HARK.interpolation import CubicHermiteInterp as CubicInterp
 from HARK.interpolation import (
+    CubicInterp,
     LinearInterp,
     LowerEnvelope,
     MargMargValueFuncCRRA,
