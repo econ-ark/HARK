@@ -1,14 +1,13 @@
 import copy
 import itertools
 from collections import OrderedDict
-from sre_constants import SRE_FLAG_ASCII
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
 from HARK import AgentType, Model
-from HARK.distribution import Distribution, TimeVaryingDiscreteDistribution
+from HARK.distribution import Distribution
 
 
 class Frame:
@@ -537,9 +536,9 @@ class FrameAgentType(AgentType):
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
         self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-        self.t_cycle[
-            self.t_cycle == self.T_cycle
-        ] = 0  # Resetting to zero for those who have reached the end
+        self.t_cycle[self.t_cycle == self.T_cycle] = (
+            0  # Resetting to zero for those who have reached the end
+        )
 
     def sim_birth(self, which_agents):
         """
@@ -584,9 +583,9 @@ class FrameAgentType(AgentType):
 
         # from ConsIndShockModel. Needed???
         self.t_age[which_agents] = 0  # How many periods since each agent was born
-        self.t_cycle[
-            which_agents
-        ] = 0  # Which period of the cycle each agent is currently in
+        self.t_cycle[which_agents] = (
+            0  # Which period of the cycle each agent is currently in
+        )
 
         ## simplest version of this.
 

@@ -1,6 +1,7 @@
 """
 This file implements unit tests for the Monte Carlo simulation module
 """
+
 import unittest
 
 from HARK.distribution import Bernoulli, IndexDistribution, MeanOneLogNormal

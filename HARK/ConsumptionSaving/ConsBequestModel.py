@@ -1,5 +1,4 @@
-"""
-Classes to solve consumption-saving models with a bequest motive and
+"""Classes to solve consumption-saving models with a bequest motive and
 idiosyncratic shocks to income and wealth. All models here assume
 separable CRRA utility of consumption and Stone-Geary utility of
 savings with geometric discounting of the continuation value and
@@ -11,7 +10,6 @@ It currently solves 2 types of models:
 """
 
 import numpy as np
-
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolver,
     IndShockConsumerType,
@@ -37,10 +35,13 @@ from HARK.rewards import UtilityFuncCRRA, UtilityFuncStoneGeary
 
 
 class BequestWarmGlowConsumerType(IndShockConsumerType):
-    time_vary_ = IndShockConsumerType.time_vary_ + [
+    time_inv_ = IndShockConsumerType.time_inv_ + [
         "BeqCRRA",
-        "BeqFac",
         "BeqShift",
+    ]
+
+    time_vary_ = IndShockConsumerType.time_vary_ + [
+        "BeqFac",
     ]
 
     def __init__(self, **kwds):
@@ -49,21 +50,17 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
 
         super().__init__(**params)
 
-        self.solve_one_period = make_one_period_oo_solver(BequestWarmGlowConsumerSolver)
+        self.solve_one_period = make_one_period_oo_solver(
+            BequestWarmGlowConsumerSolver,
+        )
 
     def update(self):
         super().update()
         self.update_parameters()
 
     def update_parameters(self):
-        if isinstance(self.BeqCRRA, (int, float)):
-            self.BeqCRRA = [self.BeqCRRA] * self.T_cycle
-        elif len(self.BeqCRRA) == 1:
-            self.BeqCRRA *= self.T_cycle
-        elif len(self.BeqCRRA) != self.T_cycle:
-            raise ValueError(
-                "Bequest CRRA parameter must be a single value or a list of length T_cycle"
-            )
+        if not isinstance(self.BeqCRRA, (int, float)):
+            raise ValueError("Bequest CRRA parameter must be a single value.")
 
         if isinstance(self.BeqFac, (int, float)):
             self.BeqFac = [self.BeqFac] * self.T_cycle
@@ -71,17 +68,11 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
             self.BeqFac *= self.T_cycle
         elif len(self.BeqFac) != self.T_cycle:
             raise ValueError(
-                "Bequest relative value parameter must be a single value or a list of length T_cycle"
+                "Bequest relative value parameter must be a single value or a list of length T_cycle",
             )
 
-        if isinstance(self.BeqShift, (int, float)):
-            self.BeqShift = [self.BeqShift] * self.T_cycle
-        elif len(self.BeqShift) == 1:
-            self.BeqShift *= self.T_cycle
-        elif len(self.BeqShift) != self.T_cycle:
-            raise ValueError(
-                "Bequest Stone-Geary parameter must be a single value or a list of length T_cycle"
-            )
+        if not isinstance(self.BeqShift, (int, float)):
+            raise ValueError("Bequest Stone-Geary parameter must be a single value.")
 
     def update_solution_terminal(self):
         if self.TermBeqFac == 0.0:  # No terminal bequest
@@ -90,7 +81,9 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
             utility = UtilityFuncCRRA(self.CRRA)
 
             warm_glow = UtilityFuncStoneGeary(
-                self.TermBeqCRRA, factor=self.TermBeqFac, shifter=self.TermBeqShift
+                self.TermBeqCRRA,
+                factor=self.TermBeqFac,
+                shifter=self.TermBeqShift,
             )
 
             aNrmGrid = (
@@ -117,7 +110,16 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
             self.solution_terminal.mNrmMin = 0.0
 
 
-class BequestWarmGlowPortfolioType(PortfolioConsumerType, BequestWarmGlowConsumerType):
+class BequestWarmGlowPortfolioType(PortfolioConsumerType):
+    time_inv_ = IndShockConsumerType.time_inv_ + [
+        "BeqCRRA",
+        "BeqShift",
+    ]
+
+    time_vary_ = IndShockConsumerType.time_vary_ + [
+        "BeqFac",
+    ]
+
     def __init__(self, **kwds):
         params = init_portfolio_bequest.copy()
         params.update(kwds)
@@ -127,46 +129,94 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType, BequestWarmGlowConsume
         super().__init__(**params)
 
         self.solve_one_period = make_one_period_oo_solver(
-            BequestWarmGlowPortfolioSolver
+            BequestWarmGlowPortfolioSolver,
         )
 
     def update(self):
-        PortfolioConsumerType.update(self)
+        super().update()
         self.update_parameters()
 
+    def update_parameters(self):
+        if not isinstance(self.BeqCRRA, (int, float)):
+            raise ValueError("Bequest CRRA parameter must be a single value.")
+
+        if isinstance(self.BeqFac, (int, float)):
+            self.BeqFac = [self.BeqFac] * self.T_cycle
+        elif len(self.BeqFac) == 1:
+            self.BeqFac *= self.T_cycle
+        elif len(self.BeqFac) != self.T_cycle:
+            raise ValueError(
+                "Bequest relative value parameter must be a single value or a list of length T_cycle",
+            )
+
+        if not isinstance(self.BeqShift, (int, float)):
+            raise ValueError("Bequest Stone-Geary parameter must be a single value.")
+
     def update_solution_terminal(self):
-        BequestWarmGlowConsumerType.update_solution_terminal(self)
+        if self.TermBeqFac == 0.0:  # No terminal bequest
+            super().update_solution_terminal()
+        else:
+            utility = UtilityFuncCRRA(self.CRRA)
 
-        # Consume all market resources: c_T = m_T
-        cFuncAdj_terminal = self.solution_terminal.cFunc
-        cFuncFxd_terminal = lambda m, s: self.solution_terminal.cFunc(m)
+            warm_glow = UtilityFuncStoneGeary(
+                self.TermBeqCRRA,
+                factor=self.TermBeqFac,
+                shifter=self.TermBeqShift,
+            )
 
-        # Risky share is irrelevant-- no end-of-period assets; set to zero
-        ShareFuncAdj_terminal = ConstantFunction(0.0)
-        ShareFuncFxd_terminal = IdentityFunction(i_dim=1, n_dims=2)
+            aNrmGrid = (
+                np.append(0.0, self.aXtraGrid)
+                if self.TermBeqShift != 0.0
+                else self.aXtraGrid
+            )
+            cNrmGrid = utility.derinv(warm_glow.der(aNrmGrid))
+            vGrid = utility(cNrmGrid) + warm_glow(aNrmGrid)
+            cNrmGridW0 = np.append(0.0, cNrmGrid)
+            mNrmGridW0 = np.append(0.0, aNrmGrid + cNrmGrid)
+            vNvrsGridW0 = np.append(0.0, utility.inv(vGrid))
 
-        # Value function is simply utility from consuming market resources
-        vFuncAdj_terminal = self.solution_terminal.vFunc
-        vFuncFxd_terminal = lambda m, s: self.solution_terminal.vFunc(m)
+            cFunc_term = LinearInterp(mNrmGridW0, cNrmGridW0)
+            vNvrsFunc_term = LinearInterp(mNrmGridW0, vNvrsGridW0)
+            vFunc_term = ValueFuncCRRA(vNvrsFunc_term, self.CRRA)
+            vPfunc_term = MargValueFuncCRRA(cFunc_term, self.CRRA)
+            vPPfunc_term = MargMargValueFuncCRRA(cFunc_term, self.CRRA)
 
-        # Marginal value of market resources is marg utility at the consumption function
-        vPfuncAdj_terminal = self.solution_terminal.vPfunc
-        dvdmFuncFxd_terminal = lambda m, s: self.solution_terminal.vPfunc(m)
-        # No future, no marg value of Share
-        dvdsFuncFxd_terminal = ConstantFunction(0.0)
+            self.solution_terminal.cFunc = cFunc_term
+            self.solution_terminal.vFunc = vFunc_term
+            self.solution_terminal.vPfunc = vPfunc_term
+            self.solution_terminal.vPPfunc = vPPfunc_term
+            self.solution_terminal.mNrmMin = 0.0
 
-        # Construct the terminal period solution
-        self.solution_terminal = PortfolioSolution(
-            cFuncAdj=cFuncAdj_terminal,
-            ShareFuncAdj=ShareFuncAdj_terminal,
-            vFuncAdj=vFuncAdj_terminal,
-            vPfuncAdj=vPfuncAdj_terminal,
-            cFuncFxd=cFuncFxd_terminal,
-            ShareFuncFxd=ShareFuncFxd_terminal,
-            vFuncFxd=vFuncFxd_terminal,
-            dvdmFuncFxd=dvdmFuncFxd_terminal,
-            dvdsFuncFxd=dvdsFuncFxd_terminal,
-        )
+            # Consume all market resources: c_T = m_T
+            cFuncAdj_terminal = self.solution_terminal.cFunc
+            cFuncFxd_terminal = lambda m, s: self.solution_terminal.cFunc(m)
+
+            # Risky share is irrelevant-- no end-of-period assets; set to zero
+            ShareFuncAdj_terminal = ConstantFunction(0.0)
+            ShareFuncFxd_terminal = IdentityFunction(i_dim=1, n_dims=2)
+
+            # Value function is simply utility from consuming market resources
+            vFuncAdj_terminal = self.solution_terminal.vFunc
+            vFuncFxd_terminal = lambda m, s: self.solution_terminal.vFunc(m)
+
+            # Marginal value of market resources is marg utility at the consumption function
+            vPfuncAdj_terminal = self.solution_terminal.vPfunc
+            dvdmFuncFxd_terminal = lambda m, s: self.solution_terminal.vPfunc(m)
+            # No future, no marg value of Share
+            dvdsFuncFxd_terminal = ConstantFunction(0.0)
+
+            # Construct the terminal period solution
+            self.solution_terminal = PortfolioSolution(
+                cFuncAdj=cFuncAdj_terminal,
+                ShareFuncAdj=ShareFuncAdj_terminal,
+                vFuncAdj=vFuncAdj_terminal,
+                vPfuncAdj=vPfuncAdj_terminal,
+                cFuncFxd=cFuncFxd_terminal,
+                ShareFuncFxd=ShareFuncFxd_terminal,
+                vFuncFxd=vFuncFxd_terminal,
+                dvdmFuncFxd=dvdmFuncFxd_terminal,
+                dvdsFuncFxd=dvdsFuncFxd_terminal,
+            )
 
 
 class BequestWarmGlowConsumerSolver(ConsIndShockSolver):
@@ -211,6 +261,28 @@ class BequestWarmGlowConsumerSolver(ConsIndShockSolver):
         BeqFacEff = (1.0 - self.LivPrb) * self.BeqFac
 
         self.warm_glow = UtilityFuncStoneGeary(self.BeqCRRA, BeqFacEff, self.BeqShift)
+
+    def def_BoroCnst(self, BoroCnstArt):
+        self.BoroCnstNat = (
+            (self.solution_next.mNrmMin - self.TranShkMinNext)
+            * (self.PermGroFac * self.PermShkMinNext)
+            / self.Rfree
+        )
+
+        self.BoroCnstNat = np.max([self.BoroCnstNat, -self.BeqShift])
+
+        if BoroCnstArt is None:
+            self.mNrmMinNow = self.BoroCnstNat
+        else:
+            self.mNrmMinNow = np.max([self.BoroCnstNat, BoroCnstArt])
+        if self.BoroCnstNat < self.mNrmMinNow:
+            self.MPCmaxEff = 1.0
+        else:
+            self.MPCmaxEff = self.MPCmaxNow
+
+        self.cFuncNowCnst = LinearInterp(
+            np.array([self.mNrmMinNow, self.mNrmMinNow + 1]), np.array([0.0, 1.0])
+        )
 
     def calc_EndOfPrdvP(self):
         EndofPrdvP = super().calc_EndOfPrdvP()

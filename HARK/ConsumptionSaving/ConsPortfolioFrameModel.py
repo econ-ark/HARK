@@ -161,7 +161,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                     {
                         "mean": init_portfolio["RiskyAvg"],
                         "std": init_portfolio["RiskyStd"],
-                    }
+                    },
                     # seed=self.RNG.integers(0, 2 ** 31 - 1) : TODO: Seed logic
                 ).discretize(init_portfolio["RiskyCount"], method="equiprobable"),
                 aggregate=True,

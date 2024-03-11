@@ -1,7 +1,6 @@
 import copy
 import unittest
 
-import numpy as np
 
 from HARK import distribute_params
 from HARK.ConsumptionSaving.ConsAggShockModel import (
@@ -20,7 +19,10 @@ class testSmallOpenEconomy(unittest.TestCase):
 
         # Make agents heterogeneous in their discount factor
         agents = distribute_params(
-            agent, "DiscFac", 3, Uniform(bot=0.90, top=0.94)  # Impatient agents
+            agent,
+            "DiscFac",
+            3,
+            Uniform(bot=0.90, top=0.94),  # Impatient agents
         )
 
         # Make an economy with those agents living in it

@@ -19,7 +19,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.ConsumptionSaving.TractableBufferStockModel import TractableConsumerType
-from HARK.distribution import DiscreteDistribution, DiscreteDistributionLabeled
+from HARK.distribution import DiscreteDistributionLabeled
 
 
 class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
