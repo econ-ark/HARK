@@ -16,16 +16,6 @@ See HARK documentation for mathematical descriptions of the models being solved.
 from copy import copy, deepcopy
 
 import numpy as np
-from scipy import sparse as sp
-from scipy.optimize import newton
-
-from HARK import (
-    AgentType,
-    NullFunc,
-    _log,
-    make_one_period_oo_solver,
-    set_verbosity_level,
-)
 from HARK.Calibration.Income.IncomeTools import (
     Cagetti_income,
     parse_income_spec,
@@ -44,7 +34,6 @@ from HARK.distribution import (
     combine_indep_dstns,
     expected,
 )
-from HARK.interpolation import CubicHermiteInterp as CubicInterp
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
@@ -71,6 +60,16 @@ from HARK.utilities import (
     jump_to_grid_1D,
     jump_to_grid_2D,
     make_grid_exp_mult,
+)
+from scipy import sparse as sp
+from scipy.optimize import newton
+
+from HARK import (
+    AgentType,
+    NullFunc,
+    _log,
+    make_one_period_oo_solver,
+    set_verbosity_level,
 )
 
 __all__ = [
@@ -2095,8 +2094,8 @@ class PerfForesightConsumerType(AgentType):
 
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
-init_idiosyncratic_shocks = dict(
-    init_perfect_foresight,
+init_idiosyncratic_shocks = {
+    **init_perfect_foresight,
     **{  # assets above grid parameters
         "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
         "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
@@ -2129,7 +2128,7 @@ init_idiosyncratic_shocks = dict(
         # Whether Newborns have transitory shock. The default is False.
         "NewbornTransShk": False,
     },
-)
+}
 
 
 class IndShockConsumerType(PerfForesightConsumerType):
