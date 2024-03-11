@@ -68,7 +68,6 @@ from HARK import (
     AgentType,
     NullFunc,
     _log,
-    make_one_period_oo_solver,
     set_verbosity_level,
 )
 
@@ -547,7 +546,7 @@ def solve_one_period_ConsIndShock(
     if CubicBool:
         vPPfuncNow = MargMargValueFuncCRRA(cFuncNow, CRRA)
     else:
-        vPPfuncNow = None  # Dummy object
+        vPPfuncNow = NullFunc()  # Dummy object
 
     # Construct this period's value function if requested
     if vFuncBool:
@@ -563,14 +562,14 @@ def solve_one_period_ConsIndShock(
 
         # Construct the end-of-period value function
         aNrm_temp = np.insert(aNrmNow, 0, BoroCnstNat)
-        EndOfPrdvNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
-        EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, CRRA)
+        EndOfPrd_vNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
+        EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
 
         # Compute expected value and marginal value on a grid of market resources
         mNrm_temp = mNrmMinNow + aXtraGrid
         cNrm_temp = cFuncNow(mNrm_temp)
         aNrm_temp = mNrm_temp - cNrm_temp
-        v_temp = uFunc(cNrm_temp) + EndOfPrdvFunc(aNrm_temp)
+        v_temp = uFunc(cNrm_temp) + EndOfPrd_vFunc(aNrm_temp)
         vP_temp = uFunc.der(cNrm_temp)
 
         # Construct the beginning-of-period value function
@@ -585,7 +584,7 @@ def solve_one_period_ConsIndShock(
         )
         vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
     else:
-        vFuncNow = None  # Dummy object
+        vFuncNow = NullFunc()  # Dummy object
 
     # Create and return this period's solution
     solution_now = ConsumerSolution(
@@ -3241,7 +3240,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
             if not hasattr(shk_dstn, "pmv"):
                 shk_dstn = self.IncShkDstn
 
-            self.cPol_Grid = []  # List of consumption policy grids for each period in T_cycle
+            self.cPol_Grid = (
+                []
+            )  # List of consumption policy grids for each period in T_cycle
             self.aPol_Grid = []  # List of asset policy grids for each period in T_cycle
             self.tran_matrix = []  # List of transition matrices
 
@@ -3622,7 +3623,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         else:
             peturbed_list = [getattr(self, shk_param) + dx] + (
                 params["T_cycle"] - 1
-            ) * [getattr(self, shk_param)]  # Sequence of interest rates the agent
+            ) * [
+                getattr(self, shk_param)
+            ]  # Sequence of interest rates the agent
 
         setattr(ZerothColAgent, shk_param, peturbed_list)  # Set attribute to agent
 
