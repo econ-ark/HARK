@@ -19,6 +19,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     utilityP_inv,
 )
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyAssetConsumerType
+from HARK.distribution import expected
 from HARK.interpolation import (
     BilinearInterp,
     ConstantFunction,
@@ -29,7 +30,6 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
-from HARK.distribution import expected
 from HARK.metric import MetricObject
 from HARK.rewards import UtilityFuncCRRA
 
@@ -586,7 +586,7 @@ def solve_one_period_ConsPortfolio(
     EndOfPrd_dvds = DiscFacEff * expected(
         EndOfPrddvds_dist, RiskyDstn, args=(aNrmNow, ShareNext)
     )
-    
+
     # Make the end-of-period value function if the value function is requested
     if vFuncBool:
 
@@ -639,7 +639,7 @@ def solve_one_period_ConsPortfolio(
         EndOfPrd_vNvrsFunc = BilinearInterp(EndOfPrd_vNvrs, aNrmGrid, ShareGrid)
         EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
         # This will be used later to make the value function for this period
-    
+
     # Find the optimal risky asset share either by choosing the best value among
     # the discrete grid choices, or by satisfying the FOC with equality (continuous)
     if DiscreteShareBool:
@@ -647,21 +647,21 @@ def solve_one_period_ConsPortfolio(
         # the one with highest value for each aNrm gridpoint
         opt_idx = np.argmax(EndOfPrd_v, axis=1)
         ShareAdj_now = ShareGrid[opt_idx]
-        
+
         # Take cNrm at that index as well... and that's it!
         cNrmAdj_now = EndOfPrd_dvdaNvrs[np.arange(aNrmCount), opt_idx]
-        
+
     else:
         # Now find the optimal (continuous) risky share on [0,1] by solving the first
         # order condition EndOfPrd_dvds == 0.
         FOC_s = EndOfPrd_dvds  # Relabel for convenient typing
-    
+
         # For each value of aNrm, find the value of Share such that FOC_s == 0
         crossing = np.logical_and(FOC_s[:, 1:] <= 0.0, FOC_s[:, :-1] >= 0.0)
         share_idx = np.argmax(crossing, axis=1)
         # This represents the index of the segment of the share grid where dvds flips
         # from positive to negative, indicating that there's a zero *on* the segment
-    
+
         # Calculate the fractional distance between those share gridpoints where the
         # zero should be found, assuming a linear function; call it alpha
         a_idx = np.arange(aNrmCount)
@@ -672,16 +672,16 @@ def solve_one_period_ConsPortfolio(
         bot_c = EndOfPrd_dvdaNvrs[a_idx, share_idx]
         top_c = EndOfPrd_dvdaNvrs[a_idx, share_idx + 1]
         alpha = 1.0 - top_f / (top_f - bot_f)
-    
+
         # Calculate the continuous optimal risky share and optimal consumption
         ShareAdj_now = (1.0 - alpha) * bot_s + alpha * top_s
         cNrmAdj_now = (1.0 - alpha) * bot_c + alpha * top_c
-    
+
         # If agent wants to put more than 100% into risky asset, he is constrained.
         # Likewise if he wants to put less than 0% into risky asset, he is constrained.
         constrained_top = FOC_s[:, -1] > 0.0
         constrained_bot = FOC_s[:, 0] < 0.0
-    
+
         # Apply those constraints to both risky share and consumption (but lower
         # constraint should never be relevant)
         ShareAdj_now[constrained_top] = 1.0
@@ -740,7 +740,7 @@ def solve_one_period_ConsPortfolio(
         mNrmAdj_comb = np.append(np.insert(mNrmAdj_comb, 0, 0.0), mNrmAdj_now[-1])
         Share_comb = (np.transpose(np.vstack((ShareAdj_now, ShareAdj_now)))).flatten()
         ShareFuncAdj_now = LinearInterp(mNrmAdj_comb, Share_comb)
-    
+
     else:
         # If the share choice is continuous, just make an ordinary interpolating function
         if BoroCnstNat_iszero:
