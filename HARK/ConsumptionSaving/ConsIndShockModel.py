@@ -827,7 +827,7 @@ def solve_one_period_ConsKinkedR(
     if CubicBool:
         vPPfuncNow = MargMargValueFuncCRRA(cFuncNow, CRRA)
     else:
-        vPPfuncNow = None  # Dummy object
+        vPPfuncNow = NullFunc()  # Dummy object
 
     # Construct this period's value function if requested
     if vFuncBool:
@@ -865,7 +865,7 @@ def solve_one_period_ConsKinkedR(
         )
         vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
     else:
-        vFuncNow = None  # Dummy object
+        vFuncNow = NullFunc()  # Dummy object
 
     # Create and return this period's solution
     solution_now = ConsumerSolution(
