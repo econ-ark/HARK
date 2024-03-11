@@ -1,6 +1,7 @@
 """
 This file implements unit tests for the frame.py module.
 """
+
 import unittest
 
 from HARK.frame import BackwardFrameReference, ForwardFrameReference, Frame, FrameModel

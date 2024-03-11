@@ -23,6 +23,7 @@ https://econ-ark.org/materials/riskycontrib
    }
 
 """
+
 from copy import deepcopy
 
 import numpy as np
@@ -425,9 +426,9 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
         self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-        self.t_cycle[
-            self.t_cycle == self.T_cycle
-        ] = 0  # Resetting to zero for those who have reached the end
+        self.t_cycle[self.t_cycle == self.T_cycle] = (
+            0  # Resetting to zero for those who have reached the end
+        )
 
     def get_states_Reb(self):
         """
@@ -513,7 +514,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
         # Post-states are assets after rebalancing
 
-        if not "tau" in self.time_vary:
+        if "tau" not in self.time_vary:
             mNrmTilde, nNrmTilde = rebalance_assets(
                 self.controls["dfrac"],
                 self.state_now["mNrm"],

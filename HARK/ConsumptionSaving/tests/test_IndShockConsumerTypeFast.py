@@ -127,9 +127,9 @@ class testBufferStock(unittest.TestCase):
         GICRaw_fail_dictionary = dict(self.base_params)
         GICRaw_fail_dictionary["Rfree"] = 1.08
         GICRaw_fail_dictionary["PermGroFac"] = [1.00]
-        GICRaw_fail_dictionary[
-            "cycles"
-        ] = 0  # cycles=0 makes this an infinite horizon consumer
+        GICRaw_fail_dictionary["cycles"] = (
+            0  # cycles=0 makes this an infinite horizon consumer
+        )
 
         GICRawFailExample = IndShockConsumerTypeFast(**GICRaw_fail_dictionary)
 

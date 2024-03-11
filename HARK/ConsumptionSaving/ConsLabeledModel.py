@@ -897,7 +897,9 @@ class ConsRiskyAssetLabeledSolver(ConsIndShockLabeledSolver):
     """
 
     solution_next: ConsumerSolutionLabeled  # solution to next period's problem
-    ShockDstn: DiscreteDistributionLabeled  #  distribution of shocks to income and returns
+    ShockDstn: (
+        DiscreteDistributionLabeled  #  distribution of shocks to income and returns
+    )
     LivPrb: float  # survival probability
     DiscFac: float  # intertemporal discount factor
     CRRA: float  # coefficient of relative risk aversion

@@ -2568,9 +2568,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             if not hasattr(shk_dstn, "pmv"):
                 shk_dstn = self.IncShkDstn
 
-            self.cPol_Grid = (
-                []
-            )  # List of consumption policy grids for each period in T_cycle
+            self.cPol_Grid = []  # List of consumption policy grids for each period in T_cycle
             self.aPol_Grid = []  # List of asset policy grids for each period in T_cycle
             self.tran_matrix = []  # List of transition matrices
 
@@ -2951,9 +2949,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         else:
             peturbed_list = [getattr(self, shk_param) + dx] + (
                 params["T_cycle"] - 1
-            ) * [
-                getattr(self, shk_param)
-            ]  # Sequence of interest rates the agent
+            ) * [getattr(self, shk_param)]  # Sequence of interest rates the agent
 
         setattr(ZerothColAgent, shk_param, peturbed_list)  # Set attribute to agent
 

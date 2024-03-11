@@ -2,49 +2,17 @@ exclude: Documentation/example_notebooks/
 
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.4
+    rev: v0.3.2
     hooks:
       - id: ruff
-        types_or: [jupyter]
+        types_or: [ python, pyi, jupyter ]
+        args:
+          - --fix
       - id: ruff-format
-        args: [--check]
-        types_or: [jupyter]
-
-  - repo: https://github.com/psf/black
-    rev: 23.7.0
-    hooks:
-      - id: black
-        exclude: ^examples/
-
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.10.1
-    hooks:
-      - id: pyupgrade
-        args: ["--py38-plus"]
-        exclude: ^examples/
-
-  - repo: https://github.com/asottile/blacken-docs
-    rev: 1.15.0
-    hooks:
-      - id: blacken-docs
-        exclude: ^examples/
-
-  - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
-        name: isort (python)
-        args: ["--profile", "black", "--filter-files", "--skip", "__init__.py"]
-        exclude: ^examples/
-
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.1
-    hooks:
-      - id: prettier
-        exclude: ^examples/
+        types_or: [ python, pyi, jupyter ]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
