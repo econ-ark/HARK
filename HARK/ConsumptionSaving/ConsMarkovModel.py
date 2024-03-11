@@ -470,9 +470,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
                     np.logical_and(self.possible_transitions[:, j], which_states)
                 ):  # only consider a future state if one of the relevant states could transition to it
                     EndOfPrdvP_all[j, :] = self.EndOfPrdvPfunc_list[j](aGrid)
-                    if (
-                        self.CubicBool
-                    ):  # Add conditional end-of-period (marginal) marginal value to the arrays
+                    if self.CubicBool:  # Add conditional end-of-period (marginal) marginal value to the arrays
                         EndOfPrdvPP_all[j, :] = self.EndOfPrdvPfunc_list[j].derivativeX(
                             aGrid
                         )
@@ -606,9 +604,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             solution_cond = ConsumerSolution(
                 cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow
             )
-            if (
-                self.CubicBool
-            ):  # Add the state-conditional marginal marginal value function (if desired)
+            if self.CubicBool:  # Add the state-conditional marginal marginal value function (if desired)
                 solution_cond = self.add_vPPfunc(solution_cond)
 
             # Add the current-state-conditional solution to the overall period solution

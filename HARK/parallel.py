@@ -1,5 +1,5 @@
 import multiprocessing
-from typing import Any, List, Type
+from typing import Any, List
 
 from joblib import Parallel, delayed
 

@@ -2,6 +2,7 @@
 Functions for estimating structural models, including optimization methods
 and bootstrapping tools.
 """
+
 import csv
 import multiprocessing
 import warnings
