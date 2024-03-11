@@ -386,9 +386,9 @@ class AgentTypeMonteCarloSimulator(Simulator):
         if np.sum(which_agents) > 0:
             for varn in initial_vals:
                 self.vars_now[varn][which_agents] = initial_vals[varn]
-                self.newborn_init_history[varn][
-                    self.t_sim, which_agents
-                ] = initial_vals[varn]
+                self.newborn_init_history[varn][self.t_sim, which_agents] = (
+                    initial_vals[varn]
+                )
 
         self.t_age[which_agents] = 0
         self.t_cycle[which_agents] = 0

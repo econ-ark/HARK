@@ -3,6 +3,7 @@ This file contains classes and functions for representing, solving, and simulati
 agents who must allocate their resources among consumption, saving in a risk-free
 asset (with a low return), and saving in a risky asset (with higher average return).
 """
+
 from copy import deepcopy
 
 import numpy as np

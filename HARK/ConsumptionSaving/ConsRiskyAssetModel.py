@@ -5,6 +5,7 @@ This class is not a fully specified model and therefore has no solution or
 simulation methods. It is meant as a container of methods for dealing with
 risky assets that will be useful to models what will inherit from it.
 """
+
 from dataclasses import dataclass
 
 import numpy as np

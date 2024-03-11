@@ -4,6 +4,7 @@ This stands in contrast to all other model modules in HARK, which (unsurprisingl
 take a heterogeneous agents approach.  In RA models, all attributes are either
 time invariant or exist on a short cycle; models must be infinite horizon.
 """
+
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -12,7 +13,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-from HARK.distribution import MarkovProcess, Uniform
+from HARK.distribution import MarkovProcess
 from HARK.interpolation import LinearInterp, MargValueFuncCRRA
 
 __all__ = ["RepAgentConsumerType", "RepAgentMarkovConsumerType"]

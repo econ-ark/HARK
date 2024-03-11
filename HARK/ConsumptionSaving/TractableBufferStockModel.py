@@ -20,6 +20,7 @@ bounds are exceeded.
 Despite the non-standard solution method, the iterative process can be embedded
 in the HARK framework, as shown below.
 """
+
 from copy import copy
 
 import numpy as np
@@ -621,9 +622,9 @@ class TractableConsumerType(AgentType):
         self.shocks["eStateNow"][which_agents] = 1.0
         # How many periods since each agent was born
         self.t_age[which_agents] = 0
-        self.t_cycle[
-            which_agents
-        ] = 0  # Which period of the cycle each agent is currently in
+        self.t_cycle[which_agents] = (
+            0  # Which period of the cycle each agent is currently in
+        )
         return None
 
     def sim_death(self):

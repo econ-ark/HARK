@@ -169,9 +169,9 @@ class testBufferStock(unittest.TestCase):
         GICRaw_fail_dictionary = dict(self.base_params)
         GICRaw_fail_dictionary["Rfree"] = 1.08
         GICRaw_fail_dictionary["PermGroFac"] = [1.00]
-        GICRaw_fail_dictionary[
-            "cycles"
-        ] = 0  # cycles=0 makes this an infinite horizon consumer
+        GICRaw_fail_dictionary["cycles"] = (
+            0  # cycles=0 makes this an infinite horizon consumer
+        )
 
         GICRawFailExample = IndShockConsumerType(**GICRaw_fail_dictionary)
 
@@ -896,9 +896,7 @@ class test_Transition_Matrix_Methods(unittest.TestCase):
         asset = example1.aPol_Grid  # Normalized Asset Policy Grid
 
         example1.calc_ergodic_dist()
-        vecDstn = (
-            example1.vec_erg_dstn
-        )  # Distribution of market resources and permanent income as a vector (m*p)x1 vector where
+        vecDstn = example1.vec_erg_dstn  # Distribution of market resources and permanent income as a vector (m*p)x1 vector where
 
         # Compute Aggregate Consumption and Aggregate Assets
         gridc = np.zeros((len(c), len(p)))

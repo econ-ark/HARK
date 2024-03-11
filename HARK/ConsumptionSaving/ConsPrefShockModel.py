@@ -6,6 +6,7 @@ It currently only two models:
 2) A combination of (1) and ConsKinkedR, demonstrating how to construct a new model
    by inheriting from multiple classes.
 """
+
 import numpy as np
 
 from HARK import make_one_period_oo_solver

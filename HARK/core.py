@@ -6,15 +6,16 @@ of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
+
 # Set logging and define basic functions
 # Set logging and define basic functions
 import logging
 import sys
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 from copy import copy, deepcopy
 from dataclasses import dataclass, field
 from time import time
-from typing import Any, Dict, List, NewType, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from warnings import warn
 
 import numpy as np
@@ -323,7 +324,7 @@ class Model:
         s += ">"
         return s
 
-    def __repr__(self):
+    def describe(self):
         return self.__str__()
 
 
@@ -707,9 +708,9 @@ class AgentType(Model):
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
         self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-        self.t_cycle[
-            self.t_cycle == self.T_cycle
-        ] = 0  # Resetting to zero for those who have reached the end
+        self.t_cycle[self.t_cycle == self.T_cycle] = (
+            0  # Resetting to zero for those who have reached the end
+        )
 
     def make_shock_history(self):
         """
@@ -779,13 +780,13 @@ class AgentType(Model):
                         and len(self.state_now[var_name]) == self.AgentCount
                     )
                     if idio:
-                        self.newborn_init_history[var_name][
-                            t, self.who_dies
-                        ] = self.state_now[var_name][self.who_dies]
+                        self.newborn_init_history[var_name][t, self.who_dies] = (
+                            self.state_now[var_name][self.who_dies]
+                        )
                     else:
-                        self.newborn_init_history[var_name][
-                            t, self.who_dies
-                        ] = self.state_now[var_name]
+                        self.newborn_init_history[var_name][t, self.who_dies] = (
+                            self.state_now[var_name]
+                        )
 
             # Other Shocks
             self.get_shocks()
@@ -795,9 +796,9 @@ class AgentType(Model):
             self.t_sim += 1
             self.t_age = self.t_age + 1  # Age all consumers by one period
             self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-            self.t_cycle[
-                self.t_cycle == self.T_cycle
-            ] = 0  # Resetting to zero for those who have reached the end
+            self.t_cycle[self.t_cycle == self.T_cycle] = (
+                0  # Resetting to zero for those who have reached the end
+            )
 
         # Flag that shocks can be read rather than simulated
         self.read_shocks = True
@@ -831,11 +832,11 @@ class AgentType(Model):
                             and len(self.state_now[var_name]) == self.AgentCount
                         )
                         if idio:
-                            self.state_now[var_name][
-                                who_dies
-                            ] = self.newborn_init_history[var_name][
-                                self.t_sim, who_dies
-                            ]
+                            self.state_now[var_name][who_dies] = (
+                                self.newborn_init_history[
+                                    var_name
+                                ][self.t_sim, who_dies]
+                            )
 
                     else:
                         warn(

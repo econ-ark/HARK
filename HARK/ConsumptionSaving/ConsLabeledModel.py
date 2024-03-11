@@ -304,6 +304,9 @@ class PerfForesightLabeledType(IndShockConsumerType):
             attrs={"m_nrm_min": 0.0},  # minimum normalized market resources
         )
 
+    def post_solve(self):
+        pass  # Do nothing, rather than try to run calc_stable_points
+
 
 class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
     """
@@ -894,7 +897,9 @@ class ConsRiskyAssetLabeledSolver(ConsIndShockLabeledSolver):
     """
 
     solution_next: ConsumerSolutionLabeled  # solution to next period's problem
-    ShockDstn: DiscreteDistributionLabeled  #  distribution of shocks to income and returns
+    ShockDstn: (
+        DiscreteDistributionLabeled  #  distribution of shocks to income and returns
+    )
     LivPrb: float  # survival probability
     DiscFac: float  # intertemporal discount factor
     CRRA: float  # coefficient of relative risk aversion
