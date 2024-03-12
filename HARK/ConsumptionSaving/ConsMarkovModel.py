@@ -275,10 +275,20 @@ def solve_one_period_ConsMarkov(
         # Construct the beginning-of-period value functional conditional on next
         # period's state and add it to the list of value functions
         if vFuncBool:
-            pass
-            # BegOfPrd_vFunc = self.make_EndOfPrdvFuncCond()
-            # EndOfPrdvFunc_list.append(EndOfPrdvFunc)
-            # TODO: Implement vFunc functionality
+            # Calculate end-of-period value, its derivative, and their pseudo-inverse
+            BegOfPrd_vNext = DiscFacEff * expected(calc_vNext, IncShkDstn, args=(aNrmNext, Rfree))
+            # value transformed through inverse utility
+            BegOfPrd_vNvrsNext = uFunc.inv(BegOfPrd_vNext)  
+            BegOfPrd_vNvrsPnext = BegOfPrd_vPnext * uFunc.derinv(BegOfPrd_vNext, order=(0, 1))
+            BegOfPrd_vNvrsNext = np.insert(BegOfPrd_vNvrsNext, 0, 0.0)
+            BegOfPrd_vNvrsPnext = np.insert(BegOfPrd_vNvrsPnext, 0, BegOfPrd_vNvrsPnext[0])
+            # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+
+            # Construct the end-of-period value function
+            aNrm_temp = np.insert(aNrmNext, 0, BoroCnstNat)
+            BegOfPrd_vNvrsFunc = CubicInterp(aNrm_temp, BegOfPrd_vNvrsNext, BegOfPrd_vNvrsPnext)
+            BegOfPrd_vFunc = ValueFuncCRRA(BegOfPrd_vNvrsFunc, CRRA)
+            BegOfPrd_vFunc_list.append(BegOfPrd_vFunc)
 
     # BegOfPrdvP is marginal value conditional on *next* period's state.
     # Take expectations over Markov transitions to get EndOfPrdvP conditional on
@@ -388,7 +398,7 @@ def solve_one_period_ConsMarkov(
 
     # Calculate the MPC at each market resource gridpoint in each state (if desired)
     if CubicBool:
-        dcda = EndOfPrd_vPP / uFunc.der(cNrmNow, order=2)
+        dcda = EndOfPrd_vPP / uFunc.der(cNrmNow[:,1:], order=2) #  drop first
         MPCnow = dcda / (dcda + 1.0)
         MPCnow = np.hstack((np.reshape(MPCmaxNow, (StateCountNow, 1)), MPCnow))
 
@@ -777,9 +787,9 @@ class ConsMarkovSolver(ConsIndShockSolver):
         )  # This is a very good approximation, vNvrsPP = 0 at the asset minimum
         aNrm_temp = np.insert(self.aNrmNow, 0, self.BoroCnstNat)
         EndOfPrdvNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
-        EndOfPrdvFunc_dond = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
+        EndOfPrdvFunc_cond = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
 
-        return EndOfPrdvFunc_dond
+        return EndOfPrdvFunc_cond
 
     def calc_EndOfPrdvPcond(self):
         """
@@ -881,9 +891,8 @@ class ConsMarkovSolver(ConsIndShockSolver):
                     np.logical_and(self.possible_transitions[:, j], which_states)
                 ):  # only consider a future state if one of the relevant states could transition to it
                     EndOfPrdvP_all[j, :] = self.EndOfPrdvPfunc_list[j](aGrid)
-                    if (
-                        self.CubicBool
-                    ):  # Add conditional end-of-period (marginal) marginal value to the arrays
+                    # Add conditional end-of-period (marginal) marginal value to the arrays
+                    if self.CubicBool:  
                         EndOfPrdvPP_all[j, :] = self.EndOfPrdvPfunc_list[j].derivativeX(
                             aGrid
                         )
@@ -1017,9 +1026,8 @@ class ConsMarkovSolver(ConsIndShockSolver):
             solution_cond = ConsumerSolution(
                 cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow
             )
-            if (
-                self.CubicBool
-            ):  # Add the state-conditional marginal marginal value function (if desired)
+            if self.CubicBool:
+                # Add the state-conditional marginal marginal value function (if desired)
                 solution_cond = self.add_vPPfunc(solution_cond)
 
             # Add the current-state-conditional solution to the overall period solution
@@ -1257,7 +1265,7 @@ class MarkovConsumerType(IndShockConsumerType):
     def __init__(self, **kwds):
         IndShockConsumerType.__init__(self, **kwds)
         self.solve_one_period = _solve_ConsMarkov
-        #self.solve_one_period = solve_one_period_ConsMarkov
+        # self.solve_one_period = solve_one_period_ConsMarkov
 
         if not hasattr(self, "global_markov"):
             self.global_markov = False
