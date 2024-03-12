@@ -2,64 +2,18 @@
 
 ## Installing HARK
 
-HARK is an open source project that is compatible with Python 3.
-We recommend using Python 3.10 or earlier with HARK.
+HARK is an open source project that is compatible with Python 3. Currently, we recommend using version 3.10 or lower.
 
 The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/installation/).
 
-Before installing HARK, we recommend creating a new 'environment',
-which isolates any other installed Python tools and packages, avoiding dependency conflicts.
+Before installing HARK, we recommend creating a new virtual environment, which isolates the installation of `econ-ark` from the installations of any other Python tools and packages, thus avoiding conflicts.
 
-To create a new virtual environment, enter this in your command line:
-
-```
-cd [directory where you want to store the econ-ark virtual environment]
-python -m venv econ-ark
-```
-
-On Windows, type:
-
-```
-econ-ark\Scripts\activate
-```
-
-On Mac or Linux:
-
-```
-source econ-ark/bin/activate
-```
-
-Then use `pip install econ-ark` to install HARK in this environment.
-
-Alternatively, if you are using either the [Anaconda](https://anaconda.com/) distribution or [Miniconda](https://docs.conda.io/projects/miniconda/en/latest/), you can create a virtual environment using `conda`, which eliminates the need to manage the environment's location:
+The easiest way to get started with managing environments is to use `conda`, which is packaged with either the [Anaconda](https://anaconda.com/) distribution or [Miniconda](https://docs.conda.io/projects/miniconda/en/latest/). To create a new virtual environment and install `econ-ark`, enter this in your command line:
 
 ```
 conda create -n econ-ark python=3.10
 conda activate econ-ark
 pip install econ-ark
-```
-
-(If you want to install a release that is not the default stable release, for instance if you want to install a development release, you'll need to use a "pinned" release number: `pip install econ-ark==0.10.1.dev1`, substituting "0.10.1.dev1" for your desired release number.)
-
-### Demonstrations on using HARK
-
-Most of the modules in HARK are just collections of tools. There are a few demonstrations/applications that use the tools that you automatically get when you install HARK -- they are available in [Overview & Examples](https://docs.econ-ark.org/overview/index.html). A much larger set of uses of HARK can be found at two repositories:
-
-- [DemARK](https://github.com/econ-ark/DemARK): Demonstrations of the use of HARK
-- [REMARK](https://github.com/econ-ark/REMARK): Replications of existing papers made using HARK
-
-You will want to obtain your own local copy of these repos using:
-
-```
-git clone https://github.com/econ-ark/DemARK.git
-git clone https://github.com/econ-ark/REMARK.git
-```
-
-Once you have downloaded them, you will find that each repo contains a `notebooks` directory that contains a number of [jupyter notebooks](https://jupyter.org/). You can either view them in your integrated development environment (IDE) -- such as [VS Code](https://code.visualstudio.com/) or [PyCharm](https://www.jetbrains.com/pycharm/) -- or if you have `jupyter` installed, launch the Jupyter notebook tool using the command line:
-
-```
-cd [directory containing the repository]
-jupyter notebook
 ```
 
 ## Learning HARK
@@ -90,27 +44,27 @@ The most broadly applicable advice is to go to [Econ-ARK](https://econ-ark.org) 
 
 - Our workhorse module is [ConsIndShockModel.py](https://github.com/econ-ark/HARK/blob/master/HARK/ConsumptionSaving/ConsIndShockModel.py) which includes the IndShockConsumerType. A short explanation about the Agent Type can be found [here](https://docs.econ-ark.org/example_notebooks/IndShockConsumerType.html) and an introduction how it is solved [here](https://docs.econ-ark.org/example_notebooks/HowWeSolveIndShockConsumerType.html).
 
-## Making changes to HARK
+### Demonstrations on using HARK
 
-_For detailed instructions, refer to our [contributing guide](https://docs.econ-ark.org/guides/contributing.html)._
+Most of the modules in HARK are just collections of tools. There are a few demonstrations/applications that use the tools that you automatically get when you install HARK -- they are available in [Overview & Examples](https://docs.econ-ark.org/overview/index.html). A much larger set of uses of HARK can be found at two repositories:
 
-If you want to make changes or contributions to HARK, you'll need to have access to the source files. Installing HARK via `pip` makes it hard to access these files. If you are adept at GitHub, you can [fork](https://help.github.com/en/articles/fork-a-repo) the repository. If you are less experienced, you should download a personal copy of HARK again using `git clone https://github.com/econ-ark/HARK.git` or the GitHub Desktop app.
+- [DemARK](https://github.com/econ-ark/DemARK): Demonstrations of the use of HARK
+- [REMARK](https://github.com/econ-ark/REMARK): Replications of existing papers made using HARK
 
-As described above, it is advisable to use a virtual environment even when making changes to HARK. Follow the instructions provided previously to create and activate a virtual environment.
-
-### Install requirements
-
-Once you have created a local copy of the repository, install requirements as follows:
+You will want to obtain your own local copy of these repos using:
 
 ```
-cd [to where the repository was stored]/HARK/requirements
-pip install -r base.txt
-pip install -r dev.txt
-pip install -r doc.txt
+git clone https://github.com/econ-ark/DemARK.git
+git clone https://github.com/econ-ark/REMARK.git
 ```
 
-To check that everything has been set up correctly, you can run HARK's tests using `python -m unittest`.
+Once you have downloaded them, you will find that each repo contains a `notebooks` directory that contains a number of [jupyter notebooks](https://jupyter.org/). You can either view them in your integrated development environment (IDE) -- such as [VS Code](https://code.visualstudio.com/) or [PyCharm](https://www.jetbrains.com/pycharm/) -- or if you have `jupyter` installed, launch the Jupyter notebook tool using the command line:
+
+```
+cd [directory containing the repository]
+jupyter notebook
+```
 
 ## Next steps
 
-To learn more about how to use HARK, check the next sections in this documentation, in particular the example notebooks.
+To learn more about how to use HARK, check the next sections in this documentation, in particular the example notebooks. For instructions on making changes to HARK, refer to our [contributing guide](https://docs.econ-ark.org/guides/contributing.html).
