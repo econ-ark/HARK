@@ -136,9 +136,7 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType):
 
         super().__init__(**params)
 
-        self.solve_one_period = make_one_period_oo_solver(
-            BequestWarmGlowPortfolioSolver,
-        )
+        self.solve_one_period = solve_one_period_ConsPortfolioWarmGlow
 
     def update(self):
         super().update()
