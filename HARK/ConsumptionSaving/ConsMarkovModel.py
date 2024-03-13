@@ -276,17 +276,25 @@ def solve_one_period_ConsMarkov(
         # period's state and add it to the list of value functions
         if vFuncBool:
             # Calculate end-of-period value, its derivative, and their pseudo-inverse
-            BegOfPrd_vNext = DiscFacEff * expected(calc_vNext, IncShkDstn, args=(aNrmNext, Rfree))
+            BegOfPrd_vNext = DiscFacEff * expected(
+                calc_vNext, IncShkDstn, args=(aNrmNext, Rfree)
+            )
             # value transformed through inverse utility
-            BegOfPrd_vNvrsNext = uFunc.inv(BegOfPrd_vNext)  
-            BegOfPrd_vNvrsPnext = BegOfPrd_vPnext * uFunc.derinv(BegOfPrd_vNext, order=(0, 1))
+            BegOfPrd_vNvrsNext = uFunc.inv(BegOfPrd_vNext)
+            BegOfPrd_vNvrsPnext = BegOfPrd_vPnext * uFunc.derinv(
+                BegOfPrd_vNext, order=(0, 1)
+            )
             BegOfPrd_vNvrsNext = np.insert(BegOfPrd_vNvrsNext, 0, 0.0)
-            BegOfPrd_vNvrsPnext = np.insert(BegOfPrd_vNvrsPnext, 0, BegOfPrd_vNvrsPnext[0])
+            BegOfPrd_vNvrsPnext = np.insert(
+                BegOfPrd_vNvrsPnext, 0, BegOfPrd_vNvrsPnext[0]
+            )
             # This is a very good approximation, vNvrsPP = 0 at the asset minimum
 
             # Construct the end-of-period value function
             aNrm_temp = np.insert(aNrmNext, 0, BoroCnstNat)
-            BegOfPrd_vNvrsFunc = CubicInterp(aNrm_temp, BegOfPrd_vNvrsNext, BegOfPrd_vNvrsPnext)
+            BegOfPrd_vNvrsFunc = CubicInterp(
+                aNrm_temp, BegOfPrd_vNvrsNext, BegOfPrd_vNvrsPnext
+            )
             BegOfPrd_vFunc = ValueFuncCRRA(BegOfPrd_vNvrsFunc, CRRA)
             BegOfPrd_vFunc_list.append(BegOfPrd_vFunc)
 
@@ -398,7 +406,7 @@ def solve_one_period_ConsMarkov(
 
     # Calculate the MPC at each market resource gridpoint in each state (if desired)
     if CubicBool:
-        dcda = EndOfPrd_vPP / uFunc.der(cNrmNow[:,1:], order=2) #  drop first
+        dcda = EndOfPrd_vPP / uFunc.der(cNrmNow[:, 1:], order=2)  # drop first
         MPCnow = dcda / (dcda + 1.0)
         MPCnow = np.hstack((np.reshape(MPCmaxNow, (StateCountNow, 1)), MPCnow))
 
@@ -411,6 +419,7 @@ def solve_one_period_ConsMarkov(
         # Set current-Markov-state-conditional human wealth and MPC bounds
         hNrmNow_i = hNrmNow[i]
         MPCminNow_i = MPCminNow[i]
+        mNrmMin_i = mNrmMin_list[i]
 
         # Construct the consumption function by combining the constrained and unconstrained portions
         cFuncNowCnst = LinearInterp(
@@ -437,30 +446,62 @@ def solve_one_period_ConsMarkov(
         else:
             vPPfuncNow = NullFunc()
 
+        # Make the value function for this state if requested
+        if vFuncBool:
+            # Make state-conditional grids of market resources and consumption
+            mNrm_for_vFunc = mNrmMin_i + aXtraGrid
+            cNrm_for_vFunc = cFuncNow(mNrm_for_vFunc)
+            aNrm_for_vFunc = mNrm_for_vFunc - cNrm_for_vFunc
+
+            # Calculate end-of-period value at each gridpoint
+            BegOfPrd_v_temp = np.zeros((StateCountNow, aXtraGrid.size))
+            for j in range(StateCountNext):
+                if possible_transitions[i, j]:
+                    BegOfPrd_v_temp[j, :] = BegOfPrd_vFunc_list[j](aNrm_for_vFunc)
+            EndOfPrd_v = np.dot(MrkvArray[i, :], BegOfPrd_v_temp)
+
+            # Calculate (normalized) value and marginal value at each gridpoint
+            v_now = uFunc(cNrm_for_vFunc) + EndOfPrd_v
+            vP_now = uFunc.der(cNrm_for_vFunc)
+
+            # Make a "decurved" value function with the inverse utility function
+            # value transformed through inverse utility
+            vNvrs_now = uFunc.inv(v_now)
+            vNvrsP_now = vP_now * uFunc.derinv(v_now, order=(0, 1))
+            mNrm_temp = np.insert(mNrm_for_vFunc, 0, mNrmMin_i)  # add the lower bound
+            vNvrs_now = np.insert(vNvrs_now, 0, 0.0)
+            vNvrsP_now = np.insert(
+                vNvrsP_now, 0, MPCmaxEff[i] ** (-CRRA / (1.0 - CRRA))
+            )
+            MPCminNvrs = MPCminNow[i] ** (-CRRA / (1.0 - CRRA))
+            vNvrsFuncNow = CubicInterp(
+                mNrm_temp, vNvrs_now, vNvrsP_now, MPCminNvrs * hNrmNow_i, MPCminNvrs
+            )
+
+            # "Recurve" the decurved value function and add it to the list
+            vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
+
+        else:
+            vFuncNow = NullFunc()
+
         # Make the current-Markov-state-conditional solution
         solution_cond = ConsumerSolution(
             cFunc=cFuncNow,
+            vFunc=vFuncNow,
             vPfunc=vPfuncNow,
             vPPfunc=vPPfuncNow,
-            mNrmMin=mNrmMin_list[i],
+            mNrmMin=mNrmMin_i,
         )
 
         # Add the current-state-conditional solution to the overall period solution
         solution.append_solution(solution_cond)
 
     # Add the lower bounds of market resources, MPC limits, human resources,
-    # and the value functions to the overall solution
+    # and the value functions to the overall solution, then return it
     solution.mNrmMin = mNrmMin_list
     solution.hNrm = hNrmNow
     solution.MPCmin = MPCminNow
     solution.MPCmax = MPCmaxNow
-
-    if vFuncBool:
-        pass
-        # vFuncNow = make_vFunc(solution)
-        # solution.vFunc = vFuncNow
-        # TODO: Add vFunc functionality
-
     return solution
 
 
@@ -769,11 +810,12 @@ class ConsMarkovSolver(ConsIndShockSolver):
 
         def v_lvl_next(shocks, a_nrm, Rfree):
             return (
-                shocks[0] ** (1.0 - self.CRRA) * self.PermGroFac ** (1.0 - self.CRRA)
+                shocks["PermShk"] ** (1.0 - self.CRRA)
+                * self.PermGroFac ** (1.0 - self.CRRA)
             ) * self.vFuncNext(self.m_nrm_next(shocks, a_nrm, Rfree))
 
-        EndOfPrdv_cond = self.DiscFacEff * calc_expectation(
-            self.IncShkDstn, v_lvl_next, self.aNrmNow, self.Rfree
+        EndOfPrdv_cond = self.DiscFacEff * self.IncShkDstn.expected(
+            v_lvl_next, self.aNrmNow, self.Rfree
         )
         EndOfPrdvNvrs = self.u.inv(
             EndOfPrdv_cond
@@ -892,7 +934,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
                 ):  # only consider a future state if one of the relevant states could transition to it
                     EndOfPrdvP_all[j, :] = self.EndOfPrdvPfunc_list[j](aGrid)
                     # Add conditional end-of-period (marginal) marginal value to the arrays
-                    if self.CubicBool:  
+                    if self.CubicBool:
                         EndOfPrdvPP_all[j, :] = self.EndOfPrdvPfunc_list[j].derivativeX(
                             aGrid
                         )
@@ -1264,8 +1306,7 @@ class MarkovConsumerType(IndShockConsumerType):
 
     def __init__(self, **kwds):
         IndShockConsumerType.__init__(self, **kwds)
-        self.solve_one_period = _solve_ConsMarkov
-        # self.solve_one_period = solve_one_period_ConsMarkov
+        self.solve_one_period = solve_one_period_ConsMarkov
 
         if not hasattr(self, "global_markov"):
             self.global_markov = False
