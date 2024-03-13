@@ -10,8 +10,10 @@ It currently solves 2 types of models:
 """
 
 import numpy as np
+from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolver,
+    ConsumerSolution,
     IndShockConsumerType,
     init_idiosyncratic_shocks,
     init_lifecycle,
@@ -23,10 +25,12 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
     init_portfolio,
 )
 from HARK.core import make_one_period_oo_solver
+from HARK.distribution import expected
 from HARK.interpolation import (
     ConstantFunction,
     IdentityFunction,
     LinearInterp,
+    LowerEnvelope,
     MargMargValueFuncCRRA,
     MargValueFuncCRRA,
     ValueFuncCRRA,
@@ -50,9 +54,7 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
 
         super().__init__(**params)
 
-        self.solve_one_period = make_one_period_oo_solver(
-            BequestWarmGlowConsumerSolver,
-        )
+        self.solve_one_period = solve_one_period_ConsWarmBequest
 
     def update(self):
         super().update()
@@ -217,6 +219,189 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType):
                 dvdmFuncFxd=dvdmFuncFxd_terminal,
                 dvdsFuncFxd=dvdsFuncFxd_terminal,
             )
+
+
+def solve_one_period_ConsWarmBequest(
+    solution_next,
+    IncShkDstn,
+    LivPrb,
+    DiscFac,
+    CRRA,
+    Rfree,
+    PermGroFac,
+    BoroCnstArt,
+    aXtraGrid,
+    BeqCRRA,
+    BeqFac,
+    BeqShift,
+):
+    """
+    Solves one period of a consumption-saving model with idiosyncratic shocks to
+    permanent and transitory income, with one risk free asset and CRRA utility.
+    The consumer also has a "warm glow" bequest motive in which they gain additional
+    utility based on their terminal wealth upon death. Currently does not support
+    value function construction nor cubic spline interpolation, in order to match
+    behavior of existing OO-solver.
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to next period's one period problem.
+    IncShkDstn : distribution.Distribution
+        A discrete approximation to the income process between the period being
+        solved and the one immediately following (in solution_next).
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    PermGroFac : float
+        Expected permanent income growth factor at the end of this period.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.  If it is less than the natural borrowing constraint,
+        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+        rowing constraint.
+    aXtraGrid : np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level.
+    BeqCRRA : float
+        Coefficient of relative risk aversion for warm glow bequest motive.
+    BeqFac : float
+        Multiplicative intensity factor for the warm glow bequest motive.
+    BeqShift : float
+        Stone-Geary shifter in the warm glow bequest motive.
+
+    Returns
+    -------
+    solution_now : ConsumerSolution
+        Solution to this period's consumption-saving problem with income risk.
+    """
+    # Define the current period utility function and effective discount factor
+    uFunc = UtilityFuncCRRA(CRRA)
+    DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
+    BeqFacEff = (1.0 - LivPrb) * BeqFac  # "effective" bequest factor
+    warm_glow = UtilityFuncStoneGeary(BeqCRRA, BeqFacEff, BeqShift)
+
+    # Unpack next period's income shock distribution
+    ShkPrbsNext = IncShkDstn.pmv
+    PermShkValsNext = IncShkDstn.atoms[0]
+    TranShkValsNext = IncShkDstn.atoms[1]
+    PermShkMinNext = np.min(PermShkValsNext)
+    TranShkMinNext = np.min(TranShkValsNext)
+
+    # Calculate the probability that we get the worst possible income draw
+    IncNext = PermShkValsNext * TranShkValsNext
+    WorstIncNext = PermShkMinNext * TranShkMinNext
+    WorstIncPrb = np.sum(ShkPrbsNext[IncNext == WorstIncNext])
+    # WorstIncPrb is the "Weierstrass p" concept: the odds we get the WORST thing
+
+    # Unpack next period's (marginal) value function
+    vFuncNext = solution_next.vFunc  # This is None when vFuncBool is False
+    vPfuncNext = solution_next.vPfunc
+    vPPfuncNext = solution_next.vPPfunc  # This is None when CubicBool is False
+
+    # Update the bounding MPCs and PDV of human wealth:
+    PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
+    try:
+        MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
+    except:
+        MPCminNow = 0.0
+    Ex_IncNext = np.dot(ShkPrbsNext, TranShkValsNext * PermShkValsNext)
+    hNrmNow = PermGroFac / Rfree * (Ex_IncNext + solution_next.hNrm)
+    temp_fac = (WorstIncPrb ** (1.0 / CRRA)) * PatFac
+    MPCmaxNow = 1.0 / (1.0 + temp_fac / solution_next.MPCmax)
+    cFuncLimitIntercept = MPCminNow * hNrmNow
+    cFuncLimitSlope = MPCminNow
+
+    # Calculate the minimum allowable value of money resources in this period
+    PermGroFacEffMin = (PermGroFac * PermShkMinNext) / Rfree
+    BoroCnstNat = (solution_next.mNrmMin - TranShkMinNext) * PermGroFacEffMin
+    BoroCnstNat = np.max([BoroCnstNat, -BeqShift])
+
+    # Set the minimum allowable (normalized) market resources based on the natural
+    # and artificial borrowing constraints
+    if BoroCnstArt is None:
+        mNrmMinNow = BoroCnstNat
+    else:
+        mNrmMinNow = np.max([BoroCnstNat, BoroCnstArt])
+
+    # Set the upper limit of the MPC (at mNrmMinNow) based on whether the natural
+    # or artificial borrowing constraint actually binds
+    if BoroCnstNat < mNrmMinNow:
+        MPCmaxEff = 1.0  # If actually constrained, MPC near limit is 1
+    else:
+        MPCmaxEff = MPCmaxNow  # Otherwise, it's the MPC calculated above
+
+    # Define the borrowing-constrained consumption function
+    cFuncNowCnst = LinearInterp(
+        np.array([mNrmMinNow, mNrmMinNow + 1.0]), np.array([0.0, 1.0])
+    )
+
+    # Construct the assets grid by adjusting aXtra by the natural borrowing constraint
+    aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
+
+    # Define local functions for taking future expectations
+    def calc_mNrmNext(S, a, R):
+        return R / (PermGroFac * S["PermShk"]) * a + S["TranShk"]
+
+    def calc_vNext(S, a, R):
+        return (S["PermShk"] ** (1.0 - CRRA) * PermGroFac ** (1.0 - CRRA)) * vFuncNext(
+            calc_mNrmNext(S, a, R)
+        )
+
+    def calc_vPnext(S, a, R):
+        return S["PermShk"] ** (-CRRA) * vPfuncNext(calc_mNrmNext(S, a, R))
+
+    def calc_vPPnext(S, a, R):
+        return S["PermShk"] ** (-CRRA - 1.0) * vPPfuncNext(calc_mNrmNext(S, a, R))
+
+    # Calculate end-of-period marginal value of assets at each gridpoint
+    vPfacEff = DiscFacEff * Rfree * PermGroFac ** (-CRRA)
+    EndOfPrdvP = vPfacEff * expected(calc_vPnext, IncShkDstn, args=(aNrmNow, Rfree))
+    EndOfPrdvP += warm_glow.der(aNrmNow)
+
+    # Invert the first order condition to find optimal cNrm from each aNrm gridpoint
+    cNrmNow = uFunc.derinv(EndOfPrdvP, order=(1, 0))
+    mNrmNow = cNrmNow + aNrmNow  # Endogenous mNrm gridpoints
+
+    # Limiting consumption is zero as m approaches mNrmMin
+    c_for_interpolation = np.insert(cNrmNow, 0, 0.0)
+    m_for_interpolation = np.insert(mNrmNow, 0, BoroCnstNat)
+
+    # Construct the unconstrained consumption function as a linear interpolation
+    cFuncNowUnc = LinearInterp(
+        m_for_interpolation,
+        c_for_interpolation,
+        cFuncLimitIntercept,
+        cFuncLimitSlope,
+    )
+
+    # Combine the constrained and unconstrained functions into the true consumption function.
+    # LowerEnvelope should only be used when BoroCnstArt is True
+    cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst, nan_bool=False)
+
+    # Make the marginal value function and the marginal marginal value function
+    vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)
+    vPPfuncNow = NullFunc()  # Dummy object
+    vFuncNow = NullFunc()  # Dummy object
+
+    # Create and return this period's solution
+    solution_now = ConsumerSolution(
+        cFunc=cFuncNow,
+        vFunc=vFuncNow,
+        vPfunc=vPfuncNow,
+        vPPfunc=vPPfuncNow,
+        mNrmMin=mNrmMinNow,
+        hNrm=hNrmNow,
+        MPCmin=MPCminNow,
+        MPCmax=MPCmaxEff,
+    )
+    return solution_now
 
 
 class BequestWarmGlowConsumerSolver(ConsIndShockSolver):

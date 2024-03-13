@@ -1182,10 +1182,9 @@ class ConsMarkovSolver(ConsIndShockSolver):
             vNvrsP = np.insert(
                 vNvrsP, 0, self.MPCmaxEff[i] ** (-self.CRRA / (1.0 - self.CRRA))
             )
-            MPCminNvrs = self.MPCminNow[i] ** (-self.CRRA / (1.0 - self.CRRA))
+            #MPCminNvrs = self.MPCminNow[i] ** (-self.CRRA / (1.0 - self.CRRA))
             vNvrsFunc_i = CubicInterp(
-                mNrm_temp, vNvrs, vNvrsP, MPCminNvrs * self.hNrmNow[i], MPCminNvrs
-            )
+                mNrm_temp, vNvrs, vNvrsP,)  # MPCminNvrs * self.hNrmNow[i], MPCminNvrs
 
             # "Recurve" the decurved value function and add it to the list
             vFunc_i = ValueFuncCRRA(vNvrsFunc_i, self.CRRA)
