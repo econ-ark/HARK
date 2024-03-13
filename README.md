@@ -35,7 +35,7 @@
 
 HARK is a toolkit for the structural modeling of economic choices of optimizing and non-optimizing heterogeneous agents. For more information on using HARK, see the [Econ-ARK Website](https://econ-ark.org).
 
-The Econ-ARK project uses an [open governance model](https://github.com/econ-ark/governance) and is fiscally sponsored by [NumFOCUS](https://numfocus.org/). Consider making a [tax-deductible donation](https://numfocus.salsalabs.org/donate-to-econ-ark/index.html) to help the project pay for developer time, professional services, travel, workshops, and a variety of other needs.
+The Econ-ARK project uses an open governance model and is fiscally sponsored by [NumFOCUS](https://numfocus.org/). Consider making a [tax-deductible donation](https://numfocus.salsalabs.org/donate-to-econ-ark/index.html) to help the project pay for developer time, professional services, travel, workshops, and a variety of other needs.
 
 <div align="center">
   <a href="https://numfocus.org/project/econ-ark">
@@ -144,7 +144,7 @@ Or you can retrieve the solved value for human wealth normalized by permanent in
 PFexample.solution[0].hNrm
 ```
 
-For a detailed explanation of the above example please see the demo notebook [_A Gentle Introduction to HARK_](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks/Gentle-Intro-To-HARK-PerfForesightCRRA.ipynb).
+For a detailed explanation of the above example please see the demo notebook [_A Gentle Introduction to HARK_](https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath=examples/Gentle-Intro/Gentle-Intro-To-HARK.ipynb).
 
 For more examples please visit the [econ-ark/DemARK](https://github.com/econ-ark/DemARK) repository.
 
@@ -215,7 +215,7 @@ HARK provides a modular and extensible open-source toolkit for solving heterogen
 
 HARK is written in Python, making significant use of libraries such as numpy and scipy which offer a wide array of mathematical and statistical functions and tools. Our modules are generally categorized into Tools (mathematical functions and techniques), Models (particular economic models and solvers) and Applications (use of tools to simulate an economic phenomenon).
 
-For more information on how you can create your own Models or use Tools and Model to create Applications please see the [HARK Manual](./_static/HARKmanual.pdf).
+Our workhorse module is [ConsIndShockModel.py](https://github.com/econ-ark/HARK/blob/master/HARK/ConsumptionSaving/ConsIndShockModel.py) which includes the IndShockConsumerType. A short explanation about the Agent Type can be found [here](https://hark.readthedocs.io/en/latest/search.html?q=%22IndShockConsumerType+Documentation%22&check_keywords=yes&area=default#) and an introduction how it is solved [here](https://hark.readthedocs.io/en/latest/search.html?q=%22How+we+solve+a+model+defined+by+the+IndShockConsumerType+class%22&check_keywords=yes&area=default#).
 
 ### Contributing to HARK
 
