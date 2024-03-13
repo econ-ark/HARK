@@ -26,7 +26,6 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
     PortfolioSolution,
     init_portfolio,
 )
-from HARK.core import make_one_period_oo_solver
 from HARK.distribution import expected
 from HARK.interpolation import (
     BilinearInterp,
