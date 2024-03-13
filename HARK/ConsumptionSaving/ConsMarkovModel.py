@@ -14,7 +14,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     PerfForesightConsumerType,
 )
-from HARK.distribution import MarkovProcess, Uniform, calc_expectation, expected
+from HARK.distribution import MarkovProcess, Uniform, expected
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
@@ -473,10 +473,14 @@ def solve_one_period_ConsMarkov(
             vNvrsP_now = np.insert(
                 vNvrsP_now, 0, MPCmaxEff[i] ** (-CRRA / (1.0 - CRRA))
             )
-            MPCminNvrs = MPCminNow[i] ** (-CRRA / (1.0 - CRRA))
+            # MPCminNvrs = MPCminNow[i] ** (-CRRA / (1.0 - CRRA))
             vNvrsFuncNow = CubicInterp(
-                mNrm_temp, vNvrs_now, vNvrsP_now, MPCminNvrs * hNrmNow_i, MPCminNvrs
-            )
+                mNrm_temp,
+                vNvrs_now,
+                vNvrsP_now,
+            )  # MPCminNvrs * hNrmNow_i, MPCminNvrs)
+            # The bounding function for the pseudo-inverse value function is incorrect.
+            # TODO: Resolve this strange issue; extrapolation is suppressed for now.
 
             # "Recurve" the decurved value function and add it to the list
             vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
