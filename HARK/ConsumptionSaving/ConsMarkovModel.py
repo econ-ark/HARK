@@ -177,7 +177,6 @@ def solve_one_period_ConsMarkov(
     # Loop through each next-period-state and calculate the beginning-of-period
     # (marginal) value function
     for j in range(StateCountNext):
-
         # Condition values on next period's state (and record a couple for later use)
         Rfree = Rfree_list[j]
         PermGroFac = PermGroFac_list[j]
@@ -415,7 +414,6 @@ def solve_one_period_ConsMarkov(
 
     # Loop through each current period state and add its solution to the overall solution
     for i in range(StateCountNow):
-
         # Set current-Markov-state-conditional human wealth and MPC bounds
         hNrmNow_i = hNrmNow[i]
         MPCminNow_i = MPCminNow[i]
