@@ -397,6 +397,45 @@ def calc_dvds_next(
     return dvds_next
 
 
+def calc_dv_next(
+    shocks,
+    b_nrm,
+    share,
+    crra,
+    perm_gro_fac,
+    adjust_prob,
+    vp_func_adj,
+    dvdm_func_fxd,
+    dvds_func_fxd,
+):
+    mNrm_next = calc_m_nrm_next(shocks, b_nrm, perm_gro_fac)
+    dvdmAdj_next = vp_func_adj(mNrm_next)
+
+    # No marginal value of Share if it's a free choice!
+    dvdsAdj_next = np.zeros_like(mNrm_next)
+
+    # If there's no chance that portfolio share is fixed, don't bother evaluating
+    if adjust_prob >= 1.0:
+        return (shocks["PermShk"] * perm_gro_fac) ** (
+            -crra
+        ) * dvdmAdj_next, dvdsAdj_next
+
+    # Expand to the same dimensions as mNrm
+    Share_next_expanded = share + np.zeros_like(mNrm_next)
+
+    dvdmFxd_next = dvdm_func_fxd(mNrm_next, Share_next_expanded)
+    dvdsFxd_next = dvds_func_fxd(mNrm_next, Share_next_expanded)
+
+    # Combine by adjustment probability
+    dvdm_next = adjust_prob * dvdmAdj_next + (1.0 - adjust_prob) * dvdmFxd_next
+    dvds_next = adjust_prob * dvdsAdj_next + (1.0 - adjust_prob) * dvdsFxd_next
+
+    dvdm_next = (shocks["PermShk"] * perm_gro_fac) ** (-crra) * dvdm_next
+    dvds_next = (shocks["PermShk"] * perm_gro_fac) ** (1.0 - crra) * dvds_next
+
+    return dvdm_next, dvds_next
+
+
 # Define functions for calculating end-of-period marginal value
 def calc_end_of_prd_dvda(shocks, a_nrm, share, rfree, dvdb_func):
     """Compute end-of-period marginal value of assets at values a, conditional
@@ -439,6 +478,24 @@ def calc_end_of_prd_dvds(
         bNrm_next, z_rep
     )
     return EndOfPrd_dvds
+
+
+def calc_end_of_prd_dv(shocks, a_nrm, share, rfree, dvdb_func, dvds_func):
+    # Calculate future realizations of bank balances bNrm
+    Rxs = shocks - rfree  # Excess returns
+    Rport = rfree + share * Rxs  # Portfolio return
+    bNrm_next = Rport * a_nrm
+
+    # Ensure shape concordance
+    z_rep = np.full_like(bNrm_next, share)
+
+    # Calculate and return dvda
+    dvdb = dvdb_func(bNrm_next, z_rep)
+    EndOfPrd_dvda = Rport * dvdb
+    # Calculate and return dvds
+    EndOfPrd_dvds = Rxs * a_nrm * dvdb + dvds_func(bNrm_next, z_rep)
+
+    return EndOfPrd_dvda, EndOfPrd_dvds
 
 
 def calc_v_intermed(
@@ -625,9 +682,10 @@ def solve_one_period_ConsPortfolio(
     # in aNrm and ShareGrid. Does so by taking expectation of next period marginal
     # values across income and risky return shocks.
 
-    # Calculate intermediate marginal value of bank balances by taking expectations over income shocks
-    dvdb_intermed = expected(
-        calc_dvdm_next,
+    # Calculate intermediate marginal value of bank balances and risky portfolio share
+    # by taking expectations over income shocks
+    dvdb_intermed, dvds_intermed = expected(
+        calc_dv_next,
         IncShkDstn,
         args=(
             bNrmNext,
@@ -637,18 +695,14 @@ def solve_one_period_ConsPortfolio(
             AdjustPrb,
             vPfuncAdj_next,
             dvdmFuncFxd_next,
+            dvdsFuncFxd_next,
         ),
     )
+
     dvdbNvrs_intermed = uFunc.derinv(dvdb_intermed, order=(1, 0))
     dvdbNvrsFunc_intermed = BilinearInterp(dvdbNvrs_intermed, bNrmGrid, ShareGrid)
     dvdbFunc_intermed = MargValueFuncCRRA(dvdbNvrsFunc_intermed, CRRA)
 
-    # Calculate intermediate marginal value of risky portfolio share by taking expectations over income shocks
-    dvds_intermed = expected(
-        calc_dvds_next,
-        IncShkDstn,
-        args=(bNrmNext, ShareNext, CRRA, PermGroFac, AdjustPrb, dvdsFuncFxd_next),
-    )
     dvdsFunc_intermed = BilinearInterp(dvds_intermed, bNrmGrid, ShareGrid)
 
     # Make tiled arrays to calculate future realizations of bNrm and Share when integrating over RiskyDstn
@@ -656,20 +710,15 @@ def solve_one_period_ConsPortfolio(
 
     # Evaluate realizations of value and marginal value after asset returns are realized
 
-    # Calculate end-of-period marginal value of assets by taking expectations
-    EndOfPrd_dvda = DiscFacEff * expected(
-        calc_end_of_prd_dvda,
-        RiskyDstn,
-        args=(aNrmNow, ShareNext, Rfree, dvdbFunc_intermed),
-    )
-    EndOfPrd_dvdaNvrs = uFunc.derinv(EndOfPrd_dvda)
-
-    # Calculate end-of-period marginal value of risky portfolio share by taking expectations
-    EndOfPrd_dvds = DiscFacEff * expected(
-        calc_end_of_prd_dvds,
+    # Calculate end-of-period marginal value of assets and risky portfolio share
+    # by taking expectations
+    EndOfPrd_dvda, EndOfPrd_dvds = DiscFacEff * expected(
+        calc_end_of_prd_dv,
         RiskyDstn,
         args=(aNrmNow, ShareNext, Rfree, dvdbFunc_intermed, dvdsFunc_intermed),
     )
+
+    EndOfPrd_dvdaNvrs = uFunc.derinv(EndOfPrd_dvda)
 
     # Make the end-of-period value function if the value function is requested
     if vFuncBool:
