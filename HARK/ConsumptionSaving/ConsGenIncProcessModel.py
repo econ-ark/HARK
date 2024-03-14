@@ -7,7 +7,7 @@ and allows (log) persistent income to follow an AR1 process rather than random w
 
 import numpy as np
 
-from HARK import AgentType, make_one_period_oo_solver, NullFunc
+from HARK import AgentType, NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSetup,
     ConsumerSolution,
@@ -38,7 +38,7 @@ from HARK.rewards import (
     CRRAutilityPP,
     UtilityFuncCRRA,
 )
-from HARK.utilities import get_percentiles, plot_funcs
+from HARK.utilities import get_percentiles
 
 __all__ = [
     "pLvlFuncAR1",
