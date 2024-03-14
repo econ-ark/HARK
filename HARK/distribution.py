@@ -407,9 +407,7 @@ class Lognormal(ContinuousFrozenDistribution):
             lower_CDF_vals = [0.0]
             if lo_cut > 0.0:
                 for x in range(tail_N - 1, -1, -1):
-                    lower_CDF_vals.append(
-                        lower_CDF_vals[-1] + lo_cut * scale**x / mag
-                    )
+                    lower_CDF_vals.append(lower_CDF_vals[-1] + lo_cut * scale**x / mag)
             upper_CDF_vals = [hi_cut]
             if hi_cut < 1.0:
                 for x in range(tail_N):

@@ -8,6 +8,7 @@ from a composite good (of consumption and leisure), with transitory and permanen
 productivity shocks.  Agents choose their quantities of labor and consumption after
 observing both of these shocks, so the transitory shock is a state variable.
 """
+
 import sys
 from copy import copy
 
@@ -343,7 +344,6 @@ def solve_ConsLaborIntMarg(
 
 
 class LaborIntMargConsumerType(IndShockConsumerType):
-
     """
     A class representing agents who make a decision each period about how much
     to consume vs save and how much labor to supply (as a fraction of their time).
@@ -737,13 +737,13 @@ init_labor_intensive = copy(init_idiosyncratic_shocks)
 init_labor_intensive["LbrCostCoeffs"] = [-1.0]
 init_labor_intensive["WageRte"] = [1.0]
 init_labor_intensive["IncUnemp"] = 0.0
-init_labor_intensive[
-    "TranShkCount"
-] = 15  # Crank up permanent shock count - Number of points in discrete approximation to transitory income shocks
+init_labor_intensive["TranShkCount"] = (
+    15  # Crank up permanent shock count - Number of points in discrete approximation to transitory income shocks
+)
 init_labor_intensive["PermShkCount"] = 16  # Crank up permanent shock count
-init_labor_intensive[
-    "aXtraCount"
-] = 200  # May be important to have a larger number of gridpoints (than 48 initially)
+init_labor_intensive["aXtraCount"] = (
+    200  # May be important to have a larger number of gridpoints (than 48 initially)
+)
 init_labor_intensive["aXtraMax"] = 80.0
 init_labor_intensive["BoroCnstArt"] = None
 
@@ -791,6 +791,6 @@ init_labor_lifecycle["WageRte"] = [
 init_labor_lifecycle["LbrCostCoeffs"] = np.array([-2.0, 0.4])
 init_labor_lifecycle["T_cycle"] = 10
 # init_labor_lifecycle['T_retire']   = 7 # IndexError at line 774 in interpolation.py.
-init_labor_lifecycle[
-    "T_age"
-] = 11  # Make sure that old people die at terminal age and don't turn into newborns!
+init_labor_lifecycle["T_age"] = (
+    11  # Make sure that old people die at terminal age and don't turn into newborns!
+)

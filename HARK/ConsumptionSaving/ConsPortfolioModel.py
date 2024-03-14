@@ -19,6 +19,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     utilityP_inv,
 )
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyAssetConsumerType
+from HARK.distribution import expected
 from HARK.interpolation import (
     BilinearInterp,
     ConstantFunction,
@@ -31,7 +32,6 @@ from HARK.interpolation import (
 )
 from HARK.metric import MetricObject
 from HARK.rewards import UtilityFuncCRRA
-from HARK.distribution import expected
 
 
 # Define a class to represent the single period solution of the portfolio choice problem
@@ -176,15 +176,10 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
 
         # Set the solver for the portfolio model, and update various constructed attributes
         if self.IndepDstnBool:
-            if self.DiscreteShareBool:
-                solver = ConsPortfolioDiscreteSolver
-            else:
-                solver = ConsPortfolioSolver
+            self.solve_one_period = solve_one_period_ConsPortfolio
         else:
             solver = ConsPortfolioJointDistSolver
-        self.solve_one_period = make_one_period_oo_solver(solver)
-        # self.solve_one_period = solve_one_period_ConsPortfolio
-
+            self.solve_one_period = make_one_period_oo_solver(solver)
         self.update()
 
     def pre_solve(self):
@@ -592,105 +587,8 @@ def solve_one_period_ConsPortfolio(
         EndOfPrddvds_dist, RiskyDstn, args=(aNrmNow, ShareNext)
     )
 
-    # Now find the optimal (continuous) risky share on [0,1] by solving the first
-    # order condition EndOfPrd_dvds == 0.
-    FOC_s = EndOfPrd_dvds  # Relabel for convenient typing
-
-    # For each value of aNrm, find the value of Share such that FOC_s == 0
-    crossing = np.logical_and(FOC_s[:, 1:] <= 0.0, FOC_s[:, :-1] >= 0.0)
-    share_idx = np.argmax(crossing, axis=1)
-    # This represents the index of the segment of the share grid where dvds flips
-    # from positive to negative, indicating that there's a zero *on* the segment
-
-    # Calculate the fractional distance between those share gridpoints where the
-    # zero should be found, assuming a linear function; call it alpha
-    a_idx = np.arange(aNrmCount)
-    bot_s = ShareGrid[share_idx]
-    top_s = ShareGrid[share_idx + 1]
-    bot_f = FOC_s[a_idx, share_idx]
-    top_f = FOC_s[a_idx, share_idx + 1]
-    bot_c = EndOfPrd_dvdaNvrs[a_idx, share_idx]
-    top_c = EndOfPrd_dvdaNvrs[a_idx, share_idx + 1]
-    alpha = 1.0 - top_f / (top_f - bot_f)
-
-    # Calculate the continuous optimal risky share and optimal consumption
-    ShareAdj_now = (1.0 - alpha) * bot_s + alpha * top_s
-    cNrmAdj_now = (1.0 - alpha) * bot_c + alpha * top_c
-
-    # If agent wants to put more than 100% into risky asset, he is constrained.
-    # Likewise if he wants to put less than 0% into risky asset, he is constrained.
-    constrained_top = FOC_s[:, -1] > 0.0
-    constrained_bot = FOC_s[:, 0] < 0.0
-
-    # Apply those constraints to both risky share and consumption (but lower
-    # constraint should never be relevant)
-    ShareAdj_now[constrained_top] = 1.0
-    ShareAdj_now[constrained_bot] = 0.0
-    cNrmAdj_now[constrained_top] = EndOfPrd_dvdaNvrs[constrained_top, -1]
-    cNrmAdj_now[constrained_bot] = EndOfPrd_dvdaNvrs[constrained_bot, 0]
-
-    # When the natural borrowing constraint is *not* zero, then aNrm=0 is in the
-    # grid, but there's no way to "optimize" the portfolio if a=0, and consumption
-    # can't depend on the risky share if it doesn't meaningfully exist. Apply
-    # a small fix to the bottom gridpoint (aNrm=0) when this happens.
-    if not BoroCnstNat_iszero:
-        ShareAdj_now[0] = 1.0
-        cNrmAdj_now[0] = EndOfPrd_dvdaNvrs[0, -1]
-
-    # Construct functions characterizing the solution for this period
-
-    # Calculate the endogenous mNrm gridpoints when the agent adjusts his portfolio,
-    # then construct the consumption function when the agent can adjust his share
-    mNrmAdj_now = np.insert(aNrmGrid + cNrmAdj_now, 0, 0.0)
-    cNrmAdj_now = np.insert(cNrmAdj_now, 0, 0.0)
-    cFuncAdj_now = LinearInterp(mNrmAdj_now, cNrmAdj_now)
-
-    # Construct the marginal value (of mNrm) function when the agent can adjust
-    vPfuncAdj_now = MargValueFuncCRRA(cFuncAdj_now, CRRA)
-
-    # Construct the consumption function when the agent *can't* adjust the risky
-    # share, as well as the marginal value of Share function
-    cFuncFxd_by_Share = []
-    dvdsFuncFxd_by_Share = []
-    for j in range(ShareCount):
-        cNrmFxd_temp = np.insert(EndOfPrd_dvdaNvrs[:, j], 0, 0.0)
-        mNrmFxd_temp = np.insert(aNrmGrid + cNrmFxd_temp[1:], 0, 0.0)
-        dvdsFxd_temp = np.insert(EndOfPrd_dvds[:, j], 0, EndOfPrd_dvds[0, j])
-        cFuncFxd_by_Share.append(LinearInterp(mNrmFxd_temp, cNrmFxd_temp))
-        dvdsFuncFxd_by_Share.append(LinearInterp(mNrmFxd_temp, dvdsFxd_temp))
-    cFuncFxd_now = LinearInterpOnInterp1D(cFuncFxd_by_Share, ShareGrid)
-    dvdsFuncFxd_now = LinearInterpOnInterp1D(dvdsFuncFxd_by_Share, ShareGrid)
-
-    # The share function when the agent can't adjust his portfolio is trivial
-    ShareFuncFxd_now = IdentityFunction(i_dim=1, n_dims=2)
-
-    # Construct the marginal value of mNrm function when the agent can't adjust his share
-    dvdmFuncFxd_now = MargValueFuncCRRA(cFuncFxd_now, CRRA)
-
-    # Construct the optimal risky share function when adjusting is possible
-    if BoroCnstNat_iszero:
-        Share_lower_bound = ShareLimit
-    else:
-        Share_lower_bound = 1.0
-    ShareAdj_now = np.insert(ShareAdj_now, 0, Share_lower_bound)
-    ShareFuncAdj_now = LinearInterp(mNrmAdj_now, ShareAdj_now, ShareLimit, 0.0)
-
-    # This is a point at which (a,c,share) have consistent length. Take the
-    # snapshot for storing the grid and values in the solution.
-    save_points = {
-        "a": deepcopy(aNrmGrid),
-        "eop_dvda_adj": uFunc.der(cNrmAdj_now),
-        "share_adj": deepcopy(ShareAdj_now),
-        "share_grid": deepcopy(ShareGrid),
-        "eop_dvda_fxd": uFunc.der(EndOfPrd_dvda),
-        "eop_dvds_fxd": EndOfPrd_dvds,
-    }
-
-    # Add the value function if requested TODO
+    # Make the end-of-period value function if the value function is requested
     if vFuncBool:
-        # Create the value functions for this period, defined over market resources
-        # mNrm when agent can adjust his portfolio, and over market resources and
-        # fixed share when agent can not adjust his portfolio.
 
         def calc_v_intermed(S, b, z):
             """
@@ -740,6 +638,134 @@ def solve_one_period_ConsPortfolio(
         # Now make an end-of-period value function over aNrm and Share
         EndOfPrd_vNvrsFunc = BilinearInterp(EndOfPrd_vNvrs, aNrmGrid, ShareGrid)
         EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+        # This will be used later to make the value function for this period
+
+    # Find the optimal risky asset share either by choosing the best value among
+    # the discrete grid choices, or by satisfying the FOC with equality (continuous)
+    if DiscreteShareBool:
+        # If we're restricted to discrete choices, then portfolio share is
+        # the one with highest value for each aNrm gridpoint
+        opt_idx = np.argmax(EndOfPrd_v, axis=1)
+        ShareAdj_now = ShareGrid[opt_idx]
+
+        # Take cNrm at that index as well... and that's it!
+        cNrmAdj_now = EndOfPrd_dvdaNvrs[np.arange(aNrmCount), opt_idx]
+
+    else:
+        # Now find the optimal (continuous) risky share on [0,1] by solving the first
+        # order condition EndOfPrd_dvds == 0.
+        FOC_s = EndOfPrd_dvds  # Relabel for convenient typing
+
+        # For each value of aNrm, find the value of Share such that FOC_s == 0
+        crossing = np.logical_and(FOC_s[:, 1:] <= 0.0, FOC_s[:, :-1] >= 0.0)
+        share_idx = np.argmax(crossing, axis=1)
+        # This represents the index of the segment of the share grid where dvds flips
+        # from positive to negative, indicating that there's a zero *on* the segment
+
+        # Calculate the fractional distance between those share gridpoints where the
+        # zero should be found, assuming a linear function; call it alpha
+        a_idx = np.arange(aNrmCount)
+        bot_s = ShareGrid[share_idx]
+        top_s = ShareGrid[share_idx + 1]
+        bot_f = FOC_s[a_idx, share_idx]
+        top_f = FOC_s[a_idx, share_idx + 1]
+        bot_c = EndOfPrd_dvdaNvrs[a_idx, share_idx]
+        top_c = EndOfPrd_dvdaNvrs[a_idx, share_idx + 1]
+        alpha = 1.0 - top_f / (top_f - bot_f)
+
+        # Calculate the continuous optimal risky share and optimal consumption
+        ShareAdj_now = (1.0 - alpha) * bot_s + alpha * top_s
+        cNrmAdj_now = (1.0 - alpha) * bot_c + alpha * top_c
+
+        # If agent wants to put more than 100% into risky asset, he is constrained.
+        # Likewise if he wants to put less than 0% into risky asset, he is constrained.
+        constrained_top = FOC_s[:, -1] > 0.0
+        constrained_bot = FOC_s[:, 0] < 0.0
+
+        # Apply those constraints to both risky share and consumption (but lower
+        # constraint should never be relevant)
+        ShareAdj_now[constrained_top] = 1.0
+        ShareAdj_now[constrained_bot] = 0.0
+        cNrmAdj_now[constrained_top] = EndOfPrd_dvdaNvrs[constrained_top, -1]
+        cNrmAdj_now[constrained_bot] = EndOfPrd_dvdaNvrs[constrained_bot, 0]
+
+    # When the natural borrowing constraint is *not* zero, then aNrm=0 is in the
+    # grid, but there's no way to "optimize" the portfolio if a=0, and consumption
+    # can't depend on the risky share if it doesn't meaningfully exist. Apply
+    # a small fix to the bottom gridpoint (aNrm=0) when this happens.
+    if not BoroCnstNat_iszero:
+        ShareAdj_now[0] = 1.0
+        cNrmAdj_now[0] = EndOfPrd_dvdaNvrs[0, -1]
+
+    # Construct functions characterizing the solution for this period
+
+    # Calculate the endogenous mNrm gridpoints when the agent adjusts his portfolio,
+    # then construct the consumption function when the agent can adjust his share
+    mNrmAdj_now = np.insert(aNrmGrid + cNrmAdj_now, 0, 0.0)
+    cNrmAdj_now = np.insert(cNrmAdj_now, 0, 0.0)
+    cFuncAdj_now = LinearInterp(mNrmAdj_now, cNrmAdj_now)
+
+    # Construct the marginal value (of mNrm) function when the agent can adjust
+    vPfuncAdj_now = MargValueFuncCRRA(cFuncAdj_now, CRRA)
+
+    # Construct the consumption function when the agent *can't* adjust the risky
+    # share, as well as the marginal value of Share function
+    cFuncFxd_by_Share = []
+    dvdsFuncFxd_by_Share = []
+    for j in range(ShareCount):
+        cNrmFxd_temp = np.insert(EndOfPrd_dvdaNvrs[:, j], 0, 0.0)
+        mNrmFxd_temp = np.insert(aNrmGrid + cNrmFxd_temp[1:], 0, 0.0)
+        dvdsFxd_temp = np.insert(EndOfPrd_dvds[:, j], 0, EndOfPrd_dvds[0, j])
+        cFuncFxd_by_Share.append(LinearInterp(mNrmFxd_temp, cNrmFxd_temp))
+        dvdsFuncFxd_by_Share.append(LinearInterp(mNrmFxd_temp, dvdsFxd_temp))
+    cFuncFxd_now = LinearInterpOnInterp1D(cFuncFxd_by_Share, ShareGrid)
+    dvdsFuncFxd_now = LinearInterpOnInterp1D(dvdsFuncFxd_by_Share, ShareGrid)
+
+    # The share function when the agent can't adjust his portfolio is trivial
+    ShareFuncFxd_now = IdentityFunction(i_dim=1, n_dims=2)
+
+    # Construct the marginal value of mNrm function when the agent can't adjust his share
+    dvdmFuncFxd_now = MargValueFuncCRRA(cFuncFxd_now, CRRA)
+
+    # Construct the optimal risky share function when adjusting is possible.
+    # The interpolation method depends on whether the choice is discrete or continuous.
+    if DiscreteShareBool:
+        # If the share choice is discrete, the "interpolated" share function acts
+        # like a step function, with jumps at the midpoints of mNrm gridpoints.
+        # Because an actual step function would break our (assumed continuous) linear
+        # interpolator, there's a *tiny* region with extremely high slope.
+        mNrmAdj_mid = (mNrmAdj_now[2:] + mNrmAdj_now[1:-1]) / 2
+        mNrmAdj_plus = mNrmAdj_mid * (1.0 + 1e-12)
+        mNrmAdj_comb = (np.transpose(np.vstack((mNrmAdj_mid, mNrmAdj_plus)))).flatten()
+        mNrmAdj_comb = np.append(np.insert(mNrmAdj_comb, 0, 0.0), mNrmAdj_now[-1])
+        Share_comb = (np.transpose(np.vstack((ShareAdj_now, ShareAdj_now)))).flatten()
+        ShareFuncAdj_now = LinearInterp(mNrmAdj_comb, Share_comb)
+
+    else:
+        # If the share choice is continuous, just make an ordinary interpolating function
+        if BoroCnstNat_iszero:
+            Share_lower_bound = ShareLimit
+        else:
+            Share_lower_bound = 1.0
+        ShareAdj_now = np.insert(ShareAdj_now, 0, Share_lower_bound)
+        ShareFuncAdj_now = LinearInterp(mNrmAdj_now, ShareAdj_now, ShareLimit, 0.0)
+
+    # This is a point at which (a,c,share) have consistent length. Take the
+    # snapshot for storing the grid and values in the solution.
+    save_points = {
+        "a": deepcopy(aNrmGrid),
+        "eop_dvda_adj": uFunc.der(cNrmAdj_now),
+        "share_adj": deepcopy(ShareAdj_now),
+        "share_grid": deepcopy(ShareGrid),
+        "eop_dvda_fxd": uFunc.der(EndOfPrd_dvda),
+        "eop_dvds_fxd": EndOfPrd_dvds,
+    }
+
+    # Add the value function if requested
+    if vFuncBool:
+        # Create the value functions for this period, defined over market resources
+        # mNrm when agent can adjust his portfolio, and over market resources and
+        # fixed share when agent can not adjust his portfolio.
 
         # Construct the value function when the agent can adjust his portfolio
         mNrm_temp = aXtraGrid  # Just use aXtraGrid as our grid of mNrm values

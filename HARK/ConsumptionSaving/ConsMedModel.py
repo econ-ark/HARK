@@ -1,6 +1,7 @@
 """
 Consumption-saving models that also include medical spending.
 """
+
 from copy import deepcopy
 
 import numpy as np
