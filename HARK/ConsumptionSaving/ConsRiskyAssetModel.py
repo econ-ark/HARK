@@ -719,10 +719,8 @@ def solve_one_period_ConsIndShockRiskyAsset(
         mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
         vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
         vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
-        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
-        vNvrsFuncNow = CubicInterp(
-            mNrm_temp, vNvrs_temp, vNvrsP_temp, MPCminNvrs * hNrmNow, MPCminNvrs
-        )
+        # MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+        vNvrsFuncNow = CubicInterp(mNrm_temp, vNvrs_temp, vNvrsP_temp)
         vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
     else:
         vFuncNow = NullFunc()  # Dummy object
@@ -1128,6 +1126,48 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
             self.EndOfPrdvFunc, self.EndOfPrdv = self.calc_ExpValueFunc(
                 self.ShockDstn, v_next, self.aNrmNow
             )
+
+    def make_vFunc(self, solution):
+        """
+        Creates the value function for this period, defined over market resources m.
+        self must have the attribute EndOfPrdvFunc in order to execute.
+
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            The solution to this single period problem, which must include the
+            consumption function.
+
+        Returns
+        -------
+        vFuncNow : ValueFuncCRRA
+            A representation of the value function for this period, defined over
+            normalized market resources m: v = vFuncNow(m).
+        """
+        # Compute expected value and marginal value on a grid of market resources
+        mNrm_temp = self.mNrmMinNow + self.aXtraGrid
+        cNrmNow = solution.cFunc(mNrm_temp)
+        aNrmNow = mNrm_temp - cNrmNow
+        vNrmNow = self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow)
+        vPnow = self.u.der(cNrmNow)
+
+        # Construct the beginning-of-period value function
+        # value transformed through inverse utility
+        vNvrs = self.u.inv(vNrmNow)
+        vNvrsP = vPnow * self.u.derinv(vNrmNow, order=(0, 1))
+        mNrm_temp = np.insert(mNrm_temp, 0, self.mNrmMinNow)
+        vNvrs = np.insert(vNvrs, 0, 0.0)
+        vNvrsP = np.insert(
+            vNvrsP, 0, self.MPCmaxEff ** (-self.CRRA / (1.0 - self.CRRA))
+        )
+        # MPCminNvrs = self.MPCminNow ** (-self.CRRA / (1.0 - self.CRRA))
+        vNvrsFuncNow = CubicInterp(
+            mNrm_temp,
+            vNvrs,
+            vNvrsP,
+        )
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA)
+        return vFuncNow
 
 
 @dataclass
