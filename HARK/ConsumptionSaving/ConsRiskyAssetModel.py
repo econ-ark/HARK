@@ -38,6 +38,7 @@ from HARK.interpolation import (
     ValueFuncCRRA,
 )
 from HARK.rewards import UtilityFuncCRRA
+from HARK.utilities import plot_funcs
 
 
 class IndShockRiskyAssetConsumerType(IndShockConsumerType):
@@ -83,6 +84,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             solver = ConsIndShkRiskyAssetSolver  # risky share of 1
 
         self.solve_one_period = make_one_period_oo_solver(solver)
+        #self.solve_one_period = solve_one_period_ConsIndShockRiskyAsset
 
     def pre_solve(self):
         self.update_solution_terminal()
@@ -523,6 +525,8 @@ def solve_one_period_ConsIndShockRiskyAsset(
     RiskyValsNext = ShockDstn.atoms[2]
     PermShkMinNext = np.min(PermShkValsNext)
     TranShkMinNext = np.min(TranShkValsNext)
+    RiskyMinNext = np.min(RiskyValsNext)
+    RiskyMaxNext = np.max(RiskyValsNext)
 
     # Unpack next period's (marginal) value function
     vFuncNext = solution_next.vFunc  # This is None when vFuncBool is False
@@ -600,28 +604,161 @@ def solve_one_period_ConsIndShockRiskyAsset(
         np.array([mNrmMinNow, mNrmMinNow + 1.0]), np.array([0.0, 1.0])
     )
 
-    # Construct the assets grid by adjusting aXtra by the natural borrowing constraint
-    # aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
-    if BoroCnstNat_iszero:
-        aNrmNow = aXtraGrid
-    else:
-        # Add an asset point at exactly zero
-        aNrmNow = np.insert(aXtraGrid, 0, 0.0)
-
     # Big methodological split here: whether the income and return distributions are independent.
     # Calculation of end-of-period marginal (marginal) value uses different approaches
     if IndepDstnBool:
-        pass
+        # bNrm represents R*a, balances after asset return shocks but before income.
+        # This just uses the highest risky return as a rough shifter for the aXtraGrid.
+        if BoroCnstNat_iszero:
+            aNrmNow = aXtraGrid
+            bNrmNow = np.insert(
+                RiskyMaxNext * aXtraGrid, 0, RiskyMinNext * aXtraGrid[0]
+            )
+        else:
+            # Add an asset and bank balances point at exactly zero
+            aNrmNow = np.insert(aXtraGrid, 0, 0.0)
+            bNrmNow = RiskyMaxNext * np.insert(aXtraGrid, 0, 0.0)
+
+        # Define local functions for taking future expectations when the interest
+        # factor *is* independent from the income shock distribution. These go
+        # from "bank balances" bNrm = R * aNrm to t+1 realizations.
+        def calc_mNrmNext(S, b):
+            return b / (PermGroFac * S["PermShk"]) + S["TranShk"]
+
+        def calc_vNext(S, b):
+            return S["PermShk"] ** (1.0 - CRRA) * vFuncNext(calc_mNrmNext(S, b))
+
+        def calc_vPnext(S, b):
+            return S["PermShk"] ** (-CRRA) * vPfuncNext(calc_mNrmNext(S, b))
+
+        def calc_vPPnext(S, b):
+            return S["PermShk"] ** (-CRRA - 1.0) * vPPfuncNext(calc_mNrmNext(S, b))
+
+        # Calculate marginal value of bank balances at each gridpoint
+        vPfacEff = PermGroFac ** (-CRRA)
+        Intermed_vP = vPfacEff * expected(calc_vPnext, IncShkDstn, args=(bNrmNow))
+        Intermed_vPnvrs = uFunc.derinv(Intermed_vP, order=(1, 0))
+        if BoroCnstNat_iszero:
+            Intermed_vPnvrs = np.insert(Intermed_vPnvrs, 0, 0.0)
+            bNrm_temp = np.insert(bNrmNow, 0, 0.0)
+        else:
+            bNrm_temp = bNrmNow.copy()
+
+        # If using cubic spline interpolation, also calculate "intermediate"
+        # marginal marginal value of bank balances
+        if CubicBool:
+            vPPfacEff = PermGroFac ** (-CRRA - 1.0)
+            Intermed_vPP = vPPfacEff * expected(
+                calc_vPPnext, IncShkDstn, args=(bNrmNow)
+            )
+            Intermed_vPnvrsP = Intermed_vPP * uFunc.derinv(Intermed_vP, order=(1, 1))
+            if BoroCnstNat_iszero:
+                Intermed_vPnvrsP = np.insert(Intermed_vPnvrsP, 0, Intermed_vPnvrsP[0])
+
+            # Make a cubic spline intermediate pseudo-inverse marginal value function
+            Intermed_vPnvrsFunc = CubicInterp(
+                bNrm_temp, Intermed_vPnvrs, Intermed_vPnvrsP
+            )
+            Intermed_vPPfunc = MargMargValueFuncCRRA(Intermed_vPnvrsFunc, CRRA)
+        else:
+            # Make a linear interpolation intermediate pseudo-inverse marginal value function
+            Intermed_vPnvrsFunc = LinearInterp(bNrm_temp, Intermed_vPnvrs)
+
+        # "Recurve" the intermediate pseudo-inverse marginal value function
+        Intermed_vPfunc = MargValueFuncCRRA(Intermed_vPnvrsFunc, CRRA)
+        plot_funcs(Intermed_vPfunc, 0., 20.)
+
+        # If the value function is requested, calculate "intermediate" value
+        if vFuncBool:
+            vFacEff = PermGroFac ** (1.0 - CRRA)
+            Intermed_v = vFacEff * expected(calc_vNext, IncShkDstn, args=(bNrmNow))
+            Intermed_vNvrs = uFunc.inv(Intermed_v)
+            # value transformed through inverse utility
+            Intermed_vNvrsP = Intermed_vP * uFunc.derinv(Intermed_v, order=(0, 1))
+            if BoroCnstNat_iszero:
+                Intermed_vNvrs = np.insert(Intermed_vNvrs, 0, 0.0)
+                Intermed_vNvrsP = np.insert(Intermed_vNvrsP, 0, Intermed_vNvrsP[0])
+                # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+
+            # Make a cubic spline intermediate pseudo-inverse value function
+            Intermed_vNvrsFunc = CubicInterp(bNrm_temp, Intermed_vNvrs, Intermed_vNvrsP)
+
+            # "Recurve" the intermediate pseudo-inverse value function
+            Intermed_vFunc = ValueFuncCRRA(Intermed_vNvrsFunc, CRRA)
+
+        # We have "intermediate" (marginal) value functions defined over bNrm,
+        # so now we want to take expectations over Risky realizations at each aNrm.
+
+        # Begin by re-defining transition functions for taking expectations, which are all very simple!
+        def calc_bNrmNext(R, a):
+            return R * a
+
+        def calc_vNext(R, a):
+            return Intermed_vFunc(calc_bNrmNext(R, a))
+
+        def calc_vPnext(R, a):
+            return R * Intermed_vPfunc(calc_bNrmNext(R, a))
+
+        def calc_vPPnext(R, a):
+            return R * R * Intermed_vPPfunc(calc_bNrmNext(R, a))
+
+        # Calculate end-of-period marginal value of assets at each gridpoint
+        EndOfPrdvP = DiscFacEff * expected(calc_vPnext, RiskyDstn, args=(aNrmNow))
+
+        # Invert the first order condition to find optimal cNrm from each aNrm gridpoint
+        cNrmNow = uFunc.derinv(EndOfPrdvP, order=(1, 0))
+        mNrmNow = cNrmNow + aNrmNow  # Endogenous mNrm gridpoints
+
+        # Calculate the MPC at each gridpoint if using cubic spline interpolation
+        if CubicBool:
+            # Calculate end-of-period marginal marginal value of assets at each gridpoint
+            EndOfPrdvPP = DiscFacEff * expected(calc_vPPnext, RiskyDstn, args=(aNrmNow))
+            dcda = EndOfPrdvPP / uFunc.der(np.array(cNrmNow), order=2)
+            MPC = dcda / (dcda + 1.0)
+            MPC_for_interpolation = np.insert(MPC, 0, MPCmaxNow)
+            
+        #print(MPC_for_interpolation)  # TODO: Figure out where the NaN in second element is coming from
+
+        # Limiting consumption is zero as m approaches mNrmMin
+        c_for_interpolation = np.insert(cNrmNow, 0, 0.0)
+        m_for_interpolation = np.insert(mNrmNow, 0, BoroCnstNat)
+
+        # Construct the end-of-period value function if requested
+        if vFuncBool:
+            # Calculate end-of-period value, its derivative, and their pseudo-inverse
+            EndOfPrdv = DiscFacEff * expected(calc_vNext, RiskyDstn, args=(aNrmNow))
+            EndOfPrdvNvrs = uFunc.inv(EndOfPrdv)
+            # value transformed through inverse utility
+            EndOfPrdvNvrsP = EndOfPrdvP * uFunc.derinv(EndOfPrdv, order=(0, 1))
+
+            # Construct the end-of-period value function
+            if BoroCnstNat_iszero:
+                EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
+                EndOfPrdvNvrsP = np.insert(EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0])
+                # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+                aNrm_temp = np.insert(aNrmNow, 0, BoroCnstNat)
+            else:
+                aNrm_temp = aNrmNow.copy()
+            EndOfPrd_vNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
+            EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+
+    # NON-INDEPENDENT METHOD BEGINS HERE
     else:
+        # Construct the assets grid by adjusting aXtra by the natural borrowing constraint
+        # aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
+        if BoroCnstNat_iszero:
+            aNrmNow = aXtraGrid
+        else:
+            # Add an asset point at exactly zero
+            aNrmNow = np.insert(aXtraGrid, 0, 0.0)
+
         # Define local functions for taking future expectations when the interest
         # factor is *not* independent from the income shock distribution
         def calc_mNrmNext(S, a):
             return S["Risky"] / (PermGroFac * S["PermShk"]) * a + S["TranShk"]
 
         def calc_vNext(S, a):
-            return (
-                S["PermShk"] ** (1.0 - CRRA) * PermGroFac ** (1.0 - CRRA)
-            ) * vFuncNext(calc_mNrmNext(S, a))
+            return S["PermShk"] ** (1.0 - CRRA) * vFuncNext(calc_mNrmNext(S, a))
 
         def calc_vPnext(S, a):
             return (
@@ -655,6 +792,26 @@ def solve_one_period_ConsIndShockRiskyAsset(
         # Limiting consumption is zero as m approaches mNrmMin
         c_for_interpolation = np.insert(cNrmNow, 0, 0.0)
         m_for_interpolation = np.insert(mNrmNow, 0, BoroCnstNat)
+
+        # Construct the end-of-period value function if requested
+        if vFuncBool:
+            # Calculate end-of-period value, its derivative, and their pseudo-inverse
+            vFacEff = DiscFacEff * PermGroFac ** (1.0 - CRRA)
+            EndOfPrdv = vFacEff * expected(calc_vNext, ShockDstn, args=(aNrmNow))
+            EndOfPrdvNvrs = uFunc.inv(EndOfPrdv)
+            # value transformed through inverse utility
+            EndOfPrdvNvrsP = EndOfPrdvP * uFunc.derinv(EndOfPrdv, order=(0, 1))
+
+            # Construct the end-of-period value function
+            if BoroCnstNat_iszero:
+                EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
+                EndOfPrdvNvrsP = np.insert(EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0])
+                # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+                aNrm_temp = np.insert(aNrmNow, 0, BoroCnstNat)
+            else:
+                aNrm_temp = aNrmNow.copy()
+            EndOfPrd_vNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
+            EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
 
     # Construct the consumption function; this uses the same method whether the
     # income distribution is independent from the return distribution
@@ -692,20 +849,6 @@ def solve_one_period_ConsIndShockRiskyAsset(
     # Construct this period's value function if requested. This version is set
     # up for the non-independent distributions, need to write a faster version.
     if vFuncBool:
-        # Calculate end-of-period value, its derivative, and their pseudo-inverse
-        EndOfPrdv = DiscFacEff * expected(calc_vNext, ShockDstn, args=(aNrmNow))
-        EndOfPrdvNvrs = uFunc.inv(EndOfPrdv)
-        # value transformed through inverse utility
-        EndOfPrdvNvrsP = EndOfPrdvP * uFunc.derinv(EndOfPrdv, order=(0, 1))
-        EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
-        EndOfPrdvNvrsP = np.insert(EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0])
-        # This is a very good approximation, vNvrsPP = 0 at the asset minimum
-
-        # Construct the end-of-period value function
-        aNrm_temp = np.insert(aNrmNow, 0, BoroCnstNat)
-        EndOfPrd_vNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
-        EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
-
         # Compute expected value and marginal value on a grid of market resources
         mNrm_temp = mNrmMinNow + aXtraGrid
         cNrm_temp = cFuncNow(mNrm_temp)
