@@ -11,17 +11,18 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.optimize import minimize_scalar, root_scalar
 
-from HARK import make_one_period_oo_solver
-from HARK.ConsumptionSaving.ConsIndShockModel import (  # PortfolioConsumerType inherits from it; Baseline dictionary to build on
+from HARK import make_one_period_oo_solver, NullFunc
+from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolver,
     ConsumerSolution,
-    IndShockConsumerType,
-    init_idiosyncratic_shocks,
+    IndShockConsumerType,  # PortfolioConsumerType inherits from it;
+    init_idiosyncratic_shocks,  # Baseline dictionary to build on
 )
 from HARK.distribution import (
     Bernoulli,
     DiscreteDistribution,
     DiscreteDistributionLabeled,
+    expected,
     IndexDistribution,
     Lognormal,
     calc_expectation,
@@ -30,9 +31,13 @@ from HARK.distribution import (
 from HARK.interpolation import (
     ConstantFunction,
     LinearInterp,
+    LowerEnvelope,
+    CubicInterp,
+    MargMargValueFuncCRRA,
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
+from HARK.rewards import UtilityFuncCRRA
 
 
 class IndShockRiskyAssetConsumerType(IndShockConsumerType):
@@ -436,6 +441,306 @@ class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
 ####################################################################################################
 
 
+def solve_one_period_ConsIndShockRiskyAsset(
+    solution_next,
+    IncShkDstn,
+    RiskyDstn,
+    ShockDstn,
+    LivPrb,
+    DiscFac,
+    CRRA,
+    PermGroFac,
+    BoroCnstArt,
+    aXtraGrid,
+    vFuncBool,
+    CubicBool,
+    IndepDstnBool,
+):
+    """
+    Solves one period of a consumption-saving model with idiosyncratic shocks to
+    permanent and transitory income, with one risky asset and CRRA utility.
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to next period's one period problem.
+    IncShkDstn : Distribution
+        Discrete distribution of permanent income shocks and transitory income
+        shocks. This is only used if the input IndepDstnBool is True, indicating
+        that income and return distributions are independent.
+    RiskyDstn : Distribution
+       Distribution of risky asset returns. This is only used if the input
+       IndepDstnBool is True, indicating that income and return distributions
+       are independent.
+    ShockDstn : Distribution
+        Joint distribution of permanent income shocks, transitory income shocks,
+        and risky returns.  This is only used if the input IndepDstnBool is False,
+        indicating that income and return distributions can't be assumed to be
+        independent.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    PermGroFac : float
+        Expected permanent income growth factor at the end of this period.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.  If it is less than the natural borrowing constraint,
+        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+        rowing constraint.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear interpolation.
+    IndepDstnBool : bool
+        Indicator for whether the income and risky return distributions are in-
+        dependent of each other, which can speed up the expectations step.
+
+    Returns
+    -------
+    solution_now : ConsumerSolution
+        Solution to this period's consumption-saving problem with income risk.
+    """
+    # Do a quick validity check; don't want to allow borrowing with risky returns
+    if BoroCnstArt != 0.0:
+        raise ValueError("RiskyAssetConsumerType must have BoroCnstArt=0.0!")
+
+    # Define the current period utility function and effective discount factor
+    uFunc = UtilityFuncCRRA(CRRA)
+    DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
+
+    # Unpack next period's income shock distribution
+    ShkPrbsNext = ShockDstn.pmv
+    PermShkValsNext = ShockDstn.atoms[0]
+    TranShkValsNext = ShockDstn.atoms[1]
+    RiskyValsNext = ShockDstn.atoms[2]
+    PermShkMinNext = np.min(PermShkValsNext)
+    TranShkMinNext = np.min(TranShkValsNext)
+
+    # Unpack next period's (marginal) value function
+    vFuncNext = solution_next.vFunc  # This is None when vFuncBool is False
+    vPfuncNext = solution_next.vPfunc
+    vPPfuncNext = solution_next.vPPfunc  # This is None when CubicBool is False
+
+    # Perform an alternate calculation of the absolute patience factor when
+    # returns are risky
+    def calc_Radj(R):
+        return R ** (1.0 - CRRA)
+
+    PatFac = (DiscFacEff * expected(calc_Radj, RiskyDstn)) ** (1.0 / CRRA)
+    MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
+
+    # Also perform an alternate calculation for human wealth under risky returns
+    def calc_hNrm(S):
+        Risky = S["Risky"]
+        PermShk = S["PermShk"]
+        TranShk = S["TranShk"]
+        hNrm = (PermGroFac / Risky) * (PermShk * TranShk + solution_next.hNrm)
+        return hNrm
+
+    hNrmNow = expected(calc_hNrm, ShockDstn)
+
+    # The above attempts to pin down the limiting consumption function for this
+    # model, however it is not clear why it creates bugs, so for now we allow
+    # for a linear extrapolation beyond the last asset point
+    cFuncLimitIntercept = None
+    cFuncLimitSlope = None
+
+    # Calculate the minimum allowable value of market resources in this period
+    BoroCnstNat_cand = (
+        (solution_next.mNrmMin - TranShkValsNext)
+        * (PermGroFac * PermShkValsNext)
+        / RiskyValsNext
+    )
+    BoroCnstNat = np.max(BoroCnstNat_cand)  # Must be at least this
+
+    # Set a flag for whether the natural borrowing constraint is zero, which
+    # depends on whether the smallest transitory income shock is zero
+    BoroCnstNat_iszero = np.min(IncShkDstn.atoms[1]) == 0.0
+
+    # Set the minimum allowable (normalized) market resources based on the natural
+    # and artificial borrowing constraints
+    if BoroCnstArt is None:
+        mNrmMinNow = BoroCnstNat
+    else:
+        mNrmMinNow = np.max([BoroCnstNat, BoroCnstArt])
+
+    # The MPCmax code is a bit unusual here, and possibly "harmlessly wrong".
+    # The "worst event" should depend on the risky return factor as well as
+    # income shocks. However, the natural borrowing constraint is only ever
+    # relevant in this model when it's zero, so the MPC at mNrm is only relevant
+    # in the case where risky returns don't matter at all (because a=0).
+
+    # Calculate the probability that we get the worst possible income draw
+    IncNext = PermShkValsNext * TranShkValsNext
+    WorstIncNext = PermShkMinNext * TranShkMinNext
+    WorstIncPrb = np.sum(ShkPrbsNext[IncNext == WorstIncNext])
+    # WorstIncPrb is the "Weierstrass p" concept: the odds we get the WORST thing
+
+    # Update the upper bounding MPC as market resources approach the lower bound
+    temp_fac = (WorstIncPrb ** (1.0 / CRRA)) * PatFac
+    MPCmaxNow = 1.0 / (1.0 + temp_fac / solution_next.MPCmax)
+
+    # Set the upper limit of the MPC (at mNrmMinNow) based on whether the natural
+    # or artificial borrowing constraint actually binds
+    if BoroCnstNat < mNrmMinNow:
+        MPCmaxEff = 1.0  # If actually constrained, MPC near limit is 1
+    else:
+        MPCmaxEff = MPCmaxNow  # Otherwise, it's the MPC calculated above
+
+    # Define the borrowing-constrained consumption function
+    cFuncNowCnst = LinearInterp(
+        np.array([mNrmMinNow, mNrmMinNow + 1.0]), np.array([0.0, 1.0])
+    )
+
+    # Construct the assets grid by adjusting aXtra by the natural borrowing constraint
+    # aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
+    if BoroCnstNat_iszero:
+        aNrmNow = aXtraGrid
+    else:
+        # Add an asset point at exactly zero
+        aNrmNow = np.insert(aXtraGrid, 0, 0.0)
+
+    # Big methodological split here: whether the income and return distributions are independent.
+    # Calculation of end-of-period marginal (marginal) value uses different approaches
+    if IndepDstnBool:
+        pass
+    else:
+        # Define local functions for taking future expectations when the interest
+        # factor is *not* independent from the income shock distribution
+        def calc_mNrmNext(S, a):
+            return S["Risky"] / (PermGroFac * S["PermShk"]) * a + S["TranShk"]
+
+        def calc_vNext(S, a):
+            return (
+                S["PermShk"] ** (1.0 - CRRA) * PermGroFac ** (1.0 - CRRA)
+            ) * vFuncNext(calc_mNrmNext(S, a))
+
+        def calc_vPnext(S, a):
+            return (
+                S["Risky"] * S["PermShk"] ** (-CRRA) * vPfuncNext(calc_mNrmNext(S, a))
+            )
+
+        def calc_vPPnext(S, a):
+            return (
+                (S["Risky"] ** 2)
+                * S["PermShk"] ** (-CRRA - 1.0)
+                * vPPfuncNext(calc_mNrmNext(S, a))
+            )
+
+        # Calculate end-of-period marginal value of assets at each gridpoint
+        vPfacEff = DiscFacEff * PermGroFac ** (-CRRA)
+        EndOfPrdvP = vPfacEff * expected(calc_vPnext, ShockDstn, args=(aNrmNow))
+
+        # Invert the first order condition to find optimal cNrm from each aNrm gridpoint
+        cNrmNow = uFunc.derinv(EndOfPrdvP, order=(1, 0))
+        mNrmNow = cNrmNow + aNrmNow  # Endogenous mNrm gridpoints
+
+        # Calculate the MPC at each gridpoint if using cubic spline interpolation
+        if CubicBool:
+            # Calculate end-of-period marginal marginal value of assets at each gridpoint
+            vPPfacEff = DiscFacEff * PermGroFac ** (-CRRA - 1.0)
+            EndOfPrdvPP = vPPfacEff * expected(calc_vPPnext, ShockDstn, args=(aNrmNow))
+            dcda = EndOfPrdvPP / uFunc.der(np.array(cNrmNow), order=2)
+            MPC = dcda / (dcda + 1.0)
+            MPC_for_interpolation = np.insert(MPC, 0, MPCmaxNow)
+
+        # Limiting consumption is zero as m approaches mNrmMin
+        c_for_interpolation = np.insert(cNrmNow, 0, 0.0)
+        m_for_interpolation = np.insert(mNrmNow, 0, BoroCnstNat)
+
+    # Construct the consumption function; this uses the same method whether the
+    # income distribution is independent from the return distribution
+    if CubicBool:
+        # Construct the unconstrained consumption function as a cubic interpolation
+        cFuncNowUnc = CubicInterp(
+            m_for_interpolation,
+            c_for_interpolation,
+            MPC_for_interpolation,
+            cFuncLimitIntercept,
+            cFuncLimitSlope,
+        )
+    else:
+        # Construct the unconstrained consumption function as a linear interpolation
+        cFuncNowUnc = LinearInterp(
+            m_for_interpolation,
+            c_for_interpolation,
+            cFuncLimitIntercept,
+            cFuncLimitSlope,
+        )
+
+    # Combine the constrained and unconstrained functions into the true consumption function.
+    # LowerEnvelope should only be used when BoroCnstArt is True
+    cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst, nan_bool=False)
+
+    # Make the marginal value function and the marginal marginal value function
+    vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)
+
+    # Define this period's marginal marginal value function
+    if CubicBool:
+        vPPfuncNow = MargMargValueFuncCRRA(cFuncNow, CRRA)
+    else:
+        vPPfuncNow = NullFunc()  # Dummy object
+
+    # Construct this period's value function if requested. This version is set
+    # up for the non-independent distributions, need to write a faster version.
+    if vFuncBool:
+        # Calculate end-of-period value, its derivative, and their pseudo-inverse
+        EndOfPrdv = DiscFacEff * expected(calc_vNext, ShockDstn, args=(aNrmNow))
+        EndOfPrdvNvrs = uFunc.inv(EndOfPrdv)
+        # value transformed through inverse utility
+        EndOfPrdvNvrsP = EndOfPrdvP * uFunc.derinv(EndOfPrdv, order=(0, 1))
+        EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
+        EndOfPrdvNvrsP = np.insert(EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0])
+        # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+
+        # Construct the end-of-period value function
+        aNrm_temp = np.insert(aNrmNow, 0, BoroCnstNat)
+        EndOfPrd_vNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
+        EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+
+        # Compute expected value and marginal value on a grid of market resources
+        mNrm_temp = mNrmMinNow + aXtraGrid
+        cNrm_temp = cFuncNow(mNrm_temp)
+        aNrm_temp = mNrm_temp - cNrm_temp
+        v_temp = uFunc(cNrm_temp) + EndOfPrd_vFunc(aNrm_temp)
+        vP_temp = uFunc.der(cNrm_temp)
+
+        # Construct the beginning-of-period value function
+        vNvrs_temp = uFunc.inv(v_temp)  # value transformed through inv utility
+        vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
+        mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
+        vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
+        vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
+        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+        vNvrsFuncNow = CubicInterp(
+            mNrm_temp, vNvrs_temp, vNvrsP_temp, MPCminNvrs * hNrmNow, MPCminNvrs
+        )
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
+    else:
+        vFuncNow = NullFunc()  # Dummy object
+
+    # Create and return this period's solution
+    solution_now = ConsumerSolution(
+        cFunc=cFuncNow,
+        vFunc=vFuncNow,
+        vPfunc=vPfuncNow,
+        vPPfunc=vPPfuncNow,
+        mNrmMin=mNrmMinNow,
+        hNrm=hNrmNow,
+        MPCmin=MPCminNow,
+        MPCmax=MPCmaxEff,
+    )
+    return solution_now
+
+
 @dataclass
 class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
     """
@@ -498,7 +803,6 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
         -------
         None
         """
-
         super().set_and_update_values(solution_next, IncShkDstn, LivPrb, DiscFac)
 
         # Absolute Patience Factor for the model with risk free return is defined at
