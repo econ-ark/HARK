@@ -38,7 +38,6 @@ from HARK.interpolation import (
     ValueFuncCRRA,
 )
 from HARK.rewards import UtilityFuncCRRA
-from HARK.utilities import plot_funcs
 
 
 class IndShockRiskyAssetConsumerType(IndShockConsumerType):
@@ -84,7 +83,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             solver = ConsIndShkRiskyAssetSolver  # risky share of 1
 
         self.solve_one_period = make_one_period_oo_solver(solver)
-        #self.solve_one_period = solve_one_period_ConsIndShockRiskyAsset
+        # self.solve_one_period = solve_one_period_ConsIndShockRiskyAsset
 
     def pre_solve(self):
         self.update_solution_terminal()
@@ -610,14 +609,13 @@ def solve_one_period_ConsIndShockRiskyAsset(
         # bNrm represents R*a, balances after asset return shocks but before income.
         # This just uses the highest risky return as a rough shifter for the aXtraGrid.
         if BoroCnstNat_iszero:
-            aNrmNow = aXtraGrid
             bNrmNow = np.insert(
                 RiskyMaxNext * aXtraGrid, 0, RiskyMinNext * aXtraGrid[0]
             )
         else:
-            # Add an asset and bank balances point at exactly zero
-            aNrmNow = np.insert(aXtraGrid, 0, 0.0)
+            # Add a bank balances point at exactly zero
             bNrmNow = RiskyMaxNext * np.insert(aXtraGrid, 0, 0.0)
+        aNrmNow = aXtraGrid
 
         # Define local functions for taking future expectations when the interest
         # factor *is* independent from the income shock distribution. These go
@@ -666,7 +664,6 @@ def solve_one_period_ConsIndShockRiskyAsset(
 
         # "Recurve" the intermediate pseudo-inverse marginal value function
         Intermed_vPfunc = MargValueFuncCRRA(Intermed_vPnvrsFunc, CRRA)
-        plot_funcs(Intermed_vPfunc, 0., 20.)
 
         # If the value function is requested, calculate "intermediate" value
         if vFuncBool:
@@ -716,8 +713,6 @@ def solve_one_period_ConsIndShockRiskyAsset(
             dcda = EndOfPrdvPP / uFunc.der(np.array(cNrmNow), order=2)
             MPC = dcda / (dcda + 1.0)
             MPC_for_interpolation = np.insert(MPC, 0, MPCmaxNow)
-            
-        #print(MPC_for_interpolation)  # TODO: Figure out where the NaN in second element is coming from
 
         # Limiting consumption is zero as m approaches mNrmMin
         c_for_interpolation = np.insert(cNrmNow, 0, 0.0)
