@@ -79,11 +79,9 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         # RiskyAssetConsumerType
         if self.PortfolioBool:
             solver = ConsPortfolioIndShkRiskyAssetSolver  # optimize over shares
+            self.solve_one_period = make_one_period_oo_solver(solver)
         else:
-            solver = ConsIndShkRiskyAssetSolver  # risky share of 1
-
-        self.solve_one_period = make_one_period_oo_solver(solver)
-        # self.solve_one_period = solve_one_period_ConsIndShockRiskyAsset
+            self.solve_one_period = solve_one_period_ConsIndShockRiskyAsset
 
     def pre_solve(self):
         self.update_solution_terminal()
