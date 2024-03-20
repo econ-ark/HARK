@@ -237,14 +237,14 @@ def solve_one_period_ConsWarmBequest(
     BeqCRRA,
     BeqFac,
     BeqShift,
+    CubicBool,
+    vFuncBool,
 ):
     """
     Solves one period of a consumption-saving model with idiosyncratic shocks to
     permanent and transitory income, with one risk free asset and CRRA utility.
     The consumer also has a "warm glow" bequest motive in which they gain additional
-    utility based on their terminal wealth upon death. Currently does not support
-    value function construction nor cubic spline interpolation, in order to match
-    behavior of existing OO-solver.
+    utility based on their terminal wealth upon death.
 
     Parameters
     ----------
@@ -278,6 +278,11 @@ def solve_one_period_ConsWarmBequest(
         Multiplicative intensity factor for the warm glow bequest motive.
     BeqShift : float
         Stone-Geary shifter in the warm glow bequest motive.
+    CubicBool : bool
+        An indicator for whether the solver should use cubic or linear interpolation.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
 
     Returns
     -------
@@ -376,22 +381,85 @@ def solve_one_period_ConsWarmBequest(
     c_for_interpolation = np.insert(cNrmNow, 0, 0.0)
     m_for_interpolation = np.insert(mNrmNow, 0, BoroCnstNat)
 
-    # Construct the unconstrained consumption function as a linear interpolation
-    cFuncNowUnc = LinearInterp(
-        m_for_interpolation,
-        c_for_interpolation,
-        cFuncLimitIntercept,
-        cFuncLimitSlope,
-    )
+    # Construct the consumption function as a cubic or linear spline interpolation
+    if CubicBool:
+        # Calculate end-of-period marginal marginal value of assets at each gridpoint
+        vPPfacEff = DiscFacEff * Rfree * Rfree * PermGroFac ** (-CRRA - 1.0)
+        EndOfPrdvPP = vPPfacEff * expected(
+            calc_vPPnext, IncShkDstn, args=(aNrmNow, Rfree)
+        )
+        EndOfPrdvPP += warm_glow.der(aNrmNow, order=2)
+        dcda = EndOfPrdvPP / uFunc.der(np.array(cNrmNow), order=2)
+        MPC = dcda / (dcda + 1.0)
+        MPC_for_interpolation = np.insert(MPC, 0, MPCmaxNow)
+
+        # Construct the unconstrained consumption function as a cubic interpolation
+        cFuncNowUnc = CubicInterp(
+            m_for_interpolation,
+            c_for_interpolation,
+            MPC_for_interpolation,
+            cFuncLimitIntercept,
+            cFuncLimitSlope,
+        )
+    else:
+        # Construct the unconstrained consumption function as a linear interpolation
+        cFuncNowUnc = LinearInterp(
+            m_for_interpolation,
+            c_for_interpolation,
+            cFuncLimitIntercept,
+            cFuncLimitSlope,
+        )
 
     # Combine the constrained and unconstrained functions into the true consumption function.
     # LowerEnvelope should only be used when BoroCnstArt is True
     cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst, nan_bool=False)
 
-    # Make the marginal value function and the marginal marginal value function
+    # Make the marginal value function
     vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)
-    vPPfuncNow = NullFunc()  # Dummy object
-    vFuncNow = NullFunc()  # Dummy object
+
+    # Define this period's marginal marginal value function
+    if CubicBool:
+        vPPfuncNow = MargMargValueFuncCRRA(cFuncNow, CRRA)
+    else:
+        vPPfuncNow = NullFunc()  # Dummy object
+
+    # Construct this period's value function if requested
+    if vFuncBool:
+        # Calculate end-of-period value, its derivative, and their pseudo-inverse
+        EndOfPrdv = DiscFacEff * expected(calc_vNext, IncShkDstn, args=(aNrmNow, Rfree))
+        EndOfPrdv += warm_glow(aNrmNow)
+        EndOfPrdvNvrs = uFunc.inv(EndOfPrdv)
+        # value transformed through inverse utility
+        EndOfPrdvNvrsP = EndOfPrdvP * uFunc.derinv(EndOfPrdv, order=(0, 1))
+        EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
+        EndOfPrdvNvrsP = np.insert(EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0])
+        # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+
+        # Construct the end-of-period value function
+        aNrm_temp = np.insert(aNrmNow, 0, BoroCnstNat)
+        EndOfPrd_vNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
+        EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+
+        # Compute expected value and marginal value on a grid of market resources
+        mNrm_temp = mNrmMinNow + aXtraGrid
+        cNrm_temp = cFuncNow(mNrm_temp)
+        aNrm_temp = mNrm_temp - cNrm_temp
+        v_temp = uFunc(cNrm_temp) + EndOfPrd_vFunc(aNrm_temp)
+        vP_temp = uFunc.der(cNrm_temp)
+
+        # Construct the beginning-of-period value function
+        vNvrs_temp = uFunc.inv(v_temp)  # value transformed through inv utility
+        vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
+        mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
+        vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
+        vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
+        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+        vNvrsFuncNow = CubicInterp(
+            mNrm_temp, vNvrs_temp, vNvrsP_temp, MPCminNvrs * hNrmNow, MPCminNvrs
+        )
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
+    else:
+        vFuncNow = NullFunc()  # Dummy object
 
     # Create and return this period's solution
     solution_now = ConsumerSolution(

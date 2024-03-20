@@ -411,8 +411,7 @@ def solve_one_period_ConsIndShock(
         An indicator for whether the value function should be computed and
         included in the reported solution.
     CubicBool: boolean
-        An indicator for whether the solver should use cubic or linear inter-
-        polation.
+        An indicator for whether the solver should use cubic or linear interpolation.
 
     Returns
     -------
