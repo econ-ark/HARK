@@ -545,7 +545,6 @@ def solve_one_period_ConsIndShockRiskyAsset(
         TranShk = S["TranShk"]
         hNrm = (PermGroFac / Risky) * (PermShk * TranShk + solution_next.hNrm)
         return hNrm
-
     hNrmNow = expected(calc_hNrm, ShockDstn)
 
     # The above attempts to pin down the limiting consumption function for this
