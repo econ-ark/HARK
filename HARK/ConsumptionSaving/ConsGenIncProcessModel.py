@@ -7,14 +7,14 @@ and allows (log) persistent income to follow an AR1 process rather than random w
 
 import numpy as np
 
-from HARK import AgentType, make_one_period_oo_solver
+from HARK import AgentType, NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSetup,
     ConsumerSolution,
     IndShockConsumerType,
     init_idiosyncratic_shocks,
 )
-from HARK.distribution import Lognormal, Uniform, calc_expectation
+from HARK.distribution import Lognormal, Uniform, calc_expectation, expected
 from HARK.interpolation import (
     BilinearInterp,
     CubicInterp,
@@ -36,6 +36,7 @@ from HARK.rewards import (
     CRRAutilityP_inv,
     CRRAutilityP_invP,
     CRRAutilityPP,
+    UtilityFuncCRRA,
 )
 from HARK.utilities import get_percentiles
 
@@ -101,6 +102,435 @@ class pLvlFuncAR1(MetricObject):
 
 
 ###############################################################################
+
+
+def solve_one_period_ConsGenIncProcess(
+    solution_next,
+    IncShkDstn,
+    LivPrb,
+    DiscFac,
+    CRRA,
+    Rfree,
+    pLvlNextFunc,
+    BoroCnstArt,
+    aXtraGrid,
+    pLvlGrid,
+    vFuncBool,
+    CubicBool,
+):
+    """
+    Solves one one period problem of a consumer who experiences persistent and
+    transitory shocks to his income.  Unlike in ConsIndShock, consumers do not
+    necessarily have the same predicted level of p next period as this period
+    (after controlling for growth).  Instead, they have  a function that translates
+    current persistent income into expected next period persistent income (subject
+    to shocks).
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to next period's one period problem.
+    IncShkDstn : distribution.Distribution
+        A discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next). Order: event
+        probabilities, persistent shocks, transitory shocks.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    pLvlNextFunc : float
+        Expected persistent income next period as a function of current pLvl.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period (normalized) asset values-- assets
+        above the absolute minimum acceptable level.
+    pLvlGrid: np.array
+        Array of persistent income levels at which to solve the problem.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear interpolation.
+
+    Returns
+    -------
+    solution_now : ConsumerSolution
+        Solution to this period's consumption-saving problem.
+    """
+    # Define the utility function for this period
+    uFunc = UtilityFuncCRRA(CRRA)
+    DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
+
+    # Unpack next period's income shock distribution
+    ShkPrbsNext = IncShkDstn.pmv
+    PermShkValsNext = IncShkDstn.atoms[0]
+    TranShkValsNext = IncShkDstn.atoms[1]
+    PermShkMinNext = np.min(PermShkValsNext)
+    TranShkMinNext = np.min(TranShkValsNext)
+
+    # Calculate the probability that we get the worst possible income draw
+    IncNext = PermShkValsNext * TranShkValsNext
+    WorstIncNext = PermShkMinNext * TranShkMinNext
+    WorstIncPrb = np.sum(ShkPrbsNext[IncNext == WorstIncNext])
+    # WorstIncPrb is the "Weierstrass p" concept: the odds we get the WORST thing
+
+    # Unpack next period's (marginal) value function
+    vFuncNext = solution_next.vFunc  # This is None when vFuncBool is False
+    vPfuncNext = solution_next.vPfunc
+    vPPfuncNext = solution_next.vPPfunc  # This is None when CubicBool is False
+
+    # Update the bounding MPCs and PDV of human wealth:
+    PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
+    try:
+        MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
+    except:
+        MPCminNow = 0.0
+    mLvlMinNext = solution_next.mLvlMin
+
+    # TODO: Deal with this unused code for the upper bound of MPC (should be a function now)
+    # Ex_IncNext = np.dot(ShkPrbsNext, TranShkValsNext * PermShkValsNext)
+    # hNrmNow = 0.0
+    # temp_fac = (WorstIncPrb ** (1.0 / CRRA)) * PatFac
+    # MPCmaxNow = 1.0 / (1.0 + temp_fac / solution_next.MPCmax)
+
+    # Define some functions for calculating future expectations
+    def calc_pLvl_next(S, p):
+        return pLvlNextFunc(p) * S["PermShk"]
+
+    def calc_mLvl_next(S, a, p_next):
+        return Rfree * a + p_next * S["TranShk"]
+
+    def calc_hLvl(S, p):
+        pLvl_next = calc_pLvl_next(S, p)
+        hLvl = S["TranShk"] * pLvl_next + solution_next.hLvl(pLvl_next)
+        return hLvl
+
+    def calc_v_next(S, a, p):
+        pLvl_next = calc_pLvl_next(S, p)
+        mLvl_next = calc_mLvl_next(S, a, pLvl_next)
+        v_next = vFuncNext(mLvl_next, pLvl_next)
+        return v_next
+
+    def calc_vP_next(S, a, p):
+        pLvl_next = calc_pLvl_next(S, p)
+        mLvl_next = calc_mLvl_next(S, a, pLvl_next)
+        vP_next = vPfuncNext(mLvl_next, pLvl_next)
+        return vP_next
+
+    def calc_vPP_next(S, a, p):
+        pLvl_next = calc_pLvl_next(S, p)
+        mLvl_next = calc_mLvl_next(S, a, pLvl_next)
+        vPP_next = vPPfuncNext(mLvl_next, pLvl_next)
+        return vPP_next
+
+    # Construct human wealth level as a function of productivity pLvl
+    hLvlGrid = 1.0 / Rfree * expected(calc_hLvl, IncShkDstn, args=(pLvlGrid))
+    hLvlNow = LinearInterp(np.insert(pLvlGrid, 0, 0.0), np.insert(hLvlGrid, 0, 0.0))
+
+    # Make temporary grids of income shocks and next period income values
+    ShkCount = TranShkValsNext.size
+    pLvlCount = pLvlGrid.size
+    PermShkVals_temp = np.tile(
+        np.reshape(PermShkValsNext, (1, ShkCount)), (pLvlCount, 1)
+    )
+    TranShkVals_temp = np.tile(
+        np.reshape(TranShkValsNext, (1, ShkCount)), (pLvlCount, 1)
+    )
+    pLvlNext_temp = (
+        np.tile(
+            np.reshape(pLvlNextFunc(pLvlGrid), (pLvlCount, 1)),
+            (1, ShkCount),
+        )
+        * PermShkVals_temp
+    )
+
+    # Find the natural borrowing constraint for each persistent income level
+    aLvlMin_candidates = (
+        mLvlMinNext(pLvlNext_temp) - TranShkVals_temp * pLvlNext_temp
+    ) / Rfree
+    aLvlMinNow = np.max(aLvlMin_candidates, axis=1)
+    BoroCnstNat = LinearInterp(
+        np.insert(pLvlGrid, 0, 0.0), np.insert(aLvlMinNow, 0, 0.0)
+    )
+
+    # Define the minimum allowable mLvl by pLvl as the greater of the natural and artificial borrowing constraints
+    if BoroCnstArt is not None:
+        BoroCnstArt = LinearInterp(np.array([0.0, 1.0]), np.array([0.0, BoroCnstArt]))
+        mLvlMinNow = UpperEnvelope(BoroCnstArt, BoroCnstNat)
+    else:
+        mLvlMinNow = BoroCnstNat
+
+    # Define the constrained consumption function as "consume all" shifted by mLvlMin
+    cFuncNowCnstBase = BilinearInterp(
+        np.array([[0.0, 0.0], [1.0, 1.0]]),
+        np.array([0.0, 1.0]),
+        np.array([0.0, 1.0]),
+    )
+    cFuncNowCnst = VariableLowerBoundFunc2D(cFuncNowCnstBase, mLvlMinNow)
+
+    # Define grids of pLvl and aLvl on which to compute future expectations
+    pLvlCount = pLvlGrid.size
+    aNrmCount = aXtraGrid.size
+    pLvlNow = np.tile(pLvlGrid, (aNrmCount, 1)).transpose()
+    aLvlNow = np.tile(aXtraGrid, (pLvlCount, 1)) * pLvlNow + BoroCnstNat(pLvlNow)
+    # shape = (pLvlCount,aNrmCount)
+    if pLvlGrid[0] == 0.0:  # aLvl turns out badly if pLvl is 0 at bottom
+        aLvlNow[0, :] = aXtraGrid
+
+    # Calculate end-of-period marginal value of assets
+    EndOfPrd_vP = (
+        DiscFacEff * Rfree * expected(calc_vP_next, IncShkDstn, args=(aLvlNow, pLvlNow))
+    )
+
+    # If the value function has been requested, construct the end-of-period vFunc
+    if vFuncBool:
+        # Compute expected value from end-of-period states
+        EndOfPrd_v = expected(calc_v_next, IncShkDstn, args=(aLvlNow, pLvlNow))
+        EndOfPrd_v *= DiscFacEff
+
+        # Transformed value through inverse utility function to "decurve" it
+        EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v)
+        EndOfPrd_vNvrsP = EndOfPrd_vP * uFunc.derinv(EndOfPrd_v, order=(0, 1))
+
+        # Add points at mLvl=zero
+        EndOfPrd_vNvrs = np.concatenate(
+            (np.zeros((pLvlCount, 1)), EndOfPrd_vNvrs), axis=1
+        )
+        EndOfPrd_vNvrsP = np.concatenate(
+            (
+                np.reshape(EndOfPrd_vNvrsP[:, 0], (pLvlCount, 1)),
+                EndOfPrd_vNvrsP,
+            ),
+            axis=1,
+        )
+        # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+
+        # Make a temporary aLvl grid for interpolating the end-of-period value function
+        aLvl_temp = np.concatenate(
+            (
+                np.reshape(BoroCnstNat(pLvlGrid), (pLvlGrid.size, 1)),
+                aLvlNow,
+            ),
+            axis=1,
+        )
+
+        # Make an end-of-period value function for each persistent income level in the grid
+        EndOfPrd_vNvrsFunc_list = []
+        for p in range(pLvlCount):
+            EndOfPrd_vNvrsFunc_list.append(
+                CubicInterp(
+                    aLvl_temp[p, :] - BoroCnstNat(pLvlGrid[p]),
+                    EndOfPrd_vNvrs[p, :],
+                    EndOfPrd_vNvrsP[p, :],
+                )
+            )
+        EndOfPrd_vNvrsFuncBase = LinearInterpOnInterp1D(
+            EndOfPrd_vNvrsFunc_list, pLvlGrid
+        )
+
+        # Re-adjust the combined end-of-period value function to account for the
+        # natural borrowing constraint shifter and "re-curve" it
+        EndOfPrd_vNvrsFunc = VariableLowerBoundFunc2D(
+            EndOfPrd_vNvrsFuncBase, BoroCnstNat
+        )
+        EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+
+    # Solve the first order condition to get optimal consumption, then find the
+    # endogenous gridpoints
+    cLvlNow = uFunc.derinv(EndOfPrd_vP, order=(1, 0))
+    mLvlNow = cLvlNow + aLvlNow
+
+    # Limiting consumption is zero as m approaches mNrmMin
+    c_for_interpolation = np.concatenate((np.zeros((pLvlCount, 1)), cLvlNow), axis=-1)
+    m_for_interpolation = np.concatenate(
+        (
+            BoroCnstNat(np.reshape(pLvlGrid, (pLvlCount, 1))),
+            mLvlNow,
+        ),
+        axis=-1,
+    )
+
+    # Limiting consumption is MPCmin*mLvl as p approaches 0
+    m_temp = np.reshape(m_for_interpolation[0, :], (1, m_for_interpolation.shape[1]))
+    m_for_interpolation = np.concatenate((m_temp, m_for_interpolation), axis=0)
+    c_for_interpolation = np.concatenate(
+        (MPCminNow * m_temp, c_for_interpolation), axis=0
+    )
+
+    # Make an array of corresponding pLvl values, adding an additional column for
+    # the mLvl points at the lower boundary *and* an extra row for pLvl=0.
+    p_for_interpolation = np.concatenate(
+        (np.reshape(pLvlGrid, (pLvlCount, 1)), pLvlNow), axis=-1
+    )
+    p_for_interpolation = np.concatenate(
+        (np.zeros((1, m_for_interpolation.shape[1])), p_for_interpolation)
+    )
+
+    # Build the set of cFuncs by pLvl, gathered in a list
+    cFunc_by_pLvl_list = []  # list of consumption functions for each pLvl
+    if CubicBool:
+        # Calculate end-of-period marginal marginal value of assets
+        vPP_fac = DiscFacEff * Rfree * Rfree
+        EndOfPrd_vPP = expected(calc_vPP_next, IncShkDstn, args=(aLvlNow, pLvlNow))
+        EndOfPrd_vPP *= vPP_fac
+
+        # Calculate the MPC at each gridpoint
+        dcda = EndOfPrd_vPP / uFunc.der(np.array(c_for_interpolation[1:, 1:]), order=2)
+        MPC = dcda / (dcda + 1.0)
+        MPC = np.concatenate((np.reshape(MPC[:, 0], (MPC.shape[0], 1)), MPC), axis=1)
+
+        # Stick an extra row of MPC values at pLvl=zero
+        MPC = np.concatenate((MPCminNow * np.ones((1, aNrmCount + 1)), MPC), axis=0)
+
+        # Make cubic consumption function with respect to mLvl for each persistent income level
+        for j in range(p_for_interpolation.shape[0]):
+            pLvl_j = p_for_interpolation[j, 0]
+            m_temp = m_for_interpolation[j, :] - BoroCnstNat(pLvl_j)
+
+            # Make a cubic consumption function for this pLvl
+            c_temp = c_for_interpolation[j, :]
+            MPC_temp = MPC[j, :]
+            if pLvl_j > 0:
+                cFunc_by_pLvl_list.append(
+                    CubicInterp(
+                        m_temp,
+                        c_temp,
+                        MPC_temp,
+                        lower_extrap=True,
+                        slope_limit=MPCminNow,
+                        intercept_limit=MPCminNow * hLvlNow(pLvl_j),
+                    )
+                )
+            else:  # When pLvl=0, cFunc is linear
+                cFunc_by_pLvl_list.append(
+                    LinearInterp(m_temp, c_temp, lower_extrap=True)
+                )
+
+    # Basic version: use linear interpolation within a pLvl
+    else:
+        # Loop over pLvl values and make an mLvl for each one
+        for j in range(p_for_interpolation.shape[0]):
+            pLvl_j = p_for_interpolation[j, 0]
+            m_temp = m_for_interpolation[j, :] - BoroCnstNat(pLvl_j)
+
+            # Make a linear consumption function for this pLvl
+            c_temp = c_for_interpolation[j, :]
+            if pLvl_j > 0:
+                cFunc_by_pLvl_list.append(
+                    LinearInterp(
+                        m_temp,
+                        c_temp,
+                        lower_extrap=True,
+                        slope_limit=MPCminNow,
+                        intercept_limit=MPCminNow * hLvlNow(pLvl_j),
+                    )
+                )
+            else:
+                cFunc_by_pLvl_list.append(
+                    LinearInterp(m_temp, c_temp, lower_extrap=True)
+                )
+
+    # Combine all linear cFuncs into one function
+    pLvl_list = p_for_interpolation[:, 0]
+    cFuncUncBase = LinearInterpOnInterp1D(cFunc_by_pLvl_list, pLvl_list)
+    cFuncNowUnc = VariableLowerBoundFunc2D(cFuncUncBase, BoroCnstNat)
+    # Re-adjust for lower bound of natural borrowing constraint
+
+    # Combine the constrained and unconstrained functions into the true consumption function
+    cFuncNow = LowerEnvelope2D(cFuncNowUnc, cFuncNowCnst)
+
+    # Make the marginal value function
+    vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)
+
+    # If using cubic spline interpolation, construct the marginal marginal value function
+    if CubicBool:
+        vPPfuncNow = MargMargValueFuncCRRA(cFuncNow, CRRA)
+    else:
+        vPPfuncNow = NullFunc()
+
+    # If the value function has been requested, construct it now
+    if vFuncBool:
+        # Compute expected value and marginal value on a grid of market resources
+        # Tile pLvl across m values
+        pLvl_temp = np.tile(pLvlGrid, (aNrmCount, 1))
+        mLvl_temp = (
+            np.tile(mLvlMinNow(pLvlGrid), (aNrmCount, 1))
+            + np.tile(np.reshape(aXtraGrid, (aNrmCount, 1)), (1, pLvlCount)) * pLvl_temp
+        )
+        cLvl_temp = cFuncNow(mLvl_temp, pLvl_temp)
+        aLvl_temp = mLvl_temp - cLvl_temp
+        v_temp = uFunc(cLvl_temp) + EndOfPrd_vFunc(aLvl_temp, pLvl_temp)
+        vP_temp = uFunc.der(cLvl_temp)
+
+        # Calculate pseudo-inverse value and its first derivative (wrt mLvl)
+        vNvrs_temp = uFunc.inv(v_temp)  # value transformed through inverse utility
+        vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
+
+        # Add data at the lower bound of m
+        mLvl_temp = np.concatenate(
+            (np.reshape(mLvlMinNow(pLvlGrid), (1, pLvlCount)), mLvl_temp), axis=0
+        )
+        vNvrs_temp = np.concatenate((np.zeros((1, pLvlCount)), vNvrs_temp), axis=0)
+        vNvrsP_temp = np.concatenate(
+            (np.reshape(vNvrsP_temp[0, :], (1, vNvrsP_temp.shape[1])), vNvrsP_temp),
+            axis=0,
+        )
+
+        # Add data at the lower bound of p
+        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+        m_temp = np.reshape(mLvl_temp[:, 0], (aNrmCount + 1, 1))
+        mLvl_temp = np.concatenate((m_temp, mLvl_temp), axis=1)
+        vNvrs_temp = np.concatenate((MPCminNvrs * m_temp, vNvrs_temp), axis=1)
+        vNvrsP_temp = np.concatenate(
+            (MPCminNvrs * np.ones((aNrmCount + 1, 1)), vNvrsP_temp), axis=1
+        )
+
+        # Construct the pseudo-inverse value function
+        vNvrsFunc_list = []
+        for j in range(pLvlCount + 1):
+            pLvl = np.insert(pLvlGrid, 0, 0.0)[j]
+            vNvrsFunc_list.append(
+                CubicInterp(
+                    mLvl_temp[:, j] - mLvlMinNow(pLvl),
+                    vNvrs_temp[:, j],
+                    vNvrsP_temp[:, j],
+                    MPCminNvrs * hLvlNow(pLvl),
+                    MPCminNvrs,
+                )
+            )
+        vNvrsFuncBase = LinearInterpOnInterp1D(
+            vNvrsFunc_list, np.insert(pLvlGrid, 0, 0.0)
+        )  # Value function "shifted"
+        vNvrsFuncNow = VariableLowerBoundFunc2D(vNvrsFuncBase, mLvlMinNow)
+
+        # "Re-curve" the pseudo-inverse value function into the value function
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
+
+    else:
+        vFuncNow = NullFunc()
+
+    # Package and return the solution object
+    solution_now = ConsumerSolution(
+        cFunc=cFuncNow,
+        vFunc=vFuncNow,
+        vPfunc=vPfuncNow,
+        vPPfunc=vPPfuncNow,
+        mNrmMin=0.0,  # Not a normalized model, mLvlMin will be added below
+        hNrm=0.0,  # Not a normalized model, hLvl will be added below
+        MPCmin=MPCminNow,
+        MPCmax=0.0,  # This should be a function, need to make it
+    )
+    solution_now.hLvl = hLvlNow
+    solution_now.mLvlMin = mLvlMinNow
+    return solution_now
 
 
 class ConsGenIncProcessSolver(ConsIndShockSetup):
@@ -898,7 +1328,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
         # Initialize a basic ConsumerType
         IndShockConsumerType.__init__(self, **params)
-        self.solve_one_period = make_one_period_oo_solver(ConsGenIncProcessSolver)
+        self.solve_one_period = solve_one_period_ConsGenIncProcess
 
         # a poststate?
         self.state_now["aLvl"] = None
@@ -909,7 +1339,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         self.state_prev["mLvl"] = None
 
     def pre_solve(self):
-        #        AgentType.pre_solve()
         self.update_solution_terminal()
 
     def update(self):
