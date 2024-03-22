@@ -340,13 +340,13 @@ class BequestWarmGlowPortfolioSolver(ConsPortfolioSolver):
 
     def def_utility_funcs(self):
         super().def_utility_funcs()
-
-        self.warm_glow = UtilityFuncStoneGeary(self.BeqCRRA, self.BeqFac, self.BeqShift)
+        BeqFacEff = (1.0 - self.LivPrb) * self.BeqFac
+        self.warm_glow = UtilityFuncStoneGeary(self.BeqCRRA, BeqFacEff, self.BeqShift)
 
     def calc_EndOfPrdvP(self):
         super().calc_EndOfPrdvP()
 
-        self.EndofPrddvda = self.EndOfPrddvda + self.warm_glow.der(self.aNrm_tiled)
+        self.EndOfPrddvda = self.EndOfPrddvda + self.warm_glow.der(self.aNrm_tiled)
         self.EndOfPrddvdaNvrs = self.uPinv(self.EndOfPrddvda)
 
 
