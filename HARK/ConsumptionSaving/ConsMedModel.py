@@ -9,7 +9,6 @@ from scipy.optimize import brentq
 
 from HARK import AgentType
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
-    ConsGenIncProcessSolver,
     PersistentShockConsumerType,
     VariableLowerBoundFunc2D,
     init_persistent_shocks,
