@@ -2139,10 +2139,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
             if not hasattr(shk_dstn, "pmv"):
                 shk_dstn = self.IncShkDstn
 
-            self.cPol_Grid = (
-                []
-            )  # List of consumption policy grids for each period in T_cycle
-            self.aPol_Grid = []  # List of asset policy grids for each period in T_cycle
+            self.cPol_Grid = []
+            # List of consumption policy grids for each period in T_cycle
+            self.aPol_Grid = []
+            # List of asset policy grids for each period in T_cycle
             self.tran_matrix = []  # List of transition matrices
 
             dist_mGrid = self.dist_mGrid
