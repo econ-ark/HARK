@@ -64,9 +64,9 @@ class testIndShockExplicitPermIncConsumerType(unittest.TestCase):
 
     def test_solution(self):
         pLvlGrid = self.agent.pLvlGrid[0]
-        self.assertAlmostEqual(self.agent.pLvlGrid[0][0],
-                               0.27916,
-                               places=HARK_PRECISION)
+        self.assertAlmostEqual(
+            self.agent.pLvlGrid[0][0], 0.27916, places=HARK_PRECISION
+        )
 
         self.assertAlmostEqual(self.agent.solution[0].mLvlMin(pLvlGrid[0]), 0.0)
 
@@ -96,16 +96,16 @@ class testPersistentShockConsumerType(unittest.TestCase):
             5.28844,
             places=HARK_PRECISION,
         )
-    
+
     def test_value(self):
         pLvlGrid = self.agent.pLvlGrid[0]
-        
+
         self.assertTrue(self.agent.vFuncBool)
         self.assertAlmostEqual(
             self.agent.solution[0].vFunc(10, pLvlGrid[3]),
             -0.3655,
-            places=HARK_PRECISION)
-        
+            places=HARK_PRECISION,
+        )
 
     def test_simulation(self):
         self.agent.T_sim = 25
@@ -115,4 +115,4 @@ class testPersistentShockConsumerType(unittest.TestCase):
         self.agent.simulate()
 
         # simulation test -- seed/generator specific
-        #self.assertAlmostEqual(np.mean(self.agent.history["mLvl"]), 1.20439, places=HARK_PRECISION)
+        # self.assertAlmostEqual(np.mean(self.agent.history["mLvl"]), 1.20439, places=HARK_PRECISION)
