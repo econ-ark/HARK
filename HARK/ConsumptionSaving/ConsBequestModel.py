@@ -14,14 +14,12 @@ from copy import deepcopy
 import numpy as np
 from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
-    ConsIndShockSolver,
     ConsumerSolution,
     IndShockConsumerType,
     init_idiosyncratic_shocks,
     init_lifecycle,
 )
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
-    ConsPortfolioSolver,
     PortfolioConsumerType,
     PortfolioSolution,
     init_portfolio,
@@ -986,137 +984,6 @@ def solve_one_period_ConsPortfolioWarmGlow(
         EndOfPrddvds_fxd=save_points["eop_dvds_fxd"],
     )
     return solution_now
-
-
-class BequestWarmGlowConsumerSolver(ConsIndShockSolver):
-    def __init__(
-        self,
-        solution_next,
-        IncShkDstn,
-        LivPrb,
-        DiscFac,
-        CRRA,
-        Rfree,
-        PermGroFac,
-        BoroCnstArt,
-        aXtraGrid,
-        BeqCRRA,
-        BeqFac,
-        BeqShift,
-    ):
-        self.BeqCRRA = BeqCRRA
-        self.BeqFac = BeqFac
-        self.BeqShift = BeqShift
-        vFuncBool = False
-        CubicBool = False
-
-        super().__init__(
-            solution_next,
-            IncShkDstn,
-            LivPrb,
-            DiscFac,
-            CRRA,
-            Rfree,
-            PermGroFac,
-            BoroCnstArt,
-            aXtraGrid,
-            vFuncBool,
-            CubicBool,
-        )
-
-    def def_utility_funcs(self):
-        super().def_utility_funcs()
-
-        BeqFacEff = (1.0 - self.LivPrb) * self.BeqFac
-
-        self.warm_glow = UtilityFuncStoneGeary(self.BeqCRRA, BeqFacEff, self.BeqShift)
-
-    def def_BoroCnst(self, BoroCnstArt):
-        self.BoroCnstNat = (
-            (self.solution_next.mNrmMin - self.TranShkMinNext)
-            * (self.PermGroFac * self.PermShkMinNext)
-            / self.Rfree
-        )
-
-        self.BoroCnstNat = np.max([self.BoroCnstNat, -self.BeqShift])
-
-        if BoroCnstArt is None:
-            self.mNrmMinNow = self.BoroCnstNat
-        else:
-            self.mNrmMinNow = np.max([self.BoroCnstNat, BoroCnstArt])
-        if self.BoroCnstNat < self.mNrmMinNow:
-            self.MPCmaxEff = 1.0
-        else:
-            self.MPCmaxEff = self.MPCmaxNow
-
-        self.cFuncNowCnst = LinearInterp(
-            np.array([self.mNrmMinNow, self.mNrmMinNow + 1]), np.array([0.0, 1.0])
-        )
-
-    def calc_EndOfPrdvP(self):
-        EndofPrdvP = super().calc_EndOfPrdvP()
-
-        return EndofPrdvP + self.warm_glow.der(self.aNrmNow)
-
-
-class BequestWarmGlowPortfolioSolver(ConsPortfolioSolver):
-    def __init__(
-        self,
-        solution_next,
-        ShockDstn,
-        IncShkDstn,
-        RiskyDstn,
-        LivPrb,
-        DiscFac,
-        CRRA,
-        Rfree,
-        PermGroFac,
-        BoroCnstArt,
-        aXtraGrid,
-        ShareGrid,
-        AdjustPrb,
-        ShareLimit,
-        BeqCRRA,
-        BeqFac,
-        BeqShift,
-    ):
-        self.BeqCRRA = BeqCRRA
-        self.BeqFac = BeqFac
-        self.BeqShift = BeqShift
-        vFuncBool = False
-        DiscreteShareBool = False
-        IndepDstnBool = True
-
-        super().__init__(
-            solution_next,
-            ShockDstn,
-            IncShkDstn,
-            RiskyDstn,
-            LivPrb,
-            DiscFac,
-            CRRA,
-            Rfree,
-            PermGroFac,
-            BoroCnstArt,
-            aXtraGrid,
-            ShareGrid,
-            vFuncBool,
-            AdjustPrb,
-            DiscreteShareBool,
-            ShareLimit,
-            IndepDstnBool,
-        )
-
-    def def_utility_funcs(self):
-        super().def_utility_funcs()
-        BeqFacEff = (1.0 - self.LivPrb) * self.BeqFac  # "effective" beq factor
-        self.warm_glow = UtilityFuncStoneGeary(self.BeqCRRA, BeqFacEff, self.BeqShift)
-
-    def calc_EndOfPrdvP(self):
-        super().calc_EndOfPrdvP()
-
-        self.EndOfPrddvda = self.EndOfPrddvda + self.warm_glow.der(self.aNrm_tiled)
-        self.EndOfPrddvdaNvrs = self.uPinv(self.EndOfPrddvda)
 
 
 init_wealth_in_utility = init_idiosyncratic_shocks.copy()
