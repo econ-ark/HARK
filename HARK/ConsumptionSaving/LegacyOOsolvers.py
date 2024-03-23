@@ -9,7 +9,7 @@ and it should be possible to substitute them back into the appropriate AgentType
 from copy import deepcopy
 from dataclasses import dataclass
 import numpy as np
-from HARK import MetricObject, NullFunc
+from HARK import NullFunc
 from HARK.distribution import expected, calc_expectation, DiscreteDistribution
 from HARK.interpolation import (
     BilinearInterp,
@@ -29,6 +29,7 @@ from HARK.interpolation import (
     VariableLowerBoundFunc2D,
     VariableLowerBoundFunc3D
 )
+from HARK.metric import MetricObject
 from HARK.rewards import (
     UtilityFuncCRRA,
     UtilityFuncStoneGeary,
@@ -5311,3 +5312,411 @@ class ConsFixedPortfolioIndShkRiskyAssetSolver(ConsIndShockSolver):
         aNrm_temp = np.insert(self.aNrmNow, 0, self.BoroCnstNat)
         EndOfPrdvNvrsFunc = LinearInterp(aNrm_temp, EndOfPrdvNvrs)
         self.EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
+        
+        
+##############################################################################
+
+class ConsPrefShockSolver(ConsIndShockSolver):
+    """
+    A class for solving the one period consumption-saving problem with risky
+    income (permanent and transitory shocks) and multiplicative shocks to utility
+    each period.
+
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to the succeeding one period problem.
+    IncShkDstn : distribution.Distribution
+        A discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next). Order: event
+        probabilities, permanent shocks, transitory shocks.
+    PrefShkDstn : [np.array]
+        Discrete distribution of the multiplicative utility shifter.  Order:
+        probabilities, preference shocks.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    PermGroGac : float
+        Expected permanent income growth factor at the end of this period.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.  If it is less than the natural borrowing constraint,
+        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+        rowing constraint.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear inter-
+        polation.
+    """
+
+    def __init__(
+        self,
+        solution_next,
+        IncShkDstn,
+        PrefShkDstn,
+        LivPrb,
+        DiscFac,
+        CRRA,
+        Rfree,
+        PermGroFac,
+        BoroCnstArt,
+        aXtraGrid,
+        vFuncBool,
+        CubicBool,
+    ):
+        """
+        Constructor for a new solver for problems with risky income, a different
+        interest rate on borrowing and saving, and multiplicative shocks to utility.
+
+
+        Returns
+        -------
+        None
+        """
+        ConsIndShockSolver.__init__(
+            self,
+            solution_next,
+            IncShkDstn,
+            LivPrb,
+            DiscFac,
+            CRRA,
+            Rfree,
+            PermGroFac,
+            BoroCnstArt,
+            aXtraGrid,
+            vFuncBool,
+            CubicBool,
+        )
+        self.PrefShkPrbs = PrefShkDstn.pmv
+        self.PrefShkVals = PrefShkDstn.atoms.flatten()
+
+    def get_points_for_interpolation(self, EndOfPrdvP, aNrmNow):
+        """
+        Find endogenous interpolation points for each asset point and each
+        discrete preference shock.
+
+        Parameters
+        ----------
+        EndOfPrdvP : np.array
+            Array of end-of-period marginal values.
+        aNrmNow : np.array
+            Array of end-of-period asset values that yield the marginal values
+            in EndOfPrdvP.
+
+        Returns
+        -------
+        c_for_interpolation : np.array
+            Consumption points for interpolation.
+        m_for_interpolation : np.array
+            Corresponding market resource points for interpolation.
+        """
+        c_base = self.u.derinv(EndOfPrdvP, order=(1, 0))
+        PrefShkCount = self.PrefShkVals.size
+        PrefShk_temp = np.tile(
+            np.reshape(self.PrefShkVals ** (1.0 / self.CRRA), (PrefShkCount, 1)),
+            (1, c_base.size),
+        )
+        self.cNrmNow = np.tile(c_base, (PrefShkCount, 1)) * PrefShk_temp
+        self.mNrmNow = self.cNrmNow + np.tile(aNrmNow, (PrefShkCount, 1))
+
+        # Add the bottom point to the c and m arrays
+        m_for_interpolation = np.concatenate(
+            (self.BoroCnstNat * np.ones((PrefShkCount, 1)), self.mNrmNow), axis=1
+        )
+        c_for_interpolation = np.concatenate(
+            (np.zeros((PrefShkCount, 1)), self.cNrmNow), axis=1
+        )
+        return c_for_interpolation, m_for_interpolation
+
+    def use_points_for_interpolation(self, cNrm, mNrm, interpolator):
+        """
+        Make a basic solution object with a consumption function and marginal
+        value function (unconditional on the preference shock).
+
+        Parameters
+        ----------
+        cNrm : np.array
+            Consumption points for interpolation.
+        mNrm : np.array
+            Corresponding market resource points for interpolation.
+        interpolator : function
+            A function that constructs and returns a consumption function.
+
+        Returns
+        -------
+        solution_now : ConsumerSolution
+            The solution to this period's consumption-saving problem, with a
+            consumption function, marginal value function, and minimum m.
+        """
+        # Make the preference-shock specific consumption functions
+        PrefShkCount = self.PrefShkVals.size
+        cFunc_list = []
+        for j in range(PrefShkCount):
+            MPCmin_j = self.MPCminNow * self.PrefShkVals[j] ** (1.0 / self.CRRA)
+            cFunc_this_shock = LowerEnvelope(
+                LinearInterp(
+                    mNrm[j, :],
+                    cNrm[j, :],
+                    intercept_limit=self.hNrmNow * MPCmin_j,
+                    slope_limit=MPCmin_j,
+                ),
+                self.cFuncNowCnst,
+            )
+            cFunc_list.append(cFunc_this_shock)
+
+        # Combine the list of consumption functions into a single interpolation
+        cFuncNow = LinearInterpOnInterp1D(cFunc_list, self.PrefShkVals)
+
+        # Make the ex ante marginal value function (before the preference shock)
+        m_grid = self.aXtraGrid + self.mNrmMinNow
+        vP_vec = np.zeros_like(m_grid)
+        for j in range(PrefShkCount):  # numeric integration over the preference shock
+            vP_vec += (
+                self.u.der(cFunc_list[j](m_grid))
+                * self.PrefShkPrbs[j]
+                * self.PrefShkVals[j]
+            )
+        vPnvrs_vec = self.u.derinv(vP_vec, order=(1, 0))
+        vPfuncNow = MargValueFuncCRRA(LinearInterp(m_grid, vPnvrs_vec), self.CRRA)
+
+        # Store the results in a solution object and return it
+        solution_now = ConsumerSolution(
+            cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow
+        )
+        return solution_now
+
+    def make_vFunc(self, solution):
+        """
+        Make the beginning-of-period value function (unconditional on the shock).
+
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            The solution to this single period problem, which must include the
+            consumption function.
+
+        Returns
+        -------
+        vFuncNow : ValueFuncCRRA
+            A representation of the value function for this period, defined over
+            normalized market resources m: v = vFuncNow(m).
+        """
+        # Compute expected value and marginal value on a grid of market resources,
+        # accounting for all of the discrete preference shocks
+        PrefShkCount = self.PrefShkVals.size
+        mNrm_temp = self.mNrmMinNow + self.aXtraGrid
+        vNrmNow = np.zeros_like(mNrm_temp)
+        vPnow = np.zeros_like(mNrm_temp)
+        for j in range(PrefShkCount):
+            this_shock = self.PrefShkVals[j]
+            this_prob = self.PrefShkPrbs[j]
+            cNrmNow = solution.cFunc(mNrm_temp, this_shock * np.ones_like(mNrm_temp))
+            aNrmNow = mNrm_temp - cNrmNow
+            vNrmNow += this_prob * (
+                this_shock * self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow)
+            )
+            vPnow += this_prob * this_shock * self.u.der(cNrmNow)
+
+        # Construct the beginning-of-period value function
+        # value transformed through inverse utility
+        vNvrs = self.u.inv(vNrmNow)
+        vNvrsP = vPnow * self.u.derinv(vNrmNow, order=(0, 1))
+        mNrm_temp = np.insert(mNrm_temp, 0, self.mNrmMinNow)
+        vNvrs = np.insert(vNvrs, 0, 0.0)
+        vNvrsP = np.insert(
+            vNvrsP, 0, self.MPCmaxEff ** (-self.CRRA / (1.0 - self.CRRA))
+        )
+        MPCminNvrs = self.MPCminNow ** (-self.CRRA / (1.0 - self.CRRA))
+        vNvrsFuncNow = CubicInterp(
+            mNrm_temp, vNvrs, vNvrsP, MPCminNvrs * self.hNrmNow, MPCminNvrs
+        )
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA)
+        return vFuncNow
+
+
+def solve_ConsPrefShock(
+    solution_next,
+    IncShkDstn,
+    PrefShkDstn,
+    LivPrb,
+    DiscFac,
+    CRRA,
+    Rfree,
+    PermGroFac,
+    BoroCnstArt,
+    aXtraGrid,
+    vFuncBool,
+    CubicBool,
+):
+    """
+    Solves a single period of a consumption-saving model with preference shocks
+    to marginal utility.  Problem is solved using the method of endogenous gridpoints.
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to the succeeding one period problem.
+    IncShkDstn : distribution.Distribution
+        A discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next). Order: event
+        probabilities, permanent shocks, transitory shocks.
+    PrefShkDstn : [np.array]
+        Discrete distribution of the multiplicative utility shifter.  Order:
+        probabilities, preference shocks.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    PermGroGac : float
+        Expected permanent income growth factor at the end of this period.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.  If it is less than the natural borrowing constraint,
+        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+        rowing constraint.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear inter-
+        polation.
+
+    Returns
+    -------
+    solution: ConsumerSolution
+        The solution to the single period consumption-saving problem.  Includes
+        a consumption function cFunc (using linear splines), a marginal value
+        function vPfunc, a minimum acceptable level of normalized market re-
+        sources mNrmMin, normalized human wealth hNrm, and bounding MPCs MPCmin
+        and MPCmax.  It might also have a value function vFunc.  The consumption
+        function is defined over normalized market resources and the preference
+        shock, c = cFunc(m,PrefShk), but the (marginal) value function is defined
+        unconditionally on the shock, just before it is revealed.
+    """
+    solver = (
+        solution_next,
+        IncShkDstn,
+        PrefShkDstn,
+        LivPrb,
+        DiscFac,
+        CRRA,
+        Rfree,
+        PermGroFac,
+        BoroCnstArt,
+        aXtraGrid,
+        vFuncBool,
+        CubicBool,
+    )
+    solver.prepare_to_solve()
+    solution = solver.solve()
+    return solution
+
+
+###############################################################################
+
+
+class ConsKinkyPrefSolver(ConsPrefShockSolver, ConsKinkedRsolver):
+    """
+    A class for solving the one period consumption-saving problem with risky
+    income (permanent and transitory shocks), multiplicative shocks to utility
+    each period, and a different interest rate on saving vs borrowing.
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to the succeeding one period problem.
+    IncShkDstn : distribution.Distribution
+        A discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next). Order: event
+        probabilities, permanent shocks, transitory shocks.
+    PrefShkDstn : [np.array]
+        Discrete distribution of the multiplicative utility shifter.  Order:
+        probabilities, preference shocks.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rboro: float
+        Interest factor on assets between this period and the succeeding
+        period when assets are negative.
+    Rsave: float
+        Interest factor on assets between this period and the succeeding
+        period when assets are positive.
+    PermGroGac : float
+        Expected permanent income growth factor at the end of this period.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.  If it is less than the natural borrowing constraint,
+        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+        rowing constraint.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear inter-
+        polation.
+    """
+
+    def __init__(
+        self,
+        solution_next,
+        IncShkDstn,
+        PrefShkDstn,
+        LivPrb,
+        DiscFac,
+        CRRA,
+        Rboro,
+        Rsave,
+        PermGroFac,
+        BoroCnstArt,
+        aXtraGrid,
+        vFuncBool,
+        CubicBool,
+    ):
+        ConsKinkedRsolver.__init__(
+            self,
+            solution_next,
+            IncShkDstn,
+            LivPrb,
+            DiscFac,
+            CRRA,
+            Rboro,
+            Rsave,
+            PermGroFac,
+            BoroCnstArt,
+            aXtraGrid,
+            vFuncBool,
+            CubicBool,
+        )
+        self.PrefShkPrbs = PrefShkDstn.pmv
+        self.PrefShkVals = PrefShkDstn.atoms.flatten()
+
