@@ -879,6 +879,7 @@ def solve_one_period_ConsIndShockRiskyAsset(
 
 ###############################################################################
 
+
 def solve_one_period_ConsPortChoice(
     solution_next,
     ShockDstn,
@@ -1310,6 +1311,7 @@ def solve_one_period_ConsPortChoice(
 
 ###############################################################################
 
+
 def solve_one_period_FixedShareRiskyAsset(
     solution_next,
     IncShkDstn,
@@ -1569,6 +1571,7 @@ def solve_one_period_FixedShareRiskyAsset(
 
         # Begin by re-defining transition functions for taking expectations, which are all very simple!
         Z = RiskyShareFixed  # for shorter notation
+
         def calc_bNrmNext(R, a):
             Rport = Z * R + (1 - Z) * Rfree
             return Rport * a
@@ -1636,6 +1639,7 @@ def solve_one_period_FixedShareRiskyAsset(
         # Define local functions for taking future expectations when the interest
         # factor is *not* independent from the income shock distribution
         Z = RiskyShareFixed  # for shorter notation
+
         def calc_mNrmNext(S, a):
             Risky = S["Risky"]
             Rport = Z * Risky + (1 - Z) * Rfree
