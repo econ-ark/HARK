@@ -3,7 +3,6 @@ import unittest
 import numpy as np
 
 import HARK.ConsumptionSaving.ConsPortfolioModel as cpm
-from HARK import make_one_period_oo_solver
 from HARK.tests import HARK_PRECISION
 
 
