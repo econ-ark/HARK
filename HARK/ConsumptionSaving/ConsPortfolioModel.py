@@ -539,7 +539,7 @@ def solve_one_period_ConsPortfolio(
             EndOfPrd_dvda = Rport * dvdbFunc_intermed(bNrm_next, z_rep)
             return EndOfPrd_dvda
 
-        def EndOfPrddvds_dist(S, a, z):
+        def calc_EndOfPrddvds(S, a, z):
             """
             Compute end-of-period marginal value of risky share at values a, conditional
             on risky asset return S and risky share z.
@@ -568,7 +568,7 @@ def solve_one_period_ConsPortfolio(
 
         # Calculate end-of-period marginal value of risky portfolio share by taking expectations
         EndOfPrd_dvds = DiscFacEff * expected(
-            EndOfPrddvds_dist, RiskyDstn, args=(aNrmNow, ShareNext)
+            calc_EndOfPrddvds, RiskyDstn, args=(aNrmNow, ShareNext)
         )
 
         # Make the end-of-period value function if the value function is requested
