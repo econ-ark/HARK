@@ -428,8 +428,9 @@ class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
 
         self.solve_one_period = solve_one_period_FixedShareRiskyAsset
 
-####################################################################################################
-####################################################################################################
+
+###############################################################################
+###############################################################################
 
 
 def solve_one_period_ConsIndShockRiskyAsset(
@@ -875,6 +876,7 @@ def solve_one_period_ConsIndShockRiskyAsset(
     )
     return solution_now
 
+
 ###############################################################################
 
 def solve_one_period_ConsPortChoice(
@@ -1305,6 +1307,7 @@ def solve_one_period_ConsPortChoice(
     solution_now.ShareFunc = ShareFunc_now
     return solution_now
 
+
 ###############################################################################
 
 def solve_one_period_FixedShareRiskyAsset(
@@ -1405,7 +1408,7 @@ def solve_one_period_FixedShareRiskyAsset(
 
     # Perform an alternate calculation of the absolute patience factor when returns are risky
     def calc_Radj(R):
-        R_temp = RiskyShareFixed*R + (1.0-RiskyShareFixed)*Rfree
+        R_temp = RiskyShareFixed * R + (1.0 - RiskyShareFixed) * Rfree
         return R_temp ** (1.0 - CRRA)
 
     PatFac = (DiscFacEff * expected(calc_Radj, RiskyDstn)) ** (1.0 / CRRA)
@@ -1567,18 +1570,18 @@ def solve_one_period_FixedShareRiskyAsset(
         # Begin by re-defining transition functions for taking expectations, which are all very simple!
         Z = RiskyShareFixed  # for shorter notation
         def calc_bNrmNext(R, a):
-            Rport = (Z*R + (1-Z)*Rfree)
+            Rport = Z * R + (1 - Z) * Rfree
             return Rport * a
 
         def calc_vNext(R, a):
             return Intermed_vFunc(calc_bNrmNext(R, a))
 
         def calc_vPnext(R, a):
-            Rport = (Z*R + (1-Z)*Rfree)
+            Rport = Z * R + (1 - Z) * Rfree
             return Rport * Intermed_vPfunc(calc_bNrmNext(R, a))
 
         def calc_vPPnext(R, a):
-            Rport = (Z*R + (1-Z)*Rfree)
+            Rport = Z * R + (1 - Z) * Rfree
             return Rport * Rport * Intermed_vPPfunc(calc_bNrmNext(R, a))
 
         # Calculate end-of-period marginal value of assets at each gridpoint
@@ -1635,7 +1638,7 @@ def solve_one_period_FixedShareRiskyAsset(
         Z = RiskyShareFixed  # for shorter notation
         def calc_mNrmNext(S, a):
             Risky = S["Risky"]
-            Rport = Z*Risky + (1-Z)*Rfree
+            Rport = Z * Risky + (1 - Z) * Rfree
             return Rport / (PermGroFac * S["PermShk"]) * a + S["TranShk"]
 
         def calc_vNext(S, a):
@@ -1643,16 +1646,14 @@ def solve_one_period_FixedShareRiskyAsset(
 
         def calc_vPnext(S, a):
             Risky = S["Risky"]
-            Rport = Z*Risky + (1-Z)*Rfree
-            return (
-                Rport * S["PermShk"] ** (-CRRA) * vPfuncNext(calc_mNrmNext(S, a))
-            )
+            Rport = Z * Risky + (1 - Z) * Rfree
+            return Rport * S["PermShk"] ** (-CRRA) * vPfuncNext(calc_mNrmNext(S, a))
 
         def calc_vPPnext(S, a):
             Risky = S["Risky"]
-            Rport = Z*Risky + (1-Z)*Rfree
+            Rport = Z * Risky + (1 - Z) * Rfree
             return (
-                (Rport ** 2)
+                (Rport**2)
                 * S["PermShk"] ** (-CRRA - 1.0)
                 * vPPfuncNext(calc_mNrmNext(S, a))
             )
