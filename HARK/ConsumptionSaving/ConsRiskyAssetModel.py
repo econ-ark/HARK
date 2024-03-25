@@ -35,7 +35,6 @@ from HARK.interpolation import (
     ValueFuncCRRA,
 )
 from HARK.rewards import UtilityFuncCRRA
-from HARK.utilities import plot_funcs
 
 
 class IndShockRiskyAssetConsumerType(IndShockConsumerType):
