@@ -552,6 +552,7 @@ PrstIncCorr = 0.98  # Serial correlation coefficient for permanent income
 # Make a dictionary for the "explicit permanent income" idiosyncratic shocks model
 init_explicit_perm_inc = init_idiosyncratic_shocks.copy()
 init_explicit_perm_inc["pLvlPctiles"] = pLvlPctiles
+init_explicit_perm_inc["pLvlInitStd"] = 0.4  # This *must* be nonzero
 # long run permanent income growth doesn't work yet
 init_explicit_perm_inc["PermGroFac"] = [1.0]
 init_explicit_perm_inc["aXtraMax"] = 30

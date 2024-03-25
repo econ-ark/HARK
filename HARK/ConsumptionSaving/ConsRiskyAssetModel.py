@@ -310,11 +310,11 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         """
 
         RfreeNow = super().get_Rfree()
+        RiskyNow = self.shocks["Risky"]
+        # ShareNow = self.controls["Share"]
+        ShareNow = np.ones_like(RiskyNow)  # Only asset is risky asset
 
-        Rport = (
-            self.controls["Share"] * self.shocks["Risky"]
-            + (1.0 - self.controls["Share"]) * RfreeNow
-        )
+        Rport = ShareNow * RiskyNow + (1.0 - ShareNow) * RfreeNow
         self.Rport = Rport
         return Rport
 
