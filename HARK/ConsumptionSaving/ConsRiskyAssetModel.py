@@ -414,7 +414,6 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 RiskyAssetConsumerType = IndShockRiskyAssetConsumerType
 
 
-
 ####################################################################################################
 ####################################################################################################
 
@@ -614,7 +613,7 @@ def solve_one_period_ConsIndShockRiskyAsset(
         vPfacEff = PermGroFac ** (-CRRA)
         Intermed_vP = vPfacEff * expected(calc_vPnext, IncShkDstn, args=(bNrmNow))
         Intermed_vPnvrs = uFunc.derinv(Intermed_vP, order=(1, 0))
-        
+
         if BoroCnstNat_iszero:
             Intermed_vPnvrs = np.insert(Intermed_vPnvrs, 0, 0.0)
             bNrm_temp = np.insert(bNrmNow, 0, 0.0)
@@ -634,12 +633,17 @@ def solve_one_period_ConsIndShockRiskyAsset(
 
             # Make a cubic spline intermediate pseudo-inverse marginal value function
             Intermed_vPnvrsFunc = CubicInterp(
-                bNrm_temp, Intermed_vPnvrs, Intermed_vPnvrsP, lower_extrap=True,
+                bNrm_temp,
+                Intermed_vPnvrs,
+                Intermed_vPnvrsP,
+                lower_extrap=True,
             )
             Intermed_vPPfunc = MargMargValueFuncCRRA(Intermed_vPnvrsFunc, CRRA)
         else:
             # Make a linear interpolation intermediate pseudo-inverse marginal value function
-            Intermed_vPnvrsFunc = LinearInterp(bNrm_temp, Intermed_vPnvrs, lower_extrap=True)
+            Intermed_vPnvrsFunc = LinearInterp(
+                bNrm_temp, Intermed_vPnvrs, lower_extrap=True
+            )
 
         # "Recurve" the intermediate pseudo-inverse marginal value function
         Intermed_vPfunc = MargValueFuncCRRA(Intermed_vPnvrsFunc, CRRA)
@@ -713,7 +717,7 @@ def solve_one_period_ConsIndShockRiskyAsset(
                 aNrm_temp = np.insert(aNrmNow, 0, BoroCnstNat)
             else:
                 aNrm_temp = aNrmNow.copy()
-            
+
             EndOfPrd_vNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
             EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
 
@@ -785,7 +789,7 @@ def solve_one_period_ConsIndShockRiskyAsset(
                 aNrm_temp = np.insert(aNrmNow, 0, BoroCnstNat)
             else:
                 aNrm_temp = aNrmNow.copy()
-                
+
             EndOfPrd_vNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
             EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
 
@@ -873,12 +877,12 @@ def solve_one_period_ConsPortChoice(
     ShareGrid,
     ShareLimit,
     vFuncBool,
-    IndepDstnBool
+    IndepDstnBool,
 ):
     """
     Solve one period of a consumption-saving problem with portfolio allocation
     between a riskless and risky asset. This function handles only the most
-    fundamental portfolio choice problem: frictionless reallocation of the 
+    fundamental portfolio choice problem: frictionless reallocation of the
     portfolio each period as a continuous choice.
 
     Parameters
@@ -1008,7 +1012,7 @@ def solve_one_period_ConsPortChoice(
         # Calculate intermediate marginal value of bank balances by taking expectations over income shocks
         dvdb_intermed = expected(calc_dvdm_next, IncShkDstn, args=(bNrmNext))
         dvdbNvrs_intermed = uFunc.derinv(dvdb_intermed, order=(1, 0))
-        
+
         dvdbNvrsFunc_intermed = LinearInterp(bNrmGrid, dvdbNvrs_intermed)
         dvdbFunc_intermed = MargValueFuncCRRA(dvdbNvrsFunc_intermed, CRRA)
 
@@ -1046,7 +1050,9 @@ def solve_one_period_ConsPortChoice(
             bNrm_next = Rport * a
 
             # Calculate and return dvds (second term is all zeros)
-            EndOfPrd_dvds = Rxs * a * dvdbFunc_intermed(bNrm_next) + dvdsFunc_intermed(bNrm_next)
+            EndOfPrd_dvds = Rxs * a * dvdbFunc_intermed(bNrm_next) + dvdsFunc_intermed(
+                bNrm_next
+            )
             return EndOfPrd_dvds
 
         # Evaluate realizations of value and marginal value after asset returns are realized
@@ -1076,9 +1082,7 @@ def solve_one_period_ConsPortChoice(
                 return v_intermed
 
             # Calculate intermediate value by taking expectations over income shocks
-            v_intermed = expected(
-                calc_v_intermed, IncShkDstn, args=(bNrmNext)
-            )
+            v_intermed = expected(calc_v_intermed, IncShkDstn, args=(bNrmNext))
 
             # Construct the "intermediate value function" for this period
             vNvrs_intermed = uFunc.inv(v_intermed)
@@ -1285,6 +1289,7 @@ def solve_one_period_ConsPortChoice(
     )
     solution_now.ShareFunc = ShareFunc_now
     return solution_now
+
 
 ##############################################################################
 ##############################################################################

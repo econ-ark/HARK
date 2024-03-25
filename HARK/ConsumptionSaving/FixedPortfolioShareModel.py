@@ -2,9 +2,16 @@
 This file has one small AgentType that inherits from IndShockRiskyAssetConsumerType.
 These agents have a fixed portfolio share and use a legacy object-oriented solver.
 """
-from HARK.ConsumptionSaving.ConsRiskyAssetModel import IndShockRiskyAssetConsumerType, init_risky_share_fixed
+
+from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
+    IndShockRiskyAssetConsumerType,
+    init_risky_share_fixed,
+)
 from HARK import make_one_period_oo_solver
-from HARK.ConsumptionSaving.LegacyOOsolvers import ConsFixedPortfolioIndShkRiskyAssetSolver
+from HARK.ConsumptionSaving.LegacyOOsolvers import (
+    ConsFixedPortfolioIndShkRiskyAssetSolver,
+)
+
 
 class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
     time_vary_ = IndShockRiskyAssetConsumerType.time_vary_ + ["RiskyShareFixed"]

@@ -27,7 +27,7 @@ from HARK.interpolation import (
     UpperEnvelope,
     ValueFuncCRRA,
     VariableLowerBoundFunc2D,
-    VariableLowerBoundFunc3D
+    VariableLowerBoundFunc3D,
 )
 from HARK.metric import MetricObject
 from HARK.rewards import (
@@ -43,7 +43,11 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     utilityP,
     utilityP_inv,
 )
-from HARK.ConsumptionSaving.ConsMedModel import cThruXfunc, MedShockPolicyFunc, MedThruXfunc
+from HARK.ConsumptionSaving.ConsMedModel import (
+    cThruXfunc,
+    MedShockPolicyFunc,
+    MedThruXfunc,
+)
 from HARK.ConsumptionSaving.ConsPortfolioModel import PortfolioSolution
 from scipy.optimize import root_scalar
 
@@ -2991,7 +2995,9 @@ def _solve_ConsMarkov(
     solution_now = solver.solve()
     return solution_now
 
+
 ##############################################################################
+
 
 class ConsGenIncProcessSolver(ConsIndShockSetup):
     """
@@ -3730,8 +3736,10 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         if self.CubicBool:
             solution = self.add_vPPfunc(solution)
         return solution
-    
+
+
 ###############################################################################
+
 
 class ConsMedShockSolver(ConsGenIncProcessSolver):
     """
@@ -4381,8 +4389,10 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         if self.CubicBool:
             solution = self.add_vPPfunc(solution)
         return solution
-    
+
+
 ##############################################################################
+
 
 @dataclass
 class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
@@ -5312,9 +5322,10 @@ class ConsFixedPortfolioIndShkRiskyAssetSolver(ConsIndShockSolver):
         aNrm_temp = np.insert(self.aNrmNow, 0, self.BoroCnstNat)
         EndOfPrdvNvrsFunc = LinearInterp(aNrm_temp, EndOfPrdvNvrs)
         self.EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
-        
-        
+
+
 ##############################################################################
+
 
 class ConsPrefShockSolver(ConsIndShockSolver):
     """
@@ -5719,4 +5730,3 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver, ConsKinkedRsolver):
         )
         self.PrefShkPrbs = PrefShkDstn.pmv
         self.PrefShkVals = PrefShkDstn.atoms.flatten()
-

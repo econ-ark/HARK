@@ -18,7 +18,9 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     init_risky_asset,
     init_risky_share_fixed,
 )
-from HARK.ConsumptionSaving.FixedPortfolioShareModel import FixedPortfolioShareRiskyAssetConsumerType
+from HARK.ConsumptionSaving.FixedPortfolioShareModel import (
+    FixedPortfolioShareRiskyAssetConsumerType,
+)
 from HARK.ConsumptionSaving.LegacyOOsolvers import ConsIndShockSetup
 from HARK.core import make_one_period_oo_solver
 from HARK.distribution import DiscreteDistributionLabeled

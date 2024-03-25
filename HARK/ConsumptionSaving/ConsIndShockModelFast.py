@@ -26,7 +26,10 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     PerfForesightConsumerType,
 )
-from HARK.ConsumptionSaving.LegacyOOsolvers import ConsIndShockSolverBasic, ConsPerfForesightSolver
+from HARK.ConsumptionSaving.LegacyOOsolvers import (
+    ConsIndShockSolverBasic,
+    ConsPerfForesightSolver,
+)
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,

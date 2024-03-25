@@ -986,7 +986,6 @@ def solve_one_period_ConsPortfolioWarmGlow(
     return solution_now
 
 
-
 init_wealth_in_utility = init_idiosyncratic_shocks.copy()
 init_wealth_in_utility["BeqCRRA"] = init_idiosyncratic_shocks["CRRA"]
 init_wealth_in_utility["BeqFac"] = 1.0
