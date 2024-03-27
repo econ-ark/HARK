@@ -102,7 +102,12 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
 
 
 class BequestWarmGlowPortfolioType(PortfolioConsumerType):
-    time_inv_ = IndShockConsumerType.time_inv_ + ["BeqCRRA", "BeqShift", "BeqFac"]
+    time_inv_ = IndShockConsumerType.time_inv_ + [
+        "BeqCRRA",
+        "BeqShift",
+        "BeqFac",
+        "DiscreteShareBool",
+    ]
 
     def __init__(self, **kwds):
         params = init_portfolio_bequest.copy()
