@@ -1,0 +1,754 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Quick Start Guide &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.1/css/all.min.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.1/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.1/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.1/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="../_static/override-nbsphinx-gallery.css?v=81c59485" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8d27b9dea8ad943066ae" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae" />
+  <script src="../_static/vendor/fontawesome/6.5.1/js/all.min.js?digest=8d27b9dea8ad943066ae"></script>
+
+    <script src="../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/design-tabs.js?v=36754332"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'guides/quick_start';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/guides/quick_start.html" />
+    <link rel="icon" href="../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="HARK installation guide" href="installation.html" />
+    <link rel="prev" title="Guides" href="index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a id="pst-skip-link" class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <script>document.write(`<img src="../_static/econ-ark-logo.png" class="logo__image only-dark" alt="HARK latest documentation - Home"/>`);</script>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../overview/index.html">
+                        Overview & Examples
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../reference/index.html">
+                        Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="index.html">
+                        Guides
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+    <label class="sidebar-toggle secondary-toggle" for="__secondary" tabindex="0">
+      <span class="fa-solid fa-outdent"></span>
+    </label>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../overview/index.html">
+                        Overview & Examples
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../reference/index.html">
+                        Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="index.html">
+                        Guides
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Usage</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">HARK installation guide</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to Econ-ARK</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Guides</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">Quick Start Guide</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="quick-start-guide">
+<h1>Quick Start Guide<a class="headerlink" href="#quick-start-guide" title="Link to this heading">#</a></h1>
+<section id="installing-hark">
+<h2>Installing HARK<a class="headerlink" href="#installing-hark" title="Link to this heading">#</a></h2>
+<p>HARK is an open source project that is compatible with Python 3.</p>
+<section id="installing-hark-with-pip">
+<h3>Installing HARK with pip<a class="headerlink" href="#installing-hark-with-pip" title="Link to this heading">#</a></h3>
+<p>The simplest way to install HARK is to use <a class="reference external" href="https://pip.pypa.io/en/stable/installation/">pip</a>.</p>
+<p>To install HARK with pip, at a command line type <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">econ-ark</span></code>.</p>
+<p>(If you want to install a release that is not the default stable release, for instance if you want to install a development release, you’ll need to use a “pinned” release number: <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">econ-ark==0.10.1.dev1</span></code>, substituting “0.10.1.dev1” for your desired release number.)</p>
+<p>If you are installing via pip, we recommend using a virtual environment such as <a class="reference external" href="https://virtualenv.pypa.io/en/latest/">virtualenv</a>. Creation of a virtual environment isolates the installation of <code class="docutils literal notranslate"><span class="pre">econ-ark</span></code> from the installations of any other python tools and packages.</p>
+<p>To install <code class="docutils literal notranslate"><span class="pre">virtualenv</span></code>, then to create an environment named <code class="docutils literal notranslate"><span class="pre">econ-ark</span></code>, and finally to activate that environment:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="p">[</span><span class="n">directory</span> <span class="n">where</span> <span class="n">you</span> <span class="n">want</span> <span class="n">to</span> <span class="n">store</span> <span class="n">the</span> <span class="n">econ</span><span class="o">-</span><span class="n">ark</span> <span class="n">virtual</span> <span class="n">environment</span><span class="p">]</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="n">virtualenv</span>
+<span class="n">virtualenv</span> <span class="n">econ</span><span class="o">-</span><span class="n">ark</span>
+<span class="n">source</span> <span class="n">econ</span><span class="o">-</span><span class="n">ark</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">activate</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="using-hark-with-anaconda">
+<h3>Using HARK with Anaconda<a class="headerlink" href="#using-hark-with-anaconda" title="Link to this heading">#</a></h3>
+<p>If you intend ever to use the toolkit for anything other than running the precooked material we have provided, you should probably install <a class="reference external" href="https://anaconda.com/">Anaconda</a>, which will install python along with many packages that are frequently used in scientific computing.</p>
+<ol class="arabic simple">
+<li><p>Download Anaconda for your operating system and follow the installation instructions <a class="reference external" href="https://www.anaconda.com/distribution/#download-section">at Anaconda.com</a>.</p></li>
+<li><p>Anaconda includes its own virtual environment system called <code class="docutils literal notranslate"><span class="pre">conda</span></code> which stores environments in a preset location (so you don’t have to choose). So in order to create and activate an econ-ark virtual environment:</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">econ</span><span class="o">-</span><span class="n">ark</span> <span class="n">anaconda</span>
+<span class="n">conda</span> <span class="n">activate</span> <span class="n">econ</span><span class="o">-</span><span class="n">ark</span>
+<span class="n">conda</span> <span class="n">install</span> <span class="o">-</span><span class="n">c</span> <span class="n">conda</span><span class="o">-</span><span class="n">forge</span> <span class="n">econ</span><span class="o">-</span><span class="n">ark</span>
+</pre></div>
+</div>
+<ol class="arabic">
+<li><p>Open Spyder, an interactive development environment (IDE) for Python (specifically, iPython). You may be able to do this through Anaconda’s graphical interface, or you can do so from the command line/prompt. To do so, simply open a command line/prompt and type <code class="docutils literal notranslate"><span class="pre">spyder</span></code>.</p></li>
+<li><p>To verify that spyder has access to HARK try typing <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">econ-ark</span></code> into the iPython shell within Spyder. If you have successfully installed HARK as above, you should see a lot of messages saying ‘Requirement satisfied’.</p>
+<ul class="simple">
+<li><p>If that doesn’t work, you will need to manually add HARK to your Spyder environment. To do this, you’ll need to get the code from Github and import it into Spyder. To get the code from Github, you can either clone it or download a zipped file.</p></li>
+<li><p>If you have <code class="docutils literal notranslate"><span class="pre">git</span></code> installed on the command line, type <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:econ-ark/HARK.git</span></code> in your chosen directory (<a class="reference external" href="https://git-scm.com/doc">more details here</a>).</p>
+<ul>
+<li><p>If you do not have <code class="docutils literal notranslate"><span class="pre">git</span></code> available on your computer, you can download the <a class="reference external" href="https://desktop.github.com/">GitHub Desktop app</a> and use it to make a local clone</p></li>
+</ul>
+</li>
+<li><p>If you don’t want to clone HARK, but just to download it, go to <a class="reference external" href="https://github.com/econ-ark/HARK">the HARK repository on GitHub</a>. In the upper righthand corner is a button that says “clone or download”. Click the “Download Zip” option and then unzip the contents into your chosen directory.</p></li>
+</ul>
+<p>Once you’ve got a copy of HARK in a directory, return to Spyder and navigate to that directory where you put HARK. This can be done within Spyder by doing <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">os</span></code> and then using <code class="docutils literal notranslate"><span class="pre">os.chdir()</span></code> to change directories. <code class="docutils literal notranslate"><span class="pre">chdir</span></code> works just like cd at a command prompt on most operating systems, except that it takes a string as input: <code class="docutils literal notranslate"><span class="pre">os.chdir('Music')</span></code> moves to the Music subdirectory of the current working directory.</p>
+</li>
+</ol>
+<ol class="arabic simple" start="6">
+<li><p>Most of the modules in HARK are just collections of tools. There are a few demonstration
+applications that use the tools that you automatically get when you install HARK – they are listed in the sidebar at the left. A much larger set of uses of HARK can be found at two repositories:
+_ <a class="reference external" href="https://github.com/econ-ark/DemARK">DemARK</a>: Demonstrations of the use of HARK
+_ <a class="reference external" href="https://github.com/econ-ark/REMARK">REMARK</a>: Replications of existing papers made using HARK</p></li>
+</ol>
+<p>You will want to obtain your own local copy of these repos using:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">econ</span><span class="o">-</span><span class="n">ark</span><span class="o">/</span><span class="n">DemARK</span><span class="o">.</span><span class="n">git</span>
+</pre></div>
+</div>
+<p>and similarly for the REMARK repo. Once you have downloaded them, you will find that each repo contains a <code class="docutils literal notranslate"><span class="pre">notebooks</span></code> directory that contains a number of <a class="reference external" href="https://jupyter.org/">jupyter notebooks</a>. If you have the jupyter notebook tool installed (it is installed as part of Anaconda), you should be able to launch the
+jupyter notebook app from the command line with the command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">jupyter</span> <span class="n">notebook</span>
+</pre></div>
+</div>
+<p>and from there you can open the notebooks and execute them.</p>
+</section>
+</section>
+<section id="learning-hark">
+<h2>Learning HARK<a class="headerlink" href="#learning-hark" title="Link to this heading">#</a></h2>
+<p>We have a set of 30-second <a class="reference external" href="https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#capsule-summaries-of-what-the-econ-ark-project-is">Elevator Spiels</a> describing the project, tailored to people with several different kinds of background.</p>
+<p>The most broadly applicable advice is to go to <a class="reference external" href="https://econ-ark.org">Econ-ARK</a> and click on “Notebooks”, and choose <a class="reference external" href="https://docs.econ-ark.org/example_notebooks/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a> which will launch as a <a class="reference external" href="https://jupyter.org/">jupyter notebook</a>.</p>
+<section id="for-people-with-a-technical-scientific-computing-background-but-little-economics-background">
+<h3><a class="reference external" href="https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-people-with-a-technicalscientificcomputing-background-but-no-economics-background">For people with a technical/scientific/computing background but little economics background</a><a class="headerlink" href="#for-people-with-a-technical-scientific-computing-background-but-little-economics-background" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>A good starting point is <a class="reference external" href="https://docs.econ-ark.org/example_notebooks/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a> which provides a light economic intuition.</p></li>
+</ul>
+</section>
+<section id="for-economists-who-have-done-some-structural-modeling">
+<h3><a class="reference external" href="https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-economists-who-have-done-some-structural-modeling">For economists who have done some structural modeling</a><a class="headerlink" href="#for-economists-who-have-done-some-structural-modeling" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>A full replication of the <a class="reference external" href="https://onlinelibrary.wiley.com/doi/abs/10.3982/QE643">Iskhakov, Jørgensen, Rust, and Schjerning</a> paper for solving the discrete-continuous retirement saving problem</p>
+<ul>
+<li><p>An informal discussion of the issues involved is <a class="reference external" href="https://github.com/econ-ark/DemARK/blob/master/notebooks/DCEGM-Upper-Envelope.ipynb">here</a> (part of the <a class="reference external" href="https://github.com/econ-ark/DemARK">DemARK</a> repo)</p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="https://github.com/econ-ark/DemARK/blob/master/notebooks/Structural-Estimates-From-Empirical-MPCs-Fagereng-et-al.ipynb">Structural-Estimates-From-Empirical-MPCs</a> is an example of the use of the toolkit in a discussion of a well known paper. (Yes, it is easy enough to use that you can estimate a structural model on somebody else’s data in the limited time available for writing a discussion)</p></li>
+</ul>
+</section>
+<section id="for-economists-who-have-not-yet-done-any-structural-modeling-but-might-be-persuadable-to-start">
+<h3><a class="reference external" href="https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-economists-who-have-not-yet-done-any-structural-modeling-but-might-be-persuadable-to-start">For economists who have not yet done any structural modeling but might be persuadable to start</a><a class="headerlink" href="#for-economists-who-have-not-yet-done-any-structural-modeling-but-might-be-persuadable-to-start" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Start with <a class="reference external" href="https://docs.econ-ark.org/example_notebooks/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a> to get your feet wet</p></li>
+<li><p>A simple indirect inference/simulated method of moments structural estimation along the lines of Gourinchas and Parker’s 2002 Econometrica paper or Cagetti’s 2003 paper is performed by the <a class="reference external" href="https://github.com/econ-ark/SolvingMicroDSOPs/">SolvingMicroDSOPs</a> <a class="reference external" href="https://github.com/econ-ark/REMARK">REMARK</a>; this code implements the solution methods described in the corresponding section of <a class="reference external" href="https://llorracc.github.io/SolvingMicroDSOPs/">these lecture notes</a>.</p></li>
+</ul>
+</section>
+<section id="for-other-developers-of-software-for-computational-economics">
+<h3><a class="reference external" href="https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-other-developers-of-software-for-computational-economics">For Other Developers of Software for Computational Economics</a><a class="headerlink" href="#for-other-developers-of-software-for-computational-economics" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Our workhorse module is <a class="reference external" href="https://github.com/econ-ark/HARK/blob/master/HARK/ConsumptionSaving/ConsIndShockModel.py">ConsIndShockModel.py</a> which includes the IndShockConsumerType. A short explanation about the Agent Type can be found <a class="reference external" href="https://docs.econ-ark.org/example_notebooks/IndShockConsumerType.html">here</a> and an introduction how it is solved <a class="reference external" href="https://docs.econ-ark.org/example_notebooks/HowWeSolveIndShockConsumerType.html">here</a>.</p></li>
+</ul>
+</section>
+</section>
+<section id="making-changes-to-hark">
+<h2>Making changes to HARK<a class="headerlink" href="#making-changes-to-hark" title="Link to this heading">#</a></h2>
+<p>If you want to make changes or contributions to HARK, you’ll need to have access to the source files. Installing HARK via <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">econ-ark</span></code> (at the command line, or inside Spyder) makes it hard to access those files (and it’s a bad idea to mess with the original code anyway because you’ll likely forget what changes you made). If you are adept at GitHub, you can <a class="reference external" href="https://help.github.com/en/articles/fork-a-repo">fork</a> the repo. If you are less experienced, you should download a personal copy of HARK again using <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span></code> (see above) or the GitHub Desktop app.</p>
+<section id="clone-hark">
+<h3>Clone HARK<a class="headerlink" href="#clone-hark" title="Link to this heading">#</a></h3>
+<p>Navigate to wherever you want to put the repository and type <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:econ-ark/HARK.git</span></code> (<a class="reference external" href="https://git-scm.com/doc">more details here</a>). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://github.com/econ-ark/HARK.git</span></code>.</p>
+</section>
+<section id="optionally-create-a-virtual-environment">
+<h3>(Optionally) Create a virtual environment<a class="headerlink" href="#optionally-create-a-virtual-environment" title="Link to this heading">#</a></h3>
+<p>If you are familiar with <a class="reference external" href="https://virtualenv.pypa.io/en/latest/">virtual environments</a>, you can optionally create and activate a virtual environment which will isolate the econ-ark specific tools from the rest of your computer.</p>
+<p>For Mac or Linux:</p>
+<ul class="simple">
+<li><p>Install virtualenv if you need to and then type:</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">virtualenv</span> <span class="n">econ</span><span class="o">-</span><span class="n">ark</span>
+<span class="n">source</span> <span class="n">econ</span><span class="o">-</span><span class="n">ark</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">activate</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>For Windows:</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">virtualenv</span> <span class="n">econ</span><span class="o">-</span><span class="n">ark</span>
+<span class="n">econ</span><span class="o">-</span><span class="n">ark</span>\\<span class="n">Scripts</span>\\<span class="n">activate</span><span class="o">.</span><span class="n">bat</span>
+</pre></div>
+</div>
+<p>Once the virtualenv is activated, you may see <code class="docutils literal notranslate"><span class="pre">(econ-ark)</span></code> in your command prompt (depending on how your machine is configured)</p>
+</section>
+<section id="install-requirements">
+<h3>Install requirements<a class="headerlink" href="#install-requirements" title="Link to this heading">#</a></h3>
+<p>Make sure to change to HARK directory, and install HARK’s requirements into the virtual environment with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-r</span> <span class="pre">requirements.txt</span></code>.</p>
+</section>
+<section id="test-your-installation">
+<h3>Test your installation<a class="headerlink" href="#test-your-installation" title="Link to this heading">#</a></h3>
+<p>To check that everything has been set up correctly, run HARK’s tests with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">unittest</span></code>.</p>
+</section>
+</section>
+<section id="next-steps">
+<h2>Next steps<a class="headerlink" href="#next-steps" title="Link to this heading">#</a></h2>
+<p>To learn more about how to use HARK, check the next sections in this documentation, in particular the jupyter notebooks.</p>
+<p>For help making changes to HARK, check out our <a class="reference internal" href="contributing.html"><span class="std std-doc">contributing guide</span></a>.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Guides</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="installation.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">HARK installation guide</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installing-hark">Installing HARK</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#installing-hark-with-pip">Installing HARK with pip</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#using-hark-with-anaconda">Using HARK with Anaconda</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#learning-hark">Learning HARK</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#for-people-with-a-technical-scientific-computing-background-but-little-economics-background">For people with a technical/scientific/computing background but little economics background</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#for-economists-who-have-done-some-structural-modeling">For economists who have done some structural modeling</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#for-economists-who-have-not-yet-done-any-structural-modeling-but-might-be-persuadable-to-start">For economists who have not yet done any structural modeling but might be persuadable to start</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#for-other-developers-of-software-for-computational-economics">For Other Developers of Software for Computational Economics</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#making-changes-to-hark">Making changes to HARK</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#clone-hark">Clone HARK</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#optionally-create-a-virtual-environment">(Optionally) Create a virtual environment</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#install-requirements">Install requirements</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#test-your-installation">Test your installation</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#next-steps">Next steps</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  
+  <div class="tocsection editthispage">
+    <a href="https://github.com/econ-ark/hark/edit/master/Documentation/guides/quick_start.md">
+      <i class="fa-solid fa-pencil"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=8d27b9dea8ad943066ae"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.2.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
