@@ -5,10 +5,10 @@ import numpy as np
 from scipy.optimize import fixed_point, minimize_scalar, root
 
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
-    ConsPortfolioSolver,
     PortfolioConsumerType,
     init_portfolio,
 )
+from HARK.ConsumptionSaving.LegacyOOsolvers import ConsPortfolioSolver
 from HARK.core import make_one_period_oo_solver
 from HARK.distribution import DiscreteDistribution, calc_expectation
 from HARK.interpolation import (
