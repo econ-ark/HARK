@@ -307,6 +307,260 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         self.controls["Share"] = ShareNow
 
 
+def calc_m_nrm_next(shocks, b_nrm, perm_gro_fac):
+    """
+    Calculate future realizations of market resources mNrm from the income
+    shock distribution "shocks" and normalized bank balances b.
+    """
+    return b_nrm / (shocks["PermShk"] * perm_gro_fac) + shocks["TranShk"]
+
+
+def calc_dvdm_next(
+    shocks, b_nrm, share, adjust_prob, perm_gro_fac, crra, vp_func_adj, dvdm_func_fxd
+):
+    """
+    Evaluate realizations of marginal value of market resources next period,
+    based on the income distribution "shocks", values of bank balances bNrm, and
+    values of the risky share z.
+    """
+    m_nrm = calc_m_nrm_next(shocks, b_nrm, perm_gro_fac)
+    dvdm_adj = vp_func_adj(m_nrm)
+
+    if adjust_prob < 1.0:
+        # Expand to the same dimensions as mNrm
+        share_exp = np.full_like(m_nrm, share)
+        dvdm_fxd = dvdm_func_fxd(m_nrm, share_exp)
+        # Combine by adjustment probability
+        dvdm_next = adjust_prob * dvdm_adj + (1.0 - adjust_prob) * dvdm_fxd
+    else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
+        dvdm_next = dvdm_adj
+
+    dvdm_next = (shocks["PermShk"] * perm_gro_fac) ** (-crra) * dvdm_next
+    return dvdm_next
+
+
+def calc_dvds_next(
+    shocks, b_nrm, share, adjust_prob, perm_gro_fac, crra, dvds_func_fxd
+):
+    """
+    Evaluate realizations of marginal value of risky share next period, based
+    on the income distribution "shocks", values of bank balances bNrm, and values of
+    the risky share z.
+    """
+    m_nrm = calc_m_nrm_next(shocks, b_nrm, perm_gro_fac)
+
+    # No marginal value of shockshare if it's a free choice!
+    dvds_adj = np.zeros_like(m_nrm)
+
+    if adjust_prob < 1.0:
+        # Expand to the same dimensions as mNrm
+        share_exp = np.full_like(m_nrm, share)
+        dvds_fxd = dvds_func_fxd(m_nrm, share_exp)
+        # Combine by adjustment probability
+        dvds_next = adjust_prob * dvds_adj + (1.0 - adjust_prob) * dvds_fxd
+    else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
+        dvds_next = dvds_adj
+
+    dvds_next = (shocks["PermShk"] * perm_gro_fac) ** (1.0 - crra) * dvds_next
+    return dvds_next
+
+
+def calc_dvdx_next(
+    shocks,
+    b_nrm,
+    share,
+    adjust_prob,
+    perm_gro_fac,
+    crra,
+    vp_func_adj,
+    dvdm_func_fxd,
+    dvds_func_fxd,
+):
+    m_nrm = calc_m_nrm_next(shocks, b_nrm, perm_gro_fac)
+    dvdm_adj = vp_func_adj(m_nrm)
+    # No marginal value of shockshare if it's a free choice!
+    dvds_adj = np.zeros_like(m_nrm)
+
+    if adjust_prob < 1.0:
+        # Expand to the same dimensions as mNrm
+        share_exp = np.full_like(m_nrm, share)
+        dvdm_fxd = dvdm_func_fxd(m_nrm, share_exp)
+        dvds_fxd = dvds_func_fxd(m_nrm, share_exp)
+        # Combine by adjustment probability
+        dvdm = adjust_prob * dvdm_adj + (1.0 - adjust_prob) * dvdm_fxd
+        dvds = adjust_prob * dvds_adj + (1.0 - adjust_prob) * dvds_fxd
+    else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
+        dvdm = dvdm_adj
+        dvds = dvds_adj
+
+    perm_shk_fac = shocks["PermShk"] * perm_gro_fac
+    dvdm = perm_shk_fac ** (-crra) * dvdm
+    dvds = perm_shk_fac ** (1.0 - crra) * dvds
+
+    return dvdm, dvds
+
+
+def calc_end_of_prd_dvda(shocks, a_nrm, share, rfree, dvdb_func):
+    """
+    Compute end-of-period marginal value of assets at values a, conditional
+    on risky asset return shocks and risky share z.
+    """
+    # Calculate future realizations of bank balances bNrm
+    ex_ret = shocks - rfree  # Excess returns
+    r_port = rfree + share * ex_ret  # Portfolio return
+    b_nrm = r_port * a_nrm
+
+    # Ensure shape concordance
+    share_exp = np.full_like(b_nrm, share)
+
+    # Calculate and return dvda
+    return r_port * dvdb_func(b_nrm, share_exp)
+
+
+def calc_end_of_prd_dvds(shocks, a_nrm, share, rfree, dvdb_func, dvds_func):
+    """
+    Compute end-of-period marginal value of risky share at values a, conditional
+    on risky asset return shocks and risky share z.
+    """
+    # Calculate future realizations of bank balances bNrm
+    ex_ret = shocks - rfree  # Excess returns
+    r_port = rfree + share * ex_ret  # Portfolio return
+    b_nrm = r_port * a_nrm
+
+    # Make the shares match the dimension of b, so that it can be vectorized
+    share_exp = np.full_like(b_nrm, share)
+
+    # Calculate and return dvds
+
+    return ex_ret * a_nrm * dvdb_func(b_nrm, share_exp) + dvds_func(b_nrm, share_exp)
+
+
+def calc_end_of_prd_dvdx(shocks, a_nrm, share, rfree, dvdb_func, dvds_func):
+    # Calculate future realizations of bank balances bNrm
+    ex_ret = shocks - rfree  # Excess returns
+    r_port = rfree + share * ex_ret  # Portfolio return
+    b_nrm = r_port * a_nrm
+    # Ensure shape concordance
+    share_exp = np.full_like(b_nrm, share)
+
+    # Calculate and return dvda, dvds
+    dvda = r_port * dvdb_func(b_nrm, share_exp)
+    dvds = ex_ret * a_nrm * dvdb_func(b_nrm, share_exp) + dvds_func(b_nrm, share_exp)
+    return dvda, dvds
+
+
+def calc_v_intermed(
+    shocks, b_nrm, share, adjust_prob, perm_gro_fac, crra, v_func_adj, v_func_fxd
+):
+    """
+    Calculate "intermediate" value from next period's bank balances, the
+    income shocks shocks, and the risky asset share.
+    """
+    m_nrm = calc_m_nrm_next(shocks, b_nrm, perm_gro_fac)
+
+    v_adj = v_func_adj(m_nrm)
+    if adjust_prob < 1.0:
+        v_fxd = v_func_fxd(m_nrm, share)
+        # Combine by adjustment probability
+        v_next = adjust_prob * v_adj + (1.0 - adjust_prob) * v_fxd
+    else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
+        v_next = v_adj
+
+    v_intermed = (shocks["PermShk"] * perm_gro_fac) ** (1.0 - crra) * v_next
+    return v_intermed
+
+
+def calc_end_of_prd_v(shocks, a_nrm, share, rfree, v_func):
+    # Calculate future realizations of bank balances bNrm
+    ex_ret = shocks - rfree
+    r_port = rfree + share * ex_ret
+    b_rnm = r_port * a_nrm
+
+    # Make an extended share_next of the same dimension as b_nrm so
+    # that the function can be vectorized
+    share_exp = np.full_like(b_rnm, share)
+
+    return v_func(b_rnm, share_exp)
+
+
+def calc_m_nrm_next_joint(shocks, a_nrm, share, rfree, perm_gro_fac):
+    """
+    Calculate future realizations of market resources mNrm from the shock
+    distribution shocks, normalized end-of-period assets a, and risky share z.
+    """
+    # Calculate future realizations of bank balances bNrm
+    ex_ret = shocks["Risky"] - rfree
+    r_port = rfree + share * ex_ret
+    b_nrm = r_port * a_nrm
+    return b_nrm / (shocks["PermShk"] * perm_gro_fac) + shocks["TranShk"]
+
+
+def calc_end_of_prd_dvdx_joint(
+    shocks,
+    a_nrm,
+    share,
+    rfree,
+    adjust_prob,
+    perm_gro_fac,
+    crra,
+    vp_func_adj,
+    dvdm_func_fxd,
+    dvds_func_fxd,
+):
+    """
+    Evaluate end-of-period marginal value of assets and risky share based
+    on the shock distribution S, values of bend of period assets a, and
+    risky share z.
+    """
+    m_nrm = calc_m_nrm_next_joint(shocks, a_nrm, share, rfree, perm_gro_fac)
+    ex_ret = shocks["Risky"] - rfree
+    r_port = rfree + share * ex_ret
+    dvdm_adj = vp_func_adj(m_nrm)
+    # No marginal value of Share if it's a free choice!
+    dvds_adj = np.zeros_like(m_nrm)
+
+    if adjust_prob < 1.0:
+        # Expand to the same dimensions as mNrm
+        share_exp = np.full_like(m_nrm, share)
+        dvdm_fxd = dvdm_func_fxd(m_nrm, share_exp)
+        dvds_fxd = dvds_func_fxd(m_nrm, share_exp)
+        # Combine by adjustment probability
+        dvdm_next = adjust_prob * dvdm_adj + (1.0 - adjust_prob) * dvdm_fxd
+        dvds_next = adjust_prob * dvds_adj + (1.0 - adjust_prob) * dvds_fxd
+    else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
+        dvdm_next = dvdm_adj
+        dvds_next = dvds_adj
+
+    perm_shk_fac = shocks["PermShk"] * perm_gro_fac
+    temp_fac = perm_shk_fac ** (-crra) * dvdm_next
+    eop_dvda = r_port * temp_fac
+    eop_dvds = ex_ret * a_nrm * temp_fac + perm_shk_fac ** (1 - crra) * dvds_next
+
+    return eop_dvda, eop_dvds
+
+
+def calc_end_of_prd_v_joint(
+    shocks, a_nrm, share, rfree, adjust_prob, perm_gro_fac, crra, v_func_adj, v_func_fxd
+):
+    """
+    Evaluate end-of-period value, based on the shock distribution S, values
+    of bank balances bNrm, and values of the risky share z.
+    """
+    m_nrm = calc_m_nrm_next_joint(shocks, a_nrm, share, rfree, perm_gro_fac)
+    v_adj = v_func_adj(m_nrm)
+
+    if adjust_prob < 1.0:
+        # Expand to the same dimensions as mNrm
+        share_exp = np.full_like(m_nrm, share)
+        v_fxd = v_func_fxd(m_nrm, share_exp)
+        # Combine by adjustment probability
+        v_next = adjust_prob * v_adj + (1.0 - adjust_prob) * v_fxd
+    else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
+        v_next = v_adj
+
+    return (shocks["PermShk"] * perm_gro_fac) ** (1.0 - crra) * v_next
+
+
 def solve_one_period_ConsPortfolio(
     solution_next,
     ShockDstn,
@@ -453,148 +707,68 @@ def solve_one_period_ConsPortfolio(
         bNrmNext, ShareNext = np.meshgrid(bNrmGrid, ShareGrid, indexing="ij")
 
         # Define functions that are used internally to evaluate future realizations
-        def calc_mNrm_next(S, b):
-            """
-            Calculate future realizations of market resources mNrm from the income
-            shock distribution S and normalized bank balances b.
-            """
-            return b / (S["PermShk"] * PermGroFac) + S["TranShk"]
-
-        def calc_dvdm_next(S, b, z):
-            """
-            Evaluate realizations of marginal value of market resources next period,
-            based on the income distribution S, values of bank balances bNrm, and
-            values of the risky share z.
-            """
-            mNrm_next = calc_mNrm_next(S, b)
-            dvdmAdj_next = vPfuncAdj_next(mNrm_next)
-
-            if AdjustPrb < 1.0:
-                # Expand to the same dimensions as mNrm
-                Share_next_expanded = z + np.zeros_like(mNrm_next)
-                dvdmFxd_next = dvdmFuncFxd_next(mNrm_next, Share_next_expanded)
-                # Combine by adjustment probability
-                dvdm_next = AdjustPrb * dvdmAdj_next + (1.0 - AdjustPrb) * dvdmFxd_next
-            else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
-                dvdm_next = dvdmAdj_next
-
-            dvdm_next = (S["PermShk"] * PermGroFac) ** (-CRRA) * dvdm_next
-            return dvdm_next
-
-        def calc_dvds_next(S, b, z):
-            """
-            Evaluate realizations of marginal value of risky share next period, based
-            on the income distribution S, values of bank balances bNrm, and values of
-            the risky share z.
-            """
-            mNrm_next = calc_mNrm_next(S, b)
-
-            # No marginal value of Share if it's a free choice!
-            dvdsAdj_next = np.zeros_like(mNrm_next)
-
-            if AdjustPrb < 1.0:
-                # Expand to the same dimensions as mNrm
-                Share_next_expanded = z + np.zeros_like(mNrm_next)
-                dvdsFxd_next = dvdsFuncFxd_next(mNrm_next, Share_next_expanded)
-                # Combine by adjustment probability
-                dvds_next = AdjustPrb * dvdsAdj_next + (1.0 - AdjustPrb) * dvdsFxd_next
-            else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
-                dvds_next = dvdsAdj_next
-
-            dvds_next = (S["PermShk"] * PermGroFac) ** (1.0 - CRRA) * dvds_next
-            return dvds_next
 
         # Calculate end-of-period marginal value of assets and shares at each point
         # in aNrm and ShareGrid. Does so by taking expectation of next period marginal
         # values across income and risky return shocks.
 
-        # Calculate intermediate marginal value of bank balances by taking expectations over income shocks
-        dvdb_intermed = expected(calc_dvdm_next, IncShkDstn, args=(bNrmNext, ShareNext))
+        # Calculate intermediate marginal value of bank balances and risky portfolio share
+        # by taking expectations over income shocks
+
+        dvdb_intermed, dvds_intermed = expected(
+            calc_dvdx_next,
+            IncShkDstn,
+            args=(
+                bNrmNext,
+                ShareNext,
+                AdjustPrb,
+                PermGroFac,
+                CRRA,
+                vPfuncAdj_next,
+                dvdmFuncFxd_next,
+                dvdsFuncFxd_next,
+            ),
+        )
+
         dvdbNvrs_intermed = uFunc.derinv(dvdb_intermed, order=(1, 0))
         dvdbNvrsFunc_intermed = BilinearInterp(dvdbNvrs_intermed, bNrmGrid, ShareGrid)
         dvdbFunc_intermed = MargValueFuncCRRA(dvdbNvrsFunc_intermed, CRRA)
 
-        # Calculate intermediate marginal value of risky portfolio share by taking expectations over income shocks
-        dvds_intermed = expected(calc_dvds_next, IncShkDstn, args=(bNrmNext, ShareNext))
         dvdsFunc_intermed = BilinearInterp(dvds_intermed, bNrmGrid, ShareGrid)
 
         # Make tiled arrays to calculate future realizations of bNrm and Share when integrating over RiskyDstn
         aNrmNow, ShareNext = np.meshgrid(aNrmGrid, ShareGrid, indexing="ij")
 
         # Define functions for calculating end-of-period marginal value
-        def calc_EndOfPrd_dvda(S, a, z):
-            """
-            Compute end-of-period marginal value of assets at values a, conditional
-            on risky asset return S and risky share z.
-            """
-            # Calculate future realizations of bank balances bNrm
-            Rxs = S - Rfree  # Excess returns
-            Rport = Rfree + z * Rxs  # Portfolio return
-            bNrm_next = Rport * a
-
-            # Ensure shape concordance
-            z_rep = z + np.zeros_like(bNrm_next)
-
-            # Calculate and return dvda
-            EndOfPrd_dvda = Rport * dvdbFunc_intermed(bNrm_next, z_rep)
-            return EndOfPrd_dvda
-
-        def calc_EndOfPrddvds(S, a, z):
-            """
-            Compute end-of-period marginal value of risky share at values a, conditional
-            on risky asset return S and risky share z.
-            """
-            # Calculate future realizations of bank balances bNrm
-            Rxs = S - Rfree  # Excess returns
-            Rport = Rfree + z * Rxs  # Portfolio return
-            bNrm_next = Rport * a
-
-            # Make the shares match the dimension of b, so that it can be vectorized
-            z_rep = z + np.zeros_like(bNrm_next)
-
-            # Calculate and return dvds
-            EndOfPrd_dvds = Rxs * a * dvdbFunc_intermed(
-                bNrm_next, z_rep
-            ) + dvdsFunc_intermed(bNrm_next, z_rep)
-            return EndOfPrd_dvds
 
         # Evaluate realizations of value and marginal value after asset returns are realized
 
-        # Calculate end-of-period marginal value of assets by taking expectations
-        EndOfPrd_dvda = DiscFacEff * expected(
-            calc_EndOfPrd_dvda, RiskyDstn, args=(aNrmNow, ShareNext)
-        )
-        EndOfPrd_dvdaNvrs = uFunc.derinv(EndOfPrd_dvda)
+        # Calculate end-of-period marginal value of assets  and risky portfolio share
+        # by taking expectations
 
-        # Calculate end-of-period marginal value of risky portfolio share by taking expectations
-        EndOfPrd_dvds = DiscFacEff * expected(
-            calc_EndOfPrddvds, RiskyDstn, args=(aNrmNow, ShareNext)
+        EndOfPrd_dvda, EndOfPrd_dvds = DiscFacEff * expected(
+            calc_end_of_prd_dvdx,
+            RiskyDstn,
+            args=(aNrmNow, ShareNext, Rfree, dvdbFunc_intermed, dvdsFunc_intermed),
         )
+
+        EndOfPrd_dvdaNvrs = uFunc.derinv(EndOfPrd_dvda)
 
         # Make the end-of-period value function if the value function is requested
         if vFuncBool:
-
-            def calc_v_intermed(S, b, z):
-                """
-                Calculate "intermediate" value from next period's bank balances, the
-                income shocks S, and the risky asset share.
-                """
-                mNrm_next = calc_mNrm_next(S, b)
-
-                vAdj_next = vFuncAdj_next(mNrm_next)
-                if AdjustPrb < 1.0:
-                    vFxd_next = vFuncFxd_next(mNrm_next, z)
-                    # Combine by adjustment probability
-                    v_next = AdjustPrb * vAdj_next + (1.0 - AdjustPrb) * vFxd_next
-                else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
-                    v_next = vAdj_next
-
-                v_intermed = (S["PermShk"] * PermGroFac) ** (1.0 - CRRA) * v_next
-                return v_intermed
-
             # Calculate intermediate value by taking expectations over income shocks
             v_intermed = expected(
-                calc_v_intermed, IncShkDstn, args=(bNrmNext, ShareNext)
+                calc_v_intermed,
+                IncShkDstn,
+                args=(
+                    bNrmNext,
+                    ShareNext,
+                    AdjustPrb,
+                    PermGroFac,
+                    CRRA,
+                    vFuncAdj_next,
+                    vFuncFxd_next,
+                ),
             )
 
             # Construct the "intermediate value function" for this period
@@ -602,22 +776,11 @@ def solve_one_period_ConsPortfolio(
             vNvrsFunc_intermed = BilinearInterp(vNvrs_intermed, bNrmGrid, ShareGrid)
             vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, CRRA)
 
-            def calc_EndOfPrd_v(S, a, z):
-                # Calculate future realizations of bank balances bNrm
-                Rxs = S - Rfree
-                Rport = Rfree + z * Rxs
-                bNrm_next = Rport * a
-
-                # Make an extended share_next of the same dimension as b_nrm so
-                # that the function can be vectorized
-                z_rep = z + np.zeros_like(bNrm_next)
-
-                EndOfPrd_v = vFunc_intermed(bNrm_next, z_rep)
-                return EndOfPrd_v
-
             # Calculate end-of-period value by taking expectations
             EndOfPrd_v = DiscFacEff * expected(
-                calc_EndOfPrd_v, RiskyDstn, args=(aNrmNow, ShareNext)
+                calc_end_of_prd_v,
+                RiskyDstn,
+                args=(aNrmNow, ShareNext, Rfree, vFunc_intermed),
             )
             EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v)
 
@@ -634,76 +797,24 @@ def solve_one_period_ConsPortfolio(
         aNrmNow, ShareNext = np.meshgrid(aNrmGrid, ShareGrid, indexing="ij")
 
         # Define functions that are used internally to evaluate future realizations
-        def calc_mNrm_next(S, a, z):
-            """
-            Calculate future realizations of market resources mNrm from the shock
-            distribution S, normalized end-of-period assets a, and risky share z.
-            """
-            # Calculate future realizations of bank balances bNrm
-            Rxs = S["Risky"] - Rfree
-            Rport = Rfree + z * Rxs
-            bNrm_next = Rport * a
-            mNrm_next = bNrm_next / (S["PermShk"] * PermGroFac) + S["TranShk"]
-            return mNrm_next
-
-        def calc_EndOfPrd_dvdx(S, a, z):
-            """
-            Evaluate end-of-period marginal value of assets and risky share based
-            on the shock distribution S, values of bend of period assets a, and
-            risky share z.
-            """
-            mNrm_next = calc_mNrm_next(S, a, z)
-            Rxs = S["Risky"] - Rfree
-            Rport = Rfree + z * Rxs
-            dvdmAdj_next = vPfuncAdj_next(mNrm_next)
-            # No marginal value of Share if it's a free choice!
-            dvdsAdj_next = np.zeros_like(mNrm_next)
-
-            if AdjustPrb < 1.0:
-                # Expand to the same dimensions as mNrm
-                Share_next_expanded = z + np.zeros_like(mNrm_next)
-                dvdmFxd_next = dvdmFuncFxd_next(mNrm_next, Share_next_expanded)
-                dvdsFxd_next = dvdsFuncFxd_next(mNrm_next, Share_next_expanded)
-                # Combine by adjustment probability
-                dvdm_next = AdjustPrb * dvdmAdj_next + (1.0 - AdjustPrb) * dvdmFxd_next
-                dvds_next = AdjustPrb * dvdsAdj_next + (1.0 - AdjustPrb) * dvdsFxd_next
-            else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
-                dvdm_next = dvdmAdj_next
-                dvds_next = dvdsAdj_next
-
-            EndOfPrd_dvda = Rport * (S["PermShk"] * PermGroFac) ** (-CRRA) * dvdm_next
-            EndOfPrd_dvds = (
-                Rxs * a * (S["PermShk"] * PermGroFac) ** (-CRRA) * dvdm_next
-                + (S["PermShk"] * PermGroFac) ** (1 - CRRA) * dvds_next
-            )
-
-            return EndOfPrd_dvda, EndOfPrd_dvds
-
-        def calc_EndOfPrd_v(S, a, z):
-            """
-            Evaluate end-of-period value, based on the shock distribution S, values
-            of bank balances bNrm, and values of the risky share z.
-            """
-            mNrm_next = calc_mNrm_next(S, a, z)
-            vAdj_next = vFuncAdj_next(mNrm_next)
-
-            if AdjustPrb < 1.0:
-                # Expand to the same dimensions as mNrm
-                Share_next_expanded = z + np.zeros_like(mNrm_next)
-                vFxd_next = vFuncFxd_next(mNrm_next, Share_next_expanded)
-                # Combine by adjustment probability
-                v_next = AdjustPrb * vAdj_next + (1.0 - AdjustPrb) * vFxd_next
-            else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
-                v_next = vAdj_next
-
-            EndOfPrd_v = (S["PermShk"] * PermGroFac) ** (1.0 - CRRA) * v_next
-            return EndOfPrd_v
 
         # Evaluate realizations of value and marginal value after asset returns are realized
 
         # Calculate end-of-period marginal value of assets and risky share by taking expectations
         EndOfPrd_dvda, EndOfPrd_dvds = DiscFacEff * expected(
-            calc_EndOfPrd_dvdx, ShockDstn, args=(aNrmNow, ShareNext)
+            calc_end_of_prd_dvdx_joint,
+            ShockDstn,
+            args=(
+                aNrmNow,
+                ShareNext,
+                Rfree,
+                AdjustPrb,
+                PermGroFac,
+                CRRA,
+                vPfuncAdj_next,
+                dvdmFuncFxd_next,
+                dvdsFuncFxd_next,
+            ),
         )
         EndOfPrd_dvdaNvrs = uFunc.derinv(EndOfPrd_dvda)
 
@@ -711,7 +822,18 @@ def solve_one_period_ConsPortfolio(
         if vFuncBool:
             # Calculate end-of-period value, its derivative, and their pseudo-inverse
             EndOfPrd_v = DiscFacEff * expected(
-                calc_EndOfPrd_v, ShockDstn, args=(aNrmNow, ShareNext)
+                calc_end_of_prd_v_joint,
+                ShockDstn,
+                args=(
+                    aNrmNow,
+                    ShareNext,
+                    Rfree,
+                    AdjustPrb,
+                    PermGroFac,
+                    CRRA,
+                    vFuncAdj_next,
+                    vFuncFxd_next,
+                ),
             )
             EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v)
 
@@ -841,17 +963,6 @@ def solve_one_period_ConsPortfolio(
         ShareAdj_now = np.insert(ShareAdj_now, 0, Share_lower_bound)
         ShareFuncAdj_now = LinearInterp(mNrmAdj_now, ShareAdj_now, ShareLimit, 0.0)
 
-    # This is a point at which (a,c,share) have consistent length. Take the
-    # snapshot for storing the grid and values in the solution.
-    save_points = {
-        "a": deepcopy(aNrmGrid),
-        "eop_dvda_adj": uFunc.der(cNrmAdj_now),
-        "share_adj": deepcopy(ShareAdj_now),
-        "share_grid": deepcopy(ShareGrid),
-        "eop_dvda_fxd": uFunc.der(EndOfPrd_dvda),
-        "eop_dvds_fxd": EndOfPrd_dvds,
-    }
-
     # Add the value function if requested
     if vFuncBool:
         # Create the value functions for this period, defined over market resources
@@ -909,13 +1020,6 @@ def solve_one_period_ConsPortfolio(
         dvdsFuncFxd=dvdsFuncFxd_now,
         vFuncFxd=vFuncFxd_now,
         AdjPrb=AdjustPrb,
-        # WHAT IS THIS STUFF FOR??
-        aGrid=save_points["a"],
-        Share_adj=save_points["share_adj"],
-        EndOfPrddvda_adj=save_points["eop_dvda_adj"],
-        ShareGrid=save_points["share_grid"],
-        EndOfPrddvda_fxd=save_points["eop_dvda_fxd"],
-        EndOfPrddvds_fxd=save_points["eop_dvds_fxd"],
     )
     return solution_now
 
