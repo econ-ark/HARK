@@ -4,7 +4,6 @@ from copy import copy, deepcopy
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
-    ConsIndShockSolverBasic,
     IndShockConsumerType,
     init_idiosyncratic_shocks,
     init_lifecycle,
@@ -63,46 +62,6 @@ class testIndShockConsumerType(unittest.TestCase):
             LifecycleExample.solution[2].cFunc(1).tolist(),
             0.76812,
             places=HARK_PRECISION,
-        )
-
-        solver = ConsIndShockSolverBasic(
-            LifecycleExample.solution[1],
-            LifecycleExample.IncShkDstn[0],
-            LifecycleExample.LivPrb[0],
-            LifecycleExample.DiscFac,
-            LifecycleExample.CRRA,
-            LifecycleExample.Rfree,
-            LifecycleExample.PermGroFac[0],
-            LifecycleExample.BoroCnstArt,
-            LifecycleExample.aXtraGrid,
-            LifecycleExample.vFuncBool,
-            LifecycleExample.CubicBool,
-        )
-
-        solver.prepare_to_solve()
-
-        self.assertAlmostEqual(solver.DiscFacEff, 0.95862, places=HARK_PRECISION)
-        self.assertAlmostEqual(solver.PermShkMinNext, 0.65549, places=HARK_PRECISION)
-        self.assertAlmostEqual(solver.cFuncNowCnst(4).tolist(), 4.0)
-        self.assertAlmostEqual(
-            solver.prepare_to_calc_EndOfPrdvP()[0], -0.19793, places=HARK_PRECISION
-        )
-        self.assertAlmostEqual(
-            solver.prepare_to_calc_EndOfPrdvP()[-1], 19.80107, places=HARK_PRECISION
-        )
-
-        EndOfPrdvP = solver.calc_EndOfPrdvP()
-
-        self.assertAlmostEqual(EndOfPrdvP[0], 6657.83937, places=HARK_PRECISION)
-        self.assertAlmostEqual(EndOfPrdvP[-1], 0.26061, places=HARK_PRECISION)
-
-        solution = solver.make_basic_solution(
-            EndOfPrdvP, solver.aNrmNow, solver.make_linear_cFunc
-        )
-        solver.add_MPC_and_human_wealth(solution)
-
-        self.assertAlmostEqual(
-            solution.cFunc(4).tolist(), 1.00280, places=HARK_PRECISION
         )
 
     def test_simulated_values(self):
@@ -896,7 +855,8 @@ class test_Transition_Matrix_Methods(unittest.TestCase):
         asset = example1.aPol_Grid  # Normalized Asset Policy Grid
 
         example1.calc_ergodic_dist()
-        vecDstn = example1.vec_erg_dstn  # Distribution of market resources and permanent income as a vector (m*p)x1 vector where
+        vecDstn = example1.vec_erg_dstn
+        # Distribution of market resources and permanent income as a vector (m*p)x1 vector where
 
         # Compute Aggregate Consumption and Aggregate Assets
         gridc = np.zeros((len(c), len(p)))

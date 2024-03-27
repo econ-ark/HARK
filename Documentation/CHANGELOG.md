@@ -8,16 +8,22 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.15.0
+### 0.15.0 (in development)
 
 Release Date: TBA
 
 ### Major Changes
 
+- Replace object-oriented solvers with single function versions. [1394](https://github.com/econ-ark/HARK/pull/1394)
+- Object-oriented solver code has been moved to /HARK/ConsumptionSaving/LegacyOOsolvers.py, for legacy support of downstream projects.
+
 ### Minor Changes
 
 - Add option to pass pre-built grid to `LinearFast`. [1388](https://github.com/econ-ark/HARK/pull/1388)
 - Moves calculation of stable points out of ConsIndShock solver, into method called by post_solve [#1349](https://github.com/econ-ark/HARK/pull/1349)
+- Adds cubic spline interpolation and value function construction to "warm glow bequest" models.
+- Fixes cubic spline interpolation for ConsMedShockModel
+- Moves computation of "stable points" from inside of ConsIndShock solver to a post-solution method. [1349](https://github.com/econ-ark/HARK/pull/1349)
 
 ### 0.14.1
 
