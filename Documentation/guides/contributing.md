@@ -1,8 +1,11 @@
 # Contributing to Econ-ARK
 
-```{contents} Table of Contents
-:depth: 2
-```
+ - [Code of Conduct](#code-of-conduct)
+ - [Welcome!](#welcome!)
+ - [How to Contribute](#how-to-contribute)
+ - [Responding to Issues & Pull Requests](#responding-to-issues--pull-requests)
+ - [Getting Started](#getting-started)
+ - [Developer's Certificate of Origin 1.1](#developers-certificate-of-origin-11)
 
 ## Code of Conduct
 
