@@ -10,27 +10,18 @@ It currently solves 2 types of models:
 """
 
 import numpy as np
+
 from HARK.ConsumptionSaving.ConsIndShockModel import (
-    ConsIndShockSolver,
-    IndShockConsumerType,
-    init_idiosyncratic_shocks,
-    init_lifecycle,
-)
-from HARK.ConsumptionSaving.ConsPortfolioModel import (
-    ConsPortfolioSolver,
-    PortfolioConsumerType,
-    PortfolioSolution,
-    init_portfolio,
-)
+    ConsIndShockSolver, IndShockConsumerType, init_idiosyncratic_shocks,
+    init_lifecycle)
+from HARK.ConsumptionSaving.ConsPortfolioModel import (ConsPortfolioSolver,
+                                                       PortfolioConsumerType,
+                                                       PortfolioSolution,
+                                                       init_portfolio)
 from HARK.core import make_one_period_oo_solver
-from HARK.interpolation import (
-    ConstantFunction,
-    IdentityFunction,
-    LinearInterp,
-    MargMargValueFuncCRRA,
-    MargValueFuncCRRA,
-    ValueFuncCRRA,
-)
+from HARK.interpolation import (ConstantFunction, IdentityFunction,
+                                LinearInterp, MargMargValueFuncCRRA,
+                                MargValueFuncCRRA, ValueFuncCRRA)
 from HARK.rewards import UtilityFuncCRRA, UtilityFuncStoneGeary
 
 
@@ -352,7 +343,7 @@ class BequestWarmGlowPortfolioSolver(ConsPortfolioSolver):
 
 init_wealth_in_utility = init_idiosyncratic_shocks.copy()
 init_wealth_in_utility["BeqCRRA"] = init_idiosyncratic_shocks["CRRA"]
-init_wealth_in_utility["BeqFac"] = 1.0
+init_wealth_in_utility["BeqFac"] = 0.0
 init_wealth_in_utility["BeqShift"] = 0.0
 init_wealth_in_utility["TermBeqCRRA"] = init_idiosyncratic_shocks["CRRA"]
 init_wealth_in_utility["TermBeqFac"] = 0.0  # ignore bequest motive in terminal period
@@ -362,6 +353,8 @@ init_warm_glow = init_lifecycle.copy()
 init_warm_glow["TermBeqCRRA"] = init_lifecycle["CRRA"]
 init_warm_glow["TermBeqFac"] = 1.0
 init_warm_glow["TermBeqShift"] = 0.0
+init_warm_glow["BeqFac"] = 0.0  # Value of bequest relative to consumption
+init_warm_glow["BeqShift"] = 0.0  # Shifts the utility function
 
 init_accidental_bequest = init_warm_glow.copy()
 init_accidental_bequest["BeqFac"] = 1.0  # Value of bequest relative to consumption
