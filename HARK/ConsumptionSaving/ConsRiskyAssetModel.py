@@ -528,24 +528,26 @@ def solve_one_period_ConsIndShockRiskyAsset(
     def calc_Radj(R):
         return R ** (1.0 - CRRA)
 
-    PatFac = (DiscFacEff * expected(calc_Radj, RiskyDstn)) ** (1.0 / CRRA)
+    Radj = expected(calc_Radj, RiskyDstn)
+    PatFac = (DiscFacEff * Radj) ** (1.0 / CRRA)
     MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
+    MPCminNow = MPCminNow[0]  # Returns as one element array, extract
 
     # Also perform an alternate calculation for human wealth under risky returns
     def calc_hNrm(S):
         Risky = S["Risky"]
         PermShk = S["PermShk"]
         TranShk = S["TranShk"]
-        hNrm = (PermGroFac / Risky) * (PermShk * TranShk + solution_next.hNrm)
+        hNrm = (PermGroFac / Risky**CRRA) * (PermShk * TranShk + solution_next.hNrm)
         return hNrm
 
-    hNrmNow = expected(calc_hNrm, ShockDstn)
+    # This correctly incorporates risk aversion and risky returns
+    hNrmNow = expected(calc_hNrm, ShockDstn) / Radj
+    hNrmNow = hNrmNow[0]
 
-    # The above attempts to pin down the limiting consumption function for this
-    # model, however it is not clear why it creates bugs, so for now we allow
-    # for a linear extrapolation beyond the last asset point
-    cFuncLimitIntercept = None
-    cFuncLimitSlope = None
+    # Use adjusted MPCmin and hNrm to specify limiting linear behavior of cFunc
+    cFuncLimitIntercept = MPCminNow * hNrmNow
+    cFuncLimitSlope = MPCminNow  # Returns as one element array, extract
 
     # Calculate the minimum allowable value of market resources in this period
     BoroCnstNat_cand = (
@@ -812,6 +814,7 @@ def solve_one_period_ConsIndShockRiskyAsset(
     # income distribution is independent from the return distribution
     if CubicBool:
         # Construct the unconstrained consumption function as a cubic interpolation
+
         cFuncNowUnc = CubicInterp(
             m_for_interpolation,
             c_for_interpolation,
@@ -1410,27 +1413,32 @@ def solve_one_period_FixedShareRiskyAsset(
 
     # Perform an alternate calculation of the absolute patience factor when returns are risky
     def calc_Radj(R):
-        R_temp = RiskyShareFixed * R + (1.0 - RiskyShareFixed) * Rfree
-        return R_temp ** (1.0 - CRRA)
+        Rport = RiskyShareFixed * R + (1.0 - RiskyShareFixed) * Rfree
+        return Rport ** (1.0 - CRRA)
 
-    PatFac = (DiscFacEff * expected(calc_Radj, RiskyDstn)) ** (1.0 / CRRA)
+    R_adj = expected(calc_Radj, RiskyDstn)
+    PatFac = (DiscFacEff * R_adj) ** (1.0 / CRRA)
     MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
+    MPCminNow = MPCminNow[0]
 
     # Also perform an alternate calculation for human wealth under risky returns
     def calc_hNrm(S):
         Risky = S["Risky"]
         PermShk = S["PermShk"]
         TranShk = S["TranShk"]
-        hNrm = (PermGroFac / Risky) * (PermShk * TranShk + solution_next.hNrm)
+        Rport = RiskyShareFixed * Risky + (1.0 - RiskyShareFixed) * Rfree
+        hNrm = (PermGroFac / Rport**CRRA) * (PermShk * TranShk + solution_next.hNrm)
         return hNrm
 
-    hNrmNow = expected(calc_hNrm, ShockDstn)
+    # This correctly accounts for risky returns and risk aversion
+    hNrmNow = expected(calc_hNrm, ShockDstn) / R_adj
+    hNrmNow = hNrmNow[0]
 
     # The above attempts to pin down the limiting consumption function for this
     # model, however it is not clear why it creates bugs, so for now we allow
     # for a linear extrapolation beyond the last asset point
-    cFuncLimitIntercept = None
-    cFuncLimitSlope = None
+    cFuncLimitIntercept = MPCminNow * hNrmNow
+    cFuncLimitSlope = MPCminNow
 
     # Calculate the minimum allowable value of market resources in this period
     BoroCnstNat_cand = (
