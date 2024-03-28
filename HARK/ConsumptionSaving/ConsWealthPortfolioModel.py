@@ -97,8 +97,8 @@ class WealthPortfolioConsumerType(PortfolioConsumerType):
             solution.cFuncAdj = solution.cFunc
             solution.cFuncFxd = lambda m, s: solution.cFunc(m)
             share = solution.shareFunc
-            solution.ShareFuncAdj = lambda m: np.clip(share(m), 0.0, 1.0)
-            solution.ShareFuncFxd = lambda m, s: np.clip(share(m), 0.0, 1.0)
+            solution.ShareFuncAdj = share
+            solution.ShareFuncFxd = lambda m, s: share(m)
 
 
 @dataclass
