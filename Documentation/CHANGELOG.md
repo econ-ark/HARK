@@ -19,6 +19,7 @@ Release Date: TBA
 
 ### Minor Changes
 
+- Adds support for distributions, booleans, and callables as parameters in the `Parameters` class. [1387](https://github.com/econ-ark/HARK/pull/1387)
 - Add option to pass pre-built grid to `LinearFast`. [1388](https://github.com/econ-ark/HARK/pull/1388)
 - Moves calculation of stable points out of ConsIndShock solver, into method called by post_solve [#1349](https://github.com/econ-ark/HARK/pull/1349)
 - Adds cubic spline interpolation and value function construction to "warm glow bequest" models.
