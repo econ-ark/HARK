@@ -41,14 +41,7 @@ from HARK.rewards import UtilityFuncCRRA, UtilityFuncStoneGeary
 
 
 class BequestWarmGlowConsumerType(IndShockConsumerType):
-    time_inv_ = IndShockConsumerType.time_inv_ + [
-        "BeqCRRA",
-        "BeqShift",
-    ]
-
-    time_vary_ = IndShockConsumerType.time_vary_ + [
-        "BeqFac",
-    ]
+    time_inv_ = IndShockConsumerType.time_inv_ + ["BeqCRRA", "BeqShift", "BeqFac"]
 
     def __init__(self, **kwds):
         params = init_wealth_in_utility.copy()
@@ -66,14 +59,8 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
         if not isinstance(self.BeqCRRA, (int, float)):
             raise ValueError("Bequest CRRA parameter must be a single value.")
 
-        if isinstance(self.BeqFac, (int, float)):
-            self.BeqFac = [self.BeqFac] * self.T_cycle
-        elif len(self.BeqFac) == 1:
-            self.BeqFac *= self.T_cycle
-        elif len(self.BeqFac) != self.T_cycle:
-            raise ValueError(
-                "Bequest relative value parameter must be a single value or a list of length T_cycle",
-            )
+        if not isinstance(self.BeqFac, (int, float)):
+            raise ValueError("Bequest relative value parameter must be a single value.")
 
         if not isinstance(self.BeqShift, (int, float)):
             raise ValueError("Bequest Stone-Geary parameter must be a single value.")
@@ -118,11 +105,8 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType):
     time_inv_ = IndShockConsumerType.time_inv_ + [
         "BeqCRRA",
         "BeqShift",
-        "DiscreteShareBool",
-    ]
-
-    time_vary_ = IndShockConsumerType.time_vary_ + [
         "BeqFac",
+        "DiscreteShareBool",
     ]
 
     def __init__(self, **kwds):
@@ -143,14 +127,8 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType):
         if not isinstance(self.BeqCRRA, (int, float)):
             raise ValueError("Bequest CRRA parameter must be a single value.")
 
-        if isinstance(self.BeqFac, (int, float)):
-            self.BeqFac = [self.BeqFac] * self.T_cycle
-        elif len(self.BeqFac) == 1:
-            self.BeqFac *= self.T_cycle
-        elif len(self.BeqFac) != self.T_cycle:
-            raise ValueError(
-                "Bequest relative value parameter must be a single value or a list of length T_cycle",
-            )
+        if not isinstance(self.BeqFac, (int, float)):
+            raise ValueError("Bequest relative value parameter must be a single value.")
 
         if not isinstance(self.BeqShift, (int, float)):
             raise ValueError("Bequest Stone-Geary parameter must be a single value.")
