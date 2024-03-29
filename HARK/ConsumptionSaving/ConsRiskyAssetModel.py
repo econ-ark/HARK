@@ -538,7 +538,8 @@ def solve_one_period_ConsIndShockRiskyAsset(
         Risky = S["Risky"]
         PermShk = S["PermShk"]
         TranShk = S["TranShk"]
-        hNrm = (PermGroFac / Risky**CRRA) * (PermShk * TranShk + solution_next.hNrm)
+        G = PermGroFac * PermShk
+        hNrm = (G / Risky**CRRA) * (TranShk + solution_next.hNrm)
         return hNrm
 
     # This correctly incorporates risk aversion and risky returns
@@ -985,6 +986,38 @@ def solve_one_period_ConsPortChoice(
     RiskyMax = np.max(Risky_next)
     RiskyMin = np.min(Risky_next)
 
+    # Perform an alternate calculation of the absolute patience factor when
+    # returns are risky. This uses the Merton-Samuelson limiting risky share,
+    # which is what's relevant as mNrm goes to infinity.
+    def calc_Radj(R):
+        Rport = ShareLimit * R + (1.0 - ShareLimit) * Rfree
+        return Rport ** (1.0 - CRRA)
+
+    R_adj = expected(calc_Radj, RiskyDstn)
+    PatFac = (DiscFacEff * R_adj) ** (1.0 / CRRA)
+    MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
+    MPCminNow = MPCminNow[0]
+
+    # Also perform an alternate calculation for human wealth under risky returns
+    def calc_hNrm(S):
+        Risky = S["Risky"]
+        PermShk = S["PermShk"]
+        TranShk = S["TranShk"]
+        G = PermGroFac * PermShk
+        Rport = ShareLimit * Risky + (1.0 - ShareLimit) * Rfree
+        hNrm = (G / Rport**CRRA) * (TranShk + solution_next.hNrm)
+        return hNrm
+
+    # This correctly accounts for risky returns and risk aversion
+    hNrmNow = expected(calc_hNrm, ShockDstn) / R_adj
+    hNrmNow = hNrmNow[0]
+
+    # The above attempts to pin down the limiting consumption function for this
+    # model, however it is not clear why it creates bugs, so for now we allow
+    # for a linear extrapolation beyond the last asset point
+    cFuncLimitIntercept = MPCminNow * hNrmNow
+    cFuncLimitSlope = MPCminNow
+
     # bNrm represents R*a, balances after asset return shocks but before income.
     # This just uses the highest risky return as a rough shifter for the aXtraGrid.
     if BoroCnstNat_iszero:
@@ -1264,7 +1297,7 @@ def solve_one_period_ConsPortChoice(
     # then construct the consumption function when the agent can adjust his share
     mNrm_now = np.insert(aNrmGrid + cNrm_now, 0, 0.0)
     cNrm_now = np.insert(cNrm_now, 0, 0.0)
-    cFunc_now = LinearInterp(mNrm_now, cNrm_now)
+    cFunc_now = LinearInterp(mNrm_now, cNrm_now, cFuncLimitIntercept, cFuncLimitSlope)
 
     # Construct the marginal value (of mNrm) function
     vPfunc_now = MargValueFuncCRRA(cFunc_now, CRRA)
@@ -1307,6 +1340,8 @@ def solve_one_period_ConsPortChoice(
         cFunc=cFunc_now,
         vPfunc=vPfunc_now,
         vFunc=vFunc_now,
+        hNrm=hNrmNow,
+        MPCmin=MPCminNow,
     )
     solution_now.ShareFunc = ShareFunc_now
     return solution_now
@@ -1426,8 +1461,9 @@ def solve_one_period_FixedShareRiskyAsset(
         Risky = S["Risky"]
         PermShk = S["PermShk"]
         TranShk = S["TranShk"]
+        G = PermGroFac * PermShk
         Rport = RiskyShareFixed * Risky + (1.0 - RiskyShareFixed) * Rfree
-        hNrm = (PermGroFac / Rport**CRRA) * (PermShk * TranShk + solution_next.hNrm)
+        hNrm = (G / Rport**CRRA) * (TranShk + solution_next.hNrm)
         return hNrm
 
     # This correctly accounts for risky returns and risk aversion
