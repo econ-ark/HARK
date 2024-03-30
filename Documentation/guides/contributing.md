@@ -3,7 +3,7 @@
  - [Code of Conduct](#code-of-conduct)
  - [Welcome!](#welcome)
  - [How to Contribute](#how-to-contribute)
- - [Responding to Issues & Pull Requests](#responding-to-issues--pull-requests)
+ - [Responding to Issues & Pull Requests](#responding-to-issues-and-pull-requests)
  - [Getting Started](#getting-started)
  - [Developer's Certificate of Origin 1.1](#developers-certificate-of-origin-11)
 
@@ -72,7 +72,7 @@ We don't currently have guidelines for opening issues or pull requests,
 so include as much information as seems relevant to you,
 and we'll ask you if we need to know more.
 
-## Responding to Issues & Pull Requests
+## Responding to Issues and Pull Requests
 
 We're trying to get better at managing our open issues and pull requests.
 We've created a new set of goals for all issues and pull requests in our Econ-ARK repos:
