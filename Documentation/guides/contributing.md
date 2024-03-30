@@ -1,7 +1,7 @@
 # Contributing to Econ-ARK
 
  - [Code of Conduct](#code-of-conduct)
- - [Welcome!](#welcome!)
+ - [Welcome!](#welcome)
  - [How to Contribute](#how-to-contribute)
  - [Responding to Issues & Pull Requests](#responding-to-issues--pull-requests)
  - [Getting Started](#getting-started)
