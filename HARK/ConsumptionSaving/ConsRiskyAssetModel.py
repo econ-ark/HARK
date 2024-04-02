@@ -271,7 +271,9 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 
             SharePF = minimize_scalar(
                 temp_f, bracket=(0.0, 1.0), method="golden", tol=1e-10
-            ).x[0]
+            ).x
+            if type(SharePF) is np.array:
+                SharePF = SharePF[0]
             self.ShareLimit = SharePF
             self.add_to_time_inv("ShareLimit")
 
