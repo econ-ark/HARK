@@ -430,7 +430,7 @@ def solve_one_period_ConsPortfolio(
     Risky_next = RiskyDstn.atoms
     RiskyMax = np.max(Risky_next)
     RiskyMin = np.min(Risky_next)
-    
+
     # Perform an alternate calculation of the absolute patience factor when
     # returns are risky. This uses the Merton-Samuelson limiting risky share,
     # which is what's relevant as mNrm goes to infinity.
@@ -454,7 +454,7 @@ def solve_one_period_ConsPortfolio(
 
     # This correctly accounts for risky returns and risk aversion
     hNrmNow = expected(calc_hNrm, ShockDstn) / R_adj
-    
+
     # This basic equation works if there's no correlation among shocks
     # hNrmNow = (PermGroFac/Rfree)*(1 + solution_next.hNrm)
 
