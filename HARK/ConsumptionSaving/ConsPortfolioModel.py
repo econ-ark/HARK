@@ -227,6 +227,8 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
             dvdmFuncFxd=dvdmFuncFxd_terminal,
             dvdsFuncFxd=dvdsFuncFxd_terminal,
         )
+        self.solution_terminal.hNrm = 0.0
+        self.solution_terminal.MPCmin = 1.0
 
     def initialize_sim(self):
         """
@@ -428,6 +430,39 @@ def solve_one_period_ConsPortfolio(
     Risky_next = RiskyDstn.atoms
     RiskyMax = np.max(Risky_next)
     RiskyMin = np.min(Risky_next)
+    
+    # Perform an alternate calculation of the absolute patience factor when
+    # returns are risky. This uses the Merton-Samuelson limiting risky share,
+    # which is what's relevant as mNrm goes to infinity.
+    def calc_Radj(R):
+        Rport = ShareLimit * R + (1.0 - ShareLimit) * Rfree
+        return Rport ** (1.0 - CRRA)
+
+    R_adj = expected(calc_Radj, RiskyDstn)[0]
+    PatFac = (DiscFacEff * R_adj) ** (1.0 / CRRA)
+    MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
+
+    # Also perform an alternate calculation for human wealth under risky returns
+    def calc_hNrm(S):
+        Risky = S["Risky"]
+        PermShk = S["PermShk"]
+        TranShk = S["TranShk"]
+        G = PermGroFac * PermShk
+        Rport = ShareLimit * Risky + (1.0 - ShareLimit) * Rfree
+        hNrm = (G / Rport**CRRA) * (TranShk + solution_next.hNrm)
+        return hNrm
+
+    # This correctly accounts for risky returns and risk aversion
+    hNrmNow = expected(calc_hNrm, ShockDstn) / R_adj
+    
+    # This basic equation works if there's no correlation among shocks
+    # hNrmNow = (PermGroFac/Rfree)*(1 + solution_next.hNrm)
+
+    # The above attempts to pin down the limiting consumption function for this
+    # model, however it is not clear why it creates bugs, so for now we allow
+    # for a linear extrapolation beyond the last asset point
+    cFuncLimitIntercept = MPCminNow * hNrmNow
+    cFuncLimitSlope = MPCminNow
 
     # bNrm represents R*a, balances after asset return shocks but before income.
     # This just uses the highest risky return as a rough shifter for the aXtraGrid.
@@ -917,6 +952,8 @@ def solve_one_period_ConsPortfolio(
         EndOfPrddvda_fxd=save_points["eop_dvda_fxd"],
         EndOfPrddvds_fxd=save_points["eop_dvds_fxd"],
     )
+    solution_now.hNrm = hNrmNow
+    solution_now.MPCmin = MPCminNow
     return solution_now
 
 
