@@ -943,8 +943,7 @@ class PerfForesightConsumerType(AgentType):
         kwds = params
 
         # Initialize a basic AgentType
-        AgentType.__init__(
-            self,
+        super().__init__(
             solution_terminal=deepcopy(self.solution_terminal_),
             pseudo_terminal=False,
             **kwds,
@@ -1089,7 +1088,7 @@ class PerfForesightConsumerType(AgentType):
     def initialize_sim(self):
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
         self.state_now["PlvlAgg"] = 1.0
-        AgentType.initialize_sim(self)
+        super().initialize_sim()
 
     def sim_birth(self, which_agents):
         """
@@ -1722,9 +1721,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         "vFuncBool",
         "CubicBool",
     ]
-    time_inv_.remove(
-        "MaxKinks"
-    )  # This is in the PerfForesight model but not ConsIndShock
+    # This is in the PerfForesight model but not ConsIndShock
+    time_inv_.remove("MaxKinks")
     shock_vars_ = ["PermShk", "TranShk"]
 
     def __init__(self, verbose=1, quiet=False, **kwds):
@@ -1732,7 +1730,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         params.update(kwds)
 
         # Initialize a basic AgentType
-        PerfForesightConsumerType.__init__(self, verbose=verbose, quiet=quiet, **params)
+        super().__init__(verbose=verbose, quiet=quiet, **params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solve_one_period = solve_one_period_ConsIndShock
@@ -1808,7 +1806,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
-        PerfForesightConsumerType.reset_rng(self)
+        super().reset_rng()
 
         # Reset IncShkDstn if it exists (it might not because reset_rng is called at init)
         if hasattr(self, "IncShkDstn"):
@@ -2663,7 +2661,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Update all income process variables to match any attributes that might
         # have been changed since `__init__` or `solve()` was last called.
         #        self.update_income_process()
-        self.update_solution_terminal()
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
 
@@ -2682,7 +2679,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             Description of primitive parameters.
         """
         # Get parameter description from the perfect foresight model
-        param_desc = PerfForesightConsumerType.describe_parameters(self)
+        param_desc = super().describe_parameters()
 
         # Make a new entry for weierstrass-p (the weird formatting here is to
         # make it easier to adapt into the style of the superclass if we add more
@@ -2742,7 +2739,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
-        PerfForesightConsumerType.calc_limiting_values(self)
+        super().calc_limiting_values()
         aux_dict = self.bilt
 
         # Calculate the risk-modified growth impatience factor
@@ -2962,7 +2959,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.check_GICLiv(verbose)
         self.check_GICSdl(verbose)
         self.check_GICHrm(verbose)
-        PerfForesightConsumerType.check_FVAC(self, verbose)
+        super().check_FVAC(verbose)
         self.check_FVAC(verbose)
         self.check_FHWC(verbose)
 
@@ -3366,15 +3363,10 @@ class KinkedRconsumerType(IndShockConsumerType):
         params.update(kwds)
 
         # Initialize a basic AgentType
-        PerfForesightConsumerType.__init__(self, **params)
+        super().__init__(**params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solve_one_period = solve_one_period_ConsKinkedR
-        self.update()  # Make assets grid, income process, terminal solution
-
-    def pre_solve(self):
-        #        AgentType.pre_solve(self)
-        self.update_solution_terminal()
 
     def calc_bounding_values(self):
         """
@@ -3479,7 +3471,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         RfreeNow[self.state_prev["aNrm"] > 0] = self.Rsave
         return RfreeNow
 
-    def check_conditions(self):
+    def check_conditions(self, verbose):
         """
         This empty method overwrites the version inherited from its parent class,
         IndShockConsumerType. The condition checks are not appropriate when Rfree
@@ -3493,7 +3485,9 @@ class KinkedRconsumerType(IndShockConsumerType):
         -------
         None
         """
-        raise NotImplementedError()
+        # raise NotImplementedError()
+
+        pass
 
 
 def apply_flat_income_tax(
