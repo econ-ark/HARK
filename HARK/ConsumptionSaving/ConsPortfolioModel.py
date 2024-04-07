@@ -8,7 +8,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from HARK import AgentType, NullFunc
+from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_idiosyncratic_shocks,
@@ -171,11 +171,6 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
 
         # Set the solver for the portfolio model, and update various constructed attributes
         self.solve_one_period = solve_one_period_ConsPortfolio
-        self.update()
-
-    def pre_solve(self):
-        AgentType.pre_solve(self)
-        self.update_solution_terminal()
 
     def update(self):
         RiskyAssetConsumerType.update(self)

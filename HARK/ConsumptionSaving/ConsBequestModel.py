@@ -11,13 +11,14 @@ It currently solves two types of models:
 """
 
 from copy import deepcopy
+
 import numpy as np
+
 from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     init_idiosyncratic_shocks,
-    init_lifecycle,
 )
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     PortfolioConsumerType,
@@ -41,58 +42,31 @@ from HARK.rewards import UtilityFuncCRRA, UtilityFuncStoneGeary
 
 
 class BequestWarmGlowConsumerType(IndShockConsumerType):
-    time_inv_ = IndShockConsumerType.time_inv_ + [
-        "BeqCRRA",
-        "BeqShift",
-    ]
-
-    time_vary_ = IndShockConsumerType.time_vary_ + [
-        "BeqFac",
-    ]
+    time_inv_ = IndShockConsumerType.time_inv_ + ["BeqCRRA", "BeqShift", "BeqFac"]
 
     def __init__(self, **kwds):
-        params = init_wealth_in_utility.copy()
+        params = init_accidental_bequest.copy()
         params.update(kwds)
 
         super().__init__(**params)
 
         self.solve_one_period = solve_one_period_ConsWarmBequest
 
-    def update(self):
-        super().update()
-        self.update_parameters()
-
-    def update_parameters(self):
-        if not isinstance(self.BeqCRRA, (int, float)):
-            raise ValueError("Bequest CRRA parameter must be a single value.")
-
-        if isinstance(self.BeqFac, (int, float)):
-            self.BeqFac = [self.BeqFac] * self.T_cycle
-        elif len(self.BeqFac) == 1:
-            self.BeqFac *= self.T_cycle
-        elif len(self.BeqFac) != self.T_cycle:
-            raise ValueError(
-                "Bequest relative value parameter must be a single value or a list of length T_cycle",
-            )
-
-        if not isinstance(self.BeqShift, (int, float)):
-            raise ValueError("Bequest Stone-Geary parameter must be a single value.")
-
     def update_solution_terminal(self):
-        if self.TermBeqFac == 0.0:  # No terminal bequest
+        if self.BeqFacTerm == 0.0:  # No terminal bequest
             super().update_solution_terminal()
         else:
             utility = UtilityFuncCRRA(self.CRRA)
 
             warm_glow = UtilityFuncStoneGeary(
-                self.TermBeqCRRA,
-                factor=self.TermBeqFac,
-                shifter=self.TermBeqShift,
+                self.BeqCRRATerm,
+                factor=self.BeqFacTerm,
+                shifter=self.BeqShiftTerm,
             )
 
             aNrmGrid = (
                 np.append(0.0, self.aXtraGrid)
-                if self.TermBeqShift != 0.0
+                if self.BeqShiftTerm != 0.0
                 else self.aXtraGrid
             )
             cNrmGrid = utility.derinv(warm_glow.der(aNrmGrid))
@@ -115,15 +89,7 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
 
 
 class BequestWarmGlowPortfolioType(PortfolioConsumerType):
-    time_inv_ = IndShockConsumerType.time_inv_ + [
-        "BeqCRRA",
-        "BeqShift",
-        "DiscreteShareBool",
-    ]
-
-    time_vary_ = IndShockConsumerType.time_vary_ + [
-        "BeqFac",
-    ]
+    time_inv_ = PortfolioConsumerType.time_inv_ + ["BeqCRRA", "BeqShift", "BeqFac"]
 
     def __init__(self, **kwds):
         params = init_portfolio_bequest.copy()
@@ -135,41 +101,21 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType):
 
         self.solve_one_period = solve_one_period_ConsPortfolioWarmGlow
 
-    def update(self):
-        super().update()
-        self.update_parameters()
-
-    def update_parameters(self):
-        if not isinstance(self.BeqCRRA, (int, float)):
-            raise ValueError("Bequest CRRA parameter must be a single value.")
-
-        if isinstance(self.BeqFac, (int, float)):
-            self.BeqFac = [self.BeqFac] * self.T_cycle
-        elif len(self.BeqFac) == 1:
-            self.BeqFac *= self.T_cycle
-        elif len(self.BeqFac) != self.T_cycle:
-            raise ValueError(
-                "Bequest relative value parameter must be a single value or a list of length T_cycle",
-            )
-
-        if not isinstance(self.BeqShift, (int, float)):
-            raise ValueError("Bequest Stone-Geary parameter must be a single value.")
-
     def update_solution_terminal(self):
-        if self.TermBeqFac == 0.0:  # No terminal bequest
+        if self.BeqFacTerm == 0.0:  # No terminal bequest
             super().update_solution_terminal()
         else:
             utility = UtilityFuncCRRA(self.CRRA)
 
             warm_glow = UtilityFuncStoneGeary(
-                self.TermBeqCRRA,
-                factor=self.TermBeqFac,
-                shifter=self.TermBeqShift,
+                self.BeqCRRATerm,
+                factor=self.BeqFacTerm,
+                shifter=self.BeqShiftTerm,
             )
 
             aNrmGrid = (
                 np.append(0.0, self.aXtraGrid)
-                if self.TermBeqShift != 0.0
+                if self.BeqShiftTerm != 0.0
                 else self.aXtraGrid
             )
             cNrmGrid = utility.derinv(warm_glow.der(aNrmGrid))
@@ -475,7 +421,6 @@ def solve_one_period_ConsWarmBequest(
 
 def solve_one_period_ConsPortfolioWarmGlow(
     solution_next,
-    ShockDstn,
     IncShkDstn,
     RiskyDstn,
     LivPrb,
@@ -490,7 +435,6 @@ def solve_one_period_ConsPortfolioWarmGlow(
     ShareLimit,
     vFuncBool,
     DiscreteShareBool,
-    IndepDstnBool,
     BeqCRRA,
     BeqFac,
     BeqShift,
@@ -594,7 +538,9 @@ def solve_one_period_ConsPortfolioWarmGlow(
 
     # Set a flag for whether the natural borrowing constraint is zero, which
     # depends on whether the smallest transitory income shock is zero
-    BoroCnstNat_iszero = np.min(IncShkDstn.atoms[1]) == 0.0
+    BoroCnstNat_iszero = (np.min(IncShkDstn.atoms[1]) == 0.0) or (
+        BeqFac != 0.0 and BeqShift == 0.0
+    )
 
     # Prepare to calculate end-of-period marginal values by creating an array
     # of market resources that the agent could have next period, considering
@@ -735,7 +681,8 @@ def solve_one_period_ConsPortfolioWarmGlow(
     EndOfPrd_dvda = DiscFacEff * expected(
         calc_EndOfPrd_dvda, RiskyDstn, args=(aNrmNow, ShareNext)
     )
-    EndOfPrd_dvda += warm_glow.der(aNrmNow)
+    warm_glow_der = warm_glow.der(aNrmNow)
+    EndOfPrd_dvda += np.where(np.isnan(warm_glow_der), 0.0, warm_glow_der)
     EndOfPrd_dvdaNvrs = uFunc.derinv(EndOfPrd_dvda)
 
     # Calculate end-of-period marginal value of risky portfolio share by taking expectations
@@ -986,23 +933,23 @@ def solve_one_period_ConsPortfolioWarmGlow(
     return solution_now
 
 
-init_wealth_in_utility = init_idiosyncratic_shocks.copy()
-init_wealth_in_utility["BeqCRRA"] = init_idiosyncratic_shocks["CRRA"]
-init_wealth_in_utility["BeqFac"] = 1.0
-init_wealth_in_utility["BeqShift"] = 0.0
-init_wealth_in_utility["TermBeqCRRA"] = init_idiosyncratic_shocks["CRRA"]
-init_wealth_in_utility["TermBeqFac"] = 0.0  # ignore bequest motive in terminal period
-init_wealth_in_utility["TermBeqShift"] = 0.0
+init_accidental_bequest = init_idiosyncratic_shocks.copy()
+init_accidental_bequest["BeqCRRA"] = init_idiosyncratic_shocks["CRRA"]
+init_accidental_bequest["BeqFac"] = 0.0
+init_accidental_bequest["BeqShift"] = 0.0
+init_accidental_bequest["BeqCRRATerm"] = init_idiosyncratic_shocks["CRRA"]
+init_accidental_bequest["BeqFacTerm"] = 0.0
+init_accidental_bequest["BeqShiftTerm"] = 0.0
 
-init_warm_glow = init_lifecycle.copy()
-init_warm_glow["TermBeqCRRA"] = init_lifecycle["CRRA"]
-init_warm_glow["TermBeqFac"] = 1.0
-init_warm_glow["TermBeqShift"] = 0.0
+init_warm_glow_terminal_only = init_accidental_bequest.copy()
+init_warm_glow_terminal_only["BeqCRRATerm"] = init_idiosyncratic_shocks["CRRA"]
+init_warm_glow_terminal_only["BeqFacTerm"] = 40.0  # kid lives 40yr after bequest
+init_warm_glow_terminal_only["BeqShiftTerm"] = 0.0
 
-init_accidental_bequest = init_warm_glow.copy()
-init_accidental_bequest["BeqFac"] = 1.0  # Value of bequest relative to consumption
-init_accidental_bequest["BeqShift"] = 0.0  # Shifts the utility function
-init_accidental_bequest["BeqCRRA"] = init_lifecycle["CRRA"]
+init_warm_glow = init_warm_glow_terminal_only.copy()
+init_warm_glow["BeqCRRA"] = init_idiosyncratic_shocks["CRRA"]
+init_warm_glow["BeqFac"] = 40.0
+init_warm_glow["BeqShift"] = 0.0
 
-init_portfolio_bequest = init_accidental_bequest.copy()
+init_portfolio_bequest = init_warm_glow.copy()
 init_portfolio_bequest.update(init_portfolio)

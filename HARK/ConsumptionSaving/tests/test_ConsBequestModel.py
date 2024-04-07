@@ -8,7 +8,7 @@ from HARK.ConsumptionSaving.ConsBequestModel import (
 
 class testWarmGlowConsumerType(unittest.TestCase):
     def setUp(self):
-        self.agent = BequestWarmGlowConsumerType()
+        self.agent = BequestWarmGlowConsumerType(BeqFac=1.0)
         self.agent.vFuncBool = True
         self.agent.solve()
 
@@ -33,7 +33,7 @@ class testWarmGlowConsumerType(unittest.TestCase):
 
 class testBequestWarmGlowPortfolioType(unittest.TestCase):
     def setUp(self):
-        self.agent = BequestWarmGlowPortfolioType()
+        self.agent = BequestWarmGlowPortfolioType(BeqFac=1.0, BeqFacTerm=1.0)
         self.agent.vFuncBool = True
         self.agent.solve()
 
