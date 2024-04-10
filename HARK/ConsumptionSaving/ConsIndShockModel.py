@@ -2661,6 +2661,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Update all income process variables to match any attributes that might
         # have been changed since `__init__` or `solve()` was last called.
         #        self.update_income_process()
+        self.update_solution_terminal()
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
 
