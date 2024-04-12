@@ -381,9 +381,14 @@ def solve_one_period_ConsMarkov(
     MPCmaxEff = MPCmaxNow
     MPCmaxEff[BoroCnstNat_list < mNrmMin_list] = 1.0
 
-    # Calculate the current Markov-state-conditional PDV of human wealth
+    # Calculate the current Markov-state-conditional PDV of human wealth, correctly
+    # accounting for risky returns and risk aversion
     hNrmPlusIncNext = Ex_IncNextAll + solution_next.hNrm
-    hNrmNow = np.dot(MrkvArray, (PermGroFac_list / Rfree_list) * hNrmPlusIncNext)
+    R_adj = np.dot(MrkvArray, Rfree_list ** (1.0 - CRRA))
+    hNrmNow = (
+        np.dot(MrkvArray, (PermGroFac_list / Rfree_list**CRRA) * hNrmPlusIncNext)
+        / R_adj
+    )
 
     # Calculate the lower bound on MPC as m gets arbitrarily large
     temp = (
