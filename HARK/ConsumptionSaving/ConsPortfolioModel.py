@@ -719,9 +719,7 @@ def solve_one_period_ConsPortfolio(
     # This basic equation works if there's no correlation among shocks
     # hNrmNow = (PermGroFac/Rfree)*(1 + solution_next.hNrm)
 
-    # The above attempts to pin down the limiting consumption function for this
-    # model, however it is not clear why it creates bugs, so for now we allow
-    # for a linear extrapolation beyond the last asset point
+    # Set the terms of the limiting linear consumption function as mNrm goes to infinity
     cFuncLimitIntercept = MPCminNow * hNrmNow
     cFuncLimitSlope = MPCminNow
 

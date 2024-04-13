@@ -22,8 +22,9 @@ Release Date: TBA
 - Add option to pass pre-built grid to `LinearFast`. [1388](https://github.com/econ-ark/HARK/pull/1388)
 - Moves calculation of stable points out of ConsIndShock solver, into method called by post_solve [#1349](https://github.com/econ-ark/HARK/pull/1349)
 - Adds cubic spline interpolation and value function construction to "warm glow bequest" models.
-- Fixes cubic spline interpolation for ConsMedShockModel
+- Fixes cubic spline interpolation for ConsMedShockModel.
 - Moves computation of "stable points" from inside of ConsIndShock solver to a post-solution method. [1349](https://github.com/econ-ark/HARK/pull/1349)
+- Corrects calculation of "human wealth" under risky returns, providing correct limiting linear consumption function. [1403](https://github.com/econ-ark/HARK/pull/1403)
 
 ### 0.14.1
 
