@@ -11,6 +11,12 @@ import numpy as np
 import scipy.stats as stats
 
 from HARK import AgentType, Market
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_IncShkDstn,
+    get_PermShkDstn,
+    get_TranShkDstn,
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
@@ -147,6 +153,12 @@ class AggShockConsumerType(IndShockConsumerType):
             pseudo_terminal=False,
             **params,
         )
+        
+        # Designate functions to make the income process
+        self.constructors["_IncShkDstn"] = construct_lognormal_income_process_unemployment
+        self.constructors["IncShkDstn"] = get_IncShkDstn
+        self.constructors["PermShkDstn"] = get_PermShkDstn
+        self.constructors["TranShkDstn"] = get_TranShkDstn
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(IndShockConsumerType.time_vary_)
@@ -174,7 +186,7 @@ class AggShockConsumerType(IndShockConsumerType):
         )  # Start simulation near SS
         self.state_now["aNrm"] = (
             self.state_now["aLvlNow"] / self.state_now["pLvl"]
-        )  # ???
+        )
 
     def pre_solve(self):
         #        AgentType.pre_solve()

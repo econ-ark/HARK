@@ -1737,9 +1737,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         super().__init__(verbose=verbose, quiet=quiet, **params)
 
         # Designate functions to make the income process
-        self.constructors[
-            "_IncShkDstn"
-        ] = construct_lognormal_income_process_unemployment
+        self.constructors["_IncShkDstn"] = construct_lognormal_income_process_unemployment
         self.constructors["IncShkDstn"] = get_IncShkDstn
         self.constructors["PermShkDstn"] = get_PermShkDstn
         self.constructors["TranShkDstn"] = get_TranShkDstn
