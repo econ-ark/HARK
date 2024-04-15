@@ -222,6 +222,8 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
             dvdmFuncFxd=dvdmFuncFxd_terminal,
             dvdsFuncFxd=dvdsFuncFxd_terminal,
         )
+        self.solution_terminal.hNrm = 0.0
+        self.solution_terminal.MPCmin = 1.0
 
     def initialize_sim(self):
         """
@@ -300,6 +302,25 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         # Store controls as attributes of self
         self.controls["cNrm"] = cNrmNow
         self.controls["Share"] = ShareNow
+
+
+def calc_radj(shock, share_limit, rfree, crra):
+    rport = share_limit * shock + (1.0 - share_limit) * rfree
+    return rport ** (1.0 - crra)
+
+
+def calc_h_nrm(shocks, perm_gro_fac, share_limit, rfree, crra, h_nrm_next):
+    perm_shk_fac = perm_gro_fac * shocks["PermShk"]
+    rport = share_limit * shocks["Risky"] + (1.0 - share_limit) * rfree
+    hNrm = (perm_shk_fac / rport**crra) * (shocks["TranShk"] + h_nrm_next)
+    return hNrm
+
+
+def calc_h_nrm_joint(shocks, perm_gro_fac, share_limit, rfree, h_nrm_next):
+    perm_shk_fac = perm_gro_fac * shocks["PermShk"]
+    rport = share_limit * shocks["Risky"] + (1.0 - share_limit) * rfree
+    hNrm = (perm_shk_fac / rport) * (shocks["TranShk"] + h_nrm_next)
+    return hNrm
 
 
 def calc_m_nrm_next(shocks, b_nrm, perm_gro_fac):
@@ -678,6 +699,30 @@ def solve_one_period_ConsPortfolio(
     RiskyMax = np.max(Risky_next)
     RiskyMin = np.min(Risky_next)
 
+    # Perform an alternate calculation of the absolute patience factor when
+    # returns are risky. This uses the Merton-Samuelson limiting risky share,
+    # which is what's relevant as mNrm goes to infinity.
+
+    R_adj = expected(calc_radj, RiskyDstn, args=(ShareLimit, Rfree, CRRA))[0]
+    PatFac = (DiscFacEff * R_adj) ** (1.0 / CRRA)
+    MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
+
+    # Also perform an alternate calculation for human wealth under risky returns
+
+    # This correctly accounts for risky returns and risk aversion
+    hNrmNow = expected(
+        calc_h_nrm_joint,
+        ShockDstn,
+        args=(PermGroFac, ShareLimit, Rfree, solution_next.hNrm),
+    )
+
+    # This basic equation works if there's no correlation among shocks
+    # hNrmNow = (PermGroFac/Rfree)*(1 + solution_next.hNrm)
+
+    # Set the terms of the limiting linear consumption function as mNrm goes to infinity
+    cFuncLimitIntercept = MPCminNow * hNrmNow
+    cFuncLimitSlope = MPCminNow
+
     # bNrm represents R*a, balances after asset return shocks but before income.
     # This just uses the highest risky return as a rough shifter for the aXtraGrid.
     if BoroCnstNat_iszero:
@@ -1016,6 +1061,8 @@ def solve_one_period_ConsPortfolio(
         vFuncFxd=vFuncFxd_now,
         AdjPrb=AdjustPrb,
     )
+    solution_now.hNrm = hNrmNow
+    solution_now.MPCmin = MPCminNow
     return solution_now
 
 

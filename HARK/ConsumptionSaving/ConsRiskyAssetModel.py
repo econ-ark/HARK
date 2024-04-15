@@ -269,7 +269,11 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
                     RiskyDstn.pmv,
                 )
 
-            SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
+            SharePF = minimize_scalar(
+                temp_f, bracket=(0.0, 1.0), method="golden", tol=1e-10
+            ).x
+            if type(SharePF) is np.array:
+                SharePF = SharePF[0]
             self.ShareLimit = SharePF
             self.add_to_time_inv("ShareLimit")
 
@@ -528,24 +532,27 @@ def solve_one_period_ConsIndShockRiskyAsset(
     def calc_Radj(R):
         return R ** (1.0 - CRRA)
 
-    PatFac = (DiscFacEff * expected(calc_Radj, RiskyDstn)) ** (1.0 / CRRA)
+    Radj = expected(calc_Radj, RiskyDstn)
+    PatFac = (DiscFacEff * Radj) ** (1.0 / CRRA)
     MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
+    MPCminNow = MPCminNow[0]  # Returns as one element array, extract
 
     # Also perform an alternate calculation for human wealth under risky returns
     def calc_hNrm(S):
         Risky = S["Risky"]
         PermShk = S["PermShk"]
         TranShk = S["TranShk"]
-        hNrm = (PermGroFac / Risky) * (PermShk * TranShk + solution_next.hNrm)
+        G = PermGroFac * PermShk
+        hNrm = (G / Risky**CRRA) * (TranShk + solution_next.hNrm)
         return hNrm
 
-    hNrmNow = expected(calc_hNrm, ShockDstn)
+    # This correctly incorporates risk aversion and risky returns
+    hNrmNow = expected(calc_hNrm, ShockDstn) / Radj
+    hNrmNow = hNrmNow[0]
 
-    # The above attempts to pin down the limiting consumption function for this
-    # model, however it is not clear why it creates bugs, so for now we allow
-    # for a linear extrapolation beyond the last asset point
-    cFuncLimitIntercept = None
-    cFuncLimitSlope = None
+    # Use adjusted MPCmin and hNrm to specify limiting linear behavior of cFunc
+    cFuncLimitIntercept = MPCminNow * hNrmNow
+    cFuncLimitSlope = MPCminNow  # Returns as one element array, extract
 
     # Calculate the minimum allowable value of market resources in this period
     BoroCnstNat_cand = (
@@ -812,6 +819,7 @@ def solve_one_period_ConsIndShockRiskyAsset(
     # income distribution is independent from the return distribution
     if CubicBool:
         # Construct the unconstrained consumption function as a cubic interpolation
+
         cFuncNowUnc = CubicInterp(
             m_for_interpolation,
             c_for_interpolation,
@@ -982,6 +990,37 @@ def solve_one_period_ConsPortChoice(
     RiskyMax = np.max(Risky_next)
     RiskyMin = np.min(Risky_next)
 
+    # Perform an alternate calculation of the absolute patience factor when
+    # returns are risky. This uses the Merton-Samuelson limiting risky share,
+    # which is what's relevant as mNrm goes to infinity.
+    def calc_Radj(R):
+        Rport = ShareLimit * R + (1.0 - ShareLimit) * Rfree
+        return Rport ** (1.0 - CRRA)
+
+    R_adj = expected(calc_Radj, RiskyDstn)[0]
+    PatFac = (DiscFacEff * R_adj) ** (1.0 / CRRA)
+    MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
+
+    # Also perform an alternate calculation for human wealth under risky returns
+    def calc_hNrm(S):
+        Risky = S["Risky"]
+        PermShk = S["PermShk"]
+        TranShk = S["TranShk"]
+        G = PermGroFac * PermShk
+        Rport = ShareLimit * Risky + (1.0 - ShareLimit) * Rfree
+        hNrm = (G / Rport**CRRA) * (TranShk + solution_next.hNrm)
+        return hNrm
+
+    # This correctly accounts for risky returns and risk aversion
+    hNrmNow = expected(calc_hNrm, ShockDstn) / R_adj
+
+    # This basic equation works if there's no correlation among shocks
+    # hNrmNow = (PermGroFac/Rfree)*(1 + solution_next.hNrm)
+
+    # Define the terms for the limiting linear consumption function as m gets very big
+    cFuncLimitIntercept = MPCminNow * hNrmNow
+    cFuncLimitSlope = MPCminNow
+
     # bNrm represents R*a, balances after asset return shocks but before income.
     # This just uses the highest risky return as a rough shifter for the aXtraGrid.
     if BoroCnstNat_iszero:
@@ -1019,8 +1058,8 @@ def solve_one_period_ConsPortChoice(
             based on the income distribution S and values of bank balances bNrm
             """
             mNrm_next = calc_mNrm_next(S, b)
-            Gamma = S["PermShk"] * PermGroFac
-            dvdm_next = Gamma ** (-CRRA) * vPfunc_next(mNrm_next)
+            G = S["PermShk"] * PermGroFac
+            dvdm_next = G ** (-CRRA) * vPfunc_next(mNrm_next)
             return dvdm_next
 
         # Calculate end-of-period marginal value of assets and shares at each point
@@ -1043,13 +1082,13 @@ def solve_one_period_ConsPortChoice(
         aNrmNow, ShareNext = np.meshgrid(aNrmGrid, ShareGrid, indexing="ij")
 
         # Define functions for calculating end-of-period marginal value
-        def calc_EndOfPrd_dvda(S, a, z):
+        def calc_EndOfPrd_dvda(R, a, z):
             """
             Compute end-of-period marginal value of assets at values a, conditional
-            on risky asset return S and risky share z.
+            on risky asset return R and risky share z.
             """
             # Calculate future realizations of bank balances bNrm
-            Rxs = S - Rfree  # Excess returns
+            Rxs = R - Rfree  # Excess returns
             Rport = Rfree + z * Rxs  # Portfolio return
             bNrm_next = Rport * a
 
@@ -1057,13 +1096,13 @@ def solve_one_period_ConsPortChoice(
             EndOfPrd_dvda = Rport * dvdbFunc_intermed(bNrm_next)
             return EndOfPrd_dvda
 
-        def calc_EndOfPrddvds(S, a, z):
+        def calc_EndOfPrd_dvds(R, a, z):
             """
             Compute end-of-period marginal value of risky share at values a, conditional
             on risky asset return S and risky share z.
             """
             # Calculate future realizations of bank balances bNrm
-            Rxs = S - Rfree  # Excess returns
+            Rxs = R - Rfree  # Excess returns
             Rport = Rfree + z * Rxs  # Portfolio return
             bNrm_next = Rport * a
 
@@ -1073,17 +1112,13 @@ def solve_one_period_ConsPortChoice(
             )
             return EndOfPrd_dvds
 
-        # Evaluate realizations of value and marginal value after asset returns are realized
+        TempDstn = RiskyDstn  # relabeling for below
 
-        # Calculate end-of-period marginal value of assets by taking expectations
-        EndOfPrd_dvda = DiscFacEff * expected(
-            calc_EndOfPrd_dvda, RiskyDstn, args=(aNrmNow, ShareNext)
-        )
-        EndOfPrd_dvdaNvrs = uFunc.derinv(EndOfPrd_dvda)
+        # Evaluate realizations of value and marginal value after asset returns are realized
 
         # Calculate end-of-period marginal value of risky portfolio share by taking expectations
         EndOfPrd_dvds = DiscFacEff * expected(
-            calc_EndOfPrddvds, RiskyDstn, args=(aNrmNow, ShareNext)
+            calc_EndOfPrd_dvds, RiskyDstn, args=(aNrmNow, ShareNext)
         )
 
         # Make the end-of-period value function if the value function is requested
@@ -1150,7 +1185,7 @@ def solve_one_period_ConsPortChoice(
         def calc_EndOfPrd_dvdx(S, a, z):
             """
             Evaluate end-of-period marginal value of assets and risky share based
-            on the shock distribution S, values of bend of period assets a, and
+            on the shock distribution S, normalized end-of-period assets a, and
             risky share z.
             """
             mNrm_next = calc_mNrm_next(S, a, z)
@@ -1177,6 +1212,10 @@ def solve_one_period_ConsPortChoice(
             v_next = vFunc_next(mNrm_next)
             EndOfPrd_v = (S["PermShk"] * PermGroFac) ** (1.0 - CRRA) * v_next
             return EndOfPrd_v
+
+        calc_EndOfPrd_dvda = lambda S, a, z: calc_EndOfPrd_dvdx(S, a, z)[0]
+        calc_EndOfPrd_dvds = lambda S, a, z: calc_EndOfPrd_dvdx(S, a, z)[1]
+        TempDstn = ShockDstn
 
         # Evaluate realizations of value and marginal value after asset returns are realized
 
@@ -1214,17 +1253,55 @@ def solve_one_period_ConsPortChoice(
     # order condition EndOfPrd_dvds == 0.
     FOC_s = EndOfPrd_dvds  # Relabel for convenient typing
 
+    # If agent wants to put more than 100% into risky asset, he is constrained.
+    # Likewise if he wants to put less than 0% into risky asset, he is constrained.
+    constrained_top = FOC_s[:, -1] > 0.0
+    constrained_bot = FOC_s[:, 0] < 0.0
+    constrained = np.logical_or(constrained_top, constrained_bot)
+    a_idx = np.arange(aNrmCount)
+
     # For each value of aNrm, find the value of Share such that FOC_s == 0
     crossing = np.logical_and(FOC_s[:, 1:] <= 0.0, FOC_s[:, :-1] >= 0.0)
     share_idx = np.argmax(crossing, axis=1)
-    # This represents the index of the segment of the share grid where dvds flips
-    # from positive to negative, indicating that there's a zero *on* the segment
+
+    for k in range(3):
+        # This represents the index of the segment of the share grid where dvds flips
+        # from positive to negative, indicating that there's a zero *on* the segment.
+        # The exception is for aNrm values that are flagged as constrained, for which
+        # there will be no crossing point and we can just use the boundary value.
+
+        # Now that we have a *range* for the location of the optimal share, we can
+        # do a refined search for the optimal share at each aNrm value where there
+        # is an interior solution (not constrained). We now make a refined ShareGrid
+        # that has *different* values on it for each aNrm value.
+        bot_s = ShareNext[a_idx, share_idx]
+        top_s = ShareNext[a_idx, share_idx + 1]
+        for j in range(aNrmCount):
+            if constrained[j]:
+                continue
+            ShareNext[j, :] = np.linspace(bot_s[j], top_s[j], ShareCount)
+
+        # Now evaluate end-of-period marginal value of risky share on the refined grid
+        EndOfPrd_dvds = DiscFacEff * expected(
+            calc_EndOfPrd_dvds, TempDstn, args=(aNrmNow, ShareNext)
+        )
+        these = np.logical_not(constrained)
+        FOC_s[these, :] = EndOfPrd_dvds[these, :]  # Relabel for convenient typing
+
+        # Look for "crossing points" again
+        crossing = np.logical_and(FOC_s[these, 1:] <= 0.0, FOC_s[these, :-1] >= 0.0)
+        share_idx[these] = np.argmax(crossing, axis=1)
+
+    # Calculate end-of-period marginal value of assets on the refined grid
+    EndOfPrd_dvda = DiscFacEff * expected(
+        calc_EndOfPrd_dvda, TempDstn, args=(aNrmNow, ShareNext)
+    )
+    EndOfPrd_dvdaNvrs = uFunc.derinv(EndOfPrd_dvda)
 
     # Calculate the fractional distance between those share gridpoints where the
     # zero should be found, assuming a linear function; call it alpha
-    a_idx = np.arange(aNrmCount)
-    bot_s = ShareGrid[share_idx]
-    top_s = ShareGrid[share_idx + 1]
+    bot_s = ShareNext[a_idx, share_idx]
+    top_s = ShareNext[a_idx, share_idx + 1]
     bot_f = FOC_s[a_idx, share_idx]
     top_f = FOC_s[a_idx, share_idx + 1]
     bot_c = EndOfPrd_dvdaNvrs[a_idx, share_idx]
@@ -1240,7 +1317,7 @@ def solve_one_period_ConsPortChoice(
     constrained_top = FOC_s[:, -1] > 0.0
     constrained_bot = FOC_s[:, 0] < 0.0
 
-    # Apply those constraints to both risky share and consumption (but lower
+    # Apply the constraints to both risky share and consumption (but lower
     # constraint should never be relevant)
     Share_now[constrained_top] = 1.0
     Share_now[constrained_bot] = 0.0
@@ -1261,7 +1338,7 @@ def solve_one_period_ConsPortChoice(
     # then construct the consumption function when the agent can adjust his share
     mNrm_now = np.insert(aNrmGrid + cNrm_now, 0, 0.0)
     cNrm_now = np.insert(cNrm_now, 0, 0.0)
-    cFunc_now = LinearInterp(mNrm_now, cNrm_now)
+    cFunc_now = LinearInterp(mNrm_now, cNrm_now, cFuncLimitIntercept, cFuncLimitSlope)
 
     # Construct the marginal value (of mNrm) function
     vPfunc_now = MargValueFuncCRRA(cFunc_now, CRRA)
@@ -1304,6 +1381,8 @@ def solve_one_period_ConsPortChoice(
         cFunc=cFunc_now,
         vPfunc=vPfunc_now,
         vFunc=vFunc_now,
+        hNrm=hNrmNow,
+        MPCmin=MPCminNow,
     )
     solution_now.ShareFunc = ShareFunc_now
     return solution_now
@@ -1410,27 +1489,33 @@ def solve_one_period_FixedShareRiskyAsset(
 
     # Perform an alternate calculation of the absolute patience factor when returns are risky
     def calc_Radj(R):
-        R_temp = RiskyShareFixed * R + (1.0 - RiskyShareFixed) * Rfree
-        return R_temp ** (1.0 - CRRA)
+        Rport = RiskyShareFixed * R + (1.0 - RiskyShareFixed) * Rfree
+        return Rport ** (1.0 - CRRA)
 
-    PatFac = (DiscFacEff * expected(calc_Radj, RiskyDstn)) ** (1.0 / CRRA)
+    R_adj = expected(calc_Radj, RiskyDstn)
+    PatFac = (DiscFacEff * R_adj) ** (1.0 / CRRA)
     MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
+    MPCminNow = MPCminNow[0]
 
     # Also perform an alternate calculation for human wealth under risky returns
     def calc_hNrm(S):
         Risky = S["Risky"]
         PermShk = S["PermShk"]
         TranShk = S["TranShk"]
-        hNrm = (PermGroFac / Risky) * (PermShk * TranShk + solution_next.hNrm)
+        G = PermGroFac * PermShk
+        Rport = RiskyShareFixed * Risky + (1.0 - RiskyShareFixed) * Rfree
+        hNrm = (G / Rport**CRRA) * (TranShk + solution_next.hNrm)
         return hNrm
 
-    hNrmNow = expected(calc_hNrm, ShockDstn)
+    # This correctly accounts for risky returns and risk aversion
+    hNrmNow = expected(calc_hNrm, ShockDstn) / R_adj
+    hNrmNow = hNrmNow[0]
 
     # The above attempts to pin down the limiting consumption function for this
     # model, however it is not clear why it creates bugs, so for now we allow
     # for a linear extrapolation beyond the last asset point
-    cFuncLimitIntercept = None
-    cFuncLimitSlope = None
+    cFuncLimitIntercept = MPCminNow * hNrmNow
+    cFuncLimitSlope = MPCminNow
 
     # Calculate the minimum allowable value of market resources in this period
     BoroCnstNat_cand = (
