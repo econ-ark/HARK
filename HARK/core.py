@@ -328,9 +328,9 @@ class Model:
 
     def describe(self):
         return self.__str__()
-    
+
     def construct(self, *args):
-        '''
+        """
         Top-level method for building constructed inputs. If called without any
         inputs, construct builds each of the objects named in the keys of the
         constructors dictionary; it draws inputs for the constructors from the
@@ -350,7 +350,7 @@ class Model:
         Returns
         -------
         None
-        '''
+        """
         # Set up the requested work
         if len(args) > 0:
             keys = args
@@ -358,7 +358,7 @@ class Model:
             keys = list(self.constructors.keys())
         N_keys = len(keys)
         keys_complete = np.zeros(N_keys, dtype=bool)
-        
+
         # As long as the work isn't complete and we made some progress on the last
         # pass, repeatedly perform passes of trying to construct objects
         any_keys_incomplete = np.any(np.logical_not(keys_complete))
@@ -366,22 +366,25 @@ class Model:
         while go:
             anything_accomplished_this_pass = False  # Nothing done yet!
             missing_key_data = []  # Keep this up-to-date on each pass
-            
+
             # Loop over keys to be constructed
             for i in range(N_keys):
                 if keys_complete[i]:
                     continue  # This key has already been built
-                
+
                 # Get this key and its constructor function
                 key = keys[i]
                 try:
                     constructor = self.constructors[key]
                 except:
-                    raise ValueError('No constructor found for ' + key)
-                    
+                    raise ValueError("No constructor found for " + key)
+
                 # Get the names of arguments for this constructor and try to gather them
                 args_needed = get_arg_names(constructor)
-                has_no_default = {k: v.default is inspect.Parameter.empty for k,v in inspect.signature(constructor).parameters.items()}
+                has_no_default = {
+                    k: v.default is inspect.Parameter.empty
+                    for k, v in inspect.signature(constructor).parameters.items()
+                }
                 temp_dict = {}
                 any_missing = False
                 for j in range(len(args_needed)):
@@ -396,7 +399,7 @@ class Model:
                                 # Record missing key-data pair
                                 any_missing = True
                                 missing_key_data.append((key, this_arg))
-                
+
                 # If all of the required data was found, run the constructor and
                 # store the result in parameters (and on self)
                 if not any_missing:
@@ -407,11 +410,11 @@ class Model:
                     anything_accomplished_this_pass = True  # We did something!
                 else:
                     pass  # Don't do anything, constructor will surely fail
-                    
+
             # Check whether another pass should be performed
             any_keys_incomplete = np.any(np.logical_not(keys_complete))
             go = any_keys_incomplete and anything_accomplished_this_pass
-            
+
         # Store missing key-data pairs and exit
         self._missing_key_data = missing_key_data
         return
@@ -797,9 +800,9 @@ class AgentType(Model):
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
         self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-        self.t_cycle[self.t_cycle == self.T_cycle] = (
-            0  # Resetting to zero for those who have reached the end
-        )
+        self.t_cycle[
+            self.t_cycle == self.T_cycle
+        ] = 0  # Resetting to zero for those who have reached the end
 
     def make_shock_history(self):
         """
@@ -869,13 +872,13 @@ class AgentType(Model):
                         and len(self.state_now[var_name]) == self.AgentCount
                     )
                     if idio:
-                        self.newborn_init_history[var_name][t, self.who_dies] = (
-                            self.state_now[var_name][self.who_dies]
-                        )
+                        self.newborn_init_history[var_name][
+                            t, self.who_dies
+                        ] = self.state_now[var_name][self.who_dies]
                     else:
-                        self.newborn_init_history[var_name][t, self.who_dies] = (
-                            self.state_now[var_name]
-                        )
+                        self.newborn_init_history[var_name][
+                            t, self.who_dies
+                        ] = self.state_now[var_name]
 
             # Other Shocks
             self.get_shocks()
@@ -885,9 +888,9 @@ class AgentType(Model):
             self.t_sim += 1
             self.t_age = self.t_age + 1  # Age all consumers by one period
             self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-            self.t_cycle[self.t_cycle == self.T_cycle] = (
-                0  # Resetting to zero for those who have reached the end
-            )
+            self.t_cycle[
+                self.t_cycle == self.T_cycle
+            ] = 0  # Resetting to zero for those who have reached the end
 
         # Flag that shocks can be read rather than simulated
         self.read_shocks = True
@@ -921,11 +924,11 @@ class AgentType(Model):
                             and len(self.state_now[var_name]) == self.AgentCount
                         )
                         if idio:
-                            self.state_now[var_name][who_dies] = (
-                                self.newborn_init_history[
-                                    var_name
-                                ][self.t_sim, who_dies]
-                            )
+                            self.state_now[var_name][
+                                who_dies
+                            ] = self.newborn_init_history[var_name][
+                                self.t_sim, who_dies
+                            ]
 
                     else:
                         warn(
