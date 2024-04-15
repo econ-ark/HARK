@@ -8,7 +8,7 @@ problem by finding a general equilibrium dynamic rule.
 """
 
 # Set logging and define basic functions
-# Set logging and define basic functions
+import inspect
 import logging
 import sys
 from collections import namedtuple
@@ -269,6 +269,8 @@ class Model:
     def __init__(self):
         if not hasattr(self, "parameters"):
             self.parameters = {}
+        if not hasattr(self, "constructors"):
+            self.constructors = {}
 
     def assign_parameters(self, **kwds):
         """
@@ -326,6 +328,93 @@ class Model:
 
     def describe(self):
         return self.__str__()
+    
+    def construct(self, *args):
+        '''
+        Top-level method for building constructed inputs. If called without any
+        inputs, construct builds each of the objects named in the keys of the
+        constructors dictionary; it draws inputs for the constructors from the
+        parameters dictionary and adds its results to the same. If passed one or
+        more strings as arguments, the method builds only the named keys. The
+        method will do multiple "passes" over the requested keys, as some cons-
+        tructors require inputs built by other constructors. If any requested
+        constructors failed to build due to missing data, those keys (and the
+        missing data) will be named in self._missing_key_data.
+
+        Parameters
+        ----------
+        *args : str, optional
+            Keys of self.constructors that are requested to be constructed. If
+            no arguments are passed, *all* elements of the dictionary are implied.
+
+        Returns
+        -------
+        None
+        '''
+        # Set up the requested work
+        if len(args) > 0:
+            keys = args
+        else:
+            keys = list(self.constructors.keys())
+        N_keys = len(keys)
+        keys_complete = np.zeros(N_keys, dtype=bool)
+        
+        # As long as the work isn't complete and we made some progress on the last
+        # pass, repeatedly perform passes of trying to construct objects
+        any_keys_incomplete = np.any(np.logical_not(keys_complete))
+        go = any_keys_incomplete
+        while go:
+            anything_accomplished_this_pass = False  # Nothing done yet!
+            missing_key_data = []  # Keep this up-to-date on each pass
+            
+            # Loop over keys to be constructed
+            for i in range(N_keys):
+                if keys_complete[i]:
+                    continue  # This key has already been built
+                
+                # Get this key and its constructor function
+                key = keys[i]
+                try:
+                    constructor = self.constructors[key]
+                except:
+                    raise ValueError('No constructor found for ' + key)
+                    
+                # Get the names of arguments for this constructor and try to gather them
+                args_needed = get_arg_names(constructor)
+                has_no_default = {k: v.default is inspect.Parameter.empty for k,v in inspect.signature(constructor).parameters.items()}
+                temp_dict = {}
+                any_missing = False
+                for j in range(len(args_needed)):
+                    this_arg = args_needed[j]
+                    if hasattr(self, this_arg):
+                        temp_dict[this_arg] = getattr(self, this_arg)
+                    else:
+                        try:
+                            temp_dict[this_arg] = self.parameters[this_arg]
+                        except:
+                            if has_no_default[this_arg]:
+                                # Record missing key-data pair
+                                any_missing = True
+                                missing_key_data.append((key, this_arg))
+                
+                # If all of the required data was found, run the constructor and
+                # store the result in parameters (and on self)
+                if not any_missing:
+                    temp = constructor(**temp_dict)
+                    setattr(self, key, temp)
+                    self.parameters[key] = temp
+                    keys_complete[i] = True
+                    anything_accomplished_this_pass = True  # We did something!
+                else:
+                    pass  # Don't do anything, constructor will surely fail
+                    
+            # Check whether another pass should be performed
+            any_keys_incomplete = np.any(np.logical_not(keys_complete))
+            go = any_keys_incomplete and anything_accomplished_this_pass
+            
+        # Store missing key-data pairs and exit
+        self._missing_key_data = missing_key_data
+        return
 
 
 class AgentType(Model):
