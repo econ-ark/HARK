@@ -316,13 +316,6 @@ def calc_h_nrm(shocks, perm_gro_fac, share_limit, rfree, crra, h_nrm_next):
     return hNrm
 
 
-def calc_h_nrm_joint(shocks, perm_gro_fac, share_limit, rfree, h_nrm_next):
-    perm_shk_fac = perm_gro_fac * shocks["PermShk"]
-    rport = share_limit * shocks["Risky"] + (1.0 - share_limit) * rfree
-    hNrm = (perm_shk_fac / rport) * (shocks["TranShk"] + h_nrm_next)
-    return hNrm
-
-
 def calc_m_nrm_next(shocks, b_nrm, perm_gro_fac):
     """
     Calculate future realizations of market resources mNrm from the income
@@ -710,10 +703,13 @@ def solve_one_period_ConsPortfolio(
     # Also perform an alternate calculation for human wealth under risky returns
 
     # This correctly accounts for risky returns and risk aversion
-    hNrmNow = expected(
-        calc_h_nrm_joint,
-        ShockDstn,
-        args=(PermGroFac, ShareLimit, Rfree, solution_next.hNrm),
+    hNrmNow = (
+        expected(
+            calc_h_nrm,
+            ShockDstn,
+            args=(PermGroFac, ShareLimit, Rfree, CRRA, solution_next.hNrm),
+        )
+        / R_adj
     )
 
     # This basic equation works if there's no correlation among shocks
