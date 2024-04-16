@@ -5,7 +5,7 @@ This file implements unit tests for the Monte Carlo simulation module
 import unittest
 
 from HARK.distribution import Bernoulli, IndexDistribution, MeanOneLogNormal
-from HARK.model import Aggregate, Control
+from HARK.model import Aggregate, Control, DBlock
 from HARK.simulation.monte_carlo import *
 
 cons_shocks = {
@@ -53,32 +53,30 @@ class test_simulate_dynamics(unittest.TestCase):
 
 class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
     def setUp(self):
-        self.shocks = {
-            "theta": MeanOneLogNormal(1),
-            "agg_R": Aggregate(MeanOneLogNormal(1)),
-            "live": Bernoulli(p=0.98),
-        }
+        self.block = DBlock(**{
+            'shocks' : {
+                "theta": MeanOneLogNormal(1),
+                "agg_R": Aggregate(MeanOneLogNormal(1)),
+                "live": Bernoulli(p=0.98),
+            },
+            'parameters' : {  # TODO
+                "G": 1.05,
+            },
+            'dynamics' : {
+                "b": lambda agg_R, G, a: agg_R * G * a,
+                "m": lambda b, theta: b + theta,
+                "c": Control(["m"]),
+                "a": lambda m, c: m - c,
+            }
+        })
 
         self.initial = {"a": MeanOneLogNormal(1), "live": 1}
-
-        self.parameters = {  # TODO
-            "G": 1.05,
-        }
-
-        self.dynamics = {
-            "b": lambda agg_R, G, a: agg_R * G * a,
-            "m": lambda b, theta: b + theta,
-            "c": Control(["m"]),
-            "a": lambda m, c: m - c,
-        }
 
         self.dr = {"c": lambda m: m / 2}
 
     def test_simulate(self):
         self.simulator = AgentTypeMonteCarloSimulator(
-            self.parameters,
-            self.shocks,
-            self.dynamics,
+            self.block,
             self.dr,
             self.initial,
             agent_count=3,
@@ -89,7 +87,7 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
 
         a1 = history["a"][5]
         b1 = (
-            history["a"][4] * history["agg_R"][5] * self.parameters["G"]
+            history["a"][4] * history["agg_R"][5] * self.block.parameters["G"]
             + history["theta"][5]
             - history["c"][5]
         )
@@ -98,9 +96,7 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
 
     def test_make_shock_history(self):
         self.simulator = AgentTypeMonteCarloSimulator(
-            self.parameters,
-            self.shocks,
-            self.dynamics,
+            self.block,
             self.dr,
             self.initial,
             agent_count=3,
@@ -120,33 +116,31 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
 
 class test_AgentTypeMonteCarloSimulatorAgeVariance(unittest.TestCase):
     def setUp(self):
-        self.shocks = {
-            "theta": MeanOneLogNormal(1),
-            "agg_R": Aggregate(MeanOneLogNormal(1)),
-            "live": Bernoulli(p=0.98),
-            "psi": IndexDistribution(MeanOneLogNormal, {"sigma": [1.0, 1.1]}),
-        }
+
+        self.block = DBlock(**{
+            'shocks' : {
+                "theta": MeanOneLogNormal(1),
+                "agg_R": Aggregate(MeanOneLogNormal(1)),
+                "live": Bernoulli(p=0.98),
+                "psi": IndexDistribution(MeanOneLogNormal, {"sigma": [1.0, 1.1]}),
+            },
+            'parameters' : {  # TODO
+                "G": 1.05,
+            },
+            'dynamics' : {
+                "b": lambda agg_R, G, a: agg_R * G * a,
+                "m": lambda b, theta: b + theta,
+                "c": Control(["m"]),
+                "a": lambda m, c: m - c,
+            }
+        })
 
         self.initial = {"a": MeanOneLogNormal(1), "live": 1}
-
-        self.parameters = {  # TODO
-            "G": 1.05,
-        }
-
-        self.dynamics = {
-            "b": lambda agg_R, G, a: agg_R * G * a,
-            "m": lambda b, theta: b + theta,
-            "c": Control(["m"]),
-            "a": lambda m, c: m - c,
-        }
-
         self.dr = {"c": [lambda m: m * 0.5, lambda m: m * 0.9]}
 
     def test_simulate(self):
         self.simulator = AgentTypeMonteCarloSimulator(
-            self.parameters,
-            self.shocks,
-            self.dynamics,
+            self.block,
             self.dr,
             self.initial,
             agent_count=3,

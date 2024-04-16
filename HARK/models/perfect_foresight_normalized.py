@@ -1,5 +1,5 @@
 from HARK.distribution import Bernoulli
-from HARK.model import Control
+from HARK.model import Control, DBlock
 
 # This way of distributing parameters across the scope is clunky
 # Can be handled better if parsed from a YAML file, probably
@@ -7,7 +7,7 @@ from HARK.model import Control
 CRRA = (2.0,)
 LivPrb = 0.98
 
-model = {
+block = DBlock(**{
     "shocks": {
         "live": Bernoulli(p=LivPrb),
     },
@@ -28,4 +28,4 @@ model = {
         "a_nrm": lambda m_nrm, c_nrm: m_nrm - c_nrm,
     },
     "reward": {"u": lambda c: c ** (1 - CRRA) / (1 - CRRA)},
-}
+})

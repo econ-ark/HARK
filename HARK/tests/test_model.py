@@ -1,19 +1,20 @@
-from HARK.distribution import Bernoulli
-from HARK.model import Control, DBlock
+import unittest
 
-# This way of distributing parameters across the scope is clunky
-# Can be handled better if parsed from a YAML file, probably
-# But it would be better to have a more graceful Python version as well.
+from HARK.distribution import Bernoulli
+import HARK.model as model
+from HARK.model import Control
+
+# TODO: let the shock constructor reference this parameter.
 LivPrb = 0.98
 
-block = DBlock(**{
-    'name' : 'consumption',
+test_block_A_data = {
+    'name' : 'test block A',
     "shocks": {
         "live": Bernoulli(p=LivPrb),
     },
     "parameters": {
         "DiscFac": 0.96,
-        "CRRA": 2.0,
+        "CRRA": 3,
         "Rfree": 1.03,
         "LivPrb": LivPrb,
         "PermGroFac": 1.01,
@@ -27,4 +28,16 @@ block = DBlock(**{
         "a": lambda m, c: m - c,
     },
     "reward": {"u": lambda c, CRRA: c ** (1 - CRRA) / (1 - CRRA)},
-})
+}
+
+
+class test_DBlock(unittest.TestCase):
+    def setUp(self):
+        self.test_block_A = model.DBlock(**test_block_A_data)
+
+    def test_init(self):
+        self.assertEquals(
+            self.test_block_A.name,
+            'test block A'
+        )
+
