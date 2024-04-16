@@ -1,5 +1,4 @@
 from HARK.distribution import Lognormal
-import HARK.models.fisher as fm
 import HARK.models.perfect_foresight as pfm
 import HARK.models.perfect_foresight_normalized as pfnm
 from HARK.simulation.monte_carlo import AgentTypeMonteCarloSimulator
@@ -26,6 +25,7 @@ SimulationParams = {
 PFexample.assign_parameters(**SimulationParams)
 PFexample.solve()
 
+
 class test_pfm(unittest.TestCase):
     def setUp(self):
         self.mcs = AgentTypeMonteCarloSimulator(
@@ -46,9 +46,10 @@ class test_pfm(unittest.TestCase):
         self.mcs.initialize_sim()
         self.mcs.simulate()
 
+
 class test_pfnm(unittest.TestCase):
     def setUp(self):
-        self.mcs = AgentTypeMonteCarloSimulator( ### Use fm, blockified
+        self.mcs = AgentTypeMonteCarloSimulator(  ### Use fm, blockified
             pfnm.block,
             {"c_nrm": lambda m_nrm: PFexample.solution[0].cFunc(m_nrm)},
             {  # initial states

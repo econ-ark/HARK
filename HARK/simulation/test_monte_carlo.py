@@ -53,22 +53,24 @@ class test_simulate_dynamics(unittest.TestCase):
 
 class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
     def setUp(self):
-        self.block = DBlock(**{
-            'shocks' : {
-                "theta": MeanOneLogNormal(1),
-                "agg_R": Aggregate(MeanOneLogNormal(1)),
-                "live": Bernoulli(p=0.98),
-            },
-            'parameters' : {  # TODO
-                "G": 1.05,
-            },
-            'dynamics' : {
-                "b": lambda agg_R, G, a: agg_R * G * a,
-                "m": lambda b, theta: b + theta,
-                "c": Control(["m"]),
-                "a": lambda m, c: m - c,
+        self.block = DBlock(
+            **{
+                "shocks": {
+                    "theta": MeanOneLogNormal(1),
+                    "agg_R": Aggregate(MeanOneLogNormal(1)),
+                    "live": Bernoulli(p=0.98),
+                },
+                "parameters": {  # TODO
+                    "G": 1.05,
+                },
+                "dynamics": {
+                    "b": lambda agg_R, G, a: agg_R * G * a,
+                    "m": lambda b, theta: b + theta,
+                    "c": Control(["m"]),
+                    "a": lambda m, c: m - c,
+                },
             }
-        })
+        )
 
         self.initial = {"a": MeanOneLogNormal(1), "live": 1}
 
@@ -116,24 +118,25 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
 
 class test_AgentTypeMonteCarloSimulatorAgeVariance(unittest.TestCase):
     def setUp(self):
-
-        self.block = DBlock(**{
-            'shocks' : {
-                "theta": MeanOneLogNormal(1),
-                "agg_R": Aggregate(MeanOneLogNormal(1)),
-                "live": Bernoulli(p=0.98),
-                "psi": IndexDistribution(MeanOneLogNormal, {"sigma": [1.0, 1.1]}),
-            },
-            'parameters' : {  # TODO
-                "G": 1.05,
-            },
-            'dynamics' : {
-                "b": lambda agg_R, G, a: agg_R * G * a,
-                "m": lambda b, theta: b + theta,
-                "c": Control(["m"]),
-                "a": lambda m, c: m - c,
+        self.block = DBlock(
+            **{
+                "shocks": {
+                    "theta": MeanOneLogNormal(1),
+                    "agg_R": Aggregate(MeanOneLogNormal(1)),
+                    "live": Bernoulli(p=0.98),
+                    "psi": IndexDistribution(MeanOneLogNormal, {"sigma": [1.0, 1.1]}),
+                },
+                "parameters": {  # TODO
+                    "G": 1.05,
+                },
+                "dynamics": {
+                    "b": lambda agg_R, G, a: agg_R * G * a,
+                    "m": lambda b, theta: b + theta,
+                    "c": Control(["m"]),
+                    "a": lambda m, c: m - c,
+                },
             }
-        })
+        )
 
         self.initial = {"a": MeanOneLogNormal(1), "live": 1}
         self.dr = {"c": [lambda m: m * 0.5, lambda m: m * 0.9]}

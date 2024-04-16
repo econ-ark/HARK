@@ -8,7 +8,7 @@ from HARK.model import Control
 LivPrb = 0.98
 
 test_block_A_data = {
-    'name' : 'test block A',
+    "name": "test block A",
     "shocks": {
         "live": Bernoulli(p=LivPrb),
     },
@@ -36,8 +36,4 @@ class test_DBlock(unittest.TestCase):
         self.test_block_A = model.DBlock(**test_block_A_data)
 
     def test_init(self):
-        self.assertEquals(
-            self.test_block_A.name,
-            'test block A'
-        )
-
+        self.assertEquals(self.test_block_A.name, "test block A")

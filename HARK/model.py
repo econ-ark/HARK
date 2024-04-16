@@ -1,6 +1,7 @@
 """
 Tools for crafting models.
 """
+
 from dataclasses import dataclass, field
 from HARK.distribution import Distribution
 
@@ -29,6 +30,7 @@ class Control:
     def __init__(self, args):
         pass
 
+
 @dataclass
 class DBlock:
     """
@@ -41,8 +43,8 @@ class DBlock:
     ...
     """
 
-    name: str = ''
-    description: str = ''
+    name: str = ""
+    description: str = ""
     shocks: dict = field(default_factory=dict)
     parameters: dict = field(default_factory=dict)
     dynamics: dict = field(default_factory=dict)
