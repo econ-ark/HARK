@@ -13,11 +13,8 @@ from HARK.distribution import (
     IndexDistribution,
     TimeVaryingDiscreteDistribution,
 )
-from HARK.model import (
-    Aggregate,
-    Control,
-    DBlock
-)
+from HARK.model import Aggregate, Control
+from HARK.model import DBlock
 
 
 def draw_shocks(shocks: Mapping[str, Distribution], conditions: Sequence[int]):
@@ -191,7 +188,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
 
     state_vars = []
 
-    def __init__(self, block, dr, initial, seed=0, agent_count=1, T_sim=10):
+    def __init__(self, block: DBlock, dr, initial, seed=0, agent_count=1, T_sim=10):
         super().__init__()
 
         self.parameters = block.parameters
