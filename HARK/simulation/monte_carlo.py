@@ -13,7 +13,11 @@ from HARK.distribution import (
     IndexDistribution,
     TimeVaryingDiscreteDistribution,
 )
-from HARK.model import Aggregate, Control, DBlock
+from HARK.model import (
+    Aggregate,
+    Control,
+    DBlock
+)
 
 
 def draw_shocks(shocks: Mapping[str, Distribution], conditions: Sequence[int]):
