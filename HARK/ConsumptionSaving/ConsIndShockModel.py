@@ -401,10 +401,8 @@ def calc_m_nrm_min(boro_const_art, boro_const_nat):
 def calc_mpc_max(
     mpc_max_next, worst_inc_prob, crra, pat_fac, boro_const_nat, boro_const_art
 ):
-    m_nrm_min = calc_m_nrm_min(boro_const_art, boro_const_nat)
     temp_fac = (worst_inc_prob ** (1.0 / crra)) * pat_fac
-    mpc_max = 1.0 / (1.0 + temp_fac / mpc_max_next)
-    return 1.0 if boro_const_nat < m_nrm_min else mpc_max
+    return 1.0 / (1.0 + temp_fac / mpc_max_next)
 
 
 def calc_m_nrm_next(shock, a, rfree, perm_gro_fac):
@@ -510,9 +508,10 @@ def solve_one_period_ConsIndShock(
     MPCminNow = calc_mpc_min(solution_next.MPCmin, PatFac)
     # Set the upper limit of the MPC (at mNrmMinNow) based on whether the natural
     # or artificial borrowing constraint actually binds
-    MPCmaxNow = calc_mpc_max(
+    MPCmaxUnc = calc_mpc_max(
         solution_next.MPCmax, WorstIncPrb, CRRA, PatFac, BoroCnstNat, BoroCnstArt
     )
+    MPCmaxNow = 1.0 if BoroCnstNat < mNrmMinNow else MPCmaxUnc
 
     cFuncLimitIntercept = MPCminNow * hNrmNow
     cFuncLimitSlope = MPCminNow
@@ -553,7 +552,7 @@ def solve_one_period_ConsIndShock(
         )
         dcda = EndOfPrdvPP / uFunc.der(np.array(cNrmNow), order=2)
         MPC = dcda / (dcda + 1.0)
-        MPC_for_interpolation = np.insert(MPC, 0, MPCmaxNow)
+        MPC_for_interpolation = np.insert(MPC, 0, MPCmaxUnc)
 
         # Construct the unconstrained consumption function as a cubic interpolation
         cFuncNowUnc = CubicInterp(
@@ -758,9 +757,10 @@ def solve_one_period_ConsKinkedR(
     MPCminNow = calc_mpc_min(solution_next.MPCmin, PatFacSave)
     # Set the upper limit of the MPC (at mNrmMinNow) based on whether the natural
     # or artificial borrowing constraint actually binds
-    MPCmaxNow = calc_mpc_max(
+    MPCmaxUnc = calc_mpc_max(
         solution_next.MPCmax, WorstIncPrb, CRRA, PatFacBoro, BoroCnstNat, BoroCnstArt
     )
+    MPCmaxNow = 1.0 if BoroCnstNat < mNrmMinNow else MPCmaxUnc
 
     cFuncLimitIntercept = MPCminNow * hNrmNow
     cFuncLimitSlope = MPCminNow
@@ -809,7 +809,7 @@ def solve_one_period_ConsKinkedR(
         )
         dcda = EndOfPrdvPP / uFunc.der(np.array(cNrmNow), order=2)
         MPC = dcda / (dcda + 1.0)
-        MPC_for_interpolation = np.insert(MPC, 0, MPCmaxNow)
+        MPC_for_interpolation = np.insert(MPC, 0, MPCmaxUnc)
 
         # Construct the unconstrained consumption function as a cubic interpolation
         cFuncNowUnc = CubicInterp(
