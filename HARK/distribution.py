@@ -5,11 +5,11 @@ from warnings import warn
 
 import numpy as np
 import xarray as xr
-from numpy import random
+from numpy import random, linalg
 from scipy import stats
 from scipy.stats import rv_continuous, rv_discrete
 from scipy.stats._distn_infrastructure import rv_continuous_frozen, rv_discrete_frozen
-from scipy.stats._multivariate import multivariate_normal_frozen
+from scipy.stats._multivariate import multivariate_normal_frozen, multi_rv_frozen
 
 
 class Distribution:
@@ -722,6 +722,90 @@ class MVNormal(multivariate_normal_frozen, Distribution):
             seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
             limit=limit,
         )
+    
+class BVLogNormal(multi_rv_frozen, Distribution):
+    """
+    A Bivariate Lognormal distribution.
+
+    Parameters
+    ----------
+    mu : Union[list, numpy.ndarray], optional
+        Means of underlying multivariate normal, default [0.0, 0.0].
+    Sigma : Union[list, numpy.ndarray], optional
+        2x2 variance-covariance matrix of underyling multivariate normal, default [[1.0, 0.0], [0.0, 1.0]].
+    seed : int, optional
+        Seed for random number generator, default 0.
+    """
+
+    def __init__(self, mu=[1.0, 1.0], Sigma=[[1.0, 0.0], [0.0, 1.0]], seed=None):
+        self.mu = np.asarray(mu)
+        self.Sigma = np.asarray(Sigma)
+        self.M = self.mu.size
+
+        if self.mu.size != 2:
+            raise AttributeError("mu must be of size 2")
+        
+        if self.Sigma.shape != (self.M, self.M):
+            raise AttributeError(f"Sigma must be a {self.M}x{self.M} matrix")
+        
+        multi_rv_frozen.__init__(self, mean=self.mu, cov=self.Sigma)
+        Distribution.__init__(self, seed=seed)
+
+    def _cdf(self, x: np.ndarray):
+        """
+        Cumulative distribution function of the distribution evaluated at x.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            Point at which to evaluate the CDF.
+
+        Returns
+        -------
+        float
+            CDF evaluated at x.
+        """
+
+        if x.size != self.M:
+            raise ValueError(f"x must have size {self.M}")
+
+        if (x[1] <= 0) | (x[0] <= 0):
+            return 0
+
+        return MVNormal(mu=self.mu, Sigma=self.Sigma).cdf(np.log(x))
+
+    def _pdf(self, x: np.ndarray):
+        """
+        Probability density function of the distribution evaluated at x.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            Point at which to evaluate the PDF.
+
+        Returns
+        -------
+        float
+            PDF evaluated at x.
+        """
+
+        if x.size != self.M:
+            raise ValueError(f"x must have size {self.M}")
+
+        if (x[1] <= 0) | (x[0] <= 0):
+            raise ValueError("x must have positive entries")
+
+        eigVals = linalg.eigvals(self.Sigma)
+
+        pDet = np.prod(eigVals[eigVals > 1e-12])
+
+        sInv = linalg.pinv(self.Sigma)
+
+        sRank = linalg.matrix_rank(self.Sigma)
+
+        pd = (1 / np.prod(x)) * (2 * np.pi)**(-sRank / 2) * pDet**(-0.5) * np.exp(-(1/2) * (np.log(x) @ sInv @ np.log(x)))
+
+        return pd
 
 
 # DISCRETE DISTRIBUTIONS
