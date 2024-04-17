@@ -722,7 +722,8 @@ class MVNormal(multivariate_normal_frozen, Distribution):
             seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
             limit=limit,
         )
-    
+
+
 class BVLogNormal(multi_rv_frozen, Distribution):
     """
     A Bivariate Lognormal distribution.
@@ -737,17 +738,22 @@ class BVLogNormal(multi_rv_frozen, Distribution):
         Seed for random number generator, default 0.
     """
 
-    def __init__(self, mu=[1.0, 1.0], Sigma=[[1.0, 0.0], [0.0, 1.0]], seed=None):
+    def __init__(
+        self,
+        mu: Union[List, np.ndarray] = [1.0, 1.0],
+        Sigma: Union[List, np.ndarray] = [[1.0, 0.0], [0.0, 1.0]],
+        seed=None,
+    ):
         self.mu = np.asarray(mu)
         self.Sigma = np.asarray(Sigma)
         self.M = self.mu.size
 
         if self.mu.size != 2:
             raise AttributeError("mu must be of size 2")
-        
+
         if self.Sigma.shape != (self.M, self.M):
             raise AttributeError(f"Sigma must be a {self.M}x{self.M} matrix")
-        
+
         multi_rv_frozen.__init__(self, mean=self.mu, cov=self.Sigma)
         Distribution.__init__(self, seed=seed)
 
@@ -803,7 +809,12 @@ class BVLogNormal(multi_rv_frozen, Distribution):
 
         sRank = linalg.matrix_rank(self.Sigma)
 
-        pd = (1 / np.prod(x)) * (2 * np.pi)**(-sRank / 2) * pDet**(-0.5) * np.exp(-(1/2) * (np.log(x) @ sInv @ np.log(x)))
+        pd = (
+            (1 / np.prod(x))
+            * (2 * np.pi) ** (-sRank / 2)
+            * pDet ** (-0.5)
+            * np.exp(-(1 / 2) * (np.log(x) @ sInv @ np.log(x)))
+        )
 
         return pd
 
