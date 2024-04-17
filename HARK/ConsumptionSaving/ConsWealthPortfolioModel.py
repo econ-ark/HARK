@@ -16,9 +16,7 @@ from HARK.interpolation import (
 )
 from HARK.rewards import UtilityFuncCRRA
 from HARK.utilities import NullFunc
-from scipy.optimize import root, root_scalar
-
-EPSILON = 1e-10
+from scipy.optimize import root_scalar
 
 
 class WealthPortfolioConsumerType(PortfolioConsumerType):
@@ -51,12 +49,12 @@ def duda(c, a, CRRA, share=0.0, intercept=0.0):
     return u * (1 - CRRA) * share / (a + intercept)
 
 
-def dudcdc(c, a, CRRA, share=0.0, intercept=0.0):
+def du2dc2(c, a, CRRA, share=0.0, intercept=0.0):
     u = utility(c, a, CRRA, share, intercept)
     return u * (1 - CRRA) * (share - 1) * ((1 - CRRA) * (share - 1) + 1) / c**2
 
 
-def dudadc(c, a, CRRA, share=0.0, intercept=0.0):
+def du2dadc(c, a, CRRA, share=0.0, intercept=0.0):
     u = utility(c, a, CRRA, share, intercept)
     w = a + intercept
     return u * (1 - CRRA) * share * (share - 1) * (CRRA - 1) / (c * w)
@@ -65,12 +63,16 @@ def dudadc(c, a, CRRA, share=0.0, intercept=0.0):
 def du_diff(c, a, CRRA, share=0.0, intercept=0.0):
     ufac = utility(c, a, CRRA, share, intercept) * (1 - CRRA)
     dudc = ufac * (1 - share) / c
-    duda = ufac * share / (a + intercept)
+
+    if share == 0:
+        return dudc
+    else:
+        duda = ufac * share / (a + intercept)
 
     return dudc - duda
 
 
-def dudu_diff(c, a, CRRA, share=0.0, intercept=0.0, vp_a=None):
+def du2_diff(c, a=None, CRRA=None, share=None, intercept=None, vp_a=None):
     ufac = utility(c, a, CRRA, share, intercept) * (1 - CRRA)
     w = a + intercept
 
@@ -80,9 +82,26 @@ def dudu_diff(c, a, CRRA, share=0.0, intercept=0.0, vp_a=None):
     return dudcdc - dudadc
 
 
+def du2_jac(c, a, CRRA, share, intercept, vp_a):
+    du2_diag = du2_diff(c, a, CRRA, share, intercept, vp_a)
+    return np.diag(du2_diag)
+
+
 def euler(c, a, CRRA, share, intercept, vp_a):
     dufac = du_diff(c, a, CRRA, share, intercept)
     return dufac - vp_a
+
+
+def euler2(c, a=None, CRRA=None, share=None, intercept=None, vp_a=None):
+    return euler(c, a, CRRA, share, intercept, vp_a) ** 2
+
+
+def euler2_diff(c, a=None, CRRA=None, share=None, intercept=None, vp_a=None):
+    return (
+        2
+        * euler(c, a, CRRA, share, intercept, vp_a)
+        * du2_diff(c, a, CRRA, share, intercept)
+    )
 
 
 def calc_m_nrm_next(shocks, b_nrm, perm_gro_fac):
@@ -311,41 +330,29 @@ def solve_one_period_WealthPortfolio(
     # Now this is where we look for optimal C
     # for each a in the agrid find corresponding c that satisfies the euler equation
 
-    cNrm_now_old = np.maximum(
-        root(
-            euler,
-            x0=end_dvda_nvrs_now,  # good first guess?
-            args=(aNrmGrid, CRRA, WealthShare, WealthShift, end_dvda_now),
-        ).x,
-        0.0,
-    )
-
     cNrm_now = np.empty_like(aNrmGrid)
 
     for a_idx, a_nrm in enumerate(aNrmGrid):
+        cNrm_guess = euler(
+            aNrmGrid,
+            a_nrm,
+            CRRA,
+            WealthShare,
+            WealthShift,
+            end_dvda_now[a_idx],
+        )
+
+        lower_bound = aNrmGrid[cNrm_guess > 0][-1]
+        upper_bound = aNrmGrid[cNrm_guess < 0][0]
+
         result = root_scalar(
             euler,
-            method="newton",
-            fprime=dudu_diff,
-            x0=end_dvda_nvrs_now[a_idx],  # good first guess?
+            method="toms748",
+            bracket=[lower_bound, upper_bound],
             args=(a_nrm, CRRA, WealthShare, WealthShift, end_dvda_now[a_idx]),
         )
 
-        if result.converged:
-            cNrm_now[a_idx] = result.root
-        else:
-            result = root_scalar(
-                euler,
-                method="toms748",
-                bracket=[0.01, 0.1],
-                x0=end_dvda_nvrs_now[a_idx],  # good first guess?
-                args=(a_nrm, CRRA, WealthShare, WealthShift, end_dvda_now[a_idx]),
-            )
-
-            cNrm_now[a_idx] = result.root
-
-            if not result.converged:
-                print("Failed to converge at a_nrm = ", a_nrm)
+        cNrm_now[a_idx] = result.root
 
     # Calculate the endogenous mNrm gridpoints when the agent adjusts his portfolio,
     # then construct the consumption function when the agent can adjust his share
