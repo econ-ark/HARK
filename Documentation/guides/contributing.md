@@ -1,12 +1,5 @@
 # Contributing to Econ-ARK
 
- - [Code of Conduct](#code-of-conduct)
- - [Welcome!](#welcome)
- - [How to Contribute](#how-to-contribute)
- - [Responding to Issues & Pull Requests](#responding-to-issues-and-pull-requests)
- - [Getting Started](#getting-started)
- - [Developer's Certificate of Origin 1.1](#developers-certificate-of-origin-11)
-
 ## Code of Conduct
 
 The Econ-ARK project has a [Code of Conduct][Conduct]
