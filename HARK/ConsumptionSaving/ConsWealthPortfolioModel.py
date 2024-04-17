@@ -16,7 +16,7 @@ from HARK.interpolation import (
 )
 from HARK.rewards import UtilityFuncCRRA
 from HARK.utilities import NullFunc
-from scipy.optimize import root
+from scipy.optimize import root, root_scalar
 
 EPSILON = 1e-10
 
@@ -51,12 +51,33 @@ def duda(c, a, CRRA, share=0.0, intercept=0.0):
     return u * (1 - CRRA) * share / (a + intercept)
 
 
+def dudcdc(c, a, CRRA, share=0.0, intercept=0.0):
+    u = utility(c, a, CRRA, share, intercept)
+    return u * (1 - CRRA) * (share - 1) * ((1 - CRRA) * (share - 1) + 1) / c**2
+
+
+def dudadc(c, a, CRRA, share=0.0, intercept=0.0):
+    u = utility(c, a, CRRA, share, intercept)
+    w = a + intercept
+    return u * (1 - CRRA) * share * (share - 1) * (CRRA - 1) / (c * w)
+
+
 def du_diff(c, a, CRRA, share=0.0, intercept=0.0):
     ufac = utility(c, a, CRRA, share, intercept) * (1 - CRRA)
     dudc = ufac * (1 - share) / c
     duda = ufac * share / (a + intercept)
 
     return dudc - duda
+
+
+def dudu_diff(c, a, CRRA, share=0.0, intercept=0.0, vp_a=None):
+    ufac = utility(c, a, CRRA, share, intercept) * (1 - CRRA)
+    w = a + intercept
+
+    dudcdc = ufac * (share - 1) * ((1 - CRRA) * (share - 1) + 1) / c**2
+    dudadc = ufac * share * (share - 1) * (CRRA - 1) / (c * w)
+
+    return dudcdc - dudadc
 
 
 def euler(c, a, CRRA, share, intercept, vp_a):
@@ -290,7 +311,7 @@ def solve_one_period_WealthPortfolio(
     # Now this is where we look for optimal C
     # for each a in the agrid find corresponding c that satisfies the euler equation
 
-    cNrm_now = np.maximum(
+    cNrm_now_old = np.maximum(
         root(
             euler,
             x0=end_dvda_nvrs_now,  # good first guess?
@@ -298,6 +319,33 @@ def solve_one_period_WealthPortfolio(
         ).x,
         0.0,
     )
+
+    cNrm_now = np.empty_like(aNrmGrid)
+
+    for a_idx, a_nrm in enumerate(aNrmGrid):
+        result = root_scalar(
+            euler,
+            method="newton",
+            fprime=dudu_diff,
+            x0=end_dvda_nvrs_now[a_idx],  # good first guess?
+            args=(a_nrm, CRRA, WealthShare, WealthShift, end_dvda_now[a_idx]),
+        )
+
+        if result.converged:
+            cNrm_now[a_idx] = result.root
+        else:
+            result = root_scalar(
+                euler,
+                method="toms748",
+                bracket=[0.01, 0.1],
+                x0=end_dvda_nvrs_now[a_idx],  # good first guess?
+                args=(a_nrm, CRRA, WealthShare, WealthShift, end_dvda_now[a_idx]),
+            )
+
+            cNrm_now[a_idx] = result.root
+
+            if not result.converged:
+                print("Failed to converge at a_nrm = ", a_nrm)
 
     # Calculate the endogenous mNrm gridpoints when the agent adjusts his portfolio,
     # then construct the consumption function when the agent can adjust his share
