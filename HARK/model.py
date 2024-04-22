@@ -2,6 +2,7 @@
 Tools for crafting models.
 """
 
+from dataclasses import dataclass, field
 from HARK.distribution import Distribution
 
 
@@ -28,3 +29,23 @@ class Control:
 
     def __init__(self, args):
         pass
+
+
+@dataclass
+class DBlock:
+    """
+    Represents a 'block' of model behavior.
+    It prioritizes a representation of the dynamics of the block.
+    Control variables are designated by the appropriate dynamic rule.
+
+    Parameters
+    ----------
+    ...
+    """
+
+    name: str = ""
+    description: str = ""
+    shocks: dict = field(default_factory=dict)
+    parameters: dict = field(default_factory=dict)
+    dynamics: dict = field(default_factory=dict)
+    reward: dict = field(default_factory=dict)
