@@ -206,7 +206,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
         self.T_sim = T_sim
 
         # changes here from HARK.core.AgentType
-        self.vars = list(self.shocks.keys()) + list(self.dynamics.keys())
+        self.vars = block.vars()
 
         self.vars_now = {v: None for v in self.vars}
         self.vars_prev = self.vars_now.copy()

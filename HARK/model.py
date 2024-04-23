@@ -48,3 +48,6 @@ class DBlock:
     shocks: dict = field(default_factory=dict)
     dynamics: dict = field(default_factory=dict)
     reward: dict = field(default_factory=dict)
+
+    def vars(self):
+        return list(self.shocks.keys()) + list(self.dynamics.keys())
