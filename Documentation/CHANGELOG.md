@@ -26,6 +26,7 @@ Release Date: TBA
 - Fixes cubic spline interpolation for ConsMedShockModel.
 - Moves computation of "stable points" from inside of ConsIndShock solver to a post-solution method. [1349](https://github.com/econ-ark/HARK/pull/1349)
 - Corrects calculation of "human wealth" under risky returns, providing correct limiting linear consumption function. [1403](https://github.com/econ-ark/HARK/pull/1403)
+- Removed 'parameters' from new block definitions; these are now 'calibrations' provided separately.
 
 ### 0.14.1
 

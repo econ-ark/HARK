@@ -53,15 +53,15 @@ class test_simulate_dynamics(unittest.TestCase):
 
 class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
     def setUp(self):
+        self.calibration = {  # TODO
+            "G": 1.05,
+        }
         self.block = DBlock(
             **{
                 "shocks": {
                     "theta": MeanOneLogNormal(1),
                     "agg_R": Aggregate(MeanOneLogNormal(1)),
                     "live": Bernoulli(p=0.98),
-                },
-                "parameters": {  # TODO
-                    "G": 1.05,
                 },
                 "dynamics": {
                     "b": lambda agg_R, G, a: agg_R * G * a,
@@ -78,6 +78,7 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
 
     def test_simulate(self):
         self.simulator = AgentTypeMonteCarloSimulator(
+            self.calibration,
             self.block,
             self.dr,
             self.initial,
@@ -89,7 +90,7 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
 
         a1 = history["a"][5]
         b1 = (
-            history["a"][4] * history["agg_R"][5] * self.block.parameters["G"]
+            history["a"][4] * history["agg_R"][5] * self.calibration["G"]
             + history["theta"][5]
             - history["c"][5]
         )
@@ -98,6 +99,7 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
 
     def test_make_shock_history(self):
         self.simulator = AgentTypeMonteCarloSimulator(
+            self.calibration,
             self.block,
             self.dr,
             self.initial,
@@ -118,6 +120,9 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
 
 class test_AgentTypeMonteCarloSimulatorAgeVariance(unittest.TestCase):
     def setUp(self):
+        self.calibration = {  # TODO
+            "G": 1.05,
+        }
         self.block = DBlock(
             **{
                 "shocks": {
@@ -125,9 +130,6 @@ class test_AgentTypeMonteCarloSimulatorAgeVariance(unittest.TestCase):
                     "agg_R": Aggregate(MeanOneLogNormal(1)),
                     "live": Bernoulli(p=0.98),
                     "psi": IndexDistribution(MeanOneLogNormal, {"sigma": [1.0, 1.1]}),
-                },
-                "parameters": {  # TODO
-                    "G": 1.05,
                 },
                 "dynamics": {
                     "b": lambda agg_R, G, a: agg_R * G * a,
@@ -143,6 +145,7 @@ class test_AgentTypeMonteCarloSimulatorAgeVariance(unittest.TestCase):
 
     def test_simulate(self):
         self.simulator = AgentTypeMonteCarloSimulator(
+            self.calibration,
             self.block,
             self.dr,
             self.initial,
