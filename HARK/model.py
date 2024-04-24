@@ -4,6 +4,7 @@ Tools for crafting models.
 
 from dataclasses import dataclass, field
 from HARK.distribution import Distribution
+from typing import List
 
 
 class Aggregate:
@@ -71,7 +72,7 @@ class RBlock:
 
     name: str = ""
     description: str = ""
-    blocks: list[DBlock] = field(default_factory=list)
+    blocks: List[DBlock] = field(default_factory=list)
 
     def get_shocks(self):
         ### TODO: Bug in here is causing AttributeError: 'set' object has no attribute 'draw'
