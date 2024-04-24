@@ -271,19 +271,13 @@ def construct_lognormal_income_process_unemployment(
 
 def get_PermShkDstn_from_IncShkDstn(IncShkDstn, RNG):
     PermShkDstn = [
-        this.make_univariate(0, seed=RNG.integers(0, 2**31 - 1))
-        for this in IncShkDstn
+        this.make_univariate(0, seed=RNG.integers(0, 2**31 - 1)) for this in IncShkDstn
     ]
-    return TimeVaryingDiscreteDistribution(
-        PermShkDstn, seed=RNG.integers(0, 2**31 - 1)
-    )
+    return TimeVaryingDiscreteDistribution(PermShkDstn, seed=RNG.integers(0, 2**31 - 1))
 
 
 def get_TranShkDstn_from_IncShkDstn(IncShkDstn, RNG):
     TranShkDstn = [
-        this.make_univariate(1, seed=RNG.integers(0, 2**31 - 1))
-        for this in IncShkDstn
+        this.make_univariate(1, seed=RNG.integers(0, 2**31 - 1)) for this in IncShkDstn
     ]
-    return TimeVaryingDiscreteDistribution(
-        TranShkDstn, seed=RNG.integers(0, 2**31 - 1)
-    )
+    return TimeVaryingDiscreteDistribution(TranShkDstn, seed=RNG.integers(0, 2**31 - 1))

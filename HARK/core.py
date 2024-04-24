@@ -800,9 +800,9 @@ class AgentType(Model):
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
         self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-        self.t_cycle[
-            self.t_cycle == self.T_cycle
-        ] = 0  # Resetting to zero for those who have reached the end
+        self.t_cycle[self.t_cycle == self.T_cycle] = (
+            0  # Resetting to zero for those who have reached the end
+        )
 
     def make_shock_history(self):
         """
@@ -872,13 +872,13 @@ class AgentType(Model):
                         and len(self.state_now[var_name]) == self.AgentCount
                     )
                     if idio:
-                        self.newborn_init_history[var_name][
-                            t, self.who_dies
-                        ] = self.state_now[var_name][self.who_dies]
+                        self.newborn_init_history[var_name][t, self.who_dies] = (
+                            self.state_now[var_name][self.who_dies]
+                        )
                     else:
-                        self.newborn_init_history[var_name][
-                            t, self.who_dies
-                        ] = self.state_now[var_name]
+                        self.newborn_init_history[var_name][t, self.who_dies] = (
+                            self.state_now[var_name]
+                        )
 
             # Other Shocks
             self.get_shocks()
@@ -888,9 +888,9 @@ class AgentType(Model):
             self.t_sim += 1
             self.t_age = self.t_age + 1  # Age all consumers by one period
             self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-            self.t_cycle[
-                self.t_cycle == self.T_cycle
-            ] = 0  # Resetting to zero for those who have reached the end
+            self.t_cycle[self.t_cycle == self.T_cycle] = (
+                0  # Resetting to zero for those who have reached the end
+            )
 
         # Flag that shocks can be read rather than simulated
         self.read_shocks = True
@@ -924,11 +924,11 @@ class AgentType(Model):
                             and len(self.state_now[var_name]) == self.AgentCount
                         )
                         if idio:
-                            self.state_now[var_name][
-                                who_dies
-                            ] = self.newborn_init_history[var_name][
-                                self.t_sim, who_dies
-                            ]
+                            self.state_now[var_name][who_dies] = (
+                                self.newborn_init_history[
+                                    var_name
+                                ][self.t_sim, who_dies]
+                            )
 
                     else:
                         warn(
