@@ -1664,13 +1664,14 @@ class PerfForesightConsumerType(AgentType):
         self.solution[0].mNrmTrg = mNrmTrg
         self.bilt["mNrmStE"] = mNrmStE
         self.bilt["mNrmTrg"] = mNrmTrg
-        
+
+
 ###############################################################################
 
 indshk_constructor_dict = {
-    'IncShkDstn' : construct_lognormal_income_process_unemployment,
-    'PermShkDstn' : get_PermShkDstn_from_IncShkDstn,
-    'TranShkDstn' : get_TranShkDstn_from_IncShkDstn
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
 }
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
@@ -1707,7 +1708,7 @@ init_idiosyncratic_shocks = {
         # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
         # Whether Newborns have transitory shock. The default is False.
         "NewbornTransShk": False,
-        "constructors" : indshk_constructor_dict
+        "constructors": indshk_constructor_dict,
     },
 }
 

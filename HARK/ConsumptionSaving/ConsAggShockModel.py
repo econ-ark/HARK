@@ -172,9 +172,7 @@ class AggShockConsumerType(IndShockConsumerType):
         self.state_now["aLvlNow"] = self.kInit * np.ones(
             self.AgentCount
         )  # Start simulation near SS
-        self.state_now["aNrm"] = (
-            self.state_now["aLvlNow"] / self.state_now["pLvl"]
-        )
+        self.state_now["aNrm"] = self.state_now["aLvlNow"] / self.state_now["pLvl"]
 
     def pre_solve(self):
         #        AgentType.pre_solve()
@@ -1109,7 +1107,7 @@ def solveConsAggShock(
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
     IncShkDstn : distribution.Distribution
-        A discrete approximation to the income process between the period being 
+        A discrete approximation to the income process between the period being
         solved and the one immediately following (in solution_next). Order:
         idiosyncratic permanent shocks, idiosyncratic transitory shocks,
         aggregate permanent shocks, aggregate transitory shocks.

@@ -408,7 +408,9 @@ class Lognormal(ContinuousFrozenDistribution):
             lower_CDF_vals = [0.0]
             if lo_cut > 0.0:
                 for x in range(tail_N - 1, -1, -1):
-                    lower_CDF_vals.append(lower_CDF_vals[-1] + lo_cut * scale**x / mag)
+                    lower_CDF_vals.append(
+                        lower_CDF_vals[-1] + lo_cut * scale**x / mag
+                    )
             upper_CDF_vals = [hi_cut]
             if hi_cut < 1.0:
                 for x in range(tail_N):
@@ -988,7 +990,7 @@ class DiscreteDistribution(Distribution):
         TODO: print warning message?
         """
         return self
-    
+
     def make_univariate(self, dim_to_keep, seed=0):
         """
         Make a univariate discrete distribution from this distribution, keeping
@@ -1012,7 +1014,7 @@ class DiscreteDistribution(Distribution):
             return deepcopy(self)  # Return copy of self if only one dimension
         if dim_to_keep >= self.atoms.shape[0]:
             raise ValueError("dim_to_keep exceeds dimensionality of distribution.")
-        
+
         # Construct values and probabilities for univariate distribution
         atoms_temp = self.atoms[dim_to_keep]
         vals_to_keep = np.unique(atoms_temp)
@@ -1021,14 +1023,14 @@ class DiscreteDistribution(Distribution):
             val = vals_to_keep[i]
             these = atoms_temp == val
             probs_to_keep[i] = np.sum(self.pmv[these])
-            
+
         # Make and return the univariate distribution
-        univariate_dstn = DiscreteDistribution(pmv=probs_to_keep,
-                                               atoms=vals_to_keep,
-                                               seed=seed)
+        univariate_dstn = DiscreteDistribution(
+            pmv=probs_to_keep, atoms=vals_to_keep, seed=seed
+        )
         return univariate_dstn
-            
-        
+
+
 class DiscreteDistributionLabeled(DiscreteDistribution):
     """
     A representation of a discrete probability distribution
