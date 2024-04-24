@@ -1,5 +1,5 @@
-from HARK.distribution import Bernoulli, MeanOneLogNormal
-from HARK.model import Control, DBlock
+from HARK.distribution import Bernoulli, Lognormal, MeanOneLogNormal
+from HARK.model import Control, DBlock, RBlock
 
 """
 Blocks for consumption saving problem (not normalized)
@@ -16,7 +16,7 @@ calibration = {
     "DiscFac": 0.96,
     "CRRA": 2.0,
     "Rfree": 1.03,
-    "EqP" : .02,
+    "EqP": 0.02,
     "LivPrb": LivPrb,
     "PermGroFac": 1.01,
     "BoroCnstArt": None,
@@ -26,8 +26,8 @@ consumption_block = DBlock(
     **{
         "name": "consumption",
         "shocks": {
-            "live": Bernoulli(p=LivPrb), # Move to tick or mortality block?
-            "theta": MeanOneLogNormal(sigma=TranShkStd)
+            "live": Bernoulli(p=LivPrb),  # Move to tick or mortality block?
+            "theta": MeanOneLogNormal(sigma=TranShkStd),
         },
         "dynamics": {
             "b": lambda k, R: k * R,
@@ -45,11 +45,14 @@ portfolio_block = DBlock(
     **{
         "name": "portfolio",
         "shocks": {
-            "risky_return": LogNormal(mean=Rfree + EqP, sigma=RiskyStd)
+            "risky_return": Lognormal(
+                mu=calibration["Rfree"] + calibration["EqP"], sigma=RiskyStd
+            )
         },
         "dynamics": {
             "stigma": Control(["a"]),
-            "R": lambda stigma, Rfree, risky_return: Rfree + (risky_return - Rfree) * stigma,
+            "R": lambda stigma, Rfree, risky_return: Rfree
+            + (risky_return - Rfree) * stigma,
         },
     }
 )
@@ -62,3 +65,5 @@ tick_block = DBlock(
         },
     }
 )
+
+merged_block = RBlock(blocks=[consumption_block, portfolio_block, tick_block])

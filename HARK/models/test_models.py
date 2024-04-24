@@ -1,4 +1,5 @@
 from HARK.distribution import Lognormal
+import HARK.models.consumer as cons
 import HARK.models.perfect_foresight as pfm
 import HARK.models.perfect_foresight_normalized as pfnm
 from HARK.simulation.monte_carlo import AgentTypeMonteCarloSimulator
@@ -56,6 +57,53 @@ class test_pfnm(unittest.TestCase):
             {"c_nrm": lambda m_nrm: PFexample.solution[0].cFunc(m_nrm)},
             {  # initial states
                 "a_nrm": Lognormal(-6, 0),
+                #'live' : 1,
+                "p": 1.0,
+            },
+            agent_count=3,
+            T_sim=120,
+        )
+
+    def test_simulate(self):
+        ## smoke test
+        self.mcs.initialize_sim()
+        self.mcs.simulate()
+
+
+class test_pfnm(unittest.TestCase):
+    def setUp(self):
+        self.mcs = AgentTypeMonteCarloSimulator(  ### Use fm, blockified
+            pfnm.calibration,
+            pfnm.block,
+            {"c_nrm": lambda m_nrm: PFexample.solution[0].cFunc(m_nrm)},
+            {  # initial states
+                "a_nrm": Lognormal(-6, 0),
+                #'live' : 1,
+                "p": 1.0,
+            },
+            agent_count=3,
+            T_sim=120,
+        )
+
+    def test_simulate(self):
+        ## smoke test
+        self.mcs.initialize_sim()
+        self.mcs.simulate()
+
+
+class test_cons(unittest.TestCase):
+    def setUp(self):
+        self.mcs = AgentTypeMonteCarloSimulator(  ### Use fm, blockified
+            cons.calibration,
+            cons.merged_block,  ### multiple cons bloks!
+            {
+                "c": lambda m: PFexample.solution[0].cFunc(m),
+                # danger: normalized decision rule for unnormalized problem
+                "stigma": lambda a: a / (2 + a),
+                # just a dummy share func
+            },
+            {  # initial states
+                "k": Lognormal(-6, 0),
                 #'live' : 1,
                 "p": 1.0,
             },

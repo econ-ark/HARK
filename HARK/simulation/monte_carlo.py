@@ -196,8 +196,9 @@ class AgentTypeMonteCarloSimulator(Simulator):
         super().__init__()
 
         self.calibration = calibration
-        self.shocks = block.shocks
-        self.dynamics = block.dynamics
+        self.block = block
+        self.shocks = block.get_shocks()
+        self.dynamics = block.get_dynamics()
         self.dr = dr
         self.initial = initial
 
@@ -206,7 +207,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
         self.T_sim = T_sim
 
         # changes here from HARK.core.AgentType
-        self.vars = block.vars()
+        self.vars = block.get_vars()
 
         self.vars_now = {v: None for v in self.vars}
         self.vars_prev = self.vars_now.copy()
