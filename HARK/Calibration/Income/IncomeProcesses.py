@@ -1,7 +1,6 @@
 """
 This file has various classes and functions for constructing income processes.
 """
-import numpy as np
 
 from HARK.distribution import (
     add_discrete_outcome_constant_mean,
@@ -218,12 +217,6 @@ def construct_lognormal_income_process_unemployment(
     IncShkDstn :  [distribution.Distribution]
         A list with T_cycle elements, each of which is a
         discrete approximation to the income process in a period.
-    PermShkDstn : [[distribution.Distributiony]]
-        A list with T_cycle elements, each of which is
-        a discrete approximation to the permanent income shocks.
-    TranShkDstn : [[distribution.Distribution]]
-        A list with T_cycle elements, each of which is
-        a discrete approximation to the transitory income shocks.
     """
     if T_retire > 0:
         normal_length = T_retire
@@ -272,40 +265,13 @@ def construct_lognormal_income_process_unemployment(
         RNG=RNG,
         seed=RNG.integers(0, 2**31 - 1),
     )
-
-    PermShkDstn = IndexDistribution(
-        engine=LognormPermIncShk,
-        conditional={
-            "sigma": PermShkStd,
-            "n_approx": PermShkCount_list,
-            "neutral_measure": neutral_measure_list,
-        },
-        RNG=RNG,
-        seed=RNG.integers(0, 2**31 - 1),
-    )
-
-    TranShkDstn = IndexDistribution(
-        engine=MixtureTranIncShk,
-        conditional={
-            "sigma": TranShkStd,
-            "UnempPrb": UnempPrb_list,
-            "IncUnemp": IncUnemp_list,
-            "n_approx": TranShkCount_list,
-        },
-        RNG=RNG,
-        seed=RNG.integers(0, 2**31 - 1),
-    )
-
-    return IncShkDstn, PermShkDstn, TranShkDstn
+    return IncShkDstn
 
 
-def get_IncShkDstn(_IncShkDstn):
-    return _IncShkDstn[0]
+
+def get_PermShkDstn_from_IncShkDstn(IncShkDstn, RNG):
+    return [this.make_univariate(0, seed=RNG.integers(0, 2**31 - 1)) for this in IncShkDstn]
 
 
-def get_PermShkDstn(_IncShkDstn):
-    return _IncShkDstn[1]
-
-
-def get_TranShkDstn(_IncShkDstn):
-    return _IncShkDstn[2]
+def get_TranShkDstn_from_IncShkDstn(IncShkDstn, RNG):
+    return [this.make_univariate(1, seed=RNG.integers(0, 2**31 - 1)) for this in IncShkDstn]

@@ -1121,11 +1121,10 @@ def solveConsAggShock(
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
     IncShkDstn : distribution.Distribution
-        A discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order:
-        idiosyncratic permanent shocks, idiosyncratic transitory
-        shocks, aggregate permanent shocks, aggregate transitory shocks.
+        A discrete approximation to the income process between the period being 
+        solved and the one immediately following (in solution_next). Order:
+        idiosyncratic permanent shocks, idiosyncratic transitory shocks,
+        aggregate permanent shocks, aggregate transitory shocks.
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -1152,7 +1151,7 @@ def solveConsAggShock(
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
     DeprFac : float
-        Capital Depreciation Rate
+        Capital depreciation factor.
 
     Returns
     -------

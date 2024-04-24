@@ -23,14 +23,12 @@ from HARK.Calibration.Income.IncomeTools import (
 )
 from HARK.Calibration.Income.IncomeProcesses import (
     construct_lognormal_income_process_unemployment,
-    get_IncShkDstn,
-    get_PermShkDstn,
-    get_TranShkDstn,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
 )
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.distribution import (
-    IndexDistribution,
     Lognormal,
     MeanOneLogNormal,
     Uniform,
@@ -1666,7 +1664,14 @@ class PerfForesightConsumerType(AgentType):
         self.solution[0].mNrmTrg = mNrmTrg
         self.bilt["mNrmStE"] = mNrmStE
         self.bilt["mNrmTrg"] = mNrmTrg
+        
+###############################################################################
 
+indshk_constructor_dict = {
+    'IncShkDstn' : construct_lognormal_income_process_unemployment,
+    'PermShkDstn' : get_PermShkDstn_from_IncShkDstn,
+    'TranShkDstn' : get_TranShkDstn_from_IncShkDstn
+}
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
 init_idiosyncratic_shocks = {
@@ -1702,6 +1707,7 @@ init_idiosyncratic_shocks = {
         # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
         # Whether Newborns have transitory shock. The default is False.
         "NewbornTransShk": False,
+        "constructors" : indshk_constructor_dict
     },
 }
 
@@ -1733,14 +1739,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         params = init_idiosyncratic_shocks.copy()
         params.update(kwds)
 
-        # Initialize a basic AgentType
+        # Initialize a basic PerfForesightConsumerType
         super().__init__(verbose=verbose, quiet=quiet, **params)
-
-        # Designate functions to make the income process
-        self.constructors["_IncShkDstn"] = construct_lognormal_income_process_unemployment
-        self.constructors["IncShkDstn"] = get_IncShkDstn
-        self.constructors["PermShkDstn"] = get_PermShkDstn
-        self.constructors["TranShkDstn"] = get_TranShkDstn
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solve_one_period = solve_one_period_ConsIndShock
@@ -1758,8 +1758,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -----------
         none
         """
-        self.construct("_IncShkDstn", "IncShkDstn", "PermShkDstn", "TranShkDstn")
-        del self._IncShkDstn
+        self.construct("IncShkDstn", "PermShkDstn", "TranShkDstn")
         self.add_to_time_vary("IncShkDstn", "PermShkDstn", "TranShkDstn")
 
     def update_assets_grid(self):
