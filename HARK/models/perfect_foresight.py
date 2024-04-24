@@ -6,19 +6,20 @@ from HARK.model import Control, DBlock
 # But it would be better to have a more graceful Python version as well.
 LivPrb = 0.98
 
+calibration = {
+    "DiscFac": 0.96,
+    "CRRA": 2.0,
+    "Rfree": 1.03,
+    "LivPrb": LivPrb,
+    "PermGroFac": 1.01,
+    "BoroCnstArt": None,
+}
+
 block = DBlock(
     **{
         "name": "consumption",
         "shocks": {
             "live": Bernoulli(p=LivPrb),
-        },
-        "parameters": {
-            "DiscFac": 0.96,
-            "CRRA": 2.0,
-            "Rfree": 1.03,
-            "LivPrb": LivPrb,
-            "PermGroFac": 1.01,
-            "BoroCnstArt": None,
         },
         "dynamics": {
             "y": lambda p: p,

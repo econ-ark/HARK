@@ -7,18 +7,19 @@ from HARK.model import Control, DBlock
 CRRA = (2.0,)
 LivPrb = 0.98
 
+calibration = {
+    "DiscFac": 0.96,
+    "CRRA": CRRA,
+    "Rfree": 1.03,
+    "LivPrb": LivPrb,
+    "PermGroFac": 1.01,
+    "BoroCnstArt": None,
+}
+
 block = DBlock(
     **{
         "shocks": {
             "live": Bernoulli(p=LivPrb),
-        },
-        "parameters": {
-            "DiscFac": 0.96,
-            "CRRA": CRRA,
-            "Rfree": 1.03,
-            "LivPrb": LivPrb,
-            "PermGroFac": 1.01,
-            "BoroCnstArt": None,
         },
         "dynamics": {
             "p": lambda PermGroFac, p: PermGroFac * p,
