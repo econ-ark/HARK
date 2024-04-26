@@ -327,7 +327,7 @@ class DistributionClassTests(unittest.TestCase):
 
         Uniform().draw(1)[0]
 
-        self.assertEqual(
+        self.assertAlmostEqual(
             float(calc_expectation(uni.discretize(10, method="equiprobable"))), 0.5
         )
 
@@ -335,7 +335,7 @@ class DistributionClassTests(unittest.TestCase):
 
         self.assertEqual(uni_discrete.atoms[0][0], 0.0)
         self.assertEqual(uni_discrete.atoms[0][-1], 1.0)
-        self.assertAlmostEqual(
+        self.assertEqual(
             calc_expectation(uni.discretize(10, method="equiprobable")), 0.5
         )
 
