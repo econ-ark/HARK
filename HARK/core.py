@@ -15,7 +15,7 @@ from collections import namedtuple
 from copy import copy, deepcopy
 from dataclasses import dataclass, field
 from time import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 from warnings import warn
 
 import numpy as np
