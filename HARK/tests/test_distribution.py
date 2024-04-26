@@ -328,7 +328,7 @@ class DistributionClassTests(unittest.TestCase):
         Uniform().draw(1)[0]
 
         self.assertEqual(
-            calc_expectation(uni.discretize(10, method="equiprobable")), 0.5
+            calc_expectation(uni.discretize(10, method="equiprobable"))[0], 0.5
         )
 
         uni_discrete = uni.discretize(10, method="equiprobable", endpoints=True)
