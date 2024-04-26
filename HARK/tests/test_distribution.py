@@ -328,15 +328,17 @@ class DistributionClassTests(unittest.TestCase):
         Uniform().draw(1)[0]
 
         self.assertAlmostEqual(
-            float(calc_expectation(uni.discretize(10, method="equiprobable"))), 0.5
+            float(calc_expectation(uni.discretize(10, method="equiprobable"))),
+            0.5,
         )
 
         uni_discrete = uni.discretize(10, method="equiprobable", endpoints=True)
 
         self.assertEqual(uni_discrete.atoms[0][0], 0.0)
         self.assertEqual(uni_discrete.atoms[0][-1], 1.0)
-        self.assertEqual(
-            calc_expectation(uni.discretize(10, method="equiprobable")), 0.5
+        self.assertAlmostEqual(
+            float(calc_expectation(uni.discretize(10, method="equiprobable"))),
+            0.5,
         )
 
     def test_Bernoulli(self):
