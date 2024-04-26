@@ -3,7 +3,6 @@ import unittest
 import numpy as np
 
 import HARK.ConsumptionSaving.ConsPortfolioModel as cpm
-from HARK import make_one_period_oo_solver
 from HARK.tests import HARK_PRECISION
 
 
@@ -194,9 +193,6 @@ class testPortfolioConsumerTypeJointDist(unittest.TestCase):
         # Create portfolio choice consumer type
         self.joint_dist = cpm.PortfolioConsumerType()
         self.joint_dist.IndepDstnBool = False
-        self.joint_dist.solve_one_period = make_one_period_oo_solver(
-            cpm.ConsPortfolioJointDistSolver
-        )
 
         # Solve model under given parameters
         self.joint_dist.solve()
@@ -216,9 +212,6 @@ class testPortfolioConsumerTypeDiscreteAndJoint(unittest.TestCase):
             **init_discrete_and_joint_share
         )
         self.discrete_and_joint.IndepDstnBool = False
-        self.discrete_and_joint.solve_one_period = make_one_period_oo_solver(
-            cpm.ConsPortfolioJointDistSolver
-        )
 
         # Solve model under given parameters
         self.discrete_and_joint.solve()

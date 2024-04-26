@@ -6,7 +6,6 @@ import numpy as np
 import xarray as xr
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
-    ConsIndShockSetup,
     IndShockConsumerType,
     init_perfect_foresight,
 )
@@ -20,6 +19,7 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     init_risky_asset,
     init_risky_share_fixed,
 )
+from HARK.ConsumptionSaving.LegacyOOsolvers import ConsIndShockSetup
 from HARK.core import make_one_period_oo_solver
 from HARK.distribution import DiscreteDistributionLabeled
 from HARK.metric import MetricObject
