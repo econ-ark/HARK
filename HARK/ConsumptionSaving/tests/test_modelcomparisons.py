@@ -142,7 +142,7 @@ class Compare_TBS_and_Markov(unittest.TestCase):
             "aXtraMin": 0.001,
             "aXtraMax": TBSType.mUpperBnd,
             "aXtraCount": 48,
-            "aXtraExtra": [None],
+            "aXtraExtra": None,
             "aXtraNestFac": 3,
             "LivPrb": [
                 np.array([1.0, 1.0]),

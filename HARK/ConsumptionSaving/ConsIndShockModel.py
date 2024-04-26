@@ -877,9 +877,45 @@ def solve_one_period_ConsKinkedR(
     return solution_now
 
 
+def make_basic_CRRA_solution_terminal(CRRA):
+    """
+    Construct the terminal period solution for a consumption-saving model with
+    CRRA utility.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion. This is the only relevant parameter.
+
+    Returns
+    -------
+    solution_terminal : ConsumerSolution
+        Terminal period solution for someone with the given CRRA.
+    """
+    cFunc_terminal = LinearInterp([0.0, 1.0], [0.0, 1.0])  # c=m at t=T
+    vFunc_terminal = ValueFuncCRRA(cFunc_terminal, CRRA)
+    vPfunc_terminal = MargValueFuncCRRA(cFunc_terminal, CRRA)
+    vPPfunc_terminal = MargMargValueFuncCRRA(cFunc_terminal, CRRA)
+    solution_terminal = ConsumerSolution(
+        cFunc=cFunc_terminal,
+        vFunc=vFunc_terminal,
+        vPfunc=vPfunc_terminal,
+        vPPfunc=vPPfunc_terminal,
+        mNrmMin=0.0,
+        hNrm=0.0,
+        MPCmin=1.0,
+        MPCmax=1.0,
+    )
+    return solution_terminal
+
+
 # ============================================================================
 # == Classes for representing types of consumer agents (and things they do) ==
 # ============================================================================
+
+perf_foresight_constructors = {
+    "solution_terminal": make_basic_CRRA_solution_terminal,
+}
 
 # Make a dictionary to specify a perfect foresight consumer type
 init_perfect_foresight = {
@@ -908,6 +944,7 @@ init_perfect_foresight = {
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
     "PerfMITShk": False,
     # Do Perfect Foresight MIT Shock: Forces Newborns to follow solution path of the agent he/she replaced when True
+    "constructors": perf_foresight_constructors,
 }
 
 
@@ -917,10 +954,6 @@ class PerfForesightConsumerType(AgentType):
     His problem is defined by a coefficient of relative risk aversion, intertemporal
     discount factor, interest factor, an artificial borrowing constraint (maybe)
     and time sequences of the permanent income growth rate and survival probability.
-
-    Parameters
-    ----------
-
     """
 
     # Define some universal values for all consumer types
@@ -946,7 +979,6 @@ class PerfForesightConsumerType(AgentType):
 
         # Initialize a basic AgentType
         super().__init__(
-            solution_terminal=deepcopy(self.solution_terminal_),
             pseudo_terminal=False,
             **kwds,
         )
@@ -1030,13 +1062,7 @@ class PerfForesightConsumerType(AgentType):
         -------
         none
         """
-        self.solution_terminal.vFunc = ValueFuncCRRA(self.cFunc_terminal_, self.CRRA)
-        self.solution_terminal.vPfunc = MargValueFuncCRRA(
-            self.cFunc_terminal_, self.CRRA
-        )
-        self.solution_terminal.vPPfunc = MargMargValueFuncCRRA(
-            self.cFunc_terminal_, self.CRRA
-        )
+        self.construct("solution_terminal")
 
     def update_Rfree(self):
         """
@@ -1672,6 +1698,8 @@ indshk_constructor_dict = {
     "IncShkDstn": construct_lognormal_income_process_unemployment,
     "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": construct_assets_grid,
+    "solution_terminal": make_basic_CRRA_solution_terminal,
 }
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
@@ -1683,9 +1711,7 @@ init_idiosyncratic_shocks = {
         # Exponential nesting factor when constructing "assets above minimum" grid
         "aXtraNestFac": 3,
         "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
-        "aXtraExtra": [
-            None
-        ],  # Some other value of "assets above minimum" to add to the grid, not used
+        "aXtraExtra": None,  # Some other values to add to the grid, not used
         # Income process variables
         # Standard deviation of log permanent income shocks
         "PermShkStd": [0.1],
@@ -1775,8 +1801,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         none
         """
-        aXtraGrid = construct_assets_grid(self)
-        self.aXtraGrid = aXtraGrid
+        self.construct("aXtraGrid")
         self.add_to_time_inv("aXtraGrid")
 
     def update(self):
@@ -2275,8 +2300,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def calc_jacobian(self, shk_param, T):
         """
-        Calculates the Jacobians of aggregate consumption and aggregate assets. Parameters that can be shocked are
-        LivPrb, PermShkStd,TranShkStd, DiscFac, UnempPrb, Rfree, IncUnemp, DiscFac .
+        Calculates the Jacobians of aggregate consumption and aggregate assets.
+        Parameters that can be shocked are LivPrb, PermShkStd,TranShkStd, DiscFac,
+        UnempPrb, Rfree, IncUnemp, and DiscFac.
 
         Parameters:
         -----------
@@ -2302,7 +2328,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         params = deepcopy(self.__dict__["parameters"])
         params["T_cycle"] = T  # Dimension of Jacobian Matrix
 
-        # Specify a dictionary of lists because problem we are solving is technically finite horizon so variables can be time varying (see section on fake news algorithm in https://onlinelibrary.wiley.com/doi/abs/10.3982/ECTA17434 )
+        # Specify a dictionary of lists because problem we are solving is
+        # technically finite horizon so variables can be time varying (see
+        # section on fake news algorithm in
+        # https://onlinelibrary.wiley.com/doi/abs/10.3982/ECTA17434 )
         params["LivPrb"] = params["T_cycle"] * [self.LivPrb[0]]
         params["PermGroFac"] = params["T_cycle"] * [self.PermGroFac[0]]
         params["PermShkStd"] = params["T_cycle"] * [self.PermShkStd[0]]

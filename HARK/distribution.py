@@ -1497,7 +1497,6 @@ class TimeVaryingDiscreteDistribution(Distribution):
         # conditions are indices into list
         # somewhat convoluted sampling strategy retained
         # for test backwards compatibility
-
         draws = np.zeros(condition.size)
 
         for c in np.unique(condition):

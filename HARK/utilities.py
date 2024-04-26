@@ -117,59 +117,48 @@ class NullFunc:
 # =======================================================
 
 
-def construct_assets_grid(parameters):
+def construct_assets_grid(aXtraMin, aXtraMax, aXtraCount, aXtraExtra, aXtraNestFac):
     """
     Constructs the base grid of post-decision states, representing end-of-period
-    assets above the absolute minimum.
+    assets above the absolute minimum. Has three modes, depending on aXtraNestFac:
 
-    All parameters are passed as attributes of the single input parameters.  The
-    input can be an instance of a ConsumerType, or a custom Parameters class.
+    aXtraNestFac = -1 : Uniformly spaced grid.
+    aXtraNestFac = 0  : Ordinary exponentially spaced grid.
+    aXtraNestFac >= 1 : Multi-exponentially nested grid.
 
     Parameters
     ----------
     aXtraMin:                  float
-        Minimum value for the a-grid
+        Minimum value for the assets-above-minimum grid.
     aXtraMax:                  float
-        Maximum value for the a-grid
+        Maximum value for the assets-above-minimum grid.
     aXtraCount:                 int
-        Size of the a-grid
+        Number of nodes in the assets-above-minimum grid, not counting extra values.
     aXtraExtra:                [float]
-        Extra values for the a-grid.
-    exp_nest:               int
-        Level of nesting for the exponentially spaced grid.
-        If -1, the grid is linearly spaced.
+        Additional values to insert in the assets-above-minimum grid.
+    aXtraNestFac:               int
+        Level of exponential nesting for grid. If -1, the grid is linearly spaced.
 
     Returns
     -------
     aXtraGrid:     np.ndarray
         Base array of values for the post-decision-state grid.
     """
-    # Unpack the parameters
-    aXtraMin = parameters.aXtraMin
-    aXtraMax = parameters.aXtraMax
-    aXtraCount = parameters.aXtraCount
-    aXtraExtra = parameters.aXtraExtra
-    exp_nest = parameters.aXtraNestFac
-
     # Set up post decision state grid:
-    if exp_nest == -1:
+    if aXtraNestFac == -1:
         aXtraGrid = np.linspace(aXtraMin, aXtraMax, aXtraCount)
-    elif exp_nest >= 0:
+    elif aXtraNestFac >= 0:
         aXtraGrid = make_grid_exp_mult(
-            ming=aXtraMin, maxg=aXtraMax, ng=aXtraCount, timestonest=exp_nest
+            ming=aXtraMin, maxg=aXtraMax, ng=aXtraCount, timestonest=aXtraNestFac
         )
     else:
         raise ValueError(
-            "aXtraNestFac not recognized in __init__."
-            + "Please ensure aXtraNestFac is either -1 or a positive integer."
+            "Please ensure aXtraNestFac is either -1 or a positive integer."
         )
 
     # Add in additional points for the grid:
     if aXtraExtra is not None:
-        for a in aXtraExtra:
-            if a is not None and a not in aXtraGrid:
-                j = aXtraGrid.searchsorted(a)
-                aXtraGrid = np.insert(aXtraGrid, j, a)
+        aXtraGrid = np.sort(np.unique(np.concatenate((aXtraGrid, aXtraExtra))))
 
     return aXtraGrid
 
