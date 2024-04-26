@@ -2350,7 +2350,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         FinHorizonAgent.add_to_time_vary("Rfree")
 
         # Set Terminal Solution as Steady State Consumption Function
-        FinHorizonAgent.cFunc_terminal_ = deepcopy(self.solution[0].cFunc)
+        FinHorizonAgent.solution_terminal = deepcopy(self.solution[0])
 
         dx = 0.0001  # Size of perturbation
         # Period in which the change in the interest rate occurs (second to last period)
@@ -2364,24 +2364,24 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # this condition is because some attributes are specified as lists while other as floats
         if type(getattr(self, shk_param)) == list:
-            peturbed_list = (
+            perturbed_list = (
                 (i) * [getattr(self, shk_param)[0]]
                 + [getattr(self, shk_param)[0] + dx]
                 + (params["T_cycle"] - i - 1) * [getattr(self, shk_param)[0]]
             )  # Sequence of interest rates the agent faces
         else:
-            peturbed_list = (
+            perturbed_list = (
                 (i) * [getattr(self, shk_param)]
                 + [getattr(self, shk_param) + dx]
                 + (params["T_cycle"] - i - 1) * [getattr(self, shk_param)]
             )  # Sequence of interest rates the agent faces
-        setattr(FinHorizonAgent, shk_param, peturbed_list)
+        setattr(FinHorizonAgent, shk_param, perturbed_list)
 
         # Update income process if perturbed parameter enters the income shock distribution
         FinHorizonAgent.update_income_process()
 
         # Solve
-        FinHorizonAgent.solve()
+        FinHorizonAgent.solve(run_presolve=False)
 
         # Use Harmenberg Neutral Measure
         FinHorizonAgent.neutral_measure = True
