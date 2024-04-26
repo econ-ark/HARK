@@ -158,6 +158,10 @@ def construct_assets_grid(aXtraMin, aXtraMax, aXtraCount, aXtraExtra, aXtraNestF
 
     # Add in additional points for the grid:
     if aXtraExtra is not None:
+        temp_list = []
+        for i in aXtraExtra:
+            if i is not None:
+                temp_list.append(i)
         aXtraGrid = np.sort(np.unique(np.concatenate((aXtraGrid, aXtraExtra))))
 
     return aXtraGrid

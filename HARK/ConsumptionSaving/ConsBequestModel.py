@@ -49,43 +49,43 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
         params.update(kwds)
 
         super().__init__(**params)
-
         self.solve_one_period = solve_one_period_ConsWarmBequest
 
     def update_solution_terminal(self):
+        super().update_solution_terminal()
         if self.BeqFacTerm == 0.0:  # No terminal bequest
-            super().update_solution_terminal()
-        else:
-            utility = UtilityFuncCRRA(self.CRRA)
+            return
 
-            warm_glow = UtilityFuncStoneGeary(
-                self.BeqCRRATerm,
-                factor=self.BeqFacTerm,
-                shifter=self.BeqShiftTerm,
-            )
+        utility = UtilityFuncCRRA(self.CRRA)
 
-            aNrmGrid = (
-                np.append(0.0, self.aXtraGrid)
-                if self.BeqShiftTerm != 0.0
-                else self.aXtraGrid
-            )
-            cNrmGrid = utility.derinv(warm_glow.der(aNrmGrid))
-            vGrid = utility(cNrmGrid) + warm_glow(aNrmGrid)
-            cNrmGridW0 = np.append(0.0, cNrmGrid)
-            mNrmGridW0 = np.append(0.0, aNrmGrid + cNrmGrid)
-            vNvrsGridW0 = np.append(0.0, utility.inv(vGrid))
+        warm_glow = UtilityFuncStoneGeary(
+            self.BeqCRRATerm,
+            factor=self.BeqFacTerm,
+            shifter=self.BeqShiftTerm,
+        )
 
-            cFunc_term = LinearInterp(mNrmGridW0, cNrmGridW0)
-            vNvrsFunc_term = LinearInterp(mNrmGridW0, vNvrsGridW0)
-            vFunc_term = ValueFuncCRRA(vNvrsFunc_term, self.CRRA)
-            vPfunc_term = MargValueFuncCRRA(cFunc_term, self.CRRA)
-            vPPfunc_term = MargMargValueFuncCRRA(cFunc_term, self.CRRA)
+        aNrmGrid = (
+            np.append(0.0, self.aXtraGrid)
+            if self.BeqShiftTerm != 0.0
+            else self.aXtraGrid
+        )
+        cNrmGrid = utility.derinv(warm_glow.der(aNrmGrid))
+        vGrid = utility(cNrmGrid) + warm_glow(aNrmGrid)
+        cNrmGridW0 = np.append(0.0, cNrmGrid)
+        mNrmGridW0 = np.append(0.0, aNrmGrid + cNrmGrid)
+        vNvrsGridW0 = np.append(0.0, utility.inv(vGrid))
 
-            self.solution_terminal.cFunc = cFunc_term
-            self.solution_terminal.vFunc = vFunc_term
-            self.solution_terminal.vPfunc = vPfunc_term
-            self.solution_terminal.vPPfunc = vPPfunc_term
-            self.solution_terminal.mNrmMin = 0.0
+        cFunc_term = LinearInterp(mNrmGridW0, cNrmGridW0)
+        vNvrsFunc_term = LinearInterp(mNrmGridW0, vNvrsGridW0)
+        vFunc_term = ValueFuncCRRA(vNvrsFunc_term, self.CRRA)
+        vPfunc_term = MargValueFuncCRRA(cFunc_term, self.CRRA)
+        vPPfunc_term = MargMargValueFuncCRRA(cFunc_term, self.CRRA)
+
+        self.solution_terminal.cFunc = cFunc_term
+        self.solution_terminal.vFunc = vFunc_term
+        self.solution_terminal.vPfunc = vPfunc_term
+        self.solution_terminal.vPPfunc = vPPfunc_term
+        self.solution_terminal.mNrmMin = 0.0
 
 
 class BequestWarmGlowPortfolioType(PortfolioConsumerType):
