@@ -9,16 +9,17 @@ from HARK.model import Control, DBlock
 # But it would be better to have a more graceful Python version as well.
 CRRA = (2.0,)
 
+calibration = {
+    "DiscFac": 0.96,
+    "CRRA": CRRA,
+    "Rfree": 1.03,
+    "y": [1.0, 1.0],
+    "BoroCnstArt": None,
+}
+
 block = DBlock(
     **{
         "shocks": {},
-        "parameters": {
-            "DiscFac": 0.96,
-            "CRRA": CRRA,
-            "Rfree": 1.03,
-            "y": [1.0, 1.0],
-            "BoroCnstArt": None,
-        },
         "dynamics": {
             "m": lambda Rfree, a, y: Rfree * a + y,
             "c": Control(["m"]),

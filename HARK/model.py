@@ -46,6 +46,5 @@ class DBlock:
     name: str = ""
     description: str = ""
     shocks: dict = field(default_factory=dict)
-    parameters: dict = field(default_factory=dict)
     dynamics: dict = field(default_factory=dict)
     reward: dict = field(default_factory=dict)
