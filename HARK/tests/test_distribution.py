@@ -44,7 +44,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         norm = Normal(mu=-(sig**2) / 2, sigma=sig).discretize(131, method="hermite")
         my_logn = distr_of_function(norm, func=lambda x: np.exp(x))
         exp = calc_expectation(my_logn)
-        self.assertAlmostEqual(exp, 1.0)
+        self.assertAlmostEqual(exp[0], 1.0)
 
         # Function 1 -> n
         # Mean and variance of the normal
@@ -184,7 +184,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         norm = Normal(mu=-(sig**2) / 2, sigma=sig).discretize(131, method="hermite")
         my_logn = norm.dist_of_func(lambda x: np.exp(x))
         exp = my_logn.expected()
-        self.assertAlmostEqual(exp, 1.0)
+        self.assertAlmostEqual(exp[0], 1.0)
 
         # Function 1 -> n
         # Mean and variance of the normal
@@ -336,7 +336,7 @@ class DistributionClassTests(unittest.TestCase):
         self.assertEqual(uni_discrete.atoms[0][0], 0.0)
         self.assertEqual(uni_discrete.atoms[0][-1], 1.0)
         self.assertEqual(
-            calc_expectation(uni.discretize(10, method="equiprobable")), 0.5
+            calc_expectation(uni.discretize(10, method="equiprobable"))[0], 0.5
         )
 
     def test_Bernoulli(self):
