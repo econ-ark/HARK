@@ -162,7 +162,7 @@ def construct_assets_grid(aXtraMin, aXtraMax, aXtraCount, aXtraExtra, aXtraNestF
         for i in aXtraExtra:
             if i is not None:
                 temp_list.append(i)
-        aXtraGrid = np.sort(np.unique(np.concatenate((aXtraGrid, aXtraExtra))))
+        aXtraGrid = np.sort(np.unique(np.concatenate((aXtraGrid, temp_list))))
 
     return aXtraGrid
 
