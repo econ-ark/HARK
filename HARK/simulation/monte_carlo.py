@@ -14,6 +14,7 @@ from HARK.distribution import (
     TimeVaryingDiscreteDistribution,
 )
 from HARK.model import Aggregate, Control
+from HARK.model import DBlock
 
 
 def draw_shocks(shocks: Mapping[str, Distribution], conditions: Sequence[int]):
@@ -112,9 +113,9 @@ def simulate_dynamics(
     return vals
 
 
-def parameters_by_age(ages, parameters):
+def calibration_by_age(ages, calibration):
     """
-    Returns parameters for this model, but with vectorized
+    Returns calibration for this model, but with vectorized
     values which map age-varying values to agent ages.
 
     Parameters
@@ -122,12 +123,12 @@ def parameters_by_age(ages, parameters):
     ages: np.array
         An array of agent ages.
 
-    parameters: dict
-        A parameters dictionary
+    calibration: dict
+        A calibration dictionary
 
     Returns
     --------
-    aged_parameters: dict
+    aged_calibration: dict
         A dictionary of parameter values.
         If a parameter is age-varying, the value is a vector
         corresponding to the values for each input age.
@@ -143,7 +144,7 @@ def parameters_by_age(ages, parameters):
         else:
             return np.empty(ages.size)
 
-    return {p: aged_param(ages, parameters[p]) for p in parameters}
+    return {p: aged_param(ages, calibration[p]) for p in calibration}
 
 
 class Simulator:
@@ -165,11 +166,11 @@ class AgentTypeMonteCarloSimulator(Simulator):
 
     Parameters
     ------------
-    parameters: Mapping[str, Any]
 
-    shocks: Mapping[str, Distribution]
+    calibration: Mapping[str, Any]
 
-    dynamics: Mapping[str, Union[Callable, Control]]
+    block : DBlock
+        Has shocks, dynamics, and rewards
 
     dr: Mapping[str, Callable]
 
@@ -190,13 +191,13 @@ class AgentTypeMonteCarloSimulator(Simulator):
     state_vars = []
 
     def __init__(
-        self, parameters, shocks, dynamics, dr, initial, seed=0, agent_count=1, T_sim=10
+        self, calibration, block: DBlock, dr, initial, seed=0, agent_count=1, T_sim=10
     ):
         super().__init__()
 
-        self.parameters = parameters
-        self.shocks = shocks
-        self.dynamics = dynamics
+        self.calibration = calibration
+        self.shocks = block.shocks
+        self.dynamics = block.dynamics
         self.dr = dr
         self.initial = initial
 
@@ -205,7 +206,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
         self.T_sim = T_sim
 
         # changes here from HARK.core.AgentType
-        self.vars = list(shocks.keys()) + list(dynamics.keys())
+        self.vars = list(self.shocks.keys()) + list(self.dynamics.keys())
 
         self.vars_now = {v: None for v in self.vars}
         self.vars_prev = self.vars_now.copy()
@@ -297,14 +298,14 @@ class AgentTypeMonteCarloSimulator(Simulator):
             ### BIG CHANGES HERE from HARK.core.AgentType
             shocks_now = draw_shocks(self.shocks, self.t_age)
 
-        pre = parameters_by_age(self.t_age, self.parameters)
+        pre = calibration_by_age(self.t_age, self.calibration)
 
         pre.update(self.vars_prev)
         pre.update(shocks_now)
         # Won't work for 3.8: self.parameters | self.vars_prev | shocks_now
 
         # Age-varying decision rules captured here
-        dr = parameters_by_age(self.t_age, self.dr)
+        dr = calibration_by_age(self.t_age, self.dr)
 
         post = simulate_dynamics(self.dynamics, pre, dr)
 
