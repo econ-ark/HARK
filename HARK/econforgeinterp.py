@@ -111,7 +111,7 @@ class LinearFast(MetricObject):
             self.f_val,
             np.column_stack([x.flatten() for x in array_args]),
             out=None,
-            order=1,
+            k=1,
             diff=str(deriv_tuple),
             extrap_mode=self.extrap_mode,
         )

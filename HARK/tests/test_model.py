@@ -28,4 +28,4 @@ class test_DBlock(unittest.TestCase):
         self.test_block_A = model.DBlock(**test_block_A_data)
 
     def test_init(self):
-        self.assertEquals(self.test_block_A.name, "test block A")
+        self.assertEqual(self.test_block_A.name, "test block A")
