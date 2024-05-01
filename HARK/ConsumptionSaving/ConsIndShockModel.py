@@ -203,14 +203,37 @@ class ConsumerSolution(MetricObject):
 
 
 def calc_human_wealth(h_nrm_next, perm_gro_fac, rfree, ex_inc_next):
+    """Calculate human wealth this period given human wealth next period.
+
+    Args:
+        h_nrm_next (float): Normalized human wealth next period.
+        perm_gro_fac (float): Permanent income growth factor.
+        rfree (float): Risk free interest factor.
+        ex_inc_next (float): Expected income next period.
+    """
     return (perm_gro_fac / rfree) * (h_nrm_next + ex_inc_next)
 
 
-def calc_pat_fac(rfree, disc_fac_eff, crra):
+def calc_patience_factor(rfree, disc_fac_eff, crra):
+    """Calculate the patience factor for the agent.
+
+    Args:
+        rfree (float): Risk free interest factor.
+        disc_fac_eff (float): Effective discount factor.
+        crra (float): Coefficient of relative risk aversion.
+
+    """
     return ((rfree * disc_fac_eff) ** (1.0 / crra)) / rfree
 
 
 def calc_mpc_min(mpc_min_next, pat_fac):
+    """Calculate the lower bound of the marginal propensity to consume.
+
+    Args:
+        mpc_min_next (float): Lower bound of the marginal propensity to
+            consume next period.
+        pat_fac (float): Patience factor.
+    """
     return 1.0 / (1.0 + pat_fac / mpc_min_next)
 
 
@@ -269,7 +292,7 @@ def solve_one_period_ConsPF(
     hNrmNow = calc_human_wealth(solution_next.hNrm, PermGroFac, Rfree, 1.0)
 
     # Calculate the lower bound of the marginal propensity to consume
-    PatFac = calc_pat_fac(Rfree, DiscFacEff, CRRA)
+    PatFac = calc_patience_factor(Rfree, DiscFacEff, CRRA)
     MPCminNow = calc_mpc_min(solution_next.MPCmin, PatFac)
 
     # Extract the discrete kink points in next period's consumption function;
@@ -377,6 +400,11 @@ def solve_one_period_ConsPF(
 
 
 def calc_worst_inc_prob(inc_shk_dstn):
+    """Calculate the probability of the worst income shock.
+
+    Args:
+        inc_shk_dstn (DiscreteDistribution): Distribution of shocks to income.
+    """
     probs = inc_shk_dstn.pmv
     perm, tran = inc_shk_dstn.atoms
     income = perm * tran
@@ -385,12 +413,26 @@ def calc_worst_inc_prob(inc_shk_dstn):
 
 
 def calc_boro_const_nat(m_nrm_min_next, inc_shk_dstn, rfree, perm_gro_fac):
+    """Calculate the natural borrowing constraint.
+
+    Args:
+        m_nrm_min_next (float): Minimum normalized market resources next period.
+        inc_shk_dstn (DiscreteDstn): Distribution of shocks to income.
+        rfree (float): Risk free interest factor.
+        perm_gro_fac (float): Permanent income growth factor.
+    """
     perm, tran = inc_shk_dstn.atoms
     temp_fac = (perm_gro_fac * np.min(perm)) / rfree
     return (m_nrm_min_next - np.min(tran)) * temp_fac
 
 
 def calc_m_nrm_min(boro_const_art, boro_const_nat):
+    """Calculate the minimum normalized market resources this period.
+
+    Args:
+        boro_const_art (float): Artificial borrowing constraint.
+        boro_const_nat (float): Natural borrowing constraint.
+    """
     return (
         boro_const_nat
         if boro_const_art is None
@@ -401,27 +443,79 @@ def calc_m_nrm_min(boro_const_art, boro_const_nat):
 def calc_mpc_max(
     mpc_max_next, worst_inc_prob, crra, pat_fac, boro_const_nat, boro_const_art
 ):
+    """Calculate the upper bound of the marginal propensity to consume.
+
+    Args:
+        mpc_max_next (float): Upper bound of the marginal propensity to
+            consume next period.
+        worst_inc_prob (float): Probability of the worst income shock.
+        crra (float): Coefficient of relative risk aversion.
+        pat_fac (float): Patience factor.
+        boro_const_nat (float): Natural borrowing constraint.
+        boro_const_art (float): Artificial borrowing constraint.
+    """
     temp_fac = (worst_inc_prob ** (1.0 / crra)) * pat_fac
     return 1.0 / (1.0 + temp_fac / mpc_max_next)
 
 
 def calc_m_nrm_next(shock, a, rfree, perm_gro_fac):
+    """Calculate normalized market resources next period.
+
+    Args:
+        shock (float): Realization of shocks to income.
+        a (np.ndarray): Exogenous grid of end-of-period assets.
+        rfree (float): Risk free interest factor.
+        perm_gro_fac (float): Permanent income growth factor.
+    """
     return rfree / (perm_gro_fac * shock["PermShk"]) * a + shock["TranShk"]
 
 
 def calc_v_next(shock, a, rfree, crra, perm_gro_fac, vfunc_next):
+    """Calculate continuation value function with respect to
+    end-of-period assets.
+
+    Args:
+        shock (float): Realization of shocks to income.
+        a (np.ndarray): Exogenous grid of end-of-period assets.
+        rfree (float): Risk free interest factor.
+        crra (float): Coefficient of relative risk aversion.
+        perm_gro_fac (float): Permanent income growth factor.
+        vfunc_next (Callable): Value function next period.
+    """
     return (
         shock["PermShk"] ** (1.0 - crra) * perm_gro_fac ** (1.0 - crra)
     ) * vfunc_next(calc_m_nrm_next(shock, a, rfree, perm_gro_fac))
 
 
 def calc_vp_next(shock, a, rfree, crra, perm_gro_fac, vp_func_next):
+    """Calculate the continuation marginal value function with respect to
+    end-of-period assets.
+
+    Args:
+        shock (float): Realization of shocks to income.
+        a (np.ndarray): Exogenous grid of end-of-period assets.
+        rfree (float): Risk free interest factor.
+        crra (float): Coefficient of relative risk aversion.
+        perm_gro_fac (float): Permanent income growth factor.
+        vp_func_next (Callable): Marginal value function next period.
+    """
     return shock["PermShk"] ** (-crra) * vp_func_next(
         calc_m_nrm_next(shock, a, rfree, perm_gro_fac),
     )
 
 
 def calc_vpp_next(shock, a, rfree, crra, perm_gro_fac, vppfunc_next):
+    """Calculate the continuation marginal marginal value function
+    with respect to end-of-period assets.
+
+    Args:
+        shock (float): Realization of shocks to income.
+        a (np.ndarray): Exogenous grid of end-of-period assets.
+        rfree (float): Risk free interest factor.
+        crra (float): Coefficient of relative risk aversion.
+        perm_gro_fac (float): Permanent income growth factor.
+        vppfunc_next (Callable): Marginal marginal value function next period.
+    """
     return shock["PermShk"] ** (-crra - 1.0) * vppfunc_next(
         calc_m_nrm_next(shock, a, rfree, perm_gro_fac),
     )
@@ -504,7 +598,7 @@ def solve_one_period_ConsIndShock(
     mNrmMinNow = calc_m_nrm_min(BoroCnstArt, BoroCnstNat)
 
     # Update the bounding MPCs and PDV of human wealth:
-    PatFac = calc_pat_fac(Rfree, DiscFacEff, CRRA)
+    PatFac = calc_patience_factor(Rfree, DiscFacEff, CRRA)
     MPCminNow = calc_mpc_min(solution_next.MPCmin, PatFac)
     # Set the upper limit of the MPC (at mNrmMinNow) based on whether the natural
     # or artificial borrowing constraint actually binds
@@ -752,8 +846,8 @@ def solve_one_period_ConsKinkedR(
     mNrmMinNow = calc_m_nrm_min(BoroCnstArt, BoroCnstNat)
 
     # Update the bounding MPCs and PDV of human wealth:
-    PatFacSave = calc_pat_fac(Rsave, DiscFacEff, CRRA)
-    PatFacBoro = calc_pat_fac(Rboro, DiscFacEff, CRRA)
+    PatFacSave = calc_patience_factor(Rsave, DiscFacEff, CRRA)
+    PatFacBoro = calc_patience_factor(Rboro, DiscFacEff, CRRA)
     MPCminNow = calc_mpc_min(solution_next.MPCmin, PatFacSave)
     # Set the upper limit of the MPC (at mNrmMinNow) based on whether the natural
     # or artificial borrowing constraint actually binds
