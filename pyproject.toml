@@ -20,13 +20,13 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "License :: OSI Approved",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 description = "Heterogenous Agents Resources & toolKit"
 keywords = ["economics", "modelling", "modeling", "heterogeneity"]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dynamic = ["dependencies", "optional-dependencies"]
 
 
