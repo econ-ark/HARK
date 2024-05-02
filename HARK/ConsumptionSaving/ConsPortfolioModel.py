@@ -305,11 +305,29 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
 
 
 def calc_radj(shock, share_limit, rfree, crra):
+    """Expected rate of return adjusted by CRRA
+
+    Args:
+        shock (DiscreteDistribution): Distribution of risky asset returns
+        share_limit (float): limiting lower bound of risky portfolio share
+        rfree (float): Risk free interest rate
+        crra (float): Coefficient of relative risk aversion
+    """
     rport = share_limit * shock + (1.0 - share_limit) * rfree
     return rport ** (1.0 - crra)
 
 
-def calc_h_nrm(shocks, perm_gro_fac, share_limit, rfree, crra, h_nrm_next):
+def calc_human_wealth(shocks, perm_gro_fac, share_limit, rfree, crra, h_nrm_next):
+    """Calculate human wealth this period given human wealth next period.
+
+    Args:
+        shocks (DiscreteDistribution): Joint distribution of shocks to income and returns.
+        perm_gro_fac (float): Permanent income growth factor
+        share_limit (float): limiting lower bound of risky portfolio share
+        rfree (float): Risk free interest rate
+        crra (float): Coefficient of relative risk aversion
+        h_nrm_next (float): Human wealth next period
+    """
     perm_shk_fac = perm_gro_fac * shocks["PermShk"]
     rport = share_limit * shocks["Risky"] + (1.0 - share_limit) * rfree
     hNrm = (perm_shk_fac / rport**crra) * (shocks["TranShk"] + h_nrm_next)
@@ -385,6 +403,11 @@ def calc_dvdx_next(
     dvdm_func_fxd,
     dvds_func_fxd,
 ):
+    """
+    Evaluate realizations of marginal values next period, based
+    on the income distribution "shocks", values of bank balances bNrm, and values of
+    the risky share z.
+    """
     m_nrm = calc_m_nrm_next(shocks, b_nrm, perm_gro_fac)
     dvdm_adj = vp_func_adj(m_nrm)
     # No marginal value of shockshare if it's a free choice!
@@ -445,6 +468,10 @@ def calc_end_of_prd_dvds(shocks, a_nrm, share, rfree, dvdb_func, dvds_func):
 
 
 def calc_end_of_prd_dvdx(shocks, a_nrm, share, rfree, dvdb_func, dvds_func):
+    """
+    Compute end-of-period marginal values at values a, conditional
+    on risky asset return shocks and risky share z.
+    """
     # Calculate future realizations of bank balances bNrm
     ex_ret = shocks - rfree  # Excess returns
     r_port = rfree + share * ex_ret  # Portfolio return
@@ -480,6 +507,7 @@ def calc_v_intermed(
 
 
 def calc_end_of_prd_v(shocks, a_nrm, share, rfree, v_func):
+    """Compute end-of-period values."""
     # Calculate future realizations of bank balances bNrm
     ex_ret = shocks - rfree
     r_port = rfree + share * ex_ret
@@ -705,7 +733,7 @@ def solve_one_period_ConsPortfolio(
     # This correctly accounts for risky returns and risk aversion
     hNrmNow = (
         expected(
-            calc_h_nrm,
+            calc_human_wealth,
             ShockDstn,
             args=(PermGroFac, ShareLimit, Rfree, CRRA, solution_next.hNrm),
         )
