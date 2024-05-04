@@ -801,19 +801,19 @@ class BVLogNormal(multi_rv_frozen, Distribution):
         if (x[1] <= 0) | (x[0] <= 0):
             raise ValueError("x must have positive entries")
 
-        eigVals = linalg.eigvals(self.Sigma)
+        eigenvalues = linalg.eigvals(self.Sigma)
 
-        pDet = np.prod(eigVals[eigVals > 1e-12])
+        pseudo_det = np.prod(eigenvalues[eigenvalues > 1e-12])
 
-        sInv = linalg.pinv(self.Sigma)
+        inverse_sigma = linalg.pinv(self.Sigma)
 
-        sRank = linalg.matrix_rank(self.Sigma)
+        rank_sigma = linalg.matrix_rank(self.Sigma)
 
         pd = (
             (1 / np.prod(x))
-            * (2 * np.pi) ** (-sRank / 2)
-            * pDet ** (-0.5)
-            * np.exp(-(1 / 2) * (np.log(x) @ sInv @ np.log(x)))
+            * (2 * np.pi) ** (-rank_sigma / 2)
+            * pseudo_det ** (-0.5)
+            * np.exp(-(1 / 2) * (np.log(x) @ inverse_sigma @ np.log(x)))
         )
 
         return pd
