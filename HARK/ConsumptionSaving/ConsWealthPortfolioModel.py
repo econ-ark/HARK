@@ -55,10 +55,10 @@ class ChiFromOmegaFunction:
         """
         Define the relationship between chi and omega, and evaluate on the vector
         """
-        return (
+        return x ** (1 - self.WealthShare) * (
             (1 - self.WealthShare) * x ** (-self.WealthShare)
             - self.WealthShare * x ** (1 - self.WealthShare)
-        ) ** (-1 / self.CRRA) * x ** (1 - self.WealthShare)
+        ) ** (-1 / self.CRRA)
 
     def update(self):
         """
@@ -430,7 +430,8 @@ def solve_one_period_WealthPortfolio(
     if WealthShare == 0.0:
         cNrm_now = end_dvda_nvrs_now
     else:
-        cNrm_now = ChiFunc(end_dvda_nvrs_now) * (aNrmGrid + WealthShift)
+        omega = end_dvda_nvrs_now / (aNrmGrid + WealthShift)
+        cNrm_now = ChiFunc(omega) * (aNrmGrid + WealthShift)
 
     # Calculate the endogenous mNrm gridpoints when the agent adjusts his portfolio,
     # then construct the consumption function when the agent can adjust his share
