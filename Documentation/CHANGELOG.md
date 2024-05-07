@@ -16,6 +16,7 @@ Release Date: TBA
 
 - Replace object-oriented solvers with single function versions. [1394](https://github.com/econ-ark/HARK/pull/1394)
 - Object-oriented solver code has been moved to /HARK/ConsumptionSaving/LegacyOOsolvers.py, for legacy support of downstream projects.
+- AgentTypeMonteCarloSimulator now requires model shock, parameter, and dynamics information to be organized into 'blocks'. The DBlock object is introduced. [#1411](https://github.com/econ-ark/HARK/pull/1411)
 
 ### Minor Changes
 
@@ -25,6 +26,8 @@ Release Date: TBA
 - Fixes cubic spline interpolation for ConsMedShockModel.
 - Moves computation of "stable points" from inside of ConsIndShock solver to a post-solution method. [1349](https://github.com/econ-ark/HARK/pull/1349)
 - Corrects calculation of "human wealth" under risky returns, providing correct limiting linear consumption function. [1403](https://github.com/econ-ark/HARK/pull/1403)
+- Removed 'parameters' from new block definitions; these are now 'calibrations' provided separately.
+- Create functions for well-known and repeated calculations in single-function solvers. [1395](https://github.com/econ-ark/HARK/pull/1395)
 
 ### 0.14.1
 
