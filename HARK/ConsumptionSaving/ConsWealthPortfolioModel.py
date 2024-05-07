@@ -340,8 +340,6 @@ def solve_one_period_WealthPortfolio(
     # Make tiled arrays to calculate future realizations of mNrm and Share when integrating over IncShkDstn
     bNrmNext = bNrmGrid
 
-    # Define functions that are used internally to evaluate future realizations
-
     # Calculate end-of-period marginal value of assets and shares at each point
     # in aNrm and ShareGrid. Does so by taking expectation of next period marginal
     # values across income and risky return shocks.
@@ -359,16 +357,12 @@ def solve_one_period_WealthPortfolio(
     # Make tiled arrays to calculate future realizations of bNrm and Share when integrating over RiskyDstn
     aNrmNow, ShareNext = np.meshgrid(aNrmGrid, ShareGrid, indexing="ij")
 
-    # Define functions for calculating end-of-period marginal value
-
     # Evaluate realizations of value and marginal value after asset returns are realized
-
     end_dvda, end_dvds = DiscFacEff * expected(
         calc_end_dvdx,
         RiskyDstn,
         args=(aNrmNow, ShareNext, Rfree, med_dvdb_func),
     )
-
     end_dvda_nvrs = uFunc.derinv(end_dvda)
 
     # Now find the optimal (continuous) risky share on [0,1] by solving the first
@@ -422,8 +416,6 @@ def solve_one_period_WealthPortfolio(
         end_dvda_nvrs_now[0] = end_dvda_nvrs[0, -1]
         end_dvda_now[0] = end_dvda[0, -1]
 
-    # Construct functions characterizing the solution for this period
-
     # Now this is where we look for optimal C
     # for each a in the agrid find corresponding c that satisfies the euler equation
 
@@ -432,6 +424,9 @@ def solve_one_period_WealthPortfolio(
     else:
         omega = end_dvda_nvrs_now / (aNrmGrid + WealthShift)
         cNrm_now = ChiFunc(omega) * (aNrmGrid + WealthShift)
+
+    # TODO: Go through and verify the math in the presence of WealthShift, which
+    # MNW didn't know about when he did the "chi from omega" thing.
 
     # Calculate the endogenous mNrm gridpoints when the agent adjusts his portfolio,
     # then construct the consumption function when the agent can adjust his share
@@ -442,6 +437,8 @@ def solve_one_period_WealthPortfolio(
     dudc_now = dudc(cNrm_now, mNrm_now - cNrm_now, CRRA, WealthShare, WealthShift)
     dudc_nvrs_now = uFunc.derinv(dudc_now, order=(1, 0))
     dudc_nvrs_func_now = LinearInterp(mNrm_now, dudc_nvrs_now)
+
+    # TODO: This is not the right envelope condition math for marginal value
 
     # Construct the marginal value (of mNrm) function
     vPfuncNow = MargValueFuncCRRA(dudc_nvrs_func_now, CRRA)
