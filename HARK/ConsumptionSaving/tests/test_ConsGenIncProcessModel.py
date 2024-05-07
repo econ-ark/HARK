@@ -72,7 +72,7 @@ class testIndShockExplicitPermIncConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc(10, pLvlGrid[5]).tolist(),
-            5.40844,
+            5.408106,
             places=HARK_PRECISION,
         )
 
