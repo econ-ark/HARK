@@ -417,7 +417,6 @@ def make_AR1_style_pLvlNextFunc(T_cycle, pLvlInitMean, PermGroFac, PrstIncCorr):
 def construct_pLvlGrid_by_simulation(
     cycles,
     T_cycle,
-    AgentCount,
     PermShkDstn,
     pLvlNextFunc,
     LivPrb,
@@ -441,8 +440,6 @@ def construct_pLvlGrid_by_simulation(
         Number of times the sequence of periods happens for the agent; must be 0 or 1.
     T_cycle : int
         Number of non-terminal periods in the agent's problem.
-    AgentCount : int
-        Number of agents to simulate for this type.
     PermShkDstn : [distribution]
         List of permanent shock distributions in each period of the problem.
     pLvlNextFunc : [function]
@@ -465,7 +462,7 @@ def construct_pLvlGrid_by_simulation(
         the permanent income process and extracting specified percentiles.
     """
     LivPrbAll = np.array(LivPrb)
-    Agent_N = AgentCount
+    Agent_N = 100000
 
     # Simulate the distribution of persistent income levels by t_cycle in a lifecycle model
     if cycles == 1:
