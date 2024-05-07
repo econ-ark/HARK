@@ -880,7 +880,7 @@ def solve_one_period_ConsKinkedR(
 def make_basic_CRRA_solution_terminal(CRRA):
     """
     Construct the terminal period solution for a consumption-saving model with
-    CRRA utility.
+    CRRA utility and only one state variable.
 
     Parameters
     ----------

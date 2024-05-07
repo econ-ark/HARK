@@ -2,6 +2,8 @@
 This file has various classes and functions for constructing income processes.
 """
 
+import numpy as np
+from HARK.metric import MetricObject
 from HARK.distribution import (
     add_discrete_outcome_constant_mean,
     combine_indep_dstns,
@@ -10,7 +12,11 @@ from HARK.distribution import (
     IndexDistribution,
     MeanOneLogNormal,
     TimeVaryingDiscreteDistribution,
+    Lognormal,
+    Uniform,
 )
+from HARK.interpolation import IdentityFunction, LinearInterp
+from HARK.utilities import get_percentiles
 
 
 class LognormPermIncShk(DiscreteDistribution):
@@ -281,3 +287,231 @@ def get_TranShkDstn_from_IncShkDstn(IncShkDstn, RNG):
         this.make_univariate(1, seed=RNG.integers(0, 2**31 - 1)) for this in IncShkDstn
     ]
     return TimeVaryingDiscreteDistribution(TranShkDstn, seed=RNG.integers(0, 2**31 - 1))
+
+
+class pLvlFuncAR1(MetricObject):
+    """
+    A class for representing AR1-style persistent income growth functions.
+
+    Parameters
+    ----------
+    pLogMean : float
+        Log persistent income level toward which we are drawn.
+    PermGroFac : float
+        Autonomous (e.g. life cycle) pLvl growth (does not AR1 decay).
+    Corr : float
+        Correlation coefficient on log income.
+    """
+
+    def __init__(self, pLogMean, PermGroFac, Corr):
+        self.pLogMean = pLogMean
+        self.LogGroFac = np.log(PermGroFac)
+        self.Corr = Corr
+
+    def __call__(self, pLvlNow):
+        """
+        Returns expected persistent income level next period as a function of
+        this period's persistent income level.
+
+        Parameters
+        ----------
+        pLvlNow : np.array
+            Array of current persistent income levels.
+
+        Returns
+        -------
+        pLvlNext : np.array
+            Identically shaped array of next period persistent income levels.
+        """
+        pLvlNext = np.exp(
+            self.Corr * np.log(pLvlNow)
+            + (1.0 - self.Corr) * self.pLogMean
+            + self.LogGroFac
+        )
+        return pLvlNext
+
+
+###############################################################################
+
+# Define income processes that can be used in the ConsGenIncProcess model
+
+
+def make_trivial_pLvlNextFunc(T_cycle):
+    """
+    A dummy function that creates default trivial permanent income dynamics:
+    none at all! Simply returns a list of IdentityFunctions, one for each period.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of non-terminal periods in the agent's problem.
+
+    Returns
+    -------
+    pLvlNextFunc : [IdentityFunction]
+        List of trivial permanent income dynamic functions.
+    """
+    pLvlNextFunc_basic = IdentityFunction()
+    pLvlNextFunc = T_cycle * [pLvlNextFunc_basic]
+    return pLvlNextFunc
+
+
+def make_explicit_perminc_pLvlNextFunc(T_cycle, PermGroFac):
+    """
+    A function that creates permanent income dynamics as a sequence of linear
+    functions, indicating constant expected permanent income growth across
+    permanent income levels.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of non-terminal periods in the agent's problem.
+    PermGroFac : [float]
+        List of permanent income growth factors over the agent's problem.
+
+    Returns
+    -------
+    pLvlNextFunc : [LinearInterp]
+        List of linear functions representing constant permanent income growth
+        rate, regardless of current permanent income level.
+    """
+    pLvlNextFunc = []
+    for t in range(T_cycle):
+        pLvlNextFunc.append(
+            LinearInterp(np.array([0.0, 1.0]), np.array([0.0, PermGroFac[t]]))
+        )
+    return pLvlNextFunc
+
+
+def make_AR1_style_pLvlNextFunc(T_cycle, pLvlInitMean, PermGroFac, PrstIncCorr):
+    """
+    A function that creates permanent income dynamics as a sequence of AR1-style
+    functions. If cycles=0, the product of PermGroFac across all periods must be
+    1.0, otherwise this method is invalid.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of non-terminal periods in the agent's problem.
+    pLvlInitMean : float
+        Mean of log permanent income at initialization.
+    PermGroFac : [float]
+        List of permanent income growth factors over the agent's problem.
+    PrstIncCorr : float
+        Correlation coefficient on log permanent income today on log permanent
+        income in the succeeding period.
+
+    Returns
+    -------
+    pLvlNextFunc : [pLvlFuncAR1]
+        List of AR1-style persistent income dynamics functions
+    """
+    pLvlNextFunc = []
+    pLogMean = pLvlInitMean  # Initial mean (log) persistent income
+    for t in range(T_cycle):
+        pLvlNextFunc.append(pLvlFuncAR1(pLogMean, PermGroFac[t], PrstIncCorr))
+        pLogMean += np.log(PermGroFac[t])
+    return pLvlNextFunc
+
+
+def construct_pLvlGrid_by_simulation(
+    cycles,
+    T_cycle,
+    AgentCount,
+    PermShkDstn,
+    pLvlNextFunc,
+    LivPrb,
+    pLvlInitMean,
+    pLvlInitStd,
+    pLvlPctiles,
+):
+    """
+    Construct the permanent income grid for each period of the problem by simulation.
+    If the model is infinite horizon (cycles=0), an approximation of the long run
+    steady state distribution of permanent income is used (by simulating many periods).
+    If the model is lifecycle (cycles=1), explicit simulation is used. In either
+    case, the input pLvlPctiles is used to choose percentiles from the distribution.
+
+    If the problem is neither infinite horizon nor lifecycle, this method will fail.
+    If the problem is infinite horizon, cumprod(PermGroFac) must equal one.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the sequence of periods happens for the agent; must be 0 or 1.
+    T_cycle : int
+        Number of non-terminal periods in the agent's problem.
+    AgentCount : int
+        Number of agents to simulate for this type.
+    PermShkDstn : [distribution]
+        List of permanent shock distributions in each period of the problem.
+    pLvlNextFunc : [function]
+        List of permanent income dynamic functions.
+    LivPrb : [float]
+        List of survival probabilities by period of the cycle. Only used in infinite
+        horizon specifications.
+    pLvlInitMean : float
+        Mean of log permanent income at initialization.
+    pLvlInitStd : float
+        Standard deviaition of log permanent income at initialization.
+    pLvlPctiles : [float]
+        List or array of percentiles (between 0 and 1) of permanent income to
+        use for the pLvlGrid.
+
+    Returns
+    -------
+    pLvlGrid : [np.array]
+        List of permanent income grids for each period, constructed by simulating
+        the permanent income process and extracting specified percentiles.
+    """
+    LivPrbAll = np.array(LivPrb)
+    Agent_N = AgentCount
+
+    # Simulate the distribution of persistent income levels by t_cycle in a lifecycle model
+    if cycles == 1:
+        pLvlNow = Lognormal(pLvlInitMean, sigma=pLvlInitStd, seed=31382).draw(Agent_N)
+        pLvlGrid = []  # empty list of time-varying persistent income grids
+        # Calculate distribution of persistent income in each period of lifecycle
+        for t in range(T_cycle):
+            if t > 0:
+                PermShkNow = PermShkDstn[t - 1].draw(N=Agent_N)
+                pLvlNow = pLvlNextFunc[t - 1](pLvlNow) * PermShkNow
+            pLvlGrid.append(get_percentiles(pLvlNow, percentiles=pLvlPctiles))
+
+    # Calculate "stationary" distribution in infinite horizon (might vary across periods of cycle)
+    elif cycles == 0:
+        T_long = (
+            1000  # Number of periods to simulate to get to "stationary" distribution
+        )
+        pLvlNow = Lognormal(mu=pLvlInitMean, sigma=pLvlInitStd, seed=31382).draw(
+            Agent_N
+        )
+        t_cycle = np.zeros(Agent_N, dtype=int)
+        for t in range(T_long):
+            # Determine who dies and replace them with newborns
+            LivPrb = LivPrbAll[t_cycle]
+            draws = Uniform(seed=t).draw(Agent_N)
+            who_dies = draws > LivPrb
+            pLvlNow[who_dies] = Lognormal(
+                pLvlInitMean, pLvlInitStd, seed=t + 92615
+            ).draw(np.sum(who_dies))
+            t_cycle[who_dies] = 0
+
+            for j in range(T_cycle):  # Update persistent income
+                these = t_cycle == j
+                PermShkTemp = PermShkDstn[j].draw(N=np.sum(these))
+                pLvlNow[these] = pLvlNextFunc[j](pLvlNow[these]) * PermShkTemp
+            t_cycle = t_cycle + 1
+            t_cycle[t_cycle == T_cycle] = 0
+
+        # We now have a "long run stationary distribution", extract percentiles
+        pLvlGrid = []  # empty list of time-varying persistent income grids
+        for t in range(T_cycle):
+            these = t_cycle == t
+            pLvlGrid.append(get_percentiles(pLvlNow[these], percentiles=pLvlPctiles))
+
+    # Throw an error if cycles>1
+    else:
+        assert False, "Can only handle cycles=0 or cycles=1!"
+
+    return pLvlGrid
