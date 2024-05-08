@@ -28,35 +28,87 @@ from HARK.interpolation import (
 )
 from HARK.rewards import UtilityFuncCRRA
 
-# Make a dictionary to specify a preference shock consumer
-init_preference_shocks = dict(
-    init_idiosyncratic_shocks,
-    **{
-        "PrefShkCount": 12,  # Number of points in discrete approximation to preference shock dist
-        "PrefShk_tail_N": 4,  # Number of "tail points" on each end of pref shock dist
-        "PrefShkStd": [0.30],  # Standard deviation of utility shocks
-        "aXtraCount": 48,
-        "CubicBool": False,  # pref shocks currently only compatible with linear cFunc
-    },
-)
-
-# Make a dictionary to specify a "kinky preference" consumer
-init_kinky_pref = dict(
-    init_kinked_R,
-    **{
-        "PrefShkCount": 12,  # Number of points in discrete approximation to preference shock dist
-        "PrefShk_tail_N": 4,  # Number of "tail points" on each end of pref shock dist
-        "PrefShkStd": [0.30],  # Standard deviation of utility shocks
-        "aXtraCount": 48,
-        "CubicBool": False,  # pref shocks currently only compatible with linear cFunc
-    },
-)
-init_kinky_pref["BoroCnstArt"] = None
-
 __all__ = [
     "PrefShockConsumerType",
     "KinkyPrefConsumerType",
 ]
+
+
+def make_lognormal_PrefShkDstn(
+    T_cycle,
+    PrefShkStd,
+    PrefShkCount,
+    RNG,
+    PrefShk_tail_N=0,
+    PrefShk_tail_order=np.e,
+    PrefShk_tail_bound=[0.02, 0.98],
+):
+    """
+    Make a discretized mean one lognormal preference shock distribution for each
+    period of the agent's problem.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of non-terminal periods in the agent's cycle.
+    PrefShkStd : [float]
+        Standard deviation of log preference shocks in each period.
+    PrefShkCount : int
+        Number of equiprobable preference shock nodes in the "body" of the distribution.
+    RNG : RandomState
+        The AgentType's internal random number generator.
+    PrefShk_tail_N : int
+        Number of shock nodes in each "tail" of the distribution (optional).
+    PrefShk_tail_order : float
+        Scaling factor for tail nodes (optional).
+    PrefShk_tail_bound : float
+        CDF bounds for tail nodes (optional).
+
+    Returns
+    -------
+    PrefShkDstn : [DiscreteDistribution]
+        List of discretized lognormal distributions for shocks.
+    """
+    PrefShkDstn = []  # discrete distributions of preference shocks
+    for t in range(T_cycle):
+        PrefShkStd = PrefShkStd[t]
+        new_dstn = MeanOneLogNormal(
+            sigma=PrefShkStd, seed=RNG.integers(0, 2**31 - 1)
+        ).discretize(
+            N=PrefShkCount,
+            method="equiprobable",
+            tail_N=PrefShk_tail_N,
+            tail_order=PrefShk_tail_order,
+            tail_bound=PrefShk_tail_bound,
+        )
+        PrefShkDstn.append(new_dstn)
+    return PrefShkDstn
+
+
+###############################################################################
+
+pref_shock_params = {
+    "PrefShkCount": 12,  # Number of points in discrete approximation to preference shock dist
+    "PrefShk_tail_N": 4,  # Number of "tail points" on each end of pref shock dist
+    "PrefShkStd": [0.30],  # Standard deviation of utility shocks
+    "aXtraCount": 48,
+    "CubicBool": False,  # pref shocks currently only compatible with linear cFunc
+}
+
+# Make a dictionary to specify a preference shock consumer
+init_preference_shocks = dict(
+    init_idiosyncratic_shocks,
+    **pref_shock_params,
+)
+init_preference_shocks["constructors"]["PrefShkDstn"] = make_lognormal_PrefShkDstn
+
+# Make a dictionary to specify a "kinky preference" consumer
+init_kinky_pref = dict(
+    init_kinked_R,
+    **pref_shock_params,
+)
+init_kinky_pref["BoroCnstArt"] = None
+init_kinky_pref["constructors"]["PrefShkDstn"] = make_lognormal_PrefShkDstn
 
 
 class PrefShockConsumerType(IndShockConsumerType):
@@ -117,20 +169,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         -------
         none
         """
-        PrefShkDstn = []  # discrete distributions of preference shocks
-        for t in range(len(self.PrefShkStd)):
-            PrefShkStd = self.PrefShkStd[t]
-            new_dstn = MeanOneLogNormal(
-                sigma=PrefShkStd, seed=self.RNG.integers(0, 2**31 - 1)
-            ).discretize(
-                N=self.PrefShkCount,
-                method="equiprobable",
-                tail_N=self.PrefShk_tail_N,
-            )
-            PrefShkDstn.append(new_dstn)
-
-        # Store the preference shocks in self (time-varying) and restore time flow
-        self.PrefShkDstn = PrefShkDstn
+        self.construct("PrefShkDstn")
         self.add_to_time_vary("PrefShkDstn")
 
     def reset_rng(self):
