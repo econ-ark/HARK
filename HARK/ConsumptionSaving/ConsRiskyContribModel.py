@@ -43,7 +43,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import init_lifecycle
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     RiskyAssetConsumerType,
     init_risky_asset,
-    risky_asset_parms,
+    risky_asset_params,
 )
 from HARK.distribution import calc_expectation
 from HARK.interpolation import BilinearInterp  # 2D interpolator
@@ -2032,5 +2032,5 @@ init_risky_contrib.update(risky_contrib_params)
 
 # Lifecycle version
 init_risky_contrib_lifecycle = init_lifecycle.copy()
-init_risky_contrib_lifecycle.update(risky_asset_parms)
+init_risky_contrib_lifecycle.update(risky_asset_params)
 init_risky_contrib_lifecycle.update(risky_contrib_params)
