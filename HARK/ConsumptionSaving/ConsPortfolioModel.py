@@ -11,9 +11,11 @@ import numpy as np
 from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
-    init_idiosyncratic_shocks,
 )
-from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyAssetConsumerType
+from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
+    RiskyAssetConsumerType,
+    init_risky_asset,
+)
 from HARK.distribution import expected
 from HARK.interpolation import (
     BilinearInterp,
@@ -163,7 +165,6 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         params = init_portfolio.copy()
         params.update(kwds)
         kwds = params
-
         self.PortfolioBool = True
 
         # Initialize a basic consumer type
@@ -174,8 +175,6 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
 
     def update(self):
         RiskyAssetConsumerType.update(self)
-        self.update_ShareGrid()
-        self.update_ShareLimit()
 
     def update_solution_terminal(self):
         """
@@ -1091,19 +1090,14 @@ def solve_one_period_ConsPortfolio(
 
 
 # Make a dictionary to specify a portfolio choice consumer type
-init_portfolio = init_idiosyncratic_shocks.copy()
-init_portfolio["RiskyAvg"] = 1.08  # Average return of the risky asset
-init_portfolio["RiskyStd"] = 0.20  # Standard deviation of (log) risky returns
-# Number of integration nodes to use in approximation of risky returns
-init_portfolio["RiskyCount"] = 5
-# Number of discrete points in the risky share approximation
-init_portfolio["ShareCount"] = 25
-# Probability that the agent can adjust their risky portfolio share each period
+init_portfolio = init_risky_asset.copy()
 init_portfolio["AdjustPrb"] = 1.0
 # Flag for whether to optimize risky share on a discrete grid only
 init_portfolio["DiscreteShareBool"] = False
 
 # Adjust some of the existing parameters in the dictionary
+init_portfolio["RiskyAvg"] = 1.08  # Average return of the risky asset
+init_portfolio["RiskyStd"] = 0.20  # Standard deviation of (log) risky returns
 init_portfolio["aXtraMax"] = 100  # Make the grid of assets go much higher...
 init_portfolio["aXtraCount"] = 200  # ...and include many more gridpoints...
 # ...which aren't so clustered at the bottom

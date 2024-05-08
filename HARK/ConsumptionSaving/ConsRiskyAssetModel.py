@@ -7,21 +7,23 @@ risky assets that will be useful to models what will inherit from it.
 """
 
 import numpy as np
-from scipy.optimize import minimize_scalar
 
 from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,  # PortfolioConsumerType inherits from it;
     init_idiosyncratic_shocks,  # Baseline dictionary to build on
+    indshk_constructor_dict,
+)
+from HARK.Calibration.Assets.AssetProcesses import (
+    make_lognormal_RiskyDstn,
+    combine_IncShkDstn_and_RiskyDstn,
+    calc_ShareLimit_for_CRRA,
 )
 from HARK.distribution import (
     Bernoulli,
-    DiscreteDistributionLabeled,
     expected,
     IndexDistribution,
-    Lognormal,
-    combine_indep_dstns,
 )
 from HARK.interpolation import (
     BilinearInterp,
@@ -89,15 +91,13 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         self.update_AdjustDstn()
         self.update_RiskyDstn()
         self.update_ShockDstn()
-
         if self.PortfolioBool:
             self.update_ShareLimit()
             self.update_ShareGrid()
 
     def update_RiskyDstn(self):
         """
-        Creates the attributes RiskyDstn from the primitive attributes RiskyAvg,
-        RiskyStd, and RiskyCount, approximating the (perceived) distribution of
+        Updates the attribute RiskyDstn, approximating the (perceived) distribution of
         returns in each period of the cycle.
 
         Parameters
@@ -108,38 +108,10 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         """
-        # Determine whether this instance has time-varying risk perceptions
-        if (
-            (type(self.RiskyAvg) is list)
-            and (type(self.RiskyStd) is list)
-            and (len(self.RiskyAvg) == len(self.RiskyStd))
-            and (len(self.RiskyAvg) == self.T_cycle)
-        ):
-            self.add_to_time_vary("RiskyAvg", "RiskyStd")
-        elif (type(self.RiskyStd) is list) or (type(self.RiskyAvg) is list):
-            raise AttributeError(
-                "If RiskyAvg is time-varying, then RiskyStd must be as well, and they must both have length of T_cycle!"
-            )
-        else:
-            self.add_to_time_inv("RiskyAvg", "RiskyStd")
-
-        # Generate a discrete approximation to the risky return distribution
-        # if its parameters are time-varying
-        if "RiskyAvg" in self.time_vary:
-            self.RiskyDstn = IndexDistribution(
-                Lognormal.from_mean_std,
-                {"mean": self.RiskyAvg, "std": self.RiskyStd},
-                seed=self.RNG.integers(0, 2**31 - 1),
-            ).discretize(self.RiskyCount, method="equiprobable")
-
+        self.construct("RiskyDstn")
+        if hasattr(self.RiskyDstn, "__getitem__"):
             self.add_to_time_vary("RiskyDstn")
-
-        # Generate a discrete approximation to the risky return distribution if
-        # its parameters are constant
         else:
-            self.RiskyDstn = Lognormal.from_mean_std(
-                self.RiskyAvg, self.RiskyStd
-            ).discretize(self.RiskyCount, method="equiprobable")
             self.add_to_time_inv("RiskyDstn")
 
     def update_ShockDstn(self):
@@ -155,40 +127,8 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         """
-
-        # Create placeholder distributions
-        if "RiskyDstn" in self.time_vary:
-            dstn_list = [
-                combine_indep_dstns(self.IncShkDstn[t], self.RiskyDstn[t])
-                for t in range(self.T_cycle)
-            ]
-        else:
-            dstn_list = [
-                combine_indep_dstns(self.IncShkDstn[t], self.RiskyDstn)
-                for t in range(self.T_cycle)
-            ]
-
-        # Names of the variables (hedging for the unlikely case that in
-        # some index of IncShkDstn variables are in a switched order)
-        names_list = [
-            list(self.IncShkDstn[t].variables.keys()) + ["Risky"]
-            for t in range(self.T_cycle)
-        ]
-
-        conditional = {
-            "pmv": [x.pmv for x in dstn_list],
-            "atoms": [x.atoms for x in dstn_list],
-            "var_names": names_list,
-        }
-
-        # Now create the actual distribution using the index and labeled class
-        self.ShockDstn = IndexDistribution(
-            engine=DiscreteDistributionLabeled,
-            conditional=conditional,
-        )
-
+        self.construct("ShockDstn")
         self.add_to_time_vary("ShockDstn")
-
         # Mark whether the risky returns and income shocks are independent (they are)
         self.IndepDstnBool = True
         self.add_to_time_inv("IndepDstnBool")
@@ -237,44 +177,10 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         """
-        if "RiskyDstn" in self.time_vary or "Rfree" in self.time_vary:
-            self.ShareLimit = []
-            for t in range(self.T_cycle):
-                if "RiskyDstn" in self.time_vary:
-                    RiskyDstn = self.RiskyDstn[t]
-                else:
-                    RiskyDstn = self.RiskyDstn
-                if "Rfree" in self.time_vary:
-                    Rfree = self.Rfree[t]
-                else:
-                    Rfree = self.Rfree
-
-                def temp_f(s):
-                    return -((1.0 - self.CRRA) ** -1) * np.dot(
-                        (Rfree + s * (RiskyDstn.atoms - Rfree)) ** (1.0 - self.CRRA),
-                        RiskyDstn.pmv,
-                    )
-
-                SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
-                self.ShareLimit.append(SharePF)
+        self.construct("ShareLimit")
+        if type(self.ShareLimit) is list:
             self.add_to_time_vary("ShareLimit")
-
         else:
-            RiskyDstn = self.RiskyDstn
-
-            def temp_f(s):
-                return -((1.0 - self.CRRA) ** -1) * np.dot(
-                    (self.Rfree + s * (RiskyDstn.atoms - self.Rfree))
-                    ** (1.0 - self.CRRA),
-                    RiskyDstn.pmv,
-                )
-
-            SharePF = minimize_scalar(
-                temp_f, bracket=(0.0, 1.0), method="golden", tol=1e-10
-            ).x
-            if type(SharePF) is np.array:
-                SharePF = SharePF[0]
-            self.ShareLimit = SharePF
             self.add_to_time_inv("ShareLimit")
 
     def update_ShareGrid(self):
@@ -1866,11 +1772,17 @@ def solve_one_period_FixedShareRiskyAsset(
 
 # Base risky asset dictionary
 
-risky_asset_parms = {
+risky_constructor_dict = indshk_constructor_dict.copy()
+risky_constructor_dict["RiskyDstn"] = make_lognormal_RiskyDstn
+risky_constructor_dict["ShockDstn"] = combine_IncShkDstn_and_RiskyDstn
+risky_constructor_dict["ShareLimit"] = calc_ShareLimit_for_CRRA
+
+risky_asset_params = {
     # Risky return factor moments. Based on SP500 real returns from Shiller's
     # "chapter 26" data, which can be found at https://www.econ.yale.edu/~shiller/data.htm
     "RiskyAvg": 1.080370891,
     "RiskyStd": 0.177196585,
+    "ShareCount": 25,  # Number of discrete points in the risky share approximation
     # Number of integration nodes to use in approximation of risky returns
     "RiskyCount": 5,
     # Probability that the agent can adjust their portfolio each period
@@ -1878,13 +1790,13 @@ risky_asset_parms = {
     # When simulating the model, should all agents get the same risky return in
     # a given period?
     "sim_common_Rrisky": True,
+    "constructors": risky_constructor_dict,
 }
+
 
 # Make a dictionary to specify a risky asset consumer type
 init_risky_asset = init_idiosyncratic_shocks.copy()
-init_risky_asset.update(risky_asset_parms)
-# Number of discrete points in the risky share approximation
-init_risky_asset["ShareCount"] = 25
+init_risky_asset.update(risky_asset_params)
 
 init_risky_share_fixed = init_risky_asset.copy()
 init_risky_share_fixed["RiskyShareFixed"] = [0.0]
