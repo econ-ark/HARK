@@ -61,7 +61,7 @@ def make_lognormal_PrefShkDstn(
         Number of shock nodes in each "tail" of the distribution (optional).
     PrefShk_tail_order : float
         Scaling factor for tail nodes (optional).
-    PrefShk_tail_bound : float
+    PrefShk_tail_bound : [float,float]
         CDF bounds for tail nodes (optional).
 
     Returns

@@ -1113,7 +1113,6 @@ class PerfForesightConsumerType(AgentType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(self.time_vary_)
         self.time_inv = deepcopy(self.time_inv_)
-
         self.shock_vars = deepcopy(self.shock_vars_)
         self.verbose = verbose
         self.quiet = quiet

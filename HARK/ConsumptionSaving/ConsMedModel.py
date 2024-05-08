@@ -533,6 +533,60 @@ class MedThruXfunc(MetricObject):
         return dMeddShk
 
 
+def make_lognormal_MedShkDstn(
+    T_cycle,
+    MedShkAvg,
+    MedShkStd,
+    MedShkCount,
+    MedShkCountTail,
+    RNG,
+    MedShkTailBound=[0.0, 0.9],
+):
+    """
+    Constructs discretized lognormal distributions of medical preference shocks
+    for each period in the cycle.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of non-terminal periods in the agent's cycle.
+    MedShkAvg : [float]
+        Mean of medical needs shock in each period of the problem.
+    MedShkStd : [float]
+        Standard deviation of log medical needs shock in each period of the problem.
+    MedShkCount : int
+        Number of equiprobable nodes in the "body" of the discretization.
+    MedShkCountTail : int
+        Number of nodes in each "tail" of the discretization.
+    RNG : RandomState
+        The AgentType's internal random number generator.
+    MedShkTailBound : [float,float]
+        CDF bounds for the tail of the discretization.
+
+    Returns
+    -------
+    MedShkDstn : [DiscreteDistribuion]
+    """
+    MedShkDstn = []  # empty list for medical shock distribution each period
+    for t in range(T_cycle):
+        # get shock distribution parameters
+        MedShkAvg_t = MedShkAvg[t]
+        MedShkStd_t = MedShkStd[t]
+        MedShkDstn_t = Lognormal(
+            mu=np.log(MedShkAvg_t) - 0.5 * MedShkStd_t**2, sigma=MedShkStd_t
+        ).discretize(
+            N=MedShkCount,
+            method="equiprobable",
+            tail_N=MedShkCountTail,
+            tail_bound=MedShkTailBound,
+        )
+        MedShkDstn_t = add_discrete_outcome_constant_mean(
+            MedShkDstn_t, 0.0, 0.0, sort=True
+        )  # add point at zero with no probability
+        MedShkDstn.append(MedShkDstn_t)
+    return MedShkDstn
+
+
 ###############################################################################
 
 # -----------------------------------------------------------------------------
@@ -555,6 +609,7 @@ init_medical_shocks["MedShkCount"] = MedShkCount
 init_medical_shocks["MedShkCountTail"] = MedShkCountTail
 init_medical_shocks["MedPrice"] = MedPrice
 init_medical_shocks["aXtraCount"] = 32
+init_medical_shocks["constructors"]["MedShkDstn"] = make_lognormal_MedShkDstn
 
 
 class MedShockConsumerType(PersistentShockConsumerType):
@@ -573,17 +628,28 @@ class MedShockConsumerType(PersistentShockConsumerType):
         Number of times the sequence of periods should be solved.
     """
 
+    default_params_ = init_medical_shocks
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShk"]
     state_vars = PersistentShockConsumerType.state_vars + ["mLvl"]
 
     def __init__(self, **kwds):
-        params = init_medical_shocks.copy()
+        params = self.default_params_.copy()
         params.update(kwds)
 
-        PersistentShockConsumerType.__init__(self, **params)
+        AgentType.__init__(self, **params)
+        self.time_vary = deepcopy(self.time_vary_)
+        self.time_inv = deepcopy(self.time_inv_)
+        self.shock_vars = deepcopy(self.shock_vars_)
+
         self.solve_one_period = solve_one_period_ConsMedShock
         self.add_to_time_inv("CRRAmed")
         self.add_to_time_vary("MedPrice")
+        self.update()
+
+        self.state_now["aLvl"] = None
+        self.state_prev["aLvl"] = None
+        self.state_now["mLvl"] = None
+        self.state_prev["mLvl"] = None
 
     def pre_solve(self):
         self.update_solution_terminal()
@@ -601,6 +667,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
+        self.update_Rfree()
         self.update_income_process()
         self.update_assets_grid()
         self.update_pLvlNextFunc()
@@ -622,24 +689,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        MedShkDstn = []  # empty list for medical shock distribution each period
-        for t in range(self.T_cycle):
-            # get shock distribution parameters
-            MedShkAvgNow = self.MedShkAvg[t]
-            MedShkStdNow = self.MedShkStd[t]
-            MedShkDstnNow = Lognormal(
-                mu=np.log(MedShkAvgNow) - 0.5 * MedShkStdNow**2, sigma=MedShkStdNow
-            ).discretize(
-                N=self.MedShkCount,
-                method="equiprobable",
-                tail_N=self.MedShkCountTail,
-                tail_bound=[0, 0.9],
-            )
-            MedShkDstnNow = add_discrete_outcome_constant_mean(
-                MedShkDstnNow, 0.0, 0.0, sort=True
-            )  # add point at zero with no probability
-            MedShkDstn.append(MedShkDstnNow)
-        self.MedShkDstn = MedShkDstn
+        self.construct("MedShkDstn")
         self.add_to_time_vary("MedShkDstn")
 
     def update_solution_terminal(self):
