@@ -419,6 +419,74 @@ class Model:
         self._missing_key_data = missing_key_data
         return
 
+    def describe_constructors(self, *args):
+        """
+        Prints to screen a string describing this instance's constructed objects,
+        including their names, the function that constructs them, the names of
+        those functions inputs, and whether those inputs are present.
+
+        Parameters
+        ----------
+        *args : str
+            Optional list of strings naming constructed inputs to be described.
+            If none are passed, all constructors are described.
+
+        Returns
+        -------
+        None.
+        """
+        if len(args) > 0:
+            keys = args
+        else:
+            keys = list(self.constructors.keys())
+        N_keys = len(keys)
+        yes = "\u2713"
+        no = "X"
+        maybe = "*"
+        noyes = [no, yes]
+
+        out = ""
+        for i in range(N_keys):
+            key = keys[i]
+            has_val = hasattr(self, key)
+
+            # Get the constructor function if possible
+            try:
+                constructor = self.constructors[key]
+                out += (
+                    noyes[int(has_val)]
+                    + " "
+                    + key
+                    + " : "
+                    + constructor.__name__
+                    + "\n"
+                )
+            except:
+                out += noyes[int(has_val)] + " " + key + " : NO CONSTRUCTOR FOUND\n"
+                continue
+
+            # Get constructor argument names
+            arg_names = get_arg_names(constructor)
+            has_no_default = {
+                k: v.default is inspect.Parameter.empty
+                for k, v in inspect.signature(constructor).parameters.items()
+            }
+
+            # Check whether each argument existd
+            for j in range(len(arg_names)):
+                this_arg = arg_names[j]
+                if hasattr(self, this_arg):
+                    symb = yes
+                elif not has_no_default[this_arg]:
+                    symb = maybe
+                else:
+                    symb = no
+                out += "    " + symb + " " + this_arg + "\n"
+
+        # Print the string to screen
+        print(out)
+        return
+
 
 class AgentType(Model):
     """
