@@ -423,6 +423,7 @@ def construct_pLvlGrid_by_simulation(
     pLvlInitMean,
     pLvlInitStd,
     pLvlPctiles,
+    pLvlExtra=None,
 ):
     """
     Construct the permanent income grid for each period of the problem by simulation.
@@ -454,6 +455,8 @@ def construct_pLvlGrid_by_simulation(
     pLvlPctiles : [float]
         List or array of percentiles (between 0 and 1) of permanent income to
         use for the pLvlGrid.
+    pLvlExtra : None or [float], optional
+        Additional pLvl values to automatically include in pLvlGrid.
 
     Returns
     -------
@@ -510,5 +513,12 @@ def construct_pLvlGrid_by_simulation(
     # Throw an error if cycles>1
     else:
         assert False, "Can only handle cycles=0 or cycles=1!"
+
+    # Insert any additional requested points into the pLvlGrid
+    if pLvlExtra is not None:
+        pLvlExtra_alt = np.array(pLvlExtra)
+        for t in range(T_cycle):
+            pLvlGrid_t = pLvlGrid[t]
+            pLvlGrid[t] = np.unique(np.concatenate((pLvlGrid_t, pLvlExtra_alt)))
 
     return pLvlGrid
