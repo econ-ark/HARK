@@ -15,6 +15,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     RiskyAssetConsumerType,
     init_risky_asset,
+    risky_constructor_dict,
 )
 from HARK.distribution import expected
 from HARK.interpolation import (
@@ -173,57 +174,6 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         # Set the solver for the portfolio model, and update various constructed attributes
         self.solve_one_period = solve_one_period_ConsPortfolio
 
-    def update(self):
-        RiskyAssetConsumerType.update(self)
-
-    def update_solution_terminal(self):
-        """
-        Solves the terminal period of the portfolio choice problem.  The solution is
-        trivial, as usual: consume all market resources, and put nothing in the risky
-        asset (because you have nothing anyway).
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        # Consume all market resources: c_T = m_T
-        cFuncAdj_terminal = IdentityFunction()
-        cFuncFxd_terminal = IdentityFunction(i_dim=0, n_dims=2)
-
-        # Risky share is irrelevant-- no end-of-period assets; set to zero
-        ShareFuncAdj_terminal = ConstantFunction(0.0)
-        ShareFuncFxd_terminal = IdentityFunction(i_dim=1, n_dims=2)
-
-        # Value function is simply utility from consuming market resources
-        vFuncAdj_terminal = ValueFuncCRRA(cFuncAdj_terminal, self.CRRA)
-        vFuncFxd_terminal = ValueFuncCRRA(cFuncFxd_terminal, self.CRRA)
-
-        # Marginal value of market resources is marg utility at the consumption function
-        vPfuncAdj_terminal = MargValueFuncCRRA(cFuncAdj_terminal, self.CRRA)
-        dvdmFuncFxd_terminal = MargValueFuncCRRA(cFuncFxd_terminal, self.CRRA)
-        dvdsFuncFxd_terminal = ConstantFunction(
-            0.0
-        )  # No future, no marg value of Share
-
-        # Construct the terminal period solution
-        self.solution_terminal = PortfolioSolution(
-            cFuncAdj=cFuncAdj_terminal,
-            ShareFuncAdj=ShareFuncAdj_terminal,
-            vFuncAdj=vFuncAdj_terminal,
-            vPfuncAdj=vPfuncAdj_terminal,
-            cFuncFxd=cFuncFxd_terminal,
-            ShareFuncFxd=ShareFuncFxd_terminal,
-            vFuncFxd=vFuncFxd_terminal,
-            dvdmFuncFxd=dvdmFuncFxd_terminal,
-            dvdsFuncFxd=dvdsFuncFxd_terminal,
-        )
-        self.solution_terminal.hNrm = 0.0
-        self.solution_terminal.MPCmin = 1.0
-
     def initialize_sim(self):
         """
         Initialize the state of simulation attributes.  Simply calls the same method
@@ -301,6 +251,60 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         # Store controls as attributes of self
         self.controls["cNrm"] = cNrmNow
         self.controls["Share"] = ShareNow
+
+
+###############################################################################
+
+
+def make_portfolio_solution_terminal(CRRA):
+    """
+    Solves the terminal period of the portfolio choice problem.  The solution is
+    trivial, as usual: consume all market resources, and put nothing in the risky
+    asset (because you have nothing anyway).
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion.
+
+    Returns
+    -------
+    solution_terminal : PortfolioSolution
+        Terminal period solution for a consumption-saving problem with portfolio
+        choice and CRRA utility.
+    """
+    # Consume all market resources: c_T = m_T
+    cFuncAdj_terminal = IdentityFunction()
+    cFuncFxd_terminal = IdentityFunction(i_dim=0, n_dims=2)
+
+    # Risky share is irrelevant-- no end-of-period assets; set to zero
+    ShareFuncAdj_terminal = ConstantFunction(0.0)
+    ShareFuncFxd_terminal = IdentityFunction(i_dim=1, n_dims=2)
+
+    # Value function is simply utility from consuming market resources
+    vFuncAdj_terminal = ValueFuncCRRA(cFuncAdj_terminal, CRRA)
+    vFuncFxd_terminal = ValueFuncCRRA(cFuncFxd_terminal, CRRA)
+
+    # Marginal value of market resources is marg utility at the consumption function
+    vPfuncAdj_terminal = MargValueFuncCRRA(cFuncAdj_terminal, CRRA)
+    dvdmFuncFxd_terminal = MargValueFuncCRRA(cFuncFxd_terminal, CRRA)
+    dvdsFuncFxd_terminal = ConstantFunction(0.0)  # No future, no marg value of Share
+
+    # Construct the terminal period solution
+    solution_terminal = PortfolioSolution(
+        cFuncAdj=cFuncAdj_terminal,
+        ShareFuncAdj=ShareFuncAdj_terminal,
+        vFuncAdj=vFuncAdj_terminal,
+        vPfuncAdj=vPfuncAdj_terminal,
+        cFuncFxd=cFuncFxd_terminal,
+        ShareFuncFxd=ShareFuncFxd_terminal,
+        vFuncFxd=vFuncFxd_terminal,
+        dvdmFuncFxd=dvdmFuncFxd_terminal,
+        dvdsFuncFxd=dvdsFuncFxd_terminal,
+    )
+    solution_terminal.hNrm = 0.0
+    solution_terminal.MPCmin = 1.0
+    return solution_terminal
 
 
 def calc_radj(shock, share_limit, rfree, crra):
@@ -739,9 +743,6 @@ def solve_one_period_ConsPortfolio(
         / R_adj
     )
 
-    # This basic equation works if there's no correlation among shocks
-    # hNrmNow = (PermGroFac/Rfree)*(1 + solution_next.hNrm)
-
     # Set the terms of the limiting linear consumption function as mNrm goes to infinity
     cFuncLimitIntercept = MPCminNow * hNrmNow
     cFuncLimitSlope = MPCminNow
@@ -1091,6 +1092,9 @@ def solve_one_period_ConsPortfolio(
 
 # Make a dictionary to specify a portfolio choice consumer type
 init_portfolio = init_risky_asset.copy()
+portfolio_constructor_dict = risky_constructor_dict.copy()
+portfolio_constructor_dict["solution_terminal"] = make_portfolio_solution_terminal
+init_portfolio["constructors"] = portfolio_constructor_dict
 init_portfolio["AdjustPrb"] = 1.0
 # Flag for whether to optimize risky share on a discrete grid only
 init_portfolio["DiscreteShareBool"] = False

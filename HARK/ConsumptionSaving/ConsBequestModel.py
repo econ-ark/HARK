@@ -19,11 +19,13 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     init_idiosyncratic_shocks,
+    make_basic_CRRA_solution_terminal,
 )
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     PortfolioConsumerType,
     PortfolioSolution,
     init_portfolio,
+    make_portfolio_solution_terminal,
 )
 from HARK.distribution import expected
 from HARK.interpolation import (
@@ -41,6 +43,138 @@ from HARK.interpolation import (
 from HARK.rewards import UtilityFuncCRRA, UtilityFuncStoneGeary
 
 
+def make_bequest_solution_terminal(
+    CRRA, BeqCRRATerm, BeqFacTerm, BeqShiftTerm, aXtraGrid
+):
+    """
+    Make the terminal period solution when there is a warm glow bequest motive with
+    Stone-Geary form utility. If there is no warm glow bequest motive (BeqFacTerm = 0),
+    then the terminal period solution is identical to ConsIndShock.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient on relative risk aversion over consumption.
+    BeqCRRATerm : float
+        Coefficient on relative risk aversion in the terminal warm glow bequest motive.
+    BeqFacTerm : float
+        Scaling factor for the terminal warm glow bequest motive.
+    BeqShiftTerm : float
+        Stone-Geary shifter term for the terminal warm glow bequest motive.
+    aXtraGrid : np.array
+        Set of assets-above-minimum to be used in the solution.
+
+    Returns
+    -------
+    solution_terminal : ConsumerSolution
+        Terminal period solution when there is a warm glow bequest.
+    """
+    if BeqFacTerm == 0.0:  # No terminal bequest
+        solution_terminal = make_basic_CRRA_solution_terminal(CRRA)
+        return solution_terminal
+
+    utility = UtilityFuncCRRA(CRRA)
+    warm_glow = UtilityFuncStoneGeary(
+        BeqCRRATerm,
+        factor=BeqFacTerm,
+        shifter=BeqShiftTerm,
+    )
+
+    aNrmGrid = np.append(0.0, aXtraGrid) if BeqShiftTerm != 0.0 else aXtraGrid
+    cNrmGrid = utility.derinv(warm_glow.der(aNrmGrid))
+    vGrid = utility(cNrmGrid) + warm_glow(aNrmGrid)
+    cNrmGridW0 = np.append(0.0, cNrmGrid)
+    mNrmGridW0 = np.append(0.0, aNrmGrid + cNrmGrid)
+    vNvrsGridW0 = np.append(0.0, utility.inv(vGrid))
+
+    cFunc_term = LinearInterp(mNrmGridW0, cNrmGridW0)
+    vNvrsFunc_term = LinearInterp(mNrmGridW0, vNvrsGridW0)
+    vFunc_term = ValueFuncCRRA(vNvrsFunc_term, CRRA)
+    vPfunc_term = MargValueFuncCRRA(cFunc_term, CRRA)
+    vPPfunc_term = MargMargValueFuncCRRA(cFunc_term, CRRA)
+
+    solution_terminal = ConsumerSolution(
+        cFunc=cFunc_term,
+        vFunc=vFunc_term,
+        vPfunc=vPfunc_term,
+        vPPfunc=vPPfunc_term,
+        mNrmMin=0.0,
+        hNrm=0.0,
+    )
+    return solution_terminal
+
+
+def make_warmglow_portfolio_solution_terminal(
+    CRRA, BeqCRRATerm, BeqFacTerm, BeqShiftTerm, aXtraGrid
+):
+    """
+    Make the terminal period solution when there is a warm glow bequest motive with
+    Stone-Geary form utility and portfolio choice. If there is no warm glow bequest
+    motive (BeqFacTerm = 0), then the terminal period solution is identical to ConsPortfolio.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient on relative risk aversion over consumption.
+    BeqCRRATerm : float
+        Coefficient on relative risk aversion in the terminal warm glow bequest motive.
+    BeqFacTerm : float
+        Scaling factor for the terminal warm glow bequest motive.
+    BeqShiftTerm : float
+        Stone-Geary shifter term for the terminal warm glow bequest motive.
+    aXtraGrid : np.array
+        Set of assets-above-minimum to be used in the solution.
+
+    Returns
+    -------
+    solution_terminal : ConsumerSolution
+        Terminal period solution when there is a warm glow bequest and portfolio choice.
+    """
+    if BeqFacTerm == 0.0:  # No terminal bequest
+        solution_terminal = make_portfolio_solution_terminal
+        return solution_terminal
+
+    # Solve the terminal period problem when there is no portfolio choice
+    solution_terminal_no_port = make_bequest_solution_terminal(
+        CRRA, BeqCRRATerm, BeqFacTerm, BeqShiftTerm, aXtraGrid
+    )
+
+    # Take consumption function from the no portfolio choice solution
+    cFuncAdj_terminal = solution_terminal_no_port.cFunc
+    cFuncFxd_terminal = lambda m, s: solution_terminal_no_port(m)
+
+    # Risky share is irrelevant-- no end-of-period assets; set to zero
+    ShareFuncAdj_terminal = ConstantFunction(0.0)
+    ShareFuncFxd_terminal = IdentityFunction(i_dim=1, n_dims=2)
+
+    # Value function is simply utility from consuming market resources
+    vFuncAdj_terminal = solution_terminal_no_port.vFunc
+    vFuncFxd_terminal = lambda m, s: solution_terminal_no_port.cFunc(m)
+
+    # Marginal value of market resources is marg utility at the consumption function
+    vPfuncAdj_terminal = solution_terminal_no_port.vPfunc
+    dvdmFuncFxd_terminal = lambda m, s: solution_terminal_no_port.vPfunc(m)
+    # No future, no marg value of Share
+    dvdsFuncFxd_terminal = ConstantFunction(0.0)
+
+    # Construct the terminal period solution
+    solution_terminal = PortfolioSolution(
+        cFuncAdj=cFuncAdj_terminal,
+        ShareFuncAdj=ShareFuncAdj_terminal,
+        vFuncAdj=vFuncAdj_terminal,
+        vPfuncAdj=vPfuncAdj_terminal,
+        cFuncFxd=cFuncFxd_terminal,
+        ShareFuncFxd=ShareFuncFxd_terminal,
+        vFuncFxd=vFuncFxd_terminal,
+        dvdmFuncFxd=dvdmFuncFxd_terminal,
+        dvdsFuncFxd=dvdsFuncFxd_terminal,
+    )
+    return solution_terminal
+
+
+###############################################################################
+
+
 class BequestWarmGlowConsumerType(IndShockConsumerType):
     time_inv_ = IndShockConsumerType.time_inv_ + ["BeqCRRA", "BeqShift", "BeqFac"]
 
@@ -51,42 +185,6 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
         super().__init__(**params)
         self.solve_one_period = solve_one_period_ConsWarmBequest
 
-    def update_solution_terminal(self):
-        super().update_solution_terminal()
-        if self.BeqFacTerm == 0.0:  # No terminal bequest
-            return
-
-        utility = UtilityFuncCRRA(self.CRRA)
-
-        warm_glow = UtilityFuncStoneGeary(
-            self.BeqCRRATerm,
-            factor=self.BeqFacTerm,
-            shifter=self.BeqShiftTerm,
-        )
-
-        aNrmGrid = (
-            np.append(0.0, self.aXtraGrid)
-            if self.BeqShiftTerm != 0.0
-            else self.aXtraGrid
-        )
-        cNrmGrid = utility.derinv(warm_glow.der(aNrmGrid))
-        vGrid = utility(cNrmGrid) + warm_glow(aNrmGrid)
-        cNrmGridW0 = np.append(0.0, cNrmGrid)
-        mNrmGridW0 = np.append(0.0, aNrmGrid + cNrmGrid)
-        vNvrsGridW0 = np.append(0.0, utility.inv(vGrid))
-
-        cFunc_term = LinearInterp(mNrmGridW0, cNrmGridW0)
-        vNvrsFunc_term = LinearInterp(mNrmGridW0, vNvrsGridW0)
-        vFunc_term = ValueFuncCRRA(vNvrsFunc_term, self.CRRA)
-        vPfunc_term = MargValueFuncCRRA(cFunc_term, self.CRRA)
-        vPPfunc_term = MargMargValueFuncCRRA(cFunc_term, self.CRRA)
-
-        self.solution_terminal.cFunc = cFunc_term
-        self.solution_terminal.vFunc = vFunc_term
-        self.solution_terminal.vPfunc = vPfunc_term
-        self.solution_terminal.vPPfunc = vPPfunc_term
-        self.solution_terminal.mNrmMin = 0.0
-
 
 class BequestWarmGlowPortfolioType(PortfolioConsumerType):
     time_inv_ = PortfolioConsumerType.time_inv_ + ["BeqCRRA", "BeqShift", "BeqFac"]
@@ -96,76 +194,11 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType):
         params.update(kwds)
 
         self.IndepDstnBool = True
-
         super().__init__(**params)
-
         self.solve_one_period = solve_one_period_ConsPortfolioWarmGlow
 
-    def update_solution_terminal(self):
-        if self.BeqFacTerm == 0.0:  # No terminal bequest
-            super().update_solution_terminal()
-        else:
-            utility = UtilityFuncCRRA(self.CRRA)
 
-            warm_glow = UtilityFuncStoneGeary(
-                self.BeqCRRATerm,
-                factor=self.BeqFacTerm,
-                shifter=self.BeqShiftTerm,
-            )
-
-            aNrmGrid = (
-                np.append(0.0, self.aXtraGrid)
-                if self.BeqShiftTerm != 0.0
-                else self.aXtraGrid
-            )
-            cNrmGrid = utility.derinv(warm_glow.der(aNrmGrid))
-            vGrid = utility(cNrmGrid) + warm_glow(aNrmGrid)
-            cNrmGridW0 = np.append(0.0, cNrmGrid)
-            mNrmGridW0 = np.append(0.0, aNrmGrid + cNrmGrid)
-            vNvrsGridW0 = np.append(0.0, utility.inv(vGrid))
-
-            cFunc_term = LinearInterp(mNrmGridW0, cNrmGridW0)
-            vNvrsFunc_term = LinearInterp(mNrmGridW0, vNvrsGridW0)
-            vFunc_term = ValueFuncCRRA(vNvrsFunc_term, self.CRRA)
-            vPfunc_term = MargValueFuncCRRA(cFunc_term, self.CRRA)
-            vPPfunc_term = MargMargValueFuncCRRA(cFunc_term, self.CRRA)
-
-            self.solution_terminal.cFunc = cFunc_term
-            self.solution_terminal.vFunc = vFunc_term
-            self.solution_terminal.vPfunc = vPfunc_term
-            self.solution_terminal.vPPfunc = vPPfunc_term
-            self.solution_terminal.mNrmMin = 0.0
-
-            # Consume all market resources: c_T = m_T
-            cFuncAdj_terminal = self.solution_terminal.cFunc
-            cFuncFxd_terminal = lambda m, s: self.solution_terminal.cFunc(m)
-
-            # Risky share is irrelevant-- no end-of-period assets; set to zero
-            ShareFuncAdj_terminal = ConstantFunction(0.0)
-            ShareFuncFxd_terminal = IdentityFunction(i_dim=1, n_dims=2)
-
-            # Value function is simply utility from consuming market resources
-            vFuncAdj_terminal = self.solution_terminal.vFunc
-            vFuncFxd_terminal = lambda m, s: self.solution_terminal.vFunc(m)
-
-            # Marginal value of market resources is marg utility at the consumption function
-            vPfuncAdj_terminal = self.solution_terminal.vPfunc
-            dvdmFuncFxd_terminal = lambda m, s: self.solution_terminal.vPfunc(m)
-            # No future, no marg value of Share
-            dvdsFuncFxd_terminal = ConstantFunction(0.0)
-
-            # Construct the terminal period solution
-            self.solution_terminal = PortfolioSolution(
-                cFuncAdj=cFuncAdj_terminal,
-                ShareFuncAdj=ShareFuncAdj_terminal,
-                vFuncAdj=vFuncAdj_terminal,
-                vPfuncAdj=vPfuncAdj_terminal,
-                cFuncFxd=cFuncFxd_terminal,
-                ShareFuncFxd=ShareFuncFxd_terminal,
-                vFuncFxd=vFuncFxd_terminal,
-                dvdmFuncFxd=dvdmFuncFxd_terminal,
-                dvdsFuncFxd=dvdsFuncFxd_terminal,
-            )
+###############################################################################
 
 
 def solve_one_period_ConsWarmBequest(
@@ -940,6 +973,9 @@ init_accidental_bequest["BeqShift"] = 0.0
 init_accidental_bequest["BeqCRRATerm"] = init_idiosyncratic_shocks["CRRA"]
 init_accidental_bequest["BeqFacTerm"] = 0.0
 init_accidental_bequest["BeqShiftTerm"] = 0.0
+temp_dict = init_accidental_bequest["constructors"].copy()
+temp_dict["solution_terminal"] = make_bequest_solution_terminal
+init_accidental_bequest["constructors"] = temp_dict
 
 init_warm_glow_terminal_only = init_accidental_bequest.copy()
 init_warm_glow_terminal_only["BeqCRRATerm"] = init_idiosyncratic_shocks["CRRA"]
@@ -953,3 +989,6 @@ init_warm_glow["BeqShift"] = 0.0
 
 init_portfolio_bequest = init_warm_glow.copy()
 init_portfolio_bequest.update(init_portfolio)
+temp_dict_two = init_portfolio["constructors"].copy()
+temp_dict_two["solution_terminal"] = make_warmglow_portfolio_solution_terminal
+init_portfolio_bequest["constructors"] = temp_dict_two
