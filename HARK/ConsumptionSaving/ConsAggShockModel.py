@@ -15,6 +15,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     init_idiosyncratic_shocks,
+    indshk_constructor_dict,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.distribution import (
@@ -69,44 +70,37 @@ utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
 
 
-class MargValueFunc2D(MetricObject):
+def make_aggshock_solution_terminal(CRRA):
     """
-    A class for representing a marginal value function in models where the
-    standard envelope condition of dvdm(m,M) = u'(c(m,M)) holds (with CRRA utility).
+    Creates the terminal period solution for an aggregate shock consumer.
+    Only fills in the consumption function and marginal value function.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion.
+
+    Returns
+    -------
+    solution_terminal : ConsumerSolution
+        Solution to the terminal period problem.
     """
-
-    distance_criteria = ["cFunc", "CRRA"]
-
-    def __init__(self, cFunc, CRRA):
-        """
-        Constructor for a new marginal value function object.
-
-        Parameters
-        ----------
-        cFunc : function
-            A real function representing the marginal value function composed
-            with the inverse marginal utility function, defined on normalized individual market
-            resources and aggregate market resources-to-labor ratio: uP_inv(vPfunc(m,M)).
-            Called cFunc because when standard envelope condition applies,
-            uP_inv(vPfunc(m,M)) = cFunc(m,M).
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        new instance of MargValueFunc
-        """
-        self.cFunc = deepcopy(cFunc)
-        self.CRRA = CRRA
-
-    def __call__(self, m, M):
-        return utilityP(self.cFunc(m, M), rho=self.CRRA)
+    cFunc_terminal = IdentityFunction(i_dim=0, n_dims=2)
+    vPfunc_terminal = MargValueFuncCRRA(cFunc_terminal, CRRA)
+    mNrmMin_terminal = ConstantFunction(0)
+    solution_terminal = ConsumerSolution(
+        cFunc=cFunc_terminal, vPfunc=vPfunc_terminal, mNrmMin=mNrmMin_terminal
+    )
+    return solution_terminal
 
 
 ###############################################################################
 
 # Make a dictionary to specify an aggregate shocks consumer
 init_agg_shocks = init_idiosyncratic_shocks.copy()
+aggshock_constructor_dict = indshk_constructor_dict.copy()
+aggshock_constructor_dict["solution_terminal"] = make_aggshock_solution_terminal
+
 # Interest factor is endogenous in agg shocks model
 del init_agg_shocks["Rfree"]
 del init_agg_shocks["CubicBool"]  # Not supported yet for agg shocks model
@@ -120,6 +114,7 @@ init_agg_shocks["MgridBase"] = MgridBase
 init_agg_shocks["aXtraCount"] = 24
 init_agg_shocks["aNrmInitStd"] = 0.0
 init_agg_shocks["LivPrb"] = [0.98]
+init_agg_shocks["constructors"] = aggshock_constructor_dict
 
 
 class AggShockConsumerType(IndShockConsumerType):
@@ -308,15 +303,6 @@ class AggShockConsumerType(IndShockConsumerType):
         who_dies : np.array(bool)
             Boolean array of size AgentCount indicating which agents die.
         """
-        # Divide agents into wealth groups, kill one random agent per wealth group
-        #        order = np.argsort(self.aLvlNow)
-        #        how_many_die = int(self.AgentCount*(1.0-self.LivPrb[0]))
-        #        group_size = self.AgentCount/how_many_die # This should be an integer
-        #        base_idx = self.RNG.integers(0,group_size,size=how_many_die)
-        #        kill_by_rank = np.arange(how_many_die,dtype=int)*group_size + base_idx
-        #        who_dies = np.zeros(self.AgentCount,dtype=bool)
-        #        who_dies[order[kill_by_rank]] = True
-
         # Just select a random set of agents to die
         how_many_die = int(round(self.AgentCount * (1.0 - self.LivPrb[0])))
         base_bool = np.zeros(self.AgentCount, dtype=bool)
@@ -1434,7 +1420,7 @@ def solve_ConsAggShock_new(
     mNrmMinNow = UpperEnvelope(BoroCnstNat, ConstantFunction(BoroCnstArt))
 
     # Construct the marginal value function using the envelope condition
-    vPfuncNow = MargValueFunc2D(cFuncNow, CRRA)
+    vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)
 
     # Pack up and return the solution
     solution_now = ConsumerSolution(
