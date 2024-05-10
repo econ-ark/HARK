@@ -730,7 +730,7 @@ init_medical_shocks["MedShkCount"] = MedShkCount
 init_medical_shocks["MedShkCountTail"] = MedShkCountTail
 init_medical_shocks["MedPrice"] = MedPrice
 init_medical_shocks["aXtraCount"] = 32
-init_medical_shocks["pLvlExtra"] = 0.0001
+init_medical_shocks["pLvlExtra"] = [0.0001]
 init_medical_shocks["constructors"] = medshock_constructor_dict
 
 
