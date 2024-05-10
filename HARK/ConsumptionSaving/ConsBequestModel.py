@@ -100,6 +100,8 @@ def make_bequest_solution_terminal(
         vPPfunc=vPPfunc_term,
         mNrmMin=0.0,
         hNrm=0.0,
+        MPCmax=1.0,
+        MPCmin=1.0,
     )
     return solution_terminal
 
@@ -131,7 +133,7 @@ def make_warmglow_portfolio_solution_terminal(
         Terminal period solution when there is a warm glow bequest and portfolio choice.
     """
     if BeqFacTerm == 0.0:  # No terminal bequest
-        solution_terminal = make_portfolio_solution_terminal
+        solution_terminal = make_portfolio_solution_terminal(CRRA)
         return solution_terminal
 
     # Solve the terminal period problem when there is no portfolio choice
