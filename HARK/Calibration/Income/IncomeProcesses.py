@@ -289,6 +289,11 @@ def get_TranShkDstn_from_IncShkDstn(IncShkDstn, RNG):
     return TimeVaryingDiscreteDistribution(TranShkDstn, seed=RNG.integers(0, 2**31 - 1))
 
 
+def get_TranShkGrid_from_TranShkDstn(T_cycle, TranShkDstn):
+    TranShkGrid = [TranShkDstn[t].atoms.flatten() for t in range(T_cycle)]
+    return TranShkGrid
+
+
 class pLvlFuncAR1(MetricObject):
     """
     A class for representing AR1-style persistent income growth functions.
