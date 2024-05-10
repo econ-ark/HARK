@@ -173,30 +173,6 @@ class AggShockConsumerType(IndShockConsumerType):
         #        AgentType.pre_solve()
         self.update_solution_terminal()
 
-    def update_solution_terminal(self):
-        """
-        Updates the terminal period solution for an aggregate shock consumer.
-        Only fills in the consumption function and marginal value function.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        cFunc_terminal = BilinearInterp(
-            np.array([[0.0, 0.0], [1.0, 1.0]]),
-            np.array([0.0, 1.0]),
-            np.array([0.0, 1.0]),
-        )
-        vPfunc_terminal = MargValueFuncCRRA(cFunc_terminal, self.CRRA)
-        mNrmMin_terminal = ConstantFunction(0)
-        self.solution_terminal = ConsumerSolution(
-            cFunc=cFunc_terminal, vPfunc=vPfunc_terminal, mNrmMin=mNrmMin_terminal
-        )
-
     def get_economy_data(self, economy):
         """
         Imports economy-determined objects into self from a Market.
