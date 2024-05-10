@@ -10,6 +10,8 @@ from scipy import stats
 from scipy.stats import rv_continuous, rv_discrete
 from scipy.stats._distn_infrastructure import rv_continuous_frozen, rv_discrete_frozen
 from scipy.stats._multivariate import multivariate_normal_frozen, multi_rv_frozen
+from scipy import integrate
+from scipy.optimize import fsolve
 
 
 class Distribution:
@@ -733,7 +735,7 @@ class BVLogNormal(multi_rv_frozen, Distribution):
     mu : Union[list, numpy.ndarray], optional
         Means of underlying multivariate normal, default [0.0, 0.0].
     Sigma : Union[list, numpy.ndarray], optional
-        2x2 variance-covariance matrix of underyling multivariate normal, default [[1.0, 0.0], [0.0, 1.0]].
+        2x2 variance-covariance matrix of underlying multivariate normal, default [[1.0, 0.0], [0.0, 1.0]].
     seed : int, optional
         Seed for random number generator, default 0.
     """
@@ -799,7 +801,7 @@ class BVLogNormal(multi_rv_frozen, Distribution):
             raise ValueError(f"x must have size {self.M}")
 
         if (x[1] <= 0) | (x[0] <= 0):
-            raise ValueError("x must have positive entries")
+            return 0.0
 
         eigenvalues = linalg.eigvals(self.Sigma)
 
@@ -817,6 +819,131 @@ class BVLogNormal(multi_rv_frozen, Distribution):
         )
 
         return pd
+    
+    def _marginal(self, x: Union[np.ndarray, float], dim: int):
+        """
+        Marginal distribution of one of the variables in the bivariate distribution evaluated at x.
+
+        Parameters
+        ----------
+        x : Union[np.ndarray, float]
+            Point at which to evaluate the marginal distribution.
+        dim : int
+            Which of the random variables to evaluate (1 or 2).
+
+        Returns
+        -------
+        float
+            Marginal distribution evaluated at x.
+        """
+
+        x = np.asarray(x)
+
+        if x.size != 1:
+            raise ValueError(f"x must have size 1")
+        
+        x_dim = Lognormal(mu=self.mu[dim-1], sigma=np.sqrt(self.Sigma[dim-1, dim-1]))
+
+        return x_dim.pdf(x)
+    
+    def _marginal_cdf(self, x : Union[np.ndarray, float], dim : int):
+        """
+        Cumulative distribution function of one of the variables from the bivariate distribution evaluated at x.
+
+        Parameters
+        ----------
+        x : Union[np.ndarray, float]
+            Point at which to evaluate the marginal CDF.
+        dim : int
+            Which of the random variables to evaluate (1 or 2).
+
+        Returns
+        -------
+        float
+            Marginal CDF evaluated at x.
+        """
+
+        x = np.asarray(x)
+
+        if x.size != 1:
+            raise ValueError(f"x must have size 1")
+
+        x_dim = Lognormal(mu=self.mu[dim-1], sigma=np.sqrt(self.Sigma[dim-1, dim-1]))
+
+        return x_dim.cdf(x)
+
+    def _approx_equiprobable(self, N):
+        """
+        Makes a discrete approximation using the equiprobable method to this bivariate lognormal distribution.
+
+        Parameters
+        ----------
+        N : int
+            The number of points in the discrete approximation.
+
+        Returns
+        -------
+        d : DiscreteDistribution
+            Probability associated with each point in array of discrete
+            points for discrete probability mass function.
+        """
+
+        
+        if self.Sigma == 0: #If both variables are degenerate, return a single atom
+            return DiscreteDistribution([1.0], [np.exp(self.mu)], dtype="int32")
+        elif self.Sigma[0, 0] == 0: #
+            x2 = Lognormal(mu=self.mu[1], sigma=np.sqrt(self.Sigma[1, 1]))._approx_equiprobable(N)
+            x1_approx = np.repeat(np.exp(self.mu[0]), N)
+
+            atoms = np.stack((x1_approx, x2.atoms), axis=-1)
+            pmv = x2.pmv
+        elif self.Sigma[1, 1] == 0:
+            x1 = Lognormal(mu=self.mu[0], sigma=np.sqrt(self.Sigma[0, 0]))._approx_equiprobable(N)
+            x2_approx = np.repeat(np.exp(self.mu[1]), N)
+
+            atoms = np.stack((x1.atoms, x2_approx), axis=-1)
+            pmv = x1.pmv
+        else:
+            x1 = Lognormal(mu=self.mu[0], sigma=np.sqrt(self.Sigma[0, 0]))
+            cdf_bins = np.linspace(0, 1, N+1)
+            x1_bins = stats.lognormal.ppf(cdf_bins, s=np.sqrt(self.Sigma[0, 0]), loc=0, scale=np.exp(self.mu[0]))
+            x2_bins = np.zeros((N+1, N))
+            x2_bins[0] = np.zeros(N)
+            x2_bins[N] = np.repeat(np.inf, N)
+
+            for i in range(N):
+                    joint_prob = lambda y : integrate.dblquad(lambda x, z : self._pdf(np.asarray([x, z])), x1_bins[i], x1_bins[i+1], 0, y)
+
+                    adj_prob = lambda y, j : joint_prob(y) - (j+1)/N
+
+                    x2_cuts = np.array([fsolve(lambda y : adj_prob(y, j), 1e-6)[0] for j in range(N-1)])
+
+                    x2_bins[1:N, i] = x2_cuts
+                
+            atoms = []
+
+            for i in range(N):
+                for j in range(N):
+                    x_exp = integrate.dblquad(lambda x, y : x * self._pdf(np.array([x, y])), x1_bins[i], x1_bins[i+1], x2_bins[j, i], x2_bins[j+1, i])
+                    y_exp = integrate.dblquad(lambda x, y : y * self._pdf(np.array([x, y])), x1_bins[i], x1_bins[i+1], x2_bins[j, i], x2_bins[j+1, i])
+
+                    atoms.append((x_exp, y_exp))
+            
+            pmv = np.repeat(1/(N**2), N**2)
+            atoms = np.array(atoms)
+
+        limit = {
+            "dist": self,
+            "method": 'equiprobable',
+            "N": N
+        }
+
+        return DiscreteDistribution(
+            pmv,
+            atoms,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
+        )
 
 
 # DISCRETE DISTRIBUTIONS
