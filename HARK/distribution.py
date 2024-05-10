@@ -819,7 +819,7 @@ class BVLogNormal(multi_rv_frozen, Distribution):
         )
 
         return pd
-    
+
     def _marginal(self, x: Union[np.ndarray, float], dim: int):
         """
         Marginal distribution of one of the variables in the bivariate distribution evaluated at x.
@@ -840,13 +840,15 @@ class BVLogNormal(multi_rv_frozen, Distribution):
         x = np.asarray(x)
 
         if x.size != 1:
-            raise ValueError(f"x must have size 1")
-        
-        x_dim = Lognormal(mu=self.mu[dim-1], sigma=np.sqrt(self.Sigma[dim-1, dim-1]))
+            raise ValueError("x must have size 1")
+
+        x_dim = Lognormal(
+            mu=self.mu[dim - 1], sigma=np.sqrt(self.Sigma[dim - 1, dim - 1])
+        )
 
         return x_dim.pdf(x)
-    
-    def _marginal_cdf(self, x : Union[np.ndarray, float], dim : int):
+
+    def _marginal_cdf(self, x: Union[np.ndarray, float], dim: int):
         """
         Cumulative distribution function of one of the variables from the bivariate distribution evaluated at x.
 
@@ -866,9 +868,11 @@ class BVLogNormal(multi_rv_frozen, Distribution):
         x = np.asarray(x)
 
         if x.size != 1:
-            raise ValueError(f"x must have size 1")
+            raise ValueError("x must have size 1")
 
-        x_dim = Lognormal(mu=self.mu[dim-1], sigma=np.sqrt(self.Sigma[dim-1, dim-1]))
+        x_dim = Lognormal(
+            mu=self.mu[dim - 1], sigma=np.sqrt(self.Sigma[dim - 1, dim - 1])
+        )
 
         return x_dim.cdf(x)
 
@@ -888,55 +892,76 @@ class BVLogNormal(multi_rv_frozen, Distribution):
             points for discrete probability mass function.
         """
 
-        
-        if self.Sigma == 0: #If both variables are degenerate, return a single atom
+        if self.Sigma == 0:  # If both variables are degenerate, return a single atom
             return DiscreteDistribution([1.0], [np.exp(self.mu)], dtype="int32")
-        elif self.Sigma[0, 0] == 0: #
-            x2 = Lognormal(mu=self.mu[1], sigma=np.sqrt(self.Sigma[1, 1]))._approx_equiprobable(N)
+        elif self.Sigma[0, 0] == 0:  #
+            x2 = Lognormal(
+                mu=self.mu[1], sigma=np.sqrt(self.Sigma[1, 1])
+            )._approx_equiprobable(N)
             x1_approx = np.repeat(np.exp(self.mu[0]), N)
 
             atoms = np.stack((x1_approx, x2.atoms), axis=-1)
             pmv = x2.pmv
         elif self.Sigma[1, 1] == 0:
-            x1 = Lognormal(mu=self.mu[0], sigma=np.sqrt(self.Sigma[0, 0]))._approx_equiprobable(N)
+            x1 = Lognormal(
+                mu=self.mu[0], sigma=np.sqrt(self.Sigma[0, 0])
+            )._approx_equiprobable(N)
             x2_approx = np.repeat(np.exp(self.mu[1]), N)
 
             atoms = np.stack((x1.atoms, x2_approx), axis=-1)
             pmv = x1.pmv
         else:
             x1 = Lognormal(mu=self.mu[0], sigma=np.sqrt(self.Sigma[0, 0]))
-            cdf_bins = np.linspace(0, 1, N+1)
-            x1_bins = stats.lognormal.ppf(cdf_bins, s=np.sqrt(self.Sigma[0, 0]), loc=0, scale=np.exp(self.mu[0]))
-            x2_bins = np.zeros((N+1, N))
+            cdf_bins = np.linspace(0, 1, N + 1)
+            x1_bins = stats.lognormal.ppf(
+                cdf_bins, s=np.sqrt(self.Sigma[0, 0]), loc=0, scale=np.exp(self.mu[0])
+            )
+            x2_bins = np.zeros((N + 1, N))
             x2_bins[0] = np.zeros(N)
             x2_bins[N] = np.repeat(np.inf, N)
 
             for i in range(N):
-                    joint_prob = lambda y : integrate.dblquad(lambda x, z : self._pdf(np.asarray([x, z])), x1_bins[i], x1_bins[i+1], 0, y)
+                joint_prob = lambda y: integrate.dblquad(
+                    lambda x, z: self._pdf(np.asarray([x, z])),
+                    x1_bins[i],
+                    x1_bins[i + 1],
+                    0,
+                    y,
+                )
 
-                    adj_prob = lambda y, j : joint_prob(y) - (j+1)/N
+                adj_prob = lambda y, j: joint_prob(y) - (j + 1) / N
 
-                    x2_cuts = np.array([fsolve(lambda y : adj_prob(y, j), 1e-6)[0] for j in range(N-1)])
+                x2_cuts = np.array(
+                    [fsolve(lambda y: adj_prob(y, j), 1e-6)[0] for j in range(N - 1)]
+                )
 
-                    x2_bins[1:N, i] = x2_cuts
-                
+                x2_bins[1:N, i] = x2_cuts
+
             atoms = []
 
             for i in range(N):
                 for j in range(N):
-                    x_exp = integrate.dblquad(lambda x, y : x * self._pdf(np.array([x, y])), x1_bins[i], x1_bins[i+1], x2_bins[j, i], x2_bins[j+1, i])
-                    y_exp = integrate.dblquad(lambda x, y : y * self._pdf(np.array([x, y])), x1_bins[i], x1_bins[i+1], x2_bins[j, i], x2_bins[j+1, i])
+                    x_exp = integrate.dblquad(
+                        lambda x, y: x * self._pdf(np.array([x, y])),
+                        x1_bins[i],
+                        x1_bins[i + 1],
+                        x2_bins[j, i],
+                        x2_bins[j + 1, i],
+                    )
+                    y_exp = integrate.dblquad(
+                        lambda x, y: y * self._pdf(np.array([x, y])),
+                        x1_bins[i],
+                        x1_bins[i + 1],
+                        x2_bins[j, i],
+                        x2_bins[j + 1, i],
+                    )
 
                     atoms.append((x_exp, y_exp))
-            
-            pmv = np.repeat(1/(N**2), N**2)
+
+            pmv = np.repeat(1 / (N**2), N**2)
             atoms = np.array(atoms)
 
-        limit = {
-            "dist": self,
-            "method": 'equiprobable',
-            "N": N
-        }
+        limit = {"dist": self, "method": "equiprobable", "N": N}
 
         return DiscreteDistribution(
             pmv,
