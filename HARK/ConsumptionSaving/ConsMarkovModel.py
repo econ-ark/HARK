@@ -50,6 +50,30 @@ utilityP_invP = CRRAutilityP_invP
 ###############################################################################
 
 
+def make_simple_binary_markov(T_cycle, p11, p22):
+    """
+    Make a list of very simple Markov arrays between two binary states by specifying
+    diagonal elements in each period (probability of remaining in that state).
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of non-terminal periods in this instance's sequential problem.
+    p11 : [float]
+        List or array of probabilities of remaining in the first state between periods.
+    p22 : [float]
+        List or array of probabilities of remaining in the second state between periods.
+
+    Returns
+    -------
+    MrkvArray : [np.array]
+        List of 2x2 Markov transition arrays, one for each non-terminal period.
+    """
+
+
+###############################################################################
+
+
 def make_markov_solution_terminal(CRRA, MrkvArray):
     """
     Make the terminal period solution for a consumption-saving model with a discrete
@@ -81,8 +105,8 @@ def make_markov_solution_terminal(CRRA, MrkvArray):
         vPPfunc=N * [solution_terminal_basic.vPPfunc],
         mNrmMin=np.zeros(N),
         hNrm=np.zeros(N),
-        MPCmin=np.zeros(N),
-        MPCmax=np.zeros(N),
+        MPCmin=np.ones(N),
+        MPCmax=np.ones(N),
     )
     return solution_terminal
 
