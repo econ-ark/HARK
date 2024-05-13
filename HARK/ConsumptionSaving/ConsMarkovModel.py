@@ -49,8 +49,10 @@ utilityP_invP = CRRAutilityP_invP
 
 ###############################################################################
 
+# Define some functions that can be used as constructors for MrkvArray
 
-def make_simple_binary_markov(T_cycle, p11, p22):
+
+def make_simple_binary_markov(T_cycle, Mrkv_p11, Mrkv_p22):
     """
     Make a list of very simple Markov arrays between two binary states by specifying
     diagonal elements in each period (probability of remaining in that state).
@@ -59,9 +61,9 @@ def make_simple_binary_markov(T_cycle, p11, p22):
     ----------
     T_cycle : int
         Number of non-terminal periods in this instance's sequential problem.
-    p11 : [float]
+    Mrkv_p11 : [float]
         List or array of probabilities of remaining in the first state between periods.
-    p22 : [float]
+    Mrkv_p22 : [float]
         List or array of probabilities of remaining in the second state between periods.
 
     Returns
@@ -69,6 +71,74 @@ def make_simple_binary_markov(T_cycle, p11, p22):
     MrkvArray : [np.array]
         List of 2x2 Markov transition arrays, one for each non-terminal period.
     """
+    p11 = np.array(Mrkv_p11)
+    p22 = np.array(Mrkv_p22)
+
+    if len(p11) != T_cycle or len(p22) != T_cycle:
+        raise ValueError("Length of p11 and p22 probabilities must equal T_cycle!")
+    if np.any(p11 > 1.0) or np.any(p22 > 1.0):
+        raise ValueError("The p11 and p22 probabilities must not exceed 1!")
+    if np.any(p11 < 0.0) or np.any(p22 < 0.0):
+        raise ValueError("The p11 and p22 probabilities must not be less than 0!")
+
+    MrkvArray = [
+        np.array([[p11[t], 1.0 - p11[t]], [1.0 - p22[t], p22[t]]])
+        for t in range(T_cycle)
+    ]
+    return MrkvArray
+
+
+def make_ratchet_markov(T_cycle, Mrkv_ratchet_probs):
+    """
+    Make a list of "ratchet-style" Markov transition arrays, in which transitions
+    are strictly *one way* and only by one step. Each element of the ratchet_probs
+    list is a size-N vector giving the probability of progressing from state i to
+    state to state i+1 in that period; progress from the topmost state reverts the
+    agent to the 0th state. Set ratchet_probs[t][-1] to zero to make absorbing state.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of non-terminal periods in this instance's sequential problem.
+    Mrkv_ratchet_probs : [np.array]
+        List of vectors of "ratchet probabilities" for each period.
+
+    Returns
+    -------
+    MrkvArray : [np.array]
+        List of NxN Markov transition arrays, one for each non-terminal period.
+    """
+    if len(Mrkv_ratchet_probs) != T_cycle:
+        raise ValueError("Length of Mrkv_ratchet_probs must equal T_cycle!")
+
+    N = Mrkv_ratchet_probs[0].size  # number of discrete states
+    StateCount = np.array([Mrkv_ratchet_probs[t].size for t in range(T_cycle)])
+    if np.any(StateCount != N):
+        raise ValueError(
+            "All periods of the problem must have the same number of discrete states!"
+        )
+
+    MrkvArray = []
+    for t in range(T_cycle):
+        if np.any(Mrkv_ratchet_probs[t] > 1.0):
+            raise ValueError("Ratchet probabilities cannot exceed 1!")
+        if np.any(Mrkv_ratchet_probs[t] < 0.0):
+            raise ValueError("Ratchet probabilities cannot be below 0!")
+
+        MrkvArray_t = np.zeros((N, N))
+        for i in range(N):
+            p_go = Mrkv_ratchet_probs[t][i]
+            p_stay = 1.0 - p_go
+            if i < (N - 1):
+                i_next = i + 1
+            else:
+                i_next = 0
+            MrkvArray_t[i, i] = p_stay
+            MrkvArray_t[i, i_next] = p_go
+
+        MrkvArray.append(MrkvArray_t)
+
+    return MrkvArray
 
 
 ###############################################################################
