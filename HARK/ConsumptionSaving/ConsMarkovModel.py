@@ -12,6 +12,9 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     PerfForesightConsumerType,
+    make_basic_CRRA_solution_terminal,
+    indshk_constructor_dict,
+    init_idiosyncratic_shocks,
 )
 from HARK.distribution import MarkovProcess, Uniform, expected
 from HARK.interpolation import (
@@ -42,6 +45,46 @@ utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
+
+
+###############################################################################
+
+
+def make_markov_solution_terminal(CRRA, MrkvArray):
+    """
+    Make the terminal period solution for a consumption-saving model with a discrete
+    Markov state. Simply makes a basic terminal solution for IndShockConsumerType
+    and then replicates the attributes N times for the N states in the terminal period.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion.
+    MrkvArray : [np.array]
+        List of Markov transition probabilities arrays. Only used to find the
+        number of discrete states in the terminal period.
+
+    Returns
+    -------
+    solution_terminal : ConsumerSolution
+        Terminal period solution to the Markov consumption-saving problem.
+    """
+    solution_terminal_basic = make_basic_CRRA_solution_terminal(CRRA)
+    StateCount_T = MrkvArray[-1].shape[1]
+    N = StateCount_T  # for shorter typing
+
+    # Make replicated terminal period solution: consume all resources, no human wealth, minimum m is 0
+    solution_terminal = ConsumerSolution(
+        cFunc=N * [solution_terminal_basic.cFunc],
+        vFunc=N * [solution_terminal_basic.vFunc],
+        vPfunc=N * [solution_terminal_basic.vPfunc],
+        vPPfunc=N * [solution_terminal_basic.vPPfunc],
+        mNrmMin=np.zeros(N),
+        hNrm=np.zeros(N),
+        MPCmin=np.zeros(N),
+        MPCmax=np.zeros(N),
+    )
+    return solution_terminal
 
 
 def solve_one_period_ConsMarkov(
@@ -514,6 +557,12 @@ def solve_one_period_ConsMarkov(
 ####################################################################################################
 ####################################################################################################
 
+markov_constructor_dict = indshk_constructor_dict.copy()
+markov_constructor_dict["solution_terminal"] = make_markov_solution_terminal
+
+init_indshk_markov = init_idiosyncratic_shocks.copy()
+init_indshk_markov["constructors"] = markov_constructor_dict
+
 
 class MarkovConsumerType(IndShockConsumerType):
     """
@@ -530,7 +579,10 @@ class MarkovConsumerType(IndShockConsumerType):
     state_vars = IndShockConsumerType.state_vars + ["Mrkv"]
 
     def __init__(self, **kwds):
-        IndShockConsumerType.__init__(self, **kwds)
+        params = init_indshk_markov.copy()
+        params.update(kwds)
+
+        super().__init__(**params)
         self.solve_one_period = solve_one_period_ConsMarkov
 
         if not hasattr(self, "global_markov"):
@@ -582,10 +634,7 @@ class MarkovConsumerType(IndShockConsumerType):
         # Now check the income distribution.
         # Note IncShkDstn is (potentially) time-varying, so it is in time_vary.
         # Therefore it is a list, and each element of that list responds to the income distribution
-        # at a particular point in time.  Each income distribution at a point in time should itself
-        # be a list, with each element corresponding to the income distribution
-        # conditional on a particular Markov state.
-        # TODO: should this be a numpy array too?
+        # at a particular point in time.
         for IncShkDstn_t in self.IncShkDstn:
             if not isinstance(IncShkDstn_t, list):
                 raise ValueError(
@@ -613,32 +662,6 @@ class MarkovConsumerType(IndShockConsumerType):
         """
         AgentType.pre_solve(self)
         self.check_markov_inputs()
-
-    def update_solution_terminal(self):
-        """
-        Update the terminal period solution.  This method should be run when a
-        new AgentType is created or when CRRA changes.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        """
-        IndShockConsumerType.update_solution_terminal(self)
-
-        # Make replicated terminal period solution: consume all resources, no human wealth, minimum m is 0
-        StateCount = self.MrkvArray[0].shape[0]
-        self.solution_terminal.cFunc = StateCount * [self.cFunc_terminal_]
-        self.solution_terminal.vFunc = StateCount * [self.solution_terminal.vFunc]
-        self.solution_terminal.vPfunc = StateCount * [self.solution_terminal.vPfunc]
-        self.solution_terminal.vPPfunc = StateCount * [self.solution_terminal.vPPfunc]
-        self.solution_terminal.mNrmMin = np.zeros(StateCount)
-        self.solution_terminal.hRto = np.zeros(StateCount)
-        self.solution_terminal.MPCmax = np.ones(StateCount)
-        self.solution_terminal.MPCmin = np.ones(StateCount)
 
     def initialize_sim(self):
         self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
