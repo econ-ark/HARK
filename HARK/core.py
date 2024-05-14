@@ -331,7 +331,8 @@ class Model:
 
     def del_param(self, param_name):
         """
-
+        Deletes a parameter from this instance, removing it both from the object's
+        namespace (if it's there) and the parameters dictionary (likewise).
 
         Parameters
         ----------
