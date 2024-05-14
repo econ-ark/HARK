@@ -38,6 +38,25 @@ from HARK.interpolation import (
 )
 from HARK.rewards import UtilityFuncCRRA
 
+###############################################################################
+
+
+def make_simple_ShareGrid(ShareCount):
+    """
+    Make a uniformly spaced grid on the unit interval, representing risky asset shares.
+
+    Parameters
+    ----------
+    ShareCount : int
+        Number of points in the grid.
+
+    Returns
+    -------
+    ShareGrid : np.array
+    """
+    ShareGrid = np.linspace(0.0, 1.0, ShareCount)
+    return ShareGrid
+
 
 class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     """
@@ -185,8 +204,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 
     def update_ShareGrid(self):
         """
-        Creates the attribute ShareGrid as an evenly spaced grid on [0.,1.], using
-        the primitive parameter ShareCount.
+        Creates the attribute ShareGrid.
 
         Parameters
         ----------
@@ -196,7 +214,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.ShareGrid = np.linspace(0.0, 1.0, self.ShareCount)
+        self.construct("ShareGrid")
         self.add_to_time_inv("ShareGrid")
 
     def get_Rfree(self):
@@ -1776,6 +1794,7 @@ risky_constructor_dict = indshk_constructor_dict.copy()
 risky_constructor_dict["RiskyDstn"] = make_lognormal_RiskyDstn
 risky_constructor_dict["ShockDstn"] = combine_IncShkDstn_and_RiskyDstn
 risky_constructor_dict["ShareLimit"] = calc_ShareLimit_for_CRRA
+risky_constructor_dict["ShareGrid"] = make_simple_ShareGrid
 
 risky_asset_params = {
     # Risky return factor moments. Based on SP500 real returns from Shiller's

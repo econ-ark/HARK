@@ -16,7 +16,39 @@ from HARK.distribution import (
     Uniform,
 )
 from HARK.interpolation import IdentityFunction, LinearInterp
-from HARK.utilities import get_percentiles
+from HARK.utilities import get_percentiles, make_polynomial_params
+
+
+class BinaryIncShkDstn(DiscreteDistribution):
+    """
+    A one period income shock distribution (transitory, permanent, or other)
+    with only two outcomes. One probability and value are specified, and the
+    other is implied to make it a mean one distribution.
+
+    Parameters
+    ----------
+    shk_prob : float
+        Probability of one of the income shock outcomes.
+    shk_val : float
+        Value of the specified income shock outcome.
+    seed : int, optional
+        Random seed. The default is 0.
+
+    Returns
+    -------
+    ShkDstn : DiscreteDistribution
+        Binary income shock distribuion.
+    """
+
+    def __init__(self, shk_prob, shk_val, seed=0):
+        if shk_prob > 1.0 or shk_prob < 0.0:
+            raise ValueError("Shock probability must be between 0 and 1!")
+
+        other_prob = 1.0 - shk_prob
+        other_val = (1.0 - shk_prob * shk_val) / other_prob
+        probs = [shk_prob, other_prob]
+        vals = [shk_val, other_val]
+        super().__init__(pmv=probs, atoms=vals, seed=seed)
 
 
 class LognormPermIncShk(DiscreteDistribution):
@@ -30,7 +62,7 @@ class LognormPermIncShk(DiscreteDistribution):
     n_approx : int
         Number of points to use in the discrete approximation.
     neutral_measure : Bool, optional
-        Whether to use Hamenberg's permanent-income-neutral measure. The default is False.
+        Whether to use Harmenberg's permanent-income-neutral measure. The default is False.
     seed : int, optional
         Random seed. The default is 0.
 
@@ -292,6 +324,95 @@ def get_TranShkDstn_from_IncShkDstn(IncShkDstn, RNG):
 def get_TranShkGrid_from_TranShkDstn(T_cycle, TranShkDstn):
     TranShkGrid = [TranShkDstn[t].atoms.flatten() for t in range(T_cycle)]
     return TranShkGrid
+
+
+def make_polynomial_PermGroFac(T_cycle, PermGroFac_coeffs, age_0=0.0, age_step=1.0):
+    """
+    Construct the profile of permanent growth factors by age using polynomial coefficients.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of non-terminal period's in this agent's cycle.
+    PermGroFac_coeffs : [float]
+        Arbitrary length list or 1D vector of polynomial coefficients of age on
+        permanent income growth factor.
+    age_0 : float, optional
+        Initial age of agents (when t_age=0), with respect to the polynomial coefficients.
+        The default is 0.
+    age_step : float, optional
+        Age increment in the model, with respect to the polynomial coefficients.
+        The default is 1.
+
+    Returns
+    -------
+    PermGroFac : [float]
+        List of permanent income growth factors, one per period.
+    """
+    PermGroFac = make_polynomial_params(
+        PermGroFac_coeffs, T_cycle, offset=0.0, step=1.0
+    )
+    return PermGroFac.tolist()
+
+
+def make_polynomial_PermShkStd(T_cycle, PermShkStd_coeffs, age_0=0.0, age_step=1.0):
+    """
+    Construct the profile of (log) permanent income shock standard deviations by
+    age using polynomial coefficients.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of non-terminal period's in this agent's cycle.
+    PermGroFac_coeffs : [float]
+        Arbitrary length list or 1D vector of polynomial coefficients of age on
+        (log) permanent income shock standard deviation.
+    age_0 : float, optional
+        Initial age of agents (when t_age=0), with respect to the polynomial coefficients.
+        The default is 0.
+    age_step : float, optional
+        Age increment in the model, with respect to the polynomial coefficients.
+        The default is 1.
+
+    Returns
+    -------
+    PermShkStd : [float]
+        List of (log) permanent income shock standard deviations, one per period.
+    """
+    PermShkStd = make_polynomial_params(
+        PermShkStd_coeffs, T_cycle, offset=0.0, step=1.0
+    )
+    return PermShkStd.tolist()
+
+
+def make_polynomial_TranShkStd(T_cycle, TranShkStd_coeffs, age_0=0.0, age_step=1.0):
+    """
+    Construct the profile of (log) transitory income shock standard deviations by
+    age using polynomial coefficients.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of non-terminal period's in this agent's cycle.
+    PermGroFac_coeffs : [float]
+        Arbitrary length list or 1D vector of polynomial coefficients of age on
+        (log) transitory income shock standard deviation.
+    age_0 : float, optional
+        Initial age of agents (when t_age=0), with respect to the polynomial coefficients.
+        The default is 0.
+    age_step : float, optional
+        Age increment in the model, with respect to the polynomial coefficients.
+        The default is 1.
+
+    Returns
+    -------
+    TranShkStd : [float]
+        List of (log) permanent income shock standard deviations, one per period.
+    """
+    TranShkStd = make_polynomial_params(
+        TranShkStd_coeffs, T_cycle, offset=0.0, step=1.0
+    )
+    return TranShkStd.tolist()
 
 
 class pLvlFuncAR1(MetricObject):

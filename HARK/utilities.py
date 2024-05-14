@@ -473,6 +473,34 @@ def epanechnikov_kernel(x, ref_x, h=1.0):
     return out
 
 
+def make_polynomial_params(coeffs, T, offset=0.0, step=1.0):
+    """
+    Make a T-length array of parameters using polynomial coefficients.
+
+    Parameters
+    ----------
+    coeffs : [float]
+        Arbitrary length list of polynomial coefficients.
+    T : int
+        Number of elements in the output.
+    offset : float, optional
+        Value at which the X values should start. The default is 0.0.
+    step : float, optional
+        Increment of the X values. The default is 1.0.
+
+    Returns
+    -------
+    param_vals : np.array
+        T-length array of parameter values calculated using the polynomial coefficients.
+    """
+    N = len(coeffs)
+    X = offset + step * np.arange(T)
+    param_vals = np.zeros_like(X)
+    for n in range(N):
+        param_vals += coeffs[n] * X**n
+    return param_vals
+
+
 @numba.njit
 def jump_to_grid_1D(m_vals, probs, Dist_mGrid):
     """
@@ -836,8 +864,12 @@ def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
     plt.show()
 
 
+###############################################################################
+
+
 def determine_platform():
-    """Untility function to return the platform currenlty in use.
+    """
+    Utility function to return the platform currenlty in use.
 
     Returns
     ---------
@@ -1067,7 +1099,6 @@ def benchmark(
     stats: Stats (optional)
           Profiling object with call statistics.
     """
-
     agent = agent_type
     cProfile.run("agent.solve()", filename)
     stats = pstats.Stats(filename)
