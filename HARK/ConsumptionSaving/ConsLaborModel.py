@@ -490,9 +490,11 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         -------
         None
         """
-        super().update()
+        self.update_income_process()
         self.construct("LbrCost", "TranShkGrid")
         self.add_to_time_vary("LbrCost", "TranShkGrid")
+        self.update_assets_grid()
+        self.update_solution_terminal()
 
     def calc_bounding_values(self):
         """

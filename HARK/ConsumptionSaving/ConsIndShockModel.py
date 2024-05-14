@@ -2502,6 +2502,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 + (params["T_cycle"] - i - 1) * [getattr(self, shk_param)]
             )  # Sequence of interest rates the agent faces
         setattr(FinHorizonAgent, shk_param, perturbed_list)
+        self.parameters[shk_param] = perturbed_list
 
         # Update income process if perturbed parameter enters the income shock distribution
         FinHorizonAgent.update_income_process()
@@ -2671,18 +2672,19 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # this condition is because some attributes are specified as lists while other as floats
         if type(getattr(self, shk_param)) == list:
-            peturbed_list = [getattr(self, shk_param)[0] + dx] + (
+            perturbed_list = [getattr(self, shk_param)[0] + dx] + (
                 params["T_cycle"] - 1
             ) * [
                 getattr(self, shk_param)[0]
             ]  # Sequence of interest rates the agent faces
         else:
-            peturbed_list = [getattr(self, shk_param) + dx] + (
+            perturbed_list = [getattr(self, shk_param) + dx] + (
                 params["T_cycle"] - 1
             ) * [getattr(self, shk_param)]
             # Sequence of interest rates the agent
 
-        setattr(ZerothColAgent, shk_param, peturbed_list)  # Set attribute to agent
+        setattr(ZerothColAgent, shk_param, perturbed_list)  # Set attribute to agent
+        self.parameters[shk_param] = perturbed_list
 
         # Use Harmenberg Neutral Measure
         ZerothColAgent.neutral_measure = True

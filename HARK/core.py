@@ -329,7 +329,26 @@ class Model:
     def describe(self):
         return self.__str__()
 
-    def construct(self, *args):
+    def del_param(self, param_name):
+        """
+
+
+        Parameters
+        ----------
+        param_name : str
+            A string naming a parameter or data to be deleted from this instance.
+            Removes information from self.parameters dictionary and own namespace.
+
+        Returns
+        -------
+        None.
+        """
+        if param_name in self.parameters:
+            del self.parameters[param_name]
+        if hasattr(self, param_name):
+            delattr(self, param_name)
+
+    def construct(self, *args, force=False):
         """
         Top-level method for building constructed inputs. If called without any
         inputs, construct builds each of the objects named in the keys of the
@@ -339,13 +358,20 @@ class Model:
         method will do multiple "passes" over the requested keys, as some cons-
         tructors require inputs built by other constructors. If any requested
         constructors failed to build due to missing data, those keys (and the
-        missing data) will be named in self._missing_key_data.
+        missing data) will be named in self._missing_key_data. Other errors are
+        recorded in the dictionary attribute _constructor_errors.
 
         Parameters
         ----------
         *args : str, optional
             Keys of self.constructors that are requested to be constructed. If
             no arguments are passed, *all* elements of the dictionary are implied.
+        force : bool, optional
+            When True, the method will force its way past any errors, including
+            missing constructors, missing arguments for constructors, and errors
+            raised during execution of constructors. Information about all such
+            errors is stored in the dictionary attributes described above. When
+            False (default), any errors or exception will be raised.
 
         Returns
         -------
@@ -358,6 +384,11 @@ class Model:
             keys = list(self.constructors.keys())
         N_keys = len(keys)
         keys_complete = np.zeros(N_keys, dtype=bool)
+
+        # Get the dictionary of constructor errors
+        if not hasattr(self, "_constructor_errors"):
+            self._constructor_errors = {}
+        errors = self._constructor_errors
 
         # As long as the work isn't complete and we made some progress on the last
         # pass, repeatedly perform passes of trying to construct objects
@@ -376,8 +407,13 @@ class Model:
                 key = keys[i]
                 try:
                     constructor = self.constructors[key]
-                except:
-                    raise ValueError("No constructor found for " + key)
+                except Exception as not_found:
+                    errors[key] = "No constructor found for " + str(not_found)
+                    self.del_param(key)
+                    if force:
+                        continue
+                    else:
+                        raise ValueError("No constructor found for " + key) from None
 
                 # Get the names of arguments for this constructor and try to gather them
                 args_needed = get_arg_names(constructor)
@@ -387,6 +423,7 @@ class Model:
                 }
                 temp_dict = {}
                 any_missing = False
+                missing_args = []
                 for j in range(len(args_needed)):
                     this_arg = args_needed[j]
                     if hasattr(self, this_arg):
@@ -399,17 +436,34 @@ class Model:
                                 # Record missing key-data pair
                                 any_missing = True
                                 missing_key_data.append((key, this_arg))
+                                missing_args.append(this_arg)
 
                 # If all of the required data was found, run the constructor and
                 # store the result in parameters (and on self)
                 if not any_missing:
-                    temp = constructor(**temp_dict)
+                    try:
+                        temp = constructor(**temp_dict)
+                    except Exception as problem:
+                        errors[key] = str(type(problem)) + ": " + str(problem)
+                        self.del_param(key)
+                        if force:
+                            continue
+                        else:
+                            raise
                     setattr(self, key, temp)
                     self.parameters[key] = temp
+                    if key in errors:
+                        del errors[key]
                     keys_complete[i] = True
                     anything_accomplished_this_pass = True  # We did something!
                 else:
-                    pass  # Don't do anything, constructor will surely fail
+                    msg = "Missing required arguments:"
+                    for arg in missing_args:
+                        msg += " " + arg + ","
+                    msg = msg[:-1]
+                    errors[key] = msg
+                    self.del_param(key)
+                    # Never raise exceptions here, as the arguments might be filled in later
 
             # Check whether another pass should be performed
             any_keys_incomplete = np.any(np.logical_not(keys_complete))
@@ -417,6 +471,15 @@ class Model:
 
         # Store missing key-data pairs and exit
         self._missing_key_data = missing_key_data
+        if any_keys_incomplete:
+            msg = "Did not construct these objects:"
+            for i in range(N_keys):
+                if keys_complete[i]:
+                    continue
+                msg += " " + keys[i] + ","
+            msg = msg[:-1]
+            if not force:
+                raise ValueError(msg)
         return
 
     def describe_constructors(self, *args):
@@ -439,16 +502,14 @@ class Model:
             keys = args
         else:
             keys = list(self.constructors.keys())
-        N_keys = len(keys)
         yes = "\u2713"
         no = "X"
         maybe = "*"
         noyes = [no, yes]
 
         out = ""
-        for i in range(N_keys):
-            key = keys[i]
-            has_val = hasattr(self, key)
+        for key in keys:
+            has_val = hasattr(self, key) or (key in self.parameters)
 
             # Get the constructor function if possible
             try:
@@ -475,7 +536,7 @@ class Model:
             # Check whether each argument existd
             for j in range(len(arg_names)):
                 this_arg = arg_names[j]
-                if hasattr(self, this_arg):
+                if hasattr(self, this_arg) or this_arg in self.parameters:
                     symb = yes
                 elif not has_no_default[this_arg]:
                     symb = maybe
