@@ -22,6 +22,19 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
+
+
+import scipy.sparse as sp
+from HARK.utilities import(
+    
+    jump_to_grid_1D,
+    jump_to_grid_2D,
+    gen_tran_matrix_1D,
+    gen_tran_matrix_2D,
+    )
+
+from copy import deepcopy
+
 from HARK.rewards import (
     UtilityFuncCRRA,
     CRRAutility,
@@ -552,10 +565,22 @@ class MarkovConsumerType(IndShockConsumerType):
         StateCount = self.MrkvArray[0].shape[0]
 
         # Check that arrays are the right shape
-        if not isinstance(self.Rfree, np.ndarray) or self.Rfree.shape != (StateCount,):
-            raise ValueError(
-                "Rfree not the right shape, it should an array of Rfree of all the states."
-            )
+        if isinstance(self.Rfree,list):
+        
+            for rfree_t in self.Rfree:
+                
+                # Check that arrays are the right shape
+                if not isinstance(rfree_t, np.ndarray) or rfree_t.shape != (StateCount,):
+                    raise ValueError(
+                        "Rfree not the right shape, it should an array of Rfree of all the states."
+                    )
+        else:
+            
+            # Check that arrays are the right shape
+            if not isinstance(self.Rfree, np.ndarray) or self.Rfree.shape != (StateCount,):
+                raise ValueError(
+                    "Rfree not the right shape, it should an array of Rfree of all the states."
+                )
 
         # Check that arrays in lists are the right shape
         for MrkvArray_t in self.MrkvArray:
@@ -895,6 +920,290 @@ class MarkovConsumerType(IndShockConsumerType):
         """
         raise NotImplementedError()
 
+
+
+    def calc_transition_matrix(self, shk_dstn = None):
+            '''
+            Calculates how the distribution of agents across market resources 
+            transitions from one period to the next. If finite horizon problem, then calculates
+            a list of transition matrices, consumption and asset policy grids for each period of the problem. 
+            The transition matrix/matrices and consumption and asset policy grid(s) are stored as attributes of self.
+            
+            
+            Parameters
+            ----------
+                shk_dstn: list 
+                    list of income shock distributions
+
+            Returns
+            -------
+            None
+            
+            ''' 
+            
+            self.state_num = len(self.MrkvArray[0])
+
+            if self.cycles == 0: 
+            
+                markov_array = self.MrkvArray
+                
+                eigen, ss_dstn = sp.linalg.eigs(markov_array[0].T , k=1, which='LM')
+                
+                
+                ss_dstn = ss_dstn[:,0] / np.sum(ss_dstn[:,0]) # Steady state distribution of employed/unemployed 
+
+                states = len(ss_dstn)
+
+                
+               
+                if shk_dstn == None:
+                    shk_dstn = self.IncShkDstn[0]
+                
+                dist_mGrid = self.dist_mGrid #Grid of market resources
+                dist_pGrid = self.dist_pGrid #Grid of permanent incomes
+                
+                self.cPol_Grid = []
+                self.aPol_Grid  = []
+                
+                bNext = []
+                shk_prbs = []
+                tran_shks = []
+                perm_shks = []
+                
+                for i in range(states):
+                    c_next = self.solution[0].cFunc[i](dist_mGrid)
+                    self.cPol_Grid.append(c_next)
+                    
+                    a_next_i = dist_mGrid - c_next
+                    self.aPol_Grid .append(a_next_i)
+                    
+                    if type(self.Rfree) == list:
+                         b_next_i = self.Rfree[0][0] * a_next_i
+                    else:
+                         b_next_i = self.Rfree * a_next_i
+                         
+                    bNext.append(b_next_i)
+                    
+                    shk_prbs.append(shk_dstn[i].pmv)
+                    tran_shks.append(shk_dstn[i].atoms[1])
+                    perm_shks.append(shk_dstn[i].atoms[0])
+                    
+     
+
+                LivPrb = self.LivPrb[0][0] # Update probability of staying alive
+                
+                
+                if len(dist_pGrid) == 1: 
+                    
+                    self.tran_matrix = []
+
+                    for i in range(self.state_num):
+                        
+                        TranMatrix_i =  np.zeros( (len(dist_mGrid),len(dist_mGrid)) ) 
+
+                        for j in range(self.state_num):
+                            NewBornDist = jump_to_grid_1D(tran_shks[j],shk_prbs[j],dist_mGrid)
+
+                            TranMatrix_i +=  gen_tran_matrix_1D(dist_mGrid,bNext[i],self.MrkvArray[0][i][j]*shk_prbs[j],perm_shks[j],tran_shks[j], LivPrb,NewBornDist)
+                        self.tran_matrix.append(TranMatrix_i)
+                    
+                    self.prb_dstn = ss_dstn.real
+                    
+                    
+                else:
+                    
+                    self.tran_matrix = []
+
+                    for i in range(self.state_num):
+                        
+                        TranMatrix_i =  np.zeros( (len(dist_mGrid),len(dist_mGrid)) ) 
+
+                        for j in range(self.state_num):
+                            NewBornDist = jump_to_grid_2D(tran_shks[j],np.ones_like(tran_shks[i]),shk_prbs[j],dist_mGrid,dist_pGrid)
+
+                            TranMatrix_i +=  gen_tran_matrix_2D(dist_mGrid,dist_pGrid,bNext[i],self.MrkvArray[0][i][j]*shk_prbs[j],perm_shks[j],tran_shks[j], LivPrb,NewBornDist)
+                        self.tran_matrix.append(TranMatrix_i)
+                    
+                    self.prb_dstn = ss_dstn.real
+                    
+        
+            elif self.cycles > 1:
+                print('calc_transition_matrix requires cycles = 0 or cycles = 1')
+                
+            elif self.T_cycle!= 0:
+                
+                # for finite horizon, we can account for changing levels of prb_unemp because of endogenous job finding probability by imposing a list of these values, so for q'th period, the probability is slightly different
+                if shk_dstn == None:
+                    shk_dstn = self.IncShkDstn
+                
+                self.tran_matrix = []
+
+                dist_mGrid =  self.dist_mGrid
+                #print(len(dist_mGrid))
+
+                self.cPol_Grid = []
+                self.aPol_Grid  = []
+                self.prb_dstn = []
+                dstn_0 = self.dstn_0 
+                
+                for k in range(self.T_cycle):
+                
+                    if type(self.dist_pGrid) == list:
+                        dist_pGrid = self.dist_pGrid[k] #Permanent income grid this period
+                    else:
+                        dist_pGrid = self.dist_pGrid #If here then use prespecified permanent income grid
+                    
+                    bNext = []
+                    shk_prbs = []
+                    tran_shks = []
+                    perm_shks = []
+                    cPol_Grid_k = []
+                    aPol_Grid_k = []
+
+                    for i in range(self.state_num):
+                        
+                        c_next = self.solution[k].cFunc[i](dist_mGrid)
+                        cPol_Grid_k.append(c_next)
+                        
+                        a_next_i = dist_mGrid - c_next
+                        aPol_Grid_k.append(a_next_i)
+                        
+                        if type(self.Rfree)==list:
+                            b_next_i = self.Rfree[k][0]*a_next_i
+                            bNext.append(b_next_i)
+                        else:
+                            b_next_i = self.Rfree*a_next_i
+                            bNext.append(b_next_i)
+                            
+                            
+                        shk_prbs.append(shk_dstn[k][i].pmv)
+                        tran_shks.append(shk_dstn[k][i].atoms[1])
+                        perm_shks.append(shk_dstn[k][i].atoms[0])
+                        
+                    
+                    self.cPol_Grid.append(cPol_Grid_k)
+                    #print(len(cPol_Grid_k))
+
+                    self.aPol_Grid.append(aPol_Grid_k)
+
+            
+                    LivPrb = self.LivPrb[k][0] # Update probability of staying alive this period
+                    
+         
+                    if len(dist_pGrid) == 1: 
+                        
+                        dstn_0 = np.dot(self.MrkvArray[k].T, dstn_0) #transposed to have columns sum up to one , I think this is the distribution of employed vs unemployed
+                        
+                        tran_matrix_t = []
+
+                        for i in range(self.state_num):
+                            
+                            TranMatrix_i =  np.zeros( (len(dist_mGrid),len(dist_mGrid)) ) 
+
+                            for j in range(self.state_num):
+                                
+                                NewBornDist = jump_to_grid_1D(tran_shks[j],self.MrkvArray[k][i][j]*shk_prbs[j],dist_mGrid)
+
+                                TranMatrix_i +=  gen_tran_matrix_1D(dist_mGrid,bNext[i],self.MrkvArray[k][i][j]*shk_prbs[j],perm_shks[j],tran_shks[j], LivPrb,NewBornDist)
+                            tran_matrix_t.append(TranMatrix_i)
+                        
+                        self.tran_matrix.append(deepcopy(tran_matrix_t))
+                   
+                        self.prb_dstn.append(dstn_0)
+                        
+                  
+                    else:
+                        
+                        
+                        dstn_0 = np.dot(self.MrkvArray[k].T, dstn_0) #transposed to have columns sum up to one , I think this is the distribution of employed vs unemployed
+                        
+                        tran_matrix_t = []
+
+                        for i in range(self.state_num):
+                            
+                            TranMatrix_i =  np.zeros( (len(dist_mGrid),len(dist_mGrid)) ) 
+
+                            for j in range(self.state_num):
+                                
+                                NewBornDist = jump_to_grid_2D(tran_shks[j],np.ones_like(tran_shks[i]),self.MrkvArray[k][i][j]*shk_prbs[j],dist_mGrid,dist_pGrid)
+
+                                TranMatrix_i +=  gen_tran_matrix_2D(dist_mGrid,dist_pGrid,bNext[i],self.MrkvArray[k][i][j]*shk_prbs[j],perm_shks[j],tran_shks[j], LivPrb,NewBornDist)
+                            tran_matrix_t.append(TranMatrix_i)
+                        
+                        self.tran_matrix.append(deepcopy(tran_matrix_t))
+                   
+                        self.prb_dstn.append(dstn_0)
+                        
+                        
+                    
+                               
+                    
+
+        
+    def calc_ergodic_dist(self, transition_matrix = None):
+            
+            '''
+            Calculates the ergodic distribution across normalized market resources and
+            permanent income as the eigenvector associated with the eigenvalue 1.
+            The distribution is stored as attributes of self both as a vector and as a reshaped array with the ij'th element representing
+            the probability of being at the i'th point on the mGrid and the j'th
+            point on the pGrid.
+            
+            Parameters
+            ----------
+            transition_matrix: List 
+                        transition matrix whose ergordic distribution is to be solved
+
+            Returns
+            -------
+            None
+            '''
+            
+            
+            #if transition_matrix == None:
+                #transition_matrix = [self.tran_matrix]
+            self.vec_erg_dstns = []
+            for i in range(self.state_num):
+                
+                eigen_i, ergodic_distr_i = sp.linalg.eigs(self.tran_matrix[i] , k=1 , which='LM')  # Solve for ergodic distribution
+                ergodic_distr_i = ergodic_distr_i.real/np.sum(ergodic_distr_i.real)
+                
+                #erg_dstn = compute_erg_dstn(self.tran_matrix[i])
+                #self.ergodic_distrs.append(erg_dstn)
+
+                ergodic_distr_i = ergodic_distr_i.T[0]
+                self.vec_erg_dstns.append(ergodic_distr_i)
+                
+                
+            
+    def compute_steady_state(self,IncShkDstn_ntrl_msr):
+        
+           
+            
+
+        #solve the consumer's problem
+
+        self.solve()
+
+        self.define_distribution_grid(dist_pGrid = np.array([1]))
+        self.calc_transition_matrix(IncShkDstn_ntrl_msr)
+        self.calc_ergodic_dist()
+        
+        
+        C = 0
+        A = 0
+        for i in range(self.state_num):
+            
+            C += self.prb_dstn[i]*np.dot(self.cPol_Grid[i],self.vec_erg_dstns[i])
+            A += self.prb_dstn[i]*np.dot(self.aPol_Grid[i],self.vec_erg_dstns[i])
+
+
+        self.A_ss = A
+        self.C_ss = C
+        
+        return C , A 
+    
+    
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
         Creates a "normalized Euler error" function for this instance, mapping

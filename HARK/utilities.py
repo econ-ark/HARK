@@ -761,6 +761,179 @@ def gen_tran_matrix_2D(
     return TranMatrix
 
 
+
+
+def Fake_News_JAC(a_ss,c_ss,a_t,c_t,tranmat_ss,tranmat_t,D_ss,dx,T):
+    
+    """
+    Computes Heterogenous Agent Jacobian Matrices using fake news algorithm following https://onlinelibrary.wiley.com/doi/abs/10.3982/ECTA17434
+
+    Parameters
+    ----------
+    a_ss : np.array
+          Steady State Consumption Policy Grid
+
+    c_ss : np.array
+          Steady State Asset Policy Grid
+
+    a_t : np.array
+        list of Asset Policy Grids given shock
+
+    c_t : np.array
+        list of Consumption Policy Grids given shock
+
+    tranmat_ss : np.array
+        steady state transition matrix
+
+    tranmat_t : list
+        list of transition matrices given shock
+        
+    dx : float
+        size of perturbation
+
+    T : int
+         Length of TxT Jacobian Matrix
+
+    Returns
+    -------
+    CJAC : np.array
+        Consumption Jacobian Matrix
+    AJAC : np.array
+        Asset Jacobian Matrix
+    """
+    
+    
+
+    # Fake News Algorithm begins below ( To find fake news algorithm See page 2388 of https://onlinelibrary.wiley.com/doi/abs/10.3982/ECTA17434  )
+
+    ##########
+    # STEP 1 # of fake news algorithm, As in the paper for Curly Y and Curly D. Here the policies are over assets and consumption so we denote them as curly C and curly D.
+    ##########
+
+    # Expectation vectors
+    exp_vecs_a_e = []
+    exp_vec_a_e = a_ss
+
+    exp_vecs_c_e = []
+    exp_vec_c_e = c_ss
+
+    for i in range(T):
+
+        exp_vecs_a_e.append(exp_vec_a_e)
+        exp_vec_a_e = np.dot( tranmat_ss.T, exp_vec_a_e )
+
+        exp_vecs_c_e.append(exp_vec_c_e)
+        exp_vec_c_e = np.dot( tranmat_ss.T, exp_vec_c_e )
+
+    # First expectation vector is the steady state policy
+    exp_vecs_a_e = np.array(exp_vecs_a_e)
+    exp_vecs_c_e = np.array(exp_vecs_c_e)
+
+
+    da0_s = [] # Deviation of asset policy from steady state policy
+    dc0_s = [] # Deviation of Consumption policy from steady state policy
+
+    for i in range(T):
+        da0_s.append( a_t[T - i ] - a_ss )
+        dc0_s.append( c_t[T  - i ] - c_ss )
+
+    # Turn expectation vectors into arrays
+    da0_s = np.array(da0_s)
+    dc0_s = np.array(dc0_s)
+
+
+
+    dA0_s = []
+    dC0_s = []
+    for i in range(T):
+        dA0_s.append( np.dot(da0_s[i], D_ss))
+        dC0_s.append( np.dot(dc0_s[i], D_ss))
+
+    dA0_s = np.array(dA0_s)
+    A_curl_s = dA0_s/dx   # This is equivalent to the curly Y scalar detailed in the first step of the algorithm
+
+    dC0_s = np.array(dC0_s)
+    C_curl_s = dC0_s/dx
+
+
+    dlambda0_s = []   # List of change in transition matrix relative to the steady state transition matrix
+    tranmat_t.append(tranmat_ss)  # List of computed transition matrices for each period
+    for i in range(T):
+        dlambda0_s.append( tranmat_t[T  - i ] - tranmat_ss )
+
+    dlambda0_s = np.array(dlambda0_s)
+
+    dD0_s = []
+
+    for i in range(T):
+        dD0_s.append( np.dot( dlambda0_s[i], D_ss )  )
+
+    dD0_s = np.array(dD0_s)
+    D_curl_s = dD0_s/dx
+
+    #########
+    # STEP3 # of the algorithm. In particular equation 26 of the published paper.
+    #########
+    
+    # Fake news matrices
+    Curl_F_A = np.zeros( ( T , T ) )
+    Curl_F_C = np.zeros( ( T , T ) )
+
+    # First row of Fake News Matrix
+    Curl_F_A[0] = A_curl_s
+    Curl_F_C[0] = C_curl_s
+    for i in range(T-1):
+        for j in range(T):
+
+            Curl_F_A[i+1][j] = np.dot(exp_vecs_a_e[i], D_curl_s[j])
+            Curl_F_C[i+1][j] = np.dot(exp_vecs_c_e[i], D_curl_s[j])
+
+    ########
+    # STEP4 #  of the algorithm
+    ########
+    
+    # Jacobian Matrices
+    J_A = np.zeros((T,T)) # Asset Jacobian
+    J_C = np.zeros((T,T)) # Consumption Jacobian
+
+    for t in range(T):
+        for s in range(T):
+            if (t ==0) or (s==0):
+                J_A[t][s] = Curl_F_A[t][s]
+                J_C[t][s] = Curl_F_C[t][s]
+            else:
+                J_A[t][s] = J_A[t-1][s-1] + Curl_F_A[t][s]
+                J_C[t][s] = J_C[t-1][s-1] + Curl_F_C[t][s]
+
+    # Zeroth Column of the Jacobian
+    dD_0_0 = np.dot(tranmat_t[-2] - tranmat_ss, D_ss)
+
+    D_curl_0_0 = dD_0_0/dx
+
+    c_first_col_without_0_0 = []
+    a_first_col_without_0_0 = []
+
+    for i in range(T ):
+
+        c_first_col_without_0_0.append(np.dot(exp_vecs_c_e[i],D_curl_0_0))
+        a_first_col_without_0_0.append(np.dot(exp_vecs_a_e[i],D_curl_0_0))
+
+    c_first_col_without_0_0 = np.array(c_first_col_without_0_0)
+    a_first_col_without_0_0 = np.array(a_first_col_without_0_0)
+
+    c_first_col_0 = np.zeros(T)
+    a_first_col_0 = np.zeros(T)
+
+    c_first_col_0 = c_first_col_without_0_0
+    a_first_col_0 = a_first_col_without_0_0
+
+    #Fill zeroth column of jacobian matrix
+    J_A.T[0] = a_first_col_0
+    J_C.T[0] = c_first_col_0
+
+    return J_C, J_A
+
+
 # ==============================================================================
 # ============== Some basic plotting tools  ====================================
 # ==============================================================================
