@@ -93,7 +93,6 @@ class test_pfnm(unittest.TestCase):
 
 class test_consumer_models(unittest.TestCase):
     def setUp(self):
-
         self.cs = AgentTypeMonteCarloSimulator(  ### Use fm, blockified
             cons.calibration,
             cons.cons_problem,  ### multiple cons blocks!
@@ -123,7 +122,7 @@ class test_consumer_models(unittest.TestCase):
                 "k": Lognormal(-6, 0),
                 #'live' : 1,
                 "p": 1.0,
-                "R": 1.03
+                "R": 1.03,
             },
             agent_count=2,
             T_sim=5,
