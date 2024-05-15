@@ -117,7 +117,7 @@ class NullFunc:
 # =======================================================
 
 
-def construct_assets_grid(aXtraMin, aXtraMax, aXtraCount, aXtraExtra, aXtraNestFac):
+def make_assets_grid(aXtraMin, aXtraMax, aXtraCount, aXtraExtra, aXtraNestFac):
     """
     Constructs the base grid of post-decision states, representing end-of-period
     assets above the absolute minimum. Has three modes, depending on aXtraNestFac:

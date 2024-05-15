@@ -56,7 +56,7 @@ from HARK.rewards import (
     UtilityFuncCRRA,
 )
 from HARK.utilities import (
-    construct_assets_grid,
+    make_assets_grid,
     gen_tran_matrix_1D,
     gen_tran_matrix_2D,
     jump_to_grid_1D,
@@ -1819,12 +1819,12 @@ class PerfForesightConsumerType(AgentType):
 
 ###############################################################################
 
-# Make a dictionary of constructors
+# Make a dictionary of constructors for the idiosyncratic income shocks model
 indshk_constructor_dict = {
     "IncShkDstn": construct_lognormal_income_process_unemployment,
     "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
-    "aXtraGrid": construct_assets_grid,
+    "aXtraGrid": make_assets_grid,
     "solution_terminal": make_basic_CRRA_solution_terminal,
 }
 
@@ -1841,7 +1841,7 @@ default_IncShkDstn_params = {
     "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
 }
 
-# Default parameters to make aXtraGrid using construct_assets_grid
+# Default parameters to make aXtraGrid using make_assets_grid
 default_aXtraGrid_params = {
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
