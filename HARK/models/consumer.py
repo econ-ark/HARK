@@ -42,6 +42,23 @@ consumption_block = DBlock(
     }
 )
 
+consumption_block_normalized = DBlock(
+    **{
+        "name": "consumption normalized",
+        "shocks": {
+            "live": Bernoulli(p=LivPrb),  # Move to tick or mortality block?
+            "theta": MeanOneLogNormal(sigma=TranShkStd),
+        },
+        "dynamics": {
+            "b": lambda k, R: k * R / PermGroFac,
+            "m": lambda b, y: b + theta,
+            "c": Control(["m"]),
+            "a": lambda m, c: m - c,
+        },
+        "reward": {"u": lambda c, CRRA: c ** (1 - CRRA) / (1 - CRRA)},
+    }
+)
+
 portfolio_block = DBlock(
     **{
         "name": "portfolio",
