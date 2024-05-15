@@ -1040,38 +1040,37 @@ def make_basic_CRRA_solution_terminal(CRRA):
 # == Classes for representing types of consumer agents (and things they do) ==
 # ============================================================================
 
+# Make a dictionary of constructors (very simply for perfect foresight model)
 perf_foresight_constructors = {
     "solution_terminal": make_basic_CRRA_solution_terminal,
 }
 
 # Make a dictionary to specify a perfect foresight consumer type
 init_perfect_foresight = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
     "cycles": 1,  # Finite, non-cyclic model
-    "CRRA": 2.0,  # Coefficient of relative risk aversion,
-    "Rfree": 1.03,  # Interest factor on assets
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": perf_foresight_constructors,  # See dictionary above
+    # PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
+    "Rfree": 1.03,  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
-    "LivPrb": [0.98],  # Survival probability
+    "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": None,  # Artificial borrowing constraint
-    # Maximum number of grid points to allow in cFunc (should be large)
-    "MaxKinks": 400,
-    # Number of agents of this type (only matters for simulation)
-    "AgentCount": 10000,
-    # Mean of log initial assets (only matters for simulation)
-    "aNrmInitMean": 0.0,
-    # Standard deviation of log initial assets (only for simulation)
-    "aNrmInitStd": 1.0,
-    # Mean of log initial permanent income (only matters for simulation)
-    "pLvlInitMean": 0.0,
-    # Standard deviation of log initial permanent income (only matters for simulation)
-    "pLvlInitStd": 0.0,
-    # Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
-    "PermGroFacAgg": 1.0,
+    "MaxKinks": 400,  # Maximum number of grid points to allow in cFunc
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "T_cycle": 1,  # Number of periods in the cycle for this agent type
-    "PerfMITShk": False,
-    # Do Perfect Foresight MIT Shock: Forces Newborns to follow solution path of the agent he/she replaced when True
-    "constructors": perf_foresight_constructors,
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
 }
 
 
@@ -1820,6 +1819,7 @@ class PerfForesightConsumerType(AgentType):
 
 ###############################################################################
 
+# Make a dictionary of constructors
 indshk_constructor_dict = {
     "IncShkDstn": construct_lognormal_income_process_unemployment,
     "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
@@ -1828,41 +1828,61 @@ indshk_constructor_dict = {
     "solution_terminal": make_basic_CRRA_solution_terminal,
 }
 
-# Make a dictionary to specify an idiosyncratic income shocks consumer
-init_idiosyncratic_shocks = {
-    **init_perfect_foresight,
-    **{  # assets above grid parameters
-        "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
-        "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
-        # Exponential nesting factor when constructing "assets above minimum" grid
-        "aXtraNestFac": 3,
-        "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
-        "aXtraExtra": None,  # Some other values to add to the grid, not used
-        # Income process variables
-        # Standard deviation of log permanent income shocks
-        "PermShkStd": [0.1],
-        "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
-        # Standard deviation of log transitory income shocks
-        "TranShkStd": [0.1],
-        "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
-        "UnempPrb": 0.05,  # Probability of unemployment while working
-        "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
-        "IncUnemp": 0.3,  # Unemployment benefits replacement rate
-        "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
-        # Artificial borrowing constraint; imposed minimum level of end-of period assets
-        "BoroCnstArt": 0.0,
-        "tax_rate": 0.0,  # Flat income tax rate
-        "T_retire": 0,  # Period of retirement (0 --> no retirement)
-        "vFuncBool": False,  # Whether to calculate the value function during solution
-        # Use cubic spline interpolation when True, linear interpolation when False
-        "CubicBool": False,
-        "neutral_measure": False,
-        # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
-        # Whether Newborns have transitory shock. The default is False.
-        "NewbornTransShk": False,
-        "constructors": indshk_constructor_dict,
-    },
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
 }
+
+# Default parameters to make aXtraGrid using construct_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": None,  # Additional other values to add in grid (optional)
+}
+
+# Make a dictionary to specify an idiosyncratic income shocks consumer type
+init_idiosyncratic_shocks = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": indshk_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
+    "Rfree": 1.03,  # Interest factor on retained assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "PermGroFac": [1.01],  # Permanent income growth factor
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_idiosyncratic_shocks.update(default_IncShkDstn_params)
+init_idiosyncratic_shocks.update(default_aXtraGrid_params)
 
 
 class IndShockConsumerType(PerfForesightConsumerType):
@@ -3197,22 +3217,17 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
 ###############################################################################
 
+# Specify default parameters that differ in "kinked R" model compared to base IndShockConsumerType
+kinked_R_different_params = {
+    "Rboro": 1.20,  # Interest factor on assets when borrowing, a < 0
+    "Rsave": 1.02,  # Interest factor on assets when saving, a > 0
+    "BoroCnstArt": None,  # Kinked R only matters if borrowing is allowed
+}
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
-init_kinked_R = dict(
-    init_idiosyncratic_shocks,
-    **{
-        "Rboro": 1.20,  # Interest factor on assets when borrowing, a < 0
-        "Rsave": 1.02,  # Interest factor on assets when saving, a > 0
-        "BoroCnstArt": None,
-        # kinked R is a bit silly if borrowing not allowed
-        "CubicBool": True,
-        # kinked R is now compatible with linear cFunc and cubic cFunc
-        "aXtraCount": 48,
-        # ...so need lots of extra gridpoints to make up for it
-    },
-)
-del init_kinked_R["Rfree"]  # get rid of constant interest factor
+init_kinked_R = init_idiosyncratic_shocks.copy()  # See base dictionary above
+init_kinked_R.update(kinked_R_different_params)  # Update with some parameters
+del init_kinked_R["Rfree"]  # Get rid of constant interest factor
 
 
 class KinkedRconsumerType(IndShockConsumerType):
