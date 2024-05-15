@@ -15,6 +15,7 @@ RiskyStd = 0.1
 calibration = {
     "DiscFac": 0.96,
     "CRRA": 2.0,
+    "R" : 1.03, # note: this can be overriden by the portfolio dynamics
     "Rfree": 1.03,
     "EqP": 0.02,
     "LivPrb": LivPrb,
@@ -45,8 +46,9 @@ portfolio_block = DBlock(
     **{
         "name": "portfolio",
         "shocks": {
-            "risky_return": Lognormal(
-                mu=calibration["Rfree"] + calibration["EqP"], sigma=RiskyStd
+            "risky_return": Lognormal.from_mean_std(
+                calibration["Rfree"] + calibration["EqP"],
+                RiskyStd
             )
         },
         "dynamics": {
@@ -66,4 +68,5 @@ tick_block = DBlock(
     }
 )
 
-merged_block = RBlock(blocks=[consumption_block, portfolio_block, tick_block])
+cons_problem = RBlock(blocks=[consumption_block, tick_block])
+cons_portfolio_problem = RBlock(blocks=[consumption_block, portfolio_block, tick_block])

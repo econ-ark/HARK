@@ -91,13 +91,30 @@ class test_pfnm(unittest.TestCase):
         self.mcs.simulate()
 
 
-class test_cons(unittest.TestCase):
+class test_consumer_models(unittest.TestCase):
     def setUp(self):
-        self.mcs = AgentTypeMonteCarloSimulator(  ### Use fm, blockified
+
+        self.cs = AgentTypeMonteCarloSimulator(  ### Use fm, blockified
             cons.calibration,
-            cons.merged_block,  ### multiple cons bloks!
+            cons.cons_problem,  ### multiple cons blocks!
             {
                 "c": lambda m: PFexample.solution[0].cFunc(m),
+                # danger: normalized decision rule for unnormalized problem
+            },
+            {  # initial states
+                "k": Lognormal(-6, 0),
+                #'live' : 1,
+                "p": 1.0,
+            },
+            agent_count=2,
+            T_sim=5,
+        )
+
+        self.pcs = AgentTypeMonteCarloSimulator(  ### Use fm, blockified
+            cons.calibration,
+            cons.cons_portfolio_problem,  ### multiple cons blocks!
+            {
+                "c": lambda m: m / 2,
                 # danger: normalized decision rule for unnormalized problem
                 "stigma": lambda a: a / (2 + a),
                 # just a dummy share func
@@ -106,12 +123,26 @@ class test_cons(unittest.TestCase):
                 "k": Lognormal(-6, 0),
                 #'live' : 1,
                 "p": 1.0,
+                "R": 1.03
             },
-            agent_count=3,
-            T_sim=120,
+            agent_count=2,
+            T_sim=5,
         )
 
     def test_simulate(self):
-        ## smoke test
-        self.mcs.initialize_sim()
-        self.mcs.simulate()
+        self.cs.initialize_sim()
+        self.cs.simulate()
+
+        self.assertEqual(self.cs.calibration["R"], 1.03)
+        self.assertFalse("R" in self.cs.history)
+
+        self.pcs.initialize_sim()
+        self.pcs.simulate()
+
+        self.assertFalse("R" in self.cs.history)
+
+        # test to see if the R value is
+        # as calibrated for cons
+        # and dynamic for the portfolio model
+
+        self.assertTrue(self.pcs.history["R"][0][0] != 1.03)
