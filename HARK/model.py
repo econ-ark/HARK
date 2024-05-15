@@ -80,7 +80,7 @@ class RBlock:
         super_shocks = {}  # uses set to avoid duplicates
 
         for b in self.blocks:
-            for k, v in b.shocks.items():  # use d.iteritems() in python 2
+            for k, v in b.get_shocks().items():  # use d.iteritems() in python 2
                 super_shocks[k] = v
 
         return super_shocks
@@ -89,7 +89,7 @@ class RBlock:
         super_dyn = {}  # uses set to avoid duplicates
 
         for b in self.blocks:
-            for k, v in b.dynamics.items():  # use d.iteritems() in python 2
+            for k, v in b.get_dynamics().items():  # use d.iteritems() in python 2
                 super_dyn[k] = v
 
         return super_dyn
