@@ -1038,8 +1038,6 @@ default_RiskyDstn_and_ShareGrid_params = {
     "RiskyCount": 5,  # Number of integration nodes to use in approximation of risky returns
     "ShareCount": 25,  # Number of discrete points in the risky share approximation
 }
-# Risky return factor moments are based on SP500 real returns from Shiller's
-# "chapter 26" data, which can be found at https://www.econ.yale.edu/~shiller/data.htm
 
 # Make a dictionary to specify a risky asset consumer type
 init_portfolio = {

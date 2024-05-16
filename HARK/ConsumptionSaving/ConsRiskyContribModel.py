@@ -43,7 +43,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import init_lifecycle
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     RiskyAssetConsumerType,
     init_risky_asset,
-    risky_asset_params,
+    risky_constructor_dict,
 )
 from HARK.distribution import calc_expectation
 from HARK.interpolation import BilinearInterp  # 2D interpolator
@@ -2024,6 +2024,21 @@ risky_contrib_params = {
     "DiscreteShareBool": False,
     # Grid for finding the optimal rebalancing flow
     "dCount": 20,
+}
+risky_asset_params = {
+    # Risky return factor moments. Based on SP500 real returns from Shiller's
+    # "chapter 26" data, which can be found at https://www.econ.yale.edu/~shiller/data.htm
+    "RiskyAvg": 1.080370891,
+    "RiskyStd": 0.177196585,
+    "ShareCount": 25,  # Number of discrete points in the risky share approximation
+    # Number of integration nodes to use in approximation of risky returns
+    "RiskyCount": 5,
+    # Probability that the agent can adjust their portfolio each period
+    "AdjustPrb": 1.0,
+    # When simulating the model, should all agents get the same risky return in
+    # a given period?
+    "sim_common_Rrisky": True,
+    "constructors": risky_constructor_dict,
 }
 
 # Infinite horizon version
