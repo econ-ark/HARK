@@ -425,9 +425,6 @@ def solve_one_period_WealthPortfolio(
         omega = end_dvda_nvrs_now / (aNrmGrid + WealthShift)
         cNrm_now = ChiFunc(omega) * (aNrmGrid + WealthShift)
 
-    # TODO: Go through and verify the math in the presence of WealthShift, which
-    # MNW didn't know about when he did the "chi from omega" thing.
-
     # Calculate the endogenous mNrm gridpoints when the agent adjusts his portfolio,
     # then construct the consumption function when the agent can adjust his share
     mNrm_now = np.insert(aNrmGrid + cNrm_now, 0, 0.0)
@@ -437,8 +434,6 @@ def solve_one_period_WealthPortfolio(
     dudc_now = dudc(cNrm_now, mNrm_now - cNrm_now, CRRA, WealthShare, WealthShift)
     dudc_nvrs_now = uFunc.derinv(dudc_now, order=(1, 0))
     dudc_nvrs_func_now = LinearInterp(mNrm_now, dudc_nvrs_now)
-
-    # TODO: This is not the right envelope condition math for marginal value
 
     # Construct the marginal value (of mNrm) function
     vPfuncNow = MargValueFuncCRRA(dudc_nvrs_func_now, CRRA)
