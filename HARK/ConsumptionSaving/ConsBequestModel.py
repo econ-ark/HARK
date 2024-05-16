@@ -15,10 +15,14 @@ from copy import deepcopy
 import numpy as np
 
 from HARK import NullFunc
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
-    init_idiosyncratic_shocks,
     make_basic_CRRA_solution_terminal,
 )
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
@@ -41,6 +45,7 @@ from HARK.interpolation import (
     ValueFuncCRRA,
 )
 from HARK.rewards import UtilityFuncCRRA, UtilityFuncStoneGeary
+from HARK.utilities import make_assets_grid
 
 
 def make_bequest_solution_terminal(
@@ -175,6 +180,90 @@ def make_warmglow_portfolio_solution_terminal(
 
 
 ###############################################################################
+
+
+# Make a dictionary of constructors for the warm glow bequest model
+warmglow_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "solution_terminal": make_bequest_solution_terminal,
+}
+
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": None,  # Additional other values to add in grid (optional)
+}
+
+# Make a dictionary to specify awarm glow bequest consumer type
+init_warm_glow = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": warmglow_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion on consumption
+    "Rfree": 1.03,  # Interest factor on retained assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "PermGroFac": [1.01],  # Permanent income growth factor
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "BeqCRRA": 2.0,  # Coefficient of relative risk aversion for bequest motive
+    "BeqFac": 40.0,  # Scaling factor for bequest motive
+    "BeqShift": 0.0,  # Stone-Geary shifter term for bequest motive
+    "BeqCRRATerm": 2.0,  # Coefficient of relative risk aversion for bequest motive, terminal period only
+    "BeqFacTerm": 40.0,  # Scaling factor for bequest motive, terminal period only
+    "BeqShiftTerm": 0.0,  # Stone-Geary shifter term for bequest motive, terminal period only
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_warm_glow.update(default_IncShkDstn_params)
+init_warm_glow.update(default_aXtraGrid_params)
+
+# Make a dictionary with bequest motives turned off
+init_accidental_bequest = init_warm_glow.copy()
+init_accidental_bequest["BeqFac"] = 0.0
+init_accidental_bequest["BeqShift"] = 0.0
+init_accidental_bequest["BeqFacTerm"] = 0.0
+init_accidental_bequest["BeqShiftTerm"] = 0.0
+
+# Make a dictionary that has *only* a terminal period bequest
+init_warm_glow_terminal_only = init_warm_glow.copy()
+init_warm_glow_terminal_only["BeqFac"] = 0.0
+init_warm_glow_terminal_only["BeqShift"] = 0.0
 
 
 class BequestWarmGlowConsumerType(IndShockConsumerType):
@@ -967,27 +1056,6 @@ def solve_one_period_ConsPortfolioWarmGlow(
     )
     return solution_now
 
-
-init_accidental_bequest = init_idiosyncratic_shocks.copy()
-init_accidental_bequest["BeqCRRA"] = init_idiosyncratic_shocks["CRRA"]
-init_accidental_bequest["BeqFac"] = 0.0
-init_accidental_bequest["BeqShift"] = 0.0
-init_accidental_bequest["BeqCRRATerm"] = init_idiosyncratic_shocks["CRRA"]
-init_accidental_bequest["BeqFacTerm"] = 0.0
-init_accidental_bequest["BeqShiftTerm"] = 0.0
-temp_dict = init_accidental_bequest["constructors"].copy()
-temp_dict["solution_terminal"] = make_bequest_solution_terminal
-init_accidental_bequest["constructors"] = temp_dict
-
-init_warm_glow_terminal_only = init_accidental_bequest.copy()
-init_warm_glow_terminal_only["BeqCRRATerm"] = init_idiosyncratic_shocks["CRRA"]
-init_warm_glow_terminal_only["BeqFacTerm"] = 40.0  # kid lives 40yr after bequest
-init_warm_glow_terminal_only["BeqShiftTerm"] = 0.0
-
-init_warm_glow = init_warm_glow_terminal_only.copy()
-init_warm_glow["BeqCRRA"] = init_idiosyncratic_shocks["CRRA"]
-init_warm_glow["BeqFac"] = 40.0
-init_warm_glow["BeqShift"] = 0.0
 
 init_portfolio_bequest = init_warm_glow.copy()
 init_portfolio_bequest.update(init_portfolio)

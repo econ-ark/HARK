@@ -12,10 +12,19 @@ from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
 )
+from HARK.Calibration.Assets.AssetProcesses import (
+    make_lognormal_RiskyDstn,
+    combine_IncShkDstn_and_RiskyDstn,
+    calc_ShareLimit_for_CRRA,
+)
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
+)
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     RiskyAssetConsumerType,
-    init_risky_asset,
-    risky_constructor_dict,
+    make_simple_ShareGrid,
 )
 from HARK.distribution import expected
 from HARK.interpolation import (
@@ -30,6 +39,7 @@ from HARK.interpolation import (
 )
 from HARK.metric import MetricObject
 from HARK.rewards import UtilityFuncCRRA
+from HARK.utilities import make_assets_grid
 
 
 # Define a class to represent the single period solution of the portfolio choice problem
@@ -145,112 +155,6 @@ class PortfolioSolution(MetricObject):
         self.EndOfPrddvda_fxd = EndOfPrddvda_fxd
         self.EndOfPrddvds_fxd = EndOfPrddvds_fxd
         self.AdjPrb = AdjPrb
-
-
-class PortfolioConsumerType(RiskyAssetConsumerType):
-    """
-    A consumer type with a portfolio choice. This agent type has log-normal return
-    factors. Their problem is defined by a coefficient of relative risk aversion,
-    intertemporal discount factor, risk-free interest factor, and time sequences of
-    permanent income growth rate, survival probability, and permanent and transitory
-    income shock standard deviations (in logs).  The agent may also invest in a risky
-    asset, which has a higher average return than the risk-free asset.  He *might*
-    have age-varying beliefs about the risky-return; if he does, then "true" values
-    of the risky asset's return distribution must also be specified.
-    """
-
-    time_inv_ = deepcopy(RiskyAssetConsumerType.time_inv_)
-    time_inv_ = time_inv_ + ["AdjustPrb", "DiscreteShareBool"]
-
-    def __init__(self, verbose=False, quiet=False, **kwds):
-        params = init_portfolio.copy()
-        params.update(kwds)
-        kwds = params
-        self.PortfolioBool = True
-
-        # Initialize a basic consumer type
-        RiskyAssetConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
-
-        # Set the solver for the portfolio model, and update various constructed attributes
-        self.solve_one_period = solve_one_period_ConsPortfolio
-
-    def initialize_sim(self):
-        """
-        Initialize the state of simulation attributes.  Simply calls the same method
-        for IndShockConsumerType, then sets the type of AdjustNow to bool.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        # these need to be set because "post states",
-        # but are a control variable and shock, respectively
-        self.controls["Share"] = np.zeros(self.AgentCount)
-        RiskyAssetConsumerType.initialize_sim(self)
-
-    def sim_birth(self, which_agents):
-        """
-        Create new agents to replace ones who have recently died; takes draws of
-        initial aNrm and pLvl, as in ConsIndShockModel, then sets Share and Adjust
-        to zero as initial values.
-        Parameters
-        ----------
-        which_agents : np.array
-            Boolean array of size AgentCount indicating which agents should be "born".
-
-        Returns
-        -------
-        None
-        """
-        IndShockConsumerType.sim_birth(self, which_agents)
-
-        self.controls["Share"][which_agents] = 0
-        # here a shock is being used as a 'post state'
-        self.shocks["Adjust"][which_agents] = False
-
-    def get_controls(self):
-        """
-        Calculates consumption cNrmNow and risky portfolio share ShareNow using
-        the policy functions in the attribute solution.  These are stored as attributes.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        cNrmNow = np.zeros(self.AgentCount) + np.nan
-        ShareNow = np.zeros(self.AgentCount) + np.nan
-
-        # Loop over each period of the cycle, getting controls separately depending on "age"
-        for t in range(self.T_cycle):
-            these = t == self.t_cycle
-
-            # Get controls for agents who *can* adjust their portfolio share
-            those = np.logical_and(these, self.shocks["Adjust"])
-            cNrmNow[those] = self.solution[t].cFuncAdj(self.state_now["mNrm"][those])
-            ShareNow[those] = self.solution[t].ShareFuncAdj(
-                self.state_now["mNrm"][those]
-            )
-
-            # Get Controls for agents who *can't* adjust their portfolio share
-            those = np.logical_and(these, np.logical_not(self.shocks["Adjust"]))
-            cNrmNow[those] = self.solution[t].cFuncFxd(
-                self.state_now["mNrm"][those], ShareNow[those]
-            )
-            ShareNow[those] = self.solution[t].ShareFuncFxd(
-                self.state_now["mNrm"][those], ShareNow[those]
-            )
-
-        # Store controls as attributes of self
-        self.controls["cNrm"] = cNrmNow
-        self.controls["Share"] = ShareNow
 
 
 ###############################################################################
@@ -1090,24 +994,196 @@ def solve_one_period_ConsPortfolio(
     return solution_now
 
 
-# Make a dictionary to specify a portfolio choice consumer type
-init_portfolio = init_risky_asset.copy()
-portfolio_constructor_dict = risky_constructor_dict.copy()
-portfolio_constructor_dict["solution_terminal"] = make_portfolio_solution_terminal
-init_portfolio["constructors"] = portfolio_constructor_dict
-init_portfolio["AdjustPrb"] = 1.0
-# Flag for whether to optimize risky share on a discrete grid only
-init_portfolio["DiscreteShareBool"] = False
+###############################################################################
 
-# Adjust some of the existing parameters in the dictionary
-init_portfolio["RiskyAvg"] = 1.08  # Average return of the risky asset
-init_portfolio["RiskyStd"] = 0.20  # Standard deviation of (log) risky returns
-init_portfolio["aXtraMax"] = 100  # Make the grid of assets go much higher...
-init_portfolio["aXtraCount"] = 200  # ...and include many more gridpoints...
-# ...which aren't so clustered at the bottom
-init_portfolio["aXtraNestFac"] = 1
-# Artificial borrowing constraint must be turned on
-init_portfolio["BoroCnstArt"] = 0.0
-# Results are more interesting with higher risk aversion
-init_portfolio["CRRA"] = 5.0
-init_portfolio["DiscFac"] = 0.90  # And also lower patience
+# Make a dictionary of constructors for the portfolio choice consumer type
+portfolio_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "RiskyDstn": make_lognormal_RiskyDstn,
+    "ShockDstn": combine_IncShkDstn_and_RiskyDstn,
+    "ShareLimit": calc_ShareLimit_for_CRRA,
+    "ShareGrid": make_simple_ShareGrid,
+    "solution_terminal": make_portfolio_solution_terminal,
+}
+
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 100,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 1,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 200,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": None,  # Additional other values to add in grid (optional)
+}
+
+# Default parameters to make RiskyDstn with make_lognormal_RiskyDstn (and uniform ShareGrid)
+default_RiskyDstn_and_ShareGrid_params = {
+    "RiskyAvg": 1.08,  # Mean return factor of risky asset
+    "RiskyStd": 0.20,  # Stdev of log returns on risky asset
+    "RiskyCount": 5,  # Number of integration nodes to use in approximation of risky returns
+    "ShareCount": 25,  # Number of discrete points in the risky share approximation
+}
+# Risky return factor moments are based on SP500 real returns from Shiller's
+# "chapter 26" data, which can be found at https://www.econ.yale.edu/~shiller/data.htm
+
+# Make a dictionary to specify a risky asset consumer type
+init_portfolio = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": portfolio_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 5.0,  # Coefficient of relative risk aversion
+    "Rfree": 1.03,  # Return factor on risk free asset
+    "DiscFac": 0.90,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "PermGroFac": [1.01],  # Permanent income growth factor
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "DiscreteShareBool": False,  # Whether risky asset share is restricted to discrete values
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
+    "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_portfolio.update(default_IncShkDstn_params)
+init_portfolio.update(default_aXtraGrid_params)
+init_portfolio.update(default_RiskyDstn_and_ShareGrid_params)
+
+
+class PortfolioConsumerType(RiskyAssetConsumerType):
+    """
+    A consumer type with a portfolio choice. This agent type has log-normal return
+    factors. Their problem is defined by a coefficient of relative risk aversion,
+    intertemporal discount factor, risk-free interest factor, and time sequences of
+    permanent income growth rate, survival probability, and permanent and transitory
+    income shock standard deviations (in logs).  The agent may also invest in a risky
+    asset, which has a higher average return than the risk-free asset.  He *might*
+    have age-varying beliefs about the risky-return; if he does, then "true" values
+    of the risky asset's return distribution must also be specified.
+    """
+
+    time_inv_ = deepcopy(RiskyAssetConsumerType.time_inv_)
+    time_inv_ = time_inv_ + ["AdjustPrb", "DiscreteShareBool"]
+
+    def __init__(self, verbose=False, quiet=False, **kwds):
+        params = init_portfolio.copy()
+        params.update(kwds)
+        kwds = params
+        self.PortfolioBool = True
+
+        # Initialize a basic consumer type
+        RiskyAssetConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
+
+        # Set the solver for the portfolio model, and update various constructed attributes
+        self.solve_one_period = solve_one_period_ConsPortfolio
+
+    def initialize_sim(self):
+        """
+        Initialize the state of simulation attributes.  Simply calls the same method
+        for IndShockConsumerType, then sets the type of AdjustNow to bool.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        # these need to be set because "post states",
+        # but are a control variable and shock, respectively
+        self.controls["Share"] = np.zeros(self.AgentCount)
+        RiskyAssetConsumerType.initialize_sim(self)
+
+    def sim_birth(self, which_agents):
+        """
+        Create new agents to replace ones who have recently died; takes draws of
+        initial aNrm and pLvl, as in ConsIndShockModel, then sets Share and Adjust
+        to zero as initial values.
+        Parameters
+        ----------
+        which_agents : np.array
+            Boolean array of size AgentCount indicating which agents should be "born".
+
+        Returns
+        -------
+        None
+        """
+        IndShockConsumerType.sim_birth(self, which_agents)
+
+        self.controls["Share"][which_agents] = 0
+        # here a shock is being used as a 'post state'
+        self.shocks["Adjust"][which_agents] = False
+
+    def get_controls(self):
+        """
+        Calculates consumption cNrmNow and risky portfolio share ShareNow using
+        the policy functions in the attribute solution.  These are stored as attributes.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        cNrmNow = np.zeros(self.AgentCount) + np.nan
+        ShareNow = np.zeros(self.AgentCount) + np.nan
+
+        # Loop over each period of the cycle, getting controls separately depending on "age"
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+
+            # Get controls for agents who *can* adjust their portfolio share
+            those = np.logical_and(these, self.shocks["Adjust"])
+            cNrmNow[those] = self.solution[t].cFuncAdj(self.state_now["mNrm"][those])
+            ShareNow[those] = self.solution[t].ShareFuncAdj(
+                self.state_now["mNrm"][those]
+            )
+
+            # Get Controls for agents who *can't* adjust their portfolio share
+            those = np.logical_and(these, np.logical_not(self.shocks["Adjust"]))
+            cNrmNow[those] = self.solution[t].cFuncFxd(
+                self.state_now["mNrm"][those], ShareNow[those]
+            )
+            ShareNow[those] = self.solution[t].ShareFuncFxd(
+                self.state_now["mNrm"][those], ShareNow[those]
+            )
+
+        # Store controls as attributes of self
+        self.controls["cNrm"] = cNrmNow
+        self.controls["Share"] = ShareNow
+
+
+###############################################################################
