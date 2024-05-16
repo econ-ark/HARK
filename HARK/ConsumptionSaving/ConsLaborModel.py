@@ -14,12 +14,14 @@ from copy import copy
 
 import matplotlib.pyplot as plt
 import numpy as np
-
-from HARK.Calibration.Income.IncomeProcesses import get_TranShkGrid_from_TranShkDstn
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
+    get_TranShkGrid_from_TranShkDstn,
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
-    init_idiosyncratic_shocks,
-    indshk_constructor_dict,
 )
 from HARK.interpolation import (
     BilinearInterp,
@@ -32,6 +34,7 @@ from HARK.interpolation import (
 )
 from HARK.metric import MetricObject
 from HARK.rewards import CRRAutilityP, CRRAutilityP_inv
+from HARK.utilities import make_assets_grid
 
 
 class ConsumerLaborSolution(MetricObject):
@@ -453,6 +456,83 @@ def solve_ConsLaborIntMarg(
 ###############################################################################
 
 
+# Make a dictionary of constructors for the intensive margin labor model
+labor_int_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "LbrCost": make_log_polynomial_LbrCost,
+    "TranShkGrid": get_TranShkGrid_from_TranShkDstn,
+    "solution_terminal": make_labor_intmarg_solution_terminal,
+}
+
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 16,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 15,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.0,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 80.0,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 200,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": None,  # Additional other values to add in grid (optional)
+}
+
+# Default parameter to make LbrCost using make_log_polynomial_LbrCost
+defualt_LbrCost_params = {
+    "LbrCostCoeffs": [
+        -1.0
+    ]  # Polynomial coefficients (for age) on log labor utility cost
+}
+
+# Make a dictionary to specify an intensive margin labor supply choice consumer type
+init_labor_intensive = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": labor_int_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
+    "Rfree": 1.03,  # Interest factor on retained assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "PermGroFac": [1.01],  # Permanent income growth factor
+    "WageRte": [1.0],  # Wage rate paid on labor income
+    "BoroCnstArt": None,  # Artificial borrowing constraint
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_labor_intensive.update(default_IncShkDstn_params)
+init_labor_intensive.update(default_aXtraGrid_params)
+init_labor_intensive.update(defualt_LbrCost_params)
+
+
 class LaborIntMargConsumerType(IndShockConsumerType):
     """
     A class representing agents who make a decision each period about how much
@@ -676,24 +756,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         plt.show()
 
 
-# Make a default dictionary for the intensive margin labor supply model
-labor_int_constructor_dict = indshk_constructor_dict.copy()
-labor_int_constructor_dict["solution_terminal"] = make_labor_intmarg_solution_terminal
-labor_int_constructor_dict["LbrCost"] = make_log_polynomial_LbrCost
-labor_int_constructor_dict["TranShkGrid"] = get_TranShkGrid_from_TranShkDstn
-
-init_labor_intensive = copy(init_idiosyncratic_shocks)
-init_labor_intensive["constructors"] = labor_int_constructor_dict
-init_labor_intensive["LbrCostCoeffs"] = [-1.0]
-init_labor_intensive["WageRte"] = [1.0]
-init_labor_intensive["IncUnemp"] = 0.0
-init_labor_intensive["TranShkCount"] = 15
-# Crank up permanent shock count - Number of points in discrete approximation to transitory income shocks
-init_labor_intensive["PermShkCount"] = 16  # Crank up permanent shock count
-init_labor_intensive["aXtraCount"] = 200
-# May be important to have a larger number of gridpoints (than 48 initially)
-init_labor_intensive["aXtraMax"] = 80.0
-init_labor_intensive["BoroCnstArt"] = None
+###############################################################################
 
 # Make a dictionary for intensive margin labor supply model with finite lifecycle
 init_labor_lifecycle = init_labor_intensive.copy()
