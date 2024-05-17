@@ -575,9 +575,7 @@ default_aXtraGrid_params = {
     "aXtraMax": 30,  # Maximum end-of-period "assets above minimum" value
     "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
     "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
-    "aXtraExtra": np.array(
-        [0.005, 0.01]
-    ),  # Additional other values to add in grid (optional)
+    "aXtraExtra": [0.005, 0.01],  # Additional other values to add in grid (optional)
 }
 
 # Default parameters to make pLvlGrid using make_basic_pLvlPctiles
@@ -884,9 +882,8 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
 persistent_constructor_dict = geninc_constructor_dict.copy()
 persistent_constructor_dict["pLvlNextFunc"] = make_AR1_style_pLvlNextFunc
 init_persistent_shocks = init_explicit_perm_inc.copy()
-init_persistent_shocks["PrstIncCorr"] = (
-    0.98  # Serial correlation coefficient for permanent income
-)
+init_persistent_shocks["PrstIncCorr"] = 0.98
+# Serial correlation coefficient for permanent income, which is used by make_AR1_style_pLvlNextFunc
 init_persistent_shocks["constructors"] = persistent_constructor_dict
 
 
