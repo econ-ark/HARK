@@ -51,7 +51,7 @@ consumption_block_normalized = DBlock(
         },
         "dynamics": {
             "b": lambda k, R: k * R / PermGroFac,
-            "m": lambda b, y: b + theta,
+            "m": lambda b, theta: b + theta,
             "c": Control(["m"]),
             "a": lambda m, c: m - c,
         },
