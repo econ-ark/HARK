@@ -673,6 +673,9 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         return self.shocks["Mrkv"] * np.ones(self.AgentCount, dtype=int)
 
 
+##############################################################################
+
+# Make a dictionary for Krusell-Smith agents
 init_KS_agents = {
     "T_cycle": 1,
     "DiscFac": 0.99,
