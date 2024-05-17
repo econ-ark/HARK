@@ -16,7 +16,8 @@ from HARK.Calibration.Income.IncomeProcesses import (
     make_trivial_pLvlNextFunc,
     make_explicit_perminc_pLvlNextFunc,
     make_AR1_style_pLvlNextFunc,
-    construct_pLvlGrid_by_simulation,
+    make_pLvlGrid_by_simulation,
+    make_basic_pLvlPctiles,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
@@ -549,7 +550,8 @@ geninc_constructor_dict = {
     "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
-    "pLvlGrid": construct_pLvlGrid_by_simulation,
+    "pLvlPctiles": make_basic_pLvlPctiles,
+    "pLvlGrid": make_pLvlGrid_by_simulation,
     "pLvlNextFunc": make_trivial_pLvlNextFunc,
     "solution_terminal": make_2D_CRRA_solution_terminal,
 }
@@ -578,11 +580,19 @@ default_aXtraGrid_params = {
     ),  # Additional other values to add in grid (optional)
 }
 
+# Default parameters to make pLvlGrid using make_basic_pLvlPctiles
+default_pLvlPctiles_params = {
+    "pLvlPctiles_count": 19,  # Number of points in the "body" of the grid
+    "pLvlPctiles_bound": [0.05, 0.95],  # Percentile bounds of the "body"
+    "pLvlPctiles_tail_count": 4,  # Number of points in each tail of the grid
+    "pLvlPctiles_tail_order": np.e,  # Scaling factor for points in each tail
+}
+
 # Default parameters to make pLvlGrid using make_trivial_pLvlNextFunc
 default_pLvlGrid_params = {
     "pLvlInitMean": 0.0,  # Mean of log initial permanent income
     "pLvlInitStd": 0.4,  # Standard deviation of log initial permanent income *MUST BE POSITIVE*
-    "pLvlPctiles": pLvlPctiles,  # Percentiles of permanent income to use for the grid
+    # "pLvlPctiles": pLvlPctiles,  # Percentiles of permanent income to use for the grid
     "pLvlExtra": None,  # Additional permanent income points to automatically add to the grid, optional
 }
 
@@ -618,6 +628,7 @@ init_general_inc = {
 }
 init_general_inc.update(default_IncShkDstn_params)
 init_general_inc.update(default_aXtraGrid_params)
+init_general_inc.update(default_pLvlPctiles_params)
 init_general_inc.update(default_pLvlGrid_params)
 
 
@@ -721,7 +732,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.construct("pLvlGrid")
+        self.construct("pLvlPctiles", "pLvlGrid")
         self.add_to_time_vary("pLvlGrid")
 
     def sim_birth(self, which_agents):
