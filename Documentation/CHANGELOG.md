@@ -12,6 +12,8 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 Release Date: TBA
 
+Note: Due to major changes on this release, you may need to adjust how AgentTypes are instantiated in your projects using HARK. If you are manually constructing "complicated" objects like MrkvArray, they should be assigned to your instances *after* initialization, not passed as part of the parameter dictionary. See also the new constructor methodology for how to pass parameters for such constructed inputs.
+
 ### Major Changes
 
 - Replace object-oriented solvers with single function versions. [#1394](https://github.com/econ-ark/HARK/pull/1394)
@@ -31,6 +33,7 @@ Release Date: TBA
 - Removed 'parameters' from new block definitions; these are now 'calibrations' provided separately.
 - Create functions for well-known and repeated calculations in single-function solvers. [1395](https://github.com/econ-ark/HARK/pull/1395)
 - Re-work WealthPortfolioSolver to use approximate EGM method [#1404](https://github.com/econ-ark/HARK/pull/1404)
+- Default parameter dictionaries for AgentType subclasses have been "flattened": all parameters appear in one place for each model, rather than inheriting from parent models' dictionaries. The only exception is submodels *within* a file when only 1 or 2 parameters are added or changed. (#1425)[https://github.com/econ-ark/HARK/pull/1425]
 
 
 ### 0.14.1
