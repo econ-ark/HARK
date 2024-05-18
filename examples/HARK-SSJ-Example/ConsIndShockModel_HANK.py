@@ -2564,8 +2564,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
             if len(dist_pGrid) == 1:
                 
                 NewBornDist = jump_to_grid_1D(
-                   1.1*np.ones_like(tran_shks), shk_prbs, dist_mGrid
-                )
+                    np.zeros_like(tran_shks),
+                    shk_prbs,
+                    dist_mGrid,)
                 
                 
                 # Compute Transition Matrix given shocks and grids.
@@ -2653,8 +2654,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 if len(dist_pGrid) == 1:
                     # New borns have this distribution (assumes start with no assets and permanent income=1)
                     NewBornDist = jump_to_grid_1D(
-                        np.ones_like(tran_shks), shk_prbs, dist_mGrid
-                    )
+                        np.zeros_like(tran_shks),
+                        shk_prbs,
+                        dist_mGrid,)
                     # Compute Transition Matrix given shocks and grids.
                     TranMatrix_M = gen_tran_matrix_1D(
                         dist_mGrid,
