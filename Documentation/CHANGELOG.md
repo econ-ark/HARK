@@ -28,6 +28,7 @@ Release Date: TBA
 - Corrects calculation of "human wealth" under risky returns, providing correct limiting linear consumption function. [1403](https://github.com/econ-ark/HARK/pull/1403)
 - Removed 'parameters' from new block definitions; these are now 'calibrations' provided separately.
 - Create functions for well-known and repeated calculations in single-function solvers. [1395](https://github.com/econ-ark/HARK/pull/1395)
+- Re-work WealthPortfolioSolver to use approximate EGM method [#1404](https://github.com/econ-ark/HARK/pull/1404)
 
 ### 0.14.1
 
