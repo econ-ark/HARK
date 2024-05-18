@@ -787,7 +787,7 @@ class MarkovConsumerType(IndShockConsumerType):
         # Check that arrays are the right shape
         if not isinstance(self.Rfree, np.ndarray) or self.Rfree.shape != (StateCount,):
             raise ValueError(
-                "Rfree not the right shape, it should an array of Rfree of all the states."
+                "Rfree not the right shape, it should be an array of Rfree of all the states."
             )
 
         # Check that arrays in lists are the right shape
