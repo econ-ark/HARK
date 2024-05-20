@@ -4,6 +4,7 @@ Tools for crafting models.
 
 from dataclasses import dataclass, field
 from HARK.distribution import Distribution
+from HARK.parser import math_text_to_lambda
 from typing import List
 
 
@@ -49,6 +50,11 @@ class DBlock:
     shocks: dict = field(default_factory=dict)
     dynamics: dict = field(default_factory=dict)
     reward: dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        for v in self.dynamics:
+            if isinstance(self.dynamics[v], str):
+                self.dynamics[v] = math_text_to_lambda(self.dynamics[v])
 
     def get_shocks(self):
         return self.shocks
