@@ -1,8 +1,8 @@
 from sympy.utilities.lambdify import lambdify
-from  sympy.parsing.sympy_parser import parse_expr
+from sympy.parsing.sympy_parser import parse_expr
 
-class Expression():
 
+class Expression:
     def __init__(self, text):
         self.txt
         self.expr = parse_expr(text)
@@ -10,14 +10,12 @@ class Expression():
 
         # first derivatives.
         self.grad = {
-            sym.__str__() : 
-            self.expr.diff(sym)
-            for sym
-            in list(self.expr.free_symbols)
+            sym.__str__(): self.expr.diff(sym) for sym in list(self.expr.free_symbols)
         }
 
     def func(self):
         return lambdify(list(self.expr.free_symbols), self.expr, "numpy")
+
 
 def math_text_to_lambda(text):
     """
