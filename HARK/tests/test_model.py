@@ -35,17 +35,9 @@ class test_DBlock(unittest.TestCase):
         self.test_block_A = model.DBlock(**test_block_A_data)
         self.cblock = cons.consumption_block_normalized
 
-        self.pre = {
-            'k' : 2,
-            'R' : 1.05,
-            'PermGroFac' : 1.1,
-            'theta' : 1,
-            'CRRA' : 2
-        }
+        self.pre = {"k": 2, "R": 1.05, "PermGroFac": 1.1, "theta": 1, "CRRA": 2}
 
-        self.dr = {
-            'c' : lambda m : m
-        }
+        self.dr = {"c": lambda m: m}
 
     def test_init(self):
         self.assertEqual(self.test_block_A.name, "test block A")
@@ -53,25 +45,20 @@ class test_DBlock(unittest.TestCase):
     def test_transition(self):
         post = self.cblock.transition(self.pre, self.dr)
 
-        self.assertEqual(post['a'], 0)
+        self.assertEqual(post["a"], 0)
 
     def test_calc_reward(self):
-        self.assertEqual(self.cblock.calc_reward({'c' : 1, 'CRRA' : 2})['u'], -1.0)
+        self.assertEqual(self.cblock.calc_reward({"c": 1, "CRRA": 2})["u"], -1.0)
 
     def test_state_action_value_function(self):
-        savf = self.cblock.state_action_value_function_from_continuation(
-            lambda a: 0
-        )
-        
+        savf = self.cblock.state_action_value_function_from_continuation(lambda a: 0)
+
         av = savf(self.pre, self.dr)
 
         self.assertEqual(av, -0.34375)
 
         cv = 1
-        dv = self.cblock.decision_value_function(
-            self.dr,
-            lambda a: cv
-        )(self.pre)
+        dv = self.cblock.decision_value_function(self.dr, lambda a: cv)(self.pre)
 
         self.assertEqual(dv, av + cv)
 

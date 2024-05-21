@@ -6,7 +6,8 @@ from dataclasses import dataclass, field
 from HARK.distribution import Distribution
 from inspect import signature
 import numpy as np
-from typing import Any, Callable, Mapping, List, Sequence, Union
+from typing import Any, Callable, Mapping, List, Union
+
 
 class Aggregate:
     """
@@ -31,6 +32,7 @@ class Control:
 
     def __init__(self, args):
         pass
+
 
 def simulate_dynamics(
     dynamics: Mapping[str, Union[Callable, Control]],
@@ -138,8 +140,10 @@ class DBlock:
     def state_action_value_function_from_continuation(self, continuation):
         def state_action_value(pre, dr):
             vals = self.transition(pre, dr)
-            r = list(self.calc_reward(vals).values())[0] # a hack; to be improved
-            cv = continuation(*[vals[var] for var in signature(continuation).parameters])
+            r = list(self.calc_reward(vals).values())[0]  # a hack; to be improved
+            cv = continuation(
+                *[vals[var] for var in signature(continuation).parameters]
+            )
 
             return r + cv
 
@@ -153,16 +157,15 @@ class DBlock:
 
         return decision_value_function
 
-    #def arrival_value_function(self, dr, continuation):
+    # def arrival_value_function(self, dr, continuation):
     #    """
     #    Value of arrival states, prior to shocks, given a decision rule and continuation.
     #    """
     #    def arrival_value(arvs):
     #        dvf = self.decision_value_function(dr, continuation)
-    #        
+    #
     #        ##TOD: Take expectation over shocks!!!
     #        return EXPECTATION(dvf, shock_vals, arrv)
-
 
 
 @dataclass

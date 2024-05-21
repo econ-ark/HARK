@@ -3,8 +3,7 @@ Functions to support Monte Carlo simulation of models.
 """
 
 from copy import copy
-from inspect import signature
-from typing import Any, Callable, Mapping, Sequence, Union
+from typing import Mapping, Sequence
 
 import numpy as np
 
@@ -13,7 +12,7 @@ from HARK.distribution import (
     IndexDistribution,
     TimeVaryingDiscreteDistribution,
 )
-from HARK.model import Aggregate, Control
+from HARK.model import Aggregate
 from HARK.model import DBlock
 from HARK.model import simulate_dynamics
 
