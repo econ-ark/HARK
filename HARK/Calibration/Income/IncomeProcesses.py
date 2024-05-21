@@ -540,7 +540,68 @@ def make_AR1_style_pLvlNextFunc(T_cycle, pLvlInitMean, PermGroFac, PrstIncCorr):
     return pLvlNextFunc
 
 
-def construct_pLvlGrid_by_simulation(
+###############################################################################
+
+
+def make_basic_pLvlPctiles(
+    pLvlPctiles_count,
+    pLvlPctiles_bound=[0.001, 0.999],
+    pLvlPctiles_tail_count=0,
+    pLvlPctiles_tail_order=np.e,
+):
+    """
+    Make a relatively basic specification for pLvlPctiles by choosing the number
+    of uniformly spaced nodes in the "body", the percentile boundaries for the
+    body, the number of nodes in each tail, and the order/factor by which the
+    tail percentiles approach 0 and 1 respectively.
+
+    Parameters
+    ----------
+    pLvlPctile_count : int
+        Number of nodes in the "body" of the percentile set.
+    pLvlPctile_bound : [float,float], optional
+        Percentile bounds for the "body" of the set. The default is [0.0, 1.0].
+    pLvlPctile_tail_count : int, optional
+       Number of nodes in each extant tail of the set. The default is 0.
+    pLvlPctile_tail_order : float, optional
+        Factor by which tail percentiles shrink toward 0 and 1. The default is np.e.
+
+    Returns
+    -------
+    pLvlPctiles : np.array
+        Array of percentiles of pLvl, usually used to construct pLvlGrid using
+        the function below.
+    """
+    bound = pLvlPctiles_bound
+    fac = 1.0 / pLvlPctiles_tail_order
+    body = np.linspace(bound[0], bound[1], num=pLvlPctiles_count)
+
+    if bound[0] > 0.0:
+        lower = []
+        val = bound[0]
+        for i in range(pLvlPctiles_tail_count):
+            val *= fac
+            lower.append(val)
+        lower.reverse()
+        lower = np.array(lower)
+    else:
+        lower = np.array([])
+
+    if bound[1] < 1.0:
+        upper = []
+        val = 1.0 - bound[1]
+        for i in range(pLvlPctiles_tail_count):
+            val *= fac
+            upper.append(val)
+        upper = 1.0 - np.array(upper)
+    else:
+        upper = np.array([])
+
+    pLvlPctiles = np.concatenate((lower, body, upper))
+    return pLvlPctiles
+
+
+def make_pLvlGrid_by_simulation(
     cycles,
     T_cycle,
     PermShkDstn,

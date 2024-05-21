@@ -16,7 +16,7 @@ class testMedShockConsumerType(unittest.TestCase):
         pLvl = 2.0
         Shk = 1.5
         self.assertAlmostEqual(
-            cFunc(mLvl, pLvl, Shk).tolist(), 4.16230, places=HARK_PRECISION
+            cFunc(mLvl, pLvl, Shk).tolist(), 4.16194, places=HARK_PRECISION
         )
         self.assertAlmostEqual(
             MedFunc(mLvl, pLvl, Shk).tolist(), 2.45432, places=HARK_PRECISION

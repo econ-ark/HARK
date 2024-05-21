@@ -9,17 +9,19 @@ import numpy as np
 
 from HARK import AgentType, NullFunc
 from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
     pLvlFuncAR1,
     make_trivial_pLvlNextFunc,
     make_explicit_perminc_pLvlNextFunc,
     make_AR1_style_pLvlNextFunc,
-    construct_pLvlGrid_by_simulation,
+    make_pLvlGrid_by_simulation,
+    make_basic_pLvlPctiles,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
-    init_idiosyncratic_shocks,
-    indshk_constructor_dict,
 )
 from HARK.distribution import Lognormal, expected
 from HARK.interpolation import (
@@ -46,6 +48,7 @@ from HARK.rewards import (
     CRRAutilityPP,
     UtilityFuncCRRA,
 )
+from HARK.utilities import make_assets_grid
 
 __all__ = [
     "pLvlFuncAR1",
@@ -533,10 +536,6 @@ def solve_one_period_ConsGenIncProcess(
 
 ###############################################################################
 
-# -----------------------------------------------------------------------------
-# ----- Define additional parameters for the persistent shocks model ----------
-# -----------------------------------------------------------------------------
-
 pLvlPctiles = np.concatenate(
     (
         [0.001, 0.005, 0.01, 0.03],
@@ -545,20 +544,90 @@ pLvlPctiles = np.concatenate(
     )
 )
 
-geninc_constructor_dict = indshk_constructor_dict.copy()
-geninc_constructor_dict["pLvlNextFunc"] = make_trivial_pLvlNextFunc
-geninc_constructor_dict["solution_terminal"] = make_2D_CRRA_solution_terminal
-geninc_constructor_dict["pLvlGrid"] = construct_pLvlGrid_by_simulation
+# Make a constructor dictionary for the general income process consumer type
+geninc_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "pLvlPctiles": make_basic_pLvlPctiles,
+    "pLvlGrid": make_pLvlGrid_by_simulation,
+    "pLvlNextFunc": make_trivial_pLvlNextFunc,
+    "solution_terminal": make_2D_CRRA_solution_terminal,
+}
 
-# Make a dictionary for the "explicit permanent income" idiosyncratic shocks model
-init_general_inc = init_idiosyncratic_shocks.copy()
-init_general_inc["pLvlPctiles"] = pLvlPctiles
-init_general_inc["pLvlInitStd"] = 0.4  # This *must* be nonzero
-# long run permanent income growth doesn't work yet
-init_general_inc["PermGroFac"] = [1.0]
-init_general_inc["aXtraMax"] = 30
-init_general_inc["aXtraExtra"] = np.array([0.005, 0.01])
-init_general_inc["constructors"] = geninc_constructor_dict
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 30,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": [0.005, 0.01],  # Additional other values to add in grid (optional)
+}
+
+# Default parameters to make pLvlGrid using make_basic_pLvlPctiles
+default_pLvlPctiles_params = {
+    "pLvlPctiles_count": 19,  # Number of points in the "body" of the grid
+    "pLvlPctiles_bound": [0.05, 0.95],  # Percentile bounds of the "body"
+    "pLvlPctiles_tail_count": 4,  # Number of points in each tail of the grid
+    "pLvlPctiles_tail_order": np.e,  # Scaling factor for points in each tail
+}
+
+# Default parameters to make pLvlGrid using make_trivial_pLvlNextFunc
+default_pLvlGrid_params = {
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.4,  # Standard deviation of log initial permanent income *MUST BE POSITIVE*
+    # "pLvlPctiles": pLvlPctiles,  # Percentiles of permanent income to use for the grid
+    "pLvlExtra": None,  # Additional permanent income points to automatically add to the grid, optional
+}
+
+# Make a dictionary to specify a general income process consumer type
+init_general_inc = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": geninc_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
+    "Rfree": 1.03,  # Interest factor on retained assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_general_inc.update(default_IncShkDstn_params)
+init_general_inc.update(default_aXtraGrid_params)
+init_general_inc.update(default_pLvlPctiles_params)
+init_general_inc.update(default_pLvlGrid_params)
 
 
 class GenIncProcessConsumerType(IndShockConsumerType):
@@ -661,7 +730,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.construct("pLvlGrid")
+        self.construct("pLvlPctiles", "pLvlGrid")
         self.add_to_time_vary("pLvlGrid")
 
     def sim_birth(self, which_agents):
@@ -778,10 +847,19 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
 ###############################################################################
 
+# Make a dictionary for the "explicit permanent income" consumer type; see parent dictionary above.
 explicit_constructor_dict = geninc_constructor_dict.copy()
 explicit_constructor_dict["pLvlNextFunc"] = make_explicit_perminc_pLvlNextFunc
 init_explicit_perm_inc = init_general_inc.copy()
 init_explicit_perm_inc["constructors"] = explicit_constructor_dict
+init_explicit_perm_inc["PermGroFac"] = [1.0]
+
+# NB: Permanent income growth was not in the default dictionary for GenIncProcessConsumerType
+# because its pLvlNextFunc constructor was *trivial*: no permanent income dynamics at all!
+# For the "explicit permanent income" model, this parameter is added back into the dictionary.
+# However, note that if this model is used in an *infinite horizon* setting, it will work
+# best if the product of PermGroFac (across all periods) is 1. If it is far from 1, then the
+# pLvlGrid that is constructed by the default method might not be appropriate.
 
 
 class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
@@ -800,13 +878,12 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
 
 ###############################################################################
 
-PrstIncCorr = 0.98  # Serial correlation coefficient for permanent income
-
-# Make a dictionary for the "persistent idiosyncratic shocks" model
+# Make a dictionary for the "persistent idiosyncratic shocks" consumer type; see parent dictionary above.
 persistent_constructor_dict = geninc_constructor_dict.copy()
 persistent_constructor_dict["pLvlNextFunc"] = make_AR1_style_pLvlNextFunc
 init_persistent_shocks = init_explicit_perm_inc.copy()
-init_persistent_shocks["PrstIncCorr"] = PrstIncCorr
+init_persistent_shocks["PrstIncCorr"] = 0.98
+# Serial correlation coefficient for permanent income, which is used by make_AR1_style_pLvlNextFunc
 init_persistent_shocks["constructors"] = persistent_constructor_dict
 
 

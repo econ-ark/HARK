@@ -1,9 +1,7 @@
 """
 This file contains a class that adds a risky asset with a log-normal return
-factor to IndShockConsumerType.
-This class is not a fully specified model and therefore has no solution or
-simulation methods. It is meant as a container of methods for dealing with
-risky assets that will be useful to models what will inherit from it.
+factor to IndShockConsumerType. It is meant as a container of methods for dealing
+with risky assets that will be useful to models what will inherit from it.
 """
 
 import numpy as np
@@ -11,14 +9,18 @@ import numpy as np
 from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
-    IndShockConsumerType,  # PortfolioConsumerType inherits from it;
-    init_idiosyncratic_shocks,  # Baseline dictionary to build on
-    indshk_constructor_dict,
+    IndShockConsumerType,
+    make_basic_CRRA_solution_terminal,
 )
 from HARK.Calibration.Assets.AssetProcesses import (
     make_lognormal_RiskyDstn,
     combine_IncShkDstn_and_RiskyDstn,
     calc_ShareLimit_for_CRRA,
+)
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
 )
 from HARK.distribution import (
     Bernoulli,
@@ -37,6 +39,7 @@ from HARK.interpolation import (
     ValueFuncCRRA,
 )
 from HARK.rewards import UtilityFuncCRRA
+from HARK.utilities import make_assets_grid
 
 ###############################################################################
 
@@ -56,6 +59,92 @@ def make_simple_ShareGrid(ShareCount):
     """
     ShareGrid = np.linspace(0.0, 1.0, ShareCount)
     return ShareGrid
+
+
+###############################################################################
+
+# Make a dictionary of constructors for the risky asset model
+risky_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "RiskyDstn": make_lognormal_RiskyDstn,
+    "ShockDstn": combine_IncShkDstn_and_RiskyDstn,
+    "ShareLimit": calc_ShareLimit_for_CRRA,
+    "ShareGrid": make_simple_ShareGrid,
+    "solution_terminal": make_basic_CRRA_solution_terminal,
+}
+
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": None,  # Additional other values to add in grid (optional)
+}
+
+# Default parameters to make RiskyDstn with make_lognormal_RiskyDstn (and uniform ShareGrid)
+default_RiskyDstn_and_ShareGrid_params = {
+    "RiskyAvg": 1.080370891,  # Mean return factor of risky asset
+    "RiskyStd": 0.177196585,  # Stdev of log returns on risky asset
+    "RiskyCount": 5,  # Number of integration nodes to use in approximation of risky returns
+    "ShareCount": 25,  # Number of discrete points in the risky share approximation
+}
+# Risky return factor moments are based on SP500 real returns from Shiller's
+# "chapter 26" data, which can be found at https://www.econ.yale.edu/~shiller/data.htm
+
+# Make a dictionary to specify a risky asset consumer type
+init_risky_asset = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": risky_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
+    "Rfree": 1.03,  # Return factor on risk free asset (not used by this type)
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "PermGroFac": [1.01],  # Permanent income growth factor
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
+    # TODO: This is not used in this file and should be moved to ConsPortfolioModel.py
+    "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_risky_asset.update(default_IncShkDstn_params)
+init_risky_asset.update(default_aXtraGrid_params)
+init_risky_asset.update(default_RiskyDstn_and_ShareGrid_params)
 
 
 class IndShockRiskyAssetConsumerType(IndShockConsumerType):
@@ -186,7 +275,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     def update_ShareLimit(self):
         """
         Creates the attribute ShareLimit, representing the limiting lower bound of
-        risky portfolio share as mNrm goes to infinity.
+        risky portfolio share as mNrm goes to infinity, if it is allowed to adjust.
 
         Parameters
         ----------
@@ -339,6 +428,15 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 
 # This is to preserve compatibility with old name
 RiskyAssetConsumerType = IndShockRiskyAssetConsumerType
+
+
+###############################################################################
+
+# Make a dictionary to specify a consumer type with a fixed risky asset share
+init_risky_share_fixed = init_risky_asset.copy()
+init_risky_share_fixed["RiskyShareFixed"] = [
+    0.0
+]  # Fixed share of assets in the risky asset
 
 
 class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
@@ -1789,33 +1887,3 @@ def solve_one_period_FixedShareRiskyAsset(
 # Initial parameter sets
 
 # Base risky asset dictionary
-
-risky_constructor_dict = indshk_constructor_dict.copy()
-risky_constructor_dict["RiskyDstn"] = make_lognormal_RiskyDstn
-risky_constructor_dict["ShockDstn"] = combine_IncShkDstn_and_RiskyDstn
-risky_constructor_dict["ShareLimit"] = calc_ShareLimit_for_CRRA
-risky_constructor_dict["ShareGrid"] = make_simple_ShareGrid
-
-risky_asset_params = {
-    # Risky return factor moments. Based on SP500 real returns from Shiller's
-    # "chapter 26" data, which can be found at https://www.econ.yale.edu/~shiller/data.htm
-    "RiskyAvg": 1.080370891,
-    "RiskyStd": 0.177196585,
-    "ShareCount": 25,  # Number of discrete points in the risky share approximation
-    # Number of integration nodes to use in approximation of risky returns
-    "RiskyCount": 5,
-    # Probability that the agent can adjust their portfolio each period
-    "AdjustPrb": 1.0,
-    # When simulating the model, should all agents get the same risky return in
-    # a given period?
-    "sim_common_Rrisky": True,
-    "constructors": risky_constructor_dict,
-}
-
-
-# Make a dictionary to specify a risky asset consumer type
-init_risky_asset = init_idiosyncratic_shocks.copy()
-init_risky_asset.update(risky_asset_params)
-
-init_risky_share_fixed = init_risky_asset.copy()
-init_risky_share_fixed["RiskyShareFixed"] = [0.0]

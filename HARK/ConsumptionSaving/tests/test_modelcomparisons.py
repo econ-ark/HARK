@@ -108,14 +108,6 @@ class Compare_TBS_and_Markov(unittest.TestCase):
         TBSType.solve()
 
         # Set up and solve Markov
-        MrkvArray = [
-            np.array(
-                [
-                    [1.0 - base_primitives["UnempPrb"], base_primitives["UnempPrb"]],
-                    [0.0, 1.0],
-                ]
-            )
-        ]
         Markov_primitives = {
             "CRRA": base_primitives["CRRA"],
             "Rfree": np.array(2 * [base_primitives["Rfree"]]),
@@ -128,6 +120,8 @@ class Compare_TBS_and_Markov(unittest.TestCase):
                     ]
                 )
             ],
+            "Mrkv_p11": [1.0 - base_primitives["UnempPrb"]],
+            "Mrkv_p22": [1.0],
             "BoroCnstArt": None,
             "PermShkStd": [0.0],
             "PermShkCount": 1,
@@ -154,7 +148,6 @@ class Compare_TBS_and_Markov(unittest.TestCase):
             "tax_rate": 0.0,
             "vFuncBool": False,
             "CubicBool": True,
-            "MrkvArray": MrkvArray,
             "T_cycle": 1,
         }
 
