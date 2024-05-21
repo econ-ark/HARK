@@ -339,7 +339,7 @@ class Chunk:
         None
         """
         self.pull_links()
-        self.construct()
+        self.construct(force=True)
         self.expose()
 
     def link_to(self, other, keys=[]):
@@ -413,3 +413,54 @@ class Chunk:
         Run or execute this model chunk. Does absolutely nothing right now.
         """
         pass
+
+
+class Connector(Chunk):
+    """
+    A special kind of model chunk that merely connects two other Chunks by remapping
+    variable names between them. The *only* parameter that should ever be passed to
+    it is called remap, a list of ordered pairs of strings naming "remapped" variables.
+    Its construct method is overwritten to act as a "swap" or "relabel" method.
+
+    Parameters
+    ----------
+    remap : [(str,str)]
+        A list of ordered pairs of strings. In each pair, the first string names an
+        attribute of the "left" or "predecessor" Chunk, and the second string names
+        an attribute of the "right" or "successor" Chunk. In each case, that attribute
+        should be in the exposed dictionary so that it is compatible with pull_links.
+        If none is provided, it uses the default remapping in the class attribute
+        _remap. Subclasses of Connector merely need to specify _remap if they will
+        be used to connect the same kinds of chunks many times.
+
+    Returns
+    -------
+    None
+    """
+
+    _remap = []
+
+    def __init__(self, remap=None):
+        if remap is None:
+            super().__init__(parameters={"remap": self._remap})
+        else:
+            super().__init__(parameters={"remap": remap})
+
+    def construct(self):
+        remapping = self["remap"]
+        exposes = []
+
+        for pair in remapping:
+            left, right = pair
+            exposes.append(left)
+            exposes.append(right)
+            try:
+                self.built[left] = self[right]
+            except:
+                self.built[left] = MissingObject()
+            try:
+                self.built[right] = self[left]
+            except:
+                self.built[right] = MissingObject()
+
+        self.exposes = exposes

@@ -3,10 +3,10 @@ A file for demonstrating the "model chunks" concept on a baby consumption-saving
 """
 
 import numpy as np
-from HARK.chunkymodel import Chunk
+from HARK.chunkymodel import Chunk, Connector
 from HARK.distribution import MeanOneLogNormal, expected
 from HARK.utilities import construct_assets_grid
-from HARK.interpolation import LinearInterp
+from HARK.interpolation import LinearInterp, IdentityFunction, ConstantFunction
 from HARK.ConsumptionSaving.ConsIndShockModel import MargValueFuncCRRA
 
 ###############################################################################
@@ -77,10 +77,13 @@ def make_baby_cFunc_by_EGM(aGrid, vPfunc_EOP, CRRA, DiscFac):
     cFunc : LinearInterp
         Linear interpolation of the consumption function.
     """
-    vP_EOP = vPfunc_EOP(aGrid)
-    cGrid = vP_EOP ** (-1.0 / CRRA)
-    mGrid = aGrid + cGrid
-    cFunc = LinearInterp(np.insert(mGrid, 0, 0.0), np.insert(cGrid, 0, 0.0))
+    vP_EOP = DiscFac * vPfunc_EOP(aGrid)
+    if np.all(vP_EOP == 0.0):  # Handle the terminal period problem
+        cFunc = IdentityFunction(i_dim=0, n_dims=1)
+    else:
+        cGrid = vP_EOP ** (-1.0 / CRRA)
+        mGrid = aGrid + cGrid
+        cFunc = LinearInterp(np.insert(mGrid, 0, 0.0), np.insert(cGrid, 0, 0.0))
     return cFunc
 
 
@@ -166,9 +169,23 @@ default_baby_parameters = {
 }
 
 
+class NoFuture(Chunk):
+    _dynamics = "This represents a non-existent future."
+    _parameters = {"vPfunc_BOP": ConstantFunction(0.0)}
+
+
 class BabyConsumptionPeriod(Chunk):
     _dynamics = "Consumption-saving model with transitory income shocks, one risk free asset, and CRRA utility. Has a hard-coded liquidity constraint."
     _requirements = ["cFunc", "TransShkDstn", "Rfree"]
     _exposes = ["vPfunc"]
     _constructors = default_baby_constructors
     _parameters = default_baby_parameters
+
+
+class BabyConnector(Connector):
+    _remap = [("vPfunc_EOP", "vPfunc_BOP")]
+
+
+if __name__ == "__main__":
+    period_T = NoFuture()
+    period_Tm1 = BabyConsumptionPeriod()
