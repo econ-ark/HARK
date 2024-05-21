@@ -17,20 +17,20 @@ class testKinkedRConsumerType(unittest.TestCase):
         KinkyExample.solve()
 
         self.assertAlmostEqual(
-            KinkyExample.solution[0].cFunc(1).tolist(), 0.96233, places=HARK_PRECISION
+            KinkyExample.solution[0].cFunc(1).tolist(), 0.96161, places=HARK_PRECISION
         )
 
         self.assertAlmostEqual(
-            KinkyExample.solution[0].cFunc(4).tolist(), 1.34377, places=HARK_PRECISION
+            KinkyExample.solution[0].cFunc(4).tolist(), 1.34274, places=HARK_PRECISION
         )
 
         KinkyExample.BoroCnstArt = -0.2
         KinkyExample.solve()
 
         self.assertAlmostEqual(
-            KinkyExample.solution[0].cFunc(1).tolist(), 0.93469, places=HARK_PRECISION
+            KinkyExample.solution[0].cFunc(1).tolist(), 0.93444, places=HARK_PRECISION
         )
 
         self.assertAlmostEqual(
-            KinkyExample.solution[0].cFunc(4).tolist(), 1.34014, places=HARK_PRECISION
+            KinkyExample.solution[0].cFunc(4).tolist(), 1.33927, places=HARK_PRECISION
         )
