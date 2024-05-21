@@ -4,10 +4,9 @@ Tools for crafting models.
 
 from dataclasses import dataclass, field
 from HARK.distribution import Distribution
-from HARK.simulation.monte_carlo import simulate_dynamics
 from inspect import signature
-from typing import List
-
+import numpy as np
+from typing import Any, Callable, Mapping, List, Sequence, Union
 
 class Aggregate:
     """
@@ -32,6 +31,63 @@ class Control:
 
     def __init__(self, args):
         pass
+
+def simulate_dynamics(
+    dynamics: Mapping[str, Union[Callable, Control]],
+    pre: Mapping[str, Any],
+    dr: Mapping[str, Callable],
+):
+    """
+    From the beginning-of-period state (pre), follow the dynamics,
+    including any decision rules, to compute the end-of-period state.
+
+    Parameters
+    ------------
+
+    dynamics: Mapping[str, Callable]
+        Maps variable names to functions from variables to values.
+        Can include Controls
+        ## TODO: Make collection of equations into a named type
+
+
+    pre : Mapping[str, Any]
+        Bound values for all variables that must be known before beginning the period's dynamics.
+
+
+    dr : Mapping[str, Callable]
+        Decision rules for all the Control variables in the dynamics.
+    """
+    vals = pre.copy()
+
+    for varn in dynamics:
+        # Using the fact that Python dictionaries are ordered
+
+        feq = dynamics[varn]
+
+        if isinstance(feq, Control):
+            # This tests if the decision rule is age varying.
+            # If it is, this will be a vector with the decision rule for each agent.
+            if isinstance(dr[varn], np.ndarray):
+                ## Now we have to loop through each agent, and apply the decision rule.
+                ## This is quite slow.
+                for i in range(dr[varn].size):
+                    vals_i = {
+                        var: vals[var][i]
+                        if isinstance(vals[var], np.ndarray)
+                        else vals[var]
+                        for var in vals
+                    }
+                    vals[varn][i] = dr[varn][i](
+                        *[vals_i[var] for var in signature(dr[varn][i]).parameters]
+                    )
+            else:
+                vals[varn] = dr[varn](
+                    *[vals[var] for var in signature(dr[varn]).parameters]
+                )  # TODO: test for signature match with Control
+        else:
+            vals[varn] = feq(*[vals[var] for var in signature(feq).parameters])
+
+    return vals
 
 
 @dataclass
@@ -67,22 +123,22 @@ class DBlock:
         """
         return simulate_dynamics(self.dynamics, pre, dr)
 
-    def reward(self, vals):
+    def calc_reward(self, vals):
         """
         Computes the reward for a given set of variable values
         """
-        vals = {}
+        rvals = {}
 
         for varn in self.reward:
             feq = self.reward[varn]
-            vals[varn] = feq(*[vals[var] for var in signature(feq).parameters])
+            rvals[varn] = feq(*[vals[var] for var in signature(feq).parameters])
 
-        return vals
+        return rvals
 
     def state_action_value_function_from_continuation(self, continuation):
         def state_action_value(pre, dr):
             vals = self.transition(pre, dr)
-            r = list(self.reward(vals))[0] # a hack; to be improved
+            r = list(self.calc_reward(vals).values())[0] # a hack; to be improved
             cv = continuation(*[vals[var] for var in signature(continuation).parameters])
 
             return r + cv
@@ -97,15 +153,15 @@ class DBlock:
 
         return decision_value_function
 
-    def arrival_value_function(self, dr, continuation):
-        """
-        Value of arrival states, prior to shocks, given a decision rule and continuation.
-        """
-        def arrival_value(arrv):
-            dvf = self.decision_value_function(dr, continuation)
-
-            ##TOD: Take expectation over shocks!!!
-            return EXPECTATION(dvf, shock_vals, arrv)
+    #def arrival_value_function(self, dr, continuation):
+    #    """
+    #    Value of arrival states, prior to shocks, given a decision rule and continuation.
+    #    """
+    #    def arrival_value(arvs):
+    #        dvf = self.decision_value_function(dr, continuation)
+    #        
+    #        ##TOD: Take expectation over shocks!!!
+    #        return EXPECTATION(dvf, shock_vals, arrv)
 
 
 
