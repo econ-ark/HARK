@@ -21,12 +21,14 @@ from HARK.Calibration.Income.IncomeTools import (
     parse_income_spec,
     parse_time_params,
 )
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
+)
 from HARK.datasets.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.datasets.SCF.WealthIncomeDist.SCFDistTools import income_wealth_dists_from_scf
 from HARK.distribution import (
-    DiscreteDistribution,
-    DiscreteDistributionLabeled,
-    IndexDistribution,
     Lognormal,
     MeanOneLogNormal,
     Uniform,
@@ -1002,9 +1004,45 @@ def solve_one_period_ConsKinkedR(
     return solution_now
 
 
+def make_basic_CRRA_solution_terminal(CRRA):
+    """
+    Construct the terminal period solution for a consumption-saving model with
+    CRRA utility and only one state variable.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion. This is the only relevant parameter.
+
+    Returns
+    -------
+    solution_terminal : ConsumerSolution
+        Terminal period solution for someone with the given CRRA.
+    """
+    cFunc_terminal = LinearInterp([0.0, 1.0], [0.0, 1.0])  # c=m at t=T
+    vFunc_terminal = ValueFuncCRRA(cFunc_terminal, CRRA)
+    vPfunc_terminal = MargValueFuncCRRA(cFunc_terminal, CRRA)
+    vPPfunc_terminal = MargMargValueFuncCRRA(cFunc_terminal, CRRA)
+    solution_terminal = ConsumerSolution(
+        cFunc=cFunc_terminal,
+        vFunc=vFunc_terminal,
+        vPfunc=vPfunc_terminal,
+        vPPfunc=vPPfunc_terminal,
+        mNrmMin=0.0,
+        hNrm=0.0,
+        MPCmin=1.0,
+        MPCmax=1.0,
+    )
+    return solution_terminal
+
+
 # ============================================================================
 # == Classes for representing types of consumer agents (and things they do) ==
 # ============================================================================
+
+perf_foresight_constructors = {
+    "solution_terminal": make_basic_CRRA_solution_terminal,
+}
 
 # Make a dictionary to specify a perfect foresight consumer type
 init_perfect_foresight = {
@@ -1033,6 +1071,7 @@ init_perfect_foresight = {
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
     "PerfMITShk": False,
     # Do Perfect Foresight MIT Shock: Forces Newborns to follow solution path of the agent he/she replaced when True
+    "constructors": perf_foresight_constructors,
 }
 
 
@@ -1042,10 +1081,6 @@ class PerfForesightConsumerType(AgentType):
     His problem is defined by a coefficient of relative risk aversion, intertemporal
     discount factor, interest factor, an artificial borrowing constraint (maybe)
     and time sequences of the permanent income growth rate and survival probability.
-
-    Parameters
-    ----------
-
     """
 
     # Define some universal values for all consumer types
@@ -1071,7 +1106,6 @@ class PerfForesightConsumerType(AgentType):
 
         # Initialize a basic AgentType
         super().__init__(
-            solution_terminal=deepcopy(self.solution_terminal_),
             pseudo_terminal=False,
             **kwds,
         )
@@ -1079,7 +1113,6 @@ class PerfForesightConsumerType(AgentType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(self.time_vary_)
         self.time_inv = deepcopy(self.time_inv_)
-
         self.shock_vars = deepcopy(self.shock_vars_)
         self.verbose = verbose
         self.quiet = quiet
@@ -1155,13 +1188,7 @@ class PerfForesightConsumerType(AgentType):
         -------
         none
         """
-        self.solution_terminal.vFunc = ValueFuncCRRA(self.cFunc_terminal_, self.CRRA)
-        self.solution_terminal.vPfunc = MargValueFuncCRRA(
-            self.cFunc_terminal_, self.CRRA
-        )
-        self.solution_terminal.vPPfunc = MargMargValueFuncCRRA(
-            self.cFunc_terminal_, self.CRRA
-        )
+        self.construct("solution_terminal")
 
     def update_Rfree(self):
         """
@@ -1791,6 +1818,16 @@ class PerfForesightConsumerType(AgentType):
         self.bilt["mNrmTrg"] = mNrmTrg
 
 
+###############################################################################
+
+indshk_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": construct_assets_grid,
+    "solution_terminal": make_basic_CRRA_solution_terminal,
+}
+
 # Make a dictionary to specify an idiosyncratic income shocks consumer
 init_idiosyncratic_shocks = {
     **init_perfect_foresight,
@@ -1800,9 +1837,7 @@ init_idiosyncratic_shocks = {
         # Exponential nesting factor when constructing "assets above minimum" grid
         "aXtraNestFac": 3,
         "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
-        "aXtraExtra": [
-            None
-        ],  # Some other value of "assets above minimum" to add to the grid, not used
+        "aXtraExtra": None,  # Some other values to add to the grid, not used
         # Income process variables
         # Standard deviation of log permanent income shocks
         "PermShkStd": [0.1],
@@ -1825,6 +1860,7 @@ init_idiosyncratic_shocks = {
         # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
         # Whether Newborns have transitory shock. The default is False.
         "NewbornTransShk": False,
+        "constructors": indshk_constructor_dict,
     },
 }
 
@@ -1856,7 +1892,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         params = init_idiosyncratic_shocks.copy()
         params.update(kwds)
 
-        # Initialize a basic AgentType
+        # Initialize a basic PerfForesightConsumerType
         super().__init__(verbose=verbose, quiet=quiet, **params)
 
         # Add consumer-type specific objects, copying to create independent versions
@@ -1875,14 +1911,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -----------
         none
         """
-        (
-            IncShkDstn,
-            PermShkDstn,
-            TranShkDstn,
-        ) = self.construct_lognormal_income_process_unemployment()
-        self.IncShkDstn = IncShkDstn
-        self.PermShkDstn = PermShkDstn
-        self.TranShkDstn = TranShkDstn
+        self.construct("IncShkDstn", "PermShkDstn", "TranShkDstn")
         self.add_to_time_vary("IncShkDstn", "PermShkDstn", "TranShkDstn")
 
     def update_assets_grid(self):
@@ -1898,8 +1927,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         none
         """
-        aXtraGrid = construct_assets_grid(self)
-        self.aXtraGrid = aXtraGrid
+        self.construct("aXtraGrid")
         self.add_to_time_inv("aXtraGrid")
 
     def update(self):
@@ -2398,8 +2426,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def calc_jacobian(self, shk_param, T):
         """
-        Calculates the Jacobians of aggregate consumption and aggregate assets. Parameters that can be shocked are
-        LivPrb, PermShkStd,TranShkStd, DiscFac, UnempPrb, Rfree, IncUnemp, DiscFac .
+        Calculates the Jacobians of aggregate consumption and aggregate assets.
+        Parameters that can be shocked are LivPrb, PermShkStd,TranShkStd, DiscFac,
+        UnempPrb, Rfree, IncUnemp, and DiscFac.
 
         Parameters:
         -----------
@@ -2425,7 +2454,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         params = deepcopy(self.__dict__["parameters"])
         params["T_cycle"] = T  # Dimension of Jacobian Matrix
 
-        # Specify a dictionary of lists because problem we are solving is technically finite horizon so variables can be time varying (see section on fake news algorithm in https://onlinelibrary.wiley.com/doi/abs/10.3982/ECTA17434 )
+        # Specify a dictionary of lists because problem we are solving is
+        # technically finite horizon so variables can be time varying (see
+        # section on fake news algorithm in
+        # https://onlinelibrary.wiley.com/doi/abs/10.3982/ECTA17434 )
         params["LivPrb"] = params["T_cycle"] * [self.LivPrb[0]]
         params["PermGroFac"] = params["T_cycle"] * [self.PermGroFac[0]]
         params["PermShkStd"] = params["T_cycle"] * [self.PermShkStd[0]]
@@ -2444,7 +2476,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         FinHorizonAgent.add_to_time_vary("Rfree")
 
         # Set Terminal Solution as Steady State Consumption Function
-        FinHorizonAgent.cFunc_terminal_ = deepcopy(self.solution[0].cFunc)
+        FinHorizonAgent.solution_terminal = deepcopy(self.solution[0])
 
         dx = 0.0001  # Size of perturbation
         # Period in which the change in the interest rate occurs (second to last period)
@@ -2458,24 +2490,25 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # this condition is because some attributes are specified as lists while other as floats
         if type(getattr(self, shk_param)) == list:
-            peturbed_list = (
+            perturbed_list = (
                 (i) * [getattr(self, shk_param)[0]]
                 + [getattr(self, shk_param)[0] + dx]
                 + (params["T_cycle"] - i - 1) * [getattr(self, shk_param)[0]]
             )  # Sequence of interest rates the agent faces
         else:
-            peturbed_list = (
+            perturbed_list = (
                 (i) * [getattr(self, shk_param)]
                 + [getattr(self, shk_param) + dx]
                 + (params["T_cycle"] - i - 1) * [getattr(self, shk_param)]
             )  # Sequence of interest rates the agent faces
-        setattr(FinHorizonAgent, shk_param, peturbed_list)
+        setattr(FinHorizonAgent, shk_param, perturbed_list)
+        self.parameters[shk_param] = perturbed_list
 
         # Update income process if perturbed parameter enters the income shock distribution
         FinHorizonAgent.update_income_process()
 
         # Solve
-        FinHorizonAgent.solve()
+        FinHorizonAgent.solve(run_presolve=False)
 
         # Use Harmenberg Neutral Measure
         FinHorizonAgent.neutral_measure = True
@@ -2639,18 +2672,19 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # this condition is because some attributes are specified as lists while other as floats
         if type(getattr(self, shk_param)) == list:
-            peturbed_list = [getattr(self, shk_param)[0] + dx] + (
+            perturbed_list = [getattr(self, shk_param)[0] + dx] + (
                 params["T_cycle"] - 1
             ) * [
                 getattr(self, shk_param)[0]
             ]  # Sequence of interest rates the agent faces
         else:
-            peturbed_list = [getattr(self, shk_param) + dx] + (
+            perturbed_list = [getattr(self, shk_param) + dx] + (
                 params["T_cycle"] - 1
             ) * [getattr(self, shk_param)]
             # Sequence of interest rates the agent
 
-        setattr(ZerothColAgent, shk_param, peturbed_list)  # Set attribute to agent
+        setattr(ZerothColAgent, shk_param, perturbed_list)  # Set attribute to agent
+        self.parameters[shk_param] = perturbed_list
 
         # Use Harmenberg Neutral Measure
         ZerothColAgent.neutral_measure = True
@@ -2784,10 +2818,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.eulerErrorFunc = eulerErrorFunc
 
     def pre_solve(self):
-        #        AgentType.pre_solve(self)
-        # Update all income process variables to match any attributes that might
-        # have been changed since `__init__` or `solve()` was last called.
-        #        self.update_income_process()
         self.update_solution_terminal()
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
@@ -3164,292 +3194,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if not self.quiet:
             _log.info(self.bilt["conditions_report"])
 
-    # = Functions for generating discrete income processes and
-    #   simulated income shocks =
-    # ========================================================
 
-    def construct_lognormal_income_process_unemployment(self):
-        """
-        Generates a list of discrete approximations to the income process for each
-        life period, from end of life to beginning of life.  Permanent shocks are mean
-        one lognormally distributed with standard deviation PermShkStd[t] during the
-        working life, and degenerate at 1 in the retirement period.  Transitory shocks
-        are mean one lognormally distributed with a point mass at IncUnemp with
-        probability UnempPrb while working; they are mean one with a point mass at
-        IncUnempRet with probability UnempPrbRet.  Retirement occurs
-        after t=T_retire periods of working.
-
-        Note 1: All time in this function runs forward, from t=0 to t=T
-
-        Note 2: All parameters are passed as attributes of the input parameters.
-
-        Parameters (passed as attributes of the input parameters)
-        ---------------------------------------------------------
-        PermShkStd : [float]
-            List of standard deviations in log permanent income uncertainty during
-            the agent's life.
-        PermShkCount : int
-            The number of approximation points to be used in the discrete approxima-
-            tion to the permanent income shock distribution.
-        TranShkStd : [float]
-            List of standard deviations in log transitory income uncertainty during
-            the agent's life.
-        TranShkCount : int
-            The number of approximation points to be used in the discrete approxima-
-            tion to the permanent income shock distribution.
-        UnempPrb : float or [float]
-            The probability of becoming unemployed during the working period.
-        UnempPrbRet : float or None
-            The probability of not receiving typical retirement income when retired.
-        T_retire : int
-            The index value for the final working period in the agent's life.
-            If T_retire <= 0 then there is no retirement.
-        IncUnemp : float or [float]
-            Transitory income received when unemployed.
-        IncUnempRet : float or None
-            Transitory income received while "unemployed" when retired.
-        T_cycle :  int
-            Total number of non-terminal periods in the consumer's sequence of periods.
-
-        Returns
-        -------
-        IncShkDstn :  [distribution.Distribution]
-            A list with T_cycle elements, each of which is a
-            discrete approximation to the income process in a period.
-        PermShkDstn : [[distribution.Distributiony]]
-            A list with T_cycle elements, each of which
-            a discrete approximation to the permanent income shocks.
-        TranShkDstn : [[distribution.Distribution]]
-            A list with T_cycle elements, each of which
-            a discrete approximation to the transitory income shocks.
-        """
-        # Unpack the parameters from the input
-        T_cycle = self.T_cycle
-        PermShkStd = self.PermShkStd
-        PermShkCount = self.PermShkCount
-        TranShkStd = self.TranShkStd
-        TranShkCount = self.TranShkCount
-        T_retire = self.T_retire
-        UnempPrb = self.UnempPrb
-        IncUnemp = self.IncUnemp
-        UnempPrbRet = self.UnempPrbRet
-        IncUnempRet = self.IncUnempRet
-
-        if T_retire > 0:
-            normal_length = T_retire
-            retire_length = T_cycle - T_retire
-        else:
-            normal_length = T_cycle
-            retire_length = 0
-
-        if all(
-            [
-                isinstance(x, (float, int)) or (x is None)
-                for x in [UnempPrb, IncUnemp, UnempPrbRet, IncUnempRet]
-            ]
-        ):
-            UnempPrb_list = [UnempPrb] * normal_length + [UnempPrbRet] * retire_length
-            IncUnemp_list = [IncUnemp] * normal_length + [IncUnempRet] * retire_length
-
-        elif all([isinstance(x, list) for x in [UnempPrb, IncUnemp]]):
-            UnempPrb_list = UnempPrb
-            IncUnemp_list = IncUnemp
-
-        else:
-            raise Exception(
-                "Unemployment must be specified either using floats for UnempPrb,"
-                + "IncUnemp, UnempPrbRet, and IncUnempRet, in which case the "
-                + "unemployment probability and income change only with retirement, or "
-                + "using lists of length T_cycle for UnempPrb and IncUnemp, specifying "
-                + "each feature at every age."
-            )
-
-        PermShkCount_list = [PermShkCount] * normal_length + [1] * retire_length
-        TranShkCount_list = [TranShkCount] * normal_length + [1] * retire_length
-
-        if not hasattr(self, "neutral_measure"):
-            self.neutral_measure = False
-
-        neutral_measure_list = [self.neutral_measure] * len(PermShkCount_list)
-
-        IncShkDstn = IndexDistribution(
-            engine=BufferStockIncShkDstn,
-            conditional={
-                "sigma_Perm": PermShkStd,
-                "sigma_Tran": TranShkStd,
-                "n_approx_Perm": PermShkCount_list,
-                "n_approx_Tran": TranShkCount_list,
-                "neutral_measure": neutral_measure_list,
-                "UnempPrb": UnempPrb_list,
-                "IncUnemp": IncUnemp_list,
-            },
-            RNG=self.RNG,
-            seed=self.RNG.integers(0, 2**31 - 1),
-        )
-
-        PermShkDstn = IndexDistribution(
-            engine=LognormPermIncShk,
-            conditional={
-                "sigma": PermShkStd,
-                "n_approx": PermShkCount_list,
-                "neutral_measure": neutral_measure_list,
-            },
-            RNG=self.RNG,
-            seed=self.RNG.integers(0, 2**31 - 1),
-        )
-
-        TranShkDstn = IndexDistribution(
-            engine=MixtureTranIncShk,
-            conditional={
-                "sigma": TranShkStd,
-                "UnempPrb": UnempPrb_list,
-                "IncUnemp": IncUnemp_list,
-                "n_approx": TranShkCount_list,
-            },
-            RNG=self.RNG,
-            seed=self.RNG.integers(0, 2**31 - 1),
-        )
-
-        return IncShkDstn, PermShkDstn, TranShkDstn
-
-
-class LognormPermIncShk(DiscreteDistribution):
-    """
-    A one-period distribution of a multiplicative lognormal permanent income shock.
-
-    Parameters
-    ----------
-    sigma : float
-        Standard deviation of the log-shock.
-    n_approx : int
-        Number of points to use in the discrete approximation.
-    neutral_measure : Bool, optional
-        Whether to use Hamenberg's permanent-income-neutral measure. The default is False.
-    seed : int, optional
-        Random seed. The default is 0.
-
-    Returns
-    -------
-    PermShkDstn : DiscreteDistribution
-        Permanent income shock distribution.
-
-    """
-
-    def __init__(self, sigma, n_approx, neutral_measure=False, seed=0):
-        # Construct an auxiliary discretized normal
-        logn_approx = MeanOneLogNormal(sigma).discretize(
-            n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
-        )
-        # Change the pmv if necessary
-        if neutral_measure:
-            logn_approx.pmv = (logn_approx.atoms * logn_approx.pmv).flatten()
-
-        super().__init__(pmv=logn_approx.pmv, atoms=logn_approx.atoms, seed=seed)
-
-
-class MixtureTranIncShk(DiscreteDistribution):
-    """
-    A one-period distribution for transitory income shocks that are a mixture
-    between a log-normal and a single-value unemployment shock.
-
-    Parameters
-    ----------
-    sigma : float
-        Standard deviation of the log-shock.
-    UnempPrb : float
-        Probability of the "unemployment" shock.
-    IncUnemp : float
-        Income shock in the "unemployment" state.
-    n_approx : int
-        Number of points to use in the discrete approximation.
-    seed : int, optional
-        Random seed. The default is 0.
-
-    Returns
-    -------
-    TranShkDstn : DiscreteDistribution
-        Transitory income shock distribution.
-
-    """
-
-    def __init__(self, sigma, UnempPrb, IncUnemp, n_approx, seed=0):
-        dstn_approx = MeanOneLogNormal(sigma).discretize(
-            n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
-        )
-        if UnempPrb > 0.0:
-            dstn_approx = add_discrete_outcome_constant_mean(
-                dstn_approx, p=UnempPrb, x=IncUnemp
-            )
-
-        super().__init__(pmv=dstn_approx.pmv, atoms=dstn_approx.atoms, seed=seed)
-
-
-class BufferStockIncShkDstn(DiscreteDistributionLabeled):
-    """
-    A one-period distribution object for the joint distribution of income
-    shocks (permanent and transitory), as modeled in the Buffer Stock Theory
-    paper:
-        - Lognormal, discretized permanent income shocks.
-        - Transitory shocks that are a mixture of:
-            - A lognormal distribution in normal times.
-            - An "unemployment" shock.
-
-    Parameters
-    ----------
-    sigma_Perm : float
-        Standard deviation of the log- permanent shock.
-    sigma_Tran : float
-        Standard deviation of the log- transitory shock.
-    n_approx_Perm : int
-        Number of points to use in the discrete approximation of the permanent shock.
-    n_approx_Tran : int
-        Number of points to use in the discrete approximation of the transitory shock.
-    UnempPrb : float
-        Probability of the "unemployment" shock.
-    IncUnemp : float
-        Income shock in the "unemployment" state.
-    neutral_measure : Bool, optional
-        Whether to use Hamenberg's permanent-income-neutral measure. The default is False.
-    seed : int, optional
-        Random seed. The default is 0.
-
-    Returns
-    -------
-    IncShkDstn : DiscreteDistribution
-        Income shock distribution.
-
-    """
-
-    def __init__(
-        self,
-        sigma_Perm,
-        sigma_Tran,
-        n_approx_Perm,
-        n_approx_Tran,
-        UnempPrb,
-        IncUnemp,
-        neutral_measure=False,
-        seed=0,
-    ):
-        perm_dstn = LognormPermIncShk(
-            sigma=sigma_Perm, n_approx=n_approx_Perm, neutral_measure=neutral_measure
-        )
-        tran_dstn = MixtureTranIncShk(
-            sigma=sigma_Tran,
-            UnempPrb=UnempPrb,
-            IncUnemp=IncUnemp,
-            n_approx=n_approx_Tran,
-        )
-
-        joint_dstn = combine_indep_dstns(perm_dstn, tran_dstn)
-
-        super().__init__(
-            name="Joint distribution of permanent and transitory shocks to income",
-            var_names=["PermShk", "TranShk"],
-            pmv=joint_dstn.pmv,
-            atoms=joint_dstn.atoms,
-            seed=seed,
-        )
+###############################################################################
 
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
