@@ -4,6 +4,8 @@ Tools for crafting models.
 
 from dataclasses import dataclass, field
 from HARK.distribution import Distribution
+from HARK.simulation.monte_carlo import simulate_dynamics
+from inspect import signature
 from typing import List
 
 
@@ -58,6 +60,53 @@ class DBlock:
 
     def get_vars(self):
         return list(self.shocks.keys()) + list(self.dynamics.keys())
+
+    def transition(self, pre, dr):
+        """
+        Returns variable values given previous values and decision rule for all controls.
+        """
+        return simulate_dynamics(self.dynamics, pre, dr)
+
+    def reward(self, vals):
+        """
+        Computes the reward for a given set of variable values
+        """
+        vals = {}
+
+        for varn in self.reward:
+            feq = self.reward[varn]
+            vals[varn] = feq(*[vals[var] for var in signature(feq).parameters])
+
+        return vals
+
+    def state_action_value_function_from_continuation(self, continuation):
+        def state_action_value(pre, dr):
+            vals = self.transition(pre, dr)
+            r = list(self.reward(vals))[0] # a hack; to be improved
+            cv = continuation(*[vals[var] for var in signature(continuation).parameters])
+
+            return r + cv
+
+        return state_action_value
+
+    def decision_value_function(self, dr, continuation):
+        savf = self.state_action_value_function_from_continuation(continuation)
+
+        def decision_value_function(pre):
+            return savf(pre, dr)
+
+        return decision_value_function
+
+    def arrival_value_function(self, dr, continuation):
+        """
+        Value of arrival states, prior to shocks, given a decision rule and continuation.
+        """
+        def arrival_value(arrv):
+            dvf = self.decision_value_function(dr, continuation)
+
+            ##TOD: Take expectation over shocks!!!
+            return EXPECTATION(dvf, shock_vals, arrv)
+
 
 
 @dataclass
