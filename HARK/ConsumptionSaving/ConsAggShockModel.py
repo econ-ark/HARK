@@ -11,6 +11,11 @@ import numpy as np
 import scipy.stats as stats
 
 from HARK import AgentType, Market
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
@@ -45,7 +50,7 @@ from HARK.rewards import (
     CRRAutilityP_inv,
     CRRAutilityPP,
 )
-from HARK.utilities import make_grid_exp_mult
+from HARK.utilities import make_grid_exp_mult, make_assets_grid
 
 __all__ = [
     "AggShockConsumerType",
@@ -101,20 +106,73 @@ init_agg_shocks = init_idiosyncratic_shocks.copy()
 aggshock_constructor_dict = indshk_constructor_dict.copy()
 aggshock_constructor_dict["solution_terminal"] = make_aggshock_solution_terminal
 
-# Interest factor is endogenous in agg shocks model
-del init_agg_shocks["Rfree"]
-del init_agg_shocks["CubicBool"]  # Not supported yet for agg shocks model
-del init_agg_shocks["vFuncBool"]  # Not supported yet for agg shocks model
-init_agg_shocks["PermGroFac"] = [1.0]
-# Grid of capital-to-labor-ratios (factors)
+# Make a dictionary of constructors for the aggregate income shocks model
+aggshock_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "solution_terminal": make_aggshock_solution_terminal,
+}
+
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 24,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": None,  # Additional other values to add in grid (optional)
+}
+
+# Choose a grid of capital-to-labor-ratios (factors relative to SS)
+# TODO: Make a constructor for this
 MgridBase = np.array(
     [0.1, 0.3, 0.6, 0.8, 0.9, 0.98, 1.0, 1.02, 1.1, 1.2, 1.6, 2.0, 3.0]
 )
-init_agg_shocks["MgridBase"] = MgridBase
-init_agg_shocks["aXtraCount"] = 24
-init_agg_shocks["aNrmInitStd"] = 0.0
-init_agg_shocks["LivPrb"] = [0.98]
-init_agg_shocks["constructors"] = aggshock_constructor_dict
+
+# Make a dictionary to specify an aggregate income shocks consumer type
+init_agg_shocks = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": aggshock_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "PermGroFac": [1.00],  # Permanent income growth factor
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "MgridBase": MgridBase,
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 0.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_agg_shocks.update(default_IncShkDstn_params)
+init_agg_shocks.update(default_aXtraGrid_params)
 
 
 class AggShockConsumerType(IndShockConsumerType):
@@ -435,17 +493,11 @@ class AggShockConsumerType(IndShockConsumerType):
         raise NotImplementedError()
 
 
+###############################################################################
+
+
 # This example makes a high risk, low growth state and a low risk, high growth state
 MrkvArray = np.array([[0.90, 0.10], [0.04, 0.96]])
-PermShkAggStd = [
-    0.012,
-    0.006,
-]  # Standard deviation of log aggregate permanent shocks by state
-TranShkAggStd = [
-    0.006,
-    0.003,
-]  # Standard deviation of log aggregate transitory shocks by state
-PermGroFacAgg = [0.98, 1.02]  # Aggregate permanent income growth factor
 
 # Make a dictionary to specify a Markov aggregate shocks consumer
 init_agg_mrkv_shocks = init_agg_shocks.copy()
@@ -621,6 +673,9 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         return self.shocks["Mrkv"] * np.ones(self.AgentCount, dtype=int)
 
 
+##############################################################################
+
+# Make a dictionary for Krusell-Smith agents
 init_KS_agents = {
     "T_cycle": 1,
     "DiscFac": 0.99,

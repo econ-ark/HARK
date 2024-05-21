@@ -8,13 +8,16 @@ distribution can vary with the discrete state.
 import numpy as np
 
 from HARK import AgentType, NullFunc
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     PerfForesightConsumerType,
     make_basic_CRRA_solution_terminal,
-    indshk_constructor_dict,
-    init_idiosyncratic_shocks,
 )
 from HARK.distribution import MarkovProcess, Uniform, expected
 from HARK.interpolation import (
@@ -35,6 +38,7 @@ from HARK.rewards import (
     CRRAutilityP_invP,
     CRRAutilityPP,
 )
+from HARK.utilities import make_assets_grid
 
 __all__ = ["MarkovConsumerType"]
 
@@ -651,11 +655,78 @@ def solve_one_period_ConsMarkov(
 ####################################################################################################
 ####################################################################################################
 
-markov_constructor_dict = indshk_constructor_dict.copy()
-markov_constructor_dict["solution_terminal"] = make_markov_solution_terminal
+# Make a dictionary of constructors for the markov consumption-saving model
+markov_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "MrkvArray": make_simple_binary_markov,
+    "solution_terminal": make_markov_solution_terminal,
+}
 
-init_indshk_markov = init_idiosyncratic_shocks.copy()
-init_indshk_markov["constructors"] = markov_constructor_dict
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": None,  # Additional other values to add in grid (optional)
+}
+
+# Default parameters to make MrkvArray using make_simple_binary_markov
+default_MrkvArray_params = {
+    "Mrkv_p11": [0.9],  # Probability of remaining in binary state 1
+    "Mrkv_p22": [0.4],  # Probability of remaining in binary state 2
+}
+
+# Make a dictionary to specify an idiosyncratic income shocks consumer type
+init_indshk_markov = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": markov_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
+    "Rfree": np.array([1.03, 1.03]),  # Interest factor on retained assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [np.array([0.98, 0.98])],  # Survival probability after each period
+    "PermGroFac": [np.array([0.99, 1.03])],  # Permanent income growth factor
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_indshk_markov.update(default_IncShkDstn_params)
+init_indshk_markov.update(default_aXtraGrid_params)
+init_indshk_markov.update(default_MrkvArray_params)
 
 
 class MarkovConsumerType(IndShockConsumerType):
@@ -668,7 +739,7 @@ class MarkovConsumerType(IndShockConsumerType):
 
     time_vary_ = IndShockConsumerType.time_vary_ + ["MrkvArray"]
 
-    # Is "Mrkv" a shock or a state?
+    # Mrkv is both a shock and a state
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Mrkv"]
     state_vars = IndShockConsumerType.state_vars + ["Mrkv"]
 
@@ -681,6 +752,22 @@ class MarkovConsumerType(IndShockConsumerType):
 
         if not hasattr(self, "global_markov"):
             self.global_markov = False
+
+    def update(self):
+        """
+        Update the Markov array, the income process, the assets grid, and
+        the terminal solution.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        self.construct("MrkvArray")
+        super().update()
 
     def check_markov_inputs(self):
         """
@@ -700,7 +787,7 @@ class MarkovConsumerType(IndShockConsumerType):
         # Check that arrays are the right shape
         if not isinstance(self.Rfree, np.ndarray) or self.Rfree.shape != (StateCount,):
             raise ValueError(
-                "Rfree not the right shape, it should an array of Rfree of all the states."
+                "Rfree not the right shape, it should be an array of Rfree of all the states."
             )
 
         # Check that arrays in lists are the right shape
@@ -756,6 +843,7 @@ class MarkovConsumerType(IndShockConsumerType):
         """
         AgentType.pre_solve(self)
         self.check_markov_inputs()
+        self.update_solution_terminal()
 
     def initialize_sim(self):
         self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)

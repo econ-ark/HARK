@@ -8,11 +8,17 @@ import numpy as np
 from scipy.optimize import brentq
 
 from HARK import AgentType
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
+    make_AR1_style_pLvlNextFunc,
+    make_pLvlGrid_by_simulation,
+    make_basic_pLvlPctiles,
+)
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     PersistentShockConsumerType,
     VariableLowerBoundFunc2D,
-    init_persistent_shocks,
-    persistent_constructor_dict,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
 from HARK.distribution import Lognormal, add_discrete_outcome_constant_mean, expected
@@ -40,7 +46,7 @@ from HARK.rewards import (
     CRRAutilityPP,
     UtilityFuncCRRA,
 )
-from HARK.utilities import NullFunc, make_grid_exp_mult
+from HARK.utilities import NullFunc, make_grid_exp_mult, make_assets_grid
 
 __all__ = [
     "MedShockPolicyFunc",
@@ -706,32 +712,111 @@ def make_MedShock_solution_terminal(
 
 ###############################################################################
 
-# -----------------------------------------------------------------------------
-# ----- Define additional parameters for the medical shocks model -------------
-# -----------------------------------------------------------------------------
-CRRA = 2.0
-CRRAmed = 1.5 * CRRA  # Coefficient of relative risk aversion for medical care
-MedShkAvg = [0.001]  # Average of medical need shocks
-MedShkStd = [5.0]  # Standard deviation of (log) medical need shocks
-MedShkCount = 5  # Number of medical shock points in "body"
-MedShkCountTail = 15  # Number of medical shock points in "tail" (upper only)
-MedPrice = [1.5]  # Relative price of a unit of medical care
+# Make a constructor dictionary for the general income process consumer type
+medshock_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "pLvlPctiles": make_basic_pLvlPctiles,
+    "pLvlGrid": make_pLvlGrid_by_simulation,
+    "pLvlNextFunc": make_AR1_style_pLvlNextFunc,
+    "MedShkDstn": make_lognormal_MedShkDstn,
+    "solution_terminal": make_MedShock_solution_terminal,
+}
 
-medshock_constructor_dict = persistent_constructor_dict.copy()
-medshock_constructor_dict["MedShkDstn"] = make_lognormal_MedShkDstn
-medshock_constructor_dict["solution_terminal"] = make_MedShock_solution_terminal
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
 
-# Make a dictionary for the "medical shocks" model
-init_medical_shocks = init_persistent_shocks.copy()
-init_medical_shocks["CRRAmed"] = CRRAmed
-init_medical_shocks["MedShkAvg"] = MedShkAvg
-init_medical_shocks["MedShkStd"] = MedShkStd
-init_medical_shocks["MedShkCount"] = MedShkCount
-init_medical_shocks["MedShkCountTail"] = MedShkCountTail
-init_medical_shocks["MedPrice"] = MedPrice
-init_medical_shocks["aXtraCount"] = 32
-init_medical_shocks["pLvlExtra"] = [0.0001]
-init_medical_shocks["constructors"] = medshock_constructor_dict
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 30,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 32,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": [0.005, 0.01],  # Additional other values to add in grid (optional)
+}
+
+# Default parameters to make pLvlGrid using make_basic_pLvlPctiles
+default_pLvlPctiles_params = {
+    "pLvlPctiles_count": 19,  # Number of points in the "body" of the grid
+    "pLvlPctiles_bound": [0.05, 0.95],  # Percentile bounds of the "body"
+    "pLvlPctiles_tail_count": 4,  # Number of points in each tail of the grid
+    "pLvlPctiles_tail_order": np.e,  # Scaling factor for points in each tail
+}
+
+# Default parameters to make pLvlGrid using make_trivial_pLvlNextFunc
+default_pLvlGrid_params = {
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.4,  # Standard deviation of log initial permanent income *MUST BE POSITIVE*
+    # "pLvlPctiles": pLvlPctiles,  # Percentiles of permanent income to use for the grid
+    "pLvlExtra": [
+        0.0001
+    ],  # Additional permanent income points to automatically add to the grid, optional
+}
+
+# Default parameters to make MedShkDstn using make_lognormal_MedShkDstn
+default_MedShkDstn_params = {
+    "MedShkAvg": [0.001],  # Average of medical need shocks
+    "MedShkStd": [5.0],  # Standard deviation of (log) medical need shocks
+    "MedShkCount": 5,  # Number of medical shock points in "body"
+    "MedShkCountTail": 15,  # Number of medical shock points in "tail" (upper only)
+    "MedPrice": [1.5],  # Relative price of a unit of medical care
+}
+
+# Default parameters to make pLvlNextFunc using make_AR1_style_pLvlNextFunc
+default_pLvlNextFunc_params = {
+    "PermGroFac": [1.0],  # Permanent income growth factor
+    "PrstIncCorr": 0.98,  # Correlation coefficient on (log) persistent income
+}
+
+# Make a dictionary to specify a medical shocks consumer type
+init_medical_shocks = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": medshock_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion on consumption
+    "CRRAmed": 3.0,  # Coefficient of relative risk aversion on medical care
+    "Rfree": 1.03,  # Interest factor on retained assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_medical_shocks.update(default_IncShkDstn_params)
+init_medical_shocks.update(default_aXtraGrid_params)
+init_medical_shocks.update(default_pLvlPctiles_params)
+init_medical_shocks.update(default_pLvlGrid_params)
+init_medical_shocks.update(default_MedShkDstn_params)
+init_medical_shocks.update(default_pLvlNextFunc_params)
 
 
 class MedShockConsumerType(PersistentShockConsumerType):

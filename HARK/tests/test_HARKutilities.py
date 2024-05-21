@@ -15,7 +15,7 @@ from HARK.rewards import (
     CRRAutilityPPP,
     CRRAutilityPPPP,
 )
-from HARK.utilities import construct_assets_grid, make_figs
+from HARK.utilities import make_assets_grid, make_figs
 
 
 class testsForHARKutilities(unittest.TestCase):
@@ -76,7 +76,7 @@ class testsForHARKutilities(unittest.TestCase):
             "aXtraNestFac": -1,
         }
 
-        aXtraGrid = construct_assets_grid(**params)
+        aXtraGrid = make_assets_grid(**params)
         test = np.unique(np.diff(aXtraGrid).round(decimals=3))
         self.assertEqual(test.size, 1)
 

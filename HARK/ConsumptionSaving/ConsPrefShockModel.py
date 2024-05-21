@@ -14,8 +14,13 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     KinkedRconsumerType,
-    init_idiosyncratic_shocks,
-    init_kinked_R,
+    make_assets_grid,
+    make_basic_CRRA_solution_terminal,
+)
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
 )
 from HARK.distribution import MeanOneLogNormal, expected
 from HARK.interpolation import (
@@ -87,28 +92,92 @@ def make_lognormal_PrefShkDstn(
 
 ###############################################################################
 
-pref_shock_params = {
+# Make a dictionary of constructors for the preference shock model
+prefshk_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "PrefShkDstn": make_lognormal_PrefShkDstn,
+    "solution_terminal": make_basic_CRRA_solution_terminal,
+}
+
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using construct_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": None,  # Additional other values to add in grid (optional)
+}
+
+# Default parameters to make PrefShkDstn using make_lognormal_PrefShkDstn
+default_PrefShkDstn_params = {
     "PrefShkCount": 12,  # Number of points in discrete approximation to preference shock dist
     "PrefShk_tail_N": 4,  # Number of "tail points" on each end of pref shock dist
     "PrefShkStd": [0.30],  # Standard deviation of utility shocks
-    "aXtraCount": 48,
-    "CubicBool": False,  # pref shocks currently only compatible with linear cFunc
 }
 
-# Make a dictionary to specify a preference shock consumer
-init_preference_shocks = dict(
-    init_idiosyncratic_shocks,
-    **pref_shock_params,
-)
-init_preference_shocks["constructors"]["PrefShkDstn"] = make_lognormal_PrefShkDstn
+# Make a dictionary to specify an preference shocks consumer type
+init_preference_shocks = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": prefshk_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
+    "Rfree": 1.03,  # Interest factor on retained assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "PermGroFac": [1.01],  # Permanent income growth factor
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_preference_shocks.update(default_IncShkDstn_params)
+init_preference_shocks.update(default_aXtraGrid_params)
+init_preference_shocks.update(default_PrefShkDstn_params)
+
+
+# Specify default parameters that differ in "kinky preference" model compared to base PrefShockConsumerType
+kinky_pref_different_params = {
+    "Rboro": 1.20,  # Interest factor on assets when borrowing, a < 0
+    "Rsave": 1.02,  # Interest factor on assets when saving, a > 0
+    "BoroCnstArt": None,  # Kinked R only matters if borrowing is allowed
+}
 
 # Make a dictionary to specify a "kinky preference" consumer
-init_kinky_pref = dict(
-    init_kinked_R,
-    **pref_shock_params,
-)
-init_kinky_pref["BoroCnstArt"] = None
-init_kinky_pref["constructors"]["PrefShkDstn"] = make_lognormal_PrefShkDstn
+init_kinky_pref = init_preference_shocks.copy()  # Start with base above
+init_kinky_pref.update(kinky_pref_different_params)  # Change just a few params
+del init_kinky_pref["Rfree"]
 
 
 class PrefShockConsumerType(IndShockConsumerType):
