@@ -3,6 +3,7 @@ from itertools import product
 from typing import Any, Callable, Dict, List, Optional, Union
 from warnings import warn
 
+from copy import deepcopy
 import numpy as np
 import xarray as xr
 from numpy import random
@@ -986,8 +987,46 @@ class DiscreteDistribution(Distribution):
 
         TODO: print warning message?
         """
-
         return self
+
+    def make_univariate(self, dim_to_keep, seed=0):
+        """
+        Make a univariate discrete distribution from this distribution, keeping
+        only the specified dimension.
+
+        Parameters
+        ----------
+        dim_to_keep : int
+            Index of the distribution to be kept. Any other dimensions will be
+            "collapsed" into the univariate atoms, combining probabilities.
+        seed : int, optional
+            Seed for random number generator of univariate distribution
+
+        Returns
+        -------
+        univariate_dstn : DiscreteDistribution
+            Univariate distribution with only the specified index.
+        """
+        # Do basic validity and triviality checks
+        if (self.atoms.shape[0] == 1) and (dim_to_keep == 0):
+            return deepcopy(self)  # Return copy of self if only one dimension
+        if dim_to_keep >= self.atoms.shape[0]:
+            raise ValueError("dim_to_keep exceeds dimensionality of distribution.")
+
+        # Construct values and probabilities for univariate distribution
+        atoms_temp = self.atoms[dim_to_keep]
+        vals_to_keep = np.unique(atoms_temp)
+        probs_to_keep = np.zeros_like(vals_to_keep)
+        for i in range(vals_to_keep.size):
+            val = vals_to_keep[i]
+            these = atoms_temp == val
+            probs_to_keep[i] = np.sum(self.pmv[these])
+
+        # Make and return the univariate distribution
+        univariate_dstn = DiscreteDistribution(
+            pmv=probs_to_keep, atoms=vals_to_keep, seed=seed
+        )
+        return univariate_dstn
 
 
 class DiscreteDistributionLabeled(DiscreteDistribution):
@@ -1458,7 +1497,6 @@ class TimeVaryingDiscreteDistribution(Distribution):
         # conditions are indices into list
         # somewhat convoluted sampling strategy retained
         # for test backwards compatibility
-
         draws = np.zeros(condition.size)
 
         for c in np.unique(condition):

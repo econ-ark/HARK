@@ -1097,6 +1097,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
 
     # Define some universal values for all consumer types
     solution_terminal_ = PerfForesightSolution()
+    solution_terminal_class = PerfForesightSolution
 
     def __init__(self, **kwargs):
         PerfForesightConsumerType.__init__(self, **kwargs)
@@ -1119,6 +1120,15 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
             MPCmin=1.0,
             MPCmax=1.0,
         )
+
+        # TODO: Move this whole method to a constructor
+        solution_terminal = deepcopy(self.solution_terminal_)
+        cFunc_terminal = LinearInterp([0.0, 1.0], [0.0, 1.0])
+        solution_terminal.cFunc = cFunc_terminal  # c=m at t=T
+        solution_terminal.vFunc = ValueFuncCRRA(cFunc_terminal, self.CRRA)
+        solution_terminal.vPfunc = MargValueFuncCRRA(cFunc_terminal, self.CRRA)
+        solution_terminal.vPPfunc = MargMargValueFuncCRRA(cFunc_terminal, self.CRRA)
+        self.solution_terminal = solution_terminal
 
     def post_solve(self):
         self.solution_fast = deepcopy(self.solution)
@@ -1184,6 +1194,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
 
 class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFast):
     solution_terminal_ = IndShockSolution()
+    solution_terminal_class = IndShockSolution
 
     def __init__(self, **kwargs):
         IndShockConsumerType.__init__(self, **kwargs)

@@ -8,16 +8,24 @@ import numpy as np
 from scipy.optimize import brentq
 
 from HARK import AgentType
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
+    make_AR1_style_pLvlNextFunc,
+    make_pLvlGrid_by_simulation,
+    make_basic_pLvlPctiles,
+)
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     PersistentShockConsumerType,
     VariableLowerBoundFunc2D,
-    init_persistent_shocks,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
 from HARK.distribution import Lognormal, add_discrete_outcome_constant_mean, expected
 from HARK.interpolation import (
     BilinearInterp,
     BilinearInterpOnInterp1D,
+    ConstantFunction,
     CubicInterp,
     LinearInterp,
     LinearInterpOnInterp1D,
@@ -38,7 +46,7 @@ from HARK.rewards import (
     CRRAutilityPP,
     UtilityFuncCRRA,
 )
-from HARK.utilities import NullFunc, make_grid_exp_mult
+from HARK.utilities import NullFunc, make_grid_exp_mult, make_assets_grid
 
 __all__ = [
     "MedShockPolicyFunc",
@@ -533,28 +541,282 @@ class MedThruXfunc(MetricObject):
         return dMeddShk
 
 
+def make_lognormal_MedShkDstn(
+    T_cycle,
+    MedShkAvg,
+    MedShkStd,
+    MedShkCount,
+    MedShkCountTail,
+    RNG,
+    MedShkTailBound=[0.0, 0.9],
+):
+    """
+    Constructs discretized lognormal distributions of medical preference shocks
+    for each period in the cycle.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of non-terminal periods in the agent's cycle.
+    MedShkAvg : [float]
+        Mean of medical needs shock in each period of the problem.
+    MedShkStd : [float]
+        Standard deviation of log medical needs shock in each period of the problem.
+    MedShkCount : int
+        Number of equiprobable nodes in the "body" of the discretization.
+    MedShkCountTail : int
+        Number of nodes in each "tail" of the discretization.
+    RNG : RandomState
+        The AgentType's internal random number generator.
+    MedShkTailBound : [float,float]
+        CDF bounds for the tail of the discretization.
+
+    Returns
+    -------
+    MedShkDstn : [DiscreteDistribuion]
+    """
+    MedShkDstn = []  # empty list for medical shock distribution each period
+    for t in range(T_cycle):
+        # get shock distribution parameters
+        MedShkAvg_t = MedShkAvg[t]
+        MedShkStd_t = MedShkStd[t]
+        MedShkDstn_t = Lognormal(
+            mu=np.log(MedShkAvg_t) - 0.5 * MedShkStd_t**2, sigma=MedShkStd_t
+        ).discretize(
+            N=MedShkCount,
+            method="equiprobable",
+            tail_N=MedShkCountTail,
+            tail_bound=MedShkTailBound,
+        )
+        MedShkDstn_t = add_discrete_outcome_constant_mean(
+            MedShkDstn_t, 0.0, 0.0, sort=True
+        )  # add point at zero with no probability
+        MedShkDstn.append(MedShkDstn_t)
+    return MedShkDstn
+
+
+def make_MedShock_solution_terminal(
+    CRRA, CRRAmed, MedShkDstn, MedPrice, aXtraGrid, pLvlGrid, CubicBool
+):
+    """
+    Construct the terminal period solution for this type.  Similar to other models,
+    optimal behavior involves spending all available market resources; however,
+    the agent must split his resources between consumption and medical care.
+
+    Parameters
+    ----------
+    None
+
+    Returns:
+    --------
+    None
+    """
+    # Take last period data, whichever way time is flowing
+    MedPrice = MedPrice[-1]
+    MedShkVals = MedShkDstn[-1].atoms.flatten()
+    MedShkPrbs = MedShkDstn[-1].pmv
+
+    # Initialize grids of medical need shocks, market resources, and optimal consumption
+    MedShkGrid = MedShkVals
+    xLvlMin = np.min(aXtraGrid) * np.min(pLvlGrid)
+    xLvlMax = np.max(aXtraGrid) * np.max(pLvlGrid)
+    xLvlGrid = make_grid_exp_mult(xLvlMin, xLvlMax, 3 * aXtraGrid.size, 8)
+    trivial_grid = np.array([0.0, 1.0])  # Trivial grid
+
+    # Make the policy functions for the terminal period
+    xFunc_terminal = TrilinearInterp(
+        np.array([[[0.0, 0.0], [0.0, 0.0]], [[1.0, 1.0], [1.0, 1.0]]]),
+        trivial_grid,
+        trivial_grid,
+        trivial_grid,
+    )
+    policyFunc_terminal = MedShockPolicyFunc(
+        xFunc_terminal,
+        xLvlGrid,
+        MedShkGrid,
+        MedPrice,
+        CRRA,
+        CRRAmed,
+        xLvlCubicBool=CubicBool,
+    )
+    cFunc_terminal = cThruXfunc(xFunc_terminal, policyFunc_terminal.cFunc)
+    MedFunc_terminal = MedThruXfunc(xFunc_terminal, policyFunc_terminal.cFunc, MedPrice)
+
+    # Calculate optimal consumption on a grid of market resources and medical shocks
+    mLvlGrid = xLvlGrid
+    mLvlGrid_tiled = np.tile(
+        np.reshape(mLvlGrid, (mLvlGrid.size, 1)), (1, MedShkGrid.size)
+    )
+    pLvlGrid_tiled = np.ones_like(
+        mLvlGrid_tiled
+    )  # permanent income irrelevant in terminal period
+    MedShkGrid_tiled = np.tile(
+        np.reshape(MedShkVals, (1, MedShkGrid.size)), (mLvlGrid.size, 1)
+    )
+    cLvlGrid, MedGrid = policyFunc_terminal(
+        mLvlGrid_tiled, pLvlGrid_tiled, MedShkGrid_tiled
+    )
+
+    # Integrate marginal value across shocks to get expected marginal value
+    vPgrid = cLvlGrid ** (-CRRA)
+    vPgrid[np.isinf(vPgrid)] = 0.0  # correct for issue at bottom edges
+    PrbGrid = np.tile(np.reshape(MedShkPrbs, (1, MedShkGrid.size)), (mLvlGrid.size, 1))
+    vP_expected = np.sum(vPgrid * PrbGrid, axis=1)
+
+    # Construct the marginal (marginal) value function for the terminal period
+    vPnvrs = vP_expected ** (-1.0 / CRRA)
+    vPnvrs[0] = 0.0
+    vPnvrsFunc = BilinearInterp(
+        np.tile(np.reshape(vPnvrs, (vPnvrs.size, 1)), (1, trivial_grid.size)),
+        mLvlGrid,
+        trivial_grid,
+    )
+    vPfunc_terminal = MargValueFuncCRRA(vPnvrsFunc, CRRA)
+    vPPfunc_terminal = MargMargValueFuncCRRA(vPnvrsFunc, CRRA)
+
+    # Integrate value across shocks to get expected value
+    vGrid = utility(cLvlGrid, rho=CRRA) + MedShkGrid_tiled * utility(
+        MedGrid, rho=CRRAmed
+    )
+    # correct for issue when MedShk=0
+    vGrid[:, 0] = utility(cLvlGrid[:, 0], rho=CRRA)
+    vGrid[np.isinf(vGrid)] = 0.0  # correct for issue at bottom edges
+    v_expected = np.sum(vGrid * PrbGrid, axis=1)
+
+    # Construct the value function for the terminal period
+    vNvrs = utility_inv(v_expected, rho=CRRA)
+    vNvrs[0] = 0.0
+    vNvrsP = vP_expected * utility_invP(v_expected, rho=CRRA)
+    # TODO: Figure out MPCmax in this model
+    vNvrsP[0] = 0.0
+    tempFunc = CubicInterp(mLvlGrid, vNvrs, vNvrsP)
+    vNvrsFunc = LinearInterpOnInterp1D([tempFunc, tempFunc], trivial_grid)
+    vFunc_terminal = ValueFuncCRRA(vNvrsFunc, CRRA)
+
+    # Make and return the terminal period solution
+    solution_terminal = ConsumerSolution(
+        cFunc=cFunc_terminal,
+        vFunc=vFunc_terminal,
+        vPfunc=vPfunc_terminal,
+        vPPfunc=vPPfunc_terminal,
+        hNrm=0.0,
+        mNrmMin=0.0,
+    )
+    solution_terminal.MedFunc = MedFunc_terminal
+    solution_terminal.policyFunc = policyFunc_terminal
+    # Track absolute human wealth and minimum market wealth by permanent income
+    solution_terminal.hLvl = ConstantFunction(0.0)
+    solution_terminal.mLvlMin = ConstantFunction(0.0)
+    return solution_terminal
+
+
 ###############################################################################
 
-# -----------------------------------------------------------------------------
-# ----- Define additional parameters for the medical shocks model -------------
-# -----------------------------------------------------------------------------
-CRRA = 2.0
-CRRAmed = 1.5 * CRRA  # Coefficient of relative risk aversion for medical care
-MedShkAvg = [0.001]  # Average of medical need shocks
-MedShkStd = [5.0]  # Standard deviation of (log) medical need shocks
-MedShkCount = 5  # Number of medical shock points in "body"
-MedShkCountTail = 15  # Number of medical shock points in "tail" (upper only)
-MedPrice = [1.5]  # Relative price of a unit of medical care
+# Make a constructor dictionary for the general income process consumer type
+medshock_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "pLvlPctiles": make_basic_pLvlPctiles,
+    "pLvlGrid": make_pLvlGrid_by_simulation,
+    "pLvlNextFunc": make_AR1_style_pLvlNextFunc,
+    "MedShkDstn": make_lognormal_MedShkDstn,
+    "solution_terminal": make_MedShock_solution_terminal,
+}
 
-# Make a dictionary for the "medical shocks" model
-init_medical_shocks = init_persistent_shocks.copy()
-init_medical_shocks["CRRAmed"] = CRRAmed
-init_medical_shocks["MedShkAvg"] = MedShkAvg
-init_medical_shocks["MedShkStd"] = MedShkStd
-init_medical_shocks["MedShkCount"] = MedShkCount
-init_medical_shocks["MedShkCountTail"] = MedShkCountTail
-init_medical_shocks["MedPrice"] = MedPrice
-init_medical_shocks["aXtraCount"] = 32
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 30,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 32,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": [0.005, 0.01],  # Additional other values to add in grid (optional)
+}
+
+# Default parameters to make pLvlGrid using make_basic_pLvlPctiles
+default_pLvlPctiles_params = {
+    "pLvlPctiles_count": 19,  # Number of points in the "body" of the grid
+    "pLvlPctiles_bound": [0.05, 0.95],  # Percentile bounds of the "body"
+    "pLvlPctiles_tail_count": 4,  # Number of points in each tail of the grid
+    "pLvlPctiles_tail_order": np.e,  # Scaling factor for points in each tail
+}
+
+# Default parameters to make pLvlGrid using make_trivial_pLvlNextFunc
+default_pLvlGrid_params = {
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.4,  # Standard deviation of log initial permanent income *MUST BE POSITIVE*
+    # "pLvlPctiles": pLvlPctiles,  # Percentiles of permanent income to use for the grid
+    "pLvlExtra": [
+        0.0001
+    ],  # Additional permanent income points to automatically add to the grid, optional
+}
+
+# Default parameters to make MedShkDstn using make_lognormal_MedShkDstn
+default_MedShkDstn_params = {
+    "MedShkAvg": [0.001],  # Average of medical need shocks
+    "MedShkStd": [5.0],  # Standard deviation of (log) medical need shocks
+    "MedShkCount": 5,  # Number of medical shock points in "body"
+    "MedShkCountTail": 15,  # Number of medical shock points in "tail" (upper only)
+    "MedPrice": [1.5],  # Relative price of a unit of medical care
+}
+
+# Default parameters to make pLvlNextFunc using make_AR1_style_pLvlNextFunc
+default_pLvlNextFunc_params = {
+    "PermGroFac": [1.0],  # Permanent income growth factor
+    "PrstIncCorr": 0.98,  # Correlation coefficient on (log) persistent income
+}
+
+# Make a dictionary to specify a medical shocks consumer type
+init_medical_shocks = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": medshock_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion on consumption
+    "CRRAmed": 3.0,  # Coefficient of relative risk aversion on medical care
+    "Rfree": 1.03,  # Interest factor on retained assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_medical_shocks.update(default_IncShkDstn_params)
+init_medical_shocks.update(default_aXtraGrid_params)
+init_medical_shocks.update(default_pLvlPctiles_params)
+init_medical_shocks.update(default_pLvlGrid_params)
+init_medical_shocks.update(default_MedShkDstn_params)
+init_medical_shocks.update(default_pLvlNextFunc_params)
 
 
 class MedShockConsumerType(PersistentShockConsumerType):
@@ -573,17 +835,28 @@ class MedShockConsumerType(PersistentShockConsumerType):
         Number of times the sequence of periods should be solved.
     """
 
+    default_params_ = init_medical_shocks
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShk"]
     state_vars = PersistentShockConsumerType.state_vars + ["mLvl"]
 
     def __init__(self, **kwds):
-        params = init_medical_shocks.copy()
+        params = self.default_params_.copy()
         params.update(kwds)
 
-        PersistentShockConsumerType.__init__(self, **params)
+        AgentType.__init__(self, **params)
+        self.time_vary = deepcopy(self.time_vary_)
+        self.time_inv = deepcopy(self.time_inv_)
+        self.shock_vars = deepcopy(self.shock_vars_)
+
         self.solve_one_period = solve_one_period_ConsMedShock
         self.add_to_time_inv("CRRAmed")
         self.add_to_time_vary("MedPrice")
+        self.update()
+
+        self.state_now["aLvl"] = None
+        self.state_prev["aLvl"] = None
+        self.state_now["mLvl"] = None
+        self.state_prev["mLvl"] = None
 
     def pre_solve(self):
         self.update_solution_terminal()
@@ -601,6 +874,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
+        self.update_Rfree()
         self.update_income_process()
         self.update_assets_grid()
         self.update_pLvlNextFunc()
@@ -622,164 +896,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        MedShkDstn = []  # empty list for medical shock distribution each period
-        for t in range(self.T_cycle):
-            # get shock distribution parameters
-            MedShkAvgNow = self.MedShkAvg[t]
-            MedShkStdNow = self.MedShkStd[t]
-            MedShkDstnNow = Lognormal(
-                mu=np.log(MedShkAvgNow) - 0.5 * MedShkStdNow**2, sigma=MedShkStdNow
-            ).discretize(
-                N=self.MedShkCount,
-                method="equiprobable",
-                tail_N=self.MedShkCountTail,
-                tail_bound=[0, 0.9],
-            )
-            MedShkDstnNow = add_discrete_outcome_constant_mean(
-                MedShkDstnNow, 0.0, 0.0, sort=True
-            )  # add point at zero with no probability
-            MedShkDstn.append(MedShkDstnNow)
-        self.MedShkDstn = MedShkDstn
+        self.construct("MedShkDstn")
         self.add_to_time_vary("MedShkDstn")
-
-    def update_solution_terminal(self):
-        """
-        Update the terminal period solution for this type.  Similar to other models,
-        optimal behavior involves spending all available market resources; however,
-        the agent must split his resources between consumption and medical care.
-
-        Parameters
-        ----------
-        None
-
-        Returns:
-        --------
-        None
-        """
-        # Take last period data, whichever way time is flowing
-        MedPrice = self.MedPrice[-1]
-        MedShkVals = self.MedShkDstn[-1].atoms.flatten()
-        MedShkPrbs = self.MedShkDstn[-1].pmv
-
-        # Initialize grids of medical need shocks, market resources, and optimal consumption
-        MedShkGrid = MedShkVals
-        xLvlMin = np.min(self.aXtraGrid) * np.min(self.pLvlGrid)
-        xLvlMax = np.max(self.aXtraGrid) * np.max(self.pLvlGrid)
-        xLvlGrid = make_grid_exp_mult(xLvlMin, xLvlMax, 3 * self.aXtraGrid.size, 8)
-        trivial_grid = np.array([0.0, 1.0])  # Trivial grid
-
-        # Make the policy functions for the terminal period
-        xFunc_terminal = TrilinearInterp(
-            np.array([[[0.0, 0.0], [0.0, 0.0]], [[1.0, 1.0], [1.0, 1.0]]]),
-            trivial_grid,
-            trivial_grid,
-            trivial_grid,
-        )
-        policyFunc_terminal = MedShockPolicyFunc(
-            xFunc_terminal,
-            xLvlGrid,
-            MedShkGrid,
-            MedPrice,
-            self.CRRA,
-            self.CRRAmed,
-            xLvlCubicBool=self.CubicBool,
-        )
-        cFunc_terminal = cThruXfunc(xFunc_terminal, policyFunc_terminal.cFunc)
-        MedFunc_terminal = MedThruXfunc(
-            xFunc_terminal, policyFunc_terminal.cFunc, MedPrice
-        )
-
-        # Calculate optimal consumption on a grid of market resources and medical shocks
-        mLvlGrid = xLvlGrid
-        mLvlGrid_tiled = np.tile(
-            np.reshape(mLvlGrid, (mLvlGrid.size, 1)), (1, MedShkGrid.size)
-        )
-        pLvlGrid_tiled = np.ones_like(
-            mLvlGrid_tiled
-        )  # permanent income irrelevant in terminal period
-        MedShkGrid_tiled = np.tile(
-            np.reshape(MedShkVals, (1, MedShkGrid.size)), (mLvlGrid.size, 1)
-        )
-        cLvlGrid, MedGrid = policyFunc_terminal(
-            mLvlGrid_tiled, pLvlGrid_tiled, MedShkGrid_tiled
-        )
-
-        # Integrate marginal value across shocks to get expected marginal value
-        vPgrid = cLvlGrid ** (-self.CRRA)
-        vPgrid[np.isinf(vPgrid)] = 0.0  # correct for issue at bottom edges
-        PrbGrid = np.tile(
-            np.reshape(MedShkPrbs, (1, MedShkGrid.size)), (mLvlGrid.size, 1)
-        )
-        vP_expected = np.sum(vPgrid * PrbGrid, axis=1)
-
-        # Construct the marginal (marginal) value function for the terminal period
-        vPnvrs = vP_expected ** (-1.0 / self.CRRA)
-        vPnvrs[0] = 0.0
-        vPnvrsFunc = BilinearInterp(
-            np.tile(np.reshape(vPnvrs, (vPnvrs.size, 1)), (1, trivial_grid.size)),
-            mLvlGrid,
-            trivial_grid,
-        )
-        vPfunc_terminal = MargValueFuncCRRA(vPnvrsFunc, self.CRRA)
-        vPPfunc_terminal = MargMargValueFuncCRRA(vPnvrsFunc, self.CRRA)
-
-        # Integrate value across shocks to get expected value
-        vGrid = utility(cLvlGrid, rho=self.CRRA) + MedShkGrid_tiled * utility(
-            MedGrid, rho=self.CRRAmed
-        )
-        vGrid[:, 0] = utility(
-            cLvlGrid[:, 0], rho=self.CRRA
-        )  # correct for issue when MedShk=0
-        vGrid[np.isinf(vGrid)] = 0.0  # correct for issue at bottom edges
-        v_expected = np.sum(vGrid * PrbGrid, axis=1)
-
-        # Construct the value function for the terminal period
-        vNvrs = utility_inv(v_expected, rho=self.CRRA)
-        vNvrs[0] = 0.0
-        vNvrsP = vP_expected * utility_invP(
-            v_expected, rho=self.CRRA
-        )  # NEED TO FIGURE OUT MPC MAX IN THIS MODEL
-        vNvrsP[0] = 0.0
-        tempFunc = CubicInterp(mLvlGrid, vNvrs, vNvrsP)
-        vNvrsFunc = LinearInterpOnInterp1D([tempFunc, tempFunc], trivial_grid)
-        vFunc_terminal = ValueFuncCRRA(vNvrsFunc, self.CRRA)
-
-        # Make the terminal period solution
-        self.solution_terminal.cFunc = cFunc_terminal
-        self.solution_terminal.MedFunc = MedFunc_terminal
-        self.solution_terminal.policyFunc = policyFunc_terminal
-        self.solution_terminal.vPfunc = vPfunc_terminal
-        self.solution_terminal.vFunc = vFunc_terminal
-        self.solution_terminal.vPPfunc = vPPfunc_terminal
-        self.solution_terminal.hNrm = 0.0  # Don't track normalized human wealth
-        self.solution_terminal.hLvl = lambda p: np.zeros_like(
-            p
-        )  # But do track absolute human wealth by permanent income
-        self.solution_terminal.mLvlMin = lambda p: np.zeros_like(
-            p
-        )  # And minimum allowable market resources by perm inc
-
-    def update_pLvlGrid(self):
-        """
-        Update the grid of permanent income levels.  Currently only works for
-        infinite horizon models (cycles=0) and lifecycle models (cycles=1).  Not
-        clear what to do about cycles>1.  Identical to version in persistent
-        shocks model, but pLvl=0 is manually added to the grid (because there is
-        no closed form lower-bounding cFunc for pLvl=0).
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        # Run basic version of this method
-        PersistentShockConsumerType.update_pLvlGrid(self)
-        for j in range(len(self.pLvlGrid)):  # Then add 0 to the bottom of each pLvlGrid
-            this_grid = self.pLvlGrid[j]
-            self.pLvlGrid[j] = np.insert(this_grid, 0, 0.0001)
 
     def reset_rng(self):
         """

@@ -196,7 +196,7 @@ IdiosyncDict = {
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    "aXtraExtra": None,  # Additional values to add to aXtraGrid
     # A few other paramaters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
@@ -262,7 +262,7 @@ LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionar
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    "aXtraExtra": None,  # Additional values to add to aXtraGrid
     # A few other paramaters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
@@ -345,7 +345,7 @@ CyclicalDict = {
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    "aXtraExtra": None,  # Additional values to add to aXtraGrid
     # A few other paramaters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
@@ -449,7 +449,7 @@ JACDict = {
     "aXtraMax": 15,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    "aXtraExtra": None,  # Additional values to add to aXtraGrid
     # A few other parameters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
@@ -615,7 +615,7 @@ dict_harmenberg = {
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    "aXtraExtra": None,  # Additional values to add to aXtraGrid
     # A few other parameters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
