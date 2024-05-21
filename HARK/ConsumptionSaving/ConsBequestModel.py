@@ -989,7 +989,7 @@ init_warm_glow["BeqCRRA"] = init_idiosyncratic_shocks["CRRA"]
 init_warm_glow["BeqFac"] = 40.0
 init_warm_glow["BeqShift"] = 0.0
 
-init_portfolio_bequest = init_warm_glow.copy()
+init_portfolio_bequest = init_accidental_bequest.copy()
 init_portfolio_bequest.update(init_portfolio)
 temp_dict_two = init_portfolio["constructors"].copy()
 temp_dict_two["solution_terminal"] = make_warmglow_portfolio_solution_terminal
