@@ -1050,7 +1050,6 @@ def solve_one_period_ConsPortfolioWarmGlow(
     return solution_now
 
 
-
 ###############################################################################
 
 
