@@ -8,7 +8,7 @@ problem by finding a general equilibrium dynamic rule.
 """
 
 # Set logging and define basic functions
-# Set logging and define basic functions
+import inspect
 import logging
 import sys
 from collections import namedtuple
@@ -269,6 +269,8 @@ class Model:
     def __init__(self):
         if not hasattr(self, "parameters"):
             self.parameters = {}
+        if not hasattr(self, "constructors"):
+            self.constructors = {}
 
     def assign_parameters(self, **kwds):
         """
@@ -326,6 +328,226 @@ class Model:
 
     def describe(self):
         return self.__str__()
+
+    def del_param(self, param_name):
+        """
+        Deletes a parameter from this instance, removing it both from the object's
+        namespace (if it's there) and the parameters dictionary (likewise).
+
+        Parameters
+        ----------
+        param_name : str
+            A string naming a parameter or data to be deleted from this instance.
+            Removes information from self.parameters dictionary and own namespace.
+
+        Returns
+        -------
+        None.
+        """
+        if param_name in self.parameters:
+            del self.parameters[param_name]
+        if hasattr(self, param_name):
+            delattr(self, param_name)
+
+    def construct(self, *args, force=False):
+        """
+        Top-level method for building constructed inputs. If called without any
+        inputs, construct builds each of the objects named in the keys of the
+        constructors dictionary; it draws inputs for the constructors from the
+        parameters dictionary and adds its results to the same. If passed one or
+        more strings as arguments, the method builds only the named keys. The
+        method will do multiple "passes" over the requested keys, as some cons-
+        tructors require inputs built by other constructors. If any requested
+        constructors failed to build due to missing data, those keys (and the
+        missing data) will be named in self._missing_key_data. Other errors are
+        recorded in the dictionary attribute _constructor_errors.
+
+        Parameters
+        ----------
+        *args : str, optional
+            Keys of self.constructors that are requested to be constructed. If
+            no arguments are passed, *all* elements of the dictionary are implied.
+        force : bool, optional
+            When True, the method will force its way past any errors, including
+            missing constructors, missing arguments for constructors, and errors
+            raised during execution of constructors. Information about all such
+            errors is stored in the dictionary attributes described above. When
+            False (default), any errors or exception will be raised.
+
+        Returns
+        -------
+        None
+        """
+        # Set up the requested work
+        if len(args) > 0:
+            keys = args
+        else:
+            keys = list(self.constructors.keys())
+        N_keys = len(keys)
+        keys_complete = np.zeros(N_keys, dtype=bool)
+
+        # Get the dictionary of constructor errors
+        if not hasattr(self, "_constructor_errors"):
+            self._constructor_errors = {}
+        errors = self._constructor_errors
+
+        # As long as the work isn't complete and we made some progress on the last
+        # pass, repeatedly perform passes of trying to construct objects
+        any_keys_incomplete = np.any(np.logical_not(keys_complete))
+        go = any_keys_incomplete
+        while go:
+            anything_accomplished_this_pass = False  # Nothing done yet!
+            missing_key_data = []  # Keep this up-to-date on each pass
+
+            # Loop over keys to be constructed
+            for i in range(N_keys):
+                if keys_complete[i]:
+                    continue  # This key has already been built
+
+                # Get this key and its constructor function
+                key = keys[i]
+                try:
+                    constructor = self.constructors[key]
+                except Exception as not_found:
+                    errors[key] = "No constructor found for " + str(not_found)
+                    self.del_param(key)
+                    if force:
+                        continue
+                    else:
+                        raise ValueError("No constructor found for " + key) from None
+
+                # Get the names of arguments for this constructor and try to gather them
+                args_needed = get_arg_names(constructor)
+                has_no_default = {
+                    k: v.default is inspect.Parameter.empty
+                    for k, v in inspect.signature(constructor).parameters.items()
+                }
+                temp_dict = {}
+                any_missing = False
+                missing_args = []
+                for j in range(len(args_needed)):
+                    this_arg = args_needed[j]
+                    if hasattr(self, this_arg):
+                        temp_dict[this_arg] = getattr(self, this_arg)
+                    else:
+                        try:
+                            temp_dict[this_arg] = self.parameters[this_arg]
+                        except:
+                            if has_no_default[this_arg]:
+                                # Record missing key-data pair
+                                any_missing = True
+                                missing_key_data.append((key, this_arg))
+                                missing_args.append(this_arg)
+
+                # If all of the required data was found, run the constructor and
+                # store the result in parameters (and on self)
+                if not any_missing:
+                    try:
+                        temp = constructor(**temp_dict)
+                    except Exception as problem:
+                        errors[key] = str(type(problem)) + ": " + str(problem)
+                        self.del_param(key)
+                        if force:
+                            continue
+                        else:
+                            raise
+                    setattr(self, key, temp)
+                    self.parameters[key] = temp
+                    if key in errors:
+                        del errors[key]
+                    keys_complete[i] = True
+                    anything_accomplished_this_pass = True  # We did something!
+                else:
+                    msg = "Missing required arguments:"
+                    for arg in missing_args:
+                        msg += " " + arg + ","
+                    msg = msg[:-1]
+                    errors[key] = msg
+                    self.del_param(key)
+                    # Never raise exceptions here, as the arguments might be filled in later
+
+            # Check whether another pass should be performed
+            any_keys_incomplete = np.any(np.logical_not(keys_complete))
+            go = any_keys_incomplete and anything_accomplished_this_pass
+
+        # Store missing key-data pairs and exit
+        self._missing_key_data = missing_key_data
+        if any_keys_incomplete:
+            msg = "Did not construct these objects:"
+            for i in range(N_keys):
+                if keys_complete[i]:
+                    continue
+                msg += " " + keys[i] + ","
+            msg = msg[:-1]
+            if not force:
+                raise ValueError(msg)
+        return
+
+    def describe_constructors(self, *args):
+        """
+        Prints to screen a string describing this instance's constructed objects,
+        including their names, the function that constructs them, the names of
+        those functions inputs, and whether those inputs are present.
+
+        Parameters
+        ----------
+        *args : str
+            Optional list of strings naming constructed inputs to be described.
+            If none are passed, all constructors are described.
+
+        Returns
+        -------
+        None.
+        """
+        if len(args) > 0:
+            keys = args
+        else:
+            keys = list(self.constructors.keys())
+        yes = "\u2713"
+        no = "X"
+        maybe = "*"
+        noyes = [no, yes]
+
+        out = ""
+        for key in keys:
+            has_val = hasattr(self, key) or (key in self.parameters)
+
+            # Get the constructor function if possible
+            try:
+                constructor = self.constructors[key]
+                out += (
+                    noyes[int(has_val)]
+                    + " "
+                    + key
+                    + " : "
+                    + constructor.__name__
+                    + "\n"
+                )
+            except:
+                out += noyes[int(has_val)] + " " + key + " : NO CONSTRUCTOR FOUND\n"
+                continue
+
+            # Get constructor argument names
+            arg_names = get_arg_names(constructor)
+            has_no_default = {
+                k: v.default is inspect.Parameter.empty
+                for k, v in inspect.signature(constructor).parameters.items()
+            }
+
+            # Check whether each argument existd
+            for j in range(len(arg_names)):
+                this_arg = arg_names[j]
+                if hasattr(self, this_arg) or this_arg in self.parameters:
+                    symb = yes
+                elif not has_no_default[this_arg]:
+                    symb = maybe
+                else:
+                    symb = no
+                out += "    " + symb + " " + this_arg + "\n"
+
+        # Print the string to screen
+        print(out)
+        return
 
 
 class AgentType(Model):
@@ -495,7 +717,7 @@ class AgentType(Model):
             self.__dict__[parameter].append(solution_t.__dict__[parameter])
         self.add_to_time_vary(parameter)
 
-    def solve(self, verbose=False):
+    def solve(self, verbose=False, run_presolve=True):
         """
         Solve the model for this instance of an agent type by backward induction.
         Loops through the sequence of one period problems, passing the solution
@@ -503,8 +725,10 @@ class AgentType(Model):
 
         Parameters
         ----------
-        verbose : boolean
-            If True, solution progress is printed to screen.
+        verbose : bool, optional
+            If True, solution progress is printed to screen. Default False.
+        run_presolve : bool, optional
+            If True (default), the pre_solve method is run before solving.
 
         Returns
         -------
@@ -517,7 +741,8 @@ class AgentType(Model):
         with np.errstate(
             divide="ignore", over="ignore", under="ignore", invalid="ignore"
         ):
-            self.pre_solve()  # Do pre-solution stuff
+            if run_presolve:
+                self.pre_solve()  # Do pre-solution stuff
             self.solution = solve_agent(
                 self, verbose
             )  # Solve the model by backward induction

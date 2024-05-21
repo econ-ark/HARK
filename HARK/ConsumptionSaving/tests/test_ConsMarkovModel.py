@@ -3,8 +3,10 @@ from copy import copy
 
 import numpy as np
 
-from HARK.ConsumptionSaving.ConsIndShockModel import init_idiosyncratic_shocks
-from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+from HARK.ConsumptionSaving.ConsMarkovModel import (
+    MarkovConsumerType,
+    init_indshk_markov,
+)
 from HARK.distribution import (
     DiscreteDistribution,
     DiscreteDistributionLabeled,
@@ -54,7 +56,7 @@ class test_ConsMarkovSolver(unittest.TestCase):
             ]
         )
 
-        init_serial_unemployment = copy(init_idiosyncratic_shocks)
+        init_serial_unemployment = copy(init_indshk_markov)
         init_serial_unemployment["MrkvArray"] = [MrkvArray]
         init_serial_unemployment["UnempPrb"] = (
             0.0  # to make income distribution when employed

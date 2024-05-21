@@ -121,10 +121,10 @@ class Compare_TBS_and_Markov(unittest.TestCase):
             "Rfree": np.array(2 * [base_primitives["Rfree"]]),
             "PermGroFac": [
                 np.array(
-                    2
-                    * [
+                    [
                         base_primitives["PermGroFac"]
-                        / (1.0 - base_primitives["UnempPrb"])
+                        / (1.0 - base_primitives["UnempPrb"]),
+                        1.0,
                     ]
                 )
             ],
@@ -133,7 +133,6 @@ class Compare_TBS_and_Markov(unittest.TestCase):
             "PermShkCount": 1,
             "TranShkStd": [0.0],
             "TranShkCount": 1,
-            "T_total": 1,
             "UnempPrb": 0.0,
             "UnempPrbRet": 0.0,
             "T_retire": 0,
@@ -142,13 +141,13 @@ class Compare_TBS_and_Markov(unittest.TestCase):
             "aXtraMin": 0.001,
             "aXtraMax": TBSType.mUpperBnd,
             "aXtraCount": 48,
-            "aXtraExtra": [None],
+            "aXtraExtra": None,
             "aXtraNestFac": 3,
             "LivPrb": [
                 np.array([1.0, 1.0]),
             ],
             "DiscFac": base_primitives["DiscFac"],
-            "Nagents": 1,
+            "AgentCount": 1,
             "psi_seed": 0,
             "xi_seed": 0,
             "unemp_seed": 0,
