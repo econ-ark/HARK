@@ -3,7 +3,7 @@ A file for demonstrating the "model chunks" concept on a baby consumption-saving
 """
 
 import numpy as np
-from HARK.chunkymodel import Chunk, Connector
+from HARK.chunkymodel import Chunk, Connector, connect_chunks
 from HARK.distribution import MeanOneLogNormal, expected
 from HARK.utilities import construct_assets_grid
 from HARK.interpolation import LinearInterp, IdentityFunction, ConstantFunction
@@ -106,7 +106,7 @@ def make_baby_vPfunc_at_consumption_time(cFunc, CRRA):
         Marginal value of market resources, as a function of market resources,
         as of the moment that the consumption-decision is made.
     """
-    vPfunc_bellman = MargValueFuncCRRA(cFunc, rho=CRRA)
+    vPfunc_bellman = MargValueFuncCRRA(cFunc, CRRA=CRRA)
     return vPfunc_bellman
 
 
@@ -140,7 +140,7 @@ def make_baby_vPfunc_at_beginning(vPfunc_bellman, kGrid, TranShkDstn, Rfree, CRR
     vP_BOP = Rfree * expected(temp_f, TranShkDstn, args=(kGrid))
     vPnvrs_BOP = vP_BOP ** (-1.0 / CRRA)
     vPnvrsFunc_BOP = LinearInterp(kGrid, vPnvrs_BOP)
-    vPfunc_BOP = MargValueFuncCRRA(vPnvrsFunc_BOP, rho=CRRA)
+    vPfunc_BOP = MargValueFuncCRRA(vPnvrsFunc_BOP, CRRA=CRRA)
     return vPfunc_BOP
 
 
@@ -171,13 +171,14 @@ default_baby_parameters = {
 
 class NoFuture(Chunk):
     _dynamics = "This represents a non-existent future."
-    _parameters = {"vPfunc_BOP": ConstantFunction(0.0)}
+    _constructors = {"vPfunc_BOP": lambda: ConstantFunction(0.0)}
+    _exposes = ["vPfunc_BOP"]
 
 
 class BabyConsumptionPeriod(Chunk):
     _dynamics = "Consumption-saving model with transitory income shocks, one risk free asset, and CRRA utility. Has a hard-coded liquidity constraint."
     _requirements = ["cFunc", "TransShkDstn", "Rfree"]
-    _exposes = ["vPfunc"]
+    _exposes = ["vPfunc_BOP"]
     _constructors = default_baby_constructors
     _parameters = default_baby_parameters
 
@@ -187,5 +188,35 @@ class BabyConnector(Connector):
 
 
 if __name__ == "__main__":
-    period_T = NoFuture()
-    period_Tm1 = BabyConsumptionPeriod()
+    from HARK.utilities import plot_funcs
+    from time import time
+
+    t0 = time()
+
+    TheEnd = NoFuture()
+    TheEnd.build()
+    solved_periods = [TheEnd]
+
+    T = 50
+    for t in range(T):
+        new_period = BabyConsumptionPeriod()
+        connect_chunks(new_period, BabyConnector(), solved_periods[0])
+        new_period.succ.build()
+        new_period.build()
+        solved_periods.insert(0, new_period)
+
+    t1 = time()
+
+    plot_funcs(solved_periods[0]["cFunc"], 0.0, 10.0)
+
+    # period_T = BabyConsumptionPeriod()
+    # mycnx0 = BabyConnector()
+    # mycnx1 = BabyConnector()
+    # period_Tm1 = BabyConsumptionPeriod()
+
+    # connect_chunks(period_T, mycnx0, TheEnd)
+    # connect_chunks(period_Tm1, mycnx1, period_T)
+
+    # TheEnd.build()
+    # mycnx0.build()
+    # period_T.build()

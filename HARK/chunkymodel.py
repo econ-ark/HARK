@@ -161,7 +161,7 @@ class Chunk:
             raise ValueError("Can't find object named " + key)
         return out
 
-    def construct(self, *args, force=False):
+    def construct(self, *args, force=True):
         """
         Top-level method for building constructed objects. If called without any
         inputs, construct builds each of the objects named in the keys of the
@@ -260,8 +260,7 @@ class Chunk:
                             continue
                         else:
                             raise
-                    setattr(self, key, temp)
-                    self.parameters[key] = temp
+                    self.built[key] = temp
                     if key in errors:
                         del errors[key]
                     keys_complete[i] = True
@@ -300,7 +299,7 @@ class Chunk:
         """
         Updates the dictionary attribute called linked by pulling information from
         the Chunks referenced in the dictionary links. If something cannot be found,
-        a MissingObject is used.
+        then nothing is pulled in.
 
         Parameters
         ----------
@@ -320,7 +319,7 @@ class Chunk:
             try:
                 fetched = other.exposed[key]
             except:
-                fetched = MissingObject()
+                continue
 
             if copy:
                 linked[key] = deepcopy(fetched)
@@ -339,7 +338,7 @@ class Chunk:
         None
         """
         self.pull_links()
-        self.construct(force=True)
+        self.construct()
         self.expose()
 
     def link_to(self, other, keys=[]):
@@ -447,6 +446,9 @@ class Connector(Chunk):
             super().__init__(parameters={"remap": remap})
 
     def construct(self):
+        """
+        Overwrites the usual construct method to simply act as a "swapper".
+        """
         remapping = self["remap"]
         exposes = []
 
@@ -455,12 +457,45 @@ class Connector(Chunk):
             exposes.append(left)
             exposes.append(right)
             try:
-                self.built[left] = self[right]
+                self.built[left] = self.linked[right]
             except:
                 self.built[left] = MissingObject()
             try:
-                self.built[right] = self[left]
+                self.built[right] = self.linked[left]
             except:
                 self.built[right] = MissingObject()
 
         self.exposes = exposes
+        self.linked = {}
+
+
+def connect_chunks(pred, cnx, succ):
+    """
+    Link "left" and "right" chunks through a connector, filling in entries in the
+    links dictionary of all three.
+
+    Parameters
+    ----------
+    pred : Chunk
+        The "left" or "predecessor" model chunk.
+    cnx : Connector
+        A connection that remaps variable names between the left and right chunks.
+    succ : Chunk
+        The "right" or "successor" model chunk.
+
+    Returns
+    -------
+    None
+    """
+    # These two lines are hacky and maybe inapppropriate?
+    pred.succ = cnx
+    succ.pred = cnx
+
+    remapping = cnx["remap"]
+    for pair in remapping:
+        left, right = pair
+        pred.links[left] = cnx
+        cnx.links[right] = succ
+
+        succ.links[right] = cnx
+        cnx.links[left] = pred
