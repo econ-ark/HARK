@@ -769,6 +769,10 @@ class Bernoulli(DiscreteFrozenDistribution):
         # Set up the RNG
         super().__init__(stats.bernoulli, p=self.p, seed=seed)
 
+        self.pmv = [1 - self.p, self.p]
+        self.atoms = [0, 1]
+        self.limit = {"dist": self}
+
 
 class DiscreteDistribution(Distribution):
     """
