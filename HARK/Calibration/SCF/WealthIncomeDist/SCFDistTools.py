@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from HARK import _log
-from HARK.datasets.cpi.us.CPITools import cpi_deflator
+from HARK.Calibration.cpi.us.CPITools import cpi_deflator
 
 scf_sumstats_dir = os.path.dirname(os.path.abspath(__file__))
 
