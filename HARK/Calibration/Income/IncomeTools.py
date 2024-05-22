@@ -9,7 +9,7 @@ Created on Sat Dec 19 15:08:54 2020
 import numpy as np
 
 from HARK import _log
-from HARK.datasets.cpi.us.CPITools import cpi_deflator
+from HARK.Calibration.cpi.us.CPITools import cpi_deflator
 from HARK.interpolation import LinearInterp
 
 __all__ = [
