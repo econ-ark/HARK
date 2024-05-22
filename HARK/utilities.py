@@ -61,8 +61,13 @@ def get_arg_names(function):
     argNames : [string]
         The names of the arguments of function.
     """
-    argCount = function.__code__.co_argcount
-    argNames = function.__code__.co_varnames[:argCount]
+    try:
+        argCount = function.__code__.co_argcount
+        argNames = function.__code__.co_varnames[:argCount]
+    except:
+        raise TypeError(
+            "get_arg_names requires a Python function with a __code__ attribute!"
+        )
     return argNames
 
 

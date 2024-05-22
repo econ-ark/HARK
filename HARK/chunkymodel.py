@@ -151,12 +151,12 @@ class Chunk:
     def __getitem__(self, key):
         if type(key) is not str:
             raise TypeError("Requested key must be a string!")
-        if key in self.linked.keys():
-            out = self.linked[key]
+        if key in self.parameters.keys():
+            out = self.parameters[key]
         elif key in self.built.keys():
             out = self.built[key]
-        elif key in self.parameters:
-            out = self.parameters[key]
+        elif key in self.linked:
+            out = self.linked[key]
         else:
             raise ValueError("Can't find object named " + key)
         return out
@@ -229,6 +229,8 @@ class Chunk:
                         raise ValueError("No constructor found for " + key) from None
 
                 # Get the names of arguments for this constructor and try to gather them
+                if constructor is None:
+                    continue
                 args_needed = get_arg_names(constructor)
                 has_no_default = {
                     k: v.default is inspect.Parameter.empty
@@ -239,6 +241,9 @@ class Chunk:
                 missing_args = []
                 for j in range(len(args_needed)):
                     this_arg = args_needed[j]
+                    if this_arg == "_key":  # Special keyword handler
+                        temp_dict[this_arg] = key
+                        continue
                     try:
                         temp_dict[this_arg] = self[this_arg]
                     except:
@@ -414,6 +419,9 @@ class Chunk:
         pass
 
 
+###############################################################################
+
+
 class Connector(Chunk):
     """
     A special kind of model chunk that merely connects two other Chunks by remapping
@@ -471,8 +479,8 @@ class Connector(Chunk):
 
 def connect_chunks(pred, cnx, succ):
     """
-    Link "left" and "right" chunks through a connector, filling in entries in the
-    links dictionary of all three.
+    Link "predecessor" and "successor" chunks through a connector, filling in entries
+    in the links dictionary of all three.
 
     Parameters
     ----------
@@ -499,3 +507,83 @@ def connect_chunks(pred, cnx, succ):
 
         succ.links[right] = cnx
         cnx.links[left] = pred
+
+
+###############################################################################
+
+# Functions and classes that are used when building typical lifecycle models
+
+
+def expose_everything_in_parameters_and_built(parameters, built):
+    exposes = []
+    for key in parameters.keys():
+        exposes.append(key)
+    for key in built.keys():
+        exposes.append(key)
+    return exposes
+
+
+class LifecycleParameters(Chunk):
+    """
+    A special kind of model chunk that is used to represent lifecycle parameters,
+    from which other chunks draw values from links. Its list of exposed attributes
+    is always updated to allow access to all entries of parameters and built.
+    """
+
+    _constructors = {"exposes": expose_everything_in_parameters_and_built}
+
+    def construct(self, *args, force=True):
+        super().construct(*args, force)
+        super().construct("exposes")
+
+
+def lifecycle_indexed(_key, lifecycle_params, t_age):
+    """
+    A special constructor used to pull age-varying parameters from an instance
+    of LifecycleParameters that is referenced in the lifecycle_params field.
+
+    Parameters
+    ----------
+    _key : str
+        Special keyword input that refers to the name of the object being constructed.
+    lifecycle_params : LifecycleParameters
+        Reference to the model chunk that stores the lifecycle parameters.
+    t_age : int
+        "Model age" for this period, used as the time index when referencing lifecycle_params.
+
+    Returns
+    -------
+    out : unknown
+        The age-indexed value of the thing named in _key, from the lifecycle_params Chunk.
+    """
+    if not isinstance(lifecycle_params, LifecycleParameters):
+        raise TypeError(
+            "lifecycle_params must be an instance of class LifecycleParameters!"
+        )
+    out = lifecycle_params.exposed[_key][t_age]
+    return out
+
+
+def lifecycle_constant(_key, lifecycle_params):
+    """
+    A special constructor used to pull age-invariant parameters from an instance
+    of LifecycleParameters that is referenced in the lifecycle_params field.
+
+    Parameters
+    ----------
+    _key : str
+        Special keyword input that refers to the name of the object being constructed.
+    lifecycle_params : LifecycleParameters
+        Reference to the model chunk that stores the lifecycle parameters.
+
+    Returns
+    -------
+    out : unknown
+        The value of the thing named in _key, from the lifecycle_params Chunk.
+    """
+    if not isinstance(lifecycle_params, LifecycleParameters):
+        raise TypeError(
+            "lifecycle_params must be an instance of class LifecycleParameters!"
+        )
+    out = lifecycle_params.exposed[_key]
+    return out

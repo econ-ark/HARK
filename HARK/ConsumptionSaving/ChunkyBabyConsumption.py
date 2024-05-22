@@ -5,7 +5,7 @@ A file for demonstrating the "model chunks" concept on a baby consumption-saving
 import numpy as np
 from HARK.chunkymodel import Chunk, Connector, connect_chunks
 from HARK.distribution import MeanOneLogNormal, expected
-from HARK.utilities import construct_assets_grid
+from HARK.utilities import make_assets_grid
 from HARK.interpolation import LinearInterp, IdentityFunction, ConstantFunction
 from HARK.ConsumptionSaving.ConsIndShockModel import MargValueFuncCRRA
 
@@ -148,7 +148,7 @@ def make_baby_vPfunc_at_beginning(vPfunc_bellman, kGrid, TranShkDstn, Rfree, CRR
 
 default_baby_constructors = {
     "TranShkDstn": make_baby_IncShkDstn,
-    "aGrid": construct_assets_grid,
+    "aGrid": make_assets_grid,
     "kGrid": make_kGrid_as_aGrid_copy,
     "cFunc": make_baby_cFunc_by_EGM,
     "vPfunc_bellman": make_baby_vPfunc_at_consumption_time,
@@ -178,13 +178,13 @@ class NoFuture(Chunk):
 class BabyConsumptionPeriod(Chunk):
     _dynamics = "Consumption-saving model with transitory income shocks, one risk free asset, and CRRA utility. Has a hard-coded liquidity constraint."
     _requirements = ["cFunc", "TransShkDstn", "Rfree"]
-    _exposes = ["vPfunc_BOP"]
+    _exposes = ["vPfunc_BOP", "aLvl"]
     _constructors = default_baby_constructors
     _parameters = default_baby_parameters
 
 
 class BabyConnector(Connector):
-    _remap = [("vPfunc_EOP", "vPfunc_BOP")]
+    _remap = [("vPfunc_EOP", "vPfunc_BOP"), ("aLvl", "kLvl")]
 
 
 if __name__ == "__main__":
