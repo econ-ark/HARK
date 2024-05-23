@@ -3,7 +3,12 @@ Tools for crafting models.
 """
 
 from dataclasses import dataclass, field
-from HARK.distribution import Distribution
+from HARK.distribution import (
+    Distribution,
+    DiscreteDistributionLabeled,
+    combine_indep_dstns,
+    expected,
+)
 from inspect import signature
 import numpy as np
 from typing import Any, Callable, Mapping, List, Union
@@ -32,6 +37,43 @@ class Control:
 
     def __init__(self, args):
         pass
+
+
+def discretized_shock_dstn(shocks, disc_params):
+    """
+    Discretizes a collection of independent shocks and combines
+    them into one DiscreteDistributionLabeled.
+
+    Shocks are discretized only if they have a corresponding
+    element of disc_params defined.
+
+    Parameters
+    -----------
+    shocks: dict of Distribution
+        A dictionary of Distributions, representing independent exogenous shocks.
+
+    disc_params: dict of dict
+        A dictionary of dictionaries with arguments to Distribution.discretize.
+        Keys of this dictionary should be shared with the shocks argument.
+    """
+    dshocks = {}
+
+    for shockn in shocks:
+        if shockn == "live":  # hacky hack
+            pass
+        elif shockn in disc_params:
+            dshocks[shockn] = DiscreteDistributionLabeled.from_unlabeled(
+                shocks[shockn].discretize(**disc_params[shockn]), var_names=[shockn]
+            )
+        else:
+            # assume already discrete
+            dshocks[shockn] = DiscreteDistributionLabeled.from_unlabeled(
+                shocks[shockn], var_names=[shockn]
+            )
+
+    all_shock_dstn = combine_indep_dstns(*dshocks.values())
+
+    return all_shock_dstn
 
 
 def simulate_dynamics(
@@ -137,8 +179,15 @@ class DBlock:
 
         return rvals
 
-    def state_action_value_function_from_continuation(self, continuation):
-        def state_action_value(pre, dr):
+    def get_state_rule_value_function_from_continuation(self, continuation):
+        """
+        Given a continuation value function, returns a state-rule value
+        function: the value for each state and decision rule.
+        This value includes both the reward for executing the rule
+        'this period', and the continuation value of the resulting states.
+        """
+
+        def state_rule_value_function(pre, dr):
             vals = self.transition(pre, dr)
             r = list(self.calc_reward(vals).values())[0]  # a hack; to be improved
             cv = continuation(
@@ -147,25 +196,53 @@ class DBlock:
 
             return r + cv
 
-        return state_action_value
+        return state_rule_value_function
 
-    def decision_value_function(self, dr, continuation):
-        savf = self.state_action_value_function_from_continuation(continuation)
+    def get_decision_value_function(self, dr, continuation):
+        """
+        Given a decision rule and a continuation value function,
+        return a function for the value at the decision step/tac,
+        after the shock have been realized.
+        """
+        srvf = self.get_state_rule_value_function_from_continuation(continuation)
 
-        def decision_value_function(pre):
-            return savf(pre, dr)
+        def decision_value_function(shpre):
+            return srvf(shpre, dr)
 
         return decision_value_function
 
-    # def arrival_value_function(self, dr, continuation):
-    #    """
-    #    Value of arrival states, prior to shocks, given a decision rule and continuation.
-    #    """
-    #    def arrival_value(arvs):
-    #        dvf = self.decision_value_function(dr, continuation)
-    #
-    #        ##TOD: Take expectation over shocks!!!
-    #        return EXPECTATION(dvf, shock_vals, arrv)
+    def get_arrival_value_function(self, disc_params, dr, continuation):
+        """
+        Returns an arrival value function, which is the value of the states
+        upon arrival into the block.
+
+        This involves taking an expectation over shocks (which must
+        first be discretized), a decision rule, and a continuation
+        value function.)
+        """
+
+        def arrival_value_function(arvs):
+            dvf = self.get_decision_value_function(dr, continuation)
+
+            ds = discretized_shock_dstn(self.shocks, disc_params)
+
+            arvs_args = [arvs[avn] for avn in arvs]
+
+            def mod_dvf(shock_value_array):
+                shockvs = {
+                    shn: shock_value_array[shn]
+                    for i, shn in enumerate(list(ds.variables.keys()))
+                }
+
+                dvf_args = {}
+                dvf_args.update(arvs)
+                dvf_args.update(shockvs)
+
+                return dvf(dvf_args)
+
+            return expected(func=mod_dvf, dist=ds)
+
+        return arrival_value_function
 
 
 @dataclass
