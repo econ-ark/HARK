@@ -1,6 +1,7 @@
 """
 This file implements unit tests to check discrete choice functions
 """
+
 # Bring in modules we need
 import unittest
 

@@ -203,7 +203,7 @@ class test_income_paths(unittest.TestCase):
             age_max=age_max,
             adjust_infl_to=adjust_infl_to,
             start_year=start_year,
-            **spec
+            **spec,
         )
         MeanP = find_profile(params["PermGroFac"], params["P0"])
 

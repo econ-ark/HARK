@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import xarray as xr
 
 from HARK.distribution import (
     Bernoulli,
@@ -43,7 +44,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         norm = Normal(mu=-(sig**2) / 2, sigma=sig).discretize(131, method="hermite")
         my_logn = distr_of_function(norm, func=lambda x: np.exp(x))
         exp = calc_expectation(my_logn)
-        self.assertAlmostEqual(exp, 1.0)
+        self.assertAlmostEqual(float(exp), 1.0)
 
         # Function 1 -> n
         # Mean and variance of the normal
@@ -183,7 +184,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         norm = Normal(mu=-(sig**2) / 2, sigma=sig).discretize(131, method="hermite")
         my_logn = norm.dist_of_func(lambda x: np.exp(x))
         exp = my_logn.expected()
-        self.assertAlmostEqual(exp, 1.0)
+        self.assertAlmostEqual(float(exp), 1.0)
 
         # Function 1 -> n
         # Mean and variance of the normal
@@ -326,16 +327,18 @@ class DistributionClassTests(unittest.TestCase):
 
         Uniform().draw(1)[0]
 
-        self.assertEqual(
-            calc_expectation(uni.discretize(10, method="equiprobable")), 0.5
+        self.assertAlmostEqual(
+            float(calc_expectation(uni.discretize(10, method="equiprobable"))),
+            0.5,
         )
 
         uni_discrete = uni.discretize(10, method="equiprobable", endpoints=True)
 
         self.assertEqual(uni_discrete.atoms[0][0], 0.0)
         self.assertEqual(uni_discrete.atoms[0][-1], 1.0)
-        self.assertEqual(
-            calc_expectation(uni.discretize(10, method="equiprobable")), 0.5
+        self.assertAlmostEqual(
+            float(calc_expectation(uni.discretize(10, method="equiprobable"))),
+            0.5,
         )
 
     def test_Bernoulli(self):
@@ -603,3 +606,47 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
                 np.concatenate([de.expected(), abc.expected()]),
             )
         )
+
+    def test_Bernoulli_to_labeled(self):
+        p = 0.4
+        foo = Bernoulli(p)
+        bern = DiscreteDistributionLabeled.from_unlabeled(foo, var_names=["foo"])
+        self.assertTrue(np.allclose(bern.expected(), p))
+
+
+class labeled_transition_tests(unittest.TestCase):
+    def setUp(self) -> None:
+        return super().setUp()
+
+    def test_expectation_transformation(self):
+        # Create a basic labeled distribution
+        base_dist = DiscreteDistributionLabeled(
+            pmv=np.array([0.5, 0.5]),
+            atoms=np.array([[1.0, 2.0], [3.0, 4.0]]),
+            var_names=["a", "b"],
+        )
+
+        # Define a transition function
+        def transition(shocks, state):
+            state_new = {}
+            state_new["m"] = state["m"] * shocks["a"]
+            state_new["n"] = state["n"] * shocks["b"]
+            return state_new
+
+        m = xr.DataArray(np.linspace(0, 10, 11), name="m", dims=("grid",))
+        n = xr.DataArray(np.linspace(0, -10, 11), name="n", dims=("grid",))
+        state_grid = xr.Dataset({"m": m, "n": n})
+
+        # Evaluate labeled transformation
+
+        # Direct expectation
+        exp1 = base_dist.expected(transition, state=state_grid)
+        # Expectation after transformation
+        new_state_dstn = base_dist.dist_of_func(transition, state=state_grid)
+        # TODO: needs a cluncky identity function with an extra argument because
+        # DDL.expected() behavior is very different with and without kwargs.
+        # Fix!
+        exp2 = new_state_dstn.expected(lambda x, unused: x, unused=0)
+
+        assert np.all(exp1["m"] == exp2["m"]).item()
+        assert np.all(exp1["n"] == exp2["n"]).item()

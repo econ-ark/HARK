@@ -1,6 +1,7 @@
+from typing import List
+
 import numpy as np
 from numba import njit
-from typing import List
 
 
 @njit

@@ -3,6 +3,7 @@ from itertools import product
 from typing import Any, Callable, Dict, List, Optional, Union
 from warnings import warn
 
+from copy import deepcopy
 import numpy as np
 import xarray as xr
 from numpy import random
@@ -407,9 +408,7 @@ class Lognormal(ContinuousFrozenDistribution):
             lower_CDF_vals = [0.0]
             if lo_cut > 0.0:
                 for x in range(tail_N - 1, -1, -1):
-                    lower_CDF_vals.append(
-                        lower_CDF_vals[-1] + lo_cut * scale**x / mag
-                    )
+                    lower_CDF_vals.append(lower_CDF_vals[-1] + lo_cut * scale**x / mag)
             upper_CDF_vals = [hi_cut]
             if hi_cut < 1.0:
                 for x in range(tail_N):
@@ -770,6 +769,10 @@ class Bernoulli(DiscreteFrozenDistribution):
         # Set up the RNG
         super().__init__(stats.bernoulli, p=self.p, seed=seed)
 
+        self.pmv = [1 - self.p, self.p]
+        self.atoms = [0, 1]
+        self.limit = {"dist": self}
+
 
 class DiscreteDistribution(Distribution):
     """
@@ -915,15 +918,15 @@ class DiscreteDistribution(Distribution):
             The function to be evaluated.
             This function should take the full array of distribution values
             and return either arrays of arbitrary shape or scalars.
-            It may also take other arguments *args.
+            It may also take other arguments \\*args.
             This function differs from the standalone `calc_expectation`
             method in that it uses numpy's vectorization and broadcasting
             rules to avoid costly iteration.
             Note: If you need to use a function that acts on single outcomes
             of the distribution, consider `distribution.calc_expectation`.
-        *args :
+        \\*args :
             Other inputs for func, representing the non-stochastic arguments.
-            The the expectation is computed at f(dstn, *args).
+            The the expectation is computed at ``f(dstn, *args)``.
 
         Returns
         -------
@@ -958,10 +961,10 @@ class DiscreteDistribution(Distribution):
         func : function
             The function to be evaluated.
             This function should take the full array of distribution values.
-            It may also take other arguments *args.
-        *args :
+            It may also take other arguments \\*args.
+        \\*args :
             Additional non-stochastic arguments for func,
-            The function is computed as f(dstn, *args).
+            The function is computed as ``f(dstn, *args)``.
 
         Returns
         -------
@@ -988,8 +991,46 @@ class DiscreteDistribution(Distribution):
 
         TODO: print warning message?
         """
-
         return self
+
+    def make_univariate(self, dim_to_keep, seed=0):
+        """
+        Make a univariate discrete distribution from this distribution, keeping
+        only the specified dimension.
+
+        Parameters
+        ----------
+        dim_to_keep : int
+            Index of the distribution to be kept. Any other dimensions will be
+            "collapsed" into the univariate atoms, combining probabilities.
+        seed : int, optional
+            Seed for random number generator of univariate distribution
+
+        Returns
+        -------
+        univariate_dstn : DiscreteDistribution
+            Univariate distribution with only the specified index.
+        """
+        # Do basic validity and triviality checks
+        if (self.atoms.shape[0] == 1) and (dim_to_keep == 0):
+            return deepcopy(self)  # Return copy of self if only one dimension
+        if dim_to_keep >= self.atoms.shape[0]:
+            raise ValueError("dim_to_keep exceeds dimensionality of distribution.")
+
+        # Construct values and probabilities for univariate distribution
+        atoms_temp = self.atoms[dim_to_keep]
+        vals_to_keep = np.unique(atoms_temp)
+        probs_to_keep = np.zeros_like(vals_to_keep)
+        for i in range(vals_to_keep.size):
+            val = vals_to_keep[i]
+            these = atoms_temp == val
+            probs_to_keep[i] = np.sum(self.pmv[these])
+
+        # Make and return the univariate distribution
+        univariate_dstn = DiscreteDistribution(
+            pmv=probs_to_keep, atoms=vals_to_keep, seed=seed
+        )
+        return univariate_dstn
 
 
 class DiscreteDistributionLabeled(DiscreteDistribution):
@@ -1155,11 +1196,11 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         func : function
             The function to be evaluated.
             This function should take the full array of distribution values.
-            It may also take other arguments *args.
-        *args :
+            It may also take other arguments \\*args.
+        \\*args :
             Additional non-stochastic arguments for func,
-            The function is computed as f(dstn, *args).
-        **kwargs :
+            The function is computed as ``f(dstn, *args)``.
+        \\*\\*kwargs :
             Additional keyword arguments for func. Must be xarray compatible
             in order to work with xarray broadcasting.
 
@@ -1181,7 +1222,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
 
         if len(kwargs):
             f_query = func(self.dataset, **kwargs)
-            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.pmv)
+            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.probability)
 
             return ldd
 
@@ -1201,15 +1242,15 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             The function to be evaluated.
             This function should take the full array of distribution values
             and return either arrays of arbitrary shape or scalars.
-            It may also take other arguments *args.
+            It may also take other arguments \\*args.
             This function differs from the standalone `calc_expectation`
             method in that it uses numpy's vectorization and broadcasting
             rules to avoid costly iteration.
             Note: If you need to use a function that acts on single outcomes
-            of the distribution, consier `distribution.calc_expectation`.
-        *args :
+            of the distribution, consider `distribution.calc_expectation`.
+        \\*args :
             Other inputs for func, representing the non-stochastic arguments.
-            The the expectation is computed at f(dstn, *args).
+            The the expectation is computed at ``f(dstn, *args)``.
         labels : bool
             If True, the function should use labeled indexing instead of integer
             indexing using the distribution's underlying rv coordinates. For example,
@@ -1460,7 +1501,6 @@ class TimeVaryingDiscreteDistribution(Distribution):
         # conditions are indices into list
         # somewhat convoluted sampling strategy retained
         # for test backwards compatibility
-
         draws = np.zeros(condition.size)
 
         for c in np.unique(condition):
@@ -1643,7 +1683,7 @@ def make_markov_approx_to_normal_by_monte_carlo(x_grid, mu, sigma, N_draws=10000
 def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0):
     """
     Function to return a discretized version of an AR1 process.
-    See http://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
+    See https://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
 
     Parameters
     ----------
@@ -1855,10 +1895,10 @@ def calc_expectation(dstn, func=lambda x: x, *args):
         The function to be evaluated.
         This function should take an array of shape dstn.dim() and return
         either arrays of arbitrary shape or scalars.
-        It may also take other arguments *args.
-    *args :
+        It may also take other arguments \\*args.
+    \\*args :
         Other inputs for func, representing the non-stochastic arguments.
-        The the expectation is computed at f(dstn, *args).
+        The the expectation is computed at ``f(dstn, *args)``.
 
     Returns
     -------
@@ -1893,10 +1933,10 @@ def distr_of_function(dstn, func=lambda x: x, *args):
     func : function
         The function to be evaluated.
         This function should take an array of shape dstn.dim().
-        It may also take other arguments *args.
-    *args :
+        It may also take other arguments \\*args.
+    \\*args :
         Additional non-stochastic arguments for func,
-        The function is computed at f(dstn, *args).
+        The function is computed at ``f(dstn, *args)``.
 
     Returns
     -------
@@ -1977,7 +2017,7 @@ def expected(func=None, dist=None, args=(), **kwargs):
         The function to be evaluated.
         This function should take the full array of distribution values
         and return either arrays of arbitrary shape or scalars.
-        It may also take other arguments *args.
+        It may also take other arguments ``*args``.
         This function differs from the standalone `calc_expectation`
         method in that it uses numpy's vectorization and broadcasting
         rules to avoid costly iteration.
@@ -1987,7 +2027,7 @@ def expected(func=None, dist=None, args=(), **kwargs):
         The distribution over which the function is to be evaluated.
     args : tuple
         Other inputs for func, representing the non-stochastic arguments.
-        The the expectation is computed at f(dstn, *args).
+        The the expectation is computed at ``f(dstn, *args)``.
     labels : bool
         If True, the function should use labeled indexing instead of integer
         indexing using the distribution's underlying rv coordinates. For example,

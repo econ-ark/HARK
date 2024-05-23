@@ -6,6 +6,7 @@ another instance; this is used in HARK.core's solve() method to check for soluti
 convergence.  The interpolator classes currently in this module inherit their
 distance method from MetricObject.
 """
+
 import warnings
 from copy import deepcopy
 
@@ -588,7 +589,7 @@ class IdentityFunction(MetricObject):
     Parameters
     ----------
     i_dim : int
-        Index of the dimension on which the identity is defined.  f(*x) = x[i]
+        Index of the dimension on which the identity is defined.  ``f(*x) = x[i]``
     n_dims : int
         Total number of input dimensions for this function.
     """

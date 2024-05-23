@@ -4,7 +4,6 @@ from copy import copy, deepcopy
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
-    ConsIndShockSolverBasic,
     IndShockConsumerType,
     init_idiosyncratic_shocks,
     init_lifecycle,
@@ -65,46 +64,6 @@ class testIndShockConsumerType(unittest.TestCase):
             places=HARK_PRECISION,
         )
 
-        solver = ConsIndShockSolverBasic(
-            LifecycleExample.solution[1],
-            LifecycleExample.IncShkDstn[0],
-            LifecycleExample.LivPrb[0],
-            LifecycleExample.DiscFac,
-            LifecycleExample.CRRA,
-            LifecycleExample.Rfree,
-            LifecycleExample.PermGroFac[0],
-            LifecycleExample.BoroCnstArt,
-            LifecycleExample.aXtraGrid,
-            LifecycleExample.vFuncBool,
-            LifecycleExample.CubicBool,
-        )
-
-        solver.prepare_to_solve()
-
-        self.assertAlmostEqual(solver.DiscFacEff, 0.95862, places=HARK_PRECISION)
-        self.assertAlmostEqual(solver.PermShkMinNext, 0.65549, places=HARK_PRECISION)
-        self.assertAlmostEqual(solver.cFuncNowCnst(4).tolist(), 4.0)
-        self.assertAlmostEqual(
-            solver.prepare_to_calc_EndOfPrdvP()[0], -0.19793, places=HARK_PRECISION
-        )
-        self.assertAlmostEqual(
-            solver.prepare_to_calc_EndOfPrdvP()[-1], 19.80107, places=HARK_PRECISION
-        )
-
-        EndOfPrdvP = solver.calc_EndOfPrdvP()
-
-        self.assertAlmostEqual(EndOfPrdvP[0], 6657.83937, places=HARK_PRECISION)
-        self.assertAlmostEqual(EndOfPrdvP[-1], 0.26061, places=HARK_PRECISION)
-
-        solution = solver.make_basic_solution(
-            EndOfPrdvP, solver.aNrmNow, solver.make_linear_cFunc
-        )
-        solver.add_MPC_and_human_wealth(solution)
-
-        self.assertAlmostEqual(
-            solution.cFunc(4).tolist(), 1.00280, places=HARK_PRECISION
-        )
-
     def test_simulated_values(self):
         self.agent.initialize_sim()
         self.agent.simulate()
@@ -114,6 +73,12 @@ class testIndShockConsumerType(unittest.TestCase):
 
         # simulation test -- seed/generator specific
         # self.assertAlmostEqual(self.agent.state_now["aLvl"][1], 0.18438, place = HARK_PRECISION)
+
+    def test_income_dist_random_seeds(self):
+        a1 = IndShockConsumerType(seed=1000)
+        a2 = IndShockConsumerType(seed=200)
+
+        self.assertFalse(a1.PermShkDstn.seed == a2.PermShkDstn.seed)
 
 
 class testBufferStock(unittest.TestCase):
@@ -163,9 +128,9 @@ class testBufferStock(unittest.TestCase):
         GICRaw_fail_dictionary = dict(self.base_params)
         GICRaw_fail_dictionary["Rfree"] = 1.08
         GICRaw_fail_dictionary["PermGroFac"] = [1.00]
-        GICRaw_fail_dictionary[
-            "cycles"
-        ] = 0  # cycles=0 makes this an infinite horizon consumer
+        GICRaw_fail_dictionary["cycles"] = (
+            0  # cycles=0 makes this an infinite horizon consumer
+        )
 
         GICRawFailExample = IndShockConsumerType(**GICRaw_fail_dictionary)
 
@@ -231,7 +196,7 @@ IdiosyncDict = {
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    "aXtraExtra": None,  # Additional values to add to aXtraGrid
     # A few other paramaters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
@@ -297,7 +262,7 @@ LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionar
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    "aXtraExtra": None,  # Additional values to add to aXtraGrid
     # A few other paramaters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
@@ -380,7 +345,7 @@ CyclicalDict = {
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    "aXtraExtra": None,  # Additional values to add to aXtraGrid
     # A few other paramaters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
@@ -414,7 +379,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         CyclicalExample.simulate()
 
         self.assertAlmostEqual(
-            CyclicalExample.state_now["aLvl"][1], 2.41243, places=HARK_PRECISION
+            CyclicalExample.state_now["aLvl"][1], 3.32431, places=HARK_PRECISION
         )
 
 
@@ -484,7 +449,7 @@ JACDict = {
     "aXtraMax": 15,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    "aXtraExtra": None,  # Additional values to add to aXtraGrid
     # A few other parameters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
@@ -650,7 +615,7 @@ dict_harmenberg = {
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    "aXtraExtra": None,  # Additional values to add to aXtraGrid
     # A few other parameters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
@@ -762,13 +727,13 @@ class testReadShock(unittest.TestCase):
                 "LivPrb": LivPrb,
                 "PermGroFac": [PermGroFac],
                 "Rfree": Rfree,
-                "track_vars": ["bNrm", "t_age"],
             }
         )
 
     def test_NewbornStatesAndShocks(self):
         # Make agent, shock and initial condition histories
         agent = IndShockConsumerType(**self.base_params)
+        agent.track_vars = ["bNrm", "t_age"]
         agent.make_shock_history()
 
         # Find indices of agents and time periods that correspond to deaths
@@ -814,13 +779,13 @@ class testLCMortalityReadShocks(unittest.TestCase):
             {
                 "AgentCount": agent_count,
                 "T_sim": t_sim,
-                "track_vars": ["t_age", "t_cycle"],
             }
         )
 
     def test_compare_t_age_t_cycle(self):
         # Make agent, shock and initial condition histories
         agent = IndShockConsumerType(**self.base_params)
+        agent.track_vars = ["t_age", "t_cycle"]
         agent.make_shock_history()
 
         # Solve and simulate the agent
@@ -855,6 +820,7 @@ class testLCMortalityReadShocks(unittest.TestCase):
         par["T_age"] = par["T_age"] - 8
         # Make agent, shock and initial condition histories
         agent = IndShockConsumerType(**par)
+        agent.track_vars = ["t_age", "t_cycle"]
         agent.make_shock_history()
 
         # Solve and simulate the agent
@@ -889,9 +855,8 @@ class test_Transition_Matrix_Methods(unittest.TestCase):
         asset = example1.aPol_Grid  # Normalized Asset Policy Grid
 
         example1.calc_ergodic_dist()
-        vecDstn = (
-            example1.vec_erg_dstn
-        )  # Distribution of market resources and permanent income as a vector (m*p)x1 vector where
+        vecDstn = example1.vec_erg_dstn
+        # Distribution of market resources and permanent income as a vector (m*p)x1 vector where
 
         # Compute Aggregate Consumption and Aggregate Assets
         gridc = np.zeros((len(c), len(p)))

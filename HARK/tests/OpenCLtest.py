@@ -7,9 +7,9 @@ import os
 import numpy as np
 import opencl4py as cl
 
-os.environ[
-    "PYOPENCL_CTX"
-] = "0:0"  # This is where you set which devices are in the context
+os.environ["PYOPENCL_CTX"] = (
+    "0:0"  # This is where you set which devices are in the context
+)
 # EVERY machine will have a device 0:0
 from time import time
 

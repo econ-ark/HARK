@@ -18,17 +18,15 @@ GenIncDictionary = {
     "aNrmInitMean": 0.0,  # Mean of log initial assets (only matters for simulation)
     "aNrmInitStd": 1.0,  # Standard deviation of log initial assets (only for simulation)
     "pLvlInitMean": 0.0,  # Mean of log initial permanent income (only matters for simulation)
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income (only matters for simulation)
+    "pLvlInitStd": 0.4,  # Standard deviation of log initial permanent income (only matters for simulation)
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor (only matters for simulation)
     "T_age": None,  # Age after which simulated agents are automatically killed
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
     # Parameters for constructing the "assets above minimum" grid
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
     "aXtraMax": 30,  # Maximum end-of-period "assets above minimum" value
-    "aXtraExtra": [
-        0.005,
-        0.01,
-    ],  # Some other value of "assets above minimum" to add to the grid
+    # Some other value of "assets above minimum" to add to the grid
+    "aXtraExtra": np.array([0.005, 0.01]),
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
     "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
     # Parameters describing the income process
@@ -46,13 +44,6 @@ GenIncDictionary = {
     "CubicBool": False,  # Use cubic spline interpolation when True, linear interpolation when False
     "vFuncBool": True,  # Whether to calculate the value function during solution
     # More parameters specific to "Explicit Permanent income" shock model
-    "pLvlPctiles": np.concatenate(
-        (
-            [0.001, 0.005, 0.01, 0.03],
-            np.linspace(0.05, 0.95, num=19),
-            [0.97, 0.99, 0.995, 0.999],
-        )
-    ),
     "PermGroFac": [
         1.0
     ],  # Permanent income growth factor - long run permanent income growth doesn't work yet
@@ -66,13 +57,15 @@ class testIndShockExplicitPermIncConsumerType(unittest.TestCase):
 
     def test_solution(self):
         pLvlGrid = self.agent.pLvlGrid[0]
-        self.assertAlmostEqual(self.agent.pLvlGrid[0][0], 1.0)
+        self.assertAlmostEqual(
+            self.agent.pLvlGrid[0][0], 0.28063, places=HARK_PRECISION
+        )
 
         self.assertAlmostEqual(self.agent.solution[0].mLvlMin(pLvlGrid[0]), 0.0)
 
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc(10, pLvlGrid[5]).tolist(),
-            5.60301,
+            5.408106,
             places=HARK_PRECISION,
         )
 
@@ -93,17 +86,26 @@ class testPersistentShockConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc(10, pLvlGrid[1]).tolist(),
-            5.60301,
+            5.27723,
+            places=HARK_PRECISION,
+        )
+
+    def test_value(self):
+        pLvlGrid = self.agent.pLvlGrid[0]
+
+        self.assertTrue(self.agent.vFuncBool)
+        self.assertAlmostEqual(
+            self.agent.solution[0].vFunc(10, pLvlGrid[3]),
+            -0.36683,
             places=HARK_PRECISION,
         )
 
     def test_simulation(self):
         self.agent.T_sim = 25
 
-        # why does ,"bLvlNow" not work here?
         self.agent.track_vars = ["aLvl", "mLvl", "cLvl", "pLvl"]
         self.agent.initialize_sim()
         self.agent.simulate()
 
         # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(np.mean(self.agent.history["mLvl"]), 1.20439, place = HARK_PRECISION)
+        # self.assertAlmostEqual(np.mean(self.agent.history["mLvl"]), 1.20439, places=HARK_PRECISION)

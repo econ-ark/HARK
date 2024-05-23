@@ -7,7 +7,7 @@
 
 [![Anaconda Cloud](https://anaconda.org/conda-forge/econ-ark/badges/version.svg?style=flat)](https://anaconda.org/conda-forge/econ-ark)
 [![PyPi](https://img.shields.io/pypi/v/econ-ark.png?style=flat)](https://pypi.org/project/econ-ark/)
-[![Documentation Status](https://readthedocs.org/projects/hark/badge/?style=flat&version=latest)](https://hark.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/hark/badge/?style=flat&version=latest)](https://docs.econ-ark.org/?badge=latest)
 [![Code Coverage](https://codecov.io/gh/econ-ark/hark/branch/master/graph/badge.svg)](https://app.codecov.io/gh/econ-ark/hark/branch/master)
 [![GitHub Good First Issues](https://img.shields.io/github/issues/econ-ark/HARK/good%20first%20issue.svg)](https://github.com/econ-ark/HARK/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 [![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)
@@ -150,7 +150,7 @@ For more examples please visit the [econ-ark/DemARK](https://github.com/econ-ark
 
 ## Citation
 
-If using Econ-ARK in your work or research please [cite our Digital Object Identifier](http://doi.org/10.5281/zenodo.1332015) or copy the BibTex below.
+If using Econ-ARK in your work or research please [cite our Digital Object Identifier](https://doi.org/10.5281/zenodo.1332015) or copy the BibTex below.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1332015.svg)](https://doi.org/10.5281/zenodo.1332015)
 
@@ -183,9 +183,9 @@ Looking for help? Please open a [GitHub issue](https://github.com/econ-ark/HARK/
 
 Current releases follow [Semantic Versioning](https://semver.org/). For more information please see the [Release documentation](https://github.com/econ-ark/OverARK/wiki/Release-Management).
 
-## API Documentation
+## Documentation
 
-Documentation for the latest release is at [HARK ReadTheDocs](https://hark.readthedocs.io/en/latest/). Version-specific documentation is available from the same source.
+Documentation for the latest release is at [docs.econ-ark.org](https://docs.econ-ark.org/).
 
 ## Introduction
 
@@ -238,11 +238,10 @@ If you are worried or don’t know how to start, you can always reach out to the
 
 **After your first contribution please let us know and we will add you to the Contributors list below!**
 
-To install for development see the [Quickstart Guide](https://github.com/econ-ark/HARK/blob/master/Documentation/quick-start.md).
+To install for development see the [Quickstart Guide](https://docs.econ-ark.org/guides/quick_start.html).
 
-For more information on contributing to HARK please see [CONTRIBUTING.md](https://github.com/econ-ark/HARK/blob/master/Documentation/contributing/CONTRIBUTING.md).
-
-Collaborators follow the [COLLABORATOR_GUIDE](https://github.com/econ-ark/HARK/blob/master/Documentation/contributing/CONTRIBUTING.md#contributing-guide) in maintaining the Econ-ARK project.
+For more information on contributing to HARK please see [the contributing guide](https://docs.econ-ark.org/guides/contributing.html).
+This is the guide that collaborators follow in maintaining the Econ-ARK project.
 
 ## Disclaimer
 
