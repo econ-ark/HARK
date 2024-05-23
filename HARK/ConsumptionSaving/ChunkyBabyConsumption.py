@@ -3,15 +3,16 @@ A file for demonstrating the "model chunks" concept on a baby consumption-saving
 """
 
 import numpy as np
-from HARK.chunkymodel import Chunk, Connector, connect_chunks
+from HARK.chunkymodel import Chunk, Connector, connect_chunks, SimpleLifecycleModel
 from HARK.distribution import MeanOneLogNormal, expected
 from HARK.utilities import make_assets_grid
 from HARK.interpolation import LinearInterp, IdentityFunction, ConstantFunction
 from HARK.ConsumptionSaving.ConsIndShockModel import MargValueFuncCRRA
+from HARK.Calibration.Income.IncomeProcesses import make_polynomial_TranShkStd
 
 ###############################################################################
 
-# Define a bunch of functions that construct various objects.
+# Define a bunch of functions that construct various objects for the baby model.
 
 
 def make_baby_IncShkDstn(TranShkStd, TranShkCount):
@@ -191,8 +192,45 @@ if __name__ == "__main__":
     from HARK.utilities import plot_funcs
     from time import time
 
-    t0 = time()
+    my_lifecycle_parameters = {
+        "CRRA": 3.0,
+        "DiscFac": 0.94,
+        "Rfree": 1.03,
+        "TranShkCount": 9,
+        "aXtraMin": 0.001,
+        "aXtraMax": 20,
+        "aXtraNestFac": 1,
+        "aXtraCount": 48,
+        "aXtraExtra": [0.0],
+        "TranShkStd_coeffs": [0.15, -0.002, 0.00006, -3e-7],
+        "T_cycle": 50,
+    }
 
+    my_lifecycle_constructors = {
+        "TranShkStd": make_polynomial_TranShkStd,
+        "aGrid": make_assets_grid,
+    }
+
+    my_time_inv = ["CRRA", "DiscFac", "Rfree", "TranShkCount", "aGrid"]
+    my_time_vary = ["TranShkStd"]
+
+    t0 = time()
+    MyLifecycleModel = SimpleLifecycleModel(
+        parameters=my_lifecycle_parameters,
+        constructors=my_lifecycle_constructors,
+        period=BabyConsumptionPeriod,
+        connector=BabyConnector,
+        terminal=NoFuture,
+        time_vary=my_time_vary,
+        time_inv=my_time_inv,
+    )
+    MyLifecycleModel.solve()
+    t1 = time()
+    plot_funcs(MyLifecycleModel.model[0]["cFunc"], 0.0, 10.0)
+
+    ###########################################################################
+
+    t2 = time()
     TheEnd = NoFuture()
     TheEnd.build()
     solved_periods = [TheEnd]
@@ -205,9 +243,10 @@ if __name__ == "__main__":
         new_period.build()
         solved_periods.insert(0, new_period)
 
-    t1 = time()
-
+    t3 = time()
     plot_funcs(solved_periods[0]["cFunc"], 0.0, 10.0)
+
+    ###########################################################################
 
     # period_T = BabyConsumptionPeriod()
     # mycnx0 = BabyConnector()

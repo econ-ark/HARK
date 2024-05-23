@@ -260,7 +260,7 @@ class Chunk:
                         temp = constructor(**temp_dict)
                     except Exception as problem:
                         errors[key] = str(type(problem)) + ": " + str(problem)
-                        self.built[key] = MissingObject()
+                        # self.built[key] = MissingObject()
                         if force:
                             continue
                         else:
@@ -268,6 +268,8 @@ class Chunk:
                     self.built[key] = temp
                     if key in errors:
                         del errors[key]
+                    if key in self.parameters.keys():
+                        del self.parameters[key]
                     keys_complete[i] = True
                     anything_accomplished_this_pass = True  # We did something!
                 else:
@@ -276,7 +278,7 @@ class Chunk:
                         msg += " " + arg + ","
                     msg = msg[:-1]
                     errors[key] = msg
-                    self.built[key] = MissingObject()
+                    # self.built[key] = MissingObject()
                     # Never raise exceptions here, as the arguments might be filled in later
 
             # Check whether another pass should be performed
@@ -330,6 +332,8 @@ class Chunk:
                 linked[key] = deepcopy(fetched)
             else:
                 linked[key] = fetched
+            if key in self.parameters.keys():
+                del self.parameters[key]
         self.linked = linked
 
     def build(self):
@@ -460,6 +464,7 @@ class Connector(Chunk):
         remapping = self["remap"]
         exposes = []
 
+        # CHECK THIS AGAIN, I THINK I DID IT WRONG
         for pair in remapping:
             left, right = pair
             exposes.append(left)
@@ -514,15 +519,6 @@ def connect_chunks(pred, cnx, succ):
 # Functions and classes that are used when building typical lifecycle models
 
 
-def expose_everything_in_parameters_and_built(parameters, built):
-    exposes = []
-    for key in parameters.keys():
-        exposes.append(key)
-    for key in built.keys():
-        exposes.append(key)
-    return exposes
-
-
 class LifecycleParameters(Chunk):
     """
     A special kind of model chunk that is used to represent lifecycle parameters,
@@ -530,11 +526,19 @@ class LifecycleParameters(Chunk):
     is always updated to allow access to all entries of parameters and built.
     """
 
-    _constructors = {"exposes": expose_everything_in_parameters_and_built}
+    def expose(self):
+        """
+        Updates the dictionary attribute called exposed with each of the attributes
+        in both parameters and built.
 
-    def construct(self, *args, force=True):
-        super().construct(*args, force)
-        super().construct("exposes")
+        Returns
+        -------
+        None.
+        """
+        exposed = {}
+        exposed.update(**self.parameters)
+        exposed.update(**self.built)
+        self.exposed = exposed
 
 
 def lifecycle_indexed(_key, lifecycle_params, t_age):
@@ -587,3 +591,83 @@ def lifecycle_constant(_key, lifecycle_params):
         )
     out = lifecycle_params.exposed[_key]
     return out
+
+
+class SimpleLifecycleModel:
+    """
+    A class for representing agents who live out a finite lifecycle in which all
+    periods are of the same "kind" or "type", even if parameter values vary.
+
+    Parameters
+    ----------
+    parameters : dict
+        Dictionary of parameters describing the lifecycle, which will be used to
+        build objects used in each period of the model. Must include T_cycle.
+    constructors : dict
+        Dictionary of constructors that will be run to construct lifecycle parameters
+    period : class
+        A subclass of Chunk that represents one period of the model.
+    connector : class
+        A subclass of Connector that links two periods of the model.
+    terminal : class or None
+        A subclass of Chunk that acts as a termination of the model. Can be None.
+    time_inv : [str]
+        List of age-invariant parameter names.
+    time_vary [str]
+        List of age-varying parameter names.
+
+    Returns
+    -------
+    None
+    """
+
+    def __init__(
+        self,
+        parameters={"T_cycle": 1},
+        constructors={},
+        period=MissingObject,
+        connector=MissingObject,
+        terminal=None,
+        time_vary=[],
+        time_inv=[],
+    ):
+        self.lifecycle_params = LifecycleParameters(
+            parameters=parameters, constructors=constructors
+        )
+        self.T_cycle = parameters["T_cycle"]
+
+        # Make dicitionaries to link lifecycle parameters to the parameters block
+        missing = MissingObject()
+        constr_dict = {}
+        param_dict = {"lifecycle_params": self.lifecycle_params}
+        for name in time_inv:
+            param_dict[name] = missing
+            constr_dict[name] = lifecycle_constant
+        for name in time_vary:
+            param_dict[name] = missing
+            constr_dict[name] = lifecycle_indexed
+
+        # Construct the model as alternating periods and connectors
+        model_chunks = []
+        if terminal is not None:
+            model_chunks.append(terminal())
+        for t in range(self.T_cycle - 1, -1, -1):
+            new_period = period(
+                parameters=param_dict,
+                constructors=constr_dict,
+            )
+            new_period.assign_parameters(t_age=t)
+            if len(model_chunks) > 0:
+                new_connector = connector()
+                connect_chunks(new_period, new_connector, model_chunks[0])
+                model_chunks.insert(0, new_connector)
+                model_chunks.insert(0, new_period)
+            else:
+                model_chunks.insert(0, new_period)
+        self.model = model_chunks
+
+    # Solve the model by building the lifecycle parameters, then each period in reverse
+    def solve(self):
+        self.lifecycle_params.build()
+        for chunk in reversed(self.model):
+            chunk.build()
