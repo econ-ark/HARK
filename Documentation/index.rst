@@ -57,7 +57,7 @@ you might want to look at the `DemARK
       :text-align: center
 
       **Overview and Examples**
-      ^^^^^^^^^^^^^^^
+      ^^^^^^^^^^^^^^^^^^^^^^^^^
 
       To learn how HARK works and what it's capable of, see the Overview and Examples.
 
