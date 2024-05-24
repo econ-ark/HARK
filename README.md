@@ -215,7 +215,7 @@ HARK provides a modular and extensible open-source toolkit for solving heterogen
 
 HARK is written in Python, making significant use of libraries such as numpy and scipy which offer a wide array of mathematical and statistical functions and tools. Our modules are generally categorized into Tools (mathematical functions and techniques), Models (particular economic models and solvers) and Applications (use of tools to simulate an economic phenomenon).
 
-Our workhorse module is [ConsIndShockModel.py](https://github.com/econ-ark/HARK/blob/master/HARK/ConsumptionSaving/ConsIndShockModel.py) which includes the IndShockConsumerType. A short explanation about the Agent Type can be found [here](https://hark.readthedocs.io/en/latest/search.html?q=%22IndShockConsumerType+Documentation%22&check_keywords=yes&area=default#) and an introduction how it is solved [here](https://hark.readthedocs.io/en/latest/search.html?q=%22How+we+solve+a+model+defined+by+the+IndShockConsumerType+class%22&check_keywords=yes&area=default#).
+For more information on how you can create your own Models or use Tools and Model to create Applications please see the [documentation](https://docs.econ-ark.org/guides/quick_start.html#for-other-developers-of-software-for-computational-economics)
 
 ### Contributing to HARK
 

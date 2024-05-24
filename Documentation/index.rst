@@ -5,9 +5,9 @@ Econ-ARK documentation -- HARK
    :maxdepth: 1
    :hidden:
 
+   Guides <guides/index>
    Overview & Examples <overview/index>
    Reference <reference/index>
-   Guides <guides/index>
 
 
 **Useful links**:
