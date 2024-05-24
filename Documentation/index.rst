@@ -56,6 +56,25 @@ you might want to look at the `DemARK
       :padding: 2
       :text-align: center
 
+      **Overview and Examples**
+      ^^^^^^^^^^^^^^^
+
+      To learn how HARK works and what it's capable of, see the Overview and Examples.
+
+      +++
+
+      .. button-ref:: overview/ARKitecture
+         :ref-type: doc
+         :color: info
+         :click-parent:
+         :expand:
+
+         The ARKitecture
+
+   .. grid-item-card::
+      :padding: 2
+      :text-align: center
+
       **API reference**
       ^^^^^^^^^^^^^^^^^
 
@@ -71,25 +90,6 @@ you might want to look at the `DemARK
          :expand:
 
          Tools & Models Reference Guide
-
-   .. grid-item-card::
-      :padding: 2
-      :text-align: center
-
-      **ARKitecture**
-      ^^^^^^^^^^^^^^^
-
-      For a high-level overview of Econ-ARK's structure and design, see the ARKitecture.
-
-      +++
-
-      .. button-ref:: overview/ARKitecture
-         :ref-type: doc
-         :color: info
-         :click-parent:
-         :expand:
-
-         The ARKitecture
 
    .. grid-item-card::
       :padding: 2
