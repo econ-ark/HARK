@@ -6,6 +6,7 @@ from scipy import sparse as sp
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     LognormPermIncShk,
+    init_idiosyncratic_shocks,
 )
 from HARK.distribution import (
     DiscreteDistribution,
@@ -24,7 +25,48 @@ from HARK.utilities import (
 )
 
 
-class SequenceSpaceJacobianType(IndShockConsumerType):
+def TranShkMean_Func(taxrate, labor, wage):
+    z = (1 - taxrate) * labor * wage
+    return z
+
+init_NewKeynesianType = dict(
+    init_idiosyncratic_shocks,
+    **{
+        # Transition Matrix simulation parameters
+        "mCount": 600,
+        "mMax": 1000,
+        "mMin": 0.0001,
+        "mFac": 3,
+        ### For New Keynesian Model
+        "taxrate": [0.0],
+        "labor": [1.0],
+        "wage": [1.0],
+        "TranShkMean_Func": [TranShkMean_Func],
+        }
+)
+
+
+class NewKeynesianType(IndShockConsumerType):
+    ### Allowing taxrate, wage and, labor supply to vary over time
+    time_vary_ = IndShockConsumerType.time_vary_ + ["taxrate", "wage", "labor"]
+
+    def __init__(self, verbose=1, quiet=False, **kwds):
+        params = init_NewKeynesianType.copy()
+        params.update(kwds)
+
+        # Initialize a basic AgentType
+        IndShockConsumerType.__init__(self, verbose=verbose, quiet=quiet, **params)
+
+        # # Add consumer-type specific objects, copying to create independent versions
+        # if (not self.CubicBool) and (not self.vFuncBool):
+        #     solver = ConsIndShockSolverBasic
+        # else:  # Use the "advanced" solver if either is requested
+        #     solver = ConsIndShockSolver
+        # self.solve_one_period = make_one_period_oo_solver(solver)
+
+        self.update()  # Make assets grid, income process, terminal solution
+
+
     def define_distribution_grid(
         self,
         dist_mGrid=None,
@@ -465,7 +507,7 @@ class SequenceSpaceJacobianType(IndShockConsumerType):
         params["TranShkMean_Func"] = params["T_cycle"] * [self.TranShkMean_Func[0]]
 
         # Create instance of a finite horizon agent
-        FinHorizonAgent = SequenceSpaceJacobianType(**params)
+        FinHorizonAgent = NewKeynesianType(**params)
         FinHorizonAgent.cycles = 1  # required
 
         # delete Rfree from time invariant list since it varies overtime
@@ -655,7 +697,7 @@ class SequenceSpaceJacobianType(IndShockConsumerType):
             params["DiscFac"] = params["T_cycle"] * [self.DiscFac]
 
         # Create instance of a finite horizon agent for calculation of zeroth
-        ZerothColAgent = SequenceSpaceJacobianType(**params)
+        ZerothColAgent = NewKeynesianType(**params)
         ZerothColAgent.cycles = 1  # required
 
         # If parameter is in time invariant list then add it to time vary list
@@ -751,7 +793,7 @@ class SequenceSpaceJacobianType(IndShockConsumerType):
         params["TranShkMean_Func"] = params["T_cycle"] * [self.TranShkMean_Func[0]]
 
         # Create instance of a finite horizon agent
-        FinHorizonAgent = SequenceSpaceJacobianType(**params)
+        FinHorizonAgent = NewKeynesianType(**params)
         FinHorizonAgent.cycles = 1  # required
 
         # delete Rfree from time invariant list since it varies overtime
