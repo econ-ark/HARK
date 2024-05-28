@@ -270,6 +270,11 @@ class RBlock:
 
         return super_shocks
 
+    def get_controls(self):
+        dyn = self.get_dynamics()
+
+        return [varn for varn in dyn if isinstance(dyn[varn], Control)]
+
     def get_dynamics(self):
         super_dyn = {}  # uses set to avoid duplicates
 
