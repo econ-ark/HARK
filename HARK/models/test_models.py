@@ -29,6 +29,7 @@ PFexample.solve()
 class test_pfm(unittest.TestCase):
     def setUp(self):
         self.mcs = AgentTypeMonteCarloSimulator(
+            pfm.calibration,
             pfm.block,
             {"c": lambda m: PFexample.solution[0].cFunc(m)},
             # danger: normalized decision rule for unnormalized problem
@@ -50,6 +51,7 @@ class test_pfm(unittest.TestCase):
 class test_pfnm(unittest.TestCase):
     def setUp(self):
         self.mcs = AgentTypeMonteCarloSimulator(  ### Use fm, blockified
+            pfnm.calibration,
             pfnm.block,
             {"c_nrm": lambda m_nrm: PFexample.solution[0].cFunc(m_nrm)},
             {  # initial states

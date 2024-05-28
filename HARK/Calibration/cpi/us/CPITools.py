@@ -22,7 +22,7 @@ def download_cpi_series():
     A method that downloads the cpi research series file directly from the
     bls site onto the working directory.
     After being converted to a .csv, this is the file that the rest of
-    the functions in this script use and must be placed in HARK/datasets/cpi/us.
+    the functions in this script use and must be placed in HARK/Calibration/cpi/us.
     This function is not for users but for whenever mantainers want to update
     the cpi series as new data comes out.
 

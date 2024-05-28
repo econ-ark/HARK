@@ -8,10 +8,16 @@ distribution can vary with the discrete state.
 import numpy as np
 
 from HARK import AgentType, NullFunc
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     PerfForesightConsumerType,
+    make_basic_CRRA_solution_terminal,
 )
 from HARK.distribution import MarkovProcess, Uniform, expected
 from HARK.interpolation import (
@@ -32,6 +38,7 @@ from HARK.rewards import (
     CRRAutilityP_invP,
     CRRAutilityPP,
 )
+from HARK.utilities import make_assets_grid
 
 __all__ = ["MarkovConsumerType"]
 
@@ -42,6 +49,140 @@ utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
+
+
+###############################################################################
+
+# Define some functions that can be used as constructors for MrkvArray
+
+
+def make_simple_binary_markov(T_cycle, Mrkv_p11, Mrkv_p22):
+    """
+    Make a list of very simple Markov arrays between two binary states by specifying
+    diagonal elements in each period (probability of remaining in that state).
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of non-terminal periods in this instance's sequential problem.
+    Mrkv_p11 : [float]
+        List or array of probabilities of remaining in the first state between periods.
+    Mrkv_p22 : [float]
+        List or array of probabilities of remaining in the second state between periods.
+
+    Returns
+    -------
+    MrkvArray : [np.array]
+        List of 2x2 Markov transition arrays, one for each non-terminal period.
+    """
+    p11 = np.array(Mrkv_p11)
+    p22 = np.array(Mrkv_p22)
+
+    if len(p11) != T_cycle or len(p22) != T_cycle:
+        raise ValueError("Length of p11 and p22 probabilities must equal T_cycle!")
+    if np.any(p11 > 1.0) or np.any(p22 > 1.0):
+        raise ValueError("The p11 and p22 probabilities must not exceed 1!")
+    if np.any(p11 < 0.0) or np.any(p22 < 0.0):
+        raise ValueError("The p11 and p22 probabilities must not be less than 0!")
+
+    MrkvArray = [
+        np.array([[p11[t], 1.0 - p11[t]], [1.0 - p22[t], p22[t]]])
+        for t in range(T_cycle)
+    ]
+    return MrkvArray
+
+
+def make_ratchet_markov(T_cycle, Mrkv_ratchet_probs):
+    """
+    Make a list of "ratchet-style" Markov transition arrays, in which transitions
+    are strictly *one way* and only by one step. Each element of the ratchet_probs
+    list is a size-N vector giving the probability of progressing from state i to
+    state to state i+1 in that period; progress from the topmost state reverts the
+    agent to the 0th state. Set ratchet_probs[t][-1] to zero to make absorbing state.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of non-terminal periods in this instance's sequential problem.
+    Mrkv_ratchet_probs : [np.array]
+        List of vectors of "ratchet probabilities" for each period.
+
+    Returns
+    -------
+    MrkvArray : [np.array]
+        List of NxN Markov transition arrays, one for each non-terminal period.
+    """
+    if len(Mrkv_ratchet_probs) != T_cycle:
+        raise ValueError("Length of Mrkv_ratchet_probs must equal T_cycle!")
+
+    N = Mrkv_ratchet_probs[0].size  # number of discrete states
+    StateCount = np.array([Mrkv_ratchet_probs[t].size for t in range(T_cycle)])
+    if np.any(StateCount != N):
+        raise ValueError(
+            "All periods of the problem must have the same number of discrete states!"
+        )
+
+    MrkvArray = []
+    for t in range(T_cycle):
+        if np.any(Mrkv_ratchet_probs[t] > 1.0):
+            raise ValueError("Ratchet probabilities cannot exceed 1!")
+        if np.any(Mrkv_ratchet_probs[t] < 0.0):
+            raise ValueError("Ratchet probabilities cannot be below 0!")
+
+        MrkvArray_t = np.zeros((N, N))
+        for i in range(N):
+            p_go = Mrkv_ratchet_probs[t][i]
+            p_stay = 1.0 - p_go
+            if i < (N - 1):
+                i_next = i + 1
+            else:
+                i_next = 0
+            MrkvArray_t[i, i] = p_stay
+            MrkvArray_t[i, i_next] = p_go
+
+        MrkvArray.append(MrkvArray_t)
+
+    return MrkvArray
+
+
+###############################################################################
+
+
+def make_markov_solution_terminal(CRRA, MrkvArray):
+    """
+    Make the terminal period solution for a consumption-saving model with a discrete
+    Markov state. Simply makes a basic terminal solution for IndShockConsumerType
+    and then replicates the attributes N times for the N states in the terminal period.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion.
+    MrkvArray : [np.array]
+        List of Markov transition probabilities arrays. Only used to find the
+        number of discrete states in the terminal period.
+
+    Returns
+    -------
+    solution_terminal : ConsumerSolution
+        Terminal period solution to the Markov consumption-saving problem.
+    """
+    solution_terminal_basic = make_basic_CRRA_solution_terminal(CRRA)
+    StateCount_T = MrkvArray[-1].shape[1]
+    N = StateCount_T  # for shorter typing
+
+    # Make replicated terminal period solution: consume all resources, no human wealth, minimum m is 0
+    solution_terminal = ConsumerSolution(
+        cFunc=N * [solution_terminal_basic.cFunc],
+        vFunc=N * [solution_terminal_basic.vFunc],
+        vPfunc=N * [solution_terminal_basic.vPfunc],
+        vPPfunc=N * [solution_terminal_basic.vPPfunc],
+        mNrmMin=np.zeros(N),
+        hNrm=np.zeros(N),
+        MPCmin=np.ones(N),
+        MPCmax=np.ones(N),
+    )
+    return solution_terminal
 
 
 def solve_one_period_ConsMarkov(
@@ -514,6 +655,79 @@ def solve_one_period_ConsMarkov(
 ####################################################################################################
 ####################################################################################################
 
+# Make a dictionary of constructors for the markov consumption-saving model
+markov_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "MrkvArray": make_simple_binary_markov,
+    "solution_terminal": make_markov_solution_terminal,
+}
+
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": None,  # Additional other values to add in grid (optional)
+}
+
+# Default parameters to make MrkvArray using make_simple_binary_markov
+default_MrkvArray_params = {
+    "Mrkv_p11": [0.9],  # Probability of remaining in binary state 1
+    "Mrkv_p22": [0.4],  # Probability of remaining in binary state 2
+}
+
+# Make a dictionary to specify an idiosyncratic income shocks consumer type
+init_indshk_markov = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": markov_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
+    "Rfree": np.array([1.03, 1.03]),  # Interest factor on retained assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [np.array([0.98, 0.98])],  # Survival probability after each period
+    "PermGroFac": [np.array([0.99, 1.03])],  # Permanent income growth factor
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_indshk_markov.update(default_IncShkDstn_params)
+init_indshk_markov.update(default_aXtraGrid_params)
+init_indshk_markov.update(default_MrkvArray_params)
+
 
 class MarkovConsumerType(IndShockConsumerType):
     """
@@ -525,16 +739,35 @@ class MarkovConsumerType(IndShockConsumerType):
 
     time_vary_ = IndShockConsumerType.time_vary_ + ["MrkvArray"]
 
-    # Is "Mrkv" a shock or a state?
+    # Mrkv is both a shock and a state
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Mrkv"]
     state_vars = IndShockConsumerType.state_vars + ["Mrkv"]
 
     def __init__(self, **kwds):
-        IndShockConsumerType.__init__(self, **kwds)
+        params = init_indshk_markov.copy()
+        params.update(kwds)
+
+        super().__init__(**params)
         self.solve_one_period = solve_one_period_ConsMarkov
 
         if not hasattr(self, "global_markov"):
             self.global_markov = False
+
+    def update(self):
+        """
+        Update the Markov array, the income process, the assets grid, and
+        the terminal solution.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        self.construct("MrkvArray")
+        super().update()
 
     def check_markov_inputs(self):
         """
@@ -554,7 +787,7 @@ class MarkovConsumerType(IndShockConsumerType):
         # Check that arrays are the right shape
         if not isinstance(self.Rfree, np.ndarray) or self.Rfree.shape != (StateCount,):
             raise ValueError(
-                "Rfree not the right shape, it should an array of Rfree of all the states."
+                "Rfree not the right shape, it should be an array of Rfree of all the states."
             )
 
         # Check that arrays in lists are the right shape
@@ -582,10 +815,7 @@ class MarkovConsumerType(IndShockConsumerType):
         # Now check the income distribution.
         # Note IncShkDstn is (potentially) time-varying, so it is in time_vary.
         # Therefore it is a list, and each element of that list responds to the income distribution
-        # at a particular point in time.  Each income distribution at a point in time should itself
-        # be a list, with each element corresponding to the income distribution
-        # conditional on a particular Markov state.
-        # TODO: should this be a numpy array too?
+        # at a particular point in time.
         for IncShkDstn_t in self.IncShkDstn:
             if not isinstance(IncShkDstn_t, list):
                 raise ValueError(
@@ -613,32 +843,7 @@ class MarkovConsumerType(IndShockConsumerType):
         """
         AgentType.pre_solve(self)
         self.check_markov_inputs()
-
-    def update_solution_terminal(self):
-        """
-        Update the terminal period solution.  This method should be run when a
-        new AgentType is created or when CRRA changes.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        """
-        IndShockConsumerType.update_solution_terminal(self)
-
-        # Make replicated terminal period solution: consume all resources, no human wealth, minimum m is 0
-        StateCount = self.MrkvArray[0].shape[0]
-        self.solution_terminal.cFunc = StateCount * [self.cFunc_terminal_]
-        self.solution_terminal.vFunc = StateCount * [self.solution_terminal.vFunc]
-        self.solution_terminal.vPfunc = StateCount * [self.solution_terminal.vPfunc]
-        self.solution_terminal.vPPfunc = StateCount * [self.solution_terminal.vPPfunc]
-        self.solution_terminal.mNrmMin = np.zeros(StateCount)
-        self.solution_terminal.hRto = np.zeros(StateCount)
-        self.solution_terminal.MPCmax = np.ones(StateCount)
-        self.solution_terminal.MPCmin = np.ones(StateCount)
+        self.update_solution_terminal()
 
     def initialize_sim(self):
         self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)

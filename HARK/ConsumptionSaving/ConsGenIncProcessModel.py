@@ -8,15 +8,27 @@ and allows (log) persistent income to follow an AR1 process rather than random w
 import numpy as np
 
 from HARK import AgentType, NullFunc
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
+    pLvlFuncAR1,
+    make_trivial_pLvlNextFunc,
+    make_explicit_perminc_pLvlNextFunc,
+    make_AR1_style_pLvlNextFunc,
+    make_pLvlGrid_by_simulation,
+    make_basic_pLvlPctiles,
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
-    init_idiosyncratic_shocks,
 )
-from HARK.distribution import Lognormal, Uniform, expected
+from HARK.distribution import Lognormal, expected
 from HARK.interpolation import (
     BilinearInterp,
+    ConstantFunction,
     CubicInterp,
+    IdentityFunction,
     LinearInterp,
     LinearInterpOnInterp1D,
     LowerEnvelope2D,
@@ -26,7 +38,6 @@ from HARK.interpolation import (
     ValueFuncCRRA,
     VariableLowerBoundFunc2D,
 )
-from HARK.metric import MetricObject
 from HARK.rewards import (
     CRRAutility,
     CRRAutility_inv,
@@ -37,7 +48,7 @@ from HARK.rewards import (
     CRRAutilityPP,
     UtilityFuncCRRA,
 )
-from HARK.utilities import get_percentiles
+from HARK.utilities import make_assets_grid
 
 __all__ = [
     "pLvlFuncAR1",
@@ -57,49 +68,41 @@ utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
 
 
-class pLvlFuncAR1(MetricObject):
+###############################################################################
+
+
+def make_2D_CRRA_solution_terminal(CRRA):
     """
-    A class for representing AR1-style persistent income growth functions.
+    Construct the terminal period solution for a consumption-saving model with CRRA
+    utility and two state variables: levels of market resources and permanent income.
 
     Parameters
     ----------
-    pLogMean : float
-        Log persistent income level toward which we are drawn.
-    PermGroFac : float
-        Autonomous (e.g. life cycle) pLvl growth (does not AR1 decay).
-    Corr : float
-        Correlation coefficient on log income.
+    CRRA : float
+        Coefficient of relative risk aversion. This is the only relevant parameter.
+
+    Returns
+    -------
+    solution_terminal : ConsumerSolution
+        Terminal period solution for someone with the given CRRA.
     """
-
-    def __init__(self, pLogMean, PermGroFac, Corr):
-        self.pLogMean = pLogMean
-        self.LogGroFac = np.log(PermGroFac)
-        self.Corr = Corr
-
-    def __call__(self, pLvlNow):
-        """
-        Returns expected persistent income level next period as a function of
-        this period's persistent income level.
-
-        Parameters
-        ----------
-        pLvlNow : np.array
-            Array of current persistent income levels.
-
-        Returns
-        -------
-        pLvlNext : np.array
-            Identically shaped array of next period persistent income levels.
-        """
-        pLvlNext = np.exp(
-            self.Corr * np.log(pLvlNow)
-            + (1.0 - self.Corr) * self.pLogMean
-            + self.LogGroFac
-        )
-        return pLvlNext
-
-
-###############################################################################
+    cFunc_terminal = IdentityFunction(i_dim=0, n_dims=2)
+    vFunc_terminal = ValueFuncCRRA(cFunc_terminal, CRRA)
+    vPfunc_terminal = MargValueFuncCRRA(cFunc_terminal, CRRA)
+    vPPfunc_terminal = MargMargValueFuncCRRA(cFunc_terminal, CRRA)
+    solution_terminal = ConsumerSolution(
+        cFunc=cFunc_terminal,
+        vFunc=vFunc_terminal,
+        vPfunc=vPfunc_terminal,
+        vPPfunc=vPPfunc_terminal,
+        mNrmMin=ConstantFunction(0.0),
+        hNrm=ConstantFunction(0.0),
+        MPCmin=1.0,
+        MPCmax=1.0,
+    )
+    solution_terminal.hLvl = solution_terminal.hNrm
+    solution_terminal.mLvlMin = solution_terminal.mNrmMin
+    return solution_terminal
 
 
 def solve_one_period_ConsGenIncProcess(
@@ -533,10 +536,6 @@ def solve_one_period_ConsGenIncProcess(
 
 ###############################################################################
 
-# -----------------------------------------------------------------------------
-# ----- Define additional parameters for the persistent shocks model ----------
-# -----------------------------------------------------------------------------
-
 pLvlPctiles = np.concatenate(
     (
         [0.001, 0.005, 0.01, 0.03],
@@ -544,16 +543,91 @@ pLvlPctiles = np.concatenate(
         [0.97, 0.99, 0.995, 0.999],
     )
 )
-PrstIncCorr = 0.98  # Serial correlation coefficient for permanent income
 
-# Make a dictionary for the "explicit permanent income" idiosyncratic shocks model
-init_explicit_perm_inc = init_idiosyncratic_shocks.copy()
-init_explicit_perm_inc["pLvlPctiles"] = pLvlPctiles
-init_explicit_perm_inc["pLvlInitStd"] = 0.4  # This *must* be nonzero
-# long run permanent income growth doesn't work yet
-init_explicit_perm_inc["PermGroFac"] = [1.0]
-init_explicit_perm_inc["aXtraMax"] = 30
-init_explicit_perm_inc["aXtraExtra"] = np.array([0.005, 0.01])
+# Make a constructor dictionary for the general income process consumer type
+geninc_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "pLvlPctiles": make_basic_pLvlPctiles,
+    "pLvlGrid": make_pLvlGrid_by_simulation,
+    "pLvlNextFunc": make_trivial_pLvlNextFunc,
+    "solution_terminal": make_2D_CRRA_solution_terminal,
+}
+
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 30,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": [0.005, 0.01],  # Additional other values to add in grid (optional)
+}
+
+# Default parameters to make pLvlGrid using make_basic_pLvlPctiles
+default_pLvlPctiles_params = {
+    "pLvlPctiles_count": 19,  # Number of points in the "body" of the grid
+    "pLvlPctiles_bound": [0.05, 0.95],  # Percentile bounds of the "body"
+    "pLvlPctiles_tail_count": 4,  # Number of points in each tail of the grid
+    "pLvlPctiles_tail_order": np.e,  # Scaling factor for points in each tail
+}
+
+# Default parameters to make pLvlGrid using make_trivial_pLvlNextFunc
+default_pLvlGrid_params = {
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.4,  # Standard deviation of log initial permanent income *MUST BE POSITIVE*
+    # "pLvlPctiles": pLvlPctiles,  # Percentiles of permanent income to use for the grid
+    "pLvlExtra": None,  # Additional permanent income points to automatically add to the grid, optional
+}
+
+# Make a dictionary to specify a general income process consumer type
+init_general_inc = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": geninc_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
+    "Rfree": 1.03,  # Interest factor on retained assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_general_inc.update(default_IncShkDstn_params)
+init_general_inc.update(default_aXtraGrid_params)
+init_general_inc.update(default_pLvlPctiles_params)
+init_general_inc.update(default_pLvlGrid_params)
 
 
 class GenIncProcessConsumerType(IndShockConsumerType):
@@ -564,26 +638,15 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     values for risk aversion, discount factor, the interest rate, the grid of
     end-of-period assets, and an artificial borrowing constraint.
 
-    See init_explicit_perm_inc for a dictionary of the
-    keywords that should be passed to the constructor.
-
-    Parameters
-    ----------
-    cycles : int
-        Number of times the sequence of periods should be solved.
+    See init_explicit_perm_inc for a dictionary of the keywords that should be
+    passed to the constructor.
     """
 
-    cFunc_terminal_ = BilinearInterp(
-        np.array([[0.0, 0.0], [1.0, 1.0]]), np.array([0.0, 1.0]), np.array([0.0, 1.0])
-    )
-    solution_terminal_ = ConsumerSolution(
-        cFunc=cFunc_terminal_, mNrmMin=0.0, hNrm=0.0, MPCmin=1.0, MPCmax=1.0
-    )
-
     state_vars = ["pLvl", "mLvl", "aLvl"]
+    default_params_ = init_general_inc
 
     def __init__(self, **kwds):
-        params = init_explicit_perm_inc.copy()
+        params = self.default_params_.copy()
         params.update(kwds)
 
         # Initialize a basic ConsumerType
@@ -614,41 +677,14 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.update(self)
+        super().update()
         self.update_pLvlNextFunc()
         self.update_pLvlGrid()
 
-    def update_solution_terminal(self):
-        """
-        Update the terminal period solution.  This method should be run when a
-        new AgentType is created or when CRRA changes.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.solution_terminal.vFunc = ValueFuncCRRA(self.cFunc_terminal_, self.CRRA)
-        self.solution_terminal.vPfunc = MargValueFuncCRRA(
-            self.cFunc_terminal_, self.CRRA
-        )
-        self.solution_terminal.vPPfunc = MargMargValueFuncCRRA(
-            self.cFunc_terminal_, self.CRRA
-        )
-        self.solution_terminal.hNrm = 0.0  # Don't track normalized human wealth
-        self.solution_terminal.hLvl = lambda p: np.zeros_like(p)
-        # But do track absolute human wealth by persistent income
-        self.solution_terminal.mLvlMin = lambda p: np.zeros_like(p)
-        # And minimum allowable market resources by perm inc
-
     def update_pLvlNextFunc(self):
         """
-        A dummy method that creates a trivial pLvlNextFunc attribute that has
-        no persistent income dynamics.  This method should be overwritten by
-        subclasses in order to make (e.g.) an AR1 income process.
+        Update the function that maps this period's permanent income level to next
+        period's expected permanent income level.
 
         Parameters
         ----------
@@ -658,8 +694,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         """
-        pLvlNextFuncBasic = LinearInterp(np.array([0.0, 1.0]), np.array([0.0, 1.0]))
-        self.pLvlNextFunc = self.T_cycle * [pLvlNextFuncBasic]
+        self.construct("pLvlNextFunc")
         self.add_to_time_vary("pLvlNextFunc")
 
     def install_retirement_func(self):
@@ -685,13 +720,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
     def update_pLvlGrid(self):
         """
-        Update the grid of persistent income levels.  Currently only works for
-        infinite horizon models (cycles=0) and lifecycle models (cycles=1).  Not
-        clear what to do about cycles>1 because the distribution of persistent
-        income will be different within a period depending on how many cycles
-        have elapsed.  This method uses a simulation approach to generate the
-        pLvlGrid at each period of the cycle, drawing on the initial distribution
-        of persistent income, the pLvlNextFuncs, and the attribute pLvlPctiles.
+        Update the grid of persistent income levels.
 
         Parameters
         ----------
@@ -701,59 +730,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         """
-        LivPrbAll = np.array(self.LivPrb)
-
-        # Simulate the distribution of persistent income levels by t_cycle in a lifecycle model
-        if self.cycles == 1:
-            pLvlNow = Lognormal(
-                self.pLvlInitMean, sigma=self.pLvlInitStd, seed=31382
-            ).draw(self.AgentCount)
-            pLvlGrid = []  # empty list of time-varying persistent income grids
-            # Calculate distribution of persistent income in each period of lifecycle
-            for t in range(len(self.PermShkStd)):
-                if t > 0:
-                    PermShkNow = self.PermShkDstn[t - 1].draw(N=self.AgentCount)
-                    pLvlNow = self.pLvlNextFunc[t - 1](pLvlNow) * PermShkNow
-                pLvlGrid.append(get_percentiles(pLvlNow, percentiles=self.pLvlPctiles))
-
-        # Calculate "stationary" distribution in infinite horizon (might vary across periods of cycle)
-        elif self.cycles == 0:
-            T_long = 1000  # Number of periods to simulate to get to "stationary" distribution
-            pLvlNow = Lognormal(
-                mu=self.pLvlInitMean, sigma=self.pLvlInitStd, seed=31382
-            ).draw(self.AgentCount)
-            t_cycle = np.zeros(self.AgentCount, dtype=int)
-            for t in range(T_long):
-                # Determine who dies and replace them with newborns
-                LivPrb = LivPrbAll[t_cycle]
-                draws = Uniform(seed=t).draw(self.AgentCount)
-                who_dies = draws > LivPrb
-                pLvlNow[who_dies] = Lognormal(
-                    self.pLvlInitMean, self.pLvlInitStd, seed=t + 92615
-                ).draw(np.sum(who_dies))
-                t_cycle[who_dies] = 0
-
-                for j in range(self.T_cycle):  # Update persistent income
-                    these = t_cycle == j
-                    PermShkTemp = self.PermShkDstn[j].draw(N=np.sum(these))
-                    pLvlNow[these] = self.pLvlNextFunc[j](pLvlNow[these]) * PermShkTemp
-                t_cycle = t_cycle + 1
-                t_cycle[t_cycle == self.T_cycle] = 0
-
-            # We now have a "long run stationary distribution", extract percentiles
-            pLvlGrid = []  # empty list of time-varying persistent income grids
-            for t in range(self.T_cycle):
-                these = t_cycle == t
-                pLvlGrid.append(
-                    get_percentiles(pLvlNow[these], percentiles=self.pLvlPctiles)
-                )
-
-        # Throw an error if cycles>1
-        else:
-            assert False, "Can only handle cycles=0 or cycles=1!"
-
-        # Store the result and add attribute to time_vary
-        self.pLvlGrid = pLvlGrid
+        self.construct("pLvlPctiles", "pLvlGrid")
         self.add_to_time_vary("pLvlGrid")
 
     def sim_birth(self, which_agents):
@@ -870,6 +847,20 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
 ###############################################################################
 
+# Make a dictionary for the "explicit permanent income" consumer type; see parent dictionary above.
+explicit_constructor_dict = geninc_constructor_dict.copy()
+explicit_constructor_dict["pLvlNextFunc"] = make_explicit_perminc_pLvlNextFunc
+init_explicit_perm_inc = init_general_inc.copy()
+init_explicit_perm_inc["constructors"] = explicit_constructor_dict
+init_explicit_perm_inc["PermGroFac"] = [1.0]
+
+# NB: Permanent income growth was not in the default dictionary for GenIncProcessConsumerType
+# because its pLvlNextFunc constructor was *trivial*: no permanent income dynamics at all!
+# For the "explicit permanent income" model, this parameter is added back into the dictionary.
+# However, note that if this model is used in an *infinite horizon* setting, it will work
+# best if the product of PermGroFac (across all periods) is 1. If it is far from 1, then the
+# pLvlGrid that is constructed by the default method might not be appropriate.
+
 
 class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
     """
@@ -882,37 +873,18 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
     state variable during solution.  There is no real economic use for it.
     """
 
-    def update_pLvlNextFunc(self):
-        """
-        A method that creates the pLvlNextFunc attribute as a sequence of
-        linear functions, indicating constant expected permanent income growth
-        across permanent income levels.  Draws on the attribute PermGroFac, and
-        installs a special retirement function when it exists.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        pLvlNextFunc = []
-        for t in range(self.T_cycle):
-            pLvlNextFunc.append(
-                LinearInterp(np.array([0.0, 1.0]), np.array([0.0, self.PermGroFac[t]]))
-            )
-
-        self.pLvlNextFunc = pLvlNextFunc
-        self.add_to_time_vary("pLvlNextFunc")
+    default_params_ = init_explicit_perm_inc
 
 
 ###############################################################################
 
-
-# Make a dictionary for the "persistent idiosyncratic shocks" model
+# Make a dictionary for the "persistent idiosyncratic shocks" consumer type; see parent dictionary above.
+persistent_constructor_dict = geninc_constructor_dict.copy()
+persistent_constructor_dict["pLvlNextFunc"] = make_AR1_style_pLvlNextFunc
 init_persistent_shocks = init_explicit_perm_inc.copy()
-init_persistent_shocks["PrstIncCorr"] = PrstIncCorr
+init_persistent_shocks["PrstIncCorr"] = 0.98
+# Serial correlation coefficient for permanent income, which is used by make_AR1_style_pLvlNextFunc
+init_persistent_shocks["constructors"] = persistent_constructor_dict
 
 
 class PersistentShockConsumerType(GenIncProcessConsumerType):
@@ -923,42 +895,6 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
     for risk aversion, discount factor, the interest rate, the grid of end-of-
     period assets, an artificial borrowing constraint, and the AR1 correlation
     coefficient for (log) persistent income.
-
-    Parameters
-    ----------
-
     """
 
-    def __init__(self, **kwds):
-        params = init_persistent_shocks.copy()
-        params.update(kwds)
-
-        GenIncProcessConsumerType.__init__(self, **params)
-
-    def update_pLvlNextFunc(self):
-        """
-        A method that creates the pLvlNextFunc attribute as a sequence of
-        AR1-style functions.  Draws on the attributes PermGroFac and PrstIncCorr.
-        If cycles=0, the product of PermGroFac across all periods must be 1.0,
-        otherwise this method is invalid.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-
-        pLvlNextFunc = []
-        pLogMean = self.pLvlInitMean  # Initial mean (log) persistent income
-
-        for t in range(self.T_cycle):
-            pLvlNextFunc.append(
-                pLvlFuncAR1(pLogMean, self.PermGroFac[t], self.PrstIncCorr)
-            )
-            pLogMean += np.log(self.PermGroFac[t])
-
-        self.pLvlNextFunc = pLvlNextFunc
-        self.add_to_time_vary("pLvlNextFunc")
+    default_params_ = init_persistent_shocks
