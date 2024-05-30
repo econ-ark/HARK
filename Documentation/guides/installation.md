@@ -1,6 +1,6 @@
 # HARK installation guide
 
-HARK is an open source project written in Python. It's compatible with Python versions 3.10 and up.
+HARK is an open source project written in Python. It's supported for Python versions 3.10 and up.
 
 ## Instructions for a new user
 

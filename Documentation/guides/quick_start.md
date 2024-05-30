@@ -2,9 +2,9 @@
 
 ## Installing HARK
 
-HARK is an open source project that is compatible with Python 3. Currently, we recommend using version 3.10 or lower.
+HARK is an open source project that is compatible with Python 3. Currently, we recommend using version 3.10 or higher.
 
-The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/installation/).
+The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/installation/) by running `pip install econ-ark` in your command line.
 
 Before installing HARK, we recommend creating a new virtual environment, which isolates the installation of `econ-ark` from the installations of any other Python tools and packages, thus avoiding conflicts.
 
@@ -20,7 +20,7 @@ pip install econ-ark
 
 We have a set of 30-second [Elevator Spiels](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#capsule-summaries-of-what-the-econ-ark-project-is) describing the project, tailored to people with several different kinds of background.
 
-The most broadly applicable advice is to go to [Econ-ARK](https://econ-ark.org) and click on "Notebooks", and choose [A Gentle Introduction to HARK](https://docs.econ-ark.org/example_notebooks/Gentle-Intro-To-HARK.html) which will launch as a [jupyter notebook](https://jupyter.org/).
+The most broadly applicable advice is to go through the [Overview and Examples](https://docs.econ-ark.org/overview/index.html) section starting with [A Gentle Introduction to HARK](https://docs.econ-ark.org/example_notebooks/Gentle-Intro-To-HARK.html).
 
 ### [For people with a technical/scientific/computing background but little economics background](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-people-with-a-technicalscientificcomputing-background-but-no-economics-background)
 
