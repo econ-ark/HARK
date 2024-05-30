@@ -2107,6 +2107,8 @@ init_idiosyncratic_shocks = dict(
         # Use permanent income neutral measure (see Harmenberg 2021) during simulations when True.
         # Whether Newborns have transitory shock. The default is False.
         "NewbornTransShk": False,
+        "HANK": False,
+
     }
 )
 
@@ -3619,21 +3621,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             self.neutral_measure = False
 
         neutral_measure_list = [self.neutral_measure] * len(PermShkCount_list)
-        """
-        IncShkDstn = IndexDistribution(
-            engine=BufferStockIncShkDstn,
-            conditional={
-                "sigma_Perm": PermShkStd,
-                "sigma_Tran": TranShkStd,
-                "n_approx_Perm": PermShkCount_list,
-                "n_approx_Tran": TranShkCount_list,
-                "neutral_measure": neutral_measure_list,
-                "UnempPrb": UnempPrb_list,
-                "IncUnemp": IncUnemp_list,
-            },
-            RNG=self.RNG,
-        )
-        """
+
         PermShkDstn = IndexDistribution(
             engine=LognormPermIncShk,
             conditional={
@@ -3642,52 +3630,73 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 "neutral_measure": neutral_measure_list,
             },
         )
-        """
-        TranShkDstn = IndexDistribution(
-            engine=MixtureTranIncShk,
-            conditional={
-                "sigma": TranShkStd,
-                "UnempPrb": UnempPrb_list,
-                "IncUnemp": IncUnemp_list,
-                "n_approx": TranShkCount_list,
-            },
-        )
-        """
         
-        IncShkDstn = IndexDistribution(
-          engine=HANKIncShkDstn,
-          conditional={
-              "sigma_Perm": PermShkStd,
-              "sigma_Tran": TranShkStd,
-              "n_approx_Perm": PermShkCount_list,
-              "n_approx_Tran": TranShkCount_list,
-              "neutral_measure": neutral_measure_list,
-              "UnempPrb": UnempPrb_list,
-              "IncUnemp": IncUnemp_list,
-              "wage": wage,
-              "taxrate": taxrate,
-              "labor": labor,
-              "TranShkMean_Func": TranShkMean_Func,
-          },
-          RNG=self.RNG,
-      )
-        
-        
-        TranShkDstn = IndexDistribution(
-            engine=MixtureTranIncShk_HANK,
-            conditional={
-                "sigma": TranShkStd,
-                "UnempPrb": UnempPrb_list,
-                "IncUnemp": IncUnemp_list,
-                "n_approx": TranShkCount_list,
-                "wage": wage,
-                "taxrate": taxrate,
-                "labor": labor,
-                "TranShkMean_Func": TranShkMean_Func,
+        if self.HANK == True:
+            
+            
+            IncShkDstn = IndexDistribution(
+              engine=HANKIncShkDstn,
+              conditional={
+                  "sigma_Perm": PermShkStd,
+                  "sigma_Tran": TranShkStd,
+                  "n_approx_Perm": PermShkCount_list,
+                  "n_approx_Tran": TranShkCount_list,
+                  "neutral_measure": neutral_measure_list,
+                  "UnempPrb": UnempPrb_list,
+                  "IncUnemp": IncUnemp_list,
+                  "wage": wage,
+                  "taxrate": taxrate,
+                  "labor": labor,
+                  "TranShkMean_Func": TranShkMean_Func,
+              },
+              RNG=self.RNG,
+          )
+            
+            
+            TranShkDstn = IndexDistribution(
+                engine=MixtureTranIncShk_HANK,
+                conditional={
+                    "sigma": TranShkStd,
+                    "UnempPrb": UnempPrb_list,
+                    "IncUnemp": IncUnemp_list,
+                    "n_approx": TranShkCount_list,
+                    "wage": wage,
+                    "taxrate": taxrate,
+                    "labor": labor,
+                    "TranShkMean_Func": TranShkMean_Func,
+                    
+                    
+                },
+            )
+    
+        else:
                 
-                
-            },
-        )
+            IncShkDstn = IndexDistribution(
+                engine=BufferStockIncShkDstn,
+                conditional={
+                    "sigma_Perm": PermShkStd,
+                    "sigma_Tran": TranShkStd,
+                    "n_approx_Perm": PermShkCount_list,
+                    "n_approx_Tran": TranShkCount_list,
+                    "neutral_measure": neutral_measure_list,
+                    "UnempPrb": UnempPrb_list,
+                    "IncUnemp": IncUnemp_list,
+                },
+                RNG=self.RNG,
+            )
+            
+            TranShkDstn = IndexDistribution(
+                engine=MixtureTranIncShk,
+                conditional={
+                    "sigma": TranShkStd,
+                    "UnempPrb": UnempPrb_list,
+                    "IncUnemp": IncUnemp_list,
+                    "n_approx": TranShkCount_list,
+                },
+            )
+
+        
+
         
         
 
