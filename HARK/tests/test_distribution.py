@@ -607,6 +607,12 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
             )
         )
 
+    def test_Bernoulli_to_labeled(self):
+        p = 0.4
+        foo = Bernoulli(p)
+        bern = DiscreteDistributionLabeled.from_unlabeled(foo, var_names=["foo"])
+        self.assertTrue(np.allclose(bern.expected(), p))
+
 
 class labeled_transition_tests(unittest.TestCase):
     def setUp(self) -> None:

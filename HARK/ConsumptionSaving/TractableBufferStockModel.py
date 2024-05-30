@@ -299,6 +299,19 @@ def add_to_stable_arm_points(
     return solution_now
 
 
+###############################################################################
+
+# Define a dictionary for the tractable buffer stock model
+init_tractable = {
+    "cycles": 0,  # infinite horizon
+    "UnempPrb": 0.00625,  # Probability of becoming permanently unemployed
+    "DiscFac": 0.975,  # Intertemporal discount factor
+    "Rfree": 1.01,  # Risk-free interest factor on assets
+    "PermGroFac": 1.0025,  # Permanent income growth factor (uncompensated)
+    "CRRA": 1.0,  # Coefficient of relative risk aversion
+}
+
+
 class TractableConsumerType(AgentType):
     """
     Parameters
@@ -716,13 +729,3 @@ class TractableConsumerType(AgentType):
         """
         self.state_now["aLvl"] = self.state_now["mLvl"] - self.controls["cLvlNow"]
         return None
-
-
-init_tractable = {
-    "cycles": 0,  # infinite horizon
-    "UnempPrb": 0.00625,  # Probability of becoming unemployed
-    "DiscFac": 0.975,  # Intertemporal discount factor
-    "Rfree": 1.01,  # Risk-free interest factor on assets
-    "PermGroFac": 1.0025,  # Permanent income growth factor (uncompensated)
-    "CRRA": 1.0,  # Coefficient of relative risk aversion
-}
