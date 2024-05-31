@@ -1,11 +1,9 @@
-# %% Test Transition Matrix Methods
+# Test Transition Matrix Methods
 
 
 import unittest
 
-from HARK.ConsumptionSaving.ConsSequenceSpaceJacobianModel import (
-    SequenceSpaceJacobianType,
-)
+from HARK.ConsumptionSaving.ConsNewKeynesianModel import NewKeynesianType
 import numpy as np
 
 from HARK.tests import HARK_PRECISION
@@ -61,7 +59,7 @@ dict_harmenberg = {
 
 class test_Transition_Matrix_Methods(unittest.TestCase):
     def test_calc_tran_matrix(self):
-        example1 = SequenceSpaceJacobianType(**dict_harmenberg)
+        example1 = NewKeynesianType(**dict_harmenberg)
         example1.cycles = 0
         example1.solve()
 
@@ -91,12 +89,12 @@ class test_Transition_Matrix_Methods(unittest.TestCase):
         self.assertAlmostEqual(AggC[0], 1.00417, places=4)
 
 
-# %% Test Heterogenous Agent Jacobian Methods
+# Test Heterogenous Agent Jacobian Methods
 
 
 class test_Jacobian_methods(unittest.TestCase):
     def test_calc_jacobian(self):
-        Agent = SequenceSpaceJacobianType(**dict_harmenberg)
+        Agent = NewKeynesianType(**dict_harmenberg)
 
         Agent.compute_steady_state()
 
