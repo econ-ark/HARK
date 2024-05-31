@@ -16,15 +16,23 @@ See HARK documentation for mathematical descriptions of the models being solved.
 from copy import copy, deepcopy
 
 import numpy as np
-from HARK.Calibration.Income.IncomeTools import (
-    Cagetti_income,
-    parse_income_spec,
-    parse_time_params,
+from scipy.optimize import newton
+
+from HARK import (
+    AgentType,
+    NullFunc,
+    _log,
+    set_verbosity_level,
 )
 from HARK.Calibration.Income.IncomeProcesses import (
     construct_lognormal_income_process_unemployment,
     get_PermShkDstn_from_IncShkDstn,
     get_TranShkDstn_from_IncShkDstn,
+)
+from HARK.Calibration.Income.IncomeTools import (
+    Cagetti_income,
+    parse_income_spec,
+    parse_time_params,
 )
 from HARK.Calibration.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.Calibration.SCF.WealthIncomeDist.SCFDistTools import (
@@ -57,14 +65,7 @@ from HARK.rewards import (
     CRRAutilityPP,
     UtilityFuncCRRA,
 )
-from scipy.optimize import newton
-
-from HARK import (
-    AgentType,
-    NullFunc,
-    _log,
-    set_verbosity_level,
-)
+from HARK.utilities import make_assets_grid
 
 __all__ = [
     "ConsumerSolution",

@@ -3,9 +3,9 @@ from copy import deepcopy
 import numpy as np
 from scipy import sparse as sp
 
+from HARK.Calibration.Income.IncomeProcesses import LognormPermIncShk
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
-    LognormPermIncShk,
     init_idiosyncratic_shocks,
 )
 from HARK.distribution import (
@@ -29,6 +29,7 @@ def TranShkMean_Func(taxrate, labor, wage):
     z = (1 - taxrate) * labor * wage
     return z
 
+
 init_NewKeynesianType = dict(
     init_idiosyncratic_shocks,
     **{
@@ -42,7 +43,7 @@ init_NewKeynesianType = dict(
         "labor": [1.0],
         "wage": [1.0],
         "TranShkMean_Func": [TranShkMean_Func],
-        }
+    },
 )
 
 
@@ -65,7 +66,6 @@ class NewKeynesianType(IndShockConsumerType):
         # self.solve_one_period = make_one_period_oo_solver(solver)
 
         self.update()  # Make assets grid, income process, terminal solution
-
 
     def define_distribution_grid(
         self,
@@ -332,7 +332,7 @@ class NewKeynesianType(IndShockConsumerType):
     #                 np.append(1.0 / np.fliplr([one_sided_grid])[0], np.ones(1)),
     #                 one_sided_grid,
     #             )  # Compute permanent income grid
-                
+
     #         else:
     #             # If grid of permanent income prespecified then use it as pgrid
     #             self.dist_pGrid = dist_pGrid
@@ -583,7 +583,6 @@ class NewKeynesianType(IndShockConsumerType):
     #     a list of transition matrices, consumption and asset policy grids for each period of the problem.
     #     The transition matrix/matrices and consumption and asset policy grid(s) are stored as attributes of self.
 
-
     #     Parameters
     #     ----------
     #         shk_dstn: list
@@ -615,20 +614,18 @@ class NewKeynesianType(IndShockConsumerType):
     #         perm_shks = shk_dstn[0].atoms[0]  # Permanent shocks
     #         LivPrb = self.LivPrb[0]  # Update probability of staying alive
 
-
     #         # New borns have this distribution (assumes start with no assets and permanent income=1)
     #        # NewBornDist = jump_to_grid_2D(
     #        #     tran_shks, np.ones_like(tran_shks), shk_prbs, dist_mGrid, dist_pGrid
     #        # )
 
     #         if len(dist_pGrid) == 1:
-                
+
     #             NewBornDist = jump_to_grid_1D(
     #                 np.zeros_like(tran_shks),
     #                 shk_prbs,
     #                 dist_mGrid,)
-                
-                
+
     #             # Compute Transition Matrix given shocks and grids.
     #             self.tran_matrix = gen_tran_matrix_1D(
     #                 dist_mGrid,
@@ -676,10 +673,10 @@ class NewKeynesianType(IndShockConsumerType):
 
     #         dist_mGrid = self.dist_mGrid
     #         #dist_aGrid = deepcopy(self.dist_mGrid)
-            
+
     #         #dist_mGrid_temp  = dist_aGrid*self.Rfree[k] +
     #         for k in range(self.T_cycle):
-                
+
     #             if type(self.dist_pGrid) == list:
     #                 # Permanent income grid this period
     #                 dist_pGrid = self.dist_pGrid[k]
@@ -864,7 +861,7 @@ class NewKeynesianType(IndShockConsumerType):
     #     self.C_ss = np.dot(self.c_ss, ss_dstn)[0]
 
     #     return self.A_ss, self.C_ss
-    
+
     def calc_jacobian(self, shk_param, T):
         """Calculates the Jacobians of aggregate consumption and aggregate assets. Parameters that can be shocked are
         LivPrb, PermShkStd,TranShkStd, DiscFac, UnempPrb, Rfree, IncUnemp, DiscFac .
@@ -1172,7 +1169,6 @@ class NewKeynesianType(IndShockConsumerType):
     #     T: int
     #         dimension of Jacobian Matrix. Jacobian Matrix is a TxT square Matrix
 
-
     #     Returns
     #     ----------
     #     CJAC: numpy.array
@@ -1195,7 +1191,7 @@ class NewKeynesianType(IndShockConsumerType):
     #     params["Rfree"] = params["T_cycle"] * [self.Rfree]
     #     params["UnempPrb"] = params["T_cycle"] * [self.UnempPrb]
     #     params["IncUnemp"] = params["T_cycle"] * [self.IncUnemp]
-        
+
     #     params['wage'] = params['T_cycle']*[self.wage[0]]
     #     params['taxrate'] = params['T_cycle']*[self.taxrate[0]]
     #     params['labor'] = params['T_cycle']*[self.labor[0]]
@@ -1235,8 +1231,8 @@ class NewKeynesianType(IndShockConsumerType):
     #             (i) * [getattr(self, shk_param)]
     #             + [getattr(self, shk_param) + dx]
     #             + (params["T_cycle"] - i - 1) * [getattr(self, shk_param)]
-    #         )  # Sequence of interest rates the agent 
-            
+    #         )  # Sequence of interest rates the agent
+
     #     setattr(FinHorizonAgent, shk_param, peturbed_list)
 
     #     # Update income process if perturbed parameter enters the income shock distribution
@@ -1347,7 +1343,6 @@ class NewKeynesianType(IndShockConsumerType):
     #     # First row of Fake News Matrix
     #     Curl_F_A[0] = A_curl_s
     #     Curl_F_C[0] = C_curl_s
-        
 
     #     for i in range(T - 1):
     #         for j in range(T):
@@ -1357,24 +1352,24 @@ class NewKeynesianType(IndShockConsumerType):
     #     ########
     #     # STEP4 #  of the algorithm
     #     ########
-        
+
     #     # Function to compute jacobian matrix from fake news matrix
     #     def J_from_F(F):
     #         J = F.copy()
     #         for t in range(1, F.shape[0]):
     #             J[1:, t] += J[:-1, t-1]
     #         return J
-        
+
     #     J_A = J_from_F(Curl_F_A)
     #     J_C = J_from_F(Curl_F_C)
-        
+
     #     ########
     #     # Additional step due to compute Zeroth Column of the Jacobian
-    #     ########   
-         
+    #     ########
+
     #     params = deepcopy(self.__dict__["parameters"])
     #     params["T_cycle"] = 2 # Dimension of Jacobian Matrix
-        
+
     #     params["LivPrb"] = params["T_cycle"] * [self.LivPrb[0]]
     #     params["PermGroFac"] = params["T_cycle"] * [self.PermGroFac[0]]
     #     params["PermShkStd"] = params["T_cycle"] * [self.PermShkStd[0]]
@@ -1388,19 +1383,19 @@ class NewKeynesianType(IndShockConsumerType):
     #     params['TranShkMean_Func'] = params['T_cycle']*[self.TranShkMean_Func[0]]
     #     params['IncShkDstn'] = params['T_cycle']* [self.IncShkDstn[0]]
     #     params['cFunc_terminal_'] = deepcopy(self.solution[0].cFunc)
-        
+
     #     if shk_param == 'DiscFac':
-            
+
     #         params['DiscFac'] = params['T_cycle']*[self.DiscFac]
 
     #     # Create instance of a finite horizon agent for calculation of zeroth
     #     ZerothColAgent = NewKeynesianType(**params)
     #     ZerothColAgent.cycles = 1  # required
-        
+
     #     # If parameter is in time invariant list then add it to time vary list
     #     ZerothColAgent.del_from_time_inv(shk_param)
     #     ZerothColAgent.add_to_time_vary(shk_param)
-        
+
     #     if type(getattr(self, shk_param)) == list:
     #         ZerothColAgent.shk_param = params['T_cycle'] * [getattr(self, shk_param)[0]]
     #     else:
@@ -1411,7 +1406,7 @@ class NewKeynesianType(IndShockConsumerType):
 
     #     # Solve
     #     ZerothColAgent.solve()
-        
+
     #     # this condition is because some attributes are specified as lists while other as floats
     #     if type(getattr(self, shk_param)) == list:
     #         peturbed_list = (
@@ -1422,8 +1417,8 @@ class NewKeynesianType(IndShockConsumerType):
     #         peturbed_list = (
     #              [getattr(self, shk_param) + dx]
     #             + (params["T_cycle"]  - 1) * [getattr(self, shk_param)]
-    #         )  # Sequence of interest rates the agent 
-            
+    #         )  # Sequence of interest rates the agent
+
     #     setattr(ZerothColAgent, shk_param, peturbed_list) # Set attribute to agent
 
     #     # Use Harmenberg Neutral Measure
@@ -1433,10 +1428,10 @@ class NewKeynesianType(IndShockConsumerType):
     #     # Calculate Transition Matrices
     #     ZerothColAgent.define_distribution_grid()
     #     ZerothColAgent.calc_transition_matrix()
-        
+
     #     tranmat_t_zeroth_col = ZerothColAgent.tran_matrix
     #     dstn_t_zeroth_col = self.vec_erg_dstn.T[0]
-        
+
     #     C_t_no_sim = np.zeros(T)
     #     A_t_no_sim = np.zeros(T)
 
@@ -1445,15 +1440,15 @@ class NewKeynesianType(IndShockConsumerType):
     #             dstn_t_zeroth_col = np.dot(tranmat_t_zeroth_col[i],dstn_t_zeroth_col)
     #         else:
     #             dstn_t_zeroth_col = np.dot(tranmat_ss,dstn_t_zeroth_col)
-                
-    #         C_t_no_sim[i] =  np.dot(self.cPol_Grid ,dstn_t_zeroth_col) 
-    #         A_t_no_sim[i] =  np.dot( self.aPol_Grid ,dstn_t_zeroth_col) 
+
+    #         C_t_no_sim[i] =  np.dot(self.cPol_Grid ,dstn_t_zeroth_col)
+    #         A_t_no_sim[i] =  np.dot( self.aPol_Grid ,dstn_t_zeroth_col)
 
     #     J_A.T[0] = (A_t_no_sim - self.A_ss)/dx
     #     J_C.T[0] = (C_t_no_sim - self.C_ss)/dx
-        
+
     #     return J_C, J_A
-    
+
     def calc_agg_path(self, Z, T):
         """Parameters
         ---------
@@ -1566,13 +1561,13 @@ class NewKeynesianType(IndShockConsumerType):
 
     # def calc_agg_path(self,Z,T):
     #     """
-    
+
     #     Parameters:
     #     ----------
 
     #    Z: numpy.array
     #        sequence of labor values
-          
+
     #     Returns
     #     ----------
     #     CJAC: numpy.array
@@ -1595,7 +1590,7 @@ class NewKeynesianType(IndShockConsumerType):
     #     params["Rfree"] = params["T_cycle"] * [self.Rfree]
     #     params["UnempPrb"] = params["T_cycle"] * [self.UnempPrb]
     #     params["IncUnemp"] = params["T_cycle"] * [self.IncUnemp]
-        
+
     #     params['wage'] = params['T_cycle']*[self.wage[0]]
     #     params['taxrate'] = params['T_cycle']*[self.taxrate[0]]
     #     params['labor'] = params['T_cycle']*[self.labor[0]]
@@ -1623,17 +1618,15 @@ class NewKeynesianType(IndShockConsumerType):
 
     #     peturbed_list = []
     #     for z in Z:
-            
+
     #         peturbed_list += [z]
-            
+
     #         # (
     #         #     (i) * [getattr(self, shk_param)[0]]
     #         #     + [getattr(self, shk_param)[0] + dx]
     #         #     + (params["T_cycle"] - i - 1) * [getattr(self, shk_param)[0]]
     #         # )
-            
-        
-        
+
     #     # # this condition is because some attributes are specified as lists while other as floats
     #     # if type(getattr(self, shk_param)) == list:
     #     #     peturbed_list = (
@@ -1646,8 +1639,8 @@ class NewKeynesianType(IndShockConsumerType):
     #     #         (i) * [getattr(self, shk_param)]
     #     #         + [getattr(self, shk_param) + dx]
     #     #         + (params["T_cycle"] - i - 1) * [getattr(self, shk_param)]
-    #     #     )  # Sequence of interest rates the agent 
-            
+    #     #     )  # Sequence of interest rates the agent
+
     #     setattr(FinHorizonAgent, 'labor', peturbed_list)
 
     #     # Update income process if perturbed parameter enters the income shock distribution
@@ -1664,27 +1657,24 @@ class NewKeynesianType(IndShockConsumerType):
     #     # Calculate Transition Matrices
     #     FinHorizonAgent.define_distribution_grid()
     #     FinHorizonAgent.calc_transition_matrix()
-        
+
     #     tranmats = FinHorizonAgent.tran_matrix
     #     cGrids = FinHorizonAgent.cPol_Grid
     #     aGrids = FinHorizonAgent.aPol_Grid
 
-
-        
     #     C_t = np.zeros(FinHorizonAgent.T_cycle)
     #     A_t = np.zeros(FinHorizonAgent.T_cycle)
 
     #     dstn_t = self.vec_erg_dstn
     #     for t in range(FinHorizonAgent.T_cycle):
-            
-            
+
     #         dstn_t = np.dot(tranmats[t], dstn_t )
-            
+
     #         C_t[t] = np.dot(cGrids[t], dstn_t)
     #         A_t[t] = np.dot(aGrids[t], dstn_t)
 
     #     return C_t, A_t
-    
+
     # = Functions for generating discrete income processes and
     #   simulated income shocks =
     # ========================================================
@@ -1743,7 +1733,7 @@ class NewKeynesianType(IndShockConsumerType):
             A list with T_cycle elements, each of which
             a discrete approximation to the transitory income shocks.
 
-        """       
+        """
         # Unpack the parameters from the input
         T_cycle = self.T_cycle
         PermShkStd = self.PermShkStd
