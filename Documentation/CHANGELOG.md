@@ -12,20 +12,31 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 Release Date: TBA
 
+Note: Due to major changes on this release, you may need to adjust how AgentTypes are instantiated in your projects using HARK. If you are manually constructing "complicated" objects like MrkvArray, they should be assigned to your instances *after* initialization, not passed as part of the parameter dictionary. See also the new constructor methodology for how to pass parameters for such constructed inputs.
+
 ### Major Changes
 
-- Replace object-oriented solvers with single function versions. [1394](https://github.com/econ-ark/HARK/pull/1394)
+- Replace object-oriented solvers with single function versions. [#1394](https://github.com/econ-ark/HARK/pull/1394)
 - Object-oriented solver code has been moved to /HARK/ConsumptionSaving/LegacyOOsolvers.py, for legacy support of downstream projects.
 - AgentTypeMonteCarloSimulator now requires model shock, parameter, and dynamics information to be organized into 'blocks'. The DBlock object is introduced. [#1411](https://github.com/econ-ark/HARK/pull/1411)
+- All methods that construct inputs for solvers are now functions that are specified in the dictionary attribute `constructors`. [#1410](https://github.com/econ-ark/HARK/pull/1410)
+- Such constructed inputs can use alternate parameterizations / formats by changing the `constructor` function and providing its arguments in `parameters`.
+- Move `HARK.datasets` to `HARK.Calibration` for better organization of data and calibration tools. [#1430](https://github.com/econ-ark/HARK/pull/1430)
 
 ### Minor Changes
 
-- Add option to pass pre-built grid to `LinearFast`. [1388](https://github.com/econ-ark/HARK/pull/1388)
+- Add option to pass pre-built grid to `LinearFast`. [#1388](https://github.com/econ-ark/HARK/pull/1388)
 - Moves calculation of stable points out of ConsIndShock solver, into method called by post_solve [#1349](https://github.com/econ-ark/HARK/pull/1349)
 - Adds cubic spline interpolation and value function construction to "warm glow bequest" models.
 - Fixes cubic spline interpolation for ConsMedShockModel.
-- Moves computation of "stable points" from inside of ConsIndShock solver to a post-solution method. [1349](https://github.com/econ-ark/HARK/pull/1349)
-- Corrects calculation of "human wealth" under risky returns, providing correct limiting linear consumption function. [1403](https://github.com/econ-ark/HARK/pull/1403)
+- Moves computation of "stable points" from inside of ConsIndShock solver to a post-solution method. [#1349](https://github.com/econ-ark/HARK/pull/1349)
+- Corrects calculation of "human wealth" under risky returns, providing correct limiting linear consumption function. [#1403](https://github.com/econ-ark/HARK/pull/1403)
+- Removed 'parameters' from new block definitions; these are now 'calibrations' provided separately.
+- Create functions for well-known and repeated calculations in single-function solvers. [1395](https://github.com/econ-ark/HARK/pull/1395)
+- Re-work WealthPortfolioSolver to use approximate EGM method [#1404](https://github.com/econ-ark/HARK/pull/1404)
+- Default parameter dictionaries for AgentType subclasses have been "flattened": all parameters appear in one place for each model, rather than inheriting from parent models' dictionaries. The only exception is submodels *within* a file when only 1 or 2 parameters are added or changed. [#1425](https://github.com/econ-ark/HARK/pull/1425)
+- Fix minor bug in `HARK.distribution.Bernoulli` to allow conversion into `DiscreteDistributionLabeled`. [#1432](https://github.com/econ-ark/HARK/pull/1432)
+
 
 ### 0.14.1
 
