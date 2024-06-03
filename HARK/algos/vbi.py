@@ -5,7 +5,7 @@ from a continuation value function and stage dynamics.
 
 from HARK.model import DBlock
 import itertools
-from scipy.optimize import minimize, brentq
+from scipy.optimize import minimize
 from typing import Mapping
 
 
