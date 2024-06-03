@@ -161,6 +161,14 @@ class DBlock:
     def get_vars(self):
         return list(self.shocks.keys()) + list(self.dynamics.keys())
 
+    def get_controls(self):
+        """
+        TODO: Repeated in RBlock. Move to higher order class.
+        """
+        dyn = self.get_dynamics()
+
+        return [varn for varn in dyn if isinstance(dyn[varn], Control)]
+
     def transition(self, pre, dr):
         """
         Returns variable values given previous values and decision rule for all controls.

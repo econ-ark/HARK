@@ -24,6 +24,7 @@ Note: Due to major changes on this release, you may need to adjust how AgentType
 - All methods that construct inputs for solvers are now functions that are specified in the dictionary attribute `constructors`. [#1410](https://github.com/econ-ark/HARK/pull/1410)
 - Such constructed inputs can use alternate parameterizations / formats by changing the `constructor` function and providing its arguments in `parameters`.
 - Move `HARK.datasets` to `HARK.Calibration` for better organization of data and calibration tools. [#1430](https://github.com/econ-ark/HARK/pull/1430)
+- Adds `HARK.algos.vbi` as a general algorithm for solving the optimization step of an agent's problem.
 
 ### Minor Changes
 
