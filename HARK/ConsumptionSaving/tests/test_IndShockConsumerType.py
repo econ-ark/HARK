@@ -7,6 +7,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_idiosyncratic_shocks,
     init_lifecycle,
+    additional_HANK_parameters,
 )
 from HARK.tests import HARK_PRECISION
 
@@ -637,6 +638,9 @@ dict_harmenberg = {
     "mFac": 3,
 }
 
+jacobian_test_dict = dict_harmenberg.copy()
+jacobian_test_dict.update(additional_HANK_parameters)
+
 
 class test_Harmenbergs_method(unittest.TestCase):
     def test_Harmenberg_mtd(self):
@@ -878,10 +882,8 @@ class test_Transition_Matrix_Methods(unittest.TestCase):
 
 class test_Jacobian_methods(unittest.TestCase):
     def test_calc_jacobian(self):
-        Agent = IndShockConsumerType(**dict_harmenberg)
-
+        Agent = IndShockConsumerType(**jacobian_test_dict)
         Agent.compute_steady_state()
-
         CJAC_Perm, AJAC_Perm = Agent.calc_jacobian("PermShkStd", 50)
 
         self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.06120, places=HARK_PRECISION)

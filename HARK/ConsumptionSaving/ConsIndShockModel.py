@@ -22,6 +22,7 @@ from HARK.Calibration.Income.IncomeTools import (
     parse_time_params,
 )
 from HARK.Calibration.Income.IncomeProcesses import (
+    construct_HANK_lognormal_income_process_unemployment,
     construct_lognormal_income_process_unemployment,
     get_PermShkDstn_from_IncShkDstn,
     get_TranShkDstn_from_IncShkDstn,
@@ -1885,6 +1886,22 @@ init_idiosyncratic_shocks = {
 }
 init_idiosyncratic_shocks.update(default_IncShkDstn_params)
 init_idiosyncratic_shocks.update(default_aXtraGrid_params)
+
+# Make a small dictionary with additional parameters used in HANK variations of
+# the model, particularly the SSJ toolkit. Use init_idiosyncratic_shocks_HANK whenever
+# you want to use the calc_jacobian method.
+indshk_HANK_constructor_dict = indshk_constructor_dict.copy()
+indshk_HANK_constructor_dict["IncShkDstn"] = (
+    construct_HANK_lognormal_income_process_unemployment
+)
+additional_HANK_parameters = {
+    "tax_rate": [0.0],  # Flat tax rate on labor income
+    "labor": [1.0],  # Intensive margin labor supply
+    "wage": [1.0],  # Wage rate scaling factor
+    "constructors": indshk_HANK_constructor_dict,  # alternate income process
+}
+init_idiosyncratic_shocks_HANK = init_idiosyncratic_shocks.copy()
+init_idiosyncratic_shocks_HANK.update(additional_HANK_parameters)
 
 
 class IndShockConsumerType(PerfForesightConsumerType):
