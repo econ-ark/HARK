@@ -6,7 +6,8 @@ from a continuation value function and stage dynamics.
 from HARK.model import DBlock
 import itertools
 from scipy.optimize import minimize
-from typing import Mapping
+from typing import Mapping, Sequence
+import xarray as xr
 
 
 def get_action_rule(action):
