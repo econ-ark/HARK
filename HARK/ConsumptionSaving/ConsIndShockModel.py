@@ -2487,17 +2487,20 @@ class IndShockConsumerType(PerfForesightConsumerType):
         params["Rfree"] = params["T_cycle"] * [self.Rfree]
         params["UnempPrb"] = params["T_cycle"] * [self.UnempPrb]
         params["IncUnemp"] = params["T_cycle"] * [self.IncUnemp]
+        params["wage"] = params["T_cycle"] * [self.wage[0]]
+        params["labor"] = params["T_cycle"] * [self.labor[0]]
+        params["tax_rate"] = params["T_cycle"] * [self.tax_rate[0]]
+        params["cycles"] = 1  # "finite horizon", sort of
 
         # Create instance of a finite horizon agent
         FinHorizonAgent = IndShockConsumerType(**params)
-        FinHorizonAgent.cycles = 1  # required
 
         # delete Rfree from time invariant list since it varies overtime
         FinHorizonAgent.del_from_time_inv("Rfree")
         # Add Rfree to time varying list to be able to introduce time varying interest rates
         FinHorizonAgent.add_to_time_vary("Rfree")
 
-        # Set Terminal Solution as Steady State Consumption Function
+        # Set Terminal Solution as Steady State Solution
         FinHorizonAgent.solution_terminal = deepcopy(self.solution[0])
 
         dx = 0.0001  # Size of perturbation
@@ -2529,8 +2532,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Update income process if perturbed parameter enters the income shock distribution
         FinHorizonAgent.update_income_process()
 
-        # Solve
-        FinHorizonAgent.solve(run_presolve=False)
+        # Solve the "finite horizon" model, but don't re-solve the terminal period!
+        FinHorizonAgent.solve(presolve=False)
 
         # Use Harmenberg Neutral Measure
         FinHorizonAgent.neutral_measure = True
@@ -2666,8 +2669,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         ########
 
         params = deepcopy(self.__dict__["parameters"])
-        params["T_cycle"] = 2  # Dimension of Jacobian Matrix
-
+        params["T_cycle"] = 2  # Just need one transition matrix
         params["LivPrb"] = params["T_cycle"] * [self.LivPrb[0]]
         params["PermGroFac"] = params["T_cycle"] * [self.PermGroFac[0]]
         params["PermShkStd"] = params["T_cycle"] * [self.PermShkStd[0]]
@@ -2676,11 +2678,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
         params["UnempPrb"] = params["T_cycle"] * [self.UnempPrb]
         params["IncUnemp"] = params["T_cycle"] * [self.IncUnemp]
         params["IncShkDstn"] = params["T_cycle"] * [self.IncShkDstn[0]]
-        params["cFunc_terminal_"] = deepcopy(self.solution[0].cFunc)
+        params["wage"] = params["T_cycle"] * [self.wage[0]]
+        params["labor"] = params["T_cycle"] * [self.labor[0]]
+        params["tax_rate"] = params["T_cycle"] * [self.tax_rate[0]]
+        params["cycles"] = 1  # Now it's "finite" horizon while things are changing
 
         # Create instance of a finite horizon agent for calculation of zeroth
         ZerothColAgent = IndShockConsumerType(**params)
-        ZerothColAgent.cycles = 1  # required
+        ZerothColAgent.solution_terminal = deepcopy(self.solution[0])
 
         # If parameter is in time invariant list then add it to time vary list
         ZerothColAgent.del_from_time_inv(shk_param)
@@ -2689,8 +2694,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Update income process if perturbed parameter enters the income shock distribution
         ZerothColAgent.update_income_process()
 
-        # Solve
-        ZerothColAgent.solve()
+        # Solve the "finite horizon" problem, but *don't* re-solve the "terminal period",
+        # because we're using the long run solution as the "terminal" solution here!
+        ZerothColAgent.solve(presolve=False)
 
         # this condition is because some attributes are specified as lists while other as floats
         if type(getattr(self, shk_param)) == list:

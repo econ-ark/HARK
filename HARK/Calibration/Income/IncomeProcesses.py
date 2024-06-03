@@ -161,7 +161,6 @@ class MixtureTranIncShk_HANK(DiscreteDistribution):
         wage,
         labor,
         tax_rate,
-        TranShkMean_Func,
         seed=0,
     ):
         dstn_approx = MeanOneLogNormal(sigma).discretize(
@@ -234,7 +233,6 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
             IncUnemp=IncUnemp,
             n_approx=n_approx_Tran,
         )
-
         joint_dstn = combine_indep_dstns(perm_dstn, tran_dstn)
 
         super().__init__(
@@ -556,15 +554,6 @@ def construct_HANK_lognormal_income_process_unemployment(
     TranShkCount_list = [TranShkCount] * normal_length + [1] * retire_length
     neutral_measure_list = [neutral_measure] * len(PermShkCount_list)
 
-    PermShkDstn = IndexDistribution(
-        engine=LognormPermIncShk,
-        conditional={
-            "sigma": PermShkStd,
-            "n_approx": PermShkCount_list,
-            "neutral_measure": neutral_measure_list,
-        },
-    )
-
     IncShkDstn = IndexDistribution(
         engine=IncShkDstn_HANK,
         conditional={
@@ -582,20 +571,7 @@ def construct_HANK_lognormal_income_process_unemployment(
         RNG=RNG,
     )
 
-    TranShkDstn = IndexDistribution(
-        engine=MixtureTranIncShk_HANK,
-        conditional={
-            "sigma": TranShkStd,
-            "UnempPrb": UnempPrb_list,
-            "IncUnemp": IncUnemp_list,
-            "n_approx": TranShkCount_list,
-            "wage": wage,
-            "tax_rate": tax_rate,
-            "labor": labor,
-        },
-    )
-
-    return IncShkDstn, PermShkDstn, TranShkDstn
+    return IncShkDstn
 
 
 ###############################################################################
