@@ -173,7 +173,18 @@ class DBlock:
         """
         Returns variable values given previous values and decision rule for all controls.
         """
-        return simulate_dynamics(self.dynamics, pre, dr)
+        dyn = self.dynamics.copy()
+
+        # don't simulate values that have already been given.
+        # this will break if there's a directly recursive label,
+        # i.e. if dynamics at time t for variable 'a'
+        # depend on state of 'a' at time t-1
+        # This is a forbidden case in CDC's design.
+        for varn in pre:
+            if varn in dyn:
+                del dyn[varn]
+
+        return simulate_dynamics(dyn, pre, dr)
 
     def calc_reward(self, vals):
         """

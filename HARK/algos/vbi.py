@@ -5,6 +5,7 @@ from a continuation value function and stage dynamics.
 
 from HARK.model import DBlock
 import itertools
+import numpy as np
 from scipy.optimize import minimize
 from typing import Mapping, Sequence
 import xarray as xr
@@ -16,7 +17,7 @@ def get_action_rule(action):
     This is useful for constructing decision rules with fixed actions.
     """
 
-    def ar(*args):
+    def ar():
         return action
 
     return ar
@@ -29,7 +30,7 @@ def ar_from_data(da):
     """
 
     def ar(**args):
-        return da.interp(**args)
+        return da.interp(**args).values.tolist()
 
     return ar
 
@@ -65,7 +66,7 @@ def grid_to_data_array(
 
 
 def vbi_solve(
-    block: DBlock, continuation, state_grid: Grid, disc_params, calibration={}
+    block: DBlock, continuation, state_grid: Grid, disc_params={}, calibration={}
 ):
     """
     Solve a DBlock using backwards induction on the value function.
@@ -97,10 +98,11 @@ def vbi_solve(
         # build a dictionary from these states, as scope for the optimization
         state_vals = {k: v for k, v in zip(state_grid.keys(), state_point)}
 
-        # copy calibration
-        # update with state_vals
-        # this becomes the before-action states
-        pre_states = state_vals + parameters
+        # The value of the action is computed given
+        # the problem calibration and the states for the current point on the
+        # state-grid.
+        pre_states = calibration.copy()
+        pre_states.update(state_vals)
 
         # prepare function to optimize
         def negated_value(a):  # old! (should be negative)
@@ -120,14 +122,18 @@ def vbi_solve(
         # pseudo
         # optimize_action(pre_states, srv_function)
 
-        a_best, root_res = minimize(  # choice of
-            negated_value, full_output=True
+        res = minimize(  # choice of
+            negated_value,
+            0,  # x0 is starting guess, here arbitrary.
         )
+        print(res)
 
-        dr_best = {c: get_action_rule(a_best[i]) for i, c in enumerate(controls)}
+        dr_best = {c: get_action_rule(res.x[i]) for i, c in enumerate(controls)}
 
-        if root_res.converged:
-            policy_data.sel(**state_vals).variable.data.put(0, a_best)
+        if res.success:
+            policy_data.sel(**state_vals).variable.data.put(
+                0, res.x[0]
+            )  # will only work for scalar actions
             value_data.sel(**state_vals).variable.data.put(
                 0, srv_function(pre_states, dr_best)
             )
@@ -144,7 +150,9 @@ def vbi_solve(
 
     # use the xarray interpolator to create a decision rule.
     dr_from_data = {
-        c: ar_from_data(da)  # maybe needs to be more sensitive to the information set
+        c: ar_from_data(
+            policy_data
+        )  # maybe needs to be more sensitive to the information set
         for i, c in enumerate(controls)
     }
 
