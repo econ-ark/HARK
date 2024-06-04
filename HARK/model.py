@@ -31,12 +31,13 @@ class Control:
 
     Parameters
     ----------
-    args : list of str
+    iset : list of str
         The labels of the variables that are in the information set of this control.
     """
 
-    def __init__(self, args):
-        pass
+    def __init__(self, iset, upper_bound=None):
+        self.iset = iset
+        self.upper_bound = upper_bound
 
 
 def discretized_shock_dstn(shocks, disc_params):
