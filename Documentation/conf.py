@@ -98,10 +98,10 @@ html_theme_options = {
             "attributes": {"target": "_blank"},
         },
     ],
-  "secondary_sidebar_items": {
-    "**": ["page-toc", "sourcelink"],
-    "index": ["page-toc"],
-  }
+    "secondary_sidebar_items": {
+        "**": ["page-toc", "sourcelink"],
+        "index": ["page-toc"],
+  },
 }
 
 nbsphinx_prolog = r"""
