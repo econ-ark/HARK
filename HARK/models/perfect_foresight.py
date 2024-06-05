@@ -24,7 +24,7 @@ block = DBlock(
         "dynamics": {
             "y": lambda p: p,
             "m": lambda Rfree, a, y: Rfree * a + y,
-            "c": Control(["m"]),
+            "c": Control(["m"], upper_bound=lambda m: m),
             "p": lambda PermGroFac, p: PermGroFac * p,
             "a": lambda m, c: m - c,
         },

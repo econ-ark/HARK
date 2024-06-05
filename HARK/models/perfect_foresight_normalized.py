@@ -26,7 +26,7 @@ block = DBlock(
             "r_eff": lambda Rfree, PermGroFac: Rfree / PermGroFac,
             "b_nrm": lambda r_eff, a_nrm: r_eff * a_nrm,
             "m_nrm": lambda b_nrm: b_nrm + 1,
-            "c_nrm": Control(["m_nrm"]),
+            "c_nrm": Control(["m_nrm"], upper_bound=lambda m_nrm: m_nrm),
             "a_nrm": lambda m_nrm, c_nrm: m_nrm - c_nrm,
         },
         "reward": {"u": lambda c: c ** (1 - CRRA) / (1 - CRRA)},

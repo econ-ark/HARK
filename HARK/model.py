@@ -33,10 +33,14 @@ class Control:
     ----------
     iset : list of str
         The labels of the variables that are in the information set of this control.
+
+    upper_bound : function
+        An 'equation function' which evaluates to the upper bound of the control variable.
     """
 
-    def __init__(self, iset, upper_bound=None):
+    def __init__(self, iset, lower_bound=None, upper_bound=None):
         self.iset = iset
+        self.lower_bound = lower_bound
         self.upper_bound = upper_bound
 
 
@@ -172,18 +176,26 @@ class DBlock:
 
     def transition(self, pre, dr):
         """
-        Returns variable values given previous values and decision rule for all controls.
+        Computes the state variables following pre-given states,
+        given a decision rule for all controls.
         """
         dyn = self.dynamics.copy()
 
-        # don't simulate values that have already been given.
+        # don't simulate any states that are logically prior
+        # to those that have already been given.
+        met_pre = False  # this is a hack; really should use dependency graph
+        for varn in list(dyn.keys()):
+            if not met_pre:
+                if varn in pre:
+                    met_pre = True
+                    del dyn[varn]
+                elif varn not in pre and varn not in dr:
+                    del dyn[varn]
+
         # this will break if there's a directly recursive label,
         # i.e. if dynamics at time t for variable 'a'
         # depend on state of 'a' at time t-1
         # This is a forbidden case in CDC's design.
-        for varn in pre:
-            if varn in dyn:
-                del dyn[varn]
 
         return simulate_dynamics(dyn, pre, dr)
 

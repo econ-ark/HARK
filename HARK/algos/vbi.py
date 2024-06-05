@@ -4,6 +4,7 @@ from a continuation value function and stage dynamics.
 """
 
 from HARK.model import DBlock
+from inspect import signature
 import itertools
 import numpy as np
 from scipy.optimize import minimize
@@ -65,7 +66,7 @@ def grid_to_data_array(
     return da
 
 
-def vbi_solve(
+def solve(
     block: DBlock, continuation, state_grid: Grid, disc_params={}, calibration={}
 ):
     """
@@ -112,19 +113,30 @@ def vbi_solve(
             return -srv_function(pre_states, dr)
 
         ## get lower bound.
-        ## not yet implemented
-        lower_bound = np.array([-1e-12] * len(controls))  ## a really low number!
+        ## assumes only one control currently
+        lower_bound = -1e-6  ## a really low number!
+        feq = block.dynamics[controls[0]].lower_bound
+        if feq is not None:
+            lower_bound = feq(*[pre_states[var] for var in signature(feq).parameters])
 
         ## get upper bound
-        ## not yet implemented
-        upper_bound = np.array([1e12] * len(controls))
+        ## assumes only one control currently
+        upper_bound = 1e-12  # a very high number
+        feq = block.dynamics[controls[0]].upper_bound
+        if feq is not None:
+            upper_bound = feq(*[pre_states[var] for var in signature(feq).parameters])
 
         # pseudo
         # optimize_action(pre_states, srv_function)
 
+        bounds = ((lower_bound, upper_bound),)
+
+        print(bounds)
+
         res = minimize(  # choice of
             negated_value,
-            0,  # x0 is starting guess, here arbitrary.
+            1,  # x0 is starting guess, here arbitrary.
+            bounds=bounds,
         )
         print(res)
 
@@ -139,11 +151,11 @@ def vbi_solve(
             )
         else:
             print(f"Optimization failure at {state_vals}.")
-            print(root_res)
+            print(res)
 
-            dr_best = {c: get_action_rule(root_res[i]) for i, c in enumerate(controls)}
+            dr_best = {c: get_action_rule(res.x[i]) for i, c in enumerate(controls)}
 
-            policy_data.sel(**state_vals).variable.data.put(0, res.root)  # ?
+            policy_data.sel(**state_vals).variable.data.put(0, res.x[0])  # ?
             value_data.sel(**state_vals).variable.data.put(
                 0, srv_function(pre_states, dr_best)
             )

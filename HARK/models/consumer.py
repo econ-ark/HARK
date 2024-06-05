@@ -34,7 +34,7 @@ consumption_block = DBlock(
             "b": lambda k, R: k * R,
             "y": lambda p, theta: p * theta,
             "m": lambda b, y: b + y,
-            "c": Control(["m"]),
+            "c": Control(["m"], upper_bound=lambda m: m),
             "p": lambda PermGroFac, p: PermGroFac * p,
             "a": lambda m, c: m - c,
         },
