@@ -40,7 +40,7 @@ class test_vbi(unittest.TestCase):
             cons.consumption_block_normalized,
             lambda a: 0,
             state_grid,
-            disc_params = {"theta": {"N" : 7}},
+            disc_params={"theta": {"N": 7}},
             calibration=cons.calibration,
         )
 
