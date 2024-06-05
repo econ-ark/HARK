@@ -63,13 +63,13 @@ you might want to look at the `DemARK
 
       +++
 
-      .. button-ref:: overview/ARKitecture
+      .. button-ref:: overview/index
          :ref-type: doc
          :color: info
          :click-parent:
          :expand:
 
-         The ARKitecture
+         Overview and Exxamples
 
    .. grid-item-card::
       :padding: 2
