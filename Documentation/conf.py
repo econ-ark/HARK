@@ -101,7 +101,7 @@ html_theme_options = {
     "secondary_sidebar_items": {
         "**": ["page-toc", "sourcelink"],
         "index": ["page-toc"],
-  },
+    },
 }
 
 nbsphinx_prolog = r"""
