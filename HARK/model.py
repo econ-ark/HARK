@@ -174,28 +174,29 @@ class DBlock:
 
         return [varn for varn in dyn if isinstance(dyn[varn], Control)]
 
-    def transition(self, pre, dr):
+    def transition(self, pre, dr, screen=False):
         """
         Computes the state variables following pre-given states,
         given a decision rule for all controls.
         """
         dyn = self.dynamics.copy()
 
-        # don't simulate any states that are logically prior
-        # to those that have already been given.
-        met_pre = False  # this is a hack; really should use dependency graph
-        for varn in list(dyn.keys()):
-            if not met_pre:
-                if varn in pre:
-                    met_pre = True
-                    del dyn[varn]
-                elif varn not in pre and varn not in dr:
-                    del dyn[varn]
+        if screen:
+            # don't simulate any states that are logically prior
+            # to those that have already been given.
+            met_pre = False  # this is a hack; really should use dependency graph
+            for varn in list(dyn.keys()):
+                if not met_pre:
+                    if varn in pre:
+                        met_pre = True
+                        del dyn[varn]
+                    elif varn not in pre and varn not in dr:
+                        del dyn[varn]
 
-        # this will break if there's a directly recursive label,
-        # i.e. if dynamics at time t for variable 'a'
-        # depend on state of 'a' at time t-1
-        # This is a forbidden case in CDC's design.
+            # this will break if there's a directly recursive label,
+            # i.e. if dynamics at time t for variable 'a'
+            # depend on state of 'a' at time t-1
+            # This is a forbidden case in CDC's design.
 
         return simulate_dynamics(dyn, pre, dr)
 
@@ -211,7 +212,9 @@ class DBlock:
 
         return rvals
 
-    def get_state_rule_value_function_from_continuation(self, continuation):
+    def get_state_rule_value_function_from_continuation(
+        self, continuation, screen=False
+    ):
         """
         Given a continuation value function, returns a state-rule value
         function: the value for each state and decision rule.
@@ -220,7 +223,7 @@ class DBlock:
         """
 
         def state_rule_value_function(pre, dr):
-            vals = self.transition(pre, dr)
+            vals = self.transition(pre, dr, screen=screen)
             r = list(self.calc_reward(vals).values())[0]  # a hack; to be improved
             cv = continuation(
                 *[vals[var] for var in signature(continuation).parameters]

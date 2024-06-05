@@ -86,7 +86,9 @@ def solve(
     """
 
     # state-rule value function
-    srv_function = block.get_state_rule_value_function_from_continuation(continuation)
+    srv_function = block.get_state_rule_value_function_from_continuation(
+        continuation, screen=True
+    )
 
     controls = block.get_controls()
 
