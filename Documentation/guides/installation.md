@@ -43,9 +43,9 @@ Next, install `econ-ark` into your new virtual environment via pip:
 pip install econ-ark
 ```
 
----
 
-**!NOTE**
+
+:::{note}
 
 If you install econ-ark into the virtual environment, your HARK scripts will not compile unless it is activated.
 
@@ -71,7 +71,7 @@ python YourScript.py
 ```
 
 For using the text editor, you also need to configure the environment.
-
+:::
 ---
 
 ### Using HARK with Anaconda
@@ -81,11 +81,10 @@ Installing HARK with pip does not give you full access to HARK's many graphical 
 1. Download Anaconda for your operating system and follow the installation instructions [at Anaconda.com](https://www.anaconda.com/download/success).
 
 ---
+:::{note}
 
-**!NOTE**
-
-You can have the default python distribution from python.org and from anaconda, as they do not interfere. However, be careful with setting the PATH. To avoid problems you can eg. set the environment variables path to the default distribution and access anaconda distribution via anaconda prompt.
-
+You can have the default python distribution from python.org and from anaconda, as they do not interfere. However, be careful with setting the PATH. To avoid problems you can set the environment variables path to the default distribution and access anaconda distribution via anaconda prompt.
+:::
 ---
 
 2. Anaconda includes its own virtual environment system called `conda` which stores environments in a preset location (so you don't have to choose). So in order to create and activate an econ-ark virtual environment:
@@ -200,8 +199,7 @@ pip install -e .
 
 ---
 
-**!NOTE**
-
+:::{note}
 To check the package performance with your local changes, use the same command from the command line (after navigating to your HARK directory):
 
 ```
@@ -214,3 +212,4 @@ If for some reason you want to switch back to the PyPI version:
 pip uninstall econ-ark
 pip install econ-ark (options)
 ```
+:::
