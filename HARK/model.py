@@ -178,6 +178,15 @@ class DBlock:
         """
         Computes the state variables following pre-given states,
         given a decision rule for all controls.
+
+        Parameters
+        -----------
+        pre
+        dr
+
+        screen: Boolean
+            If True, the remove any dynamics that are prior to the first given state.
+            Defaults to False.
         """
         dyn = self.dynamics.copy()
 
