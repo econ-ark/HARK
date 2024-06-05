@@ -111,7 +111,7 @@ nbsphinx_prolog = r"""
 
     <div class="admonition note">
       This page was generated from
-      <a class="reference external" href="https://github.com/econ-ark/HARK/tree/master/{{ docname|e }}">{{ docname|e }}</a>. 
+      <a class="reference external" href="https://github.com/econ-ark/HARK/tree/master/{{ docname|e }}">{{ docname|e }}</a>.
       <br />
       Interactive online version:
       <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath={{ docname|e }}"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
