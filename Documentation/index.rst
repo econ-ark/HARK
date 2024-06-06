@@ -69,7 +69,7 @@ you might want to look at the `DemARK
          :click-parent:
          :expand:
 
-         Overview and Exxamples
+         Overview and Examples
 
    .. grid-item-card::
       :padding: 2
