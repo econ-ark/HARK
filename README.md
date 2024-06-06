@@ -35,7 +35,7 @@
 
 HARK is a toolkit for the structural modeling of economic choices of optimizing and non-optimizing heterogeneous agents. For more information on using HARK, see the [Econ-ARK Website](https://econ-ark.org).
 
-The Econ-ARK project uses an open governance model and is fiscally sponsored by [NumFOCUS](https://numfocus.org/). Consider making a [tax-deductible donation](https://numfocus.salsalabs.org/donate-to-econ-ark/index.html) to help the project pay for developer time, professional services, travel, workshops, and a variety of other needs.
+The Econ-ARK project is fiscally sponsored by [NumFOCUS](https://numfocus.org/). Consider making a [tax-deductible donation](https://numfocus.org/donate-to-econ-ark) to help the project pay for developer time, professional services, travel, workshops, and a variety of other needs.
 
 <div align="center">
   <a href="https://numfocus.org/project/econ-ark">
@@ -63,12 +63,6 @@ We have a [Gitter](https://gitter.im) Econ-ARK [community](https://gitter.im/eco
   - [For Economists: Structural Modeling with Hark](#for-economists-structural-modeling-with-hark)
   - [For Computational Economics Developers](#for-computational-economics-developers)
 - [Contributing to HARK](#contributing-to-hark)
-- [Current Project Team Members](#current-project-team-members)
-  - [Founders](#founders)
-  - [TSC (Technical Steering Commitee)](#tsc-technical-steering-committee)
-  - [Collaborators](#collaborators)
-  - [Release Team](#release-team)
-- [Contributors](#contributors)
 - [Disclaimer](#disclaimer)
 
 ## Install
@@ -174,7 +168,7 @@ For more on acknowledging Econ-ARK [visit our website](https://econ-ark.org/ackn
 
 ## Support
 
-Looking for help? Please open a [GitHub issue](https://github.com/econ-ark/HARK/issues/new) or reach out to the [TSC](#tsc-technical-steering-committee).
+Looking for help? Please open a [GitHub issue](https://github.com/econ-ark/HARK/issues/new) or reach out to through the glitter [community](https://gitter.im/econ-ark/community).
 
 ## Release Types
 
@@ -234,9 +228,7 @@ Contributions go far beyond pull requests and commits. Although we love giving y
 - Blogging, speaking about, or creating tutorials about HARK
 - Helping others in our mailing list
 
-If you are worried or don’t know how to start, you can always reach out to the [TSC](#tsc-technical-steering-committee) or simply submit [an issue](https://github.com/econ-ark/HARK/issues/new) and a member can help give you guidance!
-
-**After your first contribution please let us know and we will add you to the Contributors list below!**
+If you are worried or don’t know how to start, you can always reach out to through the glitter [community](https://gitter.im/econ-ark/community)(#tsc-technical-steering-committee) or simply submit [an issue](https://github.com/econ-ark/HARK/issues/new) and a member can help give you guidance!
 
 To install for development see the [Quickstart Guide](https://docs.econ-ark.org/guides/installation.html).
 
