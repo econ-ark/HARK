@@ -10,8 +10,6 @@ from scipy import stats
 from scipy.stats import rv_continuous, rv_discrete
 from scipy.stats._distn_infrastructure import rv_continuous_frozen, rv_discrete_frozen
 from scipy.stats._multivariate import multivariate_normal_frozen, multi_rv_frozen
-from scipy import integrate
-from scipy.optimize import fsolve
 
 
 class Distribution:
@@ -753,13 +751,17 @@ class BVLogNormal(multi_rv_frozen, Distribution):
         if self.mu.size != 2:
             raise AttributeError("mu must be of size 2")
 
-        if self.Sigma.shape != (self.M, self.M):
-            raise AttributeError(f"Sigma must be a {self.M}x{self.M} matrix")
+        if np.array_equal(self.Sigma, self.Sigma.T):
+            res = np.all(np.linalg.eigvals(self.Sigma) >= 0)
+            if not res:
+                raise AttributeError("Sigma must be positive semi-definite")
+        else:
+            raise AttributeError("Sigma must be positive semi-definite")
 
-        multi_rv_frozen.__init__(self, mean=self.mu, cov=self.Sigma)
+        multi_rv_frozen.__init__(self)
         Distribution.__init__(self, seed=seed)
 
-    def _cdf(self, x: np.ndarray):
+    def _cdf(self, x: Union[list, np.ndarray]):
         """
         Cumulative distribution function of the distribution evaluated at x.
 
@@ -774,6 +776,8 @@ class BVLogNormal(multi_rv_frozen, Distribution):
             CDF evaluated at x.
         """
 
+        x = np.asarray(x)
+
         if x.size != self.M:
             raise ValueError(f"x must have size {self.M}")
 
@@ -782,13 +786,13 @@ class BVLogNormal(multi_rv_frozen, Distribution):
 
         return MVNormal(mu=self.mu, Sigma=self.Sigma).cdf(np.log(x))
 
-    def _pdf(self, x: np.ndarray):
+    def _pdf(self, x: Union[list, np.ndarray]):
         """
         Probability density function of the distribution evaluated at x.
 
         Parameters
         ----------
-        x : np.ndarray
+        x : Union[list, np.ndarray]
             Point at which to evaluate the PDF.
 
         Returns
@@ -796,6 +800,8 @@ class BVLogNormal(multi_rv_frozen, Distribution):
         float
             PDF evaluated at x.
         """
+
+        x = np.asarray(x)
 
         if x.size != self.M:
             raise ValueError(f"x must have size {self.M}")
@@ -892,71 +898,131 @@ class BVLogNormal(multi_rv_frozen, Distribution):
             points for discrete probability mass function.
         """
 
-        if self.Sigma == 0:  # If both variables are degenerate, return a single atom
-            return DiscreteDistribution([1.0], [np.exp(self.mu)], dtype="int32")
-        elif self.Sigma[0, 0] == 0:  #
-            x2 = Lognormal(
-                mu=self.mu[1], sigma=np.sqrt(self.Sigma[1, 1])
-            )._approx_equiprobable(N)
-            x1_approx = np.repeat(np.exp(self.mu[0]), N)
+        if np.array_equal(self.Sigma, np.diag(np.diag(self.Sigma))):
+            if self.Sigma[0, 0] == 0.0:
+                x1_atoms = np.repeat(np.exp(self.mu[0]), N)
+            else:
+                x1_atoms = (
+                    Lognormal(mu=self.mu[0], sigma=np.sqrt(self.Sigma[0, 0]))
+                    ._approx_equiprobable(N)
+                    .atoms
+                )
 
-            atoms = np.stack((x1_approx, x2.atoms), axis=-1)
-            pmv = x2.pmv
-        elif self.Sigma[1, 1] == 0:
-            x1 = Lognormal(
-                mu=self.mu[0], sigma=np.sqrt(self.Sigma[0, 0])
-            )._approx_equiprobable(N)
-            x2_approx = np.repeat(np.exp(self.mu[1]), N)
+            if self.Sigma[1, 1] == 0.0:
+                x2_atoms = np.repeat(np.exp(self.mu[1]), N)
+            else:
+                x2_atoms = (
+                    Lognormal(mu=self.mu[1], sigma=np.sqrt(self.Sigma[1, 1]))
+                    ._approx_equiprobable(N)
+                    .atoms
+                )
 
-            atoms = np.stack((x1.atoms, x2_approx), axis=-1)
-            pmv = x1.pmv
+            x1_rep, x2_rep = np.meshgrid(x1_atoms, x2_atoms)
+            x1_flat = x1_rep.flatten()
+            x2_flat = x2_rep.flatten()
+
+            atoms = np.stack([x1_flat, x2_flat], axis=-1)
+            pmv = np.repeat(1 / (N**2), N**2)
         else:
-            x1 = Lognormal(mu=self.mu[0], sigma=np.sqrt(self.Sigma[0, 0]))
-            cdf_bins = np.linspace(0, 1, N + 1)
-            x1_bins = stats.lognormal.ppf(
-                cdf_bins, s=np.sqrt(self.Sigma[0, 0]), loc=0, scale=np.exp(self.mu[0])
-            )
-            x2_bins = np.zeros((N + 1, N))
-            x2_bins[0] = np.zeros(N)
-            x2_bins[N] = np.repeat(np.inf, N)
+            cdf_cuts = np.linspace(0, 1, N + 1)
 
-            for i in range(N):
-                joint_prob = lambda y: integrate.dblquad(
-                    lambda x, z: self._pdf(np.asarray([x, z])),
-                    x1_bins[i],
-                    x1_bins[i + 1],
-                    0,
-                    y,
-                )
+            Z = Normal()
 
-                adj_prob = lambda y, j: joint_prob(y) - (j + 1) / N
-
-                x2_cuts = np.array(
-                    [fsolve(lambda y: adj_prob(y, j), 1e-6)[0] for j in range(N - 1)]
-                )
-
-                x2_bins[1:N, i] = x2_cuts
+            z_bins = Z.ppf(cdf_cuts)
 
             atoms = []
 
+            mu1 = self.mu[0]
+            mu2 = self.mu[1]
+            sigma1 = np.sqrt(self.Sigma[0, 0])
+            sigma2 = np.sqrt(self.Sigma[1, 1])
+            cov = self.Sigma[0, 1]
+            a = np.sqrt(sigma2**2 - (cov**2 / sigma1**2))
+
+            x1bins = np.exp(mu1 + sigma1 * z_bins)
+            x21_bins = np.exp((cov / sigma1) * z_bins)
+            x22_bins = np.exp(a * z_bins)
+
             for i in range(N):
                 for j in range(N):
-                    x_exp = integrate.dblquad(
-                        lambda x, y: x * self._pdf(np.array([x, y])),
-                        x1_bins[i],
-                        x1_bins[i + 1],
-                        x2_bins[j, i],
-                        x2_bins[j + 1, i],
-                    )
-                    y_exp = integrate.dblquad(
-                        lambda x, y: y * self._pdf(np.array([x, y])),
-                        x1_bins[i],
-                        x1_bins[i + 1],
-                        x2_bins[j, i],
-                        x2_bins[j + 1, i],
+                    x1Top = x1bins[i + 1]
+                    x1Bot = x1bins[i]
+                    x21Top = x21_bins[i + 1]
+                    x21Bot = x21_bins[i]
+                    x22Top = x22_bins[j + 1]
+                    x22Bot = x22_bins[j]
+
+                    if x1Bot == 0.0:
+                        temp1Bot = np.inf
+                    else:
+                        temp1Bot = (mu1 + sigma1**2 - np.log(x1Bot)) / (
+                            np.sqrt(2) * sigma1
+                        )
+
+                    temp1Top = (mu1 + sigma1**2 - np.log(x1Top)) / (np.sqrt(2) * sigma1)
+
+                    if x21Bot == 0.0:
+                        temp21Bot = np.inf
+                    else:
+                        temp21Bot = ((cov / sigma1) ** 2 - np.log(x21Bot)) / (
+                            np.sqrt(2) * (cov / sigma1)
+                        )
+
+                    temp21Top = ((cov / sigma1) ** 2 - np.log(x21Top)) / (
+                        np.sqrt(2) * (cov / sigma1)
                     )
 
-                    atoms.append((x_exp, y_exp))
+                    if x22Bot == 0.0:
+                        temp22Bot = np.inf
+                    else:
+                        temp22Bot = (a**2 - np.log(x22Bot)) / (np.sqrt(2) * a)
+
+                    temp22Top = (a**2 - np.log(x22Top)) / (np.sqrt(2) * a)
+
+                    if temp1Bot <= 4.0:
+                        x1_exp = (
+                            -0.5
+                            * np.exp(mu1 + (sigma1**2) / 2)
+                            * (math.erf(temp1Top) - math.erf(temp1Bot))
+                            * N
+                        )
+                    else:
+                        x1_exp = (
+                            -0.5
+                            * np.exp(mu1 + (sigma1**2) / 2)
+                            * (math.erfc(temp1Bot) - math.erfc(temp1Top))
+                            * N
+                        )
+
+                    if temp21Bot <= 4.0:
+                        x21_exp = (
+                            -0.5
+                            * np.exp(((cov / sigma1) ** 2) / 2)
+                            * (math.erf(temp21Top) - math.erf(temp21Bot))
+                        )
+                    else:
+                        x21_exp = (
+                            -0.5
+                            * np.exp(((cov / sigma1) ** 2) / 2)
+                            * (math.erfc(temp21Bot) - math.erfc(temp21Top))
+                        )
+
+                    if temp22Bot <= 4.0:
+                        x22_exp = (
+                            -0.5
+                            * np.exp((a**2) / 2)
+                            * (math.erf(temp22Top) - math.erf(temp22Bot))
+                        )
+                    else:
+                        x22_exp = (
+                            -0.5
+                            * np.exp((a**2) / 2)
+                            * (math.erfc(temp22Bot) - math.erfc(temp22Top))
+                        )
+
+                    x2_exp = np.exp(mu2) * x21_exp * x22_exp * N**2
+
+                    atoms.append((x1_exp, x2_exp))
 
             pmv = np.repeat(1 / (N**2), N**2)
             atoms = np.array(atoms)
@@ -965,7 +1031,7 @@ class BVLogNormal(multi_rv_frozen, Distribution):
 
         return DiscreteDistribution(
             pmv,
-            atoms,
+            atoms.T,
             seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
             limit=limit,
         )
