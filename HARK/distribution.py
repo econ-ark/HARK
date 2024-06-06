@@ -946,7 +946,9 @@ class MVLogNormal(multi_rv_frozen, Distribution):
 
                 p = np.repeat(params, 2).reshape(dim, 2)
 
-                bounds = ((p**2 - z) / (np.sqrt(2) * p)).T
+                Z = np.multiply(p, z)
+
+                bounds = ((p**2 - Z) / (np.sqrt(2) * p)).T
 
                 x_exp = (
                     -0.5
