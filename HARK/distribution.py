@@ -10,6 +10,7 @@ from scipy import stats
 from scipy.stats import rv_continuous, rv_discrete
 from scipy.stats._distn_infrastructure import rv_continuous_frozen, rv_discrete_frozen
 from scipy.stats._multivariate import multivariate_normal_frozen, multi_rv_frozen
+from scipy import special
 
 
 class Distribution:
@@ -724,7 +725,7 @@ class MVNormal(multivariate_normal_frozen, Distribution):
         )
 
 
-class BVLogNormal(multi_rv_frozen, Distribution):
+class MVLogNormal(multi_rv_frozen, Distribution):
     """
     A Bivariate Lognormal distribution.
 
@@ -733,7 +734,7 @@ class BVLogNormal(multi_rv_frozen, Distribution):
     mu : Union[list, numpy.ndarray], optional
         Means of underlying multivariate normal, default [0.0, 0.0].
     Sigma : Union[list, numpy.ndarray], optional
-        2x2 variance-covariance matrix of underlying multivariate normal, default [[1.0, 0.0], [0.0, 1.0]].
+        nxn variance-covariance matrix of underlying multivariate normal, default [[1.0, 0.0], [0.0, 1.0]].
     seed : int, optional
         Seed for random number generator, default 0.
     """
@@ -748,8 +749,8 @@ class BVLogNormal(multi_rv_frozen, Distribution):
         self.Sigma = np.asarray(Sigma)
         self.M = self.mu.size
 
-        if self.mu.size != 2:
-            raise AttributeError("mu must be of size 2")
+        if self.Sigma.shape != (self.M, self.M):
+            raise AttributeError(f"Sigma must be a {self.M}x{self.M} matrix")
 
         if np.array_equal(self.Sigma, self.Sigma.T):
             res = np.all(np.linalg.eigvals(self.Sigma) >= 0)
@@ -778,11 +779,8 @@ class BVLogNormal(multi_rv_frozen, Distribution):
 
         x = np.asarray(x)
 
-        if x.size != self.M:
-            raise ValueError(f"x must have size {self.M}")
-
-        if (x[1] <= 0) | (x[0] <= 0):
-            return 0
+        if (x.shape != self.M) & (x.shape[1] != self.M):
+            raise ValueError(f"x must be and {self.M}-dimensional input")
 
         return MVNormal(mu=self.mu, Sigma=self.Sigma).cdf(np.log(x))
 
@@ -803,11 +801,8 @@ class BVLogNormal(multi_rv_frozen, Distribution):
 
         x = np.asarray(x)
 
-        if x.size != self.M:
-            raise ValueError(f"x must have size {self.M}")
-
-        if (x[1] <= 0) | (x[0] <= 0):
-            return 0.0
+        if (x.shape != (self.M,)) & (x.shape[1] != self.M):
+            raise ValueError(f"x must be an {self.M}-dimensional input")
 
         eigenvalues = linalg.eigvals(self.Sigma)
 
@@ -817,16 +812,16 @@ class BVLogNormal(multi_rv_frozen, Distribution):
 
         rank_sigma = linalg.matrix_rank(self.Sigma)
 
-        pd = (
-            (1 / np.prod(x))
-            * (2 * np.pi) ** (-rank_sigma / 2)
+        pd = np.multiply(
+            (1 / np.prod(x, axis=1)),
+            (2 * np.pi) ** (-rank_sigma / 2)
             * pseudo_det ** (-0.5)
-            * np.exp(-(1 / 2) * (np.log(x) @ inverse_sigma @ np.log(x)))
+            * np.exp(-(1 / 2) * np.multiply(np.log(x) @ inverse_sigma, np.log(x))),
         )
 
         return pd
 
-    def _marginal(self, x: Union[np.ndarray, float], dim: int):
+    def _marginal(self, x: Union[np.ndarray, float, list], dim: int):
         """
         Marginal distribution of one of the variables in the bivariate distribution evaluated at x.
 
@@ -845,16 +840,13 @@ class BVLogNormal(multi_rv_frozen, Distribution):
 
         x = np.asarray(x)
 
-        if x.size != 1:
-            raise ValueError("x must have size 1")
-
         x_dim = Lognormal(
             mu=self.mu[dim - 1], sigma=np.sqrt(self.Sigma[dim - 1, dim - 1])
         )
 
         return x_dim.pdf(x)
 
-    def _marginal_cdf(self, x: Union[np.ndarray, float], dim: int):
+    def _marginal_cdf(self, x: Union[np.ndarray, float, list], dim: int):
         """
         Cumulative distribution function of one of the variables from the bivariate distribution evaluated at x.
 
@@ -873,16 +865,132 @@ class BVLogNormal(multi_rv_frozen, Distribution):
 
         x = np.asarray(x)
 
-        if x.size != 1:
-            raise ValueError("x must have size 1")
-
         x_dim = Lognormal(
             mu=self.mu[dim - 1], sigma=np.sqrt(self.Sigma[dim - 1, dim - 1])
         )
 
         return x_dim.cdf(x)
 
-    def _approx_equiprobable(self, N):
+    def rvs(self, n: int = 1, seed: int = None):
+        """
+        Random sample from the distribution.
+
+        Parameters
+        ----------
+        n : int
+            Number of data points to generate.
+        seed : int, optional
+            Seed for random number generator.
+
+        Returns
+        -------
+        np.ndarray
+            Random sample from the distribution.
+        """
+
+        if seed is None:
+            seed = self.seed
+
+        Z = MVNormal(mu=self.mu, Sigma=self.Sigma, seed=seed)
+
+        return np.exp(Z.rvs(n))
+
+    def approx_equiprobable(self, N):
+        """
+        Makes a discrete approximation using the equiprobable method to this multivariate lognormal distribution.
+
+        Parameters
+        ----------
+        N : int
+            The number of points in the discrete approximation.
+
+        Returns
+        -------
+        d : DiscreteDistribution
+            Probability associated with each point in array of discrete
+            points for discrete probability mass function.
+        """
+
+        if np.array_equal(self.Sigma, np.diag(np.diag(self.Sigma))):
+            ind_atoms = np.empty((self.M, N))
+
+            for i in range(self.M):
+                if self.Sigma[i, i] == 0.0:
+                    x_atoms = np.repeat(np.exp(self.mu[i]), N)
+                    ind_atoms[i] = x_atoms
+                else:
+                    x_atoms = (
+                        Lognormal(mu=self.mu[i], sigma=np.sqrt(self.Sigma[i, i]))
+                        ._approx_equiprobable(N)
+                        .atoms
+                    )
+                    ind_atoms[i] = x_atoms
+
+            atoms_list = [ind_atoms[i] for i in range(self.M)]
+            atoms = np.stack(
+                [ar.flatten() for ar in list(np.meshgrid(*atoms_list))], axis=1
+            ).T
+            pmv = np.repeat(1 / (N**self.M), N**self.M)
+        else:
+            cdf_cuts = np.linspace(0, 1, N + 1)
+
+            Z = Normal()
+
+            z_cuts = Z.ppf(cdf_cuts)
+            z_bins = [(z_cuts[i], z_cuts[i + 1]) for i in range(N)]
+
+            atoms = np.empty([self.M, N**self.M])
+
+            def eval(params, z):
+                dim = len(params)
+
+                p = np.repeat(params, 2).reshape(dim, 2)
+
+                bounds = ((p**2 - z) / (np.sqrt(2) * p)).T
+
+                x_exp = (
+                    -0.5
+                    * np.exp(np.square(params) / 2)
+                    * (special.erf(bounds[1]) - special.erf(bounds[0]))
+                )
+
+                return np.prod(x_exp) * N**dim
+
+            for i in range(self.M):
+                mui = self.mu[i]
+                params = np.zeros(i + 1)
+
+                for j in range(i):
+                    params[j] = self.Sigma[i, j] / np.sqrt(self.Sigma[j, j])
+
+                params[i] = np.sqrt(self.Sigma[i, i] - np.sum(np.square(params)))
+
+                Z_list = [z_bins for _ in range(i + 1)]
+
+                Z_bins = [np.array(x) for x in list(product(*Z_list))]
+
+                xi_atoms = []
+
+                for z_bin in Z_bins:
+                    atom = np.exp(mui) * eval(params, z_bin)
+                    xi_atoms.append(atom)
+
+                xi_atoms_arr = np.repeat(xi_atoms, N ** (self.M - (i + 1)))
+
+                atoms[i] = xi_atoms_arr
+
+            pmv = np.repeat(1 / (N**self.M), N**self.M)
+
+        limit = {"dist": self, "method": "equiprobable", "N": N}
+
+        return DiscreteDistribution(
+            pmv,
+            atoms,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
+        )
+
+    def bv_approx_equiprobable(self, N):
         """
         Makes a discrete approximation using the equiprobable method to this bivariate lognormal distribution.
 
@@ -897,6 +1005,11 @@ class BVLogNormal(multi_rv_frozen, Distribution):
             Probability associated with each point in array of discrete
             points for discrete probability mass function.
         """
+
+        if self.M != 2:
+            raise ValueError(
+                "This method is only implemented for bivariate distributions. For general distributions, use the approx_equiprobable method instead."
+            )
 
         if np.array_equal(self.Sigma, np.diag(np.diag(self.Sigma))):
             if self.Sigma[0, 0] == 0.0:
