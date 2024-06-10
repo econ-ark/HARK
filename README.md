@@ -138,9 +138,9 @@ Or you can retrieve the solved value for human wealth normalized by permanent in
 PFexample.solution[0].hNrm
 ```
 
-For a detailed explanation of the above example please see the demo notebook [_A Gentle Introduction to HARK_](https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath=examples/Gentle-Intro/Gentle-Intro-To-HARK.ipynb).
+For a detailed explanation of the above example please see the demo notebook [_A Gentle Introduction to HARK_](https://docs.econ-ark.org/example_notebooks/Gentle-Intro-To-HARK.html).
 
-For more examples please visit the [econ-ark/DemARK](https://github.com/econ-ark/DemARK) repository.
+For more examples please visit the [examples](https://docs.econ-ark.org/overview/index.html) section of the [documentation](https://docs.econ-ark.org/index.html), or the [econ-ark/DemARK](https://github.com/econ-ark/DemARK) repository.
 
 ## Citation
 

@@ -2,7 +2,7 @@
 
 ## Installing HARK
 
-HARK is an open source project that is compatible with Python 3. Currently, we recommend using version 3.10 or higher.
+HARK is an open source project that is compatible with Python 3. Currently, HARK is supported for python versions 3.10 or higher.
 
 The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/installation/) by running `pip install econ-ark` in your command line.
 
@@ -11,7 +11,7 @@ Before installing HARK, we recommend creating a new virtual environment, which i
 The easiest way to get started with managing environments is to use `conda`, which is packaged with either the [Anaconda](https://anaconda.com/) distribution or [Miniconda](https://docs.conda.io/projects/miniconda/en/latest/). To create a new virtual environment and install `econ-ark`, enter this in your command line:
 
 ```
-conda create -n econ-ark python=3.10
+conda create -n econ-ark
 conda activate econ-ark
 pip install econ-ark
 ```
