@@ -40,4 +40,4 @@ rsync -avh --delete --checksum --itemize-changes --out-format="%i %n%L" . "$dest
 #rm -rf "$temp_dir"
 
 # Return to the source directory
-popd 
+popd

@@ -14,5 +14,3 @@ cmd="cp `kpsewhich svg-math-and-subfigures_tex4ht-and-table-of-contents-fix.cfg`
 echo "$cmd" ; eval "$cmd"
 cmd="cp `kpsewhich svg-set-size-to-1p0.mk4` $handoutName.mk4"
 echo "$cmd" ; eval "$cmd"
-
-

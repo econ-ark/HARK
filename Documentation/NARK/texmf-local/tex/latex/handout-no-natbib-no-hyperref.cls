@@ -1,14 +1,14 @@
 % 20231106:
 % - Remove natbib because it does not work with citation-style-language
-% - Remove headings from \LoadClass{scrartcl} because it generates an annoying warning 
+% - Remove headings from \LoadClass{scrartcl} because it generates an annoying warning
 %%% LaTeX class for economics
 %%%
 %%% author: Christopher Carroll
-%%% license: LaTeX Project Public License 
+%%% license: LaTeX Project Public License
 %%%
 %%% Modified from style itaxpf by Arne Henningsen
 %%% version: 1.0 (09 July 2007)
-%%% license: LaTeX Project Public License 
+%%% license: LaTeX Project Public License
 %%%
 %%% Further information is available at
 %%% http://www.uni-kiel.de/agrarpol/ahenningsen/latex-bibtex.html
@@ -77,8 +77,8 @@
 
 %% Added the above info to the definition of normalsize
 \def\normalsize{\@setfontsize \normalsize \@xiipt {14.5}
-  \abovedisplayskip 6\p@ \@plus 3\p@ \@minus 3\p@ 
-  \belowdisplayskip \abovedisplayskip 
+  \abovedisplayskip 6\p@ \@plus 3\p@ \@minus 3\p@
+  \belowdisplayskip \abovedisplayskip
   \abovedisplayshortskip 6pt \belowdisplayshortskip 6pt
   \let \@listi \@listI}
 \normalsize
@@ -114,7 +114,7 @@
   ,moreverb
   ,hhline    % Allow double hlines
   ,tipa      % Define more characters, in particular the \textthorn character
-  ,xcolor    % Superceded color, which is WAY out of date 
+  ,xcolor    % Superceded color, which is WAY out of date
   ,accents
   ,appendix
 }
@@ -130,8 +130,8 @@
 
 % ---------------Custom Definitions--------------
 
-\def\liminf{\mathop{\rm lim\, inf}\limits} 
-\DeclareMathOperator{\Ex}{\mathbb{E}} % Expectations operator 
+\def\liminf{\mathop{\rm lim\, inf}\limits}
+\DeclareMathOperator{\Ex}{\mathbb{E}} % Expectations operator
 \def\var{\operatorname{var}} % variance
 \def\cov{\operatorname{cov}} % covariance
 \def\std{\operatorname{std}} % standard deviation
@@ -154,7 +154,7 @@
 % To prevent breaking math formula
 \relpenalty=4000 %from 0 to 10000, default is 500
 
-% To prevent breaking math formula after binary operator 
+% To prevent breaking math formula after binary operator
 \binoppenalty=10000 %from 0 to 10000, default is 700
 
 % --------------------------------------------------------
@@ -225,7 +225,7 @@
     \let\footnotesize\scriptsize
     \thispagestyle{empty}
     \vspace*{0mm}
-    \enlargethispage{0.4in} 
+    \enlargethispage{0.4in}
   }{}
   \begin{center}
     \begin{LARGE}
@@ -233,7 +233,7 @@
         \textbf{\@title}
       \end{spacing}
     \end{LARGE}\medskip\medskip\medskip
-    {\normalsize \@date \par}       
+    {\normalsize \@date \par}
     {\tiny{~}\par}
     \ifthenelse{\equal{\theIncludeTitlePage}{1}}{
       \vspace*{3mm}
@@ -254,7 +254,7 @@
     \let\footnotesize\scriptsize
     \thispagestyle{empty}
     \vspace*{0mm}
-    \enlargethispage{0.4in} 
+    \enlargethispage{0.4in}
   }{}
   \begin{center}
     \begin{LARGE}
@@ -262,7 +262,7 @@
         \textbf{\@title}
       \end{spacing}
     \end{LARGE}\medskip\medskip\medskip
-    {\normalsize #1 \par}       
+    {\normalsize #1 \par}
     {\tiny{~}\par}
     \ifthenelse{\equal{\theIncludeTitlePage}{1}}{
       \vspace*{3mm}
@@ -291,7 +291,7 @@
     \vspace*{4mm}
     \abstractSizeDefault
     \noindent \textbf{Abstract}\\
-    \indent 
+    \indent
   }{%
 %    \noindent {\tiny \phantom{.}} \\  % Trick to get proper spacing in html
     \ifdvi
@@ -343,7 +343,7 @@
 \pagestyle{plain}
 \thispagestyle{empty}
 
-\newcommand{\titlepagefinish}{\newpage 
+\newcommand{\titlepagefinish}{\newpage
   \renewcommand\@makefnmark
   {\mbox{\textsuperscript{\tiny\@thefnmark}}}
 }
@@ -364,11 +364,11 @@
 %%% the original code.
 
 %% Sample use:
-%% \author{Christopher D. Carroll\authNum \\ 
+%% \author{Christopher D. Carroll\authNum \\
 %% \and
-%% Jiri Slacalek\authNum \\ 
+%% Jiri Slacalek\authNum \\
 %% \and
-%% Martin Sommer\authNum \\ 
+%% Martin Sommer\authNum \\
 %% \and
 %% Another Name\authNum
 %% \and
