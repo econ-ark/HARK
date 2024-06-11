@@ -59,7 +59,7 @@ unicode_rules=(
     "\\wlthBefr:w"
     "\\labor:ℓ"
     )
-    
+
 generate_prettify_rules() {
     output_file="symbols-mapping-prettify"
     > "$output_file"
@@ -68,12 +68,12 @@ generate_prettify_rules() {
 	IFS=':' read -r command symbol <<< "$rule"
 	echo "(\"$command\" . ?$symbol)" >> "$output_file"
     done
-	      
+
     for rule in "${unicode_rules[@]}"; do
 	IFS=':' read -r command symbol <<< "$rule"
 	echo "(\"$command\" . ?$symbol)" >> "$output_file"
     done
-	      
+
     echo "Prettify rules generated in $output_file"
 }
 

@@ -1,5 +1,5 @@
 %% File: `unsrtnat.bst'
-%% A modification of `unsrt.bst' for use with natbib package 
+%% A modification of `unsrt.bst' for use with natbib package
 %%
 %% Copyright 1993-2007 Patrick W Daly
 %% Max-Planck-Institut f\"ur Sonnensystemforschung

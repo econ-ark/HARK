@@ -1,11 +1,11 @@
 %%% LaTeX class for econark
 %%%
 %%% author: Christopher Carroll
-%%% license: LaTeX Project Public License 
+%%% license: LaTeX Project Public License
 %%%
 %%% Modified from style itaxpf by Arne Henningsen
 %%% version: 1.0 (09 July 2007)
-%%% license: LaTeX Project Public License 
+%%% license: LaTeX Project Public License
 %%%
 %%% Further information is available at
 %%% http://www.uni-kiel.de/agrarpol/ahenningsen/latex-bibtex.html
@@ -85,10 +85,10 @@ captions=nooneline         % do not treat one-line captions differently
 
 \RequirePackage{amsmath,amssymb,amsfonts,amsthm % math stuff
   ,cancel    % \cancel{thing} does strikethrough
-  ,verbatim  % do not parse text in verbatim environment 
+  ,verbatim  % do not parse text in verbatim environment
   ,dcolumn   % align on decimal
   ,hhline    % Allow double hlines
-  ,xcolor    % Superceded color, which is WAY out of date 
+  ,xcolor    % Superceded color, which is WAY out of date
   ,accents   % More math accents
   ,appendix  % handles appendices
   ,datetime2 % create and manipulate dates
@@ -97,8 +97,8 @@ captions=nooneline         % do not treat one-line captions differently
 
 % ---------------Custom Definitions--------------
 
-\def\liminf{\mathop{\rm lim\, inf}\limits} 
-%\DeclareMathOperator{\Ex}{\mathbb{E}} % Expectations operator 
+\def\liminf{\mathop{\rm lim\, inf}\limits}
+%\DeclareMathOperator{\Ex}{\mathbb{E}} % Expectations operator
 \def\var{\operatorname{var}} % variance
 \def\cov{\operatorname{cov}} % covariance
 \def\std{\operatorname{std}} % standard deviation
@@ -121,7 +121,7 @@ captions=nooneline         % do not treat one-line captions differently
 % To prevent breaking math formula
 \relpenalty=4000 %from 0 to 10000, default is 500
 
-% To prevent breaking math formula after binary operator 
+% To prevent breaking math formula after binary operator
 \binoppenalty=10000 %from 0 to 10000, default is 700
 
 % --------------------------------------------------------
@@ -134,7 +134,7 @@ captions=nooneline         % do not treat one-line captions differently
 
 % font for URLs
 \RequirePackage{url}
-\def\UrlFont{\ttfamily} % typewriter 
+\def\UrlFont{\ttfamily} % typewriter
 
 \usepackage[econtex]{optional} % Enable the control of compilation using options passed on startup
 % To put floats (tables, figs) at end, include option endfloat in pdflatex
@@ -185,7 +185,7 @@ captions=nooneline         % do not treat one-line captions differently
     \let\footnotesize\scriptsize
     \thispagestyle{empty}
     \vspace*{0mm}
-    \enlargethispage{0.4in} 
+    \enlargethispage{0.4in}
   }{}
   \begin{center}
     \begin{LARGE}
@@ -193,7 +193,7 @@ captions=nooneline         % do not treat one-line captions differently
         \textbf{\@title}
       \end{spacing}
     \end{LARGE}\medskip\medskip\medskip
-    {\normalsize \@date \par}       
+    {\normalsize \@date \par}
     {\tiny{~}\par}
     \ifthenelse{\equal{\theIncludeTitlePage}{1}}{
       \vspace*{3mm}
@@ -214,7 +214,7 @@ captions=nooneline         % do not treat one-line captions differently
 \renewenvironment{abstract}{%
     \abstractSizeDefault
     \noindent \textbf{Abstract}\\
-    \indent 
+    \indent
   }{%
 %    \noindent {\tiny \phantom{.}} \\  % Trick to get proper spacing in html
     \ifdvi
@@ -263,7 +263,7 @@ captions=nooneline         % do not treat one-line captions differently
 \pagestyle{plain}
 \thispagestyle{empty}
 
-\newcommand{\titlepagefinish}{\newpage 
+\newcommand{\titlepagefinish}{\newpage
   \renewcommand\@makefnmark
   {\mbox{\textsuperscript{\tiny\@thefnmark}}}
 }
@@ -276,7 +276,7 @@ captions=nooneline         % do not treat one-line captions differently
 
 \RequirePackage{setspace} % needed for the titlepage stuff below
 
-% Titlepage 
+% Titlepage
 %%%%%%%%%% Added by Amy Hendrickson, TeXnology Inc.
 %% Amy change, Feb 28, 2011 ==>>
 
@@ -284,11 +284,11 @@ captions=nooneline         % do not treat one-line captions differently
 %%% the original code.
 
 %% Sample use:
-%% \author{Christopher D. Carroll\authNum \\ 
+%% \author{Christopher D. Carroll\authNum \\
 %% \and
-%% Jiri Slacalek\authNum \\ 
+%% Jiri Slacalek\authNum \\
 %% \and
-%% Martin Sommer\authNum \\ 
+%% Martin Sommer\authNum \\
 %% \and
 %% Another Name\authNum
 %% \and
@@ -334,4 +334,3 @@ captions=nooneline         % do not treat one-line captions differently
 \DeclareOldFontCommand{\sl}{\normalfont\slshape}{\@nomath\sl}
 \DeclareOldFontCommand{\sc}{\normalfont\scshape}{\@nomath\sc}
 \makeatother
-
