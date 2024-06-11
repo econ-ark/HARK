@@ -8,14 +8,17 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.15.0 (in development)
+### 0.15.0
 
-Release Date: TBA
+Release Date: June 4, 2024
 
 Note: Due to major changes on this release, you may need to adjust how AgentTypes are instantiated in your projects using HARK. If you are manually constructing "complicated" objects like MrkvArray, they should be assigned to your instances *after* initialization, not passed as part of the parameter dictionary. See also the new constructor methodology for how to pass parameters for such constructed inputs.
 
+This release drops support for Python 3.8 and 3.9, consistent with SPEC 0, and adds support for Python 3.11 and 3.12. We expect that all HARK features still work with the older versions, but they are no longer part of our testing regimen.
+
 ### Major Changes
 
+- Drop official support for Python 3.8 and 3.9, add support for 3.11 and 3.12. [#1415](https://github.com/econ-ark/HARK/pull/1415)
 - Replace object-oriented solvers with single function versions. [#1394](https://github.com/econ-ark/HARK/pull/1394)
 - Object-oriented solver code has been moved to /HARK/ConsumptionSaving/LegacyOOsolvers.py, for legacy support of downstream projects.
 - AgentTypeMonteCarloSimulator now requires model shock, parameter, and dynamics information to be organized into 'blocks'. The DBlock object is introduced. [#1411](https://github.com/econ-ark/HARK/pull/1411)
