@@ -1,13 +1,12 @@
-\input{./econtexRoot}
-\documentclass[12pt]{\econtex}
-\usepackage{\econtexSetup}
-%\usepackage{\econtexShortcuts}
-\usepackage{/Volumes/Sync/GitHub/llorracc/SolvingMicroDSOPs/SolvingMicroDSOPs-Latest/.resources/texmf-local/tex/latex/local-econark}
+\input{@resources/tex-add-search-paths} % allow latex to find custom stuff
+\documentclass{econark}
+\usepackage{econark-multibib}
+\usepackage{wasysym}
+\usepackage{econark}
+\usepackage{hyperref}
+\begin{document}
 
-\usepackage{cancel}
-
-\begin{document}\bibliographystyle{\econtexBibStyle}
-
+\newcommand{\texname}{NARK}
 
 \title{Suggested Variable Naming Conventions \\ in the Econ-ARK Toolkit}
 
@@ -17,8 +16,8 @@
 % \forcedate{2020-06-29} % Update date; shorten ALevBF; add
 % \forcedate{2020-06-30}  % NARK: Minor tweaks
 % \forcedate{2020-07-01}  % Version posted by doEvertyhing.sh
-\forcedate{2020-07-02}  % Add conventions for marginal value and utility
-
+% \forcedate{2020-07-02}  % Add conventions for marginal value and utility
+\date{2024-06-08} % updated with econark.sty
 \vspace{2in}
 
 \keywords{ARK, Variable, Function, Object, Operator, Naming, Guidelines, Conventions}
@@ -34,7 +33,7 @@
   by using names consistent with our guidelines.
 \end{abstract}
 
-\centerline{html version at \url{https://econ-ark.github.io/HARK/Documentation/NARK}}
+%\centerline{html version at \url{https://econ-ark.github.io/HARK/Documentation/NARK}}
 
 % \thanks{The \texttt{NARK} repo that generates this document also contains \LaTeX~configuration files that permit you to use the same name for an object in your writing (your \texttt{paper.tex} file) and in your code (helping to minimize confusion in translating between paper and code).}
 
@@ -45,7 +44,7 @@
 Our aim has been to balance:
 \begin{itemize}
 \item Brevity
-\item Mnemonic quality
+\item Mnemonicity
 \item Uniqueness (enabling global search-and-replace)
 \item Ubiquity (definitions useful for many projects)
 \item Combinatoriality (which encourages mashups)
@@ -240,9 +239,9 @@ document and \texttt{CRRA} in a software module.
     \\ \verb|\MPC|         & $\MPC$ & Marginal Propensity to Consume & $\cFunc^{\mNrm}(\mNrm)=\partial \cNrm/\partial \mNrm$
     \\ \verb|\APFac|       & $\APFac$ & Absolute Patience Factor (\texttt{Thorn}) & $\APFac = (\Rfree \DiscFac)^{1/\CRRA} $
     \\ \verb|\APRte|       & $\APRte$ & Absolute Patience rate (\texttt{thorn}) & $\log \APFac \approx \CRRA^{-1}(\rfree-\discRte) $
-    \\ \verb|\GPFac|       & $\GPFac$ & Growth Patience Factor (\texttt{Thorn}) & $\APFac = (\Rfree \DiscFac)^{1/\CRRA}/\PtyGroFac$
-    \\ \verb|\GPRte|       & $\GPRte$ & Growth Patience rate (\texttt{thorn}) & $\GPRte \approx \APRte -\ptyGroRte $
-    \\ \verb|\RPFac|       & $\RPFac$ & Return Patience Factor (\texttt{Thorn}) & $\GPFac = \APFac/\PtyGroFac $
+    \\ \verb|\GPFac|       & $\GPFac$ & Growth Patience Factor (\texttt{Thorn}/{$\PtyGroFac$}) & $\APFac = (\Rfree \DiscFac)^{1/\CRRA}/\PtyGroFac$
+    \\ \verb|\GPRte|       & $\GPRte$ & Growth Patience rate (\texttt{thorn}-$\rfree$) & $\GPRte \approx \APRte -\ptyGroRte $
+    \\ \verb|\RPFac|       & $\RPFac$ & Return Patience Factor (\texttt{Thorn}/$\Rfree$) & $\RPFac = \APFac/\Rfree $
     \\ \verb|\RPRte|        & $\RPRte$ & Return Patience rate (\texttt{thorn}) & $\RPRte \approx \APRte -\rfree $
     \\ \verb|\riskyshare|  & $\riskyshare$ & Portfolio share in risky assets & $\Rport_{t+1}=(1-\riskyshare)\Rfree+\riskyshare\Risky_{t+1}$
     \\	\hline
@@ -366,7 +365,36 @@ Here are the preferred shortnames for some of our models:
 
 \vfill\eject\pagebreak\newpage
 
-
-\bibliography{NARK-Add,economics}
+\bibliographystyle{econark}
+\econarkmultibib{\texname}
 
 \end{document}
+
+% Local Variables:
+% TeX-master-file: t
+% eval: (setq TeX-command-list  (assq-delete-all (car (assoc "BibTeX" TeX-command-list)) TeX-command-list))
+% eval: (setq TeX-command-list  (assq-delete-all (car (assoc "Biber"  TeX-command-list)) TeX-command-list))
+% eval: (setq TeX-command-list  (remove '("BibTeX" "%(bibtex) %s"    TeX-run-BibTeX nil t :help "Run BibTeX") TeX-command-list))
+% eval: (setq TeX-command-list  (remove '("BibTeX"    "bibtex %s"    TeX-run-BibTeX nil (plain-tex-mode latex-mode doctex-mode ams-tex-mode texinfo-mode context-mode)  :help "Run BibTeX") TeX-command-list))
+% eval: (setq TeX-command-list  (remove '("BibTeX" "bibtex %s"    TeX-run-BibTeX nil t :help "Run BibTeX") TeX-command-list))
+% eval: (add-to-list 'TeX-command-list '("BibTeX" "bibtex %s" TeX-run-BibTeX nil t                                                                              :help "Run BibTeX") t)
+% eval: (add-to-list 'TeX-command-list '("BibTeX" "bibtex %s" TeX-run-BibTeX nil (plain-tex-mode latex-mode doctex-mode ams-tex-mode texinfo-mode context-mode) :help "Run BibTeX") t)
+% TeX-PDF-mode: t
+% TeX-file-line-error: t
+% TeX-debug-warnings: t
+% TeX-source-correlate-mode: t
+% TeX-parse-self: t
+% TeX-parse-all-errors: t
+% eval: (cond ((string-equal system-type "darwin") (progn (setq TeX-view-program-list '(("Skim" "/Applications/Skim.app/Contents/SharedSupport/displayline -b %n %o %b"))))))
+% eval: (cond ((string-equal system-type "gnu/linux") (progn (setq TeX-view-program-list '(("Evince" "evince --page-index=%(outpage) %o"))))))
+% eval: (cond ((string-equal system-type "gnu/linux") (progn (setq TeX-view-program-selection '((output-pdf "Evince"))))))
+% eval: (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
+% eval: (setq reftex-plug-into-AUCTeX t)
+% coding: utf-8
+% eval: (setq TeX-fold-macro-spec-list t)
+% eval: (setq global-prettify-symbols-mode t)
+% eval: (setq prettify-symbols-unprettify-at-point 'right-edge)
+% eval: (setq debug-on-error t)
+% eval: (TeX-fold-buffer)
+% End:
+
