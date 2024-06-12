@@ -1,0 +1,91 @@
+% Allows compilation for either PDF (pdflatex) or html (make4ht)
+
+\provideboolean{Web}
+\setboolean{Web}{false} % reset to true if running via dvi; search for \ifdvi below
+
+% html version of document must be constructed by running pdflatex in
+% dvi output mode; code below creates an ifdvi construct that detects
+% whether running in dvi mode and sets the options necessary to generate
+% html version of document using tex4ht
+
+\makeatletter
+\newif\ifdvi\dvitrue
+\@ifundefined{pdfoutput}{}{\ifnum\pdfoutput>0 \dvifalse\fi}
+\makeatother
+
+% dvi compilation only occurs if making the html version
+\ifdvi
+  \setboolean{Web}{true}
+  \providecommand{\ushort}{\underline} % ushort seems to not work properly for tex4ht
+  \let\footnoterule\relax
+  % Abstract from PDF version looks bad in html; redefine
+  \makeatletter
+  \renewenvironment{abstract}{%
+    \begin{spacing}{0.9}
+      \noindent {\tiny \phantom{.}} \\ % Trick to get proper spacing in html
+      \noindent \hrule height 0.4pt depth 0.0pt width \textwidth \relax
+      \vspace*{5mm}
+      \noindent \textbf{Abstract}\\
+      \indent \abstractSizeDefault
+    }{%
+      \noindent {\tiny \phantom{.}} \\  % Trick to get proper spacing in html
+      % \noindent \hrule height 0.4pt depth 0.0pt width \textwidth \relax
+      \vspace*{3mm}
+      \ifthenelse{ \isundefined\@keywords }{
+        \ClassWarningNoLine{bejournal}{No keywords specified.
+          Please use the command \protect\keywords}
+      }{
+      }
+    \end{spacing}
+    \begin{quote}
+      \begin{Description}
+      \item[\textbf{~~~~~~~~~~~~Keywords~}] \@keywords
+        \ifthenelse{ \isundefined\@jelclass }{
+          \ClassWarningNoLine{bejournal}{No JEL classification specified.
+            Please use the command \protect\jelclass}
+        }{
+        \item[\textbf{~~~~~~~~~~~~JEL codes~}] \@jelclass
+        \end{Description}
+      }
+    \end{quote}
+    \makeatother
+  }
+\else
+%  \RequirePackage{graphicx} % requiring [pdftex] seems to interfere with Pandemic build
+  % hyperref should be among packages already used
+  \hypersetup{
+    hypertexnames=false,
+    unicode=true,
+    pdffitwindow = false,     % Don't rescale to fit size of window
+    pdfpagemode=UseThumbs,
+    pdfstartview=FitH,
+    pdfnewwindow = true,       % Links open in new window
+    pdfproducer = {pdfLaTeX with hyperref}
+  }
+  \DeclareGraphicsExtensions{.pdf}
+\fi
+
+\definecolor{darkblue}{rgb}{0.1,0.094,0.3}
+\definecolor{darkred}{rgb}{0.3,0,0}
+\hypersetup{colorlinks=true,           % put a box around links
+  linkbordercolor = {1 0 0}, % the box will be red
+  pdfborder = {1 0 0},       %
+  % bookmarks=true,            % PDF will contain an index on the RHS
+  urlcolor=darkred,
+  citecolor=darkblue,
+  linkcolor=darkred
+}
+
+\provideboolean{Web}
+\setboolean{Web}{false} % reset to true if running via dvi; search for \ifdvi below
+
+% When compiling Web version of paper, construct targets/anchors
+\provideboolean{showPageHead}\setboolean{showPageHead}{true}
+
+% if compiling as html, then do hypersetup
+\ifthenelse{\boolean{Web}}{\hypersetup{destlabel=true}
+}{ % else compiling as pdf so show headers on pages
+  \provideboolean{showPageHead}{\setboolean{showPageHead}{true}}
+  \usepackage{scrlayer-scrpage} % Package for page headers if PDF
+  \usepackage{caption} % allow suppression of appendix figures in NoAppendix PDF
+}

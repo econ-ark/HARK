@@ -8,9 +8,9 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.16.0
+### 0.15.1 (in development)
 
-Under development
+Release Date: TBD
 
 #### Major Changes
 
@@ -18,6 +18,7 @@ Under development
 
 #### Minor Changes
 
+- Adds example of integration of HARK with SSJ toolkit. [#1447](https://github.com/econ-ark/HARK/pull/1447)
 
 ### 0.15.0
 

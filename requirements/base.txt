@@ -8,4 +8,5 @@ pandas>=1.5
 quantecon
 scipy>=1.10
 seaborn>=0.12
+sequence-jacobian
 xarray>=2023
