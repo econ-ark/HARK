@@ -717,7 +717,7 @@ class AgentType(Model):
             self.__dict__[parameter].append(solution_t.__dict__[parameter])
         self.add_to_time_vary(parameter)
 
-    def solve(self, verbose=False, run_presolve=True):
+    def solve(self, verbose=False, presolve=True):
         """
         Solve the model for this instance of an agent type by backward induction.
         Loops through the sequence of one period problems, passing the solution
@@ -727,7 +727,7 @@ class AgentType(Model):
         ----------
         verbose : bool, optional
             If True, solution progress is printed to screen. Default False.
-        run_presolve : bool, optional
+        presolve : bool, optional
             If True (default), the pre_solve method is run before solving.
 
         Returns
@@ -741,7 +741,7 @@ class AgentType(Model):
         with np.errstate(
             divide="ignore", over="ignore", under="ignore", invalid="ignore"
         ):
-            if run_presolve:
+            if presolve:
                 self.pre_solve()  # Do pre-solution stuff
             self.solution = solve_agent(
                 self, verbose

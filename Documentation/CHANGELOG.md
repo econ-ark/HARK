@@ -8,6 +8,18 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.15.1 (in development)
+
+Release Date: TBD
+
+#### Major Changes
+
+none yet
+
+#### Minor Changes
+
+- Adds example of integration of HARK with SSJ toolkit. [#1447](https://github.com/econ-ark/HARK/pull/1447)
+
 ### 0.15.0
 
 Release Date: June 4, 2024
@@ -16,7 +28,7 @@ Note: Due to major changes on this release, you may need to adjust how AgentType
 
 This release drops support for Python 3.8 and 3.9, consistent with SPEC 0, and adds support for Python 3.11 and 3.12. We expect that all HARK features still work with the older versions, but they are no longer part of our testing regimen.
 
-### Major Changes
+#### Major Changes
 
 - Drop official support for Python 3.8 and 3.9, add support for 3.11 and 3.12. [#1415](https://github.com/econ-ark/HARK/pull/1415)
 - Replace object-oriented solvers with single function versions. [#1394](https://github.com/econ-ark/HARK/pull/1394)
@@ -28,7 +40,7 @@ This release drops support for Python 3.8 and 3.9, consistent with SPEC 0, and a
 - Such constructed inputs can use alternate parameterizations / formats by changing the `constructor` function and providing its arguments in `parameters`.
 - Move `HARK.datasets` to `HARK.Calibration` for better organization of data and calibration tools. [#1430](https://github.com/econ-ark/HARK/pull/1430)
 
-### Minor Changes
+#### Minor Changes
 
 - Add option to pass pre-built grid to `LinearFast`. [#1388](https://github.com/econ-ark/HARK/pull/1388)
 - Moves calculation of stable points out of ConsIndShock solver, into method called by post_solve [#1349](https://github.com/econ-ark/HARK/pull/1349)
