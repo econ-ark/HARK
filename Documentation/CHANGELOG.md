@@ -8,22 +8,39 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.15.0 (in development)
+### 0.15.1 (in development)
 
-Release Date: TBA
+Release Date: TBD
+
+#### Major Changes
+
+none yet
+
+#### Minor Changes
+
+- Adds example of integration of HARK with SSJ toolkit. [#1447](https://github.com/econ-ark/HARK/pull/1447)
+
+### 0.15.0
+
+Release Date: June 4, 2024
 
 Note: Due to major changes on this release, you may need to adjust how AgentTypes are instantiated in your projects using HARK. If you are manually constructing "complicated" objects like MrkvArray, they should be assigned to your instances *after* initialization, not passed as part of the parameter dictionary. See also the new constructor methodology for how to pass parameters for such constructed inputs.
 
-### Major Changes
+This release drops support for Python 3.8 and 3.9, consistent with SPEC 0, and adds support for Python 3.11 and 3.12. We expect that all HARK features still work with the older versions, but they are no longer part of our testing regimen.
 
+#### Major Changes
+
+- Drop official support for Python 3.8 and 3.9, add support for 3.11 and 3.12. [#1415](https://github.com/econ-ark/HARK/pull/1415)
 - Replace object-oriented solvers with single function versions. [#1394](https://github.com/econ-ark/HARK/pull/1394)
 - Object-oriented solver code has been moved to /HARK/ConsumptionSaving/LegacyOOsolvers.py, for legacy support of downstream projects.
 - AgentTypeMonteCarloSimulator now requires model shock, parameter, and dynamics information to be organized into 'blocks'. The DBlock object is introduced. [#1411](https://github.com/econ-ark/HARK/pull/1411)
+- RBlock object allows for recursive composition of DBlocks in models, as demonstrated by the AgentTypeMonteCarloSimulator [#1417](https://github.com/econ-ark/HARK/pull/1417/)
+- Transtion, reward, state-rulle value function, decision value function, and arrival value function added to DBlock [#1417](https://github.com/econ-ark/HARK/pull/1417/)
 - All methods that construct inputs for solvers are now functions that are specified in the dictionary attribute `constructors`. [#1410](https://github.com/econ-ark/HARK/pull/1410)
 - Such constructed inputs can use alternate parameterizations / formats by changing the `constructor` function and providing its arguments in `parameters`.
 - Move `HARK.datasets` to `HARK.Calibration` for better organization of data and calibration tools. [#1430](https://github.com/econ-ark/HARK/pull/1430)
 
-### Minor Changes
+#### Minor Changes
 
 - Add option to pass pre-built grid to `LinearFast`. [#1388](https://github.com/econ-ark/HARK/pull/1388)
 - Moves calculation of stable points out of ConsIndShock solver, into method called by post_solve [#1349](https://github.com/econ-ark/HARK/pull/1349)

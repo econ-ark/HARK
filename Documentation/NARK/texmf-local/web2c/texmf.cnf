@@ -1,0 +1,34 @@
+% (Public domain.)
+% This texmf.cnf file should contain only your personal changes from the
+% original texmf.cnf (for example, as chosen in the installer).
+%
+% That is, if you need to make changes to texmf.cnf, put your custom
+% settings in this file, which is .../texlive/YYYY/texmf.cnf, rather than
+% the distributed file (which is .../texlive/YYYY/texmf-dist/web2c/texmf.cnf).
+% And include *only* your changed values, not a copy of the whole thing!
+%
+openout_any = a
+shell_escape = t
+
+% TEXMFHOME is for any user-specific customizations
+% -- This is NOT the place for Methods customizations
+% -- Customizations in the $TEXMFHOME directory are only for the specific user
+% TEXMFHOME = ~/.texmf
+
+% The default is for each user to have a separate location for the junk variables that are created on-the-fly; this can result in a hard-to-find pileup of junk across multiple users, so let's have a common location for all users:
+TEXMFVAR     = /usr/local/texlive/texmf-var
+TEXMFCONFIG  = /usr/local/texlive/texmf-config
+TEXMFDIST    = /usr/local/texlive/texmf-dist
+TEXMFSYSCONFIG=/usr/local/texlive/texmf-config
+TEXMFSYSVAR=/usr/local/texlive/texmf-var
+
+%TEXMFMETHODS = /usr/local/texlive/texmf-local % Links should be created upon setup of TeXLive
+TEXMF = {$TEXMFMETHODS,$TEXMFCONFIG,$TEXMFVAR,$TEXMFHOME,!!$TEXMFSYSCONFIG,!!$TEXMFSYSVAR,!!$TEXMFMAIN,!!$TEXMFLOCAL,!!$TEXMFDIST}
+% First search default system version
+% Then search local github repo because that's where experiments occur
+% Finally search econark version
+TEXINPUTS = /usr/local/texlive/texmf-local//:/usr/local/texlive/texmf-local-ark//
+BIBINPUTS = /usr/local/texlive/texmf-local//:/usr/local/texlive/texmf-local-ark//
+BSTINPUTS = /usr/local/texlive/texmf-local//:/usr/local/texlive/texmf-local-ark//:/usr/local/texlive/texmf-local-ark/tex/bibtex/bst/:
+
+file_line_error_style = t
