@@ -883,15 +883,15 @@ class MVLogNormal(multi_rv_frozen, Distribution):
 
         return x_dim.cdf(x)
 
-    def rvs(self, n: int = 1, seed: int = None):
+    def rvs(self, size: int = 1, random_state=None):
         """
         Random sample from the distribution.
 
         Parameters
         ----------
-        n : int
+        size : int
             Number of data points to generate.
-        seed : int, optional
+        random_state : optional
             Seed for random number generator.
 
         Returns
@@ -900,14 +900,11 @@ class MVLogNormal(multi_rv_frozen, Distribution):
             Random sample from the distribution.
         """
 
-        if seed is None:
-            seed = self.seed
+        Z = MVNormal(mu=self.mu, Sigma=self.Sigma)
 
-        Z = MVNormal(mu=self.mu, Sigma=self.Sigma, seed=seed)
+        return np.exp(Z.rvs(size, random_state=random_state))
 
-        return np.exp(Z.rvs(n))
-
-    def _approx_equiprobable(self, N):
+    def _approx_equiprobable(self, N, endpoints: bool = False):
         """
         Makes a discrete approximation using the equiprobable method to this multivariate lognormal distribution.
 
@@ -915,6 +912,8 @@ class MVLogNormal(multi_rv_frozen, Distribution):
         ----------
         N : int
             The number of points in the discrete approximation.
+        endpoints : bool
+            To be added
 
         Returns
         -------
@@ -922,6 +921,9 @@ class MVLogNormal(multi_rv_frozen, Distribution):
             Probability associated with each point in array of discrete
             points for discrete probability mass function.
         """
+
+        if endpoints:
+            raise NotImplementedError("Endpoints have not yet been implemented")
 
         if np.array_equal(self.Sigma, np.diag(np.diag(self.Sigma))):
             ind_atoms = np.empty((self.M, N))
