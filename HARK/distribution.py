@@ -762,6 +762,18 @@ class MVLogNormal(multi_rv_frozen, Distribution):
         multi_rv_frozen.__init__(self)
         Distribution.__init__(self, seed=seed)
 
+    def mean(self):
+        """
+        Mean of the distribution.
+
+        Returns
+        -------
+        np.ndarray
+            Mean of the distribution.
+        """
+
+        return np.exp(self.mu + 0.5 * np.diag(self.Sigma))
+
     def _cdf(self, x: Union[list, np.ndarray]):
         """
         Cumulative distribution function of the distribution evaluated at x.
