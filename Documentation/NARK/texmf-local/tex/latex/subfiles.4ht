@@ -1,0 +1,10 @@
+% redefine \subfiles@renewEndDocument to prevent TeX4ht issues
+\def\:tempa#1{%
+\let\enddocument\begingroup% don't stop document processing in the included subfile
+\o:subfiles@renewEndDocument:{#1}% call original macro
+}
+% Tex4ht's version of \let. it saves original command as \o:cmdname:
+\HLet\subfiles@renewEndDocument\:tempa
+
+\Hinput{subfiles}
+\endinput

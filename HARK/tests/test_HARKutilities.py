@@ -4,7 +4,6 @@ This file implements unit tests to check HARK/utilities.py
 
 # Bring in modules we need
 import unittest
-from types import SimpleNamespace
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,7 +15,7 @@ from HARK.rewards import (
     CRRAutilityPPP,
     CRRAutilityPPPP,
 )
-from HARK.utilities import construct_assets_grid, make_figs
+from HARK.utilities import make_assets_grid, make_figs
 
 
 class testsForHARKutilities(unittest.TestCase):
@@ -69,21 +68,16 @@ class testsForHARKutilities(unittest.TestCase):
 
     def test_asset_grid(self):
         # Test linear asset grid
-
         params = {
             "aXtraMin": 0.0,
             "aXtraMax": 1.0,
             "aXtraCount": 5,
-            "aXtraExtra": [None],
+            "aXtraExtra": None,
             "aXtraNestFac": -1,
         }
 
-        params = SimpleNamespace(**params)
-
-        aXtraGrid = construct_assets_grid(params)
-
+        aXtraGrid = make_assets_grid(**params)
         test = np.unique(np.diff(aXtraGrid).round(decimals=3))
-
         self.assertEqual(test.size, 1)
 
     def test_make_figs(self):

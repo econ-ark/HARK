@@ -1,0 +1,17 @@
+\onlyinsubfile{% https://tex.stackexchange.com/questions/463699/proper-reference-numbers-with-subfiles
+    \csname @ifpackageloaded\endcsname{xr-hyper}{%
+      \externaldocument{SolvingMicroDSOPs}% xr-hyper in use; optional argument for url of main.pdf for hyperlinks
+    }{%
+      \csname @ifpackageloaded\endcsname{xr}{%
+        \externaldocument{SolvingMicroDSOPs}% xr in use
+      }{%
+        % Neither xr-hyper nor xr is loaded
+        \PackageWarning{YourPackage}{%
+          Neither 'xr-hyper' nor 'xr' package is loaded. Cross-referencing may not work as expected.
+          Please load either 'xr-hyper' or 'xr' package to enable cross-referencing.
+        }%
+      }%
+    }%
+    \renewcommand\labelprefix{}%
+    % Initialize the counters via the labels belonging to the main document:
+}

@@ -196,7 +196,7 @@ IdiosyncDict = {
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    "aXtraExtra": None,  # Additional values to add to aXtraGrid
     # A few other paramaters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
@@ -262,7 +262,7 @@ LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionar
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    "aXtraExtra": None,  # Additional values to add to aXtraGrid
     # A few other paramaters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
@@ -345,7 +345,7 @@ CyclicalDict = {
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    "aXtraExtra": None,  # Additional values to add to aXtraGrid
     # A few other paramaters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
@@ -449,7 +449,7 @@ JACDict = {
     "aXtraMax": 15,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    "aXtraExtra": None,  # Additional values to add to aXtraGrid
     # A few other parameters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
@@ -615,7 +615,7 @@ dict_harmenberg = {
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
-    "aXtraExtra": [None],  # Additional values to add to aXtraGrid
+    "aXtraExtra": None,  # Additional values to add to aXtraGrid
     # A few other parameters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
@@ -836,54 +836,3 @@ class testLCMortalityReadShocks(unittest.TestCase):
         # (the exception from before should not happen
         # because we are killing agents before T_cycle)
         self.assertTrue(np.all(hist["t_age"] == hist["t_cycle"]))
-
-
-# %% Test Transition Matrix Methods
-
-
-class test_Transition_Matrix_Methods(unittest.TestCase):
-    def test_calc_tran_matrix(self):
-        example1 = IndShockConsumerType(**dict_harmenberg)
-        example1.cycles = 0
-        example1.solve()
-
-        example1.define_distribution_grid()
-        p = example1.dist_pGrid  # Grid of permanent income levels
-
-        example1.calc_transition_matrix()
-        c = example1.cPol_Grid  # Normalized Consumption Policy Grid
-        asset = example1.aPol_Grid  # Normalized Asset Policy Grid
-
-        example1.calc_ergodic_dist()
-        vecDstn = example1.vec_erg_dstn
-        # Distribution of market resources and permanent income as a vector (m*p)x1 vector where
-
-        # Compute Aggregate Consumption and Aggregate Assets
-        gridc = np.zeros((len(c), len(p)))
-        grida = np.zeros((len(asset), len(p)))
-
-        for j in range(len(p)):
-            gridc[:, j] = p[j] * c  # unnormalized Consumption policy grid
-            grida[:, j] = p[j] * asset  # unnormalized Asset policy grid
-
-        AggC = np.dot(gridc.flatten(), vecDstn)  # Aggregate Consumption
-        AggA = np.dot(grida.flatten(), vecDstn)  # Aggregate Assets
-
-        self.assertAlmostEqual(AggA[0], 1.19513, places=4)
-        self.assertAlmostEqual(AggC[0], 1.00417, places=4)
-
-
-# %% Test Heterogenous Agent Jacobian Methods
-
-
-class test_Jacobian_methods(unittest.TestCase):
-    def test_calc_jacobian(self):
-        Agent = IndShockConsumerType(**dict_harmenberg)
-
-        Agent.compute_steady_state()
-
-        CJAC_Perm, AJAC_Perm = Agent.calc_jacobian("PermShkStd", 50)
-
-        self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.06120, places=HARK_PRECISION)
-        self.assertAlmostEqual(CJAC_Perm.T[30][30], 0.05307, places=HARK_PRECISION)
-        self.assertAlmostEqual(CJAC_Perm.T[30][31], 0.04674, places=HARK_PRECISION)

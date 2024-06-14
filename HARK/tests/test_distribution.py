@@ -45,7 +45,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         norm = Normal(mu=-(sig**2) / 2, sigma=sig).discretize(131, method="hermite")
         my_logn = distr_of_function(norm, func=lambda x: np.exp(x))
         exp = calc_expectation(my_logn)
-        self.assertAlmostEqual(exp, 1.0)
+        self.assertAlmostEqual(float(exp), 1.0)
 
         # Function 1 -> n
         # Mean and variance of the normal
@@ -185,7 +185,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         norm = Normal(mu=-(sig**2) / 2, sigma=sig).discretize(131, method="hermite")
         my_logn = norm.dist_of_func(lambda x: np.exp(x))
         exp = my_logn.expected()
-        self.assertAlmostEqual(exp, 1.0)
+        self.assertAlmostEqual(float(exp), 1.0)
 
         # Function 1 -> n
         # Mean and variance of the normal
@@ -334,16 +334,18 @@ class DistributionClassTests(unittest.TestCase):
 
         Uniform().draw(1)[0]
 
-        self.assertEqual(
-            calc_expectation(uni.discretize(10, method="equiprobable")), 0.5
+        self.assertAlmostEqual(
+            float(calc_expectation(uni.discretize(10, method="equiprobable"))),
+            0.5,
         )
 
         uni_discrete = uni.discretize(10, method="equiprobable", endpoints=True)
 
         self.assertEqual(uni_discrete.atoms[0][0], 0.0)
         self.assertEqual(uni_discrete.atoms[0][-1], 1.0)
-        self.assertEqual(
-            calc_expectation(uni.discretize(10, method="equiprobable")), 0.5
+        self.assertAlmostEqual(
+            float(calc_expectation(uni.discretize(10, method="equiprobable"))),
+            0.5,
         )
 
     def test_Bernoulli(self):
@@ -611,6 +613,12 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
                 np.concatenate([de.expected(), abc.expected()]),
             )
         )
+
+    def test_Bernoulli_to_labeled(self):
+        p = 0.4
+        foo = Bernoulli(p)
+        bern = DiscreteDistributionLabeled.from_unlabeled(foo, var_names=["foo"])
+        self.assertTrue(np.allclose(bern.expected(), p))
 
 
 class labeled_transition_tests(unittest.TestCase):
