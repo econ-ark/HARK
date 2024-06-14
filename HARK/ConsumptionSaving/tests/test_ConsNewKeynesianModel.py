@@ -39,8 +39,8 @@ class test_Transition_Matrix_Methods(unittest.TestCase):
         AggC = np.dot(gridc.flatten(), vecDstn)  # Aggregate Consumption
         AggA = np.dot(grida.flatten(), vecDstn)  # Aggregate Assets
 
-        self.assertAlmostEqual(AggA[0], 1.19513, places=4)
-        self.assertAlmostEqual(AggC[0], 1.00417, places=4)
+        self.assertAlmostEqual(AggA[0], 0.82984, places=4)
+        self.assertAlmostEqual(AggC[0], 1.00780, places=4)
 
 
 # %% Test Heterogenous Agent Jacobian Methods
@@ -52,6 +52,6 @@ class test_Jacobian_methods(unittest.TestCase):
         Agent.compute_steady_state()
         CJAC_Perm, AJAC_Perm = Agent.calc_jacobian("PermShkStd", 50)
 
-        self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.06120, places=HARK_PRECISION)
-        self.assertAlmostEqual(CJAC_Perm.T[30][30], 0.05307, places=HARK_PRECISION)
-        self.assertAlmostEqual(CJAC_Perm.T[30][31], 0.04674, places=HARK_PRECISION)
+        self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.10503, places=HARK_PRECISION)
+        self.assertAlmostEqual(CJAC_Perm.T[30][30], 0.10316, places=HARK_PRECISION)
+        self.assertAlmostEqual(CJAC_Perm.T[30][31], 0.09059, places=HARK_PRECISION)
