@@ -972,14 +972,30 @@ class MVLogNormal(multi_rv_frozen, Distribution):
 
                 return np.prod(x_exp) * N**dim
 
+            def coef(i, j):
+                if i < j:
+                    raise ValueError("i must be greater than or equal to j")
+
+                if i == 0 & j == 0:
+                    return np.sqrt(self.Sigma[0, 0])
+                elif j == 0:
+                    return self.Sigma[i, 0] / np.sqrt(self.Sigma[0, 0])
+                elif j < i:
+                    corrs_j = np.array([coef(j, k) for k in range(j)])
+                    corrs_i = np.array([coef(i, k) for k in range(j)])
+                    return (self.Sigma[i, j] - np.dot(corrs_i, corrs_j)) / coef(j, j)
+                elif i == j:
+                    return np.sqrt(
+                        self.Sigma[i, i]
+                        - np.sum(np.square([coef(i, k) for k in range(i)]))
+                    )
+
             for i in range(self.M):
                 mui = self.mu[i]
                 params = np.zeros(i + 1)
 
-                for j in range(i):
-                    params[j] = self.Sigma[i, j] / np.sqrt(self.Sigma[j, j])
-
-                params[i] = np.sqrt(self.Sigma[i, i] - np.sum(np.square(params)))
+                for j in range(i + 1):
+                    params[j] = coef(i, j)
 
                 Z_list = [z_bins for _ in range(i + 1)]
 
