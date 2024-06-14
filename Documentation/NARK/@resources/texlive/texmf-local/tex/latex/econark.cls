@@ -86,7 +86,7 @@ captions=nooneline         % do not treat one-line captions differently
 \RequirePackage{amsmath,amssymb,amsfonts,amsthm % math stuff
   ,cancel    % \cancel{thing} does strikethrough
   ,verbatim  % do not parse text in verbatim environment
-  ,dcolumn   % align on decimal
+  ,dcolumn   % align on decimal in tables
   ,hhline    % Allow double hlines
   ,xcolor    % Superceded color, which is WAY out of date
   ,accents   % More math accents
