@@ -742,7 +742,7 @@ class MVLogNormal(multi_rv_frozen, Distribution):
 
     def __init__(
         self,
-        mu: Union[List, np.ndarray] = [1.0, 1.0],
+        mu: Union[List, np.ndarray] = [0.0, 0.0],
         Sigma: Union[List, np.ndarray] = [[1.0, 0.0], [0.0, 1.0]],
         seed=None,
     ):
