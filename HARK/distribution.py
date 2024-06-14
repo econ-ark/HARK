@@ -895,7 +895,7 @@ class MVLogNormal(multi_rv_frozen, Distribution):
 
         return np.exp(Z.rvs(n))
 
-    def approx_equiprobable(self, N):
+    def _approx_equiprobable(self, N):
         """
         Makes a discrete approximation using the equiprobable method to this multivariate lognormal distribution.
 

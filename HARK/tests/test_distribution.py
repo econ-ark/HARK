@@ -12,6 +12,7 @@ from HARK.distribution import (
     MarkovProcess,
     MeanOneLogNormal,
     MVNormal,
+    MVLogNormal,
     Normal,
     Uniform,
     Weibull,
@@ -318,6 +319,12 @@ class DistributionClassTests(unittest.TestCase):
         # self.assertTrue(
         #    np.allclose(dist.draw(1)[0], np.array([2.76405, 1.40016]))
         # )
+
+    def test_MVLogNormal(self):
+        dist = MVLogNormal()
+
+        dist.draw(100)
+        dist.reset()
 
     def test_Weibull(self):
         Weibull().draw(1)[0]
