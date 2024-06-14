@@ -2,10 +2,11 @@ interpolation>=2.2.3
 joblib>=1.2
 matplotlib>=3.6
 networkx>=3
-numba<0.59
+numba==0.59.1
 numpy>=1.23
 pandas>=1.5
 quantecon
 scipy>=1.10
 seaborn>=0.12
+sequence-jacobian
 xarray>=2023

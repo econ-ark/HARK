@@ -1,0 +1,15 @@
+% -*- mode: LaTeX; TeX-PDF-mode: t; -*-
+% Suppress info that varies from one run to the next even with identical input
+% Allows useful diff of PDF docs for git etc
+\usepackage{ifxetex} % method is different for xetex than pdflatex or tex4ht
+\ifxetex
+  \special{pdf:trailerid [
+    <00112233445566778899aabbccddeeff>
+    <00112233445566778899aabbccddeeff>
+  ]
+}
+\else
+  \pdfinfoomitdate=1      % No date
+  \pdftrailerid{}         % No trailer ID
+  \pdfsuppressptexinfo=-1 % Suppress all texinfo
+\fi

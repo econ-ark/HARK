@@ -7,6 +7,7 @@ import xarray as xr
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
+    init_idiosyncratic_shocks,
     init_perfect_foresight,
 )
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
@@ -230,9 +231,9 @@ class PerfForesightLabeledType(IndShockConsumerType):
         """
         Initialize a new instance of a perfect foresight consumer type.
         """
-
         params = init_perfect_foresight.copy()
         params.update(kwds)
+        params["constructors"] = init_idiosyncratic_shocks["constructors"]
 
         # Initialize a basic AgentType
         IndShockConsumerType.__init__(self, verbose=verbose, quiet=quiet, **params)
