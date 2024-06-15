@@ -8,17 +8,20 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.15.1 (in development)
+### 0.15.1
 
-Release Date: TBD
+Release Date: June 15, 2024
+
+This minor release was produced prior to CEF 2024 to enable public usage of HARK with the SSJ toolkit.
 
 #### Major Changes
 
-none yet
+none
 
 #### Minor Changes
 
 - Adds example of integration of HARK with SSJ toolkit. [#1447](https://github.com/econ-ark/HARK/pull/1447)
+- Maintains compatibility between EconForge interpolation and numba [#1457](https://github.com/econ-ark/HARK/pull/1457)
 
 ### 0.15.0
 
