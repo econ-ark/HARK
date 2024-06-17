@@ -1,0 +1,251 @@
+\usepackage{handoutShortcuts}
+\RequirePackage{wasysym
+,psibycus % Greek language package, including koppa
+,ushort
+%,lscape % Pages in landscape mode go inside \begin{landscape}\end{landscape} % CONFLICTS WITH EPSTOPDF
+}
+
+\newenvironment{CDCPrivate} % Environment for extra material not wanted in the public document
+{\marginpar{\tiny beginCDC}}{\marginpar{\tiny endCDC}} % CDCPrivate
+
+\provideboolean{Web}
+\setboolean{Web}{false} % reset to true if running via dvi; search for \ifdvi below
+
+\provideboolean{bigPrint}
+\setboolean{bigPrint}{true}
+\setboolean{bigPrint}{false}
+
+\provideboolean{wideMargins}
+\setboolean{wideMargins}{true}
+\setboolean{wideMargins}{false}
+
+\provideboolean{BigAndWide}
+\setboolean{BigAndWide}{true}
+\setboolean{BigAndWide}{false}
+
+% Options to set if being run from the shell (so autocompiled)
+\opt{FromShell}{
+\setboolean{bigPrint}{false}
+\setboolean{wideMargins}{false}
+\setboolean{BigAndWide}{false}
+}
+
+\opt{bigWide}{
+\setboolean{bigPrint}{true}
+\setboolean{wideMargins}{true}
+\setboolean{BigAndWide}{true}
+\providecommand{\textSizeDefault}{\large}
+\providecommand{\abstractSizeDefault}{\large}
+}
+
+\opt{Aquamacs}{
+%\setboolean{bigPrint}{true}
+%\setboolean{wideMargins}{true}
+%\setboolean{BigAndWide}{true}
+%\providecommand{\textSizeDefault}{\large}
+%\providecommand{\abstractSizeDefault}{\large}
+}
+
+\provideboolean{KoppaOn}
+\setboolean{KoppaOn}{true}
+%\setboolean{KoppaOn}{false}
+
+\ifthenelse{\boolean{KoppaOn}}{
+\providecommand{\koppa}{\text{\greek{k+}}}
+\providecommand{\Koppa}{\text{\greek{K+}}}
+\providecommand{\sampi}{\text{\greek{s+}}}
+\providecommand{\cigma}{\text{\greek{c+}}}
+\providecommand{\Cigma}{\text{\greek{C+}}}
+}{
+\def\koppa{\mathbf{q}}\providecommand{\koppa}{$\mathbf{q}$}\providecommand{\Koppa}{$\mathbf{Q}$}
+}
+
+% Keep the elements in the argument #1 together on the same page
+\newcommand{\together}[1]{\noindent\parbox{\linewidth}{#1}}
+
+% html version of document must be constructed by running pdflatex in
+% dvi output mode; code below creates an ifdvi construct that detects
+% whether running in dvi mode and sets the options necessary to generate
+% html version of document using tex4ht
+
+% \makeatletter
+% \newif\ifdvi\dvitrue
+% \@ifundefined{pdfoutput}{}{\ifnum\pdfoutput>0 \dvifalse\fi}
+% \makeatother
+
+% dvi compilation only occurs if making the html version
+% \ifdvi
+%     \setboolean{Web}{true}
+%     \RequirePackage{tex4ht}
+%     \RequirePackage{graphicx}
+% %    \RequirePackage[tex4ht]{hyperref}
+%     \provideboolean{bigPrint}\setboolean{bigPrint}{true}  % HTM output looks better in a larger font size
+%     \providecommand{\wideMargins}{\null{}} % Wide margins doesn't mean anything for html documents
+%     \newcommand{\CDCFig}[1]{\centerline{\includegraphics{#1}}}
+%     \newcommand{\CDCFigSideways}[1]{\centerline{\includegraphics{#1}}}
+%     \DeclareGraphicsExtensions{.png}
+%     \providecommand{\textSizeDefault}{\large}
+%     \providecommand{\titlepagefinish}{\newpage\textSizeDefault}
+%     \providecommand{\abstractSizeDefault}{\large}
+%     \providecommand{\ushort}{\underline} % ushort seems to not work properly for tex4ht
+%     \let\footnoterule\relax
+%     \makeatletter
+%     \renewenvironment{abstract}{%
+%        \begin{spacing}{0.9}
+%        \noindent {\tiny \phantom{.}} \\ % Trick to get proper spacing in html
+%        \noindent \hrule height 0.4pt depth 0.0pt width \textwidth \relax
+%        \vspace*{5mm}
+%        \noindent \textbf{Abstract}\\
+%        \indent \abstractSizeDefault
+%         }{%
+%            \noindent {\tiny \phantom{.}} \\  % Trick to get proper spacing in html
+% %           \noindent \hrule height 0.4pt depth 0.0pt width \textwidth \relax
+%        \vspace*{3mm}
+%        \ifthenelse{ \isundefined\@keywords }{
+%        \ClassWarningNoLine{handout}{No keywords specified.
+%           Please use the command \protect\keywords}
+%        }{
+%        }
+%        \end{spacing}
+%     \begin{quote}
+%     \begin{Description}
+%     \item[\textbf{~~~~~~~~~~~~Keywords~}] \@keywords
+%     \ifthenelse{ \isundefined\@jelclass }{
+%     \ClassWarningNoLine{handout}{No JEL classification specified.
+%        Please use the command \protect\jelclass}
+%     }{
+%     \item[\textbf{~~~~~~~~~~~~JEL codes~}] \@jelclass
+%     \end{Description}
+%     }
+%     \end{quote}
+%     \makeatother
+%     }
+% \else
+    \RequirePackage{graphicx}
+%    \RequirePackage{hyperref}
+    % \hypersetup{
+    %    pdffitwindow = false,     % Don't rescale to fit size of window
+    %    pdfpagemode=UseThumbs,
+    %    pdfstartview=FitH,
+    %    pdfnewwindow = true,       % Links open in new window
+    %    pdfproducer = {pdfLaTeX with hyperref}
+    % }
+    \providecommand{\wideMargins}{\usepackage[twoside,marginparwidth=0in,left=0.5in,right=0.5in,top=0.5in,bottom=0.5in]{geometry}\usepackage{layouts}}
+    \ifthenelse{\boolean{wideMargins}}{\wideMargins}{}
+    \newcommand{\CDCFig}[1]{\centerline{\includegraphics[width=0.75\textwidth]{../Figures/#1}}}
+    \newcommand{\CDCFigSideways}[1]{\centerline{\includegraphics[width=7.8in,height=5.5in]{../Figures/#1}}}
+    \DeclareGraphicsExtensions{.pdf}
+    \ifthenelse{\boolean{bigPrint}}{\renewcommand{\titlepagefinish}{\newpage\large}}{}
+%\fi
+
+\newcolumntype{d}[1]{D{.}{.}{#1}} % Seems to need to come after hyperref
+
+\definecolor{darkblue}{rgb}{0.055,0.094,0.7}
+\definecolor{darkred}{rgb}{0.6,0,0}
+% \hypersetup{colorlinks=true,           % put a box around links
+%    linkbordercolor = {1 0 0}, % the box will be red
+%    pdfborder = {1 0 0},       %
+% %   bookmarks=true,            % PDF will contain an index on the RHS
+%    urlcolor=darkred,
+%    citecolor=darkblue,
+%    linkcolor=darkred
+% }
+
+%% Define the title table as different from the regular table
+
+%\let\tabularTitle\tabular
+%\let\endtabularTitle\endtabular
+
+%\newenvironment{tabularTitle}{\tabularTitle}{\endtabularTitle}
+\newenvironment{tabularTitle}{\tabular}{\endtabular}
+\providecommand{\handoutHeader}{{\tiny \noindent $^\copyright$\today, \href{https://www.econ2.jhu.edu/people/ccarroll/}{Christopher D. Carroll} \hfill \href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes}{\jobname}}\medskip\medskip
+\ifthenelse{\boolean{bigPrint}}{\large}{}
+\ifthenelse{\boolean{BigAndWide}}{\large}{}
+\opt{Web}{\large}
+\opt{bigWide}{\large}
+}
+
+\providecommand{\SolvingMicroDSOPs}{\href{http://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/}{SolvingMicroDSOPs}}
+
+\newcommand{\handoutC}[1]{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/Consumption/#1.pdf}{\texttt{#1}}}
+\newcommand{\handoutA}[1]{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/AssetPricing/#1.pdf}{\texttt{#1}}}
+\newcommand{\handoutI}[1]{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/Investment/#1.pdf}{\texttt{#1}}}
+\newcommand{\handoutG}[1]{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/Growth/#1.pdf}{\texttt{#1}}}
+\newcommand{\handoutF}[1]{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/MathFacts/#1.pdf}{\texttt{#1}}}
+\newcommand{\handoutD}[1]{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/DSGEModels/#1.pdf}{\texttt{#1}}}
+\newcommand{\MathFactsList}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/MathFacts/MathFactsList.pdf}{\texttt{MathFacts}}}
+\newcommand{\handoutM}[1]{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/MathFacts/#1.pdf}{\texttt{#1}}}
+\renewcommand{\handoutM}[1]{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/MathFacts/MathFactsList/#1}{\texttt{#1}}}
+\newcommand{\Aggregation}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/MathFacts/Aggregation.pdf}{\texttt{Aggregation}}}
+
+
+% If doing a web version, renewcommands link to the html versions of handouts
+\ifdvi
+\renewcommand{\handoutC}[1]{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/#1}{\texttt{#1}}}
+\renewcommand{\handoutA}[1]{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/AssetPricing/#1}{\texttt{#1}}}
+\renewcommand{\handoutI}[1]{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/Investment/#1}{\texttt{#1}}}
+\renewcommand{\handoutG}[1]{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/Growth/#1}{\texttt{#1}}}
+\renewcommand{\handoutD}[1]{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/DSGEModels/#1}{\texttt{#1}}}
+\renewcommand{\handoutM}[1]{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/MathFacts/MathFactsList/#1}{\texttt{#1}}
+}
+\fi
+\renewcommand{\MathFactsList}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/MathFacts/MathFactsList/}{\texttt{MathFacts}}}
+\renewcommand{\Aggregation}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/MathFacts/Aggregation/}{\texttt{Aggregation}}}
+
+\providecommand{\handoutNameMake}{\centerline{\LARGE \input \jobname.title}\vspace{.15in}}
+% Generic starting text for MathFactsList generated file
+\message{Including MathFactsList.defs}
+\providecommand{\ELogNormMeanOne}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#ArithmeticVSGeometric}{\ensuremath{\mathtt{[ArithmeticVSGeometric]}}}}
+\providecommand{\CRRALim}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#CRRALim}{\ensuremath{\mathtt{[CRRALim]}}}}
+\providecommand{\ELogNorm}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#ELogNorm}{\ensuremath{\mathtt{[ELogNorm]}}}}
+\providecommand{\ELogNormMeanOne}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#ELogNormMeanOne}{\ensuremath{\mathtt{[ELogNormMeanOne]}}}}
+\providecommand{\ELogNormTimes}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#ELogNormTimes}{\ensuremath{\mathtt{[ELogNormTimes]}}}}
+\providecommand{\EulersTheorem}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#EulersTheorem}{\ensuremath{\mathtt{[EulersTheorem]}}}}
+\providecommand{\ExpEps}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#ExpEps}{\ensuremath{\mathtt{[ExpEps]}}}}
+\providecommand{\ExpPlus}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#ExpPlus}{\ensuremath{\mathtt{[ExpPlus]}}}}
+\providecommand{\FinSum}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#FinSum}{\ensuremath{\mathtt{[FinSum]}}}}
+\providecommand{\FinSumMult}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#FinSumMult}{\ensuremath{\mathtt{[FinSumMult]}}}}
+\providecommand{\InfSum}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#InfSum}{\ensuremath{\mathtt{[InfSum]}}}}
+\providecommand{\InfSumMult}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#InfSumMult}{\ensuremath{\mathtt{[InfSumMult]}}}}
+\providecommand{\LogELogNorm}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#LogELogNorm}{\ensuremath{\mathtt{[LogELogNorm]}}}}
+\providecommand{\LogELogNormTimes}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#LogELogNormTimes}{\ensuremath{\mathtt{[LogELogNormTimes]}}}}
+\providecommand{\LogEps}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#LogEps}{\ensuremath{\mathtt{[LogEps]}}}}
+\providecommand{\LogMeanMPS}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#LogMeanMPS}{\ensuremath{\mathtt{[LogMeanMPS]}}}}
+\providecommand{\MeanOne}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#MeanOne}{\ensuremath{\mathtt{[MeanOne]}}}}
+\providecommand{\MultPlus}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#MultPlus}{\ensuremath{\mathtt{[MultPlus]}}}}
+\providecommand{\NormTimes}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#NormTimes}{\ensuremath{\mathtt{[NormTimes]}}}}
+\providecommand{\OverPlus}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#OverPlus}{\ensuremath{\mathtt{[OverPlus]}}}}
+\providecommand{\SmallSmallZero}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#SmallSmallZero}{\ensuremath{\mathtt{[SmallSmallZero]}}}}
+\providecommand{\SumNormsIsNorm}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#SumNormsIsNorm}{\ensuremath{\mathtt{[SumNormsIsNorm]}}}}
+\providecommand{\TaylorOne}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#TaylorOne}{\ensuremath{\mathtt{[TaylorOne]}}}}
+\providecommand{\TaylorTwo}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#TaylorTwo}{\ensuremath{\mathtt{[TaylorTwo]}}}}
+\RequirePackage{ifthen}
+
+\provideboolean{AnswersTF}\setboolean{AnswersTF}{false} % Default is no answers; run with \UseOption{Answers} from shell to generate answers
+
+
+\provideboolean{ExamQ}
+\setboolean{ExamQ}{false}
+\newcommand{\ifExamQuestion}{\ifthenelse{\boolean{ExamQ}}}
+
+\provideboolean{SpaceBetweenAnswers}
+\setboolean{SpaceBetweenAnswers}{true}
+\providecommand{\AnswerOrBlankSpace}{\ifthenelse{\boolean{SpaceBetweenAnswers}}}
+
+\opt{Answers}{\provideboolean{AnswersTF}\setboolean{AnswersTF}{true}}
+
+\newcommand{\ifAnswers}{\ifthenelse{\boolean{AnswersTF}}}
+\newcommand{\answer}[2]{\ifthenelse{\boolean{AnswersTF}}{
+
+{\it Answer:}
+\begin{quote}
+#1
+\end{quote}
+}
+{#2}}
+
+
+
+
+
+\expandafter\let\csname NR:Type\endcsname\relax
