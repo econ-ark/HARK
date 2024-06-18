@@ -1,6 +1,6 @@
 import unittest
 
-from HARK.distribution import Bernoulli
+from HARK.distribution import Bernoulli, DiscreteDistribution
 import HARK.model as model
 from HARK.model import Control
 import HARK.models.consumer as cons
@@ -102,3 +102,7 @@ class test_RBlock(unittest.TestCase):
 
         self.assertEqual(len(cppd.get_shocks()["theta"].pmv), 5)
         self.assertEqual(len(cppd.get_shocks()["risky_return"].pmv), 6)
+
+        self.assertFalse(
+            isinstance(self.cpp.get_shocks()["theta"], DiscreteDistribution)
+        )

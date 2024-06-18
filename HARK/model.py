@@ -299,7 +299,7 @@ class RBlock(Block):
                 b.discretize(disc_params)
 
         # returns a copy of the RBlock with the blocks replaced
-        return replace(self, blocks = cbs)
+        return replace(self, blocks=cbs)
 
     def get_shocks(self):
         ### TODO: Bug in here is causing AttributeError: 'set' object has no attribute 'draw'
