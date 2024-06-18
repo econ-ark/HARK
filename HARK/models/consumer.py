@@ -84,5 +84,7 @@ tick_block = DBlock(
     }
 )
 
-cons_problem = RBlock(blocks=[consumption_block, tick_block])
-cons_portfolio_problem = RBlock(blocks=[consumption_block, portfolio_block, tick_block])
+cons_problem = RBlock(blocks=[consumption_block_normalized, tick_block])
+cons_portfolio_problem = RBlock(
+    blocks=[consumption_block_normalized, portfolio_block, tick_block]
+)

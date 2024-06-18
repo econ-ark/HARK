@@ -133,14 +133,11 @@ def solve(
 
         bounds = ((lower_bound, upper_bound),)
 
-        print(bounds)
-
         res = minimize(  # choice of
             negated_value,
             1,  # x0 is starting guess, here arbitrary.
             bounds=bounds,
         )
-        print(res)
 
         dr_best = {c: get_action_rule(res.x[i]) for i, c in enumerate(controls)}
 
