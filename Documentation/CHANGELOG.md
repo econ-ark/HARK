@@ -8,6 +8,19 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.16.0
+
+Release Date: TBD
+
+### Major Changes
+
+- Adds a discretize method to DBlocks and RBlocks (#1460)[https://github.com/econ-ark/HARK/pull/1460]
+
+### Minor Changes
+
+none
+
+
 ### 0.15.1
 
 Release Date: June 15, 2024
