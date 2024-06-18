@@ -44,6 +44,11 @@ class test_DBlock(unittest.TestCase):
     def test_init(self):
         self.assertEqual(self.test_block_A.name, "test block A")
 
+    def test_discretize(self):
+        dbl = self.cblock.discretize({"theta" : {"N" : 5}})
+
+        self.assertEqual(len(dbl.shocks["theta"].pmv), 5)
+
     def test_transition(self):
         post = self.cblock.transition(self.dpre, self.dr)
 

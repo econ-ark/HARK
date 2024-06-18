@@ -2,7 +2,8 @@
 Tools for crafting models.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from copy import deepcopy
 from HARK.distribution import (
     Distribution,
     DiscreteDistributionLabeled,
@@ -151,6 +152,24 @@ class DBlock:
     shocks: dict = field(default_factory=dict)
     dynamics: dict = field(default_factory=dict)
     reward: dict = field(default_factory=dict)
+
+    def discretize(self, disc_params):
+        """
+        Returns a new DBlock which is a copy of this one, but with shock discretized.
+        """
+
+        disc_shocks = {}
+
+        for shockn in self.shocks:
+            if shockn in disc_params:
+                disc_shocks[shockn] = self.shocks[shockn].discretize(**disc_params[shockn])
+            else:
+                disc_shocks[shockn] = deepcopy(self.shocks[shockn])
+
+        # replace returns a modified copy
+        new_dblock = replace(self, shocks = disc_shocks)
+
+        return new_dblock
 
     def get_shocks(self):
         return self.shocks
