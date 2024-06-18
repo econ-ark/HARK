@@ -289,18 +289,17 @@ class RBlock(Block):
         Recursively discretizes all the blocks.
         It replaces any DBlocks with new blocks with discretized shocks.
         """
-        # we will be mutating self.blocks so need to iterate through a copy
-        ib = copy(self.blocks)
+        cbs = copy(self.blocks)
 
-        for i, b in enumerate(ib):
+        for i, b in list(enumerate(cbs)):
             if isinstance(b, DBlock):
                 nb = b.discretize(disc_params)
-                self.blocks[i] = nb
+                cbs[i] = nb
             elif isinstance(b, RBlock):
                 b.discretize(disc_params)
 
-        # returns the rblock, which is modified, to align the type signatures across subclasses
-        return self
+        # returns a copy of the RBlock with the blocks replaced
+        return replace(self, blocks = cbs)
 
     def get_shocks(self):
         ### TODO: Bug in here is causing AttributeError: 'set' object has no attribute 'draw'
