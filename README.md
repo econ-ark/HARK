@@ -168,7 +168,7 @@ For more on acknowledging Econ-ARK [visit our website](https://econ-ark.org/ackn
 
 ## Support
 
-Looking for help? Please open a [GitHub issue](https://github.com/econ-ark/HARK/issues/new) or reach out to through the glitter [community](https://gitter.im/econ-ark/community).
+Looking for help? Please open a [GitHub issue](https://github.com/econ-ark/HARK/issues/new) or reach out to us through the gitter [community](https://gitter.im/econ-ark/community).
 
 ## Release Types
 
@@ -228,7 +228,7 @@ Contributions go far beyond pull requests and commits. Although we love giving y
 - Blogging, speaking about, or creating tutorials about HARK
 - Helping others in our mailing list
 
-If you are worried or don’t know how to start, you can always reach out to through the glitter [community](https://gitter.im/econ-ark/community)(#tsc-technical-steering-committee) or simply submit [an issue](https://github.com/econ-ark/HARK/issues/new) and a member can help give you guidance!
+If you are worried or don’t know how to start, you can always reach out to us through the gitter [community](https://gitter.im/econ-ark/community)(#tsc-technical-steering-committee) or simply submit [an issue](https://github.com/econ-ark/HARK/issues/new) and a member can help give you guidance!
 
 To install for development see the [Quickstart Guide](https://docs.econ-ark.org/guides/installation.html).
 
