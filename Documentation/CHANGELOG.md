@@ -8,6 +8,18 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.15.2 (in development)
+
+Release Date: TBD
+
+#### Major Changes
+
+none
+
+#### Minor Changes
+
+- Fixes bug in `AgentPopulation` that caused discretization of distributions to not work. [1275](https://github.com/econ-ark/HARK/pull/1275)
+
 ### 0.15.1
 
 Release Date: June 15, 2024
@@ -86,13 +98,6 @@ Release Date: February 12, 2024
 - Adds option `sim_common_Rrisky` to control whether risky-asset models draw common or idiosyncratic returns in simulation. [#1250](https://github.com/econ-ark/HARK/pull/1250),[#1253](https://github.com/econ-ark/HARK/pull/1253)
 - Addresses [#1255](https://github.com/econ-ark/HARK/issues/1255). Makes age-varying stochastic returns possible and draws from their discretized version. [#1262](https://github.com/econ-ark/HARK/pull/1262)
 - Fixes bug in the metric that compares dictionaries with the same keys. [#1260](https://github.com/econ-ark/HARK/pull/1260)
-- Fixes bug in the calc_jacobian method. [#1342](https://github.com/econ-ark/HARK/pull/1342)
-- Fixes bug that prevented risky-asset consumer types from working with time-varying interest rates `Rfree`. [1343](https://github.com/econ-ark/HARK/pull/1343)
-- Overhauls and expands condition checking for the ConsIndShock model [#1294](https://github.com/econ-ark/HARK/pull/1294). Condition values and a description of their interpretation is stored in the bilt dictionary of IndShockConsumerType.
-- Creates a `models/` directory with Python model configurations for perfect foresight and Fisher 2-period models. [1347](https://github.com/econ-ark/HARK/pull/1347)
-- Fixes bug in AgentType simulations where 'who_dies' for period t was being recorded in period t-1 in the history Carlo simulation functions using Python model configurations.[1296](https://github.com/econ-ark/HARK/pull/1296)
-- Removes unused `simulation.py` .[1296](https://github.com/econ-ark/HARK/pull/1296)
-- Fixes bug that default seed was being used in the initializing of income shock distributions. [1380](https://github.com/econ-ark/HARK/pull/1380)
 
 ### 0.13.0
 
