@@ -42,7 +42,7 @@ Python modules in HARK can generally be categorized into three types: tools, mod
 
 ## HARK
 
-After you [installed](https://docs.econ-ark.org/guides/quick_start.html) and [cloned the repository of](https://github.com/econ-ark/HARK) HARK, you can explore the content of it. In the subfolder HARK, you can find a range of [general purpose tools](#general-purpose-tools), as well as the next subfolder ConsumptionSaving which has [AgentType Classes](#agenttype-class) and [Market Classes](#market-class).
+After you [installed](https://docs.econ-ark.org/guides/installation.html) and [cloned the repository of](https://github.com/econ-ark/HARK) HARK, you can explore the content of it. In the subfolder HARK, you can find a range of [general purpose tools](#general-purpose-tools), as well as the next subfolder ConsumptionSaving which has [AgentType Classes](#agenttype-class) and [Market Classes](#market-class).
 
 ### General Purpose Tools
 
