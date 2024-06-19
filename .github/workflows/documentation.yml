@@ -26,73 +26,73 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.10"  # Interpolation.py doesn't support Python 3.11 [2023-07]
-        cache: 'pip'
-        cache-dependency-path: |
-          requirements/base.txt
-          requirements/doc.txt
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: |
+            requirements/base.txt
+            requirements/doc.txt
 
-    - name: Install Pandoc
-      run: sudo apt-get install --yes pandoc
+      - name: Install Pandoc
+        run: sudo apt-get install --yes pandoc
 
-    - name: Update pip
-      run: python -m pip install --upgrade pip
+      - name: Update pip
+        run: python -m pip install --upgrade pip
 
-    - name: Install HARK
-      run: python -m pip install .[doc]
+      - name: Install HARK
+        run: python -m pip install .[doc]
 
-    - name: Run Sphinx
-      run: >
-        sphinx-build
-        -M html Documentation HARK-docs
-        -T
-        -W
-        -j auto
+      - name: Run Sphinx
+        run: >
+          sphinx-build
+          -M html Documentation HARK-docs
+          -T
+          -W
+          -j 1
 
-    - name: Set up git for deployment
-      run: |
-        git config user.name "${{ github.actor }}"
-        git config user.email "${{ github.actor }}@users.noreply.github.com"
-        git config --local --unset-all http.https://github.com/.extraheader
+      - name: Set up git for deployment
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --local --unset-all http.https://github.com/.extraheader
 
-    - name: Commit all rendered HTML files
-      run: |
-        git switch --orphan gh-pages
-        git add --all HARK-docs/html
-        git commit -qm "Documentation from @ ${{ github.repository }}@${{ github.sha }}"
+      - name: Commit all rendered HTML files
+        run: |
+          git switch --orphan gh-pages
+          git add --all HARK-docs/html
+          git commit -qm "Documentation from @ ${{ github.repository }}@${{ github.sha }}"
 
-    - name: Deploy to GitHub Pages
-      # Only deploy to Pages on pushes to HEAD
-      if: (github.repository_owner == 'Econ-ARK') && (github.event_name == 'push') && (github.ref_name == 'master')
-      run: >
-        git push
-        --force 
-        https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
-        `git subtree split --prefix HARK-docs/html gh-pages`:refs/heads/gh-pages
+      - name: Deploy to GitHub Pages
+        # Only deploy to Pages on pushes to HEAD
+        if: (github.repository_owner == 'Econ-ARK') && (github.event_name == 'push') && (github.ref_name == 'master')
+        run: >
+          git push
+          --force
+          https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
+          `git subtree split --prefix HARK-docs/html gh-pages`:refs/heads/gh-pages
 
   lint:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install --upgrade sphinx-lint
-    - name: Lint documentation with sphinx-lint
-      run: >
-        sphinx-lint
-        --ignore Documentation/example_notebooks/GenIncProcessModel.py
-        --enable all
-        --max-line-length 85 
-        README.md
-        Documentation/
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade sphinx-lint
+      - name: Lint documentation with sphinx-lint
+        run: >
+          sphinx-lint
+          --ignore Documentation/example_notebooks/GenIncProcessModel.py
+          --enable all
+          --max-line-length 85
+          README.md
+          Documentation/

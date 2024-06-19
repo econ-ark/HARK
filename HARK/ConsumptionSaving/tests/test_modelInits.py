@@ -2,10 +2,8 @@
 This file tests whether HARK's models are initialized correctly.
 """
 
-
 # Bring in modules we need
 import unittest
-from copy import copy
 
 import numpy as np
 
@@ -13,12 +11,10 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     KinkedRconsumerType,
     PerfForesightConsumerType,
-    init_idiosyncratic_shocks,
     init_kinked_R,
     init_lifecycle,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-from HARK.utilities import plot_funcs, plot_funcs_der
 
 
 class testInitialization(unittest.TestCase):
@@ -90,11 +86,11 @@ class testInitialization(unittest.TestCase):
             )
 
             # Make a consumer with serially correlated unemployment, subject to boom and bust cycles
-            init_serial_unemployment = copy(init_idiosyncratic_shocks)
+            init_serial_unemployment = {}
             init_serial_unemployment["MrkvArray"] = [MrkvArray]
-            init_serial_unemployment[
-                "UnempPrb"
-            ] = 0.0  # to make income distribution when employed
+            init_serial_unemployment["UnempPrb"] = (
+                0.0  # to make income distribution when employed
+            )
             init_serial_unemployment["global_markov"] = False
             SerialUnemploymentExample = MarkovConsumerType(**init_serial_unemployment)
         except:

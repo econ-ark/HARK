@@ -23,6 +23,7 @@ https://econ-ark.org/materials/riskycontrib
    }
 
 """
+
 from copy import deepcopy
 
 import numpy as np
@@ -42,7 +43,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import init_lifecycle
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     RiskyAssetConsumerType,
     init_risky_asset,
-    risky_asset_parms,
+    risky_constructor_dict,
 )
 from HARK.distribution import calc_expectation
 from HARK.interpolation import BilinearInterp  # 2D interpolator
@@ -425,9 +426,9 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
         self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-        self.t_cycle[
-            self.t_cycle == self.T_cycle
-        ] = 0  # Resetting to zero for those who have reached the end
+        self.t_cycle[self.t_cycle == self.T_cycle] = (
+            0  # Resetting to zero for those who have reached the end
+        )
 
     def get_states_Reb(self):
         """
@@ -513,7 +514,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
         # Post-states are assets after rebalancing
 
-        if not "tau" in self.time_vary:
+        if "tau" not in self.time_vary:
             mNrmTilde, nNrmTilde = rebalance_assets(
                 self.controls["dfrac"],
                 self.state_now["mNrm"],
@@ -1033,7 +1034,7 @@ def solve_RiskyContrib_Cns(
     AdjustPrb,
     DiscreteShareBool,
     joint_dist_solver,
-    **unused_params
+    **unused_params,
 ):
     """
     Solves the consumption stage of the agent's problem
@@ -1504,7 +1505,7 @@ def solve_RiskyContrib_Sha(
     ShareGrid,
     DiscreteShareBool,
     vFuncBool,
-    **unused_params
+    **unused_params,
 ):
     """
     Solves the income-contribution-share stag of the agent's problem
@@ -2024,6 +2025,21 @@ risky_contrib_params = {
     # Grid for finding the optimal rebalancing flow
     "dCount": 20,
 }
+risky_asset_params = {
+    # Risky return factor moments. Based on SP500 real returns from Shiller's
+    # "chapter 26" data, which can be found at https://www.econ.yale.edu/~shiller/data.htm
+    "RiskyAvg": 1.080370891,
+    "RiskyStd": 0.177196585,
+    "ShareCount": 25,  # Number of discrete points in the risky share approximation
+    # Number of integration nodes to use in approximation of risky returns
+    "RiskyCount": 5,
+    # Probability that the agent can adjust their portfolio each period
+    "AdjustPrb": 1.0,
+    # When simulating the model, should all agents get the same risky return in
+    # a given period?
+    "sim_common_Rrisky": True,
+    "constructors": risky_constructor_dict,
+}
 
 # Infinite horizon version
 init_risky_contrib = init_risky_asset.copy()
@@ -2031,5 +2047,5 @@ init_risky_contrib.update(risky_contrib_params)
 
 # Lifecycle version
 init_risky_contrib_lifecycle = init_lifecycle.copy()
-init_risky_contrib_lifecycle.update(risky_asset_parms)
+init_risky_contrib_lifecycle.update(risky_asset_params)
 init_risky_contrib_lifecycle.update(risky_contrib_params)

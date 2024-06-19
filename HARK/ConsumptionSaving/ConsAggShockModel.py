@@ -4,16 +4,23 @@ cratic income shocks.  Currently only contains one microeconomic model with a
 basic solver.  Also includes a subclass of Market called CobbDouglas economy,
 used for solving "macroeconomic" models with aggregate shocks.
 """
+
 from copy import deepcopy
 
 import numpy as np
 import scipy.stats as stats
 
 from HARK import AgentType, Market
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     init_idiosyncratic_shocks,
+    indshk_constructor_dict,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.distribution import (
@@ -43,7 +50,7 @@ from HARK.rewards import (
     CRRAutilityP_inv,
     CRRAutilityPP,
 )
-from HARK.utilities import make_grid_exp_mult
+from HARK.utilities import make_grid_exp_mult, make_assets_grid
 
 __all__ = [
     "AggShockConsumerType",
@@ -68,57 +75,104 @@ utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
 
 
-class MargValueFunc2D(MetricObject):
+def make_aggshock_solution_terminal(CRRA):
     """
-    A class for representing a marginal value function in models where the
-    standard envelope condition of dvdm(m,M) = u'(c(m,M)) holds (with CRRA utility).
+    Creates the terminal period solution for an aggregate shock consumer.
+    Only fills in the consumption function and marginal value function.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion.
+
+    Returns
+    -------
+    solution_terminal : ConsumerSolution
+        Solution to the terminal period problem.
     """
-
-    distance_criteria = ["cFunc", "CRRA"]
-
-    def __init__(self, cFunc, CRRA):
-        """
-        Constructor for a new marginal value function object.
-
-        Parameters
-        ----------
-        cFunc : function
-            A real function representing the marginal value function composed
-            with the inverse marginal utility function, defined on normalized individual market
-            resources and aggregate market resources-to-labor ratio: uP_inv(vPfunc(m,M)).
-            Called cFunc because when standard envelope condition applies,
-            uP_inv(vPfunc(m,M)) = cFunc(m,M).
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        new instance of MargValueFunc
-        """
-        self.cFunc = deepcopy(cFunc)
-        self.CRRA = CRRA
-
-    def __call__(self, m, M):
-        return utilityP(self.cFunc(m, M), rho=self.CRRA)
+    cFunc_terminal = IdentityFunction(i_dim=0, n_dims=2)
+    vPfunc_terminal = MargValueFuncCRRA(cFunc_terminal, CRRA)
+    mNrmMin_terminal = ConstantFunction(0)
+    solution_terminal = ConsumerSolution(
+        cFunc=cFunc_terminal, vPfunc=vPfunc_terminal, mNrmMin=mNrmMin_terminal
+    )
+    return solution_terminal
 
 
 ###############################################################################
 
 # Make a dictionary to specify an aggregate shocks consumer
 init_agg_shocks = init_idiosyncratic_shocks.copy()
-# Interest factor is endogenous in agg shocks model
-del init_agg_shocks["Rfree"]
-del init_agg_shocks["CubicBool"]  # Not supported yet for agg shocks model
-del init_agg_shocks["vFuncBool"]  # Not supported yet for agg shocks model
-init_agg_shocks["PermGroFac"] = [1.0]
-# Grid of capital-to-labor-ratios (factors)
+aggshock_constructor_dict = indshk_constructor_dict.copy()
+aggshock_constructor_dict["solution_terminal"] = make_aggshock_solution_terminal
+
+# Make a dictionary of constructors for the aggregate income shocks model
+aggshock_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "solution_terminal": make_aggshock_solution_terminal,
+}
+
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 24,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": None,  # Additional other values to add in grid (optional)
+}
+
+# Choose a grid of capital-to-labor-ratios (factors relative to SS)
+# TODO: Make a constructor for this
 MgridBase = np.array(
     [0.1, 0.3, 0.6, 0.8, 0.9, 0.98, 1.0, 1.02, 1.1, 1.2, 1.6, 2.0, 3.0]
 )
-init_agg_shocks["MgridBase"] = MgridBase
-init_agg_shocks["aXtraCount"] = 24
-init_agg_shocks["aNrmInitStd"] = 0.0
-init_agg_shocks["LivPrb"] = [0.98]
+
+# Make a dictionary to specify an aggregate income shocks consumer type
+init_agg_shocks = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": aggshock_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "PermGroFac": [1.00],  # Permanent income growth factor
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "MgridBase": MgridBase,
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 0.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_agg_shocks.update(default_IncShkDstn_params)
+init_agg_shocks.update(default_aXtraGrid_params)
 
 
 class AggShockConsumerType(IndShockConsumerType):
@@ -144,7 +198,7 @@ class AggShockConsumerType(IndShockConsumerType):
             self,
             solution_terminal=deepcopy(IndShockConsumerType.solution_terminal_),
             pseudo_terminal=False,
-            **params
+            **params,
         )
 
         # Add consumer-type specific objects, copying to create independent versions
@@ -171,37 +225,11 @@ class AggShockConsumerType(IndShockConsumerType):
         self.state_now["aLvlNow"] = self.kInit * np.ones(
             self.AgentCount
         )  # Start simulation near SS
-        self.state_now["aNrm"] = (
-            self.state_now["aLvlNow"] / self.state_now["pLvl"]
-        )  # ???
+        self.state_now["aNrm"] = self.state_now["aLvlNow"] / self.state_now["pLvl"]
 
     def pre_solve(self):
         #        AgentType.pre_solve()
         self.update_solution_terminal()
-
-    def update_solution_terminal(self):
-        """
-        Updates the terminal period solution for an aggregate shock consumer.
-        Only fills in the consumption function and marginal value function.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        cFunc_terminal = BilinearInterp(
-            np.array([[0.0, 0.0], [1.0, 1.0]]),
-            np.array([0.0, 1.0]),
-            np.array([0.0, 1.0]),
-        )
-        vPfunc_terminal = MargValueFuncCRRA(cFunc_terminal, self.CRRA)
-        mNrmMin_terminal = ConstantFunction(0)
-        self.solution_terminal = ConsumerSolution(
-            cFunc=cFunc_terminal, vPfunc=vPfunc_terminal, mNrmMin=mNrmMin_terminal
-        )
 
     def get_economy_data(self, economy):
         """
@@ -309,15 +337,6 @@ class AggShockConsumerType(IndShockConsumerType):
         who_dies : np.array(bool)
             Boolean array of size AgentCount indicating which agents die.
         """
-        # Divide agents into wealth groups, kill one random agent per wealth group
-        #        order = np.argsort(self.aLvlNow)
-        #        how_many_die = int(self.AgentCount*(1.0-self.LivPrb[0]))
-        #        group_size = self.AgentCount/how_many_die # This should be an integer
-        #        base_idx = self.RNG.integers(0,group_size,size=how_many_die)
-        #        kill_by_rank = np.arange(how_many_die,dtype=int)*group_size + base_idx
-        #        who_dies = np.zeros(self.AgentCount,dtype=bool)
-        #        who_dies[order[kill_by_rank]] = True
-
         # Just select a random set of agents to die
         how_many_die = int(round(self.AgentCount * (1.0 - self.LivPrb[0])))
         base_bool = np.zeros(self.AgentCount, dtype=bool)
@@ -474,17 +493,11 @@ class AggShockConsumerType(IndShockConsumerType):
         raise NotImplementedError()
 
 
+###############################################################################
+
+
 # This example makes a high risk, low growth state and a low risk, high growth state
 MrkvArray = np.array([[0.90, 0.10], [0.04, 0.96]])
-PermShkAggStd = [
-    0.012,
-    0.006,
-]  # Standard deviation of log aggregate permanent shocks by state
-TranShkAggStd = [
-    0.006,
-    0.003,
-]  # Standard deviation of log aggregate transitory shocks by state
-PermGroFacAgg = [0.98, 1.02]  # Aggregate permanent income growth factor
 
 # Make a dictionary to specify a Markov aggregate shocks consumer
 init_agg_mrkv_shocks = init_agg_shocks.copy()
@@ -660,6 +673,9 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         return self.shocks["Mrkv"] * np.ones(self.AgentCount, dtype=int)
 
 
+##############################################################################
+
+# Make a dictionary for Krusell-Smith agents
 init_KS_agents = {
     "T_cycle": 1,
     "DiscFac": 0.99,
@@ -1108,11 +1124,10 @@ def solveConsAggShock(
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
     IncShkDstn : distribution.Distribution
-        A discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order:
-        idiosyncratic permanent shocks, idiosyncratic transitory
-        shocks, aggregate permanent shocks, aggregate transitory shocks.
+        A discrete approximation to the income process between the period being
+        solved and the one immediately following (in solution_next). Order:
+        idiosyncratic permanent shocks, idiosyncratic transitory shocks,
+        aggregate permanent shocks, aggregate transitory shocks.
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -1139,7 +1154,7 @@ def solveConsAggShock(
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
     DeprFac : float
-        Capital Depreciation Rate
+        Capital depreciation factor.
 
     Returns
     -------
@@ -1436,7 +1451,7 @@ def solve_ConsAggShock_new(
     mNrmMinNow = UpperEnvelope(BoroCnstNat, ConstantFunction(BoroCnstArt))
 
     # Construct the marginal value function using the envelope condition
-    vPfuncNow = MargValueFunc2D(cFuncNow, CRRA)
+    vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)
 
     # Pack up and return the solution
     solution_now = ConsumerSolution(
@@ -2441,7 +2456,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             "KtoLnow",
             "Mrkv",  # This one is new
         ],
-        **kwds
+        **kwds,
     ):
         agents = agents if agents is not None else list()
         params = init_mrkv_cobb_douglas.copy()
@@ -2453,7 +2468,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             tolerance=tolerance,
             act_T=act_T,
             sow_vars=sow_vars,
-            **params
+            **params,
         )
 
         self.sow_init["Mrkv"] = params["MrkvNow_init"]
@@ -2885,7 +2900,7 @@ class KrusellSmithEconomy(Market):
             reap_vars=["aNow", "EmpNow"],
             track_vars=["Mrkv", "Aprev", "Mnow", "Urate"],
             dyn_vars=["AFunc"],
-            **params
+            **params,
         )
         self.update()
 

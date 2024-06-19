@@ -8,26 +8,102 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.13.1
+### 0.15.2 (in development)
 
 Release Date: TBD
 
-### Major Changes
+#### Major Changes
+
+none
+
+#### Minor Changes
+
+- Fixes bug in `AgentPopulation` that caused discretization of distributions to not work. [1275](https://github.com/econ-ark/HARK/pull/1275)
+
+### 0.15.1
+
+Release Date: June 15, 2024
+
+This minor release was produced prior to CEF 2024 to enable public usage of HARK with the SSJ toolkit.
+
+#### Major Changes
+
+none
+
+#### Minor Changes
+
+- Adds example of integration of HARK with SSJ toolkit. [#1447](https://github.com/econ-ark/HARK/pull/1447)
+- Maintains compatibility between EconForge interpolation and numba [#1457](https://github.com/econ-ark/HARK/pull/1457)
+
+### 0.15.0
+
+Release Date: June 4, 2024
+
+Note: Due to major changes on this release, you may need to adjust how AgentTypes are instantiated in your projects using HARK. If you are manually constructing "complicated" objects like MrkvArray, they should be assigned to your instances *after* initialization, not passed as part of the parameter dictionary. See also the new constructor methodology for how to pass parameters for such constructed inputs.
+
+This release drops support for Python 3.8 and 3.9, consistent with SPEC 0, and adds support for Python 3.11 and 3.12. We expect that all HARK features still work with the older versions, but they are no longer part of our testing regimen.
+
+#### Major Changes
+
+- Drop official support for Python 3.8 and 3.9, add support for 3.11 and 3.12. [#1415](https://github.com/econ-ark/HARK/pull/1415)
+- Replace object-oriented solvers with single function versions. [#1394](https://github.com/econ-ark/HARK/pull/1394)
+- Object-oriented solver code has been moved to /HARK/ConsumptionSaving/LegacyOOsolvers.py, for legacy support of downstream projects.
+- AgentTypeMonteCarloSimulator now requires model shock, parameter, and dynamics information to be organized into 'blocks'. The DBlock object is introduced. [#1411](https://github.com/econ-ark/HARK/pull/1411)
+- RBlock object allows for recursive composition of DBlocks in models, as demonstrated by the AgentTypeMonteCarloSimulator [#1417](https://github.com/econ-ark/HARK/pull/1417/)
+- Transtion, reward, state-rulle value function, decision value function, and arrival value function added to DBlock [#1417](https://github.com/econ-ark/HARK/pull/1417/)
+- All methods that construct inputs for solvers are now functions that are specified in the dictionary attribute `constructors`. [#1410](https://github.com/econ-ark/HARK/pull/1410)
+- Such constructed inputs can use alternate parameterizations / formats by changing the `constructor` function and providing its arguments in `parameters`.
+- Move `HARK.datasets` to `HARK.Calibration` for better organization of data and calibration tools. [#1430](https://github.com/econ-ark/HARK/pull/1430)
+
+#### Minor Changes
+
+- Add option to pass pre-built grid to `LinearFast`. [#1388](https://github.com/econ-ark/HARK/pull/1388)
+- Moves calculation of stable points out of ConsIndShock solver, into method called by post_solve [#1349](https://github.com/econ-ark/HARK/pull/1349)
+- Adds cubic spline interpolation and value function construction to "warm glow bequest" models.
+- Fixes cubic spline interpolation for ConsMedShockModel.
+- Moves computation of "stable points" from inside of ConsIndShock solver to a post-solution method. [#1349](https://github.com/econ-ark/HARK/pull/1349)
+- Corrects calculation of "human wealth" under risky returns, providing correct limiting linear consumption function. [#1403](https://github.com/econ-ark/HARK/pull/1403)
+- Removed 'parameters' from new block definitions; these are now 'calibrations' provided separately.
+- Create functions for well-known and repeated calculations in single-function solvers. [1395](https://github.com/econ-ark/HARK/pull/1395)
+- Re-work WealthPortfolioSolver to use approximate EGM method [#1404](https://github.com/econ-ark/HARK/pull/1404)
+- Default parameter dictionaries for AgentType subclasses have been "flattened": all parameters appear in one place for each model, rather than inheriting from parent models' dictionaries. The only exception is submodels *within* a file when only 1 or 2 parameters are added or changed. [#1425](https://github.com/econ-ark/HARK/pull/1425)
+- Fix minor bug in `HARK.distribution.Bernoulli` to allow conversion into `DiscreteDistributionLabeled`. [#1432](https://github.com/econ-ark/HARK/pull/1432)
+
+
+### 0.14.1
+
+Release date: February 28, 2024
+
+#### Major Changes
+
+none
+
+#### Minor Changes
+
+- Fixes a bug in make_figs arising from the metadata argument being incompatible with jpg. [#1386](https://github.com/econ-ark/HARK/pull/1386)
+- Reverts behavior of the repr method of the Model class, so that long strings aren't generated. Full description is available with describe(). [#1390](https://github.com/econ-ark/HARK/pull/1390)
+
+### 0.14.0
+
+Release Date: February 12, 2024
+
+#### Major Changes
 
 - Adds `HARK.core.AgentPopulation` class to represent a population of agents with ex-ante heterogeneous parametrizations as distributions. [#1237](https://github.com/econ-ark/HARK/pull/1237)
+- Adds `HARK.core.Parameters` class to represent a collection of time varying and time invariant parameters in a model. [#1240](https://github.com/econ-ark/HARK/pull/1240)
+- Adds `HARK.simulation.monte_carlo` module for generic Monte Carlo simulation functions using Python model configurations. [1296](https://github.com/econ-ark/HARK/pull/1296)
 
-### Minor Changes
+#### Minor Changes
 
 - Adds option `sim_common_Rrisky` to control whether risky-asset models draw common or idiosyncratic returns in simulation. [#1250](https://github.com/econ-ark/HARK/pull/1250),[#1253](https://github.com/econ-ark/HARK/pull/1253)
 - Addresses [#1255](https://github.com/econ-ark/HARK/issues/1255). Makes age-varying stochastic returns possible and draws from their discretized version. [#1262](https://github.com/econ-ark/HARK/pull/1262)
 - Fixes bug in the metric that compares dictionaries with the same keys. [#1260](https://github.com/econ-ark/HARK/pull/1260)
-- Fixes bug in `AgentPopulation` that caused discretization of distributions to not work. [1275](https://github.com/econ-ark/HARK/pull/1275)
 
 ### 0.13.0
 
-Release Date: February, 16, 2023
+Release Date: February 16, 2023
 
-### Major Changes
+#### Major Changes
 
 - Updates the DCEGM tools to address the flaws identified in [issue #1062](https://github.com/econ-ark/HARK/issues/1062). PR: [1100](https://github.com/econ-ark/HARK/pull/1100).
 - Updates `IndexDstn`, introducing the option to use an existing RNG instead of creating a new one, and creating and storing all the conditional distributions at initialization. [1104](https://github.com/econ-ark/HARK/pull/1104)
@@ -54,7 +130,7 @@ Release Date: February, 16, 2023
 - Reorganizes `HARK.distribution`. All distributions now inherit all features from `scipy.stats`. New `ContinuousFrozenDistribution` and `DiscreteFrozenDistribution` to use `scipy.stats` distributions not yet implemented in HARK. New `Distribution.discretize(N, method = "***")` replaces `Distribution.approx(N)`. New `DiscreteDistribution.limit` attribute describes continuous origin and discretization method. [#1197](https://github.com/econ-ark/HARK/pull/1197).
 - Creates new class of _labeled_ models under `ConsLabeledModel` that use xarray for more expressive modeling of underlying mathematical and economics variables. [#1177](https://github.com/econ-ark/HARK/pull/1177)
 
-### Minor Changes
+#### Minor Changes
 
 - Updates the lognormal-income-process constructor from `ConsIndShockModel.py` to use `IndexDistribution`. [#1024](https://github.com/econ-ark/HARK/pull/1024), [#1115](https://github.com/econ-ark/HARK/pull/1115)
 - Allows for age-varying unemployment probabilities and replacement incomes with the lognormal income process constructor. [#1112](https://github.com/econ-ark/HARK/pull/1112)
