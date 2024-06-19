@@ -2005,11 +2005,11 @@ class AgentPopulation:
         self.continuous_distributions = {}
         self.discrete_distributions = {}
 
-        for key, points in approx_params.items():
+        for key, args in approx_params.items():
             param = self.parameters[key]
             if key in self.distributed_params and isinstance(param, Distribution):
                 self.continuous_distributions[key] = param
-                self.discrete_distributions[key] = param.discretize(points)
+                self.discrete_distributions[key] = param.discretize(**args)
             else:
                 raise ValueError(
                     f"Warning: parameter {key} is not a Distribution found "
