@@ -8,9 +8,7 @@ Microeconomic Dynamic Stochastic Optimization Problems"
 """
 
 # TODO: Include these in calibration, then construct shocks
-LivPrb = 0.98
-TranShkStd = 0.1
-RiskyStd = 0.1
+
 
 calibration = {
     "DiscFac": 0.96,
@@ -18,17 +16,18 @@ calibration = {
     "R": 1.03,  # note: this can be overriden by the portfolio dynamics
     "Rfree": 1.03,
     "EqP": 0.02,
-    "LivPrb": LivPrb,
+    "LivPrb": 0.98,
     "PermGroFac": 1.01,
     "BoroCnstArt": None,
+    "TranShkStd" : 0.1
 }
 
 consumption_block = DBlock(
     **{
         "name": "consumption",
         "shocks": {
-            "live": Bernoulli(p=LivPrb),  # Move to tick or mortality block?
-            "theta": MeanOneLogNormal(sigma=TranShkStd),
+            "live": Bernoulli(p=calibration["LivPrb"]),  # Move to tick or mortality block?
+            "theta": MeanOneLogNormal(sigma=calibration["TranShkStd"]),
         },
         "dynamics": {
             "b": lambda k, R: k * R,
@@ -46,8 +45,8 @@ consumption_block_normalized = DBlock(
     **{
         "name": "consumption normalized",
         "shocks": {
-            "live": Bernoulli(p=LivPrb),  # Move to tick or mortality block?
-            "theta": MeanOneLogNormal(sigma=TranShkStd),
+            "live": Bernoulli(p=calibration["LivPrb"]),  # Move to tick or mortality block?
+            "theta": MeanOneLogNormal(sigma=calibration["TranShkStd"]),
         },
         "dynamics": {
             "b": lambda k, R, PermGroFac: k * R / PermGroFac,
@@ -64,7 +63,7 @@ portfolio_block = DBlock(
         "name": "portfolio",
         "shocks": {
             "risky_return": Lognormal.from_mean_std(
-                calibration["Rfree"] + calibration["EqP"], RiskyStd
+                calibration["Rfree"] + calibration["EqP"],  0.1 # RiskyStd
             )
         },
         "dynamics": {
