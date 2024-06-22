@@ -52,7 +52,7 @@ consumption_block_normalized = DBlock(
             "b": lambda k, R, PermGroFac: k * R / PermGroFac,
             "m": lambda b, theta: b + theta,
             "c": Control(["m"]),
-            "a": lambda m, c: m - c,
+            "a": "m - c",
         },
         "reward": {"u": lambda c, CRRA: c ** (1 - CRRA) / (1 - CRRA)},
     }
