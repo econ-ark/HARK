@@ -72,6 +72,7 @@ class test_DBlock(unittest.TestCase):
 
         av({"k": 1, "R": 1.05, "PermGroFac": 1.1, "theta": 1, "CRRA": 2})
 
+
 class test_RBlock(unittest.TestCase):
     def setUp(self):
         self.test_block_B = model.DBlock(**test_block_B_data)

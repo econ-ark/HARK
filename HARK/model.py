@@ -14,6 +14,7 @@ import numpy as np
 from HARK.parser import math_text_to_lambda
 from typing import Any, Callable, Mapping, List, Union
 
+
 class Aggregate:
     """
     Used to designate a shock as an aggregate shock.
@@ -248,6 +249,7 @@ class DBlock:
             return expected(func=mod_dvf, dist=ds)
 
         return arrival_value_function
+
 
 @dataclass
 class RBlock:
