@@ -50,7 +50,7 @@ consumption_block_normalized = DBlock(
             "theta": MeanOneLogNormal(sigma=TranShkStd),
         },
         "dynamics": {
-            "b": lambda k, R: k * R / PermGroFac,
+            "b": lambda k, R, PermGroFac: k * R / PermGroFac,
             "m": lambda b, theta: b + theta,
             "c": Control(["m"]),
             "a": "m - c",
