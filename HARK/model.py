@@ -144,7 +144,16 @@ class DBlock:
 
     Parameters
     ----------
-    ...
+    shocks: Mapping(str, Distribution)
+        A mapping from variable names to Distribution objects,
+        representing exogenous shocks.
+
+    dynamics: Mapping(str, str or callable)
+        A dictionary mapping variable names to mathematical expressions.
+        These expressions can be simple functions, in which case the
+        argument names should match the variable inputs.
+        Or these can be strings, which are parsed into functions.
+
     """
 
     name: str = ""
