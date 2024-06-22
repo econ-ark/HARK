@@ -122,6 +122,61 @@ class MixtureTranIncShk(DiscreteDistribution):
         super().__init__(pmv=dstn_approx.pmv, atoms=dstn_approx.atoms, seed=seed)
 
 
+class MixtureTranIncShk_HANK(DiscreteDistribution):
+    """
+    A one-period distribution for transitory income shocks that are a mixture
+    between a log-normal and a single-value unemployment shock. This version
+    has additional parameters that makes it useful for HANK models.
+
+    Parameters
+    ----------
+    sigma : float
+        Standard deviation of the log-shock.
+    UnempPrb : float
+        Probability of the "unemployment" shock.
+    IncUnemp : float
+        Income shock in the "unemployment" state.
+    n_approx : int
+        Number of points to use in the discrete approximation.
+    tax_rate : float
+        Flat tax rate on labor income.
+    labor : float
+        Intensive margin labor supply.
+    wage : float
+        Wage rate scaling factor.
+    seed : int, optional
+        Random seed. The default is 0.
+    Returns
+    -------
+    TranShkDstn : DiscreteDistribution
+        Transitory income shock distribution.
+    """
+
+    def __init__(
+        self,
+        sigma,
+        UnempPrb,
+        IncUnemp,
+        n_approx,
+        wage,
+        labor,
+        tax_rate,
+        seed=0,
+    ):
+        dstn_approx = MeanOneLogNormal(sigma).discretize(
+            n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
+        )
+
+        if UnempPrb > 0.0:
+            dstn_approx = add_discrete_outcome_constant_mean(
+                dstn_approx, p=UnempPrb, x=IncUnemp
+            )
+        # Rescale the transitory shock values to account for new features
+        TranShkMean_temp = (1.0 - tax_rate) * labor * wage
+        dstn_approx.atoms *= TranShkMean_temp
+        super().__init__(pmv=dstn_approx.pmv, atoms=dstn_approx.atoms, seed=seed)
+
+
 class BufferStockIncShkDstn(DiscreteDistributionLabeled):
     """
     A one-period distribution object for the joint distribution of income
@@ -178,11 +233,89 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
             IncUnemp=IncUnemp,
             n_approx=n_approx_Tran,
         )
-
         joint_dstn = combine_indep_dstns(perm_dstn, tran_dstn)
 
         super().__init__(
             name="Joint distribution of permanent and transitory shocks to income",
+            var_names=["PermShk", "TranShk"],
+            pmv=joint_dstn.pmv,
+            atoms=joint_dstn.atoms,
+            seed=seed,
+        )
+
+
+class IncShkDstn_HANK(DiscreteDistributionLabeled):
+    """
+    A one-period distribution object for the joint distribution of income
+    shocks (permanent and transitory), as modeled in the Buffer Stock Theory
+    paper:
+        - Lognormal, discretized permanent income shocks.
+        - Transitory shocks that are a mixture of:
+            - A lognormal distribution in normal times.
+            - An "unemployment" shock.
+
+    This version has additional features that make it particularly useful for HANK models.
+
+    Parameters
+    ----------
+    sigma_Perm : float
+        Standard deviation of the log- permanent shock.
+    sigma_Tran : float
+        Standard deviation of the log- transitory shock.
+    n_approx_Perm : int
+        Number of points to use in the discrete approximation of the permanent shock.
+    n_approx_Tran : int
+        Number of points to use in the discrete approximation of the transitory shock.
+    UnempPrb : float
+        Probability of the "unemployment" shock.
+    IncUnemp : float
+        Income shock in the "unemployment" state.
+    tax_rate : float
+        Flat tax rate on labor income.
+    labor : float
+        Intensive margin labor supply.
+    wage : float
+        Wage rate scaling factor.
+    neutral_measure : Bool, optional
+        Whether to use Harmenberg's permanent-income-neutral measure. The default is False.
+    seed : int, optional
+        Random seed. The default is 0.
+    Returns
+    -------
+    IncShkDstn : DiscreteDistribution
+        Income shock distribution.
+    """
+
+    def __init__(
+        self,
+        sigma_Perm,
+        sigma_Tran,
+        n_approx_Perm,
+        n_approx_Tran,
+        UnempPrb,
+        IncUnemp,
+        tax_rate,
+        labor,
+        wage,
+        neutral_measure=False,
+        seed=0,
+    ):
+        perm_dstn = LognormPermIncShk(
+            sigma=sigma_Perm, n_approx=n_approx_Perm, neutral_measure=neutral_measure
+        )
+        tran_dstn = MixtureTranIncShk_HANK(
+            sigma=sigma_Tran,
+            UnempPrb=UnempPrb,
+            IncUnemp=IncUnemp,
+            n_approx=n_approx_Tran,
+            wage=wage,
+            labor=labor,
+            tax_rate=tax_rate,
+        )
+        joint_dstn = combine_indep_dstns(perm_dstn, tran_dstn)
+
+        super().__init__(
+            name="HANK",
             var_names=["PermShk", "TranShk"],
             pmv=joint_dstn.pmv,
             atoms=joint_dstn.atoms,
@@ -305,6 +438,143 @@ def construct_lognormal_income_process_unemployment(
         seed=RNG.integers(0, 2**31 - 1),
     )
     return IncShkDstn
+
+
+def construct_HANK_lognormal_income_process_unemployment(
+    T_cycle,
+    PermShkStd,
+    PermShkCount,
+    TranShkStd,
+    TranShkCount,
+    T_retire,
+    UnempPrb,
+    IncUnemp,
+    UnempPrbRet,
+    IncUnempRet,
+    tax_rate,
+    labor,
+    wage,
+    RNG,
+    neutral_measure=False,
+):
+    """
+    Generates a list of discrete approximations to the income process for each
+    life period, from end of life to beginning of life.  Permanent shocks are mean
+    one lognormally distributed with standard deviation PermShkStd[t] during the
+    working life, and degenerate at 1 in the retirement period.  Transitory shocks
+    are mean one lognormally distributed with a point mass at IncUnemp with
+    probability UnempPrb while working; they are mean one with a point mass at
+    IncUnempRet with probability UnempPrbRet.  Retirement occurs after t=T_retire
+    periods of working.
+
+    This version of the function incorporates additional flexibility with respect
+    to transitory income (continuous labor supply, wage rate, tax rate) and thus
+    is useful in HANK models (hence the name!).
+
+    Note 1: All time in this function runs forward, from t=0 to t=T
+
+    Note 2: All parameters are passed as attributes of the input parameters.
+
+    Parameters (passed as attributes of the input parameters)
+    ----------
+    PermShkStd : [float]
+        List of standard deviations in log permanent income uncertainty during
+        the agent's life.
+    PermShkCount : int
+        The number of approximation points to be used in the discrete approxima-
+        tion to the permanent income shock distribution.
+    TranShkStd : [float]
+        List of standard deviations in log transitory income uncertainty during
+        the agent's life.
+    TranShkCount : int
+        The number of approximation points to be used in the discrete approxima-
+        tion to the permanent income shock distribution.
+    UnempPrb : float or [float]
+        The probability of becoming unemployed during the working period.
+    UnempPrbRet : float or None
+        The probability of not receiving typical retirement income when retired.
+    T_retire : int
+        The index value for the final working period in the agent's life.
+        If T_retire <= 0 then there is no retirement.
+    IncUnemp : float or [float]
+        Transitory income received when unemployed.
+    IncUnempRet : float or None
+        Transitory income received while "unemployed" when retired.
+    tax_rate : [float]
+        List of flat tax rates on labor income, age-varying.
+    labor : [float]
+        List of intensive margin labor supply, age-varying.
+    wage : [float]
+        List of wage rate scaling factors, age-varying.
+    T_cycle :  int
+        Total number of non-terminal periods in the consumer's sequence of periods.
+
+    Returns
+    -------
+    IncShkDstn :  [distribution.Distribution]
+        A list with T_cycle elements, each of which is a
+        discrete approximation to the income process in a period.
+    PermShkDstn : [[distribution.Distributiony]]
+        A list with T_cycle elements, each of which
+        a discrete approximation to the permanent income shocks.
+    TranShkDstn : [[distribution.Distribution]]
+        A list with T_cycle elements, each of which
+        a discrete approximation to the transitory income shocks.
+    """
+    if T_retire > 0:
+        normal_length = T_retire
+        retire_length = T_cycle - T_retire
+    else:
+        normal_length = T_cycle
+        retire_length = 0
+
+    if all(
+        [
+            isinstance(x, (float, int)) or (x is None)
+            for x in [UnempPrb, IncUnemp, UnempPrbRet, IncUnempRet]
+        ]
+    ):
+        UnempPrb_list = [UnempPrb] * normal_length + [UnempPrbRet] * retire_length
+        IncUnemp_list = [IncUnemp] * normal_length + [IncUnempRet] * retire_length
+
+    elif all([isinstance(x, list) for x in [UnempPrb, IncUnemp]]):
+        UnempPrb_list = UnempPrb
+        IncUnemp_list = IncUnemp
+
+    else:
+        raise Exception(
+            "Unemployment must be specified either using floats for UnempPrb,"
+            + "IncUnemp, UnempPrbRet, and IncUnempRet, in which case the "
+            + "unemployment probability and income change only with retirement, or "
+            + "using lists of length T_cycle for UnempPrb and IncUnemp, specifying "
+            + "each feature at every age."
+        )
+
+    PermShkCount_list = [PermShkCount] * normal_length + [1] * retire_length
+    TranShkCount_list = [TranShkCount] * normal_length + [1] * retire_length
+    neutral_measure_list = [neutral_measure] * len(PermShkCount_list)
+
+    IncShkDstn = IndexDistribution(
+        engine=IncShkDstn_HANK,
+        conditional={
+            "sigma_Perm": PermShkStd,
+            "sigma_Tran": TranShkStd,
+            "n_approx_Perm": PermShkCount_list,
+            "n_approx_Tran": TranShkCount_list,
+            "neutral_measure": neutral_measure_list,
+            "UnempPrb": UnempPrb_list,
+            "IncUnemp": IncUnemp_list,
+            "wage": wage,
+            "tax_rate": tax_rate,
+            "labor": labor,
+        },
+        RNG=RNG,
+    )
+
+    return IncShkDstn
+
+
+###############################################################################
 
 
 def get_PermShkDstn_from_IncShkDstn(IncShkDstn, RNG):

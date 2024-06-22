@@ -3,8 +3,7 @@ Functions to support Monte Carlo simulation of models.
 """
 
 from copy import copy
-from inspect import signature
-from typing import Any, Callable, Mapping, Sequence, Union
+from typing import Mapping, Sequence
 
 import numpy as np
 
@@ -13,8 +12,9 @@ from HARK.distribution import (
     IndexDistribution,
     TimeVaryingDiscreteDistribution,
 )
-from HARK.model import Aggregate, Control
+from HARK.model import Aggregate
 from HARK.model import DBlock
+from HARK.model import simulate_dynamics
 
 
 def draw_shocks(shocks: Mapping[str, Distribution], conditions: Sequence[int]):
@@ -53,64 +53,6 @@ def draw_shocks(shocks: Mapping[str, Distribution], conditions: Sequence[int]):
             draws[shock_var] = shock.draw(len(conditions))
 
     return draws
-
-
-def simulate_dynamics(
-    dynamics: Mapping[str, Union[Callable, Control]],
-    pre: Mapping[str, Any],
-    dr: Mapping[str, Callable],
-):
-    """
-    From the beginning-of-period state (pre), follow the dynamics,
-    including any decision rules, to compute the end-of-period state.
-
-    Parameters
-    ------------
-
-    dynamics: Mapping[str, Callable]
-        Maps variable names to functions from variables to values.
-        Can include Controls
-        ## TODO: Make collection of equations into a named type
-
-
-    pre : Mapping[str, Any]
-        Bound values for all variables that must be known before beginning the period's dynamics.
-
-
-    dr : Mapping[str, Callable]
-        Decision rules for all the Control variables in the dynamics.
-    """
-    vals = pre.copy()
-
-    for varn in dynamics:
-        # Using the fact that Python dictionaries are ordered
-
-        feq = dynamics[varn]
-
-        if isinstance(feq, Control):
-            # This tests if the decision rule is age varying.
-            # If it is, this will be a vector with the decision rule for each agent.
-            if isinstance(dr[varn], np.ndarray):
-                ## Now we have to loop through each agent, and apply the decision rule.
-                ## This is quite slow.
-                for i in range(dr[varn].size):
-                    vals_i = {
-                        var: vals[var][i]
-                        if isinstance(vals[var], np.ndarray)
-                        else vals[var]
-                        for var in vals
-                    }
-                    vals[varn][i] = dr[varn][i](
-                        *[vals_i[var] for var in signature(dr[varn][i]).parameters]
-                    )
-            else:
-                vals[varn] = dr[varn](
-                    *[vals[var] for var in signature(dr[varn]).parameters]
-                )  # TODO: test for signature match with Control
-        else:
-            vals[varn] = feq(*[vals[var] for var in signature(feq).parameters])
-
-    return vals
 
 
 def calibration_by_age(ages, calibration):

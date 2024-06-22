@@ -1,13 +1,12 @@
 # HARK installation guide
 
-HARK is an open source project written in Python. It's compatible with both Python
-2 and 3, and with the Anaconda distributions of python 2 and 3.
+HARK is an open source project written in Python. It's supported for Python versions 3.10 and up.
 
 ## Instructions for a new user
 
-In order to use HARK, you firstly need to download Python and add Python to the PATH. We recommend to install python 3, as eventually support for python 2 will end. If you are not confident about the installation process you can use this step-by-step guide https://realpython.com/installing-python/ .
+In order to use HARK, you firstly need to download Python and add Python to the PATH. If you are not confident about the installation process you can use [this step-by-step guide](https://realpython.com/installing-python/).
 
-Next, install a text editor for Python. If you do not use the Anaconda Python distribution (see below), we recommend [Atom](https://atom.io/). To use Atom for Python, first install it (you can use this [manual](https://flight-manual.atom.io/getting-started/sections/installing-atom/)). Next, install the [packages](https://flight-manual.atom.io/using-atom/sections/atom-packages/) for Python, we recommend to install at least [autocomplete-python](https://atom.io/packages/autocomplete-python) and [atom-ide-debugger-python](https://flight-manual.atom.io/using-atom/sections/atom-packages/). The last enables debugging the Python scripts, that is to set breakpoints and call variables in certain spot of your code (with increase in your codes' sophistication you will find this tools very helpful in finding bugs).
+Next, you'll want a text editor for Python. If you do not use the Anaconda Python distribution (see below), we recommend [VSCode](https://code.visualstudio.com/) or [PyCharm](https://www.jetbrains.com/pycharm/).
 
 After installing Python and the text editor, you can install HARK package. The simplest way is to use [pip](https://pip.pypa.io/en/stable/installing/).
 
@@ -44,9 +43,9 @@ Next, install `econ-ark` into your new virtual environment via pip:
 pip install econ-ark
 ```
 
----
 
-**!NOTE**
+
+:::{note}
 
 If you install econ-ark into the virtual environment, your HARK scripts will not compile unless it is activated.
 
@@ -71,22 +70,21 @@ cd [directory where you located your script]
 python YourScript.py
 ```
 
-For using the text editor, you also need to configure the environment. If you use [Atom](https://atom.io/), simply type `atom` at a command prompt after activating the environment. Atom text editor will open and you will be able to compile your codes which use HARK.
-
+For using the text editor, you also need to configure the environment.
+:::
 ---
 
 ### Using HARK with Anaconda
 
 Installing HARK with pip does not give you full access to HARK's many graphical capabilities. One way to access these capabilities is by using [Anaconda](https://anaconda.com/why-anaconda), which is a distribution of python along with many packages that are frequently used in scientific computing.
 
-1. Download Anaconda for your operating system and follow the installation instructions [at Anaconda.com](https://www.anaconda.com/distribution/#download-section).
+1. Download Anaconda for your operating system and follow the installation instructions [at Anaconda.com](https://www.anaconda.com/download/success).
 
 ---
+:::{note}
 
-**!NOTE**
-
-You can have the default python distribution from python.org and from anaconda, as they do not interfere. However, be careful with setting the PATH. To avoid problems you can eg. set the environment variables path to the default distribution and access anaconda distribution via anaconda prompt.
-
+You can have the default python distribution from python.org and from anaconda, as they do not interfere. However, be careful with setting the PATH. To avoid problems you can set the environment variables path to the default distribution and access anaconda distribution via anaconda prompt.
+:::
 ---
 
 2. Anaconda includes its own virtual environment system called `conda` which stores environments in a preset location (so you don't have to choose). So in order to create and activate an econ-ark virtual environment:
@@ -201,8 +199,7 @@ pip install -e .
 
 ---
 
-**!NOTE**
-
+:::{note}
 To check the package performance with your local changes, use the same command from the command line (after navigating to your HARK directory):
 
 ```
@@ -215,3 +212,4 @@ If for some reason you want to switch back to the PyPI version:
 pip uninstall econ-ark
 pip install econ-ark (options)
 ```
+:::
