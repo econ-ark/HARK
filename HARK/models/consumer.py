@@ -19,14 +19,16 @@ calibration = {
     "LivPrb": 0.98,
     "PermGroFac": 1.01,
     "BoroCnstArt": None,
-    "TranShkStd" : 0.1
+    "TranShkStd": 0.1,
 }
 
 consumption_block = DBlock(
     **{
         "name": "consumption",
         "shocks": {
-            "live": Bernoulli(p=calibration["LivPrb"]),  # Move to tick or mortality block?
+            "live": Bernoulli(
+                p=calibration["LivPrb"]
+            ),  # Move to tick or mortality block?
             "theta": MeanOneLogNormal(sigma=calibration["TranShkStd"]),
         },
         "dynamics": {
@@ -45,7 +47,9 @@ consumption_block_normalized = DBlock(
     **{
         "name": "consumption normalized",
         "shocks": {
-            "live": Bernoulli(p=calibration["LivPrb"]),  # Move to tick or mortality block?
+            "live": Bernoulli(
+                p=calibration["LivPrb"]
+            ),  # Move to tick or mortality block?
             "theta": MeanOneLogNormal(sigma=calibration["TranShkStd"]),
         },
         "dynamics": {
@@ -63,7 +67,8 @@ portfolio_block = DBlock(
         "name": "portfolio",
         "shocks": {
             "risky_return": Lognormal.from_mean_std(
-                calibration["Rfree"] + calibration["EqP"],  0.1 # RiskyStd
+                calibration["Rfree"] + calibration["EqP"],
+                0.1,  # RiskyStd
             )
         },
         "dynamics": {
