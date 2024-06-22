@@ -8,13 +8,14 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.15.2 (in development)
+### 0.16.0 (in development)
 
 Release Date: TBD
 
 #### Major Changes
 
-none
+- Allows structural equations in model files to be provided in string form [#1427](https://github.com/econ-ark/HARK/pull/1427)
+- Introduces `HARK.parser' module for parsing configuration files into models [#1427](https://github.com/econ-ark/HARK/pull/1427)
 
 #### Minor Changes
 
