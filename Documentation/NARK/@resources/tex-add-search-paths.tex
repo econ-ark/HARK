@@ -1,0 +1,17 @@
+% Add the listed directories to the search path
+% (allows easy moving of files around later)
+% these paths are searched AFTER local config kpsewhich
+
+% *.sty, *.cls
+\makeatletter
+\def\input@path{{@resources/texlive/texmf-local/tex/latex//}
+        ,{@resources/texlive/latex//}
+        ,{@local//}
+        }
+\makeatother
+\makeatletter
+\def\bibinput@path{{@resources/texlive/texmf-local/tex/latex//}
+        ,{@resources/texlive/latex//},
+        ,{@local//}
+        }
+\makeatother
