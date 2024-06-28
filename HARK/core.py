@@ -15,13 +15,11 @@ from collections import namedtuple
 from copy import copy, deepcopy
 from dataclasses import dataclass, field
 from time import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 from warnings import warn
 
 import numpy as np
 import pandas as pd
-from xarray import DataArray
-
 from HARK.distribution import (
     Distribution,
     IndexDistribution,
@@ -30,6 +28,7 @@ from HARK.distribution import (
 )
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
+from xarray import DataArray
 
 logging.basicConfig(format="%(message)s")
 _log = logging.getLogger("HARK")
@@ -104,11 +103,11 @@ class Parameters:
         """
         Infers the age-varying dimensions of a parameter.
 
-        If the parameter is a scalar, numpy array, or None, it is assumed to be
-        invariant over time. If the parameter is a list or tuple, it is assumed
-        to be varying over time. If the parameter is a list or tuple of length
-        greater than 1, the length of the list or tuple must match the
-        `_term_age` attribute of the Parameters object.
+        If the parameter is a scalar, numpy array, boolean, distribution, callable or None,
+        it is assumed to be invariant over time. If the parameter is a list or
+        tuple, it is assumed to be varying over time. If the parameter is a list
+        or tuple of length greater than 1, the length of the list or tuple must match
+        the `_term_age` attribute of the Parameters object.
 
         Parameters
         ----------
@@ -118,7 +117,9 @@ class Parameters:
             value of parameter
 
         """
-        if isinstance(value, (int, float, np.ndarray, type(None))):
+        if isinstance(
+            value, (int, float, np.ndarray, type(None), Distribution, bool, Callable)
+        ):
             self.__add_to_invariant__(key)
             return value
         if isinstance(value, (list, tuple)):

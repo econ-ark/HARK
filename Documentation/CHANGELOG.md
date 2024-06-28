@@ -21,6 +21,7 @@ Release Date: TBD
 #### Minor Changes
 
 - Fixes bug in `AgentPopulation` that caused discretization of distributions to not work. [1275](https://github.com/econ-ark/HARK/pull/1275)
+- Adds support for distributions, booleans, and callables as parameters in the `Parameters` class. [1387](https://github.com/econ-ark/HARK/pull/1387)
 
 ### 0.15.1
 
@@ -59,7 +60,8 @@ This release drops support for Python 3.8 and 3.9, consistent with SPEC 0, and a
 
 #### Minor Changes
 
-- Add option to pass pre-built grid to `LinearFast`. [#1388](https://github.com/econ-ark/HARK/pull/1388)
+
+- Add option to pass pre-built grid to `LinearFast`. [1388](https://github.com/econ-ark/HARK/pull/1388)
 - Moves calculation of stable points out of ConsIndShock solver, into method called by post_solve [#1349](https://github.com/econ-ark/HARK/pull/1349)
 - Adds cubic spline interpolation and value function construction to "warm glow bequest" models.
 - Fixes cubic spline interpolation for ConsMedShockModel.
