@@ -2,7 +2,8 @@
 Tools for crafting models.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from copy import copy, deepcopy
 from HARK.distribution import (
     Distribution,
     DiscreteDistributionLabeled,
@@ -135,8 +136,12 @@ def simulate_dynamics(
     return vals
 
 
+class Block:
+    pass
+
+
 @dataclass
-class DBlock:
+class DBlock(Block):
     """
     Represents a 'block' of model behavior.
     It prioritizes a representation of the dynamics of the block.
@@ -161,6 +166,26 @@ class DBlock:
     shocks: dict = field(default_factory=dict)
     dynamics: dict = field(default_factory=dict)
     reward: dict = field(default_factory=dict)
+
+    def discretize(self, disc_params):
+        """
+        Returns a new DBlock which is a copy of this one, but with shock discretized.
+        """
+
+        disc_shocks = {}
+
+        for shockn in self.shocks:
+            if shockn in disc_params:
+                disc_shocks[shockn] = self.shocks[shockn].discretize(
+                    **disc_params[shockn]
+                )
+            else:
+                disc_shocks[shockn] = deepcopy(self.shocks[shockn])
+
+        # replace returns a modified copy
+        new_dblock = replace(self, shocks=disc_shocks)
+
+        return new_dblock
 
     def __post_init__(self):
         for v in self.dynamics:
@@ -261,7 +286,7 @@ class DBlock:
 
 
 @dataclass
-class RBlock:
+class RBlock(Block):
     """
     A recursive block.
 
@@ -272,7 +297,24 @@ class RBlock:
 
     name: str = ""
     description: str = ""
-    blocks: List[DBlock] = field(default_factory=list)
+    blocks: List[Block] = field(default_factory=list)
+
+    def discretize(self, disc_params):
+        """
+        Recursively discretizes all the blocks.
+        It replaces any DBlocks with new blocks with discretized shocks.
+        """
+        cbs = copy(self.blocks)
+
+        for i, b in list(enumerate(cbs)):
+            if isinstance(b, DBlock):
+                nb = b.discretize(disc_params)
+                cbs[i] = nb
+            elif isinstance(b, RBlock):
+                b.discretize(disc_params)
+
+        # returns a copy of the RBlock with the blocks replaced
+        return replace(self, blocks=cbs)
 
     def get_shocks(self):
         ### TODO: Bug in here is causing AttributeError: 'set' object has no attribute 'draw'
