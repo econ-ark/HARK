@@ -12,6 +12,7 @@ from HARK.distribution import (
 )
 from inspect import signature
 import numpy as np
+from HARK.parser import math_text_to_lambda
 from typing import Any, Callable, Mapping, List, Union
 
 
@@ -148,7 +149,16 @@ class DBlock(Block):
 
     Parameters
     ----------
-    ...
+    shocks: Mapping(str, Distribution)
+        A mapping from variable names to Distribution objects,
+        representing exogenous shocks.
+
+    dynamics: Mapping(str, str or callable)
+        A dictionary mapping variable names to mathematical expressions.
+        These expressions can be simple functions, in which case the
+        argument names should match the variable inputs.
+        Or these can be strings, which are parsed into functions.
+
     """
 
     name: str = ""
@@ -176,6 +186,11 @@ class DBlock(Block):
         new_dblock = replace(self, shocks=disc_shocks)
 
         return new_dblock
+
+    def __post_init__(self):
+        for v in self.dynamics:
+            if isinstance(self.dynamics[v], str):
+                self.dynamics[v] = math_text_to_lambda(self.dynamics[v])
 
     def get_shocks(self):
         return self.shocks
