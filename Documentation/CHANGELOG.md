@@ -8,13 +8,15 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.15.2 (in development)
+### 0.16.0 (in development)
 
 Release Date: TBD
 
-#### Major Changes
+### Major Changes
 
-none yet
+- Adds a discretize method to DBlocks and RBlocks (#1460)[https://github.com/econ-ark/HARK/pull/1460]
+- Allows structural equations in model files to be provided in string form [#1427](https://github.com/econ-ark/HARK/pull/1427)
+- Introduces `HARK.parser' module for parsing configuration files into models [#1427](https://github.com/econ-ark/HARK/pull/1427)
 
 #### Minor Changes
 
@@ -51,7 +53,7 @@ This release drops support for Python 3.8 and 3.9, consistent with SPEC 0, and a
 - Object-oriented solver code has been moved to /HARK/ConsumptionSaving/LegacyOOsolvers.py, for legacy support of downstream projects.
 - AgentTypeMonteCarloSimulator now requires model shock, parameter, and dynamics information to be organized into 'blocks'. The DBlock object is introduced. [#1411](https://github.com/econ-ark/HARK/pull/1411)
 - RBlock object allows for recursive composition of DBlocks in models, as demonstrated by the AgentTypeMonteCarloSimulator [#1417](https://github.com/econ-ark/HARK/pull/1417/)
-- Transtion, reward, state-rulle value function, decision value function, and arrival value function added to DBlock [#1417](https://github.com/econ-ark/HARK/pull/1417/)
+- Transtion, reward, state-rule value function, decision value function, and arrival value function added to DBlock [#1417](https://github.com/econ-ark/HARK/pull/1417/)
 - All methods that construct inputs for solvers are now functions that are specified in the dictionary attribute `constructors`. [#1410](https://github.com/econ-ark/HARK/pull/1410)
 - Such constructed inputs can use alternate parameterizations / formats by changing the `constructor` function and providing its arguments in `parameters`.
 - Move `HARK.datasets` to `HARK.Calibration` for better organization of data and calibration tools. [#1430](https://github.com/econ-ark/HARK/pull/1430)
