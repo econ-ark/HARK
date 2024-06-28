@@ -6,11 +6,12 @@ from warnings import warn
 from copy import deepcopy
 import numpy as np
 import xarray as xr
-from numpy import random
+from numpy import random, linalg
 from scipy import stats
 from scipy.stats import rv_continuous, rv_discrete
 from scipy.stats._distn_infrastructure import rv_continuous_frozen, rv_discrete_frozen
-from scipy.stats._multivariate import multivariate_normal_frozen
+from scipy.stats._multivariate import multivariate_normal_frozen, multi_rv_frozen
+from scipy import special
 
 
 class Distribution:
@@ -717,6 +718,463 @@ class MVNormal(multivariate_normal_frozen, Distribution):
         }
 
         # Construct and return discrete distribution
+        return DiscreteDistribution(
+            pmv,
+            atoms.T,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
+        )
+
+
+class MVLogNormal(multi_rv_frozen, Distribution):
+    """
+    A Bivariate Lognormal distribution.
+
+    Parameters
+    ----------
+    mu : Union[list, numpy.ndarray], optional
+        Means of underlying multivariate normal, default [0.0, 0.0].
+    Sigma : Union[list, numpy.ndarray], optional
+        nxn variance-covariance matrix of underlying multivariate normal, default [[1.0, 0.0], [0.0, 1.0]].
+    seed : int, optional
+        Seed for random number generator, default 0.
+    """
+
+    def __init__(
+        self,
+        mu: Union[List, np.ndarray] = [0.0, 0.0],
+        Sigma: Union[List, np.ndarray] = [[1.0, 0.0], [0.0, 1.0]],
+        seed=None,
+    ):
+        self.mu = np.asarray(mu)
+        self.Sigma = np.asarray(Sigma)
+        self.M = self.mu.size
+
+        if self.Sigma.shape != (self.M, self.M):
+            raise AttributeError(f"Sigma must be a {self.M}x{self.M} matrix")
+
+        if np.array_equal(self.Sigma, self.Sigma.T):
+            res = np.all(np.linalg.eigvals(self.Sigma) >= 0)
+            if not res:
+                raise AttributeError("Sigma must be positive semi-definite")
+        else:
+            raise AttributeError("Sigma must be positive semi-definite")
+
+        multi_rv_frozen.__init__(self)
+        Distribution.__init__(self, seed=seed)
+
+    def mean(self):
+        """
+        Mean of the distribution.
+
+        Returns
+        -------
+        np.ndarray
+            Mean of the distribution.
+        """
+
+        return np.exp(self.mu + 0.5 * np.diag(self.Sigma))
+
+    def _cdf(self, x: Union[list, np.ndarray]):
+        """
+        Cumulative distribution function of the distribution evaluated at x.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            Point at which to evaluate the CDF.
+
+        Returns
+        -------
+        float
+            CDF evaluated at x.
+        """
+
+        x = np.asarray(x)
+
+        if (x.shape != self.M) & (x.shape[1] != self.M):
+            raise ValueError(f"x must be and {self.M}-dimensional input")
+
+        return MVNormal(mu=self.mu, Sigma=self.Sigma).cdf(np.log(x))
+
+    def _pdf(self, x: Union[list, np.ndarray]):
+        """
+        Probability density function of the distribution evaluated at x.
+
+        Parameters
+        ----------
+        x : Union[list, np.ndarray]
+            Point at which to evaluate the PDF.
+
+        Returns
+        -------
+        float
+            PDF evaluated at x.
+        """
+
+        x = np.asarray(x)
+
+        if (x.shape != (self.M,)) & (x.shape[1] != self.M):
+            raise ValueError(f"x must be an {self.M}-dimensional input")
+
+        eigenvalues = linalg.eigvals(self.Sigma)
+
+        pseudo_det = np.prod(eigenvalues[eigenvalues > 1e-12])
+
+        inverse_sigma = linalg.pinv(self.Sigma)
+
+        rank_sigma = linalg.matrix_rank(self.Sigma)
+
+        pd = np.multiply(
+            (1 / np.prod(x, axis=1)),
+            (2 * np.pi) ** (-rank_sigma / 2)
+            * pseudo_det ** (-0.5)
+            * np.exp(-(1 / 2) * np.multiply(np.log(x) @ inverse_sigma, np.log(x))),
+        )
+
+        return pd
+
+    def _marginal(self, x: Union[np.ndarray, float, list], dim: int):
+        """
+        Marginal distribution of one of the variables in the bivariate distribution evaluated at x.
+
+        Parameters
+        ----------
+        x : Union[np.ndarray, float]
+            Point at which to evaluate the marginal distribution.
+        dim : int
+            Which of the random variables to evaluate (1 or 2).
+
+        Returns
+        -------
+        float
+            Marginal distribution evaluated at x.
+        """
+
+        x = np.asarray(x)
+
+        x_dim = Lognormal(
+            mu=self.mu[dim - 1], sigma=np.sqrt(self.Sigma[dim - 1, dim - 1])
+        )
+
+        return x_dim.pdf(x)
+
+    def _marginal_cdf(self, x: Union[np.ndarray, float, list], dim: int):
+        """
+        Cumulative distribution function of one of the variables from the bivariate distribution evaluated at x.
+
+        Parameters
+        ----------
+        x : Union[np.ndarray, float]
+            Point at which to evaluate the marginal CDF.
+        dim : int
+            Which of the random variables to evaluate (1 or 2).
+
+        Returns
+        -------
+        float
+            Marginal CDF evaluated at x.
+        """
+
+        x = np.asarray(x)
+
+        x_dim = Lognormal(
+            mu=self.mu[dim - 1], sigma=np.sqrt(self.Sigma[dim - 1, dim - 1])
+        )
+
+        return x_dim.cdf(x)
+
+    def rvs(self, size: int = 1, random_state=None):
+        """
+        Random sample from the distribution.
+
+        Parameters
+        ----------
+        size : int
+            Number of data points to generate.
+        random_state : optional
+            Seed for random number generator.
+
+        Returns
+        -------
+        np.ndarray
+            Random sample from the distribution.
+        """
+
+        Z = MVNormal(mu=self.mu, Sigma=self.Sigma)
+
+        return np.exp(Z.rvs(size, random_state=random_state))
+
+    def _approx_equiprobable(self, N, endpoints: bool = False):
+        """
+        Makes a discrete approximation using the equiprobable method to this multivariate lognormal distribution.
+
+        Parameters
+        ----------
+        N : int
+            The number of points in the discrete approximation.
+        endpoints : bool
+            To be added
+
+        Returns
+        -------
+        d : DiscreteDistribution
+            Probability associated with each point in array of discrete
+            points for discrete probability mass function.
+        """
+
+        if endpoints:
+            raise NotImplementedError("Endpoints have not yet been implemented")
+
+        if np.array_equal(self.Sigma, np.diag(np.diag(self.Sigma))):
+            ind_atoms = np.empty((self.M, N))
+
+            for i in range(self.M):
+                if self.Sigma[i, i] == 0.0:
+                    x_atoms = np.repeat(np.exp(self.mu[i]), N)
+                    ind_atoms[i] = x_atoms
+                else:
+                    x_atoms = (
+                        Lognormal(mu=self.mu[i], sigma=np.sqrt(self.Sigma[i, i]))
+                        ._approx_equiprobable(N)
+                        .atoms
+                    )
+                    ind_atoms[i] = x_atoms
+
+            atoms_list = [ind_atoms[i] for i in range(self.M)]
+            atoms = np.stack(
+                [ar.flatten() for ar in list(np.meshgrid(*atoms_list))], axis=1
+            ).T
+            pmv = np.repeat(1 / (N**self.M), N**self.M)
+        else:
+            cdf_cuts = np.linspace(0, 1, N + 1)
+
+            Z = Normal()
+
+            z_cuts = Z.ppf(cdf_cuts)
+            z_bins = [(z_cuts[i], z_cuts[i + 1]) for i in range(N)]
+
+            atoms = np.empty([self.M, N**self.M])
+
+            def eval(params, z):
+                dim = len(params)
+
+                p = np.repeat(params, 2).reshape(dim, 2)
+
+                Z = np.multiply(p, z)
+
+                bounds = ((p**2 - Z) / (np.sqrt(2) * p)).T
+
+                x_exp = (
+                    -0.5
+                    * np.exp(np.square(params) / 2)
+                    * (special.erf(bounds[1]) - special.erf(bounds[0]))
+                )
+
+                return np.prod(x_exp) * N**dim
+
+            def coef(i, j):
+                if i < j:
+                    raise ValueError("i must be greater than or equal to j")
+
+                if i == 0 & j == 0:
+                    return np.sqrt(self.Sigma[0, 0])
+                elif j == 0:
+                    return self.Sigma[i, 0] / np.sqrt(self.Sigma[0, 0])
+                elif j < i:
+                    corrs_j = np.array([coef(j, k) for k in range(j)])
+                    corrs_i = np.array([coef(i, k) for k in range(j)])
+                    return (self.Sigma[i, j] - np.dot(corrs_i, corrs_j)) / coef(j, j)
+                elif i == j:
+                    return np.sqrt(
+                        self.Sigma[i, i]
+                        - np.sum(np.square([coef(i, k) for k in range(i)]))
+                    )
+
+            for i in range(self.M):
+                mui = self.mu[i]
+                params = np.zeros(i + 1)
+
+                for j in range(i + 1):
+                    params[j] = coef(i, j)
+
+                Z_list = [z_bins for _ in range(i + 1)]
+
+                Z_bins = [np.array(x) for x in list(product(*Z_list))]
+
+                xi_atoms = []
+
+                for z_bin in Z_bins:
+                    atom = np.exp(mui) * eval(params, z_bin)
+                    xi_atoms.append(atom)
+
+                xi_atoms_arr = np.repeat(xi_atoms, N ** (self.M - (i + 1)))
+
+                atoms[i] = xi_atoms_arr
+
+            pmv = np.repeat(1 / (N**self.M), N**self.M)
+
+        limit = {"dist": self, "method": "equiprobable", "N": N}
+
+        return DiscreteDistribution(
+            pmv,
+            atoms,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
+        )
+
+    def bv_approx_equiprobable(self, N):
+        """
+        Makes a discrete approximation using the equiprobable method to this bivariate lognormal distribution.
+
+        Parameters
+        ----------
+        N : int
+            The number of points in the discrete approximation.
+
+        Returns
+        -------
+        d : DiscreteDistribution
+            Probability associated with each point in array of discrete
+            points for discrete probability mass function.
+        """
+
+        if self.M != 2:
+            raise ValueError(
+                "This method is only implemented for bivariate distributions. For general distributions, use the approx_equiprobable method instead."
+            )
+
+        if np.array_equal(self.Sigma, np.diag(np.diag(self.Sigma))):
+            if self.Sigma[0, 0] == 0.0:
+                x1_atoms = np.repeat(np.exp(self.mu[0]), N)
+            else:
+                x1_atoms = (
+                    Lognormal(mu=self.mu[0], sigma=np.sqrt(self.Sigma[0, 0]))
+                    ._approx_equiprobable(N)
+                    .atoms
+                )
+
+            if self.Sigma[1, 1] == 0.0:
+                x2_atoms = np.repeat(np.exp(self.mu[1]), N)
+            else:
+                x2_atoms = (
+                    Lognormal(mu=self.mu[1], sigma=np.sqrt(self.Sigma[1, 1]))
+                    ._approx_equiprobable(N)
+                    .atoms
+                )
+
+            x1_rep, x2_rep = np.meshgrid(x1_atoms, x2_atoms)
+            x1_flat = x1_rep.flatten()
+            x2_flat = x2_rep.flatten()
+
+            atoms = np.stack([x1_flat, x2_flat], axis=-1)
+            pmv = np.repeat(1 / (N**2), N**2)
+        else:
+            cdf_cuts = np.linspace(0, 1, N + 1)
+
+            Z = Normal()
+
+            z_bins = Z.ppf(cdf_cuts)
+
+            atoms = []
+
+            mu1 = self.mu[0]
+            mu2 = self.mu[1]
+            sigma1 = np.sqrt(self.Sigma[0, 0])
+            sigma2 = np.sqrt(self.Sigma[1, 1])
+            cov = self.Sigma[0, 1]
+            a = np.sqrt(sigma2**2 - (cov**2 / sigma1**2))
+
+            x1bins = np.exp(mu1 + sigma1 * z_bins)
+            x21_bins = np.exp((cov / sigma1) * z_bins)
+            x22_bins = np.exp(a * z_bins)
+
+            for i in range(N):
+                for j in range(N):
+                    x1Top = x1bins[i + 1]
+                    x1Bot = x1bins[i]
+                    x21Top = x21_bins[i + 1]
+                    x21Bot = x21_bins[i]
+                    x22Top = x22_bins[j + 1]
+                    x22Bot = x22_bins[j]
+
+                    if x1Bot == 0.0:
+                        temp1Bot = np.inf
+                    else:
+                        temp1Bot = (mu1 + sigma1**2 - np.log(x1Bot)) / (
+                            np.sqrt(2) * sigma1
+                        )
+
+                    temp1Top = (mu1 + sigma1**2 - np.log(x1Top)) / (np.sqrt(2) * sigma1)
+
+                    if x21Bot == 0.0:
+                        temp21Bot = np.inf
+                    else:
+                        temp21Bot = ((cov / sigma1) ** 2 - np.log(x21Bot)) / (
+                            np.sqrt(2) * (cov / sigma1)
+                        )
+
+                    temp21Top = ((cov / sigma1) ** 2 - np.log(x21Top)) / (
+                        np.sqrt(2) * (cov / sigma1)
+                    )
+
+                    if x22Bot == 0.0:
+                        temp22Bot = np.inf
+                    else:
+                        temp22Bot = (a**2 - np.log(x22Bot)) / (np.sqrt(2) * a)
+
+                    temp22Top = (a**2 - np.log(x22Top)) / (np.sqrt(2) * a)
+
+                    if temp1Bot <= 4.0:
+                        x1_exp = (
+                            -0.5
+                            * np.exp(mu1 + (sigma1**2) / 2)
+                            * (math.erf(temp1Top) - math.erf(temp1Bot))
+                            * N
+                        )
+                    else:
+                        x1_exp = (
+                            -0.5
+                            * np.exp(mu1 + (sigma1**2) / 2)
+                            * (math.erfc(temp1Bot) - math.erfc(temp1Top))
+                            * N
+                        )
+
+                    if temp21Bot <= 4.0:
+                        x21_exp = (
+                            -0.5
+                            * np.exp(((cov / sigma1) ** 2) / 2)
+                            * (math.erf(temp21Top) - math.erf(temp21Bot))
+                        )
+                    else:
+                        x21_exp = (
+                            -0.5
+                            * np.exp(((cov / sigma1) ** 2) / 2)
+                            * (math.erfc(temp21Bot) - math.erfc(temp21Top))
+                        )
+
+                    if temp22Bot <= 4.0:
+                        x22_exp = (
+                            -0.5
+                            * np.exp((a**2) / 2)
+                            * (math.erf(temp22Top) - math.erf(temp22Bot))
+                        )
+                    else:
+                        x22_exp = (
+                            -0.5
+                            * np.exp((a**2) / 2)
+                            * (math.erfc(temp22Bot) - math.erfc(temp22Top))
+                        )
+
+                    x2_exp = np.exp(mu2) * x21_exp * x22_exp * N**2
+
+                    atoms.append((x1_exp, x2_exp))
+
+            pmv = np.repeat(1 / (N**2), N**2)
+            atoms = np.array(atoms)
+
+        limit = {"dist": self, "method": "equiprobable", "N": N}
+
         return DiscreteDistribution(
             pmv,
             atoms.T,
