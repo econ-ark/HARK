@@ -1,0 +1,55 @@
+% Allows two (optional) supplements to hard-wired \texname.bib bibfile:
+% system.bib is a default bibfile that supplies anything missing elsewhere
+% Add-Refs.bib is an override bibfile that supplants anything in \texfile.bib or system.bib
+\provideboolean{AddRefsExists}
+\provideboolean{systemExists}
+\provideboolean{BothExist}
+\provideboolean{NeitherExists}
+\setboolean{BothExist}{true}
+\setboolean{NeitherExists}{true}
+
+\IfFileExists{\econtexRoot/Add-Refs.bib}{
+  % then
+  \typeout{References in Add-Refs.bib will take precedence over those elsewhere}
+  \setboolean{AddRefsExists}{true}
+  \setboolean{NeitherExists}{false} % Default is true
+}{
+  % else
+  \setboolean{AddRefsExists}{false} % No added refs exist so defaults will be used
+  \setboolean{BothExist}{false}     % Default is that Add-Refs and system.bib both exist
+}
+
+% Deal with case where system.bib is found by kpsewhich
+\IfFileExists{/usr/local/texlive/texmf-local/bibtex/bib/system.bib}{
+  % then
+  \typeout{References in system.bib will be used for items not found elsewhere}
+  \setboolean{systemExists}{true}
+  \setboolean{NeitherExists}{false}
+}{
+  % else
+  \typeout{Found no system database file}
+  \setboolean{systemExists}{false}
+  \setboolean{BothExist}{false}
+}
+
+\ifthenelse{\boolean{showPageHead}}{ %then
+  \clearpairofpagestyles % No header for references pages
+  }{} % No head has been set to clear
+
+\ifthenelse{\boolean{BothExist}}{
+  % then use both
+  \typeout{bibliography{\econtexRoot/Add-Refs,\econtexRoot/\texname,system}}
+  \bibliography{\econtexRoot/Add-Refs,\econtexRoot/\texname,system}
+  % else both do not exist
+}{ % maybe neither does?
+  \ifthenelse{\boolean{NeitherExists}}{
+    \typeout{bibliography{\texname}}
+    \bibliography{\texname}}{
+    % no -- at least one exists
+    \ifthenelse{\boolean{AddRefsExists}}{
+      \typeout{bibliography{\econtexRoot/Add-Refs,\econtexRoot/\texname}}
+      \bibliography{\econtexRoot/Add-Refs,\econtexRoot/\texname}}{
+      \typeout{bibliography{\econtexRoot/\texname,system}}
+      \bibliography{        \econtexRoot/\texname,system}}
+  } % end of picking the one that exists
+} % end of testing whether neither exists

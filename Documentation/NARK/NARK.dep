@@ -1,0 +1,109 @@
+\RequireVersions{
+  *{application}{pdfTeX}  {0000/00/00 v1.40.25}
+  *{format} {LaTeX2e}     {2023-11-01 v2.e}
+  *{file}   {@resources/tex-add-search-paths.tex}{0000/00/00 v0.0}
+  *{class}  {@resources/texlive/texmf-local/tex/latex//econark}{2024/06/04 v0.0}
+  *{package}{snapshot}    {2020/06/17 v2.14}
+  *{package}{ifthen}      {2022/04/13 v1.1d}
+  *{package}{changepage}  {2009/10/20 v1.0c}
+  *{package}{currfile}    {2022/10/10 v0.8}
+  *{package}{kvoptions}   {2022-06-15 v3.15}
+  *{package}{keyval}      {2022/05/29 v1.15}
+  *{package}{ltxcmds}     {2023-12-04 v1.26}
+  *{package}{kvsetkeys}   {2022-10-05 v1.19}
+  *{package}{filehook}    {2022/10/25 v0.8b}
+  *{package}{filehook-2020}{2022/10/25 v0.8b}
+  *{class}  {scrartcl}    {2023/07/07 v3.41}
+  *{package}{scrkbase}    {2023/07/07 v3.41}
+  *{package}{scrbase}     {2023/07/07 v3.41}
+  *{package}{scrlfile}    {2023/07/07 v3.41}
+  *{package}{scrlfile-hook}{2023/07/07 v3.41}
+  *{package}{scrlogo}     {2023/07/07 v3.41}
+  *{package}{tocbasic}    {2023/07/07 v3.41}
+  *{file}   {scrsize12pt.clo}{2023/07/07 v3.41}
+  *{package}{typearea}    {2023/07/07 v3.41}
+  *{package}{fontenc}     {0000/00/00 v0.0}
+  *{package}{babel}       {2024/02/07 v24.2}
+  *{file}   {english.ldf} {2017/06/06 v3.3r}
+  *{file}   {babel-english.tex}{0000/00/00 v0.0}
+  *{package}{amsmath}     {2023/05/13 v2.17o}
+  *{package}{amstext}     {2021/08/26 v2.01}
+  *{package}{amsgen}      {1999/11/30 v2.0}
+  *{package}{amsbsy}      {1999/11/29 v1.2d}
+  *{package}{amsopn}      {2022/04/08 v2.04}
+  *{package}{amssymb}     {2013/01/14 v3.01}
+  *{package}{amsfonts}    {2013/01/14 v3.01}
+  *{package}{amsthm}      {2020/05/29 v2.20.6}
+  *{package}{xpatch}      {2020/03/25 v0.3a}
+  *{package}{expl3}       {2024-02-20 v3}
+  *{file}   {l3backend-pdftex.def}{2024-02-20 v3}
+  *{package}{xparse}      {2024-02-18 v3}
+  *{package}{etoolbox}    {2020/10/05 v2.5k}
+  *{package}{cancel}      {2013/04/12 v2.2}
+  *{package}{verbatim}    {2023-11-06 v1.5v}
+  *{package}{dcolumn}     {2023/07/08 v1.06}
+  *{package}{array}       {2023/10/16 v2.5g}
+  *{package}{hhline}      {2020/01/04 v2.04}
+  *{package}{xcolor}      {2023/11/15 v3.01}
+  *{file}   {color.cfg}   {2016/01/02 v1.6}
+  *{file}   {pdftex.def}  {2022/09/22 v1.2b}
+  *{file}   {mathcolor.ltx}{0000/00/00 v0.0}
+  *{package}{accents}     {2006/05/12 v1.4}
+  *{package}{appendix}    {2020/02/08 v1.2c}
+  *{package}{datetime2}   {2021/03/21 v1.5.7}
+  *{package}{tracklang}   {2022/12/13 v1.6.1}
+  *{file}   {tracklang.tex}{2022/12/13 v1.6.1}
+  *{package}{xkeyval}     {2022/06/16 v2.9}
+  *{file}   {xkeyval.tex} {2014/12/03 v2.7a}
+  *{file}   {datetime2-english.ldf}{2019/10/21 v1.05}
+  *{file}   {datetime2-english-base.ldf}{2019/10/21 v1.05}
+  *{package}{eucal}       {2009/06/22 v3.00}
+  *{package}{url}         {2013/09/16 v3.4}
+  *{package}{optional}    {2005/01/26 v2.2b;}
+  *{package}{natbib}      {2010/09/13 v8.31b}
+  *{package}{footmisc}    {2023/07/05 v6.0f}
+  *{package}{manyfoot}    {2019/08/03 v1.11}
+  *{package}{nccfoots}    {2005/02/03 v1.2}
+  *{package}{perpage}     {2014/10/25 v2.0}
+  *{package}{setspace}    {2022/12/04 v6.7b}
+  *{package}{@resources/texlive/texmf-local/tex/latex//econark-multibib}{2024/06/08 v0.0}
+  *{package}{wasysym}     {2020/01/19 v2.4}
+  *{package}{@resources/texlive/texmf-local/tex/latex//econark}{0000/00/00 v0.0}
+  *{package}{subfiles}    {2020/11/14 v2.2}
+  *{package}{import}      {2020/04/01 v6.2}
+  *{package}{hyperref}    {2024-01-20 v7.01h}
+  *{package}{iftex}       {2022/02/03 v1.0f}
+  *{package}{kvdefinekeys}{2019-12-19 v1.6}
+  *{package}{pdfescape}   {2019/12/09 v1.15}
+  *{package}{pdftexcmds}  {2020-06-27 v0.33}
+  *{package}{infwarerr}   {2019/12/03 v1.5}
+  *{package}{hycolor}     {2020-01-27 v1.10}
+  *{package}{auxhook}     {2019-12-17 v1.6}
+  *{package}{nameref}     {2023-11-26 v2.56}
+  *{package}{refcount}    {2019/12/15 v3.6}
+  *{package}{gettitlestring}{2019/12/15 v1.6}
+  *{file}   {pd1enc.def}  {2024-01-20 v7.01h}
+  *{package}{intcalc}     {2019/12/15 v1.3}
+  *{file}   {puenc.def}   {2024-01-20 v7.01h}
+  *{package}{bitset}      {2019/12/09 v1.3}
+  *{package}{bigintcalc}  {2019/12/15 v1.5}
+  *{package}{atbegshi-ltx}{2021/01/10 v1.0c}
+  *{file}   {hpdftex.def} {2024-01-20 v7.01h}
+  *{package}{atveryend-ltx}{2020/08/19 v1.0a}
+  *{package}{rerunfilecheck}{2022-07-10 v1.10}
+  *{package}{uniquecounter}{2019/12/15 v1.4}
+  *{file}   {t1cmss.fd}   {2023/04/13 v2.5m}
+  *{file}   {t1cmtt.fd}   {2023/04/13 v2.5m}
+  *{file}   {umsa.fd}     {2013/01/14 v3.01}
+  *{file}   {umsb.fd}     {2013/01/14 v3.01}
+  *{file}   {uwasy.fd}    {2020/01/19 v2.4}
+  *{file}   {ueuf.fd}     {2013/01/14 v3.01}
+  *{file}   {ueus.fd}     {2013/01/14 v3.01}
+  *{-------}{Document-specific files:}{----}
+  *{file}   {supp-pdf.mkii}{0000/00/00 v0.0}
+  *{file}   {NARK.out}    {0000/00/00 v0.0}
+  *{file}   {NARK.out}    {0000/00/00 v0.0}
+  *{package}{bookmark}    {2023-12-10 v1.31}
+  *{file}   {bkm-pdftex.def}{2023-12-10 v1.31}
+  *{file}   {NARK.bbl}    {0000/00/00 v0.0}
+}

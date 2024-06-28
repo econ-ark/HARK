@@ -1,0 +1,658 @@
+% -*- mode: LaTeX; TeX-PDF-mode: t; -*- # Tell emacs the file type (for syntax coloring)
+\usepackage{econark}
+
+\providecommand{\constr}[1]{\grave{#1}} % alternative to \cnstr from econark which is preferred
+
+\providecommand{\aAgg}{{\mathsf{A}}}
+\providecommand{\aboveMin}{\blacktriangle}
+\providecommand{\adjPar}{{\omega}}
+\providecommand{\adj}{{\mathrm{j}}}
+\providecommand{\aE}{\aRat^{e}}
+\providecommand{\aFunc}{{\mathrm{a}}}
+\providecommand{\Age}{{Z}}
+\providecommand{\age}{{z}}
+\providecommand{\Agg}{\bar}
+\providecommand{\ALevBF}{{\mathbf{A}}}
+\providecommand{\aLevBF}{{\mathbf{a}}}
+\providecommand{\ALev}{{A}}
+\providecommand{\aLev}{{a}}
+\providecommand{\Alive}{{\aleph}}
+\providecommand{\Alt}{\grave}
+\providecommand{\aMin}{{\underline{\aRat}}}
+\providecommand{\ARat}{{A}}
+\providecommand{\aRat}{{a}}
+\providecommand{\ARat}{{A}}
+\providecommand{\aRat}{{a}}
+%\providecommand{\aRatBF}{{\pmb{a}}}
+\providecommand{\ASS}{{{A}}}
+\providecommand{\aSS}{{{a}}}
+\providecommand{\ATarg}{{\check{A}}}
+\providecommand{\aTarg}{{\check{a}}}
+\providecommand{\BE}{\BRat^{e}}
+\providecommand{\bE}{\bRat^{e}}
+\providecommand{\BLevBF}{{\mathbf{B}}}
+\providecommand{\bLevBF}{{\mathbf{b}}}
+\providecommand{\BLevE}{{\BLev^{e}}}
+\providecommand{\bLevE}{{\bLev^{e}}}
+\providecommand{\BLevU}{{\BLev^{u}}}
+\providecommand{\bLevU}{{\bLev^{u}}}
+\providecommand{\BLev}{{B}}
+\providecommand{\bLev}{{b}}
+\providecommand{\bMin}{{\underline{\bRat}}}
+\providecommand{\bRatE}{{b}^{e}}
+\providecommand{\BRatE}{{B}^{e}}
+\providecommand{\bRatU}{{b}^{u}}
+\providecommand{\BRat}{{B}}
+\providecommand{\bRat}{{b}}
+\providecommand{\bRatBF}{{\pmb{\mathrm{b}}}}
+\providecommand{\bTargE}{{\check{b}^{e}}}
+\providecommand{\BTargTarg}{\Target{\Target{\BRat}}}
+\providecommand{\bTargTarg}{\Target{\Target{\bRat}}}
+\providecommand{\BTarg}{{\check{B}}}
+\providecommand{\bTarg}{{\check{b}}}
+\providecommand{\BU}{{B}^{u}}
+\providecommand{\bU}{{b}^{u}}
+\providecommand{\cAgg}{{\pmb{C}}}
+\providecommand{\CARA}{{\alpha}}
+\providecommand{\ccRat}{{\mathsf{c}}}
+\providecommand{\CDF}{{\mathcal{F}}}
+\providecommand{\CEndFunc}{{\mathfrak{C}}}
+\providecommand{\cEndFunc}{{\mathfrak{c}}}
+\providecommand{\cEss}{{c}^{e}}
+\providecommand{\CE}{\CRat^{e}}
+\providecommand{\cE}{\cRat^{e}}
+\providecommand{\cFuncAbove}{{\bar{\mathrm{c}}}}
+\providecommand{\cFuncBelow}{{\uline{\mathrm{c}}}}
+\providecommand{\cFuncMax}{{\bar{\bar{\mathrm{c}}}}}
+\providecommand{\CFunc}{{\mathrm{C}}}
+\providecommand{\cFunc}{{\mathrm{c}}}
+\providecommand{\cFunc}{{\mathrm{c}}}
+\providecommand{\CGroOverG}{{\Upsilon}}
+\providecommand{\CGroOverR}{{\Phi}}
+\providecommand{\CGroPF}{{\Lambda}}
+\providecommand{\cGroPF}{{\lambda}}
+\providecommand{\CGroPS}{{\chi}}  % Precautionary Saving boost to consumption growth
+\providecommand{\chiFunc}{\pmb{\chi}}
+\providecommand{\Chi}{{\mathrm{X}}} % capital chi is sometimes useful, and not native to LaTeX
+\providecommand{\CLevBF}{{\mathbf{C}}}
+\providecommand{\cLevBF}{{\mathbf{c}}}
+\providecommand{\CLevE}{\CLev^{e}}
+\providecommand{\cLevE}{\cLev^{e}}
+\providecommand{\cLevFunc}{{\pmb{\cFunc}}}
+\providecommand{\CLevU}{\CLev^{u}}
+\providecommand{\cLevU}{\cLev^{u}}
+\providecommand{\cLev}{{c}}
+\providecommand{\CLev}{{C}}
+\providecommand{\Cons}{{C}}
+\providecommand{\cons}{{c}}
+\providecommand{\corr}{\varrho}
+\providecommand{\cPDVFunc}{{\mathbb{C}}}
+\providecommand{\CPDV}{{\text{PDV($C$)}}}
+\providecommand{\cPPP}{\cons^{\prime\prime\prime}}
+\providecommand{\cPP}{\cons^{\prime\prime}}
+\providecommand{\cP}{\cons^{\prime}}
+\providecommand{\cRatBF}{{\pmb{c}}}
+\providecommand{\CRatE}{\CRat^{e}}
+\providecommand{\cRatE}{\cRat^{e}}
+\providecommand{\CRatU}{\CRat^{u}}
+\providecommand{\cRatU}{\cRat^{u}}
+\providecommand{\CRat}{{C}}
+\providecommand{\cRat}{{c}}
+\providecommand{\CRRA}{{\rho}}
+\providecommand{\CTargE}{\CTarg^{\null}}
+\providecommand{\cTargE}{{\Target{c}^{e}}}
+\providecommand{\cTargTarg}{\Target{\Target{\cRat}}}
+\providecommand{\CTarg}{{\Target{C}}}
+\providecommand{\cTarg}{{\Target{c}}}
+\providecommand{\curr}{1}  % Permits a change of notation to T-1 and T, t and t+1, or whatever
+\providecommand{\Curr}{t}   % Permits a change of notation to T-1 and T, t and t+1, or whatever
+\providecommand{\CU}{\CRat^{u}}
+\providecommand{\cU}{\cRat^{u}}
+\providecommand{\dRat}{{d}}
+\providecommand{\debtLim}{\mathsf{d}}
+\providecommand{\Debt}{{D}}
+\providecommand{\debt}{{d}}
+\providecommand{\DeprFac}{{\daleth}}
+\providecommand{\Depr}{{\daleth}}
+\providecommand{\depr}{{\delta}}
+\providecommand{\deprRte}{{\delta}} % New
+\providecommand{\DiscAltuAdj}{{\underline{\underline{\beth}}}}
+\providecommand{\DiscAlt}{{\beth}}
+\providecommand{\Discount}{{\beta}}
+\providecommand{\DiscRate}{{\vartheta}}
+\providecommand{\DiscRte}{{\vartheta}} % New
+\providecommand{\discRte}{{\vartheta}} % New
+\providecommand{\DiscFac}{{\beta}} % New
+\providecommand{\DivGro}{{\mathrm{G}}}
+\providecommand{\divGro}{{\mathsf{g}}}
+\providecommand{\Div}{{D}}
+% \providecommand{\div}{{d}} reserved for divide
+\providecommand{\DLev}{{D}}
+\providecommand{\Dvdnd}{{\mathbf{D}}}
+\providecommand{\dvdnd}{{d}}
+\providecommand{\edvdnd}{\grave{\dvdnd}}
+\providecommand{\EEndMap}{{\mathsf{E}}}
+\providecommand{\effUnits}{{X}}
+\providecommand{\eFunc}{{\mathrm{e}}}
+\providecommand{\ELev}{{E}}
+\providecommand{\ek}{{\lambda}}
+\providecommand{\EmpGro}{{\Xi}}
+\providecommand{\empGro}{{\xi}}
+\providecommand{\empState}{\xi} % employment state indicator variable
+\providecommand{\EpremLog}{\varphi} % Not using regular \eprem because want to distinguish between \varphi = log E_{t}[\Phi_{t+1}] and \phi_{t} = E[\log \Phi_{t}]
+\providecommand{\EPrem}{\pmb{\varphi}} % equity premium
+\providecommand{\eprem}{\phi} % log equity premium
+\providecommand{\EpShkInv}{\Ex[\pShk^{-1}]}
+\providecommand{\erate}{{\cancel{\mho}}}
+\providecommand{\error}{{\epsilon}}
+\providecommand{\Err}{{Z}}
+\providecommand{\err}{{z}}
+\providecommand{\err}{{z}}
+\providecommand{\Estdr}{{\sigma_{\risky}}} % Standard deviation of log return on risky asset
+\providecommand{\Evarr}{{\sigma_{\risky}^{2}}} % Variance of log return on risky asset
+\providecommand{\EVarr}{\sigma_{\Risky}^{2}} % Variance of level return on risky asset (when returns norm dist)
+\providecommand{\expend}{{\xi}}
+%\providecommand{\Ex}{{\mathbb{E}}} % Expectations operator defined in econtex.cls
+\providecommand{\FDist}{{\mathcal{F}}}
+\providecommand{\fDist}{{\mathcal{f}}}
+\providecommand{\FFunc}{{\mathrm{F}}}
+\providecommand{\fFunc}{{\mathrm{f}}}
+\providecommand{\FLev}{{F}}
+\providecommand{\fLev}{{f}}
+\providecommand{\fPP}{{\mathrm{f}^{\prime\prime}}}
+\providecommand{\FPP}{{\mathrm{F}^{\prime\prime}}}
+\providecommand{\fP}{{\mathrm{f}^{\prime}}}
+\providecommand{\FP}{{\mathrm{F}^{\prime}}}
+\providecommand{\GLev}{{G}}
+\providecommand{\GovNW}{{N}}
+\providecommand{\govNW}{{n}}
+\providecommand{\GovSpend}{{X}}
+\providecommand{\govSpend}{{x}}
+\providecommand{\Habit}{{H}}
+\providecommand{\Habit}{{H}}
+\providecommand{\habit}{{h}}
+\providecommand{\Ham}{{\mathcal{H}}} % Hamiltonian
+\providecommand{\HARKcore}{\texttt{HARKcore}}
+\providecommand{\hEndMin}{{\underline{\mathfrak{h}}}}
+\providecommand{\hEnd}{{\mathfrak{h}}}
+\providecommand{\hFunc}{{\mathrm{h}}}
+\providecommand{\Hi}{\hat}
+\providecommand{\HLevBF}{{\mathbf{H}}}
+\providecommand{\hLevBF}{{\mathbf{h}}}
+\providecommand{\HLev}{{H}}
+\providecommand{\hLev}{{h}}
+\providecommand{\hMin}{{\underline{\h}}}
+\providecommand{\HMin}{{\underline{H}}}
+\providecommand{\hours}{{\mathfrak{h}}}
+\providecommand{\Hours}{{\mathfrak{H}}}
+\providecommand{\HRat}{{H}}
+\providecommand{\hRat}{{h}}
+%\providecommand{\h}{{h}}
+\providecommand{\iFunc}{{\mathrm{i}}}
+\providecommand{\IFunc}{{\mathrm{I}}}
+\providecommand{\ILev}{{I}}
+\providecommand{\iLev}{{i}}
+\providecommand{\impg}{{\imath}_{\pGro}}
+\providecommand{\ImpG}{{\Im}_{\PGro}}
+\providecommand{\impr}{{\imath}_{\rfree}}
+\providecommand{\ImpR}{{\Im}_{\Rfree}}
+\providecommand{\Inc}{{Y}}
+\providecommand{\inc}{{y}}
+\providecommand{\InvEpShkInv}{\underline{\psi}}
+\providecommand{\Inv}{{I}}
+\providecommand{\inv}{{i}}
+\providecommand{\IRat}{{I}}
+\providecommand{\iRat}{{i}}
+\providecommand{\itc}{{\zeta}}
+\providecommand{\jFunc}{{\mathrm{j}}}
+\providecommand{\JLev}{{J}}
+\providecommand{\kapRent}{{\varkappa}}
+\providecommand{\kapShare}{{\alpha}}
+\providecommand{\Kap}{{K}}
+\providecommand{\kap}{{k}}
+\providecommand{\KFunc}{{\mathrm{K}}}
+\providecommand{\kFunc}{{\mathrm{k}}}
+\providecommand{\KLevBF}{{\mathbf{K}}}
+\providecommand{\kLevBF}{{\mathbf{k}}}
+\providecommand{\KLev}{{K}}
+\providecommand{\kLev}{{k}}
+\providecommand{\kPriceAfterITC}{{\mathscr{P}}}
+\providecommand{\kPrice}{{\mathsf{P}}}
+\providecommand{\KRat}{{K}}
+\providecommand{\kRat}{{k}}
+\providecommand{\kTargE}{{\Target{k}^{e}}}
+\providecommand{\kTarg}{{\Target{k}}}
+\providecommand{\labor}{{\ell}} %
+\providecommand{\Labor}{{L}}
+\providecommand{\labShare}{{\nu}}
+\providecommand{\Leisure}{Z} %
+\providecommand{\leisure}{z} %
+\providecommand{\leiShare}{{\zeta}} %
+\providecommand{\LGro}{{\Lambda}}
+\providecommand{\lGro}{{\lambda}}
+\providecommand{\LLevBF}{{\mathbf{L}}}
+\providecommand{\lLevBF}{{\pmb{\ell}}}
+\providecommand{\lLev}{{\ell}}
+\providecommand{\LLev}{{L}}
+\providecommand{\Lo}{\check}
+\providecommand{\LRat}{{L}}
+\providecommand{\MaxMaxMPC}{{\bar{\bar{\kappa}}}}
+\providecommand{\MaxMinMPC}{{\hat{\underline{\kappa}}}}
+\providecommand{\MaxMPC}{{\bar{\kappa}}}
+\providecommand{\MaxMPS}{{\PatR}}
+\providecommand{\Mean}{{\mathbb{M}}} % Mean
+\providecommand{\mEss}{\check{m}^{e}}
+\providecommand{\ME}{\MRat^{e}}
+\providecommand{\mE}{\mRat^{e}}
+\providecommand{\mFunc}{{\mathrm{m}}}
+\providecommand{\MinMinMPC}{{\underline{\kappa}}}
+\providecommand{\MinMPC}{{\uline{\kappa}}}
+\providecommand{\MinMPS}{{\pZero^{1/\CRRA} \PatR}}
+\providecommand{\MLevBF}{{\mathbf{M}}}
+\providecommand{\mLevBF}{{\mathbf{m}}}
+\providecommand{\mLevBF}{{\mathbf{m}}}
+\providecommand{\mLevE}{\mLev^{e}}
+\providecommand{\MLev}{{M}}
+\providecommand{\mLev}{{m}}
+\providecommand{\Mod}{\tilde}
+\providecommand{\MPCE}{\MPC^{e}}
+\providecommand{\MPCFunc}{{\pmb{\kappa}}}
+\providecommand{\MPCPPF}{{\Pi}}
+\providecommand{\MPCP}{{\pi}}
+\providecommand{\MPCU}{\MPC^{u}}
+\providecommand{\MPC}{{\kappa}}
+\providecommand{\MPSFunc}{{\pmb{lambda}}}
+\providecommand{\MPS}{{\lambda}}
+\providecommand{\MRatE}{\MRat^{e}}
+\providecommand{\mRatE}{\mRat^{e}}
+\providecommand{\MRat}{{M}}
+\providecommand{\mRat}{{m}}
+%\providecommand{\mRatBF}{{\pmb{\mathrm{m}}}}
+\providecommand{\MSS}{{\breve{M}}}
+\providecommand{\mSS}{{\breve{m}}}
+\providecommand{\mTarg}{\check{m}}
+\providecommand{\MU}{{M}^{u}}
+\providecommand{\mU}{{m}^{u}}
+%\providecommand{\m}{{m}}
+%\providecommand{\M}{{M}}
+%\providecommand{\next}{2}  % via search-and-replace
+\providecommand{\Next}{t+1} %
+\providecommand{\nFunc}{{\mathrm{n}}}
+\providecommand{\NLev}{{N}}
+\providecommand{\nLev}{{n}}
+\providecommand{\NRat}{{N}}
+\providecommand{\nRat}{{n}}
+\providecommand{\Num}{{N}}
+\providecommand{\nIter}{{n}}
+\providecommand{\OLevBF}{{\mathbf{O}}}
+\providecommand{\oLevBF}{{\mathbf{o}}}
+\providecommand{\OLev}{{O}}
+\providecommand{\oLev}{{\pmb{o}}}
+\providecommand{\ORat}{{O}}
+\providecommand{\oRat}{{o}}
+\providecommand{\Pareto}{\zeta}
+\providecommand{\PatPGroAdj}{\text{\pmb{\Thorn}}_{\underline{\PGro}}}
+\providecommand{\patpGroAdj}{\text{\thorn}_{\underline{\pGro}}}
+\providecommand{\patpGrohat}{\hat{\text{\thorn}}_{\pGro}}
+\providecommand{\PatPGro}{\text{\pmb{\Thorn}}_{\PGro}}
+\providecommand{\patpGro}{\text{\thorn}_{\pGro}}
+\providecommand{\PatR}{\text{\pmb{\Thorn}}_{\Rfree}}
+\providecommand{\patr}{\text{\thorn}_{\rfree}}
+\providecommand{\PatU}{\text{\pmb{\Thorn}}_{\urate}}
+\providecommand{\patu}{\text{\thorn}_{\urate}}
+\providecommand{\PatWGro}{\text{\pmb{\Thorn}}_{\WGro}}
+\providecommand{\patwGro}{\text{\thorn}_{\wGro}}
+\providecommand{\Pat}{\text{\pmb{\Thorn}}}
+\providecommand{\pat}{\text{\thorn}}
+\providecommand{\pDeadRate}{{\grave{\cancel{\mathsf{d}}}}}
+\providecommand{\pDead}{{\mathfrak{D}}}
+\providecommand{\pDieRate}{{\grave{\mathsf{d}}}}
+\providecommand{\pDies}{{\mathsf{d}}} % Continuous time death rate
+\providecommand{\PDies}{{\mathsf{D}}} % Discrete-time one-period death rate
+\providecommand{\diePrb}{{\mathsf{d}}} % Continuous time death rate
+\providecommand{\DiePrb}{{\mathsf{D}}} % Discrete-time one-period death rate
+\providecommand{\PDV}{{\mathbb{P}}} % PDV
+\providecommand{\PGroAdj}{{\underline{\PGro}}}
+\providecommand{\pGroAdj}{{\underline{\pGro}}}
+\providecommand{\PGrouAdj}{{\underline{\underline{\PGro}}}}
+\providecommand{\pGrouAdj}{{\underline{\underline{{\pGro}}}}}
+\providecommand{\PGro}{{\Gamma}}
+\providecommand{\pGro}{{\gamma}}
+\providecommand{\PermGroFac}{{\pmb{\Gamma}}} % Econ-ARK
+\providecommand{\PermGroRte}{{\pmb{\gamma}}} % Econ-ARK
+\providecommand{\permGroFac}{{\Gamma}} % Econ-ARK
+\providecommand{\permGroRte}{{\gamma}} % Econ-ARK
+%\providecommand{\phiFunc}{{\digamma}}
+\providecommand{\PIHMPC}{{\varkappa}}
+\providecommand{\PInc}{{P}}
+\providecommand{\PLabor}{{P}} % Permanent labor income in levels
+\providecommand{\Plabor}{P} % Permanent labor income in levels
+\providecommand{\PLevBF}{{\mathbf{P}}}
+\providecommand{\pLevBF}{{\mathbf{p}}}
+\providecommand{\PLev}{{P}}
+\providecommand{\pLog}{{p}}
+\providecommand{\pLev}{{\pmb{p}}}
+\providecommand{\PLev}{{P}}
+\providecommand{\LivPrb}{{\cancel{\DiePrb}}}
+\providecommand{\livPrb}{{\cancel{\diePrb}}}
+\providecommand{\PLives}{{\cancel{\PDies}}}
+\providecommand{\pLives}{{\cancel{\pDies}}}
+%\providecommand{\pNotZero}{{\cancel{\wp}}}
+\providecommand{\pNotZero}{(1-\pZero)}
+\providecommand{\PopE}{\mathcal{E}}
+\providecommand{\popE}{e}
+\providecommand{\PopGro}{{\Xi}}
+\providecommand{\popGro}{{\xi}}
+\providecommand{\PopLev}{{\pmb{N}}}
+\providecommand{\PopU}{\mathcal{U}}
+\providecommand{\Pop}{{L}}
+\providecommand{\PostITC}{{\cancel{\zeta}}}
+\providecommand{\power}{{\eta}}
+\providecommand{\pPDVFunc}{{\mathbb{P}}}
+\providecommand{\PPDV}{{\text{PDV($P$)}}}
+\providecommand{\pRat}{{p}}
+\providecommand{\Price}{{\mathsf{P}}}
+\providecommand{\ProdFunc}{{\mathrm{F}}}
+\providecommand{\ProdFunc}{{\mathrm{F}}}
+\providecommand{\prodFunc}{{\mathrm{f}}}
+\providecommand{\prudEx}{{\omega}}
+\providecommand{\prud}{{\eta}}
+\providecommand{\pSav}{{\phi}}
+\providecommand{\pShkMin}{\underline{\psi}} %
+\providecommand{\PShk}{\Psi} %
+\providecommand{\PermShkAgg}{\Psi} % New
+\providecommand{\PermShk}{\Psi} % New
+\providecommand{\permShk}{\psi} % New
+\providecommand{\pShk}{\psi} %
+\providecommand{\permShkInd}{\psi} % New
+\providecommand{\pshk}{\psi} %
+\providecommand{\PtyGro}{{\Phi}}
+\providecommand{\PtyGro}{{\Phi}}
+\providecommand{\ptyGro}{{\phi}}
+\providecommand{\PtyLab}{{\mathrm{Z}}} % Labor productivity
+\providecommand{\ptyLab}{{z}} % usually, log of \PtyLab
+\providecommand{\PtyLev}{{A}} % Multiplies overall production function
+\providecommand{\ptyLev}{{a}} % Usually, log of \PtyLev
+\providecommand{\pZero}{{\wp}}
+\providecommand{\QLev}{{Q}}
+\providecommand{\q}{{\koppa}}
+\providecommand{\RCpnd}{{\mathbf{R}}}
+\providecommand{\RevFunc}{{\pmb{\Pi}}}
+\providecommand{\revFunc}{{\pmb{\pi}}}
+\providecommand{\Rev}{{\Pi}}
+\providecommand{\rev}{{\pi}}
+\providecommand{\rfree}{{\mathsf{r}}}   % The net return on the safe asset at an annual rate
+\providecommand{\Rfree}{{\mathsf{R}}}   % The return factor on the safe asset - unfortunately mathfrak fonts don't come through for tth
+\providecommand{\RfreeAgg}{{\bar{\Rfree}}}
+\providecommand{\RFunc}{{\mathrm{R}}}
+\providecommand{\RGross}{{\breve{\mathsf{R}}}}
+\providecommand{\rGross}{{\breve{\mathsf{r}}}}
+%\providecommand{\RiskyAlt}{{\acute{\mathbf{R}}}}    % The return on the risky asset
+\providecommand{\RiskyAlt}{{\pmb{\mathfrak{R}}}}    % The return on the risky asset
+% \providecommand{\riskyAlt}{{\acute{\mathbf{r}}}}  % The net return on the risky asset annual rate
+\providecommand{\riskyAlt}{{\pmb{\mathfrak{r}}}}  % The net return on the risky asset annual rate
+\providecommand{\riskyshare}{{\varsigma}}
+\providecommand{\Risky}{{\mathbf{R}}}    % The return on the risky asset
+\providecommand{\risky}{{\mathbf{r}}}  % The net return on the risky asset annual rate
+\providecommand{\RLev}{{R}}    % Rate of return (but better to use \Rfree or \Risky or something else more specific
+\providecommand{\RnormWGro}{{\mathcal{R}_{\WGro}}}    % Normalized version of riskless return factor
+\providecommand{\rnormwGro}{{\mathit{r}_{\wGro}}}    % Normalized version of riskless rate of return
+\providecommand{\Rnorm}{{\mathcal{R}}}    % Normalized version of riskless return factor
+\providecommand{\rnorm}{{\mathit{r}}}    % Normalized version of riskless rate of return
+\providecommand{\Rport}{{\tilde{R}}}    % Portfolio -weighted return
+\providecommand{\rport}{{\tilde{r}}}
+\providecommand{\Rprod}{{\mathscr{R}}}
+\providecommand{\rprod}{{\mathscr{r}}}
+\providecommand{\rProd}{{\mathsf{r}}}
+\providecommand{\RProd}{{\mathsf{R}}}
+\providecommand{\RSave}{{\underline{\Rfree}}}
+\providecommand{\rsave}{{\underline{\rfree}}}
+\providecommand{\RBoro}{{\bar{\Rfree}}}
+\providecommand{\rboro}{{\bar{\rfree}}}
+%\providecommand{\R}{\Rfree}
+\providecommand{\saveRate}{\grave{s}} % saving (income minus consumption) over income
+\providecommand{\Save}{S} % Saving (income minus consumption)
+\providecommand{\save}{s} % saving (income minus consumption)
+\providecommand{\SDF}{\MLev} % Stochastic Discount Factor
+\providecommand{\sdr}{\mRat} % Stochastic Discount rate
+\providecommand{\Seniority}{{\mathsf{X}}}
+\providecommand{\seniority}{{\mathsf{x}}}
+\providecommand{\SeverancePayment}{{\mathcal{S}}}
+\providecommand{\SeveranceRatio}{{\varsigma}}
+%\providecommand{\Severance}{{\varsigma}}
+\providecommand{\Severance}{\kappa}
+\providecommand{\SE}{\SRat^{e}}
+\providecommand{\sE}{\sRat^{e}}
+\providecommand{\sFunc}{{\mathrm{s}}}
+\providecommand{\shk}{\phi}
+\providecommand{\Shk}{\Phi}
+\providecommand{\ShkLogZeroLogStd}{\sigma_{\cancel{\ShkMeanOneLog}}}  % Std of that shock
+\providecommand{\ShkLogZeroLogVar}{\sigma_{\cancel{\ShkMeanOneLog}}^{2}}  % Variance of that shock
+\providecommand{\ShkLogZeroLog}{\cancel{\ShkMeanOneLog}}  % Log of that shock
+\providecommand{\ShkLogZero}{\cancel{\ShkMeanOne}}     % A shock whose expectation in logs is zero; cancellation of the nonzero mean for the mean one shock
+\providecommand{\ShkMeanOneLogStd}{\sigma_{\ShkMeanOneLog}}  % Std of that shock
+\providecommand{\ShkMeanOneLogVar}{\sigma^{2}_{\ShkMeanOneLog}}  % Log of that shock
+\providecommand{\ShkMeanOneLog}{\theta}  % Log of that shock
+\providecommand{\ShkMeanOne}{\Theta}     % A shock whose expectation in levels is always equal to one regardless of variance
+\providecommand{\SLevBF}{\mathbf{S}}
+\providecommand{\sLevBF}{\mathbf{s}}
+\providecommand{\SLevE}{\SLev^{e}}
+\providecommand{\sLevE}{\sLev^{e}}
+\providecommand{\SLevU}{\SLev^{u}}
+\providecommand{\sLevU}{\sLev^{u}}
+\providecommand{\SLev}{{S}}
+\providecommand{\sLev}{{s}}
+\providecommand{\srate}{{\varsigma}}
+\providecommand{\SRatE}{\SRat^{e}}
+\providecommand{\sRatE}{\sRat^{e}}
+\providecommand{\SRatU}{\SRat^{u}}
+\providecommand{\sRatU}{\sRat^{u}}
+\providecommand{\SRat}{{S}}
+\providecommand{\sRat}{{s}}
+\providecommand{\STargE}{\Target{\SRat}^{\null}}
+\providecommand{\sTargE}{\Target{\sRat}^{\null}}
+\providecommand{\STargTarg}{\Target{\Target{\SRat}}}
+\providecommand{\sTargTarg}{\Target{\Target{\sRat}}}
+\providecommand{\STarg}{\Target{\SRat}}
+\providecommand{\sTarg}{\Target{\sRat}}
+\providecommand{\Steady}{\bar}
+\providecommand{\Stocks}{{S}}
+\providecommand{\stocks}{{s}}
+\providecommand{\straight}{\Pi}
+\providecommand{\Surplus}{{Z}}
+\providecommand{\surplus}{{z}}
+\providecommand{\SU}{\SRat^{u}}
+\providecommand{\sU}{\sRat^{u}}
+\providecommand{\Target}{\check}
+\providecommand{\TaxCombInv}{{\mathcal{T}^{-1}}}
+\providecommand{\TaxComb}{{\mathcal{T}}}
+\providecommand{\TaxCorp}{{\Large \tau}}
+\providecommand{\taxCorp}{{\tau}}
+\providecommand{\taxDep}{{\partial}}
+\providecommand{\TaxFree}{{\cancel{\Tax}}}
+\providecommand{\TaxLev}{T}
+\providecommand{\TaxNetTrans}{{Z}}
+\providecommand{\taxNetTrans}{{z}}
+\providecommand{\TaxPaid}{{T}}
+\providecommand{\TaxRate}{{t}}
+\providecommand{\TaxUI}{{\tau}}
+\providecommand{\Tax}{{\tau}}
+\providecommand{\tax}{\tau}
+\providecommand{\tBak}{{\pmb{n}}}
+\providecommand{\TEatBak}{{\mathtt{q}}}
+\providecommand{\TEat}{{\TEnd}}
+\providecommand{\TEndBak}{{\mathsf{p}}}
+\providecommand{\TEnd}{{T}}
+\providecommand{\TermTime}{{T}}
+\providecommand{\tFwd}{{n}}
+\providecommand{\tHorOfm}{{\pmb{n}}}
+\providecommand{\tHor}{{\mathsf{n}}}
+\providecommand{\timeRate}{{\vartheta}}
+\providecommand{\tinyAmount}{{\epsilon}}
+\providecommand{\TLev}{{T}}
+\providecommand{\TMap}{\mathscr{T}}
+\providecommand{\tNow}{{t}}
+\providecommand{\tShkAll}{\xi} %
+\providecommand{\tShkEmpMin}{\underline{\theta}} %
+\providecommand{\TShkEmp}{\Theta} %
+\providecommand{\tShkEmp}{\theta} %
+\providecommand{\tShkEmp}{\theta} %
+\providecommand{\tranShkInd}{\theta} % New
+\providecommand{\TranShkAgg}{\Theta} % New
+\providecommand{\TShk}{\Xi} %
+\providecommand{\tShk}{\xi} %
+\providecommand{\tshk}{\xi} %
+\providecommand{\tSS}{{t}}
+\providecommand{\tThen}{{\tau}}
+\providecommand{\uFunc}{{{\mathrm{u}}}}
+\providecommand{\uInvEpShkuInv}{\underline{\underline{\psi}}}
+\providecommand{\ULev}{{U}}
+\providecommand{\uLev}{{u}}
+\providecommand{\unins}{{\zeta}}
+\providecommand{\uPDVFunc}{{\mathbb{U}}}
+\providecommand{\uPmt}{{\mu}}
+\providecommand{\uPPP}{{{\mathrm{u}^{\prime\prime\prime}}}}
+\providecommand{\uPP}{{{\mathrm{u}^{\prime\prime}}}}
+\providecommand{\uP}{{{\mathrm{u}^{\prime}}}}
+\providecommand{\urate}{{\mho}}
+\providecommand{\utilFunc}{{\mathrm{u}}}
+\providecommand{\util}{{u}}
+\providecommand{\ValAlt}{{\mathcal{V}}} % middle-of-period Value function
+\providecommand{\valfn}{{\mathrm{v}}} % middle-of-period value function
+\providecommand{\Value}{{\mathrm{V}}} % middle-of-period Value function
+\providecommand{\VEndFunc}{{\mathfrak{V}}}
+\providecommand{\vEndFunc}{{\mathfrak{v}}}
+\providecommand{\VEnd}{{\mathfrak{V}}} % end-of-period Value function
+\providecommand{\vEnd}{{\mathfrak{v}}} % end-of-period value function
+\providecommand{\vEss}{\check{v}^{e}}
+\providecommand{\VE}{{V}^{e}}
+\providecommand{\vE}{{v}^{e}}
+\providecommand{\vFirm}{{\mathrm{e}}}
+\providecommand{\VFunc}{{\mathrm{V}}}
+\providecommand{\vFunc}{{\mathrm{v}}}
+\providecommand{\VInv}{{\Lambda}}
+\providecommand{\vInv}{{\scriptstyle \Lambda \displaystyle}}
+\providecommand{\vk}{{\lambda}}
+\providecommand{\vLevBF}{{\mathbf{v}}}
+\providecommand{\VLevFunc}{{\pmb{\mathrm{V}}}}
+\providecommand{\vLevFunc}{{\pmb{\mathrm{v}}}}
+\providecommand{\VLev}{{V}}
+\providecommand{\vLev}{{v}}
+\providecommand{\vNorm}{{\mathrm{w}}} % end-of-period value function
+\providecommand{\VNum}{{V}}
+\providecommand{\vNum}{{v}}
+\providecommand{\vOptAlt}{{\Alt{\Mod{\mathfrak{v}}}}}
+\providecommand{\vOpt}{{\Mod{\mathfrak{v}}}}
+\providecommand{\VRat}{{V}}
+\providecommand{\vRat}{{v}}
+\providecommand{\vTarg}{\Target{\vRat}}
+\providecommand{\VU}{{V}^{u}}
+\providecommand{\vU}{{v}^{u}}
+\providecommand{\Wage}{{\mathsf{W}}}
+\providecommand{\wage}{{\mathsf{w}}}
+\providecommand{\WAllLev}{{\mathbf{O}}}
+\providecommand{\wAllLev}{{\mathbf{o}}}
+\providecommand{\WAllRat}{{O}}
+\providecommand{\wAllRat}{{o}}
+\providecommand{\WAll}{{O}}
+\providecommand{\wAll}{{o}}
+\providecommand{\WBeg}{\KLev} % Wealth as of the beginning of the period (before R is received, not including Y)
+\providecommand{\wBeg}{\kLev} % wealth as of the beginning of the period (before R is received, not including Y)
+\providecommand{\Wealth}{{O}}
+\providecommand{\wealth}{{o}}
+\providecommand{\WEndRat}{\ARat} %
+\providecommand{\wEndRat}{\aRat} %
+\providecommand{\WEnd}{\ALev} % Wealth as of the end of the period (after C has been chosen)
+\providecommand{\wEnd}{\aLev} % wealth as of the end of the period (after C has been taken)
+\providecommand{\Wend}{\ARat} % Wealth as of the end of the period (after C has been chosen)
+\providecommand{\wend}{\aRat} % wealth as of the end of the period (after C has been taken)
+\providecommand{\wFunc}{\mathrm{w}}
+\providecommand{\WGroPF}{{\mathrm{G}}}
+\providecommand{\WGro}{{\mathrm{G}}}
+\providecommand{\wGro}{{\mathsf{g}}}
+\providecommand{\whumMin}{\underline{\hRat}} % human wealth -- individual
+\providecommand{\WHum}{\HLev} % Human wealth -- aggregate
+\providecommand{\wHum}{\hLev} % human wealth -- individual
+\providecommand{\Whum}{\HRat} % Human wealth -- aggregate
+\providecommand{\whum}{\hRat} % human wealth -- individual
+\providecommand{\WLev}{{W}}
+\providecommand{\wLev}{\pmb{w}}
+\providecommand{\WMid}{\BLev} % Wealth as of the middle of the period (after R is received, not including Y)
+\providecommand{\WMid}{\BLev} % Wealth as of the middle of the period (after R is received, not including Y)
+\providecommand{\wMid}{\bLev} % wealth as of the middle of the period (after R is received, not including Y)
+\providecommand{\Wmid}{\BRat} % Wealth as of the middle of the period (after R is received, not including Y)
+\providecommand{\wmid}{\bRat} % wealth as of the middle of the period (after R is received, not including Y)
+\providecommand{\WMkt}{\MLev} % Wealth as of the middle of the period (after R is received, including Y)
+\providecommand{\wMkt}{\mLev} % wealth as of the middle of the period (after R is received, including Y)
+\providecommand{\wmkt}{\mLev} % wealth as of the middle of the period (after R is received, including Y)
+\providecommand{\wNet}{{x}} %
+\providecommand{\WNet}{{X}} % Total wealth
+\providecommand{\WPre}{{K}}
+\providecommand{\wPre}{{k}}
+\providecommand{\wRat}{{o}} %
+\providecommand{\WRat}{{O}} % Ratio to permanent income
+\providecommand{\wTot}{{\mathbf{o}}} %
+\providecommand{\WTot}{{\mathbf{O}}} % Total wealth
+\providecommand{\wtot}{{o}} %
+\providecommand{\Wtot}{{O}} % Total wealth
+\providecommand{\xFer}{\chi}
+\providecommand{\XFer}{X}
+\providecommand{\xFunc}{\mathrm{x}}
+\providecommand{\XLev}{{X}}
+\providecommand{\xLev}{{x}}
+\providecommand{\xpend}{{\xi}}
+\providecommand{\XperGro}{{\mathsf{X}}}
+\providecommand{\xperGro}{{\mathsf{x}}}
+\providecommand{\XRat}{{X}}
+\providecommand{\xRat}{{x}}
+\providecommand{\yFunc}{\mathrm{y}}
+\providecommand{\yLevBF}{{\mathbf{y}}}
+\providecommand{\YLev}{{Y}}
+\providecommand{\YLevBF}{{\mathbf{Y}}}
+\providecommand{\yLev}{{y}}
+\providecommand{\YRat}{{Y}}
+\providecommand{\yRat}{{y}}
+\providecommand{\yTargE}{{\check{y}^{e}}}
+\providecommand{\yTarg}{{\check{y}}}
+\providecommand{\zAgg}{{\pmb{Z}}}
+\providecommand{\zFunc}{\mathrm{z}}
+\providecommand{\ZLevBF}{{\mathbf{Z}}}
+%\providecommand{\zLevBF}{{\mathbf{z}}}
+\providecommand{\zLevBF}{{\pmb{z}}}
+\providecommand{\ZLev}{{Z}}
+\providecommand{\zLev}{{z}}
+\providecommand{\ZRat}{{Z}}
+\providecommand{\zRat}{{z}}
+
+\providecommand{\DieFac}{\pDead}
+\providecommand{\LivFac}{\Alive}
+\providecommand{\PopFac}{\PopGro}
+\providecommand{\popRte}{\popGro}
+
+
+\providecommand{\NFALev}{\NLev}
+\providecommand{\NFARat}{\NRat}
+\providecommand{\NI}{{Z}}
+\providecommand{\GDPLev}{\pmb{P}}
+\providecommand{\GDPRat}{P}
+\providecommand{\GDPGro}{\gimel}
+\providecommand{\gdpLev}{\pmb{p}}
+\providecommand{\gdpRat}{p}
+\providecommand{\weight}{\omega}
+
+
+\providecommand{\bi}{}
+\renewcommand{\bi}{\begin{itemize}}
+\providecommand{\ei}{}
+\renewcommand{\ei}{\end{itemize}}
+\providecommand{\reqd}{}
+\renewcommand{\reqd}{\item[$^{*}$]}
+\providecommand{\recm}{}
+\renewcommand{\recm}{\item[\phantom{$^{*}$}]}
+
+\providecommand{\pd}[2]{\frac{\partial#1}{\partial#2}}
+
+
+% Ensure that you're in math mode when using the \cancel command (otherwise tex4ht produces bad output)
+\providecommand{\cncl}{}
+\renewcommand\cncl[1]{{\cancel{#1}}}
