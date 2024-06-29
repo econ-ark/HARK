@@ -4,6 +4,7 @@
 
 % Get references right whether compiled as subfile or main file
 % https://tex.stackexchange.com/questions/463699/proper-reference-numbers-with-subfiles
+\RequirePackage[nointegrals]{wasysym} % integrals conflict with amsmath
 \newcommand\labelprefix{}
 \newcommand\localorexternallabel[1]{% Removing this comment breaks the command
   \expandafter\ifx\csname r@#1\endcsname\relax
@@ -21,7 +22,7 @@
 
 % Get all the packages from the American Mathematical Society
 \RequirePackage{amsmath,amsfonts,amsthm,amssymb}
-
+\RequirePackage{moreverb}
 % Command to define a label only if it does not yet exist (suppresses misleading
 % warnings when material created in subfiles is read while references already
 % exist from master document)
@@ -412,6 +413,8 @@
 \providecommand{\lst}{\texttt{last}}
 
 % Normalized return is special because G is normalizer
+% If there are any instances of RNrm that have been missed, make them stick out like a sore thumb
+\providecommand{\RNrm}{\cancel{\mathbf{R}}}
 \providecommand{\RNrmByG}{\mathscr{R}}
 \providecommand{\RNrmByGRnd}{\Rnd{\mathscr{R}}}
 
