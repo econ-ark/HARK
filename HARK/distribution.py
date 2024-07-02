@@ -311,6 +311,8 @@ class Lognormal(ContinuousFrozenDistribution):
         mu: Union[float, np.ndarray] = 0.0,
         sigma: Union[float, np.ndarray] = 1.0,
         seed: Optional[int] = 0,
+        mean = None,
+        std = None
     ):
         """
         Create a new Lognormal distribution. If sigma is zero, return a
@@ -324,6 +326,10 @@ class Lognormal(ContinuousFrozenDistribution):
             Standard deviation of underlying normal distribution, by default 1.0
         seed : Optional[int], optional
             Seed for random number generator, by default None
+        mean: optional
+            For alternative mean/std parameterization, the mean of the lognormal distribution
+        std: optional
+            For alternative mean/std parameterization, the standard deviation of the lognormal distribution
 
         Returns
         -------
@@ -342,7 +348,15 @@ class Lognormal(ContinuousFrozenDistribution):
         mu: Union[float, np.ndarray] = 0.0,
         sigma: Union[float, np.ndarray] = 1.0,
         seed: Optional[int] = 0,
+        mean = None,
+        std = None
     ):
+        if mean is not None and sigma is not None:
+            mean_squared = mean**2
+            variance = std**2
+            mu = np.log(mean / (np.sqrt(1.0 + variance / mean_squared)))
+            sigma = np.sqrt(np.log(1.0 + variance / mean_squared))
+
         self.mu = np.asarray(mu)
         self.sigma = np.asarray(sigma)
 
