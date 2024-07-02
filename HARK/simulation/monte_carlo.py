@@ -14,7 +14,7 @@ from HARK.distribution import (
 )
 from HARK.model import Aggregate
 from HARK.model import DBlock
-from HARK.model import simulate_dynamics
+from HARK.model import construct_shocks, simulate_dynamics
 
 
 def draw_shocks(shocks: Mapping[str, Distribution], conditions: Sequence[int]):
@@ -139,7 +139,11 @@ class AgentTypeMonteCarloSimulator(Simulator):
 
         self.calibration = calibration
         self.block = block
-        self.shocks = block.get_shocks()
+
+        # shocks are exogenous (but for age) but can depend on calibration
+        raw_shocks = block.get_shocks()
+        self.shocks = construct_shocks(raw_shocks, calibration)
+
         self.dynamics = block.get_dynamics()
         self.dr = dr
         self.initial = initial
