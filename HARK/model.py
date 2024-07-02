@@ -77,6 +77,7 @@ def discretized_shock_dstn(shocks, disc_params):
 
     return all_shock_dstn
 
+
 def construct_shocks(shock_data, scope):
     """
     Returns a dictionary from shock labels to Distributions.
@@ -110,12 +111,14 @@ def construct_shocks(shock_data, scope):
         if isinstance(sd[v], tuple):
             dist_class = sd[v][0]
 
-            dist_args = sd[v][1] # should be a dictionary
+            dist_args = sd[v][1]  # should be a dictionary
 
             for a in dist_args:
                 if isinstance(dist_args[a], str):
                     arg_lambda = math_text_to_lambda(dist_args[a])
-                    arg_value = arg_lambda(*[scope[var] for var in signature(arg_lambda).parameters])
+                    arg_value = arg_lambda(
+                        *[scope[var] for var in signature(arg_lambda).parameters]
+                    )
 
                     dist_args[a] = arg_value
 
@@ -127,6 +130,7 @@ def construct_shocks(shock_data, scope):
             sd[v] = dist
 
     return sd
+
 
 def simulate_dynamics(
     dynamics: Mapping[str, Union[Callable, Control]],

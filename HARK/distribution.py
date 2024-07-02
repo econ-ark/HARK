@@ -311,8 +311,8 @@ class Lognormal(ContinuousFrozenDistribution):
         mu: Union[float, np.ndarray] = 0.0,
         sigma: Union[float, np.ndarray] = 1.0,
         seed: Optional[int] = 0,
-        mean = None,
-        std = None
+        mean=None,
+        std=None,
     ):
         """
         Create a new Lognormal distribution. If sigma is zero, return a
@@ -348,8 +348,8 @@ class Lognormal(ContinuousFrozenDistribution):
         mu: Union[float, np.ndarray] = 0.0,
         sigma: Union[float, np.ndarray] = 1.0,
         seed: Optional[int] = 0,
-        mean = None,
-        std = None
+        mean=None,
+        std=None,
     ):
         if mean is not None and sigma is not None:
             mean_squared = mean**2
