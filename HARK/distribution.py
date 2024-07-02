@@ -956,6 +956,8 @@ class MVLogNormal(multi_rv_frozen, Distribution):
 
             atoms = np.empty([self.M, N**self.M])
 
+            L = np.linalg.cholesky(self.Sigma)
+
             def eval(params, z):
                 dim = len(params)
 
@@ -973,30 +975,9 @@ class MVLogNormal(multi_rv_frozen, Distribution):
 
                 return np.prod(x_exp) * N**dim
 
-            def coef(i, j):
-                if i < j:
-                    raise ValueError("i must be greater than or equal to j")
-
-                if i == 0 & j == 0:
-                    return np.sqrt(self.Sigma[0, 0])
-                elif j == 0:
-                    return self.Sigma[i, 0] / np.sqrt(self.Sigma[0, 0])
-                elif j < i:
-                    corrs_j = np.array([coef(j, k) for k in range(j)])
-                    corrs_i = np.array([coef(i, k) for k in range(j)])
-                    return (self.Sigma[i, j] - np.dot(corrs_i, corrs_j)) / coef(j, j)
-                elif i == j:
-                    return np.sqrt(
-                        self.Sigma[i, i]
-                        - np.sum(np.square([coef(i, k) for k in range(i)]))
-                    )
-
             for i in range(self.M):
                 mui = self.mu[i]
-                params = np.zeros(i + 1)
-
-                for j in range(i + 1):
-                    params[j] = coef(i, j)
+                params = L[i, 0 : i + 1]
 
                 Z_list = [z_bins for _ in range(i + 1)]
 
@@ -1023,14 +1004,16 @@ class MVLogNormal(multi_rv_frozen, Distribution):
             limit=limit,
         )
 
-    def bv_approx_equiprobable(self, N):
+    def _approx_equiprobable_eig(self, N, endpoints: bool = False):
         """
-        Makes a discrete approximation using the equiprobable method to this bivariate lognormal distribution.
+        Makes a discrete approximation using the equiprobable method to this multivariate lognormal distribution.
 
         Parameters
         ----------
         N : int
             The number of points in the discrete approximation.
+        endpoints : bool
+            To be added
 
         Returns
         -------
@@ -1039,145 +1022,83 @@ class MVLogNormal(multi_rv_frozen, Distribution):
             points for discrete probability mass function.
         """
 
-        if self.M != 2:
-            raise ValueError(
-                "This method is only implemented for bivariate distributions. For general distributions, use the approx_equiprobable method instead."
-            )
+        if endpoints:
+            raise NotImplementedError("Endpoints have not yet been implemented")
 
         if np.array_equal(self.Sigma, np.diag(np.diag(self.Sigma))):
-            if self.Sigma[0, 0] == 0.0:
-                x1_atoms = np.repeat(np.exp(self.mu[0]), N)
-            else:
-                x1_atoms = (
-                    Lognormal(mu=self.mu[0], sigma=np.sqrt(self.Sigma[0, 0]))
-                    ._approx_equiprobable(N)
-                    .atoms
-                )
+            ind_atoms = np.empty((self.M, N))
 
-            if self.Sigma[1, 1] == 0.0:
-                x2_atoms = np.repeat(np.exp(self.mu[1]), N)
-            else:
-                x2_atoms = (
-                    Lognormal(mu=self.mu[1], sigma=np.sqrt(self.Sigma[1, 1]))
-                    ._approx_equiprobable(N)
-                    .atoms
-                )
+            for i in range(self.M):
+                if self.Sigma[i, i] == 0.0:
+                    x_atoms = np.repeat(np.exp(self.mu[i]), N)
+                    ind_atoms[i] = x_atoms
+                else:
+                    x_atoms = (
+                        Lognormal(mu=self.mu[i], sigma=np.sqrt(self.Sigma[i, i]))
+                        ._approx_equiprobable(N)
+                        .atoms
+                    )
+                    ind_atoms[i] = x_atoms
 
-            x1_rep, x2_rep = np.meshgrid(x1_atoms, x2_atoms)
-            x1_flat = x1_rep.flatten()
-            x2_flat = x2_rep.flatten()
-
-            atoms = np.stack([x1_flat, x2_flat], axis=-1)
-            pmv = np.repeat(1 / (N**2), N**2)
+            atoms_list = [ind_atoms[i] for i in range(self.M)]
+            atoms = np.stack(
+                [ar.flatten() for ar in list(np.meshgrid(*atoms_list))], axis=1
+            ).T
+            pmv = np.repeat(1 / (N**self.M), N**self.M)
         else:
             cdf_cuts = np.linspace(0, 1, N + 1)
 
             Z = Normal()
 
-            z_bins = Z.ppf(cdf_cuts)
+            z_cuts = Z.ppf(cdf_cuts)
+            z_bins = [(z_cuts[i], z_cuts[i + 1]) for i in range(N)]
 
-            atoms = []
+            atoms = np.empty([self.M, N**self.M])
 
-            mu1 = self.mu[0]
-            mu2 = self.mu[1]
-            sigma1 = np.sqrt(self.Sigma[0, 0])
-            sigma2 = np.sqrt(self.Sigma[1, 1])
-            cov = self.Sigma[0, 1]
-            a = np.sqrt(sigma2**2 - (cov**2 / sigma1**2))
+            def eval(params, z):
+                dim = len(params)
 
-            x1bins = np.exp(mu1 + sigma1 * z_bins)
-            x21_bins = np.exp((cov / sigma1) * z_bins)
-            x22_bins = np.exp(a * z_bins)
+                p = np.repeat(params, 2).reshape(dim, 2)
 
-            for i in range(N):
-                for j in range(N):
-                    x1Top = x1bins[i + 1]
-                    x1Bot = x1bins[i]
-                    x21Top = x21_bins[i + 1]
-                    x21Bot = x21_bins[i]
-                    x22Top = x22_bins[j + 1]
-                    x22Bot = x22_bins[j]
+                Z = np.multiply(p, z)
 
-                    if x1Bot == 0.0:
-                        temp1Bot = np.inf
-                    else:
-                        temp1Bot = (mu1 + sigma1**2 - np.log(x1Bot)) / (
-                            np.sqrt(2) * sigma1
-                        )
+                bounds = ((p**2 - Z) / (np.sqrt(2) * p)).T
 
-                    temp1Top = (mu1 + sigma1**2 - np.log(x1Top)) / (np.sqrt(2) * sigma1)
+                x_exp = (
+                    -0.5
+                    * np.exp(np.square(params) / 2)
+                    * (special.erf(bounds[1]) - special.erf(bounds[0]))
+                )
 
-                    if x21Bot == 0.0:
-                        temp21Bot = np.inf
-                    else:
-                        temp21Bot = ((cov / sigma1) ** 2 - np.log(x21Bot)) / (
-                            np.sqrt(2) * (cov / sigma1)
-                        )
+                return np.prod(x_exp) * N**dim
 
-                    temp21Top = ((cov / sigma1) ** 2 - np.log(x21Top)) / (
-                        np.sqrt(2) * (cov / sigma1)
-                    )
+            Λ, Q = np.linalg.eig(self.Sigma)
 
-                    if x22Bot == 0.0:
-                        temp22Bot = np.inf
-                    else:
-                        temp22Bot = (a**2 - np.log(x22Bot)) / (np.sqrt(2) * a)
+            A = Q @ np.diag(np.sqrt(Λ))
 
-                    temp22Top = (a**2 - np.log(x22Top)) / (np.sqrt(2) * a)
+            for i in range(self.M):
+                mui = self.mu[i]
+                params = A[i]
 
-                    if temp1Bot <= 4.0:
-                        x1_exp = (
-                            -0.5
-                            * np.exp(mu1 + (sigma1**2) / 2)
-                            * (math.erf(temp1Top) - math.erf(temp1Bot))
-                            * N
-                        )
-                    else:
-                        x1_exp = (
-                            -0.5
-                            * np.exp(mu1 + (sigma1**2) / 2)
-                            * (math.erfc(temp1Bot) - math.erfc(temp1Top))
-                            * N
-                        )
+                Z_list = [z_bins for _ in range(self.M)]
 
-                    if temp21Bot <= 4.0:
-                        x21_exp = (
-                            -0.5
-                            * np.exp(((cov / sigma1) ** 2) / 2)
-                            * (math.erf(temp21Top) - math.erf(temp21Bot))
-                        )
-                    else:
-                        x21_exp = (
-                            -0.5
-                            * np.exp(((cov / sigma1) ** 2) / 2)
-                            * (math.erfc(temp21Bot) - math.erfc(temp21Top))
-                        )
+                Z_bins = [np.array(x) for x in list(product(*Z_list))]
 
-                    if temp22Bot <= 4.0:
-                        x22_exp = (
-                            -0.5
-                            * np.exp((a**2) / 2)
-                            * (math.erf(temp22Top) - math.erf(temp22Bot))
-                        )
-                    else:
-                        x22_exp = (
-                            -0.5
-                            * np.exp((a**2) / 2)
-                            * (math.erfc(temp22Bot) - math.erfc(temp22Top))
-                        )
+                xi_atoms = []
 
-                    x2_exp = np.exp(mu2) * x21_exp * x22_exp * N**2
+                for z_bin in Z_bins:
+                    atom = np.exp(mui) * eval(params, z_bin)
+                    xi_atoms.append(atom)
 
-                    atoms.append((x1_exp, x2_exp))
+                atoms[i] = np.array(xi_atoms)
 
-            pmv = np.repeat(1 / (N**2), N**2)
-            atoms = np.array(atoms)
+            pmv = np.repeat(1 / (N**self.M), N**self.M)
 
-        limit = {"dist": self, "method": "equiprobable", "N": N}
+        limit = {"dist": self, "method": "equiprobable_eig", "N": N}
 
         return DiscreteDistribution(
             pmv,
-            atoms.T,
+            atoms,
             seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
             limit=limit,
         )
