@@ -1,5 +1,16 @@
+from HARK.distribution import Bernoulli, Lognormal, MeanOneLogNormal
 from sympy.utilities.lambdify import lambdify
 from sympy.parsing.sympy_parser import parse_expr
+import yaml
+
+
+class ControlToken:
+    """
+    Represents a parsed Control variable.
+    """
+
+    def __init__(self, args):
+        pass
 
 
 class Expression:
@@ -17,6 +28,14 @@ class Expression:
         return lambdify(list(self.expr.free_symbols), self.expr, "numpy")
 
 
+def tuple_constructor_from_class(cls):
+    def constructor(loader, node):
+        value = loader.construct_mapping(node)
+        return (cls, value)
+
+    return constructor
+
+
 def math_text_to_lambda(text):
     """
     Returns a function represented by the given mathematical text.
@@ -24,3 +43,25 @@ def math_text_to_lambda(text):
     expr = parse_expr(text)
     func = lambdify(list(expr.free_symbols), expr, "numpy")
     return func
+
+
+def harklang_loader():
+    """Add constructors to PyYAML loader."""
+    loader = yaml.SafeLoader
+    yaml.SafeLoader.add_constructor(
+        "!Bernoulli", tuple_constructor_from_class(Bernoulli)
+    )
+    yaml.SafeLoader.add_constructor(
+        "!MeanOneLogNormal", tuple_constructor_from_class(MeanOneLogNormal)
+    )
+    yaml.SafeLoader.add_constructor(
+        "!Lognormal", tuple_constructor_from_class(Lognormal)
+    )
+    yaml.SafeLoader.add_constructor(
+        "!Control", tuple_constructor_from_class(ControlToken)
+    )
+
+    return loader
+
+
+########################################################################
