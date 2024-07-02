@@ -196,14 +196,14 @@ class AggShockConsumerType(IndShockConsumerType):
 
         AgentType.__init__(
             self,
-            solution_terminal=deepcopy(IndShockConsumerType.solution_terminal_),
+            solution_terminal=deepcopy(IndShockConsumerType._solution_terminal_),
             pseudo_terminal=False,
             **params,
         )
 
         # Add consumer-type specific objects, copying to create independent versions
-        self.time_vary = deepcopy(IndShockConsumerType.time_vary_)
-        self.time_inv = deepcopy(IndShockConsumerType.time_inv_)
+        self.time_vary = deepcopy(IndShockConsumerType._time_vary_)
+        self.time_inv = deepcopy(IndShockConsumerType._time_inv_)
         self.del_from_time_inv("Rfree", "vFuncBool", "CubicBool")
 
         self.solve_one_period = solveConsAggShock
@@ -1044,7 +1044,7 @@ class KrusellSmithType(AgentType):
         # Transition some agents between unemployment and employment
         emp_permute = self.emp_permute[mrkv_prev][self.shocks["Mrkv"]]
         unemp_permute = self.unemp_permute[mrkv_prev][self.shocks["Mrkv"]]
-        # TODO: replace poststate_vars functionality with shocks here
+        # TODO: replace post_state_vars functionality with shocks here
         EmpNow = self.state_now["EmpNow"]
 
         # It's really this permutation that is the shock...

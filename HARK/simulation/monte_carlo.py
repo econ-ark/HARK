@@ -130,7 +130,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
         The number of periods to simulate.
     """
 
-    state_vars = []
+    _state_vars = []
 
     def __init__(
         self, calibration, block: DBlock, dr, initial, seed=0, agent_count=1, T_sim=10

@@ -147,25 +147,25 @@ def make_warmglow_portfolio_solution_terminal(
         return solution_terminal
 
     # Solve the terminal period problem when there is no portfolio choice
-    solution_terminal_no_port = make_bequest_solution_terminal(
+    _solution_terminal_no_port = make_bequest_solution_terminal(
         CRRA, BeqCRRATerm, BeqFacTerm, BeqShiftTerm, aXtraGrid
     )
 
     # Take consumption function from the no portfolio choice solution
-    cFuncAdj_terminal = solution_terminal_no_port.cFunc
-    cFuncFxd_terminal = lambda m, s: solution_terminal_no_port(m)
+    cFuncAdj_terminal = _solution_terminal_no_port.cFunc
+    cFuncFxd_terminal = lambda m, s: _solution_terminal_no_port(m)
 
     # Risky share is irrelevant-- no end-of-period assets; set to zero
     ShareFuncAdj_terminal = ConstantFunction(0.0)
     ShareFuncFxd_terminal = IdentityFunction(i_dim=1, n_dims=2)
 
     # Value function is simply utility from consuming market resources
-    vFuncAdj_terminal = solution_terminal_no_port.vFunc
-    vFuncFxd_terminal = lambda m, s: solution_terminal_no_port.cFunc(m)
+    vFuncAdj_terminal = _solution_terminal_no_port.vFunc
+    vFuncFxd_terminal = lambda m, s: _solution_terminal_no_port.cFunc(m)
 
     # Marginal value of market resources is marg utility at the consumption function
-    vPfuncAdj_terminal = solution_terminal_no_port.vPfunc
-    dvdmFuncFxd_terminal = lambda m, s: solution_terminal_no_port.vPfunc(m)
+    vPfuncAdj_terminal = _solution_terminal_no_port.vPfunc
+    dvdmFuncFxd_terminal = lambda m, s: _solution_terminal_no_port.vPfunc(m)
     # No future, no marg value of Share
     dvdsFuncFxd_terminal = ConstantFunction(0.0)
 
@@ -272,7 +272,7 @@ init_warm_glow_terminal_only["BeqShift"] = 0.0
 
 
 class BequestWarmGlowConsumerType(IndShockConsumerType):
-    time_inv_ = IndShockConsumerType.time_inv_ + ["BeqCRRA", "BeqShift", "BeqFac"]
+    _time_inv_ = IndShockConsumerType._time_inv_ + ["BeqCRRA", "BeqShift", "BeqFac"]
 
     def __init__(self, **kwds):
         params = init_accidental_bequest.copy()
@@ -1142,7 +1142,7 @@ init_portfolio_bequest.update(default_RiskyDstn_and_ShareGrid_params)
 
 
 class BequestWarmGlowPortfolioType(PortfolioConsumerType):
-    time_inv_ = PortfolioConsumerType.time_inv_ + ["BeqCRRA", "BeqShift", "BeqFac"]
+    _time_inv_ = PortfolioConsumerType._time_inv_ + ["BeqCRRA", "BeqShift", "BeqFac"]
 
     def __init__(self, **kwds):
         params = init_portfolio_bequest.copy()

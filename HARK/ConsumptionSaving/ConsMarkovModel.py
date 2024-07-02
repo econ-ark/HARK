@@ -167,16 +167,16 @@ def make_markov_solution_terminal(CRRA, MrkvArray):
     solution_terminal : ConsumerSolution
         Terminal period solution to the Markov consumption-saving problem.
     """
-    solution_terminal_basic = make_basic_CRRA_solution_terminal(CRRA)
+    _solution_terminal_basic = make_basic_CRRA_solution_terminal(CRRA)
     StateCount_T = MrkvArray[-1].shape[1]
     N = StateCount_T  # for shorter typing
 
     # Make replicated terminal period solution: consume all resources, no human wealth, minimum m is 0
     solution_terminal = ConsumerSolution(
-        cFunc=N * [solution_terminal_basic.cFunc],
-        vFunc=N * [solution_terminal_basic.vFunc],
-        vPfunc=N * [solution_terminal_basic.vPfunc],
-        vPPfunc=N * [solution_terminal_basic.vPPfunc],
+        cFunc=N * [_solution_terminal_basic.cFunc],
+        vFunc=N * [_solution_terminal_basic.vFunc],
+        vPfunc=N * [_solution_terminal_basic.vPfunc],
+        vPPfunc=N * [_solution_terminal_basic.vPPfunc],
         mNrmMin=np.zeros(N),
         hNrm=np.zeros(N),
         MPCmin=np.ones(N),
@@ -737,11 +737,11 @@ class MarkovConsumerType(IndShockConsumerType):
     interest rate, the grid of end-of-period assets, and how he is borrowing constrained.
     """
 
-    time_vary_ = IndShockConsumerType.time_vary_ + ["MrkvArray"]
+    _time_vary_ = IndShockConsumerType._time_vary_ + ["MrkvArray"]
 
     # Mrkv is both a shock and a state
-    shock_vars_ = IndShockConsumerType.shock_vars_ + ["Mrkv"]
-    state_vars = IndShockConsumerType.state_vars + ["Mrkv"]
+    _shock_vars_ = IndShockConsumerType._shock_vars_ + ["Mrkv"]
+    _state_vars = IndShockConsumerType._state_vars + ["Mrkv"]
 
     def __init__(self, **kwds):
         params = init_indshk_markov.copy()

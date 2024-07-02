@@ -1090,8 +1090,8 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
     of the risky asset's return distribution must also be specified.
     """
 
-    time_inv_ = deepcopy(RiskyAssetConsumerType.time_inv_)
-    time_inv_ = time_inv_ + ["AdjustPrb", "DiscreteShareBool"]
+    _time_inv_ = deepcopy(RiskyAssetConsumerType._time_inv_)
+    _time_inv_ = _time_inv_ + ["AdjustPrb", "DiscreteShareBool"]
 
     def __init__(self, verbose=False, quiet=False, **kwds):
         params = init_portfolio.copy()
