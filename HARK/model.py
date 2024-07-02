@@ -77,6 +77,56 @@ def discretized_shock_dstn(shocks, disc_params):
 
     return all_shock_dstn
 
+def construct_shocks(shock_data, scope):
+    """
+    Returns a dictionary from shock labels to Distributions.
+
+    When the corresponding value in shock_data contains
+    a distribution constructor and input information,
+    any symbolic expressions used in the inputs are
+    evaluated in the provided scope.
+
+    Parameters
+    ------------
+
+     shock_data: Mapping(str, Distribution or tuple)
+        A mapping from variable names to Distribution objects,
+        representing exogenous shocks.
+
+        Optionally, the mapping can be to tuples of Distribution
+        constructors and dictionary of input arguments.
+        In this case, the dictionary can map argument names to
+        numbers, or to strings. The strings are parsed as
+        mathematical expressions and evaluated in the scope
+        of a calibration dictionary.
+
+    scope: dict(str, values)
+        Variables assigned to numerical values.
+        The scope in which expressions will be evaluated
+    """
+    sd = deepcopy(shock_data)
+
+    for v in sd:
+        if isinstance(sd[v], tuple):
+            dist_class = sd[v][0]
+
+            dist_args = sd[v][1] # should be a dictionary
+
+            for a in dist_args:
+                if isinstance(dist_args[a], str):
+                    arg_lambda = math_text_to_lambda(dist_args[a])
+                    arg_value = arg_lambda(*[scope[var] for var in signature(arg_lambda).parameters])
+
+                    dist_args[a] = arg_value
+
+            print(v)
+            print(dist_class)
+            print(dist_args)
+            dist = dist_class(**dist_args)
+
+            sd[v] = dist
+
+    return sd
 
 def simulate_dynamics(
     dynamics: Mapping[str, Union[Callable, Control]],
@@ -149,9 +199,16 @@ class DBlock(Block):
 
     Parameters
     ----------
-    shocks: Mapping(str, Distribution)
+    shocks: Mapping(str, Distribution or tuple)
         A mapping from variable names to Distribution objects,
         representing exogenous shocks.
+
+        Optionally, the mapping can be to tuples of Distribution
+        constructors and dictionary of input arguments.
+        In this case, the dictionary can map argument names to
+        numbers, or to strings. The strings are parsed as
+        mathematical expressions and evaluated in the scope
+        of a calibration dictionary.
 
     dynamics: Mapping(str, str or callable)
         A dictionary mapping variable names to mathematical expressions.
