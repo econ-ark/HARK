@@ -17,7 +17,6 @@ calibration = {
     "PermGroFac": 1.01,
     "BoroCnstArt": None,
     "TranShkStd": 0.1,
-    "LivPrb": 0.98,
     "RiskyStd": 0.1,
 }
 
