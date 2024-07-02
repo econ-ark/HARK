@@ -26,6 +26,8 @@ To start learning HARK we recommend working through the [Overview and Examples](
 :color: secondary
 :icon: info
 Recent years have seen major advances in the ability of computational tools to explain the economic behavior of households, firms, and whole economies. But a major impediment to the widespread adoption of these techniques among economists has been the extent to which the advances are the culmination of years of development of intricate and hand-crafted (but mutually incomprehensible) computational tools by a few pioneering scholars and their students. The aim of the Econ-ARK project is to make it much easier for new scholars to begin using these techniques, by providing a modern, robust, open-source set of high-quality computational tools with components that can be mixed, matched, and extended to address the wide variety of problems across all fields of economics that can be effectively studied using such tools.
+
+For users unfamiliar with programming, we strongly encourage you to review the background material on python provided by the good people at [QuantEcon](https://python-programming.quantecon.org/intro.html) including the material on NumPy.
 :::
 
 :::{dropdown} For people with a technical/scientific/computing background but little economics background
