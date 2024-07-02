@@ -156,7 +156,12 @@ class test_agent_population(unittest.TestCase):
         self.assertTrue("DiscFac" in self.agent_pop.distributed_params)
 
     def test_approx_agents(self):
-        self.agent_pop.approx_distributions({"CRRA": 3, "DiscFac": 4})
+        self.agent_pop.approx_distributions(
+            {
+                "CRRA": {"N": 3, "method": "equiprobable"},
+                "DiscFac": {"N": 4, "method": "equiprobable"},
+            }
+        )
 
         self.assertTrue("CRRA" in self.agent_pop.continuous_distributions)
         self.assertTrue("DiscFac" in self.agent_pop.continuous_distributions)
@@ -166,7 +171,12 @@ class test_agent_population(unittest.TestCase):
         self.assertEqual(self.agent_pop.agent_type_count, 12)
 
     def test_create_agents(self):
-        self.agent_pop.approx_distributions({"CRRA": 3, "DiscFac": 4})
+        self.agent_pop.approx_distributions(
+            {
+                "CRRA": {"N": 3, "method": "equiprobable"},
+                "DiscFac": {"N": 4, "method": "equiprobable"},
+            }
+        )
         self.agent_pop.create_distributed_agents()
 
         self.assertEqual(len(self.agent_pop.agents), 12)
@@ -174,12 +184,20 @@ class test_agent_population(unittest.TestCase):
 
 class test_parameters(unittest.TestCase):
     def setUp(self):
-        self.params = Parameters(T_cycle=3, a=1, b=[2, 3, 4], c=np.array([5, 6, 7]))
+        self.params = Parameters(
+            T_cycle=3,
+            a=1,
+            b=[2, 3, 4],
+            c=np.array([5, 6, 7]),
+            d=[lambda x: x, lambda x: x**2, lambda x: x**3],
+            e=Uniform(),
+            f=[True, False, True],
+        )
 
     def test_init(self):
         self.assertEqual(self.params._length, 3)
-        self.assertEqual(self.params._invariant_params, {"a", "c"})
-        self.assertEqual(self.params._varying_params, {"b"})
+        self.assertEqual(self.params._invariant_params, {"a", "c", "e"})
+        self.assertEqual(self.params._varying_params, {"b", "d", "f"})
 
     def test_getitem(self):
         self.assertEqual(self.params["a"], 1)
