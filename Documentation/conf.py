@@ -149,6 +149,9 @@ autodoc_default_flags = ["members"]  # must add outside ']' bracket
 # sphinx.ext.autosummary configuration
 autosummary_generate = True
 
+# Orders functions by the source order
+autodoc_member_order = "bysource"
+
 # sphinx.ext.napoleon configuration
 napoleon_use_ivar = True  # solves duplicate object description warning
 
