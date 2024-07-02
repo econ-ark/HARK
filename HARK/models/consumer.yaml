@@ -29,7 +29,7 @@ blocks:
                 info: m
             a: m - c
 
-        reward: 
+        reward:
             u: c ** (1 - CRRA) / (1 - CRRA)
 
 
