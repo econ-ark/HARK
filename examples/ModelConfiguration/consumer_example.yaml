@@ -1,0 +1,90 @@
+model: &consumer_portfolio
+  agents:
+    consumer:
+      count: 100 # a model with 100 consumers
+
+  calibration:
+    # - DiscFac: 0.96 put this in the solution section
+    - CRRA: 2.0
+    - R: 1.03 # note: this can be overriden by the portfolio dynamics
+    - Rfree: 1.03
+    - EqP: 0.02
+    - PermGroFac: 1.01
+    - TranShkStd: 0.1
+
+  blocks:
+    - &cons # block definition begins with name of the block. Alias 
+      name: consumption_normalized
+      agent: consumer
+      shocks:
+        theta: !MeanOneLogNormal
+          sigma: TranShkStd
+
+      dynamics:
+        b: k * R / PermGroFac
+        m: b + theta,
+        c: !Control
+          inset: m
+          constraints:
+            - c < m
+        a: m - c
+      reward:
+        u: c ** (1 - CRRA) / (1 - CRRA)}
+    
+    - &port
+      name: portfolio
+      agent: consumer
+      shocks:
+        risky_return: !Lognormal
+          mean: Rfree + EqP
+          std: 0.1
+
+      dynamics:
+        stigma: Control(["a"]),
+        R: Rfree + (risky_return - Rfree) * stigma
+  
+  structure: # the sequence of blocks
+    - *cons
+    - *port
+    - twist: # shorthand fo renaming a variable
+        m: k
+    - tick # pass discrete time step
+           # defaults to infinite horizion problem
+
+approximation: &approx # right syntax?
+  theta: # to discretize a continuous probability distribution
+    N : 5
+    method: equiprobable
+  risky_return: 
+    N: 5
+    method: gauss-hermite
+  m: !Linspace # grid over continuous state space
+    start: 0
+    stop: 10
+    num: 25
+  
+        
+strategy: # these configure constructors/solvers of decision rules
+          # for model control variables
+  - &test_policy_profile
+    model: *consumer_portfolio
+    method: hard_rule
+    rules:
+     - c : m / 2
+     - stigma : a / (5 + a)
+
+  - &approx_best_policy_profile
+    model: *consumer_portfolio
+    method: policy_iteration
+    approximation: *approx
+    discount: 0.98 # A discount factor applied at each tick
+
+simulation: !MonteCarlo
+  initialization:
+    k: !Lognormal
+      mean: 1
+      sigma: 0
+    R: 1.03
+  approximation: *approx # use the same shock discretization
+  policy_profile: *approx_best_policy_profile
+  periods: 100
