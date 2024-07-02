@@ -228,6 +228,13 @@ class DBlock(Block):
     dynamics: dict = field(default_factory=dict)
     reward: dict = field(default_factory=dict)
 
+    def construct_shocks(self, calibration):
+        """
+        Constructs all shocks given calibration.
+        This method mutates the DBlock.
+        """
+        self.shocks = construct_shocks(self.shocks, calibration)
+
     def discretize(self, disc_params):
         """
         Returns a new DBlock which is a copy of this one, but with shock discretized.
@@ -359,6 +366,13 @@ class RBlock(Block):
     name: str = ""
     description: str = ""
     blocks: List[Block] = field(default_factory=list)
+
+    def construct_shocks(self, calibration):
+        """
+        Construct all shocks given a calibration dictionary.
+        """
+        for b in self.blocks:
+            b.construct_shocks(calibration)
 
     def discretize(self, disc_params):
         """
