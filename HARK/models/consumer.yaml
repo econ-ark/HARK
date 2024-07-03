@@ -31,30 +31,13 @@ blocks:
 
         reward:
             u: c ** (1 - CRRA) / (1 - CRRA)
-
-
-#portfolio_block = DBlock(
-#    **{
-#        "name": "portfolio",
-#        "shocks": {
-#            "risky_return": (Lognormal, {"mean": "Rfree + EqP", "std": "RiskyStd"})
-#        },
-#        "dynamics": {
-#            "stigma": Control(["a"]),
-#            "R": lambda stigma, Rfree, risky_return: Rfree
-#            + (risky_return - Rfree) * stigma,
-#        },
-#    }
-#)
-
-#tick_block = DBlock(
-#    **{
-#        "name": "tick",
-#        "dynamics": {
-#            "k": lambda a: a,
-#        },
-#    }
-#)
-
-#cons_problem = RBlock(blocks=[consumption_block, tick_block])
-#cons_portfolio_problem = RBlock(blocks=[consumption_block, portfolio_block, tick_block])
+    - &portfolio_choice
+        name: portfolio choice
+        shocks:
+            risky_return: !Lognormal
+                mean: Rfree + EqP
+                std: RiskyStd
+            dynamics:
+                stigma: !Control
+                    info: a
+                R: Rfree + (risky_return - Rfree) * stigma
